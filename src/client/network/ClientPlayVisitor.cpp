@@ -202,28 +202,6 @@ std::vector<ItemStack> viewsToStacks(const std::vector<mc::network::ir::play::It
     return out;
 }
 
-/// 从字节流偏移处读取一个 VarUInt（与 MinecraftServer::appendVarUInt 对称），返回值并推进 offset。
-/// 失败（越界/溢出）返回 nullopt。
-[[nodiscard]] std::optional<u32> readVarUInt(const std::vector<u8>& data, usize& offset)
-{
-    u32 result = 0;
-    int shift = 0;
-    while (true) {
-        if (offset >= data.size()) {
-            return std::nullopt;
-        }
-        const u8 byte = data[offset++];
-        result |= static_cast<u32>(byte & 0x7F) << shift;
-        if ((byte & 0x80) == 0) {
-            return result;
-        }
-        shift += 7;
-        if (shift >= 35) { // VarUInt 最多 5 字节
-            return std::nullopt;
-        }
-    }
-}
-
 /// PlaySound/SoundEntity 的 soundHolder 是服务端降级编码：opaque 字节 = ResourceLocation::toString()
 /// 的 UTF-8（与服务端 MinecraftServer::broadcastSound 的填充对称，我方互通自洽）。
 /// 真正的 1.21.11 Holder<SoundEvent>（VarInt mode + 内联/引用分支）待真 Java 互通时统一升级。
@@ -310,7 +288,8 @@ Result<void> ClientPlayVisitor::handleConfiguration(const mc::network::ir::IrPac
     MC_ASSERT_RELEASE(packet.phase == mc::network::protocol::ConnectionProtocol::Configuration);
     const auto* cfg = std::get_if<mc::network::ir::ConfigurationPacket>(&packet.packet);
     if (cfg == nullptr) {
-        return Error(ErrorCode::InvalidData, "Configuration phase variant missing", "ClientPlayVisitor::handleConfiguration");
+        return Error(
+            ErrorCode::InvalidData, "Configuration phase variant missing", "ClientPlayVisitor::handleConfiguration");
     }
 
     // Configuration 阶段包由 ClientNetwork 内部状态机处理（SelectKnownPacks/FinishConfiguration
@@ -469,9 +448,9 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ---- 区块数据 ----
             else if constexpr (std::is_same_v<T, irplay::LevelChunkWithLight>) {
                 const auto& p = pkt;
-                auto buffer = std::make_shared<std::vector<u8>>(p.chunkData);
-                m_app.m_world.onChunkData(
-                    p.x, p.z, m_app.m_dimensionManager.currentDimension(), buffer->data(), buffer->size(), buffer);
+                // IR 结构体经 LocalTransport 零拷贝直传（本地客户端）或经 codec 解码（远程）。
+                // ClientWorld 内部调 readLevelChunkWithLightIR 还原 ChunkData，异步下沉 worker。
+                m_app.m_world.onLevelChunkWithLight(p, m_app.m_dimensionManager.currentDimension());
                 return Result<void>::ok();
             }
             // 1.21.11 已删 UnloadChunk 包：区块卸载由客户端按距离自行管理
@@ -1444,42 +1423,38 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ---- 光照更新 ----
             else if constexpr (std::is_same_v<T, irplay::LightUpdate>) {
                 const auto& p = pkt;
-                // 服务端 MinecraftServer::broadcastLightUpdate 自研格式（我方互通）：
-                //   i32 sectionY(大端) + u8 flags + VarUInt(skyLen) + skyLight +
-                //   VarUInt(blockLen) + blockLight
-                //   flags: 0x01=有 skyLight, 0x02=有 blockLight, 0x04=trustEdges
-                // 解析后写入对应 ChunkSection 的 nibble 并触发网格重建（onLightUpdate 末尾 _requestChunkMeshRebuild）。
-                const std::vector<u8>& data = p.lightData;
-                usize offset = 0;
-                if (data.size() < sizeof(i32) + sizeof(u8)) {
-                    return Result<void>::ok(); // 残包，静默丢弃
-                }
-                const i32 sectionY = static_cast<i32>((static_cast<u32>(data[0]) << 24) |
-                    (static_cast<u32>(data[1]) << 16) | (static_cast<u32>(data[2]) << 8) | static_cast<u32>(data[3]));
-                const u8 flags = data[4];
-                offset = sizeof(i32) + sizeof(u8);
+                // 1.21.11 ClientboundLightUpdatePacket：codec 已把线格式解析为结构化字段
+                //   lightMasks[0..3] = skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask（最小长整型数组）
+                //   lightUpdates[0..1] = skyUpdates / blockUpdates（每条一个光照段 2048 字节 nibble）
+                // BitSet 位 i 对应光照段 Y = minLightSection + i（minLightSection = MIN_SECTION_Y - 1，主世界=-5）。
+                // yMask 的每个置位位对应 lightUpdates 列表里按序一条 nibble，逐位下发到对应 ChunkSection。
+                constexpr i32 kMinLightSection = mc::world::MIN_SECTION_Y - 1; // 主世界=-5
 
-                const bool trustEdges = (flags & 0x04) != 0;
-                std::vector<u8> skyLight;
-                std::vector<u8> blockLight;
-                if ((flags & 0x01) != 0) {
-                    auto len = readVarUInt(data, offset);
-                    if (!len || offset + *len > data.size()) {
-                        return Result<void>::ok();
-                    }
-                    skyLight.assign(data.data() + offset, data.data() + offset + *len);
-                    offset += *len;
-                }
-                if ((flags & 0x02) != 0) {
-                    auto len = readVarUInt(data, offset);
-                    if (!len || offset + *len > data.size()) {
-                        return Result<void>::ok();
-                    }
-                    blockLight.assign(data.data() + offset, data.data() + offset + *len);
-                    offset += *len;
-                }
+                auto dispatchLayer =
+                    [&](bool isSky, const std::vector<i64>& mask, const std::vector<std::vector<u8>>& updates) {
+                        usize updateIdx = 0;
+                        for (usize li = 0; li < mask.size(); ++li) {
+                            const u64 word = static_cast<u64>(mask[li]);
+                            if (word == 0) {
+                                continue;
+                            }
+                            for (u32 b = 0; b < 64; ++b) {
+                                if (((word >> b) & 1ULL) == 0) {
+                                    continue;
+                                }
+                                if (updateIdx >= updates.size()) {
+                                    break; // yMask 置位数与列表长度不符，防御：剩余位丢弃
+                                }
+                                const i32 bitIndex = static_cast<i32>(li * 64 + b);
+                                const i32 sectionY = kMinLightSection + bitIndex;
+                                const std::vector<u8>& nibble = updates[updateIdx++];
+                                m_app.m_world.onLightSection(p.x, p.z, sectionY, isSky, nibble);
+                            }
+                        }
+                    };
 
-                m_app.m_world.onLightUpdate(p.x, p.z, sectionY, skyLight, blockLight, trustEdges);
+                dispatchLayer(true, p.lightMasks[0], p.lightUpdates[0]);  // sky
+                dispatchLayer(false, p.lightMasks[1], p.lightUpdates[1]); // block
                 return Result<void>::ok();
             }
             // ---- 声音 ----

@@ -127,3 +127,7 @@ benchmark_results/
 
 # CMake 生成的版本头（模板为 version.h.in，每次构建重生成，勿追踪）
 include/minecraft-reborn/version.h
+
+# 离线烘焙生成的 Java id 查找表（由 scripts/baking/*.ts 在构建期重生成，勿追踪）
+src/common/world/block/generated/*.gen.cpp
+src/common/world/block/generated/*.gen.hpp

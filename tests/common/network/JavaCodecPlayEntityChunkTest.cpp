@@ -244,7 +244,9 @@ TEST_F(NetworkTestBase, PlaySetEntityDataWithBytes)
 
 // ============================================================================
 // 批 6：区块/方块 S→C（LevelChunkWithLight/LightUpdate/BlockUpdate）
-// 区块/光照数据是 opaque 字节透传（项目自有 ChunkSerializer 格式，非 Java PalettedContainer）。
+// LevelChunkWithLight IR 为 vanilla 1.21.11 结构化字段（heightmaps/sections/blockEntities/
+// lightMasks/lightUpdates），codec 按 vanilla wire 编码（i32x+i32z+heightmaps+sectionBuf+
+// blockEntities+4BitSet+2List，无外层长度前缀）。此处测表级往返对称性。
 // ============================================================================
 
 TEST_F(NetworkTestBase, PlayLevelChunkWithLightEmpty)
@@ -252,8 +254,7 @@ TEST_F(NetworkTestBase, PlayLevelChunkWithLightEmpty)
     LevelChunkWithLight in{};
     in.x = 0;
     in.z = 0;
-    in.chunkData = {};
-    in.lightData = {};
+    // 全空结构化字段：空 heightmaps/sections/blockEntities/lightMasks/lightUpdates。
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 36u);
     EXPECT_EQ(std::get<LevelChunkWithLight>(out), in);
@@ -264,8 +265,25 @@ TEST_F(NetworkTestBase, PlayLevelChunkWithLightFilled)
     LevelChunkWithLight in{};
     in.x = -5;
     in.z = 12;
-    in.chunkData = std::vector<u8>(256, 0xAB);
-    in.lightData = std::vector<u8>{0x01, 0x02, 0x03, 0x04};
+
+    // 单段 section：states/biomes 均 SingleValue palette（bits=0，1 个 globalId，无 storage）。
+    ChunkSectionWire sec{};
+    sec.nonEmptyBlockCount = 42;
+    sec.states.bits = 0;
+    sec.states.paletteGlobalIds = {1u}; // minecraft:stone
+    sec.biomes.bits = 0;
+    sec.biomes.paletteGlobalIds = {40u}; // plains biome registry id
+    in.sections = {sec};
+
+    // 单条高度图：WORLD_SURFACE(typeId=1)，空 data（空列）。
+    HeightmapEntryWire hm{};
+    hm.typeId = 1;
+    in.heightmaps = {hm};
+
+    // 单段 sky 光照：skyYMask bit5 置位 + 一条 2048 字节 nibble。
+    in.lightMasks[0] = std::vector<u64>{1ULL << 5};
+    in.lightUpdates[0] = std::vector<std::vector<u8>>{std::vector<u8>(2048, 0x5A)};
+
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 36u);
     EXPECT_EQ(std::get<LevelChunkWithLight>(out), in);
@@ -273,10 +291,13 @@ TEST_F(NetworkTestBase, PlayLevelChunkWithLightFilled)
 
 TEST_F(NetworkTestBase, PlayLightUpdate)
 {
+    // 1.21.11 ClientboundLightUpdatePacket：VarInt(x)+VarInt(z)+4×BitSet+2×List<byte[≤2048]>。
+    // 构造单段 sky 光照更新：bitIndex=5（光照段 Y=0，minLightSection=-5）置位，附一条 2048 字节 nibble。
     LightUpdate in{};
     in.x = 3;
     in.z = -7;
-    in.lightData = std::vector<u8>(128, 0x5A);
+    in.lightMasks[0] = std::vector<i64>{1LL << 5}; // skyYMask：bit5 置位
+    in.lightUpdates[0] = std::vector<std::vector<u8>>{std::vector<u8>(2048, 0x5A)};
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 37u);
     EXPECT_EQ(std::get<LightUpdate>(out), in);

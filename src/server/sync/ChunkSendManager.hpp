@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
@@ -144,16 +145,19 @@ public:
     void removePlayer(PlayerId playerId);
 
     /**
-     * @brief 从 Worker 线程提交序列化数据
+     * @brief 从 Worker 线程提交已构建的区块 IR
      * @param x 区块X坐标
      * @param z 区块Z坐标
-     * @param data 序列化数据
+     * @param ir 已构建的 LevelChunkWithLight IR（vanilla 语义，由 buildLevelChunkWithLightIR 产出）
      * @param players 目标玩家列表
      * @param validateTracking 发送前是否校验玩家仍在追踪该区块
      * @thread-safe
      */
-    void submitChunkData(
-        ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players, bool validateTracking = false);
+    void submitChunkData(ChunkCoord x,
+        ChunkCoord z,
+        mc::network::ir::play::LevelChunkWithLight ir,
+        std::vector<PlayerId> players,
+        bool validateTracking = false);
 
     /**
      * @brief 主线程处理待发送队列
@@ -162,9 +166,14 @@ public:
 
     /**
      * @brief 设置区块发送回调
-     * @param callback 回调函数，参数为(玩家ID, 区块X, 区块Z, 数据)
+     * @param callback 回调函数，参数为(玩家ID, 区块X, 区块Z, 区块IR)
+     *
+     * 回调在主线程 processPendingSends 内按 (chunk, player) 对调用，同一 chunk 给 N 个玩家
+     * 触发 N 次。IR 已在 worker 线程构建一次，回调侧仅按玩家拷贝进包（与旧 bytes 方案等价）。
      */
-    void setOnChunkSend(std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> callback);
+    void setOnChunkSend(
+        std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)>
+            callback);
 
     /**
      * @brief 设置区块卸载回调
@@ -185,7 +194,7 @@ private:
     struct ReadyChunkData {
         ChunkCoord x = 0;
         ChunkCoord z = 0;
-        std::vector<u8> data;
+        mc::network::ir::play::LevelChunkWithLight ir;
         std::vector<PlayerId> players;
         bool validateTracking = false;
     };
@@ -197,7 +206,8 @@ private:
     std::vector<ReadyChunkData> m_readyChunks;
     std::mutex m_readyChunksMutex;
 
-    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> m_onChunkSend;
+    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)>
+        m_onChunkSend;
     std::function<void(PlayerId, ChunkCoord, ChunkCoord)> m_onChunkUnload;
 };
 

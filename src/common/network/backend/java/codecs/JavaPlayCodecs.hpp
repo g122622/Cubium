@@ -938,61 +938,340 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 // ============================================================================
 
 /// LevelChunkWithLight（S→C，id=44）
-/// 线格式：Int(x)+Int(z)+VarInt(chunkData 长度)+chunkData+VarInt(lightData 长度)+lightData。
-/// chunkData/lightData 承载项目内部 ChunkSerializer 格式（非 Java PalettedContainer wire），
-/// 双端透传自洽；真 Java 互通需独立 1.21.11 wire 适配层，不在本层范围。
+/// 线格式（1.21.11 ClientboundLevelChunkWithLightPacket，无外层长度前缀）：
+///   i32 x + i32 z +
+///   [heightmaps + VarInt(sectionBufLen)+sectionBuf + blockEntities] +
+///   [skyYMask + blockYMask + emptySkyYMask + emptyBlockYMask + skyUpdates + blockUpdates]
+/// heightmaps = VarInt(count) + count×(VarInt(typeId) + VarInt(longCount) + longCount×i64)。
+/// sectionBuf = 24 段连续 { i16 nonEmptyBlockCount + states PalettedContainer + biomes PalettedContainer }。
+/// PalettedContainer = u8 bits + palette(bits=0:VarInt(1×globalId);1-8:VarInt(size)+size×VarInt;
+///                     ≥9:空) + long[] storage(无前缀，longCount 由 bits+entryCount 隐含，大端)。
+/// blockEntities = VarInt(count) + count×(u8 packedXZ + i16 y + VarInt(typeRegistryId) + 根 NBT)。
+/// BitSet = VarInt(longCount) + longCount×i64(最小数组)；List = VarInt(n) + n×(VarInt(2048)+bytes)。
+namespace play_detail {
+/// 编码 PalettedContainer IR 为 vanilla wire（无外层长度前缀）。
+inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainerWire& pc)
+{
+    buf.writeU8(pc.bits);
+    if (pc.bits == 0) {
+        // SingleValue：1 个全局 id，storage 空。
+        buf.writeVarInt(pc.paletteGlobalIds.empty() ? 0 : static_cast<i32>(pc.paletteGlobalIds[0]));
+    } else if (pc.bits <= 8) {
+        // Linear/HashMap：VarInt(size) + size×VarInt(globalId)。
+        buf.writeVarInt(static_cast<i32>(pc.paletteGlobalIds.size()));
+        for (const u32 gid : pc.paletteGlobalIds) {
+            buf.writeVarInt(static_cast<i32>(gid));
+        }
+    }
+    // bits >= 9（Global）：palette 空，storage 直接存全局 id。
+    // storage：无长度前缀，逐元素大端 writeI64。
+    for (const u64 word : pc.storage) {
+        buf.writeI64(static_cast<i64>(word));
+    }
+}
+
+/// 解码 vanilla wire PalettedContainer 为 IR。entryCount 仅用于 bits==0 时不参与（仅校验），
+/// storage 长度由 bits 与 entryCount 隐含（longCount = ceil(entryCount / floor(64/bits))）。
+[[nodiscard]] inline Result<ir::play::PalettedContainerWire> readPalettedContainerWire(B& buf, int entryCount)
+{
+    ir::play::PalettedContainerWire pc;
+    u8 bits = 0;
+    MC_TRY_ASSIGN(bits, buf.readU8());
+    pc.bits = bits;
+    if (bits == 0) {
+        // SingleValue
+        i32 value = 0;
+        MC_TRY_ASSIGN(value, buf.readVarInt());
+        if (value < 0) {
+            return Error(
+                ErrorCode::InvalidData, "PalettedContainer single value is negative", "levelChunkWithLightCodec");
+        }
+        pc.paletteGlobalIds.push_back(static_cast<u32>(value));
+        return pc;
+    }
+    if (bits > 15) {
+        return Error(ErrorCode::InvalidData, "PalettedContainer bits out of range", "levelChunkWithLightCodec");
+    }
+    if (bits <= 8) {
+        // Linear/HashMap palette
+        i32 size = 0;
+        MC_TRY_ASSIGN(size, buf.readVarInt());
+        if (size < 0 || size > 4096) {
+            return Error(
+                ErrorCode::InvalidData, "PalettedContainer palette size out of range", "levelChunkWithLightCodec");
+        }
+        pc.paletteGlobalIds.reserve(static_cast<usize>(size));
+        for (i32 i = 0; i < size; ++i) {
+            i32 gid = 0;
+            MC_TRY_ASSIGN(gid, buf.readVarInt());
+            if (gid < 0) {
+                return Error(
+                    ErrorCode::InvalidData, "PalettedContainer palette id is negative", "levelChunkWithLightCodec");
+            }
+            pc.paletteGlobalIds.push_back(static_cast<u32>(gid));
+        }
+    }
+    // Global（bits >= 9）：palette 空。
+    // storage：longCount = ceil(entryCount / floor(64/bits))，与 VanillaChunkWire 打包侧一致。
+    const int valuesPerLong = 64 / bits;
+    const int longCount = (entryCount + valuesPerLong - 1) / valuesPerLong;
+    pc.storage.reserve(static_cast<usize>(longCount));
+    for (int i = 0; i < longCount; ++i) {
+        i64 word = 0;
+        MC_TRY_ASSIGN(word, buf.readI64());
+        pc.storage.push_back(static_cast<u64>(word));
+    }
+    return pc;
+}
+} // namespace play_detail
+
 [[nodiscard]] inline auto levelChunkWithLightCodec()
 {
     return makeCodec<ir::play::LevelChunkWithLight>(
         [](B& buf, const ir::play::LevelChunkWithLight& v) {
             buf.writeI32(v.x);
             buf.writeI32(v.z);
-            buf.writeVarInt(static_cast<i32>(v.chunkData.size()));
-            buf.writeBytes(v.chunkData.data(), v.chunkData.size());
-            buf.writeVarInt(static_cast<i32>(v.lightData.size()));
-            buf.writeBytes(v.lightData.data(), v.lightData.size());
+
+            // heightmaps：VarInt(count) + count×(VarInt(typeId) + VarInt(longCount) + longCount×i64)。
+            buf.writeVarInt(static_cast<i32>(v.heightmaps.size()));
+            for (const auto& hm : v.heightmaps) {
+                buf.writeVarInt(static_cast<i32>(hm.typeId));
+                buf.writeVarInt(static_cast<i32>(hm.data.size()));
+                for (const u64 word : hm.data) {
+                    buf.writeI64(static_cast<i64>(word));
+                }
+            }
+
+            // sections：编进子 buffer，前置 VarInt(sectionBufLen)。
+            B sectionBuf;
+            for (const auto& sec : v.sections) {
+                sectionBuf.writeI16(sec.nonEmptyBlockCount);
+                play_detail::writePalettedContainerWire(sectionBuf, sec.states);
+                play_detail::writePalettedContainerWire(sectionBuf, sec.biomes);
+            }
+            buf.writeVarInt(static_cast<i32>(sectionBuf.size()));
+            buf.writeBytes(sectionBuf.data(), sectionBuf.size());
+
+            // blockEntities：VarInt(count) + count×(u8 packedXZ + i16 y + VarInt(typeRegistryId) + 根 NBT)。
+            buf.writeVarInt(static_cast<i32>(v.blockEntities.size()));
+            for (const auto& be : v.blockEntities) {
+                buf.writeU8(be.packedXZ);
+                buf.writeI16(be.y);
+                buf.writeVarInt(static_cast<i32>(be.typeRegistryId));
+                const nbt::CompoundTag emptyTag{};
+                const nbt::CompoundTag& tag = be.tag ? *be.tag : emptyTag;
+                (void)buffer::nbt_io::writeRootCompound(buf, tag);
+            }
+
+            // 光照：4 BitSet（最小 long 数组）+ 2 List。
+            for (const auto& mask : v.lightMasks) {
+                buf.writeVarInt(static_cast<i32>(mask.size()));
+                for (const u64 word : mask) {
+                    buf.writeI64(static_cast<i64>(word));
+                }
+            }
+            for (const auto& updates : v.lightUpdates) {
+                buf.writeVarInt(static_cast<i32>(updates.size()));
+                for (const auto& nibble : updates) {
+                    buf.writeVarInt(static_cast<i32>(nibble.size()));
+                    buf.writeBytes(nibble.data(), nibble.size());
+                }
+            }
         },
         [](B& buf) -> Result<ir::play::LevelChunkWithLight> {
             ir::play::LevelChunkWithLight v{};
             MC_TRY_ASSIGN(v.x, buf.readI32());
             MC_TRY_ASSIGN(v.z, buf.readI32());
-            i32 chunkLen = 0;
-            MC_TRY_ASSIGN(chunkLen, buf.readVarInt());
-            if (chunkLen < 0) {
-                return Error(ErrorCode::InvalidData, "chunkData length is negative", "levelChunkWithLightCodec");
+
+            // heightmaps
+            i32 hmCount = 0;
+            MC_TRY_ASSIGN(hmCount, buf.readVarInt());
+            if (hmCount < 0 || hmCount > 16) {
+                return Error(ErrorCode::InvalidData, "heightmap count out of range", "levelChunkWithLightCodec");
             }
-            MC_TRY_ASSIGN(v.chunkData, buf.readBytes(static_cast<usize>(chunkLen)));
-            i32 lightLen = 0;
-            MC_TRY_ASSIGN(lightLen, buf.readVarInt());
-            if (lightLen < 0) {
-                return Error(ErrorCode::InvalidData, "lightData length is negative", "levelChunkWithLightCodec");
+            v.heightmaps.reserve(static_cast<usize>(hmCount));
+            for (i32 i = 0; i < hmCount; ++i) {
+                ir::play::HeightmapEntryWire hm{};
+                i32 typeId = 0;
+                MC_TRY_ASSIGN(typeId, buf.readVarInt());
+                hm.typeId = static_cast<u8>(typeId);
+                i32 longCount = 0;
+                MC_TRY_ASSIGN(longCount, buf.readVarInt());
+                if (longCount < 0 || longCount > 64) {
+                    return Error(
+                        ErrorCode::InvalidData, "heightmap longCount out of range", "levelChunkWithLightCodec");
+                }
+                hm.data.reserve(static_cast<usize>(longCount));
+                for (i32 j = 0; j < longCount; ++j) {
+                    i64 word = 0;
+                    MC_TRY_ASSIGN(word, buf.readI64());
+                    hm.data.push_back(static_cast<u64>(word));
+                }
+                v.heightmaps.push_back(std::move(hm));
             }
-            MC_TRY_ASSIGN(v.lightData, buf.readBytes(static_cast<usize>(lightLen)));
+
+            // sections
+            i32 sectionBufLen = 0;
+            MC_TRY_ASSIGN(sectionBufLen, buf.readVarInt());
+            if (sectionBufLen < 0 || sectionBufLen > 1024 * 1024) {
+                return Error(ErrorCode::InvalidData, "section buffer length out of range", "levelChunkWithLightCodec");
+            }
+            // 段数由 sectionBufLen 隐含：逐段解码直到子 buffer 耗尽。
+            // 但 wire 里 sectionBuf 是主 buf 的一段连续字节，需切出子视图读取。
+            // 这里直接在主 buf 上顺序读：先记录起点，读到消费 sectionBufLen 字节为止。
+            const usize sectionStart = 0; // 占位，下方用 readBytesView 切片
+            (void)sectionStart;
+            // 取出 sectionBufLen 字节作为子 buffer，逐段解码。
+            std::vector<u8> sectionBytes;
+            MC_TRY_ASSIGN(sectionBytes, buf.readBytes(static_cast<usize>(sectionBufLen)));
+            B sectionBuf(sectionBytes.data(), sectionBytes.size());
+            // 段数上限防御：主世界 24，扩展维度最多 64。
+            while (sectionBuf.readableBytes() > 0) {
+                if (v.sections.size() >= 64) {
+                    return Error(ErrorCode::InvalidData, "too many sections", "levelChunkWithLightCodec");
+                }
+                ir::play::ChunkSectionWire sec{};
+                MC_TRY_ASSIGN(sec.nonEmptyBlockCount, sectionBuf.readI16());
+                MC_TRY_ASSIGN(sec.states, play_detail::readPalettedContainerWire(sectionBuf, 4096));
+                MC_TRY_ASSIGN(sec.biomes, play_detail::readPalettedContainerWire(sectionBuf, 64));
+                v.sections.push_back(std::move(sec));
+            }
+
+            // blockEntities
+            i32 beCount = 0;
+            MC_TRY_ASSIGN(beCount, buf.readVarInt());
+            if (beCount < 0 || beCount > 1024) {
+                return Error(ErrorCode::InvalidData, "block entity count out of range", "levelChunkWithLightCodec");
+            }
+            v.blockEntities.reserve(static_cast<usize>(beCount));
+            for (i32 i = 0; i < beCount; ++i) {
+                ir::play::BlockEntityInfoWire be{};
+                MC_TRY_ASSIGN(be.packedXZ, buf.readU8());
+                MC_TRY_ASSIGN(be.y, buf.readI16());
+                i32 typeId = 0;
+                MC_TRY_ASSIGN(typeId, buf.readVarInt());
+                be.typeRegistryId = static_cast<u32>(typeId);
+                auto tagResult = buffer::nbt_io::readRootCompound(buf);
+                if (tagResult.failed()) {
+                    return tagResult.error();
+                }
+                be.tag = std::shared_ptr<nbt::CompoundTag>(tagResult.value().release());
+                v.blockEntities.push_back(std::move(be));
+            }
+
+            // 光照：4 BitSet + 2 List
+            for (auto& mask : v.lightMasks) {
+                i32 longCount = 0;
+                MC_TRY_ASSIGN(longCount, buf.readVarInt());
+                if (longCount < 0 || longCount > 64) {
+                    return Error(
+                        ErrorCode::InvalidData, "light mask longCount out of range", "levelChunkWithLightCodec");
+                }
+                mask.reserve(static_cast<usize>(longCount));
+                for (i32 i = 0; i < longCount; ++i) {
+                    i64 word = 0;
+                    MC_TRY_ASSIGN(word, buf.readI64());
+                    mask.push_back(static_cast<u64>(word));
+                }
+            }
+            for (auto& updates : v.lightUpdates) {
+                i32 elemCount = 0;
+                MC_TRY_ASSIGN(elemCount, buf.readVarInt());
+                if (elemCount < 0 || elemCount > 64) {
+                    return Error(ErrorCode::InvalidData, "light list count out of range", "levelChunkWithLightCodec");
+                }
+                updates.reserve(static_cast<usize>(elemCount));
+                for (i32 i = 0; i < elemCount; ++i) {
+                    i32 byteLen = 0;
+                    MC_TRY_ASSIGN(byteLen, buf.readVarInt());
+                    if (byteLen < 0 || byteLen > 2048) {
+                        return Error(
+                            ErrorCode::InvalidData, "light nibble size out of range", "levelChunkWithLightCodec");
+                    }
+                    std::vector<u8> nibble;
+                    MC_TRY_ASSIGN(nibble, buf.readBytes(static_cast<usize>(byteLen)));
+                    updates.push_back(std::move(nibble));
+                }
+            }
             return v;
         });
 }
 
 /// LightUpdate（S→C，id=47）
-/// 线格式：VarInt(x)+VarInt(z)+VarInt(lightData 长度)+lightData。
+///
+/// 线格式（1.21.11 ClientboundLightUpdatePacket）：
+///   VarInt(x) + VarInt(z) +
+///   skyYMask + blockYMask + emptySkyYMask + emptyBlockYMask +
+///   skyUpdates + blockUpdates
+/// BitSet = VarInt(longCount) + longCount×i64（大端）；空 BitSet 写 longCount=0。
+/// 列表 = VarInt(elemCount) + elemCount×(VarInt(byteLen) + bytes)，每条 nibble ≤2048 字节。
+/// 无外层长度前缀（包长已在传输层 VarInt 帧头）。
 [[nodiscard]] inline auto lightUpdateCodec()
 {
     return makeCodec<ir::play::LightUpdate>(
         [](B& buf, const ir::play::LightUpdate& v) {
             buf.writeVarInt(v.x);
             buf.writeVarInt(v.z);
-            buf.writeVarInt(static_cast<i32>(v.lightData.size()));
-            buf.writeBytes(v.lightData.data(), v.lightData.size());
+            // 四个 BitSet（最小长整型数组形式）：skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask
+            for (const auto& mask : v.lightMasks) {
+                buf.writeVarInt(static_cast<i32>(mask.size()));
+                for (i64 word : mask) {
+                    buf.writeI64(word);
+                }
+            }
+            // 两个 nibble 列表：skyUpdates / blockUpdates
+            for (const auto& updates : v.lightUpdates) {
+                buf.writeVarInt(static_cast<i32>(updates.size()));
+                for (const auto& nibble : updates) {
+                    buf.writeVarInt(static_cast<i32>(nibble.size()));
+                    buf.writeBytes(nibble.data(), nibble.size());
+                }
+            }
         },
         [](B& buf) -> Result<ir::play::LightUpdate> {
             ir::play::LightUpdate v{};
             MC_TRY_ASSIGN(v.x, buf.readVarInt());
             MC_TRY_ASSIGN(v.z, buf.readVarInt());
-            i32 len = 0;
-            MC_TRY_ASSIGN(len, buf.readVarInt());
-            if (len < 0) {
-                return Error(ErrorCode::InvalidData, "lightData length is negative", "lightUpdateCodec");
+            for (auto& mask : v.lightMasks) {
+                i32 longCount = 0;
+                MC_TRY_ASSIGN(longCount, buf.readVarInt());
+                if (longCount < 0) {
+                    return Error(ErrorCode::InvalidData, "LightUpdate mask longCount is negative", "lightUpdateCodec");
+                }
+                // 上限：单 BitSet 不应超过光照段数对应的 long 数（防御游标错位致 OOM）。
+                // 主世界 26 段 < 1 long；256 段维度也仅 4 long。给 64 long（4096 段）余量足够。
+                if (longCount > 64) {
+                    return Error(ErrorCode::InvalidData, "LightUpdate mask longCount too large", "lightUpdateCodec");
+                }
+                mask.reserve(static_cast<usize>(longCount));
+                for (i32 i = 0; i < longCount; ++i) {
+                    i64 word = 0;
+                    MC_TRY_ASSIGN(word, buf.readI64());
+                    mask.push_back(word);
+                }
             }
-            MC_TRY_ASSIGN(v.lightData, buf.readBytes(static_cast<usize>(len)));
+            for (auto& updates : v.lightUpdates) {
+                i32 elemCount = 0;
+                MC_TRY_ASSIGN(elemCount, buf.readVarInt());
+                if (elemCount < 0) {
+                    return Error(ErrorCode::InvalidData, "LightUpdate list count is negative", "lightUpdateCodec");
+                }
+                if (elemCount > 64) {
+                    return Error(ErrorCode::InvalidData, "LightUpdate list count too large", "lightUpdateCodec");
+                }
+                updates.reserve(static_cast<usize>(elemCount));
+                for (i32 i = 0; i < elemCount; ++i) {
+                    i32 byteLen = 0;
+                    MC_TRY_ASSIGN(byteLen, buf.readVarInt());
+                    if (byteLen < 0 || byteLen > 2048) {
+                        return Error(
+                            ErrorCode::InvalidData, "LightUpdate nibble size out of range", "lightUpdateCodec");
+                    }
+                    std::vector<u8> nibble;
+                    MC_TRY_ASSIGN(nibble, buf.readBytes(static_cast<usize>(byteLen)));
+                    updates.push_back(std::move(nibble));
+                }
+            }
             return v;
         });
 }

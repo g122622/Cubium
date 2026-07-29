@@ -206,7 +206,7 @@ nibble 取该列天空光。这避免主线程读返回默认值（旧路径经�
 
 **问题**：将客户端光包视为立即网格重建触发器，会导致重复的网格重建任务。
 
-**解决**：`ClientWorld` 使用 `meshRebuildPending` 合并同一区块的重复 `onLightUpdate()` 调用。
+**解决**：`ClientWorld` 使用 `meshRebuildPending` 合并同一区块的重复 `onLightSection()` 调用。
 
 ### 12. WorldLightManager tick 预算消耗
 

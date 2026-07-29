@@ -150,8 +150,11 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
 
     // 连续 8 次光照更新应走 _requestChunkMeshRebuild：发现 activeMeshTaskId != 0 即早退，
     // 不得重复提交网格任务（meshRebuildPending 仅置标记，等当前任务完成后由调度器复跑）。
+    // onLightSection 按 lightType 单独下发：sky 与 block 各调一次（1.21.11 ClientboundLightUpdatePacket
+    // 的 BitSet mask 逐层处理）。
     for (i32 i = 0; i < 8; ++i) {
-        world.onLightUpdate(0, 0, 0, skyLight, blockLight, false);
+        world.onLightSection(0, 0, 0, true, skyLight);
+        world.onLightSection(0, 0, 0, false, blockLight);
     }
 
     const MeshSchedulerStats afterStats = scheduler->stats();

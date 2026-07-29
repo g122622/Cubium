@@ -219,4 +219,4 @@ UI 组件不是线程安全的。所有 UI 操作必须在主线程执行，跨�
 
 ### 23. 光照包处理
 
-`onLightUpdate()` 会先标记 `meshRebuildPending`，如果同一 chunk 的网格任务还在路上，就等当前任务结束后再补提，避免单个 chunk 被光照更新线性打爆。
+`onLightSection()` 会先标记 `meshRebuildPending`，如果同一 chunk 的网格任务还在路上，就等当前任务结束后再补提，避免单个 chunk 被光照更新线性打爆。

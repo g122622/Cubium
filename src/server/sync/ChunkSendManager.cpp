@@ -23,6 +23,7 @@
 
 #include "ChunkSendManager.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/VanillaChunkWire.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -59,37 +60,37 @@ void ChunkSendManager::sendChunkToPlayers(
         // 取 ServerCompute 池；启动早期/测试环境未注入时为 nullptr，走同步 fallback。
         util::UniversalWorkerPool* executor = m_chunkManager.radiusAwareExecutor();
         if (executor == nullptr) {
-            auto result = network::ChunkSerializer::serializeChunk(*chunk);
+            auto result = world::chunk::VanillaChunkWire::buildLevelChunkWithLightIR(*chunk);
             if (result.success()) {
                 submitChunkData(x, z, std::move(result.value()), players, validateTracking);
             } else {
-                spdlog::warn("Failed to serialize chunk ({}, {}): {}", x, z, result.error().message());
+                spdlog::warn("Failed to build chunk IR ({}, {}): {}", x, z, result.error().message());
             }
             return;
         }
 
-        // 异步序列化：shared_ptr 捕获保活，worker 在途期间即使主线程卸载区块，ChunkData 引用计数维持存活。
-        // writeRadius=0 区域互斥——与 RuntimeLightTask(writeRadius=2) 串行，保证 serialize 读
+        // 异步构建 IR：shared_ptr 捕获保活，worker 在途期间即使主线程卸载区块，ChunkData 引用计数维持存活。
+        // writeRadius=0 区域互斥——与 RuntimeLightTask(writeRadius=2) 串行，保证 buildIR 读
         // ChunkSection nibble 不与光照写竞争。结果经已有的线程安全 submitChunkData 入 m_readyChunks，
         // 主线程 processPendingSends drain 后真正发包。
         auto task = std::make_unique<util::FunctionTask>(
             util::TaskType::Custom,
-            fmt::format("SerializeChunk({},{})", x, z),
+            fmt::format("BuildChunkIR({},{})", x, z),
             [this, x, z, chunk, players, validateTracking](const std::atomic<bool>& abortSignal) -> bool {
                 // 任务可能被取消（关服/区块卸载），检查后安全跳过。
                 // shared_ptr 随 lambda 析构释放，无需特殊清理。
                 if (abortSignal.load(std::memory_order::acquire)) {
                     return false;
                 }
-                auto result = network::ChunkSerializer::serializeChunk(*chunk);
+                auto result = world::chunk::VanillaChunkWire::buildLevelChunkWithLightIR(*chunk);
                 if (result.failed()) {
-                    spdlog::warn("Failed to serialize chunk ({}, {}): {}", x, z, result.error().message());
+                    spdlog::warn("Failed to build chunk IR ({}, {}): {}", x, z, result.error().message());
                     return true;
                 }
                 submitChunkData(x, z, std::move(result.value()), players, validateTracking);
                 return true;
             },
-            "server_chunk_serialize");
+            "server_chunk_build_ir");
 
         executor->submit(std::move(task),
             /*callback=*/nullptr,
@@ -109,10 +110,10 @@ void ChunkSendManager::sendChunkToPlayers(
                         return;
                     }
 
-                    auto result = network::ChunkSerializer::serializeChunk(*loadedChunk);
+                    auto result = world::chunk::VanillaChunkWire::buildLevelChunkWithLightIR(*loadedChunk);
                     if (result.success()) {
                         submitChunkData(x, z, std::move(result.value()), players, validateTracking);
-                        // spdlog::info("Chunk ({}, {}) loaded async, serialized for {} players", x, z, players.size());
+                        // spdlog::info("Chunk ({}, {}) loaded async, IR built for {} players", x, z, players.size());
                     }
                 } else {
                     spdlog::warn("Failed to load chunk ({}, {}) for sending", x, z);
@@ -199,8 +200,11 @@ void ChunkSendManager::removePlayer(PlayerId playerId)
     }
 }
 
-void ChunkSendManager::submitChunkData(
-    ChunkCoord x, ChunkCoord z, std::vector<u8> data, std::vector<PlayerId> players, bool validateTracking)
+void ChunkSendManager::submitChunkData(ChunkCoord x,
+    ChunkCoord z,
+    mc::network::ir::play::LevelChunkWithLight ir,
+    std::vector<PlayerId> players,
+    bool validateTracking)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::submitChunkData");
 
@@ -214,7 +218,7 @@ void ChunkSendManager::submitChunkData(
     ReadyChunkData ready;
     ready.x = x;
     ready.z = z;
-    ready.data = std::move(data);
+    ready.ir = std::move(ir);
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
     m_readyChunks.emplace_back(std::move(ready));
@@ -241,7 +245,7 @@ void ChunkSendManager::processPendingSends()
             }
 
             if (m_onChunkSend) {
-                m_onChunkSend(playerId, chunk.x, chunk.z, chunk.data);
+                m_onChunkSend(playerId, chunk.x, chunk.z, chunk.ir);
             }
         }
         if (!chunk.players.empty()) {
@@ -251,7 +255,7 @@ void ChunkSendManager::processPendingSends()
 }
 
 void ChunkSendManager::setOnChunkSend(
-    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const std::vector<u8>&)> callback)
+    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)> callback)
 {
     m_onChunkSend = std::move(callback);
 }

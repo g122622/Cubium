@@ -37,7 +37,9 @@
 #include "../renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "common/core/Constants.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/VanillaChunkWire.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -673,6 +675,72 @@ void ClientWorld::onChunkData(ChunkCoord x,
     m_computeWorkerPool->submit(std::move(task), /*callback=*/nullptr, util::TaskPriority::Normal);
 }
 
+void ClientWorld::onLevelChunkWithLight(const mc::network::ir::play::LevelChunkWithLight& ir, DimensionId dimension)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Network,
+        "ClientWorld::onLevelChunkWithLight",
+        "chunkX",
+        ir.x,
+        "chunkZ",
+        ir.z,
+        "dimension",
+        static_cast<i32>(dimension));
+
+    const ChunkCoord x = static_cast<ChunkCoord>(ir.x);
+    const ChunkCoord z = static_cast<ChunkCoord>(ir.z);
+
+    if (dimension != m_dimensionId) {
+        spdlog::warn("Received chunk IR for dimension {} but current dimension is {}, discarding chunk ({}, {})",
+            static_cast<i32>(dimension),
+            static_cast<i32>(m_dimensionId),
+            x,
+            z);
+        return;
+    }
+
+    // worker 池未注入（测试/启动早期）：主线程同步还原。
+    if (m_computeWorkerPool == nullptr) {
+        auto result = world::chunk::VanillaChunkWire::readLevelChunkWithLightIR(ir);
+        if (result.failed()) {
+            spdlog::error("Failed to read chunk IR ({}, {}): {}", x, z, result.error().message());
+            return;
+        }
+        const ChunkId id(x, z, 0);
+        _applyChunkData(id, std::shared_ptr<ChunkData>(result.value().release()));
+        return;
+    }
+
+    // 异步还原：IR（值类型）拷贝进 worker，由 worker 产出全新 ChunkData（不读客户端现有数据，
+    // 无共享写竞争，完全并行）。代际号用于丢弃过期结果（同坐标重发包时旧任务不应覆盖新数据）。
+    const ChunkId id(x, z, 0);
+    const u64 generation = ++m_chunkDeserializeGeneration[id];
+    auto task = std::make_unique<util::FunctionTask>(
+        util::TaskType::Custom,
+        fmt::format("ReadChunkIR({},{})", x, z),
+        [this, x, z, id, generation, irCopy = ir](const std::atomic<bool>& abortSignal) -> bool {
+            if (abortSignal.load(std::memory_order::acquire)) {
+                return false;
+            }
+            auto result = world::chunk::VanillaChunkWire::readLevelChunkWithLightIR(irCopy);
+            if (result.failed()) {
+                spdlog::error("Failed to read chunk IR ({}, {}): {}", x, z, result.error().message());
+                return true;
+            }
+            PendingDeserializedChunk pending;
+            pending.id = id;
+            pending.generation = generation;
+            pending.data = std::shared_ptr<ChunkData>(result.value().release());
+            {
+                std::lock_guard<std::mutex> lock(m_pendingChunksMutex);
+                m_pendingDeserializedChunks.push_back(std::move(pending));
+            }
+            return true;
+        },
+        "client_chunk_read_ir");
+
+    m_computeWorkerPool->submit(std::move(task), /*callback=*/nullptr, util::TaskPriority::Normal);
+}
+
 void ClientWorld::_applyDeserializedChunk(ChunkCoord x, ChunkCoord z, const u8* data, size_t size)
 {
     auto result = network::ChunkSerializer::deserializeChunk(x, z, data, size);
@@ -964,24 +1032,23 @@ void ClientWorld::onEndRaining()
     m_weather.endRain();
 }
 
-void ClientWorld::onLightUpdate(i32 chunkX,
-    i32 chunkZ,
-    i32 sectionY,
-    const std::vector<u8>& skyLight,
-    const std::vector<u8>& blockLight,
-    bool /*trustEdges*/
-)
+void ClientWorld::onLightSection(i32 chunkX, i32 chunkZ, i32 sectionY, bool isSky, const std::vector<u8>& nibble)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Lighting,
-        "ClientWorld::onLightUpdate",
+        "ClientWorld::onLightSection",
         "Section",
         fmt::format("({}, {}, {})", chunkX, sectionY, chunkZ),
-        "SkyLightSize",
-        skyLight.size(),
-        "BlockLightSize",
-        blockLight.size(),
+        "Layer",
+        isSky ? "Sky" : "Block",
+        "NibbleSize",
+        nibble.size(),
         [flow = ::perfetto::Flow::ProcessScoped(SectionPos(chunkX, sectionY, chunkZ).toLong())](
             ::perfetto::EventContext ctx) { flow(ctx); });
+
+    // 空 nibble（对应 vanilla emptyMask 段，全亮）：该段无数据下发，跳过（不覆盖现有 nibble）。
+    if (nibble.size() != NibbleArray::BYTE_SIZE) {
+        return;
+    }
 
     const ChunkId id(chunkX, chunkZ, 0);
     ClientChunk* chunk = getChunk(id);
@@ -994,12 +1061,10 @@ void ClientWorld::onLightUpdate(i32 chunkX,
         return;
     }
 
-    if (!skyLight.empty() && skyLight.size() == NibbleArray::BYTE_SIZE) {
-        section->skyLightNibble() = NibbleArray(skyLight);
-    }
-
-    if (!blockLight.empty() && blockLight.size() == NibbleArray::BYTE_SIZE) {
-        section->blockLightNibble() = NibbleArray(blockLight);
+    if (isSky) {
+        section->skyLightNibble() = NibbleArray(nibble);
+    } else {
+        section->blockLightNibble() = NibbleArray(nibble);
     }
 
     _requestChunkMeshRebuild(id);

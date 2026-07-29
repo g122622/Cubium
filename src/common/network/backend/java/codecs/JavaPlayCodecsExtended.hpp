@@ -1378,14 +1378,21 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 // 命令树（S→C，opaque）
 // ============================================================================
 
-/// Commands（S→C，id=16，opaque）
+/// Commands（S→C，id=16）
+/// 线格式（ClientboundCommandsPacket）：VarInt(nodeCount) + nodes + VarInt(rootIndex)，
+/// 即整个包体就是命令树二进制，无外层长度前缀（包长已在传输层 VarInt 帧头）。
+/// v.payload 由 CommandTreeEncoder 产出完整包体字节，故写侧直接 writeBytes（勿用 writeOpaque
+/// 加 VarInt 长度前缀——旧 JSON-opaque 占位用 writeOpaque 是有意让客户端按 JSON 跳过，真 Java
+/// 客户端会把这个额外长度前缀当成 nodeCount 解码，致游标错位 IndexOutOfBoundsException）。
 [[nodiscard]] inline auto commandsCodec()
 {
     return makeCodec<ir::play::Commands>(
-        [](B& buf, const ir::play::Commands& v) { play_ext_detail::writeOpaque(buf, v.payload); },
+        [](B& buf, const ir::play::Commands& v) { buf.writeBytes(v.payload.data(), v.payload.size()); },
         [](B& buf) -> Result<ir::play::Commands> {
             ir::play::Commands v{};
-            MC_TRY_ASSIGN(v.payload, play_ext_detail::readOpaque(buf, "commandsCodec"));
+            // 包体无前缀，剩余字节即完整命令树二进制。
+            usize remaining = buf.readableBytes();
+            MC_TRY_ASSIGN(v.payload, buf.readBytes(remaining));
             return v;
         });
 }

@@ -831,4 +831,101 @@ struct PlaceRecipe {
     [[nodiscard]] friend bool operator==(const PlaceRecipe&, const PlaceRecipe&) noexcept = default;
 };
 
+// ============================================================================
+// 服务端→客户端：区块与方块
+// ============================================================================
+
+/**
+ * @brief PalettedContainer 的 vanilla 线语义中间表示（states 4096 entry / biomes 64 entry 通用）
+ *
+ * 对齐 1.21.11 PalettedContainer.write：u8 bits + palette + long[] storage（无长度前缀）。
+ * bits 字段即 BitStorage.getBits()，按 vanilla Strategy.getConfigurationForBitCount 阈值：
+ *   blocks(4096)：size=1→bits=0(SingleValue)；size 2-16→bits=4(Linear)；17-32→5；33-64→6；
+ *                 65-128→7；129-256→8(HashMap)；≥257→Global bits=ceillog2(blockRegistrySize)=15。
+ *   biomes(64)：size=1→0；2→1；3-4→2；5-8→3(Linear)；≥9→Global bits=ceillog2(66)=7。
+ *   Global 时 paletteGlobalIds 空，storage 直接存全局 id；SingleValue 时 storage 空。
+ * storage 是 LSB-first long 数组，longCount=ceil(entryCount/floor(64/bits))（非 ceil(entryCount*bits/64)）。
+ * codec 写时逐元素大端 writeI64，无长度前缀（长度由 bits+entryCount 隐含）。
+ */
+struct PalettedContainerWire {
+    u8 bits = 0;
+    std::vector<u32> paletteGlobalIds; // 全局 id（block state globalId 或 biome registry id）
+    std::vector<u64> storage;          // LSB-first long[]，无长度前缀
+    [[nodiscard]] friend bool operator==(const PalettedContainerWire&, const PalettedContainerWire&) noexcept = default;
+};
+
+/**
+ * @brief 单个区块段（16³）的 vanilla 线语义中间表示
+ *
+ * 对齐 1.21.11 LevelChunkSection.write：i16 nonEmptyBlockCount + states + biomes。
+ * 不含 ticking/tickingFluidCount（1.21.11 已移除）。
+ */
+struct ChunkSectionWire {
+    i16 nonEmptyBlockCount = 0;
+    PalettedContainerWire states; // 4096 entry
+    PalettedContainerWire biomes; // 64 entry
+    [[nodiscard]] friend bool operator==(const ChunkSectionWire&, const ChunkSectionWire&) noexcept = default;
+};
+
+/**
+ * @brief 高度图条目（vanilla HEIGHTMAPS_STREAM_CODEC 的一项）
+ *
+ * 对齐 1.21.11：map(Heightmap.Types idMapper→VarInt(id), LONG_ARRAY)。
+ * typeId 是 Heightmap.Types 的 id 字段（codec 写为 VarInt，非 u8）：
+ *   1=WORLD_SURFACE, 4=MOTION_BLOCKING, 5=MOTION_BLOCKING_NO_LEAVES。
+ *   客户端只发 sendToClient(usage==CLIENT) 的这 3 个；OCEAN_FLOOR(id=3) 是 LIVE_WORLD 不发。
+ * data 为 9-bit packed long[]（主世界 chunkHeight=384 → bits=ceillog2(385)=9，
+ *   longCount=ceil(256/floor(64/9))=ceil(256/7)=37 long），元素值=(最高方块Y+1)-chunkMinY（空列=0），
+ *   LSB-first。codec 写时带 VarInt(longCount) 前缀。
+ */
+struct HeightmapEntryWire {
+    u8 typeId = 0;
+    std::vector<u64> data; // 37 long（主世界）
+    [[nodiscard]] friend bool operator==(const HeightmapEntryWire&, const HeightmapEntryWire&) noexcept = default;
+};
+
+/**
+ * @brief 方块实体条目（vanilla BlockEntityInfo 列表的一项）
+ *
+ * 对齐 1.21.11 ClientboundLevelChunkPacketData.BlockEntityInfo.write：
+ *   u8 packedXZ((relX<<4)|relZ) + i16 y(绝对) + VarInt(typeRegistryId) + NBT。
+ * tag 用 shared_ptr 承载（compound_tag 仅复制构造，按值存入 variant 破坏移动语义；
+ * 参考 BlockEntityData）。空 NBT 用 nullptr（codec 写为 EndTag 单字节 0x00）。
+ */
+struct BlockEntityInfoWire {
+    u8 packedXZ = 0;
+    i16 y = 0;
+    u32 typeRegistryId = 0; // block entity type registry id
+    std::shared_ptr<nbt::CompoundTag> tag;
+    [[nodiscard]] friend bool operator==(const BlockEntityInfoWire&, const BlockEntityInfoWire&) noexcept = default;
+};
+
+/**
+ * @brief LevelChunkWithLight（S→C，id=44，区块数据 + 光照）
+ *
+ * 线格式（1.21.11 ClientboundLevelChunkWithLightPacket）：
+ *   i32 x + i32 z + [heightmaps + VarInt(bufLen)+sectionBuf + blockEntities] + [光照 masks/updates]。
+ *   无外层长度前缀。chunkData 部分与 lightData 部分各自结构化（见各子结构注释）。
+ *
+ * 贯彻 IR 思想：本结构持 vanilla 语义字段，服务端从 ChunkData 直接填充、客户端直接消费，
+ * 均不碰 wire 字节；只有 levelChunkWithLightCodec（仅远程 Java 客户端经 JavaBackend 走）
+ * 把本结构编码成 vanilla wire。本地客户端经 LocalTransport 零拷贝直传本结构。
+ *
+ * 光照部分（lightData）字段语义与 LightUpdate（id=47）一致：
+ *   lightMasks[0..3] = skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask（最小 long 数组）；
+ *   lightUpdates[0..1] = skyUpdates / blockUpdates（每条 2048 字节 nibble）。
+ *   yMask popcount 必须 == 对应 updates.size()。光段数主世界 26，bit i ↔ lightSectionY = -5+i。
+ */
+struct LevelChunkWithLight {
+    i32 x;
+    i32 z;
+    std::vector<HeightmapEntryWire> heightmaps;        // 3 个 CLIENT 类型(WORLD_SURFACE/MOTION_BLOCKING/MOTION_BLOCKING_NO_LEAVES)
+    std::vector<ChunkSectionWire> sections;            // 主世界 24 段
+    std::vector<BlockEntityInfoWire> blockEntities;    // 可空
+    std::array<std::vector<u64>, 4> lightMasks;        // sky/block/emptySky/emptyBlock
+    std::array<std::vector<std::vector<u8>>, 2> lightUpdates; // sky/block，每条 2048 字节
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LevelChunkWithLight&, const LevelChunkWithLight&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

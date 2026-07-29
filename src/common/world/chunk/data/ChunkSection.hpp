@@ -86,6 +86,16 @@ public:
     [[nodiscard]] bool isEmpty() const { return m_blockCount == 0; }
     [[nodiscard]] u16 getBlockCount() const { return m_blockCount; }
     void setBlockCount(u16 count) { m_blockCount = count; }
+
+    /**
+     * @brief 获取方块状态调色板容器的只读引用
+     *
+     * 供 vanilla 1.21.11 level_chunk_with_light IR 构建层（VanillaChunkWire）读取段内
+     * 方块状态的 palette/storage，按 vanilla wire 规则重新打包。容器内存的是项目内部
+     * stateId，调用方负责经 JavaBlockStateIdMap 翻译为 Java 全局 block state id。
+     */
+    [[nodiscard]] const PalettedContainer& blockStates() const noexcept { return m_blockStates; }
+
     void rebuildTickCounters();
     [[nodiscard]] bool needsRecalculate() const { return m_needsRecalculate; }
     void setNeedsRecalculate(bool value) { m_needsRecalculate = value; }

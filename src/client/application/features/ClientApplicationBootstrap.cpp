@@ -54,8 +54,11 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
+#include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
+#include "common/world/block/JavaBlockStateIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -129,6 +132,26 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeDispenseBehaviors");
         blocks::DispenseItemBehaviorRegistry::instance().initDefaultBehaviors();
         spdlog::info("Dispense item behaviors initialized");
+    }
+
+    // 初始化 Java id 映射表（level_chunk_with_light vanilla wire 用，客户端接收侧
+    // readLevelChunkWithLightIR 反查内部 id）。block 表遍历 Block::forEachBlockState
+    // （上方 VanillaBlocks::initialize 已完成）；blockentity 表无注册顺序依赖。
+    // biome 表依赖 BiomeRegistry::allBiomes，客户端 bootstrap 未初始化 BiomeRegistry
+    // （由集成服 initializeRegistries 同进程填充），此处调用在空注册表上安全返回 plains
+    // 兜底；集成服场景下服务端 initializeRegistries 会重建覆盖，standalone 场景客户端
+    // readIR 反向查 biome 走 plains 兜底不崩。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeJavaIdMaps");
+        if (auto r = world::block::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBlockStateIdMap: {}", r.error().toString());
+        }
+        if (auto r = world::biome::JavaBiomeRegistryIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBiomeRegistryIdMap: {}", r.error().toString());
+        }
+        if (auto r = JavaBlockEntityTypeIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBlockEntityTypeIdMap: {}", r.error().toString());
+        }
     }
 }
 

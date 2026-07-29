@@ -77,11 +77,14 @@
 #include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeTagLoader.hpp"
+#include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/JavaBlockStateIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -157,16 +160,6 @@ namespace {
 [[nodiscard]] bool isReadonlyForeignStorage(const world::storage::SingleLevelStorageManager* storage)
 {
     return storage != nullptr && storage->isOpen() && storage->config().readonly && storage->isForeignFormat();
-}
-
-/// 向字节流追加 VarUInt 编码（与 MC Java VarInt 长度前缀一致）。
-void appendVarUInt(std::vector<u8>& out, u32 value)
-{
-    while ((value & ~0x7Fu) != 0) {
-        out.push_back(static_cast<u8>((value & 0x7F) | 0x80));
-        value >>= 7;
-    }
-    out.push_back(static_cast<u8>(value & 0x7F));
 }
 
 /// 构造 LevelParticles IR（1.21.11，对齐 ClientboundLevelParticlesPacket）。
@@ -1444,6 +1437,23 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::VillagerTrades");
         world::village::trade::VillagerTrades::initialize();
     }
+
+    // 初始化 Java id 映射表（level_chunk_with_light vanilla wire 用）。
+    // 顺序依赖：block 表遍历 Block::forEachBlockState（须在 VanillaBlocks::initialize 之后）；
+    // biome 表遍历 BiomeRegistry::allBiomes（须在 BiomeRegistry::initialize 之后）；
+    // blockentity 表仅依赖 blockEntityTypeToId 静态映射，无注册顺序依赖。三者均在上方已完成。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::JavaIdMaps");
+        if (auto r = world::block::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBlockStateIdMap: {}", r.error().toString());
+        }
+        if (auto r = world::biome::JavaBiomeRegistryIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBiomeRegistryIdMap: {}", r.error().toString());
+        }
+        if (auto r = JavaBlockEntityTypeIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBlockEntityTypeIdMap: {}", r.error().toString());
+        }
+    }
 }
 
 void MinecraftServer::setupWorldCallbacks()
@@ -1624,8 +1634,11 @@ void MinecraftServer::setupWorldCallbacks()
 
         // 设置区块发送回调
         if (auto* cs = serverDim->chunkSendManager()) {
-            cs->setOnChunkSend([this](PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data) {
-                sendChunkDataToPlayer(playerId, x, z, data);
+            cs->setOnChunkSend([this](PlayerId playerId,
+                                   ChunkCoord x,
+                                   ChunkCoord z,
+                                   const mc::network::ir::play::LevelChunkWithLight& ir) {
+                sendChunkDataToPlayer(playerId, x, z, ir);
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
@@ -2076,16 +2089,18 @@ void MinecraftServer::initializeCreativeInventory(PlayerInventory& inventory)
     fillCreativeModeInventory(inventory);
 }
 
-void MinecraftServer::sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data)
+void MinecraftServer::sendChunkDataToPlayer(
+    PlayerId playerId, ChunkCoord x, ChunkCoord z, const mc::network::ir::play::LevelChunkWithLight& ir)
 {
-    // 1.21.11 LevelChunkWithLight：chunkData(heightmaps+buffer+blockEntities) + lightData。
-    // TODO(Phase6): 旧路径只产生单 blob，光照随 LightUpdate 单独发；此处 lightData 暂空，
-    //   后续 ChunkSerializer 应产出分离的 chunk/light buffer 以完整对齐 1.21.11。
+    // 1.21.11 LevelChunkWithLight：IR 已由 ChunkSendManager 在 worker 线程经
+    // buildLevelChunkWithLightIR 构建完成（vanilla 语义字段：heightmaps/sections/blockEntities/
+    // lightMasks/lightUpdates）。此处仅按玩家拷贝进 IrPacket 发送：
+    //   - 本地客户端经 LocalTransport 零拷贝直传 IR 结构体；
+    //   - 远程 Java 客户端经 JavaBackend→levelChunkWithLightCodec 编码成 vanilla wire。
     MC_UNUSED(m_dimensionManager);
-    mc::network::ir::play::LevelChunkWithLight pkt;
+    mc::network::ir::play::LevelChunkWithLight pkt = ir;
     pkt.x = static_cast<i32>(x);
     pkt.z = static_cast<i32>(z);
-    pkt.chunkData = data;
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,
@@ -2120,37 +2135,38 @@ void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
         [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 
-    // 1.21.11 LightUpdate：仅 chunkX/chunkZ + opaque lightData。
-    // TODO(Phase6): 真正对齐 1.21.11 ClientboundLightUpdatePacket 的 masks/arrays 编码。
-    //   当前 lightData 透传自研格式：sectionY(i32)+flags(u8)+[VarInt len+skyLight]+[VarInt len+blockLight]，
-    //   客户端 _handleLightUpdate 按同格式反解（我方互通成立，真 Java 不通）。
-    u8 flags = 0;
-    if (!skyLight.empty()) flags |= 0x01;
-    if (!blockLight.empty()) flags |= 0x02;
-    if (trustEdges) flags |= 0x04;
-
-    std::vector<u8> lightData;
-    lightData.reserve(sizeof(i32) + sizeof(u8) + skyLight.size() + blockLight.size() + 16);
-    // sectionY (i32, 大端)
-    {
-        i32 sy = sectionY;
-        lightData.push_back(static_cast<u8>((sy >> 24) & 0xFF));
-        lightData.push_back(static_cast<u8>((sy >> 16) & 0xFF));
-        lightData.push_back(static_cast<u8>((sy >> 8) & 0xFF));
-        lightData.push_back(static_cast<u8>(sy & 0xFF));
+    // 1.21.11 ClientboundLightUpdatePacket 线格式：
+    //   VarInt(x)+VarInt(z)+4×BitSet(skyYMask/blockYMask/emptySkyYMask/emptyBlockYMask)+2×List<byte[≤2048]>
+    // BitSet 位 i 对应光照段 Y = minLightSection + i（minLightSection = MIN_SECTION_Y - 1，主世界=-5）。
+    // 单段光照更新：仅在该段对应的 yMask（sky 或 block）置位，并往对应列表塞一条 2048 字节 nibble。
+    // 注意 setOnLightChanged 回调按 LightType 单独触发，故每个包只含一种光照类型的数据。
+    constexpr i32 kMinLightSection = mc::world::MIN_SECTION_Y - 1; // 主世界=-5
+    const i32 bitIndex = sectionY - kMinLightSection;
+    if (bitIndex < 0) {
+        return; // 段坐标越界（低于最小光照段），丢弃
     }
-    lightData.push_back(flags);
-    // VarUInt 长度前缀的 skyLight
-    appendVarUInt(lightData, static_cast<u32>(skyLight.size()));
-    lightData.insert(lightData.end(), skyLight.begin(), skyLight.end());
-    // VarUInt 长度前缀的 blockLight
-    appendVarUInt(lightData, static_cast<u32>(blockLight.size()));
-    lightData.insert(lightData.end(), blockLight.begin(), blockLight.end());
+
+    // BitSet 以最小长整型数组表示：bit 所在 long = bit / 64，long 内位 = bit % 64。
+    auto buildSingleBitMask = [&](i32 bit) -> std::vector<i64> {
+        const usize li = static_cast<usize>(bit) / 64;
+        std::vector<i64> mask(li + 1, 0);
+        mask[li] = static_cast<i64>(static_cast<u64>(1) << (static_cast<usize>(bit) % 64));
+        return mask;
+    };
 
     mc::network::ir::play::LightUpdate pkt;
     pkt.x = static_cast<i32>(x);
     pkt.z = static_cast<i32>(z);
-    pkt.lightData = std::move(lightData);
+    // lightMasks 顺序：skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask
+    if (!skyLight.empty()) {
+        pkt.lightMasks[0] = buildSingleBitMask(bitIndex); // skyYMask
+        pkt.lightUpdates[0].push_back(skyLight);          // skyUpdates
+    }
+    if (!blockLight.empty()) {
+        pkt.lightMasks[1] = buildSingleBitMask(bitIndex); // blockYMask
+        pkt.lightUpdates[1].push_back(blockLight);        // blockUpdates
+    }
+    MC_UNUSED(trustEdges); // 1.21.11 已从该包移除 trustEdges，保留参数以兼容调用方签名
 
     mc::network::ir::IrPacket packet{
         mc::network::protocol::ConnectionProtocol::Play,
@@ -3077,6 +3093,19 @@ MinecraftServer::PlayerCreationResult MinecraftServer::createPlayerForConnection
     if (playerData == nullptr) {
         spdlog::error("Failed to add player '{}' to PlayerManager", username);
         return result;
+    }
+
+    // 建立 sessionId→playerId 映射并回填 ServerPlayerData::sessionId。
+    // 必要性：远程客户端断连回调 _onRemoteClientDisconnect 按 sessionId 反查 playerId 来清理玩家；
+    // 若不建立映射，getPlayerIdBySession 恒返回 0，断连时跳过 removePlayer，玩家记录残留且
+    // connection 指针随 ServerClientConnection 析构悬垂，下个 tick 广播（如 broadcastLightUpdate）
+    // 解悬垂致 ACCESS_VIOLATION 崩溃。
+    // sessionId 0 是集成服本地客户端保留值（不触发远程断连回调，其生命周期由 IntegratedServer 直接管理），
+    // 跳过映射避免 m_sessionToPlayer 残留无意义条目。
+    const u32 sessionId = connection.sessionId();
+    playerData->sessionId = sessionId;
+    if (sessionId != 0) {
+        m_playerManager->mapSessionToPlayer(sessionId, playerId);
     }
 
     // 设置玩家初始状态

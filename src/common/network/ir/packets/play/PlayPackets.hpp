@@ -640,33 +640,29 @@ struct SetEntityData {
 // 服务端→客户端：区块与方块
 // ============================================================================
 
-/**
- * @brief LevelChunkWithLight（S→C，id=44，区块数据 + 光照）
- *
- * 线格式：Int(x)+Int(z)+[heightmaps + buffer + blockEntities]+[光照 masks/updates]。
- *
- * chunkData/lightData 承载项目内部 ChunkSerializer 自定义格式（非 Java PalettedContainer wire），
- * 服务端 serializeChunk 产出、客户端 deserializeChunk 消费，双端自洽。真 Java 互通需另起
- * 1.21.11 wire 适配层（PalettedContainer + BlockEntityInfo 列表），属独立大项，不在本层范围。
- */
-struct LevelChunkWithLight {
-    i32 x;
-    i32 z;
-    std::vector<u8> chunkData; // heightmaps+buffer+blockEntities 原始字节
-    std::vector<u8> lightData; // 光照 masks/updates 原始字节
-    BedrockMeta bedrock{};
-    [[nodiscard]] friend bool operator==(const LevelChunkWithLight&, const LevelChunkWithLight&) noexcept = default;
-};
+// LevelChunkWithLight（S→C，id=44，区块数据 + 光照）结构化定义见 PlayPacketsExtended.hpp：
+// 该包 IR 携带 vanilla 语义字段（PalettedContainer section / 高度图 long[] / BlockEntityInfo /
+// 光照 BitSet+List），其中 BlockEntityInfo 需 NBT，故置于已 include nbt 的 Extended 头。
 
 /**
  * @brief LightUpdate（S→C，id=47）
  *
- * 线格式：VarInt(x)+VarInt(z)+光照数据。当前 lightData 透传。
+ * 线格式（1.21.11 ClientboundLightUpdatePacket）：
+ *   VarInt(x) + VarInt(z) + 4×BitSet(长整型数组) + 2×List<byte[≤2048]>
+ *   四个 BitSet 顺序：skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask。
+ *   两个列表顺序：skyUpdates / blockUpdates（每个元素 VarInt(len)+nibble 字节）。
+ *   BitSet 以最小长整型数组序列化（VarInt(longCount) + longCount×i64 大端），位 i 对应
+ *   光照段 Y = minLightSection + i（minLightSection = MIN_SECTION_Y - 1，主世界=-5）。
+ *   yMask 中的位表示该光照段有非空 nibble 数据（对应列表里一条 2048 字节）；
+ *   emptyMask 中的位表示该光照段为空（全亮，无 nibble 数据）。
  */
 struct LightUpdate {
     i32 x;
     i32 z;
-    std::vector<u8> lightData;
+    /// skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask（最小长整型数组形式，big-endian 线编码）。
+    std::array<std::vector<i64>, 4> lightMasks;
+    /// skyUpdates / blockUpdates，每条是一个光照段的 2048 字节 nibble（顺序与对应 yMask 的置位位一致）。
+    std::array<std::vector<std::vector<u8>>, 2> lightUpdates;
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const LightUpdate&, const LightUpdate&) noexcept = default;
 };

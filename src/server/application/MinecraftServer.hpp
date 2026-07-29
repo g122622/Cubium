@@ -79,6 +79,9 @@ class CommandRegistry;
 namespace gameevent {
 class PositionSource;
 }
+namespace network::ir::play {
+struct LevelChunkWithLight;
+}
 } // namespace mc
 
 namespace mc::server {
@@ -512,8 +515,13 @@ protected:
 
     /**
      * @brief 发送区块数据给指定玩家
+     *
+     * IR 已由 ChunkSendManager 在 worker 线程构建（buildLevelChunkWithLightIR），此处仅按玩家
+     * 拷贝进 IrPacket 发送。本地客户端经 LocalTransport 零拷贝直传 IR，远程 Java 客户端经
+     * JavaBackend→levelChunkWithLightCodec 编码成 vanilla wire。
      */
-    void sendChunkDataToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z, const std::vector<u8>& data);
+    void sendChunkDataToPlayer(
+        PlayerId playerId, ChunkCoord x, ChunkCoord z, const mc::network::ir::play::LevelChunkWithLight& ir);
 
     /**
      * @brief 发送卸载区块通知给指定玩家

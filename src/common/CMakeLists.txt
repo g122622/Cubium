@@ -60,6 +60,7 @@ add_library(mc_common STATIC
 
     # Network - Sync
     network/sync/ChunkSync.cpp
+    network/sync/VanillaChunkWire.cpp
 
     # Entity Core
     entity/core/Entity.cpp
@@ -647,6 +648,7 @@ add_library(mc_common STATIC
 
     # World - Block Entity
     world/blockentity/BlockEntityType.cpp
+    world/blockentity/JavaBlockEntityTypeIdMap.cpp
     world/blockentity/BlockEntity.cpp
     world/blockentity/ContainerBlockEntity.cpp
     world/blockentity/CraftingTableEntity.cpp
@@ -667,6 +669,8 @@ add_library(mc_common STATIC
     world/block/Block.cpp
     world/block/BlockState.cpp
     world/block/BlockRegistry.cpp
+    world/block/JavaBlockStateIdMap.cpp
+    world/block/generated/java_block_state_table.gen.cpp
     world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
@@ -1125,6 +1129,7 @@ add_library(mc_common STATIC
     world/biome/BiomeManager.cpp
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
+    world/biome/JavaBiomeRegistryIdMap.cpp
     world/biome/BiomeLoader.cpp
     world/biome/BiomeFactoryOverworld.cpp
     world/biome/BiomeFactoryNether.cpp
@@ -1667,6 +1672,31 @@ target_include_directories(mc_common
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
+
+# Java 协议对齐所需的 vanilla 1.21.11 block state id 查找表(预生成,编译进二进制)。
+# 离线 TS 脚本 scripts/baking/bake_java_id_tables.ts 读 assets/data/blocks_1.21.11.json,
+# 生成排序的 (name|properties)→globalId 静态查找表(.gen.cpp/.gen.hpp),供 JavaBlockStateIdMap
+# 运行时二分查找。运行时零 JSON 解析、零堆分配。产物不入 git(.gitignore),每次构建重生成。
+set(_java_block_table_gen_cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/world/block/generated/java_block_state_table.gen.cpp")
+set(_java_block_table_gen_hpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/world/block/generated/java_block_state_table.gen.hpp")
+set(_bake_script "${CMAKE_SOURCE_DIR}/scripts/baking/bake_java_id_tables.ts")
+set(_blocks_json "${CMAKE_SOURCE_DIR}/assets/data/blocks_1.21.11.json")
+find_program(NODE_EXECUTABLE node REQUIRED)
+add_custom_command(
+    OUTPUT ${_java_block_table_gen_cpp} ${_java_block_table_gen_hpp}
+    COMMAND ${NODE_EXECUTABLE} ${_bake_script}
+    DEPENDS ${_bake_script} ${_blocks_json}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Baking Java block state id table from blocks_1.21.11.json"
+    VERBATIM
+)
+set_source_files_properties(${_java_block_table_gen_cpp} PROPERTIES GENERATED TRUE)
+# 生成的字符串池是单个拼接后超 2MB 的字符串字面量(C++ 标准仅要求支持 65536),
+# 触发 -Woverlength-strings;对生成的大型静态表豁免该警告。
+set_source_files_properties(${_java_block_table_gen_cpp}
+    PROPERTIES COMPILE_OPTIONS "-Wno-overlength-strings")
 
 # 基岩版Addon兼容模组系统
 add_subdirectory(mod/bedrock/addon)

@@ -59,6 +59,9 @@
 namespace mc {
 class ItemStack;
 class BlockEntity;
+namespace network::ir::play {
+struct LevelChunkWithLight;
+}
 } // namespace mc
 
 namespace mc::client {
@@ -257,6 +260,21 @@ public:
         onChunkData(x, z, dimension, dataPtr, dataSize, std::move(buffer));
     }
     void onChunkUnload(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+
+    /**
+     * @brief 接收结构化 LevelChunkWithLight IR 并还原为 ChunkData（1.21.11 vanilla 路径）
+     *
+     * 替代旧 onChunkData(bytes→deserializeChunk) 路径：IR 经 LocalTransport 零拷贝直传
+     * （本地客户端）或经 levelChunkWithLightCodec 解码（远程）。内部调
+     * VanillaChunkWire::readLevelChunkWithLightIR 还原 ChunkData：
+     *   - m_computeWorkerPool 未注入（测试/启动早期）：主线程同步还原→_applyChunkData；
+     *   - 已注入：IR move 进 worker，readLevelChunkWithLightIR 在 worker 完成（不读客户端
+     *     现有数据，完全并行），结果经代际过滤续延回主线程 _applyChunkData。
+     *
+     * @param ir 区块 IR（const ref，异步路径内部拷贝进 worker）
+     * @param dimension 当前维度（用于丢弃其他维度区块）
+     */
+    void onLevelChunkWithLight(const mc::network::ir::play::LevelChunkWithLight& ir, DimensionId dimension);
 
     /**
      * @brief 清空所有区块数据
@@ -486,12 +504,7 @@ public:
     void onBeginRaining();
     void onEndRaining();
 
-    void onLightUpdate(i32 chunkX,
-        i32 chunkZ,
-        i32 sectionY,
-        const std::vector<u8>& skyLight,
-        const std::vector<u8>& blockLight,
-        bool trustEdges);
+    void onLightSection(i32 chunkX, i32 chunkZ, i32 sectionY, bool isSky, const std::vector<u8>& nibble);
 
     // ========== 方块动画 tick ==========
 
