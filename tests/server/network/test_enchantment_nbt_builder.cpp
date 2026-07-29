@@ -24,12 +24,12 @@
 // EnchantmentNbtBuilder 专项测试。
 //
 // buildEnchantmentRegistryEntriesUncached 从 datapack 读 enchantment JSON，把 HolderSet #tag
-// 引用展平为显式元素名列表，序列化为 Java 根 NBT 线格式（0x0A + 空 name + body + End）。
+// 引用展平为显式元素名列表，序列化为 Java 根 NBT 线格式（0x0A + body + End，无 root name）。
 // 本测试构造最小 datapack（1 个 enchantment + 对应 ITEM 标签 + ENCHANTMENT exclusive_set 标签），
 // 经真实 DataPackRepository（FolderResourcePack）+ ItemTagLoader（InMemoryResourcePack）加载，
 // 断言：
 //   1. 条目 data != nullopt；
-//   2. 字节前缀为根 NBT 头 0x0A 0x00 0x00；
+//   2. 字节前缀为根 NBT 头 0x0A（无 root name——Java NbtIo.writeAnyTag 只写类型字节+body+End）；
 //   3. 解析回 compound 后：顶层整数字段为 int_tag（非 byte_tag——jsonToNbt 会把 5 推断为 byte，
 //      Java Enchantment.intRange 要求 int，故构建器须显式 put(name, i32) 走 int_tag 推断）；
 //   4. supported_items 展平为非空字符串列表（走 ItemTags::getTag 路径）；
@@ -77,14 +77,15 @@ void writeTextFile(const std::filesystem::path& root, const std::string& relPath
 }
 
 // 把 serializeRootCompoundToBytes 产出的根 NBT 字节解析回 compound_tag。
-// 根 NBT 线格式 = 0x0A(类型) + 0x00 0x00(空 root name) + body(entries + End)。
-// compound_tag::read 直接消费 body（[tagid][name][value]...[End]），故先跳过 3 字节根头。
+// 根 NBT 线格式 = 0x0A(类型字节) + body(entries + End)，**无 root name 前缀**
+// （Java NbtIo.writeAnyTag/readAnyTag 不写/不读 name）。compound_tag::read 直接消费 body
+// （[tagid][name][value]...[End]），故先跳过 1 字节类型字节。
 std::unique_ptr<compound_tag> parseRootNbtBytes(const std::vector<u8>& bytes)
 {
-    if (bytes.size() < 4u) {
+    if (bytes.size() < 2u) {
         return nullptr;
     }
-    std::string s(reinterpret_cast<const char*>(bytes.data()) + 3, bytes.size() - 3);
+    std::string s(reinterpret_cast<const char*>(bytes.data()) + 1, bytes.size() - 1);
     std::istringstream in(s);
     in >> mc::nbt::Contexts::java;
     return compound_tag::read(in);
@@ -197,13 +198,13 @@ TEST_F(EnchantmentNbtBuilderTest, SharpnessEntryHasInlineNbtAndFlattenedHolderSe
     const auto* sharpness = findEntry(entries, "minecraft:sharpness");
     ASSERT_NE(sharpness, nullptr);
     ASSERT_TRUE(sharpness->data.has_value()) << "sharpness 应有内联 NBT（data != nullopt）";
-    ASSERT_GE(sharpness->data->size(), 4u);
+    ASSERT_GE(sharpness->data->size(), 2u);
 
     const auto& bytes = *sharpness->data;
-    // 根 NBT 头：0x0A(Compound 类型) + 0x00 0x00(空 root name 长度)。
+    // 根 NBT 头：仅 0x0A(Compound 类型字节)，无 root name 前缀（Java NbtIo.writeAnyTag 不写 name）。
+    // 第二字节起即首个 entry 的 [tagid][name]...，故不再断言 bytes[1]/bytes[2] 为 0。
     EXPECT_EQ(bytes[0], 0x0A) << "缺 compound 类型字节 0x0A";
-    EXPECT_EQ(bytes[1], 0x00) << "root name 长度高字节应为 0";
-    EXPECT_EQ(bytes[2], 0x00) << "root name 长度低字节应为 0（空 name）";
+    EXPECT_NE(bytes[1], 0x00) << "第二字节应是首个 entry 的 tag id（非 0）；若为 0 说明误加 root name 致空 compound";
     EXPECT_EQ(bytes.back(), 0x00) << "应以 End 0x00 结尾";
 
     auto root = parseRootNbtBytes(bytes);

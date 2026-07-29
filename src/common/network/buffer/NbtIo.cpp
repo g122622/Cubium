@@ -56,14 +56,16 @@ std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& 
 {
     // 对齐 Java FriendlyByteBuf.writeNbt = NbtIo.writeAnyTag：
     //   writeByte(0x0A)        // TAG_Compound 类型字节
-    //   writeUTF("")           // 空 root name（u16 长度 0x0000 + 0 字节）
     //   tag.write()            // entries + End（compound_tag::write 默认 is_root=false 已含 0x00 End）
+    // **无 root name 前缀**：writeAnyTag 只写类型字节 + tag.write()（compound 的 write 写 entries+End，
+    // 不写 name）。readAnyTag 对称：读类型字节后直接进 CompoundTag.loadCompound 读 body。
+    // 早先误加 writeUTF("") 写 0x00 0x00（u16 空 name），客户端 readAnyTag 读 0x0A 后把 0x00 当
+    // 空 compound 的 End → 游标错位，跨多条目级联致 "Expected non-null compound tag"
+    // （disconnect-2026-07-29_13.51.13-client.txt，ByteBufCodecs.tagCodec:295-296）。
     // 注意：is_root=true 会去掉 End（错向），此处须保持 is_root=false 默认。
     std::ostringstream out;
     out << mc::nbt::Contexts::java;
-    out.put(static_cast<char>(mc::nbt::TagId::Compound)); // 0x0A
-    out.put('\0');                                        // root name 长度高字节
-    out.put('\0');                                        // root name 长度低字节（空 name）
+    out.put(static_cast<char>(mc::nbt::TagId::Compound)); // 0x0A 类型字节（无 root name）
     tag.write(out);                                       // entries + 0x00 End
     const std::string bytes = out.str();
     return std::vector<u8>(
@@ -75,6 +77,27 @@ Result<void> writeRootCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& 
     const std::vector<u8> bytes = serializeRootCompoundToBytes(tag);
     buf.writeBytes(bytes.data(), bytes.size());
     return Result<void>::ok();
+}
+
+Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readRootCompound(ByteBuf& buf)
+{
+    // 根 NBT 线格式 = 0x0A(Compound 类型字节) + body(entries + End)。**无 root name 前缀**
+    // （对齐 Java NbtIo.readAnyTag：读类型字节后直接 readTagSafe → CompoundTag.loadCompound 读 body，
+    // 不读 name；writeAnyTag 对称不写 name）。
+    auto typeResult = buf.readU8();
+    if (!typeResult.success()) {
+        return Error(ErrorCode::OutOfBounds, "Root NBT type byte missing", "nbt_io::readRootCompound");
+    }
+    if (typeResult.value() != static_cast<u8>(mc::nbt::TagId::Compound)) {
+        // Java readAnyTag 遇类型字节 0（EndTag）返回 null，FriendlyByteBuf.readNbt 据此返回 null，
+        // tagCodec.decode 抛 "Expected non-null compound tag"。本函数仅支持 Compound 根
+        // （RegistryData.data 恒为 Compound），非 Compound 即线格式损坏。
+        return Error(ErrorCode::InvalidData,
+            "Root NBT type byte is not Compound (0x0A): " + std::to_string(typeResult.value()),
+            "nbt_io::readRootCompound");
+    }
+    // 读 body（entries + End）。readCompound 按 tellg 差推进游标到 End 之后。
+    return readCompound(buf);
 }
 
 Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)

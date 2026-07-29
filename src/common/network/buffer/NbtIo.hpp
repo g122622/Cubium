@@ -62,14 +62,15 @@ namespace nbt_io {
  * @brief 将复合标签以【根 NBT】线格式序列化为字节向量
  *
  * 对齐 Java `FriendlyByteBuf.writeNbt` = `NbtIo.writeAnyTag`：`0x0A`(compound 类型字节)
- * + 空 root name(`0x00 0x00`) + entries + `0x00`(End)。这是 Java `ByteBufCodecs.TAG`
- * 期望的线格式。
+ * + entries + `0x00`(End)。**无 root name 前缀**——`writeAnyTag` 只写 `writeByte(id)` + `tag.write()`，
+ * compound 的 `write` 写 entries+End 不写 name，`readAnyTag` 对称不读 name。这是 Java
+ * `ByteBufCodecs.TAG` 期望的线格式。
  *
  * 供 `RegistryEntry.data` 等需把完整根 NBT 作为原始字节嵌入协议的场景使用——
  * `registryDataCodec` 直接 writeBytes 该向量，故向量内须已是含 0x0A 前缀的完整根 NBT。
  *
- * 与 writeCompound 的区别：writeCompound 仅写 body（无 0x0A、无 name），用于与
- * readCompound 对称的内部往返；本函数写完整根 NBT，用于发往真 Java 客户端。
+ * 与 writeCompound 的区别：writeCompound 仅写 body（无 0x0A），用于与 readCompound 对称的
+ * 内部往返；本函数写完整根 NBT，用于发往真 Java 客户端。
  */
 [[nodiscard]] std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag);
 
@@ -77,6 +78,19 @@ namespace nbt_io {
  * @brief 将复合标签以【根 NBT】线格式写入 buf（= writeBytes(serializeRootCompoundToBytes)）
  */
 [[nodiscard]] Result<void> writeRootCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);
+
+/**
+ * @brief 从 buf 当前游标读取一个【根 NBT】线格式的复合标签
+ *
+ * 对齐 Java `FriendlyByteBuf.readNbt` = `NbtIo.readAnyTag`：消费 `0x0A`(类型字节)
+ * + entries + `0x00`(End)，推进游标到 End 之后。**无 root name 前缀**（readAnyTag 读类型字节后
+ * 直接进 CompoundTag.loadCompound 读 body，不读 name）。
+ *
+ * 与 readCompound 的区别：readCompound 直接消费 body（无 0x0A），用于与 writeCompound 对称的
+ * 内部往返；本函数消费完整根 NBT，用于解析真 Java 对端发来的 `ByteBufCodecs.TAG` payload
+ * （如 RegistryData 的 PackedRegistryEntry.data）。
+ */
+[[nodiscard]] Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readRootCompound(ByteBuf& buf);
 
 /**
  * @brief 从 buf 当前游标读取一个 Java 大端二进制复合标签

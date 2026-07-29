@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 
 namespace mc::network::backend::java::codecs {
@@ -100,7 +101,8 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 len = 0;
             MC_TRY_ASSIGN(len, buf.readVarInt());
             if (len < 0) {
-                return Error(ErrorCode::InvalidData, "CustomPayload length is negative", "configurationCustomPayloadCodec");
+                return Error(
+                    ErrorCode::InvalidData, "CustomPayload length is negative", "configurationCustomPayloadCodec");
             }
             MC_TRY_ASSIGN(v.payload, buf.readBytes(static_cast<usize>(len)));
             return v;
@@ -151,7 +153,15 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
 }
 
 /// RegistryData（S→C，id=7）
-/// 线格式：Utf8(registryKey) + VarInt(count) + count×{ Utf8(id) + Bool(present) + [NBT bytes] }
+/// 线格式：Utf8(registryKey) + VarInt(count) + count×{ Utf8(id) + Bool(present) + [根 NBT 自定界] }
+///
+/// 对齐 Java RegistrySynchronization.PackedRegistryEntry.STREAM_CODEC：data 字段用
+/// ByteBufCodecs.TAG.apply(ByteBufCodecs::optional)。optional 写 Bool 前缀；present 时
+/// ByteBufCodecs.TAG = FriendlyByteBuf.writeNbt 写【自定界根 NBT】（0x0A + entries + End，
+/// **无 root name 前缀、无外部长度前缀**——NbtIo.writeAnyTag 只写 writeByte(0x0A)+tag.write()，
+/// readAnyTag 对称不读 name，NBT 自带 End 定界）。曾误加 writeVarInt(size) 长度前缀致 "Invalid
+/// tag id"，又曾误加 0x00 0x00 空 root name 致 "Expected non-null compound tag"
+/// （disconnect-2026-07-29_13.51.13-client.txt）。
 [[nodiscard]] inline auto registryDataCodec()
 {
     return makeCodec<ir::configuration::RegistryData>(
@@ -162,7 +172,8 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
                 buf.writeString(e.id);
                 if (e.data.has_value()) {
                     buf.writeBool(true);
-                    buf.writeVarInt(static_cast<i32>(e.data->size()));
+                    // 直接写根 NBT 原始字节（e.data 内须已是 0x0A + body + End 线格式，无 root name，
+                    // 由 EnchantmentNbtBuilder::serializeRootCompoundToBytes 产出）。
                     buf.writeBytes(e.data->data(), e.data->size());
                 } else {
                     buf.writeBool(false);
@@ -183,12 +194,21 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
                 bool present = false;
                 MC_TRY_ASSIGN(present, buf.readBool());
                 if (present) {
-                    i32 len = 0;
-                    MC_TRY_ASSIGN(len, buf.readVarInt());
-                    if (len < 0) {
-                        return Error(ErrorCode::InvalidData, "RegistryEntry NBT length is negative", "registryDataCodec");
+                    // 根 NBT 自定界：记录起始游标，readRootCompound 推进到 End 之后，
+                    // 切出 [start, end) 原始字节存入 e.data（与写侧对称，无 root name）。
+                    const usize start = buf.readPosition();
+                    auto nbtResult = buffer::nbt_io::readRootCompound(buf);
+                    if (!nbtResult.success()) {
+                        return nbtResult.error();
                     }
-                    MC_TRY_ASSIGN(e.data, buf.readBytes(static_cast<usize>(len)));
+                    const usize end = buf.readPosition();
+                    if (end < start) {
+                        return Error(
+                            ErrorCode::InvalidData, "RegistryEntry NBT cursor went backwards", "registryDataCodec");
+                    }
+                    const auto& all = buf.bytes();
+                    e.data = std::vector<u8>(all.begin() + static_cast<std::ptrdiff_t>(start),
+                        all.begin() + static_cast<std::ptrdiff_t>(end));
                 }
                 v.entries.push_back(std::move(e));
             }

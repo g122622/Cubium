@@ -27,7 +27,9 @@
 // buildConfigurationSb/Cb。altIndex 取自 IrPacket.hpp variant 声明顺序。
 
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 #include <gtest/gtest.h>
 
@@ -276,6 +278,44 @@ TEST_F(NetworkTestBase, ConfigurationRegistryDataCb)
     auto out = roundTripGeneric(*tables()->configurationCb, ConfigurationPacket{in});
     ASSERT_EQ(out.index(), 6u);
     EXPECT_EQ(std::get<configuration::RegistryData>(out), in);
+}
+
+// data=has_value（内联根 NBT）条目往返。对齐 Java ByteBufCodecs.TAG.apply(optional)：
+// present 写 Bool(true) + 自定界根 NBT（0x0A + body + End，**无 root name 前缀、无长度前缀**）。
+// 曾误加 writeVarInt(size) 长度前缀致客户端把长度字节当 NBT 类型字节读 → "Invalid tag id: -68"
+// （disconnect-2026-07-29_13.32.50-client.txt）；又曾误加 0x00 0x00 空 root name 致客户端
+// readAnyTag 读 0x0A 后把 0x00 当空 compound 的 End → 游标错位 → "Expected non-null compound tag"
+// （disconnect-2026-07-29_13.51.13-client.txt）。本测试锁定自定界契约：读回的 e.data 与写入字节
+// 逐字节相等，且多个条目（含 nullopt 混排）游标不错位。
+TEST_F(NetworkTestBase, ConfigurationRegistryDataCbInlineNbtIsSelfDelimited)
+{
+    // 构造一个根 NBT：{anvil_cost:5(int), name:"x"(string)}，序列化为 Java 根 NBT 线格式。
+    mc::nbt::tags::compound_tag tag;
+    tag.put("anvil_cost", static_cast<i32>(5));
+    tag.put("name", std::string("x"));
+    const std::vector<u8> nbtBytes = buffer::nbt_io::serializeRootCompoundToBytes(tag);
+    ASSERT_GE(nbtBytes.size(), 2u);
+    ASSERT_EQ(nbtBytes[0], 0x0A);     // 根 compound 类型字节（无 root name）
+    ASSERT_NE(nbtBytes[1], 0x00);     // 第二字节为首个 entry 的 tag id（int=3），非 root name
+    ASSERT_EQ(nbtBytes.back(), 0x00); // End
+
+    configuration::RegistryData in{};
+    in.registryKey = "minecraft:enchantment";
+    // 混排：nullopt 条目 + 内联 NBT 条目 + nullopt 条目，验证游标在自定界 NBT 后正确推进。
+    in.entries = {{"minecraft:aqua_affinity", std::nullopt},
+        {"minecraft:sharpness", nbtBytes},
+        {"minecraft:protection", std::nullopt}};
+
+    auto out = roundTripGeneric(*tables()->configurationCb, ConfigurationPacket{in});
+    ASSERT_EQ(out.index(), 6u);
+    const auto& decoded = std::get<configuration::RegistryData>(out);
+    EXPECT_EQ(decoded.registryKey, in.registryKey);
+    ASSERT_EQ(decoded.entries.size(), 3u);
+    EXPECT_FALSE(decoded.entries[0].data.has_value());
+    ASSERT_TRUE(decoded.entries[1].data.has_value());
+    // 读回的内联 NBT 字节须与写入逐字节相等（自定界读取切出的范围正确）。
+    EXPECT_EQ(*decoded.entries[1].data, nbtBytes);
+    EXPECT_FALSE(decoded.entries[2].data.has_value());
 }
 
 TEST_F(NetworkTestBase, ConfigurationUpdateEnabledFeaturesCb)
