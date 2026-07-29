@@ -871,6 +871,7 @@ add_executable(mc_tests
     server/test_integrated_server.cpp
     server/test_save_player_runtime_state.cpp
     server/BlockDropHandlerTest.cpp
+    server/network/test_enchantment_nbt_builder.cpp
     server/BlockInteractionManagerTest.cpp
     server/interaction/SignCommandHelperTest.cpp
     server/interaction/MiningManagerCallbackTest.cpp
@@ -1720,6 +1721,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp

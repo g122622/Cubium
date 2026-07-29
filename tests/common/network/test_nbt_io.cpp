@@ -27,6 +27,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
+
 using namespace mc::network::buffer;
 using namespace mc::network::buffer::nbt_io;
 using namespace mc::nbt::tags;
@@ -175,4 +177,42 @@ TEST(NbtIo, WriteCompoundDoesNotConsumeReadCursor)
     auto decoded = takeCompound(buf);
     ASSERT_NE(decoded, nullptr);
     EXPECT_EQ(decoded->get<int_tag>("v"), 1);
+}
+
+TEST(NbtIo, SerializeRootCompoundProducesJavaWireFormat)
+{
+    // serializeRootCompoundToBytes 须输出 Java ByteBufCodecs.TAG 线格式：
+    //   0x0A（compound 类型字节）+ 0x00 0x00（空 root name）+ entries + 0x00（End）。
+    // 对齐 FriendlyByteBuf.writeNbt = NbtIo.writeAnyTag（RegistrySynchronization.PackedRegistryEntry.data
+    // 用此 codec）。writeCompound 仅写 body（无 0x0A），二者必须区分。
+    compound_tag src;
+    src.put("v", static_cast<i32>(42));
+
+    const std::vector<u8> bytes = serializeRootCompoundToBytes(src);
+    ASSERT_GE(bytes.size(), 4u);
+    // 根 NBT 前缀：类型字节 0x0A + 空 name 长度 0x0000
+    EXPECT_EQ(bytes[0], 0x0A) << "缺 compound 类型字节 0x0A";
+    EXPECT_EQ(bytes[1], 0x00) << "root name 长度高字节应为 0";
+    EXPECT_EQ(bytes[2], 0x00) << "root name 长度低字节应为 0（空 name）";
+    // 尾部 End 0x00
+    EXPECT_EQ(bytes.back(), 0x00) << "应以 End 0x00 结尾";
+
+    // writeRootCompound 写入 ByteBuf 应等价于直接 writeBytes(bytes)。
+    ByteBuf buf;
+    ASSERT_TRUE(writeRootCompound(buf, src).success());
+    ASSERT_EQ(buf.readableBytes(), bytes.size());
+    const auto* bufData = buf.bytes().data() + buf.readPosition();
+    EXPECT_EQ(std::memcmp(bufData, bytes.data(), bytes.size()), 0);
+}
+
+TEST(NbtIo, SerializeRootEmptyCompoundIsPrefixPlusEnd)
+{
+    // 空 compound 的根 NBT = 0x0A 0x00 0x00 0x00（前缀 + End，无 entries）。
+    compound_tag src; // 空非根 compound
+    const std::vector<u8> bytes = serializeRootCompoundToBytes(src);
+    ASSERT_EQ(bytes.size(), 4u);
+    EXPECT_EQ(bytes[0], 0x0A);
+    EXPECT_EQ(bytes[1], 0x00);
+    EXPECT_EQ(bytes[2], 0x00);
+    EXPECT_EQ(bytes[3], 0x00); // End
 }

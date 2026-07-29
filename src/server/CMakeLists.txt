@@ -11,6 +11,7 @@ add_executable(minecraft-server
     network/ServerNetwork.cpp
     network/ServerHandshake.cpp
     network/RegistryDataBuilder.cpp
+    network/EnchantmentNbtBuilder.cpp
     network/ServerPlayRouter.cpp
     # 核心模块
     core/PlayerManager.cpp

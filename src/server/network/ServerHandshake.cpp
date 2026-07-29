@@ -296,8 +296,11 @@ Result<void> ServerHandshakeStateMachine::_pushConfigurationData()
         }
     }
 
-    // UpdateTags：暂发空（客户端命中 core 后标签数据可省）。TODO(Phase6): 真实标签同步
+    // UpdateTags：推送 buildConfigurationUpdateTags()。网络同步的 registry 完全替换客户端
+    // 本地 registry，本地 core 包 tags/ 目录不被读取，故 timeline 的 in_overworld/
+    // in_nether/in_end tag 必须由此显式 bindTag，否则 freeze() 报 "Unbound tags"。
     mc::network::ir::configuration::UpdateTags tags;
+    tags.registries = buildConfigurationUpdateTags();
     auto rt = _send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
         mc::network::ir::ConfigurationPacket{std::move(tags)}});
     if (!rt.success()) {

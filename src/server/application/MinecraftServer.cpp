@@ -126,6 +126,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
+#include "server/network/EnchantmentNbtBuilder.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
@@ -1038,6 +1039,10 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
         }
     }
+
+    // 注册 enchantment 内联 NBT 构建所需的 datapack 源。须在 ItemTags 加载之后（enchantment
+    // 的 supported_items/primary_items 展平依赖 ItemTags::getTag），握手阶段才会懒构建。
+    mc::server::net::setEnchantmentDatapackSource(m_dataPackList);
 
     // 初始化发射器行为注册表
     {

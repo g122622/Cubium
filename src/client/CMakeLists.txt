@@ -444,6 +444,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
     ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp

@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace mc::nbt::tags {
 struct compound_tag;
@@ -50,10 +51,32 @@ namespace nbt_io {
 /**
  * @brief 将复合标签以 Java 大端二进制写入 buf
  *
- * 已落地并投入使用（调用方：item/component/DataComponentPatchWire、
- * backend/java/codecs/JavaPlayCodecsExtended 的 NBT payload 透传）。
+ * 写入 compound body（entries + End），**不含**开头 0x0A 类型字节与 root name。
+ * 与 readCompound 对称（readCompound 也不消费 0x0A 前缀）。调用方：
+ * item/component/DataComponentPatchWire、backend/java/codecs/JavaPlayCodecsExtended 的 NBT
+ * payload 透传。
  */
 [[nodiscard]] Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);
+
+/**
+ * @brief 将复合标签以【根 NBT】线格式序列化为字节向量
+ *
+ * 对齐 Java `FriendlyByteBuf.writeNbt` = `NbtIo.writeAnyTag`：`0x0A`(compound 类型字节)
+ * + 空 root name(`0x00 0x00`) + entries + `0x00`(End)。这是 Java `ByteBufCodecs.TAG`
+ * 期望的线格式。
+ *
+ * 供 `RegistryEntry.data` 等需把完整根 NBT 作为原始字节嵌入协议的场景使用——
+ * `registryDataCodec` 直接 writeBytes 该向量，故向量内须已是含 0x0A 前缀的完整根 NBT。
+ *
+ * 与 writeCompound 的区别：writeCompound 仅写 body（无 0x0A、无 name），用于与
+ * readCompound 对称的内部往返；本函数写完整根 NBT，用于发往真 Java 客户端。
+ */
+[[nodiscard]] std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag);
+
+/**
+ * @brief 将复合标签以【根 NBT】线格式写入 buf（= writeBytes(serializeRootCompoundToBytes)）
+ */
+[[nodiscard]] Result<void> writeRootCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag);
 
 /**
  * @brief 从 buf 当前游标读取一个 Java 大端二进制复合标签

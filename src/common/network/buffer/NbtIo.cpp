@@ -52,6 +52,31 @@ Result<void> writeCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag)
     return Result<void>::ok();
 }
 
+std::vector<u8> serializeRootCompoundToBytes(const mc::nbt::tags::compound_tag& tag)
+{
+    // 对齐 Java FriendlyByteBuf.writeNbt = NbtIo.writeAnyTag：
+    //   writeByte(0x0A)        // TAG_Compound 类型字节
+    //   writeUTF("")           // 空 root name（u16 长度 0x0000 + 0 字节）
+    //   tag.write()            // entries + End（compound_tag::write 默认 is_root=false 已含 0x00 End）
+    // 注意：is_root=true 会去掉 End（错向），此处须保持 is_root=false 默认。
+    std::ostringstream out;
+    out << mc::nbt::Contexts::java;
+    out.put(static_cast<char>(mc::nbt::TagId::Compound)); // 0x0A
+    out.put('\0');                                        // root name 长度高字节
+    out.put('\0');                                        // root name 长度低字节（空 name）
+    tag.write(out);                                       // entries + 0x00 End
+    const std::string bytes = out.str();
+    return std::vector<u8>(
+        reinterpret_cast<const u8*>(bytes.data()), reinterpret_cast<const u8*>(bytes.data()) + bytes.size());
+}
+
+Result<void> writeRootCompound(ByteBuf& buf, const mc::nbt::tags::compound_tag& tag)
+{
+    const std::vector<u8> bytes = serializeRootCompoundToBytes(tag);
+    buf.writeBytes(bytes.data(), bytes.size());
+    return Result<void>::ok();
+}
+
 Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
 {
     // 读时：剩余字节 → istringstream（带 java 上下文）→ compound_tag::read
