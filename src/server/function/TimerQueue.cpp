@@ -201,7 +201,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         // 读取事件标识符
         auto nameIt = eventTag.value.find("Name");
         if (nameIt == eventTag.value.end() || nameIt->second->id() != nbt::TagId::String) {
-            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Name 字段的事件");
+            spdlog::warn("TimerQueue::deserialize: skipping event missing Name field");
             continue;
         }
         std::string name = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
@@ -209,7 +209,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         // 读取触发时间
         auto triggerTimeIt = eventTag.value.find("TriggerTime");
         if (triggerTimeIt == eventTag.value.end() || triggerTimeIt->second->id() != nbt::TagId::Long) {
-            spdlog::warn("TimerQueue::deserialize: 跳过缺少 TriggerTime 字段的事件: {}", name);
+            spdlog::warn("TimerQueue::deserialize: skipping event missing TriggerTime field: {}", name);
             continue;
         }
         u64 triggerTime = static_cast<u64>(dynamic_cast<const nbt::tags::long_tag&>(*triggerTimeIt->second).value);
@@ -217,7 +217,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         // 读取回调信息
         auto callbackIt = eventTag.value.find("Callback");
         if (callbackIt == eventTag.value.end() || callbackIt->second->id() != nbt::TagId::Compound) {
-            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback 字段的事件: {}", name);
+            spdlog::warn("TimerQueue::deserialize: skipping event missing Callback field: {}", name);
             continue;
         }
         const auto& callback = dynamic_cast<const nbt::tags::compound_tag&>(*callbackIt->second);
@@ -225,7 +225,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         // 读取回调类型
         auto typeIt = callback.value.find("Type");
         if (typeIt == callback.value.end() || typeIt->second->id() != nbt::TagId::String) {
-            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback.Type 字段的事件: {}", name);
+            spdlog::warn("TimerQueue::deserialize: skipping event missing Callback.Type field: {}", name);
             continue;
         }
         std::string typeStr = dynamic_cast<const nbt::tags::string_tag&>(*typeIt->second).value;
@@ -233,7 +233,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         // 读取回调中的函数/标签 ResourceLocation
         auto funcNameIt = callback.value.find("Name");
         if (funcNameIt == callback.value.end() || funcNameIt->second->id() != nbt::TagId::String) {
-            spdlog::warn("TimerQueue::deserialize: 跳过缺少 Callback.Name 字段的事件: {}", name);
+            spdlog::warn("TimerQueue::deserialize: skipping event missing Callback.Name field: {}", name);
             continue;
         }
         std::string funcName = dynamic_cast<const nbt::tags::string_tag&>(*funcNameIt->second).value;
@@ -245,7 +245,7 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         } else if (typeStr == "minecraft:function_tag") {
             scheduleFunctionTag(name, std::move(loc), triggerTime);
         } else {
-            spdlog::warn("TimerQueue::deserialize: 跳过未知回调类型的事件: type={}, name={}", typeStr, name);
+            spdlog::warn("TimerQueue::deserialize: skipping event with unknown callback type: type={}, name={}", typeStr, name);
         }
     }
 }

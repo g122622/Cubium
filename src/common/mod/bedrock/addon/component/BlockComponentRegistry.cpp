@@ -36,7 +36,7 @@ void BlockComponentRegistry::registerComponent(const std::string& blockTypeId, B
     // 验证组件名称包含命名空间前缀
     if (component.name.find(':') == std::string::npos) {
         spdlog::warn(
-            "BlockComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式", component.name);
+            "BlockComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'", component.name);
     }
 
     std::unique_lock lock(m_mutex);
@@ -44,7 +44,7 @@ void BlockComponentRegistry::registerComponent(const std::string& blockTypeId, B
     _updateCallbackFlags(blockTypeId);
 
     spdlog::info(
-        "BlockComponentRegistry: 已注册方块组件'{}'到'{}'", m_components[blockTypeId].back().name, blockTypeId);
+        "BlockComponentRegistry: registered block component '{}' to '{}'", m_components[blockTypeId].back().name, blockTypeId);
 }
 
 size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeId, const std::string& componentName)

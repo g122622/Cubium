@@ -90,7 +90,7 @@ static void resolveEntityTypeTagEntry(const EntityTypeRawTagEntry& entry,
         // 防止循环引用
         if (visitedTags.count(tagRefLocation) > 0) {
             if (entry.required) {
-                spdlog::warn("EntityTypeTagLoader: 循环标签引用 '{}' (required), 跳过 (标签: {})",
+                spdlog::warn("EntityTypeTagLoader: circular tag reference '{}' (required), skipped (tag: {})",
                     entry.id,
                     tagLocation.toString());
             }
@@ -106,7 +106,7 @@ static void resolveEntityTypeTagEntry(const EntityTypeRawTagEntry& entry,
             }
         } else {
             if (entry.required) {
-                spdlog::warn("EntityTypeTagLoader: 引用的标签 '{}' 未找到 (required), 跳过 (标签: {})",
+                spdlog::warn("EntityTypeTagLoader: referenced tag '{}' not found (required), skipped (tag: {})",
                     entry.id,
                     tagLocation.toString());
             }
@@ -135,7 +135,7 @@ static Result<EntityTypeRawTagData> parseEntityTypeJsonRaw(const std::string& js
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "实体类型标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "entity type tag missing 'values' array");
         }
 
         for (const auto& value : jsonObj["values"]) {
@@ -144,14 +144,14 @@ static Result<EntityTypeRawTagData> parseEntityTypeJsonRaw(const std::string& js
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
                     spdlog::warn(
-                        "EntityTypeTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                        "EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
                     spdlog::warn(
-                        "EntityTypeTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                        "EntityTypeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
 
@@ -162,17 +162,17 @@ static Result<EntityTypeRawTagData> parseEntityTypeJsonRaw(const std::string& js
 
                 rawData.entries.push_back({id, required});
             } else {
-                spdlog::warn("EntityTypeTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn("EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
         return rawData;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
     }
 }
 
@@ -201,7 +201,7 @@ static void resolveAndFillEntityTypeTag(
     tag.addAll(entityTypeIds);
 
     if (entityTypeIds.empty()) {
-        spdlog::info("EntityTypeTagLoader: 标签 '{}' 没有解析到有效的实体类型", location.toString());
+        spdlog::info("EntityTypeTagLoader: tag '{}' resolved no valid entity types", location.toString());
     }
 }
 
@@ -226,7 +226,7 @@ static void resolveEntityTypeTagWithDependencies(const ResourceLocation& locatio
 
     // 检测循环依赖
     if (resolving.count(location) > 0) {
-        spdlog::warn("EntityTypeTagLoader: 检测到循环标签依赖 '{}', 跳过", location.toString());
+        spdlog::warn("EntityTypeTagLoader: circular tag dependency detected '{}', skipped", location.toString());
         return;
     }
 
@@ -304,7 +304,7 @@ Result<size_t> EntityTypeTagLoader::loadFromDataPackRepository(const resource::D
 
                 auto parseResult = parseEntityTypeJsonRaw(version.content, location);
                 if (!parseResult.success()) {
-                    spdlog::warn("EntityTypeTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                    spdlog::warn("EntityTypeTagLoader: failed to parse tag {} (from data pack {}): {}",
                         location.toString(),
                         version.packName,
                         parseResult.error().message());
@@ -349,7 +349,7 @@ Result<size_t> EntityTypeTagLoader::loadFromDataPackRepository(const resource::D
     }
 
     if (loadedCount > 0) {
-        spdlog::info("EntityTypeTagLoader: 从数据包加载了 {} 个实体类型标签", loadedCount);
+        spdlog::info("EntityTypeTagLoader: loaded {} entity type tags from data pack", loadedCount);
     }
 
     return loadedCount;
@@ -382,14 +382,14 @@ Result<size_t> EntityTypeTagLoader::loadFromResourcePack(const resource::IResour
 
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
-                spdlog::warn("EntityTypeTagLoader: 无法读取标签文件: {}", resourcePath);
+                spdlog::warn("EntityTypeTagLoader: failed to read tag file: {}", resourcePath);
                 continue;
             }
 
             auto parseResult = parseEntityTypeJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
                 spdlog::warn(
-                    "EntityTypeTagLoader: 无法解析标签 {}: {}", location.toString(), parseResult.error().message());
+                    "EntityTypeTagLoader: failed to parse tag {}: {}", location.toString(), parseResult.error().message());
                 continue;
             }
 
@@ -450,7 +450,7 @@ Result<std::unique_ptr<EntityTypeTag>> EntityTypeTagLoader::loadFromJson(
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "实体类型标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "entity type tag missing 'values' array");
         }
 
         std::vector<ResourceLocation> entityTypeIds;
@@ -465,14 +465,14 @@ Result<std::unique_ptr<EntityTypeTag>> EntityTypeTagLoader::loadFromJson(
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
                     spdlog::warn(
-                        "EntityTypeTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                        "EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
                     spdlog::warn(
-                        "EntityTypeTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                        "EntityTypeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
 
@@ -484,23 +484,23 @@ Result<std::unique_ptr<EntityTypeTag>> EntityTypeTagLoader::loadFromJson(
                 EntityTypeRawTagEntry rawEntry{id, required};
                 resolveEntityTypeTagEntry(rawEntry, entityTypeIds, visitedTags, location);
             } else {
-                spdlog::warn("EntityTypeTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn("EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
         tag->addAll(entityTypeIds);
 
         if (entityTypeIds.empty()) {
-            spdlog::info("EntityTypeTagLoader: 标签 '{}' 没有解析到有效的实体类型", location.toString());
+            spdlog::info("EntityTypeTagLoader: tag '{}' resolved no valid entity types", location.toString());
         }
 
         return tag;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
     }
 }
 

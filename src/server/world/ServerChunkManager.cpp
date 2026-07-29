@@ -1683,7 +1683,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
                 lifecycleManager->level());
         }
     }
-    spdlog::info("[stuck] 总计卡住的 holder={}，其中 waitingForNeighbors={} hasGenTask={} neighboursUsing={} "
+    spdlog::info("[stuck] total stuck holders={}, of which waitingForNeighbors={} hasGenTask={} neighboursUsing={} "
                  "resolvingStorage={} notReadyWithWaiters={}",
         stuckCount,
         waitingForNeighbors,
@@ -1761,7 +1761,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
                 lifecycleManager->level());
         }
     }
-    spdlog::info("[stuck] source分布: Unknown={} ResolvingStorage={} StorageMissing={} LoadedFromStorage={} Ready={}",
+    spdlog::info("[stuck] source distribution: Unknown={} ResolvingStorage={} StorageMissing={} LoadedFromStorage={} Ready={}",
         bySource[0],
         bySource[1],
         bySource[2],

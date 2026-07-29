@@ -126,7 +126,7 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
                     if (i > 0) missingStr += ", ";
                     missingStr += missingParams[i];
                 }
-                spdlog::warn("LootContextBuilder: 缺少必需参数 [{}]（参数集类型: {}）",
+                spdlog::warn("LootContextBuilder: missing required parameters [{}] (parameter set type: {})",
                     missingStr,
                     static_cast<int>(paramSet.getType()));
             }
@@ -136,7 +136,7 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
                     if (i > 0) unexpectedStr += ", ";
                     unexpectedStr += unexpectedParams[i];
                 }
-                spdlog::warn("LootContextBuilder: 参数集不包含的参数 [{}]（参数集类型: {}）",
+                spdlog::warn("LootContextBuilder: unexpected parameters [{}] (parameter set type: {})",
                     unexpectedStr,
                     static_cast<int>(paramSet.getType()));
             }

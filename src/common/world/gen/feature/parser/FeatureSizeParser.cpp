@@ -154,8 +154,8 @@ Result<std::unique_ptr<FeatureSize>> parse(const nlohmann::json& sizeObj)
             limitR.value(), upperLimitR.value(), lowerR.value(), middleR.value(), upperR.value(), minClipped));
     }
 
-    spdlog::error("[FeatureSizeParser] 未实现的 feature_size type: {}", type);
-    return Error(ErrorCode::NotFound, std::string("未实现的 feature_size type: '") + type + "'");
+    spdlog::error("[FeatureSizeParser] unimplemented feature_size type: {}", type);
+    return Error(ErrorCode::NotFound, std::string("unimplemented feature_size type: '") + type + "'");
 }
 
 } // namespace FeatureSizeParser

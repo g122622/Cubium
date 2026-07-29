@@ -168,7 +168,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 // 解析 JSON
                 auto parseResult = parseTagJson(tagLoc, version.content);
                 if (!parseResult.success()) {
-                    spdlog::warn("FunctionLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                    spdlog::warn("FunctionLoader: Failed to resolve tag {} (from data pack {}): {}",
                         tagIdStr,
                         version.packName,
                         parseResult.error().message());
@@ -295,7 +295,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 // 引用的标签不存在于 mergedTags 中（数据包中没有定义）
                 if (mergedTags.find(refTagLoc) == mergedTags.end()) {
                     if (discardedTags.insert(tagLoc).second) {
-                        spdlog::error("FunctionLoader: 引用的标签 '{}' 未找到 (required), 标签 '{}' 将被丢弃",
+                        spdlog::error("FunctionLoader: Referenced tag '{}' not found (required), tag '{}' will be dropped",
                             refTagLoc.toString(),
                             tagLoc.toString());
                         newDiscards = true;
@@ -304,7 +304,7 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 // 引用的标签存在但已被丢弃
                 else if (discardedTags.count(refTagLoc) > 0) {
                     if (discardedTags.insert(tagLoc).second) {
-                        spdlog::error("FunctionLoader: 引用的标签 '{}' 已被丢弃 (required), 标签 '{}' 也将被丢弃",
+                        spdlog::error("FunctionLoader: Referenced tag '{}' was dropped (required), tag '{}' will also be dropped",
                             refTagLoc.toString(),
                             tagLoc.toString());
                         newDiscards = true;
@@ -415,13 +415,13 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     }
 
     if (!discardedTags.empty()) {
-        spdlog::warn("FunctionLoader: {} 个标签因缺失 required 条目被丢弃（共 {} 个标签被解析）",
+        spdlog::warn("FunctionLoader: {} tags dropped due to missing required entries ({} tags parsed in total)",
             discardedTags.size(),
             tagCount);
     }
 
     if (registeredTagCount > 0) {
-        spdlog::info("FunctionLoader: 从数据包加载了 {} 个函数标签", registeredTagCount);
+        spdlog::info("FunctionLoader: Loaded {} function tags from data packs", registeredTagCount);
     }
 
     return registeredTagCount;
@@ -443,7 +443,7 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
 
         // 解析 values 数组（必需）
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "函数标签 '" + tagId.toString() + "' 缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "Function tag '" + tagId.toString() + "' missing 'values' array");
         }
 
         for (const auto& value : jsonObj["values"]) {
@@ -456,13 +456,13 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
                 // 对象格式: {"id":"namespace:path","required":false}
                 // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("FunctionLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", tagId.toString());
+                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped", tagId.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("FunctionLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", tagId.toString());
+                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
                     continue;
                 }
 
@@ -474,17 +474,17 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
 
                 resolveTagEntry(id, required, tagData.entries);
             } else {
-                spdlog::warn("FunctionLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", tagId.toString());
+                spdlog::warn("FunctionLoader: Value in tag '{}' is not a string or object, skipped", tagId.toString());
             }
         }
 
         return tagData;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
     }
 }
 

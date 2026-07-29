@@ -63,7 +63,7 @@ Result<EvpPkeyPtr> loadPublicKey(const u8* der, usize size)
     const u8* cursor = der;
     EVP_PKEY* pkey = d2i_PUBKEY(nullptr, &cursor, static_cast<long>(size));
     if (pkey == nullptr) {
-        return Error(ErrorCode::InvalidData, "X509 公钥 DER 解码失败", "RsaHandshake::loadPublicKey");
+        return Error(ErrorCode::InvalidData, "X509 public key DER decode failed", "RsaHandshake::loadPublicKey");
     }
     return EvpPkeyPtr(pkey);
 }
@@ -77,7 +77,7 @@ Result<EvpPkeyPtr> loadPrivateKey(const u8* der, usize size)
     // d2i_AutoPrivateKey 接受 PKCS8 或传统 PKCS1 私钥 DER。
     EVP_PKEY* pkey = d2i_AutoPrivateKey(nullptr, &cursor, static_cast<long>(size));
     if (pkey == nullptr) {
-        return Error(ErrorCode::InvalidData, "PKCS8 私钥 DER 解码失败", "RsaHandshake::loadPrivateKey");
+        return Error(ErrorCode::InvalidData, "PKCS8 private key DER decode failed", "RsaHandshake::loadPrivateKey");
     }
     return EvpPkeyPtr(pkey);
 }
@@ -88,18 +88,18 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
 {
     EvpPkeyCtxPtr ctx(EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr));
     if (ctx == nullptr) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new_id 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new_id failed", "RsaHandshake::generateKeyPair");
     }
     if (EVP_PKEY_keygen_init(ctx.get()) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_keygen_init 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_keygen_init failed", "RsaHandshake::generateKeyPair");
     }
     // 1024 位，对齐 MC Java NetworkEncryptionUtils 的 RSA key size。
     if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx.get(), 1024) <= 0) {
-        return Error(ErrorCode::Unknown, "set_rsa_keygen_bits 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "set_rsa_keygen_bits failed", "RsaHandshake::generateKeyPair");
     }
     EVP_PKEY* rawPkey = nullptr;
     if (EVP_PKEY_keygen(ctx.get(), &rawPkey) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_keygen 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_keygen failed", "RsaHandshake::generateKeyPair");
     }
     EvpPkeyPtr pkey(rawPkey);
 
@@ -107,7 +107,7 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
     u8* pubDer = nullptr;
     int pubLen = i2d_PUBKEY(pkey.get(), &pubDer);
     if (pubLen <= 0) {
-        return Error(ErrorCode::Unknown, "i2d_PUBKEY 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "i2d_PUBKEY failed", "RsaHandshake::generateKeyPair");
     }
     KeyPair kp;
     kp.publicKeyDer.assign(pubDer, pubDer + pubLen);
@@ -118,7 +118,7 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
     int privLen = i2d_PrivateKey(pkey.get(), &privDer);
     if (privLen <= 0) {
         OPENSSL_free(privDer);
-        return Error(ErrorCode::Unknown, "i2d_PrivateKey 失败", "RsaHandshake::generateKeyPair");
+        return Error(ErrorCode::Unknown, "i2d_PrivateKey failed", "RsaHandshake::generateKeyPair");
     }
     kp.privateKeyDer.assign(privDer, privDer + privLen);
     OPENSSL_free(privDer);
@@ -137,23 +137,23 @@ Result<std::vector<u8>> RsaHandshake::encryptWithPublicKey(
 
     EvpPkeyCtxPtr ctx(EVP_PKEY_CTX_new(pkey.get(), nullptr));
     if (ctx == nullptr) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new 失败", "RsaHandshake::encryptWithPublicKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new failed", "RsaHandshake::encryptWithPublicKey");
     }
     if (EVP_PKEY_encrypt_init(ctx.get()) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt_init 失败", "RsaHandshake::encryptWithPublicKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt_init failed", "RsaHandshake::encryptWithPublicKey");
     }
     // PKCS1 padding（对齐 Java "RSA" 默认 RSA/ECB/PKCS1Padding）。
     if (EVP_PKEY_CTX_set_rsa_padding(ctx.get(), RSA_PKCS1_PADDING) <= 0) {
-        return Error(ErrorCode::Unknown, "set_rsa_padding 失败", "RsaHandshake::encryptWithPublicKey");
+        return Error(ErrorCode::Unknown, "set_rsa_padding failed", "RsaHandshake::encryptWithPublicKey");
     }
 
     size_t outLen = 0;
     if (EVP_PKEY_encrypt(ctx.get(), nullptr, &outLen, plaintext, size) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt 探测长度失败", "RsaHandshake::encryptWithPublicKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt length probe failed", "RsaHandshake::encryptWithPublicKey");
     }
     std::vector<u8> out(outLen);
     if (EVP_PKEY_encrypt(ctx.get(), out.data(), &outLen, plaintext, size) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt 失败", "RsaHandshake::encryptWithPublicKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_encrypt failed", "RsaHandshake::encryptWithPublicKey");
     }
     out.resize(outLen);
     return out;
@@ -170,22 +170,22 @@ Result<std::vector<u8>> RsaHandshake::decryptWithPrivateKey(
 
     EvpPkeyCtxPtr ctx(EVP_PKEY_CTX_new(pkey.get(), nullptr));
     if (ctx == nullptr) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new 失败", "RsaHandshake::decryptWithPrivateKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_CTX_new failed", "RsaHandshake::decryptWithPrivateKey");
     }
     if (EVP_PKEY_decrypt_init(ctx.get()) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt_init 失败", "RsaHandshake::decryptWithPrivateKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt_init failed", "RsaHandshake::decryptWithPrivateKey");
     }
     if (EVP_PKEY_CTX_set_rsa_padding(ctx.get(), RSA_PKCS1_PADDING) <= 0) {
-        return Error(ErrorCode::Unknown, "set_rsa_padding 失败", "RsaHandshake::decryptWithPrivateKey");
+        return Error(ErrorCode::Unknown, "set_rsa_padding failed", "RsaHandshake::decryptWithPrivateKey");
     }
 
     size_t outLen = 0;
     if (EVP_PKEY_decrypt(ctx.get(), nullptr, &outLen, ciphertext, size) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt 探测长度失败", "RsaHandshake::decryptWithPrivateKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt length probe failed", "RsaHandshake::decryptWithPrivateKey");
     }
     std::vector<u8> out(outLen);
     if (EVP_PKEY_decrypt(ctx.get(), out.data(), &outLen, ciphertext, size) <= 0) {
-        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt 失败", "RsaHandshake::decryptWithPrivateKey");
+        return Error(ErrorCode::Unknown, "EVP_PKEY_decrypt failed", "RsaHandshake::decryptWithPrivateKey");
     }
     out.resize(outLen);
     return out;

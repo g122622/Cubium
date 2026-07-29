@@ -825,8 +825,8 @@ void EntityRendererManager::_remapItemEntityUv(ClientEntity& entity, std::vector
         static std::unordered_set<ItemId> s_warnedItemIds;
         const ItemId itemId = item->itemId();
         if (s_warnedItemIds.insert(itemId).second) {
-            spdlog::warn("EntityRendererManager: ItemTextureAtlas 缺失物品 {} (itemId={}) 的纹理区域，"
-                         "ItemEntity 将显示为无图集采样色块",
+            spdlog::warn("EntityRendererManager: ItemTextureAtlas missing texture region for item {} (itemId={}), "
+                         "ItemEntity will render as atlas-less sampled color",
                 item->itemLocation().toString(),
                 static_cast<u32>(itemId));
         }

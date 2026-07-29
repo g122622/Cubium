@@ -36,14 +36,14 @@ void ItemComponentRegistry::registerComponent(const std::string& itemTypeId, Ite
 {
     if (component.name.find(':') == std::string::npos) {
         spdlog::warn(
-            "ItemComponentRegistry: 组件名称'{}'缺少命名空间前缀，建议使用'namespace:name'格式", component.name);
+            "ItemComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'", component.name);
     }
 
     std::unique_lock lock(m_mutex);
     m_components[itemTypeId].push_back(std::move(component));
     _updateCallbackFlags(itemTypeId);
 
-    spdlog::info("ItemComponentRegistry: 已注册物品组件'{}'到'{}'", m_components[itemTypeId].back().name, itemTypeId);
+    spdlog::info("ItemComponentRegistry: registered item component '{}' to '{}'", m_components[itemTypeId].back().name, itemTypeId);
 }
 
 size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId, const std::string& componentName)

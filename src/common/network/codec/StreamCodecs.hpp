@@ -189,7 +189,7 @@ struct CollectionCodec {
         i32 count = 0;
         MC_TRY_ASSIGN(count, buf.readVarInt());
         if (count < 0) {
-            return Error(ErrorCode::InvalidData, "集合长度为负", "CollectionCodec::decode");
+            return Error(ErrorCode::InvalidData, "Collection length is negative", "CollectionCodec::decode");
         }
         std::vector<T> out;
         out.reserve(static_cast<usize>(count));

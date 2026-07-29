@@ -52,13 +52,13 @@ public:
      */
     [[nodiscard]] Result<void> connect(const Endpoint& /*endpoint*/)
     {
-        return Error(ErrorCode::NotInitialized, "RakNet 传输未实现", "RakNetTransport::connect");
+        return Error(ErrorCode::NotInitialized, "RakNet transport not implemented", "RakNetTransport::connect");
     }
 
     // === ITransport（全部 stub，返回 NotImplemented）===
     [[nodiscard]] Result<void> send(const u8* /*data*/, usize /*size*/, DeliveryHint /*hint*/) override
     {
-        return Error(ErrorCode::NotInitialized, "RakNet 传输未实现", "RakNetTransport::send");
+        return Error(ErrorCode::NotInitialized, "RakNet transport not implemented", "RakNetTransport::send");
     }
 
     void onBytes(ByteCallback /*callback*/) override

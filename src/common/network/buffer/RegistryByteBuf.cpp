@@ -57,7 +57,7 @@ Result<const BlockState*> RegistryByteBuf::readBlockStateHolder()
     u32 id = 0;
     MC_TRY_ASSIGN(id, readVarUInt());
     if (!hasRegistry()) {
-        return Error(ErrorCode::InvalidState, "RegistryByteBuf 未绑定注册表", "RegistryByteBuf::readBlockStateHolder");
+        return Error(ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readBlockStateHolder");
     }
     return registry().blockStateById(id);
 }
@@ -75,7 +75,7 @@ Result<const entity::EntityType*> RegistryByteBuf::readEntityTypeHolder()
         return static_cast<const entity::EntityType*>(nullptr);
     }
     if (!hasRegistry()) {
-        return Error(ErrorCode::InvalidState, "RegistryByteBuf 未绑定注册表", "RegistryByteBuf::readEntityTypeHolder");
+        return Error(ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readEntityTypeHolder");
     }
     return registry().entityTypeById(id);
 }

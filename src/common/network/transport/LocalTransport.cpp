@@ -28,10 +28,10 @@ namespace mc::network::transport {
 Result<void> LocalTransport::send(ir::IrPacket packet)
 {
     if (!isConnected()) {
-        return Error(ErrorCode::InvalidState, "LocalTransport 已断开", "LocalTransport::send");
+        return Error(ErrorCode::InvalidState, "LocalTransport disconnected", "LocalTransport::send");
     }
     if (m_peer == nullptr) {
-        return Error(ErrorCode::InvalidState, "LocalTransport 未配对 peer", "LocalTransport::send");
+        return Error(ErrorCode::InvalidState, "LocalTransport has no paired peer", "LocalTransport::send");
     }
     // 投递到对端的 inbox，等对端 pump 时回调
     {

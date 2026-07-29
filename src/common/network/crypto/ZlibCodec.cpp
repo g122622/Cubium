@@ -80,7 +80,7 @@ Result<std::vector<u8>> ZlibCodec::deflateBytes(const u8* data, usize size)
     z_stream stream = {};
     // windowBits=15 标准 zlib 格式（raw deflate + zlib header），对齐 Java Deflater/Inflater 默认。
     if (deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
-        return Error(ErrorCode::Unknown, "deflateInit2 失败", "ZlibCodec::deflateBytes");
+        return Error(ErrorCode::Unknown, "deflateInit2 failed", "ZlibCodec::deflateBytes");
     }
 
     stream.next_in = const_cast<Bytef*>(data);
@@ -99,7 +99,7 @@ Result<std::vector<u8>> ZlibCodec::deflateBytes(const u8* data, usize size)
     }
     deflateEnd(&stream);
     if (result != Z_STREAM_END) {
-        return Error(ErrorCode::Unknown, "zlib deflate 未完成", "ZlibCodec::deflateBytes");
+        return Error(ErrorCode::Unknown, "zlib deflate did not finish", "ZlibCodec::deflateBytes");
     }
     return out;
 }
@@ -108,7 +108,7 @@ Result<std::vector<u8>> ZlibCodec::inflateBytes(const u8* data, usize size, u32 
 {
     z_stream stream = {};
     if (inflateInit2(&stream, 15) != Z_OK) {
-        return Error(ErrorCode::Unknown, "inflateInit2 失败", "ZlibCodec::inflateBytes");
+        return Error(ErrorCode::Unknown, "inflateInit2 failed", "ZlibCodec::inflateBytes");
     }
 
     stream.next_in = const_cast<Bytef*>(data);
@@ -127,13 +127,13 @@ Result<std::vector<u8>> ZlibCodec::inflateBytes(const u8* data, usize size, u32 
             out.insert(out.end(), buf.data(), buf.data() + have);
             if (out.size() > maxOut) {
                 inflateEnd(&stream);
-                return Error(ErrorCode::InvalidData, "解压数据超过上限", "ZlibCodec::inflateBytes");
+                return Error(ErrorCode::InvalidData, "Decompressed data exceeds limit", "ZlibCodec::inflateBytes");
             }
         }
     }
     inflateEnd(&stream);
     if (result != Z_STREAM_END) {
-        return Error(ErrorCode::InvalidData, "zlib inflate 失败", "ZlibCodec::inflateBytes");
+        return Error(ErrorCode::InvalidData, "zlib inflate failed", "ZlibCodec::inflateBytes");
     }
     return out;
 }
@@ -141,7 +141,7 @@ Result<std::vector<u8>> ZlibCodec::inflateBytes(const u8* data, usize size, u32 
 Result<void> ZlibCodec::encode(i32 threshold, const std::vector<u8>& input, std::vector<u8>& output)
 {
     if (input.size() > kMaxUncompressed) {
-        return Error(ErrorCode::InvalidData, "待压缩数据超过 8MB 上限", "ZlibCodec::encode");
+        return Error(ErrorCode::InvalidData, "Uncompressed data exceeds 8MB limit", "ZlibCodec::encode");
     }
 
     // 阈值 < 0 或数据长度 < threshold：不压缩，写 0 + 原文。
@@ -158,7 +158,7 @@ Result<void> ZlibCodec::encode(i32 threshold, const std::vector<u8>& input, std:
         return deflated.error();
     }
     if (deflated.value().size() > kMaxCompressed) {
-        return Error(ErrorCode::InvalidData, "压缩后数据超过 2MB 上限", "ZlibCodec::encode");
+        return Error(ErrorCode::InvalidData, "Compressed data exceeds 2MB limit", "ZlibCodec::encode");
     }
     output.insert(output.end(), deflated.value().begin(), deflated.value().end());
     return Result<void>::ok();
@@ -169,7 +169,7 @@ Result<void> ZlibCodec::decode(
 {
     VarIntRead vlen{};
     if (!readVarInt(input, inputSize, vlen)) {
-        return Error(ErrorCode::InvalidData, "压缩层数据长度 VarInt 读取失败", "ZlibCodec::decode");
+        return Error(ErrorCode::InvalidData, "Failed to read compressed data length VarInt", "ZlibCodec::decode");
     }
     const u32 dataLength = vlen.value;
     dataLengthOut = static_cast<i32>(dataLength);
@@ -185,11 +185,11 @@ Result<void> ZlibCodec::decode(
 
     // 压缩：校验声明长度，再 inflate。
     if (dataLength > kMaxUncompressed) {
-        return Error(ErrorCode::InvalidData, "解压后数据超过 8MB 上限", "ZlibCodec::decode");
+        return Error(ErrorCode::InvalidData, "Decompressed data exceeds 8MB limit", "ZlibCodec::decode");
     }
     // Java CompressionDecoder 校验：压缩包声明长度不应小于阈值（否则视为非法）。
     if (threshold >= 0 && dataLength < static_cast<u32>(threshold)) {
-        return Error(ErrorCode::InvalidData, "压缩包声明长度小于阈值", "ZlibCodec::decode");
+        return Error(ErrorCode::InvalidData, "Compressed packet declared length below threshold", "ZlibCodec::decode");
     }
 
     auto inflated = inflateBytes(payload, payloadSize, kMaxUncompressed);
@@ -197,7 +197,7 @@ Result<void> ZlibCodec::decode(
         return inflated.error();
     }
     if (inflated.value().size() != dataLength) {
-        return Error(ErrorCode::InvalidData, "解压后长度与声明不符", "ZlibCodec::decode");
+        return Error(ErrorCode::InvalidData, "Decompressed length does not match declared length", "ZlibCodec::decode");
     }
     output = std::move(inflated).value();
     consumedOut = vlen.consumed + payloadSize;

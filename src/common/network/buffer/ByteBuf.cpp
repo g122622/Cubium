@@ -50,7 +50,7 @@ std::vector<u8> ByteBuf::takeBytes() noexcept
 Result<void> ByteBuf::ensureReadable(usize size) const
 {
     if (readableBytes() < size) {
-        return Error(ErrorCode::OutOfBounds, "ByteBuf 读取越界", "mc::network::buffer::ByteBuf::ensureReadable");
+        return Error(ErrorCode::OutOfBounds, "ByteBuf read out of bounds", "mc::network::buffer::ByteBuf::ensureReadable");
     }
     return Result<void>::ok();
 }
@@ -282,7 +282,7 @@ Result<u32> ByteBuf::readVarUInt()
         }
     }
     // 第 5 字节仍有续位 → 非法 VarInt（超过 32 位）
-    return Error(ErrorCode::InvalidData, "VarInt 超过 5 字节", "mc::network::buffer::ByteBuf::readVarUInt");
+    return Error(ErrorCode::InvalidData, "VarInt exceeds 5 bytes", "mc::network::buffer::ByteBuf::readVarUInt");
 }
 
 Result<u64> ByteBuf::readVarULong()
@@ -299,7 +299,7 @@ Result<u64> ByteBuf::readVarULong()
             return value;
         }
     }
-    return Error(ErrorCode::InvalidData, "VarLong 超过 10 字节", "mc::network::buffer::ByteBuf::readVarULong");
+    return Error(ErrorCode::InvalidData, "VarLong exceeds 10 bytes", "mc::network::buffer::ByteBuf::readVarULong");
 }
 
 Result<std::string> ByteBuf::readString()
@@ -307,7 +307,7 @@ Result<std::string> ByteBuf::readString()
     u32 length = 0;
     MC_TRY_ASSIGN(length, readVarUInt());
     if (length > kMaxStringLength) {
-        return Error(ErrorCode::InvalidData, "字符串长度超过上限", "mc::network::buffer::ByteBuf::readString");
+        return Error(ErrorCode::InvalidData, "String length exceeds limit", "mc::network::buffer::ByteBuf::readString");
     }
     std::string_view view;
     MC_TRY_ASSIGN(view, readBytesView(length));

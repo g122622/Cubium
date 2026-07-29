@@ -31,7 +31,7 @@ Result<std::array<u8, kSharedSecretBytes>> generateSharedSecret()
 {
     std::array<u8, kSharedSecretBytes> secret{};
     if (RAND_bytes(secret.data(), static_cast<int>(secret.size())) != 1) {
-        return Error(ErrorCode::Unknown, "RAND_bytes 生成共享密钥失败", "crypto::generateSharedSecret");
+        return Error(ErrorCode::Unknown, "RAND_bytes failed to generate shared secret", "crypto::generateSharedSecret");
     }
     return secret;
 }
@@ -40,7 +40,7 @@ Result<std::vector<u8>> generateRandomBytes(usize n)
 {
     std::vector<u8> bytes(n);
     if (n > 0 && RAND_bytes(bytes.data(), static_cast<int>(n)) != 1) {
-        return Error(ErrorCode::Unknown, "RAND_bytes 生成随机字节失败", "crypto::generateRandomBytes");
+        return Error(ErrorCode::Unknown, "RAND_bytes failed to generate random bytes", "crypto::generateRandomBytes");
     }
     return bytes;
 }

@@ -79,7 +79,7 @@ static void resolveTagEntry(const std::string& entry,
         // 由于 visitedTags 按值传递，不同分支的解析路径互不影响
         if (visitedTags.count(tagLocation) > 0) {
             if (required) {
-                spdlog::warn("StructureTagLoader: 循环标签引用 '{}' (required), 跳过", entry);
+                spdlog::warn("StructureTagLoader: circular tag reference '{}' (required), skipped", entry);
             }
             return;
         }
@@ -94,7 +94,7 @@ static void resolveTagEntry(const std::string& entry,
             }
         } else {
             if (required) {
-                spdlog::warn("StructureTagLoader: 引用的标签 '{}' 未找到 (required), 跳过", entry);
+                spdlog::warn("StructureTagLoader: referenced tag '{}' not found (required), skipped", entry);
             }
             // required=false 时静默跳过
         }
@@ -163,7 +163,7 @@ Result<size_t> StructureTagLoader::loadFromDataPackRepository(const resource::Da
                 // 解析 JSON
                 auto parseResult = loadFromJson(version.content, location);
                 if (!parseResult.success()) {
-                    spdlog::warn("StructureTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                    spdlog::warn("StructureTagLoader: failed to parse tag {} (from data pack {}): {}",
                         tagName,
                         version.packName,
                         parseResult.error().message());
@@ -209,7 +209,7 @@ Result<size_t> StructureTagLoader::loadFromDataPackRepository(const resource::Da
     }
 
     if (loadedCount > 0) {
-        spdlog::info("StructureTagLoader: 从数据包加载了 {} 个结构标签", loadedCount);
+        spdlog::info("StructureTagLoader: loaded {} structure tags from data pack", loadedCount);
     }
 
     return loadedCount;
@@ -246,14 +246,14 @@ Result<size_t> StructureTagLoader::loadFromResourcePack(const IResourcePack& pac
             // 读取 JSON 内容
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
-                spdlog::warn("StructureTagLoader: 无法读取标签文件: {}", resourcePath);
+                spdlog::warn("StructureTagLoader: failed to read tag file: {}", resourcePath);
                 continue;
             }
 
             // 解析 JSON
             auto parseResult = loadFromJson(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn("StructureTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
+                spdlog::warn("StructureTagLoader: failed to parse tag {}: {}", tagName, parseResult.error().message());
                 continue;
             }
 
@@ -294,7 +294,7 @@ Result<std::unique_ptr<StructureTag>> StructureTagLoader::loadFromJson(
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "结构标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "structure tag missing 'values' array");
         }
 
         std::vector<ResourceLocation> structureIds;
@@ -312,13 +312,13 @@ Result<std::unique_ptr<StructureTag>> StructureTagLoader::loadFromJson(
                 // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
                     spdlog::warn(
-                        "StructureTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                        "StructureTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("StructureTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    spdlog::warn("StructureTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
 
@@ -330,7 +330,7 @@ Result<std::unique_ptr<StructureTag>> StructureTagLoader::loadFromJson(
 
                 resolveTagEntry(id, required, structureIds, visitedTags);
             } else {
-                spdlog::warn("StructureTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn("StructureTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
@@ -338,16 +338,16 @@ Result<std::unique_ptr<StructureTag>> StructureTagLoader::loadFromJson(
         tag->addAll(structureIds);
 
         if (structureIds.empty()) {
-            spdlog::info("StructureTagLoader: 标签 '{}' 没有解析到有效的结构 ID", location.toString());
+            spdlog::info("StructureTagLoader: tag '{}' resolved no valid structure IDs", location.toString());
         }
 
         return tag;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
     }
 }
 

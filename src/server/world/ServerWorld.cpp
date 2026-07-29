@@ -3301,7 +3301,7 @@ std::optional<BlockPos> ServerWorld::findNearestMapStructure(
     // 返回所有候选中距离最近的位置。对应 MC 1.21.11 ServerLevel.findNearestMapStructure()。
     auto* tag = world::gen::structure::StructureTags::getTag(tagId);
     if (tag == nullptr) {
-        spdlog::warn("ServerWorld::findNearestMapStructure: 未知结构标签 '{}', 返回空", tagId.toString());
+        spdlog::warn("findNearestMapStructure: unknown structure tag '{}', returning empty", tagId.toString());
         return std::nullopt;
     }
 

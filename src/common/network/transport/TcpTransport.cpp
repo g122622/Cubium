@@ -49,7 +49,7 @@ Result<void> TcpTransport::connect(const Endpoint& endpoint)
     }
     catch (const std::exception& e) {
         m_socket.reset();
-        return Error(ErrorCode::ConnectionFailed, std::string("TCP 连接失败: ") + e.what(), "TcpTransport::connect");
+        return Error(ErrorCode::ConnectionFailed, std::string("TCP connect failed: ") + e.what(), "TcpTransport::connect");
     }
 }
 
@@ -64,7 +64,7 @@ void TcpTransport::attachConnectedSocket(asio::ip::tcp::socket socket)
 Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*/)
 {
     if (!isConnected() || m_socket == nullptr) {
-        return Error(ErrorCode::InvalidState, "TCP 未连接", "TcpTransport::send");
+        return Error(ErrorCode::InvalidState, "TCP not connected", "TcpTransport::send");
     }
     if (data == nullptr || size == 0) {
         return Result<void>::ok();
@@ -76,7 +76,7 @@ Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*
         return Result<void>::ok();
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::ConnectionFailed, std::string("TCP 写失败: ") + e.what(), "TcpTransport::send");
+        return Error(ErrorCode::ConnectionFailed, std::string("TCP write failed: ") + e.what(), "TcpTransport::send");
     }
 }
 

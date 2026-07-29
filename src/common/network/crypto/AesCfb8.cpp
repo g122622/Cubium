@@ -39,14 +39,14 @@ Result<void*> createCtx(bool encrypt, const u8* keyBytes)
 {
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr) {
-        return Error(ErrorCode::Unknown, "EVP_CIPHER_CTX_new 失败", "AesCfb8::createCtx");
+        return Error(ErrorCode::Unknown, "EVP_CIPHER_CTX_new failed", "AesCfb8::createCtx");
     }
 
     const EVP_CIPHER* cipher = EVP_aes_128_cfb8();
     // IV 用密钥本身（16 字节）。EVP_EncryptInit_ex 内部拷贝 key/iv，调用后可释放。
     if (EVP_CipherInit_ex(ctx, cipher, nullptr, keyBytes, keyBytes, encrypt ? 1 : 0) != 1) {
         EVP_CIPHER_CTX_free(ctx);
-        return Error(ErrorCode::Unknown, "EVP_CipherInit_ex 失败", "AesCfb8::createCtx");
+        return Error(ErrorCode::Unknown, "EVP_CipherInit_ex failed", "AesCfb8::createCtx");
     }
     // 关闭 padding（CFB8 流式无填充）。
     EVP_CIPHER_CTX_set_padding(ctx, 0);
@@ -110,7 +110,7 @@ AesCfb8& AesCfb8::operator=(AesCfb8&& other) noexcept
 Result<std::vector<u8>> AesCfb8::process(const u8* data, usize size)
 {
     if (m_ctx == nullptr) {
-        return Error(ErrorCode::InvalidState, "CFB8 ctx 未初始化", "AesCfb8::process");
+        return Error(ErrorCode::InvalidState, "CFB8 ctx not initialized", "AesCfb8::process");
     }
     if (size == 0) {
         return std::vector<u8>{};
@@ -120,7 +120,7 @@ Result<std::vector<u8>> AesCfb8::process(const u8* data, usize size)
     // CFB8 流式：输入 n 字节产出 n 字节。EVP_CipherUpdate 输出长度 ≤ inl + block，CFB8 无膨胀。
     int outLen = 0;
     if (EVP_CipherUpdate(static_cast<EVP_CIPHER_CTX*>(m_ctx), out.data(), &outLen, data, static_cast<int>(size)) != 1) {
-        return Error(ErrorCode::Unknown, "EVP_CipherUpdate 失败", "AesCfb8::process");
+        return Error(ErrorCode::Unknown, "EVP_CipherUpdate failed", "AesCfb8::process");
     }
     // CFB8 不调 EVP_CipherFinal（无 padding）。outLen 应等于 size。
     if (static_cast<usize>(outLen) != size) {

@@ -62,7 +62,7 @@ Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
     const std::streampos before = in.tellg();
     std::unique_ptr<mc::nbt::tags::compound_tag> tag = mc::nbt::tags::compound_tag::read(in);
     if (tag == nullptr) {
-        return Error(ErrorCode::InvalidData, "NBT 复合标签解析失败", "nbt_io::readCompound");
+        return Error(ErrorCode::InvalidData, "NBT compound tag parse failed", "nbt_io::readCompound");
     }
     const std::streampos after = in.tellg();
     const usize consumed = (after == std::streampos(-1) || before == std::streampos(-1))

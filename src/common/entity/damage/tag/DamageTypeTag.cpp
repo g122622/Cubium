@@ -165,7 +165,7 @@ ResourceLocation getResourceLocation(DamageType type)
             return ResourceLocation(entry.name);
         }
     }
-    spdlog::warn("DamageTypeNames: 未知的 DamageType 枚举值: {}", static_cast<int>(type));
+    spdlog::warn("DamageTypeNames: unknown DamageType enum value: {}", static_cast<int>(type));
     return ResourceLocation();
 }
 

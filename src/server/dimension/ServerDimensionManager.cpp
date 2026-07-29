@@ -632,13 +632,20 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
                     // GlobalPos → (dimension ResourceKey, BlockPos.asLong)
                     std::string deathDimKey;
                     switch (lastDeath->getDimensionId()) {
-                        case 0: deathDimKey = "minecraft:overworld"; break;
-                        case -1: deathDimKey = "minecraft:the_nether"; break;
-                        case 1: deathDimKey = "minecraft:the_end"; break;
-                        default: deathDimKey = "minecraft:overworld"; break;
+                        case 0:
+                            deathDimKey = "minecraft:overworld";
+                            break;
+                        case -1:
+                            deathDimKey = "minecraft:the_nether";
+                            break;
+                        case 1:
+                            deathDimKey = "minecraft:the_end";
+                            break;
+                        default:
+                            deathDimKey = "minecraft:overworld";
+                            break;
                     }
-                    pkt.spawnInfo.lastDeathLocation =
-                        std::make_pair(deathDimKey, lastDeath->getPos().asLong());
+                    pkt.spawnInfo.lastDeathLocation = std::make_pair(deathDimKey, lastDeath->getPos().asLong());
                 }
             }
         }

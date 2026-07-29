@@ -110,7 +110,7 @@ public:
                 return Result<void>::ok();
             }
         }
-        return Error(ErrorCode::ProtocolError, "IdDispatchCodec 无匹配包类型", "IdDispatchCodec::encode");
+        return Error(ErrorCode::ProtocolError, "IdDispatchCodec: no matching packet type", "IdDispatchCodec::encode");
     }
 
     /**
@@ -127,7 +127,7 @@ public:
                 return entry.decode(buf);
             }
         }
-        return Error(ErrorCode::ProtocolError, "未知 packet id", "IdDispatchCodec::decode");
+        return Error(ErrorCode::ProtocolError, "Unknown packet id", "IdDispatchCodec::decode");
     }
 
     [[nodiscard]] const std::vector<Entry>& entries() const noexcept { return m_entries; }

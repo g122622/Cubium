@@ -85,7 +85,7 @@ static void resolveTagEntry(const std::string& entry,
         // 防止循环引用
         if (visitedTags.count(tagLocation) > 0) {
             if (required) {
-                spdlog::warn("BiomeTagLoader: 循环标签引用 '{}' (required), 跳过", entry);
+                spdlog::warn("BiomeTagLoader: circular tag reference '{}' (required), skipped", entry);
             }
             return;
         }
@@ -99,7 +99,7 @@ static void resolveTagEntry(const std::string& entry,
             }
         } else {
             if (required) {
-                spdlog::warn("BiomeTagLoader: 引用的标签 '{}' 未找到 (required), 跳过", entry);
+                spdlog::warn("BiomeTagLoader: referenced tag '{}' not found (required), skipped", entry);
             }
             // required=false 时静默跳过
         }
@@ -110,7 +110,7 @@ static void resolveTagEntry(const std::string& entry,
             biomeIds.push_back(biomeId.value());
         } else {
             if (required) {
-                spdlog::warn("BiomeTagLoader: 未知的生物群系 '{}' (required), 跳过", entry);
+                spdlog::warn("BiomeTagLoader: unknown biome '{}' (required), skipped", entry);
             }
             // required=false 时静默跳过
         }
@@ -175,7 +175,7 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
                 // 解析 JSON
                 auto parseResult = loadFromJson(version.content, location);
                 if (!parseResult.success()) {
-                    spdlog::warn("BiomeTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                    spdlog::warn("BiomeTagLoader: failed to parse tag {} (from data pack {}): {}",
                         tagName,
                         version.packName,
                         parseResult.error().message());
@@ -221,7 +221,7 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
     }
 
     if (loadedCount > 0) {
-        spdlog::info("BiomeTagLoader: 从数据包加载了 {} 个生物群系标签", loadedCount);
+        spdlog::info("BiomeTagLoader: loaded {} biome tags from data pack", loadedCount);
     }
 
     return loadedCount;
@@ -258,14 +258,14 @@ Result<size_t> BiomeTagLoader::loadFromResourcePack(const IResourcePack& pack)
             // 读取 JSON 内容
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
-                spdlog::warn("BiomeTagLoader: 无法读取标签文件: {}", resourcePath);
+                spdlog::warn("BiomeTagLoader: failed to read tag file: {}", resourcePath);
                 continue;
             }
 
             // 解析 JSON
             auto parseResult = loadFromJson(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn("BiomeTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
+                spdlog::warn("BiomeTagLoader: failed to parse tag {}: {}", tagName, parseResult.error().message());
                 continue;
             }
 
@@ -306,7 +306,7 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "生物群系标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "biome tag missing 'values' array");
         }
 
         std::vector<BiomeId> biomeIds;
@@ -323,13 +323,13 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
                 // 对象格式: {"id":"minecraft:desert","required":false}
                 // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("BiomeTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                    spdlog::warn("BiomeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("BiomeTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    spdlog::warn("BiomeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
 
@@ -341,7 +341,7 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
 
                 resolveTagEntry(id, required, biomeIds, visitedTags);
             } else {
-                spdlog::warn("BiomeTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn("BiomeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
@@ -349,16 +349,16 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
         tag->addAll(biomeIds);
 
         if (biomeIds.empty()) {
-            spdlog::info("BiomeTagLoader: 标签 '{}' 没有解析到有效的生物群系ID", location.toString());
+            spdlog::info("BiomeTagLoader: tag '{}' resolved no valid biome IDs", location.toString());
         }
 
         return tag;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
     }
 }
 

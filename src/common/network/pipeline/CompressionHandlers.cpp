@@ -40,7 +40,7 @@ Result<void> CompressionDecoder::decode(const std::vector<u8>& input, std::vecto
         return r;
     }
     if (consumed != input.size()) {
-        return Error(ErrorCode::InvalidData, "压缩层解压后仍有残余字节", "CompressionDecoder::decode");
+        return Error(ErrorCode::InvalidData, "Compression layer has residual bytes after inflate", "CompressionDecoder::decode");
     }
     return Result<void>::ok();
 }
