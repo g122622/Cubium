@@ -36,6 +36,7 @@
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -838,6 +839,16 @@ void StandaloneServer::_onRemoteClientConnect(mc::server::net::ServerClientConne
         [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
             _onRemotePlayerReady(sessionId, username, offlineUuid);
         });
+
+    // Status（服务器列表 ping）信息提供者：从设置 + 玩家管理器取值，构造 StatusResponse JSON。
+    session->handshake().onStatusRequest([this]() -> mc::server::net::StatusInfo {
+        return mc::server::net::StatusInfo{m_settings.motd.get(),
+            std::string("1.21.11"),
+            mc::network::backend::java::kJavaProtocolVersion,
+            m_settings.maxPlayers.get(),
+            static_cast<i32>(m_playerManager->playerCount()),
+            m_settings.onlineMode.get()};
+    });
 
     // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：
     //   handshake.handleInbound 返回 true=握手/Configuration 已消费；false=Play 包交路由器。

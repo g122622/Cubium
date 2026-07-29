@@ -89,25 +89,25 @@ TEST(ProtocolSwapHandler, ClientIntentionTransferAlsoLogin)
 }
 
 // ============================================================================
-// 登录阶段 Key/LoginFinished/LoginAcknowledged → Configuration
+// 登录阶段：仅 LoginAcknowledged 是 terminal；Key/LoginFinished 非终端
 // ============================================================================
 
-TEST(ProtocolSwapHandler, KeyTerminalToConfiguration)
+TEST(ProtocolSwapHandler, KeyNotTerminal)
 {
+    // 对齐 MC Java：ServerboundKeyPacket 非终端（登录阶段仅 LoginAcknowledged 是 terminal）。
     ir::login::Key k;
     auto r = ProtocolSwapHandler::check(
         wrapLogin(protocol::ConnectionProtocol::Login, ir::LoginPacket{k}), protocol::PacketFlow::Serverbound);
-    EXPECT_TRUE(r.isTerminal);
-    EXPECT_EQ(r.nextPhase, protocol::ConnectionProtocol::Configuration);
+    EXPECT_FALSE(r.isTerminal);
 }
 
-TEST(ProtocolSwapHandler, LoginFinishedTerminalToConfiguration)
+TEST(ProtocolSwapHandler, LoginFinishedNotTerminal)
 {
+    // 对齐 MC Java：ClientboundLoginFinishedPacket 非终端。阶段切换由收方监听器显式驱动。
     ir::login::LoginFinished lf;
     auto r = ProtocolSwapHandler::check(
         wrapLogin(protocol::ConnectionProtocol::Login, ir::LoginPacket{lf}), protocol::PacketFlow::Clientbound);
-    EXPECT_TRUE(r.isTerminal);
-    EXPECT_EQ(r.nextPhase, protocol::ConnectionProtocol::Configuration);
+    EXPECT_FALSE(r.isTerminal);
 }
 
 TEST(ProtocolSwapHandler, LoginAcknowledgedTerminalToConfiguration)

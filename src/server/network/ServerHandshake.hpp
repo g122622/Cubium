@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/network/ServerNetwork.hpp"
 
@@ -35,6 +36,22 @@
 #include <string>
 
 namespace mc::server::net {
+
+/**
+ * @brief 服务器列表 ping 状态信息（由应用层从设置/玩家管理器填充）
+ *
+ * 对齐 MC Java 1.21.11 ServerStatus：description(纯文本 motd)、players(max/online/sample)、
+ * version(name/protocol)。favicon/enforcesSecureChat 在离线默认下省略（对齐 Java Codec
+ * 的"省略而非 null"规则）。
+ */
+struct StatusInfo {
+    std::string motd;        ///< description.text
+    std::string versionName; ///< "1.21.11"
+    i32 protocolVersion;     ///< 774
+    i32 maxPlayers;          ///< players.max
+    i32 onlinePlayers;       ///< players.online
+    bool onlineMode;         ///< 是否在线模式（影响 enforcesSecureChat，当前省略）
+};
 
 /**
  * @brief 服务端登录握手 + 配置阶段状态机（每连接一个实例）
@@ -78,6 +95,10 @@ public:
 
     void onPlayerReady(PlayerReadyCallback cb) { m_onReady = std::move(cb); }
 
+    /// 注入服务器状态信息提供者（Status 阶段 StatusRequest 时调用，构造 StatusResponse JSON）
+    using StatusProvider = std::function<StatusInfo()>;
+    void onStatusRequest(StatusProvider cb) { m_statusProvider = std::move(cb); }
+
     [[nodiscard]] const std::string& username() const noexcept { return m_username; }
     [[nodiscard]] bool playReady() const noexcept { return m_playReady; }
 
@@ -97,11 +118,17 @@ private:
     std::vector<u8> m_verifyToken;
 
     PlayerReadyCallback m_onReady;
+    StatusProvider m_statusProvider;
+    bool m_hasRequestedStatus = false; ///< StatusRequest 单次守卫（二次请求断连，对齐 Java）
 
     // === 各阶段处理 ===
     [[nodiscard]] Result<void> _handleHandshake(const mc::network::ir::handshake::ClientIntention& intention);
     [[nodiscard]] Result<void> _handleLoginPacket(const mc::network::ir::LoginPacket& pkt);
     [[nodiscard]] Result<void> _handleConfigurationPacket(const mc::network::ir::ConfigurationPacket& pkt);
+    /// Status 阶段：处理 StatusRequest（回 StatusResponse）/ PingRequest（回 Pong 后断连）
+    [[nodiscard]] Result<void> _handleStatusPacket(const mc::network::ir::StatusPacket& pkt);
+    /// 构造对齐 Java ServerStatus 的状态 JSON 字符串
+    [[nodiscard]] static std::string _buildStatusJson(const StatusInfo& info);
 
     /// Login 阶段：收到 Hello 后的离线模式分支
     [[nodiscard]] Result<void> _advanceAfterHelloOffline();

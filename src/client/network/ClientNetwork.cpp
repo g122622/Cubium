@@ -96,7 +96,7 @@ void ClientNetwork::disconnect(const std::string& reason)
 Result<void> ClientNetwork::send(mc::network::ir::IrPacket packet)
 {
     if (m_conn == nullptr) {
-        return Error(ErrorCode::InvalidState, "未连接", "ClientNetwork::send");
+        return Error(ErrorCode::InvalidState, "Not connected", "ClientNetwork::send");
     }
     auto r = m_conn->send(std::move(packet));
     if (r.success()) {
@@ -132,7 +132,7 @@ void ClientNetwork::_handleInbound(const mc::network::ir::IrPacket& packet)
         case CP::Login: {
             const auto* login = std::get_if<mc::network::ir::LoginPacket>(&packet.packet);
             if (login == nullptr) {
-                spdlog::error("ClientNetwork: Login 阶段变体缺失");
+                spdlog::error("ClientNetwork: Login phase variant missing");
                 break;
             }
             auto r = _handleLoginPacket(*login);
@@ -144,7 +144,7 @@ void ClientNetwork::_handleInbound(const mc::network::ir::IrPacket& packet)
         case CP::Configuration: {
             const auto* cfg = std::get_if<mc::network::ir::ConfigurationPacket>(&packet.packet);
             if (cfg == nullptr) {
-                spdlog::error("ClientNetwork: Configuration 阶段变体缺失");
+                spdlog::error("ClientNetwork: Configuration phase variant missing");
                 break;
             }
             auto r = _handleConfigurationPacket(*cfg);
@@ -156,7 +156,7 @@ void ClientNetwork::_handleInbound(const mc::network::ir::IrPacket& packet)
         case CP::Play: {
             const auto* play = std::get_if<mc::network::ir::PlayPacket>(&packet.packet);
             if (play == nullptr) {
-                spdlog::error("ClientNetwork: Play 阶段变体缺失");
+                spdlog::error("ClientNetwork: Play phase variant missing");
                 break;
             }
             auto r = _handlePlayPacket(*play);
@@ -202,7 +202,12 @@ Result<void> ClientNetwork::_handleLoginPacket(const mc::network::ir::LoginPacke
         m_uuid = lf.uuid;
         m_username = lf.username; // 服务端权威用户名
         m_loginFinishedReceived = true;
-        // 发 LoginAcknowledged（terminal，Connection 自动切 Configuration 阶段）
+        // 对齐 Java handleLoginFinished：先 setupInboundProtocol(Configuration)（入站先翻 Configuration，
+        // 后续 S→C Configuration 包按 Configuration 入站表解码），再 send(LoginAcknowledged)（此时出站
+        // 仍 Login，按 Login Sb id=3 编码）。发完 LoginAcknowledged(terminal) 后出站自动翻 Configuration。
+        if (m_conn) {
+            m_conn->setInboundPhase(mc::network::protocol::ConnectionProtocol::Configuration);
+        }
         return send(mc::network::backend::java::JavaLoginHandshaker::buildLoginAcknowledged());
     }
 

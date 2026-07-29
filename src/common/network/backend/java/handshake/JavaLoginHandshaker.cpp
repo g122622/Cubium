@@ -150,7 +150,7 @@ Result<std::array<u8, crypto::kSharedSecretBytes>> JavaLoginHandshaker::handleKe
         return secret.error();
     }
     if (secret.value().size() != crypto::kSharedSecretBytes) {
-        return Error(ErrorCode::InvalidData, "解出的共享密钥长度非 16 字节", "JavaLoginHandshaker::handleKey");
+        return Error(ErrorCode::InvalidData, "Decoded shared secret length is not 16 bytes", "JavaLoginHandshaker::handleKey");
     }
 
     // 解出 verify token 并校验。
@@ -160,7 +160,7 @@ Result<std::array<u8, crypto::kSharedSecretBytes>> JavaLoginHandshaker::handleKe
         return token.error();
     }
     if (token.value() != expectedVerifyToken) {
-        return Error(ErrorCode::InvalidData, "verify token 校验失败", "JavaLoginHandshaker::handleKey");
+        return Error(ErrorCode::InvalidData, "verify token mismatch", "JavaLoginHandshaker::handleKey");
     }
 
     std::array<u8, crypto::kSharedSecretBytes> out{};

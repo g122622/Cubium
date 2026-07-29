@@ -123,7 +123,7 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     i32 addedCount = 0;
     MC_TRY_ASSIGN(addedCount, buf.readVarInt());
     if (addedCount < 0) {
-        return Error(ErrorCode::InvalidData, "HashedPatchMap added 数为负", "readHashedStack");
+        return Error(ErrorCode::InvalidData, "HashedPatchMap added count is negative", "readHashedStack");
     }
     for (i32 i = 0; i < addedCount; ++i) {
         MC_TRY(buf.readVarInt()); // componentType registryId
@@ -132,7 +132,7 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     i32 removedCount = 0;
     MC_TRY_ASSIGN(removedCount, buf.readVarInt());
     if (removedCount < 0) {
-        return Error(ErrorCode::InvalidData, "HashedPatchMap removed 数为负", "readHashedStack");
+        return Error(ErrorCode::InvalidData, "HashedPatchMap removed count is negative", "readHashedStack");
     }
     for (i32 i = 0; i < removedCount; ++i) {
         MC_TRY(buf.readVarInt()); // componentType registryId
@@ -502,7 +502,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "changedSlots 数为负", "containerClickCodec");
+                return Error(ErrorCode::InvalidData, "changedSlots count is negative", "containerClickCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 ir::play::ChangedSlot cs{};
@@ -565,7 +565,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 levelCount = 0;
             MC_TRY_ASSIGN(levelCount, buf.readVarInt());
             if (levelCount < 0) {
-                return Error(ErrorCode::InvalidData, "levels 数为负", "loginCodec");
+                return Error(ErrorCode::InvalidData, "levels count is negative", "loginCodec");
             }
             for (i32 i = 0; i < levelCount; ++i) {
                 std::string lvl;
@@ -768,7 +768,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "entityIds 数为负", "removeEntitiesCodec");
+                return Error(ErrorCode::InvalidData, "entityIds count is negative", "removeEntitiesCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 i32 id = 0;
@@ -959,13 +959,13 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 chunkLen = 0;
             MC_TRY_ASSIGN(chunkLen, buf.readVarInt());
             if (chunkLen < 0) {
-                return Error(ErrorCode::InvalidData, "chunkData 长度为负", "levelChunkWithLightCodec");
+                return Error(ErrorCode::InvalidData, "chunkData length is negative", "levelChunkWithLightCodec");
             }
             MC_TRY_ASSIGN(v.chunkData, buf.readBytes(static_cast<usize>(chunkLen)));
             i32 lightLen = 0;
             MC_TRY_ASSIGN(lightLen, buf.readVarInt());
             if (lightLen < 0) {
-                return Error(ErrorCode::InvalidData, "lightData 长度为负", "levelChunkWithLightCodec");
+                return Error(ErrorCode::InvalidData, "lightData length is negative", "levelChunkWithLightCodec");
             }
             MC_TRY_ASSIGN(v.lightData, buf.readBytes(static_cast<usize>(lightLen)));
             return v;
@@ -990,7 +990,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 len = 0;
             MC_TRY_ASSIGN(len, buf.readVarInt());
             if (len < 0) {
-                return Error(ErrorCode::InvalidData, "lightData 长度为负", "lightUpdateCodec");
+                return Error(ErrorCode::InvalidData, "lightData length is negative", "lightUpdateCodec");
             }
             MC_TRY_ASSIGN(v.lightData, buf.readBytes(static_cast<usize>(len)));
             return v;
@@ -1037,7 +1037,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "items 数为负", "containerSetContentCodec");
+                return Error(ErrorCode::InvalidData, "items count is negative", "containerSetContentCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 ir::play::ItemStackView item{};
@@ -1132,7 +1132,7 @@ inline constexpr u16 kActionUpdateHat = 1u << 7;         // UPDATE_HAT(7)
     i32 length = 0;
     MC_TRY_ASSIGN(length, buf.readVarInt());
     if (length < 0) {
-        return Error(ErrorCode::InvalidData, "ByteArray 长度为负", "player_info_detail::skipByteArray");
+        return Error(ErrorCode::InvalidData, "ByteArray length is negative", "player_info_detail::skipByteArray");
     }
     MC_TRY(buf.readBytesView(static_cast<usize>(length))); // 零拷贝消费
     return Result<void>::ok();
@@ -1212,7 +1212,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         i32 propCount = 0;
         MC_TRY_ASSIGN(propCount, buf.readVarInt());
         if (propCount < 0) {
-            return Error(ErrorCode::InvalidData, "properties 数为负", "player_info_detail::readEntry");
+            return Error(ErrorCode::InvalidData, "properties count is negative", "player_info_detail::readEntry");
         }
         for (i32 i = 0; i < propCount; ++i) {
             std::string pn;
@@ -1299,7 +1299,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "entries 数为负", "playerInfoUpdateCodec");
+                return Error(ErrorCode::InvalidData, "entries count is negative", "playerInfoUpdateCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 ir::play::PlayerInfoEntry e{};
@@ -1325,7 +1325,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "uuids 数为负", "playerInfoRemoveCodec");
+                return Error(ErrorCode::InvalidData, "uuids count is negative", "playerInfoRemoveCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 std::array<u8, 16> uuid{};

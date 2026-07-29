@@ -32,10 +32,12 @@
 // （二次 FinishConfiguration 仍只触发一次）。threshold=256 分支发 LoginCompression 在
 // LoginFinished 前；threshold=-1 跳过 LoginCompression。
 //
-// 注意 Local 模式 Connection 收 terminal 包会自动 setPhase（_installLocalReceive 内
-// ProtocolSwapHandler::check + setPhase），故服务端连接 phase 字段随 ClientIntention/
-// LoginAcknowledged/FinishConfiguration 自动推进，HandshakeState（握手状态机自己的 m_state）
-// 由 ServerHandshakeStateMachine 显式 setState 驱动。
+// 注意 Local 模式 Connection 收 terminal 包会自动 setInboundPhase（_installLocalReceive
+// 内 ProtocolSwapHandler::check + setInboundPhase），故服务端连接入站阶段随
+// ClientIntention/LoginAcknowledged/FinishConfiguration 自动推进；出站阶段由
+// ServerHandshakeStateMachine 在发新阶段包前显式 setOutboundPhase 推进（对齐 MC Java
+// listener 内 setupOutboundProtocol）。HandshakeState（握手状态机自己的 m_state）由
+// ServerHandshakeStateMachine 显式 setState 驱动。
 
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
@@ -277,18 +279,20 @@ TEST_F(LocalServerFixture, UnsupportedIntentionRejected)
     auto& hs = installOfflineHandshake(/*compressionThreshold=*/-1);
     (void)hs;
 
-    // intendedState=1 (Status) 不被支持 → handleInbound 返回错误（夹具记录不 ADD_FAILURE）。
-    ClientIntention ci{};
-    ci.protocolVersion = 774;
-    ci.hostName = "localhost";
-    ci.port = 25565;
-    ci.intendedState = 1; // STATUS，未实现
-    clientSend(IrPacket{ConnectionProtocol::Handshaking, HandshakePacket{std::move(ci)}});
-
-    // pumpServer 不应崩，状态机仍停在 Handshaking（未 setState Login）。
+    // intendedState=1 (Status) 现已支持（对齐 MC Java 服务器列表 ping）→ 不应报错。
+    // 真正不支持的是 {1,2,3} 之外的意图值（如 0），对齐 Java handleIntention 抛
+    // UnsupportedOperationException。此处用 intendedState=0 验证英文错误。
+    ClientIntention ciBad{};
+    ciBad.protocolVersion = 774;
+    ciBad.hostName = "localhost";
+    ciBad.port = 25565;
+    ciBad.intendedState = 0; // 非法意图
+    clientSend(IrPacket{ConnectionProtocol::Handshaking, HandshakePacket{std::move(ciBad)}});
     pumpServer();
+
+    // 非法意图：handleInbound 返回错误（夹具记录），状态机仍停在 Handshaking。
     EXPECT_EQ(serverConn()->state(), HandshakeState::Handshaking);
     EXPECT_EQ(hs.playReady(), false);
     EXPECT_EQ(inboundErrorCount(), 1);
-    EXPECT_NE(lastInboundError().find("仅支持 Login 意图"), std::string::npos);
+    EXPECT_NE(lastInboundError().find("Unsupported intendedState"), std::string::npos);
 }

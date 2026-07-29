@@ -93,7 +93,7 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
 {
     if (m_mode == Mode::Local) {
         if (m_localTransport == nullptr) {
-            return Error(ErrorCode::InvalidState, "Local 传输缺失", "Connection::send");
+            return Error(ErrorCode::InvalidState, "Local transport missing", "Connection::send");
         }
         // Local 模式：直传 IrPacket，不经序列化（零拷贝）。terminal 切换由对端收包时处理。
         return m_localTransport->send(std::move(packet));
@@ -102,7 +102,7 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
     // Wire 模式：encode → 压缩 → 帧编码 → 加密 → ITransport。
     B buf;
     Result<void> encResult = Result<void>::ok();
-    switch (m_phase) {
+    switch (m_outboundPhase) {
         case protocol::ConnectionProtocol::Handshaking:
             if (auto* p = _outboundHandshake()) {
                 encResult = p->encode(buf, std::get<ir::HandshakePacket>(packet.packet));
@@ -133,7 +133,7 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
         return encResult;
     }
     if (m_wireTransport == nullptr) {
-        return Error(ErrorCode::InvalidState, "Wire 传输缺失", "Connection::send");
+        return Error(ErrorCode::InvalidState, "Wire transport missing", "Connection::send");
     }
 
     // packetID+payload（buf.bytes()）→ 压缩层 → 帧层 → 加密层。
@@ -161,7 +161,9 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
         return cipherResult;
     }
 
-    // 发送侧 terminal 包：发送后切阶段（对齐 Java 出站 terminal 即 setupOutboundProtocol）。
+    // 发送侧 terminal 包：发送后切【出站】阶段（对齐 Java handleOutboundTerminalPacket
+    // 只换出站编码器，不碰入站）。客户端发 ClientIntention/LoginAcknowledged/FinishConfiguration
+    // 后据此翻出站，使后续包按新阶段编码。
     const auto swap = ProtocolSwapHandler::check(packet, m_flow);
     auto sendResult =
         m_wireTransport->send(encrypted.data(), encrypted.size(), transport::DeliveryHint::ReliableOrdered);
@@ -169,7 +171,7 @@ Result<void> Connection<B>::send(ir::IrPacket packet)
         return sendResult;
     }
     if (swap.isTerminal) {
-        setPhase(swap.nextPhase);
+        setOutboundPhase(swap.nextPhase);
     }
     return Result<void>::ok();
 }
@@ -190,13 +192,14 @@ void Connection<B>::_installLocalReceive()
         return;
     }
     m_localTransport->onPacket([this](ir::IrPacket packet) {
-        // Local 模式收到包：terminal 切换 + 回调监听器。
+        // Local 模式收到包：入站 terminal 切换 + 回调监听器。出站阶段由对端 send 侧
+        // terminal 切换维护（Local send 直传 IrPacket 不经出站表，阶段仅影响解码侧 inbound）。
         const auto swap = ProtocolSwapHandler::check(packet, m_flow);
         if (m_listener) {
             m_listener(packet);
         }
         if (swap.isTerminal) {
-            setPhase(swap.nextPhase);
+            setInboundPhase(swap.nextPhase);
         }
     });
 }
@@ -263,12 +266,12 @@ void Connection<B>::_handleWireBytes(const u8* data, usize size)
 template <typename B>
 Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes)
 {
-    // 压缩层解出后的 frameBytes = packetID + payload。按当前 (phase, 入站方向) decode。
+    // 压缩层解出后的 frameBytes = packetID + payload。按当前 (入站阶段, 入站方向) decode。
     B buf(frameBytes.data(), frameBytes.size());
 
     ir::IrPacket packet;
-    packet.phase = m_phase;
-    switch (m_phase) {
+    packet.phase = m_inboundPhase;
+    switch (m_inboundPhase) {
         case protocol::ConnectionProtocol::Handshaking: {
             if (auto* p = _inboundHandshake()) {
                 auto r = p->decode(buf);
@@ -278,7 +281,8 @@ Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes
                     return r.error();
                 }
             } else {
-                return Error(ErrorCode::InvalidState, "入站握手表缺失", "Connection::_decodeAndDispatch");
+                return Error(
+                    ErrorCode::InvalidState, "Inbound handshake table missing", "Connection::_decodeAndDispatch");
             }
             break;
         }
@@ -291,7 +295,7 @@ Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes
                     return r.error();
                 }
             } else {
-                return Error(ErrorCode::InvalidState, "入站状态表缺失", "Connection::_decodeAndDispatch");
+                return Error(ErrorCode::InvalidState, "Inbound status table missing", "Connection::_decodeAndDispatch");
             }
             break;
         }
@@ -304,7 +308,7 @@ Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes
                     return r.error();
                 }
             } else {
-                return Error(ErrorCode::InvalidState, "入站登录表缺失", "Connection::_decodeAndDispatch");
+                return Error(ErrorCode::InvalidState, "Inbound login table missing", "Connection::_decodeAndDispatch");
             }
             break;
         }
@@ -317,7 +321,8 @@ Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes
                     return r.error();
                 }
             } else {
-                return Error(ErrorCode::InvalidState, "入站配置表缺失", "Connection::_decodeAndDispatch");
+                return Error(
+                    ErrorCode::InvalidState, "Inbound configuration table missing", "Connection::_decodeAndDispatch");
             }
             break;
         }
@@ -330,19 +335,22 @@ Result<void> Connection<B>::_decodeAndDispatch(const std::vector<u8>& frameBytes
                     return r.error();
                 }
             } else {
-                return Error(ErrorCode::InvalidState, "入站游戏表缺失", "Connection::_decodeAndDispatch");
+                return Error(ErrorCode::InvalidState, "Inbound play table missing", "Connection::_decodeAndDispatch");
             }
             break;
         }
     }
 
-    // terminal 切换 + 回调监听器。
+    // 回调监听器 → 入站 terminal 自动切换【入站】阶段。
+    // 顺序：先回调监听器（监听器内可显式 setOutboundPhase 推进出站阶段并发后续包），
+    // 再翻入站阶段（对齐 Java handleInboundTerminalPacket 仅换入站解码器）。监听器内若
+    // 需按新入站阶段解码，应显式 setInboundPhase 后再读 m_inboundPhase。
     const auto swap = ProtocolSwapHandler::check(packet, m_flow);
     if (m_listener) {
         m_listener(packet);
     }
     if (swap.isTerminal) {
-        setPhase(swap.nextPhase);
+        setInboundPhase(swap.nextPhase);
     }
     return Result<void>::ok();
 }

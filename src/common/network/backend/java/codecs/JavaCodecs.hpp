@@ -129,7 +129,7 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
     i32 length = 0;
     MC_TRY_ASSIGN(length, buf.readVarInt());
     if (length < 0) {
-        return Error(ErrorCode::InvalidData, "ByteArray 长度为负", "readByteArray");
+        return Error(ErrorCode::InvalidData, "ByteArray length is negative", "readByteArray");
     }
     return buf.readBytes(static_cast<usize>(length));
 }
@@ -233,7 +233,7 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "属性数为负", "loginFinishedCodec");
+                return Error(ErrorCode::InvalidData, "Property count is negative", "loginFinishedCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 std::string name;

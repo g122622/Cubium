@@ -23,10 +23,17 @@
 
 #include "server/network/ServerHandshake.hpp"
 
+#include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
+#include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "server/network/RegistryDataBuilder.hpp"
 
 #include <spdlog/spdlog.h>
+
+#include <nlohmann/json.hpp>
 
 #include <variant>
 
@@ -53,11 +60,13 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
     if (packet.phase == CP::Handshaking) {
         const auto* hs = std::get_if<mc::network::ir::HandshakePacket>(&packet.packet);
         if (hs == nullptr) {
-            return Error(ErrorCode::InvalidData, "握手阶段变体缺失", "ServerHandshake::handleInbound");
+            return Error(ErrorCode::InvalidData, "Handshake phase variant missing", "ServerHandshake::handleInbound");
         }
         const auto* intention = std::get_if<mc::network::ir::handshake::ClientIntention>(hs);
         if (intention == nullptr) {
-            return Error(ErrorCode::InvalidData, "握手阶段非 ClientIntention 包", "ServerHandshake::handleInbound");
+            return Error(ErrorCode::InvalidData,
+                "Handshake phase is not a ClientIntention packet",
+                "ServerHandshake::handleInbound");
         }
         auto r = _handleHandshake(*intention);
         if (!r.success()) {
@@ -66,10 +75,25 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
         return true;
     }
 
+    if (packet.phase == CP::Status) {
+        // ClientIntention(intent=1) 是 terminal，Connection 在 handleInbound 返回后自动切到
+        // Status 阶段。后续 StatusRequest/PingRequest 以 phase==Status 到达，由此分支消费，
+        // 绝不漏到 ServerPlayRouter（否则触发 "dropping non-Play packet (phase=1)" 告警）。
+        const auto* st = std::get_if<mc::network::ir::StatusPacket>(&packet.packet);
+        if (st == nullptr) {
+            return Error(ErrorCode::InvalidData, "Status phase variant missing", "ServerHandshake::handleInbound");
+        }
+        auto r = _handleStatusPacket(*st);
+        if (!r.success()) {
+            return r.error();
+        }
+        return true; // Status 包始终已消费
+    }
+
     if (packet.phase == CP::Login) {
         const auto* login = std::get_if<mc::network::ir::LoginPacket>(&packet.packet);
         if (login == nullptr) {
-            return Error(ErrorCode::InvalidData, "登录阶段变体缺失", "ServerHandshake::handleInbound");
+            return Error(ErrorCode::InvalidData, "Login phase variant missing", "ServerHandshake::handleInbound");
         }
         auto r = _handleLoginPacket(*login);
         if (!r.success()) {
@@ -81,7 +105,8 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
     if (packet.phase == CP::Configuration) {
         const auto* cfg = std::get_if<mc::network::ir::ConfigurationPacket>(&packet.packet);
         if (cfg == nullptr) {
-            return Error(ErrorCode::InvalidData, "配置阶段变体缺失", "ServerHandshake::handleInbound");
+            return Error(
+                ErrorCode::InvalidData, "Configuration phase variant missing", "ServerHandshake::handleInbound");
         }
         // Configuration 包一律由握手状态机消费（SelectKnownPacks/FinishConfiguration/RegistryData 等），
         // 不交 Play 路由器。FinishConfiguration(C→S) 处理后 m_playReady=true 并触发 onPlayerReady，
@@ -100,19 +125,57 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
 
 Result<void> ServerHandshakeStateMachine::_handleHandshake(const mc::network::ir::handshake::ClientIntention& intention)
 {
-    if (intention.intendedState != 2) {
-        // 仅支持 Login（intent=2）；Status(1) 留 TODO
-        // TODO(Phase6): Status 查询握手未实现
-        spdlog::warn("ServerHandshake: unsupported intendedState={}", intention.intendedState);
-        return Error(ErrorCode::InvalidArgument, "仅支持 Login 意图", "ServerHandshake::_handleHandshake");
+    using mc::network::backend::java::kJavaProtocolVersion;
+
+    if (intention.intendedState == 1) {
+        // STATUS：对齐 Java handleIntention 的 STATUS 分支——显式 setupOutboundProtocol(Status)。
+        // 入站阶段由框架收 ClientIntention(terminal) 自动翻 Status（ProtocolSwapHandler
+        // intendedState==1→Status）。随后的 StatusRequest/PingRequest 由 handleInbound 的
+        // Status 分支处理，StatusResponse 按 Status 出站表编码。
+        m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Status);
+        spdlog::info("ServerHandshake: status ping protocol={} host={}:{}",
+            intention.protocolVersion,
+            intention.hostName,
+            intention.port);
+        return Result<void>::ok();
     }
-    // Connection 收到 ClientIntention(terminal) 后自动切 Login 阶段
-    m_conn.setState(HandshakeState::Login);
-    spdlog::info("ServerHandshake: client intention protocol={} host={}:{}",
-        intention.protocolVersion,
-        intention.hostName,
-        intention.port);
-    return Result<void>::ok();
+
+    if (intention.intendedState == 2 || intention.intendedState == 3) {
+        // LOGIN(2) 或 TRANSFER(3)：项目未单独实现 transfer，ProtocolSwapHandler 亦将 3→Login，
+        // 故此处统一按 Login 处理。对齐 Java beginLogin：先 setupOutboundProtocol(Login)。
+        m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Login);
+        if (intention.protocolVersion != kJavaProtocolVersion) {
+            // 协议版本不匹配：对齐 Java ServerHandshakePacketListenerImpl#beginLogin——
+            // 先 setupOutboundProtocol(Login)（上面已设），再发 Login Disconnect（可翻译文本组件）
+            // 后断连。入站阶段由框架收 ClientIntention(terminal) 自动翻 Login。
+            m_conn.setState(HandshakeState::Login);
+            const bool outdated = intention.protocolVersion < 754;
+            const char* key =
+                outdated ? "multiplayer.disconnect.outdated_client" : "multiplayer.disconnect.incompatible";
+            mc::text::TranslationTextComponent comp(key);
+            comp.addParam(std::make_unique<mc::text::StringTextComponent>("1.21.11"));
+            mc::network::ir::login::Disconnect dc;
+            dc.reason = comp.toJson().dump();
+            (void)m_conn.send(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Login, mc::network::ir::LoginPacket{std::move(dc)}});
+            spdlog::info("ServerHandshake: rejected protocol {} (expected {}): {}",
+                intention.protocolVersion,
+                kJavaProtocolVersion,
+                key);
+            m_conn.close();
+            return Result<void>::ok();
+        }
+        // 入站阶段由框架收 ClientIntention(terminal) 自动切 Login 阶段
+        m_conn.setState(HandshakeState::Login);
+        spdlog::info("ServerHandshake: client intention protocol={} host={}:{}",
+            intention.protocolVersion,
+            intention.hostName,
+            intention.port);
+        return Result<void>::ok();
+    }
+
+    spdlog::warn("ServerHandshake: unsupported intendedState={}", intention.intendedState);
+    return Error(ErrorCode::InvalidArgument, "Unsupported intendedState", "ServerHandshake::_handleHandshake");
 }
 
 Result<void> ServerHandshakeStateMachine::_handleLoginPacket(const mc::network::ir::LoginPacket& pkt)
@@ -136,7 +199,10 @@ Result<void> ServerHandshakeStateMachine::_handleLoginPacket(const mc::network::
     }
 
     if (std::holds_alternative<mc::network::ir::login::LoginAcknowledged>(pkt)) {
-        // 客户端确认登录完成，Connection 自动切 Configuration；开始推送配置
+        // 客户端确认登录完成。对齐 Java handleLoginAcknowledgement：先 setupOutboundProtocol
+        // (Configuration)，使后续 SelectKnownPacks 等按 Configuration 出站表编码。入站阶段由
+        // 框架收 LoginAcknowledged(terminal) 自动切 Configuration。
+        m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Configuration);
         m_conn.setState(HandshakeState::Configuration);
         return _beginConfiguration();
     }
@@ -262,11 +328,15 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
 
     if (std::holds_alternative<mc::network::ir::configuration::FinishConfiguration>(pkt)) {
         // 客户端回 FinishConfiguration(C→S)：配置完成，进入 Play。
+        // 对齐 Java handleConfigurationFinished：先 setupOutboundProtocol(Play)，使 onPlayerReady
+        // 回调里发的 play::Login 按 Play 出站表编码。入站阶段由框架收 FinishConfiguration(terminal)
+        // 自动切 Play。
         // 幂等守卫：迟到的重发不应二次触发 onPlayerReady（否则重复创建玩家/重发 play::Login）。
         if (m_playReady) {
             spdlog::debug("ServerHandshake: duplicate FinishConfiguration ignored (already Play ready)");
             return Result<void>::ok();
         }
+        m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Play);
         m_conn.setState(HandshakeState::Play);
         m_playReady = true;
         if (m_onReady) {
@@ -278,6 +348,73 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
     // ClientInformation / CustomPayload / Ping / KeepAlive / RegistryData(不应收到) / Disconnect
     // 暂忽略；TODO(Phase6): ClientInformation 存储、Ping 回 Pong
     return Result<void>::ok();
+}
+
+Result<void> ServerHandshakeStateMachine::_handleStatusPacket(const mc::network::ir::StatusPacket& pkt)
+{
+    // ping 后已 close，忽略此后到达的迟到包
+    if (!m_conn.isConnected()) {
+        return Result<void>::ok();
+    }
+
+    if (std::holds_alternative<mc::network::ir::status::StatusRequest>(pkt)) {
+        // 对齐 Java ServerStatusPacketListenerImpl#handleStatusRequest：单次守卫，二次请求断连。
+        if (m_hasRequestedStatus) {
+            m_conn.close();
+            return Result<void>::ok();
+        }
+        m_hasRequestedStatus = true;
+        // 无状态提供者：对齐 Java "disconnect.ignoring_status_request"（静默断连，无包）。
+        if (!m_statusProvider) {
+            m_conn.close();
+            return Result<void>::ok();
+        }
+        const StatusInfo info = m_statusProvider();
+        mc::network::ir::status::StatusResponse resp;
+        resp.json = _buildStatusJson(info);
+        auto r = m_conn.send(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Status, mc::network::ir::StatusPacket{std::move(resp)}});
+        if (!r.success()) {
+            return r;
+        }
+        // 注意：响应后不断连——留通道等客户端 PingRequest（对齐 Java）。
+        return Result<void>::ok();
+    }
+
+    if (std::holds_alternative<mc::network::ir::status::PingRequest>(pkt)) {
+        // 对齐 Java handlePingRequest：回 Pong（原样回显 payload）后断连（无 Disconnect 包）。
+        const auto& ping = std::get<mc::network::ir::status::PingRequest>(pkt);
+        mc::network::ir::status::PingResponse pong;
+        pong.payload = ping.payload;
+        (void)m_conn.send(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Status, mc::network::ir::StatusPacket{std::move(pong)}});
+        m_conn.close();
+        return Result<void>::ok();
+    }
+
+    // StatusResponse/PingResponse 是 S→C，不应收到；忽略。
+    return Result<void>::ok();
+}
+
+std::string ServerHandshakeStateMachine::_buildStatusJson(const StatusInfo& info)
+{
+    // 对齐 MC Java 1.21.11 ServerStatus Codec（经 JsonOps 序列化）。字段"省略而非 null"：
+    // favicon/enforcesSecureChat 在离线默认下省略；1.21.11 已无 previewsChat。
+    // nlohmann::json::dump() 默认不转义 HTML，等价 Java Gson disableHtmlEscaping()。
+    nlohmann::json j;
+    j["description"] = nlohmann::json::object({{"text", info.motd}});
+    j["players"] = nlohmann::json::object({
+        {"max", info.maxPlayers},
+        {"online", info.onlinePlayers},
+        {"sample", nlohmann::json::array()}, // TODO: 真实玩家样本（name + offline uuid，上限 12）
+    });
+    j["version"] = nlohmann::json::object({
+        {"name", info.versionName},
+        {"protocol", info.protocolVersion},
+    });
+    // TODO: favicon（server-icon.png 加载为
+    // data:image/png;base64,...）；enforcesSecureChat（在线模式+enforce-secure-profile）
+    return j.dump();
 }
 
 } // namespace mc::server::net

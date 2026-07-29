@@ -100,7 +100,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 len = 0;
             MC_TRY_ASSIGN(len, buf.readVarInt());
             if (len < 0) {
-                return Error(ErrorCode::InvalidData, "CustomPayload 长度为负", "configurationCustomPayloadCodec");
+                return Error(ErrorCode::InvalidData, "CustomPayload length is negative", "configurationCustomPayloadCodec");
             }
             MC_TRY_ASSIGN(v.payload, buf.readBytes(static_cast<usize>(len)));
             return v;
@@ -175,7 +175,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "RegistryData 条目数为负", "registryDataCodec");
+                return Error(ErrorCode::InvalidData, "RegistryData entry count is negative", "registryDataCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 ir::configuration::RegistryEntry e{};
@@ -186,7 +186,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
                     i32 len = 0;
                     MC_TRY_ASSIGN(len, buf.readVarInt());
                     if (len < 0) {
-                        return Error(ErrorCode::InvalidData, "RegistryEntry NBT 长度为负", "registryDataCodec");
+                        return Error(ErrorCode::InvalidData, "RegistryEntry NBT length is negative", "registryDataCodec");
                     }
                     MC_TRY_ASSIGN(e.data, buf.readBytes(static_cast<usize>(len)));
                 }
@@ -211,7 +211,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "SelectKnownPacks 数为负", "selectKnownPacksCodec");
+                return Error(ErrorCode::InvalidData, "SelectKnownPacks count is negative", "selectKnownPacksCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 ir::configuration::KnownPack kp{};
@@ -237,7 +237,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {
-                return Error(ErrorCode::InvalidData, "Features 数为负", "updateEnabledFeaturesCodec");
+                return Error(ErrorCode::InvalidData, "Features count is negative", "updateEnabledFeaturesCodec");
             }
             for (i32 i = 0; i < count; ++i) {
                 std::string f;
@@ -271,7 +271,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             i32 regCount = 0;
             MC_TRY_ASSIGN(regCount, buf.readVarInt());
             if (regCount < 0) {
-                return Error(ErrorCode::InvalidData, "UpdateTags registry 数为负", "updateTagsCodec");
+                return Error(ErrorCode::InvalidData, "UpdateTags registry count is negative", "updateTagsCodec");
             }
             for (i32 r = 0; r < regCount; ++r) {
                 ir::configuration::TagRegistry reg{};
@@ -279,7 +279,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
                 i32 tagCount = 0;
                 MC_TRY_ASSIGN(tagCount, buf.readVarInt());
                 if (tagCount < 0) {
-                    return Error(ErrorCode::InvalidData, "UpdateTags tag 数为负", "updateTagsCodec");
+                    return Error(ErrorCode::InvalidData, "UpdateTags tag count is negative", "updateTagsCodec");
                 }
                 for (i32 t = 0; t < tagCount; ++t) {
                     ir::configuration::TagListEntry tag{};
@@ -287,7 +287,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
                     i32 idCount = 0;
                     MC_TRY_ASSIGN(idCount, buf.readVarInt());
                     if (idCount < 0) {
-                        return Error(ErrorCode::InvalidData, "UpdateTags id 数为负", "updateTagsCodec");
+                        return Error(ErrorCode::InvalidData, "UpdateTags id count is negative", "updateTagsCodec");
                     }
                     for (i32 i = 0; i < idCount; ++i) {
                         i32 id = 0;

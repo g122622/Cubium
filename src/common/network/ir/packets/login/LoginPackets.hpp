@@ -64,11 +64,11 @@ struct HelloBound {
  * @brief Key（C→S，加密响应）
  *
  * 客户端发服务端 RSA 公钥加密的共享密钥 + 加密的 verify token。
- * 服务端解密后开启 AES-CFB8 加密。这是 terminal 包（处理后 login 阶段切换）。
+ * 服务端解密后开启 AES-CFB8 加密。非 terminal（对齐 MC Java：
+ * ServerboundKeyPacket.isTerminal()==false；登录阶段只有
+ * ServerboundLoginAcknowledgedPacket 是 terminal）。
  */
 struct Key {
-    static constexpr bool kTerminal = true;
-
     std::vector<u8> encryptedSharedSecret;
     std::vector<u8> encryptedVerifyToken;
     BedrockMeta bedrock{};
@@ -76,13 +76,14 @@ struct Key {
 };
 
 /**
- * @brief LoginFinished（S→C，登录成功，terminal）
+ * @brief LoginFinished（S→C，登录成功）
  *
- * 服务端发玩家 GameProfile（UUID + name + properties）。处理后切到 Configuration 阶段。
+ * 服务端发玩家 GameProfile（UUID + name + properties）。非 terminal（对齐 MC Java：
+ * ClientboundLoginFinishedPacket.isTerminal()==false）。阶段切换由收方的监听器
+ * 显式驱动：客户端收此包后 setInboundPhase(Configuration) 并回 LoginAcknowledged
+ * （terminal），后者触发出站自动切换到 Configuration。
  */
 struct LoginFinished {
-    static constexpr bool kTerminal = true;
-
     std::array<u8, 16> uuid;
     std::string username;
     std::vector<std::pair<std::string, std::string>> properties; // name→value（省略 signature）
@@ -105,7 +106,10 @@ struct LoginCompression {
 /**
  * @brief LoginAcknowledged（C→S，确认登录完成，terminal）
  *
- * 客户端收到 LoginFinished 后回此包，确认进入 Configuration 阶段。
+ * 客户端收到 LoginFinished 后回此包，确认进入 Configuration 阶段。对齐 MC Java：
+ * ServerboundLoginAcknowledgedPacket.isTerminal()==true。发出后触发出站自动切换
+ * Login→Configuration（对齐 Java handleLoginFinished 中 send(LoginAcknowledged)
+ * 后 setupOutboundProtocol(Configuration)）。
  */
 struct LoginAcknowledged {
     static constexpr bool kTerminal = true;

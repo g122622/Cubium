@@ -135,6 +135,18 @@ public:
     [[nodiscard]] bool isConnected() const noexcept override { return m_conn.isConnected(); }
     [[nodiscard]] mc::network::protocol::ConnectionProtocol phase() const noexcept { return m_conn.phase(); }
     void setPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setPhase(p); }
+    /// 入站阶段（解码表）。对齐 MC Java setupInboundProtocol。
+    [[nodiscard]] mc::network::protocol::ConnectionProtocol inboundPhase() const noexcept
+    {
+        return m_conn.inboundPhase();
+    }
+    void setInboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setInboundPhase(p); }
+    /// 出站阶段（编码表）。对齐 MC Java setupOutboundProtocol。监听器在发新阶段包前显式切换。
+    [[nodiscard]] mc::network::protocol::ConnectionProtocol outboundPhase() const noexcept
+    {
+        return m_conn.outboundPhase();
+    }
+    void setOutboundPhase(mc::network::protocol::ConnectionProtocol p) noexcept { m_conn.setOutboundPhase(p); }
 
     /// 装入压缩层（收到 LoginCompression 阈值后）
     void setupCompression(i32 threshold) { m_conn.setupCompression(threshold); }

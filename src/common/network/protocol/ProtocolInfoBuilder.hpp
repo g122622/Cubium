@@ -65,7 +65,7 @@ public:
     {
         static_assert(
             std::is_base_of_v<codec::StreamCodec<B, PacketStruct>, Codec> || codec::CodecFor<Codec, B, PacketStruct>,
-            "Codec 须满足 StreamCodec<B,PacketStruct> 接口或 CodecFor 概念");
+            "Codec must satisfy StreamCodec<B,PacketStruct> or the CodecFor concept");
 
         // matches：variant 当前下标 == altIndex
         auto matches = [altIndex](const Variant& value) { return value.index() == altIndex; };

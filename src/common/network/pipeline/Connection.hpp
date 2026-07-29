@@ -60,8 +60,14 @@ namespace mc::network::pipeline {
  * Local 模式（集成服同进程）：send → 直传 ir::Packet 到对端 ILocalTransport
  *   recv → ILocalTransport.onPacket → cb（零序列化、零拷贝，不经任何流水线 handler）
  *
- * terminal 包驱动阶段切换：发送/收到 terminal 包后 ProtocolSwapHandler 给出下一阶段，
- * setPhase 切 ProtocolInfo。压缩/加密在登录握手后由 setupCompression/setupEncryption 装入。
+ * 阶段切换（对齐 MC Java Connection 的 setupInboundProtocol/setupOutboundProtocol）：
+ * 入站、出站协议表分两个字段独立维护。terminal 包驱动自动切换——
+ *   出站：send(terminal) 后 setOutboundPhase(next)（对齐 Java handleOutboundTerminalPacket）；
+ *   入站：recv(terminal) 后 setInboundPhase(next)（对齐 Java handleInboundTerminalPacket）。
+ * 部分 forward 切换（如服务端收 LoginAcknowledged 后要按 Configuration 出站发 SelectKnownPacks，
+ * 但出站尚未由任何 terminal 自动翻）由监听器显式调 setOutboundPhase 补齐，对齐 Java
+ * listener 内 setupOutboundProtocol 的显式调用。压缩/加密在登录握手后由
+ * setupCompression/setupEncryption 装入。
  *
  * @tparam B 缓冲类型（Java 后端用 buffer::RegistryByteBuf）
  */
@@ -81,7 +87,8 @@ public:
         : m_wireTransport(std::move(wireTransport))
         , m_tables(std::move(tables))
         , m_flow(localFlow)
-        , m_phase(protocol::ConnectionProtocol::Handshaking)
+        , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
+        , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
         , m_mode(Mode::Wire)
     {
         _installWireReceive();
@@ -96,7 +103,8 @@ public:
         : m_localTransport(std::move(localTransport))
         , m_tables(std::move(tables))
         , m_flow(localFlow)
-        , m_phase(protocol::ConnectionProtocol::Handshaking)
+        , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
+        , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
         , m_mode(Mode::Local)
     {
         _installLocalReceive();
@@ -115,16 +123,24 @@ public:
      */
     void onPacket(PacketListener listener) { m_listener = std::move(listener); }
 
-    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_phase; }
     [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_flow; }
     [[nodiscard]] bool isWireMode() const noexcept { return m_mode == Mode::Wire; }
     [[nodiscard]] bool isLocalMode() const noexcept { return m_mode == Mode::Local; }
     [[nodiscard]] bool isConnected() const noexcept;
 
+    /// 入站阶段（对端发来方向的解码表）。disconnect 发对端可解的包时用此。
+    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_inboundPhase; }
+    [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_inboundPhase; }
+    /// 出站阶段（本端发出方向的编码表）。
+    [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_outboundPhase; }
+
     /**
-     * @brief 主动切换阶段（terminal 包处理后调用）
+     * @brief 主动切换阶段。语义为切换【入站】阶段（供 disconnect 等按对端可解阶段发包）。
+     * 出站阶段切换用 setOutboundPhase。
      */
-    void setPhase(protocol::ConnectionProtocol phase) noexcept { m_phase = phase; }
+    void setPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
+    void setInboundPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
+    void setOutboundPhase(protocol::ConnectionProtocol phase) noexcept { m_outboundPhase = phase; }
 
     /**
      * @brief 装入压缩层（收到 LoginCompression 后调用）
@@ -202,7 +218,11 @@ private:
     std::shared_ptr<ProtocolTableSet<B>> m_tables;
     PacketListener m_listener;
     protocol::PacketFlow m_flow;
-    protocol::ConnectionProtocol m_phase;
+    // 入站/出站阶段分离（对齐 MC Java setupInboundProtocol/setupOutboundProtocol）：
+    // 入站阶段驱动解码表选择，出站阶段驱动编码表选择。terminal 包分别触发各自的自动切换，
+    // forward 切换（出站需领先入站的场景）由监听器显式调 setOutboundPhase 补齐。
+    protocol::ConnectionProtocol m_inboundPhase;
+    protocol::ConnectionProtocol m_outboundPhase;
     Mode m_mode;
 
     // 流水线 handler（仅 Wire 模式用）

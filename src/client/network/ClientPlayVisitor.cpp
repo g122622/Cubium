@@ -310,7 +310,7 @@ Result<void> ClientPlayVisitor::handleConfiguration(const mc::network::ir::IrPac
     MC_ASSERT_RELEASE(packet.phase == mc::network::protocol::ConnectionProtocol::Configuration);
     const auto* cfg = std::get_if<mc::network::ir::ConfigurationPacket>(&packet.packet);
     if (cfg == nullptr) {
-        return Error(ErrorCode::InvalidData, "配置阶段变体缺失", "ClientPlayVisitor::handleConfiguration");
+        return Error(ErrorCode::InvalidData, "Configuration phase variant missing", "ClientPlayVisitor::handleConfiguration");
     }
 
     // Configuration 阶段包由 ClientNetwork 内部状态机处理（SelectKnownPacks/FinishConfiguration
@@ -362,7 +362,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
     MC_ASSERT_RELEASE(packet.phase == mc::network::protocol::ConnectionProtocol::Play);
     const auto* play = std::get_if<mc::network::ir::PlayPacket>(&packet.packet);
     if (play == nullptr) {
-        return Error(ErrorCode::InvalidData, "Play 阶段变体缺失", "ClientPlayVisitor::handle");
+        return Error(ErrorCode::InvalidData, "Play phase variant missing", "ClientPlayVisitor::handle");
     }
 
     return std::visit(

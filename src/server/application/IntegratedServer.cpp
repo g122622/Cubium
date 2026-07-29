@@ -37,6 +37,7 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -185,7 +186,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     m_clientConnection = m_serverNetwork->createLocalClientSide(&m_pendingClientTransport);
     if (m_clientConnection == nullptr) {
         spdlog::error("IntegratedServer: failed to create local client connection pair");
-        return Error(ErrorCode::InitializationFailed, "本地客户端连接对创建失败", "IntegratedServer::initialize");
+        return Error(ErrorCode::InitializationFailed, "Local client connection pair creation failed", "IntegratedServer::initialize");
     }
 
     // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
@@ -1434,6 +1435,16 @@ void IntegratedServer::_onRemoteClientConnect(mc::server::net::ServerClientConne
         [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
             _onRemotePlayerReady(sessionId, username, offlineUuid);
         });
+
+    // Status（服务器列表 ping）信息提供者：从设置 + 玩家管理器取值，构造 StatusResponse JSON。
+    session->handshake().onStatusRequest([this]() -> mc::server::net::StatusInfo {
+        return mc::server::net::StatusInfo{m_settings.motd.get(),
+            std::string("1.21.11"),
+            mc::network::backend::java::kJavaProtocolVersion,
+            m_settings.maxPlayers.get(),
+            static_cast<i32>(m_playerManager->playerCount()),
+            m_settings.onlineMode.get()};
+    });
 
     // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：
     //   handshake.handleInbound 返回 true=握手/Configuration 已消费；false=Play 包交路由器。

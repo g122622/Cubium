@@ -68,7 +68,9 @@ protocol::ConnectionProtocol ProtocolSwapHandler::nextForTerminal(
             return ConnectionProtocol::Login;
         }
         case ConnectionProtocol::Login:
-            // LoginFinished(S→C) / LoginAcknowledged(C→S) → Configuration。
+            // LoginAcknowledged(C→S，terminal）→ Configuration。对齐 MC Java：登录阶段
+            // 只有 ServerboundLoginAcknowledgedPacket 是 terminal；LoginFinished/Key 非终端，
+            // 阶段切换由收方监听器显式驱动（见 ServerHandshake/ClientNetwork）。
             return ConnectionProtocol::Configuration;
         case ConnectionProtocol::Configuration:
             // FinishConfiguration（双向）→ Play。

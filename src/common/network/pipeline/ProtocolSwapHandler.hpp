@@ -51,10 +51,12 @@ inline constexpr bool kIsTerminalV = IsTerminal<T>::value;
  *
  * 对应 MC Java Connection 在收到/发出 terminal 包时 setupOutboundProtocol/InboundProtocol。
  *
- * 状态机阶段切换规则：
+ * 状态机阶段切换规则（仅 terminal 包参与自动切换；其余切换由收/发方监听器显式驱动，
+ * 对齐 MC Java setupInboundProtocol/setupOutboundProtocol）：
  * - Handshaking 阶段 ClientIntention：按 intendedState（1=Status, 2=Login）切。
- * - Login 阶段 LoginAcknowledged/LoginFinished：切到 Configuration。
+ * - Login 阶段 LoginAcknowledged（C→S）：切到 Configuration。（LoginFinished/Key 非终端）
  * - Configuration 阶段 FinishConfiguration：切到 Play。
+ * - Play 阶段 ConfigurationAcknowledged（C→S）：切回 Configuration。
  *
  * 本类无状态，全是静态判定函数，供 Connection 在编解码后调用决定是否切阶段。
  */
