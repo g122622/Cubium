@@ -3061,6 +3061,23 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     // 发送初始难度状态
     sendInitialDifficultyToPlayer(playerId);
 
+    // 通知客户端开始接收区块加载包序列（event=13 LEVEL_CHUNKS_LOAD_START，value=0）。
+    // 1.21.11 客户端 LevelLoadTracker 状态机：handleLogin 后处于 WaitingForServer 并显示
+    // LevelLoadingScreen（“加载地形中”）；唯有收到此 GameEvent 才调用 loadingPacketsReceived()
+    // 转入 WaitingForPlayerChunk，进而等玩家所在 section 编译可见后关屏。漏发则客户端永久卡在
+    // WaitingForServer，仅靠 30s 超时兜底强制放行。发送时机位于天气/难度包之后、作为区块加载
+    // 序列开始的最后信号（与原版登录序列中该包的位置一致）。
+    {
+        mc::network::ir::play::GameEvent loadStartEvt;
+        loadStartEvt.event = 13; // LEVEL_CHUNKS_LOAD_START
+        loadStartEvt.value = 0.0f;
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(loadStartEvt)},
+            });
+    }
+
     updateEntityTrackingForPlayer(playerId, x, y, z);
 }
 
