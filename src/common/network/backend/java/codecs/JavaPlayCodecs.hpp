@@ -145,9 +145,11 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
  */
 inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 {
-    // dimensionType：我方互通 VarInt(维度 id) 透传（客户端 Login 不消费该字段）。
-    // Java 1.21.11 Holder<DimensionType> 的内联模式（mode=0 NBT）未支持，仅影响真 Java 互通。
-    buf.writeVarInt(s.dimensionType);
+    // dimensionType：vanilla Holder<DimensionType> = ByteBufCodecs.holderRegistry。
+    // wire: VarInt(mode)，0=内联 NBT，>0=引用(registry holder id = mode-1)。
+    // dimension_type 注册表由 Configuration 阶段 RegistryDataBuilder 同步（overworld=id0），
+    // 此处用引用模式：s.dimensionType 存内部维度 id（= dimension_type registry id），编 id+1。
+    buf.writeVarInt(s.dimensionType + 1);
     buf.writeString(s.dimension);
     buf.writeI64(s.seed);
     buf.writeU8(static_cast<u8>(s.gameType));
@@ -168,7 +170,15 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 [[nodiscard]] inline Result<ir::play::CommonPlayerSpawnInfo> readSpawnInfo(B& buf)
 {
     ir::play::CommonPlayerSpawnInfo s{};
-    MC_TRY_ASSIGN(s.dimensionType, buf.readVarInt());
+    i32 holderMode = 0;
+    MC_TRY_ASSIGN(holderMode, buf.readVarInt());
+    if (holderMode <= 0) {
+        // mode=0 内联 NBT：本项目不生成 DimensionType NBT，引用模式才合法；
+        // 兼容旧/异常输入按 overworld(id0) 兜底，避免解引用悬垂。
+        s.dimensionType = 0;
+    } else {
+        s.dimensionType = holderMode - 1; // 引用模式：registry holder id = mode-1
+    }
     MC_TRY_ASSIGN(s.dimension, buf.readString());
     MC_TRY_ASSIGN(s.seed, buf.readI64());
     u8 gt = 0;
