@@ -170,7 +170,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::PaddleBoat,               // 85
     play::Interact,                 // 86
     play::Commands,                 // 87
-    play::PlaceRecipe>;             // 88
+    play::PlaceRecipe,              // 88
+    play::SetChunkCacheCenter>;     // 89
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

@@ -28,7 +28,6 @@
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/util/text/StringTextComponent.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -109,24 +108,25 @@ void ServerClientConnection::disconnect(const std::string& reason)
         return;
     }
 
-    // 对齐 MC Java：reason 纯文本包成 JSON 文本组件（Component.literal(reason)）。
-    // Phase6 后可改为接收完整 ITextComponent。
-    const std::string jsonReason = mc::text::StringTextComponent(reason).toJson().dump();
+    // reason 为纯文本，由 codec 编码为 NBT StringTag（vanilla Component.literal(text) 纯文本
+    // 折叠路径）。此前误用 JSON 字符串 + writeString，与 vanilla Component NBT 线格式不符，
+    // 客户端按 NBT 解码时把字符串首字节当 tag id，报 “Invalid tag id”。
+    const std::string& textReason = reason;
 
     // 按当前阶段发对应 Clientbound Disconnect 包。Handshaking/Status 阶段无
     // Disconnect 包定义（协议未规定），直接跳过发包仅断连。
     const auto phase = m_conn.phase();
     if (phase == mc::network::protocol::ConnectionProtocol::Login) {
         mc::network::ir::login::Disconnect dc;
-        dc.reason = jsonReason;
+        dc.reason = textReason;
         (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::LoginPacket{std::move(dc)}});
     } else if (phase == mc::network::protocol::ConnectionProtocol::Configuration) {
         mc::network::ir::configuration::Disconnect dc;
-        dc.reason = jsonReason;
+        dc.reason = textReason;
         (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::ConfigurationPacket{std::move(dc)}});
     } else if (phase == mc::network::protocol::ConnectionProtocol::Play) {
         mc::network::ir::play::Disconnect dc;
-        dc.reason = jsonReason;
+        dc.reason = textReason;
         (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::PlayPacket{std::move(dc)}});
     }
 

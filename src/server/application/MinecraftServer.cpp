@@ -1498,6 +1498,23 @@ void MinecraftServer::setupWorldCallbacks()
                 }
             });
 
+        // 设置区块缓存中心变化回调 - 玩家所在区块中心变化时发送 SetChunkCacheCenter。
+        // 对齐 vanilla ChunkMap.applyChunkTrackingView：中心变化先于区块数据下发。
+        // 客户端 ClientChunkCache.Storage 的 viewCenterX/Z 默认 (0,0)，未收到此包则
+        // inRange（Chebyshev ≤ chunkRadius）恒以原点为中心，出生点远离原点的玩家收到的
+        // 全部区块被 “Ignoring chunk since it's not in the view range” 丢弃，LevelLoadTracker
+        // 第二闸门 isSectionCompiledAndVisible 永远过不去，卡 “加载地形中” 直至心跳超时。
+        world->chunkManager()->setChunkCacheCenterCallback([this](PlayerId player, ChunkCoord x, ChunkCoord z) {
+            mc::network::ir::play::SetChunkCacheCenter pkt;
+            pkt.x = static_cast<i32>(x);
+            pkt.z = static_cast<i32>(z);
+            sendPacketToPlayer(player,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{std::move(pkt)},
+                });
+        });
+
         // 设置实体生成回调
         world->chunkManager()->setEntitySpawnCallback([this, world](const std::vector<SpawnedEntityData>& entities) {
             for (const auto& entityData : entities) {
@@ -2101,6 +2118,9 @@ void MinecraftServer::sendChunkDataToPlayer(
     mc::network::ir::play::LevelChunkWithLight pkt = ir;
     pkt.x = static_cast<i32>(x);
     pkt.z = static_cast<i32>(z);
+    // 诊断日志：确认区块 LevelChunkWithLight 实际发往客户端（排查真 Java 客户端卡 loading 时
+    // 区块是否送达）。排查完成后可降级或移除。
+    spdlog::info("Sent chunk ({}, {}) to player {}", x, z, playerId);
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

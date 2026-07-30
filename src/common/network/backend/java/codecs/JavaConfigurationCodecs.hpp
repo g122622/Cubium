@@ -109,14 +109,14 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
         });
 }
 
-/// Disconnect（S→C，id=2）
+/// Disconnect（S→C，id=2，reason 为 NBT 承载的 Component，非裸字符串）
 [[nodiscard]] inline auto configurationDisconnectCodec()
 {
     return makeCodec<ir::configuration::Disconnect>(
-        [](B& buf, const ir::configuration::Disconnect& v) { buf.writeString(v.reason); },
+        [](B& buf, const ir::configuration::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
         [](B& buf) -> Result<ir::configuration::Disconnect> {
             ir::configuration::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, buf.readString());
+            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
             return v;
         });
 }

@@ -286,6 +286,32 @@ public:
     void setTrackingChangeCallback(TrackingChangeCallback callback) { m_trackingChangeCallback = std::move(callback); }
 
     /**
+     * @brief 区块缓存中心变化回调类型
+     *
+     * 参数：
+     * - playerId: 玩家 ID
+     * - x, z: 玩家当前所在区块坐标（新中心）
+     *
+     * 当玩家所在区块中心变化时触发（含首次设置）。对齐 vanilla ChunkMap.applyChunkTrackingView
+     * 在玩家区块中心变化时发送 ClientboundSetChunkCacheCenterPacket 的语义——客户端
+     * ClientChunkCache.Storage 的 viewCenterX/Z 默认 (0,0)，唯有收到此回调对应的包才更新，
+     * 否则出生点远离原点的玩家收到的区块会被 “Ignoring chunk since it's not in the view
+     * range” 丢弃。回调仅传递坐标，不含网络语义（common 层不感知协议）。
+     */
+    using ChunkCacheCenterCallback = std::function<void(PlayerId, ChunkCoord, ChunkCoord)>;
+
+    /**
+     * @brief 设置区块缓存中心变化回调
+     * @param callback 回调函数
+     *
+     * 在 updatePlayerPosition 检测到玩家区块中心变化时调用，须先于区块数据发送。
+     */
+    void setChunkCacheCenterCallback(ChunkCacheCenterCallback callback)
+    {
+        m_chunkCacheCenterCallback = std::move(callback);
+    }
+
+    /**
      * @brief 获取追踪某区块的所有玩家
      *
      * @param x 区块 X 坐标
@@ -414,6 +440,9 @@ private:
 
     /// 追踪变化回调
     TrackingChangeCallback m_trackingChangeCallback;
+
+    /// 区块缓存中心变化回调
+    ChunkCacheCenterCallback m_chunkCacheCenterCallback;
 
     /// 需要重新计算的区块
     std::unordered_set<u64> m_dirtyChunks;

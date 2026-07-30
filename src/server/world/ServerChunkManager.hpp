@@ -511,6 +511,19 @@ public:
     void setChunkSendManager(sync::ChunkSendManager* manager) { m_chunkSendManager = manager; }
 
     /**
+     * @brief 设置区块缓存中心变化回调
+     *
+     * @param callback 回调函数，参数为 (playerId, chunkX, chunkZ)
+     *
+     * 转发到底层 ChunkLoadTicketManager：玩家区块中心变化时触发，上层据此发送
+     * SetChunkCacheCenter 包。须先于区块数据到达客户端。
+     */
+    void setChunkCacheCenterCallback(mc::world::chunk::ChunkLoadTicketManager::ChunkCacheCenterCallback callback)
+    {
+        m_ticketManager.setChunkCacheCenterCallback(std::move(callback));
+    }
+
+    /**
      * @brief 获取区块发送管理器
      * @return 区块发送管理器指针，可能为 nullptr
      */

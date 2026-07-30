@@ -191,6 +191,13 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
     state.trackedChunks = _buildTrackedChunkSet(x, z);
     m_playerPositions[playerId] = newPos;
 
+    // 中心变化（含首次设置）：通知上层发送 SetChunkCacheCenter。须先于 _applyTrackingDelta
+    // 触发的区块发送——客户端 ClientChunkCache.Storage.inRange 依赖 viewCenterX/Z 判定，
+    // 中心未更新前到达的区块会被丢弃（“not in the view range”）。
+    if (m_chunkCacheCenterCallback) {
+        m_chunkCacheCenterCallback(playerId, x, z);
+    }
+
     _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
     processUpdates();
 }

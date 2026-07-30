@@ -276,14 +276,14 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 }
 
 /**
- * @brief Disconnect（S→C，id=0）：Utf8(reason JSON)。
+ * @brief Disconnect（S→C，id=0）：reason 为 NBT 承载的 Component，非裸字符串。
  */
 [[nodiscard]] inline auto loginDisconnectCodec()
 {
-    return makeCodec<ir::login::Disconnect>([](B& buf, const ir::login::Disconnect& v) { buf.writeString(v.reason); },
+    return makeCodec<ir::login::Disconnect>([](B& buf, const ir::login::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
         [](B& buf) -> Result<ir::login::Disconnect> {
             ir::login::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, buf.readString());
+            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
             return v;
         });
 }

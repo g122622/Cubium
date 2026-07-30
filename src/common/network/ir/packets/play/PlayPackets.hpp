@@ -454,6 +454,24 @@ struct SetHeldSlot {
 };
 
 /**
+ * @brief SetChunkCacheCenter（S→C，id=76）
+ *
+ * 设置客户端 ClientChunkCache.Storage 的视野中心（viewCenterX/Z）。对齐 vanilla
+ * ClientboundSetChunkCacheCenterPacket：VarInt(x) + VarInt(z)。客户端 inRange 判定
+ * 为 Chebyshev 距离 |x-viewCenterX|<=chunkRadius && |z-viewCenterZ|<=chunkRadius，
+ * 中心默认 (0,0)；若服务端从不发送此包，出生点远离原点的玩家收到的所有区块都会被
+ * “Ignoring chunk since it's not in the view range” 丢弃，LevelLoadTracker 第二闸门
+ * isSectionCompiledAndVisible 永远过不去，卡 “加载地形中” 直至心跳超时。
+ * vanilla 在 ChunkMap.applyChunkTrackingView 中玩家区块中心变化时发送，须先于区块数据。
+ */
+struct SetChunkCacheCenter {
+    i32 x;
+    i32 z;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetChunkCacheCenter&, const SetChunkCacheCenter&) noexcept = default;
+};
+
+/**
  * @brief SetDefaultSpawnPosition（S→C，id=95）
  *
  * 1.21.11 为 RespawnData(globalPos, yaw, pitch)。

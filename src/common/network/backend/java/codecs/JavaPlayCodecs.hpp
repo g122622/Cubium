@@ -218,13 +218,14 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         });
 }
 
-/// Disconnect（S→C，Utf8(reason JSON)）
+/// Disconnect（S→C，reason 为 NBT 承载的 Component，非裸字符串）
 [[nodiscard]] inline auto playDisconnectCodec()
 {
-    return makeCodec<ir::play::Disconnect>([](B& buf, const ir::play::Disconnect& v) { buf.writeString(v.reason); },
+    return makeCodec<ir::play::Disconnect>(
+        [](B& buf, const ir::play::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
         [](B& buf) -> Result<ir::play::Disconnect> {
             ir::play::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, buf.readString());
+            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
             return v;
         });
 }
@@ -669,6 +670,22 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         [](B& buf) -> Result<ir::play::SetHeldSlot> {
             ir::play::SetHeldSlot v{};
             MC_TRY_ASSIGN(v.slot, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetChunkCacheCenter（S→C，id=76）：VarInt(x) + VarInt(z)
+[[nodiscard]] inline auto setChunkCacheCenterCodec()
+{
+    return makeCodec<ir::play::SetChunkCacheCenter>(
+        [](B& buf, const ir::play::SetChunkCacheCenter& v) {
+            buf.writeVarInt(v.x);
+            buf.writeVarInt(v.z);
+        },
+        [](B& buf) -> Result<ir::play::SetChunkCacheCenter> {
+            ir::play::SetChunkCacheCenter v{};
+            MC_TRY_ASSIGN(v.x, buf.readVarInt());
+            MC_TRY_ASSIGN(v.z, buf.readVarInt());
             return v;
         });
 }

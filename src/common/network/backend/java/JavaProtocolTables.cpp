@@ -359,6 +359,8 @@ using B = buffer::RegistryByteBuf;
         117, PacketType{PacketFlow::Clientbound, "stop_sound"}, 44, codecs::stopSoundCodec());
     b.addPacket<ir::play::TakeItemEntity>(
         122, PacketType{PacketFlow::Clientbound, "take_item_entity"}, 76, codecs::takeItemEntityCodec());
+    b.addPacket<ir::play::SetChunkCacheCenter>(
+        76, PacketType{PacketFlow::Clientbound, "set_chunk_cache_center"}, 89, codecs::setChunkCacheCenterCodec());
     return b.build();
 }
 
