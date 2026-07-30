@@ -121,7 +121,7 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
     };
 
     recursiveGenerate(consumer, context);
-    spdlog::info("Generated {} item stacks from loot table '{}'", items.size(), m_id);
+    // spdlog::info("Generated {} item stacks from loot table '{}'", items.size(), m_id);
     return items;
 }
 
