@@ -202,16 +202,15 @@ std::vector<ItemStack> viewsToStacks(const std::vector<mc::network::ir::play::It
     return out;
 }
 
-/// PlaySound/SoundEntity 的 soundHolder 是服务端降级编码：opaque 字节 = ResourceLocation::toString()
-/// 的 UTF-8（与服务端 MinecraftServer::broadcastSound 的填充对称，我方互通自洽）。
-/// 真正的 1.21.11 Holder<SoundEvent>（VarInt mode + 内联/引用分支）待真 Java 互通时统一升级。
-[[nodiscard]] std::optional<ResourceLocation> parseSoundHolder(const std::vector<u8>& holder)
+/// PlaySound/SoundEntity 的 soundHolder 是结构化 Holder<SoundEvent>（对齐 vanilla 1.21.11 wire）。
+/// 内联模式（direct=true）：identifier 即声音 id，解析为 ResourceLocation。
+/// 引用模式（direct=false）：本项目无 sound registry 整数 id 表，无法还原，返回 nullopt 静默丢弃。
+[[nodiscard]] std::optional<ResourceLocation> parseSoundHolder(const irplay::SoundEventHolder& holder)
 {
-    if (holder.empty()) {
-        return std::nullopt;
+    if (!holder.direct) {
+        return std::nullopt; // 引用模式无资源可查
     }
-    std::string idStr(holder.begin(), holder.end());
-    auto rl = ResourceLocation::parse(idStr);
+    auto rl = ResourceLocation::parse(holder.identifier);
     if (!rl.isValid()) {
         return std::nullopt;
     }
@@ -1459,7 +1458,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             }
             // ---- 声音 ----
             else if constexpr (std::is_same_v<T, irplay::PlaySound>) {
-                // 1.21.11 PlaySound：soundHolder(opaque=ResourceLocation 降级编码) + source + 坐标(×8) +
+                // 1.21.11 PlaySound：soundHolder(结构化 Holder<SoundEvent>) + source + 坐标(×8) +
                 // volume + pitch + seed。坐标需 /8.0f 还原。
                 const auto& p = pkt;
                 if (m_app.m_audioService == nullptr) {

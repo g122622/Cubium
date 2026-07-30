@@ -68,6 +68,12 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
     return buf.readBytes(static_cast<usize>(len));
 }
 
+// 前向声明：writeSoundEventHolder/readSoundEventHolder 的完整定义位于本文件下方
+// 第二个 play_ext_detail 块（与 writeParticleOptions 等并列，被 explosionCodec 等使用）。
+// PlaySound/SoundEntity codec 在此之前，需前置声明以解析 lambda 体内的限定名调用。
+inline void writeSoundEventHolder(B& buf, const ir::play::SoundEventHolder& v);
+[[nodiscard]] inline Result<ir::play::SoundEventHolder> readSoundEventHolder(B& buf);
+
 } // namespace play_ext_detail
 
 // ============================================================================
@@ -79,7 +85,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
 {
     return makeCodec<ir::play::PlaySound>(
         [](B& buf, const ir::play::PlaySound& v) {
-            play_ext_detail::writeOpaque(buf, v.soundHolder);
+            play_ext_detail::writeSoundEventHolder(buf, v.soundHolder);
             buf.writeVarInt(v.source);
             buf.writeI32(v.x);
             buf.writeI32(v.y);
@@ -90,7 +96,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
         },
         [](B& buf) -> Result<ir::play::PlaySound> {
             ir::play::PlaySound v{};
-            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readOpaque(buf, "playSoundCodec"));
+            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readSoundEventHolder(buf));
             MC_TRY_ASSIGN(v.source, buf.readVarInt());
             MC_TRY_ASSIGN(v.x, buf.readI32());
             MC_TRY_ASSIGN(v.y, buf.readI32());
@@ -133,7 +139,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
 {
     return makeCodec<ir::play::SoundEntity>(
         [](B& buf, const ir::play::SoundEntity& v) {
-            play_ext_detail::writeOpaque(buf, v.soundHolder);
+            play_ext_detail::writeSoundEventHolder(buf, v.soundHolder);
             buf.writeVarInt(v.source);
             buf.writeVarInt(v.entityId);
             buf.writeF32(v.volume);
@@ -142,7 +148,7 @@ inline void writeOpaque(B& buf, const std::vector<u8>& data)
         },
         [](B& buf) -> Result<ir::play::SoundEntity> {
             ir::play::SoundEntity v{};
-            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readOpaque(buf, "soundEntityCodec"));
+            MC_TRY_ASSIGN(v.soundHolder, play_ext_detail::readSoundEventHolder(buf));
             MC_TRY_ASSIGN(v.source, buf.readVarInt());
             MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
             MC_TRY_ASSIGN(v.volume, buf.readF32());

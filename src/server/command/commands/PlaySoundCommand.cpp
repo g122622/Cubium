@@ -75,12 +75,12 @@ void sendPlaySoundPacket(server::core::ConnectionManager& connMgr,
 {
     // 1.21.11 ClientboundSoundPacket：Holder<SoundEvent> + source + 坐标(×8 整数) +
     //   volume + pitch + seed。坐标按 ×8 截断（Java writeInt）。
-    // TODO(Phase6): soundHolder 当前仅以 ResourceLocation 字符串字节承载，未对齐
-    //   1.21.11 Holder<SoundEvent> wire（可选引用 vs 内联 SoundEvent），真互通需补完整 codec。
+    // soundHolder 用内联 SoundEvent（direct=true，identifier=soundId），对齐 vanilla wire。
     //   seed 暂用固定值 0，后续应接入确定性种子源。
     mc::network::ir::play::PlaySound pkt;
-    std::string idStr = soundId.toString();
-    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.soundHolder.direct = true;
+    pkt.soundHolder.identifier = soundId.toString();
+    pkt.soundHolder.hasFixedRange = false;
     pkt.source = static_cast<i32>(category);
     pkt.x = static_cast<i32>(position.x * 8.0f);
     pkt.y = static_cast<i32>(position.y * 8.0f);

@@ -56,15 +56,34 @@ namespace mc::network::ir::play {
 // ----------------------------------------------------------------------------
 
 /**
+ * @brief Holder<SoundEvent>（1.21.11，对齐 ByteBufCodecs.holder）
+ *
+ * 线格式：VarInt(mode)——0=内联（DIRECT），>0=引用（registry holder id = mode-1）。
+ * - 内联：Identifier(VarInt len + UTF-8) + Optional<Float>(bool present + f32 fixedRange)
+ * - 引用：仅 VarInt id（本项目无 sound registry 整数 id 表，引用模式不可还原，
+ *   故我方互通统一用内联模式编码；解码兼容两种模式但引用模式无资源可查）。
+ *
+ * 被 PlaySound/SoundEntity/Explosion 复用（定义前置供 PlaySound 引用为值成员）。
+ */
+struct SoundEventHolder {
+    bool direct = true;     // true=内联，false=引用
+    std::string identifier; // direct=true 时有效（如 "minecraft:entity.generic.explode"）
+    bool hasFixedRange = false;
+    f32 fixedRange = 0.0f;
+    i32 referenceId = 0; // direct=false 时有效（Java holder id - 1）
+    [[nodiscard]] friend bool operator==(const SoundEventHolder&, const SoundEventHolder&) noexcept = default;
+};
+
+/**
  * @brief PlaySound（S→C，id=115）
  *
- * Holder<SoundEvent> 暂用 opaque 字节透传（registry id 或内联 SoundEvent）。
+ * Holder<SoundEvent> 结构化字段（内联/引用，对齐 vanilla wire），见 SoundEventHolder。
  * 坐标为 ×8 取整后的 int（Java writeInt）。
  */
 struct PlaySound {
-    std::vector<u8> soundHolder; // opaque：Holder<SoundEvent>
-    i32 source;                  // SoundSource ordinal
-    i32 x;                       // 实际坐标 ×8 取整
+    SoundEventHolder soundHolder; // Holder<SoundEvent>
+    i32 source;                   // SoundSource ordinal
+    i32 x;                        // 实际坐标 ×8 取整
     i32 y;
     i32 z;
     f32 volume;
@@ -91,7 +110,7 @@ struct StopSound {
  * @brief SoundEntity（S→C，id=114，实体发声）
  */
 struct SoundEntity {
-    std::vector<u8> soundHolder; // opaque：Holder<SoundEvent>
+    SoundEventHolder soundHolder; // Holder<SoundEvent>
     i32 source;
     i32 entityId;
     f32 volume;
@@ -684,23 +703,6 @@ struct SetExperience {
 // ----------------------------------------------------------------------------
 
 /**
- * @brief Holder<SoundEvent>（1.21.11，对齐 ByteBufCodecs.holder）
- *
- * 线格式：VarInt(mode)——0=内联（DIRECT），>0=引用（registry holder id = mode-1）。
- * - 内联：Identifier(VarInt len + UTF-8) + Optional<Float>(bool present + f32 fixedRange)
- * - 引用：仅 VarInt id（本项目无 sound registry 整数 id 表，引用模式不可还原，
- *   故我方互通统一用内联模式编码；解码兼容两种模式但引用模式无资源可查）。
- */
-struct SoundEventHolder {
-    bool direct = true;     // true=内联，false=引用
-    std::string identifier; // direct=true 时有效（如 "minecraft:entity.generic.explode"）
-    bool hasFixedRange = false;
-    f32 fixedRange = 0.0f;
-    i32 referenceId = 0; // direct=false 时有效（Java holder id - 1）
-    [[nodiscard]] friend bool operator==(const SoundEventHolder&, const SoundEventHolder&) noexcept = default;
-};
-
-/**
  * @brief ExplosionParticleInfo（1.21.11 爆炸粒子表条目）
  *
  * 线格式：ParticleOptions + FLOAT scaling + FLOAT speed。
@@ -919,10 +921,11 @@ struct BlockEntityInfoWire {
 struct LevelChunkWithLight {
     i32 x;
     i32 z;
-    std::vector<HeightmapEntryWire> heightmaps;        // 3 个 CLIENT 类型(WORLD_SURFACE/MOTION_BLOCKING/MOTION_BLOCKING_NO_LEAVES)
-    std::vector<ChunkSectionWire> sections;            // 主世界 24 段
-    std::vector<BlockEntityInfoWire> blockEntities;    // 可空
-    std::array<std::vector<u64>, 4> lightMasks;        // sky/block/emptySky/emptyBlock
+    std::vector<HeightmapEntryWire>
+        heightmaps;                         // 3 个 CLIENT 类型(WORLD_SURFACE/MOTION_BLOCKING/MOTION_BLOCKING_NO_LEAVES)
+    std::vector<ChunkSectionWire> sections; // 主世界 24 段
+    std::vector<BlockEntityInfoWire> blockEntities;           // 可空
+    std::array<std::vector<u64>, 4> lightMasks;               // sky/block/emptySky/emptyBlock
     std::array<std::vector<std::vector<u8>>, 2> lightUpdates; // sky/block，每条 2048 字节
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const LevelChunkWithLight&, const LevelChunkWithLight&) noexcept = default;

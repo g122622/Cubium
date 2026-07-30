@@ -3371,12 +3371,13 @@ void MinecraftServer::routeInboundPlayPacket(PlayerId playerId, const mc::networ
 void MinecraftServer::broadcastSound(
     const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
-    // 1.21.11 PlaySound：Holder<SoundEvent>(opaque) + source + 坐标×8 + volume + pitch + seed。
-    // TODO(Phase6): soundHolder 仅以 ResourceLocation 字符串字节承载，未对齐 Holder<SoundEvent> wire；
+    // 1.21.11 PlaySound：Holder<SoundEvent>(结构化内联) + source + 坐标×8 + volume + pitch + seed。
+    // soundHolder 用内联 SoundEvent（direct=true，identifier=soundEventId），对齐 vanilla wire。
     //   seed 暂用固定值 0。
     mc::network::ir::play::PlaySound pkt;
-    std::string idStr = soundEventId.toString();
-    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.soundHolder.direct = true;
+    pkt.soundHolder.identifier = soundEventId.toString();
+    pkt.soundHolder.hasFixedRange = false;
     pkt.source = static_cast<i32>(category);
     pkt.x = static_cast<i32>(position.x * 8.0f);
     pkt.y = static_cast<i32>(position.y * 8.0f);
@@ -3399,8 +3400,9 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
 {
     // 1.21.11 PlaySound（同上），仅发送给范围内玩家。
     mc::network::ir::play::PlaySound pkt;
-    std::string idStr = soundEventId.toString();
-    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.soundHolder.direct = true;
+    pkt.soundHolder.identifier = soundEventId.toString();
+    pkt.soundHolder.hasFixedRange = false;
     pkt.source = static_cast<i32>(category);
     pkt.x = static_cast<i32>(position.x * 8.0f);
     pkt.y = static_cast<i32>(position.y * 8.0f);
@@ -3443,8 +3445,9 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
 {
     // 1.21.11 PlaySound（同上），定向发送。
     mc::network::ir::play::PlaySound pkt;
-    std::string idStr = soundEventId.toString();
-    pkt.soundHolder = std::vector<u8>(idStr.begin(), idStr.end());
+    pkt.soundHolder.direct = true;
+    pkt.soundHolder.identifier = soundEventId.toString();
+    pkt.soundHolder.hasFixedRange = false;
     pkt.source = static_cast<i32>(category);
     pkt.x = static_cast<i32>(position.x * 8.0f);
     pkt.y = static_cast<i32>(position.y * 8.0f);

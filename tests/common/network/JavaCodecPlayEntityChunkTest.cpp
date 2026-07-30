@@ -315,15 +315,18 @@ TEST_F(NetworkTestBase, PlayBlockUpdate)
 
 // ============================================================================
 // 批 9：声音 S→C（PlaySound/StopSound/SoundEntity/LevelEvent）
-// PlaySound/SoundEntity 的 soundHolder 是 opaque Holder<SoundEvent> 字节透传。
+// PlaySound/SoundEntity 的 soundHolder 是结构化 Holder<SoundEvent>（内联 SoundEvent），
+// codec 按 vanilla wire 编码（VarInt(0)+Identifier+Optional<Float>）。往返断言结构体 ==。
 // StopSound 按 flags 条件编 source(flags&1)/name(flags&2)。
 // ============================================================================
 
 TEST_F(NetworkTestBase, PlaySoundDirect)
 {
     PlaySound in{};
-    in.soundHolder = {0x00, 0x0A, 'b', 'l', 'o', 'c', 'k', '.', 'h', 'i', 't'}; // VarInt(0)+len+id 内联
-    in.source = 1;                                                              // BLOCK
+    in.soundHolder.direct = true;
+    in.soundHolder.identifier = "block.hit"; // 内联 SoundEvent
+    in.soundHolder.hasFixedRange = false;
+    in.source = 1; // BLOCK
     in.x = 10;
     in.y = 64;
     in.z = -5;
@@ -371,7 +374,9 @@ TEST_F(NetworkTestBase, PlayStopSoundBySourceAndName)
 TEST_F(NetworkTestBase, PlaySoundEntity)
 {
     SoundEntity in{};
-    in.soundHolder = {0x00, 0x08, 'm', 'o', 'b', '.', 'h', 'i', 't'};
+    in.soundHolder.direct = true;
+    in.soundHolder.identifier = "mob.hit";
+    in.soundHolder.hasFixedRange = false;
     in.source = 3; // NEUTRAL
     in.entityId = 42;
     in.volume = 0.7f;
