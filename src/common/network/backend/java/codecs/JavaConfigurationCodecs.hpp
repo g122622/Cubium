@@ -128,14 +128,14 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
         [](B&) -> Result<ir::configuration::FinishConfiguration> { return ir::configuration::FinishConfiguration{}; });
 }
 
-/// KeepAlive（配置阶段双向，id=4）：VarLong(id)
+/// KeepAlive（配置阶段双向，id=4）：I64(id) 固定8字节大端，对齐 vanilla writeLong/readLong
 [[nodiscard]] inline auto configurationKeepAliveCodec()
 {
     return makeCodec<ir::configuration::KeepAlive>(
-        [](B& buf, const ir::configuration::KeepAlive& v) { buf.writeVarLong(v.id); },
+        [](B& buf, const ir::configuration::KeepAlive& v) { buf.writeI64(v.id); },
         [](B& buf) -> Result<ir::configuration::KeepAlive> {
             ir::configuration::KeepAlive v{};
-            MC_TRY_ASSIGN(v.id, buf.readVarLong());
+            MC_TRY_ASSIGN(v.id, buf.readI64());
             return v;
         });
 }

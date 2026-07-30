@@ -197,13 +197,13 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 // 通用包
 // ============================================================================
 
-/// KeepAlive（双向，VarLong(id)）
+/// KeepAlive（双向，I64(id) 固定8字节大端，对齐 vanilla writeLong/readLong）
 [[nodiscard]] inline auto keepAliveCodec()
 {
-    return makeCodec<ir::play::KeepAlive>([](B& buf, const ir::play::KeepAlive& v) { buf.writeVarLong(v.id); },
+    return makeCodec<ir::play::KeepAlive>([](B& buf, const ir::play::KeepAlive& v) { buf.writeI64(v.id); },
         [](B& buf) -> Result<ir::play::KeepAlive> {
             ir::play::KeepAlive v{};
-            MC_TRY_ASSIGN(v.id, buf.readVarLong());
+            MC_TRY_ASSIGN(v.id, buf.readI64());
             return v;
         });
 }
