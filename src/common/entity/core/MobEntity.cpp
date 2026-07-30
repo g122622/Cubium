@@ -66,6 +66,15 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<i8> MobEntity::DATA_MOB_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = LivingEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& MobEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"MobEntity", &LivingEntity::classInfo()};
+    return s_classInfo;
+}
+
 MobEntity::MobEntity(EntityInstanceId id)
     : LivingEntity(id)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
@@ -94,6 +103,10 @@ void MobEntity::registerData()
 {
     // 先调用父类方法，确保基类数据参数已注册
     LivingEntity::registerData();
+
+    // 标记当前正在注册 MobEntity 类的字段，使 registerParam 沿 MobEntity 继承链
+    // 分配 id（续接 LivingEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册 Mob 标志位数据参数，默认值为 0（无标志）
     // 对应 MC 1.21.11 Mob.DATA_MOB_FLAGS_ID，存储 noAI/leftHanded/aggressive 位标志。

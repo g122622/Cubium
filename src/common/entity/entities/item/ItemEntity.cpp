@@ -61,6 +61,15 @@ entity::DataParameter<network::ir::play::ItemStackView> ItemEntity::DATA_ITEM_PA
     entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = Entity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& ItemEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"ItemEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 静态工厂方法
 // ============================================================================
 
@@ -81,7 +90,12 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
+    // ItemEntity 直接继承 Entity，DATA_ITEM_PARAM 应分配到继承链 id 8（Entity 8 字段之后）。
+    // 用 ClassRegisterGuard 提供 ItemEntity 类上下文，使 registerParam 沿继承链分配 id。
+    {
+        entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+        m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
+    }
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
 
@@ -97,7 +111,11 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
+    // 同上：用 ClassRegisterGuard 提供 ItemEntity 类上下文，分配继承链 id。
+    {
+        entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+        m_dataManager.registerParam(DATA_ITEM_PARAM, network::ir::toItemStackView(stack));
+    }
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
     setVelocity(vx, vy, vz);

@@ -76,9 +76,18 @@ constexpr f32 WATER_CHECK_OFFSET = 0.001f;    // 水面检测偏移
 DataParameter<i32> BoatEntity::DATA_TIME_SINCE_HIT_PARAM = EntityDataManager::createKey<i32>();
 DataParameter<i32> BoatEntity::DATA_FORWARD_DIRECTION_PARAM = EntityDataManager::createKey<i32>();
 DataParameter<f32> BoatEntity::DATA_DAMAGE_TAKEN_PARAM = EntityDataManager::createKey<f32>();
-DataParameter<i32> BoatEntity::DATA_BOAT_TYPE_PARAM = EntityDataManager::createKey<i32>();
 DataParameter<bool> BoatEntity::DATA_LEFT_PADDLE_PARAM = EntityDataManager::createKey<bool>();
 DataParameter<bool> BoatEntity::DATA_RIGHT_PADDLE_PARAM = EntityDataManager::createKey<bool>();
+DataParameter<i32> BoatEntity::DATA_BUBBLE_TIME_PARAM = EntityDataManager::createKey<i32>();
+
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = Entity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& BoatEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"BoatEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
 
 std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/)
 {
@@ -97,12 +106,19 @@ void BoatEntity::registerData()
 {
     Entity::registerData();
 
-    m_dataManager.registerParam(DATA_TIME_SINCE_HIT_PARAM, 0);
-    m_dataManager.registerParam(DATA_FORWARD_DIRECTION_PARAM, 1);
-    m_dataManager.registerParam(DATA_DAMAGE_TAKEN_PARAM, 0.0f);
-    m_dataManager.registerParam(DATA_BOAT_TYPE_PARAM, static_cast<i32>(m_type));
-    m_dataManager.registerParam(DATA_LEFT_PADDLE_PARAM, false);
-    m_dataManager.registerParam(DATA_RIGHT_PADDLE_PARAM, false);
+    // 标记当前正在注册 BoatEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 Entity 的 id 7 之后，从 8 起）。字段顺序/类型对齐 vanilla 1.21.11
+    // AbstractBoat/VehicleEntity：HURT(8,Int)/HURTDIR(9,Int)/DAMAGE(10,Float)/
+    // PADDLE_LEFT(11,Bool)/PADDLE_RIGHT(12,Bool)/BUBBLE_TIME(13,Int)。
+    // 船类型（m_type）由 EntityType 区分，非同步字段，不入 synched data。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    m_dataManager.registerParam(DATA_TIME_SINCE_HIT_PARAM, 0);    // HURT, 默认 0
+    m_dataManager.registerParam(DATA_FORWARD_DIRECTION_PARAM, 1); // HURTDIR, 默认 1
+    m_dataManager.registerParam(DATA_DAMAGE_TAKEN_PARAM, 0.0f);   // DAMAGE, 默认 0.0F
+    m_dataManager.registerParam(DATA_LEFT_PADDLE_PARAM, false);   // PADDLE_LEFT
+    m_dataManager.registerParam(DATA_RIGHT_PADDLE_PARAM, false);  // PADDLE_RIGHT
+    m_dataManager.registerParam(DATA_BUBBLE_TIME_PARAM, 0);       // BUBBLE_TIME, 默认 0
 }
 
 ActionResultType BoatEntity::processInitialInteract(Player& player, Hand hand)

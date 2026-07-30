@@ -349,12 +349,17 @@ public:
      * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
      * 服务端同步过来的受击时间，用于计算受损抖动角度。
      */
-    [[nodiscard]] static entity::DataParameter<i32> getTimeSinceHitParam() { return DATA_TIME_SINCE_HIT_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32> getForwardDirectionParam() { return DATA_FORWARD_DIRECTION_PARAM; }
-    [[nodiscard]] static entity::DataParameter<f32> getDamageTakenParam() { return DATA_DAMAGE_TAKEN_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32> getBoatTypeParam() { return DATA_BOAT_TYPE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<bool> getLeftPaddleParam() { return DATA_LEFT_PADDLE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<bool> getRightPaddleParam() { return DATA_RIGHT_PADDLE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getTimeSinceHitParam() { return DATA_TIME_SINCE_HIT_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getForwardDirectionParam() { return DATA_FORWARD_DIRECTION_PARAM; }
+    [[nodiscard]] static entity::DataParameter<f32>& getDamageTakenParam() { return DATA_DAMAGE_TAKEN_PARAM; }
+    [[nodiscard]] static entity::DataParameter<bool>& getLeftPaddleParam() { return DATA_LEFT_PADDLE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<bool>& getRightPaddleParam() { return DATA_RIGHT_PADDLE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getBubbleTimeParam() { return DATA_BUBBLE_TIME_PARAM; }
+
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    /// 字段集对齐 vanilla 1.21.11 AbstractBoat/VehicleEntity（船类型由 EntityType 区分，
+    /// 非同步字段；HURT/HURTDIR/DAMAGE/PADDLE_LEFT/PADDLE_RIGHT/BUBBLE_TIME 同步）。
+    static const entity::EntityClassInfo& classInfo();
 
     // ========== 乘客 ==========
 
@@ -503,13 +508,15 @@ private:
     static constexpr f32 MAX_SPEED = 0.4f;
     static constexpr i32 MAX_PASSENGERS = 2;
 
-    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
-    static entity::DataParameter<i32> DATA_TIME_SINCE_HIT_PARAM;
-    static entity::DataParameter<i32> DATA_FORWARD_DIRECTION_PARAM;
-    static entity::DataParameter<f32> DATA_DAMAGE_TAKEN_PARAM;
-    static entity::DataParameter<i32> DATA_BOAT_TYPE_PARAM;
-    static entity::DataParameter<bool> DATA_LEFT_PADDLE_PARAM;
-    static entity::DataParameter<bool> DATA_RIGHT_PADDLE_PARAM;
+    // 静态数据参数（id 由继承链分配器按 registerData 调用顺序分配，对齐 vanilla 1.21.11
+    // AbstractBoat/VehicleEntity：HURT(8)/HURTDIR(9)/DAMAGE(10)/PADDLE_LEFT(11)/
+    // PADDLE_RIGHT(12)/BUBBLE_TIME(13)。船类型由 EntityType 区分，非同步字段。）
+    static entity::DataParameter<i32> DATA_TIME_SINCE_HIT_PARAM;    // = vanilla DATA_ID_HURT (8)
+    static entity::DataParameter<i32> DATA_FORWARD_DIRECTION_PARAM; // = vanilla DATA_ID_HURTDIR (9)
+    static entity::DataParameter<f32> DATA_DAMAGE_TAKEN_PARAM;      // = vanilla DATA_ID_DAMAGE (10)
+    static entity::DataParameter<bool> DATA_LEFT_PADDLE_PARAM;      // = vanilla DATA_ID_PADDLE_LEFT (11)
+    static entity::DataParameter<bool> DATA_RIGHT_PADDLE_PARAM;     // = vanilla DATA_ID_PADDLE_RIGHT (12)
+    static entity::DataParameter<i32> DATA_BUBBLE_TIME_PARAM;       // = vanilla DATA_ID_BUBBLE_TIME (13)
 };
 
 } // namespace entity

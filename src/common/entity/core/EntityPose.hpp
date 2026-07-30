@@ -36,7 +36,10 @@ using mc::u8;
  * 不同的姿态影响实体的尺寸（高度）和眼睛高度。
  * 例如：蹲下时玩家变矮，游泳时玩家变得更扁平。
  *
- * 编号与原版 Pose 序号保持一致，以便网络同步与存档兼容。
+ * 枚举值（= wire id）与原版 1.21.11 `net.minecraft.world.entity.Pose` 的 `id()`
+ * 逐一对齐（非 enum ordinal——vanilla Pose.STREAM_CODEC = idMapper(BY_ID, Pose::id)，
+ * wire 上传的是构造函数传入的显式 id）。Pose 字段（Entity DATA_POSE）经 Pose serializer
+ * （EntityDataSerializers id=20）以 VarInt(id) 传输，故本枚举值必须与 vanilla id 严格一致。
  */
 enum class EntityPose : u8 {
     Standing = 0,    // 站立 - 默认姿态
@@ -45,11 +48,18 @@ enum class EntityPose : u8 {
     Swimming = 3,    // 游泳
     SpinAttack = 4,  // 三叉戟激流攻击
     Crouching = 5,   // 蹲下/潜行
-    Dying = 6,       // 死亡动画
-    Sliding = 7,     // 滑行 - 旋风人专用
-    Shooting = 8,    // 射击 - 旋风人专用
-    Inhaling = 9,    // 吸气蓄力 - 旋风人专用
-    LongJumping = 10 // 长跳中 - 旋风人专用
+    LongJumping = 6, // 长跳中
+    Dying = 7,       // 死亡动画
+    Croaking = 8,    // 青蛙鸣叫
+    UsingTongue = 9, // 舌头伸出（青蛙）
+    Sitting = 10,    // 坐下
+    Roaring = 11,    // 怒吼（监守者）
+    Sniffing = 12,   // 嗅探（监守者）
+    Emerging = 13,   // 钻出（嗅探兽）
+    Digging = 14,    // 挖掘（嗅探兽）
+    Sliding = 15,    // 滑行 - 旋风人专用
+    Shooting = 16,   // 射击 - 旋风人专用
+    Inhaling = 17,   // 吸气蓄力 - 旋风人专用
 };
 
 /**
@@ -72,16 +82,30 @@ inline const char* getPoseName(EntityPose pose)
             return "spin_attack";
         case EntityPose::Crouching:
             return "crouching";
+        case EntityPose::LongJumping:
+            return "long_jumping";
         case EntityPose::Dying:
             return "dying";
+        case EntityPose::Croaking:
+            return "croaking";
+        case EntityPose::UsingTongue:
+            return "using_tongue";
+        case EntityPose::Sitting:
+            return "sitting";
+        case EntityPose::Roaring:
+            return "roaring";
+        case EntityPose::Sniffing:
+            return "sniffing";
+        case EntityPose::Emerging:
+            return "emerging";
+        case EntityPose::Digging:
+            return "digging";
         case EntityPose::Sliding:
             return "sliding";
         case EntityPose::Shooting:
             return "shooting";
         case EntityPose::Inhaling:
             return "inhaling";
-        case EntityPose::LongJumping:
-            return "long_jumping";
     }
     return "unknown";
 }
@@ -99,11 +123,18 @@ inline EntityPose getPoseByName(const std::string& name)
     if (name == "swimming") return EntityPose::Swimming;
     if (name == "spin_attack") return EntityPose::SpinAttack;
     if (name == "crouching") return EntityPose::Crouching;
+    if (name == "long_jumping") return EntityPose::LongJumping;
     if (name == "dying") return EntityPose::Dying;
+    if (name == "croaking") return EntityPose::Croaking;
+    if (name == "using_tongue") return EntityPose::UsingTongue;
+    if (name == "sitting") return EntityPose::Sitting;
+    if (name == "roaring") return EntityPose::Roaring;
+    if (name == "sniffing") return EntityPose::Sniffing;
+    if (name == "emerging") return EntityPose::Emerging;
+    if (name == "digging") return EntityPose::Digging;
     if (name == "sliding") return EntityPose::Sliding;
     if (name == "shooting") return EntityPose::Shooting;
     if (name == "inhaling") return EntityPose::Inhaling;
-    if (name == "long_jumping") return EntityPose::LongJumping;
     return EntityPose::Standing;
 }
 

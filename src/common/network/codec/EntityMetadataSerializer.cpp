@@ -70,6 +70,7 @@ enum class MetadataSerializerId : i32 {
 // DataValue 变体索引 → 1.21.11 序列化器 ID
 // 变体顺序（EntityDataManager::DataValue::ValueType）：
 //   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f 9:ItemStackView
+//   10:PoseValue 11:OptionalComponentValue
 MetadataSerializerId getSerializerId(const entity::DataValue& value)
 {
     switch (value.index()) {
@@ -92,6 +93,10 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
             return MetadataSerializerId::Rotations; // Vector3f → Rotations
         case 9:
             return MetadataSerializerId::ItemStack; // ItemStackView → ITEM_STACK（serializerId 7）
+        case 10:
+            return MetadataSerializerId::Pose; // PoseValue → POSE（serializerId 20）
+        case 11:
+            return MetadataSerializerId::OptionalComponent; // OptionalComponentValue（serializerId 6）
         default:
             return MetadataSerializerId::Byte;
     }
@@ -192,6 +197,24 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             }
             break;
         }
+        case 10: { // PoseValue → POSE（VarInt(Pose.id)，枚举值即 vanilla Pose.id）
+            const auto pose = value.get<entity::PoseValue>();
+            _writeVarInt(static_cast<i32>(pose.value), output);
+            break;
+        }
+        case 11: { // OptionalComponentValue → OPTIONAL_COMPONENT
+            // 1 byte present + 若 present 则 NBT Component：纯文本折叠 StringTag 0x08 + U16 BE 长度 + UTF8
+            // （对齐 vanilla OPTIONAL_COMPONENT_STREAM_CODEC + ComponentSerialization，本项目纯文本走
+            // writeTextComponentNbt 的 StringTag 折叠形式）。
+            const auto comp = value.get<entity::OptionalComponentValue>();
+            output.push_back(comp.present ? 1 : 0);
+            if (comp.present) {
+                output.push_back(0x08); // StringTag id
+                _writeBigEndianU16(static_cast<u16>(comp.text.size()), output);
+                output.insert(output.end(), comp.text.begin(), comp.text.end());
+            }
+            break;
+        }
         default:
             // 未知类型：写空字节占位（不应发生——getSerializerId 已兜底 Byte）
             output.push_back(0);
@@ -248,12 +271,43 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataSerializerId::String:
-            case MetadataSerializerId::Component:
-            case MetadataSerializerId::OptionalComponent: {
+            case MetadataSerializerId::Component: {
                 // Component 暂以字符串承载。1.21.11 真组件 NBT codec 依赖 ITextComponent 的 NBT
                 // 序列化（对齐 ComponentSerialization.CODEC），属独立大项；落地后此处改读 NBT compound。
                 std::string value = _readString(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(value));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::OptionalComponent: {
+                // 1.21.11 OPTIONAL_COMPONENT = 1 byte present + 若 present 则 NBT Component。
+                // 本项目纯文本折叠为 StringTag 0x08 + U16 BE 长度 + UTF8（与 writeTextComponentNbt 同源）。
+                if (offset >= data.size()) return false;
+                const bool present = data[offset++] != 0;
+                std::string text;
+                if (present) {
+                    if (offset >= data.size()) return false;
+                    const u8 tagId = data[offset++];
+                    if (tagId != 0x08) {
+                        // 非 StringTag 折叠形式（真复合 NBT 组件），暂不支持——停止解析。
+                        return false;
+                    }
+                    u16 len = 0;
+                    if (!_readBigEndianU16(data.data(), data.size(), offset, len)) return false;
+                    if (offset + static_cast<size_t>(len) > data.size()) return false;
+                    text.assign(reinterpret_cast<const char*>(data.data() + offset), static_cast<size_t>(len));
+                    offset += static_cast<size_t>(len);
+                }
+                (void)manager.setRaw(
+                    index, entity::DataValue(entity::OptionalComponentValue{present, std::move(text)}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::Pose: {
+                // 1.21.11 POSE = VarInt(Pose.id)。枚举值即 vanilla Pose.id（非 ordinal）。
+                const i32 poseId = _readVarInt(data.data(), data.size(), offset);
+                const auto pose = static_cast<entity::EntityPose>(poseId);
+                (void)manager.setRaw(index, entity::DataValue(entity::PoseValue{pose}));
                 manager.clearDirty(index);
                 break;
             }
@@ -315,8 +369,9 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             default:
-                // 未实现的序列化器（Particle/VillagerData 等）：无法跳过变长值，停止解析。
-                // 本项目元数据仅用 Byte/Int/Long/Float/String/Boolean/ItemStack，故正常路径不会落到此分支。
+                // 未实现的序列化器（Particle/VillagerData/BlockState 等）：无法跳过变长值，停止解析。
+                // 本项目元数据用 Byte/Int/Long/Float/String/Boolean/ItemStack/Pose/OptionalComponent，
+                // 故正常路径不会落到此分支。
                 return false;
         }
     }
@@ -458,6 +513,20 @@ bool EntityMetadataSerializer::_readBigEndianI64(const u8* data, size_t size, si
     }
     out = static_cast<i64>(bits);
     offset += sizeof(i64);
+    return true;
+}
+
+void EntityMetadataSerializer::_writeBigEndianU16(u16 value, std::vector<u8>& output) noexcept
+{
+    output.push_back(static_cast<u8>((value >> 8) & 0xFF));
+    output.push_back(static_cast<u8>(value & 0xFF));
+}
+
+bool EntityMetadataSerializer::_readBigEndianU16(const u8* data, size_t size, size_t& offset, u16& out) noexcept
+{
+    if (offset + sizeof(u16) > size) return false;
+    out = static_cast<u16>((static_cast<u16>(data[offset]) << 8) | static_cast<u16>(data[offset + 1]));
+    offset += sizeof(u16);
     return true;
 }
 

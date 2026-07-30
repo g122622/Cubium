@@ -1746,6 +1746,9 @@ protected:
     static entity::DataParameter<f32> DATA_HEALTH_PARAM;
     static entity::DataParameter<i32> DATA_POTION_EFFECTS_PARAM;
     static entity::DataParameter<i32> DATA_ARROW_COUNT_PARAM;
+
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
 };
 
 } // namespace mc

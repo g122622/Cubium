@@ -68,12 +68,25 @@ namespace mc {
 
 entity::DataParameter<i8> Entity::DATA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
 entity::DataParameter<i32> Entity::DATA_AIR_PARAM = entity::EntityDataManager::createKey<i32>();
-entity::DataParameter<std::string> Entity::DATA_CUSTOM_NAME_PARAM = entity::EntityDataManager::createKey<std::string>();
 entity::DataParameter<bool> Entity::DATA_CUSTOM_NAME_VISIBLE_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<entity::OptionalComponentValue> Entity::DATA_CUSTOM_NAME_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalComponentValue>();
 entity::DataParameter<bool> Entity::DATA_SILENT_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> Entity::DATA_NO_GRAVITY_PARAM = entity::EntityDataManager::createKey<bool>();
-entity::DataParameter<i8> Entity::DATA_POSE_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<entity::PoseValue> Entity::DATA_POSE_PARAM =
+    entity::EntityDataManager::createKey<entity::PoseValue>();
 entity::DataParameter<i32> Entity::DATA_TICKS_FROZEN_PARAM = entity::EntityDataManager::createKey<i32>();
+
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry）
+// ============================================================================
+// Entity 是继承链根，parent 为 nullptr。子类 classInfo 的 parent 指向其直接父类
+// 的 classInfo()，运行时解引用构建继承链。
+const entity::EntityClassInfo& Entity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"Entity", nullptr};
+    return s_classInfo;
+}
 
 // ============================================================================
 // Entity 实现
@@ -102,14 +115,20 @@ Entity::Entity(EntityInstanceId id, IWorld* world)
 
 void Entity::registerData()
 {
-    // 注册基础数据参数
+    // 标记当前正在注册 Entity 类的字段，使 registerParam 沿 Entity 继承链分配 id。
+    // RAII：构造压栈，析构弹栈。基类 registerData 先执行，子类 registerData 再压入子类 classInfo。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册基础数据参数（顺序对齐 vanilla 1.21.11 Entity.defineId：
+    // FLAGS(0)/AIR(1)/CUSTOM_NAME_VISIBLE(2)/CUSTOM_NAME(3)/SILENT(4)/NO_GRAVITY(5)/
+    // POSE(6)/TICKS_FROZEN(7)）。继承链分配器按此调用顺序连续分配 id 0..7。
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(DATA_AIR_PARAM, maxAir());
-    m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, std::string{});
     m_dataManager.registerParam(DATA_CUSTOM_NAME_VISIBLE_PARAM, false);
+    m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     m_dataManager.registerParam(DATA_SILENT_PARAM, false);
     m_dataManager.registerParam(DATA_NO_GRAVITY_PARAM, false);
-    m_dataManager.registerParam(DATA_POSE_PARAM, static_cast<i8>(EntityPose::Standing));
+    m_dataManager.registerParam(DATA_POSE_PARAM, entity::PoseValue{EntityPose::Standing});
     m_dataManager.registerParam(DATA_TICKS_FROZEN_PARAM, static_cast<i32>(0));
 }
 
@@ -143,7 +162,7 @@ void Entity::setPose(EntityPose pose)
     }
 
     m_pose = pose;
-    m_dataManager.set(DATA_POSE_PARAM, static_cast<i8>(pose));
+    m_dataManager.set(DATA_POSE_PARAM, entity::PoseValue{pose});
     refreshDimensions();
 }
 
@@ -205,18 +224,23 @@ void Entity::setCustomName(const std::string& name)
 {
     if (name.empty()) {
         m_customName = nullptr;
-        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, std::string(""));
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     } else {
         m_customName = std::make_unique<text::StringTextComponent>(name);
-        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, name);
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, name});
     }
 }
 
 void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 {
     m_customName = std::move(name);
-    // 数据管理器仍然存储纯文本用于网络同步
-    m_dataManager.set(DATA_CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : std::string(""));
+    // 数据管理器存 OptionalComponentValue（present + 纯文本），用于网络同步。
+    if (m_customName) {
+        m_dataManager.set(
+            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, m_customName->getUnformattedText()});
+    } else {
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
+    }
 }
 
 std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
@@ -946,19 +970,20 @@ void Entity::syncMetadataFromDataManager()
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
     m_ticksFrozen = m_dataManager.get<i32>(DATA_TICKS_FROZEN_PARAM);
-    // 从数据管理器同步名称（纯文本）
+    // 从数据管理器同步自定义名称（OptionalComponent：present + 纯文本）
     {
-        const std::string& nameText = m_dataManager.get<std::string>(DATA_CUSTOM_NAME_PARAM);
-        if (nameText.empty()) {
+        const entity::OptionalComponentValue nameComp =
+            m_dataManager.get<entity::OptionalComponentValue>(DATA_CUSTOM_NAME_PARAM);
+        if (!nameComp.present || nameComp.text.empty()) {
             m_customName = nullptr;
         } else {
-            m_customName = std::make_unique<text::StringTextComponent>(nameText);
+            m_customName = std::make_unique<text::StringTextComponent>(nameComp.text);
         }
     }
     m_customNameVisible = m_dataManager.get<bool>(DATA_CUSTOM_NAME_VISIBLE_PARAM);
     m_silent = m_dataManager.get<bool>(DATA_SILENT_PARAM);
     m_noGravity = m_dataManager.get<bool>(DATA_NO_GRAVITY_PARAM);
-    m_pose = static_cast<EntityPose>(m_dataManager.get<i8>(DATA_POSE_PARAM));
+    m_pose = m_dataManager.get<entity::PoseValue>(DATA_POSE_PARAM).value;
     refreshDimensions();
 }
 

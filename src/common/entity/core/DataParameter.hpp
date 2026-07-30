@@ -96,6 +96,9 @@ public:
     /**
      * @brief 构造数据参数
      * @param id 参数ID
+     *
+     * createKey 返回哨兵 kUnassignedId（0xFFFF），真正 id 由 EntityDataManager::registerParam
+     * 在运行时按继承链分配后经 assignId 写入。
      */
     explicit constexpr DataParameter(u16 id)
         : m_id(id)
@@ -105,6 +108,15 @@ public:
      * @brief 获取参数ID
      */
     [[nodiscard]] constexpr u16 id() const { return m_id; }
+
+    /**
+     * @brief 运行时分配真实 id（由 EntityDataManager::registerParam 调用）
+     *
+     * 对齐 vanilla ClassTreeIdRegistry：id 在 registerData 时沿继承链分配，
+     * 而非静态 createKey 时。静态成员在 createKey 后持哨兵 0xFFFF，registerParam
+     * 填入真实 id，之后 set/get 用 id() 取得正确值。
+     */
+    void assignId(u16 id) noexcept { m_id = id; }
 
     /**
      * @brief 获取参数类型

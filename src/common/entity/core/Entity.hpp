@@ -2658,15 +2658,29 @@ protected:
     // 数据管理器
     entity::EntityDataManager m_dataManager;
 
-    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    // 静态数据参数（id 由继承链分配器按 registerData 调用顺序分配，对齐 vanilla 1.21.11
+    // Entity 的 defineId 顺序：FLAGS(0)/AIR(1)/CUSTOM_NAME_VISIBLE(2)/CUSTOM_NAME(3)/
+    // SILENT(4)/NO_GRAVITY(5)/POSE(6)/TICKS_FROZEN(7)）。
+    // CUSTOM_NAME 为 OptionalComponent（serializerId 6），POSE 为 Pose（serializerId 20）。
     static entity::DataParameter<i8> DATA_FLAGS_PARAM;
     static entity::DataParameter<i32> DATA_AIR_PARAM;
-    static entity::DataParameter<std::string> DATA_CUSTOM_NAME_PARAM;
     static entity::DataParameter<bool> DATA_CUSTOM_NAME_VISIBLE_PARAM;
+    static entity::DataParameter<entity::OptionalComponentValue> DATA_CUSTOM_NAME_PARAM;
     static entity::DataParameter<bool> DATA_SILENT_PARAM;
     static entity::DataParameter<bool> DATA_NO_GRAVITY_PARAM;
-    static entity::DataParameter<i8> DATA_POSE_PARAM;
+    static entity::DataParameter<entity::PoseValue> DATA_POSE_PARAM;
     static entity::DataParameter<i32> DATA_TICKS_FROZEN_PARAM;
+
+    /**
+     * @brief 本类的继承链标识（复刻 vanilla ClassTreeIdRegistry）
+     *
+     * Entity 是继承链根，parent 为 nullptr。子类 classInfo 的 parent 指向其直接
+     * 父类的 classInfo()，运行时解引用构建继承链。EntityDataManager 据此沿父链
+     * 分配 synched-data 字段 id。
+     *
+     * 返回静态对象的 const 引用（地址稳定），供 parent 指针存储。
+     */
+    static const entity::EntityClassInfo& classInfo();
 
     // 环境状态
     bool m_inWater = false;

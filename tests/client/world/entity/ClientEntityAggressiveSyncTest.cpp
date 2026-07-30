@@ -70,7 +70,9 @@ namespace {
 void registerMobFlagsParam(ClientEntity& entity, i8 defaultValue)
 {
     const u16 paramId = ::mc::MobEntity::getMobFlagsParamId();
-    const ::mc::entity::DataParameter<i8> param(paramId);
+    // 注：param 持已分配的真实 id（非哨兵），registerParam 走幂等分支直接复用该 id，
+    // 不再分配。模拟客户端反序列化后已注册的参数状态。
+    ::mc::entity::DataParameter<i8> param(paramId);
     entity.dataManager().registerParam(param, defaultValue);
 }
 

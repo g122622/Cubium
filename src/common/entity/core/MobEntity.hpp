@@ -1189,6 +1189,9 @@ protected:
      */
     static entity::DataParameter<i8> DATA_MOB_FLAGS_PARAM;
 
+    /// 本类继承链标识（parent = LivingEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
     // Mob 标志位定义（对应 MC 1.21.11 Mob 的 MOB_FLAG_* 常量）
     static constexpr i8 MOB_FLAG_NO_AI = 1;      // bit 0
     static constexpr i8 MOB_FLAG_LEFTHANDED = 2; // bit 1

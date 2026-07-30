@@ -84,6 +84,15 @@ entity::DataParameter<i32> LivingEntity::DATA_POTION_EFFECTS_PARAM = entity::Ent
 entity::DataParameter<i32> LivingEntity::DATA_ARROW_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = Entity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& LivingEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"LivingEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 构造函数
 // ============================================================================
 
@@ -106,6 +115,11 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world)
 void LivingEntity::registerData()
 {
     Entity::registerData();
+
+    // 标记当前正在注册 LivingEntity 类的字段，使 registerParam 沿 LivingEntity
+    // 继承链分配 id（续接 Entity 的 id 7 之后）。RAII 守卫：基类 registerData 已
+    // 为 Entity 字段分配 id 并弹栈，此处压入 LivingEntity classInfo 分配本类字段。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册生物数据参数
     m_dataManager.registerParam(DATA_LIVING_FLAGS_PARAM, static_cast<i8>(0));

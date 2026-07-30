@@ -56,6 +56,9 @@ public:
     // 对应 Java 1.21.11 ItemEntity.DATA_ITEM（EntityDataSerializers.ITEM_STACK）。
     static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_PARAM;
 
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== 常量 ==========
 
     /// 默认拾取延迟（ticks）

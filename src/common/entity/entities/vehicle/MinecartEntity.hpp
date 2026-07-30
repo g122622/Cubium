@@ -240,9 +240,9 @@ public:
      * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
      * 服务端同步过来的摇晃幅度，用于计算受损抖动角度。
      */
-    [[nodiscard]] static entity::DataParameter<i32> getRollingAmplitudeParam() { return DATA_ROLLING_AMPLITUDE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32> getRollingDirectionParam() { return DATA_ROLLING_DIRECTION_PARAM; }
-    [[nodiscard]] static entity::DataParameter<f32> getDamageParam() { return DATA_DAMAGE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getRollingAmplitudeParam() { return DATA_ROLLING_AMPLITUDE_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getRollingDirectionParam() { return DATA_ROLLING_DIRECTION_PARAM; }
+    [[nodiscard]] static entity::DataParameter<f32>& getDamageParam() { return DATA_DAMAGE_PARAM; }
     [[nodiscard]] static entity::DataParameter<i32> getDisplayTileParam() { return DATA_DISPLAY_TILE_PARAM; }
     [[nodiscard]] static entity::DataParameter<i32> getDisplayTileOffsetParam()
     {

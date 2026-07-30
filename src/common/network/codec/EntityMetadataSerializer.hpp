@@ -53,6 +53,9 @@ namespace mc::network {
  *   ItemStackView → 7  ITEM_STACK（OPTIONAL_STREAM_CODEC：VarInt(count)，
  *                  count<=0 即空；否则 VarInt(itemId)+DataComponentPatch 字节，patch 无外层
  *                  长度前缀，以自身 VarInt(addedCount)+VarInt(removedCount) 自终止）
+ *   PoseValue      → 20 POSE（VarInt(Pose.id)，枚举值即 vanilla Pose.id，非 ordinal）
+ *   OptionalComponentValue → 6 OPTIONAL_COMPONENT（1 byte present + 若 present 则 NBT Component：
+ *                    纯文本折叠 StringTag 0x08 + U16 BE 长度 + UTF8，对齐 writeTextComponentNbt）
  *
  * 注：1.16.5 用单字节 typeId 且编号不同（Boolean=7/Rotation=8/Position=9）；
  *     1.21.11 改 VarInt serializerId 且 BOOLEAN=8/ROTATIONS=9/BLOCK_POS=10，
@@ -103,6 +106,10 @@ private:
     static void _writeBigEndianI64(i64 value, std::vector<u8>& output) noexcept;
     static bool _readBigEndianF32(const u8* data, size_t size, size_t& offset, f32& out) noexcept;
     static bool _readBigEndianI64(const u8* data, size_t size, size_t& offset, i64& out) noexcept;
+
+    // 大端序 U16 读写（OptionalComponent 的 NBT StringTag 长度字段，对齐 Java DataOutput.writeUTF）
+    static void _writeBigEndianU16(u16 value, std::vector<u8>& output) noexcept;
+    static bool _readBigEndianU16(const u8* data, size_t size, size_t& offset, u16& out) noexcept;
 };
 
 } // namespace mc::network
