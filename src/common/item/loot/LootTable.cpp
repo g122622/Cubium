@@ -93,9 +93,9 @@ std::vector<ItemStack> LootTable::generate(LootContext& context) const
 
     // 处理物品堆叠
     auto consumer = [&items](const ItemStack& stack) {
-        spdlog::info("LootTable::generate received item stack: {} x{}",
-            stack.getItem() ? stack.getItem()->itemLocation().toString() : "null",
-            stack.getCount());
+        // spdlog::info("LootTable::generate received item stack: {} x{}",
+        //     stack.getItem() ? stack.getItem()->itemLocation().toString() : "null",
+        //     stack.getCount());
         if (!stack.isEmpty()) {
             // 尝试合并到现有堆
             for (auto& existing : items) {
