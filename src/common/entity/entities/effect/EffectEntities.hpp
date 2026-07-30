@@ -452,6 +452,14 @@ private:
  *
  * 可以展示和穿戴盔甲的实体。
  * 支持重力、标记模式、身体部位旋转等特性。
+ *
+ * TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): vanilla 1.21.11
+ * 中 ArmorStand 继承自 LivingEntity（非 Entity），同步字段集为 CLIENT_FLAGS(Byte id15)
+ * + HEAD/BODY/LEFT_ARM/RIGHT_ARM/LEFT_LEG/RIGHT_LEG 六个 Rotations(id16-21)。
+ * 本项目当前直接继承 Entity 且无 registerData/classInfo，故仅下发 Entity id0-7 字段。
+ * 待补：改继承 LivingEntity + classInfo(parent=LivingEntity)+ClassRegisterGuard+7 字段
+ * （Rotations 复用 Vector3f variant，serializerId=9）。需评估 LivingEntity 构造/tick
+ * 语义（health/属性/装备 tick）对盔甲架的影响后再迁移，故本次分批推迟。
  */
 class ArmorStandEntity : public Entity {
 public:

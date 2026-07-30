@@ -545,6 +545,11 @@ private:
      */
     static entity::DataParameter<i32> DATA_ANGER_TIME_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = TameableEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）
     static constexpr f32 TAIL_ANGLE_UNHEALTHY = -0.175f; // 不健康时尾巴角度（弧度）

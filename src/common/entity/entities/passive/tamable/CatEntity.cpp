@@ -67,6 +67,15 @@ entity::DataParameter<bool> CatEntity::DATA_LYING_PARAM = entity::EntityDataMana
 entity::DataParameter<bool> CatEntity::DATA_RELAX_STATE_ONE_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = TameableEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& CatEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"CatEntity", &TameableEntity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // CatTemptGoal 实现
 // ============================================================================
 
@@ -309,6 +318,10 @@ void CatEntity::registerData()
 {
     // 先调用父类方法注册基础数据参数
     TameableEntity::registerData();
+
+    // 标记当前正在注册 CatEntity 类的字段，使 registerParam 沿 CatEntity 继承链
+    // 分配 id（续接 TameableEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册猫特有的数据参数
     m_dataManager.registerParam(DATA_LYING_PARAM, false);

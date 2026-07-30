@@ -65,6 +65,15 @@ namespace mc {
 // MC 1.21.11 数据参数定义 - 必须在命名空间级别定义静态成员
 entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM = entity::EntityDataManager::createKey<i8>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& AbstractHorseEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AbstractHorseEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
@@ -85,6 +94,10 @@ AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
 void AbstractHorseEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    // 标记当前正在注册 AbstractHorseEntity 类的字段，使 registerParam 沿 AbstractHorseEntity
+    // 继承链分配 id（续接 AnimalEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // MC 1.21.11 AbstractHorse.registerData()
     m_dataManager.registerParam(STATUS_PARAM, static_cast<i8>(0));

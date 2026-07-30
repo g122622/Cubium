@@ -128,6 +128,25 @@ constexpr f32 PLAYER_POSE_FIT_EPSILON = 1.0e-4f;
 // Player 实现
 // ============================================================================
 
+// 静态数据参数（createKey 返回哨兵 0xFFFF，真实 id 在 registerData/registerParam
+// 时沿继承链分配，对齐 vanilla ClassTreeIdRegistry）。
+entity::DataParameter<entity::HumanoidArmValue> Player::DATA_PLAYER_MAIN_HAND_PARAM =
+    entity::EntityDataManager::createKey<entity::HumanoidArmValue>();
+entity::DataParameter<i8> Player::DATA_PLAYER_MODE_CUSTOMISATION_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<f32> Player::DATA_PLAYER_ABSORPTION_PARAM = entity::EntityDataManager::createKey<f32>();
+entity::DataParameter<i32> Player::DATA_PLAYER_SCORE_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<entity::OptionalUnsignedIntValue> Player::DATA_PLAYER_SHOULDER_PARROT_LEFT_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalUnsignedIntValue>();
+entity::DataParameter<entity::OptionalUnsignedIntValue> Player::DATA_PLAYER_SHOULDER_PARROT_RIGHT_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalUnsignedIntValue>();
+
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = LivingEntity::classInfo()）。
+const entity::EntityClassInfo& Player::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"Player", &LivingEntity::classInfo()};
+    return s_classInfo;
+}
+
 Player::Player(EntityInstanceId id, const std::string& username)
     : LivingEntity(id)
     , m_username(username)
@@ -141,12 +160,50 @@ Player::Player(EntityInstanceId id, const std::string& username)
     // 注册玩家属性
     registerAttributes();
 
+    // 显式调用 registerData() 注册同步数据参数
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
+    // registerData() 时调用的是 Entity::registerData 而非 Player::registerData），
+    // 必须在派生类构造函数中显式调用，参考 MobEntity 模式。
+    registerData();
+
     // 生成随机XP seed
     math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
     m_experienceManager->resetXpSeed(rng);
 }
 
 Player::~Player() = default;
+
+void Player::registerData()
+{
+    // 先调用父类方法，确保 LivingEntity(id8-14) 与 Entity(id0-7) 字段已注册。
+    LivingEntity::registerData();
+
+    // 标记当前正在注册 Player 类的字段，使 registerParam 沿 Player 继承链分配 id
+    // （续接 LivingEntity id14 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 扁平化方案（同 BoatEntity，对齐 vanilla Avatar + Player 字段集）：
+    // 先注册 vanilla Avatar 两字段，再注册 vanilla Player 四字段。
+    // Avatar 字段（vanilla net.minecraft.world.entity.player.Avatar.defineId）：
+    //   DATA_PLAYER_MAIN_HAND(id15) HumanoidArm，默认 RIGHT(ordinal 1)
+    //   DATA_PLAYER_MODE_CUSTOMISATION(id16) Byte，默认 127（皮肤全部件显示）
+    m_dataManager.registerParam(DATA_PLAYER_MAIN_HAND_PARAM, entity::HumanoidArmValue{1}); // RIGHT
+    m_dataManager.registerParam(DATA_PLAYER_MODE_CUSTOMISATION_PARAM, static_cast<i8>(PLAYER_MODEL_PARTS_ALL_MASK));
+
+    // Player 字段（vanilla net.minecraft.world.entity.player.Player.defineId）：
+    //   DATA_PLAYER_ABSORPTION(id17) Float，默认 0.0F
+    //   DATA_PLAYER_SCORE(id18) Int，默认 0
+    //   DATA_PLAYER_SHOULDER_PARROT_LEFT(id19) OptionalUnsignedInt，默认 absent
+    //   DATA_PLAYER_SHOULDER_PARROT_RIGHT(id20) OptionalUnsignedInt，默认 absent
+    // TODO(后期完善): DATA_PLAYER_ABSORPTION 当前仅在 registerData 写入初值 0，
+    //   未与 LivingEntity::setAbsorptionAmount/m_absorption 联动同步——后者位于基类无法
+    //   直接写 Player 字段。后期需在 Player 重写 setAbsorptionAmount 下发该字段。
+    //   肩膀鹦鹉两字段本项目无对应玩法，恒为 absent，不影响 wire 正确性。
+    m_dataManager.registerParam(DATA_PLAYER_ABSORPTION_PARAM, 0.0f);
+    m_dataManager.registerParam(DATA_PLAYER_SCORE_PARAM, m_score);
+    m_dataManager.registerParam(DATA_PLAYER_SHOULDER_PARROT_LEFT_PARAM, entity::OptionalUnsignedIntValue{false, 0});
+    m_dataManager.registerParam(DATA_PLAYER_SHOULDER_PARROT_RIGHT_PARAM, entity::OptionalUnsignedIntValue{false, 0});
+}
 
 void Player::setPosition(f32 x, f32 y, f32 z)
 {
@@ -3196,6 +3253,8 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     // ========== 分数 ==========
     if (auto scoreOpt = nbt_helper::tryGetInt(tag, SCORE)) {
         m_score = *scoreOpt;
+        // NBT 加载后回填同步字段 DATA_PLAYER_SCORE，避免 set_entity_data 下发旧值 0。
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
     }
 
     // ========== 最后死亡位置 ==========

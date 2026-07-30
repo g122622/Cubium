@@ -32,6 +32,15 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = CreatureEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
+// 时穿过本类（lastAssignedId=-1）直达 CreatureEntity/MobEntity，子类首字段续接 MobEntity id15。
+const entity::EntityClassInfo& AgeableEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AgeableEntity", &CreatureEntity::classInfo()};
+    return s_classInfo;
+}
+
 AgeableEntity::AgeableEntity(EntityInstanceId id) noexcept
     : CreatureEntity(id)
 {}

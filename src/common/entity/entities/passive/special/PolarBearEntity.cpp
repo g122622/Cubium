@@ -52,6 +52,12 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> PolarBearEntity::DATA_STANDING_PARAM = entity::EntityDataManager::createKey<bool>();
 
+const entity::EntityClassInfo& PolarBearEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"PolarBearEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 // ==================== Forward declarations for standalone AI goal classes ====================
 
 /**
@@ -307,6 +313,9 @@ entity::EntitySize PolarBearEntity::getDimensions(EntityPose pose) const
 void PolarBearEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
     m_dataManager.registerParam(DATA_STANDING_PARAM, false);
 }
 

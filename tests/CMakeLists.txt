@@ -669,6 +669,8 @@ add_executable(mc_tests
     common/world/dimension/EndDragonFightFindPortalTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
+    # 实体同步数据字段 id 对齐 vanilla 1.21.11 黄金表测试（防继承链分配器回归）
+    entity/EntityMetadataIdGoldenTest.cpp
     entity/EntityTagsTests.cpp
     entity/FlyingEntityTests.cpp
     entity/EntitySensesTest.cpp

@@ -74,11 +74,14 @@ enum class EquipmentSlot : u8 {
  * 所有有生命值的实体的基类，包括玩家、怪物、动物等。
  * 提供生命值、属性、装备、药水效果等功能。
  *
- * 数据参数（通过 EntityDataManager 同步）：
- * - LIVING_FLAGS: 生物标志（手部动画等）
- * - HEALTH: 当前生命值
- * - POTION_EFFECTS: 药水效果颜色
- * - ARROW_COUNT: 箭矢数量
+ * 数据参数（通过 EntityDataManager 同步，对齐 vanilla 1.21.11 LivingEntity.defineId）：
+ * - LIVING_FLAGS(8): 生物标志（手部动画等）
+ * - HEALTH(9): 当前生命值
+ * - EFFECT_PARTICLES(10): 药水效果粒子列表（当前仅同步空列表，客户端按效果本地渲染）
+ * - EFFECT_AMBIENCE(11): 药水粒子是否为环境粒子
+ * - ARROW_COUNT(12): 插在身上的箭矢数量
+ * - STINGER_COUNT(13): 插在身上的蜂针数量
+ * - SLEEPING_POS(14): 睡眠位置（Optional<BlockPos>）
  *
  * 渲染属性（用于客户端插值）：
  * - limbSwing, limbSwingAmount: 步态动画
@@ -1319,6 +1322,24 @@ public:
     void setArrowCountInEntity(i32 count);
 
     /**
+     * @brief 获取插在身上的蜂针数量
+     *
+     * 对齐 MC Java LivingEntity.getStingerCount()。用于渲染层渲染插在实体身上的蜂针。
+     *
+     * @return 蜂针数量
+     */
+    [[nodiscard]] i32 getStingerCount() const;
+
+    /**
+     * @brief 设置插在身上的蜂针数量
+     *
+     * 对齐 MC Java LivingEntity.setStingerCount(int)。当蜜蜂蛰中实体时调用以增加计数。
+     *
+     * @param count 蜂针数量
+     */
+    void setStingerCountInEntity(i32 count);
+
+    /**
      * @brief 更新箭矢自动脱落逻辑
      *
      * 箭矢数量越多，脱落间隔越短：
@@ -1741,11 +1762,18 @@ protected:
     i32 m_arrowCount = 0;    // 插在身上的箭矢数量
     i32 m_arrowHitTimer = 0; // 箭矢脱落计时器
 
+    // 蜂针计数（对齐 vanilla LivingEntity.DATA_STINGER_COUNT_ID）
+    i32 m_stingerCount = 0; // 插在身上的蜂针数量
+
     // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    // 字段集对齐 vanilla 1.21.11 LivingEntity.defineId（id 8..14）。
     static entity::DataParameter<i8> DATA_LIVING_FLAGS_PARAM;
     static entity::DataParameter<f32> DATA_HEALTH_PARAM;
-    static entity::DataParameter<i32> DATA_POTION_EFFECTS_PARAM;
+    static entity::DataParameter<entity::ParticlesValue> DATA_EFFECT_PARTICLES_PARAM;
+    static entity::DataParameter<bool> DATA_EFFECT_AMBIENCE_PARAM;
     static entity::DataParameter<i32> DATA_ARROW_COUNT_PARAM;
+    static entity::DataParameter<i32> DATA_STINGER_COUNT_PARAM;
+    static entity::DataParameter<entity::OptionalBlockPosValue> DATA_SLEEPING_POS_PARAM;
 
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();

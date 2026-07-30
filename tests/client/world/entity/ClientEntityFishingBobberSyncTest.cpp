@@ -95,7 +95,20 @@ void setBitingParam(ClientEntity& entity, bool value)
 
 class ClientEntityFishingBobberSyncTest : public ::testing::Test {
 protected:
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:fishing_bobber"); }
+    void SetUp() override
+    {
+        // 构造一次服务端 FishingBobberEntity 触发其 registerData()，使静态
+        // DataParameter(DATA_HOOKED_ENTITY_PARAM/DATA_BITING_PARAM) 经继承链分配器
+        // 获得真实 id（而非哨兵 0xFFFF）。否则 getHookedEntityParamId()/
+        // getBitingParamId() 返回 0xFFFF，set 在 0xFFFF 建条目，被
+        // syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
+        // 静态成员进程内幂等，首次构造即分配，后续复用。
+        static const auto s_serverFishingBobber =
+            std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1));
+        (void)s_serverFishingBobber;
+
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:fishing_bobber");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -201,6 +214,12 @@ TEST_F(ClientEntityFishingBobberSyncTest, SyncWithoutRegisteredParams_DoesNotCra
 
 TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEntity)
 {
+    // 独立 TEST 须自行构造服务端 FishingBobberEntity 触发 registerData() 分配真实 id，
+    // 否则 getHookedEntityParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF 建条目，
+    // 被 syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
+    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1));
+    (void)s_serverFishingBobber;
+
     ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
     registerFishingParams(entity);
     setHookedEntityParam(entity, 43);
@@ -210,6 +229,9 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEnti
 
 TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsBiting)
 {
+    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1));
+    (void)s_serverFishingBobber;
+
     ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
     registerFishingParams(entity);
     setBitingParam(entity, true);
@@ -223,6 +245,12 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsBiting)
 
 TEST(ClientEntityNonFishingBobberSyncTest, Zombie_DoesNotSyncFishingParams)
 {
+    // 独立 TEST 须自行构造服务端 FishingBobberEntity 触发 registerData() 分配真实 id，
+    // 否则 getHookedEntityParamId()/getBitingParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF
+    // 建条目，被 syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
+    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1));
+    (void)s_serverFishingBobber;
+
     ClientEntity entity(EntityInstanceId(1), "minecraft:zombie");
     registerFishingParams(entity);
     setHookedEntityParam(entity, 43);
@@ -247,10 +275,17 @@ class FishingBobberEndToEndSyncTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 先构造一次服务端 FishingBobberEntity 触发 registerData()，使静态
+        // DataParameter 获得真实 id（而非哨兵 0xFFFF）。注：FishingBobberEntity
+        // 构造仅需 EntityInstanceId（不依赖 IWorld），此前注释"构造需要 IWorld"
+        // 为旧分配器时期的误判。本夹具仍用独立 EntityDataManager 验证序列化链路，
+        // 但参数 id 须与生产一致，故须先触发分配。
+        static const auto s_serverFishingBobber =
+            std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1));
+        (void)s_serverFishingBobber;
+
         // 服务端数据管理器（模拟 FishingBobberEntity 的 m_dataManager）
-        // 注意：不直接构造 FishingBobberEntity，因为构造需要 IWorld。
-        // 此处直接使用 EntityDataManager 并注册相同 ID 的参数，
-        // 验证序列化/反序列化链路的正确性。
+        // 此处直接使用 EntityDataManager 并注册相同 ID 的参数，验证序列化/反序列化链路。
         serverManager = std::make_unique<::mc::entity::EntityDataManager>();
 
         const u16 hookedId = ::mc::entity::FishingBobberEntity::getHookedEntityParamId();

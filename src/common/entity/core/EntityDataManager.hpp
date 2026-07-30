@@ -91,6 +91,212 @@ struct OptionalComponentValue {
 };
 
 /**
+ * @brief Optional<BlockPos> 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 LivingEntity.SLEEPING_POS_ID（OptionalBlockPos serializer，
+ * EntityDataSerializers id=11）。wire = 1 byte present + 若 present 则大端 packed i64
+ * （BlockPos.asLong：X26/Z26/Y12，与 BlockPos.STREAM_CODEC 一致）。
+ */
+struct OptionalBlockPosValue {
+    bool present{false};
+    Vector3i pos; // present 时为方块位置
+
+    OptionalBlockPosValue() = default;
+    OptionalBlockPosValue(bool p, Vector3i p_pos) noexcept
+        : present(p)
+        , pos(p_pos)
+    {}
+
+    bool operator==(const OptionalBlockPosValue& other) const noexcept
+    {
+        return present == other.present && pos == other.pos;
+    }
+    bool operator!=(const OptionalBlockPosValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief List<ParticleOptions> 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 LivingEntity.DATA_EFFECT_PARTICLES（Particles serializer，
+ * EntityDataSerializers id=17）。wire = VarInt(count) + 每个粒子的 codec。
+ *
+ * 本项目当前未实现完整粒子同步：默认持有空列表（count=0），wire 仅写 VarInt(0)。
+ * 这已足够让真 Java 客户端通过字段类型校验（客户端按 Particles 反序列化空列表）。
+ * 实际药水粒子由客户端依据药水效果本地渲染，无需服务端同步粒子列表。
+ */
+struct ParticlesValue {
+    bool empty{true}; // 仅空列表场景；扩展粒子同步时改为承载粒子列表
+
+    ParticlesValue() = default;
+    explicit ParticlesValue(bool e) noexcept
+        : empty(e)
+    {}
+
+    bool operator==(const ParticlesValue& other) const noexcept { return empty == other.empty; }
+    bool operator!=(const ParticlesValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief HumanoidArm 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 HUMANOID_ARM（EntityDataSerializers id=38）。
+ * wire = VarInt(HumanoidArm ordinal：LEFT=0/RIGHT=1)。用于 Player.DATA_PLAYER_MAIN_HAND。
+ * 与普通 Int(serializerId=1) 区分：vanilla 客户端按字段 serializerId 严格类型校验，
+ * 故 MAIN_HAND 必须用 id=38 而非 id=1，否则 set_entity_data 类型校验失败。
+ */
+struct HumanoidArmValue {
+    i32 arm{0}; // 0=LEFT, 1=RIGHT（HumanoidArm.ordinal）
+
+    HumanoidArmValue() = default;
+    explicit HumanoidArmValue(i32 a) noexcept
+        : arm(a)
+    {}
+
+    bool operator==(const HumanoidArmValue& other) const noexcept { return arm == other.arm; }
+    bool operator!=(const HumanoidArmValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief Optional<BlockState> 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 OPTIONAL_BLOCK_STATE（EntityDataSerializers id=15）。
+ * wire = VarInt(stateId)；0 表示空（无方块状态）。
+ * 本项目 BlockState 以原始 stateId(u32) 标识，此处直接承载 stateId，序列化层写 VarInt。
+ */
+struct OptionalBlockStateValue {
+    bool present{false};   // false 时 stateId 无意义（wire 写 0）
+    u32 stateId{0};        // present 时为 BlockState 的 stateId
+
+    OptionalBlockStateValue() = default;
+    OptionalBlockStateValue(bool p, u32 id) noexcept
+        : present(p)
+        , stateId(id)
+    {}
+
+    bool operator==(const OptionalBlockStateValue& other) const noexcept
+    {
+        return present == other.present && stateId == other.stateId;
+    }
+    bool operator!=(const OptionalBlockStateValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief BlockState 字段值包装（非可选）
+ *
+ * 对齐 vanilla 1.21.11 的 BLOCK_STATE（EntityDataSerializers id=14）。
+ * wire = VarInt(stateId)。与 OptionalBlockStateValue 区分：vanilla 此 serializer 永不空。
+ */
+struct BlockStateValue {
+    u32 stateId{0};
+
+    BlockStateValue() = default;
+    explicit BlockStateValue(u32 id) noexcept
+        : stateId(id)
+    {}
+
+    bool operator==(const BlockStateValue& other) const noexcept { return stateId == other.stateId; }
+    bool operator!=(const BlockStateValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief Direction 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 DIRECTION（EntityDataSerializers id=12）。
+ * wire = VarInt(Direction 3bit id)。项目 mc::Direction 枚举序与 vanilla 一致
+ * (Down=0/Up=1/North=2/South=3/West=4/East=5)，故直接以 i32 承载枚举值。
+ */
+struct DirectionValue {
+    i32 direction{0}; // mc::Direction 枚举值
+
+    DirectionValue() = default;
+    explicit DirectionValue(i32 d) noexcept
+        : direction(d)
+    {}
+
+    bool operator==(const DirectionValue& other) const noexcept { return direction == other.direction; }
+    bool operator!=(const DirectionValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief OptionalUnsignedInt 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 OPTIONAL_UNSIGNED_INT（EntityDataSerializers id=19）。
+ * vanilla OptionalInt wire = 1 byte isPresent + 若 present 则 VarInt(value)。
+ * 用于 Player 肩鹦鹉（parrot variant id）等。
+ */
+struct OptionalUnsignedIntValue {
+    bool present{false};
+    i32 value{0}; // present 时为无符号值（VarInt 编码）
+
+    OptionalUnsignedIntValue() = default;
+    OptionalUnsignedIntValue(bool p, i32 v) noexcept
+        : present(p)
+        , value(v)
+    {}
+
+    bool operator==(const OptionalUnsignedIntValue& other) const noexcept
+    {
+        return present == other.present && value == other.value;
+    }
+    bool operator!=(const OptionalUnsignedIntValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief Holder<Variant> 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的各类 Holder 变体 serializer（CAT_VARIANT id=21、
+ * WOLF_VARIANT id=23、COW_VARIANT、PIG_VARIANT、CHICKEN_VARIANT 等）。
+ * 这些 serializer 共用同一 wire 格式：VarInt(registryId)（holder 引用模式，
+ * 0 也是合法 id）。本包装以 registryId 承载，serializerId 由具体 DataParameter
+ * 的注册侧决定（同一 variant 类型复用本结构，序列化层按 variant index 写 id=21
+ * 占位——实际每个实体类的 variant serializer id 在序列化层需区分，当前统一映射
+ * 到 HOLDER_VARIANT，详细见 EntityMetadataSerializer 注释）。
+ *
+ * TODO(复合类型分批): 当前统一映射 Holder variant → HOLDER_VARIANT(serializerId 21)。
+ * 真实 vanilla 中 Wolf/Cat/Cow/Pig/Chicken 各有独立 serializer id(21/23/22/26/27)，
+ * 待逐实体落地时在序列化层按字段所属实体精确区分 id。本次先用 21 占位保证
+ * Wolf(最常见驯服生物)可通过；其余 Holder variant 字段在补齐前以 TODO 标注。
+ */
+struct HolderVariantValue {
+    i32 registryId{0};
+
+    HolderVariantValue() = default;
+    explicit HolderVariantValue(i32 id) noexcept
+        : registryId(id)
+    {}
+
+    bool operator==(const HolderVariantValue& other) const noexcept { return registryId == other.registryId; }
+    bool operator!=(const HolderVariantValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
+ * @brief VillagerData 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 VILLAGER_DATA（EntityDataSerializers id=18）。
+ * wire = VarInt(type) + VarInt(profession) + VarInt(level)（三段 VarInt，无长度前缀）。
+ * type/profession 为 holder registryId（vanilla VillagerType/VillagerProfession），
+ * level 为 1..5。experience 不进同步（vanilla record 不含）。
+ */
+struct VillagerDataValue {
+    i32 type{0};        // VillagerType registryId
+    i32 profession{0};  // VillagerProfession registryId
+    i32 level{1};       // 1..5
+
+    VillagerDataValue() = default;
+    VillagerDataValue(i32 t, i32 p, i32 l) noexcept
+        : type(t)
+        , profession(p)
+        , level(l)
+    {}
+
+    bool operator==(const VillagerDataValue& other) const noexcept
+    {
+        return type == other.type && profession == other.profession && level == other.level;
+    }
+    bool operator!=(const VillagerDataValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
  * @brief 数据参数值包装
  *
  * 用于存储任意类型的数据参数值
@@ -101,8 +307,14 @@ public:
     // 注：ItemStackView（index 9）承载掉落物等实体的物品本体，经 EntityMetadataSerializer
     // 的 serializerId 7（ITEM_STACK）双向 codec 同步。variant 备选项顺序即 index，
     // EntityMetadataSerializer::getSerializerId/serializeEntry/deserialize 按 index 分支。
-    // PoseValue（index 10）→ Pose serializer(id=20)；OptionalComponentValue（index 11）→
-    // OptionalComponent serializer(id=6)。新增类型须同步更新 EntityMetadataSerializer 三处分支。
+    //   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f 9:ItemStackView
+    //   10:PoseValue(→Pose id20) 11:OptionalComponentValue(→OptionalComponent id6)
+    //   12:OptionalBlockPosValue(→OptionalBlockPos id11) 13:ParticlesValue(→Particles id17)
+    //   14:OptionalBlockStateValue(→OptionalBlockState id15) 15:BlockStateValue(→BlockState id14)
+    //   16:DirectionValue(→Direction id12) 17:OptionalUnsignedIntValue(→OptionalUnsignedInt id19)
+    //   18:HolderVariantValue(→Holder variant,本次统一 id21 占位,见 TODO) 19:VillagerDataValue(→VillagerData id18)
+    //   20:HumanoidArmValue(→HumanoidArm id38,Player.MAIN_HAND)
+    // 新增类型须同步更新 EntityMetadataSerializer 三处分支。
     using ValueType = std::variant<i8,
         i32,
         i64,
@@ -114,7 +326,16 @@ public:
         Vector3f,
         network::ir::play::ItemStackView,
         PoseValue,
-        OptionalComponentValue>;
+        OptionalComponentValue,
+        OptionalBlockPosValue,
+        ParticlesValue,
+        OptionalBlockStateValue,
+        BlockStateValue,
+        DirectionValue,
+        OptionalUnsignedIntValue,
+        HolderVariantValue,
+        VillagerDataValue,
+        HumanoidArmValue>;
 
     DataValue() = default;
 

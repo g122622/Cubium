@@ -335,6 +335,11 @@ private:
     static entity::DataParameter<i32> DATA_HOOKED_ENTITY_PARAM; ///< 被钩住实体 ID（+1 偏移，0=无）
     static entity::DataParameter<bool> DATA_BITING_PARAM;       ///< 是否咬钩
 
+protected:
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
+private:
     // 允许测试类访问私有方法
     friend class FishingBobberTestAccess;
 };

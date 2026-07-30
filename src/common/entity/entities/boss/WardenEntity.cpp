@@ -47,6 +47,15 @@ namespace entity {
 DataParameter<i32> WardenEntity::CLIENT_ANGER_LEVEL = EntityDataManager::createKey<i32>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = MonsterEntity::classInfo()）
+// ============================================================================
+const EntityClassInfo& WardenEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"WardenEntity", &MonsterEntity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 工厂方法
 // ============================================================================
 
@@ -86,6 +95,10 @@ void WardenEntity::registerData()
 {
     // 调用父类注册数据参数（LivingEntity 注册 HEALTH/FLAGS 等基础参数）
     MonsterEntity::registerData();
+
+    // 标记当前正在注册 WardenEntity 类的字段，使 registerParam 沿 WardenEntity 继承链
+    // 分配 id（续接 MonsterEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册客户端同步怒气值，初始值为 0（对应 MC define(CLIENT_ANGER_LEVEL, 0)）
     m_dataManager.registerParam(CLIENT_ANGER_LEVEL, static_cast<i32>(0));

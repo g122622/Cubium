@@ -56,6 +56,12 @@ entity::DataParameter<i8> SnifferEntity::DATA_STATE_PARAM = entity::EntityDataMa
 /// 对齐 MC Sniffer.DATA_DROP_SEED_AT_TICK（INT 序列化器）。
 entity::DataParameter<i32> SnifferEntity::DATA_DROP_SEED_AT_TICK_PARAM = entity::EntityDataManager::createKey<i32>();
 
+const entity::EntityClassInfo& SnifferEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"SnifferEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 // ========== 常量 ==========
 
 namespace {
@@ -313,6 +319,8 @@ void SnifferEntity::registerAttributes()
 void SnifferEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 对齐 MC Sniffer.defineSynchedData：
     //   DATA_STATE = IDLING (0)

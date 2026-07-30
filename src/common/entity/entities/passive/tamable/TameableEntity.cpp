@@ -38,6 +38,15 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> TameableEntity::DATA_TAMED_PARAM = entity::EntityDataManager::createKey<bool>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& TameableEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"TameableEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 TameableEntity::TameableEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
@@ -158,6 +167,10 @@ void TameableEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册
     AnimalEntity::registerData();
+
+    // 标记当前正在注册 TameableEntity 类的字段，使 registerParam 沿 TameableEntity 继承链
+    // 分配 id（续接 AnimalEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册驯服状态数据参数，用于客户端-服务端同步
     // 对应 MC 1.21.11 TamableAnimal.defineSynchedData() 中的 DATA_FLAGS_ID 的 isTame 位

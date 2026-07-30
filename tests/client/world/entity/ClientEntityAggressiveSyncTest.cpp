@@ -57,6 +57,24 @@ using namespace mc::client;
 namespace {
 
 /**
+ * @brief 构造一次服务端 MobEntity 触发其 registerData()，使静态
+ *        DataParameter(DATA_MOB_FLAGS_PARAM) 经继承链分配器获得真实 id
+ *        （而非哨兵 0xFFFF）。
+ *
+ * 否则 getMobFlagsParamId() 返回 0xFFFF，测试 helper 的 set 在 0xFFFF 创建条目，
+ * 被 syncMetadataFromDataManager 的 MobFlags 分支(getRaw(0xFFFF).get<i8>())读取——
+ * 虽自中毒下 0xFFFF 处恰好存 i8 不崩，但若其他测试先在 0xFFFF 写入非 i8 值则崩，
+ * 且 getMobFlagsParamId()==getRaw 查找的 id 错乱，断言语义失效。静态成员进程内幂等，
+ * 首次构造即分配真实 id(15)，后续复用。MobEntity 构造仅 registerData()（控制器/导航器
+ * 仅存 this 指针，无 IWorld 依赖），可独立实例化。
+ */
+void ensureMobFlagsParamAllocated()
+{
+    static const auto s_serverMob = std::make_unique<::mc::MobEntity>(EntityInstanceId(1));
+    (void)s_serverMob;
+}
+
+/**
  * @brief 在 ClientEntity 的 dataManager 中注册一个与服务端
  *        MobEntity::DATA_MOB_FLAGS_PARAM 相同 ID 的 i8 参数。
  *
@@ -92,7 +110,11 @@ void setMobFlagsParam(ClientEntity& entity, i8 value)
 class ClientEntityZombieAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie"); }
+    void SetUp() override
+    {
+        ensureMobFlagsParamAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -199,7 +221,11 @@ TEST_F(ClientEntityZombieAggressiveSyncTest, SyncFromDataManager_AllFlagsSet_Bit
 class ClientEntityHuskAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:husk"); }
+    void SetUp() override
+    {
+        ensureMobFlagsParamAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:husk");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -216,7 +242,11 @@ TEST_F(ClientEntityHuskAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIsAgg
 class ClientEntityDrownedAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:drowned"); }
+    void SetUp() override
+    {
+        ensureMobFlagsParamAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:drowned");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -233,7 +263,11 @@ TEST_F(ClientEntityDrownedAggressiveSyncTest, SyncFromDataManager_FlagSet_SetsIs
 class ClientEntityZombieVillagerAggressiveSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie_villager"); }
+    void SetUp() override
+    {
+        ensureMobFlagsParamAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:zombie_villager");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -253,6 +287,10 @@ TEST_F(ClientEntityZombieVillagerAggressiveSyncTest, SyncFromDataManager_FlagSet
 
 TEST(ClientEntityAggressiveTypeIdNormalizeTest, Zombie_WithoutPrefix_SyncsAggressive)
 {
+    // 独立 TEST 须自行触发 registerData() 分配真实 id，否则 getMobFlagsParamId()
+    // 返回哨兵 0xFFFF 致断言语义错乱（详见 ensureMobFlagsParamAllocated 注释）。
+    ensureMobFlagsParamAllocated();
+
     ClientEntity entity(EntityInstanceId(1), "zombie");
     EXPECT_FALSE(entity.isAggressive());
 
@@ -268,6 +306,8 @@ TEST(ClientEntityAggressiveTypeIdNormalizeTest, Zombie_WithoutPrefix_SyncsAggres
 
 TEST(ClientEntityGenericMobAggressiveSyncTest, Skeleton_SyncsAggressive)
 {
+    ensureMobFlagsParamAllocated();
+
     // 骷髅也是 MobEntity 子类，DATA_MOB_FLAGS_PARAM 通用同步
     ClientEntity entity(EntityInstanceId(1), "minecraft:skeleton");
     EXPECT_FALSE(entity.isAggressive());
@@ -280,6 +320,8 @@ TEST(ClientEntityGenericMobAggressiveSyncTest, Skeleton_SyncsAggressive)
 
 TEST(ClientEntityGenericMobAggressiveSyncTest, Creeper_SyncsAggressive)
 {
+    ensureMobFlagsParamAllocated();
+
     ClientEntity entity(EntityInstanceId(1), "minecraft:creeper");
     EXPECT_FALSE(entity.isAggressive());
 

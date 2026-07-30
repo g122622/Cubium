@@ -361,6 +361,10 @@ private:
      * 客户端 ClientEntity 读取后镜像到 endermanScreaming()。
      */
     static entity::DataParameter<bool> DATA_SCREAMING_PARAM;
+
+protected:
+    /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
 };
 
 } // namespace mc

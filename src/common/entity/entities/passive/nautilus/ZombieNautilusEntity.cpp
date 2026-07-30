@@ -43,6 +43,15 @@
 namespace mc {
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AbstractNautilusEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& ZombieNautilusEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"ZombieNautilusEntity", &AbstractNautilusEntity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 构造函数
 // ============================================================================
 
@@ -183,6 +192,10 @@ void ZombieNautilusEntity::registerData()
 {
     // 调用父类方法注册通用数据参数
     AbstractNautilusEntity::registerData();
+
+    // 标记当前正在注册 ZombieNautilusEntity 类的字段。本类无新增 DataParameter，
+    // guard 压栈后立即弹栈无副作用，仅保持与继承链守卫机制一致。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 僵尸鹦鹉螺的变体存储为成员变量，不通过 DataParameter 同步
     // （MC 原版通过 EntityDataSerializers.ZOMBIE_NAUTILUS_VARIANT 同步 Holder<ZombieNautilusVariant>）

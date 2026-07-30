@@ -59,6 +59,12 @@ namespace mc {
 entity::DataParameter<bool> AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM =
     entity::EntityDataManager::createKey<bool>();
 
+const entity::EntityClassInfo& AbstractSkeletonEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AbstractSkeletonEntity", &MonsterEntity::classInfo()};
+    return s_classInfo;
+}
+
 AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
@@ -80,6 +86,8 @@ void AbstractSkeletonEntity::registerData()
 {
     // 先调用父类方法，确保基类数据参数已注册
     MonsterEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册拉弓状态数据参数，用于客户端-服务端同步
     // 默认值为 false（未拉弓），由 setChargingBow 写入，

@@ -295,6 +295,11 @@ private:
     /// 客户端同步怒气值（对应 MC CLIENT_ANGER_LEVEL）
     static DataParameter<i32> CLIENT_ANGER_LEVEL;
 
+protected:
+    /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
+private:
     // ========== 常量（参考 MC 1.21.11 Warden） ==========
     static constexpr f32 MAX_HEALTH = 500.0f;         // 监守者最大生命值
     static constexpr f32 MOVEMENT_SPEED = 0.3f;       // 战斗时的移动速度

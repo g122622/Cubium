@@ -137,6 +137,12 @@ void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
 entity::DataParameter<i32> FishingBobberEntity::DATA_HOOKED_ENTITY_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<bool> FishingBobberEntity::DATA_BITING_PARAM = entity::EntityDataManager::createKey<bool>();
 
+const EntityClassInfo& FishingBobberEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"FishingBobberEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
 FishingBobberEntity::FishingBobberEntity(EntityInstanceId id)
     : Entity(id)
 {
@@ -151,6 +157,8 @@ void FishingBobberEntity::registerData()
 {
     // 先调用基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等）
     Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册钓鱼浮标专属同步参数
     // 对应 MC 1.21.11 FishingHook.defineSynchedData():

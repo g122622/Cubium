@@ -61,6 +61,12 @@ namespace entity {
 ::mc::entity::DataParameter<i32> FallingBlockEntity::DATA_BLOCK_STATE_ID_PARAM =
     ::mc::entity::EntityDataManager::createKey<i32>();
 
+const EntityClassInfo& FallingBlockEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"FallingBlockEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
 FallingBlockEntity::FallingBlockEntity()
     : Entity(EntityInstanceId(0))
 {
@@ -75,6 +81,8 @@ void FallingBlockEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册
     Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册下落方块状态参数：stateId（0 = 未设置/空气）
     m_dataManager.registerParam(DATA_BLOCK_STATE_ID_PARAM, static_cast<i32>(0));
@@ -461,6 +469,12 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
 ::mc::entity::DataParameter<i32> TNTEntity::DATA_BLOCK_STATE_ID_PARAM =
     ::mc::entity::EntityDataManager::createKey<i32>();
 
+const EntityClassInfo& TNTEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"TNTEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
 TNTEntity::TNTEntity()
     : Entity(EntityInstanceId(0))
 {
@@ -482,6 +496,8 @@ void TNTEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册
     Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册引信参数：默认 0（未点燃状态）
     // 项目设计中 TNTEntity 可处于未点燃状态（m_fuse=0, isPrimed()=false），

@@ -489,6 +489,11 @@ private:
     // ANGER_TIME (i32): 愤怒时间（ticks）
     static entity::DataParameter<i32> ANGER_TIME_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 数据参数标志位
     static constexpr i8 FLAG_NEAR_TARGET = 2; // bit 1: 接近攻击目标
     static constexpr i8 FLAG_HAS_STUNG = 4;   // bit 2: 已螫刺

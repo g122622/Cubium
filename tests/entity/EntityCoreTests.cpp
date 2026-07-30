@@ -669,7 +669,18 @@ TEST(EntityDataManager, UniqueIds)
     auto param2 = EntityDataManager::createKey<i32>();
     auto param3 = EntityDataManager::createKey<i32>();
 
-    // 每个参数ID应该唯一
+    // createKey 返回哨兵 kUnassignedId(0xFFFF)，真实 id 由 registerParam 在运行时
+    // 按继承链分配器分配（对齐 vanilla ClassTreeIdRegistry）。此处无 ClassRegisterGuard
+    // （无类上下文），走全局自增兜底路径 t_fallbackId，依次分配 0/1/2。
+    EXPECT_EQ(param1.id(), 0xFFFF);
+    EXPECT_EQ(param2.id(), 0xFFFF);
+    EXPECT_EQ(param3.id(), 0xFFFF);
+
+    manager.registerParam(param1, 1);
+    manager.registerParam(param2, 2);
+    manager.registerParam(param3, 3);
+
+    // registerParam 后每个参数持有互不相同的真实 id
     EXPECT_NE(param1.id(), param2.id());
     EXPECT_NE(param2.id(), param3.id());
     EXPECT_NE(param1.id(), param3.id());

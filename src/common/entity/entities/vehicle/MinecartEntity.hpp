@@ -401,6 +401,11 @@ private:
     static entity::DataParameter<i32> DATA_DISPLAY_TILE_OFFSET_PARAM;
     static entity::DataParameter<bool> DATA_SHOW_BLOCK_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
+private:
     // 矿车类型
     Type m_type;
 

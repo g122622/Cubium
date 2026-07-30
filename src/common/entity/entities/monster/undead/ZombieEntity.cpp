@@ -73,6 +73,15 @@ const std::string ZOMBIE_RANDOM_SPAWN_BONUS_ID = "zombie_random_spawn_bonus";
 const std::string RANDOM_SPAWN_BONUS_ID = "random_spawn_bonus";
 } // namespace
 
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = MonsterEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
+// 时穿过本类（lastAssignedId=-1）直达父链已分配 id 的基类，子类首字段续接其后。
+const entity::EntityClassInfo& ZombieEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"ZombieEntity", &MonsterEntity::classInfo()};
+    return s_classInfo;
+}
+
 ZombieEntity::ZombieEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {

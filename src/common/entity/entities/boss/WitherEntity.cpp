@@ -65,6 +65,15 @@ DataParameter<i32> WitherEntity::HEAD_TARGET_2 = EntityDataManager::createKey<i3
 DataParameter<i32> WitherEntity::HEAD_TARGET_3 = EntityDataManager::createKey<i32>();
 DataParameter<i32> WitherEntity::INVULNERABILITY_TIME = EntityDataManager::createKey<i32>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = MobEntity::classInfo()）
+// ============================================================================
+const EntityClassInfo& WitherEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"WitherEntity", &MobEntity::classInfo()};
+    return s_classInfo;
+}
+
 std::unique_ptr<Entity> WitherEntity::create(IWorld* world)
 {
     return std::make_unique<WitherEntity>(EntityInstanceId(0));
@@ -247,6 +256,10 @@ void WitherEntity::registerData()
 {
     // 调用父类注册数据参数
     MobEntity::registerData();
+
+    // 标记当前正在注册 WitherEntity 类的字段，使 registerParam 沿 WitherEntity 继承链
+    // 分配 id（续接 MobEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册三个头的追踪目标实体ID
     // 初始值为0表示无目标

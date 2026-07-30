@@ -111,6 +111,11 @@ public:
     Player(EntityInstanceId id, const std::string& username);
     ~Player() override;
 
+    // 同步数据参数注册（对齐 vanilla 1.21.11 Player/Avatar.defineId）。
+    // 由于 C++ 虚函数在基类构造函数中不会派发到派生类，Player 构造函数必须显式调用，
+    // 参考 MobEntity 模式。
+    void registerData() override;
+
     // 禁止拷贝
     Player(const Player&) = delete;
     Player& operator=(const Player&) = delete;
@@ -129,7 +134,12 @@ public:
     void setChatVisibility(ChatVisibility visibility) { m_chatVisibility = visibility; }
 
     [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
-    void setPlayerModelParts(u8 modelPartsMask) { m_playerModelParts = modelPartsMask; }
+    void setPlayerModelParts(u8 modelPartsMask)
+    {
+        m_playerModelParts = modelPartsMask;
+        // 同步到 vanilla DATA_PLAYER_MODE_CUSTOMISATION（set_entity_data 经此下发客户端）
+        m_dataManager.set(DATA_PLAYER_MODE_CUSTOMISATION_PARAM, static_cast<i8>(modelPartsMask));
+    }
 
     [[nodiscard]] bool isWearing(PlayerModelPart part) const
     {
@@ -140,10 +150,11 @@ public:
     {
         if (enabled) {
             m_playerModelParts = static_cast<u8>(m_playerModelParts | getPlayerModelPartMask(part));
-            return;
+        } else {
+            m_playerModelParts = static_cast<u8>(m_playerModelParts & ~getPlayerModelPartMask(part));
         }
-
-        m_playerModelParts = static_cast<u8>(m_playerModelParts & ~getPlayerModelPartMask(part));
+        // 同步到 vanilla DATA_PLAYER_MODE_CUSTOMISATION
+        m_dataManager.set(DATA_PLAYER_MODE_CUSTOMISATION_PARAM, static_cast<i8>(m_playerModelParts));
     }
 
     // 游戏模式
@@ -1413,12 +1424,22 @@ public:
     /**
      * @brief 设置玩家分数
      */
-    void setScore(i32 score) { m_score = score; }
+    void setScore(i32 score)
+    {
+        m_score = score;
+        // 同步到 vanilla DATA_PLAYER_SCORE（set_entity_data 经此下发客户端）
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+    }
 
     /**
      * @brief 增加玩家分数
      */
-    void increaseScore(i32 amount) { m_score += amount; }
+    void increaseScore(i32 amount)
+    {
+        m_score += amount;
+        // 同步到 vanilla DATA_PLAYER_SCORE
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+    }
 
     /**
      * @brief 获取当前打开的容器菜单
@@ -2076,6 +2097,31 @@ private:
     // 幽匿尖啸体警告追踪系统
     // 记录玩家在深暗之域中被幽匿尖啸体警告的等级和冷却时间
     entity::WardenWarningEffect m_wardenWarningEffect;
+
+    // ============================================================================
+    // 同步数据参数（对齐 vanilla 1.21.11 Player/Avatar.defineId，id 15..20）
+    // ============================================================================
+    // 扁平化方案（同 BoatEntity）：项目无 vanilla Avatar 中间层，故在 Player::registerData
+    // 内先注册 Avatar 两字段再注册 Player 四字段，classInfo parent 指 LivingEntity，继承链
+    // 分配器据此续接 LivingEntity id14 之后，得到与 vanilla 逐字段一致的 wire id。
+    //
+    // Avatar(id15-16, vanilla net.minecraft.world.entity.player.Avatar):
+    //   DATA_PLAYER_MAIN_HAND    HumanoidArm(38)  默认 RIGHT(1)
+    //   DATA_PLAYER_MODE_CUSTOMISATION Byte(0)    默认 127（PLAYER_MODEL_PARTS_ALL_MASK）
+    // Player(id17-20, vanilla net.minecraft.world.entity.player.Player):
+    //   DATA_PLAYER_ABSORPTION       Float(3)     默认 0.0F
+    //   DATA_PLAYER_SCORE            Int(1)       默认 0
+    //   DATA_PLAYER_SHOULDER_PARROT_LEFT  OptionalUnsignedInt(19)  默认 absent
+    //   DATA_PLAYER_SHOULDER_PARROT_RIGHT OptionalUnsignedInt(19)  默认 absent
+    static entity::DataParameter<entity::HumanoidArmValue> DATA_PLAYER_MAIN_HAND_PARAM;
+    static entity::DataParameter<i8> DATA_PLAYER_MODE_CUSTOMISATION_PARAM;
+    static entity::DataParameter<f32> DATA_PLAYER_ABSORPTION_PARAM;
+    static entity::DataParameter<i32> DATA_PLAYER_SCORE_PARAM;
+    static entity::DataParameter<entity::OptionalUnsignedIntValue> DATA_PLAYER_SHOULDER_PARROT_LEFT_PARAM;
+    static entity::DataParameter<entity::OptionalUnsignedIntValue> DATA_PLAYER_SHOULDER_PARROT_RIGHT_PARAM;
+
+    /// 本类继承链标识（parent = LivingEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
 };
 
 } // namespace mc

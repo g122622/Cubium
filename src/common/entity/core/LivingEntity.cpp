@@ -77,11 +77,22 @@ using physics::MOTION_THRESHOLD;
 // ============================================================================
 // 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
 // ============================================================================
-
+// 字段集对齐 vanilla 1.21.11 LivingEntity.defineId 顺序（id 8..14）：
+//   LIVING_ENTITY_FLAGS(8,Byte) / HEALTH(9,Float) / EFFECT_PARTICLES(10,Particles) /
+//   EFFECT_AMBIENCE(11,Boolean) / ARROW_COUNT(12,Int) / STINGER_COUNT(13,Int) /
+//   SLEEPING_POS(14,OptionalBlockPos)。
+// 旧版 DATA_POTION_EFFECTS_PARAM（1.16.5 颜色 Int）已删，改由 EFFECT_PARTICLES
+// （Particles，客户端按效果本地渲染）承载药水粒子同步语义。
 entity::DataParameter<i8> LivingEntity::DATA_LIVING_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
 entity::DataParameter<f32> LivingEntity::DATA_HEALTH_PARAM = entity::EntityDataManager::createKey<f32>();
-entity::DataParameter<i32> LivingEntity::DATA_POTION_EFFECTS_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<entity::ParticlesValue> LivingEntity::DATA_EFFECT_PARTICLES_PARAM =
+    entity::EntityDataManager::createKey<entity::ParticlesValue>();
+entity::DataParameter<bool> LivingEntity::DATA_EFFECT_AMBIENCE_PARAM =
+    entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> LivingEntity::DATA_ARROW_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> LivingEntity::DATA_STINGER_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<entity::OptionalBlockPosValue> LivingEntity::DATA_SLEEPING_POS_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalBlockPosValue>();
 
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = Entity::classInfo()）
@@ -121,11 +132,17 @@ void LivingEntity::registerData()
     // 为 Entity 字段分配 id 并弹栈，此处压入 LivingEntity classInfo 分配本类字段。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册生物数据参数
+    // 注册生物数据参数（顺序对齐 vanilla 1.21.11 LivingEntity.defineId：
+    // LIVING_ENTITY_FLAGS(8)/HEALTH(9)/EFFECT_PARTICLES(10)/EFFECT_AMBIENCE(11)/
+    // ARROW_COUNT(12)/STINGER_COUNT(13)/SLEEPING_POS(14)）。继承链分配器按此调用
+    // 顺序连续分配 id 8..14，MobEntity 续接到 id 15。
     m_dataManager.registerParam(DATA_LIVING_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(DATA_HEALTH_PARAM, m_health);
-    m_dataManager.registerParam(DATA_POTION_EFFECTS_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_EFFECT_PARTICLES_PARAM, entity::ParticlesValue{true}); // 空粒子列表
+    m_dataManager.registerParam(DATA_EFFECT_AMBIENCE_PARAM, false);
     m_dataManager.registerParam(DATA_ARROW_COUNT_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_STINGER_COUNT_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_SLEEPING_POS_PARAM, entity::OptionalBlockPosValue{false, {}}); // 无睡眠位置
 }
 
 // ============================================================================
@@ -872,6 +889,7 @@ void LivingEntity::syncMetadataFromDataManager()
     m_health = m_dataManager.get<f32>(DATA_HEALTH_PARAM);
     m_lastHealth = m_health;
     m_arrowCount = m_dataManager.get<i32>(DATA_ARROW_COUNT_PARAM);
+    m_stingerCount = m_dataManager.get<i32>(DATA_STINGER_COUNT_PARAM);
 }
 
 void LivingEntity::updateAnimation()
@@ -1772,6 +1790,17 @@ void LivingEntity::setArrowCountInEntity(i32 count)
 {
     m_arrowCount = std::max(0, count);
     m_dataManager.set(DATA_ARROW_COUNT_PARAM, m_arrowCount);
+}
+
+i32 LivingEntity::getStingerCount() const
+{
+    return m_stingerCount;
+}
+
+void LivingEntity::setStingerCountInEntity(i32 count)
+{
+    m_stingerCount = std::max(0, count);
+    m_dataManager.set(DATA_STINGER_COUNT_PARAM, m_stingerCount);
 }
 
 void LivingEntity::tickArrows()

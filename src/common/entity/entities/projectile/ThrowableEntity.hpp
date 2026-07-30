@@ -39,6 +39,12 @@ class ThrowableEntity : public ProjectileEntity {
 public:
     ~ThrowableEntity() override = default;
 
+    /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留中间层，
+    // vanilla 1.21.11 类树已调整，本项目保留此层。若后期 vanilla 此层有同步字段须补
+    // registerData+ClassRegisterGuard，当前仅占位 classInfo。
+    static const EntityClassInfo& classInfo();
+
     // ========== Entity 接口重写 ==========
 
     void tick() override;

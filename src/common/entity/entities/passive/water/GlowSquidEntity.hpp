@@ -153,6 +153,11 @@ private:
     // 同步数据参数：剩余暗化 tick 数
     static entity::DataParameter<i32> DATA_DARK_TICKS_REMAINING_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = SquidEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 受击后暗化的持续时间（tick）
     static constexpr i32 DARK_TICKS_ON_HURT = 100;
 };

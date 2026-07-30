@@ -91,6 +91,14 @@ class ClientEntityWitherSideHeadTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 构造一次服务端 WitherEntity 以触发其 registerData()，使静态 DataParameter
+        // (HEAD_TARGET_1/2/3 等) 经继承链分配器获得真实 id（而非哨兵 0xFFFF）。
+        // 否则 getHeadTarget2ParamId() 返回 0xFFFF，多个未分配静态成员互相别名，
+        // syncMetadataFromDataManager 的 getRaw(0xFFFF).get<T>() 类型不符抛 bad variant access。
+        // 静态成员进程内幂等，首次构造即分配，后续复用。
+        static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+        (void)s_serverWither;
+
         // 创建凋灵 ClientEntity
         m_wither = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither");
         // 凋灵眼高 2.0（用于目标实体 eyeHeight 计算）
@@ -482,6 +490,13 @@ TEST_F(ClientEntityWitherSideHeadTest, MetadataSync_ReadsCorrectParamId)
 
 TEST(ClientEntityWitherSideHeadTypeIdTest, WitherWithoutPrefix_SyncsHeadTarget)
 {
+    // 独立 TEST 无 SetUp 复用夹具内的服务端 WitherEntity 构造，须自行构造一次
+    // 以触发 registerData() 为静态 DataParameter 分配真实 id（首次进程内幂等），
+    // 否则 getHeadTarget2ParamId() 返回哨兵 0xFFFF，set 在 0xFFFF 创建条目被
+    // syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
+    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+    (void)s_serverWither;
+
     ClientEntity wither(EntityInstanceId(1), "wither");
     wither.setRotation(0.0f, 0.0f);
     wither.setPosition(0.0f, 64.0f, 0.0f);
@@ -501,6 +516,12 @@ TEST(ClientEntityWitherSideHeadTypeIdTest, WitherWithoutPrefix_SyncsHeadTarget)
 
 TEST(ClientEntityWitherSideHeadTypeIdTest, NonWither_DoesNotSyncHeadTarget)
 {
+    // 独立 TEST 须自行构造服务端 WitherEntity 触发 registerData() 分配真实 id，
+    // 否则 getHeadTarget2ParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF 建条目，
+    // 被 MobFlags 分支误读为 i8 触发 bad_variant_access。
+    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+    (void)s_serverWither;
+
     ClientEntity zombie(EntityInstanceId(1), "minecraft:zombie");
 
     // 即使注册了 HEAD_TARGET_2 参数，zombie 的 syncMetadataFromDataManager 也不应读取

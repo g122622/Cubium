@@ -65,12 +65,26 @@ enum class MetadataSerializerId : i32 {
     VillagerData = 18,
     OptionalUnsignedInt = 19, // OptionalInt
     Pose = 20,                // 姿态（本项目以 i8 承载枚举值，走 Byte）
+    CatVariant = 21,          // Holder<CatVariant>（VarInt registryId）
+    CowVariant = 22,          // Holder<CowVariant>
+    WolfVariant = 23,         // Holder<WolfVariant>
+    WolfSoundVariant = 24,    // Holder<WolfSoundVariant>
+    FrogVariant = 25,         // Holder<FrogVariant>
+    PigVariant = 26,          // Holder<PigVariant>
+    ChickenVariant = 27,      // Holder<ChickenVariant>
+    ZombieNautilusVariant = 28, // Holder<ZombieNautilusVariant>
+    // 29 OptionalGlobalPos / 30 PaintingVariant / 31 SnifferState / 32 ArmadilloState /
+    // 33 CopperGolemState / 34 WeatheringCopperState / 35 Vector3 / 36 Quaternion /
+    // 37 ResolvableProfile
+    HumanoidArm = 38, // Player.MAIN_HAND（VarInt ordinal：LEFT=0/RIGHT=1）
 };
 
 // DataValue 变体索引 → 1.21.11 序列化器 ID
 // 变体顺序（EntityDataManager::DataValue::ValueType）：
 //   0:i8 1:i32 2:i64 3:f32 4:string 5:bool 6:Vector3i 7:Vector2f 8:Vector3f 9:ItemStackView
-//   10:PoseValue 11:OptionalComponentValue
+//   10:PoseValue 11:OptionalComponentValue 12:OptionalBlockPosValue 13:ParticlesValue
+//   14:OptionalBlockStateValue 15:BlockStateValue 16:DirectionValue 17:OptionalUnsignedIntValue
+//   18:HolderVariantValue 19:VillagerDataValue
 MetadataSerializerId getSerializerId(const entity::DataValue& value)
 {
     switch (value.index()) {
@@ -97,6 +111,27 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
             return MetadataSerializerId::Pose; // PoseValue → POSE（serializerId 20）
         case 11:
             return MetadataSerializerId::OptionalComponent; // OptionalComponentValue（serializerId 6）
+        case 12:
+            return MetadataSerializerId::OptionalBlockPos; // OptionalBlockPosValue（serializerId 11）
+        case 13:
+            return MetadataSerializerId::Particles; // ParticlesValue（serializerId 17）
+        case 14:
+            return MetadataSerializerId::OptionalBlockState; // OptionalBlockStateValue（serializerId 15）
+        case 15:
+            return MetadataSerializerId::BlockState; // BlockStateValue（serializerId 14）
+        case 16:
+            return MetadataSerializerId::Direction; // DirectionValue（serializerId 12）
+        case 17:
+            return MetadataSerializerId::OptionalUnsignedInt; // OptionalUnsignedIntValue（serializerId 19）
+        case 18:
+            // HolderVariantValue：本次统一映射到 CAT_VARIANT(serializerId 21)。
+            // TODO(复合类型分批): Wolf/Cat/Cow/Pig/Chicken variant 各有独立 serializer id
+            // (21/23/22/26/27)，逐实体落地时按字段所属实体精确区分。
+            return MetadataSerializerId::CatVariant;
+        case 19:
+            return MetadataSerializerId::VillagerData; // VillagerDataValue（serializerId 18）
+        case 20:
+            return MetadataSerializerId::HumanoidArm; // HumanoidArmValue（serializerId 38，Player.MAIN_HAND）
         default:
             return MetadataSerializerId::Byte;
     }
@@ -213,6 +248,81 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
                 _writeBigEndianU16(static_cast<u16>(comp.text.size()), output);
                 output.insert(output.end(), comp.text.begin(), comp.text.end());
             }
+            break;
+        }
+        case 12: { // OptionalBlockPosValue → OPTIONAL_BLOCK_POS
+            // 1 byte present + 若 present 则大端 packed i64（BlockPos.asLong：X26/Z26/Y12）
+            // （对齐 vanilla BlockPos.STREAM_CODEC.apply(ByteBufCodecs::optional)）。
+            const auto obp = value.get<entity::OptionalBlockPosValue>();
+            output.push_back(obp.present ? 1 : 0);
+            if (obp.present) {
+                const i64 packed = BlockPos(obp.pos.x, obp.pos.y, obp.pos.z).asLong();
+                _writeBigEndianI64(packed, output);
+            }
+            break;
+        }
+        case 13: { // ParticlesValue → PARTICLES
+            // VarInt(count) + 每个粒子的 codec。本项目当前仅同步空列表（count=0），
+            // 已足够让真 Java 客户端通过 Particles 字段类型校验。
+            // （对齐 vanilla ParticleTypes.STREAM_CODEC.apply(ByteBufCodecs.list())）。
+            const auto particles = value.get<entity::ParticlesValue>();
+            (void)particles; // 当前恒空列表；扩展粒子同步时改为遍历粒子列表
+            _writeVarInt(0, output); // count=0（空列表）
+            break;
+        }
+        case 14: { // OptionalBlockStateValue → OPTIONAL_BLOCK_STATE
+            // VarInt(stateId)；0 表示空（present=false 或 stateId=0）。
+            // （对齐 vanilla OPTIONAL_BLOCK_STATE_CODEC = VarInt(Block.getId)，0=empty）
+            const auto obs = value.get<entity::OptionalBlockStateValue>();
+            _writeVarInt(obs.present ? static_cast<i32>(obs.stateId) : 0, output);
+            break;
+        }
+        case 15: { // BlockStateValue → BLOCK_STATE
+            // VarInt(stateId)。（对齐 vanilla BLOCK_STATE_CODEC = VarInt(Block.getId)）
+            const auto bs = value.get<entity::BlockStateValue>();
+            _writeVarInt(static_cast<i32>(bs.stateId), output);
+            break;
+        }
+        case 16: { // DirectionValue → DIRECTION
+            // VarInt(Direction 3bit id)。项目 mc::Direction 序与 vanilla 一致。
+            // （对齐 vanilla DIRECTION_STREAM_CODEC = idMapper(Direction::byId, Direction::ordinal)）
+            const auto dir = value.get<entity::DirectionValue>();
+            _writeVarInt(dir.direction, output);
+            break;
+        }
+        case 17: { // OptionalUnsignedIntValue → OPTIONAL_UNSIGNED_INT
+            // 1 byte isPresent + 若 present 则 VarInt(value)。
+            // （对齐 vanilla OPTIONAL_UNSIGNED_INT = OptionalInt codec：boolean + VarInt）
+            const auto oui = value.get<entity::OptionalUnsignedIntValue>();
+            output.push_back(oui.present ? 1 : 0);
+            if (oui.present) {
+                _writeVarInt(oui.value, output);
+            }
+            break;
+        }
+        case 18: { // HolderVariantValue → Holder variant（本次统一 serializerId 21 CAT_VARIANT）
+            // VarInt(registryId)。Holder 引用模式，0 也是合法 id。
+            // TODO(复合类型分批): 逐实体区分 serializerId（21 Cat/22 Cow/23 Wolf/24 WolfSound/
+            // 25 Frog/26 Pig/27 Chicken/28 ZombieNautilus）。当前 getSerializerId 统一返回 21。
+            const auto hv = value.get<entity::HolderVariantValue>();
+            _writeVarInt(hv.registryId, output);
+            break;
+        }
+        case 19: { // VillagerDataValue → VILLAGER_DATA
+            // VarInt(type) + VarInt(profession) + VarInt(level)（三段，无长度前缀）。
+            // （对齐 vanilla VillagerData.STREAM_CODEC = composite(holderRegistry(VILLAGER_TYPE),
+            // holderRegistry(VILLAGER_PROFESSION), VAR_INT)）
+            const auto vd = value.get<entity::VillagerDataValue>();
+            _writeVarInt(vd.type, output);
+            _writeVarInt(vd.profession, output);
+            _writeVarInt(vd.level, output);
+            break;
+        }
+        case 20: { // HumanoidArmValue → HUMANOID_ARM
+            // VarInt(HumanoidArm ordinal：LEFT=0/RIGHT=1)。用于 Player.MAIN_HAND。
+            // （对齐 vanilla HUMANOID_ARM = idMapper(HumanoidArm::byId, HumanoidArm::ordinal)）
+            const auto arm = value.get<entity::HumanoidArmValue>();
+            _writeVarInt(arm.arm, output);
             break;
         }
         default:
@@ -365,6 +475,97 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                     view.count = count;
                 }
                 (void)manager.setRaw(index, entity::DataValue(view));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::OptionalBlockPos: {
+                // 1.21.11 OPTIONAL_BLOCK_POS = 1 byte present + 若 present 则大端 packed i64。
+                if (offset >= data.size()) return false;
+                const bool present = data[offset++] != 0;
+                entity::Vector3i pos{0, 0, 0};
+                if (present) {
+                    i64 packed;
+                    if (!_readBigEndianI64(data.data(), data.size(), offset, packed)) return false;
+                    const BlockPos bp = BlockPos::fromLong(packed);
+                    pos = entity::Vector3i(bp.x, bp.y, bp.z);
+                }
+                (void)manager.setRaw(index, entity::DataValue(entity::OptionalBlockPosValue{present, pos}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::Particles: {
+                // 1.21.11 PARTICLES = VarInt(count) + 每个粒子 codec。本项目当前不支持
+                // 真粒子同步，仅消费 count 并跳过 count 个粒子（粒子 codec 暂无项目侧实现，
+                // 正常路径客户端不会发非空粒子到服务端）。count=0 即空列表。
+                const i32 count = _readVarInt(data.data(), data.size(), offset);
+                // 无粒子 codec，仅支持空列表；非空列表无法解析，停止。
+                if (count != 0) {
+                    return false;
+                }
+                (void)manager.setRaw(index, entity::DataValue(entity::ParticlesValue{true}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::OptionalBlockState: {
+                // VarInt(stateId)；0=空。
+                const i32 sid = _readVarInt(data.data(), data.size(), offset);
+                const bool present = sid != 0;
+                (void)manager.setRaw(
+                    index, entity::DataValue(entity::OptionalBlockStateValue{present, static_cast<u32>(sid)}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::BlockState: {
+                const i32 sid = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::BlockStateValue{static_cast<u32>(sid)}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::Direction: {
+                const i32 d = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::DirectionValue{d}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::OptionalUnsignedInt: {
+                // 1 byte isPresent + 若 present 则 VarInt(value)。
+                if (offset >= data.size()) return false;
+                const bool present = data[offset++] != 0;
+                i32 v = 0;
+                if (present) {
+                    v = _readVarInt(data.data(), data.size(), offset);
+                }
+                (void)manager.setRaw(index, entity::DataValue(entity::OptionalUnsignedIntValue{present, v}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::VillagerData: {
+                // VarInt(type) + VarInt(profession) + VarInt(level)。
+                const i32 type = _readVarInt(data.data(), data.size(), offset);
+                const i32 profession = _readVarInt(data.data(), data.size(), offset);
+                const i32 level = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::VillagerDataValue{type, profession, level}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::CatVariant:
+            case MetadataSerializerId::CowVariant:
+            case MetadataSerializerId::WolfVariant:
+            case MetadataSerializerId::WolfSoundVariant:
+            case MetadataSerializerId::FrogVariant:
+            case MetadataSerializerId::PigVariant:
+            case MetadataSerializerId::ChickenVariant:
+            case MetadataSerializerId::ZombieNautilusVariant: {
+                // 所有 Holder<Variant> 系列 wire 一致：VarInt(registryId)。
+                const i32 id = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::HolderVariantValue{id}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::HumanoidArm: {
+                // VarInt(HumanoidArm ordinal：LEFT=0/RIGHT=1)。
+                const i32 a = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::HumanoidArmValue{a}));
                 manager.clearDirty(index);
                 break;
             }

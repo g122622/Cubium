@@ -48,6 +48,12 @@ public:
     AnimalEntity(EntityInstanceId id);
     ~AnimalEntity() override = default;
 
+    /// 本类继承链标识（parent = AgeableEntity::classInfo()）。见 Entity::classInfo()。
+    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留中间层，
+    // vanilla 1.21.11 类树已调整（PathfinderMob/WaterAnimal/AgeableWaterCreature 等），本项目保留此层。
+    // 若后期 vanilla 此层有同步字段须补 registerData+ClassRegisterGuard，当前仅占位 classInfo。
+    static const entity::EntityClassInfo& classInfo();
+
     // 禁止拷贝
     AnimalEntity(const AnimalEntity&) = delete;
     AnimalEntity& operator=(const AnimalEntity&) = delete;

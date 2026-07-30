@@ -40,6 +40,12 @@ using namespace mc::entity::serialization;
 entity::DataParameter<i32> GlowSquidEntity::DATA_DARK_TICKS_REMAINING_PARAM =
     entity::EntityDataManager::createKey<i32>();
 
+const entity::EntityClassInfo& GlowSquidEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"GlowSquidEntity", &SquidEntity::classInfo()};
+    return s_classInfo;
+}
+
 GlowSquidEntity::GlowSquidEntity(EntityInstanceId id)
     : SquidEntity(id)
 {
@@ -58,6 +64,8 @@ void GlowSquidEntity::registerData()
 {
     // 先调用父类方法，确保基类数据参数已注册
     SquidEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册剩余暗化 tick 同步参数，默认值 0
     m_dataManager.registerParam(DATA_DARK_TICKS_REMAINING_PARAM, static_cast<i32>(0));

@@ -225,6 +225,11 @@ private:
      */
     static entity::DataParameter<i32> DATA_PUFF_STATE_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AbstractFishEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 膨胀状态切换阈值（单位：ticks）
     static constexpr i32 PUFF_SEMI_THRESHOLD = 40;      // 膨胀到半膨胀的阈值
     static constexpr i32 DEFLATE_SEMI_TO_DEFLATE = 100; // 半膨胀到未膨胀的延迟

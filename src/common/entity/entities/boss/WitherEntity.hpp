@@ -359,6 +359,11 @@ private:
     // 无敌时间
     static entity::DataParameter<i32> INVULNERABILITY_TIME;
 
+protected:
+    /// 本类继承链标识（parent = MobEntity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
+private:
     // 头部旋转角度（用于渲染）
     f32 m_headXRot[2] = {0.0f, 0.0f};     // 侧头俯仰角
     f32 m_headYRot[2] = {0.0f, 0.0f};     // 侧头偏航角

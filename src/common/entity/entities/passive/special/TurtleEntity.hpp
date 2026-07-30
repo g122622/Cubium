@@ -262,6 +262,11 @@ private:
     static entity::DataParameter<bool> DATA_HAS_EGG_PARAM;
     static entity::DataParameter<bool> DATA_LAYING_EGG_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 出生位置
     BlockPos m_homePos;
     bool m_hasHomePos = false;

@@ -257,6 +257,11 @@ private:
     static entity::DataParameter<bool> DATA_TRUSTING_PARAM;
     static entity::DataParameter<bool> DATA_FLEEING_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 信任状态
     u64 m_trustingPlayerId = 0;
 

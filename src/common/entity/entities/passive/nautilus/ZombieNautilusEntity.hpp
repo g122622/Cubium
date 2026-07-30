@@ -224,6 +224,10 @@ protected:
      */
     void registerAttributes() override;
 
+protected:
+    /// 本类继承链标识（parent = AbstractNautilusEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
 private:
     // ========== 成员变量 ==========
 

@@ -384,6 +384,11 @@ private:
     static entity::DataParameter<bool> DATA_LYING_PARAM;
     static entity::DataParameter<bool> DATA_RELAX_STATE_ONE_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = TameableEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // ========== 动画状态更新 ==========
     void _updateLieDownAmount();
     void _updateRelaxStateOneAmount();

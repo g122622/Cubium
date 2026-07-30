@@ -239,6 +239,11 @@ private:
     /// @note 用于挖掘完成后掉落种子的时序控制，当前未使用，保留以兼容原版 NBT。
     static entity::DataParameter<i32> DATA_DROP_SEED_AT_TICK_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     /// 状态机最小持续时间（用于 Searching 状态播放音效，对齐 MC Sniffer.tick 中的 playSearchingSound）
     /// @note 当前仅用于 tick() 中 Searching 状态的客户端音效触发，未实际使用。
 };

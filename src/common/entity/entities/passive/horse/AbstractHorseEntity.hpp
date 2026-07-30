@@ -688,6 +688,11 @@ private:
     // MC 1.21.11 数据参数
     static entity::DataParameter<i8> STATUS_PARAM; // 使用 i8 代替 u8（DataValue 支持的类型）
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // MC 1.21.11 状态标志位
     static constexpr i8 STATUS_FLAG_TAME = 2;        // bit 1: 已驯服
     static constexpr i8 STATUS_FLAG_SADDLE = 4;      // bit 2: 已装备鞍

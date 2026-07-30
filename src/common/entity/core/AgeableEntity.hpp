@@ -43,6 +43,12 @@ public:
     AgeableEntity(EntityInstanceId id) noexcept;
     ~AgeableEntity() override = default;
 
+    /// 本类继承链标识（parent = CreatureEntity::classInfo()）。见 Entity::classInfo()。
+    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留
+    // 中间层，vanilla 1.21.11 已将 AgeableMob.DATA_BABY(Byte) 提升为此层同步字段，本项目
+    // 当前用普通成员 m_growingAge 承载幼体状态、不同步。后期完善时需补 DATA_BABY 同步字段。
+    static const entity::EntityClassInfo& classInfo();
+
     // 禁止拷贝
     AgeableEntity(const AgeableEntity&) = delete;
     AgeableEntity& operator=(const AgeableEntity&) = delete;

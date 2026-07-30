@@ -55,6 +55,12 @@ entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_PROFESSION_PARAM =
 
 entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_LEVEL_PARAM = entity::EntityDataManager::createKey<i32>();
 
+const entity::EntityClassInfo& ZombieVillagerEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"ZombieVillagerEntity", &ZombieEntity::classInfo()};
+    return s_classInfo;
+}
+
 // ============================================================================
 // 常量
 // ============================================================================
@@ -106,6 +112,8 @@ std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)
 void ZombieVillagerEntity::registerData()
 {
     ZombieEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册僵尸村民特有的数据参数
     m_dataManager.registerParam(CONVERTING_PARAM, false);

@@ -47,12 +47,33 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/item/Items.hpp"
 
 using namespace mc;
 using namespace mc::client;
 
 namespace {
+
+/**
+ * @brief 构造一次服务端 SkeletonEntity 触发其 registerData()，使静态
+ *        DataParameter(DATA_CHARGING_BOW_PARAM) 经继承链分配器获得真实 id
+ *        （而非哨兵 0xFFFF）。
+ *
+ * 否则 getChargingBowParamId() 返回 0xFFFF，测试 helper 的 set 在 0xFFFF 创建条目，
+ * 被 syncMetadataFromDataManager 的 MobFlags 分支(getRaw(0xFFFF).get<i8>())误读
+ * 触发 bad_variant_access。静态成员进程内幂等，首次构造即分配，后续复用。
+ *
+ * 用具体子类 SkeletonEntity 而非 AbstractSkeletonEntity：后者构造函数为 protected
+ * （设计为抽象基类），无法在测试中直接 std::make_unique。SkeletonEntity::create(IWorld*)
+ * 忽略 world 参数直接构造实体，证明其构造不依赖 IWorld；registerGoals/Attributes/
+ * setCombatTask 在无 world 下可安全执行。
+ */
+void ensureSkeletonParamsAllocated()
+{
+    static const auto s_serverSkeleton = std::make_unique<::mc::SkeletonEntity>(EntityInstanceId(1));
+    (void)s_serverSkeleton;
+}
 
 /**
  * @brief 在 ClientEntity 的 dataManager 中注册一个与服务端
@@ -87,7 +108,11 @@ void setChargingBowParam(ClientEntity& entity, bool value)
 class ClientEntitySkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:skeleton"); }
+    void SetUp() override
+    {
+        ensureSkeletonParamsAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:skeleton");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -170,7 +195,11 @@ TEST_F(ClientEntitySkeletonSyncTest, SyncFromDataManager_ReadsCorrectParamId)
 class ClientEntityStraySyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:stray"); }
+    void SetUp() override
+    {
+        ensureSkeletonParamsAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:stray");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -205,7 +234,11 @@ TEST_F(ClientEntityStraySyncTest, SyncFromDataManager_False_KeepsChargingBowFals
 class ClientEntityBoggedSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:bogged"); }
+    void SetUp() override
+    {
+        ensureSkeletonParamsAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:bogged");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -240,6 +273,7 @@ TEST_F(ClientEntityBoggedSyncTest, SyncFromDataManager_False_KeepsChargingBowFal
 class ClientEntitySkeletonTypeIdNormalizeTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
+    void SetUp() override { ensureSkeletonParamsAllocated(); }
 };
 
 TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Skeleton_WithoutPrefix_SyncsChargingBow)
@@ -288,7 +322,11 @@ TEST_F(ClientEntitySkeletonTypeIdNormalizeTest, Bogged_WithoutPrefix_SyncsChargi
 class ClientEntityWitherSkeletonSyncTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { Items::initialize(); }
-    void SetUp() override { entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither_skeleton"); }
+    void SetUp() override
+    {
+        ensureSkeletonParamsAllocated();
+        entity = std::make_unique<ClientEntity>(EntityInstanceId(1), "minecraft:wither_skeleton");
+    }
     void TearDown() override { entity.reset(); }
     std::unique_ptr<ClientEntity> entity;
 };
@@ -316,6 +354,10 @@ TEST_F(ClientEntityWitherSkeletonSyncTest, SyncFromDataManager_DoesNotReadChargi
 
 TEST(ClientEntityNonSkeletonSyncTest, Zombie_DoesNotSyncChargingBow)
 {
+    // 独立 TEST 须自行触发 registerData() 分配真实 id，否则 getChargingBowParamId()
+    // 返回哨兵 0xFFFF 致 set 在 0xFFFF 建条目，被 MobFlags 分支误读为 i8 触发 bad_variant_access。
+    ensureSkeletonParamsAllocated();
+
     ClientEntity entity(EntityInstanceId(1), "minecraft:zombie");
     EXPECT_FALSE(entity.isChargingBow());
 
@@ -327,6 +369,8 @@ TEST(ClientEntityNonSkeletonSyncTest, Zombie_DoesNotSyncChargingBow)
 
 TEST(ClientEntityNonSkeletonSyncTest, Player_DoesNotSyncChargingBow)
 {
+    ensureSkeletonParamsAllocated();
+
     ClientEntity entity(EntityInstanceId(1), "minecraft:player");
     EXPECT_FALSE(entity.isChargingBow());
 

@@ -238,6 +238,9 @@ protected:
      */
     static entity::DataParameter<bool> DATA_CHARGING_BOW_PARAM;
 
+    /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== 战斗目标 ==========
     // 注意：战斗目标的唯一所有权归 GoalSelector 所有，不再使用 unique_ptr 成员存储。
     // setCombatTask() 每次调用时创建新的 Goal 对象并转移所有权给 GoalSelector，

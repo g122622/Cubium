@@ -279,6 +279,11 @@ private:
      */
     static entity::DataParameter<bool> DATA_TAMED_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // 驯服状态
     bool m_sitting = false;
     std::optional<u64> m_ownerId;

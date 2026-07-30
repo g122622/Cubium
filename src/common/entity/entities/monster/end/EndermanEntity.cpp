@@ -68,10 +68,18 @@ entity::DataParameter<i32> EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM =
     entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<bool> EndermanEntity::DATA_SCREAMING_PARAM = entity::EntityDataManager::createKey<bool>();
 
+const entity::EntityClassInfo& EndermanEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"EndermanEntity", &MonsterEntity::classInfo()};
+    return s_classInfo;
+}
+
 void EndermanEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册
     MonsterEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册搬方块状态参数：stateId（0 = 未持有方块）
     // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CARRY_STATE

@@ -62,6 +62,15 @@ namespace mc {
 entity::DataParameter<bool> OcelotEntity::DATA_TRUSTING_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> OcelotEntity::DATA_FLEEING_PARAM = entity::EntityDataManager::createKey<bool>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& OcelotEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"OcelotEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 // ==================== OcelotEntity ====================
 
 OcelotEntity::OcelotEntity(EntityInstanceId id)
@@ -287,6 +296,10 @@ void OcelotEntity::registerAttributes()
 void OcelotEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    // 标记当前正在注册 OcelotEntity 类的字段，使 registerParam 沿 OcelotEntity 继承链
+    // 分配 id（续接 AnimalEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册信任状态数据参数，用于客户端-服务端同步
     m_dataManager.registerParam(DATA_TRUSTING_PARAM, false);

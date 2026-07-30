@@ -64,6 +64,15 @@ namespace mc {
 entity::DataParameter<bool> AbstractNautilusEntity::DATA_DASH_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = TameableEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& AbstractNautilusEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AbstractNautilusEntity", &TameableEntity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 构造函数
 // ============================================================================
 
@@ -87,6 +96,11 @@ void AbstractNautilusEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册
     TameableEntity::registerData();
+
+    // 标记当前正在注册 AbstractNautilusEntity 类的字段，使 registerParam 沿
+    // AbstractNautilusEntity 继承链分配 id（续接 TameableEntity 之后）。
+    // RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册冲刺状态同步参数
     m_dataManager.registerParam(DATA_DASH_PARAM, false);

@@ -36,6 +36,15 @@
 
 namespace mc {
 
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = WaterMobEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
+// 时穿过本类（lastAssignedId=-1）直达父链已分配 id 的基类，子类首字段续接其后。
+const entity::EntityClassInfo& AbstractFishEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AbstractFishEntity", &WaterMobEntity::classInfo()};
+    return s_classInfo;
+}
+
 AbstractFishEntity::AbstractFishEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {

@@ -408,6 +408,11 @@ private:
     /// 对应 MC 1.21.11 AbstractNautilus.DASH
     static entity::DataParameter<bool> DATA_DASH_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = TameableEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // ========== 常量 ==========
 
     /// 最大空气供应量（ticks）

@@ -83,6 +83,15 @@ entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDa
 entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<i32> WolfEntity::DATA_ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
 
+// ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = TameableEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& WolfEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"WolfEntity", &TameableEntity::classInfo()};
+    return s_classInfo;
+}
+
 WolfEntity::WolfEntity(EntityInstanceId id)
     : TameableEntity(id)
 {
@@ -1005,6 +1014,10 @@ void WolfEntity::registerData()
 {
     // 调用父类方法，确保基类数据参数已注册（包括 TameableEntity::DATA_TAMED_PARAM）
     TameableEntity::registerData();
+
+    // 标记当前正在注册 WolfEntity 类的字段，使 registerParam 沿 WolfEntity 继承链
+    // 分配 id（续接 TameableEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册兴趣状态数据参数，用于客户端-服务端同步
     // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_INTERESTED_ID

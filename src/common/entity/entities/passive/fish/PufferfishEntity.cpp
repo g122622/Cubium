@@ -42,6 +42,12 @@ namespace mc {
 // DataParameter 定义
 entity::DataParameter<i32> PufferfishEntity::DATA_PUFF_STATE_PARAM = entity::EntityDataManager::createKey<i32>();
 
+const entity::EntityClassInfo& PufferfishEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"PufferfishEntity", &AbstractFishEntity::classInfo()};
+    return s_classInfo;
+}
+
 PufferfishEntity::PufferfishEntity(EntityInstanceId id)
     : AbstractFishEntity(id)
 {}
@@ -208,6 +214,8 @@ void PufferfishEntity::registerAttributes()
 void PufferfishEntity::registerData()
 {
     AbstractFishEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册膨胀状态同步参数
     m_dataManager.registerParam(DATA_PUFF_STATE_PARAM, 0);

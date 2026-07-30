@@ -233,6 +233,10 @@ private:
      * 供 FallingBlockRenderer 渲染方块模型。
      */
     static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
+
+protected:
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
 };
 
 /**
@@ -370,6 +374,10 @@ private:
      * 并缓存到镜像字段，供 TNTRenderer 渲染 TNT 方块模型。
      */
     static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
+
+protected:
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
 };
 
 /**

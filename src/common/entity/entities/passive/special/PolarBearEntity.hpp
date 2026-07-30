@@ -294,6 +294,11 @@ private:
     // ========== 数据同步 ==========
     static entity::DataParameter<bool> DATA_STANDING_PARAM;
 
+protected:
+    /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
+
+private:
     // ========== 站立状态 ==========
     bool m_standing = false;
     bool m_warning = false;

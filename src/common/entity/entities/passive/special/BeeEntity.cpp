@@ -62,6 +62,15 @@ entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM = entity::EntityDataManage
 entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
+// ============================================================================
+const entity::EntityClassInfo& BeeEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"BeeEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
+// ============================================================================
 // 构造与生命周期
 // ============================================================================
 
@@ -108,6 +117,10 @@ bool BeeEntity::attractsBees(const BlockState& state)
 void BeeEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    // 标记当前正在注册 BeeEntity 类的字段，使 registerParam 沿 BeeEntity 继承链
+    // 分配 id（续接 AnimalEntity 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(ANGER_TIME_PARAM, static_cast<i32>(0));

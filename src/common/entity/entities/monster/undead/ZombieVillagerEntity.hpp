@@ -277,6 +277,10 @@ private:
     static entity::DataParameter<i32> VILLAGER_TYPE_PARAM;
     static entity::DataParameter<i32> VILLAGER_PROFESSION_PARAM;
     static entity::DataParameter<i32> VILLAGER_LEVEL_PARAM;
+
+protected:
+    /// 本类继承链标识（parent = ZombieEntity::classInfo()）。见 Entity::classInfo()。
+    static const entity::EntityClassInfo& classInfo();
 };
 
 } // namespace mc

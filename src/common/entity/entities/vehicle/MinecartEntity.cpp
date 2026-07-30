@@ -85,6 +85,12 @@ entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_TILE_OFFSET_PARA
 entity::DataParameter<bool> AbstractMinecartEntity::DATA_SHOW_BLOCK_PARAM =
     entity::EntityDataManager::createKey<bool>();
 
+const EntityClassInfo& AbstractMinecartEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"AbstractMinecartEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
 // ============================================================================
 // AbstractMinecartEntity
 // ============================================================================
@@ -107,6 +113,8 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type)
 void AbstractMinecartEntity::registerData()
 {
     Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     m_dataManager.registerParam(DATA_ROLLING_AMPLITUDE_PARAM, 0);
     m_dataManager.registerParam(DATA_ROLLING_DIRECTION_PARAM, 1);

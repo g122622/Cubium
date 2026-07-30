@@ -56,6 +56,17 @@ namespace mc::network {
  *   PoseValue      → 20 POSE（VarInt(Pose.id)，枚举值即 vanilla Pose.id，非 ordinal）
  *   OptionalComponentValue → 6 OPTIONAL_COMPONENT（1 byte present + 若 present 则 NBT Component：
  *                    纯文本折叠 StringTag 0x08 + U16 BE 长度 + UTF8，对齐 writeTextComponentNbt）
+ *   OptionalBlockPosValue → 11 OPTIONAL_BLOCK_POS（1 byte present + 若 present 则大端 packed i64，
+ *                    BlockPos.asLong X26/Z26/Y12）
+ *   ParticlesValue → 17 PARTICLES（VarInt(count) + 每个粒子 codec；本项目仅同步空列表 count=0）
+ *   OptionalBlockStateValue → 15 OPTIONAL_BLOCK_STATE（VarInt(stateId)，0=空）
+ *   BlockStateValue → 14 BLOCK_STATE（VarInt(stateId)）
+ *   DirectionValue → 12 DIRECTION（VarInt(Direction id)，项目序与 vanilla 一致）
+ *   OptionalUnsignedIntValue → 19 OPTIONAL_UNSIGNED_INT（1 byte present + 若 present 则 VarInt）
+ *   HolderVariantValue → 21 CAT_VARIANT（VarInt(registryId)；本次统一映射 id21 占位，
+ *                    TODO 逐实体区分 21/22/23/24/25/26/27/28）
+ *   VillagerDataValue → 18 VILLAGER_DATA（VarInt(type)+VarInt(profession)+VarInt(level)）
+ *   HumanoidArmValue → 38 HUMANOID_ARM（VarInt(ordinal LEFT=0/RIGHT=1)，Player.MAIN_HAND）
  *
  * 注：1.16.5 用单字节 typeId 且编号不同（Boolean=7/Rotation=8/Position=9）；
  *     1.21.11 改 VarInt serializerId 且 BOOLEAN=8/ROTATIONS=9/BLOCK_POS=10，

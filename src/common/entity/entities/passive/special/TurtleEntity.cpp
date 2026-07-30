@@ -57,6 +57,12 @@ namespace mc {
 entity::DataParameter<bool> TurtleEntity::DATA_HAS_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> TurtleEntity::DATA_LAYING_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
 
+const entity::EntityClassInfo& TurtleEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"TurtleEntity", &AnimalEntity::classInfo()};
+    return s_classInfo;
+}
+
 TurtleEntity::TurtleEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
@@ -274,6 +280,8 @@ void TurtleEntity::registerAttributes()
 void TurtleEntity::registerData()
 {
     AnimalEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     m_dataManager.registerParam(DATA_HAS_EGG_PARAM, false);
     m_dataManager.registerParam(DATA_LAYING_EGG_PARAM, false);
