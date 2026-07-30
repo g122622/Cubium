@@ -51,7 +51,8 @@ namespace mc::network {
  *   Vector2f      → 9  ROTATIONS（f32×3，z 补 0）
  *   Vector3f      → 9  ROTATIONS（f32×3，大端）
  *   ItemStackView → 7  ITEM_STACK（OPTIONAL_STREAM_CODEC：VarInt(count)，
- *                  count<=0 即空；否则 VarInt(itemId)+VarInt(patchLen)+patch 字节）
+ *                  count<=0 即空；否则 VarInt(itemId)+DataComponentPatch 字节，patch 无外层
+ *                  长度前缀，以自身 VarInt(addedCount)+VarInt(removedCount) 自终止）
  *
  * 注：1.16.5 用单字节 typeId 且编号不同（Boolean=7/Rotation=8/Position=9）；
  *     1.21.11 改 VarInt serializerId 且 BOOLEAN=8/ROTATIONS=9/BLOCK_POS=10，

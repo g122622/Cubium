@@ -25,7 +25,8 @@
 // 表级往返（roundTripGeneric）兼测 packetID 分发 + payload codec。altIndex 取自
 // IrPacket.hpp variant 顺序：ContainerClick=2/ContainerClose=3（Sb）；
 // ContainerSetContent=39/ContainerSetSlot=40/OpenScreen=41/ContainerSetData=42（Cb）。
-// ItemStackView 空(count<=0→VarInt 0)/非空(count+itemId+patchLen+bytes)；
+// ItemStackView 空(count<=0→VarInt 0)/非空(count+itemId+DataComponentPatch wire)；
+// patch 无外层长度前缀，以自身 VarInt(addedCount)+VarInt(removedCount) 自终止（空 patch=0x00 0x00）；
 // HashedStack present=false(Bool false)/true(Bool+itemId+count+空 HashedPatchMap)。
 
 #include "common/network/NetworkTestFixtures.hpp"
@@ -49,17 +50,17 @@ ItemStackView emptyStack()
     return ItemStackView{};
 }
 
-// 构造一个非空 ItemStackView：count>0 + itemId + 空 componentsPatch（最小合法 patch）。
+// 构造一个非空 ItemStackView：count>0 + itemId + 空 componentsPatch（空 patch 的 wire = 0x00 0x00）。
 ItemStackView filledStack(u32 itemId, i32 count)
 {
     ItemStackView v{};
     v.itemId = itemId;
     v.count = count;
-    v.componentsPatch = {}; // 空 patch：VarInt(0) 长度前缀
+    v.componentsPatch = {0x00, 0x00}; // 空 patch：VarInt(added=0)+VarInt(removed=0)
     return v;
 }
 
-// 构造一个非空 ItemStackView 带 componentsPatch 字节（透传任意字节）。
+// 构造一个非空 ItemStackView 带 componentsPatch 字节（须为合法 DataComponentPatch wire）。
 ItemStackView filledStackWithPatch(u32 itemId, i32 count, std::vector<u8> patch)
 {
     ItemStackView v{};
@@ -148,7 +149,7 @@ TEST_F(NetworkTestBase, PlayContainerSetContentFilled)
     ContainerSetContent in{};
     in.containerId = 3;
     in.stateId = 42;
-    in.items = {filledStack(1, 64), emptyStack(), filledStackWithPatch(17, 1, {0x0A, 0x0B, 0x0C})};
+    in.items = {filledStack(1, 64), emptyStack(), filledStackWithPatch(17, 1, {0x00, 0x01, 0x0B})};
     in.carriedItem = filledStack(4, 2);
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 39u);
@@ -173,7 +174,7 @@ TEST_F(NetworkTestBase, PlayContainerSetSlotFilled)
     in.containerId = 2;
     in.stateId = 33;
     in.slot = -999; // -999 哨兵（容器外丢弃）
-    in.item = filledStackWithPatch(264, 1, {0xDE, 0xAD, 0xBE, 0xEF});
+    in.item = filledStackWithPatch(264, 1, {0x00, 0x02, 0x07, 0x09});
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 40u);
     EXPECT_EQ(std::get<ContainerSetSlot>(out), in);

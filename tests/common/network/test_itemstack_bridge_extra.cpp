@@ -24,10 +24,12 @@
 // Phase3 阶段3：ItemStack wire codec + ItemStackBridge 边界单元测试。
 // 扩既有 ItemStackComponentRoundTripTest：补错误路径与最小字节布局。
 //
-// 线格式（readItemStack/writeItemStack）：VarInt(count)——count<=0 即空（仅 1 字节 0x00）；
-// 否则 VarInt(itemId) + VarInt(patchLen) + patchLen 字节。patchLen<0 错；patchLen>可用字节
-// readBytes 错（截断）。bridge fromItemStackView：itemId==0||count<=0 返空栈（非错）；
-// itemId 非零但未注册返 InvalidItem 错。
+// 线格式（readItemStack/writeItemStack，对齐 ItemStack.OPTIONAL_STREAM_CODEC）：
+// VarInt(count)——count<=0 即空（仅 1 字节 0x00）；否则 VarInt(itemId) + DataComponentPatch wire。
+// patch 无外层长度前缀，以自身 VarInt(addedCount)+VarInt(removedCount) 自终止（空 patch=0x00 0x00）；
+// added 条目=VarInt(typeId)+NBT value，removed 条目=VarInt(typeId)。readPatchBytesFromWire 按此
+// 规则消费并原样返回字节；addedCount<0 / removedCount<0 / NBT 截断均错。bridge fromItemStackView：
+// itemId==0||count<=0 返空栈（非错）；itemId 非零但未注册返 InvalidItem 错。
 
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
@@ -139,24 +141,24 @@ TEST_F(ItemStackBridgeExtraTest, EmptyStackRoundTripsToEmpty)
 
 TEST_F(ItemStackBridgeExtraTest, EmptyPatchProducesMinimalBytes)
 {
-    // 合法 itemId + count>0 + patchLen=0：
-    // wire = VarInt(count) + VarInt(itemId) + VarInt(0)
+    // 合法 itemId + count>0 + 空 patch（wire = 0x00 0x00）：
+    // wire = VarInt(count) + VarInt(itemId) + VarInt(0) + VarInt(0)
     ItemStackView view{};
     view.itemId = m_sword->itemId();
     view.count = 1;
-    // componentsPatch 空 → patchLen=0
+    view.componentsPatch = {0x00, 0x00}; // 空 patch 的 wire（added=0, removed=0）
 
     auto buf = makeBuf();
     play_detail::writeItemStack(buf, view);
-    // count=1(1B) + itemId(VarInt,≥1B) + patchLen=0(1B)；不校验确切长度，校验可往返
-    ASSERT_GE(buf.size(), 3u);
+    // count=1(1B) + itemId(VarInt,≥1B) + 空 patch(2B)；不校验确切长度，校验可往返
+    ASSERT_GE(buf.size(), 4u);
 
     RegistryByteBuf readBuf(buf.data(), buf.size(), RegistryAccess::instance());
     auto dec = play_detail::readItemStack(readBuf);
     ASSERT_TRUE(dec.success());
     EXPECT_EQ(dec.value().itemId, m_sword->itemId());
     EXPECT_EQ(dec.value().count, 1);
-    EXPECT_TRUE(dec.value().componentsPatch.empty());
+    EXPECT_EQ(dec.value().componentsPatch, (std::vector<u8>{0x00, 0x00}));
 
     auto restored = fromItemStackView(dec.value());
     ASSERT_TRUE(restored.success());
@@ -166,26 +168,25 @@ TEST_F(ItemStackBridgeExtraTest, EmptyPatchProducesMinimalBytes)
 
 TEST_F(ItemStackBridgeExtraTest, TruncatedPatchReturnsError)
 {
-    // 声明 patchLen=5 但只跟 2 字节 → readBytes 截断错。
+    // addedCount 声明 5 但后续无足够字节读 typeId/value → readPatchBytesFromWire 越界错。
     auto buf = makeBuf();
-    buf.writeVarInt(1);                                    // count
-    buf.writeVarInt(static_cast<i32>(m_sword->itemId()));  // itemId
-    buf.writeVarInt(5);                                    // patchLen=5（声明）
-    buf.writeBytes(std::vector<u8>{0xAA, 0xBB}.data(), 2); // 实际只 2 字节
+    buf.writeVarInt(1);                                   // count
+    buf.writeVarInt(static_cast<i32>(m_sword->itemId())); // itemId
+    buf.writeVarInt(5);                                   // addedCount=5（声明），后续无字节
 
     RegistryByteBuf readBuf(buf.data(), buf.size(), RegistryAccess::instance());
     auto dec = play_detail::readItemStack(readBuf);
     ASSERT_FALSE(dec.success());
 }
 
-TEST_F(ItemStackBridgeExtraTest, NegativePatchLengthReturnsError)
+TEST_F(ItemStackBridgeExtraTest, NegativePatchCountReturnsError)
 {
-    // patchLen=-1 → 显式 InvalidData 错（非截断）。
+    // addedCount=-1 → readPatchBytesFromWire 显式 InvalidData 错。
     auto buf = makeBuf();
     buf.writeVarInt(1);                                   // count
     buf.writeVarInt(static_cast<i32>(m_sword->itemId())); // itemId
     // VarInt(-1) = 0xFF 0xFF 0xFF 0xFF 0x0F（5 字节）
-    buf.writeVarInt(-1);
+    buf.writeVarInt(-1); // addedCount=-1
 
     RegistryByteBuf readBuf(buf.data(), buf.size(), RegistryAccess::instance());
     auto dec = play_detail::readItemStack(readBuf);

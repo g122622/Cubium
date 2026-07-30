@@ -22,6 +22,8 @@
  */
 
 #include "common/network/codec/EntityMetadataSerializer.hpp"
+#include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -176,15 +178,16 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             break;
         }
         case 9: { // ItemStackView → ITEM_STACK（1.21.11 OPTIONAL_STREAM_CODEC：
-            // count<=0 即空（仅 VarInt(0)）；否则 VarInt(count) + VarInt(itemId)
-            // + VarInt(componentsPatch.size()) + patch 字节。与 JavaPlayCodecs::writeItemStack 同源。）
+            // count<=0 即空（仅 VarInt(0)）；否则 VarInt(count) + VarInt(itemId) + DataComponentPatch 字节。
+            // patch 之前无外层长度前缀，patch 以自身 VarInt(addedCount)+VarInt(removedCount) 自终止
+            // （对齐 vanilla ItemStack.OPTIONAL_STREAM_CODEC + DataComponentPatch.STREAM_CODEC）。
+            // 与 JavaPlayCodecs::writeItemStack 同源。）
             auto view = value.get<network::ir::play::ItemStackView>();
             if (view.count <= 0 || view.itemId == 0) {
                 _writeVarInt(0, output);
             } else {
                 _writeVarInt(view.count, output);
                 _writeVarInt(static_cast<i32>(view.itemId), output);
-                _writeVarInt(static_cast<i32>(view.componentsPatch.size()), output);
                 output.insert(output.end(), view.componentsPatch.begin(), view.componentsPatch.end());
             }
             break;
@@ -285,9 +288,10 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::ItemStack: {
                 // 1.21.11 ITEM_STACK = OPTIONAL_STREAM_CODEC：VarInt(count)；count<=0 即空；
-                // 否则 VarInt(itemId) + VarInt(patchLen) + patchLen 字节。patch 是
-                // DataComponentPatch 的 1.21.11 wire 字节，元数据层透传存入 ItemStackView，
-                // 由客户端 fromItemStackView 还原为业务侧 ItemStack。
+                // 否则 VarInt(itemId) + DataComponentPatch 字节（无外层长度前缀，patch 以自身
+                // VarInt(addedCount)+VarInt(removedCount) 自终止）。patch 是 DataComponentPatch 的
+                // 1.21.11 wire 字节，元数据层透传存入 ItemStackView，由客户端 fromItemStackView
+                // 还原为业务侧 ItemStack。
                 const i32 count = _readVarInt(data.data(), data.size(), offset);
                 network::ir::play::ItemStackView view;
                 if (count <= 0) {
@@ -295,14 +299,16 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                     view.count = 0;
                 } else {
                     const i32 itemId = _readVarInt(data.data(), data.size(), offset);
-                    const i32 patchLen = _readVarInt(data.data(), data.size(), offset);
-                    if (patchLen < 0 || offset + static_cast<size_t>(patchLen) > data.size()) {
+                    // 用 ByteBuf 视图按 vanilla 自终止规则消费 patch 区段，原样取出字节。
+                    buffer::ByteBuf patchBuf(data.data() + offset, data.size() - offset);
+                    auto patchBytesResult = ::mc::item::component::readPatchBytesFromWire(patchBuf);
+                    if (patchBytesResult.failed()) {
                         return false;
                     }
+                    view.componentsPatch = std::move(patchBytesResult.value());
+                    offset += patchBuf.readPosition();
                     view.itemId = static_cast<u32>(itemId);
                     view.count = count;
-                    view.componentsPatch.assign(data.data() + offset, data.data() + offset + patchLen);
-                    offset += static_cast<size_t>(patchLen);
                 }
                 (void)manager.setRaw(index, entity::DataValue(view));
                 manager.clearDirty(index);

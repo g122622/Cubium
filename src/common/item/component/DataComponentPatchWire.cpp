@@ -121,6 +121,35 @@ Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
     return patch;
 }
 
+Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
+{
+    // 记录 patch 区段起点，按 vanilla 自终止结构推进游标，最后切出消费到的字节副本。
+    const usize start = buf.readPosition();
+
+    i32 addedCount = 0;
+    MC_TRY_ASSIGN(addedCount, buf.readVarInt());
+    if (addedCount < 0) {
+        return Error(ErrorCode::InvalidData, "DataComponentPatch added count is negative", "readPatchBytesFromWire");
+    }
+    for (i32 i = 0; i < addedCount; ++i) {
+        MC_TRY(buf.readVarInt()); // typeId（不查表，原样跳过）
+        // value：与 writeComponentValue 的 writeCompound（body，无 0x0A 前缀）对称，按 NBT compound 定界跳过。
+        MC_TRY(network::buffer::nbt_io::skipCompound(buf));
+    }
+    i32 removedCount = 0;
+    MC_TRY_ASSIGN(removedCount, buf.readVarInt());
+    if (removedCount < 0) {
+        return Error(ErrorCode::InvalidData, "DataComponentPatch removed count is negative", "readPatchBytesFromWire");
+    }
+    for (i32 i = 0; i < removedCount; ++i) {
+        MC_TRY(buf.readVarInt()); // typeId
+    }
+
+    const usize end = buf.readPosition();
+    const u8* base = buf.data() + start;
+    return std::vector<u8>(base, base + (end - start));
+}
+
 } // namespace component
 } // namespace item
 } // namespace mc

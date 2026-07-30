@@ -202,7 +202,9 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_NoComponents_HasEmptyPatch
     const auto view = network::ir::toItemStackView(plain);
     EXPECT_EQ(view.itemId, m_sword->itemId());
     EXPECT_EQ(view.count, 2);
-    EXPECT_TRUE(view.componentsPatch.empty());
+    // 无组件的非空栈：patch 为空，但 wire 须写出空 patch 的表示 0x00 0x00
+    // （vanilla DataComponentPatch.STREAM_CODEC 对空 patch 写 VarInt(0)+VarInt(0)）。
+    EXPECT_EQ(view.componentsPatch, (std::vector<u8>{0x00, 0x00}));
 
     auto result = network::ir::fromItemStackView(view);
     ASSERT_TRUE(result.success());

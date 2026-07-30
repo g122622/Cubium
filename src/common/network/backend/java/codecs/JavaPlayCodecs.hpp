@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
 #include "common/network/buffer/NbtIo.hpp"
@@ -40,10 +41,11 @@ namespace play_detail {
 /**
  * @brief 写 ItemStackView（optional 物品，1.21.11 数据组件格式）
  *
- * 线格式：VarInt(count) —— count<=0 即空（停止）；否则
- *         VarInt(itemId) + DataComponentPatch wire（view.componentsPatch 的原始字节）。
- * componentsPatch 由 ItemStack↔ItemStackView 桥接（ItemStackBridge.hpp）预先序列化，
- * 本 codec 只透传其字节，保持 IR 对线格式中立。
+ * 线格式（对齐 ItemStack.OPTIONAL_STREAM_CODEC）：VarInt(count) —— count<=0 即空（停止）；
+ * 否则 VarInt(itemId) + DataComponentPatch wire（view.componentsPatch 的原始字节）。
+ * 注意：DataComponentPatch 之前**无外层长度前缀**，patch 以自身的 VarInt(addedCount)+VarInt(removedCount)
+ * 自终止（对齐 vanilla DataComponentPatch.STREAM_CODEC）。componentsPatch 由 ItemStack↔ItemStackView
+ * 桥接（ItemStackBridge.hpp）预先序列化，本 codec 只透传其字节，保持 IR 对线格式中立。
  */
 inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
 {
@@ -53,7 +55,6 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     }
     buf.writeVarInt(v.count);
     buf.writeVarInt(static_cast<i32>(v.itemId));
-    buf.writeVarInt(static_cast<i32>(v.componentsPatch.size()));
     if (!v.componentsPatch.empty()) {
         buf.writeBytes(v.componentsPatch.data(), v.componentsPatch.size());
     }
@@ -71,14 +72,8 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     i32 id = 0;
     MC_TRY_ASSIGN(id, buf.readVarInt());
     v.itemId = static_cast<u32>(id);
-    i32 patchLen = 0;
-    MC_TRY_ASSIGN(patchLen, buf.readVarInt());
-    if (patchLen < 0) {
-        return Error(ErrorCode::InvalidData, "ItemStack componentsPatch length is negative", "readItemStack");
-    }
-    if (patchLen > 0) {
-        MC_TRY_ASSIGN(v.componentsPatch, buf.readBytes(static_cast<usize>(patchLen)));
-    }
+    // DataComponentPatch 按 vanilla 自终止规则消费，原样存入 componentsPatch（无外层长度前缀）。
+    MC_TRY_ASSIGN(v.componentsPatch, ::mc::item::component::readPatchBytesFromWire(buf));
     return v;
 }
 

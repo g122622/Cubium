@@ -67,6 +67,24 @@ namespace component {
  */
 [[nodiscard]] Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf);
 
+/**
+ * @brief 按 1.21.11 wire 规则消费 buf 中的 DataComponentPatch 区段，原样返回其字节
+ *
+ * 不解析组件值语义，仅按 vanilla `DataComponentPatch.STREAM_CODEC` 的自终止结构推进游标
+ * （VarInt(addedCount) + added[VarInt(typeId)+NBT value] + VarInt(removedCount)
+ * + removed[VarInt(typeId)]），并把消费到的字节副本返回。供 ItemStack metadata / 容器
+ * 物品的读侧把 patch 作为透传字节存入 ItemStackView.componentsPatch（由 ItemStackBridge
+ * 后续用 readPatchFromWire 还原为业务侧 patch）。
+ *
+ * 与 readPatchFromWire 的区别：本函数不构造 DataComponentPatch 对象、不查组件类型表，
+ * 对未知 typeId 的 value 用 nbt_io::skipCompound 按定界跳过（容错），因此能安全消费真 Java
+ * 对端发来的含未知组件的 patch 而不报错。
+ *
+ * @param buf 源缓冲（游标须位于 patch 区段起点）
+ * @return patch 区段的原始 wire 字节或错误
+ */
+[[nodiscard]] Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf);
+
 } // namespace component
 } // namespace item
 } // namespace mc

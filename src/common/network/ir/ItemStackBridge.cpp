@@ -42,14 +42,14 @@ play::ItemStackView toItemStackView(const class ::mc::ItemStack& stack)
     view.itemId = stack.getItem() != nullptr ? stack.getItem()->itemId() : 0;
     view.count = stack.getCount();
 
-    // 导出组件补丁并序列化为 1.21.11 wire 字节
+    // 导出组件补丁并序列化为 1.21.11 wire 字节。即使 patch 为空也必须写出（vanilla
+    // DataComponentPatch.STREAM_CODEC 对空 patch 写 VarInt(0)+VarInt(0)，即 0x00 0x00），
+    // 否则 wire 上会缺失 patch 区段，导致真 Java 客户端把后续字段误当 addedCount 解析而错位。
     auto patch = stack.toComponentPatch();
-    if (!patch.isEmpty()) {
-        buffer::ByteBuf buf;
-        auto writeResult = item::component::writePatchToWire(buf, patch);
-        if (writeResult.success()) {
-            view.componentsPatch = buf.bytes();
-        }
+    buffer::ByteBuf buf;
+    auto writeResult = item::component::writePatchToWire(buf, patch);
+    if (writeResult.success()) {
+        view.componentsPatch = buf.bytes();
     }
     return view;
 }
