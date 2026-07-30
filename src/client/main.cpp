@@ -59,7 +59,6 @@ void printBanner()
  * @brief 打印构建信息
  *
  * 输出版本、Git提交、构建时间、编译器等详细信息
- * 参考 MC 1.16.5 MinecraftVersion 的版本信息展示
  */
 void printBuildInfo()
 {

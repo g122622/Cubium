@@ -69,7 +69,6 @@ void printBanner()
  * @brief 打印构建信息
  *
  * 输出版本、Git提交、构建时间、编译器等详细信息
- * 参考 MC 1.16.5 MinecraftVersion 的版本信息展示
  */
 void printBuildInfo()
 {
@@ -169,14 +168,14 @@ int main(int argc, char* argv[])
         auto initResult = server.initialize(params);
         if (initResult.failed()) {
             spdlog::error("Failed to initialize server: {}", initResult.error().toString());
-            return 1;
+            goto HANDLE_ERROR;
         }
 
         // 启动服务端主循环（非阻塞，内部线程由 StandaloneServer 持有）
         auto runResult = server.run();
         if (runResult.failed()) {
             spdlog::error("Failed to start server: {}", runResult.error().toString());
-            return 1;
+            goto HANDLE_ERROR;
         }
 
         // 等待退出信号
@@ -192,6 +191,17 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& e) {
         spdlog::critical("Fatal error: {}", e.what());
-        return 1;
+        goto HANDLE_ERROR;
     }
+
+HANDLE_ERROR:
+    // 异常/错误路径下立即停止并 flush Perfetto 跟踪数据，避免依赖进程退出时的析构链
+    // （析构链中途若发生二次崩溃会导致 trace 丢失）。正常 return 0 路径不显式调用，
+    // 依赖 Meyers 单例析构自动 stop+shutdown，与客户端 main.cpp 保持一致。
+    auto& profilerManager = mc::profiler::ProfilerManager::instance();
+    profilerManager.stopTracing();
+    profilerManager.shutdown();
+    std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
+
+    return 1;
 }

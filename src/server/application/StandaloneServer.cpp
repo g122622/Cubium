@@ -165,7 +165,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 初始化性能追踪
     mc::profiler::TraceConfig traceConfig;
     traceConfig.outputPath = "server_trace.perfetto-trace";
-    traceConfig.bufferSizeKb = 65536; // 64MB
+    traceConfig.bufferSizeKb = 65536 * 8;
     mc::profiler::ProfilerManager::instance().initialize(traceConfig);
     mc::profiler::ProfilerManager::instance().startTracing();
 
