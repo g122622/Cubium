@@ -23,7 +23,6 @@
 
 #include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
 #include "common/core/Types.hpp"
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -34,26 +33,18 @@ bool SurvivesExplosionCondition::test(LootContext& context) const
     auto* radius = context.get<f32>(LootParams::EXPLOSION_RADIUS);
     if (!radius) {
         // 非爆炸破坏，物品总是存活
-        spdlog::info("SurvivesExplosionCondition::test no explosion radius present -> true");
         return true;
     }
 
     // 爆炸半径为0或负数，物品存活
     if (*radius <= 0.0f) {
-        spdlog::info("SurvivesExplosionCondition::test explosion radius={} -> true", *radius);
         return true;
     }
 
     // 以 1/radius 的概率存活
-    f32 chance = 1.0f / *radius;
+    const f32 chance = 1.0f / *radius;
     const f32 roll = context.getRandom().nextFloat();
-    const bool survives = roll < chance;
-    spdlog::info("SurvivesExplosionCondition::test explosion radius={} chance={} roll={} survives={}",
-        *radius,
-        chance,
-        roll,
-        survives);
-    return survives;
+    return roll < chance;
 }
 
 std::unique_ptr<LootCondition> SurvivesExplosionCondition::clone() const noexcept
