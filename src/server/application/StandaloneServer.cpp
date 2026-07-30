@@ -95,6 +95,8 @@ Result<void> StandaloneServer::initialize()
 
 Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "StandaloneServer::initialize");
+
     if (m_initialized) {
         return Error(ErrorCode::AlreadyExists, "Server already initialized");
     }

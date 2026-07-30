@@ -1458,6 +1458,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
 void MinecraftServer::setupWorldCallbacks()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::setupWorldCallbacks");
+
     // 为所有维度设置回调
     m_dimensionManager->forEachDimension([this](Dimension& dim) {
         auto* serverDim = static_cast<ServerDimension*>(&dim);
