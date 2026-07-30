@@ -3079,6 +3079,23 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
     }
 
     updateEntityTrackingForPlayer(playerId, x, y, z);
+
+    // 登录时主动建立玩家区块追踪并触发区块推送，不依赖客户端回 AcceptTeleportation。
+    // 原版在 PlayerList.placeNewPlayer → serverlevel.addNewPlayer → ChunkMap.updatePlayerStatus
+    // 中由“玩家加入世界”事件建立区块追踪（设置 SetChunkCacheCenter 中心、把视野内区块加入发送
+    // 队列），与 teleport 确认无关。本项目此前把区块追踪建立推迟到 handleTeleportConfirmPacket
+    // （依赖客户端回 AcceptTeleportation 且 teleportId 精确匹配），本地集成客户端因同进程回环
+    // 极快能正常建立；真 Java 客户端若回包时序或 id 不匹配则追踪永不建立，服务端一个
+    // LevelChunkWithLight 都不发，客户端 LevelLoadTracker 第二闸门（isSectionCompiledAndVisible）
+    // 永远过不去，卡在“加载地形中”直至 30s 超时。此处对齐原版在登录末尾主动建立追踪：
+    // updatePlayerPosition 构建玩家视野追踪集合 → processTicketUpdatesSync 同步生成/加载 spawn
+    // 周围区块 → onPlayerTrackingChange 回调 → ChunkSendManager 把区块加入发送队列，后续 tick
+    // 由 processPendingSends 推送。updatePlayerPosition 幂等，后续 AcceptTeleportation 重复触发无害。
+    auto* initialWorld = getPlayerWorld(playerId);
+    if (initialWorld && initialWorld->chunkManager()) {
+        initialWorld->chunkManager()->updatePlayerPosition(playerId, x, z);
+        initialWorld->chunkManager()->processTicketUpdatesSync();
+    }
 }
 
 MinecraftServer::PlayerCreationResult MinecraftServer::createPlayerForConnection(
