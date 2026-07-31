@@ -46,6 +46,10 @@ namespace play_detail {
  * 注意：DataComponentPatch 之前**无外层长度前缀**，patch 以自身的 VarInt(addedCount)+VarInt(removedCount)
  * 自终止（对齐 vanilla DataComponentPatch.STREAM_CODEC）。componentsPatch 由 ItemStack↔ItemStackView
  * 桥接（ItemStackBridge.hpp）预先序列化，本 codec 只透传其字节，保持 IR 对线格式中立。
+ * **空 patch 也必须写出 0x00 0x00**（VarInt(0)+VarInt(0)）：vanilla DataComponentPatch.STREAM_CODEC
+ * 永远产出 patch 区段，读侧（readItemStack/readPatchBytesFromWire）无条件消费之。若 componentsPatch
+ * 为空 vector（如 particle item 直接构造、未走 bridge 的路径）却省略写入，读侧会越界。故空时补写
+ * 两个 VarInt(0)（与 writePatchToWire 对空 patch 的产出一致）。
  */
 inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
 {
@@ -57,6 +61,10 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
     buf.writeVarInt(static_cast<i32>(v.itemId));
     if (!v.componentsPatch.empty()) {
         buf.writeBytes(v.componentsPatch.data(), v.componentsPatch.size());
+    } else {
+        // 空 patch 区段：VarInt(addedCount=0) + VarInt(removedCount=0)，即 0x00 0x00。
+        buf.writeVarInt(0);
+        buf.writeVarInt(0);
     }
 }
 

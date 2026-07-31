@@ -203,7 +203,10 @@ TEST_F(NetworkTestBase, PlayLevelParticlesItemType)
     in.particle.type = ParticleTypeId::Item;
     in.particle.item.itemId = 1; // stone
     in.particle.item.count = 1;
-    in.particle.item.componentsPatch = {}; // 空栈内联 patch（VarInt 0）
+    // 空 patch 的 wire 表示是 VarInt(0)+VarInt(0) = 0x00 0x00（与 ItemStackBridge 对空
+    // 栈的产出一致，见 WireRoundTrip_NoComponents_HasEmptyPatch）；componentsPatch 承载
+    // 的就是 wire 字节，故空 patch 此处填 {0x00,0x00} 而非 {}。
+    in.particle.item.componentsPatch = {0x00, 0x00};
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 47u);
     EXPECT_EQ(std::get<LevelParticles>(out), in);
