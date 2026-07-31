@@ -664,7 +664,7 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         });
 }
 
-/// SetChunkCacheCenter（S→C，id=76）：VarInt(x) + VarInt(z)
+/// SetChunkCacheCenter（S→C，id=92）：VarInt(x) + VarInt(z)
 [[nodiscard]] inline auto setChunkCacheCenterCodec()
 {
     return makeCodec<ir::play::SetChunkCacheCenter>(

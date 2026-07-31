@@ -454,7 +454,7 @@ struct SetHeldSlot {
 };
 
 /**
- * @brief SetChunkCacheCenter（S→C，id=76）
+ * @brief SetChunkCacheCenter（S→C，id=92）
  *
  * 设置客户端 ClientChunkCache.Storage 的视野中心（viewCenterX/Z）。对齐 vanilla
  * ClientboundSetChunkCacheCenterPacket：VarInt(x) + VarInt(z)。客户端 inRange 判定

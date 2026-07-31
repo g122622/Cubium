@@ -223,7 +223,8 @@ using B = buffer::RegistryByteBuf;
     //   player_position=70, recipe_book_add=72, recipe_book_remove=73, remove_entities=75, reset_score=77,
     //   respawn=80, rotate_head=81, select_advancement_tab=83, set_action_bar_text=85, set_border_center=86,
     //   set_border_lerp_size=87, set_border_size=88, set_border_warning_delay=89, set_border_warning_distance=90,
-    //   set_camera=91, set_default_spawn_position=95, set_display_objective=96, set_entity_data=97,
+    //   set_camera=91, set_chunk_cache_center=92, set_chunk_cache_radius=93, set_cursor_item=94,
+  //   set_default_spawn_position=95, set_display_objective=96, set_entity_data=97,
     //   set_entity_link=98, set_entity_motion=99, set_experience=101, set_held_slot=103, set_objective=104,
     //   set_passengers=105, set_player_team=107, set_score=108, set_subtitle_text=110, set_time=111,
     //   set_title_text=112, set_titles_animation=113, sound_entity=114, sound=115, stop_sound=117,
@@ -360,7 +361,7 @@ using B = buffer::RegistryByteBuf;
     b.addPacket<ir::play::TakeItemEntity>(
         122, PacketType{PacketFlow::Clientbound, "take_item_entity"}, 76, codecs::takeItemEntityCodec());
     b.addPacket<ir::play::SetChunkCacheCenter>(
-        76, PacketType{PacketFlow::Clientbound, "set_chunk_cache_center"}, 89, codecs::setChunkCacheCenterCodec());
+        92, PacketType{PacketFlow::Clientbound, "set_chunk_cache_center"}, 89, codecs::setChunkCacheCenterCodec());
     return b.build();
 }
 
