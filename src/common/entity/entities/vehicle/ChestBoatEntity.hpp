@@ -110,6 +110,14 @@ public:
     [[nodiscard]] const Item* getBoatItem() const override;
 
     /**
+     * @brief 取箱子船的 vanilla entity_type 注册表 id（按木种选 <wood>_chest_boat 变体）
+     *
+     * 重写 BoatEntity::getJavaEntityTypeId()：取箱子船变体（oak_chest_boat/mangrove_chest_boat/
+     * bamboo_chest_raft 等）。
+     */
+    [[nodiscard]] u32 getJavaEntityTypeId() const override;
+
+    /**
      * @brief 获取比较器输出信号强度
      *
      * 基于容器填充率计算信号强度（0-15）。

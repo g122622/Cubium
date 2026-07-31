@@ -186,6 +186,22 @@ public:
     [[nodiscard]] virtual std::string getTypeId() const;
 
     /**
+     * @brief 取本实体在 Java `minecraft:entity_type` 注册表中的 vanilla 1.21.11 id
+     *
+     * 用于 AddEntity（clientbound/minecraft:add_entity）的 entityTypeId 字段。entity_type
+     * 注册表不在 Configuration 同步的 23 个注册表内，真 Java 客户端用内置 vanilla core 包
+     * 注册表 id 解析，故服务端必须发 vanilla id（ EntityType.java register 顺序，字母序 157 条），
+     * 而非项目内部 EntityType::id()（VanillaEntities.cpp registerType 顺序）。
+     *
+     * 默认实现按 entityType()->name() 查 JavaEntityTypeIdMap。船类（BoatEntity/ChestBoatEntity）
+     * override：vanilla 无泛型 boat/chest_boat，按内部木种枚举拼出对应木种变体名
+     * （oak_boat/mangrove_chest_boat/bamboo_raft 等）再查表。
+     *
+     * @return vanilla entity_type registry id；查不到返回 0（acacia_boat 兜底）
+     */
+    [[nodiscard]] virtual u32 getJavaEntityTypeId() const;
+
+    /**
      * @brief 设置实体类型标识符
      *
      * 当实体由注册表工厂创建时，调用方应传入注册名（如 minecraft:pig）。

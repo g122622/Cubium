@@ -24,6 +24,7 @@
 #include "AgeableEntity.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "MobEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -32,18 +33,40 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
+// ==================== 同步数据参数静态成员初始化 ====================
+// 对应 vanilla 1.21.11 AgeableMob.DATA_BABY，id 由 registerData 沿继承链分配为 16。
+entity::DataParameter<bool> AgeableEntity::DATA_BABY_PARAM = entity::EntityDataManager::createKey<bool>();
+
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = CreatureEntity::classInfo()）。
-// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
-// 时穿过本类（lastAssignedId=-1）直达 CreatureEntity/MobEntity，子类首字段续接 MobEntity id15。
+// vanilla 1.21.11 AgeableMob 在 Mob(id15) 之后注册 DATA_BABY(Boolean,id16)，本类补齐。
 const entity::EntityClassInfo& AgeableEntity::classInfo()
 {
     static const entity::EntityClassInfo s_classInfo{"AgeableEntity", &CreatureEntity::classInfo()};
     return s_classInfo;
 }
 
+void AgeableEntity::registerData()
+{
+    // 先调用父类方法。CreatureEntity 无 registerData override，显式指 MobEntity::registerData()
+    // 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
+    MobEntity::registerData();
+
+    // 标记当前正在注册 AgeableEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 vanilla 1.21.11 AgeableMob.DATA_BABY(Boolean,id16)：
+    // 幼体状态同步镜像，业务权威源仍为 m_growingAge（isChild = m_growingAge < 0）。
+    m_dataManager.registerParam(DATA_BABY_PARAM, false);
+}
+
 AgeableEntity::AgeableEntity(EntityInstanceId id) noexcept
     : CreatureEntity(id)
-{}
+{
+    // 显式调用 registerData() 注册 DATA_BABY（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
+    registerData();
+}
 
 void AgeableEntity::setGrowingAge(i32 age)
 {
@@ -51,6 +74,8 @@ void AgeableEntity::setGrowingAge(i32 age)
     m_growingAge = age;
     if (wasChild != isChild()) {
         refreshDimensions();
+        // 同步幼体状态到数据管理器（vanilla DATA_BABY）
+        m_dataManager.set(DATA_BABY_PARAM, isChild());
     }
 }
 
@@ -72,6 +97,8 @@ void AgeableEntity::ageUp(i32 seconds)
 
     if (wasChild != isChild()) {
         refreshDimensions();
+        // 同步幼体状态到数据管理器（vanilla DATA_BABY）
+        m_dataManager.set(DATA_BABY_PARAM, isChild());
     }
 }
 
@@ -87,6 +114,8 @@ void AgeableEntity::addGrowingAge(i32 amount)
 
     if (wasChild != isChild()) {
         refreshDimensions();
+        // 同步幼体状态到数据管理器（vanilla DATA_BABY）
+        m_dataManager.set(DATA_BABY_PARAM, isChild());
     }
 }
 
@@ -145,6 +174,8 @@ void AgeableEntity::updateAge()
 
     if (wasChild != isChild()) {
         refreshDimensions();
+        // 同步幼体状态到数据管理器（vanilla DATA_BABY）
+        m_dataManager.set(DATA_BABY_PARAM, isChild());
     }
 }
 
@@ -196,6 +227,8 @@ Result<void> AgeableEntity::readAdditionalSaveData(const nbt::tags::compound_tag
         m_growingAge = *val;
         // 年龄变化可能影响尺寸
         refreshDimensions();
+        // 同步幼体状态到数据管理器（vanilla DATA_BABY）
+        m_dataManager.set(DATA_BABY_PARAM, isChild());
     }
 
     // ForcedAge (i32) - 强制成长值

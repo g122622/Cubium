@@ -44,9 +44,9 @@ public:
     ~AgeableEntity() override = default;
 
     /// 本类继承链标识（parent = CreatureEntity::classInfo()）。见 Entity::classInfo()。
-    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留
-    // 中间层，vanilla 1.21.11 已将 AgeableMob.DATA_BABY(Byte) 提升为此层同步字段，本项目
-    // 当前用普通成员 m_growingAge 承载幼体状态、不同步。后期完善时需补 DATA_BABY 同步字段。
+    // vanilla 1.21.11 AgeableMob 在 Mob(id15) 之后注册 DATA_BABY_ID(Boolean,id16)。本项目
+    // 保留此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见
+    // entity-sync-alignment-decisions-2026-07。DATA_BABY 作同步镜像，业务权威源仍为 m_growingAge。
     static const entity::EntityClassInfo& classInfo();
 
     // 禁止拷贝
@@ -75,6 +75,10 @@ public:
      * @brief 是否为幼体
      */
     [[nodiscard]] bool isChild() const override { return m_growingAge < 0; }
+
+    // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
+
+    [[nodiscard]] static u16 getBabyParamId() { return DATA_BABY_PARAM.id(); }
 
     /**
      * @brief 设置为幼体
@@ -164,6 +168,16 @@ public:
 
 protected:
     /**
+     * @brief 注册同步数据参数
+     *
+     * 重写以注册 vanilla 1.21.11 AgeableMob.DATA_BABY(Boolean,id16)。
+     * 派生类构造函数必须显式调用 registerData()（或经中间层空 override 串联），参考 MobEntity 模式。
+     * 注意：CreatureEntity 无 registerData override，AnimalEntity 等中间层须补空 override 调
+     * AgeableEntity::registerData()，否则 C++ 名字查找会跳过本层落到 MobEntity::registerData()。
+     */
+    void registerData() override;
+
+    /**
      * @brief 年龄更新（每tick调用）
      */
     void updateAge();
@@ -212,6 +226,9 @@ private:
     f32 m_growthSpeed = 1.0f; // 成长速度倍率
     i32 m_forcedAge = 0;      // 强制成长值（用于加速）
     i32 m_forcedAgeTimer = 0; // 强制成长计时器
+
+    // ========== 同步数据参数（vanilla 1.21.11 AgeableMob.DATA_BABY，见 registerData） ==========
+    static entity::DataParameter<bool> DATA_BABY_PARAM; // id16，幼体状态同步镜像
 };
 
 } // namespace mc

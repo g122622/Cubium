@@ -58,6 +58,13 @@ const entity::EntityClassInfo& AnimalEntity::classInfo()
     return s_classInfo;
 }
 
+void AnimalEntity::registerData()
+{
+    // 空 override：AnimalEntity 自身无同步字段，仅串联调用链到 AgeableEntity，
+    // 确保子类经 AnimalEntity::registerData() 时穿过 AgeableEntity 注册 DATA_BABY(id16)。
+    AgeableEntity::registerData();
+}
+
 AnimalEntity::AnimalEntity(EntityInstanceId id)
     : AgeableEntity(id)
 {

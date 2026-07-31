@@ -45,6 +45,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
+#include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -198,6 +199,13 @@ const Item* ChestBoatEntity::getBoatItem() const
         default:
             return Items::OAK_CHEST_BOAT;
     }
+}
+
+u32 ChestBoatEntity::getJavaEntityTypeId() const
+{
+    // 箱子船取 <wood>_chest_boat 变体 id（复用 BoatEntity::boatVariantName，chest=true）。
+    const std::string variant = boatVariantName(/*chest=*/true);
+    return JavaEntityTypeIdMap::instance().toJavaRegistryId(variant);
 }
 
 i32 ChestBoatEntity::getComparatorOutput() const

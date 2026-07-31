@@ -38,6 +38,7 @@
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/block/BlockSoundType.hpp"
 #include "../../world/block/BlockTags.hpp"
+#include "../../world/entity/JavaEntityTypeIdMap.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
@@ -119,13 +120,20 @@ void Entity::registerData()
     // RAII：构造压栈，析构弹栈。基类 registerData 先执行，子类 registerData 再压入子类 classInfo。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册基础数据参数（顺序对齐 vanilla 1.21.11 Entity.defineId：
-    // FLAGS(0)/AIR(1)/CUSTOM_NAME_VISIBLE(2)/CUSTOM_NAME(3)/SILENT(4)/NO_GRAVITY(5)/
-    // POSE(6)/TICKS_FROZEN(7)）。继承链分配器按此调用顺序连续分配 id 0..7。
+    // 注册基础数据参数。id 由继承链分配器按此调用顺序连续分配 id 0..7，
+    // 故调用顺序必须严格等于 vanilla 1.21.11 Entity 各 EntityDataAccessor 的
+    // defineId declare 顺序（ClassTreeIdRegistry.define 在 defineId 静态初始化时
+    // 按 declare 顺序分配 id，而非 define() 默认值设置顺序）。
+    //   id0 FLAGS(Byte, Entity.java:242) / id1 AIR(Int, :250) /
+    //   id2 CUSTOM_NAME(Optional<Component>, :251) / id3 CUSTOM_NAME_VISIBLE(Boolean, :254) /
+    //   id4 SILENT(Boolean, :255) / id5 NO_GRAVITY(Boolean, :256) /
+    //   id6 POSE(Pose, :257) / id7 TICKS_FROZEN(Int, :258)
+    // 注意：CUSTOM_NAME(id2,Optional) 必须在 CUSTOM_NAME_VISIBLE(id3,Boolean) 之前注册，
+    // 顺序反则 wire index 2 发 Boolean 而真客户端按 Optional 校验，set_entity_data 崩。
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(DATA_AIR_PARAM, maxAir());
-    m_dataManager.registerParam(DATA_CUSTOM_NAME_VISIBLE_PARAM, false);
     m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
+    m_dataManager.registerParam(DATA_CUSTOM_NAME_VISIBLE_PARAM, false);
     m_dataManager.registerParam(DATA_SILENT_PARAM, false);
     m_dataManager.registerParam(DATA_NO_GRAVITY_PARAM, false);
     m_dataManager.registerParam(DATA_POSE_PARAM, entity::PoseValue{EntityPose::Standing});
@@ -314,6 +322,15 @@ const entity::EntityType* Entity::entityType() const
         m_entityType = entity::EntityRegistry::instance().getType(m_typeId);
     }
     return m_entityType;
+}
+
+u32 Entity::getJavaEntityTypeId() const
+{
+    // 默认实现：按 entityType()->name()（如 "minecraft:item"）查 JavaEntityTypeIdMap，
+    // 返回 vanilla 1.21.11 entity_type 注册表 id。船类 override 按木种拼变体名。
+    const auto* type = entityType();
+    const std::string_view name = type != nullptr ? std::string_view(type->name()) : std::string_view{};
+    return JavaEntityTypeIdMap::instance().toJavaRegistryId(name);
 }
 
 std::string Entity::getLootTableId() const

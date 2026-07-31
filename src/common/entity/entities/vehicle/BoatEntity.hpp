@@ -128,6 +128,18 @@ protected:
      */
     void registerData() override;
 
+    /**
+     * @brief 取本船在 Java entity_type 注册表中的 vanilla 木种变体名
+     *
+     * vanilla 1.21.11 无泛型 boat/chest_boat，按木种拆 oak_boat/mangrove_chest_boat/bamboo_raft
+     * 等。bamboo 用 raft/raft_chest，其余 9 种用 <wood>_boat/<wood>_chest_boat。chest=true 取
+     * 箱子船变体。供 getJavaEntityTypeId() override 查 JavaEntityTypeIdMap 用。
+     *
+     * @param chest 是否取箱子船变体
+     * @return vanilla 变体名（含 minecraft: 前缀）
+     */
+    [[nodiscard]] std::string boatVariantName(bool chest) const;
+
 public:
     [[nodiscard]] f32 width() const override { return 1.375f; }
     [[nodiscard]] f32 height() const override { return 0.5625f; }
@@ -185,6 +197,15 @@ public:
      * @return 对应木材类型的普通船物品（箱子船由子类重写返回箱子船物品）
      */
     [[nodiscard]] virtual const Item* getBoatItem() const;
+
+    /**
+     * @brief 取普通船的 vanilla entity_type 注册表 id（按木种选 <wood>_boat 变体）
+     *
+     * 重写 Entity::getJavaEntityTypeId()：vanilla 无泛型 boat，按 m_type 木种拼变体名
+     * （oak_boat/mangrove_boat/bamboo_raft 等）查 JavaEntityTypeIdMap。ChestBoatEntity 再
+     * override 取 <wood>_chest_boat 变体。
+     */
+    [[nodiscard]] u32 getJavaEntityTypeId() const override;
 
     /**
      * @brief 是否为带箱子的船

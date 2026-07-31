@@ -63,6 +63,12 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
+// ==================== 同步数据参数静态成员初始化 ====================
+// 对应 vanilla 1.21.11 Zombie 三字段，id 由 registerData 沿继承链分配为 16/17/18。
+entity::DataParameter<bool> ZombieEntity::DATA_BABY_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i32> ZombieEntity::DATA_SPECIAL_TYPE_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> ZombieEntity::DATA_DROWNED_CONVERSION_PARAM = entity::EntityDataManager::createKey<bool>();
+
 // 属性修饰符ID常量
 namespace {
 const std::string BABY_SPEED_BOOST_ID = "baby";
@@ -82,11 +88,33 @@ const entity::EntityClassInfo& ZombieEntity::classInfo()
     return s_classInfo;
 }
 
+void ZombieEntity::registerData()
+{
+    // 先调用父类方法，确保 Mob(id15) 及以下基类数据参数已注册。
+    MonsterEntity::registerData();
+
+    // 标记当前正在注册 ZombieEntity 类的字段，使 registerParam 沿 ZombieEntity 继承链
+    // 分配 id（续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 vanilla 1.21.11 Zombie 三字段（按 define 顺序累加 id）：
+    // - DATA_BABY_ID(Boolean,id16)：幼体状态同步镜像，业务权威源仍为 m_isBaby。
+    // - DATA_SPECIAL_TYPE_ID(Int,id17)：特殊僵尸变体类型，项目暂未细分变体，占位 0。
+    // - DATA_DROWNED_CONVERSION_ID(Boolean,id18)：溺水转化中标志，业务权威源为 m_converting。
+    m_dataManager.registerParam(DATA_BABY_PARAM, false);
+    m_dataManager.registerParam(DATA_SPECIAL_TYPE_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_DROWNED_CONVERSION_PARAM, false);
+}
+
 ZombieEntity::ZombieEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 僵尸可以在阳光下燃烧
     setBurnsInDaylight(true);
+
+    // 显式调用 registerData() 注册 Zombie 三字段（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
+    registerData();
 
     // 注册 AI 目标
     registerGoals();
@@ -160,6 +188,9 @@ void ZombieEntity::startDrowning(i32 conversionTime)
     // 开始溺水转化
     m_converting = true;
     m_conversionTime = conversionTime;
+
+    // 同步到数据管理器（vanilla DATA_DROWNED_CONVERSION_ID，业务权威源仍为 m_converting）
+    m_dataManager.set(DATA_DROWNED_CONVERSION_PARAM, true);
 }
 
 void ZombieEntity::setBaby(bool baby)
@@ -170,6 +201,9 @@ void ZombieEntity::setBaby(bool baby)
 
     m_isBaby = baby;
     refreshDimensions();
+
+    // 同步到数据管理器（vanilla DATA_BABY_ID，业务权威源仍为 m_isBaby）
+    m_dataManager.set(DATA_BABY_PARAM, baby);
 
     // 婴儿僵尸速度加成：+50%（MultiplyBase 操作）
     if (baby) {

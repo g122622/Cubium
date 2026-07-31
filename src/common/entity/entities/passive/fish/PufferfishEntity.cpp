@@ -50,7 +50,11 @@ const entity::EntityClassInfo& PufferfishEntity::classInfo()
 
 PufferfishEntity::PufferfishEntity(EntityInstanceId id)
     : AbstractFishEntity(id)
-{}
+{
+    // 显式调用 registerData() 注册 DATA_PUFF_STATE（C++ 基类构造期虚函数不派发，
+    // AbstractFishEntity 构造函数已调，但本类有自身字段须由本类 override 注册）。
+    registerData();
+}
 
 std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
 {

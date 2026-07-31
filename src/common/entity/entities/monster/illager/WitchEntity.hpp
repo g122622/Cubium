@@ -67,6 +67,10 @@ public:
     WitchEntity(WitchEntity&&) = delete;
     WitchEntity& operator=(WitchEntity&&) = delete;
 
+    /// 本类继承链标识（parent = AbstractRaiderEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     /**
      * @brief 创建女巫实体
      * @param world 世界实例

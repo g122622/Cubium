@@ -29,6 +29,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/registry/NaturalBlocks.hpp"
+#include "../../../world/entity/JavaEntityTypeIdMap.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
@@ -802,6 +803,57 @@ const Item* BoatEntity::getBoatItem() const
         default:
             return Items::OAK_BOAT;
     }
+}
+
+std::string BoatEntity::boatVariantName(bool chest) const
+{
+    // vanilla 1.21.11 entity_type 注册表无泛型 boat/chest_boat，按木种拆变体：
+    //   bamboo → bamboo_raft / bamboo_chest_raft
+    //   其余 9 种 → <wood>_boat / <wood>_chest_boat
+    // 木种名对齐 vanilla EntityType.java 的 register("name",...) 路径。
+    std::string wood;
+    switch (m_type) {
+        case Type::OAK:
+            wood = "oak";
+            break;
+        case Type::SPRUCE:
+            wood = "spruce";
+            break;
+        case Type::BIRCH:
+            wood = "birch";
+            break;
+        case Type::JUNGLE:
+            wood = "jungle";
+            break;
+        case Type::ACACIA:
+            wood = "acacia";
+            break;
+        case Type::DARK_OAK:
+            wood = "dark_oak";
+            break;
+        case Type::MANGROVE:
+            wood = "mangrove";
+            break;
+        case Type::CHERRY:
+            wood = "cherry";
+            break;
+        case Type::PALE_OAK:
+            wood = "pale_oak";
+            break;
+        case Type::BAMBOO:
+            return chest ? "minecraft:bamboo_chest_raft" : "minecraft:bamboo_raft";
+        default:
+            wood = "oak";
+            break;
+    }
+    return chest ? ("minecraft:" + wood + "_chest_boat") : ("minecraft:" + wood + "_boat");
+}
+
+u32 BoatEntity::getJavaEntityTypeId() const
+{
+    // 普通船取 <wood>_boat 变体 id（ChestBoatEntity override 取 <wood>_chest_boat）。
+    const std::string variant = boatVariantName(/*chest=*/false);
+    return JavaEntityTypeIdMap::instance().toJavaRegistryId(variant);
 }
 
 void BoatEntity::dropItem()

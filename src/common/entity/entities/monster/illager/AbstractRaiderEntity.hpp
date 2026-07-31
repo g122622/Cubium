@@ -63,6 +63,11 @@ public:
     AbstractRaiderEntity(AbstractRaiderEntity&&) = delete;
     AbstractRaiderEntity& operator=(AbstractRaiderEntity&&) = delete;
 
+    /// 本类继承链标识（parent = PatrollerEntity::classInfo()）。见 Entity::classInfo()。
+    // vanilla 1.21.11 Raider 在 Mob(id15) 之后注册 IS_CELEBRATING(Boolean,id16)。本项目
+    // 补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见 entity-sync-alignment-decisions-2026-07。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== 状态系统 ==========
 
     /**
@@ -73,12 +78,21 @@ public:
     /**
      * @brief 设置状态
      */
-    void setState(RaiderState state) { m_state = state; }
+    void setState(RaiderState state)
+    {
+        m_state = state;
+        // 同步庆祝状态到数据管理器（vanilla Raider.IS_CELEBRATING，业务权威源仍为 m_state）
+        m_dataManager.set(IS_CELEBRATING_PARAM, state == RaiderState::Celebrating);
+    }
 
     /**
      * @brief 是否正在庆祝
      */
     [[nodiscard]] bool isCelebrating() const { return m_state == RaiderState::Celebrating; }
+
+    // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
+
+    [[nodiscard]] static u16 getIsCelebratingParamId() { return IS_CELEBRATING_PARAM.id(); }
 
     // ========== 袭击系统 ==========
 
@@ -167,12 +181,23 @@ public:
     void die(DamageSource& cause) override;
 
 protected:
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 重写以注册 vanilla 1.21.11 Raider.IS_CELEBRATING(Boolean,id16)。
+     * 派生类构造函数必须显式调用 registerData()，参考 MobEntity/WolfEntity 模式。
+     */
+    void registerData() override;
+
     RaiderState m_state = RaiderState::Neutral;
     bool m_hasLeaderBonus = false;
     bool m_canJoinRaid = true;
     i32 m_celebrationTime = 0;
     world::village::raid::Raid* m_raid = nullptr;
     i32 m_wave = 0;
+
+    // ========== 同步数据参数（vanilla 1.21.11 Raider.IS_CELEBRATING，见 registerData） ==========
+    static entity::DataParameter<bool> IS_CELEBRATING_PARAM; // id16，庆祝状态同步镜像
 
     static constexpr i32 CELEBRATION_DURATION = 200;
 };

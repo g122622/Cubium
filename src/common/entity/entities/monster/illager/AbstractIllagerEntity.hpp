@@ -76,6 +76,10 @@ public:
     AbstractIllagerEntity(AbstractIllagerEntity&&) = delete;
     AbstractIllagerEntity& operator=(AbstractIllagerEntity&&) = delete;
 
+    /// 本类继承链标识（parent = AbstractRaiderEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段（m_armPose 用普通成员承载、不同步），classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== 手臂姿势 ==========
 
     /**

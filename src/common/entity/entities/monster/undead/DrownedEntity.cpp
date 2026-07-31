@@ -46,6 +46,16 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = ZombieEntity::classInfo()）。透传层无自身同步字段，
+// classInfo 仅作父链遍历节点。
+// ============================================================================
+const entity::EntityClassInfo& DrownedEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"DrownedEntity", &ZombieEntity::classInfo()};
+    return s_classInfo;
+}
+
 DrownedEntity::DrownedEntity(EntityInstanceId id)
     : ZombieEntity(id)
 {
@@ -54,6 +64,10 @@ DrownedEntity::DrownedEntity(EntityInstanceId id)
 
     // 使用溺尸专用的两栖移动控制器（水中游泳 + 陆地行走）
     m_moveController = std::make_unique<entity::ai::controller::DrownedMoveControl>(this);
+
+    // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
+    // 参考 MobEntity/AbstractSkeletonEntity 模式；Drowned 无自身字段，调用幂等）。
+    registerData();
 
     // 注册属性
     registerAttributes();

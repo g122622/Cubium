@@ -29,6 +29,7 @@
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../core/MobEntity.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../player/Player.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -36,13 +37,31 @@
 
 namespace mc {
 
+// ==================== 同步数据参数静态成员初始化 ====================
+// 对应 vanilla 1.21.11 AbstractFish.FROM_BUCKET，id 由 registerData 沿继承链分配为 16。
+entity::DataParameter<bool> AbstractFishEntity::FROM_BUCKET_PARAM = entity::EntityDataManager::createKey<bool>();
+
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = WaterMobEntity::classInfo()）。
-// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
-// 时穿过本类（lastAssignedId=-1）直达父链已分配 id 的基类，子类首字段续接其后。
+// vanilla 1.21.11 AbstractFish 在 Mob(id15) 之后注册 FROM_BUCKET(Boolean,id16)，本类补齐。
 const entity::EntityClassInfo& AbstractFishEntity::classInfo()
 {
     static const entity::EntityClassInfo s_classInfo{"AbstractFishEntity", &WaterMobEntity::classInfo()};
     return s_classInfo;
+}
+
+void AbstractFishEntity::registerData()
+{
+    // 先调用父类方法。WaterMobEntity/CreatureEntity 均无 registerData override，显式指
+    // MobEntity::registerData() 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
+    MobEntity::registerData();
+
+    // 标记当前正在注册 AbstractFishEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 vanilla 1.21.11 AbstractFish.FROM_BUCKET(Boolean,id16)：
+    // 桶装鱼标志同步镜像，业务权威源仍为 m_fromBucket。
+    m_dataManager.registerParam(FROM_BUCKET_PARAM, false);
 }
 
 AbstractFishEntity::AbstractFishEntity(EntityInstanceId id)
@@ -50,6 +69,10 @@ AbstractFishEntity::AbstractFishEntity(EntityInstanceId id)
 {
     // 设置鱼类最大空气供应量（480 ticks = 24秒）
     setAir(maxAir());
+
+    // 显式调用 registerData() 注册 FROM_BUCKET（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
+    registerData();
 
     registerGoals();
     registerAttributes();

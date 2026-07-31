@@ -70,6 +70,10 @@ public:
     PillagerEntity(PillagerEntity&&) = delete;
     PillagerEntity& operator=(PillagerEntity&&) = delete;
 
+    /// 本类继承链标识（parent = AbstractIllagerEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== IRangedAttackMob 接口 ==========
 
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
@@ -152,6 +156,10 @@ public:
     // 允许移动
     VindicatorEntity(VindicatorEntity&&) = delete;
     VindicatorEntity& operator=(VindicatorEntity&&) = delete;
+
+    /// 本类继承链标识（parent = AbstractIllagerEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
 
     // ========== 行为状态 ==========
 

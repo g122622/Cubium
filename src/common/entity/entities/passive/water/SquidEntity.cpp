@@ -25,6 +25,7 @@
 
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -33,18 +34,41 @@
 
 namespace mc {
 
-// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = WaterMobEntity::classInfo()）。
-// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
-// 时穿过本类（lastAssignedId=-1）直达父链已分配 id 的基类，子类首字段续接其后。
+// ==================== 同步数据参数静态成员初始化 ====================
+// 占位对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)，id 由 registerData 沿继承链分配为 16。
+entity::DataParameter<bool> SquidEntity::DATA_BABY_PLACEHOLDER_PARAM = entity::EntityDataManager::createKey<bool>();
+
+// 继承链标识（parent = WaterMobEntity::classInfo()）。
+// vanilla 1.21.11 Squid 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean)。项目
+// WaterMobEntity 不经 AgeableEntity，故在 SquidEntity 层补 Boolean 占位对齐 id16。
 const entity::EntityClassInfo& SquidEntity::classInfo()
 {
     static const entity::EntityClassInfo s_classInfo{"SquidEntity", &WaterMobEntity::classInfo()};
     return s_classInfo;
 }
 
+void SquidEntity::registerData()
+{
+    // 先调用父类方法。WaterMobEntity/CreatureEntity 均无 registerData override，显式指
+    // MobEntity::registerData() 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
+    MobEntity::registerData();
+
+    // 标记当前正在注册 SquidEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 Boolean 占位字段对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)。鱿鱼无幼体
+    // 语义，占位恒 false，仅占位 id16 使子类 GlowSquid.DATA_DARK_TICKS 落 id17。
+    m_dataManager.registerParam(DATA_BABY_PLACEHOLDER_PARAM, false);
+}
+
 SquidEntity::SquidEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
+    // 显式调用 registerData() 注册占位字段（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
+    registerData();
+
     // 注册 AI 目标
     registerGoals();
 

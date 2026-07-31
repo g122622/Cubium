@@ -231,6 +231,16 @@ protected:
     void registerGoals() override;
 
     /**
+     * @brief 注册同步数据参数（空 override 串联调用链）
+     *
+     * AnimalEntity 自身无同步字段，但须显式 override 调 AgeableEntity::registerData()，
+     * 确保子类（如 TameableEntity）经 AnimalEntity::registerData() 时穿过 AgeableEntity
+     * 注册 DATA_BABY(id16)，避免 C++ 名字查找在多层继承下落空到 MobEntity::registerData()
+     * 而跳过 AgeableEntity 层。透传层不消耗 id。
+     */
+    void registerData() override;
+
+    /**
      * @brief 注册属性
      *
      * 注册动物的基础属性。子类应该调用此方法然后覆盖特定属性值。

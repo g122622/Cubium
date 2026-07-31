@@ -31,9 +31,9 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
-#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -60,6 +60,25 @@ mc::network::ir::IrPacket makePlayPacket(mc::network::ir::PlayPacket play)
         mc::network::protocol::ConnectionProtocol::Play,
         std::move(play),
     };
+}
+
+// 【临时诊断】把已序列化的元数据字节转成十六进制串，便于人工对照 1.21.11 wire
+// （byte(index)+VarInt(serializerId)+value，0xFF 结束）逐字段定位长度错位字段。
+// 形如 "08 01 00 09 01 01 0A 03 00 00 00 00 FF"。
+std::string toHexDump(const std::vector<u8>& bytes)
+{
+    static constexpr char kHex[] = "0123456789ABCDEF";
+    std::string out;
+    out.reserve(bytes.size() * 3);
+    for (u8 b : bytes) {
+        out.push_back(kHex[(b >> 4) & 0x0F]);
+        out.push_back(kHex[b & 0x0F]);
+        out.push_back(' ');
+    }
+    if (!out.empty()) {
+        out.pop_back(); // 去掉末尾空格
+    }
+    return out;
 }
 
 } // namespace
@@ -334,6 +353,22 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                     std::vector<u8> metadata =
                         network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
                     if (metadata.size() > 1) {
+                        // 【临时诊断】记录发送 set_entity_data 的实体类型+ID+字段序列，定位
+                        // "field 8 BlockState" 崩溃的来源实体。serialize 内部对 BlockState 条目
+                        // 已打 warn，此处补实体上下文 + 全字段 variant index 列表。
+                        const auto& allEntries = entity->dataManager().getAllEntries();
+                        std::string fieldDesc;
+                        for (const auto& [fid, fent] : allEntries) {
+                            fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index());
+                            fieldDesc += (fent.dirty ? "* " : " ");
+                        }
+                        spdlog::info(
+                            "[MetaDiag] delta set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
+                            entity->getTypeId(),
+                            static_cast<i32>(entity->id()),
+                            metadata.size(),
+                            fieldDesc,
+                            toHexDump(metadata));
                         for (PlayerId playerId : tracked.trackingPlayers) {
                             _sendMetadataPacket(server, playerId, entity, metadata);
                         }
@@ -405,8 +440,11 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     // 1.21.11 统一用 AddEntity 生成实体（含经验球/掉落物/Mob），
     // 元数据走独立的 SetEntityData 包。MobEntity 的 headYaw 经 AddEntity.yHeadRot 透传。
     auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
-    const auto* entityType = entity->entityType();
-    const i32 entityTypeId = entityType ? static_cast<i32>(entityType->id()) : 0;
+    // entityTypeId 必须用 vanilla 1.21.11 entity_type 注册表 id（entity_type 注册表不在 Configuration
+    // 同步的 23 个注册表内，真 Java 客户端用内置 core 包 id 解析）。项目内部 EntityType::id() 是
+    // registerType 注册序，与 vanilla 字母序不同，直接发会让客户端 spawn 错误实体类型。
+    // 船类按木种选变体，其余按名查 JavaEntityTypeIdMap。见 Entity::getJavaEntityTypeId()。
+    const i32 entityTypeId = static_cast<i32>(entity->getJavaEntityTypeId());
 
     mc::network::ir::play::AddEntity spawn;
     spawn.entityId = static_cast<i32>(entity->id());
@@ -432,9 +470,22 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     // 紧随其后发送元数据（spawn 时刻的完整快照，dirtyOnly=false）。
     // ItemEntity 的 ItemStack 等关键状态都走元数据，客户端收到 AddEntity 后必须再收一次
     // SetEntityData 才能正确渲染（1.21.11 AddEntity 不携带 metadata）。
-    std::vector<u8> metadata =
-        network::EntityMetadataSerializer::serialize(entity->dataManager(), false);
+    std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), false);
     if (metadata.size() > 1) { // >1 表示除 0xFF 结束符外还有实际条目
+        // 【临时诊断】记录 spawn 时全量元数据的实体类型+ID+原始字节+全字段 variant index 列表，
+        // 定位 "field 8 BlockState" 崩溃来源。spawn 是全量快照（dirtyOnly=false），
+        // 列出每个字段 id:variantIndex 便于对照十六进制逐字段核对长度。
+        const auto& allEntries = entity->dataManager().getAllEntries();
+        std::string fieldDesc;
+        for (const auto& [fid, fent] : allEntries) {
+            fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index()) + " ";
+        }
+        spdlog::info("[MetaDiag] spawn set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
+            entity->getTypeId(),
+            static_cast<i32>(entity->id()),
+            metadata.size(),
+            fieldDesc,
+            toHexDump(metadata));
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(entity->id());
         meta.packedItems = std::move(metadata);
@@ -533,8 +584,8 @@ void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId player
 
     // 重同步：重新发一次 AddEntity + SetEntityData 全量快照（与 _sendSpawnPacket 同构），
     // ItemEntity 的 ItemStack 状态由元数据承载，重新序列化即可刷新到最新。
-    const auto* entityType = itemEntity->entityType();
-    const i32 entityTypeId = entityType ? static_cast<i32>(entityType->id()) : 0;
+    // entityTypeId 用 vanilla id（同 _sendSpawnPacket，见 Entity::getJavaEntityTypeId()）。
+    const i32 entityTypeId = static_cast<i32>(itemEntity->getJavaEntityTypeId());
 
     mc::network::ir::play::AddEntity spawn;
     spawn.entityId = static_cast<i32>(itemEntity->id());
@@ -553,8 +604,7 @@ void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId player
     spawn.data = 0;
     player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
-    std::vector<u8> metadata =
-        network::EntityMetadataSerializer::serialize(itemEntity->dataManager(), false);
+    std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(itemEntity->dataManager(), false);
     if (metadata.size() > 1) {
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(itemEntity->id());

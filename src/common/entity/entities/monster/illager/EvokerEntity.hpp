@@ -44,6 +44,10 @@ public:
     EvokerEntity(EvokerEntity&&) = delete;
     EvokerEntity& operator=(EvokerEntity&&) = delete;
 
+    /// 本类继承链标识（parent = SpellcastingIllagerEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     static std::unique_ptr<Entity> create(IWorld* world);
 
     [[nodiscard]] bool isCasting() const { return isSpellcasting(); }

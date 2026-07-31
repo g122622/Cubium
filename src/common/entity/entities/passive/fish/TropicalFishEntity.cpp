@@ -30,10 +30,26 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = AbstractGroupFishEntity::classInfo()）。
+// TODO(实体同步对齐): vanilla 1.21.11 TropicalFish 有 DATA_VARIANT(Int,id17)，项目当前
+// 用 m_variant 普通成员承载、不同步。本次仅补 classInfo 占位对齐 id 上限，DATA_VARIANT
+// 同步留后续逐实体字段对齐任务。
+// ============================================================================
+const entity::EntityClassInfo& TropicalFishEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"TropicalFishEntity", &AbstractGroupFishEntity::classInfo()};
+    return s_classInfo;
+}
+
 TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
     : AbstractGroupFishEntity(id)
 {
     randomizeVariant();
+
+    // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
+    // 参考 MobEntity/AbstractSkeletonEntity 模式；本类暂无同步字段，调用幂等）。
+    registerData();
 }
 
 std::unique_ptr<Entity> TropicalFishEntity::create(IWorld* /*world*/)

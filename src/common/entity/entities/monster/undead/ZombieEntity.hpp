@@ -61,9 +61,10 @@ public:
     ~ZombieEntity() override = default;
 
     /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
-    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留中间层，
-    // vanilla 1.21.11 类树已调整，本项目保留此层。若后期 vanilla 此层有同步字段须补
-    // registerData+ClassRegisterGuard，当前仅占位 classInfo。
+    // vanilla 1.21.11 Zombie 在 Mob(id15) 之后注册三字段：DATA_BABY_ID(Boolean,id16)、
+    // DATA_SPECIAL_TYPE_ID(Int,id17)、DATA_DROWNED_CONVERSION_ID(Boolean,id18)。本项目保留
+    // 此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见
+    // entity-sync-alignment-decisions-2026-07。
     static const entity::EntityClassInfo& classInfo();
 
     // 禁止拷贝
@@ -173,6 +174,12 @@ public:
      */
     void setBaby(bool baby);
 
+    // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
+
+    [[nodiscard]] static u16 getBabyParamId() { return DATA_BABY_PARAM.id(); }
+    [[nodiscard]] static u16 getSpecialTypeParamId() { return DATA_SPECIAL_TYPE_PARAM.id(); }
+    [[nodiscard]] static u16 getDrownedConversionParamId() { return DATA_DROWNED_CONVERSION_PARAM.id(); }
+
     // ========== 增援系统 ==========
 
     /**
@@ -271,6 +278,17 @@ public:
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 protected:
+    // ========== 数据同步 ==========
+
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 重写 MonsterEntity::registerData，注册 vanilla 1.21.11 Zombie 三字段：
+     * DATA_BABY(Boolean,id16)、DATA_SPECIAL_TYPE(Int,id17)、DATA_DROWNED_CONVERSION(Boolean,id18)。
+     * 派生类构造函数必须显式调用 registerData()，参考 MobEntity/WolfEntity 模式。
+     */
+    void registerData() override;
+
     // ========== AI 目标注册 ==========
     void registerGoals() override;
 
@@ -289,6 +307,11 @@ private:
 
     // 婴儿状态
     bool m_isBaby = false;
+
+    // ========== 同步数据参数（vanilla 1.21.11 Zombie 三字段，见 registerData） ==========
+    static entity::DataParameter<bool> DATA_BABY_PARAM;               // id16，幼体状态同步镜像
+    static entity::DataParameter<i32> DATA_SPECIAL_TYPE_PARAM;        // id17，特殊僵尸变体类型（占位 0）
+    static entity::DataParameter<bool> DATA_DROWNED_CONVERSION_PARAM; // id18，溺水转化中标志
 
     // 常量
     static constexpr i32 CONVERSION_DURATION = 300;     // 15秒转化时间 (300 ticks)

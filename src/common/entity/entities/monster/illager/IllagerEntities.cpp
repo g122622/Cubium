@@ -57,6 +57,19 @@
 
 namespace mc {
 
+// ==================== 同步链标识（透传层，无自身同步字段） ====================
+const entity::EntityClassInfo& PillagerEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"PillagerEntity", &AbstractIllagerEntity::classInfo()};
+    return s_classInfo;
+}
+
+const entity::EntityClassInfo& VindicatorEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"VindicatorEntity", &AbstractIllagerEntity::classInfo()};
+    return s_classInfo;
+}
+
 // ==================== PillagerEntity ====================
 
 std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)

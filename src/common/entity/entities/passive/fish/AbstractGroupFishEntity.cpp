@@ -29,6 +29,16 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = AbstractFishEntity::classInfo()）。透传层无自身同步字段，
+// classInfo 仅作父链遍历节点。
+// ============================================================================
+const entity::EntityClassInfo& AbstractGroupFishEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"AbstractGroupFishEntity", &AbstractFishEntity::classInfo()};
+    return s_classInfo;
+}
+
 void AbstractGroupFishEntity::registerGoals()
 {
     // 先调用父类的 registerGoals

@@ -29,9 +29,23 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = AbstractGroupFishEntity::classInfo()）。透传层无自身同步字段，
+// classInfo 仅作父链遍历节点。
+// ============================================================================
+const entity::EntityClassInfo& CodEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"CodEntity", &AbstractGroupFishEntity::classInfo()};
+    return s_classInfo;
+}
+
 CodEntity::CodEntity(EntityInstanceId id)
     : AbstractGroupFishEntity(id)
-{}
+{
+    // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
+    // 参考 MobEntity/AbstractSkeletonEntity 模式；Cod 无自身字段，调用幂等）。
+    registerData();
+}
 
 std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/)
 {

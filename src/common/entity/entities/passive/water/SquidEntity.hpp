@@ -55,9 +55,10 @@ public:
     ~SquidEntity() override = default;
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
-    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留中间层，
-    // vanilla 1.21.11 类树已调整，本项目保留此层。若后期 vanilla 此层有同步字段须补
-    // registerData+ClassRegisterGuard，当前仅占位 classInfo。
+    // vanilla 1.21.11 Squid 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean)。
+    // 项目 WaterMobEntity 不经 AgeableEntity，故在 SquidEntity 层补 Boolean 占位对齐 id16，
+    // 使 GlowSquid.DATA_DARK_TICKS 落 id17（与 vanilla GlowSquid 一致）。占位恒 false
+    // （鱿鱼无幼体语义），见 entity-sync-alignment-decisions-2026-07 链5。
     static const entity::EntityClassInfo& classInfo();
 
     // 禁止拷贝
@@ -96,6 +97,10 @@ public:
      * @brief 设置游泳方向
      */
     void setSwimAngle(f32 angle) { m_swimAngle = angle; }
+
+    // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
+
+    [[nodiscard]] static u16 getBabyPlaceholderParamId() { return DATA_BABY_PLACEHOLDER_PARAM.id(); }
 
     // ========== 喷墨 ==========
 
@@ -177,7 +182,19 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    /**
+     * @brief 注册同步数据参数
+     *
+     * 注册 Boolean 占位字段对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)。鱿鱼无幼体
+     * 语义，占位恒 false，仅用于占位 id16 使 GlowSquid.DATA_DARK_TICKS 落 id17。
+     * 派生类（GlowSquid）构造函数须显式调用 registerData()。
+     */
+    void registerData() override;
+
 private:
+    // ========== 同步数据参数（vanilla 1.21.11 AgeableMob.DATA_BABY 占位，见 registerData） ==========
+    static entity::DataParameter<bool> DATA_BABY_PLACEHOLDER_PARAM; // id16，占位对齐（鱿鱼无幼体）
+
     // 移动向量
     f32 m_randomMotionVecX = 0.0f;
     f32 m_randomMotionVecY = 0.0f;

@@ -53,6 +53,16 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = SpellcastingIllagerEntity::classInfo()）。透传层无自身同步字段，
+// classInfo 仅作父链遍历节点。
+// ============================================================================
+const entity::EntityClassInfo& EvokerEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"EvokerEntity", &SpellcastingIllagerEntity::classInfo()};
+    return s_classInfo;
+}
+
 EvokerEntity::EvokerEntity(EntityInstanceId id)
     : SpellcastingIllagerEntity(id)
 {

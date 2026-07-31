@@ -50,9 +50,9 @@ public:
     ~AbstractFishEntity() override = default;
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
-    // TODO(实体同步对齐, 见 entity-sync-alignment-decisions-2026-07): 本类是 1.16.5 遗留中间层，
-    // vanilla 1.21.11 类树已调整，本项目保留此层。若后期 vanilla 此层有同步字段须补
-    // registerData+ClassRegisterGuard，当前仅占位 classInfo。
+    // vanilla 1.21.11 AbstractFish 在 Mob(id15) 之后注册 FROM_BUCKET(Boolean,id16)。
+    // 本项目保留此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见
+    // entity-sync-alignment-decisions-2026-07。
     static const entity::EntityClassInfo& classInfo();
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;
@@ -118,7 +118,16 @@ public:
      *
      * @param fromBucket 是否来自桶
      */
-    void setFromBucket(bool fromBucket) { m_fromBucket = fromBucket; }
+    void setFromBucket(bool fromBucket)
+    {
+        m_fromBucket = fromBucket;
+        // 同步到数据管理器（vanilla FROM_BUCKET，业务权威源仍为 m_fromBucket）
+        m_dataManager.set(FROM_BUCKET_PARAM, fromBucket);
+    }
+
+    // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
+
+    [[nodiscard]] static u16 getFromBucketParamId() { return FROM_BUCKET_PARAM.id(); }
 
     /**
      * @brief 检查是否应阻止消失
@@ -175,6 +184,14 @@ protected:
     void registerAttributes() override;
 
     /**
+     * @brief 注册同步数据参数
+     *
+     * 重写以注册 vanilla 1.21.11 AbstractFish.FROM_BUCKET(Boolean,id16)。
+     * 派生类构造函数必须显式调用 registerData()，参考 MobEntity/WolfEntity 模式。
+     */
+    void registerData() override;
+
+    /**
      * @brief 更新游泳状态
      */
     void updateSwimming();
@@ -194,6 +211,9 @@ private:
     bool m_flopping = false;
     i32 m_flopTimer = 0;
     bool m_fromBucket = false; // 是否来自桶（从桶放出的鱼不会消失）
+
+    // ========== 同步数据参数（vanilla 1.21.11 AbstractFish.FROM_BUCKET，见 registerData） ==========
+    static entity::DataParameter<bool> FROM_BUCKET_PARAM; // id16，桶装鱼标志同步镜像
 
     static constexpr i32 MAX_AIR_SUPPLY = 480;
 };

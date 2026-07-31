@@ -51,6 +51,10 @@ public:
     PatrollerEntity(PatrollerEntity&&) = delete;
     PatrollerEntity& operator=(PatrollerEntity&&) = delete;
 
+    /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     [[nodiscard]] virtual bool canBeLeader() const { return true; }
     [[nodiscard]] virtual bool canJoinPatrol() const { return true; }
 

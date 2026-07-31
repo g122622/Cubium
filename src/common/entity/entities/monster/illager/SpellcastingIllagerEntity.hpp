@@ -55,6 +55,11 @@ public:
     SpellcastingIllagerEntity(EntityInstanceId id);
     ~SpellcastingIllagerEntity() override = default;
 
+    /// 本类继承链标识（parent = AbstractIllagerEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段（m_spellTicks/m_activeSpell 用普通成员承载、不同步），
+    // classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     [[nodiscard]] bool isSpellcasting() const noexcept { return m_spellTicks > 0; }
     [[nodiscard]] i32 spellTicks() const noexcept { return m_spellTicks; }
     [[nodiscard]] SpellType spellType() const noexcept { return m_activeSpell; }

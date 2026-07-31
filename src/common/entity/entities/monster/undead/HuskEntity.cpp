@@ -26,9 +26,24 @@
 
 namespace mc {
 
+// ============================================================================
+// 继承链标识（parent = ZombieEntity::classInfo()）。透传层无自身同步字段，
+// classInfo 仅作父链遍历节点。
+// ============================================================================
+const entity::EntityClassInfo& HuskEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"HuskEntity", &ZombieEntity::classInfo()};
+    return s_classInfo;
+}
+
 HuskEntity::HuskEntity(EntityInstanceId id)
     : ZombieEntity(id)
 {
+    // 显式调用 registerData() 确保 Zombie 三字段沿正确继承链注册（C++ 基类构造期
+    // 虚函数不派发，ZombieEntity 构造函数已调，但 Husk 无 override 故不重复注册自身字段）。
+    // 此处调用幂等：DataParameter 静态成员跨实例共享，assignId 双重检查锁。
+    registerData();
+
     // 注册属性
     registerAttributes();
 }

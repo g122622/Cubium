@@ -71,6 +71,12 @@ public:
     TropicalFishEntity(TropicalFishEntity&&) noexcept = delete;
     TropicalFishEntity& operator=(TropicalFishEntity&&) noexcept = delete;
 
+    /// 本类继承链标识（parent = AbstractGroupFishEntity::classInfo()）。见 Entity::classInfo()。
+    // TODO(实体同步对齐): vanilla 1.21.11 TropicalFish 有 DATA_VARIANT(Int,id17)，项目当前
+    // 用 m_variant 普通成员承载、不同步。本次仅补 classInfo 占位对齐 id 上限，DATA_VARIANT
+    // 同步留后续逐实体字段对齐任务。
+    static const entity::EntityClassInfo& classInfo();
+
     /**
      * @brief 创建热带鱼实体
      */

@@ -57,6 +57,10 @@ public:
     HuskEntity(HuskEntity&&) = delete;
     HuskEntity& operator=(HuskEntity&&) = delete;
 
+    /// 本类继承链标识（parent = ZombieEntity::classInfo()）。见 Entity::classInfo()。
+    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    static const entity::EntityClassInfo& classInfo();
+
     /**
      * @brief 创建尸壳实体
      */
