@@ -57,6 +57,7 @@
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/component/DataComponentMap.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
@@ -142,7 +143,9 @@ irplay::HashedStack toHashedStack(const ItemStack& stack)
         return hs;
     }
     hs.present = true;
-    hs.itemId = stack.getItem()->itemId();
+    // HashedStack.itemId 与 ItemStackView.itemId 同为 wire 上的 vanilla registry id（见
+    // ItemStackBridge），边界处由 JavaItemIdMap 翻译，业务侧零感知（贯彻 IR 思想）。
+    hs.itemId = ::mc::network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*stack.getItem());
     hs.count = stack.getCount();
     return hs;
 }

@@ -131,3 +131,5 @@ include/minecraft-reborn/version.h
 # 离线烘焙生成的 Java id 查找表（由 scripts/baking/*.ts 在构建期重生成，勿追踪）
 src/common/world/block/generated/*.gen.cpp
 src/common/world/block/generated/*.gen.hpp
+src/common/network/backend/java/generated/*.gen.cpp
+src/common/network/backend/java/generated/*.gen.hpp

@@ -33,6 +33,7 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -84,9 +85,15 @@ protected:
         Items::initialize();
         m_sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
         ASSERT_NE(m_sword, nullptr);
+        // JavaItemIdMap 须在 Items::initialize 后初始化；toItemStackView/fromItemStackView
+        // 边界用它翻译项目内部 id ↔ vanilla wire id。
+        ASSERT_TRUE(network::backend::java::JavaItemIdMap::instance().initialize().success());
+        m_swordJavaId = network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*m_sword);
+        ASSERT_NE(m_swordJavaId, 0u) << "diamond_sword 须命中 vanilla item 表";
     }
 
     const Item* m_sword = nullptr;
+    u32 m_swordJavaId = 0;
 };
 
 TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesAllComponents)
@@ -170,7 +177,7 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_PreservesAllComponents)
     const auto original = makeFullyComponentedStack(m_sword);
 
     const auto view = network::ir::toItemStackView(original);
-    EXPECT_EQ(view.itemId, m_sword->itemId());
+    EXPECT_EQ(view.itemId, m_swordJavaId);
     EXPECT_EQ(view.count, 1);
     EXPECT_FALSE(view.componentsPatch.empty()) << "有非默认组件时 componentsPatch 须非空";
 
@@ -200,7 +207,7 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_NoComponents_HasEmptyPatch
     ItemStack plain(*m_sword, 2);
 
     const auto view = network::ir::toItemStackView(plain);
-    EXPECT_EQ(view.itemId, m_sword->itemId());
+    EXPECT_EQ(view.itemId, m_swordJavaId);
     EXPECT_EQ(view.count, 2);
     // 无组件的非空栈：patch 为空，但 wire 须写出空 patch 的表示 0x00 0x00
     // （vanilla DataComponentPatch.STREAM_CODEC 对空 patch 写 VarInt(0)+VarInt(0)）。

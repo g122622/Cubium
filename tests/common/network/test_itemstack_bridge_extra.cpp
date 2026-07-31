@@ -34,6 +34,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -71,23 +72,33 @@ protected:
         Items::initialize();
         m_sword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
         ASSERT_NE(m_sword, nullptr);
+        // JavaItemIdMap 须在 Items::initialize 后初始化；bridge 边界用它翻译 id。
+        ASSERT_TRUE(network::backend::java::JavaItemIdMap::instance().initialize().success());
+        m_swordJavaId = network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*m_sword);
+        ASSERT_NE(m_swordJavaId, 0u);
     }
 
     const Item* m_sword = nullptr;
+    u32 m_swordJavaId = 0;
 };
 
 // ============================================================================
 // bridge fromItemStackView 边界
 // ============================================================================
 
-TEST_F(ItemStackBridgeExtraTest, UnknownItemIdReturnsError)
+TEST_F(ItemStackBridgeExtraTest, OutOfRangeItemIdFallsBackToAir)
 {
-    // 非零但未注册的 itemId → InvalidItem 错误（不返空栈）
+    // 超出 vanilla item 注册表范围(0..1504)的 itemId → fromJavaRegistryId 兜底 0(air)
+    // → getItem(air) 返 air 栈(非错)。新语义下不存在"未注册 id 返错"路径:vanilla 表
+    // 是固定 1505 条全量,任何 miss 都兜底 air(与 entity_type/biome 表一致)。
     ItemStackView view{};
-    view.itemId = 999999u; // 远超 vanilla 注册表
+    view.itemId = 999999u; // 远超 vanilla 注册表(1504)
     view.count = 1;
     auto r = fromItemStackView(view);
-    ASSERT_FALSE(r.success());
+    ASSERT_TRUE(r.success());
+    // 兜底 air:getItem 为 air 或空(取决于 ItemStack 对 air 的判定,二者都表示"无效物品兜底")。
+    const auto& stack = r.value();
+    EXPECT_TRUE(stack.isEmpty() || stack.getItem() == Items::AIR);
 }
 
 TEST_F(ItemStackBridgeExtraTest, NonZeroItemIdButNonPositiveCountReturnsEmpty)
@@ -95,7 +106,7 @@ TEST_F(ItemStackBridgeExtraTest, NonZeroItemIdButNonPositiveCountReturnsEmpty)
     // bridge 防御：itemId!=0 但 count<=0 → 返空栈（非错）。
     // 线上 count<=0 在 wire 层已被编码为空（0x00），不会带 itemId；此处直接测 bridge 守卫。
     ItemStackView view{};
-    view.itemId = m_sword->itemId();
+    view.itemId = m_swordJavaId;
     view.count = 0;
     auto r = fromItemStackView(view);
     ASSERT_TRUE(r.success());
@@ -144,7 +155,7 @@ TEST_F(ItemStackBridgeExtraTest, EmptyPatchProducesMinimalBytes)
     // 合法 itemId + count>0 + 空 patch（wire = 0x00 0x00）：
     // wire = VarInt(count) + VarInt(itemId) + VarInt(0) + VarInt(0)
     ItemStackView view{};
-    view.itemId = m_sword->itemId();
+    view.itemId = m_swordJavaId; // vanilla wire id（非项目内部序）
     view.count = 1;
     view.componentsPatch = {0x00, 0x00}; // 空 patch 的 wire（added=0, removed=0）
 
@@ -156,7 +167,7 @@ TEST_F(ItemStackBridgeExtraTest, EmptyPatchProducesMinimalBytes)
     RegistryByteBuf readBuf(buf.data(), buf.size(), RegistryAccess::instance());
     auto dec = play_detail::readItemStack(readBuf);
     ASSERT_TRUE(dec.success());
-    EXPECT_EQ(dec.value().itemId, m_sword->itemId());
+    EXPECT_EQ(dec.value().itemId, m_swordJavaId);
     EXPECT_EQ(dec.value().count, 1);
     EXPECT_EQ(dec.value().componentsPatch, (std::vector<u8>{0x00, 0x00}));
 
@@ -170,9 +181,9 @@ TEST_F(ItemStackBridgeExtraTest, TruncatedPatchReturnsError)
 {
     // addedCount 声明 5 但后续无足够字节读 typeId/value → readPatchBytesFromWire 越界错。
     auto buf = makeBuf();
-    buf.writeVarInt(1);                                   // count
-    buf.writeVarInt(static_cast<i32>(m_sword->itemId())); // itemId
-    buf.writeVarInt(5);                                   // addedCount=5（声明），后续无字节
+    buf.writeVarInt(1);                               // count
+    buf.writeVarInt(static_cast<i32>(m_swordJavaId)); // itemId
+    buf.writeVarInt(5);                               // addedCount=5（声明），后续无字节
 
     RegistryByteBuf readBuf(buf.data(), buf.size(), RegistryAccess::instance());
     auto dec = play_detail::readItemStack(readBuf);
@@ -183,8 +194,8 @@ TEST_F(ItemStackBridgeExtraTest, NegativePatchCountReturnsError)
 {
     // addedCount=-1 → readPatchBytesFromWire 显式 InvalidData 错。
     auto buf = makeBuf();
-    buf.writeVarInt(1);                                   // count
-    buf.writeVarInt(static_cast<i32>(m_sword->itemId())); // itemId
+    buf.writeVarInt(1);                               // count
+    buf.writeVarInt(static_cast<i32>(m_swordJavaId)); // itemId
     // VarInt(-1) = 0xFF 0xFF 0xFF 0xFF 0x0F（5 字节）
     buf.writeVarInt(-1); // addedCount=-1
 

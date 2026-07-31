@@ -27,6 +27,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 
 namespace mc {
@@ -39,7 +40,13 @@ play::ItemStackView toItemStackView(const class ::mc::ItemStack& stack)
     if (stack.isEmpty()) {
         return view; // itemId=0, count=0
     }
-    view.itemId = stack.getItem() != nullptr ? stack.getItem()->itemId() : 0;
+    // ItemStackView.itemId 是 wire 上的 vanilla BuiltInRegistries.ITEM 注册序（与项目内部
+    // Item::itemId() 无关）。边界处由 JavaItemIdMap 把项目 Item 翻译为 vanilla id，业务侧
+    // ItemStack 与 codec 均零感知（贯彻 IR 思想：上层业务零 wire 感知，仅 Java backend 编码
+    // 成 vanilla wire）。minecraft:item 注册表不在 23 个 SYNCHRONIZED_REGISTRIES，真客户端
+    // 用内置 vanilla core 包按注册序解析 wire itemId。
+    const ::mc::Item* item = stack.getItem();
+    view.itemId = item != nullptr ? ::mc::network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*item) : 0;
     view.count = stack.getCount();
 
     // 导出组件补丁并序列化为 1.21.11 wire 字节。即使 patch 为空也必须写出（vanilla
@@ -59,7 +66,10 @@ Result<class ::mc::ItemStack> fromItemStackView(const play::ItemStackView& view)
     if (view.itemId == 0 || view.count <= 0) {
         return ::mc::ItemStack{};
     }
-    Item* item = ItemRegistry::instance().getItem(view.itemId);
+    // wire 上的 itemId 是 vanilla registry id，须经 JavaItemIdMap 反查为项目内部 ItemId。
+    const ItemId internalItemId =
+        ::mc::network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(view.itemId);
+    Item* item = ItemRegistry::instance().getItem(internalItemId);
     if (item == nullptr) {
         return Error(ErrorCode::InvalidItem, "Unknown item id in ItemStackView: " + std::to_string(view.itemId));
     }

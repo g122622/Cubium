@@ -56,6 +56,8 @@ add_library(mc_common STATIC
     network/pipeline/ProtocolSwapHandler.cpp
     network/backend/java/JavaBackend.cpp
     network/backend/java/JavaProtocolTables.cpp
+    network/backend/java/JavaItemIdMap.cpp
+    network/backend/java/generated/java_item_table.gen.cpp
     network/backend/java/handshake/JavaLoginHandshaker.cpp
 
     # Network - Sync
@@ -1698,6 +1700,26 @@ set_source_files_properties(${_java_block_table_gen_cpp} PROPERTIES GENERATED TR
 # 触发 -Woverlength-strings;对生成的大型静态表豁免该警告。
 set_source_files_properties(${_java_block_table_gen_cpp}
     PROPERTIES COMPILE_OPTIONS "-Wno-overlength-strings")
+
+# Java 协议对齐所需的 vanilla 1.21.11 item registry id 查找表(预生成,编译进二进制)。
+# 离线 TS 脚本 scripts/baking/bake_java_item_table.ts 读 assets/data/items_1.21.11.json,
+# 生成排序的 name→registryId 静态查找表(.gen.cpp/.gen.hpp),供 JavaItemIdMap 运行时
+# 二分查找。运行时零 JSON 解析、零堆分配。产物不入 git(.gitignore),每次构建重生成。
+set(_java_item_table_gen_cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_item_table.gen.cpp")
+set(_java_item_table_gen_hpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_item_table.gen.hpp")
+set(_bake_item_script "${CMAKE_SOURCE_DIR}/scripts/baking/bake_java_item_table.ts")
+set(_items_json "${CMAKE_SOURCE_DIR}/assets/data/items_1.21.11.json")
+add_custom_command(
+    OUTPUT ${_java_item_table_gen_cpp} ${_java_item_table_gen_hpp}
+    COMMAND ${NODE_EXECUTABLE} ${_bake_item_script}
+    DEPENDS ${_bake_item_script} ${_items_json}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Baking Java item registry id table from items_1.21.11.json"
+    VERBATIM
+)
+set_source_files_properties(${_java_item_table_gen_cpp} PROPERTIES GENERATED TRUE)
 
 # 基岩版Addon兼容模组系统
 add_subdirectory(mod/bedrock/addon)

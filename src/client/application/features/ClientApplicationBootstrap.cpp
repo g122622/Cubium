@@ -52,6 +52,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
@@ -151,6 +152,12 @@ void ClientApplication::initializeCoreRegistries()
         }
         if (auto r = JavaBlockEntityTypeIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBlockEntityTypeIdMap: {}", r.error().toString());
+        }
+        // item 表遍历 ItemRegistry::forEachItem（上方 L84 Items::initialize 已完成）。
+        // item wire id 双向流通（toItemStackView 发 / fromItemStackView 收），客户端接收侧
+        // 须用本表把 wire 上的 vanilla id 反查为项目内部 ItemId（贯彻 IR 思想：上层零感知）。
+        if (auto r = ::mc::network::backend::java::JavaItemIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaItemIdMap: {}", r.error().toString());
         }
     }
 }

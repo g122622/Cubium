@@ -56,6 +56,7 @@
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -1442,7 +1443,8 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // 初始化 Java id 映射表（level_chunk_with_light vanilla wire 用）。
     // 顺序依赖：block 表遍历 Block::forEachBlockState（须在 VanillaBlocks::initialize 之后）；
     // biome 表遍历 BiomeRegistry::allBiomes（须在 BiomeRegistry::initialize 之后）；
-    // blockentity 表仅依赖 blockEntityTypeToId 静态映射，无注册顺序依赖。三者均在上方已完成。
+    // blockentity 表仅依赖 blockEntityTypeToId 静态映射，无注册顺序依赖。
+    // item 表遍历 ItemRegistry::forEachItem（须在 Items::initialize 之后）。四者均在上方已完成。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::JavaIdMaps");
         if (auto r = world::block::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
@@ -1456,6 +1458,9 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
         if (auto r = JavaEntityTypeIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaEntityTypeIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaItemIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaItemIdMap: {}", r.error().toString());
         }
     }
 }

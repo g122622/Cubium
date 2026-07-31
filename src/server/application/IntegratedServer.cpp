@@ -38,6 +38,7 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -91,7 +92,10 @@ Player& _getMenuPlayer()
     if (!hashed.present || hashed.itemId == 0 || hashed.count <= 0) {
         return ItemStack();
     }
-    auto* item = mc::ItemRegistry::instance().getItem(hashed.itemId);
+    // wire 上的 hashed.itemId 是 vanilla registry id，须经 JavaItemIdMap 反查为项目内部 ItemId。
+    const mc::ItemId internalItemId =
+        mc::network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(hashed.itemId);
+    auto* item = mc::ItemRegistry::instance().getItem(internalItemId);
     if (item == nullptr) {
         return ItemStack();
     }
@@ -186,7 +190,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     m_clientConnection = m_serverNetwork->createLocalClientSide(&m_pendingClientTransport);
     if (m_clientConnection == nullptr) {
         spdlog::error("IntegratedServer: failed to create local client connection pair");
-        return Error(ErrorCode::InitializationFailed, "Local client connection pair creation failed", "IntegratedServer::initialize");
+        return Error(ErrorCode::InitializationFailed,
+            "Local client connection pair creation failed",
+            "IntegratedServer::initialize");
     }
 
     // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
