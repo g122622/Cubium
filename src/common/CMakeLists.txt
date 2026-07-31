@@ -633,6 +633,7 @@ add_library(mc_common STATIC
 
     # World - Entity
     world/entity/EntityManager.cpp
+    world/entity/JavaEntityTypeIdMap.cpp
 
     # World - IWorld implementation
     world/IWorld.cpp
