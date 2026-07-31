@@ -558,13 +558,13 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
 
     auto world = std::make_unique<server::ServerWorld>(worldConfig);
     auto chunkManager = std::make_unique<server::ServerChunkManager>(*world, std::move(generator));
-    chunkManager->setWorkerPool(&m_server->m_computationWorkerPool);
+    chunkManager->setWorkerPool(&m_server->computationWorkerPool());
     chunkManager->setViewDistance(m_viewDistance);
     world->setChunkManager(std::move(chunkManager));
-    world->setSharedStorage(m_server->m_storage.get());
+    world->setSharedStorage(m_server->sharedStorage());
     world->setTimeManager(&m_server->timeManager());
     world->setDifficultyCallback([server = m_server]() { return server->difficulty(); });
-    world->setLootTableManager(&m_server->m_lootTableManager);
+    world->setLootTableManager(&m_server->lootTableManager());
     return world;
 }
 

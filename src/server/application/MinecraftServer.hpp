@@ -122,9 +122,6 @@ struct ServerDebugStats {
  * - 特定的数据包处理
  */
 class MinecraftServer : public IServer {
-    // ServerDimensionManager 需要访问 sendPacketToPlayer
-    friend class mc::ServerDimensionManager;
-
 public:
     /**
      * @brief 构造函数
@@ -554,11 +551,17 @@ protected:
      */
     [[nodiscard]] virtual PlayerId getPlayerIdForSession(u32 sessionId) const = 0;
 
+public:
     /**
      * @brief 向指定玩家发送 IR 包（子类实现）
+     *
+     * 作为发送原语公开：ServerDimensionManager 等服务端子系统经此向玩家下发
+     * 维度切换/区块等 IR 包，无需 friend。子类（StandaloneServer/IntegratedServer）
+     * 提供本地/远程双路径实现。
      */
     virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
+protected:
     /**
      * @brief 向指定玩家同步命令树
      */
