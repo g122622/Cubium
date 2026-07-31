@@ -56,6 +56,7 @@ clang-format -i src\common\xxx\Foo.hpp
 - 可能出现找不到clang-format的情况，此时需要手动指定路径。
 （在windows上，我的vs安装在D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64/bin/clang-format.exe）
 - 只允许格式化.cpp和.hpp文件，其他文件严禁通过上述命令格式化。
+- .gen.cpp/.gen.hpp文件是自动生成的，禁止格式化。
 
 ## git 规范
 
