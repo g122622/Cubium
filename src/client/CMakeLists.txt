@@ -445,6 +445,9 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
+    # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
+    # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
     # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp

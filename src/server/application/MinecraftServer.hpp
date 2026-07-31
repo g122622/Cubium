@@ -98,6 +98,7 @@ class WeatherSyncService;
 
 namespace net {
 class ServerClientConnection;
+class PlayerBroadcaster;
 } // namespace net
 
 /**
@@ -205,6 +206,10 @@ public:
     // ========== 天气同步服务 ==========
     [[nodiscard]] sync::WeatherSyncService& weatherSyncService() { return *m_weatherSyncService; }
     [[nodiscard]] const sync::WeatherSyncService& weatherSyncService() const { return *m_weatherSyncService; }
+
+    // ========== 玩家广播门面 ==========
+    [[nodiscard]] net::PlayerBroadcaster& broadcaster() { return *m_broadcaster; }
+    [[nodiscard]] const net::PlayerBroadcaster& broadcaster() const { return *m_broadcaster; }
 
     // ========== 玩家实体管理 ==========
 
@@ -1191,6 +1196,9 @@ protected:
 
     // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
     std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;
+
+    // 玩家广播门面（声音/粒子/实体事件/世界事件/方块事件/爆炸/光照更新，下沉自 broadcast*/send*）
+    std::unique_ptr<net::PlayerBroadcaster> m_broadcaster;
 
     // 交互管理器
     std::unique_ptr<interaction::BlockInteractionManager> m_blockInteractionManager;

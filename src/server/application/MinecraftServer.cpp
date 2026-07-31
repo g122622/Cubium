@@ -139,6 +139,7 @@
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
 #include "server/sync/WeatherSyncService.hpp"
+#include "server/network/PlayerBroadcaster.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -163,31 +164,6 @@ namespace {
 [[nodiscard]] bool isReadonlyForeignStorage(const world::storage::SingleLevelStorageManager* storage)
 {
     return storage != nullptr && storage->isOpen() && storage->config().readonly && storage->isForeignFormat();
-}
-
-/// 构造 LevelParticles IR（1.21.11，对齐 ClientboundLevelParticlesPacket）。
-///
-/// 外层字段取自广播参数：位置/偏移/count；maxSpeed 沿用旧实现固定 0（客户端按
-/// 偏移扇出，不消费该字段）。ParticleOptions 由调用方按粒子类型预先填充。
-[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
-    const Vector3& pos, const Vector3& offset, u32 count, mc::network::ir::play::ParticleOptions options)
-{
-    mc::network::ir::play::LevelParticles pkt;
-    pkt.overrideLimiter = false;
-    pkt.alwaysShow = false;
-    pkt.x = pos.x;
-    pkt.y = pos.y;
-    pkt.z = pos.z;
-    pkt.xDist = offset.x;
-    pkt.yDist = offset.y;
-    pkt.zDist = offset.z;
-    pkt.maxSpeed = 0.0f;
-    pkt.count = static_cast<i32>(count);
-    pkt.particle = std::move(options);
-    return mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    };
 }
 
 } // namespace
@@ -519,6 +495,9 @@ void MinecraftServer::initializeCoreManagers()
     // 创建天气同步服务（方法内部对主世界 WeatherManager 未就绪做早退守卫，
     // 故可在维度世界创建前构造；tick/登录调用时主世界已就绪）
     m_weatherSyncService = std::make_unique<sync::WeatherSyncService>(*this);
+
+    // 创建玩家广播门面（承接全部 broadcast*/send* 转发型网络广播，仅持 *this 引用）
+    m_broadcaster = std::make_unique<net::PlayerBroadcaster>(*this);
     m_dimensionManager->setDimensionChangeCallback(
         [this](PlayerId playerId, DimensionId fromDim, DimensionId toDim, const Vector3d& position) {
             auto* player = m_playerManager->getPlayer(playerId);
@@ -1553,59 +1532,7 @@ void MinecraftServer::broadcastLightUpdate(ChunkCoord x,
     const std::vector<u8>& blockLight,
     bool trustEdges)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting,
-        "BroadcastLightUpdate",
-        "Section",
-        fmt::format("({}, {}, {})", x, sectionY, z),
-        "SkyLightSize",
-        skyLight.size(),
-        "BlockLightSize",
-        blockLight.size(),
-        [flow = ::perfetto::Flow::ProcessScoped(SectionPos(x, sectionY, z).toLong())](
-            ::perfetto::EventContext ctx) { flow(ctx); });
-
-    // 1.21.11 ClientboundLightUpdatePacket 线格式：
-    //   VarInt(x)+VarInt(z)+4×BitSet(skyYMask/blockYMask/emptySkyYMask/emptyBlockYMask)+2×List<byte[≤2048]>
-    // BitSet 位 i 对应光照段 Y = minLightSection + i（minLightSection = MIN_SECTION_Y - 1，主世界=-5）。
-    // 单段光照更新：仅在该段对应的 yMask（sky 或 block）置位，并往对应列表塞一条 2048 字节 nibble。
-    // 注意 setOnLightChanged 回调按 LightType 单独触发，故每个包只含一种光照类型的数据。
-    constexpr i32 kMinLightSection = mc::world::MIN_SECTION_Y - 1; // 主世界=-5
-    const i32 bitIndex = sectionY - kMinLightSection;
-    if (bitIndex < 0) {
-        return; // 段坐标越界（低于最小光照段），丢弃
-    }
-
-    // BitSet 以最小长整型数组表示：bit 所在 long = bit / 64，long 内位 = bit % 64。
-    auto buildSingleBitMask = [&](i32 bit) -> std::vector<i64> {
-        const usize li = static_cast<usize>(bit) / 64;
-        std::vector<i64> mask(li + 1, 0);
-        mask[li] = static_cast<i64>(static_cast<u64>(1) << (static_cast<usize>(bit) % 64));
-        return mask;
-    };
-
-    mc::network::ir::play::LightUpdate pkt;
-    pkt.x = static_cast<i32>(x);
-    pkt.z = static_cast<i32>(z);
-    // lightMasks 顺序：skyYMask / blockYMask / emptySkyYMask / emptyBlockYMask
-    if (!skyLight.empty()) {
-        pkt.lightMasks[0] = buildSingleBitMask(bitIndex); // skyYMask
-        pkt.lightUpdates[0].push_back(skyLight);          // skyUpdates
-    }
-    if (!blockLight.empty()) {
-        pkt.lightMasks[1] = buildSingleBitMask(bitIndex); // blockYMask
-        pkt.lightUpdates[1].push_back(blockLight);        // blockUpdates
-    }
-    MC_UNUSED(trustEdges); // 1.21.11 已从该包移除 trustEdges，保留参数以兼容调用方签名
-
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    };
-    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
-        if (player.loggedIn && player.hasConnection()) {
-            player.send(mc::network::ir::IrPacket{packet});
-        }
-    });
+    m_broadcaster->broadcastLightUpdate(x, z, sectionY, skyLight, blockLight, trustEdges);
 }
 
 u64 MinecraftServer::currentTick() const
@@ -2840,27 +2767,14 @@ void MinecraftServer::routeInboundPlayPacket(PlayerId playerId, const mc::networ
 // 声音广播方法
 // ============================================================================
 
+// ============================================================================
+// 广播方法（薄转调：逻辑已下沉至 net::PlayerBroadcaster）
+// ============================================================================
+
 void MinecraftServer::broadcastSound(
     const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
-    // 1.21.11 PlaySound：Holder<SoundEvent>(结构化内联) + source + 坐标×8 + volume + pitch + seed。
-    // soundHolder 用内联 SoundEvent（direct=true，identifier=soundEventId），对齐 vanilla wire。
-    //   seed 暂用固定值 0。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-    broadcastPacket(mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    });
+    m_broadcaster->broadcastSound(soundEventId, category, position, volume, pitch);
 }
 
 void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId,
@@ -2870,42 +2784,7 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
     f32 volume,
     f32 pitch)
 {
-    // 1.21.11 PlaySound（同上），仅发送给范围内玩家。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    // 只发送给范围内的玩家
-    u32 playersNotified = 0;
-    m_playerManager->forEachPlayer([this, &position, range, &packet, &playersNotified](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - position.x;
-        f32 dy = player.y - position.y;
-        f32 dz = player.z - position.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-            playersNotified++;
-        }
-    });
+    m_broadcaster->broadcastSoundInRange(soundEventId, category, position, range, volume, pitch);
 }
 
 void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
@@ -2915,23 +2794,7 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
     f32 volume,
     f32 pitch)
 {
-    // 1.21.11 PlaySound（同上），定向发送。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-    sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    m_broadcaster->sendSoundToPlayer(playerId, soundEventId, category, position, volume, pitch);
 }
 
 // ============================================================================
@@ -2945,28 +2808,7 @@ void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
     u32 count,
     f32 range)
 {
-    mc::network::ir::play::ParticleOptions options;
-    options.type = type;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
-
-    // 只发送给范围内的玩家
-    u32 playersNotified = 0;
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket, &playersNotified](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-            playersNotified++;
-        }
-    });
+    m_broadcaster->broadcastParticleInRange(type, pos, velocity, offset, count, range);
 }
 
 void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
@@ -2976,164 +2818,37 @@ void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
     const Vector3& offset,
     u32 count)
 {
-    mc::network::ir::play::ParticleOptions options;
-    options.type = type;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
-    sendPacketToPlayer(playerId, irPacket);
+    m_broadcaster->sendParticleToPlayer(playerId, type, pos, velocity, offset, count);
 }
 
 void MinecraftServer::broadcastVibrationParticleInRange(
     const Vector3& pos, const gameevent::PositionSource& targetSource, i32 arrivalInTicks, f32 range)
 {
-    // VibrationParticleOption.STREAM_CODEC = PositionSource + VAR_INT arrivalInTicks
-    // PositionSource = VarInt(kind: 0=Block 1=Entity)
-    //   kind=0: i64 packedBlockPos；kind=1: VarInt entityId + FLOAT yOffset
-    mc::network::ir::play::ParticleOptions options;
-    options.type = particle::ParticleTypeId::Vibration;
-    options.arrivalInTicks = arrivalInTicks;
-    const std::string sourceType = targetSource.type();
-    if (sourceType == "entity") {
-        const auto& entitySource = static_cast<const gameevent::EntityPositionSource&>(targetSource);
-        options.vibrationSourceKind = 1;
-        options.vibrationEntityId = static_cast<i32>(entitySource.entityId());
-        options.vibrationYOffset = entitySource.yOffset();
-    } else {
-        // 默认按方块位置源处理（"block" 或任何未知类型）
-        const auto& blockSource = static_cast<const gameevent::BlockPositionSource&>(targetSource);
-        options.vibrationSourceKind = 0;
-        options.vibrationBlockPosPacked = blockSource.pos().asLong();
-    }
-
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
-
-    // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-        }
-    });
+    m_broadcaster->broadcastVibrationParticleInRange(pos, targetSource, arrivalInTicks, range);
 }
 
 void MinecraftServer::broadcastTrailParticleInRange(
     const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks, f32 range)
 {
-    // TrailParticleOption.STREAM_CODEC = Vec3(3×F64 target) + INT color(ARGB) + VAR_INT duration
-    mc::network::ir::play::ParticleOptions options;
-    options.type = particle::ParticleTypeId::Trail;
-    options.trailTargetX = targetPosition.x;
-    options.trailTargetY = targetPosition.y;
-    options.trailTargetZ = targetPosition.z;
-    options.color = color;
-    options.trailDuration = durationInTicks;
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
-
-    // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-        }
-    });
+    m_broadcaster->broadcastTrailParticleInRange(pos, targetPosition, color, durationInTicks, range);
 }
 
 void MinecraftServer::broadcastEntityEffectParticleInRange(
     const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color, f32 range)
 {
-    // ColorParticleOption(ENTITY_EFFECT).STREAM_CODEC = INT color（ARGB 大端）
-    mc::network::ir::play::ParticleOptions options;
-    options.type = particle::ParticleTypeId::EntityEffect;
-    options.color = color;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
-
-    // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-        }
-    });
+    m_broadcaster->broadcastEntityEffectParticleInRange(pos, velocity, offset, count, color, range);
 }
 
 void MinecraftServer::broadcastBlockParticleInRange(
     particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, u32 blockStateId, f32 range)
 {
-    // BlockParticleOption.STREAM_CODEC = VarInt(blockStateId)
-    mc::network::ir::play::ParticleOptions options;
-    options.type = type;
-    options.blockStateId = blockStateId;
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
-
-    // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-        }
-    });
+    m_broadcaster->broadcastBlockParticleInRange(type, pos, velocity, blockStateId, range);
 }
 
 void MinecraftServer::broadcastItemParticleInRange(
     particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack, f32 range)
 {
-    // ItemParticleOption.STREAM_CODEC = 完整 ItemStack wire（VarInt count + Item holder + DataComponentPatch）
-    mc::network::ir::play::ParticleOptions options;
-    options.type = type;
-    options.item = mc::network::ir::toItemStackView(itemStack);
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
-
-    // 只发送给范围内的玩家
-    m_playerManager->forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 dx = player.x - pos.x;
-        f32 dy = player.y - pos.y;
-        f32 dz = player.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-        f32 rangeSq = range * range;
-
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, irPacket);
-        }
-    });
+    m_broadcaster->broadcastItemParticleInRange(type, pos, velocity, itemStack, range);
 }
 
 void MinecraftServer::broadcastParticleInRange(u32 type,
@@ -3149,257 +2864,74 @@ void MinecraftServer::broadcastParticleInRange(u32 type,
     u32 count,
     f32 range)
 {
-    // 转换为强类型枚举并调用现有的实现
+    // 转换为强类型枚举并转调强类型实现（IServer 弱类型接口，批5b 收口）
     auto particleType = static_cast<particle::ParticleTypeId>(type);
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     Vector3 velocity(velocityX, velocityY, velocityZ);
     Vector3 offset(offsetX, offsetY, offsetZ);
-
-    broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
+    m_broadcaster->broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
 }
+
+// ============================================================================
+// 实体事件/动画
+// ============================================================================
 
 void MinecraftServer::broadcastEntityStatusInRange(EntityInstanceId entityId, u8 status, const Vector3& pos, f32 range)
 {
-    // 1.21.11 EntityEvent：entityId + eventId(status)。
-    mc::network::ir::play::EntityEvent pkt;
-    pkt.entityId = static_cast<i32>(entityId);
-    pkt.eventId = status;
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastEntityStatusInRange(entityId, status, pos, range);
 }
 
 void MinecraftServer::broadcastEntityAnimationInRange(
     EntityInstanceId entityId, u8 animation, const Vector3& pos, f32 range)
 {
-    // 1.21.11 Animate：entityId + action(animation)。
-    mc::network::ir::play::Animate pkt;
-    pkt.id = static_cast<i32>(entityId);
-    pkt.action = animation;
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastEntityAnimationInRange(entityId, animation, pos, range);
 }
 
 void MinecraftServer::broadcastHurtAnimationInRange(
     EntityInstanceId entityId, f32 hurtDir, const Vector3& pos, f32 range)
 {
-    // 1.21.11 HurtAnimation：entityId + yaw(hurtDir)。
-    // 受害者自身与范围内追踪者均会收到。
-    mc::network::ir::play::HurtAnimation pkt;
-    pkt.id = static_cast<i32>(entityId);
-    pkt.yaw = hurtDir;
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastHurtAnimationInRange(entityId, hurtDir, pos, range);
 }
 
 void MinecraftServer::broadcastSetEntityLinkInRange(
     EntityInstanceId entityId, EntityInstanceId linkedEntityId, const Vector3& pos, f32 range)
 {
-    // 1.21.11 SetEntityLink：sourceId + destId（leash/riding 关系）。
-    mc::network::ir::play::SetEntityLink pkt;
-    pkt.sourceId = static_cast<i32>(entityId);
-    pkt.destId = static_cast<i32>(linkedEntityId);
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastSetEntityLinkInRange(entityId, linkedEntityId, pos, range);
 }
 
 // ============================================================================
-// 世界事件广播
+// 世界事件
 // ============================================================================
 
 void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
 {
-    // 1.21.11 LevelEvent：type + blockPosPacked + data + globalEvent。
-    mc::network::ir::play::LevelEvent pkt;
-    pkt.type = eventId;
-    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
-    pkt.data = data;
-    pkt.globalEvent = false;
-    broadcastPacket(mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    });
+    m_broadcaster->broadcastWorldEvent(eventId, x, y, z, data);
 }
 
 void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
 {
-    mc::network::ir::play::LevelEvent pkt;
-    pkt.type = eventId;
-    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
-    pkt.data = data;
-    pkt.globalEvent = false;
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastWorldEventInRange(eventId, x, y, z, data, range);
 }
 
 void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
 {
-    // 参考 MC Java: ServerPlayerList.broadcast(null, x, y, z, 64.0, dimension, new ClientboundBlockEventPacket)
-    // 1.21.11 BlockEvent：blockPosPacked + b0 + b1 + blockId(此处用 blockStateId)。
-    mc::network::ir::play::BlockEvent pkt;
-    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
-    pkt.b0 = paramA;
-    pkt.b1 = paramB;
-    pkt.blockId = static_cast<i32>(blockStateId);
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastBlockEventInRange(x, y, z, paramA, paramB, blockStateId, range);
 }
 
 void MinecraftServer::broadcastBlockEntityInRange(
     const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range)
 {
-    // 参考 MC Java: PlayerList.broadcast(null, x, y, z, 64.0, dimension,
-    //   new ClientboundBlockEntityDataPacket(pos, type, tag))
-    // 方块实体数据变化后，将最新 NBT 快照发送给附近客户端。
-    // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
-    mc::network::ir::play::BlockEntityData pkt;
-    pkt.blockPosPacked = pos.asLong();
-    pkt.blockEntityType = static_cast<i32>(type);
-    pkt.tag = std::move(tag);
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
-
-    f32 rangeSq = range * range;
-    Vector3 fpos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
-    m_playerManager->forEachPlayer([this, &fpos, rangeSq, &packet](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, fpos.x, fpos.y, fpos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId, packet);
-        }
-    });
+    m_broadcaster->broadcastBlockEntityInRange(pos, type, std::move(tag), range);
 }
 
 void MinecraftServer::broadcastBlockBreakProgressInRange(
     EntityInstanceId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range)
 {
-    // 对应 MC Java: ServerLevel.destroyBlockProgress()
-    // 1.21.11 BlockDestruction：breakerId + blockPosPacked + progress(0-9)。
-    // MC Java 原版行为：排除破坏者自身（serverplayer.getId() != breakerId），
-    // 只向同维度、32格范围内的其他玩家发送。破坏者自身的动画由客户端本地直接驱动。
-    mc::network::ir::play::BlockDestruction pkt;
-    pkt.id = static_cast<i32>(breakerId);
-    pkt.blockPosPacked = BlockPos(x, y, z).asLong();
-    pkt.progress = static_cast<u8>(progress);
-
-    // 将 breakerId (EntityInstanceId) 转换为 PlayerId，用于排除破坏者自身
-    PlayerId breakerPlayerId = playerEntityManager().getPlayerIdByEntityId(breakerId);
-
-    f32 rangeSq = range * range;
-    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, breakerPlayerId, &pos, rangeSq, &pkt](ServerPlayerData& player) {
-        if (!player.loggedIn || !player.hasConnection()) {
-            return;
-        }
-
-        // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
-        if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
-            return;
-        }
-
-        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
-        if (distSq <= rangeSq) {
-            sendPacketToPlayer(player.playerId,
-                mc::network::ir::IrPacket{
-                    mc::network::protocol::ConnectionProtocol::Play,
-                    mc::network::ir::PlayPacket{pkt},
-                });
-        }
-    });
+    m_broadcaster->broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress, range);
 }
 
 // ============================================================================
-// 爆炸广播
+// 爆炸
 // ============================================================================
 
 void MinecraftServer::broadcastExplosionInRange(const Vector3& position,
@@ -3408,28 +2940,7 @@ void MinecraftServer::broadcastExplosionInRange(const Vector3& position,
     const std::unordered_map<u64, Vector3>& playerKnockback,
     f32 range)
 {
-    // 发送给爆炸点 64 格范围内的玩家
-    // 每个玩家收到的击退向量不同，需要为每个玩家单独构建数据包
-
-    f32 rangeSq = range * range;
-
-    m_playerManager->forEachPlayer(
-        [this, &position, strength, &affectedBlocks, &playerKnockback, rangeSq](ServerPlayerData& player) {
-            if (!player.loggedIn || !player.hasConnection()) {
-                return;
-            }
-
-            // 检查玩家是否在范围内
-            f32 dx = player.x - position.x;
-            f32 dy = player.y - position.y;
-            f32 dz = player.z - position.z;
-            f32 distSq = dx * dx + dy * dy + dz * dz;
-
-            if (distSq <= rangeSq) {
-                // 为每个玩家创建单独的爆炸包（击退向量不同）
-                sendExplosionToPlayer(player.playerId, position, strength, affectedBlocks, playerKnockback);
-            }
-        });
+    m_broadcaster->broadcastExplosionInRange(position, strength, affectedBlocks, playerKnockback, range);
 }
 
 void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
@@ -3438,30 +2949,7 @@ void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
     const std::vector<BlockPos>& affectedBlocks,
     const std::unordered_map<u64, Vector3>& playerKnockback)
 {
-    // 构造 1.21.11 Explosion IR（结构化：中心/半径/方块数/击退/粒子/声音）
-    mc::network::ir::play::Explosion pkt;
-    pkt.centerX = position.x;
-    pkt.centerY = position.y;
-    pkt.centerZ = position.z;
-    pkt.radius = strength;
-    pkt.blockCount = static_cast<i32>(affectedBlocks.size());
-    const auto kbIt = playerKnockback.find(static_cast<u64>(playerId));
-    pkt.hasPlayerKnockback = (kbIt != playerKnockback.end());
-    if (pkt.hasPlayerKnockback) {
-        pkt.knockbackX = kbIt->second.x;
-        pkt.knockbackY = kbIt->second.y;
-        pkt.knockbackZ = kbIt->second.z;
-    }
-    pkt.explosionParticle.type = particle::ParticleTypeId::Explosion;
-    pkt.explosionSound.direct = true;
-    pkt.explosionSound.identifier = "minecraft:entity.generic.explode";
-    pkt.explosionSound.hasFixedRange = false;
-
-    sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    m_broadcaster->sendExplosionToPlayer(playerId, position, strength, affectedBlocks, playerKnockback);
 }
 
 } // namespace mc::server

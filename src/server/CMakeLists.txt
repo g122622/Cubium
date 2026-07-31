@@ -13,6 +13,8 @@ add_executable(minecraft-server
     network/RegistryDataBuilder.cpp
     network/EnchantmentNbtBuilder.cpp
     network/ServerPlayRouter.cpp
+    # 玩家广播门面（broadcast*/send* 转发型网络广播下沉自 MinecraftServer）
+    network/PlayerBroadcaster.cpp
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
     registry/RegistryBootstrap.cpp
     # 核心模块
