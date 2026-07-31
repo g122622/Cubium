@@ -58,8 +58,11 @@ namespace entity {
 // ==================== FallingBlockEntity ====================
 
 // 网络同步数据参数定义
-::mc::entity::DataParameter<i32> FallingBlockEntity::DATA_BLOCK_STATE_ID_PARAM =
-    ::mc::entity::EntityDataManager::createKey<i32>();
+// 对齐 MC 1.21.11 FallingBlockEntity.DATA_START_POS（BlockPos，id8，默认 BlockPos.ZERO）。
+// vanilla FallingBlock 的 BlockState 不走 SynchedEntityData，而是经 AddEntity.data 下发
+// （见 getSpawnData() 与 EntityTracker），故此处仅注册 DATA_START_POS。
+::mc::entity::DataParameter<::mc::Vector3i> FallingBlockEntity::DATA_START_POS_PARAM =
+    ::mc::entity::EntityDataManager::createKey<::mc::Vector3i>();
 
 const EntityClassInfo& FallingBlockEntity::classInfo()
 {
@@ -84,8 +87,11 @@ void FallingBlockEntity::registerData()
 
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册下落方块状态参数：stateId（0 = 未设置/空气）
-    m_dataManager.registerParam(DATA_BLOCK_STATE_ID_PARAM, static_cast<i32>(0));
+    // 注册下落起始位置参数：DATA_START_POS（BlockPos，id8，默认 BlockPos.ZERO）。
+    // 对齐 MC 1.21.11 FallingBlockEntity.defineSynchedData——该层只注册此一个同步字段。
+    // 下落方块的 BlockState 不走 SynchedEntityData，而是经 AddEntity.data 下发
+    // （见 getSpawnData()），故此处不再注册 blockState 同步参数。
+    m_dataManager.registerParam(DATA_START_POS_PARAM, ::mc::Vector3i{});
 }
 
 std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
@@ -97,25 +103,29 @@ void FallingBlockEntity::setBlockId(u32 blockId)
 {
     m_blockId = blockId;
 
-    // 同步方块状态到 DataParameter，供客户端渲染
-    // 优先使用 m_fallingState（含属性），否则通过 blockId 查找默认状态
-    const BlockState* state = m_fallingState;
-    if (state == nullptr && blockId != 0) {
-        if (auto* block = Block::getBlock(blockId)) {
-            state = &block->defaultState();
-        }
-    }
-    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
-    m_dataManager.set(DATA_BLOCK_STATE_ID_PARAM, stateId);
+    // BlockState 不再经 SynchedEntityData 同步（对齐 vanilla）。
+    // m_blockId/m_fallingState 仍为服务端落地恢复的权威源，BlockState 的 stateId
+    // 由 getSpawnData() 在 AddEntity.data 字段下发，客户端 spawn 时即拿到。
 }
 
 void FallingBlockEntity::setFallingState(const BlockState* state)
 {
     m_fallingState = state;
+    // 同上：BlockState 经 AddEntity.data 下发，此处仅更新本地状态。
+}
 
-    // 同步方块状态到 DataParameter，供客户端渲染
-    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
-    m_dataManager.set(DATA_BLOCK_STATE_ID_PARAM, stateId);
+i32 FallingBlockEntity::getSpawnData() const
+{
+    // 对齐 MC 1.21.11 FallingBlockEntity.getEntityData()：
+    // 返回 BlockState 的 stateId（= Block.BLOCK_STATE_REGISTRY.getId(blockState)）。
+    // 优先 m_fallingState（含属性），否则按 m_blockId 取默认状态；均为空则 0（空气）。
+    const BlockState* state = m_fallingState;
+    if (state == nullptr && m_blockId != 0) {
+        if (auto* block = Block::getBlock(m_blockId)) {
+            state = &block->defaultState();
+        }
+    }
+    return (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
 }
 
 bool FallingBlockEntity::hurt(DamageSource& source, f32 /*amount*/)
@@ -466,8 +476,8 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
 
 // 网络同步数据参数定义
 ::mc::entity::DataParameter<i32> TNTEntity::DATA_FUSE_PARAM = ::mc::entity::EntityDataManager::createKey<i32>();
-::mc::entity::DataParameter<i32> TNTEntity::DATA_BLOCK_STATE_ID_PARAM =
-    ::mc::entity::EntityDataManager::createKey<i32>();
+::mc::entity::DataParameter<::mc::entity::BlockStateValue> TNTEntity::DATA_BLOCK_STATE_PARAM =
+    ::mc::entity::EntityDataManager::createKey<::mc::entity::BlockStateValue>();
 
 const EntityClassInfo& TNTEntity::classInfo()
 {
@@ -507,13 +517,14 @@ void TNTEntity::registerData()
     m_dataManager.registerParam(DATA_FUSE_PARAM, 0);
 
     // 注册 TNT 方块状态参数：默认为 TNT 方块默认状态
-    // 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID 默认值 Blocks.TNT.defaultBlockState()
+    // 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID（BLOCK_STATE 序列化器 id14）。
+    // 承载 BlockStateValue（stateId），wire = VarInt(stateId)，对齐 vanilla BLOCK_STATE_CODEC。
     const BlockState* tntState = nullptr;
     if (VanillaBlocks::TNT != nullptr) {
         tntState = &VanillaBlocks::TNT->defaultState();
     }
-    const i32 stateId = (tntState != nullptr) ? static_cast<i32>(tntState->stateId()) : 0;
-    m_dataManager.registerParam(DATA_BLOCK_STATE_ID_PARAM, stateId);
+    const u32 stateId = (tntState != nullptr) ? tntState->stateId() : 0;
+    m_dataManager.registerParam(DATA_BLOCK_STATE_PARAM, ::mc::entity::BlockStateValue{stateId});
 }
 
 std::unique_ptr<Entity> TNTEntity::create(IWorld* world)

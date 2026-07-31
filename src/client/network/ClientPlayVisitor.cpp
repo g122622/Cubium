@@ -622,6 +622,20 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                 }
 
+                // 下落方块：对齐 MC 1.21.11，BlockState 经 AddEntity.data 字段下发 stateId
+                // （vanilla FallingBlockEntity.getEntityData() = Block.BLOCK_STATE_REGISTRY.getId(blockState)）。
+                // 客户端据此解析 BlockState 用于渲染；SynchedEntityData 仅有 DATA_START_POS(BlockPos)。
+                // data<=0 视为空气（1.21.5+ 允许 falling_block 为空气，实体将立即移除）。
+                if (typeId == mc::entity::EntityTypeKeys::FALLING_BLOCK) {
+                    const i32 stateId = p.data;
+                    if (stateId > 0) {
+                        entity->setFallingBlockState(
+                            mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                    } else {
+                        entity->setFallingBlockState(nullptr);
+                    }
+                }
+
                 if (m_app.m_audioService) {
                     m_app.m_audioService->onEntitySpawn(entityId, typeId, x, y, z);
                 }

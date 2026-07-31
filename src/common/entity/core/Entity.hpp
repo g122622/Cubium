@@ -251,6 +251,22 @@ public:
      */
     [[nodiscard]] virtual std::string getLootTableId() const;
 
+    /**
+     * @brief 取本实体在 AddEntity 包 data 字段携带的实体特定数据
+     *
+     * 对齐 vanilla 1.21.11 ClientboundAddEntityPacket.entityData：一个 i32，
+     * 语义随实体类型而异。vanilla FallingBlockEntity.getEntityData() 返回
+     * `Block.BLOCK_STATE_REGISTRY.getId(this.getBlockState())`（即 BlockState 的
+     * stateId），用于让客户端在 spawn 时刻即拿到下落方块的方块状态——vanilla
+     * FallingBlock 的 BlockState 不走 SynchedEntityData，仅此一处下发。
+     *
+     * 默认实现返回 0（无实体特定 data）。FallingBlockEntity 等需要下发 spawn data
+     * 的子类覆写本方法返回对应 stateId。
+     *
+     * @return AddEntity.data 字段值（i32，语义随实体类型）
+     */
+    [[nodiscard]] virtual i32 getSpawnData() const { return 0; }
+
     // ========== 世界访问 ==========
 
     [[nodiscard]] IWorld* world() { return m_world; }

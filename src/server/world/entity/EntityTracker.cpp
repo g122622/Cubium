@@ -463,7 +463,9 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     spawn.yHeadRot = livingEntity != nullptr
         ? static_cast<i8>(mc::network::backend::java::wire::packDegrees(livingEntity->rotationYawHead()))
         : spawn.yRot;
-    spawn.data = 0; // 无实体特定 data（如抛掷物 owner）
+    // 实体特定 data：对齐 vanilla ClientboundAddEntityPacket.entityData。
+    // FallingBlockEntity 据此下发 BlockState 的 stateId（vanilla 同路径），其余实体默认 0。
+    spawn.data = entity->getSpawnData();
 
     player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
@@ -601,7 +603,7 @@ void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId player
     spawn.yRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(itemEntity->yaw()));
     spawn.xRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(itemEntity->pitch()));
     spawn.yHeadRot = spawn.yRot;
-    spawn.data = 0;
+    spawn.data = itemEntity->getSpawnData();
     player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
     std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(itemEntity->dataManager(), false);

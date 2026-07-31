@@ -1165,9 +1165,8 @@ public:
     /**
      * @brief 获取下落方块的方块状态
      *
-     * 通过元数据同步自服务端 FallingBlockEntity::DATA_BLOCK_STATE_ID_PARAM。
-     * 服务端存储 BlockState 的 stateId（i32），客户端收到后通过
-     * BlockRegistry::instance().getBlockState(stateId) 解析为 BlockState 指针并缓存。
+     * 对齐 MC 1.21.11：BlockState 经 AddEntity 包 data 字段下发 stateId
+     * （见 ClientPlayVisitor AddEntity 分支调用 setFallingBlockState）。
      * 返回 nullptr 表示未设置（空气）。
      *
      * 由 FallingBlockRenderer 读取以渲染下落方块模型。
@@ -1204,7 +1203,7 @@ public:
     /**
      * @brief 获取 TNT 方块状态
      *
-     * 通过元数据同步自服务端 TNTEntity::DATA_BLOCK_STATE_ID_PARAM。
+     * 通过元数据同步自服务端 TNTEntity::DATA_BLOCK_STATE_PARAM（BlockStateValue→BLOCK_STATE id14）。
      * 对应 MC 1.21.11 PrimedTnt.getBlockState()。
      * 由 TNTRenderer 读取以渲染 TNT 方块模型。
      */

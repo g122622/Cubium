@@ -35,8 +35,9 @@
 //   LivingEntity        id8..14
 //   LIVING_FLAGS/HEALTH/EFFECT_PARTICLES/EFFECT_AMBIENCE/ARROW_COUNT/STINGER_COUNT/SLEEPING_POS MobEntity id15
 //   MOB_FLAGS Player(扁平化)      id15..20 Avatar id15-16(MAIN_HAND/MODE_CUSTOMISATION) + Player
-//   id17-20(ABSORPTION/SCORE/SHOULDER_PARROT_L/SHOULDER_PARROT_R) FallingBlockEntity  id8 DATA_BLOCK_STATE（直接继承
-//   Entity） TNTEntity           id8..9   DATA_FUSE/DATA_BLOCK_STATE（直接继承 Entity） FishingBobberEntity id8..9
+//   id17-20(ABSORPTION/SCORE/SHOULDER_PARROT_L/SHOULDER_PARROT_R) FallingBlockEntity  id8 DATA_START_POS(BlockPos)
+//   （直接继承 Entity；BlockState 走 AddEntity.data 非 SynchedEntityData） TNTEntity id8..9
+//   DATA_FUSE/DATA_BLOCK_STATE(BLOCK_STATE id14) （直接继承 Entity） FishingBobberEntity id8..9
 //   DATA_HOOKED_ENTITY/DATA_BITING（直接继承 Entity） AbstractMinecartEntity id8..13
 //   ROLLING_AMPLITUDE/ROLLING_DIRECTION/DAMAGE/DISPLAY_TILE/DISPLAY_TILE_OFFSET/SHOW_BLOCK（直接继承 Entity）
 
@@ -178,15 +179,27 @@ TEST(EntityMetadataIdGoldenTest, PlayerHasIds0To20)
 TEST(EntityMetadataIdGoldenTest, FallingBlockEntityHasIds0To8)
 {
     FallingBlockEntity entity;
-    // FallingBlockEntity 仅 1 个自身字段 DATA_BLOCK_STATE(id8)，加 Entity id0..7。
+    // FallingBlockEntity 仅 1 个自身字段 DATA_START_POS(BlockPos,id8)，加 Entity id0..7。
+    // 对齐 vanilla 1.21.11：BlockState 不走 SynchedEntityData，经 AddEntity.data 下发。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 8));
+    // field8 必为 Vector3i（variant index 6 → BLOCK_POS 序列化器 id10）。
+    // 真 Java 客户端严格校验 field8 类型，旧实现误发 Int(stateId) 致崩溃。
+    ASSERT_NE(entity.dataManager().getRaw(FallingBlockEntity::getStartPosParamId()), nullptr);
+    EXPECT_EQ(entity.dataManager().getRaw(FallingBlockEntity::getStartPosParamId())->index(), 6u);
 }
 
 TEST(EntityMetadataIdGoldenTest, TNTEntityHasIds0To9)
 {
     TNTEntity entity;
-    // DATA_FUSE(id8) + DATA_BLOCK_STATE(id9) + Entity id0..7。
+    // DATA_FUSE(id8,Int) + DATA_BLOCK_STATE(id9,BlockStateValue→BLOCK_STATE id14) + Entity id0..7。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 9));
+    // field8 = Int（variant index 1）。
+    ASSERT_NE(entity.dataManager().getRaw(TNTEntity::getFuseParamId()), nullptr);
+    EXPECT_EQ(entity.dataManager().getRaw(TNTEntity::getFuseParamId())->index(), 1u);
+    // field9 必为 BlockStateValue（variant index 15 → BLOCK_STATE 序列化器 id14）。
+    // 旧实现误发 Int(stateId) 致真客户端 field9 类型校验崩溃。
+    ASSERT_NE(entity.dataManager().getRaw(TNTEntity::getBlockStateParamId()), nullptr);
+    EXPECT_EQ(entity.dataManager().getRaw(TNTEntity::getBlockStateParamId())->index(), 15u);
 }
 
 TEST(EntityMetadataIdGoldenTest, FishingBobberEntityHasIds0To9)

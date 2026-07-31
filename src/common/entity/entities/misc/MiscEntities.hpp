@@ -45,8 +45,10 @@ namespace entity {
  * 沙子、砾石、铁砧等方块下落时创建的实体。
  * 铁砧下落时会伤害实体，并有概率损坏（降级到下一级铁砧或完全摧毁）。
  *
- * 网络同步：通过 DATA_BLOCK_STATE_ID_PARAM 同步下落方块的 BlockState 的 stateId（i32）。
- * 对应 MC 1.21.11 FallingBlockEntity.blockState（非同步字段，但项目通过 DataParameter 同步）。
+ * 网络同步：对齐 MC 1.21.11 FallingBlockEntity。
+ * - DATA_START_POS（BlockPos，id8，默认 ZERO）：唯一的 SynchedEntityData 字段。
+ * - BlockState 不走同步数据，而是经 AddEntity 包 data 字段下发 stateId
+ *   （见 getSpawnData()），客户端 spawn 时即拿到下落方块的方块状态。
  */
 class FallingBlockEntity : public Entity {
 public:
@@ -79,9 +81,18 @@ public:
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
+     * @brief 取 AddEntity.data 字段值（下落方块的 BlockState stateId）
+     *
+     * 对齐 MC 1.21.11 FallingBlockEntity.getEntityData()：BlockState 不走
+     * SynchedEntityData，而是经 AddEntity 包 data 字段下发。客户端 spawn 时
+     * 据此解析 BlockState 用于渲染。
+     */
+    [[nodiscard]] i32 getSpawnData() const override;
+
+    /**
      * @brief 设置方块ID
      *
-     * 同时更新 DataParameter DATA_BLOCK_STATE_ID_PARAM 以同步到客户端。
+     * 更新本地 m_blockId（落地恢复用）。BlockState 经 AddEntity.data 下发，见 getSpawnData()。
      */
     void setBlockId(u32 blockId);
 
@@ -91,16 +102,18 @@ public:
      * @brief 设置下落时的方块状态
      *
      * 保存原始方块状态（包含属性如朝向等），用于落地时恢复。
-     * 同时更新 DataParameter DATA_BLOCK_STATE_ID_PARAM 以同步到客户端。
+     * BlockState 经 AddEntity.data 下发，见 getSpawnData()。
      */
     void setFallingState(const BlockState* state);
 
     [[nodiscard]] const BlockState* getFallingState() const { return m_fallingState; }
 
     /**
-     * @brief 获取下落方块状态参数 ID（供客户端 ClientEntity 读取）
+     * @brief 获取下落起始位置参数 ID（供客户端 ClientEntity 读取）
+     *
+     * 对应 MC 1.21.11 FallingBlockEntity.DATA_START_POS（BlockPos，id8）。
      */
-    [[nodiscard]] static u16 getBlockStateIdParamId() { return DATA_BLOCK_STATE_ID_PARAM.id(); }
+    [[nodiscard]] static u16 getStartPosParamId() { return DATA_START_POS_PARAM.id(); }
 
     /**
      * @brief 设置是否在落地时造成伤害
@@ -170,7 +183,7 @@ protected:
     /**
      * @brief 注册网络同步数据参数
      *
-     * 注册 DATA_BLOCK_STATE_ID_PARAM 到 EntityDataManager，由 EntityTracker 自动广播到客户端。
+     * 注册 DATA_START_POS（BlockPos，id8）到 EntityDataManager，由 EntityTracker 自动广播到客户端。
      *
      * 必须在构造函数中显式调用（参考 EndermanEntity 模式），因为基类构造函数
      * 中的虚函数调用不会派发到派生类。
@@ -224,15 +237,15 @@ private:
     static constexpr i32 MAX_FALL_TIME = 600;               ///< 最大下落时间（30秒）
 
     /**
-     * @brief 下落方块状态同步参数
+     * @brief 下落起始位置同步参数
      *
-     * 存储 BlockState 的 stateId（i32），0 表示空气/未设置。
-     * 由 setBlockId/setFallingState 写入，由 EntityTracker 自动广播。
-     * 客户端 ClientEntity::syncMetadataFromDataManager 读取后通过
-     * BlockRegistry::getBlockState 解析为 BlockState* 并缓存到镜像字段，
-     * 供 FallingBlockRenderer 渲染方块模型。
+     * 对应 MC 1.21.11 FallingBlockEntity.DATA_START_POS（BlockPos，id8，默认 BlockPos.ZERO）。
+     * vanilla FallingBlock 的 BlockState 不走 SynchedEntityData，而是通过 AddEntity 包的
+     * data 字段下发（blockState registry id），见 Entity::getSpawnData() 与 EntityTracker。
+     * 本项目同样把 BlockState 经 AddEntity.data 下发，同步字段仅保留 DATA_START_POS
+     * 以对齐 vanilla 字段布局（避免真 Java 客户端 field 8 类型校验崩溃）。
      */
-    static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
+    static ::mc::entity::DataParameter<::mc::Vector3i> DATA_START_POS_PARAM;
 
 protected:
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
@@ -245,9 +258,10 @@ protected:
  * 被激活的TNT方块，倒计时后爆炸。
  *
  * 网络同步：
- * - DATA_FUSE_PARAM：引信剩余 tick（i32），对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID。
- * - DATA_BLOCK_STATE_ID_PARAM：TNT 方块状态（i32），对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID。
- *   存储 BlockState 的 stateId，默认为 TNT 方块默认状态。客户端据此渲染 TNT 外观。
+ * - DATA_FUSE_PARAM：引信剩余 tick（i32），对应 MC 1.21.11 PrimedTnt.DATA_FUSE_ID（id8）。
+ * - DATA_BLOCK_STATE_PARAM：TNT 方块状态（BlockStateValue → BLOCK_STATE 序列化器 id14，id9），
+ *   对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID。承载 BlockState 的 stateId，默认为 TNT
+ *   方块默认状态。客户端据此渲染 TNT 外观。
  */
 class TNTEntity : public Entity {
 public:
@@ -333,15 +347,17 @@ public:
 
     /**
      * @brief 获取 TNT 方块状态参数 ID（供客户端 ClientEntity 读取）
+     *
+     * 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID（BLOCK_STATE 序列化器 id14，id9）。
      */
-    [[nodiscard]] static u16 getBlockStateIdParamId() { return DATA_BLOCK_STATE_ID_PARAM.id(); }
+    [[nodiscard]] static u16 getBlockStateParamId() { return DATA_BLOCK_STATE_PARAM.id(); }
 
 protected:
     /**
      * @brief 注册网络同步数据参数
      *
-     * 注册 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_ID_PARAM 到 EntityDataManager，
-     * 由 EntityTracker 自动广播到客户端。
+     * 注册 DATA_FUSE_PARAM（Int，id8）和 DATA_BLOCK_STATE_PARAM（BlockStateValue→BLOCK_STATE id14，id9）
+     * 到 EntityDataManager，由 EntityTracker 自动广播到客户端。
      *
      * 必须在构造函数中显式调用（参考 EndermanEntity 模式），因为基类构造函数
      * 中的虚函数调用不会派发到派生类。
@@ -368,12 +384,12 @@ private:
     /**
      * @brief TNT 方块状态同步参数
      *
-     * 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID。
-     * 存储 BlockState 的 stateId（i32），默认为 TNT 方块默认状态。
+     * 对应 MC 1.21.11 PrimedTnt.DATA_BLOCK_STATE_ID（BLOCK_STATE 序列化器 id14，id9）。
+     * 承载 BlockState 的 stateId（BlockStateValue），默认为 TNT 方块默认状态。
      * 客户端 ClientEntity 读取后通过 BlockRegistry::getBlockState 解析为 BlockState*
      * 并缓存到镜像字段，供 TNTRenderer 渲染 TNT 方块模型。
      */
-    static ::mc::entity::DataParameter<i32> DATA_BLOCK_STATE_ID_PARAM;
+    static ::mc::entity::DataParameter<::mc::entity::BlockStateValue> DATA_BLOCK_STATE_PARAM;
 
 protected:
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。

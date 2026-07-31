@@ -338,6 +338,31 @@ TEST_F(FallingBlockEntityTest, SetBlockId)
 }
 
 /**
+ * @brief 测试 getSpawnData：BlockState 经 AddEntity.data 下发 stateId
+ *
+ * 对齐 vanilla 1.21.11 FallingBlockEntity.getEntityData()：
+ * BlockState 不走 SynchedEntityData，而是经 AddEntity 包 data 字段下发 stateId。
+ * 优先 m_fallingState（含属性），否则按 m_blockId 取默认状态；均空则 0（空气）。
+ */
+TEST_F(FallingBlockEntityTest, GetSpawnDataReturnsBlockStateStateId)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    // 未设置任何状态 → 0（空气）
+    EXPECT_EQ(entity->getSpawnData(), 0);
+
+    // 按 blockId 取默认状态
+    const BlockState* sandState = &VanillaBlocks::SAND->defaultState();
+    entity->setBlockId(sandState->blockId());
+    EXPECT_EQ(entity->getSpawnData(), static_cast<i32>(sandState->stateId()));
+
+    // setFallingState 优先（含属性），覆盖 blockId 默认状态
+    const BlockState* gravelState = &VanillaBlocks::GRAVEL->defaultState();
+    entity->setFallingState(gravelState);
+    EXPECT_EQ(entity->getSpawnData(), static_cast<i32>(gravelState->stateId()));
+}
+
+/**
  * @brief 测试设置伤害实体标志
  */
 TEST_F(FallingBlockEntityTest, SetHurtEntities)

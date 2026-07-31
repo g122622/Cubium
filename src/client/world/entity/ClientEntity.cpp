@@ -345,26 +345,14 @@ void ClientEntity::syncMetadataFromDataManager()
     }
 
     // 下落方块状态同步
-    // 服务端 FallingBlockEntity 通过 DataParameter 写入 DATA_BLOCK_STATE_ID_PARAM，
-    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
-    // 客户端在此处读取并调用 setFallingBlockState 更新镜像状态。
-    // 对应 MC 1.21.11 FallingBlockEntity.getBlockState()（项目通过 stateId 同步）。
-    if (m_typeId == "minecraft:falling_block" || m_typeId == "falling_block") {
-        if (m_dataManager.hasParam(::mc::entity::FallingBlockEntity::getBlockStateIdParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::FallingBlockEntity::getBlockStateIdParamId());
-                value != nullptr) {
-                const i32 stateId = value->get<i32>();
-                if (stateId > 0) {
-                    setFallingBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
-                } else {
-                    setFallingBlockState(nullptr);
-                }
-            }
-        }
-    }
+    // 对齐 MC 1.21.11：FallingBlock 的 BlockState 不走 SynchedEntityData，而是经
+    // AddEntity 包 data 字段下发 stateId。客户端在 ClientPlayVisitor 处理 AddEntity 时
+    // 据此调用 setFallingBlockState（见 ClientPlayVisitor AddEntity 分支），故此处不再
+    // 从 metadata 读取。SynchedEntityData 仅有 DATA_START_POS(BlockPos,id8)，客户端
+    // 下落方块渲染不依赖 startPos，无需在此消费。
 
     // TNT 实体状态同步（引信、方块状态）
-    // 服务端 TNTEntity 通过 DataParameter 写入 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_ID_PARAM，
+    // 服务端 TNTEntity 通过 DataParameter 写入 DATA_FUSE_PARAM 和 DATA_BLOCK_STATE_PARAM，
     // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setTntFuse/setTntBlockState 更新镜像状态。
     // 对应 MC 1.21.11 PrimedTnt.getFuse() / getBlockState()。
@@ -375,13 +363,13 @@ void ClientEntity::syncMetadataFromDataManager()
                 setTntFuse(value->get<i32>());
             }
         }
-        // 方块状态（通过 TNTEntity::DATA_BLOCK_STATE_ID_PARAM 同步）
-        if (m_dataManager.hasParam(::mc::entity::TNTEntity::getBlockStateIdParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getBlockStateIdParamId());
+        // 方块状态（通过 TNTEntity::DATA_BLOCK_STATE_PARAM 同步，BlockStateValue → BLOCK_STATE id14）
+        if (m_dataManager.hasParam(::mc::entity::TNTEntity::getBlockStateParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getBlockStateParamId());
                 value != nullptr) {
-                const i32 stateId = value->get<i32>();
+                const u32 stateId = value->get<::mc::entity::BlockStateValue>().stateId;
                 if (stateId > 0) {
-                    setTntBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                    setTntBlockState(::mc::BlockRegistry::instance().getBlockState(stateId));
                 } else {
                     setTntBlockState(nullptr);
                 }
