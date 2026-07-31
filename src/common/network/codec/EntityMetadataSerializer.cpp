@@ -178,10 +178,10 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
     // "field 8 ... new=...twisting_vines(class BlockState)" 表明某实体的某字段被当成
     // BlockState 序列化。此处记录字段 index + variant index + serializerId 以定位根因。
     if (sid == MetadataSerializerId::BlockState || sid == MetadataSerializerId::OptionalBlockState) {
-        spdlog::warn("[MetaDiag] BlockState-family entry: fieldIndex={} variantIndex={} serializerId={}",
-            id,
-            value.index(),
-            static_cast<i32>(sid));
+        // spdlog::warn("[MetaDiag] BlockState-family entry: fieldIndex={} variantIndex={} serializerId={}",
+        //     id,
+        //     value.index(),
+        //     static_cast<i32>(sid));
     }
     output.push_back(static_cast<u8>(id & 0xFF));
     _writeVarInt(static_cast<i32>(sid), output);

@@ -362,13 +362,13 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                             fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index());
                             fieldDesc += (fent.dirty ? "* " : " ");
                         }
-                        spdlog::info(
-                            "[MetaDiag] delta set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
-                            entity->getTypeId(),
-                            static_cast<i32>(entity->id()),
-                            metadata.size(),
-                            fieldDesc,
-                            toHexDump(metadata));
+                        // spdlog::info(
+                        //     "[MetaDiag] delta set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
+                        //     entity->getTypeId(),
+                        //     static_cast<i32>(entity->id()),
+                        //     metadata.size(),
+                        //     fieldDesc,
+                        //     toHexDump(metadata));
                         for (PlayerId playerId : tracked.trackingPlayers) {
                             _sendMetadataPacket(server, playerId, entity, metadata);
                         }
@@ -482,12 +482,12 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
         for (const auto& [fid, fent] : allEntries) {
             fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index()) + " ";
         }
-        spdlog::info("[MetaDiag] spawn set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
-            entity->getTypeId(),
-            static_cast<i32>(entity->id()),
-            metadata.size(),
-            fieldDesc,
-            toHexDump(metadata));
+        // spdlog::info("[MetaDiag] spawn set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
+        //     entity->getTypeId(),
+        //     static_cast<i32>(entity->id()),
+        //     metadata.size(),
+        //     fieldDesc,
+        //     toHexDump(metadata));
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(entity->id());
         meta.packedItems = std::move(metadata);
