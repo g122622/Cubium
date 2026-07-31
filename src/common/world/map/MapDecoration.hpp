@@ -40,7 +40,7 @@ namespace mc::world::map {
  *
  * 定义地图上显示的各种标记图标类型，对齐 MC 1.21.11 MAP_DECORATION_TYPE 注册表
  * （MapDecorationTypes.java 声明顺序即 registry id，0-based）。枚举值与 registry id 一致，
- * 网络层 holderRegistry 编码为 VarInt(registryId + 1)。
+ * 网络层 holderRegistry 编码为 VarInt(registryId)。
  * 部分类型只在展示框中渲染(renderedOnFrame=true)，
  * 部分类型有地图颜色(hasMapColor=true)用于物品栏显示。
  */

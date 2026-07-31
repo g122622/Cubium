@@ -753,10 +753,10 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 
 namespace play_ext_detail {
 
-/// 写 MapDecoration wire：VarInt(registryId+1) + byte x + byte y + byte rot + Optional<Component>(opaque)
+/// 写 MapDecoration wire：VarInt(registryId) + byte x + byte y + byte rot + Optional<Component>(opaque)
 inline void writeMapDecoration(B& buf, const ir::play::MapDecorationWire& d)
 {
-    buf.writeVarInt(static_cast<i32>(d.typeRegistryIdPlusOne));
+    buf.writeVarInt(static_cast<i32>(d.typeRegistryId));
     buf.writeI8(d.x);
     buf.writeI8(d.y);
     buf.writeU8(d.rotation);
@@ -772,8 +772,8 @@ inline void writeMapDecoration(B& buf, const ir::play::MapDecorationWire& d)
 [[nodiscard]] inline Result<ir::play::MapDecorationWire> readMapDecoration(B& buf)
 {
     ir::play::MapDecorationWire d{};
-    MC_TRY_ASSIGN(d.typeRegistryIdPlusOne, buf.readVarInt());
-    d.typeRegistryIdPlusOne = static_cast<u32>(std::max(0, static_cast<i32>(d.typeRegistryIdPlusOne)));
+    MC_TRY_ASSIGN(d.typeRegistryId, buf.readVarInt());
+    d.typeRegistryId = static_cast<u32>(std::max(0, static_cast<i32>(d.typeRegistryId)));
     MC_TRY_ASSIGN(d.x, buf.readI8());
     MC_TRY_ASSIGN(d.y, buf.readI8());
     MC_TRY_ASSIGN(d.rotation, buf.readU8());

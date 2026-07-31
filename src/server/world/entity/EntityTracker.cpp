@@ -62,25 +62,6 @@ mc::network::ir::IrPacket makePlayPacket(mc::network::ir::PlayPacket play)
     };
 }
 
-// 【临时诊断】把已序列化的元数据字节转成十六进制串，便于人工对照 1.21.11 wire
-// （byte(index)+VarInt(serializerId)+value，0xFF 结束）逐字段定位长度错位字段。
-// 形如 "08 01 00 09 01 01 0A 03 00 00 00 00 FF"。
-std::string toHexDump(const std::vector<u8>& bytes)
-{
-    static constexpr char kHex[] = "0123456789ABCDEF";
-    std::string out;
-    out.reserve(bytes.size() * 3);
-    for (u8 b : bytes) {
-        out.push_back(kHex[(b >> 4) & 0x0F]);
-        out.push_back(kHex[b & 0x0F]);
-        out.push_back(' ');
-    }
-    if (!out.empty()) {
-        out.pop_back(); // 去掉末尾空格
-    }
-    return out;
-}
-
 } // namespace
 
 EntityTracker::EntityTracker()
@@ -353,22 +334,6 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                     std::vector<u8> metadata =
                         network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
                     if (metadata.size() > 1) {
-                        // 【临时诊断】记录发送 set_entity_data 的实体类型+ID+字段序列，定位
-                        // "field 8 BlockState" 崩溃的来源实体。serialize 内部对 BlockState 条目
-                        // 已打 warn，此处补实体上下文 + 全字段 variant index 列表。
-                        const auto& allEntries = entity->dataManager().getAllEntries();
-                        std::string fieldDesc;
-                        for (const auto& [fid, fent] : allEntries) {
-                            fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index());
-                            fieldDesc += (fent.dirty ? "* " : " ");
-                        }
-                        // spdlog::info(
-                        //     "[MetaDiag] delta set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
-                        //     entity->getTypeId(),
-                        //     static_cast<i32>(entity->id()),
-                        //     metadata.size(),
-                        //     fieldDesc,
-                        //     toHexDump(metadata));
                         for (PlayerId playerId : tracked.trackingPlayers) {
                             _sendMetadataPacket(server, playerId, entity, metadata);
                         }
@@ -474,20 +439,6 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     // SetEntityData 才能正确渲染（1.21.11 AddEntity 不携带 metadata）。
     std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), false);
     if (metadata.size() > 1) { // >1 表示除 0xFF 结束符外还有实际条目
-        // 【临时诊断】记录 spawn 时全量元数据的实体类型+ID+原始字节+全字段 variant index 列表，
-        // 定位 "field 8 BlockState" 崩溃来源。spawn 是全量快照（dirtyOnly=false），
-        // 列出每个字段 id:variantIndex 便于对照十六进制逐字段核对长度。
-        const auto& allEntries = entity->dataManager().getAllEntries();
-        std::string fieldDesc;
-        for (const auto& [fid, fent] : allEntries) {
-            fieldDesc += std::to_string(fid) + ":" + std::to_string(fent.value.index()) + " ";
-        }
-        // spdlog::info("[MetaDiag] spawn set_entity_data: typeId={} entityId={} bytes={} fields=[{}] hex=[{}]",
-        //     entity->getTypeId(),
-        //     static_cast<i32>(entity->id()),
-        //     metadata.size(),
-        //     fieldDesc,
-        //     toHexDump(metadata));
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(entity->id());
         meta.packedItems = std::move(metadata);

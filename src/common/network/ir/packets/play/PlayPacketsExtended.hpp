@@ -463,13 +463,13 @@ struct SetBorderWarningDistance {
 /**
  * @brief 地图装饰 wire 表示（对应 Java MapDecoration）
  *
- * type 字段是 MAP_DECORATION_TYPE 注册表的 Holder：1.21.11 holderRegistry 编码为
- * VarInt(registryId + 1)（REFERENCE holder，DIRECT=0 本仓不用）。registryId 即
- * DecorationType 枚举值（PLAYER=0 … TRIAL_CHAMBERS=34，与 Java 注册顺序一致）。
+ * type 字段是 MAP_DECORATION_TYPE 注册表的 Holder：vanilla MapDecorationType.STREAM_CODEC
+ * = ByteBufCodecs.holderRegistry，wire = 纯 VarInt(registryId)，无 mode 前缀、无内联 NBT 分支。
+ * registryId 即 DecorationType 枚举值（PLAYER=0 … TRIAL_CHAMBERS=34，与 Java 注册顺序一致）。
  * name 是 Optional<Component>，Component 暂以 JSON 字节 opaque 透传（nullopt=无名称）。
  */
 struct MapDecorationWire {
-    u32 typeRegistryIdPlusOne = 1; // VarInt(registryId + 1)；PLAYER→1，默认 1
+    u32 typeRegistryId = 0; // VarInt(registryId)；PLAYER→0，默认 0
     i8 x = 0;
     i8 y = 0;
     u8 rotation = 0;                     // &0x0F

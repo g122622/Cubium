@@ -333,13 +333,13 @@ TEST_F(NetworkTestBase, PlayMapItemDataWithDecorationsOnly)
     in.scale = 0;
     in.locked = false;
     MapDecorationWire d{};
-    d.typeRegistryIdPlusOne = 1; // PLAYER
+    d.typeRegistryId = 0; // PLAYER
     d.x = 10;
     d.y = -5;
     d.rotation = 4;
     d.name = std::nullopt;
     MapDecorationWire d2{};
-    d2.typeRegistryIdPlusOne = 6; // FRAME
+    d2.typeRegistryId = 1; // FRAME
     d2.x = 0;
     d2.y = 0;
     d2.rotation = 0;
@@ -377,7 +377,7 @@ TEST_F(NetworkTestBase, PlayMapItemDataFull)
     in.scale = 2;
     in.locked = false;
     MapDecorationWire d{};
-    d.typeRegistryIdPlusOne = 1;
+    d.typeRegistryId = 0; // PLAYER
     d.x = 1;
     d.y = 1;
     d.rotation = 8;

@@ -1353,8 +1353,8 @@ void ServerWorld::_pushMapDataToHolders()
                     (void)decoKey;
                     irplay::MapDecorationWire w;
                     // DecorationType 枚举值即 Java MAP_DECORATION_TYPE registry id；
-                    // wire 编码为 VarInt(registryId + 1)，故 +1（PLAYER→1）。
-                    w.typeRegistryIdPlusOne = static_cast<u32>(deco.type()) + 1;
+                    // vanilla holderRegistry wire = 纯 VarInt(registryId)，直接写 id（PLAYER→0）。
+                    w.typeRegistryId = static_cast<u32>(deco.type());
                     w.x = deco.x();
                     w.y = deco.y();
                     w.rotation = deco.rotation();

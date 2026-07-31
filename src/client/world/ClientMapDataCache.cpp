@@ -32,15 +32,11 @@ namespace mc::client {
 
 namespace {
 
-/// 把 MapDecorationWire 还原成 MapDecoration（registryId+1 → DecorationType，name JSON → ITextComponent）
+/// 把 MapDecorationWire 还原成 MapDecoration（registryId → DecorationType，name JSON → ITextComponent）
 [[nodiscard]] mc::world::map::MapDecoration wireToDecoration(const mc::network::ir::play::MapDecorationWire& w)
 {
-    // holderRegistry 编码为 VarInt(registryId+1)；registryId 即 DecorationType 枚举值
-    const u32 encoded = w.typeRegistryIdPlusOne;
-    u8 registryId = 0;
-    if (encoded > 0) {
-        registryId = static_cast<u8>(encoded - 1);
-    }
+    // vanilla holderRegistry wire = 纯 VarInt(registryId)；registryId 即 DecorationType 枚举值
+    const u8 registryId = static_cast<u8>(w.typeRegistryId);
     const auto type = mc::world::map::decorationTypeByIcon(registryId);
 
     std::unique_ptr<mc::text::ITextComponent> name;
