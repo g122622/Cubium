@@ -13,6 +13,8 @@ add_executable(minecraft-server
     network/RegistryDataBuilder.cpp
     network/EnchantmentNbtBuilder.cpp
     network/ServerPlayRouter.cpp
+    # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
+    registry/RegistryBootstrap.cpp
     # 核心模块
     core/PlayerManager.cpp
     core/ConnectionManager.cpp

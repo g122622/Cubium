@@ -1727,6 +1727,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
+        # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
+        # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/NibbleArray.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp

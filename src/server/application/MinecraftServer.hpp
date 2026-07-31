@@ -60,6 +60,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
+#include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include <atomic>
@@ -408,24 +409,16 @@ protected:
     /**
      * @brief 初始化游戏注册表（方块、物品、附魔、配方）
      *
-     * 加载所有 Vanilla 注册表：
-     * - VanillaBlocks
-     * - Items
-     * - EnchantmentRegistry
-     * - BlockItemRegistry
-     * - 配方
-     * - 实体类型（可选）
+     * 薄化转调：实际装配职责已下沉到 RegistryBootstrap 门面（见
+     * server/registry/RegistryBootstrap.hpp）。本方法仅构造门面并转调
+     * initializeAll(registerEntities)，保持调用顺序与原行为逐字节一致。
+     *
+     * 加载所有 Vanilla 注册表：方块/物品/附魔/方块物品/物品标签/配方/战利品/
+     * 函数/进度/worldgen 全链路/生物群系/实体类型（可选）/Java wire id 映射。
+     *
+     * @param registerEntities 是否注册实体类型（独立服 true，集成服 false）
      */
     void initializeRegistries(bool registerEntities = false);
-
-    /**
-     * @brief 注册特殊配方
-     *
-     * 注册内置的动态配方（RepairItemRecipe、ArmorDyeRecipe、BookCloningRecipe、
-     * MapCloningRecipe、TippedArrowRecipe 等）。
-     * 这些配方不从数据包加载，而是在代码中动态注册。
-     */
-    void registerSpecialRecipes();
 
     /**
      * @brief 设置世界回调
