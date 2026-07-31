@@ -28,17 +28,22 @@
 
 #include <vector>
 
-namespace mc::world::block {
+namespace mc::network::backend::java {
 
 /**
- * @brief 内部 block stateId ↔ Java 全局 block state id 双向映射
+ * @brief 内部 block stateId ↔ Java 全局 block state id 双向映射(Java 协议对齐层)
  *
  * 项目 BlockRegistry 按【注册顺序】分配内部 stateId(从 0 连续递增,BlockRegistry.hpp
  * _allocateStateId = m_nextStateId++),与 Java Block.BLOCK_STATE_REGISTRY 的全局 id(按
  * vanilla 数据包注册顺序,0-29670 连续,air=0)是两套独立编号,无数学关系。真 Java 客户端
  * 解 level_chunk_with_light 的 states PalettedContainer 时,palette 写的必须是 Java 全局 id。
  *
- * 数据源:1.21.11 blocks.json,由离线脚本 scripts/baking/bake_java_id_tables.ts 预烘焙成
+ * 本表是纯协议对齐逻辑(项目内部 stateId ↔ Java wire globalId 翻译),不属 block 业务核心,
+ * 故置于 network/backend/java 层(与 `JavaItemIdMap`、`JavaProtocolTables` 同层),block 子系统
+ * 零感知。另三张同类表(JavaEntityTypeIdMap/JavaBlockEntityTypeIdMap/JavaBiomeRegistryIdMap)
+ * 现仍置于各自子系统下,可视情况陆续迁此层统一。
+ *
+ * 数据源:1.21.11 blocks.json,由离线脚本 scripts/baking/bake_java_block_state_table.ts 预烘焙成
  * 紧凑 C++ 静态查找表(generated/java_block_state_table.gen.cpp,按 key 字典序排序的二分
  * 查找表 + 扁平字符串池),编译进 mc_common 只读数据段。运行时零 JSON 解析、零堆分配。
  *
@@ -50,6 +55,10 @@ namespace mc::world::block {
  *
  * 内存:常驻仅两个 vector<u32>(各 ~29000×4 ≈ 116KB,合计 ~230KB),远小于运行时解析
  * 6.5MB JSON 的 ~30MB nlohmann::json DOM 峰值。查表 O(log n) 二分。
+ *
+ * 与 JavaItemIdMap 的语义差异:block stateId 0 与 Java globalId 0 都是 air,故 miss 兜底
+ * 返回 0 即 air 本身,无需像 JavaItemIdMap 那样取项目 air 真实内部 id(item 内部 id 0 是
+ * 无效占位)。
  */
 class JavaBlockStateIdMap {
 public:
@@ -88,4 +97,4 @@ private:
     std::vector<u32> m_fromJava;
 };
 
-} // namespace mc::world::block
+} // namespace mc::network::backend::java

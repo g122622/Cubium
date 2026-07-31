@@ -52,11 +52,11 @@
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/network/backend/java/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
-#include "common/world/block/JavaBlockStateIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
@@ -144,7 +144,7 @@ void ClientApplication::initializeCoreRegistries()
     // readIR 反向查 biome 走 plains 兜底不崩。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeJavaIdMaps");
-        if (auto r = world::block::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
+        if (auto r = ::mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBlockStateIdMap: {}", r.error().toString());
         }
         if (auto r = world::biome::JavaBiomeRegistryIdMap::instance().initialize(); r.failed()) {

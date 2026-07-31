@@ -35,7 +35,7 @@
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/backend/java/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"

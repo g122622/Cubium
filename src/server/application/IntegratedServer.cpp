@@ -38,7 +38,7 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
-#include "common/network/backend/java/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"

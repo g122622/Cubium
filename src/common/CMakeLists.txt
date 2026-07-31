@@ -56,8 +56,10 @@ add_library(mc_common STATIC
     network/pipeline/ProtocolSwapHandler.cpp
     network/backend/java/JavaBackend.cpp
     network/backend/java/JavaProtocolTables.cpp
-    network/backend/java/JavaItemIdMap.cpp
+    network/backend/java/mappings/JavaItemIdMap.cpp
     network/backend/java/generated/java_item_table.gen.cpp
+    network/backend/java/mappings/JavaBlockStateIdMap.cpp
+    network/backend/java/generated/java_block_state_table.gen.cpp
     network/backend/java/handshake/JavaLoginHandshaker.cpp
 
     # Network - Sync
@@ -672,8 +674,6 @@ add_library(mc_common STATIC
     world/block/Block.cpp
     world/block/BlockState.cpp
     world/block/BlockRegistry.cpp
-    world/block/JavaBlockStateIdMap.cpp
-    world/block/generated/java_block_state_table.gen.cpp
     world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
@@ -1677,14 +1677,14 @@ target_include_directories(mc_common
 )
 
 # Java 协议对齐所需的 vanilla 1.21.11 block state id 查找表(预生成,编译进二进制)。
-# 离线 TS 脚本 scripts/baking/bake_java_id_tables.ts 读 assets/data/blocks_1.21.11.json,
+# 离线 TS 脚本 scripts/baking/bake_java_block_state_table.ts 读 assets/data/blocks_1.21.11.json,
 # 生成排序的 (name|properties)→globalId 静态查找表(.gen.cpp/.gen.hpp),供 JavaBlockStateIdMap
 # 运行时二分查找。运行时零 JSON 解析、零堆分配。产物不入 git(.gitignore),每次构建重生成。
 set(_java_block_table_gen_cpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/world/block/generated/java_block_state_table.gen.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_block_state_table.gen.cpp")
 set(_java_block_table_gen_hpp
-    "${CMAKE_CURRENT_SOURCE_DIR}/world/block/generated/java_block_state_table.gen.hpp")
-set(_bake_script "${CMAKE_SOURCE_DIR}/scripts/baking/bake_java_id_tables.ts")
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_block_state_table.gen.hpp")
+set(_bake_script "${CMAKE_SOURCE_DIR}/scripts/baking/bake_java_block_state_table.ts")
 set(_blocks_json "${CMAKE_SOURCE_DIR}/assets/data/blocks_1.21.11.json")
 find_program(NODE_EXECUTABLE node REQUIRED)
 add_custom_command(

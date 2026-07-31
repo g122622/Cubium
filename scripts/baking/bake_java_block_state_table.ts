@@ -1,5 +1,5 @@
 /*
- * bake_java_id_tables.ts
+ * bake_java_block_state_table.ts
  *
  * 离线烘焙脚本:从 assets/data/blocks_1.21.11.json 生成紧凑的 C++ 静态查找表
  * (java_block_state_table.gen.cpp / .gen.hpp),编译进 mc_common,供运行时
@@ -14,10 +14,13 @@
  *   "minecraft:acacia_button|face=floor,facing=north,powered=true"
  *   properties 按 key 字母序排列(C++ 侧用 std::map,天然字典序;此处显式排序对齐)。
  *
- * 运行方式: node scripts/baking/bake_java_id_tables.ts
- *   (node >= 22 原生支持 .ts type stripping,无需 tsc/tsx 依赖)
+ * 运行方式: node scripts/baking/bake_java_block_state_table.ts
+ *   (node >= 22 原生支持 .TS type stripping,无需 tsc/tsx 依赖)
  *
  * 产物不提交 git(.gitignore),每次构建由 CMake add_custom_command 重生成。
+ *
+ * 归属:本表与 JavaItemIdMap 同属 network/backend/java 协议对齐层,产物置于
+ * src/common/network/backend/java/generated/。命名空间 mc::network::backend::java::generated。
  */
 
 import fs from "node:fs/promises";
@@ -29,7 +32,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..", "..");
 
 const inputJson = path.resolve(rootDir, "assets", "data", "blocks_1.21.11.json");
-const outDir = path.resolve(rootDir, "src", "common", "world", "block", "generated");
+const outDir = path.resolve(rootDir, "src", "common", "network", "backend", "java", "generated");
 const outCpp = path.resolve(outDir, "java_block_state_table.gen.cpp");
 const outHpp = path.resolve(outDir, "java_block_state_table.gen.hpp");
 
@@ -121,7 +124,7 @@ async function main(): Promise<void> {
     // ------------------------------------------------------------------
     const hpp = `/*
  * 自动生成,勿手动编辑。
- * 由 scripts/baking/bake_java_id_tables.ts 从 assets/data/blocks_1.21.11.json 生成。
+ * 由 scripts/baking/bake_java_block_state_table.ts 从 assets/data/blocks_1.21.11.json 生成。
  * 构建时由 CMake add_custom_command 重生成,产物不入 git(.gitignore)。
  */
 
@@ -132,7 +135,7 @@ async function main(): Promise<void> {
 #include <cstddef>
 #include <cstdint>
 
-namespace mc::world::block::generated {
+namespace mc::network::backend::java::generated {
 
 /// 单条 (blockName|properties) → Java globalId 表项。数组按 key 字典序排序。
 struct BlockStateIdEntry {
@@ -147,7 +150,7 @@ extern size_t blockStateIdEntriesCount();
 /// 扁平 key 字符串池(所有 key 连续存放,各以 \\0 结尾)。
 extern const char* blockStateKeyPool();
 
-} // namespace mc::world::block::generated
+} // namespace mc::network::backend::java::generated
 `;
 
     // ------------------------------------------------------------------
@@ -159,7 +162,7 @@ extern const char* blockStateKeyPool();
 
     const cpp = `/*
  * 自动生成,勿手动编辑。
- * 由 scripts/baking/bake_java_id_tables.ts 从 assets/data/blocks_1.21.11.json 生成。
+ * 由 scripts/baking/bake_java_block_state_table.ts 从 assets/data/blocks_1.21.11.json 生成。
  * 构建时由 CMake add_custom_command 重生成,产物不入 git(.gitignore)。
  *
  * 本文件含 1.21.11 全部 ${stateCount} 个 block state 的 (name|properties) → globalId 查找表,
@@ -167,9 +170,9 @@ extern const char* blockStateKeyPool();
  * 运行时零 JSON 解析、零堆分配。
  */
 
-#include "common/world/block/generated/java_block_state_table.gen.hpp"
+#include "common/network/backend/java/generated/java_block_state_table.gen.hpp"
 
-namespace mc::world::block::generated {
+namespace mc::network::backend::java::generated {
 
 // 扁平 key 字符串池:所有 key 连续存放,各以 '\\0' 结尾。
 // 总长 ${pool.length} 字节(含分隔 \\0)。
@@ -196,14 +199,14 @@ const char* blockStateKeyPool()
     return kBlockStateKeyPool;
 }
 
-} // namespace mc::world::block::generated
+} // namespace mc::network::backend::java::generated
 `;
 
     await fs.writeFile(outHpp, hpp, "utf8");
     await fs.writeFile(outCpp, cpp, "utf8");
 
     process.stdout.write(
-        `[bake_java_id_tables] parsed ${stateCount} states, wrote ${entries.length} entries ` +
+        `[bake_java_block_state_table] parsed ${stateCount} states, wrote ${entries.length} entries ` +
             `(pool ${pool.length} bytes) ->\n  ${path.relative(rootDir, outCpp)}\n  ${path.relative(
                 rootDir,
                 outHpp,
@@ -261,6 +264,6 @@ function cEscape(c: number): string {
 }
 
 main().catch((err) => {
-    process.stderr.write(`[bake_java_id_tables] FAILED: ${err}\n`);
+    process.stderr.write(`[bake_java_block_state_table] FAILED: ${err}\n`);
     process.exit(1);
 });

@@ -71,7 +71,12 @@ network/
 │   ├── java/                            # Java 1.21.11 线协议后端
 │   │   ├── JavaBackend.hpp/cpp
 │   │   ├── JavaProtocolTables.hpp/cpp
-│   │   └── codecs/                      # Java wire codec
+│   │   ├── mappings/                    # 项目内部 id ↔ Java wire id 双向映射（协议对齐层）
+│   │   │   ├── JavaItemIdMap.hpp/cpp    # ItemStack wire itemId 翻译
+│   │   │   └── JavaBlockStateIdMap.hpp/cpp  # level_chunk_with_light palette 翻译
+│   │   ├── codecs/                      # Java wire codec
+│   │   ├── handshake/                   # 握手/Login 编解码
+│   │   └── generated/                   # 烘焙产物（构建期重生成，不入 git）
 │   ├── bedrock/BedrockBackend.hpp       # 基岩 stub
 │   └── README.md
 ├── crypto/                              # 加密原语（新架构，Phase2 决策落地点）

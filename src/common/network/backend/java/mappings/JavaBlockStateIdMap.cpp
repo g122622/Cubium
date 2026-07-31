@@ -21,13 +21,13 @@
  *
  */
 
-#include "common/world/block/JavaBlockStateIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 
 #include "common/core/Result.hpp"
+#include "common/network/backend/java/generated/java_block_state_table.gen.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/generated/java_block_state_table.gen.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -37,7 +37,7 @@
 #include <optional>
 #include <string>
 
-namespace mc::world::block {
+namespace mc::network::backend::java {
 
 // ============================================================================
 // 单例
@@ -74,7 +74,7 @@ static std::string buildLookupKey(const std::string& name, const std::map<std::s
 }
 
 /// 从 BlockState 导出 properties: name → value 字符串(用 IProperty::valueToString)。
-static std::map<std::string, std::string> exportStateProperties(const BlockState& state)
+static std::map<std::string, std::string> exportStateProperties(const ::mc::BlockState& state)
 {
     std::map<std::string, std::string> props;
     for (const auto& entry : state.values()) {
@@ -145,7 +145,7 @@ Result<void> JavaBlockStateIdMap::initialize()
 
     size_t matched = 0;
     size_t missing = 0;
-    Block::forEachBlockState([&](const BlockState& state) {
+    ::mc::Block::forEachBlockState([&](const ::mc::BlockState& state) {
         std::map<std::string, std::string> props = exportStateProperties(state);
         const std::string key = buildLookupKey(state.blockLocation().toString(), props);
         if (auto javaId = lookupGlobalId(key)) {
@@ -202,4 +202,4 @@ u32 JavaBlockStateIdMap::fromJavaGlobalId(u32 javaGlobalId) const
     return 0; // air 兜底
 }
 
-} // namespace mc::world::block
+} // namespace mc::network::backend::java

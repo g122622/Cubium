@@ -51,9 +51,9 @@ namespace mc::network::backend::java {
  * `JavaEntityTypeIdMap` 修过的 entity_type id 错位同构。
  *
  * 本表是纯协议对齐逻辑（项目内部 id ↔ Java wire id 翻译），不属 item 业务核心，故置于
- * network/backend/java 层（与 `JavaProtocolTables` 同层），item 子系统零感知。另四张同类
- * 表（JavaEntityTypeIdMap/JavaBlockEntityTypeIdMap/JavaBiomeRegistryIdMap/JavaBlockStateIdMap）
- * 现置于各自子系统下，本表是新设的协议层归属（未来可视情况统一迁移）。
+ * network/backend/java 层（与 `JavaProtocolTables`、`JavaBlockStateIdMap` 同层），item 子系统
+ * 零感知。另三张同类表（JavaEntityTypeIdMap/JavaBlockEntityTypeIdMap/JavaBiomeRegistryIdMap）
+ * 现仍置于各自子系统下，可视情况陆续迁此层统一。
  *
  * 数据源：`assets/data/items_1.21.11.json`（PrismarineJS minecraft-data，已验证 id==index
  * 即 vanilla 注册序），由离线脚本 `scripts/baking/bake_java_item_table.ts` 预烘焙成紧凑

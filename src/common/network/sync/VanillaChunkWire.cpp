@@ -23,12 +23,12 @@
 
 #include "common/network/sync/VanillaChunkWire.hpp"
 
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/JavaBlockStateIdMap.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
@@ -322,7 +322,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
     }
 
     // 2. sections:24 段
-    auto& blockStateMap = mc::world::block::JavaBlockStateIdMap::instance();
+    auto& blockStateMap = mc::network::backend::java::JavaBlockStateIdMap::instance();
     auto& biomeMap = mc::world::biome::JavaBiomeRegistryIdMap::instance();
     ir.sections.reserve(static_cast<size_t>(mc::world::CHUNK_SECTIONS));
     for (int sec = 0; sec < mc::world::CHUNK_SECTIONS; ++sec) {
@@ -442,7 +442,7 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
     auto chunk = std::make_unique<ChunkData>(ir.x, ir.z);
     const int chunkMinY = mc::world::MIN_BUILD_HEIGHT;
 
-    auto& blockStateMap = mc::world::block::JavaBlockStateIdMap::instance();
+    auto& blockStateMap = mc::network::backend::java::JavaBlockStateIdMap::instance();
     auto& biomeMap = mc::world::biome::JavaBiomeRegistryIdMap::instance();
     auto& beTypeMap = mc::JavaBlockEntityTypeIdMap::instance();
 

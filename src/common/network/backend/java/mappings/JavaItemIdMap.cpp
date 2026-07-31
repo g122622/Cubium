@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/network/backend/java/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"

@@ -56,8 +56,9 @@
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/network/backend/java/JavaItemIdMap.hpp"
 #include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
@@ -80,7 +81,6 @@
 #include "common/world/biome/BiomeTagLoader.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/JavaBlockStateIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -1447,7 +1447,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     // item 表遍历 ItemRegistry::forEachItem（须在 Items::initialize 之后）。四者均在上方已完成。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::JavaIdMaps");
-        if (auto r = world::block::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
+        if (auto r = ::mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBlockStateIdMap: {}", r.error().toString());
         }
         if (auto r = world::biome::JavaBiomeRegistryIdMap::instance().initialize(); r.failed()) {

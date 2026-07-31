@@ -9,7 +9,7 @@
  * vanilla 1.21.11 BuiltInRegistries.ITEM 注册序(air=0/stone=1/…/ominous_bottle=1504),
  * 与真 Java 客户端 wire 上 ItemStack 的 itemId 一致。已验证 id==index 全成立。
  *
- * 设计目标(与 bake_java_id_tables.ts 同范式):
+ * 设计目标(与 bake_java_block_state_table.ts 同范式):
  *   - 运行时零 JSON 解析。
  *   - 最终常驻结构为排序数组 + 扁平字符串池,C++ 端二分查找。
  *   - 反向(vanilla id → name)用稠密数组(id 连续 0..maxId,直接下标)。
