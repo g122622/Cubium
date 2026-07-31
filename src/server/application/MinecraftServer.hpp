@@ -92,6 +92,10 @@ class ServerWorld;
 class ServerChunkManager;
 class ServerScriptManager;
 
+namespace sync {
+class WeatherSyncService;
+} // namespace sync
+
 namespace net {
 class ServerClientConnection;
 } // namespace net
@@ -197,6 +201,10 @@ public:
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { return *m_dimensionManager; }
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return *m_dimensionManager; }
+
+    // ========== 天气同步服务 ==========
+    [[nodiscard]] sync::WeatherSyncService& weatherSyncService() { return *m_weatherSyncService; }
+    [[nodiscard]] const sync::WeatherSyncService& weatherSyncService() const { return *m_weatherSyncService; }
 
     // ========== 玩家实体管理 ==========
 
@@ -459,15 +467,8 @@ protected:
      */
     void sendTimeUpdate();
 
-    /**
-     * @brief 发送天气更新
-     */
-    void sendWeatherUpdate();
-
-    /**
-     * @brief 发送初始天气状态给指定玩家
-     */
-    void sendInitialWeatherStateToPlayer(PlayerId playerId);
+    // 天气同步已下沉到 WeatherSyncService（server/sync/WeatherSyncService）。
+    // tick 中调 m_weatherSyncService->tick()，登录时调其 sendInitialWeatherStateToPlayer。
 
     /**
      * @brief 发送初始难度状态给指定玩家
@@ -541,9 +542,15 @@ protected:
      *
      * 新网络层（1.21.11 IR）：游戏逻辑直接构造 ir::IrPacket 交由本方法，
      * 经各 ServerClientConnection::send 出站，不再有 12 字节头封装。
+     *
+     * 作为发送原语公开：WeatherSyncService/PlayerBroadcaster 等服务端子系统
+     * 经此广播 IR 包，无需 friend。子类（StandaloneServer/IntegratedServer）
+     * 提供本地/远程双路径实现。
      */
+public:
     virtual void broadcastPacket(const mc::network::ir::IrPacket& packet) = 0;
 
+protected:
     /**
      * @brief 将会话ID转换为玩家ID（子类实现）
      * @param sessionId 会话ID（IntegratedServer 返回固定的客户端玩家ID）
@@ -1182,6 +1189,9 @@ protected:
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;
 
+    // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
+    std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;
+
     // 交互管理器
     std::unique_ptr<interaction::BlockInteractionManager> m_blockInteractionManager;
     std::unique_ptr<interaction::MiningManager> m_miningManager;
@@ -1226,10 +1236,6 @@ protected:
     // 心跳间隔（ticks）
     static constexpr u64 KEEPALIVE_INTERVAL = 300; // 15秒 @ 20 TPS
     static constexpr u64 CLEANUP_INTERVAL = 100;
-
-    // 上次发送的天气强度（用于检测变化）
-    f32 m_lastSentRainStrength = 0.0f;
-    f32 m_lastSentThunderStrength = 0.0f;
 };
 
 // ============================================================================

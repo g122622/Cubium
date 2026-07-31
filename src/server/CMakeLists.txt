@@ -84,6 +84,7 @@ add_executable(minecraft-server
     sync/EntitySyncManager.cpp
     sync/BlockUpdateSyncManager.cpp
     sync/ChunkSendManager.cpp
+    sync/WeatherSyncService.cpp
     # 命令系统
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp

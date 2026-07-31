@@ -1716,6 +1716,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
@@ -2643,6 +2644,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp

@@ -592,6 +592,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
     # 记分板
     ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp

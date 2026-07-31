@@ -138,6 +138,7 @@
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
+#include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -422,7 +423,9 @@ void MinecraftServer::tick()
     }
 
     // 同步天气变化
-    sendWeatherUpdate();
+    if (m_weatherSyncService) {
+        m_weatherSyncService->tick();
+    }
 
     // 驱动脚本系统tick
     if (m_scriptManager && m_scriptManager->isInitialized()) {
@@ -512,6 +515,10 @@ void MinecraftServer::initializeCoreManagers()
 
     // 创建维度管理器
     m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
+
+    // 创建天气同步服务（方法内部对主世界 WeatherManager 未就绪做早退守卫，
+    // 故可在维度世界创建前构造；tick/登录调用时主世界已就绪）
+    m_weatherSyncService = std::make_unique<sync::WeatherSyncService>(*this);
     m_dimensionManager->setDimensionChangeCallback(
         [this](PlayerId playerId, DimensionId fromDim, DimensionId toDim, const Vector3d& position) {
             auto* player = m_playerManager->getPlayer(playerId);
@@ -1468,101 +1475,6 @@ void MinecraftServer::sendTimeUpdate()
         for (PlayerId playerId : playerIds) {
             sendPacketToPlayer(playerId, packet);
         }
-    }
-}
-
-void MinecraftServer::sendWeatherUpdate()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "sendWeatherUpdate", "phase", "weather_sync");
-
-    // 天气仅存在于主世界
-    auto* overworld = m_dimensionManager->getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
-
-    auto& weatherMgr = *overworld->world()->weatherManager();
-    f32 rainStrength = weatherMgr.rainStrength();
-    f32 thunderStrength = weatherMgr.thunderStrength();
-
-    constexpr f32 STRENGTH_THRESHOLD = 0.001f;
-    bool rainChanged = std::abs(rainStrength - m_lastSentRainStrength) > STRENGTH_THRESHOLD;
-    bool thunderChanged = std::abs(thunderStrength - m_lastSentThunderStrength) > STRENGTH_THRESHOLD;
-
-    if (rainChanged) {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 7; // RainStrengthChange
-        evt.value = rainStrength;
-        broadcastPacket(mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(evt)},
-        });
-        m_lastSentRainStrength = rainStrength;
-    }
-
-    if (thunderChanged) {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 8; // ThunderStrengthChange
-        evt.value = thunderStrength;
-        broadcastPacket(mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(evt)},
-        });
-        m_lastSentThunderStrength = thunderStrength;
-    }
-
-    if (weatherMgr.hasWeatherChanged()) {
-        auto weatherType = weatherMgr.weatherType();
-        if (weatherType == weather::WeatherType::Clear) {
-            mc::network::ir::play::GameEvent evt;
-            evt.event = 1; // EndRaining
-            evt.value = 0.0f;
-            broadcastPacket(mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
-        } else if (weatherType == weather::WeatherType::Rain || weatherType == weather::WeatherType::Thunder) {
-            mc::network::ir::play::GameEvent evt;
-            evt.event = 2; // BeginRaining
-            evt.value = 0.0f;
-            broadcastPacket(mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
-        }
-    }
-}
-
-void MinecraftServer::sendInitialWeatherStateToPlayer(PlayerId playerId)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendInitialWeatherState", "phase", "weather_sync");
-
-    // 天气仅存在于主世界
-    auto* overworld = m_dimensionManager->getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) return;
-
-    auto& weatherMgr = *overworld->world()->weatherManager();
-    f32 rainStrength = weatherMgr.rainStrength();
-    f32 thunderStrength = weatherMgr.thunderStrength();
-
-    {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 7; // RainStrengthChange
-        evt.value = rainStrength;
-        sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
-    }
-
-    {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 8; // ThunderStrengthChange
-        evt.value = thunderStrength;
-        sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
     }
 }
 
@@ -2573,7 +2485,9 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
         });
 
     // 发送初始天气状态
-    sendInitialWeatherStateToPlayer(playerId);
+    if (m_weatherSyncService) {
+        m_weatherSyncService->sendInitialWeatherStateToPlayer(playerId);
+    }
 
     // 发送初始难度状态
     sendInitialDifficultyToPlayer(playerId);
