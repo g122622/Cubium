@@ -236,7 +236,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
 
         // 优先级2: 狼铠装备（狼铠 + 未装备 + 主人 + 非幼年）
         // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 装备分支
-        if (item != nullptr && item == Items::WOLF_ARMOR && !isWearingBodyArmor() && isOwner(player.playerId()) &&
+        if (item != nullptr && item == Items::WOLF_ARMOR && !isWearingBodyArmor() && isOwner(player.uuidBytes()) &&
             !isChild()) {
             // 装备狼铠：复制一份（数量1）放入身体槽位
             ItemStack armorStack = itemStack.split(1);
@@ -250,7 +250,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
 
         // 优先级3: 狼铠修复（犰狳鳞甲 + 坐下 + 已装备 + 狼铠受损 + 主人）
         // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 修复分支
-        if (isSitting() && isWearingBodyArmor() && isOwner(player.playerId())) {
+        if (isSitting() && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
             ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
             if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR && bodyArmor.isDamaged()) {
                 // 检查手持物品是否为犰狳鳞甲（或属于 REPAIRS_WOLF_ARMOR 标签）
@@ -276,7 +276,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
 
         // 优先级4: 狼铠染色（染料 + 已装备可染色狼铠 + 主人）
         // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 染色分支
-        if (item != nullptr && isWearingBodyArmor() && isOwner(player.playerId())) {
+        if (item != nullptr && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
             ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
             if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR) {
                 auto dyeColor = _getDyeColorFromItem(item);
@@ -299,7 +299,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
 
         // 优先级5: 颈圈染色（染料 + 主人）
         auto dyeColor = _getDyeColorFromItem(item);
-        if (dyeColor.has_value() && isOwner(player.playerId())) {
+        if (dyeColor.has_value() && isOwner(player.uuidBytes())) {
             if (dyeColor.value() != getCollarColor()) {
                 setCollarColor(dyeColor.value());
                 if (!player.abilities().creativeMode) {
@@ -352,7 +352,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         }
 
         // 优先级7: 坐下/站起切换（主人 + 非特殊物品）
-        if (isOwner(player.playerId())) {
+        if (isOwner(player.uuidBytes())) {
             setSitting(!isSitting());
             clearNavigation();
             setAttackTarget(nullptr);
@@ -397,7 +397,7 @@ void WolfEntity::_tryToTame(Player& player)
     if (rng.nextInt(3) == 0) {
         // 驯服成功
         setTamed(true);
-        setOwnerId(player.playerId());
+        setOwnerId(player.uuidBytes());
 
         // 停止导航和攻击
         clearNavigation();
@@ -698,7 +698,7 @@ bool WolfEntity::canShearEquipment(const Player& player) const
 {
     // 狼只允许主人剪切狼铠
     // 参考: net.minecraft.world.entity.animal.wolf.Wolf.canShearEquipment()
-    return isOwner(player.playerId());
+    return isOwner(player.uuidBytes());
 }
 
 void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)

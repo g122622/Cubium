@@ -31,12 +31,15 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
 
 // ==================== 静态成员初始化 ====================
-entity::DataParameter<bool> TameableEntity::DATA_TAMED_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i8> TameableEntity::DATA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<entity::OptionalUuidValue> TameableEntity::DATA_OWNERUUID_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalUuidValue>();
 
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
@@ -63,15 +66,34 @@ TameableEntity::TameableEntity(EntityInstanceId id)
 void TameableEntity::setTamed(bool tamed)
 {
     if (isTamed() != tamed) {
-        m_dataManager.set(DATA_TAMED_PARAM, tamed);
+        // 写 DATA_FLAGS_PARAM 的 bit2（对齐 vanilla TamableAnimal.DATA_FLAGS_ID & 4 = tame）
+        const i8 flags = m_dataManager.get<i8>(DATA_FLAGS_PARAM);
+        m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(tamed ? (flags | 0x04) : (flags & ~0x04)));
         onTamed(tamed);
     }
+}
+
+void TameableEntity::setOwnerId(Uuid ownerId)
+{
+    m_ownerId = ownerId;
+    // 同步到 DATA_OWNERUUID_PARAM（对齐 vanilla TamableAnimal.DATA_OWNERUUID_ID）
+    m_dataManager.set(DATA_OWNERUUID_PARAM, entity::OptionalUuidValue{true, ownerId});
+}
+
+void TameableEntity::clearOwner()
+{
+    m_ownerId = std::nullopt;
+    m_dataManager.set(DATA_OWNERUUID_PARAM, entity::OptionalUuidValue{false, {}});
 }
 
 void TameableEntity::setSitting(bool sitting)
 {
     if (m_sitting != sitting) {
         m_sitting = sitting;
+        // 同步 sitting 到 DATA_FLAGS_PARAM 的 bit0（对齐 vanilla TamableAnimal.DATA_FLAGS_ID & 1），
+        // 经元数据广播到客户端。m_sitting 仍是业务权威源（NBT 存它），flags bit0 为同步镜像。
+        const i8 flags = m_dataManager.get<i8>(DATA_FLAGS_PARAM);
+        m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(sitting ? (flags | 0x01) : (flags & ~0x01)));
         // 坐下时停止移动
         if (sitting) {
             clearNavigation();
@@ -172,9 +194,12 @@ void TameableEntity::registerData()
     // 分配 id（续接 AnimalEntity 之后）。RAII 守卫自动配对压栈/弹栈。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册驯服状态数据参数，用于客户端-服务端同步
-    // 对应 MC 1.21.11 TamableAnimal.defineSynchedData() 中的 DATA_FLAGS_ID 的 isTame 位
-    m_dataManager.registerParam(DATA_TAMED_PARAM, false);
+    // 注册同步数据参数（对齐 vanilla TamableAnimal.defineSynchedData()）：
+    //   id17: DATA_FLAGS_PARAM（Byte，bit2=tame / bit0=sitting）
+    //   id18: DATA_OWNERUUID_PARAM（OptionalLivingEntityRef，主人 UUID）
+    // vanilla DATA_FLAGS_ID define 默认 (byte)0；DATA_OWNERUUID_ID 默认空引用。
+    m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_OWNERUUID_PARAM, entity::OptionalUuidValue{false, {}});
 }
 
 Player* TameableEntity::getOwner() const
@@ -190,13 +215,15 @@ Player* TameableEntity::getOwner() const
     }
 
     // 获取所有玩家，查找匹配的主人
+    // 对齐 vanilla TamableAnimal.getOwner()：按主人 UUID（profile UUID）查找，而非非持久 playerId。
+    // Player::uuidBytes() 返回回填后的 profile UUID（UUid），由 MinecraftServer::createPlayerForConnection 写入。
     std::vector<Entity*> players = worldPtr->getPlayers();
     for (Entity* entity : players) {
         if (entity == nullptr) {
             continue;
         }
         Player* player = dynamic_cast<Player*>(entity);
-        if (player != nullptr && player->playerId() == m_ownerId.value()) {
+        if (player != nullptr && player->uuidBytes() == m_ownerId.value()) {
             return player;
         }
     }
@@ -253,9 +280,10 @@ void TameableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // Sitting (byte/bool) - 是否坐下
     tag.put(nbt_keys::SITTING, static_cast<i8>(m_sitting ? 1 : 0));
 
-    // OwnerUUID (string) - 主人 UUID
+    // Owner (string) - 主人 UUID（对齐 vanilla TamableAnimal NBT key "Owner"）
+    // 值用 32 字符纯十六进制 UUID 字符串（项目自洽存档，非 vanilla int[4]，不与 vanilla 存档互通）。
     if (m_ownerId.has_value()) {
-        tag.put(nbt_keys::OWNER_UUID, std::to_string(m_ownerId.value()));
+        tag.put(nbt_keys::OWNER, util::uuidToString(m_ownerId.value()));
     }
 
     // AngerTime (i32) - 愤怒剩余时间
@@ -277,14 +305,10 @@ Result<void> TameableEntity::readAdditionalSaveData(const nbt::tags::compound_ta
         m_sitting = *val;
     }
 
-    // OwnerUUID (string) - 解析为主人 ID
-    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::OWNER_UUID)) {
-        try {
-            m_ownerId = std::stoull(*val);
-        }
-        catch (...) {
-            m_ownerId = std::nullopt;
-        }
+    // Owner (string) - 主人 UUID（vanilla key "Owner"）
+    // 兼容旧存档 key "OwnerUUID"（u64 十进制串）——直接弃旧，因 u64 playerId 非持久无法迁移到 UUID。
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::OWNER)) {
+        m_ownerId = util::uuidFromString(*val);
     }
 
     // AngerTime (i32)
@@ -296,6 +320,15 @@ Result<void> TameableEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     // 从存档恢复驯服状态：如果有主人则自动设为已驯服
     if (m_ownerId.has_value()) {
         setTamed(true);
+        // 主人恢复后同步 owner 到 DataParameter（addAdditionalSaveData 只持久化 m_ownerId，
+        // 重载后 DataParameter 需重新填充以广播到客户端）
+        m_dataManager.set(DATA_OWNERUUID_PARAM, entity::OptionalUuidValue{true, m_ownerId.value()});
+    }
+
+    // 同步 sitting 到 DATA_FLAGS bit0（存档只持久化 m_sitting，需写回 flags 以广播）
+    {
+        const i8 flags = m_dataManager.get<i8>(DATA_FLAGS_PARAM);
+        m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(m_sitting ? (flags | 0x01) : (flags & ~0x01)));
     }
 
     return Result<void>::ok();

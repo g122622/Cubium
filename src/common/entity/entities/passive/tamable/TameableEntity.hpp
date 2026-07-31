@@ -80,10 +80,11 @@ public:
      * @brief 检查是否已被驯服
      * @return 如果已被驯服返回true
      *
-     * 通过 DataParameter 从 EntityDataManager 读取，服务端调用 setTamed 修改后
-     * 会自动通过元数据同步到客户端。客户端 ClientEntity::isWolfTamed 镜像此状态。
+     * 通过 DataParameter 从 EntityDataManager 读取 DATA_FLAGS_PARAM 的 bit2（对齐 vanilla
+     * TamableAnimal.DATA_FLAGS_ID & 4）。服务端调用 setTamed 修改后自动经元数据同步到客户端。
+     * 客户端 ClientEntity::setWolfTamed 镜像此状态（读同一 Byte 字段解 bit2）。
      */
-    [[nodiscard]] bool isTamed() const { return m_dataManager.get<bool>(DATA_TAMED_PARAM); }
+    [[nodiscard]] bool isTamed() const { return (m_dataManager.get<i8>(DATA_FLAGS_PARAM) & 0x04) != 0; }
 
     /**
      * @brief 设置驯服状态
@@ -112,35 +113,51 @@ public:
     }
 
     /**
-     * @brief 获取主人ID
-     * @return 主人的玩家ID，如果没有主人返回空
+     * @brief 获取主人 UUID
+     * @return 主人的 profile UUID，如果没有主人返回空
+     *
+     * 对齐 vanilla TamableAnimal.getOwnerReference()（1.21.11 为 Optional<EntityReference>，
+     * 内部即 UUID）。getOwner() 据此 UUID 在世界中查找主人玩家实体。
      */
-    [[nodiscard]] std::optional<u64> getOwnerId() const { return m_ownerId; }
+    [[nodiscard]] std::optional<Uuid> getOwnerId() const { return m_ownerId; }
 
     /**
-     * @brief 设置主人ID
-     * @param ownerId 主人的玩家ID
+     * @brief 设置主人 UUID
+     * @param ownerId 主人的 profile UUID
+     *
+     * 同时把 owner 写入 DATA_OWNERUUID_PARAM 同步到客户端（对齐 vanilla
+     * TamableAnimal.DATA_OWNERUUID_ID，wire = OptionalLivingEntityRef）。
      */
-    void setOwnerId(u64 ownerId) { m_ownerId = ownerId; }
+    void setOwnerId(Uuid ownerId);
 
     /**
      * @brief 清除主人
      */
-    void clearOwner() { m_ownerId = std::nullopt; }
+    void clearOwner();
 
     /**
      * @brief 检查指定玩家是否是主人
-     * @param playerId 玩家ID
+     * @param playerId 玩家的 profile UUID
      * @return 如果是主人返回true
      */
-    [[nodiscard]] bool isOwner(u64 playerId) const { return m_ownerId.has_value() && m_ownerId.value() == playerId; }
+    [[nodiscard]] bool isOwner(Uuid playerId) const { return m_ownerId.has_value() && m_ownerId.value() == playerId; }
 
     /**
-     * @brief 获取驯服状态数据参数 ID
+     * @brief 获取驯服/坐下标志数据参数 ID
      *
-     * 用于客户端从元数据中读取驯服状态（ClientEntity::syncMetadataFromDataManager）。
+     * 返回 DATA_FLAGS_PARAM 的 id（vanilla TamableAnimal.DATA_FLAGS_ID，Byte 类型）。
+     * 客户端 ClientEntity 据此 id 读取 Byte 并解 bit2=tame / bit0=sitting 镜像状态。
+     * 名字保留 getTamedParamId 以兼容现有调用方（语义为「flags 字段 id」）。
      */
-    [[nodiscard]] static u16 getTamedParamId() { return DATA_TAMED_PARAM.id(); }
+    [[nodiscard]] static u16 getTamedParamId() { return DATA_FLAGS_PARAM.id(); }
+
+    /**
+     * @brief 获取主人 UUID 数据参数 ID
+     *
+     * 返回 DATA_OWNERUUID_PARAM 的 id（vanilla TamableAnimal.DATA_OWNERUUID_ID，
+     * OptionalLivingEntityRef 类型）。测试/诊断用。
+     */
+    [[nodiscard]] static u16 getOwnerUuidParamId() { return DATA_OWNERUUID_PARAM.id(); }
 
     /**
      * @brief 获取主人实体
@@ -271,13 +288,22 @@ protected:
 private:
     // ========== 数据同步 ==========
     /**
-     * @brief 驯服状态同步参数
+     * @brief 驯服/坐下标志同步参数（Byte）
      *
-     * 对应 MC 1.21.11 TamableAnimal.DATA_FLAGS_ID 中的 isTame 位（bit 2 / mask 0x4）。
-     * 由 setTamed 写入，由 EntityTracker 自动广播到所有观察者客户端。
-     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfTamed。
+     * 对应 MC 1.21.11 TamableAnimal.DATA_FLAGS_ID：bit2(mask 0x4)=tame，bit0(mask 0x1)=sitting。
+     * 由 setTamed/setSitting 写入对应位，由 EntityTracker 自动广播到所有观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此 Byte 并解 bit2/bit0 镜像状态。
      */
-    static entity::DataParameter<bool> DATA_TAMED_PARAM;
+    static entity::DataParameter<i8> DATA_FLAGS_PARAM;
+
+    /**
+     * @brief 主人 UUID 同步参数（OptionalLivingEntityRef）
+     *
+     * 对应 MC 1.21.11 TamableAnimal.DATA_OWNERUUID_ID（Optional<EntityReference<LivingEntity>>，
+     * wire = OptionalLivingEntityRef = 1 byte present + 16 字节大端 UUID）。
+     * 由 setOwnerId/clearOwner 写入。
+     */
+    static entity::DataParameter<entity::OptionalUuidValue> DATA_OWNERUUID_PARAM;
 
 protected:
     /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
@@ -286,7 +312,7 @@ protected:
 private:
     // 驯服状态
     bool m_sitting = false;
-    std::optional<u64> m_ownerId;
+    std::optional<Uuid> m_ownerId;
 
     // 愤怒系统（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     i32 m_angerTime = 0;

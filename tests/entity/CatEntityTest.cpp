@@ -39,6 +39,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -54,6 +55,10 @@
 
 namespace mc {
 namespace {
+
+// 测试用固定主人 UUID（替代旧 u64 playerId）。
+const Uuid kTestOwnerUuid = util::uuidFromString("0123456789abcdef0123456789abcdef");
+const Uuid kOtherUuid = util::uuidFromString("fedcba9876543210fedcba9876543210");
 
 /**
  * @brief CatEntity 测试用世界
@@ -701,7 +706,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithCod_ReturnsSuccessAndPla
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -740,7 +745,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_WithSalmon_ReturnsSuccessAnd
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack salmonStack(Items::SALMON, 10);
     player.inventory().setItem(0, salmonStack);
@@ -767,7 +772,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_CreativeMode_NoConsumption)
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -792,7 +797,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_SilentCat_NoSound)
     cat.setSilent(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
     player.inventory().setSelectedSlot(0);
@@ -814,7 +819,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_NonFoodItem_PassesToParent)
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack appleStack(Items::APPLE, 10);
     player.inventory().setItem(0, appleStack);
     player.inventory().setSelectedSlot(0);
@@ -837,7 +842,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_OffHandCod)
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     // 主手放苹果，副手放生鳕鱼
@@ -869,7 +874,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessOr
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
     player.inventory().setSelectedSlot(0);
@@ -898,11 +903,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamingSuccess_SetsOwnerAndSitting)
 
     // 直接设置驯服状态以验证成功后的行为
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     EXPECT_TRUE(cat.isTamed());
-    EXPECT_TRUE(cat.isOwner(12345ULL));
-    EXPECT_FALSE(cat.isOwner(99999ULL));
+    EXPECT_TRUE(cat.isOwner(kTestOwnerUuid));
+    EXPECT_FALSE(cat.isOwner(kOtherUuid));
 }
 
 // ============================================================================
@@ -917,11 +922,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeOwner_ChangesCollarColor)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL); // 主人
+    player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人（profile UUID）
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -948,11 +953,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeNonOwner_NoCollarChange)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
 
     Player player(EntityInstanceId(2), "OtherPlayer");
-    player.setPlayerId(99999ULL); // 非主人
+    player.setUuid(util::uuidToString(kOtherUuid)); // 非主人（profile UUID）
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -979,11 +984,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeSameColor_NoConsumption)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     // 默认红色项圈
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::RED_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1012,10 +1017,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealDye_WhiteCollar)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack boneMealStack(Items::BONE_MEAL, 10);
     player.inventory().setItem(0, boneMealStack);
@@ -1036,10 +1041,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacDye_BlackCollar)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack inkSacStack(Items::INK_SAC, 10);
     player.inventory().setItem(0, inkSacStack);
@@ -1060,10 +1065,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeCreativeMode_NoConsumption)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1093,11 +1098,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodDamaged_HealsAndPlaysSound
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(5.0f); // 未满血（猫满血 10.0f）
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1129,11 +1134,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_DoesNotHeal)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(cat.maxHealth()); // 满血
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1158,11 +1163,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_SalmonFood_Heals)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(5.0f); // 受伤
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack salmonStack(Items::SALMON, 10);
     player.inventory().setItem(0, salmonStack);
@@ -1183,11 +1188,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodCreativeMode_NoConsumption
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(5.0f);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1213,12 +1218,12 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_SilentFoodHeal_NoSound)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(5.0f);
     cat.setSilent(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
     player.inventory().setSelectedSlot(0);
@@ -1243,10 +1248,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_OwnerEmptyHand_TogglesSitting)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     // 空手（不设置任何物品）
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
@@ -1275,10 +1280,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_OwnerNonFoodNonDyeItem_Toggles
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack dirtStack(Items::DIRT, 10);
     player.inventory().setItem(0, dirtStack);
     player.inventory().setSelectedSlot(0);
@@ -1307,11 +1312,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwner_CannotInteract)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(cat.maxHealth()); // 满血，跳过治疗分支
 
     Player player(EntityInstanceId(2), "OtherPlayer");
-    player.setPlayerId(99999ULL); // 非主人
+    player.setUuid(util::uuidToString(kOtherUuid)); // 非主人（profile UUID）
     player.abilities().creativeMode = false;
 
     // 测试用生鱼（食物）交互
@@ -1338,10 +1343,10 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwnerDye_NoCollarChange)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "OtherPlayer");
-    player.setPlayerId(99999ULL); // 非主人
+    player.setUuid(util::uuidToString(kOtherUuid)); // 非主人（profile UUID）
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1373,7 +1378,7 @@ TEST_F(CatEntityTestFixture, InteractMob_UntamedCat_EmptyHand_PassesToParent)
     cat.setTypeId("minecraft:cat");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
     player.inventory().setSelectedSlot(0);
@@ -1413,13 +1418,13 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_AdultBreedable_
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(cat.maxHealth()); // 满血
     EXPECT_FALSE(cat.isChild());    // 成年
     EXPECT_TRUE(cat.canBreed());    // 可繁殖
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1451,11 +1456,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodFullHealth_AdultBreedable_
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setHealth(cat.maxHealth());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1482,12 +1487,12 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_AcceleratesGrowth)
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setChild(true); // 设为幼体
     EXPECT_TRUE(cat.isChild());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1522,11 +1527,11 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_FoodChild_CreativeMode_NoConsu
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
-    cat.setOwnerId(12345ULL);
+    cat.setOwnerId(kTestOwnerUuid);
     cat.setChild(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack codStack(Items::COD, 10);
     player.inventory().setItem(0, codStack);
@@ -1586,9 +1591,9 @@ TEST_F(CatEntityTestFixture, Serialization_OwnerIdPreserved)
     // 验证主人 ID 可以正确设置和获取
     CatEntity cat(EntityInstanceId(0));
 
-    cat.setOwnerId(12345u);
-    EXPECT_TRUE(cat.isOwner(12345u));
-    EXPECT_FALSE(cat.isOwner(99999u));
+    cat.setOwnerId(kTestOwnerUuid);
+    EXPECT_TRUE(cat.isOwner(kTestOwnerUuid));
+    EXPECT_FALSE(cat.isOwner(kOtherUuid));
 }
 
 // ============================================================================

@@ -457,7 +457,7 @@ ActionResultType CatEntity::interactMob(Player& player, Hand hand)
         // ========== 已驯服的猫 ==========
 
         // 仅主人可以交互
-        if (isOwner(player.playerId())) {
+        if (isOwner(player.uuidBytes())) {
             // 优先级1: 项圈染色（染料 + 颜色不同）
             auto dyeColor = _getDyeColorFromItem(item);
             if (dyeColor.has_value() && dyeColor.value() != m_collarColor) {
@@ -530,7 +530,7 @@ void CatEntity::_tryToTame(Player& player)
     if (getRandom().nextInt(3) == 0) {
         // 驯服成功
         setTamed(true);
-        setOwnerId(player.playerId());
+        setOwnerId(player.uuidBytes());
         setSitting(true);
         clearNavigation();
 

@@ -179,7 +179,7 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
             if (rng.nextInt(10) == 0) {
                 // 驯服成功
                 setTamed(true);
-                setOwnerId(player.playerId());
+                setOwnerId(player.uuidBytes());
 
                 // 通知世界动物被驯服，触发进度检测
                 m_world->onTameAnimal(player.playerId(), this);
@@ -196,7 +196,7 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
     }
 
     // 已驯服的鹦鹉可以切换坐下状态
-    if (isTamed() && isOwner(player.playerId())) {
+    if (isTamed() && isOwner(player.uuidBytes())) {
         // 切换坐下状态
         toggleSitting();
         return ActionResultType::Success;

@@ -162,6 +162,14 @@ public:
     [[nodiscard]] bool isDashing() const { return m_dataManager.get<bool>(DATA_DASH_PARAM); }
 
     /**
+     * @brief 获取冲刺状态数据参数 ID
+     *
+     * 返回 DATA_DASH_PARAM 的 id（vanilla AbstractNautilus.DASH，Boolean 类型）。
+     * 测试/诊断用。
+     */
+    [[nodiscard]] static u16 getDashParamId() { return DATA_DASH_PARAM.id(); }
+
+    /**
      * @brief 设置冲刺状态
      */
     void setDashing(bool dashing);

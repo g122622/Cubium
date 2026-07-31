@@ -51,12 +51,18 @@
 
 // Player 头文件用于 interactMob 测试
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/UuidUtils.hpp"
 
 #include <memory>
 #include <unordered_map>
 
 namespace mc {
 namespace {
+
+// 测试用固定主人 UUID（替代旧 u64 playerId）。setOwnerId/isOwner 现以 profile UUID 匹配。
+// 32 字符纯十六进制，uuidFromString 解析为 Uuid（std::array<u8,16>）。
+const Uuid kTestOwnerUuid = util::uuidFromString("0123456789abcdef0123456789abcdef");
+const Uuid kOtherUuid = util::uuidFromString("fedcba9876543210fedcba9876543210");
 
 /**
  * @brief 狼实体测试用世界
@@ -735,12 +741,12 @@ TEST_F(WolfEntityTestFixture, DataParameter_IsTamed_ReadsFromDataManager)
     wolf.setTamed(true);
     EXPECT_TRUE(wolf.isTamed());
 
-    // 通过 DataManager 直接读取验证
+    // 通过 DataManager 直接读取验证：DATA_FLAGS 为 Byte，bit2(mask 0x4)=tame
     auto& dataManager = wolf.dataManager();
     u16 paramId = TameableEntity::getTamedParamId();
     EXPECT_TRUE(dataManager.hasParam(paramId));
-    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
-    EXPECT_TRUE(storedValue);
+    const i8 flags = dataManager.get<i8>(entity::DataParameter<i8>(paramId));
+    EXPECT_TRUE((flags & 0x04) != 0);
 }
 
 TEST_F(WolfEntityTestFixture, DataParameter_SetTamed_WritesToDataManager)
@@ -749,15 +755,15 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetTamed_WritesToDataManager)
     auto& dataManager = wolf.dataManager();
     u16 paramId = TameableEntity::getTamedParamId();
 
-    // 设置驯服状态
+    // 设置驯服状态：DATA_FLAGS bit2 置位
     wolf.setTamed(true);
-    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
-    EXPECT_TRUE(storedValue);
+    i8 flags = dataManager.get<i8>(entity::DataParameter<i8>(paramId));
+    EXPECT_TRUE((flags & 0x04) != 0);
 
-    // 设置为未驯服
+    // 设置为未驯服：DATA_FLAGS bit2 清零
     wolf.setTamed(false);
-    storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
-    EXPECT_FALSE(storedValue);
+    flags = dataManager.get<i8>(entity::DataParameter<i8>(paramId));
+    EXPECT_FALSE((flags & 0x04) != 0);
 }
 
 TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnTamedChange)
@@ -908,7 +914,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_ReturnsSuccessAnd
     wolf.setTypeId("minecraft:wolf");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
@@ -947,7 +953,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_CreativeMode_NoCo
     wolf.setTypeId("minecraft:wolf");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
@@ -972,7 +978,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_SilentWolf_NoSoun
     wolf.setSilent(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
     player.inventory().setSelectedSlot(0);
@@ -995,7 +1001,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_AngryWolf_BoneDoesNotTame)
     wolf.setAngry(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
     player.inventory().setSelectedSlot(0);
@@ -1020,7 +1026,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_NonBoneItem_PassesToParent
     wolf.setTypeId("minecraft:wolf");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack appleStack(Items::APPLE, 10);
     player.inventory().setItem(0, appleStack);
     player.inventory().setSelectedSlot(0);
@@ -1043,7 +1049,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_OffHandBone)
     wolf.setTypeId("minecraft:wolf");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     // 主手放苹果，副手放骨头
@@ -1074,11 +1080,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessAndSets
 
     // 直接设置驯服状态以验证成功后的行为
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     EXPECT_TRUE(wolf.isTamed());
-    EXPECT_TRUE(wolf.isOwner(12345ULL));
-    EXPECT_FALSE(wolf.isOwner(99999ULL));
+    EXPECT_TRUE(wolf.isOwner(kTestOwnerUuid));
+    EXPECT_FALSE(wolf.isOwner(kOtherUuid));
 }
 
 TEST_F(WolfEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessOrFail)
@@ -1090,7 +1096,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessO
     wolf.setTypeId("minecraft:wolf");
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
     player.inventory().setSelectedSlot(0);
@@ -1122,7 +1128,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodDamaged_HealsAndPlaysSou
     wolf.setHealth(10.0f); // 未满血（驯服后满血 20.0f）
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1157,7 +1163,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodFullHealth_DoesNotHeal)
     wolf.setHealth(wolf.maxHealth()); // 满血
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1185,7 +1191,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RottenFlesh_Heals)
     wolf.setHealth(5.0f); // 受伤
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack rottenFleshStack(Items::ROTTEN_FLESH, 10);
     player.inventory().setItem(0, rottenFleshStack);
@@ -1209,7 +1215,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_CookedBeef_Heals)
     wolf.setHealth(5.0f); // 受伤
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack cookedBeefStack(Items::COOKED_BEEF, 10);
     player.inventory().setItem(0, cookedBeefStack);
@@ -1233,7 +1239,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodCreativeMode_NoConsumpti
     wolf.setHealth(10.0f);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1263,7 +1269,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_SilentFoodHeal_NoSound)
     wolf.setSilent(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
     player.inventory().setSelectedSlot(0);
@@ -1288,11 +1294,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL); // 主人
+    player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1319,11 +1325,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeNonOwner_NoCollarChange)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
 
     Player player(EntityInstanceId(2), "OtherPlayer");
-    player.setPlayerId(99999ULL); // 非主人
+    player.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1353,11 +1359,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeSameColor_NoConsumption)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     // 默认红色颈圈
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::RED_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1386,10 +1392,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealDye_WhiteCollar)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack boneMealStack(Items::BONE_MEAL, 10);
     player.inventory().setItem(0, boneMealStack);
@@ -1410,10 +1416,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacDye_BlackCollar)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack inkSacStack(Items::INK_SAC, 10);
     player.inventory().setItem(0, inkSacStack);
@@ -1438,12 +1444,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_AcceleratesGrowth)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setChild(true); // 设为幼体
     EXPECT_TRUE(wolf.isChild());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1478,11 +1484,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_CreativeMode_NoCon
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setChild(true);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1509,13 +1515,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_EntersLov
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth()); // 满血
     EXPECT_FALSE(wolf.isChild());     // 成年
     EXPECT_TRUE(wolf.canBreed());     // 可繁殖
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1547,11 +1553,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_CreativeM
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1578,10 +1584,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerEmptyHand_TogglesSittin
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     // 空手（不设置任何物品）
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
@@ -1609,12 +1615,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerSitting_TogglesToStandi
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setSitting(true);
     EXPECT_TRUE(wolf.isSitting());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
     player.inventory().setSelectedSlot(0);
@@ -1633,10 +1639,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerEmptyHand_Passes)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player otherPlayer(EntityInstanceId(2), "OtherPlayer");
-    otherPlayer.setPlayerId(99999ULL); // 非主人
+    otherPlayer.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     ItemStack emptyStack(nullptr, 0);
     otherPlayer.inventory().setItem(0, emptyStack);
     otherPlayer.inventory().setSelectedSlot(0);
@@ -1663,11 +1669,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DamagedFoodPrioritizedOverBr
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(5.0f); // 受伤
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1691,11 +1697,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodHealPrioritizedOverDye)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth()); // 满血
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1717,12 +1723,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_ChildFoodPrioritizedOverDye)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setChild(true);
     wolf.setHealth(wolf.maxHealth()); // 幼年狼满血
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1751,12 +1757,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth()); // 满血
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
     player.inventory().setItem(0, dyeStack);
@@ -1783,11 +1789,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_HealAndDyeSeparateInteractio
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(5.0f); // 受伤
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     // 第一次交互：用猪排治疗
@@ -1821,10 +1827,10 @@ TEST_F(WolfEntityTestFixture, CanShearEquipment_OwnerCanShear)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     EXPECT_TRUE(wolf.canShearEquipment(player));
 }
@@ -1837,10 +1843,10 @@ TEST_F(WolfEntityTestFixture, CanShearEquipment_NonOwnerCannotShear)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player stranger(EntityInstanceId(2), "Stranger");
-    stranger.setPlayerId(99999ULL);
+    stranger.setUuid(util::uuidToString(kOtherUuid));
 
     EXPECT_FALSE(wolf.canShearEquipment(stranger));
 }
@@ -1873,10 +1879,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_EquipWolfArmor)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
@@ -1901,10 +1907,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerCannotEquipArmor)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     Player stranger(EntityInstanceId(2), "Stranger");
-    stranger.setPlayerId(99999ULL);
+    stranger.setUuid(util::uuidToString(kOtherUuid));
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     stranger.inventory().setItem(0, wolfArmorStack);
@@ -1922,7 +1928,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_AlreadyEquippedCannotEquipAg
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     // 先装备狼铠
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
@@ -1930,7 +1936,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_AlreadyEquippedCannotEquipAg
     EXPECT_TRUE(wolf.isWearingBodyArmor());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     ItemStack anotherArmorStack(Items::WOLF_ARMOR, 1);
@@ -1951,7 +1957,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairWolfArmor)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setSitting(true);
 
     // 装备受损的狼铠
@@ -1962,7 +1968,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairWolfArmor)
     EXPECT_TRUE(wolf.getBodyArmorItem().isDamaged());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     // 手持犰狳鳞甲
@@ -1990,7 +1996,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     wolf.setSitting(false); // 站着的狼
 
     // 装备受损的狼铠
@@ -1999,7 +2005,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
     wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(32);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     ItemStack scuteStack(Items::ARMADILLO_SCUTE, 10);
     player.inventory().setItem(0, scuteStack);
@@ -2252,7 +2258,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_OwnerWithShears_ShearsWolfA
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     // 装备狼铠
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
@@ -2260,7 +2266,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_OwnerWithShears_ShearsWolfA
     EXPECT_TRUE(wolf.isWearingBodyArmor());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL); // 主人
+    player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
 
     // 手持剪刀
@@ -2301,13 +2307,13 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_NonOwnerWithShears_DoesNotS
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
 
     Player stranger(EntityInstanceId(2), "Stranger");
-    stranger.setPlayerId(99999ULL); // 非主人
+    stranger.setUuid(util::uuidToString(kOtherUuid)); // 非主人
 
     ItemStack shearsStack(Items::SHEARS, 1);
     stranger.inventory().setItem(0, shearsStack);
@@ -2330,12 +2336,12 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_Shears_NoArmor_NoEffect)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     EXPECT_FALSE(wolf.isWearingBodyArmor());
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     ItemStack shearsStack(Items::SHEARS, 1);
     player.inventory().setItem(0, shearsStack);
@@ -2360,14 +2366,14 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_SneakingWithShears_DoesNotS
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
 
     Player player(EntityInstanceId(2), "TestPlayer");
     player.setWorld(&world);
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.setSneaking(true); // 潜行状态
 
     ItemStack shearsStack(Items::SHEARS, 1);
@@ -2400,7 +2406,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     // 装备狼铠
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
@@ -2413,7 +2419,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor
     EXPECT_EQ(initialColor, 0xA06540);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL); // 主人
+    player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
 
     // 手持红色染料
@@ -2443,7 +2449,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorC
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
@@ -2453,7 +2459,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorC
     u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
 
     Player stranger(EntityInstanceId(2), "Stranger");
-    stranger.setPlayerId(99999ULL); // 非主人
+    stranger.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     stranger.abilities().creativeMode = false;
 
     ItemStack redDyeStack(Items::RED_DYE, 10);
@@ -2479,7 +2485,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
@@ -2488,7 +2494,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
     ASSERT_NE(dyeableArmor, nullptr);
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true; // 创造模式不消耗物品
 
     // 验证初始颜色为默认色（犰狳鳞甲棕色 0xA06540）
@@ -2537,11 +2543,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
-    wolf.setOwnerId(12345ULL);
+    wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色颈圈
 
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
     ItemStack blueDyeStack(Items::LAPIS_LAZULI_DYE, 10);

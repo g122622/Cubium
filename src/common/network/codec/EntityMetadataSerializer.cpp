@@ -28,6 +28,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 namespace mc::network {
 
@@ -63,15 +64,15 @@ enum class MetadataSerializerId : i32 {
     Particle = 16,
     Particles = 17,
     VillagerData = 18,
-    OptionalUnsignedInt = 19, // OptionalInt
-    Pose = 20,                // 姿态（本项目以 i8 承载枚举值，走 Byte）
-    CatVariant = 21,          // Holder<CatVariant>（VarInt registryId）
-    CowVariant = 22,          // Holder<CowVariant>
-    WolfVariant = 23,         // Holder<WolfVariant>
-    WolfSoundVariant = 24,    // Holder<WolfSoundVariant>
-    FrogVariant = 25,         // Holder<FrogVariant>
-    PigVariant = 26,          // Holder<PigVariant>
-    ChickenVariant = 27,      // Holder<ChickenVariant>
+    OptionalUnsignedInt = 19,   // OptionalInt
+    Pose = 20,                  // 姿态（本项目以 i8 承载枚举值，走 Byte）
+    CatVariant = 21,            // Holder<CatVariant>（VarInt registryId）
+    CowVariant = 22,            // Holder<CowVariant>
+    WolfVariant = 23,           // Holder<WolfVariant>
+    WolfSoundVariant = 24,      // Holder<WolfSoundVariant>
+    FrogVariant = 25,           // Holder<FrogVariant>
+    PigVariant = 26,            // Holder<PigVariant>
+    ChickenVariant = 27,        // Holder<ChickenVariant>
     ZombieNautilusVariant = 28, // Holder<ZombieNautilusVariant>
     // 29 OptionalGlobalPos / 30 PaintingVariant / 31 SnifferState / 32 ArmadilloState /
     // 33 CopperGolemState / 34 WeatheringCopperState / 35 Vector3 / 36 Quaternion /
@@ -132,6 +133,10 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
             return MetadataSerializerId::VillagerData; // VillagerDataValue（serializerId 18）
         case 20:
             return MetadataSerializerId::HumanoidArm; // HumanoidArmValue（serializerId 38，Player.MAIN_HAND）
+        case 21:
+            // OptionalUuidValue → OPTIONAL_LIVING_ENTITY_REFERENCE（serializerId 13）。
+            // vanilla TamableAnimal.DATA_OWNERUUID_ID（1.21.11 改为 Optional<EntityReference>，wire 仍是 UUID）。
+            return MetadataSerializerId::OptionalLivingEntityRef;
         default:
             return MetadataSerializerId::Byte;
     }
@@ -167,8 +172,19 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
 {
     // 1.21.11 wire：byte(index) + VarInt(serializerId) + value
     // （对齐 SynchedEntityData.DataValue.write：writeByte(id) + writeVarInt(serializerId) + codec.encode）
+    const auto sid = getSerializerId(value);
+    // 【临时诊断】BlockState/OptionalBlockState 序列化器本不应被任何服务端实体使用
+    // （Enderman carry-state 用 i32 stateId 走 Int serializer）。真客户端崩溃
+    // "field 8 ... new=...twisting_vines(class BlockState)" 表明某实体的某字段被当成
+    // BlockState 序列化。此处记录字段 index + variant index + serializerId 以定位根因。
+    if (sid == MetadataSerializerId::BlockState || sid == MetadataSerializerId::OptionalBlockState) {
+        spdlog::warn("[MetaDiag] BlockState-family entry: fieldIndex={} variantIndex={} serializerId={}",
+            id,
+            value.index(),
+            static_cast<i32>(sid));
+    }
     output.push_back(static_cast<u8>(id & 0xFF));
-    _writeVarInt(static_cast<i32>(getSerializerId(value)), output);
+    _writeVarInt(static_cast<i32>(sid), output);
 
     // 数据（按 1.21.11 序列化器 codec 编码）
     switch (value.index()) {
@@ -266,7 +282,7 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             // 已足够让真 Java 客户端通过 Particles 字段类型校验。
             // （对齐 vanilla ParticleTypes.STREAM_CODEC.apply(ByteBufCodecs.list())）。
             const auto particles = value.get<entity::ParticlesValue>();
-            (void)particles; // 当前恒空列表；扩展粒子同步时改为遍历粒子列表
+            (void)particles;         // 当前恒空列表；扩展粒子同步时改为遍历粒子列表
             _writeVarInt(0, output); // count=0（空列表）
             break;
         }
@@ -323,6 +339,19 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             // （对齐 vanilla HUMANOID_ARM = idMapper(HumanoidArm::byId, HumanoidArm::ordinal)）
             const auto arm = value.get<entity::HumanoidArmValue>();
             _writeVarInt(arm.arm, output);
+            break;
+        }
+        case 21: { // OptionalUuidValue → OPTIONAL_LIVING_ENTITY_REFERENCE
+            // 1 byte present + 若 present 则 16 字节大端连续 UUID（MSB 8 字节 BE + LSB 8 字节 BE，
+            // 对齐 FriendlyByteBuf.readUUID/writeUUID = UUIDUtil.STREAM_CODEC）。
+            // vanilla TamableAnimal.DATA_OWNERUUID_ID 用此 codec（1.21.11 Optional<EntityReference>，
+            // EntityReference.streamCodec = UUIDUtil.STREAM_CODEC，wire 仍是 UUID）。
+            const auto ou = value.get<entity::OptionalUuidValue>();
+            output.push_back(ou.present ? 1 : 0);
+            if (ou.present) {
+                // Uuid 是 std::array<u8,16>，按大端连续写入（与 _writeBigEndianI64 两次等价）。
+                output.insert(output.end(), ou.uuid.begin(), ou.uuid.end());
+            }
             break;
         }
         default:
@@ -566,6 +595,22 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 // VarInt(HumanoidArm ordinal：LEFT=0/RIGHT=1)。
                 const i32 a = _readVarInt(data.data(), data.size(), offset);
                 (void)manager.setRaw(index, entity::DataValue(entity::HumanoidArmValue{a}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::OptionalLivingEntityRef: {
+                // 1 byte present + 若 present 则 16 字节大端连续 UUID。
+                // （对齐 vanilla OPTIONAL_LIVING_ENTITY_REFERENCE = EntityReference.streamCodec()
+                // = UUIDUtil.STREAM_CODEC = FriendlyByteBuf.readUUID/writeUUID，16 字节大端连续）
+                if (offset >= data.size()) return false;
+                const bool present = data[offset++] != 0;
+                mc::Uuid uuid{};
+                if (present) {
+                    if (offset + 16 > data.size()) return false;
+                    std::memcpy(uuid.data(), data.data() + offset, 16);
+                    offset += 16;
+                }
+                (void)manager.setRaw(index, entity::DataValue(entity::OptionalUuidValue{present, uuid}));
                 manager.clearDirty(index);
                 break;
             }

@@ -33,6 +33,7 @@
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "entity/core/Entity.hpp"
 
@@ -264,7 +265,7 @@ TEST_F(TameableGetTeamTest, TamedWithoutOwner_NoTeam)
     // 已驯服但没有主人（找不到玩家）时没有队伍
     WolfEntity wolf(EntityInstanceId(1));
     wolf.setTamed(true);
-    wolf.setOwnerId(99999); // 不存在的玩家ID
+    wolf.setOwnerId(util::uuidFromString("99999999999999999999999999999999")); // 不存在的玩家 UUID
     // 没有世界，getOwner() 返回 nullptr，因此继承不到队伍
     EXPECT_EQ(wolf.getTeam(), nullptr);
 }
@@ -321,7 +322,7 @@ TEST_F(WolfWantsToAttackTest, DontAttackTamedWolfWithSameOwner)
     // 不攻击同主人的已驯服狼
     WolfEntity otherWolf(EntityInstanceId(2));
     otherWolf.setTamed(true);
-    otherWolf.setOwnerId(42);
+    otherWolf.setOwnerId(util::uuidFromString("42424242424242424242424242424242"));
 
     // 创建一个 mock owner（用 Player 太重，直接传 nullptr 作为 owner）
     // 当 owner 为 nullptr 且另一只狼已驯服时，不应攻击

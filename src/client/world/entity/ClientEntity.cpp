@@ -288,9 +288,12 @@ void ClientEntity::syncMetadataFromDataManager()
     // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，
     // 客户端在此处读取并调用 setWolfTamed/setWolfCollarColor/setWolfIsInterested/setWolfIsAngry 更新镜像状态。
     if (m_typeId == "minecraft:wolf" || m_typeId == "wolf") {
-        // 驯服状态（通过 TameableEntity::DATA_TAMED_PARAM 同步）
-        if (const auto tamed = _readMetadata<bool>(::mc::TameableEntity::getTamedParamId()); tamed.has_value()) {
-            setWolfTamed(*tamed);
+        // 驯服/坐下状态（通过 TameableEntity::DATA_FLAGS_PARAM 同步，Byte 类型）
+        // 对齐 vanilla TamableAnimal.DATA_FLAGS_ID：bit2(mask 0x4)=tame，bit0(mask 0x1)=sitting。
+        // 旧实现误读为 bool（对应旧 DATA_TAMED_PARAM），现改为读 Byte 并解位。
+        if (const auto flags = _readMetadata<i8>(::mc::TameableEntity::getTamedParamId()); flags.has_value()) {
+            setWolfTamed((*flags & 0x04) != 0);
+            setSitting((*flags & 0x01) != 0);
         }
         // 颈圈颜色（通过 WolfEntity::DATA_COLLAR_COLOR_PARAM 同步）
         if (const auto colorValue = _readMetadata<i32>(::mc::WolfEntity::getCollarColorParamId());

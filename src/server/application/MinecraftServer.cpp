@@ -90,6 +90,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/carver/ConfiguredCarverLoader.hpp"
@@ -1452,6 +1453,9 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
         if (auto r = JavaBlockEntityTypeIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBlockEntityTypeIdMap: {}", r.error().toString());
+        }
+        if (auto r = JavaEntityTypeIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaEntityTypeIdMap: {}", r.error().toString());
         }
     }
 }
@@ -3184,6 +3188,13 @@ MinecraftServer::PlayerCreationResult MinecraftServer::createPlayerForConnection
         m_playerManager->removePlayer(playerId);
         return result;
     }
+
+    // 回填玩家实体的 profile UUID（离线模式 = generateOfflineUuid(username)）。
+    // 必要性：TameableEntity::getOwner() 按 UUID 匹配主人（对齐 vanilla TamableAnimal.getOwnerReference），
+    // 需 Player::uuid() 等于 profile UUID。createPlayerEntity 构造的实体 m_uuid 是随机值，
+    // 不回填则驯服后的狼/猫/鹦鹉螺无法跟随主人、无法继承队伍。PlayerDataManager::applyToPlayer
+    // 不涉及 uuid（仅恢复位置/维度/游戏模式等），故此处回填安全不会被覆盖。
+    playerEntity->setUuid(uuidStr);
 
     // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界。
     m_dimensionManager->playerJoinDimension(playerId, overworld->id());

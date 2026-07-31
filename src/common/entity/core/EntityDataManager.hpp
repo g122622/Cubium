@@ -26,6 +26,7 @@
 #include "DataParameter.hpp"
 #include "EntityClassRegistry.hpp"
 #include "EntityPose.hpp"
+#include "common/command/ICommandSource.hpp" // for mc::Uuid (std::array<u8,16>)
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -42,6 +43,7 @@ using mc::i32;
 using mc::i64;
 using mc::i8;
 using mc::u16;
+using mc::Uuid;
 
 using mc::Vector2f;
 using mc::Vector3f;
@@ -157,6 +159,34 @@ struct HumanoidArmValue {
 };
 
 /**
+ * @brief OptionalLivingEntityReference 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 OPTIONAL_LIVING_ENTITY_REFERENCE（EntityDataSerializers id=13）。
+ * vanilla TamableAnimal.DATA_OWNERUUID_ID 即此类型（1.21.11 从 Optional<UUID> 改为
+ * Optional<EntityReference<LivingEntity>>，但 wire 仍是 UUID：EntityReference.streamCodec()
+ * = UUIDUtil.STREAM_CODEC）。
+ * wire = 1 byte present + 若 present 则 16 字节大端连续 UUID（MSB 8 字节 BE + LSB 8 字节 BE，
+ * 对齐 FriendlyByteBuf.readUUID/writeUUID）。注意 NBT 存档格式不同（vanilla 用 int[4]），
+ * 此 struct 仅承载 wire 同步语义，NBT 由实体侧自行处理。
+ */
+struct OptionalUuidValue {
+    bool present{false};
+    Uuid uuid{}; // present 时为 16 字节 UUID（std::array<u8,16>）
+
+    OptionalUuidValue() = default;
+    OptionalUuidValue(bool p, Uuid u) noexcept
+        : present(p)
+        , uuid(u)
+    {}
+
+    bool operator==(const OptionalUuidValue& other) const noexcept
+    {
+        return present == other.present && uuid == other.uuid;
+    }
+    bool operator!=(const OptionalUuidValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
  * @brief Optional<BlockState> 字段值包装
  *
  * 对齐 vanilla 1.21.11 的 OPTIONAL_BLOCK_STATE（EntityDataSerializers id=15）。
@@ -164,8 +194,8 @@ struct HumanoidArmValue {
  * 本项目 BlockState 以原始 stateId(u32) 标识，此处直接承载 stateId，序列化层写 VarInt。
  */
 struct OptionalBlockStateValue {
-    bool present{false};   // false 时 stateId 无意义（wire 写 0）
-    u32 stateId{0};        // present 时为 BlockState 的 stateId
+    bool present{false}; // false 时 stateId 无意义（wire 写 0）
+    u32 stateId{0};      // present 时为 BlockState 的 stateId
 
     OptionalBlockStateValue() = default;
     OptionalBlockStateValue(bool p, u32 id) noexcept
@@ -278,9 +308,9 @@ struct HolderVariantValue {
  * level 为 1..5。experience 不进同步（vanilla record 不含）。
  */
 struct VillagerDataValue {
-    i32 type{0};        // VillagerType registryId
-    i32 profession{0};  // VillagerProfession registryId
-    i32 level{1};       // 1..5
+    i32 type{0};       // VillagerType registryId
+    i32 profession{0}; // VillagerProfession registryId
+    i32 level{1};      // 1..5
 
     VillagerDataValue() = default;
     VillagerDataValue(i32 t, i32 p, i32 l) noexcept
@@ -314,6 +344,7 @@ public:
     //   16:DirectionValue(→Direction id12) 17:OptionalUnsignedIntValue(→OptionalUnsignedInt id19)
     //   18:HolderVariantValue(→Holder variant,本次统一 id21 占位,见 TODO) 19:VillagerDataValue(→VillagerData id18)
     //   20:HumanoidArmValue(→HumanoidArm id38,Player.MAIN_HAND)
+    //   21:OptionalUuidValue(→OptionalLivingEntityRef id13,TamableAnimal.DATA_OWNERUUID)
     // 新增类型须同步更新 EntityMetadataSerializer 三处分支。
     using ValueType = std::variant<i8,
         i32,
@@ -335,7 +366,8 @@ public:
         OptionalUnsignedIntValue,
         HolderVariantValue,
         VillagerDataValue,
-        HumanoidArmValue>;
+        HumanoidArmValue,
+        OptionalUuidValue>;
 
     DataValue() = default;
 

@@ -649,7 +649,7 @@ void AbstractNautilusEntity::tryToTame(Player& player)
     if (getRandom().nextInt(TAME_PROBABILITY_DENOMINATOR) == 0) {
         // 驯服成功
         setTamed(true);
-        setOwnerId(player.playerId());
+        setOwnerId(player.uuidBytes());
         // 清除导航路径
         clearNavigation();
 

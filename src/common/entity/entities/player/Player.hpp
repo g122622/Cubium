@@ -40,6 +40,7 @@
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
+#include "common/util/UuidUtils.hpp" // for mc::Uuid + util::uuidFromString
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -129,6 +130,12 @@ public:
     [[nodiscard]] const std::string& username() const { return m_username; }
     [[nodiscard]] PlayerId playerId() const { return m_playerId; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
+
+    // 玩家的 16 字节 profile UUID（用于 TameableEntity::getOwner 按 UUID 匹配主人，
+    // 对齐 vanilla TamableAnimal.getOwnerReference().resolve()）。
+    // 由 Entity::uuid()（string）解析得到；uuid() 在 createPlayerForConnection 回填为
+    // 离线 profile UUID（util::generateOfflineUuid），故此处即玩家稳定身份标识。
+    [[nodiscard]] Uuid uuidBytes() const { return util::uuidFromString(uuid()); }
 
     [[nodiscard]] ChatVisibility chatVisibility() const { return m_chatVisibility; }
     void setChatVisibility(ChatVisibility visibility) { m_chatVisibility = visibility; }

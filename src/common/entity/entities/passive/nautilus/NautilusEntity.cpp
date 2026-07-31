@@ -84,7 +84,10 @@ std::unique_ptr<AnimalEntity> NautilusEntity::spawnBaby(AnimalEntity& /*partner*
     // 对应 MC 1.21.11：若父体已驯服，幼体继承主人和驯服状态
     if (isTamed()) {
         baby->setTamed(true);
-        baby->setOwnerId(getOwnerId().value_or(0));
+        // 透传父体主人 UUID（0 不是合法 Uuid，故按 has_value 判定后透传）
+        if (const auto ownerUuid = getOwnerId(); ownerUuid.has_value()) {
+            baby->setOwnerId(ownerUuid.value());
+        }
     }
 
     return baby;

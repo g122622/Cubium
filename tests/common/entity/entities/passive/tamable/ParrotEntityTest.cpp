@@ -32,6 +32,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -45,6 +46,10 @@
 
 namespace mc {
 namespace {
+
+// 测试用固定主人 UUID（替代旧 u64 playerId）。
+const Uuid kTestOwnerUuid = util::uuidFromString("0123456789abcdef0123456789abcdef");
+const Uuid kOtherUuid = util::uuidFromString("fedcba9876543210fedcba9876543210");
 
 /**
  * @brief 鹦鹉实体测试用世界
@@ -395,13 +400,13 @@ TEST_F(ParrotEntityTestFixture, OwnerId_CanBeSetAndQueried)
     EXPECT_FALSE(parrot.getOwnerId().has_value());
 
     // 设置主人
-    parrot.setOwnerId(12345ULL);
+    parrot.setOwnerId(kTestOwnerUuid);
     EXPECT_TRUE(parrot.getOwnerId().has_value());
-    EXPECT_EQ(parrot.getOwnerId().value(), 12345ULL);
+    EXPECT_EQ(parrot.getOwnerId().value(), kTestOwnerUuid);
 
     // 检查是否是主人
-    EXPECT_TRUE(parrot.isOwner(12345ULL));
-    EXPECT_FALSE(parrot.isOwner(99999ULL));
+    EXPECT_TRUE(parrot.isOwner(kTestOwnerUuid));
+    EXPECT_FALSE(parrot.isOwner(kOtherUuid));
 
     // 清除主人
     parrot.clearOwner();
@@ -667,14 +672,14 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessStatu
 
     // 创建玩家
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     // 验证成功驯服后的状态
     parrot.setTamed(true);
-    parrot.setOwnerId(12345ULL);
+    parrot.setOwnerId(kTestOwnerUuid);
 
     EXPECT_TRUE(parrot.isTamed());
-    EXPECT_TRUE(parrot.isOwner(12345ULL));
+    EXPECT_TRUE(parrot.isOwner(kTestOwnerUuid));
 }
 
 TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
@@ -687,7 +692,7 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingFailure_BroadcastsFailStatus)
 
     // 创建玩家
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     ItemStack seedStack(Items::WHEAT_SEEDS, 10);
     player.inventory().setItem(0, seedStack);
@@ -768,11 +773,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_TogglesSitting)
 
     // 设置为已驯服
     parrot.setTamed(true);
-    parrot.setOwnerId(12345ULL);
+    parrot.setOwnerId(kTestOwnerUuid);
 
     // 创建主人玩家
     Player player(EntityInstanceId(2), "TestPlayer");
-    player.setPlayerId(12345ULL);
+    player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     // 交互不需要物品（已驯服）
     EXPECT_FALSE(parrot.isSitting());
@@ -797,11 +802,11 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamedParrot_OtherPlayerCannotToggle)
 
     // 设置为已驯服，主人是玩家 12345
     parrot.setTamed(true);
-    parrot.setOwnerId(12345ULL);
+    parrot.setOwnerId(kTestOwnerUuid);
 
     // 创建另一个玩家
     Player otherPlayer(EntityInstanceId(2), "OtherPlayer");
-    otherPlayer.setPlayerId(99999ULL);
+    otherPlayer.setUuid(util::uuidToString(kOtherUuid));
 
     // 非主人交互 - 应该返回 Pass（调用父类）
     ActionResultType result = parrot.interactMob(otherPlayer, Hand::MainHand);
@@ -899,13 +904,13 @@ TEST_F(ParrotEntityTestFixture, InteractMob_TamingSuccess_UpdatesOwner)
 
     // 模拟驯服成功
     parrot.setTamed(true);
-    parrot.setOwnerId(12345ULL);
+    parrot.setOwnerId(kTestOwnerUuid);
 
     // 验证状态
     EXPECT_TRUE(parrot.isTamed());
     EXPECT_TRUE(parrot.getOwnerId().has_value());
-    EXPECT_EQ(parrot.getOwnerId().value(), 12345ULL);
-    EXPECT_TRUE(parrot.isOwner(12345ULL));
+    EXPECT_EQ(parrot.getOwnerId().value(), kTestOwnerUuid);
+    EXPECT_TRUE(parrot.isOwner(kTestOwnerUuid));
 }
 
 TEST_F(ParrotEntityTestFixture, InteractMob_ClientSide_NoBroadcast)
