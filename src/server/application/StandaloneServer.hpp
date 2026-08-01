@@ -24,9 +24,9 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
-#include "RemoteClientSession.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/GameDirectory.hpp"
+#include "server/network/RemoteSessionManager.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -35,7 +35,6 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <unordered_map>
 
 namespace mc::server {
 
@@ -152,14 +151,9 @@ private:
     /// 否则 containerManager() 返回空指针解引用崩溃。
     void _setupContainerCallbacks();
 
-    // 网络事件处理（主线程派发，见 ServerNetwork::onClientConnect/onClientDisconnect）
-    void _onRemoteClientConnect(mc::server::net::ServerClientConnection& conn);
-    void _onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn);
-    /// 握手完成（进入 Play）回调：创建玩家实体并回填 playerId 到路由器
-    void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
-    // 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现
-    // （当前空默认）。本子类不再 override；断开清理在 _onRemoteClientDisconnect 内完成。
-
+    // 远程 TCP 会话管理（批2c 下沉至 RemoteSessionManager 门面）：
+    // onClientConnect/onClientDisconnect 在 startAccept 前注册到 m_serverNetwork，
+    // 内部建 RemoteClientSession + 握手/Play 派发 + 玩家创建/断开清理。
     /// 独立服压缩阈值（Java 默认 256）。离线模式（跳过 RSA），真 Java 在线模式为 TODO(Phase6)。
     static constexpr i32 kStandaloneCompressionThreshold = 256;
 
@@ -168,12 +162,10 @@ private:
     std::filesystem::path m_settingsPath;
     // 游戏目录管理器（统一管理数据包、存档等路径）
     GameDirectory m_gameDirectory;
-    // 远程 TCP 客户端会话簿记：sessionId → {握手状态机, Play 路由器}。
-    // session 持 ServerClientConnection&（非拥有，所有权归基类 m_serverNetwork），故须先于
-    // m_serverNetwork 销毁（stop() 中 clear() 先于 reset()）。批2b：m_serverNetwork 已上提
-    // MinecraftServer 基类；m_playerEntityManager 同步上提（子类不再持有）。
-    std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
-    std::mutex m_remoteSessionsMutex;
+    // 远程 TCP 会话管理门面（批2c 下沉：原 m_remoteSessions/m_remoteSessionsMutex +
+    // _onRemote* 四件套）。在 initialize() 构造、stop() 中先 reset 保销毁顺序
+    // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
+    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
 
     // 服务端主循环线程（由 StandaloneServer 自身持有，stop() 中先 join 再清理，
     // 避免与 tick() 产生数据竞争）

@@ -1731,6 +1731,9 @@ target_sources(mc_tests
         # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
+        # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套
+        # 转调 RemoteSessionManager，mc_tests 编译子类故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/RemoteSessionManager.cpp
         # Play/Configuration 单包 IR 构造器：命令经 builder + connectionManager 投递，
         # mc_tests 编译命令实现故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp

@@ -801,6 +801,7 @@ protected:
      */
     void sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch);
 
+public:
     /**
      * @brief 握手完成（onPlayerReady）后创建玩家并初始化游戏状态（共享逻辑）
      *
@@ -839,6 +840,7 @@ protected:
      */
     void sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat);
 
+protected:
     // ========== 声音广播方法 ==========
 
     /**

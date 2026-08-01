@@ -24,13 +24,13 @@
 #pragma once
 
 #include "MinecraftServer.hpp"
-#include "RemoteClientSession.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/network/RemoteSessionManager.hpp"
 #include "server/network/ServerHandshake.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/network/ServerPlayRouter.hpp"
@@ -39,7 +39,6 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include <unordered_map>
 
 namespace mc::server {
 
@@ -210,29 +209,15 @@ private:
 
     // ========== 远程 TCP 玩家支持（局域网发布后启用）==========
 
-    /**
-     * @brief 远程 TCP 客户端连接事件回调（accept 线程触发）
-     *
-     * 建 RemoteClientSession + 装配握手/Play 入站派发 + onPlayerReady 回调。
-     */
-    void _onRemoteClientConnect(mc::server::net::ServerClientConnection& conn);
+    /// 集成服 LAN 发布压缩阈值（Java 默认 256）。离线模式（跳过 RSA）。
+    static constexpr i32 kLanCompressionThreshold = 256;
 
-    /**
-     * @brief 远程 TCP 客户端断开事件回调（主线程 tick 内派发）
-     *
-     * 移除 session + 玩家实体 + PlayerManager 会话 + 库存清理。
-     */
-    void _onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn);
-
-    /**
-     * @brief 远程玩家握手完成回调（主线程 drainInbound 内触发）
-     *
-     * 调 createPlayerForConnection（复用本地路径 helper）+ 回填 router playerId。
-     */
-    void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
-
-    // 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现
-    // （当前空默认）。本子类不再 override；断开清理在 _onRemoteClientDisconnect 内完成。
+    // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
+    // _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面。本子类不再
+    // 直接持有 m_remoteSessions/m_remoteSessionsMutex，改持 m_remoteSessionManager
+    // （在 publishToLan 构造并注册到 m_serverNetwork）。本地客户端（sessionId=0）不经此
+    // manager，保留下方 _onClientPlayerReady/_installClientInboundListener 独立路径。
+    // _drainDisconnectedSessions 已于批2a 提升为基类 virtual 默认实现，本子类不再 override。
 
     /**
      * @brief 本地客户端握手完成回调（ServerHandshake Configuration 结束后触发）
@@ -307,12 +292,12 @@ private:
     // m_serverNetwork：startAccept 触 m_listenPort/m_ioContext/m_acceptor/m_acceptThread；
     // createLocalClientSide 触 m_connections/m_onConnect——成员不相交无冲突。
     // 单 tick()（pollNetwork 内）经 isLocalMode() 分支同时 drain Local(pumpLocal)+Wire。
-    // 远程会话簿记：sessionId → {握手状态机, Play 路由器}。session 持 ServerClientConnection&
-    // （非拥有，所有权归基类 m_serverNetwork），故 stop() 中 m_remoteSessions.clear() 须先于
+    // 批2c：远程会话四件套下沉至 m_remoteSessionManager 门面（原 m_remoteSessions/
+    // m_remoteSessionsMutex 已删）。session 持 ServerClientConnection&（非拥有，所有权归
+    // 基类 m_serverNetwork），故 stop() 中 m_remoteSessionManager.reset() 须先于
     // m_serverNetwork.reset()。批2b：m_serverNetwork/m_playerEntityManager 已上提 MinecraftServer
     // 基类；远程玩家实体ID映射（原 m_remotePlayerEntityIds，写了不读的死映射）已删除。
-    std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
-    std::mutex m_remoteSessionsMutex;
+    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
 
     // 局域网发布状态
     bool m_lanPublished = false;

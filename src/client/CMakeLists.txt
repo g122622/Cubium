@@ -448,6 +448,9 @@ add_executable(minecraft-client
     # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
+    # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套转调
+    # RemoteSessionManager，客户端内置服编译 IntegratedServer.cpp 故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/RemoteSessionManager.cpp
     # Play/Configuration 单包 IR 构造器：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp

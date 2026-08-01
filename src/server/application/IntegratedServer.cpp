@@ -425,11 +425,11 @@ void IntegratedServer::stop()
     m_clientHandshake.reset();
     m_pendingClientTransport.reset();
 
-    // 先清远程会话簿记（持 ServerClientConnection& 引用，须先于连接销毁），
+    // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再关闭服务端网络门面（含本地客户端 ServerClientConnection + LAN Wire 连接 +
     // acceptor + accept 线程）。
     m_clientConnection = nullptr;
-    m_remoteSessions.clear();
+    m_remoteSessionManager.reset();
     if (m_serverNetwork) {
         m_serverNetwork.reset();
     }
@@ -1321,12 +1321,17 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
     }
 
     // 单一 m_serverNetwork 同时供 Local（已在 initialize() 建好本地客户端连接对）与 LAN Wire。
-    // 装配 onClientConnect/onClientDisconnect（仅影响此后 startAccept accept 出的 Wire 连接，
-    // 本地客户端 sessionId=0 在 initialize() 内联接线，不经此回调）。
+    // 批2c：远程会话四件套下沉至 RemoteSessionManager 门面。worldParams 从 m_params 取
+    // （集成服世界参数权威来源）：hardcore/seed/worldType==Flat。本地客户端 sessionId=0 在
+    // initialize() 内联接线，不经此 manager。
+    m_remoteSessionManager = std::make_unique<mc::server::net::RemoteSessionManager>(
+        *this, "IntegratedServer", kLanCompressionThreshold, [this]() -> mc::server::net::RemoteWorldParams {
+            return {m_params.hardcore, m_params.seed, m_params.worldType == WorldType::Flat};
+        });
     m_serverNetwork->onClientConnect(
-        [this](mc::server::net::ServerClientConnection& conn) { _onRemoteClientConnect(conn); });
+        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientConnect(conn); });
     m_serverNetwork->onClientDisconnect(
-        [this](mc::server::net::ServerClientConnection& conn) { _onRemoteClientDisconnect(conn); });
+        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientDisconnect(conn); });
 
     const u32 maxConnections = static_cast<u32>(std::max(m_integratedSettings.maxPlayers.get(), 8));
     auto acceptResult = m_serverNetwork->startAccept(static_cast<u16>(port), maxConnections);
@@ -1346,122 +1351,10 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
     return Result<void>::ok();
 }
 
-void IntegratedServer::_onRemoteClientConnect(mc::server::net::ServerClientConnection& conn)
-{
-    const u32 sessionId = conn.sessionId();
-    spdlog::info("Remote LAN client connected: sessionId={}", sessionId);
-
-    // 建会话簿记：握手状态机（离线模式 + 独立服压缩阈值）+ Play 路由器（playerId 占位 0）。
-    // 集成服 LAN 与本地客户端共用 m_serverNetwork，但 sessionId 不同（本地=0，远程≥1），
-    // 各自独立的握手状态机/路由器实例。
-    static constexpr i32 kLanCompressionThreshold = 256; // Java 默认
-    auto session = std::make_unique<mc::server::net::RemoteClientSession>(
-        conn, /*isOfflineMode=*/true, kLanCompressionThreshold, *this, /*playerId=*/0, sessionId);
-
-    // 握手完成回调：进入 Play 时创建玩家实体并回填 playerId。
-    session->handshake().onPlayerReady(
-        [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
-            _onRemotePlayerReady(sessionId, username, offlineUuid);
-        });
-
-    // Status（服务器列表 ping）信息提供者：从设置 + 玩家管理器取值，构造 StatusResponse JSON。
-    session->handshake().onStatusRequest([this]() -> mc::server::net::StatusInfo {
-        return mc::server::net::StatusInfo{m_settings.motd.get(),
-            std::string("1.21.11"),
-            mc::network::backend::java::kJavaProtocolVersion,
-            m_settings.maxPlayers.get(),
-            static_cast<i32>(m_playerManager->playerCount()),
-            m_settings.onlineMode.get()};
-    });
-
-    // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：
-    //   handshake.handleInbound 返回 true=握手/Configuration 已消费；false=Play 包交路由器。
-    mc::server::net::RemoteClientSession* sessionRaw = session.get();
-    conn.setInboundHandler([sessionRaw](const mc::network::ir::IrPacket& packet) {
-        auto hResult = sessionRaw->handshake().handleInbound(packet);
-        if (!hResult.success()) {
-            spdlog::error("IntegratedServer: handshake inbound failed: {}", hResult.error().toString());
-            return;
-        }
-        if (hResult.value()) {
-            return; // 握手/Configuration 包已消费
-        }
-        auto pResult = sessionRaw->playRouter().handle(packet);
-        if (!pResult.success()) {
-            spdlog::error("IntegratedServer: play router failed: {}", pResult.error().toString());
-        }
-    });
-
-    // 接收线程仅入队，不跑游戏逻辑（跨线程安全）。
-    mc::server::net::ServerClientConnection* connPtr = &conn;
-    conn.onPacket([connPtr](const mc::network::ir::IrPacket& packet) { connPtr->enqueueInbound(packet); });
-
-    {
-        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
-        m_remoteSessions[sessionId] = std::move(session);
-    }
-}
-
-void IntegratedServer::_onRemotePlayerReady(
-    u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid)
-{
-    // 查 session 取连接；session 在 _onRemoteClientConnect 已登记。
-    mc::server::net::ServerClientConnection* conn = nullptr;
-    mc::server::net::RemoteClientSession* session = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
-        auto it = m_remoteSessions.find(sessionId);
-        if (it == m_remoteSessions.end()) {
-            spdlog::warn("IntegratedServer: onPlayerReady for unknown sessionId={}", sessionId);
-            return;
-        }
-        session = it->second.get();
-        conn = session->connection();
-    }
-    if (conn == nullptr) {
-        return;
-    }
-
-    // 远程玩家世界参数从 m_params 取（集成服世界参数权威来源）：hardcore/seed/isFlat。
-    const bool isFlat = (m_params.worldType == WorldType::Flat);
-    auto creation = createPlayerForConnection(*conn, username, offlineUuid, m_params.hardcore, m_params.seed, isFlat);
-    if (!creation.success) {
-        spdlog::warn("IntegratedServer: failed to create remote player entity for '{}'", username);
-        return;
-    }
-    // 回填路由器 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
-    session->playRouter().setPlayerId(creation.playerId);
-}
-
-// 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现，
-// 本子类不再 override（当前基类默认为空，与原实现一致）。
-
-void IntegratedServer::_onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn)
-{
-    const u32 sessionId = conn.sessionId();
-    spdlog::info("Remote LAN client disconnected: sessionId={}", sessionId);
-
-    // 移除会话簿记
-    {
-        std::lock_guard<std::mutex> lock(m_remoteSessionsMutex);
-        m_remoteSessions.erase(sessionId);
-    }
-
-    // 移除远程玩家（若已创建实体）：按 sessionId 查 playerId。
-    PlayerId playerId = m_playerManager->getPlayerIdBySession(sessionId);
-    if (playerId != 0) {
-        // 清理玩家实体
-        auto* world = getPlayerWorld(playerId);
-        if (world != nullptr) {
-            m_playerEntityManager.removePlayerEntity(playerId, *world);
-        }
-
-        // 移除玩家会话信息
-        m_playerManager->removePlayer(playerId);
-
-        // 清理物品栏
-        inventoryManager().cleanupInventory(playerId);
-    }
-}
+// 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
+// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，本子类不再
+// 持有。publishToLan() 构造 m_remoteSessionManager 并注册到 m_serverNetwork 的
+// onClientConnect/onClientDisconnect；stop() 中先 reset manager 再 reset ServerNetwork
+// 保销毁顺序（session 持 ServerClientConnection& 引用）。
 
 } // namespace mc::server

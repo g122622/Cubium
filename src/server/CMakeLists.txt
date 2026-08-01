@@ -13,6 +13,8 @@ add_executable(minecraft-server
     network/RegistryDataBuilder.cpp
     network/EnchantmentNbtBuilder.cpp
     network/ServerPlayRouter.cpp
+    # 远程 TCP 会话管理门面（远程会话四件套下沉自 StandaloneServer/IntegratedServer）
+    network/RemoteSessionManager.cpp
     # 玩家广播门面（broadcast*/send* 转发型网络广播下沉自 MinecraftServer）
     network/PlayerBroadcaster.cpp
     # Play/Configuration 单包 IR 构造器（buildPlaySoundIr/buildPermissionLevelChangeIr/
