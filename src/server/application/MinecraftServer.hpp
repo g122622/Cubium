@@ -503,11 +503,6 @@ protected:
     void initializeCreativeInventory(PlayerInventory& inventory);
 
     /**
-     * @brief 设置区块发送/卸载回调
-     */
-    void setupChunkSendCallback();
-
-    /**
      * @brief 设置袭击事件回调
      */
     void setupRaidManagerCallbacks();

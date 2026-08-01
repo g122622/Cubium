@@ -768,10 +768,6 @@ void StandaloneServer::_applySettings()
 // 数据包处理
 // ============================================================================
 
-// ============================================================================
-// 数据包处理
-// ============================================================================
-
 void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     auto* player = m_playerManager->getPlayer(playerId);

@@ -415,54 +415,34 @@ void MinecraftServer::initializeCoreManagers()
     m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_settings.viewDistance.get());
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
 
-    // 注册游戏模式变化回调：当从旁观者模式切换到其他模式时，重置旁观目标
+    // 注册游戏模式变化回调：当玩家切入/切出旁观者模式时，更新 ServerPlayer 实体的
+    // 游戏模式（能力/noclip）。切出旁观者额外 resetCamera() 发送 SetCameraPacket。
+    // 原实现两分支各写一遍“遍历维度寻找 ServerPlayer 实体”循环，此处合并为单循环，
+    // 仅在切出旁观者时多调一次 resetCamera()。
     m_gameModeManager->setOnGameModeChange([this](PlayerId playerId, GameMode oldMode, GameMode newMode) {
-        if (oldMode == GameMode::Spectator && newMode != GameMode::Spectator) {
-            // 从旁观者模式切换出来时，重置旁观目标并发送 SetCameraPacket
-            // 需要找到 ServerPlayer 实体来操作
-            auto* playerData = m_playerManager->getPlayer(playerId);
-            if (playerData == nullptr) {
-                return;
-            }
+        const bool leavingSpectator = (oldMode == GameMode::Spectator && newMode != GameMode::Spectator);
+        const bool enteringSpectator = (newMode == GameMode::Spectator);
+        if (!leavingSpectator && !enteringSpectator) {
+            return;
+        }
 
-            // 遍历所有维度世界寻找玩家实体
-            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
-                auto* dimension = m_dimensionManager->getDimension(dimId);
-                if (dimension == nullptr || dimension->world() == nullptr) {
-                    continue;
-                }
-                Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
-                if (entity == nullptr) {
-                    continue;
-                }
-                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
-                if (serverPlayer != nullptr) {
+        // 遍历所有维度世界寻找玩家实体（ServerPlayer）
+        for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
+            auto* dimension = m_dimensionManager->getDimension(dimId);
+            if (dimension == nullptr || dimension->world() == nullptr) {
+                continue;
+            }
+            Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
+            if (entity == nullptr) {
+                continue;
+            }
+            auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
+            if (serverPlayer != nullptr) {
+                if (leavingSpectator) {
                     serverPlayer->resetCamera();
-                    // 同时更新 Player 实体的游戏模式、能力和 noclip 状态
-                    serverPlayer->setGameMode(newMode);
-                    break;
                 }
-            }
-        } else if (newMode == GameMode::Spectator) {
-            // 切换到旁观者模式时，更新 Player 实体的游戏模式和 noclip
-            auto* playerData = m_playerManager->getPlayer(playerId);
-            if (playerData == nullptr) {
-                return;
-            }
-            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
-                auto* dimension = m_dimensionManager->getDimension(dimId);
-                if (dimension == nullptr || dimension->world() == nullptr) {
-                    continue;
-                }
-                Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
-                if (entity == nullptr) {
-                    continue;
-                }
-                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
-                if (serverPlayer != nullptr) {
-                    serverPlayer->setGameMode(newMode);
-                    break;
-                }
+                serverPlayer->setGameMode(newMode);
+                break;
             }
         }
     });
@@ -620,9 +600,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
 
 void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
 {
-    world.setTimeManager(m_timeManager.get());
-    world.setDifficultyCallback([this]() { return this->difficulty(); });
-    world.setLootTableManager(&m_lootTableManager);
+    // 注：setTimeManager / setDifficultyCallback / setLootTableManager 三项注入已由
+    // ServerDimensionManager::_createServerWorld 在每个维度世界创建时统一完成（见
+    // ServerDimensionManager.cpp:565-567）。批5a 去重：此处不再重复注入，避免装配
+    // 胶水与维度管理器双写。保留空函数体供子类 attachWorldBindings/attachWorldCommandBindings
+    // 成对装配调用点结构稳定，便于将来若需补充维度无关命令绑定在此扩展。
+    (void)world;
 }
 
 Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId)
@@ -1175,11 +1158,6 @@ void MinecraftServer::setupWorldCallbacks()
             soundType.getVolume(),
             soundType.getPitch());
     });
-}
-
-void MinecraftServer::setupChunkSendCallback()
-{
-    // ChunkSendManager 已移入 ServerDimension，回调由 attachWorldBindings 设置
 }
 
 void MinecraftServer::setupRaidManagerCallbacks()
