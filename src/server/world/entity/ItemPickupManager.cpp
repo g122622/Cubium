@@ -28,10 +28,10 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -218,10 +218,10 @@ void ItemPickupManager::_sendInventoryUpdate(IServer& server, Player& player)
     PlayerInventory& inventory = player.inventory();
 
     // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
-    // TODO(Phase6): 玩家物品栏的 stateId/动态槽位语义需对齐 1.21.11 PlayerInventoryContents 同步。
+    // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例）。
     mc::network::ir::play::ContainerSetContent pkt;
     pkt.containerId = 0; // 玩家物品栏
-    pkt.stateId = 0;
+    pkt.stateId = playerData->incrementPlayerInventoryStateId();
     const i32 totalSlots = inventory.getContainerSize();
     pkt.items.reserve(static_cast<size_t>(totalSlots));
     for (i32 slot = 0; slot < totalSlots; ++slot) {

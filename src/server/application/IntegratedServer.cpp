@@ -666,7 +666,8 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
 
     // 本地客户端：内联容器点击三突变（与 ContainerManager::handleClick 等价），
     // 不再重建旧 ContainerClickPacket。本地路径用 m_openMenu（非 ContainerManager 的多玩家 map）。
-    // TODO(Phase6): 容器点击协议应直接对齐 1.21.11 ContainerClick(stateId+changedSlots)。
+    // stateId 一致性：对齐 vanilla ServerGamePacketListenerImpl#handleContainerClick（不一致→全量重发）。
+    // 本项目全量重发模型下校验仅记录诊断日志（_sendContainerContent 已全量下发）。
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
         return;
@@ -674,6 +675,12 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
 
     if (!m_openMenu || evt->containerId != m_openMenu->getId()) {
         return;
+    }
+    if (evt->stateId != m_openMenu->getStateId()) {
+        spdlog::debug("ContainerClick stateId mismatch (local cid={} client={} server={}): full resync",
+            evt->containerId,
+            evt->stateId,
+            m_openMenu->getStateId());
     }
     m_openMenu->setCarriedItem(cursorItem);
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(evt->clickType), evt->buttonNum);
@@ -790,7 +797,9 @@ void IntegratedServer::_sendPlayerInventory()
     // play::ContainerSetContent（containerId=0 玩家主物品栏，S→C，id=18）
     mc::network::ir::play::ContainerSetContent content;
     content.containerId = 0;
-    content.stateId = 0; // TODO(Phase6): 状态 id 同步（当前无 stateId 追踪）
+    // stateId 取自本地玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例）。
+    auto* playerData = _getPlayerData();
+    content.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
     const i32 invSize = m_clientInventory.getContainerSize();
     content.items.reserve(invSize);
     for (i32 i = 0; i < invSize; ++i) {
@@ -812,9 +821,10 @@ void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
     }
 
     // play::ContainerSetContent（containerId=menu.id）。slots 来自菜单容器视图。
+    // stateId 由菜单自增（对齐 vanilla ContainerSynchronizer#sendInitialData）。
     mc::network::ir::play::ContainerSetContent content;
     content.containerId = static_cast<i32>(menu.getId());
-    content.stateId = 0;
+    content.stateId = menu.incrementStateId();
     const i32 slotCount = menu.getSlotCount();
     content.items.reserve(slotCount);
     for (i32 i = 0; i < slotCount; ++i) {

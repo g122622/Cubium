@@ -122,6 +122,14 @@ struct ServerPlayerData {
     ContainerType openContainerType = ContainerType::Player;
     ContainerId nextContainerId = 1;
 
+    // 玩家物品栏（containerId=0）的 stateId 计数器。containerId=0 在服务端无独立
+    // AbstractContainerMenu 实例（直接用 PlayerInventory），故 stateId 在此承载。
+    // 每次 syncToClient/_sendPlayerInventory 自增并随 ContainerSetContent(containerId=0) 下发，
+    // 客户端收包写回其 InventoryCraftingMenu/ItemPickerMenu 的 stateId，出站点击回填。
+    // 对齐 vanilla InventoryMenu.getStateId/incrementStateId（vanilla 中 containerId=0 是真实菜单）。
+    // mutable：同步令牌，PlayerManager::getPlayer 返回 const 指针，出站回调须能自增。
+    mutable i32 playerInventoryStateId = 0;
+
     // 成就进度（弃用：请通过 ServerPlayer::getAdvancements() 获取 PlayerAdvancements，
     // 该路径通过 ServerPlayerEntityManager → Player::asServerPlayer() 正确获取。
     // 此字段始终为 nullptr，将在未来版本中移除。）
@@ -150,6 +158,25 @@ struct ServerPlayerData {
      * @return true 如果连接非空且未断开
      */
     [[nodiscard]] bool hasConnection() const { return connection != nullptr && connection->isConnected(); }
+
+    /**
+     * @brief 自增并返回玩家物品栏（containerId=0）的 stateId（& 32767 环绕）
+     * @return 自增后的 stateId
+     *
+     * 服务端在构造 ContainerSetContent(containerId=0) 出站包时调用，对齐 vanilla
+     * AbstractContainerMenu#incrementStateId。返回值填入包的 stateId 字段下发。
+     * const 方法：stateId 是 mutable 同步令牌，const 玩家数据引用下出站回调须能自增。
+     */
+    [[nodiscard]] i32 incrementPlayerInventoryStateId() const noexcept
+    {
+        playerInventoryStateId = (playerInventoryStateId + 1) & 32767;
+        return playerInventoryStateId;
+    }
+
+    /**
+     * @brief 获取玩家物品栏（containerId=0）的当前 stateId
+     */
+    [[nodiscard]] i32 getPlayerInventoryStateId() const noexcept { return playerInventoryStateId; }
 
     /**
      * @brief 发送 IR 包到玩家

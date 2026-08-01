@@ -100,6 +100,29 @@ mc::network::ir::IrPacket makeContainerClosePacket(ContainerId containerId)
         mc::network::ir::PlayPacket{irplay::ContainerClose{std::move(close)}}};
 }
 
+/// 取当前打开 Screen 的菜单 stateId（出站 ContainerClick 回填用）。
+/// 对齐 vanilla MultiPlayerGameMode：出站点击 stateId 取自 containerMenu.getStateId()。
+/// 客户端 menu 是 AbstractContainerMenu 子类，入站 ContainerSetContent/SetSlot 时已写回 stateId。
+/// 本文件只打开 InventoryScreen/CreativeScreen（containerId=0），故仅尝试这两种转换。
+i32 currentMenuStateId(ContainerId containerId) noexcept
+{
+    namespace screen = mc::client::ui::minecraft;
+    auto* current = ScreenManager::instance().getCurrentKageroScreen();
+    if (current == nullptr) {
+        return 0;
+    }
+    auto match = [containerId](const mc::AbstractContainerMenu* menu) -> i32 {
+        return (menu != nullptr && menu->getId() == containerId) ? menu->getStateId() : 0;
+    };
+    if (auto* s = dynamic_cast<screen::InventoryScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::CreativeScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    return 0;
+}
+
 /// 构造 PlayerCommand（OPEN_INVENTORY，action=5）IR 包。entityId 取本地玩家。
 /// 旧 sendOpenPlayerInventory 等价：通知服务端在 containerId=0 建菜单。
 mc::network::ir::IrPacket makeOpenPlayerInventoryPacket(i32 playerId)
@@ -151,8 +174,9 @@ void ClientApplication::openInventoryScreen()
                            const ItemStack& cursorItem) {
         MC_UNUSED(transactionId);
         if (m_network) {
-            // TODO(Phase6): stateId 需取自最近 ContainerSetContent/SetSlot，当前填 0。
-            (void)m_network->send(makeContainerClickPacket(containerId, 0, slotIndex, button, action, cursorItem));
+            // stateId 取自当前打开菜单（入站 ContainerSetContent/SetSlot 已写回）。
+            (void)m_network->send(makeContainerClickPacket(
+                containerId, currentMenuStateId(containerId), slotIndex, button, action, cursorItem));
         }
     };
 
@@ -196,8 +220,9 @@ void ClientApplication::openCreativeScreen()
                            const ItemStack& cursorItem) {
         MC_UNUSED(transactionId);
         if (m_network) {
-            // TODO(Phase6): stateId 需取自最近 ContainerSetContent/SetSlot，当前填 0。
-            (void)m_network->send(makeContainerClickPacket(containerId, 0, slotIndex, button, action, cursorItem));
+            // stateId 取自当前打开菜单（入站 ContainerSetContent/SetSlot 已写回）。
+            (void)m_network->send(makeContainerClickPacket(
+                containerId, currentMenuStateId(containerId), slotIndex, button, action, cursorItem));
         }
     };
 

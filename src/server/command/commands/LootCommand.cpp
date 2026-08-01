@@ -97,10 +97,12 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
         return;
     }
 
-    // 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏
+    // 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
+    // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例）。
     mc::network::ir::play::ContainerSetContent pkt;
     pkt.containerId = 0; // 玩家物品栏
-    pkt.stateId = 0;
+    const auto* playerData = server->playerManager().getPlayer(playerId);
+    pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
     const i32 totalSlots = inventory.getContainerSize();
     pkt.items.reserve(static_cast<size_t>(totalSlots));
     for (i32 slot = 0; slot < totalSlots; ++slot) {

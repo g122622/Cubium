@@ -152,14 +152,52 @@ irplay::HashedStack toHashedStack(const ItemStack& stack)
     return hs;
 }
 
-/// 容器内容应用：把 items 写入 menu 对应槽位
+/// 取当前打开 Screen 的菜单 stateId（出站 ContainerClick 回填用）。
+/// 对齐 vanilla MultiPlayerGameMode：出站点击 stateId 取自 containerMenu.getStateId()。
+/// 客户端 menu 是 AbstractContainerMenu 子类，入站 ContainerSetContent/SetSlot 时已写回 stateId。
+/// 因各 kagero Screen 是 ContainerScreenBase<Menu> 模板实例、无多态 getMenu()，这里按当前 Screen
+/// 类型逐一转换取 menu。未打开任何容器屏时返回 0（与 vanilla 默认一致）。
+i32 currentMenuStateId(mc::ContainerId containerId) noexcept
+{
+    namespace screen = mc::client::ui::minecraft;
+    auto* current = mc::client::ScreenManager::instance().getCurrentKageroScreen();
+    if (current == nullptr) {
+        return 0;
+    }
+    auto match = [containerId](const mc::AbstractContainerMenu* menu) -> i32 {
+        return (menu != nullptr && menu->getId() == containerId) ? menu->getStateId() : 0;
+    };
+    if (auto* s = dynamic_cast<screen::InventoryScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::CreativeScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::CraftingScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::ChestScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::FurnaceScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    if (auto* s = dynamic_cast<screen::CartographyScreen*>(current)) {
+        return match(s->getMenu());
+    }
+    return 0;
+}
+
+/// 容器内容应用：把 items 写入 menu 对应槽位，并把服务端 stateId 写回菜单
 template <typename Menu>
-void applyContainerContent(Menu* menu, ContainerId containerId, const std::vector<ItemStack>& items)
+void applyContainerContent(Menu* menu, ContainerId containerId, i32 stateId, const std::vector<ItemStack>& items)
 {
     if (!menu || menu->getId() != containerId) {
         return;
     }
 
+    // 写回服务端下发的 stateId，供后续出站 ContainerClick 回填（对齐 vanilla setItem/initializeContents）。
+    menu->setStateId(stateId);
     const i32 slotCount = std::min(menu->getSlotCount(), static_cast<i32>(items.size()));
     for (i32 slotIndex = 0; slotIndex < slotCount; ++slotIndex) {
         if (Slot* slot = menu->getSlot(slotIndex)) {
@@ -170,22 +208,24 @@ void applyContainerContent(Menu* menu, ContainerId containerId, const std::vecto
 
 template <typename Menu>
 void applyContainerContentWithCarried(
-    Menu* menu, ContainerId containerId, const std::vector<ItemStack>& items, const ItemStack& carried)
+    Menu* menu, ContainerId containerId, i32 stateId, const std::vector<ItemStack>& items, const ItemStack& carried)
 {
     if (!menu || menu->getId() != containerId) {
         return;
     }
-    applyContainerContent(menu, containerId, items);
+    applyContainerContent(menu, containerId, stateId, items);
     menu->setCarriedItem(carried);
 }
 
 template <typename Menu>
-bool applyContainerSlot(Menu* menu, ContainerId containerId, i32 slotIndex, const ItemStack& item)
+bool applyContainerSlot(Menu* menu, ContainerId containerId, i32 stateId, i32 slotIndex, const ItemStack& item)
 {
     if (!menu || menu->getId() != containerId) {
         return false;
     }
 
+    // 写回服务端下发的 stateId（对齐 vanilla AbstractContainerMenu#setItem）。
+    menu->setStateId(stateId);
     Slot* slot = menu->getSlot(slotIndex);
     if (!slot) {
         return false;
@@ -257,7 +297,9 @@ ClientPlayVisitor::makeContainerClickSender()
                const ItemStack& cursorItem) {
         irplay::ContainerClick pkt;
         pkt.containerId = containerId;
-        pkt.stateId = 0;
+        // stateId 取自当前打开菜单（入站 ContainerSetContent/SetSlot 已写回），对齐 vanilla
+        // MultiPlayerGameMode 出站 ContainerClick 用 containerMenu.getStateId()。
+        pkt.stateId = currentMenuStateId(containerId);
         pkt.slotNum = slotIndex;
         pkt.buttonNum = button;
         pkt.clickType = static_cast<i32>(action);
@@ -818,11 +860,13 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                     if (auto* kageroScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(
                             ScreenManager::instance().getCurrentKageroScreen())) {
-                        applyContainerContentWithCarried(kageroScreen->getMenu(), containerId, items, carried);
+                        applyContainerContentWithCarried(
+                            kageroScreen->getMenu(), containerId, p.stateId, items, carried);
                         kageroScreen->syncSlots();
                     } else if (auto* creativeScreen = dynamic_cast<ui::minecraft::CreativeScreen*>(
                                    ScreenManager::instance().getCurrentKageroScreen())) {
-                        applyContainerContentWithCarried(creativeScreen->getMenu(), containerId, items, carried);
+                        applyContainerContentWithCarried(
+                            creativeScreen->getMenu(), containerId, p.stateId, items, carried);
                         creativeScreen->syncSlots();
                     }
                     return Result<void>::ok();
@@ -831,37 +875,38 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 // 其它容器（onContainerContent）：依次匹配各类 kagero 屏
                 if (auto* kageroScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(kageroScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(kageroScreen->getMenu(), containerId, p.stateId, items, carried);
                     kageroScreen->syncSlots();
                     return Result<void>::ok();
                 }
                 if (auto* creativeScreen = dynamic_cast<ui::minecraft::CreativeScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(creativeScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(creativeScreen->getMenu(), containerId, p.stateId, items, carried);
                     creativeScreen->syncSlots();
                     return Result<void>::ok();
                 }
                 if (auto* craftingScreen = dynamic_cast<ui::minecraft::CraftingScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(craftingScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(craftingScreen->getMenu(), containerId, p.stateId, items, carried);
                     craftingScreen->syncSlots();
                     return Result<void>::ok();
                 }
                 if (auto* chestScreen =
                         dynamic_cast<ui::minecraft::ChestScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(chestScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(chestScreen->getMenu(), containerId, p.stateId, items, carried);
                     chestScreen->syncSlots();
                     return Result<void>::ok();
                 }
                 if (auto* furnaceScreen = dynamic_cast<ui::minecraft::FurnaceScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(furnaceScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(furnaceScreen->getMenu(), containerId, p.stateId, items, carried);
                     furnaceScreen->syncSlots();
                     return Result<void>::ok();
                 }
                 if (auto* cartographyScreen = dynamic_cast<ui::minecraft::CartographyScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    applyContainerContentWithCarried(cartographyScreen->getMenu(), containerId, items, carried);
+                    applyContainerContentWithCarried(
+                        cartographyScreen->getMenu(), containerId, p.stateId, items, carried);
                     cartographyScreen->syncSlots();
                     return Result<void>::ok();
                 }
@@ -879,42 +924,42 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
 
                 if (auto* kageroScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(kageroScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(kageroScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         kageroScreen->syncSlots();
                         return Result<void>::ok();
                     }
                 }
                 if (auto* creativeScreen = dynamic_cast<ui::minecraft::CreativeScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(creativeScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(creativeScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         creativeScreen->syncSlots();
                         return Result<void>::ok();
                     }
                 }
                 if (auto* craftingScreen = dynamic_cast<ui::minecraft::CraftingScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(craftingScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(craftingScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         craftingScreen->syncSlots();
                         return Result<void>::ok();
                     }
                 }
                 if (auto* chestScreen =
                         dynamic_cast<ui::minecraft::ChestScreen*>(ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(chestScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(chestScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         chestScreen->syncSlots();
                         return Result<void>::ok();
                     }
                 }
                 if (auto* furnaceScreen = dynamic_cast<ui::minecraft::FurnaceScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(furnaceScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(furnaceScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         furnaceScreen->syncSlots();
                         return Result<void>::ok();
                     }
                 }
                 if (auto* cartographyScreen = dynamic_cast<ui::minecraft::CartographyScreen*>(
                         ScreenManager::instance().getCurrentKageroScreen())) {
-                    if (applyContainerSlot(cartographyScreen->getMenu(), containerId, p.slot, item)) {
+                    if (applyContainerSlot(cartographyScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         cartographyScreen->syncSlots();
                         return Result<void>::ok();
                     }

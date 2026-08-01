@@ -875,11 +875,13 @@ void MinecraftServer::initializeInteractionManagers()
     m_inventoryManager = std::make_unique<interaction::InventoryManager>(*m_playerManager);
 
     m_inventoryManager->setOnInventoryUpdate([this](PlayerId playerId, const PlayerInventory& inventory) {
-        // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏
-        // TODO(Phase6): 玩家物品栏的 stateId/动态槽位语义需对齐 1.21.11 PlayerInventoryContents 同步。
+        // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
+        // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例，
+        // 由 ServerPlayerData::playerInventoryStateId 承载，每次下发自增）。
         mc::network::ir::play::ContainerSetContent pkt;
         pkt.containerId = 0; // 玩家物品栏
-        pkt.stateId = 0;
+        auto* playerData = m_playerManager->getPlayer(playerId);
+        pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
         const i32 totalSlots = inventory.getContainerSize();
         pkt.items.reserve(static_cast<size_t>(totalSlots));
         for (i32 slot = 0; slot < totalSlots; ++slot) {
@@ -2059,6 +2061,21 @@ void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
 void MinecraftServer::_handleContainerClickRemote(
     PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem)
 {
+    // stateId 一致性校验（对齐 vanilla ServerGamePacketListenerImpl#handleContainerClick：
+    // boolean flag = pkt.stateId != menu.getStateId()；不一致→broadcastFullState，一致→broadcastChanges）。
+    // 本项目容器同步采用全量重发模型（ContainerManager::handleClick 内部 m_onContainerUpdate
+    // 已全量下发 ContainerSetContent），故无论是否一致都走全量重发，校验仅记录诊断日志。
+    if (const auto* menu = containerManager().getOpenMenu(playerId);
+        menu != nullptr && menu->getId() == static_cast<mc::ContainerId>(evt.containerId)) {
+        if (evt.stateId != menu->getStateId()) {
+            spdlog::debug("ContainerClick stateId mismatch (playerId={} cid={} client={} server={}): full resync",
+                playerId,
+                evt.containerId,
+                evt.stateId,
+                menu->getStateId());
+        }
+    }
+
     auto clickResult = containerManager().handleClick(playerId,
         static_cast<mc::ContainerId>(evt.containerId),
         evt.slotNum,
