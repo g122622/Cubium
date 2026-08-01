@@ -247,9 +247,19 @@ Result<void> ClientNetwork::_handleConfigurationPacket(const mc::network::ir::Co
             mc::network::ir::ConfigurationPacket{std::move(reply)}});
     }
 
-    // RegistryData/UpdateTags/UpdateEnabledFeatures：客户端命中 core 后忽略（数据=nullopt，
-    // 依赖本地硬编码 vanilla registry）。TODO(Phase6): 真 Java 需消费 NBT。
-    // KeepAlive/Ping/CustomPayload/Disconnect：Step3 视需填充。
+    if (std::holds_alternative<mc::network::ir::configuration::Ping>(pkt)) {
+        // S→C Ping(parameter)：客户端回 C→S Pong(同 parameter)（id=5 双向复用 Ping IR struct）。
+        // 对齐 Java ClientConfigurationPacketListenerImpl#handlePing → send(ServerboundPongConfigurationPacket)。
+        mc::network::ir::configuration::Ping pong = std::get<mc::network::ir::configuration::Ping>(pkt);
+        return send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
+            mc::network::ir::ConfigurationPacket{std::move(pong)}});
+    }
+
+    // RegistryData/UpdateTags/UpdateEnabledFeatures：客户端 SelectKnownPacks 命中 minecraft:core，
+    // 服务端以 RegistryEntry{data=nullopt}（声明"客户端已知"）发送，客户端依赖本地硬编码 vanilla
+    // registry 即可，无需消费 NBT。真 Java 互通时我方服务端同样发 data=nullopt，真客户端用其本地
+    // registry——故 NBT 消费路径在 core 命中前提下永不触发，刻意保留为占位（若未来支持非 core
+    // 数据包协商再补 NBT 解析）。KeepAlive/CustomPayload/Disconnect：Step3 视需填充。
     if (m_visitor != nullptr) {
         // 委托 visitor 处理余下 Configuration 包（占位）
         mc::network::ir::IrPacket wrapper{

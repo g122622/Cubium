@@ -132,6 +132,6 @@ src/server/network/
 
 Windows 需要 Winsock。asio 在 `io_context` 运行时自动管理，无需手动 `WSAStartup`。`ws2_32` 链接库仍需在 CMake 中保留（`src/server/CMakeLists.txt`）。
 
-### 7. RegistryData NBT（TODO Phase6）
+### 7. RegistryData NBT（刻意保留，非阻塞）
 
-`RegistryDataBuilder` 当前以 `RegistryEntry{id, data=nullopt}` 发送所有条目（声明"客户端已知"），仅在我方互通双方均硬编码 vanilla registry 且 `SelectKnownPacks{minecraft:core}` 命中时合法。真实 NBT 推送标 `TODO(Phase6)`，卡在 Configuration 挂死先查此。真 Java 互通受此限制。
+`RegistryDataBuilder` 当前以 `RegistryEntry{id, data=nullopt}` 发送所有条目（声明"客户端已知"），仅在我方互通双方均硬编码 vanilla registry 且 `SelectKnownPacks{minecraft:core}` 命中时合法。客户端命中 core 后依赖本地硬编码 vanilla registry，无需消费 NBT；真 Java 互通时我方服务端同样发 data=nullopt，真客户端用其本地 registry——故 NBT 消费路径在 core 命中前提下永不触发，刻意保留为占位。若卡在 Configuration 挂死先查此（确认 SelectKnownPacks 命中 core）。未来支持非 core 数据包协商再补 NBT 推送与消费。

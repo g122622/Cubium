@@ -27,12 +27,14 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/network/ServerNetwork.hpp"
 
 #include <array>
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace mc::server::net {
@@ -102,6 +104,19 @@ public:
     [[nodiscard]] const std::string& username() const noexcept { return m_username; }
     [[nodiscard]] bool playReady() const noexcept { return m_playReady; }
 
+    /**
+     * @brief 取客户端在 Configuration 阶段上报的 ClientInformation（C→S id=0）
+     *
+     * 客户端未上报（连接早于此能力前）返回 nullopt。含 language/viewDistance/
+     * chatVisibility/chatColors/mainHand/particleStatus 等设置，供玩家初始化与按客户端
+     * 视距收敛区块发送使用（对齐 Java ServerPlayer#clientInformation）。
+     */
+    [[nodiscard]] const std::optional<mc::network::ir::configuration::ClientInformation>&
+    clientInformation() const noexcept
+    {
+        return m_clientInformation;
+    }
+
 private:
     ServerClientConnection& m_conn;
     bool m_isOfflineMode;
@@ -120,6 +135,9 @@ private:
     PlayerReadyCallback m_onReady;
     StatusProvider m_statusProvider;
     bool m_hasRequestedStatus = false; ///< StatusRequest 单次守卫（二次请求断连，对齐 Java）
+
+    // 客户端 Configuration 阶段上报的设置（C→S ClientInformation）。未上报时为 nullopt。
+    std::optional<mc::network::ir::configuration::ClientInformation> m_clientInformation;
 
     // === 各阶段处理 ===
     [[nodiscard]] Result<void> _handleHandshake(const mc::network::ir::handshake::ClientIntention& intention);

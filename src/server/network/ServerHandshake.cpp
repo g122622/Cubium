@@ -307,7 +307,9 @@ Result<void> ServerHandshakeStateMachine::_pushConfigurationData()
         return rt;
     }
 
-    // UpdateEnabledFeatures：原版默认启用特性集。TODO(Phase6): 真实特性集
+    // UpdateEnabledFeatures：原版默认特性集 = {minecraft:vanilla}（FeatureFlags.DEFAULT_FLAGS
+    // = VANILLA_SET，仅含 vanilla 一个 flag）。实验性 flag（trade_rebalance 等）需 datapack
+    // 显式启用，本服默认不开实验特性，故固定 vanilla 与 vanilla 行为一致。
     mc::network::ir::configuration::UpdateEnabledFeatures features;
     features.features = {std::string("minecraft:vanilla")};
     auto rf = _send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
@@ -348,8 +350,23 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
         return Result<void>::ok();
     }
 
-    // ClientInformation / CustomPayload / Ping / KeepAlive / RegistryData(不应收到) / Disconnect
-    // 暂忽略；TODO(Phase6): ClientInformation 存储、Ping 回 Pong
+    if (std::holds_alternative<mc::network::ir::configuration::ClientInformation>(pkt)) {
+        // 客户端上报设置（language/viewDistance/chatVisibility/chatColors/mainHand/
+        // particleStatus 等）。存储供 onPlayerReady 后玩家初始化（按客户端视距收敛区块发送、
+        // 聊天可见性过滤等）。对齐 Java ServerConfigurationPacketListenerImpl#handleClientInformation。
+        m_clientInformation = std::get<mc::network::ir::configuration::ClientInformation>(pkt);
+        return Result<void>::ok();
+    }
+
+    if (std::holds_alternative<mc::network::ir::configuration::Ping>(pkt)) {
+        // C→S Pong（id=5）：客户端回服务端此前发的 S→C Ping(parameter)。本服 Configuration
+        // 阶段不主动发 Ping（keepalive 由 KeepAlive 包承担），故收到 Pong 视为对端迟到的回声，
+        // 直接消费。对齐 Java ServerConfigurationPacketListenerImpl#handlePong（校验 parameter
+        // 匹配 pending ping，无 pending 即忽略）。
+        return Result<void>::ok();
+    }
+
+    // CustomPayload / KeepAlive / RegistryData(不应收到) / Disconnect：暂忽略
     return Result<void>::ok();
 }
 
