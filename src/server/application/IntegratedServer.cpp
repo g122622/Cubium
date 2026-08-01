@@ -214,15 +214,21 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         _onClientPlayerReady(username, offlineUuid);
     });
 
+    // 初始化核心管理器
+    // 【顺序约束】须先于 m_clientPlayRouter 构造：批7 起 ServerPlayRouter 持
+    // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
+    // 在 initializeCoreManagers 内才 make_unique。若 router 先于 init 构造，playHandler()
+    // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 router->route 解引用即崩
+    // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
+    initializeCoreManagers();
+
     // 创建本地客户端 Play 路由器（sessionId=0）。批7：路由器改持 ServerPlayHandler& 门面。
+    // 须在 initializeCoreManagers 之后：playHandler() 依赖 m_playHandler 已构造。
     m_clientPlayRouter =
         std::make_unique<mc::server::net::ServerPlayRouter>(playHandler(), m_clientPlayerId, /*sessionId=*/0);
 
     // 安装入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
     _installClientInboundListener();
-
-    // 初始化核心管理器
-    initializeCoreManagers();
 
     // 加载 OP 列表（集成服务器使用默认路径）
     // 白名单和封禁列表在集成服务器中通常不需要
