@@ -2061,14 +2061,14 @@ void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
 void MinecraftServer::_handleContainerClickRemote(
     PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem)
 {
-    // stateId 一致性校验（对齐 vanilla ServerGamePacketListenerImpl#handleContainerClick：
-    // boolean flag = pkt.stateId != menu.getStateId()；不一致→broadcastFullState，一致→broadcastChanges）。
+    // stateId 一致性校验：boolean flag = pkt.stateId != menu.getStateId()；
+    // 不一致→broadcastFullState，一致→broadcastChanges。
     // 本项目容器同步采用全量重发模型（ContainerManager::handleClick 内部 m_onContainerUpdate
     // 已全量下发 ContainerSetContent），故无论是否一致都走全量重发，校验仅记录诊断日志。
     if (const auto* menu = containerManager().getOpenMenu(playerId);
         menu != nullptr && menu->getId() == static_cast<mc::ContainerId>(evt.containerId)) {
         if (evt.stateId != menu->getStateId()) {
-            spdlog::debug("ContainerClick stateId mismatch (playerId={} cid={} client={} server={}): full resync",
+            spdlog::warn("ContainerClick stateId mismatch (playerId={} cid={} client={} server={}): full resync",
                 playerId,
                 evt.containerId,
                 evt.stateId,

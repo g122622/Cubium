@@ -666,7 +666,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
 
     // 本地客户端：内联容器点击三突变（与 ContainerManager::handleClick 等价），
     // 不再重建旧 ContainerClickPacket。本地路径用 m_openMenu（非 ContainerManager 的多玩家 map）。
-    // stateId 一致性：对齐 vanilla ServerGamePacketListenerImpl#handleContainerClick（不一致→全量重发）。
+    // stateId 一致性：不一致则全量重发。
     // 本项目全量重发模型下校验仅记录诊断日志（_sendContainerContent 已全量下发）。
     auto* player = _getPlayerData();
     if (!player || !player->loggedIn) {
@@ -677,7 +677,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
         return;
     }
     if (evt->stateId != m_openMenu->getStateId()) {
-        spdlog::debug("ContainerClick stateId mismatch (local cid={} client={} server={}): full resync",
+        spdlog::warn("ContainerClick stateId mismatch (local cid={} client={} server={}): full resync",
             evt->containerId,
             evt->stateId,
             m_openMenu->getStateId());
@@ -821,7 +821,7 @@ void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
     }
 
     // play::ContainerSetContent（containerId=menu.id）。slots 来自菜单容器视图。
-    // stateId 由菜单自增（对齐 vanilla ContainerSynchronizer#sendInitialData）。
+    // stateId 由菜单自增。
     mc::network::ir::play::ContainerSetContent content;
     content.containerId = static_cast<i32>(menu.getId());
     content.stateId = menu.incrementStateId();

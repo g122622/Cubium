@@ -101,7 +101,7 @@ mc::network::ir::IrPacket makeContainerClosePacket(ContainerId containerId)
 }
 
 /// 取当前打开 Screen 的菜单 stateId（出站 ContainerClick 回填用）。
-/// 对齐 vanilla MultiPlayerGameMode：出站点击 stateId 取自 containerMenu.getStateId()。
+/// 出站点击 stateId 取自当前打开菜单的 getStateId()。
 /// 客户端 menu 是 AbstractContainerMenu 子类，入站 ContainerSetContent/SetSlot 时已写回 stateId。
 /// 本文件只打开 InventoryScreen/CreativeScreen（containerId=0），故仅尝试这两种转换。
 i32 currentMenuStateId(ContainerId containerId) noexcept

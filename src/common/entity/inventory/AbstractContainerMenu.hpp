@@ -381,10 +381,9 @@ public:
      * @brief 获取当前容器状态ID（stateId）
      * @return 当前 stateId
      *
-     * 对齐 vanilla 1.21.11 AbstractContainerMenu#getStateId。stateId 是容器内容版本的
-     * 单调令牌：服务端每次下发 ContainerSetContent/ContainerSetSlot 前自增并随包发送，
-     * 客户端收包时写回菜单 stateId，出站 ContainerClick 时回填该值，服务端校验一致性
-     * （不一致则全量重发）。与 m_transactionId（防重放，i16）是两个不同概念。
+     * stateId 是容器内容版本的单调令牌：服务端每次下发 ContainerSetContent/ContainerSetSlot
+     * 前自增并随包发送，客户端收包时写回菜单 stateId，出站 ContainerClick 时回填该值，服务端
+     * 校验一致性（不一致则全量重发）。与 m_transactionId（防重放，i16）是两个不同概念。
      */
     [[nodiscard]] i32 getStateId() const noexcept { return m_stateId; }
 
@@ -392,7 +391,7 @@ public:
      * @brief 自增并返回新的 stateId（& 32767 环绕）
      * @return 自增后的 stateId
      *
-     * 对齐 vanilla AbstractContainerMenu#incrementStateId：`(stateId + 1) & 32767`。
+     * stateId 按 (stateId + 1) & 32767 自增并环绕。
      * 服务端在构造 ContainerSetContent/ContainerSetSlot 出站包时调用，取返回值填包。
      * const 方法：stateId 是 mutable 同步令牌，const 菜单引用的出站回调须能自增。
      */
@@ -677,7 +676,7 @@ protected:
 
 private:
     i16 m_transactionId = 0;   // 事务ID计数器，用于防重放
-    mutable i32 m_stateId = 0; // 容器状态ID（& 32767 环绕），对齐 vanilla 1.21.11；
+    mutable i32 m_stateId = 0; // 容器状态ID（& 32767 环绕）；
                                // mutable：同步令牌，const 菜单引用下出站回调亦须自增
 
     // 不能进行合成操作的玩家UUID集合

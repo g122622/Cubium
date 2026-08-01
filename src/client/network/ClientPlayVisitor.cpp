@@ -153,10 +153,10 @@ irplay::HashedStack toHashedStack(const ItemStack& stack)
 }
 
 /// 取当前打开 Screen 的菜单 stateId（出站 ContainerClick 回填用）。
-/// 对齐 vanilla MultiPlayerGameMode：出站点击 stateId 取自 containerMenu.getStateId()。
+/// 出站点击 stateId 取自当前打开菜单的 getStateId()。
 /// 客户端 menu 是 AbstractContainerMenu 子类，入站 ContainerSetContent/SetSlot 时已写回 stateId。
 /// 因各 kagero Screen 是 ContainerScreenBase<Menu> 模板实例、无多态 getMenu()，这里按当前 Screen
-/// 类型逐一转换取 menu。未打开任何容器屏时返回 0（与 vanilla 默认一致）。
+/// 类型逐一转换取 menu。未打开任何容器屏时返回 0。
 i32 currentMenuStateId(mc::ContainerId containerId) noexcept
 {
     namespace screen = mc::client::ui::minecraft;
@@ -196,7 +196,7 @@ void applyContainerContent(Menu* menu, ContainerId containerId, i32 stateId, con
         return;
     }
 
-    // 写回服务端下发的 stateId，供后续出站 ContainerClick 回填（对齐 vanilla setItem/initializeContents）。
+    // 写回服务端下发的 stateId，供后续出站 ContainerClick 回填。
     menu->setStateId(stateId);
     const i32 slotCount = std::min(menu->getSlotCount(), static_cast<i32>(items.size()));
     for (i32 slotIndex = 0; slotIndex < slotCount; ++slotIndex) {
@@ -224,7 +224,7 @@ bool applyContainerSlot(Menu* menu, ContainerId containerId, i32 stateId, i32 sl
         return false;
     }
 
-    // 写回服务端下发的 stateId（对齐 vanilla AbstractContainerMenu#setItem）。
+    // 写回服务端下发的 stateId。
     menu->setStateId(stateId);
     Slot* slot = menu->getSlot(slotIndex);
     if (!slot) {
@@ -297,8 +297,7 @@ ClientPlayVisitor::makeContainerClickSender()
                const ItemStack& cursorItem) {
         irplay::ContainerClick pkt;
         pkt.containerId = containerId;
-        // stateId 取自当前打开菜单（入站 ContainerSetContent/SetSlot 已写回），对齐 vanilla
-        // MultiPlayerGameMode 出站 ContainerClick 用 containerMenu.getStateId()。
+        // stateId 取自当前打开菜单（入站 ContainerSetContent/SetSlot 已写回）。
         pkt.stateId = currentMenuStateId(containerId);
         pkt.slotNum = slotIndex;
         pkt.buttonNum = button;
