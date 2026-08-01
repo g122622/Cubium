@@ -39,6 +39,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/network/ServerPlayHandler.hpp"
 #include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -260,7 +261,7 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
             });
     }
 
-    m_server.updateEntityTrackingForPlayer(playerId, x, y, z);
+    m_server.playHandler().updateEntityTrackingForPlayer(playerId, x, y, z);
 
     // 登录时主动建立玩家区块追踪并触发区块推送，不依赖客户端回 AcceptTeleportation。
     // 原版在 PlayerList.placeNewPlayer → serverlevel.addNewPlayer → ChunkMap.updatePlayerStatus

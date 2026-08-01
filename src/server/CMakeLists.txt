@@ -19,6 +19,9 @@ add_executable(minecraft-server
     network/PlayerBroadcaster.cpp
     # 登录流程门面（玩家创建 + 初始游戏状态推送整簇下沉自 MinecraftServer）
     network/LoginFlow.cpp
+    # Play 包处理门面（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
+    # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
+    network/ServerPlayHandler.cpp
     # Play/Configuration 单包 IR 构造器（buildPlaySoundIr/buildPermissionLevelChangeIr/
     # buildCommandsIr/buildLevelParticlesIr，下沉自 IServer 单包业务方法）
     network/PacketBuilders.cpp

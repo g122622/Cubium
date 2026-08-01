@@ -30,6 +30,10 @@
 #include <string>
 #include <unordered_map>
 
+namespace mc::server {
+class MinecraftServer;
+} // namespace mc::server
+
 namespace mc::server::net {
 
 /// 远程玩家世界参数（createPlayerForConnection 的 hardcore/seed/isFlat 三参打包）。

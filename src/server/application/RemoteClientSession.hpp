@@ -30,12 +30,14 @@
 
 namespace mc::server::net {
 
+class ServerPlayHandler;
+
 /**
  * @brief 单个远程 TCP 客户端的会话簿记（StandaloneServer / IntegratedServer LAN 共用）
  *
  * 值持有 ServerHandshakeStateMachine（持 ServerClientConnection&）与 ServerPlayRouter
- * （持 MinecraftServer&）。两者皆按连接隔离的多实例安全对象，故 RemoteClientSession
- * 可按值存入 unique_ptr 容器。
+ * （持 ServerPlayHandler& 单例门面）。两者皆按连接隔离的多实例安全对象，故
+ * RemoteClientSession 可按值存入 unique_ptr 容器。
  *
  * 生命周期约束：connection 非拥有指针，其所有权归 ServerNetwork::m_connections；
  * RemoteClientSession 必须先于对应 ServerClientConnection 销毁（子类 stop() 中
@@ -45,18 +47,21 @@ namespace mc::server::net {
  * ServerNetwork::tick() 在主线程 drainInbound 调用 setInboundHandler 装配的分支：
  *   handshake.handleInbound(pkt) 返回 true=握手/Configuration 已消费；false=Play 包
  *   交 playRouter.handle(pkt)。
+ *
+ * 批7：ServerPlayRouter 改持 ServerPlayHandler&（routeInboundPlayPacket 整簇下沉门面），
+ * 调用方（RemoteSessionManager::onClientConnect）传 server.playHandler()。
  */
 class RemoteClientSession {
 public:
     RemoteClientSession(ServerClientConnection& conn,
         bool isOfflineMode,
         i32 compressionThreshold,
-        MinecraftServer& server,
+        ServerPlayHandler& playHandler,
         PlayerId playerId,
         u32 sessionId)
         : m_connection(&conn)
         , m_handshake(conn, isOfflineMode, compressionThreshold)
-        , m_playRouter(server, playerId, sessionId)
+        , m_playRouter(playHandler, playerId, sessionId)
         , m_sessionId(sessionId)
     {}
 

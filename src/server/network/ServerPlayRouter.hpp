@@ -27,26 +27,24 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 
-namespace mc::server {
-class MinecraftServer;
-}
-
 namespace mc::server::net {
 
+class ServerPlayHandler;
+
 /**
- * @brief 入站 Play 包分发器：std::visit over ir::PlayPacket，按分支调 MinecraftServer 既有处理逻辑
+ * @brief 入站 Play 包分发器：校验 phase/playerId 后转交 ServerPlayHandler::route 按变体分发
  *
  * 替代旧 MinecraftServer::dispatchPacket 的 12 用例 switch + 已删除的 PacketHandler::handlePacket 的
- * 10 用例。每个分支把 ir::play::* 字段转换为既有处理函数参数后调用；处理体保留，只替换分发。
+ * 10 用例。每个连接一个 ServerPlayRouter（持 ServerPlayHandler& 单例门面 + 该连接绑定的 playerId），
+ * 握手完成后经 setPlayerId 回填 playerId。
  *
- * 本类在 Step1 仅以骨架存在（变体分发 + 各分支 TODO 占位），Step3 原子切换时填充各分支的
- * 处理调用（含从已删除的 PacketHandler 迁入的 MoveVehicle/UseEntity/SteerBoat/EntityAction/PlayerInput
- * 五个独占处理体 + VehicleMove 纠正发送）。
+ * 批7：routeInboundPlayPacket 及 13 个非纯虚 handle*Packet 已下沉至 ServerPlayHandler 门面，
+ * 本类仅做 phase/playerId 守卫后调 m_playHandler.route。
  */
 class ServerPlayRouter {
 public:
-    ServerPlayRouter(MinecraftServer& server, PlayerId playerId, u32 sessionId)
-        : m_server(server)
+    ServerPlayRouter(ServerPlayHandler& playHandler, PlayerId playerId, u32 sessionId)
+        : m_playHandler(playHandler)
         , m_playerId(playerId)
         , m_sessionId(sessionId)
     {}
@@ -58,7 +56,7 @@ public:
     void setPlayerId(PlayerId playerId) noexcept { m_playerId = playerId; }
 
 private:
-    MinecraftServer& m_server;
+    ServerPlayHandler& m_playHandler;
     PlayerId m_playerId;
     u32 m_sessionId;
 };

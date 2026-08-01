@@ -24,8 +24,7 @@
 #include "server/network/ServerPlayRouter.hpp"
 
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "server/application/MinecraftServer.hpp"
+#include "server/network/ServerPlayHandler.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -44,7 +43,7 @@ Result<void> ServerPlayRouter::handle(const mc::network::ir::IrPacket& packet)
         return Result<void>::ok();
     }
 
-    // 统一交 MinecraftServer::routeInboundPlayPacket 按 ir::PlayPacket 变体分发。
+    // 统一交 ServerPlayHandler::route 按 ir::PlayPacket 变体分发。
     // sessionId 仅用于远程玩家路由；Local 模式 router 持有绑定后的 playerId。
     (void)m_sessionId;
     if (m_playerId == 0) {
@@ -53,10 +52,10 @@ Result<void> ServerPlayRouter::handle(const mc::network::ir::IrPacket& packet)
         return Result<void>::ok();
     }
 
-    m_server.routeInboundPlayPacket(m_playerId, packet);
+    m_playHandler.route(m_playerId, packet);
 
     // TODO(Step4): 死 PacketHandler 迁入的 MoveVehicle/UseEntity/SteerBoat/EntityAction/
-    //   PlayerInput 处理体尚未接入（上述 routeInboundPlayPacket 暂未覆盖这些 C→S 变体）。
+    //   PlayerInput 处理体尚未接入（上述 route 暂未覆盖这些 C→S 变体）。
     return Result<void>::ok();
 }
 

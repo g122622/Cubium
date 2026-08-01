@@ -103,6 +103,7 @@ namespace net {
 class ServerClientConnection;
 class PlayerBroadcaster;
 class LoginFlow;
+class ServerPlayHandler;
 } // namespace net
 
 /**
@@ -218,6 +219,10 @@ public:
     // ========== 登录流程门面（批6 下沉） ==========
     [[nodiscard]] net::LoginFlow& loginFlow() { return *m_loginFlow; }
     [[nodiscard]] const net::LoginFlow& loginFlow() const { return *m_loginFlow; }
+
+    // ========== Play 包处理门面（批7 下沉） ==========
+    [[nodiscard]] net::ServerPlayHandler& playHandler() { return *m_playHandler; }
+    [[nodiscard]] const net::ServerPlayHandler& playHandler() const { return *m_playHandler; }
 
     // ========== 玩家实体管理 ==========
 
@@ -357,14 +362,6 @@ public:
     [[nodiscard]] const PackRepository& resourcePackList() const { return m_resourcePackList; }
     [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override { return m_dataPackList; }
     [[nodiscard]] const mc::resource::DataPackRepository& dataPackList() const override { return m_dataPackList; }
-
-    /**
-     * @brief 路由入站 Play IR 包到对应处理方法（供 ServerPlayRouter 调用）
-     *
-     * 按 ir::PlayPacket 变体分发到 handle*Packet；playerId 为该连接绑定的本地玩家ID。
-     * 与 dispatchPacket(sessionId,...) 共用同一分发逻辑，后者额外解析远程 sessionId。
-     */
-    void routeInboundPlayPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 序列化难度同步包
@@ -607,123 +604,57 @@ protected:
     virtual void _drainDisconnectedSessions() {}
 
 public:
-    /**
-     * @brief 刷新指定玩家的实体追踪范围
-     *
-     * 批6：提升为 public 供 LoginFlow::sendInitialGameState 调用（经 m_server 调）。
-     * 批7 将随 handle*Packet 整簇迁入 ServerPlayHandler。
-     */
-    void updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z);
+    // 注：updateEntityTrackingForPlayer/routeInboundPlayPacket 及 13 个非纯虚 handle*Packet
+    // 已于批7 下沉至 net::ServerPlayHandler 门面（见 server/network/ServerPlayHandler.hpp）。
+    // 经 playHandler() 访问门面：ServerPlayRouter::handle 调 route，登录/维度切换调
+    // updateEntityTrackingForPlayer。
 
 protected:
     // 注：sendCommandTreePacket/sendPermissionLevelChange 已于批6 迁入 LoginFlow
     // （登录流程整簇下沉）。/op、/deop 命令走 buildPermissionLevelChangeIr + connectionManager。
 
     // ========== 数据包处理方法 ==========
+    //
+    // 注：routeInboundPlayPacket/dispatchPacket 及 13 个非纯虚 handle*Packet（移动/传送确认/
+    // 心跳/聊天/告示牌/骑乘输入/载具移动/玩家命令/船桨/实体交互/物品使用/方块交互/方块放置）
+    // 已于批7 下沉至 net::ServerPlayHandler 门面。dispatchPacket 为死代码已删。
+    //
+    // 下列 4 个虚 handle 保留在 MinecraftServer：3 个纯虚（handleHotbarSelect/
+    // handleContainerClick/handleCloseContainer）+ handleOpenPlayerInventoryPacket（虚，子类覆写）。
+    // 它们读子类私有状态（m_clientInventory/m_openMenu/m_clientPlayerId），不可下沉；门面
+    // route 内对应分支经 m_server.handleXxxPacket(...) 虚分发到子类 override，保留多态。
 
-    /**
-     * @brief 分派入站 Play IR 包到对应处理方法
-     *
-     * 新网络层：入站包由 ServerPlayRouter::handle 解码 IR 后按变体调用下列 handleXxxPacket。
-     * 本方法保留为兼容入口（sessionId 用于远程玩家路由），Local 模式直连 router。
-     */
-    void dispatchPacket(u32 sessionId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理玩家移动数据包
-     */
-    void handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理传送确认数据包
-     */
-    void handleTeleportConfirmPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理心跳响应数据包
-     */
-    void handleKeepAlivePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理聊天消息数据包
-     */
-    void handleChatMessagePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理方块交互数据包
-     */
-    void handleBlockInteractionPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理方块放置数据包（子类实现特定逻辑）
-     */
-    virtual void handleBlockPlacementPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
+public:
     /**
      * @brief 处理快捷栏选择数据包（子类实现特定逻辑）
+     *
+     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
      */
     virtual void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）
+     *
+     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
      */
     virtual void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
      * @brief 处理关闭容器数据包（子类实现特定逻辑）
+     *
+     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
      */
     virtual void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
 
     /**
-     * @brief 处理请求打开玩家背包容器数据包（子类实现特定逻辑）
+     * @brief 处理请求打开玩家背包容器数据包（子类覆写打开菜单）
+     *
+     * 提升为 public：net::ServerPlayHandler::handlePlayerCommandPacket 的 OPEN_INVENTORY
+     * 分支经 m_server 虚分发调用（批7），保留 IntegratedServer 开背包覆写。
      */
     virtual void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
-    /**
-     * @brief 处理告示牌文本更新数据包
-     */
-    void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理玩家骑乘输入数据包（PlayerInput，u8 位掩码）
-     *
-     * 骑乘时客户端发送输入位掩码驱动载具。Boat 走 handleInput；马匹等骑乘跳跃载具
-     * 的输入链路待补，标 TODO(Phase6)。
-     */
-    void handlePlayerInputPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理载具移动数据包（ServerboundMoveVehicle）
-     *
-     * 客户端骑乘时同步载具位置。完整 moved-too-quickly/wrongly 校正与反飞行检测
-     * 依赖未实现的状态字段，标 TODO(Phase6)；本轮做最小实现：NaN 校验 + setPosition + 回送校正。
-     */
-    void handleMoveVehiclePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理玩家命令数据包（PlayerCommand，疾跑/潜行/起床/骑乘跳跃/滑翔）
-     */
-    void handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理船桨数据包（PaddleBoat，左右桨状态）
-     */
-    void handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理实体交互数据包（Interact，INTERACT/ATTACK/INTERACT_AT）
-     *
-     * 成就触发 player_interacted_with_entity 与严格距离/物品校验标 TODO(Phase6)。
-     */
-    void handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /**
-     * @brief 处理物品使用数据包（UseItem）
-     *
-     * 客户端暂无出站，处理骨架标 TODO(Phase6)。
-     */
-    void handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
+protected:
     // 注：登录请求不再经 dispatchPacket 入站。新网络层登录全由 ServerHandshakeStateMachine
     // 驱动（ClientIntention→Hello→LoginFinished→LoginAcknowledged→Configuration→Play），
     // 玩家创建在各子类注册的 onPlayerReady 回调中完成（Configuration 结束后触发）。
@@ -751,29 +682,41 @@ protected:
 
     /**
      * @brief 返回玩家当前手持物品
+     *
+     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
      */
+public:
     [[nodiscard]] virtual ItemStack getHeldItemForPlacement(PlayerId playerId) = 0;
 
     /**
      * @brief 返回玩家当前选中槽位
+     *
+     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
      */
     [[nodiscard]] virtual i32 getSelectedHotbarSlot(PlayerId playerId) = 0;
 
     /**
      * @brief 设置玩家指定槽位物品
+     *
+     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
      */
     virtual void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) = 0;
 
     /**
      * @brief 同步玩家物品栏到客户端
+     *
+     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
      */
     virtual void syncPlayerInventory(PlayerId playerId) = 0;
 
     /**
      * @brief 尝试打开工作台容器
+     *
+     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
      */
     [[nodiscard]] virtual bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) = 0;
 
+protected:
     /**
      * @brief 发送方块更新包给指定玩家
      */
@@ -1153,6 +1096,10 @@ protected:
 
     // 登录流程门面（玩家创建 + 初始游戏状态推送整簇，下沉自 createPlayerForConnection 等）
     std::unique_ptr<net::LoginFlow> m_loginFlow;
+
+    // Play 包处理门面（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
+    // updateEntityTrackingForPlayer 整簇，批7 下沉）
+    std::unique_ptr<net::ServerPlayHandler> m_playHandler;
 
     // 交互管理器
     std::unique_ptr<interaction::BlockInteractionManager> m_blockInteractionManager;

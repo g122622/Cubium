@@ -454,6 +454,9 @@ add_executable(minecraft-client
     # 登录流程门面：IntegratedServer._onClientPlayerReady 经 loginFlow().createPlayerForConnection
     # 进入，客户端内置服编译 IntegratedServer.cpp 故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/LoginFlow.cpp
+    # Play 包处理门面：routeInboundPlayPacket + 13 个非纯虚 handle*Packet 整簇下沉，
+    # 客户端内置服编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayHandler.cpp
     # Play/Configuration 单包 IR 构造器：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp

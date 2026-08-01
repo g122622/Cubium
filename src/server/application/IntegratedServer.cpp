@@ -214,8 +214,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         _onClientPlayerReady(username, offlineUuid);
     });
 
-    // 创建本地客户端 Play 路由器（sessionId=0）
-    m_clientPlayRouter = std::make_unique<mc::server::net::ServerPlayRouter>(*this, m_clientPlayerId, /*sessionId=*/0);
+    // 创建本地客户端 Play 路由器（sessionId=0）。批7：路由器改持 ServerPlayHandler& 门面。
+    m_clientPlayRouter =
+        std::make_unique<mc::server::net::ServerPlayRouter>(playHandler(), m_clientPlayerId, /*sessionId=*/0);
 
     // 安装入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
     _installClientInboundListener();

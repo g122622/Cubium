@@ -1737,6 +1737,9 @@ target_sources(mc_tests
         # 登录流程门面：IntegratedServer._onClientPlayerReady 经 loginFlow().createPlayerForConnection
         # 进入，mc_tests 编译 IntegratedServer.cpp 故须登记。
         ${CMAKE_SOURCE_DIR}/src/server/network/LoginFlow.cpp
+        # Play 包处理门面：routeInboundPlayPacket + 13 个非纯虚 handle*Packet 整簇下沉，
+        # mc_tests 编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayHandler.cpp
         # Play/Configuration 单包 IR 构造器：命令经 builder + connectionManager 投递，
         # mc_tests 编译命令实现故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
@@ -2608,7 +2611,7 @@ target_sources(mc_command_tests
         # 经 ServerPlayerData::send / ConnectionManager::disconnectPlayer 调用
         # ServerClientConnection::send/close，须登记 ServerNetwork.cpp 提供符号。
         # 注意：mc_command_tests 不编译 IntegratedServer.cpp/MinecraftServer.cpp，故不登记
-        # ServerPlayRouter.cpp（它引用 MinecraftServer::routeInboundPlayPacket）。
+        # ServerPlayRouter.cpp/ServerPlayHandler.cpp（Play 路由整簇，批7 下沉门面）。
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
         # Play/Configuration 单包 IR 构造器：SayCommand/MeCommand→spdlog、GiveCommand/
         # LootCommand→buildPlaySoundIr、OpCommand/DeOpCommand→buildPermissionLevelChangeIr+

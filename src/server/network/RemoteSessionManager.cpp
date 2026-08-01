@@ -41,8 +41,9 @@ void RemoteSessionManager::onClientConnect(ServerClientConnection& conn)
 
     // 建会话簿记：握手状态机（离线模式 + 压缩阈值）+ Play 路由器（playerId 占位 0，
     // 在 onPlayerReady 握手完成后回填）。sessionId 隔离各连接的握手/路由器实例。
+    // 批7：Play 路由器改持 ServerPlayHandler& 单例门面（routeInboundPlayPacket 整簇下沉）。
     auto session = std::make_unique<RemoteClientSession>(
-        conn, /*isOfflineMode=*/true, m_compressionThreshold, m_server, /*playerId=*/0, sessionId);
+        conn, /*isOfflineMode=*/true, m_compressionThreshold, m_server.playHandler(), /*playerId=*/0, sessionId);
 
     // 握手完成回调：进入 Play 时创建玩家实体并回填 playerId。
     session->handshake().onPlayerReady(
