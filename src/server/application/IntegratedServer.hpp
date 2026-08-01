@@ -30,7 +30,6 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "server/network/RemoteSessionManager.hpp"
 #include "server/network/ServerHandshake.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/network/ServerPlayRouter.hpp"
@@ -214,9 +213,10 @@ private:
 
     // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
     // _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面。本子类不再
-    // 直接持有 m_remoteSessions/m_remoteSessionsMutex，改持 m_remoteSessionManager
-    // （在 publishToLan 构造并注册到 m_serverNetwork）。本地客户端（sessionId=0）不经此
-    // manager，保留下方 _onClientPlayerReady/_installClientInboundListener 独立路径。
+    // 直接持有 m_remoteSessions/m_remoteSessionsMutex，门面成员 m_remoteSessionManager 已
+    // 于批9 上提 MinecraftServer 基类（publishToLan 经基类 _setupRemoteSessions 构造并注册
+    // 到 m_serverNetwork）。本地客户端（sessionId=0）不经此 manager，保留下方
+    // _onClientPlayerReady/_installClientInboundListener 独立路径。
     // _drainDisconnectedSessions 已于批2a 提升为基类 virtual 默认实现，本子类不再 override。
 
     /**
@@ -286,18 +286,19 @@ private:
     mutable std::mutex m_clientDataMutex;
 
     // ========== 局域网发布（TCP 监听器）==========
-    // publishToLan() 调用 m_serverNetwork->startAccept 启动 TCP 监听，允许远程玩家通过
-    // TCP 加入本局游戏。本地客户端仍走 LocalTransport（m_clientConnection，sessionId=0，
-    // 经 createLocalClientSide 在 initialize() 内联接线），与 Wire 连接共用同一
-    // m_serverNetwork：startAccept 触 m_listenPort/m_ioContext/m_acceptor/m_acceptThread；
-    // createLocalClientSide 触 m_connections/m_onConnect——成员不相交无冲突。
-    // 单 tick()（pollNetwork 内）经 isLocalMode() 分支同时 drain Local(pumpLocal)+Wire。
-    // 批2c：远程会话四件套下沉至 m_remoteSessionManager 门面（原 m_remoteSessions/
-    // m_remoteSessionsMutex 已删）。session 持 ServerClientConnection&（非拥有，所有权归
-    // 基类 m_serverNetwork），故 stop() 中 m_remoteSessionManager.reset() 须先于
-    // m_serverNetwork.reset()。批2b：m_serverNetwork/m_playerEntityManager 已上提 MinecraftServer
-    // 基类；远程玩家实体ID映射（原 m_remotePlayerEntityIds，写了不读的死映射）已删除。
-    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
+    // publishToLan() 调用基类 _setupRemoteSessions 装配 m_remoteSessionManager 门面并
+    // m_serverNetwork->startAccept 启动 TCP 监听，允许远程玩家通过 TCP 加入本局游戏。
+    // 本地客户端仍走 LocalTransport（m_clientConnection，sessionId=0，经 createLocalClientSide
+    // 在 initialize() 内联接线），与 Wire 连接共用同一 m_serverNetwork：startAccept 触
+    // m_listenPort/m_ioContext/m_acceptor/m_acceptThread；createLocalClientSide 触
+    // m_connections/m_onConnect——成员不相交无冲突。单 tick()（pollNetwork 内）经
+    // isLocalMode() 分支同时 drain Local(pumpLocal)+Wire。
+    // 批2c/批9：远程会话四件套下沉至基类 m_remoteSessionManager 门面（原 m_remoteSessions/
+    // m_remoteSessionsMutex 已删，成员本身上提 MinecraftServer 基类）。session 持
+    // ServerClientConnection&（非拥有，所有权归基类 m_serverNetwork），故 stop() 中
+    // _shutdownRemoteSessions() 须先 reset m_remoteSessionManager 再 reset m_serverNetwork。
+    // 批2b：m_serverNetwork/m_playerEntityManager 已上提 MinecraftServer 基类；远程玩家实体ID
+    // 映射（原 m_remotePlayerEntityIds，写了不读的死映射）已删除。
 
     // 局域网发布状态
     bool m_lanPublished = false;

@@ -64,6 +64,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/RemoteSessionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "minecraft-reborn/version.h"
@@ -306,23 +307,21 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 消除跨线程进入非线程安全世界状态的隐患。
     m_serverNetwork = std::make_unique<mc::server::net::ServerNetwork>();
 
-    // 批2c：远程会话四件套下沉至 RemoteSessionManager 门面。worldParams 从 m_settings 取
-    // （独立服无 m_params）：hardcore/parseSeed/levelType==Flat。
-    m_remoteSessionManager = std::make_unique<mc::server::net::RemoteSessionManager>(
-        *this, "StandaloneServer", kStandaloneCompressionThreshold, [this]() -> mc::server::net::RemoteWorldParams {
+    // 批9：远程会话四件套装配 + startAccept 下沉至基类 _setupRemoteSessions。worldParams 从
+    // m_settings 取（独立服无 m_params）：hardcore/parseSeed/levelType==Flat。startAccept
+    // 失败时基类透传原始 Error，此处按独立服场景包装日志前缀。
+    auto setupResult = _setupRemoteSessions(
+        "StandaloneServer",
+        kStandaloneCompressionThreshold,
+        [this]() -> mc::server::net::RemoteWorldParams {
             return {m_settings.hardcore.get(),
                 static_cast<i64>(m_settings.parseSeed()),
                 m_settings.levelType.get() == LevelType::Flat};
-        });
-    m_serverNetwork->onClientConnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientConnect(conn); });
-    m_serverNetwork->onClientDisconnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientDisconnect(conn); });
-
-    auto acceptResult = m_serverNetwork->startAccept(
-        static_cast<u16>(m_settings.serverPort.get()), static_cast<u32>(m_settings.maxPlayers.get()));
-    if (acceptResult.failed()) {
-        return Error(ErrorCode::InitializationFailed, "Failed to start server: " + acceptResult.error().message());
+        },
+        static_cast<u16>(m_settings.serverPort.get()),
+        static_cast<u32>(m_settings.maxPlayers.get()));
+    if (setupResult.failed()) {
+        return Error(ErrorCode::InitializationFailed, "Failed to start server: " + setupResult.error().message());
     }
 
     spdlog::info("Server initialized successfully");
@@ -366,9 +365,8 @@ void StandaloneServer::stop()
 
     // 关闭网络门面：先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再 reset ServerNetwork（关 acceptor + join accept 线程 + 析构各 ServerClientConnection
-    // 含 join 接收线程）。
-    m_remoteSessionManager.reset();
-    m_serverNetwork.reset();
+    // 含 join 接收线程）。批9：两步下沉至基类 _shutdownRemoteSessions。
+    _shutdownRemoteSessions();
 
     // 保存设置
     const auto savePath =
@@ -429,10 +427,6 @@ void StandaloneServer::_mainLoop()
 
     auto lastTickTime = clock::now();
 
-    // 平滑 tick 耗时的指数移动平均因子
-    constexpr f32 SMOOTH_FACTOR = 0.2f;
-    f32 smoothedTickTimeMs = 0.0f;
-
     // 更新目标每tick毫秒数
     m_debugStats.targetMsPerTick.store(
         static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order::relaxed);
@@ -459,27 +453,10 @@ void StandaloneServer::_mainLoop()
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
 
-            // 更新调试统计
+            // 更新调试统计（批9：EMA 平滑 tick 耗时 + 强制区块计数下沉至基类
+            // _updateTickDebugStats，EMA 状态由基类成员 m_smoothedTickTimeMs 跨 tick 保留）
             const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();
-            if (smoothedTickTimeMs == 0.0f) {
-                smoothedTickTimeMs = tickTimeMs;
-            } else {
-                smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
-            }
-            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
-
-            // 更新强制区块计数
-            if (m_dimensionManager != nullptr) {
-                if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
-                    if (auto* world = overworld->world(); world != nullptr) {
-                        if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
-                            const auto& ticketManager = chunkMgr->ticketManager();
-                            m_debugStats.forcedChunkCount.store(
-                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
-                        }
-                    }
-                }
-            }
+            _updateTickDebugStats(tickTimeMs);
         } else {
             // 等待下一刻
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -759,133 +736,19 @@ void StandaloneServer::_applySettings()
 }
 
 // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
-// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，本子类不再
-// 持有。initialize() 构造 m_remoteSessionManager 并注册到 m_serverNetwork 的
-// onClientConnect/onClientDisconnect；stop() 中先 reset manager 再 reset ServerNetwork
-// 保销毁顺序（session 持 ServerClientConnection& 引用）。
+// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，门面成员
+// m_remoteSessionManager 于批9 上提 MinecraftServer 基类。initialize() 经基类
+// _setupRemoteSessions 构造并注册到 m_serverNetwork 的 onClientConnect/onClientDisconnect；
+// stop() 经基类 _shutdownRemoteSessions 先 reset manager 再 reset ServerNetwork 保销毁顺序
+// （session 持 ServerClientConnection& 引用）。
 
-// ============================================================================
-// 数据包处理
-// ============================================================================
-
-void StandaloneServer::handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
-{
-    auto* player = m_playerManager->getPlayer(playerId);
-    if (!player || !player->loggedIn) return;
-
-    // 1.21.11 SetCarriedItem（C→S）：玩家切换快捷栏选中槽位。
-    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
-    const auto* evt = std::get_if<mc::network::ir::play::SetCarriedItem>(&play);
-    if (evt == nullptr) {
-        return;
-    }
-    const i32 slot = evt->slot;
-
-    inventoryManager().setSelectedSlot(playerId, slot);
-
-    // 服务端回送确认包（1.21.11 SetHeldSlot）。
-    mc::network::ir::play::SetHeldSlot resp;
-    resp.slot = slot;
-    sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(resp)},
-        });
-}
-
-void StandaloneServer::handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
-{
-    auto* player = m_playerManager->getPlayer(playerId);
-    if (!player || !player->loggedIn) return;
-
-    // 1.21.11 ContainerClick（C→S）：stateId + slot + button + clickType + carriedItem(HashedStack)。
-    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
-    const auto* evt = std::get_if<mc::network::ir::play::ContainerClick>(&play);
-    if (evt == nullptr) {
-        return;
-    }
-
-    // TODO(Phase6): carriedItem 当前是 HashedStack，多玩家远程路径下需桥接回 ItemStack。
-    //   集成服本地路径已有 hashedStackToItemStack；此处独立服暂用空 cursor。
-    ItemStack cursorItem;
-
-    auto clickResult = containerManager().handleClick(playerId,
-        static_cast<mc::ContainerId>(evt->containerId),
-        evt->slotNum,
-        static_cast<u8>(evt->buttonNum),
-        static_cast<u8>(evt->clickType),
-        cursorItem);
-
-    if (clickResult.success()) {
-        // 同步物品栏到客户端
-        inventoryManager().syncToClient(playerId);
-    }
-}
-
-void StandaloneServer::handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
-{
-    auto* player = m_playerManager->getPlayer(playerId);
-    if (!player || !player->loggedIn) return;
-
-    // 1.21.11 ContainerClose（C→S）：containerId。
-    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
-    const auto* evt = std::get_if<mc::network::ir::play::ContainerClose>(&play);
-    if (evt == nullptr) {
-        return;
-    }
-
-    // 使用 ContainerManager 关闭容器
-    containerManager().closeContainer(playerId);
-
-    // 同步物品栏到客户端
-    inventoryManager().syncToClient(playerId);
-}
-
-void StandaloneServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
-{
-    auto* player = m_playerManager->getPlayer(playerId);
-    if (!player || !player->loggedIn) return;
-
-    // 1.21.11 PlayerCommand{action=OPEN_INVENTORY}（C→S）。
-    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
-    const auto* evt = std::get_if<mc::network::ir::play::PlayerCommand>(&play);
-    if (evt == nullptr || evt->action != 5) { // OPEN_INVENTORY
-        return;
-    }
-
-    // TODO(Phase6): 独立服远程玩家打开背包的菜单建立（Player 类型未注册菜单工厂）。
-    //   集成服本地路径有 _openItemPickerMenu/_openPlayerInventoryMenu，远程路径暂留空。
-}
-
-// ============================================================================
-// 回调设置
-// ============================================================================
-
-ItemStack StandaloneServer::getHeldItemForPlacement(PlayerId playerId)
-{
-    return inventoryManager().getHeldItem(playerId);
-}
-
-i32 StandaloneServer::getSelectedHotbarSlot(PlayerId playerId)
-{
-    return inventoryManager().getSelectedSlot(playerId);
-}
-
-void StandaloneServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack)
-{
-    inventoryManager().setItem(playerId, slotIndex, stack);
-}
-
-void StandaloneServer::syncPlayerInventory(PlayerId playerId)
-{
-    inventoryManager().syncToClient(playerId);
-}
-
-bool StandaloneServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
-{
-    auto openResult = containerManager().openContainer(playerId, mc::ContainerType::Crafting, pos);
-    return openResult.success();
-}
+// 注：handleHotbarSelect/handleContainerClick/handleCloseContainer/handleOpenPlayerInventory
+// 及 5 个 inventory 查询/操作（getHeldItemForPlacement/getSelectedHotbarSlot/setInventoryItem/
+// syncPlayerInventory/tryOpenCraftingContainer）已于批9 下沉至 MinecraftServer 基类默认实现
+// （纯远程路径）。StandaloneServer 为纯远程独立服，无本地客户端分支，直接继承基类默认即原
+// StandaloneServer 行为，不再 override。handleOpenPlayerInventoryPacket 基类默认已校验
+// PlayerCommand action==OPEN_INVENTORY（TODO(Phase6): 远程玩家打开背包菜单建立暂留空，
+// 集成服本地路径有 _openItemPickerMenu/_openPlayerInventoryMenu）。
 
 Result<void> StandaloneServer::publishToLan(i32 port, bool allowCheats)
 {

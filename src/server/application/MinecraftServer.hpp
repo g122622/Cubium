@@ -69,6 +69,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc {
@@ -85,7 +86,8 @@ class PositionSource;
 }
 namespace network::ir::play {
 struct LevelChunkWithLight;
-}
+struct ContainerClick;
+} // namespace network::ir::play
 } // namespace mc
 
 namespace mc::server {
@@ -104,6 +106,8 @@ class ServerClientConnection;
 class PlayerBroadcaster;
 class LoginFlow;
 class ServerPlayHandler;
+class RemoteSessionManager;
+struct RemoteWorldParams;
 } // namespace net
 
 /**
@@ -634,23 +638,28 @@ public:
     /**
      * @brief 处理快捷栏选择数据包（子类实现特定逻辑）
      *
-     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
+     * 基类默认实现为远程玩家路径：校验 player.loggedIn + InventoryManager.setSelectedSlot
+     * + 回送 SetHeldSlot。IntegratedServer 覆写追加本地客户端分支（m_clientInventory）。
+     * 经 m_server 虚分发调用（批7）。
      */
-    virtual void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
+    virtual void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理容器点击数据包（子类实现特定逻辑）
      *
-     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
+     * 基类默认实现为远程玩家路径：校验 player.loggedIn + ContainerManager.handleClick
+     * （cursorItem 为空）+ syncToClient。IntegratedServer 覆写追加本地客户端分支并经
+     * hashedStackToItemStack 注入真实 cursorItem。经 m_server 虚分发调用（批7）。
      */
-    virtual void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
+    virtual void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理关闭容器数据包（子类实现特定逻辑）
      *
-     * 提升为 public：net::ServerPlayHandler::route 经 m_server 虚分发调用（批7）。
+     * 基类默认实现为远程玩家路径：校验 player.loggedIn + ContainerManager.closeContainer
+     * + syncToClient。IntegratedServer 覆写追加本地客户端分支。经 m_server 虚分发调用（批7）。
      */
-    virtual void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
+    virtual void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /**
      * @brief 处理请求打开玩家背包容器数据包（子类覆写打开菜单）
@@ -686,41 +695,47 @@ protected:
      */
     virtual void onCreativeInventoryInitialized(PlayerId playerId, PlayerInventory& inventory);
 
+public:
     /**
      * @brief 返回玩家当前手持物品
      *
-     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
+     * 基类默认实现为远程玩家路径：InventoryManager.getHeldItem。IntegratedServer 覆写
+     * 追加本地客户端分支（m_clientInventory.getSelectedStack）。
+     * 经 m_server 虚分发调用（批7）。
      */
-public:
-    [[nodiscard]] virtual ItemStack getHeldItemForPlacement(PlayerId playerId) = 0;
+    [[nodiscard]] virtual ItemStack getHeldItemForPlacement(PlayerId playerId);
 
     /**
      * @brief 返回玩家当前选中槽位
      *
-     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
+     * 基类默认实现为远程玩家路径：InventoryManager.getSelectedSlot。IntegratedServer
+     * 覆写追加本地客户端分支。经 m_server 虚分发调用（批7）。
      */
-    [[nodiscard]] virtual i32 getSelectedHotbarSlot(PlayerId playerId) = 0;
+    [[nodiscard]] virtual i32 getSelectedHotbarSlot(PlayerId playerId);
 
     /**
      * @brief 设置玩家指定槽位物品
      *
-     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
+     * 基类默认实现为远程玩家路径：InventoryManager.setItem。IntegratedServer 覆写
+     * 追加本地客户端分支。经 m_server 虚分发调用（批7）。
      */
-    virtual void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) = 0;
+    virtual void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack);
 
     /**
      * @brief 同步玩家物品栏到客户端
      *
-     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
+     * 基类默认实现为远程玩家路径：InventoryManager.syncToClient。IntegratedServer 覆写
+     * 追加本地客户端分支（_sendPlayerInventory）。经 m_server 虚分发调用（批7）。
      */
-    virtual void syncPlayerInventory(PlayerId playerId) = 0;
+    virtual void syncPlayerInventory(PlayerId playerId);
 
     /**
      * @brief 尝试打开工作台容器
      *
-     * 提升为 public：net::ServerPlayHandler::handleBlockPlacementPacket 调用（批7）。
+     * 基类默认实现为远程玩家路径：ContainerManager.openContainer(Crafting)。IntegratedServer
+     * 覆写追加本地客户端分支（_openCraftingTableMenu）。经 m_server 虚分发调用（批7）。
      */
-    [[nodiscard]] virtual bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) = 0;
+    [[nodiscard]] virtual bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos);
 
 protected:
     /**
@@ -1042,6 +1057,72 @@ protected:
      */
     void stopCore();
 
+    // ========== 共享子逻辑（批9 下沉自 IntegratedServer/StandaloneServer 重复实现） ==========
+
+    /**
+     * @brief 更新单 tick 调试统计：EMA 平滑 tick 耗时 + 强制区块计数
+     *
+     * 两子类 _mainLoop 中逐字一致的统计片段。EMA 状态 m_smoothedTickTimeMs 跨 tick
+     * 保留（基类成员）。子类 _mainLoop 在 tick() 后调用。
+     *
+     * @param tickTimeMs 本次 tick 实际耗时（毫秒）
+     */
+    void _updateTickDebugStats(f32 tickTimeMs);
+
+    /**
+     * @brief 装配远程会话门面并启动 TCP accept
+     *
+     * 两子类重复的 RemoteSessionManager 装配段：构造门面 + 注册 onClientConnect/
+     * onClientDisconnect 回调 + startAccept。差异经参数注入（logPrefix/
+     * compressionThreshold/worldParamsProvider/port/maxConnections）。
+     * 调用方须预先创建 m_serverNetwork（本方法不创建）。
+     *
+     * @param logPrefix 日志前缀（"IntegratedServer"/"StandaloneServer"）
+     * @param compressionThreshold 握手压缩阈值
+     * @param worldParamsProvider 远程玩家世界参数 provider（来源 m_params/m_settings）
+     * @param port 监听端口
+     * @param maxConnections 最大连接数
+     * @return startAccept 成功返回 ok，失败时透传其原始 Error（由调用方按场景包装日志前缀）
+     */
+    [[nodiscard]] Result<void> _setupRemoteSessions(std::string_view logPrefix,
+        i32 compressionThreshold,
+        std::function<mc::server::net::RemoteWorldParams()> worldParamsProvider,
+        u16 port,
+        u32 maxConnections);
+
+    /**
+     * @brief 关闭远程会话门面 + 网络门面（保销毁顺序）
+     *
+     * 先 reset m_remoteSessionManager（session 持 ServerClientConnection& 引用，须先于
+     * 连接销毁），再 reset m_serverNetwork。对未装配的空 unique_ptr reset 幂等
+     * （IntegratedServer 单机未发布 LAN 时 m_remoteSessionManager 为 nullptr）。
+     * 子类 stop() 在子类特有清理后调用。
+     */
+    void _shutdownRemoteSessions() noexcept;
+
+    /**
+     * @brief handleHotbarSelectPacket 远程分支：setSelectedSlot + 回送 SetHeldSlot
+     *
+     * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
+     */
+    void _handleHotbarSelectRemote(PlayerId playerId, i32 slot);
+
+    /**
+     * @brief handleCloseContainerPacket 远程分支：closeContainer + syncToClient
+     *
+     * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
+     */
+    void _handleCloseContainerRemote(PlayerId playerId);
+
+    /**
+     * @brief handleContainerClickPacket 远程分支：handleClick + syncToClient
+     *
+     * cursorItem 由子类注入（IntegratedServer: hashedStackToItemStack；StandaloneServer: 空）。
+     * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
+     */
+    void _handleContainerClickRemote(
+        PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem);
+
 protected:
     ServerSettings& m_settings;
     std::atomic<bool> m_running{false};
@@ -1078,9 +1159,19 @@ protected:
     // 服务端网络门面（管理所有 ServerClientConnection + LocalTransportPair + 协议表）。
     // 批2b 上提自两子类私有成员：StandaloneServer 在 initialize() 创建并 startAccept；
     // IntegratedServer 在 initialize() 创建并 createLocalClientSide，publishToLan() 时
-    // startAccept。销毁顺序：子类 m_remoteSessions 须先于本成员 reset（session 持
-    // ServerClientConnection& 非拥有），由子类 stop() 显式 clear 保证。
+    // startAccept。销毁顺序由 _shutdownRemoteSessions() 保证（先 reset m_remoteSessionManager
+    // 再 reset m_serverNetwork，session 持 ServerClientConnection& 非拥有须先销毁）。
     std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
+
+    // 远程 TCP 会话门面（批9 上提自两子类私有成员）。StandaloneServer 在 initialize()
+    // 经 _setupRemoteSessions 构造；IntegratedServer 在 publishToLan() 经 _setupRemoteSessions
+    // 构造（单机默认不发布 LAN 时保持 nullptr）。session 持 ServerClientConnection& 非拥有，
+    // 销毁顺序见 _shutdownRemoteSessions。
+    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
+
+    // _mainLoop tick 耗时 EMA 状态（批9 下沉自两子类 _mainLoop 局部变量）。跨 tick 保留，
+    // _updateTickDebugStats 读写。每 server 实例单 _mainLoop 单线程，无并发。
+    f32 m_smoothedTickTimeMs = 0.0f;
 
     // 玩家实体管理器（PlayerId↔EntityInstanceId 映射 + 实体池接入）。批2b 上提自两子类
     // 私有值成员，ServerPlayerEntityManager 无参默认构造可作基类值成员。

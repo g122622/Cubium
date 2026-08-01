@@ -135,6 +135,7 @@
 #include "server/network/EnchantmentNbtBuilder.hpp"
 #include "server/network/LoginFlow.hpp"
 #include "server/network/PlayerBroadcaster.hpp"
+#include "server/network/RemoteSessionManager.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/network/ServerPlayHandler.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -161,6 +162,9 @@ namespace {
 {
     return storage != nullptr && storage->isOpen() && storage->config().readonly && storage->isForeignFormat();
 }
+
+// tick 耗时指数移动平均平滑因子（与 MC 一致），_updateTickDebugStats 使用。
+constexpr f32 kTickTimeSmoothFactor = 0.2f;
 
 } // namespace
 
@@ -1947,6 +1951,189 @@ void MinecraftServer::sendExplosionToPlayer(PlayerId playerId,
     const std::unordered_map<u64, Vector3>& playerKnockback)
 {
     m_broadcaster->sendExplosionToPlayer(playerId, position, strength, affectedBlocks, playerKnockback);
+}
+
+// ============================================================================
+// 共享子逻辑（批9 下沉自 IntegratedServer/StandaloneServer 重复实现）
+// ============================================================================
+
+void MinecraftServer::_updateTickDebugStats(f32 tickTimeMs)
+{
+    // 指数移动平均平滑 tick 耗时（首帧直接取本次值）
+    if (m_smoothedTickTimeMs == 0.0f) {
+        m_smoothedTickTimeMs = tickTimeMs;
+    } else {
+        m_smoothedTickTimeMs =
+            m_smoothedTickTimeMs * (1.0f - kTickTimeSmoothFactor) + tickTimeMs * kTickTimeSmoothFactor;
+    }
+    m_debugStats.smoothedTickTimeMs.store(m_smoothedTickTimeMs, std::memory_order::relaxed);
+
+    // 更新强制区块计数（从主世界 chunkManager ticketManager 取）
+    if (m_dimensionManager != nullptr) {
+        if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
+            if (auto* world = overworld->world(); world != nullptr) {
+                if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
+                    const auto& ticketManager = chunkMgr->ticketManager();
+                    m_debugStats.forcedChunkCount.store(
+                        static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
+                }
+            }
+        }
+    }
+}
+
+Result<void> MinecraftServer::_setupRemoteSessions(std::string_view logPrefix,
+    i32 compressionThreshold,
+    std::function<mc::server::net::RemoteWorldParams()> worldParamsProvider,
+    u16 port,
+    u32 maxConnections)
+{
+    // 批2c：远程会话四件套下沉至 RemoteSessionManager 门面。worldParams 由调用方经
+    // provider 注入（StandaloneServer 取 m_settings，IntegratedServer 取 m_params）。
+    m_remoteSessionManager = std::make_unique<mc::server::net::RemoteSessionManager>(
+        *this, std::string(logPrefix), compressionThreshold, std::move(worldParamsProvider));
+    m_serverNetwork->onClientConnect(
+        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientConnect(conn); });
+    m_serverNetwork->onClientDisconnect(
+        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientDisconnect(conn); });
+
+    // startAccept 失败时直接透传其原始 Error，由调用方按各自场景包装日志前缀
+    // （StandaloneServer "Failed to start server" / IntegratedServer "Failed to start LAN server"）。
+    return m_serverNetwork->startAccept(port, maxConnections);
+}
+
+void MinecraftServer::_shutdownRemoteSessions() noexcept
+{
+    // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
+    // 再 reset 网络门面（关 acceptor + join accept 线程 + 析构各 ServerClientConnection）。
+    // 对未装配的空 unique_ptr reset 幂等（IntegratedServer 单机未发布 LAN 时为 nullptr）。
+    m_remoteSessionManager.reset();
+    if (m_serverNetwork) {
+        m_serverNetwork.reset();
+    }
+}
+
+void MinecraftServer::_handleHotbarSelectRemote(PlayerId playerId, i32 slot)
+{
+    inventoryManager().setSelectedSlot(playerId, slot);
+
+    // 服务端回送确认包（1.21.11 SetHeldSlot）
+    mc::network::ir::play::SetHeldSlot resp;
+    resp.slot = slot;
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(resp)},
+        });
+}
+
+void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
+{
+    containerManager().closeContainer(playerId);
+    inventoryManager().syncToClient(playerId);
+}
+
+void MinecraftServer::_handleContainerClickRemote(
+    PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem)
+{
+    auto clickResult = containerManager().handleClick(playerId,
+        static_cast<mc::ContainerId>(evt.containerId),
+        evt.slotNum,
+        static_cast<u8>(evt.buttonNum),
+        static_cast<u8>(evt.clickType),
+        cursorItem);
+
+    if (clickResult.success()) {
+        // 同步物品栏到客户端
+        inventoryManager().syncToClient(playerId);
+    }
+}
+
+// ============================================================================
+// 数据包处理 / inventory 查询：基类默认实现（远程玩家路径）
+// 两子类原纯虚，去纯虚后基类提供远程默认；IntegratedServer 覆写追加本地客户端分支，
+// StandaloneServer 不再覆写继承基类默认（纯远程行为）。
+// ============================================================================
+
+void MinecraftServer::handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 1.21.11 SetCarriedItem（C→S）：玩家切换快捷栏选中槽位。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::SetCarriedItem>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+
+    _handleHotbarSelectRemote(playerId, evt->slot);
+}
+
+void MinecraftServer::handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 1.21.11 ContainerClick（C→S）：stateId + slot + button + clickType + carriedItem(HashedStack)。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ContainerClick>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+
+    // 远程默认路径：cursorItem 为空。
+    // TODO(Phase6): carriedItem 当前是 HashedStack，多玩家远程路径下需桥接回 ItemStack。
+    //   IntegratedServer 本地路径已有 hashedStackToItemStack；远程路径暂用空 cursor。
+    const ItemStack cursorItem;
+    _handleContainerClickRemote(playerId, *evt, cursorItem);
+}
+
+void MinecraftServer::handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 1.21.11 ContainerClose（C→S）：containerId。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ContainerClose>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+
+    _handleCloseContainerRemote(playerId);
+}
+
+ItemStack MinecraftServer::getHeldItemForPlacement(PlayerId playerId)
+{
+    return inventoryManager().getHeldItem(playerId);
+}
+
+i32 MinecraftServer::getSelectedHotbarSlot(PlayerId playerId)
+{
+    return inventoryManager().getSelectedSlot(playerId);
+}
+
+void MinecraftServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack)
+{
+    inventoryManager().setItem(playerId, slotIndex, stack);
+}
+
+void MinecraftServer::syncPlayerInventory(PlayerId playerId)
+{
+    inventoryManager().syncToClient(playerId);
+}
+
+bool MinecraftServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
+{
+    auto openResult = containerManager().openContainer(playerId, mc::ContainerType::Crafting, pos);
+    return openResult.success();
 }
 
 } // namespace mc::server

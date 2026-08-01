@@ -63,6 +63,7 @@
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/LoginFlow.hpp"
+#include "server/network/RemoteSessionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -435,12 +436,10 @@ void IntegratedServer::stop()
 
     // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再关闭服务端网络门面（含本地客户端 ServerClientConnection + LAN Wire 连接 +
-    // acceptor + accept 线程）。
+    // acceptor + accept 线程）。批9：两步下沉至基类 _shutdownRemoteSessions（对未发布
+    // LAN 的空 m_remoteSessionManager reset 幂等）。
     m_clientConnection = nullptr;
-    m_remoteSessionManager.reset();
-    if (m_serverNetwork) {
-        m_serverNetwork.reset();
-    }
+    _shutdownRemoteSessions();
     // 批2a：复位本地客户端钩子，避免关服后续路径误经悬垂 _sendToClientIr 调用
     // （钩子捕获 this，连接已销毁后 _sendToClientIr 内 m_clientConnection==nullptr
     // 本会安全跳过，此处显式复位消除该依赖）。
@@ -485,10 +484,6 @@ void IntegratedServer::_mainLoop()
 
     spdlog::info("Integrated server started ({} TPS)", m_settings.tickRate.get());
 
-    // 平滑 tick 耗时的指数移动平均因子（与 MC 一致）
-    constexpr f32 SMOOTH_FACTOR = 0.2f;
-    f32 smoothedTickTimeMs = 0.0f;
-
     // 更新目标每tick毫秒数
     m_debugStats.targetMsPerTick.store(static_cast<f32>(tickDuration.count()), std::memory_order::relaxed);
 
@@ -502,28 +497,11 @@ void IntegratedServer::_mainLoop()
         auto elapsed = clock::now() - startTime;
         const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(elapsed).count();
 
-        // 指数移动平均平滑 tick 耗时
-        if (smoothedTickTimeMs == 0.0f) {
-            smoothedTickTimeMs = tickTimeMs;
-        } else {
-            smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
-        }
-
-        // 更新调试统计（原子写入，客户端线程可安全读取）
-        m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
-
-        // 更新强制区块计数（从主维度获取）
-        if (m_dimensionManager != nullptr) {
-            if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
-                if (auto* world = overworld->world(); world != nullptr) {
-                    if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
-                        const auto& ticketManager = chunkMgr->ticketManager();
-                        m_debugStats.forcedChunkCount.store(
-                            static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
-                    }
-                }
-            }
-        }
+        // 批9：EMA 平滑 tick 耗时 + 强制区块计数下沉至基类 _updateTickDebugStats
+        // （与 StandaloneServer 共用同一实现，EMA 状态由基类成员 m_smoothedTickTimeMs 跨 tick
+        // 保留）。本子类节流策略为可变 TPS（每轮必 tick + sleep 剩余），与 StandaloneServer
+        // 固定 20 TPS 的 deltaTime 累积门控本质不同，主体循环保留子类。
+        _updateTickDebugStats(tickTimeMs);
 
         auto sleepTime = tickDuration - elapsed;
         MC_TRACE_COUNTER(TraceEvents.Server.Tick, "ServerTickTime", static_cast<i64>(elapsed.count()));
@@ -645,23 +623,13 @@ void IntegratedServer::handleHotbarSelectPacket(PlayerId playerId, const mc::net
     }
     const i32 slot = evt->slot;
 
-    // 远程 TCP 玩家：走 InventoryManager 多玩家路径
+    // 远程 TCP 玩家：走 InventoryManager 多玩家路径（批9 下沉至基类 _handleHotbarSelectRemote）
     if (playerId != m_clientPlayerId) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (!player || !player->loggedIn) {
             return;
         }
-
-        inventoryManager().setSelectedSlot(playerId, slot);
-
-        // 服务端回送确认包（1.21.11 SetHeldSlot）
-        mc::network::ir::play::SetHeldSlot resp;
-        resp.slot = slot;
-        sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(resp)},
-            });
+        _handleHotbarSelectRemote(playerId, slot);
         return;
     }
 
@@ -686,23 +654,13 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
 
     const ItemStack cursorItem = hashedStackToItemStack(evt->carriedItem);
 
-    // 远程 TCP 玩家：走 ContainerManager 多玩家路径
+    // 远程 TCP 玩家：走 ContainerManager 多玩家路径（批9 下沉至基类 _handleContainerClickRemote）
     if (playerId != m_clientPlayerId) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (!player || !player->loggedIn) {
             return;
         }
-
-        auto clickResult = containerManager().handleClick(playerId,
-            static_cast<mc::ContainerId>(evt->containerId),
-            evt->slotNum,
-            static_cast<u8>(evt->buttonNum),
-            static_cast<u8>(evt->clickType),
-            cursorItem);
-
-        if (clickResult.success()) {
-            inventoryManager().syncToClient(playerId);
-        }
+        _handleContainerClickRemote(playerId, *evt, cursorItem);
         return;
     }
 
@@ -736,15 +694,13 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const mc::n
         return;
     }
 
-    // 远程 TCP 玩家：走 ContainerManager 多玩家路径
+    // 远程 TCP 玩家：走 ContainerManager 多玩家路径（批9 下沉至基类 _handleCloseContainerRemote）
     if (playerId != m_clientPlayerId) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (!player || !player->loggedIn) {
             return;
         }
-
-        containerManager().closeContainer(playerId);
-        inventoryManager().syncToClient(playerId);
+        _handleCloseContainerRemote(playerId);
         return;
     }
 
@@ -1263,27 +1219,27 @@ void IntegratedServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerI
 
 ItemStack IntegratedServer::getHeldItemForPlacement(PlayerId playerId)
 {
-    // 远程 TCP 玩家：走 InventoryManager
+    // 远程 TCP 玩家：走 InventoryManager（批9 下沉至基类默认实现，显式转发零重复）
     if (playerId != m_clientPlayerId) {
-        return inventoryManager().getHeldItem(playerId);
+        return MinecraftServer::getHeldItemForPlacement(playerId);
     }
     return m_clientInventory.getSelectedStack();
 }
 
 i32 IntegratedServer::getSelectedHotbarSlot(PlayerId playerId)
 {
-    // 远程 TCP 玩家：走 InventoryManager
+    // 远程 TCP 玩家：走 InventoryManager（批9 下沉至基类默认实现，显式转发零重复）
     if (playerId != m_clientPlayerId) {
-        return inventoryManager().getSelectedSlot(playerId);
+        return MinecraftServer::getSelectedHotbarSlot(playerId);
     }
     return m_clientInventory.getSelectedSlot();
 }
 
 void IntegratedServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack)
 {
-    // 远程 TCP 玩家：走 InventoryManager
+    // 远程 TCP 玩家：走 InventoryManager（批9 下沉至基类默认实现，显式转发零重复）
     if (playerId != m_clientPlayerId) {
-        inventoryManager().setItem(playerId, slotIndex, stack);
+        MinecraftServer::setInventoryItem(playerId, slotIndex, stack);
         return;
     }
     m_clientInventory.setItem(slotIndex, stack);
@@ -1291,9 +1247,9 @@ void IntegratedServer::setInventoryItem(PlayerId playerId, i32 slotIndex, const 
 
 void IntegratedServer::syncPlayerInventory(PlayerId playerId)
 {
-    // 远程 TCP 玩家：走 InventoryManager
+    // 远程 TCP 玩家：走 InventoryManager（批9 下沉至基类默认实现，显式转发零重复）
     if (playerId != m_clientPlayerId) {
-        inventoryManager().syncToClient(playerId);
+        MinecraftServer::syncPlayerInventory(playerId);
         return;
     }
     _sendPlayerInventory();
@@ -1301,10 +1257,9 @@ void IntegratedServer::syncPlayerInventory(PlayerId playerId)
 
 bool IntegratedServer::tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos)
 {
-    // 远程 TCP 玩家：走 ContainerManager
+    // 远程 TCP 玩家：走 ContainerManager（批9 下沉至基类默认实现，显式转发零重复）
     if (playerId != m_clientPlayerId) {
-        auto openResult = containerManager().openContainer(playerId, mc::ContainerType::Crafting, pos);
-        return openResult.success();
+        return MinecraftServer::tryOpenCraftingContainer(playerId, pos);
     }
 
     // 本地客户端
@@ -1330,22 +1285,21 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
     }
 
     // 单一 m_serverNetwork 同时供 Local（已在 initialize() 建好本地客户端连接对）与 LAN Wire。
-    // 批2c：远程会话四件套下沉至 RemoteSessionManager 门面。worldParams 从 m_params 取
-    // （集成服世界参数权威来源）：hardcore/seed/worldType==Flat。本地客户端 sessionId=0 在
-    // initialize() 内联接线，不经此 manager。
-    m_remoteSessionManager = std::make_unique<mc::server::net::RemoteSessionManager>(
-        *this, "IntegratedServer", kLanCompressionThreshold, [this]() -> mc::server::net::RemoteWorldParams {
-            return {m_params.hardcore, m_params.seed, m_params.worldType == WorldType::Flat};
-        });
-    m_serverNetwork->onClientConnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientConnect(conn); });
-    m_serverNetwork->onClientDisconnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientDisconnect(conn); });
-
+    // 批9：远程会话四件套装配 + startAccept 下沉至基类 _setupRemoteSessions。worldParams 从
+    // m_params 取（集成服世界参数权威来源）：hardcore/seed/worldType==Flat。本地客户端
+    // sessionId=0 在 initialize() 内联接线，不经此 manager。startAccept 失败时基类透传原始
+    // Error，此处按 LAN 场景包装日志前缀。
     const u32 maxConnections = static_cast<u32>(std::max(m_integratedSettings.maxPlayers.get(), 8));
-    auto acceptResult = m_serverNetwork->startAccept(static_cast<u16>(port), maxConnections);
-    if (acceptResult.failed()) {
-        return Error(ErrorCode::InitializationFailed, "Failed to start LAN server: " + acceptResult.error().message());
+    auto setupResult = _setupRemoteSessions(
+        "IntegratedServer",
+        kLanCompressionThreshold,
+        [this]() -> mc::server::net::RemoteWorldParams {
+            return {m_params.hardcore, m_params.seed, m_params.worldType == WorldType::Flat};
+        },
+        static_cast<u16>(port),
+        maxConnections);
+    if (setupResult.failed()) {
+        return Error(ErrorCode::InitializationFailed, "Failed to start LAN server: " + setupResult.error().message());
     }
 
     // 运行时切换作弊开关（不修改 level.dat 中的 allowCommands）
@@ -1361,9 +1315,10 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
 }
 
 // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
-// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，本子类不再
-// 持有。publishToLan() 构造 m_remoteSessionManager 并注册到 m_serverNetwork 的
-// onClientConnect/onClientDisconnect；stop() 中先 reset manager 再 reset ServerNetwork
-// 保销毁顺序（session 持 ServerClientConnection& 引用）。
+// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，门面成员
+// m_remoteSessionManager 于批9 上提 MinecraftServer 基类。publishToLan() 经基类
+// _setupRemoteSessions 装配门面并注册到 m_serverNetwork 的
+// onClientConnect/onClientDisconnect；stop() 经基类 _shutdownRemoteSessions 先 reset
+// manager 再 reset ServerNetwork 保销毁顺序（session 持 ServerClientConnection& 引用）。
 
 } // namespace mc::server

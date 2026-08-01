@@ -26,7 +26,6 @@
 #include "MinecraftServer.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/GameDirectory.hpp"
-#include "server/network/RemoteSessionManager.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -86,14 +85,15 @@ protected:
     // 不注入本地客户端钩子（m_localClientPlayerId 保持 nullopt），基类默认实现退化为
     // 纯 PlayerManager 遍历/查询，与原 StandaloneServer 实现完全一致。不再 override。
 
-    // ========== 数据包处理（特有逻辑） ==========
+    // ========== 数据包处理 ==========
 
-    // 注：远程 TCP 登录的真 Java 互通为 TODO(Phase6)。新网络层登录由
-    // ServerHandshakeStateMachine 驱动，handleLoginRequestPacket 已从基类移除。
-    void handleHotbarSelectPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
-    void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
-    void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
-    void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    // 注：handleHotbarSelect/handleContainerClick/handleCloseContainer/handleOpenPlayerInventory
+    // 及 5 个 inventory 查询/操作（getHeldItemForPlacement/getSelectedHotbarSlot/setInventoryItem/
+    // syncPlayerInventory/tryOpenCraftingContainer）已于批9 下沉至 MinecraftServer 基类默认实现
+    // （纯远程路径：InventoryManager/ContainerManager 委托）。StandaloneServer 为纯远程独立服，
+    // 无本地客户端分支，直接继承基类默认即原 StandaloneServer 行为，不再 override。
+    // 远程 TCP 登录的真 Java 互通为 TODO(Phase6)。新网络层登录由 ServerHandshakeStateMachine
+    // 驱动，handleLoginRequestPacket 已从基类移除。
 
 public:
     // ========== StandaloneServer 特有接口 ==========
@@ -133,12 +133,6 @@ public:
     [[nodiscard]] ServerSettings& settings() noexcept { return m_settings; }
     [[nodiscard]] const ServerSettings& settings() const noexcept { return m_settings; }
 
-    [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
-    [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
-    void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) override;
-    void syncPlayerInventory(PlayerId playerId) override;
-    [[nodiscard]] bool tryOpenCraftingContainer(PlayerId playerId, const BlockPos& pos) override;
-
 private:
     void _mainLoop();
 
@@ -154,6 +148,9 @@ private:
     // 远程 TCP 会话管理（批2c 下沉至 RemoteSessionManager 门面）：
     // onClientConnect/onClientDisconnect 在 startAccept 前注册到 m_serverNetwork，
     // 内部建 RemoteClientSession + 握手/Play 派发 + 玩家创建/断开清理。
+    // 批9：门面成员 m_remoteSessionManager 已上提 MinecraftServer 基类，initialize() 经
+    // 基类 _setupRemoteSessions 构造、stop() 经基类 _shutdownRemoteSessions 保销毁顺序
+    // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
     /// 独立服压缩阈值（Java 默认 256）。离线模式（跳过 RSA），真 Java 在线模式为 TODO(Phase6)。
     static constexpr i32 kStandaloneCompressionThreshold = 256;
 
@@ -162,10 +159,6 @@ private:
     std::filesystem::path m_settingsPath;
     // 游戏目录管理器（统一管理数据包、存档等路径）
     GameDirectory m_gameDirectory;
-    // 远程 TCP 会话管理门面（批2c 下沉：原 m_remoteSessions/m_remoteSessionsMutex +
-    // _onRemote* 四件套）。在 initialize() 构造、stop() 中先 reset 保销毁顺序
-    // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
-    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
 
     // 服务端主循环线程（由 StandaloneServer 自身持有，stop() 中先 join 再清理，
     // 避免与 tick() 产生数据竞争）
