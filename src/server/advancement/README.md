@@ -177,4 +177,4 @@ server/advancement/
     - 末影龙重生：`EndDragonFight::setRespawnStage(END)` → `_createNewDragon()` 创建新龙 → 遍历 `m_dragonBossBar->getPlayers()` → 对每个可见玩家调用 `IWorld::onSummonedEntity(playerId, newDragon)` → `ServerWorld::onSummonedEntity()` → 同上事件链（对应 MC Java `CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon)`）
     - **未实现**：铁傀儡/雪傀儡建造（`CarvedPumpkinBlock`）、凋灵建造（`WitherSkullBlock` 未实现）。这些场景需要重构以获取附近玩家信息后触发
 
-21. **PlayerInteractedWithEntityTrigger 触发路径**：不通过 IWorld 回调，而是在 `ServerPlayRouter` 的 UseEntity/Interact 分支中直接调用 `AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()`。当交互结果为 `Success` 或 `Consume` 时，获取玩家手持物品和目标实体进行谓词匹配。（旧 `PacketHandler::handleUseEntity` 已删除，逻辑迁入 `ServerPlayRouter`；TODO(Phase6) 完成接线。）
+21. **PlayerInteractedWithEntityTrigger 触发路径**：不通过 IWorld 回调，而是在 `ServerPlayHandler::handleInteractPacket` 的 INTERACT/INTERACT_AT 分支中，捕获 `interactOn`/`applyPlayerInteraction` 返回值，当结果为 `Success`/`Consume` 时调用 `AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()`，获取玩家手持物品和目标实体进行谓词匹配。（旧 `PacketHandler::handleUseEntity` 已删除，逻辑迁入 `ServerPlayHandler`；`ServerPlayRouter` 为纯转发器不含分支；TODO(Phase6) 完成接线。）

@@ -345,7 +345,7 @@ world/
 
 **注意事项**：
 - `ClientWorld` 不重写这些回调，默认空实现（void 参数），不触发任何事件
-- `PlayerInteractedWithEntityTrigger` 不通过 IWorld 回调触发，而是在 `ServerPlayRouter` 的 UseEntity/Interact 分支中直接调用 `AbstractCriterionTrigger::trigger()`（TODO(Phase6) 完成接线）
+- `PlayerInteractedWithEntityTrigger` 不通过 IWorld 回调触发，而是在 `ServerPlayHandler::handleInteractPacket` 的 INTERACT/INTERACT_AT 分支中捕获交互返回值后调用 `AbstractCriterionTrigger::trigger()`（`ServerPlayRouter` 为纯转发器不含分支；TODO(Phase6) 完成接线）
 - `SummonedEntityTrigger` 当前仅在 `/summon` 命令中触发。MC Java 中还会在建造铁傀儡/雪傀儡/凋灵时触发，但当前傀儡建造代码缺少玩家上下文信息，需要重构后才能添加
 
 ### 15. IWorld::blockEvent() 方块事件系统
