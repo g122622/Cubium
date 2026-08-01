@@ -24,8 +24,13 @@
 #include "ServerCommandSource.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/core/PlayerManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -82,10 +87,14 @@ void ServerCommandSource::sendMessage(const std::string& message, const std::opt
         return;
     } else if (m_playerId != 0) {
         if (m_server != nullptr) {
-            // TODO(Phase6): 新 IR 暂无 S→C 系统/聊天消息包（SystemChat/DisguisedChat）。
-            //   旧 ChatBroadcast 字节包已删除，无实体 player 时的系统消息当前无法下发，
-            //   降级为日志输出。
-            spdlog::info("[System -> {}] {}", m_name, message);
+            // 无实体 ServerPlayer 引用但有 playerId（如远程命令源）：经 ConnectionManager 下发
+            // SystemChat(overlay=false)。消息按纯文本折叠为 StringTag，显示在聊天窗口。
+            mc::network::ir::play::SystemChat pkt;
+            pkt.content = ::mc::text::plainTextToNbtBytes(message);
+            pkt.overlay = false;
+            m_server->connectionManager().sendToPlayer(m_playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
             return;
         }
 

@@ -378,6 +378,20 @@ struct SetActionBarText {
 };
 
 /**
+ * @brief SystemChat（S→C，id=119）
+ *
+ * 1.21.11 系统聊天/动作栏消息。content 为 Component NBT wire 字节（自定界，无外层 VarInt 长度，
+ * 对齐 vanilla ClientboundSystemChatPacket.content = ComponentSerialization.TRUSTED_STREAM_CODEC）。
+ * overlay=false 显示在聊天窗口，overlay=true 显示在动作栏。
+ */
+struct SystemChat {
+    std::vector<u8> content; // Component NBT wire 字节
+    bool overlay = false;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SystemChat&, const SystemChat&) noexcept = default;
+};
+
+/**
  * @brief SetTitlesAnimation（S→C，id=113）
  */
 struct SetTitlesAnimation {

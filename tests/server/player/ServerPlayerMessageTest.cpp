@@ -31,8 +31,8 @@
  *
  * 本测试聚焦无连接路径的核心契约（canReceiveMessages=false、sendStatusMessage 不抛）。
  * 旧"有连接 + 字节解析标题/聊天广播"用例依赖旧 12 字节头 + 旧 packet 枚举，新层为
- * IR 包无字节头，已移除。TODO(Phase6): 有连接发包路径由 ServerClientConnection
- * + ClientPlayVisitor 集成测试覆盖。
+ * IR 包无字节头，已移除。有连接发包路径由 ServerClientConnection
+ * + ClientPlayVisitor 集成测试覆盖（sendSystemMessage/sendChatMessage 现发 SystemChat IR）。
  */
 
 #include "common/core/Types.hpp"
@@ -118,7 +118,7 @@ TEST_F(ServerPlayerMessageTest, SendStatusMessageActionBarNoConnection)
 
 TEST_F(ServerPlayerMessageTest, SendSystemMessageDoesNotThrowWithoutConnection)
 {
-    // sendSystemMessage 无连接时不抛（1.21.11 无 S→C chat IR，实现仅 debug 日志）
+    // sendSystemMessage 无连接时不抛（有连接时发 SystemChat IR 包）
     EXPECT_NO_THROW(m_player->sendSystemMessage("system.message"));
 }
 

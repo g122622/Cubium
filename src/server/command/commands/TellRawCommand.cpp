@@ -26,6 +26,10 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
@@ -33,9 +37,9 @@
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
-#include <spdlog/spdlog.h>
 #include <sstream>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -78,27 +82,20 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
     auto& playerManager = server->playerManager();
     i32 successCount = 0;
 
-    // 解析 JSON 并构建聊天组件
-    std::string messageToSend;
+    // 把 tellraw 的 JSON 文本解析为 1.21.11 Component NBT wire 字节。
+    // 合法 JSON（含纯文本字符串）→ 复杂/折叠 Component NBT；解析失败回退为纯文本 StringTag。
+    std::vector<u8> contentNbt;
+    bool jsonValid = false;
     try {
         nlohmann::json json = nlohmann::json::parse(jsonMessage);
-        // 成功解析 JSON，直接使用原始 JSON 字符串发送
-        // 客户端会自行解析 JSON 格式的聊天消息
-        messageToSend = jsonMessage;
+        jsonValid = true;
+        contentNbt = ::mc::text::parseJsonComponentToNbtBytes(jsonMessage);
     }
     catch (const nlohmann::json::exception&) {
-        // JSON 解析失败，将其作为纯文本发送
-        // 先尝试作为 JSON 字符串解析（带引号的字符串）
-        try {
-            nlohmann::json json = nlohmann::json::parse("\"" + jsonMessage + "\"");
-            messageToSend = jsonMessage; // 纯文本，直接发送
-        }
-        catch (...) {
-            // 完全无法解析，发送错误信息
-            source.sendError("Invalid JSON: " + jsonMessage);
-            return 0;
-        }
+        // 非合法 JSON：按纯文本发送（对齐 vanilla tellraw 对非 JSON 输入的宽容处理）
+        contentNbt = ::mc::text::plainTextToNbtBytes(jsonMessage);
     }
+    (void)jsonValid;
 
     for (PlayerId playerId : playerIds) {
         auto* playerData = playerManager.getPlayer(playerId);
@@ -108,12 +105,17 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
 
         auto conn = playerData->getConnection();
         if (conn && conn->isConnected()) {
-            // TODO(Phase6): 新 IR 暂无 S→C 系统/聊天消息包（SystemChat/DisguisedChat）。
-            //   旧 ChatBroadcast 字节包已删除，tellraw 的 JSON 消息当前无法下发客户端，
-            //   先记日志占位，待补 SystemChat IR struct 后再接通。successCount 仍按预期递增。
-            spdlog::debug("TellRawCommand: json message to {} dropped (no S->C chat IR yet): {}",
-                playerData->username,
-                messageToSend);
+            // 1.21.11 SystemChat(overlay=false)：content 为 Component NBT，显示在聊天窗口。
+            mc::network::ir::play::SystemChat pkt;
+            pkt.content = contentNbt;
+            pkt.overlay = false;
+            auto sendResult = conn->send(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
+            if (sendResult.failed()) {
+                spdlog::warn("TellRawCommand: failed to send system chat to {} ({})",
+                    playerData->username,
+                    sendResult.error().message());
+            }
             successCount++;
         }
     }

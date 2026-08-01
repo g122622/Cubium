@@ -382,6 +382,10 @@ using B = buffer::RegistryByteBuf;
         59, PacketType{PacketFlow::Clientbound, "ping"}, 93, codecs::clientboundPingCodec());
     b.addPacket<ir::play::PongResponse>(
         60, PacketType{PacketFlow::Clientbound, "pong_response"}, 94, codecs::pongResponseCodec());
+    // SystemChat（S→C，wire id=119/0x77，在 store_cookie(118) 与 playerlist_header(120) 之间）。
+    // vanilla ClientboundSystemChatPacket：content(Component NBT) + isActionBar(bool)。
+    b.addPacket<ir::play::SystemChat>(
+        119, PacketType{PacketFlow::Clientbound, "system_chat"}, 99, codecs::systemChatCodec());
     return b.build();
 }
 

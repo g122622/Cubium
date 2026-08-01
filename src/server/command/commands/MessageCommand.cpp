@@ -26,13 +26,17 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
-#include <spdlog/spdlog.h>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -105,12 +109,21 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
         std::ostringstream incomingMsg;
         incomingMsg << "§7§o" << senderName << " whispers to you: " << message;
 
-        // TODO(Phase6): 新 IR 暂无 S→C 系统/聊天消息包（SystemChat/DisguisedChat）。
-        //   旧 ChatBroadcast 字节包已删除，私聊消息当前无法下发客户端，先记日志占位，
-        //   待补 SystemChat IR struct 后再接通。successCount 仍按预期递增以保留发送者确认。
-        spdlog::debug("MessageCommand: private message to {} dropped (no S->C chat IR yet): {}",
-            targetData->username,
-            incomingMsg.str());
+        // 1.21.11 SystemChat(overlay=false)：私聊文本含 §格式码，按纯文本折叠为 StringTag。
+        // §格式码由客户端在渲染时解析（vanilla Component.literal 同样保留 §）。
+        auto conn = targetData->getConnection();
+        if (conn && conn->isConnected()) {
+            mc::network::ir::play::SystemChat pkt;
+            pkt.content = ::mc::text::plainTextToNbtBytes(incomingMsg.str());
+            pkt.overlay = false;
+            auto sendResult = conn->send(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
+            if (sendResult.failed()) {
+                spdlog::warn("MessageCommand: failed to send private message to {} ({})",
+                    targetData->username,
+                    sendResult.error().message());
+            }
+        }
         successCount++;
     }
 

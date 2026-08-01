@@ -181,7 +181,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ServerboundPingRequest,      // 95
     play::ServerboundPong,             // 96
     play::ServerboundChangeDifficulty, // 97
-    play::LockDifficulty>;             // 98
+    play::LockDifficulty,              // 98
+    play::SystemChat>;                 // 99
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

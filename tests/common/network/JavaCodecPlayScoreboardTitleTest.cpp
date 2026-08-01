@@ -409,3 +409,28 @@ TEST_F(NetworkTestBase, PlayMapItemDataFull)
     ASSERT_EQ(out.index(), 67u);
     EXPECT_EQ(std::get<MapItemData>(out), in);
 }
+
+// ============================================================================
+// 批 3：SystemChat S→C（id=119，altIndex=99）
+// content 为 Component NBT（plainTextToNbtBytes 产出 StringTag），overlay bool 控制显示位置。
+// ============================================================================
+
+TEST_F(NetworkTestBase, PlaySystemChatChatWindow)
+{
+    SystemChat in{};
+    in.content = text::plainTextToNbtBytes("Hello world"); // Component NBT（StringTag）
+    in.overlay = false;                                    // 聊天窗口
+    auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
+    ASSERT_EQ(out.index(), 99u);
+    EXPECT_EQ(std::get<SystemChat>(out), in);
+}
+
+TEST_F(NetworkTestBase, PlaySystemChatActionBar)
+{
+    SystemChat in{};
+    in.content = text::plainTextToNbtBytes("Action!"); // Component NBT（StringTag）
+    in.overlay = true;                                 // 动作栏
+    auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
+    ASSERT_EQ(out.index(), 99u);
+    EXPECT_EQ(std::get<SystemChat>(out), in);
+}

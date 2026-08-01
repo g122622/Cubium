@@ -1573,6 +1573,29 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                 }
                 return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::SystemChat>) {
+                // 1.21.11 SystemChat：overlay=true→动作栏（TitleWidget Actionbar），
+                // overlay=false→聊天窗口（ChatWidget addSystemMessage）。
+                const auto& p = pkt;
+                const std::string text = ::mc::text::componentNbtBytesToPlainText(p.content);
+                if (p.overlay) {
+                    if (m_app.m_kageroEngine) {
+                        auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
+                            m_app.m_kageroEngine->getLayer(m_app.m_titleLayerId));
+                        if (titleWidget) {
+                            titleWidget->handleTitlePacket(mc::network::TitleAction::Actionbar, text, 0, 0, 0);
+                        }
+                    }
+                } else {
+                    if (m_app.m_kageroEngine) {
+                        auto* chatWidget = static_cast<ui::minecraft::widgets::ChatWidget*>(
+                            m_app.m_kageroEngine->getLayer(m_app.m_chatLayerId));
+                        if (chatWidget) {
+                            chatWidget->addSystemMessage(text);
+                        }
+                    }
+                }
+                return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::SetTitlesAnimation>) {
                 const auto& p = pkt;
                 if (m_app.m_kageroEngine) {

@@ -724,6 +724,24 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
         });
 }
 
+/// SystemChat（S→C，id=119）
+/// 对齐 vanilla ClientboundSystemChatPacket：content = Component NBT（自定界，无外层长度前缀）
+/// + isActionBar(bool)。overlay=true→动作栏，false→聊天窗口。
+[[nodiscard]] inline auto systemChatCodec()
+{
+    return makeCodec<ir::play::SystemChat>(
+        [](B& buf, const ir::play::SystemChat& v) {
+            writeComponentNbt(buf, v.content);
+            buf.writeBool(v.overlay);
+        },
+        [](B& buf) -> Result<ir::play::SystemChat> {
+            ir::play::SystemChat v{};
+            MC_TRY_ASSIGN(v.content, readComponentNbt(buf));
+            MC_TRY_ASSIGN(v.overlay, buf.readBool());
+            return v;
+        });
+}
+
 /// SetTitlesAnimation（S→C，id=113）
 [[nodiscard]] inline auto setTitlesAnimationCodec()
 {
