@@ -1640,4 +1640,119 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         });
 }
 
+// ============================================================================
+// 简单状态同步单包（S→C / C→S，1.21.11 纯字段包，altIndex 90..98）
+// ============================================================================
+
+/// SetChunkCacheRadius（S→C，id=93）：VarInt(radius)
+[[nodiscard]] inline auto setChunkCacheRadiusCodec()
+{
+    return makeCodec<ir::play::SetChunkCacheRadius>(
+        [](B& buf, const ir::play::SetChunkCacheRadius& v) { buf.writeVarInt(v.radius); },
+        [](B& buf) -> Result<ir::play::SetChunkCacheRadius> {
+            ir::play::SetChunkCacheRadius v{};
+            MC_TRY_ASSIGN(v.radius, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetSimulationDistance（S→C，id=109）：VarInt(simulationDistance)
+[[nodiscard]] inline auto setSimulationDistanceCodec()
+{
+    return makeCodec<ir::play::SetSimulationDistance>(
+        [](B& buf, const ir::play::SetSimulationDistance& v) { buf.writeVarInt(v.simulationDistance); },
+        [](B& buf) -> Result<ir::play::SetSimulationDistance> {
+            ir::play::SetSimulationDistance v{};
+            MC_TRY_ASSIGN(v.simulationDistance, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SetHealth（S→C，id=102）：Float(health)+VarInt(food)+Float(saturation)
+[[nodiscard]] inline auto setHealthCodec()
+{
+    return makeCodec<ir::play::SetHealth>(
+        [](B& buf, const ir::play::SetHealth& v) {
+            buf.writeF32(v.health);
+            buf.writeVarInt(v.food);
+            buf.writeF32(v.saturation);
+        },
+        [](B& buf) -> Result<ir::play::SetHealth> {
+            ir::play::SetHealth v{};
+            MC_TRY_ASSIGN(v.health, buf.readF32());
+            MC_TRY_ASSIGN(v.food, buf.readVarInt());
+            MC_TRY_ASSIGN(v.saturation, buf.readF32());
+            return v;
+        });
+}
+
+/// ClientboundPing（S→C，id=59，common 通道）：Int(id)
+[[nodiscard]] inline auto clientboundPingCodec()
+{
+    return makeCodec<ir::play::ClientboundPing>([](B& buf, const ir::play::ClientboundPing& v) { buf.writeI32(v.id); },
+        [](B& buf) -> Result<ir::play::ClientboundPing> {
+            ir::play::ClientboundPing v{};
+            MC_TRY_ASSIGN(v.id, buf.readI32());
+            return v;
+        });
+}
+
+/// PongResponse（S→C，id=60，ping 协议通道）：Long(time)
+[[nodiscard]] inline auto pongResponseCodec()
+{
+    return makeCodec<ir::play::PongResponse>([](B& buf, const ir::play::PongResponse& v) { buf.writeI64(v.time); },
+        [](B& buf) -> Result<ir::play::PongResponse> {
+            ir::play::PongResponse v{};
+            MC_TRY_ASSIGN(v.time, buf.readI64());
+            return v;
+        });
+}
+
+/// ServerboundPingRequest（C→S，id=37，ping 协议通道）：Long(time)
+[[nodiscard]] inline auto serverboundPingRequestCodec()
+{
+    return makeCodec<ir::play::ServerboundPingRequest>(
+        [](B& buf, const ir::play::ServerboundPingRequest& v) { buf.writeI64(v.time); },
+        [](B& buf) -> Result<ir::play::ServerboundPingRequest> {
+            ir::play::ServerboundPingRequest v{};
+            MC_TRY_ASSIGN(v.time, buf.readI64());
+            return v;
+        });
+}
+
+/// ServerboundPong（C→S，id=44，common 通道）：Int(id)
+[[nodiscard]] inline auto serverboundPongCodec()
+{
+    return makeCodec<ir::play::ServerboundPong>([](B& buf, const ir::play::ServerboundPong& v) { buf.writeI32(v.id); },
+        [](B& buf) -> Result<ir::play::ServerboundPong> {
+            ir::play::ServerboundPong v{};
+            MC_TRY_ASSIGN(v.id, buf.readI32());
+            return v;
+        });
+}
+
+/// ServerboundChangeDifficulty（C→S，id=3）：VarInt(difficulty)
+[[nodiscard]] inline auto serverboundChangeDifficultyCodec()
+{
+    return makeCodec<ir::play::ServerboundChangeDifficulty>(
+        [](B& buf, const ir::play::ServerboundChangeDifficulty& v) { buf.writeVarInt(v.difficulty); },
+        [](B& buf) -> Result<ir::play::ServerboundChangeDifficulty> {
+            ir::play::ServerboundChangeDifficulty v{};
+            MC_TRY_ASSIGN(v.difficulty, buf.readVarInt());
+            return v;
+        });
+}
+
+/// LockDifficulty（C→S，id=28）：Bool(locked)
+[[nodiscard]] inline auto lockDifficultyCodec()
+{
+    return makeCodec<ir::play::LockDifficulty>(
+        [](B& buf, const ir::play::LockDifficulty& v) { buf.writeBool(v.locked); },
+        [](B& buf) -> Result<ir::play::LockDifficulty> {
+            ir::play::LockDifficulty v{};
+            MC_TRY_ASSIGN(v.locked, buf.readBool());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

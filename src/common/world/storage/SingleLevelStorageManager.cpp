@@ -1043,7 +1043,9 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
     bool raining,
     i32 thunderTime,
     bool thundering,
-    bool initialized)
+    bool initialized,
+    Difficulty difficulty,
+    bool difficultyLocked)
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -1067,7 +1069,9 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
             raining,
             thunderTime,
             thundering,
-            initialized);
+            initialized,
+            difficulty,
+            difficultyLocked);
     }
 
     // 外来格式：只读，不保存

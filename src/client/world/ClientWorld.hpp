@@ -218,6 +218,15 @@ public:
     void setRenderDistance(i32 distance) { m_renderDistance = distance; }
     [[nodiscard]] i32 renderDistance() const { return m_renderDistance; }
 
+    /**
+     * @brief 设置服务端下发的模拟距离（区块）。
+     *
+     * 对齐 Java ClientLevel.setServerSimulationDistance：仅存字段，区别于渲染距离（控制可见区块）。
+     * vanilla 客户端该字段唯一消费点为 shouldTickDeath 死亡实体棋盘距离裁剪。
+     */
+    void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
+    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+
     [[nodiscard]] u64 seed() const { return m_seed; }
 
     // ========== 维度 ==========
@@ -659,6 +668,7 @@ private:
     std::unordered_map<ChunkId, u64> m_chunkDeserializeGeneration;
 
     i32 m_renderDistance = 12;
+    i32 m_simulationDistance = 10; ///< 服务端下发的模拟距离，对齐 defaults::server::simulationDistance
     u64 m_seed = 0;
     DimensionId m_dimensionId = 0; ///< 当前维度ID，用于验证区块数据包
 

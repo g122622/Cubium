@@ -91,6 +91,10 @@ private:
     void handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handlePongPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handleChangeDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handleLockDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     MinecraftServer& m_server;
 };

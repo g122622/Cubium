@@ -335,8 +335,31 @@ public:
 
     /**
      * @brief 设置当前世界难度。
+     *
+     * 难度被锁定（isDifficultyLocked()=true）时本调用直接返回，不修改也不广播，
+     * 对齐 Java MinecraftServer.setDifficulty(diff, false) 的 !isDifficultyLocked() 守卫。
      */
     virtual void setDifficulty(Difficulty difficulty) = 0;
+
+    /**
+     * @brief 难度是否被锁定（锁定后不可再切换难度，对齐 Java LevelData.isDifficultyLocked）。
+     */
+    [[nodiscard]] virtual bool isDifficultyLocked() const noexcept = 0;
+
+    /**
+     * @brief 设置难度锁定状态，并立即向所有在线玩家广播 cb:10 ChangeDifficulty（携带新 locked 值）。
+     *
+     * 对齐 Java MinecraftServer.setDifficultyLocked：仅置位并广播，不改变当前难度。
+     */
+    virtual void setDifficultyLocked(bool locked) = 0;
+
+    /**
+     * @brief 该玩家是否为单人/LAN 主机（集成服本地客户端玩家）。
+     *
+     * 对齐 Java IntegratedServer.isSingleplayerOwner / DedicatedServer.isSingleplayerOwner（恒 false）。
+     * 用于难度切换/锁定等仅主机可执行操作的权限校验。
+     */
+    [[nodiscard]] virtual bool isSingleplayerOwner(PlayerId playerId) const noexcept = 0;
 
     /**
      * @brief 获取服务器默认游戏模式。

@@ -68,6 +68,7 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -2000,6 +2001,49 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 睡眠（走 SetEntityData metadata，无独立包）----
+            // ---- 生命/饥饿/饱食度同步 ----
+            else if constexpr (std::is_same_v<T, irplay::SetHealth>) {
+                const auto& p = pkt;
+                if (m_app.m_player) {
+                    m_app.m_player->setHealth(p.health);
+                    m_app.m_player->foodStats().setFoodLevel(p.food);
+                    m_app.m_player->foodStats().setSaturationLevel(p.saturation);
+                }
+                return Result<void>::ok();
+            }
+            // ---- 视野半径 ----
+            else if constexpr (std::is_same_v<T, irplay::SetChunkCacheRadius>) {
+                const auto& p = pkt;
+                m_app.m_world.setRenderDistance(p.radius);
+                return Result<void>::ok();
+            }
+            // ---- 模拟距离（对齐 Java ClientLevel.setServerSimulationDistance，仅存字段）----
+            else if constexpr (std::is_same_v<T, irplay::SetSimulationDistance>) {
+                const auto& p = pkt;
+                m_app.m_world.setSimulationDistance(p.simulationDistance);
+                return Result<void>::ok();
+            }
+            // ---- 服务端 ping(common 通道)，回 sb:44 pong 同 id ----
+            else if constexpr (std::is_same_v<T, irplay::ClientboundPing>) {
+                const auto& p = pkt;
+                if (m_app.m_network) {
+                    (void)m_app.m_network->send(
+                        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                            mc::network::ir::PlayPacket{irplay::ServerboundPong{p.id}}});
+                }
+                return Result<void>::ok();
+            }
+            // ---- PongResponse(ping 协议通道，sb:37 往返收尾) ----
+            else if constexpr (std::is_same_v<T, irplay::PongResponse>) {
+                const auto& p = pkt;
+                // RTT = 收包时刻 - 出站 ping 时记录的 time，对齐 Java PingDebugMonitor.onPongReceived。
+                // time 由客户端发 ServerboundPingRequest 时写入（TimeUtils::getCurrentTimeMs 单调时钟毫秒）。
+                if (m_app.m_network) {
+                    const i64 rtt = static_cast<i64>(mc::util::TimeUtils::getCurrentTimeMs()) - p.time;
+                    m_app.m_network->setPingMs(rtt);
+                }
+                return Result<void>::ok();
+            }
             // ---- 默认：未处理包静默忽略 ----
             else {
                 return Result<void>::ok();

@@ -305,6 +305,9 @@ public:
     [[nodiscard]] u64 currentTick() const override;
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty difficulty) override;
+    [[nodiscard]] bool isDifficultyLocked() const noexcept override { return m_difficultyLocked; }
+    void setDifficultyLocked(bool locked) override;
+    [[nodiscard]] bool isSingleplayerOwner(PlayerId playerId) const noexcept override { return false; }
     [[nodiscard]] GameMode defaultGameMode() const override
     {
         return static_cast<GameMode>(m_settings.defaultGameMode.get());
@@ -1128,6 +1131,7 @@ protected:
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_initialized{false};
     Difficulty m_difficulty = Difficulty::Normal;
+    bool m_difficultyLocked = false;
     i32 m_playerIdleTimeoutMinutes = 0;
 
     // 核心管理器

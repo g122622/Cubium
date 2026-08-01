@@ -125,6 +125,14 @@ public:
     [[nodiscard]] u64 packetsReceived() const noexcept { return m_packetsReceived.load(); }
     [[nodiscard]] i64 pingMs() const noexcept { return m_pingMs.load(); }
 
+    /**
+     * @brief 更新客户端到服务端的往返延迟（毫秒）。
+     *
+     * 由 PongResponse(cb:60) 往返计算结果写入：RTT = 收包时刻 - 出站 ping 的 time 字段。
+     * 对齐 Java PingDebugMonitor.onPongReceived 的 Util.getMillis() - p.time()。
+     */
+    void setPingMs(i64 pingMs) noexcept { m_pingMs.store(pingMs); }
+
     [[nodiscard]] i32 playerId() const noexcept { return m_playerId; }
     [[nodiscard]] const std::string& username() const noexcept { return m_username; }
     [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_uuid; }

@@ -97,6 +97,17 @@ public:
     [[nodiscard]] i32 resolveOpLevel(const std::string& uuid) const noexcept override;
 
     /**
+     * @brief 该玩家是否为单机/LAN 主机（本地客户端玩家）。
+     *
+     * 对齐 Java IntegratedServer.isSingleplayerOwner。主机身份即 m_clientPlayerId，
+     * 不依赖 allowCommands（与 resolveOpLevel 的作弊提升判定解耦）。
+     */
+    [[nodiscard]] bool isSingleplayerOwner(PlayerId playerId) const noexcept override
+    {
+        return m_clientPlayerId != 0 && playerId == m_clientPlayerId;
+    }
+
+    /**
      * @brief 发布到局域网（仅集成服务器有效）
      *
      * 启动 TCP 监听器，允许局域网内其他玩家加入本局游戏；同时可切换作弊开关。

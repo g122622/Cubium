@@ -539,7 +539,8 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto writeInitialResult = LevelDatCodec::writeInitial(testDir, request);
         ASSERT_TRUE(writeInitialResult.success()) << writeInitialResult.error().message();
 
-        auto saveResult = bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false, true);
+        auto saveResult =
+            bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false, true, Difficulty::Normal, false);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         bootstrap.close();
     }
@@ -552,7 +553,8 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto openResult = readonlyStorage.open(testDir, readonlyConfig);
         ASSERT_TRUE(openResult.success()) << openResult.error().message();
 
-        auto saveResult = readonlyStorage.saveLevelData(999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true, false);
+        auto saveResult = readonlyStorage.saveLevelData(
+            999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true, false, Difficulty::Normal, false);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         readonlyStorage.close();
     }
@@ -613,7 +615,8 @@ TEST_F(SingleLevelStorageManagerTest, SaveLevelData_PersistsInitializedFlag)
         SingleLevelStorageConfig config;
         auto openResult = storage.open(testDir, config);
         EXPECT_TRUE(openResult.success()) << openResult.error().message();
-        auto saveResult = storage.saveLevelData(0, 0, 0, 0, 0, 0.0f, 0, 0, false, 0, false, initialized);
+        auto saveResult =
+            storage.saveLevelData(0, 0, 0, 0, 0, 0.0f, 0, 0, false, 0, false, initialized, Difficulty::Normal, false);
         EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
         storage.close();
     };

@@ -489,6 +489,16 @@ void ClientApplication::update(f32 deltaTime)
             }
         }
 
+        // 主动 ping（sb:37）测 RTT：仅调试屏可见时节流发送，对齐 Java PingDebugMonitor
+        // 受 showNetworkCharts 等价门控（此处用 m_debugScreenVisible 简化）。
+        if (m_network && m_network->isPlaying() && m_debugScreenVisible) {
+            m_pingSendAccumulator += deltaTime;
+            if (m_pingSendAccumulator >= PING_SEND_INTERVAL) {
+                m_pingSendAccumulator = std::fmod(m_pingSendAccumulator, PING_SEND_INTERVAL);
+                sendPingRequest();
+            }
+        }
+
         handleBlockMiningInput(deltaTime);
 
         // 处理方块放置输入

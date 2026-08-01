@@ -26,9 +26,11 @@
 
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/world/block/Block.hpp"
 
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
@@ -432,6 +434,50 @@ void ClientApplication::sendBlockInteraction(
     playerAction.sequence = 0;
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{irplay::PlayerAction{std::move(playerAction)}}});
+}
+
+void ClientApplication::sendPingRequest()
+{
+    if (!m_network || !m_network->isPlaying()) {
+        return;
+    }
+
+    // 主动 ping（ping 协议通道 sb:37），对齐 Java PingDebugMonitor.tick。
+    // time 取单调时钟毫秒，服务端原样回 PongResponse(cb:60) 同 time，
+    // 客户端据此算 RTT 写入 ClientNetwork::m_pingMs（见 ClientPlayVisitor PongResponse 分支）。
+    namespace irplay = mc::network::ir::play;
+    irplay::ServerboundPingRequest ping;
+    ping.time = static_cast<i64>(mc::util::TimeUtils::getCurrentTimeMs());
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ServerboundPingRequest{ping}}});
+}
+
+void ClientApplication::sendChangeDifficulty(Difficulty difficulty)
+{
+    if (!m_network || !m_network->isPlaying()) {
+        return;
+    }
+
+    // 难度切换（sb:3）。仅集成服主机有权限，服务端校验通过后广播 cb:10 回环。
+    namespace irplay = mc::network::ir::play;
+    irplay::ServerboundChangeDifficulty pkt;
+    pkt.difficulty = static_cast<i32>(difficulty);
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ServerboundChangeDifficulty{pkt}}});
+}
+
+void ClientApplication::sendLockDifficulty()
+{
+    if (!m_network || !m_network->isPlaying()) {
+        return;
+    }
+
+    // 难度锁定（sb:28）。锁定不可逆，恒发 locked=true（对齐 Java 仅发 true）。
+    namespace irplay = mc::network::ir::play;
+    irplay::LockDifficulty pkt;
+    pkt.locked = true;
+    (void)m_network->send(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{irplay::LockDifficulty{pkt}}});
 }
 
 void ClientApplication::sendPlayerPosition()

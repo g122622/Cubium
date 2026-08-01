@@ -797,7 +797,9 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     bool raining,
     i32 thunderTime,
     bool thundering,
-    bool initialized)
+    bool initialized,
+    Difficulty difficulty,
+    bool difficultyLocked)
 {
     std::unique_ptr<nbt::tags::compound_tag> root;
     nbt::tags::compound_tag* data = nullptr;
@@ -826,6 +828,10 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
 
     // 更新初始化标志：true 表示世界已完成首次出生点计算，下次启动不再重算
     data->put("initialized", static_cast<i8>(initialized ? 1 : 0));
+
+    // 更新难度与锁定状态（运行时可由玩家切换/锁定，需随存档持久化）
+    _writeDifficulty(*data, difficulty);
+    data->put("DifficultyLocked", static_cast<i8>(difficultyLocked ? 1 : 0));
 
     // 更新最后游玩时间
     auto now = std::chrono::system_clock::now();

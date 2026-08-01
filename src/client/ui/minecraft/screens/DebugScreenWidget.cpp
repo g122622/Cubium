@@ -130,7 +130,7 @@ void DebugScreenWidget::_buildLeftDebugText()
         oss.str("");
         oss << "Integrated server @ " << std::fixed << std::setprecision(1) << m_serverTickTimeMs << "/"
             << std::setprecision(1) << m_serverTargetMsPerTick << " ms, " << m_clientNetwork->packetsSent() << " tx, "
-            << m_clientNetwork->packetsReceived() << " rx";
+            << m_clientNetwork->packetsReceived() << " rx, " << m_clientNetwork->pingMs() << " ms ping";
         m_leftLines.push_back(oss.str());
     } else {
         m_leftLines.push_back("Server: local (integrated)");

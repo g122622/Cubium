@@ -595,6 +595,8 @@ void ClientApplication::showMainMenu()
         auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
         optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
         optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        // 主菜单阶段未进入世界，难度控件禁用（仅集成服进游戏后可改难度，对齐 Java hasSingleplayerServer）
+        optionsScreen->setDifficultyControlsEnabled(false);
         screenStack->push(std::move(optionsScreen));
     });
 
@@ -663,6 +665,15 @@ void ClientApplication::showPauseMenu()
         auto optionsScreen = std::make_unique<ui::minecraft::OptionsScreen>();
         optionsScreen->setBounds(ui::kagero::Rect(0, 0, m_guiScaleState.width, m_guiScaleState.height));
         optionsScreen->setOnClose([this, screenStack]() { screenStack->pop(); });
+        // 暂停菜单阶段已进入世界：仅集成服启用难度控件，联机服禁用（对齐 Java hasSingleplayerServer）
+        const bool canEdit = m_useIntegratedServer && m_integratedServer != nullptr;
+        optionsScreen->setDifficultyControlsEnabled(canEdit);
+        if (canEdit) {
+            optionsScreen->setDifficulty(m_integratedServer->difficulty());
+            optionsScreen->setDifficultyLocked(m_integratedServer->isDifficultyLocked());
+            optionsScreen->setOnCycleDifficulty([this](Difficulty diff) { sendChangeDifficulty(diff); });
+            optionsScreen->setOnLockDifficulty([this]() { sendLockDifficulty(); });
+        }
         screenStack->push(std::move(optionsScreen));
     });
 

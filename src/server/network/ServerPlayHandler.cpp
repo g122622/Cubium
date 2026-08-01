@@ -44,6 +44,7 @@
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
@@ -106,10 +107,94 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         handleInteractPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::UseItem>(play)) {
         handleUseItemPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ServerboundPingRequest>(play)) {
+        handlePingRequestPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ServerboundPong>(play)) {
+        handlePongPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ServerboundChangeDifficulty>(play)) {
+        handleChangeDifficultyPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::LockDifficulty>(play)) {
+        handleLockDifficultyPacket(playerId, packet);
     } else {
         // 未覆盖的 C→S 变体（如 SetCreativeModeSlot 等创造模式/命令相关包）
         spdlog::info("route: unhandled C->S play variant");
     }
+}
+
+void ServerPlayHandler::handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 客户端主动 ping(ping 协议通道)，回 PongResponse(cb:60) 同 time。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ServerboundPingRequest>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    mc::network::ir::play::PongResponse resp;
+    resp.time = evt->time;
+    m_server.sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(resp)}});
+}
+
+void ServerPlayHandler::handlePongPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // common 通道 cb:59 ping 的回声。对齐 Java ServerCommonPacketListenerImpl.handlePong：
+    // 服务端不据此计算 RTT（vanilla 为空实现），仅确认回声链路可达。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ServerboundPong>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    spdlog::info("[Server] Pong from player {} id={}", playerId, evt->id);
+}
+
+void ServerPlayHandler::handleChangeDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ServerboundChangeDifficulty>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    if (evt->difficulty < 0 || evt->difficulty > 3) {
+        spdlog::warn("ChangeDifficulty: player {} sent invalid difficulty {}", playerId, evt->difficulty);
+        return;
+    }
+    // 权限校验对齐 Java handleChangeDifficulty：主机 或 OP(>=GameMaster) 方可改难度。
+    // 主机判定不依赖 allowCommands（与 resolveOpLevel 的作弊提升解耦）。
+    const bool permitted = m_server.isSingleplayerOwner(playerId) ||
+        m_server.opListManager().getLevel(player->uuid) >= core::OpLevel::GameMaster;
+    if (!permitted) {
+        spdlog::warn("ChangeDifficulty: player {} has no permission to change difficulty", playerId);
+        return;
+    }
+    // setDifficulty 内部含锁定守卫与 cb:10 广播，无需在此重复发送。
+    m_server.setDifficulty(static_cast<Difficulty>(evt->difficulty));
+}
+
+void ServerPlayHandler::handleLockDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::LockDifficulty>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    // 权限校验对齐 Java handleLockDifficulty：主机 或 OP(>=GameMaster) 方可锁定。
+    const bool permitted = m_server.isSingleplayerOwner(playerId) ||
+        m_server.opListManager().getLevel(player->uuid) >= core::OpLevel::GameMaster;
+    if (!permitted) {
+        spdlog::warn("LockDifficulty: player {} has no permission to lock difficulty", playerId);
+        return;
+    }
+    // setDifficultyLocked 内部已广播 cb:10（携带新 locked 值），客户端据此禁用难度按钮。
+    m_server.setDifficultyLocked(evt->locked);
 }
 
 void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

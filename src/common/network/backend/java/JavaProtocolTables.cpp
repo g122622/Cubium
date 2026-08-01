@@ -205,6 +205,15 @@ using B = buffer::RegistryByteBuf;
         49, PacketType{PacketFlow::Serverbound, "seen_advancements"}, 50, codecs::seenAdvancementsCodec());
     b.addPacket<ir::play::SignUpdate>(
         59, PacketType{PacketFlow::Serverbound, "sign_update"}, 69, codecs::signUpdateCodec());
+    // ---- 简单状态同步单包（altIndex 95..98）----
+    b.addPacket<ir::play::ServerboundPingRequest>(
+        37, PacketType{PacketFlow::Serverbound, "ping_request"}, 95, codecs::serverboundPingRequestCodec());
+    b.addPacket<ir::play::ServerboundPong>(
+        44, PacketType{PacketFlow::Serverbound, "pong"}, 96, codecs::serverboundPongCodec());
+    b.addPacket<ir::play::ServerboundChangeDifficulty>(
+        3, PacketType{PacketFlow::Serverbound, "change_difficulty"}, 97, codecs::serverboundChangeDifficultyCodec());
+    b.addPacket<ir::play::LockDifficulty>(
+        28, PacketType{PacketFlow::Serverbound, "lock_difficulty"}, 98, codecs::lockDifficultyCodec());
     return b.build();
 }
 
@@ -224,7 +233,7 @@ using B = buffer::RegistryByteBuf;
     //   respawn=80, rotate_head=81, select_advancement_tab=83, set_action_bar_text=85, set_border_center=86,
     //   set_border_lerp_size=87, set_border_size=88, set_border_warning_delay=89, set_border_warning_distance=90,
     //   set_camera=91, set_chunk_cache_center=92, set_chunk_cache_radius=93, set_cursor_item=94,
-  //   set_default_spawn_position=95, set_display_objective=96, set_entity_data=97,
+    //   set_default_spawn_position=95, set_display_objective=96, set_entity_data=97,
     //   set_entity_link=98, set_entity_motion=99, set_experience=101, set_held_slot=103, set_objective=104,
     //   set_passengers=105, set_player_team=107, set_score=108, set_subtitle_text=110, set_time=111,
     //   set_title_text=112, set_titles_animation=113, sound_entity=114, sound=115, stop_sound=117,
@@ -362,6 +371,17 @@ using B = buffer::RegistryByteBuf;
         122, PacketType{PacketFlow::Clientbound, "take_item_entity"}, 76, codecs::takeItemEntityCodec());
     b.addPacket<ir::play::SetChunkCacheCenter>(
         92, PacketType{PacketFlow::Clientbound, "set_chunk_cache_center"}, 89, codecs::setChunkCacheCenterCodec());
+    // ---- 简单状态同步单包（altIndex 90..94）----
+    b.addPacket<ir::play::SetChunkCacheRadius>(
+        93, PacketType{PacketFlow::Clientbound, "set_chunk_cache_radius"}, 90, codecs::setChunkCacheRadiusCodec());
+    b.addPacket<ir::play::SetSimulationDistance>(
+        109, PacketType{PacketFlow::Clientbound, "set_simulation_distance"}, 91, codecs::setSimulationDistanceCodec());
+    b.addPacket<ir::play::SetHealth>(
+        102, PacketType{PacketFlow::Clientbound, "set_health"}, 92, codecs::setHealthCodec());
+    b.addPacket<ir::play::ClientboundPing>(
+        59, PacketType{PacketFlow::Clientbound, "ping"}, 93, codecs::clientboundPingCodec());
+    b.addPacket<ir::play::PongResponse>(
+        60, PacketType{PacketFlow::Clientbound, "pong_response"}, 94, codecs::pongResponseCodec());
     return b.build();
 }
 

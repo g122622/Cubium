@@ -147,6 +147,9 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_timeManager.currentTick(); }
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
     void setDifficulty(Difficulty difficulty) override { m_difficulty = difficulty; }
+    [[nodiscard]] bool isDifficultyLocked() const noexcept override { return m_difficultyLocked; }
+    void setDifficultyLocked(bool locked) override { m_difficultyLocked = locked; }
+    [[nodiscard]] bool isSingleplayerOwner(PlayerId /*playerId*/) const noexcept override { return false; }
     [[nodiscard]] GameMode defaultGameMode() const override { return m_defaultGameMode; }
     void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
@@ -179,6 +182,7 @@ protected:
     u64 m_seed = 0;
     bool m_running = true;
     Difficulty m_difficulty = Difficulty::Normal;
+    bool m_difficultyLocked = false;
     GameMode m_defaultGameMode = GameMode::Survival;
     i32 m_idleTimeoutMinutes = 0;
     bool m_stopRequested = false;

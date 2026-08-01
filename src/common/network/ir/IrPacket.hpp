@@ -171,7 +171,17 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::Interact,                 // 86
     play::Commands,                 // 87
     play::PlaceRecipe,              // 88
-    play::SetChunkCacheCenter>;     // 89
+    play::SetChunkCacheCenter,      // 89
+    // ---- 以下为简单状态同步单包（altIndex 90..98，PlayPacketsExtended.hpp）----
+    play::SetChunkCacheRadius,         // 90
+    play::SetSimulationDistance,       // 91
+    play::SetHealth,                   // 92
+    play::ClientboundPing,             // 93
+    play::PongResponse,                // 94
+    play::ServerboundPingRequest,      // 95
+    play::ServerboundPong,             // 96
+    play::ServerboundChangeDifficulty, // 97
+    play::LockDifficulty>;             // 98
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

@@ -948,7 +948,8 @@ i32 IntegratedServer::resolveOpLevel(const std::string& uuid) const noexcept
 {
     const i32 base = static_cast<i32>(m_opListManager->getLevel(uuid));
 
-    // 主机身份动态判定：m_clientPlayerId 登录后非 0，playerManager 持有其 UUID
+    // 主机身份动态判定：m_clientPlayerId 登录后非 0，playerManager 持有其 UUID。
+    // 复用 isSingleplayerOwner 的 playerId 判定，再比对 uuid（本方法接收 uuid 而非 playerId）。
     bool isOwner = false;
     if (m_clientPlayerId != 0 && m_playerManager != nullptr) {
         const auto* host = m_playerManager->getPlayer(m_clientPlayerId);

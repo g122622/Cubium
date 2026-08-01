@@ -177,6 +177,10 @@ MinecraftServer::MinecraftServer(ServerSettings& settings)
 
 void MinecraftServer::setDifficulty(Difficulty difficulty)
 {
+    // 难度被锁定时拒绝切换，对齐 Java setDifficulty(diff, false) 的 !isDifficultyLocked() 守卫。
+    if (m_difficultyLocked) {
+        return;
+    }
     if (m_difficulty == difficulty) {
         return; // 难度未变化，无需同步
     }
@@ -186,17 +190,29 @@ void MinecraftServer::setDifficulty(Difficulty difficulty)
     broadcastDifficultyChange();
 }
 
+void MinecraftServer::setDifficultyLocked(bool locked)
+{
+    if (m_difficultyLocked == locked) {
+        return; // 锁定状态未变化，无需同步
+    }
+    m_difficultyLocked = locked;
+
+    // 锁定状态变更立即广播 cb:10（携带新 locked 值），客户端据此禁用/启用难度按钮。
+    broadcastDifficultyChange();
+    spdlog::info("Difficulty locked = {}", locked);
+}
+
 void MinecraftServer::broadcastDifficultyChange()
 {
     broadcastPacket(serializeDifficultyPacket());
-    spdlog::info("Difficulty changed to {}", static_cast<i32>(m_difficulty));
+    spdlog::info("Difficulty changed to {} (locked={})", static_cast<i32>(m_difficulty), m_difficultyLocked);
 }
 
 mc::network::ir::IrPacket MinecraftServer::serializeDifficultyPacket()
 {
     mc::network::ir::play::ChangeDifficulty pkt;
     pkt.difficulty = static_cast<i32>(m_difficulty);
-    pkt.locked = false;
+    pkt.locked = m_difficultyLocked;
 
     return mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play,
@@ -722,7 +738,9 @@ Result<size_t> MinecraftServer::saveAllWorldData()
             raining,
             thunderTime,
             thundering,
-            m_spawnInitializedThisSession);
+            m_spawnInitializedThisSession,
+            m_difficulty,
+            m_difficultyLocked);
 
         if (levelResult.failed()) {
             spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
@@ -777,6 +795,11 @@ Result<void> MinecraftServer::initializeWorld()
             const auto& runtimeData = runtimeDataResult.value();
             m_timeManager->setGameTime(runtimeData.gameTime);
             m_timeManager->setDayTime(runtimeData.dayTime);
+
+            // 恢复 level.dat 中的难度与锁定状态（此前读出即丢弃，导致老存档重启难度不恢复）。
+            // 直接置字段而非调 setDifficulty/setDifficultyLocked：避免触发广播（此时玩家尚未加入）。
+            m_difficulty = runtimeData.summary.difficulty;
+            m_difficultyLocked = runtimeData.difficultyLocked;
 
             m_dimensionManager->forEachDimension([&](Dimension& dim) {
                 auto* serverDim = static_cast<ServerDimension*>(&dim);

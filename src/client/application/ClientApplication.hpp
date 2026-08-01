@@ -353,6 +353,13 @@ private:
     // 玩家位置同步
     void sendPlayerPosition();
 
+    // 主动 ping（sb:37），对齐 Java PingDebugMonitor.tick，由 update 在调试屏可见时节流发送
+    void sendPingRequest();
+
+    // 难度切换（sb:3）/锁定（sb:28），由选项菜单回调触发，仅集成服有效
+    void sendChangeDifficulty(Difficulty difficulty);
+    void sendLockDifficulty();
+
     // 聊天命令处理
     void handleChatCommand(const std::string& input);
 
@@ -570,8 +577,10 @@ private:
     f32 m_lastSentPitch = 0.0f;
     f32 m_positionSendAccumulator = 0.0f;
     f32 m_playerPhysicsAccumulator = 0.0f;
+    f32 m_pingSendAccumulator = 0.0f; ///< 主动 ping(sb:37) 发送累加器，对齐 Java PingDebugMonitor 20 TPS
     static constexpr f32 PLAYER_PHYSICS_INTERVAL = constants::TICK_DURATION;
     static constexpr f32 POSITION_SEND_INTERVAL = constants::TICK_DURATION; // 20 TPS
+    static constexpr f32 PING_SEND_INTERVAL = constants::TICK_DURATION;     // 20 TPS，对齐 Java PingDebugMonitor.tick
 
     // 渲染时间（服务端时间不可用时使用本地回退）
     i64 m_renderGameTime = 0;

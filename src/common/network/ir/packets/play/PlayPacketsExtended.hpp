@@ -931,4 +931,118 @@ struct LevelChunkWithLight {
     [[nodiscard]] friend bool operator==(const LevelChunkWithLight&, const LevelChunkWithLight&) noexcept = default;
 };
 
+// ----------------------------------------------------------------------------
+// 简单状态同步单包（S→C / C→S，1.21.11 纯字段包）
+// ----------------------------------------------------------------------------
+
+/**
+ * @brief SetChunkCacheRadius（S→C，id=93）
+ *
+ * 对齐 Java 1.21.11 ClientboundSetChunkCacheRadiusPacket：VarInt(radius)。
+ * 客户端 ClientWorld::setRenderDistance。
+ */
+struct SetChunkCacheRadius {
+    i32 radius; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetChunkCacheRadius&, const SetChunkCacheRadius&) noexcept = default;
+};
+
+/**
+ * @brief SetSimulationDistance（S→C，id=109）
+ *
+ * 对齐 Java 1.21.11 ClientboundSetSimulationDistancePacket：VarInt(simulationDistance)。
+ * 客户端 ClientWorld.setSimulationDistance 仅存字段，对齐 Java ClientLevel.setServerSimulationDistance
+ * （vanilla 客户端该字段唯一消费点为 shouldTickDeath 死亡实体距离裁剪）。
+ */
+struct SetSimulationDistance {
+    i32 simulationDistance; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetSimulationDistance&, const SetSimulationDistance&) noexcept = default;
+};
+
+/**
+ * @brief SetHealth（S→C，id=102）
+ *
+ * 对齐 Java 1.21.11 ClientboundSetHealthPacket：Float(health)+VarInt(food)+Float(saturation)。
+ * saturation 是 float（非 VarInt），apply 时直接 setSaturationLevel 不除 2。
+ */
+struct SetHealth {
+    f32 health;
+    i32 food; // VarInt
+    f32 saturation;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetHealth&, const SetHealth&) noexcept = default;
+};
+
+/**
+ * @brief ClientboundPing（S→C，id=59，common 通道）
+ *
+ * 对齐 Java 1.21.11 ClientboundPingPacket：Int(id)。客户端回 ServerboundPong(sb:44) 同 id。
+ * 注意：与 ping 协议通道的 PongResponse(cb:60) 字段类型不同（后者为 long time）。
+ */
+struct ClientboundPing {
+    i32 id; // Int
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ClientboundPing&, const ClientboundPing&) noexcept = default;
+};
+
+/**
+ * @brief PongResponse（S→C，id=60，ping 协议通道）
+ *
+ * 对齐 Java 1.21.11 ClientboundPongResponsePacket：Long(time)。客户端主动 ping(sb:37) 的往返收尾。
+ */
+struct PongResponse {
+    i64 time; // Long
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PongResponse&, const PongResponse&) noexcept = default;
+};
+
+/**
+ * @brief ServerboundPingRequest（C→S，id=37，ping 协议通道）
+ *
+ * 对齐 Java 1.21.11 ServerboundPingRequestPacket：Long(time)。服务端回 PongResponse(cb:60) 同 time。
+ */
+struct ServerboundPingRequest {
+    i64 time; // Long
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(
+        const ServerboundPingRequest&, const ServerboundPingRequest&) noexcept = default;
+};
+
+/**
+ * @brief ServerboundPong（C→S，id=44，common 通道）
+ *
+ * 对齐 Java 1.21.11 ServerboundPongPacket：Int(id)。服务端 cb:59 ping 的响应。
+ */
+struct ServerboundPong {
+    i32 id; // Int
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ServerboundPong&, const ServerboundPong&) noexcept = default;
+};
+
+/**
+ * @brief ServerboundChangeDifficulty（C→S，id=3）
+ *
+ * 对齐 Java 1.21.11 ServerboundChangeDifficultyPacket：VarInt(difficulty)。
+ * Difficulty.STREAM_CODEC = ByteBufCodecs.idMapper 即 VarInt(0..3)，非 Byte。
+ * 客户端在选项菜单切换难度时发送；服务端校验 主机 或 OP(>=GameMaster) 方可应用。
+ */
+struct ServerboundChangeDifficulty {
+    i32 difficulty; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(
+        const ServerboundChangeDifficulty&, const ServerboundChangeDifficulty&) noexcept = default;
+};
+
+/**
+ * @brief LockDifficulty（C→S，id=28）
+ *
+ * 对齐 Java 1.21.11 ServerboundLockDifficultyPacket：Bool(locked)。
+ */
+struct LockDifficulty {
+    bool locked; // Bool
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const LockDifficulty&, const LockDifficulty&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play
