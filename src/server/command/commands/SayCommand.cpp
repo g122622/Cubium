@@ -25,8 +25,8 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc::command {
 
@@ -47,14 +47,11 @@ void SayCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 SayCommand::_say(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
 
     const std::string message = context.getArgument<std::string>("message");
-    server->broadcastServerMessage("[" + source.name() + "] " + message);
+    // 系统消息仅记日志（原 IServer::broadcastServerMessage 实现即只 spdlog，不发包）。
+    // 批5b 已从 IServer 删除该纯虚，命令直接打日志。
+    spdlog::info("[System] [{}] {}", source.name(), message);
     source.sendMessage("Broadcasted message");
     return 1;
 }

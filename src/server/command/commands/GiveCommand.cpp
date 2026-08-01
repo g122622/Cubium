@@ -31,8 +31,8 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -45,6 +45,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/network/PacketBuilders.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -181,15 +182,16 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             // 同步背包到客户端
             syncInventoryToClient(source, playerId, *inventory);
 
-            // 播放拾取音效
+            // 播放拾取音效（批5b：经 buildPlaySoundIr + connectionManager 投递，
+            // 原 IServer::sendSoundToPlayer 纯虚已删）
             math::Random rng(static_cast<u64>(playerId) * static_cast<u64>(count));
             const f32 pitch = (rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.0f;
-            server->sendSoundToPlayer(playerId,
-                SoundEvents::ENTITY_ITEM_PICKUP,
-                sound::SoundCategory::Players,
-                Vector3(player->x(), player->y(), player->z()),
-                0.2f,
-                pitch * 2.0f);
+            server->connectionManager().sendToPlayer(playerId,
+                mc::server::net::buildPlaySoundIr(SoundEvents::ENTITY_ITEM_PICKUP,
+                    sound::SoundCategory::Players,
+                    Vector3(player->x(), player->y(), player->z()),
+                    0.2f,
+                    pitch * 2.0f));
         }
 
         successCount++;

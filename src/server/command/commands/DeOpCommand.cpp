@@ -29,9 +29,11 @@
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
+#include "server/core/ConnectionManager.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/network/PacketBuilders.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
@@ -113,8 +115,15 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
         if (Player* player = server->playerEntityManager().getPlayerEntity(targetId, *world)) {
             player->setPermissionLevel(0);
 
-            // 通知客户端权限等级变更并同步命令树
-            server->sendPermissionLevelChange(targetId, 0);
+            // 通知客户端权限等级变更并同步命令树（批5b：经 builder + connectionManager
+            // 投递，原 IServer::sendPermissionLevelChange 纯虚已删。对齐原实现：先发
+            // EntityEvent(24+0)，再发命令树刷新可用命令列表）。
+            auto& conn = server->connectionManager();
+            conn.sendToPlayer(
+                targetId, mc::server::net::buildPermissionLevelChangeIr(static_cast<i32>(player->id()), 0));
+            if (auto commands = mc::server::net::buildCommandsIr(server->commandRegistry())) {
+                conn.sendToPlayer(targetId, *commands);
+            }
         }
     }
 

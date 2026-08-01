@@ -1731,6 +1731,9 @@ target_sources(mc_tests
         # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
+        # Play/Configuration 单包 IR 构造器：命令经 builder + connectionManager 投递，
+        # mc_tests 编译命令实现故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
@@ -2601,6 +2604,11 @@ target_sources(mc_command_tests
         # 注意：mc_command_tests 不编译 IntegratedServer.cpp/MinecraftServer.cpp，故不登记
         # ServerPlayRouter.cpp（它引用 MinecraftServer::routeInboundPlayPacket）。
         ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
+        # Play/Configuration 单包 IR 构造器：SayCommand/MeCommand→spdlog、GiveCommand/
+        # LootCommand→buildPlaySoundIr、OpCommand/DeOpCommand→buildPermissionLevelChangeIr+
+        # buildCommandsIr、ParticleCommand→buildLevelParticlesIr，mc_command_tests 编译
+        # 这些命令实现故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp

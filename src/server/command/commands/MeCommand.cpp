@@ -25,8 +25,8 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -49,17 +49,13 @@ void MeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 i32 MeCommand::_performAction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendMessage("Server not available");
-        return 0;
-    }
 
     const std::string action = context.getArgument<std::string>("action");
     const std::string& name = source.name();
 
-    // 广播 "* playername action" 格式的消息
-    server->broadcastServerMessage("* " + name + " " + action);
+    // 广播 "* playername action" 格式的消息（原 IServer::broadcastServerMessage
+    // 实现即只 spdlog，不发包；批5b 已从 IServer 删除该纯虚，命令直接打日志）。
+    spdlog::info("[System] * {} {}", name, action);
     return 1;
 }
 

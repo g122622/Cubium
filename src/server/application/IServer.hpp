@@ -243,28 +243,6 @@ public:
     [[nodiscard]] virtual mc::command::CommandStorage& commandStorage() = 0;
     [[nodiscard]] virtual const mc::command::CommandStorage& commandStorage() const = 0;
 
-    /**
-     * @brief 向指定玩家同步命令树
-     *
-     * 当玩家的权限等级发生变化时（如 /op、/deop），应调用此方法
-     * 将更新后的命令树发送给客户端，以便客户端刷新可用命令列表。
-     *
-     * @param playerId 目标玩家ID
-     */
-    virtual void sendCommandTreePacket(PlayerId playerId) = 0;
-
-    /**
-     * @brief 向指定玩家发送权限等级变更通知
-     *
-     * 通过 IR ir::play::EntityEvent 通知客户端玩家的权限等级已变更，
-     * 客户端收到后会更新本地玩家的 m_permissionLevel。
-     * 应在 /op、/deop 命令执行后以及玩家登录时调用。
-     *
-     * @param playerId 目标玩家ID
-     * @param permissionLevel 新的权限等级 (0-4)
-     */
-    virtual void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel) = 0;
-
     // ========== 数据包系统 ==========
 
     /**
@@ -381,28 +359,6 @@ public:
     virtual void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) = 0;
 
     /**
-     * @brief 向所有在线玩家广播服务器系统消息。
-     */
-    virtual void broadcastServerMessage(std::string_view message) = 0;
-
-    /**
-     * @brief 发送声音给指定玩家
-     *
-     * @param playerId 玩家ID
-     * @param soundEventId 声音事件ID
-     * @param category 声音类别
-     * @param position 声音位置
-     * @param volume 音量倍率
-     * @param pitch 音调倍率
-     */
-    virtual void sendSoundToPlayer(PlayerId playerId,
-        const ResourceLocation& soundEventId,
-        sound::SoundCategory category,
-        const Vector3& position,
-        f32 volume = 1.0f,
-        f32 pitch = 1.0f) = 0;
-
-    /**
      * @brief 请求服务器优雅停机。
      *
      * 只触发停机流程，不在调用线程里直接释放资源。
@@ -423,37 +379,6 @@ public:
      * @return 成功返回 ok；已发布/端口占用/非集成服务器等情况返回错误
      */
     [[nodiscard]] virtual Result<void> publishToLan(i32 port, bool allowCheats) = 0;
-
-    // ========== 粒子广播方法 ==========
-
-    /**
-     * @brief 广播粒子给指定范围内的玩家
-     *
-     * @param type 粒子类型
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @param velocityX X速度
-     * @param velocityY Y速度
-     * @param velocityZ Z速度
-     * @param offsetX X偏移范围
-     * @param offsetY Y偏移范围
-     * @param offsetZ Z偏移范围
-     * @param count 粒子数量
-     * @param range 广播范围（格），默认 256 格
-     */
-    virtual void broadcastParticleInRange(u32 type,
-        f64 x,
-        f64 y,
-        f64 z,
-        f32 velocityX,
-        f32 velocityY,
-        f32 velocityZ,
-        f32 offsetX,
-        f32 offsetY,
-        f32 offsetZ,
-        u32 count,
-        f32 range = 256.0f) = 0;
 };
 
 } // namespace mc::server

@@ -292,7 +292,6 @@ public:
     void setDefaultGameMode(GameMode mode) override;
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
-    void broadcastServerMessage(std::string_view message) override;
     void requestStop() override;
 
     // ========== 便捷方法 ==========
@@ -575,17 +574,24 @@ public:
 
 protected:
     /**
-     * @brief 向指定玩家同步命令树
+     * @brief 向指定玩家同步命令树（内部使用，登录/权限变更时调用）
+     *
+     * 命令树包构造逻辑已可经 net::buildCommandsIr 公开构造，但本方法保留为
+     * 登录流程的便捷封装（取 m_commandRegistry + 编码 + 投递）。批5b 已从
+     * IServer 删除该纯虚，外部主调者改走 buildCommandsIr + connectionManager。
      */
-    void sendCommandTreePacket(PlayerId playerId) override;
+    void sendCommandTreePacket(PlayerId playerId);
 
     /**
-     * @brief 向指定玩家发送权限等级变更通知
+     * @brief 向指定玩家发送权限等级变更通知（内部使用）
      *
      * 通过 IR ir::play::EntityEvent (status byte = 24 + level) 通知客户端，
-     * 并同步命令树以刷新可用命令列表。
+     * 并同步命令树以刷新可用命令列表。EntityEvent 包构造可经
+     * net::buildPermissionLevelChangeIr 公开构造；本方法保留为登录流程的
+     * 便捷封装（含取玩家实体 id + 连带发命令树）。批5b 已从 IServer 删除该
+     * 纯虚，外部主调者（/op、/deop）改走 builder + connectionManager。
      */
-    void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel) override;
+    void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel);
 
     /**
      * @brief 刷新指定玩家的实体追踪范围
@@ -840,23 +846,6 @@ protected:
         f32 volume = 1.0f,
         f32 pitch = 1.0f);
 
-    /**
-     * @brief 发送声音给指定玩家
-     *
-     * @param playerId 玩家ID
-     * @param soundEventId 声音事件ID
-     * @param category 声音类别
-     * @param position 声音位置
-     * @param volume 音量倍率
-     * @param pitch 音调倍率
-     */
-    void sendSoundToPlayer(PlayerId playerId,
-        const ResourceLocation& soundEventId,
-        sound::SoundCategory category,
-        const Vector3& position,
-        f32 volume = 1.0f,
-        f32 pitch = 1.0f) override;
-
     // ========== 粒子广播方法 ==========
 
     /**
@@ -1011,35 +1000,6 @@ protected:
         const Vector3& velocity,
         const Vector3& offset,
         u32 count);
-
-    /**
-     * @brief 广播粒子给指定范围内的玩家（IServer 接口）
-     *
-     * @param type 粒子类型 ID
-     * @param x X坐标
-     * @param y Y坐标
-     * @param z Z坐标
-     * @param velocityX X速度
-     * @param velocityY Y速度
-     * @param velocityZ Z速度
-     * @param offsetX X偏移范围
-     * @param offsetY Y偏移范围
-     * @param offsetZ Z偏移范围
-     * @param count 粒子数量
-     * @param range 广播范围（格），默认 256 格
-     */
-    void broadcastParticleInRange(u32 type,
-        f64 x,
-        f64 y,
-        f64 z,
-        f32 velocityX,
-        f32 velocityY,
-        f32 velocityZ,
-        f32 offsetX,
-        f32 offsetY,
-        f32 offsetZ,
-        u32 count,
-        f32 range = 256.0f) override;
 
     /**
      * @brief 广播振动粒子给指定范围内的玩家

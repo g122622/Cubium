@@ -121,22 +121,6 @@ const server::CustomServerBossInfoManager& BaseTestServer::bossBarManager() cons
     throwUnused();
 }
 
-void BaseTestServer::sendSoundToPlayer(PlayerId playerId,
-    const ResourceLocation& soundEventId,
-    sound::SoundCategory category,
-    const Vector3& position,
-    f32 volume,
-    f32 pitch)
-{
-    m_lastSoundPlayerId = playerId;
-    m_lastSoundEvent = soundEventId;
-    m_lastSoundCategory = category;
-    m_lastSoundPosition = position;
-    m_lastSoundVolume = volume;
-    m_lastSoundPitch = pitch;
-    m_soundSent = true;
-}
-
 server::ServerPlayerData* BaseTestServer::addTestPlayer(PlayerId playerId, const std::string& username)
 {
     auto connection = std::make_shared<FakeServerConnection>();

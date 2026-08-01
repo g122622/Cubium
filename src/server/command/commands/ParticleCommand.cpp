@@ -31,6 +31,8 @@
 #include "common/particle/ParticleTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/core/ConnectionManager.hpp"
+#include "server/network/PacketBuilders.hpp"
 #include <sstream>
 #include <unordered_map>
 
@@ -89,22 +91,12 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    // 广播粒子效果
-    // 默认速度为 0，数量为 1，偏移为 0
-    // 粒子广播范围为 256 格（与 LevelParticles 默认范围一致）
-    server->broadcastParticleInRange(static_cast<u32>(particleType.value()),
-        pos.x,
-        pos.y,
-        pos.z,
-        0.0f,
-        0.0f,
-        0.0f, // velocity
-        0.0f,
-        0.0f,
-        0.0f,  // offset
-        1,     // count
-        256.0f // range
-    );
+    // 广播粒子效果（批5b：经 buildLevelParticlesIr + connectionManager.broadcast 投递，
+    // 原 IServer 弱类型 broadcastParticleInRange 纯虚已删。/particle 为管理员命令，
+    // 全在线玩家广播（原 range=256 距离过滤由 connectionManager.broadcast 替代）。
+    // 默认速度为 0，数量为 1，偏移为 0。
+    server->connectionManager().broadcast(mc::server::net::buildLevelParticlesIr(
+        particleType.value(), Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)), 1));
 
     std::ostringstream ss;
     ss << "Displayed particle '" << name << "' at " << pos.x << ", " << pos.y << ", " << pos.z;

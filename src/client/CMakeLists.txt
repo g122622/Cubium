@@ -448,6 +448,9 @@ add_executable(minecraft-client
     # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
+    # Play/Configuration 单包 IR 构造器：命令/登录流程经 builder + connectionManager 投递，
+    # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
     # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp

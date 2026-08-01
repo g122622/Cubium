@@ -133,13 +133,13 @@
 #include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 #include "server/network/EnchantmentNbtBuilder.hpp"
+#include "server/network/PlayerBroadcaster.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
 #include "server/sync/WeatherSyncService.hpp"
-#include "server/network/PlayerBroadcaster.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -212,12 +212,6 @@ void MinecraftServer::setDefaultGameMode(GameMode mode)
 void MinecraftServer::setPlayerIdleTimeoutMinutes(i32 timeoutMinutes)
 {
     m_playerIdleTimeoutMinutes = timeoutMinutes;
-}
-
-void MinecraftServer::broadcastServerMessage(std::string_view message)
-{
-    const std::string text(message);
-    spdlog::info("[System] {}", text);
 }
 
 void MinecraftServer::requestStop()
@@ -2787,16 +2781,6 @@ void MinecraftServer::broadcastSoundInRange(const ResourceLocation& soundEventId
     m_broadcaster->broadcastSoundInRange(soundEventId, category, position, range, volume, pitch);
 }
 
-void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
-    const ResourceLocation& soundEventId,
-    sound::SoundCategory category,
-    const Vector3& position,
-    f32 volume,
-    f32 pitch)
-{
-    m_broadcaster->sendSoundToPlayer(playerId, soundEventId, category, position, volume, pitch);
-}
-
 // ============================================================================
 // 粒子广播
 // ============================================================================
@@ -2849,27 +2833,6 @@ void MinecraftServer::broadcastItemParticleInRange(
     particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const ItemStack& itemStack, f32 range)
 {
     m_broadcaster->broadcastItemParticleInRange(type, pos, velocity, itemStack, range);
-}
-
-void MinecraftServer::broadcastParticleInRange(u32 type,
-    f64 x,
-    f64 y,
-    f64 z,
-    f32 velocityX,
-    f32 velocityY,
-    f32 velocityZ,
-    f32 offsetX,
-    f32 offsetY,
-    f32 offsetZ,
-    u32 count,
-    f32 range)
-{
-    // 转换为强类型枚举并转调强类型实现（IServer 弱类型接口，批5b 收口）
-    auto particleType = static_cast<particle::ParticleTypeId>(type);
-    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    Vector3 velocity(velocityX, velocityY, velocityZ);
-    Vector3 offset(offsetX, offsetY, offsetZ);
-    m_broadcaster->broadcastParticleInRange(particleType, pos, velocity, offset, count, range);
 }
 
 // ============================================================================

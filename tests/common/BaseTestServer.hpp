@@ -151,7 +151,6 @@ public:
     void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
-    void broadcastServerMessage(std::string_view message) override { m_lastBroadcastMessage = std::string(message); }
     void requestStop() override
     {
         m_stopRequested = true;
@@ -163,19 +162,9 @@ public:
         (void)allowCheats;
         return Error(ErrorCode::Unsupported, "Test server does not support LAN publishing");
     }
-    void broadcastParticleInRange(u32, f64, f64, f64, f32, f32, f32, f32, f32, f32, u32, f32) override {}
-    void sendCommandTreePacket(PlayerId) override {}
-    void sendPermissionLevelChange(PlayerId, i32) override {}
-    void sendSoundToPlayer(PlayerId playerId,
-        const ResourceLocation& soundEventId,
-        sound::SoundCategory category,
-        const Vector3& position,
-        f32 volume,
-        f32 pitch) override;
 
     [[nodiscard]] server::ServerPlayerData* addTestPlayer(PlayerId playerId, const std::string& username);
     void setPlayerWorld(server::ServerWorld* world) { m_playerWorld = world; }
-    [[nodiscard]] const std::string& lastBroadcastMessage() const noexcept { return m_lastBroadcastMessage; }
     [[nodiscard]] bool stopRequested() const noexcept { return m_stopRequested; }
 
 protected:
@@ -193,15 +182,6 @@ protected:
     GameMode m_defaultGameMode = GameMode::Survival;
     i32 m_idleTimeoutMinutes = 0;
     bool m_stopRequested = false;
-    std::string m_lastBroadcastMessage;
-
-    bool m_soundSent = false;
-    PlayerId m_lastSoundPlayerId = 0;
-    ResourceLocation m_lastSoundEvent{""};
-    sound::SoundCategory m_lastSoundCategory = sound::SoundCategory::Master;
-    Vector3 m_lastSoundPosition{0, 0, 0};
-    f32 m_lastSoundVolume = 1.0f;
-    f32 m_lastSoundPitch = 1.0f;
 
     server::ServerWorld* m_playerWorld = nullptr;
     server::core::PlayerManager m_playerManager;

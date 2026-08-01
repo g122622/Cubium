@@ -177,8 +177,9 @@ void ServerScriptManager::setServer(MinecraftServer* server)
 
     auto& accessor = mc::mod::bedrock::addon::ScriptWorldAccessor::instance();
 
-    // 桥接world.sendMessage到服务器广播
-    accessor.setMessageCallback([server](const std::string& message) { server->broadcastServerMessage(message); });
+    // 桥接world.sendMessage到服务器日志（原 IServer::broadcastServerMessage 实现即只
+    // spdlog 不发包；批5b 已从 IServer 删除该纯虚，脚本消息直接打日志）。
+    accessor.setMessageCallback([](const std::string& message) { spdlog::info("[System] {}", message); });
 
     // 桥接world.getAllPlayers到玩家管理器
     accessor.setGetPlayerNamesCallback([server]() -> std::vector<std::string> {
