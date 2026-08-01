@@ -2730,6 +2730,65 @@ void MinecraftServer::savePlayerRuntimeState()
     }
 }
 
+void MinecraftServer::pollNetwork()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
+    // 主线程驱动：tick pump Local（集成服本地客户端）+ drain Wire 入站队列（接收线程
+    // enqueueInbound，主线程 drainInbound 派发握手/Play）+ 派发延迟断开。批2a 统一自
+    // 两子类（实现完全一致）。远程玩家的玩家创建/断开清理在 _onRemotePlayerReady/
+    // _onRemoteClientDisconnect 内（经 tick 回调，主线程）。
+    if (m_serverNetwork) {
+        m_serverNetwork->tick();
+        _drainDisconnectedSessions();
+    }
+}
+
+void MinecraftServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
+{
+    // 本地客户端（若注入钩子）：经 m_localClientSender 直传（LocalTransport 零拷贝）。
+    if (m_localClientSender) {
+        m_localClientSender(packet);
+    }
+
+    // 远程玩家：经 PlayerManager 遍历，player.send 走各自 ServerClientConnection。
+    // 跳过本地客户端（m_localClientPlayerId，已由钩子发送），否则双重发送。
+    const std::optional<PlayerId> localPlayerId = m_localClientPlayerId;
+    m_playerManager->forEachPlayer([&packet, localPlayerId](ServerPlayerData& player) {
+        if (localPlayerId.has_value() && player.playerId == *localPlayerId) {
+            return;
+        }
+        if (player.loggedIn && player.hasConnection()) {
+            player.send(mc::network::ir::IrPacket{packet});
+        }
+    });
+}
+
+PlayerId MinecraftServer::getPlayerIdForSession(u32 sessionId) const
+{
+    // sessionId == 0 且注入本地客户端钩子：返回本地客户端 playerId。
+    if (sessionId == 0 && m_localClientPlayerId.has_value()) {
+        return *m_localClientPlayerId;
+    }
+    return m_playerManager->getPlayerIdBySession(sessionId);
+}
+
+void MinecraftServer::sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 本地客户端（若注入钩子）：经 m_localClientSender 直传（LocalTransport 零拷贝）。
+    if (m_localClientPlayerId.has_value() && playerId == *m_localClientPlayerId) {
+        if (m_localClientSender) {
+            m_localClientSender(packet);
+        }
+        return;
+    }
+
+    // 远程 TCP 玩家：经 ServerPlayerData::send 走其 ServerClientConnection。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player != nullptr) {
+        player->send(mc::network::ir::IrPacket{packet});
+    }
+}
+
 void MinecraftServer::stopCore()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::stopCore");

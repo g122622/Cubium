@@ -82,21 +82,10 @@ public:
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
 protected:
-    void pollNetwork() override;
-    void broadcastPacket(const mc::network::ir::IrPacket& packet) override;
-
-    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
-    {
-        return m_playerManager->getPlayerIdBySession(sessionId);
-    }
-
-    void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) override
-    {
-        auto* player = m_playerManager->getPlayer(playerId);
-        if (player != nullptr) {
-            player->send(mc::network::ir::IrPacket{packet});
-        }
-    }
+    // 注：pollNetwork/broadcastPacket/getPlayerIdForSession/sendPacketToPlayer 四纯虚
+    // 已于批2a 统一为 MinecraftServer 基类默认实现。StandaloneServer 为纯远程独立服，
+    // 不注入本地客户端钩子（m_localClientPlayerId 保持 nullopt），基类默认实现退化为
+    // 纯 PlayerManager 遍历/查询，与原 StandaloneServer 实现完全一致。不再 override。
 
     // ========== 数据包处理（特有逻辑） ==========
 
@@ -168,8 +157,8 @@ private:
     void _onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn);
     /// 握手完成（进入 Play）回调：创建玩家实体并回填 playerId 到路由器
     void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
-    /// 主线程清理已断开连接的 session + 玩家（镜像 IntegratedServer 远程断开清理）
-    void _drainDisconnectedSessions();
+    // 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现
+    // （当前空默认）。本子类不再 override；断开清理在 _onRemoteClientDisconnect 内完成。
 
     /// 独立服压缩阈值（Java 默认 256）。离线模式（跳过 RSA），真 Java 在线模式为 TODO(Phase6)。
     static constexpr i32 kStandaloneCompressionThreshold = 256;

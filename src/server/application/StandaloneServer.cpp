@@ -378,24 +378,9 @@ void StandaloneServer::stop()
     spdlog::info("Server stopped.");
 }
 
-void StandaloneServer::pollNetwork()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "PollNetwork");
-    // 主线程驱动：tick pump Local（无）+ drain Wire 入站队列 + 派发延迟断开。
-    if (m_serverNetwork) {
-        m_serverNetwork->tick();
-        _drainDisconnectedSessions();
-    }
-}
-
-void StandaloneServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
-{
-    m_playerManager->forEachPlayer([&packet](ServerPlayerData& player) {
-        if (player.loggedIn && player.hasConnection()) {
-            player.send(mc::network::ir::IrPacket{packet});
-        }
-    });
-}
+// 注：pollNetwork/broadcastPacket/_drainDisconnectedSessions 已于批2a 统一为
+// MinecraftServer 基类默认实现，本子类不再 override。基类在未注入本地客户端钩子时
+// （StandaloneServer 保持 nullopt）退化为纯 PlayerManager 遍历/查询，与原实现一致。
 
 Result<void> StandaloneServer::run()
 {
@@ -851,11 +836,8 @@ void StandaloneServer::_onRemotePlayerReady(
     session->playRouter().setPlayerId(creation.playerId);
 }
 
-void StandaloneServer::_drainDisconnectedSessions()
-{
-    // 断开的连接已由 ServerNetwork::tick() 在主线程回调 _onRemoteClientDisconnect。
-    // 此处无额外延迟队列需处理（与 IntegratedServer LAN 不同，独立服单网络无本地连接）。
-}
+// 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现，
+// 本子类不再 override（当前基类默认为空，与原实现一致）。
 
 void StandaloneServer::_onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn)
 {

@@ -195,6 +195,17 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
             "IntegratedServer::initialize");
     }
 
+    // 批2a：注入本地客户端发送钩子。基类 MinecraftServer::broadcastPacket/
+    // sendPacketToPlayer 经 m_localClientSender 把包直传本地客户端（LocalTransport
+    // 零拷贝），等价原 IntegratedServer 双路径中走 _sendToClientIr 的分支。
+    // 显式按值拷贝 IrPacket（_sendToClientIr 按值接收并内部 move），避免钩子
+    // 与远程遍历共用同一副本时的 use-after-move。m_localClientPlayerId 在
+    // _onClientPlayerReady 内 set，此前钩子虽可发但 getPlayerIdForSession 的
+    // sessionId==0 分支尚未命中（玩家未创建），与原行为一致。
+    m_localClientSender = [this](const mc::network::ir::IrPacket& packet) {
+        _sendToClientIr(mc::network::ir::IrPacket{packet});
+    };
+
     // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
     m_clientHandshake = std::make_unique<mc::server::net::ServerHandshakeStateMachine>(
         *m_clientConnection, /*isOfflineMode=*/true, /*compressionThreshold=*/-1);
@@ -422,6 +433,11 @@ void IntegratedServer::stop()
     if (m_serverNetwork) {
         m_serverNetwork.reset();
     }
+    // 批2a：复位本地客户端钩子，避免关服后续路径误经悬垂 _sendToClientIr 调用
+    // （钩子捕获 this，连接已销毁后 _sendToClientIr 内 m_clientConnection==nullptr
+    // 本会安全跳过，此处显式复位消除该依赖）。
+    m_localClientSender = nullptr;
+    m_localClientPlayerId = std::nullopt;
     m_clientPlayerId = 0;
     m_clientEntityId = INVALID_ENTITY_ID;
     m_initialized = false;
@@ -510,19 +526,6 @@ void IntegratedServer::_mainLoop()
     }
 }
 
-void IntegratedServer::pollNetwork()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "ProcessPackets");
-    // 单一网络门面同时服务 Local（本地客户端，sessionId=0）与 Wire（LAN 远程玩家）连接。
-    // tick():pump Local(pumpLocal) + drain Wire 入站队列（接收线程 enqueueInbound，
-    // 主线程 drainInbound 派发握手/Play）+ 派发延迟断开。远程玩家的玩家创建/断开清理
-    // 在 _onRemotePlayerReady/_onRemoteClientDisconnect 内（经 tick 回调，主线程）。
-    if (m_serverNetwork) {
-        m_serverNetwork->tick();
-        _drainDisconnectedSessions();
-    }
-}
-
 void IntegratedServer::tick()
 {
     // 先驱动基类世界/实体/网络 tick（含熔炉方块实体 tick 更新燃烧/熔炼状态）
@@ -531,24 +534,9 @@ void IntegratedServer::tick()
     _tickOpenContainer();
 }
 
-void IntegratedServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
-{
-    // 本地客户端（LocalTransport 零拷贝直传 IR）
-    _sendToClientIr(mc::network::ir::IrPacket{packet});
-
-    // 远程 LAN 玩家：经 PlayerManager 遍历，player.send 走各自 ServerClientConnection
-    // （Wire 模式 encode → TCP）。跳过本地客户端（m_clientPlayerId，已由 _sendToClientIr 发送），
-    // 否则双重发送。与本地客户端共用同一 IrPacket 副本。
-    const PlayerId localPlayerId = m_clientPlayerId;
-    m_playerManager->forEachPlayer([&packet, localPlayerId](ServerPlayerData& player) {
-        if (player.playerId == localPlayerId) {
-            return;
-        }
-        if (player.loggedIn && player.hasConnection()) {
-            player.send(mc::network::ir::IrPacket{packet});
-        }
-    });
-}
+// 注：pollNetwork/broadcastPacket 已于批2a 统一为 MinecraftServer 基类默认实现，
+// 本子类不再 override。本地客户端广播/发送经 initialize() 注入的 m_localClientSender
+// 钩子（绑 _sendToClientIr）走 LocalTransport 零拷贝。
 
 // ============================================================================
 // 数据包处理
@@ -578,6 +566,9 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
     }
     m_clientPlayerId = creation.playerId;
     m_clientEntityId = creation.entityId;
+    // 批2a：回填基类本地客户端钩子的 playerId，使基类 broadcastPacket 跳过本地客户端
+    // 避免双发、sendPacketToPlayer/getPlayerIdForSession 的本地分支命中。
+    m_localClientPlayerId = m_clientPlayerId;
     if (m_clientPlayRouter != nullptr) {
         m_clientPlayRouter->setPlayerId(m_clientPlayerId);
     }
@@ -1442,12 +1433,8 @@ void IntegratedServer::_onRemotePlayerReady(
     session->playRouter().setPlayerId(creation.playerId);
 }
 
-void IntegratedServer::_drainDisconnectedSessions()
-{
-    // 断开的连接已由 ServerNetwork::tick() 在主线程回调 _onRemoteClientDisconnect，
-    // session map / 玩家清理均在该回调内完成。此处无额外延迟队列需处理（保留方法与
-    // StandaloneServer 对称，便于将来若引入跨回调延迟状态时扩展）。
-}
+// 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现，
+// 本子类不再 override（当前基类默认为空，与原实现一致）。
 
 void IntegratedServer::_onRemoteClientDisconnect(mc::server::net::ServerClientConnection& conn)
 {

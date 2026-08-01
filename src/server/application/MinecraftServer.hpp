@@ -66,7 +66,9 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
 #include <cmath>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 namespace mc {
@@ -541,43 +543,61 @@ protected:
         bool trustEdges);
 
     /**
-     * @brief 轮询网络事件（子类实现）
+     * @brief 轮询网络事件
      *
-     * IntegratedServer 经 ServerNetwork + LocalTransport 收发 IR 包
-     * StandaloneServer 经 ServerNetwork::startAccept 接收 TCP 连接
+     * 批2a 统一为基类默认实现：m_serverNetwork->tick()（drain Local + Wire 入站 + 派发
+     * 延迟断开）+ _drainDisconnectedSessions()。两子类原实现完全一致，已删除 override。
+     * IntegratedServer 的本地客户端（sessionId=0）入站经 m_serverNetwork 的 Local 通道
+     * 一并 tick，无需子类特化。
      */
-    virtual void pollNetwork() = 0;
+    virtual void pollNetwork();
 
     /**
-     * @brief 广播 IR 包给所有连接的玩家（子类实现）
+     * @brief 广播 IR 包给所有连接的玩家
      *
-     * 新网络层（1.21.11 IR）：游戏逻辑直接构造 ir::IrPacket 交由本方法，
-     * 经各 ServerClientConnection::send 出站，不再有 12 字节头封装。
+     * 新网络层（1.21.11 IR）：游戏逻辑直接构造 ir::IrPacket 交由本方法，经各
+     * ServerClientConnection::send 出站。作为发送原语公开：WeatherSyncService/
+     * PlayerBroadcaster 等服务端子系统经此广播 IR 包，无需 friend。
      *
-     * 作为发送原语公开：WeatherSyncService/PlayerBroadcaster 等服务端子系统
-     * 经此广播 IR 包，无需 friend。子类（StandaloneServer/IntegratedServer）
-     * 提供本地/远程双路径实现。
+     * 批2a 统一为基类默认实现：若注入了本地客户端钩子（m_localClientSender），
+     * 先经钩子发本地客户端，再 forEachPlayer 遍历远程玩家时跳过 localPlayerId
+     * 避免双发；否则纯 forEachPlayer 广播。StandaloneServer 不注入钩子（纯远程），
+     * IntegratedServer 在 initialize 注入（LocalTransport 零拷贝）。
      */
 public:
-    virtual void broadcastPacket(const mc::network::ir::IrPacket& packet) = 0;
+    virtual void broadcastPacket(const mc::network::ir::IrPacket& packet);
 
 protected:
     /**
-     * @brief 将会话ID转换为玩家ID（子类实现）
-     * @param sessionId 会话ID（IntegratedServer 返回固定的客户端玩家ID）
-     * @return 玩家ID，如果无效返回 0
+     * @brief 将会话ID转换为玩家ID
+     *
+     * 批2a 统一为基类默认实现：sessionId == 0 且注入了本地客户端钩子
+     * （m_localClientPlayerId）时返回本地客户端玩家ID；否则走 PlayerManager 查询。
      */
-    [[nodiscard]] virtual PlayerId getPlayerIdForSession(u32 sessionId) const = 0;
+    [[nodiscard]] virtual PlayerId getPlayerIdForSession(u32 sessionId) const;
 
 public:
     /**
-     * @brief 向指定玩家发送 IR 包（子类实现）
+     * @brief 向指定玩家发送 IR 包
      *
      * 作为发送原语公开：ServerDimensionManager 等服务端子系统经此向玩家下发
-     * 维度切换/区块等 IR 包，无需 friend。子类（StandaloneServer/IntegratedServer）
-     * 提供本地/远程双路径实现。
+     * 维度切换/区块等 IR 包，无需 friend。
+     *
+     * 批2a 统一为基类默认实现：playerId == localPlayerId 且注入了本地客户端钩子
+     * （m_localClientSender）时经钩子发本地客户端（LocalTransport 零拷贝）；
+     * 否则走 ServerPlayerData::send → ServerClientConnection::send。
      */
-    virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) = 0;
+    virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+protected:
+    /**
+     * @brief 清理已断开的远程会话（批2a 提升为基类 virtual）
+     *
+     * 当前为空默认：断开已由 ServerNetwork::tick() 在主线程回调 _onRemoteClientDisconnect
+     * 处理，session map / 玩家清理均在该回调内完成。保留 virtual 供批2c RemoteSessionManager
+     * 注入实际清理逻辑。
+     */
+    virtual void _drainDisconnectedSessions() {}
 
 protected:
     /**
@@ -1171,6 +1191,14 @@ protected:
     // 玩家实体管理器（PlayerId↔EntityInstanceId 映射 + 实体池接入）。批2b 上提自两子类
     // 私有值成员，ServerPlayerEntityManager 无参默认构造可作基类值成员。
     ServerPlayerEntityManager m_playerEntityManager;
+
+    // 本地客户端发送钩子（批2a 四纯虚统一用）。IntegratedServer 在 initialize() 创建本地
+    // 客户端连接后注入：m_localClientPlayerId 设本地客户端 playerId，m_localClientSender
+    // 绑定 _sendToClientIr（LocalTransport 零拷贝）。StandaloneServer 不注入（nullopt /
+    // 空 function），保持纯远程行为。sendPacketToPlayer/broadcastPacket/getPlayerIdForSession
+    // 基类默认实现据此判本地/远程路径。
+    std::optional<PlayerId> m_localClientPlayerId;
+    std::function<void(const mc::network::ir::IrPacket&)> m_localClientSender;
 
     // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
     std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;

@@ -111,9 +111,6 @@ public:
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
 protected:
-    void pollNetwork() override;
-    void broadcastPacket(const mc::network::ir::IrPacket& packet) override;
-
     /**
      * @brief 主循环 tick：先驱动基类世界/实体/网络 tick，再同步打开容器的动态数据。
      *
@@ -122,48 +119,10 @@ protected:
      */
     void tick() override;
 
-    /**
-     * @brief 将会话ID转换为玩家ID
-     *
-     * 双路径架构：
-     * - sessionId == 0：本地客户端（LocalConnection），返回 m_clientPlayerId
-     * - sessionId != 0：远程 TCP 客户端，通过 PlayerManager 查询
-     *
-     * @param sessionId 会话ID
-     * @return 玩家ID，如果无效返回 0
-     */
-    [[nodiscard]] PlayerId getPlayerIdForSession(u32 sessionId) const override
-    {
-        if (sessionId == 0) {
-            return m_clientPlayerId;
-        }
-        return m_playerManager->getPlayerIdBySession(sessionId);
-    }
-
-    /**
-     * @brief 向指定玩家发送 IR 包
-     *
-     * 双路径架构：
-     * - 本地客户端（playerId == m_clientPlayerId）：直接走 m_clientConnection（LocalTransport 零拷贝）
-     * - 远程 TCP 玩家：通过 ServerPlayerData::send() 走其 ServerClientConnection
-     *
-     * @param playerId 玩家ID
-     * @param packet IR 包（按值移动）
-     */
-    void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet) override
-    {
-        if (playerId == m_clientPlayerId) {
-            if (m_clientConnection != nullptr) {
-                (void)m_clientConnection->send(mc::network::ir::IrPacket{packet}); // 拷贝（本地玩家单拷贝可接受）
-            }
-            return;
-        }
-
-        auto* player = m_playerManager->getPlayer(playerId);
-        if (player != nullptr) {
-            (void)player->send(mc::network::ir::IrPacket{packet});
-        }
-    }
+    // 注：pollNetwork/broadcastPacket/getPlayerIdForSession/sendPacketToPlayer 四纯虚
+    // 已于批2a 统一为 MinecraftServer 基类默认实现（含本地客户端钩子注入），
+    // 本子类不再 override。本地客户端经 initialize() 注入 m_localClientSender +
+    // _onClientPlayerReady() 设置 m_localClientPlayerId 完成双路径接驳。
 
     // ========== 数据包处理（特有逻辑） ==========
 
@@ -272,9 +231,8 @@ private:
      */
     void _onRemotePlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
 
-    /// 主线程清理已断开连接的 session（ServerNetwork::tick 已回调 _onRemoteClientDisconnect，
-    /// 此处仅做 session map 一致性兜底；Local 客户端由 sessionId=0 标识不在此处理）。
-    void _drainDisconnectedSessions();
+    // 注：_drainDisconnectedSessions 已于批2a 提升为 MinecraftServer 基类 virtual 默认实现
+    // （当前空默认）。本子类不再 override；断开清理在 _onRemoteClientDisconnect 内完成。
 
     /**
      * @brief 本地客户端握手完成回调（ServerHandshake Configuration 结束后触发）
