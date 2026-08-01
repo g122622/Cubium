@@ -112,7 +112,7 @@ namespace server {
 inline constexpr u16 serverPort = 25565;
 inline constexpr const char* bindAddress = "0.0.0.0";
 inline constexpr i32 maxPlayers = 20;
-inline constexpr bool onlineMode = true;
+inline constexpr bool onlineMode = false;
 inline constexpr const char* motd = "A Cubium Server";
 inline constexpr bool p2pEnabled = false;
 

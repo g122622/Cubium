@@ -627,7 +627,7 @@ TEST_F(ServerSettingsTest, DefaultValues)
 
     EXPECT_EQ(settings.serverPort.get(), 25565);
     EXPECT_EQ(settings.maxPlayers.get(), 20);
-    EXPECT_TRUE(settings.onlineMode.get());
+    EXPECT_FALSE(settings.onlineMode.get());
     EXPECT_EQ(settings.viewDistance.get(), 10);
     EXPECT_EQ(settings.tickRate.get(), 20);
 }

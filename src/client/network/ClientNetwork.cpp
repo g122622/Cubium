@@ -127,7 +127,9 @@ void ClientNetwork::_handleInbound(const mc::network::ir::IrPacket& packet)
             spdlog::warn("ClientNetwork: unexpected handshake-phase inbound");
             break;
         case CP::Status:
-            // TODO(Phase6): Status 查询响应处理
+            // Status 阶段（服务器列表 ping）：本项目客户端 connectTcp 直接进 LOGIN，无服务器列表
+            // UI 触发 StatusRequest，故此分支当前不触发。未来加多人游戏服务器列表界面时补
+            // StatusResponse JSON 解析 + PingResponse 往返显示。非在线互通关键路径，刻意延后。
             break;
         case CP::Login: {
             const auto* login = std::get_if<mc::network::ir::LoginPacket>(&packet.packet);
@@ -213,8 +215,28 @@ Result<void> ClientNetwork::_handleLoginPacket(const mc::network::ir::LoginPacke
 
     if (std::holds_alternative<mc::network::ir::login::HelloBound>(pkt)) {
         // 在线模式：收服务端 RSA 公钥 + verify token。
-        // TODO(Phase6): handleHelloBound → 发 Key → setupEncryption。离线模式不应收到。
-        spdlog::warn("ClientNetwork: HelloBound received (online mode TODO), ignoring");
+        // 对齐 Java ClientLoginPacketListenerImpl#handleHello：用服务端公钥加密共享密钥 + verify token，
+        // 发 Key(C→S)，再装 AES-CFB8 加密层（双向）。离线模式服务端不发 HelloBound，此分支不触发。
+        const auto& helloBound = std::get<mc::network::ir::login::HelloBound>(pkt);
+        auto resp = mc::network::backend::java::JavaLoginHandshaker::handleHelloBound(helloBound);
+        if (!resp.success()) {
+            spdlog::error("ClientNetwork: handleHelloBound failed: {}", resp.error().message());
+            disconnect("Encryption handshake failed");
+            return resp.error();
+        }
+        // 先发 Key（此时出站仍明文），再装加密层（此后出站按 AES-CFB8 加密）。
+        auto sendKey = send(std::move(resp.value().keyPacket));
+        if (!sendKey.success()) {
+            return sendKey;
+        }
+        if (m_conn) {
+            auto enc = m_conn->setupEncryption(resp.value().sharedSecret);
+            if (!enc.success()) {
+                spdlog::error("ClientNetwork: setupEncryption failed: {}", enc.error().message());
+                disconnect("Encryption setup failed");
+                return enc;
+            }
+        }
         return Result<void>::ok();
     }
 

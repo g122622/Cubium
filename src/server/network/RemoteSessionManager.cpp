@@ -39,11 +39,14 @@ void RemoteSessionManager::onClientConnect(ServerClientConnection& conn)
     const u32 sessionId = conn.sessionId();
     spdlog::info("{}: remote client connected: sessionId={}", m_logPrefix, sessionId);
 
-    // 建会话簿记：握手状态机（离线模式 + 压缩阈值）+ Play 路由器（playerId 占位 0，
-    // 在 onPlayerReady 握手完成后回填）。sessionId 隔离各连接的握手/路由器实例。
+    // 建会话簿记：握手状态机（在线模式按 server.properties online-mode 决定 + 压缩阈值）
+    // + Play 路由器（playerId 占位 0，在 onPlayerReady 握手完成后回填）。sessionId 隔离各连接的
+    // 握手/路由器实例。
     // 批7：Play 路由器改持 ServerPlayHandler& 单例门面（routeInboundPlayPacket 整簇下沉）。
+    // 在线模式默认 false（离线基线保持），置 true 时握手走 RSA+AES 加密链路（真 Java 互通）。
+    const bool isOfflineMode = !m_server.settings().onlineMode.get();
     auto session = std::make_unique<RemoteClientSession>(
-        conn, /*isOfflineMode=*/true, m_compressionThreshold, m_server.playHandler(), /*playerId=*/0, sessionId);
+        conn, isOfflineMode, m_compressionThreshold, m_server.playHandler(), /*playerId=*/0, sessionId);
 
     // 握手完成回调：进入 Play 时创建玩家实体并回填 playerId。
     session->handshake().onPlayerReady(

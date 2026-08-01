@@ -92,8 +92,9 @@ protected:
     // syncPlayerInventory/tryOpenCraftingContainer）已于批9 下沉至 MinecraftServer 基类默认实现
     // （纯远程路径：InventoryManager/ContainerManager 委托）。StandaloneServer 为纯远程独立服，
     // 无本地客户端分支，直接继承基类默认即原 StandaloneServer 行为，不再 override。
-    // 远程 TCP 登录的真 Java 互通为 TODO(Phase6)。新网络层登录由 ServerHandshakeStateMachine
-    // 驱动，handleLoginRequestPacket 已从基类移除。
+    // 远程 TCP 登录的真 Java 互通已就位：RemoteSessionManager 按 server.properties online-mode 决定
+    // 加密链路（批8），客户端 HelloBound→Key→setupEncryption 装加密层。新网络层登录由
+    // ServerHandshakeStateMachine 驱动，handleLoginRequestPacket 已从基类移除。
 
 public:
     // ========== StandaloneServer 特有接口 ==========
@@ -151,7 +152,8 @@ private:
     // 批9：门面成员 m_remoteSessionManager 已上提 MinecraftServer 基类，initialize() 经
     // 基类 _setupRemoteSessions 构造、stop() 经基类 _shutdownRemoteSessions 保销毁顺序
     // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
-    /// 独立服压缩阈值（Java 默认 256）。离线模式（跳过 RSA），真 Java 在线模式为 TODO(Phase6)。
+    /// 独立服压缩阈值（Java 默认 256）。在线模式按 server.properties online-mode 决定
+    /// （批8：默认 false 离线基线，置 true 走 RSA+AES 加密链路支持真 Java 互通）。
     static constexpr i32 kStandaloneCompressionThreshold = 256;
 
     ServerSettings m_settings;

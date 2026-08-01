@@ -77,7 +77,7 @@ using LoginReadyCallback =
  *   Play：收 play::Login → 调 onLoginReady(playerId,dimension,uuid) → 稳态
  *
  * 离线模式（集成服/我方独立服）跳过 RSA：不调 setupEncryption（Connection 明文 wire passthrough）。
- * 在线模式（真 Java）标 TODO(Phase6)：收 HelloBound → handleHelloBound → 发 Key → 装加密层。
+ * 在线模式（真 Java）：收 HelloBound → handleHelloBound → 发 Key → setupEncryption 装加密层。
  *
  * tick() pump Local 模式对端投递的包（集成服）；Wire 模式由 TcpTransport 接收线程异步驱动。
  * 重要：handler 内禁止递归 tick/pump。
