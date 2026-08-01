@@ -431,11 +431,11 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
             {
                 std::lock_guard<std::mutex> lock(self->m_pendingLoadCompletesMutex);
                 self->m_pendingLoadCompletes.push_back(std::move(item));
-                if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
-                    spdlog::info("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
-                        self->m_pendingLoadCompletes.size(),
-                        PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
-                }
+                // if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
+                //     spdlog::info("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
+                //         self->m_pendingLoadCompletes.size(),
+                //         PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
+                // }
             }
         },
         abortSignal,
