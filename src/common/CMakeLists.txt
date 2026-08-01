@@ -1520,6 +1520,7 @@ add_library(mc_common STATIC
     util/text/ITextComponent.cpp
     util/text/TextParser.cpp
     util/text/TranslationTextComponent.cpp
+    util/text/ComponentNbtSerialization.cpp
 
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp

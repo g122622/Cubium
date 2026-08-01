@@ -28,6 +28,7 @@
 #include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/scoreboard/storage/ScoreboardDataManager.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
@@ -36,7 +37,6 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -52,22 +52,27 @@ using ::mc::scoreboard::ScorePlayerTeam;
 
 namespace {
 
-/// 把 ITextComponent（或字符串名）序列化为 1.21.11 组件 opaque 字节（JSON 文本）。
-/// TODO(Phase6): 当前仅以 JSON 字符串字节承载，未对齐 1.21.11 ComponentType 前缀树，
-///   真互通需补完整 Component codec。我方互通客户端按相同约定解析即可。
+/// 把 ITextComponent（或字符串名兜底）序列化为 1.21.11 Component NBT wire 字节。
+/// 对齐 vanilla ComponentSerialization.TRUSTED_STREAM_CODEC：可折叠纯文本→StringTag，
+/// 复杂组件→CompoundTag（text/style/extra），无外层 VarInt 长度前缀（NBT 自定界）。
 std::vector<u8> componentToBytes(const ::mc::text::ITextComponent* component, const std::string& fallback)
 {
-    std::string json = component ? component->toJson().dump() : fallback;
-    return std::vector<u8>(json.begin(), json.end());
+    if (component != nullptr) {
+        return ::mc::text::componentToNbtBytes(component);
+    }
+    return ::mc::text::plainTextToNbtBytes(fallback);
 }
 
 /// 渲染类型字符串→1.21.11 整数序号（0=integer,1=hearts）
 i32 renderTypeToOrdinal(::mc::scoreboard::RenderType type)
 {
     switch (type) {
-    case ::mc::scoreboard::RenderType::Hearts: return 1;
-    case ::mc::scoreboard::RenderType::Integer: return 0;
-    default: return 0;
+        case ::mc::scoreboard::RenderType::Hearts:
+            return 1;
+        case ::mc::scoreboard::RenderType::Integer:
+            return 0;
+        default:
+            return 0;
     }
 }
 
@@ -309,8 +314,7 @@ void ServerScoreboard::onDisplaySlotChanged(DisplaySlot slot, ScoreObjective* ob
     markDirty();
 }
 
-mc::network::ir::play::SetObjective ServerScoreboard::_createObjectivePacket(
-    ScoreObjective& objective, u8 method)
+mc::network::ir::play::SetObjective ServerScoreboard::_createObjectivePacket(ScoreObjective& objective, u8 method)
 {
     // method: 0=Add 1=Remove 2=Change
     mc::network::ir::play::SetObjective pkt;
@@ -320,7 +324,8 @@ mc::network::ir::play::SetObjective ServerScoreboard::_createObjectivePacket(
     if (method == 0 || method == 2) {
         pkt.displayName = componentToBytes(objective.getDisplayName(), objective.getName());
         pkt.renderType = renderTypeToOrdinal(objective.getRenderType());
-        // numberFormat 留空（TODO(Phase6): 1.21.11 NumberFormat 编码）
+        // numberFormat 留空（absent）：vanilla Optional<NumberFormat>，空 vector 经
+        // writeNumberFormat 写 Bool(false)。业务侧暂不设置自定义数字格式。
     }
 
     return pkt;
@@ -332,7 +337,8 @@ mc::network::ir::play::SetScore ServerScoreboard::_createSetScorePacket(Score& s
     pkt.owner = score.getPlayerName();
     pkt.objectiveName = score.getObjective().getName();
     pkt.score = change ? score.getScorePoints() : 0;
-    // display/numberFormat 留空（TODO(Phase6): 1.21.11 组件/NumberFormat 编码）
+    // display/numberFormat 留空（absent）：vanilla Optional<Component>/Optional<NumberFormat>，
+    // 空 vector 经 writeOptionalComponentNbt/writeNumberFormat 写 Bool(false)。
     return pkt;
 }
 
@@ -353,23 +359,18 @@ mc::network::ir::play::SetPlayerTeam ServerScoreboard::_createTeamPacket(ScorePl
     pkt.method = method;
 
     if (method == 0 || method == 2) {
-        // 1.21.11 将 displayName/prefix/suffix/visibility/collision/color/friendlyFlags
-        // 打包进一个 opaque parameters blob。当前以 JSON 字符串承载，未完整对齐
-        // 1.21.11 序列化格式。TODO(Phase6): 补完整 TeamParameters codec。
-        nlohmann::json params;
-        params["displayName"] = componentToBytes(team.getDisplayName(), team.getName());
-        if (auto* prefix = team.getPrefix()) {
-            params["prefix"] = componentToBytes(prefix, "");
-        }
-        if (auto* suffix = team.getSuffix()) {
-            params["suffix"] = componentToBytes(suffix, "");
-        }
-        params["nameTagVisibility"] = scoreboard::teamVisibilityToString(team.getNameTagVisibility());
-        params["collisionRule"] = scoreboard::teamCollisionRuleToString(team.getCollisionRule());
-        params["color"] = text::toName(team.getColor());
-        params["friendlyFlags"] = team.getFriendlyFlags();
-        std::string dumped = params.dump();
-        pkt.parameters = std::vector<u8>(dumped.begin(), dumped.end());
+        // TeamParameters 扁平 7 字段，对齐 vanilla ClientboundSetPlayerTeamPacket.Parameters：
+        // displayName(Component NBT) + options(friendlyFlags Byte) + visibility(VarInt id)
+        // + collision(VarInt id) + color(VarInt ChatFormatting ordinal) + prefix/suffix(Component NBT)。
+        pkt.displayName = componentToBytes(team.getDisplayName(), team.getName());
+        pkt.options = team.getFriendlyFlags();
+        pkt.visibility = static_cast<i32>(team.getNameTagVisibility()); // 0-3 对齐 vanilla Visibility id
+        pkt.collision = static_cast<i32>(team.getCollisionRule());      // 0-3 对齐 vanilla CollisionRule id
+        // color：TextFormatting 0-21 对齐 vanilla ChatFormatting ordinal；None(255) 兜底为 Reset(21)。
+        const auto color = team.getColor();
+        pkt.color = (color == ::mc::text::TextFormatting::None) ? 21 : static_cast<i32>(color);
+        pkt.prefix = componentToBytes(team.getPrefix(), "");
+        pkt.suffix = componentToBytes(team.getSuffix(), "");
     }
 
     if (method == 0 || method == 3 || method == 4) {

@@ -37,6 +37,7 @@
 #include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <gtest/gtest.h>
 
@@ -348,8 +349,8 @@ TEST_F(NetworkTestBase, PlayBossEventAdd)
 {
     BossEvent in{};
     in.uuid = sampleUuid();
-    in.operation = 0;                     // ADD
-    in.name = {0x0A, 'B', 'o', 's', 's'}; // opaque Component
+    in.operation = 0;                            // ADD
+    in.name = text::plainTextToNbtBytes("Boss"); // Component NBT（StringTag）
     in.progress = 0.5f;
     in.color = 1;   // PINK
     in.overlay = 0; // PROGRESS
@@ -384,8 +385,8 @@ TEST_F(NetworkTestBase, PlayBossEventUpdateName)
 {
     BossEvent in{};
     in.uuid = sampleUuid();
-    in.operation = 3; // UPDATE_NAME
-    in.name = {0x0B, 'X', 'Y', 'Z'};
+    in.operation = 3;                           // UPDATE_NAME
+    in.name = text::plainTextToNbtBytes("XYZ"); // Component NBT（StringTag）
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 48u);
     EXPECT_EQ(std::get<BossEvent>(out), in);
@@ -416,13 +417,14 @@ TEST_F(NetworkTestBase, PlayBossEventUpdateProperties)
 
 // ============================================================================
 // 批 14：标题 S→C（SetTitleText/SetSubtitleText/SetActionBarText/SetTitlesAnimation/ClearTitles）
-// 三文本包 text 为 opaque Component；SetTitlesAnimation 三 i32；ClearTitles 一 bool。
+// 三文本包 text 为 Component NBT（StringTag，plainTextToNbtBytes 产出）；SetTitlesAnimation 三 i32；ClearTitles 一
+// bool。
 // ============================================================================
 
 TEST_F(NetworkTestBase, PlaySetTitleText)
 {
     SetTitleText in{};
-    in.text = {0x01, 'H', 'i'};
+    in.text = text::plainTextToNbtBytes("Hi"); // Component NBT（StringTag）
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 56u);
     EXPECT_EQ(std::get<SetTitleText>(out), in);
@@ -431,7 +433,7 @@ TEST_F(NetworkTestBase, PlaySetTitleText)
 TEST_F(NetworkTestBase, PlaySetSubtitleText)
 {
     SetSubtitleText in{};
-    in.text = {0x02, 's', 'u', 'b'};
+    in.text = text::plainTextToNbtBytes("sub"); // Component NBT（StringTag）
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 57u);
     EXPECT_EQ(std::get<SetSubtitleText>(out), in);
@@ -440,7 +442,7 @@ TEST_F(NetworkTestBase, PlaySetSubtitleText)
 TEST_F(NetworkTestBase, PlaySetActionBarText)
 {
     SetActionBarText in{};
-    in.text = {0x03, 'a', 'c', 't', 'i', 'o', 'n'};
+    in.text = text::plainTextToNbtBytes("action"); // Component NBT（StringTag）
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 58u);
     EXPECT_EQ(std::get<SetActionBarText>(out), in);

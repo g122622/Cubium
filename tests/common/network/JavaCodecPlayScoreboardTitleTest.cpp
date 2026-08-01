@@ -27,13 +27,16 @@
 // SetObjective=51/SetScore=52/ResetScore=53/SetDisplayObjective=54/SetPlayerTeam=55（批13）；
 // InitializeBorder=61/SetBorderCenter=62/SetBorderLerpSize=63/SetBorderSize=64/
 // SetBorderWarningDelay=65/SetBorderWarningDistance=66（批15）；MapItemData=67（批16）。
-// SetObjective method 0/2 才写 displayName/renderType/numberFormat；SetPlayerTeam method 0/2
-// 才写 parameters、method 0/3/4 才写 players——输入只 set 上线字段，未上线字段保持默认。
-// MapPatch width=0 是 absent 哨兵，故 present 例须 width>0。
+// SetObjective method 0/2 才写 displayName(Component NBT)/renderType/numberFormat(Optional<NumberFormat>)；
+// SetPlayerTeam method 0/2 才写 7 字段 TeamParameters（displayName NBT + options + visibility +
+// collision + color + prefix NBT + suffix NBT）、method 0/3/4 才写 players——输入只 set 上线字段，
+// 未上线字段保持默认。MapPatch width=0 是 absent 哨兵，故 present 例须 width>0。
+// Component 字段用 text::plainTextToNbtBytes 生成合法 StringTag 字节（0x08+U16+UTF8）。
 
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <gtest/gtest.h>
 
@@ -92,17 +95,17 @@ TEST_F(NetworkTestBase, PlaySeenAdvancementsClosedScreen)
 // ============================================================================
 // 批 13：记分板 S→C（SetObjective/SetScore/ResetScore/SetDisplayObjective/SetPlayerTeam）
 // SetObjective method 0/2 写 displayName/renderType/numberFormat；1 不写。
-// SetPlayerTeam method 0/2 写 parameters；0/3/4 写 players；1 全不写。
+// SetPlayerTeam method 0/2 写 TeamParameters(7 字段)；0/3/4 写 players；1 全不写。
 // ============================================================================
 
 TEST_F(NetworkTestBase, PlaySetObjectiveAdd)
 {
     SetObjective in{};
     in.objectiveName = "obj1";
-    in.method = 0;                                    // ADD
-    in.displayName = {0x01, 'S', 'c', 'o', 'r', 'e'}; // opaque Component
-    in.renderType = 0;                                // INTEGER
-    in.numberFormat = {0x02, 0x03};                   // opaque Optional<NumberFormat>
+    in.method = 0;                                       // ADD
+    in.displayName = text::plainTextToNbtBytes("Score"); // Component NBT（StringTag）
+    in.renderType = 0;                                   // INTEGER
+    in.numberFormat = {};                                // absent Optional<NumberFormat>
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 51u);
     EXPECT_EQ(std::get<SetObjective>(out), in);
@@ -122,9 +125,9 @@ TEST_F(NetworkTestBase, PlaySetObjectiveChange)
 {
     SetObjective in{};
     in.objectiveName = "obj2";
-    in.method = 2; // CHANGE
-    in.displayName = {0x04, 'X'};
-    in.renderType = 1; // HEARTS
+    in.method = 2;                                   // CHANGE
+    in.displayName = text::plainTextToNbtBytes("X"); // Component NBT（StringTag）
+    in.renderType = 1;                               // HEARTS
     in.numberFormat = {};
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 51u);
@@ -137,8 +140,8 @@ TEST_F(NetworkTestBase, PlaySetScore)
     in.owner = "Player1";
     in.objectiveName = "obj1";
     in.score = 42;
-    in.display = {0x05};      // opaque Optional<Component>
-    in.numberFormat = {0x06}; // opaque Optional<NumberFormat>
+    in.display = text::plainTextToNbtBytes("P1"); // present Optional<Component>（StringTag）
+    in.numberFormat = {0x00};                     // present Optional<NumberFormat>：blank typeId=0
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 52u);
     EXPECT_EQ(std::get<SetScore>(out), in);
@@ -188,8 +191,14 @@ TEST_F(NetworkTestBase, PlaySetPlayerTeamAdd)
 {
     SetPlayerTeam in{};
     in.name = "team_red";
-    in.method = 0;                      // ADD：写 parameters + players
-    in.parameters = {0x07, 0x08, 0x09}; // opaque Parameters
+    in.method = 0;                                          // ADD：写 TeamParameters(7 字段) + players
+    in.displayName = text::plainTextToNbtBytes("Red Team"); // Component NBT
+    in.options = 0x03;                                      // friendlyFlags
+    in.visibility = 0;                                      // Always
+    in.collision = 0;                                       // Always
+    in.color = 12;                                          // Red
+    in.prefix = text::plainTextToNbtBytes("");              // Component NBT（空串）
+    in.suffix = text::plainTextToNbtBytes("");              // Component NBT（空串）
     in.players = {"Player1", "Player2"};
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 55u);
@@ -210,8 +219,14 @@ TEST_F(NetworkTestBase, PlaySetPlayerTeamChange)
 {
     SetPlayerTeam in{};
     in.name = "team_blue";
-    in.method = 2; // CHANGE：写 parameters 不写 players
-    in.parameters = {0x0A};
+    in.method = 2;                                           // CHANGE：写 TeamParameters(7 字段) 不写 players
+    in.displayName = text::plainTextToNbtBytes("Blue Team"); // Component NBT
+    in.options = 0;
+    in.visibility = 1; // Never
+    in.collision = 2;  // PushOtherTeams
+    in.color = 9;      // Blue
+    in.prefix = text::plainTextToNbtBytes("");
+    in.suffix = text::plainTextToNbtBytes("");
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 55u);
     EXPECT_EQ(std::get<SetPlayerTeam>(out), in);

@@ -41,6 +41,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
@@ -166,10 +167,10 @@ void ServerPlayer::sendStatusMessage(const std::string& message, bool actionBar)
     }
 
     if (actionBar) {
-        // 1.21.11 SetActionBarText：text 为 Component opaque。
-        // TODO(Phase6): text 仅以 JSON 字符串字节承载，未对齐 1.21.11 ComponentType codec。
+        // 1.21.11 SetActionBarText：text 为 Component NBT（自定界，无外层 VarInt 长度）。
+        // 裸字符串经 plainTextToNbtBytes 折叠为 StringTag，对齐 vanilla 纯文本 Component。
         mc::network::ir::play::SetActionBarText pkt;
-        pkt.text = std::vector<u8>(message.begin(), message.end());
+        pkt.text = ::mc::text::plainTextToNbtBytes(message);
         static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
     } else {

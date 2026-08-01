@@ -30,6 +30,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -41,11 +42,13 @@ namespace command {
 
 namespace {
 
-/// 把文本（JSON 字符串）转为 1.21.11 组件 opaque 字节。
-/// TODO(Phase6): 未对齐 1.21.11 ComponentType 前缀树，真互通需补完整 Component codec。
+/// 把文本（JSON 字符串）转为 1.21.11 Component NBT wire 字节。
+/// 对齐 vanilla ComponentSerialization.TRUSTED_STREAM_CODEC：解析 JSON 为 ITextComponent 后序列化为
+/// NBT（可折叠纯文本→StringTag，复杂组件→CompoundTag），NBT 自定界无外层 VarInt 长度。
+/// 解析失败时降级为纯文本 StringTag（把原 JSON 当纯文本承载）。
 std::vector<u8> titleTextToBytes(const std::string& text)
 {
-    return std::vector<u8>(text.begin(), text.end());
+    return text::parseJsonComponentToNbtBytes(text);
 }
 
 /// 构造一个 SetTitleText IR 包

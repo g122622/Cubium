@@ -27,6 +27,7 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -48,12 +49,12 @@ u8 packBossFlags(bool darkenSky, bool playEndBossMusic, bool createFog)
     return flags;
 }
 
-/// 把 ITextComponent 序列化为 1.21.11 组件 opaque 字节（JSON 文本）。
-/// TODO(Phase6): 未对齐 1.21.11 ComponentType 前缀树，真互通需补完整 Component codec。
+/// 把 ITextComponent 序列化为 1.21.11 Component NBT wire 字节。
+/// 对齐 vanilla ComponentSerialization.TRUSTED_STREAM_CODEC：可折叠纯文本→StringTag，
+/// 复杂组件→CompoundTag，NBT 自定界无外层 VarInt 长度。
 std::vector<u8> bossNameToBytes(const text::ITextComponent& name)
 {
-    std::string json = name.toJson().dump();
-    return std::vector<u8>(json.begin(), json.end());
+    return text::componentToNbtBytes(&name);
 }
 
 mc::network::ir::IrPacket makePlayPacket(mc::network::ir::play::BossEvent evt)

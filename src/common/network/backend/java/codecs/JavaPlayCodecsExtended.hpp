@@ -36,9 +36,12 @@ namespace mc::network::backend::java::codecs {
 //
 // Holder<SoundEvent>、ParticleOptions、Explosion（含粒子表）、LevelParticles、BlockEntityData
 // 等已结构化（见 writeSoundEventHolder/writeParticleOptions/explosionCodec/levelParticlesCodec/
-// blockEntityDataCodec）。仍以 VarInt(len)+bytes 透传的复杂嵌套树（Component/NumberFormat/
-// MapDecoration/MapPatch/命令树 Node 等）属我方互通自洽的 opaque 透传层：双端同 codec 读写，
-// 我方互通必达；真 Java 互通需各自完整 codec，属独立子项，不在本层范围（各 codec 内联注释标明）。
+// blockEntityDataCodec）。Component NBT（writeComponentNbt/readComponentNbt）、Optional<Component>
+// （writeOptionalComponentNbt）、Optional<NumberFormat>（writeNumberFormat/readNumberFormat）、
+// TeamParameters 扁平 7 字段亦已结构化对齐 vanilla，供 bossbar/title/actionbar/scoreboard/team
+// 与真 Java 客户端互通。仍以 VarInt(len)+bytes 透传的复杂嵌套树（MapDecoration.name/MapPatch.colors/
+// 命令树 Node 等）属我方互通自洽的 opaque 透传层：双端同 codec 读写，我方互通必达；真 Java 互通
+// 需各自完整 codec，属独立子项，不在本层范围（各 codec 内联注释标明）。
 // Resp 复用 JavaPlayCodecs.hpp 的 play_detail::writeSpawnInfo/readSpawnInfo。
 // ============================================================================
 
@@ -341,7 +344,7 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             buf.writeVarInt(v.operation);
             switch (v.operation) {
                 case 0: // ADD
-                    play_ext_detail::writeOpaque(buf, v.name);
+                    writeComponentNbt(buf, v.name);
                     buf.writeF32(v.progress);
                     buf.writeVarInt(v.color);
                     buf.writeVarInt(v.overlay);
@@ -353,7 +356,7 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
                     buf.writeF32(v.progress);
                     break;
                 case 3: // UPDATE_NAME
-                    play_ext_detail::writeOpaque(buf, v.name);
+                    writeComponentNbt(buf, v.name);
                     break;
                 case 4: // UPDATE_STYLE
                     buf.writeVarInt(v.color);
@@ -372,7 +375,7 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             MC_TRY_ASSIGN(v.operation, buf.readVarInt());
             switch (v.operation) {
                 case 0:
-                    MC_TRY_ASSIGN(v.name, play_ext_detail::readOpaque(buf, "bossEventCodec.ADD"));
+                    MC_TRY_ASSIGN(v.name, readComponentNbt(buf));
                     MC_TRY_ASSIGN(v.progress, buf.readF32());
                     MC_TRY_ASSIGN(v.color, buf.readVarInt());
                     MC_TRY_ASSIGN(v.overlay, buf.readVarInt());
@@ -384,7 +387,7 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
                     MC_TRY_ASSIGN(v.progress, buf.readF32());
                     break;
                 case 3:
-                    MC_TRY_ASSIGN(v.name, play_ext_detail::readOpaque(buf, "bossEventCodec.UPDATE_NAME"));
+                    MC_TRY_ASSIGN(v.name, readComponentNbt(buf));
                     break;
                 case 4:
                     MC_TRY_ASSIGN(v.color, buf.readVarInt());
@@ -448,6 +451,97 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 // 记分板（S→C）
 // ============================================================================
 
+namespace play_ext_detail {
+
+/**
+ * @brief 写 Optional<NumberFormat> wire（对齐 vanilla NumberFormat.STREAM_CODEC）
+ *
+ * vanilla NumberFormat 三变体：blank(0)/styled(1)/fixed(2)。
+ * - blank：仅 VarInt(0)
+ * - styled：VarInt(1) + Style（CompoundTag，NBT 自定界）
+ * - fixed：VarInt(2) + Component（NBT 自定界）
+ *
+ * 项目 IR 以 `std::vector<u8>` 承载 NumberFormat 的原始 wire 字节（空 vector 表示 absent）。
+ * 本函数写 Bool(present)：absent→写 0；present→写 1 + 透传 vector 内的 wire 字节（已含
+ * VarInt(typeId) + 变体 payload，由业务侧或未来 NumberFormat 工具产出）。
+ */
+inline void writeNumberFormat(B& buf, const std::vector<u8>& nfmt)
+{
+    if (nfmt.empty()) {
+        buf.writeBool(false);
+    } else {
+        buf.writeBool(true);
+        buf.writeBytes(nfmt.data(), nfmt.size());
+    }
+}
+
+/**
+ * @brief 读 Optional<NumberFormat> wire（writeNumberFormat 的对称）
+ *
+ * absent→空 vector；present→读取剩余 NumberFormat wire 字节。NumberFormat 变体由 VarInt(typeId)
+ * 自描述：blank(0) 无后续字节；styled(1) 后跟 CompoundTag（skipCompound 定界）；fixed(2) 后跟
+ * Component NBT（readComponentNbt 定界）。本函数按 typeId 定界消费，返回原始 wire 字节
+ * （含 typeId + 变体 payload）。
+ */
+[[nodiscard]] inline Result<std::vector<u8>> readNumberFormat(B& buf)
+{
+    bool present = false;
+    MC_TRY_ASSIGN(present, buf.readBool());
+    if (!present) {
+        return std::vector<u8>{};
+    }
+    const usize start = buf.readPosition();
+    i32 typeId = 0;
+    MC_TRY_ASSIGN(typeId, buf.readVarInt());
+    if (typeId == 1) {
+        // styled：后跟 Style CompoundTag。Style 经 Codec.encode(NbtOps)→CompoundTag，
+        // readComponentNbt 已支持 CompoundTag 定界（0x0A + entries + 0x00）。
+        MC_TRY(readComponentNbt(buf));
+    } else if (typeId == 2) {
+        // fixed：后跟 Component NBT（StringTag 或 CompoundTag）。
+        MC_TRY(readComponentNbt(buf));
+    } else if (typeId != 0) {
+        return Error(ErrorCode::InvalidData,
+            "NumberFormat: expected typeId 0/1/2, got " + std::to_string(typeId),
+            "readNumberFormat");
+    }
+    // typeId==0 (blank) 无后续字节
+    const usize end = buf.readPosition();
+    const auto& all = buf.bytes();
+    return std::vector<u8>(all.begin() + start, all.begin() + end);
+}
+
+/**
+ * @brief 写 Optional<Component> wire（对齐 vanilla OptionalCodec + ComponentSerialization）
+ *
+ * present→Bool(true) + Component NBT（自定界，无外层长度）；absent→Bool(false)。
+ * 项目 IR 以 `std::vector<u8>` 承载 Component NBT wire 字节，空 vector 表示 absent。
+ */
+inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
+{
+    if (nbt.empty()) {
+        buf.writeBool(false);
+    } else {
+        buf.writeBool(true);
+        buf.writeBytes(nbt.data(), nbt.size());
+    }
+}
+
+/**
+ * @brief 读 Optional<Component> wire（writeOptionalComponentNbt 的对称）
+ */
+[[nodiscard]] inline Result<std::vector<u8>> readOptionalComponentNbt(B& buf)
+{
+    bool present = false;
+    MC_TRY_ASSIGN(present, buf.readBool());
+    if (!present) {
+        return std::vector<u8>{};
+    }
+    return readComponentNbt(buf);
+}
+
+} // namespace play_ext_detail
+
 /// SetObjective（S→C，id=104，单包 + method 分发）
 [[nodiscard]] inline auto setObjectiveCodec()
 {
@@ -456,9 +550,9 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             buf.writeString(v.objectiveName);
             buf.writeU8(v.method);
             if (v.method == 0 || v.method == 2) {
-                play_ext_detail::writeOpaque(buf, v.displayName);
+                writeComponentNbt(buf, v.displayName);
                 buf.writeVarInt(v.renderType);
-                play_ext_detail::writeOpaque(buf, v.numberFormat);
+                play_ext_detail::writeNumberFormat(buf, v.numberFormat);
             }
         },
         [](B& buf) -> Result<ir::play::SetObjective> {
@@ -466,9 +560,9 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             MC_TRY_ASSIGN(v.objectiveName, buf.readString());
             MC_TRY_ASSIGN(v.method, buf.readU8());
             if (v.method == 0 || v.method == 2) {
-                MC_TRY_ASSIGN(v.displayName, play_ext_detail::readOpaque(buf, "setObjectiveCodec.displayName"));
+                MC_TRY_ASSIGN(v.displayName, readComponentNbt(buf));
                 MC_TRY_ASSIGN(v.renderType, buf.readVarInt());
-                MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readOpaque(buf, "setObjectiveCodec.numberFormat"));
+                MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readNumberFormat(buf));
             }
             return v;
         });
@@ -482,16 +576,16 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             buf.writeString(v.owner);
             buf.writeString(v.objectiveName);
             buf.writeVarInt(v.score);
-            play_ext_detail::writeOpaque(buf, v.display);
-            play_ext_detail::writeOpaque(buf, v.numberFormat);
+            play_ext_detail::writeOptionalComponentNbt(buf, v.display);
+            play_ext_detail::writeNumberFormat(buf, v.numberFormat);
         },
         [](B& buf) -> Result<ir::play::SetScore> {
             ir::play::SetScore v{};
             MC_TRY_ASSIGN(v.owner, buf.readString());
             MC_TRY_ASSIGN(v.objectiveName, buf.readString());
             MC_TRY_ASSIGN(v.score, buf.readVarInt());
-            MC_TRY_ASSIGN(v.display, play_ext_detail::readOpaque(buf, "setScoreCodec.display"));
-            MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readOpaque(buf, "setScoreCodec.numberFormat"));
+            MC_TRY_ASSIGN(v.display, play_ext_detail::readOptionalComponentNbt(buf));
+            MC_TRY_ASSIGN(v.numberFormat, play_ext_detail::readNumberFormat(buf));
             return v;
         });
 }
@@ -544,8 +638,15 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
         [](B& buf, const ir::play::SetPlayerTeam& v) {
             buf.writeString(v.name);
             buf.writeU8(v.method);
+            // TeamParameters（method 0/2）：扁平 7 字段，对齐 vanilla ClientboundSetPlayerTeamPacket.Parameters
             if (v.method == 0 || v.method == 2) {
-                play_ext_detail::writeOpaque(buf, v.parameters);
+                writeComponentNbt(buf, v.displayName); // Component NBT（自定界）
+                buf.writeU8(v.options);                // friendlyFlags 打包 Byte
+                buf.writeVarInt(v.visibility);         // Team.Visibility id
+                buf.writeVarInt(v.collision);          // Team.CollisionRule id
+                buf.writeVarInt(v.color);              // ChatFormatting ordinal
+                writeComponentNbt(buf, v.prefix);      // Component NBT
+                writeComponentNbt(buf, v.suffix);      // Component NBT
             }
             if (v.method == 0 || v.method == 3 || v.method == 4) {
                 buf.writeVarInt(static_cast<i32>(v.players.size()));
@@ -559,7 +660,13 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
             MC_TRY_ASSIGN(v.name, buf.readString());
             MC_TRY_ASSIGN(v.method, buf.readU8());
             if (v.method == 0 || v.method == 2) {
-                MC_TRY_ASSIGN(v.parameters, play_ext_detail::readOpaque(buf, "setPlayerTeamCodec.parameters"));
+                MC_TRY_ASSIGN(v.displayName, readComponentNbt(buf));
+                MC_TRY_ASSIGN(v.options, buf.readU8());
+                MC_TRY_ASSIGN(v.visibility, buf.readVarInt());
+                MC_TRY_ASSIGN(v.collision, buf.readVarInt());
+                MC_TRY_ASSIGN(v.color, buf.readVarInt());
+                MC_TRY_ASSIGN(v.prefix, readComponentNbt(buf));
+                MC_TRY_ASSIGN(v.suffix, readComponentNbt(buf));
             }
             if (v.method == 0 || v.method == 3 || v.method == 4) {
                 i32 count = 0;
@@ -585,10 +692,10 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 [[nodiscard]] inline auto setTitleTextCodec()
 {
     return makeCodec<ir::play::SetTitleText>(
-        [](B& buf, const ir::play::SetTitleText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf, const ir::play::SetTitleText& v) { writeComponentNbt(buf, v.text); },
         [](B& buf) -> Result<ir::play::SetTitleText> {
             ir::play::SetTitleText v{};
-            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setTitleTextCodec"));
+            MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
             return v;
         });
 }
@@ -597,10 +704,10 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 [[nodiscard]] inline auto setSubtitleTextCodec()
 {
     return makeCodec<ir::play::SetSubtitleText>(
-        [](B& buf, const ir::play::SetSubtitleText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf, const ir::play::SetSubtitleText& v) { writeComponentNbt(buf, v.text); },
         [](B& buf) -> Result<ir::play::SetSubtitleText> {
             ir::play::SetSubtitleText v{};
-            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setSubtitleTextCodec"));
+            MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
             return v;
         });
 }
@@ -609,10 +716,10 @@ inline void writeParticleOptions(B& buf, const ir::play::ParticleOptions& v)
 [[nodiscard]] inline auto setActionBarTextCodec()
 {
     return makeCodec<ir::play::SetActionBarText>(
-        [](B& buf, const ir::play::SetActionBarText& v) { play_ext_detail::writeOpaque(buf, v.text); },
+        [](B& buf, const ir::play::SetActionBarText& v) { writeComponentNbt(buf, v.text); },
         [](B& buf) -> Result<ir::play::SetActionBarText> {
             ir::play::SetActionBarText v{};
-            MC_TRY_ASSIGN(v.text, play_ext_detail::readOpaque(buf, "setActionBarTextCodec"));
+            MC_TRY_ASSIGN(v.text, readComponentNbt(buf));
             return v;
         });
 }

@@ -72,6 +72,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -1545,7 +1546,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
                         m_app.m_kageroEngine->getLayer(m_app.m_titleLayerId));
                     if (titleWidget) {
-                        const std::string text(p.text.begin(), p.text.end());
+                        const std::string text = ::mc::text::componentNbtBytesToPlainText(p.text);
                         titleWidget->handleTitlePacket(mc::network::TitleAction::Title, text, 0, 0, 0);
                     }
                 }
@@ -1556,7 +1557,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
                         m_app.m_kageroEngine->getLayer(m_app.m_titleLayerId));
                     if (titleWidget) {
-                        const std::string text(p.text.begin(), p.text.end());
+                        const std::string text = ::mc::text::componentNbtBytesToPlainText(p.text);
                         titleWidget->handleTitlePacket(mc::network::TitleAction::Subtitle, text, 0, 0, 0);
                     }
                 }
@@ -1567,7 +1568,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
                         m_app.m_kageroEngine->getLayer(m_app.m_titleLayerId));
                     if (titleWidget) {
-                        const std::string text(p.text.begin(), p.text.end());
+                        const std::string text = ::mc::text::componentNbtBytesToPlainText(p.text);
                         titleWidget->handleTitlePacket(mc::network::TitleAction::Actionbar, text, 0, 0, 0);
                     }
                 }

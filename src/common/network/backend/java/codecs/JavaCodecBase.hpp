@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/codec/StreamCodec.hpp"
 #include "common/network/codec/StreamCodecs.hpp"
@@ -81,6 +82,52 @@ inline void writeTextComponentNbt(B& buf, std::string_view text)
         return viewResult.error();
     }
     return std::string(viewResult.value().data(), viewResult.value().size());
+}
+
+/**
+ * @brief 将已序列化的 1.21.11 Component NBT wire 字节写入 buf（无外层长度前缀）
+ *
+ * 对齐 vanilla `ComponentSerialization.TRUSTED_STREAM_CODEC`：NBT 自定界（StringTag 靠 U16 长度，
+ * CompoundTag 靠 0x00 End），`FriendlyByteBuf.writeNbt` = `NbtIo.writeAnyTag` 只写 tagId+payload，
+ * **无 VarInt 长度前缀**。区别于 writeOpaque（VarInt(len)+bytes）。
+ *
+ * 调用方负责把 ITextComponent 序列化为 NBT wire 字节（纯文本折叠为 StringTag 字节，复杂组件为
+ * CompoundTag 字节）填入 nbtBytes。业务侧工具见 common/util/text/ComponentNbtSerialization。
+ */
+inline void writeComponentNbt(B& buf, const std::vector<u8>& nbtBytes)
+{
+    buf.writeBytes(nbtBytes.data(), nbtBytes.size());
+}
+
+/**
+ * @brief 从 buf 读取 1.21.11 Component NBT wire 字节（writeComponentNbt 的对称）
+ *
+ * Component NBT 根可能是 StringTag（0x08，纯文本折叠）或 CompoundTag（0x0A，复杂组件）。本函数
+ * 读 tagId 后按类型定界推进游标，返回 [start, end) 区间的原始 wire 字节，供下游（客户端 widget
+ * 或真客户端解码）按需解析。tag id 非 0x08/0x0A 视为格式错误。CompoundTag body（entries + 0x00
+ * End）由 buffer::nbt_io::skipCompound 推进游标（NbtIo.hpp 定义）。
+ */
+[[nodiscard]] inline Result<std::vector<u8>> readComponentNbt(B& buf)
+{
+    const usize start = buf.readPosition();
+    u8 tagId = 0;
+    MC_TRY_ASSIGN(tagId, buf.readU8());
+    if (tagId == 0x08) {
+        // StringTag：U16 长度 + UTF8 字节
+        u16 len = 0;
+        MC_TRY_ASSIGN(len, buf.readU16());
+        MC_TRY(buf.readBytes(static_cast<usize>(len))); // 推进游标（字节已在 [start, end) 区间内）
+    } else if (tagId == 0x0A) {
+        // CompoundTag：body（entries + 0x00 End）。0x0A 已消费，skipCompound 消费 body。
+        MC_TRY(buffer::nbt_io::skipCompound(buf));
+    } else {
+        return Error(ErrorCode::InvalidData,
+            "Component NBT: expected StringTag(0x08) or CompoundTag(0x0A), got " + std::to_string(tagId),
+            "readComponentNbt");
+    }
+    const usize end = buf.readPosition();
+    const auto& all = buf.bytes();
+    return std::vector<u8>(all.begin() + start, all.begin() + end);
 }
 
 /**

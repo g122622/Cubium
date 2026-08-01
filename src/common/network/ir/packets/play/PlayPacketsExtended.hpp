@@ -324,13 +324,23 @@ struct SetDisplayObjective {
  * @brief SetPlayerTeam（S→C，id=107，单包 + method 分发）
  *
  * method：0=ADD 1=REMOVE 2=CHANGE 3=JOIN 4=LEAVE。
- * ADD/CHANGE 带 Parameters（displayName/options/visibility/collision/color/prefix/suffix），
- * ADD/JOIN/LEAVE 带 players 列表。Parameters 内 Component 字段 opaque 透传。
+ * ADD/CHANGE 带 TeamParameters（displayName/options/visibility/collision/color/prefix/suffix），
+ * ADD/JOIN/LEAVE 带 players 列表。Parameters 内 displayName/prefix/suffix 为 Component NBT wire 字节，
+ * visibility/collision 为 Team.Visibility/CollisionRule 的 VarInt id（0-3），color 为 ChatFormatting
+ * ordinal VarInt，options 为 friendlyFlags 打包 Byte。对齐 vanilla ClientboundSetPlayerTeamPacket.Parameters。
  */
 struct SetPlayerTeam {
     std::string name;
     u8 method;
-    std::vector<u8> parameters;       // opaque：Parameters（method 0/2）
+    // TeamParameters（仅 method 0/2 有效，对齐 vanilla 扁平 7 字段顺序）
+    std::vector<u8> displayName; // Component NBT wire 字节
+    u8 options =
+        0; // friendlyFlags 打包（bit0 friendlyFire/bit1 seeInvisibles/bit2 nametagVisibility/bit3 collisionRule）
+    i32 visibility = 0;     // Team.Visibility id（VarInt，0=Always/1=Never/2=HideForOtherTeams/3=HideForOwnTeam）
+    i32 collision = 0;      // Team.CollisionRule id（VarInt，0=Always/1=Never/2=PushOtherTeams/3=PushOwnTeam）
+    i32 color = 0;          // ChatFormatting ordinal（VarInt）
+    std::vector<u8> prefix; // Component NBT wire 字节
+    std::vector<u8> suffix; // Component NBT wire 字节
     std::vector<std::string> players; // method 0/3/4
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const SetPlayerTeam&, const SetPlayerTeam&) noexcept = default;
