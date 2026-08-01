@@ -62,6 +62,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/LoginFlow.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -558,8 +559,9 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
 
     // 共享玩家创建逻辑（分配 playerId、addPlayer、createPlayerEntity、权限、存档、play::Login、
     // 初始游戏状态）。本地客户端特有：路由器 setPlayerId + 创造背包初始化 + 物品栏同步。
+    // 批6：登录流程整簇下沉至 LoginFlow 门面，经基类 loginFlow() 访问器进入。
     const bool isFlat = (m_params.worldType == WorldType::Flat);
-    auto creation = createPlayerForConnection(
+    auto creation = loginFlow().createPlayerForConnection(
         *m_clientConnection, username, offlineUuidArr, m_params.hardcore, m_params.seed, isFlat);
     if (!creation.success) {
         return;

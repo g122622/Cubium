@@ -102,6 +102,7 @@ class WeatherSyncService;
 namespace net {
 class ServerClientConnection;
 class PlayerBroadcaster;
+class LoginFlow;
 } // namespace net
 
 /**
@@ -213,6 +214,10 @@ public:
     // ========== 玩家广播门面 ==========
     [[nodiscard]] net::PlayerBroadcaster& broadcaster() { return *m_broadcaster; }
     [[nodiscard]] const net::PlayerBroadcaster& broadcaster() const { return *m_broadcaster; }
+
+    // ========== 登录流程门面（批6 下沉） ==========
+    [[nodiscard]] net::LoginFlow& loginFlow() { return *m_loginFlow; }
+    [[nodiscard]] const net::LoginFlow& loginFlow() const { return *m_loginFlow; }
 
     // ========== 玩家实体管理 ==========
 
@@ -361,6 +366,29 @@ public:
      */
     void routeInboundPlayPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
+    /**
+     * @brief 序列化难度同步包
+     * @return 难度同步 IR 包
+     *
+     * 提升为 public：LoginFlow 门面在 sendInitialDifficultyToPlayer 中调用
+     * （批6 登录序列下沉）。
+     */
+    [[nodiscard]] mc::network::ir::IrPacket serializeDifficultyPacket();
+
+    /**
+     * @brief 解析玩家在命令分发时使用的权限等级。
+     *
+     * 默认实现直接返回 OP 列表中的等级；集成服务器可 override 在此之上叠加
+     * 单机主机作弊提升（运行时判定，不写 ops.json）。
+     *
+     * 提升为 public：LoginFlow 门面在 createPlayerForConnection 中调用
+     * （批6 登录序列下沉）。保留 virtual 维持子类多态。
+     *
+     * @param uuid 玩家 UUID。
+     * @return 命令分发所用的权限等级 (0-4)。
+     */
+    [[nodiscard]] virtual i32 resolveOpLevel(const std::string& uuid) const noexcept;
+
 protected:
     void attachWorldBindings(ServerWorld& world);
     void attachWorldCommandBindings(ServerWorld& world);
@@ -387,17 +415,6 @@ protected:
      * 子类不再 override。保留 virtual 仅供测试桩（SaveStateSpyServer）spy 调用时机。
      */
     virtual void savePlayerRuntimeState();
-
-    /**
-     * @brief 解析玩家在命令分发时使用的权限等级。
-     *
-     * 默认实现直接返回 OP 列表中的等级；集成服务器可 override 在此之上叠加
-     * 单机主机作弊提升（运行时判定，不写 ops.json）。
-     *
-     * @param uuid 玩家 UUID。
-     * @return 命令分发所用的权限等级 (0-4)。
-     */
-    [[nodiscard]] virtual i32 resolveOpLevel(const std::string& uuid) const noexcept;
 
     /**
      * @brief 初始化核心管理器
@@ -451,12 +468,6 @@ protected:
     void broadcastDifficultyChange();
 
     /**
-     * @brief 序列化难度同步包
-     * @return 难度同步 IR 包
-     */
-    [[nodiscard]] mc::network::ir::IrPacket serializeDifficultyPacket();
-
-    /**
      * @brief 关闭所有管理器
      */
     void shutdownManagers();
@@ -482,11 +493,7 @@ protected:
 
     // 天气同步已下沉到 WeatherSyncService（server/sync/WeatherSyncService）。
     // tick 中调 m_weatherSyncService->tick()，登录时调其 sendInitialWeatherStateToPlayer。
-
-    /**
-     * @brief 发送初始难度状态给指定玩家
-     */
-    void sendInitialDifficultyToPlayer(PlayerId playerId);
+    // 注：sendInitialDifficultyToPlayer 已于批6 迁入 LoginFlow。
 
     /**
      * @brief 发送心跳给所有玩家
@@ -599,31 +606,18 @@ protected:
      */
     virtual void _drainDisconnectedSessions() {}
 
-protected:
-    /**
-     * @brief 向指定玩家同步命令树（内部使用，登录/权限变更时调用）
-     *
-     * 命令树包构造逻辑已可经 net::buildCommandsIr 公开构造，但本方法保留为
-     * 登录流程的便捷封装（取 m_commandRegistry + 编码 + 投递）。批5b 已从
-     * IServer 删除该纯虚，外部主调者改走 buildCommandsIr + connectionManager。
-     */
-    void sendCommandTreePacket(PlayerId playerId);
-
-    /**
-     * @brief 向指定玩家发送权限等级变更通知（内部使用）
-     *
-     * 通过 IR ir::play::EntityEvent (status byte = 24 + level) 通知客户端，
-     * 并同步命令树以刷新可用命令列表。EntityEvent 包构造可经
-     * net::buildPermissionLevelChangeIr 公开构造；本方法保留为登录流程的
-     * 便捷封装（含取玩家实体 id + 连带发命令树）。批5b 已从 IServer 删除该
-     * 纯虚，外部主调者（/op、/deop）改走 builder + connectionManager。
-     */
-    void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel);
-
+public:
     /**
      * @brief 刷新指定玩家的实体追踪范围
+     *
+     * 批6：提升为 public 供 LoginFlow::sendInitialGameState 调用（经 m_server 调）。
+     * 批7 将随 handle*Packet 整簇迁入 ServerPlayHandler。
      */
     void updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z);
+
+protected:
+    // 注：sendCommandTreePacket/sendPermissionLevelChange 已于批6 迁入 LoginFlow
+    // （登录流程整簇下沉）。/op、/deop 命令走 buildPermissionLevelChangeIr + connectionManager。
 
     // ========== 数据包处理方法 ==========
 
@@ -785,60 +779,9 @@ protected:
      */
     void sendBlockUpdatePacket(PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId);
 
-    /**
-     * @brief 设置玩家初始状态
-     *
-     * 设置玩家的初始位置、游戏模式等状态。
-     * 子类在登录处理中调用此方法。
-     */
-    void setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode);
-
-    /**
-     * @brief 发送初始游戏状态给玩家
-     *
-     * 发送传送包和天气状态给新登录的玩家。
-     * 子类在登录处理中调用此方法。
-     */
-    void sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch);
-
-public:
-    /**
-     * @brief 握手完成（onPlayerReady）后创建玩家并初始化游戏状态（共享逻辑）
-     *
-     * 集成服本地客户端与独立服/LAN 远程 TCP 客户端共用。封装：分配 playerId、
-     * addPlayer、setupInitialPlayerState、createPlayerEntity、playerJoinDimension、
-     * OP 权限、存档加载、play::Login 发送、sendPermissionLevelChange、sendInitialGameState。
-     *
-     * 不含：路由器 setPlayerId（子类/session 责任）、物品栏初始化（Local 用 m_clientInventory、
-     * 远程用 InventoryManager）——调用方在返回后自行处理。
-     *
-     * @param connection 玩家所属连接（出站包经此发送）
-     * @param username 玩家名
-     * @param offlineUuid 离线模式 UUID（16 字节，转字符串后入 PlayerManager）
-     * @param hardcore/isFlat/seed play::Login 所需世界参数（由子类按自身 settings/params 提供）
-     * @return PlayerCreationResult{playerId, entityId, success}
-     */
-    struct PlayerCreationResult {
-        PlayerId playerId;
-        EntityInstanceId entityId;
-        bool success;
-    };
-    PlayerCreationResult createPlayerForConnection(mc::server::net::ServerClientConnection& connection,
-        const std::string& username,
-        const std::array<u8, 16>& offlineUuid,
-        bool hardcore,
-        i64 seed,
-        bool isFlat);
-
-    /**
-     * @brief 发送 play::Login（post-Configuration S→C）给指定玩家
-     *
-     * 由 createPlayerForConnection 内部调用，亦可供子类单独调用。经 sendPacketToPlayer
-     * 按 playerId 路由（本地→m_clientConnection，远程→player->send），故无需 connection 参数。
-     * world 参数（hardcore/seed/isFlat）由调用方提供，避免基类耦合
-     * IntegratedServerParams 或 settings 子集。
-     */
-    void sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat);
+    // 注：登录流程整簇（setupInitialPlayerState/sendInitialGameState/
+    // createPlayerForConnection/sendLoginResponseForConnection + 配套 PlayerCreationResult）
+    // 已于批6 迁入 LoginFlow 门面。调用方经 m_loginFlow->createPlayerForConnection 进入。
 
 protected:
     // ========== 声音广播方法 ==========
@@ -1207,6 +1150,9 @@ protected:
 
     // 玩家广播门面（声音/粒子/实体事件/世界事件/方块事件/爆炸/光照更新，下沉自 broadcast*/send*）
     std::unique_ptr<net::PlayerBroadcaster> m_broadcaster;
+
+    // 登录流程门面（玩家创建 + 初始游戏状态推送整簇，下沉自 createPlayerForConnection 等）
+    std::unique_ptr<net::LoginFlow> m_loginFlow;
 
     // 交互管理器
     std::unique_ptr<interaction::BlockInteractionManager> m_blockInteractionManager;

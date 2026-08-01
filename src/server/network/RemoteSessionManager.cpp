@@ -27,6 +27,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/network/LoginFlow.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -110,7 +111,8 @@ void RemoteSessionManager::onPlayerReady(
 
     // 远程玩家世界参数由 provider 注入（StandaloneServer 取 m_settings，IntegratedServer 取 m_params）。
     const RemoteWorldParams wp = m_worldParamsProvider();
-    auto creation = m_server.createPlayerForConnection(*conn, username, offlineUuid, wp.hardcore, wp.seed, wp.isFlat);
+    auto creation =
+        m_server.loginFlow().createPlayerForConnection(*conn, username, offlineUuid, wp.hardcore, wp.seed, wp.isFlat);
     if (!creation.success) {
         spdlog::warn("{}: failed to create remote player entity for '{}'", m_logPrefix, username);
         return;

@@ -17,6 +17,8 @@ add_executable(minecraft-server
     network/RemoteSessionManager.cpp
     # 玩家广播门面（broadcast*/send* 转发型网络广播下沉自 MinecraftServer）
     network/PlayerBroadcaster.cpp
+    # 登录流程门面（玩家创建 + 初始游戏状态推送整簇下沉自 MinecraftServer）
+    network/LoginFlow.cpp
     # Play/Configuration 单包 IR 构造器（buildPlaySoundIr/buildPermissionLevelChangeIr/
     # buildCommandsIr/buildLevelParticlesIr，下沉自 IServer 单包业务方法）
     network/PacketBuilders.cpp
