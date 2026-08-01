@@ -496,7 +496,6 @@ public:
     // ========== 容器打开回调 ==========
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
-    using OpenEntityContainerCallback = std::function<bool(INamedContainerProvider&, Player&)>;
 
     void setOnOpenContainer(OpenContainerCallback callback)
     {
@@ -509,19 +508,12 @@ public:
     [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
 
     /**
-     * @brief 设置实体容器打开回调
-     * @param callback 回调函数
-     */
-    void setOnOpenEntityContainer(OpenEntityContainerCallback callback)
-    {
-        m_onOpenEntityContainer = std::move(callback);
-    }
-
-    /**
      * @brief 打开实体容器
      * @param provider 命名容器提供者（村民、矿车等）
      * @param player 玩家
      * @return 如果成功打开返回 true
+     *
+     * TODO: 实体容器打开回调尚未接线（MinecraftServer 未注册），当前恒返回 false。
      */
     [[nodiscard]] bool openEntityContainer(INamedContainerProvider& provider, Player& player) override;
 
@@ -746,21 +738,6 @@ public:
         const std::unordered_map<u64, Vector3>& playerKnockback)>;
 
     void setOnBroadcastExplosion(ExplosionBroadcastCallback callback) { m_onBroadcastExplosion = std::move(callback); }
-
-    // ========== 袭击事件回调 ==========
-
-    /**
-     * @brief 袭击事件广播回调类型
-     *
-     * 当袭击发生特定事件时调用，用于通知玩家。
-     */
-    using RaidEventCallback = std::function<void(i32 raidId, ///< 袭击 ID
-        i32 eventType,                                       ///< 事件类型 (0=开始, 1=胜利, 2=失败, 3=波次开始)
-        const BlockPos& pos,                                 ///< 相关位置
-        i32 data                                             ///< 额外数据
-        )>;
-
-    void setOnRaidEvent(RaidEventCallback callback) { m_onRaidEvent = std::move(callback); }
 
     // ========== 命令执行回调 ==========
 
@@ -1530,13 +1507,28 @@ private:
     /// 主线程 fallback 路径（executor 为空）同步调用，与 ChunkLoadLightTask::execute 同构。
     void _executeChunkLoadLight(RuntimeLightingProvider& provider, ChunkCoord x, ChunkCoord z);
 
-    /// 在 m_mapDataManager->tick 之后调用：遍历所有 MapData，对每个持有该图的在线玩家，
-    /// 若其 MapInfo 处于脏状态则构造 ir::play::MapItemData（colorPatch 每 tick，
-    /// decorations 每 5 tick）经 ConnectionManager 下推，对齐 Java HoldingPlayer.nextUpdatePacket。
-    void _pushMapDataToHolders();
-
     [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
     [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
+
+    /// 将反序列化得到的实体注入世界并挂载乘客。
+    /// common 路径（takeLoadedEntities）与 native 路径（EntityStorageManager）共用：
+    /// spawn → attachPassengers →（仅 native 路径）按实体真实所在区块重注册 EntityChunkTracker。
+    /// entityChunk 为 nullopt 表示无需重注册（实体必属当前区块）；非 nullopt 时若与 (x,z) 不符则重注册。
+    /// 必须在 spawnEntity 之前从 entity 读取坐标（spawnEntity 会 move 走所有权）。
+    void _spawnLoadedEntity(std::unique_ptr<Entity> entity,
+        ChunkCoord x,
+        ChunkCoord z,
+        std::optional<std::pair<ChunkCoord, ChunkCoord>> entityChunk);
+
+    /// 三个 createExplosion 重载共用：构造 Explosion（context 非空走 9 参重载，否则 8 参）→
+    /// explode → 广播给爆炸点 64 格范围内的玩家。
+    void _explodeAndBroadcast(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<DamageSource> damageSource,
+        std::unique_ptr<world::explosion::ExplosionContext> context);
 
 private:
     ServerWorldConfig m_config;
@@ -1571,7 +1563,6 @@ private:
     f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
 
     OpenContainerCallback m_onOpenContainer;
-    OpenEntityContainerCallback m_onOpenEntityContainer;
 
     // 村庄和袭击系统
     std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
@@ -1601,7 +1592,6 @@ private:
     BlockEntityBroadcastCallback m_onBroadcastBlockEntity; ///< 方块实体数据广播回调
     BlockBreakProgressCallback m_onDestroyBlockProgress;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
-    RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调
     CommandExecuteCallback m_onExecuteCommand; ///< 命令执行回调
 
     // 随机刻系统

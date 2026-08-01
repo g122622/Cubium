@@ -1565,6 +1565,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
+        # mc_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 游戏事件系统（服务端实现）
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
@@ -1743,6 +1746,9 @@ target_sources(mc_tests
         # Play/Configuration 单包 IR 构造器：命令经 builder + connectionManager 投递，
         # mc_tests 编译命令实现故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
+        # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
+        # mc_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
@@ -2618,6 +2624,9 @@ target_sources(mc_command_tests
         # buildCommandsIr、ParticleCommand→buildLevelParticlesIr，mc_command_tests 编译
         # 这些命令实现故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
+        # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
+        # mc_command_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
@@ -2651,6 +2660,9 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
+        # mc_command_tests 编译 ServerWorld.cpp（LocateCommand 经虚分发）故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         # 游戏事件系统（服务端实现）

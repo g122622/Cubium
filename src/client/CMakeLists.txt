@@ -460,6 +460,9 @@ add_executable(minecraft-client
     # Play/Configuration 单包 IR 构造器：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
+    # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
+    # 客户端内置服编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
     # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
@@ -497,6 +500,9 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+    # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
+    # 客户端内置服编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
     # 游戏事件系统（服务端实现）
     ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp

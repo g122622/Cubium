@@ -619,7 +619,6 @@ ActionResultType AbstractNautilusEntity::interactMob(Player& player, Hand hand)
 
 void AbstractNautilusEntity::openInventory(Player& player)
 {
-    // 对应 MC 1.21.11 AbstractNautilus.openCustomInventoryScreen()
     // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
@@ -627,16 +626,14 @@ void AbstractNautilusEntity::openInventory(Player& player)
                 // TODO: 当实体背包 ContainerMenu 系统实现后，在此打开鹦鹉螺背包 GUI。
                 // 当前物品栏 SimpleInventory 已存在（m_inventory），但实体背包 GUI 链路尚未打通，
                 // 缺失以下关键组件：
-                //   1. ServerWorld::setOnOpenEntityContainer 回调未接线（MinecraftServer 未注册）
+                //   1. ServerWorld::openEntityContainer 恒返回 false（实体容器回调从未接线，
+                //      setter 已移除，待 ContainerManager 支持实体容器后由上层直接打开）
                 //   2. ContainerManager 不支持实体容器（仅支持方块容器，签名依赖 BlockPos）
                 //   3. NautilusContainer 菜单类未实现（参考 ChestContainer 模式）
                 //   4. ContainerType 枚举无动物背包类型
                 //   5. 客户端 OpenContainerPacket 处理器不支持实体容器分支
                 //   6. 客户端 NautilusInventoryScreen 未实现
                 // 与 AbstractHorseEntity::openInventory 的 TODO 是同一阻塞点，应一起收敛。
-                // MC 原版流程：openCustomInventoryScreen → ServerPlayer.openNautilusInventory
-                // → 发送 ClientboundMountScreenOpenPacket + 创建 NautilusInventoryMenu
-                // → initMenu → sendInitialData 发送 ClientboundContainerSetContentPacket。
             }
         }
     }

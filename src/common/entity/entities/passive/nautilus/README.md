@@ -73,6 +73,7 @@ AbstractNautilusEntity (继承 TameableEntity + IJumpingMount + IEquipable)
 8. **`getLookAngle()` 是 `LivingEntity` 的 protected 方法**，不是 `Entity` 的方法。在 `executeRidersJump`
    中使用时需通过 `Player&`（继承自 `LivingEntity`）访问。
 
-9. **鹦鹉螺背包 GUI 未实现** - `openInventory` 仍为 TODO，阻塞点：`ServerWorld::setOnOpenEntityContainer`
-   回调未接线、`ContainerManager` 不支持实体容器、`NautilusContainer` 菜单类未实现、客户端 Screen 未实现。
+9. **鹦鹉螺背包 GUI 未实现** - `openInventory` 仍为 TODO，阻塞点：`ServerWorld::openEntityContainer`
+   恒返回 false（实体容器回调从未接线，setter 已移除）、`ContainerManager` 不支持实体容器、
+   `NautilusContainer` 菜单类未实现、客户端 Screen 未实现。
    与 `AbstractHorseEntity::openInventory` 的 TODO 是同一阻塞点，应一起收敛。

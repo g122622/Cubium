@@ -78,10 +78,6 @@
 #include "common/world/gen/FeaturePlacer.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
-#include "common/world/gen/structure/StructureSet.hpp"
-#include "common/world/gen/structure/StructureTags.hpp"
-#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
-#include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/map/MapData.hpp"
@@ -96,10 +92,12 @@
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/network/MapPacketBuilder.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/structure/StructureLocator.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
@@ -488,11 +486,10 @@ bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player&
 
 bool ServerWorld::openEntityContainer(INamedContainerProvider& provider, Player& player)
 {
-    if (!m_onOpenEntityContainer) {
-        return false;
-    }
-
-    return m_onOpenEntityContainer(provider, player);
+    // TODO: 实体容器打开回调尚未接线（MinecraftServer 未注册），当前恒返回 false。
+    (void)provider;
+    (void)player;
+    return false;
 }
 
 void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
@@ -1233,7 +1230,7 @@ void ServerWorld::tick()
     if (m_mapDataManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::MapDataTick");
         // 先推送：MapData::isDirty() 由地形/装饰更新设置，必须在 tick 清脏之前读取。
-        _pushMapDataToHolders();
+        net::MapPacketBuilder::pushDirtyMaps(*this);
         m_mapDataManager->tick(*this);
     }
 
@@ -1262,115 +1259,6 @@ void ServerWorld::tick()
         m_entityChunkTracker.onEntityMoved(entity->id(), oldCx, oldCz, currentCx, currentCz);
         return true;
     });
-}
-
-namespace {
-
-/// 把 ITextComponent 序列化成 JSON 字节（opaque Component，对齐客户端 wireToDecoration 的
-/// json::parse + fromJson 解析路径）。nullptr 时返回 nullopt。
-std::optional<std::vector<u8>> componentToJsonBytes(const mc::text::ITextComponent* component)
-{
-    if (component == nullptr) {
-        return std::nullopt;
-    }
-    const std::string jsonStr = component->toJson().dump();
-    return std::vector<u8>(jsonStr.begin(), jsonStr.end());
-}
-
-} // namespace
-
-void ServerWorld::_pushMapDataToHolders()
-{
-    if (m_server == nullptr || m_mapDataManager == nullptr) {
-        return;
-    }
-
-    auto& connMgr = m_server->connectionManager();
-    auto& playerEntityMgr = m_server->playerEntityManager();
-    namespace irplay = mc::network::ir::play;
-
-    // 遍历每个在线玩家，扫描其背包中持有的已填充地图，
-    // 对每张处于脏状态的地图全量推送 colorPatch + decorations。
-    // （MapInfo 持有者追踪机制当前未填充，改用 MapData::isDirty() 判定，
-    //  在 MapDataManager::tick 清脏之前读取，故本方法须先于 tick 调用。）
-    const std::vector<PlayerId> playerIds = playerEntityMgr.getPlayerIds();
-    for (const PlayerId playerId : playerIds) {
-        Player* playerEntity = playerEntityMgr.getPlayerEntity(playerId, *this);
-        if (playerEntity == nullptr) {
-            continue;
-        }
-        auto* serverPlayer = playerEntity->asServerPlayer();
-        if (serverPlayer == nullptr || !serverPlayer->isOnline()) {
-            continue;
-        }
-
-        // 扫描整个背包（41 槽）找已填充地图，去重 mapId。
-        std::vector<i32> heldMapIds;
-        PlayerInventory& inv = serverPlayer->inventory();
-        for (i32 slot = 0; slot < PlayerInventory::TOTAL_SIZE; ++slot) {
-            const ItemStack stack = inv.getItem(slot);
-            if (stack.isEmpty() || !item::items::FilledMapItem::isFilledMap(stack)) {
-                continue;
-            }
-            const i32 mapId = item::items::FilledMapItem::getMapId(stack);
-            if (mapId < 0) {
-                continue;
-            }
-            // 去重（同一张图可能在多个槽位）
-            if (std::find(heldMapIds.begin(), heldMapIds.end(), mapId) == heldMapIds.end()) {
-                heldMapIds.push_back(mapId);
-            }
-        }
-
-        for (const i32 mapId : heldMapIds) {
-            world::map::MapData* mapData = m_mapDataManager->getMapData(mapId);
-            if (mapData == nullptr || !mapData->isDirty()) {
-                continue;
-            }
-
-            irplay::MapItemData pkt;
-            pkt.mapId = mapId;
-            pkt.scale = static_cast<u8>(mapData->scale());
-            pkt.locked = mapData->locked();
-
-            // colorPatch：全图 128×128，colors 局部行优先（startX=startY=0, width=height=128）。
-            {
-                irplay::MapPatchWire patch;
-                patch.startX = 0;
-                patch.startY = 0;
-                patch.width = static_cast<u8>(world::map::MapData::MAP_SIZE);
-                patch.height = static_cast<u8>(world::map::MapData::MAP_SIZE);
-                const auto& fullColors = mapData->colors();
-                patch.colors.assign(fullColors.begin(), fullColors.end());
-                pkt.colorPatch = std::move(patch);
-            }
-
-            // decorations 全量推送（客户端 apply 是全量替换语义）。
-            {
-                std::vector<irplay::MapDecorationWire> decos;
-                decos.reserve(mapData->decorations().size());
-                for (const auto& [decoKey, deco] : mapData->decorations()) {
-                    (void)decoKey;
-                    irplay::MapDecorationWire w;
-                    // DecorationType 枚举值即 Java MAP_DECORATION_TYPE registry id；
-                    // vanilla holderRegistry wire = 纯 VarInt(registryId)，直接写 id（PLAYER→0）。
-                    w.typeRegistryId = static_cast<u32>(deco.type());
-                    w.x = deco.x();
-                    w.y = deco.y();
-                    w.rotation = deco.rotation();
-                    w.name = componentToJsonBytes(deco.customName());
-                    decos.push_back(std::move(w));
-                }
-                if (!decos.empty()) {
-                    pkt.decorations = std::move(decos);
-                }
-            }
-
-            const mc::network::ir::IrPacket irPacket{
-                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}};
-            (void)connMgr.sendToPlayer(playerId, irPacket);
-        }
-    }
 }
 
 // ============================================================================
@@ -1834,7 +1722,15 @@ bool ServerWorld::canRainAt(const BlockPos& pos) const
 // 碰撞检测
 // ============================================================================
 
-bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
+namespace {
+
+/// 遍历 AABB 覆盖的所有区块/段/方块中「非空、非 air、有碰撞形状」的候选方块，
+/// 对每个候选调用 visitor(state, shape, wx, y, wz)。
+/// visitor 返回 true 表示请求提前终止（用于 hasBlockCollision 短路）；返回 false 继续遍历。
+/// 返回值：是否因 visitor 请求而提前终止。
+/// hasBlockCollision 与 getBlockCollisions 共用此遍历骨架，差异仅在 visitor 内的命中处理。
+template <typename Visitor>
+bool _forEachCollisionCandidate(const ServerWorld& world, const AxisAlignedBB& box, Visitor&& visitor)
 {
     ChunkCoord minChunkX = CoordConverter::blockToChunk(box.minX);
     ChunkCoord maxChunkX = CoordConverter::blockToChunk(box.maxX);
@@ -1843,7 +1739,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
 
     for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
         for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
-            const ChunkData* chunk = getChunk(cx, cz);
+            const ChunkData* chunk = world.getChunk(cx, cz);
             if (!chunk) continue;
 
             i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));
@@ -1855,6 +1751,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
                         i32 wx = cx * world::CHUNK_WIDTH + x;
                         i32 wz = cz * world::CHUNK_WIDTH + z;
 
+                        // 坐标裁剪：跳过 AABB 范围外的方块
                         if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
                             continue;
                         }
@@ -1865,7 +1762,7 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
                         const CollisionShape& shape = state->getCollisionShape();
                         if (shape.isEmpty()) continue;
 
-                        if (shape.intersects(box, wx, y, wz)) {
+                        if (visitor(*state, shape, wx, y, wz)) {
                             return true;
                         }
                     }
@@ -1877,51 +1774,30 @@ bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
     return false;
 }
 
+} // namespace
+
+bool ServerWorld::hasBlockCollision(const AxisAlignedBB& box) const
+{
+    // 短路语义：首个相交方块即返回 true
+    return _forEachCollisionCandidate(
+        *this, box, [&box](const BlockState&, const CollisionShape& shape, i32 wx, i32 y, i32 wz) {
+            return shape.intersects(box, wx, y, wz);
+        });
+}
+
 std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& box) const
 {
     std::vector<AxisAlignedBB> collisions;
-
-    ChunkCoord minChunkX = CoordConverter::blockToChunk(box.minX);
-    ChunkCoord maxChunkX = CoordConverter::blockToChunk(box.maxX);
-    ChunkCoord minChunkZ = CoordConverter::blockToChunk(box.minZ);
-    ChunkCoord maxChunkZ = CoordConverter::blockToChunk(box.maxZ);
-
-    for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-        for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
-            const ChunkData* chunk = getChunk(cx, cz);
-            if (!chunk) continue;
-
-            i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));
-            i32 maxY = std::min(world::MAX_BUILD_HEIGHT - 1, static_cast<i32>(std::ceil(box.maxY)));
-
-            for (i32 y = minY; y <= maxY; ++y) {
-                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-                        i32 wx = cx * world::CHUNK_WIDTH + x;
-                        i32 wz = cz * world::CHUNK_WIDTH + z;
-
-                        if (wx + 1 < box.minX || wx > box.maxX || wz + 1 < box.minZ || wz > box.maxZ) {
-                            continue;
-                        }
-
-                        const BlockState* state = chunk->getBlockState(x, y, z);
-                        if (!state || state->isAir()) continue;
-
-                        const CollisionShape& shape = state->getCollisionShape();
-                        if (shape.isEmpty()) continue;
-
-                        auto worldBoxes = shape.getWorldBoxes(wx, y, wz);
-                        for (const auto& worldBox : worldBoxes) {
-                            if (box.intersects(worldBox)) {
-                                collisions.push_back(worldBox);
-                            }
-                        }
-                    }
+    _forEachCollisionCandidate(
+        *this, box, [&box, &collisions](const BlockState&, const CollisionShape& shape, i32 wx, i32 y, i32 wz) {
+            auto worldBoxes = shape.getWorldBoxes(wx, y, wz);
+            for (const auto& worldBox : worldBoxes) {
+                if (box.intersects(worldBox)) {
+                    collisions.push_back(worldBox);
                 }
             }
-        }
-    }
-
+            return false; // 不短路，遍历全部
+        });
     return collisions;
 }
 
@@ -2199,35 +2075,51 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 // 实体区块持久化
 // ============================================================================
 
+void ServerWorld::_spawnLoadedEntity(std::unique_ptr<Entity> entity,
+    ChunkCoord x,
+    ChunkCoord z,
+    std::optional<std::pair<ChunkCoord, ChunkCoord>> entityChunk)
+{
+    // 必须在 spawnEntity 之前捕获坐标——spawnEntity 会 move 走实体所有权。
+    const ChunkCoord actualCx = entityChunk ? entityChunk->first : x;
+    const ChunkCoord actualCz = entityChunk ? entityChunk->second : z;
+
+    EntityInstanceId id = spawnEntity(std::move(entity));
+    if (id == 0) {
+        spdlog::warn("Failed to spawn storage-loaded entity for chunk ({}, {})", x, z);
+        return;
+    }
+
+    // 主实体已 spawn 拿到真实 id，挂载反序列化阶段暂存的 Passengers。
+    // 必须在 spawn 之后调用：乘客 startRiding 时会把 m_vehicle 记为 vehicle.id()，
+    // 若在 spawn 之前调用，vehicle.id() 仍为 0，会导致乘客 m_vehicle 失效。
+    Entity* spawnedEntity = m_entityManager.getEntity(id);
+    if (spawnedEntity != nullptr) {
+        auto attachResult = entity::serialization::EntityDeserializer::attachPassengers(*spawnedEntity, *this);
+        if (attachResult.failed()) {
+            spdlog::warn("Failed to attach passengers for entity {} in chunk ({}, {}): {}",
+                spawnedEntity->getTypeId(),
+                x,
+                z,
+                attachResult.error().message());
+        }
+    }
+
+    // native 路径：实体真实所在区块可能与加载区块不符（跨区块实体），按实际坐标重注册。
+    if (entityChunk && (actualCx != x || actualCz != z)) {
+        m_entityChunkTracker.onEntityRemoved(id);
+        m_entityChunkTracker.onEntityAdded(id, actualCx, actualCz);
+    }
+}
+
 void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
 {
     ChunkData* chunk = m_chunkManager ? m_chunkManager->tryToGetChunkInMem(x, z) : nullptr;
     if (chunk != nullptr && chunk->hasLoadedEntities()) {
         auto loadedEntities = chunk->takeLoadedEntities();
         for (auto& entityPtr : loadedEntities) {
-            if (!entityPtr) {
-                continue;
-            }
-
-            EntityInstanceId id = spawnEntity(std::move(entityPtr));
-            if (id == 0) {
-                spdlog::warn("Failed to spawn chunk-loaded entity for chunk ({}, {})", x, z);
-                continue;
-            }
-
-            // 主实体已 spawn 拿到真实 id，挂载反序列化阶段暂存的 Passengers。
-            // 必须在 spawn 之后调用：乘客 startRiding 时会把 m_vehicle 记为 vehicle.id()，
-            // 若在 spawn 之前调用，vehicle.id() 仍为 0，会导致乘客 m_vehicle 失效。
-            Entity* spawnedEntity = m_entityManager.getEntity(id);
-            if (spawnedEntity != nullptr) {
-                auto attachResult = entity::serialization::EntityDeserializer::attachPassengers(*spawnedEntity, *this);
-                if (attachResult.failed()) {
-                    spdlog::warn("Failed to attach passengers for entity {} in chunk ({}, {}): {}",
-                        spawnedEntity->getTypeId(),
-                        x,
-                        z,
-                        attachResult.error().message());
-                }
+            if (entityPtr) {
+                _spawnLoadedEntity(std::move(entityPtr), x, z, std::nullopt);
             }
         }
     }
@@ -2254,35 +2146,11 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
             continue;
         }
 
-        // 计算实体所在区块坐标，确保与加载的区块一致
-        ChunkCoord entityCx = CoordConverter::blockToChunk(entityPtr->x());
-        ChunkCoord entityCz = CoordConverter::blockToChunk(entityPtr->z());
+        // 计算实体所在区块坐标，确保与加载的区块一致（spawn 前捕获，见 _spawnLoadedEntity）
+        std::optional<std::pair<ChunkCoord, ChunkCoord>> entityChunk{
+            std::in_place, CoordConverter::blockToChunk(entityPtr->x()), CoordConverter::blockToChunk(entityPtr->z())};
 
-        EntityInstanceId id = spawnEntity(std::move(entityPtr));
-        if (id == 0) {
-            spdlog::warn("Failed to spawn storage-loaded entity for chunk ({}, {})", x, z);
-            continue;
-        }
-
-        // 主实体已 spawn 拿到真实 id，挂载反序列化阶段暂存的 Passengers。
-        // 必须在 spawn 之后调用：乘客 startRiding 时会把 m_vehicle 记为 vehicle.id()，
-        // 若在 spawn 之前调用，vehicle.id() 仍为 0，会导致乘客 m_vehicle 失效。
-        Entity* spawnedEntity = m_entityManager.getEntity(id);
-        if (spawnedEntity != nullptr) {
-            auto attachResult = entity::serialization::EntityDeserializer::attachPassengers(*spawnedEntity, *this);
-            if (attachResult.failed()) {
-                spdlog::warn("Failed to attach passengers for entity {} in chunk ({}, {}): {}",
-                    spawnedEntity->getTypeId(),
-                    x,
-                    z,
-                    attachResult.error().message());
-            }
-        }
-
-        if (entityCx != x || entityCz != z) {
-            m_entityChunkTracker.onEntityRemoved(id);
-            m_entityChunkTracker.onEntityAdded(id, entityCx, entityCz);
-        }
+        _spawnLoadedEntity(std::move(entityPtr), x, z, std::move(entityChunk));
     }
 }
 
@@ -2809,27 +2677,43 @@ void ServerWorld::broadcastExplosion(const Vector3& position,
 // 爆炸
 // ============================================================================
 
-void ServerWorld::createExplosion(
-    const Vector3& position, f32 radius, world::explosion::ExplosionMode mode, bool causesFire, Entity* source)
+void ServerWorld::_explodeAndBroadcast(const Vector3& position,
+    f32 radius,
+    world::explosion::ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    std::unique_ptr<DamageSource> damageSource,
+    std::unique_ptr<world::explosion::ExplosionContext> context)
 {
-    // 创建爆炸对象
-    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
-        position,
-        radius,
-        mode,
-        causesFire,
-        source,
-        nullptr,           // 使用默认伤害来源
-        m_lootTableManager // 传递掉落表管理器用于生成方块掉落
-    );
+    // context 非空走 9 参构造（穿透高抗性方块等自定义行为），否则走 8 参构造（默认上下文）。
+    std::unique_ptr<world::explosion::Explosion> explosion;
+    if (context != nullptr) {
+        explosion = std::make_unique<world::explosion::Explosion>(*this,
+            position,
+            radius,
+            mode,
+            causesFire,
+            source,
+            std::move(damageSource),
+            m_lootTableManager,
+            std::move(context));
+    } else {
+        explosion = std::make_unique<world::explosion::Explosion>(
+            *this, position, radius, mode, causesFire, source, std::move(damageSource), m_lootTableManager);
+    }
 
-    // 执行爆炸
     explosion->explode();
 
     // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
     if (m_onBroadcastExplosion) {
         m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
     }
+}
+
+void ServerWorld::createExplosion(
+    const Vector3& position, f32 radius, world::explosion::ExplosionMode mode, bool causesFire, Entity* source)
+{
+    _explodeAndBroadcast(position, radius, mode, causesFire, source, /*damageSource=*/nullptr, /*context=*/nullptr);
 }
 
 void ServerWorld::createExplosionWithSource(const Vector3& position,
@@ -2840,26 +2724,8 @@ void ServerWorld::createExplosionWithSource(const Vector3& position,
     const DamageSource* damageSource)
 {
     // 将 const DamageSource* 转换为 std::unique_ptr<DamageSource>（通过 clone）
-    std::unique_ptr<DamageSource> damageSourcePtr = (damageSource != nullptr) ? damageSource->clone() : nullptr;
-
-    // 创建爆炸对象（使用自定义伤害来源）
-    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
-        position,
-        radius,
-        mode,
-        causesFire,
-        source,
-        std::move(damageSourcePtr), // 传递自定义伤害来源
-        m_lootTableManager          // 传递掉落表管理器用于生成方块掉落
-    );
-
-    // 执行爆炸
-    explosion->explode();
-
-    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
-    if (m_onBroadcastExplosion) {
-        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
-    }
+    auto damageSourcePtr = (damageSource != nullptr) ? damageSource->clone() : nullptr;
+    _explodeAndBroadcast(position, radius, mode, causesFire, source, std::move(damageSourcePtr), /*context=*/nullptr);
 }
 
 void ServerWorld::createExplosionWithContext(const Vector3& position,
@@ -2869,25 +2735,7 @@ void ServerWorld::createExplosionWithContext(const Vector3& position,
     Entity* source,
     std::unique_ptr<world::explosion::ExplosionContext> context)
 {
-    // 创建带自定义爆炸上下文的爆炸对象
-    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
-        position,
-        radius,
-        mode,
-        causesFire,
-        source,
-        nullptr,            // 使用默认伤害来源
-        m_lootTableManager, // 传递掉落表管理器用于生成方块掉落
-        std::move(context)  // 传递自定义爆炸上下文
-    );
-
-    // 执行爆炸
-    explosion->explode();
-
-    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
-    if (m_onBroadcastExplosion) {
-        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
-    }
+    _explodeAndBroadcast(position, radius, mode, causesFire, source, /*damageSource=*/nullptr, std::move(context));
 }
 
 // ============================================================================
@@ -3133,202 +2981,19 @@ void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
 }
 
 // ============================================================================
-// 结构定位
+// 结构定位（算法已下沉至 structure::StructureLocator，此处仅虚分发委托）
 // ============================================================================
 
 std::optional<BlockPos> ServerWorld::findNearestStructure(
     const BlockPos& center, const ResourceLocation& structureId, i32 maxDistance, bool skipExisting)
 {
-    // 通过结构 ID 查找所属的 StructureSet，获取放置规则
-    auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
-    const world::gen::structure::StructureSet* structureSet = structureSetRegistry.findByStructure(structureId);
-    if (structureSet == nullptr) {
-        return std::nullopt;
-    }
-
-    const auto& placement = structureSet->placement();
-    i64 worldSeed = static_cast<i64>(m_config.seed);
-
-    // 获取 StructureCheck 缓存（用于快速跳过不含结构的区块）
-    world::gen::structure::StructureCheck* structureCheck = nullptr;
-    if (auto* cm = chunkManager()) {
-        if (auto* gen = cm->generator()) {
-            structureCheck = gen->structureCheck();
-        }
-    }
-
-    // 将方块坐标转换为区块坐标
-    i32 centerChunkX = center.x >> 4;
-    i32 centerChunkZ = center.z >> 4;
-
-    // 将最大搜索距离转换为区块范围
-    i32 chunkRadius = (maxDistance + 15) >> 4; // 向上取整到区块
-
-    std::optional<BlockPos> nearestPos;
-    f64 nearestDistSq = static_cast<f64>(maxDistance * maxDistance) + 1.0;
-
-    // 根据放置策略类型使用不同的搜索算法
-    auto* randomSpread =
-        dynamic_cast<const world::gen::structure::placement::RandomSpreadStructurePlacement*>(&placement);
-    auto* concentricRings =
-        dynamic_cast<const world::gen::structure::placement::ConcentricRingsStructurePlacement*>(&placement);
-
-    if (randomSpread != nullptr) {
-        // RandomSpread：网格搜索，使用 getPotentialStructureChunk 计算候选区块
-        i32 spacing = randomSpread->spacing();
-
-        i32 minGridX = (centerChunkX - chunkRadius) / spacing - 1;
-        i32 maxGridX = (centerChunkX + chunkRadius) / spacing + 1;
-        i32 minGridZ = (centerChunkZ - chunkRadius) / spacing - 1;
-        i32 maxGridZ = (centerChunkZ + chunkRadius) / spacing + 1;
-
-        for (i32 gridX = minGridX; gridX <= maxGridX; ++gridX) {
-            for (i32 gridZ = minGridZ; gridZ <= maxGridZ; ++gridZ) {
-                i32 baseChunkX = gridX * spacing;
-                i32 baseChunkZ = gridZ * spacing;
-
-                // 使用放置规则计算此网格中的候选区块
-                auto candidate = randomSpread->getPotentialStructureChunk(worldSeed, baseChunkX, baseChunkZ);
-
-                // 检查候选区块距离是否在搜索范围内
-                i32 dx = candidate.x - centerChunkX;
-                i32 dz = candidate.z - centerChunkZ;
-                if (dx * dx + dz * dz > chunkRadius * chunkRadius) {
-                    continue;
-                }
-
-                // 验证此候选区块是否真正生成结构（频率缩减 + 排斥区检查）
-                if (!placement.isStructureChunk(worldSeed, candidate.x, candidate.z)) {
-                    continue;
-                }
-
-                // 对齐 MC 1.21.11 ChunkGenerator.getStructureGeneratingAt()：
-                // 使用 StructureCheck 缓存快速判断区块是否包含目标结构
-                if (structureCheck != nullptr) {
-                    const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(candidate.x)) << 32) |
-                        static_cast<u64>(static_cast<u32>(candidate.z));
-                    auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
-
-                    if (result == world::gen::structure::StructureCheckResult::StartPresent) {
-                        // 精确缓存命中：结构存在于该区块，直接返回位置
-                        BlockPos locatePos = placement.getLocatePos(candidate);
-                        i32 posDx = locatePos.x - center.x;
-                        i32 posDz = locatePos.z - center.z;
-                        f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
-
-                        if (distSq < nearestDistSq) {
-                            nearestDistSq = distSq;
-                            nearestPos = locatePos;
-                        }
-                        continue;
-                    }
-
-                    if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
-                        // 精确缓存或近似缓存确认该区块不含目标结构，跳过
-                        continue;
-                    }
-
-                    // ChunkLoadNeeded：缓存未命中，继续执行当前逻辑（基于放置规则判断）
-                    // 将放置规则检查结果写入近似缓存，供后续查询使用
-                    structureCheck->setFeatureCheckResult(chunkPosId, true);
-                }
-
-                // 使用放置规则的定位偏移计算最终方块位置
-                BlockPos locatePos = placement.getLocatePos(candidate);
-                i32 posDx = locatePos.x - center.x;
-                i32 posDz = locatePos.z - center.z;
-                f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
-
-                if (distSq < nearestDistSq) {
-                    nearestDistSq = distSq;
-                    nearestPos = locatePos;
-                }
-            }
-        }
-    } else if (concentricRings != nullptr) {
-        // ConcentricRings（要塞）：直接获取所有预计算位置，找最近的
-        const auto& ringPositions = concentricRings->getRingPositions(worldSeed);
-        for (const auto& chunkPos : ringPositions) {
-            i32 dx = chunkPos.x - centerChunkX;
-            i32 dz = chunkPos.z - centerChunkZ;
-            if (dx * dx + dz * dz > chunkRadius * chunkRadius) {
-                continue;
-            }
-
-            // 对齐 MC 1.21.11：ConcentricRings 也使用 StructureCheck 缓存
-            if (structureCheck != nullptr) {
-                const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(chunkPos.x)) << 32) |
-                    static_cast<u64>(static_cast<u32>(chunkPos.z));
-                auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
-
-                if (result == world::gen::structure::StructureCheckResult::StartPresent) {
-                    BlockPos locatePos = placement.getLocatePos(chunkPos);
-                    i32 posDx = locatePos.x - center.x;
-                    i32 posDz = locatePos.z - center.z;
-                    f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
-
-                    if (distSq < nearestDistSq) {
-                        nearestDistSq = distSq;
-                        nearestPos = locatePos;
-                    }
-                    continue;
-                }
-
-                if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
-                    continue;
-                }
-            }
-
-            BlockPos locatePos = placement.getLocatePos(chunkPos);
-            i32 posDx = locatePos.x - center.x;
-            i32 posDz = locatePos.z - center.z;
-            f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
-
-            if (distSq < nearestDistSq) {
-                nearestDistSq = distSq;
-                nearestPos = locatePos;
-            }
-        }
-    }
-
-    return nearestPos;
+    return structure::StructureLocator::findNearestStructure(*this, center, structureId, maxDistance, skipExisting);
 }
 
 std::optional<BlockPos> ServerWorld::findNearestMapStructure(
     const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting)
 {
-    // 通过结构标签 ID 查找标签，遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，
-    // 返回所有候选中距离最近的位置。对应 MC 1.21.11 ServerLevel.findNearestMapStructure()。
-    auto* tag = world::gen::structure::StructureTags::getTag(tagId);
-    if (tag == nullptr) {
-        spdlog::warn("findNearestMapStructure: unknown structure tag '{}', returning empty", tagId.toString());
-        return std::nullopt;
-    }
-
-    if (tag->getStructureIds().empty()) {
-        return std::nullopt;
-    }
-
-    std::optional<BlockPos> nearestPos;
-    f64 nearestDistSq = std::numeric_limits<f64>::max();
-
-    for (const auto& structureId : tag->getStructureIds()) {
-        auto candidatePos = findNearestStructure(center, structureId, maxDistance, skipExisting);
-        if (!candidatePos.has_value()) {
-            continue;
-        }
-
-        i32 dx = candidatePos->x - center.x;
-        i32 dz = candidatePos->z - center.z;
-        f64 distSq = static_cast<f64>(dx * dx + dz * dz);
-
-        if (distSq < nearestDistSq) {
-            nearestDistSq = distSq;
-            nearestPos = candidatePos;
-        }
-    }
-
-    return nearestPos;
+    return structure::StructureLocator::findNearestMapStructure(*this, center, tagId, maxDistance, skipExisting);
 }
 
 // ========== 按需特征放置 ==========

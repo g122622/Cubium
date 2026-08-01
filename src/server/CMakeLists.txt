@@ -25,6 +25,9 @@ add_executable(minecraft-server
     # Play/Configuration 单包 IR 构造器（buildPlaySoundIr/buildPermissionLevelChangeIr/
     # buildCommandsIr/buildLevelParticlesIr，下沉自 IServer 单包业务方法）
     network/PacketBuilders.cpp
+    # 地图数据周期推送构造器（pushDirtyMaps，遍历玩家背包脏 MapData 构造 MapItemData 下发，
+    # 下沉自 ServerWorld::_pushMapDataToHolders）
+    network/MapPacketBuilder.cpp
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
     registry/RegistryBootstrap.cpp
     # 核心模块
@@ -63,6 +66,8 @@ add_executable(minecraft-server
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
+    # 结构定位算法门面（findNearestStructure/findNearestMapStructure 下沉自 ServerWorld）
+    world/structure/StructureLocator.cpp
     # 世界模块 - 游戏事件系统
     world/gameevent/PositionSource.cpp
     world/gameevent/GameEventListenerRegistry.cpp
