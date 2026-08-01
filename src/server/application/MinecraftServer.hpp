@@ -63,6 +63,7 @@
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
 #include <cmath>
 #include <memory>
@@ -216,11 +217,14 @@ public:
     /**
      * @brief 获取玩家实体管理器
      *
-     * 用于管理玩家的实体对象（Player实例）。
-     * 由子类（IntegratedServer、StandaloneServer）实现。
+     * 用于管理玩家的实体对象（Player实例）。批2b 已将 m_playerEntityManager 上提为
+     * MinecraftServer 值成员，本方法不再纯虚；子类无需 override。
      */
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override = 0;
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override = 0;
+    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
 
     // ========== 交互管理器 ==========
 
@@ -376,8 +380,11 @@ protected:
      *
      * @note 调用时机：必须在维度管理器 shutdown 之前、玩家实体被 clearAll 之前调用。
      *       readonly foreign world 场景下不会被调用（shutdownManagers 已判断）。
+     *
+     * 批2b 已将本方法下沉为 MinecraftServer 基类实现（遍历已上提的 m_playerEntityManager），
+     * 子类不再 override。保留 virtual 仅供测试桩（SaveStateSpyServer）spy 调用时机。
      */
-    virtual void savePlayerRuntimeState() {}
+    virtual void savePlayerRuntimeState();
 
     /**
      * @brief 解析玩家在命令分发时使用的权限等级。
@@ -1153,6 +1160,17 @@ protected:
 
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;
+
+    // 服务端网络门面（管理所有 ServerClientConnection + LocalTransportPair + 协议表）。
+    // 批2b 上提自两子类私有成员：StandaloneServer 在 initialize() 创建并 startAccept；
+    // IntegratedServer 在 initialize() 创建并 createLocalClientSide，publishToLan() 时
+    // startAccept。销毁顺序：子类 m_remoteSessions 须先于本成员 reset（session 持
+    // ServerClientConnection& 非拥有），由子类 stop() 显式 clear 保证。
+    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
+
+    // 玩家实体管理器（PlayerId↔EntityInstanceId 映射 + 实体池接入）。批2b 上提自两子类
+    // 私有值成员，ServerPlayerEntityManager 无参默认构造可作基类值成员。
+    ServerPlayerEntityManager m_playerEntityManager;
 
     // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
     std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;

@@ -175,16 +175,6 @@ protected:
     void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
-    /**
-     * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
-     *
-     * 在 stop() 中 clearAll 之前调用。遍历所有维度的在线 Player 实体，
-     * 通过 PlayerDataManager::fromPlayer() 提取运行时状态，再用 savePlayer()
-     * 更新缓存并标记脏。后续 stopCore() → shutdownManagers() → saveAllWorldData()
-     * 会通过 PlayerDataManager::saveAll() 把缓存落盘到 RocksDB。
-     */
-    void savePlayerRuntimeState() override;
-
 public:
     // ========== IntegratedServer 特有接口 ==========
 
@@ -316,24 +306,12 @@ private:
         return m_playerManager ? m_playerManager->getPlayer(m_clientPlayerId) : nullptr;
     }
 
-    /**
-     * @brief 获取玩家实体管理器
-     */
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
-    {
-        return m_playerEntityManager;
-    }
-
     IntegratedServerParams m_params;
     ServerSettings m_integratedSettings;
     GameDirectory m_gameDirectory;
 
     // 服务端线程
     std::unique_ptr<std::thread> m_serverThread;
-
-    // 服务端网络门面（管理所有 ServerClientConnection + LocalTransportPair + 协议表）
-    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
 
     // 本地客户端侧 transport（取出交 ClientNetwork::connectLocal 前暂存）
     std::unique_ptr<mc::network::transport::ILocalTransport> m_pendingClientTransport;
@@ -352,9 +330,6 @@ private:
 
     // 客户端玩家实体ID
     EntityInstanceId m_clientEntityId = INVALID_ENTITY_ID;
-
-    // 玩家实体管理器
-    ServerPlayerEntityManager m_playerEntityManager;
 
     // 客户端物品栏（单玩家特有）
     PlayerInventory m_clientInventory;
@@ -375,14 +350,11 @@ private:
     // createLocalClientSide 触 m_connections/m_onConnect——成员不相交无冲突。
     // 单 tick()（pollNetwork 内）经 isLocalMode() 分支同时 drain Local(pumpLocal)+Wire。
     // 远程会话簿记：sessionId → {握手状态机, Play 路由器}。session 持 ServerClientConnection&
-    // （非拥有，所有权归 m_serverNetwork），故 stop() 中 m_remoteSessions.clear() 须先于
-    // m_serverNetwork.reset()。
+    // （非拥有，所有权归基类 m_serverNetwork），故 stop() 中 m_remoteSessions.clear() 须先于
+    // m_serverNetwork.reset()。批2b：m_serverNetwork/m_playerEntityManager 已上提 MinecraftServer
+    // 基类；远程玩家实体ID映射（原 m_remotePlayerEntityIds，写了不读的死映射）已删除。
     std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
     std::mutex m_remoteSessionsMutex;
-
-    // 远程玩家实体ID映射（PlayerId -> EntityInstanceId），用于快速查找
-    std::unordered_map<PlayerId, EntityInstanceId> m_remotePlayerEntityIds;
-    mutable std::mutex m_remotePlayersMutex;
 
     // 局域网发布状态
     bool m_lanPublished = false;

@@ -107,16 +107,6 @@ protected:
     void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
 
-    /**
-     * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
-     *
-     * 在 stop() 中 stopCore() 之前调用。遍历所有维度的在线 Player 实体，
-     * 通过 PlayerDataManager::fromPlayer() 提取运行时状态，再用 savePlayer()
-     * 更新缓存并标记脏。后续 stopCore() → shutdownManagers() → saveAllWorldData()
-     * 会通过 PlayerDataManager::saveAll() 把缓存落盘到 RocksDB。
-     */
-    void savePlayerRuntimeState() override;
-
 public:
     // ========== StandaloneServer 特有接口 ==========
 
@@ -155,14 +145,6 @@ public:
     [[nodiscard]] ServerSettings& settings() noexcept { return m_settings; }
     [[nodiscard]] const ServerSettings& settings() const noexcept { return m_settings; }
 
-    // ========== 玩家实体管理 ==========
-
-    [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
-    [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override
-    {
-        return m_playerEntityManager;
-    }
-
     [[nodiscard]] ItemStack getHeldItemForPlacement(PlayerId playerId) override;
     [[nodiscard]] i32 getSelectedHotbarSlot(PlayerId playerId) override;
     void setInventoryItem(PlayerId playerId, i32 slotIndex, const ItemStack& stack) override;
@@ -197,23 +179,16 @@ private:
     std::filesystem::path m_settingsPath;
     // 游戏目录管理器（统一管理数据包、存档等路径）
     GameDirectory m_gameDirectory;
-    // 服务端网络门面：TCP accept + Wire 模式 ServerClientConnection 集合 + Local/Wire 统一 tick
-    std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
     // 远程 TCP 客户端会话簿记：sessionId → {握手状态机, Play 路由器}。
-    // session 持 ServerClientConnection&（非拥有，所有权归 m_serverNetwork），故须先于
-    // m_serverNetwork 销毁（stop() 中 clear() 先于 reset()）。
+    // session 持 ServerClientConnection&（非拥有，所有权归基类 m_serverNetwork），故须先于
+    // m_serverNetwork 销毁（stop() 中 clear() 先于 reset()）。批2b：m_serverNetwork 已上提
+    // MinecraftServer 基类；m_playerEntityManager 同步上提（子类不再持有）。
     std::unordered_map<u32, std::unique_ptr<mc::server::net::RemoteClientSession>> m_remoteSessions;
     std::mutex m_remoteSessionsMutex;
 
     // 服务端主循环线程（由 StandaloneServer 自身持有，stop() 中先 join 再清理，
     // 避免与 tick() 产生数据竞争）
     std::unique_ptr<std::thread> m_serverThread;
-
-    // 玩家实体管理器
-    ServerPlayerEntityManager m_playerEntityManager;
-
-    // PlayerId -> EntityInstanceId 映射（用于快速查找）
-    std::unordered_map<PlayerId, EntityInstanceId> m_playerEntityIds;
 };
 
 } // namespace mc::server
