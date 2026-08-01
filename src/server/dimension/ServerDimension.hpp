@@ -39,10 +39,12 @@ class ServerChunkManager;
 
 namespace server {
 namespace sync {
-class EntitySyncManager;
 class ChunkSendManager;
 class BlockUpdateSyncManager;
 } // namespace sync
+namespace spawn {
+class VillageSiege;
+} // namespace spawn
 } // namespace server
 
 namespace world {
@@ -139,12 +141,6 @@ public:
     // ========== 同步管理器 ==========
 
     /**
-     * @brief 获取实体同步管理器
-     */
-    [[nodiscard]] server::sync::EntitySyncManager* entitySyncManager() { return m_entitySyncManager.get(); }
-    [[nodiscard]] const server::sync::EntitySyncManager* entitySyncManager() const { return m_entitySyncManager.get(); }
-
-    /**
      * @brief 获取区块发送管理器
      */
     [[nodiscard]] server::sync::ChunkSendManager* chunkSendManager() { return m_chunkSendManager.get(); }
@@ -176,6 +172,12 @@ public:
     [[nodiscard]] world::spawn::DespawnManager* despawnManager() { return m_despawnManager.get(); }
     [[nodiscard]] const world::spawn::DespawnManager* despawnManager() const { return m_despawnManager.get(); }
 
+    /**
+     * @brief 获取村庄围攻管理器（僵尸围村）
+     */
+    [[nodiscard]] server::spawn::VillageSiege* villageSiege() { return m_villageSiege.get(); }
+    [[nodiscard]] const server::spawn::VillageSiege* villageSiege() const { return m_villageSiege.get(); }
+
     // ========== 玩家追踪 ==========
 
     /**
@@ -197,16 +199,6 @@ public:
      * @brief 获取维度中的所有玩家
      */
     [[nodiscard]] const std::vector<PlayerId>& players() const { return m_players; }
-
-    /**
-     * @brief 检查维度是否有玩家
-     */
-    [[nodiscard]] bool hasPlayers() const { return !m_players.empty(); }
-
-    /**
-     * @brief 获取玩家数量
-     */
-    [[nodiscard]] size_t playerCount() const { return m_players.size(); }
 
     // ========== 传送门追踪 ==========
 
@@ -252,13 +244,13 @@ private:
     std::unique_ptr<server::ServerWorld> m_world;
 
     // 同步管理器（每个维度各自持有）
-    std::unique_ptr<server::sync::EntitySyncManager> m_entitySyncManager;
     std::unique_ptr<server::sync::ChunkSendManager> m_chunkSendManager;
     std::unique_ptr<server::sync::BlockUpdateSyncManager> m_blockUpdateSyncManager;
 
     // 生物生成管理器
     std::unique_ptr<world::spawn::NaturalSpawner> m_naturalSpawner;
     std::unique_ptr<world::spawn::DespawnManager> m_despawnManager;
+    std::unique_ptr<server::spawn::VillageSiege> m_villageSiege;
 
     std::vector<PlayerId> m_players;
     std::unordered_set<u64> m_portalPositions; // 使用哈希的 BlockPos

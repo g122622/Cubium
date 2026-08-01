@@ -71,7 +71,7 @@ TraceEvents.hpp（MC_TRACE_* 双轨宏，四种组合分支）
 - **服务端核心**：`MinecraftServer`、`ServerWorld`、`ServerChunkManager`、`ChunkGenerateTask` 等
 - **客户端核心**：`ClientApplication`、`ClientWorld`、`TridentEngine`、`ChunkRenderer` 等
 - **世界生成**：`NoiseChunkGenerator`、`BiomeRegistry`、光照引擎等
-- **网络同步**：`ChunkSync`、`EntitySyncManager`、`ClientNetwork` 等
+- **网络同步**：`ChunkSendManager`、`ClientNetwork` 等
 - **存储系统**：`RocksDBDatabase`、`SectionManager`、`AutoSave` 等
 
 ### 依赖了谁

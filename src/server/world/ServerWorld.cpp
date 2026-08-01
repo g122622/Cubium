@@ -289,51 +289,6 @@ void ServerWorld::shutdown()
     spdlog::info("Server world shut down");
 }
 
-Result<size_t> ServerWorld::saveAll()
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "ServerWorld::saveAll");
-
-    if (m_storage == nullptr || !m_storage->isOpen()) {
-        return Error(ErrorCode::InvalidState, "Storage not open");
-    }
-
-    // 先保存所有已加载运行时实体，避免只在区块卸载时才落盘。
-    auto* entityStorage = m_storage->entityStorage();
-    if (entityStorage) {
-        auto entitiesToSave = _collectLoadedEntitiesForSave();
-        auto saveResult = entityStorage->saveAllEntities(entitiesToSave, m_config.dimension);
-        if (saveResult.failed()) {
-            return saveResult.error();
-        }
-    }
-
-    // 再保存所有已加载方块实体，保证 /save-all 与关服路径覆盖运行时修改。
-    auto* blockEntityStorage = m_storage->blockEntityStorage();
-    if (blockEntityStorage) {
-        auto blockEntitiesToSave = _collectLoadedBlockEntitiesForSave();
-        auto saveResult = blockEntityStorage->saveAllBlockEntities(blockEntitiesToSave, m_config.dimension);
-        if (saveResult.failed()) {
-            return saveResult.error();
-        }
-    }
-
-    // 保存末影龙战斗数据（仅末地维度）
-    if (m_dragonFight && m_storage && m_storage->isOpen()) {
-        auto dragonFightResult = m_storage->saveDragonFightData(m_dragonFight->saveData().toJson());
-        if (dragonFightResult.failed()) {
-            spdlog::warn("Failed to save dragon fight data: {}", dragonFightResult.error().message());
-        }
-    }
-
-    auto result = m_storage->saveAll();
-    if (result.failed()) {
-        return result.error();
-    }
-
-    spdlog::info("Saved {} cached sections", result.value());
-    return result.value();
-}
-
 void ServerWorld::setSharedStorage(world::storage::SingleLevelStorageManager* storage)
 {
     MC_ASSERT_RELEASE(!m_initialized);
@@ -1199,11 +1154,6 @@ void ServerWorld::tick()
         }
     }
 
-    // 检查全员睡眠状态
-    if (m_allPlayersSleeping) {
-        checkSleepStatus();
-    }
-
     // 更新村庄系统（流言衰减、边界重算等）
     if (m_villageManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::VillageTick");
@@ -1214,13 +1164,6 @@ void ServerWorld::tick()
     if (m_raidManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::RaidTick");
         m_raidManager->tick();
-    }
-
-    // 更新村庄围攻系统（僵尸围村）
-    // 调试世界不执行村庄围攻
-    if (!isDebugWorld()) {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tick::VillageSiege");
-        m_villageSiege.tick(*this, true); // spawnHostiles = true
     }
 
     // 更新世界边界（渐变动画）
@@ -2530,39 +2473,6 @@ void ServerWorld::_syncLightDataToChunk(LightType type, const SectionPos& pos)
     targetArray.data() = std::move(data);
 }
 
-std::vector<std::reference_wrapper<Entity>> ServerWorld::_collectLoadedEntitiesForSave()
-{
-    std::vector<std::reference_wrapper<Entity>> entities;
-    m_entityManager.forEachEntity([&entities](Entity* entity) {
-        MC_ASSERT_RELEASE(entity != nullptr);
-        entities.emplace_back(*entity);
-        return true;
-    });
-
-    return entities;
-}
-
-std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::_collectLoadedBlockEntitiesForSave() const
-{
-    std::vector<std::reference_wrapper<const BlockEntity>> blockEntities;
-    if (!m_chunkManager) {
-        return blockEntities;
-    }
-
-    m_chunkManager->forEachLoadedChunk([&blockEntities](ChunkData& chunk) {
-        auto chunkBlockEntities = chunk.getAllBlockEntities();
-        blockEntities.reserve(blockEntities.size() + chunkBlockEntities.size());
-        for (const BlockEntity* blockEntity : chunkBlockEntities) {
-            if (blockEntity != nullptr) {
-                blockEntities.emplace_back(*blockEntity);
-            }
-        }
-        return true;
-    });
-
-    return blockEntities;
-}
-
 // ============================================================================
 // 粒子接口实现
 // ============================================================================
@@ -2753,115 +2663,8 @@ i32 ServerWorld::executeCommand(const std::string& command, const Vector3d& posi
 }
 
 // ============================================================================
-// 睡眠管理
+// 事件回调
 // ============================================================================
-
-void ServerWorld::skipToMorning()
-{
-    if (m_timeManager == nullptr) {
-        return;
-    }
-
-    // 计算下一个早晨的时间
-    // dayTime 范围是 0-23999，0 表示早晨 6:00
-    i64 currentTime = m_timeManager->dayTime();
-    i64 newTime = ((currentTime / 24000) + 1) * 24000;
-
-    m_timeManager->setDayTime(newTime);
-}
-
-bool ServerWorld::canSkipNight() const
-{
-    // 检查日光周期是否启用
-    return m_timeManager && m_timeManager->daylightCycleEnabled();
-}
-
-bool ServerWorld::canClearWeather() const
-{
-    // 检查天气周期是否启用
-    return m_weatherManager && m_weatherManager->weatherCycleEnabled();
-}
-
-void ServerWorld::updateAllPlayersSleepingFlag()
-{
-    // 检查是否有玩家在睡眠
-    bool anySleeping = false;
-    bool allSleeping = true;
-
-    // 获取所有玩家实体
-    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeKeys::PLAYER);
-    if (players.empty()) {
-        m_allPlayersSleeping = false;
-        return;
-    }
-
-    for (Entity* entity : players) {
-        Player* player = dynamic_cast<Player*>(entity);
-        if (player == nullptr) {
-            continue;
-        }
-
-        // 跳过观察者模式的玩家
-        if (player->isSpectator()) {
-            continue;
-        }
-
-        if (player->isSleeping()) {
-            anySleeping = true;
-            // 检查是否完全入睡
-            if (!player->isPlayerFullyAsleep()) {
-                allSleeping = false;
-            }
-        } else {
-            allSleeping = false;
-        }
-    }
-
-    m_allPlayersSleeping = anySleeping && allSleeping;
-}
-
-void ServerWorld::checkSleepStatus()
-{
-    if (!m_allPlayersSleeping) {
-        return;
-    }
-
-    // 重新检查所有玩家是否完全入睡
-    updateAllPlayersSleepingFlag();
-
-    if (!m_allPlayersSleeping) {
-        return;
-    }
-
-    // 所有玩家都完全入睡，跳过夜晚
-    if (canSkipNight()) {
-        skipToMorning();
-    }
-
-    // 唤醒所有玩家
-    wakeUpAllPlayers();
-
-    // 清除天气
-    if (canClearWeather() && m_weatherManager) {
-        m_weatherManager->resetWeather();
-    }
-}
-
-void ServerWorld::wakeUpAllPlayers()
-{
-    // 获取所有玩家实体并唤醒
-    auto players = m_entityManager.getEntitiesByType(entity::EntityTypeKeys::PLAYER);
-    for (Entity* entity : players) {
-        Player* player = dynamic_cast<Player*>(entity);
-        if (player != nullptr && player->isSleeping()) {
-            // 直接停止睡眠状态，不需要发送网络包（玩家客户端会被跳过夜晚的逻辑通知）
-            player->stopSleeping();
-            player->setSleepTimer(0);
-        }
-    }
-
-    m_allPlayersSleeping = false;
-}
 
 void ServerWorld::onBlockPlaced(PlayerId playerId, const BlockPos& pos, const BlockState* state, const ItemStack* item)
 {

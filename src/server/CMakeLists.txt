@@ -98,7 +98,6 @@ add_executable(minecraft-server
     interaction/InventoryManager.cpp
     interaction/SignCommandHelper.cpp
     # 同步管理器
-    sync/EntitySyncManager.cpp
     sync/BlockUpdateSyncManager.cpp
     sync/ChunkSendManager.cpp
     sync/WeatherSyncService.cpp

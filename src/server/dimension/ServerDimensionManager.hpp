@@ -169,19 +169,6 @@ public:
      */
     [[nodiscard]] ServerDimension* getPlayerDimensionWorld(PlayerId playerId);
 
-    /**
-     * @brief 获取维度中的所有玩家
-     *
-     * @param dimId 维度ID
-     * @return 玩家ID列表
-     */
-    [[nodiscard]] std::vector<PlayerId> getPlayersInDimension(DimensionId dimId) const;
-
-    /**
-     * @brief 检查玩家是否在某个维度
-     */
-    [[nodiscard]] bool isPlayerInDimension(PlayerId playerId, DimensionId dimId) const;
-
     // ========== 维度切换 ==========
 
     /**
@@ -217,33 +204,6 @@ public:
      * 遍历所有维度并调用 tick()。
      */
     void tick();
-
-    // ========== 加载/卸载 ==========
-
-    /**
-     * @brief 加载维度
-     *
-     * 如果维度尚未加载，则加载它。
-     *
-     * @param id 维度ID
-     * @return 维度实例，如果加载失败则返回 nullptr
-     */
-    ServerDimension* loadDimension(DimensionId id);
-
-    /**
-     * @brief 卸载维度
-     *
-     * 如果维度中没有玩家，则卸载它以释放资源。
-     *
-     * @param id 维度ID
-     * @return 是否成功卸载
-     */
-    bool unloadDimension(DimensionId id);
-
-    /**
-     * @brief 检查维度是否已加载
-     */
-    [[nodiscard]] bool isDimensionLoaded(DimensionId id) const;
 
     // ========== 配置 ==========
 

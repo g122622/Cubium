@@ -1716,7 +1716,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
         # 同步管理器
-        ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
@@ -2673,7 +2672,6 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp

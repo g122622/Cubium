@@ -140,7 +140,6 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
-#include "server/sync/EntitySyncManager.hpp"
 #include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -302,6 +301,10 @@ void MinecraftServer::tick()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickAllDimensions");
         m_dimensionManager->tick();
     }
+
+    // 全员睡眠跨维度聚合判定（维度 tick 完成后、实体 tick 之前）。
+    // 睡眠状态变化由本帧轮询捕获，最多 1 tick 延迟。
+    checkAllPlayersSleeping();
 
     // 函数系统 tick：执行 minecraft:tick 标签中的函数和处理调度的函数
     {
@@ -729,6 +732,19 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         }
     }
 
+    // 保存末影龙战斗数据（仅末地维度）。
+    // 末影龙战斗状态是末地维度专属的世界级数据，落盘归属服务器级全量保存入口，
+    // 而非任何单一 ServerWorld（原 ServerWorld::saveAll 越权方法已删除，该路径此前是
+    // saveDragonFightData 的唯一调用方，生产侧关服从未落盘末影龙数据——本次一并补全）。
+    if (auto* theEnd = m_dimensionManager->getTheEnd(); theEnd && theEnd->world()) {
+        if (auto* dragonFight = theEnd->world()->dragonFight()) {
+            auto dragonFightResult = m_storage->saveDragonFightData(dragonFight->saveData().toJson());
+            if (dragonFightResult.failed()) {
+                spdlog::warn("Failed to save dragon fight data: {}", dragonFightResult.error().message());
+            }
+        }
+    }
+
     spdlog::info("Saved {} cached sections and player data during shutdown", result.value());
     return result.value();
 }
@@ -1088,32 +1104,9 @@ void MinecraftServer::setupWorldCallbacks()
         }
 
         // 设置实体同步回调
-        if (auto* es = serverDim->entitySyncManager()) {
-            es->setOnEntitySpawn([this, serverDim](EntityInstanceId entityId, const Entity& entity) {
-                MC_UNUSED(entityId);
-                MC_UNUSED(entity);
-                // 实体生成广播由 EntityTracker 处理
-            });
-
-            es->setOnEntityRemove([this, serverDim](EntityInstanceId entityId) {
-                MC_UNUSED(entityId);
-                // 实体移除广播由 EntityTracker 处理
-            });
-
-            es->setOnEntityMove([this, serverDim](EntityInstanceId entityId, const Vector3& pos, f32 yaw, f32 pitch) {
-                MC_UNUSED(entityId);
-                MC_UNUSED(pos);
-                MC_UNUSED(yaw);
-                MC_UNUSED(pitch);
-                // 实体移动广播由 EntityTracker 处理
-            });
-
-            es->setOnEntityStatus([this, serverDim](EntityInstanceId entityId, u8 status) {
-                MC_UNUSED(entityId);
-                MC_UNUSED(status);
-                // 实体状态广播由 EntityTracker 处理
-            });
-        }
+        // 实体同步/广播全部由 EntityTracker + ServerWorld 广播回调完成，
+        // 原 EntitySyncManager 幽灵同步层已删除（spawnEntity/removeEntity/
+        // broadcastEntityStatus 零调用、回调空操作、tick 空转）。
 
         // 设置区块发送回调
         if (auto* cs = serverDim->chunkSendManager()) {
@@ -1384,6 +1377,76 @@ void MinecraftServer::tickKeepAlive()
         m_lastKeepAliveTick = tick;
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "SendKeepAlive", "phase", "keepalive_send");
         sendKeepAliveToAll();
+    }
+}
+
+void MinecraftServer::checkAllPlayersSleeping()
+{
+    // 跨维度聚合所有非旁观者玩家，判定是否全员睡熟。
+    // 对应 MC Java 服务器级睡眠判定：判定范围（所有维度玩家）与副作用范围
+    // （服务器级共享 TimeManager 跳夜）一致，修正原 ServerWorld 单维度判定却写
+    // 全局 TimeManager 的层级错配。
+    bool anySleeping = false;
+    bool allSleeping = true;
+
+    const auto dimIds = m_dimensionManager->getDimensionIds();
+    for (DimensionId dimId : dimIds) {
+        auto* dim = m_dimensionManager->getDimension(dimId);
+        if (dim == nullptr || dim->world() == nullptr) {
+            continue;
+        }
+
+        auto players = dim->world()->entityManager().getEntitiesByType(entity::EntityTypeKeys::PLAYER);
+        for (Entity* entity : players) {
+            auto* player = dynamic_cast<Player*>(entity);
+            if (player == nullptr || player->isSpectator()) {
+                continue;
+            }
+
+            if (player->isSleeping()) {
+                anySleeping = true;
+                if (!player->isPlayerFullyAsleep()) {
+                    allSleeping = false;
+                }
+            } else {
+                allSleeping = false;
+            }
+        }
+    }
+
+    // 没有玩家在睡，或并非全员睡熟：不跳夜。
+    if (!anySleeping || !allSleeping) {
+        return;
+    }
+
+    // 跳到下一个早晨（服务器级共享 TimeManager）。
+    if (m_timeManager && m_timeManager->daylightCycleEnabled()) {
+        i64 currentDayTime = m_timeManager->dayTime();
+        m_timeManager->setDayTime(((currentDayTime / 24000) + 1) * 24000);
+    }
+
+    // 按维度清天气并唤醒玩家。
+    for (DimensionId dimId : dimIds) {
+        auto* dim = m_dimensionManager->getDimension(dimId);
+        if (dim == nullptr || dim->world() == nullptr) {
+            continue;
+        }
+
+        auto* world = dim->world();
+        if (auto* weather = world->weatherManager(); weather != nullptr && weather->weatherCycleEnabled()) {
+            weather->resetWeather();
+        }
+
+        auto players = world->entityManager().getEntitiesByType(entity::EntityTypeKeys::PLAYER);
+        for (Entity* entity : players) {
+            auto* player = dynamic_cast<Player*>(entity);
+            if (player != nullptr && player->isSleeping()) {
+                // 直接停止睡眠状态并重置计时器，与原 ServerWorld::wakeUpAllPlayers 行为一致。
+                // 网络包同步由 Player::stopSleeping 内部链路处理。
+                player->stopSleeping();
+                player->setSleepTimer(0);
+            }
+        }
     }
 }
 

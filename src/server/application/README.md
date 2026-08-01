@@ -51,7 +51,7 @@ src/server/application/
 - `server/core/` - PlayerManager, ConnectionManager, TimeManager 等
 - `server/interaction/` - BlockInteractionManager, MiningManager 等
 - `server/dimension/` - ServerDimension, ServerDimensionManager
-- `server/sync/` - EntitySyncManager, ChunkSendManager 等（由 ServerDimension 持有）
+- `server/sync/` - ChunkSendManager、BlockUpdateSyncManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
 - `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, RegistryDataBuilder
 - `server/command/` - CommandRegistry, CommandStorage
@@ -72,7 +72,7 @@ src/server/application/
 ## 容易踩的坑
 
 ### 1. 维度感知的世界访问
-`m_world` 已从 `MinecraftServer` 移除，所有世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。同步管理器（EntitySyncManager、ChunkSendManager等）和刷怪管理器现在由各 `ServerDimension` 持有。
+`m_world` 已从 `MinecraftServer` 移除，所有世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。同步管理器（ChunkSendManager、BlockUpdateSyncManager 等；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，无独立管理器）和刷怪管理器现在由各 `ServerDimension` 持有。
 
 ### 2. 线程安全
 IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用 `m_clientDataMutex` 同步。

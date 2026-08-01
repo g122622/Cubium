@@ -436,14 +436,15 @@ public:
      * @brief 停止睡眠
      *
      * @param resetTimer 是否重置睡眠计时器（true=立即重置为0，false=设置为100继续渐变）
-     * @param updateSleepingFlag 是否更新世界睡眠标志
+     *
+     * 全员睡眠判定由 MinecraftServer::tick 每帧跨维度聚合轮询，此方法不再触发世界睡眠标志重算。
      */
-    void stopSleepInBed(bool resetTimer, bool updateSleepingFlag);
+    void stopSleepInBed(bool resetTimer);
 
     /**
      * @brief 唤醒玩家（完全唤醒）
      *
-     * 相当于 stopSleepInBed(true, true)
+     * 相当于 stopSleepInBed(true)
      */
     void wakeUp();
 

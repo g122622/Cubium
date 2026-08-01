@@ -14,6 +14,7 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <filesystem>
+#include <functional>
 #include <gtest/gtest.h>
 
 namespace mc::server {
@@ -117,8 +118,27 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     const BlockPos blockEntityPos = blockEntity->getPos();
     world->setBlockEntity(blockEntityPos, blockEntity.release());
 
-    auto saveAllResult = world->saveAll();
-    ASSERT_TRUE(saveAllResult.success()) << saveAllResult.error().message();
+    // ServerWorld::saveAll（曾委托共享存储跨维度全量保存的越权方法）已删除。
+    // 这里改为显式走存储层的两条落盘路径，等价覆盖原 saveAll 对运行时实体/方块实体的持久化：
+    //   ① 运行时实体：从 EntityManager 收集后调 EntityStorageManager::saveAllEntities。
+    //      （原 ServerWorld::_collectLoadedEntitiesForSave 即是 m_entityManager.forEachEntity 收集。）
+    //   ② 方块实体：SingleLevelStorageManager::saveChunk 在落盘 section 后会附带逐个
+    //      saveBlockEntity（见 SingleLevelStorageManager.cpp saveChunk 实现），故对内存中
+    //      携带该方块实体的 chunk 再 saveChunk 一次即可落盘方块实体。
+    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
+    world->entityManager().forEachEntity([&entitiesToSave](Entity* e) {
+        if (e != nullptr) {
+            entitiesToSave.emplace_back(*e);
+        }
+        return true;
+    });
+    auto entitySaveResult = m_storage.entityStorage()->saveAllEntities(entitiesToSave, 0);
+    ASSERT_TRUE(entitySaveResult.success()) << entitySaveResult.error().message();
+
+    const ChunkData* persistedChunk = world->getChunk(0, 0);
+    ASSERT_NE(persistedChunk, nullptr);
+    auto blockEntitySaveResult = m_storage.saveChunk(*persistedChunk, 0);
+    ASSERT_TRUE(blockEntitySaveResult.success()) << blockEntitySaveResult.error().message();
 
     auto entityLoadResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0);
     ASSERT_TRUE(entityLoadResult.success()) << entityLoadResult.error().message();

@@ -55,7 +55,7 @@ DespawnManager（消失管理）
 
 | 调用方 | 说明 |
 |-------|------|
-| `ServerWorld` | 在 tick 循环中调用 NaturalSpawner、DespawnManager、VillageSiege |
+| `ServerDimension` | 在 `tick()` 中调用 NaturalSpawner、DespawnManager、VillageSiege（三者由 ServerDimension 持有） |
 | 区块生成系统 | 区块首次生成时调用 `spawnInChunk()` 放置被动动物 |
 
 ## 实体数量限制常量

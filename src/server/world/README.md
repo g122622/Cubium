@@ -94,7 +94,6 @@ src/server/world/
 - `server/core/PlayerManager` - 通过 ServerWorld 管理玩家实体
 - `server/sync/BlockUpdateSyncManager` - 接收方块变化回调
 - `server/sync/ChunkSendManager` - 接收区块加载事件
-- `server/sync/EntitySyncManager` - 接收实体状态变化
 - `server/command/` - 命令执行（通过 ServerWorld 接口）
 
 **共享资源**：
@@ -251,7 +250,7 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 **生命周期**：
 - **创建**：`ServerWorld::initialize()` 中，当维度为末地时，从 `SingleLevelStorageManager::loadDragonFightData()` 加载已有数据或创建新实例
-- **保存**：`ServerWorld::saveAll()` 中，调用 `SingleLevelStorageManager::saveDragonFightData()` 持久化战斗状态到 `data/end_dragon_fight.json`
+- **保存**：`MinecraftServer::saveAllWorldData()`（服务器级全量保存入口）中，对末地维度的 `EndDragonFight` 调用 `SingleLevelStorageManager::saveDragonFightData()` 持久化战斗状态到 `data/end_dragon_fight.json`。末影龙战斗状态是世界级数据，落盘归属服务器级入口而非 `ServerWorld` 自身（原 `ServerWorld::saveAll` 越权方法已删除）
 - **使用**：`EnderDragonEntity::_onDeathUpdate()` 通过 `world.dragonFight()` 查询击杀状态并分发奖励
 
 **数据流**：

@@ -28,10 +28,10 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
-#include "server/sync/EntitySyncManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/spawn/DespawnManager.hpp"
 #include "server/world/spawn/NaturalSpawner.hpp"
+#include "server/world/spawn/VillageSiege.hpp"
 #include <limits>
 
 using namespace mc::trace;
@@ -72,7 +72,6 @@ Result<void> ServerDimension::initialize()
     }
 
     // 创建同步管理器
-    m_entitySyncManager = std::make_unique<server::sync::EntitySyncManager>(m_world->entityManager());
     m_chunkSendManager = std::make_unique<server::sync::ChunkSendManager>(
         *m_world->chunkManager(), m_world->chunkManager()->ticketManager());
     m_blockUpdateSyncManager =
@@ -84,6 +83,7 @@ Result<void> ServerDimension::initialize()
     // 创建生物生成管理器
     m_naturalSpawner = std::make_unique<world::spawn::NaturalSpawner>();
     m_despawnManager = std::make_unique<world::spawn::DespawnManager>();
+    m_villageSiege = std::make_unique<server::spawn::VillageSiege>();
 
     m_initialized = true;
     return {};
@@ -113,9 +113,9 @@ void ServerDimension::shutdown()
     // 清理同步管理器（必须在世界之前释放）
     m_blockUpdateSyncManager.reset();
     m_chunkSendManager.reset();
-    m_entitySyncManager.reset();
 
     // 清理生物生成管理器
+    m_villageSiege.reset();
     m_despawnManager.reset();
     m_naturalSpawner.reset();
 
@@ -145,9 +145,6 @@ void ServerDimension::tick()
     if (m_world != nullptr) {
         m_world->tick();
 
-        // 实体同步
-        m_entitySyncManager->tick();
-
         // 区块发送处理
         m_chunkSendManager->processPendingSends();
 
@@ -161,6 +158,14 @@ void ServerDimension::tick()
 
         // 生物消失检查
         m_despawnManager->tick(*m_world);
+
+        // 村庄围攻（僵尸围村），仅主世界与下界有 hostile 刷怪时执行。
+        // 调试世界不执行。spawnHostiles 硬编码 true：VillageSiege 内部已有夜晚/午夜/村庄判定，
+        // 外层 hostile 仅控维度级开关（末地不执行）。与 NaturalSpawner 的维度开关方式对齐。
+        if (!m_world->isDebugWorld() && hostile) {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerDimension::tick::VillageSiege");
+            m_villageSiege->tick(*m_world, true);
+        }
     }
 }
 

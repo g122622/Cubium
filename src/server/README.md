@@ -28,7 +28,7 @@ server/
 ├── sync/                 # 同步管理器（运行时由 ServerDimension 持有）
 │   ├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步
 │   ├── ChunkSendManager.hpp/cpp # 区块发送
-│   └── EntitySyncManager.hpp/cpp # 实体同步
+│   └── WeatherSyncService.hpp/cpp # 天气同步
 ├── dimension/            # 维度管理
 │   ├── ServerDimension.hpp/cpp         # 服务端维度实例（持有同步管理器和刷怪管理器）
 │   └── ServerDimensionManager.hpp/cpp  # 服务端维度管理器
@@ -132,7 +132,6 @@ server/
 |---|---|
 | `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
 | `BlockUpdateSyncManager` | 方块更新 pending 去重、tick 末统一发送 |
-| `EntitySyncManager` | 实体位置同步、生成/销毁广播 |
 
 > 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）已由 `ServerWorld` 承担，
 > 不再有独立的 `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在
@@ -150,7 +149,7 @@ server/
 - `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
 - 共享存储访问必须通过 `IServer::sharedStorage()` 进行，不再通过主世界 `ServerWorld` 绕行。
 - `NaturalSpawner` 和 `DespawnManager` 现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。
-- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。（光照同步已由 `ServerWorld` 承担，无独立 `LightSyncManager`。）
+- 同步管理器（ChunkSendManager、BlockUpdateSyncManager）现在由各 `ServerDimension` 持有，在 `ServerDimension::tick()` 中独立 tick。（光照同步已由 `ServerWorld` 承担，无独立 `LightSyncManager`；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，无独立 `EntitySyncManager`。）
 - 多维度 tick 由 `ServerDimensionManager::tick()` 统一驱动。
 
 ### dimension/ - 维度管理
@@ -159,7 +158,7 @@ server/
 
 | 类 | 职责 |
 |---|---|
-| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager） |
+| `ServerDimension` | 维度实例，持有 ServerWorld、同步管理器（ChunkSendManager、BlockUpdateSyncManager）、刷怪管理器（NaturalSpawner、DespawnManager、VillageSiege） |
 | `ServerDimensionManager` | 管理所有 ServerDimension 实例，处理玩家维度切换和维度 tick 调度 |
 
 同步管理器和刷怪管理器在 `ServerDimension::initialize()` 中创建，在 `ServerDimension::tick()` 中按顺序 tick（详见 `src/server/dimension/README.md`）。
@@ -289,7 +288,6 @@ server/
 │  │  │  ┌─────────────────────────────────────────┐  │   │    │
 │  │  │  │ sync/ 管理器（维度级，每个维度独立一套） │  │   │    │
 │  │  │  │ BlockUpdateSyncManager │ ChunkSendManager│  │   │    │
-│  │  │  │ EntitySyncManager                        │  │   │    │
 │  │  │  └─────────────────────────────────────────┘  │   │    │
 │  │  │  ┌─────────────────────────────────────────┐  │   │    │
 │  │  │  │ spawn/ 管理器（维度级）                   │  │   │    │
@@ -349,11 +347,11 @@ server/
    → ServerDimensionManager::tick()
    → 遍历每个 ServerDimension::tick()
        → ServerWorld::tick()
-       → entitySyncManager()->tick()
        → chunkSendManager()->processPendingSends()
        → blockUpdateSyncManager()->flushPendingUpdates()
        → naturalSpawner()->tick()
        → despawnManager()->tick()
+       → villageSiege()->tick()（仅主世界/下界 hostile 维度）
    ```
 
 5. **方块更新同步**：
@@ -464,7 +462,7 @@ tick 顺序严格 flush → send → drain，保证客户端收到正确光照�
 ### 5. 维度感知的世界访问
 
 - `MinecraftServer::m_world` 已移除。世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。
-- 同步管理器（EntitySyncManager、ChunkSendManager、BlockUpdateSyncManager、LightSyncManager）和刷怪管理器（NaturalSpawner、DespawnManager）现在由各 `ServerDimension` 持有，不再从 `MinecraftServer` 访问。
+- 同步管理器（ChunkSendManager、BlockUpdateSyncManager；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，光照同步由 `ServerWorld` 承担，均无独立管理器）和刷怪管理器（NaturalSpawner、DespawnManager、VillageSiege）现在由各 `ServerDimension` 持有，不再从 `MinecraftServer` 访问。
 - 所有维度的 `ServerWorld::tick()` 都通过 `ServerDimensionManager::tick()` 统一调度，每个维度在自己的 `ServerDimension::tick()` 中独立执行同步和刷怪逻辑。
 
 ### 6. 心跳超时配置
@@ -500,7 +498,6 @@ flowchart LR
     dim --> sync["sync/ 管理器<br/>(维度级)"]
     sync --> block["BlockUpdateSyncManager"]
     sync --> chunk["ChunkSendManager"]
-    sync --> entity["EntitySyncManager"]
     dim --> world["ServerWorld"]
     world --> callback["setOnBlockChanged"]
     callback --> block
@@ -513,7 +510,6 @@ flowchart LR
     style sync fill:#90be6d,stroke:#2f6f3e,color:#111
     style block fill:#bde0fe,stroke:#2563eb,color:#111
     style chunk fill:#f4a261,stroke:#b45309,color:#111
-    style entity fill:#cdb4db,stroke:#6d28d9,color:#111
     style world fill:#ffe8a3,stroke:#c99700,color:#111
     style callback fill:#bde0fe,stroke:#2563eb,color:#111
     style packet fill:#e9c46a,stroke:#a16207,color:#111

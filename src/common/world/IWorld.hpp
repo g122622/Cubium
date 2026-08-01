@@ -1595,9 +1595,9 @@ public:
     /**
      * @brief 通知世界玩家睡眠状态变化
      *
-     * 当玩家开始或停止睡眠时调用，用于更新世界的睡眠标志。
-     * ServerWorld 重写此方法来调用 updateAllPlayersSleepingFlag()。
-     * ClientWorld 返回空实现。
+     * 当玩家开始或停止睡眠时调用。默认空实现。
+     * 全员睡眠判定已上提到 MinecraftServer::checkAllPlayersSleeping（每 tick 跨维度聚合轮询），
+     * 各 ServerWorld 不再重写此方法，本接口保留供 Player 基类调用兼容。
      */
     virtual void onPlayerSleepingChanged()
     {

@@ -7,14 +7,18 @@
 ```
 src/server/sync/
 ├── ChunkSendManager.hpp/cpp       # 区块发送管理器（区块数据发送、卸载通知）
-├── EntitySyncManager.hpp/cpp      # 实体同步管理器（位置追踪、生成/移动/销毁包）
-└── BlockUpdateSyncManager.hpp/cpp # 方块更新同步管理器（方块变化批量发送）
+├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步管理器（方块变化批量发送）
+└── WeatherSyncService.hpp/cpp     # 天气同步服务（影子状态 + 主世界天气广播）
 ```
 
 > 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）已统一由 `ServerWorld` 承担，
 > 不再有独立的 `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在
 > worker 线程完成后，经 `ServerWorld` 续延队列回主线程 flush + send（见
 > `server/world/README.md` 光照章节）。
+>
+> 实体同步/广播不再有独立的 `EntitySyncManager`：实体生成/销毁/移动/可见性由
+> `EntityTracker::tick`（`MinecraftServer::tickEntities` 驱动）独占，实体状态/动画/
+> 拴绳广播经 `ServerWorld` 的 `setOnBroadcastEntity*` 回调 + `PlayerBroadcaster` 完成。
 
 ## 内部模块关系
 
@@ -24,25 +28,25 @@ src/server/sync/
                     │   （每个维度独立持有以下管理器）        │
                     └──────────────┬──────────────────────┘
                                    │
-        ┌──────────────────────────┼──────────────────────────┐
-        │                          │                          │
-        ▼                          ▼                          ▼
-┌───────────────┐       ┌───────────────────┐       ┌─────────────────┐
-│ChunkSendManager│◄──────│BlockUpdateSync    │       │EntitySyncManager│
-│               │ 追踪  │Manager            │       │                 │
-└───────┬───────┘玩家  └─────────┬─────────┘       └────────┬────────┘
-        │                          │                          │
-        ▼                          ▼                          ▼
-┌─────────────────┐                                ┌─────────────────┐
-│  ServerWorld    │                                │  网络层回调      │
-│ (光照 flush+send)│                                │ (发送数据包)     │
-└─────────────────┘                                └─────────────────┘
+        ┌──────────────────────────┐
+        │                          │
+        ▼                          ▼
+┌───────────────┐       ┌───────────────────┐
+│ChunkSendManager│       │BlockUpdateSync    │
+│               │       │Manager            │
+└───────┬───────┘       └─────────┬─────────┘
+        │                          │
+        ▼                          ▼
+┌─────────────────┐
+│  ServerWorld    │
+│ (光照 flush+send)│
+└─────────────────┘
 ```
 
 **协作流程：**
 - 区块加载完成 → `ChunkLoadLightTask`（worker）完成光照 → `ServerWorld` 主线程续延 flush + `ChunkSendManager` 发送给追踪玩家
 - 方块变化 → `BlockUpdateSyncManager` 缓存 → tick 末 flush 发送
-- 实体移动 → `EntitySyncManager` 检测阈值 → 发送位置更新
+- 实体同步 → `EntityTracker::tick`（生成/销毁/移动/可见性）+ `ServerWorld` 广播回调（状态/动画/拴绳）
 
 ## 上下游外部依赖关系
 

@@ -408,17 +408,15 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
     // 9. 发送睡眠包给客户端
     _sendSleepPacket(bedPos);
 
-    // 10. 更新世界睡眠标志
-    if (m_world != nullptr) {
-        m_world->updateAllPlayersSleepingFlag();
-    }
+    // 全员睡眠判定由 MinecraftServer::tick 每帧跨维度聚合轮询（checkAllPlayersSleeping），
+    // 此处不再主动通知世界重算睡眠标志。
 
     spdlog::info("ServerPlayer: player {} started sleeping at ({}, {}, {})", username(), bedPos.x, bedPos.y, bedPos.z);
 
     return entity::SleepResult::OK;
 }
 
-void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
+void ServerPlayer::stopSleepInBed(bool resetTimer)
 {
     if (!isSleeping()) {
         return;
@@ -475,17 +473,15 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
         }
     }
 
-    // 更新世界睡眠标志
-    if (updateSleepingFlag && m_world != nullptr) {
-        m_world->updateAllPlayersSleepingFlag();
-    }
+    // 全员睡眠判定由 MinecraftServer::tick 每帧跨维度聚合轮询（checkAllPlayersSleeping），
+    // 此处不再主动通知世界重算睡眠标志。
 
     spdlog::info("ServerPlayer: player {} stopped sleeping", username());
 }
 
 void ServerPlayer::wakeUp()
 {
-    stopSleepInBed(true, true);
+    stopSleepInBed(true);
 }
 
 // ========== 重生系统实现 ==========

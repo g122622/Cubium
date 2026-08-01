@@ -554,7 +554,7 @@ void ServerPlayHandler::handlePlayerCommandPacket(PlayerId playerId, const mc::n
     switch (evt->action) {
         case 0: { // STOP_SLEEPING
             if (auto* serverPlayer = playerEntity->asServerPlayer()) {
-                serverPlayer->stopSleepInBed(true, true);
+                serverPlayer->stopSleepInBed(true);
             } else {
                 playerEntity->stopSleeping();
             }

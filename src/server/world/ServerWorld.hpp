@@ -53,7 +53,6 @@
 #include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
-#include "server/world/spawn/VillageSiege.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 #include <functional>
 #include <memory>
@@ -176,15 +175,6 @@ public:
     void setServer(IServer* server) { m_server = server; }
     [[nodiscard]] IServer* server() noexcept { return m_server; }
     [[nodiscard]] const IServer* server() const noexcept { return m_server; }
-
-    /**
-     * @brief 触发共享存储执行全量保存
-     *
-     * 该方法会直接委托给世界级共享 SingleLevelStorageManager，
-     * 因此会一次性保存所有维度和玩家数据。
-     * 适用于 `/save-all` 这类显式全量保存入口。
-     */
-    Result<size_t> saveAll();
 
     // 配置
     void setConfig(const ServerWorldConfig& config);
@@ -1224,54 +1214,6 @@ public:
         return m_mapDataManager.get();
     }
 
-    // ========== 睡眠管理 ==========
-
-    /**
-     * @brief 跳到早晨
-     *
-     * 将当前时间设置为下一个早晨（dayTime = 0）。
-     * 当所有玩家都入睡时调用。
-     */
-    void skipToMorning();
-
-    /**
-     * @brief 检查是否可以跳过夜晚
-     *
-     * 检查日光周期是否启用。
-     *
-     * @return true 如果可以跳过夜晚
-     */
-    [[nodiscard]] bool canSkipNight() const;
-
-    /**
-     * @brief 检查是否可以清除天气
-     *
-     * 检查天气周期是否启用。
-     *
-     * @return true 如果可以清除天气
-     */
-    [[nodiscard]] bool canClearWeather() const;
-
-    /**
-     * @brief 检查是否所有玩家都在睡眠
-     * @return true 如果所有非观察者玩家都在睡眠
-     */
-    [[nodiscard]] bool allPlayersSleeping() const noexcept { return m_allPlayersSleeping; }
-
-    /**
-     * @brief 更新全员睡眠标志
-     *
-     * 当玩家开始或停止睡眠时调用。
-     */
-    void updateAllPlayersSleepingFlag();
-
-    /**
-     * @brief 通知世界玩家睡眠状态变化
-     *
-     * 重写 IWorld::onPlayerSleepingChanged()，调用 updateAllPlayersSleepingFlag()。
-     */
-    void onPlayerSleepingChanged() override { updateAllPlayersSleepingFlag(); }
-
     /**
      * @brief 通知世界方块被放置
      *
@@ -1477,21 +1419,6 @@ public:
     [[nodiscard]] std::optional<BlockPos> findNearestMapStructure(
         const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting = false) override;
 
-    /**
-     * @brief 检查并处理全员睡眠
-     *
-     * 在 tick() 中调用，检查是否所有玩家都完全入睡，
-     * 如果是则跳过夜晚并唤醒所有玩家。
-     */
-    void checkSleepStatus();
-
-    /**
-     * @brief 唤醒所有玩家
-     *
-     * 当夜晚跳过后调用。
-     */
-    void wakeUpAllPlayers();
-
 private:
     void _syncLightDataToChunk(LightType type, const SectionPos& pos);
 
@@ -1506,9 +1433,6 @@ private:
     /// 区块加载光照核心逻辑（worker 任务与 fallback 共用）。
     /// 主线程 fallback 路径（executor 为空）同步调用，与 ChunkLoadLightTask::execute 同构。
     void _executeChunkLoadLight(RuntimeLightingProvider& provider, ChunkCoord x, ChunkCoord z);
-
-    [[nodiscard]] std::vector<std::reference_wrapper<Entity>> _collectLoadedEntitiesForSave();
-    [[nodiscard]] std::vector<std::reference_wrapper<const BlockEntity>> _collectLoadedBlockEntitiesForSave() const;
 
     /// 将反序列化得到的实体注入世界并挂载乘客。
     /// common 路径（takeLoadedEntities）与 native 路径（EntityStorageManager）共用：
@@ -1558,7 +1482,6 @@ private:
     core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
-    bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
     Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
     f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
 
@@ -1570,9 +1493,6 @@ private:
 
     // 末影龙战斗管理器（仅末地维度创建）
     std::unique_ptr<EndDragonFight> m_dragonFight;
-
-    // 村庄围攻系统
-    server::spawn::VillageSiege m_villageSiege;
 
     std::function<void(LightType, const SectionPos&)> m_onLightChanged;
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;

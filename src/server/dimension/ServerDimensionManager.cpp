@@ -244,28 +244,6 @@ ServerDimension* ServerDimensionManager::getPlayerDimensionWorld(PlayerId player
     return getDimension(dimId);
 }
 
-std::vector<PlayerId> ServerDimensionManager::getPlayersInDimension(DimensionId dimId) const
-{
-    std::vector<PlayerId> players;
-    auto it = m_dimensionPlayers.find(dimId);
-    if (it != m_dimensionPlayers.end()) {
-        players.reserve(it->second.size());
-        for (PlayerId playerId : it->second) {
-            players.push_back(playerId);
-        }
-    }
-    return players;
-}
-
-bool ServerDimensionManager::isPlayerInDimension(PlayerId playerId, DimensionId dimId) const
-{
-    auto it = m_dimensionPlayers.find(dimId);
-    if (it == m_dimensionPlayers.end()) {
-        return false;
-    }
-    return it->second.find(playerId) != it->second.end();
-}
-
 // ============================================================================
 // 维度切换
 // ============================================================================
@@ -319,55 +297,6 @@ bool ServerDimensionManager::transferPlayerToDimension(
 void ServerDimensionManager::tick()
 {
     forEachDimension([](Dimension& dim) { dim.tick(); });
-}
-
-// ============================================================================
-// 加载/卸载
-// ============================================================================
-
-ServerDimension* ServerDimensionManager::loadDimension(DimensionId id)
-{
-    if (hasDimension(id)) {
-        return getDimension(id);
-    }
-
-    auto dim = _createServerDimension(id, m_seed);
-    if (!dim) {
-        return nullptr;
-    }
-
-    auto result = dim->initialize();
-    if (result.failed()) {
-        return nullptr;
-    }
-
-    if (!registerDimension(std::move(dim))) {
-        return nullptr;
-    }
-
-    return getDimension(id);
-}
-
-bool ServerDimensionManager::unloadDimension(DimensionId id)
-{
-    // 不能卸载主维度
-    if (id == OVERWORLD) {
-        return false;
-    }
-
-    // 检查是否有玩家在维度中
-    auto it = m_dimensionPlayers.find(id);
-    if (it != m_dimensionPlayers.end() && !it->second.empty()) {
-        return false;
-    }
-
-    // 卸载维度
-    return unregisterDimension(id);
-}
-
-bool ServerDimensionManager::isDimensionLoaded(DimensionId id) const
-{
-    return hasDimension(id);
 }
 
 // ============================================================================

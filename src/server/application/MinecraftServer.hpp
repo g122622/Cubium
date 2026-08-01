@@ -488,6 +488,17 @@ protected:
      */
     void sendTimeUpdate();
 
+    /**
+     * @brief 跨维度聚合检查全员睡眠，若全员睡熟则跳夜、清天气并唤醒所有玩家
+     *
+     * 对应 MC Java 的服务器级睡眠判定（ServerLevel.tick 中 wakeUpAllPlayers 链路）。
+     * 每 tick 轮询所有维度的非旁观者玩家：全员 fully asleep 时，推进服务器级共享
+     * TimeManager 到下一个日出，按维度清天气（WeatherManager::resetWeather）并唤醒。
+     * 判定范围与副作用范围一致（均为服务器级跨维度），修正了原 ServerWorld 单维度
+     * 判定却写全局 TimeManager 的层级错配。
+     */
+    void checkAllPlayersSleeping();
+
     // 天气同步已下沉到 WeatherSyncService（server/sync/WeatherSyncService）。
     // tick 中调 m_weatherSyncService->tick()，登录时调其 sendInitialWeatherStateToPlayer。
     // 注：sendInitialDifficultyToPlayer 已于批6 迁入 LoginFlow。
