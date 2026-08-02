@@ -358,6 +358,10 @@ void ClientApplication::handleBlockPlacementInput(f32 deltaTime)
                 return;
             }
         }
+        // 非地图的右键空挥：发 UseItem 包让服务端执行物品在空气中的使用
+        // （对齐 Java MultiPlayerGameMode.useItemOnMainThread 未命中方块时发 ServerboundUseItem）。
+        sendUseItem();
+        m_placeCooldown = PLACE_COOLDOWN_TIME;
         setPlaceState(PlaceInputState::RaycastMiss, "raycast miss on use");
         return;
     }
@@ -405,6 +409,28 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
     useItemOn.sequence = 0;
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{irplay::UseItemOn{std::move(useItemOn)}}});
+}
+
+void ClientApplication::sendUseItem()
+{
+    // 右键空挥出站 UseItem（对齐 Java ServerboundUseItemPacket）。
+    // 1.21.11 字段：hand(0=MAIN_HAND) + sequence + yRot + xRot。
+    if (!m_network || !m_network->isPlaying()) {
+        spdlog::info("[UseItem] Skip sending UseItem because client is not logged in");
+        return;
+    }
+    if (!m_player) {
+        return;
+    }
+
+    namespace irplay = mc::network::ir::play;
+    irplay::UseItem useItem;
+    useItem.hand = static_cast<i32>(Hand::MainHand);
+    useItem.sequence = 0;
+    useItem.yRot = m_player->yaw();
+    useItem.xRot = m_player->pitch();
+    (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::UseItem{std::move(useItem)}}});
 }
 
 void ClientApplication::sendBlockInteraction(

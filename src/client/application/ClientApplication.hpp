@@ -349,6 +349,8 @@ private:
     [[nodiscard]] bool isCreativeModeActive() const;
     void sendBlockInteraction(network::BlockInteractionAction action, const BlockPos& pos, Direction face);
     void sendBlockPlacement(const BlockPos& pos, Direction face, const Vector3& hitPos);
+    /// 右键空挥（raycast 未命中方块/实体）时发送 UseItem，触发服务端物品在空气中的使用。
+    void sendUseItem();
 
     // 玩家位置同步
     void sendPlayerPosition();

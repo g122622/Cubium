@@ -26,6 +26,9 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -929,10 +932,71 @@ void ServerPlayHandler::handleInteractPacket(PlayerId playerId, const mc::networ
 
 void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    // 客户端暂无出站 UseItem 发送路径，处理骨架 TODO(Phase6)。
-    // 完整实现须：取手持物品 → 物品 useOn 空气分支 → 消耗/冷却/同步。
-    (void)playerId;
-    (void)packet;
+    // 右键空气使用物品（对齐 Java ServerGamePacketListenerImpl.handleUseItem）。
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::UseItem>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
+
+    // 朝向校正：客户端申报朝向与服务端记录不一致时，以客户端为准对齐（对齐 vanilla absSnapRotationTo）。
+    if (evt->yRot != playerEntity->yaw() || evt->xRot != playerEntity->pitch()) {
+        playerEntity->setRotation(evt->yRot, evt->xRot);
+    }
+
+    // 取手持物品；空手不触发使用。
+    ItemStack heldStack = playerEntity->getHeldItem(hand);
+    if (heldStack.isEmpty()) {
+        return;
+    }
+
+    const Item* heldItemC = heldStack.getItem();
+    if (heldItemC == nullptr) {
+        return;
+    }
+    // Item 是无状态策略单例，onItemRightClick 非 const；经 ItemRegistry 取非 const 句柄调用。
+    Item* heldItem = ItemRegistry::instance().getItem(heldItemC->itemId());
+    if (heldItem == nullptr) {
+        return;
+    }
+
+    // 调用物品在空气中的使用逻辑（对应 Java ServerPlayerGameMode.useItem → Item.use）。
+    // 即时变换型物品（空地图→已填充地图、玻璃瓶→水瓶等）在 onItemRightClick 内部
+    // 直接修改玩家物品栏；持续使用型（食物/弓/弩，返回 Consume）需服务端使用计时体系
+    // 驱动 onItemUseFinish，项目当前未实现该体系，故 Consume 结果暂不完成消耗。
+    ItemActionResult result = heldItem->onItemRightClick(*world, *playerEntity, hand);
+
+    // Success/Consume 触发挥臂动画（对齐 vanilla swingSource=SERVER 时 swing）。
+    if (result.isSuccess() || result.isConsume()) {
+        playerEntity->swing(hand);
+    }
+
+    // 物品栏变更同步：onItemRightClick 内部已修改 Player 实体 inventory，
+    // 经 syncPlayerInventory 下发。主手物品栏同步复用 handleBlockPlacement 同一路径。
+    if (result.isSuccess()) {
+        const i32 selectedSlot = m_server.getSelectedHotbarSlot(playerId);
+        // 取 Player 实体当前主手物品（onItemRightClick 可能已变换/消耗）回写权威管理器。
+        ItemStack updatedStack = (hand == Hand::MainHand) ? playerEntity->getHeldItem(hand) : heldStack;
+        m_server.setInventoryItem(playerId, selectedSlot, updatedStack);
+        m_server.syncPlayerInventory(playerId);
+    }
 }
 
 void ServerPlayHandler::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
