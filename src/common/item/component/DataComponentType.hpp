@@ -36,34 +36,33 @@ namespace component {
 /**
  * @brief 数据组件类型标识（1.21.11 DataComponentType）
  *
- * 每个组件类型有一个整数 typeId（网络 wire 与 NBT patch 中的键）和一个
- * 资源位置名（如 "minecraft:damage"）。typeId 严格对齐 Java 1.21.11
- * DataComponents 注册顺序。
+ * 每个组件类型有一个整数 typeId（网络 wire 中的 VarInt，= Java
+ * DATA_COMPONENT_TYPE 注册表 id）和一个资源位置名（NBT patch 的键，如
+ * "minecraft:damage"）。typeId 严格对齐 Java 1.21.11 DataComponents.register
+ * 声明顺序：custom_data(0) max_stack_size(1) max_damage(2) damage(3)
+ * unbreakable(4) ... custom_name(6) ... lore(11) rarity(12) enchantments(13)
+ * can_place_on(14) can_break(15) ... repair_cost(19) ... potion_contents(49)。
  *
- * TODO 本项目仅落地 ItemStack 现有 9 个组件字段对应的子集：
- *   custom_data(0) / damage(3) / custom_name(6) / lore(11) /
- *   enchantments(13) / can_place_on(14) / can_break(15) /
- *   repair_cost(24) / potion_contents(38)
- * 其余组件类型（如 max_stack_size/food/tool 等）暂不落地，但 typeId 占位
- * 与 Java 一致，将来扩展零冲击。
+ * 本项目仅落地 ItemStack 现有 9 个组件字段对应的子集，未落地的类型占位与
+ * Java 一致，将来扩展零冲击。
  */
 enum class DataComponentType : i32 {
     CustomData = 0,      // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
     MaxStackSize = 1,    // TODO 暂未落地
     MaxDamage = 2,       // TODO 暂未落地
     Damage = 3,          // minecraft:damage —— int（已承受伤害）
-    Enchantable = 4,     // TODO 暂未落地
-    Unbreakable = 5,     // TODO 暂未落地
+    Unbreakable = 4,     // TODO 暂未落地
     CustomName = 6,      // minecraft:custom_name —— Component（文本）
-    ItemName = 7,        // TODO 暂未落地
-    ItemModel = 8,       // TODO 暂未落地
+    ItemName = 9,        // TODO 暂未落地
+    ItemModel = 10,      // TODO 暂未落地
     Lore = 11,           // minecraft:lore —— list<Component>
     Rarity = 12,         // TODO 暂未落地
     Enchantments = 13,   // minecraft:enchantments —— ItemEnchantments
     CanPlaceOn = 14,     // minecraft:can_place_on —— BlockPredicates
     CanBreak = 15,       // minecraft:can_break —— BlockPredicates
-    RepairCost = 24,     // minecraft:repair_cost —— int
-    PotionContents = 38, // minecraft:potion_contents —— record{potion,color,effects,name}
+    RepairCost = 19,     // minecraft:repair_cost —— int
+    Enchantable = 31,    // TODO 暂未落地
+    PotionContents = 49, // minecraft:potion_contents —— record{potion,color,effects,name}
 };
 
 /**

@@ -56,6 +56,7 @@
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaPotionIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
@@ -166,6 +167,9 @@ void ClientApplication::initializeCoreRegistries()
         }
         if (auto r = ::mc::network::backend::java::JavaPotionIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaPotionIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaEnchantmentIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaEnchantmentIdMap: {}", r.error().toString());
         }
     }
 }

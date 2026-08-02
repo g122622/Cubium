@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "common/core/Macros.hpp"
 #include "common/core/Result.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/network/backend/java/codecs/MobEffectInstanceCodec.hpp"
@@ -85,19 +84,24 @@ inline void writePotionContentsPayload(
 {
     ::mc::item::component::PotionContentsPayload pc{};
     // Optional<Holder<Potion>>。
-    MC_TRY_ASSIGN(auto hasPotion, buf.readBool());
+    bool hasPotion = false;
+    MC_TRY_ASSIGN(hasPotion, buf.readBool());
     if (hasPotion) {
-        MC_TRY_ASSIGN(auto potionId, buf.readVarInt());
+        i32 potionId = 0;
+        MC_TRY_ASSIGN(potionId, buf.readVarInt());
         pc.potionId = JavaPotionIdMap::instance().fromJavaRegistryId(static_cast<u32>(potionId));
     }
     // Optional<Integer> customColor。
-    MC_TRY_ASSIGN(auto hasColor, buf.readBool());
+    bool hasColor = false;
+    MC_TRY_ASSIGN(hasColor, buf.readBool());
     if (hasColor) {
-        MC_TRY_ASSIGN(auto color, buf.readVarInt());
+        i32 color = 0;
+        MC_TRY_ASSIGN(color, buf.readVarInt());
         pc.customColor = color;
     }
     // List<MobEffectInstance> customEffects。
-    MC_TRY_ASSIGN(auto effectCount, buf.readVarInt());
+    i32 effectCount = 0;
+    MC_TRY_ASSIGN(effectCount, buf.readVarInt());
     pc.customEffects.reserve(static_cast<size_t>(std::max(0, effectCount)));
     for (i32 i = 0; i < effectCount; ++i) {
         auto effectResult = readMobEffectInstance(buf);
@@ -107,9 +111,11 @@ inline void writePotionContentsPayload(
         pc.customEffects.push_back(effectResult.value());
     }
     // Optional<String> customName。
-    MC_TRY_ASSIGN(auto hasName, buf.readBool());
+    bool hasName = false;
+    MC_TRY_ASSIGN(hasName, buf.readBool());
     if (hasName) {
-        MC_TRY_ASSIGN(auto name, buf.readString());
+        std::string name;
+        MC_TRY_ASSIGN(name, buf.readString());
         pc.customName = std::move(name);
     }
     return pc;

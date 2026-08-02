@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "common/core/Macros.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -74,14 +73,20 @@ inline void writeHiddenEffectDetails(
 [[nodiscard]] inline ::mc::Result<::mc::entity::effect::EffectInstance> readHiddenEffectDetails(
     ::mc::network::buffer::ByteBuf& buf, ::mc::entity::effect::EffectType type)
 {
-    MC_TRY_ASSIGN(auto amplifier, buf.readVarInt());
-    MC_TRY_ASSIGN(auto duration, buf.readVarInt());
-    MC_TRY_ASSIGN(auto ambient, buf.readBool());
-    MC_TRY_ASSIGN(auto showParticles, buf.readBool());
-    MC_TRY_ASSIGN(auto showIcon, buf.readBool());
+    i32 amplifier = 0;
+    i32 duration = 0;
+    bool ambient = false;
+    bool showParticles = false;
+    bool showIcon = false;
+    MC_TRY_ASSIGN(amplifier, buf.readVarInt());
+    MC_TRY_ASSIGN(duration, buf.readVarInt());
+    MC_TRY_ASSIGN(ambient, buf.readBool());
+    MC_TRY_ASSIGN(showParticles, buf.readBool());
+    MC_TRY_ASSIGN(showIcon, buf.readBool());
     ::mc::entity::effect::EffectInstance inst(type, duration, amplifier, ambient, showParticles, showIcon);
 
-    MC_TRY_ASSIGN(auto hasHidden, buf.readBool());
+    bool hasHidden = false;
+    MC_TRY_ASSIGN(hasHidden, buf.readBool());
     if (hasHidden) {
         auto hiddenResult = readHiddenEffectDetails(buf, type);
         if (hiddenResult.failed()) {
@@ -118,16 +123,23 @@ inline void writeMobEffectInstance(
 [[nodiscard]] inline ::mc::Result<::mc::entity::effect::EffectInstance> readMobEffectInstance(
     ::mc::network::buffer::ByteBuf& buf)
 {
-    MC_TRY_ASSIGN(auto effectId, buf.readVarInt());
+    i32 effectId = 0;
+    MC_TRY_ASSIGN(effectId, buf.readVarInt());
     const auto type = JavaMobEffectIdMap::instance().fromJavaRegistryId(static_cast<u32>(effectId));
-    MC_TRY_ASSIGN(auto amplifier, buf.readVarInt());
-    MC_TRY_ASSIGN(auto duration, buf.readVarInt());
-    MC_TRY_ASSIGN(auto ambient, buf.readBool());
-    MC_TRY_ASSIGN(auto showParticles, buf.readBool());
-    MC_TRY_ASSIGN(auto showIcon, buf.readBool());
+    i32 amplifier = 0;
+    i32 duration = 0;
+    bool ambient = false;
+    bool showParticles = false;
+    bool showIcon = false;
+    MC_TRY_ASSIGN(amplifier, buf.readVarInt());
+    MC_TRY_ASSIGN(duration, buf.readVarInt());
+    MC_TRY_ASSIGN(ambient, buf.readBool());
+    MC_TRY_ASSIGN(showParticles, buf.readBool());
+    MC_TRY_ASSIGN(showIcon, buf.readBool());
     ::mc::entity::effect::EffectInstance inst(type, duration, amplifier, ambient, showParticles, showIcon);
 
-    MC_TRY_ASSIGN(auto hasHidden, buf.readBool());
+    bool hasHidden = false;
+    MC_TRY_ASSIGN(hasHidden, buf.readBool());
     if (hasHidden) {
         auto hiddenResult = detail::readHiddenEffectDetails(buf, type);
         if (hiddenResult.failed()) {

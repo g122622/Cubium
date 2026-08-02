@@ -39,15 +39,15 @@ namespace component {
 /**
  * @brief 将 DataComponentPatch 写入 Java wire 缓冲
  *
- * 线格式（本项目落地版，对齐 1.21.11 DataComponentPatch.STREAM_CODEC 骨架）：
- *   VarInt(addedCount)
- *   + [ VarInt(typeId) + ComponentNBT(value) ]*    // 每个值经 nbt_io 桥接为大端 NBT compound
- *   + VarInt(removedCount)
- *   + [ VarInt(typeId) ]*
+ * 线格式（1.21.11 DataComponentPatch.STREAM_CODEC）：
+ *   VarInt(addedCount) + VarInt(removedCount)   // 两 count 在前
+ *   + [ VarInt(typeId) + per-component value ]* // added 段（每组件专属 codec，无统一外壳）
+ *   + [ VarInt(typeId) ]*                       // removed 段
  *
- * 每个 added 值的 ComponentNBT 编码：把 payload 序列化为单个 NBT tag 后，包进一个
- * 名为 "v" 的 compound，再以 Java 大端二进制写出（长度前缀由 nbt_io::writeCompound 处理）。
- * 这保证了我方客户端↔服务端互通（必达）；与真 Java 1.21.11 每组件专属 codec 的差异标 TODO(Phase6)。
+ * 每组件 value 用其专属 streamCodec（Damage/RepairCost=裸VarInt、CustomName=ComponentNBT、
+ * Lore=VarInt+NBT序列、Enchantments=ItemEnchantments、PotionContents=PotionContentsPayload、
+ * CanPlaceOn/CanBreak=空list降级、CustomData=根NBT），无统一 compound{v:NBT} 外壳。
+ * typeId 是 Java DATA_COMPONENT_TYPE 注册表 id（DataComponentType 枚举值）。
  *
  * 未落地 typeId 不写出（调用方保证）。
  *
@@ -60,7 +60,7 @@ namespace component {
 /**
  * @brief 从 Java wire 缓冲读取 DataComponentPatch
  *
- * 线格式见 writePatchToWire。未知 typeId 跳过其 NBT 值后继续（容错）。
+ * 线格式见 writePatchToWire。未知 typeId 报错（vanilla 标准 patch 无长度前缀，无法安全跳过）。
  *
  * @param buf 源缓冲
  * @return 解析出的 patch 或错误
@@ -70,15 +70,13 @@ namespace component {
 /**
  * @brief 按 1.21.11 wire 规则消费 buf 中的 DataComponentPatch 区段，原样返回其字节
  *
- * 不解析组件值语义，仅按 vanilla `DataComponentPatch.STREAM_CODEC` 的自终止结构推进游标
- * （VarInt(addedCount) + added[VarInt(typeId)+NBT value] + VarInt(removedCount)
- * + removed[VarInt(typeId)]），并把消费到的字节副本返回。供 ItemStack metadata / 容器
+ * 与 readPatchFromWire 同结构（两 count 在前 + added 段 + removed 段），但只推进游标、
+ * 不构造 DataComponentPatch 对象，把消费到的字节副本返回。供 ItemStack metadata / 容器
  * 物品的读侧把 patch 作为透传字节存入 ItemStackView.componentsPatch（由 ItemStackBridge
  * 后续用 readPatchFromWire 还原为业务侧 patch）。
  *
- * 与 readPatchFromWire 的区别：本函数不构造 DataComponentPatch 对象、不查组件类型表，
- * 对未知 typeId 的 value 用 nbt_io::skipCompound 按定界跳过（容错），因此能安全消费真 Java
- * 对端发来的含未知组件的 patch 而不报错。
+ * 每组件 value 按 typeId 分派到专属 codec 跳过（与 readPatchFromWire 同分派）；未知 typeId
+ * 报错（vanilla 标准 patch 无长度前缀，无法跳过未知组件）。
  *
  * @param buf 源缓冲（游标须位于 patch 区段起点）
  * @return patch 区段的原始 wire 字节或错误

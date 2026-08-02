@@ -62,6 +62,7 @@ add_library(mc_common STATIC
     network/backend/java/generated/java_block_state_table.gen.cpp
     network/backend/java/mappings/JavaMobEffectIdMap.cpp
     network/backend/java/mappings/JavaPotionIdMap.cpp
+    network/backend/java/mappings/JavaEnchantmentIdMap.cpp
     network/backend/java/handshake/JavaLoginHandshaker.cpp
 
     # Network - Sync
