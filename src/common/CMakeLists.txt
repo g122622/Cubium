@@ -1539,6 +1539,7 @@ add_library(mc_common STATIC
     util/crypto/Sha256.cpp
     util/crypto/Sha1.cpp
     util/crypto/Md5.cpp
+    util/crypto/Crc32c.cpp
 
     # UUID utilities
     util/UuidUtils.cpp

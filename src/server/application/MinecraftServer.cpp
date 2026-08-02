@@ -41,6 +41,8 @@
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
@@ -2089,6 +2091,21 @@ void MinecraftServer::_handleContainerClickRemote(
     }
 }
 
+ItemStack MinecraftServer::hashedStackToItemStack(const mc::network::ir::play::HashedStack& hashed)
+{
+    if (!hashed.present || hashed.itemId == 0 || hashed.count <= 0) {
+        return ItemStack();
+    }
+    // wire 上的 hashed.itemId 是 vanilla registry id，须经 JavaItemIdMap 反查为项目内部 ItemId。
+    const mc::ItemId internalItemId =
+        mc::network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(hashed.itemId);
+    auto* item = mc::ItemRegistry::instance().getItem(internalItemId);
+    if (item == nullptr) {
+        return ItemStack();
+    }
+    return ItemStack(*item, hashed.count);
+}
+
 // ============================================================================
 // 数据包处理 / inventory 查询：基类默认实现（远程玩家路径）
 // 两子类原纯虚，去纯虚后基类提供远程默认；IntegratedServer 覆写追加本地客户端分支，
@@ -2126,10 +2143,9 @@ void MinecraftServer::handleContainerClickPacket(PlayerId playerId, const mc::ne
         return;
     }
 
-    // 远程默认路径：cursorItem 为空。
-    // TODO(Phase6): carriedItem 当前是 HashedStack，多玩家远程路径下需桥接回 ItemStack。
-    //   IntegratedServer 本地路径已有 hashedStackToItemStack；远程路径暂用空 cursor。
-    const ItemStack cursorItem;
+    // 还原光标物品：HashedStack 仅 itemId+count（组件哈希不可逆），还原为基础物品+数量。
+    // 远程玩家（StandaloneServer / IntegratedServer 远程分支）走此基类默认实现。
+    const ItemStack cursorItem = hashedStackToItemStack(evt->carriedItem);
     _handleContainerClickRemote(playerId, *evt, cursorItem);
 }
 

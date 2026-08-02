@@ -38,7 +38,6 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
-#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -85,23 +84,6 @@ Player& _getMenuPlayer()
 {
     static Player player(0, "IntegratedServerMenu");
     return player;
-}
-
-/// 把 1.21.11 HashedStack（仅 itemId+count）还原为业务 ItemStack。
-/// TODO(Phase6): HashedStack 暂无组件哈希 patch，仅还原基础物品+数量。
-[[nodiscard]] ItemStack hashedStackToItemStack(const mc::network::ir::play::HashedStack& hashed)
-{
-    if (!hashed.present || hashed.itemId == 0 || hashed.count <= 0) {
-        return ItemStack();
-    }
-    // wire 上的 hashed.itemId 是 vanilla registry id，须经 JavaItemIdMap 反查为项目内部 ItemId。
-    const mc::ItemId internalItemId =
-        mc::network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(hashed.itemId);
-    auto* item = mc::ItemRegistry::instance().getItem(internalItemId);
-    if (item == nullptr) {
-        return ItemStack();
-    }
-    return ItemStack(*item, hashed.count);
 }
 
 } // namespace
@@ -652,7 +634,7 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
         return;
     }
 
-    const ItemStack cursorItem = hashedStackToItemStack(evt->carriedItem);
+    const ItemStack cursorItem = MinecraftServer::hashedStackToItemStack(evt->carriedItem);
 
     // 远程 TCP 玩家：走 ContainerManager 多玩家路径（批9 下沉至基类 _handleContainerClickRemote）
     if (playerId != m_clientPlayerId) {

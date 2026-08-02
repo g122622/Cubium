@@ -289,14 +289,29 @@ struct SetCarriedItem {
 /**
  * @brief 容器点击槽位变更（1.21.11 用 HashedStack）
  *
- * 对应 Java HashedStack：present=false 空；true 则 itemId+count+组件哈希 patch。
- * IR 仅承载 itemId/count；HashedPatchMap（added/removed 组件哈希）在 codec 层双端写空、
- * 读侧按定界跳过——我方互通自洽，真 Java 互通因哈希值为空而不做组件校验（可接受降级）。
+ * 对应 Java HashedStack：present=false 空；true 则 itemId+count+HashedPatchMap。
+ * HashedPatchMap = addedComponents(Map<DataComponentType,Int> 哈希) + removedComponents(Set)。
+ *
+ * 哈希算法：vanilla 走 RegistryOps<HashCode>+HashOps.CRC32C_INSTANCE（DataFixers 体系）；
+ * 本项目用轻量 CRC-32C（输入=组件 wire 编码字节，由 4c 的 writeComponentValue 产出），
+ * 与 vanilla HashCode 不保证字节相等——仅用于我方 IR 自洽承载结构化哈希字段。真 Java
+ * 服务端 handleContainerClick 不校验 carriedItem 组件哈希（权威点击走 menu.clicked()），
+ * 哈希仅影响 RemoteSlot 远端视图增量同步；空/不等哈希最坏导致多发全量包，不崩不丢物。
  */
+struct HashedStackComponentHash {
+    i32 typeId; ///< DataComponentType 的 vanilla registry id
+    i32 hash;   ///< 组件值 wire 字节的 CRC-32C
+    [[nodiscard]] friend bool operator==(
+        const HashedStackComponentHash&, const HashedStackComponentHash&) noexcept = default;
+};
 struct HashedStack {
     bool present;
     u32 itemId; // present=false 时无意义
     i32 count;
+    /// added 组件哈希（typeId→CRC-32C）。我方出站填真实哈希；入站消费后丢弃（不校验）。
+    std::vector<HashedStackComponentHash> addedHashes;
+    /// removed 组件 typeId 列表。我方出站填真实移除项；入站消费后丢弃。
+    std::vector<i32> removedTypes;
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const HashedStack&, const HashedStack&) noexcept = default;
 };

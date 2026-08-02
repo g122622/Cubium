@@ -29,6 +29,7 @@
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
+#include "common/util/crypto/Crc32c.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
@@ -36,7 +37,10 @@
 #include "common/util/text/StringTextComponent.hpp"
 
 #include <memory>
+#include <span>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace item {
@@ -320,6 +324,28 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
     const usize end = buf.readPosition();
     const u8* base = buf.data() + start;
     return std::vector<u8>(base, base + (end - start));
+}
+
+std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHashes(const DataComponentPatch& patch)
+{
+    std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> result;
+    for (const auto& entry : patch.added()) {
+        auto type = componentTypeById(entry.typeId);
+        if (!type.has_value()) {
+            continue; // 未落地组件跳过
+        }
+        // 用专属 codec 把组件值编码到临时 ByteBuf，对 wire 字节算 CRC-32C。
+        network::buffer::ByteBuf tmp;
+        if (writeComponentValue(tmp, *type, entry.value).failed()) {
+            continue; // 编码失败跳过该组件（不中断整体哈希计算）
+        }
+        const u32 h = util::crypto::Crc32c::hash(std::span<const u8>(tmp.data(), tmp.size()));
+        result.first.emplace_back(entry.typeId, static_cast<i32>(h));
+    }
+    for (i32 typeId : patch.removed()) {
+        result.second.push_back(typeId);
+    }
+    return result;
 }
 
 } // namespace component

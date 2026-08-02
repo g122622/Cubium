@@ -1120,11 +1120,24 @@ protected:
     /**
      * @brief handleContainerClickPacket 远程分支：handleClick + syncToClient
      *
-     * cursorItem 由子类注入（IntegratedServer: hashedStackToItemStack；StandaloneServer: 空）。
+     * cursorItem 由调用方经 hashedStackToItemStack 从入站 HashedStack.carriedItem 还原。
      * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
      */
     void _handleContainerClickRemote(
         PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem);
+
+    /**
+     * @brief 把 1.21.11 HashedStack（itemId+count，组件哈希不还原）转业务 ItemStack
+     *
+     * HashedStack 仅承载 itemId+count+组件哈希（哈希不可逆，无法还原组件值），故还原结果
+     * 只含基础物品+数量，组件信息丢失。组件丢失对容器权威点击逻辑（menu.clicked）影响有限：
+     * vanilla 服务端 clicked() 用 menu 槽位状态权威推进，cursorItem 主要影响"光标是否为空"
+     * 的判定（拾取/放置）。供基类默认 handleContainerClickPacket 与子类远程分支复用，
+     * 替代各子类重复实现。
+     *
+     * present=false / itemId=0 / count<=0 返回空 ItemStack。
+     */
+    [[nodiscard]] static ItemStack hashedStackToItemStack(const mc::network::ir::play::HashedStack& hashed);
 
 protected:
     ServerSettings& m_settings;

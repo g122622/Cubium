@@ -26,6 +26,9 @@
 #include "common/core/Result.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 
+#include <utility>
+#include <vector>
+
 namespace mc {
 namespace network {
 namespace buffer {
@@ -82,6 +85,22 @@ namespace component {
  * @return patch 区段的原始 wire 字节或错误
  */
 [[nodiscard]] Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf);
+
+/**
+ * @brief 计算 DataComponentPatch 各组件的 CRC-32C 哈希（HashedStack 用）
+ *
+ * 遍历 patch.added()，每个组件用其专属 codec（与 writePatchToWire 同分派）编码到临时
+ * ByteBuf，对 wire 字节算 CRC-32C，产出 (typeId→hash) 列表；patch.removed() 直接收集 typeId。
+ *
+ * 仅落地组件参与（componentTypeById 命中），未落地组件跳过。哈希算法为轻量 CRC-32C，
+ * 与 vanilla HashOps.CRC32C_INSTANCE（DataFixers 体系）不保证字节相等，仅供我方 IR
+ * 自洽承载 HashedPatchMap 结构化字段（见 PlayPackets.hpp HashedStack 文档）。
+ *
+ * @param patch 组件补丁
+ * @return {addedHashes(typeId,hash), removedTypes(typeId)}；编解码失败项跳过（不中断）
+ */
+[[nodiscard]] std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHashes(
+    const DataComponentPatch& patch);
 
 } // namespace component
 } // namespace item

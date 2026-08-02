@@ -90,8 +90,10 @@ inline void writeItemStack(B& buf, const ir::play::ItemStackView& v)
  *
  * 对应 Java HashedStack：present=false 写 Bool(false)；true 写 Bool(true)+ActualItem
  * { VarInt(itemId) + VarInt(count) + HashedPatchMap }。
- * HashedPatchMap 我方双端均写空（added=VarInt(0) + removed=VarInt(0)），帧格式完整、
- * 双端自洽；真 Java 客户端能解析（哈希值为空表示无组件校验）。
+ * HashedPatchMap wire：VarInt(addedCount) + [VarInt(typeId) + INT(hash)]*（Map 分量）
+ *   + VarInt(removedCount) + [VarInt(typeId)]*（Set 分量）。
+ * 哈希值由调用方（客户端 toHashedStack）按组件 wire 字节 CRC-32C 预填入 IR 的
+ * addedHashes/removedTypes；本 codec 仅按 IR 字段写出。INT 走 writeI32（4 字节大端）。
  */
 inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
 {
@@ -102,9 +104,16 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     buf.writeBool(true);
     buf.writeVarInt(static_cast<i32>(v.itemId));
     buf.writeVarInt(v.count);
-    // HashedPatchMap：added(Map) 与 removed(Set) 各以 VarInt(size) 起始。我方写空。
-    buf.writeVarInt(0); // addedComponents size
-    buf.writeVarInt(0); // removedComponents size
+    // HashedPatchMap：added(Map<DataComponentType,Int>) + removed(Set<DataComponentType>)。
+    buf.writeVarInt(static_cast<i32>(v.addedHashes.size()));
+    for (const auto& h : v.addedHashes) {
+        buf.writeVarInt(h.typeId);
+        buf.writeI32(h.hash);
+    }
+    buf.writeVarInt(static_cast<i32>(v.removedTypes.size()));
+    for (i32 typeId : v.removedTypes) {
+        buf.writeVarInt(typeId);
+    }
 }
 
 [[nodiscard]] inline Result<ir::play::HashedStack> readHashedStack(B& buf)
@@ -120,25 +129,31 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     MC_TRY_ASSIGN(id, buf.readVarInt());
     v.itemId = static_cast<u32>(id);
     MC_TRY_ASSIGN(v.count, buf.readVarInt());
-    // 跳过 HashedPatchMap：added(Map<DataComponentType,Int>) + removed(Set<DataComponentType>)。
-    // 每项以 VarInt(registryId) 标识组件类型；Map 项多一个 Int 哈希值。我方不消费哈希，仅按定界跳过，
-    // 保证真 Java 服务端发来的带组件哈希的 HashedStack 不错位。
+    // 消费 HashedPatchMap：added(Map<DataComponentType,Int>) + removed(Set<DataComponentType>)。
+    // 读入 IR 字段供诊断，但不做哈希校验（我方权威点击走 menu.clicked()，不依赖远端哈希）。
     i32 addedCount = 0;
     MC_TRY_ASSIGN(addedCount, buf.readVarInt());
     if (addedCount < 0) {
         return Error(ErrorCode::InvalidData, "HashedPatchMap added count is negative", "readHashedStack");
     }
+    v.addedHashes.reserve(static_cast<size_t>(addedCount));
     for (i32 i = 0; i < addedCount; ++i) {
-        MC_TRY(buf.readVarInt()); // componentType registryId
-        MC_TRY(buf.readI32());    // hash value
+        i32 typeId = 0;
+        i32 hash = 0;
+        MC_TRY_ASSIGN(typeId, buf.readVarInt());
+        MC_TRY_ASSIGN(hash, buf.readI32());
+        v.addedHashes.push_back({typeId, hash});
     }
     i32 removedCount = 0;
     MC_TRY_ASSIGN(removedCount, buf.readVarInt());
     if (removedCount < 0) {
         return Error(ErrorCode::InvalidData, "HashedPatchMap removed count is negative", "readHashedStack");
     }
+    v.removedTypes.reserve(static_cast<size_t>(removedCount));
     for (i32 i = 0; i < removedCount; ++i) {
-        MC_TRY(buf.readVarInt()); // componentType registryId
+        i32 typeId = 0;
+        MC_TRY_ASSIGN(typeId, buf.readVarInt());
+        v.removedTypes.push_back(typeId);
     }
     return v;
 }

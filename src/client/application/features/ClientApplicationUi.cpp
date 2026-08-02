@@ -34,6 +34,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -55,8 +56,9 @@ namespace {
 
 namespace irplay = mc::network::ir::play;
 
-/// ItemStack → 1.21.11 HashedStack（仅 itemId+count，组件哈希留 TODO(Phase6)）。
+/// ItemStack → 1.21.11 HashedStack（itemId+count+组件哈希 HashedPatchMap）。
 /// 空栈 present=false。出站 ContainerClick 的 carriedItem 用。
+/// 组件哈希走 computeComponentHashes（每组件 wire 字节 CRC-32C，见 DataComponentPatchWire.hpp）。
 irplay::HashedStack toHashedStack(const ItemStack& stack)
 {
     irplay::HashedStack hs{};
@@ -71,6 +73,14 @@ irplay::HashedStack toHashedStack(const ItemStack& stack)
     // ItemStackBridge），边界处由 JavaItemIdMap 翻译，业务侧零感知（贯彻 IR 思想）。
     hs.itemId = ::mc::network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*stack.getItem());
     hs.count = stack.getCount();
+    // 组件哈希：从 ItemStack 导出 patch，逐组件 CRC-32C。哈希与 vanilla HashOps 不保证相等，
+    // 仅供我方 IR 自洽承载 HashedPatchMap 字段（真 Java 服务端不校验，见 PlayPackets.hpp 文档）。
+    const auto hashes = ::mc::item::component::computeComponentHashes(stack.toComponentPatch());
+    hs.addedHashes.reserve(hashes.first.size());
+    for (const auto& [typeId, hash] : hashes.first) {
+        hs.addedHashes.push_back({typeId, hash});
+    }
+    hs.removedTypes = hashes.second;
     return hs;
 }
 
