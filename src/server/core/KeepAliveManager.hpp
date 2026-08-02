@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include <vector>
 
@@ -37,20 +38,27 @@ class PlayerManager;
  * 负责心跳计时、超时检测、ping 计算。
  * 与 PlayerManager 协同工作。
  *
+ * 心跳间隔与超时阈值采用 vanilla Java 硬编码值
+ * （mc::network::KEEP_ALIVE_INTERVAL_MS=15000ms、KEEP_ALIVE_TIMEOUT_MS=30000ms，
+ * 对齐 vanilla Java Connection#KEEP_ALIVE_TIME / ServerGamePacketListenerImpl 滞后判定），
+ * 不可配置：原版本就硬编码不可配，移除配置项可彻底杜绝配置残留导致发送间隔/超时脱钩的 bug。
+ * 时序基于 wall-clock 毫秒（util::TimeUtils::getCurrentTimeMs），不依赖 TPS/tick 计数，
+ * 避免低 TPS 下发送间隔被拉长到超过超时阈值而误踢玩家。
+ *
  * 使用示例：
  * @code
- * KeepAliveManager kaMgr(playerManager, keepAliveInterval, keepAliveTimeout);
+ * KeepAliveManager kaMgr(playerManager);
  *
- * // 每个 tick 检查是否需要发送心跳
+ * // 每个 tick 检查是否需要发送心跳（wall-clock 毫秒）
  * auto players = kaMgr.getPlayersNeedingKeepAlive(currentTickMs);
  * for (auto playerId : players) {
- *     kaMgr.sendKeepAlive(playerId, currentTickMs);
+ *     // ... 发送 KeepAlive 包，并调 recordKeepAliveSent
  * }
  *
  * // 处理心跳响应
- * kaMgr.handleKeepAliveResponse(playerId, timestamp);
+ * kaMgr.handleKeepAliveResponse(playerId, timestamp, currentTimeMs);
  *
- * // 检查超时
+ * // 检查超时（每 tick 调用）
  * auto timeouts = kaMgr.getTimedOutPlayers(currentTickMs);
  * @endcode
  */
@@ -59,10 +67,10 @@ public:
     /**
      * @brief 构造心跳管理器
      * @param playerManager 玩家管理器引用
-     * @param keepAliveInterval 心跳间隔（毫秒）
-     * @param keepAliveTimeout 心跳超时（毫秒）
+     *
+     * 心跳间隔/超时采用 vanilla 硬编码常量（见类注释），不可配置。
      */
-    KeepAliveManager(PlayerManager& playerManager, i32 keepAliveInterval, i32 keepAliveTimeout);
+    explicit KeepAliveManager(PlayerManager& playerManager);
 
     // ========== 心跳发送 ==========
 
@@ -148,8 +156,6 @@ public:
 
 private:
     PlayerManager& m_playerManager;
-    i32 m_keepAliveInterval; ///< 心跳间隔（毫秒）
-    i32 m_keepAliveTimeout;  ///< 心跳超时（毫秒）
 };
 
 } // namespace mc::server::core

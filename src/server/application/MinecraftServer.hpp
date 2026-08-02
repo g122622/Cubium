@@ -487,6 +487,9 @@ protected:
 
     /**
      * @brief 执行心跳检查
+     *
+     * 基于 wall-clock 毫秒（util::TimeUtils::getCurrentTimeMs）按需向到期玩家发送 KeepAlive，
+     * 间隔为 vanilla 硬编码 15s（mc::network::KEEP_ALIVE_INTERVAL_MS），不依赖 TPS/tick 计数。
      */
     void tickKeepAlive();
 
@@ -511,9 +514,15 @@ protected:
     // 注：sendInitialDifficultyToPlayer 已于批6 迁入 LoginFlow。
 
     /**
-     * @brief 发送心跳给所有玩家
+     * @brief 向单个玩家发送 KeepAlive 包并记录发送时间戳
+     *
+     * 心跳 id 使用调用方传入的时间戳（一次 tick 内所有到期玩家共用同一 id，对齐 vanilla）。
+     *
+     * @param playerId 玩家ID
+     * @param timestamp 心跳 id（发送时刻 wall-clock 毫秒）
+     * @param tick 发送时的 tick（用于记录 lastKeepAliveSentTick）
      */
-    void sendKeepAliveToAll();
+    void sendKeepAliveToPlayer(PlayerId playerId, u64 timestamp, u64 tick);
 
     /**
      * @brief 填充创造模式初始物品栏
@@ -1251,13 +1260,10 @@ protected:
 
     // Tick 计数器
     u64 m_tickCounter = 0;
-    u64 m_lastKeepAliveTick = 0;
 
     // 调试统计（原子变量，供客户端线程读取）
     ServerDebugStats m_debugStats;
 
-    // 心跳间隔（ticks）
-    static constexpr u64 KEEPALIVE_INTERVAL = 300; // 15秒 @ 20 TPS
     static constexpr u64 CLEANUP_INTERVAL = 100;
 };
 

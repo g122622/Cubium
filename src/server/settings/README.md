@@ -63,7 +63,7 @@ graph TB
 | world | worldName, levelName, levelSeed, levelType, generateStructures, enableCommandBlock |
 | game | defaultGameMode, difficulty, hardcore, pvpEnabled, allowFlight, playerIdleTimeout, tickRate |
 | performance | viewDistance, simulationDistance, maxEntitiesPerChunk, chunkLoadRate |
-| security | whiteList, blackList, maxTickTime, maxPacketSize, keepAliveInterval, keepAliveTimeout |
+| security | whiteList, blackList, maxTickTime, maxPacketSize |
 | log | logLevel, logToFile, logFile, debugLogging |
 
 ## 容易踩的坑
@@ -120,7 +120,3 @@ RangeOption 可以隐式转换为 i32，但建议显式获取：
 i32 players = settings.maxPlayers;  // OK（隐式转换）
 u16 port = static_cast<u16>(settings.serverPort.get());  // 建议
 ```
-
-### 7. 心跳配置来源
-
-`keepAliveInterval` 和 `keepAliveTimeout` 的默认值来自 `mc::defaults::serverCore` 命名空间（定义在 `common/core/DefaultValues.hpp`），而非 `mc::defaults::server`。

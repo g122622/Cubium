@@ -22,11 +22,20 @@
  */
 
 #include "server/core/KeepAliveManager.hpp"
+#include "common/core/Constants.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/core/PlayerManager.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::server::core;
+
+// 心跳间隔/超时为 vanilla 硬编码常量（mc::network::KEEP_ALIVE_INTERVAL_MS=15000ms、
+// KEEP_ALIVE_TIMEOUT_MS=30000ms），不可配置。测试用例基于这两个常量计算预期时间，
+// 避免魔法数字。
+namespace {
+constexpr auto kInterval = mc::network::KEEP_ALIVE_INTERVAL_MS;
+constexpr auto kTimeout = mc::network::KEEP_ALIVE_TIMEOUT_MS;
+} // namespace
 
 /**
  * @brief KeepAliveManager 单元测试
@@ -41,7 +50,7 @@ protected:
     void SetUp() override
     {
         m_playerManager = std::make_unique<PlayerManager>();
-        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager, 1000, 5000);
+        m_keepAliveManager = std::make_unique<KeepAliveManager>(*m_playerManager);
     }
 
     void TearDown() override
@@ -58,17 +67,17 @@ TEST_F(KeepAliveManagerTest, NeedsKeepAlive)
 {
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
-    // 初始时应该需要发送心跳
-    EXPECT_TRUE(m_keepAliveManager->needsKeepAlive(1, 2000));
+    // 初始 lastKeepAliveSent=0，当前时间超过间隔即需要发送心跳
+    EXPECT_TRUE(m_keepAliveManager->needsKeepAlive(1, kInterval));
 
     // 记录发送时间
     m_keepAliveManager->recordKeepAliveSent(1, 2000, 40); // tick 40 = 2000ms
 
-    // 刚发送后不应该需要
+    // 刚发送后（未满间隔）不应该需要
     EXPECT_FALSE(m_keepAliveManager->needsKeepAlive(1, 2500));
 
-    // 超过间隔后应该需要
-    EXPECT_TRUE(m_keepAliveManager->needsKeepAlive(1, 3500));
+    // 达到间隔后应该需要
+    EXPECT_TRUE(m_keepAliveManager->needsKeepAlive(1, 2000 + kInterval));
 }
 
 TEST_F(KeepAliveManagerTest, NeedsKeepAliveNonexistentPlayer)
@@ -81,15 +90,15 @@ TEST_F(KeepAliveManagerTest, GetPlayersNeedingKeepAlive)
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     m_playerManager->addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);
 
-    // 两个玩家都需要心跳
-    auto players = m_keepAliveManager->getPlayersNeedingKeepAlive(2000);
+    // 两个玩家 lastKeepAliveSent=0，当前时间超过间隔则都需要心跳
+    auto players = m_keepAliveManager->getPlayersNeedingKeepAlive(kInterval);
     EXPECT_EQ(players.size(), 2u);
 
     // 只记录玩家1的发送时间
     m_keepAliveManager->recordKeepAliveSent(1, 2000, 40);
 
-    // 只有玩家2需要心跳
-    players = m_keepAliveManager->getPlayersNeedingKeepAlive(2500);
+    // 查询时刻须满足：玩家1 (t-2000)<15000 不需、玩家2 (t-0)>=15000 需，故 15000<=t<17000。
+    players = m_keepAliveManager->getPlayersNeedingKeepAlive(16000);
     EXPECT_EQ(players.size(), 1u);
     EXPECT_EQ(players[0], 2u);
 }
@@ -127,17 +136,18 @@ TEST_F(KeepAliveManagerTest, IsTimedOut)
 {
     m_playerManager->addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
 
-    // 初始时不应该超时（没有接收过心跳）
-    EXPECT_FALSE(m_keepAliveManager->isTimedOut(1, 1000));
+    // 初始 lastKeepAliveReceived=0；isTimedOut（单玩家版）无 lastReceived>0 守卫，
+    // 直接 (t-0)>=timeout 判定，故 t<timeout 时不超时。
+    EXPECT_FALSE(m_keepAliveManager->isTimedOut(1, kTimeout - 1));
 
     // 记录接收时间
     m_keepAliveManager->updateKeepAlive(1, 1000);
 
     // 超时时间内不应该超时
-    EXPECT_FALSE(m_keepAliveManager->isTimedOut(1, 4000));
+    EXPECT_FALSE(m_keepAliveManager->isTimedOut(1, 1000 + kTimeout - 1));
 
     // 超过超时时间应该超时
-    EXPECT_TRUE(m_keepAliveManager->isTimedOut(1, 7000));
+    EXPECT_TRUE(m_keepAliveManager->isTimedOut(1, 1000 + kTimeout));
 }
 
 TEST_F(KeepAliveManagerTest, GetTimedOutPlayers)
@@ -148,12 +158,12 @@ TEST_F(KeepAliveManagerTest, GetTimedOutPlayers)
     // 记录玩家1的接收时间
     m_keepAliveManager->updateKeepAlive(1, 1000);
 
-    // 玩家2没有记录接收时间，不应超时
+    // 玩家2没有记录接收时间（lastReceived=0），不应超时
     auto timedOut = m_keepAliveManager->getTimedOutPlayers(2000);
     EXPECT_EQ(timedOut.size(), 0u);
 
-    // 超过超时时间
-    timedOut = m_keepAliveManager->getTimedOutPlayers(7000);
+    // 玩家1超过超时时间
+    timedOut = m_keepAliveManager->getTimedOutPlayers(1000 + kTimeout);
     EXPECT_EQ(timedOut.size(), 1u);
     EXPECT_EQ(timedOut[0], 1u);
 }

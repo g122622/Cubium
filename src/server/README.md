@@ -465,18 +465,7 @@ tick 顺序严格 flush → send → drain，保证客户端收到正确光照�
 - 同步管理器（ChunkSendManager、BlockUpdateSyncManager；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，光照同步由 `ServerWorld` 承担，均无独立管理器）和刷怪管理器（NaturalSpawner、DespawnManager、VillageSiege）现在由各 `ServerDimension` 持有，不再从 `MinecraftServer` 访问。
 - 所有维度的 `ServerWorld::tick()` 都通过 `ServerDimensionManager::tick()` 统一调度，每个维度在自己的 `ServerDimension::tick()` 中独立执行同步和刷怪逻辑。
 
-### 6. 心跳超时配置
-
-默认心跳间隔和超时通过 `ServerSettings` 和 `mc::defaults::serverCore` 命名空间管理：
-```cpp
-// 默认值定义在 src/common/core/DefaultValues.hpp
-namespace mc::defaults::serverCore {
-    inline constexpr i32 keepAliveIntervalMs = 15000;
-    inline constexpr i32 keepAliveTimeoutMs = 30000;
-}
-```
-
-### 7. 命令注册
+### 6. 命令注册
 
 命令在 `CommandRegistry::registerDefaults()` 中自动注册。自定义命令需手动注册：
 ```cpp

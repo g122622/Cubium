@@ -379,8 +379,9 @@ void MinecraftServer::tick()
         return;
     }
 
-    // 检查心跳超时
-    if (m_tickCounter % KEEPALIVE_INTERVAL == 0) {
+    // 检查心跳超时（每 tick 判定：开销极小，每玩家一次减法比较；vanilla 硬编码 30s 阈值）。
+    // 必须 wall-clock 每tick，避免低 TPS 下漏判导致超时玩家滞留。
+    {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CheckKeepAliveTimeout", "phase", "keepalive_timeout");
 
         u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
@@ -405,7 +406,7 @@ void MinecraftServer::tick()
 
     // 方块更新同步由 ServerDimension::tick() 处理
 
-    // 心跳（每 15 秒）
+    // 心跳发送（wall-clock 按需，间隔为 vanilla 硬编码 15s）
     tickKeepAlive();
 
     // 每 20 tick 同步一次时间
@@ -435,8 +436,7 @@ void MinecraftServer::initializeCoreManagers()
     // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
     m_timeManager = std::make_unique<core::TimeManager>(0, 0);
     m_teleportManager = std::make_unique<core::TeleportManager>(*m_playerManager);
-    m_keepAliveManager = std::make_unique<core::KeepAliveManager>(
-        *m_playerManager, m_settings.keepAliveInterval.get(), m_settings.keepAliveTimeout.get());
+    m_keepAliveManager = std::make_unique<core::KeepAliveManager>(*m_playerManager);
     m_positionTracker = std::make_unique<core::PositionTracker>(*m_playerManager, m_settings.viewDistance.get());
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
 
@@ -1404,11 +1404,17 @@ void MinecraftServer::tickEntities()
 
 void MinecraftServer::tickKeepAlive()
 {
+    // wall-clock 按需发送：getPlayersNeedingKeepAlive 用 (currentMs - lastSent) >= 15s 判定，
+    // 与 TPS 无关，低 TPS 下发送间隔仍稳定 15s。一次 tick 内所有到期玩家共用同一 timestamp 作 id。
+    u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
+    auto players = m_keepAliveManager->getPlayersNeedingKeepAlive(currentTimeMs);
+    if (players.empty()) {
+        return;
+    }
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "SendKeepAlive", "phase", "keepalive_send");
     u64 tick = currentTick();
-    if (tick - m_lastKeepAliveTick >= KEEPALIVE_INTERVAL) {
-        m_lastKeepAliveTick = tick;
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "SendKeepAlive", "phase", "keepalive_send");
-        sendKeepAliveToAll();
+    for (PlayerId playerId : players) {
+        sendKeepAliveToPlayer(playerId, currentTimeMs, tick);
     }
 }
 
@@ -1530,27 +1536,25 @@ void MinecraftServer::sendTimeUpdate()
     }
 }
 
-void MinecraftServer::sendKeepAliveToAll()
+void MinecraftServer::sendKeepAliveToPlayer(PlayerId playerId, u64 timestamp, u64 tick)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendKeepAlive", "phase", "keepalive_sync");
+    // 仅对已登录且连接有效的玩家发送。本地客户端（playerManager 中同样存在）经
+    // sendPacketToPlayer 内部 m_localClientSender 直传，此守卫对其亦无害。
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn || !player->hasConnection()) {
+        return;
+    }
 
-    u64 timestamp = util::TimeUtils::getCurrentTimeMs();
-    u64 tick = currentTick();
+    // 1.21.11 KeepAlive：服务端发 id，客户端原样回 id。用时间戳作为 id。
+    mc::network::ir::play::KeepAlive pkt;
+    pkt.id = static_cast<i64>(timestamp);
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 
-    m_playerManager->forEachPlayer([this, timestamp, tick](ServerPlayerData& player) {
-        if (player.loggedIn && player.hasConnection()) {
-            // 1.21.11 KeepAlive：服务端发 id，客户端原样回 id。用时间戳作为 id。
-            mc::network::ir::play::KeepAlive pkt;
-            pkt.id = static_cast<i64>(timestamp);
-            sendPacketToPlayer(player.playerId,
-                mc::network::ir::IrPacket{
-                    mc::network::protocol::ConnectionProtocol::Play,
-                    mc::network::ir::PlayPacket{std::move(pkt)},
-                });
-
-            m_keepAliveManager->recordKeepAliveSent(player.playerId, timestamp, tick);
-        }
-    });
+    m_keepAliveManager->recordKeepAliveSent(playerId, timestamp, tick);
 }
 
 void MinecraftServer::initializeCreativeInventory(PlayerInventory& inventory)

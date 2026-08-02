@@ -12,7 +12,5 @@ TEST(DefaultValuesTest, GameDirectoryNamesAreExpected)
 
 TEST(DefaultValuesTest, ServerCoreDefaultsMatchExpectedValues)
 {
-    EXPECT_EQ(mc::defaults::serverCore::keepAliveIntervalMs, 15000);
-    EXPECT_EQ(mc::defaults::serverCore::keepAliveTimeoutMs, 30000);
     EXPECT_EQ(mc::defaults::serverCore::tickDurationMs, 50);
 }

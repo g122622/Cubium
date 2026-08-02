@@ -75,8 +75,6 @@ ServerSettings::ServerSettings()
     , blackList("blackList", defaults::server::blackList)
     , maxTickTime("maxTickTime", 1000, 60000, defaults::server::maxTickTime)
     , maxPacketSize("maxPacketSize", 1024, 16777216, defaults::server::maxPacketSize)
-    , keepAliveInterval("keepAliveInterval", 1000, 60000, defaults::serverCore::keepAliveIntervalMs)
-    , keepAliveTimeout("keepAliveTimeout", 5000, 120000, defaults::serverCore::keepAliveTimeoutMs)
 
     // 日志设置
     , logLevel("logLevel", defaults::server::serverLogLevel)
@@ -120,8 +118,6 @@ ServerSettings::ServerSettings()
     registerOption("security", &blackList);
     registerOption("security", &maxTickTime);
     registerOption("security", &maxPacketSize);
-    registerOption("security", &keepAliveInterval);
-    registerOption("security", &keepAliveTimeout);
 
     // 注册日志设置
     registerOption("log", &logLevel);

@@ -26,10 +26,8 @@
 
 namespace mc::server::core {
 
-KeepAliveManager::KeepAliveManager(PlayerManager& playerManager, i32 keepAliveInterval, i32 keepAliveTimeout)
+KeepAliveManager::KeepAliveManager(PlayerManager& playerManager)
     : m_playerManager(playerManager)
-    , m_keepAliveInterval(keepAliveInterval)
-    , m_keepAliveTimeout(keepAliveTimeout)
 {}
 
 bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) const
@@ -38,7 +36,7 @@ bool KeepAliveManager::needsKeepAlive(PlayerId playerId, u64 currentTickMs) cons
     if (!player) return false;
 
     u64 lastSent = player->lastKeepAliveSent;
-    return (currentTickMs - lastSent) >= static_cast<u64>(m_keepAliveInterval);
+    return (currentTickMs - lastSent) >= network::KEEP_ALIVE_INTERVAL_MS;
 }
 
 std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTickMs) const
@@ -47,7 +45,7 @@ std::vector<PlayerId> KeepAliveManager::getPlayersNeedingKeepAlive(u64 currentTi
     result.reserve(m_playerManager.playerCount());
     m_playerManager.forEachPlayer([&](const ServerPlayerData& player) {
         u64 lastSent = player.lastKeepAliveSent;
-        if ((currentTickMs - lastSent) >= static_cast<u64>(m_keepAliveInterval)) {
+        if ((currentTickMs - lastSent) >= network::KEEP_ALIVE_INTERVAL_MS) {
             result.push_back(player.playerId);
         }
     });
@@ -94,7 +92,7 @@ bool KeepAliveManager::isTimedOut(PlayerId playerId, u64 currentTickMs) const
     if (!player) return false;
 
     u64 lastReceived = player->lastKeepAliveReceived;
-    return (currentTickMs - lastReceived) >= static_cast<u64>(m_keepAliveTimeout);
+    return (currentTickMs - lastReceived) >= network::KEEP_ALIVE_TIMEOUT_MS;
 }
 
 std::vector<PlayerId> KeepAliveManager::getTimedOutPlayers(u64 currentTickMs) const
@@ -102,7 +100,7 @@ std::vector<PlayerId> KeepAliveManager::getTimedOutPlayers(u64 currentTickMs) co
     std::vector<PlayerId> result;
     m_playerManager.forEachPlayer([&](const ServerPlayerData& player) {
         u64 lastReceived = player.lastKeepAliveReceived;
-        if (lastReceived > 0 && (currentTickMs - lastReceived) >= static_cast<u64>(m_keepAliveTimeout)) {
+        if (lastReceived > 0 && (currentTickMs - lastReceived) >= network::KEEP_ALIVE_TIMEOUT_MS) {
             result.push_back(player.playerId);
         }
     });

@@ -156,9 +156,6 @@ inline constexpr bool debugLogging = false;
 // ============================================================================
 namespace serverCore {
 inline constexpr u64 tickDurationMs = 50;
-inline constexpr i32 keepAliveIntervalMs = 15000;
-inline constexpr i32 keepAliveTimeoutMs = 30000;
-inline constexpr u64 keepAliveCheckIntervalTicks = 300;
 inline constexpr u64 cleanupIntervalTicks = 100;
 } // namespace serverCore
 

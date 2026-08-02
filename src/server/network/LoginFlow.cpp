@@ -29,6 +29,7 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -91,6 +92,17 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     if (sessionId != 0) {
         m_server.playerManager().mapSessionToPlayer(sessionId, playerId);
     }
+
+    // 初始化 KeepAlive 基准时间（wall-clock 毫秒）：
+    // - lastKeepAliveSent=now：避免玩家一加入就因 (now - 0) >= 15s 立即发首包（vanilla 是加入后
+    //   等一个间隔才发）。tickKeepAlive 每tick 调 getPlayersNeedingKeepAlive，无此初始化则新玩家
+    //   首 tick 即被选中发送，与原版"加入 15s 后才发"语义不符。
+    // - lastKeepAliveReceived=now：getTimedOutPlayers 的守卫为 lastReceived>0 && (now-lastReceived)
+    //   >=30s。若不初始化（保持 0），守卫 lastReceived>0 恒假，玩家即使不回包也永不被判超时（隐患）。
+    //   初始化为 now 后，玩家加入 30s 内不误判超时，且若一直不回包则加入 30s 后正确判超时踢出。
+    const u64 nowMs = util::TimeUtils::getCurrentTimeMs();
+    playerData->lastKeepAliveSent = nowMs;
+    playerData->lastKeepAliveReceived = nowMs;
 
     // 设置玩家初始状态
     setupInitialPlayerState(playerData, static_cast<GameMode>(m_server.settings().defaultGameMode.get()));
