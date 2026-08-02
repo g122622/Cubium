@@ -119,6 +119,29 @@ TEST_F(NetworkTestBase, PlayContainerClickWithCarriedAndChangedSlots)
     EXPECT_EQ(std::get<ContainerClick>(out), in);
 }
 
+TEST_F(NetworkTestBase, PlayContainerClickWithHashedPatchMap)
+{
+    // 4d：HashedStack 携带真实 HashedPatchMap（addedHashes + removedTypes）经 wire roundTrip 保真。
+    // addedHashes 的 typeId=vanilla DATA_COMPONENT_TYPE registry id（Damage=7 仅为测试占位，
+    // 不要求语义正确，codec 层按 typeId 透传 I32 哈希不解析组件值）。
+    ContainerClick in{};
+    in.containerId = 3;
+    in.stateId = 9;
+    in.slotNum = 0;
+    in.buttonNum = 0;
+    in.clickType = 0; // PICKUP
+    HashedStack carried{};
+    carried.present = true;
+    carried.itemId = 1;
+    carried.count = 1;
+    carried.addedHashes = {{7, 0x12345678}, {9, -1}};
+    carried.removedTypes = {11, 19};
+    in.carriedItem = carried;
+    auto out = roundTripGeneric(*tables()->playSb, PlayPacket{in});
+    ASSERT_EQ(out.index(), 2u);
+    EXPECT_EQ(std::get<ContainerClick>(out), in);
+}
+
 TEST_F(NetworkTestBase, PlayContainerClose)
 {
     ContainerClose in{};

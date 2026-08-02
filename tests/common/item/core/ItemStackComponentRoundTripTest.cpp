@@ -194,8 +194,11 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_PreservesAllComponents)
     EXPECT_EQ(restored.getEnchantments().getLevel("minecraft:sharpness"), 5);
     EXPECT_EQ(restored.getEnchantments().getLevel("minecraft:unbreaking"), 3);
     EXPECT_EQ(restored.getPotionId(), "minecraft:water");
-    ASSERT_EQ(restored.getCanPlaceOn().getPredicates().size(), 2u);
-    ASSERT_EQ(restored.getCanDestroy().getPredicates().size(), 1u);
+    // CanPlaceOn/CanBreak 经 wire roundTrip 降级为空谓词：4c 起 AdventureModePredicate
+    // wire 写空 list（项目 vector<string> 与 vanilla 结构化 BlockPredicate 不兼容，降级
+    // 保互通不崩）。NBT 路径（NbtRoundTrip）不走 wire 降级，谓词保真。
+    EXPECT_EQ(restored.getCanPlaceOn().getPredicates().size(), 0u);
+    EXPECT_EQ(restored.getCanDestroy().getPredicates().size(), 0u);
     const auto* restoredTag = restored.getTag();
     ASSERT_NE(restoredTag, nullptr);
     EXPECT_EQ(restoredTag->at("display").at("color").get<i32>(), 0xFF0000);
