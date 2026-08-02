@@ -757,6 +757,18 @@ public:
     void setSwimming(bool swimming);
     void setSleeping(bool sleeping);
 
+    /**
+     * @brief 玩家最近一次客户端输入位掩码（服务端权威缓存）。
+     *
+     * 对齐 Java Player.setLastClientInput：服务端 handlePlayerInput 收到
+     * ServerboundPlayerInput 后写入此字段，骑乘载具的 travel() 在 tick 中
+     * 据此驱动移动。位定义同 ir::play::PlayerInput：
+     * bit0=forward bit1=backward bit2=left bit3=right
+     * bit4=jump bit5=shift bit6=sprint。
+     */
+    void setLastClientInput(u8 input) { m_lastClientInput = input; }
+    [[nodiscard]] u8 lastClientInput() const { return m_lastClientInput; }
+
     // ========== 睡眠系统 ==========
 
     /**
@@ -2028,6 +2040,9 @@ private:
     f32 m_inputStrafe = 0.0f;
     bool m_inputJumping = false;
     bool m_inputSneaking = false;
+
+    // 服务端权威的最近客户端输入位掩码（对齐 Java Player.lastClientInput）。
+    u8 m_lastClientInput = 0;
 
     i32 m_sleepTimer = 0;
 

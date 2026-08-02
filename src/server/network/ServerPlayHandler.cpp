@@ -287,8 +287,8 @@ void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::netw
             const bool elytra = serverPlayer->isElytraFlying();
             // 对齐 Java shouldCheckPlayerMovement：elytra 时受 DISABLE_ELYTRA_MOVEMENT_CHECK 开关控制。
             // GameRules 经所在 ServerWorld 取（MinecraftServer 不持有 GameRules，由世界承载）。
-            const bool disableElytraCheck =
-                world != nullptr && world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DISABLE_ELYTRA_MOVEMENT_CHECK);
+            const bool disableElytraCheck = world != nullptr &&
+                world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DISABLE_ELYTRA_MOVEMENT_CHECK);
             const bool checkQuickly = !elytra || !disableElytraCheck;
             if (checkQuickly) {
                 const f64 threshold = elytra ? 300.0 : 100.0;
@@ -597,19 +597,19 @@ void ServerPlayHandler::handlePlayerInputPacket(PlayerId playerId, const mc::net
     const bool shift = (input & 0x20) != 0;
     const bool sprint = (input & 0x40) != 0;
 
-    // 疾跑状态由 PlayerCommand 维护，这里仅驱动载具。shift（潜行）在本项目
-    // 走 PlayerCommand/PlayerInput 之外的状态链路（见 handlePlayerCommandPacket），
-    // 载具侧忽略 shift。TODO(Phase6): 跳跃输入驱动 IJumpingMount 载具的蓄力跳跃。
-    (void)jump;
-    (void)shift;
-
     auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
     if (playerEntity == nullptr) {
         return;
     }
 
-    // 玩家骑乘载具时，输入转发给载具。仅 Boat 已实现 handleInput；其它载具
-    // （马/骆驼/羊驼等 IJumpingMount 载具）的输入链路 TODO(Phase6)。
+    // 对齐 Java ServerGamePacketListenerImpl.handlePlayerInput：写入玩家最近客户端输入
+    // 缓存 + 同步 shift（潜行）状态。jump 位不在此驱动 IJumpingMount——蓄力跳跃由
+    // PlayerCommand START_RIDING_JUMP/STOP_RIDING_JUMP 触发（见 handlePlayerCommandPacket），
+    // 与 vanilla 一致（PlayerInput.jump 仅影响玩家自身跳跃，不驱动骑乘载具跳跃）。
+    playerEntity->setLastClientInput(input);
+    playerEntity->setSneaking(shift);
+
+    // 玩家骑乘载具时，输入转发给载具。
     const EntityInstanceId vehicleId = playerEntity->getVehicle();
     if (vehicleId == INVALID_ENTITY_ID) {
         return;
@@ -627,14 +627,22 @@ void ServerPlayHandler::handlePlayerInputPacket(PlayerId playerId, const mc::net
         return;
     }
 
-    // 非船载具输入处理 TODO(Phase6)。
+    // 非船载具（马/骆驼/羊驼等 IJumpingMount）：移动输入已写入 playerEntity 的
+    // lastClientInput 缓存，待载具 travel() 物理实现后在其 tick 中拾取驱动。
+    // 项目当前未实现非船载具的 travel() 物理移动，故此处不额外转发；
+    // 蓄力跳跃经 PlayerCommand 链路已通。载具 travel 物理属未实现子系统。
+    (void)backward;
+    (void)left;
+    (void)right;
+    (void)jump;
     (void)sprint;
+    (void)forward;
 }
 
 void ServerPlayHandler::handleMoveVehiclePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    // 最小实现：NaN 校验 + 写入载具位置 + 回送 ClientboundMoveVehicle 校正。
-    // 完整 moved-too-quickly/wrongly 反飞行检测 TODO(Phase6)。
+    // NaN 校验 + moved-too-quickly/wrongly 反飞行 + 写入载具位置 + 回送校正。
+    // 对齐 Java ServerGamePacketListenerImpl.handleMoveVehicle。
     auto* player = m_server.playerManager().getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
@@ -673,21 +681,64 @@ void ServerPlayHandler::handleMoveVehiclePacket(PlayerId playerId, const mc::net
         return;
     }
 
+    // 回送载具校正包的辅助 lambda（vanilla 超限/正常均回送权威位置）。
+    auto sendVehicleCorrection = [this, playerId, vehicle]() {
+        mc::network::ir::play::ClientboundMoveVehicle correction;
+        correction.x = static_cast<f64>(vehicle->position().x);
+        correction.y = static_cast<f64>(vehicle->position().y);
+        correction.z = static_cast<f64>(vehicle->position().z);
+        correction.yRot = vehicle->yaw();
+        correction.xRot = vehicle->pitch();
+        m_server.sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(correction)}});
+    };
+
+    // 反飞行双闸（载具基线落在骑乘者 ServerPlayer 上）。isSingleplayerOwner 豁免。
+    auto* serverPlayer = playerEntity->asServerPlayer();
+    if (serverPlayer != nullptr && !m_server.isSingleplayerOwner(playerId)) {
+        // 载具切换（下坐再骑乘新载具）时重置基线，避免旧载具坐标误判 quickly。
+        if (!serverPlayer->hasVehicleAntiFlightInited() || serverPlayer->lastVehicleId() != vehicleId) {
+            serverPlayer->resetVehicleAntiFlightBaseline(static_cast<f64>(vehicle->position().x),
+                static_cast<f64>(vehicle->position().y),
+                static_cast<f64>(vehicle->position().z));
+            serverPlayer->markVehicleAntiFlightInited();
+            serverPlayer->setLastVehicleId(vehicleId);
+        }
+
+        // moved-too-quickly：本包位移 - 速度模长平方 > 100.0 → 回送校正，不写入坐标。
+        const f64 d6 = evt->x - serverPlayer->vehicleFirstGoodX();
+        const f64 d7 = evt->y - serverPlayer->vehicleFirstGoodY();
+        const f64 d8 = evt->z - serverPlayer->vehicleFirstGoodZ();
+        const f64 d9 = static_cast<f64>(vehicle->velocity().lengthSquared());
+        const f64 d10 = d6 * d6 + d7 * d7 + d8 * d8;
+        if (d10 - d9 > 100.0) {
+            spdlog::warn("Player {} (vehicle) moved too quickly! {},{},{}", playerId, d6, d7, d8);
+            sendVehicleCorrection();
+            return;
+        }
+
+        // moved-wrongly：实际位移 > 0.0625 → 回送校正，不写入坐标。
+        const f64 w6 = evt->x - serverPlayer->vehicleLastGoodX();
+        const f64 w7 = evt->y - serverPlayer->vehicleLastGoodY();
+        const f64 w8 = evt->z - serverPlayer->vehicleLastGoodZ();
+        const f64 w10 = w6 * w6 + w7 * w7 + w8 * w8;
+        if (w10 > 0.0625) {
+            spdlog::warn("Player {} (vehicle) moved wrongly! {}", playerId, std::sqrt(w10));
+            sendVehicleCorrection();
+            return;
+        }
+
+        serverPlayer->advanceVehicleLastGood(evt->x, evt->y, evt->z);
+    }
+
     vehicle->setPosition(static_cast<f32>(evt->x), static_cast<f32>(evt->y), static_cast<f32>(evt->z));
     vehicle->setRotation(evt->yRot, evt->xRot);
     vehicle->setOnGround(evt->onGround);
 
     // 回送校正：服务端权威位置回传客户端，使客户端载具与服务端对齐
     // （对齐 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 发 ClientboundMoveVehicle）。
-    mc::network::ir::play::ClientboundMoveVehicle correction;
-    correction.x = static_cast<f64>(vehicle->position().x);
-    correction.y = static_cast<f64>(vehicle->position().y);
-    correction.z = static_cast<f64>(vehicle->position().z);
-    correction.yRot = vehicle->yaw();
-    correction.xRot = vehicle->pitch();
-    m_server.sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(correction)}});
+    sendVehicleCorrection();
 }
 
 void ServerPlayHandler::handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

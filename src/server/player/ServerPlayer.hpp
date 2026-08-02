@@ -595,6 +595,46 @@ public:
     [[nodiscard]] bool hasAntiFlightBaselineInited() const { return m_antiFlightBaselineInited; }
     void markAntiFlightBaselineInited() { m_antiFlightBaselineInited = true; }
 
+    // ========== 载具反飞行基线（跨 tick 状态） ==========
+    // 对齐 Java ServerGamePacketListenerImpl.handleMoveVehicle 的 vehicleFirstGood/
+    // vehicleLastGood。骑乘载具时按载具坐标做 moved-too-quickly/wrongly 校验。
+
+    [[nodiscard]] f64 vehicleFirstGoodX() const { return m_vehicleFirstGoodX; }
+    [[nodiscard]] f64 vehicleFirstGoodY() const { return m_vehicleFirstGoodY; }
+    [[nodiscard]] f64 vehicleFirstGoodZ() const { return m_vehicleFirstGoodZ; }
+    [[nodiscard]] f64 vehicleLastGoodX() const { return m_vehicleLastGoodX; }
+    [[nodiscard]] f64 vehicleLastGoodY() const { return m_vehicleLastGoodY; }
+    [[nodiscard]] f64 vehicleLastGoodZ() const { return m_vehicleLastGoodZ; }
+
+    void resetVehicleAntiFlightBaseline(f64 x, f64 y, f64 z)
+    {
+        m_vehicleFirstGoodX = x;
+        m_vehicleFirstGoodY = y;
+        m_vehicleFirstGoodZ = z;
+        m_vehicleLastGoodX = x;
+        m_vehicleLastGoodY = y;
+        m_vehicleLastGoodZ = z;
+    }
+    void advanceVehicleLastGood(f64 x, f64 y, f64 z)
+    {
+        m_vehicleLastGoodX = x;
+        m_vehicleLastGoodY = y;
+        m_vehicleLastGoodZ = z;
+    }
+    void rollVehicleFirstGoodToLastGood()
+    {
+        m_vehicleFirstGoodX = m_vehicleLastGoodX;
+        m_vehicleFirstGoodY = m_vehicleLastGoodY;
+        m_vehicleFirstGoodZ = m_vehicleLastGoodZ;
+    }
+    [[nodiscard]] bool hasVehicleAntiFlightInited() const { return m_vehicleAntiFlightInited; }
+    void markVehicleAntiFlightInited() { m_vehicleAntiFlightInited = true; }
+    void clearVehicleAntiFlightInited() { m_vehicleAntiFlightInited = false; }
+
+    /// 上次反飞行校验的载具实体ID，用于检测载具切换并重置基线。
+    [[nodiscard]] EntityInstanceId lastVehicleId() const { return m_lastVehicleId; }
+    void setLastVehicleId(EntityInstanceId id) { m_lastVehicleId = id; }
+
     /**
      * @brief 滚动 firstGood 到 lastGood（tick 末调用）。
      */
@@ -650,6 +690,16 @@ private:
     i32 m_receivedMovePacketCount = 0;
     i32 m_knownMovePacketCount = 0;
     bool m_antiFlightBaselineInited = false;
+
+    // 载具反飞行基线（对齐 Java vehicleFirstGood/vehicleLastGood）
+    f64 m_vehicleFirstGoodX = 0.0;
+    f64 m_vehicleFirstGoodY = 0.0;
+    f64 m_vehicleFirstGoodZ = 0.0;
+    f64 m_vehicleLastGoodX = 0.0;
+    f64 m_vehicleLastGoodY = 0.0;
+    f64 m_vehicleLastGoodZ = 0.0;
+    bool m_vehicleAntiFlightInited = false;
+    EntityInstanceId m_lastVehicleId = INVALID_ENTITY_ID;
 };
 
 } // namespace mc

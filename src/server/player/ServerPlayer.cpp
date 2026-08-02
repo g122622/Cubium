@@ -911,6 +911,8 @@ void ServerPlayer::tick()
     // 对齐 Java ServerGamePacketListenerImpl.tick：knownMovePacketCount = receivedMovePacketCount。
     rollFirstGoodToLastGood();
     syncMovePacketCounters();
+    // 载具反飞行基线同步滚动（骑乘时由 handleMoveVehiclePacket 维护 lastGood）。
+    rollVehicleFirstGoodToLastGood();
 }
 
 bool ServerPlayer::setCamera(Entity* target)
