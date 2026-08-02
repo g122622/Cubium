@@ -267,6 +267,7 @@ TEST_F(IntegratedServerTypeTest, TypeMethodsWorkAfterInitialization)
 // 等用例依赖旧 LocalEndpoint 字节队列（getClientEndpoint()->send/receive/isConnected/
 // disconnect）。新网络层 getClientEndpoint 已删除，替换为 takeClientTransport()
 // （一次性取出 ILocalTransport，IR 包队列非字节队列）。这些连接生命周期/字节通信
-// 用例需基于新 ServerClientConnection + LocalTransportPair 重写，
-// TODO(Phase6): 由 ClientNetwork/ServerHandshake 集成测试覆盖端到端通信链路。
+// 用例的端到端通信链路由 tests/common/network/test_client_network_local.cpp
+// （ConnectLocalDrivesClientToPlaying / ClientSendDeliversToServerInbound /
+// DisconnectTransitionsToDisconnected 等）+ test_server_handshake.cpp 覆盖。
 // ============================================================================

@@ -35,8 +35,10 @@
 // 注：原"登录后 stop() 落盘"用例依赖旧 1.16.5 字节登录协议（LoginRequestPacket
 // 单包 + getClientEndpoint 字节队列），新网络层登录改走 ServerHandshake 多阶段
 // 握手（ClientIntention→Hello→Configuration→Play），驱动登录需完整握手编排，
-// 超出本测试范围。该用例已移除，TODO(Phase6): 由 ServerHandshake 集成测试覆盖
-// 登录→落盘链路。
+// 超出本测试范围。该用例已移除，登录握手链路由 tests/common/network/test_server_handshake.cpp
+// （OfflineHandshakeDrivesStateTransitions / OfflineHandshakeFiresOnPlayerReadyOnce 等）
+// 覆盖；onPlayerReady→createPlayerForConnection→stop→savePlayerRuntimeState 全链路落盘
+// 由端到端互通回归（minecraft-client --quick-play-new）保障。
 // ============================================================================
 
 #include "common/TempDirHelper.hpp"
