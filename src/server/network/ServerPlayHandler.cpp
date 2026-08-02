@@ -270,6 +270,16 @@ void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::netw
             }
         }
         if (serverPlayer != nullptr && !m_server.isSingleplayerOwner(playerId)) {
+            // 等待传送确认期间不处理位置变更，仅更新朝向（对齐 vanilla
+            // ServerGamePacketListenerImpl#handleMovePlayer：updateAwaitingTeleport 返回 true 时
+            // 只 absSnapRotationTo，跳过位置/反飞行校验）。否则回弹后客户端在 AcceptTeleportation
+            // 回包前继续发移动包，触发新回弹形成 teleport ID mismatch 死循环。仅对非单机主人
+            // （真 Java 客户端）生效；cpp 本地客户端 isSingleplayerOwner=true 走豁免，不受影响。
+            if (m_server.teleportManager().isWaitingForConfirm(playerId)) {
+                player->yaw = yaw;
+                player->pitch = pitch;
+                return;
+            }
             // 首次进入 Play 阶段初始化基线为当前坐标。
             if (!serverPlayer->hasAntiFlightBaselineInited()) {
                 serverPlayer->resetAntiFlightBaseline(
@@ -313,22 +323,12 @@ void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::netw
                 }
             }
 
-            // moved-wrongly：实际位移超过 0.0625 且非创造/旁观/睡眠视为非法。
-            // 项目无 isChangingDimension/isInPostImpulseGraceTime，故不纳入豁免；
-            // 创造/旁观/睡眠豁免对齐 vanilla。
-            const bool exemptWrongly =
-                serverPlayer->isCreative() || serverPlayer->isSpectator() || serverPlayer->isSleeping();
-            if (!exemptWrongly && d10 > 0.0625) {
-                spdlog::warn("Player {} moved wrongly!", playerId);
-                m_server.teleportManager().requestTeleport(playerId,
-                    serverPlayer->lastGoodX(),
-                    serverPlayer->lastGoodY(),
-                    serverPlayer->lastGoodZ(),
-                    player->yaw,
-                    player->pitch);
-                return;
-            }
-
+            // 注：vanilla 的 moved-wrongly（0.0625）校验的是 player.move 物理移动后申报位置与
+            // 实际位置（受碰撞影响）的碰撞偏移，用于反穿墙。本项目服务端不做玩家物理 move +
+            // 碰撞模拟（玩家位置由客户端权威申报），无碰撞偏移可言；原实现误用"申报位置相对
+            // firstGood 的累积位移"，而 firstGood 每 tick 才滚动，真 Java 客户端发包频率与 tick
+            // 非 1:1 时跨 tick 累积，正常行走也超 0.0625 → 误判回弹 → 卡顿。故移除该闸，
+            // 反穿墙留待未来服务端碰撞校验实现。moved-too-quickly（瞬时速度）已覆盖飞行外挂。
             // 通过校验：滚动 lastGood 为本包坐标（firstGood 由 tick 末滚动）。
             serverPlayer->advanceLastGood(posX, posY, posZ);
         }
@@ -422,11 +422,25 @@ void ServerPlayHandler::handleTeleportConfirmPacket(PlayerId playerId, const mc:
             return;
         }
 
+        // 重置反飞行基线为传送后坐标。回弹/传送后客户端从此点继续移动，若基线仍残留
+        // 传送前的旧值，下一移动包的 moved-too-quickly（相对 firstGood 的位移）会跨
+        // 传送点累积误判，再次回弹形成死循环。对齐 vanilla resetPosition（teleport 后
+        // firstGood/lastGood 同步到 player.position）。
+        auto* world = m_server.getPlayerWorld(playerId);
+        if (world != nullptr) {
+            if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world); entity != nullptr) {
+                if (auto* serverPlayer = entity->asServerPlayer(); serverPlayer != nullptr) {
+                    serverPlayer->resetAntiFlightBaseline(
+                        static_cast<f64>(player->x), static_cast<f64>(player->y), static_cast<f64>(player->z));
+                    serverPlayer->markAntiFlightBaselineInited();
+                }
+            }
+        }
+
         updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
         // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
         // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
-        auto* world = m_server.getPlayerWorld(playerId);
         if (world && world->chunkManager()) {
             world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
             world->chunkManager()->processTicketUpdatesSync();
@@ -727,17 +741,10 @@ void ServerPlayHandler::handleMoveVehiclePacket(PlayerId playerId, const mc::net
             return;
         }
 
-        // moved-wrongly：实际位移 > 0.0625 → 回送校正，不写入坐标。
-        const f64 w6 = evt->x - serverPlayer->vehicleLastGoodX();
-        const f64 w7 = evt->y - serverPlayer->vehicleLastGoodY();
-        const f64 w8 = evt->z - serverPlayer->vehicleLastGoodZ();
-        const f64 w10 = w6 * w6 + w7 * w7 + w8 * w8;
-        if (w10 > 0.0625) {
-            spdlog::warn("Player {} (vehicle) moved wrongly! {}", playerId, std::sqrt(w10));
-            sendVehicleCorrection();
-            return;
-        }
-
+        // 注：vanilla moved-wrongly（0.0625）校验的是载具物理 move 后的碰撞偏移，本项目
+        // 服务端不做载具物理碰撞模拟，无碰撞偏移可言；原实现用"申报位置相对 vehicleLastGood
+        // 的位移"，载具正常移动单包位移²常超 0.0625 → 误判 → 坐标不写入 → 载具卡顿。
+        // 故移除该闸，moved-too-quickly（瞬时速度）已覆盖飞行外挂。
         serverPlayer->advanceVehicleLastGood(evt->x, evt->y, evt->z);
     }
 
