@@ -46,6 +46,7 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -244,6 +245,85 @@ void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::netw
 
     // 保存旧位置用于村庄进入检测
     BlockPos prevPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
+
+    // ===== 反飞行阈值校验（moved-too-quickly / moved-wrongly 双闸） =====
+    // 对齐 Java ServerGamePacketListenerImpl.handleMovePlayer。仅对含位置变更的包生效；
+    // 纯朝向/着地状态包不触发。isSingleplayerOwner 跳过全部校验（单机主人信任）。
+    // 超限不改坐标，而是 requestTeleport 回弹至 lastGood 并提前 return，等客户端
+    // 回 AcceptTeleportation 收敛。跨 tick 基线落在真实 ServerPlayer 实体上
+    // （ServerPlayHandler 为无状态门面，ServerPlayerData 为网络簿记结构无 Entity 能力）。
+    if (hasPosChange && !hasRotOnly) {
+        auto* world = m_server.getPlayerWorld(playerId);
+        mc::ServerPlayer* serverPlayer = nullptr;
+        if (world != nullptr) {
+            if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world); entity != nullptr) {
+                serverPlayer = entity->asServerPlayer();
+            }
+        }
+        if (serverPlayer != nullptr && !m_server.isSingleplayerOwner(playerId)) {
+            // 首次进入 Play 阶段初始化基线为当前坐标。
+            if (!serverPlayer->hasAntiFlightBaselineInited()) {
+                serverPlayer->resetAntiFlightBaseline(
+                    static_cast<f64>(player->x), static_cast<f64>(player->y), static_cast<f64>(player->z));
+                serverPlayer->markAntiFlightBaselineInited();
+            }
+
+            // moved-too-quickly：本包位移 - 速度模长平方 > 阈值*(收包积压数)。
+            const f64 d6 = posX - serverPlayer->firstGoodX();
+            const f64 d7 = posY - serverPlayer->firstGoodY();
+            const f64 d8 = posZ - serverPlayer->firstGoodZ();
+            const f64 d10 = d6 * d6 + d7 * d7 + d8 * d8;
+            const f64 d9 = static_cast<f64>(serverPlayer->velocity().lengthSquared());
+
+            serverPlayer->incrementReceivedMovePacketCount();
+            i32 backlog = serverPlayer->receivedMovePacketCount() - serverPlayer->knownMovePacketCount();
+            if (backlog > 5) {
+                // 客户端发包过快，对齐 Java 仅记 warn 并按 1 计。
+                spdlog::warn(
+                    "Player {} is sending move packets too frequently ({} packets since last tick)", playerId, backlog);
+                backlog = 1;
+            }
+
+            const bool elytra = serverPlayer->isElytraFlying();
+            // 对齐 Java shouldCheckPlayerMovement：elytra 时受 DISABLE_ELYTRA_MOVEMENT_CHECK 开关控制。
+            // GameRules 经所在 ServerWorld 取（MinecraftServer 不持有 GameRules，由世界承载）。
+            const bool disableElytraCheck =
+                world != nullptr && world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DISABLE_ELYTRA_MOVEMENT_CHECK);
+            const bool checkQuickly = !elytra || !disableElytraCheck;
+            if (checkQuickly) {
+                const f64 threshold = elytra ? 300.0 : 100.0;
+                if (d10 - d9 > threshold * static_cast<f64>(backlog)) {
+                    spdlog::warn("Player {} moved too quickly! {},{},{}", playerId, d6, d7, d8);
+                    m_server.teleportManager().requestTeleport(playerId,
+                        serverPlayer->lastGoodX(),
+                        serverPlayer->lastGoodY(),
+                        serverPlayer->lastGoodZ(),
+                        player->yaw,
+                        player->pitch);
+                    return;
+                }
+            }
+
+            // moved-wrongly：实际位移超过 0.0625 且非创造/旁观/睡眠视为非法。
+            // 项目无 isChangingDimension/isInPostImpulseGraceTime，故不纳入豁免；
+            // 创造/旁观/睡眠豁免对齐 vanilla。
+            const bool exemptWrongly =
+                serverPlayer->isCreative() || serverPlayer->isSpectator() || serverPlayer->isSleeping();
+            if (!exemptWrongly && d10 > 0.0625) {
+                spdlog::warn("Player {} moved wrongly!", playerId);
+                m_server.teleportManager().requestTeleport(playerId,
+                    serverPlayer->lastGoodX(),
+                    serverPlayer->lastGoodY(),
+                    serverPlayer->lastGoodZ(),
+                    player->yaw,
+                    player->pitch);
+                return;
+            }
+
+            // 通过校验：滚动 lastGood 为本包坐标（firstGood 由 tick 末滚动）。
+            serverPlayer->advanceLastGood(posX, posY, posZ);
+        }
+    }
 
     player->x = static_cast<f32>(posX);
     player->y = static_cast<f32>(posY);

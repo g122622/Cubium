@@ -537,6 +537,74 @@ public:
      */
     [[nodiscard]] bool changeDimension(DimensionId targetDim);
 
+    // ========== 反飞行阈值校验（跨 tick 状态） ==========
+    // 对齐 Java ServerGamePacketListenerImpl.handleMovePlayer 的 moved-too-quickly /
+    // moved-wrongly 双闸。ServerPlayHandler 为无状态门面，跨 tick 基线须落在玩家实体上。
+
+    /**
+     * @brief 记录本 tick 已收到的移动包数。
+     *
+     * 每 tick 末由 ServerPlayer::tick 复位为 knownMovePacketCount（对齐 Java
+     * ServerGamePacketListenerImpl.tick 的 receivedMovePacketCount=knownMovePacketCount）。
+     */
+    void incrementReceivedMovePacketCount() { ++m_receivedMovePacketCount; }
+    void syncMovePacketCounters() { m_knownMovePacketCount = m_receivedMovePacketCount; }
+    [[nodiscard]] i32 receivedMovePacketCount() const { return m_receivedMovePacketCount; }
+    [[nodiscard]] i32 knownMovePacketCount() const { return m_knownMovePacketCount; }
+
+    /**
+     * @brief 反飞行基线位置（玩家上一合法坐标）。
+     * firstGood 为本 tick 起始基线，lastGood 为最近一次通过校验的坐标。
+     * 超限时回弹至 lastGood。首次进入 Play 阶段由 resetAntiFlightBaseline 初始化。
+     */
+    [[nodiscard]] f64 firstGoodX() const { return m_firstGoodX; }
+    [[nodiscard]] f64 firstGoodY() const { return m_firstGoodY; }
+    [[nodiscard]] f64 firstGoodZ() const { return m_firstGoodZ; }
+    [[nodiscard]] f64 lastGoodX() const { return m_lastGoodX; }
+    [[nodiscard]] f64 lastGoodY() const { return m_lastGoodY; }
+    [[nodiscard]] f64 lastGoodZ() const { return m_lastGoodZ; }
+
+    /**
+     * @brief 初始化反飞行基线为当前坐标（登录/传送后调用）。
+     */
+    void resetAntiFlightBaseline(f64 x, f64 y, f64 z)
+    {
+        m_firstGoodX = x;
+        m_firstGoodY = y;
+        m_firstGoodZ = z;
+        m_lastGoodX = x;
+        m_lastGoodY = y;
+        m_lastGoodZ = z;
+        m_receivedMovePacketCount = 0;
+        m_knownMovePacketCount = 0;
+    }
+
+    /**
+     * @brief 推进反飞行基线（移动包通过校验后调用）。
+     * firstGood 取本 tick 首包基线语义：每 tick 内多包共用同一 firstGood，
+     * 故仅滚动 lastGood；firstGood 由 tick 末滚动。
+     */
+    void advanceLastGood(f64 x, f64 y, f64 z)
+    {
+        m_lastGoodX = x;
+        m_lastGoodY = y;
+        m_lastGoodZ = z;
+    }
+
+    /// 反飞行基线是否已初始化（首次进入 Play 阶段置位）。
+    [[nodiscard]] bool hasAntiFlightBaselineInited() const { return m_antiFlightBaselineInited; }
+    void markAntiFlightBaselineInited() { m_antiFlightBaselineInited = true; }
+
+    /**
+     * @brief 滚动 firstGood 到 lastGood（tick 末调用）。
+     */
+    void rollFirstGoodToLastGood()
+    {
+        m_firstGoodX = m_lastGoodX;
+        m_firstGoodY = m_lastGoodY;
+        m_firstGoodZ = m_lastGoodZ;
+    }
+
 private:
     /**
      * @brief 发送睡眠包给客户端
@@ -571,6 +639,17 @@ private:
     server::stats::StatisticsManager m_statistics;
     crafting::ServerRecipeBook m_recipeBook; ///< 配方书
     bool m_online = true;
+
+    // 反飞行阈值校验跨 tick 基线（对齐 Java ServerGamePacketListenerImpl）
+    f64 m_firstGoodX = 0.0;
+    f64 m_firstGoodY = 0.0;
+    f64 m_firstGoodZ = 0.0;
+    f64 m_lastGoodX = 0.0;
+    f64 m_lastGoodY = 0.0;
+    f64 m_lastGoodZ = 0.0;
+    i32 m_receivedMovePacketCount = 0;
+    i32 m_knownMovePacketCount = 0;
+    bool m_antiFlightBaselineInited = false;
 };
 
 } // namespace mc

@@ -905,6 +905,12 @@ void ServerPlayer::tick()
     // isDirty() 首个 tick 后永假，ServerWorld::_pushMapDataToHolders 无真实数据可推。
     // 客户端侧由 FilledMapItem::inventoryTick 的 world.isClientSide() 守卫兜底。
     inventory().tick();
+
+    // 反飞行阈值校验的 tick 末簿记：滚动 firstGood 到 lastGood 作为下一 tick 基线，
+    // 并复位移动包计数（known←received，received 在下一包到达时自增）。
+    // 对齐 Java ServerGamePacketListenerImpl.tick：knownMovePacketCount = receivedMovePacketCount。
+    rollFirstGoodToLastGood();
+    syncMovePacketCounters();
 }
 
 bool ServerPlayer::setCamera(Entity* target)
