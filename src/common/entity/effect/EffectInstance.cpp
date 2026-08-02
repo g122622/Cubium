@@ -85,6 +85,7 @@ EffectInstance::EffectInstance(const EffectInstance& other)
     , m_visible(other.m_visible)
     , m_showIcon(other.m_showIcon)
     , m_applied(other.m_applied)
+    , m_hiddenEffect(other.m_hiddenEffect ? std::make_shared<EffectInstance>(*other.m_hiddenEffect) : nullptr)
 {}
 
 EffectInstance& EffectInstance::operator=(const EffectInstance& other)
@@ -97,6 +98,7 @@ EffectInstance& EffectInstance::operator=(const EffectInstance& other)
         m_visible = other.m_visible;
         m_showIcon = other.m_showIcon;
         m_applied = other.m_applied;
+        m_hiddenEffect = other.m_hiddenEffect ? std::make_shared<EffectInstance>(*other.m_hiddenEffect) : nullptr;
     }
     return *this;
 }

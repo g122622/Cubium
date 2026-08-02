@@ -26,6 +26,7 @@
 #include "../../core/Types.hpp"
 #include "EffectType.hpp"
 #include <memory>
+#include <optional>
 
 // Forward declaration
 namespace mc {
@@ -91,6 +92,15 @@ public:
     [[nodiscard]] bool isAmbient() const noexcept { return m_ambient; }
     [[nodiscard]] bool isVisible() const noexcept { return m_visible; }
     [[nodiscard]] bool showIcon() const noexcept { return m_showIcon; }
+
+    /// 被覆盖的旧效果（vanilla MobEffectInstance.hiddenEffect）。当同类型更强效果施加时，
+    /// 旧效果被"隐藏"保留于此，新效果结束后恢复。wire codec 透传（递归 optional Details）。
+    /// 返回 nullptr 表示无隐藏效果。本字段在 wire 上以 Bool(present)+递归 Details 编码。
+    [[nodiscard]] const EffectInstance* hiddenEffect() const noexcept
+    {
+        return m_hiddenEffect ? m_hiddenEffect.get() : nullptr;
+    }
+    void setHiddenEffect(std::shared_ptr<EffectInstance> effect) { m_hiddenEffect = std::move(effect); }
 
     /**
      * @brief 获取效果等级（1-based，用于显示）
@@ -243,6 +253,8 @@ private:
     bool m_visible;
     bool m_showIcon;
     bool m_applied = false; // 是否已应用属性修改
+    /// 被覆盖的旧效果（vanilla hiddenEffect，递归）。shared_ptr 对 incomplete type 析构安全。
+    std::shared_ptr<EffectInstance> m_hiddenEffect;
 };
 
 } // namespace effect

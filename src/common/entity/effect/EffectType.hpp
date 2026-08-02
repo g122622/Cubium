@@ -80,6 +80,12 @@ enum class EffectType : u8 {
     // MC 1.19 深暗之域效果
     Darkness = 36, // 黑暗
 
+    // MC 1.21 试炼密室效果（续，vanilla MobEffects.bootstrap 末尾 4 项）
+    Weaving = 37,             // 盘绕
+    Oozing = 38,              // 渗浆
+    Infested = 39,            // 寄生
+    BreathOfTheNautilus = 40, // 鹦鹉螺之力
+
     // 数量
     Count
 };

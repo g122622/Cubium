@@ -54,6 +54,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
@@ -158,6 +159,9 @@ void ClientApplication::initializeCoreRegistries()
         // 须用本表把 wire 上的 vanilla id 反查为项目内部 ItemId（贯彻 IR 思想：上层零感知）。
         if (auto r = ::mc::network::backend::java::JavaItemIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaItemIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaMobEffectIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaMobEffectIdMap: {}", r.error().toString());
         }
     }
 }

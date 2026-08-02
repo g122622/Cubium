@@ -73,51 +73,59 @@ const std::unordered_map<std::string, EffectType> s_effectResourceNameMap = {
     {"wind_charged", EffectType::WindCharged},
     {"raid_omen", EffectType::RaidOmen},
     {"darkness", EffectType::Darkness},
+    {"weaving", EffectType::Weaving},
+    {"oozing", EffectType::Oozing},
+    {"infested", EffectType::Infested},
+    {"breath_of_the_nautilus", EffectType::BreathOfTheNautilus},
 };
 
 /// 效果类型到资源名称的映射
 const char* s_effectResourceNames[] = {
-    "",                    // 0 - 无效
-    "speed",               // 1
-    "slowness",            // 2
-    "haste",               // 3
-    "mining_fatigue",      // 4
-    "strength",            // 5
-    "instant_health",      // 6
-    "instant_damage",      // 7
-    "jump_boost",          // 8
-    "nausea",              // 9
-    "regeneration",        // 10
-    "resistance",          // 11
-    "fire_resistance",     // 12
-    "water_breathing",     // 13
-    "invisibility",        // 14
-    "blindness",           // 15
-    "night_vision",        // 16
-    "hunger",              // 17
-    "weakness",            // 18
-    "poison",              // 19
-    "wither",              // 20
-    "health_boost",        // 21
-    "absorption",          // 22
-    "saturation",          // 23
-    "glowing",             // 24
-    "levitation",          // 25
-    "luck",                // 26
-    "bad_luck",            // 27
-    "slow_falling",        // 28
-    "conduit_power",       // 29
-    "dolphins_grace",      // 30
-    "bad_omen",            // 31
-    "hero_of_the_village", // 32
-    "trial_omen",          // 33
-    "wind_charged",        // 34
-    "raid_omen",           // 35
-    "darkness",            // 36
+    "",                       // 0 - 无效
+    "speed",                  // 1
+    "slowness",               // 2
+    "haste",                  // 3
+    "mining_fatigue",         // 4
+    "strength",               // 5
+    "instant_health",         // 6
+    "instant_damage",         // 7
+    "jump_boost",             // 8
+    "nausea",                 // 9
+    "regeneration",           // 10
+    "resistance",             // 11
+    "fire_resistance",        // 12
+    "water_breathing",        // 13
+    "invisibility",           // 14
+    "blindness",              // 15
+    "night_vision",           // 16
+    "hunger",                 // 17
+    "weakness",               // 18
+    "poison",                 // 19
+    "wither",                 // 20
+    "health_boost",           // 21
+    "absorption",             // 22
+    "saturation",             // 23
+    "glowing",                // 24
+    "levitation",             // 25
+    "luck",                   // 26
+    "bad_luck",               // 27
+    "slow_falling",           // 28
+    "conduit_power",          // 29
+    "dolphins_grace",         // 30
+    "bad_omen",               // 31
+    "hero_of_the_village",    // 32
+    "trial_omen",             // 33
+    "wind_charged",           // 34
+    "raid_omen",              // 35
+    "darkness",               // 36
+    "weaving",                // 37
+    "oozing",                 // 38
+    "infested",               // 39
+    "breath_of_the_nautilus", // 40
 };
 
 /// 效果类型数量（不包括 0）
-constexpr i32 EFFECT_COUNT = 36;
+constexpr i32 EFFECT_COUNT = 40;
 
 } // namespace
 
@@ -200,6 +208,14 @@ const char* getEffectName(EffectType type) noexcept
             return "Raid Omen";
         case EffectType::Darkness:
             return "Darkness";
+        case EffectType::Weaving:
+            return "Weaving";
+        case EffectType::Oozing:
+            return "Oozing";
+        case EffectType::Infested:
+            return "Infested";
+        case EffectType::BreathOfTheNautilus:
+            return "Breath of the Nautilus";
         default:
             return "Unknown";
     }
@@ -311,6 +327,14 @@ u32 getEffectColor(EffectType type) noexcept
             return 0x5B0B0B; // 深红色 - 袭击之兆
         case EffectType::Darkness:
             return 0x1F1F21; // 深灰色 - 黑暗
+        case EffectType::Weaving:
+            return 0x4A3B2A; // 蛛网棕 - 盘绕
+        case EffectType::Oozing:
+            return 0x4E6B3A; // 史莱姆绿 - 渗浆
+        case EffectType::Infested:
+            return 0x5A3A2A; // 寄生褐 - 寄生
+        case EffectType::BreathOfTheNautilus:
+            return 0x2D6A8C; // 鹦鹉螺蓝 - 鹦鹉螺之力
         default:
             return 0xFFFFFF;
     }
