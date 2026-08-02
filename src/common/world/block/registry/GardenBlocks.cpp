@@ -24,8 +24,10 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/Material.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/garden/BushPlantBlock.hpp"
 #include "world/block/blocks/garden/CactusFlowerBlock.hpp"
+#include "world/block/blocks/garden/DryVegetationBlock.hpp"
+#include "world/block/blocks/garden/FireflyBushBlock.hpp"
 #include "world/block/blocks/garden/FlowerBedBlock.hpp"
 #include "world/block/blocks/garden/LeafLitterBlock.hpp"
 
@@ -90,23 +92,25 @@ void registerGardenBlocks()
     // 干草系列
     // ============================================================================
 
-    // 矮干草
-    GardenBlocks::SHORT_DRY_GRASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:short_dry_grass"),
-        BlockProperties(Material::REPLACEABLE_PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 矮干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）
+    GardenBlocks::SHORT_DRY_GRASS =
+        &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:short_dry_grass"),
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::GRASS));
 
-    // 高干草
-    GardenBlocks::TALL_DRY_GRASS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:tall_dry_grass"),
-        BlockProperties(Material::REPLACEABLE_PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 高干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）
+    GardenBlocks::TALL_DRY_GRASS =
+        &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:tall_dry_grass"),
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::GRASS));
 
     // ============================================================================
     // 仙人掌花
@@ -126,22 +130,26 @@ void registerGardenBlocks()
     // 萤火虫灌木
     // ============================================================================
 
-    // 萤火虫灌木 - 发光2级
-    GardenBlocks::FIREFLY_BUSH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:firefly_bush"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::SWEET_BERRY_BUSH)
-            .lightLevel(2));
+    // 萤火虫灌木 - 发光2级，继承 BushBlock 走默认 canSurvive（下方须 #dirt/耕地），
+    // 修复世界生成时浮空于水面的 bug（此前注册为 SimpleBlock 致 canSurvive 终判失效）。
+    GardenBlocks::FIREFLY_BUSH =
+        &registry.registerBlock<blocks::FireflyBushBlock>(ResourceLocation("minecraft:firefly_bush"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::SWEET_BERRY_BUSH)
+                .lightLevel(2));
 
     // ============================================================================
     // 灌木
     // ============================================================================
 
-    // 灌木 - 通用灌木方块
-    GardenBlocks::BUSH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:bush"),
+    // 灌木 - 通用装饰灌木，继承 BushBlock 走默认 canSurvive（下方须 #dirt/耕地），
+    // 修复世界生成时浮空的 bug（此前注册为 SimpleBlock 致 canSurvive 终判失效）。
+    // 类名 BushPlantBlock 用以区别植物基类 BushBlock。
+    GardenBlocks::BUSH = &registry.registerBlock<blocks::BushPlantBlock>(ResourceLocation("minecraft:bush"),
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()

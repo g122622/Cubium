@@ -27,6 +27,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
@@ -51,6 +52,7 @@
 
 using namespace mc;
 using namespace mc::blocks;
+using namespace mc::block_registry;
 
 namespace {
 
@@ -342,6 +344,171 @@ TEST_F(VegetationBlockTest, TallGrassCanSustainOnDirtLikeBlocks)
 
     world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
     EXPECT_FALSE(grass.isValidPosition(grass.defaultState(), world, pos));
+}
+
+// ============================================================================
+// 花园觉醒植物 canSurvive 测试
+// 这批方块是项目首批走 BushBlock::canSustain -> canSustainPlant 默认委托链路的植被
+// （此前 firefly_bush/bush 注册为 SimpleBlock 致 isValidPosition 恒 true，世界生成时浮空于水面）。
+// ============================================================================
+
+TEST_F(VegetationBlockTest, FireflyBushCanSustainOnDirtLikeBlocks)
+{
+    // VanillaBlocks::initialize 会调 registerGardenBlocks 填充 GardenBlocks::FIREFLY_BUSH
+    ASSERT_NE(GardenBlocks::FIREFLY_BUSH, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(3, 10, 3);
+    const BlockState& state = GardenBlocks::FIREFLY_BUSH->defaultState();
+
+    // 下方为 #dirt 标签方块：可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_TRUE(GardenBlocks::FIREFLY_BUSH->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(GardenBlocks::FIREFLY_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为耕地：可存活（Block::canSustainPlant Plains 分支额外放行 FARMLAND）
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(GardenBlocks::FIREFLY_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为石头：不可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(GardenBlocks::FIREFLY_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为空（空气）：不可存活——这是修复浮空 bug 的核心断言
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(GardenBlocks::FIREFLY_BUSH->isValidPosition(state, world, pos));
+}
+
+TEST_F(VegetationBlockTest, BushPlantCanSustainOnDirtLikeBlocks)
+{
+    ASSERT_NE(GardenBlocks::BUSH, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(4, 10, 4);
+    const BlockState& state = GardenBlocks::BUSH->defaultState();
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_TRUE(GardenBlocks::BUSH->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(GardenBlocks::BUSH->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(GardenBlocks::BUSH->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(GardenBlocks::BUSH->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活——修复浮空 bug 的核心断言
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(GardenBlocks::BUSH->isValidPosition(state, world, pos));
+}
+
+TEST_F(VegetationBlockTest, DryVegetationCanSustainOnDryGround)
+{
+    // 干草类比普通植物更宽松：可生长在沙/陶瓦/泥土/耕地上（支持沙漠/恶地生物群系）
+    ASSERT_NE(GardenBlocks::TALL_DRY_GRASS, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(5, 10, 5);
+    const BlockState& state = GardenBlocks::TALL_DRY_GRASS->defaultState();
+
+    // 下方为泥土：可存活（#dirt 属于 #dry_vegetation_may_place_on）
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+
+    // 下方为沙子：可存活（#sand 属于 #dry_vegetation_may_place_on，沙漠/恶地用）
+    world.setBlockAt(pos.down(), &VanillaBlocks::SAND->defaultState());
+    EXPECT_TRUE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+
+    // 下方为红沙：可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::RED_SAND->defaultState());
+    EXPECT_TRUE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+
+    // 下方为耕地：可存活（FARMLAND 显式加入 #dry_vegetation_may_place_on）
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+
+    // 下方为石头：不可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活——修复浮空 bug 的核心断言
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(GardenBlocks::TALL_DRY_GRASS->isValidPosition(state, world, pos));
+}
+
+// ============================================================================
+// NaturalBlocks 装饰植物 canSurvive 测试
+// 全仓 registerBlock<SimpleBlock> 审计发现 dead_bush / lily_pad 同类问题
+// （注册为 SimpleBlock 致 isValidPosition 恒 true，世界生成时浮空）。已改用
+// DryVegetationBlock / WaterlilyBlock 走 canSurvive 闸门，此为契约证据。
+// ============================================================================
+
+TEST_F(VegetationBlockTest, DeadBushCanSustainOnDryGround)
+{
+    // dead_bush 走 DryVegetationBlock（与 tall_dry_grass 同类），支持沙漠/恶地沙子支撑
+    ASSERT_NE(VanillaBlocks::DEAD_BUSH, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(6, 10, 6);
+    const BlockState& state = VanillaBlocks::DEAD_BUSH->defaultState();
+
+    // 下方为沙子：可存活（沙漠/恶地生物群系核心场景）
+    world.setBlockAt(pos.down(), &VanillaBlocks::SAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为红沙：可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::RED_SAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为泥土：可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为耕地：可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为石头：不可存活
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活——修复浮空 bug 的核心断言
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(VanillaBlocks::DEAD_BUSH->isValidPosition(state, world, pos));
+}
+
+TEST_F(VegetationBlockTest, WaterlilyRejectsNonWaterGround)
+{
+    // lily_pad 走 WaterlilyBlock：下方须为水/冰且上方无流体。
+    // 注：VegetationTestWorld.getFluidState 桩返回 nullptr（无流体引擎），
+    // 故此处的"水"接受路径无法在单元测试验证，仅验证拒绝路径——
+    // 下方为石头/泥土/空气时须返回 false（修复前 SimpleBlock 恒 true 会浮空）。
+    // 水面贴附的端到端验证留待世界生成冒烟测试。
+    ASSERT_NE(VanillaBlocks::LILY_PAD, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(7, 10, 7);
+    const BlockState& state = VanillaBlocks::LILY_PAD->defaultState();
+
+    // 下方为石头：不可存活（既非水也非冰）
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(VanillaBlocks::LILY_PAD->isValidPosition(state, world, pos));
+
+    // 下方为泥土：不可存活（陆地植物支撑不适用于睡莲）
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_FALSE(VanillaBlocks::LILY_PAD->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活——修复浮空 bug 的核心断言
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(VanillaBlocks::LILY_PAD->isValidPosition(state, world, pos));
+
+    // 下方为冰方块：可存活（IceBlock 属冰，getFluidState 桩返回 nullptr 不影响此分支）
+    world.setBlockAt(pos.down(), &VanillaBlocks::ICE->defaultState());
+    EXPECT_TRUE(VanillaBlocks::LILY_PAD->isValidPosition(state, world, pos));
 }
 
 TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)

@@ -208,6 +208,24 @@ BlockTag& BlockTags::STONE()
     return *tag;
 }
 
+BlockTag& BlockTags::TERRACOTTA()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "terracotta"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DRY_VEGETATION_MAY_PLACE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dry_vegetation_may_place_on"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::NYLIUM()
 {
     static BlockTag* tag = nullptr;
@@ -1215,6 +1233,48 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "red_sand"),
         ResourceLocation("minecraft", "suspicious_sand")});
     tags[sand->getId()] = std::move(sand);
+
+    // 创建 TERRACOTTA 标签（原色陶瓦 + 16 色陶瓦）
+    // 成员对齐 datapacks/Vanilla/.../tags/block/terracotta.json
+    auto terracotta = std::make_unique<BlockTag>(ResourceLocation("minecraft", "terracotta"));
+    terracotta->addAll({ResourceLocation("minecraft", "terracotta"),
+        ResourceLocation("minecraft", "white_terracotta"),
+        ResourceLocation("minecraft", "orange_terracotta"),
+        ResourceLocation("minecraft", "magenta_terracotta"),
+        ResourceLocation("minecraft", "light_blue_terracotta"),
+        ResourceLocation("minecraft", "yellow_terracotta"),
+        ResourceLocation("minecraft", "lime_terracotta"),
+        ResourceLocation("minecraft", "pink_terracotta"),
+        ResourceLocation("minecraft", "gray_terracotta"),
+        ResourceLocation("minecraft", "light_gray_terracotta"),
+        ResourceLocation("minecraft", "cyan_terracotta"),
+        ResourceLocation("minecraft", "purple_terracotta"),
+        ResourceLocation("minecraft", "blue_terracotta"),
+        ResourceLocation("minecraft", "brown_terracotta"),
+        ResourceLocation("minecraft", "green_terracotta"),
+        ResourceLocation("minecraft", "red_terracotta"),
+        ResourceLocation("minecraft", "black_terracotta")});
+    tags[terracotta->getId()] = std::move(terracotta);
+
+    // 创建 DRY_VEGETATION_MAY_PLACE_ON 标签（干草类可种植标签）
+    // vanilla 定义：.addTag(SAND).addTag(TERRACOTTA).addTag(DIRT).add(FARMLAND)
+    // BlockTag 是扁平 unordered_set，不支持 #tag 嵌套引用，故手动合并三个已建标签成员
+    // （同 lava_pool_stone_cannot_replace 的合并模式），再单独加入 farmland。
+    {
+        auto dryVegetationMayPlaceOn =
+            std::make_unique<BlockTag>(ResourceLocation("minecraft", "dry_vegetation_may_place_on"));
+        std::vector<ResourceLocation> merged;
+        const auto collect = [&merged](const BlockTag& src) {
+            const auto& ids = src.getBlockIds();
+            merged.insert(merged.end(), ids.begin(), ids.end());
+        };
+        collect(*tags.at(ResourceLocation("minecraft", "sand")));
+        collect(*tags.at(ResourceLocation("minecraft", "terracotta")));
+        collect(*tags.at(ResourceLocation("minecraft", "dirt")));
+        merged.push_back(ResourceLocation("minecraft", "farmland"));
+        dryVegetationMayPlaceOn->addAll(merged);
+        tags[dryVegetationMayPlaceOn->getId()] = std::move(dryVegetationMayPlaceOn);
+    }
 
     // 创建 STONE 标签
     auto stone = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stone"));

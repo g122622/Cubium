@@ -162,6 +162,14 @@ public:
     /// 石头标签
     static BlockTag& STONE();
 
+    /// 陶瓦标签（原色陶瓦 + 16 色陶瓦）
+    /// 运行时消费场景：DryVegetationBlock 判定干草类是否可放置在陶瓦上。
+    static BlockTag& TERRACOTTA();
+
+    /// 干草类可种植标签（= SAND + TERRACOTTA + DIRT + FARMLAND，是 #dirt 的超集）
+    /// 运行时消费场景：DryVegetationBlock（short_dry_grass / tall_dry_grass）判定下方是否可支撑。
+    static BlockTag& DRY_VEGETATION_MAY_PLACE_ON();
+
     /// 菌丝岩标签（crimson_nylium / warped_nylium）
     /// 运行时消费场景：NetherForestVegetationFeature 判断 origin 下方是否为菌丝岩。
     static BlockTag& NYLIUM();
