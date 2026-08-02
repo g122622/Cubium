@@ -30,6 +30,12 @@ namespace mc::server {
 class MinecraftServer;
 } // namespace mc::server
 
+namespace mc {
+class Player;
+class ItemStack;
+class Entity;
+} // namespace mc
+
 namespace mc::server::net {
 
 /**
@@ -95,6 +101,9 @@ private:
     void handlePongPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleChangeDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleLockDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
+    void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);
 
     MinecraftServer& m_server;
 };

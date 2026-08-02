@@ -23,9 +23,13 @@
 
 #include "ServerPlayHandler.hpp"
 
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -34,6 +38,7 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -44,6 +49,7 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -876,7 +882,8 @@ void ServerPlayHandler::handlePaddleBoatPacket(PlayerId playerId, const mc::netw
 void ServerPlayHandler::handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // Interact action：0=INTERACT 1=ATTACK 2=INTERACT_AT。
-    // 成就 player_interacted_with_entity 与严格物品/距离校验 TODO(Phase6)。
+    // 对齐 Java ServerGamePacketListenerImpl.handleInteract：世界边界 → AABB 距离 →
+    // ATTACK 实体黑名单 → 交互成功触发 player_interacted_with_entity 成就 + 挥手。
     auto* player = m_server.playerManager().getPlayer(playerId);
     if (!player || !player->loggedIn) {
         return;
@@ -903,31 +910,91 @@ void ServerPlayHandler::handleInteractPacket(PlayerId playerId, const mc::networ
         return;
     }
 
-    // 基本距离校验：超出追踪距离（6 块）拒绝，对齐 MC Java 的 maxInteractDistance 思路。
-    // 严格反作弊距离检测 TODO(Phase6)。
-    constexpr f32 kMaxInteractDistance = 6.0f;
-    if (playerEntity->distanceSqTo(*target) > kMaxInteractDistance * kMaxInteractDistance) {
+    // 副操作（潜行）状态同步：vanilla player.setShiftKeyDown(usingSecondaryAction)。
+    playerEntity->setSneaking(evt->usingSecondaryAction);
+
+    // 世界边界校验：目标方块位越界直接拒绝。
+    if (!world->worldBorder().contains(target->onPos())) {
+        return;
+    }
+
+    // 严格距离校验：玩家眼位到目标 AABB 最近点距离 < (reach + 3.0)^2。
+    // 项目无 entityInteractionRange attribute，固定取 3.0（生存默认）。
+    // ATTACK 走同样阈值（vanilla ATTACK 用 isWithinAttackRange，项目无 attack range
+    // attribute，统一用交互阈值）。
+    constexpr f64 kEntityInteractionRange = 3.0;
+    constexpr f64 kRangeMargin = 3.0;
+    const f64 range = kEntityInteractionRange + kRangeMargin;
+    const Vector3 eyePos = playerEntity->getEyePosition();
+    const f64 distSq = static_cast<f64>(target->boundingBox().distanceToSqr(eyePos));
+    if (distSq >= range * range) {
         return;
     }
 
     const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
 
     switch (evt->action) {
-        case 0: // INTERACT
-            (void)playerEntity->interactOn(*target, hand);
+        case 0: { // INTERACT
+            const ItemStack itemBefore = playerEntity->getHeldItem(hand);
+            const ActionResultType result = playerEntity->interactOn(*target, hand);
+            if (result == ActionResultType::Success) {
+                _triggerPlayerInteractedWithEntity(*playerEntity, itemBefore, *target);
+                playerEntity->swing(hand);
+            }
             break;
-        case 1: // ATTACK
+        }
+        case 1: { // ATTACK
+            // 实体黑名单：掉落物/经验球/自身/箭矢一律不可攻击。
+            const auto* type = target->entityType();
+            const bool blacklisted = type == entity::VanillaEntityTypeKeys::ITEM ||
+                type == entity::VanillaEntityTypeKeys::EXPERIENCE_ORB || type == entity::VanillaEntityTypeKeys::ARROW ||
+                type == entity::VanillaEntityTypeKeys::SPECTRAL_ARROW || target == playerEntity;
+            if (blacklisted) {
+                spdlog::warn("Interact: player {} tried to attack invalid entity", playerId);
+                break;
+            }
             playerEntity->attack(*target);
             break;
+        }
         case 2: { // INTERACT_AT（带命中点）
             const Vector3 hitPosition(evt->hitX, evt->hitY, evt->hitZ);
-            (void)target->applyPlayerInteraction(*playerEntity, hitPosition, hand);
+            const ItemStack itemBefore = playerEntity->getHeldItem(hand);
+            const ActionResultType result = target->applyPlayerInteraction(*playerEntity, hitPosition, hand);
+            if (result == ActionResultType::Success) {
+                _triggerPlayerInteractedWithEntity(*playerEntity, itemBefore, *target);
+                playerEntity->swing(hand);
+            }
             break;
         }
         default:
             spdlog::info("Interact: player {} sent unknown action {}", playerId, evt->action);
             break;
     }
+}
+
+void ServerPlayHandler::_triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity)
+{
+    // 触发 player_interacted_with_entity 成就。对齐 vanilla
+    // CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(player, item, entity)。
+    // PlayerInteractedWithEntityTrigger::trigger 在 common 层为空桩，须按
+    // AdvancementEventHandler 既定模式直接调基类 trigger 模板。
+    auto* serverPlayer = player.asServerPlayer();
+    if (serverPlayer == nullptr) {
+        return;
+    }
+    auto* advancements = serverPlayer->getAdvancements();
+    if (advancements == nullptr) {
+        return;
+    }
+    auto* trigger =
+        mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::PlayerInteractedWithEntityTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->AbstractCriterionTrigger<mc::advancement::PlayerInteractedWithEntityTriggerInstance>::trigger(
+        *advancements, [&item, &entity](const mc::advancement::PlayerInteractedWithEntityTriggerInstance& instance) {
+            return instance.test(item, entity);
+        });
 }
 
 void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

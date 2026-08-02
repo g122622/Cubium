@@ -317,6 +317,21 @@ public:
         return offsetZ;
     }
 
+    /**
+     * @brief 计算点到本 AABB 最近表面距离的平方
+     *
+     * 对应 MC 1.21.11 AABB.distanceToSqr(Vec3)。点在盒内则返回 0。
+     * 每轴取 max(min - p, p - max, 0)，再求 lengthSquared。
+     * 用于实体交互范围判定（玩家眼位到目标 AABB）。
+     */
+    [[nodiscard]] f32 distanceToSqr(const Vector3& p) const noexcept
+    {
+        const f32 dx = std::max({minX - p.x, p.x - maxX, 0.0f});
+        const f32 dy = std::max({minY - p.y, p.y - maxY, 0.0f});
+        const f32 dz = std::max({minZ - p.z, p.z - maxZ, 0.0f});
+        return dx * dx + dy * dy + dz * dz;
+    }
+
     // 比较运算
     [[nodiscard]] bool operator==(const AxisAlignedBB& other) const noexcept
     {
