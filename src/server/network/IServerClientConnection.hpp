@@ -59,6 +59,15 @@ public:
     [[nodiscard]] virtual bool isConnected() const noexcept = 0;
 
     /**
+     * @brief 取对端网络地址（"host:port" 形式）。
+     *
+     * Wire 模式从底层 TCP socket remote_endpoint 取；Local 模式（集成服本地客户端）
+     * 无网络对端，返回空串。供 PlayerManager 记录玩家 IP（BanIp 命令按 IP 踢人/封禁）用。
+     * 已断开时返回空串。
+     */
+    [[nodiscard]] virtual std::string peerAddress() const = 0;
+
+    /**
      * @brief 发送带原因的 Disconnect 包后断开连接（对齐 MC Java
      *        ServerCommonConnection.disconnect(Component reason)）。
      *

@@ -41,6 +41,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace mc::server::net {
@@ -160,7 +161,14 @@ public:
     [[nodiscard]] ClientConn& raw() noexcept { return m_conn; }
     [[nodiscard]] const ClientConn& raw() const noexcept { return m_conn; }
 
+    /// IServerClientConnection::peerAddress：返回构造时快照的对端地址（Wire 模式
+    /// "host:port"，Local 模式空串）。socket close 后仍可用（地址在构造时缓存）。
+    [[nodiscard]] std::string peerAddress() const override { return m_peerAddress; }
+
 private:
+    // 注意声明顺序：m_peerAddress 须先于 m_conn，使初始化列表中先取 wireTransport
+    // 对端地址再 move wireTransport 进 m_conn（move 后 wireTransport 为空）。
+    std::string m_peerAddress;
     ClientConn m_conn;
     u32 m_sessionId;
     HandshakeState m_state = HandshakeState::Handshaking;

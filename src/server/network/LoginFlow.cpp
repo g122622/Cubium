@@ -305,7 +305,9 @@ void LoginFlow::sendLoginResponseForConnection(PlayerId playerId, bool hardcore,
     login.doLimitedCrafting = false;
 
     auto& spawn = login.spawnInfo;
-    spawn.dimensionType = 0; // overworld registry id（TODO(Phase6): 真实 holder）
+    // dimensionType 为 dimension_type 注册表 holder id（纯 VarInt）。Login 初始进入
+    // 主世界，overworld 在 RegistryDataBuilder 下发顺序中 id=0。
+    spawn.dimensionType = 0;
     spawn.dimension = "minecraft:overworld";
     spawn.seed = seed;
     spawn.gameType = static_cast<GameMode>(m_server.settings().defaultGameMode.get());

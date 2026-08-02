@@ -61,8 +61,10 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     player.loggedIn = true;
     player.chunkTracker = std::make_shared<network::PlayerChunkTracker>(playerId);
 
-    // IP 地址：Local 模式为空（本地客户端）；Wire 模式暂留空（TODO(Phase6): 从 TcpTransport 取对端地址）
-    player.ipAddress = "";
+    // IP 地址：Wire 模式从连接的 TCP 对端地址取（"host:port"），Local 模式（集成服本地
+    // 客户端）无网络对端返回空串。供 BanIp 命令按 IP 踢人/封禁。connection 为非拥有指针，
+    // 调用方保证在玩家生命周期内有效；此处空指针兜底（addPlayer 测试桩可能传 nullptr）。
+    player.ipAddress = (connection != nullptr) ? connection->peerAddress() : std::string{};
 
     // 更新区块同步管理器
     (void)m_chunkSyncManager.getTracker(playerId);

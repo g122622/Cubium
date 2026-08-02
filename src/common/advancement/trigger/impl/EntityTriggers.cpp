@@ -476,11 +476,12 @@ Result<std::shared_ptr<ICriterionInstance>> PlayerInteractedWithEntityTrigger::f
 
 void PlayerInteractedWithEntityTrigger::trigger(ServerPlayer& player, const ItemStack& item, const Entity& entity)
 {
-    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端在 ServerPlayRouter 的 UseEntity/Interact 分支中直接调用
-    // AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger() 触发检测，
-    // 当玩家成功与实体交互（ActionResultType::Success 或 Consume）时触发。
-    // TODO(Phase6): UseEntity 触发接线待补。
+    // common 模块无法访问 PlayerAdvancements 完整定义，故此便捷方法为空桩。
+    // 实际触发由 ServerPlayHandler::_triggerPlayerInteractedWithEntity 在 INTERACT/
+    // INTERACT_AT 返回 Success 时，按 AdvancementEventHandler 既定模式直接调用
+    // AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()
+    // 模板（见 server/advancement/TriggerInstantiation.hpp）。保留此空方法供未来
+    // common 层封装后切换调用点。
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(entity);

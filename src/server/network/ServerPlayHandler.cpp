@@ -573,8 +573,8 @@ void ServerPlayHandler::handleUpdateSignPacket(PlayerId playerId, const mc::netw
 //
 // 以下 6 个处理体对应 MC Java 1.21.11 的 ServerboundPlayerInput /
 // ServerboundMoveVehicle / ServerboundPlayerCommand / ServerboundPaddleBoat /
-// ServerboundInteract / ServerboundUseItem。可完成项给出实现，依赖未实现
-// 子系统（载具物理/反飞行/物品使用）的标 TODO(Phase6)。
+// ServerboundInteract / ServerboundUseItem。载具输入/反飞行/物品使用/交互校验
+// 子系统均已落地（批6），详见各处理体实现。
 // ============================================================================
 
 void ServerPlayHandler::handlePlayerInputPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

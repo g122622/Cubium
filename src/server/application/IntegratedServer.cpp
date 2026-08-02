@@ -519,8 +519,14 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
     // 白名单检查（白名单启用时拒绝不在名单中的玩家）
     if (m_whitelistManager->isEnabled() && !m_whitelistManager->isNameWhitelisted(username)) {
         spdlog::info("Player '{}' rejected: not in whitelist", username);
-        // TODO(Phase6): 离线模式下握手已完成，拒绝需发 login::Disconnect 后断连。
-        //     集成服单机默认不启用白名单，此处暂不处理。
+        // 本项目白名单检查时机晚于 vanilla（vanilla 在 Login 阶段 handleHello 即拒；
+        // 本项目在 Configuration 完成、出站已切 Play 的 onPlayerReady 回调里检查）。
+        // disconnect(reason) 按连接当前阶段自动选择对应 Disconnect 包（此处为 play::Disconnect）
+        // 并关闭底层连接，对齐 MC Java ServerCommonConnection.disconnect(Component) 语义。
+        // 集成服单机默认不启用白名单，此分支仅在显式开启白名单时命中。
+        if (m_clientConnection != nullptr) {
+            m_clientConnection->disconnect("You are not white-listed on this server!");
+        }
         return;
     }
 

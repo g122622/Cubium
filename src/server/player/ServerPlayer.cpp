@@ -597,8 +597,10 @@ void ServerPlayer::_sendSleepPacket(const BlockPos& bedPos)
     }
 
     // 1.21.11 睡眠走实体元数据 Pose 序列号（无独立 Sleep 包）。
-    // TODO(Phase6): 对齐 1.21.11 EntityMetadata（SynchedEntityData）后用 Pose=SLEEPING 同步；
-    //   当前无元数据 IR，暂以 EntityEvent 自定义 event 字节承载（我方互通）。
+    // 降级保留：完整 1.21.11 EntityMetadata（SynchedEntityData）体系未实现，无法发 Pose=
+    // SLEEPING 元数据。当前以 EntityEvent 自定义 event 字节承载（仅我方双端互通，MC Java
+    // EntityEvent 无此值）。真 Java 客户端不会收到睡眠可视化，待 EntityMetadata 体系落地
+    // 后改发 Pose 元数据。此降级不阻塞离线互通基线。
     MC_UNUSED(bedPos);
     mc::network::ir::play::EntityEvent pkt;
     pkt.entityId = static_cast<i32>(id());
@@ -614,7 +616,8 @@ void ServerPlayer::_sendWakeUpPacket()
     }
 
     // 1.21.11 起床走实体元数据 Pose 还原（无独立 Sleep 包）。
-    // TODO(Phase6): 对齐 1.21.11 EntityMetadata 后用 Pose=STANDING 同步。
+    // 降级保留：同 _sendSleepPacket，完整 EntityMetadata 体系未实现，当前以 EntityEvent
+    // 自定义 event 字节承载（仅我方互通）。待 EntityMetadata 落地后改发 Pose=STANDING。
     mc::network::ir::play::EntityEvent pkt;
     pkt.entityId = static_cast<i32>(id());
     pkt.eventId = 47; // 自定义：玩家起床（仅我方互通用）

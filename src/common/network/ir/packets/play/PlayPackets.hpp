@@ -780,7 +780,10 @@ struct ContainerSetData {
  *
  * 1.21.11 action 位掩码（9 位）+ entries。每个 entry 按 set 的 action 顺序载负载。
  * 当前承载 actions + per-entry 负载字段（可选）。
- * TODO(Phase6): 完整 INITIALIZE_CHAT（RemoteChatSession.Data）对齐。
+ * INITIALIZE_CHAT（RemoteChatSession.Data）：我方离线模式 enforcesSecureChat=false，
+ * 双端均写 Bool(false) 不携带 chat session（见 JavaPlayCodecs writeEntry/skipChatSessionData），
+ * 读侧对真 Java 服务端 hasSession=true 安全跳过定界。完整 chat session 体系属在线签名
+ * 聊天增强，不在离线互通范围。
  */
 struct PlayerInfoEntry {
     std::array<u8, 16> uuid;

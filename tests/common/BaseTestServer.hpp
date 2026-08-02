@@ -46,6 +46,7 @@ public:
     void close() override { m_connected = false; }
     [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }
     void disconnect(const std::string& reason) override;
+    [[nodiscard]] std::string peerAddress() const override { return {}; }
 
     [[nodiscard]] size_t sentBytes() const noexcept { return m_sentData.size(); }
     [[nodiscard]] const std::string& disconnectReason() const noexcept { return m_disconnectReason; }

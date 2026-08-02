@@ -33,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -69,6 +70,12 @@ public:
      *        socket 后经此接口注入，省去 TcpTransport 自行 accept）
      */
     void attachConnectedSocket(asio::ip::tcp::socket socket);
+
+    /**
+     * @brief 取对端地址（"host:port" 形式）。Wire 模式从 socket remote_endpoint 取；
+     *        未连接/已关闭/取 endpoint 抛异常时返回空串。供服务端玩家 IP 记录（BanIp）用。
+     */
+    [[nodiscard]] std::string remoteAddress() const;
 
     // === ITransport ===
     [[nodiscard]] Result<void> send(const u8* data, usize size, DeliveryHint hint) override;

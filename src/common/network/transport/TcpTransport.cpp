@@ -49,7 +49,8 @@ Result<void> TcpTransport::connect(const Endpoint& endpoint)
     }
     catch (const std::exception& e) {
         m_socket.reset();
-        return Error(ErrorCode::ConnectionFailed, std::string("TCP connect failed: ") + e.what(), "TcpTransport::connect");
+        return Error(
+            ErrorCode::ConnectionFailed, std::string("TCP connect failed: ") + e.what(), "TcpTransport::connect");
     }
 }
 
@@ -59,6 +60,19 @@ void TcpTransport::attachConnectedSocket(asio::ip::tcp::socket socket)
     m_running = true;
     m_connected = true;
     m_receiveThread = std::make_unique<std::thread>([this]() { _receiveLoop(); });
+}
+
+std::string TcpTransport::remoteAddress() const
+{
+    if (m_socket == nullptr) {
+        return {};
+    }
+    asio::error_code ec;
+    const auto endpoint = m_socket->remote_endpoint(ec);
+    if (ec) {
+        return {};
+    }
+    return endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
 }
 
 Result<void> TcpTransport::send(const u8* data, usize size, DeliveryHint /*hint*/)

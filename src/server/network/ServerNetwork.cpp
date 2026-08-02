@@ -50,7 +50,12 @@ ServerClientConnection::ServerClientConnection(std::unique_ptr<mc::network::tran
 ServerClientConnection::ServerClientConnection(std::unique_ptr<mc::network::transport::TcpTransport> wireTransport,
     std::shared_ptr<ProtocolTables> tables,
     u32 sessionId)
-    : m_conn(std::move(wireTransport), std::move(tables), mc::network::protocol::PacketFlow::Clientbound)
+    // 初始化列表按成员声明顺序求值：m_peerAddress 先于 m_conn。故先在 m_peerAddress
+    // 取 wireTransport->remoteAddress()（此时 wireTransport 未 move），随后 m_conn
+    // 才 move wireTransport。move 后 wireTransport 为空指针，不可再用。
+    // socket close 后 remote_endpoint 失效，故地址须在构造时一次性快照缓存。
+    : m_peerAddress(wireTransport ? wireTransport->remoteAddress() : std::string{})
+    , m_conn(std::move(wireTransport), std::move(tables), mc::network::protocol::PacketFlow::Clientbound)
     , m_sessionId(sessionId)
 {}
 
