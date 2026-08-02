@@ -143,6 +143,7 @@ public:
     [[nodiscard]] const server::CustomServerBossInfoManager& bossBarManager() const override;
 
     [[nodiscard]] i32 viewDistance() const override { return m_viewDistance; }
+    [[nodiscard]] i32 simulationDistance() const override { return m_simulationDistance; }
     [[nodiscard]] i32 maxPlayers() const override { return m_maxPlayers; }
     [[nodiscard]] u64 seed() const override { return m_seed; }
     [[nodiscard]] u64 currentTick() const override { return m_timeManager.currentTick(); }
@@ -179,6 +180,7 @@ protected:
     }
 
     i32 m_viewDistance = 10;
+    i32 m_simulationDistance = 10;
     i32 m_maxPlayers = 20;
     u64 m_seed = 0;
     bool m_running = true;

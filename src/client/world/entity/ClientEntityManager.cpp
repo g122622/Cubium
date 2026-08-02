@@ -39,7 +39,8 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityInstanceId id, const std::s
 
     // 不能创建与本地玩家ID相同的实体
     if (id == m_localPlayerEntityId) {
-        spdlog::warn("ClientEntityManager::spawnEntity: Cannot spawn entity with the same ID as local player (ID {})", id);
+        spdlog::warn(
+            "ClientEntityManager::spawnEntity: Cannot spawn entity with the same ID as local player (ID {})", id);
         return nullptr;
     }
 
@@ -255,6 +256,10 @@ std::vector<EntityInstanceId> ClientEntityManager::getEntitiesInRange(f32 x, f32
 
 void ClientEntityManager::tick()
 {
+    // TODO(shouldTickDeath): vanilla ClientLevel.shouldTickDeath 对 deathTime>0 的实体按
+    // 切比雪夫距离 <= serverSimulationDistance 门控 tickDeath() 推进。本项目 ClientEntity::tick()
+    // 不本地推进 deathTime（服务端元数据同步），门控当前为空操作，故暂不实现——见 ClientWorld.hpp
+    // setSimulationDistance 注释。待客户端 deathTime 改为本地推进时在此补门控（仅跳 deathTime 部分）。
     // 更新所有实体
     for (auto& [id, entity] : m_entities) {
         if (entity && entity->isAlive()) {

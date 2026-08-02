@@ -140,6 +140,8 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<Server
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->setViewDistance(m_config.viewDistance);
+    // 构造时同步模拟距离到实体管理器（运行时变更走 setConfig）。
+    m_entityManager.setSimulationDistance(m_config.simulationDistance);
 }
 
 ServerWorld::~ServerWorld()
@@ -301,6 +303,8 @@ void ServerWorld::setConfig(const ServerWorldConfig& config)
     if (m_chunkManager) {
         m_chunkManager->setViewDistance(config.viewDistance);
     }
+    // 模拟距离下发到实体管理器，控制实体激活/冻结范围（视距走 ChunkManager，二者解耦）。
+    m_entityManager.setSimulationDistance(config.simulationDistance);
 }
 
 bool ServerWorld::isDebugWorld() const

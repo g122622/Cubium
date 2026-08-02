@@ -54,6 +54,7 @@ struct IntegratedServerParams {
     i64 seed;
     GameMode defaultGameMode;
     i32 viewDistance;
+    i32 simulationDistance;
     i32 tickRate;
     WorldType worldType;
     /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）

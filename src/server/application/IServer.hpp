@@ -324,6 +324,7 @@ public:
     [[nodiscard]] virtual bool isDedicated() const noexcept = 0;
 
     [[nodiscard]] virtual i32 viewDistance() const = 0;
+    [[nodiscard]] virtual i32 simulationDistance() const = 0;
     [[nodiscard]] virtual i32 maxPlayers() const = 0;
     [[nodiscard]] virtual u64 seed() const = 0;
     [[nodiscard]] virtual u64 currentTick() const = 0;

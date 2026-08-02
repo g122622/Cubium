@@ -93,12 +93,16 @@ public:
      *
      * @param seed 世界种子
      * @param viewDistance 视野距离
+     * @param simulationDistance 模拟距离（控制实体激活范围）
      * @param overworldType 主世界类型（旧 WorldType 路径，仅 WorldPresetRegistry 未加载时兜底）
      * @param worldPresetId 世界预设资源位置（如 "minecraft:normal"），数据驱动装配查 WorldPresetRegistry
      * @return 成功或错误
      */
-    [[nodiscard]] Result<void> initialize(
-        u64 seed, i32 viewDistance, WorldType overworldType, resource::ResourceLocation worldPresetId);
+    [[nodiscard]] Result<void> initialize(u64 seed,
+        i32 viewDistance,
+        i32 simulationDistance,
+        WorldType overworldType,
+        resource::ResourceLocation worldPresetId);
 
     /**
      * @brief 关闭维度管理器
@@ -213,6 +217,11 @@ public:
     [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
 
     /**
+     * @brief 获取模拟距离（控制实体激活范围）
+     */
+    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+
+    /**
      * @brief 获取世界种子
      */
     [[nodiscard]] u64 seed() const { return m_seed; }
@@ -230,6 +239,7 @@ private:
     // 配置
     u64 m_seed = 0;
     i32 m_viewDistance = 10;
+    i32 m_simulationDistance = 10;
     WorldType m_overworldType = WorldType::Default;
     resource::ResourceLocation m_worldPresetId{"minecraft", "normal"};
 

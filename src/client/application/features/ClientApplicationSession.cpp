@@ -181,6 +181,7 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
         .seed = config.seed,
         .defaultGameMode = config.defaultGameMode,
         .viewDistance = config.viewDistance,
+        .simulationDistance = config.simulationDistance,
         .tickRate = defaults::integratedServer::tickRate,
         .worldType = config.worldType,
         .worldPresetId = config.worldPresetId,
@@ -728,6 +729,8 @@ void ClientApplication::showWorldSelection()
         config.hardcore = entry.hardcore;
         config.allowCommands = entry.allowCommands;
         config.viewDistance = m_settings.renderDistance.get();
+        // 集成服务器无独立模拟距离设置，与视距取相同值。
+        config.simulationDistance = config.viewDistance;
         config.isNewWorld = false;
 
         // 启动世界
@@ -805,6 +808,8 @@ void ClientApplication::showCreateWorld()
         config.hardcore = request.hardcore;
         config.allowCommands = request.allowCommands;
         config.viewDistance = request.viewDistance > 0 ? request.viewDistance : m_settings.renderDistance.get();
+        // 集成服务器无独立模拟距离设置，与视距取相同值。
+        config.simulationDistance = config.viewDistance;
         config.isNewWorld = true;
 
         // 启动世界

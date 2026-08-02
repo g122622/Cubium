@@ -223,6 +223,14 @@ public:
      *
      * 对齐 Java ClientLevel.setServerSimulationDistance：仅存字段，区别于渲染距离（控制可见区块）。
      * vanilla 客户端该字段唯一消费点为 shouldTickDeath 死亡实体棋盘距离裁剪。
+     *
+     * TODO(架构差异): 本项目 ClientEntity::tick() 不本地推进 deathTime（由服务端元数据同步
+     * setDeathTime 设置，渲染层直接读驱动淡出），故 vanilla shouldTickDeath 的"冻结 deathTime
+     * 推进"效果无处施加——门控在当前架构下是空操作。若在 ClientEntityManager::tick 对死亡实体
+     * 整体跳过 tick，反而会跳过 hurtTime 递减/动画插值/追踪位置等本该执行的客户端行为，偏离
+     * vanilla（vanilla 只跳 tickDeath 不跳其他）。待未来客户端 deathTime 改为本地推进
+     * （LivingEntity.baseTick→tickDeath）时，在 ClientEntityManager::tick 补 shouldTickDeath
+     * 切比雪夫门控，仅跳 deathTime 推进部分。字段与 Login/SetSimulationDistance 消费链路先行落地。
      */
     void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
     [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }

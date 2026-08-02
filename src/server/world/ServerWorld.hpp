@@ -96,6 +96,7 @@ class IServer;
  */
 struct ServerWorldConfig {
     i32 viewDistance = 10;           ///< 视距（区块数）
+    i32 simulationDistance = 10;     ///< 模拟距离（区块数，控制实体激活范围）
     DimensionId dimension = 0;       ///< 维度ID（0=主世界，1=下界，2=末地）
     u64 seed = 114514;               ///< 世界种子
     std::string worldName = "world"; ///< 世界名称（用于存档目录）

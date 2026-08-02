@@ -228,6 +228,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             }
         }
         config.viewDistance = m_settings.renderDistance.get();
+        // 集成服务器无独立模拟距离设置，与视距取相同值。
+        config.simulationDistance = config.viewDistance;
 
         auto worldResult = startIntegratedWorld(config);
         if (worldResult.failed()) {

@@ -424,6 +424,13 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     m_app.m_player->setPlayerId(playerId);
                 }
                 m_app.m_knownPlayerNames[playerId] = username;
+
+                // 消费 Login 携带的视距/模拟距离初始值（对齐原版 Login 包下发）。
+                // chunkRadius → ClientWorld 渲染距离；simulationDistance → 服务端模拟距离字段
+                // （客户端唯一消费点为 shouldTickDeath 死亡实体距离裁剪，见 ClientEntityManager::tick）。
+                // 运行时变更由 SetChunkCacheRadius(id=93)/SetSimulationDistance(id=109) 单独处理。
+                m_app.m_world.setRenderDistance(p.chunkRadius);
+                m_app.m_world.setSimulationDistance(p.simulationDistance);
                 return Result<void>::ok();
             }
             // ---- 断开 ----

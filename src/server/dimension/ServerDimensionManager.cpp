@@ -76,8 +76,11 @@ ServerDimensionManager::~ServerDimensionManager() = default;
 // 初始化
 // ============================================================================
 
-Result<void> ServerDimensionManager::initialize(
-    u64 seed, i32 viewDistance, WorldType overworldType, resource::ResourceLocation worldPresetId)
+Result<void> ServerDimensionManager::initialize(u64 seed,
+    i32 viewDistance,
+    i32 simulationDistance,
+    WorldType overworldType,
+    resource::ResourceLocation worldPresetId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerDimensionManager::initialize");
 
@@ -87,6 +90,7 @@ Result<void> ServerDimensionManager::initialize(
 
     m_seed = seed;
     m_viewDistance = viewDistance;
+    m_simulationDistance = simulationDistance;
     m_overworldType = overworldType;
     m_worldPresetId = std::move(worldPresetId);
 
@@ -482,6 +486,7 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
 
     server::ServerWorldConfig worldConfig;
     worldConfig.viewDistance = m_viewDistance;
+    worldConfig.simulationDistance = m_simulationDistance;
     worldConfig.dimension = id;
     worldConfig.seed = seed;
 

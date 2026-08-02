@@ -167,6 +167,7 @@ inline constexpr const char* worldName = "singleplayer";
 inline constexpr i64 seed = 0;
 inline constexpr const char* defaultGameMode = "survival";
 inline constexpr i32 viewDistance = 6;
+inline constexpr i32 simulationDistance = 6;
 inline constexpr i32 tickRate = 20;
 inline constexpr const char* worldType = "default";
 } // namespace integratedServer

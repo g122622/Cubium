@@ -108,6 +108,7 @@ Result<void> IntegratedServer::initialize()
         .seed = defaults::integratedServer::seed,
         .defaultGameMode = GameMode::Survival,
         .viewDistance = defaults::integratedServer::viewDistance,
+        .simulationDistance = defaults::integratedServer::simulationDistance,
         .tickRate = defaults::integratedServer::tickRate,
         .worldType = WorldType::Default,
         .difficulty = Difficulty::Normal,
@@ -131,6 +132,7 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
 
     // 将参数应用到设置
     m_integratedSettings.viewDistance.set(params.viewDistance);
+    m_integratedSettings.simulationDistance.set(params.simulationDistance);
     m_integratedSettings.defaultGameMode.set(static_cast<i32>(params.defaultGameMode));
     m_integratedSettings.levelSeed.set(params.seed != 0 ? std::to_string(params.seed) : "");
     m_integratedSettings.maxPlayers.set(1); // 内置服务器只支持单人
@@ -253,8 +255,11 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     }
 
     // 初始化维度管理器。worldPresetId 由调用方显式传入 IntegratedServerParams（数据驱动装配查 WorldPresetRegistry）。
-    auto dimInitResult = m_dimensionManager->initialize(
-        static_cast<u64>(params.seed), params.viewDistance, params.worldType, params.worldPresetId);
+    auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(params.seed),
+        params.viewDistance,
+        params.simulationDistance,
+        params.worldType,
+        params.worldPresetId);
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());

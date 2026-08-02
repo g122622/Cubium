@@ -536,6 +536,10 @@ void MinecraftServer::initializeCoreManagers()
     // Worker 池由服务器统一管理，初始化阶段在这里启动。
     m_computationWorkerPool.start();
     m_ioWorkerPool.start();
+
+    // 注册 viewDistance / simulationDistance 运行时变更回调（须在 m_dimensionManager /
+    // m_playerManager 就绪后）。初始值已由 LoginFlow 登录时下发，此处仅处理运行时变更。
+    _registerDistanceCallbacks();
 }
 
 void MinecraftServer::attachWorldBindings(ServerWorld& world)
@@ -2044,6 +2048,48 @@ void MinecraftServer::_shutdownRemoteSessions() noexcept
     if (m_serverNetwork) {
         m_serverNetwork.reset();
     }
+}
+
+void MinecraftServer::_registerDistanceCallbacks()
+{
+    // viewDistance 运行时变更：下发各维度 ServerWorld（setConfig 触发 ChunkManager setViewDistance）
+    // + 广播 SetChunkCacheRadius(id=93)。原 StandaloneServer 实现仅更新主世界且不广播，此处修正为
+    // 全维度覆盖 + 广播，对齐原版 PlayerList.setViewDistance。
+    m_settings.viewDistance.onChange([this](i32 value) {
+        spdlog::info("View distance changed to: {}", value);
+        m_dimensionManager->forEachDimension([value](Dimension& dim) {
+            auto* serverDim = static_cast<ServerDimension*>(&dim);
+            if (serverDim->world() != nullptr) {
+                auto config = serverDim->world()->config();
+                config.viewDistance = value;
+                serverDim->world()->setConfig(config);
+            }
+        });
+        mc::network::ir::play::SetChunkCacheRadius pkt;
+        pkt.radius = value;
+        broadcastPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
+    });
+
+    // simulationDistance 运行时变更：下发各维度 EntityManager（实体激活范围）+ 广播
+    // SetSimulationDistance(id=109)。对齐原版 PlayerList.setSimulationDistance。
+    m_settings.simulationDistance.onChange([this](i32 value) {
+        spdlog::info("Simulation distance changed to: {}", value);
+        m_dimensionManager->forEachDimension([value](Dimension& dim) {
+            auto* serverDim = static_cast<ServerDimension*>(&dim);
+            if (serverDim->world() != nullptr) {
+                serverDim->world()->entityManager().setSimulationDistance(value);
+            }
+        });
+        mc::network::ir::play::SetSimulationDistance pkt;
+        pkt.simulationDistance = value;
+        broadcastPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
+    });
 }
 
 void MinecraftServer::_handleHotbarSelectRemote(PlayerId playerId, i32 slot)

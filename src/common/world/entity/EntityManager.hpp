@@ -29,6 +29,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -172,6 +173,10 @@ public:
      * @brief 更新所有实体
      *
      * 调用每个实体的tick()方法，并移除已标记为移除的实体
+     *
+     * 实体激活范围：仅 ServerPlayer 永远 tick；其余实体仅当其所在区块
+     * 相对任一玩家的切比雪夫距离 <= 模拟距离时才 tick，否则冻结（AI/移动/碰撞停止），
+     * 与原版 inEntityTickingRange 等价。冻结实体仍由 EntityTracker 同步给可见玩家。
      */
     void tick();
 
@@ -179,6 +184,20 @@ public:
      * @brief 移除所有已标记为移除的实体
      */
     void removeDeadEntities();
+
+    // ========== 模拟距离 ==========
+
+    /**
+     * @brief 设置模拟距离（区块数）
+     *
+     * 控制实体激活范围：超出该距离的非玩家实体不 tick。>=32 时等价于全量 tick。
+     */
+    void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
+
+    /**
+     * @brief 获取模拟距离（区块数）
+     */
+    [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
 
     // ========== ID分配 ==========
 
@@ -209,8 +228,25 @@ private:
 
     EntityInstanceId m_nextId = 1;
 
+    // 模拟距离（区块数）：超出该距离的非玩家实体不 tick。默认值与 defaults::server::simulationDistance 一致。
+    i32 m_simulationDistance = 10;
+
     // 内部方法（假设已持有锁）
     void _removeDeadEntitiesInternal();
+
+    /**
+     * @brief 判定实体是否处于任一玩家的模拟距离内（假设已持有锁）
+     *
+     * 对齐原版 inEntityTickingRange：实体所在区块相对任一玩家区块的切比雪夫距离
+     * <= simulationDistance 即视为在范围内（多玩家取并集）。simulationDistance >= 32
+     * 时短路返回 true（配置上限 32，等价全量 tick）。
+     *
+     * @param entity 待判定实体
+     * @param playerChunks 循环外快照的玩家区块坐标集合
+     * @return 是否在模拟距离内（在则 tick，否则冻结）
+     */
+    [[nodiscard]] bool _isEntityInSimulationRange(
+        const Entity& entity, const std::vector<world::chunk::ChunkPos>& playerChunks) const;
 };
 
 } // namespace mc

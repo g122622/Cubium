@@ -94,6 +94,9 @@ struct WorldLaunchConfig {
     /// 视距
     i32 viewDistance = 12;
 
+    /// 模拟距离（控制实体激活范围）
+    i32 simulationDistance = 12;
+
     /// 是否为新创建的世界（需要写入初始 level.dat）
     bool isNewWorld = false;
 };

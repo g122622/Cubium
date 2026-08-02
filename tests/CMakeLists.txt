@@ -1198,6 +1198,8 @@ add_executable(mc_tests
     common/world/EntityManagerSpawnTest.cpp
     # EntityManager UUID 索引测试
     common/world/EntityManagerUuidTest.cpp
+    # EntityManager 模拟距离实体冻结语义测试
+    common/world/EntityManagerSimulationDistanceTest.cpp
     # 纰版挒缂撳瓨娴嬭瘯
     physics/CollisionCacheTests.cpp
     # 物理引擎测试

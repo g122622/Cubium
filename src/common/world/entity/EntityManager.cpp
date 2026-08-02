@@ -28,6 +28,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -234,15 +235,44 @@ void EntityManager::tick()
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    // 0. 循环外快照玩家区块坐标。getPlayers() 持递归锁安全，但每实体调用代价高，
+    //    故一次取玩家列表并预算其区块坐标，供冻结判定复用。
+    //    对齐原版 ServerLevel.tick：ServerPlayer 永远 tick；其余实体仅当其所在区块
+    //    相对任一玩家切比雪夫距离 <= simulationDistance 才 tick，否则冻结（连 tick()
+    //    都不调用，等价于不进 tickNonPassenger）。死亡消散中的实体同样受此门控——
+    //    原版服务端 shouldTickDeath 恒真但 tickDeath 受 tick() 调用制约，故超出模拟
+    //    距离的死亡实体其 deathTime 停滞、尸体滞留，此为本轮严格对齐的行为。
+    const bool freezeEnabled = m_simulationDistance < 32;
+    std::vector<world::chunk::ChunkPos> playerChunks;
+    if (freezeEnabled) {
+        const auto players = getPlayers();
+        playerChunks.reserve(players.size());
+        for (const auto* player : players) {
+            playerChunks.emplace_back(player->position());
+        }
+    }
+
     // 1. 更新所有实体。期间 goal 通过 isAlive() 检测上一 tick 入 graveyard 的目标
     //    （对象仍存活、m_removed=true）并 resetTask 清空裸指针，避免悬垂解引用。
     for (auto& [id, entity] : m_entities) {
         // spdlog::info("Ticking entity: id={}, detail={}", id, entity->toString());
-        if (!entity->isRemoved()) {
+        if (entity->isRemoved()) {
+            continue;
+        }
+        // ServerPlayer 永远 tick（对齐原版 instanceof ServerPlayer 短路）。
+        if (entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
             MC_TRACE_SCOPED_EVENT(
                 TraceEvents.Server.Tick, "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
             entity->tick();
+            continue;
         }
+        // 非玩家实体：模拟距离门控。>=32 时 freezeEnabled=false 跳过判定等价全量 tick。
+        if (freezeEnabled && !_isEntityInSimulationRange(*entity, playerChunks)) {
+            continue; // 冻结：不调 tick()
+        }
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Tick, "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
+        entity->tick();
     }
 
     // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
@@ -283,6 +313,26 @@ void EntityManager::_removeDeadEntitiesInternal()
             ++it;
         }
     }
+}
+
+bool EntityManager::_isEntityInSimulationRange(
+    const Entity& entity, const std::vector<world::chunk::ChunkPos>& playerChunks) const
+{
+    // 内部方法，假设已持有锁。调用方已保证 m_simulationDistance < 32（>=32 时短路全量）。
+    if (playerChunks.empty()) {
+        return false; // 无在线玩家：非玩家实体一律冻结（对齐原版无票据则无 EntityTickingRange）
+    }
+
+    const world::chunk::ChunkPos entityChunk(entity.position());
+    const i32 maxDistance = m_simulationDistance;
+    for (const auto& playerChunk : playerChunks) {
+        const i32 dx = std::abs(entityChunk.x - playerChunk.x);
+        const i32 dz = std::abs(entityChunk.z - playerChunk.z);
+        if (dx <= maxDistance && dz <= maxDistance) {
+            return true; // 切比雪夫距离 <= simulationDistance（任一玩家满足即 tick，多玩家取并集）
+        }
+    }
+    return false;
 }
 
 EntityInstanceId EntityManager::allocateId()

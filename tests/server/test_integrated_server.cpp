@@ -77,6 +77,7 @@ protected:
             .seed = 0,
             .defaultGameMode = GameMode::Survival,
             .viewDistance = 6,
+            .simulationDistance = 6,
             .tickRate = 20,
             .worldType = WorldType::Default,
             .difficulty = Difficulty::Normal,

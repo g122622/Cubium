@@ -300,6 +300,7 @@ public:
     // ========== 配置 ==========
 
     [[nodiscard]] i32 viewDistance() const override { return m_settings.viewDistance.get(); }
+    [[nodiscard]] i32 simulationDistance() const override { return m_settings.simulationDistance.get(); }
     [[nodiscard]] i32 maxPlayers() const override { return m_settings.maxPlayers.get(); }
     [[nodiscard]] u64 seed() const override { return m_settings.parseSeed(); }
     [[nodiscard]] u64 currentTick() const override;
@@ -1111,6 +1112,18 @@ protected:
      * 子类 stop() 在子类特有清理后调用。
      */
     void _shutdownRemoteSessions() noexcept;
+
+    /**
+     * @brief 注册 viewDistance / simulationDistance 运行时变更回调
+     *
+     * 在 initializeCoreManagers 末尾调用（m_dimensionManager / m_playerManager 已就绪）。
+     * 二者变更时：① 经 forEachDimension 把新值下发各维度 ServerWorld 的 EntityManager
+     * （viewDistance 走 setConfig，simulationDistance 走 setSimulationDistance）；
+     * ② 向所有在线玩家广播 SetChunkCacheRadius(id=93) / SetSimulationDistance(id=109)。
+     * 对齐原版 PlayerList.setViewDistance/setSimulationDistance 的运行时广播语义。
+     * 回调仅在 set() 实际改值时触发，注册本身不触发；m_dimensionManager 此时已就绪无需判空。
+     */
+    void _registerDistanceCallbacks();
 
     /**
      * @brief handleHotbarSelectPacket 远程分支：setSelectedSlot + 回送 SetHeldSlot

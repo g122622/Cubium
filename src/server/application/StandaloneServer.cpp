@@ -247,6 +247,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
 
     auto dimInitResult = m_dimensionManager->initialize(m_settings.parseSeed(),
         m_settings.viewDistance.get(),
+        m_settings.simulationDistance.get(),
         overworldType,
         resource::ResourceLocation("minecraft", "normal"));
     if (dimInitResult.failed()) {
@@ -710,15 +711,10 @@ void StandaloneServer::_applySettings()
         }
     });
 
-    m_settings.viewDistance.onChange([this](i32 value) {
-        spdlog::info("View distance changed to: {}", value);
-        auto* overworld = m_dimensionManager->getOverworld();
-        if (overworld && overworld->world()) {
-            auto config = overworld->world()->config();
-            config.viewDistance = value;
-            overworld->world()->setConfig(config);
-        }
-    });
+    // 注：viewDistance / simulationDistance 运行时变更回调已下沉至基类
+    // MinecraftServer::_registerDistanceCallbacks（initializeCoreManagers 末尾注册），
+    // 下发各维度 ServerWorld/EntityManager 并广播 SetChunkCacheRadius/SetSimulationDistance。
+    // StandaloneServer 不再在此重复注册，避免双重回调。
 
     m_settings.logLevel.onChange([this](const std::string& value) {
         spdlog::info("Log level changed to: {}", value);
