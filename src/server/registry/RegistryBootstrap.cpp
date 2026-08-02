@@ -52,6 +52,7 @@
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaPotionIdMap.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
@@ -609,6 +610,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         }
         if (auto r = ::mc::network::backend::java::JavaMobEffectIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaMobEffectIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaPotionIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaPotionIdMap: {}", r.error().toString());
         }
     }
 }

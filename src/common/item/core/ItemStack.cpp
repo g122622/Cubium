@@ -31,6 +31,7 @@
 #include "common/item/component/DataComponentPatchNbt.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/potion/PotionUtils.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -745,9 +746,20 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
     if (hasEnchantments()) {
         patch.add(DataComponentType::Enchantments, DataComponentPayload{std::in_place_index<4>, m_enchantments});
     }
-    if (!m_potionId.empty()) {
-        patch.add(DataComponentType::PotionContents,
-            DataComponentPayload{std::in_place_index<5>, PotionContentsPayload{m_potionId}});
+    // PotionContents：potionId + customColor + customEffects + customName。
+    // customColor/customEffects 在业务侧由 PotionUtils 走 m_customData JSON
+    // （CustomPotionColor/CustomPotionEffects 键）承载，这里桥接到组件载荷以便 wire 传输。
+    // customName（药水自定义名）项目暂无承载，保持 nullopt。
+    const bool hasPotionFields = !m_potionId.empty() || potion::PotionUtils::hasCustomEffects(*this) ||
+        potion::PotionUtils::getCustomPotionColor(*this).has_value();
+    if (hasPotionFields) {
+        PotionContentsPayload pc{};
+        pc.potionId = m_potionId;
+        if (const auto color = potion::PotionUtils::getCustomPotionColor(*this); color.has_value()) {
+            pc.customColor = static_cast<i32>(static_cast<u32>(*color));
+        }
+        pc.customEffects = potion::PotionUtils::getCustomEffects(*this);
+        patch.add(DataComponentType::PotionContents, DataComponentPayload{std::in_place_index<5>, std::move(pc)});
     }
     if (hasCanPlaceOn()) {
         patch.add(DataComponentType::CanPlaceOn, DataComponentPayload{std::in_place_index<6>, m_canPlaceOn});
@@ -800,7 +812,15 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             }
             case DataComponentType::PotionContents: {
-                m_potionId = std::get<PotionContentsPayload>(entry.value).potionId;
+                const auto& pc = std::get<PotionContentsPayload>(entry.value);
+                m_potionId = pc.potionId;
+                // customColor/customEffects 写回 m_customData JSON（与 PotionUtils 路径一致）。
+                std::optional<u32> color{};
+                if (pc.customColor.has_value()) {
+                    color = static_cast<u32>(*pc.customColor);
+                }
+                potion::PotionUtils::setCustomPotionColor(*this, color);
+                potion::PotionUtils::setCustomEffects(*this, pc.customEffects);
                 break;
             }
             case DataComponentType::CanPlaceOn: {

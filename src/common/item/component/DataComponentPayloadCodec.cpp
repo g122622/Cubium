@@ -23,6 +23,7 @@
 
 #include "common/item/component/DataComponentPayloadCodec.hpp"
 
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
@@ -75,6 +76,21 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             auto compound = std::make_unique<compound_tag>();
             if (!pc.potionId.empty()) {
                 compound->put("potion", pc.potionId);
+            }
+            if (pc.customColor.has_value()) {
+                compound->put("custom_color", *pc.customColor);
+            }
+            if (!pc.customEffects.empty()) {
+                auto list = std::make_unique<nbt::tags::compound_list_tag>();
+                for (const auto& effect : pc.customEffects) {
+                    nbt::tags::compound_tag effectCompound;
+                    effect.toNbt(effectCompound);
+                    list->value.push_back(std::move(effectCompound));
+                }
+                compound->value.emplace("custom_effects", std::move(list));
+            }
+            if (pc.customName.has_value()) {
+                compound->put("custom_name", *pc.customName);
             }
             return compound;
         }
@@ -169,6 +185,22 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 auto it = c.value.find("potion");
                 if (it != c.value.end() && it->second->id() == TagId::String) {
                     pc.potionId = dynamic_cast<const string_tag&>(*it->second).value;
+                }
+                auto colorIt = c.value.find("custom_color");
+                if (colorIt != c.value.end() && colorIt->second->id() == TagId::Int) {
+                    pc.customColor = dynamic_cast<const int_tag&>(*colorIt->second).value;
+                }
+                auto effectsIt = c.value.find("custom_effects");
+                if (effectsIt != c.value.end() && effectsIt->second->id() == TagId::List) {
+                    if (auto* clist = dynamic_cast<const nbt::tags::compound_list_tag*>(effectsIt->second.get())) {
+                        for (const auto& elem : clist->value) {
+                            pc.customEffects.push_back(entity::effect::EffectInstance::fromNbt(elem));
+                        }
+                    }
+                }
+                auto nameIt = c.value.find("custom_name");
+                if (nameIt != c.value.end() && nameIt->second->id() == TagId::String) {
+                    pc.customName = dynamic_cast<const string_tag&>(*nameIt->second).value;
                 }
             }
             return DataComponentPayload{std::in_place_index<5>, std::move(pc)};

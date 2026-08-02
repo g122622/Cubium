@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
@@ -45,11 +46,19 @@ namespace component {
  *
  * 对应 Java 1.21.11 record PotionContents(Optional<Holder<Potion>> potion,
  * Optional<Integer> customColor, List<MobEffectInstance> customEffects,
- * Optional<String> customName)。本项目当前仅承载 potionId（药水资源位置），
- * 其余字段 TODO(Phase6) 对齐。
+ * Optional<String> customName)。
+ *
+ * potion：药水 holder（vanilla Potions 静态注册表 id）。本项目以资源位置字符串承载
+ *   （"minecraft:night_vision"），wire codec 经 JavaPotionIdMap 转 vanilla registry id。
+ * customColor：自定义颜色（ARGB），nullopt=无（用效果默认色）。
+ * customEffects：自定义效果列表（独立于 potion 自带效果，叠加生效）。
+ * customName：自定义药水名（显示用），nullopt=无。
  */
 struct PotionContentsPayload {
     std::string potionId; ///< 药水资源位置（空串=无）
+    std::optional<i32> customColor;
+    std::vector<entity::effect::EffectInstance> customEffects;
+    std::optional<std::string> customName;
 };
 
 /**
