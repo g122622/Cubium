@@ -158,10 +158,24 @@ void TridentStagingBufferPool::destroy()
 
     // 兜底回收所有在飞异步 copy：调用方（TridentEngine::destroy）已 waitIdle，此刻所有
     // fence 必然 signaled，pollAsyncCopies 会一次性清空队列、release 全部 staging 区间、
-    // 销毁 fence 与命令缓冲。确保下方守恒断言成立、命令池可安全销毁。
+    // 销毁 fence 与命令缓冲。
     pollAsyncCopies();
 
-    // 销毁前校验无泄漏（同步分配应已全部 release，异步分配应已全部 recycle）
+    // 兜底回收所有 stageAsync 登记的回收桶区间。这些区间本应由下一轮同 slot 的
+    // recycleFrame 归还（路径见 AtlasHandle/LightTextureManager），但关闭流程不会再
+    // beginFrame/recycleFrame，最后一帧登记的区间会残留。设备已 waitIdle，所有在飞帧
+    // GPU 侧已完成，归还 OffsetAllocator 与下账 m_localUsedBytes 是安全的。
+    {
+        std::lock_guard<std::mutex> lock(m_allocatorMutex);
+        for (auto& bucket : m_pendingAsyncBuckets) {
+            for (const AsyncAlloc& a : bucket) {
+                _freeLocked(a.alloc, a.alignedSize);
+            }
+            bucket.clear();
+        }
+    }
+
+    // 销毁前校验无泄漏（同步分配应已全部 release，异步分配应已全部 recycle/drain）
     MC_ASSERT_RELEASE_MSG(
         m_localUsedBytes == 0, "TridentStagingBufferPool destroyed with staging allocations still in use");
 
