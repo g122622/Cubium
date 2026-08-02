@@ -1149,8 +1149,9 @@ void MinecraftServer::setupWorldCallbacks()
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
-                // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按距离启发式自行回收。
-                // TODO(Phase6): 若需强制卸载远端区块，需补客户端距离判据或自定义信令。
+                // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按 SetChunkCacheCenter
+                // 中心 + render distance 自行回收远端区块（见 setChunkCacheCenterCallback）。
+                // 服务端无需发送卸载信令，此回调保留空操作以符合 vanilla 设计。
                 MC_UNUSED(playerId);
                 MC_UNUSED(x);
                 MC_UNUSED(z);
@@ -1583,8 +1584,9 @@ void MinecraftServer::sendChunkDataToPlayer(
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
-    // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按距离启发式自行回收。
-    // TODO(Phase6): 若需强制卸载远端区块，需补客户端距离判据或自定义信令。
+    // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按 SetChunkCacheCenter 中心 +
+    // render distance 自行回收远端区块。服务端无需发送卸载信令，此函数保留空操作
+    // 以符合 vanilla 设计（当前零调用方，保留供未来按需强制卸载信令扩展）。
     MC_UNUSED(playerId);
     MC_UNUSED(x);
     MC_UNUSED(z);

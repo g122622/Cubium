@@ -83,8 +83,10 @@ private:
      * @param server 服务器实例
      * @param pos 新的出生点位置
      * @param angle 新的出生点朝向（度）
+     * @param dimensionId 出生点所在维度
      */
-    static void _broadcastSpawnPosition(server::IServer* server, const Vector3d& pos, f32 angle);
+    static void _broadcastSpawnPosition(
+        server::IServer* server, const Vector3d& pos, f32 angle, DimensionId dimensionId);
 };
 
 } // namespace command

@@ -80,8 +80,10 @@ ItemActionResult FilledMapItem::onItemRightClick(IWorld& world, Player& player, 
 {
     auto* mapData = getMapData(player.getHeldItem(hand), world);
     if (mapData != nullptr) {
-        // 服务端：更新玩家追踪装饰后返回成功
-        // TODO(Phase6): 客户端地图渲染链尚未上线，map-data 解析已删，待重建后在此打开地图屏幕
+        // 服务端：右键已填充地图时本应更新玩家追踪装饰并下发 MapData。
+        // 客户端开屏链路已就绪（ClientApplicationInput 右键空挥检测已填充地图后
+        // 本地 openMapScreen），但服务端 map-data 增量更新/装饰追踪属游戏玩法重建，
+        // TODO(Phase6): 待 map-data 体系重建后在此补服务端追踪装饰更新与下发。
     }
     return ItemActionResult::success(player.getHeldItem(hand));
 }

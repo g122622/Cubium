@@ -506,8 +506,10 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
     }
 
     // 1.21.11 Respawn：复用 CommonPlayerSpawnInfo + u8 dataToKeep。
-    // TODO(Phase6): dimensionType 应走维度 registry holder（整数 id），当前沿用旧
-    //   0=overworld/1=nether/2=end 映射；dimension 为维度 ResourceKey 字符串。
+    // dimensionType 为 dimension_type 注册表 holder id（纯 VarInt）。客户端在 Configuration
+    // 阶段按 RegistryDataBuilder 下发顺序 [overworld, overworld_caves, the_nether, the_end]
+    // register() 自增分配 id，故 overworld=0/overworld_caves=1/the_nether=2/the_end=3。
+    // dimension 为维度 ResourceKey 字符串。
     i32 dimensionTypeId = 0;
     std::string dimensionKey = "minecraft:overworld";
     switch (newDim) {
@@ -516,11 +518,11 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
             dimensionKey = "minecraft:overworld";
             break;
         case -1: // Nether
-            dimensionTypeId = 1;
+            dimensionTypeId = 2;
             dimensionKey = "minecraft:the_nether";
             break;
         case 1: // The End
-            dimensionTypeId = 2;
+            dimensionTypeId = 3;
             dimensionKey = "minecraft:the_end";
             break;
         default:
@@ -548,8 +550,9 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
     if (auto* world = targetDim->world()) {
         pkt.spawnInfo.isDebug = world->isDebugWorld();
     }
-    // TODO(Phase6): isFlat 应从维度世界生成器类型推导（WorldType::Flat），
-    //   当前 ServerWorld 未暴露该标志，暂置 false。
+    // isFlat 仅主世界可能为超平坦（下界/末地生成器非 flat）。由装配期记录的
+    // m_overworldType 推导，对齐 vanilla WorldData.isFlatWorld()。
+    pkt.spawnInfo.isFlat = (newDim == 0 && m_overworldType == WorldType::Flat);
 
     // 设置上次死亡位置（从玩家实体获取）
     auto& playerEntityManager = m_server->playerEntityManager();

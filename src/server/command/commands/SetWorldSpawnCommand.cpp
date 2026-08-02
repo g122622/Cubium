@@ -79,7 +79,7 @@ i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource
     }
 
     auto* server = source.server();
-    DimensionId dimensionId = DimensionId(0); // 默认主世界
+    DimensionId dimensionId = source.dimensionId();
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
 
     if (!dimension) {
@@ -98,7 +98,7 @@ i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource
     }
 
     // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle);
+    _broadcastSpawnPosition(server, pos, angle, dimensionId);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -115,7 +115,7 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
 
     const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
 
-    DimensionId dimensionId = DimensionId(0); // 默认主世界
+    DimensionId dimensionId = source.dimensionId();
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
 
     if (!dimension) {
@@ -134,7 +134,7 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
     }
 
     // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle);
+    _broadcastSpawnPosition(server, pos, angle, dimensionId);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -154,7 +154,7 @@ i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSour
     // 将角度归一化到 [-180, 180] 范围，与 MC 原版行为一致
     angle = math::wrapDegrees(angle);
 
-    DimensionId dimensionId = DimensionId(0); // 默认主世界
+    DimensionId dimensionId = source.dimensionId();
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
 
     if (!dimension) {
@@ -170,7 +170,7 @@ i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSour
     }
 
     // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle);
+    _broadcastSpawnPosition(server, pos, angle, dimensionId);
 
     std::ostringstream ss;
     ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
@@ -180,15 +180,30 @@ i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSour
     return 1;
 }
 
-void SetWorldSpawnCommand::_broadcastSpawnPosition(server::IServer* server, const Vector3d& pos, f32 angle)
+void SetWorldSpawnCommand::_broadcastSpawnPosition(
+    server::IServer* server, const Vector3d& pos, f32 angle, DimensionId dimensionId)
 {
     // 1.21.11 SetDefaultSpawnPosition：dimension(ResourceKey) + blockPosPacked + yaw + pitch
-    // TODO(Phase6): dimension 当前固定主世界，命令只作用于主世界出生点；多维度出生点需补。
+    // dimension 取命令执行者所在维度，命令作用于该维度出生点。
+    std::string dimensionKey = "minecraft:overworld";
+    switch (dimensionId) {
+        case -1:
+            dimensionKey = "minecraft:the_nether";
+            break;
+        case 1:
+            dimensionKey = "minecraft:the_end";
+            break;
+        case 0:
+        default:
+            dimensionKey = "minecraft:overworld";
+            break;
+    }
+
     mc::network::ir::play::SetDefaultSpawnPosition pkt;
-    pkt.dimension = "minecraft:overworld";
-    pkt.blockPosPacked = BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y),
-                                static_cast<BlockCoord>(pos.z))
-                             .asLong();
+    pkt.dimension = dimensionKey;
+    pkt.blockPosPacked =
+        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z))
+            .asLong();
     pkt.yaw = angle;
     pkt.pitch = 0.0f;
 
