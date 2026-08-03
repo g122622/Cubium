@@ -27,6 +27,7 @@
 const { execSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { isMainThread, parentPort, Worker, workerData } = require('node:worker_threads');
 
 // ---- 配置 ----
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -61,6 +62,16 @@ const PROTECTED_SUBSTITUTES = new Map([
 // 默认排除的第三方头噪音（与 iwyu.sh 一致，单一大正则）
 const IGNORE_HEADERS_DEFAULT =
     'build/vcpkg_installed|third_party/|perfetto|tracy|_deps/|OffsetAllocator|quickjs';
+
+// 并发 worker 数（worker_threads 池）。clang-include-cleaner 是 CPU 密集型，
+// 并行可把全量 src/client（843 文件）从串行 30+ 分钟降到数分钟。
+// 默认 min(CPU核数-2, 16)；IWYU_WORKERS 环境变量可覆盖。
+const NUM_WORKERS = (() => {
+    const env = parseInt(process.env.IWYU_WORKERS || '', 10);
+    if (env > 0) return env;
+    const cores = require('node:os').availableParallelism?.() || require('node:os').cpus().length;
+    return Math.max(1, Math.min(16, cores - 2));
+})();
 
 // ---- 命令行参数解析 ----
 const argv = process.argv.slice(2);
@@ -681,10 +692,129 @@ function makeDiff(original, modified, cppRel) {
     return out.join('\n');
 }
 
+// ---- 处理单个文件（纯函数：分析+改写，不读写文件、不打印） ----
+// 主线程与 worker 共用。返回结果对象，由调用方决定写盘/打印。
+// 输入 ctx 含 clangIc/extraArgs/dbDir；allowRemovals 由 .cpp/.hpp 规则决定。
+function processFile(cppRel, ctx, allowRemovals) {
+    const { clangIc, extraArgs, dbDir } = ctx;
+    const cppAbs = path.join(PROJECT_ROOT, cppRel);
+    const { exitCode, output } = runIncludeCleaner(clangIc, extraArgs, cppRel, dbDir);
+
+    // CRASH / ERROR / 编译错误跳过：返回分类，不读文件
+    if (exitCode === 139 || exitCode < 0) {
+        return { cppRel, kind: 'crash', exitCode };
+    }
+    if (exitCode !== 0) {
+        if (output && output.includes('due to compiler errors')) {
+            return { cppRel, kind: 'compileError', exitCode, output };
+        }
+        return { cppRel, kind: 'error', exitCode, output };
+    }
+
+    // exit 0
+    const deduped = dedupeChanges(output);
+    if (!deduped.trim()) {
+        return { cppRel, kind: 'clean' };
+    }
+    const dir = path.dirname(cppAbs);
+    const { removals, insertions } = parseChanges(deduped, dir);
+    if (removals.length === 0 && insertions.length === 0) {
+        return { cppRel, kind: 'clean' };
+    }
+
+    const original = fs.readFileSync(cppAbs, 'utf8');
+    const { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup } =
+        applyChanges(original, removals, insertions, cppRel, allowRemovals);
+
+    const changed = newContent !== original;
+    return {
+        cppRel, kind: 'suggest', changed,
+        original, newContent,
+        removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup,
+        // 附带 +/- 建议文本供 dry-run 打印（从 deduped 提取，避免重复解析）
+        suggestions: deduped,
+    };
+}
+
+// ---- worker_threads 并行池 ----
+// 动态分发：N 个 worker 各自从主线程领文件任务，处理完回报结果再领下一个。
+// 避免长尾文件（复杂模板解析慢）拖慢整体——空闲 worker 立即领新任务。
+// worker 复用本文件（new Worker(__filename)），!isMainThread 时跑监听循环。
+function runParallel(files, ctx) {
+    return new Promise((resolve, reject) => {
+        if (files.length === 0) { resolve([]); return; }
+        const results = new Array(files.length);
+        const n = Math.min(NUM_WORKERS, files.length);
+        let nextIdx = 0;       // 下一个待分发文件索引
+        let completed = 0;     // 已完成文件数
+        const tStart = Date.now();
+        const workers = [];
+
+        const reportProgress = () => {
+            // 进度行（\r 回车覆盖同一行），仅 tty 或非 summary-only 时打印避免污染输出
+            const elapsed = ((Date.now() - tStart) / 1000).toFixed(0);
+            process.stderr.write(`\r\x1b[2K[ IWYU ] ${completed}/${files.length} (${elapsed}s, ${n} workers)` + '');
+        };
+
+        const dispatch = (worker) => {
+            if (nextIdx >= files.length) {
+                // 无更多任务，通知 worker 退出
+                worker.postMessage({ type: 'done' });
+                return;
+            }
+            const idx = nextIdx++;
+            const cppRel = files[idx];
+            const allowRemovals = cppRel.endsWith('.cpp') || REMOVE_HEADERS;
+            worker.postMessage({ type: 'task', idx, cppRel, allowRemovals });
+        };
+
+        for (let i = 0; i < n; i++) {
+            const worker = new Worker(__filename, { workerData: ctx });
+            workers.push(worker);
+
+            worker.on('message', (msg) => {
+                if (msg.type === 'result') {
+                    results[msg.idx] = msg.result;
+                    completed++;
+                    if (!SUMMARY_ONLY && process.stderr.isTTY) reportProgress();
+                    else if (completed % 50 === 0 || completed === files.length) reportProgress();
+                    // 分发下一个任务给这个 worker
+                    dispatch(worker);
+                } else if (msg.type === 'ready') {
+                    // worker 就绪，开始分发
+                    dispatch(worker);
+                }
+            });
+
+            worker.on('error', (err) => {
+                // worker 崩溃：当前任务标记 error，继续分发（容错）
+                console.error(`\nWorker error: ${err.message}`);
+                reject(err);
+            });
+
+            worker.on('exit', (code) => {
+                if (code !== 0) {
+                    // 非 0 退出：仅记录，不 reject（单个 worker 退出不影响已回收结果）
+                }
+            });
+        }
+
+        // 全部完成检查
+        const checkComplete = setInterval(() => {
+            if (completed >= files.length) {
+                clearInterval(checkComplete);
+                workers.forEach(w => w.terminate());
+                process.stderr.write('\r\x1b[2K');  // 清进度行
+                resolve(results.filter(Boolean));
+            }
+        }, 100);
+    });
+}
+
 // ============================================================
 // 主流程
 // ============================================================
-function main() {
+async function main() {
     const clangIc = detectClangIc();
     console.log(`Using clang-include-cleaner: ${clangIc}`);
     const v = spawnSync(clangIc, ['--version'], { encoding: 'utf8' });
@@ -730,6 +860,12 @@ function main() {
     console.log(`Compile db: ${path.relative(PROJECT_ROOT, dbDir)} (built in ${Date.now() - t0}ms)`);
     console.log('');
 
+    const ctx = { clangIc, extraArgs, dbDir };
+    // 并行处理：worker_threads 池动态分发文件，主线程回收结果后写盘+打印（保持文件名排序）
+    const results = await runParallel(files, ctx);
+    // 结果按文件名排序，保证 dry-run 输出顺序与串行一致
+    results.sort((a, b) => a.cppRel < b.cppRel ? -1 : a.cppRel > b.cppRel ? 1 : 0);
+
     let totalClean = 0, totalSuggest = 0, totalSkip = 0, totalFail = 0;
     let totalRemoved = 0, totalInserted = 0, totalSkippedAssoc = 0, totalSkippedDup = 0, totalSkippedRemovalDisabled = 0, totalSkippedProtected = 0;
     const changedFiles = [];  // { file, removed, inserted, skippedAssoc, skippedRemovalDisabled, skippedProtected, skippedDup }
@@ -737,58 +873,28 @@ function main() {
     const compileErrorFiles = [];  // .hpp 因自身代码问题（如前向声明+unique_ptr）导致工具跳过
     const failedFiles = [];
 
-    for (const cppRel of files) {
-        const { exitCode, output } = runIncludeCleaner(clangIc, extraArgs, cppRel, dbDir);
-
-        if (exitCode === 139 || exitCode < 0) {
-            console.log(`CRASH: ${cppRel} (exit ${exitCode})`);
-            totalSkip++;
-            crashedFiles.push(cppRel);
-            continue;
+    for (const r of results) {
+        const cppRel = r.cppRel;
+        if (r.kind === 'crash') {
+            console.log(`CRASH: ${cppRel} (exit ${r.exitCode})`);
+            totalSkip++; crashedFiles.push(cppRel); continue;
         }
-        if (exitCode !== 0) {
-            // 区分"工具因目标文件编译错误而跳过"（含 "Skipping file ... due to compiler errors"）
-            // 与真正的工具失败。前者常见于 .hpp 的前向声明+unique_ptr 等代码问题，计 SKIP。
-            if (output && output.includes('due to compiler errors')) {
-                console.log(`SKIP (compile error in target): ${cppRel}`);
-                (output || '').split('\n').filter(l => l.includes('error:')).slice(0, 3)
-                    .forEach(l => console.log('  ' + l.trim()));
-                totalSkip++;
-                compileErrorFiles.push(cppRel);
-            } else {
-                console.log(`ERROR: ${cppRel} (exit ${exitCode})`);
-                (output || '').split('\n').slice(0, 10).forEach(l => console.log('  ' + l));
-                totalFail++;
-                failedFiles.push(cppRel);
-            }
-            continue;
+        if (r.kind === 'compileError') {
+            console.log(`SKIP (compile error in target): ${cppRel}`);
+            (r.output || '').split('\n').filter(l => l.includes('error:')).slice(0, 3)
+                .forEach(l => console.log('  ' + l.trim()));
+            totalSkip++; compileErrorFiles.push(cppRel); continue;
         }
-
-        // exit 0
-        const deduped = dedupeChanges(output);
-        if (!deduped.trim()) {
-            totalClean++;
-            continue;
+        if (r.kind === 'error') {
+            console.log(`ERROR: ${cppRel} (exit ${r.exitCode})`);
+            (r.output || '').split('\n').slice(0, 10).forEach(l => console.log('  ' + l));
+            totalFail++; failedFiles.push(cppRel); continue;
         }
-
-        // 解析建议
-        const cppAbs = path.join(PROJECT_ROOT, cppRel);
-        const dir = path.dirname(cppAbs);
-        const { removals, insertions } = parseChanges(deduped, dir);
-
-        if (removals.length === 0 && insertions.length === 0) {
-            totalClean++;
-            continue;
+        if (r.kind === 'clean') {
+            totalClean++; continue;
         }
-
-        // .cpp 始终允许移除；.hpp 仅在 --remove-headers 时允许
-        const allowRemovals = cppRel.endsWith('.cpp') || REMOVE_HEADERS;
-
-        // 读取文件、应用改写
-        const original = fs.readFileSync(cppAbs, 'utf8');
-        const { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup } =
-            applyChanges(original, removals, insertions, cppRel, allowRemovals);
-
+        // kind === 'suggest'
+        const { removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup, original, newContent } = r;
         totalSuggest++;
         totalRemoved += removed;
         totalInserted += inserted;
@@ -797,7 +903,7 @@ function main() {
         totalSkippedProtected += skippedProtected;
         totalSkippedDup += skippedDup;
 
-        if (newContent !== original) {
+        if (r.changed) {
             changedFiles.push({ file: cppRel, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup });
             if (!SUMMARY_ONLY) {
                 console.log(`\x1b[33mCHANGE: ${cppRel}\x1b[0m`);
@@ -806,14 +912,13 @@ function main() {
                 if (diff) console.log(diff);
             }
             if (WRITE_MODE) {
-                fs.writeFileSync(cppAbs, newContent);
+                fs.writeFileSync(path.join(PROJECT_ROOT, cppRel), newContent);
             }
         } else {
             // 有建议但应用后无变化（全是被跳过的关联头/重复/.hpp移除禁用）
             if (!SUMMARY_ONLY) {
                 console.log(`\x1b[32m  NO-OP: ${cppRel} (建议全被跳过: assoc=${skippedAssociated} removalOff=${skippedRemovalDisabled} dup=${skippedDup})\x1b[0m`);
             }
-            // NO-OP 不计入 changedFiles，但仍算 suggest（有建议产生）
         }
     }
 
@@ -845,4 +950,28 @@ function main() {
     }
 }
 
-main();
+// ---- 入口：主线程跑 main，worker 线程跑监听循环 ----
+if (isMainThread) {
+    main().catch(err => { console.error(err); process.exit(1); });
+} else {
+    // worker 入口：ctx 由 workerData 传入（主线程 new Worker(__filename, { workerData: ctx })）
+    const ctx = workerData;
+    parentPort.postMessage({ type: 'ready' });
+    parentPort.on('message', (msg) => {
+        if (msg.type === 'done') {
+            process.exit(0);
+        }
+        if (msg.type === 'task') {
+            try {
+                const result = processFile(msg.cppRel, ctx, msg.allowRemovals);
+                parentPort.postMessage({ type: 'result', idx: msg.idx, result });
+            } catch (e) {
+                // 单文件异常：作为 error 结果回报，不崩溃 worker
+                parentPort.postMessage({
+                    type: 'result', idx: msg.idx,
+                    result: { cppRel: msg.cppRel, kind: 'error', exitCode: -1, output: `worker exception: ${e.message}` },
+                });
+            }
+        }
+    });
+}
