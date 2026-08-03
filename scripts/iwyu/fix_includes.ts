@@ -45,6 +45,19 @@ const EXCLUDE_FILES = new Set([
     'src/server/main.cpp',
 ]);
 
+// 受保护的项目头：既不移除，也不允许插入其「替代头」。
+// clang-include-cleaner 对宏展开识别不全：宏经 AssertAll.hpp→AssertMacros.hpp 间接定义时，
+// 工具可能建议「纯删 AssertAll」（误判，会致编译失败，如 ChunkLoadLightTask.cpp:95 的
+// MC_ASSERT_RELEASE）或「删 AssertAll 插 AssertMacros」（技术上可编译但违反 PROJECT_CONVENTIONS.md:445
+// 统一用 AssertAll 作断言库入口的约定）。故 AssertAll.hpp 整体保护。
+// PROTECTED_HEADERS：移除时跳过这些头（按规范化 quoted 路径匹配，basename 比对）
+// PROTECTED_SUBSTITUTES：插入时跳过这些头——仅当文件已 include 对应的保护头时才跳过
+//   （键=替代头 basename，值=需已存在的保护头 basename）
+const PROTECTED_HEADER_BASENAMES = new Set(['AssertAll.hpp']);
+const PROTECTED_SUBSTITUTES = new Map([
+    ['AssertMacros.hpp', 'AssertAll.hpp'],  // 文件已有 AssertAll 时，不插 AssertMacros
+]);
+
 // 默认排除的第三方头噪音（与 iwyu.sh 一致，单一大正则）
 const IGNORE_HEADERS_DEFAULT =
     'build/vcpkg_installed|third_party/|perfetto|tracy|_deps/|OffsetAllocator|quickjs';
@@ -442,6 +455,31 @@ function isAssociatedHeader(quotedNormalized, cppRel) {
     return hBase === cppBase && path.dirname(phys) === dir;
 }
 
+// ---- 判断某 quoted include 是否是受保护头（如 AssertAll.hpp） ----
+// 保护头按 basename 比对（不关心路径前缀，因 AssertAll.hpp 全仓唯一）。
+// normalized 形如 "common/util/assert/AssertAll.hpp" 或 "AssertAll.hpp"
+function isProtectedHeader(quotedNormalized) {
+    const inner = quotedNormalized.replace(/^"|"$/g, '');
+    const base = path.basename(inner);
+    return PROTECTED_HEADER_BASENAMES.has(base);
+}
+
+// ---- 判断某插入建议是否应被跳过（受保护头的替代头） ----
+// 如文件已有 AssertAll.hpp，则不插 AssertMacros.hpp（避免引入约定外的替代头）。
+// existingIncludes 是文件现有 include 的规范化集合（含 quoted 与 angled）。
+function isProtectedInsertion(quotedNormalized, existingIncludes) {
+    const inner = quotedNormalized.replace(/^"|"$/g, '');
+    const base = path.basename(inner);
+    const requiredProtected = PROTECTED_SUBSTITUTES.get(base);
+    if (!requiredProtected) return false;
+    // 文件是否已 include 该保护头（按 basename 在现有 include 中查）
+    for (const inc of existingIncludes) {
+        const incInner = inc.replace(/^"|"$/g, '').replace(/^<|>$/g, '');
+        if (path.basename(incInner) === requiredProtected) return true;
+    }
+    return false;
+}
+
 // ---- 文本化应用增删到一个文件内容 ----
 // allowRemovals=false 时跳过所有移除（.hpp 默认模式，避免传染性风险）
 // 返回 { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled }
@@ -449,6 +487,7 @@ function applyChanges(content, removals, insertions, cppRel, allowRemovals) {
     const lines = content.split(/\r?\n/);
     let skippedAssociated = 0;
     let skippedRemovalDisabled = 0;
+    let skippedProtected = 0;
 
     // ---- 1. 移除（按行号从后往前删，避免行号偏移） ----
     // .hpp 默认禁止移除（allowRemovals=false）：跳过所有移除建议
@@ -464,6 +503,11 @@ function applyChanges(content, removals, insertions, cppRel, allowRemovals) {
             // 保护关联头：跳过同名 .hpp 的移除
             if (isAssociatedHeader(r.normalized, cppRel)) {
                 skippedAssociated++;
+                continue;
+            }
+            // 保护项目约定头（如 AssertAll.hpp）：工具对宏展开识别不全，移除有误判风险
+            if (isProtectedHeader(r.normalized)) {
+                skippedProtected++;
                 continue;
             }
         }
@@ -530,16 +574,23 @@ function applyChanges(content, removals, insertions, cppRel, allowRemovals) {
     // 去重后的插入列表
     const inserts = [];
     let skippedDup = 0;
+    let skippedProtectedInsert = 0;
     for (const ins of insertions) {
         if (existingIncludes.has(ins.normalized)) { skippedDup++; continue; }
         if (inserts.some(x => x.normalized === ins.normalized)) { skippedDup++; continue; }
+        // 保护项目约定头：若插入的是替代头（如 AssertMacros）且文件已有保护头（如 AssertAll），跳过
+        if (!ins.isAngle && isProtectedInsertion(ins.normalized, existingIncludes)) {
+            skippedProtectedInsert++;
+            continue;
+        }
         inserts.push(ins);
     }
     const quotedInserts = inserts.filter(x => !x.isAngle).map(x => `#include ${x.normalized}`).sort();
     const angledInserts = inserts.filter(x => x.isAngle).map(x => `#include ${x.normalized}`).sort();
+    const skippedProtectedTotal = skippedProtected + skippedProtectedInsert;
 
     if (quotedInserts.length === 0 && angledInserts.length === 0) {
-        return { newContent: lines.join('\n'), removed: removedCount, inserted: 0, skippedAssociated, skippedRemovalDisabled, skippedDup };
+        return { newContent: lines.join('\n'), removed: removedCount, inserted: 0, skippedAssociated, skippedRemovalDisabled, skippedProtected: skippedProtectedTotal, skippedDup };
     }
 
     // 计算两批插入锚点（"在某行索引之后插入"）。无任何 include 时特殊处理。
@@ -601,7 +652,7 @@ function applyChanges(content, removals, insertions, cppRel, allowRemovals) {
     }
 
     const inserted = quotedInserts.length + angledInserts.length;
-    return { newContent: lines.join('\n'), removed: removedCount, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup };
+    return { newContent: lines.join('\n'), removed: removedCount, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected: skippedProtectedTotal, skippedDup };
 }
 
 // ---- 生成统一 diff（用于 dry-run 展示） ----
@@ -680,8 +731,8 @@ function main() {
     console.log('');
 
     let totalClean = 0, totalSuggest = 0, totalSkip = 0, totalFail = 0;
-    let totalRemoved = 0, totalInserted = 0, totalSkippedAssoc = 0, totalSkippedDup = 0, totalSkippedRemovalDisabled = 0;
-    const changedFiles = [];  // { file, removed, inserted, skippedAssoc, skippedRemovalDisabled, skippedDup }
+    let totalRemoved = 0, totalInserted = 0, totalSkippedAssoc = 0, totalSkippedDup = 0, totalSkippedRemovalDisabled = 0, totalSkippedProtected = 0;
+    const changedFiles = [];  // { file, removed, inserted, skippedAssoc, skippedRemovalDisabled, skippedProtected, skippedDup }
     const crashedFiles = [];
     const compileErrorFiles = [];  // .hpp 因自身代码问题（如前向声明+unique_ptr）导致工具跳过
     const failedFiles = [];
@@ -735,7 +786,7 @@ function main() {
 
         // 读取文件、应用改写
         const original = fs.readFileSync(cppAbs, 'utf8');
-        const { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup } =
+        const { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup } =
             applyChanges(original, removals, insertions, cppRel, allowRemovals);
 
         totalSuggest++;
@@ -743,13 +794,14 @@ function main() {
         totalInserted += inserted;
         totalSkippedAssoc += skippedAssociated;
         totalSkippedRemovalDisabled += skippedRemovalDisabled;
+        totalSkippedProtected += skippedProtected;
         totalSkippedDup += skippedDup;
 
         if (newContent !== original) {
-            changedFiles.push({ file: cppRel, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup });
+            changedFiles.push({ file: cppRel, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedProtected, skippedDup });
             if (!SUMMARY_ONLY) {
                 console.log(`\x1b[33mCHANGE: ${cppRel}\x1b[0m`);
-                console.log(`  (-${removed} +${inserted} skipAssoc=${skippedAssociated} skipRemovalOff=${skippedRemovalDisabled} skipDup=${skippedDup})`);
+                console.log(`  (-${removed} +${inserted} skipAssoc=${skippedAssociated} skipRemovalOff=${skippedRemovalDisabled} skipProt=${skippedProtected} skipDup=${skippedDup})`);
                 const diff = makeDiff(original, newContent, cppRel);
                 if (diff) console.log(diff);
             }
@@ -769,7 +821,7 @@ function main() {
     console.log('');
     console.log('==========================================');
     console.log(`  Total: ${files.length}  Clean: ${totalClean}  Suggest: ${totalSuggest}  Fail: ${totalFail}  Skip: ${totalSkip}`);
-    console.log(`  Removed: ${totalRemoved}  Inserted: ${totalInserted}  SkipAssoc: ${totalSkippedAssoc}  SkipRemovalOff: ${totalSkippedRemovalDisabled}  SkipDup: ${totalSkippedDup}`);
+    console.log(`  Removed: ${totalRemoved}  Inserted: ${totalInserted}  SkipAssoc: ${totalSkippedAssoc}  SkipRemovalOff: ${totalSkippedRemovalDisabled}  SkipProt: ${totalSkippedProtected}  SkipDup: ${totalSkippedDup}`);
     console.log(`  Changed files: ${changedFiles.length}`);
     console.log('==========================================');
 
