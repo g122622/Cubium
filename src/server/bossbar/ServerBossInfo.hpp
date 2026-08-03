@@ -24,7 +24,10 @@
 #pragma once
 
 #include "BossInfo.hpp"
+#include "common/command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
+#include <cstddef>
 #include <memory>
 #include <set>
 #include <vector>

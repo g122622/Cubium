@@ -24,11 +24,14 @@
 #pragma once
 
 #include "ServerBossInfo.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 
 namespace mc {

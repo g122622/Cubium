@@ -26,6 +26,8 @@
 #include "CustomServerBossInfo.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>
