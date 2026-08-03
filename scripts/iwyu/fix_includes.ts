@@ -53,21 +53,25 @@ const IGNORE_HEADERS_DEFAULT =
 const argv = process.argv.slice(2);
 let WRITE_MODE = false;
 let SUMMARY_ONLY = false;
+let REMOVE_HEADERS = false;  // .hpp 默认只插入不移除；此开关启用 .hpp 移除
 let SCAN_TARGETS = [];
 for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--write') WRITE_MODE = true;
     else if (a === '--summary-only') SUMMARY_ONLY = true;
+    else if (a === '--remove-headers') REMOVE_HEADERS = true;
     else if (a === '-h' || a === '--help') {
         console.log(`Usage: fix_includes.ts [options] [scan_target...]
 
   scan_target  目录或文件（相对 PROJECT_ROOT），默认 ${DEFAULT_SCAN_TARGET}
-               目录会递归展开为 .cpp 列表（git ls-files）
+               目录递归展开为 .cpp + .hpp（git ls-files，排除 .gitignore 与 .gen.*）
 
 Options:
-  --write         落地改写源文件（默认 dry-run，只打印 diff）
-  --summary-only  只打印汇总统计，不打印逐文件 diff
-  -h, --help      显示本帮助
+  --write           落地改写源文件（默认 dry-run，只打印 diff）
+  --summary-only    只打印汇总统计，不打印逐文件 diff
+  --remove-headers  允许 .hpp 移除 include（默认禁止：.hpp 移除有传染性风险，
+                    下游 .cpp 可能隐式依赖被移除的头）。.cpp 移除始终允许。
+  -h, --help        显示本帮助
 
 Environment:
   IWYU_BUILD_DIR  compile_commands.json 目录（默认 build）
@@ -236,29 +240,33 @@ function resolveAndNormalize(headerSpec, currentFileDir) {
     return headerSpec;
 }
 
-// ---- 枚举 .cpp 文件 ----
-function enumerateCppFiles(targets) {
+// ---- 枚举目标文件（.cpp + .hpp）----
+// .cpp：翻译单元，include 分析语义明确，默认允许增删
+// .hpp：非翻译单元，工具按"假设被编译"分析；移除有传染性风险（下游 .cpp 可能隐式依赖），
+//       故 .hpp 默认只插入不移除（除非 --remove-headers）
+function enumerateFiles(targets) {
     const files = [];
     for (const t of targets) {
         const abs = path.isAbsolute(t) ? t : path.join(PROJECT_ROOT, t);
         const rel = path.relative(PROJECT_ROOT, abs).replace(/\\/g, '/');
         if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
-            if (rel.endsWith('.cpp')) files.push(rel);
+            if (rel.endsWith('.cpp') || rel.endsWith('.hpp')) files.push(rel);
             continue;
         }
         // 目录：用 git ls-files 枚举（自然排除 .gitignore）
-        // git ls-files 'src/server/*.cpp' 不递归；要递归用 'src/server/**/*.cpp'（git pathspec）
+        // git ls-files pathspec：**/*.cpp 递归，*.cpp 当前层
         const prefix = rel.endsWith('/') ? rel : rel + '/';
-        const r = spawnSync('git', ['ls-files', '--', `${prefix}**/*.cpp`, `${prefix}*.cpp`], {
-            cwd: PROJECT_ROOT, encoding: 'utf8',
-        });
+        const r = spawnSync('git', ['ls-files', '--',
+            `${prefix}**/*.cpp`, `${prefix}*.cpp`,
+            `${prefix}**/*.hpp`, `${prefix}*.hpp`,
+        ], { cwd: PROJECT_ROOT, encoding: 'utf8' });
         if (r.status !== 0) {
             console.error(`git ls-files failed for ${rel}: ${r.stderr}`);
             continue;
         }
         const list = (r.stdout || '').split('\n').filter(x => x.trim());
         for (const f of list) {
-            if (f.endsWith('.gen.cpp')) continue;        // 自动生成
+            if (f.endsWith('.gen.cpp') || f.endsWith('.gen.hpp')) continue;  // 自动生成
             if (EXCLUDE_FILES.has(f)) continue;
             files.push(f);
         }
@@ -270,9 +278,11 @@ function enumerateCppFiles(targets) {
 // ---- 性能优化：为目标文件生成精简 compile_commands.json ----
 // clang-include-cleaner 在 -p 模式下加载整个 compile_commands.json，开销与 database 大小成正比。
 // 全量 database（Ninja Multi-Config 三配置 × 全部源文件）约 20MB / 1.2 万条，单文件冷启动 ~21 秒。
-// 只保留本次目标文件、每文件一条 RelWithDebInfo 条目后，database 缩到 <1MB，单文件降至 ~1.5 秒。
+// 只保留本次目标 .cpp、每文件一条 RelWithDebInfo 条目后，database 缩到 <1MB，单文件降至 ~1.5 秒。
+// .hpp 不在 compile_commands 里（CMake 不为头文件生成编译命令），但工具用 db 里的 .cpp 条目
+// 提取项目 -I 根来编译 .hpp，故精简 db 只需含 .cpp 条目即可同时服务 .hpp 分析。
 // 返回精简 db 目录路径。失败时回退到全量 BUILD_DIR。
-function buildSlimCompileDb(targetCppRels) {
+function buildSlimCompileDb(targetRels) {
     const fullDb = path.join(BUILD_DIR, 'compile_commands.json');
     if (!fs.existsSync(fullDb)) return BUILD_DIR;  // 回退（外层会报错）
 
@@ -284,34 +294,48 @@ function buildSlimCompileDb(targetCppRels) {
         return BUILD_DIR;
     }
 
-    // 目标文件绝对路径集合（正斜杠）
-    const targetSet = new Set(targetCppRels.map(f =>
-        path.resolve(PROJECT_ROOT, f).replace(/\\/g, '/')));
+    // 只对 .cpp 做 db 命中（.hpp 不在 db 里，靠 .cpp 条目提供 -I 根）
+    const targetCppSet = new Set(targetRels
+        .filter(f => f.endsWith('.cpp'))
+        .map(f => path.resolve(PROJECT_ROOT, f).replace(/\\/g, '/')));
 
     // 每文件优先取 RelWithDebInfo 配置；找不到则取任意一条
     const picked = new Map();  // file -> entry
     for (const e of db) {
         const f = (e.file || '').replace(/\\/g, '/');
-        if (!targetSet.has(f)) continue;
+        if (!targetCppSet.has(f)) continue;
         if (picked.has(f)) continue;  // 已取（保留首次，JSON 顺序即配置顺序）
         picked.set(f, e);
     }
     // 第二轮：优先替换为 RelWithDebInfo 那条（更贴近日常构建配置）
     for (const e of db) {
         const f = (e.file || '').replace(/\\/g, '/');
-        if (!targetSet.has(f)) continue;
+        if (!targetCppSet.has(f)) continue;
         const cmd = e.command || '';
         if (cmd.includes('RelWithDebInfo')) {
             picked.set(f, e);  // 后续命中覆盖，最终保留最后一条 RelWithDebInfo
         }
     }
 
-    const missing = [...targetSet].filter(f => !picked.has(f));
+    const missing = [...targetCppSet].filter(f => !picked.has(f));
     if (missing.length) {
-        console.error(`WARN: ${missing.length} target file(s) not in compile_commands.json (stale db?):`);
+        console.error(`WARN: ${missing.length} target .cpp not in compile_commands.json (stale db?):`);
         missing.slice(0, 5).forEach(f => console.error('  - ' + f));
         console.error('  Run ./scripts/configure.sh build to refresh. Falling back to full db.');
         return BUILD_DIR;
+    }
+
+    // 若目标全是 .hpp（无 .cpp），精简 db 会为空，工具无法提取 -I 根。
+    // 兜底：从全量 db 取一条同目录附近的 .cpp 条目塞进精简 db（仅提供 -I 根）。
+    if (picked.size === 0 && targetRels.length > 0) {
+        const anyEntry = db.find(e => (e.file || '').endsWith('.cpp'));
+        if (anyEntry) {
+            picked.set((anyEntry.file || '').replace(/\\/g, '/'), anyEntry);
+            console.error('WARN: target has only .hpp, injected 1 .cpp entry into slim db for -I roots.');
+        } else {
+            console.error('WARN: no .cpp entry available to provide -I roots; use full db.');
+            return BUILD_DIR;
+        }
     }
 
     try {
@@ -419,16 +443,23 @@ function isAssociatedHeader(quotedNormalized, cppRel) {
 }
 
 // ---- 文本化应用增删到一个文件内容 ----
-// 返回 { newContent, removed, inserted, skippedAssociated }
-function applyChanges(content, removals, insertions, cppRel) {
+// allowRemovals=false 时跳过所有移除（.hpp 默认模式，避免传染性风险）
+// 返回 { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled }
+function applyChanges(content, removals, insertions, cppRel, allowRemovals) {
     const lines = content.split(/\r?\n/);
     let skippedAssociated = 0;
+    let skippedRemovalDisabled = 0;
 
     // ---- 1. 移除（按行号从后往前删，避免行号偏移） ----
+    // .hpp 默认禁止移除（allowRemovals=false）：跳过所有移除建议
+    if (!allowRemovals && removals.length > 0) {
+        skippedRemovalDisabled = removals.length;
+    }
     // 同一行可能有多个移除建议（罕见），去重后按行号降序排序
     const removeByLine = new Map();  // line -> Set(normalized header)
     const filteredRemovals = [];
     for (const r of removals) {
+        if (!allowRemovals) continue;  // .hpp 默认不移除
         if (!r.isAngle) {
             // 保护关联头：跳过同名 .hpp 的移除
             if (isAssociatedHeader(r.normalized, cppRel)) {
@@ -508,7 +539,7 @@ function applyChanges(content, removals, insertions, cppRel) {
     const angledInserts = inserts.filter(x => x.isAngle).map(x => `#include ${x.normalized}`).sort();
 
     if (quotedInserts.length === 0 && angledInserts.length === 0) {
-        return { newContent: lines.join('\n'), removed: removedCount, inserted: 0, skippedAssociated, skippedDup };
+        return { newContent: lines.join('\n'), removed: removedCount, inserted: 0, skippedAssociated, skippedRemovalDisabled, skippedDup };
     }
 
     // 计算两批插入锚点（"在某行索引之后插入"）。无任何 include 时特殊处理。
@@ -570,7 +601,7 @@ function applyChanges(content, removals, insertions, cppRel) {
     }
 
     const inserted = quotedInserts.length + angledInserts.length;
-    return { newContent: lines.join('\n'), removed: removedCount, inserted, skippedAssociated, skippedDup };
+    return { newContent: lines.join('\n'), removed: removedCount, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup };
 }
 
 // ---- 生成统一 diff（用于 dry-run 展示） ----
@@ -621,13 +652,15 @@ function main() {
     }
 
     // 枚举
-    const files = enumerateCppFiles(SCAN_TARGETS);
+    const files = enumerateFiles(SCAN_TARGETS);
     if (files.length === 0) {
-        console.error('ERROR: No .cpp files found.');
+        console.error('ERROR: No .cpp/.hpp files found.');
         process.exit(1);
     }
-    console.log(`\nScanning ${files.length} file(s) from: ${SCAN_TARGETS.join(', ')}`);
-    console.log(`Mode: ${WRITE_MODE ? 'WRITE (落地改写)' : 'DRY-RUN (只打印)'}`);
+    const cppCount = files.filter(f => f.endsWith('.cpp')).length;
+    const hppCount = files.length - cppCount;
+    console.log(`\nScanning ${files.length} file(s) from: ${SCAN_TARGETS.join(', ')}  (.cpp: ${cppCount}, .hpp: ${hppCount})`);
+    console.log(`Mode: ${WRITE_MODE ? 'WRITE (落地改写)' : 'DRY-RUN (只打印)'}  |  .hpp 移除: ${REMOVE_HEADERS ? '允许(--remove-headers)' : '禁止(默认)'}`);
     console.log('');
 
     // --write 安全闸
@@ -647,9 +680,10 @@ function main() {
     console.log('');
 
     let totalClean = 0, totalSuggest = 0, totalSkip = 0, totalFail = 0;
-    let totalRemoved = 0, totalInserted = 0, totalSkippedAssoc = 0, totalSkippedDup = 0;
-    const changedFiles = [];  // { file, removed, inserted, skippedAssoc, skippedDup }
+    let totalRemoved = 0, totalInserted = 0, totalSkippedAssoc = 0, totalSkippedDup = 0, totalSkippedRemovalDisabled = 0;
+    const changedFiles = [];  // { file, removed, inserted, skippedAssoc, skippedRemovalDisabled, skippedDup }
     const crashedFiles = [];
+    const compileErrorFiles = [];  // .hpp 因自身代码问题（如前向声明+unique_ptr）导致工具跳过
     const failedFiles = [];
 
     for (const cppRel of files) {
@@ -662,10 +696,20 @@ function main() {
             continue;
         }
         if (exitCode !== 0) {
-            console.log(`ERROR: ${cppRel} (exit ${exitCode})`);
-            (output || '').split('\n').slice(0, 10).forEach(l => console.log('  ' + l));
-            totalFail++;
-            failedFiles.push(cppRel);
+            // 区分"工具因目标文件编译错误而跳过"（含 "Skipping file ... due to compiler errors"）
+            // 与真正的工具失败。前者常见于 .hpp 的前向声明+unique_ptr 等代码问题，计 SKIP。
+            if (output && output.includes('due to compiler errors')) {
+                console.log(`SKIP (compile error in target): ${cppRel}`);
+                (output || '').split('\n').filter(l => l.includes('error:')).slice(0, 3)
+                    .forEach(l => console.log('  ' + l.trim()));
+                totalSkip++;
+                compileErrorFiles.push(cppRel);
+            } else {
+                console.log(`ERROR: ${cppRel} (exit ${exitCode})`);
+                (output || '').split('\n').slice(0, 10).forEach(l => console.log('  ' + l));
+                totalFail++;
+                failedFiles.push(cppRel);
+            }
             continue;
         }
 
@@ -686,22 +730,26 @@ function main() {
             continue;
         }
 
+        // .cpp 始终允许移除；.hpp 仅在 --remove-headers 时允许
+        const allowRemovals = cppRel.endsWith('.cpp') || REMOVE_HEADERS;
+
         // 读取文件、应用改写
         const original = fs.readFileSync(cppAbs, 'utf8');
-        const { newContent, removed, inserted, skippedAssociated, skippedDup } =
-            applyChanges(original, removals, insertions, cppRel);
+        const { newContent, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup } =
+            applyChanges(original, removals, insertions, cppRel, allowRemovals);
 
         totalSuggest++;
         totalRemoved += removed;
         totalInserted += inserted;
         totalSkippedAssoc += skippedAssociated;
+        totalSkippedRemovalDisabled += skippedRemovalDisabled;
         totalSkippedDup += skippedDup;
 
         if (newContent !== original) {
-            changedFiles.push({ file: cppRel, removed, inserted, skippedAssociated, skippedDup });
+            changedFiles.push({ file: cppRel, removed, inserted, skippedAssociated, skippedRemovalDisabled, skippedDup });
             if (!SUMMARY_ONLY) {
                 console.log(`\x1b[33mCHANGE: ${cppRel}\x1b[0m`);
-                console.log(`  (-${removed} +${inserted} skipAssoc=${skippedAssociated} skipDup=${skippedDup})`);
+                console.log(`  (-${removed} +${inserted} skipAssoc=${skippedAssociated} skipRemovalOff=${skippedRemovalDisabled} skipDup=${skippedDup})`);
                 const diff = makeDiff(original, newContent, cppRel);
                 if (diff) console.log(diff);
             }
@@ -709,9 +757,9 @@ function main() {
                 fs.writeFileSync(cppAbs, newContent);
             }
         } else {
-            // 有建议但应用后无变化（全是被跳过的关联头/重复）
+            // 有建议但应用后无变化（全是被跳过的关联头/重复/.hpp移除禁用）
             if (!SUMMARY_ONLY) {
-                console.log(`\x1b[32m  NO-OP: ${cppRel} (建议全被跳过: assoc=${skippedAssociated} dup=${skippedDup})\x1b[0m`);
+                console.log(`\x1b[32m  NO-OP: ${cppRel} (建议全被跳过: assoc=${skippedAssociated} removalOff=${skippedRemovalDisabled} dup=${skippedDup})\x1b[0m`);
             }
             // NO-OP 不计入 changedFiles，但仍算 suggest（有建议产生）
         }
@@ -720,14 +768,18 @@ function main() {
     // ---- 汇总 ----
     console.log('');
     console.log('==========================================');
-    console.log(`  Total: ${files.length}  Clean: ${totalClean}  Suggest: ${totalSuggest}  Fail: ${totalFail}  Skip(Crash): ${totalSkip}`);
-    console.log(`  Removed: ${totalRemoved}  Inserted: ${totalInserted}  SkippedAssoc: ${totalSkippedAssoc}  SkippedDup: ${totalSkippedDup}`);
+    console.log(`  Total: ${files.length}  Clean: ${totalClean}  Suggest: ${totalSuggest}  Fail: ${totalFail}  Skip: ${totalSkip}`);
+    console.log(`  Removed: ${totalRemoved}  Inserted: ${totalInserted}  SkipAssoc: ${totalSkippedAssoc}  SkipRemovalOff: ${totalSkippedRemovalDisabled}  SkipDup: ${totalSkippedDup}`);
     console.log(`  Changed files: ${changedFiles.length}`);
     console.log('==========================================');
 
     if (crashedFiles.length) {
         console.log('\nCrashed (segfault, skipped):');
         crashedFiles.forEach(f => console.log('  - ' + f));
+    }
+    if (compileErrorFiles.length) {
+        console.log('\nSkipped (target has compile error, e.g. fwd-decl + unique_ptr):');
+        compileErrorFiles.forEach(f => console.log('  - ' + f));
     }
     if (failedFiles.length) {
         console.log('\nFailed (parse error):');
