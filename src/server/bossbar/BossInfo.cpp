@@ -22,10 +22,15 @@
  */
 
 #include "BossInfo.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
-#include <algorithm>
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace server {

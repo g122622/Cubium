@@ -23,16 +23,28 @@
 
 #include "CustomServerBossInfo.hpp"
 #include "CustomServerBossInfoManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentUtils.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "server/bossbar/BossInfo.hpp"
+#include "server/bossbar/ServerBossInfo.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
 #include <random>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace server {

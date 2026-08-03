@@ -22,17 +22,22 @@
  */
 
 #include "CustomServerBossInfoManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
+#include "server/bossbar/CustomServerBossInfo.hpp"
+#include "server/bossbar/ServerBossInfo.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include <algorithm>
-#include <spdlog/spdlog.h>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace server {

@@ -22,17 +22,23 @@
  */
 
 #include "ServerDragonBossBar.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/GameActions.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "server/application/IServer.hpp"
+#include "server/bossbar/BossInfo.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include <memory>
+#include <set>
+#include <utility>
 #include <vector>
-#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace server {

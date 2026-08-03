@@ -22,10 +22,14 @@
  */
 
 #include "ServerBossInfo.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "server/application/IServer.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "server/bossbar/BossInfo.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace server {
