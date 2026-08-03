@@ -296,8 +296,7 @@ src/common/
     ├── blockentity/          # 方块实体
     │   ├── BlockEntity.hpp
     │   ├── BlockEntityType.hpp
-    │   ├── ContainerBlockEntity.hpp
-    │   └── CraftingTableEntity.hpp
+    │   └── ContainerBlockEntity.hpp
     ├── chunk/                # 区块系统
     │   ├── ChunkData.hpp
     │   ├── ChunkPos.hpp

@@ -34,10 +34,6 @@ graph TB
         CR[CraftingRecipe]
     end
 
-    subgraph "common/world/blockentity"
-        CTE[CraftingTableEntity]
-    end
-
     subgraph "common/entity"
         Player[Player]
     end
@@ -51,7 +47,6 @@ graph TB
     CM --> RM
     ICM --> RM
     RM --> CR
-    CM --> CTE
     CM --> PI
     ICM --> PI
     ACM --> Slot
@@ -88,7 +83,6 @@ graph TB
 | Slot, ResultSlot, ArmorSlot | `common/entity/inventory/` | 槽位类型 |
 | PlayerInventory | `common/entity/inventory/` | 玩家背包 |
 | RecipeManager | `common/item/crafting/` | 配方查找 |
-| CraftingTableEntity | `common/world/blockentity/` | 工作台方块实体 |
 | ScreenType | `common/screen/` | 屏幕/界面类型枚举 |
 
 ### 下游使用者
@@ -134,4 +128,4 @@ graph TB
 
 ### 7. `stillValid` 验证
 
-`CraftingMenu::stillValid()` 检查玩家与工作台的距离是否在 8 格以内（距离平方 ≤ 64）。若无关联方块实体（玩家背包内的 2x2 合成），则始终返回 `true`。
+`CraftingMenu::stillValid()` 恒返回 `true`：vanilla 1.21.11 中工作台不是方块实体，CraftingMenu 为纯容器菜单，距离合法性由客户端关屏与网络层容器协议保障，菜单层不做距离校验。

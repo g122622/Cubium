@@ -11,8 +11,6 @@
 ├── BlockEntityType.cpp #类型转换函数
 ├── ContainerBlockEntity.hpp #容器方块实体基类
 ├── ContainerBlockEntity.cpp #容器方块实体实现
-├── CraftingTableEntity.hpp #工作台方块实体
-├── CraftingTableEntity.cpp #工作台实现
 ├── BLOCK_ENTITY_PLAN.md #方块实体补全计划
 ├── core / #核心基础设施
 │   ├── BlockEntityRegistry.hpp / cpp #方块实体注册表（工厂方法创建实例）
@@ -105,7 +103,6 @@
 │   │       ├── BlastFurnaceEntity(高炉)
 │   │       └── SmokerEntity(烟熏炉)
 │   │
-│   ├── CraftingTableEntity(工作台)
 │   ├── BrewingStandEntity(酿造台，多重继承 ISidedInventory)
 │   ├── CampfireBlockEntity(营火)
 │   ├── JukeboxEntity(唱片机)
@@ -187,10 +184,6 @@
 `closeContainer()` 不会让计数变为负数，但不匹配的 open
         /
         close 调用会导致计数错误。确保每次 open 都有对应的 close。
-
-        ## #5. 工作台物品持久化
-
-        当前 `CraftingTableEntity::save()` 不保存网格内容（与原版行为一致），如需持久化需要在子类中重写。
 
         ## #6. 类型转换失败处理
 
