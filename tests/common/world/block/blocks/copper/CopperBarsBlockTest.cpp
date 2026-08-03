@@ -262,14 +262,12 @@ TEST_F(CopperBarsTestFixture, Shape_CenterPillarOnlyWhenNoConnections)
         GTEST_SKIP() << "COPPER_BARS not registered";
     }
 
-    const BlockState state =
-        VanillaBlocks::COPPER_BARS->defaultState()
-            .with(BlockStateProperties::NORTH(), false)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::SOUTH(), false)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected);
+    const BlockState state = VanillaBlocks::COPPER_BARS->defaultState()
+                                 .with(BlockStateProperties::NORTH(), false)
+                                 .with(BlockStateProperties::EAST(), false)
+                                 .with(BlockStateProperties::SOUTH(), false)
+                                 .with(BlockStateProperties::WEST(), false)
+                                 .with(BlockStateProperties::WATERLOGGED(), false);
 
     const CollisionShape& shape = VanillaBlocks::COPPER_BARS->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
@@ -283,14 +281,12 @@ TEST_F(CopperBarsTestFixture, Shape_CenterPlusConnectedSides)
         GTEST_SKIP() << "COPPER_BARS not registered";
     }
 
-    const BlockState state =
-        VanillaBlocks::COPPER_BARS->defaultState()
-            .with(BlockStateProperties::NORTH(), true)
-            .with(BlockStateProperties::EAST(), true)
-            .with(BlockStateProperties::SOUTH(), false)
-            .with(BlockStateProperties::WEST(), true)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected);
+    const BlockState state = VanillaBlocks::COPPER_BARS->defaultState()
+                                 .with(BlockStateProperties::NORTH(), true)
+                                 .with(BlockStateProperties::EAST(), true)
+                                 .with(BlockStateProperties::SOUTH(), false)
+                                 .with(BlockStateProperties::WEST(), true)
+                                 .with(BlockStateProperties::WATERLOGGED(), false);
 
     const CollisionShape& shape = VanillaBlocks::COPPER_BARS->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
@@ -494,14 +490,12 @@ TEST_F(CopperBarsTestFixture, ConnectsTo_StaticMethodReturnsDirectionState)
         GTEST_SKIP() << "COPPER_BARS not registered";
     }
 
-    const BlockState northState =
-        VanillaBlocks::COPPER_BARS->defaultState()
-            .with(BlockStateProperties::NORTH(), true)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::SOUTH(), false)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected);
+    const BlockState northState = VanillaBlocks::COPPER_BARS->defaultState()
+                                      .with(BlockStateProperties::NORTH(), true)
+                                      .with(BlockStateProperties::EAST(), false)
+                                      .with(BlockStateProperties::SOUTH(), false)
+                                      .with(BlockStateProperties::WEST(), false)
+                                      .with(BlockStateProperties::WATERLOGGED(), false);
 
     EXPECT_TRUE(WeatheringCopperBarsBlock::connectsTo(northState, Direction::North));
     EXPECT_FALSE(WeatheringCopperBarsBlock::connectsTo(northState, Direction::East));

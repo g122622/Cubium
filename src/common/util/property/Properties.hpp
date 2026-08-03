@@ -1319,15 +1319,9 @@ public:
         Oxidized = 3    ///< 氧化
     };
 
-    /**
-     * @brief 铜氧化等级属性
-     */
-    static const EnumProperty<OxidationLevel>& OXIDATION()
-    {
-        static auto prop = EnumProperty<OxidationLevel>::create("oxidation",
-            {OxidationLevel::Unaffected, OxidationLevel::Exposed, OxidationLevel::Weathered, OxidationLevel::Oxidized});
-        return *prop;
-    }
+    // 注：氧化等级不再作为 block state 属性。vanilla 1.21.11 中不同氧化等级以独立方块名注册
+    // （copper/exposed_copper/weathered_copper/oxidized_copper 等），方块状态不含 oxidation。
+    // 此枚举保留，供铜方块以成员变量 m_oxidationLevel 持有氧化等级使用。
 
     // ========================================================================
     // 滴石厚度属性 (1.17+)
@@ -1955,12 +1949,6 @@ struct mc::EnumProperty<mc::BlockStateProperties::StructureMode>::Traits {
 // ============================================================================
 // 1.17-1.21 新增枚举特征特化
 // ============================================================================
-
-template <>
-struct mc::EnumProperty<mc::BlockStateProperties::OxidationLevel>::Traits {
-    static std::string toString(const mc::BlockStateProperties::OxidationLevel& value);
-    static std::optional<mc::BlockStateProperties::OxidationLevel> fromName(std::string_view name);
-};
 
 template <>
 struct mc::EnumProperty<mc::BlockStateProperties::DripstoneThickness>::Traits {

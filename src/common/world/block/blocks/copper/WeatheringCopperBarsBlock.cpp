@@ -59,7 +59,6 @@ WeatheringCopperBarsBlock::WeatheringCopperBarsBlock(
             .add(BlockStateProperties::SOUTH())
             .add(BlockStateProperties::WEST())
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::OXIDATION())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -74,8 +73,7 @@ WeatheringCopperBarsBlock::WeatheringCopperBarsBlock(
             .with(BlockStateProperties::EAST(), false)
             .with(BlockStateProperties::SOUTH(), false)
             .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     constexpr f32 P = 1.0f / 16.0f;
 
@@ -154,8 +152,7 @@ BlockState WeatheringCopperBarsBlock::getStateForPlacement(BlockItemUseContext& 
         .with(BlockStateProperties::EAST(), east)
         .with(BlockStateProperties::SOUTH(), south)
         .with(BlockStateProperties::WEST(), west)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged)
-        .with(BlockStateProperties::OXIDATION(), m_oxidationLevel);
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 BlockState WeatheringCopperBarsBlock::updatePostPlacement(const BlockState& state,

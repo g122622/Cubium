@@ -405,14 +405,12 @@ TEST_F(PaneBlockTestFixture, SkipRendering_BarsTag_HorizontalBothConnected)
                                          .with(BlockStateProperties::WATERLOGGED(), false);
 
     // 铜栏杆朝南连接
-    const BlockState copperBarsState =
-        VanillaBlocks::COPPER_BARS->defaultState()
-            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected)
-            .with(BlockStateProperties::NORTH(), false)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::SOUTH(), true)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false);
+    const BlockState copperBarsState = VanillaBlocks::COPPER_BARS->defaultState()
+                                           .with(BlockStateProperties::NORTH(), false)
+                                           .with(BlockStateProperties::EAST(), false)
+                                           .with(BlockStateProperties::SOUTH(), true)
+                                           .with(BlockStateProperties::WEST(), false)
+                                           .with(BlockStateProperties::WATERLOGGED(), false);
 
     // 北面 — 铁栏杆连接，铜栏杆反向也连接 → 跳过
     EXPECT_TRUE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::North));
@@ -434,14 +432,12 @@ TEST_F(PaneBlockTestFixture, SkipRendering_BarsTag_HorizontalOneSidedNotSkipped)
                                          .with(BlockStateProperties::WATERLOGGED(), false);
 
     // 铜栏杆朝南连接
-    const BlockState copperBarsState =
-        VanillaBlocks::COPPER_BARS->defaultState()
-            .with(BlockStateProperties::OXIDATION(), BlockStateProperties::OxidationLevel::Unaffected)
-            .with(BlockStateProperties::NORTH(), false)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::SOUTH(), true)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false);
+    const BlockState copperBarsState = VanillaBlocks::COPPER_BARS->defaultState()
+                                           .with(BlockStateProperties::NORTH(), false)
+                                           .with(BlockStateProperties::EAST(), false)
+                                           .with(BlockStateProperties::SOUTH(), true)
+                                           .with(BlockStateProperties::WEST(), false)
+                                           .with(BlockStateProperties::WATERLOGGED(), false);
 
     // 北面 — 铁栏杆自身不连接 → 不跳过
     EXPECT_FALSE(VanillaBlocks::IRON_BARS->skipRendering(ironBarsState, copperBarsState, Direction::North));

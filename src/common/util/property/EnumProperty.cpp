@@ -643,42 +643,6 @@ std::optional<BlockStateProperties::StructureMode> EnumProperty<BlockStateProper
 }
 
 // ============================================================================
-// OxidationLevel Traits 实现 (1.17+)
-// ============================================================================
-
-std::string EnumProperty<BlockStateProperties::OxidationLevel>::Traits::toString(
-    const BlockStateProperties::OxidationLevel& value)
-{
-    switch (value) {
-        case BlockStateProperties::OxidationLevel::Unaffected:
-            return "unaffected";
-        case BlockStateProperties::OxidationLevel::Exposed:
-            return "exposed";
-        case BlockStateProperties::OxidationLevel::Weathered:
-            return "weathered";
-        case BlockStateProperties::OxidationLevel::Oxidized:
-            return "oxidized";
-        default:
-            return "unaffected";
-    }
-}
-
-std::optional<BlockStateProperties::OxidationLevel>
-EnumProperty<BlockStateProperties::OxidationLevel>::Traits::fromName(std::string_view name)
-{
-    if (name == "unaffected") {
-        return BlockStateProperties::OxidationLevel::Unaffected;
-    } else if (name == "exposed") {
-        return BlockStateProperties::OxidationLevel::Exposed;
-    } else if (name == "weathered") {
-        return BlockStateProperties::OxidationLevel::Weathered;
-    } else if (name == "oxidized") {
-        return BlockStateProperties::OxidationLevel::Oxidized;
-    }
-    return std::nullopt;
-}
-
-// ============================================================================
 // DripstoneThickness Traits 实现 (1.17+)
 // ============================================================================
 

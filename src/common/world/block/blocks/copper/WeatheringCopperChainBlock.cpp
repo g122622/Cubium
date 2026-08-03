@@ -53,7 +53,6 @@ WeatheringCopperChainBlock::WeatheringCopperChainBlock(
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::AXIS())
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::OXIDATION())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -63,10 +62,8 @@ WeatheringCopperChainBlock::WeatheringCopperChainBlock(
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::AXIS(), Axis::Y)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::AXIS(), Axis::Y).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 铜锁链是细长的柱子（与普通锁链相同）
     // Y轴：垂直锁链
@@ -95,8 +92,7 @@ BlockState WeatheringCopperChainBlock::getStateForPlacement(BlockItemUseContext&
 
     return defaultState()
         .with(BlockStateProperties::AXIS(), axis)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged)
-        .with(BlockStateProperties::OXIDATION(), m_oxidationLevel);
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 const BlockState& WeatheringCopperChainBlock::rotate(const BlockState& state, Rotation rotation) const

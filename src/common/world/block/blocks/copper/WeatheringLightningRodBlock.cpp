@@ -49,14 +49,14 @@ WeatheringLightningRodBlock::WeatheringLightningRodBlock(
     : LightningRodBlock(properties)
     , m_oxidationLevel(oxidationLevel)
 {
-    // LightningRodBlock 构造函数已创建 FACING + POWERED + WATERLOGGED 状态容器，
-    // 但作为可氧化方块需要添加 OXIDATION 属性，因此重建状态容器。
+    // 可氧化避雷针以独立方块名注册（copper/exposed/.../oxidized lightning_rod），
+    // 氧化等级由成员变量 m_oxidationLevel 持有，不进入 block state。
+    // 这里重建状态容器以确保与基类 LightningRodBlock 的属性集合一致。
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(FACING())
             .add(BlockStateProperties::POWERED())
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::OXIDATION())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -69,8 +69,7 @@ WeatheringLightningRodBlock::WeatheringLightningRodBlock(
     setDefaultState(defaultState()
             .with(FACING(), Direction::North)
             .with(BlockStateProperties::POWERED(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+            .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 仅在非 Oxidized 等级时启用随机 tick（氧化完成后不需要继续 tick）
     if (oxidationLevel != BlockStateProperties::OxidationLevel::Oxidized) {
@@ -99,7 +98,7 @@ bool WeatheringLightningRodBlock::ticksRandomly() const noexcept
 
 BlockState WeatheringLightningRodBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 与 LightningRodBlock 相同的放置逻辑，额外设置 OXIDATION 属性
+    // 与 LightningRodBlock 相同的放置逻辑
     auto directions = context.getNearestLookingDirections();
     Direction facing = directions.empty() ? Direction::Up : directions.front();
 
@@ -111,9 +110,6 @@ BlockState WeatheringLightningRodBlock::getStateForPlacement(BlockItemUseContext
     } else {
         state = state.with(BlockStateProperties::WATERLOGGED(), false);
     }
-
-    // 设置氧化等级
-    state = state.with(BlockStateProperties::OXIDATION(), m_oxidationLevel);
 
     return state;
 }

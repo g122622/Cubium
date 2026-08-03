@@ -301,14 +301,14 @@ WeatheringCopperGolemStatueBlock::WeatheringCopperGolemStatueBlock(
     : CopperGolemStatueBlock(properties)
     , m_oxidationLevel(oxidationLevel)
 {
-    // 重新创建状态容器：在父类基础上额外添加 OXIDATION 属性
+    // 重新创建状态容器：与父类属性集合一致（HORIZONTAL_FACING + COPPER_GOLEM_POSE + WATERLOGGED）
+    // 氧化等级由成员变量 m_oxidationLevel 持有，不进入 block state（不同氧化等级以独立方块名注册）
     // 注意：父类构造函数已经创建过一次状态容器，这里覆盖它
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
             .add(BlockStateProperties::COPPER_GOLEM_POSE())
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::OXIDATION())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -318,12 +318,11 @@ WeatheringCopperGolemStatueBlock::WeatheringCopperGolemStatueBlock(
             });
     createBlockState(std::move(container));
 
-    // 默认状态：朝北、站立姿态、不含水、当前氧化等级
+    // 默认状态：朝北、站立姿态、不含水
     setDefaultState(defaultState()
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::COPPER_GOLEM_POSE(), BlockStateProperties::CopperGolemPose::Standing)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 void WeatheringCopperGolemStatueBlock::randomTick(

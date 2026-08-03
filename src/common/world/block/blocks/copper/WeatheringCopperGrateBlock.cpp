@@ -52,7 +52,6 @@ WeatheringCopperGrateBlock::WeatheringCopperGrateBlock(
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::OXIDATION())
             .add(BlockStateProperties::WATERLOGGED())
             .create([](const Block& block,
                         std::vector<size_t> values,
@@ -63,9 +62,7 @@ WeatheringCopperGrateBlock::WeatheringCopperGrateBlock(
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel)
-            .with(BlockStateProperties::WATERLOGGED(), false));
+    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 void WeatheringCopperGrateBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -75,9 +72,7 @@ void WeatheringCopperGrateBlock::fillStateContainer(StateContainer<Block, BlockS
 
 BlockState WeatheringCopperGrateBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    BlockState state = defaultState()
-                           .with(BlockStateProperties::OXIDATION(), m_oxidationLevel)
-                           .with(BlockStateProperties::WATERLOGGED(), false);
+    BlockState state = defaultState().with(BlockStateProperties::WATERLOGGED(), false);
 
     if (waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos())) {
         state = state.with(BlockStateProperties::WATERLOGGED(), true);

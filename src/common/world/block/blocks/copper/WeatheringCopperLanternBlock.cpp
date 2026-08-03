@@ -55,7 +55,6 @@ WeatheringCopperLanternBlock::WeatheringCopperLanternBlock(
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HANGING())
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::OXIDATION())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -65,10 +64,8 @@ WeatheringCopperLanternBlock::WeatheringCopperLanternBlock(
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::HANGING(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::HANGING(), false).with(BlockStateProperties::WATERLOGGED(), false));
 
     // 创建形状 - 与普通灯笼相同
     // 站立形状：底部到中部
@@ -95,15 +92,13 @@ BlockState WeatheringCopperLanternBlock::getStateForPlacement(BlockItemUseContex
     if (clickedFace == Direction::Down) {
         return defaultState()
             .with(BlockStateProperties::HANGING(), true)
-            .with(BlockStateProperties::WATERLOGGED(), waterlogged)
-            .with(BlockStateProperties::OXIDATION(), m_oxidationLevel);
+            .with(BlockStateProperties::WATERLOGGED(), waterlogged);
     }
 
     // 默认站立
     return defaultState()
         .with(BlockStateProperties::HANGING(), false)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged)
-        .with(BlockStateProperties::OXIDATION(), m_oxidationLevel);
+        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool WeatheringCopperLanternBlock::isValidPosition(

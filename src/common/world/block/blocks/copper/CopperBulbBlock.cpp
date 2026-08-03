@@ -48,7 +48,6 @@ CopperBulbBlock::CopperBulbBlock(const BlockProperties& properties, BlockStatePr
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::LIT())
             .add(BlockStateProperties::POWERED())
-            .add(BlockStateProperties::OXIDATION())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -58,10 +57,8 @@ CopperBulbBlock::CopperBulbBlock(const BlockProperties& properties, BlockStatePr
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::LIT(), false)
-            .with(BlockStateProperties::POWERED(), false)
-            .with(BlockStateProperties::OXIDATION(), oxidationLevel));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::LIT(), false).with(BlockStateProperties::POWERED(), false));
 }
 
 BlockState CopperBulbBlock::updatePostPlacement(const BlockState& state,

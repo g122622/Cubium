@@ -95,7 +95,8 @@ public:
     /**
      * @brief 获取放置状态
      *
-     * 与 LightningRodBlock 相同，额外设置 OXIDATION 属性。
+     * 与 LightningRodBlock 相同（FACING + POWERED + WATERLOGGED），
+     * 氧化等级由成员变量持有，不进入 block state。
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 

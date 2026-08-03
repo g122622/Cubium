@@ -317,7 +317,8 @@ protected:
     /**
      * @brief 填充状态容器
      *
-     * 在父类基础上额外添加 OXIDATION 属性。
+     * 与父类属性集合一致（HORIZONTAL_FACING + COPPER_GOLEM_POSE + WATERLOGGED），
+     * 氧化等级不进入 block state。
      */
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
