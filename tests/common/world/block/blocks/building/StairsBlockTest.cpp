@@ -144,7 +144,7 @@ TEST_F(StairsBlockTest, DefaultState_HasCorrectProperties)
 
     // 默认状态：朝北、下半、直梯、不含水
     EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Bottom);
     EXPECT_EQ(state.get(BlockStateProperties::STAIRS_SHAPE()), BlockStateProperties::StairsShape::Straight);
     EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
 }
@@ -170,8 +170,8 @@ TEST_F(StairsBlockTest, StateProperties_CanBeToggled)
     EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 
     // 上半/下半
-    state = state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    state = state.with(BlockStateProperties::HALF(), BlockStateProperties::Half::Top);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
 
     // 形状
     state = state.with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::InnerLeft);
@@ -197,7 +197,7 @@ TEST_F(StairsBlockTest, Placement_NoNeighbors_Straight)
     auto state = stairs_->getStateForPlacement(context);
 
     EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Bottom);
     EXPECT_EQ(state.get(BlockStateProperties::STAIRS_SHAPE()), BlockStateProperties::StairsShape::Straight);
 }
 
@@ -211,7 +211,7 @@ TEST_F(StairsBlockTest, Placement_TopHalf_WhenClickTop)
     auto state = stairs_->getStateForPlacement(context);
 
     // MC 逻辑: clickedFace == Up 时 isTop = true -> Upper
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
 }
 
 TEST_F(StairsBlockTest, Placement_TopHalf_WhenHitYAboveMiddle)
@@ -223,7 +223,7 @@ TEST_F(StairsBlockTest, Placement_TopHalf_WhenHitYAboveMiddle)
     auto context = makePlacementContext(world, pos, Direction::North, 180.0f, 0.7f);
     auto state = stairs_->getStateForPlacement(context);
 
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
 }
 
 TEST_F(StairsBlockTest, Placement_BottomHalf_WhenHitYBelowMiddle)
@@ -235,7 +235,7 @@ TEST_F(StairsBlockTest, Placement_BottomHalf_WhenHitYBelowMiddle)
     auto context = makePlacementContext(world, pos, Direction::North, 180.0f, 0.3f);
     auto state = stairs_->getStateForPlacement(context);
 
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Bottom);
 }
 
 TEST_F(StairsBlockTest, Placement_TopHalf_WhenClickUpAndHitYAboveMiddle)
@@ -247,7 +247,7 @@ TEST_F(StairsBlockTest, Placement_TopHalf_WhenClickUpAndHitYAboveMiddle)
     auto context = makePlacementContext(world, pos, Direction::Up, 180.0f, 0.7f);
     auto state = stairs_->getStateForPlacement(context);
 
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Upper);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
 }
 
 TEST_F(StairsBlockTest, Placement_BottomHalf_WhenClickDown)
@@ -259,7 +259,7 @@ TEST_F(StairsBlockTest, Placement_BottomHalf_WhenClickDown)
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
     auto state = stairs_->getStateForPlacement(context);
 
-    EXPECT_EQ(state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()), BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(state.get(BlockStateProperties::HALF()), BlockStateProperties::Half::Bottom);
 }
 
 TEST_F(StairsBlockTest, Placement_WithPerpendicularNeighborForward_OuterRight)
@@ -269,10 +269,9 @@ TEST_F(StairsBlockTest, Placement_WithPerpendicularNeighborForward_OuterRight)
 
     // 在朝向方向(North即Z-)放置朝东的楼梯 - 形成外角
     // North facing, forward neighbor at (0,0,-1) facing East
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -289,10 +288,9 @@ TEST_F(StairsBlockTest, Placement_WithPerpendicularNeighborForward_OuterLeft)
 
     // 在朝向方向(North即Z-)放置朝西的楼梯 - 形成外角
     // North facing, forward neighbor at (0,0,-1) facing West
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -308,10 +306,9 @@ TEST_F(StairsBlockTest, Placement_WithPerpendicularNeighborBackward_InnerRight)
     BlockPos pos(0, 0, 0);
 
     // 在反方向(South即Z+)放置朝东的楼梯 - 形成内角
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, 1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -327,10 +324,9 @@ TEST_F(StairsBlockTest, Placement_WithPerpendicularNeighborBackward_InnerLeft)
     BlockPos pos(0, 0, 0);
 
     // 在反方向(South即Z+)放置朝西的楼梯 - 形成内角
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, 1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -346,10 +342,9 @@ TEST_F(StairsBlockTest, Placement_SameFacingNeighbor_NoCorner)
     BlockPos pos(0, 0, 0);
 
     // 在朝向方向放置同朝向的楼梯 - 朝向相同轴，不应形成角
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -364,10 +359,9 @@ TEST_F(StairsBlockTest, Placement_DifferentHalf_NoCorner)
     BlockPos pos(0, 0, 0);
 
     // 不同层的楼梯不应形成角
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Top);
     world.setBlockState(0, 0, -1, &neighborState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -383,17 +377,15 @@ TEST_F(StairsBlockTest, Placement_TJunction_NoCorner)
 
     // 前方是朝东的楼梯，但在朝西方向（opposite(forwardFacing)）也有同朝向同层的楼梯 -> T型，不应形成角
     // canTakeShape 检查 pos.offset(opposite(East)) = pos.offset(West) = (-1,0,0)
-    auto forwardState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto forwardState = stairs_->defaultState()
+                            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                            .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &forwardState);
 
     // 在西方位置(-1,0,0)放置同朝向(North)的楼梯，形成T型
-    auto sameStairsState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto sameStairsState = stairs_->defaultState()
+                               .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                               .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(-1, 0, 0, &sameStairsState);
 
     auto context = makePlacementContext(world, pos, Direction::Down, 180.0f, 0.3f);
@@ -414,14 +406,13 @@ TEST_F(StairsBlockTest, UpdatePostPlacement_RecalculatesShape)
 
     auto state = stairs_->defaultState()
                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-                     .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+                     .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom)
                      .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight);
 
     // 放置一个垂直方向邻居
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &neighborState);
 
     // 通知北方向有更新
@@ -438,13 +429,12 @@ TEST_F(StairsBlockTest, UpdatePostPlacement_VerticalUpdate_NoShapeChange)
 
     auto state = stairs_->defaultState()
                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-                     .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+                     .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom)
                      .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight);
 
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 1, 0, &neighborState);
 
     // 垂直方向更新不应改变形状
@@ -568,13 +558,12 @@ TEST_F(StairsBlockTest, ShapeUpdate_SameAxisNeighborBackward_Straight)
 
     auto state = stairs_->defaultState()
                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-                     .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+                     .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
 
     // 在反方向放置同轴朝向的楼梯（South facing，同轴不同朝向）
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, 1, &neighborState);
 
     auto newState = stairs_->updatePostPlacement(state, Direction::South, neighborState, world, pos, BlockPos(0, 0, 1));
@@ -589,16 +578,14 @@ TEST_F(StairsBlockTest, ShapeUpdate_RemoveCornerNeighbor_RevertsToStraight)
     BlockPos pos(0, 0, 0);
 
     // 先设置有角落邻居的环境
-    auto neighborState =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto neighborState = stairs_->defaultState()
+                             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                             .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
     world.setBlockState(0, 0, -1, &neighborState);
 
-    auto stateWithCorner =
-        stairs_->defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
+    auto stateWithCorner = stairs_->defaultState()
+                               .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                               .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom);
 
     auto newState =
         stairs_->updatePostPlacement(stateWithCorner, Direction::North, neighborState, world, pos, BlockPos(0, 0, -1));

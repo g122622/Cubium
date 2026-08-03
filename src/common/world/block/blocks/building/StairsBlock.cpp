@@ -179,7 +179,7 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HORIZONTAL_FACING())
-            .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
+            .add(BlockStateProperties::HALF())
             .add(BlockStateProperties::STAIRS_SHAPE())
             .add(BlockStateProperties::WATERLOGGED())
             .create([](const Block& block,
@@ -194,7 +194,7 @@ StairsBlock::StairsBlock(const BlockState& baseState, const BlockProperties& pro
     // 设置默认状态
     setDefaultState(defaultState()
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower)
+            .with(BlockStateProperties::HALF(), BlockStateProperties::Half::Bottom)
             .with(BlockStateProperties::STAIRS_SHAPE(), BlockStateProperties::StairsShape::Straight)
             .with(BlockStateProperties::WATERLOGGED(), false));
 }
@@ -221,12 +221,11 @@ BlockState StairsBlock::getStateForPlacement(BlockItemUseContext& context)
     bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
 
     // 先设置基本属性，然后根据邻居计算楼梯形状
-    BlockState state =
-        defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(),
-                isTop ? BlockStateProperties::DoubleBlockHalf::Upper : BlockStateProperties::DoubleBlockHalf::Lower)
-            .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    BlockState state = defaultState()
+                           .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
+                           .with(BlockStateProperties::HALF(),
+                               isTop ? BlockStateProperties::Half::Top : BlockStateProperties::Half::Bottom)
+                           .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 
     // 根据邻居楼梯计算正确的角形状（与 MC 一致）
     BlockStateProperties::StairsShape shape = _calculateShape(state, context.getWorld(), context.placementPos());
@@ -406,8 +405,8 @@ std::optional<StairsBlock::_NeighborStairsInfo> StairsBlock::_neighborIsStairs(
         return std::nullopt;
     }
 
-    BlockStateProperties::DoubleBlockHalf neighborHalf = neighborState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
-    BlockStateProperties::DoubleBlockHalf ourHalf = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::Half neighborHalf = neighborState->get(BlockStateProperties::HALF());
+    BlockStateProperties::Half ourHalf = state.get(BlockStateProperties::HALF());
 
     // 不同层的楼梯不形成角
     if (neighborHalf != ourHalf) {
@@ -437,10 +436,10 @@ bool StairsBlock::_isDifferentStairs(const BlockState& state, IWorld& world, con
     // 与 canTakeShape 语义一致：
     // 如果第三位置的楼梯与当前楼梯朝向相同且层次相同，则不能形成角形状
     Direction checkFacing = checkState->get(BlockStateProperties::HORIZONTAL_FACING());
-    BlockStateProperties::DoubleBlockHalf checkHalf = checkState->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    BlockStateProperties::Half checkHalf = checkState->get(BlockStateProperties::HALF());
 
     return checkFacing != state.get(BlockStateProperties::HORIZONTAL_FACING()) ||
-        checkHalf != state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+        checkHalf != state.get(BlockStateProperties::HALF());
 }
 
 size_t StairsBlock::_getStateIndex(const BlockState& state)
@@ -472,7 +471,7 @@ size_t StairsBlock::_getStateIndex(const BlockState& state)
 
 const CollisionShape& StairsBlock::_getShapeForState(const BlockState& state) const
 {
-    bool isTop = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Upper;
+    bool isTop = state.get(BlockStateProperties::HALF()) == BlockStateProperties::Half::Top;
     size_t stateIdx = _getStateIndex(state);
 
     // 确保索引在有效范围内
