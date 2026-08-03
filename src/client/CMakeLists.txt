@@ -663,6 +663,11 @@ mc_copy_runtime_dlls(minecraft-client)
 
 target_compile_features(minecraft-client PRIVATE cxx_std_20)
 
+# 复用 mc_common 的预编译头（PCH），避免为 client target 重复创建一份 .pch。
+# REUSE_FROM 要求两 target 的 PCH 相关编译选项一致；mc_common 与本 target 均经
+# mc_set_compiler_warnings 设置相同警告基线，且 PCH 头内容通用，可安全复用。
+target_precompile_headers(minecraft-client REUSE_FROM mc_common)
+
 target_compile_definitions(minecraft-client PRIVATE
     GLFW_INCLUDE_VULKAN
 )

@@ -1682,6 +1682,19 @@ mc_set_compiler_warnings(mc_common)
 
 target_compile_features(mc_common PUBLIC cxx_std_20)
 
+# ----------------------------------------------------------------------------
+# 预编译头文件（PCH）：收录全项目高频且稳定的头文件，预编译为单个 .pch 产物供各 TU 复用，
+# 消除重复解析开销。详见 src/common/pch/README.md。
+#
+# -Werror 兜底：PCH 编译单元(cmake_pch.hxx)继承 mc_common 的 -Wall -Wextra -pedantic -Werror，
+#   其传递引入的 <spdlog/spdlog.h> 等第三方头可能触发警告致 PCH 创建失败。pch_common.hpp 内部
+#   已用 #pragma clang diagnostic push/ignored/pop 局部豁免关键警告（栈平衡，不影响使用方）；
+#   此处再对 PCH 头源补一道 -Wno-error 兜底，双保险避免 PCH 阻塞整个 target。
+# ----------------------------------------------------------------------------
+target_precompile_headers(mc_common PRIVATE pch/pch_common.hpp)
+set_source_files_properties(pch/pch_common.hpp PROPERTIES
+    COMPILE_OPTIONS "-Wno-error")
+
 # 导出头文件
 target_include_directories(mc_common
     PUBLIC
