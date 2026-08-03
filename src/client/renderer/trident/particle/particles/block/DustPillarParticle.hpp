@@ -23,8 +23,12 @@
 
 #pragma once
 
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <memory>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client {
 class ClientWorld;

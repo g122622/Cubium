@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include <array>
 
 namespace mc::client::ui::kagero::paint {

@@ -25,9 +25,17 @@
 #include "client/renderer/trident/entity/util/NameTagRenderer.hpp"
 #include "client/renderer/trident/entity/util/ShadowRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::core {
 

@@ -22,7 +22,16 @@
  */
 
 #include "WolfRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/layer/entity/WolfCollarLayer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::renderer::animal {
 

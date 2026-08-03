@@ -24,13 +24,25 @@
 #include "client/network/ClientNetwork.hpp"
 
 #include "client/network/ClientPlayVisitor.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/PacketFlow.hpp"
+#include "common/network/transport/Endpoint.hpp"
+#include "common/network/transport/LocalTransport.hpp"
+#include "common/network/transport/TcpTransport.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <variant>
 
 namespace mc::client::net {

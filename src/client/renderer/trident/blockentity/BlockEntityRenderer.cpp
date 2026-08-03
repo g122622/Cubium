@@ -22,10 +22,10 @@
  */
 
 #include "BlockEntityRenderer.hpp"
-#include "client/renderer/trident/core/texture/TridentTexture.hpp"
 #include "client/resource/BlockModelCache.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 
 namespace mc::client::renderer::trident::blockentity {
 

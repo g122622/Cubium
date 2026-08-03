@@ -24,9 +24,17 @@
 #include "client/sound/SoundEngine.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "client/sound/SoundHandler.hpp"
+#include "client/sound/SoundLoader.hpp"
+#include "client/sound/backend/IAudioBackend.hpp"
+#include "client/sound/handler/IAmbientSoundHandler.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/resource/SoundDefinition.hpp"
 #include "client/sound/resource/SoundRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 
@@ -34,6 +42,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
 
 using namespace mc::trace;
 

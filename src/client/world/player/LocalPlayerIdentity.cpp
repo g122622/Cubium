@@ -22,6 +22,7 @@
  */
 
 #include "LocalPlayerIdentity.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::client {

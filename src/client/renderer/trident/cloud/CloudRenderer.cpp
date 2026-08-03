@@ -22,20 +22,34 @@
  */
 
 #include "CloudRenderer.hpp"
-#include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
 #include "client/resource/ResourceManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <string>
+#include <utility>
 #include <vector>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_float3x3.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

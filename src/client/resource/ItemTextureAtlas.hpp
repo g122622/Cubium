@@ -26,12 +26,15 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 

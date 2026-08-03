@@ -23,10 +23,14 @@
 
 #include "BiomeColorBlender.hpp"
 #include "../BiomeColors.hpp"
-#include "common/core/Constants.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
+#include "client/world/color/ColorResolver.hpp"
+#include "client/world/color/blend/BiomeColorCache.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
 #include <algorithm>
-#include <cmath>
+#include <array>
+#include <cstddef>
 
 namespace mc::client {
 

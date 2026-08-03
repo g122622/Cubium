@@ -22,6 +22,11 @@
  */
 
 #include "TextureImage.hpp"
+#include "client/ui/kagero/paint/contracts/IImage.hpp"
+#include "common/core/Types.hpp"
+#include <string>
+#include <utility>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::ui::kagero::paint {
 

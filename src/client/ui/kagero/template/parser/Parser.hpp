@@ -28,8 +28,12 @@
 #include "client/ui/kagero/template/core/TemplateConfig.hpp"
 #include "client/ui/kagero/template/core/TemplateError.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::parser {
 

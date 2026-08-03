@@ -26,10 +26,15 @@
 #include "../paint/PaintContext.hpp"
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::widget {

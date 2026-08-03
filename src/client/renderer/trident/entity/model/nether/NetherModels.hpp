@@ -25,7 +25,12 @@
 
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include <array>
 #include <memory>
+#include <vector>
 
 namespace mc::client::renderer::entity::model::nether {
 

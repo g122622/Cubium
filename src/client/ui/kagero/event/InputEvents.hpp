@@ -25,7 +25,9 @@
 
 #include "Event.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/text/Utf8.hpp"
+#include <string>
 
 namespace mc::client::ui::kagero::event {
 

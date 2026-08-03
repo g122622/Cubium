@@ -31,8 +31,11 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "data/ParticleData.hpp"
 #include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client {
 class ClientWorld;

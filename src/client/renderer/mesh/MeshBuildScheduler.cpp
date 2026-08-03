@@ -23,13 +23,29 @@
 
 #include "MeshBuildScheduler.hpp"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <thread>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_float2.hpp>
 #include <glm/geometric.hpp>
-#include <glm/vec2.hpp>
 #include <spdlog/spdlog.h>
 
+#include "client/renderer/mesh/MeshBuildTask.hpp"
+#include "client/renderer/mesh/MeshDataPool.hpp"
+#include "client/renderer/mesh/MeshResultQueue.hpp"
+#include "client/renderer/mesh/MeshWorkerTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 
 namespace mc::client {
 

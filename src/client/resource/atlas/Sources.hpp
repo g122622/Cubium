@@ -26,8 +26,10 @@
 #include "client/resource/atlas/IdentifierPattern.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::resource::atlas {

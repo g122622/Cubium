@@ -22,11 +22,22 @@
  */
 
 #include "MonsterRenderers.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
 #include "client/renderer/trident/entity/layer/effect/EyesLayer.hpp"
+#include "client/renderer/trident/entity/layer/entity/HeldBlockLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
+#include "client/renderer/trident/entity/model/monster/EndermanModel.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::renderer::monster {
 

@@ -23,19 +23,30 @@
 
 #include "ItemTextureAtlas.hpp"
 #include "TextureAtlasBuilder.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/atlas/TexturePathVariant.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <spdlog/spdlog.h>
 
 // stb_image - only header, implementation in TextureAtlasBuilder.cpp
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client {
 

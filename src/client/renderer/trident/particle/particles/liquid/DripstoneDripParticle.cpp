@@ -22,10 +22,18 @@
  */
 
 #include "DripstoneDripParticle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "client/renderer/trident/particle/particles/liquid/DripParticle.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <algorithm>
+#include <memory>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

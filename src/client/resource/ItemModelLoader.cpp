@@ -22,15 +22,24 @@
  */
 
 #include "ItemModelLoader.hpp"
+#include "client/resource/BlockModelLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/trigonometric.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::resource {

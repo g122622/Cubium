@@ -22,8 +22,19 @@
  */
 
 #include "WidgetLayoutAdaptor.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
+#include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 

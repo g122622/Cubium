@@ -22,8 +22,14 @@
  */
 
 #include "InputManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 

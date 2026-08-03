@@ -22,62 +22,46 @@
  */
 
 #include "ClientApplication.hpp"
+#include "client/application/ClientAppStateMachine.hpp"
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "client/renderer/mesh/MeshBuildScheduler.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
-#include "client/renderer/trident/chunk/ChunkMesher.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
-#include "client/renderer/trident/gui/GuiRenderer.hpp"
-#include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
-#include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
-#include "client/renderer/trident/gui/GuiTextureLoader.hpp"
-#include "client/renderer/trident/gui/GuiTextureManager.hpp"
-#include "client/renderer/trident/item/ItemRenderer.hpp"
-#include "client/renderer/util/GpuInfo.hpp"
-#include "client/resource/ResourceManager.hpp"
-#include "client/resource/TextureAtlasBuilder.hpp"
 #include "client/sound/AudioService.hpp"
-#include "client/sound/instance/SoundInstance.hpp"
-#include "client/ui/Font.hpp"
-#include "client/ui/GuiScale.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
-#include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
-#include "client/ui/minecraft/widgets/ChatWidget.hpp"
-#include "client/ui/minecraft/widgets/CrosshairWidget.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
-#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/screen/ScreenManager.hpp"
+#include "client/world/ClientWorld.hpp"
 #include "common/core/GameDirectory.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/Slot.hpp"
-#include "common/entity/registry/VanillaEntities.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/VanillaResources.hpp"
-#include "common/resource/pack/FolderResourcePack.hpp"
-#include "common/sound/SoundCategory.hpp"
-#include "common/util/PlatformInfo.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/fluid/Fluid.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <exception>
 #include <filesystem>
 #include <thread>
+#include <utility>
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
-#include <vulkan/vulkan.h>
 
 using namespace mc::trace;
 

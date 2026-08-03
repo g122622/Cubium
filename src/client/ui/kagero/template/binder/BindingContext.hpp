@@ -23,12 +23,16 @@
 
 #pragma once
 
+#include "client/ui/kagero/event/Event.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/ReactiveState.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <any>
+#include <cstddef>
 #include <functional>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>

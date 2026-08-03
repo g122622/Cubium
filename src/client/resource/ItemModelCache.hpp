@@ -25,9 +25,14 @@
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
 
 #include "ItemModelLoader.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
 namespace mc::client::resource {
 

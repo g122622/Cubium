@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/sound/SoundTypes.hpp"
 
+#include <cstddef>
 #include <vector>
 
 namespace mc::client::sound {

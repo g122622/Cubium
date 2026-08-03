@@ -30,9 +30,27 @@
 #include "../../widget/TextWidget.hpp"
 #include "../bindings/BuiltinEvents.hpp"
 #include "../bindings/BuiltinWidgets.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/event/InputEvents.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "client/ui/kagero/template/runtime/UpdateScheduler.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "client/ui/kagero/widget/ScrollableWidget.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 

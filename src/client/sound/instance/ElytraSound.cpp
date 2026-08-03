@@ -22,10 +22,13 @@
  */
 
 #include "ElytraSound.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <algorithm>
-#include <glm/glm.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

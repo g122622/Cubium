@@ -33,14 +33,28 @@
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
 #include "client/sound/handler/WeatherSoundHandler.hpp"
 
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <deque>
+#include <exception>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <thread>
 #include <utility>
+#include <glm/ext/vector_float3.hpp>
 
 using namespace mc::trace;
 

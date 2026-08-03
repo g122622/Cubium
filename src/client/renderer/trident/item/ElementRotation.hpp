@@ -25,13 +25,20 @@
 
 #include "client/resource/BlockModelLoader.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include <utility>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 // GLM GTX 扩展（euler_angles）需要启用实验性功能宏
 #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/common.hpp>
+#include <glm/ext/matrix_float3x3.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/trigonometric.hpp>
 
 namespace mc::client::renderer::entity::item {
 

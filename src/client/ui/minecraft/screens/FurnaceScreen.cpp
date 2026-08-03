@@ -23,12 +23,23 @@
 
 #include "FurnaceScreen.hpp"
 
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerInteraction.hpp"
 #include "client/ui/kagero/widget/ItemTooltipBuilder.hpp"
 #include "client/ui/kagero/widget/TooltipRenderer.hpp"
+#include "client/ui/minecraft/screens/ContainerScreenBase.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/Slot.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {

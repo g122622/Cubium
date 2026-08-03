@@ -26,6 +26,7 @@
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::ui::minecraft {
 

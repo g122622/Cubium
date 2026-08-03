@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::widget {

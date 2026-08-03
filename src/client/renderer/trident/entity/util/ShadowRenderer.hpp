@@ -27,6 +27,7 @@
 #include "common/util/math/Vector3.hpp"
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 

@@ -20,8 +20,17 @@
 #include "ConfirmScreen.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/widget/ListWidget.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "client/ui/minecraft/screens/TemplateScreen.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include <algorithm>
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 

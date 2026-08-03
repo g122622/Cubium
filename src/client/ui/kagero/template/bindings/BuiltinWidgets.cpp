@@ -22,11 +22,36 @@
  */
 
 #include "BuiltinWidgets.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/CheckboxWidget.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/ImageWidget.hpp"
+#include "client/ui/kagero/widget/ListWidget.hpp"
+#include "client/ui/kagero/widget/ScrollableWidget.hpp"
+#include "client/ui/kagero/widget/SliderWidget.hpp"
+#include "client/ui/kagero/widget/SlotWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/ui/kagero/widget/TextWidget.hpp"
+#include "client/ui/kagero/widget/Viewport3DWidget.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <iomanip>
+#include <ios>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 

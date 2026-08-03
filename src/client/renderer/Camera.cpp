@@ -22,8 +22,15 @@
  */
 
 #include "Camera.hpp"
-#include <algorithm>
-#include <glm/gtc/matrix_transform.hpp>
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include <cmath>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/geometric.hpp>
 
 namespace mc::client {
 

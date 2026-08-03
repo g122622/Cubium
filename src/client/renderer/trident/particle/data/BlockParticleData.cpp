@@ -23,7 +23,13 @@
 
 #include "BlockParticleData.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::client::renderer::trident::particle::data {
 

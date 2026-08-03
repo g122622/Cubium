@@ -25,13 +25,17 @@
 
 #include "LayoutResult.hpp"
 #include "MeasureSpec.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
 #include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
 #include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
 #include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <map>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 

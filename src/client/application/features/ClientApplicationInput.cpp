@@ -33,15 +33,26 @@
 #include "common/util/TimeUtils.hpp"
 #include "common/world/block/Block.hpp"
 
+#include "client/application/ClientAppStateMachine.hpp"
+#include "client/renderer/Camera.hpp"
 #include "client/renderer/trident/block/BreakProgressManager.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

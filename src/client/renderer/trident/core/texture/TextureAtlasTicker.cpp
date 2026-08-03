@@ -22,7 +22,10 @@
  */
 
 #include "TextureAtlasTicker.hpp"
+#include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc::client::renderer::trident {
 

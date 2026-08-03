@@ -24,12 +24,21 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
+#include "client/settings/ClientSettings.hpp"
+#include "client/ui/GuiScale.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 
 #include <filesystem>
+#include <string>
+#include <system_error>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

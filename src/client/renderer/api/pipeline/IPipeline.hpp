@@ -28,6 +28,9 @@
 #include "client/renderer/api/pipeline/RenderState.hpp"
 #include "client/renderer/api/texture/ITexture.hpp"
 #include "client/renderer/api/texture/ITextureAtlas.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 #include <vector>
 
 namespace mc::client::renderer::api {

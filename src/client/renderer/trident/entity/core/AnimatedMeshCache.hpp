@@ -25,10 +25,14 @@
 
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/core/Types.hpp"
+#include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::client::renderer::entity::core {

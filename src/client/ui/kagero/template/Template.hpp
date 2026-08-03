@@ -98,6 +98,7 @@
 // 内置组件和事件
 #include "bindings/BuiltinEvents.hpp"
 #include "bindings/BuiltinWidgets.hpp"
+#include "common/core/Types.hpp"
 
 /**
  * @brief Kagero模板系统命名空间

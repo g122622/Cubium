@@ -23,10 +23,15 @@
 
 #pragma once
 
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerInteraction.hpp"
 #include "client/ui/minecraft/screens/ContainerScreenBase.hpp"
 #include "client/ui/minecraft/screens/Screen.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

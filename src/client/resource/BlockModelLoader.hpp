@@ -29,13 +29,17 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/Direction.hpp"
 #include <array>
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

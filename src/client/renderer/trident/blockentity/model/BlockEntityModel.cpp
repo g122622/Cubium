@@ -22,6 +22,11 @@
  */
 
 #include "BlockEntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::client::renderer::blockentity::model {
 

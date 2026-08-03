@@ -35,10 +35,15 @@
 #include "common/util/math/frustum/Frustum.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class Entity;

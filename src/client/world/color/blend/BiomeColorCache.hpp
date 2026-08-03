@@ -27,8 +27,10 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 namespace mc {

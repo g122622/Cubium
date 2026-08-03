@@ -24,6 +24,9 @@
 #pragma once
 
 #include "CameraConfig.hpp"
+#include "common/core/Types.hpp"
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::api {

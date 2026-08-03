@@ -22,13 +22,16 @@
  */
 
 #include "MemoryTraceThread.hpp"
-#include "common/profiler/ProfilerConfig.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include <chrono>
 #include <spdlog/spdlog.h>
 
 #if MC_ENABLE_TRACING
+#include <atomic>
+#include <thread>
 #include <perfetto.h>
 #endif
 

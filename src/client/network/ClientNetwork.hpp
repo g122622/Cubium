@@ -34,10 +34,12 @@
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/network/transport/TcpTransport.hpp"
 
+#include <array>
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::net {

@@ -22,6 +22,10 @@
  */
 
 #include "CowModel.hpp"
+#include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc::client::renderer::entity::model::animal {
 

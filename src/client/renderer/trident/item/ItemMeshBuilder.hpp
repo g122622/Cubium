@@ -31,6 +31,7 @@
 #include <array>
 #include <utility>
 #include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/glm.hpp>
 
 namespace mc {

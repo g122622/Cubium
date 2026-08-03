@@ -23,15 +23,21 @@
 
 #include "client/application/ClientApplication.hpp"
 
+#include "client/application/ClientAppStateMachine.hpp"
 #include "client/application/features/ClientApplicationHelpers.hpp"
 #include "client/command/ClientCommandManager.hpp"
+#include "client/network/ClientPlayVisitor.hpp"
+#include "client/renderer/mesh/MeshBuildScheduler.hpp"
 #include "client/renderer/mesh/MeshDataPool.hpp"
 #include "client/renderer/mesh/MeshResultQueue.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
+#include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/ui/minecraft/screens/LoadingScreen.hpp"
@@ -42,12 +48,29 @@
 #include "client/ui/minecraft/screens/WorldSelectionScreen.hpp"
 #include "client/ui/minecraft/widgets/HudWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/DefaultValues.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/PhysicsEngine.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
+#include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/list/WorldNameSanitizer.hpp"
-
-#include <GLFW/glfw3.h>
+#include "common/world/storage/request/WorldRequests.hpp"
+#include "server/application/IntegratedServer.hpp"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

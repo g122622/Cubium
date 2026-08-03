@@ -23,11 +23,18 @@
 
 #include "EntityTextureLoader.hpp"
 #include "client/resource/atlas/TexturePathVariant.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <cstddef>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client {

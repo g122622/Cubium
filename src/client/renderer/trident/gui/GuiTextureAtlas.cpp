@@ -23,10 +23,15 @@
 
 #include "GuiTextureAtlas.hpp"
 #include "GuiRenderer.hpp"
+#include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <cstring>
+#include <string>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

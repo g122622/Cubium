@@ -23,18 +23,24 @@
 
 #include "HeldItemLayer.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
+#include <array>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::layer::equipment {
 

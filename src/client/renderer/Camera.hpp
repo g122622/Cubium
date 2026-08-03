@@ -24,8 +24,11 @@
 #pragma once
 
 #include "api/camera/ICamera.hpp"
+#include "client/renderer/api/camera/CameraConfig.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>

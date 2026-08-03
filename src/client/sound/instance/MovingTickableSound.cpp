@@ -23,6 +23,12 @@
 
 #include "client/sound/instance/MovingTickableSound.hpp"
 #include "client/sound/SoundEngine.hpp"
+#include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

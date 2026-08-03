@@ -26,13 +26,19 @@
 #include "AmbientOcclusionCalculator.hpp"
 #include "client/renderer/MeshTypes.hpp"
 #include "client/settings/ClientSettings.hpp"
+#include "client/world/color/blend/BiomeColorBlender.hpp"
+#include "client/world/color/blend/ChunkBiomeAccessor.hpp"
 #include "client/world/color/blend/blend.hpp"
 #include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace mc {
 

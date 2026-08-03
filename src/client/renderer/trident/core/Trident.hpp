@@ -43,6 +43,8 @@
 
 // API 接口
 #include "client/renderer/api/TridentApi.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc::client::renderer::trident {
 

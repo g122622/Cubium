@@ -22,7 +22,14 @@
  */
 
 #include "DefaultAsciiFont.hpp"
+#include "client/ui/Font.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
+#include <array>
 #include <cstring>
+#include <memory>
+#include <vector>
 
 namespace mc::client {
 

@@ -22,15 +22,29 @@
  */
 
 #include "ChunkRenderer.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include <algorithm>
+#include <array>
 #include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

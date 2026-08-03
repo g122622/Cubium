@@ -21,10 +21,15 @@
  */
 
 #include "FishingBobberRenderer.hpp"
-#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cmath>
+#include <vector>
 
 namespace mc::client::renderer::entity::renderer::projectile {
 

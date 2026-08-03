@@ -22,17 +22,31 @@
  */
 
 #include "ItemMeshBuilder.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/api/texture/TextureRegion.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/item/ElementRotation.hpp"
+#include "client/resource/BlockModelLoader.hpp"
 #include "client/resource/ItemModelCache.hpp"
 #include "client/resource/ItemModelLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/item/items/block/BlockItem.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include <array>
 #include <cmath>
-#include <glm/gtc/matrix_transform.hpp>
+#include <cstddef>
+#include <utility>
+#include <vector>
+#include <glm/ext/matrix_float3x3.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
+#include <glm/matrix.hpp>
 
 namespace mc::client::renderer::entity::item {
 

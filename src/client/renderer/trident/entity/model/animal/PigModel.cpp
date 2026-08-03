@@ -22,6 +22,8 @@
  */
 
 #include "PigModel.hpp"
+#include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::renderer::entity::model::animal {
 

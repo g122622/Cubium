@@ -32,10 +32,13 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/Direction.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc {

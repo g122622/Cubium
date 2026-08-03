@@ -22,7 +22,12 @@
  */
 
 #include "ClientDimensionManager.hpp"
-#include <algorithm>
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include <cstddef>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

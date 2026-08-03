@@ -24,14 +24,18 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
+#include "client/network/ClientPlayVisitor.hpp"
 #include "client/ui/minecraft/screens/CreativeScreen.hpp"
 #include "client/ui/minecraft/screens/InventoryScreen.hpp"
 #include "client/ui/minecraft/screens/MapScreen.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/entity/ClientEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
@@ -41,12 +45,16 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "server/menu/CraftingMenu.hpp"
 
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 using namespace mc::trace;
 

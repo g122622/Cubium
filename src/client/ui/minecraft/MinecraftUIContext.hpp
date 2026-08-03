@@ -29,8 +29,10 @@
 #include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
 #include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "resources/ResourceProvider.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::client {
 class Font;

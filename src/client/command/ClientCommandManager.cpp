@@ -23,11 +23,20 @@
 
 #include "ClientCommandManager.hpp"
 
+#include "common/command/CommandNode.hpp"
+#include "common/command/CommandTreeSnapshot.hpp"
+#include "common/command/StringReader.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/item/core/ItemRegistry.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::command {

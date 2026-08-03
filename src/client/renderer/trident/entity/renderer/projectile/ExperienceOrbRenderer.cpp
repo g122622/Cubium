@@ -22,8 +22,9 @@
  */
 
 #include "ExperienceOrbRenderer.hpp"
-#include "client/world/entity/ClientEntity.hpp"
-#include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <cmath>

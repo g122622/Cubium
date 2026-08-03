@@ -28,11 +28,13 @@
 #include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/SlotWidget.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "core/Types.hpp"
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 

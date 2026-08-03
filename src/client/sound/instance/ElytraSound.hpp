@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client {
 

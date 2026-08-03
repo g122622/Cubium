@@ -22,8 +22,11 @@
  */
 
 #include "FirstPersonTransforms.hpp"
+#include "client/renderer/trident/firstperson/MatrixStack.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"

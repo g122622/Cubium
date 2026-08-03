@@ -22,6 +22,9 @@
  */
 
 #include "ContainerScreen.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 
 namespace mc::client::ui::minecraft {
 

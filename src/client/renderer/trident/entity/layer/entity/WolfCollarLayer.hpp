@@ -23,16 +23,19 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/layer/entity/WolfCollarColors.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;

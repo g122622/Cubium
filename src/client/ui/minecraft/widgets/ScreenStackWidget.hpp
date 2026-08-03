@@ -25,8 +25,11 @@
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "client/ui/minecraft/screens/Screen.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::minecraft::widgets {

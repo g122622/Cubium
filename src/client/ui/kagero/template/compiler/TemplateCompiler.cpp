@@ -23,11 +23,17 @@
 
 #include "TemplateCompiler.hpp"
 
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <chrono>
 #include <fstream>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::compiler {
 

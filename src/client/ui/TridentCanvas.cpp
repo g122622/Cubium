@@ -24,10 +24,18 @@
 #include "TridentCanvas.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/ui/Font.hpp"
-#include "client/ui/FontRenderer.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/Color.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
+#include "client/ui/kagero/paint/contracts/IImage.hpp"
+#include "client/ui/kagero/paint/contracts/IPaint.hpp"
+#include "client/ui/kagero/paint/contracts/IPath.hpp"
+#include "client/ui/kagero/paint/contracts/ITextBlob.hpp"
+#include "common/core/Types.hpp"
 #include "kagero/paint/TextureImage.hpp"
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::ui {

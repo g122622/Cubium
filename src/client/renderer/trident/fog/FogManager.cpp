@@ -22,11 +22,19 @@
  */
 
 #include "FogManager.hpp"
-#include "common/core/Constants.hpp"
+#include "client/renderer/trident/core/render/UniformManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <algorithm>
 #include <cstring>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::fog {
 

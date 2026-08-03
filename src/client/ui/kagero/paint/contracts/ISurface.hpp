@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ICanvas.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::ui::kagero::paint {
 

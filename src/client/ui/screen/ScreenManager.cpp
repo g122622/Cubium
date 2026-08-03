@@ -22,6 +22,11 @@
  */
 
 #include "client/ui/screen/ScreenManager.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::client {
 

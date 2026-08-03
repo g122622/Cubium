@@ -24,14 +24,19 @@
 #include "FireTextureLoader.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 #include <spdlog/spdlog.h>
 
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 // STB 图像加载（仅 PNG）
 #define STBI_ONLY_PNG
+#include <string>
+#include <vector>
 #include <stb_image.h>
 
 namespace mc::client::renderer::entity::effect::fire {

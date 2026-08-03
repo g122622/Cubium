@@ -28,21 +28,31 @@
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/sky/CelestialCalculations.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/entity/ClientEntityManager.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/time/GameTime.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
+#include <ios>
 #include <sstream>
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

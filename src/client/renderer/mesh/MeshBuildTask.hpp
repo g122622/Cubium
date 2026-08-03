@@ -26,12 +26,15 @@
 #include "MeshDataPool.hpp"
 #include "MeshResultQueue.hpp"
 #include "MeshWorkerTypes.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/thread/ITask.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
 #include <atomic>
 #include <memory>
+#include <string>
 
 namespace mc::client {
 

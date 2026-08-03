@@ -23,22 +23,39 @@
 
 #include "ParticleManager.hpp"
 #include "ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
+#include "client/settings/ClientSettings.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <ios>
+#include <memory>
+#include <string>
 #include <thread>
+#include <utility>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::particle {
 

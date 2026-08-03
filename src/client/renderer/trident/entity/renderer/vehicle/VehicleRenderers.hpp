@@ -31,7 +31,9 @@
 #include "common/util/math/MathUtils.hpp"
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <memory>
+#include <vector>
 
 // Forward declarations
 namespace mc::entity {

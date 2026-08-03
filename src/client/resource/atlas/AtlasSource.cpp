@@ -21,6 +21,12 @@
  */
 
 #include "client/resource/atlas/AtlasSource.hpp"
+#include "client/resource/atlas/IdentifierPattern.hpp"
+#include "client/resource/atlas/SpriteLoader.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace mc::client::resource::atlas {
 

@@ -22,8 +22,13 @@
  */
 
 #include "client/sound/backend/OpenALBackend.hpp"
+#include "client/sound/backend/AudioBuffer.hpp"
+#include "client/sound/backend/IAudioBackend.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/sound/SoundTypes.hpp"
 
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -31,7 +36,15 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
-#include <cmath>
+#include <atomic>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <glm/ext/vector_float3.hpp>
 
 using namespace mc::trace;
 

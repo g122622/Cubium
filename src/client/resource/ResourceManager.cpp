@@ -23,15 +23,27 @@
 
 #include "ResourceManager.hpp"
 #include "ItemModelCache.hpp"
-#include "common/resource/pack/FolderResourcePack.hpp"
 #include "common/util/PlatformInfo.hpp"
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include <cctype>
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/Direction.hpp"
 
 // stb_image 用于 PNG 加载（实现在 TextureAtlasBuilder.cpp 中）
+#include <cstddef>
+#include <functional>
+#include <map>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
 
 using namespace mc::trace;

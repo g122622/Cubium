@@ -29,6 +29,7 @@
 #include "common/network/protocol/TitleActions.hpp"
 
 #include <optional>
+#include <string>
 
 namespace mc::client {
 class Font;

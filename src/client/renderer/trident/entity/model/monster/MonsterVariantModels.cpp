@@ -22,9 +22,15 @@
  */
 
 #include "MonsterVariantModels.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
+#include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <cmath>
+#include <memory>
 
 namespace mc::client::renderer::entity::model::monster {
 

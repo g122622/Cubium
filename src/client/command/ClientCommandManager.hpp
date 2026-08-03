@@ -29,6 +29,8 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc::client::command {

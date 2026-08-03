@@ -26,8 +26,10 @@
 #include "Tooltip.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace mc::client::ui::kagero::widget {
 

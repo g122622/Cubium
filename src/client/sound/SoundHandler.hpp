@@ -23,11 +23,21 @@
 
 #pragma once
 
+#include "client/sound/resource/SoundDefinition.hpp"
 #include "client/sound/resource/SoundRegistry.hpp"
 #include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/sound/SoundTypes.hpp"
+#include "common/util/math/random/Random.hpp"
 
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::client::sound {
 

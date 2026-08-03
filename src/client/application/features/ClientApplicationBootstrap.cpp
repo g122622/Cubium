@@ -25,19 +25,22 @@
 
 #include "client/application/features/ClientApplicationHelpers.hpp"
 
-#include "client/command/ClientCommandManager.hpp"
+#include "client/renderer/api/IRenderEngine.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
-#include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
+#include "client/renderer/trident/cloud/CloudMode.hpp"
+#include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/trident/firstperson/FirstPersonRenderer.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteMappings.hpp"
 #include "client/renderer/trident/gui/GuiSpriteRegistry.hpp"
 #include "client/renderer/trident/gui/GuiTextureLoader.hpp"
+#include "client/renderer/trident/gui/GuiTextureManager.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/weather/WeatherRenderer.hpp"
 #include "client/renderer/util/GpuInfo.hpp"
-#include "client/skin/ClientSkinManager.hpp"
-#include "client/ui/Font.hpp"
+#include "client/settings/ClientSettings.hpp"
+#include "client/ui/TridentCanvas.hpp"
+#include "client/ui/kagero/KageroEngine.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
@@ -46,6 +49,9 @@
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "client/window/Window.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
@@ -53,11 +59,13 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaPotionIdMap.hpp"
-#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
@@ -65,9 +73,12 @@
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <utility>
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

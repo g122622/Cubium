@@ -23,9 +23,14 @@
 
 #pragma once
 
+#include "client/renderer/api/Types.hpp"
 #include "client/renderer/api/buffer/IBuffer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

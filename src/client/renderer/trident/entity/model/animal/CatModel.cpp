@@ -22,9 +22,10 @@
  */
 
 #include "CatModel.hpp"
+#include "client/renderer/trident/entity/model/animal/OcelotModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include <cmath>
 
 namespace mc::client::renderer::entity::model::animal {
 

@@ -23,19 +23,25 @@
 
 #include "HeldBlockLayer.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
-#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/util/BlockMeshBuilder.hpp"
-#include "client/resource/ResourceManager.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <array>
 #include <memory>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <utility>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::layer::entity {
 

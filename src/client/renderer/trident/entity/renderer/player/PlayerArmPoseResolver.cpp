@@ -22,6 +22,8 @@
  */
 
 #include "PlayerArmPoseResolver.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"

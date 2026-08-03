@@ -22,7 +22,13 @@
  */
 
 #include "AstVisitor.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <functional>
 #include <queue>
+#include <string>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::ast::traversal {
 

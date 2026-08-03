@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/resource/ResourceLocation.hpp"
+#include <string>
 #include <utility>
 #include <vector>
 

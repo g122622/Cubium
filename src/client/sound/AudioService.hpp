@@ -24,6 +24,9 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 
@@ -35,7 +38,9 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <thread>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc {
 

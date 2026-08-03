@@ -27,8 +27,10 @@
 #include "Widget.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/Geometry.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -38,6 +40,7 @@
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>

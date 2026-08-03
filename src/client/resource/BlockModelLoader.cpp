@@ -22,12 +22,27 @@
  */
 
 #include "BlockModelLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <exception>
+#include <map>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

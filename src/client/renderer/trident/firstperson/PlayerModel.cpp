@@ -22,9 +22,13 @@
  */
 
 #include "PlayerModel.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/firstperson/ArmPose.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
+#include <memory>
 
 namespace mc::client::renderer {
 

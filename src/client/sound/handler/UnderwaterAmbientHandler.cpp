@@ -22,12 +22,17 @@
  */
 
 #include "client/sound/handler/UnderwaterAmbientHandler.hpp"
+#include "client/sound/SoundEngine.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/sound/instance/UnderwaterLoopSound.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundTypes.hpp"
 
 #include <chrono>
+#include <memory>
+#include <utility>
 
 namespace mc::client::sound {
 

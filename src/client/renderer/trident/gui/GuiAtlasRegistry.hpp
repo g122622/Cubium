@@ -28,9 +28,11 @@
 #include <array>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

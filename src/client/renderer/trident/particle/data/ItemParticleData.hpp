@@ -24,8 +24,10 @@
 #pragma once
 
 #include "ParticleData.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::client::renderer::trident::particle::data {
 

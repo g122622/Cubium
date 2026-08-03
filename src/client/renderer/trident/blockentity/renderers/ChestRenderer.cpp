@@ -22,10 +22,14 @@
  */
 
 #include "ChestRenderer.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/model/ChestModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/SpecialDates.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include <cmath>
+#include <vector>
 
 namespace mc::client::renderer::trident::blockentity {
 

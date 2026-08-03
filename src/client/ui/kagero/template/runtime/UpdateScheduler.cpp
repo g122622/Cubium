@@ -22,8 +22,14 @@
  */
 
 #include "UpdateScheduler.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <memory>
 #include <set>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 

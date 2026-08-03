@@ -25,7 +25,9 @@
 
 #include "TemplateScreen.hpp"
 #include "client/ui/kagero/state/ReactiveState.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::client::ui::minecraft {
 

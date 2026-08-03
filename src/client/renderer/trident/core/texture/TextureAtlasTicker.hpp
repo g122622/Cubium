@@ -24,6 +24,7 @@
 #pragma once
 
 #include "AnimatedSprite.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
 

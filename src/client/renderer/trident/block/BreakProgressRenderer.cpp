@@ -23,12 +23,19 @@
 
 #include "BreakProgressRenderer.hpp"
 #include "BreakProgressManager.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <fstream>
+#include <ios>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 namespace client {

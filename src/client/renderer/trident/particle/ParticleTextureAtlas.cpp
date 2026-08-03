@@ -22,15 +22,25 @@
  */
 
 #include "ParticleTextureAtlas.hpp"
-#include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <cstring>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::particle {
 

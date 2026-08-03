@@ -28,8 +28,12 @@
 #include "client/ui/kagero/paint/TextureImage.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

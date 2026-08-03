@@ -22,9 +22,13 @@
  */
 
 #include "LlamaRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <string>
 
 namespace mc::client::renderer::entity::renderer::animal {
 

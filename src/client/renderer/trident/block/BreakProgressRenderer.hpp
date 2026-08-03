@@ -27,11 +27,13 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 namespace client {

@@ -22,6 +22,8 @@
  */
 
 #include "FireAnimationState.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 
 namespace mc::client::renderer::entity::effect::fire {
 

@@ -28,11 +28,14 @@
 #include "client/ui/FontRenderer.hpp"
 #include "client/ui/Glyph.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 // 前向声明
 namespace mc::client {

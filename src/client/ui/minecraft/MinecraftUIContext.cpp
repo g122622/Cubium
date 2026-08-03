@@ -22,6 +22,14 @@
  */
 
 #include "MinecraftUIContext.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

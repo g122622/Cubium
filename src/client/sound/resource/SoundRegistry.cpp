@@ -22,8 +22,14 @@
  */
 
 #include "client/sound/resource/SoundRegistry.hpp"
+#include "client/sound/resource/SoundDefinition.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc::client::sound {
 

@@ -22,6 +22,10 @@
  */
 
 #include "client/sound/instance/MinecartSound.hpp"
+#include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"

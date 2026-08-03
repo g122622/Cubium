@@ -22,7 +22,11 @@
  */
 
 #include "EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <cstddef>
+#include <vector>
 
 namespace mc::client::renderer::entity::model {
 

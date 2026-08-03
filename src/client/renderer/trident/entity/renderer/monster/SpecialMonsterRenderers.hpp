@@ -29,8 +29,12 @@
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpecialMonsterModels.hpp"
 #include "client/renderer/trident/entity/model/monster/WitchModel.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/monster/illager/WitchEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
+#include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc::client::renderer::entity::renderer::monster {
 

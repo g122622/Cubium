@@ -31,6 +31,7 @@
 #include "client/renderer/trident/entity/model/animal/RabbitModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SheepModel.hpp"
 #include "client/renderer/trident/entity/model/animal/SquidModel.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc {

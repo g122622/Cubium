@@ -29,8 +29,11 @@
 #include "client/ui/kagero/template/parser/Ast.hpp"
 #include "client/ui/kagero/template/parser/Lexer.hpp"
 #include "client/ui/kagero/template/parser/Parser.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <set>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::compiler {

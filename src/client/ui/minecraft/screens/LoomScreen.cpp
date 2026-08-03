@@ -23,14 +23,23 @@
 
 #include "LoomScreen.hpp"
 
+#include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
 #include "client/ui/kagero/widget/ButtonWidget.hpp"
-#include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "client/ui/kagero/widget/ScrollableWidget.hpp"
+#include "client/ui/kagero/widget/SlotWidget.hpp"
+#include "client/ui/minecraft/screens/TemplateScreen.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/entity/inventory/container/LoomContainer.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 

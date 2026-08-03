@@ -28,16 +28,19 @@
 #include "ItemInHandRenderer.hpp"
 #include "MatrixStack.hpp"
 #include "PlayerModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <array>
 #include <limits>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 // 前向声明
 namespace mc {

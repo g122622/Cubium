@@ -30,6 +30,7 @@
 
 #include "ModelRegistration.hpp"
 #include "core/ModelFactory.hpp"
+#include <memory>
 #include <spdlog/spdlog.h>
 
 // 动物模型
@@ -53,8 +54,6 @@
 #include "aquatic/PufferfishModel.hpp"
 
 // 基础模型
-#include "base/BipedModel.hpp"
-#include "base/QuadrupedModel.hpp"
 
 // 怪物模型
 #include "monster/BlazeModel.hpp"

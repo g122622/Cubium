@@ -26,9 +26,13 @@
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/model/projectile/ProjectileModels.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "common/core/Types.hpp"
+#include <array>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class BlockState;

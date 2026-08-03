@@ -24,7 +24,10 @@
 #pragma once
 
 #include "Ast.hpp"
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::ast {
 

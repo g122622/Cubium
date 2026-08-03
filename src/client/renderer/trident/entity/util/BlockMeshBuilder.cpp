@@ -22,14 +22,21 @@
  */
 
 #include "BlockMeshBuilder.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/item/ElementRotation.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <array>
+#include <cstddef>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::util {

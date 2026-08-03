@@ -22,10 +22,13 @@
  */
 
 #include "ClientPlayerPredictor.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace mc::client {
 

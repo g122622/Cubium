@@ -55,16 +55,21 @@
 #include "common/network/protocol/GameActions.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/application/IntegratedServer.hpp"
 
 #include <atomic>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client::command {

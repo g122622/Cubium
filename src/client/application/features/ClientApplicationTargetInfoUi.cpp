@@ -24,9 +24,15 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
+#include "client/ui/minecraft/targetinfo/TargetInfo.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoResolver.hpp"
 #include "client/ui/minecraft/targetinfo/TargetInfoWidget.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "server/application/IntegratedServer.hpp"
+#include <atomic>
+#include <string>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client {
 

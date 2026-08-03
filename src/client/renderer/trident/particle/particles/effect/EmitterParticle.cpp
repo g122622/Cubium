@@ -22,7 +22,12 @@
  */
 
 #include "EmitterParticle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

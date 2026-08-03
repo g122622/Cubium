@@ -25,6 +25,8 @@
 
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {

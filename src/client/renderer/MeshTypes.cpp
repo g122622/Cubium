@@ -22,6 +22,8 @@
  */
 
 #include "MeshTypes.hpp"
+#include "common/core/Types.hpp"
+#include <array>
 
 namespace mc {
 

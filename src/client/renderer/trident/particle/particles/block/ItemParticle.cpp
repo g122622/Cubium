@@ -22,16 +22,34 @@
  */
 
 #include "ItemParticle.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ItemModelCache.hpp"
+#include "client/resource/ItemModelLoader.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include <glm/glm.hpp>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::particle::particles {

@@ -22,8 +22,12 @@
  */
 
 #include "Window.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 
+#include <string>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 

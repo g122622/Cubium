@@ -23,8 +23,15 @@
 
 #include "RedstoneParticleData.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
 #include <iomanip>
+#include <ios>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <glm/common.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::renderer::trident::particle::data {
 

@@ -22,6 +22,9 @@
  */
 
 #include "SlotWidget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/SlotWidget.hpp"
 
 namespace mc::client::ui::minecraft {
 

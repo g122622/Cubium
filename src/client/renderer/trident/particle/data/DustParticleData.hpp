@@ -24,7 +24,11 @@
 #pragma once
 
 #include "ParticleData.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <string>
+#include <glm/ext/vector_float4.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::trident::particle::data {

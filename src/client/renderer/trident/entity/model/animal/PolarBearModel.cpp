@@ -22,8 +22,13 @@
  */
 
 #include "PolarBearModel.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include <cmath>
+#include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
+#include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include <memory>
+#include <vector>
 
 namespace mc::client::renderer::entity::model::animal {
 

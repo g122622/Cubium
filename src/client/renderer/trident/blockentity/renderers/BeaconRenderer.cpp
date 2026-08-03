@@ -22,9 +22,12 @@
  */
 
 #include "BeaconRenderer.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"
-#include <cmath>
+#include <vector>
 
 namespace mc::client::renderer::trident::blockentity {
 

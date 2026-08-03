@@ -22,6 +22,8 @@
  */
 
 #include "AnimationContext.hpp"
+#include "common/core/Types.hpp"
+#include <cstdlib>
 #include <functional>
 
 namespace mc::client::renderer::entity::core {

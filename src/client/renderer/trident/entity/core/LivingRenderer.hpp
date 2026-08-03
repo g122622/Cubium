@@ -28,11 +28,14 @@
 #include "IEntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include <cstddef>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline; // 前向声明

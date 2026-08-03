@@ -22,7 +22,10 @@
  */
 
 #include "AnimatedSprite.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle {
 

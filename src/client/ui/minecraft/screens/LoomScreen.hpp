@@ -30,6 +30,7 @@
 #include "core/Types.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

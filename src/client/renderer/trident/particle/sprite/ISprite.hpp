@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <glm/ext/vector_float4.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::trident::particle {

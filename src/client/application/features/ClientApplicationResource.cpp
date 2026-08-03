@@ -23,19 +23,24 @@
 
 #include "client/application/ClientApplication.hpp"
 
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "client/sound/AudioService.hpp"
-#include "common/entity/registry/VanillaEntities.hpp"
-#include "common/item/Items.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "client/world/ClientWorld.hpp"
+#include "common/core/Result.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/VanillaResources.hpp"
 #include "common/resource/pack/FolderResourcePack.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 
-#include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <memory>
+#include <utility>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

@@ -23,7 +23,13 @@
 
 #include "TrailParticleData.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cstdio>
+#include <memory>
+#include <string>
 
 namespace mc::client::renderer::trident::particle::data {
 

@@ -26,10 +26,19 @@
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <array>
 #include <cmath>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::layer::entity {
 

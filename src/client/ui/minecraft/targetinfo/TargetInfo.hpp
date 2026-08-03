@@ -28,6 +28,8 @@
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
 
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc::client::ui::minecraft::targetinfo {

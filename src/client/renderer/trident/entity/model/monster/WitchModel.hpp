@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/model/animal/VillagerModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include <memory>
 

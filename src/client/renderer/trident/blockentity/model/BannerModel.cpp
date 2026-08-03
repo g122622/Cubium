@@ -22,7 +22,10 @@
  */
 
 #include "BannerModel.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/renderer/trident/blockentity/model/BlockEntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc::client::renderer::blockentity::model {
 

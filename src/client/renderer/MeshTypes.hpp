@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include <array>
+#include <cstddef>
 #include <vector>
 
 namespace mc {

@@ -22,11 +22,18 @@
  */
 
 #include "ItemInHandRenderer.hpp"
+#include "client/renderer/trident/firstperson/ItemCameraTransforms.hpp"
+#include "client/renderer/trident/firstperson/MatrixStack.hpp"
 #include "client/resource/ItemModelCache.hpp"
+#include "client/resource/ItemModelLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::firstperson {

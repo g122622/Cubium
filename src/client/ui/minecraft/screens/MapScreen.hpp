@@ -24,6 +24,8 @@
 #pragma once
 
 #include "client/renderer/map/MapRenderer.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/minecraft/screens/Screen.hpp"
 #include "client/world/ClientMapDataCache.hpp"
 #include "common/core/Types.hpp"

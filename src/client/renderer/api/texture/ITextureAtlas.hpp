@@ -25,8 +25,11 @@
 
 #include "ITexture.hpp"
 #include "TextureRegion.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <map>
+#include <vector>
 
 namespace mc::client::renderer::api {
 

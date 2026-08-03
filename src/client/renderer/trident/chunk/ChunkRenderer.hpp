@@ -30,12 +30,15 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <glm/ext/vector_double3.hpp>
 #include <glm/vec3.hpp>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 class TridentContext;

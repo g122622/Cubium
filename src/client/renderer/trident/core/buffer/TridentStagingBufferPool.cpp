@@ -23,10 +23,17 @@
 
 #include "client/renderer/trident/core/buffer/TridentStagingBufferPool.hpp"
 
+#include "client/renderer/api/buffer/IStagingBufferPool.hpp"
+#include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-
-#include <cstring>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::renderer::entity::model::monster {
 

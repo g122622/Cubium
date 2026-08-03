@@ -24,6 +24,7 @@
 #pragma once
 
 #include "SlotWidget.hpp"
+#include <string>
 
 namespace mc::client::ui::minecraft {
 

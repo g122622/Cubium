@@ -22,6 +22,8 @@
  */
 
 #include "InventorySlot.hpp"
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

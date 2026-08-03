@@ -24,11 +24,24 @@
 #include "BlockModelCache.hpp"
 #include "ResourceManager.hpp"
 
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <string>
+#include <string_view>
 #include <spdlog/spdlog.h>
 
+#include "client/renderer/MeshTypes.hpp"
+#include "client/resource/BlockModelLoader.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 
 using namespace mc::trace;
 

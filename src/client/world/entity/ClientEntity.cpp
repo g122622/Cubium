@@ -23,7 +23,9 @@
 
 #include "ClientEntity.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -37,17 +39,26 @@
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace mc::trace;
 

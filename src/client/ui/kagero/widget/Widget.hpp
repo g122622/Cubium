@@ -26,11 +26,13 @@
 #include "Tooltip.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::widget {

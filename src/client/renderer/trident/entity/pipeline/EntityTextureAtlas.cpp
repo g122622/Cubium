@@ -22,15 +22,30 @@
  */
 
 #include "EntityTextureAtlas.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/atlas/TexturePathVariant.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <cstring>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
 // stb_image is already implemented in TextureAtlasBuilder.cpp
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <ios>
+#include <iterator>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 

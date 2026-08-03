@@ -21,6 +21,9 @@
  */
 
 #include "client/resource/atlas/MissingNo.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <vector>
 
 namespace mc::client::resource::atlas {
 

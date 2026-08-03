@@ -22,7 +22,15 @@
  */
 
 #include "ExplosionParticle.hpp"
-#include <cmath>
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

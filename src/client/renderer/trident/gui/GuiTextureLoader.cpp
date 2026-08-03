@@ -28,8 +28,17 @@
 #include "GuiSpriteRegistry.hpp"
 #include "GuiTextureAtlas.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 

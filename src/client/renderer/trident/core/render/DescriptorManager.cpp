@@ -23,8 +23,12 @@
 
 #include "DescriptorManager.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
+#include <string>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

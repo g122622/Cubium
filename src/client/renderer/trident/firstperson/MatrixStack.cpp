@@ -22,6 +22,7 @@
  */
 
 #include "MatrixStack.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>

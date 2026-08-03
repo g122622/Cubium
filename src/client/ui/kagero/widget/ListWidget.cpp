@@ -23,6 +23,14 @@
 
 #include "ListWidget.hpp"
 #include "../template/binder/BindingContext.hpp"
+#include "client/ui/kagero/widget/ScrollableWidget.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 

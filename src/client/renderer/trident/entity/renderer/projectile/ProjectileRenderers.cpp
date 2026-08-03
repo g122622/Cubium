@@ -22,7 +22,9 @@
  */
 
 #include "ProjectileRenderers.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc::client::renderer::entity::renderer::projectile {
 

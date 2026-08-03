@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
@@ -32,6 +33,7 @@
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class LivingEntity;

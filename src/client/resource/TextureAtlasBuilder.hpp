@@ -29,6 +29,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <cstddef>
 #include <map>
 #include <set>
 #include <vector>

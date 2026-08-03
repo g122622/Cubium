@@ -22,6 +22,11 @@
  */
 
 #include "Screen.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "common/core/Types.hpp"
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

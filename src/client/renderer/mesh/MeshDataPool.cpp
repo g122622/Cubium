@@ -22,6 +22,9 @@
  */
 
 #include "MeshDataPool.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include <mutex>
+#include <utility>
 
 namespace mc::client {
 

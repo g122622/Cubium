@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include <string>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client {
 

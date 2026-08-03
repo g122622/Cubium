@@ -22,10 +22,21 @@
  */
 
 #include "TridentPipeline.hpp"
+#include "client/renderer/api/BlendMode.hpp"
+#include "client/renderer/api/CompareOp.hpp"
+#include "client/renderer/api/CullMode.hpp"
+#include "client/renderer/api/pipeline/IPipeline.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
 #include <fstream>
+#include <ios>
+#include <string>
+#include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

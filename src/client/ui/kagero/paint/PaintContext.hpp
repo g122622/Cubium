@@ -27,7 +27,11 @@
 #include "./contracts/ICanvas.hpp"
 #include "./contracts/IImage.hpp"
 #include "./contracts/IPaint.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::client::ui::kagero::widget {
 

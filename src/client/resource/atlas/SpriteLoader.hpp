@@ -28,6 +28,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <memory>
+#include <utility>
 #include <variant>
 #include <vector>
 

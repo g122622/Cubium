@@ -22,6 +22,9 @@
  */
 
 #include "Viewport3DWidget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Viewport3DWidget.hpp"
 
 namespace mc::client::ui::minecraft {
 

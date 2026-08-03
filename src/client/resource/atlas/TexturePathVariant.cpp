@@ -21,6 +21,8 @@
  */
 
 #include "client/resource/atlas/TexturePathVariant.hpp"
+#include <string>
+#include <string_view>
 
 namespace mc::client::resource::atlas {
 

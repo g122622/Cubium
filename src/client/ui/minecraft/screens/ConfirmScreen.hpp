@@ -22,6 +22,7 @@
 #pragma once
 
 #include "TemplateScreen.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <string>
 

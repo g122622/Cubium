@@ -25,6 +25,9 @@
 #include "GuiSpriteAtlas.hpp"
 #include "GuiSpriteManager.hpp"
 #include "GuiTextureAtlas.hpp"
+#include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "common/core/Types.hpp"
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::trident::gui {

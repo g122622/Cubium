@@ -23,9 +23,13 @@
 
 #include "ItemTooltipBuilder.hpp"
 
+#include "client/ui/kagero/widget/Tooltip.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include <algorithm>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::widget {
 

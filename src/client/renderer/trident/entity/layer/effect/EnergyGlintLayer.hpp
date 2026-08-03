@@ -32,12 +32,16 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
+#include <array>
 #include <cmath>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class LivingEntity;

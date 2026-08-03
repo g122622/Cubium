@@ -24,9 +24,13 @@
 #pragma once
 
 #include "client/renderer/trident/entity/model/core/AgeableModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <array>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc::client::renderer::entity::model {
 

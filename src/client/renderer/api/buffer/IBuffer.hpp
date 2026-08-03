@@ -25,6 +25,7 @@
 
 #include "client/renderer/api/Types.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::renderer::api {
 

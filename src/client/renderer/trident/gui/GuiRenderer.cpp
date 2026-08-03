@@ -24,11 +24,20 @@
 #include "GuiRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
-#include <algorithm>
+#include "client/ui/Glyph.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <array>
+#include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <optional>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

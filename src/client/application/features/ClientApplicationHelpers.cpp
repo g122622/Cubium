@@ -23,7 +23,10 @@
 
 #include "ClientApplicationHelpers.hpp"
 
+#include "client/input/InputManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <algorithm>
 

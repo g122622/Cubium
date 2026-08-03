@@ -22,6 +22,10 @@
  */
 
 #include "SegmentedModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "common/core/Types.hpp"
+#include <string>
+#include <utility>
 
 namespace mc::client::renderer::entity::model {
 

@@ -22,13 +22,27 @@
  */
 
 #include "client/sound/SoundHandler.hpp"
+#include "client/sound/resource/SoundDefinition.hpp"
+#include "common/core/Result.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <set>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 using namespace mc::trace;
 

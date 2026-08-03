@@ -23,8 +23,20 @@
 
 #include "GuiSpriteAtlas.hpp"
 #include "GuiSpriteManager.hpp"
-#include "GuiTextureAtlas.hpp"
+#include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "client/ui/kagero/paint/TextureImage.hpp"
+#include "client/ui/kagero/paint/contracts/IImage.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

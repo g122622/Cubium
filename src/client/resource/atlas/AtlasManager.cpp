@@ -23,14 +23,29 @@
 
 #include "client/resource/atlas/AtlasManager.hpp"
 
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/api/buffer/IStagingBufferPool.hpp"
 #include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
 #include "client/renderer/trident/core/texture/TextureAtlasTicker.hpp"
 #include "client/resource/TextureAtlasBuilder.hpp"
 #include "client/resource/atlas/AtlasConfigLoader.hpp"
+#include "client/resource/atlas/AtlasHandle.hpp"
+#include "client/resource/atlas/AtlasSource.hpp"
 #include "client/resource/atlas/MissingNo.hpp"
+#include "client/resource/atlas/SpriteContents.hpp"
 #include "client/resource/atlas/SpriteLoader.hpp"
 #include "client/resource/atlas/TexturePathVariant.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::resource::atlas {
 

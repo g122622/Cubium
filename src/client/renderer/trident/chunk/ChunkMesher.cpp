@@ -23,23 +23,37 @@
 
 #include "ChunkMesher.hpp"
 #include "AmbientOcclusionCalculator.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/resource/BlockModelCache.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "client/world/color/BiomeColors.hpp"
+#include "client/world/color/blend/BiomeColorBlender.hpp"
 #include "client/world/color/blend/ChunkBiomeAccessor.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

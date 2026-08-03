@@ -71,12 +71,31 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector4.hpp"
 // 方块纹理图集与末影人渲染器
-#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "client/renderer/trident/entity/core/RendererFactory.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/renderer/monster/MonsterRenderers.hpp"
 #include "client/renderer/trident/entity/renderer/special/SpecialEntityRenderers.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
 #include <unordered_set>
+#include <utility>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

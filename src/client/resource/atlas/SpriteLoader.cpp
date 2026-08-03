@@ -21,8 +21,20 @@
  */
 
 #include "client/resource/atlas/SpriteLoader.hpp"
+#include "client/resource/atlas/SpriteContents.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
-#include <spdlog/spdlog.h>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 #include <stb_image.h>
 
 namespace mc::client::resource::atlas {

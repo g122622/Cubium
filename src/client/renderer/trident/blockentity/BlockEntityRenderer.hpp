@@ -25,6 +25,7 @@
 
 #include "IBlockEntityRenderer.hpp"
 #include "client/renderer/api/texture/TextureRegion.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 

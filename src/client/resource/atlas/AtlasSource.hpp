@@ -27,6 +27,8 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <cstddef>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>

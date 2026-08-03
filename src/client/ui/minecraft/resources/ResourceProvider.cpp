@@ -24,6 +24,7 @@
 #include "ResourceProvider.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/ui/Font.hpp"
+#include <string>
 
 namespace mc::client::ui::minecraft {
 

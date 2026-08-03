@@ -22,9 +22,11 @@
  */
 
 #include "PistonRenderer.hpp"
-#include "client/resource/BlockModelCache.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc::client::renderer::trident::blockentity {

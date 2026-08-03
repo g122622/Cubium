@@ -30,6 +30,7 @@
 #include "widget/ContainerWidget.hpp"
 #include "widget/Widget.hpp"
 #include <chrono>
+#include <cstddef>
 #include <memory>
 #include <vector>
 

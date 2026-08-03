@@ -23,12 +23,20 @@
 
 #include "EntitySoundHandler.hpp"
 #include "client/sound/SoundEngine.hpp"
-#include "client/sound/SoundPool.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/MinecartSound.hpp"
 #include "client/sound/instance/MovingTickableSound.hpp"
+#include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
 
 namespace mc::client::sound {
 

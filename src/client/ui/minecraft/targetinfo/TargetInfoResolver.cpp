@@ -23,9 +23,11 @@
 
 #include "TargetInfoResolver.hpp"
 
+#include "client/ui/minecraft/targetinfo/TargetInfo.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "client/world/entity/ClientEntityManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -36,9 +38,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace mc::client::ui::minecraft::targetinfo {
 

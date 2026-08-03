@@ -22,9 +22,17 @@
  */
 
 #include "WeatherSoundHandler.hpp"
+#include "client/sound/SoundEngine.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/sound/SoundTypes.hpp"
+#include <chrono>
+#include <memory>
+#include <utility>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

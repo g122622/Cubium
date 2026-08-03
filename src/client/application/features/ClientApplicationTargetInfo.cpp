@@ -23,13 +23,22 @@
 
 #include "client/application/ClientApplication.hpp"
 
+#include "client/world/ClientWorld.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include <vector>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client {
 

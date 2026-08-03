@@ -22,12 +22,22 @@
 
 #include "client/resource/atlas/Sources.hpp"
 
+#include "client/resource/atlas/AtlasSource.hpp"
+#include "client/resource/atlas/SpriteContents.hpp"
 #include "client/resource/atlas/SpriteLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
 

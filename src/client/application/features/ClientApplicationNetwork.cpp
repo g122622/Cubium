@@ -23,48 +23,32 @@
 
 #include "client/application/ClientApplication.hpp"
 
-#include "client/command/ClientCommandManager.hpp"
-#include "client/renderer/trident/block/BreakProgressManager.hpp"
-#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/chat/ChatHistory.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "client/renderer/trident/particle/data/DustParticleData.hpp"
-#include "client/renderer/trident/particle/data/EntityEffectParticleData.hpp"
-#include "client/renderer/trident/particle/data/ItemParticleData.hpp"
-#include "client/renderer/trident/particle/data/TrailParticleData.hpp"
-#include "client/renderer/trident/particle/data/VibrationParticleData.hpp"
-#include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
-#include "client/ui/minecraft/screens/CartographyScreen.hpp"
-#include "client/ui/minecraft/screens/ChestScreen.hpp"
-#include "client/ui/minecraft/screens/CraftingScreen.hpp"
-#include "client/ui/minecraft/screens/CreativeScreen.hpp"
-#include "client/ui/minecraft/screens/FurnaceScreen.hpp"
-#include "client/ui/minecraft/screens/InventoryScreen.hpp"
-#include "client/ui/minecraft/screens/SignEditScreen.hpp"
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
-#include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
-#include "client/ui/minecraft/widgets/TitleWidget.hpp"
-#include "client/ui/screen/ScreenManager.hpp"
-#include "client/world/player/ClientPlayerPredictor.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
-#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/resource/ResourceLocation.hpp"
-#include "common/skin/core/GameProfile.hpp"
-#include "common/skin/network/SkinPackets.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/IGrowable.hpp"
@@ -72,16 +56,19 @@
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
-#include "common/world/blockentity/processing/FurnaceInventory.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "server/menu/CraftingMenu.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

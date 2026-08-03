@@ -23,13 +23,17 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/core/settings/SettingsBase.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
 #include "common/input/KeyBinding.hpp"
 #include "common/sound/SoundCategory.hpp"
 
+#include <filesystem>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::client {

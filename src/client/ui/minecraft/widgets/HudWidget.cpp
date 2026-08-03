@@ -26,7 +26,11 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "client/world/ClientMapDataCache.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/food/FoodStats.hpp"
@@ -35,6 +39,8 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
 #include "common/world/map/MapData.hpp"
+#include <algorithm>
+#include <string>
 
 namespace mc::client::ui::minecraft::widgets {
 

@@ -22,11 +22,15 @@
  */
 
 #include "AmbientOcclusionCalculator.hpp"
-#include "common/core/Constants.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <tuple>
 
 namespace mc {
 namespace client {

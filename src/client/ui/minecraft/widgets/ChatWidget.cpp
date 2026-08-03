@@ -26,8 +26,18 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft::widgets {

@@ -30,14 +30,18 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 

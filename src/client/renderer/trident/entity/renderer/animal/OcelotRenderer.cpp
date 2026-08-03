@@ -22,8 +22,11 @@
  */
 
 #include "OcelotRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 

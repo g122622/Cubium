@@ -26,6 +26,7 @@
 #include "client/sound/SoundEngine.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeAmbientSounds.hpp"
 

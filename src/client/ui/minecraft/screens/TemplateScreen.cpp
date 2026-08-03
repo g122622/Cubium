@@ -22,15 +22,22 @@
  */
 
 #include "TemplateScreen.hpp"
-#include "client/ui/kagero/event/EventBus.hpp"
-#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
 #include "client/ui/kagero/template/bindings/BuiltinWidgets.hpp"
-#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
+#include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
 #include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::ui::minecraft {

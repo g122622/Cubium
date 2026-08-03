@@ -29,6 +29,7 @@
 #include "client/ui/kagero/event/UIEvents.hpp"
 #include "client/ui/kagero/event/WidgetEvents.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>

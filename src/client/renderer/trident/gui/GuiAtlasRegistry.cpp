@@ -22,7 +22,12 @@
  */
 
 #include "GuiAtlasRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <optional>
+#include <string>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

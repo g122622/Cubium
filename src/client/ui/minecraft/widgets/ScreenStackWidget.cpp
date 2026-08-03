@@ -21,8 +21,18 @@
  */
 
 #include "ScreenStackWidget.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/event/UIEvents.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <iterator>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft::widgets {
 

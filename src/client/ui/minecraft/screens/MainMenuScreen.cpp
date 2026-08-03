@@ -24,6 +24,11 @@
 #include "MainMenuScreen.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "client/ui/minecraft/screens/TemplateScreen.hpp"
+#include "common/core/Types.hpp"
+#include <memory>
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {

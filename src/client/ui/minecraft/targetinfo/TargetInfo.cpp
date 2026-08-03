@@ -22,11 +22,20 @@
  */
 
 #include "TargetInfo.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <cctype>
+#include <cstddef>
 #include <iomanip>
+#include <ios>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace mc::client::ui::minecraft::targetinfo {
 

@@ -29,16 +29,23 @@
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "client/sound/backend/IAudioBackend.hpp"
 #include "client/sound/handler/IAmbientSoundHandler.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "client/sound/resource/SoundDefinition.hpp"
 #include "client/sound/resource/SoundRegistry.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <glm/glm.hpp>
 
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc {
 

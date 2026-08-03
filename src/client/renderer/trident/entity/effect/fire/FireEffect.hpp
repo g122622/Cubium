@@ -30,9 +30,11 @@
 #include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <array>
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class Entity;

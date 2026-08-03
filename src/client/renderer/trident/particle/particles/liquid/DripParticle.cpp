@@ -22,12 +22,21 @@
  */
 
 #include "DripParticle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include <algorithm>
+#include <memory>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

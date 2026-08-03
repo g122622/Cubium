@@ -23,25 +23,39 @@
 
 #pragma once
 
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/animal/VillagerModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;

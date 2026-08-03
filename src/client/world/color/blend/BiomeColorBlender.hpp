@@ -25,10 +25,13 @@
 
 #include "../ColorResolver.hpp"
 #include "BiomeColorCache.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/biome/Biome.hpp"
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <functional>
+#include <vector>
 
 namespace mc {
 namespace world::chunk {

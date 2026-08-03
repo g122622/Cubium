@@ -27,8 +27,10 @@
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/layer/entity/WolfCollarLayer.hpp"
 #include "client/renderer/trident/entity/model/animal/WolfModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class WolfEntity;

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>

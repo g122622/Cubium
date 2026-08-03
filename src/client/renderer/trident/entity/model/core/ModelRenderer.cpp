@@ -22,10 +22,20 @@
  */
 
 #include "ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
-#include <glm/glm.hpp>
+#include <memory>
+#include <string>
+#include <vector>
+#include <glm/ext/matrix_double3x3.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/geometric.hpp>
+#include <glm/matrix.hpp>
 
 namespace mc::client::renderer::entity::model {
 

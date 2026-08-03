@@ -23,6 +23,8 @@
 
 #include "Widget.hpp"
 #include "TooltipRenderer.hpp"
+#include "common/core/Types.hpp"
+#include <chrono>
 
 namespace mc::client::ui::kagero::widget {
 

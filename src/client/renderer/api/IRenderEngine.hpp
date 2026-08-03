@@ -30,6 +30,7 @@
 #include "buffer/IBuffer.hpp"
 #include "camera/ICamera.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "pipeline/IPipeline.hpp"
 #include "pipeline/RenderState.hpp"
@@ -39,6 +40,8 @@
 #include "texture/TextureRegion.hpp"
 #include <functional>
 #include <memory>
+#include <string>
+#include <glm/ext/matrix_float4x4.hpp>
 
 namespace mc::client::renderer::api {
 

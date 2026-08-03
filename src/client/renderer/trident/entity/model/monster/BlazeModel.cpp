@@ -22,9 +22,13 @@
  */
 
 #include "BlazeModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
+#include <memory>
+#include <string>
 
 namespace mc::client::renderer::entity::model::monster {
 

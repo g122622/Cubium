@@ -24,8 +24,10 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>

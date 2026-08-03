@@ -25,8 +25,12 @@
 
 #include "client/renderer/api/texture/ITexture.hpp"
 #include "client/renderer/api/texture/ITextureAtlas.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

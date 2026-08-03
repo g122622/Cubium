@@ -24,10 +24,15 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 

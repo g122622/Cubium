@@ -23,16 +23,18 @@
 
 #include "BlockEntityRendererDispatcher.hpp"
 #include "BlockEntityRenderer.hpp"
-#include "client/renderer/trident/core/TridentContext.hpp"
-#include "client/resource/BlockModelCache.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "renderers/BannerRenderer.hpp"
 #include "renderers/BeaconRenderer.hpp"
 #include "renderers/ChestRenderer.hpp"
+#include <memory>
 #include <spdlog/spdlog.h>
 
 // 完整的方块实体类型头文件（用于 dynamic_cast）
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/blockentity/processing/BeaconEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"

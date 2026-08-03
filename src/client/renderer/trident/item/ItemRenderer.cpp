@@ -25,9 +25,12 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ResourceManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
 #include <spdlog/spdlog.h>

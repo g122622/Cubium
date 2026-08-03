@@ -25,10 +25,24 @@
 
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/state/StateStore.hpp"
-#include "common/core/DefaultValues.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/widget/ButtonWidget.hpp"
+#include "client/ui/kagero/widget/CheckboxWidget.hpp"
+#include "client/ui/kagero/widget/SliderWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/ui/kagero/widget/TextWidget.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "client/ui/minecraft/screens/TemplateScreen.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/StringUtils.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {

@@ -25,15 +25,21 @@
 
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "data/ParticleData.hpp"
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client {
 class ClientWorld;

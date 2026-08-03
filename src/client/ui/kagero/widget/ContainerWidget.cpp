@@ -22,8 +22,13 @@
  */
 
 #include "ContainerWidget.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
 #include "client/ui/kagero/layout/core/LayoutEngine.hpp"
 #include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::ui::kagero::widget {
 

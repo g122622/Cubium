@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/EntityRendererManager.hpp"
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/layer/entity/HeldBlockLayer.hpp"
@@ -32,8 +33,10 @@
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SpiderModel.hpp"
 #include "client/renderer/trident/entity/model/monster/ZombieModel.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 

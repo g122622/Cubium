@@ -25,7 +25,9 @@
 
 #include "MeasureSpec.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #ifdef KAGERO_LAYOUT_DEBUG
+#include <algorithm>
 #include <string>
 #endif
 

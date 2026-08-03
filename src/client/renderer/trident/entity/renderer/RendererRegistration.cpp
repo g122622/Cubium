@@ -31,6 +31,7 @@
 
 #include "RendererRegistration.hpp"
 #include "client/renderer/trident/entity/core/RendererFactory.hpp"
+#include <memory>
 #include <spdlog/spdlog.h>
 
 // 动物渲染器
@@ -71,6 +72,7 @@
 #include "vehicle/VehicleRenderers.hpp"
 
 // 实体类型常量
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 
 namespace mc::client::renderer::entity::renderer {

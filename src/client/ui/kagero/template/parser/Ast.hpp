@@ -25,6 +25,7 @@
 
 #include "client/ui/kagero/template/core/TemplateConfig.hpp"
 #include "client/ui/kagero/template/core/TemplateError.hpp"
+#include "common/core/Types.hpp"
 #include <map>
 #include <memory>
 #include <optional>

@@ -22,6 +22,12 @@
  */
 
 #include "MeshResultQueue.hpp"
+#include "client/renderer/mesh/MeshWorkerTypes.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <functional>
+#include <mutex>
+#include <utility>
 
 namespace mc::client {
 

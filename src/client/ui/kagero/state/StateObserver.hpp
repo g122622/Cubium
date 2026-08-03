@@ -24,8 +24,12 @@
 #pragma once
 
 #include "ReactiveState.hpp"
+#include "common/core/Types.hpp"
 #include <chrono>
+#include <functional>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::state {
 

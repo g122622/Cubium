@@ -25,9 +25,13 @@
 
 #include "client/sound/backend/AudioBuffer.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundTypes.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client::sound {

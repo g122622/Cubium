@@ -22,11 +22,15 @@
  */
 
 #include "GlowEffect.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/util/math/Vector4.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include <vector>
 
 namespace mc::client::renderer::entity::effect::glow {
 

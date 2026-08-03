@@ -22,10 +22,20 @@
  */
 
 #include "FontRenderer.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client {
 

@@ -22,7 +22,10 @@
  */
 
 #include "SimpleSprite.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle {
 

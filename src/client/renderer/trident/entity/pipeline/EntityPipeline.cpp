@@ -22,16 +22,29 @@
  */
 
 #include "EntityPipeline.hpp"
+#include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 

@@ -24,9 +24,12 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConfig.hpp"
 #include <functional>
+#include <optional>
 #include <string>
+#include <utility>
 
 namespace mc::client {
 

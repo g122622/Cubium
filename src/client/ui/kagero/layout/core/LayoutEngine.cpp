@@ -24,10 +24,24 @@
 #include "LayoutEngine.hpp"
 #include "LayoutEngineAdapters.hpp"
 
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/algorithms/FlexLayout.hpp"
+#include "client/ui/kagero/layout/algorithms/GridLayout.hpp"
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <memory>
+#include <ratio>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 

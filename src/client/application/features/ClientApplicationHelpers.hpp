@@ -32,6 +32,7 @@
 #include "client/input/InputManager.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 namespace mc {

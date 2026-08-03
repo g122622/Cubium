@@ -24,13 +24,18 @@
 #pragma once
 
 #include "ContainerScreenBase.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerInteraction.hpp"
 #include "client/ui/kagero/widget/CreativePaletteGridWidget.hpp"
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "core/Types.hpp"
 #include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace mc {

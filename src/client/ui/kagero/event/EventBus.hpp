@@ -25,13 +25,16 @@
 
 #include "Event.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::event {

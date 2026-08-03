@@ -23,7 +23,12 @@
 
 #include "MapRenderer.hpp"
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDecoration.hpp"
+#include "common/world/map/MaterialColor.hpp"
+#include <array>
+#include <cstddef>
 
 namespace mc::client {
 

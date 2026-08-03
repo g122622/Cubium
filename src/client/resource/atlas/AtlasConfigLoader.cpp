@@ -22,11 +22,20 @@
 
 #include "client/resource/atlas/AtlasConfigLoader.hpp"
 
+#include "client/resource/atlas/AtlasSource.hpp"
 #include "client/resource/atlas/AtlasSourceParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::client::resource::atlas {
 

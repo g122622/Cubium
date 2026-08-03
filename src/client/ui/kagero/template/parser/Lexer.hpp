@@ -25,7 +25,10 @@
 
 #include "client/ui/kagero/template/core/TemplateConfig.hpp"
 #include "client/ui/kagero/template/core/TemplateError.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::parser {

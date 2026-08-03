@@ -24,8 +24,14 @@
 #include "RenderPassManager.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/TridentSwapchain.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
+#include <cstddef>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace {
 

@@ -22,13 +22,17 @@
  */
 
 #include "NameTagRenderer.hpp"
-#include "../model/core/ModelRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
 #include "WorldTextRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include <array>
 #include <cmath>
+#include <string>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::util {
 

@@ -22,7 +22,12 @@
  */
 
 #include "PlayerModel.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include <array>
+#include <memory>
 
 namespace mc::client::renderer::entity::model::player {
 

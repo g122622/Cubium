@@ -22,9 +22,17 @@
  */
 
 #include "PlayerRenderer.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeadLayer.hpp"
 #include "client/renderer/trident/entity/layer/equipment/HeldItemLayer.hpp"
+#include "client/renderer/trident/entity/model/player/PlayerModel.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::renderer::player {
 

@@ -27,6 +27,7 @@
 #include <optional>
 #include <regex>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::client::resource::atlas {
 

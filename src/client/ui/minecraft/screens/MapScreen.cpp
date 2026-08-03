@@ -24,8 +24,12 @@
 #include "MapScreen.hpp"
 
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/minecraft/screens/Screen.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/map/MapData.hpp"
 
+#include <algorithm>
 #include <GLFW/glfw3.h>
 
 namespace mc::client::ui::minecraft {

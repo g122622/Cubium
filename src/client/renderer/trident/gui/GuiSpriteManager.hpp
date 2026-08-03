@@ -25,6 +25,7 @@
 
 #include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <vector>

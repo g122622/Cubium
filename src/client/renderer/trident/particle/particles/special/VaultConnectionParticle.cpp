@@ -23,8 +23,15 @@
 
 #include "VaultConnectionParticle.hpp"
 
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <glm/glm.hpp>
+#include <memory>
+#include <glm/common.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

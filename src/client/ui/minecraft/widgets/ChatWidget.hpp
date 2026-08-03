@@ -27,12 +27,17 @@
 #include "client/command/ClientCommandManager.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include <memory>
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <utility>
 
 namespace mc::client::renderer::trident::gui {
 class GuiRenderer;

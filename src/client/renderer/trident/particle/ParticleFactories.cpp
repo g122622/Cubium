@@ -32,6 +32,11 @@
 #include "data/VibrationParticleData.hpp"
 
 // 粒子类型头文件
+#include "client/renderer/trident/particle/Particle.hpp"
+#include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleRenderType.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "particles/RainParticle.hpp"
 #include "particles/SnowParticle.hpp"
 #include "particles/ambient/BubbleParticle.hpp"
@@ -103,6 +108,8 @@
 #include "particles/special/VibrationSignalParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
 #include "particles/weather/SplashParticle.hpp"
+#include <memory>
+#include <glm/ext/vector_float3.hpp>
 
 // 导入粒子类型命名空间
 using namespace mc::client::renderer::trident::particle::particles;

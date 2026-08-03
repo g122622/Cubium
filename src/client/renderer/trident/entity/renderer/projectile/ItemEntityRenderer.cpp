@@ -22,7 +22,8 @@
  */
 
 #include "ItemEntityRenderer.hpp"
-#include "client/world/entity/ClientEntity.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 

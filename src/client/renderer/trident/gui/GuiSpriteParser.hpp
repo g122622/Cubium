@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <string>
 #include <unordered_map>
 #include <vector>
 

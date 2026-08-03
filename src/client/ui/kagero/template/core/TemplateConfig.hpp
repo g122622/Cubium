@@ -24,6 +24,8 @@
 #pragma once
 
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc::client::ui::kagero::tpl::core {
 

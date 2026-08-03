@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
 
 namespace mc::client::ui::minecraft {

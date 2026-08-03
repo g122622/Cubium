@@ -23,8 +23,17 @@
 
 #include "CelestialCalculations.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include <algorithm>
 #include <cmath>
+#include <glm/common.hpp>
+#include <glm/ext/vector_double2.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
 
 namespace mc::client {
 

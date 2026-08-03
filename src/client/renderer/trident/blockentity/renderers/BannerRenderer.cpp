@@ -24,14 +24,20 @@
  */
 
 #include "BannerRenderer.hpp"
+#include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "client/renderer/trident/blockentity/model/BannerModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/decorative/BannerBlock.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
-#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include <cmath>
+#include <vector>
 
 namespace mc::client::renderer::trident::blockentity {
 

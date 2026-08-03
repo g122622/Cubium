@@ -22,7 +22,10 @@
  */
 
 #include "Lexer.hpp"
+#include <cstddef>
 #include <sstream>
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::kagero::tpl::parser {
 

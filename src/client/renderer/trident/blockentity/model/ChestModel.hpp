@@ -24,6 +24,8 @@
 #pragma once
 
 #include "BlockEntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <memory>
 

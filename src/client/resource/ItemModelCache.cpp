@@ -22,9 +22,18 @@
  */
 
 #include "ItemModelCache.hpp"
+#include "client/resource/ItemModelLoader.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

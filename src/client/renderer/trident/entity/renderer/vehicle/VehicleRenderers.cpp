@@ -22,12 +22,24 @@
  */
 
 #include "VehicleRenderers.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::client::renderer::entity::renderer::vehicle {
 

@@ -23,10 +23,18 @@
 
 #include "client/sound/SoundLoader.hpp"
 
-#include "common/resource/pack/IResourcePack.hpp"
+#include "client/sound/backend/AudioBuffer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 
+#include <cstddef>
 #include <limits>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 
 namespace {
 

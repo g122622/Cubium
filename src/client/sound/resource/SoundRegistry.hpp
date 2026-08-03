@@ -26,6 +26,7 @@
 #include "client/sound/resource/SoundDefinition.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <cstddef>
 #include <mutex>
 #include <unordered_map>
 #include <vector>

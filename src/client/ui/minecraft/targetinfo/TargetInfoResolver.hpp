@@ -26,9 +26,11 @@
 #include "TargetInfo.hpp"
 
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 
 #include <functional>
+#include <string>
 
 namespace mc::client {
 class ClientEntityManager;

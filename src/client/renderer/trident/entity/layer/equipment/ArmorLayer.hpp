@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
 #include "client/renderer/trident/entity/core/IEntityRenderer.hpp"
 #include "client/renderer/trident/entity/layer/core/LayerRenderer.hpp"
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
@@ -31,12 +32,19 @@
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <array>
 #include <memory>
 #include <optional>
+#include <utility>
+#include <vulkan/vulkan_core.h>
 
 namespace mc {
 class LivingEntity;

@@ -22,11 +22,17 @@
  */
 
 #include "TridentTexture.hpp"
+#include "client/renderer/api/texture/ITexture.hpp"
+#include "client/renderer/api/texture/ITextureAtlas.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/buffer/TridentBuffer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <cstring>
-#include <spdlog/spdlog.h>
+#include <utility>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/MeshTypes.hpp"
+#include <cstddef>
 #include <mutex>
 #include <vector>
 

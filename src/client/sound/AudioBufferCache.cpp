@@ -22,7 +22,16 @@
  */
 
 #include "client/sound/AudioBufferCache.hpp"
+#include "client/sound/SoundLoader.hpp"
+#include "client/sound/backend/AudioBuffer.hpp"
+#include "client/sound/backend/IAudioBackend.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <vector>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 

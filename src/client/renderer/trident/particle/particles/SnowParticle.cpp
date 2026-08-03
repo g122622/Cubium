@@ -22,13 +22,21 @@
  */
 
 #include "SnowParticle.hpp"
+#include "client/renderer/trident/particle/Particle.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <cmath>
+#include <memory>
+#include <vector>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
 

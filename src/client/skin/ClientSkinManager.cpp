@@ -22,13 +22,24 @@
  */
 
 #include "ClientSkinManager.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include "common/skin/manager/SkinManager.hpp"
+#include "common/skin/network/PlayerSkinInfo.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
 // stb_image is already implemented elsewhere (TextureAtlasBuilder.cpp)
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::skin {
 

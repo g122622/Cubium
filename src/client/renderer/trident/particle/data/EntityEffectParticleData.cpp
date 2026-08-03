@@ -23,9 +23,16 @@
 
 #include "EntityEffectParticleData.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <iomanip>
+#include <ios>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <glm/ext/vector_float4.hpp>
 
 namespace mc::client::renderer::trident::particle::data {
 

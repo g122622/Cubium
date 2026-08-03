@@ -22,8 +22,16 @@
  */
 
 #include "SkinTextureUploader.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include <array>
+#include <cstddef>
+#include <mutex>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::skin {

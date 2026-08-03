@@ -24,15 +24,20 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/dimension/DimensionRenderSettings.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include <cmath>
+#include <glm/ext/vector_double3.hpp>
 
 using namespace mc::trace;
 

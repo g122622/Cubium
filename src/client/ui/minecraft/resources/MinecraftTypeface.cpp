@@ -22,6 +22,9 @@
  */
 
 #include "MinecraftTypeface.hpp"
+#include "client/ui/kagero/paint/contracts/ITypeface.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

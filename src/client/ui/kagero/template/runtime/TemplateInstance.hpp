@@ -28,9 +28,14 @@
 #include "../binder/BindingContext.hpp"
 #include "../compiler/TemplateCompiler.hpp"
 #include "UpdateScheduler.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
+#include <map>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::runtime {
 

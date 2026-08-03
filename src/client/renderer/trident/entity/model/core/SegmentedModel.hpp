@@ -24,6 +24,8 @@
 #pragma once
 
 #include "EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>

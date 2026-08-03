@@ -22,10 +22,15 @@
  */
 
 #include "Ast.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
+#include <string>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::ast {
 

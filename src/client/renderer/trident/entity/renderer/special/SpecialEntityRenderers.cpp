@@ -23,20 +23,27 @@
 
 #include "SpecialEntityRenderers.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
-#include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/model/projectile/ProjectileModels.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/util/BlockMeshBuilder.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
-#include <cmath>
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::renderer::special {
 

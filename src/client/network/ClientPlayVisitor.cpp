@@ -23,6 +23,7 @@
 
 #include "client/network/ClientPlayVisitor.hpp"
 
+#include "client/application/ClientAppStateMachine.hpp"
 #include "client/application/ClientApplication.hpp"
 #include "client/command/ClientCommandManager.hpp"
 #include "client/network/ClientNetwork.hpp"
@@ -40,6 +41,7 @@
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/minecraft/screens/CartographyScreen.hpp"
 #include "client/ui/minecraft/screens/ChestScreen.hpp"
 #include "client/ui/minecraft/screens/CraftingScreen.hpp"
@@ -52,30 +54,50 @@
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/entity/inventory/container/CartographyContainer.hpp"
+#include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/item/component/DataComponentMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/EntityEvents.hpp" // EntityAnimation / EntityStatus 枚举（客户端入站动画/状态字节分流用）
 #include "common/network/protocol/TitleActions.hpp" // TitleAction 枚举（TitleWidget::handleTitlePacket 用）
+#include "common/particle/ParticleTypes.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
-#include "common/world/WorldEvents.hpp"
+#include "common/world/GlobalPos.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/blockentity/processing/FurnaceInventory.hpp"
@@ -85,9 +107,17 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
-#include <cmath>
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <optional>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <variant>
+#include <vector>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::net {
 

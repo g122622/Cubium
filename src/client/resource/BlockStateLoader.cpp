@@ -22,8 +22,16 @@
  */
 
 #include "BlockStateLoader.hpp"
+#include "client/resource/BlockModelLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

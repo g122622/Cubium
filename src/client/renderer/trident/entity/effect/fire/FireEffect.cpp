@@ -22,16 +22,26 @@
  */
 
 #include "FireEffect.hpp"
+#include "client/renderer/trident/entity/effect/fire/FireAnimationState.hpp"
+#include "client/renderer/trident/entity/effect/fire/FireTextureLoader.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
+#include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::effect::fire {
 

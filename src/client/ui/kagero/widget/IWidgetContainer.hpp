@@ -24,9 +24,14 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::widget {

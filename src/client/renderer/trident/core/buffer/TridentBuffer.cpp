@@ -22,10 +22,16 @@
  */
 
 #include "TridentBuffer.hpp"
+#include "client/renderer/api/Types.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <cstring>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

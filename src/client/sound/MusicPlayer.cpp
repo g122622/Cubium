@@ -23,7 +23,18 @@
 
 #include "MusicPlayer.hpp"
 #include "client/sound/SoundEngine.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include <algorithm>
+#include <chrono>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::sound {

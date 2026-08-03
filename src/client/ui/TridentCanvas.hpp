@@ -24,8 +24,15 @@
 #pragma once
 
 #include "Glyph.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
+#include "client/ui/kagero/paint/contracts/IImage.hpp"
+#include "client/ui/kagero/paint/contracts/IPaint.hpp"
+#include "client/ui/kagero/paint/contracts/IPath.hpp"
+#include "client/ui/kagero/paint/contracts/ITextBlob.hpp"
+#include "common/core/Types.hpp"
 #include "kagero/Types.hpp"
 #include "kagero/paint/contracts/ICanvas.hpp"
+#include <string>
 #include <vector>
 
 namespace mc::client {

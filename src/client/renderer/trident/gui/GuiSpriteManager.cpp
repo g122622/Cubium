@@ -22,6 +22,10 @@
  */
 
 #include "GuiSpriteManager.hpp"
+#include "client/renderer/trident/gui/GuiSprite.hpp"
+#include "common/core/Types.hpp"
+#include <string>
+#include <vector>
 
 namespace mc::client::renderer::trident::gui {
 

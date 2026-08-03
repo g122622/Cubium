@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"

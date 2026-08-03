@@ -24,9 +24,20 @@
 #include "ClientSettings.hpp"
 
 #include "common/core/DefaultValues.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/input/KeyBinding.hpp"
+#include "common/sound/SoundCategory.hpp"
 
 #include <algorithm>
+#include <exception>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <memory>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client {

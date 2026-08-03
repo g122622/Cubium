@@ -28,6 +28,7 @@
 #include "common/util/math/Vector3.hpp"
 #include <array>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::client::renderer::entity::model {

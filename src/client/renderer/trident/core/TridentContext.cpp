@@ -22,15 +22,23 @@
  */
 
 #include "TridentContext.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include <algorithm>
 #include <set>
 #include <spdlog/spdlog.h>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <vector>
 #include <GLFW/glfw3.h>
+#include <vulkan/vk_platform.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

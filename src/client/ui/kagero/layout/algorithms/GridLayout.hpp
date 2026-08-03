@@ -23,8 +23,10 @@
 
 #pragma once
 
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/layout/core/LayoutResult.hpp"
 #include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
 
 namespace mc::client::ui::kagero::layout {

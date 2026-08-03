@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Screen.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 
 namespace mc::client::ui::minecraft {
 

@@ -25,11 +25,14 @@
 
 #include <memory>
 
+#include "client/sound/SoundEngine.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundEvents.hpp"
 
 #include <chrono>
+#include <utility>
 
 namespace mc::client::sound {
 

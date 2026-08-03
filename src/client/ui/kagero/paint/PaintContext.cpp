@@ -22,7 +22,15 @@
  */
 
 #include "PaintContext.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/Color.hpp"
+#include "client/ui/kagero/paint/Geometry.hpp"
+#include "client/ui/kagero/paint/contracts/ICanvas.hpp"
+#include "client/ui/kagero/paint/contracts/IImage.hpp"
+#include "client/ui/kagero/paint/contracts/IPaint.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
+#include <string>
 
 namespace mc::client::ui::kagero::widget {
 

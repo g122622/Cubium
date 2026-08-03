@@ -22,6 +22,7 @@
  */
 
 #include "GuiScale.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
 

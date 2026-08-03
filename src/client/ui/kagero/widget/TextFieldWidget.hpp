@@ -28,13 +28,16 @@
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <utility>
 
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::ui::kagero::widget {
 

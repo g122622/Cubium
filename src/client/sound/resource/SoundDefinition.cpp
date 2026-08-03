@@ -22,9 +22,17 @@
  */
 
 #include "client/sound/resource/SoundDefinition.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <algorithm>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::sound {

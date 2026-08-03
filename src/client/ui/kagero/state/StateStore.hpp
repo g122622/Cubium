@@ -24,12 +24,14 @@
 #pragma once
 
 #include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <any>
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>

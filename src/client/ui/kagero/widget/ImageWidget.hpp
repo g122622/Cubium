@@ -26,9 +26,12 @@
 #include "Widget.hpp"
 #include "client/renderer/trident/gui/GuiSprite.hpp"
 #include "client/renderer/trident/gui/ISpriteAtlas.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/paint/TextureImage.hpp"
+#include "common/core/Types.hpp"
 #include <string>
+#include <utility>
 
 namespace mc::client::ui::kagero::widget {
 

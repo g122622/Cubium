@@ -25,11 +25,14 @@
 
 #include "client/renderer/api/buffer/IStagingBufferPool.hpp"
 #include "client/renderer/api/buffer/OffsetAllocatorHeader.hpp" // OffsetAllocator::Allocator / Allocation（带 include guard 包装，禁止直接引上游头）
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <mutex>
 #include <vector>
 
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

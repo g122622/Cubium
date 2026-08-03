@@ -22,6 +22,9 @@
  */
 
 #include "PlayerIdentityRegistry.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc::client {

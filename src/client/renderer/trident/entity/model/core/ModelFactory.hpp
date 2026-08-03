@@ -24,6 +24,7 @@
 #pragma once
 
 #include "EntityModel.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>

@@ -25,6 +25,7 @@
 
 #include "common/command/ICommandSource.hpp" // for Uuid and UuidHash
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 

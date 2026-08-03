@@ -23,11 +23,23 @@
 
 #include "WorldTextRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/ui/Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/Vector4.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
+#include <array>
 #include <cmath>
 #include <cstring>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::util {
 

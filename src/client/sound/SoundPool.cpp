@@ -22,6 +22,13 @@
  */
 
 #include "client/sound/SoundPool.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundTypes.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::client::sound {
 

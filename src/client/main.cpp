@@ -25,11 +25,13 @@
 #include "common/profiler/ProfilerManager.hpp"
 #include "minecraft-reborn/version.h"
 
+#include <exception>
 #include <iostream>
 #include <string>
 #include <spdlog/spdlog.h>
 
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/assert/CrashHandler.hpp"
 
 namespace {
 

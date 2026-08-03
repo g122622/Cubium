@@ -32,10 +32,12 @@
 #include "common/util/math/Vector4.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <array>
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::pipeline {
 class EntityPipeline;

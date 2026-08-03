@@ -22,6 +22,12 @@
  */
 
 #include "TextureAtlasBuilder.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/metadata/AnimationMetadata.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 
 // 只在stb_image.h未被包含时定义实现
@@ -40,6 +46,9 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

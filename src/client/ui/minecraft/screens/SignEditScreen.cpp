@@ -25,8 +25,17 @@
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/ContainerWidget.hpp"
+#include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
-#include <spdlog/spdlog.h>
+#include "client/ui/minecraft/screens/Screen.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

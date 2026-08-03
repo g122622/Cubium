@@ -25,8 +25,10 @@
 
 #include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client {
 class ClientEntity;

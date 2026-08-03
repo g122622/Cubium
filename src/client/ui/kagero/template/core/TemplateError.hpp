@@ -25,6 +25,8 @@
 
 #include "TemplateConfig.hpp"
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::kagero::tpl::core {

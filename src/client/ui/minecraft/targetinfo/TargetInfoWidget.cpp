@@ -22,6 +22,11 @@
  */
 
 #include "TargetInfoWidget.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "client/ui/minecraft/targetinfo/TargetInfo.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
 #include <utility>

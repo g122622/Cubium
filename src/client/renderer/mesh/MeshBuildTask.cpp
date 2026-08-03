@@ -22,10 +22,23 @@
  */
 
 #include "MeshBuildTask.hpp"
+#include "client/renderer/mesh/MeshDataPool.hpp"
+#include "client/renderer/mesh/MeshResultQueue.hpp"
+#include "client/renderer/mesh/MeshWorkerTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
-#include "common/profiler/ProfilerManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include <array>
+#include <atomic>
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <string>
+#include <utility>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 

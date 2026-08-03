@@ -20,10 +20,14 @@
 
 #include "TemplateScreen.hpp"
 #include "client/ui/kagero/widget/ListWidget.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
+#include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::client::ui::minecraft {

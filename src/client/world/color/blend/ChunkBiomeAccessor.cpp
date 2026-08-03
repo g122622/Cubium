@@ -22,8 +22,12 @@
  */
 
 #include "ChunkBiomeAccessor.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include <array>
 
 namespace mc::client {
 

@@ -24,6 +24,9 @@
 #pragma once
 
 #include "TemplateScreen.hpp"
+#include "common/core/Types.hpp"
+#include <functional>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

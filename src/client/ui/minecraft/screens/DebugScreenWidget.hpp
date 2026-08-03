@@ -27,7 +27,9 @@
 #include "client/renderer/util/GpuInfo.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 

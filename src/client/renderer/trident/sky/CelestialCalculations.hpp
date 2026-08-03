@@ -25,6 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <glm/glm.hpp>
 
 namespace mc::client {

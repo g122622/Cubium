@@ -22,6 +22,12 @@
  */
 
 #include "TitleWidget.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/protocol/TitleActions.hpp"
+#include <optional>
+#include <string>
 
 namespace mc::client::ui::minecraft::widgets {
 

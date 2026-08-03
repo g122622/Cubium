@@ -26,10 +26,15 @@
 #include "client/renderer/MeshTypes.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 

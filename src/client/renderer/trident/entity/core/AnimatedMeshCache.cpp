@@ -22,8 +22,15 @@
  */
 
 #include "client/renderer/trident/entity/core/AnimatedMeshCache.hpp"
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "common/core/Types.hpp"
 #include <cmath>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::core {

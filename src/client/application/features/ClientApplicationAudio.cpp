@@ -24,21 +24,30 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/sound/AudioService.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

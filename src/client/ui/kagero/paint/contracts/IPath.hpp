@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/ui/kagero/paint/Geometry.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::ui::kagero::paint {
 

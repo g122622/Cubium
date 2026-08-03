@@ -22,12 +22,22 @@
  */
 
 #include "BuiltinEvents.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/event/Event.hpp"
+#include "client/ui/kagero/event/InputEvents.hpp"
+#include "client/ui/kagero/event/WidgetEvents.hpp"
 #include "client/ui/kagero/widget/CheckboxWidget.hpp"
 #include "client/ui/kagero/widget/SliderWidget.hpp"
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <cctype>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 

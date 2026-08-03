@@ -22,8 +22,10 @@
  */
 
 #include "HurtFlashEffect.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector4.hpp"
 
 namespace mc::client::renderer::entity::effect::hurt {
 

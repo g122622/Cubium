@@ -22,6 +22,12 @@
  */
 
 #include "ModelFactory.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::renderer::entity::model {

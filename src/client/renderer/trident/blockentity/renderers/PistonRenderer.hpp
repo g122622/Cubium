@@ -25,6 +25,7 @@
 
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 
 namespace mc {

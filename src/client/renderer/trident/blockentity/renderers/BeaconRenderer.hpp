@@ -26,6 +26,8 @@
 #include "client/renderer/trident/blockentity/BlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/IBlockEntityRenderer.hpp"
 #include "client/renderer/trident/blockentity/model/BeaconBeamModel.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <vector>
 

@@ -24,8 +24,15 @@
 #include "client/renderer/trident/core/TridentEngine.hpp"
 #include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/api/IRenderEngine.hpp"
+#include "client/renderer/api/Types.hpp"
+#include "client/renderer/api/buffer/IBuffer.hpp"
+#include "client/renderer/api/camera/ICamera.hpp"
+#include "client/renderer/api/pipeline/RenderType.hpp"
+#include "client/renderer/api/texture/ITexture.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
 #include "client/renderer/trident/block/BreakProgressRenderer.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
+#include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/cloud/CloudRenderer.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/TridentSwapchain.hpp"
@@ -59,18 +66,36 @@
 #include "client/ui/DefaultAsciiFont.hpp"
 #include "client/ui/Font.hpp"
 #include "client/world/ClientWorld.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
+#include <functional>
+#include <memory>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <spdlog/spdlog.h>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 

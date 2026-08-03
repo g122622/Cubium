@@ -28,6 +28,8 @@
 #include "IPath.hpp"
 #include "ITextBlob.hpp"
 #include "client/ui/kagero/paint/Geometry.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc::client::ui::kagero::paint {
 

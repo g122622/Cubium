@@ -25,9 +25,13 @@
 
 #include <functional>
 #include <string>
+#include <utility>
 
 #include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 
 namespace mc::client::ui::kagero::widget {

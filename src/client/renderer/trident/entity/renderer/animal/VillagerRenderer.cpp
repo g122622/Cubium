@@ -22,6 +22,10 @@
  */
 
 #include "VillagerRenderer.hpp"
+#include "client/renderer/trident/entity/layer/entity/VillagerLayer.hpp"
+#include "client/renderer/trident/entity/model/animal/VillagerModel.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc::client::renderer::entity::renderer::animal {
 

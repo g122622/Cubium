@@ -25,7 +25,10 @@
 
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/layout/core/MeasureSpec.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
 #include <limits>
+#include <optional>
 
 namespace mc::client::ui::kagero::layout {
 

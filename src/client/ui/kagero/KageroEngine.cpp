@@ -23,7 +23,17 @@
 
 #include "KageroEngine.hpp"
 #include "Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
+#include "client/ui/kagero/paint/contracts/ICanvas.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::ui::kagero {

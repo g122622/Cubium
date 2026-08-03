@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/event/EventBus.hpp"
 #include "client/ui/kagero/event/InputEvents.hpp"
 #include "client/ui/kagero/event/UIEvents.hpp"
@@ -38,10 +39,14 @@
 #include "client/ui/kagero/widget/TextWidget.hpp"
 #include "client/ui/kagero/widget/Viewport3DWidget.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <map>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::bindings {
 

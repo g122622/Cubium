@@ -22,13 +22,20 @@
  */
 
 #include "Font.hpp"
+#include "client/ui/Glyph.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 
 // STB image for loading PNG textures (已在TextureAtlasBuilder.cpp中定义)
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
 
 namespace mc::client {

@@ -24,8 +24,12 @@
 #pragma once
 
 #include "client/sound/instance/ISoundInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundTypes.hpp"
 
 #include <atomic>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

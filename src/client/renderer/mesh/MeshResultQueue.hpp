@@ -25,6 +25,7 @@
 
 #include "MeshWorkerTypes.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <mutex>
 #include <queue>

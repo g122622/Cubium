@@ -22,8 +22,13 @@
  */
 
 #include "ProjectileModels.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
+#include <memory>
 
 namespace mc::client::renderer::entity::model::projectile {
 

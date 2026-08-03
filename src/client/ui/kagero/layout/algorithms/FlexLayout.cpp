@@ -22,7 +22,16 @@
  */
 
 #include "FlexLayout.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/constraints/LayoutConstraints.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/core/MeasureSpec.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::layout {
 

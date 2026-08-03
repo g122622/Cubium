@@ -22,8 +22,21 @@
  */
 
 #include "BindingContext.hpp"
+#include "client/ui/kagero/event/Event.hpp"
+#include "client/ui/kagero/event/EventBus.hpp"
+#include "client/ui/kagero/state/StateStore.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <any>
+#include <cstddef>
+#include <functional>
 #include <sstream>
+#include <string>
+#include <typeinfo>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::binder {
 

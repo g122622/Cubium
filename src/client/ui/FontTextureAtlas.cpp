@@ -22,8 +22,11 @@
  */
 
 #include "FontTextureAtlas.hpp"
-#include <algorithm>
+#include "client/ui/Glyph.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <cstring>
+#include <utility>
 
 namespace mc::client {
 

@@ -24,19 +24,28 @@
 #pragma once
 
 #include "client/renderer/api/IRenderEngine.hpp"
+#include "client/renderer/api/Types.hpp"
+#include "client/renderer/api/buffer/IBuffer.hpp"
 #include "client/renderer/api/buffer/IStagingBufferPool.hpp"
+#include "client/renderer/api/camera/ICamera.hpp"
+#include "client/renderer/api/pipeline/RenderType.hpp"
+#include "client/renderer/api/texture/ITexture.hpp"
+#include "client/renderer/api/texture/TextureRegion.hpp"
 #include "client/renderer/trident/cloud/CloudMode.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "client/renderer/trident/core/texture/AnimatedSprite.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
 #include "client/resource/ResourceManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <functional>
 #include <map>
 #include <memory>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 // 前置声明
 struct GLFWwindow;

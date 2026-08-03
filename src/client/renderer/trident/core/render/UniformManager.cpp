@@ -25,13 +25,21 @@
 #include "DescriptorManager.hpp"
 #include "client/renderer/trident/core/TridentContext.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <string>
+#include <utility>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident {
 

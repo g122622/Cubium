@@ -22,10 +22,20 @@
 
 #include "client/resource/atlas/AtlasSourceParser.hpp"
 
+#include "client/resource/atlas/AtlasSource.hpp"
 #include "client/resource/atlas/IdentifierPattern.hpp"
 #include "client/resource/atlas/Sources.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
+#include <exception>
+#include <map>
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::client::resource::atlas {

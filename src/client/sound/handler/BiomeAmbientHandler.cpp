@@ -22,15 +22,21 @@
  */
 
 #include "client/sound/handler/BiomeAmbientHandler.hpp"
-#include "client/sound/SoundPool.hpp"
+#include "client/sound/SoundEngine.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Constants.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeAmbientSounds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <memory>
+#include <utility>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

@@ -22,6 +22,7 @@
  */
 
 #include "client/application/ClientApplication.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client {
 

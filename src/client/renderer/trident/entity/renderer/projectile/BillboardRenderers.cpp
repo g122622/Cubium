@@ -22,7 +22,10 @@
  */
 
 #include "BillboardRenderers.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
+#include <vector>
 
 namespace mc::client::renderer::entity::renderer::projectile {
 

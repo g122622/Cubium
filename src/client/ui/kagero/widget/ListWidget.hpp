@@ -26,8 +26,15 @@
 #include "../paint/PaintContext.hpp"
 #include "ScrollableWidget.hpp"
 #include "Widget.hpp"
+#include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 // 前向声明 Value 类型

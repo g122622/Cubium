@@ -32,6 +32,7 @@
 #include <glm/glm.hpp>
 
 #include <memory>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::client::sound {
 

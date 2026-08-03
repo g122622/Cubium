@@ -26,6 +26,7 @@
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector4.hpp"
+#include <vector>
 
 namespace mc {
 class Entity;

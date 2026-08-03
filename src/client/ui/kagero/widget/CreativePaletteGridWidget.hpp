@@ -24,13 +24,17 @@
 #pragma once
 
 #include "client/ui/Glyph.hpp"
+#include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "core/Types.hpp"
+#include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <GLFW/glfw3.h>
 

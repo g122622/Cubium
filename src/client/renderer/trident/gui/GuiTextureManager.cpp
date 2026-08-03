@@ -25,14 +25,17 @@
 #include "GuiRenderer.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/resource/ResourceManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/pack/FolderResourcePack.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::gui {
 

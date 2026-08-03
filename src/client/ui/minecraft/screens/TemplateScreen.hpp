@@ -28,8 +28,11 @@
 #include "client/ui/kagero/template/binder/BindingContext.hpp"
 #include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
 #include "client/ui/kagero/template/runtime/TemplateInstance.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace mc::client::ui::minecraft {

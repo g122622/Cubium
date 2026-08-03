@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/sound/handler/EntitySoundHandler.hpp"
+#include "client/sound/instance/ISoundInstance.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"

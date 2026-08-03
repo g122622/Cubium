@@ -24,10 +24,13 @@
 #pragma once
 
 #include "ContainerScreenBase.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerInteraction.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "core/Types.hpp"
 #include <memory>
+#include <utility>
 
 namespace mc {
 class InventoryCraftingMenu;

@@ -25,6 +25,7 @@
 
 #include "Screen.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/renderer/trident/entity/model/base/QuadrupedModel.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity::model::animal {

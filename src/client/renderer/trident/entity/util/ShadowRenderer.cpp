@@ -25,17 +25,23 @@
 #include "../model/core/ModelRenderer.hpp"
 #include "../pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/Vector4.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::entity::util {
 

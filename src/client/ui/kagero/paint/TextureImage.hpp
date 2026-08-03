@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "contracts/IImage.hpp"
+#include <string>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::ui::kagero::paint {
 

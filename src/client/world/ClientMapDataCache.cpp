@@ -23,10 +23,19 @@
 
 #include "client/world/ClientMapDataCache.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/world/map/MapData.hpp"
+#include "common/world/map/MapDecoration.hpp"
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::client {
 

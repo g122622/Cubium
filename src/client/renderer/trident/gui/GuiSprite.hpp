@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <string>
 
 namespace mc::client::renderer::trident::gui {
 

@@ -22,7 +22,11 @@
  */
 
 #include "CatRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <array>
 
 namespace mc::client::renderer::entity::renderer::animal {
 

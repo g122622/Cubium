@@ -22,6 +22,11 @@
  */
 
 #include "BiomeColorCache.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include <cstddef>
+#include <mutex>
+#include <optional>
 
 namespace mc::client {
 

@@ -23,7 +23,11 @@
 
 #include "client/sound/backend/AudioBuffer.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace mc::client::sound {
 

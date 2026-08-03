@@ -26,8 +26,10 @@
 #include "Font.hpp"
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
+#include <cstddef>
 #include <string>
 #include <vector>
 

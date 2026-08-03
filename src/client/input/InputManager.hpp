@@ -26,8 +26,10 @@
 #include "common/core/Types.hpp"
 
 #include <functional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 // 前向声明
 struct GLFWwindow;

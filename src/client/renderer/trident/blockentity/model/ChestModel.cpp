@@ -22,7 +22,11 @@
  */
 
 #include "ChestModel.hpp"
-#include <cmath>
+#include "client/renderer/trident/blockentity/model/BlockEntityModel.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include <memory>
 
 namespace mc::client::renderer::blockentity::model {
 

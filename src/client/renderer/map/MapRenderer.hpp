@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/map/MapData.hpp"
+#include "common/world/map/MapDecoration.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include <array>
 #include <unordered_map>

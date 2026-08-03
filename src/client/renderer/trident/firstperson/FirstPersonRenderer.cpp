@@ -23,23 +23,40 @@
 
 #include "FirstPersonRenderer.hpp"
 #include "FirstPersonTransforms.hpp"
+#include "client/renderer/MeshTypes.hpp"
 #include "client/renderer/trident/chunk/ChunkRenderer.hpp"
 #include "client/renderer/trident/entity/util/BlockMeshBuilder.hpp"
+#include "client/renderer/trident/firstperson/ArmPose.hpp"
+#include "client/renderer/trident/firstperson/ItemCameraTransforms.hpp"
+#include "client/renderer/trident/firstperson/MatrixStack.hpp"
+#include "client/renderer/trident/firstperson/PlayerModel.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "client/resource/ItemTextureAtlas.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 namespace mc::client::renderer::trident::firstperson {
 

@@ -22,10 +22,20 @@
  */
 
 #include "ClientEntityManager.hpp"
+#include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc::client {
 

@@ -22,7 +22,16 @@
  */
 
 #include "Parser.hpp"
+#include "client/ui/kagero/template/parser/Ast.hpp"
+#include "client/ui/kagero/template/parser/Lexer.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::client::ui::kagero::tpl::parser {
 

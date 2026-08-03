@@ -30,10 +30,12 @@
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
 #include "client/ui/kagero/widget/TextWidget.hpp"
 #include "common/core/DefaultValues.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
 #include <functional>
 #include <memory>
+#include <utility>
 
 namespace mc::client::ui::minecraft {
 

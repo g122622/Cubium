@@ -23,10 +23,17 @@
 
 #pragma once
 
+#include "client/renderer/trident/entity/core/AnimationContext.hpp"
+#include "client/renderer/trident/entity/core/EntityRenderer.hpp"
 #include "client/renderer/trident/entity/core/LivingRenderer.hpp"
 #include "client/renderer/trident/entity/model/aquatic/AquaticModels.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
+#include "client/renderer/trident/entity/model/core/EntityModel.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 
 namespace mc::client::renderer::entity {

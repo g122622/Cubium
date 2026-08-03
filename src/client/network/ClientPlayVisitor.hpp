@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 

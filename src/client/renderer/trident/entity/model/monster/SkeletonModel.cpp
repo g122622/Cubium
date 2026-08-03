@@ -22,7 +22,9 @@
  */
 
 #include "SkeletonModel.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "client/renderer/trident/entity/model/base/BipedModel.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
 
 namespace mc::client::renderer::entity::model::monster {

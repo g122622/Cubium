@@ -36,6 +36,8 @@
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -46,15 +48,19 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "entity/ClientEntityManager.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc {
 class ItemStack;

@@ -21,6 +21,7 @@
  */
 
 #include "ElytraSpeedValue.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::client::renderer::entity::model {
 namespace elytra {

@@ -26,19 +26,31 @@
 #include "client/renderer/util/ShaderPath.hpp"
 #include "client/resource/ResourceManager.hpp"
 #include "client/world/ClientWorld.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/frustum/Frustum.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <fstream>
-#include <glm/gtc/matrix_transform.hpp>
+#include <ios>
+#include <string>
+#include <utility>
+#include <vector>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace mc::trace;
 
