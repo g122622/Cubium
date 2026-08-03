@@ -50,10 +50,10 @@ public:
         return m_hasEntity ? 15 : 0;
     }
 
-    [[nodiscard]] i32 getTickDelay(i32 oldSignal, i32 newSignal) const override
+    [[nodiscard]] i32 getTickDelay(bool oldPowered, bool newPowered) const override
     {
-        MC_UNUSED(oldSignal);
-        MC_UNUSED(newSignal);
+        MC_UNUSED(oldPowered);
+        MC_UNUSED(newPowered);
         return m_tickDelay;
     }
 
@@ -86,8 +86,8 @@ protected:
 
 TEST_F(AbstractPressurePlateBlockShapeTest, UnpressedShape_HasCollisionBox)
 {
-    // 未按下状态（power=0）
-    BlockState state = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 0);
+    // 未按下状态（powered=false）
+    BlockState state = block_->defaultState().with(BlockStateProperties::POWERED(), false);
 
     const CollisionShape& shape = block_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
@@ -96,8 +96,8 @@ TEST_F(AbstractPressurePlateBlockShapeTest, UnpressedShape_HasCollisionBox)
 
 TEST_F(AbstractPressurePlateBlockShapeTest, PressedShape_HasCollisionBox)
 {
-    // 按下状态（power>0）
-    BlockState state = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 15);
+    // 按下状态（powered=true）
+    BlockState state = block_->defaultState().with(BlockStateProperties::POWERED(), true);
 
     const CollisionShape& shape = block_->getShape(state);
     EXPECT_FALSE(shape.isEmpty());
@@ -107,8 +107,8 @@ TEST_F(AbstractPressurePlateBlockShapeTest, PressedShape_HasCollisionBox)
 TEST_F(AbstractPressurePlateBlockShapeTest, PressedShape_LowerThanUnpressed)
 {
     // 按下状态比未按下状态更低
-    BlockState unpressedState = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 0);
-    BlockState pressedState = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 15);
+    BlockState unpressedState = block_->defaultState().with(BlockStateProperties::POWERED(), false);
+    BlockState pressedState = block_->defaultState().with(BlockStateProperties::POWERED(), true);
 
     const CollisionShape& unpressedShape = block_->getShape(unpressedState);
     const CollisionShape& pressedShape = block_->getShape(pressedState);
@@ -119,19 +119,6 @@ TEST_F(AbstractPressurePlateBlockShapeTest, PressedShape_LowerThanUnpressed)
 
     // 形状应该是不同的
     EXPECT_NE(&unpressedShape, &pressedShape);
-}
-
-TEST_F(AbstractPressurePlateBlockShapeTest, PowerLevelDoesNotAffectShape_BeyondZero)
-{
-    // 只有 0 和 >0 的区别，>0 的具体值不影响形状
-    BlockState state1 = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 1);
-    BlockState state15 = block_->defaultState().with(BlockStateProperties::POWER_0_15(), 15);
-
-    const CollisionShape& shape1 = block_->getShape(state1);
-    const CollisionShape& shape15 = block_->getShape(state15);
-
-    // 相同的按下形状
-    EXPECT_EQ(&shape1, &shape15);
 }
 
 // ============================================================================
@@ -145,39 +132,27 @@ protected:
     std::unique_ptr<TestPressurePlateBlock> block_;
 };
 
-TEST_F(AbstractPressurePlateBlockPowerTest, GetPower_ReturnsCorrectValue)
+TEST_F(AbstractPressurePlateBlockPowerTest, IsPowered_ReturnsCorrectValue)
 {
     BlockState state = block_->defaultState();
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state), 0);
+    EXPECT_FALSE(AbstractPressurePlateBlock::isPowered(state));
 
-    state = state.with(BlockStateProperties::POWER_0_15(), 5);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state), 5);
+    state = state.with(BlockStateProperties::POWERED(), true);
+    EXPECT_TRUE(AbstractPressurePlateBlock::isPowered(state));
 
-    state = state.with(BlockStateProperties::POWER_0_15(), 15);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state), 15);
+    state = state.with(BlockStateProperties::POWERED(), false);
+    EXPECT_FALSE(AbstractPressurePlateBlock::isPowered(state));
 }
 
-TEST_F(AbstractPressurePlateBlockPowerTest, WithPower_ReturnsCorrectState)
+TEST_F(AbstractPressurePlateBlockPowerTest, WithPowered_ReturnsCorrectState)
 {
     BlockState state = block_->defaultState();
 
-    BlockState state5 = AbstractPressurePlateBlock::withPower(state, 5);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state5), 5);
+    BlockState stateOn = AbstractPressurePlateBlock::withPowered(state, true);
+    EXPECT_TRUE(AbstractPressurePlateBlock::isPowered(stateOn));
 
-    BlockState state15 = AbstractPressurePlateBlock::withPower(state, 15);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state15), 15);
-}
-
-TEST_F(AbstractPressurePlateBlockPowerTest, WithPower_ClampsValue)
-{
-    BlockState state = block_->defaultState();
-
-    // 测试边界值钳制
-    BlockState stateNegative = AbstractPressurePlateBlock::withPower(state, -1);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(stateNegative), 0);
-
-    BlockState stateOverMax = AbstractPressurePlateBlock::withPower(state, 20);
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(stateOverMax), 15);
+    BlockState stateOff = AbstractPressurePlateBlock::withPowered(state, false);
+    EXPECT_FALSE(AbstractPressurePlateBlock::isPowered(stateOff));
 }
 
 TEST_F(AbstractPressurePlateBlockPowerTest, CanProvidePower_ReturnsTrue)
@@ -186,10 +161,10 @@ TEST_F(AbstractPressurePlateBlockPowerTest, CanProvidePower_ReturnsTrue)
     EXPECT_TRUE(block_->canProvidePower(state));
 }
 
-TEST_F(AbstractPressurePlateBlockPowerTest, DefaultPower_IsZero)
+TEST_F(AbstractPressurePlateBlockPowerTest, DefaultPowered_IsFalse)
 {
     BlockState state = block_->defaultState();
-    EXPECT_EQ(AbstractPressurePlateBlock::getPower(state), 0);
+    EXPECT_FALSE(AbstractPressurePlateBlock::isPowered(state));
 }
 
 // ============================================================================
@@ -203,19 +178,19 @@ protected:
     std::unique_ptr<TestPressurePlateBlock> block_;
 };
 
-TEST_F(AbstractPressurePlateBlockPropertyTest, HasPowerProperty)
+TEST_F(AbstractPressurePlateBlockPropertyTest, HasPoweredProperty)
 {
     BlockState state = block_->defaultState();
-    EXPECT_TRUE(state.hasProperty(BlockStateProperties::POWER_0_15()));
+    EXPECT_TRUE(state.hasProperty(BlockStateProperties::POWERED()));
 }
 
-TEST_F(AbstractPressurePlateBlockPropertyTest, PowerRange_0to15)
+TEST_F(AbstractPressurePlateBlockPropertyTest, PoweredValues_RoundTrip)
 {
     BlockState state = block_->defaultState();
 
-    // 测试所有有效值
-    for (i32 i = 0; i <= 15; ++i) {
-        state = state.with(BlockStateProperties::POWER_0_15(), i);
-        EXPECT_EQ(state.get(BlockStateProperties::POWER_0_15()), i);
-    }
+    state = state.with(BlockStateProperties::POWERED(), true);
+    EXPECT_EQ(state.get(BlockStateProperties::POWERED()), true);
+
+    state = state.with(BlockStateProperties::POWERED(), false);
+    EXPECT_EQ(state.get(BlockStateProperties::POWERED()), false);
 }

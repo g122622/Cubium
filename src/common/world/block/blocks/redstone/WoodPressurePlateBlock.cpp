@@ -72,10 +72,10 @@ i32 WoodPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPo
     return 0;
 }
 
-i32 WoodPressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
+i32 WoodPressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const
 {
-    MC_UNUSED(oldSignal);
-    MC_UNUSED(newSignal);
+    MC_UNUSED(oldPowered);
+    MC_UNUSED(newPowered);
     return WOOD_PLATE_DELAY;
 }
 

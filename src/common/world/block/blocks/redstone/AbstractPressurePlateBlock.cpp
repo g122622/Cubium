@@ -36,7 +36,6 @@
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -52,7 +51,7 @@ AbstractPressurePlateBlock::AbstractPressurePlateBlock(const BlockProperties& pr
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::POWER_0_15())
+            .add(BlockStateProperties::POWERED())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -63,17 +62,17 @@ AbstractPressurePlateBlock::AbstractPressurePlateBlock(const BlockProperties& pr
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::POWER_0_15(), 0));
+    setDefaultState(defaultState().with(BlockStateProperties::POWERED(), false));
 }
 
-i32 AbstractPressurePlateBlock::getPower(const BlockState& state)
+bool AbstractPressurePlateBlock::isPowered(const BlockState& state)
 {
-    return state.get(BlockStateProperties::POWER_0_15());
+    return state.get(BlockStateProperties::POWERED());
 }
 
-BlockState AbstractPressurePlateBlock::withPower(BlockState state, i32 power)
+BlockState AbstractPressurePlateBlock::withPowered(BlockState state, bool powered)
 {
-    return state.with(BlockStateProperties::POWER_0_15(), std::clamp(power, 0, 15));
+    return state.with(BlockStateProperties::POWERED(), powered);
 }
 
 void AbstractPressurePlateBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
@@ -115,16 +114,17 @@ bool AbstractPressurePlateBlock::_canSurvive(IWorld& world, const BlockPos& pos)
 void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    i32 oldPower = getPower(state);
-    i32 newPower = calculateSignalStrength(world, pos);
+    bool oldPowered = isPowered(state);
+    i32 signalStrength = calculateSignalStrength(world, pos);
+    bool newPowered = signalStrength > 0;
 
-    if (newPower != oldPower) {
+    if (newPowered != oldPowered) {
         // 状态改变
-        BlockState newState = withPower(state, newPower);
+        BlockState newState = withPowered(state, newPowered);
         world.setBlockState(pos, &newState, 2);
 
         // 播放音效
-        playClickSound(world, pos, newPower > 0);
+        playClickSound(world, pos, newPowered);
 
         // 通知相邻方块更新
         for (Direction dir : Directions::all()) {
@@ -135,22 +135,24 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
                 neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
             }
         }
-    } else if (newPower > 0) {
+    } else if (newPowered) {
         // 仍然有压力，继续检测
         world.tickManager().scheduleBlockTick(
-            pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
+            pos, *this, getTickDelay(oldPowered, newPowered), world::tick::TickPriority::High);
     }
 }
 
 i32 AbstractPressurePlateBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(side);
 
-    // 压力板向所有方向输出信号
-    return getPower(state);
+    // 压力板向所有方向输出信号；信号强度实时计算（不持久化到 block state）
+    // 仅在按下（powered=true）时输出，未按下返回 0
+    if (!isPowered(state)) {
+        return 0;
+    }
+    return calculateSignalStrength(world, pos);
 }
 
 i32 AbstractPressurePlateBlock::getStrongPower(
@@ -158,7 +160,7 @@ i32 AbstractPressurePlateBlock::getStrongPower(
 {
     // 压力板向上方输出强信号
     if (side == Direction::Up) {
-        return getPower(state);
+        return getWeakPower(state, world, pos, side);
     }
     return 0;
 }
@@ -167,7 +169,7 @@ const CollisionShape& AbstractPressurePlateBlock::getShape(const BlockState& sta
 {
     static const CollisionShape unpressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 1.0f, 15.0f);
     static const CollisionShape pressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 0.5f, 15.0f);
-    return getPower(state) > 0 ? pressedShape : unpressedShape;
+    return isPowered(state) ? pressedShape : unpressedShape;
 }
 
 bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos& pos) const
@@ -199,8 +201,7 @@ void AbstractPressurePlateBlock::onEntityCollision(
 {
     // 当实体踩上压力板时，如果当前未被触发，则调度tick更新状态
     MC_UNUSED(entity);
-    i32 currentPower = getPower(state);
-    if (currentPower == 0) {
+    if (!isPowered(state)) {
         // 调度tick来更新状态
         // 需要const_cast因为scheduleBlockTick需要非const的Block引用
         world.tickManager().scheduleBlockTick(
@@ -210,13 +211,14 @@ void AbstractPressurePlateBlock::onEntityCollision(
 
 void AbstractPressurePlateBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    i32 oldPower = getPower(state);
-    i32 newPower = calculateSignalStrength(world, pos);
+    bool oldPowered = isPowered(state);
+    i32 signalStrength = calculateSignalStrength(world, pos);
+    bool newPowered = signalStrength > 0;
 
-    if (newPower != oldPower) {
+    if (newPowered != oldPowered) {
         // 状态改变，调度tick
         world.tickManager().scheduleBlockTick(
-            pos, *this, getTickDelay(oldPower, newPower), world::tick::TickPriority::High);
+            pos, *this, getTickDelay(oldPowered, newPowered), world::tick::TickPriority::High);
     }
 }
 

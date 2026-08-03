@@ -49,7 +49,7 @@ public:
 protected:
     [[nodiscard]] i32 calculateSignalStrength(IWorld& world, const BlockPos& pos) const override;
 
-    [[nodiscard]] i32 getTickDelay(i32 oldSignal, i32 newSignal) const override;
+    [[nodiscard]] i32 getTickDelay(bool oldPowered, bool newPowered) const override;
 
     void playClickSound(IWorld& world, const BlockPos& pos, bool pressed) const override;
 };

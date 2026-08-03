@@ -105,21 +105,21 @@ public:
     // ========== 压力板特有方法 ==========
 
     /**
-     * @brief 获取当前信号强度
+     * @brief 压力板是否处于按下（通电）状态
      *
      * @param state 方块状态
-     * @return i32 信号强度（0-15）
+     * @return true 表示当前有实体触发（powered=true）
      */
-    [[nodiscard]] static i32 getPower(const BlockState& state);
+    [[nodiscard]] static bool isPowered(const BlockState& state);
 
     /**
-     * @brief 设置信号强度
+     * @brief 设置压力板的按下状态
      *
      * @param state 方块状态
-     * @param power 信号强度
+     * @param powered 是否按下
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState withPower(BlockState state, i32 power);
+    [[nodiscard]] static BlockState withPowered(BlockState state, bool powered);
 
 protected:
     /**
@@ -140,7 +140,7 @@ protected:
      * @param newSignal 新信号
      * @return i32 tick延迟
      */
-    [[nodiscard]] virtual i32 getTickDelay(i32 oldSignal, i32 newSignal) const = 0;
+    [[nodiscard]] virtual i32 getTickDelay(bool oldPowered, bool newPowered) const = 0;
 
     /**
      * @brief 播放点击音效

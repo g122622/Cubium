@@ -66,10 +66,10 @@ i32 WeightedPressurePlateBlock::calculateSignalStrength(IWorld& world, const Blo
     }
 }
 
-i32 WeightedPressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
+i32 WeightedPressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const
 {
-    MC_UNUSED(oldSignal);
-    MC_UNUSED(newSignal);
+    MC_UNUSED(oldPowered);
+    MC_UNUSED(newPowered);
     return WEIGHTED_PLATE_DELAY;
 }
 

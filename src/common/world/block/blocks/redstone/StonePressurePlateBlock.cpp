@@ -77,10 +77,10 @@ i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockP
     return 0;
 }
 
-i32 StonePressurePlateBlock::getTickDelay(i32 oldSignal, i32 newSignal) const
+i32 StonePressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const
 {
-    MC_UNUSED(oldSignal);
-    MC_UNUSED(newSignal);
+    MC_UNUSED(oldPowered);
+    MC_UNUSED(newPowered);
     return STONE_PLATE_DELAY;
 }
 
