@@ -111,9 +111,11 @@ fix_includes.ts 默认跳过对 .cpp 关联同名 .hpp 的移除建议（判定�
 
 `src/server/main.cpp`（无关联头、含 `pragma push_macro` 等预处理魔法）与所有 `.gen.cpp`（自动生成）被脚本硬编码排除。扩到其他目录时，若该目录有类似的特殊入口文件，应在脚本 `EXCLUDE_FILES` 中补上。
 
-### 16. fix_includes.ts 串行执行，全仓库耗时较长
+### 16. fix_includes.ts 并行执行（worker_threads 池）
 
-脚本串行处理每个 .cpp/.hpp（用户要求起步串行）。单文件 clang-include-cleaner 解析约 0.5-3 秒，src/server 165 个 .cpp 全量约 5-15 分钟。扩到全 `src/`（千级文件）会耗时数十分钟。后续若需并行，可改用 worker_threads，但要警惕 clang-include-cleaner 多进程的内存占用。
+脚本用 worker_threads 池并行处理：N 个 worker（默认 `min(CPU核数-2, 16)`，`IWYU_WORKERS` 环境变量可覆盖）动态分发文件，空闲 worker 立即领新任务，避免长尾文件拖慢整体。worker 复用本文件（`new Worker(__filename)`），`!isMainThread` 时跑 `parentPort` 监听循环；`processFile` 是纯函数（分析+改写，不读写文件不打印），主线程与 worker 共用，文件写盘与打印仍在主线程（避免并发 I/O 与输出交错）。
+
+性能：src/client 843 文件，串行 30+ 分钟未完成 → 并行 6m20s（约 5x 加速）。正确性校验：`IWYU_WORKERS=1` 串行 vs 默认并行，各项统计完全一致。历史背景：早期版本串行（坑 #16 原文），src/client 推广时并行化。
 
 ### 17. .hpp 移除默认禁用（传染性风险）
 
@@ -142,6 +144,8 @@ src/server 全量落地（286 文件）暴露两类工具误判，fix_includes.t
 1. **模板定义头被当冗余移除**：`server/advancement/TriggerInstantiation.hpp` 实质承载 `AbstractCriterionTrigger<T>::trigger<PredicateT>` 模板成员函数的**定义**（`CriterionTrigger.hpp` 里只有声明）。工具看不到"符号引用"（模板定义不产生被引用符号），判定冗余并建议移除。移除后 `VibrationSystemServer.cpp:202` 用 lambda 调用 `trigger` 时，因 lambda 类型无链接不能在别的 TU 定义，报 `used but not defined ... cannot be defined in any other translation unit`。修复：恢复该 include。这类"模板定义头"全仓可能还有，落地后编译验证是唯一兜底。
 
 2. **传递引入完整类型被当冗余移除**：`SpawnConditions.cpp` 调用 `BlockState::isAir()`/`isLiquid()`，`BlockState` 完整定义原经 `Block.hpp` 传递引入。工具判定本文件未直接用 `Block` 符号而建议移除 `Block.hpp`，断裂 `BlockState` 完整定义，报 `member access into incomplete type 'BlockState'`。修复：显式 include `BlockState.hpp`（本文件直接用其成员函数，符合 IWYU「include what you use」——工具本应建议插入但漏了）。这类"成员函数调用的类型来源追踪不足"是工具固有局限。
+
+3. **unique_ptr 析构需完整类型被当冗余移除**（src/client 实证）：`ClientApplication.cpp` 持有 `unique_ptr<ClientCommandManager>` 成员（成员在关联 `ClientApplication.hpp:564`，前向声明在 :76），析构在 .cpp 内联需完整类型，完整定义原经 `ClientCommandManager.hpp` 引入。工具判定本文件未直接用 `ClientCommandManager` 符号而建议移除该头，报 `can't delete an incomplete type 'ClientCommandManager'`（MSVC STL `memory:3337` static_assert）。修复：补回 `ClientCommandManager.hpp`。这是"前向声明 + unique_ptr 成员"模式的固有陷阱——.hpp 用前向声明减重编译，.cpp 必须 include 完整定义供析构，工具看不到析构的隐式类型需求。
 
 **结论**：全量 --write 后**必须全量编译验证**（`./scripts/configure.sh build`），不能盲信工具建议。incomplete type / used but not defined 两类错误是 IWYU 误判的典型信号，对应"传递引入完整类型被移除"和"模板定义头被移除"，手动补回相应 include 即可。AssertAll.hpp 这类约定头已由 PROTECTED_HEADERS 机制保护，但模板定义头/完整类型头因无统一判定规则，无法自动保护，靠编译验证兜底。
 
@@ -181,6 +185,27 @@ fix_includes.ts 内置 `PROTECTED_HEADER_BASENAMES`（移除时跳过）与 `PRO
 - `VibrationSystemServer.cpp`：恢复 `TriggerInstantiation.hpp`（移除模板定义头断裂实例化）
 
 **推广结论**：工具可用性高，但全量落地后**必须全量编译验证**兜底 IWYU 对模板定义头/传递完整类型的盲区。下一阶段可推广到 `src/common/`、`src/client/`。
+
+## 全量落地结果（src/client，2026-08-03）
+
+843 文件（383 .cpp + 460 .hpp）全量分析落地，751 文件改动，净增 ~3608 include。worker_threads 并行 dry-run 6m20s（16 workers，对比串行 30+ 分钟未完成，约 5x 加速）。编译验证 exit 0（3:24）。
+
+| 指标 | 数值 |
+|---|---|
+| Clean（无需改） | 60 |
+| Suggest（有建议） | 781（751 文件改动） |
+| Fail | 0 |
+| Skip（预存在代码问题） | 2（BannerRenderer.hpp / Chest Renderer.hpp incomplete type） |
+| 移除 | 213 |
+| 插入 | 3824 |
+| .hpp 移除被默认禁 | 439 |
+| AssertAll 保护拦截 | 135 |
+| 关联头保护拦截 | 8 |
+
+一处工具误判手动修复（IWYU 对 unique_ptr 析构需完整类型的盲区，同 src/server SpawnConditions 模式）：
+- `ClientApplication.cpp`：移除 `ClientCommandManager.hpp` 断裂 `unique_ptr<ClientCommandManager>` 析构（成员在 `ClientApplication.hpp:564`，前向声明在 :76，.cpp 持 unique_ptr 析构需完整定义），补回。
+
+**推广结论**：src/client 体量是 src/server 的 2.5 倍，但工具盲区误判仅 1 处（少于 src/server 的 2 处），PROTECTED_HEADERS 机制拦截 135 处 AssertAll 风险。并行化后全量落地可接受（dry-run 6min + 编译 3.5min）。剩余 `src/common/` 可同流程推广。
 
 ## 用法速查
 
