@@ -32,7 +32,16 @@
 //   2. 稳定低频改动（PCH 头改动会触发全量重编译，必须选基础头）
 //   3. 干净无警告（PCH 编译单元继承 -Werror，触发警告的头须显式豁免）
 //
+// 当前收录（按引用 TU 数）：
+//   - 标准库高频头（memory/vector/string 等，全项目绝大多数 TU）
+//   - <nlohmann/json.hpp>（~316 TU，全项目最高引用，重模板库）
+//   - <glm/glm.hpp>（227 TU，渲染层数学库，全家桶重头）
+//   - <spdlog/spdlog.h>（Result.hpp 传递引入，重头）
+//   - Types.hpp（~3221 TU，最高频项目头）/ Result.hpp / AssertAll.hpp
+//
 // 严禁放入业务头（BlockState/ChunkData/网络包定义等高频演进头）。
+// TraceEvents.hpp 暂未收入：依赖 TraceCategories.hpp 类别树（新增类别触发重编译）
+// 且条件引入 perfetto/tracy 重头，性价比低于 glm/json，留作后续单独评估。
 // ============================================================================
 
 #pragma once
@@ -59,6 +68,10 @@
 // spdlog 在 -Wall -Wextra -pedantic 下可能产生警告，且项目 -Werror 默认开启，
 // 故在此处用 pragma 局部豁免关键警告，保证 PCH 编译单元创建成功。
 // pragma 作用域仅限本 PCH 头的展开区间，使用方 TU 的警告行为不受影响。
+//
+// <glm/glm.hpp>（全家桶）被 227 个 TU 引用（集中在渲染层），是另一高杠杆点。
+// glm 作为重模板数学库，其高频警告（sign-conversion/conversion/old-style-cast/
+// double-promotion/shadow）与 spdlog 同源，复用本 pragma 块即可覆盖。
 // ----------------------------------------------------------------------------
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -81,8 +94,20 @@
 #pragma clang diagnostic ignored "-Wextra-semi-stmt"
 #pragma clang diagnostic ignored "-Wnewline-eof"
 #pragma clang diagnostic ignored "-Wmissing-variable-declarations"
+// glm 额外预防项（低风险，-Wall/-Wextra 下偶发）
+#pragma clang diagnostic ignored "-Wparentheses"
+#pragma clang diagnostic ignored "-Wunused-but-set-parameter"
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wpadded"
+// nlohmann/json 额外预防项（模板元编程库，数值解析路径偶发）
+#pragma clang diagnostic ignored "-Wfloat-conversion"
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+#include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 #include "common/core/Result.hpp"
