@@ -28,7 +28,6 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../blockentity/interactive/BannerEntity.hpp"
 #include "../../Block.hpp"
-#include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -48,12 +47,15 @@ namespace blocks {
 /**
  * @brief 旗帜抽象基类
  *
- * 提供旗帜方块的通用功能，包括含水支持、颜色管理、方块实体创建。
+ * 提供旗帜方块的通用功能，包括颜色管理、方块实体创建。
  * 子类：StandingBannerBlock（站立旗帜）和 WallBannerBlock（墙壁旗帜）
+ *
+ * vanilla 1.21.11 旗帜不持有 waterlogged 属性（不实现 SimpleWaterloggedBlock），
+ * 因此本项目旗帜同样不可含水，状态容器仅含 rotation/facing。
  *
  * 参考: net.minecraft.block.AbstractBannerBlock
  */
-class AbstractBannerBlock : public Block, public IWaterLoggable {
+class AbstractBannerBlock : public Block {
 public:
     /**
      * @brief 构造函数
@@ -102,15 +104,6 @@ public:
         return false;
     }
 
-    // ========== IWaterLoggable 接口实现 ==========
-
-    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
-
-    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
-    {
-        return state.get(BlockStateProperties::WATERLOGGED());
-    }
-
 protected:
     /// 旗帜底色
     DyeColor m_color;
@@ -123,7 +116,6 @@ protected:
  *
  * 状态属性：
  * - ROTATION_0_15: 0-15，表示16个旋转方向
- * - WATERLOGGED: 是否含水
  *
  * 参考: net.minecraft.block.BannerBlock
  */
@@ -142,7 +134,7 @@ public:
 
     /**
      * @brief 根据玩家朝向计算旋转值
-     * @return 带ROTATION和WATERLOGGED属性的方块状态
+     * @return 带ROTATION属性的方块状态
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -186,7 +178,6 @@ private:
  *
  * 状态属性：
  * - HORIZONTAL_FACING: 北、南、东、西四个方向
- * - WATERLOGGED: 是否含水
  *
  * 参考: net.minecraft.block.WallBannerBlock
  */
@@ -205,7 +196,7 @@ public:
 
     /**
      * @brief 根据玩家视线方向选择墙面朝向
-     * @return 带HORIZONTAL_FACING和WATERLOGGED属性的方块状态，无法放置时返回nullptr
+     * @return 带HORIZONTAL_FACING属性的方块状态，无法放置时返回默认状态
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 

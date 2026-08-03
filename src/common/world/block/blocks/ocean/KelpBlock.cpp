@@ -52,10 +52,10 @@ KelpBlock::KelpBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 kelp 仅有 age（始终在水下，无 waterlogged 属性）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::AGE_0_25())
-            .add(BlockStateProperties::WATERLOGGED())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -66,8 +66,7 @@ KelpBlock::KelpBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(
-        defaultState().with(BlockStateProperties::AGE_0_25(), 0).with(BlockStateProperties::WATERLOGGED(), true));
+    setDefaultState(defaultState().with(BlockStateProperties::AGE_0_25(), 0));
 
     // 海带形状：细长
     m_shape = CollisionShape::box(0.25f, 0.0f, 0.25f, 0.75f, 1.0f, 0.75f);
@@ -87,7 +86,7 @@ BlockState KelpBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     MC_UNUSED(context);
     // 海带必须在水中
-    return defaultState().with(BlockStateProperties::AGE_0_25(), 0).with(BlockStateProperties::WATERLOGGED(), true);
+    return defaultState().with(BlockStateProperties::AGE_0_25(), 0);
 }
 
 bool KelpBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

@@ -71,7 +71,6 @@ public:
 
     [[nodiscard]] Direction getFacing(const BlockState& state) const;
     [[nodiscard]] bool isConditional(const BlockState& state) const;
-    [[nodiscard]] bool isPowered(const BlockState& state) const;
 
     // ========== 放置逻辑 ==========
 

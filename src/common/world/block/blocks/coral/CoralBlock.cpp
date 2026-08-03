@@ -164,10 +164,10 @@ CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockPropert
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 地面珊瑚扇(CoralFanBlock)仅有 waterlogged，无 facing（朝向由墙扇 CoralWallFanBlock 持有）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::HORIZONTAL_FACING())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -178,29 +178,24 @@ CoralFanBlock::CoralFanBlock(CoralColor color, u32 deadBlock, const BlockPropert
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 BlockState CoralFanBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Direction facing = context.horizontalDirection();
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
-    return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool CoralFanBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    return canAttachTo(world, pos, facing);
+    MC_UNUSED(state);
+    // 与 vanilla BaseCoralPlantTypeBlock.canSurvive 一致：检查下方块顶面是否坚固
+    return canAttachTo(world, pos, Direction::Down);
 }
 
 BlockState CoralFanBlock::updatePostPlacement(const BlockState& state,
@@ -210,14 +205,13 @@ BlockState CoralFanBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
 
-    Direction attachDir = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == attachDir) {
-        IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-        if (!canAttachTo(blockReader, currentPos, attachDir)) {
-            if (auto* airState = BlockRegistry::instance().airState()) {
-                return *airState;
-            }
+    // 下方支撑失效则移除（vanilla updateShape: facing==DOWN && !canSurvive -> AIR）
+    if (facing == Direction::Down && !canAttachTo(static_cast<IBlockReader&>(world), currentPos, Direction::Down)) {
+        if (auto* airState = BlockRegistry::instance().airState()) {
+            return *airState;
         }
     }
 
@@ -236,17 +230,16 @@ BlockState CoralFanBlock::updatePostPlacement(const BlockState& state,
 
 const BlockState& CoralFanBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+    // 地面珊瑚扇无朝向属性，旋转不变
+    MC_UNUSED(rotation);
+    return state;
 }
 
 const BlockState& CoralFanBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    Rotation rotation = Directions::mirrorToRotation(mirror, facing);
-    Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
+    // 地面珊瑚扇无朝向属性，镜像不变
+    MC_UNUSED(mirror);
+    return state;
 }
 
 const CollisionShape& CoralFanBlock::getShape(const BlockState& state) const

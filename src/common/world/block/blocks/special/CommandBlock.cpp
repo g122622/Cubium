@@ -62,11 +62,11 @@ CommandBlock::CommandBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 命令方块仅有 conditional + facing，不含 powered（powered 由 BE 持有）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::FACING())
             .add(BlockStateProperties::CONDITIONAL())
-            .add(BlockStateProperties::POWERED())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -79,8 +79,7 @@ CommandBlock::CommandBlock(const BlockProperties& properties)
     // 设置默认状态
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING(), Direction::North)
-            .with(BlockStateProperties::CONDITIONAL(), false)
-            .with(BlockStateProperties::POWERED(), false));
+            .with(BlockStateProperties::CONDITIONAL(), false));
 }
 
 Direction CommandBlock::getFacing(const BlockState& state) const
@@ -91,11 +90,6 @@ Direction CommandBlock::getFacing(const BlockState& state) const
 bool CommandBlock::isConditional(const BlockState& state) const
 {
     return state.get(BlockStateProperties::CONDITIONAL());
-}
-
-bool CommandBlock::isPowered(const BlockState& state) const
-{
-    return state.get(BlockStateProperties::POWERED());
 }
 
 BlockState CommandBlock::getStateForPlacement(BlockItemUseContext& context)

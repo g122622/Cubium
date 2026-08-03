@@ -49,10 +49,10 @@ TallSeagrassBlock::TallSeagrassBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 tall_seagrass 仅有 half（始终在水下，无 waterlogged 属性）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::DOUBLE_BLOCK_HALF())
-            .add(BlockStateProperties::WATERLOGGED())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -63,9 +63,7 @@ TallSeagrassBlock::TallSeagrassBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower)
-            .with(BlockStateProperties::WATERLOGGED(), true));
+    setDefaultState(defaultState().with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower));
 
     // 形状
     m_lowerShape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 1.0f, 0.875f);

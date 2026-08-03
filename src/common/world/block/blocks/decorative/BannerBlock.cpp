@@ -26,17 +26,20 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
-#include "../../../block/WaterLoggableHelpers.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include <cmath>
+#include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace blocks {
@@ -65,40 +68,36 @@ void AbstractBannerBlock::onBlockPlacedBy(
     // 图案数据和自定义名称通过 BannerItem 的放置逻辑和方块实体NBT加载处理
 }
 
-const fluid::FluidState* AbstractBannerBlock::getFluidState(const BlockState& state) const
-{
-    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
-    return waterState != nullptr ? waterState : Block::getFluidState(state);
-}
-
 // ========== StandingBannerBlock ==========
 
 StandingBannerBlock::StandingBannerBlock(const BlockProperties& properties, DyeColor color)
     : AbstractBannerBlock(properties, color)
 {
+    // vanilla 1.21.11 BannerBlock 仅有 rotation 属性（无 waterlogged）
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::ROTATION_0_15())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState().with(BlockStateProperties::ROTATION_0_15(), 0));
+
     // 旗杆碰撞形状：中心8x16x8像素
     m_shape = CollisionShape::box(4.0 / 16.0, 0.0, 4.0 / 16.0, 12.0 / 16.0, 1.0, 12.0 / 16.0);
 }
 
 BlockState StandingBannerBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    const IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
-
     // 根据玩家朝向计算旋转值（0-15，每22.5度）
     i32 rotation = static_cast<i32>(std::floor((180.0f + context.getPlayerYaw()) * 16.0f / 360.0f + 0.5f)) & 15;
 
-    BlockState state = defaultState()
-                           .with(BlockStateProperties::ROTATION_0_15(), rotation)
-                           .with(BlockStateProperties::WATERLOGGED(), false);
-
-    // 检查含水状态
-    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
-    if (waterlogged) {
-        state = state.with(BlockStateProperties::WATERLOGGED(), true);
-    }
-
-    return state;
+    return defaultState().with(BlockStateProperties::ROTATION_0_15(), rotation);
 }
 
 bool StandingBannerBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
@@ -118,6 +117,7 @@ BlockState StandingBannerBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
+    MC_UNUSED(world);
 
     // 下方方块被移除时旗帜变为空气
     if (facing == Direction::Down) {
@@ -125,11 +125,6 @@ BlockState StandingBannerBlock::updatePostPlacement(const BlockState& state,
         if (below == nullptr || !below->isSolid()) {
             return VanillaBlocks::AIR->defaultState();
         }
-    }
-
-    // 处理含水状态更新
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     return state;
@@ -160,6 +155,21 @@ const CollisionShape& StandingBannerBlock::getShape(const BlockState& state) con
 WallBannerBlock::WallBannerBlock(const BlockProperties& properties, DyeColor color)
     : AbstractBannerBlock(properties, color)
 {
+    // vanilla 1.21.11 WallBannerBlock 仅有 facing 属性（无 waterlogged）
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+
     // 各方向碰撞形状（贴墙薄板）
     // 旗帜面宽度16，高度12.5，厚度2
     m_shapesByDirection[Direction::North] = CollisionShape::box(0.0, 0.0, 14.0 / 16.0, 1.0, 12.5 / 16.0, 1.0);
@@ -170,7 +180,6 @@ WallBannerBlock::WallBannerBlock(const BlockProperties& properties, DyeColor col
 
 BlockState WallBannerBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
     // 遍历玩家视线方向，找到可以放置的墙面
@@ -180,18 +189,11 @@ BlockState WallBannerBlock::getStateForPlacement(BlockItemUseContext& context)
         }
 
         Direction facing = Directions::opposite(direction);
-        BlockState state = defaultState()
-                               .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-                               .with(BlockStateProperties::WATERLOGGED(), false);
+        BlockState state = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 
         // 使用 IBlockReader 接口检查是否可放置
-        IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world));
+        IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(context.getWorld()));
         if (isValidPosition(state, blockReader, pos)) {
-            // 检查含水状态
-            bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
-            if (waterlogged) {
-                state = state.with(BlockStateProperties::WATERLOGGED(), true);
-            }
             return state;
         }
     }
@@ -217,6 +219,7 @@ BlockState WallBannerBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
+    MC_UNUSED(world);
 
     // 支撑方块被移除时旗帜变为空气
     Direction bannerFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
@@ -225,11 +228,6 @@ BlockState WallBannerBlock::updatePostPlacement(const BlockState& state,
         if (supportState == nullptr || !supportState->isSolid()) {
             return VanillaBlocks::AIR->defaultState();
         }
-    }
-
-    // 处理含水状态更新
-    if (state.get(BlockStateProperties::WATERLOGGED())) {
-        waterloggable::scheduleWaterTick(world, currentPos);
     }
 
     return state;
