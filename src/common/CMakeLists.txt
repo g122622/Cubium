@@ -841,6 +841,7 @@ add_library(mc_common STATIC
     world/block/blocks/pale_garden/EyeblossomBlock.cpp
     world/block/blocks/pale_garden/MossyCarpetBlock.cpp
     world/block/blocks/pale_garden/PaleHangingMossBlock.cpp
+    world/block/blocks/pale_garden/ResinClumpBlock.cpp
 
     # World - Block - Coral
     world/block/blocks/coral/CoralBlock.cpp
@@ -909,6 +910,8 @@ add_library(mc_common STATIC
     world/block/blocks/nether/NetherSproutsBlock.cpp
     world/block/blocks/nether/MagmaBlock.cpp
     world/block/blocks/nether/NyliumBlock.cpp
+    world/block/blocks/nether/TwistingVinesBlock.cpp
+    world/block/blocks/nether/WeepingVinesBlock.cpp
 
     # World - Block - End
     world/block/blocks/end/EndPortalBlock.cpp
@@ -917,6 +920,7 @@ add_library(mc_common STATIC
     world/block/blocks/end/ChorusPlantBlock.cpp
     world/block/blocks/end/ChorusFlowerBlock.cpp
     world/block/blocks/end/DragonEggBlock.cpp
+    world/block/blocks/end/EndRodBlock.cpp
 
     # World - Block - Special
     world/block/blocks/special/BarrierBlock.cpp

@@ -42,6 +42,7 @@
 #include "world/block/blocks/pale_garden/EyeblossomBlock.hpp"
 #include "world/block/blocks/pale_garden/MossyCarpetBlock.hpp"
 #include "world/block/blocks/pale_garden/PaleHangingMossBlock.hpp"
+#include "world/block/blocks/pale_garden/ResinClumpBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TreeGenerators.hpp"
@@ -337,14 +338,15 @@ void registerPaleGardenBlocks()
     // 树脂系列
     // ============================================================================
 
-    // 树脂块（附着在树上）
-    PaleGardenBlocks::RESIN_CLUMP = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_clump"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::RESIN));
+    // 树脂块（多面附着在树上，DOWN/UP/NORTH/SOUTH/EAST/WEST/WATERLOGGED）
+    PaleGardenBlocks::RESIN_CLUMP =
+        &registry.registerBlock<blocks::ResinClumpBlock>(ResourceLocation("minecraft:resin_clump"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::RESIN));
 
     // 树脂块（固体）
     PaleGardenBlocks::RESIN_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_block"),

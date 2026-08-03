@@ -21,30 +21,38 @@
  *
  */
 
-#include "BarrierBlock.hpp"
+#include "WeepingVinesBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cstddef>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {
 namespace blocks {
 
-// ========== BarrierBlock ==========
+using namespace mc; // Bring BlockStateProperties into scope
 
-BarrierBlock::BarrierBlock(const BlockProperties& properties)
-    : Block(properties)
+WeepingVinesBlock::WeepingVinesBlock(const BlockProperties& properties)
+    : GrowingPlantHeadBlock(properties,
+          Direction::Down,                                   // 向下生长
+          CollisionShape::fromPixelBox(4, 9, 4, 12, 16, 12), // MC column(8,9,16)
+          0.1f)                                              // MC 1.21.11: growPerTickProbability = 0.1
 {
-    // vanilla 1.21.11 barrier 持有 waterlogged 属性
+    // 创建状态容器：AGE_0_25
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::WATERLOGGED())
+            .add(BlockStateProperties::AGE_0_25())
             .create([](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -54,20 +62,23 @@ BarrierBlock::BarrierBlock(const BlockProperties& properties)
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), false));
+    setDefaultState(defaultState().with(BlockStateProperties::AGE_0_25(), 0));
 }
 
-const CollisionShape& BarrierBlock::getShape(const BlockState& state) const
+void WeepingVinesBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
-    MC_UNUSED(state);
-    static CollisionShape fullShape = CollisionShape::fullBlock();
-    return fullShape;
+    MC_UNUSED(container);
+    // 状态容器已在构造函数中通过 Builder 创建
 }
 
-const fluid::FluidState* BarrierBlock::getFluidState(const BlockState& state) const
+const Block* WeepingVinesBlock::getHeadBlock() const
 {
-    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
-    return waterState != nullptr ? waterState : Block::getFluidState(state);
+    return VanillaBlocks::WEEPING_VINES;
+}
+
+const Block* WeepingVinesBlock::getBodyBlock() const
+{
+    return VanillaBlocks::WEEPING_VINES_PLANT;
 }
 
 } // namespace blocks

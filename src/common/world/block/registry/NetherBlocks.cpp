@@ -46,6 +46,7 @@
 #include "world/block/blocks/end/EndGatewayBlock.hpp"
 #include "world/block/blocks/end/EndPortalBlock.hpp"
 #include "world/block/blocks/end/EndPortalFrameBlock.hpp"
+#include "world/block/blocks/end/EndRodBlock.hpp"
 #include "world/block/blocks/functional/BeaconBlock.hpp"
 #include "world/block/blocks/functional/BellBlock.hpp"
 #include "world/block/blocks/functional/BrewingStandBlock.hpp"
@@ -60,6 +61,8 @@
 #include "world/block/blocks/nether/NetherWartBlock.hpp"
 #include "world/block/blocks/nether/NyliumBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
+#include "world/block/blocks/nether/TwistingVinesBlock.hpp"
+#include "world/block/blocks/nether/WeepingVinesBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -312,13 +315,15 @@ void registerNetherBlocks()
     NetherBlocks::WARPED_FUNGUS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_fungus"),
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
-    // 垂泪藤
-    NetherBlocks::WEEPING_VINES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:weeping_vines"),
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    // 垂泪藤 - 向下生长的藤蔓头部（AGE_0_25）
+    NetherBlocks::WEEPING_VINES =
+        &registry.registerBlock<blocks::WeepingVinesBlock>(ResourceLocation("minecraft:weeping_vines"),
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
-    // 扭曲藤
-    NetherBlocks::TWISTING_VINES = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:twisting_vines"),
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    // 扭曲藤 - 向上生长的藤蔓头部（AGE_0_25）
+    NetherBlocks::TWISTING_VINES =
+        &registry.registerBlock<blocks::TwistingVinesBlock>(ResourceLocation("minecraft:twisting_vines"),
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 垂泪藤植株 - 垂泪藤的茎部分（不生长）
     NetherBlocks::WEEPING_VINES_PLANT =
@@ -669,8 +674,8 @@ void registerNetherBlocks()
     // 末地方块注册
     // ============================================================================
 
-    // 末地烛 - 发光14级
-    NetherBlocks::END_ROD = &registry.registerBlock<SimpleBlock>(
+    // 末地烛 - 发光14级，6 向朝向
+    NetherBlocks::END_ROD = &registry.registerBlock<blocks::EndRodBlock>(
         ResourceLocation("minecraft:end_rod"), BlockProperties(Material::DECORATION).noCollision().lightLevel(14));
 
     // 末地传送门 - 穿越后传送到末地

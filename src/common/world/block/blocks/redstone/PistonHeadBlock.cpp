@@ -54,11 +54,11 @@ std::string EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const 
 {
     switch (value) {
         case blocks::PistonHeadBlock::Type::Normal:
-            return "normal";
+            return "default";
         case blocks::PistonHeadBlock::Type::Sticky:
             return "sticky";
         default:
-            return "normal";
+            return "default";
     }
 }
 
@@ -66,7 +66,7 @@ template <>
 std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(
     std::string_view name)
 {
-    if (name == "normal") return blocks::PistonHeadBlock::Type::Normal;
+    if (name == "default") return blocks::PistonHeadBlock::Type::Normal;
     if (name == "sticky") return blocks::PistonHeadBlock::Type::Sticky;
     return std::nullopt;
 }
@@ -92,9 +92,11 @@ PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 piston_head 属性：facing + type + short
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::FACING())
+            .add(BlockStateProperties::SHORT())
             .add(TYPE_PROP())
             .create([](const Block& block,
                         std::vector<size_t> values,
@@ -106,8 +108,10 @@ PistonHeadBlock::PistonHeadBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(
-        defaultState().with(BlockStateProperties::FACING(), Direction::North).with(TYPE_PROP(), Type::Normal));
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::FACING(), Direction::North)
+            .with(BlockStateProperties::SHORT(), false)
+            .with(TYPE_PROP(), Type::Normal));
 }
 
 Direction PistonHeadBlock::getFacing(const BlockState& state) noexcept

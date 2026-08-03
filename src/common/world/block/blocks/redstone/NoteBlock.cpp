@@ -145,8 +145,10 @@ NoteBlock::NoteBlock(const BlockProperties& properties)
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 note_block 属性：instrument + note + powered
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::NOTE_BLOCK_INSTRUMENT())
             .add(BlockStateProperties::NOTE_0_24())
             .add(BlockStateProperties::POWERED())
             .create([](const Block& block,
@@ -159,8 +161,10 @@ NoteBlock::NoteBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(
-        defaultState().with(BlockStateProperties::NOTE_0_24(), 0).with(BlockStateProperties::POWERED(), false));
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::NOTE_BLOCK_INSTRUMENT(), BlockStateProperties::NoteBlockInstrument::Harp)
+            .with(BlockStateProperties::NOTE_0_24(), 0)
+            .with(BlockStateProperties::POWERED(), false));
 }
 
 i32 NoteBlock::getNote(const BlockState& state)

@@ -149,7 +149,7 @@ WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, Wo
 
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::FACING())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
             .add(BlockStateProperties::WATERLOGGED())
             .create([this](const Block& block,
                         std::vector<size_t> values,
@@ -161,7 +161,7 @@ WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, Wo
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-            .with(BlockStateProperties::FACING(), Direction::North)
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
@@ -176,7 +176,7 @@ BlockState WallHangingSignBlock::getStateForPlacement(BlockItemUseContext& conte
         if (Directions::isHorizontal(dir)) {
             Direction facing = Directions::opposite(dir);
             BlockState state = defaultState()
-                                   .with(BlockStateProperties::FACING(), facing)
+                                   .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
                                    .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 
             IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world));
@@ -191,7 +191,7 @@ BlockState WallHangingSignBlock::getStateForPlacement(BlockItemUseContext& conte
 
 bool WallHangingSignBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction oppositeDir = Directions::opposite(facing);
     BlockPos adjPos = pos.offset(oppositeDir);
     const BlockState* adjState = world.getBlockState(adjPos);
@@ -201,22 +201,22 @@ bool WallHangingSignBlock::isValidPosition(const BlockState& state, IBlockReader
 
 const BlockState& WallHangingSignBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::FACING(), newFacing);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const BlockState& WallHangingSignBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rot = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rot);
-    return state.with(BlockStateProperties::FACING(), newFacing);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const CollisionShape& WallHangingSignBlock::getShape(const BlockState& state) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     auto it = m_shapesByDirection.find(facing);
     if (it != m_shapesByDirection.end()) {
         return it->second;

@@ -110,11 +110,11 @@ protected:
  * 可通过红石触发的自动合成方块。
  * 红石信号上升沿触发4 tick延时后执行合成，合成成功后CRAFTING属性置true，
  * CrafterBlockEntity 维护6 tick倒计时动画。
- * 状态属性：FACING, TRIGGERED, CRAFTING
+ * 状态属性：ORIENTATION, TRIGGERED, CRAFTING
  *
  * 参考: net.minecraft.block.CrafterBlock
  */
-class CrafterBlock : public HorizontalBlock {
+class CrafterBlock : public Block {
 public:
     static constexpr i32 CRAFTING_TICK_DELAY = 4; ///< 红石触发到执行的延时（tick）
 
@@ -141,6 +141,10 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
 

@@ -562,6 +562,20 @@ std::string EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::toS
             return "banjo";
         case BlockStateProperties::NoteBlockInstrument::Pling:
             return "pling";
+        case BlockStateProperties::NoteBlockInstrument::Zombie:
+            return "zombie";
+        case BlockStateProperties::NoteBlockInstrument::Skeleton:
+            return "skeleton";
+        case BlockStateProperties::NoteBlockInstrument::Creeper:
+            return "creeper";
+        case BlockStateProperties::NoteBlockInstrument::Dragon:
+            return "dragon";
+        case BlockStateProperties::NoteBlockInstrument::WitherSkeleton:
+            return "wither_skeleton";
+        case BlockStateProperties::NoteBlockInstrument::Piglin:
+            return "piglin";
+        case BlockStateProperties::NoteBlockInstrument::CustomHead:
+            return "custom_head";
         default:
             return "harp";
     }
@@ -602,6 +616,20 @@ EnumProperty<BlockStateProperties::NoteBlockInstrument>::Traits::fromName(std::s
         return BlockStateProperties::NoteBlockInstrument::Banjo;
     } else if (name == "pling") {
         return BlockStateProperties::NoteBlockInstrument::Pling;
+    } else if (name == "zombie") {
+        return BlockStateProperties::NoteBlockInstrument::Zombie;
+    } else if (name == "skeleton") {
+        return BlockStateProperties::NoteBlockInstrument::Skeleton;
+    } else if (name == "creeper") {
+        return BlockStateProperties::NoteBlockInstrument::Creeper;
+    } else if (name == "dragon") {
+        return BlockStateProperties::NoteBlockInstrument::Dragon;
+    } else if (name == "wither_skeleton") {
+        return BlockStateProperties::NoteBlockInstrument::WitherSkeleton;
+    } else if (name == "piglin") {
+        return BlockStateProperties::NoteBlockInstrument::Piglin;
+    } else if (name == "custom_head") {
+        return BlockStateProperties::NoteBlockInstrument::CustomHead;
     }
     return std::nullopt;
 }

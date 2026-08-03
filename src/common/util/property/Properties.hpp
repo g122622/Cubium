@@ -1186,7 +1186,9 @@ public:
     /**
      * @brief 音符盒乐器枚举
      *
-     * MC 1.16.5: net.minecraft.state.properties.NoteBlockInstrument
+     * MC 1.21.11: net.minecraft.world.level.block.state.properties.NoteBlockInstrument
+     * 共 23 种乐器（1.16.5 为 16 种，1.19+ 追加 zombie/skeleton/creeper/dragon/
+     * wither_skeleton/piglin/custom_head 7 种）。
      */
     enum class NoteBlockInstrument : u8 {
         Harp = 0,
@@ -1204,7 +1206,14 @@ public:
         Didgeridoo = 12,
         Bit = 13,
         Banjo = 14,
-        Pling = 15
+        Pling = 15,
+        Zombie = 16,
+        Skeleton = 17,
+        Creeper = 18,
+        Dragon = 19,
+        WitherSkeleton = 20,
+        Piglin = 21,
+        CustomHead = 22
     };
 
     /**
@@ -1228,7 +1237,14 @@ public:
                 NoteBlockInstrument::Didgeridoo,
                 NoteBlockInstrument::Bit,
                 NoteBlockInstrument::Banjo,
-                NoteBlockInstrument::Pling});
+                NoteBlockInstrument::Pling,
+                NoteBlockInstrument::Zombie,
+                NoteBlockInstrument::Skeleton,
+                NoteBlockInstrument::Creeper,
+                NoteBlockInstrument::Dragon,
+                NoteBlockInstrument::WitherSkeleton,
+                NoteBlockInstrument::Piglin,
+                NoteBlockInstrument::CustomHead});
         return *prop;
     }
 
@@ -1594,7 +1610,8 @@ public:
      */
     static const EnumProperty<SideChainPart>& SIDE_CHAIN_PART()
     {
-        static auto prop = EnumProperty<SideChainPart>::create("side_chain_part",
+        // vanilla 1.21.11 属性名为 "side_chain"（枚举类型名 SideChainPart 保留）
+        static auto prop = EnumProperty<SideChainPart>::create("side_chain",
             {SideChainPart::Unconnected, SideChainPart::Left, SideChainPart::Center, SideChainPart::Right});
         return *prop;
     }

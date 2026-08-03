@@ -41,6 +41,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/WorldEvents.hpp"
@@ -175,11 +176,11 @@ BlockState VaultBlock::getStateForPlacement(BlockItemUseContext& context)
 // ============================================================================
 
 CrafterBlock::CrafterBlock(const BlockProperties& properties)
-    : HorizontalBlock(properties)
+    : Block(properties)
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
-            .add(FACING())
+            .add(BlockStateProperties::ORIENTATION())
             .add(BlockStateProperties::TRIGGERED())
             .add(BlockStateProperties::CRAFTING())
             .create([](const Block& block,
@@ -192,7 +193,7 @@ CrafterBlock::CrafterBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     setDefaultState(defaultState()
-            .with(FACING(), Direction::North)
+            .with(BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientation::NorthUp)
             .with(BlockStateProperties::TRIGGERED(), false)
             .with(BlockStateProperties::CRAFTING(), false));
 }
@@ -209,8 +210,34 @@ void CrafterBlock::fillStateContainer(StateContainer<Block, BlockState>& contain
 
 BlockState CrafterBlock::getStateForPlacement(BlockItemUseContext& context)
 {
+    // 对齐 MC 1.21.11 CrafterBlock.getStateForPlacement：
+    //   Direction direction = ctx.getNearestLookingDirection().getOpposite();
+    //   Direction direction1 = switch (direction) {
+    //       case DOWN  -> ctx.getHorizontalDirection().getOpposite();
+    //       case UP    -> ctx.getHorizontalDirection();
+    //       default    -> Direction.UP;
+    //   };
+    //   FrontAndTop.fromFrontAndTop(direction, direction1)
+    // getNearestLookingDirections()[0] 已将"点击面反向"提到首位，等价 getNearestLookingDirection。
+    std::vector<Direction> nearest = context.getNearestLookingDirections();
+    Direction facing = Directions::opposite(nearest.empty() ? context.horizontalDirection() : nearest[0]);
+
+    Direction top;
+    switch (facing) {
+        case Direction::Down:
+            top = Directions::opposite(context.horizontalDirection());
+            break;
+        case Direction::Up:
+            top = context.horizontalDirection();
+            break;
+        default:
+            top = Direction::Up;
+            break;
+    }
+
     return defaultState()
-        .with(FACING(), Directions::opposite(context.horizontalDirection()))
+        .with(BlockStateProperties::ORIENTATION(),
+            world::gen::jigsaw::JigsawOrientations::fromFacingAndRotation(facing, top))
         .with(BlockStateProperties::TRIGGERED(), false)
         .with(BlockStateProperties::CRAFTING(), false);
 }
@@ -351,7 +378,9 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
 
     // 射出合成结果时产生方向性白烟粒子
     // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(PARTICLES_SHOOT_WHITE_SMOKE, pos, direction.get3DDataValue())
-    Direction facing = state.get(HorizontalBlock::FACING());
+    // vanilla 射出方向为 orientation.front()，即 JigsawOrientation 的主要朝向
+    Direction facing =
+        world::gen::jigsaw::JigsawOrientations::getFacing(state.get(BlockStateProperties::ORIENTATION()));
     world.playEvent(world::WorldEvents::SHOOT_WHITE_SMOKE, pos, static_cast<i32>(facing));
 
     // 射出合成结果
@@ -537,6 +566,22 @@ i32 CrafterBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
         return crafter->getRedstoneSignal();
     }
     return 0;
+}
+
+const BlockState& CrafterBlock::rotate(const BlockState& state, Rotation rotation) const
+{
+    // 对齐 MC 1.21.11 CrafterBlock.rotate：用 Orientation.rotate 旋转 ORIENTATION 属性
+    world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
+    return state.with(
+        BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientations::rotate(orientation, rotation));
+}
+
+const BlockState& CrafterBlock::mirror(const BlockState& state, Mirror mirror) const
+{
+    // 对齐 MC 1.21.11 CrafterBlock.mirror：用 Orientation.rotate（镜像等价于对应旋转）旋转 ORIENTATION 属性
+    world::gen::jigsaw::JigsawOrientation orientation = state.get(BlockStateProperties::ORIENTATION());
+    return state.with(
+        BlockStateProperties::ORIENTATION(), world::gen::jigsaw::JigsawOrientations::mirror(orientation, mirror));
 }
 
 } // namespace blocks

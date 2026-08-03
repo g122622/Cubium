@@ -23,66 +23,73 @@
 
 #pragma once
 
+#include "../MultifaceBlock.hpp"
 #include "common/core/Types.hpp"
-#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/IWaterLoggable.hpp"
+#include <array>
+#include <cstddef>
 
 namespace mc {
 namespace blocks {
 
 /**
- * @brief 屏障方块
+ * @brief 树脂块（多面附着）方块
  *
- * 不可见的不可破坏方块，用于地图制作。
- * 只有创造模式玩家可以看到边界轮廓。
+ * 参考 MC 1.21.11: ResinClumpBlock (继承自 MultifaceBlock)
+ * 可附着在任意六个面的树脂堆积物，支持含水。
+ * 每个面是一个 1 像素厚的薄板，多个面激活时组合为联合形状。
+ * 预计算 64 种形状组合（2^6 = DOWN|UP|NORTH|SOUTH|EAST|WEST）。
  *
- * vanilla 1.21.11 barrier 持有 waterlogged 属性（实现 SimpleWaterloggedBlock）。
+ * 状态属性：DOWN, UP, NORTH, SOUTH, EAST, WEST, WATERLOGGED
  */
-class BarrierBlock : public Block, public IWaterLoggable {
+class ResinClumpBlock : public MultifaceBlock {
 public:
-    explicit BarrierBlock(const BlockProperties& properties);
-    ~BarrierBlock() override = default;
+    explicit ResinClumpBlock(const BlockProperties& properties);
+    ~ResinClumpBlock() override = default;
 
-    // ========== 形状 ==========
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
     {
         MC_UNUSED(state);
-        return false;
+        return true;
     }
-
-    /**
-     * @brief 屏障方块不产生 AO 阴影
-     *
-     * 屏障是不可见方块，不应影响环境光遮蔽计算。
-     * 虽然默认实现基于碰撞形状判断（屏障有完整碰撞形状），
-     * 但 MC 原版明确重写此方法返回 1.0F。
-     */
-    [[nodiscard]] f32 getShadeBrightness(
-        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
-    {
-        MC_UNUSED(state);
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        return 1.0f;
-    }
-
-    // ========== IWaterLoggable 接口实现 ==========
 
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
-
     [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+protected:
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+private:
+    /**
+     * @brief 根据六个面的激活状态计算形状索引
+     * @return 形状索引 (0-63)
+     */
+    [[nodiscard]] static size_t _getShapeIndex(bool down, bool up, bool north, bool south, bool east, bool west);
+
+    /// 预计算的形状缓存（64 种组合：2^6，六个布尔面属性）
+    std::array<CollisionShape, 64> m_shapes;
 };
 
 } // namespace blocks
