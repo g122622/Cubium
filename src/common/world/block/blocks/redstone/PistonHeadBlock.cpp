@@ -52,13 +52,14 @@ namespace mc {
 template <>
 std::string EnumProperty<blocks::PistonHeadBlock::Type>::Traits::toString(const blocks::PistonHeadBlock::Type& value)
 {
+    // vanilla piston_head/moving_piston 的 type 取值为 "normal"/"sticky"
     switch (value) {
         case blocks::PistonHeadBlock::Type::Normal:
-            return "default";
+            return "normal";
         case blocks::PistonHeadBlock::Type::Sticky:
             return "sticky";
         default:
-            return "default";
+            return "normal";
     }
 }
 
@@ -66,7 +67,7 @@ template <>
 std::optional<blocks::PistonHeadBlock::Type> EnumProperty<blocks::PistonHeadBlock::Type>::Traits::fromName(
     std::string_view name)
 {
-    if (name == "default") return blocks::PistonHeadBlock::Type::Normal;
+    if (name == "normal") return blocks::PistonHeadBlock::Type::Normal;
     if (name == "sticky") return blocks::PistonHeadBlock::Type::Sticky;
     return std::nullopt;
 }

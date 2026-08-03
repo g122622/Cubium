@@ -283,7 +283,16 @@ class RailShapeProperty : public EnumProperty<RailShape> {
 public:
     static std::unique_ptr<RailShapeProperty> create(const std::string& name);
 
+    /**
+     * @brief 创建仅含 6 个直线/斜坡形状的属性
+     *
+     * vanilla 动力/探测/激活铁轨的 shape 只有 6 个值（不含 4 个弯轨），
+     * 普通铁轨才允许 10 个值。用此工厂构建矿车铁轨的状态容器以对齐 vanilla。
+     */
+    static std::unique_ptr<RailShapeProperty> createStraight(const std::string& name);
+
 private:
+    RailShapeProperty(const std::string& name, std::vector<RailShape> values);
     RailShapeProperty(const std::string& name);
 };
 

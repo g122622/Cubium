@@ -73,7 +73,14 @@ IWaterLoggable 接口
 
 ### 4. 墙珊瑚扇只能附着水平面
 
-`CoralWallFanBlock::isValidPosition()` 明确拒绝 `Direction::Up` 和 `Direction::Down`，只能附着在四个水平方向的墙面上。
+`CoralWallFanBlock` 的 `facing` 属性用 `BlockStateProperties::HORIZONTAL_FACING()`
+（仅 north/south/east/west 4 向），对齐 vanilla 1.21.11 `coral_wall_fan` 的 8 状态
+（4 facing × waterlogged）。容器本身不含 up/down，故 `getStateForPlacement` 对点击
+地面/天花板的 up/down 退化为 North（随后 `isValidPosition` 因对面无支撑方块而拒绝放置）。
+`isValidPosition` 检查 `facing` 反方向是否有坚固墙面可附着。
+
+**注意**：`HORIZONTAL_FACING` 的 `with()` 对 up/down 会抛 `std::invalid_argument`
+（值不在允许集合），故放置逻辑必须先做水平化收窄，不能直接把任意 `getClickedFace()` 写入。
 
 ### 5. CoralBlockBlock 不实现含水功能
 

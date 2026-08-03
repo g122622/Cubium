@@ -279,10 +279,12 @@ CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const Bloc
 {
 
     // 创建状态容器
+    // vanilla 1.21.11 墙珊瑚扇 facing 仅水平 4 向（north/south/east/west），不含 up/down。
+    // 用 HORIZONTAL_FACING 对齐 vanilla 8 状态以通过 JavaBlockStateIdMap 映射。
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::FACING())
+            .add(BlockStateProperties::HORIZONTAL_FACING())
             .create([this](const Block& block,
                         std::vector<size_t> values,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
@@ -295,29 +297,31 @@ CoralWallFanBlock::CoralWallFanBlock(CoralColor color, u32 deadBlock, const Bloc
     // 设置默认状态
     setDefaultState(defaultState()
             .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::FACING(), Direction::North));
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 }
 
 BlockState CoralWallFanBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Direction facing = context.getClickedFace();
+    // vanilla 墙珊瑚扇只能贴附在水平面上：facing 仅水平 4 向。
+    // HORIZONTAL_FACING 不接受 up/down（with 会抛 invalid_argument），故点击地面/天花板时
+    // 退化为 North（随后 isValidPosition 会因对面无支撑方块而拒绝放置）。
+    Direction clickedFace = context.getClickedFace();
+    Direction facing =
+        (clickedFace == Direction::Up || clickedFace == Direction::Down) ? Direction::North : clickedFace;
     const IWorld& world = context.getWorld();
     BlockPos pos = context.placementPos();
 
     bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
     return defaultState()
-        .with(BlockStateProperties::FACING(), facing)
+        .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool CoralWallFanBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
 
-    Direction facing = state.get(BlockStateProperties::FACING());
-    if (facing == Direction::Up || facing == Direction::Down) {
-        return false;
-    }
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     return canAttachTo(world, pos, Directions::opposite(facing));
 }
 
@@ -332,7 +336,7 @@ BlockState CoralWallFanBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    Direction attachDir = state.get(BlockStateProperties::FACING());
+    Direction attachDir = state.get(BlockStateProperties::HORIZONTAL_FACING());
     if (Directions::opposite(facing) == attachDir) {
         IBlockReader& blockReader = static_cast<IBlockReader&>(world);
         if (!canAttachTo(blockReader, currentPos, facing)) {
@@ -357,22 +361,22 @@ BlockState CoralWallFanBlock::updatePostPlacement(const BlockState& state,
 
 const BlockState& CoralWallFanBlock::rotate(const BlockState& state, Rotation rotation) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::FACING(), newFacing);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const BlockState& CoralWallFanBlock::mirror(const BlockState& state, Mirror mirror) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     Rotation rotation = Directions::mirrorToRotation(mirror, facing);
     Direction newFacing = Directions::rotateDirection(facing, rotation);
-    return state.with(BlockStateProperties::FACING(), newFacing);
+    return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
 const CollisionShape& CoralWallFanBlock::getShape(const BlockState& state) const
 {
-    Direction facing = state.get(BlockStateProperties::FACING());
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
     // 根据朝向返回不同形状
     switch (facing) {

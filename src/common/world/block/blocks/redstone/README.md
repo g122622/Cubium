@@ -184,6 +184,27 @@ if (!redstone.isUpdating(pos)) {
     - 未按下(power = 0)：高度 1 像素 -
     按下(power > 0)：高度 0.5 像素
 
+    ## #15b. 压力板持久化信号模型（对齐 vanilla 1.21.11）
+
+    vanilla 木/石压力板持久化 `powered` 布尔（按下=true/松开=false），
+    测重压力板持久化 `power` 0-15。项目基类 `AbstractPressurePlateBlock`
+    通过两个虚函数统一这两种持久化模型：
+
+    - `getStoredSignal(state)`：读出持久化信号强度。基类（木/石）返回
+      `isPowered(state) ? 15 : 0`；测重子类 `WeightedPressurePlateBlock`
+      覆写为读 `POWER_0_15` 的真实 0-15 值。
+    - `withStoredSignal(state, signal)`：写入信号。基类写 `POWERED = (signal>0)`；
+      测重子类覆写为写 `POWER_0_15 = signal`。
+
+    基类 `tick`/`updateState`/`getWeakPower`/`getShape`/`onEntityCollision` 全部走
+    这两个虚函数，因此木/石与测重共用同一份 tick 逻辑而持久化属性不同。
+    `WeightedPressurePlateBlock` 构造函数用 `POWER_0_15` 容器覆盖基类的 `POWERED`
+    容器（与 `SoulFireBlock` 用空容器覆盖 `FireBlock` 容器同一手法），使测重压力板
+    16 状态与 vanilla 一致以通过 `JavaBlockStateIdMap` 映射。
+
+    注意：静态 `isPowered`/`withPowered`（POWERED 布尔）仅基类及木/石子类可用，
+    测重子类状态不含 `POWERED`，故一切读写必须走 `getStoredSignal`/`withStoredSignal`。
+
     ## #16. 绊线形状变化
 
     绊线根据 ATTACHED 属性有不同形状：
@@ -249,6 +270,15 @@ if (!redstone.isUpdating(pos)) {
     **类型匹配 *
         *：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
 
+    ## #20b. 活塞 type 属性序列化（对齐 vanilla 1.21.11）
+
+    `piston_head` 与 `moving_piston` 的 `type` 属性由 `EnumProperty<PistonHeadBlock::Type>`
+    序列化，取值为 `"normal"`/`"sticky"`（vanilla 1.21.11 线格式）。C++ 枚举 `Type::Normal`/
+    `Type::Sticky` 仅内部使用，序列化字符串必须用 `normal` 而非 `default`，否则
+    `JavaBlockStateIdMap` 构造的 key（`piston_head|facing=...,short=...,type=default`）
+    与 vanilla 表（`type=normal`）全部不匹配，导致 24+12 个状态全 miss。`MovingPistonBlock`
+    复用 `PistonHeadBlock::getTypeProperty()`，故两方块共用同一份 Traits，修一处同生效。
+
         ## #21. 铁轨连接系统（RailState）
 
         铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
@@ -282,6 +312,17 @@ if (!redstone.isUpdating(pos)) {
 | PoweredRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
 | DetectorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
 | ActivatorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+
+**SHAPE 属性取值集合**（对齐 vanilla 1.21.11）：
+
+- `RailBlock` 用 `RailShapeProperty::create("shape")`，含全部 10 值
+  （南北/东西直轨 + 4 斜坡 + 4 弯轨），普通铁轨支持弯轨与三连接道岔。
+- `PoweredRailBlock`/`DetectorRailBlock`/`ActivatorRailBlock` 用
+  `RailShapeProperty::createStraight("shape")`，仅 6 值（南北/东西直轨 + 4 斜坡），
+  不含弯轨。vanilla 矿车铁轨 shape 也只有这 6 值，用 `createStraight` 限制取值集合
+  以通过 `JavaBlockStateIdMap` 映射（否则会生成 4 个弯轨幽灵状态导致 miss）。
+  枚举序列化（`EnumProperty<RailShape>::Traits`）对所有铁轨共用同一份 10 名表，
+  `createStraight` 仅收窄允许值集合，不影响序列化字符串。
 
 ### 含水功能实现
 

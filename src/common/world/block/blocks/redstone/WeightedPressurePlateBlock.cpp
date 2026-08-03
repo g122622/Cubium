@@ -29,10 +29,15 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/AbstractPressurePlateBlock.hpp"
 #include <algorithm>
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -44,7 +49,23 @@ static constexpr i32 WEIGHTED_PLATE_DELAY = 10;
 WeightedPressurePlateBlock::WeightedPressurePlateBlock(const BlockProperties& properties, Sensitivity sensitivity)
     : AbstractPressurePlateBlock(properties)
     , m_sensitivity(sensitivity)
-{}
+{
+    // vanilla 测重压力板持久化 power 0-15（非木/石压力板的 powered 布尔）。
+    // 基类构造函数建立了 POWERED 容器，这里用 POWER_0_15 容器覆盖，对齐 vanilla 16 状态，
+    // 以通过 JavaBlockStateIdMap 映射。
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::POWER_0_15())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+    setDefaultState(defaultState().with(BlockStateProperties::POWER_0_15(), 0));
+}
 
 i32 WeightedPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
 {
@@ -64,6 +85,17 @@ i32 WeightedPressurePlateBlock::calculateSignalStrength(IWorld& world, const Blo
         default:
             return 0;
     }
+}
+
+i32 WeightedPressurePlateBlock::getStoredSignal(const BlockState& state) const
+{
+    // 测重压力板持久化 power 0-15，直接读出真实信号强度。
+    return state.get(BlockStateProperties::POWER_0_15());
+}
+
+BlockState WeightedPressurePlateBlock::withStoredSignal(BlockState state, i32 signal) const
+{
+    return state.with(BlockStateProperties::POWER_0_15(), signal);
 }
 
 i32 WeightedPressurePlateBlock::getTickDelay(bool oldPowered, bool newPowered) const

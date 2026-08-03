@@ -61,9 +61,25 @@ RailShapeProperty::RailShapeProperty(const std::string& name)
               RailShape::NorthEast})
 {}
 
+RailShapeProperty::RailShapeProperty(const std::string& name, std::vector<RailShape> values)
+    : EnumProperty<RailShape>(name, std::move(values))
+{}
+
 std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& name)
 {
     return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name));
+}
+
+std::unique_ptr<RailShapeProperty> RailShapeProperty::createStraight(const std::string& name)
+{
+    // vanilla 矿车铁轨（动力/探测/激活）shape 仅 6 值：南北、东西、4 个斜坡，不含弯轨。
+    return std::unique_ptr<RailShapeProperty>(new RailShapeProperty(name,
+        {RailShape::NorthSouth,
+            RailShape::EastWest,
+            RailShape::AscendingEast,
+            RailShape::AscendingWest,
+            RailShape::AscendingNorth,
+            RailShape::AscendingSouth}));
 }
 
 // ============================================================================

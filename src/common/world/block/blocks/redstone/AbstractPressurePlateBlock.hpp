@@ -134,6 +134,28 @@ protected:
     [[nodiscard]] virtual i32 calculateSignalStrength(IWorld& world, const BlockPos& pos) const = 0;
 
     /**
+     * @brief 从方块状态读取持久化的信号强度
+     *
+     * vanilla 木/石压力板持久化 powered 布尔（按下=15/松开=0，此处归一为 1/0 供 tick 判变化）；
+     * vanilla 测重压力板持久化 power 0-15。子类按各自状态属性覆盖。
+     *
+     * @param state 方块状态
+     * @return i32 持久化的信号强度（基类返回 0 或 1）
+     */
+    [[nodiscard]] virtual i32 getStoredSignal(const BlockState& state) const;
+
+    /**
+     * @brief 将信号强度写入方块状态
+     *
+     * 基类写 POWERED = (signal > 0)；测重子类写 POWER_0_15 = signal。
+     *
+     * @param state 原状态
+     * @param signal 信号强度
+     * @return BlockState 更新后的状态
+     */
+    [[nodiscard]] virtual BlockState withStoredSignal(BlockState state, i32 signal) const;
+
+    /**
      * @brief 获取信号转换为tick的延迟
      *
      * @param oldSignal 旧信号

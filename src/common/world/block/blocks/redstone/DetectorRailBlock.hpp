@@ -130,10 +130,12 @@ public:
 
     /**
      * @brief 获取形状属性
+     *
+     * 探测铁轨只支持直轨和斜轨（6 值），不含弯轨，对齐 vanilla。
      */
     static const EnumProperty<RailShape>& SHAPE()
     {
-        static auto prop = RailShapeProperty::create("shape");
+        static auto prop = RailShapeProperty::createStraight("shape");
         return *prop;
     }
 

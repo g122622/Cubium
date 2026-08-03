@@ -75,6 +75,18 @@ BlockState AbstractPressurePlateBlock::withPowered(BlockState state, bool powere
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
+i32 AbstractPressurePlateBlock::getStoredSignal(const BlockState& state) const
+{
+    // 木/石压力板持久化 powered 布尔：按下=15、松开=0，归一为 0/15 供 tick 判变化。
+    return isPowered(state) ? 15 : 0;
+}
+
+BlockState AbstractPressurePlateBlock::withStoredSignal(BlockState state, i32 signal) const
+{
+    // 木/石压力板只持久化布尔：有信号=true，无信号=false。
+    return withPowered(std::move(state), signal > 0);
+}
+
 void AbstractPressurePlateBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(world);
@@ -114,17 +126,16 @@ bool AbstractPressurePlateBlock::_canSurvive(IWorld& world, const BlockPos& pos)
 void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    bool oldPowered = isPowered(state);
-    i32 signalStrength = calculateSignalStrength(world, pos);
-    bool newPowered = signalStrength > 0;
+    const i32 oldSignal = getStoredSignal(state);
+    const i32 newSignal = calculateSignalStrength(world, pos);
 
-    if (newPowered != oldPowered) {
-        // 状态改变
-        BlockState newState = withPowered(state, newPowered);
+    if (newSignal != oldSignal) {
+        // 信号变化，写入持久化状态
+        BlockState newState = withStoredSignal(state, newSignal);
         world.setBlockState(pos, &newState, 2);
 
-        // 播放音效
-        playClickSound(world, pos, newPowered);
+        // 播放音效（按下/弹起切换时）
+        playClickSound(world, pos, newSignal > 0);
 
         // 通知相邻方块更新
         for (Direction dir : Directions::all()) {
@@ -135,10 +146,10 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
                 neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
             }
         }
-    } else if (newPowered) {
+    } else if (newSignal > 0) {
         // 仍然有压力，继续检测
         world.tickManager().scheduleBlockTick(
-            pos, *this, getTickDelay(oldPowered, newPowered), world::tick::TickPriority::High);
+            pos, *this, getTickDelay(oldSignal > 0, newSignal > 0), world::tick::TickPriority::High);
     }
 }
 
@@ -148,8 +159,8 @@ i32 AbstractPressurePlateBlock::getWeakPower(
     MC_UNUSED(side);
 
     // 压力板向所有方向输出信号；信号强度实时计算（不持久化到 block state）
-    // 仅在按下（powered=true）时输出，未按下返回 0
-    if (!isPowered(state)) {
+    // 仅在按下（持久化信号>0）时输出，未按下返回 0
+    if (getStoredSignal(state) <= 0) {
         return 0;
     }
     return calculateSignalStrength(world, pos);
@@ -169,7 +180,7 @@ const CollisionShape& AbstractPressurePlateBlock::getShape(const BlockState& sta
 {
     static const CollisionShape unpressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 1.0f, 15.0f);
     static const CollisionShape pressedShape = CollisionShape::fromPixelBox(1.0f, 0.0f, 1.0f, 15.0f, 0.5f, 15.0f);
-    return isPowered(state) ? pressedShape : unpressedShape;
+    return getStoredSignal(state) > 0 ? pressedShape : unpressedShape;
 }
 
 bool AbstractPressurePlateBlock::hasEntityOnPlate(IWorld& world, const BlockPos& pos) const
@@ -201,7 +212,7 @@ void AbstractPressurePlateBlock::onEntityCollision(
 {
     // 当实体踩上压力板时，如果当前未被触发，则调度tick更新状态
     MC_UNUSED(entity);
-    if (!isPowered(state)) {
+    if (getStoredSignal(state) <= 0) {
         // 调度tick来更新状态
         // 需要const_cast因为scheduleBlockTick需要非const的Block引用
         world.tickManager().scheduleBlockTick(
@@ -211,14 +222,13 @@ void AbstractPressurePlateBlock::onEntityCollision(
 
 void AbstractPressurePlateBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    bool oldPowered = isPowered(state);
-    i32 signalStrength = calculateSignalStrength(world, pos);
-    bool newPowered = signalStrength > 0;
+    const i32 oldSignal = getStoredSignal(state);
+    const i32 newSignal = calculateSignalStrength(world, pos);
 
-    if (newPowered != oldPowered) {
-        // 状态改变，调度tick
+    if (newSignal != oldSignal) {
+        // 信号变化，调度tick
         world.tickManager().scheduleBlockTick(
-            pos, *this, getTickDelay(oldPowered, newPowered), world::tick::TickPriority::High);
+            pos, *this, getTickDelay(oldSignal > 0, newSignal > 0), world::tick::TickPriority::High);
     }
 }
 
