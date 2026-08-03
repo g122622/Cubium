@@ -4,7 +4,7 @@
 
 本目录提供两类工具：
 - **iwyu.sh / iwyu.ps1**：交互式 wrapper，只打印建议（`--print=changes`），人工 review；`--edit` 可就地应用但无法逐条过滤。
-- **fix_includes.ts**：全仓库自动改写脚本，解析建议、做路径规范化、保护关联头、文本化增删，支持 dry-run。批量清理用这个。
+- **fix_includes.ts**：全仓库自动改写脚本，解析建议、做路径规范化、保护关联头、文本化增删，支持 dry-run。批量清理用这个。同时支持 `.cpp` 与 `.hpp`（`.hpp` 移除默认禁用，见坑 17）。
 
 ## 目录结构
 
@@ -113,7 +113,27 @@ fix_includes.ts 默认跳过对 .cpp 关联同名 .hpp 的移除建议（判定�
 
 ### 16. fix_includes.ts 串行执行，全仓库耗时较长
 
-脚本串行处理每个 .cpp（用户要求起步串行）。单文件 clang-include-cleaner 解析约 0.5-3 秒，src/server 165 个 .cpp 全量约 5-15 分钟。扩到全 `src/`（千级文件）会耗时数十分钟。后续若需并行，可改用 worker_threads，但要警惕 clang-include-cleaner 多进程的内存占用。
+脚本串行处理每个 .cpp/.hpp（用户要求起步串行）。单文件 clang-include-cleaner 解析约 0.5-3 秒，src/server 165 个 .cpp 全量约 5-15 分钟。扩到全 `src/`（千级文件）会耗时数十分钟。后续若需并行，可改用 worker_threads，但要警惕 clang-include-cleaner 多进程的内存占用。
+
+### 17. .hpp 移除默认禁用（传染性风险）
+
+`.hpp` 不是翻译单元，被多个 `.cpp` include。移除 `.hpp` 的某个 include 可能导致**下游 .cpp 隐式依赖断裂**——某个 .cpp 原本靠"本 .hpp 传递引入了 X 头"间接使用 X 的符号，移除后该 .cpp 若未自己 include X 就会编译失败。这种传染性失败不在 .hpp 自身的编译验证范围内，难以本地发现。
+
+故 fix_includes.ts 对 `.hpp` **默认只插入不移除**（`allowRemovals = cppRel.endsWith('.cpp') || REMOVE_HEADERS`）。需要 .hpp 移除时显式传 `--remove-headers`，且务必全量编译验证。`.cpp` 移除无此风险（.cpp 是叶子翻译单元，移除只影响自身），始终允许。
+
+### 18. .hpp 插入建议的"传递可见性"冗余误报
+
+clang-include-cleaner 对 `.hpp` 的插入建议**不识别"类型已通过传递 include 间接可见"**。例如 `CustomServerBossInfo.hpp` 已 include `ServerBossInfo.hpp`，而 `ServerBossInfo.hpp`→`BossInfo.hpp:28` 已 include `ITextComponentFwd.hpp`，故 `ITextComponentFwd` 在 `CustomServerBossInfo.hpp` 中已间接可见——但工具仍会建议插入它。fix_includes.ts 的去重只看"本文件 include 块是否已有该头"（第 533-537 行），不做递归传递可见性检测，故会忠实落地这类建议。
+
+这是**已知特性非 bug**：从 IWYU「include what you use」正统哲学看，每个 .hpp 显式声明自身用到的符号（不依赖"碰巧上游头带了"）是正向收益——上游头重构时不会波及下游。落地后 include 列表变长，但耦合更清晰。若不认可此哲学、希望最小化改动，可人工 review dry-run 输出后选择性 `--write` 单文件。
+
+### 19. .hpp 编译错误文件计 SKIP 不计 FAIL
+
+部分 `.hpp` 因**项目预存在代码问题**无法被工具分析：典型是"前向声明 + `std::unique_ptr` 成员"——`unique_ptr` 析构需完整类型，若 `.hpp` 只 include 了前向声明头（如 `ITextComponentFwd.hpp`）而持有 `unique_ptr<ITextComponent>` 成员，工具在解析时遇到 `sizeof(incomplete type)` 报错。fix_includes.ts 检测到输出含 `due to compiler errors` 时计 **SKIP** 不计 FAIL（第 ~580 行 `compileErrorFiles` 追踪），不阻断批量分析。这是项目代码待修问题（应在 `.hpp` 改用完整头或把析构定义移到 .cpp），非工具误判。
+
+### 20. .hpp 不在 compile_commands.json（CMake 不为头生成编译命令）
+
+`.hpp` 从不出现在 `compile_commands.json` 里。clang-include-cleaner 分析 `.hpp` 时，用 database 中**同目录附近某个 .cpp 条目**的 `-I` 根来"假装编译"该 `.hpp`。fix_includes.ts 的 `buildSlimCompileDb` 已处理：若目标全是 `.hpp`（无 .cpp），从全量 db 取一条 .cpp 条目注入精简 db 提供 `-I` 根（第 328-336 行兜底）。故纯 .hpp 目录扫描也能正常工作。
 
 ## 试点验证结果（src/common/core，2026-08-02）
 
@@ -162,13 +182,16 @@ node --experimental-strip-types scripts/iwyu/fix_includes.ts --summary-only
 # 落地改写（工作树必须干净，脚本会校验）
 node --experimental-strip-types scripts/iwyu/fix_includes.ts --write
 
-# 扫指定目录/文件
+# 扫指定目录/文件（目录递归展开为 .cpp + .hpp，git ls-files 排除 .gitignore 与 .gen.*）
 node --experimental-strip-types scripts/iwyu/fix_includes.ts src/common/core
 node --experimental-strip-types scripts/iwyu/fix_includes.ts --write src/common/core
 
+# 允许 .hpp 移除 include（默认禁止，见坑 17；务必全量编译验证）
+node --experimental-strip-types scripts/iwyu/fix_includes.ts --write --remove-headers src/server/bossbar
+
 # 落地后三步验收
 #   1. git diff 复核
-#   2. clang-format -i 格式化改动的 .cpp
+#   2. clang-format -i 格式化改动的 .cpp/.hpp
 #   3. ./scripts/configure.sh build 验证编译
 ```
 
