@@ -135,6 +135,23 @@ clang-include-cleaner 对 `.hpp` 的插入建议**不识别"类型已通过传�
 
 `.hpp` 从不出现在 `compile_commands.json` 里。clang-include-cleaner 分析 `.hpp` 时，用 database 中**同目录附近某个 .cpp 条目**的 `-I` 根来"假装编译"该 `.hpp`。fix_includes.ts 的 `buildSlimCompileDb` 已处理：若目标全是 `.hpp`（无 .cpp），从全量 db 取一条 .cpp 条目注入精简 db 提供 `-I` 根（第 328-336 行兜底）。故纯 .hpp 目录扫描也能正常工作。
 
+### 21. IWYU 对「模板定义头」与「传递引入完整类型」的盲区（全量落地实证）
+
+src/server 全量落地（286 文件）暴露两类工具误判，fix_includes.ts 无法自动识别，须人工修复后编译验证兜底：
+
+1. **模板定义头被当冗余移除**：`server/advancement/TriggerInstantiation.hpp` 实质承载 `AbstractCriterionTrigger<T>::trigger<PredicateT>` 模板成员函数的**定义**（`CriterionTrigger.hpp` 里只有声明）。工具看不到"符号引用"（模板定义不产生被引用符号），判定冗余并建议移除。移除后 `VibrationSystemServer.cpp:202` 用 lambda 调用 `trigger` 时，因 lambda 类型无链接不能在别的 TU 定义，报 `used but not defined ... cannot be defined in any other translation unit`。修复：恢复该 include。这类"模板定义头"全仓可能还有，落地后编译验证是唯一兜底。
+
+2. **传递引入完整类型被当冗余移除**：`SpawnConditions.cpp` 调用 `BlockState::isAir()`/`isLiquid()`，`BlockState` 完整定义原经 `Block.hpp` 传递引入。工具判定本文件未直接用 `Block` 符号而建议移除 `Block.hpp`，断裂 `BlockState` 完整定义，报 `member access into incomplete type 'BlockState'`。修复：显式 include `BlockState.hpp`（本文件直接用其成员函数，符合 IWYU「include what you use」——工具本应建议插入但漏了）。这类"成员函数调用的类型来源追踪不足"是工具固有局限。
+
+**结论**：全量 --write 后**必须全量编译验证**（`./scripts/configure.sh build`），不能盲信工具建议。incomplete type / used but not defined 两类错误是 IWYU 误判的典型信号，对应"传递引入完整类型被移除"和"模板定义头被移除"，手动补回相应 include 即可。AssertAll.hpp 这类约定头已由 PROTECTED_HEADERS 机制保护，但模板定义头/完整类型头因无统一判定规则，无法自动保护，靠编译验证兜底。
+
+### 22. PROTECTED_HEADERS 保护项目约定头（AssertAll.hpp）
+
+fix_includes.ts 内置 `PROTECTED_HEADER_BASENAMES`（移除时跳过）与 `PROTECTED_SUBSTITUTES`（插入时若文件已有保护头则跳过替代头）双表。当前保护 `AssertAll.hpp`（项目断言库统一入口，见 `docs/PROJECT_CONVENTIONS.md:445`）：
+- 工具对宏展开识别不全：宏经 `AssertAll.hpp→AssertMacros.hpp` 间接定义时，工具或建议「纯删 AssertAll」（误判，如 `ChunkLoadLightTask.cpp:95` 用了 `MC_ASSERT_RELEASE` 会编译失败），或建议「删 AssertAll 插 AssertMacros」（违反统一入口约定）。
+- src/server 全量落地实证：21 处 AssertAll 移除 + 18 处 AssertMacros 插入被拦截（dry-run 输出 `SkipProt=39`），不影响其余文件的显式化收益。
+- 扩到其他约定头时（如未来出现类似聚合入口），在脚本配置区 `PROTECTED_HEADER_BASENAMES` / `PROTECTED_SUBSTITUTES` 补条目即可。
+
 ## 试点验证结果（src/common/core，2026-08-02）
 
 3 个 .cpp 全部跑通，0 FAIL 0 SKIP，去重后输出干净。建议合理性人工核对：
@@ -143,6 +160,27 @@ clang-include-cleaner 对 `.hpp` 的插入建议**不识别"类型已通过传�
 - `SettingsBase.cpp`：建议移除 `<sstream>`（正确，体内用 `fstream` 运算符非 stringstream）+ 9 条插入建议（显式化间接依赖），合理。
 
 误报率 0%（16 条建议无真正误报，Result.cpp 的关联头建议属已知特性）。工具可用性高，可推广到 `src/common/` 再逐步扩到 `src/`。
+
+## 全量落地结果（src/server，2026-08-03）
+
+333 文件（164 .cpp + 169 .hpp）全量分析落地，286 文件改动，净增 ~1473 include。编译验证 exit 0（8:39）。
+
+| 指标 | 数值 |
+|---|---|
+| Clean（无需改） | 27 |
+| Suggest（有建议） | 305 |
+| Fail | 0 |
+| Skip（预存在代码问题） | 1（ServerDragonBossBar.hpp 前向声明+unique_ptr） |
+| 移除 | 218（几乎全 .cpp） |
+| 插入 | 1688 |
+| .hpp 移除被默认禁 | 150 |
+| AssertAll 保护拦截 | 39（21 移除 + 18 替代插入） |
+
+落地过程暴露两类工具盲区（见坑 21），手动修复 2 文件后编译通过：
+- `SpawnConditions.cpp`：补 `BlockState.hpp`（移除 Block.hpp 断裂完整类型）
+- `VibrationSystemServer.cpp`：恢复 `TriggerInstantiation.hpp`（移除模板定义头断裂实例化）
+
+**推广结论**：工具可用性高，但全量落地后**必须全量编译验证**兜底 IWYU 对模板定义头/传递完整类型的盲区。下一阶段可推广到 `src/common/`、`src/client/`。
 
 ## 用法速查
 
