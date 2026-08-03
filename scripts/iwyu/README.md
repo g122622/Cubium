@@ -145,9 +145,13 @@ src/server 全量落地（286 文件）暴露两类工具误判，fix_includes.t
 
 2. **传递引入完整类型被当冗余移除**：`SpawnConditions.cpp` 调用 `BlockState::isAir()`/`isLiquid()`，`BlockState` 完整定义原经 `Block.hpp` 传递引入。工具判定本文件未直接用 `Block` 符号而建议移除 `Block.hpp`，断裂 `BlockState` 完整定义，报 `member access into incomplete type 'BlockState'`。修复：显式 include `BlockState.hpp`（本文件直接用其成员函数，符合 IWYU「include what you use」——工具本应建议插入但漏了）。这类"成员函数调用的类型来源追踪不足"是工具固有局限。
 
-3. **unique_ptr 析构需完整类型被当冗余移除**（src/client 实证）：`ClientApplication.cpp` 持有 `unique_ptr<ClientCommandManager>` 成员（成员在关联 `ClientApplication.hpp:564`，前向声明在 :76），析构在 .cpp 内联需完整类型，完整定义原经 `ClientCommandManager.hpp` 引入。工具判定本文件未直接用 `ClientCommandManager` 符号而建议移除该头，报 `can't delete an incomplete type 'ClientCommandManager'`（MSVC STL `memory:3337` static_assert）。修复：补回 `ClientCommandManager.hpp`。这是"前向声明 + unique_ptr 成员"模式的固有陷阱——.hpp 用前向声明减重编译，.cpp 必须 include 完整定义供析构，工具看不到析构的隐式类型需求。
+3. **unique_ptr 析构需完整类型被当冗余移除**（src/client 实证）：`ClientApplication.cpp` 持有 `unique_ptr<ClientCommandManager>` 成员（成员在关联 `ClientApplication.hpp:564`，前向声明在 :76），析构在 .cpp 内联需完整类型，完整定义原经 `ClientCommandManager.hpp` 引入。工具判定本文件未直接用 `ClientCommandManager` 符号而建议移除该头，报 `can't delete an incomplete type 'ClientCommandManager'`（MSVC STL `memory:3337` static_assert）。修复：补回 `ClientCommandManager.hpp`。这是"前向声明 + unique_ptr 成员"模式的固有陷阱——.hpp 用前向声明减重编译，.cpp 必须 include 完整定义供析构，工具看不到析构的隐式类型需求。src/common 全量落地再次实证（MapDataManager `<ITextComponent>` / LootFunctionBuilder `<LootEntry>` / AzaleaBlock,SaplingBlock `<WorldGenRegion>`）。
 
-**结论**：全量 --write 后**必须全量编译验证**（`./scripts/configure.sh build`），不能盲信工具建议。incomplete type / used but not defined 两类错误是 IWYU 误判的典型信号，对应"传递引入完整类型被移除"和"模板定义头被移除"，手动补回相应 include 即可。AssertAll.hpp 这类约定头已由 PROTECTED_HEADERS 机制保护，但模板定义头/完整类型头因无统一判定规则，无法自动保护，靠编译验证兜底。
+4. **Windows SDK 头条件编译区误判**（src/common 实证，全新一类）：`CrashHandler.cpp`/`Assert.cpp`/`PlatformInfo.cpp`/`WorldSessionLock.cpp` 原在 `#ifdef _WIN32` 块内 `#include <Windows.h>`。工具不识别条件编译分支结构，做两种破坏：(a) 把 `<Windows.h>` 拆成 `<minwindef.h>`/`<winbase.h>`/`<errhandlingapi.h>` 等细粒度头并**移出** `#ifdef _WIN32` 块，致 Windows SDK 头互依赖断裂（`DbgHelp.h`/`Psapi.h`/`winnt.h` 缺 `<Windows.h>` 建立的宏环境，报 `unknown type name 'BOOL'/'HANDLE'/'DWORD'`、`"No Target Architecture"`）；(b) 把这些 Windows 细粒度头**误插到 `#elif defined(__APPLE__)`/`__linux__` 分支**里（荒谬，Windows 头在非 Windows 分支）。修复：恢复 `<Windows.h>` 到 `#ifdef _WIN32` 块、清理误插到非 Windows 分支的 Windows 头。**根因**：clang-include-cleaner 对 `#ifdef` 平台分支内的 include 与全局 include 一视同仁，且 Windows SDK 头的"聚合入口 vs 细粒度子头"关系无 mapping 文件，误判 `<Windows.h>` 可被其子头替代。**应对**：含 `#include <Windows.h>` 的文件落地后必查条件编译块结构是否被破坏。
+
+**结论**：全量 --write 后**必须全量编译验证**（`./scripts/configure.sh build`），不能盲信工具建议。incomplete type / used but not defined / unknown type name 'BOOL' 三类错误是 IWYU 误判的典型信号，分别对应"传递引入完整类型被移除"、"模板定义头被移除"、"Windows SDK 头条件编译区被破坏"，手动补回相应 include 即可。AssertAll.hpp 这类约定头已由 PROTECTED_HEADERS 机制保护，但模板定义头/完整类型头/Windows SDK 头因无统一判定规则，无法自动保护，靠编译验证兜底。
+
+**编译验证判据**（重要）：百万行级全量构建在 `-j16` 并发下，测试目标（mc_tests 等）会因 clang 进程并发启动触发 Windows DLL 初始化竞争，报 `FAILED: [code=3221225794]`（即 `0xC0000142` STATUS_DLL_INIT_FAILED），**但无任何 `error:` 输出**——这是环境问题非代码缺陷。判定 IWYU 落地是否通过的权威依据：**mc_common 等被改库目标 0 失败 + minecraft-client.exe/minecraft-server.exe 链接生成成功 + `error:` 计数为 0**。测试目标的 `0xC0000142` 用 `-j1` 重编即可证伪（对象文件实际生成）。
 
 ### 22. PROTECTED_HEADERS 保护项目约定头（AssertAll.hpp）
 
@@ -206,6 +210,28 @@ fix_includes.ts 内置 `PROTECTED_HEADER_BASENAMES`（移除时跳过）与 `PRO
 - `ClientApplication.cpp`：移除 `ClientCommandManager.hpp` 断裂 `unique_ptr<ClientCommandManager>` 析构（成员在 `ClientApplication.hpp:564`，前向声明在 :76，.cpp 持 unique_ptr 析构需完整定义），补回。
 
 **推广结论**：src/client 体量是 src/server 的 2.5 倍，但工具盲区误判仅 1 处（少于 src/server 的 2 处），PROTECTED_HEADERS 机制拦截 135 处 AssertAll 风险。并行化后全量落地可接受（dry-run 6min + 编译 3.5min）。剩余 `src/common/` 可同流程推广。
+
+## 全量落地结果（src/common，2026-08-03）
+
+2675 文件（1370 .cpp + 1305 .hpp）全量分析落地（worker_threads 并行，跳过 dry-run 直接 --write），全部改动，净增 ~13452 include（+16792 / -3340）。编译验证 mc_common 目标 0 失败 0 error，minecraft-client.exe (54MB) / minecraft-server.exe (48MB) 链接生成成功。
+
+| 指标 | 数值 |
+|---|---|
+| 改动文件 | 2675（全量） |
+| 插入 | +16792 |
+| 移除 | -3340 |
+| AssertAll 保护拦截 | （并入 PROTECTED_HEADERS） |
+
+落地过程暴露 **12 处工具误判**手动修复（坑 21 全四类盲区齐聚 + 路径归一化缺陷）：
+
+- **Windows SDK 头条件编译区被破坏**（4 文件，坑 21.4 全新一类）：`CrashHandler.cpp`/`Assert.cpp`/`PlatformInfo.cpp`/`WorldSessionLock.cpp` 的 `<Windows.h>` 被拆成细粒度子头并误插到 `#elif(__APPLE__/__linux__)` 分支，恢复 `<Windows.h>` 到 `#ifdef _WIN32` 块。
+- **传递完整类型断裂**（4 文件，坑 21.2）：`EffectEntities.cpp`(Block)/`OtherProjectiles.cpp`/`ConcretePowderBlock.cpp`(FluidState)/`DrownedGoals.cpp`(Material)/`BucketItem.cpp`(ItemUseContext) 补直接定义头。
+- **unique_ptr 析构需完整类型**（3 文件，坑 21.3）：`MapDataManager.cpp`(`<ITextComponent>`)/`LootFunctionBuilder.cpp`(`<LootEntry>`)/`AzaleaBlock.cpp`+`SaplingBlock.cpp`(`<WorldGenRegion>`) 补回。
+- **模板/宏定义头断裂**（1 文件，坑 21.1 变体）：`GiantTrunkPlacer.cpp` 用 `MC_UNUSED` 宏，上游传递链断后补 `AssertAll.hpp`。
+
+**路径归一化模块适配缺陷**（2 文件，新发现）：`mc_profiler` CMake target 无 `target_include_directories` 到 `src/`，仅用同目录裸 include（`#include "ProfilerConfig.hpp"`）。fix_includes.ts 路径归一化把裸名改写为 `common/profiler/...` 前缀致 file not found，手动还原 `ProfilerManager.cpp`/`PerfettoBackend.cpp` 为同目录裸名。**根因**：脚本假设所有模块都经 `-I src/` 可解析 `common/...` 前缀，但 profiler 是独立子模块无此 -I。**应对**：路径归一化应感知 target 的 include 目录，或对无 `-I src/` 的模块跳过前缀改写（待修，记录为脚本已知限制）。
+
+**推广结论**：src/common 是三大目录中体量最大、盲区最齐的（12 处误判 vs src/server 2 处 / src/client 1 处），主因是 src/common 横跨平台抽象层（Windows SDK 头）、方块/实体/流体等重类型体系（完整类型断裂密集）、独立子模块（profiler 路径缺陷）。但相对 2675 文件体量，12 处误判率仅 0.45%，编译验证兜底完全可控。至此 `src/server` + `src/client` + `src/common` 全量 IWYU 显式化落地完成。
 
 ## 用法速查
 
