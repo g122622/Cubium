@@ -128,8 +128,6 @@ TEST_F(BuildingVariantRegistrationTest, Walls_PointersNotNull)
     ASSERT_NE(VanillaBlocks::PRISMARINE_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::SANDSTONE_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::RED_SANDSTONE_WALL, nullptr);
-    ASSERT_NE(VanillaBlocks::QUARTZ_WALL, nullptr);
-    ASSERT_NE(VanillaBlocks::PURPUR_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::NETHER_BRICK_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::RED_NETHER_BRICK_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::END_STONE_BRICK_WALL, nullptr);
@@ -297,8 +295,6 @@ TEST_F(BuildingVariantRegistrationTest, Walls_HaveBlockItems)
         "prismarine_wall",
         "sandstone_wall",
         "red_sandstone_wall",
-        "quartz_wall",
-        "purpur_wall",
         "nether_brick_wall",
         "red_nether_brick_wall",
         "end_stone_brick_wall",
@@ -375,8 +371,6 @@ TEST_F(BuildingVariantRegistrationTest, WallsTagContainsNewWalls)
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::PRISMARINE_WALL));
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::SANDSTONE_WALL));
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::RED_SANDSTONE_WALL));
-    EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::QUARTZ_WALL));
-    EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::PURPUR_WALL));
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::NETHER_BRICK_WALL));
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::RED_NETHER_BRICK_WALL));
     EXPECT_TRUE(wallsTag.contains(*VanillaBlocks::END_STONE_BRICK_WALL));

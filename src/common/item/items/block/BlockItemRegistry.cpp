@@ -1022,8 +1022,6 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PRISMARINE_WALL, "prismarine_wall");
     registerSimpleBlock(VanillaBlocks::SANDSTONE_WALL, "sandstone_wall");
     registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_WALL, "red_sandstone_wall");
-    registerSimpleBlock(VanillaBlocks::QUARTZ_WALL, "quartz_wall");
-    registerSimpleBlock(VanillaBlocks::PURPUR_WALL, "purpur_wall");
     registerSimpleBlock(VanillaBlocks::NETHER_BRICK_WALL, "nether_brick_wall");
     registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICK_WALL, "red_nether_brick_wall");
     registerSimpleBlock(VanillaBlocks::END_STONE_BRICK_WALL, "end_stone_brick_wall");

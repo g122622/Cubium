@@ -77,7 +77,6 @@ struct BaseBlocks {
     static Block* EMERALD_ORE;
     static Block* LAPIS_ORE;
     static Block* REDSTONE_ORE;
-    static Block* LIT_REDSTONE_ORE;
     static Block* COPPER_ORE;
 
     // 下界矿石

@@ -35,7 +35,17 @@ namespace blocks {
 SoulFireBlock::SoulFireBlock(const BlockProperties& properties)
     : FireBlock(properties, 2)
 {
-    // 灵魂火伤害为2，比普通火焰更高
+    // 灵魂火伤害为2，比普通火焰更高。
+    // vanilla soul_fire 无任何状态属性（不持有 fire 的 age/方向连接），
+    // 这里用空容器覆盖 FireBlock 构造时建立的 6 属性容器，使状态数降为 1，
+    // 与 vanilla 一致以通过 JavaBlockStateIdMap 映射。
+    auto container = StateContainer<Block, BlockState>::Builder(*this).create(
+        [](const Block& block,
+            std::vector<size_t> values,
+            const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+            const std::vector<BlockState*>* allStates,
+            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+    createBlockState(std::move(container));
 }
 
 bool SoulFireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

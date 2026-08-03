@@ -59,7 +59,6 @@ Block* DeepslateBlocks::DEEPSLATE_DIAMOND_ORE = nullptr;
 Block* DeepslateBlocks::DEEPSLATE_LAPIS_ORE = nullptr;
 Block* DeepslateBlocks::DEEPSLATE_EMERALD_ORE = nullptr;
 Block* DeepslateBlocks::DEEPSLATE_REDSTONE_ORE = nullptr;
-Block* DeepslateBlocks::DEEPSLATE_LIT_REDSTONE_ORE = nullptr;
 
 // 深板岩圆石建筑方块
 Block* DeepslateBlocks::COBBLED_DEEPSLATE_STAIRS = nullptr;
@@ -280,18 +279,6 @@ void registerDeepslateBlocks()
                 .harvestTool(HarvestTool::Pickaxe)
                 .harvestLevel(2)
                 .requiresTool()
-                .soundType(BlockSoundTypes::DEEPSLATE));
-
-    // 点亮的深板岩红石矿石 - RedstoneOreBlock, 默认LIT=true, lightLevel 9
-    DeepslateBlocks::DEEPSLATE_LIT_REDSTONE_ORE =
-        &registry.registerBlock<blocks::RedstoneOreBlock>(ResourceLocation("minecraft:lit_deepslate_redstone_ore"),
-            BlockProperties(Material::ROCK)
-                .hardness(4.5f)
-                .resistance(3.0f)
-                .harvestTool(HarvestTool::Pickaxe)
-                .harvestLevel(2)
-                .requiresTool()
-                .lightLevel(9)
                 .soundType(BlockSoundTypes::DEEPSLATE));
 
     // ========== 深板岩圆石建筑方块 ==========

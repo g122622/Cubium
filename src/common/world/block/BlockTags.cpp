@@ -3116,8 +3116,6 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "sandstone_wall"),
         ResourceLocation("minecraft", "red_sandstone_wall"),
         ResourceLocation("minecraft", "end_stone_brick_wall"),
-        ResourceLocation("minecraft", "quartz_wall"),
-        ResourceLocation("minecraft", "purpur_wall"),
         // 深板岩墙
         ResourceLocation("minecraft", "cobbled_deepslate_wall"),
         ResourceLocation("minecraft", "polished_deepslate_wall"),

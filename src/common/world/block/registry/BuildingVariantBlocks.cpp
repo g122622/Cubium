@@ -114,8 +114,6 @@ Block* BuildingVariantBlocks::BRICK_WALL = nullptr;
 Block* BuildingVariantBlocks::PRISMARINE_WALL = nullptr;
 Block* BuildingVariantBlocks::SANDSTONE_WALL = nullptr;
 Block* BuildingVariantBlocks::RED_SANDSTONE_WALL = nullptr;
-Block* BuildingVariantBlocks::QUARTZ_WALL = nullptr;
-Block* BuildingVariantBlocks::PURPUR_WALL = nullptr;
 Block* BuildingVariantBlocks::GRANITE_WALL = nullptr;
 Block* BuildingVariantBlocks::DIORITE_WALL = nullptr;
 Block* BuildingVariantBlocks::ANDESITE_WALL = nullptr;
@@ -527,16 +525,6 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::RED_SANDSTONE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:red_sandstone_wall"),
             BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
-
-    // 石英墙
-    BuildingVariantBlocks::QUARTZ_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:quartz_wall"),
-            BlockProperties(Material::ROCK).hardness(0.8f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
-
-    // 紫珀墙
-    BuildingVariantBlocks::PURPUR_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:purpur_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // 花岗岩墙
     BuildingVariantBlocks::GRANITE_WALL =

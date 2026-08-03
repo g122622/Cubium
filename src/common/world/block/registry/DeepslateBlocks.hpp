@@ -51,7 +51,6 @@ struct DeepslateBlocks {
     static Block* DEEPSLATE_LAPIS_ORE;
     static Block* DEEPSLATE_EMERALD_ORE;
     static Block* DEEPSLATE_REDSTONE_ORE;
-    static Block* DEEPSLATE_LIT_REDSTONE_ORE;
 
     // 深板岩圆石建筑方块
     static Block* COBBLED_DEEPSLATE_STAIRS;

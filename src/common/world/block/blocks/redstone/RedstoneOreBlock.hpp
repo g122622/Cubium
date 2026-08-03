@@ -40,8 +40,7 @@ namespace blocks {
  *
  * 玩家攻击或踩踏时点亮，随机刻后熄灭。
  * 点亮时发出光照等级9。
- * 同一个类同时用于 redstone_ore 和 lit_redstone_ore，
- * lit状态通过 LIT 属性区分。
+ * lit 状态通过 LIT 属性区分，redstone_ore 与 deepslate_redstone_ore 共用本类。
  *
  * 参考: net.minecraft.block.RedStoneOreBlock
  */
