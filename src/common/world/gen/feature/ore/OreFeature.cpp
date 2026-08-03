@@ -22,12 +22,19 @@
  */
 
 #include "OreFeature.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

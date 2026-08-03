@@ -30,6 +30,11 @@
 #pragma once
 
 #include "StructureProcessor.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 namespace world {

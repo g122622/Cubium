@@ -26,7 +26,13 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

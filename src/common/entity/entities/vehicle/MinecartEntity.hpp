@@ -31,10 +31,20 @@
 #include "../../core/Entity.hpp"
 #include "../../core/EntityDataManager.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <array>
+#include <cmath>
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace mc {
 

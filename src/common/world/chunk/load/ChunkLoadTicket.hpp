@@ -26,9 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::world::chunk {

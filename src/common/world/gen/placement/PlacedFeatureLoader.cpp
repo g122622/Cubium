@@ -31,20 +31,33 @@
 #include "Placement.hpp"
 #include "PlacementRegistry.hpp"
 #include "Placements.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include "common/world/gen/valueprovider/HeightProviderParser.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world::gen::placement {

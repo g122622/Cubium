@@ -23,16 +23,20 @@
 
 #include "CopperGolemStatueBlockEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
-#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
 
 namespace mc {
 namespace blockentity {

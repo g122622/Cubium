@@ -22,7 +22,10 @@
  */
 
 #include "ConfiguredCarverRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/carver/WorldCarver.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 

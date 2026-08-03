@@ -34,8 +34,11 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <cstddef>
+#include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {

@@ -24,6 +24,12 @@
 #pragma once
 
 #include "AbstractGroupFishEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <memory>
 #include <optional>

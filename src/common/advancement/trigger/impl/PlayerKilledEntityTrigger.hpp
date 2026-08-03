@@ -26,7 +26,10 @@
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc {

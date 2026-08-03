@@ -23,15 +23,25 @@
 
 #include "BundleItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::items {

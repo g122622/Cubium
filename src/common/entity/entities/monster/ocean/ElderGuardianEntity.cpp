@@ -27,6 +27,11 @@
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

@@ -29,8 +29,11 @@
 #include "BiomeGenerationSettings.hpp"
 #include "BiomeIds.hpp"
 #include "BiomeRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/gen/carver/ConfiguredCarverRegistry.hpp"
@@ -43,11 +46,13 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
-#include <cstdint>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world::biome {

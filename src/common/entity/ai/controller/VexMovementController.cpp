@@ -22,7 +22,9 @@
  */
 
 #include "VexMovementController.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/illager/VexEntity.hpp"
 #include "common/util/math/MathUtils.hpp"

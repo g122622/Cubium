@@ -26,6 +26,9 @@
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
 #include "../target/TargetGoals.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
+#include <string>
 
 namespace mc {
 

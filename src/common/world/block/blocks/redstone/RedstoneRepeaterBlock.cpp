@@ -23,12 +23,26 @@
 
 #include "RedstoneRepeaterBlock.hpp"
 
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
 
 #include <algorithm>
-#include <unordered_map>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

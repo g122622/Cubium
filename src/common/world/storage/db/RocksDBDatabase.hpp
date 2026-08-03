@@ -27,6 +27,7 @@
 #include "ColumnFamilies.hpp"
 #include "RocksDBConfig.hpp"
 #include "SectionKey.hpp"
+#include "common/core/Types.hpp"
 #include <filesystem>
 #include <memory>
 #include <string>

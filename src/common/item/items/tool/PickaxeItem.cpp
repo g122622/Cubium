@@ -22,8 +22,16 @@
  */
 
 #include "PickaxeItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/tool/ToolItem.hpp"
+#include "common/item/items/tool/ToolType.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <unordered_set>
 
 namespace mc {
 namespace item {

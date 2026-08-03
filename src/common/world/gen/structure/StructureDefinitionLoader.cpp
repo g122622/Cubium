@@ -25,14 +25,29 @@
 
 #include "StructureManager.hpp"
 #include "StructureTypeRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/structure/JigsawStructure.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
 #include "common/world/gen/valueprovider/HeightProviderParser.hpp"
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

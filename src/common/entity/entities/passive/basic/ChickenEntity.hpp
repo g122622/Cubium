@@ -24,9 +24,14 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "AnimalEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 
 namespace mc {
 

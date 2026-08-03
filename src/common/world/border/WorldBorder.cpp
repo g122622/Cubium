@@ -22,13 +22,14 @@
  */
 
 #include "WorldBorder.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

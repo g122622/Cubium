@@ -22,16 +22,27 @@
 
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 namespace mc {
 namespace blocks {

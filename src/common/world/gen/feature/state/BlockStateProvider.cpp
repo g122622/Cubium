@@ -23,9 +23,9 @@
 
 #include "BlockStateProvider.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
-
-#include <utility>
+#include <memory>
 
 namespace mc::world::gen::feature::state {
 

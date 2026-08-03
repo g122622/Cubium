@@ -23,9 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 
 namespace mc {

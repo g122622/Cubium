@@ -24,6 +24,7 @@
 #include "CollisionShape.hpp"
 #include "common/physics/shape/BooleanOp.hpp"
 #include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
 
 namespace mc {
 

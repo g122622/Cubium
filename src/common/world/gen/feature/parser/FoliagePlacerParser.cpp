@@ -23,15 +23,21 @@
 
 #include "FoliagePlacerParser.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
 #include "common/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "common/world/gen/feature/tree/foliage/CherryFoliagePlacer.hpp"
+#include "common/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "common/world/gen/feature/tree/foliage/FoliagePlacers.hpp"
 #include "common/world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
-#include <spdlog/spdlog.h>
-
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

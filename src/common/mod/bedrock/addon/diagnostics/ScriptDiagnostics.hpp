@@ -2,6 +2,7 @@
 
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 

@@ -25,11 +25,14 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/MobEntity.hpp"
-#include "../../controller/MovementController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../../util/RandomPositionGenerator.hpp"
 #include "../GoalConstants.hpp"
-#include <cmath>
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 
 namespace mc::entity::ai::goal {
 

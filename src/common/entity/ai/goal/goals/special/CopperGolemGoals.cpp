@@ -23,8 +23,15 @@
 
 #include "CopperGolemGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemTypes.hpp"
@@ -32,11 +39,10 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/util/math/Vector3.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -45,7 +51,10 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <vector>
 
 namespace mc::entity::ai::goal {
 

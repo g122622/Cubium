@@ -22,6 +22,8 @@
  */
 
 #include "world/block/registry/CandleBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/Material.hpp"

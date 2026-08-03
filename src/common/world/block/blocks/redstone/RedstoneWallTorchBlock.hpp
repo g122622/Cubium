@@ -26,6 +26,12 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "RedstoneTorchBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

@@ -25,13 +25,16 @@
 
 #include "NoiseSettings.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/block/Block.hpp"
 #include <array>
 #include <memory>
 #include <vector>
 
+#include <cstddef>
 #include <nlohmann/json_fwd.hpp>
 
 // 前向声明

@@ -25,8 +25,11 @@
 
 #include "Attribute.hpp"
 #include "AttributeInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 namespace mc {

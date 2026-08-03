@@ -27,7 +27,10 @@
 #include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc {

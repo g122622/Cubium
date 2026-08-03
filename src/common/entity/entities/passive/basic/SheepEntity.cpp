@@ -23,7 +23,6 @@
 
 #include "SheepEntity.hpp"
 #include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemRegistry.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -37,9 +36,17 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 #include <optional>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 namespace mc {

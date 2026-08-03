@@ -25,9 +25,15 @@
 
 #include "../../../../core/Types.hpp"
 #include "../water/WaterMobEntity.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

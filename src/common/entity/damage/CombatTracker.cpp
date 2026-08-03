@@ -31,11 +31,17 @@
 #include "../../world/IWorld.hpp"
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "../../world/block/BlockState.hpp"
 #include "../core/Entity.hpp"
 #include "../core/LivingEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/damage/CombatEntry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include <algorithm>
-#include <limits>
+#include <cstddef>
+#include <iterator>
+#include <optional>
+#include <string>
 
 namespace mc {
 

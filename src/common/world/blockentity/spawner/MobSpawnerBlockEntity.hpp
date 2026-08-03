@@ -24,10 +24,17 @@
 #pragma once
 
 #include "SpawnerLogic.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

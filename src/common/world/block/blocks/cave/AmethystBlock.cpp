@@ -22,6 +22,7 @@
  */
 
 #include "AmethystBlock.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

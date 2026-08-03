@@ -22,9 +22,16 @@
  */
 
 #include "item/crafting/special/RepairItemRecipe.hpp"
-#include "item/enchantment/EnchantmentContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
 #include <algorithm>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {

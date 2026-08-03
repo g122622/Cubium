@@ -27,11 +27,13 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include <cfloat>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::command {
 

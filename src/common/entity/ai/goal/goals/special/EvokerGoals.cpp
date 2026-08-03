@@ -23,16 +23,23 @@
 
 #include "EvokerGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
+#include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <vector>
 
 namespace mc {
 namespace entity::ai::goal {

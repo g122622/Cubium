@@ -23,9 +23,19 @@
 
 #include "Scoreboard.hpp"
 #include "ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <regex>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::scoreboard {
 

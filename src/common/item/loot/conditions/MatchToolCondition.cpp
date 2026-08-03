@@ -22,8 +22,13 @@
  */
 
 #include "common/item/loot/conditions/MatchToolCondition.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 namespace loot {

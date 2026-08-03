@@ -27,7 +27,15 @@
 #include "../../../core/DataParameter.hpp"
 #include "../../../core/EntityDataManager.hpp"
 #include "../basic/AnimalEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

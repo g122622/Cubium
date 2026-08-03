@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <algorithm>
 #include <vector>
 
 namespace mc {

@@ -22,7 +22,13 @@
  */
 
 #include "StructureTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/structure/StructureTag.hpp"
 
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {

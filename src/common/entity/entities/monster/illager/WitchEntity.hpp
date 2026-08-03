@@ -27,6 +27,9 @@
 #include "../../../../entity/effect/EffectType.hpp"
 #include "../../../../entity/interfaces/IRangedAttackMob.hpp"
 #include "AbstractRaiderEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include <memory>
 #include <optional>
 

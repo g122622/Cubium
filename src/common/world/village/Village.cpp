@@ -25,16 +25,24 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/village/poi/PointOfInterest.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include "common/world/village/raid/Raid.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

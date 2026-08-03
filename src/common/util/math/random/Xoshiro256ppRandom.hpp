@@ -24,6 +24,7 @@
 #pragma once
 
 #include "IRandom.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::math {
 

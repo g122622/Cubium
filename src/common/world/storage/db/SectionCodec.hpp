@@ -30,6 +30,7 @@
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <vector>

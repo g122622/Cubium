@@ -22,9 +22,23 @@
  */
 
 #include "TemplateManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/feature/template/TemplateLoader.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

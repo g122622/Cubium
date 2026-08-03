@@ -26,9 +26,14 @@
 
 #include "StructurePlacement.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
+#include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 namespace mc::world::gen::structure::placement {

@@ -22,7 +22,9 @@
  */
 
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
 
+#include <string>
 #include <unordered_map>
 
 namespace mc::gameevent {

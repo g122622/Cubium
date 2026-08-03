@@ -24,6 +24,9 @@
 #pragma once
 
 #include "AbstractIllagerEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 

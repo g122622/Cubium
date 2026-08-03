@@ -23,11 +23,18 @@
 
 #include "RepeatingCommandBlock.hpp"
 
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/special/CommandBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

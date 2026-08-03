@@ -22,7 +22,17 @@
  */
 
 #include "DirectionalBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

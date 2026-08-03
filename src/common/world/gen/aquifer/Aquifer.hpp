@@ -23,6 +23,7 @@
 #pragma once
 
 #include "FluidStatus.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 
 namespace mc {

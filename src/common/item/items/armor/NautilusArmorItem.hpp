@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/resource/ResourceLocation.hpp"

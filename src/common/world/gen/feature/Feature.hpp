@@ -24,10 +24,12 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {

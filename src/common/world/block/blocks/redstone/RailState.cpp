@@ -22,7 +22,11 @@
  */
 
 #include "RailState.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
+#include <cstddef>
+#include <memory>
 
 namespace mc {
 namespace blocks {

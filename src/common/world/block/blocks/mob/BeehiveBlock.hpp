@@ -29,6 +29,12 @@
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
 #include "../../Material.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <memory>
 
 namespace mc {
 

@@ -22,7 +22,16 @@
  */
 
 #include "TextParser.hpp"
-#include <algorithm>
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <cctype>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::text {
 

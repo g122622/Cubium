@@ -22,6 +22,11 @@
  */
 
 #include "EmptyLootEntry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include <functional>
+#include <memory>
 
 namespace mc {
 namespace loot {

@@ -22,8 +22,12 @@
  */
 
 #include "world/blockentity/core/LockableBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/ItemStack.hpp"
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

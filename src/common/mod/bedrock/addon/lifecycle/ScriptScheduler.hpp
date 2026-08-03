@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <mutex>
 #include <unordered_map>

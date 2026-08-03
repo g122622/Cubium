@@ -23,8 +23,11 @@
 
 #include "GoToBedGoal.hpp"
 #include "VillagerGoalUtils.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"

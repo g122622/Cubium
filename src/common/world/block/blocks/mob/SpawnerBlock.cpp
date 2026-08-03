@@ -23,15 +23,25 @@
 
 #include "SpawnerBlock.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

@@ -26,7 +26,12 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

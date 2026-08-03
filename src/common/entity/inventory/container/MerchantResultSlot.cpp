@@ -24,9 +24,12 @@
 #include "MerchantResultSlot.hpp"
 
 #include "MerchantContainer.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/Slot.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/MerchantOffer.hpp"
+#include <algorithm>
 
 namespace mc {
 

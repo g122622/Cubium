@@ -25,6 +25,9 @@
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../IWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp"
 
 namespace mc {
 namespace blocks {

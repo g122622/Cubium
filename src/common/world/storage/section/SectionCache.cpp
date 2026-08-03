@@ -22,9 +22,15 @@
  */
 
 #include "SectionCache.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/world/storage/db/SectionCodec.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include <cstddef>
+#include <memory>
 #include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc::world::storage {
 

@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include <memory>
 
 namespace mc::world::gen::feature::state {
 

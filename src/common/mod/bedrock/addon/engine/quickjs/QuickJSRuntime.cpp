@@ -22,12 +22,17 @@
  */
 
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <spdlog/spdlog.h>
 
 // QuickJS 前向声明和头文件
+#include <cstddef>
+#include <memory>
 #include <quickjs.h>
 
 namespace mc::mod::bedrock::addon {

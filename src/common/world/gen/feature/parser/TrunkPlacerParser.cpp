@@ -23,16 +23,23 @@
 
 #include "TrunkPlacerParser.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
+#include "common/world/gen/feature/tree/trunk/CherryTrunkPlacer.hpp"
 #include "common/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include "common/world/gen/feature/tree/trunk/TrunkPlacers.hpp"
 #include "common/world/gen/feature/tree/trunk/UpwardsBranchingTrunkPlacer.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
-#include <spdlog/spdlog.h>
-
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

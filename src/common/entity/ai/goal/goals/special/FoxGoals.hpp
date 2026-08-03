@@ -30,6 +30,7 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <string>
 
 namespace mc {
 

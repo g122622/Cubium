@@ -22,6 +22,7 @@
  */
 
 #include "JavaLegacyRandom.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::math {
 

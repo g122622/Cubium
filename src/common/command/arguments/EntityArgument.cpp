@@ -23,12 +23,18 @@
 
 #include "EntityArgument.hpp"
 
+#include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
-#include <cmath>
+#include <cstddef>
+#include <exception>
+#include <memory>
 #include <sstream>
+#include <string>
 
 namespace mc {
 namespace command {

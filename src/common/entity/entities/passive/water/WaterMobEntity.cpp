@@ -22,13 +22,15 @@
  */
 
 #include "WaterMobEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include <cmath>
 

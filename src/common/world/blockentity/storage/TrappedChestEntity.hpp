@@ -23,8 +23,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace blockentity {

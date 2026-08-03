@@ -26,8 +26,10 @@
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc {

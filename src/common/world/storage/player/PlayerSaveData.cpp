@@ -22,13 +22,27 @@
  */
 
 #include "PlayerSaveData.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
-#include "common/util/CompressionUtils.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/GlobalPos.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include <cstdlib>
+#include <exception>
+#include <memory>
+#include <optional>
 #include <sstream>
-#include <spdlog/spdlog.h>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <zconf.h>
 #include <zlib.h>
 
 namespace mc {

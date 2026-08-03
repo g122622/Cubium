@@ -22,10 +22,14 @@
  */
 
 #include "ConduitEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
@@ -33,13 +37,17 @@
 #include "entity/entities/player/Player.hpp"
 #include "entity/interfaces/IMob.hpp"
 #include "util/assert/AssertAll.hpp"
-#include "util/math/MathConstants.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 
-#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

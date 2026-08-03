@@ -23,10 +23,20 @@
 
 #include "ConcentricRingsStructurePlacement.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
 
 #include <cmath>
-#include <unordered_set>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::structure::placement {
 

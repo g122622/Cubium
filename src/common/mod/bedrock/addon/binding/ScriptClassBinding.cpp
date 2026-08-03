@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

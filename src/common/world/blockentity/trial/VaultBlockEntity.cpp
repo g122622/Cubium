@@ -22,6 +22,7 @@
  */
 
 #include "VaultBlockEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -32,8 +33,16 @@
 #include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

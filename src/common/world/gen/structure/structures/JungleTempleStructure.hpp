@@ -25,7 +25,12 @@
 
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../Structure.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace world {

@@ -23,9 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "item/items/block/WallOrFloorItem.hpp"
 #include "util/color/DyeColor.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <functional>
 #include <optional>

@@ -28,6 +28,7 @@
 #include "Placement.hpp"
 #include "Placements.hpp"
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

@@ -22,6 +22,10 @@
  */
 
 #include "common/item/loot/conditions/FishingOpenWaterCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {

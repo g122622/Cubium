@@ -23,6 +23,7 @@
 
 #include "PiglinAi.hpp"
 
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"

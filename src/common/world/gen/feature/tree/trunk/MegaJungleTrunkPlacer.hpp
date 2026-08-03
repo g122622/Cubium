@@ -24,7 +24,12 @@
 #pragma once
 
 #include "TrunkPlacer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <set>
+#include <vector>
 
 namespace mc {
 

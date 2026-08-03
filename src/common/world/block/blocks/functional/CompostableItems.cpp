@@ -22,7 +22,9 @@
  */
 
 #include "CompostableItems.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {

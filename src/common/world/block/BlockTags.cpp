@@ -23,7 +23,12 @@
 
 #include "BlockTags.hpp"
 #include "Block.hpp"
-#include "BlockRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

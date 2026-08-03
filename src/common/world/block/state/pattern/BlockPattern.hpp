@@ -24,6 +24,7 @@
 #pragma once
 
 #include "BlockInWorld.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <functional>

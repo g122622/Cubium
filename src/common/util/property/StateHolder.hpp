@@ -24,10 +24,14 @@
 #pragma once
 
 #include "Property.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/property/IProperty.hpp"
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>

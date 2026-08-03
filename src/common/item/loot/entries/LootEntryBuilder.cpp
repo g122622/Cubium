@@ -22,11 +22,16 @@
  */
 
 #include "LootEntryBuilder.hpp"
+#include "DynamicLootEntry.hpp"
 #include "EmptyLootEntry.hpp"
 #include "ItemLootEntry.hpp"
 #include "TableLootEntry.hpp"
 #include "TagLootEntry.hpp"
-#include "DynamicLootEntry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace loot {

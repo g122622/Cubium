@@ -28,7 +28,16 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/FallingBlock.hpp"
 
 namespace mc {
 namespace blocks {

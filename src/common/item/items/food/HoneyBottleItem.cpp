@@ -23,12 +23,19 @@
 
 #include "HoneyBottleItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/food/Food.hpp"
+#include "common/item/items/food/FoodItem.hpp"
 #include "common/world/IWorld.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

@@ -26,10 +26,16 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include <any>
 #include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace mc::command {
 

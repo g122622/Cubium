@@ -22,11 +22,16 @@
  */
 
 #include "GameDirectory.hpp"
+#include "common/core/Result.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <cstdlib>
 #include <filesystem>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push)

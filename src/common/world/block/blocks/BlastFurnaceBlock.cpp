@@ -27,6 +27,10 @@
 #include "../../../stats/Stats.hpp"
 #include "../../IWorld.hpp"
 #include "../../blockentity/processing/BlastFurnaceEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/AbstractFurnaceBlock.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

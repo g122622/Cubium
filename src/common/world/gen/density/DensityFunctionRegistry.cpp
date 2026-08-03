@@ -22,6 +22,10 @@
  */
 
 #include "common/world/gen/density/DensityFunctionRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <unordered_map>
+#include <utility>
 
 namespace mc::world::gen::density {
 

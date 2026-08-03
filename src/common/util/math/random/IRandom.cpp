@@ -23,6 +23,7 @@
 
 #include "IRandom.hpp"
 #include "../../assert/AssertAll.hpp"
+#include "common/core/Types.hpp"
 #include <cmath>
 #include <limits>
 

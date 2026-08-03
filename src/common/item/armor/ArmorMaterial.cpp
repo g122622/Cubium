@@ -22,9 +22,13 @@
  */
 
 #include "common/item/armor/ArmorMaterial.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvent.hpp"
+#include <string>
 
 namespace mc {
 namespace item::armor {

@@ -24,8 +24,11 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/pack/AddonModule.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <shared_mutex>
 #include <string>

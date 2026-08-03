@@ -23,12 +23,15 @@
 
 #include "RangedAttackGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
@@ -40,7 +43,6 @@
 #include "common/item/core/UseAction.hpp"
 #include "common/item/items/weapon/BowItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 
 #include <algorithm>

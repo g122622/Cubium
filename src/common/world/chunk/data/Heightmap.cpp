@@ -22,9 +22,13 @@
  */
 
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include <array>
+#include <cstddef>
 
 namespace mc::world::chunk {
 

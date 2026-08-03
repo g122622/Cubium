@@ -18,15 +18,18 @@
  */
 
 #include "ThrowableItems.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/world/IWorld.hpp"
 #include <memory>
+#include <utility>
 
 namespace mc {
 namespace item {

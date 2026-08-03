@@ -21,7 +21,10 @@
  */
 
 #include "world/block/registry/PaleGardenBlocks.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"

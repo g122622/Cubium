@@ -26,6 +26,12 @@
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
 #include "../../IWaterLoggable.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 

@@ -28,8 +28,11 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/map/MaterialColor.hpp"
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 

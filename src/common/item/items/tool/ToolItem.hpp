@@ -25,7 +25,10 @@
 
 #include "TieredItem.hpp"
 #include "ToolType.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/world/block/Material.hpp"
 #include <unordered_set>
 

@@ -22,10 +22,20 @@
  */
 
 #include "SaveFormat.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/CompressionUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <exception>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <system_error>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {

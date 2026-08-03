@@ -29,6 +29,17 @@
 #include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../MultifaceBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

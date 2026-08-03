@@ -31,10 +31,22 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "TripWireHookBlock.hpp"
-#include <unordered_map>
+#include "common/core/Types.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -22,11 +22,20 @@
  */
 
 #include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/pack/AddonDependency.hpp"
+#include "common/mod/bedrock/addon/pack/AddonModule.hpp"
+#include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <fstream>
+#include <iterator>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::mod::bedrock::addon {
 

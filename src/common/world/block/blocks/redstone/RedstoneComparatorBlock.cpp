@@ -30,8 +30,27 @@
 #include "../../../blockentity/redstone/ComparatorEntity.hpp"
 #include "../../../redstone/RedstoneHelper.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include <unordered_map>
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

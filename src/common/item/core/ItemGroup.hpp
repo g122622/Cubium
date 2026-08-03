@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

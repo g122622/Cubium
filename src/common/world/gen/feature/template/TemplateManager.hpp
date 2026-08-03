@@ -25,10 +25,14 @@
 
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 namespace mc {

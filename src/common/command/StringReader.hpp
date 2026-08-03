@@ -25,6 +25,7 @@
 
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <string>
 #include <string_view>
 

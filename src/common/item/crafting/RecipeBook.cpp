@@ -23,9 +23,16 @@
 
 #include "RecipeBook.hpp"
 #include "RecipeManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
-#include <spdlog/spdlog.h>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {

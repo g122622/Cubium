@@ -27,7 +27,15 @@
 #include "../../../../entity/core/DataParameter.hpp"
 #include "../../villager/VillagerEntity.hpp"
 #include "../undead/ZombieEntity.hpp"
+#include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
+#include <string>
 
 namespace mc {
 

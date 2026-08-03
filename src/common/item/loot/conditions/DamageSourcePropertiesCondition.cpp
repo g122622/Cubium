@@ -22,6 +22,12 @@
  */
 
 #include "common/item/loot/conditions/DamageSourcePropertiesCondition.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace loot {

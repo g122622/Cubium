@@ -26,6 +26,7 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 
 namespace mc {

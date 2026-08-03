@@ -26,7 +26,9 @@
 #include "../../../core/Types.hpp"
 #include "NodeProcessor.hpp"
 #include "PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 

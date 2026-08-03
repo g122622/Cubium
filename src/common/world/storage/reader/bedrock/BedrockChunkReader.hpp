@@ -27,8 +27,10 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <vector>

@@ -22,8 +22,18 @@
 
 #include "ItemArgument.hpp"
 
+#include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTag.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace command {

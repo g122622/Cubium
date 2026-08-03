@@ -23,14 +23,20 @@
 
 #include "PointedDripstoneFeature.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/DripstoneUtils.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <array>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc::world::gen::feature::cave {
 

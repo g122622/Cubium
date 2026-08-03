@@ -23,18 +23,19 @@
 
 #include "VexGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/VexEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 
 namespace mc::entity::ai::goal {

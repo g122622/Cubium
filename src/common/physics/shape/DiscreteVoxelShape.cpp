@@ -22,8 +22,11 @@
  */
 
 #include "DiscreteVoxelShape.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include <algorithm>
-#include <cmath>
+#include <cstddef>
+#include <utility>
 
 namespace mc {
 

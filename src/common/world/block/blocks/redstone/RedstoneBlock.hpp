@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 

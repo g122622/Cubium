@@ -23,11 +23,20 @@
  */
 
 #include "AzaleaBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/PlantType.hpp"
+#include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include <utility>
 
 namespace mc {
 namespace blocks {

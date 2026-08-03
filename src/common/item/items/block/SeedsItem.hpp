@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include "common/item/core/Item.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace item {

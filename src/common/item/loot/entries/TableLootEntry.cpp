@@ -22,9 +22,15 @@
  */
 
 #include "TableLootEntry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/LootTable.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

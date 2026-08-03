@@ -22,8 +22,15 @@
  */
 
 #include "PointOfInterest.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 #include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

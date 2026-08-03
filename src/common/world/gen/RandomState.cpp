@@ -22,16 +22,26 @@
  */
 
 #include "RandomState.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/NoiseBindingVisitor.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/world/gen/noise/Noises.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
+#include "common/world/gen/surface/SurfaceRule.hpp"
+#include "common/world/gen/surface/SurfaceSystem.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 
 namespace mc::world::gen {
 

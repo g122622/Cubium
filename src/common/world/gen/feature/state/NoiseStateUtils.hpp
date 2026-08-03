@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include <cstddef>
 #include <string>
 #include <vector>
 

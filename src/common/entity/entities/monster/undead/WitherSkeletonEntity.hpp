@@ -25,6 +25,8 @@
 
 #include "../../../../core/Types.hpp"
 #include "AbstractSkeletonEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/item/core/ItemStack.hpp"
 
 #include <memory>
 

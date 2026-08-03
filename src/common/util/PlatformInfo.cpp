@@ -22,6 +22,7 @@
  */
 
 #include "PlatformInfo.hpp"
+#include "common/core/Types.hpp"
 #include <spdlog/spdlog.h>
 
 // 平台特定头文件

@@ -22,14 +22,24 @@
  */
 
 #include "FlatLevelGeneratorSettings.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <string>
+#include <string_view>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

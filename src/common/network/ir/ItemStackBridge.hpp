@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/item/component/DataComponentMap.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp" // ir::play::ItemStackView
 
 namespace mc {

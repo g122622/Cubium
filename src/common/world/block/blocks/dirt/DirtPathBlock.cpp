@@ -22,6 +22,11 @@
  */
 
 #include "DirtPathBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

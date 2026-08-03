@@ -23,14 +23,19 @@
 
 #include "SquidEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/particle/ParticleTypes.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
 
 namespace mc {
 

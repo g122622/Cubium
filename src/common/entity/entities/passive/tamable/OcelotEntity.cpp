@@ -22,24 +22,30 @@
  */
 
 #include "OcelotEntity.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
-#include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityPose.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -49,12 +55,16 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include <cmath>
-#include <unordered_set>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

@@ -26,8 +26,6 @@
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../ai/controller/JumpController.hpp"
-#include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/goal/goals/special/SlimeGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
@@ -37,11 +35,21 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -22,8 +22,14 @@
  */
 
 #include "JukeboxSongs.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/sound/jukebox/JukeboxSong.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 

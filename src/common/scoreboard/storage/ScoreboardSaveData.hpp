@@ -33,6 +33,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::scoreboard {

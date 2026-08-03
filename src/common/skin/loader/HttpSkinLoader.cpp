@@ -22,8 +22,20 @@
  */
 
 #include "HttpSkinLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/skin/loader/SkinLoader.hpp"
 #include "common/util/crypto/Sha1.hpp"
 #include "common/util/thread/ITask.hpp"
+#include <atomic>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <span>
+#include <string>
+#include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
 

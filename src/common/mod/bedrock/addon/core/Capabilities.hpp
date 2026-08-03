@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 
 #include <bitset>
+#include <cstddef>
 
 namespace mc::mod::bedrock::addon {
 

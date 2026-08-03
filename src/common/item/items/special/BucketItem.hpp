@@ -25,6 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../core/Item.hpp"
+#include "common/item/core/ActionResult.hpp"
 
 namespace mc {
 

@@ -22,13 +22,22 @@
  */
 
 #include "MapBanner.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/map/MapDecoration.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::map {
 

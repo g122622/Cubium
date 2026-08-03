@@ -24,8 +24,11 @@
 #pragma once
 
 #include "Potion.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <optional>
 #include <string>
 #include <vector>
 

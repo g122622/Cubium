@@ -22,14 +22,20 @@
  */
 
 #include "Sensors.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/interfaces/IMob.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -38,7 +44,11 @@
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
 #include <algorithm>
+#include <cmath>
 #include <limits>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace entity {

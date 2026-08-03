@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
 

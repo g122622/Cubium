@@ -22,15 +22,19 @@
  */
 
 #include "VillagerBreedGoal.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include <utility>
 
 namespace mc {
 namespace entity {

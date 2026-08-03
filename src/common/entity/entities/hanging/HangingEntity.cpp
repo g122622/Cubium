@@ -23,14 +23,16 @@
 
 #include "HangingEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
@@ -42,7 +44,10 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
-#include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

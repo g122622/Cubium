@@ -24,17 +24,36 @@
 #include "IChunkGenerator.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/random/JavaLegacyRandom.hpp"
-#include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../block/BlockRegistry.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../spawn/WorldGenSpawner.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <algorithm>
 #include <cstdlib>
+#include <memory>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

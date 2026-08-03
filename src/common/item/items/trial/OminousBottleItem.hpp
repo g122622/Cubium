@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Item.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace item {

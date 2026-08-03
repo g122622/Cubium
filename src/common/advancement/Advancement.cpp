@@ -22,8 +22,22 @@
  */
 
 #include "Advancement.hpp"
+#include "common/advancement/AdvancementDisplay.hpp"
+#include "common/advancement/AdvancementRewards.hpp"
+#include "common/advancement/Criterion.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/ITextComponent.hpp"
-#include "trigger/CriterionTriggers.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include <functional>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

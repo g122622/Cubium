@@ -26,11 +26,16 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/core/ScriptData.hpp"
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
 #include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
+#include "common/mod/bedrock/addon/plugin/PluginExecutionGroup.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPackConfiguration.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPlugin.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>

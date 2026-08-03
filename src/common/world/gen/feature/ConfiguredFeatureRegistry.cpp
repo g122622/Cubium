@@ -22,6 +22,10 @@
  */
 
 #include "ConfiguredFeatureRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 

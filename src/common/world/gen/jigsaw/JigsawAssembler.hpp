@@ -24,10 +24,12 @@
 #include "PoolAliasBinding.hpp"
 #include "PoolAliasLookup.hpp"
 #include "SequencedPriorityIterator.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <memory>
 #include <vector>

@@ -22,8 +22,15 @@
  */
 
 #include "common/item/loot/conditions/LocationCheckCondition.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace loot {

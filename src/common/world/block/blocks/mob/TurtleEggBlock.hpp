@@ -23,9 +23,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include <array>
 

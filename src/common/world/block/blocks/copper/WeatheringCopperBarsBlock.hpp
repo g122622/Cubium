@@ -24,12 +24,17 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "WeatheringCopperBlock.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/BooleanProperty.hpp"
+#include "common/util/property/StateContainer.hpp"
 
 namespace mc {
 namespace blocks {

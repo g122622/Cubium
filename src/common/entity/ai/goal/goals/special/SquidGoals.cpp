@@ -23,6 +23,9 @@
 
 #include "SquidGoals.hpp"
 
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -34,6 +37,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include <cmath>
 
 namespace mc::entity::ai::goal {
 

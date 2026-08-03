@@ -23,9 +23,17 @@
 
 #include "RuleBasedBlockStateProvider.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 
+#include <memory>
 #include <utility>
+#include <vector>
 
 namespace mc::world::gen::feature::state {
 

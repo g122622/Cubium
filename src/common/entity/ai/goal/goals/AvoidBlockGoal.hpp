@@ -30,6 +30,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 #include <functional>
+#include <string>
 
 namespace mc {
 

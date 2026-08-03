@@ -24,6 +24,8 @@
 #include "DamageSource.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <optional>
 
 namespace mc {
 

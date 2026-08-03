@@ -23,8 +23,15 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
 #include <filesystem>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc::resource {
 

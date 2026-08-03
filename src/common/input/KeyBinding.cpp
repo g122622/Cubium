@@ -22,8 +22,14 @@
  */
 
 #include "KeyBinding.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -55,12 +55,17 @@
 
 #include <cctype>
 #include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <ios>
 #include <istream>
 #include <map>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 // 平台字节序检测

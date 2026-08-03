@@ -26,6 +26,13 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../agricultural/BushBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/DirectionProperty.hpp"
+#include "common/util/property/IntegerProperty.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <vector>
 
 namespace mc {
 

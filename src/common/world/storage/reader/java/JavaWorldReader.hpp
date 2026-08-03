@@ -27,12 +27,16 @@
 #include "RegionFile.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
+#include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::world::storage::reader::java {
 

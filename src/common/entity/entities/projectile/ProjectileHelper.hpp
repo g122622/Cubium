@@ -24,6 +24,10 @@
 #pragma once
 
 #include "ProjectileEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 
 #include <functional>
 

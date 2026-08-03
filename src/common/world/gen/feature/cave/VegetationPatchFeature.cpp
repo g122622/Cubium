@@ -22,16 +22,23 @@
 
 #include "VegetationPatchFeature.hpp"
 #include "CaveSurface.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::feature::cave {
 

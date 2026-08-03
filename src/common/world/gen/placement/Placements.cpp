@@ -22,14 +22,18 @@
  */
 
 #include "Placements.hpp"
-#include "PlacementUtils.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
-#include <cmath>
+#include "common/world/gen/placement/Placement.hpp"
+#include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace mc {
 

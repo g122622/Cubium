@@ -23,10 +23,24 @@
 
 #include "BlockEntityDeserializer.hpp"
 #include "BlockEntityRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include <exception>
+#include <functional>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <zconf.h>
 #include <zlib.h>
 
 namespace mc::blockentity {

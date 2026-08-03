@@ -22,11 +22,16 @@
  */
 
 #include "entity/inventory/container/ChestContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace blockentity {

@@ -24,6 +24,9 @@
 #pragma once
 
 #include "AbstractFishEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include <vector>
 
 namespace mc {
 

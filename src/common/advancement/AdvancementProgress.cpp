@@ -22,8 +22,17 @@
  */
 
 #include "AdvancementProgress.hpp"
+#include "common/advancement/Advancement.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/DateTimeUtils.hpp"
 #include <chrono>
+#include <cstddef>
+#include <optional>
+#include <set>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

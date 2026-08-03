@@ -22,6 +22,11 @@
  */
 
 #include "item/items/special/PotterySherdItem.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace item {

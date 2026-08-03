@@ -29,12 +29,25 @@
 #include "../ai/pathfinding/PathNodeType.hpp"
 #include "../combat/DifficultyInstance.hpp"
 #include "LivingEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 

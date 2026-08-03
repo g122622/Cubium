@@ -24,8 +24,13 @@
 #include "EndGatewayBlock.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "world/IWorld.hpp"
 #include "world/blockentity/interactive/EndGatewayEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

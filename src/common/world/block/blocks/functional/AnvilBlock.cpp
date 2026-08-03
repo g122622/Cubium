@@ -23,17 +23,31 @@
 
 #include "AnvilBlock.hpp"
 
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

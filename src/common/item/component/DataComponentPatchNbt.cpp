@@ -23,12 +23,15 @@
 
 #include "common/item/component/DataComponentPatchNbt.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPayloadCodec.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace mc {
 namespace item {

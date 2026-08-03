@@ -23,12 +23,18 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
 #include <optional>

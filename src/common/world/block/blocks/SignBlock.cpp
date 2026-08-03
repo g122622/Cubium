@@ -31,7 +31,6 @@
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/MathUtils.hpp"
 #include "../../IWorld.hpp"
 #include "../../WorldEvents.hpp"
 #include "../../blockentity/BlockEntityType.hpp"
@@ -40,7 +39,20 @@
 #include "../../gameevent/GameEvents.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../WaterLoggableHelpers.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

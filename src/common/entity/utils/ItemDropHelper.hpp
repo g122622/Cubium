@@ -28,6 +28,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

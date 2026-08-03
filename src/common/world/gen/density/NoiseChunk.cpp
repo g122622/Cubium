@@ -22,11 +22,21 @@
  */
 
 #include "common/world/gen/density/NoiseChunk.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunctions.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::density {
 

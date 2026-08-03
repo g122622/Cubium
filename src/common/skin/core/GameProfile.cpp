@@ -23,9 +23,18 @@
 
 #include "GameProfile.hpp"
 #include "SkinTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <exception>
 #include <iomanip>
+#include <ios>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

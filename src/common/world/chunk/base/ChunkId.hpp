@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 

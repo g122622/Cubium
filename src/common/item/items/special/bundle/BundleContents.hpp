@@ -28,6 +28,7 @@
 #include <optional>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

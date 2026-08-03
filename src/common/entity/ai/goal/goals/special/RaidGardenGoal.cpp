@@ -24,6 +24,9 @@
 #include "RaidGardenGoal.hpp"
 
 #include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/goal/goals/special/MoveToBlockGoal.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"

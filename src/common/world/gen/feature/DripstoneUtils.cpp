@@ -23,9 +23,9 @@
 
 #include "DripstoneUtils.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -33,7 +33,9 @@
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <functional>
 
 namespace mc {
 

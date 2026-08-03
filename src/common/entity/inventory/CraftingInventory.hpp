@@ -23,12 +23,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "entity/inventory/IRecipeHelperPopulator.hpp"
 #include "entity/inventory/IRecipeHolder.hpp"
 #include "entity/inventory/Slot.hpp"
 #include <functional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc {

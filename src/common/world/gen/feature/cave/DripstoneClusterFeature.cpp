@@ -23,6 +23,7 @@
 
 #include "DripstoneClusterFeature.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -37,7 +38,14 @@
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/Column.hpp"
 #include "common/world/gen/feature/DripstoneUtils.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/valueprovider/FloatProvider.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc::world::gen::feature::cave {
 

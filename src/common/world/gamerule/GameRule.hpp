@@ -40,9 +40,11 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 
 // 前向声明

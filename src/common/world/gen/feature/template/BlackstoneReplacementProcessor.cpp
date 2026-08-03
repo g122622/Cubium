@@ -29,11 +29,19 @@
 
 #include "BlackstoneReplacementProcessor.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
 
 namespace mc {
 namespace world {

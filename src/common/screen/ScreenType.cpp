@@ -22,6 +22,7 @@
  */
 
 #include "screen/ScreenType.hpp"
+#include <string>
 #include <unordered_map>
 
 namespace mc {

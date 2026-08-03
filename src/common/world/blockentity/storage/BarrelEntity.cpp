@@ -22,6 +22,12 @@
  */
 
 #include "world/blockentity/storage/BarrelEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/core/ItemStack.hpp"
 #include "sound/SoundCategory.hpp"
@@ -30,6 +36,8 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

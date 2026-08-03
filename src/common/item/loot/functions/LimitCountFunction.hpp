@@ -25,7 +25,9 @@
 
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace loot {

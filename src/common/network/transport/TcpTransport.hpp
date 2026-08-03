@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/transport/DeliveryHint.hpp"
 #include "common/network/transport/Endpoint.hpp"
 #include "common/network/transport/ITransport.hpp"
 
@@ -36,6 +38,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
 
 namespace mc::network::transport {
 

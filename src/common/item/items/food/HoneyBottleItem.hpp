@@ -23,7 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/food/Food.hpp"
 #include "common/item/items/food/FoodItem.hpp"
 
 namespace mc {

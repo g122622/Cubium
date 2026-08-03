@@ -22,19 +22,29 @@
  */
 
 #include "WaterFluid.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/FluidProperties.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace fluid {

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <cstddef>
 
 namespace mc::entity::ai::pathfinding {
 

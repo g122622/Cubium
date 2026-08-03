@@ -25,8 +25,10 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <memory>
 #include <string>
 #include <vector>

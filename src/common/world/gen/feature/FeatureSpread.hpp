@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
+#include <utility>
 
 namespace mc {
 

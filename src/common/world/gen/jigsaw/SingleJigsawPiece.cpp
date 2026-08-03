@@ -20,15 +20,24 @@
 #include "SingleJigsawPiece.hpp"
 
 #include "JigsawPlacer.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/AssemblyTypes.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/jigsaw/ProcessorListRegistry.hpp"
 
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

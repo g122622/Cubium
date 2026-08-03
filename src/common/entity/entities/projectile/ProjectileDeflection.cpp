@@ -20,9 +20,12 @@
 
 #include "ProjectileDeflection.hpp"
 #include "ProjectileEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <cmath>
 
 namespace mc {
 

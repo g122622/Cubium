@@ -24,10 +24,18 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 
 namespace mc {

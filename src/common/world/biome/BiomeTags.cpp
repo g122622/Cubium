@@ -23,7 +23,15 @@
 
 #include "BiomeTags.hpp"
 #include "BiomeIds.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::biome {

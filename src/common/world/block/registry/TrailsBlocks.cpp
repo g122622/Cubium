@@ -22,12 +22,15 @@
  */
 
 #include "world/block/registry/TrailsBlocks.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/PitcherCropBlock.hpp"
 #include "world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "world/block/blocks/functional/TrailsBlocks.hpp"

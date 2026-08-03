@@ -22,9 +22,18 @@
  */
 
 #include "ItemLootEntry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -78,7 +87,7 @@ bool ItemLootEntry::generate(std::function<void(const ItemStack&)> consumer, Loo
     // 计算数量
     i32 count = m_count.generateInt(context.getRandom());
     // spdlog::info(
-        // "ItemLootEntry::generate resolved item='{}' generatedCount={}", item->itemLocation().toString(), count);
+    // "ItemLootEntry::generate resolved item='{}' generatedCount={}", item->itemLocation().toString(), count);
     if (count <= 0) {
         return true; // 数量为0不算失败
     }

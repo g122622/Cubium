@@ -22,7 +22,12 @@
  */
 
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
+#include "common/core/Types.hpp"
 
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

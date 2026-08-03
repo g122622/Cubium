@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/world/storage/db/SectionKey.hpp"
+#include <cstddef>
 #include <mutex>
 #include <unordered_set>
 #include <vector>

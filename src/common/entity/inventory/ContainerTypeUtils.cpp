@@ -22,6 +22,8 @@
  */
 
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 
 namespace mc {
 namespace ContainerTypes {

@@ -23,10 +23,18 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseColumn.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <memory>
 #include <mutex>
 #include <vector>
 

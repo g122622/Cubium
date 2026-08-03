@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "item/core/ItemStack.hpp"
 #include <vector>

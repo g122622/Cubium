@@ -24,7 +24,10 @@
 #pragma once
 
 #include "DamageEnchantment.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <string>
 
 namespace mc {
 namespace item {

@@ -24,6 +24,7 @@
 #include "EntityType.hpp"
 #include "Entity.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
+#include <memory>
 
 namespace mc {
 namespace entity {

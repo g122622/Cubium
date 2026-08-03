@@ -24,9 +24,15 @@
 #include "CopyBlockStateFunction.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

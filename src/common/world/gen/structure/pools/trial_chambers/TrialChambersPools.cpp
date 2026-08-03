@@ -23,8 +23,8 @@
 
 #include "TrialChambersPools.hpp"
 
-#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 
 namespace mc {
 namespace world {

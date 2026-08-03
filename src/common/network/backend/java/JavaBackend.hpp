@@ -23,8 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/network/backend/IProtocolBackend.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
+#include "common/network/pipeline/ProtocolTableSet.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::network::backend::java {
 

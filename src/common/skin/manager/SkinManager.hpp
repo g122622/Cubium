@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
@@ -35,11 +36,15 @@
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
+#include <array>
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::skin {

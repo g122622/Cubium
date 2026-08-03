@@ -23,6 +23,7 @@
 
 #include "IllusionerEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
@@ -32,22 +33,27 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
+#include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/item/Items.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

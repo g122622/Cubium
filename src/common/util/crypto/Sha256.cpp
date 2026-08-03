@@ -28,7 +28,13 @@
  * 实现符合 FIPS 180-4 标准的 SHA-256 哈希算法。
  */
 #include "Sha256.hpp"
+#include "common/core/Types.hpp"
+#include <array>
 #include <cstring>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 namespace util {

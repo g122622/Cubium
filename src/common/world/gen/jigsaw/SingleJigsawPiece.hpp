@@ -21,6 +21,10 @@
 
 #include "JigsawPiece.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
+#include <memory>
 #include <optional>
 #include <string>
 

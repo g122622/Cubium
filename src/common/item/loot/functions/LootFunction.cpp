@@ -25,6 +25,8 @@
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace loot {

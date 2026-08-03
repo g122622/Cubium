@@ -32,16 +32,25 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/AxisAlignedBB.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 
 // 粒子类型
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/ray/Ray.hpp"
 
+#include <cmath>
+#include <memory>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {

@@ -26,7 +26,9 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {

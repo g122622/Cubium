@@ -25,12 +25,20 @@
 
 #include "../settings/FlatLevelGeneratorSettings.hpp"
 #include "IChunkGenerator.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/chunk/NoiseColumn.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureCheck.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include <memory>
 #include <mutex>
+#include <vector>
 
 namespace mc {
 

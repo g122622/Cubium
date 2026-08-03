@@ -24,6 +24,14 @@
 #include "PlacementRegistry.hpp"
 
 #include "BlockPredicateFilterPlacement.hpp"
+#include "common/world/gen/placement/BiomeFilterPlacement.hpp"
+#include "common/world/gen/placement/EnvironmentScanPlacement.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include "common/world/gen/placement/Placements.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

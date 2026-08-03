@@ -22,6 +22,7 @@
  */
 
 #include "Material.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 

@@ -24,9 +24,17 @@
 #include "MerchantContainerMenu.hpp"
 
 #include "MerchantResultSlot.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
+#include "common/entity/inventory/container/MerchantContainer.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

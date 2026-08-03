@@ -28,7 +28,11 @@
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
+#include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

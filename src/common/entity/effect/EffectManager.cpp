@@ -24,6 +24,10 @@
 #include "EffectManager.hpp"
 #include "../core/LivingEntity.hpp"
 #include "EffectType.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include <cstddef>
+#include <utility>
 
 namespace mc {
 namespace entity {

@@ -20,12 +20,14 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <vector>
 

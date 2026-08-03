@@ -39,11 +39,20 @@
 #include "../../../../world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "../../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../../world/block/registry/VanillaBlocks.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

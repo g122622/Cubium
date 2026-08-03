@@ -24,6 +24,7 @@
 #include "SweetBerryBushBlock.hpp"
 #include "common/core/Constants.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -32,15 +33,29 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -28,8 +28,12 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../core/Entity.hpp"
 #include "../../serialization/NbtHelper.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

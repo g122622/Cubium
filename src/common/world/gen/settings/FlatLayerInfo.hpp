@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <algorithm>
 #include <vector>

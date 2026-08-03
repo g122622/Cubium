@@ -22,22 +22,29 @@
  */
 
 #include "common/world/fluid/FlowingFluid.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/property/FluidProperties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 using namespace mc::trace;

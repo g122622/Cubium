@@ -23,7 +23,9 @@
 
 #include "RavagerNodeProcessor.hpp"
 
-#include "common/world/block/Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 

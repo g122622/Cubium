@@ -23,8 +23,11 @@
 
 #include "Merchant.hpp"
 #include "MerchantOffer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

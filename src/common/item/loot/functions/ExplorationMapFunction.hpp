@@ -25,6 +25,7 @@
 
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include <memory>

@@ -23,13 +23,17 @@
 
 #include "AbstractChestedHorseEntity.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/blockentity/core/SimpleInventory.hpp"
 
 namespace mc {
 

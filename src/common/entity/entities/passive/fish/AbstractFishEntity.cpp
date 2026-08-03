@@ -32,8 +32,13 @@
 #include "../../../core/MobEntity.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../player/Player.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <memory>
 
 namespace mc {
 

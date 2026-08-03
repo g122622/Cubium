@@ -39,10 +39,12 @@
 #include "gameevent/GameEvent.hpp"
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

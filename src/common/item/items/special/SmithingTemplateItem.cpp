@@ -22,7 +22,11 @@
  */
 
 #include "item/items/special/SmithingTemplateItem.hpp"
+#include "common/item/core/Item.hpp"
 #include "resource/LanguageManager.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace item {

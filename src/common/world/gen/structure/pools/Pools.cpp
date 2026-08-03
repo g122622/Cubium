@@ -28,6 +28,8 @@
 #include "pillager_outpost/PillagerOutpostPools.hpp"
 #include "trial_chambers/TrialChambersPools.hpp"
 #include "village/VillagePools.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

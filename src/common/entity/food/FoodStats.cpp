@@ -22,12 +22,12 @@
  */
 
 #include "FoodStats.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <algorithm>
-#include <cmath>
 
 namespace mc {
 

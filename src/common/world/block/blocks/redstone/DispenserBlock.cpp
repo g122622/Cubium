@@ -22,7 +22,6 @@
  */
 
 #include "DispenserBlock.hpp"
-#include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/inventory/IInventory.hpp"
 #include "../../../../item/core/ItemStack.hpp"
@@ -37,7 +36,21 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/dispense/IDispenseItemBehavior.hpp"
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

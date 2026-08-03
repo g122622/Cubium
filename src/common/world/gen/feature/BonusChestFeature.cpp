@@ -22,15 +22,22 @@
  */
 
 #include "BonusChestFeature.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 namespace mc::world::gen::feature {

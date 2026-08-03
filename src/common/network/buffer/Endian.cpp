@@ -22,6 +22,7 @@
  */
 
 #include "common/network/buffer/Endian.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::network::buffer {
 

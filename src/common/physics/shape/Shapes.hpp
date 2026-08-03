@@ -25,8 +25,11 @@
 
 #include "BooleanOp.hpp"
 #include "VoxelShape.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include <functional>
 #include <memory>
 #include <vector>
 

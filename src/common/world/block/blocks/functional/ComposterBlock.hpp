@@ -31,9 +31,13 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../Material.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace mc {
 

@@ -22,9 +22,17 @@
  */
 
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
 
+#include <exception>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <string>
+#include <utility>
 
 namespace mc::mod::bedrock::addon {
 

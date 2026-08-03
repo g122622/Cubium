@@ -23,11 +23,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/storage/EmptinessMap.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include <vector>
 
 namespace mc {
 

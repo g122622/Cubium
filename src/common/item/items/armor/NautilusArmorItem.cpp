@@ -22,6 +22,8 @@
  */
 
 #include "NautilusArmorItem.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item::items {

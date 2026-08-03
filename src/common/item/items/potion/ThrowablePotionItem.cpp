@@ -22,14 +22,19 @@
  */
 
 #include "common/item/items/potion/ThrowablePotionItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace item {

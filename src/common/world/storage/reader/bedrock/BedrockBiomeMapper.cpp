@@ -22,6 +22,7 @@
  */
 
 #include "BedrockBiomeMapper.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 

@@ -23,8 +23,13 @@
 
 #include "PatrollerEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/PatrolGoals.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <memory>
 
 namespace mc {
 

@@ -22,7 +22,9 @@
  */
 
 #include "ProtectionEnchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {

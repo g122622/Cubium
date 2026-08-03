@@ -1,9 +1,20 @@
 #include "OceanMonumentStructure.hpp"
 
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/biome/BiomeIds.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

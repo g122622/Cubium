@@ -22,6 +22,11 @@
  */
 
 #include "common/network/buffer/RegistryByteBuf.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc::network::buffer {
 
@@ -57,7 +62,8 @@ Result<const BlockState*> RegistryByteBuf::readBlockStateHolder()
     u32 id = 0;
     MC_TRY_ASSIGN(id, readVarUInt());
     if (!hasRegistry()) {
-        return Error(ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readBlockStateHolder");
+        return Error(
+            ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readBlockStateHolder");
     }
     return registry().blockStateById(id);
 }
@@ -75,7 +81,8 @@ Result<const entity::EntityType*> RegistryByteBuf::readEntityTypeHolder()
         return static_cast<const entity::EntityType*>(nullptr);
     }
     if (!hasRegistry()) {
-        return Error(ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readEntityTypeHolder");
+        return Error(
+            ErrorCode::InvalidState, "RegistryByteBuf not bound to registry", "RegistryByteBuf::readEntityTypeHolder");
     }
     return registry().entityTypeById(id);
 }

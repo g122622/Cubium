@@ -22,6 +22,7 @@
  */
 
 #include "GameTime.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::time {
 

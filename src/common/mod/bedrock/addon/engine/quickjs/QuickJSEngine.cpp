@@ -22,9 +22,21 @@
  */
 
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSEngine.hpp"
+#include "common/mod/bedrock/addon/binding/IModuleBindingFactory.hpp"
+#include "common/mod/bedrock/addon/core/Capabilities.hpp"
+#include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
 
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tier/IItemTier.hpp"
 

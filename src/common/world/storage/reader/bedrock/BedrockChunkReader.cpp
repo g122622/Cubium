@@ -24,15 +24,28 @@
 #include "BedrockChunkReader.hpp"
 #include "BedrockConstants.hpp"
 #include "PaletteUtil.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/reader/bedrock/BedrockBiomeMapper.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 
 namespace mc::world::storage::reader::bedrock {
 

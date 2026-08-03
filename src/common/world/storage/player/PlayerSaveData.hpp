@@ -28,6 +28,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
 #include <optional>

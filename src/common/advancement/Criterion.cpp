@@ -22,8 +22,15 @@
  */
 
 #include "Criterion.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "trigger/CriterionTriggers.hpp"
 #include "trigger/impl/ImpossibleTrigger.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

@@ -24,18 +24,16 @@
 #include "DispenseItemBehaviorRegistry.hpp"
 
 #include "IDispenseItemBehavior.hpp"
-#include "common/core/Types.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ProjectileItem.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace blocks {

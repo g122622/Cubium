@@ -23,10 +23,14 @@
 
 #include "FluidRegistry.hpp"
 #include "Fluids.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "fluids/EmptyFluid.hpp"
 #include "fluids/LavaFluid.hpp"
 #include "fluids/WaterFluid.hpp"
-#include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc::fluid {
 

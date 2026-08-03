@@ -21,6 +21,7 @@
  */
 
 #include "TagMatchPredicate.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 

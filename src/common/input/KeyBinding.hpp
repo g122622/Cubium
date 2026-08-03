@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明 GLFW 按键常量
 // 这些值与 GLFW 按键常量一致，避免直接依赖 GLFW 头文件

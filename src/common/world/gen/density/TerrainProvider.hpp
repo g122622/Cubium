@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include <memory>
 #include <vector>

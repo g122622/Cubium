@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -32,7 +34,9 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 
+#include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace mc {

@@ -25,11 +25,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/Vector3.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
@@ -45,6 +41,13 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

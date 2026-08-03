@@ -22,8 +22,15 @@
  */
 
 #include "CoralClawFeature.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/coral/CoralBlock.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/ocean/CoralFeature.hpp"
 #include <array>
+#include <cstddef>
 
 namespace mc {
 

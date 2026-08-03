@@ -18,14 +18,16 @@
  */
 
 #include "ThrowableItem.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include <cmath>
+#include <memory>
 
 namespace mc {
 namespace item {

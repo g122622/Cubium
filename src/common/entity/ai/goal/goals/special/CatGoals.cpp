@@ -23,7 +23,13 @@
 
 #include "CatGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/special/MoveToBlockGoal.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -36,11 +42,12 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include <cmath>
+#include <string>
 
 namespace mc::entity::ai::goal {
 

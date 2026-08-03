@@ -23,14 +23,18 @@
 
 #include "SpongeBlock.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
+#include <functional>
 #include <queue>
 #include <unordered_set>
 #include <utility>

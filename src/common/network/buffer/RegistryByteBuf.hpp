@@ -23,8 +23,13 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/registry/RegistryAccess.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <optional>
 

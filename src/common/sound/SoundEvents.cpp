@@ -22,6 +22,7 @@
  */
 
 #include "SoundEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 

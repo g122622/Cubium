@@ -26,6 +26,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -36,6 +37,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 class Entity;

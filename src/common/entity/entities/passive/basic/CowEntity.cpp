@@ -35,7 +35,11 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

@@ -25,6 +25,7 @@
 
 #include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <memory>
 #include <string>
 

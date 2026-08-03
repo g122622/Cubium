@@ -22,8 +22,18 @@
  */
 
 #include "common/resource/pack/FolderResourcePack.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
+#include <exception>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace fs = std::filesystem;
 

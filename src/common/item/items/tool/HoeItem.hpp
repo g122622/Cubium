@@ -24,6 +24,13 @@
 #pragma once
 
 #include "ToolItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/tier/IItemTier.hpp"
+#include "common/world/block/Material.hpp"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace item {

@@ -24,6 +24,11 @@
 #pragma once
 
 #include "../../core/Entity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <memory>

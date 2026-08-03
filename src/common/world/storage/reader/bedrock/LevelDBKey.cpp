@@ -22,8 +22,14 @@
  */
 
 #include "LevelDBKey.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc::world::storage::reader::bedrock {
 

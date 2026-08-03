@@ -22,15 +22,22 @@
  */
 
 #include "LanguageManager.hpp"
-#include "ResourceLocation.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include "pack/IResourcePack.hpp"
 #include "repository/PackRepository.hpp"
 
+#include <cctype>
+#include <cstddef>
+#include <exception>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
-
-#include <algorithm>
-#include <regex>
 
 namespace mc::resource {
 

@@ -28,6 +28,12 @@
 // ============================================================================
 
 #include "BlockIgnoreStructureProcessor.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace world {

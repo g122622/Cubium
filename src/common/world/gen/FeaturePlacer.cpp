@@ -21,6 +21,12 @@
  */
 
 #include "common/world/gen/FeaturePlacer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world::gen {

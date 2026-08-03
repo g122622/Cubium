@@ -26,7 +26,9 @@
 #include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
+#include <string>
 
 namespace mc {
 

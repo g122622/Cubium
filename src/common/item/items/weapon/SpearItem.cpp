@@ -23,16 +23,28 @@
 
 #include "common/item/items/weapon/SpearItem.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/SpearEntity.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/items/tool/TieredItem.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace item {

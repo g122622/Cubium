@@ -20,6 +20,11 @@
 #pragma once
 
 #include "JigsawPiece.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace world {

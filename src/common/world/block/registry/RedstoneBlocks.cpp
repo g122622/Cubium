@@ -21,8 +21,10 @@
  */
 
 #include "world/block/registry/RedstoneBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/redstone/ActivatorRailBlock.hpp"
 #include "world/block/blocks/redstone/DaylightDetectorBlock.hpp"
 #include "world/block/blocks/redstone/DetectorRailBlock.hpp"
@@ -36,7 +38,6 @@
 #include "world/block/blocks/redstone/PistonHeadBlock.hpp"
 #include "world/block/blocks/redstone/PoweredRailBlock.hpp"
 #include "world/block/blocks/redstone/RailBlock.hpp"
-#include "world/block/blocks/redstone/RedstoneBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneComparatorBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneLampBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneRepeaterBlock.hpp"
@@ -45,7 +46,6 @@
 #include "world/block/blocks/redstone/RedstoneWireBlock.hpp"
 #include "world/block/blocks/redstone/StoneButtonBlock.hpp"
 #include "world/block/blocks/redstone/StonePressurePlateBlock.hpp"
-#include "world/block/blocks/redstone/TNTBlock.hpp"
 #include "world/block/blocks/redstone/TargetBlock.hpp"
 #include "world/block/blocks/redstone/TripWireBlock.hpp"
 #include "world/block/blocks/redstone/TripWireHookBlock.hpp"

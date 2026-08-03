@@ -22,10 +22,16 @@
  */
 
 #include "CrafterBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockState.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

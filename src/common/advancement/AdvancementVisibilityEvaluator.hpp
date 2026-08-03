@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Advancement.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <vector>
 

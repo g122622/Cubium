@@ -25,6 +25,16 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/copper/WeatheringCopperBlock.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

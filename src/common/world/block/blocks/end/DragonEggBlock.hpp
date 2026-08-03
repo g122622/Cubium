@@ -24,6 +24,15 @@
 #pragma once
 
 #include "../FallingBlock.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 

@@ -29,13 +29,16 @@
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::command {
 

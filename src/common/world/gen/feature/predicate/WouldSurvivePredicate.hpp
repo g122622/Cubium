@@ -24,6 +24,7 @@
 
 #include "BlockPredicate.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
 
 namespace mc::world::gen::feature::predicate {
 

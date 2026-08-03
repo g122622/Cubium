@@ -21,11 +21,15 @@
  */
 
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
-#include "common/profiler/TraceEvents.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/gen/ChunkDependencies.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include <algorithm>
-#include <array>
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace mc::world::chunk {
 namespace {

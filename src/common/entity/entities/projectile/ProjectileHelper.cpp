@@ -24,7 +24,10 @@
 #include "ProjectileHelper.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -32,6 +35,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <optional>
 

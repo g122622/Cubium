@@ -23,11 +23,18 @@
  */
 
 #include "NBTPredicate.hpp"
+#include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
-#include <sstream>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <fmt/format.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

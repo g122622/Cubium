@@ -22,6 +22,13 @@
  */
 
 #include "DamageTypeTags.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 

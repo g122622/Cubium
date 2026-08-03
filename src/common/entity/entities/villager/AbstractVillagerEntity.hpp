@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/village/trade/Merchant.hpp"
+#include "common/world/village/trade/MerchantOffer.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 

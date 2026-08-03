@@ -23,19 +23,21 @@
 
 #include "LeadItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/item/Items.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include <utility>
 
 namespace mc::item::items {
 

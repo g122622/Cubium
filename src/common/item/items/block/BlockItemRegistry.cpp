@@ -24,11 +24,17 @@
 #include "BlockItemRegistry.hpp"
 
 #include "GameMasterBlockItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
+#include <functional>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

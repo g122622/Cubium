@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
 #include <memory>
 #include <string>

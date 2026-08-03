@@ -22,15 +22,18 @@
 
 #include "NoiseBasedAquifer.hpp"
 #include "FluidStatus.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
-#include "common/world/gen/noise/NormalNoise.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace mc::world::gen::aquifer {
 

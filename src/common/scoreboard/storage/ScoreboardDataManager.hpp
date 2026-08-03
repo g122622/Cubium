@@ -27,11 +27,15 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
+#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace mc::world::storage {
 class SingleLevelStorageManager;

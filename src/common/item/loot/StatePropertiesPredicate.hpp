@@ -25,12 +25,14 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

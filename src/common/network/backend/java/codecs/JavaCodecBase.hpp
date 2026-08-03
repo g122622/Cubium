@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/codec/StreamCodec.hpp"
@@ -32,6 +34,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace mc::network::backend::java::codecs {
 

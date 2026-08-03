@@ -29,7 +29,11 @@
 
 #include "GravityStructureProcessor.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <optional>
 
 namespace mc {
 namespace world {

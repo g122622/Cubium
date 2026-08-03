@@ -27,6 +27,8 @@
  */
 
 #include "RandomRanges.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 namespace math {

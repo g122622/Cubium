@@ -22,11 +22,15 @@
  */
 
 #include "common/entity/entities/passive/ambient/BatEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/BatGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/entity/entities/passive/ambient/AmbientEntity.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include <cmath>
+#include <memory>
 
 namespace mc {
 

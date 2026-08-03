@@ -24,7 +24,9 @@
 #pragma once
 
 #include "GoalFlag.hpp"
+#include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
+#include <string>
 
 namespace mc::entity::ai {
 

@@ -26,10 +26,13 @@
 #include "LootFunction.hpp"
 #include "common/command/arguments/NbtPath.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

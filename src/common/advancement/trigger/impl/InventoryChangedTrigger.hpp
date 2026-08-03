@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "common/advancement/MinMaxBounds.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 // Forward declarations
 namespace mc {

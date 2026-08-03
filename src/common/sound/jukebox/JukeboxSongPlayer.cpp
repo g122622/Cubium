@@ -23,10 +23,14 @@
 
 #include "JukeboxSongPlayer.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/sound/jukebox/JukeboxSong.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include <utility>
 
 namespace mc {
 

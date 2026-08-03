@@ -22,9 +22,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/chunk/gen/ChunkDependencies.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

@@ -24,7 +24,10 @@
 #pragma once
 
 #include "../CriterionTrigger.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

@@ -22,8 +22,8 @@
  */
 
 #include "CooldownTracker.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
-#include "spdlog/spdlog.h"
 #include <algorithm>
 
 namespace mc {

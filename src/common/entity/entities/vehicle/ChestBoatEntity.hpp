@@ -24,9 +24,20 @@
 #pragma once
 
 #include "BoatEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/INamedContainerProvider.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 

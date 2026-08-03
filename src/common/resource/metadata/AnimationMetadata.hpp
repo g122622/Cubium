@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::resource::metadata {
 

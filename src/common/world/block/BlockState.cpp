@@ -28,11 +28,17 @@
 #include "BlockSoundType.hpp"
 #include "Material.hpp"
 #include "SupportType.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/fluid/fluids/EmptyFluid.hpp"
+#include "common/world/map/MaterialColor.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

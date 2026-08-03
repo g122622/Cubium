@@ -22,9 +22,13 @@
  */
 
 #include "LootEntry.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace loot {

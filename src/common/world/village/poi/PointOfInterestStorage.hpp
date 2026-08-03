@@ -25,8 +25,10 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../world/block/BlockPos.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "PointOfInterest.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
+#include <cstddef>
 #include <functional>
 #include <list>
 #include <mutex>

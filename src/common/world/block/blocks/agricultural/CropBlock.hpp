@@ -23,8 +23,14 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/IntegerProperty.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <array>
 

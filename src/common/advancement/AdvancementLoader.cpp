@@ -23,11 +23,22 @@
 
 #include "AdvancementLoader.hpp"
 #include "AdvancementManager.hpp"
-#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/advancement/Advancement.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

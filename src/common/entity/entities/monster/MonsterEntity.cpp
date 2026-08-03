@@ -22,18 +22,23 @@
  */
 
 #include "MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <cmath>
+#include <optional>
 
 namespace mc {
 

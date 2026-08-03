@@ -25,6 +25,9 @@
 
 #include "BlockPredicateParser.hpp"
 #include "BlockStateParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/feature/state/DualNoiseBlockStateProvider.hpp"
 #include "common/world/gen/feature/state/NoiseBlockStateProvider.hpp"
 #include "common/world/gen/feature/state/NoiseStateUtils.hpp"
@@ -32,16 +35,19 @@
 #include "common/world/gen/feature/state/RandomizedIntBlockStateProvider.hpp"
 #include "common/world/gen/feature/state/RotatedBlockStateProvider.hpp"
 #include "common/world/gen/feature/state/RuleBasedBlockStateProvider.hpp"
-#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
-#include <spdlog/spdlog.h>
-
 #include <nlohmann/json.hpp>
 
+#include <cstddef>
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::gen::feature::parser {
 namespace BlockStateProviderParser {

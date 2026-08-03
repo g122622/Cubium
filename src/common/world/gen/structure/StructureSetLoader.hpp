@@ -26,10 +26,13 @@
 #include "StructureSet.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mc {

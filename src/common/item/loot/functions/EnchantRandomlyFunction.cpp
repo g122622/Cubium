@@ -22,11 +22,18 @@
  */
 
 #include "EnchantRandomlyFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace loot {

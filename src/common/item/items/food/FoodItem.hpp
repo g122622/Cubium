@@ -26,6 +26,8 @@
 #include "../../core/Item.hpp"
 #include "../../core/UseAction.hpp"
 #include "../../food/Food.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
 
 namespace mc {
 

@@ -22,20 +22,27 @@
  */
 
 #include "EnchantmentContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/Items.hpp"
 #include "item/core/Item.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/items/special/EnchantedBookItem.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/BlockTags.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

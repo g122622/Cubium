@@ -22,7 +22,10 @@
  */
 
 #include "DirtyTracker.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include <cstddef>
 #include <mutex>
+#include <vector>
 
 namespace mc::world::storage {
 

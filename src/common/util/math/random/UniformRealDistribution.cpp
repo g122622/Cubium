@@ -23,6 +23,7 @@
 
 #include "UniformRealDistribution.hpp"
 #include "Random.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::math {
 

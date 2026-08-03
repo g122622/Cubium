@@ -23,6 +23,10 @@
 
 #include "EntityTypeTag.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

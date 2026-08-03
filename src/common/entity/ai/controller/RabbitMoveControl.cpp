@@ -23,10 +23,10 @@
 
 #include "RabbitMoveControl.hpp"
 
-#include "JumpController.hpp"
 #include "RabbitJumpControl.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 

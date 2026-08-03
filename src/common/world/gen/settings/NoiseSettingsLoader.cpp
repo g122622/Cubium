@@ -23,7 +23,9 @@
 
 #include "common/world/gen/settings/NoiseSettingsLoader.hpp"
 
+#include "common/core/Result.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -32,7 +34,9 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

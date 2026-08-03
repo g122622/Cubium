@@ -25,6 +25,7 @@
 #include "../weapon/DamageEnchantment.hpp"
 #include "BreachEnchantment.hpp"
 #include "WindBurstEnchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {

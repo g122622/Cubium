@@ -28,7 +28,15 @@
 #include "../../../../world/block/Block.hpp"
 #include "../../../interfaces/IShearable.hpp"
 #include "CowEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

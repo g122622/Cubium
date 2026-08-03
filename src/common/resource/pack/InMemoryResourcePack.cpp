@@ -22,8 +22,17 @@
  */
 
 #include "common/resource/pack/InMemoryResourcePack.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <sstream>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::resource {

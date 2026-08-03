@@ -23,9 +23,12 @@
 
 #pragma once
 
-#include <memory>
 #include "EnumProperty.hpp"
+#include "common/util/Direction.hpp"
 #include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc {
 

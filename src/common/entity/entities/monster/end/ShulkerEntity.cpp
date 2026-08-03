@@ -23,7 +23,10 @@
 
 #include "ShulkerEntity.hpp"
 
-#include "entity/ai/goal/GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/special/ShulkerGoals.hpp"
@@ -44,6 +47,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 
 namespace mc {
 

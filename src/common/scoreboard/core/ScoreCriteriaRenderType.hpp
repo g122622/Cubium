@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include <cstddef>
+#include <optional>
 #include <string>
 
 namespace mc::scoreboard {

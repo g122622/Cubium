@@ -38,6 +38,7 @@
 
 #include "common/core/Types.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>

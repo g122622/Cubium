@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace mc::skin {

@@ -24,7 +24,12 @@
 #pragma once
 
 #include "Fluid.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace mc::fluid {
 

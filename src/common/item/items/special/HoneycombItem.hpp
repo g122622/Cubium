@@ -22,6 +22,7 @@
 #pragma once
 
 #include "../../core/Item.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/world/block/BlockState.hpp"
 
 #include <optional>

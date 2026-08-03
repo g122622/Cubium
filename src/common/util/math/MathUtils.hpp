@@ -26,6 +26,7 @@
 #include "../../core/Constants.hpp"
 #include "../../core/Types.hpp"
 #include "MathConstants.hpp"
+#include "common/world/WorldConstants.hpp"
 
 #include <algorithm>
 #include <cmath>

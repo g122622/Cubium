@@ -24,6 +24,8 @@
 #pragma once
 
 #include "CommandBlock.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <memory>
 

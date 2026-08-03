@@ -25,6 +25,10 @@
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
 
+#include <any>
+#include <memory>
+#include <typeindex>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

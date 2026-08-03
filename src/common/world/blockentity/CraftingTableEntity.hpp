@@ -23,10 +23,18 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/inventory/CraftingInventory.hpp" // 包含 CraftingInventory 和 CraftResultInventory
 #include "item/crafting/RecipeManager.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include <memory>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

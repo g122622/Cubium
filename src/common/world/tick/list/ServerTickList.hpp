@@ -26,13 +26,16 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/tick/base/ScheduledTick.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/list/ITickList.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <queue>
 #include <set>

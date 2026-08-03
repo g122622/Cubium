@@ -41,7 +41,6 @@
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/dimension/MapDimensionId.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
@@ -63,16 +62,44 @@
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "GameModeUtils.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/entity/player/SleepResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/scoreboard/core/Team.hpp"
-#include "spdlog/spdlog.h"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/ray/Ray.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/GlobalPos.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

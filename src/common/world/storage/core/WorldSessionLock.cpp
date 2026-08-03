@@ -22,6 +22,7 @@
  */
 
 #include "WorldSessionLock.hpp"
+#include "common/core/Result.hpp"
 #include <fstream>
 #include <spdlog/spdlog.h>
 

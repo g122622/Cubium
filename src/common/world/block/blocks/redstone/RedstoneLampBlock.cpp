@@ -23,10 +23,21 @@
 
 #include "RedstoneLampBlock.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/redstone/RedstonePower.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

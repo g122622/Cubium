@@ -37,7 +37,11 @@
 #include "../../enchantment/EnchantmentHelper.hpp"
 #include "../../enchantment/enchantments/AllEnchantments.hpp"
 #include "ArrowItem.hpp"
-#include <cmath>
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
+#include <functional>
+#include <memory>
 
 namespace mc {
 namespace item {

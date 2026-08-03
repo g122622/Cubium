@@ -25,11 +25,15 @@
 
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace world {

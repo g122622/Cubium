@@ -26,8 +26,12 @@
 #include <memory>
 
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/FlyingEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <optional>

@@ -23,9 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::feature::state {

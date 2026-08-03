@@ -22,7 +22,10 @@
  */
 
 #include "EmptinessMap.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include <cstddef>
 
 namespace mc {
 

@@ -24,9 +24,14 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
+#include "common/entity/ai/brain/memory/IPositionTarget.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace entity {

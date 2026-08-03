@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "memory/Memory.hpp"
 #include "memory/MemoryModuleStatus.hpp"
 #include "memory/MemoryModuleType.hpp"
@@ -32,13 +34,16 @@
 #include "sensor/SensorType.hpp"
 #include "task/Task.hpp"
 #include <any>
+#include <cstddef>
 #include <functional>
 #include <limits>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 // std::hash 特化用于 MemoryRequirement pair

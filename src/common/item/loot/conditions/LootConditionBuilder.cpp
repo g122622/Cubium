@@ -22,14 +22,20 @@
  */
 
 #include "common/item/loot/conditions/LootConditionBuilder.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
 #include "common/item/loot/conditions/AndCondition.hpp"
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
 #include "common/item/loot/conditions/DamageSourcePropertiesCondition.hpp"
+#include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
 #include "common/item/loot/conditions/EntityScoresCondition.hpp"
-#include "common/item/loot/conditions/FishingOpenWaterCondition.hpp"
 #include "common/item/loot/conditions/FortuneCondition.hpp"
 #include "common/item/loot/conditions/KilledByPlayerCondition.hpp"
 #include "common/item/loot/conditions/LocationCheckCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/MatchToolCondition.hpp"
 #include "common/item/loot/conditions/NotCondition.hpp"
 #include "common/item/loot/conditions/OrCondition.hpp"
@@ -42,6 +48,13 @@
 #include "common/item/loot/conditions/TimeCheckCondition.hpp"
 #include "common/item/loot/conditions/ToolTypeCondition.hpp"
 #include "common/item/loot/conditions/WeatherCheckCondition.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

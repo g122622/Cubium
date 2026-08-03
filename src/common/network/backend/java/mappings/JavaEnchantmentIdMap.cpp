@@ -22,10 +22,14 @@
  */
 
 #include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <string>
+#include <string_view>
 
 namespace mc::network::backend::java {
 

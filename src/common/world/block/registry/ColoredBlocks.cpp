@@ -21,7 +21,10 @@
  */
 
 #include "world/block/registry/ColoredBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ConcretePowderBlock.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"

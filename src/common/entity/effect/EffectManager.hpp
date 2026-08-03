@@ -24,6 +24,9 @@
 #pragma once
 
 #include "EffectInstance.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include <cstddef>
 #include <unordered_map>
 #include <vector>
 

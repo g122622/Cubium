@@ -29,6 +29,7 @@
 #include "common/resource/pack/PackMetadata.hpp"
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc::resource {

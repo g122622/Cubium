@@ -28,6 +28,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
 

@@ -22,11 +22,16 @@
  */
 
 #include "Feature.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/TuffBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

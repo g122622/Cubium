@@ -22,8 +22,13 @@
  */
 
 #include "StructurePlacement.hpp"
-
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include <functional>
+#include <utility>
 
 namespace mc::world::gen::structure::placement {
 

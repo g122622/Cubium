@@ -24,10 +24,14 @@
 #pragma once
 
 #include "Goal.hpp"
+#include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 
 #include <limits>
 #include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::entity::ai {
 

@@ -21,9 +21,19 @@
  */
 
 #include "common/world/gen/density/DensityFunctions.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace mc::world::gen::density {
 

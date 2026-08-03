@@ -22,6 +22,14 @@
  */
 
 #include "RedstoneBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -30,7 +38,8 @@ RedstoneBlock::RedstoneBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-i32 RedstoneBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 RedstoneBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -40,7 +49,8 @@ i32 RedstoneBlock::getWeakPower(const BlockState& state, IWorld& world, const Bl
     return world::redstone::RedstonePower::MAX_POWER;
 }
 
-i32 RedstoneBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 RedstoneBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(state);
     MC_UNUSED(world);

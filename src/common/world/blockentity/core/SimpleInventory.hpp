@@ -24,10 +24,14 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "entity/inventory/ContainerListener.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <functional>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

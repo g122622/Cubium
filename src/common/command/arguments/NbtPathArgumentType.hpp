@@ -25,9 +25,13 @@
 
 #include "ArgumentType.hpp"
 #include "NbtPath.hpp"
+#include "common/command/StringReader.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <any>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace command {

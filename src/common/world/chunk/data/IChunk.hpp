@@ -31,6 +31,7 @@
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include <array>
+#include <tuple>
 #include <vector>
 
 // BlockState 在 mc 命名空间中定义

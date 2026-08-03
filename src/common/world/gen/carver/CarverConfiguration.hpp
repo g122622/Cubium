@@ -25,8 +25,11 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
 #include "common/world/gen/valueprovider/FloatProvider.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 

@@ -30,7 +30,12 @@
 #include "PathHeap.hpp"
 #include "PathPoint.hpp"
 #include "Region.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 

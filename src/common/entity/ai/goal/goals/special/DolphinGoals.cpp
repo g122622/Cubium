@@ -33,7 +33,6 @@
 #include "../../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../resource/ResourceLocation.hpp"
-#include "../../../../../util/Direction.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
@@ -41,9 +40,20 @@
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
-#include <algorithm>
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace entity::ai::goal {

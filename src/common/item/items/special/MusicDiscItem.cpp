@@ -23,7 +23,11 @@
 
 #include "MusicDiscItem.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {
@@ -33,8 +37,8 @@ MusicDiscItem::MusicDiscItem(i32 comparatorOutput, const ResourceLocation& sound
     , m_comparatorOutput(comparatorOutput)
     , m_soundEventId(soundEventId)
 {
-    MC_ASSERT_RELEASE_MSG(comparatorOutput >= 1 && comparatorOutput <= 15,
-        "MusicDiscItem comparator output must be between 1 and 15");
+    MC_ASSERT_RELEASE_MSG(
+        comparatorOutput >= 1 && comparatorOutput <= 15, "MusicDiscItem comparator output must be between 1 and 15");
 }
 
 } // namespace item::items

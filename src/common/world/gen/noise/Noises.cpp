@@ -21,8 +21,13 @@
  */
 
 #include "Noises.hpp"
+#include "common/core/Types.hpp"
 #include <mutex>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::noise {
 

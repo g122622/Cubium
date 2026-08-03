@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "item/core/Item.hpp"
 #include <string>
 #include <vector>

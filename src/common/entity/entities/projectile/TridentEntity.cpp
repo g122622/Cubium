@@ -22,10 +22,8 @@
  */
 
 #include "TridentEntity.hpp"
-#include "../../../item/Items.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../sound/SoundEvents.hpp"
-#include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/BlockPos.hpp"
@@ -36,8 +34,16 @@
 #include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace entity {

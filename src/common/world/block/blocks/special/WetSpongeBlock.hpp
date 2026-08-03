@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 
 namespace mc {

@@ -31,8 +31,11 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 

@@ -22,12 +22,18 @@
  */
 
 #include "common/network/crypto/RsaHandshake.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 #include <openssl/evp.h>
-#include <openssl/pem.h>
 #include <openssl/rsa.h>
 
+#include <cstddef>
 #include <memory>
+#include <utility>
+#include <vector>
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
 
 namespace mc::network::crypto {
 

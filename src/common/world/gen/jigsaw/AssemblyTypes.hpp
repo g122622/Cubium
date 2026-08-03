@@ -22,10 +22,14 @@
 #include "JigsawJunction.hpp"
 #include "JigsawPiece.hpp"
 #include "JigsawTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

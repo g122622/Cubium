@@ -31,10 +31,23 @@
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

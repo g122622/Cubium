@@ -21,8 +21,13 @@
  */
 
 #include "common/world/gen/density/BlendedNoise.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/world/gen/noise/PerlinNoise.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::density {
 

@@ -24,6 +24,13 @@
 #include "BedrockColumnReader.hpp"
 #include "BedrockConstants.hpp"
 #include "LevelDBKey.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/reader/bedrock/BedrockChunkReader.hpp"
+#include "common/world/storage/reader/bedrock/BedrockLevelDb.hpp"
+#include <memory>
 
 namespace mc::world::storage::reader::bedrock {
 

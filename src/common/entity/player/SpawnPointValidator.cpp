@@ -24,10 +24,15 @@
 #include "SpawnPointValidator.hpp"
 #include "../../util/property/Properties.hpp"
 #include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../world/dimension/DimensionType.hpp"
-#include <cmath>
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/GlobalPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <array>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

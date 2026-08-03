@@ -26,6 +26,7 @@
 #include "../../Enchantment.hpp"
 #include "../weapon/DamageEnchantment.hpp"
 #include "common/core/Types.hpp" // CreatureAttribute
+#include <string>
 
 namespace mc {
 namespace item {

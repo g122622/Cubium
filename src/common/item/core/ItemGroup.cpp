@@ -24,6 +24,9 @@
 #include "ItemGroup.hpp"
 #include "Item.hpp"
 #include "ItemStack.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

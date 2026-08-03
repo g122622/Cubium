@@ -22,13 +22,15 @@
  */
 
 #include "PistonStructureHelper.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/PistonBlock.hpp"
+#include <cstddef>
+#include <vector>
 
 namespace mc {
 namespace blocks {

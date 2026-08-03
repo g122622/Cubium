@@ -28,8 +28,14 @@
 #include "../../core/MobEntity.hpp"
 #include "../../interfaces/IRangedAttackMob.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc {

@@ -22,7 +22,10 @@
  */
 
 #include "MaterialColor.hpp"
+#include "common/core/Types.hpp"
 #include "util/assert/AssertMacros.hpp"
+#include <array>
+#include <cstddef>
 
 namespace mc::world::map {
 

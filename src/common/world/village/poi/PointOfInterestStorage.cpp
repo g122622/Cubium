@@ -22,12 +22,22 @@
  */
 
 #include "PointOfInterestStorage.hpp"
-#include "../../../core/Constants.hpp"
 #include "../../../util/nbt/Nbt.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/village/poi/PointOfInterest.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <list>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

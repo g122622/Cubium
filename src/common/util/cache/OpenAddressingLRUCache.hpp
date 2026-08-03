@@ -25,6 +25,7 @@
 
 #include "../../core/Types.hpp"
 #include <atomic>
+#include <cstddef>
 #include <list>
 #include <mutex>
 #include <vector>

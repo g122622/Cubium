@@ -22,8 +22,13 @@
  */
 
 #include "common/mod/bedrock/addon/pack/AddonDependency.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::mod::bedrock::addon {
 

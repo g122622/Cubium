@@ -22,11 +22,12 @@
  */
 
 #include "world/block/registry/TrialBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/Material.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/trial/HeavyCoreBlock.hpp"
 #include "world/block/blocks/trial/TrialBlocks.hpp"
 

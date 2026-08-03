@@ -24,7 +24,10 @@
 #pragma once
 
 #include "CropBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <array>
 
 namespace mc {

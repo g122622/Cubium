@@ -21,6 +21,7 @@
  */
 
 #include "InsideWorldBoundsPredicate.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc::world::gen::feature::predicate {

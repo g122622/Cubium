@@ -27,6 +27,9 @@
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/math/Vector3.hpp"
 #include <array>
+#include <cstddef>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 

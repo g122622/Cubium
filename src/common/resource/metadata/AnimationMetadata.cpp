@@ -22,7 +22,13 @@
  */
 
 #include "AnimationMetadata.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::resource::metadata {
 

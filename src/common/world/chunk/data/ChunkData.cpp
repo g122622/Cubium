@@ -27,15 +27,26 @@
 #undef BYTE_SIZE
 
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gameevent/GameEventListenerRegistry.hpp"
+#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <algorithm>
-#include <climits>
+#include <array>
+#include <cstdint>
 #include <cstring>
-#include <sstream>
-#include <stdexcept>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

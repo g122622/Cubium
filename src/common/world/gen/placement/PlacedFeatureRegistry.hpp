@@ -25,6 +25,7 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/placement/PlacedFeature.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>

@@ -28,8 +28,14 @@
 
 #include "PhantomGoals.hpp"
 
-#include "common/core/Constants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -38,12 +44,15 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace mc::entity::ai::goal {

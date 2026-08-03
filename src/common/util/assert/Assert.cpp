@@ -28,7 +28,11 @@
 #include <cstring>
 #include <iostream>
 #include <mutex>
+#include <sstream>
+#include <string>
+#include <utility>
 
+#include "common/core/Types.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 
 #ifdef _WIN32

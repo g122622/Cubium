@@ -25,6 +25,7 @@
 
 #include "AbstractRaiderEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include <memory>
 
 namespace mc {

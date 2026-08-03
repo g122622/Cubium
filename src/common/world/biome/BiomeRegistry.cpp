@@ -22,8 +22,13 @@
  */
 
 #include "BiomeRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include <algorithm>
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeFactory.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include <utility>
 
 using namespace mc::trace;
 

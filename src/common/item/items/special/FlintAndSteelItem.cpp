@@ -22,8 +22,11 @@
  */
 
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -32,6 +35,7 @@
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <utility>
 
 namespace mc {
 namespace item {

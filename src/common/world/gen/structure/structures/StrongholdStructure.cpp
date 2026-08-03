@@ -23,18 +23,27 @@
 
 #include "StrongholdStructure.hpp"
 
-#include "../../../../core/Constants.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
-#include "../StructureBoundingBox.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/structures/StrongholdPieces.hpp"
 
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

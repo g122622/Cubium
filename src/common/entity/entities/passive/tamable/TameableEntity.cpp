@@ -22,17 +22,26 @@
  */
 
 #include "TameableEntity.hpp"
-#include "common/entity/ai/goal/GoalSelector.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
+#include <optional>
+#include <vector>
 
 namespace mc {
 

@@ -23,21 +23,29 @@
 
 #include "BlockItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockSoundType.hpp"
-#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/ShulkerBoxBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include <optional>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

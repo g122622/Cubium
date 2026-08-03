@@ -23,11 +23,15 @@
 
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <cstddef>
 #include <string>
 #include <string_view>
 

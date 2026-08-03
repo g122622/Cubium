@@ -31,8 +31,8 @@
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/WaterLoggableHelpers.hpp"
 #include "../../../world/block/registry/NaturalBlocks.hpp"
+#include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../core/EntityRegistry.hpp"
 #include "../../core/LivingEntity.hpp"
@@ -47,15 +47,34 @@
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/math/ray/Ray.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace entity {

@@ -23,18 +23,28 @@
 
 #include "SkyLightEngine.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <limits>
-#include <spdlog/spdlog.h>
+#include <vector>
+#include <fmt/format.h>
 
 using namespace mc::trace;
 

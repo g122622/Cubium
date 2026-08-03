@@ -22,6 +22,9 @@
  */
 
 #include "PlayerDataManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceManager.hpp"
@@ -29,8 +32,15 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "common/world/storage/player/PlayerSaveData.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include <cstddef>
+#include <memory>
 #include <mutex>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {

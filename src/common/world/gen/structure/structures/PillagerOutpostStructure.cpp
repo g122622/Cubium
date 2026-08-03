@@ -22,14 +22,20 @@
  */
 
 #include "PillagerOutpostStructure.hpp"
-#include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeTags.hpp"
-#include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/gen/structure/JigsawStructure.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

@@ -26,6 +26,8 @@
 #include "../../../../core/Types.hpp"
 #include "../../../interfaces/ICrossbowUser.hpp"
 #include "AbstractIllagerEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include <memory>
 
 // Forward declarations

@@ -22,6 +22,12 @@
  */
 
 #include "WorldRequests.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConfig.hpp"
+#include <filesystem>
+#include <string>
+#include <utility>
 
 namespace mc::world::storage {
 

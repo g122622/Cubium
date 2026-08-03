@@ -23,7 +23,9 @@
 
 #include "AvoidHostileGoal.hpp"
 
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"

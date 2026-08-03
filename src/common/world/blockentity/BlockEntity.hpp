@@ -23,13 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
+#include <string>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

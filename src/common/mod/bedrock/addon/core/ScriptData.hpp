@@ -31,6 +31,7 @@
  */
 
 #include <string>
+#include <utility>
 
 namespace mc::mod::bedrock::addon {
 

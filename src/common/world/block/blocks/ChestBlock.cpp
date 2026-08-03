@@ -23,22 +23,38 @@
 
 #include "ChestBlock.hpp"
 
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/stats/Stats.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {

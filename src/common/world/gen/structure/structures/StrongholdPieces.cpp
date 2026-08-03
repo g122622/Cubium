@@ -22,6 +22,7 @@
  */
 
 #include "StrongholdPieces.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
@@ -33,9 +34,12 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
-#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {

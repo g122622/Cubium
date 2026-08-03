@@ -24,6 +24,8 @@
 #pragma once
 
 #include "RandomSwimmingGoal.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc {
 

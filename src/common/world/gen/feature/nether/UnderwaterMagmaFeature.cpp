@@ -22,11 +22,16 @@
  */
 
 #include "UnderwaterMagmaFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include <optional>
 
 namespace mc {
 

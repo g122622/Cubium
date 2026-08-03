@@ -22,11 +22,17 @@
  */
 
 #include "VillagePools.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/jigsaw/EmptyJigsawPiece.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/jigsaw/SingleJigsawPiece.hpp"
-#include "common/world/gen/structure/pools/ProcessorLists.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

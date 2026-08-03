@@ -26,12 +26,16 @@
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include "decorator/TreeDecorator.hpp"
 
+#include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

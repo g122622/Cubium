@@ -21,11 +21,21 @@
  */
 
 #include "common/world/gen/noise/PerlinNoise.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::noise {
 

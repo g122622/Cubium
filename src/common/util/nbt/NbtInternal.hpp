@@ -31,7 +31,12 @@
 #pragma once
 
 #include "Nbt.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <istream>
+#include <ostream>
 #include <stdexcept>
+#include <type_traits>
 
 namespace mc {
 namespace nbt {

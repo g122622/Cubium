@@ -22,11 +22,21 @@
  */
 
 #include "UpwardsBranchingTrunkPlacer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

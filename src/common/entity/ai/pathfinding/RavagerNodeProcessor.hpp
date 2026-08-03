@@ -24,6 +24,8 @@
 #pragma once
 
 #include "WalkNodeProcessor.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
 
 namespace mc::entity::ai::pathfinding {
 

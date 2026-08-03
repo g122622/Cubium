@@ -21,8 +21,11 @@
  */
 
 #include "common/world/gen/surface/SurfaceRuleContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
@@ -30,6 +33,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <utility>
 
 namespace mc::world::gen::surface {

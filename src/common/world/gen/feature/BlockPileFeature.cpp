@@ -22,11 +22,18 @@
  */
 
 #include "BlockPileFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::feature {
 

@@ -22,6 +22,12 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <iterator>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 

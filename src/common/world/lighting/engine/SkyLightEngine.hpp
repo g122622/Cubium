@@ -24,10 +24,17 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include <array>
 #include <vector>
 
 namespace mc {

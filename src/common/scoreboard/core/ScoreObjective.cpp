@@ -23,11 +23,16 @@
 
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/text/ComponentUtils.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::scoreboard {
 

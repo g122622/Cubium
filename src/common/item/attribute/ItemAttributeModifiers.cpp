@@ -22,10 +22,14 @@
  */
 
 #include "ItemAttributeModifiers.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include <algorithm>
+#include <ios>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace item {

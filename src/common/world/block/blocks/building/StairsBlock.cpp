@@ -23,12 +23,23 @@
 
 #include "StairsBlock.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

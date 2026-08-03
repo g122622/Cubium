@@ -23,16 +23,20 @@
 
 #include "DropperBlock.hpp"
 
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/redstone/DispenserBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/interactive/DropperBlockEntity.hpp"
+#include <algorithm>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace blocks {

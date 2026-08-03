@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/nbt/Nbt.hpp"
@@ -30,6 +31,7 @@
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

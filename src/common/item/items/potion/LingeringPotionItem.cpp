@@ -22,9 +22,12 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/potion/ThrowablePotionItem.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <memory>
+#include <utility>
 
 namespace mc {
 namespace item {

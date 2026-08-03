@@ -22,7 +22,13 @@
  */
 
 #include "EffectAttributeModifiers.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {

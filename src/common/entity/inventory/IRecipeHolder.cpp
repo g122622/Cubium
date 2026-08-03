@@ -22,6 +22,7 @@
  */
 
 #include "entity/inventory/IRecipeHolder.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/IRecipe.hpp"

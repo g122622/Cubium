@@ -25,6 +25,7 @@
 
 #include "Block.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -33,7 +34,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 

@@ -23,13 +23,15 @@
 
 #include "ProcessorLists.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/template/RuleTest.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/jigsaw/ProcessorListRegistry.hpp"
 
-#include <unordered_map>
+#include <memory>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -22,8 +22,16 @@
  */
 
 #include "LocationTrigger.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 // 注意：trigger() 方法需要服务端模块支持
 // 服务端代码应通过事件系统触发

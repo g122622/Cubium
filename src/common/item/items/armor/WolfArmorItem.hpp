@@ -24,6 +24,9 @@
 #pragma once
 
 #include "DyeableArmorItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item::items {

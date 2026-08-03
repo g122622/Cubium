@@ -23,7 +23,10 @@
 
 #include "common/network/sync/VanillaChunkWire.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
@@ -40,12 +43,12 @@
 #include "common/world/chunk/data/PalettedContainer.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 
-#include <spdlog/spdlog.h>
-
 #include <algorithm>
 #include <array>
-#include <cstdint>
+#include <cstddef>
+#include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

@@ -22,9 +22,16 @@
  */
 
 #include "TagLootEntry.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

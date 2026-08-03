@@ -22,20 +22,29 @@
  */
 
 #include "BaseLightEngine.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/LightType.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <memory>
-#include <spdlog/spdlog.h>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

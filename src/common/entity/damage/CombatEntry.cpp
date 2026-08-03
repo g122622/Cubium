@@ -27,9 +27,14 @@
  */
 
 #include "CombatEntry.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include <cmath>
+#include "common/entity/damage/DamageSource.hpp"
 #include <limits>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 

@@ -31,6 +31,16 @@
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

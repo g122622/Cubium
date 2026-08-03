@@ -24,11 +24,13 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include "common/world/storage/core/WorldSessionLock.hpp"
 #include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <string>

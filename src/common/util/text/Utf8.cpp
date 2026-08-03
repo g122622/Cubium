@@ -22,6 +22,9 @@
  */
 
 #include "Utf8.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <string>
 
 namespace mc::util::text {
 

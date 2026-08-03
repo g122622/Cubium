@@ -26,6 +26,9 @@
 #include "CarvingContext.hpp"
 #include "WorldCarver.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 namespace mc {
 

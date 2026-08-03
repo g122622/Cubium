@@ -26,6 +26,8 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include <memory>
 #include <optional>

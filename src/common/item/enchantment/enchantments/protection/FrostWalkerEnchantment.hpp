@@ -24,6 +24,8 @@
 #pragma once
 
 #include "../../Enchantment.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc {
 

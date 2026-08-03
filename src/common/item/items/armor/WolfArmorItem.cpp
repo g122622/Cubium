@@ -22,6 +22,10 @@
  */
 
 #include "WolfArmorItem.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

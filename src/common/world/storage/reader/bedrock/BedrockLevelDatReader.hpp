@@ -24,9 +24,13 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConfig.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include <filesystem>
 #include <memory>
+#include <string>
 
 namespace mc::nbt::tags {
 struct compound_tag;

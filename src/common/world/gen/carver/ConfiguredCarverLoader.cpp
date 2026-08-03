@@ -29,14 +29,26 @@
 #include "ConfiguredCarverRegistry.hpp"
 #include "NetherWorldCarver.hpp"
 #include "WorldCarver.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
+#include "common/world/gen/valueprovider/FloatProvider.hpp"
 #include "common/world/gen/valueprovider/FloatProviderParser.hpp"
+#include "common/world/gen/valueprovider/HeightProvider.hpp"
 #include "common/world/gen/valueprovider/HeightProviderParser.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

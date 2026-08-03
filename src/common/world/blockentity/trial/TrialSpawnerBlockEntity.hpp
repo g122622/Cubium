@@ -26,10 +26,14 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include <memory>
 #include <optional>
+#include <string>
 #include <unordered_set>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

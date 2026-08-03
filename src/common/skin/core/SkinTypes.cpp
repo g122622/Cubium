@@ -22,8 +22,11 @@
  */
 
 #include "SkinTypes.hpp"
-#include <algorithm>
+#include "common/core/Types.hpp"
+#include <array>
 #include <cctype>
+#include <cstddef>
+#include <string>
 
 namespace mc::skin {
 

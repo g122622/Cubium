@@ -24,6 +24,7 @@
 #pragma once
 
 #include <chrono>
+#include <__msvc_chrono.hpp>
 
 namespace mc::util {
 

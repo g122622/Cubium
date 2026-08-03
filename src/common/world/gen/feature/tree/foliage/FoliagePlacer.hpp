@@ -27,6 +27,7 @@
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../FeatureSpread.hpp"
 #include "../trunk/TrunkPlacer.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>

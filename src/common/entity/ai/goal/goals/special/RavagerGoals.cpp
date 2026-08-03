@@ -23,6 +23,8 @@
 
 #include "RavagerGoals.hpp"
 
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/illager/RavagerEntity.hpp"
 

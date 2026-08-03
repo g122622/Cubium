@@ -23,6 +23,9 @@
 
 #include "EnumProperty.hpp"
 #include "Properties.hpp"
+#include <optional>
+#include <string>
+#include <string_view>
 
 namespace mc {
 

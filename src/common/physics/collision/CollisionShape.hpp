@@ -27,6 +27,8 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 

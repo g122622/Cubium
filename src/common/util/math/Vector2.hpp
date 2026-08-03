@@ -25,6 +25,8 @@
 
 #include "../../core/Types.hpp"
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <type_traits>
 
 namespace mc {

@@ -21,7 +21,13 @@
  */
 
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
@@ -36,14 +42,17 @@ void ItemComponentRegistry::registerComponent(const std::string& itemTypeId, Ite
 {
     if (component.name.find(':') == std::string::npos) {
         spdlog::warn(
-            "ItemComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'", component.name);
+            "ItemComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'",
+            component.name);
     }
 
     std::unique_lock lock(m_mutex);
     m_components[itemTypeId].push_back(std::move(component));
     _updateCallbackFlags(itemTypeId);
 
-    spdlog::info("ItemComponentRegistry: registered item component '{}' to '{}'", m_components[itemTypeId].back().name, itemTypeId);
+    spdlog::info("ItemComponentRegistry: registered item component '{}' to '{}'",
+        m_components[itemTypeId].back().name,
+        itemTypeId);
 }
 
 size_t ItemComponentRegistry::unregisterComponent(const std::string& itemTypeId, const std::string& componentName)

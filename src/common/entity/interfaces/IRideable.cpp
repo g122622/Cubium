@@ -23,11 +23,12 @@
 
 #include "IRideable.hpp"
 #include "../../util/math/MathConstants.hpp"
-#include "../../util/math/MathUtils.hpp"
 #include "../../world/IWorld.hpp"
 #include "../core/Entity.hpp"
 #include "../core/MobEntity.hpp"
 #include "../entities/player/Player.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/interfaces/BoostHelper.hpp"
 #include <cmath>
 

@@ -22,6 +22,10 @@
  */
 
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/PackType.hpp"
+#include <string>
+#include <string_view>
 
 namespace mc::resource {
 

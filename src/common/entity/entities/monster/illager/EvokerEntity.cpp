@@ -24,7 +24,7 @@
 #include "EvokerEntity.hpp"
 #include "VexEntity.hpp"
 
-#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
@@ -34,22 +34,29 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
+#include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/sound/SoundEvents.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

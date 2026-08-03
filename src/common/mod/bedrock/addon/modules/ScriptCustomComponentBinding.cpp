@@ -22,14 +22,19 @@
 
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptCallbackHolder.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/CustomComponentParameters.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

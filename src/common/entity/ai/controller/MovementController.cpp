@@ -26,18 +26,19 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/blocks/DoorBlock.hpp"
 #include "../../../world/block/blocks/FenceGateBlock.hpp"
 #include "../../../world/block/blocks/building/FenceBlock.hpp"
 #include "../../../world/block/blocks/building/WallBlock.hpp"
 #include "../../attribute/Attributes.hpp"
-#include "../../core/LivingEntity.hpp"
 #include "../../core/MobEntity.hpp"
 #include "../pathfinding/PathFinder.hpp"
 #include "../pathfinding/PathNavigator.hpp"
 #include "../pathfinding/PathNodeType.hpp"
 #include "JumpController.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include <algorithm>
 #include <cmath>
 
 // 使用命名空间简化代码

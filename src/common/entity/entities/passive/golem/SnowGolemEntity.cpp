@@ -23,18 +23,22 @@
 
 #include "SnowGolemEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
-#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/passive/golem/GolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -47,6 +51,10 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

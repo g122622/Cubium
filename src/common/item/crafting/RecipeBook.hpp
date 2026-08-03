@@ -25,10 +25,13 @@
 
 #include "core/Types.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 

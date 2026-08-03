@@ -23,17 +23,22 @@
 
 #include "BoatItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace item {

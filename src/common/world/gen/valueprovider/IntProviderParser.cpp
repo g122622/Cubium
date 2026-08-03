@@ -22,10 +22,19 @@
  */
 
 #include "IntProviderParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 
-#include <spdlog/spdlog.h>
-
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

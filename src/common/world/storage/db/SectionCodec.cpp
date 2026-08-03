@@ -22,9 +22,17 @@
  */
 
 #include "SectionCodec.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
 #include <algorithm>
 #include <cstring>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 #include <zstd.h>
 

@@ -28,6 +28,7 @@
 #include "../target/TargetGoals.hpp"
 #include "core/Types.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 

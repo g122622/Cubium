@@ -29,6 +29,7 @@
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "util/Direction.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 

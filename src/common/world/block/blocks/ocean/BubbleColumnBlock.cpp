@@ -23,18 +23,28 @@
 
 #include "BubbleColumnBlock.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

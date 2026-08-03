@@ -23,8 +23,11 @@
 
 #include "NetherWorldCarver.hpp"
 #include "CarvingContext.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/carver/CarverConfiguration.hpp"
+#include "common/world/gen/carver/CaveCarver.hpp"
 
 namespace mc {
 

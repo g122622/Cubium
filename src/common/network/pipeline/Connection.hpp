@@ -36,8 +36,10 @@
 #include "common/network/transport/ITransport.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 
+#include <array>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc::network::pipeline {
@@ -243,4 +245,6 @@ private:
 
 } // namespace mc::network::pipeline
 
+#include "common/core/Types.hpp"
+#include "common/network/protocol/ProtocolInfo.hpp"
 #include "common/network/pipeline/Connection.inl"

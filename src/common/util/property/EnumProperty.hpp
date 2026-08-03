@@ -23,10 +23,15 @@
 
 #pragma once
 
-#include <memory>
 #include "../../util/Direction.hpp"
 #include "Property.hpp"
+#include <cstddef>
 #include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 

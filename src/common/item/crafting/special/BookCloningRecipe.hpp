@@ -23,8 +23,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/crafting/SpecialRecipe.hpp"
+#include <vector>
 
 namespace mc {
 namespace crafting {

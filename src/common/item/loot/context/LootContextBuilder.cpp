@@ -24,8 +24,15 @@
 #include "LootContextBuilder.hpp"
 #include "LootContext.hpp"
 #include "LootParams.hpp"
-#include "common/util/assert/AssertMacros.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/context/LootParameterSet.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <chrono>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

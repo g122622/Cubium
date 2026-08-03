@@ -26,6 +26,8 @@
 #include "../DoorBlock.hpp"
 #include "IOxidizableBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

@@ -22,9 +22,15 @@
  */
 
 #include "item/crafting/special/BannerDuplicateRecipe.hpp"
-#include "item/Items.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "item/items/block/BannerItem.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace crafting {

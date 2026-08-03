@@ -22,12 +22,22 @@
  */
 
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/load/ChunkDistanceGraph.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <cstdlib>
 #include <mutex>
 #include <optional>
-#include <spdlog/spdlog.h>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

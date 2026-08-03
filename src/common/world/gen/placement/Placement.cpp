@@ -25,12 +25,21 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeClimate.hpp"
-#include "../../block/Block.hpp"
 #include "../chunk/IChunkGenerator.hpp"
 #include "../noise/PerlinSimplexNoise.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/valueprovider/HeightProvider.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

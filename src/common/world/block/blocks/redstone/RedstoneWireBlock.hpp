@@ -31,6 +31,9 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <unordered_map>
 #include <vector>
 

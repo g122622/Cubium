@@ -22,6 +22,12 @@
  */
 
 #include "StructureCheck.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
+#include <mutex>
+#include <unordered_map>
+#include <utility>
 
 namespace mc::world::gen::structure {
 

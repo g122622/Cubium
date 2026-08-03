@@ -25,7 +25,11 @@
 
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/MobEffectsPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

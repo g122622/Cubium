@@ -24,6 +24,8 @@
 #pragma once
 
 #include "IPositionTarget.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace entity {

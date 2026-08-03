@@ -22,7 +22,12 @@
  */
 
 #include "ResourceLocation.hpp"
+#include "common/resource/PackType.hpp"
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace mc::resource {
 

@@ -26,9 +26,13 @@
 #include "HorseEntity.hpp"
 #include "MuleEntity.hpp"
 
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/AgeableEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include <memory>
 
 namespace mc {
 

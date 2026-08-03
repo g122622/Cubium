@@ -22,12 +22,19 @@
  */
 
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/CombatRules.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -44,10 +51,13 @@
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/physics/PhysicsConstants.hpp"
-#include "common/physics/PhysicsEngine.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -55,8 +65,14 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -87,8 +103,7 @@ entity::DataParameter<i8> LivingEntity::DATA_LIVING_FLAGS_PARAM = entity::Entity
 entity::DataParameter<f32> LivingEntity::DATA_HEALTH_PARAM = entity::EntityDataManager::createKey<f32>();
 entity::DataParameter<entity::ParticlesValue> LivingEntity::DATA_EFFECT_PARTICLES_PARAM =
     entity::EntityDataManager::createKey<entity::ParticlesValue>();
-entity::DataParameter<bool> LivingEntity::DATA_EFFECT_AMBIENCE_PARAM =
-    entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> LivingEntity::DATA_EFFECT_AMBIENCE_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> LivingEntity::DATA_ARROW_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<i32> LivingEntity::DATA_STINGER_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<entity::OptionalBlockPosValue> LivingEntity::DATA_SLEEPING_POS_PARAM =

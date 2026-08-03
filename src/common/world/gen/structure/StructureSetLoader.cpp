@@ -24,15 +24,29 @@
 #include "StructureSetLoader.hpp"
 
 #include "StructureSet.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
+#include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

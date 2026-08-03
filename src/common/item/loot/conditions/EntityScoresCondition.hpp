@@ -28,6 +28,8 @@
 #include <unordered_map>
 
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 
 namespace mc {

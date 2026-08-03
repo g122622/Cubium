@@ -22,7 +22,10 @@
  */
 
 #include "DimensionType.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
+#include <optional>
 #include <spdlog/spdlog.h>
 
 namespace mc {

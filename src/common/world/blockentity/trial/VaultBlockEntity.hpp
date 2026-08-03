@@ -28,7 +28,10 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/LinkedHashSet.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include <memory>
+#include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

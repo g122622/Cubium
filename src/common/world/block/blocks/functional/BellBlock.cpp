@@ -31,10 +31,8 @@
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../stats/Stats.hpp"
-#include "../../../../util/AxisAlignedBB.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/interactive/BellBlockEntity.hpp"
@@ -42,6 +40,20 @@
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../BlockState.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

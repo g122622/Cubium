@@ -24,6 +24,8 @@
 #pragma once
 
 #include "AbstractMapItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
 #include "item/core/ActionResult.hpp"
 #include "item/core/ItemStack.hpp"
 

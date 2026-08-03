@@ -25,6 +25,8 @@
 #include "ActionResult.hpp"
 #include "ItemRegistry.hpp"
 #include "ItemStack.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -34,10 +36,13 @@
 #include "common/item/tag/ItemTag.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include <algorithm>
-#include <sstream>
+#include <functional>
+#include <string>
+#include <vector>
 
 namespace mc {
 

@@ -22,6 +22,13 @@
  */
 
 #include "common/network/pipeline/CipherHandlers.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/crypto/AesCfb8.hpp"
+#include "common/network/crypto/Crypt.hpp"
+#include <array>
+#include <utility>
+#include <vector>
 
 namespace mc::network::pipeline {
 

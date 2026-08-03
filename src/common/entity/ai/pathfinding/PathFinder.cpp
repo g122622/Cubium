@@ -22,8 +22,11 @@
  */
 
 #include "PathFinder.hpp"
-#include <cmath>
+#include "common/core/Types.hpp"
+#include "common/entity/ai/pathfinding/Path.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include <limits>
+#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 

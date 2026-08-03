@@ -22,30 +22,48 @@
  */
 
 #include "FlatChunkGenerator.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseColumn.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
 #include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include "common/world/gen/structure/placement/StructurePlacement.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

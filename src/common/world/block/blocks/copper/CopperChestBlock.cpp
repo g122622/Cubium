@@ -23,15 +23,21 @@
 
 #include "CopperChestBlock.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/blocks/ChestBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

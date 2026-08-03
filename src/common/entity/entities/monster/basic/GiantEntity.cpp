@@ -23,10 +23,13 @@
 
 #include "GiantEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include <cmath>
 #include <memory>
+#include <optional>
 
 namespace mc {
 

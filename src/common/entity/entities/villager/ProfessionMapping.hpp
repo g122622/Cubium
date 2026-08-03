@@ -24,6 +24,7 @@
 #pragma once
 
 #include "AbstractVillagerEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "core/Types.hpp"
 #include "world/village/poi/PointOfInterestType.hpp"
 #include <unordered_map>

@@ -22,11 +22,24 @@
  */
 
 #include "ScoreboardDataManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/storage/ScoreboardSaveData.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
+#include <cstddef>
+#include <exception>
+#include <ios>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::scoreboard {

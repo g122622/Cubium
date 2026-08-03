@@ -30,8 +30,12 @@
 #include "../valueprovider/HeightProvider.hpp"
 #include "Structure.hpp"
 #include "StructureBoundingBox.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

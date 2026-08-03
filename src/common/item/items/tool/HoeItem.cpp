@@ -25,11 +25,20 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/context/ItemUseContext.hpp"
 #include "../../../item/core/ItemStack.hpp"
-#include "../../../sound/SoundCategory.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../world/IWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/tool/ToolItem.hpp"
+#include "common/item/items/tool/ToolType.hpp"
+#include "common/item/tier/IItemTier.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace item {

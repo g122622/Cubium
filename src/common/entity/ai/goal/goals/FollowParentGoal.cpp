@@ -22,15 +22,12 @@
  */
 
 #include "FollowParentGoal.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../core/AgeableEntity.hpp"
-#include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../entities/passive/basic/AnimalEntity.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../GoalConstants.hpp"
-#include <cmath>
+#include "common/entity/core/EntitySize.hpp"
 
 namespace mc::entity::ai::goal {
 

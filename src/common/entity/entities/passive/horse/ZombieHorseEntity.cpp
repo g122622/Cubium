@@ -23,8 +23,11 @@
 
 #include "ZombieHorseEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include <memory>
 
 namespace mc {

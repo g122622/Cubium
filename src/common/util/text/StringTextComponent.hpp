@@ -23,9 +23,13 @@
 
 #pragma once
 
-#include <memory>
 #include "ITextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::text {
 

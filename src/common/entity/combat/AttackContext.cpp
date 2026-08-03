@@ -28,8 +28,10 @@
 #include "../core/LivingEntity.hpp"
 #include "../damage/DamageSource.hpp"
 #include "CombatRules.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include <algorithm>
-#include <cmath>
+#include <memory>
 
 namespace mc::entity::combat {
 

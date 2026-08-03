@@ -21,7 +21,16 @@
  */
 
 #include "common/world/gen/surface/SurfaceRulesFactory.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/surface/CaveSurface.hpp"
+#include "common/world/gen/surface/SurfaceCondition.hpp"
+#include "common/world/gen/surface/SurfaceRule.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace mc::world::gen::surface {
 

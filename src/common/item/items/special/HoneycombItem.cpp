@@ -23,6 +23,8 @@
 
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -31,6 +33,9 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include <optional>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace item::items {

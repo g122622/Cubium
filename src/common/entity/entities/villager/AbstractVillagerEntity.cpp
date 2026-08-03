@@ -22,12 +22,20 @@
  */
 
 #include "AbstractVillagerEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace entity {

@@ -24,13 +24,17 @@
 #include "RuleTestParser.hpp"
 
 #include "BlockStateParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 
-#include <spdlog/spdlog.h>
-
+#include <memory>
 #include <string>
+#include <string_view>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

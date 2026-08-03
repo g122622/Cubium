@@ -22,9 +22,13 @@
  */
 
 #include "LootingEnchantBonusFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {

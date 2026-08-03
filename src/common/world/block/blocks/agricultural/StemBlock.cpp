@@ -23,16 +23,29 @@
 
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/PlantType.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace {
 

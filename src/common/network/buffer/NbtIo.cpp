@@ -22,10 +22,16 @@
  */
 
 #include "common/network/buffer/NbtIo.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
+#include <iosfwd>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace mc::network::buffer::nbt_io {
 

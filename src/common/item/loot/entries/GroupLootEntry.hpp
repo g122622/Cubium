@@ -24,7 +24,11 @@
 #pragma once
 
 #include "LootEntry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace loot {

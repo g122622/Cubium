@@ -21,11 +21,15 @@
  */
 
 #include "world/biome/climate/SpawnFinder.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "world/biome/climate/Sampler.hpp"
 
 #include <cmath>
 #include <limits>
+#include <vector>
 
 namespace mc::world::biome::climate {
 

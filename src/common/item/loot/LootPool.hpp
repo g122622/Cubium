@@ -24,12 +24,18 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "conditions/LootConditions.hpp"
 #include "entries/LootEntry.hpp"
 #include "functions/LootFunctions.hpp"
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

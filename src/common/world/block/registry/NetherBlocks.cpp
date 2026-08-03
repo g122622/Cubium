@@ -22,6 +22,10 @@
 
 #include "world/block/registry/NetherBlocks.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/HarvestTool.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/blocks/HopperBlock.hpp"

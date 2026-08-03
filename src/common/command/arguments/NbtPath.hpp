@@ -24,11 +24,14 @@
 #pragma once
 
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

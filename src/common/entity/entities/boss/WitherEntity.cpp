@@ -49,12 +49,28 @@
 #include "../../entities/player/Player.hpp"
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../utils/ItemDropHelper.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

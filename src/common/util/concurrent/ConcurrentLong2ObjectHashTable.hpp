@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <mutex>
 

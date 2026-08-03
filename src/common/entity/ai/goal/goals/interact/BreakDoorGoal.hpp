@@ -26,6 +26,7 @@
 #include "DoorInteractGoal.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 

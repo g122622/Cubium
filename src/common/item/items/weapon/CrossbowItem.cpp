@@ -22,22 +22,30 @@
  */
 
 #include "CrossbowItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/items/weapon/ArrowItem.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item {

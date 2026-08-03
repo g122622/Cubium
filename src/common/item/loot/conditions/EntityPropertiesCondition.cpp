@@ -24,7 +24,14 @@
 #include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
 
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

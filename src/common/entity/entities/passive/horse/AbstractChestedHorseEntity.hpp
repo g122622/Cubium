@@ -24,6 +24,9 @@
 #pragma once
 
 #include "AbstractHorseEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 

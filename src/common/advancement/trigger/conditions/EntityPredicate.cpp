@@ -22,10 +22,20 @@
  */
 
 #include "EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/EntityEquipmentPredicate.hpp"
+#include "common/advancement/trigger/conditions/EntityFlagsPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/advancement/trigger/conditions/MobEffectsPredicate.hpp"
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

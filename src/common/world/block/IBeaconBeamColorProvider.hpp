@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "util/color/DyeColor.hpp"
 #include <array>
 

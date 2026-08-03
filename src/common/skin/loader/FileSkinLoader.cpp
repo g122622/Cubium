@@ -22,9 +22,14 @@
  */
 
 #include "FileSkinLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/skin/loader/SkinLoader.hpp"
 #include "common/util/crypto/Sha1.hpp"
 #include "common/util/thread/ITask.hpp"
-#include <algorithm>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
@@ -32,6 +37,19 @@
 #include <stb_image.h>
 
 // stb_image_write for PNG encoding
+#include <atomic>
+#include <cstddef>
+#include <cstring>
+#include <filesystem>
+#include <functional>
+#include <ios>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <span>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image_write.h>
 
 namespace mc::skin {

@@ -24,15 +24,22 @@
 #include "WorldGenSpawner.hpp"
 #include "../../../entity/core/EntityClassification.hpp"
 #include "../../../entity/core/EntityRegistry.hpp"
-#include "../../../entity/core/MobEntity.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
 #include "../../../world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "../../WorldConstants.hpp"
-#include "../../block/BlockRegistry.hpp"
 #include "../../lighting/InternalLightUtils.hpp"
 #include "../chunk/IChunkGenerator.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 #include <algorithm>
-#include <cmath>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

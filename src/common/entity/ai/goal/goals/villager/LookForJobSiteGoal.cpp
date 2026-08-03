@@ -24,16 +24,20 @@
 #include "LookForJobSiteGoal.hpp"
 
 #include "VillagerGoalUtils.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include <optional>
 
 namespace mc {
 namespace entity {

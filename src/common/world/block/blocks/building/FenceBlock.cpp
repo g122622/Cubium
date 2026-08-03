@@ -22,17 +22,23 @@
  */
 
 #include "common/world/block/blocks/building/FenceBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/FenceGateHelpers.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/fluid/FluidTags.hpp"
-#include "common/world/tick/manager/TickManager.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

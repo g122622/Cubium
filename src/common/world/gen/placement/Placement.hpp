@@ -29,9 +29,13 @@
 #include "../../chunk/data/Heightmap.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "../valueprovider/IntProvider.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
+#include <algorithm>
 #include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {

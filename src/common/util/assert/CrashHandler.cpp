@@ -22,6 +22,7 @@
  */
 
 #include "CrashHandler.hpp"
+#include "common/core/Types.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -39,6 +40,7 @@
 // clang-format on
 #pragma comment(lib, "dbghelp.lib")
 #elif defined(__linux__) || defined(__APPLE__)
+#include <cstdint>
 #include <cxxabi.h>
 #include <execinfo.h>
 #include <signal.h>

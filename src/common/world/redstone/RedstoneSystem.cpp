@@ -25,6 +25,11 @@
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../tick/manager/TickManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include <cstddef>
+#include <utility>
 
 namespace mc {
 namespace world {

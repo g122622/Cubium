@@ -25,16 +25,20 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "common/world/storage/db/ConsistencyMode.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
 #include "common/world/storage/db/SectionCodec.hpp"
 #include "common/world/storage/db/SectionKey.hpp"
 #include "common/world/storage/section/SectionCache.hpp"
 #include "common/world/storage/task/StorageTaskManager.hpp"
+#include <atomic>
+#include <cstddef>
 #include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_set>
 #include <vector>
 

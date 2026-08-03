@@ -23,12 +23,14 @@
 
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
-#include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/special/PotterySherdItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -37,6 +39,14 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
+#include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

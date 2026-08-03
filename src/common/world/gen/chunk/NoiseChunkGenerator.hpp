@@ -44,6 +44,11 @@
 #include "../surface/SurfaceRules.hpp"
 #include "IChunkGenerator.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
+#include "common/world/gen/chunk/NoiseColumn.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/structure/StructureCheck.hpp"
 #include <memory>
 #include <mutex>
 #include <vector>

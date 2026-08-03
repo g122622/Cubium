@@ -22,16 +22,20 @@
  */
 
 #include "SleepManager.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include <cmath>
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace entity {

@@ -22,8 +22,12 @@
  */
 
 #include "common/util/crypto/Crc32c.hpp"
+#include "common/core/Types.hpp"
 
 #include <array>
+#include <cstddef>
+#include <span>
+#include <string_view>
 
 namespace mc {
 namespace util {

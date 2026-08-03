@@ -25,7 +25,11 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/EntityPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

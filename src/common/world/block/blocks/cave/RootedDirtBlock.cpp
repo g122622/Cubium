@@ -21,7 +21,10 @@
  */
 
 #include "RootedDirtBlock.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {

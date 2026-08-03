@@ -23,14 +23,24 @@
 
 #include "MineshaftStructure.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::structure {
 

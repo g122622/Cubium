@@ -24,6 +24,11 @@
 #pragma once
 
 #include "DispenserBlock.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

@@ -25,8 +25,11 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace mc::command {
 

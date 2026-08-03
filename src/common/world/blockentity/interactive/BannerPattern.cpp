@@ -23,7 +23,8 @@
 
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include "util/assert/AssertAll.hpp"
-#include <array>
+#include <cstddef>
+#include <string>
 
 namespace mc {
 namespace blockentity {

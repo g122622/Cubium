@@ -23,6 +23,7 @@
 
 #include "AbstractHorseEntity.hpp"
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
@@ -33,8 +34,10 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -50,15 +53,20 @@
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <memory>
+#include <string>
 
 namespace mc {
 

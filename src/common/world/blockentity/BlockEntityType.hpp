@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/block/BlockPos.hpp"
 #include <memory>

@@ -26,6 +26,7 @@
 #include "BedrockChunkReader.hpp"
 #include "BedrockLevelDb.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <memory>
 

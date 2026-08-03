@@ -22,14 +22,20 @@
  */
 
 #include "BasaltFeature.hpp"
-#include "common/util/Direction.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/nether/BasaltColumnFeature.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

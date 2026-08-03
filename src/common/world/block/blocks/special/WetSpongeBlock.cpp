@@ -23,10 +23,13 @@
 
 #include "WetSpongeBlock.hpp"
 
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/dimension/DimensionType.hpp"
 
 namespace mc {
 namespace blocks {

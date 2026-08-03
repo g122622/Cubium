@@ -22,7 +22,12 @@
  */
 
 #include "OpenAddressingLRUCache.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

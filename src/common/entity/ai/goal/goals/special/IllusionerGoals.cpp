@@ -23,17 +23,22 @@
 
 #include "IllusionerGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
-#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/IllusionerEntity.hpp"
+#include "common/entity/entities/monster/illager/SpellcastingIllagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

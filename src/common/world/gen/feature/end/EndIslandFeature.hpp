@@ -34,9 +34,13 @@
  * 每层向下收缩 0.5-2.5，横截面为圆形。
  */
 
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

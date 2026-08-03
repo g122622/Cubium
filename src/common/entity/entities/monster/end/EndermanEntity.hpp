@@ -28,6 +28,10 @@
 #include "../../../core/EntityDataManager.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include <memory>
 #include <optional>
 

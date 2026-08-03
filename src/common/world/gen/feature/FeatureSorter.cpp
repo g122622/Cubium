@@ -22,12 +22,25 @@
  */
 
 #include "FeatureSorter.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/placement/PlacedFeature.hpp"
 #include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <map>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -198,10 +211,10 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
         // 成环属于数据包配置错误（feature 依赖关系存在循环），必须中断生成。
         // 原版在 FeatureSorter.java 中抛 IllegalStateException 中断，项目沿用此严格语义，
         // 避免在拓扑顺序不完整的情况下继续生成导致不可预期的世界状态。
-        const std::string assertMsg = fmt::format(
-            "[FeatureSorter] Feature order cycle detected. Cycles: [{}]. Involved biomes: [{}]",
-            allChains,
-            allSources.empty() ? std::string("<unresolved>") : allSources);
+        const std::string assertMsg =
+            fmt::format("[FeatureSorter] Feature order cycle detected. Cycles: [{}]. Involved biomes: [{}]",
+                allChains,
+                allSources.empty() ? std::string("<unresolved>") : allSources);
         MC_ASSERT_RELEASE_MSG(false, assertMsg.c_str());
     }
 

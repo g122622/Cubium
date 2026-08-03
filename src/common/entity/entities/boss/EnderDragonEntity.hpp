@@ -25,10 +25,15 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc {

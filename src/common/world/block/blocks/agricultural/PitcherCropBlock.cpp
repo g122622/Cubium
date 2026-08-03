@@ -23,18 +23,30 @@
 
 #include "PitcherCropBlock.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/PlantType.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

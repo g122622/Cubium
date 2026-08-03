@@ -22,17 +22,19 @@
  */
 
 #include "ChorusFruitItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/food/Food.hpp"
+#include "common/item/items/food/FoodItem.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

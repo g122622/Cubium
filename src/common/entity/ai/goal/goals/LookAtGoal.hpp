@@ -25,8 +25,11 @@
 
 #include "../../../../core/Types.hpp"
 #include "../Goal.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 namespace mc {

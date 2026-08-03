@@ -23,9 +23,11 @@
 
 #include "RaiderOpenDoorGoal.hpp"
 
+#include "common/entity/ai/goal/goals/interact/OpenDoorGoal.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/world/village/raid/Raid.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 
 namespace mc::entity::ai::goal {
 

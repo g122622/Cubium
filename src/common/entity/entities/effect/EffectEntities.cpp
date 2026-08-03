@@ -28,18 +28,32 @@
 #include "../../../util/UuidUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockState.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../serialization/EntityNbtKeys.hpp"
 #include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
-#include "../../registry/VanillaEntityTypeKeys.hpp"
-#include "common/particle/ParticleTypes.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include <array>
 #include <chrono>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

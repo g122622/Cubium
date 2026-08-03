@@ -22,20 +22,28 @@
  */
 
 #include "FortressStructure.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
-#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
 #include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
-#include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

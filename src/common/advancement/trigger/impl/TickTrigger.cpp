@@ -22,7 +22,11 @@
  */
 
 #include "TickTrigger.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

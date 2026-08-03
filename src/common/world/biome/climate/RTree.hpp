@@ -22,11 +22,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "world/biome/climate/ParameterTypes.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <utility>
 #include <vector>

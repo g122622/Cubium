@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include <memory>
 

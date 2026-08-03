@@ -25,6 +25,7 @@
 
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
+#include <memory>
 
 namespace mc {
 namespace nbt {

@@ -23,8 +23,12 @@
 
 #include "common/item/component/DataComponentPatchWire.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
@@ -38,9 +42,10 @@
 
 #include <memory>
 #include <span>
-#include <string>
 #include <utility>
+#include <variant>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item {

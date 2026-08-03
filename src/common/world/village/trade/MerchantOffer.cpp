@@ -23,11 +23,16 @@
 
 #include "MerchantOffer.hpp"
 #include "Merchant.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

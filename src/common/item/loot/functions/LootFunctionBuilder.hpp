@@ -45,6 +45,7 @@
 #include "SetNbtFunction.hpp"
 #include "SetStewEffectFunction.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/functions/CopyNameFunction.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <string>

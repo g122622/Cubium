@@ -23,9 +23,24 @@
 
 #include "common/network/backend/java/JavaProtocolTables.hpp"
 #include "common/network/backend/java/codecs/JavaCodecs.hpp"
+#include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
+#include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
+#include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
+#include "common/network/buffer/RegistryByteBuf.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/handshake/HandshakePackets.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/ir/packets/status/StatusPackets.hpp"
+#include "common/network/pipeline/ProtocolTableSet.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/protocol/PacketType.hpp"
+#include "common/network/protocol/ProtocolInfo.hpp"
 #include "common/network/protocol/ProtocolInfoBuilder.hpp"
+#include <memory>
 
 namespace mc::network::backend::java {
 

@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "scoreboard/core/TeamEnums.hpp"
 
 namespace mc::scoreboard {

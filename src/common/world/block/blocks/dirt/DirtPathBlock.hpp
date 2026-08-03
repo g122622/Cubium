@@ -25,6 +25,8 @@
 
 #include "../../Block.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

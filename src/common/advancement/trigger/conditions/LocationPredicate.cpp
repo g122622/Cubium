@@ -22,6 +22,10 @@
  */
 
 #include "LocationPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -29,8 +33,13 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
+#include <cmath>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

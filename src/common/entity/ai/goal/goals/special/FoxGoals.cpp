@@ -22,12 +22,16 @@
  */
 
 #include "FoxGoals.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -40,17 +44,18 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/cave/CaveVinesBlock.hpp"
-#include "common/world/block/blocks/cave/CaveVinesPlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
-#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 namespace mc {
 namespace entity::ai::goal {

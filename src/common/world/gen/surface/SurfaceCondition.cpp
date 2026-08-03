@@ -18,14 +18,15 @@
  */
 
 #include "common/world/gen/surface/SurfaceCondition.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/surface/CaveSurface.hpp"
 #include "common/world/gen/surface/SurfaceRuleContext.hpp"
 
 #include <algorithm>
-#include <climits>
 #include <limits>
 
 namespace mc::world::gen::surface {

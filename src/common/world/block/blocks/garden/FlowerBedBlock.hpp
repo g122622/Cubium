@@ -26,7 +26,14 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../IGrowable.hpp"
 #include "../agricultural/BushBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/DirectionProperty.hpp"
+#include "common/util/property/IntegerProperty.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <array>
+#include <vector>
 
 namespace mc {
 

@@ -22,8 +22,12 @@
  */
 
 #include "FlyingMovementController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <cmath>
 

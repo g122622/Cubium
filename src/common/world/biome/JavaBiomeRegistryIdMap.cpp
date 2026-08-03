@@ -24,12 +24,14 @@
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <vector>

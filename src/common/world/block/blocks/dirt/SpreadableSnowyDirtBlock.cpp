@@ -25,11 +25,9 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../biome/Biome.hpp"
 #include "../../../biome/BiomeGenerationSettings.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeRegistry.hpp"
 #include "../../../chunk/data/ChunkData.hpp"
 #include "../../../fluid/Fluid.hpp"
@@ -38,10 +36,19 @@
 #include "../../../gen/placement/PlacedFeatureRegistry.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../../registry/VanillaBlocks.hpp"
-#include "../../registry/VegetationBlocks.hpp"
 #include "../ice/SnowBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/dirt/SnowyDirtBlock.hpp"
+#include <algorithm>
+#include <optional>
+#include <utility>
 
 namespace mc::blocks {
 

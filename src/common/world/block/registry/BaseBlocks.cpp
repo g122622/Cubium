@@ -22,6 +22,11 @@
 
 #include "world/block/registry/BaseBlocks.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/fluid/FlowingFluid.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/AirBlock.hpp"
@@ -37,8 +42,6 @@
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
-#include "world/fluid/fluids/LavaFluid.hpp"
-#include "world/fluid/fluids/WaterFluid.hpp"
 
 namespace mc {
 namespace block_registry {

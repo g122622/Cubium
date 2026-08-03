@@ -22,8 +22,15 @@
  */
 
 #include "Raycast.hpp"
-#include "../../../world/block/Block.hpp"
 #include "../../AxisAlignedBB.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>

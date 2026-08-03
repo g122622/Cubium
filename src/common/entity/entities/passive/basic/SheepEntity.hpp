@@ -28,7 +28,9 @@
 #include "../../../../util/color/DyeColor.hpp"
 #include "AnimalEntity.hpp"
 #include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <optional>
 #include <vector>

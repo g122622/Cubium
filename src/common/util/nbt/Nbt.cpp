@@ -29,9 +29,19 @@
 #include "NbtInternal.hpp"
 
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <cctype>
+#include <cstdint>
 #include <cstdlib>
+#include <ios>
+#include <istream>
+#include <memory>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace nbt {

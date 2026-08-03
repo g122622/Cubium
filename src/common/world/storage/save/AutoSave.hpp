@@ -25,10 +25,14 @@
 
 #include "DirtyTracker.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <functional>
 #include <mutex>
+#include <string>
+#include <utility>
 
 namespace mc::world::storage {
 

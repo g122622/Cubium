@@ -29,15 +29,29 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/blocks/functional/BedBlock.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../combat/DifficultyInstance.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

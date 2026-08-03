@@ -22,10 +22,20 @@
  */
 
 #include "HangingRootsBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {
@@ -91,8 +101,7 @@ const CollisionShape& HangingRootsBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
-bool HangingRootsBlock::isValidPosition(
-    const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+bool HangingRootsBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 

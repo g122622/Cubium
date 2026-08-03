@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/modules/types/ScriptVec2.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include <optional>
 
 namespace mc::mod::bedrock::addon {
 

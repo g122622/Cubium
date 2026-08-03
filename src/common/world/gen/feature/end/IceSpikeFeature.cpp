@@ -23,14 +23,18 @@
 
 #include "IceSpikeFeature.hpp"
 
-#include "common/core/Constants.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

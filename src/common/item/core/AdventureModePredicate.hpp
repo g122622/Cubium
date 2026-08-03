@@ -24,9 +24,11 @@
 #pragma once
 
 #include "common/util/nbt/Nbt.hpp"
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc {

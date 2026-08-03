@@ -22,11 +22,20 @@
  */
 
 #include "DefaultSkinProvider.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
 // stb_image 用于解码 PNG 纹理（STB_IMAGE_IMPLEMENTATION 已在 TextureAtlasBuilder.cpp 中定义）
+#include <array>
+#include <string>
+#include <utility>
+#include <vector>
 #include <stb_image.h>
 
 namespace mc::skin {

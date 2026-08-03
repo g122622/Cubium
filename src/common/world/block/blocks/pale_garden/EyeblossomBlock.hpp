@@ -25,6 +25,15 @@
 
 #include "../vegetation/FlowerBlock.hpp"
 #include "EyeblossomEnvironment.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 
 namespace mc {
 namespace blocks {

@@ -25,8 +25,10 @@
 
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace mc::mod::bedrock::addon {

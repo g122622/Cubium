@@ -22,6 +22,12 @@
  */
 
 #include "common/network/transport/LocalTransport.hpp"
+#include "common/core/Result.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <utility>
 
 namespace mc::network::transport {
 

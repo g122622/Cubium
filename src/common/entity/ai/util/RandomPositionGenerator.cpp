@@ -30,11 +30,13 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../core/CreatureEntity.hpp"
-#include "../../core/MobEntity.hpp"
-#include "../pathfinding/PathNavigator.hpp"
-#include "../pathfinding/PathPoint.hpp"
-#include <algorithm>
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
+#include <functional>
+#include <optional>
 
 namespace mc::entity::ai::util {
 

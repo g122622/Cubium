@@ -22,8 +22,13 @@
  */
 
 #include "ProfessionMapping.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 
 #include <cstring>
+#include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace entity {

@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/util/Direction.hpp"
+#include "common/util/property/DirectionProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

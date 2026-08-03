@@ -21,8 +21,12 @@
  */
 
 #include "common/world/chunk/gen/ChunkDependencies.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include <cstddef>
+#include <utility>
+#include <vector>
 
 namespace mc::world::chunk {
 

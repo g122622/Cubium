@@ -25,6 +25,7 @@
 
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include <string>
 
 namespace mc::scoreboard {
 

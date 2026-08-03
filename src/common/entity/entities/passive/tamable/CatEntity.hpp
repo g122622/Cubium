@@ -24,14 +24,26 @@
 #pragma once
 
 #include "TameableEntity.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/IWorld.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace mc {
 

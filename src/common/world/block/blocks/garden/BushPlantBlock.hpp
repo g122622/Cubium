@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../agricultural/BushBlock.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

@@ -25,6 +25,13 @@
 
 #include "../../potion/Potion.hpp"
 #include "ArrowItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/ProjectileItem.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <memory>
 #include <vector>
 
 namespace mc {

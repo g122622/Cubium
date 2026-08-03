@@ -22,10 +22,18 @@
  */
 
 #include "SculkSensorBlockEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/gameevent/VibrationSystem.hpp"
 
+#include <memory>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::blockentity {
 

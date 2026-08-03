@@ -25,6 +25,7 @@
 
 #include "item/core/Item.hpp"
 #include "world/blockentity/interactive/DecoratedPotPattern.hpp"
+#include <string>
 #include <vector>
 
 namespace mc {

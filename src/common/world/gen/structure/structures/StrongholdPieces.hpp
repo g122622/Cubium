@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <memory>

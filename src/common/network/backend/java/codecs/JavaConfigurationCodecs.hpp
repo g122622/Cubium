@@ -23,9 +23,16 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::network::backend::java::codecs {
 

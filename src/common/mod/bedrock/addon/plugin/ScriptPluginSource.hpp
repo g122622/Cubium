@@ -24,9 +24,11 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/core/ScriptData.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mc::mod::bedrock::addon {

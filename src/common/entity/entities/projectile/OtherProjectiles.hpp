@@ -26,9 +26,15 @@
 #include "ProjectileEntity.hpp"
 #include "ProjectileHelper.hpp"
 #include "ThrowableEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace entity {

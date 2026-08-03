@@ -24,6 +24,7 @@
 #pragma once
 
 #include "PathPoint.hpp"
+#include "common/core/Types.hpp"
 #include <limits>
 
 namespace mc::entity::ai::pathfinding {

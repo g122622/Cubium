@@ -23,16 +23,22 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/gen/density/BlendedNoise.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/noise/SimplexNoise.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 

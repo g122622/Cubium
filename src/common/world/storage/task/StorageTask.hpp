@@ -24,8 +24,11 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/storage/db/SectionKey.hpp"
+#include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>

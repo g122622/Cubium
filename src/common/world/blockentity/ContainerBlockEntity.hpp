@@ -23,10 +23,17 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

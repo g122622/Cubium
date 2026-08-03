@@ -24,6 +24,12 @@
 #pragma once
 
 #include "ArrowItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/core/ProjectileItem.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <memory>
 
 namespace mc {
 namespace item {

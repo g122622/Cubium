@@ -22,6 +22,7 @@
 
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 
 namespace mc {
 namespace entity {

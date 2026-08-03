@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "core/Types.hpp"
+#include <utility>
 #include <vector>
 
 namespace mc {

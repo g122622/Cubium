@@ -23,28 +23,40 @@
 
 #include "common/entity/entities/item/ItemEntity.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

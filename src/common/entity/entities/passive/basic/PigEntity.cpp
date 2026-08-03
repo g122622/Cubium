@@ -39,7 +39,11 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

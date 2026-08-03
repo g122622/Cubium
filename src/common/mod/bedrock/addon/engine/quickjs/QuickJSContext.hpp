@@ -23,10 +23,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/core/ScriptData.hpp"
+#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
 #include <functional>
 #include <memory>
 #include <optional>

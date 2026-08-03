@@ -28,6 +28,9 @@
 #include "../../util/math/Vector4.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
+#include <algorithm>
+#include <cmath>
+#include <vector>
 
 namespace mc {
 namespace entity {

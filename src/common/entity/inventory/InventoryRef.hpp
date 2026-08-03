@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include "common/entity/inventory/IInventory.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
+#include <cstddef>
 #include <memory>
+#include <utility>
 
 namespace mc {
 

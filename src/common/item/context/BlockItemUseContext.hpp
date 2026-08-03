@@ -24,6 +24,13 @@
 #pragma once
 
 #include "ItemUseContext.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <vector>
 
 namespace mc {
 

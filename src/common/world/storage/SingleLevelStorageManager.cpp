@@ -22,16 +22,57 @@
  */
 
 #include "SingleLevelStorageManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/blockentity/BlockEntityStorageManager.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/world/storage/core/SaveFormat.hpp"
+#include "common/world/storage/core/WorldSessionLock.hpp"
+#include "common/world/storage/db/ConsistencyMode.hpp"
+#include "common/world/storage/db/RocksDBConfig.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include "common/world/storage/entity/EntityStorageManager.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
+#include "common/world/storage/player/PlayerSaveData.hpp"
+#include "common/world/storage/section/SectionCache.hpp"
+#include "common/world/storage/section/SectionManager.hpp"
+#include "common/world/storage/snapshot/BackupManager.hpp"
+#include "common/world/storage/task/StorageTask.hpp"
+#include "common/world/storage/task/StorageTaskManager.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
 #include "world/storage/backend/BedrockLDBBackend.hpp"
 #include "world/storage/backend/JavaAnvilBackend.hpp"
 #include "world/storage/db/SectionCodec.hpp"
 #include "world/storage/save/AutoSave.hpp"
+#include <atomic>
+#include <cstddef>
+#include <exception>
+#include <filesystem>
 #include <fstream>
+#include <functional>
+#include <future>
+#include <ios>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

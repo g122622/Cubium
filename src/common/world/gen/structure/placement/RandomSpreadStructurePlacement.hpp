@@ -25,7 +25,12 @@
 
 #include "StructurePlacement.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc::world::gen::structure::placement {
 

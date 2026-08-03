@@ -25,8 +25,10 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 namespace mc::world::gen::valueprovider {
 

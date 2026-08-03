@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/biome/Biomes.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gen/surface/SurfaceRule.hpp"
 #include <functional>
 #include <memory>

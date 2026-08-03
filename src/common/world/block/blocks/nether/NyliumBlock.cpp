@@ -22,12 +22,16 @@
  */
 
 #include "NyliumBlock.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include <utility>
 
 namespace mc::blocks {
 

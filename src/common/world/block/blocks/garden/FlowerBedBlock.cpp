@@ -32,7 +32,18 @@
 #include "../../../../util/math/Vector3.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
-#include "../../BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -22,6 +22,8 @@
  */
 
 #include "CriterionTriggers.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "impl/AvoidVibrationTrigger.hpp"
 #include "impl/BlockTriggers.hpp"
 #include "impl/ChanneledLightningTrigger.hpp"
@@ -33,6 +35,9 @@
 #include "impl/LocationTrigger.hpp"
 #include "impl/PlayerKilledEntityTrigger.hpp"
 #include "impl/TickTrigger.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {

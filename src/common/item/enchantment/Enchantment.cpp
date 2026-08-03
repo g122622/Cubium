@@ -22,7 +22,9 @@
  */
 
 #include "Enchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <string>
 
 namespace mc {
 namespace item {

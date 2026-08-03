@@ -21,10 +21,12 @@
  */
 
 #include "world/block/registry/SculkBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
-#include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/sculk/SculkBlocks.hpp"
 
 namespace mc {
@@ -84,21 +86,8 @@ void registerSculkBlocks()
 
     // 幽匿感测体 - Material::SCULK, 非固体, 锄有效, 硬度1.5, 抗性1.5
     // 检测振动并发出红石信号，SCULK_SENSOR_PHASE + POWER + WATERLOGGED
-    SculkBlocks::SCULK_SENSOR = &registry.registerBlock<blocks::SculkSensorBlock>(
-        ResourceLocation("minecraft:sculk_sensor"),
-        BlockProperties(Material::SCULK)
-            .notSolid()
-            .hardness(1.5f)
-            .resistance(1.5f)
-            .harvestTool(HarvestTool::Hoe)
-            .requiresTool()
-            .soundType(BlockSoundTypes::SCULK_SENSOR));
-
-    // 校准幽匿感测体 - Material::SCULK, 非固体, 锄有效, 硬度1.5, 抗性1.5
-    // 可通过红石信号过滤振动频率的高级感测体，FACING + SCULK_SENSOR_PHASE + POWER + WATERLOGGED
-    SculkBlocks::CALIBRATED_SCULK_SENSOR =
-        &registry.registerBlock<blocks::CalibratedSculkSensorBlock>(
-            ResourceLocation("minecraft:calibrated_sculk_sensor"),
+    SculkBlocks::SCULK_SENSOR =
+        &registry.registerBlock<blocks::SculkSensorBlock>(ResourceLocation("minecraft:sculk_sensor"),
             BlockProperties(Material::SCULK)
                 .notSolid()
                 .hardness(1.5f)
@@ -107,17 +96,29 @@ void registerSculkBlocks()
                 .requiresTool()
                 .soundType(BlockSoundTypes::SCULK_SENSOR));
 
-    // 幽匿尖啸体 - Material::SCULK, 非固体, 锄有效, 硬度3.0, 抗性3.0
-    // 被激活多次后会召唤监守者，SHRIEKING + CAN_SUMMON + WATERLOGGED
-    SculkBlocks::SCULK_SHRIEKER = &registry.registerBlock<blocks::SculkShriekerBlock>(
-        ResourceLocation("minecraft:sculk_shrieker"),
+    // 校准幽匿感测体 - Material::SCULK, 非固体, 锄有效, 硬度1.5, 抗性1.5
+    // 可通过红石信号过滤振动频率的高级感测体，FACING + SCULK_SENSOR_PHASE + POWER + WATERLOGGED
+    SculkBlocks::CALIBRATED_SCULK_SENSOR = &registry.registerBlock<blocks::CalibratedSculkSensorBlock>(
+        ResourceLocation("minecraft:calibrated_sculk_sensor"),
         BlockProperties(Material::SCULK)
             .notSolid()
-            .hardness(3.0f)
-            .resistance(3.0f)
+            .hardness(1.5f)
+            .resistance(1.5f)
             .harvestTool(HarvestTool::Hoe)
             .requiresTool()
-            .soundType(BlockSoundTypes::SCULK_SHRIEKER));
+            .soundType(BlockSoundTypes::SCULK_SENSOR));
+
+    // 幽匿尖啸体 - Material::SCULK, 非固体, 锄有效, 硬度3.0, 抗性3.0
+    // 被激活多次后会召唤监守者，SHRIEKING + CAN_SUMMON + WATERLOGGED
+    SculkBlocks::SCULK_SHRIEKER =
+        &registry.registerBlock<blocks::SculkShriekerBlock>(ResourceLocation("minecraft:sculk_shrieker"),
+            BlockProperties(Material::SCULK)
+                .notSolid()
+                .hardness(3.0f)
+                .resistance(3.0f)
+                .harvestTool(HarvestTool::Hoe)
+                .requiresTool()
+                .soundType(BlockSoundTypes::SCULK_SHRIEKER));
 }
 
 } // namespace block_registry

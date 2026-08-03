@@ -23,6 +23,9 @@
 
 #include "LandOnOwnersShoulderGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/entities/passive/tamable/ShoulderRidingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/assert/AssertMacros.hpp"

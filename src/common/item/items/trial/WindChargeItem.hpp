@@ -23,6 +23,8 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ProjectileItem.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <memory>
 
 namespace mc {
 

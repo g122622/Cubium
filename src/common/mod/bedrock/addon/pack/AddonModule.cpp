@@ -22,6 +22,7 @@
  */
 
 #include "common/mod/bedrock/addon/pack/AddonModule.hpp"
+#include <string_view>
 
 namespace mc::mod::bedrock::addon {
 

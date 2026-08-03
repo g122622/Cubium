@@ -25,6 +25,8 @@
 
 #include "../../../core/Types.hpp"
 #include "../Vector3.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include <cmath>
 
 namespace mc {

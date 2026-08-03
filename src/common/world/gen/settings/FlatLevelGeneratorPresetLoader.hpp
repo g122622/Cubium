@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 
 namespace mc {
 namespace resource {

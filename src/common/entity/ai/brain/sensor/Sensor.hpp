@@ -25,6 +25,7 @@
 
 #include "../../../../util/math/random/Random.hpp"
 #include "../memory/MemoryModuleType.hpp"
+#include "common/core/Types.hpp"
 #include <unordered_set>
 
 namespace mc {

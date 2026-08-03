@@ -23,7 +23,9 @@
 
 #include "SculkSpreader.hpp"
 #include "SculkBehaviour.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
@@ -35,7 +37,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <optional>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

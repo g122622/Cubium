@@ -25,6 +25,7 @@
 
 #include "PathPoint.hpp"
 #include "core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <vector>
 

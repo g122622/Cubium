@@ -34,8 +34,16 @@
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "common/core/Result.hpp"
-#include "common/particle/ParticleTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace entity {

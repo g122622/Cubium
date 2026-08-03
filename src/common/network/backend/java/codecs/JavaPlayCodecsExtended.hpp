@@ -23,11 +23,21 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <algorithm>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::network::backend::java::codecs {
 

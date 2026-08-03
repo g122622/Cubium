@@ -21,6 +21,12 @@
  */
 
 #include "AllOfPredicate.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::feature::predicate {
 

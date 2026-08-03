@@ -27,6 +27,9 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../../redstone/RedstonePower.hpp"
 #include "../../Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 namespace blocks {

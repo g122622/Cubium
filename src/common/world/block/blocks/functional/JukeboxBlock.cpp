@@ -27,11 +27,23 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
-#include "../../../../item/items/special/MusicDiscItem.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntityType.hpp"
 #include "../../../blockentity/interactive/JukeboxEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

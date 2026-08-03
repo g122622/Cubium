@@ -22,14 +22,27 @@
  */
 
 #include "common/world/storage/list/WorldListService.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
 #include "common/world/storage/core/SaveFormat.hpp"
+#include "common/world/storage/core/WorldSessionLock.hpp"
+#include "common/world/storage/core/WorldStoragePaths.hpp"
+#include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/list/WorldNameSanitizer.hpp"
 #include "common/world/storage/reader/bedrock/BedrockLevelDatReader.hpp"
 #include "common/world/storage/reader/java/JavaLevelDatReader.hpp"
-#include <algorithm>
+#include "common/world/storage/request/WorldRequests.hpp"
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
 #include <archive.h>
 #include <archive_entry.h>
 #include <spdlog/spdlog.h>

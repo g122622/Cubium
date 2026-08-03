@@ -22,6 +22,7 @@
  */
 
 #include "common/item/loot/conditions/TableBonusCondition.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/context/LootContext.hpp"
@@ -29,6 +30,11 @@
 #include "common/util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

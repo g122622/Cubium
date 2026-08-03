@@ -26,6 +26,8 @@
 #include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../Goal.hpp"
 #include "../target/TargetGoals.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc {
 

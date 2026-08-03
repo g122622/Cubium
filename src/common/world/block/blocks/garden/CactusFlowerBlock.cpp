@@ -26,6 +26,8 @@
 #include "../../BlockTags.hpp"
 #include "../../SupportType.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
 
 namespace mc {
 namespace blocks {

@@ -22,6 +22,10 @@
  */
 
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
@@ -61,6 +65,10 @@
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
 #include "world/blockentity/trial/VaultBlockEntity.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

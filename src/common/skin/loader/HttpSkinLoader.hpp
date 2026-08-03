@@ -24,11 +24,18 @@
 #pragma once
 
 #include "SkinLoader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <condition_variable>
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::skin {
 

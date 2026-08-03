@@ -22,10 +22,33 @@
  */
 
 #include "JavaAnvilBackend.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/CompressionUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/world/storage/core/SaveFormat.hpp"
+#include "common/world/storage/player/PlayerSaveData.hpp"
+#include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
+#include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
+#include "common/world/storage/reader/java/JavaChunkReader.hpp"
+#include "common/world/storage/reader/java/JavaColumnReader.hpp"
 #include "common/world/storage/reader/java/JavaLevelDatReader.hpp"
+#include "common/world/storage/reader/java/JavaWorldReader.hpp"
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {

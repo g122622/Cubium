@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/village/VillageGossip.hpp"
+#include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include <optional>
 #include <unordered_map>

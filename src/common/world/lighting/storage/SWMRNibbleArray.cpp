@@ -22,9 +22,15 @@
  */
 
 #include "SWMRNibbleArray.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cstring>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

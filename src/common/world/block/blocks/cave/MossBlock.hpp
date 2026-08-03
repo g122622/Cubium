@@ -24,6 +24,7 @@
 
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace blocks {

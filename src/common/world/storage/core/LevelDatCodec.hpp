@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/WorldConfig.hpp"
 #include "common/world/storage/list/WorldListEntry.hpp"
 #include "common/world/storage/request/WorldRequests.hpp"
 #include <filesystem>

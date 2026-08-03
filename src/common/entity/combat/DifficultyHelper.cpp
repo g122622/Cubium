@@ -22,6 +22,8 @@
  */
 
 #include "DifficultyHelper.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
 
 namespace mc::entity::combat {
 

@@ -23,12 +23,22 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/crafting/IRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
 #include <memory>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

@@ -24,15 +24,24 @@
 #include "DamageTypeTagLoader.hpp"
 #include "DamageTypeTag.hpp"
 #include "DamageTypeTags.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 
@@ -120,8 +129,9 @@ static void resolveDamageTypeTagEntry(const DamageTypeRawTagEntry& entry,
             damageTypes.push_back(*type);
         } else {
             if (entry.required) {
-                spdlog::warn(
-                    "DamageTypeTagLoader: unknown damage type '{}', skipped (tag: {})", entry.id, tagLocation.toString());
+                spdlog::warn("DamageTypeTagLoader: unknown damage type '{}', skipped (tag: {})",
+                    entry.id,
+                    tagLocation.toString());
             }
         }
     }
@@ -152,8 +162,8 @@ static Result<DamageTypeRawTagData> parseDamageTypeJsonRaw(const std::string& js
                 rawData.entries.push_back({value.get<std::string>(), true});
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
-                        "DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                    spdlog::warn("DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
+                        location.toString());
                     continue;
                 }
 
@@ -171,7 +181,8 @@ static Result<DamageTypeRawTagData> parseDamageTypeJsonRaw(const std::string& js
 
                 rawData.entries.push_back({id, required});
             } else {
-                spdlog::warn("DamageTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                spdlog::warn(
+                    "DamageTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
@@ -397,8 +408,9 @@ Result<size_t> DamageTypeTagLoader::loadFromResourcePack(const resource::IResour
 
             auto parseResult = parseDamageTypeJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn(
-                    "DamageTypeTagLoader: failed to parse tag {}: {}", location.toString(), parseResult.error().message());
+                spdlog::warn("DamageTypeTagLoader: failed to parse tag {}: {}",
+                    location.toString(),
+                    parseResult.error().message());
                 continue;
             }
 
@@ -470,8 +482,8 @@ Result<std::unique_ptr<DamageTypeTag>> DamageTypeTagLoader::loadFromJson(
                 resolveDamageTypeTagEntry(rawEntry, damageTypes, visitedTags, location);
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
-                        "DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                    spdlog::warn("DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
+                        location.toString());
                     continue;
                 }
 
@@ -490,7 +502,8 @@ Result<std::unique_ptr<DamageTypeTag>> DamageTypeTagLoader::loadFromJson(
                 DamageTypeRawTagEntry rawEntry{id, required};
                 resolveDamageTypeTagEntry(rawEntry, damageTypes, visitedTags, location);
             } else {
-                spdlog::warn("DamageTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                spdlog::warn(
+                    "DamageTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 

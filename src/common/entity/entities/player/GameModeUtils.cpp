@@ -24,8 +24,10 @@
 #include "GameModeUtils.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "entity/entities/player/Player.hpp"
+#include <cstddef>
 
 namespace mc {
 namespace entity {

@@ -25,9 +25,11 @@
 
 #include "FlatLayerInfo.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
 

@@ -23,10 +23,10 @@
 
 #include "EndDragonFight.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -35,9 +35,9 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -45,15 +45,27 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
+#include "common/world/block/state/pattern/BlockPattern.hpp"
 #include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/dimension/end/DragonRespawnAnimation.hpp"
+#include "common/world/dimension/end/IDragonBossBar.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 
+#include <array>
+#include <cmath>
+#include <memory>
+#include <optional>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

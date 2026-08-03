@@ -23,8 +23,11 @@
 
 #include "VillagerGoalUtils.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -32,12 +35,14 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace entity {

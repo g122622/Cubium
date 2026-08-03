@@ -22,12 +22,19 @@
  */
 
 #include "BlockPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include <optional>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

@@ -24,6 +24,8 @@
 #pragma once
 
 #include <optional>
+#include <string>
+#include <string_view>
 
 /**
  * @file BlockStateProperties.hpp
@@ -41,6 +43,7 @@
 #include "DirectionProperty.hpp"
 #include "EnumProperty.hpp"
 #include "IntegerProperty.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 

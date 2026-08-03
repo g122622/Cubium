@@ -25,8 +25,12 @@
 
 #include "Dimension.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

@@ -23,11 +23,16 @@
 
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
+#include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
 
+#include <any>
+#include <typeindex>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

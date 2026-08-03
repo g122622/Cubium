@@ -22,8 +22,17 @@
  */
 
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSBindingContext.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 
+#include <cstddef>
+#include <cstring>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <quickjs.h>
 #include <spdlog/spdlog.h>
 

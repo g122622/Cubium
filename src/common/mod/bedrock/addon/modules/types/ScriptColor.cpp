@@ -22,7 +22,9 @@
  */
 
 #include "common/mod/bedrock/addon/modules/types/ScriptColor.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include <optional>
 
 namespace mc::mod::bedrock::addon {
 

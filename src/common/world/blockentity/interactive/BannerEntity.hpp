@@ -23,11 +23,17 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "util/color/DyeColor.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

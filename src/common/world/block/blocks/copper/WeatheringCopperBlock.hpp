@@ -23,6 +23,7 @@
 
 #include "../../Block.hpp"
 #include "IOxidizableBlock.hpp"
+#include "common/util/property/Properties.hpp"
 
 namespace mc {
 

@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/codec/StreamCodec.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/protocol/PacketType.hpp"
 #include "common/network/protocol/ProtocolInfo.hpp"
 
 #include <memory>
+#include <utility>
 #include <variant>
 #include <vector>
 

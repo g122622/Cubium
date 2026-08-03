@@ -32,7 +32,6 @@
 #include "../../item/items/special/NameTagItem.hpp"
 #include "../../item/items/special/SpawnEggItem.hpp"
 #include "../../sound/SoundEvents.hpp"
-#include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
 #include "../../world/gameevent/GameEvents.hpp"
@@ -59,7 +58,26 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

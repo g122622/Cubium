@@ -23,8 +23,20 @@
 
 #include "RailBlock.hpp"
 #include "RailState.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

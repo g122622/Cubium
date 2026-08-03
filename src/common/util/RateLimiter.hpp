@@ -24,10 +24,12 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <type_traits>
 
 namespace mc::util {
 

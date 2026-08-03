@@ -23,12 +23,15 @@
 
 #pragma once
 
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "core/Types.hpp"
 #include "util/math/Vector3.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "world/chunk/data/IChunk.hpp"
 #include <functional>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 

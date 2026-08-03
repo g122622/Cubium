@@ -25,11 +25,17 @@
 
 #include "AbstractFishEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

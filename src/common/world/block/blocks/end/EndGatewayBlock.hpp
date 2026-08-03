@@ -25,6 +25,9 @@
 
 #include "../../Block.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
 

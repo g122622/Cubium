@@ -22,7 +22,13 @@
  */
 
 #include "common/item/loot/conditions/TimeCheckCondition.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace loot {

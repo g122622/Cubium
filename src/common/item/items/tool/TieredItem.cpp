@@ -22,8 +22,10 @@
  */
 
 #include "TieredItem.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/Ingredient.hpp"
+#include "common/item/tier/IItemTier.hpp"
 
 namespace mc {
 namespace item {

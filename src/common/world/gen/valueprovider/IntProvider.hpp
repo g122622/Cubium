@@ -26,7 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::valueprovider {
 

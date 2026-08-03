@@ -22,10 +22,20 @@
  */
 
 #include "LootPool.hpp"
-#include "conditions/LootConditions.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
 #include "entries/ItemLootEntry.hpp"
-#include "functions/LootFunctions.hpp"
-#include <algorithm>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -99,7 +109,7 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
     // 检查池级条件
     const bool conditionsPassed = testConditions(context);
     // spdlog::info(
-        // "LootPool::generate pool='{}' conditionsPassed={} entryCount={}", m_name, conditionsPassed, m_entries.size());
+    // "LootPool::generate pool='{}' conditionsPassed={} entryCount={}", m_name, conditionsPassed, m_entries.size());
     if (!conditionsPassed) {
         return;
     }

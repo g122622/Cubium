@@ -26,6 +26,7 @@
 #include "../../../fluid/FluidTags.hpp"
 #include "../../Block.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 namespace blocks {

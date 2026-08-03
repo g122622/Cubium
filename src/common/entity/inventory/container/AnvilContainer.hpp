@@ -23,10 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "world/block/BlockPos.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 

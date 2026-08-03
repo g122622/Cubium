@@ -23,6 +23,11 @@
 
 #include "AdvancementVisibilityEvaluator.hpp"
 #include "AdvancementManager.hpp"
+#include "common/advancement/Advancement.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <functional>
+#include <vector>
 
 namespace mc::advancement {
 

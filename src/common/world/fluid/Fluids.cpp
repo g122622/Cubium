@@ -22,6 +22,8 @@
  */
 
 #include "Fluids.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc {
 namespace fluid {

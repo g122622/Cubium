@@ -23,12 +23,20 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
+#include "common/network/ir/packets/handshake/HandshakePackets.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
+#include "common/network/ir/packets/status/StatusPackets.hpp"
 
 #include <array>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::network::backend::java::codecs {
 
@@ -280,7 +288,8 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
  */
 [[nodiscard]] inline auto loginDisconnectCodec()
 {
-    return makeCodec<ir::login::Disconnect>([](B& buf, const ir::login::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
+    return makeCodec<ir::login::Disconnect>(
+        [](B& buf, const ir::login::Disconnect& v) { writeTextComponentNbt(buf, v.reason); },
         [](B& buf) -> Result<ir::login::Disconnect> {
             ir::login::Disconnect v{};
             MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));

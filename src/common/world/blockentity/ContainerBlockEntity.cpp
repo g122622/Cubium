@@ -22,6 +22,8 @@
  */
 
 #include "world/blockentity/ContainerBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 
 namespace mc {

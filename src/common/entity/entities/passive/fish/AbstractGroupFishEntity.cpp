@@ -26,6 +26,9 @@
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/movement/FollowSchoolLeaderGoal.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
+#include <memory>
 
 namespace mc {
 

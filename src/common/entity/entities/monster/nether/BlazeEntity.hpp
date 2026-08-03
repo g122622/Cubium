@@ -27,6 +27,7 @@
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include <memory>
 #include <optional>
 

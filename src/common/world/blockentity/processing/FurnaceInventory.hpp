@@ -24,10 +24,13 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerListener.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <array>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace mc {

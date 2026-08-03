@@ -26,7 +26,9 @@
 #include "PotionType.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc {

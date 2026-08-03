@@ -22,7 +22,15 @@
  */
 
 #include "EnchantmentRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "enchantments/AllEnchantments.hpp"
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 // 匿名 namespace：仅在当前编译单元可见

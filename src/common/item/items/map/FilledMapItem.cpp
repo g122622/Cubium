@@ -23,23 +23,29 @@
 
 #include "FilledMapItem.hpp"
 
-#include "common/entity/core/LivingEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/map/AbstractMapItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
-#include "common/world/dimension/MapDimensionId.hpp"
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDataManager.hpp"
+#include "common/world/map/MapDecoration.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include <algorithm>
-#include <cmath>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::item::items {
 

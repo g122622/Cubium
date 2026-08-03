@@ -22,6 +22,12 @@
  */
 
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LockableBlockEntity.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/serialization/NbtHelper.hpp"
@@ -33,6 +39,12 @@
 #include "item/loot/context/LootParams.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

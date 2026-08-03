@@ -24,7 +24,13 @@
 #pragma once
 
 #include "Team.hpp"
+#include "common/core/Types.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include <cstddef>
 #include <memory>
+#include <set>
+#include <string>
 
 namespace mc::scoreboard {
 

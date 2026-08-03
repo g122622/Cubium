@@ -22,6 +22,9 @@
  */
 
 #include "entity/inventory/container/FurnaceContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -29,6 +32,8 @@
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace blockentity {

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -31,6 +32,7 @@
 #include "common/world/fluid/FlowingFluid.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace block {

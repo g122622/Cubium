@@ -25,6 +25,9 @@
 #include "../../../IWorld.hpp"
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 
 namespace mc {
 namespace blocks {

@@ -31,6 +31,8 @@
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
 #include "../../IBlockAnimateContext.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <vector>
 
 namespace mc {
 

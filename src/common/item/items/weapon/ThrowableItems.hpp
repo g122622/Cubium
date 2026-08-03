@@ -23,6 +23,10 @@
 #pragma once
 
 #include "ThrowableItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ProjectileItem.hpp"
+#include <memory>
 
 namespace mc {
 namespace item {

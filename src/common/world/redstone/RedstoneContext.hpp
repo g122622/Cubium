@@ -26,6 +26,7 @@
 #include "../../core/Types.hpp"
 #include "../block/BlockPos.hpp"
 #include <atomic>
+#include <cstddef>
 #include <mutex>
 #include <unordered_set>
 

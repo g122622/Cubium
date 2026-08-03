@@ -23,10 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 #include <memory>
 

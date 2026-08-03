@@ -22,6 +22,7 @@
  */
 
 #include "OminousTrialKeyItem.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item {

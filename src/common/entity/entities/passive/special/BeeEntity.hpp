@@ -25,11 +25,16 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/interfaces/IFlyingAnimal.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

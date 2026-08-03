@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "entity/ai/goal/Goal.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 

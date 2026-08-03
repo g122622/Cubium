@@ -21,6 +21,13 @@
  */
 
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
@@ -36,15 +43,17 @@ void BlockComponentRegistry::registerComponent(const std::string& blockTypeId, B
     // 验证组件名称包含命名空间前缀
     if (component.name.find(':') == std::string::npos) {
         spdlog::warn(
-            "BlockComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'", component.name);
+            "BlockComponentRegistry: component name '{}' missing namespace prefix, recommended format 'namespace:name'",
+            component.name);
     }
 
     std::unique_lock lock(m_mutex);
     m_components[blockTypeId].push_back(std::move(component));
     _updateCallbackFlags(blockTypeId);
 
-    spdlog::info(
-        "BlockComponentRegistry: registered block component '{}' to '{}'", m_components[blockTypeId].back().name, blockTypeId);
+    spdlog::info("BlockComponentRegistry: registered block component '{}' to '{}'",
+        m_components[blockTypeId].back().name,
+        blockTypeId);
 }
 
 size_t BlockComponentRegistry::unregisterComponent(const std::string& blockTypeId, const std::string& componentName)

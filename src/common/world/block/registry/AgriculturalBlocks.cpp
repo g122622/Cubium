@@ -22,6 +22,10 @@
  */
 
 #include "world/block/registry/AgriculturalBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/agricultural/BeetrootBlock.hpp"
 #include "world/block/blocks/agricultural/CarrotBlock.hpp"

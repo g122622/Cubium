@@ -28,6 +28,8 @@
 #include "../tick/base/TickPriority.hpp"
 #include "RedstoneContext.hpp"
 #include "RedstonePower.hpp"
+#include "common/util/Direction.hpp"
+#include <cstddef>
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>

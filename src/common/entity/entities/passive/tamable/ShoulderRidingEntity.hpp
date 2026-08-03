@@ -24,6 +24,7 @@
 #pragma once
 
 #include "TameableEntity.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "CriterionTrigger.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>

@@ -25,9 +25,14 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
-#include "../../core/LivingEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
 namespace entity {

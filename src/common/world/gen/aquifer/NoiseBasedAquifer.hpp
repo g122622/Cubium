@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
 #include <vector>
 
 namespace mc {

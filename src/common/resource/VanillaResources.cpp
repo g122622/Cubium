@@ -22,8 +22,10 @@
  */
 
 #include "VanillaResources.hpp"
+#include "common/resource/pack/InMemoryResourcePack.hpp"
 #include <cstring>
-#include <spdlog/spdlog.h>
+#include <memory>
+#include <string>
 
 namespace mc::resource {
 

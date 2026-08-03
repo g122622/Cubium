@@ -24,7 +24,9 @@
 #pragma once
 
 #include "TranslationTextComponent.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include <memory>
+#include <utility>
 
 namespace mc::text {
 

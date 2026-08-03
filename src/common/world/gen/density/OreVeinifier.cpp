@@ -23,14 +23,18 @@
 
 #include "OreVeinifier.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/CopperBlocks.hpp"
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/TuffBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
+#include <algorithm>
+#include <cstdlib>
 
 namespace mc::world::gen::density {
 

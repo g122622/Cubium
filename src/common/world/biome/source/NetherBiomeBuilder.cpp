@@ -21,6 +21,12 @@
  */
 
 #include "NetherBiomeBuilder.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

@@ -25,6 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "MerchantOffer.hpp"
+#include <cstddef>
 #include <memory>
 #include <vector>
 

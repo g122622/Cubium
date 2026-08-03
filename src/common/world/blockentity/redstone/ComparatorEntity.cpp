@@ -22,9 +22,14 @@
  */
 
 #include "ComparatorEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <algorithm>
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

@@ -27,7 +27,12 @@
 #include "../../resource/ResourceLocation.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/property/StateContainer.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace mc {
 

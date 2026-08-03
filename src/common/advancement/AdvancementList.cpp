@@ -22,6 +22,10 @@
  */
 
 #include "AdvancementList.hpp"
+#include "common/advancement/Advancement.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <algorithm>
+#include <functional>
 
 namespace mc::advancement {
 

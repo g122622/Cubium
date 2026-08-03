@@ -23,6 +23,7 @@
 
 #include "OpenDoorGoal.hpp"
 
+#include "common/entity/ai/goal/goals/interact/DoorInteractGoal.hpp"
 #include "common/entity/core/MobEntity.hpp"
 
 namespace mc::entity::ai::goal {

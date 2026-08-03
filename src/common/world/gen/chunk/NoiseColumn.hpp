@@ -25,6 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include "../../block/BlockState.hpp"
+#include <cstddef>
 #include <vector>
 
 namespace mc {

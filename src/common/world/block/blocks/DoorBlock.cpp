@@ -22,7 +22,6 @@
  */
 
 #include "DoorBlock.hpp"
-#include "../../../core/Constants.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../item/core/ItemStack.hpp"
@@ -32,8 +31,23 @@
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../IWorld.hpp"
 #include "../../redstone/RedstoneSystem.hpp"
-#include "../BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

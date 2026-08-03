@@ -24,8 +24,17 @@
 #pragma once
 
 #include "PackListBase.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 
+#include <cstddef>
 #include <filesystem>
+#include <map>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <vector>
 
 namespace mc::resource {
 

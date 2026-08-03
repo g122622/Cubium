@@ -24,7 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include <memory>
 #include <random>
 

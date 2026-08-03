@@ -24,8 +24,11 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 
 #include <memory>
 #include <optional>

@@ -24,6 +24,10 @@
 #include "DamagingProjectileEntity.hpp"
 
 #include "ProjectileHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/IWorld.hpp"
 

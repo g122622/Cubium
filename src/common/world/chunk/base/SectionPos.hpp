@@ -26,9 +26,11 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <tuple>

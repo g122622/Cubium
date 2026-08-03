@@ -22,6 +22,9 @@
  */
 
 #include "common/network/pipeline/VarintFraming.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <vector>
 
 namespace mc::network::pipeline {
 

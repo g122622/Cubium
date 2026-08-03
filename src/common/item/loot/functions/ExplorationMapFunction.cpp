@@ -22,14 +22,23 @@
  */
 
 #include "ExplorationMapFunction.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/map/MapData.hpp"
+#include "common/world/map/MapDecoration.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 
 namespace mc {
 namespace loot {

@@ -22,13 +22,15 @@
  */
 
 #include "FrostWalkerEnchantment.hpp"
-#include "DepthStriderEnchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include <cmath>
 
 namespace mc {
 namespace item {

@@ -22,12 +22,19 @@
  */
 
 #include "SkinMetadataParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <cctype>
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
-
-#include <stdexcept>
 
 namespace mc::skin {
 

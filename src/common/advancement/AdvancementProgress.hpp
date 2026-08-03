@@ -27,9 +27,13 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <chrono>
+#include <cstddef>
 #include <map>
 #include <optional>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

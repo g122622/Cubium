@@ -22,12 +22,18 @@
  */
 
 #include "VillageManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include <algorithm>
+#include "common/world/village/Village.hpp"
+#include "common/world/village/poi/PointOfInterest.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 #include <array>
-#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

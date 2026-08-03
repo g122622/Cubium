@@ -22,8 +22,15 @@
  */
 
 #include "TextStyle.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/text/TextEvents.hpp"
 #include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <iterator>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::text {
 

@@ -25,6 +25,11 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../core/AgeableEntity.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 
 namespace mc {

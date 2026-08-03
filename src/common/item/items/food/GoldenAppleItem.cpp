@@ -31,7 +31,12 @@
 #include "../../../util/math/random/Random.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/food/Food.hpp"
 #include <chrono>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

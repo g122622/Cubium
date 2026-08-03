@@ -22,16 +22,18 @@
  */
 
 #include "LookAtGoal.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../core/Entity.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../controller/LookController.hpp"
-#include "../GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <cmath>
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

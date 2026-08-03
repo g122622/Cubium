@@ -22,10 +22,16 @@
 
 #include "BiomeSource.hpp"
 #include "BiomeRegistry.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include <cmath>
+#include <functional>
+#include <optional>
+#include <unordered_set>
 
 namespace mc {
 namespace world {

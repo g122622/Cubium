@@ -24,6 +24,8 @@
 #pragma once
 
 #include "FoodItem.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/food/Food.hpp"
 
 namespace mc {
 namespace item::items {

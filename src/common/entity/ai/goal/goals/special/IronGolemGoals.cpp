@@ -33,13 +33,19 @@
 #include "../../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
-#include "../../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../../tag/EntityTypeTags.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/tag/EntityTypeTag.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 
+#include <algorithm>
 #include <limits>
 
 namespace mc::entity::ai::goal {

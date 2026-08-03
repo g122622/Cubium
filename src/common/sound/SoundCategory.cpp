@@ -23,8 +23,11 @@
 
 #include "common/sound/SoundCategory.hpp"
 
-#include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <iterator>
+#include <optional>
+#include <string_view>
 
 namespace mc::sound {
 

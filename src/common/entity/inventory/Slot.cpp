@@ -31,6 +31,11 @@
 #include "../entities/player/Player.hpp"
 #include "IInventory.hpp"
 #include "IRecipeHolder.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <algorithm>
+#include <cmath>
+#include <utility>
 
 namespace mc {
 

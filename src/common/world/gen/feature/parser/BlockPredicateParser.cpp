@@ -24,6 +24,8 @@
 #include "BlockPredicateParser.hpp"
 
 #include "BlockStateParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
@@ -32,6 +34,7 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gen/feature/predicate/AllOfPredicate.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include "common/world/gen/feature/predicate/HasSturdyFacePredicate.hpp"
 #include "common/world/gen/feature/predicate/InsideWorldBoundsPredicate.hpp"
 #include "common/world/gen/feature/predicate/MatchingBlockPredicate.hpp"
@@ -42,10 +45,12 @@
 #include "common/world/gen/feature/predicate/TrueBlockPredicate.hpp"
 #include "common/world/gen/feature/predicate/WouldSurvivePredicate.hpp"
 
-#include <spdlog/spdlog.h>
-
+#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

@@ -22,6 +22,10 @@
  */
 
 #include "common/network/pipeline/CompressionHandlers.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/crypto/ZlibCodec.hpp"
+#include <vector>
 
 namespace mc::network::pipeline {
 
@@ -40,7 +44,8 @@ Result<void> CompressionDecoder::decode(const std::vector<u8>& input, std::vecto
         return r;
     }
     if (consumed != input.size()) {
-        return Error(ErrorCode::InvalidData, "Compression layer has residual bytes after inflate", "CompressionDecoder::decode");
+        return Error(
+            ErrorCode::InvalidData, "Compression layer has residual bytes after inflate", "CompressionDecoder::decode");
     }
     return Result<void>::ok();
 }

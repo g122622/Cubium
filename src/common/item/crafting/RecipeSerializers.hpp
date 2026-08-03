@@ -23,6 +23,10 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "core/Result.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/ShapedRecipe.hpp"
@@ -32,7 +36,10 @@
 #include "item/crafting/StonecuttingRecipe.hpp"
 #include "item/crafting/TransmuteRecipe.hpp"
 #include <memory>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace crafting {

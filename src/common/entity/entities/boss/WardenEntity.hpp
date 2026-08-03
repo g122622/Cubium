@@ -28,6 +28,8 @@
 #include "../monster/MonsterEntity.hpp"
 #include "WardenAngerLevel.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 

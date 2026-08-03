@@ -30,6 +30,8 @@
 #include "../../biome/Biome.hpp"
 #include "../../spawn/MobSpawnInfo.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

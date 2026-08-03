@@ -22,10 +22,16 @@
  */
 
 #include "common/world/chunk/data/PalettedContainer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 
 #include <algorithm>
-#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::chunk {
 

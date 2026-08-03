@@ -32,14 +32,25 @@
 #include "SingleJigsawPiece.hpp"
 #include "TemplatePool.hpp"
 #include "TemplatePoolRegistry.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 
 #include <atomic>
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

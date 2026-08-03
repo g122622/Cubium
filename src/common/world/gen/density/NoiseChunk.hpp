@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -32,6 +34,7 @@
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::density {

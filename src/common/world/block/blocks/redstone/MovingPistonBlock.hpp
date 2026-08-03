@@ -24,9 +24,14 @@
 #pragma once
 
 #include "PistonHeadBlock.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Material.hpp"
 #include <memory>
 
 namespace mc {

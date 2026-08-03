@@ -23,8 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 #include "world/blockentity/BlockEntity.hpp"
+#include <memory>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

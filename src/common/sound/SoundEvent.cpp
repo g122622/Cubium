@@ -22,7 +22,12 @@
  */
 
 #include "common/sound/SoundEvent.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundTypes.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <string_view>
+#include <utility>
 
 namespace mc::sound {
 

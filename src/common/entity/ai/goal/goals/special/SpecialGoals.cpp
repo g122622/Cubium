@@ -22,16 +22,12 @@
  */
 
 #include "SpecialGoals.hpp"
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
-#include "../../../../core/CreatureEntity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../damage/DamageSource.hpp"
 #include "../../../../effect/EffectInstance.hpp"
-#include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/monster/basic/CreeperEntity.hpp"
 #include "../../../../entities/passive/fish/PufferfishEntity.hpp"
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
@@ -46,9 +42,18 @@
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include "../../GoalFlag.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 namespace mc::entity::ai::goal {
 

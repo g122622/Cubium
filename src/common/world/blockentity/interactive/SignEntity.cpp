@@ -22,13 +22,25 @@
  */
 
 #include "world/blockentity/interactive/SignEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/TextEvents.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextParser.hpp"
 #include "world/IWorld.hpp"
-#include <regex>
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

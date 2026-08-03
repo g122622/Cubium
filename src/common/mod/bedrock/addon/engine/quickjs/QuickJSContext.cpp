@@ -22,11 +22,22 @@
  */
 
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSContext.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
+#include "common/mod/bedrock/addon/core/ScriptResult.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSBindingContext.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSRuntime.hpp"
 
+#include <functional>
+#include <memory>
 #include <mutex>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <quickjs.h>
 #include <spdlog/spdlog.h>
 

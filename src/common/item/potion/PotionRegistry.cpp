@@ -23,8 +23,11 @@
 
 #include "PotionRegistry.hpp"
 #include "PotionType.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
-#include "common/entity/effect/EffectType.hpp"
+#include "common/item/potion/Potion.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace potion {

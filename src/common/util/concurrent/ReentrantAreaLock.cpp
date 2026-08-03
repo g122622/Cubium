@@ -22,9 +22,18 @@
 
 #include "common/util/concurrent/ReentrantAreaLock.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/concurrent/LockSupport.hpp"
+#include "common/util/concurrent/MultiThreadedQueue.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <thread>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

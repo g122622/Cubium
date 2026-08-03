@@ -22,10 +22,14 @@
  */
 
 #include "ItemTiers.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/crafting/Ingredient.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <memory>
 
 namespace mc {
 namespace item {

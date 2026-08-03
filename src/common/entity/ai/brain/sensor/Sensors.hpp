@@ -24,7 +24,10 @@
 #pragma once
 
 #include "Sensor.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -34,6 +37,8 @@
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc {

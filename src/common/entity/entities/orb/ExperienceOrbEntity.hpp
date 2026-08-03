@@ -23,9 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/experience/ExperienceConstants.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 

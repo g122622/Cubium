@@ -26,7 +26,13 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cstdio>
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

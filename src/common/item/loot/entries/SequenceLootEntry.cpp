@@ -22,8 +22,13 @@
  */
 
 #include "SequenceLootEntry.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

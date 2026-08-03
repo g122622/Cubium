@@ -23,10 +23,13 @@
 
 #include "PackRepository.hpp"
 
+#include "common/core/settings/ResourcePackListOption.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include <filesystem>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
-
-#include <algorithm>
 
 using namespace mc::trace;
 

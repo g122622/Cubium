@@ -21,7 +21,10 @@
  */
 
 #include "FluidPickerFactory.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::aquifer {

@@ -23,19 +23,26 @@
 
 #include "EntityStorageManager.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <sstream>
-
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/nbt/Nbt.hpp"
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "common/world/storage/entity/EntityKey.hpp"
 #include "spdlog/spdlog.h"
-#include <zlib.h>
+#include <cstddef>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <rocksdb/slice.h>
 
 namespace mc::world::storage {
 

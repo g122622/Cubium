@@ -22,8 +22,14 @@
 #pragma once
 
 #include "GolemEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

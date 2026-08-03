@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "util/AxisAlignedBB.hpp"
 #include "util/Direction.hpp"
 #include "world/IWorld.hpp"

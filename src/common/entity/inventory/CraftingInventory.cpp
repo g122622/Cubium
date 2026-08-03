@@ -22,9 +22,17 @@
  */
 
 #include "entity/inventory/CraftingInventory.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/crafting/IRecipe.hpp"
-#include "item/crafting/RecipeManager.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

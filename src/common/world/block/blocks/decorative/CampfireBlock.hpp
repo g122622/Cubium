@@ -32,6 +32,9 @@
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {

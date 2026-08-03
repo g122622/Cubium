@@ -22,17 +22,31 @@
  */
 
 #include "EndCityStructure.hpp"
-#include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawAssembler.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

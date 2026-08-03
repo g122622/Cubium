@@ -25,8 +25,9 @@
 #include "ScoreCriteria.hpp"
 #include "ScoreObjective.hpp"
 #include "Scoreboard.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
-#include <climits>
+#include <string>
 
 namespace mc::scoreboard {
 

@@ -23,19 +23,23 @@
 
 #include "TemptGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "entity/ai/controller/LookController.hpp"
 #include "entity/ai/goal/GoalConstants.hpp"
 #include "entity/ai/pathfinding/PathNavigator.hpp"
 #include "entity/core/CreatureEntity.hpp"
-#include "entity/core/Entity.hpp"
 #include "entity/core/EntityUtils.hpp"
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 
 #include <cmath>
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

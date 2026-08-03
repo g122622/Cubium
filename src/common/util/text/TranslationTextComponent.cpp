@@ -23,6 +23,11 @@
 
 #include "TranslationTextComponent.hpp"
 #include "common/resource/LanguageManager.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <cctype>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace text {

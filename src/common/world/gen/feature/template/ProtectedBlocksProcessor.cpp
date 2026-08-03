@@ -23,9 +23,13 @@
 
 #include "ProtectedBlocksProcessor.hpp"
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include <optional>
+#include <utility>
 
 namespace mc {
 namespace world {

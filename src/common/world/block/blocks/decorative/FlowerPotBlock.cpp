@@ -33,9 +33,18 @@
 #include "../../BlockRegistry.hpp"
 #include "../pale_garden/EyeblossomBlock.hpp"
 #include "../pale_garden/EyeblossomEnvironment.hpp"
-#include "common/sound/SoundEvents.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {

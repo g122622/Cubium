@@ -28,6 +28,7 @@
 
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 
 namespace mc {
 namespace loot {

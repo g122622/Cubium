@@ -22,6 +22,9 @@
  */
 
 #include "HarnessItem.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

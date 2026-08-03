@@ -38,14 +38,20 @@
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityDataManager.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityUtils.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/monster/MonsterEntity.hpp"
 #include "../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../entities/player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

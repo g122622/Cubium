@@ -23,7 +23,9 @@
 
 #include "Xoroshiro128ppRandom.hpp"
 #include "PositionalRandomFactory.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <cstddef>
 
 namespace mc::math {
 

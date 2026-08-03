@@ -22,7 +22,12 @@
  */
 
 #include "common/network/crypto/AesCfb8.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/crypto/Crypt.hpp"
 
+#include <array>
+#include <vector>
 #include <openssl/evp.h>
 
 namespace mc::network::crypto {

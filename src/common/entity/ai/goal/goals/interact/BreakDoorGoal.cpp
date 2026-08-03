@@ -23,16 +23,18 @@
 
 #include "BreakDoorGoal.hpp"
 
+#include "common/entity/ai/goal/goals/interact/DoorInteractGoal.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/blocks/DoorBlock.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include <algorithm>
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

@@ -22,12 +22,18 @@
  */
 
 #include "item/crafting/RecipeLoader.hpp"
-#include "item/Items.hpp"
-#include "item/core/ItemRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/item/crafting/RecipeSerializers.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "resource/repository/DataPackRepository.hpp"
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

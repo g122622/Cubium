@@ -24,6 +24,8 @@
 #pragma once
 
 #include "StorageTask.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include <atomic>
 #include <memory>

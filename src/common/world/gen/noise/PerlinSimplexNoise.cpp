@@ -22,10 +22,16 @@
  */
 
 #include "PerlinSimplexNoise.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <cmath>
+#include <cstddef>
+#include <memory>
 #include <set>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::noise {
 

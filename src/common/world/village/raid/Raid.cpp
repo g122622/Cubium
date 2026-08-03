@@ -23,23 +23,32 @@
 
 #include "Raid.hpp"
 
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
 #include "common/entity/entities/monster/illager/IllagerEntities.hpp"
 #include "common/entity/entities/monster/illager/RavagerEntity.hpp"
 #include "common/entity/entities/monster/illager/WitchEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/village/Village.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 
 namespace mc::world::village::raid {
 

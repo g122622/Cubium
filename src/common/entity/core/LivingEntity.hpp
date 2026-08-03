@@ -23,12 +23,19 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectManager.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/enchantment/LocationEnchantmentTracker.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -36,9 +43,15 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 #include <array>
+#include <cstddef>
+#include <limits>
 #include <memory>
+#include <optional>
+#include <string>
 
 namespace mc {
 

@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/BooleanProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"

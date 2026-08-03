@@ -24,6 +24,13 @@
 #pragma once
 
 #include "SignBlock.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <unordered_map>
 
 namespace mc {
 namespace blocks {

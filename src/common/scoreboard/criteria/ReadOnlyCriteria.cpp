@@ -22,6 +22,8 @@
  */
 
 #include "ReadOnlyCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include <string>
 
 namespace mc::scoreboard {
 

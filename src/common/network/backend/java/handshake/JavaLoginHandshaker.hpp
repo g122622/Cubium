@@ -28,6 +28,7 @@
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/crypto/Crypt.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
 
 #include <array>
 #include <optional>

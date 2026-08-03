@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <unordered_map>

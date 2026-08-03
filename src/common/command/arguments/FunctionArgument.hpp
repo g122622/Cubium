@@ -31,6 +31,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

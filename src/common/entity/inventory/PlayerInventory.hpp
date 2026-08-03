@@ -26,8 +26,12 @@
 #include "../../item/core/ItemStack.hpp"
 #include "IInventory.hpp"
 #include "Slot.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
+#include <utility>
 
 namespace mc {
 

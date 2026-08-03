@@ -26,6 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../util/math/Vector3.hpp"
 #include "../Goal.hpp"
+#include <string>
 
 namespace mc {
 

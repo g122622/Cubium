@@ -23,8 +23,13 @@
 
 #pragma once
 
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/util/assert/AssertMacros.hpp"

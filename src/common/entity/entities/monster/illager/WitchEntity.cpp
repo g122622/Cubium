@@ -23,22 +23,29 @@
 
 #include "WitchEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
-#include "common/item/Items.hpp"
+#include "common/item/potion/Potion.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

@@ -27,8 +27,11 @@
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../basic/AnimalEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc {
 

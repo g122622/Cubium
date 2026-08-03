@@ -21,6 +21,9 @@
  */
 
 #include "common/world/gen/settings/WorldPresetRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/settings/WorldPreset.hpp"
+#include <utility>
 
 namespace mc::world::gen::settings {
 

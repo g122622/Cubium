@@ -23,10 +23,19 @@
 
 #include "LootTable.hpp"
 #include "LootSerializers.hpp"
-#include "common/item/core/ItemRegistry.hpp"
-#include "conditions/LootConditions.hpp"
-#include "functions/LootFunctions.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/LootPool.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParameterSet.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

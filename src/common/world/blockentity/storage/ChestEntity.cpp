@@ -22,11 +22,22 @@
  */
 
 #include "world/blockentity/storage/ChestEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
+#include "common/world/blockentity/core/LockableBlockEntity.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
+#include "common/world/blockentity/storage/DoubleSidedInventory.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/interfaces/ContainerUser.hpp"
 #include "entity/inventory/container/ChestContainer.hpp"
-#include "item/loot/LootTable.hpp"
 #include "item/loot/context/LootContext.hpp"
 #include "sound/SoundCategory.hpp"
 #include "sound/SoundEvents.hpp"
@@ -34,11 +45,15 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/gameevent/GameEvents.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

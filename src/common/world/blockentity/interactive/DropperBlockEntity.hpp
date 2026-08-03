@@ -24,7 +24,10 @@
 #pragma once
 
 #include "DispenserBlockEntity.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace blockentity {

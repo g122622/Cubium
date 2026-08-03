@@ -21,6 +21,8 @@
  */
 
 #include "common/world/gen/surface/SurfaceRule.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gen/surface/SurfaceRuleContext.hpp"
 
 namespace mc::world::gen::surface {

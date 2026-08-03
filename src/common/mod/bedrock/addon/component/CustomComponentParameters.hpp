@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include <any>
 #include <string>
+#include <utility>
 
 namespace mc::mod::bedrock::addon {
 

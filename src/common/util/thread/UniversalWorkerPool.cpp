@@ -22,10 +22,23 @@
  */
 
 #include "UniversalWorkerPool.hpp"
+#include "common/core/Types.hpp"
 #include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/thread/ITask.hpp"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

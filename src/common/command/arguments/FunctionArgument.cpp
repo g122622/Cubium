@@ -23,7 +23,13 @@
 
 #include "FunctionArgument.hpp"
 
+#include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace command {

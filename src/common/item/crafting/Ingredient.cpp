@@ -22,10 +22,17 @@
  */
 
 #include "item/crafting/Ingredient.hpp"
-#include "item/core/ItemRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTag.hpp"
 #include "item/tag/ItemTags.hpp"
-#include <algorithm>
+#include <cstddef>
+#include <functional>
 #include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {

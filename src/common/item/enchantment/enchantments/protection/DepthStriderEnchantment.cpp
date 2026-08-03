@@ -22,7 +22,7 @@
  */
 
 #include "DepthStriderEnchantment.hpp"
-#include "FrostWalkerEnchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {

@@ -22,8 +22,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <functional>
+#include <optional>
+#include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace world {

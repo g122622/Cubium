@@ -25,6 +25,12 @@
 
 #include "../../Block.hpp"
 #include "../../IBeaconBeamColorProvider.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <array>
 
 namespace mc {
 namespace block {

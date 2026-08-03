@@ -23,8 +23,18 @@
 
 #include "CommandTreeSnapshot.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <exception>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 using namespace mc::trace;
 

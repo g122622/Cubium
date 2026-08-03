@@ -22,8 +22,13 @@
  */
 
 #include "GolemEntity.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/world/IWorld.hpp"
+#include <optional>
 
 namespace mc {
 

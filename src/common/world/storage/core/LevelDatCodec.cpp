@@ -22,13 +22,25 @@
  */
 
 #include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/CompressionUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/storage/list/WorldNameSanitizer.hpp"
+#include "common/world/storage/list/WorldListEntry.hpp"
+#include "common/world/storage/request/WorldRequests.hpp"
 #include <chrono>
-#include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage {

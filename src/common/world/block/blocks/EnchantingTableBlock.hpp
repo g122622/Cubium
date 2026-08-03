@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>

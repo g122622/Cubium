@@ -23,9 +23,15 @@
 
 #include "FloatProviderParser.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/gen/valueprovider/FloatProvider.hpp"
 
+#include <memory>
+#include <string>
+#include <string_view>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

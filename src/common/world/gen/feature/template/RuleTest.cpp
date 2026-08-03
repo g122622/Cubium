@@ -22,11 +22,19 @@
  */
 
 #include "RuleTest.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/MathUtils.hpp"
-#include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
+#include <cstdlib>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 namespace world {

@@ -22,6 +22,9 @@
  */
 
 #include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include <utility>
 
 namespace mc::world::gen::settings {
 

@@ -23,17 +23,22 @@
 
 #include "MonsterRoomFeature.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 
+#include <array>
+#include <cstddef>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::feature {

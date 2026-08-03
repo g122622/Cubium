@@ -22,6 +22,8 @@
  */
 
 #include "LootContext.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <string>
 
 namespace mc {
 namespace loot {

@@ -22,7 +22,9 @@
  */
 
 #include "AmbientEntity.hpp"
-#include "common/entity/attribute/Attributes.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 
 namespace mc {
 

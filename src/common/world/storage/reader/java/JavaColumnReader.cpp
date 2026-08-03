@@ -22,12 +22,30 @@
  */
 
 #include "JavaColumnReader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/storage/reader/java/JavaChunkReader.hpp"
+#include <array>
+#include <cstddef>
+#include <optional>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {

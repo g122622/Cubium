@@ -25,6 +25,8 @@
 
 #include "../../IGrowable.hpp"
 #include "SnowyDirtBlock.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 
 namespace mc {
 

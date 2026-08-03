@@ -25,8 +25,10 @@
 
 #include "Attribute.hpp"
 #include "AttributeModifier.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <mutex>
+#include <string>
 #include <vector>
 
 namespace mc {

@@ -24,6 +24,8 @@
 #include "CopperGolemEntity.hpp"
 
 #include "CopperGolemTypes.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
@@ -32,14 +34,18 @@
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/golem/GolemEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -51,7 +57,11 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include <cmath>
 #include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

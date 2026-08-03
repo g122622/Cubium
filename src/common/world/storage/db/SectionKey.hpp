@@ -27,7 +27,10 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <vector>
 
 namespace mc::world::storage {
 

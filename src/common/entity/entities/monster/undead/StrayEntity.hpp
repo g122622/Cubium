@@ -25,6 +25,7 @@
 
 #include "AbstractSkeletonEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 
 #include <memory>
 

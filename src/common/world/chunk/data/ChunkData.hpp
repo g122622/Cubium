@@ -42,7 +42,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
@@ -52,6 +54,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

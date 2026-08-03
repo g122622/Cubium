@@ -22,12 +22,15 @@
  */
 
 #include "Structure.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -35,10 +38,10 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include <algorithm>
-#include <unordered_map>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::structure {
 

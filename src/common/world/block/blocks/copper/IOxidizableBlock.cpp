@@ -23,10 +23,13 @@
 
 #include "IOxidizableBlock.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockState.hpp"
+#include <cstdlib>
 
 namespace mc {
 namespace blocks {

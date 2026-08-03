@@ -23,9 +23,11 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <cstddef>
 #include <memory>
 #include <vector>
 

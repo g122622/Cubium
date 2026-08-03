@@ -22,7 +22,23 @@
  */
 
 #include "JavaWorldReader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/core/SaveFormat.hpp"
+#include "common/world/storage/reader/java/JavaColumnReader.hpp"
+#include "common/world/storage/reader/java/RegionFile.hpp"
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {

@@ -22,7 +22,35 @@
  */
 
 #include "LootFunctionBuilder.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
+#include "common/item/loot/functions/ApplyBonusFunction.hpp"
+#include "common/item/loot/functions/CopyBlockStateFunction.hpp"
+#include "common/item/loot/functions/CopyNameFunction.hpp"
+#include "common/item/loot/functions/CopyNbtFunction.hpp"
+#include "common/item/loot/functions/EnchantRandomlyFunction.hpp"
+#include "common/item/loot/functions/EnchantWithLevelsFunction.hpp"
+#include "common/item/loot/functions/ExplorationMapFunction.hpp"
+#include "common/item/loot/functions/ExplosionDecayFunction.hpp"
+#include "common/item/loot/functions/FillPlayerHeadFunction.hpp"
+#include "common/item/loot/functions/FurnaceSmeltFunction.hpp"
+#include "common/item/loot/functions/LimitCountFunction.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
+#include "common/item/loot/functions/LootingEnchantBonusFunction.hpp"
+#include "common/item/loot/functions/SetAttributesFunction.hpp"
+#include "common/item/loot/functions/SetContentsFunction.hpp"
+#include "common/item/loot/functions/SetCountFunction.hpp"
+#include "common/item/loot/functions/SetDamageFunction.hpp"
+#include "common/item/loot/functions/SetLootTableFunction.hpp"
+#include "common/item/loot/functions/SetLoreFunction.hpp"
+#include "common/item/loot/functions/SetNameFunction.hpp"
+#include "common/item/loot/functions/SetNbtFunction.hpp"
+#include "common/item/loot/functions/SetStewEffectFunction.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace loot {

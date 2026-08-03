@@ -22,6 +22,13 @@
  */
 
 #include "EntityTypeTags.hpp"
+#include "common/entity/tag/EntityTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

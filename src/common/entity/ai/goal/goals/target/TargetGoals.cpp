@@ -22,6 +22,14 @@
  */
 
 #include "TargetGoals.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "entity/ai/controller/LookController.hpp"
 #include "entity/core/EntityUtils.hpp"
 #include "entity/core/LivingEntity.hpp"
@@ -46,9 +54,9 @@
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/gamerule/GameRules.hpp"
-#include <cmath>
-#include <limits>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace mc::entity::ai::goal {
 

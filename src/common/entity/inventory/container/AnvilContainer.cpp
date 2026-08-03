@@ -22,6 +22,8 @@
  */
 
 #include "entity/inventory/container/AnvilContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -30,15 +32,17 @@
 #include "item/core/ItemStack.hpp"
 #include "item/enchantment/Enchantment.hpp"
 #include "item/enchantment/EnchantmentHelper.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldConstants.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/blocks/functional/AnvilBlock.hpp"
 #include <algorithm>
+#include <array>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 

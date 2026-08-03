@@ -22,25 +22,22 @@
  */
 
 #include "WanderingTraderGoals.hpp"
-#include "../../../../../item/Items.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../item/potion/PotionUtils.hpp"
-#include "../../../../../item/potion/Potions.hpp"
-#include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/MathConstants.hpp"
-#include "../../../../../util/math/Vector3.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../ai/controller/LookController.hpp"
 #include "../../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
-#include "../../../../effect/EffectInstance.hpp"
-#include "../../../../effect/EffectType.hpp"
 #include "../../../../entities/player/Player.hpp"
 #include "../../../../entities/villager/VillagerEntity.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <cmath>
 
 namespace mc {

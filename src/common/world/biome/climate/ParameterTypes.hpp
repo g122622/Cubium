@@ -24,6 +24,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <algorithm>
 #include <array>
 
 namespace mc::world::biome::climate {

@@ -23,7 +23,15 @@
 
 #include "PlacementUtils.hpp"
 #include "Placements.hpp"
-#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/gen/feature/predicate/HasSturdyFacePredicate.hpp"
+#include "common/world/gen/feature/predicate/OnlyInAirPredicate.hpp"
+#include "common/world/gen/placement/EnvironmentScanPlacement.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

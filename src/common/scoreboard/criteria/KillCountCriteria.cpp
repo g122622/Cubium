@@ -24,6 +24,7 @@
 #include "KillCountCriteria.hpp"
 #include "../core/Score.hpp"
 #include "../core/Scoreboard.hpp"
+#include <string>
 
 namespace mc::scoreboard {
 

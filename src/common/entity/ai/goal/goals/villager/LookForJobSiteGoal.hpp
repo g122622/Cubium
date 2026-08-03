@@ -27,6 +27,7 @@
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <optional>
+#include <string>
 
 namespace mc {
 namespace entity {

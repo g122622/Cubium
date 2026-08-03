@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "core/Result.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/IRecipe.hpp"
@@ -30,6 +33,7 @@
 #include "item/crafting/SmithingRecipe.hpp"
 #include "item/crafting/StonecuttingRecipe.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>

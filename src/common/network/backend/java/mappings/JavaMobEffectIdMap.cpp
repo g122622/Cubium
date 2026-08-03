@@ -23,11 +23,14 @@
 
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <string>
 
 namespace mc::network::backend::java {

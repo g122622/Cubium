@@ -25,11 +25,13 @@
 #include "CarverConfiguration.hpp"
 #include "CarvingContext.hpp"
 #include "WorldCarver.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include <algorithm>
+#include "common/world/WorldConstants.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <cmath>
 
 namespace mc {

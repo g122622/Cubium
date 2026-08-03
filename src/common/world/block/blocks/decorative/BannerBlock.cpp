@@ -27,8 +27,16 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include <cmath>
+#include <memory>
 
 namespace mc {
 namespace blocks {

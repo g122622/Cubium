@@ -23,13 +23,22 @@
 
 #include "common/item/component/DataComponentPayloadCodec.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/component/DataComponentMap.hpp"
+#include "common/item/component/DataComponentType.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <variant>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item {

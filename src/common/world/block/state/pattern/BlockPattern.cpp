@@ -23,7 +23,15 @@
 
 #include "BlockPattern.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/state/pattern/BlockInWorld.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc::blockpattern {
 

@@ -25,6 +25,9 @@
 
 #include "../../blockentity/BlockEntityType.hpp"
 #include "AbstractFurnaceBlock.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {

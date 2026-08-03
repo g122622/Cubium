@@ -25,11 +25,13 @@
 
 #include "common/core/Types.hpp"
 #include "common/world/storage/db/SectionKey.hpp"
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mc::world::storage {
 

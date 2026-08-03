@@ -21,7 +21,11 @@
  */
 
 #include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/crypto/Md5.hpp"
+#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include <memory>
+#include <string>
 
 namespace mc::math {
 

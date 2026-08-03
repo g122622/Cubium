@@ -25,9 +25,15 @@
 
 #include "../ConfiguredFeature.hpp"
 #include "../Feature.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc::world::gen::structure {
@@ -72,7 +78,8 @@ public:
         const FossilConfig& config);
 
 private:
-    [[nodiscard]] static i32 countEmptyCorners(IWorld& world, const ::mc::world::gen::structure::StructureBoundingBox& box);
+    [[nodiscard]] static i32 countEmptyCorners(
+        IWorld& world, const ::mc::world::gen::structure::StructureBoundingBox& box);
 };
 
 /**

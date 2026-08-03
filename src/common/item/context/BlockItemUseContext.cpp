@@ -22,11 +22,20 @@
  */
 
 #include "BlockItemUseContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/ItemUseContext.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <vector>
 
 namespace mc {
 

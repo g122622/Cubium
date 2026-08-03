@@ -32,6 +32,10 @@
 #include "../../../../entities/player/Player.hpp"
 #include "../../../controller/JumpController.hpp"
 #include "../../../controller/MovementController.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
 
 namespace mc::entity::ai::goal {
 

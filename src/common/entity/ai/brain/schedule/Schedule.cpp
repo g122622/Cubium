@@ -24,10 +24,18 @@
 #include "Schedule.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/brain/schedule/Activity.hpp"
+#include "common/entity/ai/brain/schedule/DutyTime.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <initializer_list>
+#include <memory>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

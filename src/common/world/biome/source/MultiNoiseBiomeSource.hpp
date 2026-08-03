@@ -23,11 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {

@@ -23,9 +23,16 @@
 
 #include "AbstractArrowEntity.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -38,12 +45,13 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 namespace mc {
 namespace entity {

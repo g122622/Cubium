@@ -29,8 +29,13 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 
 #include <optional>
 

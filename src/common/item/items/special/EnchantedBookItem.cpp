@@ -24,6 +24,14 @@
 #include "EnchantedBookItem.hpp"
 #include "../../core/ItemStack.hpp"
 #include "../../enchantment/EnchantmentRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::items {

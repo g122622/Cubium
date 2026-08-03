@@ -26,6 +26,8 @@
 #include "../mace/DensityEnchantment.hpp"
 #include "../mace/WindBurstEnchantment.hpp"
 #include "../trident/ImpalingEnchantment.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
 namespace item {

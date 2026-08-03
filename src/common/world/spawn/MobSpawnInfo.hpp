@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::spawn {

@@ -26,8 +26,17 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../world/IWorld.hpp"
-#include "../../potion/PotionRegistry.hpp"
 #include "../../potion/PotionUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/weapon/ArrowItem.hpp"
+#include "common/item/potion/Potion.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <memory>
+#include <vector>
 
 namespace mc {
 namespace item {

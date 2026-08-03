@@ -24,9 +24,14 @@
 #pragma once
 
 #include "Property.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 

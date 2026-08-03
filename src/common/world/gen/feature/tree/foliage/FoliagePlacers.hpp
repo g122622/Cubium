@@ -25,7 +25,13 @@
 
 #include "CherryFoliagePlacer.hpp"
 #include "FoliagePlacer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <memory>
+#include <set>
 
 namespace mc {
 

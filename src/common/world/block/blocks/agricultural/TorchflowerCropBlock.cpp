@@ -16,11 +16,19 @@
  */
 
 #include "TorchflowerCropBlock.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/IntegerProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

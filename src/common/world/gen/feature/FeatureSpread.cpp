@@ -22,6 +22,8 @@
  */
 
 #include "FeatureSpread.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 

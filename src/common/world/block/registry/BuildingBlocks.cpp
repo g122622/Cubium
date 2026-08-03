@@ -21,6 +21,10 @@
  */
 
 #include "world/block/registry/BuildingBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
@@ -29,14 +33,11 @@
 #include "world/block/blocks/CauldronBlock.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
-#include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/FurnaceBlock.hpp"
 #include "world/block/blocks/LavaCauldronBlock.hpp"
 #include "world/block/blocks/LayeredCauldronBlock.hpp"
-#include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
-#include "world/block/blocks/SignBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/SmokerBlock.hpp"
 #include "world/block/blocks/TrappedChestBlock.hpp"
@@ -45,13 +46,10 @@
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/ChainBlock.hpp"
 #include "world/block/blocks/decorative/LadderBlock.hpp"
-#include "world/block/blocks/decorative/LanternBlock.hpp"
 #include "world/block/blocks/decorative/PaneBlock.hpp"
 #include "world/block/blocks/decorative/ScaffoldingBlock.hpp"
 #include "world/block/blocks/functional/AnvilBlock.hpp"
 #include "world/block/blocks/functional/BarrelBlock.hpp"
-#include "world/block/blocks/functional/BeaconBlock.hpp"
-#include "world/block/blocks/functional/BrewingStandBlock.hpp"
 #include "world/block/blocks/functional/CakeBlock.hpp"
 #include "world/block/blocks/functional/CartographyTableBlock.hpp"
 #include "world/block/blocks/functional/ComposterBlock.hpp"
@@ -66,6 +64,7 @@
 #include "world/block/blocks/special/SpongeBlock.hpp"
 #include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
+#include <optional>
 
 namespace mc {
 namespace block_registry {

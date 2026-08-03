@@ -27,6 +27,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <functional>

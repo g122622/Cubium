@@ -23,11 +23,14 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/FluidProperties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace fluid {

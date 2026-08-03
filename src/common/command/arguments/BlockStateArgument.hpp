@@ -23,14 +23,22 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "ArgumentType.hpp"
+#include "common/command/StringReader.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/property/IProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace command {

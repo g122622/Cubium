@@ -22,6 +22,7 @@
 
 #include "ProjectileItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 
 namespace mc {

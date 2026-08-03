@@ -22,7 +22,12 @@
  */
 
 #include "EffectType.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <algorithm>
+#include <cctype>
+#include <optional>
+#include <string>
 #include <unordered_map>
 
 namespace mc {

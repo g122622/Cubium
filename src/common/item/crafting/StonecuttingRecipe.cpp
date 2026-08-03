@@ -22,6 +22,14 @@
  */
 
 #include "StonecuttingRecipe.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace crafting {

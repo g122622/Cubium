@@ -22,6 +22,8 @@
  */
 
 #include "SnowAndFreezeFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -30,7 +32,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include <spdlog/spdlog.h>
+#include "common/world/gen/structure/Structure.hpp"
 
 namespace mc {
 

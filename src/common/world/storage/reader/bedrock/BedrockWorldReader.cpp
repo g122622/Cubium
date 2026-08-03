@@ -23,7 +23,18 @@
 
 #include "BedrockWorldReader.hpp"
 #include "LevelDBKey.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/reader/bedrock/BedrockColumnReader.hpp"
+#include "common/world/storage/reader/bedrock/BedrockLevelDb.hpp"
+#include <cstddef>
+#include <optional>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc::world::storage::reader::bedrock {
 

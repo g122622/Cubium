@@ -25,6 +25,7 @@
 
 #include "EnvironmentScanPlacement.hpp"
 #include "Placement.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <vector>
 

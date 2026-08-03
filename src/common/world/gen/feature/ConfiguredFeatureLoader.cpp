@@ -26,11 +26,17 @@
 #include "ConfiguredFeature.hpp"
 #include "ConfiguredFeatureRegistry.hpp"
 #include "FeatureTypeRegistry.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <string>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

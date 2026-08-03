@@ -35,11 +35,14 @@
 #pragma once
 
 #include "GameRule.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc::server {
 class MinecraftServer;

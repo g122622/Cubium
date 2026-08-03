@@ -23,8 +23,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 #include <quickjs.h>
 
 namespace mc::mod::bedrock::addon {

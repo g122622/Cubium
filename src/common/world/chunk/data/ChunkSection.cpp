@@ -27,12 +27,18 @@
 #undef BYTE_SIZE
 
 #include "common/world/chunk/data/ChunkSection.hpp"
-#include "common/world/block/BlockRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

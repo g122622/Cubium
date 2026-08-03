@@ -26,8 +26,6 @@
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathConstants.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/Block.hpp"
@@ -40,7 +38,6 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/PanicGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/special/MoveToLavaGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
@@ -48,8 +45,13 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <optional>
 
 namespace mc {
 

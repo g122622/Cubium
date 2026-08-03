@@ -24,6 +24,8 @@
 
 #include "../../Block.hpp"
 #include "../../IGrowable.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 

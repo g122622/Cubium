@@ -24,12 +24,24 @@
 #include "TreeDecorator.hpp"
 #include "AttachToLogsDecorator.hpp"
 #include "TrunkVineDecorator.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/BooleanProperty.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
 
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {
@@ -142,8 +154,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
             directions.push_back(dir.value());
         }
 
-        std::unique_ptr<TreeDecorator> decorator = std::make_unique<AttachToLogsDecorator>(
-            probability, providerResult.value(), std::move(directions));
+        std::unique_ptr<TreeDecorator> decorator =
+            std::make_unique<AttachToLogsDecorator>(probability, providerResult.value(), std::move(directions));
         return decorator;
     }
 

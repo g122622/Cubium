@@ -24,7 +24,15 @@
 #include "ListJigsawPiece.hpp"
 
 #include "AssemblyTypes.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

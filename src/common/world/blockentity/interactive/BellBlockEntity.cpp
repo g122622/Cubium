@@ -23,18 +23,19 @@
 
 #include "world/blockentity/interactive/BellBlockEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
-#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -44,6 +45,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

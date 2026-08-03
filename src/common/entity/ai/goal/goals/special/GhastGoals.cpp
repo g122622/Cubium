@@ -22,8 +22,12 @@
  */
 
 #include "GhastGoals.hpp"
-#include "common/core/Types.hpp"
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/util/assert/AssertAll.hpp"

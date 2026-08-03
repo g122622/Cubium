@@ -22,12 +22,22 @@
  */
 
 #include "TickManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/tick/base/ScheduledTick.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/list/ServerTickList.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace mc::trace;
 

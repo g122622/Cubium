@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 

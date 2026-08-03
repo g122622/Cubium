@@ -21,17 +21,25 @@
 
 #include "BeehiveBlockEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/mob/BeehiveBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include <algorithm>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

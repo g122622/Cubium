@@ -22,7 +22,14 @@
  */
 
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

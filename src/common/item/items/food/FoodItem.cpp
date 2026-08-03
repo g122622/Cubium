@@ -32,8 +32,17 @@
 #include "../../../world/IWorld.hpp"
 #include "../../core/ActionResult.hpp"
 #include "../../core/ItemStack.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/item/food/Food.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <chrono>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::items {

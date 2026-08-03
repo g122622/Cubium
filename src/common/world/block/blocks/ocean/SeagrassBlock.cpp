@@ -23,14 +23,14 @@
 
 #include "SeagrassBlock.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/IRandom.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
 #include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidRegistry.hpp"
 #include "../../../fluid/FluidTags.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 

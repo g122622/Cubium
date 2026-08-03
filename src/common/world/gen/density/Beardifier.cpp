@@ -22,10 +22,18 @@
  */
 
 #include "Beardifier.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/gen/jigsaw/JigsawJunction.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <limits>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::density {
 

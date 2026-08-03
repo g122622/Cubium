@@ -22,9 +22,15 @@
  */
 
 #include "common/mod/bedrock/addon/event/AfterEventSignal.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
 
 #include <algorithm>
-#include <spdlog/spdlog.h>
+#include <any>
+#include <cstddef>
+#include <mutex>
+#include <typeindex>
+#include <utility>
 
 namespace mc::mod::bedrock::addon {
 

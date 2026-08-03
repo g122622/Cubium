@@ -22,16 +22,17 @@
  */
 
 #include "SilverfishGoals.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/pathfinding/PathNavigator.hpp"
-#include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockState.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/gamerule/GameRules.hpp"
 #include <cmath>

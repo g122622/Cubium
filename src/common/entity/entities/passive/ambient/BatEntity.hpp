@@ -25,6 +25,7 @@
 
 #include "AmbientEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 

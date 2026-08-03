@@ -23,8 +23,12 @@
 
 #include "EatGrassGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -33,6 +37,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include <algorithm>
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

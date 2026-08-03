@@ -20,6 +20,12 @@
 #include "JigsawTransform.hpp"
 
 #include "JigsawPiece.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
+#include <vector>
 
 namespace mc {
 namespace world {

@@ -25,6 +25,8 @@
 
 #include "../../../../core/Types.hpp"
 #include "ZombieEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include <memory>
 
 namespace mc {

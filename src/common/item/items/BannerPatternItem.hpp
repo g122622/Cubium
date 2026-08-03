@@ -26,6 +26,7 @@
 #include "item/core/Item.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

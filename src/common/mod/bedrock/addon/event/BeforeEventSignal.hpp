@@ -25,9 +25,11 @@
 
 #include "common/core/Types.hpp"
 #include <any>
+#include <cstddef>
 #include <functional>
 #include <mutex>
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::mod::bedrock::addon {

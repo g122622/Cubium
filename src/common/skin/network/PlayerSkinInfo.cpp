@@ -22,7 +22,13 @@
  */
 
 #include "PlayerSkinInfo.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include <optional>
 
 namespace mc::skin {
 

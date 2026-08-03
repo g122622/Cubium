@@ -23,16 +23,19 @@
 
 #include "BreedGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityUtils.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
@@ -42,6 +45,8 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

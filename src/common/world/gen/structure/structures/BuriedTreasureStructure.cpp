@@ -23,15 +23,18 @@
 
 #include "BuriedTreasureStructure.hpp"
 
-#include "common/core/Constants.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

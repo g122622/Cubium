@@ -24,22 +24,38 @@
 #include "CauldronBlock.hpp"
 #include "LavaCauldronBlock.hpp"
 #include "LayeredCauldronBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/potion/PotionUtils.hpp"
-#include "common/item/potion/Potions.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

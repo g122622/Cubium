@@ -26,6 +26,7 @@
 #include "SimplexNoise.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include <cstddef>
 #include <memory>
 #include <vector>
 

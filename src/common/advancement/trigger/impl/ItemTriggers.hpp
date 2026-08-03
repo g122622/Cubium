@@ -25,7 +25,12 @@
 
 #include "../CriterionTrigger.hpp"
 #include "../conditions/ItemPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

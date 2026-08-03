@@ -22,6 +22,9 @@
  */
 
 #include "ScoreCriteriaRenderType.hpp"
+#include <cstddef>
+#include <optional>
+#include <string>
 #include <unordered_map>
 
 namespace mc::scoreboard {

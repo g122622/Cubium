@@ -33,6 +33,9 @@
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
 #include "../nether/NetherEntities.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include <memory>
 
 namespace mc {
 

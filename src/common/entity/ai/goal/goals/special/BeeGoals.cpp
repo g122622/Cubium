@@ -22,16 +22,26 @@
  */
 
 #include "BeeGoals.hpp"
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -40,13 +50,13 @@
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
-#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/registry/VegetationBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <algorithm>
+#include <cmath>
+#include <vector>
 
 namespace mc {
 namespace entity::ai::goal {

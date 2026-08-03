@@ -23,12 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 

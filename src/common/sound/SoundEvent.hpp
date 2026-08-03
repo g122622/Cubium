@@ -27,6 +27,10 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundTypes.hpp"
+#include <cstddef>
+#include <functional>
+#include <string>
+#include <string_view>
 
 namespace mc::sound {
 

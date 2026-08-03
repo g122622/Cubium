@@ -18,6 +18,12 @@
  */
 
 #include "PoolAliasBinding.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

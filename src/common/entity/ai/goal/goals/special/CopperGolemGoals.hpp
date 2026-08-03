@@ -27,8 +27,10 @@
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
+#include "common/util/math/Vector3.hpp"
 
 #include <optional>
+#include <string>
 #include <unordered_set>
 
 namespace mc {

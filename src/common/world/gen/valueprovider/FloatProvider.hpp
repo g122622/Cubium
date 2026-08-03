@@ -27,6 +27,7 @@
 #include "common/util/math/random/IRandom.hpp"
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 namespace mc::world::gen::valueprovider {
 

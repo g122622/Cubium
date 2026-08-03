@@ -22,6 +22,8 @@
  */
 
 #include "CartographyContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -29,6 +31,10 @@
 #include "item/items/map/FilledMapItem.hpp"
 #include "world/IWorld.hpp"
 #include "world/map/MapData.hpp"
+#include <array>
+#include <functional>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

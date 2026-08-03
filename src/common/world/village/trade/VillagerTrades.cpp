@@ -22,10 +22,19 @@
  */
 
 #include "common/world/village/trade/VillagerTrades.hpp"
-#include "common/item/Items.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/world/village/trade/Merchant.hpp"
+#include "common/world/village/trade/MerchantOffer.hpp"
+#include <algorithm>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

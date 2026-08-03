@@ -23,13 +23,23 @@
 
 #include "LootTableLoader.hpp"
 #include "LootTable.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/PackType.hpp"
-#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 using namespace mc::trace;
 

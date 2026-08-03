@@ -30,8 +30,6 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
-#include "../aquifer/Aquifers.hpp"
-#include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
 #include "../carver/CarvingMask.hpp"
 #include "../carver/ConfiguredCarverRegistry.hpp"
@@ -48,13 +46,37 @@
 #include "../structure/StructureManager.hpp"
 #include "../structure/StructureSet.hpp"
 #include "../structure/placement/StructurePlacement.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeManager.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/aquifer/FluidPickerFactory.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/chunk/NoiseColumn.hpp"
+#include "common/world/gen/density/NoiseChunk.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/jigsaw/JigsawJunction.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/settings/NoiseSettings.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

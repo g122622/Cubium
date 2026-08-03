@@ -22,7 +22,9 @@
  */
 
 #include "Explosion.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -36,23 +38,32 @@
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world::explosion {

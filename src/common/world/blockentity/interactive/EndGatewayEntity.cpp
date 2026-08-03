@@ -23,15 +23,23 @@
 
 #include "EndGatewayEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
+#include <cmath>
+#include <memory>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

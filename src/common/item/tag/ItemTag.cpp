@@ -26,6 +26,9 @@
 #include "../../util/assert/AssertAll.hpp"
 #include "../core/Item.hpp"
 #include "../core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

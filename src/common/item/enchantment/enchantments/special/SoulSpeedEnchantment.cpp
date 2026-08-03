@@ -22,6 +22,7 @@
  */
 
 #include "SoulSpeedEnchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -30,9 +31,12 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include <cmath>
+#include <string>
 
 namespace mc {
 namespace item {

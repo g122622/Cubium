@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"

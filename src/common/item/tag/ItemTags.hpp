@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

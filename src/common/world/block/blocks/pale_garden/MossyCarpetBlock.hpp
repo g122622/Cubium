@@ -26,6 +26,12 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <cstddef>
+#include <vector>
 
 namespace mc {
 

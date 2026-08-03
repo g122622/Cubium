@@ -22,11 +22,18 @@
  */
 
 #include "DynamicLootEntry.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
-#include "common/item/loot/functions/LootFunctions.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/entries/LootEntry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace loot {

@@ -22,6 +22,7 @@
  */
 
 #include "SlimeChunkChecker.hpp"
+#include "common/core/Types.hpp"
 #include "util/assert/AssertAll.hpp"
 
 namespace mc::world::spawn {

@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "LootTable.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 
 namespace mc {
 namespace loot {

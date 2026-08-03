@@ -23,10 +23,10 @@
 
 #include "FossilFeature.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -36,9 +36,13 @@
 #include "common/world/gen/feature/template/TemplateManager.hpp"
 #include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListRegistry.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::feature::cave {
 

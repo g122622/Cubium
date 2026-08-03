@@ -22,6 +22,10 @@
  */
 
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <string>
+#include <vector>
 
 namespace mc::world::chunk {
 

@@ -22,9 +22,15 @@
  */
 
 #include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "common/sound/SoundEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LockableBlockEntity.hpp"
 #include "item/Items.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
@@ -32,6 +38,10 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include <algorithm>
+#include <initializer_list>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

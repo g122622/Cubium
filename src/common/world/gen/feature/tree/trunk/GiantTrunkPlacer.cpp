@@ -22,6 +22,7 @@
  */
 
 #include "GiantTrunkPlacer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 

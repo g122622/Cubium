@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <vector>
 
 namespace mc::network::backend::java {

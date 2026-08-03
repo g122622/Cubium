@@ -22,6 +22,9 @@
  */
 
 #include "EntitySpawnPlacementRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "world/IWorld.hpp"
@@ -32,6 +35,9 @@
 #include "world/block/registry/VanillaBlocks.hpp"
 #include "world/lighting/InternalLightUtils.hpp"
 #include "world/spawn/SlimeChunkChecker.hpp"
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mc::world::spawn {
 

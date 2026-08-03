@@ -22,6 +22,8 @@
  */
 
 #include "TeamKillCriteria.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <string>
 #include <unordered_set>
 
 namespace mc::scoreboard {

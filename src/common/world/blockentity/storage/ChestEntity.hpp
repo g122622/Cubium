@@ -23,12 +23,20 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
 #include <memory>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

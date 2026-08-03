@@ -28,10 +28,12 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "poi/PointOfInterestStorage.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc {

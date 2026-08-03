@@ -23,9 +23,16 @@
  */
 
 #include "EnchantmentPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
-#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <optional>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

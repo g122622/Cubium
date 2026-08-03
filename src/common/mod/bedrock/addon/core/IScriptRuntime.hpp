@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/core/Capabilities.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/core/Privilege.hpp"
@@ -29,6 +30,7 @@
 #include "common/mod/bedrock/addon/core/ScriptResult.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 

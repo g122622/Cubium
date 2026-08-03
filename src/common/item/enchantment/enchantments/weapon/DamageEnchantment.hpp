@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "item/enchantment/Enchantment.hpp"
 
 namespace mc {

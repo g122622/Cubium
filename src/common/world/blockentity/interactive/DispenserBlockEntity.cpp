@@ -22,8 +22,15 @@
  */
 
 #include "DispenserBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "item/core/ItemStack.hpp"
+#include <memory>
 #include <random>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

@@ -22,12 +22,33 @@
  */
 
 #include "item/crafting/RecipeSerializers.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/item/crafting/ShapedRecipe.hpp"
+#include "common/item/crafting/ShapelessRecipe.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
+#include "common/item/crafting/SmithingRecipe.hpp"
+#include "common/item/crafting/StonecuttingRecipe.hpp"
+#include "common/item/crafting/TransmuteRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <exception>
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace crafting {

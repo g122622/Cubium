@@ -23,8 +23,12 @@
 
 #include "PacketDeserializer.hpp"
 #include "PacketSerializer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 #include <cstring>
+#include <string>
+#include <vector>
 
 namespace mc::network {
 

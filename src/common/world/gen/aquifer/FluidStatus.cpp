@@ -21,6 +21,7 @@
  */
 
 #include "FluidStatus.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::world::gen::aquifer {

@@ -23,14 +23,21 @@
 
 #include "WanderingTraderTrades.hpp"
 
-#include "common/item/Items.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/village/trade/Merchant.hpp"
+#include "common/world/village/trade/MerchantOffer.hpp"
 
 #include <algorithm>
-#include <random>
 
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

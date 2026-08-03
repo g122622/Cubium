@@ -22,17 +22,20 @@
  */
 
 #include "common/item/items/vehicle/MinecartItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
-#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace item {

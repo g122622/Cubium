@@ -22,8 +22,12 @@
  */
 
 #include "ItemUseContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <cmath>
 
 namespace mc {
 

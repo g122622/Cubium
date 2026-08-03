@@ -25,11 +25,18 @@
 
 #include "../../core/Result.hpp"
 #include "../codec/PacketSerializer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace mc::network {
 

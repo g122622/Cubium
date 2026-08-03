@@ -22,7 +22,6 @@
  */
 
 #include "CriterionTrigger.hpp"
-#include "impl/ImpossibleTrigger.hpp"
 
 namespace mc::advancement {
 

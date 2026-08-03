@@ -22,8 +22,11 @@
  */
 
 #include "WorldStoragePaths.hpp"
+#include "common/core/GameDirectory.hpp"
 #include <filesystem>
-#include <spdlog/spdlog.h>
+#include <string>
+#include <system_error>
+#include <utility>
 
 namespace mc::world::storage {
 

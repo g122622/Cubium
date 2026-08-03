@@ -22,9 +22,14 @@
  */
 
 #include "MapDataManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
+#include "common/world/map/MapData.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "world/IWorld.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::map {
 

@@ -25,9 +25,15 @@
 #include "../../../../core/Constants.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/IntegerProperty.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

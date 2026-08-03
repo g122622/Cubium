@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <string>
+#include <string_view>
 
 namespace mc::resource {
 

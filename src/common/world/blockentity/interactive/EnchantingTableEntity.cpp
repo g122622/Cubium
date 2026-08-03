@@ -23,13 +23,22 @@
 
 #include "EnchantingTableEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include <algorithm>
 #include <cmath>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

@@ -22,6 +22,9 @@
  */
 
 #include "common/item/component/DataComponentType.hpp"
+#include "common/core/Types.hpp"
+#include <optional>
+#include <string_view>
 
 namespace mc {
 namespace item {

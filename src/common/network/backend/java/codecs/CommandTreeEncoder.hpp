@@ -23,15 +23,18 @@
 
 #pragma once
 
+#include "common/command/CommandNode.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 
 #include <climits>
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::network::java::codecs {
 

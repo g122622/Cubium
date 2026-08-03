@@ -22,6 +22,13 @@
  */
 
 #include "StorageTaskManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/storage/task/StorageTask.hpp"
+#include <atomic>
+#include <memory>
+#include <utility>
 
 namespace mc::world::storage {
 

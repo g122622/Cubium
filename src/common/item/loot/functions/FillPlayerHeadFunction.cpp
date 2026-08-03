@@ -27,7 +27,12 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/CopyNameFunction.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

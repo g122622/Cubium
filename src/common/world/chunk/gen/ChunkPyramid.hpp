@@ -22,8 +22,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

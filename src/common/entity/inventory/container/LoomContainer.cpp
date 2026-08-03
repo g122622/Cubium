@@ -22,6 +22,12 @@
  */
 
 #include "entity/inventory/container/LoomContainer.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
@@ -31,8 +37,11 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace entity {

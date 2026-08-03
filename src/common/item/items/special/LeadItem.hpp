@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 
 namespace mc::item::items {

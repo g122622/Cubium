@@ -22,8 +22,19 @@
  */
 
 #include "common/item/loot/conditions/EntityScoresCondition.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/loot/conditions/EntityPropertiesCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/util/math/random/RandomRanges.hpp"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace loot {

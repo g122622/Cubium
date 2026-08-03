@@ -30,8 +30,14 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <atomic>
+#include <cstddef>
 #include <mutex>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 

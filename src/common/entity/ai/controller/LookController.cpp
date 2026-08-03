@@ -24,7 +24,9 @@
 #include "LookController.hpp"
 
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathUtils.hpp"

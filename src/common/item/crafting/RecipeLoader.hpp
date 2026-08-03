@@ -28,6 +28,7 @@
 #include "item/crafting/RecipeSerializers.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "resource/repository/DataPackRepository.hpp"
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>

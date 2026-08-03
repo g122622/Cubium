@@ -22,7 +22,12 @@
  */
 
 #include "common/mod/bedrock/addon/plugin/ScriptPluginSource.hpp"
+#include "common/mod/bedrock/addon/core/ScriptData.hpp"
+#include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 
+#include <optional>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

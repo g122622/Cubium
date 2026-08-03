@@ -29,7 +29,13 @@
 
 #include "IntegrityProcessor.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <optional>
 
 namespace mc {
 namespace world {

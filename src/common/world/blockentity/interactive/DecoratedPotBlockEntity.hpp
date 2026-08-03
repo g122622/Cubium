@@ -23,10 +23,20 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include <array>
+#include <memory>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

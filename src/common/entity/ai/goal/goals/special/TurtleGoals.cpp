@@ -22,20 +22,26 @@
  */
 
 #include "TurtleGoals.hpp"
-#include "../../../../../core/Constants.hpp"
 #include "../../../../../item/Items.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/BlockState.hpp"
 #include "../../../../../world/block/BlockTags.hpp"
-#include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <cmath>
 #include <limits>
 

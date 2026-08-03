@@ -26,7 +26,9 @@
 #include "../core/Types.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <string>
+#include <string_view>
 
 namespace mc::util {
 

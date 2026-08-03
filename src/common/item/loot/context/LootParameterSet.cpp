@@ -24,6 +24,9 @@
 #include "LootParameterSet.hpp"
 
 #include <algorithm>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 namespace loot {

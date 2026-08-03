@@ -22,9 +22,15 @@
  */
 
 #include "world/blockentity/processing/FurnaceInventory.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerListener.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <utility>
 
 namespace mc {
 namespace blockentity {

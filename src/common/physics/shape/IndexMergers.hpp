@@ -27,7 +27,11 @@
 #include "common/core/Types.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <functional>
+#include <limits>
 #include <numeric>
+#include <utility>
 #include <vector>
 
 namespace mc {

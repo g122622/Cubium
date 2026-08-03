@@ -23,8 +23,13 @@
 
 #include "TrappedChestBlock.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/ChestBlock.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/TrappedChestEntity.hpp"
+#include <memory>
 
 namespace mc {
 namespace blocks {

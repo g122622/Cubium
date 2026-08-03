@@ -23,7 +23,11 @@
 
 #pragma once
 
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {

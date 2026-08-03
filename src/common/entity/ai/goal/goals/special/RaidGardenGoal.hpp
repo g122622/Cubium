@@ -25,6 +25,8 @@
 
 #include "MoveToBlockGoal.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <string>
 
 namespace mc {
 

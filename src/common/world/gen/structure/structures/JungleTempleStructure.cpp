@@ -23,17 +23,22 @@
 
 #include "JungleTempleStructure.hpp"
 
-#include "../../../../core/Constants.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../IWorldWriter.hpp"
-#include "../../../biome/BiomeIds.hpp"
 #include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../../block/registry/VanillaBlocks.hpp"
 #include "../Structure.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace world {

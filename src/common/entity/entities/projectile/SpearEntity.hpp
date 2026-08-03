@@ -24,7 +24,12 @@
 #pragma once
 
 #include "AbstractArrowEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <memory>
 
 namespace mc {

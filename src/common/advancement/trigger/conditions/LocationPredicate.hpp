@@ -29,7 +29,9 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc {

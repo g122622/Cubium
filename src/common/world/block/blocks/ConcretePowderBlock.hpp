@@ -23,6 +23,11 @@
 
 #pragma once
 
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 
 namespace mc {

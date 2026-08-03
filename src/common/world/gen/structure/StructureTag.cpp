@@ -22,6 +22,9 @@
  */
 
 #include "StructureTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::structure {
 

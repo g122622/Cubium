@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <deque>
 #include <map>
 #include <optional>

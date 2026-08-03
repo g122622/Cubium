@@ -22,9 +22,17 @@
  */
 
 #include "world/blockentity/processing/SmokerEntity.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

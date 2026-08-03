@@ -22,6 +22,9 @@
  */
 
 #include "common/mod/bedrock/addon/plugin/ScriptPackPermissions.hpp"
+#include "common/core/Types.hpp"
+#include <string>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 

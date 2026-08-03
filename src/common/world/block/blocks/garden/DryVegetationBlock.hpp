@@ -23,6 +23,9 @@
 #pragma once
 
 #include "../agricultural/BushBlock.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

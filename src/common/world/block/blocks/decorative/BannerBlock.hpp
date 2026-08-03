@@ -30,7 +30,10 @@
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <memory>
+#include <unordered_map>
 
 namespace mc {
 

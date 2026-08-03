@@ -22,6 +22,12 @@
  */
 
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/InventoryRef.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LockableBlockEntity.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include "entity/inventory/ISidedInventoryProvider.hpp"
@@ -30,9 +36,13 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockTags.hpp"
-#include "world/block/blocks/HopperBlock.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

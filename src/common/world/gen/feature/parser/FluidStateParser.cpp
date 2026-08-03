@@ -23,6 +23,7 @@
 
 #include "FluidStateParser.hpp"
 
+#include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -32,6 +33,7 @@
 #include <spdlog/spdlog.h>
 
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

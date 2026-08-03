@@ -32,6 +32,8 @@
 #include <string>
 #include <type_traits>
 
+#include <string_view>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

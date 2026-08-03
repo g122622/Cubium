@@ -22,11 +22,20 @@
  */
 
 #include "MapDecoration.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::map {
 
@@ -68,7 +77,7 @@ static constexpr DecorationTypeInfo DECORATION_TYPE_INFOS[] = {
     /* BANNER_RED */ {true, -1},
     /* BANNER_BLACK */ {true, -1},
     /* RED_X */ {true, -1},
-    /* DESERT_VILLAGE */ {true, 10066329},  // MapColor.COLOR_LIGHT_GRAY.col
+    /* DESERT_VILLAGE */ {true, 10066329}, // MapColor.COLOR_LIGHT_GRAY.col
     /* PLAINS_VILLAGE */ {true, 10066329},
     /* SAVANNA_VILLAGE */ {true, 10066329},
     /* SNOWY_VILLAGE */ {true, 10066329},

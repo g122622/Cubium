@@ -23,11 +23,15 @@
 
 #include "FollowMobGoal.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../world/IWorld.hpp"
 #include "../../../../core/EntityUtils.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 
 namespace mc::entity::ai::goal {
 

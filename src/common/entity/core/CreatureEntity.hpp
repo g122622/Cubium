@@ -24,6 +24,9 @@
 #pragma once
 
 #include "MobEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 

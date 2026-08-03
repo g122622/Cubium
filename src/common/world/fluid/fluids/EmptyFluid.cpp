@@ -22,8 +22,14 @@
  */
 
 #include "EmptyFluid.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace fluid {

@@ -22,6 +22,10 @@
  */
 
 #include "StrayEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include <memory>
 
 namespace mc {
 

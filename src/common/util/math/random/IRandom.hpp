@@ -25,6 +25,7 @@
 
 #include "../../../core/Types.hpp"
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -258,10 +259,8 @@ public:
      */
     void setLargeFeatureWithSalt(i64 seed, i32 chunkX, i32 chunkZ, i64 salt)
     {
-        const u64 k = static_cast<u64>(chunkX) * 341873128712ULL
-            + static_cast<u64>(chunkZ) * 132897987541ULL
-            + static_cast<u64>(seed)
-            + static_cast<u64>(salt);
+        const u64 k = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
+            static_cast<u64>(seed) + static_cast<u64>(salt);
         setSeed(k);
     }
 

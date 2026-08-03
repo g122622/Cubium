@@ -22,8 +22,14 @@
 
 #include "item/crafting/special/DecoratedPotRecipe.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/tag/ItemTags.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include <vector>
 
 namespace mc {
 namespace crafting {

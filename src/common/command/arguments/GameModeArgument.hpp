@@ -24,18 +24,24 @@
 
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandSource.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/command/coordinates/LocalCoordinates.hpp"
 #include "common/command/coordinates/WorldCoordinate.hpp"
 #include "common/command/coordinates/WorldCoordinates.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 

@@ -25,9 +25,12 @@
 
 #include "JigsawStructure.hpp"
 #include "StructureDefinitionLoader.hpp"
+#include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
 #include "structures/BastionRemnantStructure.hpp"
 #include "structures/BuriedTreasureStructure.hpp"
@@ -48,8 +51,10 @@
 #include "structures/TrialChambersStructure.hpp"
 #include "structures/VillageStructure.hpp"
 #include "structures/WoodlandMansionStructure.hpp"
-
-#include <spdlog/spdlog.h>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace mc {
 namespace world::gen::structure {

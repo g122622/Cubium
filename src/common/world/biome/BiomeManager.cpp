@@ -23,7 +23,11 @@
 
 #include "BiomeManager.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/crypto/Sha256.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/LinearCongruentialGenerator.hpp"
+#include "common/world/biome/BiomeSource.hpp"
 #include <limits>
 
 namespace mc::world::biome {

@@ -22,6 +22,12 @@
  */
 
 #include "DyeableArmorItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

@@ -24,11 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/interfaces/ICrossbowUser.hpp"
 #include "common/entity/interfaces/IFlinging.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>

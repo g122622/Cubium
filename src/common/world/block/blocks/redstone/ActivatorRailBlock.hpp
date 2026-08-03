@@ -24,6 +24,14 @@
 #pragma once
 
 #include "AbstractRailBlock.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/property/BooleanProperty.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 
 namespace mc {
 namespace blocks {

@@ -23,9 +23,16 @@
 
 #include "NbtPathArgumentType.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/NbtPath.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <cctype>
-#include <sstream>
+#include <exception>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {

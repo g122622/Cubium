@@ -28,6 +28,7 @@
 #include "../target/TargetGoals.hpp"
 #include "core/Types.hpp"
 #include "util/math/Vector3.hpp"
+#include <string>
 
 namespace mc {
 

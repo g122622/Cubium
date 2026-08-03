@@ -23,6 +23,7 @@
 
 #include "LootParameterSets.hpp"
 #include "LootParams.hpp"
+#include "common/item/loot/context/LootParameterSet.hpp"
 
 namespace mc {
 namespace loot {

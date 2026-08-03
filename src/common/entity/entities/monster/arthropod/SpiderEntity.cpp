@@ -36,7 +36,10 @@
 #include "../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include <cmath>
+#include <memory>
 
 namespace mc {
 

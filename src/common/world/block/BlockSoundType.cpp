@@ -22,6 +22,8 @@
  */
 
 #include "BlockSoundType.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 namespace mc {
 

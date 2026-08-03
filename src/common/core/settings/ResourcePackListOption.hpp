@@ -27,9 +27,13 @@
 #include "common/core/settings/SettingsTypes.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <functional>
+#include <string>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

@@ -22,6 +22,8 @@
  */
 
 #include "Activity.hpp"
+#include <functional>
+#include <string>
 
 namespace mc {
 namespace entity {

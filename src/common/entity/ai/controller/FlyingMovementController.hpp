@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MovementController.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace entity::ai::controller {

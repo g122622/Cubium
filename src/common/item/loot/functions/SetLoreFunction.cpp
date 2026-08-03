@@ -22,9 +22,13 @@
  */
 
 #include "SetLoreFunction.hpp"
-#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace loot {

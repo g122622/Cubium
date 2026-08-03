@@ -31,6 +31,7 @@
 #include "../MeleeAttackGoal.hpp"
 #include "../attack/RangedAttackGoals.hpp"
 #include "../special/MoveToBlockGoal.hpp"
+#include <string>
 
 namespace mc {
 

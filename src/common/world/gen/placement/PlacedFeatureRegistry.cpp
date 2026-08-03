@@ -22,6 +22,10 @@
  */
 
 #include "PlacedFeatureRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/placement/PlacedFeature.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 

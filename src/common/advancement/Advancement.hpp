@@ -26,15 +26,19 @@
 #include "AdvancementDisplay.hpp"
 #include "AdvancementRewards.hpp"
 #include "Criterion.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc::text {

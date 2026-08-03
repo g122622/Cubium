@@ -22,8 +22,9 @@
  */
 
 #include "StructureBoundingBox.hpp"
-#include "../../../core/Constants.hpp"
 #include "../../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 
 namespace mc::world::gen::structure {
 

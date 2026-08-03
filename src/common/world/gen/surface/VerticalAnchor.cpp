@@ -21,6 +21,7 @@
  */
 
 #include "common/world/gen/surface/VerticalAnchor.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::world::gen::surface {
 

@@ -22,8 +22,12 @@
  */
 
 #include "Frustum.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include <cmath>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 namespace mc::math::frustum {
 

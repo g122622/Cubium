@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <memory>

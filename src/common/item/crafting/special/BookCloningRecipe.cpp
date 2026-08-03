@@ -22,7 +22,15 @@
  */
 
 #include "item/crafting/special/BookCloningRecipe.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/Items.hpp"
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace crafting {

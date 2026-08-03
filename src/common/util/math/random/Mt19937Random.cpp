@@ -22,6 +22,7 @@
  */
 
 #include "Mt19937Random.hpp"
+#include "common/core/Types.hpp"
 #include <random>
 
 namespace mc::math {

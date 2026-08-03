@@ -35,11 +35,14 @@
 #include "../../../ai/goal/goals/special/GuardianAttackGoal.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityUtils.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

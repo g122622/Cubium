@@ -27,7 +27,6 @@
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -39,7 +38,15 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <cmath>
+#include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc {
 

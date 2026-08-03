@@ -23,8 +23,17 @@
 
 #include "RandomizedIntBlockStateProvider.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/IntegerProperty.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/feature/state/NoiseStateUtils.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 
+#include <memory>
+#include <string>
 #include <utility>
 
 namespace mc::world::gen::feature::state {

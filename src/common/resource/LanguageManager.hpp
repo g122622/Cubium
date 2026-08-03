@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -32,6 +33,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::resource {

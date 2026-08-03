@@ -20,6 +20,7 @@
 #pragma once
 
 #include "JigsawTypes.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"

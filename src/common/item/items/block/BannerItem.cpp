@@ -22,10 +22,20 @@
  */
 
 #include "item/items/block/BannerItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/block/WallOrFloorItem.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/LanguageManager.hpp"
 #include "world/block/blocks/decorative/BannerBlock.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item {

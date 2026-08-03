@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Item.hpp"
+#include "common/item/core/ActionResult.hpp"
 
 // Forward declarations
 namespace mc {

@@ -27,7 +27,12 @@
 #include "../conditions/BlockPredicate.hpp"
 #include "../conditions/ItemPredicate.hpp"
 #include "../conditions/LocationPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc {

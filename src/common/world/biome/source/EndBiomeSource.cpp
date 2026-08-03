@@ -21,8 +21,14 @@
  */
 
 #include "EndBiomeSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeSource.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
+#include <memory>
+#include <vector>
 
 namespace mc {
 namespace world {

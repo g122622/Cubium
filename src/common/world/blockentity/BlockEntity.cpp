@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/BlockEntity.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"

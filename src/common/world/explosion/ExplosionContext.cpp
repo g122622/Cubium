@@ -22,10 +22,13 @@
  */
 
 #include "ExplosionContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include <algorithm>
+#include <optional>
 
 namespace mc {
 namespace world {

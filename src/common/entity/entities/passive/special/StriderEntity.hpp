@@ -27,9 +27,19 @@
 #include "../../../interfaces/IEquipable.hpp"
 #include "../../../interfaces/IRideable.hpp"
 #include "../basic/AnimalEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/interfaces/BoostHelper.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include <algorithm>
 #include <cmath>
 #include <memory>
+#include <optional>
 
 namespace mc {
 

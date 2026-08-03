@@ -27,8 +27,12 @@
 #include "../../world/IWorld.hpp"
 #include "Entity.hpp"
 #include "LivingEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include <cmath>
 #include <functional>
 #include <type_traits>
+#include <vector>
 
 namespace mc {
 

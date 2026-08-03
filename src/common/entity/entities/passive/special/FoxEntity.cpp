@@ -32,7 +32,6 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/WorldEvents.hpp"
 #include "../../../../world/block/BlockState.hpp"
-#include "../../../../world/block/registry/VanillaBlocks.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -46,14 +45,19 @@
 #include "../../../ai/goal/goals/special/FoxGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/item/ItemEntity.hpp"
 #include "../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include <algorithm>
+#include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

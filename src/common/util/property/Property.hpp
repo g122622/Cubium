@@ -25,10 +25,16 @@
 
 #include "IProperty.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

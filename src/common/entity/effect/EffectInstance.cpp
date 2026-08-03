@@ -23,9 +23,17 @@
 
 #include "EffectInstance.hpp"
 #include "EffectAttributeModifiers.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <algorithm>
+#include <memory>
 
 namespace mc {
 namespace entity {

@@ -23,10 +23,13 @@
 
 #include "FeatureTypeRegistry.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/MultifaceBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -38,6 +41,7 @@
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/DiskFeature.hpp"
 #include "common/world/gen/feature/EndPlatformFeature.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/feature/LakeFeature.hpp"
 #include "common/world/gen/feature/MonsterRoomFeature.hpp"
 #include "common/world/gen/feature/NetherForestVegetationFeature.hpp"
@@ -71,7 +75,7 @@
 #include "common/world/gen/feature/end/EndIslandFeature.hpp"
 #include "common/world/gen/feature/end/EndSpikeFeature.hpp"
 #include "common/world/gen/feature/end/IceSpikeFeature.hpp"
-#include "common/world/gen/feature/nether/BasaltFeature.hpp"
+#include "common/world/gen/feature/nether/BasaltColumnFeature.hpp"
 #include "common/world/gen/feature/nether/DeltaFeature.hpp"
 #include "common/world/gen/feature/nether/GlowstoneFeature.hpp"
 #include "common/world/gen/feature/nether/HugeFungusFeature.hpp"
@@ -90,6 +94,7 @@
 #include "common/world/gen/feature/parser/FoliagePlacerParser.hpp"
 #include "common/world/gen/feature/parser/RuleTestParser.hpp"
 #include "common/world/gen/feature/parser/TrunkPlacerParser.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 #include "common/world/gen/feature/tree/FallenTreeFeature.hpp"
 #include "common/world/gen/feature/tree/TreeFeature.hpp"
@@ -102,7 +107,14 @@
 #include "common/world/gen/valueprovider/FloatProviderParser.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world::gen::feature {

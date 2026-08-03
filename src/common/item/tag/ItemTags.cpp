@@ -23,6 +23,13 @@
 
 #include "ItemTags.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/tag/ItemTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace item::tag {

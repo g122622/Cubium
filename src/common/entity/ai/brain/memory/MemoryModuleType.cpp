@@ -24,9 +24,15 @@
 #include "MemoryModuleType.hpp"
 #include "IPositionTarget.hpp"
 #include "WalkTarget.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace entity {

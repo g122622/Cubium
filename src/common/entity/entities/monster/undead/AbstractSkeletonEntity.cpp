@@ -29,7 +29,6 @@
 #include "common/entity/ai/goal/goals/FleeSunGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
-#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/goal/goals/RestrictSunGoal.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -37,7 +36,11 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -52,6 +55,10 @@
 #include "common/util/SpecialDates.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

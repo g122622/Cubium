@@ -22,6 +22,10 @@
  */
 
 #include "SeedsItem.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/world/block/Block.hpp"
+#include <utility>
 
 namespace mc {
 namespace item {

@@ -24,6 +24,10 @@
 #pragma once
 
 #include "AbstractPressurePlateBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 namespace blocks {

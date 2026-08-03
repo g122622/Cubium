@@ -23,9 +23,11 @@
 
 #include "SwimGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/JumpController.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 

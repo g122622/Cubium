@@ -29,11 +29,16 @@
 #include "common/entity/interfaces/IShearable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace item {

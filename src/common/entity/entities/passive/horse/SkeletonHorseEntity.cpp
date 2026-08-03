@@ -22,6 +22,7 @@
  */
 
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -30,11 +31,14 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/item/Items.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <cmath>
 #include <memory>
+#include <utility>
 
 namespace mc {
 

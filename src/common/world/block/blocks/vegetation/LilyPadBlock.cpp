@@ -24,7 +24,12 @@
 #include "LilyPadBlock.hpp"
 
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
+#include "common/world/block/PlantType.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 

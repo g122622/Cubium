@@ -22,9 +22,17 @@
  */
 
 #include "WorldNameSanitizer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <cstring>
+#include <filesystem>
 #include <sstream>
+#include <string>
+#include <system_error>
+#include <vector>
 
 namespace mc::world::storage {
 

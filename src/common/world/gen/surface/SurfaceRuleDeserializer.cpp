@@ -23,6 +23,8 @@
 
 #include "common/world/gen/surface/SurfaceRuleDeserializer.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/gen/feature/parser/BlockStateParser.hpp"
@@ -35,9 +37,13 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::gen::surface {
 

@@ -28,6 +28,7 @@
 #include "common/network/crypto/AesCfb8.hpp"
 #include "common/network/crypto/Crypt.hpp"
 
+#include <array>
 #include <vector>
 
 namespace mc::network::pipeline {

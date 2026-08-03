@@ -22,8 +22,11 @@
  */
 
 #include "RaidManager.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 #include "entity/core/Entity.hpp"
-#include "entity/core/LivingEntity.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
@@ -31,6 +34,10 @@
 #include "world/village/VillageManager.hpp"
 #include "world/village/raid/Raid.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::village::raid {
 

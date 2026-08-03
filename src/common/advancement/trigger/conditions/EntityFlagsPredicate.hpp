@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include <optional>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // 前向声明
 namespace mc {

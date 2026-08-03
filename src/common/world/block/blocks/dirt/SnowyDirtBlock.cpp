@@ -28,6 +28,13 @@
 #include "../../../IWorld.hpp"
 #include "../../registry/VanillaBlocks.hpp"
 #include "../ice/SnowBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::blocks {
 

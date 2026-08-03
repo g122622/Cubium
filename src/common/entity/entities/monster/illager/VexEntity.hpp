@@ -24,6 +24,10 @@
 #pragma once
 
 #include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include <memory>
 
 namespace mc {

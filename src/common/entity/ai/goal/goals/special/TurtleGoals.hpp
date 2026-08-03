@@ -32,6 +32,7 @@
 #include "../RandomWalkingGoal.hpp"
 #include "../TemptGoal.hpp"
 #include <functional>
+#include <string>
 
 namespace mc {
 

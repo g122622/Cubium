@@ -23,10 +23,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "core/Result.hpp"
 #include "item/crafting/Ingredient.hpp"
 #include "resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
 

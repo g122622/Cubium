@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/pack/AddonDependency.hpp"
 #include "common/mod/bedrock/addon/pack/AddonModule.hpp"
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"

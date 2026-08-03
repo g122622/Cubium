@@ -25,6 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include <cstddef>
+#include <string>
 #include <vector>
 
 namespace mc::network {

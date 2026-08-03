@@ -23,12 +23,25 @@
  */
 
 #include "ItemPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/advancement/trigger/conditions/EnchantmentPredicate.hpp"
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/potion/Potion.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

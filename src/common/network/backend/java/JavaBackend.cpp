@@ -23,6 +23,9 @@
 
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/backend/java/JavaProtocolTables.hpp"
+#include "common/network/buffer/RegistryByteBuf.hpp"
+#include "common/network/pipeline/ProtocolTableSet.hpp"
+#include <memory>
 
 namespace mc::network::backend::java {
 

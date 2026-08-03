@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/command/CommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <cmath>

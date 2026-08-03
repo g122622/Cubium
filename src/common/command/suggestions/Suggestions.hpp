@@ -26,8 +26,10 @@
 #include "common/core/Types.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <future>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 

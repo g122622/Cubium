@@ -22,8 +22,15 @@
  */
 
 #include "BlockPatternBuilder.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/state/pattern/BlockPattern.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::blockpattern {

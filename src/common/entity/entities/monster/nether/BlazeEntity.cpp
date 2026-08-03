@@ -32,8 +32,14 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
-#include <cmath>
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/math/Vector3.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

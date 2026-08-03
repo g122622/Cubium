@@ -25,7 +25,9 @@
 
 #include "Potion.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/potion/PotionType.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <utility>

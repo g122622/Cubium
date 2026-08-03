@@ -26,9 +26,22 @@
 #include "../../../../util/CompressionUtils.hpp"
 #include "../../../block/Block.hpp"
 #include "../../../block/BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/property/IProperty.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
 #include <cstring>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

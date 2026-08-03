@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <mutex>
 #include <unordered_map>
 

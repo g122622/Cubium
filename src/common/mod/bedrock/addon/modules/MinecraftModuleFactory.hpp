@@ -28,6 +28,7 @@
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 
+#include <string>
 #include <vector>
 
 namespace mc::mod::bedrock::addon {

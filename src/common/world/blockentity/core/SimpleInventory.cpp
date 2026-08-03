@@ -23,9 +23,16 @@
 
 #include "SimpleInventory.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerListener.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

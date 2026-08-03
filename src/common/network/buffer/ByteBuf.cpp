@@ -22,9 +22,16 @@
  */
 
 #include "common/network/buffer/ByteBuf.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/buffer/Endian.hpp"
 
+#include <cstddef>
 #include <cstring>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc::network::buffer {
 
@@ -50,7 +57,8 @@ std::vector<u8> ByteBuf::takeBytes() noexcept
 Result<void> ByteBuf::ensureReadable(usize size) const
 {
     if (readableBytes() < size) {
-        return Error(ErrorCode::OutOfBounds, "ByteBuf read out of bounds", "mc::network::buffer::ByteBuf::ensureReadable");
+        return Error(
+            ErrorCode::OutOfBounds, "ByteBuf read out of bounds", "mc::network::buffer::ByteBuf::ensureReadable");
     }
     return Result<void>::ok();
 }

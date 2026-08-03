@@ -22,6 +22,9 @@
  */
 
 #include "FishSwimGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomSwimmingGoal.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 
 namespace mc::entity::ai::goal {

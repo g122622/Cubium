@@ -24,7 +24,14 @@
 
 #include "NbtJsonUtils.hpp"
 #include "Nbt.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <exception>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::nbt {
 

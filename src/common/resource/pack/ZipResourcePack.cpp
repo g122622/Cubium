@@ -22,6 +22,10 @@
  */
 
 #include "common/resource/pack/ZipResourcePack.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
 
 #include <archive.h>
 #include <archive_entry.h>
@@ -29,7 +33,15 @@
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <memory>
+#include <mutex>
 #include <shared_mutex>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc::resource {
 

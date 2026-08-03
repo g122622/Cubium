@@ -24,11 +24,13 @@
 #pragma once
 
 #include "StructureCheck.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <unordered_map>

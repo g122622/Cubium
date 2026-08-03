@@ -23,14 +23,18 @@
 
 #include "FollowSchoolLeaderGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/LookController.hpp"
-#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include <vector>
 
 namespace mc::entity::ai::goal {
 

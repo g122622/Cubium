@@ -22,11 +22,15 @@
  */
 
 #include "entity/inventory/container/HopperContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include <memory>
 
 namespace mc {
 

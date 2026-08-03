@@ -27,8 +27,11 @@
 #include "AdvancementList.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::advancement {
 

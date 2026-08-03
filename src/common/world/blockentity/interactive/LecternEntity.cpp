@@ -23,11 +23,17 @@
 
 #include "world/blockentity/interactive/LecternEntity.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

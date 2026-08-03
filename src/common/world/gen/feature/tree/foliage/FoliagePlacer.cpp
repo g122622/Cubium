@@ -22,14 +22,20 @@
  */
 
 #include "FoliagePlacer.hpp"
-#include "../../../../../core/Constants.hpp"
 #include "../../../../../core/Types.hpp"
-#include "../../../../block/BlockRegistry.hpp"
 #include "../../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <algorithm>
 #include <cmath>
+#include <set>
+#include <vector>
 
 namespace mc {
 

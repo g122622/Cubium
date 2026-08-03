@@ -22,11 +22,18 @@
  */
 
 #include "VoidStartPlatformFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace mc::world::gen::feature {
 

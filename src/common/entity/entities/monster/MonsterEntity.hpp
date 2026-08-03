@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"

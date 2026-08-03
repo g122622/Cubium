@@ -22,7 +22,17 @@
  */
 
 #include "RegionFile.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/CompressionUtils.hpp"
+#include <filesystem>
+#include <ios>
+#include <iosfwd>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::storage::reader::java {

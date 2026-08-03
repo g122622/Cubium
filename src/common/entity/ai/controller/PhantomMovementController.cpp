@@ -22,8 +22,12 @@
  */
 
 #include "PhantomMovementController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include <algorithm>
 #include <cmath>

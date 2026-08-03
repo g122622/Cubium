@@ -24,6 +24,7 @@
 #pragma once
 
 #include "FluidRegistry.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
 namespace fluid {

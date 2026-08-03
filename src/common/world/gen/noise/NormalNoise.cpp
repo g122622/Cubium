@@ -21,10 +21,17 @@
  */
 
 #include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/noise/PerlinNoise.hpp"
 #include <algorithm>
-#include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::noise {
 

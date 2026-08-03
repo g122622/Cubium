@@ -25,13 +25,23 @@
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
-#include "../../../util/math/MathUtils.hpp"
 #include "../../IWorld.hpp"
-#include "../../blockentity/BlockEntityType.hpp"
-#include "../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../blockentity/interactive/SignEntity.hpp"
 #include "../WaterLoggableHelpers.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/SignBlock.hpp"
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -27,6 +27,7 @@
 #include "../fluid/FluidTags.hpp"
 #include "Block.hpp"
 #include "WaterLoggableHelpers.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
 

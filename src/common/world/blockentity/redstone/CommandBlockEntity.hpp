@@ -25,9 +25,14 @@
 
 #include "../BlockEntity.hpp"
 #include "command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "util/math/Vector3.hpp"
 #include <memory>
+#include <optional>
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

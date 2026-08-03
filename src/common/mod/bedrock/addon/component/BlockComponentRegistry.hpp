@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/CustomComponentParameters.hpp"
+#include <cstddef>
 #include <functional>
 #include <mutex>
 #include <shared_mutex>

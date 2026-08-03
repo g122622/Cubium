@@ -23,18 +23,19 @@
 
 #include "DrownedEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/controller/DrownedMoveControl.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
-#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/special/DrownedGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
@@ -43,6 +44,10 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

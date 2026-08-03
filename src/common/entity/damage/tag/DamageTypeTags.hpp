@@ -24,6 +24,7 @@
 #pragma once
 
 #include "DamageTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <functional>
 #include <memory>

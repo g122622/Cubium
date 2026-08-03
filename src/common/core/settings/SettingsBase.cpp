@@ -22,9 +22,18 @@
  */
 
 #include "SettingsBase.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/core/settings/SettingsTypes.hpp"
 
+#include <exception>
+#include <filesystem>
 #include <fstream>
-#include <sstream>
+#include <ios>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -23,17 +23,26 @@
 
 #include "AxeItem.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
-#include "common/sound/SoundCategory.hpp"
+#include "common/item/items/tool/ToolItem.hpp"
+#include "common/item/items/tool/ToolType.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace item {

@@ -25,6 +25,11 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "ZombieEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <memory>
 
 namespace mc {

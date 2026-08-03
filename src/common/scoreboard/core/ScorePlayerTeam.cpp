@@ -23,11 +23,17 @@
 
 #include "ScorePlayerTeam.hpp"
 #include "Scoreboard.hpp"
+#include "common/core/Types.hpp"
+#include "common/scoreboard/core/Team.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/text/ComponentUtils.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
-#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace mc::scoreboard {
 

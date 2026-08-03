@@ -27,7 +27,9 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace blocks {

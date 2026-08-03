@@ -24,6 +24,11 @@
 #include "BiomeEffects.hpp"
 #include "BiomeFactory.hpp"
 #include "BiomeGenerationSettings.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 

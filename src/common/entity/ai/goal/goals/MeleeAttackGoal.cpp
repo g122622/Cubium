@@ -27,7 +27,6 @@
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/CreatureEntity.hpp"
-#include "../../../core/Entity.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
@@ -35,6 +34,12 @@
 #include "../../controller/LookController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
 #include "../GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include <algorithm>
 
 namespace mc::entity::ai::goal {
 

@@ -29,9 +29,7 @@
 #include "../../../../entity/entities/passive/golem/CopperGolemEntity.hpp"
 #include "../../../../entity/entities/passive/golem/CopperGolemTypes.hpp"
 #include "../../../../entity/entities/passive/golem/IronGolemEntity.hpp"
-#include "../../../../entity/entities/passive/golem/SnowGolemEntity.hpp"
 #include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/registry/VanillaEntities.hpp"
 #include "../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
@@ -48,9 +46,24 @@
 #include "../../BlockTags.hpp"
 #include "../copper/CopperChestBlock.hpp"
 #include "../copper/IOxidizableBlock.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include <algorithm>
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

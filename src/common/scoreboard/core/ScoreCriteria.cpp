@@ -22,16 +22,18 @@
  */
 
 #include "ScoreCriteria.hpp"
-#include "Score.hpp"
-#include "Scoreboard.hpp"
+#include "common/core/Result.hpp"
 #include "common/scoreboard/criteria/DeathCountCriteria.hpp"
 #include "common/scoreboard/criteria/DummyCriteria.hpp"
 #include "common/scoreboard/criteria/KillCountCriteria.hpp"
 #include "common/scoreboard/criteria/ReadOnlyCriteria.hpp"
 #include "common/scoreboard/criteria/TeamKillCriteria.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
-#include "common/util/text/TextStyle.hpp"
 #include <cassert>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::scoreboard {
 

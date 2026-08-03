@@ -23,12 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include <array>
 #include <atomic>
+#include <optional>
+#include <string>
 
 namespace mc::skin {
 

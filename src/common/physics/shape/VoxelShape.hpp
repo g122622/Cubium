@@ -30,8 +30,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace mc {

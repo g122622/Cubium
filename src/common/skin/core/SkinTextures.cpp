@@ -22,6 +22,8 @@
  */
 
 #include "SkinTextures.hpp"
+#include <cstddef>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

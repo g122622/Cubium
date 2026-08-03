@@ -24,6 +24,12 @@
 #pragma once
 
 #include "ThrowableEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include <memory>
 
 namespace mc {
 

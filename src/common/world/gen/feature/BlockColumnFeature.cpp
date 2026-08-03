@@ -21,8 +21,17 @@
  */
 
 #include "BlockColumnFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gen::feature::cave {
 

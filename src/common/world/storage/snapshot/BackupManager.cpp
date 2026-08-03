@@ -22,9 +22,22 @@
  */
 
 #include "BackupManager.hpp"
-#include "common/world/storage/db/RocksDBDatabase.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/storage/db/RocksDBDatabase.hpp"
 #include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <vector>
+#include <fmt/format.h>
+#include <rocksdb/env.h>
+#include <rocksdb/status.h>
 #include <rocksdb/utilities/backup_engine.h>
 #include <spdlog/spdlog.h>
 

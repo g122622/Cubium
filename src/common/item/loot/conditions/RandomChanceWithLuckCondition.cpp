@@ -22,6 +22,10 @@
  */
 
 #include "common/item/loot/conditions/RandomChanceWithLuckCondition.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {

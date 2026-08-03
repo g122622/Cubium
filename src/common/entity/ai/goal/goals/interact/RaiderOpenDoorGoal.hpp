@@ -24,6 +24,7 @@
 #pragma once
 
 #include "OpenDoorGoal.hpp"
+#include <string>
 
 namespace mc {
 

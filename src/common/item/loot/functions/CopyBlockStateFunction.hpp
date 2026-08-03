@@ -24,6 +24,7 @@
 #pragma once
 
 #include "LootFunction.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <memory>
 #include <string>
 #include <vector>

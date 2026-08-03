@@ -18,6 +18,10 @@
  */
 
 #include "EmptyJigsawPiece.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace world {

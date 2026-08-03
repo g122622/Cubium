@@ -22,8 +22,8 @@
  */
 
 #include "NetherEntities.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/controller/GhastMovementController.hpp"
-#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/AvoidBlockGoal.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
@@ -38,28 +38,37 @@
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
-#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/interfaces/ICrossbowUser.hpp"
+#include "common/entity/interfaces/IFlinging.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

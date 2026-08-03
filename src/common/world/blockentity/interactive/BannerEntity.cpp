@@ -22,6 +22,11 @@
  */
 
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
@@ -31,9 +36,13 @@
 #include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockState.hpp"
 #include "world/block/blocks/decorative/BannerBlock.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

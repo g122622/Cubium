@@ -26,9 +26,12 @@
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
 #include "../block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "../block/BlockState.hpp"
 #include "../block/blocks/redstone/RedstoneWireBlock.hpp"
 #include "RedstoneHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace world {

@@ -23,13 +23,19 @@
 
 #include "EnchantmentHelper.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <algorithm>
+#include <array>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace item {

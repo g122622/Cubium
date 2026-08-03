@@ -22,6 +22,7 @@
  */
 
 #include "CarvingContext.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/block/BlockState.hpp"

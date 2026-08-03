@@ -27,10 +27,13 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/SkinTextures.hpp"
+#include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

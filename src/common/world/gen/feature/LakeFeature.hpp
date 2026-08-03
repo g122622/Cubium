@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <string>

@@ -23,7 +23,6 @@
 
 #include "EndermanGoals.hpp"
 
-#include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
 #include "../../../../../util/math/ray/Raycast.hpp"
@@ -44,8 +43,19 @@
 #include "../../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../controller/LookController.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
-#include <cmath>
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/ray/Ray.hpp"
 #include <limits>
+#include <vector>
 
 namespace mc {
 namespace entity::ai::goal {

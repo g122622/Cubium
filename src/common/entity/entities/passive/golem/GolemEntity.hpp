@@ -25,8 +25,11 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

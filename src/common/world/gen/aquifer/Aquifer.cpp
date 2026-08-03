@@ -23,6 +23,10 @@
 #include "Aquifer.hpp"
 #include "DisabledAquifer.hpp"
 #include "NoiseBasedAquifer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::aquifer {
 

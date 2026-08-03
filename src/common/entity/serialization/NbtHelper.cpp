@@ -22,9 +22,18 @@
  */
 
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <array>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::entity::serialization {
 namespace nbt_helper {

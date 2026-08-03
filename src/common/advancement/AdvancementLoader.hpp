@@ -33,6 +33,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

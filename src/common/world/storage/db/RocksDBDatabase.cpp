@@ -22,9 +22,22 @@
  */
 
 #include "RocksDBDatabase.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/storage/db/ColumnFamilies.hpp"
+#include "common/world/storage/db/RocksDBConfig.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 #include <rocksdb/db.h>
 #include <rocksdb/iterator.h>
 #include <rocksdb/options.h>

@@ -24,6 +24,7 @@
 #include "RabbitEntity.hpp"
 
 #include <cmath>
+#include <memory>
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/controller/RabbitJumpControl.hpp"
@@ -44,7 +45,7 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
@@ -54,7 +55,9 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"

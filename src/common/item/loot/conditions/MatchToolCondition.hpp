@@ -25,8 +25,10 @@
 
 #include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 
 namespace mc {
 namespace loot {

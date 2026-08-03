@@ -23,6 +23,8 @@
 
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/network/backend/java/generated/java_item_table.gen.hpp"
@@ -35,6 +37,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace mc::network::backend::java {
 

@@ -23,10 +23,18 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include <array>
+#include <utility>
 
 namespace mc {
 

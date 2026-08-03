@@ -23,6 +23,8 @@
 
 #include "EquipmentSlotNames.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include <optional>
+#include <string_view>
 
 namespace mc {
 namespace entity::serialization::EquipmentSlotNames {

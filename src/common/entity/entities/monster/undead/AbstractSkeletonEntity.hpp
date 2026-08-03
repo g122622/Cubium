@@ -25,8 +25,14 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 namespace mc {
 

@@ -23,6 +23,9 @@
 
 #include "PandaGoals.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"

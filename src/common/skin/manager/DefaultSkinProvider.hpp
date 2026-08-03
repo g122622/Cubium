@@ -29,6 +29,8 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include <array>
+#include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace mc::skin {

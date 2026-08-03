@@ -24,8 +24,10 @@
 #pragma once
 
 #include "Enchantment.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

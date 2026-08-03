@@ -23,12 +23,33 @@
 
 #include "PackListBase.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/PackType.hpp"
+#include "common/resource/pack/FolderResourcePack.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/pack/ZipResourcePack.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <filesystem>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <set>
 #include <shared_mutex>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

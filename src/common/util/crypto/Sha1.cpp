@@ -29,7 +29,13 @@
  */
 
 #include "Sha1.hpp"
+#include "common/core/Types.hpp"
+#include <array>
 #include <cstring>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 namespace util {

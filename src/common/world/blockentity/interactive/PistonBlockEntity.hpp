@@ -23,10 +23,14 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

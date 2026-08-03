@@ -26,7 +26,11 @@
 #include "../../../core/Types.hpp"
 #include "Placement.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

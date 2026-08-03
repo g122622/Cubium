@@ -21,6 +21,9 @@
  */
 
 #include "world/biome/climate/Sampler.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "world/biome/climate/SpawnFinder.hpp"
 #include "world/gen/density/DensityFunction.hpp"
 

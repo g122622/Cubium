@@ -23,18 +23,27 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/carver/CarvingMask.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::density {

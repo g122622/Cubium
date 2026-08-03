@@ -28,6 +28,9 @@
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "WeatheringCopperBlock.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
 
 namespace mc {
 namespace blocks {

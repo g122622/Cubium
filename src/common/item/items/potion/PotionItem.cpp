@@ -30,7 +30,12 @@
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../Items.hpp"
 #include "../../potion/PotionUtils.hpp"
-#include "../../potion/Potions.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace item {

@@ -22,9 +22,8 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
-
-#include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
 

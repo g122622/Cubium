@@ -24,6 +24,7 @@
 #pragma once
 
 #include "TreeDecorator.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>

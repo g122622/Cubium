@@ -22,6 +22,9 @@
  */
 
 #include "world/blockentity/BlockEntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <string>
+#include <unordered_map>
 
 namespace mc {
 

@@ -27,6 +27,13 @@
 #include "../../../core/DataParameter.hpp"
 #include "../../../core/EntitySize.hpp"
 #include "../../../interfaces/IAngerable.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
 #include <optional>

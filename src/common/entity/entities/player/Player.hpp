@@ -40,13 +40,27 @@
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp" // for mc::Uuid + util::uuidFromString
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 
 namespace mc {
 

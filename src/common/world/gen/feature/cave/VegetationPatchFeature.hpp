@@ -25,8 +25,10 @@
 #include "CaveSurface.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <memory>
 #include <string>

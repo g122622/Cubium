@@ -22,7 +22,14 @@
  */
 
 #include "EntityTriggers.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/core/Result.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <memory>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 // 注意：trigger() 方法的完整实现需要服务端模块的支持
 // 服务端代码应包含 server/advancement/TriggerInstantiation.hpp

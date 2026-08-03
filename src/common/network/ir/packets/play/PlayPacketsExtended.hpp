@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/nbt/Nbt.hpp"

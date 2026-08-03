@@ -23,14 +23,28 @@
 
 #include "DebugChunkGenerator.hpp"
 
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/biome/Biomes.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/source/FixedBiomeSource.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

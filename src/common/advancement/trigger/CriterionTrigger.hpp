@@ -26,12 +26,16 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <set>
+#include <string>
 #include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {

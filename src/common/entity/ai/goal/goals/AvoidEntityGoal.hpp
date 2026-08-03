@@ -26,12 +26,15 @@
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include <cmath>
 #include <functional>
+#include <string>
 
 namespace mc {
 

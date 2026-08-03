@@ -37,8 +37,11 @@
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/data/PalettedContainer.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <vector>
 
 namespace mc::world::chunk {

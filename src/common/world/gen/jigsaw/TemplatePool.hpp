@@ -23,6 +23,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <cstddef>
 #include <memory>
 #include <vector>
 

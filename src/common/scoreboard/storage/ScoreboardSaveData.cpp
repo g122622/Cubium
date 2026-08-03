@@ -22,12 +22,24 @@
  */
 
 #include "common/scoreboard/storage/ScoreboardSaveData.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include <cstddef>
+#include <ios>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::scoreboard {
 

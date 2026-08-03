@@ -24,11 +24,21 @@
 #include "EntityDeserializer.hpp"
 #include "EntityNbtKeys.hpp"
 #include "NbtHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
+#include <exception>
+#include <memory>
 #include <sstream>
-#include <spdlog/spdlog.h>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
+#include <zconf.h>
 #include <zlib.h>
 
 namespace mc::entity::serialization {

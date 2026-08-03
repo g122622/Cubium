@@ -48,18 +48,43 @@
 #include "../serialization/NbtHelper.hpp"
 #include "../tag/EntityTypeTags.hpp"
 #include "EntityRegistry.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/MoverType.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/ray/Ray.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

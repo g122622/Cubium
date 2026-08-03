@@ -27,6 +27,8 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::feature::predicate {

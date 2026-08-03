@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "entity/core/CreatureEntity.hpp"
 #include <memory>
 

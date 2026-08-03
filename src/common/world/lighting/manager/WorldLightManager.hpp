@@ -23,7 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/lighting/LightType.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"

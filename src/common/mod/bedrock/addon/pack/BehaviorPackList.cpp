@@ -22,11 +22,23 @@
  */
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
+#include "common/mod/bedrock/addon/pack/AddonModule.hpp"
+#include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 #include "common/mod/bedrock/addon/pack/PackDependencyResolver.hpp"
 
 #include <algorithm>
 #include <filesystem>
 
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

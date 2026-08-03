@@ -27,8 +27,10 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
+#include <array>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc::skin {

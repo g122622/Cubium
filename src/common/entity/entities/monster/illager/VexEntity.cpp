@@ -23,15 +23,16 @@
 
 #include "VexEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/controller/VexMovementController.hpp"
-#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/special/VexGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"

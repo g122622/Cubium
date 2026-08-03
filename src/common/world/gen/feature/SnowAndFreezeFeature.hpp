@@ -25,6 +25,10 @@
 
 #include "ConfiguredFeature.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
+#include <string>
 
 namespace mc {
 

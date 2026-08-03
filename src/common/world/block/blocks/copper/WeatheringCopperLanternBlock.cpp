@@ -23,12 +23,23 @@
 
 #include "WeatheringCopperLanternBlock.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/copper/WeatheringCopperBlock.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/Direction.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/block/registry/VanillaBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

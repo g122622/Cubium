@@ -25,7 +25,9 @@
 
 #include "MapData.hpp"
 #include "MapIdTracker.hpp"
+#include "common/core/Types.hpp"
 #include "core/Result.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 

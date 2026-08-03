@@ -24,6 +24,7 @@
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/generated/java_block_state_table.gen.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/world/block/Block.hpp"

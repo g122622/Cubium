@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "world/biome/climate/ParameterTypes.hpp"
+#include <utility>
 #include <vector>
 
 // 前向声明，避免循环 include（SpawnFinder 取 const Sampler&，Sampler::findSpawnPosition 调 SpawnFinder）

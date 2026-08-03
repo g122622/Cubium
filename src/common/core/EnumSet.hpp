@@ -24,8 +24,10 @@
 #pragma once
 
 #include <bitset>
+#include <cstddef>
 #include <functional>
 #include <initializer_list>
+#include <type_traits>
 
 namespace mc {
 

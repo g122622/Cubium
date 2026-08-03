@@ -24,10 +24,22 @@
 #include "VoxelShape.hpp"
 
 #include "Shapes.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/shape/BooleanOp.hpp"
+#include "common/physics/shape/DiscreteVoxelShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

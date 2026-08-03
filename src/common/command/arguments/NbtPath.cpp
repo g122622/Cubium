@@ -22,9 +22,17 @@
  */
 
 #include "NbtPath.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include <algorithm>
+#include "common/util/nbt/Nbt.hpp"
+#include <cstddef>
+#include <functional>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
 using mc::nbt::operator<<;

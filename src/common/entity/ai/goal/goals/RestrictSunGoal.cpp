@@ -23,9 +23,12 @@
 
 #include "RestrictSunGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
-#include "common/entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 

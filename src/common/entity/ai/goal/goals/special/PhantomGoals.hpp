@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <string>
 
 namespace mc {
 class PhantomEntity;

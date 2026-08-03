@@ -28,6 +28,9 @@
 // ============================================================================
 
 #include "TemplateEntityInfo.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

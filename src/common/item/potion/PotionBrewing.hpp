@@ -27,6 +27,7 @@
 #include "item/crafting/Ingredient.hpp"
 #include "item/potion/Potion.hpp"
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace mc {

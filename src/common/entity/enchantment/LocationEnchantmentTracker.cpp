@@ -22,6 +22,11 @@
  */
 
 #include "LocationEnchantmentTracker.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <string>
+#include <unordered_set>
+#include <utility>
 
 namespace mc {
 namespace entity {

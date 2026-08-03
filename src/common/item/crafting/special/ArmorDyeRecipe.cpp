@@ -22,13 +22,18 @@
  */
 
 #include "item/crafting/special/ArmorDyeRecipe.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "entity/entities/passive/basic/SheepEntity.hpp"
 #include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
-#include "world/block/IBeaconBeamColorProvider.hpp"
-#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace mc {
 namespace crafting {

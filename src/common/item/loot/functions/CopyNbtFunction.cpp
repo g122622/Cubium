@@ -23,15 +23,25 @@
 
 #include "CopyNbtFunction.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/NbtPath.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
-#include "common/util/assert/AssertMacros.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include <sstream>
+#include <cstddef>
+#include <exception>
+#include <limits>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "world/block/registry/AgriculturalBlocks.hpp"
 #include "world/block/registry/BambooBlocks.hpp"
 #include "world/block/registry/BaseBlocks.hpp"

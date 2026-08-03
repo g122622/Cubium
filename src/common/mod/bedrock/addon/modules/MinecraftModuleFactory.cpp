@@ -23,12 +23,17 @@
 
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
 
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

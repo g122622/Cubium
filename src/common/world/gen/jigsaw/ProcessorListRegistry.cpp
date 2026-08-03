@@ -22,7 +22,10 @@
  */
 
 #include "ProcessorListRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
+#include <memory>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -22,9 +22,14 @@
  */
 
 #include "common/world/gen/density/NoiseBindingVisitor.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/density/BlendedNoise.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::density {
 

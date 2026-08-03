@@ -22,6 +22,8 @@
  */
 
 #include "Foods.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/item/food/Food.hpp"
 
 namespace mc {
 namespace item::food {

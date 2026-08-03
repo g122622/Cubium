@@ -22,6 +22,8 @@
  */
 
 #include "Xoshiro256ppRandom.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
 
 namespace mc::math {
 

@@ -28,6 +28,9 @@
 #include "../../Block.hpp"
 #include "../../IWaterLoggable.hpp"
 #include "../../Material.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IBucketPickupHandler.hpp"
 
 namespace mc {
 

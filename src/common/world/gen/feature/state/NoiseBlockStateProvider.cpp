@@ -23,9 +23,17 @@
 
 #include "NoiseBlockStateProvider.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
 #include "common/world/gen/feature/state/NoiseStateUtils.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
 
+#include <memory>
 #include <utility>
+#include <vector>
 
 namespace mc::world::gen::feature::state {
 

@@ -29,8 +29,10 @@
 #include "common/util/concurrent/LockSupport.hpp"
 #include "common/util/concurrent/MultiThreadedQueue.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace mc::util {

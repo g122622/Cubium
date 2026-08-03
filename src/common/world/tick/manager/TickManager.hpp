@@ -26,10 +26,14 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/tick/base/ScheduledTick.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/list/EmptyTickList.hpp"
 #include "common/world/tick/list/ITickList.hpp"
 #include "common/world/tick/list/ServerTickList.hpp"
+#include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace mc::world::tick {
 

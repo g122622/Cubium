@@ -29,9 +29,16 @@
  */
 
 #include "GameRules.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include <algorithm>
+#include "common/world/gamerule/GameRule.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::world::gamerule {
 

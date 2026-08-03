@@ -24,9 +24,11 @@
 #include "SleepAtNightGoal.hpp"
 
 #include "VillagerGoalUtils.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/entity/ai/controller/LookController.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
@@ -34,6 +36,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include <optional>
 
 namespace mc {
 namespace entity {

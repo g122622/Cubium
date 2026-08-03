@@ -22,11 +22,14 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
+#include <optional>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

@@ -22,11 +22,13 @@
  */
 
 #include "VillagerEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
+#include "common/entity/ai/brain/task/Task.hpp"
 #include "common/entity/ai/brain/task/tasks/action/ActionTasks.hpp"     // AttackTask
 #include "common/entity/ai/brain/task/tasks/interact/InteractTasks.hpp" // 用于 Brain 任务注册
 #include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
@@ -47,13 +49,18 @@
 #include "common/entity/ai/goal/goals/villager/VillagerBreedGoal.hpp"
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -74,11 +81,17 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/world/village/trade/WanderingTraderTrades.hpp"
 #include <cmath>
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

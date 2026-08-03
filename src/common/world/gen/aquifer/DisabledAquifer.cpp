@@ -21,6 +21,9 @@
  */
 
 #include "DisabledAquifer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/aquifer/Aquifer.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
 
 namespace mc::world::gen::aquifer {
 

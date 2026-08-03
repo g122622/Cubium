@@ -23,12 +23,15 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "entity/effect/EffectType.hpp"
 #include "item/core/ItemStack.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

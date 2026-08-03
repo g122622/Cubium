@@ -22,6 +22,8 @@
  */
 
 #include "world/block/registry/CaveBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
@@ -35,7 +37,6 @@
 #include "world/block/blocks/cave/BuddingAmethystBlock.hpp"
 #include "world/block/blocks/cave/CaveVinesBlock.hpp"
 #include "world/block/blocks/cave/CaveVinesPlantBlock.hpp"
-#include "world/block/blocks/cave/FrogspawnBlock.hpp"
 #include "world/block/blocks/cave/GlowLichenBlock.hpp"
 #include "world/block/blocks/cave/HangingRootsBlock.hpp"
 #include "world/block/blocks/cave/MossBlock.hpp"

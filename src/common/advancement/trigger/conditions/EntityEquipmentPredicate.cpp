@@ -22,8 +22,11 @@
  */
 
 #include "EntityEquipmentPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

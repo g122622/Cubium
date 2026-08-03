@@ -24,6 +24,9 @@
 #pragma once
 
 #include "ProjectileEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 
 // 前向声明粒子类型（与 common/particle/ParticleTypes.hpp 中的定义一致）
 namespace mc {

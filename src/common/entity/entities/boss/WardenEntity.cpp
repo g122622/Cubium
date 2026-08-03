@@ -33,8 +33,17 @@
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../registry/VanillaEntityTypeKeys.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/boss/WardenAngerLevel.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <algorithm>
+#include <memory>
+#include <optional>
 
 namespace mc {
 namespace entity {

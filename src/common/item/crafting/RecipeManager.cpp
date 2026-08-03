@@ -22,8 +22,22 @@
  */
 
 #include "item/crafting/RecipeManager.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/item/crafting/SmeltingRecipe.hpp"
+#include "common/item/crafting/SmithingRecipe.hpp"
+#include "common/item/crafting/StonecuttingRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "world/blockentity/processing/FurnaceInventory.hpp"
-#include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {

@@ -22,10 +22,17 @@
  */
 
 #include "ForkyTrunkPlacer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <set>
+#include <vector>
 
 namespace mc {
 

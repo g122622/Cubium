@@ -23,36 +23,50 @@
 
 #include "MinecartEntity.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/InventoryRef.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/block/blocks/redstone/ActivatorRailBlock.hpp"
-#include "common/world/block/blocks/redstone/DetectorRailBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
+#include "common/world/blockentity/transport/IHopper.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 
+#include <vector>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::biome::climate {

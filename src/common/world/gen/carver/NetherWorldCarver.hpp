@@ -25,6 +25,10 @@
 
 #include "CaveCarver.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/gen/carver/CarverConfiguration.hpp"
+#include "common/world/gen/carver/CarvingContext.hpp"
 
 namespace mc {
 

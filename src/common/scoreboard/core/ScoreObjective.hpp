@@ -25,6 +25,7 @@
 
 #include "ScoreCriteriaRenderType.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
+#include <cstddef>
 #include <memory>
 #include <string>
 

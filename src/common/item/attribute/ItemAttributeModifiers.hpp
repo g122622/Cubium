@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

@@ -23,10 +23,13 @@
 
 #include "NameTagItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include <utility>
 
 namespace mc {
 namespace item::items {

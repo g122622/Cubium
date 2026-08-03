@@ -21,9 +21,15 @@
  */
 
 #include "FireworkRocketItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ProjectileItem.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
 
 namespace mc {
 namespace item {

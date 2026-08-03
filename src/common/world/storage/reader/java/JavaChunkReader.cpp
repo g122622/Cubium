@@ -27,11 +27,24 @@
 #undef BYTE_SIZE
 
 #include "JavaChunkReader.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/NibbleArray.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/world/biome/Biome.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
+#include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
+#include <algorithm>
 #include <cmath>
-#include <spdlog/spdlog.h>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+#include <fmt/format.h>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

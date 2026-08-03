@@ -22,12 +22,20 @@
  */
 
 #include "ExperienceDropHandler.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/experience/ExperienceUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
-#include <cmath>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

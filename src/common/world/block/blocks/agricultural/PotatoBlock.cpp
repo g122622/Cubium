@@ -22,8 +22,13 @@
  */
 
 #include "common/world/block/blocks/agricultural/PotatoBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/Items.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
 
 namespace mc {
 namespace blocks {

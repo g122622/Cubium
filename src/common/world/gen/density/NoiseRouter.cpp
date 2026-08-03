@@ -22,6 +22,10 @@
 
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/biome/climate/Sampler.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::density {
 

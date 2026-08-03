@@ -27,7 +27,9 @@
 #include "SlideSettings.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <stdexcept>
+#include <string>
 
 namespace mc {
 

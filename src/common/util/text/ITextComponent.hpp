@@ -27,8 +27,10 @@
 #include "common/core/Types.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::text {
 

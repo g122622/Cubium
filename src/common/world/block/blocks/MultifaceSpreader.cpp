@@ -22,9 +22,12 @@
  */
 
 #include "MultifaceSpreader.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/fluid/Fluids.hpp"
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace blocks {

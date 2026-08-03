@@ -32,16 +32,19 @@
 #include "PortalSize.hpp"
 // Note: ServerWorld is forward declared in Teleporter.hpp
 // Implementation of teleport methods is in server module
-#include "../../../core/Constants.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../../IWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include <algorithm>
-#include <cmath>
+#include <optional>
+#include <vector>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

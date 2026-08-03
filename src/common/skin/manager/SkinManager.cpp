@@ -22,8 +22,25 @@
  */
 
 #include "SkinManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include "common/skin/core/SkinTextures.hpp"
+#include "common/skin/core/SkinTypes.hpp"
+#include "common/skin/loader/FileSkinLoader.hpp"
+#include "common/skin/loader/HttpSkinLoader.hpp"
+#include "common/skin/loader/SkinLoader.hpp"
+#include "common/skin/manager/DefaultSkinProvider.hpp"
+#include "common/skin/manager/SkinCache.hpp"
+#include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/skin/parser/SkinMetadataParser.hpp"
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

@@ -22,11 +22,25 @@
  */
 
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/gen/carver/WorldCarver.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mc::world::chunk {
 

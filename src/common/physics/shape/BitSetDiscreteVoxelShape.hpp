@@ -26,6 +26,7 @@
 #include "BooleanOp.hpp"
 #include "DiscreteVoxelShape.hpp"
 #include "Shapes.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
 #include <climits>
 #include <vector>

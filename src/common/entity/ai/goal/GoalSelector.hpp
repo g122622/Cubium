@@ -27,12 +27,14 @@
 #include "PrioritizedGoal.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 
 #include <algorithm>
 #include <functional>
 #include <list>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 namespace mc::entity::ai {
 

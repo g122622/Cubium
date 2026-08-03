@@ -27,8 +27,13 @@
 #undef BYTE_SIZE
 
 #include "NibbleArray.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

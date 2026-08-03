@@ -22,7 +22,10 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
 
+#include <string>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

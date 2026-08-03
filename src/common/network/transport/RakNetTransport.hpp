@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/transport/DeliveryHint.hpp"
 #include "common/network/transport/Endpoint.hpp"
 #include "common/network/transport/ITransport.hpp"
 

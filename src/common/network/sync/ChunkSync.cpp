@@ -28,14 +28,26 @@
 
 #include "ChunkSync.hpp"
 #include "../../world/WorldConstants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/codec/PacketDeserializer.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/NibbleArray.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include <algorithm>
 #include <array>
-#include <climits>
-#include <cmath>
+#include <cstdint>
 #include <cstring>
-#include <spdlog/spdlog.h>
+#include <memory>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 

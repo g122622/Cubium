@@ -24,16 +24,31 @@
 #include "JigsawTransform.hpp"
 #include "TemplatePool.hpp"
 #include "TemplatePoolRegistry.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/shape/BooleanOp.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/AssemblyTypes.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
+#include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/jigsaw/PoolAliasLookup.hpp"
+#include "common/world/gen/jigsaw/SequencedPriorityIterator.hpp"
 #include "common/world/gen/structure/JigsawStructure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

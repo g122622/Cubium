@@ -29,8 +29,11 @@
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../Goal.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include <functional>
 #include <optional>
+#include <string>
 
 namespace mc {
 

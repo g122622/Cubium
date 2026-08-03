@@ -21,15 +21,26 @@
  */
 
 #include "TrialBlocks.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/ISidedInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/HorizontalBlock.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/WorldEvents.hpp"
@@ -40,7 +51,12 @@
 #include "world/redstone/RedstoneSystem.hpp"
 #include "world/tick/base/TickPriority.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

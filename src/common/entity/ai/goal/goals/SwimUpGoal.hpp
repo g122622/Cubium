@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "../Goal.hpp"
+#include <string>
 
 namespace mc {
 

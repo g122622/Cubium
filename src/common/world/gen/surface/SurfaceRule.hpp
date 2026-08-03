@@ -26,6 +26,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/surface/SurfaceCondition.hpp"
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::surface {

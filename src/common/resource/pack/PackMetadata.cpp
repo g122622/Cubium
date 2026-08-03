@@ -22,8 +22,17 @@
  */
 
 #include "common/resource/pack/PackMetadata.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <exception>
 #include <fstream>
+#include <ios>
+#include <iterator>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::resource {
 

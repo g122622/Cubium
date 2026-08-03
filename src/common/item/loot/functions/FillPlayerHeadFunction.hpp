@@ -24,7 +24,11 @@
 #pragma once
 
 #include "CopyNameFunction.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include <memory>
+#include <string>
 
 namespace mc {
 namespace loot {

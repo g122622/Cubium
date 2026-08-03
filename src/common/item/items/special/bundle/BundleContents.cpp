@@ -23,11 +23,18 @@
 
 #include "BundleContents.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 #include <algorithm>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::items {

@@ -24,6 +24,8 @@
 #include "FarmerWorkGoal.hpp"
 #include "WorkAtJobSiteGoal.hpp"
 
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -32,10 +34,8 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -48,6 +48,8 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include <algorithm>
+#include <optional>
 
 namespace mc {
 namespace entity {

@@ -28,6 +28,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <string>
 

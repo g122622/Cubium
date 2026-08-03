@@ -34,11 +34,15 @@
 #include "HarvestTool.hpp"
 #include "IBlockAnimateContext.hpp"
 #include "Material.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <array>
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

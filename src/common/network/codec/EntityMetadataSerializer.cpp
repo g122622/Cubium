@@ -22,13 +22,21 @@
  */
 
 #include "common/network/codec/EntityMetadataSerializer.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityPose.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <algorithm>
 #include <cstring>
-#include <spdlog/spdlog.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::network {
 

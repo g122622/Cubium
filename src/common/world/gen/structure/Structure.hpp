@@ -31,11 +31,13 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc {

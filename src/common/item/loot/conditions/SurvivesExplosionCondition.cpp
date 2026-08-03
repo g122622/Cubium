@@ -23,6 +23,10 @@
 
 #include "common/item/loot/conditions/SurvivesExplosionCondition.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParams.hpp"
+#include <memory>
 
 namespace mc {
 namespace loot {

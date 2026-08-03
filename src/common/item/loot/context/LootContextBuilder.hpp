@@ -25,11 +25,13 @@
 
 #include "LootParameterSet.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/context/LootParameter.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc {

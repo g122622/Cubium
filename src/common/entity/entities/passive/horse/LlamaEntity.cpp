@@ -23,26 +23,31 @@
 
 #include "LlamaEntity.hpp"
 
-#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/AgeableEntity.hpp"
-#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

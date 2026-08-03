@@ -22,11 +22,16 @@
  */
 
 #include "AvoidEntityGoal.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include <utility>
 
 namespace mc::entity::ai::goal {
 

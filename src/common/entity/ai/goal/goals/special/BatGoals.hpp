@@ -27,6 +27,8 @@
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include <string>
 
 namespace mc {
 class BatEntity;

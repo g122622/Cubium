@@ -22,10 +22,17 @@
  */
 
 #include "MobEffectsPredicate.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <optional>
+#include <unordered_map>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {

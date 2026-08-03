@@ -30,9 +30,11 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

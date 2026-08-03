@@ -25,6 +25,9 @@
 
 #include "Template.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 namespace world {

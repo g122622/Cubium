@@ -22,6 +22,11 @@
 
 #include "DryVegetationBlock.hpp"
 #include "../../BlockTags.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 namespace blocks {

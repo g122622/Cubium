@@ -25,9 +25,11 @@
 
 #include "ContainerListener.hpp"
 #include "IInventory.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <array>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace mc {

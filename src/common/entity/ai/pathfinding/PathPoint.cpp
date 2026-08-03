@@ -22,6 +22,7 @@
  */
 
 #include "PathPoint.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::entity::ai::pathfinding {
 

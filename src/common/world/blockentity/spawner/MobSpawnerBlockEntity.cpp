@@ -22,27 +22,37 @@
  */
 
 #include "MobSpawnerBlockEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
-#include "common/world/biome/Biomes.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/spawner/SpawnerLogic.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include <algorithm>
 #include <cmath>
-#include <spdlog/spdlog.h>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::blockentity {
 

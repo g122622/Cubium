@@ -26,10 +26,16 @@
 #include "LootPool.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootParameterSet.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "context/LootContext.hpp"
 #include "functions/LootFunctions.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

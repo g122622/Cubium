@@ -22,10 +22,12 @@
  */
 
 #include "BaneOfArthropodsEnchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 namespace item {

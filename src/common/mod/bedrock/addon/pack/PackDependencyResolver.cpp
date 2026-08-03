@@ -22,9 +22,14 @@
  */
 
 #include "common/mod/bedrock/addon/pack/PackDependencyResolver.hpp"
+#include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 
 #include <unordered_map>
 
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

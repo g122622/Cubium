@@ -25,7 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include <string>
 
 namespace mc {
 namespace entity {

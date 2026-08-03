@@ -25,8 +25,10 @@
 
 #include "../../core/Types.hpp"
 #include "MathUtils.hpp"
+#include "common/util/math/MathConstants.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <type_traits>
 

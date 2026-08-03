@@ -24,7 +24,9 @@
 #include "WorkAtJobSiteGoal.hpp"
 
 #include "VillagerGoalUtils.hpp"
-#include "common/entity/ai/goal/GoalConstants.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/world/IWorld.hpp"
 

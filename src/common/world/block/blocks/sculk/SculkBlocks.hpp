@@ -30,8 +30,18 @@
 #include "../MultifaceBlock.hpp"
 #include "../MultifaceSpreader.hpp"
 #include "SculkBehaviour.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 
+#include <array>
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc {
 

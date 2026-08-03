@@ -23,10 +23,14 @@
 
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
+#include <cstddef>
+#include <utility>
 
 namespace mc {
 

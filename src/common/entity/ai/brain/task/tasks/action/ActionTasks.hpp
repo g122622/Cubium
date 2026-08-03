@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
@@ -34,13 +35,21 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace entity {

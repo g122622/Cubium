@@ -23,8 +23,14 @@
 
 #include "VillageGossip.hpp"
 #include "../../util/nbt/Nbt.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/village/VillageGossipType.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

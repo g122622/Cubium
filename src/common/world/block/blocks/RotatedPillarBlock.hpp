@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/util/Direction.hpp"
+#include "common/util/property/EnumProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 

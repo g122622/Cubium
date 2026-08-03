@@ -25,8 +25,12 @@
 
 #include "../../../core/Types.hpp"
 #include "Placement.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

@@ -22,7 +22,12 @@
  */
 
 #include "common/item/loot/conditions/AndCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <algorithm>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

@@ -28,11 +28,15 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

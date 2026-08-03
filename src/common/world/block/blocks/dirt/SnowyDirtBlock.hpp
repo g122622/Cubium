@@ -25,6 +25,8 @@
 
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/BooleanProperty.hpp"
 
 namespace mc {
 

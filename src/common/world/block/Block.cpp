@@ -31,7 +31,6 @@
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/loot/LootTable.hpp"
 #include "../../item/loot/LootTableManager.hpp"
-#include "../../item/loot/conditions/LootConditions.hpp"
 #include "../../item/loot/context/LootContextBuilder.hpp"
 #include "../../item/loot/context/LootParameterSets.hpp"
 #include "../../item/loot/context/LootParams.hpp"
@@ -46,7 +45,6 @@
 #include "../blockentity/BlockEntity.hpp"
 #include "../fluid/Fluid.hpp"
 #include "../fluid/FluidRegistry.hpp"
-#include "../fluid/fluids/EmptyFluid.hpp"
 #include "BlockPos.hpp"
 #include "BlockRegistry.hpp"
 #include "BlockSoundType.hpp"
@@ -56,11 +54,27 @@
 #include "Material.hpp"
 #include "PlantType.hpp"
 #include "SupportType.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/core/MoverType.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/map/MaterialColor.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

@@ -23,11 +23,12 @@
 
 #include "BastionPools.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/jigsaw/SingleJigsawPiece.hpp"
 #include "common/world/gen/jigsaw/TemplatePool.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
-#include "common/world/gen/structure/pools/ProcessorLists.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

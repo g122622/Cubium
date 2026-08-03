@@ -21,16 +21,30 @@
  */
 
 #include "PistonHeadBlock.hpp"
-#include "PistonBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/redstone/MovingPistonBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

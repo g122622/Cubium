@@ -27,10 +27,12 @@
 #include "../../entity/inventory/IInventory.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../util/AxisAlignedBB.hpp"
-#include "../../util/assert/AssertMacros.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../IWorld.hpp"
 #include "../block/Block.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
+#include <vector>
 
 namespace mc {
 namespace world {

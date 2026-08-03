@@ -21,18 +21,30 @@
  */
 
 #include "common/world/gen/surface/SurfaceSystem.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
 #include "common/world/gen/noise/Noises.hpp"
+#include "common/world/gen/surface/SurfaceRule.hpp"
+#include "common/world/gen/surface/SurfaceRuleContext.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
+#include <memory>
+#include <utility>
 
 using namespace mc::trace;
 

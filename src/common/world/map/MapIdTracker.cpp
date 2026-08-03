@@ -22,6 +22,8 @@
  */
 
 #include "MapIdTracker.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 
 namespace mc::world::map {

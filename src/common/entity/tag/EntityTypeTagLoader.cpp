@@ -23,15 +23,24 @@
 
 #include "EntityTypeTagLoader.hpp"
 #include "EntityTypeTags.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/tag/EntityTypeTag.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 
@@ -143,8 +152,8 @@ static Result<EntityTypeRawTagData> parseEntityTypeJsonRaw(const std::string& js
                 rawData.entries.push_back({value.get<std::string>(), true});
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
-                        "EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                    spdlog::warn("EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
+                        location.toString());
                     continue;
                 }
 
@@ -162,7 +171,8 @@ static Result<EntityTypeRawTagData> parseEntityTypeJsonRaw(const std::string& js
 
                 rawData.entries.push_back({id, required});
             } else {
-                spdlog::warn("EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                spdlog::warn(
+                    "EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 
@@ -388,8 +398,9 @@ Result<size_t> EntityTypeTagLoader::loadFromResourcePack(const resource::IResour
 
             auto parseResult = parseEntityTypeJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn(
-                    "EntityTypeTagLoader: failed to parse tag {}: {}", location.toString(), parseResult.error().message());
+                spdlog::warn("EntityTypeTagLoader: failed to parse tag {}: {}",
+                    location.toString(),
+                    parseResult.error().message());
                 continue;
             }
 
@@ -464,8 +475,8 @@ Result<std::unique_ptr<EntityTypeTag>> EntityTypeTagLoader::loadFromJson(
                 resolveEntityTypeTagEntry(rawEntry, entityTypeIds, visitedTags, location);
             } else if (value.is_object()) {
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
-                        "EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                    spdlog::warn("EntityTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
+                        location.toString());
                     continue;
                 }
 
@@ -484,7 +495,8 @@ Result<std::unique_ptr<EntityTypeTag>> EntityTypeTagLoader::loadFromJson(
                 EntityTypeRawTagEntry rawEntry{id, required};
                 resolveEntityTypeTagEntry(rawEntry, entityTypeIds, visitedTags, location);
             } else {
-                spdlog::warn("EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                spdlog::warn(
+                    "EntityTypeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 

@@ -23,11 +23,18 @@
 
 #include "CanyonCarver.hpp"
 #include "CarvingContext.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/carver/CarverConfiguration.hpp"
+#include "common/world/gen/carver/CarvingMask.hpp"
+#include "common/world/gen/carver/WorldCarver.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <cmath>
+#include <cstddef>
+#include <vector>
 
 namespace mc {
 

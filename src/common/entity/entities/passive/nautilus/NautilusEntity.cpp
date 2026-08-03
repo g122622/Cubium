@@ -23,18 +23,21 @@
 
 #include "NautilusEntity.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
-#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/entities/passive/nautilus/AbstractNautilusEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace mc {
 

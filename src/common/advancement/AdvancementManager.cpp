@@ -22,7 +22,10 @@
  */
 
 #include "AdvancementManager.hpp"
+#include "common/advancement/Advancement.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include <utility>
 
 namespace mc::advancement {
 

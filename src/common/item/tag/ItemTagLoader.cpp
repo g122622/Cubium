@@ -23,16 +23,26 @@
 
 #include "ItemTagLoader.hpp"
 #include "ItemTags.hpp"
+#include "common/core/Result.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/tag/ItemTag.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::item::tag {
 

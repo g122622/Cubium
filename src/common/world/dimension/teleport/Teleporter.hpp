@@ -28,6 +28,7 @@
 #include "../../IWorld.hpp"
 #include "../../block/BlockPos.hpp"
 #include <optional>
+#include <vector>
 
 namespace mc {
 

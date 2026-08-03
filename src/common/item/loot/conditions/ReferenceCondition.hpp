@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include <memory>
 #include <string>
 

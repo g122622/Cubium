@@ -18,6 +18,10 @@
  */
 
 #include "TemplatePoolRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

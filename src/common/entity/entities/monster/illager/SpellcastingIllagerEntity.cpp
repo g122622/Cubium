@@ -23,9 +23,14 @@
 
 #include "SpellcastingIllagerEntity.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include <cmath>
 
 namespace mc {
 

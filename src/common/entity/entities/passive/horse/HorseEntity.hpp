@@ -26,6 +26,10 @@
 #include "AbstractHorseEntity.hpp"
 #include "CoatColors.hpp"
 #include "CoatTypes.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>

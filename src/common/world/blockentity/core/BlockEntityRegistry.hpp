@@ -26,9 +26,11 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

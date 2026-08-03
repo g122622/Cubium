@@ -22,7 +22,16 @@
  */
 
 #include "StorageTask.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/world/storage/db/SectionKey.hpp"
+#include <atomic>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
 #include <fmt/format.h>
 
 using namespace mc::trace;

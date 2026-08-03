@@ -25,7 +25,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include <cstddef>
+#include <functional>
 #include <string>
+#include <string_view>
 
 namespace mc::resource {
 

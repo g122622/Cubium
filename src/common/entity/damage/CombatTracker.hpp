@@ -30,7 +30,10 @@
 
 #include "../../core/Types.hpp"
 #include "CombatEntry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include <cstddef>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

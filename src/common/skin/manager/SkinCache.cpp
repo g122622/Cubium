@@ -22,10 +22,25 @@
  */
 
 #include "SkinCache.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/TimeUtils.hpp"
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <system_error>
+#include <unordered_map>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

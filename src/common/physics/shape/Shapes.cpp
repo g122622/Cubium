@@ -26,10 +26,19 @@
 #include "BitSetDiscreteVoxelShape.hpp"
 #include "CubePointRange.hpp"
 #include "IndexMergers.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/shape/BooleanOp.hpp"
+#include "common/physics/shape/DiscreteVoxelShape.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 
-#include <algorithm>
 #include <cmath>
-#include <limits>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

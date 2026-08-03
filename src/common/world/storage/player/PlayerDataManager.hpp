@@ -26,12 +26,15 @@
 #include "PlayerSaveData.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

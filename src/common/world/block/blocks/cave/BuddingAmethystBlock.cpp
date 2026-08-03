@@ -22,11 +22,15 @@
  */
 
 #include "BuddingAmethystBlock.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/cave/AmethystBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 namespace mc {

@@ -33,9 +33,13 @@
  * 该方法会递归地放置紫颂植物茎干和紫颂花。
  */
 
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

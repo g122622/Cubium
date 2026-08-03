@@ -30,6 +30,7 @@
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
+#include "common/world/gen/surface/SurfaceSystem.hpp"
 #include <memory>
 #include <shared_mutex>
 #include <string>

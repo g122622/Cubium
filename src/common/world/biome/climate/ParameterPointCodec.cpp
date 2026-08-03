@@ -22,12 +22,16 @@
  */
 
 #include "common/world/biome/climate/ParameterPointCodec.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/biome/climate/ParameterTypes.hpp"
 
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
 #include <string>
 #include <string_view>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::biome::climate {
 

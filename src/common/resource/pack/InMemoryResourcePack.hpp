@@ -23,9 +23,16 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/pack/PackMetadata.hpp"
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace mc::resource {
 

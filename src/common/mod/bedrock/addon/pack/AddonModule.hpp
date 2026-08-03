@@ -27,6 +27,7 @@
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace mc::mod::bedrock::addon {

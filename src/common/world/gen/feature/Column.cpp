@@ -23,8 +23,12 @@
 
 #include "Column.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

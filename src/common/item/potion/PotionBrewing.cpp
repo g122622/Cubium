@@ -22,10 +22,14 @@
  */
 
 #include "item/potion/PotionBrewing.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/potion/Potion.hpp"
 #include "item/Items.hpp"
 #include "item/crafting/Ingredient.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "item/potion/Potions.hpp"
+#include <vector>
 
 namespace mc {
 namespace potion {

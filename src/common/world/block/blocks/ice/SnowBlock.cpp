@@ -31,9 +31,17 @@
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
 
 #include <array>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc::blocks {
 

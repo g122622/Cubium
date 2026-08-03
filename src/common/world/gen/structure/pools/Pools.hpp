@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ProcessorLists.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/jigsaw/TemplatePool.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 

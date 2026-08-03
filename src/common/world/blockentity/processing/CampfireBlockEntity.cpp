@@ -22,6 +22,10 @@
  */
 
 #include "CampfireBlockEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/utils/ItemDropHelper.hpp"
 #include "item/crafting/RecipeManager.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
@@ -29,6 +33,13 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockState.hpp"
 #include "world/block/blocks/decorative/CampfireBlock.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

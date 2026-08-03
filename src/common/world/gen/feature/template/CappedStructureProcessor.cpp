@@ -22,8 +22,20 @@
  */
 
 #include "CappedStructureProcessor.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <numeric>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

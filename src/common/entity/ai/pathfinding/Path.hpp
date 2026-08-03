@@ -28,7 +28,9 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "PathPoint.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace mc {

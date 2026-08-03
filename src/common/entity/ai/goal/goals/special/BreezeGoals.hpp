@@ -27,6 +27,7 @@
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <optional>
+#include <string>
 
 namespace mc {
 

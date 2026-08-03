@@ -22,17 +22,19 @@
  */
 
 #include "LakeFeature.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include <algorithm>
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include <array>
-#include <cmath>
+#include <utility>
 
 namespace mc::world::gen::feature::lake {
 

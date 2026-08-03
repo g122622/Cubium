@@ -22,7 +22,11 @@
  */
 
 #include "BlockPredicateFilterPlacement.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include <vector>
 
 namespace mc {
 

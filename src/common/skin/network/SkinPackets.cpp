@@ -22,8 +22,15 @@
  */
 
 #include "SkinPackets.hpp"
+#include "common/core/Types.hpp"
+#include "common/skin/core/GameProfile.hpp"
 #include "util/text/ITextComponent.hpp"
+#include <array>
+#include <memory>
+#include <optional>
+#include <string>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {

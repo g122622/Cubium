@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace mc {
 namespace entity {
@@ -51,10 +52,10 @@ enum class CopperGolemWeatherState : u8 {
  * 由 MC Brain 系统在物品运输行为中切换，客户端用于触发动画。
  */
 enum class CopperGolemState : u8 {
-    Idle = 0,         ///< 空闲
-    GettingItem = 1,  ///< 拾取到物品
+    Idle = 0,          ///< 空闲
+    GettingItem = 1,   ///< 拾取到物品
     GettingNoItem = 2, ///< 尝试拾取但无物品
-    DroppingItem = 3, ///< 放下物品
+    DroppingItem = 3,  ///< 放下物品
     DroppingNoItem = 4 ///< 尝试放下但无物品
 };
 
@@ -76,10 +77,14 @@ public:
     [[nodiscard]] static std::optional<CopperGolemWeatherState> next(CopperGolemWeatherState current) noexcept
     {
         switch (current) {
-            case CopperGolemWeatherState::Unaffected: return CopperGolemWeatherState::Exposed;
-            case CopperGolemWeatherState::Exposed: return CopperGolemWeatherState::Weathered;
-            case CopperGolemWeatherState::Weathered: return CopperGolemWeatherState::Oxidized;
-            case CopperGolemWeatherState::Oxidized: return std::nullopt;
+            case CopperGolemWeatherState::Unaffected:
+                return CopperGolemWeatherState::Exposed;
+            case CopperGolemWeatherState::Exposed:
+                return CopperGolemWeatherState::Weathered;
+            case CopperGolemWeatherState::Weathered:
+                return CopperGolemWeatherState::Oxidized;
+            case CopperGolemWeatherState::Oxidized:
+                return std::nullopt;
         }
         return std::nullopt;
     }
@@ -92,10 +97,14 @@ public:
     [[nodiscard]] static std::optional<CopperGolemWeatherState> previous(CopperGolemWeatherState current) noexcept
     {
         switch (current) {
-            case CopperGolemWeatherState::Unaffected: return std::nullopt;
-            case CopperGolemWeatherState::Exposed: return CopperGolemWeatherState::Unaffected;
-            case CopperGolemWeatherState::Weathered: return CopperGolemWeatherState::Exposed;
-            case CopperGolemWeatherState::Oxidized: return CopperGolemWeatherState::Weathered;
+            case CopperGolemWeatherState::Unaffected:
+                return std::nullopt;
+            case CopperGolemWeatherState::Exposed:
+                return CopperGolemWeatherState::Unaffected;
+            case CopperGolemWeatherState::Weathered:
+                return CopperGolemWeatherState::Exposed;
+            case CopperGolemWeatherState::Oxidized:
+                return CopperGolemWeatherState::Weathered;
         }
         return std::nullopt;
     }
@@ -103,14 +112,17 @@ public:
     /**
      * @brief 从方块 OxidationLevel 转换
      */
-    [[nodiscard]] static CopperGolemWeatherState fromBlockOxidation(
-        BlockStateProperties::OxidationLevel level) noexcept
+    [[nodiscard]] static CopperGolemWeatherState fromBlockOxidation(BlockStateProperties::OxidationLevel level) noexcept
     {
         switch (level) {
-            case BlockStateProperties::OxidationLevel::Unaffected: return CopperGolemWeatherState::Unaffected;
-            case BlockStateProperties::OxidationLevel::Exposed: return CopperGolemWeatherState::Exposed;
-            case BlockStateProperties::OxidationLevel::Weathered: return CopperGolemWeatherState::Weathered;
-            case BlockStateProperties::OxidationLevel::Oxidized: return CopperGolemWeatherState::Oxidized;
+            case BlockStateProperties::OxidationLevel::Unaffected:
+                return CopperGolemWeatherState::Unaffected;
+            case BlockStateProperties::OxidationLevel::Exposed:
+                return CopperGolemWeatherState::Exposed;
+            case BlockStateProperties::OxidationLevel::Weathered:
+                return CopperGolemWeatherState::Weathered;
+            case BlockStateProperties::OxidationLevel::Oxidized:
+                return CopperGolemWeatherState::Oxidized;
         }
         return CopperGolemWeatherState::Unaffected;
     }
@@ -118,14 +130,17 @@ public:
     /**
      * @brief 转换为方块 OxidationLevel
      */
-    [[nodiscard]] static BlockStateProperties::OxidationLevel toBlockOxidation(
-        CopperGolemWeatherState state) noexcept
+    [[nodiscard]] static BlockStateProperties::OxidationLevel toBlockOxidation(CopperGolemWeatherState state) noexcept
     {
         switch (state) {
-            case CopperGolemWeatherState::Unaffected: return BlockStateProperties::OxidationLevel::Unaffected;
-            case CopperGolemWeatherState::Exposed: return BlockStateProperties::OxidationLevel::Exposed;
-            case CopperGolemWeatherState::Weathered: return BlockStateProperties::OxidationLevel::Weathered;
-            case CopperGolemWeatherState::Oxidized: return BlockStateProperties::OxidationLevel::Oxidized;
+            case CopperGolemWeatherState::Unaffected:
+                return BlockStateProperties::OxidationLevel::Unaffected;
+            case CopperGolemWeatherState::Exposed:
+                return BlockStateProperties::OxidationLevel::Exposed;
+            case CopperGolemWeatherState::Weathered:
+                return BlockStateProperties::OxidationLevel::Weathered;
+            case CopperGolemWeatherState::Oxidized:
+                return BlockStateProperties::OxidationLevel::Oxidized;
         }
         return BlockStateProperties::OxidationLevel::Unaffected;
     }
@@ -136,10 +151,14 @@ public:
     [[nodiscard]] static std::string toString(CopperGolemWeatherState state)
     {
         switch (state) {
-            case CopperGolemWeatherState::Unaffected: return "unaffected";
-            case CopperGolemWeatherState::Exposed: return "exposed";
-            case CopperGolemWeatherState::Weathered: return "weathered";
-            case CopperGolemWeatherState::Oxidized: return "oxidized";
+            case CopperGolemWeatherState::Unaffected:
+                return "unaffected";
+            case CopperGolemWeatherState::Exposed:
+                return "exposed";
+            case CopperGolemWeatherState::Weathered:
+                return "weathered";
+            case CopperGolemWeatherState::Oxidized:
+                return "oxidized";
         }
         return "unaffected";
     }
@@ -161,11 +180,16 @@ public:
     [[nodiscard]] static std::string stateToString(CopperGolemState state)
     {
         switch (state) {
-            case CopperGolemState::Idle: return "idle";
-            case CopperGolemState::GettingItem: return "getting_item";
-            case CopperGolemState::GettingNoItem: return "getting_no_item";
-            case CopperGolemState::DroppingItem: return "dropping_item";
-            case CopperGolemState::DroppingNoItem: return "dropping_no_item";
+            case CopperGolemState::Idle:
+                return "idle";
+            case CopperGolemState::GettingItem:
+                return "getting_item";
+            case CopperGolemState::GettingNoItem:
+                return "getting_no_item";
+            case CopperGolemState::DroppingItem:
+                return "dropping_item";
+            case CopperGolemState::DroppingNoItem:
+                return "dropping_no_item";
         }
         return "idle";
     }

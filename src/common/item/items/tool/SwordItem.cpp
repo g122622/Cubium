@@ -22,12 +22,21 @@
  */
 
 #include "common/item/items/tool/SwordItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/tool/TieredItem.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <string>
 
 namespace mc {
 namespace item {

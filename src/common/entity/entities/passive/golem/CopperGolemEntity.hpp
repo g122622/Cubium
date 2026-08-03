@@ -26,13 +26,20 @@
 #include "CopperGolemTypes.hpp"
 #include "GolemEntity.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/interfaces/ContainerUser.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc {
 

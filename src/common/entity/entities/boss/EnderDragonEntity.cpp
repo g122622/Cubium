@@ -22,16 +22,22 @@
  */
 
 #include "EnderDragonEntity.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/core/MoverType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -45,7 +51,11 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace entity {

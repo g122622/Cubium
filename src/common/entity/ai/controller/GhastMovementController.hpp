@@ -24,6 +24,7 @@
 #pragma once
 
 #include "MovementController.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 
 namespace mc {

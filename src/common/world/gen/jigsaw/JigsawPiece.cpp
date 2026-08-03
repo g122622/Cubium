@@ -21,13 +21,19 @@
 
 #include "JigsawAssembler.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace world {

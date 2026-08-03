@@ -24,10 +24,15 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/network/backend/java/codecs/MobEffectInstanceCodec.hpp"
 #include "common/network/backend/java/mappings/JavaPotionIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <string>
+#include <utility>
 
 namespace mc::network::backend::java {
 

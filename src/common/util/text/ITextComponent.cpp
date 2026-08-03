@@ -24,7 +24,13 @@
 #include "ITextComponent.hpp"
 #include "StringTextComponent.hpp"
 #include "TranslationTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::text {
 

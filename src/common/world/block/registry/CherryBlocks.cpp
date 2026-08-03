@@ -21,9 +21,11 @@
  */
 
 #include "world/block/registry/CherryBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
-#include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/DoorBlock.hpp"
 #include "world/block/blocks/FenceGateBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"

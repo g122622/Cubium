@@ -24,9 +24,12 @@
 #pragma once
 
 #include "Enchantment.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <array>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

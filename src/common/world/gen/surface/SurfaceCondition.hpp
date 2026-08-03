@@ -22,11 +22,13 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/gen/surface/CaveSurface.hpp"
 #include "common/world/gen/surface/VerticalAnchor.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::noise {

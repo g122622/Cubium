@@ -22,6 +22,8 @@
  */
 
 #include "StickItems.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/special/OnAStickItem.hpp"
 
 namespace mc {
 namespace item {

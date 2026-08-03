@@ -23,12 +23,16 @@
 
 #include "common/network/ir/ItemStackBridge.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
+#include <string>
 
 namespace mc {
 namespace network {

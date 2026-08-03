@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/entity/core/EntityRegistry.hpp"
+#include <string>
 
 namespace mc {
 namespace entity {

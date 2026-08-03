@@ -22,6 +22,9 @@
  */
 
 #include "entity/inventory/container/CrafterContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
@@ -29,6 +32,7 @@
 #include "item/crafting/RecipeManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
+#include <memory>
 
 namespace mc {
 

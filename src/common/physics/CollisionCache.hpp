@@ -27,6 +27,7 @@
 #include "../util/AxisAlignedBB.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <atomic>
+#include <cstddef>
 #include <optional>
 #include <shared_mutex>
 #include <unordered_map>

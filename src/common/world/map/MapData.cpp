@@ -22,15 +22,23 @@
  */
 
 #include "MapData.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/map/MapBanner.hpp"
+#include "common/world/map/MapDecoration.hpp"
+#include "common/world/map/MapFrame.hpp"
 #include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertMacros.hpp"
 #include "util/text/ITextComponent.hpp"
-#include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
 #include "world/dimension/MapDimensionId.hpp"
 #include <algorithm>
 #include <cmath>
-#include <nlohmann/json.hpp>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::world::map {
 

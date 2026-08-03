@@ -39,7 +39,20 @@
 #include "../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "../passive/basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MoverType.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
 
 namespace mc {
 namespace entity {

@@ -22,6 +22,8 @@
  */
 
 #include "IHopper.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 
 namespace mc {
 namespace blockentity {

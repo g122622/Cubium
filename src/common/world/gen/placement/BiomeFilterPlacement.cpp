@@ -22,9 +22,16 @@
  */
 
 #include "BiomeFilterPlacement.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/placement/Placement.hpp"
+#include <vector>
 
 namespace mc {
 

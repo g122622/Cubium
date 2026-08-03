@@ -26,7 +26,9 @@
 #include "../../../core/Types.hpp"
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {

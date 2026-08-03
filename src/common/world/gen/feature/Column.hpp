@@ -28,6 +28,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 

@@ -25,12 +25,17 @@
 
 #include "JigsawPiece.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

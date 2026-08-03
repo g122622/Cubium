@@ -22,6 +22,7 @@
 
 #include "common/util/text/ComponentNbtSerialization.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -29,10 +30,15 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstdint>
+#include <exception>
+#include <memory>
 #include <optional>
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::text {
 

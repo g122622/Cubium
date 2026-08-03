@@ -25,7 +25,13 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
+#include "common/world/storage/player/PlayerSaveData.hpp"
+#include "common/world/storage/section/SectionCache.hpp"
 #include "world/storage/backend/IStorageBackend.hpp"
 #include "world/storage/blockentity/BlockEntityStorageManager.hpp"
 #include "world/storage/core/SaveFormat.hpp"
@@ -47,7 +53,11 @@
 #include <optional>
 #include <unordered_map>
 
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::scoreboard {
 class ScoreboardDataManager;

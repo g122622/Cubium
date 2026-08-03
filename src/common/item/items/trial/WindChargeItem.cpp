@@ -19,14 +19,21 @@
 
 #include "WindChargeItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace item {

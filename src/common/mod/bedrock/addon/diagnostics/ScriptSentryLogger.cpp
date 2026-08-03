@@ -22,7 +22,9 @@
  */
 
 #include "common/mod/bedrock/addon/diagnostics/ScriptSentryLogger.hpp"
+#include "common/core/Types.hpp"
 
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

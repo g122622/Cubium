@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include <functional>
 #include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

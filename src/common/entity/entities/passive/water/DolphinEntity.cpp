@@ -24,7 +24,6 @@
 #include "DolphinEntity.hpp"
 
 #include "common/core/Types.hpp"
-#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/FindWaterGoal.hpp"
@@ -39,18 +38,22 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 
 #include <cmath>
+#include <memory>
+#include <optional>
 
 namespace mc {
 

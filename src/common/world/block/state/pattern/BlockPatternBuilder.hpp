@@ -24,6 +24,8 @@
 #pragma once
 
 #include "BlockPattern.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include <memory>
 #include <set>
 #include <string>

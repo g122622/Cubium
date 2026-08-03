@@ -22,6 +22,15 @@
  */
 
 #include "SmithingRecipe.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ITextComponent.hpp"
+#include <string>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace crafting {

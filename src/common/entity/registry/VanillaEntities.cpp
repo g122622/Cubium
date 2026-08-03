@@ -23,6 +23,7 @@
 
 #include "common/entity/registry/VanillaEntities.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/boss/WardenEntity.hpp"
@@ -32,7 +33,6 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/misc/OminousItemSpawnerEntity.hpp"
-#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/arthropod/CaveSpiderEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
@@ -62,7 +62,6 @@
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
-#include "common/entity/entities/passive/ambient/AmbientEntity.hpp"
 #include "common/entity/entities/passive/ambient/BatEntity.hpp"
 #include "common/entity/entities/passive/basic/ChickenEntity.hpp"
 #include "common/entity/entities/passive/basic/CowEntity.hpp"
@@ -70,16 +69,13 @@
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
-#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/entity/entities/passive/fish/CodEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
 #include "common/entity/entities/passive/golem/CopperGolemEntity.hpp"
-#include "common/entity/entities/passive/golem/GolemEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/passive/golem/SnowGolemEntity.hpp"
-#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
@@ -104,7 +100,6 @@
 #include "common/entity/entities/passive/water/DolphinEntity.hpp"
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
-#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -119,6 +114,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <mutex>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

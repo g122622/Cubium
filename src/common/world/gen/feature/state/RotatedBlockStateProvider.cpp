@@ -23,8 +23,15 @@
 
 #include "RotatedBlockStateProvider.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include <cstddef>
+#include <memory>
 
 namespace mc::world::gen::feature::state {
 

@@ -22,6 +22,9 @@
  */
 
 #include "common/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include <utility>
 
 namespace mc::world::gen::settings {
 

@@ -25,7 +25,10 @@
 
 #include "../MonsterEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

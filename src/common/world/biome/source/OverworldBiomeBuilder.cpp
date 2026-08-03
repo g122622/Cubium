@@ -21,8 +21,14 @@
  */
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include <limits>
+#include <utility>
+#include <vector>
 
 namespace mc::world::biome::source {
 

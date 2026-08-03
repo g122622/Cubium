@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/core/ScriptException.hpp"
 
 #include <string>
 

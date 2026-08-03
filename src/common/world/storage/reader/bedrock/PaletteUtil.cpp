@@ -22,6 +22,11 @@
  */
 
 #include "PaletteUtil.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <vector>
+#include <fmt/format.h>
 
 namespace mc::world::storage::reader::bedrock::palette {
 

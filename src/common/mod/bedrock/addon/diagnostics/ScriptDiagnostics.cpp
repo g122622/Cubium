@@ -22,9 +22,14 @@
  */
 
 #include "common/mod/bedrock/addon/diagnostics/ScriptDiagnostics.hpp"
+#include "common/core/Types.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 

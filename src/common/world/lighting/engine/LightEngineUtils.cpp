@@ -22,13 +22,16 @@
  */
 
 #include "LightEngineUtils.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include <climits>
+#include <algorithm>
 
 namespace mc {
 

@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "world/block/Block.hpp"
 
 namespace mc {

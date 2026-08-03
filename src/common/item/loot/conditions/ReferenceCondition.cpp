@@ -20,8 +20,9 @@
  */
 
 #include "common/item/loot/conditions/ReferenceCondition.hpp"
-#include "common/core/Types.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include <memory>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

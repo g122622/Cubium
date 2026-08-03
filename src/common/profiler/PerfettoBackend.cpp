@@ -34,6 +34,7 @@
 
 #if MC_ENABLE_TRACING
 
+#include "ProfilerManager.hpp"
 #include "TraceCategories.hpp"
 
 // 禁用 Perfetto SDK 的警告
@@ -48,9 +49,13 @@
 #endif
 
 #include <fstream>
-#include <stdexcept>
 #include <string_view>
 
+#include <cstdint>
+#include <ios>
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

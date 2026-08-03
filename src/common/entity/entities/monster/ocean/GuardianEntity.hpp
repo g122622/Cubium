@@ -26,6 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include <memory>
 #include <optional>
 

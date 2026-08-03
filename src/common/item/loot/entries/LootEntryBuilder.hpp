@@ -25,10 +25,14 @@
 
 #include "LootEntry.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {

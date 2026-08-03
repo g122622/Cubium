@@ -25,9 +25,11 @@
 
 #include "common/core/Types.hpp"
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace mc {

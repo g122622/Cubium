@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "entity/inventory/Slot.hpp"
 
 namespace mc {

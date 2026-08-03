@@ -22,9 +22,12 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace mc::world::gen::noise {
 

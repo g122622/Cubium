@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <array>
+#include <cstddef>
 #include <vector>
 
 namespace mc::world::chunk {

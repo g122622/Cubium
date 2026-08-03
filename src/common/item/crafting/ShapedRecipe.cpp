@@ -22,7 +22,15 @@
  */
 
 #include "item/crafting/ShapedRecipe.hpp"
-#include <algorithm>
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {

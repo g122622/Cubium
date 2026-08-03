@@ -22,7 +22,12 @@
  */
 
 #include "common/network/crypto/ZlibCodec.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
+#include <utility>
+#include <vector>
+#include <zconf.h>
 #include <zlib.h>
 
 namespace mc::network::crypto {

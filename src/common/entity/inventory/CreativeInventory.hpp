@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <string>
 #include <vector>
 
 namespace mc {

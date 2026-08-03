@@ -22,8 +22,16 @@
  */
 
 #include "AutoSave.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "world/storage/SingleLevelStorageManager.hpp"
+#include <chrono>
+#include <cstddef>
+#include <mutex>
+#include <string>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

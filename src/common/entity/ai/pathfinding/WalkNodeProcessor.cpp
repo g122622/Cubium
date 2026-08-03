@@ -22,7 +22,6 @@
  */
 
 #include "WalkNodeProcessor.hpp"
-#include "../../../core/Constants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockTags.hpp"
@@ -31,8 +30,16 @@
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../core/MobEntity.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <vector>
 
 namespace mc::entity::ai::pathfinding {
 

@@ -23,6 +23,7 @@
 
 #include "RabbitJumpControl.hpp"
 
+#include "common/entity/ai/controller/JumpController.hpp"
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"
 
 namespace mc::entity::ai::controller {

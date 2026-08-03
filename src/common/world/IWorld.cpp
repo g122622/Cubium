@@ -23,13 +23,15 @@
 
 #include "IWorld.hpp"
 #include "block/Block.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "entity/core/Entity.hpp"
 #include "fluid/Fluid.hpp"
-#include "fluid/FluidRegistry.hpp"
 #include "gamerule/GameRules.hpp"
 #include "redstone/RedstoneSystem.hpp"
 #include "util/Direction.hpp"
 #include "util/math/MathUtils.hpp"
+#include <memory>
 
 namespace mc {
 

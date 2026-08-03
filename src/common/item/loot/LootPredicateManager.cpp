@@ -20,6 +20,11 @@
  */
 
 #include "LootPredicateManager.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace loot {

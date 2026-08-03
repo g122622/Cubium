@@ -26,6 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../Goal.hpp"
 #include "../GoalConstants.hpp"
+#include <string>
 
 namespace mc {
 

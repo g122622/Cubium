@@ -22,16 +22,20 @@
  */
 
 #include "BoneMealItem.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/Biomes.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -42,7 +46,10 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
+#include <cstddef>
+#include <functional>
 #include <iterator>
+#include <utility>
 
 namespace mc {
 namespace item::items {

@@ -22,6 +22,8 @@
  */
 
 #include "Food.hpp"
+#include "common/core/Types.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace item::food {

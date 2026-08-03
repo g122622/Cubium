@@ -23,14 +23,22 @@
 
 #include "ZombieNautilusEntity.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/nautilus/AbstractNautilusEntity.hpp"
+#include "common/entity/entities/passive/nautilus/ZombieNautilusVariant.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -39,6 +47,7 @@
 
 #include <cmath>
 #include <memory>
+#include <optional>
 
 namespace mc {
 

@@ -22,24 +22,30 @@
  */
 
 #include "ExperienceOrbEntity.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/experience/ExperienceConstants.hpp"
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
-#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
-#include <limits>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <vector>
 
 namespace mc {
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "EntityTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <unordered_map>

@@ -23,6 +23,8 @@
 
 #include "entity/inventory/container/BrewingStandContainer.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -31,6 +33,7 @@
 #include "item/potion/PotionBrewing.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
+#include <memory>
 
 namespace mc {
 

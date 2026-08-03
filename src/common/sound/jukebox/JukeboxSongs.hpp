@@ -24,6 +24,7 @@
 #pragma once
 
 #include "JukeboxSong.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <string>

@@ -24,17 +24,35 @@
 #include "ProcessorListLoader.hpp"
 
 #include "JigsawLoaderUtils.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
 #include "common/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
+#include "common/world/gen/feature/template/RuleTest.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/jigsaw/ProcessorListRegistry.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

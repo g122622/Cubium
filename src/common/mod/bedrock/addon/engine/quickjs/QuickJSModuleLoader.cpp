@@ -23,6 +23,12 @@
 
 #include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
 
+#include <cstddef>
+#include <cstring>
+#include <functional>
+#include <mutex>
+#include <string>
+#include <utility>
 #include <quickjs.h>
 #include <spdlog/spdlog.h>
 

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/world/block/Block.hpp"
 
 namespace mc {

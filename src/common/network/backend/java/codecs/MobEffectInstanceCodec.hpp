@@ -26,8 +26,10 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
+#include <memory>
 
 namespace mc::network::backend::java {
 

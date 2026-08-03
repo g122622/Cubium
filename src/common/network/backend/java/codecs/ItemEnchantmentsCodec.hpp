@@ -24,9 +24,11 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
+#include <string>
 
 namespace mc::network::backend::java {
 

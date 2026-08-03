@@ -22,7 +22,12 @@
  */
 
 #include "common/item/loot/conditions/WeatherCheckCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
 #include "common/world/IWorld.hpp"
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 namespace loot {

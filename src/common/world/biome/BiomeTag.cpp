@@ -22,6 +22,10 @@
  */
 
 #include "BiomeTag.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc::world::biome {
 

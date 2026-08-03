@@ -25,9 +25,12 @@
 
 #include "EntityType.hpp"
 #include "common/core/Result.hpp"
+#include <cstddef>
 #include <deque>
 #include <mutex>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc {
 

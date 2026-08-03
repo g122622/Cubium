@@ -32,6 +32,7 @@
 #endif
 
 #include "../core/Types.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <vector>

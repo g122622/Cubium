@@ -26,12 +26,18 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 
+#include <cstddef>
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

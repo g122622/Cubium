@@ -37,8 +37,12 @@
 #pragma once
 
 #include "common/command/ICommandSource.hpp" // for Uuid and UuidHash
+#include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <array>
+#include <cstddef>
 #include <iomanip>
+#include <ios>
 #include <sstream>
 #include <string>
 

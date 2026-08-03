@@ -28,9 +28,7 @@
 #include "../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entity/entities/projectile/OtherProjectiles.hpp"
 #include "../../../entity/entities/projectile/ProjectileEntity.hpp"
-#include "../../../entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "../../../entity/entities/vehicle/BoatEntity.hpp"
 #include "../../../entity/inventory/IInventory.hpp"
 #include "../../../item/Items.hpp"
@@ -53,11 +51,17 @@
 #include "../../block/blocks/redstone/TNTBlock.hpp"
 #include "../../block/registry/VanillaBlocks.hpp"
 #include "../../fluid/Fluid.hpp"
-#include "../../fluid/FluidRegistry.hpp"
 #include "../../fluid/FluidTags.hpp"
 #include "../../gamerule/GameRules.hpp"
 #include "../../tick/manager/TickManager.hpp"
 #include "../Block.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include <functional>
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace blocks {

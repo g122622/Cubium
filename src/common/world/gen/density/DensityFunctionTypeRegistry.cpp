@@ -23,10 +23,18 @@
 
 #include "common/world/gen/density/DensityFunctionTypeRegistry.hpp"
 
-#include "common/resource/ResourceLocation.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
 
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::gen::density {
 

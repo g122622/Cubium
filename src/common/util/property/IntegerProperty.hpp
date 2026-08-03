@@ -24,11 +24,18 @@
 #pragma once
 
 #include "Property.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/property/IProperty.hpp"
+#include <cstddef>
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 

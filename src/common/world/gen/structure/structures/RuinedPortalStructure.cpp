@@ -23,7 +23,6 @@
 
 #include "RuinedPortalStructure.hpp"
 
-#include "../../../../core/Constants.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
@@ -35,12 +34,24 @@
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/ProtectedBlocksProcessor.hpp"
 #include "../../feature/template/Template.hpp"
-#include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawAssembler.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/feature/Feature.hpp"
+#include "common/world/gen/feature/template/RuleTest.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {

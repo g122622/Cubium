@@ -33,13 +33,23 @@
 
 #include "common/world/gameevent/VibrationSystem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::gameevent {
 

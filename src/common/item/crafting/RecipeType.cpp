@@ -22,6 +22,8 @@
  */
 
 #include "item/crafting/IRecipe.hpp"
+#include <optional>
+#include <string>
 #include <unordered_map>
 
 namespace mc {

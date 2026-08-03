@@ -39,13 +39,22 @@
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "MoverType.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/profiler/MemoryTracking.hpp"
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

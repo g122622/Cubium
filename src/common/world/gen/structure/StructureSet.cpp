@@ -23,8 +23,19 @@
 
 #include "StructureSet.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
+#include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
 
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {

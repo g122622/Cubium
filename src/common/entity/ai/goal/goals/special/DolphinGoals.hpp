@@ -27,6 +27,7 @@
 #include "../../../../../util/math/Vector3.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../Goal.hpp"
+#include <string>
 
 namespace mc {
 

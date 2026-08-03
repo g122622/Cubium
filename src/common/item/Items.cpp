@@ -23,8 +23,13 @@
 
 #include "Items.hpp"
 
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/item/armor/ArmorMaterial.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/food/Foods.hpp"
 #include "common/item/items/BannerPatternItem.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
@@ -89,16 +94,21 @@
 #include "common/item/items/weapon/ShieldItem.hpp"
 #include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/SpectralArrowItem.hpp"
-#include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/item/items/weapon/ThrowableItems.hpp"
 #include "common/item/items/weapon/TippedArrowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace {
 

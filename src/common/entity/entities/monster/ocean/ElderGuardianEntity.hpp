@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "GuardianEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include <memory>
 
 namespace mc {

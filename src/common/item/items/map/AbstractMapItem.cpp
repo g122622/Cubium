@@ -22,6 +22,7 @@
  */
 
 #include "AbstractMapItem.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc::item::items {
 

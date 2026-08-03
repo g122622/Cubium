@@ -22,8 +22,13 @@
  */
 
 #include "common/world/chunk/data/BiomeContainer.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <vector>
 
 namespace mc::world::chunk {
 

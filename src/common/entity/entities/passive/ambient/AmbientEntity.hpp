@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include <memory>

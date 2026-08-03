@@ -22,12 +22,18 @@
  */
 
 #include "FeatureSizeParser.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/feature/tree/featuresize/FeatureSize.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

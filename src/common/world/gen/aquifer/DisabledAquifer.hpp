@@ -23,6 +23,9 @@
 #pragma once
 
 #include "Aquifer.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gen/aquifer/FluidStatus.hpp"
+#include <utility>
 
 namespace mc::world::gen::aquifer {
 

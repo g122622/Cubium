@@ -26,6 +26,7 @@
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/IPositionTarget.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
 #include "common/entity/ai/brain/task/Task.hpp"
@@ -35,10 +36,18 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
+#include <cmath>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace entity {

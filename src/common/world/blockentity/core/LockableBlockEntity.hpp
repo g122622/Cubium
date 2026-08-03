@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

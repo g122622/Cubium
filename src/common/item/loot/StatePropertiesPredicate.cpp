@@ -22,13 +22,20 @@
  */
 
 #include "StatePropertiesPredicate.hpp"
+#include "common/core/Result.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/IProperty.hpp"
-#include "common/util/property/Property.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <cstddef>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

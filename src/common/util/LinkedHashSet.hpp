@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <initializer_list>
 #include <list>
 #include <unordered_map>
 #include <utility>

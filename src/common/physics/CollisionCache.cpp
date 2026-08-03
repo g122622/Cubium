@@ -22,6 +22,14 @@
  */
 
 #include "CollisionCache.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include <atomic>
+#include <cstddef>
+#include <mutex>
+#include <shared_mutex>
+#include <utility>
+#include <vector>
 
 namespace mc::physics {
 

@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/item/context/ItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 
 namespace mc {

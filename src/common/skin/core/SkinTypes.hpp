@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <array>
+#include <cstddef>
 #include <string>
 
 namespace mc::skin {

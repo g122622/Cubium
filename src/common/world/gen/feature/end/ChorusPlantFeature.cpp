@@ -23,9 +23,13 @@
 
 #include "ChorusPlantFeature.hpp"
 
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
 
 namespace mc {
 

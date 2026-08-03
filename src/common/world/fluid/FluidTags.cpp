@@ -23,8 +23,11 @@
 
 #include "FluidTags.hpp"
 #include "Fluid.hpp"
-#include "FluidRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <functional>
+#include <memory>
 #include <unordered_map>
+#include <utility>
 
 namespace mc::fluid {
 

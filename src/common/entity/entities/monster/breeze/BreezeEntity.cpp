@@ -22,6 +22,7 @@
  */
 
 #include "BreezeEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
@@ -30,9 +31,10 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
-#include "common/entity/core/EntityPose.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -43,14 +45,19 @@
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc {
 

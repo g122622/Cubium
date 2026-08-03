@@ -22,13 +22,19 @@
  */
 
 #include "PlayerEnderChestInventory.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerListener.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
 #include "util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

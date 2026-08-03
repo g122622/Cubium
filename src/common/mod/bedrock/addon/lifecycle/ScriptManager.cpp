@@ -22,10 +22,20 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
 #include "common/mod/bedrock/addon/modules/MinecraftModuleFactory.hpp"
+#include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp"
+#include "common/mod/bedrock/addon/plugin/ScriptPluginManager.hpp"
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

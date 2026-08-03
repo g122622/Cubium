@@ -23,15 +23,21 @@
 
 #include "KnowledgeBookItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
 
 #include <spdlog/spdlog.h>
 
+#include <string>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item::items {

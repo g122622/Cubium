@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include "core/Types.hpp"
 #include "entity/ai/goal/GoalConstants.hpp"
 #include "entity/ai/pathfinding/Path.hpp"

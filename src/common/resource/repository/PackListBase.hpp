@@ -32,11 +32,15 @@
 #include "common/util/assert/AssertAll.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <shared_mutex>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc::resource {

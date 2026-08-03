@@ -26,7 +26,13 @@
 #include "../../../util/Direction.hpp"
 #include "../feature/predicate/BlockPredicate.hpp"
 #include "Placement.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <algorithm>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

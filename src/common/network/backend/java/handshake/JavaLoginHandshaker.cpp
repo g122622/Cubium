@@ -23,13 +23,21 @@
 
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/crypto/Crypt.hpp"
 #include "common/network/crypto/RsaHandshake.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/handshake/HandshakePackets.hpp"
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/util/UuidUtils.hpp"
 
 #include <algorithm>
+#include <array>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::network::backend::java {
 
@@ -150,7 +158,8 @@ Result<std::array<u8, crypto::kSharedSecretBytes>> JavaLoginHandshaker::handleKe
         return secret.error();
     }
     if (secret.value().size() != crypto::kSharedSecretBytes) {
-        return Error(ErrorCode::InvalidData, "Decoded shared secret length is not 16 bytes", "JavaLoginHandshaker::handleKey");
+        return Error(
+            ErrorCode::InvalidData, "Decoded shared secret length is not 16 bytes", "JavaLoginHandshaker::handleKey");
     }
 
     // 解出 verify token 并校验。

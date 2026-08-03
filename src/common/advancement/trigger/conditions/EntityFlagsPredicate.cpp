@@ -22,9 +22,10 @@
  */
 
 #include "EntityFlagsPredicate.hpp"
+#include "common/core/Result.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

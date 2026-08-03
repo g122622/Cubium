@@ -22,10 +22,14 @@
  */
 
 #include "BedItem.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include <utility>
 
 namespace mc {
 

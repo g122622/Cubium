@@ -24,12 +24,15 @@
 #pragma once
 
 #include "command/ICommandSource.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 #include "core/Types.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/village/raid/Raid.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {

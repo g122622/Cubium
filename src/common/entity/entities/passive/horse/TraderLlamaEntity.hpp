@@ -24,8 +24,16 @@
 #pragma once
 
 #include "LlamaEntity.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace mc {
 

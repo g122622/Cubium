@@ -26,6 +26,8 @@
 #include "../../Block.hpp"
 #include "../RotatedPillarBlock.hpp"
 #include "InfestedBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 
 namespace mc {
 

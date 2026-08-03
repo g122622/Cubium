@@ -22,6 +22,9 @@
  */
 
 #include "Long2IntLRUCache.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <mutex>
 
 namespace mc {
 

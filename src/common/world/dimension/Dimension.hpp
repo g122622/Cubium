@@ -29,7 +29,9 @@
 #include "../biome/BiomeSource.hpp"
 #include "../gen/chunk/IChunkGenerator.hpp"
 #include "DimensionType.hpp"
+#include "common/world/WorldConstants.hpp"
 #include <memory>
+#include <optional>
 
 namespace mc {
 

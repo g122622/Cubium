@@ -28,6 +28,11 @@
 // ============================================================================
 
 #include "BlockInfo.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc {
 namespace world {

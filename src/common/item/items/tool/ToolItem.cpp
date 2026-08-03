@@ -22,13 +22,25 @@
  */
 
 #include "ToolItem.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/item/items/tool/TieredItem.hpp"
+#include "common/item/items/tool/ToolType.hpp"
+#include "common/item/tier/IItemTier.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/Material.hpp"
+#include <string>
+#include <unordered_set>
+#include <utility>
 
 namespace mc {
 namespace item {

@@ -23,6 +23,13 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 
 namespace mc {
 namespace blocks {

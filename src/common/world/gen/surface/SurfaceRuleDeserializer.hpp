@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 
+#include <memory>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::gen::surface {

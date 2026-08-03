@@ -24,8 +24,16 @@
 #include "SalmonEntity.hpp"
 
 #include "../../../attribute/Attributes.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

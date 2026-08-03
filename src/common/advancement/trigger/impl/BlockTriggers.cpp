@@ -22,11 +22,22 @@
  */
 
 #include "BlockTriggers.hpp"
+#include "common/advancement/MinMaxBounds.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/BlockPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

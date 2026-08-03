@@ -22,6 +22,8 @@
  */
 
 #include "world/block/registry/FlowerPotBlocks.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/decorative/FlowerPotBlock.hpp"

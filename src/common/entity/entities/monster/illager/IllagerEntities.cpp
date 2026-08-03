@@ -23,7 +23,13 @@
 
 #include "IllagerEntities.hpp"
 
-#include "entity/ai/goal/GoalFlag.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
+#include "common/item/core/UseAction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
@@ -36,13 +42,11 @@
 #include "entity/ai/pathfinding/PathNavigator.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
-#include "entity/core/EntityRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
-#include "entity/entities/projectile/OtherProjectiles.hpp"
 #include "entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "entity/interfaces/ICrossbowUser.hpp"
 #include "item/Items.hpp"
@@ -54,6 +58,8 @@
 #include "world/IWorld.hpp"
 
 #include <cmath>
+#include <memory>
+#include <utility>
 
 namespace mc {
 

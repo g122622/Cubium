@@ -23,11 +23,21 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {

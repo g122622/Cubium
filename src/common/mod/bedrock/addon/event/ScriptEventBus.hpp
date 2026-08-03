@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include <any>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <typeindex>
 #include <unordered_map>

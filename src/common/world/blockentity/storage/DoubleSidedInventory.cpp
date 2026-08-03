@@ -22,7 +22,11 @@
  */
 
 #include "world/blockentity/storage/DoubleSidedInventory.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blockentity {

@@ -22,6 +22,11 @@
  */
 
 #include "SculkBlocks.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/blocks/MultifaceBlock.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -31,7 +36,6 @@
 #include "util/math/MathUtils.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/WorldConstants.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockTags.hpp"
@@ -48,10 +52,15 @@
 #include "world/gameevent/GameEvents.hpp"
 #include "world/gameevent/VibrationSystem.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
-#include "world/tick/base/TickPriority.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

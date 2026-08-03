@@ -22,12 +22,16 @@
 
 #include "WorldPreset.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
 #include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace world {

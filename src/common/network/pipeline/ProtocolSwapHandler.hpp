@@ -26,6 +26,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/pipeline/ProtocolTableSet.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/PacketFlow.hpp"
 
 #include <type_traits>
 

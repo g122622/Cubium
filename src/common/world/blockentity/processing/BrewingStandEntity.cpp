@@ -22,18 +22,24 @@
  */
 
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/potion/PotionBrewing.hpp"
-#include "item/potion/PotionUtils.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include <algorithm>
+#include <cmath>
+#include <memory>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

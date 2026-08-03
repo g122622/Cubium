@@ -23,9 +23,11 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/core/ScriptResult.hpp"
 #include <optional>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 #include <quickjs.h>

@@ -22,8 +22,15 @@
  */
 
 #include "WorldListEntry.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/StringUtils.hpp"
+#include "common/world/WorldConfig.hpp"
 #include <algorithm>
+#include <filesystem>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::world::storage {
 

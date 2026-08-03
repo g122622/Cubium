@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <memory>
 #include <unordered_map>
 #include <vector>

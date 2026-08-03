@@ -22,9 +22,12 @@
  */
 
 #include "common/mod/bedrock/addon/plugin/ScriptPackConfiguration.hpp"
+#include "common/mod/bedrock/addon/plugin/ScriptPackPermissions.hpp"
 
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace mc::mod::bedrock::addon {
 

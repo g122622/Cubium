@@ -22,8 +22,14 @@
  */
 
 #include "MapExtendingRecipe.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "item/Items.hpp"
 #include "item/items/map/FilledMapItem.hpp"
+#include <vector>
 
 namespace mc {
 namespace crafting {

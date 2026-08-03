@@ -27,7 +27,9 @@
 #include "common/network/ir/IrPacketBase.hpp"
 
 #include <array>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::network::ir::login {

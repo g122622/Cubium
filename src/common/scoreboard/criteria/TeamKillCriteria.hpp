@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include <string>
 

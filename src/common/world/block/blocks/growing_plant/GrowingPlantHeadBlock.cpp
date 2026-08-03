@@ -21,13 +21,19 @@
  */
 
 #include "GrowingPlantHeadBlock.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/growing_plant/GrowingPlantBlock.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include <algorithm>
 
 namespace mc {
 namespace blocks {

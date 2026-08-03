@@ -29,7 +29,9 @@
 #include "common/core/Types.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc {

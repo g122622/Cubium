@@ -24,7 +24,7 @@
 #include "TraderLlamaEntity.hpp"
 
 #include "common/core/Result.hpp"
-#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
@@ -41,8 +41,13 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include <memory>
+#include <optional>
 
 namespace mc {
 

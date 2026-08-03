@@ -22,22 +22,27 @@
  */
 
 #include "DimensionSettings.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/climate/ParameterPointCodec.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
-#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctionLoader.hpp"
 #include "common/world/gen/feature/parser/BlockStateParser.hpp"
+#include "common/world/gen/settings/NoiseSettings.hpp"
 #include "common/world/gen/surface/SurfaceRule.hpp"
 #include "common/world/gen/surface/SurfaceRuleDeserializer.hpp"
 
 #include <nlohmann/json.hpp>
-#include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

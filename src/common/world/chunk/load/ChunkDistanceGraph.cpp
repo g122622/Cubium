@@ -22,10 +22,10 @@
  */
 
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
-#include <cmath>
 
 using namespace mc::trace;
 

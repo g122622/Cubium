@@ -23,7 +23,16 @@
 
 #include "RandomSpreadStructurePlacement.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
+#include <memory>
+#include <optional>
+#include <utility>
 
 namespace mc::world::gen::structure::placement {
 

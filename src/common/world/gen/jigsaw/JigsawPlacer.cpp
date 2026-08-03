@@ -20,10 +20,14 @@
 #include "JigsawPlacer.hpp"
 
 #include "JigsawAssembler.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include <vector>
 
 namespace mc {
 namespace world {

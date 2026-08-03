@@ -22,7 +22,9 @@
  */
 
 #include "CombatRules.hpp"
+#include "common/core/Types.hpp"
 #include <algorithm>
+#include <utility>
 
 namespace mc::entity::combat {
 

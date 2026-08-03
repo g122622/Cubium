@@ -28,9 +28,13 @@
 
 #include "Enchantment.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <string>
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // Forward declaration
 namespace mc {

@@ -24,7 +24,10 @@
 #pragma once
 
 #include "IInventory.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "util/Direction.hpp"
+#include <vector>
 
 namespace mc {
 

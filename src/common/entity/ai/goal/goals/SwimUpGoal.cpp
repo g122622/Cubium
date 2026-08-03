@@ -23,13 +23,17 @@
 
 #include "SwimUpGoal.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/BlockState.hpp"
 #include "../../../../world/block/Material.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/Entity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc::entity::ai::goal {
 

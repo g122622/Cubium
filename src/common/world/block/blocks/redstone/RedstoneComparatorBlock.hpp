@@ -28,7 +28,18 @@
 #include "../../../../item/core/ActionResult.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "RedstoneDiodeBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 
 namespace mc {
 

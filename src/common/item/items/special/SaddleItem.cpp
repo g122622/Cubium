@@ -23,6 +23,7 @@
 
 #include "SaddleItem.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
@@ -30,9 +31,12 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {

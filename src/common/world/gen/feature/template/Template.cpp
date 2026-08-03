@@ -23,14 +23,19 @@
 
 #include "Template.hpp"
 #include "RuleTest.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/property/IProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -40,12 +45,19 @@
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

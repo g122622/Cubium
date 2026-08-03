@@ -22,11 +22,14 @@
  */
 
 #include "StructureManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolLoader.hpp"
-#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/pools/Pools.hpp"
 #include "common/world/gen/structure/structures/BastionRemnantStructure.hpp"
 #include "common/world/gen/structure/structures/BuriedTreasureStructure.hpp"
@@ -47,6 +50,12 @@
 #include "common/world/gen/structure/structures/VillageStructure.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 #include "structures/TrialChambersStructure.hpp"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {

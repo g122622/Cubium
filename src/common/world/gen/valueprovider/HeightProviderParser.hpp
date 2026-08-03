@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/world/gen/surface/VerticalAnchor.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
 
 #include <memory>

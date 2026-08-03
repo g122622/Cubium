@@ -27,10 +27,8 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/Vector3.hpp"
 #include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/BlockTags.hpp"
@@ -39,16 +37,24 @@
 #include "../../../../world/fluid/FluidTags.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/special/TurtleGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
+#include "common/core/Result.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <optional>
 
 namespace mc {
 

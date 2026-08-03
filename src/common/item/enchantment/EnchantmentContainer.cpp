@@ -23,7 +23,15 @@
 
 #include "EnchantmentContainer.hpp"
 #include "EnchantmentRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace item {

@@ -22,6 +22,15 @@
  */
 
 #include "StainedGlassBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/IBeaconBeamColorProvider.hpp"
+#include <array>
 
 namespace mc {
 namespace block {

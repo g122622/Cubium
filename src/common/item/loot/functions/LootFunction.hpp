@@ -27,6 +27,7 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

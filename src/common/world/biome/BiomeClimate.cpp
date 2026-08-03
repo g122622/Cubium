@@ -22,6 +22,7 @@
  */
 
 #include "BiomeClimate.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <memory>

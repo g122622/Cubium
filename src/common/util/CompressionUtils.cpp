@@ -22,6 +22,10 @@
  */
 
 #include "CompressionUtils.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <vector>
+#include <zconf.h>
 #include <zlib.h>
 
 namespace mc::util {

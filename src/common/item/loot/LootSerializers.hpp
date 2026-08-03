@@ -38,14 +38,23 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/loot/LootPool.hpp"
 #include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/StatePropertiesPredicate.hpp"
+#include "common/item/loot/conditions/BlockStateCondition.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/conditions/TableBonusCondition.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
 #include "common/item/loot/functions/LootFunctions.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
+#include <string>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {

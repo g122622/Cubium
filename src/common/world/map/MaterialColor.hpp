@@ -25,6 +25,7 @@
 
 #include "core/Types.hpp"
 #include <array>
+#include <cstddef>
 
 namespace mc::world::map {
 

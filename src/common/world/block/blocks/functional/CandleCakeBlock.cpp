@@ -31,7 +31,19 @@
 #include "../../../IWorld.hpp"
 #include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -36,6 +36,7 @@
 
 #if MC_ENABLE_TRACING
 #include "PerfettoBackend.hpp"
+#include "ProfilerConfig.hpp"
 #endif
 
 #if MC_ENABLE_TRACY
@@ -54,8 +55,9 @@
 #endif
 #endif // MC_ENABLE_TRACY
 
-#include <utility>
-
+#include <memory>
+#include <string>
+#include <common/TracySystem.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

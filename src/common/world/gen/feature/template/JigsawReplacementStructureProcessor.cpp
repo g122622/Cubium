@@ -29,9 +29,18 @@
 
 #include "JigsawReplacementStructureProcessor.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/template/BlockInfo.hpp"
+#include "common/world/gen/feature/template/PlacementSettings.hpp"
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <unordered_map>
 
 namespace mc {
 namespace world {

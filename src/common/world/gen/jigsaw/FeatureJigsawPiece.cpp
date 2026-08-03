@@ -21,10 +21,17 @@
 
 #include "AssemblyTypes.hpp" // PlacedPiece 完整定义（访问 placed.position）
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp" // WorldGenRegion 完整定义（dynamic_cast 需要）
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/ConfiguredFeatureRegistry.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

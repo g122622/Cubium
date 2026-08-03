@@ -24,15 +24,27 @@
 #include "BiomeTagLoader.hpp"
 #include "BiomeLoader.hpp"
 #include "BiomeTags.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::world::biome {
 
@@ -323,13 +335,15 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
                 // 对象格式: {"id":"minecraft:desert","required":false}
                 // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("BiomeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                    spdlog::warn(
+                        "BiomeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("BiomeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
+                    spdlog::warn(
+                        "BiomeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
 
@@ -341,7 +355,8 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
 
                 resolveTagEntry(id, required, biomeIds, visitedTags);
             } else {
-                spdlog::warn("BiomeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                spdlog::warn(
+                    "BiomeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
 

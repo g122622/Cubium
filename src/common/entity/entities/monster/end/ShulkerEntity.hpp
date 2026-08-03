@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/entities/monster/MonsterEntity.hpp"
 #include "util/Direction.hpp"
 #include "world/block/BlockPos.hpp"

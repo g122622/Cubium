@@ -30,6 +30,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::item::enchant {
 class EnchantmentContainer;

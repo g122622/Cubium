@@ -22,8 +22,11 @@
  */
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptWatchdog.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 
+#include <chrono>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

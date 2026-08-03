@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mc::world::gen::structure {

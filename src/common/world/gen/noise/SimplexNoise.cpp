@@ -21,7 +21,10 @@
  */
 
 #include "common/world/gen/noise/SimplexNoise.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include <utility>
 
 namespace mc::world::gen::noise {
 

@@ -25,8 +25,11 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

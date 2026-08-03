@@ -22,14 +22,19 @@
  */
 
 #include "PacketSerializer.hpp"
-
-#include <algorithm>
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 
 #ifdef _WIN32
 #include <winsock2.h>
-#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 #else
+#include <cstddef>
+#include <cstring>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <arpa/inet.h>
 #endif
 

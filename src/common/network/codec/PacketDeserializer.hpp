@@ -26,6 +26,7 @@
 #include "../../core/Result.hpp"
 #include "../../core/Types.hpp"
 #include <array>
+#include <cstddef>
 #include <string>
 #include <vector>
 

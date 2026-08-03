@@ -22,11 +22,28 @@
  */
 
 #include "LightningRodBlock.hpp"
+#include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/DirectionalBlock.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

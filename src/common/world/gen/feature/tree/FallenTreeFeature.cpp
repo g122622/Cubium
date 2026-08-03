@@ -22,13 +22,22 @@
  */
 
 #include "FallenTreeFeature.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/parser/BlockStateProviderParser.hpp"
+#include "common/world/gen/feature/tree/decorator/TreeDecorator.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace world {

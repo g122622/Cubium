@@ -33,7 +33,11 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 // Forward declarations
 namespace mc {

@@ -23,14 +23,19 @@
 
 #include "AutoJump.hpp"
 
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/physics/PhysicsEngine.hpp"
+#include "common/entity/movement/AutoJumpConstants.hpp"
 #include "common/physics/PhysicsConstants.hpp"
+#include "common/physics/PhysicsEngine.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector2.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace mc {
 namespace entity {

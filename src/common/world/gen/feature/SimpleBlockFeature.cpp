@@ -21,9 +21,14 @@
  */
 
 #include "SimpleBlockFeature.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::world::gen::feature::cave {
 

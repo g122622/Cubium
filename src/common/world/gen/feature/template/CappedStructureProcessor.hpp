@@ -24,9 +24,14 @@
 #pragma once
 
 #include "Template.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <algorithm>
+#include <memory>
 #include <numeric>
+#include <optional>
+#include <vector>
 
 namespace mc {
 namespace world {

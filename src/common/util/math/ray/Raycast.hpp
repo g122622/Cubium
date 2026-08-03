@@ -26,6 +26,8 @@
 #include "../../../core/BlockRaycastResult.hpp"
 #include "../../../world/IWorld.hpp"
 #include "Ray.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 

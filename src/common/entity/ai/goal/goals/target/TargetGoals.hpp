@@ -27,6 +27,9 @@
 #include "entity/ai/goal/Goal.hpp"
 #include "entity/interfaces/IAngerable.hpp"
 #include <functional>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace mc {
 

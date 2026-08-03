@@ -29,12 +29,25 @@
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/interactive/PistonBlockEntity.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
 #include "MovingPistonBlock.hpp"
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/util/property/StateHolder.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include <unordered_map>
+#include "common/world/redstone/RedstonePower.hpp"
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace blocks {

@@ -22,7 +22,10 @@
  */
 
 #include "ItemRegistry.hpp"
-#include "../Items.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <utility>
 
 namespace mc {
 

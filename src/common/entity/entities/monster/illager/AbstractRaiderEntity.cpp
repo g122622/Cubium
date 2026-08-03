@@ -22,9 +22,15 @@
  */
 
 #include "AbstractRaiderEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/illager/PatrollerEntity.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/raid/Raid.hpp"
+#include "common/world/village/raid/RaiderType.hpp"
 
 namespace mc {
 

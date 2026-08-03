@@ -28,6 +28,14 @@
 #include "../Block.hpp"
 #include "../BlockPos.hpp"
 #include "../Material.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/block/BlockState.hpp"
+#include <array>
+#include <cstddef>
 #include <memory>
 
 namespace mc {

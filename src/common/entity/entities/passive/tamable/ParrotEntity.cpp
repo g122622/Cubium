@@ -37,12 +37,12 @@
 #include "../../../ai/goal/goals/interact/LandOnOwnersShoulderGoal.hpp"
 #include "../../../ai/goal/goals/interact/TameableGoals.hpp"
 #include "../../../ai/goal/goals/movement/FollowMobGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityUtils.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include <memory>
 
 namespace mc {
 

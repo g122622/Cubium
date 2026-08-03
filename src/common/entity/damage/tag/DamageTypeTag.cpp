@@ -22,7 +22,14 @@
  */
 
 #include "DamageTypeTag.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

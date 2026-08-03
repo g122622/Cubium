@@ -22,7 +22,22 @@
  */
 
 #include "FireInfoRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/registry/BambooBlocks.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
+#include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/registry/BuildingVariantBlocks.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/CherryBlocks.hpp"
+#include "common/world/block/registry/ColoredBlocks.hpp"
+#include "common/world/block/registry/GardenBlocks.hpp"
+#include "common/world/block/registry/MangroveBlocks.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/PaleGardenBlocks.hpp"
+#include "common/world/block/registry/RedstoneBlocks.hpp"
+#include "common/world/block/registry/ShelfBlocks.hpp"
+#include "common/world/block/registry/TrailsBlocks.hpp"
+#include "common/world/block/registry/VegetationBlocks.hpp"
 
 namespace mc {
 namespace blocks {

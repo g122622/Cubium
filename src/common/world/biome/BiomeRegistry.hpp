@@ -26,6 +26,7 @@
 #include "Biome.hpp"
 #include "BiomeFactory.hpp"
 #include "BiomeIds.hpp"
+#include "common/core/Types.hpp"
 #include <vector>
 
 namespace mc {

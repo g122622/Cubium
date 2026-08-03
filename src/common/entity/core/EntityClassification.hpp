@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Types.hpp"
+#include <string>
 
 namespace mc::entity {
 

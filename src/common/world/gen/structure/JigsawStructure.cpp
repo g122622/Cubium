@@ -23,7 +23,6 @@
 
 #include "JigsawStructure.hpp"
 
-#include "../../../core/Constants.hpp"
 #include "../../../util/assert/AssertMacros.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
@@ -34,6 +33,18 @@
 #include "../jigsaw/JigsawJunction.hpp"
 #include "../jigsaw/JigsawPlacer.hpp"
 #include "../jigsaw/TemplatePoolRegistry.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/jigsaw/JigsawTypes.hpp"
+#include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/valueprovider/HeightProvider.hpp"
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 

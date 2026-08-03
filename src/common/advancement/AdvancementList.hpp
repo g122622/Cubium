@@ -26,6 +26,8 @@
 #include "Advancement.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <cstddef>
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>

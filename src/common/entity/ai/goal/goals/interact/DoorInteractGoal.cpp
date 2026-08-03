@@ -23,13 +23,20 @@
 
 #include "DoorInteractGoal.hpp"
 
+#include "common/core/EnumSet.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/DoorBlock.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 
 namespace mc::entity::ai::goal {
 

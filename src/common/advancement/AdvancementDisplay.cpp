@@ -22,9 +22,19 @@
  */
 
 #include "AdvancementDisplay.hpp"
+#include "common/advancement/AdvancementFrame.hpp"
+#include "common/core/Result.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::advancement {
 

@@ -24,13 +24,20 @@
 #include "TreeFeature.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../util/property/Properties.hpp"
-#include "../../../block/BlockRegistry.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
 #include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "common/world/gen/feature/tree/featuresize/FeatureSize.hpp"
+#include "common/world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/valueprovider/IntProvider.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
 #include "foliage/CherryFoliagePlacer.hpp"
@@ -39,8 +46,13 @@
 #include "trunk/CherryTrunkPlacer.hpp"
 #include "trunk/StraightTrunkPlacer.hpp"
 #include "trunk/TrunkPlacers.hpp"
+#include <algorithm>
 #include <map>
+#include <memory>
 #include <queue>
+#include <set>
+#include <utility>
+#include <vector>
 
 namespace mc {
 

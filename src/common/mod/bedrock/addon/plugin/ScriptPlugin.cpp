@@ -22,13 +22,16 @@
  */
 
 #include "common/mod/bedrock/addon/plugin/ScriptPlugin.hpp"
-#include "common/mod/bedrock/addon/core/Capabilities.hpp"
+#include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
-#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
+#include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
-#include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
+#include "common/mod/bedrock/addon/plugin/PluginExecutionGroup.hpp"
+#include "common/mod/bedrock/addon/plugin/ScriptPackConfiguration.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPluginSource.hpp"
 
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {

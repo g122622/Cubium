@@ -27,14 +27,19 @@
 #include "common/command/CommandNode.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include <cstddef>
 #include <initializer_list>
 #include <optional>
 #include <queue>
+#include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::command {
 

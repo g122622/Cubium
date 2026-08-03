@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 
+#include <array>
 #include <cmath>
 
 namespace mc::network::backend::java::wire {

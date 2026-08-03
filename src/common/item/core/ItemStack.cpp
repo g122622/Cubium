@@ -24,17 +24,25 @@
 #include "ItemStack.hpp"
 #include "Item.hpp"
 #include "ItemRegistry.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentPatchNbt.hpp"
 #include "common/item/component/DataComponentType.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextParser.hpp"
 #include "common/world/IWorld.hpp"
@@ -42,6 +50,14 @@
 #include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <variant>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

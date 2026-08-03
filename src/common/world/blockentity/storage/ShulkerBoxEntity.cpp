@@ -22,19 +22,25 @@
  */
 
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/blocks/ShulkerBoxBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "util/AxisAlignedBB.hpp"
 #include "util/Direction.hpp"
 #include "util/assert/AssertAll.hpp"
-#include "util/math/MathConstants.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/BlockState.hpp"
+#include <memory>
+#include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {

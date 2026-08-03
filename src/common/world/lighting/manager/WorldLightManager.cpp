@@ -22,12 +22,19 @@
  */
 
 #include "WorldLightManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/LightType.hpp"
+#include "common/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include <algorithm>
 #include <memory>
+#include <string>
 
 namespace {
 
