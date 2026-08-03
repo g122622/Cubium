@@ -25,6 +25,7 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <memory>
 

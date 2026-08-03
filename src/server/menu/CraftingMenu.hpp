@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/RecipeManager.hpp"

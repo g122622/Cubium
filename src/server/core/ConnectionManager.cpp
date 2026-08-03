@@ -23,6 +23,13 @@
 
 #include "ConnectionManager.hpp"
 #include "PlayerManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

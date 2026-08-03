@@ -24,17 +24,25 @@
 #include "RecipeCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <cstddef>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace command {

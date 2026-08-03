@@ -22,7 +22,6 @@
  */
 
 #include "IntegratedServer.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
@@ -34,24 +33,17 @@
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/entity/inventory/container/ItemPickerMenu.hpp"
 #include "common/item/Items.hpp"
-#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
-#include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceEvents.hpp"
-#include "common/util/UuidUtils.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
@@ -66,7 +58,37 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include "common/core/DefaultValues.hpp"
+#include "common/core/GameDirectory.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/transport/LocalTransport.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConfig.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/dimension/Dimension.hpp"
+#include "server/core/OpListManager.hpp"
+#include "server/network/ServerHandshake.hpp"
+#include "server/network/ServerNetwork.hpp"
+#include "server/network/ServerPlayRouter.hpp"
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <ratio>
+#include <string>
+#include <thread>
+#include <utility>
+#include <variant>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 

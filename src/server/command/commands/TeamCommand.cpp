@@ -24,16 +24,24 @@
 #include "TeamCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Types.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include <memory>
 #include <sstream>
+#include <string>
+#include <vector>
 
 namespace mc {
 namespace command {

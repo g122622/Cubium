@@ -23,6 +23,7 @@
 
 #include "SculkShriekerHelper.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -31,22 +32,23 @@
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
-#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/world/ServerWorld.hpp"
-
-#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::server {
 

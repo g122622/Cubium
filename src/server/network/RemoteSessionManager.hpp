@@ -25,10 +25,15 @@
 
 #include "common/core/Types.hpp"
 #include "server/application/RemoteClientSession.hpp"
+#include "server/network/ServerNetwork.hpp"
+#include <array>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace mc::server {
 class MinecraftServer;

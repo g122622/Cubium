@@ -23,6 +23,9 @@
 
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -30,6 +33,9 @@
 #include "server/event/ServerEventBus.hpp"
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {

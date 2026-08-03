@@ -23,11 +23,17 @@
 
 #include "BlockUpdateSyncManager.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <utility>
 #include <vector>
 
 using namespace mc::trace;

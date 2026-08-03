@@ -24,13 +24,27 @@
 #include "ServerChunkManager.hpp"
 #include "ServerWorld.hpp"
 #include "SingleChunkLifecycleManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/StaticChunkCache2D.hpp"
 #include <algorithm>
+#include <atomic>
+#include <cstddef>
+#include <cstdlib>
+#include <functional>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 

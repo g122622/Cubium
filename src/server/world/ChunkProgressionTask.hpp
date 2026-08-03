@@ -28,6 +28,7 @@
 #include "server/world/StaticChunkCache2D.hpp"
 #include <atomic>
 #include <memory>
+#include <string>
 
 namespace mc::world::chunk {
 class ChunkPrimer;

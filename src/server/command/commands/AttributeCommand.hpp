@@ -23,10 +23,13 @@
 
 #pragma once
 
+#include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <string>
+#include <utility>
 
 namespace mc {
 namespace entity {

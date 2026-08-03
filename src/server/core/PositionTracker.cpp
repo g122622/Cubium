@@ -23,8 +23,12 @@
 
 #include "PositionTracker.hpp"
 #include "PlayerManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
-#include <spdlog/spdlog.h>
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include <vector>
 
 namespace mc::server::core {
 

@@ -31,8 +31,11 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <utility>
+#include <vector>
 
 // 前向声明
 namespace mc {

@@ -24,7 +24,9 @@
 #pragma once
 
 #include "ServerPlayerData.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include <cstddef>
 #include <string>
 #include <vector>
 

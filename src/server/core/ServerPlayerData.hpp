@@ -26,16 +26,21 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "server/network/IServerClientConnection.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc {

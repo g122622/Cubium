@@ -24,20 +24,29 @@
 #include "BossBarCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "server/application/IServer.hpp"
+#include "server/bossbar/BossInfo.hpp"
 #include "server/bossbar/CustomServerBossInfo.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <memory>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {

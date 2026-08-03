@@ -26,9 +26,14 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/scoreboard/core/Score.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include <memory>
 #include <set>
+#include <string>
 
 namespace mc {
 

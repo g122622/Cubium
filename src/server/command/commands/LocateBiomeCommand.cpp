@@ -24,18 +24,28 @@
 #include "LocateBiomeCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/biome/Biomes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <chrono>
+#include <cmath>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 
 namespace mc {
 namespace command {

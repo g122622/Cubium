@@ -22,6 +22,10 @@
  */
 
 #include "server/menu/CraftingMenu.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/screen/ScreenType.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
@@ -30,6 +34,8 @@
 #include "world/blockentity/CraftingTableEntity.hpp"
 
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace mc {
 

@@ -25,25 +25,46 @@
 #include "ChunkLightingProvider.hpp"
 #include "ChunkTaskScheduler.hpp"
 #include "ServerWorld.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkDistanceGraph.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <future>
+#include <limits>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -432,7 +453,8 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
                 std::lock_guard<std::mutex> lock(self->m_pendingLoadCompletesMutex);
                 self->m_pendingLoadCompletes.push_back(std::move(item));
                 // if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
-                //     spdlog::info("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
+                //     spdlog::info("Pending load-completes backlog reached {} (threshold {}); main tick may be
+                //     lagging",
                 //         self->m_pendingLoadCompletes.size(),
                 //         PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
                 // }
@@ -1761,7 +1783,8 @@ void ServerChunkManager::_debugDumpStuckHolders()
                 lifecycleManager->level());
         }
     }
-    spdlog::info("[stuck] source distribution: Unknown={} ResolvingStorage={} StorageMissing={} LoadedFromStorage={} Ready={}",
+    spdlog::info(
+        "[stuck] source distribution: Unknown={} ResolvingStorage={} StorageMissing={} LoadedFromStorage={} Ready={}",
         bySource[0],
         bySource[1],
         bySource[2],

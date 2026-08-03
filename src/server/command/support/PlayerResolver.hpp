@@ -24,7 +24,9 @@
 #pragma once
 
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <string>
 #include <vector>
 
 namespace mc::command::support {

@@ -22,9 +22,14 @@
  */
 
 #include "PlayerAdvancements.hpp"
+#include "common/advancement/Advancement.hpp"
 #include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/AdvancementProgress.hpp"
+#include "common/advancement/AdvancementRewards.hpp"
 #include "common/advancement/AdvancementVisibilityEvaluator.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
@@ -32,6 +37,7 @@
 #include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -42,6 +48,11 @@
 #include "server/function/FunctionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <functional>
+#include <set>
+#include <string>
+#include <utility>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {

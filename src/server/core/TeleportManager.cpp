@@ -24,9 +24,11 @@
 #include "TeleportManager.hpp"
 #include "ConnectionManager.hpp"
 #include "PlayerManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

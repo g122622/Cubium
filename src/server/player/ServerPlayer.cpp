@@ -23,12 +23,13 @@
 
 #include "ServerPlayer.hpp"
 
-#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/player/SleepManager.hpp"
+#include "common/entity/player/SleepResult.hpp"
 #include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -36,13 +37,18 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -52,18 +58,22 @@
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
-#include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
 #include "server/application/MinecraftServer.hpp"
-#include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/stats/StatType.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -22,6 +22,15 @@
  */
 
 #include "TimerQueue.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -245,7 +254,8 @@ void TimerQueue::deserialize(const nbt::tags::compound_list_tag& eventsList)
         } else if (typeStr == "minecraft:function_tag") {
             scheduleFunctionTag(name, std::move(loc), triggerTime);
         } else {
-            spdlog::warn("TimerQueue::deserialize: skipping event with unknown callback type: type={}, name={}", typeStr, name);
+            spdlog::warn(
+                "TimerQueue::deserialize: skipping event with unknown callback type: type={}, name={}", typeStr, name);
         }
     }
 }

@@ -24,7 +24,6 @@
 #include "BanIpCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/util/TimeUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/BannedIpList.hpp"
@@ -32,9 +31,19 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
+#include "common/command/arguments/ArgumentType.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/DateTimeUtils.hpp"
+#include "server/command/ServerCommandSource.hpp"
 
+#include <memory>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {

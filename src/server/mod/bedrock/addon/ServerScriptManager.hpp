@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "server/mod/bedrock/addon/bridge/EventBridge.hpp"
 

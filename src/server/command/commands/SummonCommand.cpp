@@ -34,13 +34,20 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/command/ServerCommandSource.hpp"
 
 #include <cmath>
+#include <memory>
 #include <sstream>
+#include <utility>
 
 namespace mc {
 namespace command {

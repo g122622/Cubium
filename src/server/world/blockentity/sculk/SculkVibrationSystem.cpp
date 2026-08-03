@@ -32,15 +32,24 @@
 
 #include "SculkVibrationSystem.hpp"
 #include "SculkShriekerHelper.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/core/CoordConverter.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
+#include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
+#include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/gameevent/GameEventListener.hpp"
+#include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <memory>
+#include <utility>
 
 namespace mc::server {
 

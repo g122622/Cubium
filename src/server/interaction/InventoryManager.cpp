@@ -22,8 +22,12 @@
  */
 
 #include "InventoryManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include <functional>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::interaction {

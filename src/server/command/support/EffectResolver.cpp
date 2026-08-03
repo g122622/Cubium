@@ -22,8 +22,13 @@
  */
 
 #include "EffectResolver.hpp"
+#include "common/entity/effect/EffectType.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace mc {

@@ -23,9 +23,13 @@
 
 #include "CommandFunction.hpp"
 #include "FunctionManager.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/function/IFunction.hpp"
 #include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

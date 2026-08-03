@@ -39,13 +39,19 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEventListener.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
+#include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 namespace mc::server {

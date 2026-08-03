@@ -22,7 +22,10 @@
  */
 
 #include "server/stats/Stat.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "server/stats/StatType.hpp"
 #include <limits>
+#include <utility>
 
 namespace mc {
 namespace server {

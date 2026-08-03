@@ -22,10 +22,19 @@
  */
 
 #include "WhitelistManager.hpp"
+#include "common/core/Result.hpp"
 
-#include <algorithm>
+#include <cstddef>
+#include <exception>
+#include <filesystem>
 #include <fstream>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <vector>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

@@ -24,13 +24,18 @@
 #include "WorldBorderCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <cmath>
+#include <algorithm>
+#include <memory>
 #include <sstream>
 
 namespace mc {

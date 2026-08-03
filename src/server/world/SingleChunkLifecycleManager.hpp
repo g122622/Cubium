@@ -22,9 +22,12 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <future>
 #include <limits>
@@ -32,6 +35,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {

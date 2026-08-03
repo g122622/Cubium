@@ -26,6 +26,8 @@
 #include "MinecraftServer.hpp"
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/GameDirectory.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -33,6 +35,8 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string>
 #include <thread>
 
 namespace mc::server {

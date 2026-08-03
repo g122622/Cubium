@@ -24,16 +24,20 @@
 #include "SpreadPlayersCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/core/Types.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
-#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/command/support/SpreadAlgorithm.hpp"
@@ -43,10 +47,19 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstddef>
 #include <iomanip>
+#include <ios>
+#include <limits>
+#include <memory>
 #include <set>
 #include <sstream>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace command {

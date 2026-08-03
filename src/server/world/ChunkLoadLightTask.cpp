@@ -23,16 +23,24 @@
 #include "ChunkLoadLightTask.hpp"
 
 #include "ServerWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include <atomic>
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 #include <fmt/format.h>
 
 using namespace mc::trace;

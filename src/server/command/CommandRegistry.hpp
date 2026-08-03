@@ -26,9 +26,13 @@
 #include "ServerCommandSource.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <functional>
 #include <future>
 #include <memory>
+#include <string>
 #include <unordered_set>
 #include <vector>
 

@@ -28,6 +28,8 @@
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/handshake/HandshakePackets.hpp"
+#include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/network/ServerNetwork.hpp"
@@ -36,6 +38,8 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::server::net {
 

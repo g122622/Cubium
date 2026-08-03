@@ -24,16 +24,25 @@
 #include "ParticleCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
+#include "common/command/CommandSource.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/network/PacketBuilders.hpp"
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 
 namespace mc {

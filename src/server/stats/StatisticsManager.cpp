@@ -22,9 +22,17 @@
  */
 
 #include "server/stats/StatisticsManager.hpp"
-#include "server/stats/StatRegistry.hpp"
-#include <algorithm>
+#include "common/core/Result.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "server/stats/StatType.hpp"
+#include <cstddef>
+#include <functional>
 #include <limits>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mc {
 namespace server {

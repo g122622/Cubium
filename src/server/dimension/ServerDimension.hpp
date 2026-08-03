@@ -23,9 +23,14 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/Dimension.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
+#include <optional>
 #include <unordered_set>
 #include <vector>
 

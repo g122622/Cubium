@@ -23,15 +23,31 @@
 
 #include "server/network/ServerNetwork.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/PacketFlow.hpp"
+#include "common/network/transport/LocalTransport.hpp"
+#include "common/network/transport/TcpTransport.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <deque>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+#include <asio/error_code.hpp>
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
 
 namespace mc::server::net {
 

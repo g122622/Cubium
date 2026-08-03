@@ -23,16 +23,20 @@
 
 #include "server/sync/WeatherSyncService.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/weather/WeatherState.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 #include <cmath>
+#include <utility>
 
 using namespace mc::trace;
 

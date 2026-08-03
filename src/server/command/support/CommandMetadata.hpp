@@ -24,8 +24,12 @@
 #pragma once
 
 #include "common/command/CommandNode.hpp"
+#include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::command::support {
 

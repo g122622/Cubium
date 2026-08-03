@@ -26,8 +26,10 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {

@@ -26,6 +26,7 @@
 #include "common/entity/effect/EffectType.hpp"
 
 #include <optional>
+#include <string_view>
 
 namespace mc::command::support {
 

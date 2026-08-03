@@ -23,9 +23,9 @@
 
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 
+#include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "server/event/events/ServerEvents.hpp"
-
-#include <typeindex>
+#include <vector>
 
 namespace mc::server {
 

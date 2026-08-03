@@ -28,10 +28,12 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <optional>
+#include <string>
 
 namespace mc {
 class BlockState;

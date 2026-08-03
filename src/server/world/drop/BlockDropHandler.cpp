@@ -23,11 +23,11 @@
 
 #include "BlockDropHandler.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/experience/ExperienceConstants.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
@@ -35,9 +35,13 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
-#include "common/item/loot/conditions/LootConditions.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -45,8 +49,11 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/world/ServerWorld.hpp"
-
-#include <cmath>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 

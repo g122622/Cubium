@@ -24,15 +24,20 @@
 #pragma once
 
 #include "ServerDimension.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace mc {
 

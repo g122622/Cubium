@@ -23,11 +23,14 @@
 
 #include "LoginFlow.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -44,6 +47,10 @@
 #include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <array>
+#include <optional>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

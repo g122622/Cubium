@@ -22,6 +22,7 @@
  */
 
 #include "TimeManager.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::server::core {
 

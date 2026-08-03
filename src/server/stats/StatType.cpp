@@ -22,6 +22,10 @@
  */
 
 #include "server/stats/StatType.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include <optional>
+#include <string>
+#include <string_view>
 
 namespace mc {
 namespace server {

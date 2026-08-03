@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

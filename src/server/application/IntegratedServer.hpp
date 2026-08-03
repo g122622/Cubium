@@ -27,16 +27,27 @@
 #include "common/command/ICommandSource.hpp" // for Uuid
 #include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/transport/LocalTransport.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include "server/network/ServerHandshake.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/network/ServerPlayRouter.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <array>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <thread>
 
 namespace mc::server {

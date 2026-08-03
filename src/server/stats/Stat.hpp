@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "server/stats/StatType.hpp"
+#include <cstddef>
 #include <functional>
 #include <string>
 

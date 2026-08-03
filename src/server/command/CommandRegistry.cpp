@@ -90,8 +90,17 @@
 #include "commands/WeatherCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/WorldBorderCommand.hpp"
+#include "common/command/CommandTreeSnapshot.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include <algorithm>
+#include <future>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

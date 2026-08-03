@@ -27,11 +27,15 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 // 前向声明
 namespace mc {

@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace mc {
 

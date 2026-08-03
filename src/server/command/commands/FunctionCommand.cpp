@@ -24,25 +24,33 @@
 #include "FunctionCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/NbtPath.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
-#include "server/command/CommandRegistry.hpp"
 #include "server/command/data/DataAccessor.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/FunctionSuggestionProvider.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <exception>
+#include <memory>
 #include <sstream>
+#include <string>
 
 namespace mc {
 namespace command {

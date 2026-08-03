@@ -22,18 +22,18 @@
  */
 
 #include "VillageSiege.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
-#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -42,6 +42,9 @@
 #include "common/world/village/VillageManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
+#include <memory>
+#include <optional>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

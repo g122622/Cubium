@@ -23,9 +23,13 @@
 
 #include "server/network/RegistryDataBuilder.hpp"
 
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "server/network/EnchantmentNbtBuilder.hpp"
 
-#include <algorithm>
+#include <initializer_list>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::server::net {

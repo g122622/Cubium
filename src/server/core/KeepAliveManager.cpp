@@ -23,6 +23,10 @@
 
 #include "KeepAliveManager.hpp"
 #include "PlayerManager.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include <vector>
 
 namespace mc::server::core {
 

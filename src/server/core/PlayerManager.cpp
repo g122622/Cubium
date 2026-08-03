@@ -22,7 +22,16 @@
  */
 
 #include "PlayerManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/sync/ChunkSync.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/network/IServerClientConnection.hpp"
 #include <cctype>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

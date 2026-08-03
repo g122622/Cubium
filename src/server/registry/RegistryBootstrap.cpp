@@ -50,11 +50,13 @@
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaPotionIdMap.hpp"
-#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
@@ -89,6 +91,8 @@
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/network/EnchantmentNbtBuilder.hpp"
+#include <cstddef>
+#include <memory>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

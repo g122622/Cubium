@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 

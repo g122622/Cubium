@@ -22,12 +22,24 @@
  */
 
 #include "ChunkSendManager.hpp"
-#include "common/network/sync/ChunkSync.hpp"
+#include "common/core/Types.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/sync/VanillaChunkWire.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/thread/ITask.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include <algorithm>
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 

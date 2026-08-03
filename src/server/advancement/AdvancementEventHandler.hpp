@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/BlockTriggers.hpp"
 #include "common/advancement/trigger/impl/ChanneledLightningTrigger.hpp"
@@ -34,9 +35,12 @@
 #include "common/advancement/trigger/impl/LocationTrigger.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"
 #include "common/advancement/trigger/impl/TickTrigger.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
@@ -52,6 +56,9 @@
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <functional>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::advancement {

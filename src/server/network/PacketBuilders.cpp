@@ -23,10 +23,18 @@
 
 #include "server/network/PacketBuilders.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include <optional>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::net {

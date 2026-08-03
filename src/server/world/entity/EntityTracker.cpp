@@ -22,7 +22,7 @@
  */
 
 #include "EntityTracker.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -32,20 +32,25 @@
 #include "common/item/core/Item.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
-#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
-#include <algorithm>
 #include <array>
 #include <cmath>
-#include <spdlog/spdlog.h>
+#include <cstddef>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

@@ -26,10 +26,13 @@
 #include "ServerPlayerData.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/sync/ChunkSync.hpp"
+#include "server/network/IServerClientConnection.hpp"
 #include <atomic>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

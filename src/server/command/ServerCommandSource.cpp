@@ -22,19 +22,26 @@
  */
 
 #include "ServerCommandSource.hpp"
+#include "common/command/CommandSource.hpp"
+#include "common/command/ICommandSource.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
+#include <optional>
+#include <string>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc {

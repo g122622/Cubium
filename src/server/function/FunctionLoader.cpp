@@ -21,10 +21,27 @@
 
 #include "FunctionLoader.hpp"
 #include "FunctionManager.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "server/function/MacroFunction.hpp"
+#include "server/function/StringTemplate.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <exception>
 #include <filesystem>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;
@@ -295,7 +312,8 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 // 引用的标签不存在于 mergedTags 中（数据包中没有定义）
                 if (mergedTags.find(refTagLoc) == mergedTags.end()) {
                     if (discardedTags.insert(tagLoc).second) {
-                        spdlog::error("FunctionLoader: Referenced tag '{}' not found (required), tag '{}' will be dropped",
+                        spdlog::error(
+                            "FunctionLoader: Referenced tag '{}' not found (required), tag '{}' will be dropped",
                             refTagLoc.toString(),
                             tagLoc.toString());
                         newDiscards = true;
@@ -304,7 +322,8 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
                 // 引用的标签存在但已被丢弃
                 else if (discardedTags.count(refTagLoc) > 0) {
                     if (discardedTags.insert(tagLoc).second) {
-                        spdlog::error("FunctionLoader: Referenced tag '{}' was dropped (required), tag '{}' will also be dropped",
+                        spdlog::error(
+                            "FunctionLoader: Referenced tag '{}' was dropped (required), tag '{}' will also be dropped",
                             refTagLoc.toString(),
                             tagLoc.toString());
                         newDiscards = true;
@@ -456,13 +475,15 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
                 // 对象格式: {"id":"namespace:path","required":false}
                 // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped", tagId.toString());
+                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped",
+                        tagId.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
+                    spdlog::warn(
+                        "FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
                     continue;
                 }
 

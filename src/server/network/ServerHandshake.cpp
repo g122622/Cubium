@@ -23,19 +23,32 @@
 
 #include "server/network/ServerHandshake.hpp"
 
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/network/ir/packets/handshake/HandshakePackets.hpp"
 #include "common/network/ir/packets/login/LoginPackets.hpp"
 #include "common/network/ir/packets/status/StatusPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "server/network/RegistryDataBuilder.hpp"
+#include "server/network/ServerNetwork.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <variant>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::server::net {
 

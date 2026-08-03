@@ -23,10 +23,19 @@
 
 #include "MacroFunction.hpp"
 #include "FunctionManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/function/IFunction.hpp"
 #include <cstdio>
+#include <exception>
+#include <iterator>
 #include <string>
+#include <utility>
+#include <variant>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc {

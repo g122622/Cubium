@@ -23,12 +23,14 @@
 
 #include "server/network/EnchantmentNbtBuilder.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/tag/ItemTag.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/buffer/NbtIo.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -39,13 +41,17 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdint>
+#include <exception>
 #include <memory>
 #include <mutex>
-#include <sstream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 #include <vector>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc::server::net {
 

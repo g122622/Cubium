@@ -23,8 +23,11 @@
 
 #include "FunctionSuggestionProvider.hpp"
 
+#include "common/command/CommandContext.hpp"
+#include "common/command/suggestions/Suggestions.hpp"
 #include "server/application/IServer.hpp"
 #include "server/function/FunctionManager.hpp"
+#include <future>
 
 namespace mc {
 namespace command {

@@ -22,12 +22,14 @@
  */
 
 #include "StandaloneServer.hpp"
-#include "common/core/DefaultValues.hpp"
 #include "common/core/GameDirectory.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
@@ -36,26 +38,24 @@
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
-#include "common/network/backend/java/JavaBackend.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/ProfilerManager.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
-#include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
+#include "common/world/WorldConfig.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
-#include "common/world/chunk/base/ChunkPos.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/dimension/Dimension.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -63,15 +63,27 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
+#include "server/interaction/ContainerManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
 #include "server/network/RemoteSessionManager.hpp"
+#include "server/network/ServerNetwork.hpp"
+#include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "minecraft-reborn/version.h"
 
-#include <array>
-#include <mutex>
+#include <atomic>
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <filesystem>
+#include <memory>
+#include <ratio>
+#include <string>
+#include <system_error>
 #include <thread>
+#include <utility>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

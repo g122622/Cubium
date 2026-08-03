@@ -19,8 +19,16 @@
 #include "ChunkLightingProvider.hpp"
 
 #include "ServerWorld.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/lighting/LightType.hpp"
 
 namespace mc::server {
 

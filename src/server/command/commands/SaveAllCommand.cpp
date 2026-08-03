@@ -24,18 +24,21 @@
 #include "SaveAllCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 
-#include <sstream>
+#include <cstddef>
+#include <memory>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace mc {

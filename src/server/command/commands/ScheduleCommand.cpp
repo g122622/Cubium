@@ -24,16 +24,21 @@
 #include "ScheduleCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/core/Types.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/FunctionSuggestionProvider.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include <limits>
+#include <memory>
 #include <sstream>
+#include <string>
 
 namespace mc {
 namespace command {

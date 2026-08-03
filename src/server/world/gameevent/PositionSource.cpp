@@ -28,8 +28,11 @@
 
 #include "common/world/gameevent/PositionSource.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <optional>
 
 namespace mc::gameevent {
 

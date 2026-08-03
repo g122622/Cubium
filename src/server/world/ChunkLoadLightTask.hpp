@@ -23,8 +23,10 @@
 #pragma once
 
 #include "RuntimeLightingProvider.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include <atomic>
 #include <string>
 
 namespace mc::server {

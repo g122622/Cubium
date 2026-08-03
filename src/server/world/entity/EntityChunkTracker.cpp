@@ -22,6 +22,11 @@
  */
 
 #include "EntityChunkTracker.hpp"
+#include "common/core/Types.hpp"
+#include <cstddef>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace mc::server {
 

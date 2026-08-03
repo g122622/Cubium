@@ -23,6 +23,7 @@
 
 #include "server/network/MapPacketBuilder.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
@@ -41,6 +42,8 @@
 
 #include <algorithm>
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc::server::net {

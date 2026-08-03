@@ -23,12 +23,12 @@
 
 #include "server/network/ServerPlayRouter.hpp"
 
+#include "common/core/Result.hpp"
+#include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/network/ServerPlayHandler.hpp"
 
 #include <spdlog/spdlog.h>
-
-#include <variant>
 
 namespace mc::server::net {
 

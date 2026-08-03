@@ -22,10 +22,9 @@
  */
 
 #include "server/stats/StatRegistry.hpp"
-#include "common/item/Items.hpp"
-#include "common/util/text/StringTextComponent.hpp"
-#include "common/world/block/BlockRegistry.hpp"
-#include <mutex>
+#include "common/resource/ResourceLocation.hpp"
+#include "server/stats/StatType.hpp"
+#include <vector>
 
 namespace mc {
 namespace server {

@@ -23,13 +23,24 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/player/SleepResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/crafting/RecipeBook.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/stats/StatisticsManager.hpp"
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 

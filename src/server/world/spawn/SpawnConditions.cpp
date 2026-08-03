@@ -22,10 +22,11 @@
  */
 
 #include "SpawnConditions.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockState.hpp"
 
 #include <algorithm>
 #include <cmath>

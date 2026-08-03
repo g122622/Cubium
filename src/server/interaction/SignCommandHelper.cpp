@@ -22,16 +22,21 @@
  */
 
 #include "SignCommandHelper.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <algorithm>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

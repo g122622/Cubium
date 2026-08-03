@@ -27,22 +27,34 @@
 #include "common/core/Types.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/blockevent/BlockEventData.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/explosion/ExplosionContext.hpp"
+#include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
+#include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/storage/core/LevelDatCodec.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -54,11 +66,16 @@
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/weather/WeatherManager.hpp"
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mc {
 

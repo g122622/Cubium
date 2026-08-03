@@ -26,12 +26,15 @@
 #include "common/advancement/Advancement.hpp"
 #include "common/advancement/AdvancementProgress.hpp"
 #include "common/advancement/AdvancementRewards.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/core/Types.hpp"
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 

@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <cstddef>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>

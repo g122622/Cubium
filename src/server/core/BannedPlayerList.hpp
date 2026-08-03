@@ -26,12 +26,14 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc::server::core {

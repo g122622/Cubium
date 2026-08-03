@@ -25,6 +25,7 @@
 
 #include "common/command/suggestions/Suggestions.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <future>
 
 namespace mc {
 namespace command {

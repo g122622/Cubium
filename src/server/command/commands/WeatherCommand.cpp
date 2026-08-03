@@ -24,15 +24,20 @@
 #include "WeatherCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
-#include "common/world/weather/WeatherState.hpp"
+#include "common/core/Types.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 
+#include <memory>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 namespace mc {
 namespace command {

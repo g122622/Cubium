@@ -26,7 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace mc {
 namespace server {

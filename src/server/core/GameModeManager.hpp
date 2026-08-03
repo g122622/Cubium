@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include <functional>
+#include <utility>
 
 namespace mc::server::core {
 

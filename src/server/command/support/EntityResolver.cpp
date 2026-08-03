@@ -26,6 +26,7 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/conditions/NBTPredicate.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -35,12 +36,12 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/scoreboard/core/Score.hpp"
-#include "common/scoreboard/core/ScoreObjective.hpp"
-#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -50,7 +51,11 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace mc {
 namespace command::support {

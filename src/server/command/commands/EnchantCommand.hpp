@@ -23,8 +23,10 @@
 
 #pragma once
 
+#include "common/command/CommandContext.hpp"
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandSource.hpp"
+#include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
 namespace mc {

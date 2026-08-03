@@ -24,10 +24,19 @@
 #include "ServerPlayerEntityManager.hpp"
 #include "../../world/ServerWorld.hpp"
 #include "../../world/entity/EntityTracker.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
+#include "server/network/ServerNetwork.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {

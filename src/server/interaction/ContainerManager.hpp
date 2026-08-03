@@ -32,6 +32,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace mc::server {

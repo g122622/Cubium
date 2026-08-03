@@ -25,11 +25,14 @@
 #include "ConnectionManager.hpp"
 #include "PlayerManager.hpp"
 #include "ServerPlayerData.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/GameActions.hpp"
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {

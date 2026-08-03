@@ -23,12 +23,19 @@
 
 #include "RemoteSessionManager.hpp"
 
+#include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/IrPacket.hpp"
-#include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/application/RemoteClientSession.hpp"
 #include "server/network/LoginFlow.hpp"
+#include "server/network/ServerHandshake.hpp"
 #include "server/network/ServerNetwork.hpp"
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
 

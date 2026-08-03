@@ -27,6 +27,7 @@
 #include "common/network/protocol/GameActions.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <functional>
+#include <optional>
 #include <unordered_map>
 
 namespace mc {

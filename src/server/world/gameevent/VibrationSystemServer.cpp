@@ -32,16 +32,21 @@
 #include "common/world/gameevent/VibrationSystem.hpp"
 
 #include <cmath>
+#include <utility>
 
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
-#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerChunkManager.hpp"

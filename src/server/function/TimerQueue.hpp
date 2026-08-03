@@ -4,6 +4,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
+#include <functional>
+#include <memory>
 #include <queue>
 #include <string>
 #include <unordered_map>

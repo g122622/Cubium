@@ -23,10 +23,8 @@
 
 #include "server/world/structure/StructureLocator.hpp"
 
-#include "server/world/ServerChunkManager.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/core/CoordConverter.hpp"
-#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/StructureCheck.hpp"
@@ -34,11 +32,13 @@
 #include "common/world/gen/structure/StructureTags.hpp"
 #include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
 #include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include <spdlog/spdlog.h>
 
 #include <limits>
+#include <optional>
 
 namespace mc::server::structure {
 

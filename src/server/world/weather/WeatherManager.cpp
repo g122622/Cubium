@@ -22,20 +22,30 @@
  */
 
 #include "WeatherManager.hpp"
-#include "common/core/Constants.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
-#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/weather/WeatherConstants.hpp"
+#include "common/world/weather/WeatherUtils.hpp"
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <memory>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

@@ -28,11 +28,20 @@
 
 #include "GameRuleCommand.hpp"
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/gamerule/GameRule.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "spdlog/spdlog.h"
 #include <algorithm>
+#include <cctype>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace mc::command {
 

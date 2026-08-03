@@ -24,16 +24,19 @@
 #include "ReloadCommand.hpp"
 
 #include "common/advancement/AdvancementLoader.hpp"
-#include "common/advancement/AdvancementManager.hpp"
 #include "common/command/CommandContext.hpp"
+#include "common/command/CommandDispatcher.hpp"
+#include "common/command/CommandNode.hpp"
+#include "common/core/Types.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
-#include "common/resource/repository/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
+#include <memory>
+#include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -17,11 +17,23 @@
  */
 
 #include "SingleChunkLifecycleManager.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
+#include <atomic>
+#include <cstddef>
+#include <functional>
+#include <future>
 #include <limits>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
 
 using namespace mc::trace;
 

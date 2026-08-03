@@ -24,12 +24,14 @@
 #include "MiningManager.hpp"
 #include "InventoryManager.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
-#include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/network/protocol/GameActions.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/Block.hpp"
@@ -38,6 +40,12 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <optional>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 using namespace mc::trace;

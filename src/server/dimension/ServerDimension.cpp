@@ -23,16 +23,26 @@
 
 #include "ServerDimension.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/spawn/DespawnManager.hpp"
 #include "server/world/spawn/NaturalSpawner.hpp"
 #include "server/world/spawn/VillageSiege.hpp"
+#include <algorithm>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <utility>
 
 using namespace mc::trace;
 

@@ -25,8 +25,10 @@
 
 #include "common/core/Types.hpp"
 #include "server/network/ServerNetwork.hpp"
+#include <cstddef>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

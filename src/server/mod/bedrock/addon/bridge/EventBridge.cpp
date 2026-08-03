@@ -27,7 +27,9 @@
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 
+#include <any>
 #include <typeindex>
+#include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
