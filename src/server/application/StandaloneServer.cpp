@@ -498,7 +498,7 @@ void StandaloneServer::_setupContainerCallbacks()
 
         switch (type) {
             case mc::ContainerType::Crafting: {
-                auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
+                auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory);
                 menu->updateResult();
                 result.menu = std::move(menu);
                 return result;

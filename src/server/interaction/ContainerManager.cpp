@@ -96,7 +96,7 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
             return Error(ErrorCode::InvalidState, "Player inventory not initialized");
         }
 
-        auto menu = std::make_unique<CraftingMenu>(containerId, playerInventory, nullptr);
+        auto menu = std::make_unique<CraftingMenu>(containerId, playerInventory);
         menu->updateResult();
         createdMenu.menu = std::move(menu);
     }

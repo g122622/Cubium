@@ -1015,8 +1015,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 const ContainerType type = static_cast<ContainerType>(p.menuType);
 
                 if (type == ContainerType::Crafting) {
-                    auto craftingMenu =
-                        std::make_unique<mc::CraftingMenu>(containerId, &m_app.m_player->inventory(), nullptr);
+                    auto craftingMenu = std::make_unique<mc::CraftingMenu>(containerId, &m_app.m_player->inventory());
                     auto screen = std::make_unique<ui::minecraft::CraftingScreen>(
                         std::move(craftingMenu), makeContainerClickSender(), makeContainerCloseSender());
                     if (m_app.m_renderer && m_app.m_renderer->isGuiRendererInitialized()) {

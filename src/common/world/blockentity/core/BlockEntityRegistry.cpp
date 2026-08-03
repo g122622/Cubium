@@ -27,7 +27,6 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "util/assert/AssertAll.hpp"
-#include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include "world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "world/blockentity/interactive/BellBlockEntity.hpp"
@@ -87,10 +86,6 @@ void BlockEntityRegistry::registerType(BlockEntityType type, Factory factory)
 
 void BlockEntityRegistry::registerBuiltinTypes()
 {
-    // 注册工作台方块实体
-    registerType(
-        BlockEntityType::CraftingTable, [](const BlockPos& pos) { return std::make_unique<CraftingTableEntity>(pos); });
-
     // 注册活塞方块实体
     registerType(BlockEntityType::Piston, [](const BlockPos& pos) { return std::make_unique<PistonBlockEntity>(pos); });
 

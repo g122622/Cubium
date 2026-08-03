@@ -29,7 +29,6 @@
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/ShapedRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/blockentity/CraftingTableEntity.hpp"
 #include "server/menu/CraftingMenu.hpp"
 
 #include <memory>
@@ -100,35 +99,26 @@ protected:
     {
         m_player = std::make_unique<Player>(1, "MenuTester");
         m_playerInventory = std::make_unique<PlayerInventory>(m_player.get());
-        m_blockEntity = std::make_unique<CraftingTableEntity>(BlockPos(0, 64, 0));
     }
 
     void TearDown() override { crafting::RecipeManager::instance().clear(); }
 
     std::unique_ptr<Player> m_player;
     std::unique_ptr<PlayerInventory> m_playerInventory;
-    std::unique_ptr<CraftingTableEntity> m_blockEntity;
 };
 
-TEST_F(CraftingMenuTest, StillValid_WhenPlayerIsNearCraftingTable_ReturnsTrue)
+TEST_F(CraftingMenuTest, StillValid_AlwaysReturnsTrueForPureContainerMenu)
 {
-    CraftingMenu menu(1, m_playerInventory.get(), m_blockEntity.get());
-    m_player->setPosition(0.5f, 64.0f, 0.5f);
+    // vanilla 工作台不是方块实体，CraftingMenu 为纯容器菜单，stillValid 恒返回 true。
+    CraftingMenu menu(1, m_playerInventory.get());
+    m_player->setPosition(12.5f, 64.0f, 0.5f);
 
     EXPECT_TRUE(menu.stillValid(*m_player));
 }
 
-TEST_F(CraftingMenuTest, StillValid_WhenPlayerIsTooFar_ReturnsFalse)
-{
-    CraftingMenu menu(1, m_playerInventory.get(), m_blockEntity.get());
-    m_player->setPosition(12.5f, 64.0f, 0.5f);
-
-    EXPECT_FALSE(menu.stillValid(*m_player));
-}
-
 TEST_F(CraftingMenuTest, GetCurrentRecipeId_ReturnsEmptyWhenNoMatch)
 {
-    CraftingMenu menu(1, m_playerInventory.get(), m_blockEntity.get());
+    CraftingMenu menu(1, m_playerInventory.get());
 
     // 空网格，没有匹配的配方
     ResourceLocation recipeId = menu.getCurrentRecipeId();
@@ -144,7 +134,7 @@ TEST_F(CraftingMenuTest, GetCurrentRecipeId_ReturnsRecipeIdWhenMatch)
     );
     crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
 
-    CraftingMenu menu(1, m_playerInventory.get(), m_blockEntity.get());
+    CraftingMenu menu(1, m_playerInventory.get());
 
     // 空网格匹配空原料配方
     menu.updateResult();
@@ -160,7 +150,7 @@ TEST_F(CraftingMenuTest, GetCurrentRecipeId_UpdatesAfterGridChange)
         ResourceLocation("test", "empty_recipe"), std::vector<crafting::Ingredient>(), ItemStack());
     crafting::RecipeManager::instance().registerRecipe(std::move(emptyRecipe));
 
-    CraftingMenu menu(1, m_playerInventory.get(), m_blockEntity.get());
+    CraftingMenu menu(1, m_playerInventory.get());
 
     // 初始状态：匹配空配方
     menu.updateResult();

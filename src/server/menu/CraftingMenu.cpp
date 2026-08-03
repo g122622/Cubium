@@ -31,7 +31,6 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/crafting/RecipeManager.hpp"
-#include "world/blockentity/CraftingTableEntity.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -97,10 +96,9 @@ void shrinkCraftingGrid(CraftingInventory& grid, const crafting::CraftingRecipe*
 
 // ========== CraftingMenu 实现 ==========
 
-CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory, CraftingTableEntity* blockEntity)
+CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory)
     : AbstractContainerMenu(id, playerInventory)
     , m_craftingGrid(GRID_WIDTH, GRID_HEIGHT)
-    , m_blockEntity(blockEntity)
     , m_screenType(ScreenType::CraftingTable)
 {
 
@@ -124,7 +122,6 @@ CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory, Cra
 CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory, i32 width, i32 height)
     : AbstractContainerMenu(id, playerInventory)
     , m_craftingGrid(width, height)
-    , m_blockEntity(nullptr)
     , m_screenType(ScreenType::Inventory)
 {
 
@@ -180,13 +177,10 @@ ItemStack CraftingMenu::clicked(i32 slotIndex, i32 button, ClickType clickType, 
 
 bool CraftingMenu::stillValid(const Player& player) const
 {
-    if (m_blockEntity == nullptr) {
-        return true;
-    }
-
-    const BlockPos pos = m_blockEntity->getPos();
-    return player.distanceSqTo(
-               static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f) <= 64.0f;
+    (void)player;
+    // vanilla 工作台不是方块实体，本菜单为纯容器菜单，
+    // 距离合法性由客户端关屏与网络层容器协议保障，菜单层恒返回 true。
+    return true;
 }
 
 ItemStack CraftingMenu::quickMoveStack(i32 slotIndex, Player& player)

@@ -5,8 +5,8 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/blockentity/CraftingTableEntity.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
+#include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -34,10 +34,10 @@ protected:
         // 初始化方块注册表（NoiseChunkGenerator 依赖）
         VanillaBlocks::initialize();
 
-        // 注册内置方块实体类型工厂（CraftingTable 等）。
+        // 注册内置方块实体类型工厂（Piston/Chest 等）。
         // 反序列化路径 BlockEntityStorageManager -> BlockEntityDeserializer ->
         // BlockEntityRegistry::create 依赖此注册，否则 create 返回 nullptr，
-        // 警告 "Failed to create block entity of type 'minecraft:crafting_table'"。
+        // 警告 "Failed to create block entity of type 'minecraft:piston'"。
         // 与 SignEntityTest.cpp:46 同一模式。registerBuiltinTypes 幂等，重复调用无副作用。
         blockentity::BlockEntityRegistry::instance().registerBuiltinTypes();
 
@@ -110,7 +110,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     EntityInstanceId entityId = world->spawnEntity(std::move(entity));
     ASSERT_NE(entityId, 0);
 
-    auto blockEntity = std::make_unique<CraftingTableEntity>(BlockPos(1, 64, 1));
+    auto blockEntity = std::make_unique<blockentity::PistonBlockEntity>(BlockPos(1, 64, 1));
     // 注意：不能在同一表达式里同时用 blockEntity->getPos() 和 blockEntity.release()。
     // 函数实参求值顺序未指定：若 release() 先求值，unique_ptr 内部裸指针被置空，
     // 随后 getPos() 在空指针上内联读取 m_pos（偏移 0x0C/0x10/0x14），在 m_pos.z

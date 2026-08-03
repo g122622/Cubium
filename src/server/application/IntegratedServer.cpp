@@ -1009,7 +1009,7 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
 
     switch (type) {
         case ContainerType::Crafting: {
-            auto craftingMenu = std::make_unique<CraftingMenu>(containerId, &m_clientInventory, nullptr);
+            auto craftingMenu = std::make_unique<CraftingMenu>(containerId, &m_clientInventory);
             craftingMenu->updateResult();
             menu = std::move(craftingMenu);
             break;

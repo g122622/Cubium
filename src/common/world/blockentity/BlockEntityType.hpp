@@ -47,24 +47,16 @@ enum class BlockEntityType : u16 {
     Barrel,       ///< 木桶
 
     // 工作类
-    CraftingTable,    ///< 工作台
-    Furnace,          ///< 熔炉
-    BlastFurnace,     ///< 高炉
-    Smoker,           ///< 烟熏炉
-    BrewingStand,     ///< 酿造台
-    Anvil,            ///< 铁砧
-    Grindstone,       ///< 磨石
-    Stonecutter,      ///< 切石机
-    SmithingTable,    ///< 锻造台
-    Loom,             ///< 织布机
-    CartographyTable, ///< 制图台
+    Furnace,      ///< 熔炉
+    BlastFurnace, ///< 高炉
+    Smoker,       ///< 烟熏炉
+    BrewingStand, ///< 酿造台
 
     // 红石类
     Dispenser,        ///< 发射器
     Dropper,          ///< 投掷器
     Hopper,           ///< 漏斗
     Piston,           ///< 活塞
-    Observer,         ///< 侦测器
     Comparator,       ///< 红石比较器
     DaylightDetector, ///< 阳光探测器
 

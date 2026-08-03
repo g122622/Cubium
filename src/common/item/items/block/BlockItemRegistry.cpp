@@ -123,9 +123,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
             return;
         }
 
-        // 从方块位置推断物品名称
-        const ResourceLocation& blockLoc = block->blockLocation();
-        ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+        // 用传入的 name 构造物品资源位置，而非方块的 blockLocation。
+        // vanilla 中部分方块（potted_*、wall_torch、candle_cake 等）没有与方块同名的物品，
+        // 其物品映射到另一个名字（potted_* → flower_pot、wall_torch → torch 等），
+        // 这些方块的注册调用已传入正确的物品名；若用 blockLocation 则会得到不存在的物品名，
+        // 导致 JavaItemIdMap 映射失败兜底成 air。
+        ResourceLocation itemLoc("minecraft", name);
 
         BlockItem* registeredItem = nullptr;
         Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
@@ -612,7 +615,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DEAD_FIRE_CORAL_FAN, "dead_fire_coral_fan");
     registerSimpleBlock(VanillaBlocks::DEAD_HORN_CORAL_FAN, "dead_horn_coral_fan");
     registerSimpleBlock(VanillaBlocks::SEAGRASS, "seagrass");
-    registerSimpleBlock(VanillaBlocks::TALL_SEAGRASS, "tall_seagrass");
+    // tall_seagrass 在 vanilla 中没有独立物品（由骨粉作用于海草生成），不注册 BlockItem。
     registerSimpleBlock(VanillaBlocks::BAMBOO, "bamboo");
 
     // 下界矿石
@@ -841,24 +844,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_CANDLE, "red_candle");
     registerSimpleBlock(VanillaBlocks::BLACK_CANDLE, "black_candle");
 
-    // 蜡烛蛋糕
-    registerSimpleBlock(VanillaBlocks::CANDLE_CAKE, "candle_cake");
-    registerSimpleBlock(VanillaBlocks::WHITE_CANDLE_CAKE, "white_candle_cake");
-    registerSimpleBlock(VanillaBlocks::ORANGE_CANDLE_CAKE, "orange_candle_cake");
-    registerSimpleBlock(VanillaBlocks::MAGENTA_CANDLE_CAKE, "magenta_candle_cake");
-    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CANDLE_CAKE, "light_blue_candle_cake");
-    registerSimpleBlock(VanillaBlocks::YELLOW_CANDLE_CAKE, "yellow_candle_cake");
-    registerSimpleBlock(VanillaBlocks::LIME_CANDLE_CAKE, "lime_candle_cake");
-    registerSimpleBlock(VanillaBlocks::PINK_CANDLE_CAKE, "pink_candle_cake");
-    registerSimpleBlock(VanillaBlocks::GRAY_CANDLE_CAKE, "gray_candle_cake");
-    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CANDLE_CAKE, "light_gray_candle_cake");
-    registerSimpleBlock(VanillaBlocks::CYAN_CANDLE_CAKE, "cyan_candle_cake");
-    registerSimpleBlock(VanillaBlocks::PURPLE_CANDLE_CAKE, "purple_candle_cake");
-    registerSimpleBlock(VanillaBlocks::BLUE_CANDLE_CAKE, "blue_candle_cake");
-    registerSimpleBlock(VanillaBlocks::BROWN_CANDLE_CAKE, "brown_candle_cake");
-    registerSimpleBlock(VanillaBlocks::GREEN_CANDLE_CAKE, "green_candle_cake");
-    registerSimpleBlock(VanillaBlocks::RED_CANDLE_CAKE, "red_candle_cake");
-    registerSimpleBlock(VanillaBlocks::BLACK_CANDLE_CAKE, "black_candle_cake");
+    // 蜡烛蛋糕（candle_cake）在 vanilla 中没有独立物品：玩家通过在蛋糕上插蜡烛生成该方块，
+    // 物品形式仍是 cake + candle，故不为其注册 BlockItem（否则 JavaItemIdMap 因物品名不存在而告警）。
+
     registerSimpleBlock(VanillaBlocks::TARGET, "target");
     registerSimpleBlock(VanillaBlocks::NOTE_BLOCK, "note_block");
     registerSimpleBlock(VanillaBlocks::DRAGON_EGG, "dragon_egg");
@@ -1111,8 +1099,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SOUL_TORCH, "soul_torch");
     registerSimpleBlock(VanillaBlocks::SOUL_WALL_TORCH, "soul_torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
-    registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
-    registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");
+    registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "repeater");
+    registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "comparator");
     registerSimpleBlock(VanillaBlocks::OBSERVER, "observer");
 
     // 避雷针（含氧化和涂蜡变种）
@@ -1184,7 +1172,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::STICKY_PISTON, "sticky_piston");
     registerSimpleBlock(VanillaBlocks::DISPENSER, "dispenser");
     registerSimpleBlock(VanillaBlocks::DROPPER, "dropper");
-    registerSimpleBlock(VanillaBlocks::TRIPWIRE, "tripwire");
+    // tripwire 在 vanilla 中没有独立物品（由 tripwire_hook 与 string 触发形成），不注册 BlockItem。
     registerSimpleBlock(VanillaBlocks::TRIPWIRE_HOOK, "tripwire_hook");
 
     // 铁轨

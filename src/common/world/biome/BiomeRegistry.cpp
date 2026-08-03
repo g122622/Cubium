@@ -108,24 +108,20 @@ void BiomeRegistry::_registerDefaultBiomes()
     registerBiome(BiomeFactory::createFrozenOcean());
     registerBiome(BiomeFactory::createFrozenRiver());
     registerBiome(BiomeFactory::createSnowyPlains());
-    registerBiome(BiomeFactory::createSnowyMountains());
 
     // === 蘑菇岛 (14-15) ===
     registerBiome(BiomeFactory::createMushroomFields());
-    registerBiome(BiomeFactory::createMushroomFieldShore());
+    // mushroom_field_shore 是 1.16.5 已删除变体，vanilla 1.21.11 无此群系，不再注册。
 
     // === 海滩 (16) ===
     registerBiome(BiomeFactory::createBeach());
 
     // === 山地变体和丘陵 (17-20) ===
-    registerBiome(BiomeFactory::createDesertHills());
-    registerBiome(BiomeFactory::createWoodedHills());
-    registerBiome(BiomeFactory::createTaigaHills());
-    registerBiome(BiomeFactory::createMountainEdge());
+    // desert_hills/wooded_hills/taiga_hills/mountain_edge 均为 1.16.5 已删除变体，不再注册。
 
     // === 丛林 (21-23) ===
     registerBiome(BiomeFactory::createJungle());
-    registerBiome(BiomeFactory::createJungleHills());
+    // jungle_hills 是 1.16.5 已删除变体，不再注册。
     registerBiome(BiomeFactory::createJungleEdge());
 
     // === 深海和石岸 (24-25) ===
@@ -137,18 +133,18 @@ void BiomeRegistry::_registerDefaultBiomes()
 
     // === 桦木森林 (27-28) ===
     registerBiome(BiomeFactory::createBirchForest());
-    registerBiome(BiomeFactory::createBirchForestHills());
+    // birch_forest_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 黑森林 (29) ===
     registerBiome(BiomeFactory::createDarkForest());
 
     // === 雪地针叶林 (30-31) ===
     registerBiome(BiomeFactory::createSnowyTaiga());
-    registerBiome(BiomeFactory::createSnowyTaigaHills());
+    // snowy_taiga_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 大型针叶林 (32-33) ===
     registerBiome(BiomeFactory::createGiantTreeTaiga());
-    registerBiome(BiomeFactory::createGiantTreeTaigaHillsBiome());
+    // giant_tree_taiga_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 热带草原 (34-36) ===
     registerBiome(BiomeFactory::createWoodedMountains());
@@ -158,13 +154,13 @@ void BiomeRegistry::_registerDefaultBiomes()
     // === 恶地 (37-39) ===
     registerBiome(BiomeFactory::createBadlands());
     registerBiome(BiomeFactory::createWoodedBadlandsPlateau());
-    registerBiome(BiomeFactory::createBadlandsPlateau());
+    // badlands_plateau 是 1.16.5 已删除变体，不再注册。
 
     // === 海洋温度变体 (44-50) ===
     registerBiome(BiomeFactory::createWarmOcean());
     registerBiome(BiomeFactory::createLukewarmOcean());
     registerBiome(BiomeFactory::createColdOcean());
-    registerBiome(BiomeFactory::createDeepWarmOcean());
+    // deep_warm_ocean 是 1.16.5 已删除变体，不再注册。
     registerBiome(BiomeFactory::createDeepLukewarmOcean());
     registerBiome(BiomeFactory::createDeepColdOcean());
     registerBiome(BiomeFactory::createDeepFrozenOcean());
@@ -174,33 +170,27 @@ void BiomeRegistry::_registerDefaultBiomes()
 
     // === 丛林变体 (168-169) ===
     registerBiome(BiomeFactory::createBambooJungle());
-    registerBiome(BiomeFactory::createBambooJungleHills());
+    // bamboo_jungle_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 森林变体 ===
     registerBiome(BiomeFactory::createFlowerForest());
     registerBiome(BiomeFactory::createTallBirchForest());
-    registerBiome(BiomeFactory::createTallBirchHills());
-    registerBiome(BiomeFactory::createDarkForestHills());
+    // tall_birch_hills 是 1.16.5 已删除变体，不再注册。
+    // dark_forest_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 巨型针叶林变体 (160-161) ===
     registerBiome(BiomeFactory::createGiantSpruceTaiga());
-    registerBiome(BiomeFactory::createGiantSpruceTaigaHills());
+    // giant_spruce_taiga_hills 是 1.16.5 已删除变体，不再注册。
 
     // === 稀有变体生物群系 (129-167) ===
     registerBiome(BiomeFactory::createSunflowerPlains());
-    registerBiome(BiomeFactory::createDesertLakes());
+    // 以下为 1.16.5 已删除的 "modified*" / "*_hills" / shattered_savanna_plateau 等变体，
+    // vanilla 1.21.11 已移除，不再注册：desert_lakes、taiga_mountains、swamp_hills、
+    // modified_jungle、modified_jungle_edge、snowy_taiga_mountains、modified_gravelly_mountains、
+    // shattered_savanna_plateau、modified_wooded_badlands_plateau、modified_badlands_plateau。
     registerBiome(BiomeFactory::createGravellyMountains());
-    registerBiome(BiomeFactory::createTaigaMountains());
-    registerBiome(BiomeFactory::createSwampHills());
-    registerBiome(BiomeFactory::createModifiedJungle());
-    registerBiome(BiomeFactory::createModifiedJungleEdge());
-    registerBiome(BiomeFactory::createSnowyTaigaMountains());
-    registerBiome(BiomeFactory::createModifiedGravellyMountains());
     registerBiome(BiomeFactory::createShatteredSavanna());
-    registerBiome(BiomeFactory::createShatteredSavannaPlateau());
     registerBiome(BiomeFactory::createErodedBadlands());
-    registerBiome(BiomeFactory::createModifiedWoodedBadlandsPlateau());
-    registerBiome(BiomeFactory::createModifiedBadlandsPlateau());
 
     // === 下界生物群系 (8, 170-173) ===
     registerBiome(BiomeFactory::createNetherWastes());   // ID: 8

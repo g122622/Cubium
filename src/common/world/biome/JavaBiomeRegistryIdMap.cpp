@@ -179,6 +179,11 @@ Result<void> JavaBiomeRegistryIdMap::initialize()
     size_t matched = 0;
     size_t fallback = 0;
     for (const auto& biome : BiomeRegistry::instance().allBiomes()) {
+        // 跳过未注册的空槽：BiomeRegistry 的内部数组可能存在默认构造的占位 Biome（name 为空），
+        // 这些并非真实群系，遍历时跳过以避免无意义的 miss 告警。
+        if (biome.name().empty()) {
+            continue;
+        }
         const std::string normalized = normalizeBiomeName(biome.name());
         const std::string fullName = "minecraft:" + normalized;
         u32 registryId = plainsRegistryId;

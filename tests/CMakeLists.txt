@@ -2042,7 +2042,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/HopperEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/transport/IHopper.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/redstone/CommandBlockEntity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/CraftingTableEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/interactive/EnchantingTableEntity.cpp
         # 试炼类方块实体
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/VaultBlockEntity.cpp

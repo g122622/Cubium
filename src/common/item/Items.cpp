@@ -1107,7 +1107,6 @@ Item* Items::DROPPER = nullptr;
 Item* Items::NOTE_BLOCK = nullptr;
 Item* Items::TNT = nullptr;
 Item* Items::TARGET = nullptr;
-Item* Items::TRIPWIRE = nullptr;
 Item* Items::TRIPWIRE_HOOK = nullptr;
 
 // 铁轨
@@ -4341,8 +4340,6 @@ void Items::_registerRedstone()
         &registerBlockBackedItem(registry, VanillaBlocks::NOTE_BLOCK, "note_block", ItemProperties().maxStackSize(64));
     TNT = &registerBlockBackedItem(registry, VanillaBlocks::TNT, "tnt", ItemProperties().maxStackSize(64));
     TARGET = &registerBlockBackedItem(registry, VanillaBlocks::TARGET, "target", ItemProperties().maxStackSize(64));
-    TRIPWIRE =
-        &registerBlockBackedItem(registry, VanillaBlocks::TRIPWIRE, "tripwire", ItemProperties().maxStackSize(64));
     TRIPWIRE_HOOK = &registerBlockBackedItem(
         registry, VanillaBlocks::TRIPWIRE_HOOK, "tripwire_hook", ItemProperties().maxStackSize(64));
 

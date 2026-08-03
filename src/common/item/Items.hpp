@@ -1165,7 +1165,6 @@ public:
     static Item* NOTE_BLOCK;                         // 音符盒
     static Item* TNT;                                // TNT
     static Item* TARGET;                             // 标靶
-    static Item* TRIPWIRE;                           // 绊线
     static Item* TRIPWIRE_HOOK;                      // 绊线钩
 
     // ========================================================================

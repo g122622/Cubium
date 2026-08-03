@@ -659,7 +659,6 @@ add_library(mc_common STATIC
     world/blockentity/JavaBlockEntityTypeIdMap.cpp
     world/blockentity/BlockEntity.cpp
     world/blockentity/ContainerBlockEntity.cpp
-    world/blockentity/CraftingTableEntity.cpp
 
     # Screen
     screen/ScreenType.cpp

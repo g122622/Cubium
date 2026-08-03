@@ -34,13 +34,15 @@
 
 namespace mc {
 
-class CraftingTableEntity;
 class World;
 
 /**
  * @brief 工作台容器菜单
  *
  * 管理3x3合成网格和结果槽位。
+ * vanilla 1.21.11 中工作台不是方块实体，本菜单为纯容器菜单，
+ * 合成网格状态由菜单自管，不绑定任何方块实体。
+ *
  * 槽位布局：
  * - 槽位 0-8: 合成网格 (3x3)
  * - 槽位 9: 结果槽位
@@ -63,12 +65,11 @@ public:
      * @brief 构造函数
      * @param id 容器ID
      * @param playerInventory 玩家背包
-     * @param blockEntity 工作台方块实体（可为nullptr表示玩家背包合成）
      */
-    CraftingMenu(ContainerId id, PlayerInventory* playerInventory, CraftingTableEntity* blockEntity);
+    CraftingMenu(ContainerId id, PlayerInventory* playerInventory);
 
     /**
-     * @brief 构造函数（无方块实体，用于玩家背包2x2合成）
+     * @brief 构造函数（指定网格尺寸，用于玩家背包2x2合成）
      * @param id 容器ID
      * @param playerInventory 玩家背包
      * @param width 网格宽度
@@ -193,7 +194,6 @@ private:
 
     CraftingInventory m_craftingGrid;
     CraftResultInventory m_result;
-    CraftingTableEntity* m_blockEntity;
     ScreenType m_screenType;
     const crafting::CraftingRecipe* m_currentRecipe = nullptr; ///< 当前匹配的配方
 };
