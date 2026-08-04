@@ -133,6 +133,23 @@ struct Chat {
     [[nodiscard]] friend bool operator==(const Chat&, const Chat&) noexcept = default;
 };
 
+/**
+ * @brief ChatCommand（C→S，id=6，无签名命令提交）
+ *
+ * 对应 Java 1.21.11 ServerboundChatCommandPacket。线格式：单个 String(command)（writeUtf =
+ * VarInt 字节数 + UTF-8），不含 '/' 前缀，无 timestamp/salt/signature/lastSeen 字段。
+ * 真 Java 1.21.11 客户端提交命令走此包；本项目自有客户端改发本包后亦兼容自有服务端
+ * （LocalTransport 零拷贝直传 IR 不经 codec，route 新分支命中）。与 Chat(id=8) 的签名链
+ * 不同：本包用于离线/无签名命令提交。CommandDispatcher::parse 自动剥离前导 '/'，
+ * 故 command 字段（不含 '/'）可直接传 commandRegistry().execute。
+ */
+struct ChatCommand {
+    std::string command; // 不含 '/' 前缀
+    BedrockMeta bedrock{};
+
+    [[nodiscard]] friend bool operator==(const ChatCommand&, const ChatCommand&) noexcept = default;
+};
+
 // ============================================================================
 // 玩家移动（C→S，id=29/30/31/32）
 // ============================================================================

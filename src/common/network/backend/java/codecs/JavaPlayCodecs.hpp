@@ -293,6 +293,21 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         });
 }
 
+/// ChatCommand（C→S，id=6，无签名命令提交）
+///
+/// 对齐 vanilla ServerboundChatCommandPacket：线格式仅单个 String(command)（writeUtf =
+/// VarInt 字节数 + UTF-8），不含 '/' 前缀，无 timestamp/salt/signature/lastSeen 字段。
+/// command 字段不含 '/'，CommandDispatcher::parse 会自动剥离前导 '/'（若有），故直接透传。
+[[nodiscard]] inline auto chatCommandCodec()
+{
+    return makeCodec<ir::play::ChatCommand>([](B& buf, const ir::play::ChatCommand& v) { buf.writeString(v.command); },
+        [](B& buf) -> Result<ir::play::ChatCommand> {
+            ir::play::ChatCommand v{};
+            MC_TRY_ASSIGN(v.command, buf.readString());
+            return v;
+        });
+}
+
 // ============================================================================
 // 玩家移动（C→S）
 // ============================================================================

@@ -169,8 +169,8 @@ using B = buffer::RegistryByteBuf;
     //   ContainerClose(3) Chat(4) KeepAlive(5) SetCarriedItem(6) MovePlayerPos(7) MovePlayerPosRot(8)
     //   MovePlayerRot(9) MovePlayerStatusOnly(10) PlayerAction(11) PlayerCommand(12) PlayerInput(13)
     //   UseItem(14) UseItemOn(15) ... SignUpdate(69) ServerboundMoveVehicle(83) ClientboundMoveVehicle(84)
-    //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88)。
-    // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, chat=8,
+    //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88) ... ChunkBatchReceived(107) ChatCommand(108)。
+    // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, chat_command=6, chat=8,
     //   keep_alive=27, set_carried_item=52, move_player_pos=29, move_player_pos_rot=30,
     //   move_player_rot=31, move_player_status_only=32, player_action=40, player_command=41,
     //   player_input=42, use_item=64, use_item_on=63, configuration_acknowledged=15,
@@ -178,6 +178,10 @@ using B = buffer::RegistryByteBuf;
     //   place_recipe=38, seen_advancements=49, sign_update=59。
     b.addPacket<ir::play::AcceptTeleportation>(
         0, PacketType{PacketFlow::Serverbound, "accept_teleportation"}, 0, codecs::acceptTeleportationCodec());
+    // chat_command(id=6)：真 Java 1.21.11 客户端命令提交走此包（无签名，单 String 不含 '/')。
+    // 与 chat(id=8，带签名链) 分离，altIndex=108 对齐 PlayPacket variant 末尾。
+    b.addPacket<ir::play::ChatCommand>(
+        6, PacketType{PacketFlow::Serverbound, "chat_command"}, 108, codecs::chatCommandCodec());
     b.addPacket<ir::play::Chat>(8, PacketType{PacketFlow::Serverbound, "chat"}, 4, codecs::chatCodec());
     b.addPacket<ir::play::KeepAlive>(
         27, PacketType{PacketFlow::Serverbound, "keep_alive"}, 5, codecs::keepAliveCodec());

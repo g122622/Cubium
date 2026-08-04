@@ -107,6 +107,8 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         handleKeepAlivePacket(playerId, packet);
     } else if (std::holds_alternative<irplay::Chat>(play)) {
         handleChatMessagePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ChatCommand>(play)) {
+        handleChatCommandPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::PlayerAction>(play)) {
         handleBlockInteractionPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::UseItemOn>(play)) {
@@ -600,38 +602,67 @@ void ServerPlayHandler::handleChatMessagePacket(PlayerId playerId, const mc::net
     const std::string& message = evt->message;
 
     if (!message.empty() && message[0] == '/') {
-        // 执行命令
-        DimensionId commandDimension = 0;
-        if (auto* playerWorld = m_server.getPlayerWorld(playerId)) {
-            commandDimension = playerWorld->dimension();
-        }
-        // 从玩家管理器查找 Player 实体作为命令执行实体。
-        mc::Entity* commandEntity = nullptr;
-        if (auto* cmdDim = m_server.dimensionManager().getDimension(commandDimension)) {
-            if (auto* cmdWorld = cmdDim->world()) {
-                commandEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *cmdWorld);
-            }
-        }
-
-        mc::command::ServerCommandSource source(&m_server,
-            nullptr,
-            commandDimension,
-            Vector3d(player->x, player->y, player->z),
-            Vector2f(player->yaw, player->pitch),
-            static_cast<i32>(m_server.resolveOpLevel(player->uuid)),
-            playerId,
-            player->username,
-            commandEntity);
-        auto cmdResult = m_server.commandRegistry().execute(message, source);
-        if (cmdResult.failed()) {
-            spdlog::warn("Command '{}' failed for {}: {}", message, player->username, cmdResult.error().toString());
-        } else {
-            spdlog::info("Command '{}' executed for {} with result {}", message, player->username, cmdResult.value());
-        }
+        // 命令：message 含 '/' 前缀，CommandDispatcher::parse 自动剥离。
+        _executePlayerCommand(playerId, message);
         return;
     }
 
     spdlog::info("[Chat] {}: {}", player->username, message);
+}
+
+void ServerPlayHandler::handleChatCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ChatCommand>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    // ChatCommand.command 不含 '/' 前缀（对齐 vanilla ServerboundChatCommandPacket）。
+    // CommandDispatcher::parse 对有无 '/' 均自动剥离，故直接传 evt->command，无需补 '/'。
+    _executePlayerCommand(playerId, evt->command);
+}
+
+void ServerPlayHandler::_executePlayerCommand(PlayerId playerId, const std::string& commandInput)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    DimensionId commandDimension = 0;
+    if (auto* playerWorld = m_server.getPlayerWorld(playerId)) {
+        commandDimension = playerWorld->dimension();
+    }
+    // 从玩家管理器查找 Player 实体作为命令执行实体。
+    mc::Entity* commandEntity = nullptr;
+    if (auto* cmdDim = m_server.dimensionManager().getDimension(commandDimension)) {
+        if (auto* cmdWorld = cmdDim->world()) {
+            commandEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *cmdWorld);
+        }
+    }
+
+    mc::command::ServerCommandSource source(&m_server,
+        nullptr,
+        commandDimension,
+        Vector3d(player->x, player->y, player->z),
+        Vector2f(player->yaw, player->pitch),
+        static_cast<i32>(m_server.resolveOpLevel(player->uuid)),
+        playerId,
+        player->username,
+        commandEntity);
+    // CommandDispatcher::parse 自动剥离前导 '/'，commandInput 含或不含 '/' 均可。
+    auto cmdResult = m_server.commandRegistry().execute(commandInput, source);
+    if (cmdResult.failed()) {
+        spdlog::warn("Command '{}' failed for {}: {}", commandInput, player->username, cmdResult.error().toString());
+    } else {
+        spdlog::info("Command '{}' executed for {} with result {}", commandInput, player->username, cmdResult.value());
+    }
 }
 
 void ServerPlayHandler::handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

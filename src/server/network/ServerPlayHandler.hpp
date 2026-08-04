@@ -88,6 +88,7 @@ private:
     void handleTeleportConfirmPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleKeepAlivePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleChatMessagePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handleChatCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleBlockInteractionPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleBlockPlacementPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
@@ -108,6 +109,9 @@ private:
 
     /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
     void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);
+
+    /// 执行玩家命令。commandInput 含或不含 '/' 前缀均可（CommandDispatcher::parse 自动剥离）。
+    void _executePlayerCommand(PlayerId playerId, const std::string& commandInput);
 
     MinecraftServer& m_server;
 };

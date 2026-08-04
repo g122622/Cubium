@@ -93,6 +93,16 @@ mc::network::ir::IrPacket makeChatPacket(const std::string& message)
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{irplay::Chat{std::move(chat)}}};
 }
 
+/// 构造一个 ChatCommand IR 包（无签名命令提交，对齐 vanilla ServerboundChatCommandPacket）。
+/// command 不含 '/' 前缀。handleChatCommand 命令分支出站用。
+mc::network::ir::IrPacket makeChatCommandPacket(const std::string& command)
+{
+    irplay::ChatCommand cmd;
+    cmd.command = command;
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{irplay::ChatCommand{std::move(cmd)}}};
+}
+
 } // namespace
 
 void ClientApplication::setupNetworkCallbacks()
@@ -156,7 +166,10 @@ void ClientApplication::handleChatCommand(const std::string& input)
         spdlog::info("Chat command received: {}", std::string(command.begin(), command.end()));
 
         if (m_network && m_network->isPlaying()) {
-            (void)m_network->send(makeChatPacket(input));
+            // 命令走 ChatCommand(id=6，不含 '/')，对齐 vanilla ServerboundChatCommandPacket；
+            // 真Java 1.21.11 服务端按 id=6 解码。本地 LocalTransport 直传 IR 不经 codec，
+            // 自有服务端 route 的 ChatCommand 分支命中。
+            (void)m_network->send(makeChatCommandPacket(command));
         } else if (chatWidget) {
             chatWidget->addSystemMessage("Command executed locally (not connected to server)");
         }

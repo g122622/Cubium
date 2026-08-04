@@ -191,7 +191,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ChunkBiomes,         // 104
     play::ForgetLevelChunk,    // 105
     play::SectionBlocksUpdate, // 106
-    play::ChunkBatchReceived>; // 107
+    play::ChunkBatchReceived,  // 107
+    play::ChatCommand>;        // 108
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

@@ -21,8 +21,10 @@
  *
  */
 
+#include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/codec/StreamCodecs.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
 
 #include <gtest/gtest.h>
 
@@ -280,4 +282,46 @@ TEST(StreamCodecs, UnitCodecDecodesDefaultOnEmptyBuf)
     auto r = codec.decode(buf);
     ASSERT_TRUE(r.success());
     EXPECT_EQ(r.value(), 0);
+}
+
+// ============================================================================
+// JavaPlayCodecs: ChatCommand（id=6，无签名命令提交）往返
+// 对齐 vanilla ServerboundChatCommandPacket：单 String(command)，不含 '/' 前缀。
+// ============================================================================
+
+TEST(JavaPlayCodecs, ChatCommandRoundTrip)
+{
+    namespace codecs = mc::network::backend::java::codecs;
+    auto codec = codecs::chatCommandCodec();
+
+    // 普通多参数命令（不含 '/'，对齐 vanilla 线格式）
+    {
+        B buf;
+        mc::network::ir::play::ChatCommand in;
+        in.command = "gamemode survival";
+        codec.encode(buf, in); // LambdaCodec::encode 返回 void
+        auto r = codec.decode(buf);
+        ASSERT_TRUE(r.success());
+        EXPECT_EQ(r.value().command, "gamemode survival");
+    }
+    // 空命令字符串
+    {
+        B buf;
+        mc::network::ir::play::ChatCommand in;
+        in.command = "";
+        codec.encode(buf, in);
+        auto r = codec.decode(buf);
+        ASSERT_TRUE(r.success());
+        EXPECT_EQ(r.value().command, "");
+    }
+    // 含 UTF-8 字符的命令
+    {
+        B buf;
+        mc::network::ir::play::ChatCommand in;
+        in.command = "say 你好世界";
+        codec.encode(buf, in);
+        auto r = codec.decode(buf);
+        ASSERT_TRUE(r.success());
+        EXPECT_EQ(r.value().command, "say 你好世界");
+    }
 }
