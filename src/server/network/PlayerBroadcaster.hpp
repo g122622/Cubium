@@ -136,7 +136,7 @@ public:
     // ========== 世界事件 ==========
     void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
     void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
-    void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range = 64.0f);
+    void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range = 64.0f);
     void broadcastBlockEntityInRange(
         const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range = 64.0f);
     void broadcastBlockBreakProgressInRange(

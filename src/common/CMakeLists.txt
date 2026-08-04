@@ -60,6 +60,8 @@ add_library(mc_common STATIC
     network/backend/java/generated/java_item_table.gen.cpp
     network/backend/java/mappings/JavaBlockStateIdMap.cpp
     network/backend/java/generated/java_block_state_table.gen.cpp
+    network/backend/java/mappings/JavaBlockIdMap.cpp
+    network/backend/java/generated/java_block_id_table.gen.cpp
     network/backend/java/mappings/JavaMobEffectIdMap.cpp
     network/backend/java/mappings/JavaPotionIdMap.cpp
     network/backend/java/mappings/JavaEnchantmentIdMap.cpp
@@ -1745,6 +1747,28 @@ add_custom_command(
     VERBATIM
 )
 set_source_files_properties(${_java_item_table_gen_cpp} PROPERTIES GENERATED TRUE)
+
+# Java 协议对齐所需的 vanilla 1.21.11 Block 注册表 id 查找表(预生成,编译进二进制)。
+# 离线 TS 脚本 scripts/baking/bake_java_block_id_table.ts 读
+# assets/data/blocks_prismarine_1.21.11.json(PrismarineJS minecraft-data,含每 block 显式 id),
+# 生成排序的 name→registryId 静态查找表(.gen.cpp/.gen.hpp),供 JavaBlockIdMap 运行时
+# 二分查找。BlockEvent wire 第4字段 blockId 是 Block 注册表 id(非 stateId 非 state globalId)。
+# 运行时零 JSON 解析、零堆分配。产物不入 git(.gitignore),每次构建重生成。
+set(_java_block_id_table_gen_cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_block_id_table.gen.cpp")
+set(_java_block_id_table_gen_hpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/network/backend/java/generated/java_block_id_table.gen.hpp")
+set(_bake_block_id_script "${CMAKE_SOURCE_DIR}/scripts/baking/bake_java_block_id_table.ts")
+set(_blocks_prismarine_json "${CMAKE_SOURCE_DIR}/assets/data/blocks_prismarine_1.21.11.json")
+add_custom_command(
+    OUTPUT ${_java_block_id_table_gen_cpp} ${_java_block_id_table_gen_hpp}
+    COMMAND ${NODE_EXECUTABLE} ${_bake_block_id_script}
+    DEPENDS ${_bake_block_id_script} ${_blocks_prismarine_json}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Baking Java block registry id table from blocks_prismarine_1.21.11.json"
+    VERBATIM
+)
+set_source_files_properties(${_java_block_id_table_gen_cpp} PROPERTIES GENERATED TRUE)
 
 # 基岩版Addon兼容模组系统
 add_subdirectory(mod/bedrock/addon)

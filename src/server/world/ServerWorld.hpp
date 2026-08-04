@@ -683,9 +683,9 @@ public:
      * @brief 方块事件广播回调类型
      *
      * 当服务端方块事件被成功执行后，广播给附近客户端。
-     * 参数：位置x/y/z、事件参数A、事件参数B、方块状态ID
+     * 参数：位置x/y/z、事件参数A、事件参数B、方块注册表内部id（wire 边界译为 Java Block 注册表 id）
      */
-    using BlockEventCallback = std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId)>;
+    using BlockEventCallback = std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId)>;
 
     void setOnBroadcastBlockEvent(BlockEventCallback callback) { m_onBroadcastBlockEvent = std::move(callback); }
 

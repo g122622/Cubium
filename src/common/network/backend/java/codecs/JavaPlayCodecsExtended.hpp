@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
+#include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -1190,10 +1191,11 @@ inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& p
 }
 
 /// BlockEvent（S→C，id=7）
-// TODO(block_event_block_id): vanilla 第4字段 blockId 是 Block 注册表 id
-// （ByteBufCodecs.registry(Registries.BLOCK)），非 stateId 非 state globalId。
-// IR 层 v.blockId 当前存项目内部 blockStateId（见 PlayerBroadcaster::broadcastBlockEventInRange），
-// 待 JavaBlockIdMap 落地后在出站边界译为 Block 注册表 id，decode 对称反翻译。
+// vanilla 第4字段 blockId 是 Block 注册表 id（ByteBufCodecs.registry(Registries.BLOCK)），
+// 非 stateId 非 state globalId。IR 层 v.blockId 存项目内部 blockId（见
+// PlayerBroadcaster::broadcastBlockEventInRange），出站边界经 JavaBlockIdMap 译为 Java
+// Block 注册表 id，decode 对称反翻译（客户端 ClientPlayVisitor 不消费 blockId，反翻译仅为
+// codec 自对称/往返测试）。
 [[nodiscard]] inline auto blockEventCodec()
 {
     return makeCodec<ir::play::BlockEvent>(
@@ -1201,14 +1203,20 @@ inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& p
             buf.writeI64(v.blockPosPacked);
             buf.writeU8(v.b0);
             buf.writeU8(v.b1);
-            buf.writeVarInt(v.blockId);
+            // IR 内部 blockId → Java Block 注册表 id（miss 兜底 0=air）。
+            buf.writeVarInt(static_cast<i32>(
+                mc::network::backend::java::JavaBlockIdMap::instance().toJavaRegistryId(static_cast<u32>(v.blockId))));
         },
         [](B& buf) -> Result<ir::play::BlockEvent> {
             ir::play::BlockEvent v{};
             MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
             MC_TRY_ASSIGN(v.b0, buf.readU8());
             MC_TRY_ASSIGN(v.b1, buf.readU8());
-            MC_TRY_ASSIGN(v.blockId, buf.readVarInt());
+            i32 rawBlockId = 0;
+            MC_TRY_ASSIGN(rawBlockId, buf.readVarInt());
+            // Java Block 注册表 id → IR 内部 blockId（miss 兜底 0=air）。
+            v.blockId = static_cast<i32>(mc::network::backend::java::JavaBlockIdMap::instance().fromJavaRegistryId(
+                static_cast<u32>(rawBlockId)));
             return v;
         });
 }

@@ -33,7 +33,9 @@
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecsExtended.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/Block.hpp"
 
 #include <gtest/gtest.h>
 
@@ -356,11 +358,16 @@ TEST_F(NetworkTestBase, PlayBlockDestruction)
 
 TEST_F(NetworkTestBase, PlayBlockEvent)
 {
+    // IR 层 blockId 语义 = 项目内部 blockId；codec 出站经 JavaBlockIdMap 译为 Java Block 注册表 id，
+    // decode 反翻译回内部 blockId。取 chest 的内部 blockId 作测试值（chest 在两表都有映射，往返自洽）；
+    // 注册表未就绪时退化为 0（air），往返仍自洽。
+    const ::mc::Block* chest = ::mc::Block::getBlock(::mc::ResourceLocation("minecraft:chest"));
+    const u32 internalChestId = chest != nullptr ? chest->blockId() : 0u;
     BlockEvent in{};
     in.blockPosPacked = 0x200LL;
     in.b0 = 1;
     in.b1 = 2;
-    in.blockId = 54; // chest registry id
+    in.blockId = static_cast<i32>(internalChestId);
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 78u);
     EXPECT_EQ(std::get<BlockEvent>(out), in);

@@ -25,6 +25,7 @@
 // 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
 
 #include "common/core/GameDirectory.hpp"
+#include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/CrashHandler.hpp"
@@ -73,6 +74,12 @@ public:
         // 初始化，否则 codec 往返测试（PlayBlockUpdate 等）会因 miss 降级 air 而 fail。
         if (auto r = mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
             // 非致命：缺失时 codec 往返的 BlockState 字段会 warn+降级 air。
+        }
+
+        // BlockEvent wire 出站边界依赖 JavaBlockIdMap 做内部 blockId ↔ Java Block 注册表 id
+        // 翻译。须在方块注册完成后初始化，否则 PlayBlockEvent 往返测试会因 miss 降级 air 而 fail。
+        if (auto r = mc::network::backend::java::JavaBlockIdMap::instance().initialize(); r.failed()) {
+            // 非致命：缺失时 codec 往返的 blockId 字段会 warn+降级 air。
         }
 
         // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。

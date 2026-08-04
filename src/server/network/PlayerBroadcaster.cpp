@@ -539,21 +539,18 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
     });
 }
 
-void PlayerBroadcaster::broadcastBlockEventInRange(
-    i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
+void PlayerBroadcaster::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range)
 {
-    // 1.21.11 BlockEvent wire：blockPosPacked + b0 + b1 + blockId。
-    // TODO(block_event_block_id): vanilla 第4字段 blockId 是 Block 注册表 id
-    // （BuiltInRegistries.BLOCK.getId，ByteBufCodecs.registry(Registries.BLOCK)），不是 stateId
-    // 也不是 state globalId。当前错误地发项目内部 blockStateId，真 Java 客户端按 Block 注册表 id
-    // 校验会拒绝该事件（红石活塞/音符盒/箱子声效等异常，BUG#6）。正确修复需新建 JavaBlockIdMap
-    // （内部 blockId ↔ Java Block 注册表 id）+ PrismarineJS blocks.json 数据源 + 烘焙脚本，
-    // 属不同语义维度的独立工作，待本次 stateId→globalId 翻译任务提交后处理。
+    // 1.21.11 BlockEvent wire：blockPosPacked + b0 + b1 + blockId(VarInt)。
+    // IR 层 blockId 存项目内部 blockId（与 BlockUpdate.blockStateId 存内部 stateId 同范式），
+    // 由 blockEventCodec 出站边界译为 Java Block 注册表 id（JavaBlockIdMap::toJavaRegistryId）。
+    // 本地客户端经 LocalTransport 直传 IR 不经 codec，且客户端 ClientPlayVisitor 不消费
+    // blockId（仅用 pos+b0+b1 调 BlockEntity::triggerEvent），故内部 id 直传自洽。
     mc::network::ir::play::BlockEvent pkt;
     pkt.blockPosPacked = BlockPos(x, y, z).asLong();
     pkt.b0 = paramA;
     pkt.b1 = paramB;
-    pkt.blockId = static_cast<i32>(blockStateId);
+    pkt.blockId = static_cast<i32>(blockId);
     mc::network::ir::IrPacket packet{
         mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{pkt},

@@ -49,6 +49,7 @@
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
@@ -593,13 +594,17 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
 
     // 初始化 Java id 映射表（level_chunk_with_light vanilla wire 用）。
     // 顺序依赖：block 表遍历 Block::forEachBlockState（须在 VanillaBlocks::initialize 之后）；
+    // block id 表遍历 Block::forEachBlock（同上，须在 VanillaBlocks::initialize 之后）；
     // biome 表遍历 BiomeRegistry::allBiomes（须在 BiomeRegistry::initialize 之后）；
     // blockentity 表仅依赖 blockEntityTypeToId 静态映射，无注册顺序依赖。
-    // item 表遍历 ItemRegistry::forEachItem（须在 Items::initialize 之后）。四者均在上方已完成。
+    // item 表遍历 ItemRegistry::forEachItem（须在 Items::initialize 之后）。五者均在上方已完成。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::JavaIdMaps");
         if (auto r = ::mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBlockStateIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaBlockIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaBlockIdMap: {}", r.error().toString());
         }
         if (auto r = world::biome::JavaBiomeRegistryIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaBiomeRegistryIdMap: {}", r.error().toString());

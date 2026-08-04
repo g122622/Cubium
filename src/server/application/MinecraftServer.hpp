@@ -924,7 +924,7 @@ protected:
      * @param blockStateId 方块状态ID
      * @param range 广播范围（格），默认 64 格
      */
-    void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range = 64.0f);
+    void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range = 64.0f);
 
     /**
      * @brief 广播方块实体数据更新给指定范围内的玩家

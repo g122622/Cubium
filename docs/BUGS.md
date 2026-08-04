@@ -37,6 +37,20 @@
 - `tests/main.cpp`：补 `JavaBlockStateIdMap::initialize()` 使 codec 往返测试在测试环境可用。
 
 **未修（同源但不同语义维度，留 TODO 待后续）**：
-- 第6条红石（BlockEvent 第4字段）：vanilla 期望 Block 注册表 id（非 stateId 非 globalId），需新建 `JavaBlockIdMap` + PrismarineJS blocks.json 数据源，属独立工作。已在 `PlayerBroadcaster::broadcastBlockEventInRange` 与 `blockEventCodec` 标 TODO。
 - `LevelEvent.data`（方块破坏粒子）、`SectionBlocksUpdate`（未启用）：同源漏翻译，本次不动。
+
+### 第6条（红石不工作 / BlockEvent blockId 错位）— 已修复（待 Java 客户端实测确认）
+
+**根因**：vanilla `ClientboundBlockEventPacket` 第4字段 blockId 是 Java `BuiltInRegistries.BLOCK` 注册表 id（`ByteBufCodecs.registry(Registries.BLOCK)`），既非 stateId 也非 state globalId，是独立语义维度。项目 `ServerWorld::runBlockEvents` 广播时传的是 `state->stateId()`（内部 stateId），三重错位，真 Java 客户端按 Block 注册表 id 校验拒绝该事件（红石活塞/音符盒/箱子声效等异常）。原生客户端正常是因为 `ClientPlayVisitor` 不消费 blockId 字段（仅用 pos+b0+b1 调 `BlockEntity::triggerEvent`），本地直传 IR 不经 codec。
+
+**修复点**：
+- 新增数据源 `assets/data/blocks_prismarine_1.21.11.json`（PrismarineJS minecraft-data，含每 block 显式 `id`=vanilla Block 注册表 id，已验证 id==index 全成立、air=0/stone=1/dirt=9/cobblestone=12）。
+- 新增烘焙脚本 `scripts/baking/bake_java_block_id_table.ts` + 生成表 `generated/java_block_id_table.gen.{cpp,hpp}`（name→registryId 二分查找表 + 反向稠密数组），仿 `bake_java_item_table.ts` 范式。CMake `add_custom_command` 构建期重生成。
+- 新增 `JavaBlockIdMap`（`mappings/JavaBlockIdMap.{hpp,cpp}`）：内部 blockId ↔ Java Block 注册表 id 双向映射。block 内部 id 0=air（有效），故 miss 直接返 0（air），无需像 `JavaItemIdMap` 取 air 真实内部 id。三向查表：`toJavaRegistryId(const Block&)`/`(string_view)`/`(u32 internalBlockId)`（codec 边界用，稠密下标）+ `fromJavaRegistryId`（反向稠密）。
+- 两端 bootstrap 登记 `JavaBlockIdMap::instance().initialize()`（`RegistryBootstrap.cpp`/`ClientApplicationBootstrap.cpp`，须在 `VanillaBlocks::initialize` 之后）。
+- `ServerWorld::runBlockEvents`：广播值从 `state->stateId()` 改为入队时 `event.block->blockId()`（内部 blockId），与 vanilla "广播触发事件的方块本身"语义一致，且避免方块已变时读到错误 state。
+- `blockEventCodec`（id=7）：出站 `toJavaRegistryId(internalBlockId)` 译为 Java Block 注册表 id，decode 对称 `fromJavaRegistryId` 反翻译（客户端不消费 blockId，反翻译仅为 codec 自对称/往返测试）。IR 层 `BlockEvent.blockId` 存内部 blockId（与 `BlockUpdate.blockStateId` 存内部 stateId 同范式），本地直传自洽。
+- `PlayerBroadcaster`/`MinecraftServer`/`ServerWorld` 回调链签名 `blockStateId`→`blockId` 同步改名。`tests/main.cpp` 补 `JavaBlockIdMap::initialize()`；`PlayBlockEvent` 往返测试改用动态获取的 chest 内部 blockId。
+
+**验证**：编译 exit0；`JavaBlockIdMap: matched 1115 blocks, 0 fell back to air`（项目 1115 个 block 全部命中 vanilla 映射）；`PlayBlockEvent` 往返 PASSED；`NetworkTestBase` 全 181 例 PASSED 无回归；原生客户端启动两端 map 初始化正常无崩。
 

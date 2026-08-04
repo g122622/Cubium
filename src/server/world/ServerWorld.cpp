@@ -422,16 +422,19 @@ void ServerWorld::runBlockEvents()
         const ChunkCoord chunkZ = world::toChunkCoord(event.pos.z);
         if (hasChunk(chunkX, chunkZ)) {
             if (doBlockEvent(event)) {
-                // 事件成功执行，广播给客户端
+                // 事件成功执行，广播给客户端。
+                // IR BlockEvent.blockId 语义 = 方块注册表 id（与 vanilla ClientboundBlockEventPacket
+                // 第4字段一致）。取入队时存的 event.block 的内部 blockId（而非重新读当前位置 state）：
+                // 即便当前位置方块已变，广播的仍是触发该事件的方块本身（vanilla 同此语义）。
+                // 内部 blockId 经 wire codec 出站边界译为 Java Block 注册表 id（JavaBlockIdMap）。
                 if (m_onBroadcastBlockEvent) {
-                    const BlockState* state = getBlockState(event.pos);
-                    u32 blockStateId = state != nullptr ? state->stateId() : 0;
+                    const u32 blockId = event.block != nullptr ? event.block->blockId() : 0;
                     m_onBroadcastBlockEvent(event.pos.x,
                         event.pos.y,
                         event.pos.z,
                         static_cast<u8>(event.paramA),
                         static_cast<u8>(event.paramB),
-                        blockStateId);
+                        blockId);
                 }
             }
         } else {

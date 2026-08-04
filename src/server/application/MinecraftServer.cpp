@@ -585,8 +585,8 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
     });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
-    world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId) {
-        broadcastBlockEventInRange(x, y, z, paramA, paramB, blockStateId);
+    world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId) {
+        broadcastBlockEventInRange(x, y, z, paramA, paramB, blockId);
     });
     world.setOnBroadcastBlockEntity([this, &world](const BlockPos& pos) {
         // 方块实体数据变化后，获取最新 NBT 快照并广播给附近客户端
@@ -1944,9 +1944,9 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
     m_broadcaster->broadcastWorldEventInRange(eventId, x, y, z, data, range);
 }
 
-void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
+void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range)
 {
-    m_broadcaster->broadcastBlockEventInRange(x, y, z, paramA, paramB, blockStateId, range);
+    m_broadcaster->broadcastBlockEventInRange(x, y, z, paramA, paramB, blockId, range);
 }
 
 void MinecraftServer::broadcastBlockEntityInRange(
