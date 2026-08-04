@@ -86,7 +86,7 @@ namespace mc {
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
-entity::DataParameter<i32> WolfEntity::DATA_ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i64> WolfEntity::DATA_ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i64>();
 
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = TameableEntity::classInfo()）
@@ -1035,8 +1035,10 @@ void WolfEntity::registerData()
 
     // 注册愤怒时间数据参数，用于客户端-服务端同步
     // 对应 MC 1.21.11 Wolf.defineSynchedData() 中的 DATA_ANGER_END_TIME
-    // 默认值为 0（非愤怒），由 setAngry/setAngerTime 写入，由 updateAnger 递减
-    m_dataManager.registerParam(DATA_ANGER_TIME_PARAM, static_cast<i32>(0));
+    // vanilla 该字段为 Long（默认 -1L）；本项目声明 i64 以对齐 wire 类型（serializerId=2 VAR_LONG），
+    // 业务层以「剩余 ticks」i32 语义运转（默认 0=非愤怒，由 setAngry/setAngerTime 写入、updateAnger 递减）。
+    // 旧实现误用 i32 致真客户端 field21 类型校验崩（Integer vs 期望 Long）。
+    m_dataManager.registerParam(DATA_ANGER_TIME_PARAM, static_cast<i64>(0));
 }
 
 void WolfEntity::onTamed(bool tamed)

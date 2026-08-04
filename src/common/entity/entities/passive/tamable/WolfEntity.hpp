@@ -272,21 +272,27 @@ public:
     /**
      * @brief 获取愤怒时间（ticks）
      *
-     * 通过 DataParameter 从 EntityDataManager 读取。每 tick 由 updateAnger() 递减。
+     * wire 上 DATA_ANGER_TIME_PARAM 以 i64(Long) 存储以对齐 vanilla 1.21.11
+     * Wolf.DATA_ANGER_END_TIME（serializerId=2 VAR_LONG，默认 -1L）；业务层仍以
+     * 「剩余 ticks」i32 语义运转，故此处经 getAngerTime/setAngerTime 做 i32↔i64 互转。
+     * 每 tick 由 updateAnger() 递减。
      *
      * @return 剩余愤怒时间（ticks）
      */
-    [[nodiscard]] i32 getAngerTime() const override { return m_dataManager.get<i32>(DATA_ANGER_TIME_PARAM); }
+    [[nodiscard]] i32 getAngerTime() const override
+    {
+        return static_cast<i32>(m_dataManager.get<i64>(DATA_ANGER_TIME_PARAM));
+    }
 
     /**
      * @brief 设置愤怒时间（ticks）
      *
-     * 写入 DataParameter，会标记为脏数据并由 EntityTracker 在下一 tick 广播
-     * ir::play::SetEntityData 到所有观察者客户端。
+     * 写入 DataParameter（i64 Long，对齐 vanilla wire 类型），会标记为脏数据并由
+     * EntityTracker 在下一 tick 广播 ir::play::SetEntityData 到所有观察者客户端。
      *
      * @param time 愤怒时间（ticks）
      */
-    void setAngerTime(i32 time) override { m_dataManager.set(DATA_ANGER_TIME_PARAM, time); }
+    void setAngerTime(i32 time) override { m_dataManager.set(DATA_ANGER_TIME_PARAM, static_cast<i64>(time)); }
 
     /**
      * @brief 设置愤怒状态
@@ -547,15 +553,18 @@ private:
     /**
      * @brief 愤怒时间同步参数
      *
-     * 对应 MC 1.21.11 Wolf.DATA_ANGER_END_TIME（语义上：剩余愤怒 ticks）。
-     * 由 setAngerTime/setAngry 写入，由 updateAnger() 每 tick 递减，
-     * 由 EntityTracker 自动广播到所有观察者客户端。
-     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfIsAngry。
+     * 对应 MC 1.21.11 Wolf.DATA_ANGER_END_TIME。vanilla 该字段为 Long 类型
+     * （serializerId=2 VAR_LONG，默认 -1L），wire 上类型不可偏离否则真客户端
+     * SynchedEntityData 类型校验崩（disconnect-2026-08-04：field21 old=-1(Long)
+     * new=0(Integer)）。故此参数声明为 i64 以序列化为 Long。
      *
-     * 注意：MC 1.21.11 原版使用 Long 类型的「愤怒结束时刻」(gameTime 戳)，
-     * 此处采用更直观的「剩余 ticks」i32 表示，与 BeeEntity::ANGER_TIME_PARAM 风格一致。
+     * 业务层仍以「剩余 ticks」i32 语义运转（getAngerTime/setAngerTime 做互转，
+     * 值域 0..MAX_ANGER_TIME 作为 Long 完全合法，客户端按 Long 读再 >0 判 angry 自洽），
+     * 与 BeeEntity::ANGER_TIME_PARAM 风格一致。由 setAngerTime/setAngry 写入，
+     * 由 updateAnger() 每 tick 递减，由 EntityTracker 自动广播到观察者客户端。
+     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用 setWolfIsAngry。
      */
-    static entity::DataParameter<i32> DATA_ANGER_TIME_PARAM;
+    static entity::DataParameter<i64> DATA_ANGER_TIME_PARAM;
 
 protected:
     /// 本类继承链标识（parent = TameableEntity::classInfo()）。见 Entity::classInfo()。

@@ -319,9 +319,10 @@ void ClientEntity::syncMetadataFromDataManager()
             setWolfIsInterested(*interested);
         }
         // 愤怒状态（尾巴抬起/停止摆动 + angry 纹理变体，通过 WolfEntity::DATA_ANGER_TIME_PARAM 同步）
+        // 该参数对齐 vanilla Wolf.DATA_ANGER_END_TIME，wire 类型为 Long(i64)，故读 i64。
         if (m_dataManager.hasParam(::mc::WolfEntity::getAngerTimeParamId())) {
             if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value != nullptr) {
-                const i32 angerTime = value->get<i32>();
+                const i64 angerTime = value->get<i64>();
                 setWolfIsAngry(angerTime > 0);
             }
         }

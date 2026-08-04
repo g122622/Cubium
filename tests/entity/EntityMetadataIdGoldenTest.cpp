@@ -388,6 +388,14 @@ TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
     EXPECT_EQ(ownerUuidId, 18u);
     ASSERT_NE(wolf.dataManager().getRaw(ownerUuidId), nullptr);
     EXPECT_EQ(wolf.dataManager().getRaw(ownerUuidId)->index(), 21u); // OptionalUuidValue
+
+    // DATA_ANGER_END_TIME 必为 id21 且类型为 i64/Long（variant index 2 → serializerId 2 VAR_LONG）。
+    // vanilla Wolf.DATA_ANGER_END_TIME = Long(默认 -1L)；旧实现误用 i32(Int, serializerId 1) 致
+    // 真 Java 客户端 set_entity_data field21 类型校验崩（disconnect-2026-08-04：old=-1(Long) new=0(Integer)）。
+    const u16 angerId = WolfEntity::getAngerTimeParamId();
+    EXPECT_EQ(angerId, 21u);
+    ASSERT_NE(wolf.dataManager().getRaw(angerId), nullptr);
+    EXPECT_EQ(wolf.dataManager().getRaw(angerId)->index(), 2u); // i64/Long（非 i32/Int 的 index 1）
 }
 
 // ============================================================================

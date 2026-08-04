@@ -827,7 +827,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_GetCollarColor_ReadsFromDataManager)
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getCollarColorParamId();
     EXPECT_TRUE(dataManager.hasParam(paramId));
-    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Blue));
 }
 
@@ -839,7 +839,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetCollarColor_WritesToDataManager)
 
     // 设置颈圈颜色
     wolf.setCollarColor(DyeColor::Green);
-    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Green));
 
     // 设置为白色
@@ -896,7 +896,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_CollarColor_AllDyeColorsRoundTrip)
         DyeColor color = static_cast<DyeColor>(i);
         wolf.setCollarColor(color);
         EXPECT_EQ(wolf.getCollarColor(), color);
-        i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+        i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
         EXPECT_EQ(storedValue, i);
     }
 }
@@ -2981,7 +2981,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_IsAngry_ReadsFromDataManager)
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getAngerTimeParamId();
     EXPECT_TRUE(dataManager.hasParam(paramId));
-    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, 100);
 }
 
@@ -2995,7 +2995,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngry_WritesToDataManager)
     // 设置愤怒状态
     wolf.setAngry(true);
     EXPECT_TRUE(wolf.isAngry());
-    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_GT(storedValue, 0); // setAngry(true) 写入 MAX_ANGER_TIME
 
     // 清除愤怒状态
@@ -3013,7 +3013,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngerTime_WritesToDataManager)
 
     // 设置愤怒时间
     wolf.setAngerTime(42);
-    i32 storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, 42);
 
     // 设置为 0
