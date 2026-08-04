@@ -48,6 +48,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -240,6 +241,32 @@ public:
      */
     void setSimulationDistance(i32 distance) { m_simulationDistance = distance; }
     [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+
+    /**
+     * @brief 设置服务端下发的区块加载中心（chunk 坐标）。
+     *
+     * 对齐 Java ClientLevel.setChunkCacheCenter。vanilla 客户端用此中心 + 视距做 inRange
+     * 裁剪与卸载；本项目客户端当前不做自主裁剪（服务端发什么收什么），故字段先行落地，
+     * 待未来引入 ClientChunkCache.Storage 视距裁剪时消费。
+     *
+     * TODO: 引入客户端视距裁剪/卸载逻辑（ClientChunkCache.Storage + center 判定），当前仅存字段。
+     */
+    void setChunkCacheCenter(i32 x, i32 z)
+    {
+        m_chunkCacheCenterX = x;
+        m_chunkCacheCenterZ = z;
+    }
+    [[nodiscard]] i32 chunkCacheCenterX() const { return m_chunkCacheCenterX; }
+    [[nodiscard]] i32 chunkCacheCenterZ() const { return m_chunkCacheCenterZ; }
+
+    /**
+     * @brief 世界边界状态（由 6 个 set_border_* / initialize_border 包同步）。
+     *
+     * 对齐 ServerWorld::worldBorder()：服务端 WorldBorder 是 ServerWorld 成员并经 IWorld 纯虚
+     * 暴露，客户端对称地挂在 ClientWorld。tick() 由本类 update() 驱动，推进 lerp 插值收敛。
+     */
+    [[nodiscard]] world::border::WorldBorder& worldBorder() { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const { return m_worldBorder; }
 
     [[nodiscard]] u64 seed() const { return m_seed; }
 
@@ -683,8 +710,13 @@ private:
 
     i32 m_renderDistance = 12;
     i32 m_simulationDistance = 10; ///< 服务端下发的模拟距离，对齐 defaults::server::simulationDistance
+    i32 m_chunkCacheCenterX = 0;   ///< 服务端下发的区块加载中心 X（chunk 坐标）
+    i32 m_chunkCacheCenterZ = 0;   ///< 服务端下发的区块加载中心 Z（chunk 坐标）
     u64 m_seed = 0;
     DimensionId m_dimensionId = 0; ///< 当前维度ID，用于验证区块数据包
+
+    /// 世界边界状态（由 initialize_border / set_border_* 包同步）
+    world::border::WorldBorder m_worldBorder;
 
     glm::vec3 m_cameraPosition{0.0f, 0.0f, 0.0f};
 

@@ -8,6 +8,7 @@
 src/client/world/
 ├── ClientWorld.hpp/cpp                 # 客户端世界核心管理器（区块同步、网格调度、天气时间、高度图查询）
 ├── ClientWeather.hpp                   # 天气插值状态（雨强、雷强、闪电闪烁）
+├── BossBarState.hpp                    # 客户端 Boss 条镜像状态（由 boss_event 包同步，渲染留 TODO）
 ├── color/                              # 生物群系颜色解析与混合
 │   ├── BiomeColors.hpp/cpp             # 颜色解析器实现（草、树叶、水）
 │   ├── ColorResolver.hpp               # 颜色解析器抽象接口

@@ -507,6 +507,12 @@ void ClientApplication::destroyGameSession()
     // 5. 清理世界
     m_world.destroy();
 
+    // 5b. 重置记分板（会话级数据，与 world 同生命周期清理）
+    m_scoreboard = scoreboard::Scoreboard{};
+
+    // 5c. 清空 Boss 条状态（会话级数据）
+    m_bossBars.clear();
+
     // 6. 清理渲染器的区块缓冲
     if (m_renderer && m_renderer->isChunkRendererInitialized()) {
         m_renderer->chunkRenderer().clearChunks();

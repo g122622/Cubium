@@ -368,6 +368,10 @@ using B = buffer::RegistryByteBuf;
         104, PacketType{PacketFlow::Clientbound, "set_objective"}, 51, codecs::setObjectiveCodec());
     b.addPacket<ir::play::SetPassengers>(
         105, PacketType{PacketFlow::Clientbound, "set_passengers"}, 72, codecs::setPassengersCodec());
+    // EntityEvent（S→C，id=34）：codec 与 visitor 消费逻辑早已就绪，此前漏登记致服务端
+    // 发不出 entity_event、客户端实体事件处理成为死代码。altIndex=73 与 PlayPacket variant 下标对齐。
+    b.addPacket<ir::play::EntityEvent>(
+        34, PacketType{PacketFlow::Clientbound, "entity_event"}, 73, codecs::entityEventCodec());
     b.addPacket<ir::play::SetPlayerTeam>(
         107, PacketType{PacketFlow::Clientbound, "set_player_team"}, 55, codecs::setPlayerTeamCodec());
     b.addPacket<ir::play::SetScore>(108, PacketType{PacketFlow::Clientbound, "set_score"}, 52, codecs::setScoreCodec());

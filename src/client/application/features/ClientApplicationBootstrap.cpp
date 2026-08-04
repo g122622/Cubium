@@ -66,6 +66,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
@@ -182,6 +183,15 @@ void ClientApplication::initializeCoreRegistries()
         if (auto r = ::mc::network::backend::java::JavaEnchantmentIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaEnchantmentIdMap: {}", r.error().toString());
         }
+    }
+
+    // 注册记分板内置判据（dummy/trigger/deathCount 等）。客户端消费 SetObjective 包时
+    // addObjective 需要一个 ScoreCriteria&，必须经 ScoreCriteriaRegistry 取实例，未注册则
+    // getCriteria("dummy") 返回 nullptr。判据实例由 registry 单例持有，幂等注册安全。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeScoreCriteria");
+        scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+        spdlog::info("Scoreboard criteria registered");
     }
 }
 

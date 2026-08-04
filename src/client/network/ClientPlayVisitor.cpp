@@ -81,6 +81,12 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
+#include "common/scoreboard/core/ScoreObjective.hpp"
+#include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
+#include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -92,6 +98,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -159,6 +167,39 @@ DimensionId dimensionKeyToId(const std::string& key) noexcept
         return DimensionManager::THE_END;
     }
     return DimensionManager::OVERWORLD;
+}
+
+/// opaque Component NBT wire 字节 → ITextComponent（有损纯文本还原）。
+/// 客户端记分板/队伍的 displayName/prefix/suffix 字段是 opaque NBT，本仓无完整 NBT→ITextComponent
+/// 反序列化（componentNbtBytesToPlainText 仅取纯文本），此处包成 StringTextComponent 落地，
+/// 与 Title/SystemChat 分支同套有损还原策略。空字节返回 nullptr（让调用方用名字兜底）。
+///
+/// TODO: 补完整 NBT→ITextComponent 反序列化，当前有损还原会丢失 style/颜色/extra。
+std::unique_ptr<mc::text::ITextComponent> _nbtToComponent(const std::vector<u8>& nbtBytes)
+{
+    if (nbtBytes.empty()) {
+        return nullptr;
+    }
+    return std::make_unique<mc::text::StringTextComponent>(mc::text::componentNbtBytesToPlainText(nbtBytes));
+}
+
+/// 将 SetPlayerTeam 包字段写回 ScorePlayerTeam（ADD/CHANGE 共用）。
+/// color：21=Reset，0-15=颜色，其余兜底 White；options 直接走 setFriendlyFlags 避免拆位。
+void _applyTeamFields(mc::scoreboard::ScorePlayerTeam& team, const irplay::SetPlayerTeam& p)
+{
+    team.setDisplayName(_nbtToComponent(p.displayName));
+    team.setFriendlyFlags(p.options);
+    team.setNameTagVisibility(static_cast<mc::scoreboard::TeamVisibility>(p.visibility));
+    team.setCollisionRule(static_cast<mc::scoreboard::TeamCollisionRule>(p.collision));
+    if (p.color == 21) {
+        team.setColor(mc::text::TextFormatting::Reset);
+    } else if (p.color >= 0 && p.color <= 15) {
+        team.setColor(static_cast<mc::text::TextFormatting>(p.color));
+    } else {
+        team.setColor(mc::text::TextFormatting::White);
+    }
+    team.setPrefix(_nbtToComponent(p.prefix));
+    team.setSuffix(_nbtToComponent(p.suffix));
 }
 
 /// ItemStack → 1.21.11 HashedStack（降级：仅 itemId+count，组件哈希 patch 双端写空）。
@@ -2145,6 +2186,243 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 if (m_app.m_network) {
                     const i64 rtt = static_cast<i64>(mc::util::TimeUtils::getCurrentTimeMs()) - p.time;
                     m_app.m_network->setPingMs(rtt);
+                }
+                return Result<void>::ok();
+            }
+            // ---- 心跳：S→C KeepAlive 回 C→S KeepAlive 同 id（与 Configuration 阶段对称）----
+            else if constexpr (std::is_same_v<T, irplay::KeepAlive>) {
+                const auto& p = pkt;
+                if (m_app.m_network) {
+                    (void)m_app.m_network->send(
+                        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                            mc::network::ir::PlayPacket{irplay::KeepAlive{p.id}}});
+                }
+                return Result<void>::ok();
+            }
+            // ---- 区块加载中心（字段先行落地，客户端暂不做自主裁剪）----
+            else if constexpr (std::is_same_v<T, irplay::SetChunkCacheCenter>) {
+                const auto& p = pkt;
+                m_app.m_world.setChunkCacheCenter(p.x, p.z);
+                return Result<void>::ok();
+            }
+            // ---- 拴绳链接（SetEntityLink，sourceId=被拴实体，destId=持有者，0=解除）----
+            // 仅存字段供未来 LeashRopeRenderer 消费；持有者实体可能尚未在客户端创建，不校验存在性。
+            else if constexpr (std::is_same_v<T, irplay::SetEntityLink>) {
+                const auto& p = pkt;
+                const EntityInstanceId sourceId = static_cast<EntityInstanceId>(p.sourceId);
+                const EntityInstanceId destId = static_cast<EntityInstanceId>(p.destId);
+                ClientEntity* leashedEntity = m_app.m_world.entityManager().getEntity(sourceId);
+                if (leashedEntity != nullptr) {
+                    leashedEntity->setLeashHolderId(destId);
+                } else {
+                    spdlog::warn("SetEntityLink: source entity {} not found", p.sourceId);
+                }
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：初始化（全字段一次下发）----
+            else if constexpr (std::is_same_v<T, irplay::InitializeBorder>) {
+                const auto& p = pkt;
+                auto& b = m_app.m_world.worldBorder();
+                b.setCenter(p.newCenterX, p.newCenterZ);
+                b.setWarningDistance(p.warningBlocks);
+                b.setWarningTime(p.warningTime);
+                // lerpTime 为毫秒（i64），setSizeLerp 第三参为 u64；为 0 或尺寸不变时内部退化为 setSize。
+                b.setSizeLerp(p.oldSize, p.newSize, static_cast<u64>(p.lerpTime));
+                // newAbsoluteMaxSize 无对应可变状态（WorldBorder 仅有静态 MAX_SIZE 常量），忽略。
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：中心 ----
+            else if constexpr (std::is_same_v<T, irplay::SetBorderCenter>) {
+                const auto& p = pkt;
+                m_app.m_world.worldBorder().setCenter(p.newCenterX, p.newCenterZ);
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：插值尺寸 ----
+            else if constexpr (std::is_same_v<T, irplay::SetBorderLerpSize>) {
+                const auto& p = pkt;
+                m_app.m_world.worldBorder().setSizeLerp(p.oldSize, p.newSize, static_cast<u64>(p.lerpTime));
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：瞬时尺寸 ----
+            else if constexpr (std::is_same_v<T, irplay::SetBorderSize>) {
+                const auto& p = pkt;
+                m_app.m_world.worldBorder().setSize(p.size);
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：警告延迟（秒）----
+            else if constexpr (std::is_same_v<T, irplay::SetBorderWarningDelay>) {
+                const auto& p = pkt;
+                m_app.m_world.worldBorder().setWarningTime(p.warningDelay);
+                return Result<void>::ok();
+            }
+            // ---- 世界边界：警告距离（格）----
+            else if constexpr (std::is_same_v<T, irplay::SetBorderWarningDistance>) {
+                const auto& p = pkt;
+                m_app.m_world.worldBorder().setWarningDistance(p.warningBlocks);
+                return Result<void>::ok();
+            }
+            // ---- Boss 条（boss_event，6 operation 分支；渲染留 TODO）----
+            else if constexpr (std::is_same_v<T, irplay::BossEvent>) {
+                const auto& p = pkt;
+                using BossOp = mc::network::BossInfoAction;
+                switch (static_cast<BossOp>(p.operation)) {
+                    case BossOp::Add: {
+                        client::BossBarState s;
+                        s.nameNbtBytes = p.name;
+                        s.progress = p.progress;
+                        s.color = p.color;
+                        s.overlay = p.overlay;
+                        client::applyBossFlags(s, p.flags);
+                        m_app.m_bossBars[p.uuid] = std::move(s);
+                        break;
+                    }
+                    case BossOp::Remove:
+                        m_app.m_bossBars.erase(p.uuid);
+                        break;
+                    case BossOp::UpdatePercent:
+                        if (auto it = m_app.m_bossBars.find(p.uuid); it != m_app.m_bossBars.end()) {
+                            it->second.progress = p.progress;
+                        }
+                        break;
+                    case BossOp::UpdateName:
+                        if (auto it = m_app.m_bossBars.find(p.uuid); it != m_app.m_bossBars.end()) {
+                            it->second.nameNbtBytes = p.name;
+                        }
+                        break;
+                    case BossOp::UpdateStyle:
+                        if (auto it = m_app.m_bossBars.find(p.uuid); it != m_app.m_bossBars.end()) {
+                            it->second.color = p.color;
+                            it->second.overlay = p.overlay;
+                        }
+                        break;
+                    case BossOp::UpdateProperties:
+                        if (auto it = m_app.m_bossBars.find(p.uuid); it != m_app.m_bossBars.end()) {
+                            client::applyBossFlags(it->second, p.flags);
+                        }
+                        break;
+                }
+                // TODO: 客户端无 Boss 条 HUD 渲染，状态先行落地。
+                return Result<void>::ok();
+            }
+            // ---- 成就标签页选择（客户端无成就 UI，命令系统本地驱动；仅丢弃）----
+            // TODO: 客户端无成就 UI，命令系统本地驱动，此包当前无消费点；未来若实现成就屏幕再处理。
+            else if constexpr (std::is_same_v<T, irplay::SelectAdvancementTab>) {
+                return Result<void>::ok();
+            }
+            // ---- 记分板：目标（method 0=ADD/1=REMOVE/2=CHANGE）----
+            else if constexpr (std::is_same_v<T, irplay::SetObjective>) {
+                const auto& p = pkt;
+                auto& sb = m_app.m_scoreboard;
+                if (p.method == 0) { // ADD
+                    auto* criteria = mc::scoreboard::ScoreCriteriaRegistry::instance().getCriteria("dummy");
+                    if (criteria == nullptr) {
+                        spdlog::warn("SetObjective ADD: dummy criteria not registered");
+                        return Result<void>::ok();
+                    }
+                    auto* obj = sb.addObjective(p.objectiveName, *criteria, _nbtToComponent(p.displayName));
+                    if (obj != nullptr) {
+                        obj->setRenderType(static_cast<mc::scoreboard::RenderType>(p.renderType));
+                    }
+                } else if (p.method == 1) { // REMOVE
+                    auto* obj = sb.getObjective(p.objectiveName);
+                    if (obj != nullptr) {
+                        sb.removeObjective(*obj);
+                    }
+                } else if (p.method == 2) { // CHANGE
+                    auto* obj = sb.getObjective(p.objectiveName);
+                    if (obj != nullptr) {
+                        obj->setDisplayName(_nbtToComponent(p.displayName));
+                        obj->setRenderType(static_cast<mc::scoreboard::RenderType>(p.renderType));
+                    }
+                }
+                // numberFormat 字段无对应状态（与服务端对称留空），忽略。
+                // TODO: 客户端无记分板 sidebar 渲染，状态先行落地；numberFormat/display 暂忽略。
+                return Result<void>::ok();
+            }
+            // ---- 记分板：分数 ----
+            else if constexpr (std::is_same_v<T, irplay::SetScore>) {
+                const auto& p = pkt;
+                auto& sb = m_app.m_scoreboard;
+                auto* obj = sb.getObjective(p.objectiveName);
+                if (obj == nullptr) {
+                    spdlog::warn("SetScore: objective {} not found", p.objectiveName);
+                    return Result<void>::ok();
+                }
+                auto* score = sb.getOrCreateScore(p.owner, *obj);
+                if (score != nullptr) {
+                    score->setScorePoints(p.score);
+                }
+                // display/numberFormat 字段无对应状态，忽略。
+                return Result<void>::ok();
+            }
+            // ---- 记分板：重置分数（objectiveName 为 nullopt 表重置该 owner 全部）----
+            else if constexpr (std::is_same_v<T, irplay::ResetScore>) {
+                const auto& p = pkt;
+                auto& sb = m_app.m_scoreboard;
+                if (p.objectiveName.has_value()) {
+                    auto* obj = sb.getObjective(*p.objectiveName);
+                    if (obj != nullptr) {
+                        sb.removeScore(p.owner, obj);
+                    }
+                } else {
+                    sb.removeScore(p.owner, nullptr);
+                }
+                return Result<void>::ok();
+            }
+            // ---- 记分板：显示槽位（objectiveName 空串表清除该 slot）----
+            else if constexpr (std::is_same_v<T, irplay::SetDisplayObjective>) {
+                const auto& p = pkt;
+                auto& sb = m_app.m_scoreboard;
+                if (p.slot < 0 || p.slot >= static_cast<i32>(mc::scoreboard::DISPLAY_SLOT_COUNT)) {
+                    spdlog::warn("SetDisplayObjective: slot {} out of range", p.slot);
+                    return Result<void>::ok();
+                }
+                const auto slot = static_cast<mc::scoreboard::DisplaySlot>(p.slot);
+                if (p.objectiveName.empty()) {
+                    sb.setObjectiveInDisplaySlot(slot, nullptr);
+                } else {
+                    sb.setObjectiveInDisplaySlot(slot, sb.getObjective(p.objectiveName));
+                }
+                return Result<void>::ok();
+            }
+            // ---- 队伍（method 0=ADD/1=REMOVE/2=CHANGE/3=JOIN/4=LEAVE）----
+            else if constexpr (std::is_same_v<T, irplay::SetPlayerTeam>) {
+                const auto& p = pkt;
+                auto& sb = m_app.m_scoreboard;
+                if (p.method == 0) { // ADD
+                    auto* team = sb.createTeam(p.name);
+                    if (team == nullptr) {
+                        spdlog::warn("SetPlayerTeam ADD: team {} already exists", p.name);
+                        return Result<void>::ok();
+                    }
+                    _applyTeamFields(*team, p);
+                    for (const auto& player : p.players) {
+                        sb.addPlayerToTeam(player, *team);
+                    }
+                } else if (p.method == 1) { // REMOVE
+                    auto* team = sb.getTeam(p.name);
+                    if (team != nullptr) {
+                        sb.removeTeam(*team);
+                    }
+                } else if (p.method == 2) { // CHANGE
+                    auto* team = sb.getTeam(p.name);
+                    if (team != nullptr) {
+                        _applyTeamFields(*team, p);
+                    }
+                } else if (p.method == 3) { // JOIN
+                    auto* team = sb.getTeam(p.name);
+                    if (team != nullptr) {
+                        for (const auto& player : p.players) {
+                            sb.addPlayerToTeam(player, *team);
+                        }
+                    }
+                } else if (p.method == 4) { // LEAVE
+                    auto* team = sb.getTeam(p.name);
+                    if (team != nullptr) {
+                        for (const auto& player : p.players) {
+                            sb.removePlayerFromTeam(player, *team);
+                        }
+                    }
                 }
                 return Result<void>::ok();
             }

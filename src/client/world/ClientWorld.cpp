@@ -197,6 +197,10 @@ void ClientWorld::destroy()
 
 void ClientWorld::update(const MeshSchedulerViewState& viewState)
 {
+    // 世界边界 lerp 插值推进（对齐 ServerWorld::tick 的 m_worldBorder.tick()）。
+    // MovingBorderState 用 steady_clock 实时算 size，tick 仅负责过渡结束时切回 StationaryState。
+    m_worldBorder.tick();
+
     // 先 drain worker 反序列化续延队列，再处理 mesh；保证 mesh 调度读到最新 ChunkData。
     _processPendingDeserializedChunks();
 

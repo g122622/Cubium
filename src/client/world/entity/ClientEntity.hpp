@@ -543,6 +543,18 @@ public:
     void setPassengers(std::vector<u32> passengers) { m_passengers = std::move(passengers); }
 
     /**
+     * @brief 拴绳持有者实体 ID（由 SetEntityLink 包同步，0=未被拴）
+     *
+     * sourceId 为被拴实体（本实体），destId 为持有者（玩家或 LeashKnot）。
+     * 当前客户端无 leash 渲染，字段先行落地；未来 LeashRopeRenderer 读取此值在 mob 与
+     * holder 之间画牵绳。
+     *
+     * TODO: 实现客户端牵绳渲染（LeashRopeRenderer），当前仅存字段。
+     */
+    [[nodiscard]] EntityInstanceId leashHolderId() const { return m_leashHolderId; }
+    void setLeashHolderId(EntityInstanceId id) { m_leashHolderId = id; }
+
+    /**
      * @brief 是否正在坐下（用于动物）
      */
     [[nodiscard]] bool isSitting() const { return m_sitting; }
@@ -1511,6 +1523,7 @@ private:
     bool m_invisible = false;
     EntityInstanceId m_vehicleId = 0;     // 正在骑乘的载具ID
     std::vector<u32> m_passengers;        // 乘客列表（如果此实体是载具）
+    EntityInstanceId m_leashHolderId = 0; // 拴绳持有者实体ID（0=未被拴，由 SetEntityLink 同步）
     BlockPos m_sleepingPosition{0, 0, 0}; // 睡眠位置（床的方块位置）
 
     // 攻击动画

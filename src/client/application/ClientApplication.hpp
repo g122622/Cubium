@@ -42,11 +42,13 @@
 #include "client/ui/TridentCanvas.hpp"
 #include "client/ui/kagero/KageroEngine.hpp"
 #include "client/window/Window.hpp"
+#include "client/world/BossBarState.hpp"
 #include "client/world/ClientMapDataCache.hpp"
 #include "client/world/ClientWorld.hpp"
 #include "client/world/player/ClientPlayerPredictor.hpp"
 #include "client/world/player/LocalPlayerIdentity.hpp"
 #include "client/world/player/PlayerIdentityRegistry.hpp"
+#include "common/command/ICommandSource.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
@@ -55,6 +57,7 @@
 #include "common/network/protocol/GameActions.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
@@ -502,6 +505,12 @@ private:
 
     // 维度管理器
     ClientDimensionManager m_dimensionManager;
+
+    // 记分板（由 set_objective / set_score / set_player_team 等包同步，会话级数据）
+    scoreboard::Scoreboard m_scoreboard;
+
+    // Boss 条状态（由 boss_event 包同步，会话级数据；渲染留 TODO）
+    std::unordered_map<Uuid, client::BossBarState, UuidHash> m_bossBars;
 
     // 物理系统
     std::unique_ptr<PhysicsEngine> m_physicsEngine;

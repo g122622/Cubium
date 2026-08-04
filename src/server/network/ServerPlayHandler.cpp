@@ -23,6 +23,7 @@
 
 #include "ServerPlayHandler.hpp"
 
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
@@ -139,6 +140,12 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         handleChangeDifficultyPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::LockDifficulty>(play)) {
         handleLockDifficultyPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ConfigurationAcknowledged>(play)) {
+        handleConfigurationAcknowledgedPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::SeenAdvancements>(play)) {
+        handleSeenAdvancementsPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::PlaceRecipe>(play)) {
+        handlePlaceRecipePacket(playerId, packet);
     } else {
         // 未覆盖的 C→S 变体（如 SetCreativeModeSlot 等创造模式/命令相关包）
         spdlog::info("route: unhandled C->S play variant");
@@ -219,6 +226,84 @@ void ServerPlayHandler::handleLockDifficultyPacket(PlayerId playerId, const mc::
     }
     // setDifficultyLocked 内部已广播 cb:10（携带新 locked 值），客户端据此禁用难度按钮。
     m_server.setDifficultyLocked(evt->locked);
+}
+
+void ServerPlayHandler::handleConfigurationAcknowledgedPacket(
+    PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // ConfigurationAcknowledged（C→S terminal）：客户端收到服务端 StartConfiguration(S→C) 后回此包，
+    // 双方切回 Configuration 阶段。入站阶段由框架 ProtocolSwapHandler 自动切回 Configuration
+    // （见 ProtocolSwapHandler.cpp Play 分支识别此 terminal），无需此处手动 setInboundPhase。
+    //
+    // TODO(Play→Configuration reconfiguration): 完整 reconfiguration 需服务端在此显式
+    // setOutboundPhase(Configuration) 后重推 RegistryData/UpdateTags 等；但当前项目无
+    // StartConfiguration(S→C) IR 结构体，服务端无发起 reconfiguration 的路径，此包运行时不被
+    // 客户端触发。本处理仅确认接收，保证 terminal 自动阶段切换链路不被 route 兜底干扰。
+    (void)packet;
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    spdlog::info("ConfigurationAcknowledged from player {}, switching back to Configuration phase", playerId);
+}
+
+void ServerPlayHandler::handleSeenAdvancementsPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // SeenAdvancements（C→S id=49）：action 0=OPENED_TAB（tab=ResourceLocation），1=CLOSED_SCREEN。
+    // 对齐 Java ServerGamePacketListenerImpl.handleSeenAdvancements：
+    //  - OPENED_TAB：解析 tab 为 AdvancementPtr 写入 PlayerAdvancements::m_selectedTab（持久化用）。
+    //  - CLOSED_SCREEN：vanilla 为空实现（不清除选中标签页）。
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::SeenAdvancements>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+    auto* serverPlayer = playerEntity->asServerPlayer();
+    if (serverPlayer == nullptr) {
+        return;
+    }
+    auto* advancements = serverPlayer->getAdvancements();
+    if (advancements == nullptr) {
+        return;
+    }
+    if (evt->action == 0) { // OPENED_TAB
+        const auto adv = mc::advancement::AdvancementManager::instance().get(mc::ResourceLocation(evt->tab));
+        if (adv == nullptr) {
+            spdlog::warn("SeenAdvancements OPENED_TAB: advancement {} not found", evt->tab);
+            return;
+        }
+        advancements->setSelectedTab(adv);
+    }
+    // action == 1 (CLOSED_SCREEN)：vanilla 空实现，不清除选中标签页。
+}
+
+void ServerPlayHandler::handlePlaceRecipePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // PlaceRecipe（C→S id=38）：玩家在配方书中点击配方，请求服务端把材料填入合成网格。
+    // 字段：containerId(VarInt)/recipe(VarInt RecipeDisplayId)/useMaxItems(bool)。
+    //
+    // TODO(配方书网络同步链路): 完整实现需 display-id→ResourceLocation 映射（RecipeDisplayId 是
+    // 客户端配方表索引，服务端需维护映射）+ 按配方填充合成网格槽位（容器槽位操作 API）。整个配方书
+    // 同步链路（recipe_book_add/remove/settings 下行、place_recipe/recipe_book_change_settings 上行）
+    // 尚未打通，此处仅确认接收并记 warn，避免 route 兜底静默丢弃。
+    (void)packet;
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    spdlog::warn("PlaceRecipe from player {} not implemented (recipe book sync chain pending)", playerId);
 }
 
 void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

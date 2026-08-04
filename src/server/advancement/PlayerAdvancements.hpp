@@ -161,6 +161,19 @@ public:
      */
     void clearProgressChanged();
 
+    /**
+     * @brief 设置当前选中的成就标签页（由 SeenAdvancements 包 OPENED_TAB 同步）
+     *
+     * 对齐 Java PlayerAdvancements.setSelectedTab：仅记录选中项，用于持久化与下次登录
+     * 恢复标签页。传 nullptr 等价于清除选中（CLOSED_SCREEN 时 vanilla 不清除，保留原值）。
+     */
+    void setSelectedTab(mc::advancement::AdvancementPtr advancement) { m_selectedTab = std::move(advancement); }
+
+    /**
+     * @brief 获取当前选中的成就标签页
+     */
+    [[nodiscard]] mc::advancement::AdvancementPtr getSelectedTab() const noexcept { return m_selectedTab; }
+
     // ========== 成就重载响应 ==========
 
     /**
