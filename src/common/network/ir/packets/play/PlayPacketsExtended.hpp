@@ -1062,12 +1062,143 @@ struct ServerboundChangeDifficulty {
 /**
  * @brief LockDifficulty（C→S，id=28）
  *
- * 对齐 Java 1.21.11 ServerboundLockDifficultyPacket：Bool(locked)。
+ * 对应 Java 1.21.11 ServerboundLockDifficultyPacket：Bool(locked)。
  */
 struct LockDifficulty {
     bool locked; // Bool
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const LockDifficulty&, const LockDifficulty&) noexcept = default;
+};
+
+// ============================================================================
+// 区块相关数据包（altIndex 100..107）
+//
+// 下列 8 个包在此前仅有协议映射登记（assets/data/packet_ids.json）与 Prismarine
+// 协议表条目，IR/codec/协议表登记/消费分支四层全缺，本次补全。消费端仅
+// ForgetLevelChunk 落业务（复用 ClientWorld::onChunkUnload），其余为 TODO 桩。
+// ============================================================================
+
+/**
+ * @brief BundleDelimiter（S→C，id=0）
+ *
+ * 对应 Java 1.21.11 ClientboundBundleDelimiterPacket：无负载。标记一个 bundle 的开始，
+ * 客户端将后续包缓存在 bundle 窗口内直至收到下一个 delimiter 提交。bundle 状态机未实现。
+ */
+struct BundleDelimiter {
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const BundleDelimiter&, const BundleDelimiter&) noexcept = default;
+};
+
+/**
+ * @brief BlockChangedAck（S→C，id=4）
+ *
+ * 对应 Java 1.21.11 ClientboundBlockChangedAckPacket：VarInt(sequence)。服务端确认客户端
+ * 方块挖掘预测的某个 sequence，客户端据此推进本地预测状态机。客户端挖掘预测链路未实现。
+ */
+struct BlockChangedAck {
+    i32 sequence; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const BlockChangedAck&, const BlockChangedAck&) noexcept = default;
+};
+
+/**
+ * @brief ChunkBatchFinished（S→C，id=11）
+ *
+ * 对应 Java 1.21.11 ClientboundChunkBatchFinishedPacket：VarInt(batchSize)。标记一个区块
+ * 批次发送结束，batchSize 为该批次内区块数。客户端据此计算实际接收速率并回发
+ * ChunkBatchReceived(sb:10) 反馈期望速率。客户端批次流速控状态机未实现。
+ */
+struct ChunkBatchFinished {
+    i32 batchSize; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChunkBatchFinished&, const ChunkBatchFinished&) noexcept = default;
+};
+
+/**
+ * @brief ChunkBatchStart（S→C，id=12）
+ *
+ * 对应 Java 1.21.11 ClientboundChunkBatchStartPacket：无负载。标记一个区块批次发送开始。
+ * 客户端批次流速控状态机未实现。
+ */
+struct ChunkBatchStart {
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChunkBatchStart&, const ChunkBatchStart&) noexcept = default;
+};
+
+/**
+ * @brief ChunkBiomes 单项：区块坐标 packed + 生物群系数据
+ *
+ * packedChunkPos 为 VarLong，编码 vanilla ChunkPos.toLong：X 低 32 位 @ bit32，Z 低 32 位 @ bit0。
+ * data 为 ByteArray，承载该区块 4×4×4 采样生物群系的 PalettedContainer wire。
+ *
+ * 注意：项目 SectionPos::toColumnLong 位宽（26 位）与 vanilla ChunkPos.toLong（32 位）不同，
+ * 故此处以原始 i64 直存，codec 透传 VarLong，不在 codec 层解包。
+ */
+struct ChunkBiomeEntry {
+    i64 packedChunkPos;   // VarLong
+    std::vector<u8> data; // ByteArray
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChunkBiomeEntry&, const ChunkBiomeEntry&) noexcept = default;
+};
+
+/**
+ * @brief ChunkBiomes（S→C，id=13）
+ *
+ * 对应 Java 1.21.11 ClientboundChunkBiomesPacket：VarInt(count) + count×{VarLong(packedChunkPos)
+ * + ByteArray(data)}。服务端在某区块生物群系变更时批量下发受影响区块的新生物群系数据。
+ * 客户端无生物群系增量更新入口（ClientWorld 仅在区块整体接收时随 ChunkData 落地生物群系），
+ * 消费端为 TODO 桩。
+ */
+struct ChunkBiomes {
+    std::vector<ChunkBiomeEntry> biomes; // count×{packedChunkPos + ByteArray}
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChunkBiomes&, const ChunkBiomes&) noexcept = default;
+};
+
+/**
+ * @brief ForgetLevelChunk（S→C，id=37）
+ *
+ * 对应 Java 1.21.11 ClientboundForgetLevelChunkPacket：VarInt(x) + VarInt(z)。服务端通知
+ * 客户端卸载指定区块（玩家走远/区块卸载）。客户端消费复用 ClientWorld::onChunkUnload。
+ */
+struct ForgetLevelChunk {
+    i32 x; // VarInt
+    i32 z; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ForgetLevelChunk&, const ForgetLevelChunk&) noexcept = default;
+};
+
+/**
+ * @brief SectionBlocksUpdate（S→C，id=82）
+ *
+ * 对应 Java 1.21.11 ClientboundSectionBlocksUpdatePacket：VarLong(sectionPos) + VarInt(count)
+ * + count×VarLong(blockStatePacked)。单个区块段内多方块变更的聚合包，每条 blockStatePacked
+ * 编码相对 section 原点的 localPos 与 blockState：localX(4位)@8 | localZ(4位)@4 | localY(4位)@0
+ * 占低 12 位，高 52 位为 blockStateId。
+ *
+ * sectionPos 为 VarLong，编码 vanilla SectionPos.asLong：X 26 位 @ bit42，Y 12 位 @ bit20，
+ * Z 12 位 @ bit0。注意项目 SectionPos::toLong/fromLong 位布局（X@42/Z@20/Y@0，Y 20 位）与此
+ * 不同，故 IR 以原始 i64 直存，codec 透传 VarLong，不在 codec 层解包。客户端多方块变更聚合
+ * 消费未实现，为 TODO 桩。
+ */
+struct SectionBlocksUpdate {
+    i64 sectionPos;               // VarLong
+    std::vector<i64> blockStates; // count×VarLong
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SectionBlocksUpdate&, const SectionBlocksUpdate&) noexcept = default;
+};
+
+/**
+ * @brief ChunkBatchReceived（C→S，id=10）
+ *
+ * 对应 Java 1.21.11 ServerboundChunkBatchReceivedPacket：Float(chunksPerTick)。客户端在批次
+ * 结束后回发本批次实际接收速率，服务端据此动态调整下一批次区块发送配额。服务端区块批量发送
+ * 流速控未实现（ChunkSendManager::processPendingSends 当前每 tick 抽干就绪队列，无配额）。
+ */
+struct ChunkBatchReceived {
+    f32 chunksPerTick; // Float
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const ChunkBatchReceived&, const ChunkBatchReceived&) noexcept = default;
 };
 
 } // namespace mc::network::ir::play

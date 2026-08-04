@@ -229,6 +229,9 @@ using B = buffer::RegistryByteBuf;
         3, PacketType{PacketFlow::Serverbound, "change_difficulty"}, 97, codecs::serverboundChangeDifficultyCodec());
     b.addPacket<ir::play::LockDifficulty>(
         28, PacketType{PacketFlow::Serverbound, "lock_difficulty"}, 98, codecs::lockDifficultyCodec());
+    // ---- 区块相关数据包（altIndex 107）----
+    b.addPacket<ir::play::ChunkBatchReceived>(
+        10, PacketType{PacketFlow::Serverbound, "chunk_batch_received"}, 107, codecs::chunkBatchReceivedCodec());
     return b.build();
 }
 
@@ -405,6 +408,22 @@ using B = buffer::RegistryByteBuf;
     // vanilla ClientboundSystemChatPacket：content(Component NBT) + isActionBar(bool)。
     b.addPacket<ir::play::SystemChat>(
         119, PacketType{PacketFlow::Clientbound, "system_chat"}, 99, codecs::systemChatCodec());
+    // ---- 区块相关数据包（altIndex 100..106）----
+    // 消费端仅 ForgetLevelChunk 落业务，其余为 TODO 桩；codec 双向自洽故先登记。
+    b.addPacket<ir::play::BundleDelimiter>(
+        0, PacketType{PacketFlow::Clientbound, "bundle_delimiter"}, 100, codecs::bundleDelimiterCodec());
+    b.addPacket<ir::play::BlockChangedAck>(
+        4, PacketType{PacketFlow::Clientbound, "block_changed_ack"}, 101, codecs::blockChangedAckCodec());
+    b.addPacket<ir::play::ChunkBatchFinished>(
+        11, PacketType{PacketFlow::Clientbound, "chunk_batch_finished"}, 102, codecs::chunkBatchFinishedCodec());
+    b.addPacket<ir::play::ChunkBatchStart>(
+        12, PacketType{PacketFlow::Clientbound, "chunk_batch_start"}, 103, codecs::chunkBatchStartCodec());
+    b.addPacket<ir::play::ChunkBiomes>(
+        13, PacketType{PacketFlow::Clientbound, "chunk_biomes"}, 104, codecs::chunkBiomesCodec());
+    b.addPacket<ir::play::ForgetLevelChunk>(
+        37, PacketType{PacketFlow::Clientbound, "forget_level_chunk"}, 105, codecs::forgetLevelChunkCodec());
+    b.addPacket<ir::play::SectionBlocksUpdate>(
+        82, PacketType{PacketFlow::Clientbound, "section_blocks_update"}, 106, codecs::sectionBlocksUpdateCodec());
     return b.build();
 }
 

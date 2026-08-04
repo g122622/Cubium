@@ -104,6 +104,7 @@ private:
     void handleConfigurationAcknowledgedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handleSeenAdvancementsPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
     void handlePlaceRecipePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    void handleChunkBatchReceivedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
     void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);

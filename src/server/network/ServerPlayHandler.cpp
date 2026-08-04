@@ -146,6 +146,8 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         handleSeenAdvancementsPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::PlaceRecipe>(play)) {
         handlePlaceRecipePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ChunkBatchReceived>(play)) {
+        handleChunkBatchReceivedPacket(playerId, packet);
     } else {
         // 未覆盖的 C→S 变体（如 SetCreativeModeSlot 等创造模式/命令相关包）
         spdlog::info("route: unhandled C->S play variant");
@@ -304,6 +306,29 @@ void ServerPlayHandler::handlePlaceRecipePacket(PlayerId playerId, const mc::net
         return;
     }
     spdlog::warn("PlaceRecipe from player {} not implemented (recipe book sync chain pending)", playerId);
+}
+
+void ServerPlayHandler::handleChunkBatchReceivedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // ChunkBatchReceived（C→S id=10）：客户端在区块批次结束后回发本批次实际接收速率
+    // chunksPerTick(Float)，服务端据此动态调整下一批次区块发送配额。
+    //
+    // TODO(服务端区块批次流速控): 当前 ChunkSendManager::processPendingSends 每 tick 抽干
+    // m_readyChunks 就绪队列，无批次划分与发送配额，亦不发 ChunkBatchStart/Finished(cb:11/12)。
+    // 完整实现需在 ChunkSendManager 引入批次窗口（按 tick 攒批 + Start/Finished 配对下发），
+    // 并以本包 chunksPerTick 反馈调整每批次发送上限。此处仅确认接收并记 warn。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ChunkBatchReceived>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    spdlog::warn("ChunkBatchReceived from player {} chunksPerTick={} not implemented (batch flow control pending)",
+        playerId,
+        evt->chunksPerTick);
 }
 
 void ServerPlayHandler::handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

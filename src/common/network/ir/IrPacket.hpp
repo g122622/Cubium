@@ -182,7 +182,16 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ServerboundPong,             // 96
     play::ServerboundChangeDifficulty, // 97
     play::LockDifficulty,              // 98
-    play::SystemChat>;                 // 99
+    play::SystemChat,                  // 99
+    // ---- 以下为区块相关数据包（altIndex 100..107，PlayPacketsExtended.hpp）----
+    play::BundleDelimiter,     // 100
+    play::BlockChangedAck,     // 101
+    play::ChunkBatchFinished,  // 102
+    play::ChunkBatchStart,     // 103
+    play::ChunkBiomes,         // 104
+    play::ForgetLevelChunk,    // 105
+    play::SectionBlocksUpdate, // 106
+    play::ChunkBatchReceived>; // 107
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

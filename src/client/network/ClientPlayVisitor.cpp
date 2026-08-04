@@ -576,8 +576,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 m_app.m_world.onLevelChunkWithLight(p, m_app.m_dimensionManager.currentDimension());
                 return Result<void>::ok();
             }
-            // 1.21.11 已删 UnloadChunk 包：区块卸载由客户端按距离自行管理
-            // （ClientWorld::onChunkUnload 已就绪，待接距离判据），无入站信令。
+            // 区块卸载信令 ForgetLevelChunk(cb:37) 的消费分支见下方区块相关数据包段。
             // ---- 方块更新 ----
             else if constexpr (std::is_same_v<T, irplay::BlockUpdate>) {
                 const auto& p = pkt;
@@ -2424,6 +2423,57 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         }
                     }
                 }
+                return Result<void>::ok();
+            }
+            // ---- 区块相关数据包（altIndex 100..106）----
+            // ForgetLevelChunk 落业务（复用 ClientWorld::onChunkUnload），其余为 TODO 桩。
+            else if constexpr (std::is_same_v<T, irplay::ForgetLevelChunk>) {
+                const auto& p = pkt;
+                // 复用既有 onChunkUnload：内部完成维度校验、mesh 任务取消、生物群系颜色缓存
+                // 失效、m_chunks erase 与代际号清理。
+                m_app.m_world.onChunkUnload(p.x, p.z, m_app.m_dimensionManager.currentDimension());
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::BundleDelimiter>) {
+                // TODO(客户端 bundle 状态机): 收到 delimiter 应开启 bundle 窗口缓存后续包，
+                // 直至下一个 delimiter 提交。当前无 bundle 状态机，静默忽略。
+                spdlog::warn("BundleDelimiter received but client bundle state machine not implemented");
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::BlockChangedAck>) {
+                // TODO(客户端挖掘预测): 收到 sequence 应推进本地方块挖掘预测状态机。
+                // 当前无客户端挖掘预测链路，静默忽略。
+                const auto& p = pkt;
+                spdlog::warn(
+                    "BlockChangedAck sequence={} received but client digging prediction not implemented", p.sequence);
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ChunkBatchFinished>) {
+                // TODO(客户端区块批次流速控): 收到批次结束应统计本批次实际接收速率并回发
+                // ChunkBatchReceived(sb:10)。当前无客户端批次状态机，静默忽略。
+                const auto& p = pkt;
+                spdlog::warn("ChunkBatchFinished batchSize={} received but client batch flow control not implemented",
+                    p.batchSize);
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ChunkBatchStart>) {
+                // TODO(客户端区块批次流速控): 收到批次开始应重置本批次统计。当前无客户端批次
+                // 状态机，静默忽略。
+                spdlog::warn("ChunkBatchStart received but client batch flow control not implemented");
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ChunkBiomes>) {
+                // TODO(客户端生物群系增量更新): 应按 packedChunkPos 解包区块坐标，用 data 还原
+                // PalettedContainer 写入对应区块的生物群系。当前 ClientWorld 无生物群系增量更新
+                // 入口（仅在区块整体接收时随 ChunkData 落地），静默忽略。
+                const auto& p = pkt;
+                spdlog::warn("ChunkBiomes entries={} received but client biome incremental update not implemented",
+                    p.biomes.size());
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::SectionBlocksUpdate>) {
+                // TODO(客户端多方块变更聚合): 应按 sectionPos（vanilla SectionPos.asLong：
+                // X26@42 / Y12@20 / Z12@0）解包段坐标，逐条 blockStates 解出 localPos 与
+                // blockStateId（低 12 位 localX@8|localZ@4|localY@0，高 52 位 blockStateId）
+                // 调 setBlockState。注意项目 SectionPos::fromLong 位布局与此不同，不可直接复用。
+                // 当前聚合消费未实现，静默忽略。
+                const auto& p = pkt;
+                spdlog::warn("SectionBlocksUpdate count={} received but client multi-block update not implemented",
+                    p.blockStates.size());
                 return Result<void>::ok();
             }
             // ---- 默认：未处理包静默忽略 ----

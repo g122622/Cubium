@@ -78,7 +78,7 @@
     "play:cb:10": "change_difficulty",
     "play:cb:11": "chunk_batch_finished",
     "play:cb:12": "chunk_batch_start",
-    "play:cb:13": "chunks_biomes",
+    "play:cb:13": "chunk_biomes",
     "play:cb:14": "clear_titles",
     "play:cb:15": "command_suggestions",
     "play:cb:16": "commands",

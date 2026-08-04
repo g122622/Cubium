@@ -1138,12 +1138,11 @@ void MinecraftServer::setupWorldCallbacks()
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
-                // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按 SetChunkCacheCenter
-                // 中心 + render distance 自行回收远端区块（见 setChunkCacheCenterCallback）。
-                // 服务端无需发送卸载信令，此回调保留空操作以符合 vanilla 设计。
-                MC_UNUSED(playerId);
-                MC_UNUSED(x);
-                MC_UNUSED(z);
+                // 1.21.11 客户端按 SetChunkCacheCenter 中心 + render distance 自行回收远端区块，
+                // 但服务端在玩家走远/区块卸载时仍显式发送 ForgetLevelChunk(cb:37)，确保客户端
+                // 立即释放对应区块的 mesh 与缓存（早于客户端自主回收），与 vanilla
+                // ServerPlayerGameModeifier / chunk 卸载链路一致。
+                sendUnloadChunkToPlayer(playerId, x, z);
             });
         }
     });
@@ -1577,12 +1576,18 @@ void MinecraftServer::sendChunkDataToPlayer(
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
-    // 1.21.11 无 UnloadChunk 网络包：区块卸载由客户端按 SetChunkCacheCenter 中心 +
-    // render distance 自行回收远端区块。服务端无需发送卸载信令，此函数保留空操作
-    // 以符合 vanilla 设计（当前零调用方，保留供未来按需强制卸载信令扩展）。
-    MC_UNUSED(playerId);
-    MC_UNUSED(x);
-    MC_UNUSED(z);
+    // 1.21.11 ForgetLevelChunk(cb:37)：VarInt(x) + VarInt(z)。服务端在玩家走远/区块卸载时
+    // 发送，通知客户端立即卸载对应区块（mesh 取消 + 缓存失效 + m_chunks erase）。客户端消费
+    // 复用 ClientWorld::onChunkUnload。触发链为 ChunkSendManager::unloadChunkFromPlayers →
+    // m_onChunkUnload 回调（见 initializeDimensions 内 setOnChunkUnload 注册）。
+    mc::network::ir::play::ForgetLevelChunk pkt;
+    pkt.x = static_cast<i32>(x);
+    pkt.z = static_cast<i32>(z);
+    sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(pkt)},
+        });
 }
 
 void MinecraftServer::broadcastLightUpdate(ChunkCoord x,

@@ -1782,4 +1782,141 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         });
 }
 
+// ============================================================================
+// 区块相关数据包 codec（altIndex 100..107）。仅 ForgetLevelChunk 消费端落业务，
+// 其余消费端为 TODO 桩，但 codec 双向自洽（项目内 LocalTransport 直传 IR 与真 Java
+// 客户端经 wire 互通均可达）。
+// ============================================================================
+
+/// BundleDelimiter（S→C，id=0）：无负载
+[[nodiscard]] inline auto bundleDelimiterCodec()
+{
+    return makeCodec<ir::play::BundleDelimiter>([](B&, const ir::play::BundleDelimiter&) {},
+        [](B&) -> Result<ir::play::BundleDelimiter> { return ir::play::BundleDelimiter{}; });
+}
+
+/// BlockChangedAck（S→C，id=4）：VarInt(sequence)
+[[nodiscard]] inline auto blockChangedAckCodec()
+{
+    return makeCodec<ir::play::BlockChangedAck>(
+        [](B& buf, const ir::play::BlockChangedAck& v) { buf.writeVarInt(v.sequence); },
+        [](B& buf) -> Result<ir::play::BlockChangedAck> {
+            ir::play::BlockChangedAck v{};
+            MC_TRY_ASSIGN(v.sequence, buf.readVarInt());
+            return v;
+        });
+}
+
+/// ChunkBatchFinished（S→C，id=11）：VarInt(batchSize)
+[[nodiscard]] inline auto chunkBatchFinishedCodec()
+{
+    return makeCodec<ir::play::ChunkBatchFinished>(
+        [](B& buf, const ir::play::ChunkBatchFinished& v) { buf.writeVarInt(v.batchSize); },
+        [](B& buf) -> Result<ir::play::ChunkBatchFinished> {
+            ir::play::ChunkBatchFinished v{};
+            MC_TRY_ASSIGN(v.batchSize, buf.readVarInt());
+            return v;
+        });
+}
+
+/// ChunkBatchStart（S→C，id=12）：无负载
+[[nodiscard]] inline auto chunkBatchStartCodec()
+{
+    return makeCodec<ir::play::ChunkBatchStart>([](B&, const ir::play::ChunkBatchStart&) {},
+        [](B&) -> Result<ir::play::ChunkBatchStart> { return ir::play::ChunkBatchStart{}; });
+}
+
+/// ChunkBiomes（S→C，id=13）：VarInt(count) + count×{VarLong(packedChunkPos) + ByteArray(data)}
+[[nodiscard]] inline auto chunkBiomesCodec()
+{
+    return makeCodec<ir::play::ChunkBiomes>(
+        [](B& buf, const ir::play::ChunkBiomes& v) {
+            buf.writeVarInt(static_cast<i32>(v.biomes.size()));
+            for (const auto& entry : v.biomes) {
+                buf.writeVarLong(entry.packedChunkPos);
+                buf.writeVarInt(static_cast<i32>(entry.data.size()));
+                buf.writeBytes(entry.data.data(), entry.data.size());
+            }
+        },
+        [](B& buf) -> Result<ir::play::ChunkBiomes> {
+            ir::play::ChunkBiomes v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || count > 1024) {
+                return Error(ErrorCode::InvalidData, "chunk biomes count out of range", "chunkBiomesCodec");
+            }
+            v.biomes.reserve(static_cast<usize>(count));
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::ChunkBiomeEntry entry{};
+                MC_TRY_ASSIGN(entry.packedChunkPos, buf.readVarLong());
+                i32 dataLen = 0;
+                MC_TRY_ASSIGN(dataLen, buf.readVarInt());
+                if (dataLen < 0 || dataLen > 8192) {
+                    return Error(ErrorCode::InvalidData, "chunk biomes data length out of range", "chunkBiomesCodec");
+                }
+                MC_TRY_ASSIGN(entry.data, buf.readBytes(static_cast<usize>(dataLen)));
+                v.biomes.push_back(std::move(entry));
+            }
+            return v;
+        });
+}
+
+/// ForgetLevelChunk（S→C，id=37）：VarInt(x) + VarInt(z)
+[[nodiscard]] inline auto forgetLevelChunkCodec()
+{
+    return makeCodec<ir::play::ForgetLevelChunk>(
+        [](B& buf, const ir::play::ForgetLevelChunk& v) {
+            buf.writeVarInt(v.x);
+            buf.writeVarInt(v.z);
+        },
+        [](B& buf) -> Result<ir::play::ForgetLevelChunk> {
+            ir::play::ForgetLevelChunk v{};
+            MC_TRY_ASSIGN(v.x, buf.readVarInt());
+            MC_TRY_ASSIGN(v.z, buf.readVarInt());
+            return v;
+        });
+}
+
+/// SectionBlocksUpdate（S→C，id=82）：VarLong(sectionPos) + VarInt(count) + count×VarLong(blockStates)
+[[nodiscard]] inline auto sectionBlocksUpdateCodec()
+{
+    return makeCodec<ir::play::SectionBlocksUpdate>(
+        [](B& buf, const ir::play::SectionBlocksUpdate& v) {
+            buf.writeVarLong(v.sectionPos);
+            buf.writeVarInt(static_cast<i32>(v.blockStates.size()));
+            for (i64 packed : v.blockStates) {
+                buf.writeVarLong(packed);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SectionBlocksUpdate> {
+            ir::play::SectionBlocksUpdate v{};
+            MC_TRY_ASSIGN(v.sectionPos, buf.readVarLong());
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || count > 4096) {
+                return Error(
+                    ErrorCode::InvalidData, "section blocks update count out of range", "sectionBlocksUpdateCodec");
+            }
+            v.blockStates.reserve(static_cast<usize>(count));
+            for (i32 i = 0; i < count; ++i) {
+                i64 packed = 0;
+                MC_TRY_ASSIGN(packed, buf.readVarLong());
+                v.blockStates.push_back(packed);
+            }
+            return v;
+        });
+}
+
+/// ChunkBatchReceived（C→S，id=10）：Float(chunksPerTick)
+[[nodiscard]] inline auto chunkBatchReceivedCodec()
+{
+    return makeCodec<ir::play::ChunkBatchReceived>(
+        [](B& buf, const ir::play::ChunkBatchReceived& v) { buf.writeF32(v.chunksPerTick); },
+        [](B& buf) -> Result<ir::play::ChunkBatchReceived> {
+            ir::play::ChunkBatchReceived v{};
+            MC_TRY_ASSIGN(v.chunksPerTick, buf.readF32());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs
