@@ -542,8 +542,13 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
 void PlayerBroadcaster::broadcastBlockEventInRange(
     i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
 {
-    // 参考 MC Java: ServerPlayerList.broadcast(null, x, y, z, 64.0, dimension, new ClientboundBlockEventPacket)
-    // 1.21.11 BlockEvent：blockPosPacked + b0 + b1 + blockId(此处用 blockStateId)。
+    // 1.21.11 BlockEvent wire：blockPosPacked + b0 + b1 + blockId。
+    // TODO(block_event_block_id): vanilla 第4字段 blockId 是 Block 注册表 id
+    // （BuiltInRegistries.BLOCK.getId，ByteBufCodecs.registry(Registries.BLOCK)），不是 stateId
+    // 也不是 state globalId。当前错误地发项目内部 blockStateId，真 Java 客户端按 Block 注册表 id
+    // 校验会拒绝该事件（红石活塞/音符盒/箱子声效等异常，BUG#6）。正确修复需新建 JavaBlockIdMap
+    // （内部 blockId ↔ Java Block 注册表 id）+ PrismarineJS blocks.json 数据源 + 烘焙脚本，
+    // 属不同语义维度的独立工作，待本次 stateId→globalId 翻译任务提交后处理。
     mc::network::ir::play::BlockEvent pkt;
     pkt.blockPosPacked = BlockPos(x, y, z).asLong();
     pkt.b0 = paramA;

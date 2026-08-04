@@ -27,6 +27,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -299,16 +300,22 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             break;
         }
         case 14: { // OptionalBlockStateValue → OPTIONAL_BLOCK_STATE
-            // VarInt(stateId)；0 表示空（present=false 或 stateId=0）。
-            // （对齐 vanilla OPTIONAL_BLOCK_STATE_CODEC = VarInt(Block.getId)，0=empty）
+            // VarInt(globalId)；0 表示空（present=false 或 globalId=0=air）。
+            // wire 边界译为 Java globalId（对齐 vanilla OPTIONAL_BLOCK_STATE_CODEC = VarInt(Block.getId)）；
+            // IR/DataValue 层仍持内部 stateId，deserialize 侧 fromJavaGlobalId 反查回内部 id。
             const auto obs = value.get<entity::OptionalBlockStateValue>();
-            _writeVarInt(obs.present ? static_cast<i32>(obs.stateId) : 0, output);
+            const u32 globalId = obs.present
+                ? ::mc::network::backend::java::JavaBlockStateIdMap::instance().toJavaGlobalId(obs.stateId)
+                : 0;
+            _writeVarInt(static_cast<i32>(globalId), output);
             break;
         }
         case 15: { // BlockStateValue → BLOCK_STATE
-            // VarInt(stateId)。（对齐 vanilla BLOCK_STATE_CODEC = VarInt(Block.getId)）
+            // VarInt(globalId)。（对齐 vanilla BLOCK_STATE_CODEC = VarInt(Block.getId)）
             const auto bs = value.get<entity::BlockStateValue>();
-            _writeVarInt(static_cast<i32>(bs.stateId), output);
+            _writeVarInt(static_cast<i32>(
+                             ::mc::network::backend::java::JavaBlockStateIdMap::instance().toJavaGlobalId(bs.stateId)),
+                output);
             break;
         }
         case 16: { // DirectionValue → DIRECTION
@@ -554,17 +561,24 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                 break;
             }
             case MetadataSerializerId::OptionalBlockState: {
-                // VarInt(stateId)；0=空。
+                // wire 为 VarInt(globalId)；0=空。present 必须按 wire sid!=0 判定
+                // （globalId 0=air=empty 语义；勿用反查后的内部 id 判，因 fromJavaGlobalId miss 返回 0 会误判）。
                 const i32 sid = _readVarInt(data.data(), data.size(), offset);
                 const bool present = sid != 0;
+                const u32 internalStateId =
+                    ::mc::network::backend::java::JavaBlockStateIdMap::instance().fromJavaGlobalId(
+                        static_cast<u32>(sid));
                 (void)manager.setRaw(
-                    index, entity::DataValue(entity::OptionalBlockStateValue{present, static_cast<u32>(sid)}));
+                    index, entity::DataValue(entity::OptionalBlockStateValue{present, internalStateId}));
                 manager.clearDirty(index);
                 break;
             }
             case MetadataSerializerId::BlockState: {
                 const i32 sid = _readVarInt(data.data(), data.size(), offset);
-                (void)manager.setRaw(index, entity::DataValue(entity::BlockStateValue{static_cast<u32>(sid)}));
+                const u32 internalStateId =
+                    ::mc::network::backend::java::JavaBlockStateIdMap::instance().fromJavaGlobalId(
+                        static_cast<u32>(sid));
+                (void)manager.setRaw(index, entity::DataValue(entity::BlockStateValue{internalStateId}));
                 manager.clearDirty(index);
                 break;
             }

@@ -28,6 +28,7 @@
 #include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -783,10 +784,20 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             buf.writeF64(v.y);
             buf.writeF64(v.z);
             wire::writeLpVec3(buf, v.movementX, v.movementY, v.movementZ);
-            buf.writeI8(v.yRot);
+            // vanilla ClientboundAddEntityPacket.write 顺序为 xRot, yRot, yHeadRot
+            // （与 EntityTracker 赋值 xRot=pitch/yRot=yaw 语义一致）。
             buf.writeI8(v.xRot);
+            buf.writeI8(v.yRot);
             buf.writeI8(v.yHeadRot);
-            buf.writeVarInt(v.data);
+            // data 字段语义随实体类型变化：仅 FallingBlock(entityTypeId=51) 携带 BlockState
+            // 的 stateId（vanilla FallingBlockEntity.getAddEntityPacket 传 Block.getId），
+            // 需在此 Java wire 边界译为 globalId；其余实体 data=0 或非 state 语义原样透传。
+            // IR 层 data 保持内部 stateId 语义（本地客户端 ClientPlayVisitor 据此查 BlockRegistry）。
+            const i32 dataOut = (v.entityTypeId == 51)
+                ? static_cast<i32>(mc::network::backend::java::JavaBlockStateIdMap::instance().toJavaGlobalId(
+                      static_cast<u32>(v.data)))
+                : v.data;
+            buf.writeVarInt(dataOut);
         },
         [](B& buf) -> Result<ir::play::AddEntity> {
             ir::play::AddEntity v{};
@@ -797,10 +808,15 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
             MC_TRY_ASSIGN(v.y, buf.readF64());
             MC_TRY_ASSIGN(v.z, buf.readF64());
             MC_TRY(wire::readLpVec3(buf, v.movementX, v.movementY, v.movementZ));
-            MC_TRY_ASSIGN(v.yRot, buf.readI8());
             MC_TRY_ASSIGN(v.xRot, buf.readI8());
+            MC_TRY_ASSIGN(v.yRot, buf.readI8());
             MC_TRY_ASSIGN(v.yHeadRot, buf.readI8());
-            MC_TRY_ASSIGN(v.data, buf.readVarInt());
+            i32 rawData = 0;
+            MC_TRY_ASSIGN(rawData, buf.readVarInt());
+            v.data = (v.entityTypeId == 51)
+                ? static_cast<i32>(mc::network::backend::java::JavaBlockStateIdMap::instance().fromJavaGlobalId(
+                      static_cast<u32>(rawData)))
+                : rawData;
             return v;
         });
 }
@@ -1334,12 +1350,19 @@ inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainer
     return makeCodec<ir::play::BlockUpdate>(
         [](B& buf, const ir::play::BlockUpdate& v) {
             buf.writeI64(v.blockPosPacked);
-            buf.writeVarInt(v.blockStateId);
+            // IR 层 blockStateId 为项目内部 stateId，Java wire 边界译为 vanilla globalId
+            // （对齐 chunk 路径 VanillaChunkWire::pack 的 toJavaGlobalId）。
+            buf.writeVarInt(static_cast<i32>(mc::network::backend::java::JavaBlockStateIdMap::instance().toJavaGlobalId(
+                static_cast<u32>(v.blockStateId))));
         },
         [](B& buf) -> Result<ir::play::BlockUpdate> {
             ir::play::BlockUpdate v{};
             MC_TRY_ASSIGN(v.blockPosPacked, buf.readI64());
-            MC_TRY_ASSIGN(v.blockStateId, buf.readVarInt());
+            i32 rawStateId = 0;
+            MC_TRY_ASSIGN(rawStateId, buf.readVarInt());
+            v.blockStateId =
+                static_cast<i32>(mc::network::backend::java::JavaBlockStateIdMap::instance().fromJavaGlobalId(
+                    static_cast<u32>(rawStateId)));
             return v;
         });
 }

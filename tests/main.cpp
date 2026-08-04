@@ -25,6 +25,7 @@
 // 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
 
 #include "common/core/GameDirectory.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/CrashHandler.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -66,6 +67,13 @@ public:
         // 依赖 BlockRegistry 已注册原版方块。VanillaBlocks::initialize() 幂等（s_initialized 守卫），
         // 在此显式调用使本环境自包含——不依赖其它测试文件的静态全局 Environment 注册顺序。
         mc::VanillaBlocks::initialize();
+
+        // Java wire codec 出站边界（BlockUpdate/AddEntity.data/EntityMetadata BlockState 字段）
+        // 依赖 JavaBlockStateIdMap 做内部 stateId ↔ Java globalId 翻译。须在方块注册完成后
+        // 初始化，否则 codec 往返测试（PlayBlockUpdate 等）会因 miss 降级 air 而 fail。
+        if (auto r = mc::network::backend::java::JavaBlockStateIdMap::instance().initialize(); r.failed()) {
+            // 非致命：缺失时 codec 往返的 BlockState 字段会 warn+降级 air。
+        }
 
         // 加载顺序：noise → density_function → noise_settings → flat_level_generator_preset（依赖拓扑）。
         // flat preset 依赖 BlockRegistry（层方块，已由 VanillaBlocks::initialize 注册）与

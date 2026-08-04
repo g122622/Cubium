@@ -1190,6 +1190,10 @@ inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& p
 }
 
 /// BlockEvent（S→C，id=7）
+// TODO(block_event_block_id): vanilla 第4字段 blockId 是 Block 注册表 id
+// （ByteBufCodecs.registry(Registries.BLOCK)），非 stateId 非 state globalId。
+// IR 层 v.blockId 当前存项目内部 blockStateId（见 PlayerBroadcaster::broadcastBlockEventInRange），
+// 待 JavaBlockIdMap 落地后在出站边界译为 Block 注册表 id，decode 对称反翻译。
 [[nodiscard]] inline auto blockEventCodec()
 {
     return makeCodec<ir::play::BlockEvent>(
