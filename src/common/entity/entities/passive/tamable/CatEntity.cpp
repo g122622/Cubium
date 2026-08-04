@@ -73,8 +73,11 @@ namespace mc {
 // 静态成员初始化
 // ============================================================================
 
+entity::DataParameter<entity::HolderVariantValue> CatEntity::DATA_VARIANT_ID_PARAM =
+    entity::EntityDataManager::createKey<entity::HolderVariantValue>();
 entity::DataParameter<bool> CatEntity::DATA_LYING_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> CatEntity::DATA_RELAX_STATE_ONE_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i32> CatEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = TameableEntity::classInfo()）
@@ -157,9 +160,6 @@ bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 CatEntity::CatEntity(EntityInstanceId id)
     : TameableEntity(id)
 {
-    // 随机设置皮肤类型
-    setRandomCatType();
-
     // 注册 AI 目标
     registerGoals();
 
@@ -171,6 +171,9 @@ CatEntity::CatEntity(EntityInstanceId id)
     // registerData() 时调用的是 Entity::registerData 而非 CatEntity::registerData），
     // 必须在派生类构造函数中显式调用，参考 WolfEntity / ZombieVillagerEntity 模式。
     registerData();
+
+    // 随机设置皮肤类型（须在 registerData 之后,因 setCatType 会写 DATA_VARIANT_ID_PARAM）
+    setRandomCatType();
 }
 
 std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
@@ -181,7 +184,8 @@ std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
 void CatEntity::setRandomCatType()
 {
     math::Random& rng = getRandom();
-    m_catType = static_cast<CatType>(rng.nextInt(0, 10));
+    // 走 setCatType 以同步 DATA_VARIANT_ID_PARAM(wire)。
+    setCatType(static_cast<CatType>(rng.nextInt(0, 10)));
 }
 
 bool CatEntity::isTameItem(const ItemStack& itemStack) const
@@ -333,9 +337,17 @@ void CatEntity::registerData()
     // 分配 id（续接 TameableEntity 之后）。RAII 守卫自动配对压栈/弹栈。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册猫特有的数据参数
+    // 注册猫特有的数据参数（对齐 vanilla Cat.defineSynchedData 顺序,wire id 19-22）
+    //   DATA_VARIANT_ID(19) Holder<CatVariant> serializerId=21,默认 Black(1) 对齐 vanilla DEFAULT_VARIANT
+    //   IS_LYING(20) Boolean 默认 false
+    //   RELAX_STATE_ONE(21) Boolean 默认 false
+    //   DATA_COLLAR_COLOR(22) Int 默认 14=Red
+    // TODO: vanilla Cat 默认变体为 BLACK(id=1),项目历史默认 Tabby(0);此处 wire 默认值取 Black(1)
+    //       对齐 vanilla,但构造时 setRandomCatType() 会立即覆盖为随机值,故默认值仅影响瞬态。
+    m_dataManager.registerParam(DATA_VARIANT_ID_PARAM, entity::HolderVariantValue{static_cast<i32>(CatType::Black)});
     m_dataManager.registerParam(DATA_LYING_PARAM, false);
     m_dataManager.registerParam(DATA_RELAX_STATE_ONE_PARAM, false);
+    m_dataManager.registerParam(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(DyeColor::Red));
 }
 
 void CatEntity::tick()
@@ -619,19 +631,19 @@ Result<void> CatEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
     // 先调用基类实现（反序列化驯服状态、坐下状态、主人、愤怒等）
     MC_TRY(TameableEntity::readAdditionalSaveData(tag));
 
-    // CatType (i32) - 猫皮肤类型
+    // CatType (i32) - 猫皮肤类型（读 NBT 后经 setCatType 同步到 wire DATA_VARIANT_ID_PARAM）
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::CAT_TYPE)) {
         i32 typeValue = *val;
         if (typeValue >= 0 && typeValue <= 10) {
-            m_catType = static_cast<CatType>(typeValue);
+            setCatType(static_cast<CatType>(typeValue));
         }
     }
 
-    // CollarColor (i32) - 项圈颜色
+    // CollarColor (i32) - 项圈颜色（读 NBT 后经 setCollarColor 同步到 wire DATA_COLLAR_COLOR_PARAM）
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::COLLAR_COLOR)) {
         i32 colorValue = *val;
         if (colorValue >= 0 && colorValue < static_cast<i32>(DyeColor::Count)) {
-            m_collarColor = static_cast<DyeColor>(colorValue);
+            setCollarColor(static_cast<DyeColor>(colorValue));
         }
     }
 

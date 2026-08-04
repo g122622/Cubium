@@ -333,6 +333,25 @@ struct VillagerDataValue {
 };
 
 /**
+ * @brief Sniffer State 字段值包装
+ *
+ * 对齐 vanilla 1.21.11 的 SNIFFER_STATE（EntityDataSerializers id=31）。
+ * wire = VarInt(State.id)（State.id 与枚举序一致: IDLING=0..RISING=6）。
+ * vanilla 用 ByteBufCodecs.idMapper(BY_ID, State::id)，即 VarInt 编码,非 Byte。
+ */
+struct SnifferStateValue {
+    i32 stateId{0}; // Sniffer.State.id（0..6）
+
+    SnifferStateValue() = default;
+    explicit SnifferStateValue(i32 id) noexcept
+        : stateId(id)
+    {}
+
+    bool operator==(const SnifferStateValue& other) const noexcept { return stateId == other.stateId; }
+    bool operator!=(const SnifferStateValue& other) const noexcept { return !(*this == other); }
+};
+
+/**
  * @brief 数据参数值包装
  *
  * 用于存储任意类型的数据参数值
@@ -351,6 +370,7 @@ public:
     //   18:HolderVariantValue(→Holder variant,本次统一 id21 占位,见 TODO) 19:VillagerDataValue(→VillagerData id18)
     //   20:HumanoidArmValue(→HumanoidArm id38,Player.MAIN_HAND)
     //   21:OptionalUuidValue(→OptionalLivingEntityRef id13,TamableAnimal.DATA_OWNERUUID)
+    //   22:SnifferStateValue(→SnifferState id31,Sniffer.DATA_STATE)
     // 新增类型须同步更新 EntityMetadataSerializer 三处分支。
     using ValueType = std::variant<i8,
         i32,
@@ -373,7 +393,8 @@ public:
         HolderVariantValue,
         VillagerDataValue,
         HumanoidArmValue,
-        OptionalUuidValue>;
+        OptionalUuidValue,
+        SnifferStateValue>;
 
     DataValue() = default;
 

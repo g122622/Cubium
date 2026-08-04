@@ -60,6 +60,7 @@
 #include "entity/entities/passive/fish/SalmonEntity.hpp"
 #include "entity/entities/passive/fish/TropicalFishEntity.hpp"
 #include "entity/entities/passive/nautilus/NautilusEntity.hpp"
+#include "entity/entities/passive/tamable/CatEntity.hpp"
 #include "entity/entities/passive/tamable/WolfEntity.hpp"
 #include "entity/entities/passive/water/GlowSquidEntity.hpp"
 #include "entity/entities/passive/water/SquidEntity.hpp"
@@ -209,11 +210,27 @@ TEST(EntityMetadataIdGoldenTest, FishingBobberEntityHasIds0To9)
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 9));
 }
 
-TEST(EntityMetadataIdGoldenTest, AbstractMinecartEntityHasIds0To13)
+TEST(EntityMetadataIdGoldenTest, AbstractMinecartEntityHasIds0To12)
 {
     AbstractMinecartEntity entity(AbstractMinecartEntity::Type::Rideable);
-    // 6 个自身字段 id8..13 + Entity id0..7。
-    EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 13));
+    // 对齐 vanilla 1.21.11：Entity id0..7 + 5 字段 id8..12（HURT/HURTDIR/DAMAGE/CUSTOM_DISPLAY_BLOCK/DISPLAY_OFFSET）。
+    // 旧实现 6 字段 id8..13 含 rolling/show_block ghost 字段,且 display_tile 误用 i32 致真客户端
+    // field11 类型校验崩(Optional<BlockState> vs Int);删 ghost + 改 OptionalBlockState 修复。
+    EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 12));
+    EXPECT_FALSE(entity.dataManager().hasParam(13));
+
+    // wire11 CUSTOM_DISPLAY_BLOCK 必为 OptionalBlockStateValue（variant index 14 → serializerId 15
+    // OPTIONAL_BLOCK_STATE）。
+    const u16 displayBlockId = AbstractMinecartEntity::getCustomDisplayBlockParam().id();
+    EXPECT_EQ(displayBlockId, 11u);
+    ASSERT_NE(entity.dataManager().getRaw(displayBlockId), nullptr);
+    EXPECT_EQ(entity.dataManager().getRaw(displayBlockId)->index(), 14u); // OptionalBlockStateValue
+
+    // wire10 DAMAGE 必为 f32/Float（variant index 3 → serializerId 3 FLOAT）。
+    const u16 damageId = AbstractMinecartEntity::getDamageParam().id();
+    EXPECT_EQ(damageId, 10u);
+    ASSERT_NE(entity.dataManager().getRaw(damageId), nullptr);
+    EXPECT_EQ(entity.dataManager().getRaw(damageId)->index(), 3u); // f32/Float
 }
 
 // ============================================================================
@@ -272,12 +289,20 @@ TEST(EntityMetadataIdGoldenTest, DrownedEntityHasIds0To18)
     EXPECT_EQ(collectParamIds(drowned.dataManager()), expectedRange(0, 18));
 }
 
-TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To22)
+TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To20)
 {
     ZombieVillagerEntity zv(EntityInstanceId(1));
-    // Zombie 0..18 + ZombieVillager 19..22。
-    EXPECT_EQ(collectParamIds(zv.dataManager()), expectedRange(0, 22));
-    EXPECT_FALSE(zv.dataManager().hasParam(23));
+    // Zombie 0..18 + ZombieVillager 19..20（CONVERTING + 单一复合 VILLAGER_DATA）。
+    // 旧实现拆 3 个独立 i32(type/profession/level)致 id 19..22 多 2 槽且类型不符 vanilla
+    // DATA_VILLAGER_DATA(VillagerData),已收敛为单一 VillagerDataValue 复合字段(id20)。
+    EXPECT_EQ(collectParamIds(zv.dataManager()), expectedRange(0, 20));
+    EXPECT_FALSE(zv.dataManager().hasParam(21));
+
+    // wire20 VILLAGER_DATA 必为 VillagerDataValue（variant index 19 → serializerId 18 VILLAGER_DATA）。
+    const u16 vdId = ZombieVillagerEntity::getVillagerDataParamId();
+    EXPECT_EQ(vdId, 20u);
+    ASSERT_NE(zv.dataManager().getRaw(vdId), nullptr);
+    EXPECT_EQ(zv.dataManager().getRaw(vdId)->index(), 19u); // VillagerDataValue
 }
 
 // ============================================================================
@@ -396,6 +421,46 @@ TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
     EXPECT_EQ(angerId, 21u);
     ASSERT_NE(wolf.dataManager().getRaw(angerId), nullptr);
     EXPECT_EQ(wolf.dataManager().getRaw(angerId)->index(), 2u); // i64/Long（非 i32/Int 的 index 1）
+}
+
+// ============================================================================
+// 链5b: Cat 经 Cat→TamableAnimal→Animal→AgeableEntity
+//   对齐 vanilla Cat.defineSynchedData 4 字段(id19..22)：
+//     DATA_VARIANT_ID(19,Holder<CatVariant> serializerId 21) / IS_LYING(20,Boolean)
+//     RELAX_STATE_ONE(21,Boolean) / DATA_COLLAR_COLOR(22,Int 默认 14)
+//   旧实现仅注册 lying/relax 两字段,致 wire 19 错发 Boolean,真客户端期望 CatVariant(serializerId 21)
+//   类型校验崩;补 variant(HolderVariantValue→21 恰为 CAT_VARIANT)/collar 两字段并对齐顺序修复。
+// ============================================================================
+TEST(EntityMetadataIdGoldenTest, CatEntityHasIds0To22AndVariantAt19)
+{
+    CatEntity cat(EntityInstanceId(1));
+    // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AgeableMob 16 + TamableAnimal 17/18 + Cat 19..22。
+    EXPECT_EQ(collectParamIds(cat.dataManager()), expectedRange(0, 22));
+    EXPECT_FALSE(cat.dataManager().hasParam(23));
+
+    // wire19 DATA_VARIANT_ID 必为 HolderVariantValue（variant index 18 → serializerId 21 CAT_VARIANT）。
+    const u16 variantId = CatEntity::getVariantParamId();
+    EXPECT_EQ(variantId, 19u);
+    ASSERT_NE(cat.dataManager().getRaw(variantId), nullptr);
+    EXPECT_EQ(cat.dataManager().getRaw(variantId)->index(), 18u); // HolderVariantValue
+
+    // wire20 IS_LYING 必为 bool（variant index 5 → serializerId 8 BOOLEAN）。
+    const u16 lyingId = CatEntity::getLyingParamId();
+    EXPECT_EQ(lyingId, 20u);
+    ASSERT_NE(cat.dataManager().getRaw(lyingId), nullptr);
+    EXPECT_EQ(cat.dataManager().getRaw(lyingId)->index(), 5u); // bool/Boolean
+
+    // wire21 RELAX_STATE_ONE 必为 bool。
+    const u16 relaxId = CatEntity::getRelaxStateOneParamId();
+    EXPECT_EQ(relaxId, 21u);
+    ASSERT_NE(cat.dataManager().getRaw(relaxId), nullptr);
+    EXPECT_EQ(cat.dataManager().getRaw(relaxId)->index(), 5u); // bool/Boolean
+
+    // wire22 DATA_COLLAR_COLOR 必为 i32/Int（variant index 1 → serializerId 1 INT）。
+    const u16 collarId = CatEntity::getCollarColorParamId();
+    EXPECT_EQ(collarId, 22u);
+    ASSERT_NE(cat.dataManager().getRaw(collarId), nullptr);
+    EXPECT_EQ(cat.dataManager().getRaw(collarId)->index(), 1u); // i32/Int
 }
 
 // ============================================================================

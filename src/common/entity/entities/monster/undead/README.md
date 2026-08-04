@@ -126,7 +126,7 @@ Entity
 
 ### 数据同步
 
-13. **ZombieVillagerEntity 数据参数**：`CONVERTING_PARAM`、`VILLAGER_TYPE_PARAM`、`VILLAGER_PROFESSION_PARAM`、`VILLAGER_LEVEL_PARAM` 需要在 `registerData()` 中注册
+13. **ZombieVillagerEntity 数据参数**：`CONVERTING_PARAM`（Boolean）与 `VILLAGER_DATA_PARAM`（单一复合 `VillagerDataValue`，对齐 vanilla `DATA_VILLAGER_DATA`）需在 `registerData()` 中注册。旧实现误拆为 `VILLAGER_TYPE_PARAM`/`VILLAGER_PROFESSION_PARAM`/`VILLAGER_LEVEL_PARAM` 三个独立 i32，致 wire id 多 2 槽且类型不符真客户端校验崩，已收敛为单一复合字段。
 14. **客户端同步**：`syncMetadataFromDataManager()` 需要从 DataManager 读取数据更新本地状态
 
 ### 溺尸游泳状态追踪

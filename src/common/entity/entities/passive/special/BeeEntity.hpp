@@ -491,8 +491,10 @@ private:
     //   - bit 3 (0x04): HAS_STUNG - 已螫刺
     //   - bit 4 (0x08): HAS_NECTAR - 携带花蜜
     static entity::DataParameter<i8> DATA_FLAGS_PARAM;
-    // ANGER_TIME (i32): 愤怒时间（ticks）
-    static entity::DataParameter<i32> ANGER_TIME_PARAM;
+    // ANGER_TIME (i64 Long): 愤怒时间。vanilla Bee.DATA_ANGER_END_TIME 为 Long(serializerId=2
+    //   VAR_LONG,默认 -1L),wire 类型不可偏离否则真客户端类型校验崩。业务层以 i32「剩余 ticks」
+    //   语义运转(getAngerTime/setAngerTime 做 i32↔i64 互转)。
+    static entity::DataParameter<i64> ANGER_TIME_PARAM;
 
 protected:
     /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。

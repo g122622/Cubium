@@ -82,10 +82,10 @@ enum class MetadataSerializerId : i32 {
     PigVariant = 26,            // Holder<PigVariant>
     ChickenVariant = 27,        // Holder<ChickenVariant>
     ZombieNautilusVariant = 28, // Holder<ZombieNautilusVariant>
-    // 29 OptionalGlobalPos / 30 PaintingVariant / 31 SnifferState / 32 ArmadilloState /
-    // 33 CopperGolemState / 34 WeatheringCopperState / 35 Vector3 / 36 Quaternion /
-    // 37 ResolvableProfile
-    HumanoidArm = 38, // Player.MAIN_HAND（VarInt ordinal：LEFT=0/RIGHT=1）
+    // 29 OptionalGlobalPos / 30 PaintingVariant / 32 ArmadilloState / 33 CopperGolemState /
+    // 34 WeatheringCopperState / 35 Vector3 / 36 Quaternion / 37 ResolvableProfile
+    SnifferState = 31, // Sniffer.State（VarInt(State.id)）
+    HumanoidArm = 38,  // Player.MAIN_HAND（VarInt ordinal：LEFT=0/RIGHT=1）
 };
 
 // DataValue 变体索引 → 1.21.11 序列化器 ID
@@ -145,6 +145,10 @@ MetadataSerializerId getSerializerId(const entity::DataValue& value)
             // OptionalUuidValue → OPTIONAL_LIVING_ENTITY_REFERENCE（serializerId 13）。
             // vanilla TamableAnimal.DATA_OWNERUUID_ID（1.21.11 改为 Optional<EntityReference>，wire 仍是 UUID）。
             return MetadataSerializerId::OptionalLivingEntityRef;
+        case 22:
+            // SnifferStateValue → SNIFFER_STATE（serializerId 31，VarInt(State.id)）。
+            // vanilla Sniffer.DATA_STATE。旧实现误用 i8/Byte(id 0) 致真客户端类型校验崩。
+            return MetadataSerializerId::SnifferState;
         default:
             return MetadataSerializerId::Byte;
     }
@@ -360,6 +364,12 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
                 // Uuid 是 std::array<u8,16>，按大端连续写入（与 _writeBigEndianI64 两次等价）。
                 output.insert(output.end(), ou.uuid.begin(), ou.uuid.end());
             }
+            break;
+        }
+        case 22: { // SnifferStateValue → SNIFFER_STATE（VarInt(State.id)）
+            // 对齐 vanilla Sniffer.State.STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, State::id)（VarInt）。
+            const auto ss = value.get<entity::SnifferStateValue>();
+            _writeVarInt(ss.stateId, output);
             break;
         }
         default:
@@ -619,6 +629,13 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
                     offset += 16;
                 }
                 (void)manager.setRaw(index, entity::DataValue(entity::OptionalUuidValue{present, uuid}));
+                manager.clearDirty(index);
+                break;
+            }
+            case MetadataSerializerId::SnifferState: {
+                // 1.21.11 SNIFFER_STATE = VarInt(State.id)。越界由 vanilla BY_ID 回退到 IDLING(0)。
+                const i32 id = _readVarInt(data.data(), data.size(), offset);
+                (void)manager.setRaw(index, entity::DataValue(entity::SnifferStateValue{id}));
                 manager.clearDirty(index);
                 break;
             }

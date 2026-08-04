@@ -421,12 +421,13 @@ TEST_F(MinecartRendererMatrixTest, HurtTimeZeroedForNonTntMinecart)
     EXPECT_FLOAT_EQ(0.0f, hurtTime);
 }
 
-TEST_F(MinecartRendererMatrixTest, HurtShakeAppliedWhenRollingAmplitudePositive)
+TEST_F(MinecartRendererMatrixTest, HurtShakeNotAppliedAfterRollingWireRemoval)
 {
-    // rollingAmplitude = 5, damage = 5, rollingDir = 1
+    // 矿车摇晃动画在 vanilla 1.21.11 走 EntityEvent 而非 SynchedEntityData;对齐 vanilla 时已删
+    // 项目自创的 rolling_amp/rolling_dir wire 字段,渲染器改用本地默认 0/1,客户端暂时看不到
+    // 受损摇晃动画(功能回退,TODO 待 EntityEvent 接入)。故即使 damage>0,hurt shake 也不应用。
+    // TODO: 待 EntityEvent 摇晃状态码接入后,恢复本测试为 HurtShakeApplied 验证 shake 生效。
     auto& dm = entity->dataManager();
-    dm.registerParam(::mc::entity::AbstractMinecartEntity::getRollingAmplitudeParam(), 5);
-    dm.registerParam(::mc::entity::AbstractMinecartEntity::getRollingDirectionParam(), 1);
     dm.registerParam(::mc::entity::AbstractMinecartEntity::getDamageParam(), 5.0f);
 
     entity->setRotation(0.0f, 0.0f);
@@ -435,11 +436,9 @@ TEST_F(MinecartRendererMatrixTest, HurtShakeAppliedWhenRollingAmplitudePositive)
     f32 deathTime = 0.0f;
     renderer->computeCustomModelMatrix(*entity, 0.0, m, hurtTime, deathTime);
 
-    // hurtTime = 5 - 0 = 5, damageTime = 5, shakeDeg = sin(5)*5*5/10*1 = sin(5)*2.5
-    // 应用 rotateX 后 y 轴上的点会偏移
+    // 回退后无 shake:(0,1,0) 经变换链后 y 分量为 -0.625（scale(-1,-1,1) 翻转 + translate 0.375）。
     const auto p = transformPoint(m, 0.0, 1.0, 0.0);
-    // 无 shake 时 (0,1,0) -> (0,-0.625,0)
-    EXPECT_NE(-0.625, p[1]);
+    EXPECT_DOUBLE_EQ(-0.625, p[1]);
 }
 
 TEST_F(MinecartRendererMatrixTest, TntMinecartAppliesFlashScaleWhenFuseLow)

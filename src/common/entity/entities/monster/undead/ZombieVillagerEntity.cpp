@@ -62,12 +62,9 @@ namespace mc {
 
 entity::DataParameter<bool> ZombieVillagerEntity::CONVERTING_PARAM = entity::EntityDataManager::createKey<bool>();
 
-entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_TYPE_PARAM = entity::EntityDataManager::createKey<i32>();
-
-entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_PROFESSION_PARAM =
-    entity::EntityDataManager::createKey<i32>();
-
-entity::DataParameter<i32> ZombieVillagerEntity::VILLAGER_LEVEL_PARAM = entity::EntityDataManager::createKey<i32>();
+// 单一复合字段对齐 vanilla ZombieVillager.DATA_VILLAGER_DATA(VillagerData, serializerId=18)
+entity::DataParameter<entity::VillagerDataValue> ZombieVillagerEntity::VILLAGER_DATA_PARAM =
+    entity::EntityDataManager::createKey<entity::VillagerDataValue>();
 
 const entity::EntityClassInfo& ZombieVillagerEntity::classInfo()
 {
@@ -130,10 +127,11 @@ void ZombieVillagerEntity::registerData()
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 注册僵尸村民特有的数据参数
+    // 对齐 vanilla ZombieVillager.defineSynchedData: CONVERTING(Boolean,id19) + DATA_VILLAGER_DATA(VillagerData,id20)
     m_dataManager.registerParam(CONVERTING_PARAM, false);
-    m_dataManager.registerParam(VILLAGER_TYPE_PARAM, static_cast<i32>(entity::VillagerType::Plains));
-    m_dataManager.registerParam(VILLAGER_PROFESSION_PARAM, static_cast<i32>(entity::VillagerProfession::None));
-    m_dataManager.registerParam(VILLAGER_LEVEL_PARAM, 1);
+    m_dataManager.registerParam(VILLAGER_DATA_PARAM,
+        entity::VillagerDataValue{
+            static_cast<i32>(entity::VillagerType::Plains), static_cast<i32>(entity::VillagerProfession::None), 1});
 }
 
 void ZombieVillagerEntity::syncMetadataFromDataManager()
@@ -143,39 +141,45 @@ void ZombieVillagerEntity::syncMetadataFromDataManager()
     // 从数据管理器同步治愈状态
     m_converting = m_dataManager.get<bool>(CONVERTING_PARAM);
 
-    // 从数据管理器同步村民数据
-    m_villagerData.setType(static_cast<entity::VillagerType>(m_dataManager.get<i32>(VILLAGER_TYPE_PARAM)));
-    m_villagerData.setProfession(
-        static_cast<entity::VillagerProfession>(m_dataManager.get<i32>(VILLAGER_PROFESSION_PARAM)));
-    m_villagerData.setLevel(m_dataManager.get<i32>(VILLAGER_LEVEL_PARAM));
+    // 从数据管理器同步村民数据（单一复合字段 VillagerDataValue）
+    const auto vd = m_dataManager.get<entity::VillagerDataValue>(VILLAGER_DATA_PARAM);
+    m_villagerData.setType(static_cast<entity::VillagerType>(vd.type));
+    m_villagerData.setProfession(static_cast<entity::VillagerProfession>(vd.profession));
+    m_villagerData.setLevel(vd.level);
 }
 
 void ZombieVillagerEntity::setVillagerData(const entity::VillagerData& data)
 {
     m_villagerData = data;
 
-    // 同步到数据管理器
-    m_dataManager.set(VILLAGER_TYPE_PARAM, static_cast<i32>(data.type()));
-    m_dataManager.set(VILLAGER_PROFESSION_PARAM, static_cast<i32>(data.profession()));
-    m_dataManager.set(VILLAGER_LEVEL_PARAM, data.level());
+    // 同步到数据管理器（单一复合字段,对齐 vanilla DATA_VILLAGER_DATA wire 类型）
+    m_dataManager.set(VILLAGER_DATA_PARAM,
+        entity::VillagerDataValue{static_cast<i32>(data.type()), static_cast<i32>(data.profession()), data.level()});
 }
 
 void ZombieVillagerEntity::setProfession(entity::VillagerProfession profession)
 {
     m_villagerData.setProfession(profession);
-    m_dataManager.set(VILLAGER_PROFESSION_PARAM, static_cast<i32>(profession));
+    // 经 setVillagerData 复合写回,保证 wire 上 type/profession/level 三段一致
+    m_dataManager.set(VILLAGER_DATA_PARAM,
+        entity::VillagerDataValue{
+            static_cast<i32>(m_villagerData.type()), static_cast<i32>(profession), m_villagerData.level()});
 }
 
 void ZombieVillagerEntity::setVillagerType(entity::VillagerType type)
 {
     m_villagerData.setType(type);
-    m_dataManager.set(VILLAGER_TYPE_PARAM, static_cast<i32>(type));
+    m_dataManager.set(VILLAGER_DATA_PARAM,
+        entity::VillagerDataValue{
+            static_cast<i32>(type), static_cast<i32>(m_villagerData.profession()), m_villagerData.level()});
 }
 
 void ZombieVillagerEntity::setTradingLevel(i32 level)
 {
     m_villagerData.setLevel(level);
-    m_dataManager.set(VILLAGER_LEVEL_PARAM, level);
+    m_dataManager.set(VILLAGER_DATA_PARAM,
+        entity::VillagerDataValue{
+            static_cast<i32>(m_villagerData.type()), static_cast<i32>(m_villagerData.profession()), level});
 }
 
 void ZombieVillagerEntity::setTradingExperience(i32 exp)

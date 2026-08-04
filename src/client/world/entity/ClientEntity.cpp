@@ -285,6 +285,9 @@ void ClientEntity::syncMetadataFromDataManager()
     }
 
     // 猫动画状态同步
+    // vanilla Cat wire 字段顺序: variant(19)/lying(20)/relax(21)/collar(22)。
+    // 服务端 CatEntity 现已对齐下发全部 4 字段;客户端当前仅消费 lying/relax 驱动躺下动画,
+    // variant(皮肤)/collar(颈圈色)未镜像渲染——TODO: 待 CatRenderer 接入变体纹理与颈圈色。
     if (m_typeId == "minecraft:cat" || m_typeId == "cat") {
         if (const auto lying = _readMetadata<bool>(::mc::CatEntity::getLyingParamId()); lying.has_value()) {
             setCatLieDown(*lying);
@@ -292,6 +295,8 @@ void ClientEntity::syncMetadataFromDataManager()
         if (const auto relax = _readMetadata<bool>(::mc::CatEntity::getRelaxStateOneParamId()); relax.has_value()) {
             setCatRelaxStateOne(*relax);
         }
+        // TODO: 消费 DATA_VARIANT_ID_PARAM(HolderVariantValue) 与 DATA_COLLAR_COLOR_PARAM(i32),
+        //       镜像到客户端猫皮肤变体与颈圈颜色,驱动 CatRenderer 选纹理。
     }
 
     // 狼状态同步（驯服状态、颈圈颜色、兴趣状态、愤怒状态）
@@ -334,14 +339,14 @@ void ClientEntity::syncMetadataFromDataManager()
     // 客户端在此处读取并调用 setEndermanHeldBlockState/setEndermanScreaming 更新镜像状态。
     if (m_typeId == "minecraft:enderman" || m_typeId == "enderman") {
         // 搬方块状态（通过 EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM 同步）
-        // 服务端存储 BlockState 的 stateId（i32），0 表示未持有方块。
-        // 客户端通过 BlockRegistry::getBlockState(stateId) 解析为 BlockState*。
+        // 该参数对齐 vanilla EnderMan.DATA_CARRY_STATE，wire 类型为 Optional<BlockState>
+        // (OptionalBlockStateValue, serializerId=15)，present 表示持有方块。
         if (m_dataManager.hasParam(::mc::EndermanEntity::getCarriedBlockStateIdParamId())) {
             if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getCarriedBlockStateIdParamId());
                 value != nullptr) {
-                const i32 stateId = value->get<i32>();
-                if (stateId > 0) {
-                    setEndermanHeldBlockState(::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId)));
+                const auto obs = value->get<mc::entity::OptionalBlockStateValue>();
+                if (obs.present) {
+                    setEndermanHeldBlockState(::mc::BlockRegistry::instance().getBlockState(obs.stateId));
                 } else {
                     setEndermanHeldBlockState(nullptr);
                 }
@@ -707,7 +712,10 @@ bool ClientEntity::isFallFlying() const
 
 bool ClientEntity::isAngry() const
 {
-    // 蜜蜂愤怒状态检测：当愤怒时间 > 0 时处于愤怒状态。槽位 1 存储类型非 i32 时返回 false。
+    // TODO: 客户端镜像愤怒状态检测为预存在的占位实现。硬编码槽位 1 不对应任何具体实体的
+    // anger 字段（Bee anger wire id=18/i64、Wolf id=21/i64、Enderman/PolarBear 各异），
+    // 故此处恒返回 false,从不触发 onEntityAngerStateChanged 音效。正确实现应按实体类型读取
+    // 对应 IAngerable 的 anger paramId（参考 Wolf 分支的 hasParam+getRaw 路径）。
     const auto angerTime = _readMetadata<i32>(1);
     return angerTime.has_value() && *angerTime > 0;
 }

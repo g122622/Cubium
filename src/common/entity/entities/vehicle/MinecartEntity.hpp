@@ -244,21 +244,19 @@ public:
 
     // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
 
-    /**
-     * @brief 获取"摇晃幅度"数据参数 ID
-     *
-     * 客户端渲染器通过此 ID 从 ClientEntity::dataManager() 读取
-     * 服务端同步过来的摇晃幅度，用于计算受损抖动角度。
-     */
-    [[nodiscard]] static entity::DataParameter<i32>& getRollingAmplitudeParam() { return DATA_ROLLING_AMPLITUDE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32>& getRollingDirectionParam() { return DATA_ROLLING_DIRECTION_PARAM; }
+    // 对齐 vanilla 1.21.11 AbstractMinecart/VehicleEntity 的 5 个 wire 字段（id 8-12）：
+    //   HURT(8,i32) / HURTDIR(9,i32) / DAMAGE(10,f32)
+    //   CUSTOM_DISPLAY_BLOCK(11,Optional<BlockState>) / DISPLAY_OFFSET(12,i32)
+    // 旧实现 rolling_amp/rolling_dir/show_block 为项目自创 ghost 字段(vanilla 无),已删;
+    // display_tile 旧 i32 类型与 vanilla Optional<BlockState> 不符致真客户端 field11 崩,已改类型。
+    [[nodiscard]] static entity::DataParameter<i32>& getHurtParam() { return DATA_HURT_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getHurtDirParam() { return DATA_HURTDIR_PARAM; }
     [[nodiscard]] static entity::DataParameter<f32>& getDamageParam() { return DATA_DAMAGE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32> getDisplayTileParam() { return DATA_DISPLAY_TILE_PARAM; }
-    [[nodiscard]] static entity::DataParameter<i32> getDisplayTileOffsetParam()
+    [[nodiscard]] static entity::DataParameter<entity::OptionalBlockStateValue>& getCustomDisplayBlockParam()
     {
-        return DATA_DISPLAY_TILE_OFFSET_PARAM;
+        return DATA_CUSTOM_DISPLAY_BLOCK_PARAM;
     }
-    [[nodiscard]] static entity::DataParameter<bool> getShowBlockParam() { return DATA_SHOW_BLOCK_PARAM; }
+    [[nodiscard]] static entity::DataParameter<i32>& getDisplayOffsetParam() { return DATA_DISPLAY_OFFSET_PARAM; }
 
     // ========== 乘客和碰撞 ==========
 
@@ -404,12 +402,13 @@ protected:
 
 private:
     // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
-    static entity::DataParameter<i32> DATA_ROLLING_AMPLITUDE_PARAM;
-    static entity::DataParameter<i32> DATA_ROLLING_DIRECTION_PARAM;
+    // 对齐 vanilla 1.21.11：HURT/HURTDIR/DAMAGE 来自 VehicleEntity,CUSTOM_DISPLAY_BLOCK/DISPLAY_OFFSET 来自
+    // AbstractMinecart。 项目无 VehicleEntity 中间层,5 字段全部在 AbstractMinecart 注册,wire id 8-12 连续。
+    static entity::DataParameter<i32> DATA_HURT_PARAM;
+    static entity::DataParameter<i32> DATA_HURTDIR_PARAM;
     static entity::DataParameter<f32> DATA_DAMAGE_PARAM;
-    static entity::DataParameter<i32> DATA_DISPLAY_TILE_PARAM;
-    static entity::DataParameter<i32> DATA_DISPLAY_TILE_OFFSET_PARAM;
-    static entity::DataParameter<bool> DATA_SHOW_BLOCK_PARAM;
+    static entity::DataParameter<entity::OptionalBlockStateValue> DATA_CUSTOM_DISPLAY_BLOCK_PARAM;
+    static entity::DataParameter<i32> DATA_DISPLAY_OFFSET_PARAM;
 
 protected:
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
@@ -436,10 +435,12 @@ private:
     i32 m_rollingAmplitude = 0;
     i32 m_rollingDirection = 1;
 
-    // 显示方块
-    i32 m_displayTile = 0;       // 方块状态ID
-    i32 m_displayTileOffset = 6; // 显示偏移
-    bool m_showBlock = false;    // 是否显示方块
+    // 显示方块（vanilla 1.21.11 走 wire DATA_CUSTOM_DISPLAY_BLOCK_PARAM 同步,项目尚未接业务）
+    // TODO: 待实现矿车内显示方块业务(熔炉/刷怪笼/命令方块矿车等),通过 DATA_CUSTOM_DISPLAY_BLOCK_PARAM
+    //       (OptionalBlockStateValue) 同步到客户端,并扩展渲染器消费。当前成员声明保留供未来接入。
+    i32 m_displayTile = 0;       // 方块状态ID（待接入 wire）
+    i32 m_displayTileOffset = 6; // 显示偏移（待接入 wire）
+    bool m_showBlock = false;    // 是否显示方块（待接入 wire,对应 Optional present）
 
     // 推动力（熔炉矿车用）
     f32 m_pushX = 0.0f;

@@ -87,17 +87,13 @@ constexpr f64 PLAYER_PUSH_FACTOR = 0.1;             // 玩家推动系数
 } // namespace
 
 // ========== 静态数据参数定义 ==========
-entity::DataParameter<i32> AbstractMinecartEntity::DATA_ROLLING_AMPLITUDE_PARAM =
-    entity::EntityDataManager::createKey<i32>();
-entity::DataParameter<i32> AbstractMinecartEntity::DATA_ROLLING_DIRECTION_PARAM =
-    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_HURT_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_HURTDIR_PARAM = entity::EntityDataManager::createKey<i32>();
 entity::DataParameter<f32> AbstractMinecartEntity::DATA_DAMAGE_PARAM = entity::EntityDataManager::createKey<f32>();
-entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_TILE_PARAM =
+entity::DataParameter<entity::OptionalBlockStateValue> AbstractMinecartEntity::DATA_CUSTOM_DISPLAY_BLOCK_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalBlockStateValue>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_OFFSET_PARAM =
     entity::EntityDataManager::createKey<i32>();
-entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_TILE_OFFSET_PARAM =
-    entity::EntityDataManager::createKey<i32>();
-entity::DataParameter<bool> AbstractMinecartEntity::DATA_SHOW_BLOCK_PARAM =
-    entity::EntityDataManager::createKey<bool>();
 
 const EntityClassInfo& AbstractMinecartEntity::classInfo()
 {
@@ -130,12 +126,16 @@ void AbstractMinecartEntity::registerData()
 
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    m_dataManager.registerParam(DATA_ROLLING_AMPLITUDE_PARAM, 0);
-    m_dataManager.registerParam(DATA_ROLLING_DIRECTION_PARAM, 1);
+    // 对齐 vanilla 1.21.11 AbstractMinecart/VehicleEntity defineSynchedData 顺序（wire id 8-12）：
+    //   DATA_ID_HURT(8,Int,默认0) / DATA_ID_HURTDIR(9,Int,默认1) / DATA_ID_DAMAGE(10,Float,默认0)
+    //   DATA_ID_CUSTOM_DISPLAY_BLOCK(11,Optional<BlockState>,默认empty) / DATA_ID_DISPLAY_OFFSET(12,Int,默认6)
+    // 旧 rolling_amp/rolling_dir/show_block 为 ghost 字段已删;display_tile 旧 i32 改 OptionalBlockStateValue 修 field11
+    // 崩。
+    m_dataManager.registerParam(DATA_HURT_PARAM, 0);
+    m_dataManager.registerParam(DATA_HURTDIR_PARAM, 1);
     m_dataManager.registerParam(DATA_DAMAGE_PARAM, 0.0f);
-    m_dataManager.registerParam(DATA_DISPLAY_TILE_PARAM, 0); // 空气方块状态ID
-    m_dataManager.registerParam(DATA_DISPLAY_TILE_OFFSET_PARAM, 6);
-    m_dataManager.registerParam(DATA_SHOW_BLOCK_PARAM, false);
+    m_dataManager.registerParam(DATA_CUSTOM_DISPLAY_BLOCK_PARAM, entity::OptionalBlockStateValue{false, 0});
+    m_dataManager.registerParam(DATA_DISPLAY_OFFSET_PARAM, 6);
 }
 
 void AbstractMinecartEntity::tick()

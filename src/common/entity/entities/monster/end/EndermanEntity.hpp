@@ -193,9 +193,12 @@ public:
     /**
      * @brief 是否拿着方块
      *
-     * 通过 DATA_CARRIED_BLOCK_STATE_ID_PARAM 判断：stateId > 0 表示持有方块。
+     * 通过 DATA_CARRIED_BLOCK_STATE_ID_PARAM(OptionalBlockStateValue) 判断：present 表示持有方块。
      */
-    [[nodiscard]] bool isHoldingBlock() const { return m_dataManager.get<i32>(DATA_CARRIED_BLOCK_STATE_ID_PARAM) > 0; }
+    [[nodiscard]] bool isHoldingBlock() const
+    {
+        return m_dataManager.get<entity::OptionalBlockStateValue>(DATA_CARRIED_BLOCK_STATE_ID_PARAM).present;
+    }
 
     /**
      * @brief 获取拿着的方块状态
@@ -349,13 +352,14 @@ private:
     /**
      * @brief 搬方块状态同步参数
      *
-     * 对应 MC 1.21.11 EnderMan.DATA_CARRY_STATE。
-     * 存储 BlockState 的 stateId（i32），0 表示未持有方块。
+     * 对应 MC 1.21.11 EnderMan.DATA_CARRY_STATE（Optional<BlockState>，serializerId=15
+     * OPTIONAL_BLOCK_STATE，wire=VarInt(stateId)，0=空）。参数类型为 OptionalBlockStateValue
+     * 以对齐 vanilla wire 类型；旧实现误用 i32(serializerId=1 INT) 致真客户端类型校验崩。
      * 由 setHeldBlockState 写入，由 EntityTracker 自动广播。
      * 客户端 ClientEntity::syncMetadataFromDataManager 读取后通过
      * BlockRegistry::getBlockState 解析为 BlockState* 并缓存到镜像字段。
      */
-    static entity::DataParameter<i32> DATA_CARRIED_BLOCK_STATE_ID_PARAM;
+    static entity::DataParameter<entity::OptionalBlockStateValue> DATA_CARRIED_BLOCK_STATE_ID_PARAM;
 
     /**
      * @brief 注视状态同步参数

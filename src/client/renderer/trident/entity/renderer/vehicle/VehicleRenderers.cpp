@@ -459,13 +459,13 @@ std::array<f64, 16> MinecartRenderer::_buildMinecartModelMatrix(
     using namespace mc::entity;
 
     // 读取同步状态
+    // TODO: 矿车摇晃动画（rollingAmplitude/rollingDirection）在 vanilla 1.21.11 走 EntityEvent
+    //       广播而非 SynchedEntityData;项目旧实现用 wire 字段同步摇晃,对齐 vanilla 时已删该 wire 字段。
+    //       此处暂用本地默认值 0/1,客户端暂时看不到矿车受损摇晃动画(功能回退),待 EntityEvent
+    //       体系接入矿车摇晃状态码后恢复。damage 仍走 wire DATA_DAMAGE_PARAM 同步。
     const auto& dm = entity.dataManager();
-    const i32 rollingAmplitude = dm.hasParam(AbstractMinecartEntity::getRollingAmplitudeParam().id())
-        ? dm.get<i32>(AbstractMinecartEntity::getRollingAmplitudeParam())
-        : 0;
-    const i32 rollingDir = dm.hasParam(AbstractMinecartEntity::getRollingDirectionParam().id())
-        ? dm.get<i32>(AbstractMinecartEntity::getRollingDirectionParam())
-        : 1;
+    const i32 rollingAmplitude = 0;
+    const i32 rollingDir = 1;
     const f32 damage = dm.hasParam(AbstractMinecartEntity::getDamageParam().id())
         ? dm.get<f32>(AbstractMinecartEntity::getDamageParam())
         : 0.0f;

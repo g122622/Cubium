@@ -108,10 +108,13 @@ public:
     /**
      * @brief 获取当前状态
      *
-     * 内部以 i8 形式同步（对齐 MC EntityDataSerializers.SNIFFER_STATE 的 BYTE 底层实现），
-     * 这里在 API 层将其包装回 State 枚举。
+     * wire 上 DATA_STATE_PARAM 以 SnifferStateValue(VarInt(State.id), serializerId=31 SNIFFER_STATE)
+     * 存储以对齐 vanilla 1.21.11 Sniffer.DATA_STATE；此处包装回 State 枚举。
      */
-    [[nodiscard]] State getState() const { return static_cast<State>(m_dataManager.get(DATA_STATE_PARAM)); }
+    [[nodiscard]] State getState() const
+    {
+        return static_cast<State>(m_dataManager.get<entity::SnifferStateValue>(DATA_STATE_PARAM).stateId);
+    }
 
     /**
      * @brief 设置当前状态
@@ -119,7 +122,10 @@ public:
      * 对齐 MC Sniffer.setState：仅更新同步数据，不触发声音/动画。
      * 若需播放对应声音（如 SNIFFER_HAPPY、SNIFFER_SNIFFING），应使用 transitionTo()。
      */
-    void setState(State state) { m_dataManager.set(DATA_STATE_PARAM, static_cast<i8>(state)); }
+    void setState(State state)
+    {
+        m_dataManager.set(DATA_STATE_PARAM, entity::SnifferStateValue{static_cast<i32>(state)});
+    }
 
     /**
      * @brief 状态转换（带声音效果）
@@ -239,10 +245,10 @@ protected:
 
 private:
     // ========== 数据同步参数 ==========
-    /// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器）
-    /// @note 项目 DataParameter 仅支持基础类型，State 以 i8（BYTE 序列化器）形式同步，
-    ///       getState()/setState() 负责 State↔i8 的转换。
-    static entity::DataParameter<i8> DATA_STATE_PARAM;
+    /// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器 id=31, wire=VarInt(State.id)）
+    /// @note vanilla 1.21.11 SNIFFER_STATE 是独立 serializer(VarInt),非 Byte。旧实现误用 i8(BYTE)
+    ///       致真客户端类型校验崩,改为 SnifferStateValue 对齐。getState/setState 做 State↔id 互转。
+    static entity::DataParameter<entity::SnifferStateValue> DATA_STATE_PARAM;
     /// 对齐 MC Sniffer.DATA_DROP_SEED_AT_TICK（INT 序列化器）
     /// @note 用于挖掘完成后掉落种子的时序控制，当前未使用，保留以兼容原版 NBT。
     static entity::DataParameter<i32> DATA_DROP_SEED_AT_TICK_PARAM;

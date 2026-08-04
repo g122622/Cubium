@@ -124,13 +124,23 @@ public:
 
     /**
      * @brief 获取皮肤类型
+     *
+     * wire 上经 DATA_VARIANT_ID_PARAM（HolderVariantValue, serializerId=21 CAT_VARIANT,
+     * VarInt(CatType 注册表 id 0-10)）同步,对齐 vanilla Cat.DATA_VARIANT_ID(wire 19)。
+     * m_catType 为业务侧缓存,与 wire 双向同步。
      */
     [[nodiscard]] CatType getCatType() const { return m_catType; }
 
     /**
      * @brief 设置皮肤类型
+     *
+     * 同时写 m_catType 缓存与 DATA_VARIANT_ID_PARAM(wire)。
      */
-    void setCatType(CatType type) { m_catType = type; }
+    void setCatType(CatType type)
+    {
+        m_catType = type;
+        m_dataManager.set(DATA_VARIANT_ID_PARAM, entity::HolderVariantValue{static_cast<i32>(type)});
+    }
 
     /**
      * @brief 随机设置皮肤类型
@@ -197,6 +207,11 @@ public:
     // ========== 数据同步参数 ==========
 
     /**
+     * @brief 获取皮肤变体参数 ID（用于客户端元数据同步）
+     */
+    [[nodiscard]] static u16 getVariantParamId() { return DATA_VARIANT_ID_PARAM.id(); }
+
+    /**
      * @brief 获取躺下状态参数 ID（用于客户端元数据同步）
      */
     [[nodiscard]] static u16 getLyingParamId() { return DATA_LYING_PARAM.id(); }
@@ -205,6 +220,11 @@ public:
      * @brief 获取放松状态参数 ID（用于客户端元数据同步）
      */
     [[nodiscard]] static u16 getRelaxStateOneParamId() { return DATA_RELAX_STATE_ONE_PARAM.id(); }
+
+    /**
+     * @brief 获取项圈颜色参数 ID（用于客户端元数据同步）
+     */
+    [[nodiscard]] static u16 getCollarColorParamId() { return DATA_COLLAR_COLOR_PARAM.id(); }
 
     // ========== 交互 ==========
 
@@ -244,15 +264,24 @@ public:
 
     /**
      * @brief 获取项圈颜色
+     *
+     * wire 上经 DATA_COLLAR_COLOR_PARAM（i32, serializerId=1 INT, 默认 14=Red）同步,
+     * 对齐 vanilla Cat.DATA_COLLAR_COLOR(wire 22)。m_collarColor 为业务侧缓存。
      * @return 染料颜色
      */
     [[nodiscard]] DyeColor getCollarColor() const { return m_collarColor; }
 
     /**
      * @brief 设置项圈颜色
+     *
+     * 同时写 m_collarColor 缓存与 DATA_COLLAR_COLOR_PARAM(wire)。
      * @param color 染料颜色
      */
-    void setCollarColor(DyeColor color) { m_collarColor = color; }
+    void setCollarColor(DyeColor color)
+    {
+        m_collarColor = color;
+        m_dataManager.set(DATA_COLLAR_COLOR_PARAM, static_cast<i32>(color));
+    }
 
     // ========== 繁殖 ==========
 
@@ -393,8 +422,17 @@ private:
     };
 
     // ========== 数据同步参数 ==========
+    // 对齐 vanilla Cat.defineSynchedData 字段顺序（wire id 续接 TamableAnimal 17/18 之后）：
+    //   DATA_VARIANT_ID(19, Holder<CatVariant> serializerId=21)
+    //   IS_LYING(20, Boolean)
+    //   RELAX_STATE_ONE(21, Boolean)
+    //   DATA_COLLAR_COLOR(22, Int 默认 14=Red)
+    // 旧实现仅注册 lying/relax 两个字段,致 wire 19 错发 Boolean,真客户端期望 CatVariant
+    // 类型校验崩;补 variant/collar 两个 wire 字段并对齐顺序修复。
+    static entity::DataParameter<entity::HolderVariantValue> DATA_VARIANT_ID_PARAM;
     static entity::DataParameter<bool> DATA_LYING_PARAM;
     static entity::DataParameter<bool> DATA_RELAX_STATE_ONE_PARAM;
+    static entity::DataParameter<i32> DATA_COLLAR_COLOR_PARAM;
 
 protected:
     /// 本类继承链标识（parent = TameableEntity::classInfo()）。见 Entity::classInfo()。

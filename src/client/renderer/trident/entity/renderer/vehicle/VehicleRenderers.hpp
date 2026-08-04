@@ -421,11 +421,13 @@ private:
      * @brief 从客户端实体读取矿车的同步状态并构建模型矩阵
      *
      * 状态来源（通过 ClientEntity::dataManager() 读取 AbstractMinecartEntity 的 DataParameter）：
-     * - DATA_ROLLING_AMPLITUDE_PARAM：摇晃幅度（插值 hurtTime = rollingAmplitude - partialTicks）
-     * - DATA_ROLLING_DIRECTION_PARAM：摇晃方向（±1）
      * - DATA_DAMAGE_PARAM：累积伤害（插值 damageTime = max(damage - partialTicks, 0)）
      * - 实体 yaw/pitch：通过 ClientEntity::getInterpolatedYaw / pitch
      * - TNT 矿车 fuse：通过 ClientEntity::fuseTimer()
+     *
+     * TODO: 摇晃幅度/方向（rollingAmplitude/rollingDirection）在 vanilla 1.21.11 走 EntityEvent
+     *       广播而非 SynchedEntityData;对齐 vanilla 时已删项目自创的 rolling wire 字段,
+     *       此处暂用本地默认值(0/1),客户端暂时看不到受损摇晃动画,待 EntityEvent 接入后恢复。
      *
      * 受损抖动公式（对齐 MC Java AbstractMinecartRenderer）：
      *   shake = sin(hurtTime) * hurtTime * damageTime / 10 * hurtDir （度数）

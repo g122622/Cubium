@@ -73,8 +73,8 @@ EndermanEntity::EndermanEntity(EntityInstanceId id)
 }
 
 // 网络同步数据参数定义
-entity::DataParameter<i32> EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM =
-    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<entity::OptionalBlockStateValue> EndermanEntity::DATA_CARRIED_BLOCK_STATE_ID_PARAM =
+    entity::EntityDataManager::createKey<entity::OptionalBlockStateValue>();
 entity::DataParameter<bool> EndermanEntity::DATA_SCREAMING_PARAM = entity::EntityDataManager::createKey<bool>();
 
 const entity::EntityClassInfo& EndermanEntity::classInfo()
@@ -90,9 +90,9 @@ void EndermanEntity::registerData()
 
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册搬方块状态参数：stateId（0 = 未持有方块）
-    // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CARRY_STATE
-    m_dataManager.registerParam(DATA_CARRIED_BLOCK_STATE_ID_PARAM, static_cast<i32>(0));
+    // 注册搬方块状态参数：OptionalBlockStateValue（present=false 表示未持有方块）
+    // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CARRY_STATE(Optional<BlockState>)
+    m_dataManager.registerParam(DATA_CARRIED_BLOCK_STATE_ID_PARAM, entity::OptionalBlockStateValue{false, 0});
 
     // 注册注视状态参数
     // 对应 MC 1.21.11 EnderMan.defineSynchedData() 中的 DATA_CREEPY
@@ -184,17 +184,21 @@ void EndermanEntity::setAngry(bool angry)
 
 const BlockState* EndermanEntity::getHeldBlockState() const
 {
-    const i32 stateId = m_dataManager.get<i32>(DATA_CARRIED_BLOCK_STATE_ID_PARAM);
-    if (stateId <= 0) {
+    const auto val = m_dataManager.get<entity::OptionalBlockStateValue>(DATA_CARRIED_BLOCK_STATE_ID_PARAM);
+    if (!val.present) {
         return nullptr;
     }
-    return ::mc::BlockRegistry::instance().getBlockState(static_cast<u32>(stateId));
+    return ::mc::BlockRegistry::instance().getBlockState(val.stateId);
 }
 
 void EndermanEntity::setHeldBlockState(const BlockState* state)
 {
-    const i32 stateId = (state != nullptr) ? static_cast<i32>(state->stateId()) : 0;
-    m_dataManager.set(DATA_CARRIED_BLOCK_STATE_ID_PARAM, stateId);
+    // 写 OptionalBlockStateValue 对齐 vanilla DATA_CARRY_STATE(Optional<BlockState>) wire 类型
+    if (state != nullptr) {
+        m_dataManager.set(DATA_CARRIED_BLOCK_STATE_ID_PARAM, entity::OptionalBlockStateValue{true, state->stateId()});
+    } else {
+        m_dataManager.set(DATA_CARRIED_BLOCK_STATE_ID_PARAM, entity::OptionalBlockStateValue{false, 0});
+    }
 }
 
 bool EndermanEntity::teleport()

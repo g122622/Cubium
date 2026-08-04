@@ -64,7 +64,7 @@ namespace mc {
 // ============================================================================
 
 entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
-entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i64> BeeEntity::ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i64>();
 
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = AnimalEntity::classInfo()）
@@ -128,7 +128,9 @@ void BeeEntity::registerData()
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(ANGER_TIME_PARAM, static_cast<i32>(0));
+    // ANGER_TIME 以 i64(Long) 注册对齐 vanilla Bee.DATA_ANGER_END_TIME(serializerId=2)。
+    // 业务层以 i32 语义运转,默认 0=非愤怒。旧 i32 致真客户端 field 类型校验崩。
+    m_dataManager.registerParam(ANGER_TIME_PARAM, static_cast<i64>(0));
 }
 
 // ============================================================================
@@ -186,13 +188,15 @@ void BeeEntity::setHasStung(bool stung)
 
 i32 BeeEntity::getAngerTime() const
 {
-    return m_dataManager.get(ANGER_TIME_PARAM);
+    // wire 以 i64(Long) 存储(对齐 vanilla),业务层返回 i32
+    return static_cast<i32>(m_dataManager.get(ANGER_TIME_PARAM));
 }
 
 void BeeEntity::setAngerTime(i32 time)
 {
     m_angerTime = time;
-    m_dataManager.set(ANGER_TIME_PARAM, time);
+    // 写入 i64(Long) 对齐 vanilla wire 类型(serializerId=2 VAR_LONG)
+    m_dataManager.set(ANGER_TIME_PARAM, static_cast<i64>(time));
 }
 
 void BeeEntity::setAngry(bool angry)

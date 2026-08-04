@@ -90,9 +90,14 @@ public:
 
     /**
      * @brief 注册数据参数
-     * 注册 CONVERTING、VILLAGER_TYPE、VILLAGER_PROFESSION、VILLAGER_LEVEL 等参数
+     * 注册 CONVERTING(Boolean) 与 VILLAGER_DATA(单一复合 VillagerDataValue,对齐 vanilla DATA_VILLAGER_DATA)。
      */
     void registerData() override;
+
+    /**
+     * @brief 获取村民数据复合字段参数 ID（用于客户端元数据同步/测试）
+     */
+    [[nodiscard]] static u16 getVillagerDataParamId() { return VILLAGER_DATA_PARAM.id(); }
 
     /**
      * @brief 从数据管理器同步元数据
@@ -282,9 +287,10 @@ private:
 
     // 数据参数
     static entity::DataParameter<bool> CONVERTING_PARAM;
-    static entity::DataParameter<i32> VILLAGER_TYPE_PARAM;
-    static entity::DataParameter<i32> VILLAGER_PROFESSION_PARAM;
-    static entity::DataParameter<i32> VILLAGER_LEVEL_PARAM;
+    // vanilla ZombieVillager.DATA_VILLAGER_DATA 为单一复合字段 VILLAGER_DATA(serializerId=18,
+    // wire=VarInt(type)+VarInt(profession)+VarInt(level))。旧实现误拆成 3 个独立 i32(serializerId=1)
+    // 致 wire id 多 2 槽且类型不符,真客户端类型校验崩。改为单一 VillagerDataValue 复合字段对齐。
+    static entity::DataParameter<entity::VillagerDataValue> VILLAGER_DATA_PARAM;
 
 protected:
     /// 本类继承链标识（parent = ZombieEntity::classInfo()）。见 Entity::classInfo()。

@@ -53,8 +53,9 @@ namespace mc {
 
 // ========== DataParameter 静态定义 ==========
 
-/// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器，底层为 BYTE）。
-entity::DataParameter<i8> SnifferEntity::DATA_STATE_PARAM = entity::EntityDataManager::createKey<i8>();
+/// 对齐 MC Sniffer.DATA_STATE（SNIFFER_STATE 序列化器 id=31, wire=VarInt(State.id)）。
+entity::DataParameter<entity::SnifferStateValue> SnifferEntity::DATA_STATE_PARAM =
+    entity::EntityDataManager::createKey<entity::SnifferStateValue>();
 
 /// 对齐 MC Sniffer.DATA_DROP_SEED_AT_TICK（INT 序列化器）。
 entity::DataParameter<i32> SnifferEntity::DATA_DROP_SEED_AT_TICK_PARAM = entity::EntityDataManager::createKey<i32>();
@@ -326,9 +327,9 @@ void SnifferEntity::registerData()
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
     // 对齐 MC Sniffer.defineSynchedData：
-    //   DATA_STATE = IDLING (0)
+    //   DATA_STATE = IDLING (0)  —— wire 走 SNIFFER_STATE 序列化器(id=31, VarInt)
     //   DATA_DROP_SEED_AT_TICK = 0
-    m_dataManager.registerParam(DATA_STATE_PARAM, static_cast<i8>(State::Idling));
+    m_dataManager.registerParam(DATA_STATE_PARAM, entity::SnifferStateValue{static_cast<i32>(State::Idling)});
     m_dataManager.registerParam(DATA_DROP_SEED_AT_TICK_PARAM, 0);
 }
 

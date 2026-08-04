@@ -201,7 +201,7 @@ Entity (基类)
 - 持有 `SpawnerLogic` 实例（对应 MC Java 的 `BaseSpawner`），与 `MobSpawnerBlockEntity` 共享生成逻辑
 - 刷怪笼矿车被摧毁时**不会掉落任何物品**（既不掉矿车也不掉刷怪笼方块），与 MC Java 一致
 - 刷怪笼矿车**没有对应物品**，只能通过 `/summon` 命令生成
-- 矿车内部显示刷怪笼方块（`DATA_SHOW_BLOCK_PARAM = true`）
+- 矿车内部显示刷怪笼方块（通过 `DATA_CUSTOM_DISPLAY_BLOCK_PARAM` 即 `Optional<BlockState>` 同步，待业务接入；旧 `DATA_SHOW_BLOCK_PARAM` ghost 字段已删）
 - 服务端 tick 执行生成逻辑，成功生成后通过 `broadcastEntityStatus(id, 1)` 广播粒子事件
 - 客户端 tick 更新旋转动画（`SpawnerLogic::clientTick()`）
 - 支持 NBT 序列化/反序列化，保存所有刷怪笼参数
