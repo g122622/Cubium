@@ -34,7 +34,11 @@ cmake --build --preset macos-relwithdebinfo -- -j10
 
 ## 运行
 
-`./build/bin/RelWithDebInfo/minecraft-client --quick-play-new`
+```bash
+./build/bin/RelWithDebInfo/minecraft-client --quick-play-new # 客户端（会同时启动内置服务端）
+./build/bin/RelWithDebInfo/minecraft-server --quick-play-new # 服务端
+
+```
 
 运行过程中的日志也会一并输出到控制台，如果你要抓日志来调试，请编译后直接执行上述命令即可，尽量不要让用户手动去执行。
 
