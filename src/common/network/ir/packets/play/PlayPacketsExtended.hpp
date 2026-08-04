@@ -1128,14 +1128,15 @@ struct ChunkBatchStart {
 /**
  * @brief ChunkBiomes 单项：区块坐标 packed + 生物群系数据
  *
- * packedChunkPos 为 VarLong，编码 vanilla ChunkPos.toLong：X 低 32 位 @ bit32，Z 低 32 位 @ bit0。
- * data 为 ByteArray，承载该区块 4×4×4 采样生物群系的 PalettedContainer wire。
+ * packedChunkPos 为固定 Long（FriendlyByteBuf.writeChunkPos → writeLong(ChunkPos.toLong)，
+ * 非 VarLong），位布局：X 低 32 位 @ bit0，Z 低 32 位 @ bit32。data 为 ByteArray，承载该区块
+ * 4×4×4 采样生物群系的 PalettedContainer wire。
  *
- * 注意：项目 SectionPos::toColumnLong 位宽（26 位）与 vanilla ChunkPos.toLong（32 位）不同，
- * 故此处以原始 i64 直存，codec 透传 VarLong，不在 codec 层解包。
+ * 注意：项目 math::chunkPosToId 位布局（X@bit32 / Z@bit0）与 vanilla ChunkPos.asLong 相反，
+ * 不可复用；codec 透传固定 I64，不在 codec 层解包。
  */
 struct ChunkBiomeEntry {
-    i64 packedChunkPos;   // VarLong
+    i64 packedChunkPos;   // Long（ChunkPos.asLong：X@bit0, Z@bit32）
     std::vector<u8> data; // ByteArray
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const ChunkBiomeEntry&, const ChunkBiomeEntry&) noexcept = default;
@@ -1144,7 +1145,7 @@ struct ChunkBiomeEntry {
 /**
  * @brief ChunkBiomes（S→C，id=13）
  *
- * 对应 Java 1.21.11 ClientboundChunkBiomesPacket：VarInt(count) + count×{VarLong(packedChunkPos)
+ * 对应 Java 1.21.11 ClientboundChunkBiomesPacket：VarInt(count) + count×{Long(packedChunkPos)
  * + ByteArray(data)}。服务端在某区块生物群系变更时批量下发受影响区块的新生物群系数据。
  * 客户端无生物群系增量更新入口（ClientWorld 仅在区块整体接收时随 ChunkData 落地生物群系），
  * 消费端为 TODO 桩。
@@ -1158,12 +1159,14 @@ struct ChunkBiomes {
 /**
  * @brief ForgetLevelChunk（S→C，id=37）
  *
- * 对应 Java 1.21.11 ClientboundForgetLevelChunkPacket：VarInt(x) + VarInt(z)。服务端通知
- * 客户端卸载指定区块（玩家走远/区块卸载）。客户端消费复用 ClientWorld::onChunkUnload。
+ * 对应 Java 1.21.11 ClientboundForgetLevelChunkPacket：单个 ChunkPos，经
+ * FriendlyByteBuf.writeChunkPos → writeLong(ChunkPos.toLong) 编码为固定 8 字节大端 Long
+ * （非 VarLong，亦非两个 VarInt）。ChunkPos.asLong 位布局：X 低 32 位 @ bit0，Z 低 32 位 @ bit32。
+ * IR 以原始 packedPos 直存，codec 透传 I64，消费端用 wire::unpackChunkPosLong 解出 x/z。
+ * 服务端通知客户端卸载指定区块（玩家走远/区块卸载），客户端消费复用 ClientWorld::onChunkUnload。
  */
 struct ForgetLevelChunk {
-    i32 x; // VarInt
-    i32 z; // VarInt
+    i64 packedPos; // Long（ChunkPos.asLong：X@bit0, Z@bit32）
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const ForgetLevelChunk&, const ForgetLevelChunk&) noexcept = default;
 };
@@ -1171,19 +1174,19 @@ struct ForgetLevelChunk {
 /**
  * @brief SectionBlocksUpdate（S→C，id=82）
  *
- * 对应 Java 1.21.11 ClientboundSectionBlocksUpdatePacket：VarLong(sectionPos) + VarInt(count)
+ * 对应 Java 1.21.11 ClientboundSectionBlocksUpdatePacket：Long(sectionPos) + VarInt(count)
  * + count×VarLong(blockStatePacked)。单个区块段内多方块变更的聚合包，每条 blockStatePacked
- * 编码相对 section 原点的 localPos 与 blockState：localX(4位)@8 | localZ(4位)@4 | localY(4位)@0
- * 占低 12 位，高 52 位为 blockStateId。
+ * 低 12 位为 section 内线性位置索引（0..4095，客户端经 SectionPos.relativeToBlockPos 还原），
+ * 高 52 位为 blockStateId（Block.getId）。
  *
- * sectionPos 为 VarLong，编码 vanilla SectionPos.asLong：X 26 位 @ bit42，Y 12 位 @ bit20，
- * Z 12 位 @ bit0。注意项目 SectionPos::toLong/fromLong 位布局（X@42/Z@20/Y@0，Y 20 位）与此
- * 不同，故 IR 以原始 i64 直存，codec 透传 VarLong，不在 codec 层解包。客户端多方块变更聚合
- * 消费未实现，为 TODO 桩。
+ * sectionPos 为固定 Long（SectionPos.STREAM_CODEC → ByteBufCodecs.LONG → writeLong/readLong，
+ * 非 VarLong），编码 vanilla SectionPos.asLong：X 22 位 @ bit42，Z 22 位 @ bit20，Y 20 位 @ bit0
+ * （合计 64 位）。注意项目 SectionPos::toLong/fromLong 位布局（X@42/Z@20/Y@0）与此不同，故 IR
+ * 以原始 i64 直存，codec 透传 I64，不在 codec 层解包。客户端多方块变更聚合消费未实现，为 TODO 桩。
  */
 struct SectionBlocksUpdate {
-    i64 sectionPos;               // VarLong
-    std::vector<i64> blockStates; // count×VarLong
+    i64 sectionPos;               // Long（SectionPos.asLong：X22@bit42, Z22@bit20, Y20@bit0）
+    std::vector<i64> blockStates; // count×VarLong（低12位 localPos 索引 + 高52位 blockStateId）
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const SectionBlocksUpdate&, const SectionBlocksUpdate&) noexcept = default;
 };

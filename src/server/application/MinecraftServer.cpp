@@ -1576,13 +1576,16 @@ void MinecraftServer::sendChunkDataToPlayer(
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
 {
-    // 1.21.11 ForgetLevelChunk(cb:37)：VarInt(x) + VarInt(z)。服务端在玩家走远/区块卸载时
-    // 发送，通知客户端立即卸载对应区块（mesh 取消 + 缓存失效 + m_chunks erase）。客户端消费
-    // 复用 ClientWorld::onChunkUnload。触发链为 ChunkSendManager::unloadChunkFromPlayers →
+    // 1.21.11 ForgetLevelChunk(cb:37)：单个 ChunkPos，经 FriendlyByteBuf.writeChunkPos →
+    // writeLong(ChunkPos.toLong) 编码为固定 8 字节大端 Long。ChunkPos.asLong 位布局：
+    // X 低 32 位 @ bit0，Z 低 32 位 @ bit32。服务端在玩家走远/区块卸载时发送，通知客户端
+    // 立即卸载对应区块（mesh 取消 + 缓存失效 + m_chunks erase）。客户端消费复用
+    // ClientWorld::onChunkUnload。触发链为 ChunkSendManager::unloadChunkFromPlayers →
     // m_onChunkUnload 回调（见 initializeDimensions 内 setOnChunkUnload 注册）。
     mc::network::ir::play::ForgetLevelChunk pkt;
-    pkt.x = static_cast<i32>(x);
-    pkt.z = static_cast<i32>(z);
+    const u64 ux = static_cast<u64>(static_cast<u32>(static_cast<i32>(x)));
+    const u64 uz = static_cast<u64>(static_cast<u32>(static_cast<i32>(z)));
+    pkt.packedPos = static_cast<i64>((uz << 32) | ux); // ChunkPos.asLong：X@bit0, Z@bit32
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

@@ -200,4 +200,30 @@ inline void writeLpVec3(B& buf, double x, double y, double z)
     return Result<void>::ok();
 }
 
+// ============================================================================
+// ChunkPos packed Long（FriendlyByteBuf.writeChunkPos / ChunkPos.asLong）
+//
+// vanilla 1.21.11 FriendlyByteBuf.writeChunkPos → writeLong(ChunkPos.toLong)，
+// 即固定 8 字节大端 Long（非 VarLong）。ChunkPos.asLong(x,z) 位布局：
+//   X 低 32 位 @ bit0，Z 低 32 位 @ bit32
+// 即 packed = (u64(z) & 0xFFFFFFFF) << 32 | (u64(x) & 0xFFFFFFFF)。
+//
+// 注意：项目 math::chunkPosToId 的位布局是 X@bit32 / Z@bit0，与此相反，不可复用。
+// ============================================================================
+
+/// 打包区块坐标为 vanilla ChunkPos.asLong（X@bit0, Z@bit32）
+[[nodiscard]] inline u64 packChunkPosLong(i32 x, i32 z) noexcept
+{
+    const u64 ux = static_cast<u64>(static_cast<u32>(x));
+    const u64 uz = static_cast<u64>(static_cast<u32>(z));
+    return (uz << 32) | ux;
+}
+
+/// 从 vanilla ChunkPos.asLong 解包区块坐标（X@bit0, Z@bit32）
+inline void unpackChunkPosLong(u64 packed, i32& x, i32& z) noexcept
+{
+    x = static_cast<i32>(packed & 0xFFFFFFFFu);
+    z = static_cast<i32>((packed >> 32) & 0xFFFFFFFFu);
+}
+
 } // namespace mc::network::backend::java::wire

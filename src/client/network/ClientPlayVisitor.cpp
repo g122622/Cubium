@@ -2429,9 +2429,13 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ForgetLevelChunk 落业务（复用 ClientWorld::onChunkUnload），其余为 TODO 桩。
             else if constexpr (std::is_same_v<T, irplay::ForgetLevelChunk>) {
                 const auto& p = pkt;
-                // 复用既有 onChunkUnload：内部完成维度校验、mesh 任务取消、生物群系颜色缓存
-                // 失效、m_chunks erase 与代际号清理。
-                m_app.m_world.onChunkUnload(p.x, p.z, m_app.m_dimensionManager.currentDimension());
+                // packedPos 为 vanilla ChunkPos.asLong（X 低32位@bit0，Z 低32位@bit32），
+                // 解出 x/z 后复用既有 onChunkUnload：内部完成维度校验、mesh 任务取消、
+                // 生物群系颜色缓存失效、m_chunks erase 与代际号清理。
+                const u64 packed = static_cast<u64>(p.packedPos);
+                const i32 chunkX = static_cast<i32>(packed & 0xFFFFFFFFu);
+                const i32 chunkZ = static_cast<i32>((packed >> 32) & 0xFFFFFFFFu);
+                m_app.m_world.onChunkUnload(chunkX, chunkZ, m_app.m_dimensionManager.currentDimension());
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::BundleDelimiter>) {
                 // TODO(客户端 bundle 状态机): 收到 delimiter 应开启 bundle 窗口缓存后续包，

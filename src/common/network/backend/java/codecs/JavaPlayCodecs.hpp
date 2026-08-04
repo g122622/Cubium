@@ -1826,14 +1826,14 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         [](B&) -> Result<ir::play::ChunkBatchStart> { return ir::play::ChunkBatchStart{}; });
 }
 
-/// ChunkBiomes（S→C，id=13）：VarInt(count) + count×{VarLong(packedChunkPos) + ByteArray(data)}
+/// ChunkBiomes（S→C，id=13）：VarInt(count) + count×{Long(packedChunkPos) + ByteArray(data)}
 [[nodiscard]] inline auto chunkBiomesCodec()
 {
     return makeCodec<ir::play::ChunkBiomes>(
         [](B& buf, const ir::play::ChunkBiomes& v) {
             buf.writeVarInt(static_cast<i32>(v.biomes.size()));
             for (const auto& entry : v.biomes) {
-                buf.writeVarLong(entry.packedChunkPos);
+                buf.writeI64(entry.packedChunkPos);
                 buf.writeVarInt(static_cast<i32>(entry.data.size()));
                 buf.writeBytes(entry.data.data(), entry.data.size());
             }
@@ -1848,7 +1848,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             v.biomes.reserve(static_cast<usize>(count));
             for (i32 i = 0; i < count; ++i) {
                 ir::play::ChunkBiomeEntry entry{};
-                MC_TRY_ASSIGN(entry.packedChunkPos, buf.readVarLong());
+                MC_TRY_ASSIGN(entry.packedChunkPos, buf.readI64());
                 i32 dataLen = 0;
                 MC_TRY_ASSIGN(dataLen, buf.readVarInt());
                 if (dataLen < 0 || dataLen > 8192) {
@@ -1861,28 +1861,24 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         });
 }
 
-/// ForgetLevelChunk（S→C，id=37）：VarInt(x) + VarInt(z)
+/// ForgetLevelChunk（S→C，id=37）：Long(packedPos)（FriendlyByteBuf.writeChunkPos → writeLong）
 [[nodiscard]] inline auto forgetLevelChunkCodec()
 {
     return makeCodec<ir::play::ForgetLevelChunk>(
-        [](B& buf, const ir::play::ForgetLevelChunk& v) {
-            buf.writeVarInt(v.x);
-            buf.writeVarInt(v.z);
-        },
+        [](B& buf, const ir::play::ForgetLevelChunk& v) { buf.writeI64(v.packedPos); },
         [](B& buf) -> Result<ir::play::ForgetLevelChunk> {
             ir::play::ForgetLevelChunk v{};
-            MC_TRY_ASSIGN(v.x, buf.readVarInt());
-            MC_TRY_ASSIGN(v.z, buf.readVarInt());
+            MC_TRY_ASSIGN(v.packedPos, buf.readI64());
             return v;
         });
 }
 
-/// SectionBlocksUpdate（S→C，id=82）：VarLong(sectionPos) + VarInt(count) + count×VarLong(blockStates)
+/// SectionBlocksUpdate（S→C，id=82）：Long(sectionPos) + VarInt(count) + count×VarLong(blockStates)
 [[nodiscard]] inline auto sectionBlocksUpdateCodec()
 {
     return makeCodec<ir::play::SectionBlocksUpdate>(
         [](B& buf, const ir::play::SectionBlocksUpdate& v) {
-            buf.writeVarLong(v.sectionPos);
+            buf.writeI64(v.sectionPos);
             buf.writeVarInt(static_cast<i32>(v.blockStates.size()));
             for (i64 packed : v.blockStates) {
                 buf.writeVarLong(packed);
@@ -1890,7 +1886,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         },
         [](B& buf) -> Result<ir::play::SectionBlocksUpdate> {
             ir::play::SectionBlocksUpdate v{};
-            MC_TRY_ASSIGN(v.sectionPos, buf.readVarLong());
+            MC_TRY_ASSIGN(v.sectionPos, buf.readI64());
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0 || count > 4096) {
