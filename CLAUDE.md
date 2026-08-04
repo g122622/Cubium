@@ -100,3 +100,7 @@ ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil
 可供参考的MC源码路径：~/dev/MC/java/Minecraft1.21.11/
 （如果项目中代码是参考1.16.5的，必须迁移到1.21.11）
 Moonrise优化模组路径：~\dev\MC\Mods\Moonrise
+
+## 其他
+
+【重要】暂时的简化实现、不完整实现、因为未实现等开发进度原因而导致暂时未使用的代码、函数和变量等，必须加上TODO注释（注释中要有明文`TODO`，便于全文搜索），如果你顺手发现了某段代码中的逻辑不完整、缺少TODO注释则需要补上TODO注释，以便未来的开发者知道哪里需要完善实现。
