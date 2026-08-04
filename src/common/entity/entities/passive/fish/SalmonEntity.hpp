@@ -26,6 +26,7 @@
 #include "AbstractGroupFishEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -60,7 +61,8 @@ public:
     SalmonEntity& operator=(SalmonEntity&&) noexcept = delete;
 
     /// 本类继承链标识（parent = AbstractGroupFishEntity::classInfo()）。见 Entity::classInfo()。
-    // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
+    // vanilla 1.21.11 Salmon 自带 DATA_TYPE@17(Int，体型 small/medium/large=0/1/2)，
+    // 见 registerData。项目体型业务联动暂未实现，占位 id17 对齐 vanilla 字段表上限。
     static const entity::EntityClassInfo& classInfo();
 
     /**
@@ -100,6 +102,15 @@ public:
 
 protected:
     void registerAttributes() override;
+
+    // ========== 同步数据注册 ==========
+    // 派生类构造函数须显式调用 registerData()（C++ 基类构造期虚函数不派发，参考 AbstractFishEntity）。
+    void registerData() override;
+
+private:
+    // ========== 同步数据参数（vanilla 1.21.11 Salmon.DATA_TYPE，见 registerData） ==========
+    // id17 DATA_TYPE（体型 small/medium/large=0/1/2）。TODO: 体型业务联动暂未实现，占位默认 0。
+    static entity::DataParameter<i32> DATA_TYPE_PARAM;
 };
 
 } // namespace mc

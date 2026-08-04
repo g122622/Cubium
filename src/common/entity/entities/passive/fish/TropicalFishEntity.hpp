@@ -26,6 +26,7 @@
 #include "AbstractGroupFishEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -78,9 +79,8 @@ public:
     TropicalFishEntity& operator=(TropicalFishEntity&&) noexcept = delete;
 
     /// 本类继承链标识（parent = AbstractGroupFishEntity::classInfo()）。见 Entity::classInfo()。
-    // TODO(实体同步对齐): vanilla 1.21.11 TropicalFish 有 DATA_VARIANT(Int,id17)，项目当前
-    // 用 m_variant 普通成员承载、不同步。本次仅补 classInfo 占位对齐 id 上限，DATA_VARIANT
-    // 同步留后续逐实体字段对齐任务。
+    // vanilla 1.21.11 TropicalFish 自带 DATA_VARIANT(Int,id17，编码 shape/baseColor/patternColor)，
+    // 见 registerData。setVariant/randomizeVariant 同步写入 DataParameter。
     static const entity::EntityClassInfo& classInfo();
 
     /**
@@ -95,8 +95,14 @@ public:
 
     /**
      * @brief 设置变种 ID
+     *
+     * 同步写入 DATA_VARIANT 元数据（id17），客户端据此渲染热带鱼花纹/颜色。
      */
-    void setVariant(i32 variant) { m_variant = variant; }
+    void setVariant(i32 variant)
+    {
+        m_variant = variant;
+        m_dataManager.set(DATA_VARIANT_PARAM, variant);
+    }
 
     /**
      * @brief 获取鱼体形状
@@ -146,8 +152,16 @@ public:
 protected:
     void registerAttributes() override;
 
+    // ========== 同步数据注册 ==========
+    // 派生类构造函数须显式调用 registerData()（C++ 基类构造期虚函数不派发，参考 AbstractFishEntity）。
+    void registerData() override;
+
 private:
     i32 m_variant = 0;
+
+    // ========== 同步数据参数（vanilla 1.21.11 TropicalFish.DATA_VARIANT，见 registerData） ==========
+    // id17 DATA_VARIANT（packed: shape | baseColor<<8 | patternColor<<16）。由 setVariant 同步。
+    static entity::DataParameter<i32> DATA_VARIANT_PARAM;
 
     static constexpr i32 SHAPE_MASK = 0xFF;
     static constexpr i32 BASE_COLOR_MASK = 0xFF00;

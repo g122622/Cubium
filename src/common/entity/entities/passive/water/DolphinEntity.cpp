@@ -36,6 +36,9 @@
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
@@ -57,11 +60,47 @@
 
 namespace mc {
 
+// ==================== 同步数据参数静态成员初始化 ====================
+// id 由 registerData 沿继承链分配：BABY 占位 16、GOT_FISH 17、MOISTNESS_LEVEL 18。
+entity::DataParameter<bool> DolphinEntity::DATA_BABY_PLACEHOLDER_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> DolphinEntity::DATA_GOT_FISH_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i32> DolphinEntity::DATA_MOISTNESS_LEVEL_PARAM = entity::EntityDataManager::createKey<i32>();
+
+// 继承链标识（parent = WaterMobEntity::classInfo()）。
+// vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean，继承自 AgeableMob)。
+// 项目 WaterMobEntity 不经 AgeableEntity，故在 DolphinEntity 层补 BABY 占位 + GOT_FISH/MOISTNESS。
+const entity::EntityClassInfo& DolphinEntity::classInfo()
+{
+    static const entity::EntityClassInfo s_classInfo{"DolphinEntity", &WaterMobEntity::classInfo()};
+    return s_classInfo;
+}
+
+void DolphinEntity::registerData()
+{
+    // 先调用父类方法。WaterMobEntity/CreatureEntity 均无 registerData override，显式指
+    // MobEntity::registerData() 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
+    MobEntity::registerData();
+
+    // 标记当前正在注册 DolphinEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 3 字段对齐 vanilla 1.21.11 Dolphin：BABY 占位@16、GOT_FISH@17、MOISTNESS_LEVEL@18。
+    // 默认值与 vanilla defineSynchedData 一致（BABY=false、GOT_FISH=false、MOISTNESS=2400）。
+    m_dataManager.registerParam(DATA_BABY_PLACEHOLDER_PARAM, false);
+    m_dataManager.registerParam(DATA_GOT_FISH_PARAM, false);
+    m_dataManager.registerParam(DATA_MOISTNESS_LEVEL_PARAM, 2400);
+}
+
 DolphinEntity::DolphinEntity(EntityInstanceId id)
     : WaterMobEntity(id)
 {
     // 设置空气值（4800 tick = 4分钟）
     setAir(MAX_AIR);
+
+    // 显式调用 registerData() 注册 Dolphin 字段（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
+    registerData();
 
     // 注册 AI 目标
     registerGoals();

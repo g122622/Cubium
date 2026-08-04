@@ -25,7 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -102,6 +104,12 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
+    /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
+    // vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，字段 BABY@16(继承)/
+    // GOT_FISH@17(Boolean)/MOISTNESS_LEVEL@18(Int)。项目 WaterMobEntity 不经 AgeableEntity
+    // （无 BABY），故在 DolphinEntity 层补 BABY 占位 + GOT_FISH/MOISTNESS 对齐 vanilla id。
+    static const entity::EntityClassInfo& classInfo();
+
     // ========== 游泳行为 ==========
 
     /**
@@ -167,8 +175,14 @@ public:
 
     /**
      * @brief 设置得到鱼标记
+     *
+     * 同步写入 DATA_GOT_FISH 元数据（id17），客户端据此渲染海豚寻宝引导状态。
      */
-    void setGotFish(bool gotFish) noexcept { m_gotFish = gotFish; }
+    void setGotFish(bool gotFish)
+    {
+        m_gotFish = gotFish;
+        m_dataManager.set(DATA_GOT_FISH_PARAM, gotFish);
+    }
 
     // ========== 食物 ==========
 
@@ -250,6 +264,10 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 同步数据注册 ==========
+    // 派生类构造函数须显式调用 registerData()（C++ 基类构造期虚函数不派发，参考 SquidEntity）。
+    void registerData() override;
+
     // ========== 水状态回调 ==========
     void onLeaveWater() override;
 
@@ -269,6 +287,14 @@ private:
 
     // 游泳计时器
     i32 m_swimTimer = 0;
+
+    // ========== 同步数据参数（vanilla 1.21.11 Dolphin 字段，见 registerData） ==========
+    // id16 占位对齐 vanilla AgeableMob.DATA_BABY（海豚幼体语义暂未实现，占位恒 false）。
+    static entity::DataParameter<bool> DATA_BABY_PLACEHOLDER_PARAM; // id16
+    // id17 GOT_FISH（玩家喂鱼后置 true，海豚引导玩家寻宝）。由 setGotFish 同步。
+    static entity::DataParameter<bool> DATA_GOT_FISH_PARAM; // id17
+    // id18 MOISTNESS_LEVEL（湿润度，vanilla 起始 2400）。TODO: 离水时递减的业务联动暂未实现。
+    static entity::DataParameter<i32> DATA_MOISTNESS_LEVEL_PARAM; // id18
 
     // 常量
     static constexpr i32 GUIDE_DURATION = 1200;         // 60秒引导时间 (ticks)

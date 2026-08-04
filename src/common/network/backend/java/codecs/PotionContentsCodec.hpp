@@ -62,10 +62,12 @@ inline void writePotionContentsPayload(
         const u32 potionId = JavaPotionIdMap::instance().toJavaRegistryId(pc.potionId);
         buf.writeVarInt(static_cast<i32>(potionId));
     }
-    // Optional<Integer> customColor。
+    // Optional<Integer> customColor。vanilla PotionContents.STREAM_CODEC 用 ByteBufCodecs.INT
+    // （定长 4 字节大端 writeInt，非 VarInt），故此处须 writeI32 对齐，否则颜色为小正值时
+    // VarInt(1 字节) vs INT(4 字节) 少 3 字节，客户端把后续 3 字节吞进 color 连锁错位。
     if (pc.customColor.has_value()) {
         buf.writeBool(true);
-        buf.writeVarInt(*pc.customColor);
+        buf.writeI32(*pc.customColor);
     } else {
         buf.writeBool(false);
     }
@@ -96,12 +98,12 @@ inline void writePotionContentsPayload(
         MC_TRY_ASSIGN(potionId, buf.readVarInt());
         pc.potionId = JavaPotionIdMap::instance().fromJavaRegistryId(static_cast<u32>(potionId));
     }
-    // Optional<Integer> customColor。
+    // Optional<Integer> customColor（定长 4 字节大端 INT，非 VarInt）。
     bool hasColor = false;
     MC_TRY_ASSIGN(hasColor, buf.readBool());
     if (hasColor) {
         i32 color = 0;
-        MC_TRY_ASSIGN(color, buf.readVarInt());
+        MC_TRY_ASSIGN(color, buf.readI32());
         pc.customColor = color;
     }
     // List<MobEffectInstance> customEffects。

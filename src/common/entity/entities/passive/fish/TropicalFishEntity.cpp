@@ -26,8 +26,10 @@
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -38,26 +40,42 @@
 
 namespace mc {
 
-// ============================================================================
+// ==================== 同步数据参数静态成员初始化 ====================
+// id 由 registerData 沿继承链分配为 17（续接 AbstractFish.FROM_BUCKET@16）。
+entity::DataParameter<i32> TropicalFishEntity::DATA_VARIANT_PARAM = entity::EntityDataManager::createKey<i32>();
+
 // 继承链标识（parent = AbstractGroupFishEntity::classInfo()）。
-// TODO(实体同步对齐): vanilla 1.21.11 TropicalFish 有 DATA_VARIANT(Int,id17)，项目当前
-// 用 m_variant 普通成员承载、不同步。本次仅补 classInfo 占位对齐 id 上限，DATA_VARIANT
-// 同步留后续逐实体字段对齐任务。
-// ============================================================================
+// vanilla 1.21.11 TropicalFish 自带 DATA_VARIANT@17(Int，packed: shape | baseColor<<8 | patternColor<<16)。
 const entity::EntityClassInfo& TropicalFishEntity::classInfo()
 {
     static const entity::EntityClassInfo s_classInfo{"TropicalFishEntity", &AbstractGroupFishEntity::classInfo()};
     return s_classInfo;
 }
 
+void TropicalFishEntity::registerData()
+{
+    // 先调用父类方法。AbstractGroupFishEntity 无 registerData override，解析为
+    // AbstractFishEntity::registerData（注册 FROM_BUCKET@16），确保父链参数已注册。
+    AbstractGroupFishEntity::registerData();
+
+    // 标记当前正在注册 TropicalFishEntity 类的字段，使 registerParam 沿继承链分配 id
+    // （续接 AbstractFish id16 之后）。RAII 守卫自动配对压栈/弹栈。
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册 DATA_VARIANT 对齐 vanilla 1.21.11 TropicalFish.DATA_VARIANT@17(Int)。
+    // 初始占位 0；构造函数中 randomizeVariant() 会经 setVariant 写入真实 packed id。
+    m_dataManager.registerParam(DATA_VARIANT_PARAM, 0);
+}
+
 TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
     : AbstractGroupFishEntity(id)
 {
-    randomizeVariant();
-
-    // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
-    // 参考 MobEntity/AbstractSkeletonEntity 模式；本类暂无同步字段，调用幂等）。
+    // 显式调用 registerData() 注册 DATA_VARIANT（C++ 基类构造期虚函数不派发，
+    // Entity::Entity() 内部调用的 registerData() 解析到父类而非本类）。
     registerData();
+
+    // 在 DATA_VARIANT_PARAM 注册完成后随机化变种，setVariant 会同步写入 DataParameter。
+    randomizeVariant();
 }
 
 std::unique_ptr<Entity> TropicalFishEntity::create(IWorld* /*world*/)
