@@ -103,6 +103,85 @@ void EntityTracker::trackEntity(Entity* entity)
     m_trackedEntities[entityId] = tracked;
 }
 
+void EntityTracker::notifyEntityTracked(IServer& server, ServerWorld& world, Entity* entity)
+{
+    if (entity == nullptr) {
+        return;
+    }
+
+    const EntityInstanceId entityId = entity->id();
+
+    // 1. 收集在线玩家及其位置（playerManager 内部线程安全，无需持 tracker 锁）。
+    struct PlayerView {
+        PlayerId playerId;
+        Vector3 position;
+    };
+    std::vector<PlayerView> onlinePlayers;
+    const std::vector<PlayerId> playerIds = server.playerManager().getPlayerIds();
+    onlinePlayers.reserve(playerIds.size());
+    for (PlayerId playerId : playerIds) {
+        const ServerPlayerData* data = server.playerManager().getPlayer(playerId);
+        if (data == nullptr) {
+            continue;
+        }
+        const Vector3f pos = data->position();
+        onlinePlayers.push_back({playerId, Vector3(pos.x, pos.y, pos.z)});
+    }
+
+    if (onlinePlayers.empty()) {
+        return;
+    }
+
+    // 2. 加锁：确认实体仍在追踪表，并收集当前已追踪该实体的玩家集合，
+    //    同时判定每个在线玩家是否应开始追踪（视距内、非自身）。
+    std::vector<PlayerId> toStartTracking;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            // 并发 untrack：实体已不在追踪表，无需广播。
+            return;
+        }
+        const std::unordered_set<PlayerId>& alreadyTracking = it->second.trackingPlayers;
+
+        for (const PlayerView& pv : onlinePlayers) {
+            // 跳过玩家自身：本地玩家由 login 包直接建立，不应收到自己的 AddEntity
+            // （否则客户端 spawnEntity 会撞已存在的本地玩家并误回写位置）。
+            if (auto* player = dynamic_cast<Player*>(entity); player != nullptr && player->playerId() == pv.playerId) {
+                continue;
+            }
+            if (alreadyTracking.find(pv.playerId) != alreadyTracking.end()) {
+                continue; // 已在追踪
+            }
+            if (_shouldTrack(pv.position, entity->position(), m_trackingDistance)) {
+                toStartTracking.push_back(pv.playerId);
+            }
+        }
+    }
+
+    if (toStartTracking.empty()) {
+        return;
+    }
+
+    // 3. 锁外发包（player->send 可能回调入 tracker，持锁有死锁风险）。
+    for (PlayerId playerId : toStartTracking) {
+        _sendSpawnPacket(server, playerId, entity);
+    }
+
+    // 4. 加锁登记双向追踪关系。
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return; // 并发 untrack
+        }
+        for (PlayerId playerId : toStartTracking) {
+            it->second.trackingPlayers.insert(playerId);
+            m_playerTrackedEntities[playerId].insert(entityId);
+        }
+    }
+}
+
 void EntityTracker::untrackEntity(EntityInstanceId entityId)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -195,6 +274,45 @@ void EntityTracker::broadcastItemEntityResync(IServer& server, const Entity& ent
 
     for (PlayerId playerId : trackingPlayers) {
         _sendItemEntityResyncPacket(server, playerId, entity);
+    }
+}
+
+void EntityTracker::broadcastPassengers(IServer& server, ServerWorld& world, EntityInstanceId vehicleId)
+{
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(vehicleId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+    }
+
+    if (trackingPlayers.empty()) {
+        return;
+    }
+
+    // 载具实体可能尚未进入追踪表（如 spawn 时刻立即挂载乘客），这里按 id 现取。
+    Entity* vehicle = world.entityManager().getEntity(vehicleId);
+    if (vehicle == nullptr) {
+        return;
+    }
+
+    // 1.21.11 SetPassengers：VarInt(vehicle) + VarInt(count) + count×VarInt(passenger)。
+    mc::network::ir::play::SetPassengers pkt;
+    pkt.vehicle = static_cast<i32>(vehicleId);
+    pkt.passengers.reserve(vehicle->getPassengers().size());
+    for (EntityInstanceId passengerId : vehicle->getPassengers()) {
+        pkt.passengers.push_back(static_cast<i32>(passengerId));
+    }
+    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
+
+    for (PlayerId playerId : trackingPlayers) {
+        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->hasConnection()) {
+            player->send(packet);
+        }
     }
 }
 
@@ -330,26 +448,47 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
             bool rotationChanged = std::abs(currentYaw - tracked.lastYaw) > m_rotationUpdateThreshold ||
                 std::abs(currentPitch - tracked.lastPitch) > m_rotationUpdateThreshold;
 
+            // 位置/朝向变更：发送移动包（_sendMovePacket 内部按位移量选 delta 或 teleport）。
+            // 注意：metadata 的发送已从此门内拆出独立判定——静止实体若仅 metadata 变化
+            // （ItemEntity 物品变、Mob 目标/状态变、Creeper 膨胀等）也必须同步，
+            // 否则客户端永不更新（旧实现把 metadata 发送嵌在位置门内，静止实体丢元数据）。
             if (tracked.needsFullUpdate || positionChanged || rotationChanged) {
                 for (PlayerId playerId : tracked.trackingPlayers) {
-                    _sendMovePacket(server, playerId, entity);
-                }
-
-                if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
-                    std::vector<u8> metadata =
-                        network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
-                    if (metadata.size() > 1) {
-                        for (PlayerId playerId : tracked.trackingPlayers) {
-                            _sendMetadataPacket(server, playerId, entity, metadata);
-                        }
-                        entity->dataManager().clearDirty();
-                    }
+                    _sendMovePacket(server, playerId, entity, tracked, positionChanged, rotationChanged);
                 }
 
                 tracked.lastPosition = currentPos;
                 tracked.lastYaw = currentYaw;
                 tracked.lastPitch = currentPitch;
                 tracked.needsFullUpdate = false;
+            }
+
+            // 头部旋转同步：LivingEntity 的 headYaw 变化时发 RotateHead。
+            // AddEntity 时刻已透传 yHeadRot 一次；此处负责之后的持续同步。
+            // 对齐 MC Java ServerEntity：headRot 与 bodyRot 分离追踪，headRot 变化即发包。
+            if (auto* living = dynamic_cast<LivingEntity*>(entity); living != nullptr) {
+                const f32 currentHeadYaw = living->rotationYawHead();
+                if (!tracked.lastHeadYawValid ||
+                    std::abs(currentHeadYaw - tracked.lastHeadYaw) > m_rotationUpdateThreshold) {
+                    for (PlayerId playerId : tracked.trackingPlayers) {
+                        _sendHeadRotatePacket(server, playerId, entity);
+                    }
+                    tracked.lastHeadYaw = currentHeadYaw;
+                    tracked.lastHeadYawValid = true;
+                }
+            }
+
+            // 元数据同步：独立于位置门。只要 dataManager 有脏数据就序列化下发，
+            // 与实体是否移动无关。对齐 MC Java ServerEntity.sendDirtyEntityData()
+            // 对 SynchedEntityData 脏条目的单独刷新路径。
+            if (entity->dataManager().hasDirtyData() && !tracked.trackingPlayers.empty()) {
+                std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(entity->dataManager(), true);
+                if (metadata.size() > 1) { // >1 表示除 0xFF 结束符外还有实际条目
+                    for (PlayerId playerId : tracked.trackingPlayers) {
+                        _sendMetadataPacket(server, playerId, entity, metadata);
+                    }
+                }
+                entity->dataManager().clearDirty();
             }
 
             // 速度同步：当实体的 hurtMarked 为 true 时，发送速度同步包
@@ -486,27 +625,104 @@ void EntityTracker::_sendDestroyPacket(
     }
 }
 
-void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* entity)
+void EntityTracker::_sendMovePacket(IServer& server,
+    PlayerId playerId,
+    Entity* entity,
+    const TrackedEntity& tracked,
+    bool positionChanged,
+    bool rotationChanged)
 {
     if (!entity) return;
 
     ServerPlayerData* player = server.playerManager().getPlayer(playerId);
     if (!player || !player->hasConnection()) return;
 
-    // 1.21.11 TeleportEntity：完整绝对位置（与 PlayerPosition 同构）。
+    // 计算 1/4096 定点 delta（对齐 vanilla 1.21.11 MoveEntity*.deltaX/Y/Z: Short）。
+    // 超出 i16 范围（±32767，即 ±8 格）则回退 TeleportEntity 绝对位置包——
+    // vanilla ServerEntity 同样在 delta 超 Short 范围时改发 ClientboundTeleportEntityPacket。
+    const f32 kFixedPoint = 4096.0f;
+    auto toDeltaI16 = [kFixedPoint](f32 current, f32 last) -> bool {
+        const f32 scaled = (current - last) * kFixedPoint;
+        return scaled > -32768.0f && scaled < 32767.0f;
+    };
+
+    const bool deltaInRange = toDeltaI16(entity->x(), tracked.lastPosition.x) &&
+        toDeltaI16(entity->y(), tracked.lastPosition.y) && toDeltaI16(entity->z(), tracked.lastPosition.z);
+
+    // needsFullUpdate（首次/重同步）或 delta 超 i16 范围：发绝对 TeleportEntity。
     // delta 置 0、relatives 置 0 表示纯绝对传送。
-    mc::network::ir::play::TeleportEntity pkt;
+    if (tracked.needsFullUpdate || (positionChanged && !deltaInRange)) {
+        mc::network::ir::play::TeleportEntity pkt;
+        pkt.entityId = static_cast<i32>(entity->id());
+        pkt.x = static_cast<f64>(entity->x());
+        pkt.y = static_cast<f64>(entity->y());
+        pkt.z = static_cast<f64>(entity->z());
+        pkt.deltaX = 0.0;
+        pkt.deltaY = 0.0;
+        pkt.deltaZ = 0.0;
+        pkt.yRot = entity->yaw();
+        pkt.xRot = entity->pitch();
+        pkt.relatives = 0;
+        pkt.onGround = entity->onGround();
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+        return;
+    }
+
+    // 低带宽 delta 包：客户端用 setTargetPosition/setTargetRotation 做插值，视觉平滑。
+    const auto packDelta = [kFixedPoint](f32 current, f32 last) -> i16 {
+        return static_cast<i16>(std::round((current - last) * kFixedPoint));
+    };
+    const i8 yRotPacked = static_cast<i8>(mc::network::backend::java::wire::packDegrees(entity->yaw()));
+    const i8 xRotPacked = static_cast<i8>(mc::network::backend::java::wire::packDegrees(entity->pitch()));
+
+    if (positionChanged && rotationChanged) {
+        mc::network::ir::play::MoveEntityPosRot pkt;
+        pkt.entityId = static_cast<i32>(entity->id());
+        pkt.deltaX = packDelta(entity->x(), tracked.lastPosition.x);
+        pkt.deltaY = packDelta(entity->y(), tracked.lastPosition.y);
+        pkt.deltaZ = packDelta(entity->z(), tracked.lastPosition.z);
+        pkt.yRot = yRotPacked;
+        pkt.xRot = xRotPacked;
+        pkt.onGround = entity->onGround();
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    } else if (positionChanged) {
+        mc::network::ir::play::MoveEntityPos pkt;
+        pkt.entityId = static_cast<i32>(entity->id());
+        pkt.deltaX = packDelta(entity->x(), tracked.lastPosition.x);
+        pkt.deltaY = packDelta(entity->y(), tracked.lastPosition.y);
+        pkt.deltaZ = packDelta(entity->z(), tracked.lastPosition.z);
+        pkt.onGround = entity->onGround();
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    } else if (rotationChanged) {
+        mc::network::ir::play::MoveEntityRot pkt;
+        pkt.entityId = static_cast<i32>(entity->id());
+        pkt.yRot = yRotPacked;
+        pkt.xRot = xRotPacked;
+        pkt.onGround = entity->onGround();
+        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    }
+}
+
+void EntityTracker::_sendHeadRotatePacket(IServer& server, PlayerId playerId, Entity* entity)
+{
+    if (entity == nullptr) {
+        return;
+    }
+
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->hasConnection()) {
+        return;
+    }
+
+    // 1.21.11 RotateHead：entityId + Byte(yHeadRot)。仅 LivingEntity 有 headYaw 概念。
+    auto* living = dynamic_cast<LivingEntity*>(entity);
+    if (living == nullptr) {
+        return;
+    }
+
+    mc::network::ir::play::RotateHead pkt;
     pkt.entityId = static_cast<i32>(entity->id());
-    pkt.x = static_cast<f64>(entity->x());
-    pkt.y = static_cast<f64>(entity->y());
-    pkt.z = static_cast<f64>(entity->z());
-    pkt.deltaX = 0.0;
-    pkt.deltaY = 0.0;
-    pkt.deltaZ = 0.0;
-    pkt.yRot = entity->yaw();
-    pkt.xRot = entity->pitch();
-    pkt.relatives = 0;
-    pkt.onGround = entity->onGround();
+    pkt.yHeadRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(living->rotationYawHead()));
     player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 

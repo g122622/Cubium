@@ -1573,6 +1573,12 @@ bool Entity::addPassenger(Entity& passenger)
     // 触发回调
     // 子类可重写 onAddedPassenger() 来处理特殊逻辑
 
+    // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
+    // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
+    if (isServerSide) {
+        m_world->broadcastPassengersChanged(m_id);
+    }
+
     return true;
 }
 
@@ -1610,6 +1616,12 @@ void Entity::removePassenger(Entity& passenger)
         passenger.m_rideCooldown = 60;
 
         // 触发回调
+
+        // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
+        // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
+        if (m_world && !m_world->isClientSide()) {
+            m_world->broadcastPassengersChanged(m_id);
+        }
     }
 }
 

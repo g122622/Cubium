@@ -52,6 +52,8 @@ struct TrackedEntity {
     Vector3 lastPosition;                         // 上次同步的位置
     f32 lastYaw = 0.0f;                           // 上次同步的偏航角
     f32 lastPitch = 0.0f;                         // 上次同步的俯仰角
+    f32 lastHeadYaw = 0.0f;                       // 上次同步的头部偏航角（LivingEntity）
+    bool lastHeadYawValid = false;                // 上次同步的 headYaw 是否已初始化
     u32 updateCounter = 0;                        // 更新计数器
     bool needsFullUpdate = true;                  // 是否需要完整更新
 };
@@ -80,6 +82,26 @@ public:
      * @param entity 要追踪的实体
      */
     void trackEntity(Entity* entity);
+
+    /**
+     * @brief 登记实体并立即向视距内的在线玩家建立追踪
+     *
+     * 在 trackEntity 登记之后，立刻遍历所有在线玩家，对处于该实体追踪范围内、
+     * 且尚未建立追踪关系的玩家发送 AddEntity 生成包并完成双向登记。
+     *
+     * 用途：补齐「实体 spawn 后、玩家未移动前」的可见性建立时机。旧实现仅靠
+     * updatePlayerTracking（玩家移动时触发）建立追踪，导致新生成的实体（如区块
+     * 生成时批量 spawn 的 Mob、运行时 spawnEntity 的掉落物）在玩家静止期间不可见，
+     * 直到玩家下一次移动才突然出现。对齐 vanilla ServerEntityTracker.addEntity 后
+     * 通过 ServerEntity.updatePlayer 在首个 tick 即与 seenBy 玩家建立配对的行为。
+     *
+     * 复杂度 O(在线玩家数)，远轻于对每个新实体全量调用 updatePlayerTracking。
+     *
+     * @param server 服务器接口（用于取在线玩家与发包）
+     * @param world 世界引用
+     * @param entity 刚登记的新实体
+     */
+    void notifyEntityTracked(IServer& server, ServerWorld& world, Entity* entity);
 
     /**
      * @brief 停止追踪一个实体
@@ -187,11 +209,30 @@ private:
 
     /**
      * @brief 发送实体移动包给玩家
+     *
+     * 按 vanilla ServerEntity 选包策略：位移/朝向变化时优先发低带宽的 delta 包
+     * （MoveEntityPos/PosRot/Rot，delta 为 1/4096 定点 i16），仅当 delta 超出 i16
+     * 范围（±8 格）或 needsFullUpdate 时回退 TeleportEntity 绝对位置包。
+     *
      * @param server 服务器接口
      * @param playerId 玩家ID
      * @param entity 实体
+     * @param positionChanged 本 tick 位置是否越过更新阈值
+     * @param rotationChanged 本 tick 朝向是否越过更新阈值
      */
-    void _sendMovePacket(IServer& server, PlayerId playerId, Entity* entity);
+    void _sendMovePacket(IServer& server,
+        PlayerId playerId,
+        Entity* entity,
+        const TrackedEntity& tracked,
+        bool positionChanged,
+        bool rotationChanged);
+
+    /**
+     * @brief 发送实体头部旋转包给玩家（对应 cb RotateHead）
+     *
+     * Mob 的 headYaw 变化时调用，补齐 AddEntity 之后头部朝向的持续同步。
+     */
+    void _sendHeadRotatePacket(IServer& server, PlayerId playerId, Entity* entity);
 
     /**
      * @brief 发送实体元数据包给玩家
@@ -224,6 +265,18 @@ public:
      * 这里用于服务端无法仅靠 metadata 表达 ItemStack 变化时的统一兜底同步。
      */
     void broadcastItemEntityResync(IServer& server, const Entity& entity);
+
+    /**
+     * @brief 向当前追踪该载具的所有玩家广播乘客列表变更（cb SetPassengers）。
+     *
+     * 骑乘关系（startRiding/dismount）在服务端实体模型变更后调用，补齐客户端
+     * 骑乘渲染同步。乘客列表取自载具 Entity::getPassengers()。
+     *
+     * @param server 服务器接口
+     * @param world 世界引用（用于按 id 取载具实体读乘客列表）
+     * @param vehicleId 载具实体ID
+     */
+    void broadcastPassengers(IServer& server, ServerWorld& world, EntityInstanceId vehicleId);
 
 private:
     mutable std::mutex m_mutex;

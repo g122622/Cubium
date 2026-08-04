@@ -859,6 +859,8 @@ public:
 
     void broadcastSetEntityLink(EntityInstanceId entityId, EntityInstanceId linkedEntityId) override;
 
+    void broadcastPassengersChanged(EntityInstanceId vehicleId) override;
+
     void broadcastExplosion(const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,

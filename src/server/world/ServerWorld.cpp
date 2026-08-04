@@ -1928,6 +1928,12 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     Entity* addedEntity = m_entityManager.getEntity(id);
     if (addedEntity) {
         m_entityTracker.trackEntity(addedEntity);
+        // spawn 后立即向视距内在线玩家建立追踪，避免玩家静止期间看不到新实体
+        // （旧实现仅靠玩家移动时 updatePlayerTracking 建立追踪，存在可见性延迟）。
+        // m_server 在早期初始化或部分测试场景可能未注入，此时跳过广播（仅登记）。
+        if (m_server != nullptr) {
+            m_entityTracker.notifyEntityTracked(*m_server, *this, addedEntity);
+        }
         // 注册到区块跟踪器
         ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
         ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
@@ -2036,6 +2042,12 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
             Entity* addedEntity = m_entityManager.getEntity(entityId);
             if (addedEntity) {
                 m_entityTracker.trackEntity(addedEntity);
+                // 区块生成批量 spawn：每个新实体登记后立即向视距内在线玩家建立追踪，
+                // 避免玩家静止期间看不到新生成的 Mob（旧实现仅靠玩家移动触发可见性刷新）。
+                // m_server 在早期初始化或部分测试场景可能未注入，此时跳过广播（仅登记）。
+                if (m_server != nullptr) {
+                    m_entityTracker.notifyEntityTracked(*m_server, *this, addedEntity);
+                }
                 // 注册到区块跟踪器
                 ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
                 ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
@@ -2603,6 +2615,16 @@ void ServerWorld::broadcastSetEntityLink(EntityInstanceId entityId, EntityInstan
 {
     if (m_onBroadcastSetEntityLink) {
         m_onBroadcastSetEntityLink(entityId, linkedEntityId);
+    }
+}
+
+void ServerWorld::broadcastPassengersChanged(EntityInstanceId vehicleId)
+{
+    // 直接委托 EntityTracker：它持追踪该载具的玩家集合，精确下发 SetPassengers。
+    // 与 broadcastSetEntityLink 走回调不同——此处 tracker 即在本对象内（m_entityTracker），
+    // 无需经 MinecraftServer 间接层。m_server 在 setServer 时注入。
+    if (m_server != nullptr) {
+        m_entityTracker.broadcastPassengers(*m_server, *this, vehicleId);
     }
 }
 

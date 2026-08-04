@@ -1561,6 +1561,19 @@ public:
         (void)linkedEntityId;
     }
 
+    // ========== 实体乘客广播 ==========
+
+    /**
+     * @brief 广播实体乘客列表变更事件
+     *
+     * 向所有追踪该载具的玩家发送 ir::play::SetPassengers，用于客户端骑乘关系
+     * （船载人、骑马等）的渲染同步。在 Entity::addPassenger/removePassenger
+     * 改变载具乘客列表后调用。
+     *
+     * @param vehicleId 载具实体ID
+     */
+    virtual void broadcastPassengersChanged(EntityInstanceId vehicleId) { (void)vehicleId; }
+
     // ========== 爆炸事件广播 ==========
 
     /**
