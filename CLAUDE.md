@@ -108,3 +108,19 @@ Moonrise优化模组路径：~\dev\MC\Mods\Moonrise
 【重要】暂时的简化实现、不完整实现、因为未实现等开发进度原因而导致暂时未使用的代码、函数和变量等，必须加上TODO注释（注释中要有明文`TODO`，便于全文搜索），如果你顺手发现了某段代码中的逻辑不完整、缺少TODO注释则需要补上TODO注释，以便未来的开发者知道哪里需要完善实现。
 【重要】暂时的简化实现、不完整实现、因为未实现等开发进度原因而导致暂时未使用的代码、函数和变量等，必须加上TODO注释（注释中要有明文`TODO`，便于全文搜索），如果你顺手发现了某段代码中的逻辑不完整、缺少TODO注释则需要补上TODO注释，以便未来的开发者知道哪里需要完善实现。
 【重要】暂时的简化实现、不完整实现、因为未实现等开发进度原因而导致暂时未使用的代码、函数和变量等，必须加上TODO注释（注释中要有明文`TODO`，便于全文搜索），如果你顺手发现了某段代码中的逻辑不完整、缺少TODO注释则需要补上TODO注释，以便未来的开发者知道哪里需要完善实现。
+
+【参考】
+
+**基岩版**
+
+- 逆向头文件 E:\dev\MC\LeviLamina\src\mc\scripting\modules\gametest
+
+- 逆向头文件 E:\dev\MC\LeviLamina\src\mc\gametest
+
+- 官方文档 E:\dev\MC\Mods\minecraft-creator\creator\ScriptAPI\minecraft\server-gametest
+
+- 示例 E:\dev\MC\minecraft-gametests（介绍：This repo contains sample GameTest behavior files for Minecraft Bedrock Edition. Minecraft supports GameTests - a combination of JavaScript + MCStructures - for validating facets of Minecraft behavior. You can use GameTests to validate facets of your creations, as well!）
+
+**java版**
+
+D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\gametest

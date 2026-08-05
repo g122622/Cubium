@@ -77,6 +77,7 @@ server/
 │   └── ServerPlayer.hpp/cpp
 ├── settings/             # 服务器设置
 │   └── ServerSettings.hpp/cpp
+├── test/                 # GameTest 集成测试框架服务端专属层（facade/minecraft/runner/simulated/script/native-builtin）
 ├── config/               # 配置文件（空）
 └── main.cpp              # 入口点
 ```
@@ -262,6 +263,10 @@ server/
 | 类 | 职责 |
 |---|---|
 | `ServerSettings` | 服务器配置（端口、玩家数、视距、日志等） |
+
+### test/ - GameTest 集成测试框架服务端专属层
+
+GameTest 框架的服务端专属逻辑（绑 `ServerWorld`/`MinecraftServer`/`ServerPlayer`/`CommandRegistry`）。引擎无关核心（`base/`/`framework/`/`native/` 注册机制）在 `src/common/test/`（→ `mc_test` 库）。本目录编入 `minecraft-server` exe + `mc_tests`，依赖 `mc_test` + 服务端类型 + `mc_bedrock_addon`（script 层）。详见 `test/README.md`。
 
 ## 模块间关系
 

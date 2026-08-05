@@ -1770,5 +1770,10 @@ add_custom_command(
 )
 set_source_files_properties(${_java_block_id_table_gen_cpp} PROPERTIES GENERATED TRUE)
 
+# GameTest 集成测试框架核心库（mc_test：base/+framework/+native/，引擎无关）
+# 生产 minecraft-server 运行时需 /gametest 命令与 GameTestServer 门面（源在 src/server/test/），
+# 故无条件纳入构建（对齐 plan 1I）。
+add_subdirectory(test)
+
 # 基岩版Addon兼容模组系统
 add_subdirectory(mod/bedrock/addon)

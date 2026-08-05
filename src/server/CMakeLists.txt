@@ -203,6 +203,7 @@ target_link_libraries(minecraft-server
     PRIVATE
         mc_common
         mc_bedrock_addon
+        mc_test
         nlohmann_json::nlohmann_json
 )
 
@@ -212,6 +213,56 @@ endif()
 
 mc_set_compiler_warnings(minecraft-server)
 mc_copy_runtime_dlls(minecraft-server)
+
+# ============================================================================
+# GameTest 集成测试框架 - server 专属源（facade/minecraft/runner/simulated/script/native-builtin）
+#
+# 架构约束：facade/+minecraft/+runner/+simulated/+script/ 依赖 server 类型（MinecraftServer/
+# ServerWorld/CommandRegistry）+ mc_bedrock_addon（script/ JS 绑定基建），不能入引擎无关的
+# mc_test 库。经 target_sources 注入 minecraft-server（生产路径：GameTestServer 门面 +
+# /gametest 命令 + @minecraft/server-gametest JS 模块）。
+# ServerScriptManager.cpp 与 IntegratedServer.cpp 同时编入 client exe（client/CMakeLists.txt），
+# 它们不 include server/test/ 头（GameTestModuleBinding 注册在 GameTestServer.cpp，server 专属），
+# 故 client build 不受此 target_sources 影响。
+# ============================================================================
+target_sources(minecraft-server
+    PRIVATE
+        # facade/ - 对外门面层
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestServer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestCommand.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestHelper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestRegistrar.cpp
+        # minecraft/ - ServerWorld 具体绑定
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/instance/MinecraftGameTestInstance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/batch/MinecraftGameTestBatchRunner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/helper/MinecraftGameTestHelperProvider.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/MinecraftStructurePlacer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/StructureBounds.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/listener/WorldVisualizationListener.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
+        # runner/ - 编排
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/GameTestRunner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/GameTestRunnerBuilder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/spawner/StructureGridSpawner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/GlobalTestReporter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/LogTestReporter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/JUnitTestReporter.cpp
+        # native/ - 内置样例测试（保链接期保留 TU）
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/builtin/BuiltinNativeTests.cpp
+        # simulated/ - SimulatedPlayer
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/simulated/SimulatedPlayer.cpp
+        # script/ - @minecraft/server-gametest JS 绑定骨架
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/GameTestModuleBinding.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/context/ScriptGameTestAccessor.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/context/ScriptBindingRegistry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegister.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptTestHelper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilderBinding.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSequence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSimulatedPlayer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestFunction.cpp
+)
 
 target_compile_features(minecraft-server PRIVATE cxx_std_20)
 

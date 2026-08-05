@@ -1559,6 +1559,15 @@ add_executable(mc_tests
     server/function/MacroFunctionTest.cpp
     server/function/StringTemplateTest.cpp
     server/function/TimerQueueTest.cpp
+    # GameTest 集成测试框架（对齐 plan 1I）
+    server/test/test_gametest_framework.cpp
+    server/test/test_gametest_helper.cpp
+    server/test/test_gametest_registration.cpp
+    server/test/test_gametest_runner.cpp
+    server/test/test_gametest_server.cpp
+    server/test/test_gametest_command.cpp
+    server/test/test_simulated_player.cpp
+    server/test/test_gametest_script_binding.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -1648,6 +1657,39 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
+        # GameTest 集成测试框架 - server 专属源（facade/minecraft/runner/simulated/script/native-builtin）
+        # mc_tests 编译 IntegratedServer.cpp 故需同 minecraft-server 一致登记 GameTest 源，
+        # 否则 /gametest 命令与 GameTestServer 门面符号缺失。GameTestModuleBinding 注册在
+        # GameTestServer.cpp（server 专属），不影响 ServerScriptManager.cpp（client 共享）。
+        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestServer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestHelper.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestRegistrar.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/instance/MinecraftGameTestInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/batch/MinecraftGameTestBatchRunner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/helper/MinecraftGameTestHelperProvider.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/MinecraftStructurePlacer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/StructureBounds.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/listener/WorldVisualizationListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/GameTestRunner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/GameTestRunnerBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/spawner/StructureGridSpawner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/GlobalTestReporter.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/LogTestReporter.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/JUnitTestReporter.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/native/builtin/BuiltinNativeTests.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/simulated/SimulatedPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/GameTestModuleBinding.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/context/ScriptGameTestAccessor.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/context/ScriptBindingRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegister.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptTestHelper.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilderBinding.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSequence.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSimulatedPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
@@ -2349,6 +2391,7 @@ target_link_libraries(mc_tests
     PRIVATE
         mc_common
         mc_bedrock_addon
+        mc_test
         mc_offset_allocator
         GTest::gtest
         asio::asio
