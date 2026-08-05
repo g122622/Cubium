@@ -409,6 +409,19 @@ void MinecraftServer::tick()
     if (m_scriptManager && m_scriptManager->isInitialized()) {
         m_scriptManager->tick(currentTick());
     }
+
+    // post-tick 回调（仅服务端编译的子系统经此接入，如 GameTest GameTestTicker）。
+    // 在所有子系统推进后触发，保证测试实例 tick 看到本帧最新世界状态。
+    for (const auto& cb : m_postTickCallbacks) {
+        if (cb) {
+            cb();
+        }
+    }
+}
+
+void MinecraftServer::addPostTickCallback(std::function<void()> callback)
+{
+    m_postTickCallbacks.push_back(std::move(callback));
 }
 
 void MinecraftServer::initializeCoreManagers()

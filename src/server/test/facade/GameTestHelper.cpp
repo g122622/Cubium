@@ -3,10 +3,10 @@
 #include "common/test/base/error/GameTestErrorContext.hpp"
 #include "common/test/framework/instance/BaseGameTestInstance.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
-#include "server/test/minecraft/structure/StructureBounds.hpp"
-#include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/minecraft/structure/StructureBounds.hpp"
+#include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -21,6 +21,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <functional>
+#include <memory>
 #include <string>
 
 namespace mc::test {
@@ -542,6 +544,38 @@ GameTestError GameTestHelper::generateErrorWithContext(
     GameTestError error(type, std::move(message));
     error.setContext(GameTestErrorContext(worldBlockPosition(relativePos), relativePos, currentTick()));
     return error;
+}
+
+// === 10. 异步轮询 ===
+
+void GameTestHelper::until(std::function<GameTestResult()> testFn, std::function<GameTestResult()> doneFn)
+{
+    // 对齐基岩 BaseGameTestHelper::until：每 tick 轮询 testFn，nullopt=条件满足触发 doneFn 收尾。
+    // 实现经自重调度：注册下一 tick 回调，未通过则继续注册下一 tick，通过则调 doneFn。
+    // doneFn 返回非 nullopt 则 fail；超时由测试 maxTicks 兜底（轮询始终未通过即超时 fail）。
+    auto state = std::make_shared<std::pair<std::function<GameTestResult()>, std::function<GameTestResult()>>>(
+        std::move(testFn), std::move(doneFn));
+
+    // 递归轮询经 shared_ptr<function> 持自身以自重调度（值捕获 shared_ptr 保活，避免悬垂）。
+    // 注意：lambda 捕获 pollRef 而 *pollRef = lambda 形成自循环引用，须在轮询终止时显式清空
+    // *pollRef 打破循环，否则每 until() 调用泄漏一个 function 对象。
+    auto pollRef = std::make_shared<std::function<GameTestResult()>>();
+    *pollRef = [this, state, pollRef]() -> GameTestResult {
+        if (isCompleted()) {
+            *pollRef = nullptr;  // 打破自循环（std::function 无 reset，赋 nullptr 清空）
+            return std::nullopt; // 测试已结束（成功/失败/超时），停止轮询
+        }
+        const GameTestResult r = state->first ? state->first() : GameTestResult(std::nullopt);
+        if (isPass(r)) {
+            *pollRef = nullptr; // 打破自循环
+            // 条件满足：调 doneFn 收尾，其返回错误即 fail
+            return state->second ? state->second() : GameTestResult(std::nullopt);
+        }
+        // 未满足：注册下一 tick 继续轮询（拷贝 *pollRef，shared_ptr 保活）
+        runAfterDelay(1, *pollRef);
+        return std::nullopt; // 本 tick 未满足，不报错继续等
+    };
+    runAfterDelay(1, *pollRef);
 }
 
 // === 私有 ===

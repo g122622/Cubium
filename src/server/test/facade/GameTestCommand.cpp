@@ -1,6 +1,7 @@
 #include "server/test/facade/GameTestCommand.hpp"
 
 #include "common/test/framework/function/BaseGameTestFunction.hpp"
+#include "common/test/framework/instance/GameTestState.hpp" // isDone
 #include "common/test/framework/registry/GameTestRegistry.hpp"
 #include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -21,12 +22,32 @@
 #include "common/command/arguments/ArgumentType.hpp"     // StringArgumentType
 #include "common/command/arguments/GameModeArgument.hpp" // BlockPosArgumentType / Coordinates
 
+#include <algorithm>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
 namespace mc::test {
+
+namespace {
+// /gametest run 启动的实例所有权容器（ticker 持裸指针，须独立保活到完成）。
+// 仅主线程 /gametest 调用 + post-tick cleanup，线程安全。
+std::vector<std::unique_ptr<BaseGameTestInstance>>& _heldInstances()
+{
+    static std::vector<std::unique_ptr<BaseGameTestInstance>> s_held;
+    return s_held;
+}
+} // namespace
+
+void GameTestCommand::cleanupCompletedInstances()
+{
+    auto& held = _heldInstances();
+    held.erase(std::remove_if(held.begin(),
+                   held.end(),
+                   [](const std::unique_ptr<BaseGameTestInstance>& inst) { return inst && isDone(inst->state()); }),
+        held.end());
+}
 
 // 在线 /gametest 的轻量日志报告器（命令触发的测试也经 GlobalTestReporter 输出）
 // 注：放命名空间作用域静态会在首次 /gametest 时构造；命令可多次调用，addReporter 幂等性由调用方保证。
@@ -193,13 +214,9 @@ i32 GameTestCommand::_launchTests(
         nextOrigin.x += spanX + fn->data().padding() * 2 + 2;
 
         GameTestTicker::instance().add(*instance);
-        // 实例所有权：ticker 持裸指针，但实例须保活到完成。
-        // TODO: 在线命令路径需独立持有实例所有权（如 IntegratedServer 持 vector）否则 ticker 解悬垂。
-        //       第一阶段样例测试结构放置即失败（无 .nbt 资源）会立即 fail，悬垂风险低；完整修复待 1I 接线。
-        //       此处 release 到全局保持是权宜之计——见 GameTestCommand 1I TODO。
-        // 暂存到静态容器以保活（线程不安全，仅主线程 /gametest 调用）
-        static std::vector<std::unique_ptr<BaseGameTestInstance>> s_heldInstances;
-        s_heldInstances.push_back(std::move(instance));
+        // 实例所有权：ticker 持裸指针，须独立保活到完成。/gametest 在线路径经 _heldInstances()
+        // 静态容器持有，post-tick 回调每帧 cleanupCompletedInstances() 回收已完成实例。
+        _heldInstances().push_back(std::move(instance));
         ++launched;
     }
 

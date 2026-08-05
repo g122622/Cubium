@@ -16,7 +16,8 @@ static void ExampleTests_alwaysSucceed(mc::test::GameTestHelper& helper)
 }
 
 // 静态注册：maxTicks=20，required=true，结构名 gametest:empty_3x3
-// TODO: 提供 gametest:empty_3x3 结构资源（.nbt）到资源包，或改用程序化模板（createProceduralTemplate）。
+// 结构资源由 GameTestStructureBootstrap::ensureBuiltinStructureTemplates() 在服务端启动期程序化注入
+// （3×3×3 全 air 模板，placeInWorld 立即成功）。TODO: 后续提供正式 .nbt 资源到资源包后可移除程序化兜底。
 MC_REGISTER_GAME_TEST("ExampleTests", "alwaysSucceed", ExampleTests_alwaysSucceed)
     .structureName("gametest:empty_3x3")
     .maxTicks(20)

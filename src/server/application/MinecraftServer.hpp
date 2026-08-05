@@ -172,6 +172,15 @@ public:
     void shutdown() override;
     void tick() override;
 
+    /**
+     * @brief 注册 post-tick 回调（在 `tick()` 末尾、所有子系统推进后调用）。
+     *
+     * 解耦用途：仅服务端编译的子系统（如 GameTest `GameTestTicker`，client exe 不链接 mc_test）
+     * 经此钩子接入主 tick 循环，避免在共享的 `MinecraftServer::tick()`/`IntegratedServer::tick()` 内
+     * 直接引用测试框架（会破坏 client build）。回调在调用线程同步执行。
+     */
+    void addPostTickCallback(std::function<void()> callback);
+
     // ========== 核心管理器 ==========
 
     [[nodiscard]] core::PlayerManager& playerManager() override { return *m_playerManager; }
@@ -1243,6 +1252,10 @@ protected:
     // 基类默认实现据此判本地/远程路径。
     std::optional<PlayerId> m_localClientPlayerId;
     std::function<void(const mc::network::ir::IrPacket&)> m_localClientSender;
+
+    // post-tick 回调列表（经 addPostTickCallback 注册，tick() 末尾同步触发）。
+    // 供仅服务端编译的子系统（GameTest GameTestTicker）接入主循环，避免共享 TU 引用 mc_test。
+    std::vector<std::function<void()>> m_postTickCallbacks;
 
     // 天气同步服务（影子状态 + 主世界天气广播，下沉自 sendWeatherUpdate）
     std::unique_ptr<sync::WeatherSyncService> m_weatherSyncService;

@@ -140,8 +140,21 @@ public:
     [[nodiscard]] virtual GameTestError generateErrorWithContext(
         GameTestErrorType type, std::string message, BlockPos relativePos) const = 0;
 
-    // TODO: idle(tickDelay) / until(fn) — JS Promise 异步断言，待 C++↔JS 事件总线桥接后实现。
-    // 第一阶段脚本绑定层用 thenExecute/thenWaitAfter 模拟，留 stub。
+    // === 10. 异步轮询 ===
+    /**
+     * @brief 每 tick 轮询 `testFn` 直到通过（返回 nullopt），随后调 `doneFn` 完成收尾。
+     *
+     * 对齐基岩版 `BaseGameTestHelper::until`：内部经 `runAtTickTime` 在后续每 tick 重试 `testFn`，
+     * `testFn` 返回非 nullopt 即继续等待（不立即失败），直到其返回 nullopt 触发 `doneFn`。
+     * `doneFn` 返回非 nullopt 则测试失败。超时由测试 `maxTicks` 兜底（轮询未通过即超时 fail）。
+     *
+     * @param testFn 轮询条件（nullopt=条件满足）。每 tick 调用直到通过。
+     * @param doneFn 条件满足后的收尾回调（nullopt=成功完成收尾）。
+     */
+    virtual void until(std::function<GameTestResult()> testFn, std::function<GameTestResult()> doneFn) = 0;
+
+    // TODO: idle(tickDelay) — JS Promise 语义（await helper.idle(n) 暂停测试体 n tick），
+    // 需 C++↔JS 事件总线桥接后实现。C++ 原生测试用 startSequence().thenIdle(n) / runAfterDelay(n, fn) 替代。
 };
 
 } // namespace mc::test

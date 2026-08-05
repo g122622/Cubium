@@ -4,10 +4,10 @@
 #include "common/test/framework/instance/BaseGameTestInstance.hpp"
 #include "common/test/framework/instance/GameTestState.hpp"
 #include "common/test/framework/listener/IGameTestListener.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "server/test/minecraft/batch/MinecraftGameTestBatchRunner.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp" // builder() 按值返回，需完整类型
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"
-#include "common/util/assert/AssertMacros.hpp"
 #include "server/world/ServerWorld.hpp"
 
 namespace mc::test {
@@ -72,8 +72,11 @@ GameTestRunner::GameTestRunner(mc::server::ServerWorld& world,
 
     m_batchRunner = std::make_unique<MinecraftGameTestBatchRunner>(
         std::move(batches), m_ticker, std::move(params), m_world, gridStart);
-    // TODO: 把 _RunnerListener 挂到每个实例——需 batch runner 在 _runTest 内暴露实例创建钩子，
-    // 或经 GameTestBatchListener 在批次开始时遍历挂载。1D/1F 接线时补。
+
+    // 挂载 runner 内部监听器到每个实例：实例 succeed/fail 时更新 tracker + 广播 GlobalTestReporter。
+    // 不挂则 MultipleTestTracker/GlobalTestReporter 收不到回调，报告输出为空。
+    m_instanceListener = std::make_shared<_RunnerListener>(m_tracker);
+    m_batchRunner->setInstanceListener(m_instanceListener);
 }
 
 GameTestRunner::~GameTestRunner() = default;

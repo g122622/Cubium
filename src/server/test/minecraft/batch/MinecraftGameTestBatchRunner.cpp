@@ -1,6 +1,7 @@
 #include "server/test/minecraft/batch/MinecraftGameTestBatchRunner.hpp"
 
 #include "common/util/assert/AssertMacros.hpp" // MC_UNUSED
+#include "server/test/minecraft/environment/MinecraftEnvironmentApplier.hpp"
 #include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
 
@@ -41,6 +42,25 @@ void MinecraftGameTestBatchRunner::_runTest(std::unique_ptr<BaseGameTestInstance
     // 依赖结构已就绪，故须在加入 ticker 前显式放一次）。
     instance->spawnStructureIfNeeded();
     _trackInstance(std::move(instance));
+}
+
+GameTestResult MinecraftGameTestBatchRunner::_applyBatchEnvironmentSetup(const GameTestBatch& batch)
+{
+    // 空 environment（如 "default" 空 AllOfEnvironment 或 nullptr）直接通过。
+    const auto& env = batch.environment();
+    if (!env) {
+        return mc::test::pass();
+    }
+    return MinecraftEnvironmentApplier::applySetup(*env, m_world);
+}
+
+GameTestResult MinecraftGameTestBatchRunner::_applyBatchEnvironmentTeardown(const GameTestBatch& batch)
+{
+    const auto& env = batch.environment();
+    if (!env) {
+        return mc::test::pass();
+    }
+    return MinecraftEnvironmentApplier::applyTeardown(*env, m_world);
 }
 
 } // namespace mc::test

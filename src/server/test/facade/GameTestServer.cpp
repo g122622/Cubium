@@ -15,9 +15,10 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/mod/bedrock/addon/ServerScriptManager.hpp"  // scriptManager()->engine().addModuleFactory
-#include "server/test/facade/GameTestCommand.hpp"            // GameTestCommand::registerTo
-#include "server/test/native/builtin/BuiltinNativeTests.hpp" // registerBuiltinNativeTests
+#include "server/mod/bedrock/addon/ServerScriptManager.hpp"               // scriptManager()->engine().addModuleFactory
+#include "server/test/facade/GameTestCommand.hpp"                         // GameTestCommand::registerTo
+#include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp" // ensureBuiltinStructureTemplates
+#include "server/test/native/builtin/BuiltinNativeTests.hpp"              // registerBuiltinNativeTests
 #include "server/test/runner/GameTestRunner.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp" // GameTestRunner::builder() 返回值完整类型
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"
@@ -90,6 +91,9 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
 
     // 确保内置样例测试已注册（静态初始化已触发，此调用保链接期保留 TU）
     registerBuiltinNativeTests();
+    // 注入框架内置程序化空模板（gametest:empty_3x3 等），解决结构资源 .nbt 缺失致放置必 fail。
+    // 须在 _selectAndBuildRunner 之前，runner 构造批次时实例放置结构即取模板。
+    ensureBuiltinStructureTemplates();
     // 注册内置默认环境（"default" → 空 AllOfEnvironment）
     EnvironmentRegistry::instance().registerBuiltinDefaults();
 

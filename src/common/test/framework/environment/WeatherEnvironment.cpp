@@ -6,16 +6,17 @@ namespace mc::test {
 
 GameTestResult WeatherEnvironment::setup(BaseGameTestInstance& instance)
 {
-    // TODO: 1C 阶段 MinecraftEnvironmentApplier 接管——经 instance 取 ServerWorld，按 m_type 调
-    // setWeatherParameters(Clear: clearTime=100000/raining=false/thundering=false; Rain/Thunder: rainTime=100000)。
+    // framework 层引擎无关，无法直接操作 ServerWorld。环境应用由 minecraft 绑定层
+    // MinecraftEnvironmentApplier::applySetup 经 dynamic_cast<WeatherEnvironment> 接管，
+    // 调 WeatherManager::setClear/setRain/setThunder。此 setup() 不再被 batch runner 调用
+    // （MinecraftGameTestBatchRunner._applyBatchEnvironmentSetup 直转 applier），保留为接口占位。
     MC_UNUSED(instance);
-    return mc::test::fail(
-        GameTestErrorType::MethodNotImplemented, "WeatherEnvironment.setup requires MinecraftEnvironmentApplier");
+    return mc::test::pass();
 }
 
 GameTestResult WeatherEnvironment::teardown(BaseGameTestInstance& instance)
 {
-    // TODO: 1C 阶段 MinecraftEnvironmentApplier 接管——调 level.resetWeatherCycle()。
+    // 同 setup：由 MinecraftEnvironmentApplier::applyTeardown 调 WeatherManager::resetWeather 接管。
     MC_UNUSED(instance);
     return mc::test::pass();
 }

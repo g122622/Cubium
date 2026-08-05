@@ -30,12 +30,14 @@ public:
      * @param world 目标世界。
      * @return nullopt=成功；非 nullopt=应用失败（携带错误）。
      */
-    [[nodiscard]] GameTestResult applySetup(const TestEnvironmentDefinition& env, mc::server::ServerWorld& world);
+    [[nodiscard]] static GameTestResult applySetup(
+        const TestEnvironmentDefinition& env, mc::server::ServerWorld& world);
 
     /**
      * @brief 应用环境 teardown（还原）。默认对无 teardown 语义的环境为 no-op。
      */
-    [[nodiscard]] GameTestResult applyTeardown(const TestEnvironmentDefinition& env, mc::server::ServerWorld& world);
+    [[nodiscard]] static GameTestResult applyTeardown(
+        const TestEnvironmentDefinition& env, mc::server::ServerWorld& world);
 };
 
 } // namespace mc::test

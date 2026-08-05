@@ -32,7 +32,54 @@
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
+// GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
+// 经此接入生产服务器的 /gametest 命令 + GameTestTicker 驱动 + @minecraft/server-gametest JS 模块。
+#include "common/test/framework/environment/EnvironmentRegistry.hpp"
+#include "common/test/framework/ticker/GameTestTicker.hpp"
+#include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
+#include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
+#include "server/test/facade/GameTestCommand.hpp"
+#include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"
+#include "server/test/native/builtin/BuiltinNativeTests.hpp"
+#include "server/test/script/GameTestModuleBinding.hpp"
+
 namespace {
+
+/**
+ * @brief 接入 GameTest 框架到生产服务器（仅 minecraft-server exe 调用）。
+ *
+ * 共享 TU（IntegratedServer.cpp/MinecraftServer.cpp）编入 client exe，client 不链接 mc_test，
+ * 故不能在那些 TU 内直接引用 GameTest 符号。此处在 server exe 的 main 中、initialize 成功后接入：
+ * 1. 注册内置样例测试 + 默认环境 + 程序化空模板（gametest:empty_3x3）。
+ * 2. 注册 /gametest 命令到调度器（OP 权限 2）。
+ * 3. 注册 @minecraft/server-gametest JS 模块工厂到脚本引擎。
+ * 4. 注册 post-tick 回调驱动 GameTestTicker（/gametest run 启动的测试由此推进）。
+ */
+void initializeServerGameTest(mc::server::MinecraftServer& server)
+{
+    // 内置样例测试（保链接期保留 TU）+ 默认环境 + 程序化空模板
+    mc::test::registerBuiltinNativeTests();
+    mc::test::EnvironmentRegistry::instance().registerBuiltinDefaults();
+    mc::test::ensureBuiltinStructureTemplates();
+
+    // /gametest 命令
+    mc::test::GameTestCommand::registerTo(server.commandRegistry().dispatcher());
+
+    // @minecraft/server-gametest JS 模块（行为包可 import { register } from "@minecraft/server-gametest"）
+    if (auto* sm = server.scriptManager()) {
+        sm->scriptManager().engine().addModuleFactory(std::make_unique<mc::test::GameTestModuleBinding>());
+        spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
+    }
+
+    // post-tick 驱动 GameTestTicker（/gametest run/runall 启动的实例由此推进）+
+    // 回收已完成的 /gametest 在线实例（ticker 持裸指针，须独立保活容器清理）。
+    server.addPostTickCallback([]() {
+        mc::test::GameTestTicker::instance().tick();
+        mc::test::GameTestCommand::cleanupCompletedInstances();
+    });
+    spdlog::info("[GameTest] /gametest command + ticker driver attached to server");
+}
+
 std::atomic<bool> g_shouldExit{false};
 
 void signalHandler(int signal)
@@ -170,6 +217,10 @@ int main(int argc, char* argv[])
             spdlog::error("Failed to initialize server: {}", initResult.error().toString());
             goto HANDLE_ERROR;
         }
+
+        // 接入 GameTest 框架（/gametest 命令 + GameTestTicker 驱动 + JS gametest 模块）。
+        // 仅 minecraft-server exe，须在 initialize 成功后（commandRegistry/scriptManager 已就绪）调用。
+        initializeServerGameTest(server);
 
         // 启动服务端主循环（非阻塞，内部线程由 StandaloneServer 持有）
         auto runResult = server.run();

@@ -2,6 +2,7 @@
 
 #include "common/test/framework/batch/GameTestBatch.hpp"
 #include "common/test/framework/function/BaseGameTestFunction.hpp"
+#include "common/test/framework/listener/IGameTestListener.hpp" // m_instanceListener 成员类型
 #include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/runner/tracker/MultipleTestTracker.hpp"
@@ -67,6 +68,9 @@ private:
     GameTestTicker& m_ticker;
     std::unique_ptr<BaseGameTestBatchRunner> m_batchRunner;
     MultipleTestTracker m_tracker;
+    // 实例级监听器（_RunnerListener，cpp 内定义），挂到每个实例；持 shared_ptr 保活，
+    // 避免实例回指悬垂（实例 addListener 持 shared_ptr 拷贝）。
+    std::shared_ptr<IGameTestListener> m_instanceListener;
 };
 
 } // namespace mc::test

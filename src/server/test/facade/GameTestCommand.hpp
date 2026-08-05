@@ -36,6 +36,14 @@ public:
      */
     static void registerTo(mc::command::CommandDispatcher<mc::command::ServerCommandSource>& dispatcher);
 
+    /**
+     * @brief 清理已完成（succeed/fail/stopped）的在线命令路径测试实例。
+     *
+     * `/gametest run` 启动的实例由本命令静态保活（ticker 持裸指针），完成后须从此处移除以回收内存。
+     * 由生产服务器 post-tick 回调每帧调用（驱动 ticker 后）。
+     */
+    static void cleanupCompletedInstances();
+
 private:
     // 子命令执行器（返回 i32，对齐项目 CommandCallback 签名）
     static i32 _run(mc::command::CommandContext<mc::command::ServerCommandSource>& context);

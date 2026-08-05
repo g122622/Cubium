@@ -36,6 +36,12 @@ protected:
         BaseGameTestFunction& function, Rotation rotation) override;
     void _runTest(std::unique_ptr<BaseGameTestInstance> instance) override;
 
+    // 环境 setup/teardown：经 MinecraftEnvironmentApplier 把批次环境应用到 ServerWorld
+    // （天气/时间/游戏规则等），覆盖基类空实现。framework 层 TestEnvironmentDefinition::setup 不再被调用
+    // （其具体子类返回 fail 是历史桩，applier 接管后为死代码）。
+    GameTestResult _applyBatchEnvironmentSetup(const GameTestBatch& batch) override;
+    GameTestResult _applyBatchEnvironmentTeardown(const GameTestBatch& batch) override;
+
 private:
     mc::server::ServerWorld& m_world;
     BlockPos m_nextOrigin;

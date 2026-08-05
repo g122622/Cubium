@@ -180,6 +180,9 @@ public:
         return GameTestError{type, std::move(message)};
     }
 
+    // 10. 异步轮询（NullGameTestHelper 无实例状态机，until 为 no-op）
+    void until(std::function<GameTestResult()> /*testFn*/, std::function<GameTestResult()> /*doneFn*/) override {}
+
 private:
     TestTransform m_transform;
     std::unique_ptr<GameTestSequence> m_sequence; // 懒构造，startSequence 首次调用时建

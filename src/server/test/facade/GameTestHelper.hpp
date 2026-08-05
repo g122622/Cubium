@@ -127,6 +127,9 @@ public:
     [[nodiscard]] GameTestError generateErrorWithContext(
         GameTestErrorType type, std::string message, BlockPos relativePos) const override;
 
+    // === 10. 异步轮询 ===
+    void until(std::function<GameTestResult()> testFn, std::function<GameTestResult()> doneFn) override;
+
 private:
     /**
      * @brief 经 `BlockRegistry` 按名查方块默认状态，查不到回 air。

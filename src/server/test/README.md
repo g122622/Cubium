@@ -38,7 +38,7 @@ server/test/
 │   └── SimulatedPlayer.hpp/cpp
 ├── script/                        # @minecraft/server-gametest JS 绑定（转发到 facade）
 │   ├── GameTestModuleBinding.hpp/cpp  # IModuleBindingFactory 实现
-│   ├── binding/                   # ScriptRegister/ScriptTestHelper/ScriptRegistrationBuilder/ScriptSequence[idle/until=TODO]/ScriptSimulatedPlayer/ScriptGameTestFunction[Sync,Async=TODO]
+│   ├── binding/                   # ScriptRegister/ScriptTestHelper/ScriptRegistrationBuilder/ScriptSequence[idle/until JS 桥接=TODO]/ScriptSimulatedPlayer/ScriptGameTestFunction[Sync,Async=TODO]
 │   └── context/                   # ScriptGameTestFunctionContext
 └── native/
     └── builtin/                   # BuiltinNativeTests（样例测试，含 facade include 故在 server 侧）
@@ -78,9 +78,10 @@ JS 侧对外（`@minecraft/server-gametest` 模块全局 `register`/`Test`/`Regi
 1. **本目录是服务端专属**：`facade/GameTestHelper` 绑 `ServerWorld&`，不得移回 `common/`。引擎无关抽象（`IGameTestHelper` 接口、`BaseGameTestInstance` 状态机）在 `common/test/framework/`，本目录的门面是其具体实现。
 2. **`GameTestServer` 直接继承 `MinecraftServer`**：不继承 `IntegratedServer`（其 `initialize` 末尾起 `m_serverThread`）/`StandaloneServer`（其 `run()` 起线程）。`run()` 在调用线程同步循环 `tick()`，CI 单线程驱动。详见 `facade/README.md`。
 3. **`GameTestServer::initialize` 须注入 vanilla builtin 数据包**：worldgen 100% 数据驱动，空数据包致 `RandomState::create` 断言失败。镜像 `IntegratedServer::initialize` 的 `ensureVanillaBuiltinPack`。
-4. **`script/` 依赖方向**：`script/` 在本目录（server 侧）编入 exe，可同时见服务端类型与 `mc_bedrock_addon` 头。`mc_bedrock_addon` 本身**不**依赖 `mc_test`/server（保持 common 纯净）；JS 工厂经 `ScriptManager::registerModuleFactory` 公共钩子由服务端层注册（`GameTestServer`/`IntegratedServer` 初始化时）。
-5. **`ScriptManager::shutdown` 须先 `GameTestTicker::forceStop()`**：销毁 JS 上下文前清测试实例，避免悬垂 JS 回调访问死上下文。
-6. **`SimulatedPlayer` 是 `ServerPlayer` 子类，但 `Player` 不是 `MobEntity`**：`MobEntity::lookAt`/`navigator()`/AI goal 体系不可用，`moveToLocation` 用 `handleMovementInput` 手动驱动。详见 `simulated/README.md`。
-7. **`ServerWorld::getOrLoadChunk` 仅主线程同步加载**：`GameTestServer::run()` 须在调用线程 tick（不起线程）才安全；`GameTestCommand` 仅主线程 `/gametest` 调用。
-8. **门面纪律**：外部代码（`tests/`、`minecraft-server`、`mc_bedrock_addon` script 层）只 include `facade/` 与 `common/test/base/` 对外头；`minecraft/`/`runner/`/`native/builtin/`/`simulated/`/`script/binding/` 内部头仅在 server exe/`mc_tests` 内部用。
-9. **CMake 依赖边界**：`common/test/`（base/framework/native）→ `mc_test` 库（仅 `mc_common`）；本目录（facade/minecraft/runner/simulated/script/native-builtin）→ `target_sources` 注入 `minecraft-server` + `mc_tests`，link `mc_test` + `mc_bedrock_addon`（script）。`mc_test` 不得依赖 `mc_bedrock_addon`/server（避免环）。
+4. **`script/` 依赖方向**：`script/` 在本目录（server 侧）编入 exe，可同时见服务端类型与 `mc_bedrock_addon` 头。`mc_bedrock_addon` 本身**不**依赖 `mc_test`/server（保持 common 纯净）；JS 工厂经 `scriptManager()->engine().addModuleFactory` 公共钩子由服务端层注册（`GameTestServer::initialize` 与生产 `main.cpp::initializeServerGameTest` 两处）。
+5. **生产 `/gametest` 在线路径**：`IntegratedServer.cpp`/`MinecraftServer.cpp` 编入 client exe（client 不链接 `mc_test`），不能在那些 TU 内直接引用 GameTest 符号。故生产服务器的 GameTest 接入集中在 `src/server/main.cpp::initializeServerGameTest`（`server.initialize` 成功后调用）：注册内置测试 + 默认环境 + 程序化空模板、`GameTestCommand::registerTo`、`addModuleFactory`、并经 `MinecraftServer::addPostTickCallback` 注册 post-tick 回调驱动 `GameTestTicker::tick()` + `GameTestCommand::cleanupCompletedInstances()`。`addPostTickCallback` 是 `MinecraftServer` 共享基类上的 mc_test 无关钩子，client exe 不受影响。`GameTestServer`（无头宿主）不经此回调，在自身 `tickOnce()` 内直接驱动 ticker，避免双 tick。
+6. **`ScriptManager::shutdown` 须先 `GameTestTicker::forceStop()`**：销毁 JS 上下文前清测试实例，避免悬垂 JS 回调访问死上下文。
+7. **`SimulatedPlayer` 是 `ServerPlayer` 子类，但 `Player` 不是 `MobEntity`**：`MobEntity::lookAt`/`navigator()`/AI goal 体系不可用，`moveToLocation` 用 `handleMovementInput` 手动驱动。详见 `simulated/README.md`。
+8. **`ServerWorld::getOrLoadChunk` 仅主线程同步加载**：`GameTestServer::run()` 须在调用线程 tick（不起线程）才安全；`GameTestCommand` 仅主线程 `/gametest` 调用。
+9. **门面纪律**：外部代码（`tests/`、`minecraft-server`、`mc_bedrock_addon` script 层）只 include `facade/` 与 `common/test/base/` 对外头；`minecraft/`/`runner/`/`native/builtin/`/`simulated/`/`script/binding/` 内部头仅在 server exe/`mc_tests` 内部用。
+10. **CMake 依赖边界**：`common/test/`（base/framework/native）→ `mc_test` 库（仅 `mc_common`）；本目录（facade/minecraft/runner/simulated/script/native-builtin）→ `target_sources` 注入 `minecraft-server` + `mc_tests`，link `mc_test` + `mc_bedrock_addon`（script）。`mc_test` 不得依赖 `mc_bedrock_addon`/server（避免环）。
