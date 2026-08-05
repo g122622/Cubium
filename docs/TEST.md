@@ -20,15 +20,14 @@ ctest --build-config RelWithDebInfo --output-on-failure -j8
 
 ## 测试 target
 
-测试源码位于 `tests/`，共 5 个测试可执行文件，全部注册到 CTest（`tests/CMakeLists.txt` 中 `mc_register_gtests`）：
+测试源码位于 `tests/`，共 2 个测试可执行文件，全部注册到 CTest（`tests/CMakeLists.txt` 中 `mc_register_gtests`）：
 
 | target | 范围 | 注册位置 |
 |---|---|---|
-| `mc_tests` | 主测试套件，覆盖 common/server/client 大部分模块 | `tests/CMakeLists.txt:2401` |
-| `mc_resource_tests` | 资源包/纹理/图集相关 | `:2402` |
-| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT=ON`） | `:2517` |
-| `mc_command_tests` | 命令系统 | `:2769` |
-| `mc_village_tests` | 村庄系统 | `:2850` |
+| `mc_tests` | 主测试套件，覆盖 common/server/client 大部分模块（含命令系统、村庄系统、资源包/纹理/图集等原独立 target 的全部用例） | `tests/CMakeLists.txt:2435` |
+| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT=ON`） | `tests/CMakeLists.txt:2430` |
+
+> 历史：`mc_command_tests`/`mc_village_tests`/`mc_resource_tests` 三个独立 target 已合并入 `mc_tests`，以减少构建产物数量。合并后命令/村庄测试随之带上 Vulkan/OpenAL/asio 依赖（mc_tests 现链这些）——纯服务端 CI、无显卡环境将无法运行这些用例。
 
 构建开关 `MC_BUILD_TESTS`（默认 `ON`，根 `CMakeLists.txt:30`）控制是否构建测试。
 
@@ -154,13 +153,16 @@ CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job �
 
 `tests/main.cpp` 是 `mc_tests` 的入口：安装 `CrashHandler` 后运行所有用例，并注册全局 `WorldGenRegistryEnvironment`——在所有用例运行前一次性从原版数据包加载 `noise_settings` / `density_function` / `noise` / `flat_preset` / `world_preset` 等数据驱动注册表。任何调用 `RandomState::create()` 的测试都依赖这些注册表已加载。数据包目录缺失时（非开发机）静默跳过，相关测试会因 registry 为空而断言失败（属预期）。
 
+> 合并前 `mc_command_tests` 曾用独立的 `tests/command_main.cpp` 入口（与 `main.cpp` 等价地安装 CrashHandler + 注册 `WorldGenRegistryEnvironment`）；该 target 并入 `mc_tests` 后 `command_main.cpp` 已删除，命令测试改用 `main.cpp` 的同一全局环境。`mc_village_tests`/`mc_resource_tests` 原本用 gtest 默认 main，并入后同样由 `main.cpp` 接管。
+
 数据包路径见 `CLAUDE.md`「重要的外部路径」一节（Windows: `C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla`）。
 
 ## 编写新测试
 
 - 测试文件命名 `test_*.cpp` 或 `*Test.cpp`，放在 `tests/` 下对应子目录。
-- 新增测试源文件后，需在 `tests/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/CMakeLists.txt:17`）。**未登记的源文件不会编译**。
+- 新增测试源文件后，需在 `tests/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/CMakeLists.txt:17`）。**未登记的源文件不会编译**。绝大多数新测试应加入 `mc_tests`；仅当被测代码有特殊依赖隔离需求（如 `mc_trident_tests` 仅在 `MC_BUILD_CLIENT=ON` 下构建）时才新建 target。
 - 新增测试 target 需自行调用 `mc_register_gtests(<target>)` 注册到 CTest，否则不参与 `ctest` 运行、也无单用例限时。
+- **TestSuite 名在 target 内必须唯一**：合并后 `mc_tests` 单进程内运行全部用例，若两个文件注册同名 TestSuite（`TEST(SuiteName, ...)`/`TEST_F(SuiteName, ...)` 的第一个参数），gtest 会重复注册报错。新增测试前先 `grep -rE 'TEST(_F)?\(\s*YourSuiteName' tests/` 确认无重名。
 - 复用被测代码基建时遵循 `docs/PROJECT_CONVENTIONS.md` 与 `docs/CODE_CONVENTIONS.md`。
 - 断言使用 `MC_ASSERT_RELEASE` / `MC_ASSERT_RELEASE_MSG`（见 `docs/PROJECT_CONVENTIONS.md`「断言库」），不要手写防御性检查掩盖问题。
 

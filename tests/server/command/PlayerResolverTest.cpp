@@ -87,12 +87,15 @@ using mc::command::support::resolvePlayerIds;
 using mc::command::support::resolvePlayerName;
 using mc::command::support::resolveSinglePlayerId;
 
-class IntRangeTest : public ::testing::Test {
+// EntityArgumentTest.cpp 另有同名 IntRangeTest 测 IntRange 本身；本文件并入 mc_tests 后为
+// 避免同进程 TestSuite 重名，改用 PlayerResolverIntRangeTest（此处 IntRange 是玩家等级范围
+// 解析的辅助测试）
+class PlayerResolverIntRangeTest : public ::testing::Test {
 protected:
     mc::command::IntRange range;
 };
 
-TEST_F(IntRangeTest, UnboundedRangeAcceptsAnyValue)
+TEST_F(PlayerResolverIntRangeTest, UnboundedRangeAcceptsAnyValue)
 {
     EXPECT_TRUE(range.isUnbounded());
     EXPECT_TRUE(range.test(0));
@@ -100,7 +103,7 @@ TEST_F(IntRangeTest, UnboundedRangeAcceptsAnyValue)
     EXPECT_TRUE(range.test(-50));
 }
 
-TEST_F(IntRangeTest, MinBoundRejectsLowerValues)
+TEST_F(PlayerResolverIntRangeTest, MinBoundRejectsLowerValues)
 {
     range.setMin(10);
     EXPECT_FALSE(range.isUnbounded());
@@ -110,7 +113,7 @@ TEST_F(IntRangeTest, MinBoundRejectsLowerValues)
     EXPECT_TRUE(range.test(100));
 }
 
-TEST_F(IntRangeTest, MaxBoundRejectsHigherValues)
+TEST_F(PlayerResolverIntRangeTest, MaxBoundRejectsHigherValues)
 {
     range.setMax(20);
     EXPECT_FALSE(range.isUnbounded());
@@ -120,7 +123,7 @@ TEST_F(IntRangeTest, MaxBoundRejectsHigherValues)
     EXPECT_FALSE(range.test(100));
 }
 
-TEST_F(IntRangeTest, BoundedRangeOnlyAcceptsInRange)
+TEST_F(PlayerResolverIntRangeTest, BoundedRangeOnlyAcceptsInRange)
 {
     range.setMin(10);
     range.setMax(20);
@@ -134,7 +137,7 @@ TEST_F(IntRangeTest, BoundedRangeOnlyAcceptsInRange)
     EXPECT_FALSE(range.test(100));
 }
 
-TEST_F(IntRangeTest, ExactValueRange)
+TEST_F(PlayerResolverIntRangeTest, ExactValueRange)
 {
     range.setMin(15);
     range.setMax(15);
@@ -144,7 +147,7 @@ TEST_F(IntRangeTest, ExactValueRange)
     EXPECT_FALSE(range.test(16));
 }
 
-TEST_F(IntRangeTest, ZeroLevelHandling)
+TEST_F(PlayerResolverIntRangeTest, ZeroLevelHandling)
 {
     range.setMin(0);
     range.setMax(5);
@@ -154,7 +157,7 @@ TEST_F(IntRangeTest, ZeroLevelHandling)
     EXPECT_FALSE(range.test(6));
 }
 
-TEST_F(IntRangeTest, HighLevelHandling)
+TEST_F(PlayerResolverIntRangeTest, HighLevelHandling)
 {
     range.setMin(100);
     range.setMax(200);

@@ -162,7 +162,10 @@ TEST(BlockPosTest, OptionalBlockPos)
 // ResourceLocation 测试（辅助测试）
 // ============================================================================
 
-TEST(ResourceLocationTest, ClimbableBlockIds)
+// ResourceLocation 测试（辅助测试；test_resource_location.cpp 另有同名 ResourceLocationTest
+// 主测 ResourceLocation 类，本文件并入 mc_tests 后为避免同进程 TestSuite 重名，改用
+// CombatTrackerResourceLocationTest）
+TEST(CombatTrackerResourceLocationTest, ClimbableBlockIds)
 {
     // 验证攀爬方块的资源位置
     ResourceLocation ladder("minecraft", "ladder");

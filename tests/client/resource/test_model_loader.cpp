@@ -36,8 +36,9 @@
 
 using namespace mc;
 
-// Direction测试
-TEST(DirectionTest, ParseDirection)
+// Direction测试（模型加载器侧；HopperEntityTest.cpp 另有同名 DirectionTest 测 Direction
+// 工具类本身，本文件并入 mc_tests 后为避免同进程 TestSuite 重名，改用 ModelLoaderDirectionTest）
+TEST(ModelLoaderDirectionTest, ParseDirection)
 {
     EXPECT_EQ(parseDirection("down"), Direction::Down);
     EXPECT_EQ(parseDirection("up"), Direction::Up);
@@ -48,7 +49,7 @@ TEST(DirectionTest, ParseDirection)
     EXPECT_EQ(parseDirection("invalid"), Direction::None);
 }
 
-TEST(DirectionTest, DirectionToString)
+TEST(ModelLoaderDirectionTest, DirectionToString)
 {
     EXPECT_EQ(directionToString(Direction::Down), "down");
     EXPECT_EQ(directionToString(Direction::Up), "up");

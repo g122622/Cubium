@@ -935,6 +935,24 @@ add_executable(mc_tests
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
     server/command/ExecuteCommandTest.cpp
+    # 命令系统测试（原 mc_command_tests 并入）
+    server/command/CommandStorageTest.cpp
+    server/command/EntityDataAccessorEffectTest.cpp
+    server/command/ServerCommandSourceTest.cpp
+    server/command/TeamCommandTest.cpp
+    server/command/TriggerCommandTest.cpp
+    server/command/BlockDataAccessorTest.cpp
+    server/command/WardenSpawnTrackerCommandTest.cpp
+    server/command/TeleportPermissionParseTest.cpp
+    # 命令参数解析测试（原 mc_command_tests 并入）
+    common/command/arguments/BlockStateArgumentTest.cpp
+    common/command/arguments/EntityArgumentTest.cpp
+    common/command/arguments/FunctionArgumentTest.cpp
+    common/command/arguments/ItemArgumentTest.cpp
+    common/command/arguments/ItemSlotArgumentTest.cpp
+    common/command/arguments/NbtPathTest.cpp
+    common/command/arguments/TimeArgumentTest.cpp
+    common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     # SculkShriekerHelper 幽匿尖啸体辅助函数测试
     server/world/blockentity/sculk/SculkShriekerHelperTest.cpp
@@ -1039,6 +1057,13 @@ add_executable(mc_tests
     client/resource/TextureAtlasBuilderTest.cpp
     client/resource/AnimationTextureTest.cpp
     client/resource/test_resource_manager_cloud_texture.cpp
+    # 资源包/纹理/图集测试（原 mc_resource_tests 并入）
+    client/resource/test_resource_location.cpp
+    client/resource/test_model_loader.cpp
+    client/resource/TexturePathVariantTest.cpp
+    client/resource/test_fire_texture_loader.cpp
+    # FireAnimationState 动画状态机单元测试（纯逻辑，不依赖 Vulkan）
+    client/renderer/trident/entity/effect/fire/test_fire_animation_state.cpp
     network/WorldEventPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
@@ -1507,6 +1532,9 @@ add_executable(mc_tests
     common/world/village/trade/MerchantOfferTest.cpp
     # 袭击系统测试
     common/world/village/raid/RaidHeroTrackingTest.cpp
+    # 袭击系统测试（原 mc_village_tests 并入）
+    common/world/village/raid/RaidManagerTest.cpp
+    common/world/village/raid/RaidBossBarProgressTest.cpp
     # 基岩版Addon模组系统测试
     common/mod/bedrock/addon/test_lifecycle.cpp
     common/mod/bedrock/addon/test_block_component_registry.cpp
@@ -2222,6 +2250,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/Sources.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/SpriteLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/TexturePathVariant.cpp
+        # 火焰纹理加载与动画状态（原 mc_resource_tests 依赖，mc_tests 此前未登记）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireAnimationState.cpp
 
         ${CMAKE_SOURCE_DIR}/src/common/resource/VanillaResources.cpp
         # Kagero UI 模板系统（仅核心解析组件）
@@ -2346,66 +2377,6 @@ target_compile_definitions(mc_tests
 mc_disable_all_warnings_for_tests(mc_tests)
 mc_copy_runtime_dlls(mc_tests)
 
-# 资源测试可执行文件
-add_executable(mc_resource_tests
-    client/resource/test_resource_location.cpp
-    client/resource/test_model_loader.cpp
-    client/resource/TexturePathVariantTest.cpp
-    client/resource/test_fire_texture_loader.cpp
-    # FireAnimationState 动画状态机单元测试（纯逻辑，不依赖 Vulkan）
-    client/renderer/trident/entity/effect/fire/test_fire_animation_state.cpp
-)
-
-target_link_libraries(mc_resource_tests
-    PRIVATE
-        mc_common
-        mc_bedrock_addon
-        GTest::gtest_main
-        nlohmann_json::nlohmann_json
-        glm::glm
-)
-
-# 娣诲姞瀹㈡埛绔祫婧愭簮鏂囦欢
-target_sources(mc_resource_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockStateLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ResourceManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/atlas/TexturePathVariant.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackRepository.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackListBase.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/ZipResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/FolderResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireTextureLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/effect/fire/FireAnimationState.cpp
-        ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
-)
-
-target_include_directories(mc_resource_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-)
-
-# stb_image 瀹炵幇鏀惧湪TextureAtlasBuilder.cpp涓?
-mc_disable_all_warnings_for_tests(mc_resource_tests)
-mc_copy_runtime_dlls(mc_resource_tests)
-
 # 鍙戠幇娴嬭瘯
 include(GoogleTest)
 
@@ -2433,7 +2404,6 @@ function(mc_register_gtests targetName)
 endfunction()
 
 mc_register_gtests(mc_tests)
-mc_register_gtests(mc_resource_tests)
 
 # 输出测试可执行文件位置
 set_target_properties(mc_tests PROPERTIES
@@ -2452,9 +2422,6 @@ if(WIN32)
     target_link_options(mc_tests PRIVATE "-Xlinker" "/STACK:8388608")
 endif()
 
-set_target_properties(mc_resource_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
 
 # ============================================================================
 # Trident 娓叉煋寮曟搸娴嬭瘯
@@ -2578,322 +2545,4 @@ if(MC_BUILD_CLIENT)
     # )
 endif()
 
-add_executable(mc_command_tests
-    common/BaseTestServer.cpp
-    server/command/CommandRegistryTest.cpp
-    server/command/LocateCommandTest.cpp
-    server/command/CommandStorageTest.cpp
-    server/command/EntityDataAccessorEffectTest.cpp
-    server/command/PlayerResolverTest.cpp
-    server/command/EntityResolverTest.cpp
-    server/command/ServerCommandSourceTest.cpp
-    server/command/StopSoundCommandTest.cpp
-    server/command/SpreadPlayersCommandTest.cpp
-    server/command/SpreadAlgorithmTest.cpp
-    server/command/TeamCommandTest.cpp
-    server/command/TriggerCommandTest.cpp
-    server/command/ReplaceItemCommandTest.cpp
-    server/command/BlockDataAccessorTest.cpp
-    server/command/WardenSpawnTrackerCommandTest.cpp
-    server/command/TeleportPermissionParseTest.cpp
-    common/command/arguments/BlockStateArgumentTest.cpp
-    common/command/arguments/EntityArgumentTest.cpp
-    common/command/arguments/FunctionArgumentTest.cpp
-    common/command/arguments/ItemArgumentTest.cpp
-    common/command/arguments/ItemSlotArgumentTest.cpp
-    common/command/arguments/NbtPathTest.cpp
-    common/command/arguments/TimeArgumentTest.cpp
-    common/command/arguments/Vec2ArgumentTest.cpp
-    command_main.cpp
-)
 
-target_sources(mc_command_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
-        # 新网络层服务端实现：ConnectionManager.cpp/TeleportManager.cpp/ServerPlayer.cpp
-        # 经 ServerPlayerData::send / ConnectionManager::disconnectPlayer 调用
-        # ServerClientConnection::send/close，须登记 ServerNetwork.cpp 提供符号。
-        # 注意：mc_command_tests 不编译 IntegratedServer.cpp/MinecraftServer.cpp，故不登记
-        # ServerPlayRouter.cpp/ServerPlayHandler.cpp（Play 路由整簇，批7 下沉门面）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
-        # Play/Configuration 单包 IR 构造器：SayCommand/MeCommand→spdlog、GiveCommand/
-        # LootCommand→buildPlaySoundIr、OpCommand/DeOpCommand→buildPermissionLevelChangeIr+
-        # buildCommandsIr、ParticleCommand→buildLevelParticlesIr，mc_command_tests 编译
-        # 这些命令实现故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
-        # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
-        # mc_command_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/GameModeManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/WhitelistManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedPlayerList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
-        # 事件系统
-        ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/thread/UniversalWorkerPool.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
-        # 结构定位算法门面：ServerWorld::findNearestStructure/findNearestMapStructure 委托，
-        # mc_command_tests 编译 ServerWorld.cpp（LocateCommand 经虚分发）故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
-        # 游戏事件系统（服务端实现）
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TimeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/KickCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/KillCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ListCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/HelpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SeedCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeleportCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GiveCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ClearCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WeatherCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExperienceCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SummonCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ExecuteCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/OpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DeOpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanIpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PardonIpCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BanListCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WhitelistCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveAllCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOnCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SaveOffCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpawnPointCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetWorldSpawnCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/EnchantCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameRuleCommand.cpp
-        # P3 命令
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AdvancementCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/BossBarCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataPackCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ForceLoadCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LootCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/PublishCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/RecipeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReloadCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ReplaceItemCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScheduleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpectateCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/SpreadPlayersCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/CloneCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DataCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/FunctionCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/LocateBiomeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/MeCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/ParticleCommand.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
-        # 统计系统
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/stats/StatisticsManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
-        # 记分板系统
-        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreObjective.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Score.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScoreCriteriaRenderType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/ScorePlayerTeam.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DummyCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TriggerCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/DeathCountCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
-        # Boss 栏系统
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerDragonBossBar.cpp
-        # 函数系统
-        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/MacroFunction.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/StringTemplate.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
-)
-
-target_link_libraries(mc_command_tests
-    PRIVATE
-        mc_common
-        mc_bedrock_addon
-        GTest::gtest
-        spdlog::spdlog
-        nlohmann_json::nlohmann_json
-)
-
-target_include_directories(mc_command_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/tests
-)
-
-mc_disable_all_warnings_for_tests(mc_command_tests)
-mc_copy_runtime_dlls(mc_command_tests)
-
-mc_register_gtests(mc_command_tests)
-
-set_target_properties(mc_command_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
-# ============================================================================
-# 村庄系统独立测试
-# ============================================================================
-
-add_executable(mc_village_tests
-    common/world/village/VillageTest.cpp
-    common/world/village/trade/MerchantOfferTest.cpp
-    common/world/village/raid/RaidHeroTrackingTest.cpp
-    common/world/village/raid/RaidManagerTest.cpp
-    common/world/village/raid/RaidBossBarProgressTest.cpp
-)
-
-target_sources(mc_village_tests
-    PRIVATE
-        # 村庄系统源文件
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageGossip.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterest.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestStorage.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/poi/PointOfInterestType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/Raid.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaidManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
-        # 实体系统（用于测试）
-        ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/utils/EntityUtils.cpp
-        # 方块系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
-        # 物品系统
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/core/AdventureModePredicate.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/context/ItemUseContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/context/BlockItemUseContext.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
-        # NBT 系统
-        ${CMAKE_SOURCE_DIR}/src/common/util/nbt/Nbt.cpp
-        # 流体系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/fluid/Fluid.cpp
-        # 资源定位
-        ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
-)
-
-target_link_libraries(mc_village_tests
-    PRIVATE
-        mc_common
-        mc_bedrock_addon
-        GTest::gtest_main
-        nlohmann_json::nlohmann_json
-        glm::glm
-)
-
-target_include_directories(mc_village_tests
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-)
-
-mc_disable_all_warnings_for_tests(mc_village_tests)
-mc_copy_runtime_dlls(mc_village_tests)
-
-mc_register_gtests(mc_village_tests)
-
-set_target_properties(mc_village_tests PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
