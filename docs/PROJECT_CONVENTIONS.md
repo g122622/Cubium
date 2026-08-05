@@ -2,6 +2,12 @@
 
 Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器架构，使用 C++20 编写，使用 Vulkan 进行渲染。该项目旨在尽可能复制 Java 版 1.21.11 的体验，同时保持与现有 Minecraft 生态系统的兼容性（资源包、世界存档、数据包）。
 
+## 依赖规范
+
+- src/common不能依赖src/client和src/server
+- 反之，src/client和src/server可以依赖src/common
+- 为了保证common目录的简洁，所有client和server的专属逻辑都必须放在src/client和src/server目录下，不能放在common目录下
+
 ## git 规范
 
 ### 提交信息格式
