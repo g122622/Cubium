@@ -706,6 +706,18 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
     _sendPlayerInventory();
 }
 
+void IntegratedServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleSetCreativeModeSlot");
+
+    // 本地客户端不走此包（创造屏取物走 ItemPickerMenu clone 即 ContainerClick(Clone)）。
+    // 仅远程 TCP 玩家经此包，走基类远程默认实现。
+    if (playerId == m_clientPlayerId) {
+        return;
+    }
+    MinecraftServer::handleSetCreativeModeSlotPacket(playerId, packet);
+}
+
 void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "HandleCloseContainer");

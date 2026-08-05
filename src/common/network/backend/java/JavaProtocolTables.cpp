@@ -169,13 +169,14 @@ using B = buffer::RegistryByteBuf;
     //   ContainerClose(3) Chat(4) KeepAlive(5) SetCarriedItem(6) MovePlayerPos(7) MovePlayerPosRot(8)
     //   MovePlayerRot(9) MovePlayerStatusOnly(10) PlayerAction(11) PlayerCommand(12) PlayerInput(13)
     //   UseItem(14) UseItemOn(15) ... SignUpdate(69) ServerboundMoveVehicle(83) ClientboundMoveVehicle(84)
-    //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88) ... ChunkBatchReceived(107) ChatCommand(108)。
+    //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88) ... ChunkBatchReceived(107) ChatCommand(108)
+    //   SetCreativeModeSlot(109)。
     // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, chat_command=6, chat=8,
     //   keep_alive=27, set_carried_item=52, move_player_pos=29, move_player_pos_rot=30,
     //   move_player_rot=31, move_player_status_only=32, player_action=40, player_command=41,
     //   player_input=42, use_item=64, use_item_on=63, configuration_acknowledged=15,
     //   container_click=17, container_close=18, interact=25, move_vehicle=33, paddle_boat=34,
-    //   place_recipe=38, seen_advancements=49, sign_update=59。
+    //   place_recipe=38, seen_advancements=49, sign_update=59, set_creative_mode_slot=55。
     b.addPacket<ir::play::AcceptTeleportation>(
         0, PacketType{PacketFlow::Serverbound, "accept_teleportation"}, 0, codecs::acceptTeleportationCodec());
     // chat_command(id=6)：真 Java 1.21.11 客户端命令提交走此包（无签名，单 String 不含 '/')。
@@ -208,6 +209,10 @@ using B = buffer::RegistryByteBuf;
         17, PacketType{PacketFlow::Serverbound, "container_click"}, 2, codecs::containerClickCodec());
     b.addPacket<ir::play::ContainerClose>(
         18, PacketType{PacketFlow::Serverbound, "container_close"}, 3, codecs::containerCloseCodec());
+    // set_creative_mode_slot(id=55)：真 Java 创造客户端从创造物品栏取物/丢弃走此包。
+    // slotNum 为 vanilla InventoryMenu 菜单槽索引（0-45），<0 表丢弃。altIndex=109 对齐 variant 末尾。
+    b.addPacket<ir::play::SetCreativeModeSlot>(
+        55, PacketType{PacketFlow::Serverbound, "set_creative_mode_slot"}, 109, codecs::setCreativeModeSlotCodec());
     b.addPacket<ir::play::ConfigurationAcknowledged>(15,
         PacketType{PacketFlow::Serverbound, "configuration_acknowledged"},
         1,

@@ -567,6 +567,22 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         });
 }
 
+/// SetCreativeModeSlot（C→S，id=55）：Short(slotNum) + ItemStack(OPTIONAL_UNTRUSTED)
+[[nodiscard]] inline auto setCreativeModeSlotCodec()
+{
+    return makeCodec<ir::play::SetCreativeModeSlot>(
+        [](B& buf, const ir::play::SetCreativeModeSlot& v) {
+            buf.writeI16(v.slotNum);
+            play_detail::writeItemStack(buf, v.item);
+        },
+        [](B& buf) -> Result<ir::play::SetCreativeModeSlot> {
+            ir::play::SetCreativeModeSlot v{};
+            MC_TRY_ASSIGN(v.slotNum, buf.readI16());
+            MC_TRY_ASSIGN(v.item, play_detail::readItemStack(buf));
+            return v;
+        });
+}
+
 /// ContainerClose（C→S id=18 / S→C id=17）：VarInt(containerId)
 [[nodiscard]] inline auto containerCloseCodec()
 {

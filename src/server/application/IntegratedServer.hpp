@@ -153,6 +153,7 @@ protected:
     void handleContainerClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     void handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
+    void handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
 
 public:

@@ -692,6 +692,16 @@ public:
      */
     virtual void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
+    /**
+     * @brief 处理 SetCreativeModeSlot（C→S，id=55）：创造模式物品栏取物/丢弃
+     *
+     * 基类默认实现为远程玩家路径：校验创造模式 → fromItemStackView 还原物品 →
+     * slotNum<0 走玩家 drop 丢弃；slotNum≥0 经 vanilla InventoryMenu 槽位映射后写入
+     * PlayerInventory（绕过 InventoryManager::setItem 的 0-35 限制以支持护甲/副手）→ syncToClient。
+     * IntegratedServer 覆写：本地客户端不走此包（走 ItemPickerMenu clone），本地分支 return。
+     */
+    virtual void handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
 protected:
     // 注：登录请求不再经 dispatchPacket 入站。新网络层登录全由 ServerHandshakeStateMachine
     // 驱动（ClientIntention→Hello→LoginFinished→LoginAcknowledged→Configuration→Play），

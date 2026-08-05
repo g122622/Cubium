@@ -358,6 +358,23 @@ struct ContainerClick {
 };
 
 /**
+ * @brief SetCreativeModeSlot（C→S，id=55，创造模式物品栏取物/丢弃）
+ *
+ * 线格式：Short(slotNum) + ItemStack(OPTIONAL_UNTRUSTED_STREAM_CODEC)。
+ * slotNum 语义为 vanilla InventoryMenu 菜单槽索引（0-45），非项目 PlayerInventory 裸索引：
+ *   0=合成结果(服务端排除), 1-4=合成输入, 5-8=护甲(头盔→靴子), 9-35=主背包,
+ *   36-44=热栏, 45=副手, <0=丢弃（服务端调玩家 drop 生成掉落物）。
+ * 仅创造模式有效；itemStack 用 ItemStackView（与 ContainerSetContent/Slot 同款，非 HashedStack），
+ * 其 itemId 为 vanilla registry id，由业务侧 fromItemStackView 经 JavaItemIdMap 翻译为内部 id。
+ */
+struct SetCreativeModeSlot {
+    i16 slotNum;
+    ItemStackView item;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetCreativeModeSlot&, const SetCreativeModeSlot&) noexcept = default;
+};
+
+/**
  * @brief ContainerClose（C→S id=18 / S→C id=17，关闭容器）
  *
  * 线格式：VarInt(containerId)。

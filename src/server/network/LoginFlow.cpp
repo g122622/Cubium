@@ -173,6 +173,18 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     // 发送初始游戏状态
     sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
 
+    // 初始化 InventoryManager 条目并下发空物品栏。
+    // 必要性：远程玩家经此共用入口加入，InventoryManager::m_inventories 必须为其创建条目，
+    // 否则后续 set_creative_mode_slot / getHeldItem / syncToClient 全失效（getInventory 返 nullptr）。
+    // 本地客户端走 IntegratedServer::m_clientInventory 不依赖此条目，但创建空条目无害。
+    // 下发 ContainerSetContent(containerId=0) 对齐 vanilla PlayerList.sendAllPlayerInfo 的
+    // inventoryMenu.sendAllDataToRemote()，让客户端物品栏与服务端同步。
+    // TODO: 存档物品栏恢复（PlayerDataManager::applyToPlayer:157）写入 Player 实体，
+    //       与 InventoryManager::m_inventories 是两套数据，远程玩家重连后存档物品栏进不了
+    //       InventoryManager，需统一物品栏权威源（独立 bug，超本任务范围）。
+    m_server.inventoryManager().initializeInventory(playerId);
+    m_server.inventoryManager().syncToClient(playerId);
+
     result.success = true;
     spdlog::info("Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, playerId, result.entityId);
     return result;

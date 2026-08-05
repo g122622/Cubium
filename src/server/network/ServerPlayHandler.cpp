@@ -150,8 +150,10 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         handlePlaceRecipePacket(playerId, packet);
     } else if (std::holds_alternative<irplay::ChunkBatchReceived>(play)) {
         handleChunkBatchReceivedPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::SetCreativeModeSlot>(play)) {
+        m_server.handleSetCreativeModeSlotPacket(playerId, packet);
     } else {
-        // 未覆盖的 C→S 变体（如 SetCreativeModeSlot 等创造模式/命令相关包）
+        // 未覆盖的 C→S 变体（创造模式/命令相关包）
         spdlog::info("route: unhandled C->S play variant");
     }
 }

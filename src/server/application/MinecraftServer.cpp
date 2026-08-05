@@ -2211,6 +2211,91 @@ void MinecraftServer::handleCloseContainerPacket(PlayerId playerId, const mc::ne
     _handleCloseContainerRemote(playerId);
 }
 
+void MinecraftServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    // 1.21.11 SetCreativeModeSlot（C→S，id=55）：Short(slotNum) + ItemStack(OPTIONAL_UNTRUSTED)。
+    // slotNum 为 vanilla InventoryMenu 菜单槽索引（0-45），<0 表丢弃。仅创造模式有效。
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::SetCreativeModeSlot>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    auto* player = m_playerManager->getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+
+    // 仅创造模式可处理；非创造模式静默丢弃（对齐 vanilla hasInfiniteMaterials 守卫）。
+    if (player->gameMode != GameMode::Creative) {
+        spdlog::warn("SetCreativeModeSlot: player {} not in creative mode (mode={})",
+            playerId,
+            static_cast<i32>(player->gameMode));
+        return;
+    }
+
+    // 还原物品：wire itemId 是 vanilla registry id，fromItemStackView 内部经 JavaItemIdMap 翻译为内部 id。
+    auto stackResult = mc::network::ir::fromItemStackView(evt->item);
+    if (!stackResult.success()) {
+        spdlog::warn(
+            "SetCreativeModeSlot: failed to decode item for player {}: {}", playerId, stackResult.error().message());
+        return;
+    }
+
+    // 丢弃路径（slotNum<0）：在玩家位置生成掉落物实体，对齐 vanilla player.drop(item, true)。
+    if (evt->slotNum < 0) {
+        ItemStack droppedStack = stackResult.value();
+        if (droppedStack.isEmpty()) {
+            return; // 空物品不丢
+        }
+        auto* dim = dimensionManager().getPlayerDimensionWorld(playerId);
+        if (dim == nullptr) {
+            spdlog::warn("SetCreativeModeSlot drop: player {} dimension not found", playerId);
+            return;
+        }
+        auto* world = dim->world();
+        if (world == nullptr) {
+            spdlog::warn("SetCreativeModeSlot drop: player {} world not found", playerId);
+            return;
+        }
+        auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *world);
+        if (playerEntity == nullptr) {
+            spdlog::warn("SetCreativeModeSlot drop: player {} entity not found", playerId);
+            return;
+        }
+        // dropItem 签名是非 const 引用（会清空传入栈），故传局部拷贝；dropAround=true 向四周散射。
+        playerEntity->dropItem(droppedStack, true, true);
+        return;
+    }
+
+    // 写槽路径：vanilla InventoryMenu slotNum → 项目 PlayerInventory 索引映射。
+    //   0=合成结果(排除), 1-4=合成输入(项目无对应槽), 5-8=护甲(头盔→靴子→36-39),
+    //   9-35=主背包(相同), 36-44=热栏(→0-8), 45=副手(→40)。
+    i32 mappedSlot = -1;
+    if (evt->slotNum >= 5 && evt->slotNum <= 8) {
+        mappedSlot = 36 + (evt->slotNum - 5); // 护甲：5→36(HEAD) 6→37(CHEST) 7→38(LEGS) 8→39(FEET)
+    } else if (evt->slotNum >= 9 && evt->slotNum <= 35) {
+        mappedSlot = evt->slotNum; // 主背包，索引相同
+    } else if (evt->slotNum >= 36 && evt->slotNum <= 44) {
+        mappedSlot = evt->slotNum - 36; // 热栏：36→0 ... 44→8
+    } else if (evt->slotNum == 45) {
+        mappedSlot = 40; // 副手
+    } else {
+        // slotNum 0(合成结果)/1-4(合成输入)/越界：项目 PlayerInventory 无对应槽，忽略。
+        spdlog::warn("SetCreativeModeSlot: unsupported slotNum {} from player {}", evt->slotNum, playerId);
+        return;
+    }
+
+    // 绕过 InventoryManager::setItem 的 0-35 限制（直调 PlayerInventory::setItem 支持护甲/副手 0-40）。
+    auto* inventory = inventoryManager().getInventory(playerId);
+    if (inventory == nullptr) {
+        spdlog::warn("SetCreativeModeSlot: player {} inventory not found", playerId);
+        return;
+    }
+    inventory->setItem(mappedSlot, stackResult.value());
+    inventoryManager().syncToClient(playerId);
+}
+
 ItemStack MinecraftServer::getHeldItemForPlacement(PlayerId playerId)
 {
     return inventoryManager().getHeldItem(playerId);
