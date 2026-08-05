@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/util/Direction.hpp"
@@ -89,6 +90,20 @@ struct BlockPlacementResult {
     std::string message;
 };
 
+/**
+ * @brief 物品在方块上使用的结果（对应 vanilla ServerPlayerGameMode.useItemOn 第③步 Item.useOn）
+ *
+ * handleItemUseOn 派发 Item::onItemUse 后承载结果。success 表示 onItemUse 返回
+ * Success/Consume（已处理，应短路）；itemConsumed 表示是否经 InventoryManager 消耗了
+ * 权威物品栏（非创造模式且 success）。
+ */
+struct ItemUseResult {
+    bool success = false;                                   ///< onItemUse 返回 Success/Consume
+    bool itemConsumed = false;                              ///< 是否消耗了权威物品栏
+    ActionResultType actionResult = ActionResultType::Pass; ///< 原始 ActionResultType
+    std::string message;
+};
+
 namespace interaction {
 
 /**
@@ -140,6 +155,30 @@ public:
      */
     [[nodiscard]] Result<BlockPlacementResult> handleBlockPlacement(
         PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem);
+
+    /**
+     * @brief 处理物品在方块上使用（vanilla ServerPlayerGameMode.useItemOn 第③步 Item.useOn）
+     *
+     * 对齐 vanilla 1.21.11：在 useWithoutItem（项目 handleBlockUse）未短路后，派发
+     * Item::onItemUse。矿车/骨粉/桶/火把/锄头/斧头/铲子等非 block-item 靠此步生效。
+     *
+     * 物品消耗由本方法经 InventoryManager 统一处理（onItemUse 内部对 context 局部拷贝
+     * 的 shrink 不回写权威物品栏），对齐 handleBlockPlacement 的消耗范式。
+     *
+     * @param playerId 玩家ID
+     * @param pos 点击的方块位置
+     * @param hitPos 击中点
+     * @param face 击中面
+     * @param hand 使用的手
+     * @param heldItem 手持物品（调用方的局部拷贝，仅供 onItemUse 读取/修改上下文）
+     * @return 使用结果
+     */
+    [[nodiscard]] Result<ItemUseResult> handleItemUseOn(PlayerId playerId,
+        const BlockPos& pos,
+        const Vector3& hitPos,
+        Direction face,
+        Hand hand,
+        const ItemStack& heldItem);
 
     /**
      * @brief 处理方块使用（右键激活）

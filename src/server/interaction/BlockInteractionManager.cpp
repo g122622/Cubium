@@ -31,8 +31,11 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemRegistry.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
@@ -372,6 +375,90 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     }
 
     return BlockPlacementResult{true, true, itemConsumed, placePos, newState->stateId(), "Block placed"};
+}
+
+Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
+    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, const ItemStack& heldItem)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "BlockInteractionManager::handleItemUseOn",
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        "face",
+        Directions::toString(face),
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
+    ServerWorld* world = _getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
+    auto worldError = _checkWorldModificationAllowed(*world);
+    if (worldError) {
+        return std::move(*worldError);
+    }
+
+    // 验证前置条件（不需要检查 Y 范围，与 handleBlockPlacement 一致）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false);
+    if (preconditionError) {
+        return std::move(*preconditionError);
+    }
+
+    auto* playerData = _validatePlayer(playerId);
+    if (!playerData) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    // 旁观模式不派发 Item.useOn（对齐 vanilla ServerPlayerGameMode.useItemOn 旁观分支）
+    if (playerData->gameMode == GameMode::Spectator) {
+        return Error(ErrorCode::PermissionDenied, "Cannot use item in spectator mode");
+    }
+
+    Player* player = _getPlayerEntity(playerId, *world);
+    if (player != nullptr && !player->mayUseItemAt(*world, pos, face, heldItem)) {
+        return Error(ErrorCode::PermissionDenied, "Cannot use item: mayUseItemAt check failed");
+    }
+
+    // Item 是无状态策略单例，onItemUse 非 const；经 ItemRegistry 取非 const 句柄调用。
+    const Item* itemC = heldItem.getItem();
+    if (itemC == nullptr) {
+        return Error(ErrorCode::InvalidArgument, "No item in hand");
+    }
+    Item* item = ItemRegistry::instance().getItem(itemC->itemId());
+    if (item == nullptr) {
+        return Error(ErrorCode::NotFound, "Item not found in registry");
+    }
+
+    // 构造使用上下文（player 传 nullptr，与 handleBlockPlacement 一致：消耗由 InventoryManager
+    // 统一管理，playerData 提供 yaw/pitch）。heldItem 是调用方局部拷贝，onItemUse 内部经
+    // context.getItemStackMut().shrink(1) 修改的是该拷贝，不回写权威物品栏。
+    ItemUseContext context(*world, nullptr, heldItem, hitPos, pos, face, hand, playerData->yaw, playerData->pitch);
+
+    ActionResultType result = item->onItemUse(context);
+    const bool success = (result == ActionResultType::Success || result == ActionResultType::Consume);
+
+    // 消耗权威物品栏（仅 success 时，对齐 handleBlockPlacement:350-368 的消耗范式）。
+    // TODO(副手消耗): 当前 getSelectedStack 取主手槽位，hand==OffHand 时会误消耗主手。
+    // vanilla 副手 useOn 场景极少（矿车等通常主手），首版接受此限制。
+    bool itemConsumed = false;
+    if (success && playerData->gameMode != GameMode::Creative && m_inventoryManager != nullptr) {
+        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
+        if (inventory != nullptr) {
+            ItemStack selectedStack = inventory->getSelectedStack();
+            if (!selectedStack.isEmpty() && selectedStack.getCount() > 0) {
+                selectedStack.shrink(1);
+                inventory->setItem(inventory->getSelectedSlot(), selectedStack);
+                itemConsumed = true;
+                m_inventoryManager->syncToClient(playerId);
+            }
+        }
+    } else if (success && playerData->gameMode == GameMode::Creative) {
+        itemConsumed = true; // 创造模式不实际消耗
+    }
+
+    return ItemUseResult{success, itemConsumed, result, success ? "Item used on block" : "Item use pass"};
 }
 
 Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(

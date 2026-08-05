@@ -156,6 +156,15 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
     }
 }
 
+void ServerPlayHandler::_sendBlockChangedAck(PlayerId playerId, i32 sequence)
+{
+    mc::network::ir::play::BlockChangedAck ack;
+    ack.sequence = sequence;
+    m_server.sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ack)}});
+}
+
 void ServerPlayHandler::handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // 客户端主动 ping(ping 协议通道)，回 PongResponse(cb:60) 同 time。
@@ -1173,6 +1182,10 @@ void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network
         return;
     }
 
+    // 对齐 Java ServerGamePacketListenerImpl.handleUseItem(:1358)：紧跟登录检查之后
+    // 无条件 ackBlockChangesUpTo(sequence)，业务结果不影响 ack。
+    _sendBlockChangedAck(playerId, evt->sequence);
+
     auto* world = m_server.getPlayerWorld(playerId);
     if (world == nullptr) {
         return;
@@ -1279,6 +1292,10 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
     if (evt->action < 0 || evt->action > 2) {
         return;
     }
+    // 对齐 Java ServerGamePacketListenerImpl.handlePlayerAction(:1277)：仅
+    // START/ABORT/STOP_DESTROY 三个 action（带 sequence）调 ack；DROP/SWAP/
+    // RELEASE_USE_ITEM 不带 sequence 不 ack。业务结果不影响 ack。
+    _sendBlockChangedAck(playerId, evt->sequence);
     const auto action = static_cast<network::BlockInteractionAction>(evt->action);
 
     // 处理挖掘状态
@@ -1303,6 +1320,11 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
     if (evt == nullptr) {
         return;
     }
+
+    // 对齐 Java ServerGamePacketListenerImpl.handleUseItemOn(:1299)：紧跟登录检查
+    // 之后无条件 ackBlockChangesUpTo(sequence)，业务结果不影响 ack。否则真 Java
+    // 客户端方块预测状态机因收不到 ack 而卡死，后续右键静默失效。
+    _sendBlockChangedAck(playerId, evt->sequence);
 
     const auto& hit = evt->blockHit;
     const BlockPos pos = BlockPos::fromLong(hit.blockPosPacked);
@@ -1329,9 +1351,17 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
         heldItem != nullptr && BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr;
 
     if (!holdingBlockItem) {
-        if (!tryOpenCrafting()) {
-            (void)m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+        if (tryOpenCrafting()) {
+            return;
         }
+        // ② vanilla useWithoutItem（项目 onBlockActivated）。方块交互已处理则短路，不派发 ③。
+        auto useResult = m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+        if (useResult.success() && useResult.value().success) {
+            return;
+        }
+        // ③ vanilla Item.useOn（矿车/骨粉/桶/火把/锄头等非 block-item 靠此步生效）。
+        // handleItemUseOn 内部经 InventoryManager.syncToClient 已同步物品栏，外层无需再同步。
+        (void)m_server.blockInteractionManager().handleItemUseOn(playerId, pos, hitPosition, face, hand, heldStack);
         return;
     }
 

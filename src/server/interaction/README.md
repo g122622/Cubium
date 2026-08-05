@@ -6,7 +6,7 @@
 
 ```
 src/server/interaction/
-├── BlockInteractionManager.hpp   # 方块交互管理器（放置、破坏、使用）
+├── BlockInteractionManager.hpp   # 方块交互管理器（放置、破坏、使用、物品useOn）
 ├── BlockInteractionManager.cpp
 ├── ContainerManager.hpp          # 容器管理器（打开、关闭、点击）
 ├── ContainerManager.cpp
@@ -41,7 +41,7 @@ src/server/interaction/
 └──────────────────┘
 ```
 
-- **BlockInteractionManager**：处理方块放置、破坏、使用，依赖 InventoryManager 获取手持物品
+- **BlockInteractionManager**：处理方块放置、破坏、使用、物品 useOn，依赖 InventoryManager 获取手持物品
 - **MiningManager**：追踪挖掘进度，挖掘完成后触发 BlockInteractionManager 的破坏逻辑；通过 `setOnBreakAnimBroadcast` 回调广播破坏动画（由 MinecraftServer 注入），通过 `setEntityIdResolver` 回调获取正确的 EntityId（PlayerId ≠ EntityId）
 - **ContainerManager**：管理容器菜单，独立于其他管理器
 - **InventoryManager**：物品栏状态管理，被 BlockInteractionManager 依赖
@@ -140,3 +140,13 @@ MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不
 - **破坏检查**（`_canBreakBlock`）：冒险模式下，检查手持物品的 CanDestroy 标签。只有持有带 CanDestroy 标签且目标方块匹配的物品时才允许破坏。无 CanDestroy 标签的物品在冒险模式下不能破坏方块。
 - **mayInteract 检查**：`Player::mayInteract()` 在冒险模式下会检查主手和副手物品的 CanPlaceOn 标签，用于投掷物等间接交互场景。
 - **注意**：CanDestroy 检查仅检查主手物品（与 MC Java `Player.blockActionRestricted()` 行为一致），而 CanPlaceOn 检查取决于调用方式——`handleBlockPlacement` 接收 `heldItem` 参数（由上层根据交互手传入），`Player::mayInteract()` 则检查双手。
+
+### 13. handleItemUseOn 与 handleBlockPlacement 的消耗同步路径差异
+
+`handleBlockPlacement`（block-item 放置）内部调 `BlockItem::tryPlace`（不经 InventoryManager），故消耗与同步由 **ServerPlayHandler 外层** 经 `setInventoryItem` + `syncPlayerInventory` 完成。
+
+`handleItemUseOn`（非 block-item 的 `Item::onItemUse` 派发，如矿车/骨粉/桶）**内部** 经 InventoryManager 消耗权威物品栏并 `syncToClient`，外层**无需再同步**。原因是 `Item::onItemUse` 内部经 `context.getItemStackMut().shrink(1)` 修改的是构造 context 时传入的局部 ItemStack 拷贝（`ItemUseContext::m_stack` 是指向该拷贝的指针），**不回写**权威 InventoryManager，故必须由 `handleItemUseOn` 单独消耗权威物品栏（否则物品不减少）。无双消风险：局部拷贝与权威物品栏是不同对象。
+
+派发顺序对齐 vanilla `ServerPlayerGameMode.useItemOn`：项目无 vanilla ①`BlockState.useItemOn`，故为 ②`handleBlockUse`（useWithoutItem）→ 未短路才 ③`handleItemUseOn`（Item.useOn）。空手不调 ③。
+
+另：真 Java 客户端的 `use_item_on`/`use_item`/挖掘包带递增 sequence，服务端必须回 `BlockChangedAck`（在 `ServerPlayHandler` 三处 handler 内）否则客户端方块预测状态机卡死、右键静默失效。

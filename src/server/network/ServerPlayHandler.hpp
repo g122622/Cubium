@@ -110,6 +110,13 @@ private:
     /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
     void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);
 
+    /// 回发 clientbound BlockChangedAck(sequence)，推进真 Java 客户端的方块预测状态机。
+    /// 对齐 vanilla ServerGamePacketListenerImpl.ackBlockChangesUpTo：use_item_on/use_item/
+    /// PlayerAction(Start/Abort/StopDestroy) 收包后须回 ack，否则客户端 sequence 状态机卡死、
+    /// 后续右键静默失效。vanilla 取 max 累积每 tick 批量发，此处简化为立即发（语义等价、
+    /// 门面无状态）。sequence 取客户端发来的原值回传，不依赖业务结果。
+    void _sendBlockChangedAck(PlayerId playerId, i32 sequence);
+
     /// 执行玩家命令。commandInput 含或不含 '/' 前缀均可（CommandDispatcher::parse 自动剥离）。
     void _executePlayerCommand(PlayerId playerId, const std::string& commandInput);
 
