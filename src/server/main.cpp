@@ -74,12 +74,6 @@ void initializeServerGameTest(mc::server::MinecraftServer& server)
         spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
     }
 
-    // 加载行为包：必须在 GameTest 模块工厂注册之后（否则 import "@minecraft/server-gametest" 失败）。
-    // 行为包内的 gametest.register(...) 调用在此阶段执行，把 JS 测试注册进 GameTestRegistry。
-    if (auto packResult = server.loadBehaviorPacks(); packResult.failed()) {
-        spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
-    }
-
     // post-tick 驱动 GameTestTicker（/gametest run/runall 启动的实例由此推进）+
     // 回收已完成的 /gametest 在线实例（ticker 持裸指针，须独立保活容器清理）。
     server.addPostTickCallback([]() {

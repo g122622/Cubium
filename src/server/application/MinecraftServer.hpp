@@ -316,32 +316,6 @@ public:
     [[nodiscard]] ServerScriptManager* scriptManager() { return m_scriptManager.get(); }
     [[nodiscard]] const ServerScriptManager* scriptManager() const { return m_scriptManager.get(); }
 
-    /**
-     * @brief 获取游戏目录（行为包/数据包/存档相对其解析）
-     *
-     * 子类（StandaloneServer/IntegratedServer/GameTestServer）各持 m_gameDirectory，
-     * 经此纯虚暴露给基类 loadBehaviorPacks 等共享逻辑。
-     * @return 游戏目录常量引用。
-     */
-    [[nodiscard]] virtual const GameDirectory& gameDirectory() const = 0;
-
-    /**
-     * @brief 扫描并加载行为包（含 JS 脚本插件）
-     *
-     * 调用 ServerScriptManager::loadPlugins 扫描 `gameDirectory().behaviorPacksDir()`
-     * 下的行为包，解析 manifest，加载并启动脚本插件。须在以下条件均满足后调用：
-     * 1. initializeCoreManagers 已执行（m_scriptManager 已创建并 initialize）；
-     * 2. 所有 JS 模块工厂已注册（如 @minecraft/server-gametest 工厂），否则
-     *    行为包内 `import "@minecraft/server-gametest"` 会因模块未注册而失败。
-     *
-     * 生产路径由 main.cpp 在 initializeServerGameTest 注册模块工厂后显式调用；
-     * GameTestServer facade 在自身 initialize 末尾调用。失败仅 warn 不阻断启动
-     *（行为包加载是非致命的：缺包时游戏仍可运行，只是缺脚本逻辑）。
-     *
-     * @return 加载结果（失败时含错误信息）。
-     */
-    [[nodiscard]] Result<void> loadBehaviorPacks();
-
     // ========== 配置 ==========
 
     [[nodiscard]] i32 viewDistance() const override { return m_settings.viewDistance.get(); }

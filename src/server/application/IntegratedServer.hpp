@@ -131,12 +131,6 @@ public:
      */
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
-    /**
-     * @brief 获取游戏目录（行为包/数据包/存档相对其解析）
-     * @return 游戏目录常量引用。
-     */
-    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
-
 protected:
     /**
      * @brief 主循环 tick：先驱动基类世界/实体/网络 tick，再同步打开容器的动态数据。

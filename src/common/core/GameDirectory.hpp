@@ -145,15 +145,6 @@ public:
     [[nodiscard]] std::filesystem::path dataPacksDir() const;
 
     /**
-     * @brief 获取行为包目录
-     *
-     * 行为包（含 JS 脚本）扫描入口，由 ServerScriptManager::loadPlugins 加载。
-     * 对齐基岩版世界级行为包语义：相对游戏根目录的 behavior_packs/。
-     * @return ~/minecraft_reborn/behavior_packs/
-     */
-    [[nodiscard]] std::filesystem::path behaviorPacksDir() const;
-
-    /**
      * @brief 获取存档目录
      * @return ~/minecraft_reborn/saves/
      */

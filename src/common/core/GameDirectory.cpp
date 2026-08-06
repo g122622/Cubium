@@ -166,11 +166,6 @@ std::filesystem::path GameDirectory::dataPacksDir() const
     return m_root / "datapacks";
 }
 
-std::filesystem::path GameDirectory::behaviorPacksDir() const
-{
-    return m_root / "behavior_packs";
-}
-
 std::filesystem::path GameDirectory::savesDir() const
 {
     return m_root / "saves";
@@ -214,7 +209,6 @@ Result<void> GameDirectory::ensureDirectoriesExist() const
         m_root,
         resourcePacksDir(),
         dataPacksDir(),
-        behaviorPacksDir(),
         savesDir(),
         backupsDir(),
         logsDir(),

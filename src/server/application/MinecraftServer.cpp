@@ -635,23 +635,6 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
     (void)world;
 }
 
-Result<void> MinecraftServer::loadBehaviorPacks()
-{
-    if (m_scriptManager == nullptr || !m_scriptManager->isInitialized()) {
-        spdlog::warn("[Server] Skip behavior pack loading: script system not initialized");
-        return Result<void>::ok();
-    }
-
-    const auto behaviorPacksDir = gameDirectory().behaviorPacksDir();
-    spdlog::info("[Server] Loading behavior packs from {}", behaviorPacksDir.string());
-    auto result = m_scriptManager->loadPlugins(behaviorPacksDir.string());
-    if (result.failed()) {
-        spdlog::warn("[Server] Failed to load behavior packs: {}", result.error().message());
-        return result;
-    }
-    return Result<void>::ok();
-}
-
 Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId)
 {
     world::storage::SingleLevelStorageConfig storageConfig;
