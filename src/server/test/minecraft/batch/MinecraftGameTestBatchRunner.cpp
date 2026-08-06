@@ -41,6 +41,14 @@ void MinecraftGameTestBatchRunner::_runTest(std::unique_ptr<BaseGameTestInstance
     // spawnStructure() 为 protected 钩子，经公有 spawnStructureIfNeeded() 转发（tick() 内 _isTestReady
     // 依赖结构已就绪，故须在加入 ticker 前显式放一次）。
     instance->spawnStructureIfNeeded();
+    // 结构放置成功后启动执行：设 tickCount = -(setupTicks+1)（setup 阶段负值，对齐 Java
+    // startExecution）。tick() 内 ++tickCount 到 0 才触发测试函数；不调 startExecution 则 m_tickCount
+    // 保持默认 0，++后恒 >=1，m_tickCount==0 永不成立，测试函数永不执行（alwaysSucceed 超时根因）。
+    // 结构放置失败时 spawnStructure 已调 fail()（state=Failed），isDone 为真跳过 startExecution，
+    // 避免 startExecution 把 state 重置回 NotStarted 掩盖放置失败。
+    if (!isDone(instance->state())) {
+        instance->startExecution();
+    }
     _trackInstance(std::move(instance));
 }
 

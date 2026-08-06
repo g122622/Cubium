@@ -215,6 +215,13 @@ i32 GameTestCommand::_launchTests(
         auto instance =
             std::make_unique<MinecraftGameTestInstance>(*fn, std::move(instanceProvider), *world, nextOrigin);
         instance->spawnStructureIfNeeded();
+        // 结构放置成功后启动执行：设 tickCount = -(setupTicks+1)（对齐 Java startExecution）。
+        // tick() 内 ++tickCount 到 0 才触发测试函数；不调 startExecution 则 m_tickCount 保持默认 0，
+        // ++后恒 >=1，测试函数永不执行（alwaysSucceed 超时根因，与 MinecraftGameTestBatchRunner 同 bug）。
+        // 结构放置失败时 spawnStructure 已 fail()（state=Failed），isDone 为真跳过避免重置 state。
+        if (!isDone(instance->state())) {
+            instance->startExecution();
+        }
         // 推进下一格（线性 X，按结构 X 跨度 + padding 间隔，对齐 MinecraftGameTestBatchRunner 简化布局）
         const auto* bounds = instance->bounds();
         const i32 spanX = bounds ? bounds->rotatedSize().x : 1;
