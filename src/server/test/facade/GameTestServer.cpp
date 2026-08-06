@@ -112,6 +112,10 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     // GameTestServer 是 server 专属（不与 client 共享编译），可安全 include server/test/script/ 头。
     // ServerScriptManager（client 共享）不能 include 此头，故注册放此处。
     // 经 scriptManager()->engine().addModuleFactory 公共钩子注入（与 @minecraft/server 同机制）。
+    // addModuleFactory 仅把工厂存入 engine 的 vector（不依赖 engine.initialize），故可在 initializeWorld
+    // （含 ScriptManager::initialize→engine.initialize 创建 runtime）之前调；工厂在 loadPlugins 创建
+    // QuickJSContext 时才被消费。对齐在线路径（main.cpp::initializeServerGameTest 在 server.initialize 后
+    // 注册工厂 + loadBehaviorPacks）。
     if (auto* sm = scriptManager()) {
         // 先创建工厂注入 scheduler（Test.idle 用 ScriptScheduler::runTimeout 创建定时 Promise），
         // 再 move 入引擎。scheduler 由 ScriptManager 拥有，生命周期长于插件加载/引擎重建。
@@ -119,26 +123,6 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
         gameTestFactory->setScheduler(&sm->scriptManager().scheduler());
         sm->scriptManager().engine().addModuleFactory(std::move(gameTestFactory));
         spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
-    }
-
-    // 加载行为包：必须在 GameTest 模块工厂注册之后（否则 import "@minecraft/server-gametest" 失败）。
-    // 行为包内的 gametest.register(...) 调用在此阶段执行，把 JS 测试注册进 GameTestRegistry，
-    // 随后 _selectAndBuildRunner 才能选到这些测试。失败仅 warn 不阻断（缺包时仍可跑原生内置测试）。
-    if (auto packResult = loadBehaviorPacks(); packResult.failed()) {
-        spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
-    }
-
-    // 把已加载的行为包列表接入 TemplateManager，使 GameTest 结构名（如 startertests:mediumglass）
-    // 能从 behavior_packs/<包>/structures/<ns>/<path>.mcstructure 加载。须在 loadBehaviorPacks 之后
-    // （packList 已扫描填充），且在 _selectAndBuildRunner 之前（runner 构造批次放置结构即取模板）。
-    if (auto* sm = scriptManager()) {
-        auto* packList = sm->scriptManager().packList();
-        if (packList != nullptr && !packList->empty()) {
-            m_structureSource = std::make_unique<BehaviorPackStructureSource>(*packList);
-            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(
-                m_structureSource.get());
-            spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
-        }
     }
 
     // 加载 OP 列表（allowCommands=true 时 GameTestServer 自身需 OP 权限执行 /gametest）
@@ -221,6 +205,27 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     initializeSyncManagers();
     initializeChunkSyncManagers();
     setupWorldCallbacks();
+
+    // 加载行为包：必须在 initializeWorld（含 ScriptManager::initialize→engine.initialize 创建 runtime）
+    // 之后，loadPlugins 检查 isInitialized 且需 runtime 已就绪；否则 "Skip behavior pack loading:
+    // script system not initialized"。行为包内 gametest.register(...) 把 JS 测试注册进 GameTestRegistry。
+    // 失败仅 warn 不阻断（缺包时仍可跑原生内置测试）。对齐在线路径 main.cpp::initializeServerGameTest。
+    if (auto packResult = loadBehaviorPacks(); packResult.failed()) {
+        spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
+    }
+
+    // 把已加载的行为包列表接入 TemplateManager，使 GameTest 结构名（如 startertests:mediumglass）
+    // 能从 behavior_packs/<包>/structures/<ns>/<path>.mcstructure 加载。须在 loadBehaviorPacks 之后
+    // （packList 已扫描填充），且在 _selectAndBuildRunner 之前（runner 构造批次放置结构即取模板）。
+    if (auto* sm = scriptManager()) {
+        auto* packList = sm->scriptManager().packList();
+        if (packList != nullptr && !packList->empty()) {
+            m_structureSource = std::make_unique<BehaviorPackStructureSource>(*packList);
+            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(
+                m_structureSource.get());
+            spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
+        }
+    }
 
     // === 选测试 + 构造 runner ===
     if (!_selectAndBuildRunner()) {
@@ -370,6 +375,12 @@ void GameTestServer::stop()
     // 之后无 tick 推进 HALTING 清空，故紧接 forceStop() 立即清空实例，避免 JS 回调访问死上下文。
     GameTestTicker::instance().clear();
     GameTestTicker::instance().forceStop();
+
+    // 释放 GameTestRegistry 中脚本测试函数的 JS 回调句柄。registry 是进程级单例，跨 GameTestServer
+    // 实例常驻；ScriptGameTestFunction 持的 JS 句柄绑当前引擎 runtime。须在 stopCore（销毁引擎）前释放，
+    // 否则引擎销毁后 registry 析构 function 时对已死 JSContext 调 JS_FreeValue → use-after-free 崩溃
+    // （atexit 阶段，测试已结束但进程退出时报 ACCESS_VIOLATION）。function 对象本身保留（仅清句柄）。
+    GameTestRegistry::instance().releaseAllScriptResources();
 
     // 移除 reporter
     if (m_logReporter != nullptr) {

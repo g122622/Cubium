@@ -63,7 +63,6 @@ u64 registerSequenceClassBinding(
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("thenExecute requires a function argument");
             }
-            ctx.retainValue(args[0]);
             seq->thenExecute(wrapJsCallback(&ctx, args[0]));
             return ctx.dupValue(thisVal); // 链式返回自身（Dup 独立句柄，避免 trampoline 释放 thisHandle 后悬垂）
         },
@@ -84,7 +83,6 @@ u64 registerSequenceClassBinding(
             if (!delay) {
                 return ctx.throwTypeError("delay must be number");
             }
-            ctx.retainValue(args[1]);
             seq->thenExecuteAfter(*delay, wrapJsCallback(&ctx, args[1]));
             return ctx.dupValue(thisVal);
         },
@@ -105,7 +103,6 @@ u64 registerSequenceClassBinding(
             if (!tc) {
                 return ctx.throwTypeError("tickCount must be number");
             }
-            ctx.retainValue(args[1]);
             seq->thenExecuteFor(*tc, wrapJsCallback(&ctx, args[1]));
             return ctx.dupValue(thisVal);
         },
@@ -176,7 +173,6 @@ u64 registerSequenceClassBinding(
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("thenWait requires a function argument");
             }
-            ctx.retainValue(args[0]);
             seq->thenWait(wrapJsCallback(&ctx, args[0]));
             return ctx.dupValue(thisVal); // 链式返回自身
         },
@@ -197,7 +193,6 @@ u64 registerSequenceClassBinding(
             if (!delay) {
                 return ctx.throwTypeError("delay must be number");
             }
-            ctx.retainValue(args[1]);
             seq->thenWaitAfter(*delay, wrapJsCallback(&ctx, args[1]));
             return ctx.dupValue(thisVal);
         },

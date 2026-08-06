@@ -69,8 +69,12 @@ void* _doRegister(
         return ctx.throwInternalError("Failed to read test class/name");
     }
     // 保留 JS 回调，生命周期跟随 ScriptGameTestFunction（其析构 releaseValue）。
-    ctx.retainValue(args[2]);
-    auto* cppBuilder = new ScriptRegistrationBuilder(*className, *testName, &ctx, args[2]);
+    // 须用 dupValue（新建独立 JSValue handle）而非 retainValue（仅 refcount+1，不新建 handle）：
+    // trampoline 在 _doRegister 返回后会 delete arg handle 内存，retainValue 持的 void* 遂成悬垂指针，
+    // 后续 isFunction/callFunction1 解引用 UB（表现为 "TypeError: not a function"）。
+    // dupValue 新建独立 handle，trampoline 释放 arg handle 不影响本句柄。
+    void* jsCallback = ctx.dupValue(args[2]);
+    auto* cppBuilder = new ScriptRegistrationBuilder(*className, *testName, &ctx, jsCallback);
 
     void* proto = ScriptBindingRegistry::instance().proto(registrationBuilderClassId);
     // owned=true + 自定义 destroy：GC 时 _destroyRegistrationBuilder 提交测试后 delete。

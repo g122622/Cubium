@@ -81,6 +81,12 @@ public:
     [[nodiscard]] std::unique_ptr<IGameTestFunctionRunResult> run(
         IGameTestHelper& helper, IGameTestFunctionContext& context) const override;
 
+    /**
+     * @brief 释放 JS 回调句柄。须在脚本引擎销毁前调用（见基类注释）。
+     * 调用后 m_jsCallback 置空，析构不再 release，避免对已死 runtime 调 JS_FreeValue。
+     */
+    void releaseScriptResources() override;
+
 private:
     mc::mod::bedrock::addon::IScriptBindingContext* m_bindingCtx;
     void* m_jsCallback;

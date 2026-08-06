@@ -115,4 +115,15 @@ void GameTestRegistry::clearAllTestMethods()
     m_afterBatch.clear();
 }
 
+void GameTestRegistry::releaseAllScriptResources()
+{
+    // 遍历所有测试函数释放 JS 句柄。m_byName 与 m_byClass 指向同一批 shared_ptr，遍历其一即可。
+    // 须在脚本引擎销毁前调用；调用后 function 对象仍存活（仅 JS 句柄置空），析构安全。
+    for (const auto& [name, fn] : m_byName) {
+        if (fn != nullptr) {
+            fn->releaseScriptResources();
+        }
+    }
+}
+
 } // namespace mc::test

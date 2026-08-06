@@ -59,6 +59,16 @@ ScriptGameTestFunction::~ScriptGameTestFunction()
     }
 }
 
+void ScriptGameTestFunction::releaseScriptResources()
+{
+    // 引擎销毁前显式释放 JS 回调句柄，避免 registry 单例析构时对已死 runtime 调 JS_FreeValue。
+    // 置空后析构不再 release（见基类 releaseScriptResources 契约）。
+    if (m_bindingCtx != nullptr && m_jsCallback != nullptr) {
+        m_bindingCtx->releaseValue(m_jsCallback);
+        m_jsCallback = nullptr;
+    }
+}
+
 std::unique_ptr<IGameTestFunctionContext> ScriptGameTestFunction::createContext(IGameTestHelper& /*helper*/) const
 {
     return std::make_unique<ScriptGameTestFunctionContext>();

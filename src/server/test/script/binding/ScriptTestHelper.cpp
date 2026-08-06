@@ -435,7 +435,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("until(condition)");
             }
-            ctx.retainValue(args[0]); // wrapJsCallback 持久化引用，回调执行时须存活
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->until(std::move(wrapped), nullptr);
             return ctx.createUndefined();
@@ -537,7 +536,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!tick) {
                 return ctx.throwTypeError("tick must be number");
             }
-            ctx.retainValue(args[1]); // wrapJsCallback 持久化引用，回调执行时须存活
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->runAtTickTime(*tick, std::move(wrapped));
             return ctx.createUndefined();
@@ -556,7 +554,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("succeedWhen(fn)");
             }
-            ctx.retainValue(args[0]); // wrapJsCallback 持久化引用，回调执行时须存活
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->succeedWhen(std::move(wrapped));
             return ctx.createUndefined();
@@ -1009,7 +1006,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("succeedIf(callback)");
             }
-            ctx.retainValue(args[0]);
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->succeedIf(std::move(wrapped));
             return ctx.createUndefined();
@@ -1053,7 +1049,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!tick) {
                 return ctx.throwTypeError("tick must be number");
             }
-            ctx.retainValue(args[1]);
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->succeedOnTickWhen(*tick, std::move(wrapped));
             return ctx.createUndefined();
@@ -1072,7 +1067,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("failIf(callback)");
             }
-            ctx.retainValue(args[0]);
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->failIf(std::move(wrapped));
             return ctx.createUndefined();
@@ -1095,7 +1089,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!delay) {
                 return ctx.throwTypeError("delayTicks must be number");
             }
-            ctx.retainValue(args[1]);
             auto wrapped = wrapJsCallback(&ctx, args[1]);
             helper->runAfterDelay(*delay, std::move(wrapped));
             return ctx.createUndefined();
@@ -1114,7 +1107,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1 || !ctx.isFunction(args[0])) {
                 return ctx.throwTypeError("runOnFinish(callback)");
             }
-            ctx.retainValue(args[0]);
             auto wrapped = wrapJsCallback(&ctx, args[0]);
             helper->runOnFinish(std::move(wrapped));
             return ctx.createUndefined();

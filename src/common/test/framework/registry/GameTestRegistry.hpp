@@ -77,6 +77,16 @@ public:
      */
     void clearAllTestMethods();
 
+    /**
+     * @brief 释放所有测试函数的脚本资源（JS 句柄）。
+     *
+     * 脚本引擎销毁前调用：遍历所有 `BaseGameTestFunction` 调 `releaseScriptResources()`，
+     * 释放 `ScriptGameTestFunction` 持有的 JS 回调句柄。不删除 function 对象（registry 仍持有，
+     * 供后续查询/跨用例），仅清 JS 句柄——避免引擎销毁后 registry 单例析构 function 时
+     * 对已死 JSContext 调 JS_FreeValue 崩溃。
+     */
+    void releaseAllScriptResources();
+
 private:
     GameTestRegistry() = default;
 

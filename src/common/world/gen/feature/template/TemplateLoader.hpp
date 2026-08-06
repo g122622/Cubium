@@ -97,6 +97,25 @@ public:
 
 private:
     /**
+     * @brief 解包 NBT 根复合标签的空键嵌套层
+     *
+     * NBT 库的 `compound_tag::read`/`read_compound_bin` 不跳过根 tag 的 id+name 前缀，
+     * 而是把根字节（0x0A Compound）+ 根 name 当成 body 的第一个子项读入。对于根 name 非空的文件
+     * （如 level.dat 根 name="Data"），此 bug 使 root = `{"Data": <真内容>}`，恰好与现有 reader
+     * 期望的键名一致而"歪打正着"工作；但对于根 name 为空的文件（Java 结构 .nbt 与基岩 .mcstructure
+     * 根 name 均为空），root = `{"": <真内容>}`，直接取 "size"/"structure" 等键取不到，模板退化为
+     * size=(0,0,0)。
+     *
+     * 本函数检测并解包此空键嵌套：若 root 仅含一个空键 `""` 且其值为 Compound，则返回该内层 Compound
+     * 的裸指针（非拥有，调用方不得持久持有），否则返回入参 root 本身。仅作用于 TemplateLoader 的两个
+     * 加载入口（结构文件根 name 恒为空），不触碰 NBT 库核心以避免影响 level.dat 等依赖"歪打正着"的 reader。
+     *
+     * @param root `compound_tag::read` 返回的根复合标签
+     * @return 真正承载结构内容的复合标签（非拥有指针）
+     */
+    [[nodiscard]] static const nbt::CompoundTag* _unwrapRootCompound(const nbt::CompoundTag& root) noexcept;
+
+    /**
      * @brief 从基岩版 NBT 根标签加载模板（schema 解析核心）
      * @param root 已解析的根复合标签（bedrock_disk 上下文）
      * @return 加载的模板

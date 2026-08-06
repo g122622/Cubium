@@ -379,7 +379,9 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
             return nullptr;
         }
 
-        return loadFromNbt(*root);
+        // 解包空键嵌套层（见 _unwrapRootCompound 注释：NBT 库不跳过根 id+name，
+        // Java 结构 .nbt 根 name 为空，root = {"": <真内容>}，须解包才能取到 size/blocks/palette）。
+        return loadFromNbt(*_unwrapRootCompound(*root));
     }
     catch (...) {
         return nullptr;
@@ -402,11 +404,26 @@ std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::
             return nullptr;
         }
 
-        return _loadFromBedrockNbt(*root);
+        // 解包空键嵌套层（见 _unwrapRootCompound 注释：.mcstructure 根 name 为空，
+        // root = {"": <真内容>}，须解包才能取到 size/structure 等键）。
+        return _loadFromBedrockNbt(*_unwrapRootCompound(*root));
     }
     catch (...) {
         return nullptr;
     }
+}
+
+const nbt::CompoundTag* TemplateLoader::_unwrapRootCompound(const nbt::CompoundTag& root) noexcept
+{
+    // NBT 库 read_compound_bin 不跳过根 id+name，把根 0x0A+name 当 body 第一个子项。
+    // 结构文件根 name 恒为空，故 root = {"": <真内容>}。此处检测单空键 + Compound 值并解包。
+    if (root.value.size() == 1) {
+        auto it = root.value.find("");
+        if (it != root.value.end() && it->second && it->second->id() == nbt::TagId::Compound) {
+            return dynamic_cast<const nbt::CompoundTag*>(it->second.get());
+        }
+    }
+    return &root;
 }
 
 std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::CompoundTag& root)

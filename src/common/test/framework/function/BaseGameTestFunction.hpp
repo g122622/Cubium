@@ -63,6 +63,17 @@ public:
     void addTag(std::string tag) { m_tags.push_back(std::move(tag)); }
     [[nodiscard]] bool hasTag(std::string_view tag) const noexcept;
 
+    /**
+     * @brief 释放脚本资源（JS 句柄等）。
+     *
+     * 脚本测试函数（`ScriptGameTestFunction`）持有 JS 回调句柄，其生命周期绑脚本引擎 runtime。
+     * 引擎销毁前须调用此方法释放句柄，否则 registry 单例在进程退出/atexit 析构 function 时，
+     * 会对已死 runtime 的 JSContext 调 JS_FreeValue → use-after-free 崩溃。
+     * 原生测试函数无 JS 资源，默认空实现。
+     * 调用后 function 对象仍可安全析构（子类须将句柄置空，析构不再 release）。
+     */
+    virtual void releaseScriptResources() {}
+
 protected:
     // 子类（NativeGameTestFunction/ScriptGameTestFunction）可改写元数据
     void setTestData(TestData data) { m_data = std::move(data); }

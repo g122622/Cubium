@@ -35,6 +35,7 @@
 // GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
 // 经此接入生产服务器的 /gametest 命令 + GameTestTicker 驱动 + @minecraft/server-gametest JS 模块。
 #include "common/test/framework/environment/EnvironmentRegistry.hpp"
+#include "common/test/framework/registry/GameTestRegistry.hpp"
 #include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
@@ -113,13 +114,17 @@ void initializeServerGameTest(mc::server::MinecraftServer& server)
  * 1. forceStop 清 GameTestTicker 的裸指针引用；
  * 2. forceClearAllInstances 析构所有在线实例（unique_ptr），释放其 m_runResult 持有的 Promise 句柄
  *    与 ScriptGameTestFunction 持有的 IScriptBindingContext*（仅 releaseValue，不再访问）。
- * 顺序保证：实例析构时脚本上下文仍有效，releaseValue 安全。
+ * 3. releaseAllScriptResources 释放 GameTestRegistry 单例中 ScriptGameTestFunction 持有的 JS 回调句柄
+ *    （registry 跨用例/进程退出常驻，不在 forceClearAllInstances 范围；不释放则引擎销毁后 registry
+ *    析构 function 时对已死 JSContext 调 JS_FreeValue 崩溃）。
+ * 顺序保证：步骤 1-3 时脚本上下文仍有效，releaseValue 安全。
  */
 void cleanupServerGameTest()
 {
     mc::test::GameTestTicker::instance().forceStop();
     mc::test::GameTestCommand::forceClearAllInstances();
-    spdlog::info("[GameTest] ticker + instances cleared before server shutdown");
+    mc::test::GameTestRegistry::instance().releaseAllScriptResources();
+    spdlog::info("[GameTest] ticker + instances + script resources cleared before server shutdown");
 }
 
 std::atomic<bool> g_shouldExit{false};

@@ -31,6 +31,19 @@ namespace mc::test {
 // 全限定别名，规避 mc::test 内非限定名两段查找不回退 mc::world 的遮蔽坑（见 BossBarState 内存）
 using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 
+namespace {
+// 规范化实体类型名：基岩行为包用短名（如 "fox"），项目注册表用全名 "minecraft:fox"。
+// 无命名空间前缀时补 "minecraft:"，使 spawn/assert 能查到对应实体类型。
+// 已含 ":" 前缀（如 "minecraft:fox" 或其他命名空间）原样返回。
+std::string normalizeEntityType(const std::string& name)
+{
+    if (name.find(':') == std::string::npos) {
+        return "minecraft:" + name;
+    }
+    return name;
+}
+} // namespace
+
 GameTestHelper::GameTestHelper(
     mc::server::ServerWorld& world, BlockPos origin, const StructureBounds* bounds, BaseGameTestInstance& instance)
     : m_world(world)
@@ -245,12 +258,13 @@ GameTestResult GameTestHelper::assertIsWaterlogged(BlockPos relativePos, bool is
 GameTestResult GameTestHelper::assertEntityPresent(
     const std::string& entityType, BlockPos relativePos, f32 searchDistance, bool isPresent)
 {
+    const auto fullType = normalizeEntityType(entityType);
     const BlockPos worldPos = worldBlockPosition(relativePos);
     const mc::Vector3 center = worldPos.toVector3();
     const auto found = m_world.getEntitiesInRange(center, searchDistance, nullptr);
     bool present = false;
     for (const auto* e : found) {
-        if (e != nullptr && e->getTypeId() == entityType) {
+        if (e != nullptr && e->getTypeId() == fullType) {
             present = true;
             break;
         }
@@ -265,6 +279,7 @@ GameTestResult GameTestHelper::assertEntityPresent(
 
 GameTestResult GameTestHelper::assertEntityPresentInArea(const std::string& entityType, bool isPresent)
 {
+    const auto fullType = normalizeEntityType(entityType);
     if (m_bounds == nullptr) {
         return GameTestError{GameTestErrorType::MethodNotImplemented, "Structure bounds unavailable for area query"};
     }
@@ -278,9 +293,11 @@ GameTestResult GameTestHelper::assertEntityPresentInArea(const std::string& enti
     const auto found = m_world.getEntitiesInAABB(box, nullptr);
     bool present = false;
     for (const auto* e : found) {
-        if (e != nullptr && e->getTypeId() == entityType) {
-            present = true;
-            break;
+        if (e != nullptr) {
+            if (e->getTypeId() == fullType) {
+                present = true;
+                break;
+            }
         }
     }
     if (present != isPresent) {
@@ -329,13 +346,14 @@ GameTestResult GameTestHelper::assertEntityInstancePresentInArea(const mc::Entit
 GameTestResult GameTestHelper::assertEntityTouching(
     const std::string& entityType, const mc::math::Vector3d& position, bool isTouching)
 {
+    const auto fullType = normalizeEntityType(entityType);
     // 以 position 为中心建 1x1x1 查询盒，intersects 判定接触
     const mc::Vector3 centerF = position.cast<f32>();
     const AxisAlignedBB box = AxisAlignedBB::fromPosition(centerF, 0.0f, 0.0f).grow(0.5f);
     const auto found = m_world.getEntitiesInAABB(box, nullptr);
     bool touching = false;
     for (const auto* e : found) {
-        if (e != nullptr && e->getTypeId() == entityType && e->boundingBox().intersects(box)) {
+        if (e != nullptr && e->getTypeId() == fullType && e->boundingBox().intersects(box)) {
             touching = true;
             break;
         }
@@ -396,7 +414,8 @@ GameTestResult GameTestHelper::killAllEntities()
 GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity)
 {
     outEntity = nullptr;
-    const auto* type = mc::entity::EntityRegistry::instance().getType(entityType);
+    const auto fullType = normalizeEntityType(entityType);
+    const auto* type = mc::entity::EntityRegistry::instance().getType(fullType);
     if (type == nullptr) {
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Unknown entity type '{0}'", {entityType}};
