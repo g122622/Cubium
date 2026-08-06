@@ -28,6 +28,7 @@
 
 #include <string>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -37,9 +38,12 @@ using mc::mod::bedrock::addon::ScriptObjectRegistry;
 namespace {
 
 // 取当前 JS builder 对象持有的 C++ ScriptRegistrationBuilder*；失败 throw。
+// classId 从 ScriptBindingRegistry 取（注册期 setRegistrationBuilderClassId 注入），
+// 不可用默认 0——JS_GetOpaque2 要求 val 的 class_id 严格等于传入 classId，传 0 必不匹配。
 ScriptRegistrationBuilder* _requireBuilder(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal)
 {
-    auto* b = static_cast<ScriptRegistrationBuilder*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+    const u64 classId = ScriptBindingRegistry::instance().registrationBuilderClassId();
+    auto* b = static_cast<ScriptRegistrationBuilder*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
     if (b == nullptr) {
         // JS 侧已抛异常；C++ 控制流继续返回 nullptr 占位，调用方须判空并 return。
         static_cast<void>(ctx.throwTypeError("Invalid RegistrationBuilder"));
@@ -47,10 +51,11 @@ ScriptRegistrationBuilder* _requireBuilder(mc::mod::bedrock::addon::IScriptBindi
     return b;
 }
 
-// 链式方法统一返回 thisVal（JS builder 对象自身）以维持链式。
-void* _chainReturn(void* thisVal)
+// 链式方法返回 thisVal 的独立句柄（Dup 过的），不可直接返回 thisVal——thisVal 所有权属 trampoline
+// （methodTrampoline 会 FreeValue+delete thisHandle），直接返回会致 use-after-free/double-free。
+void* _chainReturn(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal)
 {
-    return thisVal;
+    return ctx.dupValue(thisVal);
 }
 
 // 通用单 string 链式方法辅助。
@@ -72,7 +77,7 @@ void* _applyStringChain(mc::mod::bedrock::addon::IScriptBindingContext& ctx,
         return ctx.throwInternalError("Failed to read string argument");
     }
     (b->*method)(std::move(*s));
-    return _chainReturn(thisVal);
+    return _chainReturn(ctx, thisVal);
 }
 
 // 通用单 i32 链式方法辅助。
@@ -94,7 +99,7 @@ void* _applyIntChain(mc::mod::bedrock::addon::IScriptBindingContext& ctx,
         return ctx.throwTypeError("expected a finite integer");
     }
     (b->*method)(*n);
-    return _chainReturn(thisVal);
+    return _chainReturn(ctx, thisVal);
 }
 
 // 通用单 bool 链式方法辅助。
@@ -116,7 +121,7 @@ void* _applyBoolChain(mc::mod::bedrock::addon::IScriptBindingContext& ctx,
         return ctx.throwTypeError("expected a boolean");
     }
     (b->*method)(*v);
-    return _chainReturn(thisVal);
+    return _chainReturn(ctx, thisVal);
 }
 
 } // namespace
@@ -127,6 +132,8 @@ u64 registerRegistrationBuilderClassBinding(
     u64 classId = ScriptObjectRegistry::allocateClassId(ctx);
     void* proto = builder.exportClass("RegistrationBuilder", classId);
     ScriptBindingRegistry::instance().registerProto(classId, proto);
+    // 供链式方法回调 _requireBuilder 经 getOpaque(thisVal, classId) 取 C++ builder。
+    ScriptBindingRegistry::instance().setRegistrationBuilderClassId(classId);
 
     ClassRegistrar<void> reg(ctx, classId, proto);
 

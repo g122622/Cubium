@@ -58,6 +58,7 @@ static std::unordered_map<const QuickJSContext*,
 QuickJSContext::QuickJSContext(QuickJSRuntime& runtime, const ContextConfig& config)
     : m_runtime(runtime)
     , m_config(config)
+    , m_moduleLoader(std::make_unique<QuickJSModuleLoader>())
 {}
 
 QuickJSContext::~QuickJSContext()
@@ -84,6 +85,7 @@ QuickJSContext::QuickJSContext(QuickJSContext&& other) noexcept
     , m_moduleName(std::move(other.m_moduleName))
     , m_globalFunctions(std::move(other.m_globalFunctions))
     , m_bindingContext(std::move(other.m_bindingContext))
+    , m_moduleLoader(std::move(other.m_moduleLoader))
 {
     // 更新全局回调注册表中的指针
     {
@@ -118,6 +120,7 @@ QuickJSContext& QuickJSContext::operator=(QuickJSContext&& other) noexcept
         m_moduleName = std::move(other.m_moduleName);
         m_globalFunctions = std::move(other.m_globalFunctions);
         m_bindingContext = std::move(other.m_bindingContext);
+        m_moduleLoader = std::move(other.m_moduleLoader);
 
         // 更新全局回调注册表中的指针
         {
@@ -149,8 +152,11 @@ bool QuickJSContext::initialize()
         return false;
     }
 
-    // 注册模块加载器
-    JS_SetModuleLoaderFunc(rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, this);
+    // 注册模块加载器：opaque 指向本上下文持有的 m_moduleLoader（相对路径 JS 模块经此加载源码）。
+    // 注意 JS_SetModuleLoaderFunc 是 runtime 级注册，多 context 共享同一 runtime 时后注册者覆盖前者；
+    // 当前每插件独立 runtime 故无此问题。@minecraft/* 原生模块由 createContext 的依赖循环预注册，不走此回调。
+    JS_SetModuleLoaderFunc(
+        rt, QuickJSModuleLoader::moduleNormalize, QuickJSModuleLoader::moduleLoader, m_moduleLoader.get());
 
     m_valid = true;
     spdlog::info("[BedrockAddon] QuickJS context initialized");
@@ -171,11 +177,46 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
         evalFlags = JS_EVAL_TYPE_MODULE;
     }
 
+    // QuickJS 栈溢出检查：rt->stack_limit = rt->stack_top - rt->stack_size。
+    // stack_top 在 JS_NewRuntime 时记录（调用点 sp），stack_size 默认 4MB。
+    // Windows 默认主线程栈仅 1MB，stack_top（~1.4MB 低地址）< stack_size（4MB）致
+    // stack_top - stack_size 无符号下溢成巨大值，sp<stack_limit 恒真，误报栈溢出。
+    // 根因修复在链接期把 exe 主线程栈提升到 16MB（见 src/{server,client}/CMakeLists.txt /STACK），
+    // 此处不再调 JS_UpdateStackTop（在深栈刷新会让 stack_top 变小，反而加剧下溢）。
     JSValue val = JS_Eval(m_context, source.c_str(), source.size(), filename.c_str(), evalFlags);
 
     if (JS_IsException(val)) {
         JS_FreeValue(m_context, val);
         return _exceptionToResult();
+    }
+
+    // quickjs-ng 模块求值（JS_EVAL_TYPE_MODULE）返回模块的 Promise（js_evaluate_module 内部
+    // JS_NewPromiseCapability），模块体的同步异常被 reject 进 Promise 而非同步抛出，JS_Eval 不返回
+    // EXCEPTION。故模块模式下须查 Promise 状态：Rejected 取 reason 报错（否则模块体异常被静默吞掉，
+    // 入口"成功"但 register 等从未执行）；Pending 则推进 pending jobs 至 settle（顶层 await 场景）。
+    if (evalFlags == JS_EVAL_TYPE_MODULE && JS_IsPromise(val)) {
+        // 推进 pending jobs 直至 Promise settle 或无更多 job。同步模块体立即 settle，循环 0 次。
+        // TODO: 顶层 await 的长时异步模块需设上限避免无限等待，当前行为包入口均为同步。
+        JSPromiseStateEnum state = JS_PromiseState(m_context, val);
+        JSRuntime* rt = JS_GetRuntime(m_context);
+        while (state == JS_PROMISE_PENDING && JS_IsJobPending(rt)) {
+            JSContext* pctx = nullptr;
+            int jobRet = JS_ExecutePendingJob(rt, &pctx);
+            if (jobRet <= 0) {
+                break; // 无更多 job 或 job 自身抛错
+            }
+            state = JS_PromiseState(m_context, val);
+        }
+
+        if (state == JS_PROMISE_REJECTED) {
+            JSValue reason = JS_PromiseResult(m_context, val);
+            ScriptResult err = _valueToErrorResult(reason);
+            JS_FreeValue(m_context, reason);
+            JS_FreeValue(m_context, val);
+            return err;
+        }
+        // Fulfilled 或仍 Pending（异步模块未完成）：视为成功，返回 undefined。
+        // 异步模块的最终结果由后续 pending job 驱动（GameTest register 在模块体同步阶段已完成）。
     }
 
     ScriptValue result = _jsValueToScriptValue(val);
@@ -435,6 +476,13 @@ bool QuickJSContext::registerNativeModule(
     return true;
 }
 
+void QuickJSContext::setModuleSourceProvider(QuickJSModuleLoader::ModuleSourceProvider provider)
+{
+    if (m_moduleLoader) {
+        m_moduleLoader->setModuleSourceProvider(std::move(provider));
+    }
+}
+
 bool QuickJSContext::setGlobalVariable(const std::string& name, const ScriptValue& value)
 {
     if (!m_valid || !m_context) {
@@ -481,30 +529,40 @@ ScriptResult QuickJSContext::_exceptionToResult()
     }
 
     JSValue exception = JS_GetException(m_context);
-    if (!JS_IsError(exception)) {
-        JS_FreeValue(m_context, exception);
-        return ScriptResult::error("Unknown exception");
-    }
-
-    // 获取错误消息
-    const char* msg = JS_ToCString(m_context, exception);
-    std::string message = msg ? msg : "Unknown error";
-    JS_FreeCString(m_context, msg);
-
-    // 获取堆栈跟踪
-    JSValue stack = JS_GetPropertyStr(m_context, exception, "stack");
-    if (!JS_IsUndefined(stack)) {
-        const char* stackStr = JS_ToCString(m_context, stack);
-        if (stackStr && stackStr[0] != '\0') {
-            message += "\nStack:\n";
-            message += stackStr;
-        }
-        JS_FreeCString(m_context, stackStr);
-    }
-    JS_FreeValue(m_context, stack);
-
+    ScriptResult result = _valueToErrorResult(exception);
     JS_FreeValue(m_context, exception);
+    return result;
+}
 
+ScriptResult QuickJSContext::_valueToErrorResult(JSValueConst value)
+{
+    if (!m_context) {
+        return ScriptResult::error("Unknown error: context is null");
+    }
+    // 即便不是标准 Error 对象（如栈溢出可能抛 RangeError），也尝试取 message/stack。
+    std::string message = "Unknown error";
+    if (JS_IsError(value) || JS_IsObject(value)) {
+        const char* msg = JS_ToCString(m_context, value);
+        if (msg && msg[0] != '\0') {
+            message = msg;
+        }
+        JS_FreeCString(m_context, msg);
+
+        // 获取堆栈跟踪
+        JSValue stack = JS_GetPropertyStr(m_context, value, "stack");
+        if (!JS_IsUndefined(stack) && !JS_IsNull(stack)) {
+            const char* stackStr = JS_ToCString(m_context, stack);
+            if (stackStr && stackStr[0] != '\0') {
+                message += "\nStack:\n";
+                message += stackStr;
+            }
+            JS_FreeCString(m_context, stackStr);
+        }
+        JS_FreeValue(m_context, stack);
+    } else {
+        // 非 object（如 null/undefined）：输出 tag 以辅助诊断
+        message += " (tag=" + std::to_string(JS_VALUE_GET_TAG(value)) + ")";
+    }
     return ScriptResult::error(std::move(message));
 }
 

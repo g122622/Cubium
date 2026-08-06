@@ -277,3 +277,20 @@ set_target_properties(minecraft-server PROPERTIES
     OUTPUT_NAME "minecraft-server"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+# Windows 默认主线程栈仅 1MB，而 QuickJS 栈溢出检查按 stack_top - stack_size 计算 stack_limit，
+# stack_size 默认 4MB。1MB 栈下 stack_top（sp）远小于 4MB，stack_top - stack_size 无符号下溢成
+# 巨大值，致使 js_check_stack_overflow 的 sp < stack_limit 恒真，模块编译/链接阶段即误报
+# "Maximum call stack size exceeded"。故 Windows 下把主线程栈保留空间提升到 16MB，
+# 让 4MB 递归预算不再下溢且有充足余量（quickjs-ng 自身对其 qjsc 工具亦设 8MB，同理）。
+# 编译器为 clang.exe（非 clang-cl），MSVC 变量为 false，须按 Clang+lld-link 分支用 -Xlinker。
+# macOS/Linux 默认栈 8MB 无此问题。
+if(WIN32)
+    if(MSVC)
+        target_link_options(minecraft-server PRIVATE /STACK:16777216)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MINGW)
+        target_link_options(minecraft-server PRIVATE -Xlinker /STACK:16777216)
+    else()
+        target_link_options(minecraft-server PRIVATE -Wl,--stack,16777216)
+    endif()
+endif()

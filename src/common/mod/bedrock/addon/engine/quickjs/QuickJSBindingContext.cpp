@@ -367,6 +367,18 @@ void QuickJSBindingContext::releaseValue(void* value)
     }
 }
 
+void* QuickJSBindingContext::dupValue(void* value)
+{
+    if (!value) {
+        return nullptr;
+    }
+    // 新建独立 handle，JSValue 是入参的 Dup（refcount+1）。入参 handle 所有权不变。
+    // 用于回调返回值复用入参句柄（如链式方法返回 this）：trampoline 释放入参 handle 后，
+    // 本句柄仍持有独立引用，避免 use-after-free / double-free。
+    const auto* src = static_cast<JSValue*>(value);
+    return new JSValue(JS_DupValue(m_ctx, *src));
+}
+
 // ===== 对象opaque管理 =====
 
 void QuickJSBindingContext::setOpaque(void* obj, void* data, u64 classId)
@@ -433,7 +445,12 @@ std::string QuickJSBindingContext::getExceptionMessage(void* exception) const
 u64 QuickJSBindingContext::allocateClassId()
 {
     JSRuntime* rt = JS_GetRuntime(m_ctx);
-    JSClassID id = 1;
+    // 必须传 0：JS_NewClassID 仅当 *pclass_id==0 时才从 rt->js_class_id_alloc 分配新 id
+    // （起始值=JS_CLASS_INIT_COUNT，避开内置类）。若传非 0（如 1），函数原样返回该值，
+    // 不会分配——class_id=1 落在内置类区间（< JS_CLASS_INIT_COUNT），JS_SetOpaque 会因
+    // "User code can't set the opaque of internal objects" 静默失败，opaque 永远 NULL，
+    // 后续 JS_GetOpaque2 全部返回 nullptr，对象方法回调取不到 C++ 指针。
+    JSClassID id = 0;
     return static_cast<u64>(JS_NewClassID(rt, &id));
 }
 
@@ -451,7 +468,12 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
 
     if (hasFinalizer) {
         classDef.finalizer = [](JSRuntime* rt, JSValue val) {
-            auto* data = static_cast<ScriptObjectRegistry::ObjectData*>(JS_GetOpaque(val, 0));
+            // finalizer 在对象 GC 时触发，此时已无法知道 classId（lambda 无捕获）。
+            // JS_GetOpaque(val, 0) 要求 class_id==0，但动态类 class_id 非 0 会返回 NULL，
+            // 致 ObjectData 泄漏、destroy 回调不触发（如 RegistrationBuilder 的测试提交）。
+            // 改用 JS_GetAnyOpaque 取任意 class 的 opaque，不依赖 classId 匹配。
+            JSClassID cid = 0;
+            auto* data = static_cast<ScriptObjectRegistry::ObjectData*>(JS_GetAnyOpaque(val, &cid));
             if (data) {
                 if (data->owned && data->ptr && data->destroy) {
                     data->destroy(data->ptr);
@@ -461,14 +483,20 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
         };
     }
 
-    return JS_NewClass(rt, jsClassId, &classDef) >= 0;
+    int ncRet = JS_NewClass(rt, jsClassId, &classDef);
+    return ncRet >= 0;
 }
 
 void* QuickJSBindingContext::createClassProto(u64 classId)
 {
     JSValue proto = JS_NewObject(m_ctx);
+    // JS_SetClassProto 通过 set_value 把传入引用"转移"进 ctx->class_proto[classId]（GC 根数组），
+    // 不做 Dup。若直接返回 wrapValue(proto)，句柄与根共享同一份引用（refcount=1），
+    // 调用方按"owned 句柄"契约 releaseValue 会让 refcount 提前归零释放对象，
+    // 致 class_proto[classId] 悬垂——后续 GC 遍历 gc_obj_list 访问该悬垂对象即崩。
+    // 故此处 Dup 出一份独立引用供句柄持有：根 1 份 + 句柄 1 份，调用方 release 句柄时根仍保活。
     JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
-    return wrapValue(proto);
+    return wrapValue(JS_DupValue(m_ctx, proto));
 }
 
 void QuickJSBindingContext::registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length)
@@ -501,7 +529,7 @@ void QuickJSBindingContext::registerNativeProperty(
 
 bool QuickJSBindingContext::createNativeModule(const std::string& moduleName)
 {
-    auto* module = JS_NewCModule(m_ctx, moduleName.c_str(), [](JSContext*, JSModuleDef*) -> int { return 0; });
+    auto* module = JS_NewCModule(m_ctx, moduleName.c_str(), _moduleInit);
     if (!module) {
         spdlog::error("[BedrockAddon] Failed to create native module: {}", moduleName);
         return false;
@@ -509,6 +537,7 @@ bool QuickJSBindingContext::createNativeModule(const std::string& moduleName)
     m_module = module;
     m_moduleName = moduleName;
     m_moduleFinalized = false;
+    m_pendingExports.clear();
     return true;
 }
 
@@ -519,7 +548,8 @@ bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* 
     JS_AddModuleExport(m_ctx, module, name.c_str());
     JSValue fn =
         JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<int>(length));
-    JS_SetModuleExport(m_ctx, module, name.c_str(), fn);
+    // 值暂存：SetModuleExport 推迟到 _moduleInit（import 时 var_ref 建好后再设）。
+    m_pendingExports.emplace_back(name, fn);
     return true;
 }
 
@@ -528,7 +558,7 @@ bool QuickJSBindingContext::exportNativeConst(const std::string& name, i32 value
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    JS_SetModuleExport(m_ctx, module, name.c_str(), JS_NewInt32(m_ctx, value));
+    m_pendingExports.emplace_back(name, JS_NewInt32(m_ctx, value));
     return true;
 }
 
@@ -537,7 +567,7 @@ bool QuickJSBindingContext::exportNativeConstFloat(const std::string& name, f64 
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    JS_SetModuleExport(m_ctx, module, name.c_str(), JS_NewFloat64(m_ctx, value));
+    m_pendingExports.emplace_back(name, JS_NewFloat64(m_ctx, value));
     return true;
 }
 
@@ -546,7 +576,7 @@ bool QuickJSBindingContext::exportNativeConstString(const std::string& name, con
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    JS_SetModuleExport(m_ctx, module, name.c_str(), JS_NewStringLen(m_ctx, value.c_str(), value.size()));
+    m_pendingExports.emplace_back(name, JS_NewStringLen(m_ctx, value.c_str(), value.size()));
     return true;
 }
 
@@ -555,8 +585,25 @@ bool QuickJSBindingContext::exportNativeValue(const std::string& name, void* val
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    JS_SetModuleExport(m_ctx, module, name.c_str(), unwrapValue(value));
+    // value 是 wrapValue 的 JSValue*（引用计数 1）；Dup 一份供 pending 持有，调用者仍持有原引用
+    // （exportClass 在 exportNativeValue 后会 releaseValue 释放原引用，pending 的 Dup 不受影响）。
+    m_pendingExports.emplace_back(name, JS_DupValue(m_ctx, *static_cast<JSValue*>(value)));
     return true;
+}
+
+int QuickJSBindingContext::_moduleInit(JSContext* ctx, JSModuleDef* m)
+{
+    auto* bindingCtx = fromJsContext(ctx);
+    if (bindingCtx == nullptr) {
+        return -1;
+    }
+    // 此时 js_create_module_function 已为每个 AddModuleExport 声明的导出建好 var_ref，
+    // 可安全 SetModuleExport 填值。SetModuleExport 会接管值的引用（pending 持有的 Dup 份需释放）。
+    for (auto& [name, value] : bindingCtx->m_pendingExports) {
+        JS_SetModuleExport(ctx, m, name.c_str(), value);
+    }
+    bindingCtx->m_pendingExports.clear();
+    return 0;
 }
 
 bool QuickJSBindingContext::finalizeModule()

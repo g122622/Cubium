@@ -65,7 +65,7 @@ u64 registerSequenceClassBinding(
             }
             ctx.retainValue(args[0]);
             seq->thenExecute(wrapJsCallback(&ctx, args[0]));
-            return thisVal; // 链式返回自身
+            return ctx.dupValue(thisVal); // 链式返回自身（Dup 独立句柄，避免 trampoline 释放 thisHandle 后悬垂）
         },
         1);
 
@@ -86,7 +86,7 @@ u64 registerSequenceClassBinding(
             }
             ctx.retainValue(args[1]);
             seq->thenExecuteAfter(*delay, wrapJsCallback(&ctx, args[1]));
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         2);
 
@@ -107,7 +107,7 @@ u64 registerSequenceClassBinding(
             }
             ctx.retainValue(args[1]);
             seq->thenExecuteFor(*tc, wrapJsCallback(&ctx, args[1]));
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         2);
 
@@ -127,7 +127,7 @@ u64 registerSequenceClassBinding(
                 return ctx.throwTypeError("delayTicks must be number");
             }
             seq->thenIdle(*d);
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         1);
 
@@ -140,7 +140,7 @@ u64 registerSequenceClassBinding(
                 return ctx.throwTypeError("Invalid GameTestSequence");
             }
             seq->thenSucceed();
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         0);
 
@@ -160,7 +160,7 @@ u64 registerSequenceClassBinding(
                 }
             }
             seq->thenFail(GameTestError(GameTestErrorType::FailConditionsMet, std::move(msg)));
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         1);
 
@@ -178,7 +178,7 @@ u64 registerSequenceClassBinding(
             }
             ctx.retainValue(args[0]);
             seq->thenWait(wrapJsCallback(&ctx, args[0]));
-            return thisVal; // 链式返回自身
+            return ctx.dupValue(thisVal); // 链式返回自身
         },
         1);
 
@@ -199,7 +199,7 @@ u64 registerSequenceClassBinding(
             }
             ctx.retainValue(args[1]);
             seq->thenWaitAfter(*delay, wrapJsCallback(&ctx, args[1]));
-            return thisVal;
+            return ctx.dupValue(thisVal);
         },
         2);
 

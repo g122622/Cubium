@@ -161,10 +161,19 @@ public:
 
     // ===== 引用管理 =====
 
-    /** 增加引用计数（用于持久化值，如回调函数） */
+    /** 增加引用计数（用于持久化值，如回调函数）；不新建句柄，仍引用同一 handle */
     virtual void retainValue(void* value) = 0;
     /** 减少引用计数并释放 */
     virtual void releaseValue(void* value) = 0;
+    /**
+     * @brief 复制句柄：新建一个独立 handle，其 JSValue 是 value 的 Dup（refcount+1）。
+     *
+     * 用于回调返回值需复用入参句柄的场景（如链式方法返回 this）。入参 handle 的所有权仍属调用方
+     * （trampoline 会释放它），返回的新 handle 所有权归调用方——二者独立，避免 double-free。
+     * 与 retainValue 区别：retainValue 不新建 handle（仍同一指针），无法解决 trampoline
+     * 释放入参 handle 后返回值悬垂的问题。
+     */
+    [[nodiscard]] virtual void* dupValue(void* value) = 0;
 
     // ===== 对象opaque管理 =====
 

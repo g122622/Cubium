@@ -29,12 +29,14 @@
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
 #include "common/mod/bedrock/addon/core/ScriptData.hpp"
 #include "common/mod/bedrock/addon/core/ScriptResult.hpp"
+#include "common/mod/bedrock/addon/engine/quickjs/QuickJSModuleLoader.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <quickjs.h>
 
 struct JSContext;
 struct JSValue;
@@ -125,6 +127,17 @@ public:
      */
     bool registerNativeModule(const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc);
 
+    /**
+     * @brief 设置模块源码提供者
+     *
+     * 当 JS 代码 `import "./utils"` 等相对路径模块时，QuickJS 经 moduleLoader 回调（opaque 指向本上下文的
+     * m_moduleLoader）调用此处设置的 provider 获取源码。由 QuickJSEngine::createContext 在创建上下文后、
+     * 执行 entry point 前注入，通常转发 IDependencyLoader::loadScript。
+     *
+     * @param provider 源码提供者回调（返回空字符串表示模块不存在）。
+     */
+    void setModuleSourceProvider(QuickJSModuleLoader::ModuleSourceProvider provider);
+
 private:
     QuickJSRuntime& m_runtime;
     ContextConfig m_config;
@@ -133,11 +146,22 @@ private:
     std::string m_moduleName;
     std::unordered_map<std::string, std::function<ScriptValue(const std::vector<ScriptValue>&)>> m_globalFunctions;
     std::unique_ptr<class QuickJSBindingContext> m_bindingContext;
+    // 模块加载器：处理相对路径 JS 模块的源码加载（@minecraft/* 原生模块由 createContext 的依赖循环预注册，
+    // 不走此 loader）。unique_ptr 持有因其含 std::mutex 不可移动，而本上下文需支持移动语义。
+    std::unique_ptr<QuickJSModuleLoader> m_moduleLoader;
 
     /**
      * @brief 将ScriptException转换为ScriptResult
      */
     [[nodiscard]] ScriptResult _exceptionToResult();
+
+    /**
+     * @brief 将任意 JSValue（如 Promise reject reason）转换为错误 ScriptResult
+     *
+     * 复用 _exceptionToResult 的 message/stack 提取逻辑，但不调用 JS_GetException
+     * （reason 由调用方提供，不持有 context 的 current_exception）。
+     */
+    [[nodiscard]] ScriptResult _valueToErrorResult(JSValueConst value);
 
     /**
      * @brief 将JSValue转换为ScriptValue

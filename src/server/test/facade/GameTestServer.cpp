@@ -116,6 +116,13 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
         spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
     }
 
+    // 加载行为包：必须在 GameTest 模块工厂注册之后（否则 import "@minecraft/server-gametest" 失败）。
+    // 行为包内的 gametest.register(...) 调用在此阶段执行，把 JS 测试注册进 GameTestRegistry，
+    // 随后 _selectAndBuildRunner 才能选到这些测试。失败仅 warn 不阻断（缺包时仍可跑原生内置测试）。
+    if (auto packResult = loadBehaviorPacks(); packResult.failed()) {
+        spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
+    }
+
     // 加载 OP 列表（allowCommands=true 时 GameTestServer 自身需 OP 权限执行 /gametest）
     if (m_gameDirectory.isValid()) {
         const auto opsPath = m_gameDirectory.root() / "ops.json";

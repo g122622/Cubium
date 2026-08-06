@@ -73,6 +73,16 @@ public:
     [[nodiscard]] u64 testClassId() const noexcept { return m_testClassId; }
 
     /**
+     * @brief 设置 RegistrationBuilder 类 classId（注册期 `registerRegistrationBuilderClassBinding` 后调）。
+     *
+     * RegistrationBuilder 的链式方法（maxTicks/structureName 等）回调经此 classId 调
+     * `getOpaque(thisVal, classId)` 取 C++ builder；classId 默认 0 会让 JS_GetOpaque2 因
+     * class_id 不匹配返回 nullptr（见 JS_GetOpaque 的 p->class_id != class_id 判定）。
+     */
+    void setRegistrationBuilderClassId(u64 classId) noexcept { m_registrationBuilderClassId = classId; }
+    [[nodiscard]] u64 registrationBuilderClassId() const noexcept { return m_registrationBuilderClassId; }
+
+    /**
      * @brief 注入脚本调度器（`GameTestModuleBinding::setScheduler` 转调）。
      *
      * `ScriptTestHelper::idle(ticks)` 用 `scheduler->runTimeout` 在指定 tick 后 resolve Promise，
@@ -91,6 +101,7 @@ private:
 
     std::unordered_map<u64, void*> m_protos;
     u64 m_testClassId = 0;
+    u64 m_registrationBuilderClassId = 0;
     mc::mod::bedrock::addon::ScriptScheduler* m_scheduler = nullptr;
 };
 

@@ -105,6 +105,8 @@ public:
         return mc::Error(mc::ErrorCode::Unsupported, "GameTestServer does not support LAN publishing");
     }
 
+    [[nodiscard]] const mc::GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
+
     // ========== GameTestServer 特有接口 ==========
 
     /**

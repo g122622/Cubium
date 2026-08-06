@@ -3,6 +3,7 @@
 #include "common/test/framework/function/BaseGameTestFunction.hpp"
 
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
@@ -21,6 +22,7 @@ bool GameTestRegistry::registerTestMethod(const std::string& className, std::sha
     if (m_byName.find(testName) != m_byName.end()) {
         return false; // 同名已存在
     }
+    spdlog::info("[GameTest] Registered test '{}.{}' (structure={})", className, testName, fn->structureName());
     m_byName[testName] = fn;
     m_byClass[className].push_back(std::move(fn));
     return true;

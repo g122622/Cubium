@@ -36,20 +36,29 @@ AddonDependency AddonDependency::fromJson(const nlohmann::json& j)
 {
     AddonDependency dep;
 
-    // 解析UUID
+    // 解析包依赖的 UUID
     if (j.contains("uuid") && j["uuid"].is_string()) {
         dep.uuid = j["uuid"].get<std::string>();
     }
 
-    // 解析版本
-    if (j.contains("version") && j["version"].is_array()) {
-        std::vector<i32> versionParts;
-        for (const auto& part : j["version"]) {
-            if (part.is_number_integer()) {
-                versionParts.push_back(part.get<i32>());
+    // 解析模块依赖的 module_name（如 "@minecraft/server"）
+    if (j.contains("module_name") && j["module_name"].is_string()) {
+        dep.moduleName = j["module_name"].get<std::string>();
+    }
+
+    // 解析版本：包依赖用数组 [major,minor,patch]，模块依赖用字符串 "1.13.0-beta"
+    if (j.contains("version")) {
+        if (j["version"].is_array()) {
+            std::vector<i32> versionParts;
+            for (const auto& part : j["version"]) {
+                if (part.is_number_integer()) {
+                    versionParts.push_back(part.get<i32>());
+                }
             }
+            dep.version = PackVersion::fromVector(versionParts);
+        } else if (j["version"].is_string()) {
+            dep.versionString = j["version"].get<std::string>();
         }
-        dep.version = PackVersion::fromVector(versionParts);
     }
 
     return dep;

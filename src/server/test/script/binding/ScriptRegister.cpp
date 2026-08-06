@@ -74,13 +74,14 @@ void* _doRegister(
 
     void* proto = ScriptBindingRegistry::instance().proto(registrationBuilderClassId);
     // owned=true + 自定义 destroy：GC 时 _destroyRegistrationBuilder 提交测试后 delete。
-    return ScriptObjectRegistry::wrap(ctx,
+    void* wrapped = ScriptObjectRegistry::wrap(ctx,
         registrationBuilderClassId,
         proto,
         cppBuilder,
         /*owned=*/true,
         "RegistrationBuilder",
         _destroyRegistrationBuilder);
+    return wrapped;
 }
 
 } // namespace
@@ -89,64 +90,67 @@ void registerTopLevelFunctions(mc::mod::bedrock::addon::NativeModuleBuilder& bui
     mc::mod::bedrock::addon::IScriptBindingContext& ctx,
     u64 registrationBuilderClassId)
 {
-    // 注册 `GameTest` 命名空间对象（对齐 @minecraft/server 的 system/world 全局对象模式）。
-    // TODO: 官方 API 是模块顶层自由函数 `register(...)`，本骨架因 exportNativeFunction 不支持捕获状态
-    //       的 std::function 而暂用命名空间对象 `gametest.register(...)`，待绑定基础设施扩展后迁回。
-    u64 namespaceClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    void* namespaceProto = builder.exportClass("GameTest", namespaceClassId);
-
-    ClassRegistrar<void> nsReg(ctx, namespaceClassId, namespaceProto);
+    // 对齐基岩官方 @minecraft/server-gametest API：register/registerAsync 等为模块顶层命名导出，
+    // JS 侧 `import { register } from "@minecraft/server-gametest"` 或 `import * as GameTest` 后
+    // `GameTest.register(...)` 均可。此前用 `gametest` 命名空间对象包裹与官方不符，且使
+    // `import * as GameTest; GameTest.register` 取到 undefined（register 挂在 gametest 对象上而非模块顶层）。
+    // 改用 createFunction（支持 std::function 捕获 registrationBuilderClassId）+ exportValue 顶层导出。
 
     // --- register(testClassName, testName, fn) -> RegistrationBuilder ---
-    nsReg.method(
-        "register",
+    void* registerFn = ctx.createFunction(
         [registrationBuilderClassId](
             mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
             return _doRegister(ctx, argc, args, registrationBuilderClassId);
         },
+        "register",
         3);
+    builder.exportValue("register", registerFn);
+    ctx.releaseValue(registerFn);
 
     // --- registerAsync(testClassName, testName, fn) -> RegistrationBuilder ---
     // registerAsync 与 register 统一走 _doRegister：JS 体返回 Promise 时由 ScriptGameTestFunction::run
     // 检测 isPromise 并返回 ScriptAsyncGameTestRunResult（轮询 Promise 状态）。二者皆允许 JS 体返回
     // Promise 或普通值，区别仅在文档语义（registerAsync 明示作者意图用 async/await）。
-    nsReg.method(
-        "registerAsync",
+    void* registerAsyncFn = ctx.createFunction(
         [registrationBuilderClassId](
             mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
             return _doRegister(ctx, argc, args, registrationBuilderClassId);
         },
+        "registerAsync",
         3);
+    builder.exportValue("registerAsync", registerAsyncFn);
+    ctx.releaseValue(registerAsyncFn);
 
     // --- setBeforeBatchCallback(batchName, fn) ---
     // TODO: 批次回调经 GameTestRegistry.registerBeforeBatchFunction 注册，需保留 JS 回调并在批次开始触发。
     //       第一阶段为骨架，暂不接线（throw InternalError 由调用方感知）。
-    nsReg.method(
-        "setBeforeBatchCallback",
+    void* setBeforeBatchFn = ctx.createFunction(
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
             -> void* { return ctx.throwInternalError("setBeforeBatchCallback not implemented yet"); },
+        "setBeforeBatchCallback",
         2);
+    builder.exportValue("setBeforeBatchCallback", setBeforeBatchFn);
+    ctx.releaseValue(setBeforeBatchFn);
 
     // --- setAfterBatchCallback(batchName, fn) ---
     // TODO: 同 setBeforeBatchCallback。
-    nsReg.method(
-        "setAfterBatchCallback",
+    void* setAfterBatchFn = ctx.createFunction(
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
             -> void* { return ctx.throwInternalError("setAfterBatchCallback not implemented yet"); },
+        "setAfterBatchCallback",
         2);
+    builder.exportValue("setAfterBatchCallback", setAfterBatchFn);
+    ctx.releaseValue(setAfterBatchFn);
 
     // --- spawnSimulatedPlayer(name, location) -> SimulatedPlayer ---
     // TODO: 顶层 spawn 需当前测试上下文（与 Test.spawnSimulatedPlayer 不同，无 Test 对象），待接线。
-    nsReg.method(
-        "spawnSimulatedPlayer",
+    void* spawnSimulatedPlayerFn = ctx.createFunction(
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
             -> void* { return ctx.throwInternalError("spawnSimulatedPlayer not implemented yet"); },
+        "spawnSimulatedPlayer",
         2);
-
-    // 导出 GameTest 命名空间对象实例为模块顶层名 `gametest`。
-    void* namespaceObj = ScriptObjectRegistry::wrap(ctx, namespaceClassId, namespaceProto, nullptr, false, "GameTest");
-    builder.exportValue("gametest", namespaceObj);
-    ctx.releaseValue(namespaceObj);
+    builder.exportValue("spawnSimulatedPlayer", spawnSimulatedPlayerFn);
+    ctx.releaseValue(spawnSimulatedPlayerFn);
 }
 
 } // namespace mc::test

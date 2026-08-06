@@ -25,16 +25,59 @@
 #include "common/core/Result.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
+#include "common/mod/bedrock/addon/core/ModuleDependency.hpp"
 #include "common/mod/bedrock/addon/core/ModuleDescriptor.hpp"
+#include "common/mod/bedrock/addon/pack/AddonManifest.hpp"
 #include "common/mod/bedrock/addon/plugin/PluginExecutionGroup.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPackConfiguration.hpp"
 #include "common/mod/bedrock/addon/plugin/ScriptPluginSource.hpp"
 
+#include <cstdio>
 #include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
+
+namespace {
+
+/**
+ * @brief 从 manifest 的 dependencies 构造模块依赖列表。
+ *
+ * 仅提取原生模块依赖（module_name 形态，如 "@minecraft/server"），包间依赖（uuid 形态）由
+ * BehaviorPackList::resolveDependencies 处理，不在此列。这些模块依赖交给 IScriptEngine::createContext，
+ * 由其按 dep.name 查找已注册的 IModuleBindingFactory 并调 registerBindings，在 JS_Eval 之前用
+ * JS_NewCModule 预注册原生模块——否则 entry point 的 `import "@minecraft/server-gametest"` 会落到
+ * moduleLoader 回调（该回调只负责相对路径 JS 文件加载，不处理原生模块）。
+ */
+std::vector<ModuleDependency> _collectModuleDependencies(const AddonManifest& manifest)
+{
+    std::vector<ModuleDependency> deps;
+    deps.reserve(manifest.dependencies.size());
+    for (const auto& dep : manifest.dependencies) {
+        if (!dep.isModuleDependency()) {
+            continue;
+        }
+        ModuleDependency moduleDep;
+        moduleDep.name = dep.moduleName;
+        // 解析 "1.13.0-beta" → major=1, minor=13, patch=0, preRelease="beta"
+        const auto& v = dep.versionString;
+        i32 major = 0;
+        i32 minor = 0;
+        i32 patch = 0;
+        char dummy = 0;
+        if (std::sscanf(v.c_str(), "%d.%d.%d%c", &major, &minor, &patch, &dummy) >= 3) {
+            moduleDep.version = ModuleVersion{major, minor, patch};
+        }
+        if (const auto pos = v.find('-'); pos != std::string::npos) {
+            moduleDep.preRelease = v.substr(pos + 1);
+        }
+        deps.push_back(std::move(moduleDep));
+    }
+    return deps;
+}
+
+} // namespace
 
 ScriptPlugin::ScriptPlugin(std::string uuid, std::string name, std::string version, PluginExecutionGroup executionGroup)
     : m_uuid(std::move(uuid))
@@ -93,8 +136,16 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
     descriptor.uuid = m_uuid;
     descriptor.isRuntimeModule = false;
 
+    // 从 manifest 提取原生模块依赖（@minecraft/server 等），交给引擎在 createContext 时预注册，
+    // 否则 entry point 的 import 语句无法解析原生模块。
+    std::vector<ModuleDependency> moduleDeps;
+    auto* pluginSource = dynamic_cast<ScriptPluginSource*>(&source);
+    if (pluginSource) {
+        moduleDeps = _collectModuleDependencies(pluginSource->pack().manifest());
+    }
+
     // 创建脚本上下文
-    auto context = engine.createContext(descriptor, {}, source, printer);
+    auto context = engine.createContext(descriptor, moduleDeps, source, printer);
     if (!context) {
         m_state = State::Error;
         m_errorMessage = "Failed to create script context for plugin: " + m_name;
@@ -105,7 +156,6 @@ Result<void> ScriptPlugin::load(IScriptEngine& engine, IDependencyLoader& source
     m_context = std::move(context);
 
     // 加载入口脚本
-    auto* pluginSource = dynamic_cast<ScriptPluginSource*>(&source);
     if (pluginSource) {
         auto entryData = pluginSource->loadEntryPoint();
         if (entryData.has_value()) {

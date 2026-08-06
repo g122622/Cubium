@@ -105,6 +105,7 @@ public:
 
     void retainValue(void* value) override;
     void releaseValue(void* value) override;
+    [[nodiscard]] void* dupValue(void* value) override;
 
     // ===== 对象opaque管理 =====
 
@@ -216,6 +217,20 @@ private:
     std::string m_moduleName;
     bool m_moduleFinalized = false;
     void* m_contextData = nullptr;
+
+    /// 待设值的模块导出条目（name → JSValue）。
+    /// QuickJS 要求 JS_AddModuleExport 在 import 前（声明），JS_SetModuleExport 在 init 回调内（var_ref 建好后）。
+    /// 故 export* 只调 AddModuleExport 声明并把值暂存于此，由 _moduleInit 在模块被 import 时统一 SetModuleExport。
+    /// 暂存的 JSValue 经 JS_DupValue 持有，_moduleInit 消费或析构时释放。
+    std::vector<std::pair<std::string, JSValue>> m_pendingExports;
+
+    /**
+     * @brief C 模块 init 回调：模块被 import 时由 QuickJS 调用。
+     *
+     * 此时 js_create_module_function 已为每个 AddModuleExport 声明的导出建好 var_ref，
+     * 故在此遍历 m_pendingExports 调 JS_SetModuleExport 填值安全。
+     */
+    static int _moduleInit(JSContext* ctx, JSModuleDef* m);
 
     // ===== 回调trampoline存储 =====
     std::vector<ScriptMethodCallback> m_methodCallbacks;

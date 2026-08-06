@@ -677,6 +677,21 @@ set_target_properties(minecraft-client PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# Windows 默认主线程栈仅 1MB，QuickJS 栈检查按 stack_top - stack_size(4MB) 算 stack_limit，
+# 1MB 栈下 stack_top - 4MB 无符号下溢成巨大值，致 js_check_stack_overflow 误报栈溢出
+# （行为包 JS 入口编译阶段即 "Maximum call stack size exceeded"）。提升主线程栈到 16MB。
+# 编译器为 clang.exe（非 clang-cl），MSVC 变量为 false，须按 Clang+lld-link 分支用 -Xlinker。
+# 详见 src/server/CMakeLists.txt 同名注释。
+if(WIN32)
+    if(MSVC)
+        target_link_options(minecraft-client PRIVATE /STACK:16777216)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MINGW)
+        target_link_options(minecraft-client PRIVATE -Xlinker /STACK:16777216)
+    else()
+        target_link_options(minecraft-client PRIVATE -Wl,--stack,16777216)
+    endif()
+endif()
+
 # 依赖着色器编译
 if(TARGET compile_shaders)
     add_dependencies(minecraft-client compile_shaders)
