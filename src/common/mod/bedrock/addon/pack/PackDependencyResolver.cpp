@@ -83,6 +83,17 @@ PackDependencyResolver::ResolveResult PackDependencyResolver::resolve(
         const auto& manifest = pack->manifest();
 
         for (const auto& dep : manifest.dependencies) {
+            // 模块依赖（@minecraft/server 等）由脚本引擎内置提供，不参与包间依赖解析。
+            // 其 uuid 为空，若直接查 packByUuid 会误报 "Missing dependency requires UUID "。
+            // 版本字符串（如 "1.13.0-beta"）的兼容性由模块加载器在注册原生模块时校验，此处跳过。
+            if (dep.isModuleDependency()) {
+                spdlog::debug("[BedrockAddon] Module dependency: {} requires {} {}",
+                    pack->name(),
+                    dep.moduleName,
+                    dep.versionString.empty() ? std::string("(any)") : dep.versionString);
+                continue;
+            }
+
             auto it = packByUuid.find(dep.uuid);
             if (it == packByUuid.end()) {
                 // 依赖缺失
