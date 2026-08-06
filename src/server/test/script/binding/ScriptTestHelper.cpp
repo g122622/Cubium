@@ -28,7 +28,9 @@
 #include "common/test/base/error/GameTestError.hpp"
 #include "common/test/base/error/GameTestResult.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
-#include "common/world/IWorld.hpp" // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
+#include "common/util/Direction.hpp"    // Direction / Rotation
+#include "common/util/math/Vector3.hpp" // mc::math::Vector3d（worldPosition/rotateVector 等）
+#include "common/world/IWorld.hpp"      // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
@@ -87,6 +89,35 @@ bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* a
     }
     out = BlockPos(static_cast<i32>(*x), static_cast<i32>(*y), static_cast<i32>(*z));
     return true;
+}
+
+// 解析 Vector3 参数（JS 传 {x,y,z} 对象，浮点或整数均可）。供 worldLocation/rotateVector/
+// assertEntityTouching/spawnItem 等基岩 Vector3 语义方法使用（基岩 Test 类 location 统一为 Vector3）。
+bool _parseVector3(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, mc::math::Vector3d& out)
+{
+    if (!ctx.isObject(arg)) {
+        static_cast<void>(ctx.throwTypeError("Vector3 argument must be {x,y,z} object"));
+        return false;
+    }
+    auto x = ctx.getPropertyFloat(arg, "x");
+    auto y = ctx.getPropertyFloat(arg, "y");
+    auto z = ctx.getPropertyFloat(arg, "z");
+    if (!x || !y || !z) {
+        static_cast<void>(ctx.throwTypeError("Vector3 must have numeric x,y,z"));
+        return false;
+    }
+    out = mc::math::Vector3d(*x, *y, *z);
+    return true;
+}
+
+// 把 Vector3d 转成 JS {x,y,z} 对象（返回 owned 句柄）。
+void* _vector3ToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const mc::math::Vector3d& v)
+{
+    void* obj = ctx.createObject();
+    ctx.setPropertyFloat(obj, "x", v.x);
+    ctx.setPropertyFloat(obj, "y", v.y);
+    ctx.setPropertyFloat(obj, "z", v.z);
+    return obj;
 }
 
 } // namespace
@@ -602,7 +633,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         2);
 
     // --- worldLocation(pos) -> {x,y,z} ---
-    // 基岩 Test.worldLocation：相对坐标→世界绝对坐标。转发 helper->worldBlockPosition。
+    // 基岩 Test.worldLocation：相对 Vector3 位置→世界绝对 Vector3（考虑结构旋转）。转发 helper->worldPosition。
+    // 基岩 location 统一为 Vector3（浮点），与方块专用 worldBlockLocation 区分。
     reg.method(
         "worldLocation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -613,16 +645,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1) {
                 return ctx.throwTypeError("worldLocation(pos)");
             }
-            BlockPos pos;
-            if (!_parseBlockPos(ctx, args[0], pos)) {
+            mc::math::Vector3d pos;
+            if (!_parseVector3(ctx, args[0], pos)) {
                 return nullptr;
             }
-            BlockPos world = helper->worldBlockPosition(pos);
-            void* obj = ctx.createObject();
-            ctx.setPropertyInt(obj, "x", world.x);
-            ctx.setPropertyInt(obj, "y", world.y);
-            ctx.setPropertyInt(obj, "z", world.z);
-            return obj;
+            return _vector3ToJs(ctx, helper->worldPosition(pos));
         },
         1);
 
@@ -674,13 +701,605 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         0);
 
-    // TODO: 仍未桥接的方法（assertEntityPresent（已用于 succeedWhenEntityPresent 组合，未单独暴露 JS）/
-    // spawnItem/assertBlockState/destroyBlock/assertRedstonePower/assertIsWaterlogged/worldPosition/
-    // relativePosition/rotateVector/getTestDirection/succeedWhenBlockPresent/succeedIf/succeedOnTick/
-    // succeedOnTickWhen/failIf/runAfterDelay/runOnFinish/getBlock/relativeBlockLocation/worldBlockLocation/
-    // assertEntityInstancePresent/assertEntityInstancePresentInArea/assertEntityTouching/
-    // assertItemEntityPresent/assertItemEntityCountIs/spawnItemAt 等）行为包 0 使用，待按需补全。
-    // 另：spawn 返回值 Entity JS 对象、getDimension 返回 Dimension JS 对象已随阶段 3 补全。
+    // --- assertEntityPresent(entityType, pos, searchDistance=0, isPresent=true) ---
+    // 单独暴露（succeedWhenEntityPresent 组合内部已用，此处供测试体直接断言）。基岩 searchDistance 默认 0
+    // （只搜索单个方块），isPresent 默认 true。pos 为结构相对坐标（基岩 Vector3，此处按 BlockPos 整数解析，
+    // 与 assertEntityPresentInArea 等同族方法一致）。
+    reg.method(
+        "assertEntityPresent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("assertEntityPresent(entityType, pos, searchDistance?, isPresent?)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            f32 searchDistance = 0.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto d = ctx.toFloat64(args[2]);
+                if (d) {
+                    searchDistance = static_cast<f32>(*d);
+                }
+            }
+            bool isPresent = true;
+            if (argc >= 4) {
+                auto b = ctx.toBool(args[3]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            auto result = helper->assertEntityPresent(*entityType, pos, searchDistance, isPresent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        4);
+
+    // --- spawnItem(itemType, location) -> Entity ---
+    // 基岩 spawnItem(itemStack: ItemStack, location: Vector3) -> Entity。项目 ItemStack JS 类未充实（空壳），
+    // 此处简化接受 itemType 字符串（偏离基岩签名），内部转 spawnItemAt(itemType, Vector3d)。
+    // TODO: ItemStack JS 类充实后改为接受 ItemStack 对象（解析 typeId/amount 构造 ItemStack 调 spawnItemAt）。
+    // 返回 Entity JS 对象（经 ScriptClassRegistry 跨模块 wrap，与 spawn 同）。
+    reg.method(
+        "spawnItem",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("spawnItem(itemType, location)");
+            }
+            auto itemType = ctx.toString(args[0]);
+            if (!itemType) {
+                return ctx.throwInternalError("Failed to read itemType");
+            }
+            mc::math::Vector3d loc;
+            if (!_parseVector3(ctx, args[1], loc)) {
+                return nullptr;
+            }
+            mc::Entity* outEntity = nullptr;
+            auto result = helper->spawnItemAt(*itemType, loc, outEntity);
+            if (!isPass(result)) {
+                std::string msg = result->formattedMessage();
+                return ctx.throwInternalError(msg.c_str());
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            if (entityProto == nullptr || outEntity == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+        },
+        2);
+
+    // --- destroyBlock(pos, dropResources=false) ---
+    reg.method(
+        "destroyBlock",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("destroyBlock(pos, dropResources?)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            bool dropResources = false;
+            if (argc >= 2) {
+                auto b = ctx.toBool(args[1]);
+                if (b) {
+                    dropResources = *b;
+                }
+            }
+            auto result = helper->destroyBlock(pos, dropResources);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- assertRedstonePower(pos, power) ---
+    reg.method(
+        "assertRedstonePower",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("assertRedstonePower(pos, power)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            auto power = ctx.toInt32(args[1]);
+            if (!power) {
+                return ctx.throwTypeError("power must be number");
+            }
+            auto result = helper->assertRedstonePower(pos, *power);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- assertIsWaterlogged(pos, isWaterlogged=true) ---
+    reg.method(
+        "assertIsWaterlogged",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("assertIsWaterlogged(pos, isWaterlogged?)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            bool isWaterlogged = true;
+            if (argc >= 2) {
+                auto b = ctx.toBool(args[1]);
+                if (b) {
+                    isWaterlogged = *b;
+                }
+            }
+            auto result = helper->assertIsWaterlogged(pos, isWaterlogged);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- relativeLocation(worldPos) -> {x,y,z} ---
+    // 基岩 Test.relativeLocation：世界绝对 Vector3→结构相对 Vector3（考虑结构旋转）。转发 helper->relativePosition。
+    reg.method(
+        "relativeLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("relativeLocation(worldPos)");
+            }
+            mc::math::Vector3d pos;
+            if (!_parseVector3(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            return _vector3ToJs(ctx, helper->relativePosition(pos));
+        },
+        1);
+
+    // --- worldBlockLocation(relativePos) -> {x,y,z} ---
+    // 基岩 Test.worldBlockLocation：相对方块格点→世界绝对方块格点（整数，考虑结构旋转）。
+    reg.method(
+        "worldBlockLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("worldBlockLocation(relativePos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            BlockPos world = helper->worldBlockPosition(pos);
+            void* obj = ctx.createObject();
+            ctx.setPropertyInt(obj, "x", world.x);
+            ctx.setPropertyInt(obj, "y", world.y);
+            ctx.setPropertyInt(obj, "z", world.z);
+            return obj;
+        },
+        1);
+
+    // --- relativeBlockLocation(worldPos) -> {x,y,z} ---
+    // 基岩 Test.relativeBlockLocation：世界绝对方块格点→结构相对方块格点。转发 helper->relativeBlockPosition。
+    reg.method(
+        "relativeBlockLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("relativeBlockLocation(worldPos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            BlockPos rel = helper->relativeBlockPosition(pos);
+            void* obj = ctx.createObject();
+            ctx.setPropertyInt(obj, "x", rel.x);
+            ctx.setPropertyInt(obj, "y", rel.y);
+            ctx.setPropertyInt(obj, "z", rel.z);
+            return obj;
+        },
+        1);
+
+    // --- rotateVector(vector) -> {x,y,z} ---
+    // 按当前结构旋转量旋转向量。转发 helper->rotateVector。
+    reg.method(
+        "rotateVector",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("rotateVector(vector)");
+            }
+            mc::math::Vector3d v;
+            if (!_parseVector3(ctx, args[0], v)) {
+                return nullptr;
+            }
+            return _vector3ToJs(ctx, helper->rotateVector(v));
+        },
+        1);
+
+    // --- getTestDirection() -> string ---
+    // 基岩返回 @minecraft/server.Direction 枚举（north=2/east=3/south=4/west=5）。项目 Direction 枚举值
+    // 不同（North=2/South=3/West=4/East=5），直接转数字会错位。此处返回小写方向名字符串
+    // （"north"/"east"/"south"/"west"），JS 侧按字符串比对，避免枚举值映射错误。
+    // TODO: 若行为包依赖 Direction 数字枚举值，须建项目 Direction↔基岩 Direction 映射。
+    reg.method(
+        "getTestDirection",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            return ctx.createString(mc::Directions::toString(helper->getTestDirection()));
+        },
+        0);
+
+    // --- succeedWhenBlockPresent(blockType, pos, isPresent=true) ---
+    // 每 tick 检查；条件满足时标记成功。转发 helper->succeedWhenBlockPresent。
+    reg.method(
+        "succeedWhenBlockPresent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("succeedWhenBlockPresent(blockType, pos, isPresent?)");
+            }
+            auto blockType = ctx.toString(args[0]);
+            if (!blockType) {
+                return ctx.throwInternalError("Failed to read blockType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            bool isPresent = true;
+            if (argc >= 3) {
+                auto b = ctx.toBool(args[2]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            helper->succeedWhenBlockPresent(*blockType, pos, isPresent);
+            return ctx.createUndefined();
+        },
+        3);
+
+    // --- succeedIf(callback) ---
+    // 立即运行 callback；不抛异常则标记成功。callback 经 wrapJsCallback 包装。
+    reg.method(
+        "succeedIf",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("succeedIf(callback)");
+            }
+            ctx.retainValue(args[0]);
+            auto wrapped = wrapJsCallback(&ctx, args[0]);
+            helper->succeedIf(std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- succeedOnTick(tick) ---
+    // 在第 tick 个 tick 标记成功。
+    reg.method(
+        "succeedOnTick",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("succeedOnTick(tick)");
+            }
+            auto tick = ctx.toInt32(args[0]);
+            if (!tick) {
+                return ctx.throwTypeError("tick must be number");
+            }
+            helper->succeedOnTick(*tick);
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- succeedOnTickWhen(tick, callback) ---
+    // 在第 tick 个 tick 运行 callback；不抛异常则标记成功。
+    reg.method(
+        "succeedOnTickWhen",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("succeedOnTickWhen(tick, callback)");
+            }
+            auto tick = ctx.toInt32(args[0]);
+            if (!tick) {
+                return ctx.throwTypeError("tick must be number");
+            }
+            ctx.retainValue(args[1]);
+            auto wrapped = wrapJsCallback(&ctx, args[1]);
+            helper->succeedOnTickWhen(*tick, std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- failIf(callback) ---
+    // 立即运行 callback；不抛异常则标记失败（与 succeedIf 相反）。
+    reg.method(
+        "failIf",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("failIf(callback)");
+            }
+            ctx.retainValue(args[0]);
+            auto wrapped = wrapJsCallback(&ctx, args[0]);
+            helper->failIf(std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- runAfterDelay(delayTicks, callback) ---
+    // 延迟 delayTicks 个 tick 后执行 callback（相对延迟）。转发 helper->runAfterDelay。
+    reg.method(
+        "runAfterDelay",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("runAfterDelay(delayTicks, callback)");
+            }
+            auto delay = ctx.toInt32(args[0]);
+            if (!delay) {
+                return ctx.throwTypeError("delayTicks must be number");
+            }
+            ctx.retainValue(args[1]);
+            auto wrapped = wrapJsCallback(&ctx, args[1]);
+            helper->runAfterDelay(*delay, std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- runOnFinish(callback) ---
+    // 测试完成（成功/失败/超时）后执行 callback。转发 helper->runOnFinish。
+    reg.method(
+        "runOnFinish",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("runOnFinish(callback)");
+            }
+            ctx.retainValue(args[0]);
+            auto wrapped = wrapJsCallback(&ctx, args[0]);
+            helper->runOnFinish(std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- assertEntityInstancePresent(entity, pos, isPresent=true) ---
+    // 按对象身份断言指定 Entity 实例存在于 pos 附近。entity 参数为 JS Entity 对象，经 ScriptClassRegistry
+    // 取 Entity classId 后 unwrap 出 mc::Entity*。
+    reg.method(
+        "assertEntityInstancePresent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2) {
+                return ctx.throwTypeError("assertEntityInstancePresent(entity, pos, isPresent?)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("assertEntityInstancePresent: argument must be an Entity");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            bool isPresent = true;
+            if (argc >= 3) {
+                auto b = ctx.toBool(args[2]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            auto result = helper->assertEntityInstancePresent(*entity, pos, isPresent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        3);
+
+    // --- assertEntityInstancePresentInArea(entity, isPresent=true) ---
+    // 在整个 GameTest 区域内按对象身份断言 Entity 实例存在。
+    reg.method(
+        "assertEntityInstancePresentInArea",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("assertEntityInstancePresentInArea(entity, isPresent?)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("assertEntityInstancePresentInArea: argument must be an Entity");
+            }
+            bool isPresent = true;
+            if (argc >= 2) {
+                auto b = ctx.toBool(args[1]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            auto result = helper->assertEntityInstancePresentInArea(*entity, isPresent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- assertEntityTouching(entityType, location, isTouching=true) ---
+    // 断言实体接触/连接到 location（Vector3 浮点位置）。转发 helper->assertEntityTouching。
+    reg.method(
+        "assertEntityTouching",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("assertEntityTouching(entityType, location, isTouching?)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            mc::math::Vector3d loc;
+            if (!_parseVector3(ctx, args[1], loc)) {
+                return nullptr;
+            }
+            bool isTouching = true;
+            if (argc >= 3) {
+                auto b = ctx.toBool(args[2]);
+                if (b) {
+                    isTouching = *b;
+                }
+            }
+            auto result = helper->assertEntityTouching(*entityType, loc, isTouching);
+            return _resultToJs(ctx, std::move(result));
+        },
+        3);
+
+    // --- assertItemEntityPresent(itemType, pos, searchDistance=0, isPresent=true) ---
+    reg.method(
+        "assertItemEntityPresent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("assertItemEntityPresent(itemType, pos, searchDistance?, isPresent?)");
+            }
+            auto itemType = ctx.toString(args[0]);
+            if (!itemType) {
+                return ctx.throwInternalError("Failed to read itemType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            f32 searchDistance = 0.0f;
+            if (argc >= 3 && ctx.isNumber(args[2])) {
+                auto d = ctx.toFloat64(args[2]);
+                if (d) {
+                    searchDistance = static_cast<f32>(*d);
+                }
+            }
+            bool isPresent = true;
+            if (argc >= 4) {
+                auto b = ctx.toBool(args[3]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            auto result = helper->assertItemEntityPresent(*itemType, pos, searchDistance, isPresent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        4);
+
+    // --- assertItemEntityCountIs(itemType, pos, searchDistance, count) ---
+    // searchDistance 与 count 均必填（基岩无默认值）。count 为"至少要找到的最小数量"。
+    reg.method(
+        "assertItemEntityCountIs",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 4 || !ctx.isString(args[0]) || !ctx.isNumber(args[2]) || !ctx.isNumber(args[3])) {
+                return ctx.throwTypeError("assertItemEntityCountIs(itemType, pos, searchDistance, count)");
+            }
+            auto itemType = ctx.toString(args[0]);
+            if (!itemType) {
+                return ctx.throwInternalError("Failed to read itemType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            auto searchDistance = ctx.toFloat64(args[2]);
+            auto count = ctx.toInt32(args[3]);
+            if (!searchDistance || !count) {
+                return ctx.throwTypeError("searchDistance and count must be numbers");
+            }
+            auto result = helper->assertItemEntityCountIs(*itemType, pos, static_cast<f32>(*searchDistance), *count);
+            return _resultToJs(ctx, std::move(result));
+        },
+        4);
+
+    // --- assertBlockState(pos, callback) / getBlock(pos) ---
+    // TODO: 两者均依赖 @minecraft/server Block JS 类充实（当前 Block 类空壳无属性方法）。
+    // assertBlockState 的 callback 需接收 Block JS 对象（opaque 持 BlockState*），getBlock 需返回 Block
+    // JS 对象。待 Block 类充实（加 typeId/permutation 等属性 + opaque 持 BlockState*）后接线。
+    // 行为包 0 使用这两个方法，不阻塞当前端到端验证。
+
+    // TODO: assertBlockState/getBlock 依赖 @minecraft/server Block JS 类充实（当前空壳），待 Block 类
+    // 加 typeId/permutation 等属性 + opaque 持 BlockState* 后接线。行为包 0 使用，不阻塞端到端验证。
+    // spawnItem 简化为接受 itemType 字符串（基岩要 ItemStack 对象），ItemStack JS 类充实后改为接受对象。
+    // 其余 Test 类方法已全部桥接（assertEntityPresent/spawn/destroyBlock/assertRedstonePower/
+    // assertIsWaterlogged/worldLocation/relativeLocation/worldBlockLocation/relativeBlockLocation/
+    // rotateVector/getTestDirection/succeedWhenBlockPresent/succeedIf/succeedOnTick/succeedOnTickWhen/
+    // failIf/runAfterDelay/runOnFinish/assertEntityInstancePresent/assertEntityInstancePresentInArea/
+    // assertEntityTouching/assertItemEntityPresent/assertItemEntityCountIs/spawnItem/getDimension 等）。
 
     return classId;
 }

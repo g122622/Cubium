@@ -26,6 +26,7 @@
 #include "common/test/base/data/TestData.hpp"
 
 #include <string>
+#include <vector>
 
 namespace mc::test {
 
@@ -81,6 +82,8 @@ private:
     mc::mod::bedrock::addon::IScriptBindingContext* m_bindingCtx;
     void* m_jsCallback;
     TestData m_data;
+    /// tag() 暂存，registerTest 时调 fn->addTag（对齐 NativeTestRegistrationBuilder）。
+    std::vector<std::string> m_tags;
 };
 
 } // namespace mc::test

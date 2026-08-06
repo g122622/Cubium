@@ -83,7 +83,9 @@ ScriptRegistrationBuilder& ScriptRegistrationBuilder::requiredSuccessfulAttempts
 
 ScriptRegistrationBuilder& ScriptRegistrationBuilder::rotateTest(bool r) noexcept
 {
-    // TODO: --verify 旋转压测标记暂存；TestData 无对应字段，复用 manualOnly 占位待 GameTestServer --verify 接线。
+    // 基岩 rotateTest(true) 表示测试在 4 个旋转方向各跑一次（--verify 压测）。项目 GameTestServer
+    // 暂未接线 --verify 旋转批生成，TestData 无 rotate 字段。复用 manualOnly 占位（manualOnly=true
+    // 的测试不进默认批量跑，需显式触发），语义近似"需特殊触发"。TODO: --verify 旋转批接线后改独立字段。
     m_data.setManualOnly(r);
     return *this;
 }
@@ -102,17 +104,18 @@ ScriptRegistrationBuilder& ScriptRegistrationBuilder::structureName(std::string 
 
 ScriptRegistrationBuilder& ScriptRegistrationBuilder::structureLocation(std::string name)
 {
-    // 与原生 builder 一致：structureLocation 等价于 structureName（占位别名）。
+    // TODO: 基岩 structureLocation 是结构在世界中的放置坐标（BlockPos），非结构名。项目 TestData
+    // 无对应字段，当前等价于 structureName（占位别名）。行为包 0 使用 structureLocation，待按需补
+    // BlockPos 字段与 TemplateManager 放置偏移接线后修正。
     m_data.setStructure(std::move(name));
     return *this;
 }
 
 ScriptRegistrationBuilder& ScriptRegistrationBuilder::tag(std::string t)
 {
-    // TestData 无 tag 字段（tag 在 BaseGameTestFunction::addTag）；此处暂存到 batchName 不合适，
-    // 故 TODO：tag 需在 registerTest 构造函数后调 function->addTag。当前先忽略并记 TODO。
-    // TODO: tag 暂存与 apply（需改 ScriptGameTestFunction 持 tags 或 GameTestRegistry 支持）。
-    (void)t;
+    // 暂存 tag，registerTest 时调 fn->addTag（对齐 NativeTestRegistrationBuilder 模式）。
+    // tag 用于运行期按标签筛选（如 --gametest tag:suite:broken），见 GameTestTags.hpp。
+    m_tags.push_back(std::move(t));
     return *this;
 }
 
@@ -124,6 +127,9 @@ bool ScriptRegistrationBuilder::registerTest(std::string defaultStructure)
 
     auto fn = std::make_shared<ScriptGameTestFunction>(
         m_className, m_testName, m_data.structure(), m_data, m_bindingCtx, m_jsCallback);
+    for (auto& tag : m_tags) {
+        fn->addTag(std::move(tag));
+    }
     return GameTestRegistry::instance().registerTestMethod(m_className, std::move(fn));
 }
 
