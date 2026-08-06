@@ -63,17 +63,25 @@ char* QuickJSModuleLoader::moduleNormalize(
             return result;
         }
 
-        // 相对路径解析：基于导入者路径
+        // 路径解析：基于导入者（base）的目录拼接。./、../ 与 bare specifier（如 "Utilities.js"）
+        // 均按相对 base 处理——基岩行为包常用 bare specifier 简写"同目录模块"（如 ChallengeTests.js
+        // 里 `import { Utilities } from "Utilities.js"`），不按 ES 规范报错而按同目录解析。
+        // base 目录分隔符可能是 '/'（filePath 拼接）或 '\'（Windows pack path），取最后出现的任一。
         std::string resolved;
+        auto lastSep = base.find_last_of("/\\");
         if (name.starts_with("./") || name.starts_with("../")) {
-            auto lastSlash = base.rfind('/');
-            if (lastSlash != std::string::npos) {
-                resolved = base.substr(0, lastSlash + 1) + name;
+            if (lastSep != std::string::npos) {
+                resolved = base.substr(0, lastSep + 1) + name;
             } else {
                 resolved = name;
             }
         } else {
-            resolved = name;
+            // bare specifier：基于 base 目录解析（同目录），保留 name 中的相对前缀已在上分支处理。
+            if (lastSep != std::string::npos) {
+                resolved = base.substr(0, lastSep + 1) + name;
+            } else {
+                resolved = name;
+            }
         }
 
         char* result = static_cast<char*>(js_malloc(ctx, resolved.size() + 1));
@@ -131,11 +139,34 @@ void QuickJSModuleLoader::addModuleAlias(const std::string& alias, const std::st
 
 JSModuleDef* QuickJSModuleLoader::_loadModule(JSContext* ctx, const std::string& moduleName)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    // 锁仅保护成员查找（m_nativeModules/m_aliases/m_sourceProvider 的快照）。
+    // 关键：JS_Eval(COMPILE_ONLY) 与 provider 调用必须在锁外执行——编译模块时 QuickJS 会递归
+    // 触发 import → moduleLoader → _loadModule，若持锁递归同线程二次加锁 std::mutex 即死锁
+    // （resource deadlock would occur）。故锁内只拷贝出 provider/别名结果，锁外编译。
+    ModuleSourceProvider provider;
+    std::string resolvedName = moduleName;
+    bool isNative = false;
+    std::function<int(JSContext*, JSModuleDef*)> nativeInit;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 1. 查找原生C++模块
-    auto nativeIt = m_nativeModules.find(moduleName);
-    if (nativeIt != m_nativeModules.end()) {
+        // 1. 查找原生C++模块
+        auto nativeIt = m_nativeModules.find(moduleName);
+        if (nativeIt != m_nativeModules.end()) {
+            isNative = true;
+            nativeInit = nativeIt->second;
+        } else {
+            // 2. 查找路径别名映射
+            auto aliasIt = m_aliases.find(moduleName);
+            if (aliasIt != m_aliases.end()) {
+                resolvedName = aliasIt->second;
+            }
+            // 3. 拷贝源码提供者（std::function 拷贝安全）
+            provider = m_sourceProvider;
+        }
+    }
+
+    if (isNative) {
         JSModuleDef* m =
             JS_NewCModule(ctx, moduleName.c_str(), [](JSContext* ctx, JSModuleDef* m) -> int { return 0; });
         if (!m) {
@@ -143,25 +174,18 @@ JSModuleDef* QuickJSModuleLoader::_loadModule(JSContext* ctx, const std::string&
             return nullptr;
         }
 
-        if (nativeIt->second(ctx, m) < 0) {
+        if (nativeInit(ctx, m) < 0) {
             spdlog::error("[BedrockAddon] Failed to initialize native module: {}", moduleName);
             return nullptr;
         }
         return m;
     }
 
-    // 2. 查找路径别名映射
-    std::string resolvedName = moduleName;
-    auto aliasIt = m_aliases.find(moduleName);
-    if (aliasIt != m_aliases.end()) {
-        resolvedName = aliasIt->second;
-    }
-
-    // 3. 通过源码提供者加载JS模块
-    if (m_sourceProvider) {
-        std::string source = m_sourceProvider(resolvedName);
+    // 通过源码提供者加载JS模块（锁外，允许递归 import 触发 _loadModule）
+    if (provider) {
+        std::string source = provider(resolvedName);
         if (!source.empty()) {
-            // 编译JS源码为模块
+            // 编译JS源码为模块（COMPILE_ONLY：编译期递归解析 import，运行期实例化由 JS_Eval 调用方驱动）
             JSValue func = JS_Eval(ctx,
                 source.c_str(),
                 source.size(),

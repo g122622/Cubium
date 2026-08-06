@@ -22,11 +22,13 @@
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
 
-#include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry/ClassRegistrar
+#include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 wrap Entity/Dimension proto
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/test/base/error/GameTestError.hpp"
 #include "common/test/base/error/GameTestResult.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
+#include "common/world/IWorld.hpp" // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
@@ -446,9 +448,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         2);
 
     // --- spawn(entityType, pos) -> Entity ---
-    // 转发 helper->spawnEntity 真正生成实体。返回值 Entity JS 对象本阶段返回 undefined 占位
-    // （simpleMobTest 不使用返回值；ChallengeTests 的 getComponent/addRider 依赖 Entity JS 类，
-    // 随阶段 3 @minecraft/server Entity 绑定补全后一并接入）。TODO: wrap mc::Entity* 为 JS Entity。
+    // 转发 helper->spawnEntity 真正生成实体，并 wrap 成 @minecraft/server Entity JS 对象返回。
+    // Entity classId/proto 经 ScriptClassRegistry 跨模块取（@minecraft/server 模块注册）。
+    // 实体由 EntityManager 拥有，此处非拥有（owned=false），生命周期与测试实例一致。
     reg.method(
         "spawn",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -473,9 +475,17 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());
             }
-            // TODO: 阶段 3 把 outEntity wrap 成 @minecraft/server Entity JS 对象返回。
-            (void)outEntity;
-            return ctx.createUndefined();
+            // wrap outEntity 为 @minecraft/server Entity JS 对象：经 ScriptClassRegistry 取
+            // @minecraft/server 模块注册的 Entity classId/proto（跨模块 wrap）。
+            // 实体由 EntityManager 拥有，此处非拥有（owned=false），生命周期与测试实例一致。
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            if (entityProto == nullptr || outEntity == nullptr) {
+                // 引擎未就绪或 spawn 异常返回 undefined（不崩，对齐基岩容错）。
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, entityClassId, entityProto, outEntity, false, "Entity");
         },
         2);
 
@@ -641,13 +651,36 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         2);
 
+    // --- getDimension() -> Dimension ---
+    // 返回测试所在维度（helper->world() 即 ServerWorld&，按 mc::IWorld 接口暴露）。
+    // wrap 成 @minecraft/server Dimension JS 对象：经 ScriptClassRegistry 跨模块取 Dimension
+    // classId/proto。IWorld 由 ServerWorld 持有，此处非拥有（owned=false）。
+    reg.method(
+        "getDimension",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            mc::IWorld* world = &helper->world();
+            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
+            void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+            if (dimProto == nullptr) {
+                // @minecraft/server Dimension 类未注册（模块未加载），容错返回 undefined。
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, dimClassId, dimProto, world, false, "Dimension");
+        },
+        0);
+
     // TODO: 仍未桥接的方法（assertEntityPresent（已用于 succeedWhenEntityPresent 组合，未单独暴露 JS）/
     // spawnItem/assertBlockState/destroyBlock/assertRedstonePower/assertIsWaterlogged/worldPosition/
     // relativePosition/rotateVector/getTestDirection/succeedWhenBlockPresent/succeedIf/succeedOnTick/
     // succeedOnTickWhen/failIf/runAfterDelay/runOnFinish/getBlock/relativeBlockLocation/worldBlockLocation/
     // assertEntityInstancePresent/assertEntityInstancePresentInArea/assertEntityTouching/
     // assertItemEntityPresent/assertItemEntityCountIs/spawnItemAt 等）行为包 0 使用，待按需补全。
-    // 另：spawn 返回值 Entity JS 对象、getDimension 返回 Dimension JS 对象随阶段 3 补全。
+    // 另：spawn 返回值 Entity JS 对象、getDimension 返回 Dimension JS 对象已随阶段 3 补全。
 
     return classId;
 }

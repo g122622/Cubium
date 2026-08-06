@@ -349,6 +349,12 @@ void QuickJSBindingContext::setArrayElementString(void* arr, u32 index, std::str
     JS_SetPropertyUint32(m_ctx, unwrapValue(arr), index, JS_NewStringLen(m_ctx, value.data(), value.size()));
 }
 
+void QuickJSBindingContext::setArrayElement(void* arr, u32 index, void* value)
+{
+    // 不消耗 value 所有权：DupValue 增引用给数组，原 handle 仍属调用方（须自行 release）。
+    JS_SetPropertyUint32(m_ctx, unwrapValue(arr), index, JS_DupValue(m_ctx, unwrapValue(value)));
+}
+
 // ===== 引用管理 =====
 
 void QuickJSBindingContext::retainValue(void* value)

@@ -158,6 +158,13 @@ public:
 
     virtual void setArrayElementInt(void* arr, u32 index, i32 value) = 0;
     virtual void setArrayElementString(void* arr, u32 index, std::string_view value) = 0;
+    /**
+     * @brief 设置数组元素为任意 JS 值句柄。
+     *
+     * 不消耗 value 所有权（内部 DupValue），调用方仍须在用完后 releaseValue(value)。
+     * 供需要把 JS 对象（非 int/string）塞入数组的场景（如 Dimension.getEntities 返回 Entity[]）。
+     */
+    virtual void setArrayElement(void* arr, u32 index, void* value) = 0;
 
     // ===== 引用管理 =====
 

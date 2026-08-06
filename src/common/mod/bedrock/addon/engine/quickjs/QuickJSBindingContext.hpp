@@ -100,6 +100,7 @@ public:
 
     void setArrayElementInt(void* arr, u32 index, i32 value) override;
     void setArrayElementString(void* arr, u32 index, std::string_view value) override;
+    void setArrayElement(void* arr, u32 index, void* value) override;
 
     // ===== 引用管理 =====
 

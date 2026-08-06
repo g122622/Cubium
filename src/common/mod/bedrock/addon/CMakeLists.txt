@@ -13,6 +13,7 @@ add_library(mc_bedrock_addon STATIC
 
     # Binding (header-only initially, .cpp added later)
     binding/ScriptClassBinding.cpp
+    binding/ScriptClassRegistry.cpp
 
     # Modules - @minecraft/server模块绑定
     modules/MinecraftModuleFactory.cpp
