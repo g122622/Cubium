@@ -1671,6 +1671,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/MinecraftStructurePlacer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/StructureBounds.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/GameTestStructureBootstrap.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/structure/BehaviorPackStructureSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/listener/WorldVisualizationListener.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/runner/GameTestRunner.cpp

@@ -39,9 +39,14 @@
 #include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
 #include "server/test/facade/GameTestCommand.hpp"
+#include "server/test/minecraft/structure/BehaviorPackStructureSource.hpp"
 #include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"
 #include "server/test/native/builtin/BuiltinNativeTests.hpp"
 #include "server/test/script/GameTestModuleBinding.hpp"
+
+#include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 namespace {
 
@@ -78,6 +83,18 @@ void initializeServerGameTest(mc::server::MinecraftServer& server)
     // 行为包内的 gametest.register(...) 调用在此阶段执行，把 JS 测试注册进 GameTestRegistry。
     if (auto packResult = server.loadBehaviorPacks(); packResult.failed()) {
         spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
+    }
+
+    // 把已加载行为包列表接入 TemplateManager，使 GameTest 结构名能从 behavior_packs 加载 .mcstructure。
+    // 须在 loadBehaviorPacks 之后、/gametest run 启动测试之前。source 持 BehaviorPackList 引用，
+    // 用 static 保活（与 server 生命周期一致）。
+    if (auto* sm = server.scriptManager()) {
+        auto* packList = sm->scriptManager().packList();
+        if (packList != nullptr && !packList->empty()) {
+            static mc::test::BehaviorPackStructureSource s_structureSource(*packList);
+            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(&s_structureSource);
+            spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
+        }
     }
 
     // post-tick 驱动 GameTestTicker（/gametest run/runall 启动的实例由此推进）+

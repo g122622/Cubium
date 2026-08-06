@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "IStructurePackSource.hpp"
 #include "Template.hpp"
 #include "TemplateLoader.hpp"
 #include "common/core/Types.hpp"
@@ -69,6 +70,17 @@ public:
      * @param dataPackList 数据包列表指针
      */
     void setDataPackRepository(const resource::DataPackRepository* dataPackList);
+
+    /**
+     * @brief 设置基岩版结构包资源源
+     *
+     * 用于从基岩版行为包加载 .mcstructure 结构（GameTest 场景）。优先级最高，
+     * 高于 DataPackRepository / 单个资源包 / 文件系统（Java .nbt 路径）。
+     * 实现方经 IStructurePackSource 抽象解耦，TemplateManager 不直接依赖 BehaviorPack 类型。
+     *
+     * @param source 结构包资源源指针（非拥有，调用方保证生命周期）
+     */
+    void setStructurePackSource(const IStructurePackSource* source);
 
     /**
      * @brief 获取模板（如果不存在则尝试加载）
@@ -123,6 +135,7 @@ private:
     std::unique_ptr<Template> m_emptyTemplate;
     const IResourcePack* m_resourcePack = nullptr;
     const resource::DataPackRepository* m_dataPackList = nullptr;
+    const IStructurePackSource* m_structurePackSource = nullptr;
 };
 
 } // namespace template_

@@ -15,10 +15,11 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/mod/bedrock/addon/ServerScriptManager.hpp"               // scriptManager()->engine().addModuleFactory
-#include "server/test/facade/GameTestCommand.hpp"                         // GameTestCommand::registerTo
-#include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp" // ensureBuiltinStructureTemplates
-#include "server/test/native/builtin/BuiltinNativeTests.hpp"              // registerBuiltinNativeTests
+#include "server/mod/bedrock/addon/ServerScriptManager.hpp"                // scriptManager()->engine().addModuleFactory
+#include "server/test/facade/GameTestCommand.hpp"                          // GameTestCommand::registerTo
+#include "server/test/minecraft/structure/BehaviorPackStructureSource.hpp" // 行为包 .mcstructure 资源源
+#include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"  // ensureBuiltinStructureTemplates
+#include "server/test/native/builtin/BuiltinNativeTests.hpp"               // registerBuiltinNativeTests
 #include "server/test/runner/GameTestRunner.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp" // GameTestRunner::builder() 返回值完整类型
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"
@@ -26,6 +27,10 @@
 #include "server/test/runner/reporter/LogTestReporter.hpp"
 #include "server/test/script/GameTestModuleBinding.hpp" // @minecraft/server-gametest JS 绑定
 #include "server/world/ServerWorld.hpp"
+
+#include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
+#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 #include <spdlog/spdlog.h>
 
@@ -121,6 +126,19 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     // 随后 _selectAndBuildRunner 才能选到这些测试。失败仅 warn 不阻断（缺包时仍可跑原生内置测试）。
     if (auto packResult = loadBehaviorPacks(); packResult.failed()) {
         spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
+    }
+
+    // 把已加载的行为包列表接入 TemplateManager，使 GameTest 结构名（如 startertests:mediumglass）
+    // 能从 behavior_packs/<包>/structures/<ns>/<path>.mcstructure 加载。须在 loadBehaviorPacks 之后
+    // （packList 已扫描填充），且在 _selectAndBuildRunner 之前（runner 构造批次放置结构即取模板）。
+    if (auto* sm = scriptManager()) {
+        auto* packList = sm->scriptManager().packList();
+        if (packList != nullptr && !packList->empty()) {
+            m_structureSource = std::make_unique<BehaviorPackStructureSource>(*packList);
+            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(
+                m_structureSource.get());
+            spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
+        }
     }
 
     // 加载 OP 列表（allowCommands=true 时 GameTestServer 自身需 OP 权限执行 /gametest）

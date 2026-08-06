@@ -111,6 +111,15 @@ public:
      */
     [[nodiscard]] Result<std::string> readScriptFile(const std::string& relativePath) const;
 
+    /**
+     * @brief 读取行为包内任意二进制资源
+     *
+     * 用于读取 scripts/ 之外的资源（如 structures 目录下的 .mcstructure）。
+     * @param relativePath 相对于行为包目录的路径
+     * @return 文件字节内容
+     */
+    [[nodiscard]] Result<std::vector<u8>> readResource(const std::string& relativePath) const;
+
 private:
     std::string m_path;
     AddonManifest m_manifest;

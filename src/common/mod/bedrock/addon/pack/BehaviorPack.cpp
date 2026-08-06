@@ -104,4 +104,31 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
     }
 }
 
+Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePath) const
+{
+    std::filesystem::path fullPath = std::filesystem::path(m_path) / relativePath;
+
+    if (!std::filesystem::exists(fullPath)) {
+        return Error(ErrorCode::FileNotFound, "Resource not found: " + fullPath.string());
+    }
+
+    std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, "Cannot open resource: " + fullPath.string());
+    }
+
+    const std::streamsize fileSize = file.tellg();
+    if (fileSize <= 0) {
+        return std::vector<u8>{};
+    }
+
+    file.seekg(0, std::ios::beg);
+    std::vector<u8> data(static_cast<size_t>(fileSize));
+    if (!file.read(reinterpret_cast<char*>(data.data()), fileSize)) {
+        return Error(ErrorCode::FileReadFailed, "Failed to read resource: " + fullPath.string());
+    }
+
+    return data;
+}
+
 } // namespace mc::mod::bedrock::addon

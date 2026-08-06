@@ -386,6 +386,225 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
     }
 }
 
+std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::vector<u8>& data)
+{
+    // 基岩版 .mcstructure 是未压缩的小端序 NBT（bedrock_disk 上下文），无需 gzip 解压
+    if (data.empty()) {
+        return nullptr;
+    }
+
+    try {
+        std::istringstream stream(std::string(data.begin(), data.end()));
+        stream >> nbt::contexts::bedrock_disk;
+
+        auto root = nbt::CompoundTag::read(stream);
+        if (!root) {
+            return nullptr;
+        }
+
+        return _loadFromBedrockNbt(*root);
+    }
+    catch (...) {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::CompoundTag& root)
+{
+    auto templ = std::make_unique<Template>();
+
+    // size: List<Int> = [x, y, z]
+    if (root.value.count("size") == 0) {
+        return templ;
+    }
+    auto& sizeTag = *root.value.at("size");
+    if (sizeTag.id() != nbt::TagId::List) {
+        return templ;
+    }
+    auto& sizeList = dynamic_cast<const nbt::ListTag&>(sizeTag);
+    if (sizeList.size() < 3) {
+        return templ;
+    }
+    const i32 sizeX = dynamic_cast<const nbt::IntTag&>(*sizeList[0]).value;
+    const i32 sizeY = dynamic_cast<const nbt::IntTag&>(*sizeList[1]).value;
+    const i32 sizeZ = dynamic_cast<const nbt::IntTag&>(*sizeList[2]).value;
+    templ->setSize(BlockPos(sizeX, sizeY, sizeZ));
+
+    // structure: Compound { block_indices, palette{ default{ block_palette } }, entities }
+    if (root.value.count("structure") == 0) {
+        return templ;
+    }
+    auto& structureTag = *root.value.at("structure");
+    if (structureTag.id() != nbt::TagId::Compound) {
+        return templ;
+    }
+    const auto& structure = dynamic_cast<const nbt::CompoundTag&>(structureTag);
+
+    // 解析 palette.default.block_palette -> 方块状态 ID 数组
+    // palette 是 Compound，键为 palette 名（默认 "default"），值为 { block_palette, block_position_data }
+    std::vector<u32> blockPaletteStates;
+    if (structure.value.count("palette") != 0) {
+        auto& palettesTag = *structure.value.at("palette");
+        if (palettesTag.id() == nbt::TagId::Compound) {
+            const auto& palettesCompound = dynamic_cast<const nbt::CompoundTag&>(palettesTag);
+            // 取第一个 palette（通常只有一个 "default"）
+            if (!palettesCompound.value.empty()) {
+                auto firstIt = palettesCompound.value.begin();
+                if (firstIt->second && firstIt->second->id() == nbt::TagId::Compound) {
+                    const auto& paletteEntry = dynamic_cast<const nbt::CompoundTag&>(*firstIt->second);
+                    if (paletteEntry.value.count("block_palette") != 0) {
+                        auto& blockPaletteTag = *paletteEntry.value.at("block_palette");
+                        if (blockPaletteTag.id() == nbt::TagId::List) {
+                            const auto& blockPaletteList = dynamic_cast<const nbt::ListTag&>(blockPaletteTag);
+                            blockPaletteStates.reserve(blockPaletteList.size());
+                            for (size_t i = 0; i < blockPaletteList.size(); ++i) {
+                                const auto& entryTagPtr = blockPaletteList[i];
+                                const nbt::Tag* entryTag = entryTagPtr.get();
+                                MC_ASSERT_RELEASE(entryTag != nullptr);
+                                const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryTag);
+                                blockPaletteStates.push_back(_parseBedrockBlockStateId(entry));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (blockPaletteStates.empty()) {
+        // 无 palette 则无法还原方块，返回空模板（仅 size）
+        return templ;
+    }
+
+    // block_indices: List<List<Int>>，每层一个索引数组（对应一个 palette 变体）
+    // 基岩版结构通常只有 1 层；多层时取第一层（多 palette 变体语义在项目 Template 中以 addPalette 表达，
+    // 但 GameTest 结构无需变体，取首层即可）
+    if (structure.value.count("block_indices") == 0) {
+        return templ;
+    }
+    auto& blockIndicesTag = *structure.value.at("block_indices");
+    if (blockIndicesTag.id() != nbt::TagId::List) {
+        return templ;
+    }
+    const auto& blockIndicesList = dynamic_cast<const nbt::ListTag&>(blockIndicesTag);
+    if (blockIndicesList.size() == 0) {
+        return templ;
+    }
+
+    // 取第一层索引数组
+    const auto& firstLayerTagPtr = blockIndicesList[0];
+    const nbt::Tag* firstLayerTag = firstLayerTagPtr.get();
+    if (firstLayerTag == nullptr || firstLayerTag->id() != nbt::TagId::List) {
+        return templ;
+    }
+    const auto& indices = dynamic_cast<const nbt::ListTag&>(*firstLayerTag);
+
+    // 结构原点偏移 structure_world_origin: List<Int> = [x, y, z]（可选，默认 0）
+    BlockPos origin(0, 0, 0);
+    if (root.value.count("structure_world_origin") != 0) {
+        auto& originTag = *root.value.at("structure_world_origin");
+        if (originTag.id() == nbt::TagId::List) {
+            origin = _readBlockPos(dynamic_cast<const nbt::ListTag&>(originTag));
+        }
+    }
+
+    // 基岩版 block_indices 按尺寸 [x, y, z] 的顺序线性存储（X 最外层、Z 最内层）
+    // 索引值 -1 表示该位置为空气（基岩版用 -1 标记 air，不进 palette）
+    std::vector<BlockInfo> blockInfos;
+    blockInfos.reserve(indices.size());
+    const size_t expectedCount = static_cast<size_t>(sizeX) * static_cast<size_t>(sizeY) * static_cast<size_t>(sizeZ);
+    for (size_t i = 0; i < indices.size(); ++i) {
+        const auto& idxTagPtr = indices[i];
+        const nbt::Tag* idxTag = idxTagPtr.get();
+        if (idxTag == nullptr) {
+            continue;
+        }
+        const i32 idx = dynamic_cast<const nbt::IntTag&>(*idxTag).value;
+
+        u32 stateId = 0; // 默认空气
+        if (idx >= 0 && static_cast<size_t>(idx) < blockPaletteStates.size()) {
+            stateId = blockPaletteStates[static_cast<size_t>(idx)];
+        }
+
+        // 线性索引 -> 三维坐标（X 外层、Z 内层，对齐基岩版存储顺序）
+        const size_t totalXZ = static_cast<size_t>(sizeY) * static_cast<size_t>(sizeZ);
+        const i32 x = origin.x + static_cast<i32>(i / totalXZ);
+        const size_t remX = i % totalXZ;
+        const i32 y = origin.y + static_cast<i32>(remX / static_cast<size_t>(sizeZ));
+        const i32 z = origin.z + static_cast<i32>(remX % static_cast<size_t>(sizeZ));
+
+        blockInfos.emplace_back(BlockPos(x, y, z), stateId);
+    }
+
+    // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
+    templ->addPalette(Palette(std::move(blockInfos)));
+
+    // TODO: 解析 structure.entities（基岩版实体 schema 与 Java 不同，GameTest 结构通常无实体，暂不解析）
+
+    return templ;
+}
+
+u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEntry)
+{
+    // 基岩版 block_palette 项: { name: String, states: Compound, version: Int }
+    // 字段名为小写 name / states（区别于 Java 的 Name / Properties）
+    std::string blockName;
+    if (paletteEntry.value.count("name") != 0) {
+        blockName = dynamic_cast<const nbt::StringTag&>(*paletteEntry.value.at("name")).value;
+    }
+
+    if (blockName.empty()) {
+        return 0; // 空气
+    }
+
+    auto& registry = BlockRegistry::instance();
+    auto* block = registry.getBlock(ResourceLocation(blockName));
+    if (!block) {
+        return 0; // 未知方块，返回空气
+    }
+
+    const BlockState* state = &block->defaultState();
+
+    // 基岩版 states 是 Compound，键为属性名、值为属性值标签（String/Int/Byte 等）
+    // 复用 Java 版的 applyPropertiesToState 需要字符串值，故先把非 String 标签转字符串
+    if (paletteEntry.value.count("states") != 0) {
+        auto& statesTag = *paletteEntry.value.at("states");
+        if (statesTag.id() == nbt::TagId::Compound) {
+            const auto& statesCompound = dynamic_cast<const nbt::CompoundTag&>(statesTag);
+            // 构造一个全 String 值的临时 Compound 供 applyPropertiesToState 消费
+            auto stringProps = std::make_unique<nbt::CompoundTag>();
+            for (const auto& [key, valueTag] : statesCompound.value) {
+                if (!valueTag) {
+                    continue;
+                }
+                std::string strVal;
+                switch (valueTag->id()) {
+                    case nbt::TagId::String:
+                        strVal = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
+                        break;
+                    case nbt::TagId::Int:
+                        strVal = std::to_string(dynamic_cast<const nbt::IntTag&>(*valueTag).value);
+                        break;
+                    case nbt::TagId::Byte: {
+                        // 基岩版布尔属性用 Byte (0/1)，Java 用 "true"/"false" 字符串
+                        const i8 bv = dynamic_cast<const nbt::ByteTag&>(*valueTag).value;
+                        strVal = (bv != 0) ? "true" : "false";
+                        break;
+                    }
+                    default:
+                        continue; // 跳过不支持的属性值类型
+                }
+                stringProps->value.emplace(key, std::make_unique<nbt::StringTag>(strVal));
+            }
+            if (!stringProps->value.empty()) {
+                state = applyPropertiesToState(*block, state, *stringProps);
+            }
+        }
+    }
+
+    return state->stateId();
+}
+
 BlockPos TemplateLoader::_readBlockPos(const nbt::ListTag& list)
 {
     i32 x = 0, y = 0, z = 0;

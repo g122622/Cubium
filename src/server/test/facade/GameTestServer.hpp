@@ -18,6 +18,7 @@ namespace mc::test {
 class GameTestRunner;
 class JUnitTestReporter;
 class LogTestReporter;
+class BehaviorPackStructureSource;
 
 /**
  * @brief GameTestServer 启动参数（对齐 Java `GameTestMainUtil` CLI + `IntegratedServerParams` 世界字段）。
@@ -158,6 +159,10 @@ private:
     // reporter 经 GlobalTestReporter 单例共享持有，故此处用 shared_ptr（addReporter 拷贝一份）。
     std::shared_ptr<JUnitTestReporter> m_junitReporter;
     std::shared_ptr<LogTestReporter> m_logReporter;
+    // 行为包结构资源源：把 BehaviorPackList 适配为 IStructurePackSource 注入 TemplateManager，
+    // 使 GameTest 结构名（如 startertests:mediumglass）能从行为包加载 .mcstructure。地址须稳定，
+    // TemplateManager 持非拥有指针，故用 unique_ptr 成员保活。
+    std::unique_ptr<BehaviorPackStructureSource> m_structureSource;
     i32 m_exitCode = 0;
     bool m_runnerBuilt = false;
 };

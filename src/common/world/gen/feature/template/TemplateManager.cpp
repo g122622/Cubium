@@ -62,6 +62,11 @@ void TemplateManager::setDataPackRepository(const resource::DataPackRepository* 
     m_dataPackList = dataPackList;
 }
 
+void TemplateManager::setStructurePackSource(const IStructurePackSource* source)
+{
+    m_structurePackSource = source;
+}
+
 const Template* TemplateManager::getTemplate(const ResourceLocation& location)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -120,6 +125,18 @@ void TemplateManager::clear()
 
 std::unique_ptr<Template> TemplateManager::_loadTemplate(const ResourceLocation& location)
 {
+    // 优先从基岩版结构包资源源加载 .mcstructure（GameTest 场景，优先级最高）
+    if (m_structurePackSource != nullptr) {
+        auto result =
+            m_structurePackSource->readStructure(std::string(location.namespace_()), std::string(location.path()));
+        if (result.success() && !result.value().empty()) {
+            auto templ = TemplateLoader::loadFromBedrockMcStructure(result.value());
+            if (templ) {
+                return templ;
+            }
+        }
+    }
+
     // 优先从 DataPackRepository 加载（支持多数据包优先级）
     if (m_dataPackList) {
         std::string resourcePath =

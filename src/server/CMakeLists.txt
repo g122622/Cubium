@@ -239,6 +239,7 @@ target_sources(minecraft-server
         ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/MinecraftStructurePlacer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/StructureBounds.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/GameTestStructureBootstrap.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/structure/BehaviorPackStructureSource.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/listener/WorldVisualizationListener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/minecraft/environment/MinecraftEnvironmentApplier.cpp
         # runner/ - 编排
