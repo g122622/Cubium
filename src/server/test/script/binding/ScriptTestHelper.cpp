@@ -23,17 +23,19 @@
 #include "server/test/script/binding/ScriptTestHelper.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry/ClassRegistrar
+#include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
 #include "common/test/base/error/GameTestError.hpp"
 #include "common/test/base/error/GameTestResult.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/script/binding/ScriptCallbackUtil.hpp"
 #include "server/test/script/binding/ScriptSequence.hpp"
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
-#include "server/test/script/context/ScriptGameTestAccessor.hpp"
 
 #include <string>
+#include <utility>
 
 namespace mc::test {
 
@@ -42,14 +44,16 @@ using mc::mod::bedrock::addon::ScriptObjectRegistry;
 
 namespace {
 
-// 文件局部：从当前 JS 测试上下文取 helper；失败抛 JS TypeError。
+// 文件局部：从 JS Test 对象（thisVal）的 opaque 取 helper；失败抛 JS TypeError。
+// Test 对象由 ScriptGameTestFunction::run 创建，opaque 存 GameTestHelper*（非拥有）。
 // 返回 nullptr 时调用方已 throw，应立即 return。
-GameTestHelper* _requireHelper(mc::mod::bedrock::addon::IScriptBindingContext& ctx)
+GameTestHelper* _requireHelper(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal)
 {
-    auto* helper = ScriptGameTestAccessor::instance().currentHelper();
+    const u64 testClassId = ScriptBindingRegistry::instance().testClassId();
+    auto* helper = static_cast<GameTestHelper*>(ScriptObjectRegistry::unwrap(ctx, thisVal, testClassId));
     if (helper == nullptr) {
         // JS 侧已抛异常；C++ 控制流返回 nullptr 占位，调用方须判空并 return。
-        static_cast<void>(ctx.throwTypeError("Test method called outside of test execution"));
+        static_cast<void>(ctx.throwTypeError("Test method called on invalid Test object"));
     }
     return helper;
 }
@@ -65,8 +69,7 @@ void* _resultToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, GameTestR
     return ctx.throwInternalError(msg.c_str());
 }
 
-// 解析 BlockPos 参数（JS 传 [x,y,z] 或 {x,y,z}）。失败返回 nullopt 并 throw。
-// 简化：仅支持 {x,y,z} 对象形式。
+// 解析 BlockPos 参数（JS 传 {x,y,z} 对象形式）。
 bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, BlockPos& out)
 {
     if (!ctx.isObject(arg)) {
@@ -100,8 +103,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- assertBlockPresent(blockType, blockPos, isPresent) ---
     reg.method(
         "assertBlockPresent",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -128,8 +131,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- setBlock(blockType, blockPos, updateFlags=3) ---
     reg.method(
         "setBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -159,8 +162,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- pressButton(pos) ---
     reg.method(
         "pressButton",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -179,8 +182,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- pullLever(pos) ---
     reg.method(
         "pullLever",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -199,8 +202,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- pulseRedstone(pos, duration) ---
     reg.method(
         "pulseRedstone",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -223,9 +226,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- killAllEntities() ---
     reg.method(
         "killAllEntities",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -237,9 +239,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- succeed() ---
     reg.method(
         "succeed",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -251,8 +252,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- fail(errorText) ---
     reg.method(
         "fail",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -271,8 +272,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // --- print(text) ---
     reg.method(
         "print",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -292,10 +293,10 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     reg.method(
         "startSequence",
         [sequenceClassId](mc::mod::bedrock::addon::IScriptBindingContext& ctx,
-            void* /*thisVal*/,
+            void* thisVal,
             i32 /*argc*/,
             void** /*args*/) -> void* {
-            auto* helper = _requireHelper(ctx);
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -308,8 +309,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     reg.method(
         "spawnSimulatedPlayer",
         [simulatedPlayerClassId](
-            mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
-            auto* helper = _requireHelper(ctx);
+            mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
@@ -344,12 +345,77 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         3);
 
+    // --- idle(ticks) -> Promise<void> ---
+    // JS Promise 语义专属：await test.idle(n) 暂停 n tick。经 ScriptScheduler::runTimeout 在 n tick 后
+    // resolve Promise。scheduler 由 GameTestModuleBinding::setScheduler 注入 ScriptBindingRegistry。
+    reg.method(
+        "idle",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (_requireHelper(ctx, thisVal) == nullptr) {
+                return nullptr; // 仅校验 Test 对象有效性（idle 不直接用 helper）
+            }
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("idle(ticks)");
+            }
+            auto ticks = ctx.toInt32(args[0]);
+            if (!ticks || *ticks < 0) {
+                return ctx.throwTypeError("ticks must be non-negative number");
+            }
+            auto* scheduler = ScriptBindingRegistry::instance().scheduler();
+            if (scheduler == nullptr) {
+                return ctx.throwInternalError("idle requires scheduler");
+            }
+            // createPromise 返回 promise（owned）+ resolvingFuncs[0]=resolve/[1]=reject（owned）。
+            void* resolving[2] = {nullptr, nullptr};
+            void* promise = ctx.createPromise(resolving);
+            void* resolveFn = resolving[0];
+            void* rejectFn = resolving[1];
+            // reject 未使用，立即释放避免泄漏。
+            ctx.releaseValue(rejectFn);
+
+            // runTimeout 回调在 n tick 后执行：调 resolve(undefined) 触发 Promise resolve，
+            // 然后 releaseValue(resolveFn)（resolving func 一次性，调用后释放）。
+            // 全程经抽象接口 IScriptBindingContext，不依赖具体引擎后端。
+            mc::mod::bedrock::addon::IScriptBindingContext* ctxPtr = &ctx;
+            scheduler->runTimeout(
+                [ctxPtr, resolveFn]() {
+                    void* undef = ctxPtr->createUndefined();
+                    ctxPtr->callResolvingFunc(resolveFn, undef);
+                    ctxPtr->releaseValue(undef);
+                    ctxPtr->releaseValue(resolveFn);
+                },
+                static_cast<u32>(*ticks));
+            return promise; // owned，返给 JS 引擎
+        },
+        1);
+
+    // --- until(condition) -> void ---
+    // 基岩 JS Test.until(condition) 是 void（注册持续轮询，不阻塞 JS 体）。转发原生 helper->until，
+    // 把 JS 函数 wrap 成 std::function<GameTestResult()>（复用 ScriptCallbackUtil::wrapJsCallback）。
+    reg.method(
+        "until",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("until(condition)");
+            }
+            ctx.retainValue(args[0]); // wrapJsCallback 持久化引用，回调执行时须存活
+            auto wrapped = wrapJsCallback(&ctx, args[0]);
+            helper->until(std::move(wrapped), nullptr);
+            return ctx.createUndefined();
+        },
+        1);
+
     // --- currentTick (readonly property) ---
     reg.readonlyProperty(
-        "currentTick", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/) -> void* {
-            auto* helper = ScriptGameTestAccessor::instance().currentHelper();
+        "currentTick", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+            const u64 testClassId = ScriptBindingRegistry::instance().testClassId();
+            auto* helper = static_cast<GameTestHelper*>(ScriptObjectRegistry::unwrap(ctx, thisVal, testClassId));
             if (helper == nullptr) {
-                return ctx.createInt32(0);
+                return ctx.createInt32(0); // property getter 不抛异常，失败返回 0
             }
             return ctx.createInt32(helper->currentTick());
         });
@@ -360,7 +426,6 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // failIf/runAtTickTime/runAfterDelay/runOnFinish/getBlock/relativeBlockLocation/worldBlockLocation/
     // assertEntityPresentInArea/assertEntityInstancePresent/assertEntityInstancePresentInArea/
     // assertEntityTouching/assertItemEntityPresent/assertItemEntityCountIs/spawnItemAt 等）待按需补全。
-    // idle/until 因事件总线未桥接暂不可用。
 
     return classId;
 }

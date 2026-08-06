@@ -32,16 +32,16 @@ class SimulatedPlayer;
 /**
  * @brief 脚本 GameTest 访问器（单例）。
  *
- * 桥接 QuickJS-NG 回调与 C++ 门面：JS 测试体回调由 `ScriptGameTestFunction::run` 同步触发，但 JS 侧
- * 无法直接接收 C++ `GameTestHelper&` 入参（绑定层 `callFunction0` 不透传 C++ 指针）。故 `run` 进入时
- * 经 `setCurrentHelper` 把当前测试的 `GameTestHelper*` 压入单例，JS 体执行期间经 `currentHelper()` 取回，
- * 退出时清空。对齐基岩版 `ScriptGameTestHelper` 经 `WeakEntityRef` 持有 helper 的语义（本项目无实体引用
- * 计数，简化为裸指针——helper 生命周期由 `MinecraftGameTestInstance` 拥有，测试运行期间稳定）。
+ * @deprecated 本单例已不再被主路径使用。JS `Test` 方法现从 Test 对象 opaque 携带 `GameTestHelper*`
+ * （`ScriptGameTestFunction::run` 创建并传入），经 `ScriptObjectRegistry::unwrap(thisVal, testClassId)`
+ * 取回——async 测试体 `await` 挂起后 then-handler resume 时 thisVal 仍携带正确 helper，多 async 并发安全，
+ * 不再依赖单例。保留此类供未来无 thisVal 场景（如顶层 `gametest.spawnSimulatedPlayer`）备用。
  *
- * 同时承载 `Test` 类（JS）↔ `GameTestHelper`（C++）的方法转发所需的句柄查询，避免每个绑定回调都捕获
- * `this`（工厂无状态）。
+ * TODO: 若未来确认无复用场景，可连同 .cpp 与两处 CMake 登记一并删除。
  *
- * 生命周期约束：`currentHelper` 仅在 `ScriptGameTestFunction::run` 栈帧内有效；回调外访问返回 nullptr。
+ * 历史语义：JS 测试体回调由 `ScriptGameTestFunction::run` 同步触发，`run` 进入时经 `setCurrentHelper`
+ * 把 helper 压入单例，JS 体经 `currentHelper()` 取回，退出时清空。helper 生命周期由
+ * `MinecraftGameTestInstance` 拥有，测试运行期间稳定。
  */
 class ScriptGameTestAccessor {
 public:

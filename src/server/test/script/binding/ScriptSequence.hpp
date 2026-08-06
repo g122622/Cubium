@@ -36,12 +36,11 @@ class GameTestSequence;
  * `thenFail`。每个 `then*` 把 JS 回调包装为 `std::function<GameTestResult()>`（调 `callFunction0`，映射 JS
  * 异常为 `GameTestError`）转发到原生 `GameTestSequence`。
  *
- * 句柄获取：`Test.startSequence()` 经 `ScriptGameTestAccessor::currentHelper()->startSequence()` 取原生
- * `GameTestSequence&`，包装为不透明指针存 JS 对象。原生序列由 `GameTestHelper` 拥有，生命周期覆盖测试运行。
+ * 句柄获取：`Test.startSequence()` 经 Test 对象 opaque 携带的 `GameTestHelper*` 调 `startSequence()` 取
+ * 原生 `GameTestSequence&`，包装为不透明指针存 JS 对象。原生序列由 `GameTestHelper` 拥有，生命周期覆盖测试运行。
  *
- * TODO（第一阶段限制）：`thenIdle`/`thenWait` 依赖事件总线桥接的异步断言语义，当前 `thenIdle(delay)` 按
- * 原生 `thenIdle`（= `thenExecuteAfter(delay, noop)`）同步实现可用；`thenWait` 的"每 tick 轮询直到通过"
- * 语义需异步调度，暂为 TODO stub（throw NotImplementedError）。
+ * `thenWait`/`thenWaitAfter` 转发原生 Wait 步骤（每 tick 轮询回调直到通过），JS 回调经
+ * `ScriptCallbackUtil::wrapJsCallback` 包装为 `std::function<GameTestResult()>`。
  *
  * @param builder 模块构建器。
  * @param ctx 绑定上下文。

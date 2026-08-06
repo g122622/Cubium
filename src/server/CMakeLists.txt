@@ -263,6 +263,7 @@ target_sources(minecraft-server
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSequence.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSimulatedPlayer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestFunction.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptAsyncGameTestRunResult.cpp
 )
 
 target_compile_features(minecraft-server PRIVATE cxx_std_20)

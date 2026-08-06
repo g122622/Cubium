@@ -49,6 +49,13 @@ void GameTestCommand::cleanupCompletedInstances()
         held.end());
 }
 
+void GameTestCommand::forceClearAllInstances()
+{
+    // 清空所有实例（含未完成者）：实例 unique_ptr 析构 → m_runResult 析构释放 Promise 句柄。
+    // 须在脚本引擎销毁前调用，否则 releaseValue 访问已死 JSContext。
+    _heldInstances().clear();
+}
+
 // 在线 /gametest 的轻量日志报告器（命令触发的测试也经 GlobalTestReporter 输出）
 // 注：放命名空间作用域静态会在首次 /gametest 时构造；命令可多次调用，addReporter 幂等性由调用方保证。
 // 第一阶段：命令触发测试仅在 IntegratedServer 调试用，复用 GlobalTestReporter 静态委托即可。

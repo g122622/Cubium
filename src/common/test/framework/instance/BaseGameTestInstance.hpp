@@ -17,6 +17,7 @@
 namespace mc::test {
 
 class IGameTestListener;
+class IGameTestFunctionRunResult;
 
 /**
  * @brief 测试实例抽象状态机。
@@ -115,6 +116,9 @@ private:
     std::optional<GameTestError> m_error;
     RetryOptions m_retryOptions = RetryOptions::noRetries();
     bool m_testFunctionStarted = false;
+    // 异步测试函数的运行结果句柄（`ScriptGameTestFunction::run` 返回 AsyncRunResult 时持有 Promise）。
+    // 同步测试 run 返回时即 complete，此处仍保存至测试结束以便统一轮询；详见 _runTestFunction/tick。
+    std::unique_ptr<IGameTestFunctionRunResult> m_runResult;
 };
 
 } // namespace mc::test

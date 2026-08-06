@@ -56,6 +56,8 @@ bool GameTestModuleBinding::registerBindings(mc::mod::bedrock::addon::IScriptCon
 
     // 清空上一轮注册的原型表（脚本引擎重建/测试隔离场景）。
     ScriptBindingRegistry::instance().clear();
+    // 注入脚本调度器（setScheduler 在 addModuleFactory 后由注册点调），供 Test.idle 创建定时 Promise。
+    ScriptBindingRegistry::instance().setScheduler(m_scheduler);
 
     mc::mod::bedrock::addon::NativeModuleBuilder builder(ctx, "@minecraft/server-gametest");
 
@@ -67,7 +69,10 @@ bool GameTestModuleBinding::registerBindings(mc::mod::bedrock::addon::IScriptCon
     // 3. SimulatedPlayer 类（Test.spawnSimulatedPlayer 返回值）
     u64 simulatedPlayerClassId = registerSimulatedPlayerClassBinding(builder, ctx);
     // 4. Test 类（依赖 sequence + simulatedPlayer classId 做 wrap）
-    (void)registerTestClassBinding(builder, ctx, sequenceClassId, simulatedPlayerClassId);
+    u64 testClassId = registerTestClassBinding(builder, ctx, sequenceClassId, simulatedPlayerClassId);
+    // 记录 Test classId 供 ScriptGameTestFunction::run 创建 Test 对象、ScriptTestHelper 取 opaque。
+    ScriptBindingRegistry::instance().setTestClassId(testClassId);
+    (void)builderClassId; // builderClassId 已在 registerTopLevelFunctions 内消费
     // 5. 顶层 gametest 命名空间对象（依赖 builderClassId 做 register 返回值 wrap）
     registerTopLevelFunctions(builder, ctx, builderClassId);
 

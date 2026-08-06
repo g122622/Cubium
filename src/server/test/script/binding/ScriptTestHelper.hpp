@@ -31,33 +31,18 @@ namespace mc::test {
 /**
  * @brief 注册 JS `Test` 类绑定（转发 `GameTestHelper` 门面）。
  *
- * 对齐基岩 `ScriptGameTestHelper`：JS 侧 `Test` 对象不持有独立 C++ 状态——所有方法经
- * `ScriptGameTestAccessor::currentHelper()` 取当前测试的 `GameTestHelper`，转发后把 `GameTestResult`
- * 映射为 JS 行为（通过→无返回值；失败→`throw new Error(msg)`）。
+ * 对齐基岩 `ScriptGameTestHelper`：JS 侧 `Test` 对象经 opaque 携带 `GameTestHelper*`（非拥有，由
+ * `ScriptGameTestFunction::run` 创建并作首参传入 JS 体）。各 Test 方法从 thisVal 经 `getOpaque(testClassId)`
+ * 取 helper——不依赖单例，async 测试体 `await` 挂起后 then-handler resume 时 thisVal 仍携带正确 helper，
+ * 多 async 并发安全。转发后把 `GameTestResult` 映射为 JS 行为（通过→无返回值；失败→`throw new Error(msg)`）。
  *
- * 第一阶段仅桥接无异步依赖的方法子集（`assertBlockPresent`/`setBlock`/`spawnEntity`/`spawnItem`/
- * `killAllEntities`/`pressButton`/`pullLever`/`pulseRedstone`/`succeed`/`fail`/`print`/`startSequence`/
- * `worldBlockLocation`/`relativeBlockLocation`/`currentTick`/`idle`[TODO]/`until`[TODO]），其余 ~50 方法
- * 留 TODO（按需补全）。`idle`/`until` 因事件总线未桥接暂为 TODO stub（throw NotImplementedError）。
- *
- * @param builder 模块构建器（`exportClass` 用）。
- * @param ctx 绑定上下文（回调内查 accessor）。
- * @return 分配的类 id（供 `ScriptSimulatedPlayer` 继承链引用，未来扩展）。
- */
-/**
- * @brief 注册 JS `Test` 类绑定（转发 `GameTestHelper` 门面）。
- *
- * 对齐基岩 `ScriptGameTestHelper`：JS 侧 `Test` 对象不持有独立 C++ 状态——所有方法经
- * `ScriptGameTestAccessor::currentHelper()` 取当前测试的 `GameTestHelper`，转发后把 `GameTestResult`
- * 映射为 JS 行为（通过→无返回值；失败→`throw new Error(msg)`）。
- *
- * 第一阶段仅桥接无异步依赖的方法子集（`assertBlockPresent`/`setBlock`/`spawnEntity`/`spawnItem`/
- * `killAllEntities`/`pressButton`/`pullLever`/`pulseRedstone`/`succeed`/`fail`/`print`/`startSequence`/
- * `worldBlockLocation`/`relativeBlockLocation`/`currentTick`/`idle`[TODO]/`until`[TODO]），其余 ~50 方法
- * 留 TODO（按需补全）。`idle`/`until` 因事件总线未桥接暂为 TODO stub（throw NotImplementedError）。
+ * 已桥接方法子集（`assertBlockPresent`/`setBlock`/`pressButton`/`pullLever`/`pulseRedstone`/
+ * `killAllEntities`/`succeed`/`fail`/`print`/`startSequence`/`spawnSimulatedPlayer`/`currentTick`）+
+ * 异步方法（`idle(ticks)`→Promise<void>，经 `ScriptScheduler::runTimeout` 定时 resolve；
+ * `until(fn)`→void，转发原生 `helper->until` 持续轮询），其余 ~50 方法留 TODO（按需补全）。
  *
  * @param builder 模块构建器（`exportClass` 用）。
- * @param ctx 绑定上下文（回调内查 accessor）。
+ * @param ctx 绑定上下文（回调内从 thisVal 取 helper）。
  * @param sequenceClassId `GameTestSequence` 类 id（`startSequence` 返回值 wrap 用，须先注册序列类）。
  * @param simulatedPlayerClassId `SimulatedPlayer` 类 id（`spawnSimulatedPlayer` 返回值 wrap 用）。
  * @return `Test` 类 id。

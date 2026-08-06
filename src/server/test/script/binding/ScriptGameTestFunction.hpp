@@ -39,13 +39,17 @@ namespace mc::test {
  * 对齐基岩 `ScriptGameTestFunction`：把 JS `register(testClassName, testName, fn)` 的 `fn` 包装为
  * `BaseGameTestFunction`，与原生 `NativeGameTestFunction` 汇入同一 `GameTestRegistry`。
  *
- * 同步语义：`run()` 进入时把 helper 压入 `ScriptGameTestAccessor`，调 `callFunction0(jsCallback, undefined)`
- * 同步执行 JS 体，退出时清空 accessor。JS 体内经 `Test` 类绑定（`ScriptTestHelper`）转发到
- * `GameTestHelper` 门面。JS 体正常返回→`pass()`；JS 抛异常→`fail(FailConditionsMet, msg)`（对齐基岩把
- * JS Error 映射为 `GameTestError`）；helper 已 `succeed`/`fail`→instance 状态机接管，`run` 仍返 pass。
+ * `run()` 创建 Test JS 对象（opaque 携带 `GameTestHelper*`，非拥有），经 `callFunction1` 作首参传给 JS 体
+ * （对齐基岩 `register(suite, name, (test)=>{...})` 签名）。JS 体各 Test 方法从 thisVal 取 helper，不依赖
+ * 单例——async 测试体 `await` 挂起后 then-handler resume 时 thisVal 仍携带正确 helper，多 async 并发安全。
  *
- * 异步语义（`registerAsync`）TODO：当前按同步执行（JS 体内部 `await` 不可用），待事件总线桥接后改为
- * Promise 轮询 `IGameTestFunctionRunResult::isComplete`。
+ * 同步语义：JS 体返回非 Promise（普通值/undefined）→ `SyncGameTestRunResult(pass())`，通过/失败由 helper 的
+ * succeed/fail 状态机接管。JS 体同步抛异常 → `SyncGameTestRunResult(fail(FailConditionsMet, msg))`。
+ *
+ * 异步语义（`registerAsync` 或 `register` 中 JS 体返回 Promise）：检测 `isPromise(ret)`→返回
+ * `ScriptAsyncGameTestRunResult`（持有 Promise 句柄），由 `BaseGameTestInstance` 每 tick 轮询 Promise 状态
+ * （rejected→fail，fulfilled→交由 succeed/超时接管）。`registerAsync` 与 `register` 统一走 Promise 检测，
+ * 二者皆允许 JS 体返回 Promise 或普通值。
  */
 class ScriptGameTestFunction final : public BaseGameTestFunction {
 public:

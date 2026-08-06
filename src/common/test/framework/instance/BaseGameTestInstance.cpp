@@ -105,6 +105,17 @@ void BaseGameTestInstance::tick()
         return;
     }
 
+    // 轮询异步测试函数的 Promise 状态：rejected 立即 fail，fulfilled 不动作（由 succeed/超时接管）。
+    // 同步测试的 runResult isComplete() 恒 true 且 getError()=pass，此处不动作。
+    if (m_runResult && m_runResult->isComplete()) {
+        const GameTestResult result = m_runResult->getError();
+        m_runResult.reset(); // 取走结果后释放句柄（Promise 句柄在 AsyncRunResult 析构时 releaseValue）
+        if (result.has_value()) {
+            fail(result.value());
+            return;
+        }
+    }
+
     // 全部序列完成且无 succeedIf 阻塞 → 隐式成功（对齐基岩：序列走完即通过）
     bool allSequencesComplete = true;
     for (auto& seq : m_sequences) {
@@ -124,6 +135,7 @@ void BaseGameTestInstance::succeed()
         return;
     }
     m_state = GameTestState::Succeeded;
+    m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
     // 执行 runOnFinish 回调
     for (auto& fn : m_onFinish) {
         if (fn) {
@@ -140,6 +152,7 @@ void BaseGameTestInstance::fail(GameTestError error)
     }
     m_error = std::move(error);
     m_state = GameTestState::Failed;
+    m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
     for (auto& fn : m_onFinish) {
         if (fn) {
             fn();
@@ -193,16 +206,18 @@ void BaseGameTestInstance::_runTestFunction()
         MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "helper creation failed");
     }
     auto context = m_function.createContext(*m_helper);
-    auto runResult = m_function.run(*m_helper, *context);
-    // 同步测试 run 返回时即 complete；异步测试后续轮询（第一阶段仅同步）
-    if (runResult && runResult->isComplete()) {
-        const GameTestResult result = runResult->getError();
+    // 保存 runResult 供 tick 轮询：同步测试 isComplete() 恒 true（立即处理）；
+    // 异步测试（ScriptAsyncGameTestRunResult）isComplete() 待 Promise settle 后 true。
+    m_runResult = m_function.run(*m_helper, *context);
+    if (m_runResult && m_runResult->isComplete()) {
+        const GameTestResult result = m_runResult->getError();
         if (result.has_value()) {
-            // 测试函数立即返回失败
+            // 测试函数立即返回失败（同步抛错 / Promise 同步 rejected）
             fail(result.value());
+            return;
         }
+        // 同步立即通过：runResult 留存至 succeed/fail 时 reset（fulfilled 的异步测试同此处理）。
     }
-    // TODO: 异步测试（ScriptAsyncGameTestFunction）的 runResult 轮询——待 C++↔JS 事件总线桥接后实现。
 }
 
 void BaseGameTestInstance::notifyStructureLoaded()

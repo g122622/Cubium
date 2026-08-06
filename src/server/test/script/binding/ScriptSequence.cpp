@@ -28,8 +28,8 @@
 #include "common/test/base/error/GameTestResult.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/script/binding/ScriptCallbackUtil.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
-#include "server/test/script/context/ScriptGameTestAccessor.hpp"
 
 #include <functional>
 #include <utility>
@@ -40,28 +40,7 @@ using mc::mod::bedrock::addon::ClassRegistrar;
 using mc::mod::bedrock::addon::ScriptObjectRegistry;
 
 namespace {
-
-// 把 JS 回调包装为 std::function<GameTestResult()>：调 callFunction0，映射异常为 GameTestError。
-// ctxPtr/jsCb 须在回调执行时仍有效（序列步骤执行时脚本上下文与 JS 函数均存活）。
-std::function<GameTestResult()> _wrapJsCallback(mc::mod::bedrock::addon::IScriptBindingContext* ctxPtr, void* jsCb)
-{
-    return [ctxPtr, jsCb]() -> GameTestResult {
-        void* undef = ctxPtr->createUndefined();
-        void* ret = ctxPtr->callFunction0(jsCb, undef);
-        ctxPtr->releaseValue(undef);
-
-        GameTestResult result = pass();
-        if (ctxPtr->isException(ret)) {
-            void* exc = ctxPtr->getException();
-            auto msg = ctxPtr->getExceptionMessage(exc);
-            ctxPtr->releaseValue(exc);
-            result = fail(GameTestErrorType::FailConditionsMet, std::string(msg));
-        }
-        ctxPtr->releaseValue(ret);
-        return result;
-    };
-}
-
+// _wrapJsCallback 已提取到 ScriptCallbackUtil.hpp::wrapJsCallback，供 ScriptTestHelper::until 与本文件复用。
 } // namespace
 
 u64 registerSequenceClassBinding(
@@ -85,7 +64,7 @@ u64 registerSequenceClassBinding(
                 return ctx.throwTypeError("thenExecute requires a function argument");
             }
             ctx.retainValue(args[0]);
-            seq->thenExecute(_wrapJsCallback(&ctx, args[0]));
+            seq->thenExecute(wrapJsCallback(&ctx, args[0]));
             return thisVal; // 链式返回自身
         },
         1);
@@ -106,7 +85,7 @@ u64 registerSequenceClassBinding(
                 return ctx.throwTypeError("delay must be number");
             }
             ctx.retainValue(args[1]);
-            seq->thenExecuteAfter(*delay, _wrapJsCallback(&ctx, args[1]));
+            seq->thenExecuteAfter(*delay, wrapJsCallback(&ctx, args[1]));
             return thisVal;
         },
         2);
@@ -127,7 +106,7 @@ u64 registerSequenceClassBinding(
                 return ctx.throwTypeError("tickCount must be number");
             }
             ctx.retainValue(args[1]);
-            seq->thenExecuteFor(*tc, _wrapJsCallback(&ctx, args[1]));
+            seq->thenExecuteFor(*tc, wrapJsCallback(&ctx, args[1]));
             return thisVal;
         },
         2);
@@ -185,8 +164,46 @@ u64 registerSequenceClassBinding(
         },
         1);
 
-    // TODO: thenWait/thenWaitAfter 依赖事件总线桥接的异步轮询语义，第一阶段未实现（throw NotImplementedError）。
-    // thenTrigger（SequenceCondition）依赖 thenTrigger 消费方的桥接，同样留 TODO。
+    // thenWait(fn)：从当前 tick 起每 tick 轮询 fn，直到返回通过才进入下一步。
+    // 转发原生 GameTestSequence::thenWait（Wait 步骤已实现轮询语义）。
+    reg.method(
+        "thenWait",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* seq = static_cast<GameTestSequence*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (seq == nullptr) {
+                return ctx.throwTypeError("Invalid GameTestSequence");
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("thenWait requires a function argument");
+            }
+            ctx.retainValue(args[0]);
+            seq->thenWait(wrapJsCallback(&ctx, args[0]));
+            return thisVal; // 链式返回自身
+        },
+        1);
+
+    // thenWaitAfter(delay, fn)：延迟 delay tick 后开始每 tick 轮询。
+    reg.method(
+        "thenWaitAfter",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* seq = static_cast<GameTestSequence*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (seq == nullptr) {
+                return ctx.throwTypeError("Invalid GameTestSequence");
+            }
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("thenWaitAfter(delay, fn)");
+            }
+            auto delay = ctx.toInt32(args[0]);
+            if (!delay) {
+                return ctx.throwTypeError("delay must be number");
+            }
+            ctx.retainValue(args[1]);
+            seq->thenWaitAfter(*delay, wrapJsCallback(&ctx, args[1]));
+            return thisVal;
+        },
+        2);
+
+    // TODO: thenTrigger（SequenceCondition）依赖 thenTrigger 消费方的桥接，待按需补全。
 
     return classId;
 }

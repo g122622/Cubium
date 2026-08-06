@@ -29,6 +29,10 @@
 #include <string>
 #include <vector>
 
+namespace mc::mod::bedrock::addon {
+class ScriptScheduler;
+}
+
 namespace mc::test {
 
 /**
@@ -46,9 +50,11 @@ namespace mc::test {
  * 与原生测试的汇聚：JS `register(suite,name,fn)` 经 `ScriptGameTestFunction`（`BaseGameTestFunction` 子类，
  * 持 JS 回调）提交到内部 `GameTestRegistry`，与原生 `MC_REGISTER_GAME_TEST` 同一注册表。
  *
- * 第一阶段限制（明文 TODO）：
- * - `ScriptSequence.idle`/`until` 异步断言不可用（事件总线未桥接），返回 rejected Promise。
- * - `ScriptGameTestFunction.Async` Future 轮询未实现，`registerAsync` 暂按同步语义执行（TODO）。
+ * 异步桥接（事件总线）：`ScriptGameTestFunction::run` 检测 JS 体返回 Promise 时返回
+ * `ScriptAsyncGameTestRunResult`，由 `BaseGameTestInstance` 每 tick 轮询 Promise 状态（rejected→fail，
+ * fulfilled→交由 succeed/超时接管）。`Test.idle(t)` 经 `ScriptScheduler::runTimeout` 创建定时 resolve
+ * 的 Promise；`Test.until(fn)`/`Sequence.thenWait(fn)` 转发原生轮询/等待。`registerAsync` 与 `register`
+ * 统一走 Promise 检测路径，二者皆允许 JS 体返回 Promise 或普通值。
  */
 class GameTestModuleBinding : public mc::mod::bedrock::addon::IModuleBindingFactory {
 public:
@@ -61,6 +67,20 @@ public:
     [[nodiscard]] std::vector<mc::mod::bedrock::addon::ModuleDependency> dependencies(
         const mc::mod::bedrock::addon::ModuleVersion& version) const override;
     bool registerBindings(mc::mod::bedrock::addon::IScriptContext& context) override;
+
+    /**
+     * @brief 注入脚本调度器（注册前调）。
+     *
+     * 仿 `MinecraftModuleFactory::setScheduler` 先例：`ScriptManager` 拥有 `ScriptScheduler`，
+     * 但 `registerBindings(IScriptContext&)` 签名拿不到 `ScriptManager`，故经此 setter 注入。
+     * `registerBindings` 时转存入 `ScriptBindingRegistry`，供 `ScriptTestHelper::idle` 创建
+     * 定时 resolve 的 Promise（实现 JS `await test.idle(n)`）。须在 `addModuleFactory` 后、
+     * 插件加载前调用。
+     */
+    void setScheduler(mc::mod::bedrock::addon::ScriptScheduler* scheduler) noexcept { m_scheduler = scheduler; }
+
+private:
+    mc::mod::bedrock::addon::ScriptScheduler* m_scheduler = nullptr;
 };
 
 } // namespace mc::test

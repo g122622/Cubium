@@ -107,7 +107,9 @@ void registerTopLevelFunctions(mc::mod::bedrock::addon::NativeModuleBuilder& bui
         3);
 
     // --- registerAsync(testClassName, testName, fn) -> RegistrationBuilder ---
-    // TODO: 异步语义（Promise 轮询）未实现，当前按同步注册（与 register 等价）。
+    // registerAsync 与 register 统一走 _doRegister：JS 体返回 Promise 时由 ScriptGameTestFunction::run
+    // 检测 isPromise 并返回 ScriptAsyncGameTestRunResult（轮询 Promise 状态）。二者皆允许 JS 体返回
+    // Promise 或普通值，区别仅在文档语义（registerAsync 明示作者意图用 async/await）。
     nsReg.method(
         "registerAsync",
         [registrationBuilderClassId](

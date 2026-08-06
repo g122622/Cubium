@@ -586,6 +586,58 @@ void* QuickJSBindingContext::getContextData() const
     return m_contextData;
 }
 
+// ===== Promise 支持（实现 IScriptBindingContext 抽象） =====
+
+void* QuickJSBindingContext::createPromise(void** resolvingFuncsOut)
+{
+    // JS_NewPromiseCapability 创建 pending Promise 并把其 resolve/reject 函数写入
+    // resolving_funcs[2]（JSValue 数组）。三者均为新引用，需 wrapValue 转为 void* 句柄。
+    JSValue resolving[2];
+    JSValue promise = JS_NewPromiseCapability(m_ctx, resolving);
+    if (resolvingFuncsOut != nullptr) {
+        resolvingFuncsOut[0] = wrapValue(resolving[0]);
+        resolvingFuncsOut[1] = wrapValue(resolving[1]);
+    } else {
+        // 调用方不要 resolving 函数：立即释放避免泄漏。
+        JS_FreeValue(m_ctx, resolving[0]);
+        JS_FreeValue(m_ctx, resolving[1]);
+    }
+    return wrapValue(promise);
+}
+
+int QuickJSBindingContext::promiseState(void* promise) const
+{
+    if (promise == nullptr) {
+        return -1; // JSPromiseStateEnum::JS_PROMISE_INVALID（非 Promise）
+    }
+    return static_cast<int>(JS_PromiseState(m_ctx, unwrapValue(promise)));
+}
+
+void* QuickJSBindingContext::promiseResult(void* promise) const
+{
+    // JS_PromiseResult 返回 settle 值的新引用（即便原 Promise 仍 pending 也返回 undefined）。
+    return wrapValue(JS_PromiseResult(m_ctx, unwrapValue(promise)));
+}
+
+bool QuickJSBindingContext::isPromise(void* value) const
+{
+    if (value == nullptr) {
+        return false;
+    }
+    return JS_IsPromise(unwrapValue(value)) != 0;
+}
+
+void QuickJSBindingContext::callResolvingFunc(void* resolvingFunc, void* arg)
+{
+    if (resolvingFunc == nullptr) {
+        return;
+    }
+    JSValueConst argVal = unwrapValue(arg);
+    JSValue ret = JS_Call(m_ctx, unwrapValue(resolvingFunc), JS_UNDEFINED, 1, &argVal);
+    // resolving 函数返回值无意义（Promise 内部状态已更新），直接释放。
+    JS_FreeValue(m_ctx, ret);
+}
+
 // ===== 高级方法/属性注册（trampoline机制） =====
 
 QuickJSBindingContext* QuickJSBindingContext::fromJsContext(JSContext* ctx)

@@ -108,7 +108,11 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     // ServerScriptManager（client 共享）不能 include 此头，故注册放此处。
     // 经 scriptManager()->engine().addModuleFactory 公共钩子注入（与 @minecraft/server 同机制）。
     if (auto* sm = scriptManager()) {
-        sm->scriptManager().engine().addModuleFactory(std::make_unique<GameTestModuleBinding>());
+        // 先创建工厂注入 scheduler（Test.idle 用 ScriptScheduler::runTimeout 创建定时 Promise），
+        // 再 move 入引擎。scheduler 由 ScriptManager 拥有，生命周期长于插件加载/引擎重建。
+        auto gameTestFactory = std::make_unique<GameTestModuleBinding>();
+        gameTestFactory->setScheduler(&sm->scriptManager().scheduler());
+        sm->scriptManager().engine().addModuleFactory(std::move(gameTestFactory));
         spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
     }
 

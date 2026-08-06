@@ -47,6 +47,9 @@ void* ScriptBindingRegistry::proto(u64 classId) const noexcept
 void ScriptBindingRegistry::clear() noexcept
 {
     m_protos.clear();
+    m_testClassId = 0;
+    // m_scheduler 不清空：它由 GameTestModuleBinding::setScheduler 注入，指向 ScriptManager 拥有的
+    // ScriptScheduler，其生命周期与脚本引擎重建无关（引擎重建时 ScriptManager 仍存活）。
 }
 
 } // namespace mc::test

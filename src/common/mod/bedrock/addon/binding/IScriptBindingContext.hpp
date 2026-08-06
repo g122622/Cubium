@@ -247,6 +247,52 @@ public:
 
     [[nodiscard]] virtual void* getGlobalObject() = 0;
 
+    // ===== Promise 支持 =====
+    //
+    // 引擎无关的 JS Promise 能力。供异步脚本逻辑（如 GameTest JS `async` 测试体、`await idle(n)`）
+    // 创建 Promise 并轮询其 settle 状态。各引擎后端按自身 Promise 语义实现。
+    //
+    // 句柄约定（沿用本接口既有约定：创建方法返回 owned 句柄，调用者负责 release）：
+    // - createPromise 返回 promise（owned）+ resolvingFuncsOut[0]=resolve/[1]=reject（owned）。
+    // - promiseResult 返回 settle 值的 owned 句柄（即便 pending 也返回 undefined）。
+    // - resolving func 一次性：callResolvingFunc 调用后由调用方 releaseValue 释放。
+
+    /**
+     * @brief 创建 pending Promise 及其 resolve/reject 函数。
+     *
+     * @param resolvingFuncsOut 非 null 时，写入 [0]=resolve/[1]=reject（owned 句柄，调用者负责 release）；
+     *                          null 时实现内部立即释放两函数。
+     * @return Promise 句柄（owned）。
+     */
+    [[nodiscard]] virtual void* createPromise(void** resolvingFuncsOut) = 0;
+
+    /**
+     * @brief 查询 Promise 状态。
+     * @return 0=Pending / 1=Fulfilled / 2=Rejected / -1=非 Promise 或 null（语义对齐 JSPromiseStateEnum）。
+     */
+    [[nodiscard]] virtual int promiseState(void* promise) const = 0;
+
+    /**
+     * @brief 取 Promise 的 settle 值（fulfilled 的值 / rejected 的 reason；pending 返回 undefined）。
+     * @return owned 句柄，调用者负责 release。
+     */
+    [[nodiscard]] virtual void* promiseResult(void* promise) const = 0;
+
+    /**
+     * @brief 判断值是否为 Promise 对象。
+     */
+    [[nodiscard]] virtual bool isPromise(void* value) const = 0;
+
+    /**
+     * @brief 调用 createPromise 返回的 resolve/reject 函数，以 arg 为参数 settle Promise。
+     *
+     * resolving func 一次性，调用后调用者须 releaseValue 释放。
+     *
+     * @param resolvingFunc resolve 或 reject 函数句柄。
+     * @param arg settle 参数句柄（调用方拥有所有权，本方法不释放）。
+     */
+    virtual void callResolvingFunc(void* resolvingFunc, void* arg) = 0;
+
     // ===== 上下文数据 =====
 
     virtual void setContextData(void* data) = 0;

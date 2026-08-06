@@ -67,7 +67,10 @@ void initializeServerGameTest(mc::server::MinecraftServer& server)
 
     // @minecraft/server-gametest JS 模块（行为包可 import { register } from "@minecraft/server-gametest"）
     if (auto* sm = server.scriptManager()) {
-        sm->scriptManager().engine().addModuleFactory(std::make_unique<mc::test::GameTestModuleBinding>());
+        // 注入 scheduler（Test.idle 用 runTimeout 创建定时 Promise），再 move 入引擎。
+        auto gameTestFactory = std::make_unique<mc::test::GameTestModuleBinding>();
+        gameTestFactory->setScheduler(&sm->scriptManager().scheduler());
+        sm->scriptManager().engine().addModuleFactory(std::move(gameTestFactory));
         spdlog::info("[GameTest] Registered @minecraft/server-gametest module factory");
     }
 
@@ -78,6 +81,22 @@ void initializeServerGameTest(mc::server::MinecraftServer& server)
         mc::test::GameTestCommand::cleanupCompletedInstances();
     });
     spdlog::info("[GameTest] /gametest command + ticker driver attached to server");
+}
+
+/**
+ * @brief 关闭前清理 GameTest 框架（仅 minecraft-server exe 调用）。
+ *
+ * 须在 server.stop()（其内部 ServerScriptManager::shutdown 销毁 JS 引擎）之前调用：
+ * 1. forceStop 清 GameTestTicker 的裸指针引用；
+ * 2. forceClearAllInstances 析构所有在线实例（unique_ptr），释放其 m_runResult 持有的 Promise 句柄
+ *    与 ScriptGameTestFunction 持有的 IScriptBindingContext*（仅 releaseValue，不再访问）。
+ * 顺序保证：实例析构时脚本上下文仍有效，releaseValue 安全。
+ */
+void cleanupServerGameTest()
+{
+    mc::test::GameTestTicker::instance().forceStop();
+    mc::test::GameTestCommand::forceClearAllInstances();
+    spdlog::info("[GameTest] ticker + instances cleared before server shutdown");
 }
 
 std::atomic<bool> g_shouldExit{false};
@@ -215,6 +234,7 @@ int main(int argc, char* argv[])
         auto initResult = server.initialize(params);
         if (initResult.failed()) {
             spdlog::error("Failed to initialize server: {}", initResult.error().toString());
+            cleanupServerGameTest(); // no-op（GameTest 尚未接入），保持错误路径一致
             goto HANDLE_ERROR;
         }
 
@@ -226,6 +246,7 @@ int main(int argc, char* argv[])
         auto runResult = server.run();
         if (runResult.failed()) {
             spdlog::error("Failed to start server: {}", runResult.error().toString());
+            cleanupServerGameTest(); // server 即将析构销毁引擎，先清实例释放 JS 句柄
             goto HANDLE_ERROR;
         }
 
@@ -233,6 +254,9 @@ int main(int argc, char* argv[])
         while (!g_shouldExit && server.isRunning()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+
+        // 关闭前清理 GameTest（实例持 JS Promise 句柄，须在脚本引擎销毁前析构）。
+        cleanupServerGameTest();
 
         // 停止服务端（内部会 join 主循环线程，再回写玩家状态、落盘存档、清理资源）
         server.stop();

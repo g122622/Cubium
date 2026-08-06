@@ -159,6 +159,50 @@ public:
     void setContextData(void* data) override;
     [[nodiscard]] void* getContextData() const override;
 
+    // ===== Promise 支持（实现 IScriptBindingContext 抽象） =====
+    //
+    // quickjs-ng 未提供 JS_AddPromiseReaction，仅提供 JS_NewPromiseCapability /
+    // JS_PromiseState / JS_PromiseResult / JS_IsPromise。故异步脚本逻辑（如 GameTest JS
+    // `async` 测试体）采用"轮询 promiseState"完成判定（见 ScriptAsyncGameTestRunResult）。
+
+    /**
+     * @brief 创建一个 pending Promise，取出其 resolve/reject 函数对。
+     *
+     * @param resolvingFuncsOut 长度 2 的数组：[0]=resolve、[1]=reject（皆 owned 句柄，
+     *        调用方负责 releaseValue；resolving 函数一次性，调用后须释放）。
+     * @return Promise 句柄（owned，调用方负责 releaseValue）。
+     */
+    [[nodiscard]] void* createPromise(void** resolvingFuncsOut) override;
+
+    /**
+     * @brief 查询 Promise 状态。
+     *
+     * @return JSPromiseStateEnum：-1 非 Promise / 0 Pending / 1 Fulfilled / 2 Rejected。
+     */
+    [[nodiscard]] int promiseState(void* promise) const override;
+
+    /**
+     * @brief 取 Promise settle 后的结果值（fulfilled 的值或 rejected 的 reason）。
+     *
+     * 仅在 state != Pending 时有意义。返回 owned 句柄（调用方负责 releaseValue）。
+     */
+    [[nodiscard]] void* promiseResult(void* promise) const override;
+
+    /**
+     * @brief 判断值是否为 Promise 对象。
+     */
+    [[nodiscard]] bool isPromise(void* value) const override;
+
+    /**
+     * @brief 调用 Promise 的 resolving 函数（resolve 或 reject）。
+     *
+     * @param resolvingFunc createPromise 取出的 resolve/reject 句柄。
+     * @param arg 入参句柄（非拥有，本方法内部 Dup 一份供 JS_Call 使用）。
+     *
+     * resolving 函数一次性，调用后调用方仍须 releaseValue 释放句柄。
+     */
+    void callResolvingFunc(void* resolvingFunc, void* arg) override;
+
     /**
      * @brief 获取底层JSContext指针
      *

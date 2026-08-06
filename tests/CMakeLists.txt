@@ -1691,6 +1691,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSequence.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSimulatedPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptAsyncGameTestRunResult.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp

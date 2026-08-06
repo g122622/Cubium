@@ -44,6 +44,15 @@ public:
      */
     static void cleanupCompletedInstances();
 
+    /**
+     * @brief 强制清空所有在线命令路径测试实例（含未完成者）。
+     *
+     * 生产服务器关闭时调用：在脚本引擎销毁前清空持 `m_runResult`（Promise 句柄）/`IScriptBindingContext*`
+     * 的实例，避免静态容器进程退出析构时访问已死 JS 上下文。配合 `GameTestTicker::forceStop()` 使用。
+     * `GameTestServer` 路径自有 `stop()` 顺序保护，不经此方法。
+     */
+    static void forceClearAllInstances();
+
 private:
     // 子命令执行器（返回 i32，对齐项目 CommandCallback 签名）
     static i32 _run(mc::command::CommandContext<mc::command::ServerCommandSource>& context);
