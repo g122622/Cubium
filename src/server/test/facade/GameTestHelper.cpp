@@ -16,6 +16,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -186,8 +187,25 @@ GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResou
 
 GameTestResult GameTestHelper::pressButton(BlockPos relativePos)
 {
-    // TODO: 经 BlockEntity/方块状态置 powered=true 并调度复位（ButtonBlock 体系就绪前 stub）
-    (void)relativePos;
+    // 转发 AbstractButtonBlock::press：置 powered=true → setBlockState（触发邻居更新）→
+    // notifyNeighbors → 相邻命令方块的 neighborChanged 检测红石上升沿 → 调度 1 tick 后执行命令。
+    // press 内部已处理点击音效与弹起调度（StoneButton 20 tick / WoodButton 30 tick）。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            "No block at button position " + worldPos.toString(),
+            relativePos);
+    }
+    // getBlockMutable：press 非 const（会改世界状态），但 Block 对象自身无状态，
+    // BlockState::getBlockMutable 内部 const_cast 取非 const Block& 供调用非 const 方法。
+    auto* button = dynamic_cast<mc::blocks::AbstractButtonBlock*>(&state->getBlockMutable());
+    if (button == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            "Block at " + worldPos.toString() + " is not a button",
+            relativePos);
+    }
+    button->press(m_world, worldPos, *state);
     return std::nullopt;
 }
 

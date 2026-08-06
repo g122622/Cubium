@@ -122,7 +122,10 @@ const std::unordered_map<std::string, BlockEntityType> idToTypeMap = {{"minecraf
     {"smoker", BlockEntityType::Smoker},
     {"hopper", BlockEntityType::Hopper},
     {"dispenser", BlockEntityType::Dispenser},
-    {"dropper", BlockEntityType::Dropper}};
+    {"dropper", BlockEntityType::Dropper},
+    // 基岩版 savegame id（无 minecraft: 前缀，首字母大写）。基岩版 .mcstructure 的
+    // block_entity_data.id 用此形式（如 "CommandBlock"），见 block_position_data schema。
+    {"CommandBlock", BlockEntityType::CommandBlock}};
 } // namespace
 
 ResourceLocation blockEntityTypeToId(BlockEntityType type)

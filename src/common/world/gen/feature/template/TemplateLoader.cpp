@@ -536,10 +536,75 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
         blockInfos.emplace_back(BlockPos(x, y, z), stateId);
     }
 
+    // 解析 palette.default.block_position_data.<index>.block_entity_data（基岩版方块实体 NBT）
+    // schema 见 https://wiki.bedrock.dev/nbt/mcstructure ：block_position_data 是 Compound，键为 block_indices
+    // 数组的位置下标（十进制字符串），值为 { block_entity_data: Compound }。block_entity_data 内含 id（如
+    // "CommandBlock"）+ 方块实体字段（Command/LPCommandMode 等）+ x/y/z（结构内坐标，加载时被替换）。
+    // 此前仅解析了 block_palette + block_indices（方块状态），方块实体数据全丢，导致命令方块 Command 字段为空。
+    // 此处按 block_entity_data 的 x/y/z 坐标匹配 blockInfos（同时尝试含/不含 structure_world_origin 两种），
+    // 命中则 clone block_entity_data 到 BlockInfo.nbt，由 Template::placeInWorld 调 loadFromNBT 注入。
+    if (structure.value.count("palette") != 0) {
+        auto& palettesTag2 = *structure.value.at("palette");
+        if (palettesTag2.id() == nbt::TagId::Compound) {
+            const auto& palettesCompound2 = dynamic_cast<const nbt::CompoundTag&>(palettesTag2);
+            if (!palettesCompound2.value.empty()) {
+                auto firstIt2 = palettesCompound2.value.begin();
+                if (firstIt2->second && firstIt2->second->id() == nbt::TagId::Compound) {
+                    const auto& paletteEntry2 = dynamic_cast<const nbt::CompoundTag&>(*firstIt2->second);
+                    if (paletteEntry2.value.count("block_position_data") != 0) {
+                        auto& bpdTag = *paletteEntry2.value.at("block_position_data");
+                        if (bpdTag.id() == nbt::TagId::Compound) {
+                            const auto& bpd = dynamic_cast<const nbt::CompoundTag&>(bpdTag);
+                            for (const auto& [idxKey, idxTagPtr] : bpd.value) {
+                                if (idxTagPtr == nullptr || idxTagPtr->id() != nbt::TagId::Compound) {
+                                    continue;
+                                }
+                                const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*idxTagPtr);
+                                if (entry.value.count("block_entity_data") == 0) {
+                                    continue;
+                                }
+                                auto& bedTag = *entry.value.at("block_entity_data");
+                                if (bedTag.id() != nbt::TagId::Compound) {
+                                    continue;
+                                }
+                                const auto& bed = dynamic_cast<const nbt::CompoundTag&>(bedTag);
+
+                                // 读 block_entity_data 的 x/y/z 定位 BlockInfo（基岩版存结构内绝对坐标）
+                                const nbt::Tag* xTag = bed.value.count("x") != 0 ? bed.value.at("x").get() : nullptr;
+                                const nbt::Tag* yTag = bed.value.count("y") != 0 ? bed.value.at("y").get() : nullptr;
+                                const nbt::Tag* zTag = bed.value.count("z") != 0 ? bed.value.at("z").get() : nullptr;
+                                if (xTag == nullptr || yTag == nullptr || zTag == nullptr) {
+                                    continue;
+                                }
+                                const i32 ex = dynamic_cast<const nbt::IntTag&>(*xTag).value;
+                                const i32 ey = dynamic_cast<const nbt::IntTag&>(*yTag).value;
+                                const i32 ez = dynamic_cast<const nbt::IntTag&>(*zTag).value;
+
+                                // 坐标匹配：先按结构内绝对坐标（含 origin），不中再按减 origin（相对结构）
+                                const BlockPos absPos(ex, ey, ez);
+                                const BlockPos relPos(ex - origin.x, ey - origin.y, ez - origin.z);
+                                BlockInfo* matched = nullptr;
+                                for (auto& bi : blockInfos) {
+                                    if (bi.pos == absPos || bi.pos == relPos) {
+                                        matched = &bi;
+                                        break;
+                                    }
+                                }
+                                if (matched != nullptr) {
+                                    matched->nbt = _cloneNbt(&bed);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
     templ->addPalette(Palette(std::move(blockInfos)));
 
-    // TODO: 解析 structure.entities（基岩版实体 schema 与 Java 不同，GameTest 结构通常无实体，暂不解析）
+    // TODO: 解析 structure.entities（基岩版 mob 实体 schema 与 Java 不同，GameTest 结构通常无 mob，暂不解析）
 
     return templ;
 }

@@ -24,6 +24,7 @@
 #include "CommandBlockEntity.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/serialization/NbtHelper.hpp" // nbt_helper::tryGetString/tryGetBool/tryGetByte/tryGetInt/tryGetLong
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -122,6 +123,83 @@ bool CommandBlockEntity::load(const nlohmann::json& data)
     if (data.contains("UpdateLastExecution") && data["UpdateLastExecution"].is_boolean()) {
         m_updateLastExecution = data["UpdateLastExecution"].get<bool>();
     }
+
+    return true;
+}
+
+bool CommandBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!BlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    namespace nh = mc::entity::serialization::nbt_helper;
+
+    // 命令字符串（基岩版与 Java 版字段名一致：Command）
+    if (auto v = nh::tryGetString(tag, "Command")) {
+        m_command = *v;
+    }
+
+    // 成功计数（0-15，比较器输出信号强度）
+    if (auto v = nh::tryGetInt(tag, "SuccessCount")) {
+        m_successCount = std::clamp(*v, 0, 15);
+    }
+
+    // 自定义名称
+    if (auto v = nh::tryGetString(tag, "CustomName")) {
+        m_customName = *v;
+    }
+
+    // 最后输出（基岩版存本地化键如 "commands.clone.success"，此处原样保留不解析）
+    if (auto v = nh::tryGetString(tag, "LastOutput")) {
+        m_lastOutput = *v;
+    }
+
+    // 追踪输出
+    if (auto v = nh::tryGetBool(tag, "TrackOutput")) {
+        m_trackOutput = *v;
+    }
+
+    // 供电状态
+    if (auto v = nh::tryGetBool(tag, "powered")) {
+        m_powered = *v;
+    }
+
+    // 条件满足状态
+    if (auto v = nh::tryGetBool(tag, "conditionMet")) {
+        m_conditionMet = *v;
+    }
+
+    // 自动执行（循环模式始终 true）
+    if (auto v = nh::tryGetBool(tag, "auto")) {
+        m_auto = *v;
+    }
+
+    // 最后执行时间
+    if (auto v = nh::tryGetLong(tag, "LastExecution")) {
+        m_lastExecution = *v;
+    }
+
+    // 基岩版特有：LPCommandMode（0=脉冲 Normal / 1=循环 Repeating / 2=连锁 Chain）
+    // 项目 CommandBlockMode 枚举值不同（Sequence=0/Auto=1/Redstone=2），需映射。
+    if (auto v = nh::tryGetByte(tag, "LPCommandMode")) {
+        switch (*v) {
+            case 0:
+                m_mode = CommandBlockMode::Redstone;
+                break; // Normal → 脉冲（红石触发）
+            case 1:
+                m_mode = CommandBlockMode::Auto;
+                break; // Repeating → 循环（自动执行）
+            case 2:
+                m_mode = CommandBlockMode::Sequence;
+                break; // Chain → 连锁
+            default:
+                break; // 未知值保持当前 mode
+        }
+    }
+
+    // 基岩版特有字段 ExecuteOnFirstTick / TickDelay / LPCondionalMode / LPRedstoneMode 项目无对应字段，
+    // 暂忽略（TODO: 循环方块首 tick 执行 / 延迟执行接线后补）。
 
     return true;
 }
