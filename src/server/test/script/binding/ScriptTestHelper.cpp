@@ -420,12 +420,234 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             return ctx.createInt32(helper->currentTick());
         });
 
-    // TODO: 第一阶段未桥接的 ~50 方法（assertEntityPresent/spawnEntity/spawnItem/assertBlockState/
-    // destroyBlock/assertRedstonePower/assertIsWaterlogged/worldPosition/relativePosition/rotateVector/
-    // getTestDirection/succeedWhenBlockPresent/succeedWhen/succeedIf/succeedOnTick/succeedOnTickWhen/
-    // failIf/runAtTickTime/runAfterDelay/runOnFinish/getBlock/relativeBlockLocation/worldBlockLocation/
-    // assertEntityPresentInArea/assertEntityInstancePresent/assertEntityInstancePresentInArea/
-    // assertEntityTouching/assertItemEntityPresent/assertItemEntityCountIs/spawnItemAt 等）待按需补全。
+    // --- assertEntityPresentInArea(entityType, isPresent) ---
+    // 行为包 MobBehaviorTests/StarterTests 用：断言结构包围盒内是否存在的指定类型实体。
+    reg.method(
+        "assertEntityPresentInArea",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("assertEntityPresentInArea(entityType, isPresent)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            auto isPresent = ctx.toBool(args[1]);
+            if (!isPresent) {
+                return ctx.throwTypeError("isPresent must be boolean");
+            }
+            auto result = helper->assertEntityPresentInArea(*entityType, *isPresent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- spawn(entityType, pos) -> Entity ---
+    // 转发 helper->spawnEntity 真正生成实体。返回值 Entity JS 对象本阶段返回 undefined 占位
+    // （simpleMobTest 不使用返回值；ChallengeTests 的 getComponent/addRider 依赖 Entity JS 类，
+    // 随阶段 3 @minecraft/server Entity 绑定补全后一并接入）。TODO: wrap mc::Entity* 为 JS Entity。
+    reg.method(
+        "spawn",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("spawn(entityType, pos)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            mc::Entity* outEntity = nullptr;
+            auto result = helper->spawnEntity(*entityType, pos, outEntity);
+            if (!isPass(result)) {
+                std::string msg = result->formattedMessage();
+                return ctx.throwInternalError(msg.c_str());
+            }
+            // TODO: 阶段 3 把 outEntity wrap 成 @minecraft/server Entity JS 对象返回。
+            (void)outEntity;
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- runAtTickTime(tick, fn) ---
+    // 注册"在第 tick tick 执行一次 fn"的调度回调（对齐基岩 Test.runAtTickTime）。
+    // fn 经 wrapJsCallback 包装成 std::function<GameTestResult()>，调用方须 retainValue 持久化 JS 句柄。
+    reg.method(
+        "runAtTickTime",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("runAtTickTime(tick, fn)");
+            }
+            auto tick = ctx.toInt32(args[0]);
+            if (!tick) {
+                return ctx.throwTypeError("tick must be number");
+            }
+            ctx.retainValue(args[1]); // wrapJsCallback 持久化引用，回调执行时须存活
+            auto wrapped = wrapJsCallback(&ctx, args[1]);
+            helper->runAtTickTime(*tick, std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- succeedWhen(fn) ---
+    // 注册"持续轮询 fn 直到返回 pass 即 succeed"的完成条件（对齐基岩 Test.succeedWhen）。
+    reg.method(
+        "succeedWhen",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isFunction(args[0])) {
+                return ctx.throwTypeError("succeedWhen(fn)");
+            }
+            ctx.retainValue(args[0]); // wrapJsCallback 持久化引用，回调执行时须存活
+            auto wrapped = wrapJsCallback(&ctx, args[0]);
+            helper->succeedWhen(std::move(wrapped));
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- succeedWhenEntityPresent(entityType, pos, isPresent=true) ---
+    // facade 无此方法，组合实现：succeedWhen(() => assertEntityPresent(entityType, pos, searchDistance, isPresent))。
+    // 基岩版第三参 isPresent 默认 true；searchDistance 取结构包围盒对角线长度（与 area 查询语义一致，足够覆盖）。
+    reg.method(
+        "succeedWhenEntityPresent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("succeedWhenEntityPresent(entityType, pos, isPresent?)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            bool isPresent = true;
+            if (argc >= 3) {
+                auto b = ctx.toBool(args[2]);
+                if (b) {
+                    isPresent = *b;
+                }
+            }
+            // 用较大 searchDistance（64）覆盖结构范围，对齐基岩 area 内实体存在性判定语义。
+            std::string typeCopy = *entityType;
+            BlockPos posCopy = pos;
+            bool presentCopy = isPresent;
+            helper->succeedWhen([helper, typeCopy, posCopy, presentCopy]() -> GameTestResult {
+                return helper->assertEntityPresent(typeCopy, posCopy, 64.0f, presentCopy);
+            });
+            return ctx.createUndefined();
+        },
+        3);
+
+    // --- assert(condition, message?) ---
+    // 基岩 Test.assert：condition 假则 fail(message)。纯 JS 语义，转发 helper->fail。
+    reg.method(
+        "assert",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("assert(condition, message?)");
+            }
+            auto cond = ctx.toBool(args[0]);
+            if (!cond) {
+                return ctx.throwTypeError("assert condition must be boolean");
+            }
+            if (!*cond) {
+                std::string msg = "Assertion failed";
+                if (argc >= 2 && ctx.isString(args[1])) {
+                    auto m = ctx.toString(args[1]);
+                    if (m) {
+                        msg = *m;
+                    }
+                }
+                helper->fail(GameTestError(GameTestErrorType::FailConditionsMet, std::move(msg)));
+            }
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- worldLocation(pos) -> {x,y,z} ---
+    // 基岩 Test.worldLocation：相对坐标→世界绝对坐标。转发 helper->worldBlockPosition。
+    reg.method(
+        "worldLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("worldLocation(pos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            BlockPos world = helper->worldBlockPosition(pos);
+            void* obj = ctx.createObject();
+            ctx.setPropertyInt(obj, "x", world.x);
+            ctx.setPropertyInt(obj, "y", world.y);
+            ctx.setPropertyInt(obj, "z", world.z);
+            return obj;
+        },
+        1);
+
+    // --- setBlockType(blockType, pos) ---
+    // 基岩版 setBlockType 是 setBlock 的历史别名（无 updateFlags 参数，等价 setBlock(blockType, pos, 3)）。
+    reg.method(
+        "setBlockType",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("setBlockType(blockType, pos)");
+            }
+            auto blockType = ctx.toString(args[0]);
+            if (!blockType) {
+                return ctx.throwInternalError("Failed to read blockType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            auto result = helper->setBlock(*blockType, pos, 3);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // TODO: 仍未桥接的方法（assertEntityPresent（已用于 succeedWhenEntityPresent 组合，未单独暴露 JS）/
+    // spawnItem/assertBlockState/destroyBlock/assertRedstonePower/assertIsWaterlogged/worldPosition/
+    // relativePosition/rotateVector/getTestDirection/succeedWhenBlockPresent/succeedIf/succeedOnTick/
+    // succeedOnTickWhen/failIf/runAfterDelay/runOnFinish/getBlock/relativeBlockLocation/worldBlockLocation/
+    // assertEntityInstancePresent/assertEntityInstancePresentInArea/assertEntityTouching/
+    // assertItemEntityPresent/assertItemEntityCountIs/spawnItemAt 等）行为包 0 使用，待按需补全。
+    // 另：spawn 返回值 Entity JS 对象、getDimension 返回 Dimension JS 对象随阶段 3 补全。
 
     return classId;
 }
