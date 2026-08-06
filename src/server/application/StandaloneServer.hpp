@@ -83,6 +83,12 @@ public:
      */
     [[nodiscard]] Result<void> publishToLan(i32 port, bool allowCheats) override;
 
+    /**
+     * @brief 获取游戏目录（行为包/数据包/存档相对其解析）
+     * @return 游戏目录常量引用。
+     */
+    [[nodiscard]] const GameDirectory& gameDirectory() const noexcept override { return m_gameDirectory; }
+
 protected:
     // 注：pollNetwork/broadcastPacket/getPlayerIdForSession/sendPacketToPlayer 四纯虚
     // 已于批2a 统一为 MinecraftServer 基类默认实现。StandaloneServer 为纯远程独立服，

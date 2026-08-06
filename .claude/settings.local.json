@@ -1,6 +1,11 @@
 {
-  "env":{
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000"
+  "autoCompactEnabled": false,
+  "env": {
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1000000",
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "1000000",
+    "API_FORCE_IDLE_TIMEOUT": "0",
+    "API_TIMEOUT_MS": "2147483647",
+    "DISABLE_COMPACT": "1"
   },
-  "prefersReducedMotion": true
+  "prefersReducedMotion": false
 }
