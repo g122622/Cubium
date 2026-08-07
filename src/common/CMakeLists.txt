@@ -12,6 +12,10 @@ add_library(mc_common STATIC
     core/GameDirectory.cpp
     core/settings/SettingsBase.cpp
 
+    # Application entry base（客户端/服务端共享的进程入口抽象 + 异步日志）
+    application/BaseApplicationEntry.cpp
+    application/LogManager.cpp
+
     # Registry
     registry/RegistryAccess.cpp
 
@@ -1663,6 +1667,7 @@ target_link_libraries(mc_common
     PUBLIC
         glm::glm
         spdlog::spdlog
+        gflags::gflags
         nlohmann_json::nlohmann_json
         mc::profiler
     PRIVATE

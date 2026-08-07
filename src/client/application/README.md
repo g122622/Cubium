@@ -8,6 +8,8 @@
 src/client/application/
 ├── ClientApplication.hpp          # 客户端应用主接口
 ├── ClientApplication.cpp          # 生命周期编排、主循环和跨功能共享逻辑
+├── ClientApplicationEntry.hpp     # 客户端进程入口（继承 common 的 BaseApplicationEntry，封装 main 启动流程）
+├── ClientApplicationEntry.cpp     # ClientApplication 生命周期 + gflags flag 定义（--config/--skip-integrated/--quick-play* 等）
 ├── ClientAppStateMachine.hpp      # 客户端状态机（生命周期状态和转换）
 ├── features/                      # 功能实现拆分目录
 │   ├── ClientApplicationBootstrap.cpp   # 初始化骨架
@@ -60,7 +62,8 @@ Initializing -> MainMenu -> LoadingWorld -> InGame <-> Paused
 ## 上下游外部依赖关系
 
 **上游依赖（使用该目录的模块）：**
-- `src/client/main.cpp` - 客户端入口点
+- `src/client/main.cpp` - 客户端入口点（仅构造 `ClientApplicationEntry` 并调 `run()`）
+- `ClientApplicationEntry` - 客户端进程入口，构造 `ClientApplication` 并驱动其生命周期，gflags flag 在此 TU 顶层定义
 
 **下游依赖（该目录依赖的模块）：**
 - `common/entity`、`common/item`、`common/world`、`common/screen`

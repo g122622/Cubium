@@ -4,13 +4,15 @@
 
 ```
 src/server/application/
-├── IServer.hpp              # 服务器统一接口定义
-├── MinecraftServer.hpp      # 服务器抽象基类声明
-├── MinecraftServer.cpp      # 服务器抽象基类实现（共享逻辑 + routeInboundPlayPacket）
-├── IntegratedServer.hpp     # 内置服务器声明（单机模式）
-├── IntegratedServer.cpp     # 内置服务器实现（LocalTransport 同进程零拷贝 IR 通信）
-├── StandaloneServer.hpp     # 独立服务器声明（多人模式）
-└── StandaloneServer.cpp     # 独立服务器实现（TCP 网络通信）
+├── IServer.hpp                    # 服务器统一接口定义
+├── MinecraftServer.hpp            # 服务器抽象基类声明
+├── MinecraftServer.cpp            # 服务器抽象基类实现（共享逻辑 + routeInboundPlayPacket）
+├── IntegratedServer.hpp           # 内置服务器声明（单机模式）
+├── IntegratedServer.cpp           # 内置服务器实现（LocalTransport 同进程零拷贝 IR 通信）
+├── StandaloneServer.hpp           # 独立服务器声明（多人模式）
+├── StandaloneServer.cpp           # 独立服务器实现（TCP 网络通信）
+├── ServerApplicationEntry.hpp     # 服务端进程入口（继承 common 的 BaseApplicationEntry，封装 main 启动流程 + GameTest 接入）
+└── ServerApplicationEntry.cpp     # StandaloneServer 生命周期 + 信号处理 + --gametest 门面 + gflags flag 定义
 ```
 
 ## 内部模块关系
@@ -67,6 +69,7 @@ src/server/application/
 **被依赖方：**
 - 客户端启动单机模式时使用 `IntegratedServer`
 - 独立服务器程序使用 `StandaloneServer`
+- `ServerApplicationEntry`（server 进程入口）构造 `StandaloneServer` 并驱动其完整生命周期，接入 GameTest 框架与 `/gametest` 命令
 - 测试代码通过 `IServer` 接口模拟服务器
 
 ## 容易踩的坑
@@ -188,3 +191,6 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 **资源清理**（`stop()` 顺序）：`m_running=false` → `m_clientConnection` 断开 → join 主循环线程 → `savePlayerRuntimeState()`（含远程玩家）→ `clearAll()` → `stopCore()` → `m_remoteSessions.clear()`（session 持 `ServerClientConnection&` 非拥有，须先于连接销毁）→ `m_serverNetwork.reset()`（关 acceptor + join accept 线程 + 销毁所有连接）→ 清理 `m_remotePlayerEntityIds` → reset `m_clientConnection` / 本地 transport。
 
 **TODO（后续集成验证）**：远程玩家登录流程的运行时正确性目前仅通过编译验证，缺少端到端集成测试（需真实 TCP 连接验证远程玩家能加入并交互）。当前依赖 `StandaloneServer` 的同类流程作为正确性参考，后续应补充专门针对 `IntegratedServer` 远程路径的集成测试。
+
+### 12. GameTest 接入须留在 ServerApplicationEntry（不上提 common）
+`_initializeServerGameTest` / `_cleanupServerGameTest` 依赖 `mc_test` 符号（GameTestRegistry/GameTestTicker/GameTestServer 等），而 `mc_test` 仅 `minecraft-server` exe 链接，`minecraft-client` exe 不链接。若把这两个函数上提到 `common/application`（编入 `mc_common`，client exe 也链接），会导致 client exe 链接失败。故 GameTest 接入代码必须留在 `ServerApplicationEntry.cpp`（只编入 server exe）。`ServerApplicationEntry` 的 `--gametest` 分支走 `GameTestServer` 无头门面（自含行为包加载/JS 模块注册/runner 构造），与在线路径（`_initializeServerGameTest` 挂 post-tick 回调驱动 ticker）互斥，不复用同一套接入逻辑。

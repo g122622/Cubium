@@ -6,6 +6,7 @@ add_executable(minecraft-server
     application/StandaloneServer.cpp
     application/IntegratedServer.cpp
     application/MinecraftServer.cpp
+    application/ServerApplicationEntry.cpp
     settings/ServerSettings.cpp
     # 新网络层（1.21.11 IR）：服务端门面 + 握手状态机 + 配置注册表 + Play 路由
     network/ServerNetwork.cpp

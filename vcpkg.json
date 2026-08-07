@@ -24,7 +24,8 @@
     },
     "entt",
     "abseil",
-    "leveldb"
+    "leveldb",
+    "gflags"
   ],
   "features": {
     "vulkan": {
