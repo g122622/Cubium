@@ -54,6 +54,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/block/blocks/redstone/ActivatorRailBlock.hpp"
+#include "common/world/block/blocks/redstone/PoweredRailBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
@@ -61,7 +62,6 @@
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
-#include "common/world/redstone/RedstonePower.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -74,6 +74,7 @@ namespace entity {
 using namespace mc::math;
 using blocks::AbstractRailBlock;
 using blocks::ActivatorRailBlock;
+using blocks::PoweredRailBlock;
 
 namespace {
 // 矿车常量
@@ -827,13 +828,25 @@ bool AbstractMinecartEntity::_isActivatorRail(const BlockPos& pos) const
 
 bool AbstractMinecartEntity::_isRailPowered(const BlockPos& pos)
 {
-    // 检查铁轨是否接收红石信号
+    // 读取充能铁轨的 BlockState.powered 属性，对齐 vanilla OldMinecartBehavior.moveAlongTrack
+    // （直接读 blockstate.getValue(PoweredRailBlock.POWERED)，不重算红石信号）。
+    // vanilla 的 powered 状态由 PoweredRailBlock.updateState 在 neighborChanged 时计算并缓存到
+    // BlockState；结构放置时 TemplateLoader 已把基岩 rail_data_bit 转成 powered 属性（见
+    // TemplateLoader.cpp 的 rail_data_bit→powered 映射），故放置后 BlockState.powered 即正确。
+    // 此前实现调用 RedstonePower::isPowered 做运行时红石重算，但该路径未实现"上方红石火把充能
+    // 下方方块"等传导，结构场景下恒返回 false，致 minibiomes 矿车在已充能 golden_rail 上静止不动。
     IWorld* worldPtr = Entity::world();
     if (!worldPtr) {
         return false;
     }
 
-    return world::redstone::RedstonePower::isPowered(*worldPtr, pos);
+    const BlockState* state = worldPtr->getBlockState(pos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 调用方保证此处方块为 POWERED_RAIL（_isPoweredRail 已判定），直接读 powered 属性。
+    return PoweredRailBlock::isPowered(*state);
 }
 
 bool AbstractMinecartEntity::_isNormalBlockAt(const BlockPos& pos) const
