@@ -111,16 +111,30 @@ bool RedstonePower::isPowered(IWorld& world, const BlockPos& pos)
 
 bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos)
 {
-    // 遍历六个方向检查是否有强信号
+    // 遍历六个方向检查是否有强信号或弱信号输出。
+    // 必须同时检查强信号(getStrongPower)与弱信号(getWeakPower)：
+    //   - 强信号：红石火把的 Down 方向、中继器输出端等，直接充能相邻实体方块。
+    //   - 弱信号：朝上立红石火把对其水平相邻方块输出 15、红石块全方向 15、被充能的实体方块等。
+    // 此前仅查 getStrongPower，导致"朝上立火把水平相邻充能铁轨"这一基岩 vanilla 可观察行为无法复现
+    // （torch 的 getStrongPower 仅 Down 返回 15，水平方向返回 0；但其 getWeakPower 水平方向返回 15），
+    // 进而 PoweredRailBlock::neighborChanged 重算 shouldBePowered 恒为 false，把结构预置的 powered=true
+    // 覆盖成 false，矿车读 powered=false 永不启动（GameTest minibiomes 根因）。
+    // 普通方块 getWeakPower/getStrongPower 默认返回 0（见 Block.hpp 基类默认实现），故遍历无副作用。
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
         Direction oppositeDir = Directions::opposite(dir);
 
         const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (neighborState && !neighborState->isAir()) {
-            if (neighborState->getBlock().getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
-                return true;
-            }
+        if (!neighborState || neighborState->isAir()) {
+            continue;
+        }
+
+        const Block& neighborBlock = neighborState->getBlock();
+        if (neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
+            return true;
+        }
+        if (neighborBlock.getWeakPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
+            return true;
         }
     }
 

@@ -169,6 +169,11 @@ void AbstractMinecartEntity::tick()
 
     // 调用父类tick
     Entity::tick();
+
+    // 同步乘客位置：矿车自身已在本 tick 移动到新位置（_moveAlongTrack/_moveDerailedMinecart），
+    // 须把骑乘实体的 m_position 更新到矿车当前位置，否则乘客位置永远停在出生点
+    // （GameTest minibiomes 矿车载猪超时根因）。对齐 AbstractHorseEntity::tick 的 updatePassengers 模式。
+    updatePassengers();
 }
 
 bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const
@@ -830,11 +835,11 @@ bool AbstractMinecartEntity::_isRailPowered(const BlockPos& pos)
 {
     // 读取充能铁轨的 BlockState.powered 属性，对齐 vanilla OldMinecartBehavior.moveAlongTrack
     // （直接读 blockstate.getValue(PoweredRailBlock.POWERED)，不重算红石信号）。
-    // vanilla 的 powered 状态由 PoweredRailBlock.updateState 在 neighborChanged 时计算并缓存到
+    // powered 状态由 PoweredRailBlock::neighborChanged 调 RedstonePower::isPowered 重算并写入
     // BlockState；结构放置时 TemplateLoader 已把基岩 rail_data_bit 转成 powered 属性（见
-    // TemplateLoader.cpp 的 rail_data_bit→powered 映射），故放置后 BlockState.powered 即正确。
-    // 此前实现调用 RedstonePower::isPowered 做运行时红石重算，但该路径未实现"上方红石火把充能
-    // 下方方块"等传导，结构场景下恒返回 false，致 minibiomes 矿车在已充能 golden_rail 上静止不动。
+    // TemplateLoader.cpp 的 rail_data_bit→powered 映射），放置后 neighborChanged 也会重算。
+    // RedstonePower::isPowered 现已同时检查强/弱信号（见 isIndirectlyPowered），故"朝上立火把
+    // 水平相邻铁轨"等基岩 vanilla 可观察行为能正确点亮铁轨，矿车据此启动。
     IWorld* worldPtr = Entity::world();
     if (!worldPtr) {
         return false;
@@ -846,7 +851,8 @@ bool AbstractMinecartEntity::_isRailPowered(const BlockPos& pos)
     }
 
     // 调用方保证此处方块为 POWERED_RAIL（_isPoweredRail 已判定），直接读 powered 属性。
-    return PoweredRailBlock::isPowered(*state);
+    const bool powered = PoweredRailBlock::isPowered(*state);
+    return powered;
 }
 
 bool AbstractMinecartEntity::_isNormalBlockAt(const BlockPos& pos) const

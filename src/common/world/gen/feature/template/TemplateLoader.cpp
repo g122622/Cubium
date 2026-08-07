@@ -127,6 +127,13 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const s
             default:
                 break;
         }
+    } else if (bedrockKey == "height") {
+        // 基岩 minecraft:snow_layer 的 height（Int 0-7，0=最薄1层）→ Java minecraft:snow 的 layers（1-8）。
+        // 基岩 height=N 表示 N+1 层雪（与 Java layers 语义偏移 1）。映射后由 bedrockBlockNameToJava
+        // 把 snow_layer 改名为 snow，此处仅做属性名+值转换。
+        if (intVal >= 0 && intVal <= 7) {
+            return std::make_pair(std::string("layers"), std::to_string(intVal + 1));
+        }
     }
     return std::nullopt;
 }
@@ -195,7 +202,7 @@ std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const 
 // - minecraft:stained_glass_pane + color → minecraft:<color>_stained_glass_pane
 // - 纯改名（无变体）：wooden_door→oak_door、golden_rail→powered_rail、lit_pumpkin→jack_o_lantern、
 //   grass→short_grass、grass_path→dirt_path
-// TODO: minecraft:snow_layer→minecraft:snow（+ height→layers 属性映射）、minecraft:sapling 等仍待补。
+// TODO: minecraft:sapling 等基岩独有方块仍待补全映射。
 // 详见 GameTest 结构扫描结论（memory: gametest-stairs-orientation-filtered-clone-fix）。
 struct BedrockBlockMapping {
     std::string javaName;                                         // 映射后的 Java 方块名（空表示无需改名）
@@ -302,6 +309,21 @@ BedrockBlockMapping bedrockBlockNameToJava(const std::string& bedrockName, const
         // 基岩 stained_glass_pane + color → minecraft:<color>_stained_glass_pane
         std::string color = bedrockStringState(bedrockStates, "color", "white");
         return {std::string("minecraft:") + color + "_stained_glass_pane", {}};
+    }
+    if (bedrockName == "minecraft:snow") {
+        // 基岩 minecraft:snow（无 height 属性）= 完整实心雪块（SnowBlock，full solid），
+        // 与 Java minecraft:snow（SnowLayerBlock，LAYERS 1-8 分层雪，2px 薄板 .notSolid()）是不同方块。
+        // 必须映射到 Java minecraft:snow_block（SimpleBlock 实心），否则铁轨等需刚性支撑的方块放在其上时
+        // canSupportRigidBlock 返回 false（2px 雪层不可支撑），被 neighborChanged 误判无支撑而移除
+        // （GameTest minibiomes 矿车在 snow 上的 r7 弯轨脱轨根因）。基岩 states 为空，无需属性映射。
+        return {"minecraft:snow_block", {}};
+    }
+    if (bedrockName == "minecraft:snow_layer") {
+        // 基岩 minecraft:snow_layer（TopSnowBlock，带 height Int 0-7）= Java minecraft:snow（SnowLayerBlock，
+        // LAYERS 1-8）。属性 height→layers 由 bedrockIntStateToJava 做值转换（height+1→layers），
+        // 此处仅声明属性名重命名。covered_bit 是基岩独有（草路径上的雪覆盖标记），Java 无对应属性，
+        // applyPropertiesToState 会忽略未知属性。
+        return {"minecraft:snow", {{"height", "layers"}}};
     }
     // 纯改名（无变体属性）
     static const std::unordered_map<std::string, std::string> kRenames = {
