@@ -630,9 +630,34 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
     // 注：setTimeManager / setDifficultyCallback / setLootTableManager 三项注入已由
     // ServerDimensionManager::_createServerWorld 在每个维度世界创建时统一完成（见
     // ServerDimensionManager.cpp:565-567）。批5a 去重：此处不再重复注入，避免装配
-    // 胶水与维度管理器双写。保留空函数体供子类 attachWorldBindings/attachWorldCommandBindings
-    // 成对装配调用点结构稳定，便于将来若需补充维度无关命令绑定在此扩展。
-    (void)world;
+    // 胶水与维度管理器双写。
+    //
+    // 命令执行回调：把 ServerWorld::executeCommand 接到 CommandRegistry::execute。
+    // 命令方块/命令方块矿车/告示牌等经 world.executeCommand(path) 触发的命令全部依赖此回调；
+    // 回调为空时 ServerWorld::executeCommand 静默返回 0（见 ServerWorld.cpp:2737-2745），
+    // 命令字符串不会进入 CommandDispatcher，命令方块形同虚设。
+    // 此前仅 IntegratedServer 单独绑定，GameTestServer / StandaloneServer 命令方块全失效
+    // （GameTest cloneBlocksCommand 即因此失败）。现下沉到基类，三服统一接线。
+    // setOnExecuteCommand 为赋值覆盖，IntegratedServer 旧的独立绑定段已删除，无重复。
+    // 捕获 &world（引用）：ServerWorld 不可拷贝（含 unique_ptr 成员），且维度世界生命周期覆盖
+    // 整个服务器运行期，引用在回调延迟执行时仍有效（与原 IntegratedServer 捕获 world 指针等价安全）。
+    world.setOnExecuteCommand(
+        [this, &world](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
+            std::string cmd = command;
+            if (!cmd.empty() && cmd[0] != '/') {
+                cmd = "/" + cmd;
+            }
+
+            command::ServerCommandSource source(
+                this, nullptr, world.dimension(), position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
+            auto result = m_commandRegistry->execute(cmd, source);
+            if (result.failed()) {
+                spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());
+                return 0;
+            }
+
+            return result.value();
+        });
 }
 
 Result<void> MinecraftServer::loadBehaviorPacks()

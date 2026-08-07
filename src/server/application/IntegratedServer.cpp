@@ -301,31 +301,9 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         }
     });
 
-    // 设置命令执行回调（用于命令方块矿车等实体执行命令）
-    // 为所有维度设置命令执行回调
-    m_dimensionManager->forEachDimension([this](Dimension& dim) {
-        auto* serverDim = static_cast<ServerDimension*>(&dim);
-        auto* world = serverDim->world();
-        if (world) {
-            world->setOnExecuteCommand(
-                [this, world](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
-                    std::string cmd = command;
-                    if (!cmd.empty() && cmd[0] != '/') {
-                        cmd = "/" + cmd;
-                    }
-
-                    command::ServerCommandSource source(
-                        this, nullptr, world->dimension(), position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
-                    auto result = m_commandRegistry->execute(cmd, source);
-                    if (result.failed()) {
-                        spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());
-                        return 0;
-                    }
-
-                    return result.value();
-                });
-        }
-    });
+    // 命令执行回调（setOnExecuteCommand）已由基类 MinecraftServer::attachWorldCommandBindings
+    // 统一绑定到 m_commandRegistry->execute，所有 ServerWorld 子类（IntegratedServer /
+    // StandaloneServer / GameTestServer）共用，此处不再单独绑定。
 
     auto worldResult = initializeWorld();
     if (worldResult.failed()) {
