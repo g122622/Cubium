@@ -28,6 +28,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <filesystem>
 #include <thread>
 
 // GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
@@ -59,6 +60,11 @@ DEFINE_bool(gametest,
     false,
     "Run all registered GameTests headless and exit "
     "(exit code = number of failed required tests; 0 = all pass)");
+DEFINE_string(gametest_packs,
+    "",
+    "Extra behavior pack scan directory for --gametest mode (repo-internal tests/integrated by default). "
+    "Each subdirectory with a manifest.json is loaded as an independent behavior pack. "
+    "Empty falls back to MC_SOURCE_ROOT/tests/integrated.");
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
@@ -160,6 +166,26 @@ int ServerApplicationEntry::runApplication()
     if (m_gametestMode) {
         mc::test::GameTestServer gtServer;
         mc::test::GameTestServerParams gtParams;
+
+        // 解析额外行为包扫描目录：--gametest-packs 显式指定优先；否则用编译期注入的源码根拼
+        // tests/integrated（无论运行时 CWD 如何，默认指向仓库内集成测试目录）。
+        std::filesystem::path packsDir;
+        if (!FLAGS_gametest_packs.empty()) {
+            packsDir = std::filesystem::path(FLAGS_gametest_packs);
+        } else {
+#ifdef MC_SOURCE_ROOT
+            packsDir = std::filesystem::path(MC_SOURCE_ROOT) / "tests" / "integrated";
+#else
+            packsDir = std::filesystem::path("tests") / "integrated";
+#endif
+        }
+        if (std::filesystem::is_directory(packsDir)) {
+            gtParams.extraBehaviorPackDirs.push_back(packsDir);
+            spdlog::info("[GameTest] Extra behavior pack dir: '{}'", packsDir.string());
+        } else {
+            spdlog::warn("[GameTest] Extra behavior pack dir not found: '{}'", packsDir.string());
+        }
+
         auto gtInit = gtServer.initialize(gtParams);
         if (gtInit.failed()) {
             spdlog::error("Failed to initialize GameTestServer: {}", gtInit.error().toString());

@@ -234,6 +234,26 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
         spdlog::warn("[GameTest] Behavior pack loading failed: {}", packResult.error().message());
     }
 
+    // 额外行为包扫描目录（仓库内 tests/integrated 等）：每个目录下含 manifest.json 的子目录
+    // 作为独立行为包加载。用于让 GameTest 跑仓库内 TS 编译产物的行为包。须在 loadBehaviorPacks
+    // 之后（script system 已 initialized）、_selectAndBuildRunner 之前（注册发生在 runner 选测试前）。
+    // loadPlugins 内部会 startPlugins，二次调用时已 Running 的包被状态门控跳过，新包正常 start。
+    if (auto* sm = scriptManager()) {
+        for (const auto& extraDir : m_params.extraBehaviorPackDirs) {
+            if (extraDir.empty() || !std::filesystem::is_directory(extraDir)) {
+                spdlog::warn("[GameTest] Skip extra behavior pack dir (not a directory): '{}'", extraDir.string());
+                continue;
+            }
+            spdlog::info("[GameTest] Loading extra behavior packs from '{}'", extraDir.string());
+            auto extraResult = sm->loadPlugins(extraDir.string());
+            if (extraResult.failed()) {
+                spdlog::warn("[GameTest] Extra behavior pack loading failed for '{}': {}",
+                    extraDir.string(),
+                    extraResult.error().message());
+            }
+        }
+    }
+
     // 把已加载的行为包列表接入 TemplateManager，使 GameTest 结构名（如 startertests:mediumglass）
     // 能从 behavior_packs/<包>/structures/<ns>/<path>.mcstructure 加载。须在 loadBehaviorPacks 之后
     // （packList 已扫描填充），且在 _selectAndBuildRunner 之前（runner 构造批次放置结构即取模板）。

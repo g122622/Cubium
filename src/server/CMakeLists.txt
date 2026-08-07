@@ -268,6 +268,44 @@ target_sources(minecraft-server
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptAsyncGameTestRunResult.cpp
 )
 
+# ============================================================================
+# 集成测试行为包 TS 编译（tests/integrated）：构建期把 .ts 编译成 .js 供 QuickJS 运行。
+# 行为包源码在仓库内 tests/integrated/（TS 源 + .mcstructure 结构），由 --gametest 门面
+# 经 --gametest-packs 扫描加载。node_modules 不入 git，build.mjs 自管依赖（缺失则 npm install）。
+# 仿 src/common/CMakeLists.txt 的 baking add_custom_command 模式：OUTPUT 用 stamp 文件
+# （build.mjs 一次产多包多文件无单一输出），target_sources 把 stamp 拉入 server 源触发构建。
+# NODE_EXECUTABLE 是 src/common/CMakeLists.txt 的全局 cache 变量，common 先于 server 解析，可直接复用。
+# ============================================================================
+set(_integrated_root "${CMAKE_SOURCE_DIR}/tests/integrated")
+set(_integrated_build_script "${_integrated_root}/build.mjs")
+set(_integrated_build_stamp "${CMAKE_BINARY_DIR}/tests/integrated/.build.stamp")
+add_custom_command(
+    OUTPUT ${_integrated_build_stamp}
+    COMMAND ${NODE_EXECUTABLE} ${_integrated_build_script}
+    COMMAND ${CMAKE_COMMAND} -E touch ${_integrated_build_stamp}
+    DEPENDS ${_integrated_build_script}
+            ${_integrated_root}/package.json
+            ${_integrated_root}/tsconfig.base.json
+            ${_integrated_root}/utils/block/build.ts
+            ${_integrated_root}/utils/entity/assert.ts
+            ${_integrated_root}/challenge/src/main.ts
+            ${_integrated_root}/challenge/src/ChallengeTests.ts
+            ${_integrated_root}/command/src/main.ts
+            ${_integrated_root}/command/src/CommandTests.ts
+            ${_integrated_root}/mob_behavior/src/main.ts
+            ${_integrated_root}/mob_behavior/src/MobBehaviorTests.ts
+            ${_integrated_root}/starter/src/StarterTests.ts
+    WORKING_DIRECTORY ${_integrated_root}
+    COMMENT "Compiling integrated behavior packs (TypeScript -> JavaScript)"
+    VERBATIM
+)
+set_source_files_properties(${_integrated_build_stamp} PROPERTIES GENERATED TRUE)
+target_sources(minecraft-server PRIVATE ${_integrated_build_stamp})
+
+# 注入源码根路径宏，使 --gametest 门面能定位仓库内 tests/integrated（无论运行时 CWD 如何）。
+# ServerApplicationEntry.cpp 用 #ifdef MC_SOURCE_ROOT 拼接默认 --gametest-packs 路径。
+target_compile_definitions(minecraft-server PRIVATE MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
+
 target_compile_features(minecraft-server PRIVATE cxx_std_20)
 
 # 复用 mc_common 的预编译头（PCH），避免为 server target 重复创建一份 .pch。

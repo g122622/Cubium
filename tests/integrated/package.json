@@ -1,0 +1,16 @@
+{
+  "name": "cubium-integrated-gametests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Integrated GameTest behavior packs for Cubium. TypeScript sources compiled to JS at CMake build time, executed by embedded QuickJS.",
+  "scripts": {
+    "build": "node build.mjs",
+    "clean": "node build.mjs --clean"
+  },
+  "devDependencies": {
+    "@minecraft/common": "^1.2.0",
+    "@minecraft/server": "1.13.0-beta.1.21.10-preview.24",
+    "@minecraft/server-gametest": "1.0.0-beta.1.21.10-preview.24",
+    "typescript": "^5.9.0"
+  }
+}

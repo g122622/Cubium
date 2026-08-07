@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace mc::test {
 
@@ -51,6 +52,11 @@ struct GameTestServerParams {
     std::string testsFilter;
     /// `--report`：JUnit XML 输出路径（相对 gameDirectoryRoot 或绝对）。空表示不写文件。
     std::string reportPath;
+    /// `--gametest-packs`：额外行为包扫描目录（仓库内 tests/integrated 等）。
+    /// 每个目录下含 manifest.json 的子目录会被当作独立行为包加载。空表示不扫额外目录，
+    /// 仅扫 `gameDirectory().behaviorPacksDir()`（默认 ~/minecraft_reborn/behavior_packs）。
+    /// 用于让 GameTest 跑仓库内 TS 编译产物的行为包，而非外部目录。
+    std::vector<std::filesystem::path> extraBehaviorPackDirs;
     /// `--verify`：×4 旋转 ×repeatCount 压测（对齐 Java `rotateAndMultiply`）。第一阶段 TODO 展开。
     bool verify = false;
     /// `--verify` 时每测试重复次数（Java 默认 100）。

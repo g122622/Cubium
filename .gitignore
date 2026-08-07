@@ -131,3 +131,11 @@ include/minecraft-reborn/version.h
 # 离线烘焙生成的 Java id 查找表（由 scripts/baking/*.ts 在构建期重生成，勿追踪）
 src/common/network/backend/java/generated/*.gen.cpp
 src/common/network/backend/java/generated/*.gen.hpp
+
+# tests/integrated 行为包 TS 编译产物（由 node build.mjs 在构建期重生成，勿追踪）
+# - scripts/ 是 tsc 编译 .ts 产出的 .js，QuickJS 运行时读取
+# - src/utils/ 是构建期从 tests/integrated/utils/ 复制进各包的共享源码
+tests/integrated/*/scripts/
+tests/integrated/*/src/utils/
+# 单包 package-lock 不追踪（用根 package-lock.json 统一锁定）
+tests/integrated/*/package-lock.json
