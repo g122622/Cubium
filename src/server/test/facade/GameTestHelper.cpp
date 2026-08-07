@@ -274,8 +274,25 @@ GameTestResult GameTestHelper::assertEntityPresent(
 {
     const auto fullType = normalizeEntityType(entityType);
     const BlockPos worldPos = worldBlockPosition(relativePos);
-    const mc::Vector3 center = worldPos.toVector3();
-    const auto found = m_world.getEntitiesInRange(center, searchDistance, nullptr);
+    // 对齐 Java GameTestHelper.assertEntityPresent(type, BlockPos)：用 AABB(blockpos)（1 格方块）
+    // 判定实体是否落在该方块内，而非球查询。searchDistance=0 表示精确 1 格方块（Java 默认语义）；
+    // searchDistance>0 表示以方块中心为中心、±searchDistance 格的容差盒（基岩带 distance 重载语义）。
+    // 此前用 getEntitiesInRange(center, 64.0) 球查询导致 succeedWhenEntityPresent 假通过
+    // （实体在结构内任意位置都算 present，掩盖"实体未到精确位置"的失败）。
+    const AxisAlignedBB box = (searchDistance > 0.0f)
+        ? AxisAlignedBB(static_cast<f32>(worldPos.x) + 0.5f - searchDistance,
+              static_cast<f32>(worldPos.y) + 0.5f - searchDistance,
+              static_cast<f32>(worldPos.z) + 0.5f - searchDistance,
+              static_cast<f32>(worldPos.x) + 0.5f + searchDistance,
+              static_cast<f32>(worldPos.y) + 0.5f + searchDistance,
+              static_cast<f32>(worldPos.z) + 0.5f + searchDistance)
+        : AxisAlignedBB(static_cast<f32>(worldPos.x),
+              static_cast<f32>(worldPos.y),
+              static_cast<f32>(worldPos.z),
+              static_cast<f32>(worldPos.x) + 1.0f,
+              static_cast<f32>(worldPos.y) + 1.0f,
+              static_cast<f32>(worldPos.z) + 1.0f);
+    const auto found = m_world.getEntitiesInAABB(box, nullptr);
     bool present = false;
     for (const auto* e : found) {
         if (e != nullptr && e->getTypeId() == fullType) {

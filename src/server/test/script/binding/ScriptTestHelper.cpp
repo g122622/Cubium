@@ -565,8 +565,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         1);
 
     // --- succeedWhenEntityPresent(entityType, pos, isPresent=true) ---
-    // facade 无此方法，组合实现：succeedWhen(() => assertEntityPresent(entityType, pos, searchDistance, isPresent))。
-    // 基岩版第三参 isPresent 默认 true；searchDistance 取结构包围盒对角线长度（与 area 查询语义一致，足够覆盖）。
+    // facade 无此方法，组合实现：succeedWhen(() => assertEntityPresent(entityType, pos, 0.0, isPresent))。
+    // 基岩版第三参 isPresent 默认 true；searchDistance=0 对齐 Java GameTestHelper.assertEntityPresent(type, BlockPos)
+    // 的 1 格方块 AABB 精确匹配（实体须落在 pos 方块内）。此前传 64.0 球查询致假通过，已修正。
     reg.method(
         "succeedWhenEntityPresent",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -592,12 +593,15 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                     isPresent = *b;
                 }
             }
-            // 用较大 searchDistance（64）覆盖结构范围，对齐基岩 area 内实体存在性判定语义。
+            // 对齐 Java GameTestHelper.succeedWhenEntityPresent(type, BlockPos) → assertEntityPresent(type, BlockPos)：
+            // 用 1 格方块 AABB 精确匹配（searchDistance=0）。此前传 64.0f 球查询导致假通过
+            // （实体在结构内任意位置都算 present，掩盖"实体未到精确位置"的失败，如 runAsLlama
+            // 命令失败羊驼未动却通过）。
             std::string typeCopy = *entityType;
             BlockPos posCopy = pos;
             bool presentCopy = isPresent;
             helper->succeedWhen([helper, typeCopy, posCopy, presentCopy]() -> GameTestResult {
-                return helper->assertEntityPresent(typeCopy, posCopy, 64.0f, presentCopy);
+                return helper->assertEntityPresent(typeCopy, posCopy, 0.0f, presentCopy);
             });
             return ctx.createUndefined();
         },
