@@ -53,16 +53,17 @@ namespace template_ {
 
 namespace {
 
-// 基岩版整型方向/朝向属性 → Java 属性 (key, value) 字符串。
+// 基岩版整型属性 → Java 属性 (key, value) 字符串。
 // 已覆盖：
-// - facing_direction (int 0-5)：基岩 0=down,1=up,2=north,3=south,4=east,5=west → Java facing
-// - weirdo_direction (int 0-3)：基岩 stairs 朝向 0=east,1=west,2=south,3=north → Java stairs facing
-//   （基岩 WeirdoDirection 枚举，见 LeviLamina src/mc/world/level/block/WeirdoDirection.h；
-//   Java stairs FACING 同为楼梯上升方向，语义一致直接映射）
-// 返回 nullopt 表示该属性名/值不在已知映射表内，由调用方走默认转换逻辑。
-// TODO: 基岩属性体系与 Java 系统性不同，此处仅覆盖 GameTest 结构高频出现的方向属性。
-// direction(int 0-3, 活塞/原木)/torch_facing_direction/grounded 等基岩方向属性需逐类映射，
-// 暂未实现（影响对应方块的朝向退化为默认值，不阻塞结构加载）。
+// - facing_direction (int 0-5: 0=down,1=up,2=north,3=south,4=east,5=west)：基岩通用 6 向 → Java facing
+// - weirdo_direction (int 0-3: 0=east,1=west,2=south,3=north)：基岩 stairs 朝向 → Java stairs facing
+// - rail_direction (int 0-9)：基岩 rail_direction → Java rail "shape"（一一对应）
+//   0=north_south,1=east_west,2=ascending_east,3=ascending_west,4=ascending_north,5=ascending_south,
+//   6=south_east,7=south_west,8=north_west,9=north_east
+// - direction (int 0-3: 0=north,1=east,2=south,3=west,基岩 CommonDirection)：门/楼梯/按钮等通用朝向
+//   → Java facing（vanilla HORIZONTAL_FACING 4 向，north/south/east/west）
+// 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认数字字符串转换。
+// TODO: 部分复合方块（如 lever 的门控/朝向组合属性）仍待补全。
 std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const std::string& bedrockKey, i32 intVal)
 {
     if (bedrockKey == "facing_direction") {
@@ -96,6 +97,36 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const s
             default:
                 break;
         }
+    } else if (bedrockKey == "rail_direction") {
+        // 基岩 rail_direction 0-9 与 Java RailShape 字符串值一一对应（属性名 shape）
+        static const char* kRailShapes[10] = {"north_south",
+            "east_west",
+            "ascending_east",
+            "ascending_west",
+            "ascending_north",
+            "ascending_south",
+            "south_east",
+            "south_west",
+            "north_west",
+            "north_east"};
+        if (intVal >= 0 && intVal <= 9) {
+            return std::make_pair(std::string("shape"), std::string(kRailShapes[intVal]));
+        }
+    } else if (bedrockKey == "direction") {
+        // 基岩 CommonDirection 0-3: 0=North,1=East,2=South,3=West → Java facing
+        // 注意：vanilla 门/楼梯的 facing 表示"方块朝向哪一边"，与基岩 direction 语义一致直接映射。
+        switch (intVal) {
+            case 0:
+                return std::make_pair(std::string("facing"), std::string("north"));
+            case 1:
+                return std::make_pair(std::string("facing"), std::string("east"));
+            case 2:
+                return std::make_pair(std::string("facing"), std::string("south"));
+            case 3:
+                return std::make_pair(std::string("facing"), std::string("west"));
+            default:
+                break;
+        }
     }
     return std::nullopt;
 }
@@ -105,41 +136,178 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const s
 // - upside_down_bit (byte 0/1)：基岩 stairs/slab 倒置标志 0=正放,1=倒置 → Java half (bottom/top)
 //   （stairs 用 Half::Top/Bottom，slab 用 SlabType 但属性名不同，此处仅映射为 stairs 的 half；
 //   slab 的 type 属性映射留待补全）
+// - upper_block_bit (byte 0/1)：基岩门上下半 0=下半,1=上半 → Java half (lower/upper)（DoubleBlockHalf）
+// - door_hinge_bit (byte 0/1)：基岩门铰链 0=左,1=右 → Java hinge (left/right)（DoorHinge）
+// - open_bit (byte 0/1)：基岩门/栅栏门/活板门开合 → Java open (true/false)（属性名重命名 + 布尔值）
+// - button_pressed_bit (byte 0/1)：基岩按钮按下 → Java powered (true/false)
+// - conditional_bit (byte 0/1)：基岩命令方块条件 → Java conditional (true/false)
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
-// TODO: 基岩字节属性到 Java 枚举的映射仅覆盖 upside_down_bit→half(stairs)，其他（如 top_slot_bit
-// 等）需逐类补全。
+// TODO: 基岩字节属性到 Java 枚举的映射仅覆盖上述常见项，其他（如 top_slot_bit、direction 的 byte
+// 变体等）需逐类补全。
 std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const std::string& bedrockKey, i8 byteVal)
 {
+    const bool b = (byteVal != 0);
     if (bedrockKey == "upside_down_bit") {
         // 0=正放(bottom), 1=倒置(top)
-        return std::make_pair(std::string("half"), byteVal != 0 ? std::string("top") : std::string("bottom"));
+        return std::make_pair(std::string("half"), b ? std::string("top") : std::string("bottom"));
+    }
+    if (bedrockKey == "upper_block_bit") {
+        // 门：0=下半(lower), 1=上半(upper)
+        return std::make_pair(std::string("half"), b ? std::string("upper") : std::string("lower"));
+    }
+    if (bedrockKey == "door_hinge_bit") {
+        // 门铰链：0=左(left), 1=右(right)
+        return std::make_pair(std::string("hinge"), b ? std::string("right") : std::string("left"));
+    }
+    if (bedrockKey == "open_bit") {
+        // 门/栅栏门/活板门开合：重命名为 open，值 0/1 → false/true
+        return std::make_pair(std::string("open"), b ? std::string("true") : std::string("false"));
+    }
+    if (bedrockKey == "button_pressed_bit") {
+        // 按钮/压力板按下：重命名为 powered，值 0/1 → false/true
+        return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+    }
+    if (bedrockKey == "conditional_bit") {
+        // 命令方块条件：重命名为 conditional，值 0/1 → false/true
+        return std::make_pair(std::string("conditional"), b ? std::string("true") : std::string("false"));
     }
     return std::nullopt;
 }
 
 // 基岩版方块名 → Java 方块名映射（基岩用统一方块名 + 属性区分变体，Java 用独立方块名）。
 // 返回 {javaBlockName, 属性重命名映射}。属性重命名映射：基岩属性名 → Java 属性名（值不变）。
-// TODO: 基岩方块命名体系与 Java 系统性不同，此处仅覆盖 minecraft:log（clone_command 结构使用）。
-// minecraft:leaves / minecraft:planks / minecraft:sapling 等基岩统一名 + 变体属性需逐类补映射，
-// 暂未实现（对应方块会退化为 air，不阻塞结构加载但影响含此类方块的测试）。
+// 已覆盖：
+// - minecraft:log + old_log_type → minecraft:<type>_log（+ pillar_axis→axis）
+// - minecraft:planks + wood_type → minecraft:<type>_planks
+// - minecraft:fence + wood_type → minecraft:<type>_fence
+// - minecraft:wood + wood_type(+stripped_bit) → minecraft:[stripped_]<type>_wood
+// - minecraft:leaves + old_leaf_type → minecraft:<type>_leaves
+// - minecraft:stone + stone_type → minecraft:stone/andesite/granite/diorite/polished_*
+// - minecraft:dirt + dirt_type → minecraft:dirt/coarse_dirt
+// - minecraft:sand + sand_type → minecraft:sand/red_sand
+// - minecraft:double_plant + double_plant_type → minecraft:sunflower/lilac/tall_grass/...
+// - minecraft:stained_glass_pane + color → minecraft:<color>_stained_glass_pane
+// - 纯改名（无变体）：wooden_door→oak_door、golden_rail→powered_rail、lit_pumpkin→jack_o_lantern、
+//   grass→short_grass、grass_path→dirt_path
+// TODO: minecraft:snow_layer→minecraft:snow（+ height→layers 属性映射）、minecraft:sapling 等仍待补。
+// 详见 GameTest 结构扫描结论（memory: gametest-stairs-orientation-filtered-clone-fix）。
 struct BedrockBlockMapping {
     std::string javaName;                                         // 映射后的 Java 方块名（空表示无需改名）
     std::vector<std::pair<std::string, std::string>> propRenames; // 基岩属性名 → Java 属性名
 };
+
+// 从基岩 states Compound 中读取 string 状态值（不存在返回 default）
+std::string bedrockStringState(const nbt::CompoundTag& states, const std::string& key, const std::string& def)
+{
+    auto it = states.value.find(key);
+    if (it == states.value.end() || !it->second || it->second->id() != nbt::TagId::String) {
+        return def;
+    }
+    return dynamic_cast<const nbt::StringTag&>(*it->second).value;
+}
+
+// 从基岩 states Compound 中读取 byte 状态值（不存在返回 default）
+i8 bedrockByteState(const nbt::CompoundTag& states, const std::string& key, i8 def)
+{
+    auto it = states.value.find(key);
+    if (it == states.value.end() || !it->second || it->second->id() != nbt::TagId::Byte) {
+        return def;
+    }
+    return dynamic_cast<const nbt::ByteTag&>(*it->second).value;
+}
 
 BedrockBlockMapping bedrockBlockNameToJava(const std::string& bedrockName, const nbt::CompoundTag& bedrockStates)
 {
     if (bedrockName == "minecraft:log") {
         // 基岩 minecraft:log + old_log_type=<oak|spruce|birch|jungle|acacia|dark_oak> + pillar_axis
         // → Java minecraft:<type>_log + axis（pillar_axis 值 y/x/z 与 Java axis 一致）
-        std::string woodType = "oak";
-        if (bedrockStates.value.count("old_log_type") != 0) {
-            auto& tag = *bedrockStates.value.at("old_log_type");
-            if (tag.id() == nbt::TagId::String) {
-                woodType = dynamic_cast<const nbt::StringTag&>(tag).value;
-            }
-        }
+        std::string woodType = bedrockStringState(bedrockStates, "old_log_type", "oak");
         return {std::string("minecraft:") + woodType + "_log", {{"pillar_axis", "axis"}}};
+    }
+    if (bedrockName == "minecraft:planks") {
+        // minecraft:planks + wood_type → minecraft:<type>_planks
+        std::string woodType = bedrockStringState(bedrockStates, "wood_type", "oak");
+        return {std::string("minecraft:") + woodType + "_planks", {}};
+    }
+    if (bedrockName == "minecraft:fence") {
+        std::string woodType = bedrockStringState(bedrockStates, "wood_type", "oak");
+        return {std::string("minecraft:") + woodType + "_fence", {}};
+    }
+    if (bedrockName == "minecraft:wood") {
+        // minecraft:wood + wood_type + stripped_bit → minecraft:[stripped_]<type>_wood
+        std::string woodType = bedrockStringState(bedrockStates, "wood_type", "oak");
+        bool stripped = bedrockByteState(bedrockStates, "stripped_bit", 0) != 0;
+        std::string javaName = stripped ? (std::string("minecraft:stripped_") + woodType + "_wood")
+                                        : (std::string("minecraft:") + woodType + "_wood");
+        // pillar_axis→axis（值 y/x/z 一致）
+        return {javaName, {{"pillar_axis", "axis"}}};
+    }
+    if (bedrockName == "minecraft:leaves") {
+        // minecraft:leaves + old_leaf_type → minecraft:<type>_leaves
+        // （基岩 old_leaf_type: oak/spruce/birch/jungle，Java 同名 leaves 变体）
+        std::string leafType = bedrockStringState(bedrockStates, "old_leaf_type", "oak");
+        return {std::string("minecraft:") + leafType + "_leaves", {}};
+    }
+    if (bedrockName == "minecraft:stone") {
+        // 基岩 stone + stone_type →
+        // Java：stone/granite/diorite/andesite/polished_granite/polished_diorite/polished_andesite 基岩 stone_type:
+        // stone=0/granite=1/granite_smooth=2/diorite=3/diorite_smooth=4/andesite=5/andesite_smooth=6 但 stone_type
+        // 在结构里是字符串值（"stone"/"granite"/"diorite"/"andesite"/"granite_smooth"/...） Java
+        // 方块名映射：granite_smooth→polished_granite, diorite_smooth→polished_diorite,
+        // andesite_smooth→polished_andesite
+        static const std::unordered_map<std::string, std::string> kStoneTypeMap = {
+            {"stone", "stone"},
+            {"granite", "granite"},
+            {"granite_smooth", "polished_granite"},
+            {"diorite", "diorite"},
+            {"diorite_smooth", "polished_diorite"},
+            {"andesite", "andesite"},
+            {"andesite_smooth", "polished_andesite"},
+        };
+        std::string stoneType = bedrockStringState(bedrockStates, "stone_type", "stone");
+        auto it = kStoneTypeMap.find(stoneType);
+        return {std::string("minecraft:") + (it != kStoneTypeMap.end() ? it->second : "stone"), {}};
+    }
+    if (bedrockName == "minecraft:dirt") {
+        // 基岩 dirt + dirt_type(normal/coarse) → minecraft:dirt / minecraft:coarse_dirt
+        std::string dirtType = bedrockStringState(bedrockStates, "dirt_type", "normal");
+        return {dirtType == "coarse" ? "minecraft:coarse_dirt" : "minecraft:dirt", {}};
+    }
+    if (bedrockName == "minecraft:sand") {
+        // 基岩 sand + sand_type(normal/red) → minecraft:sand / minecraft:red_sand
+        std::string sandType = bedrockStringState(bedrockStates, "sand_type", "normal");
+        return {sandType == "red" ? "minecraft:red_sand" : "minecraft:sand", {}};
+    }
+    if (bedrockName == "minecraft:double_plant") {
+        // 基岩 double_plant + double_plant_type → Java 独立方块名
+        static const std::unordered_map<std::string, std::string> kDoublePlantMap = {
+            {"sunflower", "sunflower"},
+            {"syringa", "lilac"}, // 基岩 syringa = Java lilac
+            {"grass", "tall_grass"},
+            {"fern", "large_fern"},
+            {"rose", "rose_bush"},
+            {"paeonia", "peony"},
+        };
+        std::string plantType = bedrockStringState(bedrockStates, "double_plant_type", "sunflower");
+        auto it = kDoublePlantMap.find(plantType);
+        return {std::string("minecraft:") + (it != kDoublePlantMap.end() ? it->second : "sunflower"), {}};
+    }
+    if (bedrockName == "minecraft:stained_glass_pane") {
+        // 基岩 stained_glass_pane + color → minecraft:<color>_stained_glass_pane
+        std::string color = bedrockStringState(bedrockStates, "color", "white");
+        return {std::string("minecraft:") + color + "_stained_glass_pane", {}};
+    }
+    // 纯改名（无变体属性）
+    static const std::unordered_map<std::string, std::string> kRenames = {
+        {"minecraft:wooden_door", "minecraft:oak_door"},
+        {"minecraft:golden_rail", "minecraft:powered_rail"},
+        {"minecraft:lit_pumpkin", "minecraft:jack_o_lantern"},
+        {"minecraft:grass", "minecraft:short_grass"},    // 1.21 改名
+        {"minecraft:grass_path", "minecraft:dirt_path"}, // 1.17 改名
+    };
+    auto it = kRenames.find(bedrockName);
+    if (it != kRenames.end()) {
+        return {it->second, {}};
     }
     return {};
 }
