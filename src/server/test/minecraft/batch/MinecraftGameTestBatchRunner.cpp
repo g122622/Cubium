@@ -26,6 +26,14 @@ std::unique_ptr<BaseGameTestInstance> MinecraftGameTestBatchRunner::_createGameT
     auto instance =
         std::make_unique<MinecraftGameTestInstance>(function, std::move(helperProvider), m_world, m_nextOrigin);
 
+    // 先放置结构，再用放置后的真实包围盒推进下一测试原点。
+    // 此前在放置前取 instance->bounds()，此时 m_bounds 尚为 nullptr（spawnStructure 在 _runTest 才调），
+    // spanX 退化为默认 1，致 m_nextOrigin.x 每次仅 +3（1+padding*2+2），远小于结构实际 X 跨度，
+    // 相邻测试结构在世界中重叠——后一测试的 air 方块覆盖前一测试已放置的 button 等依附类方块，
+    // 表现为"button 放置后变 air"。对齐 vanilla GameTestRunner：先放结构（spawnStructure）再算下一原点。
+    // spawnStructureIfNeeded 幂等：已放置则跳过，_runTest 再调不会重复放置。
+    instance->spawnStructureIfNeeded();
+
     // TODO: 原点布局切换为 1D StructureGridSpawner 的网格算式（testsPerRow 换行 + 旋转后包围盒间距）。
     // 第一阶段简化为线性递增 X（按结构 X 跨度 + padding 间隔），避免重叠。
     const auto* bounds = instance->bounds();

@@ -66,6 +66,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -161,6 +162,11 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config)
     : m_config(config)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
+    // 构造时同步模拟距离到实体管理器（与带 chunkManager 的重载对齐，运行时变更走 setConfig）。
+    // 此前该重载漏调，导致经 _createServerWorld → make_unique<ServerWorld>(worldConfig) 路径构造的
+    // ServerWorld 其 EntityManager 永久停留在默认 m_simulationDistance=10，超出该距离的非玩家实体被冻结
+    // 不 tick（GameTestServer 无玩家场景下 players.empty() 使 _isEntityInSimulationRange 恒 false，全冻结）。
+    m_entityManager.setSimulationDistance(m_config.simulationDistance);
 }
 
 ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<ServerChunkManager> chunkManager)
@@ -637,6 +643,12 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
 // ============================================================================
 bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 {
+    // 4 参版等价于 flags=UPDATE_ALL(NEIGHBORS|CLIENTS)，保留历史行为（玩家放置/破坏等标准更新）。
+    return setBlockState(x, y, z, state, world::BlockUpdateFlags::UPDATE_ALL);
+}
+
+bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags)
+{
     const BlockPos changedPos(x, y, z);
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -835,71 +847,78 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         {0, 0, -1, Direction::North},
         {0, 0, 1, Direction::South}}};
 
-    {
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.Server.World, "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
+    // flags&UPDATE_NEIGHBORS==0 时跳过邻居更新（对齐 vanilla）：结构放置等静默写入
+    // 场景传 flags=18（无 bit0），不触发 neighborChanged/updatePostPlacement，避免依附
+    // 类方块（按钮/火把/梯子等）在支撑尚未放置时被邻居通知自毁变 air。
+    const bool notifyNeighbors = (flags & world::BlockUpdateFlags::UPDATE_NEIGHBORS) != 0;
 
-        for (const auto& neighbor : NEIGHBOR_DELTAS) {
-            const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
-            const BlockState* neighborState =
-                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+    if (notifyNeighbors) {
+        {
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.Server.World, "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
 
-            const BlockState* updatedState = nullptr;
+            for (const auto& neighbor : NEIGHBOR_DELTAS) {
+                const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
+                const BlockState* neighborState =
+                    canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
 
-            {
-                MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-                    "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
-                    "x",
-                    neighborPos.x,
-                    "y",
-                    neighborPos.y,
-                    "z",
-                    neighborPos.z);
+                const BlockState* updatedState = nullptr;
 
-                if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
-                    Block& neighborBlock = neighborState->getBlockMutable();
-                    const BlockState* stateBeforeUpdate = neighborState;
-                    BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
-                        Directions::opposite(neighbor.direction),
-                        *newState,
-                        *this,
-                        neighborPos,
-                        changedPos);
+                {
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+                        "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
+                        "x",
+                        neighborPos.x,
+                        "y",
+                        neighborPos.y,
+                        "z",
+                        neighborPos.z);
 
-                    const BlockState* stateAfterUpdate = canonicalizeState(getBlockState(neighborPos));
-                    if (stateAfterUpdate != stateBeforeUpdate) {
-                        neighborState = stateAfterUpdate;
-                    } else {
-                        updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
-                        if (updatedState == nullptr && updatedStateValue.isAir()) {
-                            updatedState = airState;
+                    if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
+                        Block& neighborBlock = neighborState->getBlockMutable();
+                        const BlockState* stateBeforeUpdate = neighborState;
+                        BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
+                            Directions::opposite(neighbor.direction),
+                            *newState,
+                            *this,
+                            neighborPos,
+                            changedPos);
+
+                        const BlockState* stateAfterUpdate = canonicalizeState(getBlockState(neighborPos));
+                        if (stateAfterUpdate != stateBeforeUpdate) {
+                            neighborState = stateAfterUpdate;
+                        } else {
+                            updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
+                            if (updatedState == nullptr && updatedStateValue.isAir()) {
+                                updatedState = airState;
+                            }
                         }
                     }
                 }
-            }
 
-            if (updatedState != nullptr && updatedState != neighborState) {
-                setBlockState(neighborPos, updatedState);
-                neighborState = canonicalizeState(getBlockState(neighborPos));
-            }
+                if (updatedState != nullptr && updatedState != neighborState) {
+                    setBlockState(neighborPos, updatedState);
+                    neighborState = canonicalizeState(getBlockState(neighborPos));
+                }
 
-            {
-                MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-                    "ServerWorld::setBlockState::NeighborChanged",
-                    "x",
-                    neighborPos.x,
-                    "y",
-                    neighborPos.y,
-                    "z",
-                    neighborPos.z);
+                {
+                    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+                        "ServerWorld::setBlockState::NeighborChanged",
+                        "x",
+                        neighborPos.x,
+                        "y",
+                        neighborPos.y,
+                        "z",
+                        neighborPos.z);
 
-                if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
-                    Block& neighborBlock = neighborState->getBlockMutable();
-                    neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+                    if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
+                        Block& neighborBlock = neighborState->getBlockMutable();
+                        neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+                    }
                 }
             }
         }
-    }
+    } // end if (notifyNeighbors)
 
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -947,14 +966,18 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
 
         scheduleFluidAt(changedPos, newState);
 
-        constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {
-            {{{-1, 0, 0}}, {{1, 0, 0}}, {{0, -1, 0}}, {{0, 1, 0}}, {{0, 0, -1}}, {{0, 0, 1}}}};
+        // 邻居流体调度属邻居通知范畴，随 UPDATE_NEIGHBORS 门控；本方块自身流体调度
+        // （上方 scheduleFluidAt(changedPos)）与邻居无关，结构放置仍需触发流动。
+        if (notifyNeighbors) {
+            constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {
+                {{{-1, 0, 0}}, {{1, 0, 0}}, {{0, -1, 0}}, {{0, 1, 0}}, {{0, 0, -1}}, {{0, 0, 1}}}};
 
-        for (const auto& offset : NEIGHBOR_OFFSETS) {
-            const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
-            const BlockState* neighborState =
-                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
-            scheduleFluidAt(neighborPos, neighborState);
+            for (const auto& offset : NEIGHBOR_OFFSETS) {
+                const BlockPos neighborPos(x + offset[0], y + offset[1], z + offset[2]);
+                const BlockState* neighborState =
+                    canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+                scheduleFluidAt(neighborPos, neighborState);
+            }
         }
     }
 

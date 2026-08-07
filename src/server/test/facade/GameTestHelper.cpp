@@ -25,6 +25,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace mc::test {
 
@@ -34,13 +35,23 @@ using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 namespace {
 // 规范化实体类型名：基岩行为包用短名（如 "fox"），项目注册表用全名 "minecraft:fox"。
 // 无命名空间前缀时补 "minecraft:"，使 spawn/assert 能查到对应实体类型。
-// 已含 ":" 前缀（如 "minecraft:fox" 或其他命名空间）原样返回。
+// 已含 ":" 前缀（如 "minecraft:fox" 或其他命名空间）原样返回（随后再过基岩别名表）。
 std::string normalizeEntityType(const std::string& name)
 {
-    if (name.find(':') == std::string::npos) {
-        return "minecraft:" + name;
+    std::string full = name.find(':') == std::string::npos ? "minecraft:" + name : name;
+
+    // 基岩版与 Java 版实体类型命名差异别名表。基岩行为包用基岩名（如 villager_v2），
+    // 项目实体注册表用 Java 名（如 minecraft:villager）。此处把基岩名归一化为项目注册表名，
+    // 使 spawn/assertEntityPresent/getEntities 的 type 查询命中同一 EntityType。
+    // 仅收录 GameTest 行为包实际用到的基岩别名；新增基岩别名时在此追加。
+    static const std::unordered_map<std::string, std::string> kBedrockAliases = {
+        {"minecraft:villager_v2", "minecraft:villager"},
+    };
+    auto it = kBedrockAliases.find(full);
+    if (it != kBedrockAliases.end()) {
+        return it->second;
     }
-    return name;
+    return full;
 }
 } // namespace
 
@@ -621,9 +632,26 @@ const mc::BlockState* GameTestHelper::_resolveBlock(const std::string& blockType
 {
     // 容忍 "stone" 与 "minecraft:stone" 两种写法
     std::string full = blockType.find(':') == std::string::npos ? "minecraft:" + blockType : blockType;
-    const auto* state = mc::BlockRegistry::instance().get(mc::ResourceLocation(full));
-    if (state != nullptr) {
-        return state;
+    const mc::ResourceLocation loc(full);
+
+    // 基岩版/旧版方块名别名表：基岩行为包与 1.16 旧名用旧 ID，项目方块注册表用 1.21.11 Java 名。
+    // 使 setBlockType/assertBlockPresent 命中正确方块而非退化为 air。
+    // 仅收录 GameTest 行为包实际用到的别名；新增别名时在此追加。
+    static const std::unordered_map<std::string, std::string> kBlockAliases = {
+        {"minecraft:brick_block", "minecraft:bricks"},
+    };
+
+    // 注意：BlockRegistry::get 找不到时返回 airState()（非 nullptr），不能用 get 的返回值判存在性。
+    // 须用 getBlock 判断方块是否注册；未注册时再查别名表，别名仍命中不了才退化为 air。
+    if (mc::BlockRegistry::instance().getBlock(loc) != nullptr) {
+        return mc::BlockRegistry::instance().get(loc);
+    }
+    auto it = kBlockAliases.find(full);
+    if (it != kBlockAliases.end()) {
+        const mc::ResourceLocation aliasedLoc(it->second);
+        if (mc::BlockRegistry::instance().getBlock(aliasedLoc) != nullptr) {
+            return mc::BlockRegistry::instance().get(aliasedLoc);
+        }
     }
     return mc::BlockRegistry::instance().airState();
 }

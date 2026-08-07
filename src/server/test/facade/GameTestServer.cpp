@@ -62,7 +62,16 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
 
     // === 应用世界参数到设置（镜像 IntegratedServer::initialize）===
     m_settings.viewDistance.set(params.viewDistance);
-    m_settings.simulationDistance.set(params.simulationDistance);
+    // GameTestServer 是无头门面，从不创建任何玩家实体（maxPlayers=1 仅是容量上限）。
+    // EntityManager::tick 的模拟距离门控在"无在线玩家"时会冻结所有非玩家实体
+    // （_isEntityInSimulationRange 遇 playerChunks.empty() 直接返回 false，不调 tick()），
+    // 致 spawn 的 fox/chicken 等 AI 永不执行，测试必超时。故此处强制 simulationDistance=32：
+    // EntityManager 以 "m_simulationDistance < 32" 为 freezeEnabled 判据，32 关闭冻结全量 tick
+    // （对齐原版 >=32 等价无 EntityTickingRange 限制）。GameTestServer 无客户端无玩家，
+    // simulationDistance 仅影响实体激活门控，不影响区块加载（用 viewDistance），设 32 无副作用。
+    // 忽略 params.simulationDistance（保留字段供未来按需收紧，但当前必须 32 才能跑通实体测试）。
+    constexpr i32 kGameTestSimulationDistance = 32;
+    m_settings.simulationDistance.set(kGameTestSimulationDistance);
     m_settings.defaultGameMode.set(static_cast<i32>(params.defaultGameMode));
     m_settings.levelSeed.set(params.seed != 0 ? std::to_string(params.seed) : "");
     m_settings.maxPlayers.set(1); // 无头测试无玩家
@@ -140,6 +149,15 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
             world::storage::WorldStoragePaths::fromGameDirectory(m_gameDirectory);
         std::filesystem::path worldDir = storagePaths.worldDir(m_params.worldName);
         if (!std::filesystem::exists(worldDir / "level.dat")) {
+            // 新世界目录可能尚不存在（GameTestServer 默认 worldName="gametest" 在 saves/ 下无残留），
+            // LevelDatCodec::writeInitial→_atomicWrite 仅 ofstream 打开文件不建父目录，缺此步会报
+            // "Cannot open level.dat for writing" 致 initializeSharedStorage 随后 "World not found"。
+            // IntegratedServer 走 quick_play_world（saves/ 下已存在）故未暴露此缺口。
+            std::error_code ec;
+            std::filesystem::create_directories(worldDir, ec);
+            if (ec) {
+                spdlog::warn("Failed to create world dir '{}': {}", worldDir.string(), ec.message());
+            }
             world::storage::CreateWorldRequest request(m_params.worldName, // displayName
                 m_params.worldName,
                 static_cast<u64>(m_params.seed),
@@ -164,9 +182,11 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     }
 
     // === 维度初始化 ===
+    // simulationDistance 用 kGameTestSimulationDistance（32）而非 params.simulationDistance，
+    // 确保 ServerWorld config → EntityManager simulationDistance=32 关闭冻结门控（见上方注释）。
     auto dimInitResult = m_dimensionManager->initialize(static_cast<u64>(params.seed),
         params.viewDistance,
-        params.simulationDistance,
+        kGameTestSimulationDistance,
         params.worldType,
         params.worldPresetId);
     if (dimInitResult.failed()) {

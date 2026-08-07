@@ -35,11 +35,13 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace blocks {
@@ -100,39 +102,17 @@ void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const
 void AbstractButtonBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
+    MC_UNUSED(world);
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    const BlockState* state = world.getBlockState(pos);
-    if (!state) {
-        return;
-    }
-
-    // 检查支撑是否还在
-    Direction facing = getFacing(*state);
-    AttachFace attachFace = state->get(BlockStateProperties::ATTACH_FACE());
-
-    // 计算支撑方块位置
-    BlockPos supportPos;
-    switch (attachFace) {
-        case AttachFace::Floor:
-            supportPos = pos.down();
-            break;
-        case AttachFace::Ceiling:
-            supportPos = pos.up();
-            break;
-        case AttachFace::Wall:
-            supportPos = pos.offset(Directions::opposite(facing));
-            break;
-    }
-
-    // 如果支撑方块被移除，按钮掉落
-    const BlockState* supportState = world.getBlockState(supportPos);
-    if (!supportState || supportState->isAir()) {
-        // 按钮掉落 - 设置为空气方块
-        world.setBlockState(pos, nullptr, 2);
-    }
+    // 对齐 vanilla：按钮（FaceAttachedHorizontalDirectionalBlock）不在 neighborChanged 中
+    // 检查支撑——支撑检查在 updatePostPlacement（vanilla updateShape）中，受 setBlockState
+    // 的 flags 门控（结构放置 flags=18 含 UPDATE_KNOWN_SHAPE 跳过形状更新，故不触发自毁）。
+    // 此前项目把支撑自毁放在 neighborChanged，而红石线 _notifyWireNeighbors 会绕过 flags
+    // 直接调 neighborChanged，导致结构放置时按钮在支撑（红石线）尚未放置前被通知自毁。
+    // TODO: vanilla 按钮继承默认 neighborChanged（无 override）；项目保留空实现以兼容现有调用约定。
 }
 
 BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
@@ -147,26 +127,37 @@ BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
-    // 检查支撑是否有效
-    Direction blockFacing = getFacing(state);
-    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
-
-    BlockPos supportPos;
+    // 对齐 vanilla FaceAttachedHorizontalDirectionalBlock.updateShape：
+    //   getConnectedDirection(state).getOpposite() == direction && !canSurvive => AIR
+    // getConnectedDirection（vanilla）：CEILING→Down, FLOOR→Up, WALL→FACING（朝向/输出方向）。
+    // 其 opposite = 支撑方向。仅当邻居变化方向 == 支撑方向时检查 canSurvive。
+    // canSurvive = 支撑方块 isFaceSturdy；项目用 isAir 判定支撑缺失（简化）。
+    // 此方法由 setBlockState 邻居循环调用，受 flags&UPDATE_NEIGHBORS 门控；结构放置 flags=18
+    // 跳过邻居循环故不触发，避免按钮在支撑未放置时自毁。
+    const AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
+    Direction connectedDir;
     switch (attachFace) {
-        case AttachFace::Floor:
-            supportPos = currentPos.down();
-            break;
         case AttachFace::Ceiling:
-            supportPos = currentPos.up();
+            connectedDir = Direction::Down;
+            break;
+        case AttachFace::Floor:
+            connectedDir = Direction::Up;
             break;
         case AttachFace::Wall:
-            supportPos = currentPos.offset(Directions::opposite(blockFacing));
+        default:
+            connectedDir = getFacing(state);
             break;
     }
 
+    const Direction supportDir = Directions::opposite(connectedDir);
+    if (supportDir != facing) {
+        return state;
+    }
+
+    const BlockPos supportPos = currentPos.offset(supportDir);
     const BlockState* supportState = world.getBlockState(supportPos);
     if (!supportState || supportState->isAir()) {
-        return state.with(BlockStateProperties::POWERED(), false);
+        return *BlockRegistry::instance().airState();
     }
 
     return state;

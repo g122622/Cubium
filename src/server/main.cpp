@@ -40,6 +40,7 @@
 #include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
 #include "server/test/facade/GameTestCommand.hpp"
+#include "server/test/facade/GameTestServer.hpp" // --gametest 无头批量自动跑门面
 #include "server/test/minecraft/structure/BehaviorPackStructureSource.hpp"
 #include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"
 #include "server/test/native/builtin/BuiltinNativeTests.hpp"
@@ -198,6 +199,8 @@ void printHelp()
               << "  -h, --help          Show this help message\n"
               << "  --config <path>     Use custom config file path\n"
               << "  -v, --verbose       Enable verbose logging (debug level)\n"
+              << "  --gametest          Run all registered GameTests headless and exit\n"
+              << "                      (exit code = number of failed required tests; 0 = all pass)\n"
               << std::endl;
 }
 } // namespace
@@ -229,6 +232,7 @@ int main(int argc, char* argv[])
     // 启动参数
     mc::server::StandaloneServerParams params;
     bool verboseLogging = false;
+    bool gametestMode = false; // --gametest：走 GameTestServer 无头批量自动跑门面
 
     // 解析命令行参数
     for (int i = 1; i < argc; ++i) {
@@ -244,6 +248,9 @@ int main(int argc, char* argv[])
         if (arg == "-v" || arg == "--verbose") {
             verboseLogging = true;
         }
+        if (arg == "--gametest") {
+            gametestMode = true;
+        }
     }
 
     // 设置日志级别
@@ -255,6 +262,26 @@ int main(int argc, char* argv[])
     }
 
     try {
+        // --gametest 模式：走 GameTestServer 无头批量自动跑门面（对齐 Java GameTestMainUtil）。
+        // GameTestServer 是 MinecraftServer 子类，不起线程/不联网，在调用线程内同步 tick 推进世界 +
+        // GameTestTicker + runner，跑完全部注册测试后返回（exitCode = 失败的 required 测试数）。
+        // 与下方 StandaloneServer 生产路径（/gametest 命令交互式 + post-tick 回调）互斥：
+        // GameTestServer::initialize 内部已含行为包加载 + JS 模块注册 + 结构源注入 + runner 构造，
+        // 不复用 initializeServerGameTest（后者为在线路径设计，挂 post-tick 回调驱动 ticker）。
+        if (gametestMode) {
+            mc::test::GameTestServer gtServer;
+            mc::test::GameTestServerParams gtParams;
+            auto gtInit = gtServer.initialize(gtParams);
+            if (gtInit.failed()) {
+                spdlog::error("Failed to initialize GameTestServer: {}", gtInit.error().toString());
+                return 1;
+            }
+            const int gtExit = gtServer.run();
+            gtServer.shutdown();
+            spdlog::info("GameTestServer exited with code {}", gtExit);
+            return gtExit;
+        }
+
         // 创建服务端实例
         mc::server::StandaloneServer server;
 

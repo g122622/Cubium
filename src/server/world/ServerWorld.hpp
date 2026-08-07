@@ -232,6 +232,15 @@ public:
     // ========== 方块操作 ==========
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override;
+    /**
+     * @brief 设置方块状态（带更新标志）。
+     *
+     * 对齐 vanilla 语义：仅当 flags 含 UPDATE_NEIGHBORS(bit0) 时才触发 6 向邻居的
+     * neighborChanged + updatePostPlacement；否则只写区块 + onBlockAdded/Removed +
+     * 方块实体 + 光照 + 客户端发包。结构放置传 flags=18（无 bit0）故不触发邻居
+     * 更新，避免依附类方块（按钮/火把等）在支撑尚未放置时被邻居通知自毁。
+     */
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override;
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;
 
     // ========== 方块实体管理 ==========

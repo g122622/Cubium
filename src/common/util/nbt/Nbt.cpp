@@ -708,20 +708,29 @@ std::unique_ptr<tag> end_list_tag::operator[](size_t) const
 
 std::unique_ptr<end_list_tag> end_list_tag::read_content(std::istream& input)
 {
-    if (Context::get(input).format != Context::Format::Mojangson) {
-        char c = cheof(input);
-        if (c != '\0') throw std::runtime_error("end list tag should be empty");
+    const Context& ctxt = Context::get(input);
+    if (ctxt.format != Context::Format::Mojangson) {
+        // NBT 二进制 List 格式恒为 etid(1, 已由 list_tag::read 消费) + size(4) + elements。
+        // TAG_End 列表元素类型为 End，规范要求 size==0，但 size 字段本身仍占 4 字节。
+        // 此前实现仅读 1 字节并断言为 0，遗留 3 字节使外层 Compound 把它误读为 End 提前结束，
+        // 丢失后续键——基岩 .mcstructure 的 structure.entities 为 List[End] n=0 时致 palette 键丢失，
+        // 结构模板退化为空，GameTest 按钮识别/方块放置全失效。
+        const std::size_t size = load_size(input, ctxt);
+        if (size != 0) throw std::runtime_error("end list tag should be empty");
     }
     return std::make_unique<end_list_tag>();
 }
 
 void end_list_tag::write(std::ostream& output) const
 {
-    if (Context::get(output).format == Context::Format::Mojangson) {
+    const Context& ctxt = Context::get(output);
+    if (ctxt.format == Context::Format::Mojangson) {
         output << "[]";
     } else {
+        // 与 read_content 对称：etid(1) + size(4)=0。此前只写 1 字节 0，缺 3 字节，
+        // 与 read 的同源 bug 配对（读 1 写 1 自洽但不符合 NBT 规范，且与其它 list 实现不一致）。
         output.put(static_cast<char>(eid));
-        output.put('\0');
+        dump_size(output, ctxt, 0);
     }
 }
 

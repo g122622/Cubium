@@ -42,6 +42,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -390,8 +391,9 @@ std::unique_ptr<Template> TemplateLoader::loadFromCompressedNbt(const std::vecto
 
 std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::vector<u8>& data)
 {
-    // 基岩版 .mcstructure 是未压缩的小端序 NBT（bedrock_disk 上下文），无需 gzip 解压
+    // 基岩版 .mcstructure 是未压缩的小端序 NBT（bedrock_disk 上下文），无需 gzip 解压。
     if (data.empty()) {
+        spdlog::warn("GameTest: loadFromBedrockMcStructure empty data");
         return nullptr;
     }
 
@@ -401,6 +403,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::
 
         auto root = nbt::CompoundTag::read(stream);
         if (!root) {
+            spdlog::warn("GameTest: .mcstructure CompoundTag::read returned null, size={}", data.size());
             return nullptr;
         }
 
@@ -408,7 +411,12 @@ std::unique_ptr<Template> TemplateLoader::loadFromBedrockMcStructure(const std::
         // root = {"": <真内容>}，须解包才能取到 size/structure 等键）。
         return _loadFromBedrockNbt(*_unwrapRootCompound(*root));
     }
+    catch (const std::exception& e) {
+        spdlog::warn("GameTest: loadFromBedrockMcStructure exception: {}", e.what());
+        return nullptr;
+    }
     catch (...) {
+        spdlog::warn("GameTest: loadFromBedrockMcStructure unknown exception");
         return nullptr;
     }
 }
@@ -432,6 +440,7 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
 
     // size: List<Int> = [x, y, z]
     if (root.value.count("size") == 0) {
+        spdlog::warn("GameTest: .mcstructure missing 'size' key");
         return templ;
     }
     auto& sizeTag = *root.value.at("size");
@@ -489,7 +498,8 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     }
 
     if (blockPaletteStates.empty()) {
-        // 无 palette 则无法还原方块，返回空模板（仅 size）
+        // 无 palette 则无法还原方块，返回空模板（仅 size）。
+        spdlog::warn("GameTest: .mcstructure block palette empty");
         return templ;
     }
 
@@ -516,7 +526,12 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     }
     const auto& indices = dynamic_cast<const nbt::ListTag&>(*firstLayerTag);
 
-    // 结构原点偏移 structure_world_origin: List<Int> = [x, y, z]（可选，默认 0）
+    // structure_world_origin: 结构保存时所在的世界坐标（仅元信息，记录结构方块在世界中的原位）。
+    // 放置结构到新位置时应忽略它——block_indices 的索引→坐标映射须从结构内相对坐标 (0,0,0) 起，
+    // 由 Template::placeInWorld 叠加 placeOrigin 决定最终世界坐标。此前误把 structure_world_origin
+    // 当作 BlockInfo.pos 的 origin 叠加，致 button 落到 (68,5,46)+结构内坐标 的错乱位置，
+    // helper 按 origin+(rel) 取到的是 deepslate/air 而非 button。origin 此处仅用于把
+    // block_entity_data 内的"保存时世界绝对坐标"换算回结构内相对坐标以匹配 BlockInfo。
     BlockPos origin(0, 0, 0);
     if (root.value.count("structure_world_origin") != 0) {
         auto& originTag = *root.value.at("structure_world_origin");
@@ -529,7 +544,6 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 索引值 -1 表示该位置为空气（基岩版用 -1 标记 air，不进 palette）
     std::vector<BlockInfo> blockInfos;
     blockInfos.reserve(indices.size());
-    const size_t expectedCount = static_cast<size_t>(sizeX) * static_cast<size_t>(sizeY) * static_cast<size_t>(sizeZ);
     for (size_t i = 0; i < indices.size(); ++i) {
         const auto& idxTagPtr = indices[i];
         const nbt::Tag* idxTag = idxTagPtr.get();
@@ -543,12 +557,12 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
             stateId = blockPaletteStates[static_cast<size_t>(idx)];
         }
 
-        // 线性索引 -> 三维坐标（X 外层、Z 内层，对齐基岩版存储顺序）
+        // 线性索引 -> 结构内相对坐标（X 外层、Z 内层，对齐基岩版存储顺序；不含 structure_world_origin）
         const size_t totalXZ = static_cast<size_t>(sizeY) * static_cast<size_t>(sizeZ);
-        const i32 x = origin.x + static_cast<i32>(i / totalXZ);
+        const i32 x = static_cast<i32>(i / totalXZ);
         const size_t remX = i % totalXZ;
-        const i32 y = origin.y + static_cast<i32>(remX / static_cast<size_t>(sizeZ));
-        const i32 z = origin.z + static_cast<i32>(remX % static_cast<size_t>(sizeZ));
+        const i32 y = static_cast<i32>(remX / static_cast<size_t>(sizeZ));
+        const i32 z = static_cast<i32>(remX % static_cast<size_t>(sizeZ));
 
         blockInfos.emplace_back(BlockPos(x, y, z), stateId);
     }
@@ -556,9 +570,10 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 解析 palette.default.block_position_data.<index>.block_entity_data（基岩版方块实体 NBT）
     // schema 见 https://wiki.bedrock.dev/nbt/mcstructure ：block_position_data 是 Compound，键为 block_indices
     // 数组的位置下标（十进制字符串），值为 { block_entity_data: Compound }。block_entity_data 内含 id（如
-    // "CommandBlock"）+ 方块实体字段（Command/LPCommandMode 等）+ x/y/z（结构内坐标，加载时被替换）。
+    // "CommandBlock"）+ 方块实体字段（Command/LPCommandMode 等）+ x/y/z。
+    // 注意：block_entity_data 的 x/y/z 是结构保存时的"世界绝对坐标"（含 structure_world_origin），
+    // 而 BlockInfo.pos 已统一为结构内相对坐标（不含 origin），故匹配时须用 bed.xyz - origin 换算。
     // 此前仅解析了 block_palette + block_indices（方块状态），方块实体数据全丢，导致命令方块 Command 字段为空。
-    // 此处按 block_entity_data 的 x/y/z 坐标匹配 blockInfos（同时尝试含/不含 structure_world_origin 两种），
     // 命中则 clone block_entity_data 到 BlockInfo.nbt，由 Template::placeInWorld 调 loadFromNBT 注入。
     if (structure.value.count("palette") != 0) {
         auto& palettesTag2 = *structure.value.at("palette");
@@ -586,7 +601,7 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
                                 }
                                 const auto& bed = dynamic_cast<const nbt::CompoundTag&>(bedTag);
 
-                                // 读 block_entity_data 的 x/y/z 定位 BlockInfo（基岩版存结构内绝对坐标）
+                                // 读 block_entity_data 的 x/y/z（保存时世界绝对坐标），减 origin 得结构内相对坐标
                                 const nbt::Tag* xTag = bed.value.count("x") != 0 ? bed.value.at("x").get() : nullptr;
                                 const nbt::Tag* yTag = bed.value.count("y") != 0 ? bed.value.at("y").get() : nullptr;
                                 const nbt::Tag* zTag = bed.value.count("z") != 0 ? bed.value.at("z").get() : nullptr;
@@ -596,19 +611,13 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
                                 const i32 ex = dynamic_cast<const nbt::IntTag&>(*xTag).value;
                                 const i32 ey = dynamic_cast<const nbt::IntTag&>(*yTag).value;
                                 const i32 ez = dynamic_cast<const nbt::IntTag&>(*zTag).value;
-
-                                // 坐标匹配：先按结构内绝对坐标（含 origin），不中再按减 origin（相对结构）
-                                const BlockPos absPos(ex, ey, ez);
                                 const BlockPos relPos(ex - origin.x, ey - origin.y, ez - origin.z);
-                                BlockInfo* matched = nullptr;
+
                                 for (auto& bi : blockInfos) {
-                                    if (bi.pos == absPos || bi.pos == relPos) {
-                                        matched = &bi;
+                                    if (bi.pos == relPos) {
+                                        bi.nbt = _cloneNbt(&bed);
                                         break;
                                     }
-                                }
-                                if (matched != nullptr) {
-                                    matched->nbt = _cloneNbt(&bed);
                                 }
                             }
                         }

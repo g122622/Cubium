@@ -547,6 +547,14 @@ void FoxEntity::tick()
             worldPtr->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(state->stateId()));
         }
     }
+    // TODO: fox 攻击 AI 链路未闭环（simpleMobTest 超时根因）。诊断已确认：NearestAttackableTargetGoal
+    // 正确设置 attackTarget=chicken，但 fox pos 完全不变（移动系统未驱动）。两层待修：
+    // (1) FoxFollowTargetGoal START_FOLLOW_DISTANCE_SQ=36(6格) 致近距离(<6格)猎物不启动 follow →
+    //     fox 永不 crouch → FoxPounceGoal(isFullyCrouched 门控)永不启动（FoxGoals.hpp:130-131）。
+    // (2) FoxBiteGoal(继承 MeleeAttackGoal) 虽启动但 navigator->moveTo 不生效，fox 不接近不攻击。
+    //     疑似 MobEntity 移动系统(navigator/moveController)链路问题，可能影响所有 MobEntity 主动移动。
+    // 另:setFoxAggroed() 零调用点，vanilla 设 attackTarget 时应同步设 aggroed flag（FoxEntity.hpp:231）。
+    // 详见 memory: fox-ai-follow-distance-threshold-bug。
 }
 
 // ========== AI 目标注册 ==========
