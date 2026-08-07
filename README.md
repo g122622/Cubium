@@ -65,7 +65,7 @@ build/bin/RelWithDebInfo/minecraft-client
 
 ## 测试
 
-项目测试基于 GoogleTest，通过 CTest 编排运行，支持单用例限时（默认 300 秒）、并行、按名筛选。完整指南见 [docs/TEST.md](docs/TEST.md)。
+项目测试基于 GoogleTest，通过 CTest 编排运行，支持单用例限时（默认 300 秒）、并行、按名筛选。完整指南见 docs/test/UNIT_TEST.md。
 
 ## clang-tidy 静态分析
 

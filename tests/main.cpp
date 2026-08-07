@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
     // 注册全局环境：在 RUN_ALL_TESTS 之前加载世界生成注册表。
     ::testing::AddGlobalTestEnvironment(new WorldGenRegistryEnvironment());
     // 注册跨用例隔离监听器：每用例结束重置 thread_local 调度上下文，根除全二进制
-    // 直跑时的跨用例共享状态污染（详见 docs/TEST.md「跨测试隔离模型」）。
+    // 直跑时的跨用例共享状态污染（详见 docs/test/「跨测试隔离模型」）。
     ::testing::UnitTest::GetInstance()->listeners().Append(new TestIsolationListener());
     const int result = RUN_ALL_TESTS();
 
