@@ -140,6 +140,7 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const s
 // - door_hinge_bit (byte 0/1)：基岩门铰链 0=左,1=右 → Java hinge (left/right)（DoorHinge）
 // - open_bit (byte 0/1)：基岩门/栅栏门/活板门开合 → Java open (true/false)（属性名重命名 + 布尔值）
 // - button_pressed_bit (byte 0/1)：基岩按钮按下 → Java powered (true/false)
+// - rail_data_bit (byte 0/1)：基岩 golden_rail/activator_rail/detector_rail 充能位 → Java powered (true/false)
 // - conditional_bit (byte 0/1)：基岩命令方块条件 → Java conditional (true/false)
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
 // TODO: 基岩字节属性到 Java 枚举的映射仅覆盖上述常见项，其他（如 top_slot_bit、direction 的 byte
@@ -165,6 +166,11 @@ std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const 
     }
     if (bedrockKey == "button_pressed_bit") {
         // 按钮/压力板按下：重命名为 powered，值 0/1 → false/true
+        return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+    }
+    if (bedrockKey == "rail_data_bit") {
+        // 基岩 golden_rail/activator_rail/detector_rail 的充能位 rail_data_bit（byte 0/1）
+        // → Java powered（动力铁轨是否被红石充能）。重命名 + 布尔值转换。
         return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
     }
     if (bedrockKey == "conditional_bit") {

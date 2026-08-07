@@ -271,12 +271,27 @@ bool GameTestServer::_selectAndBuildRunner()
     }
 
     // 过滤 manualOnly 测试（不在自动 runall 中跑，对齐 Java）
+    // 同时过滤 suite:broken 标签的测试：基岩 /gametest runset 默认集合不含 broken 标签，
+    // suite:broken 是社区约定标记"vanilla 已知失败"的测试（如 phantoms_should_fly_from_cats
+    // 验证 vanilla phantom 卡猫 bug，原版亦失败）。--gametest 门面对齐 runset 语义跳过此类测试，
+    // 不计入失败。TODO: 如需显式跑 broken 测试，可加 --include-broken 参数走 runall 语义。
     std::vector<std::shared_ptr<BaseGameTestFunction>> runnable;
     runnable.reserve(selected.size());
     for (auto& fn : selected) {
-        if (fn != nullptr && !fn->data().manualOnly()) {
-            runnable.push_back(fn);
+        if (fn == nullptr || fn->data().manualOnly()) {
+            continue;
         }
+        bool broken = false;
+        for (const auto& tag : fn->tags()) {
+            if (tag == "suite:broken") {
+                broken = true;
+                break;
+            }
+        }
+        if (broken) {
+            continue;
+        }
+        runnable.push_back(fn);
     }
 
     if (runnable.empty()) {

@@ -58,6 +58,14 @@ std::unique_ptr<Entity> PhantomEntity::create(IWorld* world)
 PhantomEntity::PhantomEntity(EntityInstanceId id)
     : FlyingEntity(id)
 {
+    // 注册 AI 目标与属性。
+    // C++ 虚函数在基类构造函数中不会派发到派生类（FlyingEntity/MobEntity 构造期间调 registerGoals
+    // 命中的是空基类实现），必须在 PhantomEntity 自己的构造函数体里显式调用，参考 CatEntity 模式。
+    // 此前漏调导致 phantom 的 m_goalSelector/m_targetSelector 为空，所有 goal 不生效——phantom 静止
+    // 悬浮，不会环绕飞行也不会因猫切换俯冲/盘旋（GameTest phantoms_should_fly_from_cats 假通过/失败）。
+    registerGoals();
+    registerAttributes();
+
     // 幻翼在阳光下燃烧
     setExperienceValue(5);
 
