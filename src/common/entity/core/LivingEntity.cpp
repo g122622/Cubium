@@ -1429,6 +1429,17 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         }
 
         // 不应用正常重力（梯子上重力已被处理）
+    } else if (hasEffect(entity::effect::EffectType::Levitation)) {
+        // 飘浮效果：每 tick 向上加速 0.05 * (amplifier + 1)，抵消重力。
+        // 对应 MC 1.21.11 LivingEntity.travel() 中 Levitation 分支：
+        //   if (this.hasEffect(MobEffects.LEVITATION)) {
+        //       d4 += (0.05 * (double)(this.getEffect(...).getAmplifier() + 1) - vec3.y) * ...;
+        //   }
+        // vec3.y 为本帧重力位移，这里等价为"加成替代重力"：飘浮时不应用重力，
+        // 仅施加向上加成，并重置摔落距离。
+        const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
+        m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
+        m_fallDistance = 0.0f;
     } else if (!hasNoGravity()) {
         // 缓降效果处理
         f32 gravity = GRAVITY;

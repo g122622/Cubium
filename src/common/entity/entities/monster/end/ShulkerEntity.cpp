@@ -66,6 +66,13 @@ ShulkerEntity::ShulkerEntity(EntityInstanceId id)
 {
     // 潜影贝不移动
     setExperienceValue(5);
+
+    // 注意：MonsterEntity 基类构造虽调用了 registerGoals()/registerAttributes()，但 C++ 基类构造期
+    // 虚函数不派发到派生类（vtable 此时仍是 MonsterEntity 的），导致 ShulkerEntity 的 override 版本
+    // 不会被调用——AI 目标（射弹反击等）与属性（MAX_HEALTH=30 等）将丢失。故在此显式补调，
+    // 此时 vtable 已就绪。与 LivingEntity 生命值同步修复（commit 340f9c235）同源根因。
+    registerAttributes();
+    registerGoals();
 }
 
 std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)

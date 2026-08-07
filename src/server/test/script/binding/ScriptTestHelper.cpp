@@ -604,7 +604,10 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         3);
 
     // --- assert(condition, message?) ---
-    // 基岩 Test.assert：condition 假则 fail(message)。纯 JS 语义，转发 helper->fail。
+    // 基岩 Test.assert：condition 假则抛出带 message 的错误（不直接终止测试）。
+    // 抛错语义使其可在 succeedWhen/succeedIf 回调中使用：wrapJsCallback 捕获异常转为 GameTestResult
+    // （has_value），succeedWhen 据此判定"条件未满足，继续等待"，而非立即 fail。
+    // 直接终止测试由 Test.fail 承担；assert 仅声明条件不成立。
     reg.method(
         "assert",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -627,7 +630,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                         msg = *m;
                     }
                 }
-                helper->fail(GameTestError(GameTestErrorType::FailConditionsMet, std::move(msg)));
+                // 抛 JS 异常而非 helper->fail：succeedWhen 回调里捕获为"未满足"继续等待，
+                // 测试主函数里异常上浮由 runResult 捕获转为 fail。
+                return ctx.throwInternalError(msg.c_str());
             }
             return ctx.createUndefined();
         },

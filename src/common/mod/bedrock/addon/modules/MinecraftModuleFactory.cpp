@@ -332,11 +332,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     u32 outIdx = 0;
                     const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
                     void* entProto = ScriptClassRegistry::instance().proto(entClassId);
+                    // 基岩 EntityQueryOptions.type 既接受 "minecraft:zoglin" 也接受 "zoglin"（自动补前缀）。
+                    // getTypeId() 恒返回带 "minecraft:" 前缀的完整 id，故将 typeFilter 规范化为完整 id 后比较。
+                    std::string normalizedType = typeFilter;
+                    if (hasType && normalizedType.find(':') == std::string::npos) {
+                        normalizedType = "minecraft:" + normalizedType;
+                    }
                     for (auto* ent : entities) {
                         if (ent == nullptr) {
                             continue;
                         }
-                        if (hasType && ent->getTypeId() != typeFilter) {
+                        if (hasType && ent->getTypeId() != normalizedType) {
                             continue;
                         }
                         if (entProto != nullptr) {
@@ -394,8 +400,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         return ctx.createString(ent->getTypeId());
     });
-    entityReg.method(
-        "getDimension",
+    entityReg.method("getDimension",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
             if (ent == nullptr) {
@@ -412,8 +417,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             return ScriptObjectRegistry::wrap(ctx, dimClassId, dimProto, world, false, "Dimension");
         });
-    entityReg.method(
-        "getLocation",
+    entityReg.method("getLocation",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
             auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
             if (ent == nullptr) {
