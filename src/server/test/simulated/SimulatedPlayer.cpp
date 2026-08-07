@@ -1,7 +1,7 @@
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
-#include "server/test/facade/GameTestHelper.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "server/test/facade/GameTestHelper.hpp"
 
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/MathUtils.hpp" // toDegrees / toRadians / clamp
@@ -113,7 +113,10 @@ i32 SimulatedPlayer::chat(const std::string& command)
     auto& world = static_cast<mc::server::ServerWorld&>(m_helper->world());
     // 在玩家位置、玩家权限等级执行命令（创造模式默认权限 2，对齐 OP 等级）
     const i32 permLevel = isCreative() ? 2 : 0;
-    return world.executeCommand(command, mc::math::Vector3d(x(), y(), z()), permLevel);
+    // rotation 传模拟玩家自身朝向 (pitch, yaw)，对齐 vanilla 玩家执行命令时
+    // CommandSourceStack.rotation 取实体朝向，使 `^` 局部坐标按玩家朝向解析。
+    return world.executeCommand(
+        command, mc::math::Vector3d(x(), y(), z()), permLevel, mc::math::Vector2f(pitch(), yaw()));
 }
 
 void SimulatedPlayer::respawn()

@@ -1871,6 +1871,11 @@ void CommandBlockMinecartEntity::_executeCommand()
     // 命令方块矿车的权限级别为 2（相当于 OP 级别）
     // 参考 MC 1.16.5: CommandSource(permissionLevel=2)
     Vector3d position(x(), y(), z());
+    // TODO: 命令方块矿车执行 `^` 局部坐标命令时应传矿车自身朝向 (0, yaw) 作为 rotation
+    // （对齐 vanilla MinecartCommandBlock.createCommandSourceStack 的 direction/rotation）。
+    // 当前传默认 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），矿车 `^` 坐标按 yaw=0 解析，
+    // 与矿车实际朝向可能不符。GameTest cloneBlocksCommand 用的是命令方块（CommandBlockEntity），
+    // 不经此路径，故暂不阻塞。
     m_successCount = worldPtr->executeCommand(m_command, position, 2);
 
     // 设置最后输出（成功或失败）

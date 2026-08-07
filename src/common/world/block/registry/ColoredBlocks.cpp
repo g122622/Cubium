@@ -30,6 +30,7 @@
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
+#include "world/block/blocks/decorative/GlazedTerracottaBlock.hpp"
 #include "world/block/blocks/decorative/StainedGlassBlock.hpp"
 #include "world/block/blocks/functional/BedBlock.hpp"
 
@@ -144,6 +145,24 @@ Block* ColoredBlocks::GREEN_TERRACOTTA = nullptr;
 Block* ColoredBlocks::RED_TERRACOTTA = nullptr;
 Block* ColoredBlocks::BLACK_TERRACOTTA = nullptr;
 Block* ColoredBlocks::TERRACOTTA = nullptr;
+
+// 釉面陶瓦 (16色)
+Block* ColoredBlocks::WHITE_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::ORANGE_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::MAGENTA_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::LIGHT_BLUE_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::YELLOW_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::LIME_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::PINK_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::GRAY_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::LIGHT_GRAY_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::CYAN_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::PURPLE_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::BLUE_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::BROWN_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::GREEN_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::RED_GLAZED_TERRACOTTA = nullptr;
+Block* ColoredBlocks::BLACK_GLAZED_TERRACOTTA = nullptr;
 
 // 床 (16色)
 Block* ColoredBlocks::WHITE_BED = nullptr;
@@ -404,6 +423,44 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_terracotta"), terracottaProps);
     ColoredBlocks::BLACK_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_terracotta"), terracottaProps);
+
+    // ========== 釉面陶瓦注册 (16色) ==========
+    // GlazedTerracottaBlock 带 HORIZONTAL_FACING 属性（可旋转、不可被活塞拉动）。
+    // 硬度/阻抗与普通陶瓦一致（vanilla 1.4 / 4.2），材质 ROCK。
+    // TODO: vanilla 釉面陶瓦不可被活塞推动（PistonBlockBehavior），项目活塞体系暂未区分，留待补全。
+    BlockProperties glazedTerracottaProps = BlockProperties(Material::ROCK).hardness(1.4f).resistance(4.2f);
+    ColoredBlocks::WHITE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:white_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::ORANGE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:orange_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::MAGENTA_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:magenta_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::LIGHT_BLUE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:light_blue_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::YELLOW_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:yellow_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::LIME_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:lime_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::PINK_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:pink_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::GRAY_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:gray_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::LIGHT_GRAY_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:light_gray_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::CYAN_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:cyan_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::PURPLE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:purple_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::BLUE_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:blue_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::BROWN_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:brown_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::GREEN_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:green_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::RED_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:red_glazed_terracotta"), glazedTerracottaProps);
+    ColoredBlocks::BLACK_GLAZED_TERRACOTTA = &registry.registerBlock<blocks::GlazedTerracottaBlock>(
+        ResourceLocation("minecraft:black_glazed_terracotta"), glazedTerracottaProps);
 
     // ========== 床注册 (16色) ==========
     // 床：羊毛材质，硬度0.2，不阻挡光线，可被 lava 点燃，被活塞推动时销毁

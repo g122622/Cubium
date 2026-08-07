@@ -32,6 +32,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "explosion/ExplosionContext.hpp"
@@ -1970,13 +1971,20 @@ public:
      * @param command 命令字符串（可包含或不包含 '/' 前缀）
      * @param position 命令执行位置
      * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
+     * @param rotation 命令源朝向 (pitch, yaw)，用于 `^` 局部坐标解析。
+     *                 命令方块传 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），
+     *                 实体（矿车/玩家）应传自身朝向，控制台/无朝向源传 (0,0)。
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
-    [[nodiscard]] virtual i32 executeCommand(const std::string& command, const Vector3d& position, i32 permissionLevel)
+    [[nodiscard]] virtual i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel,
+        const Vector2f& rotation = Vector2f(0.0f, 0.0f))
     {
         (void)command;
         (void)position;
         (void)permissionLevel;
+        (void)rotation;
         return 0;
     }
 

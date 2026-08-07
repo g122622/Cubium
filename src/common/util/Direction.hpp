@@ -469,6 +469,33 @@ inline bool isFacingAngle(Direction dir, f32 yaw)
 }
 
 /**
+ * @brief 将水平方向转换为实体偏航角（yaw）
+ *
+ * 对应 MC Java 1.21.11 `Direction.toYRot()`，用于命令方块/命令方块矿车等
+ * 无实体朝向的命令源执行 `^` 局部坐标命令时构造 CommandSourceStack 的 rotation。
+ * MC 约定：0=南，90=西，180=北，-90=东（与 isFacingAngle 注释一致）。
+ *
+ * @param dir 水平方向（DOWN/UP 返回 0，命令方块 facing 不会是垂直方向）
+ * @return 偏航角（度）
+ */
+inline f32 toYRot(Direction dir)
+{
+    switch (dir) {
+        case Direction::North:
+            return 180.0f;
+        case Direction::South:
+            return 0.0f;
+        case Direction::West:
+            return 90.0f;
+        case Direction::East:
+            return -90.0f;
+        default:
+            // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
+            return 0.0f;
+    }
+}
+
+/**
  * @brief 旋转方向
  *
  * 根据旋转类型旋转水平方向。

@@ -641,23 +641,28 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
     // setOnExecuteCommand 为赋值覆盖，IntegratedServer 旧的独立绑定段已删除，无重复。
     // 捕获 &world（引用）：ServerWorld 不可拷贝（含 unique_ptr 成员），且维度世界生命周期覆盖
     // 整个服务器运行期，引用在回调延迟执行时仍有效（与原 IntegratedServer 捕获 world 指针等价安全）。
-    world.setOnExecuteCommand(
-        [this, &world](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
-            std::string cmd = command;
-            if (!cmd.empty() && cmd[0] != '/') {
-                cmd = "/" + cmd;
-            }
+    world.setOnExecuteCommand([this, &world](const std::string& command,
+                                  const Vector3d& position,
+                                  i32 permissionLevel,
+                                  const Vector2f& rotation) -> i32 {
+        std::string cmd = command;
+        if (!cmd.empty() && cmd[0] != '/') {
+            cmd = "/" + cmd;
+        }
 
-            command::ServerCommandSource source(
-                this, nullptr, world.dimension(), position, Vector2f(0.0f, 0.0f), permissionLevel, 0, "@");
-            auto result = m_commandRegistry->execute(cmd, source);
-            if (result.failed()) {
-                spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());
-                return 0;
-            }
+        // rotation 由调用方传入，用于 `^` 局部坐标解析：命令方块传 (0,0)（基岩版命令方块 `^`
+        // forward 固定朝南 +Z，与 FACING 无关，见 CommandBlockEntity::trigger），实体（矿车/玩家）
+        // 传自身朝向 (pitch, yaw)。
+        command::ServerCommandSource source(
+            this, nullptr, world.dimension(), position, rotation, permissionLevel, 0, "@");
+        auto result = m_commandRegistry->execute(cmd, source);
+        if (result.failed()) {
+            spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());
+            return 0;
+        }
 
-            return result.value();
-        });
+        return result.value();
+    });
 }
 
 Result<void> MinecraftServer::loadBehaviorPacks()

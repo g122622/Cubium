@@ -61,7 +61,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithoutCallbackReturnsZero)
 {
     // 当没有设置回调时，executeCommand 应返回 0
     Vector3d position(100.0, 64.0, 200.0);
-    i32 result = world->executeCommand("/say hello", position, 2);
+    i32 result = world->executeCommand("/say hello", position, 2, mc::math::Vector2f(0.0f, 0.0f));
     EXPECT_EQ(result, 0);
 }
 
@@ -74,16 +74,17 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithCallback)
     i32 callbackResult = 42;
 
     // 设置回调
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d& position, i32 permissionLevel) -> i32 {
-        capturedCommand = command;
-        capturedPosition = position;
-        capturedPermissionLevel = permissionLevel;
-        return callbackResult;
-    });
+    world->setOnExecuteCommand(
+        [&](const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f&) -> i32 {
+            capturedCommand = command;
+            capturedPosition = position;
+            capturedPermissionLevel = permissionLevel;
+            return callbackResult;
+        });
 
     // 执行命令
     Vector3d position(100.5, 64.0, 200.5);
-    i32 result = world->executeCommand("/gamemode creative", position, 2);
+    i32 result = world->executeCommand("/gamemode creative", position, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     // 验证回调参数
     EXPECT_EQ(result, callbackResult);
@@ -100,13 +101,14 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithDifferentPermissionLevel
     for (i32 level = 0; level <= 4; ++level) {
         i32 capturedLevel = -1;
 
-        world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32 permissionLevel) -> i32 {
-            capturedLevel = permissionLevel;
-            return 1;
-        });
+        world->setOnExecuteCommand(
+            [&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
+                capturedLevel = permissionLevel;
+                return 1;
+            });
 
         Vector3d position(0, 0, 0);
-        i32 result = world->executeCommand("/test", position, level);
+        i32 result = world->executeCommand("/test", position, level, mc::math::Vector2f(0.0f, 0.0f));
 
         EXPECT_EQ(result, 1);
         EXPECT_EQ(capturedLevel, level);
@@ -118,14 +120,14 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteEmptyCommand)
     std::string capturedCommand;
     bool callbackCalled = false;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
         capturedCommand = command;
         callbackCalled = true;
         return 0;
     });
 
     Vector3d position(0, 0, 0);
-    i32 result = world->executeCommand("", position, 2);
+    i32 result = world->executeCommand("", position, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     // 空命令仍应调用回调
     EXPECT_TRUE(callbackCalled);
@@ -138,13 +140,13 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithSlashPrefix)
     // 测试带 '/' 前缀的命令
     std::string capturedCommand;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
         capturedCommand = command;
         return 1;
     });
 
     Vector3d position(0, 0, 0);
-    world->executeCommand("/time set day", position, 2);
+    world->executeCommand("/time set day", position, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     // 命令应原样传递（包含 '/' 前缀）
     EXPECT_EQ(capturedCommand, "/time set day");
@@ -155,13 +157,13 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithoutSlashPrefix)
     // 测试不带 '/' 前缀的命令
     std::string capturedCommand;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
         capturedCommand = command;
         return 1;
     });
 
     Vector3d position(0, 0, 0);
-    world->executeCommand("time set day", position, 2);
+    world->executeCommand("time set day", position, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     // 命令应原样传递（不含 '/' 前缀）
     EXPECT_EQ(capturedCommand, "time set day");
@@ -170,12 +172,12 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithoutSlashPrefix)
 TEST_F(ServerWorldCommandExecuteTest, CallbackReturnsFailureCode)
 {
     // 测试回调返回失败代码
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32) -> i32 {
+    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32, const Vector2f&) -> i32 {
         return 0; // 失败
     });
 
     Vector3d position(0, 0, 0);
-    i32 result = world->executeCommand("/invalid_command", position, 2);
+    i32 result = world->executeCommand("/invalid_command", position, 2, mc::math::Vector2f(0.0f, 0.0f));
     EXPECT_EQ(result, 0);
 }
 
@@ -185,17 +187,18 @@ TEST_F(ServerWorldCommandExecuteTest, MultipleCommandsSequential)
     std::vector<std::string> executedCommands;
     std::vector<i32> permissionLevels;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32 permissionLevel) -> i32 {
-        executedCommands.push_back(command);
-        permissionLevels.push_back(permissionLevel);
-        return static_cast<i32>(executedCommands.size());
-    });
+    world->setOnExecuteCommand(
+        [&](const std::string& command, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
+            executedCommands.push_back(command);
+            permissionLevels.push_back(permissionLevel);
+            return static_cast<i32>(executedCommands.size());
+        });
 
     Vector3d position(0, 0, 0);
 
-    world->executeCommand("/say hello", position, 2);
-    world->executeCommand("/time set day", position, 2);
-    world->executeCommand("/gamemode survival", position, 4);
+    world->executeCommand("/say hello", position, 2, mc::math::Vector2f(0.0f, 0.0f));
+    world->executeCommand("/time set day", position, 2, mc::math::Vector2f(0.0f, 0.0f));
+    world->executeCommand("/gamemode survival", position, 4, mc::math::Vector2f(0.0f, 0.0f));
 
     EXPECT_EQ(executedCommands.size(), 3u);
     EXPECT_EQ(executedCommands[0], "/say hello");
@@ -211,14 +214,14 @@ TEST_F(ServerWorldCommandExecuteTest, CommandBlockMinecartPermissionLevel)
     // 测试命令方块矿车使用的权限级别（应为 2）
     i32 capturedPermissionLevel = -1;
 
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32 permissionLevel) -> i32 {
+    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
         capturedPermissionLevel = permissionLevel;
         return 1;
     });
 
     // 模拟命令方块矿车执行命令
     Vector3d minecartPosition(100.0, 64.0, 100.0);
-    i32 result = world->executeCommand("/say test", minecartPosition, 2);
+    i32 result = world->executeCommand("/say test", minecartPosition, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     EXPECT_EQ(result, 1);
     EXPECT_EQ(capturedPermissionLevel, 2); // 命令方块矿车使用权限级别 2
@@ -230,12 +233,12 @@ TEST_F(ServerWorldCommandExecuteTest, CommandPositionPassedCorrectly)
     Vector3d expectedPosition(123.5, 64.0, -456.7);
     Vector3d capturedPosition(0, 0, 0);
 
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d& position, i32) -> i32 {
+    world->setOnExecuteCommand([&](const std::string&, const Vector3d& position, i32, const Vector2f&) -> i32 {
         capturedPosition = position;
         return 1;
     });
 
-    world->executeCommand("/test", expectedPosition, 2);
+    world->executeCommand("/test", expectedPosition, 2, mc::math::Vector2f(0.0f, 0.0f));
 
     EXPECT_DOUBLE_EQ(capturedPosition.x, expectedPosition.x);
     EXPECT_DOUBLE_EQ(capturedPosition.y, expectedPosition.y);

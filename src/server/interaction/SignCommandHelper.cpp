@@ -117,6 +117,8 @@ bool SignCommandHelper::_executeCommand(const std::string& command, mc::ServerPl
     // 创建命令源（使用玩家自身的权限等级，位置为告示牌位置）
     // 对齐 MC Java: 告示牌执行命令时，CommandSourceStack.entity = 编辑告示牌的玩家
     i32 signPermissionLevel = std::min(player.permissionLevel(), 2);
+    // TODO: 告示牌执行 `^` 局部坐标命令时 rotation 应传玩家朝向 (pitch, yaw)（source.entity=player），
+    // 当前硬编码 (0,0)，告示牌 `^` 坐标按 yaw=0（朝南）解析。GameTest cloneBlocksCommand 不经此路径，暂不阻塞。
     command::ServerCommandSource source(player.getServer(),
         &player,
         player.dimension(),

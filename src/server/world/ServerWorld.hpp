@@ -762,11 +762,14 @@ public:
      * @brief 命令执行回调类型
      *
      * 当实体需要执行命令时调用（如命令方块矿车）。
-     * 参数：命令字符串、执行位置、权限级别
+     * 参数：命令字符串、执行位置、权限级别、命令源朝向 (pitch, yaw)
      * 返回：命令执行结果码（成功返回正整数，失败返回0）
+     *
+     * rotation 用于 `^` 局部坐标解析：命令方块传 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），
+     * 实体传自身朝向，无朝向源传 (0,0)。
      */
-    using CommandExecuteCallback =
-        std::function<i32(const std::string& command, const Vector3d& position, i32 permissionLevel)>;
+    using CommandExecuteCallback = std::function<i32(
+        const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f& rotation)>;
 
     void setOnExecuteCommand(CommandExecuteCallback callback) { m_onExecuteCommand = std::move(callback); }
 
@@ -907,10 +910,11 @@ public:
      * @param command 命令字符串（可包含或不包含 '/' 前缀）
      * @param position 命令执行位置
      * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
+     * @param rotation 命令源朝向 (pitch, yaw)，用于 `^` 局部坐标解析
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
     [[nodiscard]] i32 executeCommand(
-        const std::string& command, const Vector3d& position, i32 permissionLevel) override;
+        const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f& rotation) override;
 
     /**
      * @brief 设置掉落表管理器

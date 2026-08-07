@@ -36,11 +36,65 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace blockentity {
+
+namespace {
+
+// 基岩 clone filtered 的 data 值 → Java 方块状态属性字符串（如 "[facing=north,half=bottom]"）。
+// 基岩 data 是方块状态值的紧凑编码，不同方块语义不同；此处仅覆盖 stairs：
+//   data = weirdo_direction(0-3) + upside_down_bit*4
+//   weirdo_direction: 0=east,1=west,2=south,3=north（见 LeviLamina WeirdoDirection.h）
+//   upside_down_bit: 0=bottom,1=top
+// 映射到 Java stairs 的 facing(east/west/south/north) + half(bottom/top)。
+// 未识别的方块名或缺失 data 时返回空字符串（退化为按方块类型过滤）。
+// TODO: 仅覆盖 stairs；按钮/活板门/原木等方块的 data 语义需逐类补全。
+std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const std::string& dataTok)
+{
+    if (dataTok.empty()) {
+        return "";
+    }
+    // 仅处理 stairs 类方块
+    if (blockTok.find("stairs") == std::string::npos) {
+        return "";
+    }
+    int data = 0;
+    try {
+        data = std::stoi(dataTok);
+    }
+    catch (...) {
+        return "";
+    }
+    if (data < 0 || data > 7) {
+        return "";
+    }
+    int weirdo = data % 4;
+    bool upsideDown = (data / 4) != 0;
+    const char* facing = nullptr;
+    switch (weirdo) {
+        case 0:
+            facing = "east";
+            break;
+        case 1:
+            facing = "west";
+            break;
+        case 2:
+            facing = "south";
+            break;
+        case 3:
+            facing = "north";
+            break;
+        default:
+            return "";
+    }
+    return std::string("[facing=") + facing + ",half=" + (upsideDown ? "top" : "bottom") + "]";
+}
+
+} // namespace
 
 // ============================================================================
 // 构造函数
@@ -438,8 +492,44 @@ bool CommandBlockEntity::trigger(IWorld& world)
     Vector3d position(
         static_cast<f64>(m_pos.x) + 0.5, static_cast<f64>(m_pos.y) + 0.5, static_cast<f64>(m_pos.z) + 0.5);
 
+    // 命令源朝向：基岩版命令方块执行 `^` 局部坐标命令时，forward 固定朝南(+Z)、left 固定朝东(+X)，
+    // 即 rotation=(pitch=0, yaw=0)，与方块的 FACING 无关（区别于 Java 版 CommandBlockEntity
+    // 用 direction.toYRot()）。GameTest 行为包的 clone 命令据此设计：所有命令方块 `^` forward
+    // 均为 +Z。TODO: 若未来支持 Java 结构命令方块，需按结构来源区分 facing-based / 固定朝南两种语义。
+    Vector2f rotation(0.0f, 0.0f);
+
+    // 基岩版 clone filtered 语法适配：基岩语法为
+    //   clone <b> <e> <d> filtered <mode> <block> [<data>]
+    // （mode 紧跟 filtered，block/data 在后），项目命令树采用 Java 语法
+    //   clone <b> <e> <d> filtered <block> [<props>] <mode>
+    // 此处将基岩语法的 filtered 子句重排为 Java 语法，并把基岩 data 值转化为 Java 方块状态属性
+    // 附加到方块名（如 stairs 的 data=3 → [facing=north,half=bottom]），使 filtered clone 能按
+    // 朝向等属性精确过滤（vanilla Java clone filtered 仅按 filter 显式属性匹配）。
+    // 仅处理 "filtered <mode> <block> [<data>]" 模式（mode ∈ normal|force|move）。
+    // TODO: 基岩命令体系完整支持后，此适配可移除；data→props 映射目前仅覆盖 stairs，其他方块
+    // （如按钮/活板门）的 data 语义需逐类补全。
+    std::string cmdToRun = m_command;
+    {
+        const std::string marker = " filtered ";
+        auto pos = cmdToRun.find(marker);
+        if (pos != std::string::npos) {
+            std::string head = cmdToRun.substr(0, pos + marker.size() - 1); // 含 " filtered"
+            std::string tail = cmdToRun.substr(pos + marker.size());
+            // tail 形如 "<mode> <block> <data>" 或 "<mode> <block>"
+            std::istringstream ss(tail);
+            std::string modeTok, blockTok, dataTok;
+            ss >> modeTok >> blockTok >> dataTok;
+            if (modeTok == "normal" || modeTok == "force" || modeTok == "move") {
+                // 基岩 data → Java 方块状态属性（仅覆盖 stairs：data = weirdo_direction + upside_down*4）
+                std::string javaProps = bedrockCloneFilterDataToJavaProps(blockTok, dataTok);
+                std::string javaTail = blockTok + javaProps + " " + modeTok;
+                cmdToRun = head + " " + javaTail;
+            }
+        }
+    }
+
     // 执行命令（命令方块的权限级别为 2）
-    i32 result = world.executeCommand(m_command, position, 2);
+    i32 result = world.executeCommand(cmdToRun, position, 2, rotation);
 
     // 更新成功计数
     if (result > 0) {

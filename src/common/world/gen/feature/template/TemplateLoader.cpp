@@ -37,6 +37,7 @@
 #include "common/world/gen/feature/template/Template.hpp"
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -51,6 +52,97 @@ namespace feature {
 namespace template_ {
 
 namespace {
+
+// 基岩版整型方向/朝向属性 → Java 属性 (key, value) 字符串。
+// 已覆盖：
+// - facing_direction (int 0-5)：基岩 0=down,1=up,2=north,3=south,4=east,5=west → Java facing
+// - weirdo_direction (int 0-3)：基岩 stairs 朝向 0=east,1=west,2=south,3=north → Java stairs facing
+//   （基岩 WeirdoDirection 枚举，见 LeviLamina src/mc/world/level/block/WeirdoDirection.h；
+//   Java stairs FACING 同为楼梯上升方向，语义一致直接映射）
+// 返回 nullopt 表示该属性名/值不在已知映射表内，由调用方走默认转换逻辑。
+// TODO: 基岩属性体系与 Java 系统性不同，此处仅覆盖 GameTest 结构高频出现的方向属性。
+// direction(int 0-3, 活塞/原木)/torch_facing_direction/grounded 等基岩方向属性需逐类映射，
+// 暂未实现（影响对应方块的朝向退化为默认值，不阻塞结构加载）。
+std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const std::string& bedrockKey, i32 intVal)
+{
+    if (bedrockKey == "facing_direction") {
+        switch (intVal) {
+            case 0:
+                return std::make_pair(std::string("facing"), std::string("down"));
+            case 1:
+                return std::make_pair(std::string("facing"), std::string("up"));
+            case 2:
+                return std::make_pair(std::string("facing"), std::string("north"));
+            case 3:
+                return std::make_pair(std::string("facing"), std::string("south"));
+            case 4:
+                return std::make_pair(std::string("facing"), std::string("east"));
+            case 5:
+                return std::make_pair(std::string("facing"), std::string("west"));
+            default:
+                break;
+        }
+    } else if (bedrockKey == "weirdo_direction") {
+        // 基岩 stairs 朝向 → Java stairs facing
+        switch (intVal) {
+            case 0:
+                return std::make_pair(std::string("facing"), std::string("east"));
+            case 1:
+                return std::make_pair(std::string("facing"), std::string("west"));
+            case 2:
+                return std::make_pair(std::string("facing"), std::string("south"));
+            case 3:
+                return std::make_pair(std::string("facing"), std::string("north"));
+            default:
+                break;
+        }
+    }
+    return std::nullopt;
+}
+
+// 基岩版字节型属性 → Java 属性 (key, value) 字符串。
+// 已覆盖：
+// - upside_down_bit (byte 0/1)：基岩 stairs/slab 倒置标志 0=正放,1=倒置 → Java half (bottom/top)
+//   （stairs 用 Half::Top/Bottom，slab 用 SlabType 但属性名不同，此处仅映射为 stairs 的 half；
+//   slab 的 type 属性映射留待补全）
+// 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
+// TODO: 基岩字节属性到 Java 枚举的映射仅覆盖 upside_down_bit→half(stairs)，其他（如 top_slot_bit
+// 等）需逐类补全。
+std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(const std::string& bedrockKey, i8 byteVal)
+{
+    if (bedrockKey == "upside_down_bit") {
+        // 0=正放(bottom), 1=倒置(top)
+        return std::make_pair(std::string("half"), byteVal != 0 ? std::string("top") : std::string("bottom"));
+    }
+    return std::nullopt;
+}
+
+// 基岩版方块名 → Java 方块名映射（基岩用统一方块名 + 属性区分变体，Java 用独立方块名）。
+// 返回 {javaBlockName, 属性重命名映射}。属性重命名映射：基岩属性名 → Java 属性名（值不变）。
+// TODO: 基岩方块命名体系与 Java 系统性不同，此处仅覆盖 minecraft:log（clone_command 结构使用）。
+// minecraft:leaves / minecraft:planks / minecraft:sapling 等基岩统一名 + 变体属性需逐类补映射，
+// 暂未实现（对应方块会退化为 air，不阻塞结构加载但影响含此类方块的测试）。
+struct BedrockBlockMapping {
+    std::string javaName;                                         // 映射后的 Java 方块名（空表示无需改名）
+    std::vector<std::pair<std::string, std::string>> propRenames; // 基岩属性名 → Java 属性名
+};
+
+BedrockBlockMapping bedrockBlockNameToJava(const std::string& bedrockName, const nbt::CompoundTag& bedrockStates)
+{
+    if (bedrockName == "minecraft:log") {
+        // 基岩 minecraft:log + old_log_type=<oak|spruce|birch|jungle|acacia|dark_oak> + pillar_axis
+        // → Java minecraft:<type>_log + axis（pillar_axis 值 y/x/z 与 Java axis 一致）
+        std::string woodType = "oak";
+        if (bedrockStates.value.count("old_log_type") != 0) {
+            auto& tag = *bedrockStates.value.at("old_log_type");
+            if (tag.id() == nbt::TagId::String) {
+                woodType = dynamic_cast<const nbt::StringTag&>(tag).value;
+            }
+        }
+        return {std::string("minecraft:") + woodType + "_log", {{"pillar_axis", "axis"}}};
+    }
+    return {};
+}
 
 const BlockState* applyPropertiesToState(
     const Block& block, const BlockState* defaultState, const nbt::CompoundTag& propsCompound)
@@ -648,6 +740,18 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
         return 0; // 空气
     }
 
+    // 基岩→Java 方块名/属性映射（如 minecraft:log + old_log_type → minecraft:oak_log + axis）
+    BedrockBlockMapping mapping;
+    if (paletteEntry.value.count("states") != 0) {
+        auto& statesTag0 = *paletteEntry.value.at("states");
+        if (statesTag0.id() == nbt::TagId::Compound) {
+            mapping = bedrockBlockNameToJava(blockName, dynamic_cast<const nbt::CompoundTag&>(statesTag0));
+        }
+    }
+    if (!mapping.javaName.empty()) {
+        blockName = mapping.javaName;
+    }
+
     auto& registry = BlockRegistry::instance();
     auto* block = registry.getBlock(ResourceLocation(blockName));
     if (!block) {
@@ -669,23 +773,46 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                     continue;
                 }
                 std::string strVal;
+                std::string javaKey = key; // 默认沿用基岩属性名，命中映射时覆盖
+                // 方块名映射附带的属性重命名（如 pillar_axis → axis）
+                for (const auto& [from, to] : mapping.propRenames) {
+                    if (key == from) {
+                        javaKey = to;
+                        break;
+                    }
+                }
                 switch (valueTag->id()) {
                     case nbt::TagId::String:
                         strVal = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
                         break;
-                    case nbt::TagId::Int:
-                        strVal = std::to_string(dynamic_cast<const nbt::IntTag&>(*valueTag).value);
+                    case nbt::TagId::Int: {
+                        const i32 iv = dynamic_cast<const nbt::IntTag&>(*valueTag).value;
+                        // 基岩方向属性（facing_direction/weirdo_direction 等）是 int，Java facing 取字符串值，
+                        // 需先做属性名+值的映射；未命中映射则按原逻辑转数字字符串（适用于 axis 等少数属性）。
+                        if (auto mapped = bedrockIntStateToJava(key, iv)) {
+                            javaKey = mapped->first;
+                            strVal = mapped->second;
+                        } else {
+                            strVal = std::to_string(iv);
+                        }
                         break;
+                    }
                     case nbt::TagId::Byte: {
-                        // 基岩版布尔属性用 Byte (0/1)，Java 用 "true"/"false" 字符串
+                        // 基岩版字节属性：布尔型用 Byte (0/1) → Java "true"/"false"；
+                        // 枚举型（如 upside_down_bit → half）需做属性名+值的映射。
                         const i8 bv = dynamic_cast<const nbt::ByteTag&>(*valueTag).value;
-                        strVal = (bv != 0) ? "true" : "false";
+                        if (auto mapped = bedrockByteStateToJava(key, bv)) {
+                            javaKey = mapped->first;
+                            strVal = mapped->second;
+                        } else {
+                            strVal = (bv != 0) ? "true" : "false";
+                        }
                         break;
                     }
                     default:
                         continue; // 跳过不支持的属性值类型
                 }
-                stringProps->value.emplace(key, std::make_unique<nbt::StringTag>(strVal));
+                stringProps->value.emplace(javaKey, std::make_unique<nbt::StringTag>(strVal));
             }
             if (!stringProps->value.empty()) {
                 state = applyPropertiesToState(*block, state, *stringProps);

@@ -2734,12 +2734,13 @@ void ServerWorld::createExplosionWithContext(const Vector3& position,
 // 命令执行
 // ============================================================================
 
-i32 ServerWorld::executeCommand(const std::string& command, const Vector3d& position, i32 permissionLevel)
+i32 ServerWorld::executeCommand(
+    const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f& rotation)
 {
     // 通过回调执行命令
-    // 回调由 IntegratedServer 设置，调用 CommandRegistry::execute()
+    // 回调由 MinecraftServer::attachWorldCommandBindings 设置，调用 CommandRegistry::execute()
     if (m_onExecuteCommand) {
-        return m_onExecuteCommand(command, position, permissionLevel);
+        return m_onExecuteCommand(command, position, permissionLevel, rotation);
     }
     return 0;
 }

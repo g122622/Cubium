@@ -115,7 +115,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     const BlockPos& destPos,
     FilterMode filterMode,
     CloneMode cloneMode,
-    const BlockState* filterState = nullptr)
+    const BlockStateInput* filterInput = nullptr)
 {
     auto& source = context.getSource();
 
@@ -124,6 +124,15 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     if (world == nullptr) {
         source.sendError("commands.clone.failed.noWorld");
         return 0;
+    }
+
+    // filtered 模式的过滤条件：方块类型必须相同，且 filter 显式指定的属性值必须与源方块一致
+    // （对齐 vanilla BlockPredicateArgument：仅匹配 filter 中显式写出的属性，未写出属性任意值都算匹配）。
+    // 当 filter 无显式属性时退化为按方块类型匹配（与旧行为一致）。
+    const BlockState* filterState = (filterInput != nullptr) ? filterInput->state() : nullptr;
+    const std::vector<const IProperty*>* filterExplicitProps = nullptr;
+    if (filterInput != nullptr) {
+        filterExplicitProps = &filterInput->explicitProps();
     }
 
     // 计算源区域边界
@@ -221,7 +230,22 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                     case FilterMode::Filtered:
                         if (filterState != nullptr &&
                             state->getBlock().blockId() == filterState->getBlock().blockId()) {
-                            shouldCopy = true;
+                            // 方块类型匹配后，再校验 filter 显式指定的每个属性值一致。
+                            // 无显式属性时（filter 为裸方块名）匹配所有同类型方块。
+                            if (filterExplicitProps == nullptr || filterExplicitProps->empty()) {
+                                shouldCopy = true;
+                            } else {
+                                bool propsMatch = true;
+                                for (const IProperty* prop : *filterExplicitProps) {
+                                    const auto srcIdx = state->getValueIndex(*prop);
+                                    const auto filterIdx = filterState->getValueIndex(*prop);
+                                    if (!srcIdx.has_value() || !filterIdx.has_value() || *srcIdx != *filterIdx) {
+                                        propsMatch = false;
+                                        break;
+                                    }
+                                }
+                                shouldCopy = propsMatch;
+                            }
                         }
                         break;
                 }
@@ -485,7 +509,7 @@ i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& co
     BlockPos endPos(end.x, end.y, end.z);
     BlockPos destPos(dest.x, dest.y, dest.z);
 
-    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, filterInput.state());
+    return executeClone(context, beginPos, endPos, destPos, FilterMode::Filtered, cloneMode, &filterInput);
 }
 
 } // namespace command

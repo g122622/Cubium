@@ -56,13 +56,23 @@ public:
         : m_state(state)
     {}
 
+    BlockStateInput(const BlockState* state, std::vector<const IProperty*> explicitProps) noexcept
+        : m_state(state)
+        , m_explicitProps(std::move(explicitProps))
+    {}
+
     [[nodiscard]] const BlockState* state() const noexcept { return m_state; }
     [[nodiscard]] bool isValid() const noexcept { return m_state != nullptr; }
     [[nodiscard]] const Block& getBlock() const noexcept { return m_state->getBlock(); }
     [[nodiscard]] u32 stateId() const noexcept { return m_state ? m_state->stateId() : 0; }
 
+    // /clone filtered 等命令需区分"显式指定的属性"与"默认值"：vanilla BlockPredicate 仅匹配
+    // filter 中显式写出的属性，未写出属性任意值都算匹配。此集合记录解析时方括号内出现的属性。
+    [[nodiscard]] const std::vector<const IProperty*>& explicitProps() const noexcept { return m_explicitProps; }
+
 private:
     const BlockState* m_state = nullptr;
+    std::vector<const IProperty*> m_explicitProps;
 };
 
 /**
@@ -139,11 +149,12 @@ private:
         const BlockState* state = &block->defaultState();
 
         // 解析并应用属性
+        std::vector<const IProperty*> explicitProps;
         if (!propsStr.empty()) {
-            state = _applyProperties(block, state, propsStr, reader, start);
+            state = _applyProperties(block, state, propsStr, reader, start, explicitProps);
         }
 
-        return BlockStateInput(state);
+        return BlockStateInput(state, std::move(explicitProps));
     }
 
     /**
@@ -160,7 +171,8 @@ private:
         const BlockState* defaultState,
         const std::string& propsStr,
         StringReader& reader,
-        i32 start)
+        i32 start,
+        std::vector<const IProperty*>& explicitProps)
     {
         const auto& container = block->stateContainer();
         const auto& properties = container.properties();
@@ -232,6 +244,7 @@ private:
             }
 
             wantedProps[prop] = *parsedValue;
+            explicitProps.push_back(prop);
 
             // 移动到下一个属性
             startPos = valueEnd + 1;

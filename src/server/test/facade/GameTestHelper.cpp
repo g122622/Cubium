@@ -155,7 +155,10 @@ GameTestResult GameTestHelper::assertBlockPresent(const std::string& blockType, 
     const BlockPos worldPos = worldBlockPosition(relativePos);
     const BlockState* expected = _resolveBlock(blockType);
     const BlockState* actual = m_world.getBlockState(worldPos);
-    const bool present = (actual != nullptr && expected != nullptr && *actual == *expected);
+    // 对齐基岩/Java GameTest 语义：assertBlockPresent 仅检查方块类型（BlockType），不比较
+    // BlockState 属性（facing/axis 等）。结构放置/clone 的方块带朝向属性，若用 stateId 比较
+    // 会使同类型不同朝向的方块判为不相等，导致断言误失败。故用 blockId() 比较（同方块任意状态均命中）。
+    const bool present = (actual != nullptr && expected != nullptr && actual->blockId() == expected->blockId());
     if (present != isPresent) {
         return _expectBlockError(
             isPresent ? "Expected block to be present" : "Expected block to be absent", relativePos, actual);
