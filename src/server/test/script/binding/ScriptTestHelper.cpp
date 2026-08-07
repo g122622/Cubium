@@ -141,7 +141,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
-            if (argc < 3 || !ctx.isString(args[0]) || !ctx.isObject(args[2])) {
+            // 参数：assertBlockPresent(blockType:string, pos:object{x,y,z}, isPresent:boolean)
+            // 此前校验误写成 !isObject(args[2])（检查 isPresent 是否为 object），但 isPresent 是 boolean，
+            // 致 test.assertBlockPresent("xxx", {x,y,z}, true) 恒抛 TypeError（args[2]=true 非 object），
+            // cloneBlocksCommand 全链路被此阻断。正确校验：pos=args[1] 须为 object。
+            if (argc < 3 || !ctx.isString(args[0]) || !ctx.isObject(args[1])) {
                 return ctx.throwTypeError("assertBlockPresent(blockType, pos, isPresent)");
             }
             auto blockType = ctx.toString(args[0]);
