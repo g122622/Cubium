@@ -135,6 +135,12 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world)
     }
 
     // 注册属性
+    // 注意：此处 registerAttributes() 因 C++ 基类构造期虚函数不派发到派生类（vtable
+    // 此时仍是 LivingEntity 的），仅注册基类默认属性（MAX_HEALTH 默认 20.0）。派生类
+    // 构造体须显式再次调用 registerAttributes() 设实体专属值（如 chicken=4.0/fox=10.0）。
+    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 m_healthSynced），
+    // 因派生类 registerAttributes 时序晚于 LivingEntity 构造，此处 setHealth 无法拿到
+    // 派生类 MAX_HEALTH。
     registerAttributes();
 }
 
@@ -781,6 +787,15 @@ std::optional<ResourceLocation> LivingEntity::getDeathSound() const
 void LivingEntity::tick()
 {
     Entity::tick();
+
+    // 首帧生命值同步：构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH
+    // （如 chicken=4.0），m_health 停在默认 20.0 违反 health<=maxHealth 不变式，致
+    // hurt 的 m_health -= amount 在超 max 基线上扣除，实体"打不死"。此处兜底同步。
+    // 对齐 vanilla LivingEntity 构造末尾 setHealth(getMaxHealth())。
+    if (!m_healthSynced) {
+        m_healthSynced = true;
+        setHealth(maxHealth());
+    }
 
     // 更新使用中的物品
     // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updatingUsingItem()
@@ -2379,6 +2394,8 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {
         m_health = *val;
         m_lastHealth = m_health;
+        // NBT 加载的 health 是权威值，标记已同步，避免 tick 首帧 setHealth(maxHealth) 覆盖。
+        m_healthSynced = true;
     }
 
     // AbsorptionAmount (f32)

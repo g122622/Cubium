@@ -1650,6 +1650,10 @@ protected:
     f32 m_health = 20.0f;
     f32 m_lastHealth = 20.0f; // 上一tick的生命值
     f32 m_absorption = 0.0f;  // 吸收值（金苹果）
+    // 首帧生命值同步标志。构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH，
+    // m_health 停在默认 20.0，违反 health<=maxHealth 不变式。tick 首帧检测到未同步则
+    // setHealth(maxHealth()) 兜底。详见 LivingEntity 构造注释。
+    bool m_healthSynced = false;
 
     // 属性
     entity::attribute::AttributeMap m_attributes;
