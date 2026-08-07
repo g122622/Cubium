@@ -60,7 +60,9 @@
 
 #include "common/core/Result.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
@@ -81,6 +83,23 @@
 
 namespace mc {
 
+// 创建 MobEntity 默认寻路器：WalkNodeProcessor → PathFinder → PathNavigator，并绑定实体。
+// 修复历史 bug：原构造 m_navigator(std::make_unique<PathNavigator>(this)) 走 PathNavigator(MobEntity*)
+// 构造分支，m_pathFinder 永远为 nullptr，致 PathNavigator::moveTo 在 !m_pathFinder 处早退返回 false，
+// 全仓所有 MobEntity 的主动寻路（MeleeAttackGoal/FoxFollowTargetGoal/RandomWalkingGoal 等）全部失效，
+// 实体 attackTarget 设了却永不移动。子类（如 RavagerEntity）可自行覆盖 m_navigator 用定制 NodeProcessor。
+// 对应 vanilla Mob.createNavigation() → GroundPathNavigation(new WalkNodeProcessor())。
+namespace {
+std::unique_ptr<entity::ai::pathfinding::PathNavigator> _createDefaultNavigator(LivingEntity* mob)
+{
+    auto nodeProcessor = std::make_unique<entity::ai::pathfinding::WalkNodeProcessor>();
+    auto pathFinder = std::make_unique<entity::ai::pathfinding::PathFinder>(std::move(nodeProcessor));
+    auto navigator = std::make_unique<entity::ai::pathfinding::PathNavigator>(std::move(pathFinder));
+    navigator->setEntity(mob);
+    return navigator;
+}
+} // namespace
+
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<i8> MobEntity::DATA_MOB_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
 
@@ -99,7 +118,7 @@ MobEntity::MobEntity(EntityInstanceId id)
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
     , m_jumpController(std::make_unique<entity::ai::controller::JumpController>(this))
     , m_senses(std::make_unique<entity::ai::EntitySenses>(this))
-    , m_navigator(std::make_unique<entity::ai::pathfinding::PathNavigator>(this))
+    , m_navigator(_createDefaultNavigator(this))
 {
     // 初始化装备掉落概率为默认值
     m_equipmentDropChances.fill(DEFAULT_EQUIPMENT_DROP_CHANCE);
@@ -271,6 +290,14 @@ void MobEntity::tick()
     // 必须在 m_targetSelector.tick()/m_goalSelector.tick() 之前执行。
     if (m_attackTarget != nullptr && m_attackTarget->isRemoved()) {
         setAttackTarget(nullptr);
+    }
+
+    // 同类 UAF 防护：m_lastHurtBy 也是裸指针，HurtByTargetGoal::shouldExecute 会解引用
+    // attacker->isAlive()。寻路修复后实体能主动攻击，被攻击者反击链路激活，若 lastHurtBy
+    // 实体已移除（EntityManager 同步 erase+析构无"先标记后析构"窗口）则悬垂解引用段错误。
+    // 详见 memory: goal-entity-ptr-uaf（同模式裸指针 UAF 架构问题）。
+    if (m_lastHurtBy != nullptr && m_lastHurtBy->isRemoved()) {
+        setLastHurtBy(nullptr);
     }
 
     // 空闲时间在 tick 开头递增

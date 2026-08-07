@@ -426,6 +426,7 @@ add_library(mc_common STATIC
     entity/ai/pathfinding/PathPoint.cpp
     entity/ai/pathfinding/Path.cpp
     entity/ai/pathfinding/Region.cpp
+    entity/ai/pathfinding/WorldRegion.cpp
     entity/ai/pathfinding/WalkNodeProcessor.cpp
     entity/ai/pathfinding/RavagerNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp

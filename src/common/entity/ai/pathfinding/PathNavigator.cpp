@@ -23,6 +23,7 @@
 
 #include "PathNavigator.hpp"
 #include "WalkNodeProcessor.hpp"
+#include "WorldRegion.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathFinder.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
@@ -87,6 +88,20 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
 
+    // 寻路前注入世界区域：Region 是寻路器访问方块的适配层，历史全仓无具体实现，
+    // m_region 恒 nullptr 致 getNodeType 恒 Blocked、findPath 返回空。每次寻路用实体
+    // 当前 world 栈上构造 WorldRegion 并 setRegion（委托 IWorld）。对应 vanilla
+    // PathNavigation 在路径计算前刷新区域缓存。
+    // 注意：region 作用域必须覆盖整个 findPath 调用（NodeProcessor 持 m_region 裸指针），
+    // 早期版本误把 region 声明在 if 块内，致 findPath 时 region 已析构、m_region 悬垂，
+    // 虚调用 isWalkable 解引用已释放栈内存段错误。
+    IWorld* world = m_entity->world();
+    if (world == nullptr) {
+        return false;
+    }
+    WorldRegion region(*world);
+    m_pathFinder->setRegion(&region);
+
     m_path = std::make_unique<Path>(m_pathFinder->findPath(
         startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance, m_maxVisitedNodesMultiplier));
 
@@ -117,6 +132,14 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
     i32 targetXi = floorTo<i32>(x);
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
+
+    // 寻路前注入世界区域（同 moveTo，详见其注释；region 作用域须覆盖 findPathToRange）。
+    IWorld* world = m_entity->world();
+    if (world == nullptr) {
+        return false;
+    }
+    WorldRegion region(*world);
+    m_pathFinder->setRegion(&region);
 
     m_path = std::make_unique<Path>(m_pathFinder->findPathToRange(
         startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range), m_maxVisitedNodesMultiplier));
