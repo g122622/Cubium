@@ -74,6 +74,11 @@ EvokerEntity::EvokerEntity(EntityInstanceId id)
     : SpellcastingIllagerEntity(id)
 {
     registerAttributes();
+
+    // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造
+    // 显式调用。Evoker 的 registerGoals 加专属施法 / 召唤恼鬼 / 尖牙 / Wololo 等目标（override 内
+    // 自行注册 SwimGoal 不链调父类，故补调不会翻倍父类 goal）。
+    registerGoals();
 }
 
 std::unique_ptr<Entity> EvokerEntity::create(IWorld* /*world*/)

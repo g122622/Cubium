@@ -57,7 +57,13 @@ namespace mc {
 
 TraderLlamaEntity::TraderLlamaEntity(EntityInstanceId id)
     : LlamaEntity(id)
-{}
+{
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。TraderLlama 的 registerGoals 加专属
+    // PanicGoal / DefendWanderingTrader 目标。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
+    registerAttributes();
+}
 
 std::optional<ResourceLocation> TraderLlamaEntity::getAmbientSound() const
 {

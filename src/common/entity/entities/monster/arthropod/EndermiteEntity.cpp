@@ -60,8 +60,11 @@ EndermiteEntity::EndermiteEntity(EntityInstanceId id)
     // 经验值 3
     setExperienceValue(3);
 
-    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    // 注册属性与 AI 目标（基类构造函数中调用 registerAttributes/registerGoals 不会派发到子类，
+    // vtable 在基类构造期间指向基类，派生 override 永不执行，须在派生类构造显式调用）。
+    // Endermite 的 registerGoals 加专属 SwimGoal / Melee 等目标。
     registerAttributes();
+    registerGoals();
 }
 
 void EndermiteEntity::tick()
@@ -139,8 +142,11 @@ SilverfishEntity::SilverfishEntity(EntityInstanceId id)
     // 经验值 5
     setExperienceValue(5);
 
-    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    // 注册属性与 AI 目标（基类构造函数中调用 registerAttributes/registerGoals 不会派发到子类，
+    // vtable 在基类构造期间指向基类，派生 override 永不执行，须在派生类构造显式调用）。
+    // Silverfish 的 registerGoals 加专属 Summon / HideInStone 等目标。
     registerAttributes();
+    registerGoals();
 }
 
 void SilverfishEntity::tick()

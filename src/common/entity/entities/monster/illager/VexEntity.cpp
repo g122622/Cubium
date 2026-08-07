@@ -56,8 +56,11 @@ VexEntity::VexEntity(EntityInstanceId id)
     // 恼鬼使用专用的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::VexMovementController>(this);
 
-    // 注册属性（基类构造函数中调用 registerAttributes() 不会派发到子类）
+    // 注册属性与 AI 目标（基类构造函数中调用 registerAttributes/registerGoals 不会派发到子类，
+    // vtable 在基类构造期间指向基类，派生 override 永不执行，须在派生类构造显式调用）。
+    // Vex 的 registerGoals 加专属 VexChargeAttack / VexMoveRandom / 复制主人目标等。
     registerAttributes();
+    registerGoals();
 }
 
 std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)

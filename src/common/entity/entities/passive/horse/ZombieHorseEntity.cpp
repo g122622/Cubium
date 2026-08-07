@@ -39,6 +39,10 @@ ZombieHorseEntity::ZombieHorseEntity(EntityInstanceId id)
     setTame(true);
     // 设置跳跃强度
     setJumpStrength(0.96f);
+
+    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/)

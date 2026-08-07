@@ -71,6 +71,10 @@ SalmonEntity::SalmonEntity(EntityInstanceId id)
     // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
     // 参考 MobEntity/AbstractSkeletonEntity 模式）。
     registerData();
+
+    // 补调 registerAttributes：AbstractFishEntity 构造调基类版（vtable 指向基类），派生 override
+    // 永不执行，须在派生类构造显式调用。Salmon 的 registerAttributes 设 MAX_HEALTH=3。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/)

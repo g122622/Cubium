@@ -80,6 +80,10 @@ StriderEntity::StriderEntity(EntityInstanceId id)
     // this.setPathPriority(PathNodeType.DANGER_FIRE, 0.0F);
     // this.setPathPriority(PathNodeType.DAMAGE_FIRE, 0.0F);
     registerGoals();
+
+    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），派生 override
+    // 永不执行，须在派生类构造显式调用。Strider 的 registerAttributes 设 MAX_HEALTH=20 等。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> StriderEntity::create(IWorld* /*world*/)

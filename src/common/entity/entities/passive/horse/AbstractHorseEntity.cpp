@@ -85,14 +85,18 @@ const entity::EntityClassInfo& AbstractHorseEntity::classInfo()
 AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
     : AnimalEntity(id)
 {
-    // MC 1.16.5: AbstractHorseEntity 构造函数中设置 stepHeight = 1.0F
-    // 马类可以走上1格高的方块
     setStepHeight(1.0f);
 
-    // 注册 AI 目标
+    // 注册 AI 目标、属性与同步数据参数。
+    // C++ 虚函数在基类构造期间不派发到派生类：AnimalEntity 构造调 registerAttributes 命中的是
+    // AnimalEntity 版而非 AbstractHorseEntity override，故 override 永不执行。必须在派生类自己的
+    // 构造函数体里显式调用，参考 ZombieEntity / PhantomEntity 模式。此前漏调 registerAttributes /
+    // registerData 致 HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED 属性与 STATUS_PARAM 同步参数
+    // 永不注册，所有马类子类（Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）均受影响。
     registerGoals();
+    registerAttributes();
+    registerData();
 
-    // 初始化随机属性
     initRandomAttributes();
 
     // MC 1.16.5: 初始化马背包（鞍槽 + 马铠槽）

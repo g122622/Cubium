@@ -59,6 +59,11 @@ HorseEntity::HorseEntity(EntityInstanceId id)
     : AbstractHorseEntity(id)
 {
     randomizeAppearance();
+
+    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。Horse 的 registerAttributes 设
+    // MAX_HEALTH=m_horseHealth。详见 AbstractHorseEntity 构造注释。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/)

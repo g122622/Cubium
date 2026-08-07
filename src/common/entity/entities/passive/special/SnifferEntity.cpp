@@ -89,10 +89,12 @@ SnifferEntity::SnifferEntity(EntityInstanceId id)
     // 注册 AI 目标
     registerGoals();
 
-    // 注册数据同步参数
-    // 注意：registerData() 由 AnimalEntity 构造链中调用，但由于 SnifferEntity
-    // 在构造函数中先调用 registerGoals() 再注册数据参数，而 registerData() 会在
-    // 基类构造期间被触发。这里只需确保 registerData() 正确注册 DATA_STATE 即可。
+    // 补调 registerAttributes / registerData：AnimalEntity 构造只调 registerAttributes 且 vtable
+    // 在基类构造期间指向 AnimalEntity，派生 override 永不执行，须在派生类构造显式调用。
+    // 此前注释误称"registerData 由 AnimalEntity 构造链调用"——实际 AnimalEntity 构造不调
+    // registerData，故 Sniffer 的 registerData（注册 DATA_STATE / DATA_DROP_SEED_AT_TICK）永不执行。
+    registerAttributes();
+    registerData();
 }
 
 std::unique_ptr<Entity> SnifferEntity::create(IWorld* /*world*/)

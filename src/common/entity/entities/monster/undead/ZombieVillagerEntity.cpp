@@ -109,6 +109,12 @@ ZombieVillagerEntity::ZombieVillagerEntity(EntityInstanceId id)
     // 因此必须在派生类构造函数中显式调用 registerData()。
     // registerData() 会先调用父类版本，确保参数按继承链正确注册。
     registerData();
+
+    // 补调 registerGoals / registerAttributes：ZombieEntity 构造调基类版（vtable 指向 ZombieEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。ZombieVillager 的 registerGoals 加专属目标，
+    // registerAttributes 设僵尸村民移速等。
+    registerGoals();
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)

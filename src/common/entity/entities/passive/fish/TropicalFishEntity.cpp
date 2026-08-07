@@ -74,6 +74,10 @@ TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
     // Entity::Entity() 内部调用的 registerData() 解析到父类而非本类）。
     registerData();
 
+    // 补调 registerAttributes：AbstractFishEntity 构造调基类版（vtable 指向基类），派生 override
+    // 永不执行，须在派生类构造显式调用。TropicalFish 的 registerAttributes 设 MAX_HEALTH=3。
+    registerAttributes();
+
     // 在 DATA_VARIANT_PARAM 注册完成后随机化变种，setVariant 会同步写入 DataParameter。
     randomizeVariant();
 }

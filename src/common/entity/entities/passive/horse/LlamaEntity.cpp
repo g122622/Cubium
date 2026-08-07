@@ -86,6 +86,12 @@ LlamaEntity::LlamaEntity(EntityInstanceId id)
     : AbstractChestedHorseEntity(id)
 {
     randomizeAppearance();
+
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。Llama 的 registerGoals 加专属
+    // HurtByTarget / LlamaDefend 目标。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/)

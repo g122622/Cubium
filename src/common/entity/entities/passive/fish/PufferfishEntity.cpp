@@ -64,6 +64,12 @@ PufferfishEntity::PufferfishEntity(EntityInstanceId id)
     // 显式调用 registerData() 注册 DATA_PUFF_STATE（C++ 基类构造期虚函数不派发，
     // AbstractFishEntity 构造函数已调，但本类有自身字段须由本类 override 注册）。
     registerData();
+
+    // 补调 registerGoals / registerAttributes：AbstractFishEntity 构造调基类版（vtable 指向基类），
+    // 派生 override 永不执行，须在派生类构造显式调用。Pufferfish 的 registerGoals 加专属 PuffGoal，
+    // registerAttributes 设 MAX_HEALTH=3。
+    registerGoals();
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)

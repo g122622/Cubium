@@ -37,6 +37,12 @@ GiantEntity::GiantEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     // 巨人体型巨大 - 通过 width()/height() 设置
+
+    // 补调 registerAttributes：MonsterEntity 构造只调 registerGoals 不调 registerAttributes（vtable
+    // 指向 MonsterEntity 时派生 override 永不执行），须在派生类构造显式调用。Giant 的
+    // registerAttributes 设 MAX_HEALTH=100 / ATTACK_DAMAGE=50。registerGoals override 体空
+    // （原版巨人无 AI），不补 G。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> GiantEntity::create(IWorld* /*world*/)

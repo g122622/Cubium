@@ -58,6 +58,10 @@ PigEntity::PigEntity(EntityInstanceId id)
 {
     // 注册 AI 目标
     registerGoals();
+
+    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），派生 override
+    // 永不执行，须在派生类构造显式调用。
+    registerAttributes();
 }
 
 std::optional<ResourceLocation> PigEntity::getAmbientSound() const

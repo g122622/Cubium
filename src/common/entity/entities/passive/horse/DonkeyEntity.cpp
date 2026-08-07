@@ -40,6 +40,10 @@ DonkeyEntity::DonkeyEntity(EntityInstanceId id)
     : AbstractChestedHorseEntity(id)
 {
     setJumpStrength(0.5f);
+
+    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    registerAttributes();
 }
 
 std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/)

@@ -84,6 +84,12 @@ GhastEntity::GhastEntity(EntityInstanceId id)
     setBurnsInDaylight(false);
     // 恶魂使用自定义的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::GhastMovementController>(this);
+
+    // 补调 registerGoals / registerAttributes：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。Ghast 的 registerGoals 加专属 GhastRandomFly /
+    // Fireball 等目标，registerAttributes 设 MAX_HEALTH/FOLLOW_RANGE/FLYING_SPEED。
+    registerGoals();
+    registerAttributes();
 }
 
 void GhastEntity::tick()
@@ -204,6 +210,10 @@ MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id)
 {
     // 岩浆怪不在阳光下燃烧
     setBurnsInDaylight(false);
+
+    // 补调 registerAttributes：派生 override 永不执行（vtable 在基类构造期间指向基类），
+    // 须在派生类构造显式调用。MagmaCube 无 registerGoals override（继承 Slime）。
+    registerAttributes();
 }
 
 void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
@@ -317,7 +327,13 @@ std::unique_ptr<Entity> PiglinEntity::create(IWorld* world)
 
 PiglinEntity::PiglinEntity(EntityInstanceId id)
     : AbstractPiglinEntity(id)
-{}
+{
+    // 补调 registerGoals / registerAttributes：AbstractPiglinEntity 构造不调（vtable 指向基类时
+    // 派生 override 永不执行），须在派生类构造显式调用。Piglin 的 registerGoals 加专属弩远程 /
+    // 近战 / 避敌目标。
+    registerGoals();
+    registerAttributes();
+}
 
 void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
 {
@@ -641,7 +657,13 @@ std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
 
 PiglinBruteEntity::PiglinBruteEntity(EntityInstanceId id)
     : AbstractPiglinEntity(id)
-{}
+{
+    // 补调 registerGoals / registerAttributes：AbstractPiglinEntity 构造不调（vtable 指向基类时
+    // 派生 override 永不执行），须在派生类构造显式调用。PiglinBrute 的 registerGoals 加专属近战 /
+    // 随机行走 / 看向目标。
+    registerGoals();
+    registerAttributes();
+}
 
 void PiglinBruteEntity::registerGoals()
 {
@@ -693,6 +715,12 @@ ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityInstanceId id)
     : MonsterEntity(id)
 {
     setBurnsInDaylight(false);
+
+    // 补调 registerGoals / registerAttributes：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。ZombifiedPiglin 的 registerGoals 加专属近战 /
+    // 随机行走 / HurtByTarget 激怒目标。
+    registerGoals();
+    registerAttributes();
 }
 
 void ZombifiedPiglinEntity::tick()
@@ -754,6 +782,11 @@ HoglinEntity::HoglinEntity(EntityInstanceId id)
 {
     setBurnsInDaylight(false);
     registerAttributes();
+
+    // 补调 registerGoals：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），派生 override
+    // 永不执行，须在派生类构造显式调用。Hoglin 的 registerGoals 加专属近战 / 避排斥方块 / 激怒目标。
+    // registerAttributes 已在上方调用。
+    registerGoals();
 }
 
 void HoglinEntity::tick()

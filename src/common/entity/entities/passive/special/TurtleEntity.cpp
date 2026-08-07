@@ -80,6 +80,11 @@ TurtleEntity::TurtleEntity(EntityInstanceId id)
 
     // 注册属性
     registerAttributes();
+
+    // 补调 registerData：AnimalEntity 构造只调 registerAttributes 不调 registerData（vtable 在基类
+    // 构造期间指向 AnimalEntity，派生 override 永不执行），须在派生类构造显式调用。
+    // Turtle 的 registerData 注册 DATA_HAS_EGG / DATA_LAYING_EGG 同步参数。
+    registerData();
 }
 
 std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/)
