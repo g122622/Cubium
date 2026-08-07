@@ -37,6 +37,8 @@ cmake --build --preset macos-relwithdebinfo -- -j10
 ```bash
 ./build/bin/RelWithDebInfo/minecraft-client --quick-play-new # 客户端（会同时启动内置服务端）
 ./build/bin/RelWithDebInfo/minecraft-server --quick-play-new # 服务端
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*GameTestServer*" # GameTestServer自动化集成测试
+./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="你的测试过滤器" # 其他单元测试
 
 ```
 
