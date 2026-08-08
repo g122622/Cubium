@@ -1576,7 +1576,7 @@ public:
      * 基类实现将冰冻计时器重置为 0。
      * LivingEntity 重写此方法以额外移除冰冻减速修饰符。
      */
-    virtual void clearFreeze() { m_ticksFrozen = 0; }
+    virtual void clearFreeze() { setTicksFrozen(0); }
 
     /**
      * @brief 获取冰冻计时器值
@@ -1587,7 +1587,11 @@ public:
      *
      * @return 冰冻计时器值
      */
-    [[nodiscard]] i32 getTicksFrozen() const { return m_ticksFrozen; }
+    [[nodiscard]] i32 getTicksFrozen() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>();
+        return c != nullptr ? c->m_ticksFrozen : 0;
+    }
 
     /**
      * @brief 设置冰冻计时器值
@@ -1598,7 +1602,10 @@ public:
      */
     void setTicksFrozen(i32 ticks)
     {
-        m_ticksFrozen = ticks;
+        // FreezeComponent 为真相源，DATA_TICKS_FROZEN_PARAM 退为同步镜像。
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+            c->m_ticksFrozen = ticks;
+        }
         m_dataManager.set(DATA_TICKS_FROZEN_PARAM, ticks);
     }
 
@@ -1621,7 +1628,7 @@ public:
     [[nodiscard]] f32 getPercentFrozen() const
     {
         const i32 required = getTicksRequiredToFreeze();
-        return static_cast<f32>(std::min(m_ticksFrozen, required)) / static_cast<f32>(required);
+        return static_cast<f32>(std::min(getTicksFrozen(), required)) / static_cast<f32>(required);
     }
 
     /**
@@ -1632,7 +1639,7 @@ public:
      *
      * @return 是否完全冰冻
      */
-    [[nodiscard]] bool isFullyFrozen() const { return m_ticksFrozen >= getTicksRequiredToFreeze(); }
+    [[nodiscard]] bool isFullyFrozen() const { return getTicksFrozen() >= getTicksRequiredToFreeze(); }
 
     /**
      * @brief 检查实体是否正在冰冻中
@@ -1641,7 +1648,7 @@ public:
      *
      * @return 是否正在冰冻
      */
-    [[nodiscard]] bool isFreezing() const { return m_ticksFrozen > 0; }
+    [[nodiscard]] bool isFreezing() const { return getTicksFrozen() > 0; }
 
     /**
      * @brief 检查实体是否可以冰冻
@@ -1661,14 +1668,23 @@ public:
      *
      * @param inPowderSnow 是否在细雪中
      */
-    void setIsInPowderSnow(bool inPowderSnow) { m_isInPowderSnow = inPowderSnow; }
+    void setIsInPowderSnow(bool inPowderSnow)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+            c->m_isInPowderSnow = inPowderSnow;
+        }
+    }
 
     /**
      * @brief 检查实体是否处于细雪中
      *
      * @return 是否在细雪中
      */
-    [[nodiscard]] bool isInPowderSnow() const { return m_isInPowderSnow; }
+    [[nodiscard]] bool isInPowderSnow() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>();
+        return c != nullptr && c->m_isInPowderSnow;
+    }
 
     /** @brief 冰冻所需的基础 tick 数（140 tick = 7 秒） */
     static constexpr i32 BASE_TICKS_REQUIRED_TO_FREEZE = 140;
@@ -2813,8 +2829,9 @@ protected:
     // m_fire（剩余着火时间）已迁入 ecs::FireComponent，经 m_entityContext->tryGetComponent 读写。
 
     // 冰冻状态
-    i32 m_ticksFrozen = 0;         ///< 冰冻计时器（正值=冰冻进度，达到 getTicksRequiredToFreeze() 时完全冰冻）
-    bool m_isInPowderSnow = false; ///< 当前 tick 是否处于细雪中（每帧重置，由 PowderSnowBlock::onEntityCollision 设置）
+    // m_ticksFrozen / m_isInPowderSnow 已迁入 ecs::FreezeComponent（真相源），
+    // DATA_TICKS_FROZEN_PARAM 退为同步镜像。经 getTicksFrozen/setTicksFrozen/
+    // isInPowderSnow/setIsInPowderSnow 读写（见 m_entityContext->tryGetComponent）。
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置

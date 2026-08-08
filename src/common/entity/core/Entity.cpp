@@ -755,8 +755,9 @@ void Entity::baseTick()
     // 在火焰处理之后重置 isInPowderSnow
     // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
     // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
-    // TODO: Freeze 组件化（Step5.5）后，此行改读 FreezeComponent.m_isInPowderSnow。
-    m_isInPowderSnow = false;
+    if (auto* freeze = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+        freeze->m_isInPowderSnow = false;
+    }
 
     // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
     // 非 LivingEntity 实体（如 ItemEntity）不使用 Entity 层的空气处理
@@ -968,7 +969,8 @@ void Entity::syncMetadataFromDataManager()
 {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
-    m_ticksFrozen = m_dataManager.get<i32>(DATA_TICKS_FROZEN_PARAM);
+    // m_ticksFrozen 不再从同步层回填：FreezeComponent 为真相源，DATA_TICKS_FROZEN_PARAM
+    // 退为同步镜像。所有写入统一走 setTicksFrozen()（同时写组件 + DataParameter）。
     // 从数据管理器同步自定义名称（OptionalComponent：present + 纯文本）
     {
         const entity::OptionalComponentValue nameComp =
@@ -2436,8 +2438,9 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::PORTAL_COOLDOWN, portalCooldown());
 
     // 冰冻计时器（仅当 > 0 时保存）
-    if (m_ticksFrozen > 0) {
-        tag.put(nbt_keys::TICKS_FROZEN, m_ticksFrozen);
+    const i32 ticksFrozen = getTicksFrozen();
+    if (ticksFrozen > 0) {
+        tag.put(nbt_keys::TICKS_FROZEN, ticksFrozen);
     }
 
     // UUID (UUIDMost/UUIDLeast)
@@ -2568,8 +2571,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 冰冻计时器
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TICKS_FROZEN)) {
-        m_ticksFrozen = *val;
-        m_dataManager.set(DATA_TICKS_FROZEN_PARAM, m_ticksFrozen);
+        setTicksFrozen(*val);
     }
 
     // UUID
