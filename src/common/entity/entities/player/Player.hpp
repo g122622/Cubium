@@ -740,7 +740,7 @@ public:
     PlayerAbilities& abilities() { return m_abilities; }
 
     // 状态
-    [[nodiscard]] bool isOnGround() const { return m_onGround; }
+    [[nodiscard]] bool isOnGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }

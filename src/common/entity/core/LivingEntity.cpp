@@ -1276,7 +1276,7 @@ void LivingEntity::jump()
         m_builtIn.velocity->m_velocity.z += forwardZ;
     }
 
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 }
 
 void LivingEntity::aiStep()
@@ -1284,7 +1284,7 @@ void LivingEntity::aiStep()
     // 处理跳跃
     if (m_isJumping) {
         // 在地面时执行跳跃
-        if (m_onGround && m_jumpTicks == 0) {
+        if (m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
             jump();
             m_jumpTicks = 10; // 跳跃冷却
         }
@@ -1349,7 +1349,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 获取脚下方块的滑度
     f32 slipperiness = 0.6f; // 默认滑度
-    if (m_onGround && m_world != nullptr) {
+    if (m_builtIn.physicsState->m_onGround && m_world != nullptr) {
         BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
             static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
             static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
@@ -1361,7 +1361,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
@@ -1445,7 +1445,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 仅施加向上加成，并重置摔落距离。
         const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
         m_builtIn.velocity->m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
-        m_fallDistance = 0.0f;
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
     } else if (!hasNoGravity()) {
         // 缓降效果处理
         f32 gravity = GRAVITY;
@@ -1454,7 +1454,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             // 缓降效果下重力大幅降低
             gravity = physics::SLOW_FALLING_GRAVITY;
             // 同时重置摔落距离
-            m_fallDistance = 0.0f;
+            m_builtIn.physicsState->m_fallDistance = 0.0f;
         }
 
         // 应用重力
@@ -1470,7 +1470,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     }
 
     // 4. 应用摩擦/阻力（在移动后）
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 地面摩擦 = slipperiness * 0.91
         f32 groundFriction = slipperiness * 0.91f;
         m_builtIn.velocity->m_velocity.x *= groundFriction;
@@ -1756,7 +1756,7 @@ Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) c
 void LivingEntity::handleFallFlyingCollisions(f64 prevHorizontalSpeed, f64 currHorizontalSpeed)
 {
     // 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)
-    if (!m_collidedHorizontally) {
+    if (!m_builtIn.physicsState->m_collidedHorizontally) {
         return;
     }
     const f64 d0 = prevHorizontalSpeed - currHorizontalSpeed;
@@ -1943,7 +1943,7 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
 
     // Y轴速度
     f64 newVelocityY;
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
         newVelocityY =
             std::min(0.4, static_cast<f64>(m_builtIn.velocity->m_velocity.y) / 2.0 + static_cast<f64>(strength));
@@ -1962,7 +1962,7 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
         static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.z) / 2.0 - knockbackZ);
 
     // 设置为空中状态
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 
     // 标记受伤（击退改变了速度，需要同步到客户端）
     markHurt();

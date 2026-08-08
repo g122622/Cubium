@@ -500,7 +500,7 @@ void ItemEntity::_updatePhysics()
 
     // 3. 执行移动
     if (std::abs(m_builtIn.velocity->m_velocity.x) > 0.001f || std::abs(m_builtIn.velocity->m_velocity.y) > 0.001f ||
-        std::abs(m_builtIn.velocity->m_velocity.z) > 0.001f || !m_onGround) {
+        std::abs(m_builtIn.velocity->m_velocity.z) > 0.001f || !m_builtIn.physicsState->m_onGround) {
 
         // 带碰撞移动
         if (m_physicsEngine || m_world) {
@@ -508,12 +508,12 @@ void ItemEntity::_updatePhysics()
                 m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
 
             // 落地反弹逻辑
-            if (m_collidedVertically) {
+            if (m_builtIn.physicsState->m_collidedVertically) {
                 if (m_builtIn.velocity->m_velocity.y < 0.0f) {
                     // 落地：反弹并减速
                     m_builtIn.velocity->m_velocity.y = -m_builtIn.velocity->m_velocity.y * 0.5f;
-                    m_onGround = true;
-                    m_fallDistance = 0.0f;
+                    m_builtIn.physicsState->m_onGround = true;
+                    m_builtIn.physicsState->m_fallDistance = 0.0f;
                 } else {
                     // 撞到天花板
                     m_builtIn.velocity->m_velocity.y = 0.0f;
@@ -521,7 +521,7 @@ void ItemEntity::_updatePhysics()
             }
 
             // 水平碰撞反弹
-            if (m_collidedHorizontally) {
+            if (m_builtIn.physicsState->m_collidedHorizontally) {
                 m_builtIn.velocity->m_velocity.x *= -0.5f;
                 m_builtIn.velocity->m_velocity.z *= -0.5f;
             }

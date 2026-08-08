@@ -717,7 +717,7 @@ void Player::tick()
     // 当玩家着地、进入水中或正在攀爬时，尝试重置冲量上下文
     // 对应 MC ServerGamePacketListenerImpl 中处理玩家移动数据包时的 tryResetCurrentImpulseContext 调用
     // 注意：宽限期期间不会重置（tryResetCurrentImpulseContext 会检查 graceTime == 0）
-    if (m_onGround || isInWater() || isOnLadder()) {
+    if (m_builtIn.physicsState->m_onGround || isInWater() || isOnLadder()) {
         tryResetCurrentImpulseContext();
     }
 
@@ -888,7 +888,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
     // 计算移动速度因子
     f32 speedFactor = m_abilities.walkSpeed;
     if (!m_abilities.flying) {
-        if (m_onGround) {
+        if (m_builtIn.physicsState->m_onGround) {
             speedFactor = physics::getGroundMoveFactor(
                 static_cast<f32>(
                     getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)),
@@ -900,7 +900,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
             speedFactor = m_isSprinting ? physics::SPRINT_JUMP_MOVEMENT_FACTOR : physics::JUMP_MOVEMENT_FACTOR;
         }
     }
-    if (m_isSprinting && m_onGround && !m_abilities.flying) {
+    if (m_isSprinting && m_builtIn.physicsState->m_onGround && !m_abilities.flying) {
         speedFactor *= physics::SPRINT_SPEED_MULTIPLIER;
     }
     if (sneaking && !m_abilities.flying) {
@@ -942,7 +942,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
             m_builtIn.velocity->m_velocity.y += static_cast<f32>(verticalInput) * verticalSpeed;
         }
     } else {
-        if (jumping && m_onGround && m_jumpTicks == 0) {
+        if (jumping && m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
             jump();
         }
     }
@@ -1043,7 +1043,7 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
     }
 
     // 碰撞到墙后尝试上跳（爬出水面的行为）
-    if (m_collidedHorizontally && !m_onGround && m_physicsEngine) {
+    if (m_builtIn.physicsState->m_collidedHorizontally && !m_builtIn.physicsState->m_onGround && m_physicsEngine) {
         // 尝试向上跳
         m_builtIn.velocity->m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
     }
@@ -1102,9 +1102,9 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
 
 void Player::jump()
 {
-    if (m_onGround && m_jumpTicks == 0) {
+    if (m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
         m_builtIn.velocity->m_velocity.y = physics::JUMP_VELOCITY;
-        m_onGround = false;
+        m_builtIn.physicsState->m_onGround = false;
         m_jumpTicks = JUMP_COOLDOWN; // 设置跳跃冷却
 
         // 跳跃消耗饥饿值
@@ -1125,7 +1125,7 @@ void Player::_clampMotion()
 
 f32 Player::_groundSlipperiness() const
 {
-    if (!m_onGround || m_world == nullptr) {
+    if (!m_builtIn.physicsState->m_onGround || m_world == nullptr) {
         return physics::SLIPPERINESS_DEFAULT;
     }
 
@@ -1240,8 +1240,9 @@ void Player::updatePhysics()
             m_builtIn.velocity->m_velocity.y *= physics::FLY_VERTICAL_DRAG;
             m_builtIn.velocity->m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
         } else {
-            const f32 horizontalDrag =
-                m_onGround ? tickGroundSlipperiness * physics::DRAG_GROUND : physics::DRAG_GROUND;
+            const f32 horizontalDrag = m_builtIn.physicsState->m_onGround
+                ? tickGroundSlipperiness * physics::DRAG_GROUND
+                : physics::DRAG_GROUND;
             m_builtIn.velocity->m_velocity.x *= horizontalDrag;
             m_builtIn.velocity->m_velocity.y *= physics::DRAG_AIR;
             m_builtIn.velocity->m_velocity.z *= horizontalDrag;
@@ -1249,7 +1250,7 @@ void Player::updatePhysics()
 
         // 4. 如果在地面，停止Y方向速度（防止下落速度累积）
         // 飞行模式下不处理
-        if (!m_abilities.flying && m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
+        if (!m_abilities.flying && m_builtIn.physicsState->m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
             m_builtIn.velocity->m_velocity.y = 0.0f;
         }
 
@@ -1270,12 +1271,12 @@ void Player::updatePhysics()
             // 8. 碰撞后重置速度
             // 飞行模式下碰撞时不重置水平速度（可以穿透方块边缘的感觉）
             if (!m_abilities.flying) {
-                if (m_collidedHorizontally) {
+                if (m_builtIn.physicsState->m_collidedHorizontally) {
                     m_builtIn.velocity->m_velocity.x = 0.0f;
                     m_builtIn.velocity->m_velocity.z = 0.0f;
                 }
             }
-            if (m_collidedVertically) {
+            if (m_builtIn.physicsState->m_collidedVertically) {
                 m_builtIn.velocity->m_velocity.y = 0.0f;
             }
         } else if (!m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
@@ -1283,7 +1284,7 @@ void Player::updatePhysics()
         }
 
         // 9. 自动跳跃检测（在移动后）
-        if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
+        if (m_autoJump.isEnabled() && !m_abilities.flying && m_builtIn.physicsState->m_onGround && !m_isSneaking) {
             // 计算实际移动距离
             Vector2 actualMovement(
                 m_builtIn.stateVector->m_pos.x - prevPos.x, m_builtIn.stateVector->m_pos.z - prevPos.z);
@@ -1505,7 +1506,7 @@ f32 Player::getDigSpeed(const BlockState& state, const BlockPos& pos) const
     }
 
     // 6. 空中挖掘惩罚（不在地面时）
-    if (!m_onGround) {
+    if (!m_builtIn.physicsState->m_onGround) {
         speed /= 5.0f;
     }
 
@@ -1978,7 +1979,7 @@ void Player::travel(f32 strafing, f32 vertical, f32 forward)
         LivingEntity::travel(strafing, vertical, forward);
         m_builtIn.velocity->m_velocity.y *= physics::FLY_VERTICAL_DRAG;
         m_jumpMovementFactor = prevJumpFactor;
-        m_fallDistance = 0.0f;
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
     } else {
         LivingEntity::travel(strafing, vertical, forward);
     }
@@ -2202,7 +2203,7 @@ void Player::updateMoveDistance()
     m_distanceWalkedOnStep += stepDistance;
 
     // 检查是否需要播放脚步声/游泳声
-    if (m_distanceWalkedOnStep > m_nextStepDistance && m_onGround) {
+    if (m_distanceWalkedOnStep > m_nextStepDistance && m_builtIn.physicsState->m_onGround) {
         m_nextStepDistance = std::floor(m_distanceWalkedOnStep) + 1.0f;
 
         if (isInWater()) {
@@ -2230,7 +2231,7 @@ void Player::updateMoveDistance()
             if (swimDistance > 0.0f) {
                 addExhaustion(EXHAUSTION_SWIM_PER_METER * swimDistance);
             }
-        } else if (m_isSprinting && m_onGround) {
+        } else if (m_isSprinting && m_builtIn.physicsState->m_onGround) {
             // 疾跑消耗：每米 0.1
             if (distance > 0.0f) {
                 addExhaustion(EXHAUSTION_SPRINT_PER_METER * distance);
@@ -2250,7 +2251,7 @@ void Player::_updateCameraYaw()
     }
 
     f32 targetCameraYaw = 0.0f;
-    if (m_onGround && !isDead() && !isSwimming()) {
+    if (m_builtIn.physicsState->m_onGround && !isDead() && !isSwimming()) {
         targetCameraYaw = std::min(0.1f,
             std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
                 m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z));

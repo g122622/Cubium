@@ -139,12 +139,13 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     m_builtIn.velocity = &registry.raw().emplace<ecs::VelocityComponent>(ecsEntity);
     m_builtIn.aabbShape = &registry.raw().emplace<ecs::AABBShapeComponent>(ecsEntity);
     m_builtIn.rotation = &registry.raw().emplace<ecs::EntityRotationComponent>(ecsEntity);
-    // 第二批：attach Portal/Fire/PhysicsState/Freeze 四组件。不进 m_builtIn 缓存
-    // （决策：BuiltIn 仅留首批4高频指针，新组件走 tryGetComponent 查询），故不取返回指针。
-    // 全实体 attach，零默认值与原成员字段一致。HurtStateComponent 由 LivingEntity 构造时 attach。
+    // 第二批：attach Portal/Fire/PhysicsState/Freeze 四组件。Portal/Fire/Freeze 不进
+    // m_builtIn 缓存（低频，走 tryGetComponent）；PhysicsState 高频（move/checkOnGround/
+    // updateFallDistance 及各 tick 40+ 处直接访问），破例进 m_builtIn 缓存裸指针。
+    // HurtStateComponent 由 LivingEntity 构造时 attach。
     registry.raw().emplace<ecs::PortalComponent>(ecsEntity);
     registry.raw().emplace<ecs::FireComponent>(ecsEntity);
-    registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
+    m_builtIn.physicsState = &registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
     registry.raw().emplace<ecs::FreezeComponent>(ecsEntity);
     m_entityContext = std::make_unique<ecs::EntityContext>(registry, ecsEntity);
 
@@ -746,9 +747,8 @@ void Entity::baseTick()
     updateEnvironmentState();
 
     // 在岩浆中减少坠落距离
-    // TODO: PhysicsState 组件化（Step5.3）后，此行改读 PhysicsStateComponent.m_fallDistance。
     if (isInLava()) {
-        m_fallDistance *= 0.5f;
+        m_builtIn.physicsState->m_fallDistance *= 0.5f;
     }
 
     // 冰冻状态处理
@@ -989,14 +989,14 @@ void Entity::syncMetadataFromDataManager()
 void Entity::updateFallDistance()
 {
     // 更新摔落距离
-    if (!m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
-        m_fallDistance -= m_builtIn.velocity->m_velocity.y;
-    } else if (m_onGround && m_fallDistance > 0.0f) {
+    if (!m_builtIn.physicsState->m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
+        m_builtIn.physicsState->m_fallDistance -= m_builtIn.velocity->m_velocity.y;
+    } else if (m_builtIn.physicsState->m_onGround && m_builtIn.physicsState->m_fallDistance > 0.0f) {
         // 着地时触发踩上方块的 onFallenUpon 回调
         // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
         // 子类（如 PointedDripstoneBlock）可替代默认摔落伤害
         _handleLandingOnBlock();
-        m_fallDistance = 0.0f;
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
     }
 }
 
@@ -1047,7 +1047,8 @@ void Entity::_handleLandingOnBlock()
     const BlockState* state = m_world->getBlockState(landingPos);
     if (state != nullptr) {
         // onFallenUpon 是非 const 方法，需要通过 getBlockMutable() 获取可变引用
-        state->getBlockMutable().onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+        state->getBlockMutable().onFallenUpon(
+            *m_world, landingPos, *state, *this, m_builtIn.physicsState->m_fallDistance);
     }
 }
 
@@ -1125,8 +1126,8 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     }
 
     // 重置碰撞状态
-    m_collidedHorizontally = false;
-    m_collidedVertically = false;
+    m_builtIn.physicsState->m_collidedHorizontally = false;
+    m_builtIn.physicsState->m_collidedVertically = false;
 
     // 优先使用 World 的物理引擎
     PhysicsEngine* physics = physicsEngine();
@@ -1154,18 +1155,18 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     reapplyPosition();
 
     // 更新碰撞状态（从物理引擎获取）
-    m_collidedHorizontally = physics->collidedHorizontally();
-    m_collidedVertically = physics->collidedVertically();
+    m_builtIn.physicsState->m_collidedHorizontally = physics->collidedHorizontally();
+    m_builtIn.physicsState->m_collidedVertically = physics->collidedVertically();
 
     // 更新地面状态
     // 优先使用"向下移动时发生垂直碰撞"的判定，避免纯接触检测抖动。
-    bool groundedByCollision = m_collidedVertically && desiredMovement.y < 0.0f;
+    bool groundedByCollision = m_builtIn.physicsState->m_collidedVertically && desiredMovement.y < 0.0f;
     bool groundedByContact = physics->isOnGround(entityBox);
-    bool wasOnGround = m_onGround;
-    m_onGround = groundedByCollision || groundedByContact;
+    bool wasOnGround = m_builtIn.physicsState->m_onGround;
+    m_builtIn.physicsState->m_onGround = groundedByCollision || groundedByContact;
 
     // 落地时清空攀爬位置
-    if (m_onGround && !wasOnGround) {
+    if (m_builtIn.physicsState->m_onGround && !wasOnGround) {
         m_lastClimbPos = std::nullopt;
     }
 
@@ -1225,16 +1226,16 @@ void Entity::checkOnGround()
         groundProbe.minY -= 0.1f;                   // 向下延伸一点
         groundProbe.maxY = groundProbe.minY + 0.1f; // 扁平的检测区域
 
-        m_onGround = m_world->hasBlockCollision(groundProbe);
+        m_builtIn.physicsState->m_onGround = m_world->hasBlockCollision(groundProbe);
         return;
     }
 
     if (m_physicsEngine) {
-        m_onGround = m_physicsEngine->isOnGround(box);
+        m_builtIn.physicsState->m_onGround = m_physicsEngine->isOnGround(box);
         return;
     }
 
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 }
 
 void Entity::doBlockCollisions()
@@ -1371,7 +1372,7 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
 
         // 派发自定义方块组件回调 - onEntityFallOn
         // 仅当实体有下落距离时才触发
-        if (m_fallDistance > 0.0f) {
+        if (m_builtIn.physicsState->m_fallDistance > 0.0f) {
             auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
             std::string typeId = block.blockLocation().toString();
             if (blockReg.hasEntityFallOnCallback(typeId)) {
@@ -1382,14 +1383,14 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
                 event.blockZ = blockPos.z;
                 event.dimensionId = m_world->dimension();
                 event.entityId = id();
-                event.fallDistance = m_fallDistance;
+                event.fallDistance = m_builtIn.physicsState->m_fallDistance;
                 blockReg.dispatchEntityFallOn(typeId, event);
             }
         }
     }
 
     // 2. onEntityWalk 回调 - 当在地面行走时
-    if (m_onGround && !isSteppingCarefully()) {
+    if (m_builtIn.physicsState->m_onGround && !isSteppingCarefully()) {
         block.onEntityWalk(*blockState, *m_world, blockPos, *this);
 
         // 派发自定义方块组件回调 - onStepOn
@@ -2120,7 +2121,7 @@ std::string Entity::toString() const
        << m_builtIn.stateVector->m_pos.z << ")"
        << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", "
        << m_builtIn.velocity->m_velocity.z << ")"
-       << ", onGround=" << m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
+       << ", onGround=" << m_builtIn.physicsState->m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
        << ", flags=" << static_cast<u32>(m_flags) << ", air=" << m_air << ", customName=\""
        << (m_customName ? m_customName->getUnformattedText() : "") << "\""
        << ", customNameVisible=" << m_customNameVisible << ", silent=" << m_silent << ", noGravity=" << m_noGravity
@@ -2417,7 +2418,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     nbt_helper::putFloatList(tag, nbt_keys::ROTATION, {m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y});
 
     // 坠落距离
-    tag.put(nbt_keys::FALL_DISTANCE, m_fallDistance);
+    tag.put(nbt_keys::FALL_DISTANCE, m_builtIn.physicsState->m_fallDistance);
 
     // 火焰剩余 tick
     tag.put(nbt_keys::FIRE, static_cast<i16>(getRemainingFireTicks()));
@@ -2426,7 +2427,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
 
     // 地面标记 (byte 0/1)
-    tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_onGround ? 1 : 0));
+    tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_builtIn.physicsState->m_onGround ? 1 : 0));
 
     // 无敌标记
     tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
@@ -2537,7 +2538,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 坠落距离
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::FALL_DISTANCE)) {
-        m_fallDistance = *val;
+        m_builtIn.physicsState->m_fallDistance = *val;
     }
 
     // 火焰
@@ -2552,7 +2553,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 地面标记
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::ON_GROUND)) {
-        m_onGround = *val;
+        m_builtIn.physicsState->m_onGround = *val;
     }
 
     // 无敌

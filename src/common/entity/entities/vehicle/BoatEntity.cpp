@@ -195,7 +195,7 @@ void BoatEntity::tick()
     // 检查摔落伤害
     f64 currentYd =
         static_cast<f64>(m_builtIn.stateVector->m_pos.y) - static_cast<f64>(m_builtIn.stateVector->m_posPrev.y);
-    if (!m_onGround && currentYd < -0.5) {
+    if (!m_builtIn.physicsState->m_onGround && currentYd < -0.5) {
         m_lastYd = currentYd;
     }
 

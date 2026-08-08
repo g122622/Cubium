@@ -1372,7 +1372,7 @@ void TNTMinecartEntity::tick()
     _checkFireIgnition();
 
     // 水平碰撞检测（高速碰撞时爆炸）
-    if (m_collidedHorizontally) {
+    if (m_builtIn.physicsState->m_collidedHorizontally) {
         f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
         if (speedSq >= 0.01) {
             _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource.get());

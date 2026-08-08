@@ -443,7 +443,7 @@ public:
 
     // ========== 状态 ==========
 
-    [[nodiscard]] bool onGround() const { return m_onGround; }
+    [[nodiscard]] bool onGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isRemoved() const { return m_removed; }
     [[nodiscard]] EntityPose pose() const { return m_pose; }
     [[nodiscard]] EntityFlags flags() const { return m_flags; }
@@ -590,11 +590,11 @@ public:
      */
     void setOnGround(bool onGround)
     {
-        if (onGround && !m_onGround) {
+        if (onGround && !m_builtIn.physicsState->m_onGround) {
             // 落地时清空攀爬位置
             m_lastClimbPos = std::nullopt;
         }
-        m_onGround = onGround;
+        m_builtIn.physicsState->m_onGround = onGround;
     }
     void setPose(EntityPose pose);
     void setFlags(EntityFlags flags);
@@ -971,15 +971,15 @@ public:
 
     // ========== 碰撞状态 ==========
 
-    [[nodiscard]] bool collidedHorizontally() const { return m_collidedHorizontally; }
-    [[nodiscard]] bool collidedVertically() const { return m_collidedVertically; }
-    [[nodiscard]] f32 fallDistance() const { return m_fallDistance; }
+    [[nodiscard]] bool collidedHorizontally() const { return m_builtIn.physicsState->m_collidedHorizontally; }
+    [[nodiscard]] bool collidedVertically() const { return m_builtIn.physicsState->m_collidedVertically; }
+    [[nodiscard]] f32 fallDistance() const { return m_builtIn.physicsState->m_fallDistance; }
 
     /**
      * @brief 设置摔落距离
      * @param distance 摔落距离
      */
-    void setFallDistance(f32 distance) { m_fallDistance = distance; }
+    void setFallDistance(f32 distance) { m_builtIn.physicsState->m_fallDistance = distance; }
 
     // ========== 移除 ==========
 
@@ -2750,7 +2750,7 @@ protected:
 
     mutable math::Random m_random; ///< 实体随机数生成器，构造时初始化
 
-    bool m_onGround = false;
+    // m_onGround 已迁入 PhysicsStateComponent（见 m_builtIn.physicsState->m_onGround）。
     bool m_removed = false;
     bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
     bool m_glowing = false; // 发光状态（服务端使用）
@@ -2762,9 +2762,8 @@ protected:
 
     // 物理相关
     PhysicsEngine* m_physicsEngine = nullptr;
-    bool m_collidedHorizontally = false;
-    bool m_collidedVertically = false;
-    f32 m_fallDistance = 0.0f;
+    // m_collidedHorizontally/m_collidedVertically/m_fallDistance 已迁入 PhysicsStateComponent
+    // （见 m_builtIn.physicsState）。
     f32 m_stepHeight = 0.0f; // 步进高度，默认0.0f，LivingEntity设置为0.6f
 
     DimensionId m_dimension = 0;

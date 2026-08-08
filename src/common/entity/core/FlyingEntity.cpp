@@ -85,7 +85,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 获取脚下方块的滑度
         f32 slipperiness = physics::SLIPPERINESS_DEFAULT; // 默认滑度 0.6
 
-        if (m_onGround && m_world != nullptr) {
+        if (m_builtIn.physicsState->m_onGround && m_world != nullptr) {
             BlockPos groundPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 1.0)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
@@ -96,7 +96,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         }
 
         // 计算摩擦因子
-        f32 frictionFactor = m_onGround ? slipperiness * 0.91f : 0.91f;
+        f32 frictionFactor = m_builtIn.physicsState->m_onGround ? slipperiness * 0.91f : 0.91f;
 
         // 计算加速因子修正值
         // 这个公式使得在不同滑度的地面上有相同的加速度
@@ -106,7 +106,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 重新获取摩擦因子用于最终阻力
         f32 finalFriction = 0.91f;
-        if (m_onGround && m_world != nullptr) {
+        if (m_builtIn.physicsState->m_onGround && m_world != nullptr) {
             BlockPos groundPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 1.0)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
@@ -118,7 +118,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
         // 计算移动因子
         // 地面上的加速度是空中的约 5 倍
-        f32 moveFactor = m_onGround ? 0.1f * accelerationCorrection : 0.02f;
+        f32 moveFactor = m_builtIn.physicsState->m_onGround ? 0.1f * accelerationCorrection : 0.02f;
 
         // 应用移动
         moveRelative(moveFactor, strafing, vertical, forward);

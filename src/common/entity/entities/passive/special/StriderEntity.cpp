@@ -387,7 +387,7 @@ void StriderEntity::_updateLavaWalking()
 
             // 如果站在熔岩表面且上方没有熔岩，则设置 onGround
             if (m_builtIn.stateVector->m_pos.y >= fluidSurfaceY - 0.1f && !hasLavaAbove) {
-                m_onGround = true;
+                m_builtIn.physicsState->m_onGround = true;
                 m_onLavaSurface = true;
             } else {
                 // 在熔岩中，应用浮力和减速
