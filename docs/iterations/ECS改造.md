@@ -42,14 +42,36 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 **暂未处理（用户决策）**：`tests/` 目录约 692+ 处 Entity 子类构造 + 45 个测试桩需透传 registry，当前 `mc_tests` target 编译失败但不影响 client/server 本体（用 `--target minecraft-client/minecraft-server` 绕过）。测试改造留待后续（需测试 fixture 持本地 `ecs::EntityRegistry` 成员 + 桩构造透传）。
 
+## 第二批范围（已落地，2026-08-08 验证通过）
+
+首批留下两个缺口：① `EntitySystemScheduler` 是孤儿骨架（`EntityManager::tick()` 直接遍历调 `entity->tick()`，从未接入 scheduler）；② 组件覆盖面仅 4 字段，继承链大量中频状态数据仍是 OOP 成员。本批目标"增加组件和系统的丰富度"：打通 scheduler 接入 + 新增 5 数据组件 + 2 真实业务 System。
+
+**已交付**：
+- **scheduler 接入 + 阶段重命名**：`EntityManager::tick()` 改委托 `EntitySystemScheduler`（首批为孤儿骨架）；阶段枚举 `LegacyTick` → `EntityTick`，新增 `PostEntityTick`；抽 `_tickEntities()` 私有方法承载原遍历逻辑。
+- **5 数据组件**（`src/common/entity/ecs/components/`）：`PortalComponent`（inPortal/portalTime/portalCooldown/portalPos）、`FireComponent`（fire 燃烧/免疫计时）、`PhysicsStateComponent`（onGround/fallDistance/collided*）、`HurtStateComponent`（absorption/hurtTime/maxHurtTime/deathTime，仅 LivingEntity）、`FreezeComponent`（ticksFrozen/isInPowderSnow）。Entity 构造 attach 8 组件，LivingEntity 续接 attach HurtState。
+- **2 真实 System**（`src/common/entity/ecs/systems/`）：`PortalTickSystem`（portal 计时/冷却/传送触发，从 baseTick/tick 抽出）、`FireTickSystem`（fire 递减/燃烧伤害/雨中扑灭，从 baseTick 抽出），注册入 `PostEntityTick` 阶段。这是项目首批非桥接真实业务 System，标志 ECS 行为层启动。System 经 `EntityOwnerComponent` 反查 OOP 句柄调虚函数（canTeleport/isInWater/hurt 等）保留多态。
+- **字段迁移**（零双写硬约束，删原字段 getter/setter 切组件）：Portal 4 字段、Fire 1 字段、PhysicsState 4 字段（B 类强时序逻辑留 OOP 不抽 System，破例进 m_builtIn 高频缓存）、HurtState 4 字段（LivingEntity 层，低频 try_get）、Freeze 2 字段（m_ticksFrozen 同步真相源，DATA_TICKS_FROZEN_PARAM 退为镜像，消除首批 setTicksFrozen 双写）。全仓 60+ 直接访问点切组件读写，NBT 存读走 getter/setter。
+- **BuiltIn 缓存扩展**：`m_builtIn` 从首批 4 指针增至 5（+PhysicsState 高频破例）；Portal/Fire/Freeze/HurtState 走 `tryGetComponent` 低频查询。
+
+**字段三分类**（迁移策略依据）：
+- **A 类**（纯本地无同步，本批抽 System）：portal 组、fire 组。
+- **B 类**（强时序，数据组件化但逻辑留 OOP）：PhysicsState 组（与 move/checkOnGround/updateFallDistance 强耦合，拆 System 破坏碰撞→清速→落地即时序）。
+- **C 类**（同步字段，本批仅 m_ticksFrozen）：组件为真相源，DataParameter 退镜像。其余 C 类（air/health/noGravity/pose/flags 等）本批不动。
+
+**验证结果**（2026-08-08）：
+- 构建：client/server 全量构建均 exit 0 链接产出。
+- GameTest 回归：8/8 passed 零回归（zoglin_float 为已知时序敏感 flaky——shulker AI 在 maxTicks=210 内攻击 zoglin 偶发超时，非本批引入，首批基准即 6/8）。
+- 跨帧延迟（用户已接受）：fire/portal 抽到 PostEntityTick 后递减结果下帧 baseTick 才读到，单帧 50ms 玩家无感。
+
+**暂未处理**：`tests/` 仍不透传 registry（永久约束）。客户端 FreezeComponent 回填点暂不存在（ClientEntity 独立类不继承 mc::Entity、不消费 ticksFrozen），未来实现客户端冰冻渲染时需补。
+
 ## 后续批次路线（备忘，未落地）
 
-- **批次2**：projectile 族整块 ECS 化试点（验证创建→tick→同步→销毁全链路）。
 - **批次3**：mob 基础数据（health/attribute/equipment）组件化。
-- **批次4**：同步体系重构为 SynchedData 中间层（替换 EntityDataManager，保留 vanilla ID 分配语义）。
+- **批次4**：同步体系重构为 SynchedData 中间层（替换 EntityDataManager，保留 vanilla ID 分配语义）。剩余 C 类同步字段（air/health/noGravity/pose/flags 等）在此批统一改真相源在组件。
 - **批次5**：11 个混入接口转 tag/capability component；约 1220 处 dynamic_cast 改组件查询。
-- **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。
-- **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。
+- **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
+- **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 8 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 11 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟），迁移后续批次前务必先读。

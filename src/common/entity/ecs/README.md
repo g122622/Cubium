@@ -14,20 +14,27 @@ src/common/entity/ecs/
 │   └── EntityContext.hpp            # (EntityRegistry&, entt::registry&, EntityId) 三元组，组件查询入口
 │
 ├── components/                      # 数据组件（纯数据，无虚函数）
-│   ├── StateVectorComponent.hpp     # m_pos / m_posPrev / m_posDelta（替代 Entity::m_position 等）
-│   ├── VelocityComponent.hpp        # m_velocity
-│   ├── AABBShapeComponent.hpp       # m_aabb / m_bbDim
-│   ├── EntityRotationComponent.hpp  # m_rot / m_rotPrev（yaw/pitch）
+│   ├── StateVectorComponent.hpp     # m_pos / m_posPrev / m_posDelta（首批，进 m_builtIn 缓存）
+│   ├── VelocityComponent.hpp        # m_velocity（首批，进 m_builtIn）
+│   ├── AABBShapeComponent.hpp       # m_aabb / m_bbDim（首批，进 m_builtIn）
+│   ├── EntityRotationComponent.hpp  # m_rot / m_rotPrev（首批，进 m_builtIn）
 │   ├── EntityOwnerComponent.hpp     # unique_ptr<Entity> 反向桥接（ECS→OOP）
 │   ├── EntityUniqueIDComponent.hpp  # u64 持久投影（网络/存档/跨 registry）
-│   └── BuiltInEntityComponents.hpp  # 4 高频组件裸指针缓存（非组件，是 Entity 内的缓存结构）
+│   ├── PortalComponent.hpp          # m_inPortal/m_portalTime/m_portalCooldown/m_portalPos（第二批，低频 try_get）
+│   ├── FireComponent.hpp            # m_fire 燃烧/免疫计时（第二批，低频 try_get）
+│   ├── PhysicsStateComponent.hpp    # m_onGround/m_fallDistance/m_collided*（第二批，高频进 m_builtIn）
+│   ├── HurtStateComponent.hpp       # m_absorption/m_hurtTime/m_maxHurtTime/m_deathTime（第二批，仅 LivingEntity，低频 try_get）
+│   ├── FreezeComponent.hpp          # m_ticksFrozen/m_isInPowderSnow（第二批，低频 try_get，m_ticksFrozen 同步真相源）
+│   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
-└── systems/                         # 系统层（首批仅编排器 + 旧 tick 包装）
+└── systems/                         # 系统层
     ├── ISystem.hpp                  # 系统接口
     ├── ITickingSystem.hpp           # 每 tick 系统接口（virtual void tick(EntityRegistry&)）
-    ├── SystemPhase.hpp              # 命名阶段枚举（PreMovement/Movement/PostMovement/AiStep/Reset）
-    ├── EntitySystemScheduler.hpp/cpp # 阶段化编排器（阶段内预留 organizer 钩子）
-    └── EntityLegacyTickSystem.hpp   # 包装现有 Entity::tick() 虚函数链为系统，注册入编排器
+    ├── SystemPhase.hpp              # 命名阶段枚举（EntityTick / PostEntityTick）
+    ├── EntitySystemScheduler.hpp/cpp # 阶段化编排器（EntityManager::tick 委托，阶段内预留 organizer 钩子）
+    ├── EntityLegacyTickSystem.hpp   # 包装 Entity::tick() 虚函数链为系统，注册入 EntityTick 阶段
+    ├── PortalTickSystem.hpp/cpp     # 第二批真实 System：portal 计时/冷却/传送触发，注册入 PostEntityTick
+    └── FireTickSystem.hpp/cpp       # 第二批真实 System：fire 递减/燃烧伤害/雨中扑灭，注册入 PostEntityTick
 ```
 
 ## 内部模块关系
@@ -36,22 +43,25 @@ src/common/entity/ecs/
 IWorld（ServerWorld / ClientWorld）
   └─ 持有 ecs::EntityRegistry 成员            ← entityRegistry() 访问器
        │
-       ├─ EntityManager 内部委托 registry       ← addEntity 时 registry.create() + attach ActorOwnerComponent
+       ├─ EntityManager::tick() 委托 scheduler ← 第二批接入（首批为孤儿骨架）
+       │    └─ EntitySystemScheduler.tick(registry)
+       │         ├─ EntityTick 阶段:  EntityLegacyTickSystem → _tickEntities() 遍历调 entity->tick()
+       │         └─ PostEntityTick 阶段: PortalTickSystem / FireTickSystem（真实业务 System）
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
             │
             ├─ Entity 构造时（透传 registry&）：
             │    registry.create() → EntityId
-            │    emplace<StateVector/Velocity/AABBShape/Rotation>()
-            │    缓存 4 裸指针到 m_builtIn（BuiltInEntityComponents）
+            │    emplace<StateVector/Velocity/AABBShape/Rotation/Portal/Fire/PhysicsState/Freeze>()
+            │    缓存 5 裸指针到 m_builtIn（首批4 + PhysicsState）
             │
             └─ EntityContext（Entity 内嵌）
                  └─ tryGetComponent<T>() / getOrAddComponent<T>() / ...
 ```
 
 **双向桥接**：
-- OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter（`position()`/`setPosition()`/`velocity()` 等）读写 `m_builtIn.*->m_*` 组件裸指针。
-- ECS→OOP：`EntityOwnerComponent` 持 `unique_ptr<Entity>`，系统遍历组件时可反查 OOP 句柄。
+- OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
+- ECS→OOP：`EntityOwnerComponent` 持 `unique_ptr<Entity>`，System 遍历组件时反查 OOP 句柄调虚函数（PortalTickSystem 调 `canTeleport`/`onPortalTriggered`，FireTickSystem 调 `isInWater`/`hurt` 等）。
 
 ## 上下游依赖
 
@@ -65,7 +75,12 @@ IWorld（ServerWorld / ClientWorld）
 
 ## 组件工厂
 
-首批未建独立 `factory/` 目录。组件 attach 内联在 `EntityType::create(IWorld*, ecs::EntityRegistry&)` 工厂链内：构造 `Entity` 子类（其构造函数已透传 registry 并 attach 4 高频组件）→ 返回 `unique_ptr<Entity>`。差异化组件的工厂注入留待后续批次（见 `docs/iterations/ECS改造.md` 路线）。
+未建独立 `factory/` 目录。组件 attach 内联在构造链内：
+- **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 8 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze），缓存 5 高频裸指针到 `m_builtIn`。
+- **LivingEntity 构造**：续接 attach `HurtStateComponent`（仅 LivingEntity 层级持有）。
+- **叶子类工厂** `EntityType::create(IWorld*, ecs::EntityRegistry&)`：构造 Entity 子类 → 返回 `unique_ptr<Entity>`。
+
+差异化组件的工厂注入留待后续批次（见 `docs/iterations/ECS改造.md` 路线）。
 
 ## 容易踩的坑
 
@@ -106,3 +121,19 @@ entt 实体与组件绑定在创建它的 registry 上，`entt::entity` 在不�
 ### 8. 占位 Player 的 registry 来源
 
 无 world 上下文的临时占位 Player（ContainerManager / BlockInteractionManager / IntegratedServer 菜单 等）无法从 IWorld 取 registry，配**静态局部 `ecs::EntityRegistry`**（如 `static ecs::EntityRegistry s_menuRegistry{"menu"};`）。此类占位 Player 是临时方案，已加 TODO，后续应重构避免构造完整 Player 仅为传参。
+
+### 9. 低频组件不进 m_builtIn，热路径须缓存局部指针
+
+Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（贴合基岩版极简缓存设计），不进 `m_builtIn` 裸指针缓存。单次 `try_get` 约 2-3ns 可接受，但**热路径方法（baseTick/move/actuallyHurt/tickFreeze 等）若同帧多次访问同一组件，须在方法开头取一次组件指针缓存局部变量复用**，避免重复哈希查找。PhysicsState 因 move/checkOnGround/updateFallDistance 及各 tick 40+ 处直接访问，破例进 `m_builtIn` 缓存。判定标准：单方法内访问 ≥3 次或被每帧调用的方法，考虑进缓存或局部指针。
+
+### 10. 同步字段组件化：真相源在组件，DataParameter 退为镜像
+
+含 DataParameter 的同步字段（如 `m_ticksFrozen` → `DATA_TICKS_FROZEN_PARAM`）组件化时，**FreezeComponent 成为真相源，DataParameter 退为同步镜像**。要点：
+- `setTicksFrozen()` 内同时写组件（真相源）+ `m_dataManager.set()`（镜像），缺一则会真相源失真或网络断链。
+- `syncMetadataFromDataManager()` **删除**从 DataParameter 回填组件的行——真相源不从镜像回填，否则双写时序错乱。
+- NBT 反序列化统一走 setter（由 setter 完成双写），不直接写字段。
+- **客户端回填坑**：客户端若 attach 同一组件但不跑产生该字段的 tick（如客户端不跑 tickFreeze），须在客户端 metadata 反序列化路径从 DataParameter 回填组件，否则客户端读组件恒为默认值。本项目 ClientEntity 是独立类不继承 mc::Entity、不 attach FreezeComponent、不消费 ticksFrozen，故 freeze 客户端回填点暂不存在；未来实现客户端冰冻渲染时需补此回填。
+
+### 11. SystemPhase 演进路径与跨帧延迟
+
+第二批阶段枚举为 `{ EntityTick, PostEntityTick }`：EntityTick 承载 `EntityLegacyTickSystem`（OOP `Entity::tick()` 桥接），PostEntityTick 承载 `PortalTickSystem`/`FireTickSystem`（状态递减/环境交互类真实 System）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序新增阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
