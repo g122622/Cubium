@@ -27,6 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
+#include "common/entity/ecs/systems/EntitySystemScheduler.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -239,6 +240,11 @@ private:
     // 所属 ECS 实体注册表（非拥有，引用 ServerWorld 持有的 m_entityRegistry）。
     ecs::EntityRegistry& m_registry;
 
+    // ECS 系统调度器：按 SystemPhase 顺序执行注册的 ITickingSystem。
+    // EntityTick 阶段跑 EntityLegacyTickSystem（包装 OOP Entity::tick()），
+    // PostEntityTick 阶段跑状态递减/环境交互类 System（PortalTickSystem / FireTickSystem）。
+    ecs::EntitySystemScheduler m_scheduler;
+
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;
@@ -256,6 +262,16 @@ private:
 
     // 内部方法（假设已持有锁）
     void _removeDeadEntitiesInternal();
+
+    /**
+     * @brief 逐实体 tick（EntityTick 阶段回调）
+     *
+     * 由 EntityLegacyTickSystem 回调委托，承载原 tick() 步骤1 的全部逻辑：
+     * playerChunks 快照 + 遍历 m_entities 调 entity->tick() + 模拟距离门控 +
+     * ServerPlayer 永远 tick + per-entity trace + isRemoved() 跳过。
+     * 假设已持有 m_mutex（由 tick() 调用 scheduler 时传入）。
+     */
+    void _tickEntities();
 
     /**
      * @brief 判定实体是否处于任一玩家的模拟距离内（假设已持有锁）

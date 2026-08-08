@@ -35,3 +35,4 @@ struct BuiltInEntityComponents {
 };
 
 } // namespace mc::ecs
+

@@ -20,8 +20,10 @@ namespace mc::ecs {
  * 不交给隐式 DAG。阶段内的组件读写冲突检测留待后续批次接入 entt::organizer
  * （首批仅一个 system，拓扑排序无意义）。
  *
- * EntityManager::tick() 委托本调度器跑 LegacyTick 阶段（包装 OOP Entity::tick()），
- * 再自行处理 graveyard 延迟析构（见 EntityManager.cpp 三步编排）。
+ * EntityManager::tick() 委托本调度器，按阶段顺序执行：
+ *   - EntityTick 阶段：EntityLegacyTickSystem 包装 OOP Entity::tick() 虚函数链；
+ *   - PostEntityTick 阶段：状态递减/环境交互类 System（PortalTickSystem / FireTickSystem）。
+ * EntityManager 自行处理 graveyard 延迟析构（见 EntityManager.cpp 三步编排）。
  */
 class EntitySystemScheduler {
 public:

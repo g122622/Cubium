@@ -57,6 +57,10 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MoverType.hpp"
+#include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/components/FreezeComponent.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
+#include "common/entity/ecs/components/PortalComponent.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
@@ -135,6 +139,13 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     m_builtIn.velocity = &registry.raw().emplace<ecs::VelocityComponent>(ecsEntity);
     m_builtIn.aabbShape = &registry.raw().emplace<ecs::AABBShapeComponent>(ecsEntity);
     m_builtIn.rotation = &registry.raw().emplace<ecs::EntityRotationComponent>(ecsEntity);
+    // 第二批：attach Portal/Fire/PhysicsState/Freeze 四组件。不进 m_builtIn 缓存
+    // （决策：BuiltIn 仅留首批4高频指针，新组件走 tryGetComponent 查询），故不取返回指针。
+    // 全实体 attach，零默认值与原成员字段一致。HurtStateComponent 由 LivingEntity 构造时 attach。
+    registry.raw().emplace<ecs::PortalComponent>(ecsEntity);
+    registry.raw().emplace<ecs::FireComponent>(ecsEntity);
+    registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
+    registry.raw().emplace<ecs::FreezeComponent>(ecsEntity);
     m_entityContext = std::make_unique<ecs::EntityContext>(registry, ecsEntity);
 
     // 生成随机 UUID（使用实体的持久化随机数生成器）。
@@ -194,7 +205,8 @@ void Entity::reapplyPosition()
         m_dimensionsInitialized = true;
     }
 
-    m_builtIn.aabbShape->m_aabb = m_dimensions.makeBoundingBox(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
+    m_builtIn.aabbShape->m_aabb = m_dimensions.makeBoundingBox(
+        m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
 }
 
 void Entity::setPose(EntityPose pose)
@@ -695,10 +707,8 @@ void Entity::tick()
     // 基础 tick
     baseTick();
 
-    // 处理传送门逻辑
-    if (tickPortal()) {
-        onPortalTriggered();
-    }
+    // 传送门逻辑（tickPortal + onPortalTriggered）已迁入 PortalTickSystem，
+    // 在 SystemPhase::PostEntityTick 阶段执行（本 tick 之后）。见 PortalTickSystem.hpp。
 }
 
 void Entity::baseTick()
@@ -721,10 +731,7 @@ void Entity::baseTick()
         }
     }
 
-    // 更新传送冷却
-    if (m_portalCooldown > 0) {
-        m_portalCooldown--;
-    }
+    // 更新传送冷却——已迁入 PortalTickSystem（PostEntityTick 阶段）。
 
     // 更新骑乘冷却
     if (m_rideCooldown > 0) {
@@ -734,39 +741,12 @@ void Entity::baseTick()
     // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
     // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
     // 此处将 updateEnvironmentState() 移至火焰处理之前，与 MC 原版时序一致
+    // 火焰链（fire 递减/伤害/水中熄灭/雨中扑灭）已迁入 FireTickSystem（PostEntityTick 阶段），
+    // 在本 baseTick 之后执行，可读到此处刚产出的环境状态。
     updateEnvironmentState();
 
-    // 处理着火
-    // MC Java: Entity.baseTick() 火焰处理逻辑
-    // 正值 m_fire = 燃烧剩余 tick，负值 = 火焰免疫期倒计时
-    if (m_fire > 0) {
-        if (isImmuneToFire()) {
-            // 免疫火焰的实体立即清除火焰
-            clearFire();
-        } else if (isInWater()) {
-            // MC Java: 水中熄灭火焰由 applyEffectsFromBlocks() 中方块碰撞触发
-            // 此处简化处理：水中直接熄灭，播放音效并设置免疫期
-            extinguishFire();
-            setFireImmunityCooldown();
-        } else {
-            // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
-            // 注意：在岩浆中时不造成燃烧伤害，因为岩浆伤害由 lavaHurt() 单独处理
-            if (m_fire % 20 == 0 && !isInLava()) {
-                auto onFireSource = DamageSources::onFire();
-                hurt(onFireSource, 1.0f);
-            }
-            m_fire--;
-        }
-    }
-
-    // MC Java: applyEffectsFromBlocks() 中雨中灭火 + 灭火音效
-    // 在雨中熄灭火焰时，播放音效并设置免疫期
-    if (isInRain() && isOnFire()) {
-        extinguishFire();
-        setFireImmunityCooldown();
-    }
-
     // 在岩浆中减少坠落距离
+    // TODO: PhysicsState 组件化（Step5.3）后，此行改读 PhysicsStateComponent.m_fallDistance。
     if (isInLava()) {
         m_fallDistance *= 0.5f;
     }
@@ -775,6 +755,7 @@ void Entity::baseTick()
     // 在火焰处理之后重置 isInPowderSnow
     // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
     // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
+    // TODO: Freeze 组件化（Step5.5）后，此行改读 FreezeComponent.m_isInPowderSnow。
     m_isInPowderSnow = false;
 
     // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
@@ -793,47 +774,14 @@ void Entity::baseTick()
     // 在 Vehicle/tick() 中应该调用 updatePassengers()
 }
 
-bool Entity::tickPortal()
-{
-    // 关键行为：inPortal 每帧重置，由 NetherPortalBlock.onEntityCollision 重新设置
-    // 冷却递减在 baseTick() 中处理
-
-    if (!m_inPortal) {
-        if (m_portalTime > 0) {
-            m_portalTime = std::max(0, m_portalTime - 4);
-        }
-        return false;
-    }
-
-    // 无论是否传送，都重置 inPortal
-    m_inPortal = false;
-
-    if (!canTeleport()) {
-        return false;
-    }
-
-    // 递增计时并检查阈值
-    // 非玩家：第一次进入时成立
-    // 玩家：需要 80 tick
-    m_portalTime++;
-
-    const i32 maxPortalTime = getMaxInPortalTime();
-    if (m_portalTime >= maxPortalTime) {
-        m_portalTime = maxPortalTime;
-        return true;
-    }
-
-    return false;
-}
-
 bool Entity::onPortalTriggered()
 {
     // 基类实现：默认不做任何事
     // 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑
 
     // 重置传送门状态
-    m_inPortal = false;
-    m_portalTime = 0;
+    setInPortal(false);
+    resetPortalTime();
     triggerPortalCooldown();
 
     return false;
@@ -1200,8 +1148,8 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     // 从碰撞箱更新位置
     // 实体位置 = 碰撞箱底部中心
     m_builtIn.stateVector->m_pos = Vector3((entityBox.minX + entityBox.maxX) / 2.0f, // 中心X
-        entityBox.minY,                                            // 底部Y
-        (entityBox.minZ + entityBox.maxZ) / 2.0f                   // 中心Z
+        entityBox.minY,                                                              // 底部Y
+        (entityBox.minZ + entityBox.maxZ) / 2.0f                                     // 中心Z
     );
     reapplyPosition();
 
@@ -1299,7 +1247,7 @@ void Entity::doBlockCollisions()
 
     // MC Java: applyEffectsFromBlocks() - 记录方块碰撞前的火焰计时器
     // 用于判断方块碰撞是否点燃了实体，如果未被点燃且不处于燃烧状态，则设置火焰免疫期
-    i32 fireTicksBeforeCollision = m_fire;
+    i32 fireTicksBeforeCollision = getRemainingFireTicks();
 
     // 获取碰撞箱范围，稍微收缩避免边界精度问题
     AxisAlignedBB box = m_builtIn.aabbShape->m_aabb.shrink(0.001);
@@ -1363,7 +1311,7 @@ void Entity::doBlockCollisions()
     // MC Java: applyEffectsFromBlocks() - 方块碰撞后检查火焰免疫期
     // 如果实体不在燃烧，且方块碰撞没有增加火焰计时器，则设置火焰免疫期
     // 这防止实体刚离开火方块时被立即重新点燃
-    bool fireTicksIncreased = m_fire > fireTicksBeforeCollision;
+    bool fireTicksIncreased = getRemainingFireTicks() > fireTicksBeforeCollision;
     if (m_world != nullptr && !m_world->isClientSide() && !isOnFire() && !fireTicksIncreased) {
         setFireImmunityCooldown();
     }
@@ -1387,7 +1335,8 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     // 派发自定义方块组件回调 - onStepOff
     // 检测实体是否离开了之前所站的方块
     BlockPos prevBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_posPrev.x)),
-        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f - (m_builtIn.stateVector->m_pos.y - m_builtIn.stateVector->m_posPrev.y))),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f -
+            (m_builtIn.stateVector->m_pos.y - m_builtIn.stateVector->m_posPrev.y))),
         static_cast<i32>(std::floor(m_builtIn.stateVector->m_posPrev.z)));
     if (prevBlockPos != blockPos) {
         const BlockState* prevBlockState = m_world->getBlockState(prevBlockPos);
@@ -1926,7 +1875,9 @@ f64 Entity::getMountedYOffset() const
 Vector3 Entity::getRidingPosition() const
 {
     // 默认骑乘位置在实体顶部中心
-    return Vector3(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y + static_cast<f32>(getMountedYOffset()), m_builtIn.stateVector->m_pos.z);
+    return Vector3(m_builtIn.stateVector->m_pos.x,
+        m_builtIn.stateVector->m_pos.y + static_cast<f32>(getMountedYOffset()),
+        m_builtIn.stateVector->m_pos.z);
 }
 
 void Entity::updatePassengers()
@@ -2128,8 +2079,8 @@ void Entity::clearFire()
 {
     // MC Java: setRemainingFireTicks(Math.min(0, getRemainingFireTicks()))
     // 保留负值（火焰免疫期倒计时），仅将正值清零
-    if (m_fire > 0) {
-        m_fire = 0;
+    if (getRemainingFireTicks() > 0) {
+        setRemainingFireTicks(0);
     }
 }
 
@@ -2157,16 +2108,18 @@ void Entity::setFireImmunityCooldown()
     // 基类 getFireImmuneTicks() 返回 0（无免疫期），Player 重写返回 20（1 秒）。
     i32 immuneTicks = getFireImmuneTicks();
     if (immuneTicks > 0) {
-        m_fire = -immuneTicks;
+        setRemainingFireTicks(-immuneTicks);
     }
 }
 
 std::string Entity::toString() const
 {
     std::stringstream ss;
-    ss << "Entity{id=" << m_id << ", type=" << getTypeId() << ", uuid=" << m_uuid << ", position=(" << m_builtIn.stateVector->m_pos.x
-       << ", " << m_builtIn.stateVector->m_pos.y << ", " << m_builtIn.stateVector->m_pos.z << ")"
-       << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", " << m_builtIn.velocity->m_velocity.z << ")"
+    ss << "Entity{id=" << m_id << ", type=" << getTypeId() << ", uuid=" << m_uuid << ", position=("
+       << m_builtIn.stateVector->m_pos.x << ", " << m_builtIn.stateVector->m_pos.y << ", "
+       << m_builtIn.stateVector->m_pos.z << ")"
+       << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", "
+       << m_builtIn.velocity->m_velocity.z << ")"
        << ", onGround=" << m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
        << ", flags=" << static_cast<u32>(m_flags) << ", air=" << m_air << ", customName=\""
        << (m_customName ? m_customName->getUnformattedText() : "") << "\""
@@ -2449,12 +2402,16 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     // 位置 (Pos - double list)
     nbt_helper::putDoubleList(tag,
         nbt_keys::POS,
-        {static_cast<f64>(m_builtIn.stateVector->m_pos.x), static_cast<f64>(m_builtIn.stateVector->m_pos.y), static_cast<f64>(m_builtIn.stateVector->m_pos.z)});
+        {static_cast<f64>(m_builtIn.stateVector->m_pos.x),
+            static_cast<f64>(m_builtIn.stateVector->m_pos.y),
+            static_cast<f64>(m_builtIn.stateVector->m_pos.z)});
 
     // 运动 (Motion - double list)
     nbt_helper::putDoubleList(tag,
         nbt_keys::MOTION,
-        {static_cast<f64>(m_builtIn.velocity->m_velocity.x), static_cast<f64>(m_builtIn.velocity->m_velocity.y), static_cast<f64>(m_builtIn.velocity->m_velocity.z)});
+        {static_cast<f64>(m_builtIn.velocity->m_velocity.x),
+            static_cast<f64>(m_builtIn.velocity->m_velocity.y),
+            static_cast<f64>(m_builtIn.velocity->m_velocity.z)});
 
     // 旋转 (Rotation - float list: yaw, pitch)
     nbt_helper::putFloatList(tag, nbt_keys::ROTATION, {m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y});
@@ -2463,7 +2420,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::FALL_DISTANCE, m_fallDistance);
 
     // 火焰剩余 tick
-    tag.put(nbt_keys::FIRE, static_cast<i16>(m_fire));
+    tag.put(nbt_keys::FIRE, static_cast<i16>(getRemainingFireTicks()));
 
     // 空气剩余 tick
     tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
@@ -2475,7 +2432,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
 
     // 传送门冷却
-    tag.put(nbt_keys::PORTAL_COOLDOWN, m_portalCooldown);
+    tag.put(nbt_keys::PORTAL_COOLDOWN, portalCooldown());
 
     // 冰冻计时器（仅当 > 0 时保存）
     if (m_ticksFrozen > 0) {
@@ -2585,7 +2542,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 火焰
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::FIRE)) {
-        m_fire = *val;
+        setRemainingFireTicks(*val);
     }
 
     // 空气
@@ -2605,7 +2562,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 传送门冷却
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::PORTAL_COOLDOWN)) {
-        m_portalCooldown = *val;
+        setPortalCooldown(*val);
     }
 
     // 冰冻计时器

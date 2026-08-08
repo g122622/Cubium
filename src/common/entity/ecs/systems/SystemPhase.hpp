@@ -11,19 +11,16 @@ namespace mc::ecs {
  * 的 registerActorPreTravelSystems/registerActorTravelSystems/... 分阶段注册）。
  * 阶段名即时序意图，读注册代码可理解粗时序，避免 ECS 时序 bug 难查的问题。
  *
- * 首批仅 LegacyTick 一个阶段承载 EntityLegacyTickSystem（包装现有 OOP tick），
- * 后续批次按需在合适阶段注入 MovementSystem/PostMovementSystem 等。
+ * 阶段命名采用业务语义（实体主 tick / 主 tick 之后），不沿用 System 类名里的
+ * "Legacy"措辞——后者描述实现来源（桥接旧 OOP），不适合当阶段名。
  */
 enum class SystemPhase : u8 {
-    // 阶段前：系统注册/缓存预热等（首批未用）
-    // PreMovement,
-    // Movement,
-    // PostMovement,
-    // AiStep,
-    // Reset,
+    /// 实体主 tick：承载 EntityLegacyTickSystem（调每个实体的 Entity::tick() 虚函数链）
+    EntityTick,
 
-    /// 旧版 OOP tick 桥接：调用每个实体的 Entity::tick() 虚函数链
-    LegacyTick,
+    /// 实体主 tick 之后：承载状态递减/环境交互类 System（PortalTickSystem / FireTickSystem）。
+    /// 此阶段在 EntityTick 之后执行，可读到本帧 baseTick::updateEnvironmentState 产出的环境状态。
+    PostEntityTick,
 
     /// 阶段数（须放末尾）
     Count

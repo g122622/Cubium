@@ -482,7 +482,8 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
     f64 dropY = static_cast<f64>(y()) + static_cast<f64>(eyeHeight()) - 0.3;
 
     // 获取掉落速度
-    Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, dropAround, m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
+    Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(
+        rng, dropAround, m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
 
     // 生成物品实体
     ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(m_world,
@@ -677,7 +678,10 @@ bool Player::_canFitPose(EntityPose pose) const
     }
 
     AxisAlignedBB candidateBox =
-        getDimensions(pose).makeBoundingBox(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z).shrink(PLAYER_POSE_FIT_EPSILON);
+        getDimensions(pose)
+            .makeBoundingBox(
+                m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z)
+            .shrink(PLAYER_POSE_FIT_EPSILON);
     return !m_world->hasBlockCollision(candidateBox) && !m_world->hasEntityCollision(candidateBox, this);
 }
 
@@ -824,36 +828,6 @@ void Player::checkEntityCollisions()
         // 调用实体的碰撞回调
         entity->onCollideWithPlayer(*this);
     }
-}
-
-bool Player::tickPortal()
-{
-    // 玩家需要 80 tick (4秒) 在传送门中才能传送
-    // 创造模式（无敌状态）只需要 1 tick
-    if (!m_inPortal) {
-        if (m_portalTime > 0) {
-            m_portalTime = std::max(0, m_portalTime - 4);
-        }
-        return false;
-    }
-
-    // 无论是否传送，都重置 inPortal
-    m_inPortal = false;
-
-    if (!canTeleport()) {
-        return false;
-    }
-
-    // 递增计时并检查阈值
-    m_portalTime++;
-
-    const i32 maxPortalTime = getMaxInPortalTime();
-    if (m_portalTime >= maxPortalTime) {
-        m_portalTime = maxPortalTime;
-        return true;
-    }
-
-    return false;
 }
 
 void Player::update()
@@ -1245,7 +1219,8 @@ void Player::updatePhysics()
     // 这里只处理地面和空中的物理
     if ((isInWater() || isInLava()) && !m_abilities.flying) {
         // 水中/岩浆中的移动和碰撞
-        Vector3 movement(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+        Vector3 movement(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
         if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
             moveWithCollision(movement.x, movement.y, movement.z);
         }
@@ -1279,7 +1254,8 @@ void Player::updatePhysics()
         }
 
         // 5. 潜行边缘检测（飞行时不检测）
-        Vector3 movement(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+        Vector3 movement(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
         if (m_isSneaking && !m_abilities.flying) {
             movement = maybeBackOffFromEdge(movement);
         }
@@ -1309,7 +1285,8 @@ void Player::updatePhysics()
         // 9. 自动跳跃检测（在移动后）
         if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
             // 计算实际移动距离
-            Vector2 actualMovement(m_builtIn.stateVector->m_pos.x - prevPos.x, m_builtIn.stateVector->m_pos.z - prevPos.z);
+            Vector2 actualMovement(
+                m_builtIn.stateVector->m_pos.x - prevPos.x, m_builtIn.stateVector->m_pos.z - prevPos.z);
             f32 moveDistSq = actualMovement.x * actualMovement.x + actualMovement.y * actualMovement.y;
 
             // 只有在确实移动了才检测
@@ -2274,7 +2251,9 @@ void Player::_updateCameraYaw()
 
     f32 targetCameraYaw = 0.0f;
     if (m_onGround && !isDead() && !isSwimming()) {
-        targetCameraYaw = std::min(0.1f, std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x + m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z));
+        targetCameraYaw = std::min(0.1f,
+            std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
+                m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z));
     }
     m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
 }

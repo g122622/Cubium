@@ -27,6 +27,9 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/ecs/systems/EntityLegacyTickSystem.hpp"
+#include "common/entity/ecs/systems/FireTickSystem.hpp"
+#include "common/entity/ecs/systems/PortalTickSystem.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -48,7 +51,21 @@ using namespace mc::trace;
 namespace mc {
 
 EntityManager::EntityManager(ecs::EntityRegistry& registry)
-    : m_registry(registry) {}
+    : m_registry(registry)
+{
+    // 注册 EntityTick 阶段的 OOP tick 桥接 System。
+    // 回调委托 _tickEntities()（含模拟距离门控/ServerPlayer 永远 tick 等成熟逻辑），
+    // 避免 EntityManager ↔ Scheduler 循环依赖，且保持原三步 tick 编排语义不变。
+    m_scheduler.registerSystem(ecs::SystemPhase::EntityTick,
+        std::make_shared<ecs::EntityLegacyTickSystem>([this](ecs::EntityRegistry&) { this->_tickEntities(); }));
+
+    // PostEntityTick 阶段：状态递减/环境交互类真实 System（第二批新增）。
+    // PortalTickSystem：传送冷却递减 + tickPortal 逻辑（从 baseTick/tick 抽出）。
+    // FireTickSystem：fire 链递减/伤害/水中熄灭/雨中扑灭（从 baseTick 抽出）。
+    // 两者在 EntityTick 之后执行，可读到本帧 updateEnvironmentState 产出的环境状态。
+    m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick, std::make_shared<ecs::PortalTickSystem>());
+    m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick, std::make_shared<ecs::FireTickSystem>());
+}
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 {
@@ -248,6 +265,20 @@ void EntityManager::tick()
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    // 1. 委托调度器执行 EntityTick（逐实体 OOP tick）+ PostEntityTick（fire/portal 等 System）。
+    //    EntityLegacyTickSystem 经回调调 _tickEntities()，内含模拟距离门控与 ServerPlayer 短路。
+    m_scheduler.tick(m_registry);
+
+    // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
+    //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
+    m_graveyard.clear();
+
+    // 3. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
+    _removeDeadEntitiesInternal();
+}
+
+void EntityManager::_tickEntities()
+{
     // 0. 循环外快照玩家区块坐标。getPlayers() 持递归锁安全，但每实体调用代价高，
     //    故一次取玩家列表并预算其区块坐标，供冻结判定复用。
     //    对齐原版 ServerLevel.tick：ServerPlayer 永远 tick；其余实体仅当其所在区块
@@ -287,13 +318,6 @@ void EntityManager::tick()
             TraceEvents.Server.Tick, "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
         entity->tick();
     }
-
-    // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
-    //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
-    m_graveyard.clear();
-
-    // 3. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
-    _removeDeadEntitiesInternal();
 }
 
 void EntityManager::removeDeadEntities()

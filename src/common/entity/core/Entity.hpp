@@ -43,6 +43,10 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
+#include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/components/FreezeComponent.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
+#include "common/entity/ecs/components/PortalComponent.hpp"
 #include "common/entity/ecs/context/EntityContext.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include <algorithm>
@@ -346,7 +350,10 @@ public:
      *
      * @return 眼睛 Y 坐标（f64 精度）
      */
-    [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(eyeHeight()); }
+    [[nodiscard]] f64 getEyeY() const
+    {
+        return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(eyeHeight());
+    }
 
     /**
      * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）
@@ -1014,46 +1021,73 @@ public:
      * @brief 获取传送冷却时间
      * @return 剩余冷却时间（tick），0 表示可以传送
      */
-    [[nodiscard]] i32 portalCooldown() const { return m_portalCooldown; }
+    [[nodiscard]] i32 portalCooldown() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalCooldown : 0;
+    }
 
     /**
      * @brief 设置传送冷却时间
      * @param cooldown 冷却时间（tick）
      */
-    void setPortalCooldown(i32 cooldown) { m_portalCooldown = cooldown; }
+    void setPortalCooldown(i32 cooldown)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalCooldown = cooldown;
+        }
+    }
 
     /**
      * @brief 检查是否可以传送
      * @return 如果冷却时间为 0 则返回 true
      */
-    [[nodiscard]] bool canTeleport() const { return m_portalCooldown <= 0; }
+    [[nodiscard]] bool canTeleport() const { return portalCooldown() <= 0; }
 
     /**
      * @brief 获取在传送门中的累计时间
      * @return 累计时间（tick）
      */
-    [[nodiscard]] i32 portalTime() const { return m_portalTime; }
+    [[nodiscard]] i32 portalTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalTime : 0;
+    }
 
     /**
      * @brief 设置在传送门中的累计时间
      * @param time 累计时间（tick）
      */
-    void setPortalTime(i32 time) { m_portalTime = time; }
+    void setPortalTime(i32 time)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalTime = time;
+        }
+    }
 
     /**
      * @brief 重置传送门计时
      */
-    void resetPortalTime() { m_portalTime = 0; }
+    void resetPortalTime() { setPortalTime(0); }
 
     /**
      * @brief 检查是否在传送门中
      */
-    [[nodiscard]] bool isInPortal() const { return m_inPortal; }
+    [[nodiscard]] bool isInPortal() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_inPortal : false;
+    }
 
     /**
      * @brief 设置是否在传送门中
      */
-    void setInPortal(bool inPortal) { m_inPortal = inPortal; }
+    void setInPortal(bool inPortal)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_inPortal = inPortal;
+        }
+    }
 
     /**
      * @brief 获取在传送门中停留所需的最大时间
@@ -1066,21 +1100,13 @@ public:
     [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 0; }
 
     /**
-     * @brief 处理传送门 tick
-     *
-     * 每帧调用，更新传送冷却和传送门计时。
-     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
-     * 其他实体需要约 1 tick。
-     *
-     * @return true 如果应该触发传送
-     */
-    virtual bool tickPortal();
-
-    /**
      * @brief 当传送门触发时调用
      *
      * 当实体在传送门中停留足够时间后触发。
      * 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑。
+     *
+     * 传送门 tick 逻辑（计时递进/冷却递减/inPortal 重置）已迁入 PortalTickSystem
+     * （PostEntityTick 阶段），本方法仅由 System 在达阈值时调用，执行重置 + 触发冷却。
      *
      * @return true 如果传送成功
      */
@@ -1093,12 +1119,22 @@ public:
      *
      * @param pos 传送门方块位置
      */
-    void setPortalPos(const BlockPos& pos) { m_portalPos = pos; }
+    void setPortalPos(const BlockPos& pos)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalPos = pos;
+        }
+    }
 
     /**
      * @brief 获取实体所在的传送门方块位置
      */
-    [[nodiscard]] const BlockPos& portalPos() const { return m_portalPos; }
+    [[nodiscard]] const BlockPos& portalPos() const
+    {
+        // 返回引用：组件存在时返回组件内字段引用，不存在时返回静态默认值。
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalPos : ecs::PortalComponent::s_defaultPos;
+    }
 
     /**
      * @brief 触发传送冷却
@@ -1106,7 +1142,7 @@ public:
      * 传送后设置冷却时间，防止立即再次传送。
      * 默认冷却时间为 300 tick (15秒)。
      */
-    void triggerPortalCooldown() { m_portalCooldown = getPortalCooldown(); }
+    void triggerPortalCooldown() { setPortalCooldown(getPortalCooldown()); }
 
     /**
      * @brief 获取默认传送冷却时间
@@ -1426,7 +1462,7 @@ public:
      *
      * 火焰免疫的实体永远不会被认为着火。
      */
-    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && m_fire > 0; }
+    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && getRemainingFireTicks() > 0; }
 
     /**
      * @brief 获取剩余着火时间（tick）
@@ -1434,7 +1470,11 @@ public:
      * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
      * 对应 MC Java 的 getRemainingFireTicks()。
      */
-    [[nodiscard]] i32 getRemainingFireTicks() const { return m_fire; }
+    [[nodiscard]] i32 getRemainingFireTicks() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>();
+        return c != nullptr ? c->m_fire : 0;
+    }
 
     /**
      * @brief 设置剩余着火时间
@@ -1445,19 +1485,24 @@ public:
      *
      * @param ticks 火焰计时器值
      */
-    void setRemainingFireTicks(i32 ticks) { m_fire = ticks; }
+    void setRemainingFireTicks(i32 ticks)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            c->m_fire = ticks;
+        }
+    }
 
     /**
      * @brief 获取着火时间（tick）
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 fire() const { return m_fire; }
+    [[nodiscard]] i32 fire() const { return getRemainingFireTicks(); }
 
     /**
      * @brief 获取火焰计时器
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 getFireTimer() const { return m_fire; }
+    [[nodiscard]] i32 getFireTimer() const { return getRemainingFireTicks(); }
 
     /**
      * @brief 点燃实体指定秒数
@@ -1481,8 +1526,10 @@ public:
      */
     void igniteForTicks(i32 ticks)
     {
-        if (m_fire < ticks) {
-            m_fire = ticks;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            if (c->m_fire < ticks) {
+                c->m_fire = ticks;
+            }
         }
         clearFreeze();
     }
@@ -1499,8 +1546,10 @@ public:
      */
     void setFire(i32 ticks)
     {
-        if (m_fire < ticks) {
-            m_fire = ticks;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            if (c->m_fire < ticks) {
+                c->m_fire = ticks;
+            }
         }
     }
 
@@ -1513,7 +1562,12 @@ public:
      *
      * @param ticks 火焰计时器值
      */
-    virtual void forceFireTicks(i32 ticks) { m_fire = ticks; }
+    virtual void forceFireTicks(i32 ticks)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            c->m_fire = ticks;
+        }
+    }
 
     /**
      * @brief 清除冰冻状态
@@ -2716,11 +2770,8 @@ protected:
     DimensionId m_dimension = 0;
     u32 m_ticksExisted = 0;
 
-    // 传送门相关
-    i32 m_portalCooldown = 0; // 传送冷却（防止频繁传送，单位：tick）
-    i32 m_portalTime = 0;     // 在传送门中的累计时间（单位：tick）
-    bool m_inPortal = false;  // 是否在传送门中
-    BlockPos m_portalPos;     // 所在传送门方块的位置
+    // 传送门相关字段（m_portalCooldown/m_portalTime/m_inPortal/m_portalPos）已迁入
+    // ecs::PortalComponent，经 m_entityContext->tryGetComponent 读写。
 
     // 世界引用
     IWorld* m_world = nullptr;
@@ -2760,7 +2811,7 @@ protected:
     f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
-    i32 m_fire = 0;             // 剩余着火时间（tick），正值=燃烧，负值=火焰免疫期倒计时
+    // m_fire（剩余着火时间）已迁入 ecs::FireComponent，经 m_entityContext->tryGetComponent 读写。
 
     // 冰冻状态
     i32 m_ticksFrozen = 0;         ///< 冰冻计时器（正值=冰冻进度，达到 getTicksRequiredToFreeze() 时完全冰冻）

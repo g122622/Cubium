@@ -1364,24 +1364,8 @@ public:
     void tick() override;
     void update() override;
 
-    /**
-     * @brief 处理传送门 tick
-     *
-     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
-     * 创造模式（无敌状态）只需要 1 tick。
-     * 传送后设置 10 tick 冷却。
-     *
-     * 客户端行为：
-     * - 管理传送门计时器用于显示"传送门眩晕"动画效果
-     * - 不执行实际传送
-     *
-     * 服务端行为：
-     * - 管理传送门计时器
-     * - 计时到达阈值时调用 onPortalTriggered() 执行实际传送
-     *
-     * @return true 如果应该触发传送
-     */
-    bool tickPortal() override;
+    // tickPortal() 已删除：传送门 tick 逻辑迁入 PortalTickSystem（PostEntityTick 阶段）。
+    // 玩家 80 tick/创造 1 tick 的差异由 getMaxInPortalTime() override 承载，逻辑统一在 System。
 
     // ========== 物理/移动 ==========
 

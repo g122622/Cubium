@@ -90,6 +90,8 @@ add_library(mc_common STATIC
     # 组件均为 header-only，仅 context/EntityRegistry.cpp 需登记
     entity/ecs/context/EntityRegistry.cpp
     entity/ecs/systems/EntitySystemScheduler.cpp
+    entity/ecs/systems/PortalTickSystem.cpp
+    entity/ecs/systems/FireTickSystem.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp

@@ -33,6 +33,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -126,6 +127,10 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegist
     : Entity(id, world, registry)
     , m_combatTracker(this)
 {
+    // 第二批：attach HurtStateComponent（仅 LivingEntity 持有，普通 Entity 不 attach）。
+    // 基类 Entity 构造已建好 ecsEntity 并 attach 7 组件，此处续接 attach。
+    m_entityContext->enttRegistry().emplace<ecs::HurtStateComponent>(m_entityContext->entity());
+
     // 构造函数中设置 stepHeight = 0.6F
     setStepHeight(physics::STEP_HEIGHT);
 
@@ -1400,7 +1405,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 水平速度限制为 0.15，重力被抵消
 
         // 限制水平速度
-        f32 horizontalSpeed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x + m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
+        f32 horizontalSpeed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
+            m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
         constexpr f32 LADDER_MAX_SPEED = 0.15f;
         if (horizontalSpeed > LADDER_MAX_SPEED) {
             f32 scale = LADDER_MAX_SPEED / horizontalSpeed;
@@ -1457,8 +1463,10 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 3. 执行碰撞移动
     // 注意：moveWithCollision() 内部会根据碰撞结果重置速度
-    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f || m_builtIn.velocity->m_velocity.z != 0.0f) {
-        moveWithCollision(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f ||
+        m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 4. 应用摩擦/阻力（在移动后）
@@ -1686,14 +1694,17 @@ void LivingEntity::travelFallFlying(const Vector3& travelVec)
     m_builtIn.velocity->m_velocity = updateFallFlyingMovement(velocityBefore);
 
     // 执行移动（碰撞检测）
-    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f || m_builtIn.velocity->m_velocity.z != 0.0f) {
-        moveWithCollision(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f ||
+        m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 服务端检测撞墙伤害
     if (m_world != nullptr && !m_world->isClientSide()) {
         const f64 currHorizontalSpeed =
-            std::sqrt(static_cast<f64>(m_builtIn.velocity->m_velocity.x) * m_builtIn.velocity->m_velocity.x + static_cast<f64>(m_builtIn.velocity->m_velocity.z) * m_builtIn.velocity->m_velocity.z);
+            std::sqrt(static_cast<f64>(m_builtIn.velocity->m_velocity.x) * m_builtIn.velocity->m_velocity.x +
+                static_cast<f64>(m_builtIn.velocity->m_velocity.z) * m_builtIn.velocity->m_velocity.z);
         handleFallFlyingCollisions(prevHorizontalSpeed, currHorizontalSpeed);
     }
 }
@@ -1934,7 +1945,8 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     f64 newVelocityY;
     if (m_onGround) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
-        newVelocityY = std::min(0.4, static_cast<f64>(m_builtIn.velocity->m_velocity.y) / 2.0 + static_cast<f64>(strength));
+        newVelocityY =
+            std::min(0.4, static_cast<f64>(m_builtIn.velocity->m_velocity.y) / 2.0 + static_cast<f64>(strength));
     } else {
         // 在空中时：保持当前Y速度
         newVelocityY = static_cast<f64>(m_builtIn.velocity->m_velocity.y);
@@ -1943,9 +1955,11 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     // 设置新速度
     // X轴：当前速度的一半减去击退向量
     // Z轴：当前速度的一半减去击退向量
-    m_builtIn.velocity->m_velocity.x = static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.x) / 2.0 - knockbackX);
+    m_builtIn.velocity->m_velocity.x =
+        static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.x) / 2.0 - knockbackX);
     m_builtIn.velocity->m_velocity.y = static_cast<f32>(newVelocityY);
-    m_builtIn.velocity->m_velocity.z = static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.z) / 2.0 - knockbackZ);
+    m_builtIn.velocity->m_velocity.z =
+        static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.z) / 2.0 - knockbackZ);
 
     // 设置为空中状态
     m_onGround = false;
