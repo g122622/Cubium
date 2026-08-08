@@ -301,9 +301,9 @@ void SlimeEntity::updateSizeAttributes()
     f32 speed = 0.2f + 0.1f * static_cast<f32>(m_size);
     f32 damage = static_cast<f32>(m_size);
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, damage);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, damage);
 
     // 经验值等于尺寸
     m_experienceValue = m_size;

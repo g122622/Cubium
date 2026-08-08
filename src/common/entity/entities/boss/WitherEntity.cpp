@@ -1088,12 +1088,12 @@ void WitherEntity::registerAttributes()
     MobEntity::registerAttributes();
 
     // 凋灵属性
-    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);
 }
 
 void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 targetY, f64 targetZ, bool isBlue)

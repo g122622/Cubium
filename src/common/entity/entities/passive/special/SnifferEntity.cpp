@@ -321,9 +321,9 @@ void SnifferEntity::registerAttributes()
 
     // 对齐 MC Sniffer.createAttributes：
     //   Animal.createAnimalAttributes() + MOVEMENT_SPEED=0.1 + MAX_HEALTH=14.0
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, SNIFFER_MOVEMENT_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, SNIFFER_MAX_HEALTH);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, SNIFFER_FOLLOW_RANGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, SNIFFER_MOVEMENT_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, SNIFFER_MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, SNIFFER_FOLLOW_RANGE);
 }
 
 // ========== 数据同步 ==========

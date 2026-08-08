@@ -198,10 +198,10 @@ void GhastEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 恶魂有极远的追踪范围
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
 }
 
 // MagmaCubeEntity
@@ -226,7 +226,7 @@ void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
     // 调用父类设置尺寸，然后设置护甲属性 = size * 3
     SlimeEntity::setSlimeSize(size, resetHealth);
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
 }
 
 bool MagmaCubeEntity::canDamagePlayer() const
@@ -294,10 +294,10 @@ void MagmaCubeEntity::registerAttributes()
     // 移动速度固定为 0.2（不随尺寸变化）
     // 注意：父类 SlimeEntity::registerAttributes() 会设置尺寸相关属性
     // 这里需要确保护甲属性已注册
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
+    attributes().registerAttribute(*entity::attribute::Attributes::armor());
 
     // 初始尺寸为1，护甲为3
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 3.0);
 }
 
 void MagmaCubeEntity::alterSquishAmount()
@@ -506,10 +506,10 @@ void PiglinEntity::registerAttributes()
 {
     AbstractPiglinEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 // ========== PiglinEntity IAngerable 接口实现 ==========
@@ -710,9 +710,9 @@ void PiglinBruteEntity::registerAttributes()
     AbstractPiglinEntity::registerAttributes();
 
     // 猪灵蛮兵属性（金斧额外 +4 伤害）
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
 }
 
 // ZombifiedPiglinEntity
@@ -776,9 +776,9 @@ void ZombifiedPiglinEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
 }
 
 // HoglinEntity
@@ -873,15 +873,15 @@ void HoglinEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
     // 成年疣猪兽属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 // ========== 寻路权重 ==========
@@ -1040,15 +1040,15 @@ void ZoglinEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
     // 成年僵尸疣兽属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 bool ZoglinEntity::canAttackType(const entity::EntityType& type) const

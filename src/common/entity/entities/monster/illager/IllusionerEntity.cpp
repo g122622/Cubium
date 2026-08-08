@@ -292,10 +292,10 @@ void IllusionerEntity::registerAttributes()
     SpellcastingIllagerEntity::registerAttributes();
 
     // 幻术师属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 32.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 32.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 } // namespace mc

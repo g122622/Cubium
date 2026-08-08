@@ -340,9 +340,9 @@ void EvokerEntity::registerGoals()
 void EvokerEntity::registerAttributes()
 {
     SpellcastingIllagerEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0f);
 }
 
 } // namespace mc

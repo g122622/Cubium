@@ -430,10 +430,10 @@ void EnderDragonEntity::registerAttributes()
     BossEntity::registerAttributes();
 
     // 末影龙属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 200.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 256.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 200.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 256.0);
 }
 
 void EnderDragonEntity::_updateDragonParts()

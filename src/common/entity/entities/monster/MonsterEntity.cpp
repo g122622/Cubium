@@ -68,7 +68,7 @@ void MonsterEntity::registerAttributes()
     CreatureEntity::registerAttributes();
 
     // 注册攻击伤害属性（默认值为 0，子类设置具体值）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
 }
 
 std::optional<ResourceLocation> MonsterEntity::getHurtSound(DamageSource& /*source*/) const

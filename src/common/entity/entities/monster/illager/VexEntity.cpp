@@ -143,9 +143,9 @@ void VexEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 恼鬼属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
     // MOVEMENT_SPEED: 使用默认值（恼鬼飞行速度由移动控制器控制）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);
     // FOLLOW_RANGE: 使用默认值
 }
 

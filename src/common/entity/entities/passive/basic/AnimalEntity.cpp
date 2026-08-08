@@ -229,8 +229,8 @@ void AnimalEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 动物的基础属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
 void AnimalEntity::updateInLove()

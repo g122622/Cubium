@@ -247,10 +247,10 @@ void BreezeEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
 std::optional<ResourceLocation> BreezeEntity::getAmbientSound() const

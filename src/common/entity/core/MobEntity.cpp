@@ -156,8 +156,8 @@ void MobEntity::registerAttributes()
     LivingEntity::registerAttributes();
 
     // 注册并设置跟随范围，默认值为 16.0
-    m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    attributes().registerAttribute(*entity::attribute::Attributes::followRange());
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 entity::ai::controller::LookController* MobEntity::lookController()

@@ -170,10 +170,10 @@ void BlazeEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 烈焰人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
 void BlazeEntity::updateAITasks()

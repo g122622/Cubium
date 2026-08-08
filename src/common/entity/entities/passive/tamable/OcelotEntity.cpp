@@ -299,14 +299,14 @@ void OcelotEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     // ATTACK_DAMAGE 属性在 MobEntity/AnimalEntity 基类中未注册（仅 MonsterEntity 注册）。
     // 与 MC 原版 OcelotEntity.createAttributes 中 .add(ATTACK_DAMAGE, 3.0) 一致：
     // 此处需显式 registerAttribute 后再 setBaseValue，否则 getAttributeValue 会
     // 因属性未注册而返回默认值（0.0），导致 AttackGoal_AttackDamage 等断言失败。
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
 void OcelotEntity::registerData()

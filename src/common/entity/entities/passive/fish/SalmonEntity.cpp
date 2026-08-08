@@ -85,8 +85,8 @@ std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/, ecs::EntityRegis
 void SalmonEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
 }
 
 std::optional<ResourceLocation> SalmonEntity::getFlopSound() const

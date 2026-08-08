@@ -307,7 +307,7 @@ void CreeperEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 继承自 MonsterEntity: MAX_HEALTH = 20.0
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 std::optional<ResourceLocation> CreeperEntity::getAmbientSound() const

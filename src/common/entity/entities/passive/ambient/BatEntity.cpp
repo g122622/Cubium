@@ -105,9 +105,9 @@ void BatEntity::registerAttributes()
     AmbientEntity::registerAttributes();
 
     // 蝙蝠属性：低生命值，固定飞行速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, FLY_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, FLY_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, FLY_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, FLY_SPEED);
 }
 
 } // namespace mc

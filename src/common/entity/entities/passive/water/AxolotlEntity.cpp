@@ -222,9 +222,9 @@ void AxolotlEntity::registerAttributes()
     // 最大生命值: 14.0 (7颗心)
     // 移动速度: 1.0
     // 攻击伤害: 2.0 (1颗心)
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 bool AxolotlEntity::hurt(DamageSource& source, f32 amount)

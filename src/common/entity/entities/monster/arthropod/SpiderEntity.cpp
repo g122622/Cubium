@@ -135,10 +135,11 @@ bool SpiderEntity::shouldAttack(LivingEntity* target) const
 {
     // 蜘蛛只在黑暗中攻击（光照等级 < 7）
     if (m_world != nullptr) {
-        u8 lightLevel = m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
-                                                        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
-                                                        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))),
-            0);
+        u8 lightLevel =
+            m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                                            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                                            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))),
+                0);
         if (lightLevel < 7) {
             return MonsterEntity::shouldAttack(target);
         }
@@ -201,9 +202,9 @@ void SpiderEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 蜘蛛的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 } // namespace mc

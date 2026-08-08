@@ -288,8 +288,8 @@ void TurtleEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 海龟的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     // 海龟在陆地上移动较慢，通过 travel() 方法实现
     // 陆地速度 = max(AIMoveSpeed / 2.0, 0.06F)，约为水中速度的 24%
 }
@@ -378,7 +378,7 @@ bool TurtleEntity::_isOnSand(const IWorld& world, const BlockPos& pos)
 void TurtleEntity::travel(const Vector3& travelVec)
 {
     // 获取基础移动速度
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
 
     if (isInWater()) {
         // 水中移动

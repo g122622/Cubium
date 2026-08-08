@@ -92,11 +92,11 @@ void ShulkerEntity::updatePeekTicks(i32 peekTicks)
                 "Shulker covered armor bonus",
                 ARMOR_BONUS,
                 entity::attribute::Operation::Addition);
-            m_attributes.addModifier(entity::attribute::Attributes::ARMOR, modifier);
+            attributes().addModifier(entity::attribute::Attributes::ARMOR, modifier);
             playCloseSound();
         } else {
             // 移除护甲加成
-            m_attributes.removeModifier(entity::attribute::Attributes::ARMOR, COVERED_ARMOR_BONUS_ID);
+            attributes().removeModifier(entity::attribute::Attributes::ARMOR, COVERED_ARMOR_BONUS_ID);
             playOpenSound();
         }
     }
@@ -239,8 +239,8 @@ void ShulkerEntity::shootBullet()
     }
 
     // 创建潜影贝子弹
-    auto bullet =
-        std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing), *registry);
+    auto bullet = std::make_unique<entity::ShulkerBulletEntity>(
+        m_world, this, target, Directions::getAxis(m_attachmentFacing), *registry);
     m_world->spawnEntity(std::move(bullet));
 
     // 设置攻击冷却
@@ -392,9 +392,9 @@ void ShulkerEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0f); // 不移动
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 18.0f);
 }
 
 std::optional<ResourceLocation> ShulkerEntity::getAmbientSound() const

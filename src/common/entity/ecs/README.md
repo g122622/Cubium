@@ -25,6 +25,10 @@ src/common/entity/ecs/
 │   ├── PhysicsStateComponent.hpp    # m_onGround/m_fallDistance/m_collided*（第二批，高频进 m_builtIn）
 │   ├── HurtStateComponent.hpp       # m_absorption/m_hurtTime/m_maxHurtTime/m_deathTime（第二批，仅 LivingEntity，低频 try_get）
 │   ├── FreezeComponent.hpp          # m_ticksFrozen/m_isInPowderSnow（第二批，低频 try_get，m_ticksFrozen 同步真相源）
+│   ├── HealthComponent.hpp          # m_health/m_lastHealth/m_healthSynced（第三批，仅 LivingEntity，m_health 同步真相源）
+│   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment/m_lastEquipmentInitialized（第三批，仅 LivingEntity，无同步单写）
+│   ├── ArrowStateComponent.hpp      # m_arrowCount/m_stingerCount/m_arrowHitTimer（第三批，仅 LivingEntity，arrowCount/stingerCount 同步真相源）
+│   ├── AttributeComponent.hpp       # unique_ptr<AttributeMap> 包裹属性表（第三批，仅 LivingEntity，不可移动类型包装范式）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
 └── systems/                         # 系统层
@@ -77,7 +81,7 @@ IWorld（ServerWorld / ClientWorld）
 
 未建独立 `factory/` 目录。组件 attach 内联在构造链内：
 - **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 8 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze），缓存 5 高频裸指针到 `m_builtIn`。
-- **LivingEntity 构造**：续接 attach `HurtStateComponent`（仅 LivingEntity 层级持有）。
+- **LivingEntity 构造**：续接 attach 5 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。
 - **叶子类工厂** `EntityType::create(IWorld*, ecs::EntityRegistry&)`：构造 Entity 子类 → 返回 `unique_ptr<Entity>`。
 
 差异化组件的工厂注入留待后续批次（见 `docs/iterations/ECS改造.md` 路线）。
@@ -137,3 +141,15 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（贴合
 ### 11. SystemPhase 演进路径与跨帧延迟
 
 第二批阶段枚举为 `{ EntityTick, PostEntityTick }`：EntityTick 承载 `EntityLegacyTickSystem`（OOP `Entity::tick()` 桥接），PostEntityTick 承载 `PortalTickSystem`/`FireTickSystem`（状态递减/环境交互类真实 System）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序新增阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
+
+### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
+
+entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不可移动成员的类型不能直接内嵌为组件。典型如 `AttributeMap`（含 `mutable std::mutex` + `unordered_map<string, unique_ptr<...>>`，不可移动/拷贝）。**解法：用 `std::unique_ptr<T>` 包裹**——`struct AttributeComponent { std::unique_ptr<AttributeMap> m_attributes; ... }`，组件移动只搬指针，被包裹类型本体不移动。这与"直接内嵌 + 依赖 entt pinned type（in_place_delete trait，永不 remove/sort/compact）运行时契约"相比，不引入首个 pinned 组件，容错性更高。后续遇含 mutex/atomic/不可移动容器的类型进组件，照此范式。
+
+### 13. C 类同步字段批量组件化：protected 成员转 public getter 委托
+
+第三批将 LivingEntity 的 health/equipment/arrows/attribute 四组字段搬入组件，其中 health/arrows 是 C 类同步字段（含 DataParameter），延续第二批 freeze 的"组件真相源 + DataParameter 镜像"模式。**大规模机械替换要点**：
+- 原 `protected` 成员（如 `m_attributes`）被子类约 70 文件 320 处直接访问，删除成员后子类改调 `public` getter 委托（`m_attributes.xxx` → `attributes().xxx`）。getter 须提供 const + 非 const 双重载（const 方法如 `writeAdditionalSaveData` 调 const 版，read 方法调非 const 版）。
+- inline getter 用了 `MC_ASSERT_RELEASE` 须显式 include `common/util/assert/AssertMacros.hpp`（基类 Entity.hpp 未传递，tests/ 包含时暴露 IWYU 违规）。
+- 属性注册时序：基类 LivingEntity 构造期调 `registerAttributes()` 因虚函数不向下派发仅注册基类属性，叶子类构造体显式再调 `registerAttributes()` 经继承链逐层向上注册专属属性——组件化后 `registerAttributes()` 内 `attributes().xxx` 在叶子类构造体执行时基类已 attach 组件，时序成立。
+- getter 返回引用（`AttributeMap&`），链式 `attributes().setBaseValue(...)` 语义与原 `m_attributes.setBaseValue(...)` 等价，顺序敏感的 remove+add 序列无副作用（同一组件同一对象）。

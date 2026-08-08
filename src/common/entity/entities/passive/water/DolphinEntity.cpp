@@ -328,9 +328,9 @@ void DolphinEntity::registerAttributes()
     // 最大生命值: 10.0
     // 移动速度: 1.2
     // 攻击伤害: 3.0
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 
 } // namespace mc

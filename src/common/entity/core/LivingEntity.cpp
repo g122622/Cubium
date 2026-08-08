@@ -33,6 +33,10 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ArrowStateComponent.hpp"
+#include "common/entity/ecs/components/AttributeComponent.hpp"
+#include "common/entity/ecs/components/EquipmentComponent.hpp"
+#include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -128,22 +132,25 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegist
     , m_combatTracker(this)
 {
     // 第二批：attach HurtStateComponent（仅 LivingEntity 持有，普通 Entity 不 attach）。
+    // 第三批：续接 attach HealthComponent（health 同步真相源）+ EquipmentComponent（装备无同步单写）
+    // + ArrowStateComponent（arrowCount/stingerCount 同步真相源）+ AttributeComponent
+    // （unique_ptr<AttributeMap> 包裹，须在 registerAttributes 之前 attach，因后者经
+    // attributes() getter 取组件填充默认属性）。
     // 基类 Entity 构造已建好 ecsEntity 并 attach 7 组件，此处续接 attach。
     m_entityContext->enttRegistry().emplace<ecs::HurtStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HealthComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::EquipmentComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::ArrowStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::AttributeComponent>(m_entityContext->entity());
 
     // 构造函数中设置 stepHeight = 0.6F
     setStepHeight(physics::STEP_HEIGHT);
-
-    // 初始化装备槽
-    for (auto& slot : m_equipment) {
-        slot = ItemStack();
-    }
 
     // 注册属性
     // 注意：此处 registerAttributes() 因 C++ 基类构造期虚函数不派发到派生类（vtable
     // 此时仍是 LivingEntity 的），仅注册基类默认属性（MAX_HEALTH 默认 20.0）。派生类
     // 构造体须显式再次调用 registerAttributes() 设实体专属值（如 chicken=4.0/fox=10.0）。
-    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 m_healthSynced），
+    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 HealthComponent.m_healthSynced），
     // 因派生类 registerAttributes 时序晚于 LivingEntity 构造，此处 setHealth 无法拿到
     // 派生类 MAX_HEALTH。
     registerAttributes();
@@ -163,7 +170,8 @@ void LivingEntity::registerData()
     // ARROW_COUNT(12)/STINGER_COUNT(13)/SLEEPING_POS(14)）。继承链分配器按此调用
     // 顺序连续分配 id 8..14，MobEntity 续接到 id 15。
     m_dataManager.registerParam(DATA_LIVING_FLAGS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(DATA_HEALTH_PARAM, m_health);
+    // health 默认值 20.0f 仅用于参数注册；真正同步由 setHealth 驱动（组件真相源 + 镜像）。
+    m_dataManager.registerParam(DATA_HEALTH_PARAM, 20.0f);
     m_dataManager.registerParam(DATA_EFFECT_PARTICLES_PARAM, entity::ParticlesValue{true}); // 空粒子列表
     m_dataManager.registerParam(DATA_EFFECT_AMBIENCE_PARAM, false);
     m_dataManager.registerParam(DATA_ARROW_COUNT_PARAM, static_cast<i32>(0));
@@ -177,14 +185,18 @@ void LivingEntity::registerData()
 
 f32 LivingEntity::maxHealth() const
 {
-    return static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MAX_HEALTH, 20.0));
+    return static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MAX_HEALTH, 20.0));
 }
 
 void LivingEntity::setHealth(f32 health)
 {
     f32 max = maxHealth();
-    m_health = std::max(0.0f, std::min(health, max));
-    m_dataManager.set(DATA_HEALTH_PARAM, m_health);
+    const f32 clamped = std::max(0.0f, std::min(health, max));
+    // 组件为真相源，DATA_HEALTH_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>()) {
+        c->m_health = clamped;
+    }
+    m_dataManager.set(DATA_HEALTH_PARAM, clamped);
 }
 
 void LivingEntity::setAbsorptionAmount(f32 amount)
@@ -199,7 +211,7 @@ void LivingEntity::setAbsorptionAmount(f32 amount)
 void LivingEntity::heal(f32 amount)
 {
     if (amount > 0.0f && !isDead()) {
-        setHealth(m_health + amount);
+        setHealth(health() + amount);
     }
 }
 
@@ -277,8 +289,8 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
         return;
     }
 
-    // 记录受伤前的生命值
-    const f32 healthBefore = m_health;
+    // 生命值组件局部指针复用（避免热路径多次 try_get）
+    auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
 
     // 1. 盾牌格挡检查（子类可重写）
     if (canBlockDamageSource(source)) {
@@ -313,11 +325,13 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 5. 实际扣血
-    m_health -= amount;
-    m_lastHealth = m_health;
+    if (healthState != nullptr) {
+        healthState->m_health -= amount;
+        healthState->m_lastHealth = healthState->m_health;
+    }
 
     // 6. 记录到战斗追踪器
-    m_combatTracker.trackDamage(source, m_lastHealth, amount);
+    m_combatTracker.trackDamage(source, health(), amount);
 
     // 7. 记录伤害来源
     m_lastDamageSource = source.clone();
@@ -353,7 +367,7 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 11. 死亡检查
-    if (m_health <= 0.0f) {
+    if (health() <= 0.0f) {
         playDeathSound();
         die(source);
     } else {
@@ -383,8 +397,8 @@ f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
         return damage;
     }
 
-    const f32 armor = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR, 0.0));
-    const f32 toughness = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
+    const f32 armor = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR, 0.0));
+    const f32 toughness = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
 
     return entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
 }
@@ -484,13 +498,13 @@ void LivingEntity::remove()
 void LivingEntity::registerAttributes()
 {
     // 基础属性：所有生物实体都有
-    m_attributes.registerAttribute(*entity::attribute::Attributes::maxHealth());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::knockbackResistance());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::movementSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::maxAbsorption());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::movementEfficiency());
+    attributes().registerAttribute(*entity::attribute::Attributes::maxHealth());
+    attributes().registerAttribute(*entity::attribute::Attributes::knockbackResistance());
+    attributes().registerAttribute(*entity::attribute::Attributes::movementSpeed());
+    attributes().registerAttribute(*entity::attribute::Attributes::armor());
+    attributes().registerAttribute(*entity::attribute::Attributes::armorToughness());
+    attributes().registerAttribute(*entity::attribute::Attributes::maxAbsorption());
+    attributes().registerAttribute(*entity::attribute::Attributes::movementEfficiency());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -502,12 +516,12 @@ void LivingEntity::registerAttributes()
 
 f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) const
 {
-    return m_attributes.getValue(name, defaultValue);
+    return attributes().getValue(name, defaultValue);
 }
 
 void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
 {
-    m_attributes.setBaseValue(name, value);
+    attributes().setBaseValue(name, value);
 }
 
 f32 LivingEntity::getBlockSpeedFactor()
@@ -546,28 +560,32 @@ f32 LivingEntity::getSoundPitch() const
 const ItemStack& LivingEntity::getEquipment(EquipmentSlot slot) const
 {
     size_t index = static_cast<size_t>(slot);
-    if (index >= m_equipment.size()) {
+    auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (c == nullptr || index >= c->m_equipment.size()) {
         static ItemStack empty;
         return empty;
     }
-    return m_equipment[index];
+    return c->m_equipment[index];
 }
 
 ItemStack& LivingEntity::getMutableEquipment(EquipmentSlot slot)
 {
     size_t index = static_cast<size_t>(slot);
-    if (index >= m_equipment.size()) {
+    auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (c == nullptr || index >= c->m_equipment.size()) {
         static ItemStack empty;
         return empty;
     }
-    return m_equipment[index];
+    return c->m_equipment[index];
 }
 
 void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
     size_t index = static_cast<size_t>(slot);
-    if (index < m_equipment.size()) {
-        m_equipment[index] = stack;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>()) {
+        if (index < c->m_equipment.size()) {
+            c->m_equipment[index] = stack;
+        }
     }
 }
 
@@ -616,12 +634,17 @@ void LivingEntity::detectEquipmentUpdates()
         return;
     }
 
+    auto* equip = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (equip == nullptr) {
+        return;
+    }
+
     // 首次调用时初始化装备快照
-    if (!m_lastEquipmentInitialized) {
+    if (!equip->m_lastEquipmentInitialized) {
         for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
-            m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
+            equip->m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
         }
-        m_lastEquipmentInitialized = true;
+        equip->m_lastEquipmentInitialized = true;
         return;
     }
 
@@ -630,7 +653,7 @@ void LivingEntity::detectEquipmentUpdates()
 
     for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
         auto slot = static_cast<EquipmentSlot>(i);
-        const ItemStack& lastStack = m_lastEquipment[i];
+        const ItemStack& lastStack = equip->m_lastEquipment[i];
         const ItemStack& currentStack = getEquipment(slot);
 
         if (equipmentHasChanged(lastStack, currentStack)) {
@@ -648,7 +671,7 @@ void LivingEntity::detectEquipmentUpdates()
     if (anyChanged) {
         for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
             auto slot = static_cast<EquipmentSlot>(i);
-            const ItemStack& lastStack = m_lastEquipment[i];
+            const ItemStack& lastStack = equip->m_lastEquipment[i];
             const ItemStack& currentStack = getEquipment(slot);
 
             if (equipmentHasChanged(lastStack, currentStack)) {
@@ -662,8 +685,8 @@ void LivingEntity::detectEquipmentUpdates()
                             if (entry.equipmentSlot == static_cast<i32>(slot)) {
                                 // 先移除可能存在的同ID修饰符，再添加新的
                                 // 对应 MC 原版 removeModifier(id) + addTransientModifier()
-                                m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
-                                m_attributes.addModifier(entry.attributeName, entry.modifier);
+                                attributes().removeModifier(entry.attributeName, entry.modifier.id());
+                                attributes().addModifier(entry.attributeName, entry.modifier);
                             }
                         }
                     }
@@ -676,7 +699,7 @@ void LivingEntity::detectEquipmentUpdates()
                 }
 
                 // 更新快照
-                m_lastEquipment[i] = currentStack;
+                equip->m_lastEquipment[i] = currentStack;
             }
         }
     }
@@ -699,7 +722,7 @@ void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlo
     item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
     for (const auto& entry : modifiers.getEntries()) {
         if (entry.equipmentSlot == static_cast<i32>(slot)) {
-            m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
+            attributes().removeModifier(entry.attributeName, entry.modifier.id());
         }
     }
 
@@ -802,10 +825,11 @@ void LivingEntity::tick()
 
     // 首帧生命值同步：构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH
     // （如 chicken=4.0），m_health 停在默认 20.0 违反 health<=maxHealth 不变式，致
-    // hurt 的 m_health -= amount 在超 max 基线上扣除，实体"打不死"。此处兜底同步。
+    // hurt 的扣血在超 max 基线上扣除，实体"打不死"。此处兜底同步。
     // 对齐 vanilla LivingEntity 构造末尾 setHealth(getMaxHealth())。
-    if (!m_healthSynced) {
-        m_healthSynced = true;
+    auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
+    if (healthState != nullptr && !healthState->m_healthSynced) {
+        healthState->m_healthSynced = true;
         setHealth(maxHealth());
     }
 
@@ -930,10 +954,7 @@ void LivingEntity::tick()
 void LivingEntity::syncMetadataFromDataManager()
 {
     Entity::syncMetadataFromDataManager();
-    m_health = m_dataManager.get<f32>(DATA_HEALTH_PARAM);
-    m_lastHealth = m_health;
-    m_arrowCount = m_dataManager.get<i32>(DATA_ARROW_COUNT_PARAM);
-    m_stingerCount = m_dataManager.get<i32>(DATA_STINGER_COUNT_PARAM);
+    // health/arrowCount/stingerCount 已组件化为真相源，不从 DataParameter 镜像回填。
 }
 
 void LivingEntity::updateAnimation()
@@ -1032,7 +1053,7 @@ void LivingEntity::tickHealth()
 
     // 检查生命恢复效果
     const i32 regenLevel = getEffectLevel(entity::effect::EffectType::Regeneration);
-    if (regenLevel > 0 && m_health < maxHealth()) {
+    if (regenLevel > 0 && health() < maxHealth()) {
         // 生命恢复 tick 计数器
         m_regenTickCounter++;
         const i32 regenInterval = 50 / (regenLevel + 1);
@@ -1045,7 +1066,7 @@ void LivingEntity::tickHealth()
     }
 
     // 更新属性缓存
-    for (auto& [name, instance] : m_attributes.allInstances()) {
+    for (auto& [name, instance] : attributes().allInstances()) {
         if (instance->isDirty()) {
             (void)instance->getValue(); // 重新计算并缓存，故意丢弃返回值
         }
@@ -1131,7 +1152,7 @@ void LivingEntity::tickFreeze()
 void LivingEntity::removeFrost()
 {
     // 移除冰冻减速修饰符
-    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    auto* speedAttr = attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr != nullptr) {
         speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_UUID);
     }
@@ -1153,7 +1174,7 @@ void LivingEntity::tryAddFrost()
         }
     }
 
-    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    auto* speedAttr = attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr == nullptr) {
         return;
     }
@@ -1853,19 +1874,28 @@ i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const
 
 void LivingEntity::setArrowCountInEntity(i32 count)
 {
-    m_arrowCount = std::max(0, count);
-    m_dataManager.set(DATA_ARROW_COUNT_PARAM, m_arrowCount);
+    const i32 clamped = std::max(0, count);
+    // 组件为真相源，DATA_ARROW_COUNT_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>()) {
+        c->m_arrowCount = clamped;
+    }
+    m_dataManager.set(DATA_ARROW_COUNT_PARAM, clamped);
 }
 
 i32 LivingEntity::getStingerCount() const
 {
-    return m_stingerCount;
+    const auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>();
+    return c != nullptr ? c->m_stingerCount : 0;
 }
 
 void LivingEntity::setStingerCountInEntity(i32 count)
 {
-    m_stingerCount = std::max(0, count);
-    m_dataManager.set(DATA_STINGER_COUNT_PARAM, m_stingerCount);
+    const i32 clamped = std::max(0, count);
+    // 组件为真相源，DATA_STINGER_COUNT_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>()) {
+        c->m_stingerCount = clamped;
+    }
+    m_dataManager.set(DATA_STINGER_COUNT_PARAM, clamped);
 }
 
 void LivingEntity::tickArrows()
@@ -1876,18 +1906,23 @@ void LivingEntity::tickArrows()
         return;
     }
 
-    if (m_arrowCount > 0) {
+    auto* arrowState = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>();
+    if (arrowState == nullptr) {
+        return;
+    }
+
+    if (arrowState->m_arrowCount > 0) {
         // 如果计时器未启动，初始化计时器
         // 公式: 20 * (30 - arrowCount) ticks
         // 箭矢越多，脱落越快
-        if (m_arrowHitTimer <= 0) {
-            m_arrowHitTimer = 20 * (30 - m_arrowCount);
+        if (arrowState->m_arrowHitTimer <= 0) {
+            arrowState->m_arrowHitTimer = 20 * (30 - arrowState->m_arrowCount);
         }
 
-        --m_arrowHitTimer;
-        if (m_arrowHitTimer <= 0) {
+        --arrowState->m_arrowHitTimer;
+        if (arrowState->m_arrowHitTimer <= 0) {
             // 计时器归零，减少一支箭
-            setArrowCountInEntity(m_arrowCount - 1);
+            setArrowCountInEntity(arrowState->m_arrowCount - 1);
         }
     }
 }
@@ -2364,7 +2399,7 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     Entity::addAdditionalSaveData(tag);
 
     // Health (f32)
-    tag.put(nbt_keys::HEALTH, m_health);
+    tag.put(nbt_keys::HEALTH, health());
 
     // AbsorptionAmount (f32)
     tag.put(nbt_keys::ABSORPTION_AMOUNT, absorptionAmount());
@@ -2394,7 +2429,7 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // Attributes - 属性列表
-    nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
+    nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, attributes());
 
     // Equipment - MC 1.21.11 新格式：使用 "equipment" 复合标签存储装备
     // 参考: net.minecraft.world.entity.LivingEntity.addAdditionalSaveData()
@@ -2430,10 +2465,12 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 
     // Health (f32)
     if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {
-        m_health = *val;
-        m_lastHealth = m_health;
-        // NBT 加载的 health 是权威值，标记已同步，避免 tick 首帧 setHealth(maxHealth) 覆盖。
-        m_healthSynced = true;
+        // NBT 加载的 health 是权威值，经 setHealth 完成组件真相源 + DataParameter 镜像双写。
+        // 置 m_healthSynced 避免 tick 首帧 setHealth(maxHealth) 覆盖权威值。
+        setHealth(*val);
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>()) {
+            c->m_healthSynced = true;
+        }
     }
 
     // AbsorptionAmount (f32)
@@ -2472,7 +2509,7 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // Attributes - 属性列表
     // 参考 MC Java: 属性必须在效果之前加载，因为效果 NBT 中的修改器已作为 permanentModifiers
     // 保存在属性 NBT 中。readAttributeMap 会先清除旧修改器再从 NBT 加载，确保属性状态与存档一致。
-    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
+    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, attributes());
 
     // ActiveEffects - 药水效果列表
     // 参考 MC Java: LivingEntity.readAdditionalSaveData()

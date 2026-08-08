@@ -67,8 +67,8 @@ std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/, ecs::EntityRegistry
 void CodEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 std::optional<ResourceLocation> CodEntity::getFlopSound() const

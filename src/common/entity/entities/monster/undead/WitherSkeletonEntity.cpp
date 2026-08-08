@@ -71,7 +71,7 @@ void WitherSkeletonEntity::registerAttributes()
     AbstractSkeletonEntity::registerAttributes();
 
     // 凋灵骷髅攻击伤害为 4.0（比普通骷髅的 2.0 高）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
 }
 
 void WitherSkeletonEntity::setCombatTask()

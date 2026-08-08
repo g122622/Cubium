@@ -219,7 +219,7 @@ void ZombieNautilusEntity::registerAttributes()
     // 僵尸鹦鹉螺比活体鹦鹉螺移动更快
     // 对应 MC 1.21.11 ZombieNautilus.createAttributes():
     // AbstractNautilus.createAttributes().add(Attributes.MOVEMENT_SPEED, 1.1F)
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.1f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.1f);
 }
 
 // ============================================================================

@@ -130,7 +130,7 @@ void PigEntity::onPlayerStopRiding(Player* /*player*/)
 f32 PigEntity::getSteeringSpeed() const
 {
     // 骑乘速度 = 基础速度 * 0.225
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     return baseSpeed * MOUNTED_SPEED_MULT;
 }
 
@@ -197,7 +197,7 @@ void PigEntity::travelTowards(const Vector3& travelVec)
 void PigEntity::travel(const Vector3& travelVec)
 {
     // 设置 AI 移动速度
-    f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 moveSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     setAIMoveSpeed(moveSpeed);
 
     // 调用 IRideable::ride() 处理骑乘移动
@@ -260,7 +260,7 @@ void PigEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 设置猪的基础移动速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
 }
 
 void PigEntity::die(DamageSource& cause)

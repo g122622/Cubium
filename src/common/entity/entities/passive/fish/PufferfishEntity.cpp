@@ -227,8 +227,8 @@ void PufferfishEntity::registerAttributes()
     AbstractFishEntity::registerAttributes();
 
     // 河豚属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void PufferfishEntity::registerData()

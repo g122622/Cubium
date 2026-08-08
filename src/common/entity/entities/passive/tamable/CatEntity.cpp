@@ -324,8 +324,8 @@ void CatEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 猫的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 
     // 与 MC 原版 LivingEntity 构造逻辑一致：构造完成后生命值应等于 maxHealth。
     // 由于 C++ 基类构造函数中虚函数 registerAttributes 不会派发到子类，MAX_HEALTH
@@ -429,7 +429,7 @@ void CatEntity::onTamed(bool tamed)
 {
     if (tamed) {
         // 驯服后增加生命值
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
         setHealth(10.0f);
 
         // 礼物计时器初始化

@@ -391,10 +391,10 @@ void PolarBearEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 北极熊属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 // ==================== PolarBearMeleeAttackGoal ====================

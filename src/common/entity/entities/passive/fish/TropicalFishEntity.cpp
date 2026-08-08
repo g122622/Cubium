@@ -116,8 +116,8 @@ void TropicalFishEntity::randomizeVariant()
 void TropicalFishEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 std::optional<ResourceLocation> TropicalFishEntity::getFlopSound() const

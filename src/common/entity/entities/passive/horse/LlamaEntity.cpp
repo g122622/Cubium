@@ -435,10 +435,10 @@ void LlamaEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
     // 羊驼生命值 = 15 + strength * 5
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f + static_cast<f32>(m_strength) * 5.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.175f);
     // 羊驼的跟随范围是 40 格
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
 }
 
 bool LlamaEntity::isValidArmorForSlot(const ItemStack& item) const

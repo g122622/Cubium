@@ -134,11 +134,11 @@ void IronGolemEntity::registerAttributes()
 
     // 铁傀儡的属性
     // ATTACK_DAMAGE 需要先注册（GolemEntity 继承链中未注册此属性，MonsterEntity 才注册）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
 std::optional<ResourceLocation> IronGolemEntity::getAmbientSound() const

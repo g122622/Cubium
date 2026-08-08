@@ -168,7 +168,7 @@ void WitchEntity::_startDrinkingPotion(entity::effect::EffectType effectType)
     // 女巫基础移动速度为 0.25，减去 0.25 后变为 0，即喝药水时完全停止移动
     entity::attribute::AttributeModifier speedPenalty(
         DRINKING_SPEED_PENALTY_UUID, "Drinking speed penalty", -0.25, entity::attribute::Operation::Addition);
-    m_attributes.addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
+    attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
 }
 
 void WitchEntity::_finishDrinkingPotion()
@@ -181,7 +181,7 @@ void WitchEntity::_finishDrinkingPotion()
     _applyDrankPotionEffect(m_currentPotionType);
 
     // 移除移动速度减益
-    m_attributes.removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
+    attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
 }
 
 void WitchEntity::_applyDrankPotionEffect(entity::effect::EffectType effectType)
@@ -281,8 +281,8 @@ void WitchEntity::registerAttributes()
     AbstractRaiderEntity::registerAttributes();
 
     // 女巫的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 26.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 26.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 // ========== 远程攻击 (IRangedAttackMob) ==========

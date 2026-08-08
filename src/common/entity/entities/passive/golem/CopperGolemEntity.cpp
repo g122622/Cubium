@@ -358,8 +358,8 @@ void CopperGolemEntity::registerAttributes()
     //       .add(Attributes.MOVEMENT_SPEED, 0.2F)
     //       .add(Attributes.STEP_HEIGHT, 1.0)
     //       .add(Attributes.MAX_HEALTH, 12.0)
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
     // STEP_HEIGHT 在构造函数中通过 setStepHeight(1.0f) 设置
 }
 

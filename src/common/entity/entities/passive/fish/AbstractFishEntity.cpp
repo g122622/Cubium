@@ -124,8 +124,8 @@ void AbstractFishEntity::registerGoals()
 void AbstractFishEntity::registerAttributes()
 {
     WaterMobEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 void AbstractFishEntity::updateSwimming()

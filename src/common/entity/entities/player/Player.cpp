@@ -289,7 +289,7 @@ void Player::setGameMode(GameMode mode)
 
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
 
     // 根据游戏模式刷新创造模式交互距离修饰符
     // 对应 MC 1.21.11 ServerPlayer.updatePlayerAttributes()：创造模式 +0.5/+2.0，其他模式移除
@@ -1950,19 +1950,19 @@ void Player::registerAttributes()
 
     // 注册玩家特有属性
     using namespace entity::attribute;
-    m_attributes.registerAttribute(*Attributes::luck());
-    m_attributes.registerAttribute(*Attributes::attackDamage());
-    m_attributes.registerAttribute(*Attributes::attackSpeed());
+    attributes().registerAttribute(*Attributes::luck());
+    attributes().registerAttribute(*Attributes::attackDamage());
+    attributes().registerAttribute(*Attributes::attackSpeed());
     // 注册方块/实体交互距离属性（对应 MC 1.21.11 Player.createAttributes）
-    m_attributes.registerAttribute(*Attributes::blockInteractionRange());
-    m_attributes.registerAttribute(*Attributes::entityInteractionRange());
+    attributes().registerAttribute(*Attributes::blockInteractionRange());
+    attributes().registerAttribute(*Attributes::entityInteractionRange());
 
     // 设置玩家特有属性值
-    m_attributes.setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
-    m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
-    m_attributes.setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
-    m_attributes.setBaseValue(Attributes::BLOCK_INTERACTION_RANGE, defaults::player::BLOCK_INTERACTION_RANGE);
-    m_attributes.setBaseValue(Attributes::ENTITY_INTERACTION_RANGE, defaults::player::ENTITY_INTERACTION_RANGE);
+    attributes().setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
+    attributes().setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);
+    attributes().setBaseValue(Attributes::ATTACK_SPEED, defaults::player::ATTACK_SPEED);
+    attributes().setBaseValue(Attributes::BLOCK_INTERACTION_RANGE, defaults::player::BLOCK_INTERACTION_RANGE);
+    attributes().setBaseValue(Attributes::ENTITY_INTERACTION_RANGE, defaults::player::ENTITY_INTERACTION_RANGE);
     // LUCK 属性默认值为 0.0，无需显式设置
 }
 
@@ -2273,9 +2273,9 @@ void Player::_applyCreativeInteractionRangeModifiers()
     using namespace entity::attribute;
 
     // 方块交互距离：创造模式 +0.5
-    m_attributes.removeModifier(Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID);
+    attributes().removeModifier(Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID);
     if (isCreative()) {
-        m_attributes.addModifier(Attributes::BLOCK_INTERACTION_RANGE,
+        attributes().addModifier(Attributes::BLOCK_INTERACTION_RANGE,
             AttributeModifier(uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID,
                 "Creative Mode Block Interaction Range Boost",
                 0.5,
@@ -2283,9 +2283,9 @@ void Player::_applyCreativeInteractionRangeModifiers()
     }
 
     // 实体交互距离：创造模式 +2.0
-    m_attributes.removeModifier(Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID);
+    attributes().removeModifier(Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID);
     if (isCreative()) {
-        m_attributes.addModifier(Attributes::ENTITY_INTERACTION_RANGE,
+        attributes().addModifier(Attributes::ENTITY_INTERACTION_RANGE,
             AttributeModifier(uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID,
                 "Creative Mode Entity Interaction Range Boost",
                 2.0,

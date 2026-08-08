@@ -1014,9 +1014,9 @@ void WolfEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 狼的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
 
     // 驯服后会增加到20血，由 onTamed 处理
 }
@@ -1051,16 +1051,16 @@ void WolfEntity::onTamed(bool tamed)
 {
     if (tamed) {
         // 驯服后增加生命值上限（从8血变为20血）
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
 
         // 驯服后增加攻击力
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
     } else {
         // 放弃驯服后恢复
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
         setHealth(8.0f);
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     }
 }
 

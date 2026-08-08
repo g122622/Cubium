@@ -185,8 +185,8 @@ void ChickenEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 鸡的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void ChickenEntity::tick()

@@ -733,8 +733,8 @@ void VillagerEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 村民属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
 // ========== 补货系统 ==========
@@ -1343,8 +1343,8 @@ void WanderingTraderEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 流浪商人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
 void WanderingTraderEntity::updateOffers()

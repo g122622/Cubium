@@ -573,7 +573,7 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
             // 执行移动
             if (canPassengerSteer()) {
-                // setAIMoveSpeed(static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
+                // setAIMoveSpeed(static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
                 AnimalEntity::travel(sideInput, vertical, forwardInput);
             } else {
                 // 无法控制时停止移动
@@ -598,12 +598,12 @@ void AbstractHorseEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 马类基础属性
-    m_attributes.registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
-    m_attributes.setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, m_jumpStrength);
+    attributes().registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
+    attributes().setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, m_jumpStrength);
 
     // 设置生命值和速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 
 void AbstractHorseEntity::registerGoals()
@@ -1107,9 +1107,9 @@ void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, A
     offspring.m_speed = static_cast<f32>(babySpeed);
 
     // 更新属性
-    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, offspring.m_horseHealth);
-    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, offspring.m_speed);
-    offspring.m_attributes.setBaseValue(
+    offspring.attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, offspring.m_horseHealth);
+    offspring.attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, offspring.m_speed);
+    offspring.attributes().setBaseValue(
         entity::attribute::Attributes::HORSE_JUMP_STRENGTH, offspring.getJumpStrength());
 }
 

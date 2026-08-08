@@ -149,7 +149,7 @@ void StriderEntity::setSaddle(bool saddle)
 
 f32 StriderEntity::getSteeringSpeed() const
 {
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     return baseSpeed * (isCold() ? MOUNTED_SPEED_COLD : MOUNTED_SPEED_NORMAL);
 }
 
@@ -167,7 +167,7 @@ void StriderEntity::travelTowards(const Vector3& travelVec)
 void StriderEntity::travel(const Vector3& travelVec)
 {
     // 设置 AI 移动速度（考虑寒冷状态）
-    const f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)) *
+    const f32 moveSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED)) *
         (isCold() ? STRIDE_SPEED_COLD : STRIDE_SPEED_NORMAL);
     setAIMoveSpeed(moveSpeed);
 
@@ -520,8 +520,8 @@ void StriderEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 设置炽足兽特定属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }
 
 void StriderEntity::die(DamageSource& cause)

@@ -102,13 +102,13 @@ void RavagerEntity::tick()
     // 更新速度属性（根据攻击状态调整）
     if (isMovementBlocked()) {
         // 禁止移动时速度为 0
-        m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
     } else {
         // 有攻击目标时速度更快
         f64 targetSpeed = attackTarget() != nullptr ? 0.35 : 0.3;
-        f64 currentSpeed = m_attributes.getBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED);
+        f64 currentSpeed = attributes().getBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED);
         f64 newSpeed = math::lerp(0.1, currentSpeed, targetSpeed);
-        m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, newSpeed);
+        attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, newSpeed);
     }
 
     // 碰撞时破坏树叶
@@ -387,14 +387,14 @@ void RavagerEntity::registerAttributes()
     AbstractRaiderEntity::registerAttributes();
 
     // 注册 ATTACK_KNOCKBACK 属性（不在基类中注册）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.75);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.5);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.75);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.5);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 
     // 设置经验值
     setExperienceValue(20);

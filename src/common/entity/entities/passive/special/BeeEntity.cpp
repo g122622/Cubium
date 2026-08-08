@@ -446,15 +446,15 @@ void BeeEntity::registerAttributes()
 
     // 注意：AnimalEntity 不注册 FLYING_SPEED 和 ATTACK_DAMAGE
     // 需要先注册这些属性才能设置值
-    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
 
     // 设置属性值
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
 std::optional<ResourceLocation> BeeEntity::getAmbientSound() const

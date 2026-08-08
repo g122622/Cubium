@@ -65,13 +65,35 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 **暂未处理**：`tests/` 仍不透传 registry（永久约束）。客户端 FreezeComponent 回填点暂不存在（ClientEntity 独立类不继承 mc::Entity、不消费 ticksFrozen），未来实现客户端冰冻渲染时需补。
 
+## 第三批：mob 基础数据组件化（2026-08-09 落地）
+
+延续第二批数据层迁移势头，将 LivingEntity 的 health/attribute/equipment/arrows 四组中频字段搬入 entt 组件。第二批已确立的"组件真相源 + DataParameter 镜像"模式在本批规模化复用，模式成熟风险可控。
+
+**新增 4 组件**（均仅 LivingEntity attach，普通 Entity 不持有）：
+- `HealthComponent`（m_health/m_lastHealth/m_healthSynced）：m_health 为同步真相源，`DATA_HEALTH_PARAM` 退为镜像。延续第二批 freeze 的同步镜像模式。
+- `EquipmentComponent`（m_equipment[8]/m_lastEquipment[8]/m_lastEquipmentInitialized）：装备无独立 DataParameter（走实体追踪器路径），setEquipment 单写组件，无镜像，最简单的组件化场景。
+- `ArrowStateComponent`（m_arrowCount/m_stingerCount/m_arrowHitTimer）：arrowCount/stingerCount 同步真相源。箭矢/蜂针不持久化（无 NBT），仅运行时同步。
+- `AttributeComponent`（`unique_ptr<AttributeMap>` 包裹）：承载 LivingEntity::m_attributes。AttributeMap 含 `mutable std::mutex` 不可移动/拷贝，用 unique_ptr 包裹使组件可移动（不引入 pinned type 契约风险）。
+
+**关键设计决策**：
+- AttributeComponent 须在 `registerAttributes()` 之前 attach——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 的 `MC_ASSERT_RELEASE` 断言失败。
+- 原 `protected m_attributes` 成员被子类约 70 文件 320 处直接访问（registerAttributes 重写），删除成员后子类改调 `public attributes()` getter 委托（`m_attributes.xxx` → `attributes().xxx`）。getter 提供 const + 非 const 双重载。
+- 构造期虚函数时序：LivingEntity 构造函数调 registerAttributes() 时 vtable 仍是 LivingEntity 的（仅注册基类 7 属性），叶子类构造体显式再调 registerAttributes() 经继承链逐层向上注册专属属性（如 chicken=4.0/fox=10.0）。组件化后该时序不变——叶子类构造体执行时基类已 attach AttributeComponent，`attributes()` 可取到组件。
+- health 初始值同步至 maxHealth 在 tick() 首帧兜底执行（HealthComponent.m_healthSynced 标志），因派生类 registerAttributes 时序晚于 LivingEntity 构造，构造期 setHealth 无法拿到派生类 maxHealth。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests）。
+- GameTest 回归：8/8 passed exitCode=0 零回归（simpleMobTest 含 fox 属性/寻路、zombie_villager_chase、iron_golem_arena、zoglin_float 等均通过，证明属性系统迁移无回归）。
+- 修复本批引入的 IWYU 违规：LivingEntity.hpp 的 inline `attributes()` getter 用 `MC_ASSERT_RELEASE` 未 include `AssertMacros.hpp`（基类 Entity.hpp 未传递，tests/ 包含时暴露），补 include。
+
+**暂未处理**：`tests/` 741 处测试构造仍不透传 registry（永久约束）。Player 子类重写 getMutableEquipment/setEquipment 委托到 PlayerInventory，不读写 EquipmentComponent，本组件仅承载非 Player 的 LivingEntity 装备。
+
 ## 后续批次路线（备忘，未落地）
 
-- **批次3**：mob 基础数据（health/attribute/equipment）组件化。
 - **批次4**：同步体系重构为 SynchedData 中间层（替换 EntityDataManager，保留 vanilla ID 分配语义）。剩余 C 类同步字段（air/health/noGravity/pose/flags 等）在此批统一改真相源在组件。
 - **批次5**：11 个混入接口转 tag/capability component；约 1220 处 dynamic_cast 改组件查询。
 - **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 11 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 13 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托），迁移后续批次前务必先读。

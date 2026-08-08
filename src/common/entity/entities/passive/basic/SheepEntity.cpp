@@ -291,8 +291,8 @@ void SheepEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 羊的属性设置
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
 }
 
 void SheepEntity::tick()

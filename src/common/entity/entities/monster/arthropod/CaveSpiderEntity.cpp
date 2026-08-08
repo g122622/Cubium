@@ -61,9 +61,9 @@ void CaveSpiderEntity::registerAttributes()
     SpiderEntity::registerAttributes();
 
     // 洞穴蜘蛛的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 bool CaveSpiderEntity::attackEntityAsMob(LivingEntity& target)

@@ -253,10 +253,10 @@ void PillagerEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
 // ==================== VindicatorEntity ====================
@@ -342,11 +342,11 @@ void VindicatorEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     // 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 
 } // namespace mc

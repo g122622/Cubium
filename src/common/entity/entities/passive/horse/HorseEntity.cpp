@@ -206,8 +206,8 @@ void HorseEntity::registerGoals()
 void HorseEntity::registerAttributes()
 {
     AbstractHorseEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
 }
 
 std::optional<ResourceLocation> HorseEntity::getAmbientSound() const

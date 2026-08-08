@@ -146,7 +146,7 @@ void RabbitEntity::applyRabbitType(RabbitType newType)
     //   }
     if (newType == RabbitType::Killer) {
         // 杀手兔护甲值 = 8
-        m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 8.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 8.0);
 
         // 注册近战攻击目标（速度 1.4，使用长期记忆）
         // 对应 MC goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.4, true))
@@ -167,7 +167,7 @@ void RabbitEntity::applyRabbitType(RabbitType newType)
 
         // ATTACK_DAMAGE +5 修改器（对应 MC EVIL_ATTACK_POWER_MODIFIER）
         // 使用 addOrUpdateTransientModifier 语义：先移除同 ID 修改器再添加
-        if (auto* inst = m_attributes.getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
+        if (auto* inst = attributes().getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
             inst->removeModifier(EVIL_ATTACK_POWER_MODIFIER_ID);
             inst->addModifier(entity::attribute::AttributeModifier(EVIL_ATTACK_POWER_MODIFIER_ID,
                 "Killer rabbit attack power boost",
@@ -176,7 +176,7 @@ void RabbitEntity::applyRabbitType(RabbitType newType)
         }
     } else {
         // 非杀手兔变种：移除 EVIL_ATTACK_POWER_MODIFIER（如果存在）
-        if (auto* inst = m_attributes.getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
+        if (auto* inst = attributes().getInstance(entity::attribute::Attributes::ATTACK_DAMAGE); inst != nullptr) {
             inst->removeModifier(EVIL_ATTACK_POWER_MODIFIER_ID);
         }
     }
@@ -670,13 +670,13 @@ void RabbitEntity::registerAttributes()
     //       .add(MAX_HEALTH, 3.0).add(MOVEMENT_SPEED, 0.3F).add(ATTACK_DAMAGE, 3.0)
     // 兔子需要 ATTACK_DAMAGE 属性以支持杀手兔变种的攻击（+5 修改器）。
     // AnimalEntity 基类不注册 ATTACK_DAMAGE（仅 MonsterEntity 注册），此处显式注册。
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     // 基础攻击伤害 3.0（对应 MC DEFAULT_ATTACK_POWER = 3）
     // 杀手兔变种在 applyRabbitType() 中添加 +5 修改器
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 
 } // namespace mc

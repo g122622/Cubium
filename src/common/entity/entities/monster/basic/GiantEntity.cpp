@@ -69,10 +69,10 @@ void GiantEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 巨人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
 }
 
 std::optional<ResourceLocation> GiantEntity::getAmbientSound() const

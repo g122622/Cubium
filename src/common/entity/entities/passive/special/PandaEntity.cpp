@@ -307,12 +307,12 @@ void PandaEntity::registerAttributes()
         maxHealth = 10.0f;
     }
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, maxHealth);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.15); // 熊猫移动较慢
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, maxHealth);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.15); // 熊猫移动较慢
 
     // 好斗熊猫攻击力更高
     if (isAggressive()) {
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
     }
 }
 

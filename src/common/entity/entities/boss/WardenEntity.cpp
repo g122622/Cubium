@@ -333,18 +333,18 @@ void WardenEntity::registerAttributes()
     //       .add(Attributes.ATTACK_DAMAGE, 30.0)
     //       .add(Attributes.FOLLOW_RANGE, 24.0);
 
-    m_attributes.setBaseValue(attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
-    m_attributes.setBaseValue(attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
+    attributes().setBaseValue(attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
+    attributes().setBaseValue(attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
 
     // 注册并设置击退抗性（MobEntity 默认注册了 KNOCKBACK_RESISTANCE，但保险起见调用 setBaseValue）
-    m_attributes.setBaseValue(attribute::Attributes::KNOCKBACK_RESISTANCE, KNOCKBACK_RESISTANCE);
+    attributes().setBaseValue(attribute::Attributes::KNOCKBACK_RESISTANCE, KNOCKBACK_RESISTANCE);
 
     // 注册攻击击退属性（MobEntity 默认未注册 ATTACK_KNOCKBACK）
-    m_attributes.registerAttribute(*attribute::Attributes::attackKnockback());
-    m_attributes.setBaseValue(attribute::Attributes::ATTACK_KNOCKBACK, ATTACK_KNOCKBACK);
+    attributes().registerAttribute(*attribute::Attributes::attackKnockback());
+    attributes().setBaseValue(attribute::Attributes::ATTACK_KNOCKBACK, ATTACK_KNOCKBACK);
 
-    m_attributes.setBaseValue(attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
-    m_attributes.setBaseValue(attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
+    attributes().setBaseValue(attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().setBaseValue(attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
 }
 
 } // namespace entity
