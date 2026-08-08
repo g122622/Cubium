@@ -34,8 +34,8 @@
 namespace mc {
 namespace entity {
 
-DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
 {
     setNoGravity(true);
 }
@@ -60,8 +60,8 @@ void DamagingProjectileEntity::tick()
         }
     }
 
-    const Vector3 velocity = m_velocity;
-    const Vector3 nextPosition = m_position + velocity;
+    const Vector3 velocity = m_builtIn.velocity->m_velocity;
+    const Vector3 nextPosition = m_builtIn.stateVector->m_pos + velocity;
 
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
@@ -72,15 +72,15 @@ void DamagingProjectileEntity::tick()
         spawnWaterParticles();
     }
 
-    m_velocity = Vector3((velocity.x + m_accelerationX) * motionFactor,
+    m_builtIn.velocity->m_velocity = Vector3((velocity.x + m_accelerationX) * motionFactor,
         (velocity.y + m_accelerationY) * motionFactor,
         (velocity.z + m_accelerationZ) * motionFactor);
 
     // 生成拖尾粒子，位置 Y+0.5 偏移
     spawnTrailParticles(Vector3(nextPosition.x, nextPosition.y + 0.5f, nextPosition.z));
 
-    m_prevPosition = m_position;
-    m_position = nextPosition;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = nextPosition;
 
     Entity::tick();
 }
@@ -108,8 +108,8 @@ void DamagingProjectileEntity::spawnWaterParticles()
     if (m_world != nullptr && m_world->isClientSide()) {
         for (i32 i = 0; i < 4; ++i) {
             constexpr f32 offset = 0.25f;
-            Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset, y() - m_builtIn.velocity->m_velocity.y * offset, z() - m_builtIn.velocity->m_velocity.z * offset);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
         }
     }
 }

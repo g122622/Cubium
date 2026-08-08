@@ -171,7 +171,12 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
 
     // 正常投掷模式
     // 创建三叉戟实体
-    auto tridentEntity = std::make_unique<entity::TridentEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto tridentEntity = std::make_unique<entity::TridentEntity>(EntityInstanceId(0), *registry);
     tridentEntity->setTypeId(entity::EntityTypeKeys::TRIDENT);
     tridentEntity->setWorld(&world);
     tridentEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());

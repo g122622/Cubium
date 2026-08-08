@@ -61,8 +61,8 @@ static const std::string COVERED_ARMOR_BONUS_ID = "shulker_covered_armor_bonus";
 // ShulkerEntity 实现
 // ============================================================================
 
-ShulkerEntity::ShulkerEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+ShulkerEntity::ShulkerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 潜影贝不移动
     setExperienceValue(5);
@@ -75,9 +75,9 @@ ShulkerEntity::ShulkerEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ShulkerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ShulkerEntity>(EntityInstanceId(0));
+    return std::make_unique<ShulkerEntity>(EntityInstanceId(0), registry);
 }
 
 void ShulkerEntity::updatePeekTicks(i32 peekTicks)
@@ -139,9 +139,9 @@ bool ShulkerEntity::_tryTeleportToNewPosition()
     }
 
     // 获取当前位置
-    BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos currentPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     for (i32 i = 0; i < TELEPORT_ATTEMPTS; ++i) {
         // 随机目标位置（±8格）
@@ -232,9 +232,15 @@ void ShulkerEntity::shootBullet()
         return;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 创建潜影贝子弹
     auto bullet =
-        std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing));
+        std::make_unique<entity::ShulkerBulletEntity>(m_world, this, target, Directions::getAxis(m_attachmentFacing), *registry);
     m_world->spawnEntity(std::move(bullet));
 
     // 设置攻击冷却
@@ -283,9 +289,9 @@ void ShulkerEntity::tick()
     // 更新附着位置
     if (m_attachmentPos.x == 0 && m_attachmentPos.y == 0 && m_attachmentPos.z == 0) {
         // 初始化附着位置
-        m_attachmentPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)),
-            static_cast<i32>(std::floor(m_position.z)));
+        m_attachmentPos = BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     }
 
     // 更新贝壳状态

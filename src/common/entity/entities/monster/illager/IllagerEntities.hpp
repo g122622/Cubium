@@ -55,13 +55,13 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      * @param id 实体ID
      */
-    PillagerEntity(EntityInstanceId id);
+    PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PillagerEntity() override = default;
 
     // 禁止拷贝
@@ -142,13 +142,13 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      * @param id 实体ID
      */
-    VindicatorEntity(EntityInstanceId id);
+    VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~VindicatorEntity() override = default;
 
     // 禁止拷贝

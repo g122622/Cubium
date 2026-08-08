@@ -614,8 +614,14 @@ i32 NaturalSpawner::_trySpawnAt(
             continue;
         }
 
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry == nullptr) {
+            continue;
+        }
+
         // 创建实体
-        std::unique_ptr<Entity> entity = entityType->create(&world);
+        std::unique_ptr<Entity> entity = entityType->create(&world, *ecsRegistry);
         if (!entity) {
             continue;
         }

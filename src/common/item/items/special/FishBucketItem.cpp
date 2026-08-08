@@ -123,7 +123,12 @@ bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos) const
     }
 
     // 创建鱼实体
-    auto fish = fishType->create(&world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto fish = fishType->create(&world, *registry);
     if (!fish) {
         return false;
     }

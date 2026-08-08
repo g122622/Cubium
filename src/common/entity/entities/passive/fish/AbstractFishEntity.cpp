@@ -69,8 +69,8 @@ void AbstractFishEntity::registerData()
     m_dataManager.registerParam(FROM_BUCKET_PARAM, false);
 }
 
-AbstractFishEntity::AbstractFishEntity(EntityInstanceId id)
-    : WaterMobEntity(id)
+AbstractFishEntity::AbstractFishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : WaterMobEntity(id, registry)
 {
     // 设置鱼类最大空气供应量（480 ticks = 24秒）
     setAir(maxAir());

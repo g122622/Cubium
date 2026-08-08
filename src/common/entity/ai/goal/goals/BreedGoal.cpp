@@ -194,10 +194,15 @@ void BreedGoal::spawnBaby()
             m_targetMate->spawnHeartParticles();
 
             // 生成 1-7 个经验球
+            // ECS 迁移：实体构造需要 registry 句柄（world 已判空，此处 registry 必非空）
+            auto* registry = world->entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
             i32 xpCount = 1 + rng.nextInt(7);
             for (i32 i = 0; i < xpCount; ++i) {
-                auto xpOrb =
-                    std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
+                auto xpOrb = std::make_unique<ExperienceOrbEntity>(
+                    world, m_animal->x(), m_animal->y(), m_animal->z(), 1, *registry);
 
                 // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
                 xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);

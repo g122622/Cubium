@@ -955,6 +955,12 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
         return;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
     const BlockState* currentState = &state;
 
@@ -976,7 +982,7 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
         }
 
         // 创建掉落方块实体
-        auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+        auto fallingEntity = std::make_unique<entity::FallingBlockEntity>(*registry);
         fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
         fallingEntity->setPosition(static_cast<f32>(currentPos.x) + 0.5f,
             static_cast<f32>(currentPos.y),

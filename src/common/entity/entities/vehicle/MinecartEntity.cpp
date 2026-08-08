@@ -106,16 +106,16 @@ const EntityClassInfo& AbstractMinecartEntity::classInfo()
 // AbstractMinecartEntity
 // ============================================================================
 
-AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityInstanceId id)
-    : Entity(id)
+AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
     , m_type(type)
 {
     // 矿车默认属性
     registerData();
 }
 
-AbstractMinecartEntity::AbstractMinecartEntity(Type type)
-    : Entity(EntityInstanceId(0))
+AbstractMinecartEntity::AbstractMinecartEntity(Type type, ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
     , m_type(type)
 {
     registerData();
@@ -171,7 +171,7 @@ void AbstractMinecartEntity::tick()
     Entity::tick();
 
     // 同步乘客位置：矿车自身已在本 tick 移动到新位置（_moveAlongTrack/_moveDerailedMinecart），
-    // 须把骑乘实体的 m_position 更新到矿车当前位置，否则乘客位置永远停在出生点
+    // 须把骑乘实体的 m_builtIn.stateVector->m_pos 更新到矿车当前位置，否则乘客位置永远停在出生点
     // （GameTest minibiomes 矿车载猪超时根因）。对齐 AbstractHorseEntity::tick 的 updatePassengers 模式。
     updatePassengers();
 }
@@ -1066,9 +1066,9 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
 // RideableMinecartEntity
 // ============================================================================
 
-std::unique_ptr<Entity> RideableMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> RideableMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<RideableMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<RideableMinecartEntity>(EntityInstanceId(0), registry);
 }
 
 void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
@@ -1098,13 +1098,13 @@ void RideableMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool power
 // ChestMinecartEntity
 // ============================================================================
 
-std::unique_ptr<Entity> ChestMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ChestMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ChestMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<ChestMinecartEntity>(EntityInstanceId(0), registry);
 }
 
-ChestMinecartEntity::ChestMinecartEntity(EntityInstanceId id)
-    : AbstractMinecartEntity(Type::Chest, id)
+ChestMinecartEntity::ChestMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractMinecartEntity(Type::Chest, id, registry)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
 {}
 
@@ -1202,9 +1202,9 @@ i32 ChestMinecartEntity::getComparatorOutput() const
 // FurnaceMinecartEntity
 // ============================================================================
 
-std::unique_ptr<Entity> FurnaceMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FurnaceMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(0), registry);
 }
 
 void FurnaceMinecartEntity::tick()
@@ -1338,9 +1338,9 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
 // TNTMinecartEntity
 // ============================================================================
 
-std::unique_ptr<Entity> TNTMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TNTMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TNTMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<TNTMinecartEntity>(EntityInstanceId(0), registry);
 }
 
 void TNTMinecartEntity::tick()
@@ -1597,13 +1597,13 @@ void TNTMinecartEntity::_explode(f32 speedFactor, const DamageSource* damageSour
 // HopperMinecartEntity
 // ============================================================================
 
-std::unique_ptr<Entity> HopperMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> HopperMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<HopperMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<HopperMinecartEntity>(EntityInstanceId(0), registry);
 }
 
-HopperMinecartEntity::HopperMinecartEntity(EntityInstanceId id)
-    : AbstractMinecartEntity(Type::Hopper, id)
+HopperMinecartEntity::HopperMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractMinecartEntity(Type::Hopper, id, registry)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
 {}
 
@@ -1909,13 +1909,13 @@ void CommandBlockMinecartEntity::_executeCommand()
 // SpawnerMinecartEntity
 // ============================================================================
 
-SpawnerMinecartEntity::SpawnerMinecartEntity(EntityInstanceId id)
-    : AbstractMinecartEntity(Type::Spawner, id)
+SpawnerMinecartEntity::SpawnerMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractMinecartEntity(Type::Spawner, id, registry)
 {}
 
-std::unique_ptr<Entity> SpawnerMinecartEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpawnerMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpawnerMinecartEntity>(EntityInstanceId(0));
+    return std::make_unique<SpawnerMinecartEntity>(EntityInstanceId(0), registry);
 }
 
 void SpawnerMinecartEntity::tick()

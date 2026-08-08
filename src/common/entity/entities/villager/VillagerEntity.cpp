@@ -115,13 +115,13 @@ const std::unordered_map<const Item*, i32>& VillagerEntity::foodPoints()
 // VillagerEntity
 // ============================================================================
 
-std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VillagerEntity>(0);
+    return std::make_unique<VillagerEntity>(0, registry);
 }
 
-VillagerEntity::VillagerEntity(EntityInstanceId id)
-    : AbstractVillagerEntity(id)
+VillagerEntity::VillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractVillagerEntity(id, registry)
     , m_brain(std::make_unique<VillagerBrain>())
 {
     registerAttributes();
@@ -556,7 +556,12 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
 {
-    auto child = std::make_unique<VillagerEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto child = std::make_unique<VillagerEntity>(0, *registry);
     child->setChild(true);
 
     // 继承村民类型
@@ -1109,13 +1114,13 @@ void VillagerEntity::_increaseMerchantCareer()
 // WanderingTraderEntity
 // ============================================================================
 
-std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WanderingTraderEntity>(0);
+    return std::make_unique<WanderingTraderEntity>(0, registry);
 }
 
-WanderingTraderEntity::WanderingTraderEntity(EntityInstanceId id)
-    : AbstractVillagerEntity(id)
+WanderingTraderEntity::WanderingTraderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractVillagerEntity(id, registry)
 {
     m_despawnDelay = 48000; // 40分钟 = 48000 ticks
     registerAttributes();
@@ -1157,6 +1162,11 @@ void WanderingTraderEntity::spawnLlamas()
 
     // 在流浪商人附近生成贸易羊驼
     // 最多2只羊驼，生成在商人后方
+    // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
     math::Random& rng = m_world->getRandom();
 
     for (i32 i = 0; i < m_llamaCount && i < 2; ++i) {
@@ -1169,7 +1179,7 @@ void WanderingTraderEntity::spawnLlamas()
         f64 spawnY = y();
 
         // 创建商队羊驼
-        auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0));
+        auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), *registry);
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 

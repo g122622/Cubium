@@ -52,15 +52,16 @@ namespace entity {
  */
 class EnderCrystalEntity : public Entity {
 public:
-    EnderCrystalEntity();
+    EnderCrystalEntity(ecs::EntityRegistry& registry);
     ~EnderCrystalEntity() override = default;
 
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表，透传给构造函数
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     void tick() override;
 
@@ -132,15 +133,16 @@ private:
  */
 class LightningBoltEntity : public Entity {
 public:
-    LightningBoltEntity();
+    LightningBoltEntity(ecs::EntityRegistry& registry);
     ~LightningBoltEntity() override = default;
 
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表，透传给构造函数
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     void tick() override;
 
@@ -226,7 +228,7 @@ private:
  */
 class AreaEffectCloudEntity : public Entity {
 public:
-    AreaEffectCloudEntity();
+    AreaEffectCloudEntity(ecs::EntityRegistry& registry);
     ~AreaEffectCloudEntity() override = default;
 
     void tick() override;
@@ -395,8 +397,10 @@ public:
 
     /**
      * @brief 创建实体工厂方法
+     * @param world 世界实例
+     * @param registry ECS 实体注册表，透传给构造函数
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
 private:
     /**
@@ -467,15 +471,16 @@ private:
  */
 class ArmorStandEntity : public Entity {
 public:
-    ArmorStandEntity();
+    ArmorStandEntity(ecs::EntityRegistry& registry);
     ~ArmorStandEntity() override = default;
 
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表，透传给构造函数
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     void tick() override;
 

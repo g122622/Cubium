@@ -36,6 +36,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -54,12 +55,12 @@ namespace entity {
 
 // ==================== HangingEntity ====================
 
-HangingEntity::HangingEntity()
-    : Entity(EntityInstanceId(0))
+HangingEntity::HangingEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {}
 
-HangingEntity::HangingEntity(BlockPos pos, Direction direction)
-    : Entity(EntityInstanceId(0))
+HangingEntity::HangingEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
     , m_hangingPos(pos)
     , m_direction(direction)
 {
@@ -214,17 +215,18 @@ const std::vector<PaintingEntity::PaintingType> PaintingEntity::PAINTING_TYPES =
     {"Skeleton2", 3, 4},
     {"Bust2", 3, 4}};
 
-std::unique_ptr<Entity> PaintingEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PaintingEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PaintingEntity>();
+    return std::make_unique<PaintingEntity>(registry);
 }
 
-PaintingEntity::PaintingEntity()
-    : HangingEntity()
+PaintingEntity::PaintingEntity(ecs::EntityRegistry& registry)
+    : HangingEntity(registry)
 {}
 
-PaintingEntity::PaintingEntity(BlockPos pos, Direction direction, const std::string& motive)
-    : HangingEntity(pos, direction)
+PaintingEntity::PaintingEntity(
+    BlockPos pos, Direction direction, const std::string& motive, ecs::EntityRegistry& registry)
+    : HangingEntity(pos, direction, registry)
 {
     setMotive(motive);
 }
@@ -277,17 +279,17 @@ void PaintingEntity::setMotive(const std::string& motive)
 
 // ==================== ItemFrameEntity ====================
 
-std::unique_ptr<Entity> ItemFrameEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ItemFrameEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ItemFrameEntity>();
+    return std::make_unique<ItemFrameEntity>(registry);
 }
 
-ItemFrameEntity::ItemFrameEntity()
-    : HangingEntity()
+ItemFrameEntity::ItemFrameEntity(ecs::EntityRegistry& registry)
+    : HangingEntity(registry)
 {}
 
-ItemFrameEntity::ItemFrameEntity(BlockPos pos, Direction direction)
-    : HangingEntity(pos, direction)
+ItemFrameEntity::ItemFrameEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry)
+    : HangingEntity(pos, direction, registry)
 {}
 
 void ItemFrameEntity::tick()
@@ -444,17 +446,17 @@ mc::Direction ItemFrameEntity::getHorizontalFacing() const
 
 // ==================== LeashKnotEntity ====================
 
-std::unique_ptr<Entity> LeashKnotEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> LeashKnotEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<LeashKnotEntity>();
+    return std::make_unique<LeashKnotEntity>(registry);
 }
 
-LeashKnotEntity::LeashKnotEntity()
-    : HangingEntity()
+LeashKnotEntity::LeashKnotEntity(ecs::EntityRegistry& registry)
+    : HangingEntity(registry)
 {}
 
-LeashKnotEntity::LeashKnotEntity(BlockPos pos, Direction direction)
-    : HangingEntity(pos, direction)
+LeashKnotEntity::LeashKnotEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry)
+    : HangingEntity(pos, direction, registry)
 {}
 
 LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos& pos)
@@ -474,7 +476,10 @@ LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos&
     }
 
     // 创建新的拴绳结
-    auto newKnot = std::make_unique<LeashKnotEntity>(pos, HangingEntity::Direction::SOUTH);
+    // 经 IWorld::entityRegistry() 取 ECS 注册表（服务端非空，客户端返回 nullptr）
+    auto* registry = world.entityRegistry();
+    MC_ASSERT_RELEASE(registry != nullptr);
+    auto newKnot = std::make_unique<LeashKnotEntity>(pos, HangingEntity::Direction::SOUTH, *registry);
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     newKnot->setTypeId(EntityTypeKeys::LEASH_KNOT);
     auto* rawPtr = newKnot.get();

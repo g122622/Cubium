@@ -26,6 +26,12 @@ src/common/entity/
 │   ├── BoostHelper.hpp             # 加速辅助类（鞍和加速状态管理）
 │   ├── VanillaEntities.hpp         # 原版实体注册
 │
+├── ecs/                            # ★ ECS 数据层（OOP→ECS 混合架构的数据组件）
+│   ├── context/                    #   ECS 核心包装（EntityId / EntityRegistry / EntityContext）
+│   ├── components/                 #   数据组件（StateVector / Velocity / AABBShape / Rotation / Owner / UniqueID）
+│   ├── systems/                    #   系统层（ISystem / 阶段编排器 / EntityLegacyTickSystem）
+│   └── README.md                   #   ECS 层说明（架构决策、坑位、指针稳定性契约）
+│
 ├── tag/                            # 实体类型标签
 │   ├── EntityTypeTag.hpp/cpp       # 实体类型标签类
 │   ├── EntityTypeTags.hpp/cpp      # 内置标签集合（IMPACT_PROJECTILES 等）

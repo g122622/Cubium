@@ -64,7 +64,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    MonsterEntity(EntityInstanceId id);
+    MonsterEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~MonsterEntity() override = default;
 

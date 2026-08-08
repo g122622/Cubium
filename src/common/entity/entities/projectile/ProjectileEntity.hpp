@@ -292,7 +292,7 @@ protected:
      * @brief 构造函数（子类调用）
      * @param id 实体ID
      */
-    explicit ProjectileEntity(EntityInstanceId id);
+    explicit ProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 更新旋转（根据速度方向）

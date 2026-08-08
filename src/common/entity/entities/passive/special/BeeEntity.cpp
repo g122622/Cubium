@@ -79,8 +79,8 @@ const entity::EntityClassInfo& BeeEntity::classInfo()
 // 构造与生命周期
 // ============================================================================
 
-BeeEntity::BeeEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+BeeEntity::BeeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -94,9 +94,9 @@ BeeEntity::BeeEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BeeEntity>(0);
+    return std::make_unique<BeeEntity>(0, registry);
 }
 
 // ============================================================================
@@ -291,7 +291,13 @@ bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    auto baby = std::make_unique<BeeEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto baby = std::make_unique<BeeEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

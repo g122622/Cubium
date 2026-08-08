@@ -957,6 +957,9 @@ bool Template::placeInWorld(
 
     // 处理实体
     if (!settings.ignoreEntities() && !m_entities.empty()) {
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+
         for (const auto& entityInfo : m_entities) {
             // 变换实体方块位置（用于边界框检查）
             BlockPos transformedBlockPos =
@@ -987,8 +990,8 @@ bool Template::placeInWorld(
             if (!entityInfo.typeId.empty()) {
                 // 解析实体类型
                 const entity::EntityType* entityType = entity::EntityRegistry::instance().getType(entityInfo.typeId);
-                if (entityType) {
-                    auto entity = entityType->create(&world);
+                if (entityType && ecsRegistry != nullptr) {
+                    auto entity = entityType->create(&world, *ecsRegistry);
                     if (entity) {
                         // 加载 NBT 数据到实体（对应 MC 1.21.11 EntityType.create(NBT)）
                         // NBT 包含实体的完整状态（健康、装备、年龄、自定义数据等），

@@ -299,43 +299,48 @@ void EndSpikeFeature::placeSpike(
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* crystalType = registry.getType(entity::EntityTypeKeys::END_CRYSTAL);
     if (crystalType != nullptr) {
-        std::unique_ptr<Entity> crystalEntity = crystalType->create(&world);
-        if (crystalEntity != nullptr) {
-            auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(crystalEntity.get());
-            if (crystal != nullptr) {
-                // 设置光束目标（如果配置中有）
-                if (config.crystalBeamTarget.has_value()) {
-                    crystal->setBeamTarget(*config.crystalBeamTarget);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry != nullptr) {
+            std::unique_ptr<Entity> crystalEntity = crystalType->create(&world, *ecsRegistry);
+            if (crystalEntity != nullptr) {
+                auto* crystal = dynamic_cast<entity::EnderCrystalEntity*>(crystalEntity.get());
+                if (crystal != nullptr) {
+                    // 设置光束目标（如果配置中有）
+                    if (config.crystalBeamTarget.has_value()) {
+                        crystal->setBeamTarget(*config.crystalBeamTarget);
+                    }
+                    // 设置无敌状态（重生阶段中柱顶水晶为无敌）
+                    crystal->setInvulnerable(config.crystalInvulnerable);
+
+                    // 设置位置和随机朝向
+                    // MC: endcrystal.snapTo(centerX + 0.5, height + 1, centerZ + 0.5,
+                    //                       random.nextFloat() * 360.0F, 0.0F);
+                    const f32 yaw = random.nextFloat() * 360.0f;
+                    crystalEntity->setPosition(Vector3(static_cast<f32>(baseX) + 0.5f,
+                        static_cast<f32>(height) + 1.0f,
+                        static_cast<f32>(baseZ) + 0.5f));
+                    crystalEntity->setRotation(yaw, 0.0f);
+
+                    // 记录水晶位置（用于下方基岩/火焰放置）
+                    const BlockPos crystalPos(baseX, height + 1, baseZ);
+
+                    // 加入世界
+                    // MC: p_225247_.addFreshEntity(endcrystal);
+                    world.spawnEntity(std::move(crystalEntity));
+
+                    // 在水晶下方放置基岩底座
+                    // MC: this.setBlock(p_225247_, blockpos1.below(), Blocks.BEDROCK.defaultBlockState());
+                    const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+                    if (bedrock != nullptr) {
+                        world.setBlockState(crystalPos.x, crystalPos.y - 1, crystalPos.z, bedrock);
+                    }
+
+                    // 在水晶位置放置火焰
+                    // MC: this.setBlock(p_225247_, blockpos1, FireBlock.getState(p_225247_, blockpos1));
+                    const BlockState& fireState = blocks::FireBlock::getFireState(world, crystalPos);
+                    world.setBlockState(crystalPos.x, crystalPos.y, crystalPos.z, &fireState);
                 }
-                // 设置无敌状态（重生阶段中柱顶水晶为无敌）
-                crystal->setInvulnerable(config.crystalInvulnerable);
-
-                // 设置位置和随机朝向
-                // MC: endcrystal.snapTo(centerX + 0.5, height + 1, centerZ + 0.5,
-                //                       random.nextFloat() * 360.0F, 0.0F);
-                const f32 yaw = random.nextFloat() * 360.0f;
-                crystalEntity->setPosition(Vector3(
-                    static_cast<f32>(baseX) + 0.5f, static_cast<f32>(height) + 1.0f, static_cast<f32>(baseZ) + 0.5f));
-                crystalEntity->setRotation(yaw, 0.0f);
-
-                // 记录水晶位置（用于下方基岩/火焰放置）
-                const BlockPos crystalPos(baseX, height + 1, baseZ);
-
-                // 加入世界
-                // MC: p_225247_.addFreshEntity(endcrystal);
-                world.spawnEntity(std::move(crystalEntity));
-
-                // 在水晶下方放置基岩底座
-                // MC: this.setBlock(p_225247_, blockpos1.below(), Blocks.BEDROCK.defaultBlockState());
-                const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
-                if (bedrock != nullptr) {
-                    world.setBlockState(crystalPos.x, crystalPos.y - 1, crystalPos.z, bedrock);
-                }
-
-                // 在水晶位置放置火焰
-                // MC: this.setBlock(p_225247_, blockpos1, FireBlock.getState(p_225247_, blockpos1));
-                const BlockState& fireState = blocks::FireBlock::getFireState(world, crystalPos);
-                world.setBlockState(crystalPos.x, crystalPos.y, crystalPos.z, &fireState);
             }
         }
     }

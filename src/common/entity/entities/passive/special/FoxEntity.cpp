@@ -61,8 +61,8 @@
 
 namespace mc {
 
-FoxEntity::FoxEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+FoxEntity::FoxEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -71,9 +71,9 @@ FoxEntity::FoxEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FoxEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FoxEntity>(0);
+    return std::make_unique<FoxEntity>(0, registry);
 }
 
 // ========== 信任系统 ==========
@@ -416,7 +416,13 @@ bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 {
-    auto baby = std::make_unique<FoxEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto baby = std::make_unique<FoxEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

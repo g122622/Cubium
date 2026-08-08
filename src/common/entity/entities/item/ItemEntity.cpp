@@ -85,21 +85,21 @@ const entity::EntityClassInfo& ItemEntity::classInfo()
 // 静态工厂方法
 // ============================================================================
 
-std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ItemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 创建一个空的物品实体，使用临时ID 0
     // 实际ID会在 EntityManager::addEntity() 时分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
     ItemStack emptyStack;
-    return std::make_unique<ItemEntity>(0, emptyStack, 0.0f, 0.0f, 0.0f);
+    return std::make_unique<ItemEntity>(0, emptyStack, 0.0f, 0.0f, 0.0f, registry);
 }
 
 // ============================================================================
 // 构造函数
 // ============================================================================
 
-ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z)
-    : Entity(id)
+ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
     , m_itemStack(stack)
 {
     // ItemEntity 直接继承 Entity，DATA_ITEM_PARAM 应分配到继承链 id 8（Entity 8 字段之后）。
@@ -114,13 +114,21 @@ ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y
     // 初始化速度（轻微随机）
     math::Random rng(static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
-    m_velocity.x = rng.nextFloat(-0.1f, 0.1f);
-    m_velocity.y = 0.2f; // 轻微向上
-    m_velocity.z = rng.nextFloat(-0.1f, 0.1f);
+    m_builtIn.velocity->m_velocity.x = rng.nextFloat(-0.1f, 0.1f);
+    m_builtIn.velocity->m_velocity.y = 0.2f; // 轻微向上
+    m_builtIn.velocity->m_velocity.z = rng.nextFloat(-0.1f, 0.1f);
 }
 
-ItemEntity::ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz)
-    : Entity(id)
+ItemEntity::ItemEntity(EntityInstanceId id,
+    const ItemStack& stack,
+    f32 x,
+    f32 y,
+    f32 z,
+    f32 vx,
+    f32 vy,
+    f32 vz,
+    ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
     , m_itemStack(stack)
 {
     // 同上：用 ClassRegisterGuard 提供 ItemEntity 类上下文，分配继承链 id。
@@ -195,9 +203,9 @@ bool ItemEntity::hurt(DamageSource& source, f32 amount)
 
     // 6. 发送 ENTITY_DAMAGE 游戏事件（用于幽匿感测体检测）
     if (m_world != nullptr) {
-        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         m_world->gameEvent(
             gameevent::GameEvents::ENTITY_DAMAGE, blockPos, gameevent::GameEvent::Context::of(source.getEntity()));
     }
@@ -332,14 +340,14 @@ void ItemEntity::_updateMerge()
     }
 
     // 合并检测间隔：移动时每 2 tick 检测，静止时每 40 tick 检测
-    bool hasMoved = m_position.distanceSquared(m_prevPosition) > 0.0001f;
+    bool hasMoved = m_builtIn.stateVector->m_pos.distanceSquared(m_builtIn.stateVector->m_posPrev) > 0.0001f;
     i32 checkInterval = hasMoved ? 2 : 40;
     if (m_ticksExisted % checkInterval != 0) {
         return;
     }
 
     // 搜索附近可合并的物品实体
-    AxisAlignedBB searchBox = m_boundingBox.expand(MERGE_RANGE, 0.0f, MERGE_RANGE);
+    AxisAlignedBB searchBox = m_builtIn.aabbShape->m_aabb.expand(MERGE_RANGE, 0.0f, MERGE_RANGE);
     std::vector<Entity*> nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : nearbyEntities) {
@@ -474,9 +482,9 @@ void ItemEntity::_updatePhysics()
     bool inWater = false;
     bool inLava = false;
     if (m_world) {
-        const i32 blockX = static_cast<i32>(std::floor(m_position.x));
-        const i32 blockY = static_cast<i32>(std::floor(m_position.y));
-        const i32 blockZ = static_cast<i32>(std::floor(m_position.z));
+        const i32 blockX = static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x));
+        const i32 blockY = static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y));
+        const i32 blockZ = static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z));
         inWater = m_world->isWaterAt(blockX, blockY, blockZ);
         inLava = m_world->isLavaAt(blockX, blockY, blockZ);
     }
@@ -491,33 +499,34 @@ void ItemEntity::_updatePhysics()
     }
 
     // 3. 执行移动
-    if (std::abs(m_velocity.x) > 0.001f || std::abs(m_velocity.y) > 0.001f || std::abs(m_velocity.z) > 0.001f ||
-        !m_onGround) {
+    if (std::abs(m_builtIn.velocity->m_velocity.x) > 0.001f || std::abs(m_builtIn.velocity->m_velocity.y) > 0.001f ||
+        std::abs(m_builtIn.velocity->m_velocity.z) > 0.001f || !m_onGround) {
 
         // 带碰撞移动
         if (m_physicsEngine || m_world) {
-            Vector3 actual = moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+            Vector3 actual = moveWithCollision(
+                m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
 
             // 落地反弹逻辑
             if (m_collidedVertically) {
-                if (m_velocity.y < 0.0f) {
+                if (m_builtIn.velocity->m_velocity.y < 0.0f) {
                     // 落地：反弹并减速
-                    m_velocity.y = -m_velocity.y * 0.5f;
+                    m_builtIn.velocity->m_velocity.y = -m_builtIn.velocity->m_velocity.y * 0.5f;
                     m_onGround = true;
                     m_fallDistance = 0.0f;
                 } else {
                     // 撞到天花板
-                    m_velocity.y = 0.0f;
+                    m_builtIn.velocity->m_velocity.y = 0.0f;
                 }
             }
 
             // 水平碰撞反弹
             if (m_collidedHorizontally) {
-                m_velocity.x *= -0.5f;
-                m_velocity.z *= -0.5f;
+                m_builtIn.velocity->m_velocity.x *= -0.5f;
+                m_builtIn.velocity->m_velocity.z *= -0.5f;
             }
         } else {
-            move(m_velocity.x, m_velocity.y, m_velocity.z);
+            move(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
         }
     }
 
@@ -527,41 +536,41 @@ void ItemEntity::_updatePhysics()
 void ItemEntity::_applyNormalPhysics()
 {
     // 使用统一物理常量
-    m_velocity.y -= physics::ITEM_GRAVITY;
-    m_velocity.y *= physics::ITEM_DRAG;
+    m_builtIn.velocity->m_velocity.y -= physics::ITEM_GRAVITY;
+    m_builtIn.velocity->m_velocity.y *= physics::ITEM_DRAG;
 
-    m_velocity.x *= physics::ITEM_HORIZONTAL_DRAG;
-    m_velocity.z *= physics::ITEM_HORIZONTAL_DRAG;
+    m_builtIn.velocity->m_velocity.x *= physics::ITEM_HORIZONTAL_DRAG;
+    m_builtIn.velocity->m_velocity.z *= physics::ITEM_HORIZONTAL_DRAG;
 
     // 速度阈值
     constexpr f32 VELOCITY_THRESHOLD = 0.001f;
-    if (std::abs(m_velocity.x) < VELOCITY_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < VELOCITY_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < VELOCITY_THRESHOLD) m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < VELOCITY_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
 }
 
 void ItemEntity::_applyWaterPhysics()
 {
     // 水中物理：轻微浮力 + 阻力
     // 浮力：当速度小于 0.06 时，向上推 0.0005
-    if (m_velocity.y < 0.06f) {
-        m_velocity.y += 0.0005f;
+    if (m_builtIn.velocity->m_velocity.y < 0.06f) {
+        m_builtIn.velocity->m_velocity.y += 0.0005f;
     }
     // 水中阻力：0.99
-    m_velocity.x *= 0.99f;
-    m_velocity.y *= 0.99f;
-    m_velocity.z *= 0.99f;
+    m_builtIn.velocity->m_velocity.x *= 0.99f;
+    m_builtIn.velocity->m_velocity.y *= 0.99f;
+    m_builtIn.velocity->m_velocity.z *= 0.99f;
 }
 
 void ItemEntity::_applyLavaPhysics()
 {
     // 岩浆中物理：浮力 + 阻力
     // 浮力：向上推 0.0005
-    m_velocity.y += 0.0005f;
+    m_builtIn.velocity->m_velocity.y += 0.0005f;
     // 岩浆阻力：0.95
-    m_velocity.x *= 0.95f;
-    m_velocity.y *= 0.95f;
-    m_velocity.z *= 0.95f;
+    m_builtIn.velocity->m_velocity.x *= 0.95f;
+    m_builtIn.velocity->m_velocity.y *= 0.95f;
+    m_builtIn.velocity->m_velocity.z *= 0.95f;
 
     // 岩浆点燃和伤害
     // 参考 MC Java: LavaFluid.entityInside() -> lavaIgnite() + lavaHurt()

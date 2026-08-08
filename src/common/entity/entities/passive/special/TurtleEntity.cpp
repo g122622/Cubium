@@ -69,8 +69,8 @@ const entity::EntityClassInfo& TurtleEntity::classInfo()
     return s_classInfo;
 }
 
-TurtleEntity::TurtleEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+TurtleEntity::TurtleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 海龟可以走上1格高的方块
     setStepHeight(1.0f);
@@ -87,9 +87,9 @@ TurtleEntity::TurtleEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TurtleEntity>(0);
+    return std::make_unique<TurtleEntity>(0, registry);
 }
 
 void TurtleEntity::setHomePos(const BlockPos& pos)
@@ -150,8 +150,14 @@ bool TurtleEntity::canBreed() const
 
 std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小海龟，继承出生地记忆
-    auto baby = std::make_unique<TurtleEntity>(0);
+    auto baby = std::make_unique<TurtleEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

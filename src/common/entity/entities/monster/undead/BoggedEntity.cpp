@@ -29,8 +29,8 @@
 
 namespace mc {
 
-BoggedEntity::BoggedEntity(EntityInstanceId id)
-    : AbstractSkeletonEntity(id)
+BoggedEntity::BoggedEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractSkeletonEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -39,9 +39,9 @@ BoggedEntity::BoggedEntity(EntityInstanceId id)
     setCombatTask();
 }
 
-std::unique_ptr<Entity> BoggedEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BoggedEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BoggedEntity>(EntityInstanceId(0));
+    return std::make_unique<BoggedEntity>(EntityInstanceId(0), registry);
 }
 
 void BoggedEntity::registerAttributes()

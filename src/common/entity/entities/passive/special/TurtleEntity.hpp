@@ -66,7 +66,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    TurtleEntity(EntityInstanceId id);
+    TurtleEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~TurtleEntity() override = default;
 
     // 禁止拷贝
@@ -82,7 +82,7 @@ public:
      * @param world 世界实例
      * @return 新的海龟实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 出生地系统 ==========
 

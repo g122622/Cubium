@@ -70,8 +70,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    GlowSquidEntity(EntityInstanceId id);
+    GlowSquidEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GlowSquidEntity() override = default;
 
     // 禁止拷贝和移动
@@ -85,7 +86,7 @@ public:
      * @param world 世界实例（未使用，实体 ID 由 spawnEntity 重新分配）
      * @return 新的发光鱿鱼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 暗化状态 ==========
 

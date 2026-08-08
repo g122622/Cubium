@@ -126,12 +126,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit WitherEntity(EntityInstanceId id);
+    explicit WitherEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~WitherEntity() noexcept override = default;
 

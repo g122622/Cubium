@@ -776,7 +776,13 @@ void TrialSpawnerBlockEntity::spawnMob(IWorld& world)
         static_cast<i32>(std::floor(spawnPos.z)));
 
     // 4. 创建实体
-    auto entity = entityType->create(&world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        m_nextSpawnEntityId = ResourceLocation();
+        return;
+    }
+    auto entity = entityType->create(&world, *registry);
     if (entity == nullptr) {
         m_nextSpawnEntityId = ResourceLocation();
         return;

@@ -58,9 +58,14 @@ entity::ProjectileItemEntity* SnowballItem::createProjectile(
 }
 
 std::unique_ptr<entity::ProjectileEntity> SnowballItem::createProjectileEntity(
-    IWorld& /*world*/, const ItemStack& /*stack*/) const
+    IWorld& world, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::SnowballEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::SnowballEntity>(EntityInstanceId(0), *registry);
     entity->setTypeId(entity::EntityTypeKeys::SNOWBALL);
     return entity;
 }
@@ -88,9 +93,14 @@ entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& p
 }
 
 std::unique_ptr<entity::ProjectileEntity> EggItem::createProjectileEntity(
-    IWorld& /*world*/, const ItemStack& /*stack*/) const
+    IWorld& world, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EggEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::EggEntity>(EntityInstanceId(0), *registry);
     entity->setTypeId(entity::EntityTypeKeys::EGG);
     return entity;
 }
@@ -119,9 +129,14 @@ entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
 }
 
 std::unique_ptr<entity::ProjectileEntity> EnderPearlItem::createProjectileEntity(
-    IWorld& /*world*/, const ItemStack& /*stack*/) const
+    IWorld& world, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::EnderPearlEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::EnderPearlEntity>(EntityInstanceId(0), *registry);
     entity->setTypeId(entity::EntityTypeKeys::ENDER_PEARL);
     return entity;
 }
@@ -150,9 +165,14 @@ entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
 }
 
 std::unique_ptr<entity::ProjectileEntity> ExperienceBottleItem::createProjectileEntity(
-    IWorld& /*world*/, const ItemStack& /*stack*/) const
+    IWorld& world, const ItemStack& /*stack*/) const
 {
-    auto entity = std::make_unique<entity::ExperienceBottleEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::ExperienceBottleEntity>(EntityInstanceId(0), *registry);
     entity->setTypeId(entity::EntityTypeKeys::EXPERIENCE_BOTTLE);
     return entity;
 }

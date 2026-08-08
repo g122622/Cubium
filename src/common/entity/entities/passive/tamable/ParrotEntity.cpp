@@ -46,17 +46,17 @@
 
 namespace mc {
 
-ParrotEntity::ParrotEntity(EntityInstanceId id)
-    : ShoulderRidingEntity(id)
+ParrotEntity::ParrotEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ShoulderRidingEntity(id, registry)
 {
     randomizeVariant();
     registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ParrotEntity>(0);
+    return std::make_unique<ParrotEntity>(0, registry);
 }
 
 void ParrotEntity::randomizeVariant()

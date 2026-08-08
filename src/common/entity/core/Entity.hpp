@@ -42,6 +42,8 @@
 #include "common/command/ICommandSource.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
+#include "common/entity/ecs/context/EntityContext.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include <algorithm>
 #include <array>
@@ -151,10 +153,19 @@ public:
 
     /**
      * @brief 构造函数
+     *
      * @param id 实体ID
-     * @param world 世界指针（可选）
+     * @param world 世界指针（可为 nullptr，测试/反序列化场景）
+     * @param registry ECS 实体注册表引用。构造时立即在此 registry 内 create 出 ECS
+     *   实体并 attach 4 个高频组件（StateVector/Velocity/AABBShape/EntityRotation），
+     *   缓存裸指针到 m_builtIn，使后续 position()/velocity() 等 getter 直接解引用。
+     *
+     *   【为何构造时即 attach】entt 的实体与组件绑定在创建它的 registry 上、不可跨
+     *   registry 迁移，故构造时 registry 必须就位（对齐基岩版 Actor(ILevel&,
+     *   EntityContext&) 构造签名透传 EntityContext 的设计）。首批所有实体类型在构造
+     *   时挂同一套基础组件，差异化组件由后续批次在工厂 attachAll 中补充。
      */
-    Entity(EntityInstanceId id, IWorld* world = nullptr);
+    Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
     virtual ~Entity() = default;
 
     // 禁止拷贝
@@ -288,11 +299,16 @@ public:
     [[nodiscard]] const entity::EntityDataManager& dataManager() const { return m_dataManager; }
 
     // ========== 位置 ==========
+    //
+    // 位置/速度/旋转/AABB 四类高频数据已迁入 ECS 组件（StateVectorComponent 等），
+    // 本类不再持有可写字段副本，getter/setter 直接读写 m_builtIn 缓存的组件裸指针
+    // （零双写硬约束：避免同帧字段与组件两份可写副本不一致）。m_builtIn 在构造时
+    // attach 组件后填充，随 Entity 生命周期稳定（首批4组件永不移除，指针稳定）。
 
-    [[nodiscard]] Vector3 position() const { return m_position; }
-    [[nodiscard]] f32 x() const { return m_position.x; }
-    [[nodiscard]] f32 y() const { return m_position.y; }
-    [[nodiscard]] f32 z() const { return m_position.z; }
+    [[nodiscard]] Vector3 position() const { return m_builtIn.stateVector->m_pos; }
+    [[nodiscard]] f32 x() const { return m_builtIn.stateVector->m_pos.x; }
+    [[nodiscard]] f32 y() const { return m_builtIn.stateVector->m_pos.y; }
+    [[nodiscard]] f32 z() const { return m_builtIn.stateVector->m_pos.z; }
 
     /**
      * @brief 获取实体高度按比例偏移后的 Y 坐标
@@ -315,7 +331,7 @@ public:
      */
     [[nodiscard]] f64 getY(f64 partialY) const
     {
-        return static_cast<f64>(m_position.y) + static_cast<f64>(height()) * partialY;
+        return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(height()) * partialY;
     }
 
     /**
@@ -330,7 +346,7 @@ public:
      *
      * @return 眼睛 Y 坐标（f64 精度）
      */
-    [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_position.y) + static_cast<f64>(eyeHeight()); }
+    [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(eyeHeight()); }
 
     /**
      * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）
@@ -342,30 +358,36 @@ public:
      */
     [[nodiscard]] BlockPos onPos() const
     {
-        return BlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)) - 1,
-            static_cast<i32>(std::floor(m_position.z)));
+        return BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)) - 1,
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     }
 
     // 前一帧位置（用于插值）
-    [[nodiscard]] Vector3 prevPosition() const { return m_prevPosition; }
-    [[nodiscard]] f32 prevX() const { return m_prevPosition.x; }
-    [[nodiscard]] f32 prevY() const { return m_prevPosition.y; }
-    [[nodiscard]] f32 prevZ() const { return m_prevPosition.z; }
+    [[nodiscard]] Vector3 prevPosition() const { return m_builtIn.stateVector->m_posPrev; }
+    [[nodiscard]] f32 prevX() const { return m_builtIn.stateVector->m_posPrev.x; }
+    [[nodiscard]] f32 prevY() const { return m_builtIn.stateVector->m_posPrev.y; }
+    [[nodiscard]] f32 prevZ() const { return m_builtIn.stateVector->m_posPrev.z; }
 
     /**
      * @brief 计算到另一个实体的距离
      * @param other 另一个实体
      * @return 距离（非平方）
      */
-    [[nodiscard]] f32 distanceTo(const Entity& other) const { return m_position.distance(other.m_position); }
+    [[nodiscard]] f32 distanceTo(const Entity& other) const
+    {
+        return m_builtIn.stateVector->m_pos.distance(other.m_builtIn.stateVector->m_pos);
+    }
 
     /**
      * @brief 计算到另一个实体的距离平方
      * @param other 另一个实体
      * @return 距离的平方（避免开方运算，适合比较）
      */
-    [[nodiscard]] f32 distanceSqTo(const Entity& other) const { return m_position.distanceSquared(other.m_position); }
+    [[nodiscard]] f32 distanceSqTo(const Entity& other) const
+    {
+        return m_builtIn.stateVector->m_pos.distanceSquared(other.m_builtIn.stateVector->m_pos);
+    }
 
     /**
      * @brief 计算到指定位置的距离平方
@@ -376,9 +398,9 @@ public:
      */
     [[nodiscard]] f32 distanceSqTo(f32 px, f32 py, f32 pz) const
     {
-        f32 dx = px - m_position.x;
-        f32 dy = py - m_position.y;
-        f32 dz = pz - m_position.z;
+        f32 dx = px - m_builtIn.stateVector->m_pos.x;
+        f32 dy = py - m_builtIn.stateVector->m_pos.y;
+        f32 dz = pz - m_builtIn.stateVector->m_pos.z;
         return dx * dx + dy * dy + dz * dz;
     }
 
@@ -387,30 +409,30 @@ public:
      */
     [[nodiscard]] f32 distanceHorizontalSqTo(f32 px, f32 pz) const
     {
-        f32 dx = px - m_position.x;
-        f32 dz = pz - m_position.z;
+        f32 dx = px - m_builtIn.stateVector->m_pos.x;
+        f32 dz = pz - m_builtIn.stateVector->m_pos.z;
         return dx * dx + dz * dz;
     }
 
     // ========== 旋转 ==========
 
-    [[nodiscard]] f32 yaw() const { return m_yaw; }
-    [[nodiscard]] f32 pitch() const { return m_pitch; }
-    [[nodiscard]] f32 prevYaw() const { return m_prevYaw; }
-    [[nodiscard]] f32 prevPitch() const { return m_prevPitch; }
+    [[nodiscard]] f32 yaw() const { return m_builtIn.rotation->m_rot.x; }
+    [[nodiscard]] f32 pitch() const { return m_builtIn.rotation->m_rot.y; }
+    [[nodiscard]] f32 prevYaw() const { return m_builtIn.rotation->m_rotPrev.x; }
+    [[nodiscard]] f32 prevPitch() const { return m_builtIn.rotation->m_rotPrev.y; }
 
     /// 设置偏航角（不更新 prevYaw，用于偏转等场景）
-    void setYaw(f32 yaw) { m_yaw = yaw; }
+    void setYaw(f32 yaw) { m_builtIn.rotation->m_rot.x = yaw; }
 
     /// 设置上一tick偏航角
-    void setPrevYaw(f32 prevYaw) { m_prevYaw = prevYaw; }
+    void setPrevYaw(f32 prevYaw) { m_builtIn.rotation->m_rotPrev.x = prevYaw; }
 
     // ========== 速度 ==========
 
-    [[nodiscard]] Vector3 velocity() const { return m_velocity; }
-    [[nodiscard]] f32 velocityX() const { return m_velocity.x; }
-    [[nodiscard]] f32 velocityY() const { return m_velocity.y; }
-    [[nodiscard]] f32 velocityZ() const { return m_velocity.z; }
+    [[nodiscard]] Vector3 velocity() const { return m_builtIn.velocity->m_velocity; }
+    [[nodiscard]] f32 velocityX() const { return m_builtIn.velocity->m_velocity.x; }
+    [[nodiscard]] f32 velocityY() const { return m_builtIn.velocity->m_velocity.y; }
+    [[nodiscard]] f32 velocityZ() const { return m_builtIn.velocity->m_velocity.z; }
 
     // ========== 状态 ==========
 
@@ -514,9 +536,9 @@ public:
      */
     void addVelocity(f32 dx, f32 dy, f32 dz)
     {
-        m_velocity.x += dx;
-        m_velocity.y += dy;
-        m_velocity.z += dz;
+        m_builtIn.velocity->m_velocity.x += dx;
+        m_builtIn.velocity->m_velocity.y += dy;
+        m_builtIn.velocity->m_velocity.z += dz;
     }
 
     /**
@@ -533,9 +555,9 @@ public:
      */
     void scaleVelocity(f32 factor)
     {
-        m_velocity.x *= factor;
-        m_velocity.y *= factor;
-        m_velocity.z *= factor;
+        m_builtIn.velocity->m_velocity.x *= factor;
+        m_builtIn.velocity->m_velocity.y *= factor;
+        m_builtIn.velocity->m_velocity.z *= factor;
     }
 
     /**
@@ -780,7 +802,7 @@ public:
         if (!m_dimensionsInitialized) {
             const_cast<Entity*>(this)->refreshDimensions();
         }
-        return m_boundingBox;
+        return m_builtIn.aabbShape->m_aabb;
     }
 
     /**
@@ -2656,16 +2678,23 @@ protected:
     // const 方法内的懒查询。指向 EntityRegistry::m_types 内对象，地址稳定。
     // 声明于 m_typeId 之后，与 m_memTrack 布局约束兼容（m_memTrack 须居数据成员前）。
     mutable const entity::EntityType* m_entityType = nullptr;
-    Vector3 m_position;     // 当前位置
-    Vector3 m_prevPosition; // 上一帧位置
-    Vector3 m_velocity;     // 速度
+
+    // ========== ECS 桥接 ==========
+    //
+    // m_entityContext：ECS 实体的非拥有视图三元组（registry 引用 + entt registry
+    // 引用 + EntityId），由构造时 registry.create() 建立。通过它可查询任意组件
+    // （首批4高频组件已由 m_builtIn 缓存裸指针加速，其余组件走 context 查询）。
+    //
+    // m_builtIn：4 高频组件（StateVector/Velocity/AABBShape/EntityRotation）的裸
+    // 指针缓存，构造 attach 后填充。position()/velocity() 等 getter 直接解引用，
+    // 避免每次走 entt 查询。指针稳定性契约见 BuiltInEntityComponents.hpp。
+    //
+    // 原 m_position/m_prevPosition/m_velocity/m_yaw/m_pitch/m_prevYaw/m_prevPitch/
+    // m_boundingBox 8 个字段已删除，数据迁入上述组件（零双写硬约束）。
+    std::unique_ptr<ecs::EntityContext> m_entityContext;
+    ecs::BuiltInEntityComponents m_builtIn{};
 
     mutable math::Random m_random; ///< 实体随机数生成器，构造时初始化
-
-    f32 m_yaw = 0.0f;   // 偏航角 (Y轴旋转)
-    f32 m_pitch = 0.0f; // 俯仰角 (X轴旋转)
-    f32 m_prevYaw = 0.0f;
-    f32 m_prevPitch = 0.0f;
 
     bool m_onGround = false;
     bool m_removed = false;
@@ -2674,7 +2703,7 @@ protected:
     EntityPose m_pose = EntityPose::Standing;
     EntityFlags m_flags = EntityFlags::None;
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);
-    AxisAlignedBB m_boundingBox = AxisAlignedBB::fromPosition(Vector3(0.0f, 0.0f, 0.0f), 0.6f, 1.8f);
+    // m_boundingBox 已迁入 AABBShapeComponent（见 m_builtIn.aabbShape->m_aabb）。
     bool m_dimensionsInitialized = false;
 
     // 物理相关

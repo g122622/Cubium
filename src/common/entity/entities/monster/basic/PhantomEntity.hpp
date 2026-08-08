@@ -69,9 +69,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    PhantomEntity(EntityInstanceId id);
+    PhantomEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PhantomEntity() override = default;
 
     // 禁止拷贝

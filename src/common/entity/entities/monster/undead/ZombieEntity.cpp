@@ -123,8 +123,8 @@ void ZombieEntity::registerData()
     m_dataManager.registerParam(DATA_DROWNED_CONVERSION_PARAM, false);
 }
 
-ZombieEntity::ZombieEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+ZombieEntity::ZombieEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 僵尸可以在阳光下燃烧
     setBurnsInDaylight(true);
@@ -140,9 +140,9 @@ ZombieEntity::ZombieEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZombieEntity>(EntityInstanceId(0));
+    return std::make_unique<ZombieEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> ZombieEntity::getAmbientSound() const
@@ -287,9 +287,9 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
     math::Random& rng = getRandom();
 
     // 僵尸位置（取整）
-    i32 baseX = math::floorTo<i32>(m_position.x);
-    i32 baseY = math::floorTo<i32>(m_position.y);
-    i32 baseZ = math::floorTo<i32>(m_position.z);
+    i32 baseX = math::floorTo<i32>(m_builtIn.stateVector->m_pos.x);
+    i32 baseY = math::floorTo<i32>(m_builtIn.stateVector->m_pos.y);
+    i32 baseZ = math::floorTo<i32>(m_builtIn.stateVector->m_pos.z);
 
     // 创建 ISpawnWorldReader 适配器，用于 EntitySpawnPlacementRegistry 的生成位置检查
     world::spawn::IWorldSpawnAdapter spawnWorldAdapter(world);
@@ -334,7 +334,12 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         }
 
         // 创建增援僵尸实体
-        std::unique_ptr<Entity> newEntity = entityType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry == nullptr) {
+            continue;
+        }
+        std::unique_ptr<Entity> newEntity = entityType->create(&world, *ecsRegistry);
         if (newEntity == nullptr) {
             continue;
         }
@@ -568,12 +573,20 @@ void ZombieEntity::convertToDrowned()
     const entity::EntityType* drownedType = registry.getType("minecraft:drowned");
 
     // 2. 创建溺尸实体
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = worldPtr->entityRegistry();
+    // ECS 迁移：实体构造强制需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS，
+    // 此时无法构造实体，直接放弃转换（转换本就只应在服务端进行）
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
     std::unique_ptr<Entity> newEntity;
     if (drownedType && drownedType->canSummon()) {
-        newEntity = drownedType->create(worldPtr);
+        newEntity = drownedType->create(worldPtr, *ecsRegistry);
     } else {
         // 回退：直接创建实体类
-        newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0));
+        newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0), *ecsRegistry);
     }
 
     DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());
@@ -582,8 +595,8 @@ void ZombieEntity::convertToDrowned()
     }
 
     // 3. 复制位置和旋转
-    drowned->setPosition(m_position);
-    drowned->setRotation(m_yaw, m_pitch);
+    drowned->setPosition(m_builtIn.stateVector->m_pos);
+    drowned->setRotation(m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
 
     // 4. 复制生命值（按比例）
     f32 healthRatio = health() / maxHealth();
@@ -630,7 +643,9 @@ void ZombieEntity::convertToDrowned()
     // 11. 播放转化音效
     playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
     worldPtr->playEvent(world::WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND,
-        BlockPos(static_cast<i32>(m_position.x), static_cast<i32>(m_position.y), static_cast<i32>(m_position.z)),
+        BlockPos(static_cast<i32>(m_builtIn.stateVector->m_pos.x),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.y),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.z)),
         0);
 
     // 12. 重置转化状态

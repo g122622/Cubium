@@ -63,8 +63,8 @@ void AbstractRaiderEntity::registerData()
     m_dataManager.registerParam(IS_CELEBRATING_PARAM, false);
 }
 
-AbstractRaiderEntity::AbstractRaiderEntity(EntityInstanceId id)
-    : PatrollerEntity(id)
+AbstractRaiderEntity::AbstractRaiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : PatrollerEntity(id, registry)
 {
     // 显式调用 registerData() 注册 IS_CELEBRATING（C++ 基类构造期虚函数不派发，
     // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。

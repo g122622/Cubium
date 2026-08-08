@@ -71,17 +71,17 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-SpearEntity::SpearEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+SpearEntity::SpearEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
     // 长矛投掷命中伤害与三叉戟一致（8.0）
     m_damage = 8.0f;
     setPickupStatus(PickupStatus::Allowed);
 }
 
-std::unique_ptr<Entity> SpearEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpearEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpearEntity>(0);
+    return std::make_unique<SpearEntity>(0, registry);
 }
 
 void SpearEntity::onEntityHit(const RayTraceResult& result)
@@ -119,7 +119,7 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     // 击退效果
     if (m_knockbackStrength > 0) {
         f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -128,7 +128,7 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 速度反转为轻微反弹（与三叉戟一致）
-    m_velocity = Vector3(m_velocity.x * -0.01f, m_velocity.y * -0.1f, m_velocity.z * -0.01f);
+    m_builtIn.velocity->m_velocity = Vector3(m_builtIn.velocity->m_velocity.x * -0.01f, m_builtIn.velocity->m_velocity.y * -0.1f, m_builtIn.velocity->m_velocity.z * -0.01f);
 
     // 播放命中音效
     playSound(SoundEvents::ITEM_SPEAR_HIT, 1.0f, 1.0f);

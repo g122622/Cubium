@@ -85,13 +85,14 @@ public:
      * @param type 矿车类型
      * @param id 实体ID
      */
-    AbstractMinecartEntity(Type type, EntityInstanceId id);
+    AbstractMinecartEntity(Type type, EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数（用于工厂创建）
      * @param type 矿车类型
+     * @param registry ECS 实体注册表
      */
-    explicit AbstractMinecartEntity(Type type = Type::Rideable);
+    explicit AbstractMinecartEntity(Type type, ecs::EntityRegistry& registry);
 
     ~AbstractMinecartEntity() override = default;
 
@@ -472,10 +473,10 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    RideableMinecartEntity(EntityInstanceId id)
-        : AbstractMinecartEntity(Type::Rideable, id)
+    RideableMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractMinecartEntity(Type::Rideable, id, registry)
     {}
 
     /**
@@ -496,9 +497,9 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    ChestMinecartEntity(EntityInstanceId id);
+    ChestMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 箱子矿车有额外的摩擦力
@@ -580,10 +581,10 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    FurnaceMinecartEntity(EntityInstanceId id)
-        : AbstractMinecartEntity(Type::Furnace, id)
+    FurnaceMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractMinecartEntity(Type::Furnace, id, registry)
     {}
 
     void tick() override;
@@ -670,10 +671,10 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    TNTMinecartEntity(EntityInstanceId id)
-        : AbstractMinecartEntity(Type::TNT, id)
+    TNTMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractMinecartEntity(Type::TNT, id, registry)
     {}
 
     void tick() override;
@@ -782,9 +783,9 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    HopperMinecartEntity(EntityInstanceId id);
+    HopperMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~HopperMinecartEntity() override = default;
 
     void tick() override;
@@ -890,8 +891,8 @@ private:
  */
 class CommandBlockMinecartEntity : public AbstractMinecartEntity {
 public:
-    CommandBlockMinecartEntity(EntityInstanceId id)
-        : AbstractMinecartEntity(Type::CommandBlock, id)
+    CommandBlockMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractMinecartEntity(Type::CommandBlock, id, registry)
     {}
 
     void tick() override;
@@ -973,9 +974,9 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    SpawnerMinecartEntity(EntityInstanceId id);
+    SpawnerMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 

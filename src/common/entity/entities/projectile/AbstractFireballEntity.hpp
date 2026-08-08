@@ -54,14 +54,14 @@ public:
     [[nodiscard]] f32 height() const override { return 1.0f; }
 
 protected:
-    explicit AbstractFireballEntity(EntityInstanceId id);
+    explicit AbstractFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 };
 
 class FireballEntity : public AbstractFireballEntity {
 public:
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit FireballEntity(EntityInstanceId id);
+    explicit FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
@@ -79,9 +79,9 @@ private:
 
 class SmallFireballEntity : public AbstractFireballEntity {
 public:
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit SmallFireballEntity(EntityInstanceId id);
+    explicit SmallFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] f32 width() const override { return 0.3125f; }
     [[nodiscard]] f32 height() const override { return 0.3125f; }
@@ -93,9 +93,9 @@ protected:
 
 class DragonFireballEntity : public AbstractFireballEntity {
 public:
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit DragonFireballEntity(EntityInstanceId id);
+    explicit DragonFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
@@ -119,9 +119,9 @@ private:
 
 class WitherSkullEntity : public AbstractFireballEntity {
 public:
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit WitherSkullEntity(EntityInstanceId id);
+    explicit WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] f32 width() const override { return 0.3125f; }
     [[nodiscard]] f32 height() const override { return 0.3125f; }

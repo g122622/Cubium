@@ -36,8 +36,8 @@
 
 namespace mc {
 
-CaveSpiderEntity::CaveSpiderEntity(EntityInstanceId id)
-    : SpiderEntity(id)
+CaveSpiderEntity::CaveSpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SpiderEntity(id, registry)
 {
     // 注册属性
     registerAttributes();
@@ -50,9 +50,9 @@ std::optional<ResourceLocation> CaveSpiderEntity::getAmbientSound() const
     return SoundEvents::ENTITY_SPIDER_AMBIENT;
 }
 
-std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CaveSpiderEntity>(EntityInstanceId(0));
+    return std::make_unique<CaveSpiderEntity>(EntityInstanceId(0), registry);
 }
 
 void CaveSpiderEntity::registerAttributes()

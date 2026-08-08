@@ -60,7 +60,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit NautilusEntity(EntityInstanceId id);
+    explicit NautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~NautilusEntity() override = default;
 
@@ -77,7 +77,7 @@ public:
      * @param world 世界指针（未使用，实体 ID 由 EntityManager 分配）
      * @return 新创建的 NautilusEntity 实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 繁殖系统 ==========
 

@@ -333,7 +333,12 @@ void CrossbowItem::_fireProjectiles(
         // 检查是否是烟花火箭
         if (item == Items::FIREWORK_ROCKET) {
             // 创建烟花火箭实体
-            auto firework = std::make_unique<entity::FireworkRocketEntity>(EntityInstanceId(0));
+            // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+            auto* registry = world.entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
+            auto firework = std::make_unique<entity::FireworkRocketEntity>(EntityInstanceId(0), *registry);
             firework->setTypeId(entity::EntityTypeKeys::FIREWORK_ROCKET);
             firework->setWorld(&world);
             firework->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.15f, shooter.z());

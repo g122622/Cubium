@@ -53,8 +53,8 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-CreeperEntity::CreeperEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+CreeperEntity::CreeperEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 苦力怕不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -66,9 +66,9 @@ CreeperEntity::CreeperEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CreeperEntity>(EntityInstanceId(0));
+    return std::make_unique<CreeperEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
@@ -163,7 +163,12 @@ void CreeperEntity::_spawnLingeringCloud()
     }
 
     // 创建区域效果云实体
-    auto cloud = std::make_unique<entity::AreaEffectCloudEntity>();
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto cloud = std::make_unique<entity::AreaEffectCloudEntity>(*registry);
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
 

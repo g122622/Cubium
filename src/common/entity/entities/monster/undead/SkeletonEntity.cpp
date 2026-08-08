@@ -36,8 +36,8 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-SkeletonEntity::SkeletonEntity(EntityInstanceId id)
-    : AbstractSkeletonEntity(id)
+SkeletonEntity::SkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractSkeletonEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -45,9 +45,9 @@ SkeletonEntity::SkeletonEntity(EntityInstanceId id)
     setCombatTask();
 }
 
-std::unique_ptr<Entity> SkeletonEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SkeletonEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SkeletonEntity>(EntityInstanceId(0));
+    return std::make_unique<SkeletonEntity>(EntityInstanceId(0), registry);
 }
 
 void SkeletonEntity::registerGoals()

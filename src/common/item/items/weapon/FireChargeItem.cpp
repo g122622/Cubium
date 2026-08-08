@@ -134,7 +134,12 @@ std::unique_ptr<entity::ProjectileEntity> FireChargeItem::asProjectile(IWorld& w
     f32 directionY,
     f32 directionZ) const
 {
-    auto entity = entity::SmallFireballEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = entity::SmallFireballEntity::create(&world, *registry);
     if (entity) {
         entity->setPosition(position.x, position.y, position.z);
         // 火焰弹使用加速度驱动（而非速度），设置加速度方向

@@ -58,15 +58,16 @@ namespace entity {
  */
 class FallingBlockEntity : public Entity {
 public:
-    FallingBlockEntity();
+    FallingBlockEntity(ecs::EntityRegistry& registry);
     ~FallingBlockEntity() override = default;
 
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     void tick() override;
 
@@ -271,16 +272,17 @@ protected:
  */
 class TNTEntity : public Entity {
 public:
-    TNTEntity();
-    explicit TNTEntity(EntityInstanceId id);
+    TNTEntity(ecs::EntityRegistry& registry);
+    explicit TNTEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~TNTEntity() override = default;
 
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     void tick() override;
 

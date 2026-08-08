@@ -51,7 +51,7 @@ class Block;
  */
 class SheepEntity : public AnimalEntity, public entity::IShearable {
 public:
-    SheepEntity(EntityInstanceId id);
+    SheepEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SheepEntity() override = default;
 
     /**
@@ -61,7 +61,7 @@ public:
      * @param world 世界实例
      * @return 新创建的实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 声音 ==========
 

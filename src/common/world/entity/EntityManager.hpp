@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -53,12 +54,29 @@ namespace mc {
  */
 class EntityManager {
 public:
-    EntityManager();
+    /**
+     * @brief 构造实体管理器
+     *
+     * @param registry 所属世界的 ECS 实体注册表引用。EntityManager 不拥有 registry，
+     *   仅持有引用——registry 的所有权归所在 ServerWorld（每维度一个，三维度三 registry
+     *   天然隔离）。Entity 工厂构造实体时经此 registry 在 ECS 层 create 实体并 attach
+     *   高频组件；entt 实体不可跨 registry 迁移，故 registry 须与 EntityManager 同生命周期。
+     */
+    explicit EntityManager(ecs::EntityRegistry& registry);
     ~EntityManager() = default;
 
     // 禁止拷贝
     EntityManager(const EntityManager&) = delete;
     EntityManager& operator=(const EntityManager&) = delete;
+
+    /**
+     * @brief 获取所属 ECS 实体注册表
+     *
+     * 供 EntityType::create(world, registry) 等工厂调用点补 registry 实参：
+     * `world->entityManager().registry()`。System/Scheduler 亦经此访问底层 entt registry。
+     */
+    [[nodiscard]] ecs::EntityRegistry& registry() noexcept { return m_registry; }
+    [[nodiscard]] const ecs::EntityRegistry& registry() const noexcept { return m_registry; }
 
     // ========== 实体创建和销毁 ==========
 
@@ -218,6 +236,9 @@ public:
     EntityInstanceId allocateId();
 
 private:
+    // 所属 ECS 实体注册表（非拥有，引用 ServerWorld 持有的 m_entityRegistry）。
+    ecs::EntityRegistry& m_registry;
+
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityInstanceId, std::unique_ptr<Entity>> m_entities;

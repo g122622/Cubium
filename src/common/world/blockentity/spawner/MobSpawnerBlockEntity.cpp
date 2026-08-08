@@ -544,7 +544,12 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         }
 
         // 创建实体
-        auto entity = entityType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            continue;
+        }
+        auto entity = entityType->create(&world, *registry);
         if (entity == nullptr) {
             continue;
         }

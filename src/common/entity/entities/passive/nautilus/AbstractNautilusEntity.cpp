@@ -89,8 +89,8 @@ const entity::EntityClassInfo& AbstractNautilusEntity::classInfo()
 // 构造函数
 // ============================================================================
 
-AbstractNautilusEntity::AbstractNautilusEntity(EntityInstanceId id)
-    : TameableEntity(id)
+AbstractNautilusEntity::AbstractNautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 设置步进高度，鹦鹉螺可以走上 1 格高的方块
     setStepHeight(1.0f);

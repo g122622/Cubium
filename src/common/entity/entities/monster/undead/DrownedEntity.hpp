@@ -57,7 +57,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    DrownedEntity(EntityInstanceId id);
+    DrownedEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~DrownedEntity() override = default;
 
@@ -76,7 +76,7 @@ public:
     /**
      * @brief 创建溺尸实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 水中生活 ==========
 

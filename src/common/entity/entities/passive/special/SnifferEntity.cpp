@@ -83,8 +83,8 @@ constexpr f32 SNIFFER_STEP_VOLUME = 0.15f;
 
 // ========== 构造函数 ==========
 
-SnifferEntity::SnifferEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+SnifferEntity::SnifferEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -97,9 +97,9 @@ SnifferEntity::SnifferEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> SnifferEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SnifferEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SnifferEntity>(0);
+    return std::make_unique<SnifferEntity>(0, registry);
 }
 
 // ========== 幼体设置 ==========
@@ -198,8 +198,14 @@ bool SnifferEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> SnifferEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建幼体嗅探兽
-    auto baby = std::make_unique<SnifferEntity>(0);
+    auto baby = std::make_unique<SnifferEntity>(0, *registry);
     // 设置为幼体（-48000 tick，40 分钟）
     baby->setChild(true);
     // 设置位置（在父体位置附近）

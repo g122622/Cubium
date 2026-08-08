@@ -213,7 +213,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit AbstractArrowEntity(EntityInstanceId id);
+    explicit AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 箭矢命中实体时的处理
@@ -293,12 +293,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit ArrowEntity(EntityInstanceId id);
+    explicit ArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 从发射者创建
@@ -391,12 +391,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit SpectralArrowEntity(EntityInstanceId id);
+    explicit SpectralArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 

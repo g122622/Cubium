@@ -224,7 +224,14 @@ bool VillageSiege::_spawnZombie(server::ServerWorld& world)
         return false;
     }
 
-    std::unique_ptr<Entity> entity = zombieType->create(&world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        spdlog::warn("VillageSiege: World has no entity registry");
+        return false;
+    }
+
+    std::unique_ptr<Entity> entity = zombieType->create(&world, *ecsRegistry);
     if (!entity) {
         spdlog::warn("VillageSiege: Failed to create zombie entity");
         return false;

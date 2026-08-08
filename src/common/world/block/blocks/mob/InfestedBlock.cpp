@@ -76,8 +76,14 @@ void InfestedBlock::spawnAfterBreak(
         }
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 创建蠹虫实体
-    auto silverfish = std::make_unique<SilverfishEntity>(EntityInstanceId(0));
+    auto silverfish = std::make_unique<SilverfishEntity>(EntityInstanceId(0), *registry);
     silverfish->setTypeId(entity::EntityTypeKeys::SILVERFISH);
 
     // 设置位置（方块中心）

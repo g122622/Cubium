@@ -56,8 +56,8 @@
 
 namespace mc {
 
-AxolotlEntity::AxolotlEntity(EntityInstanceId id)
-    : WaterMobEntity(id)
+AxolotlEntity::AxolotlEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : WaterMobEntity(id, registry)
 {
     // 设置空气值（6000 tick = 5分钟）
     setAir(MAX_AIR_SUPPLY);
@@ -69,9 +69,9 @@ AxolotlEntity::AxolotlEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> AxolotlEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> AxolotlEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<AxolotlEntity>(0);
+    return std::make_unique<AxolotlEntity>(0, registry);
 }
 
 void AxolotlEntity::randomizeVariant()

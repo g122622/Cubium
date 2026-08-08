@@ -78,7 +78,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit AbstractNautilusEntity(EntityInstanceId id);
+    explicit AbstractNautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~AbstractNautilusEntity() override = default;
 

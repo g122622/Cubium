@@ -55,8 +55,8 @@ namespace {
 
 } // namespace
 
-HorseEntity::HorseEntity(EntityInstanceId id)
-    : AbstractHorseEntity(id)
+HorseEntity::HorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractHorseEntity(id, registry)
 {
     randomizeAppearance();
 
@@ -66,9 +66,9 @@ HorseEntity::HorseEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> HorseEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<HorseEntity>(0);
+    return std::make_unique<HorseEntity>(0, registry);
 }
 
 i32 HorseEntity::getVariant() const
@@ -122,6 +122,12 @@ bool HorseEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     math::Random rng(ticksExisted());
 
     // 检查配偶是否是驴（产生骡）
@@ -129,7 +135,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
 
     if (partnerDonkey != nullptr) {
         // 马 + 驴 = 骡
-        auto mule = std::make_unique<MuleEntity>(0);
+        auto mule = std::make_unique<MuleEntity>(0, *registry);
         mule->setChild(true);
         mule->setPosition(x(), y(), z());
 
@@ -139,7 +145,7 @@ std::unique_ptr<AnimalEntity> HorseEntity::spawnBaby(AnimalEntity& partner)
     }
 
     // 马 + 马 = 马
-    auto baby = std::make_unique<HorseEntity>(0);
+    auto baby = std::make_unique<HorseEntity>(0, *registry);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

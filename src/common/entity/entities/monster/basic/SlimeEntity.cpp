@@ -54,8 +54,8 @@
 
 namespace mc {
 
-SlimeEntity::SlimeEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+SlimeEntity::SlimeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 史莱姆不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -67,9 +67,9 @@ SlimeEntity::SlimeEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SlimeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SlimeEntity>(EntityInstanceId(0));
+    return std::make_unique<SlimeEntity>(EntityInstanceId(0), registry);
 }
 
 void SlimeEntity::setSlimeSize(i32 size, bool resetHealth)
@@ -347,6 +347,13 @@ void SlimeEntity::performSplit()
         return;
     }
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world()->entityRegistry();
+    if (ecsRegistry == nullptr) {
+        spdlog::warn("SlimeEntity: World has no entity registry");
+        return;
+    }
+
     // 计算分裂位置偏移
     f32 offsetScale = static_cast<f32>(m_size) / 4.0f;
 
@@ -362,7 +369,7 @@ void SlimeEntity::performSplit()
         f32 offsetZ = (static_cast<f32>(l / 2) - 0.5f) * offsetScale;
 
         // 创建新史莱姆
-        std::unique_ptr<Entity> entity = slimeType->create(world());
+        std::unique_ptr<Entity> entity = slimeType->create(world(), *ecsRegistry);
         if (!entity) {
             spdlog::warn("SlimeEntity: Failed to create slime entity");
             continue;

@@ -72,12 +72,12 @@ public:
      * @brief 构造风弹弹射物
      * @param id 实体ID
      */
-    explicit WindChargeEntity(EntityInstanceId id);
+    explicit WindChargeEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取重力加速度

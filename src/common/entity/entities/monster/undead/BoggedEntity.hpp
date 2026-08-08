@@ -43,7 +43,7 @@ namespace mc {
  */
 class BoggedEntity : public AbstractSkeletonEntity {
 public:
-    BoggedEntity(EntityInstanceId id);
+    BoggedEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~BoggedEntity() override = default;
 
@@ -52,7 +52,7 @@ public:
     BoggedEntity(BoggedEntity&&) = delete;
     BoggedEntity& operator=(BoggedEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 

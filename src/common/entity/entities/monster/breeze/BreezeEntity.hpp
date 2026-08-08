@@ -145,14 +145,14 @@ public:
      * @brief 构造旋风人
      * @param id 实体ID
      */
-    explicit BreezeEntity(EntityInstanceId id);
+    explicit BreezeEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~BreezeEntity() override = default;
 
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 实体尺寸 ==========
 

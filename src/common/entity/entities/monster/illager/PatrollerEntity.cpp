@@ -43,8 +43,8 @@ const entity::EntityClassInfo& PatrollerEntity::classInfo()
     return s_classInfo;
 }
 
-PatrollerEntity::PatrollerEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+PatrollerEntity::PatrollerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {}
 
 void PatrollerEntity::setPatrolTarget(const BlockPos& patrolTarget)

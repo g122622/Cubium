@@ -225,8 +225,14 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
 
             math::Random& rng = m_blaze->world()->getRandom();
 
+            // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+            auto* registry = m_blaze->world()->entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
+
             // 创建并发射小火球
-            auto fireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0));
+            auto fireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0), *registry);
 
             // 设置世界
             fireball->setWorld(m_blaze->world());

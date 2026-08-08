@@ -45,8 +45,8 @@ const entity::EntityClassInfo& WaterMobEntity::classInfo()
     return s_classInfo;
 }
 
-WaterMobEntity::WaterMobEntity(EntityInstanceId id)
-    : CreatureEntity(id)
+WaterMobEntity::WaterMobEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : CreatureEntity(id, registry)
 {
     // 注册属性
     registerAttributes();

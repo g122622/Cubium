@@ -90,13 +90,13 @@ const EntityClassInfo& WitherEntity::classInfo()
     return s_classInfo;
 }
 
-std::unique_ptr<Entity> WitherEntity::create(IWorld* world)
+std::unique_ptr<Entity> WitherEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WitherEntity>(EntityInstanceId(0));
+    return std::make_unique<WitherEntity>(EntityInstanceId(0), registry);
 }
 
-WitherEntity::WitherEntity(EntityInstanceId id)
-    : MobEntity(id)
+WitherEntity::WitherEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MobEntity(id, registry)
 {
     setExperienceValue(50);
 
@@ -326,7 +326,12 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
     }
 
     // 创建凋灵之首实体
-    auto skull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto skull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0), *registry);
     skull->setTypeId(EntityTypeKeys::WITHER_SKULL);
     skull->setPosition(Vector3(headX, headY, headZ));
     skull->setShooter(this);
@@ -1115,7 +1120,12 @@ void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 target
     }
 
     // 创建凋灵之首实体
-    auto skull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto skull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0), *registry);
     skull->setTypeId(EntityTypeKeys::WITHER_SKULL);
     skull->setPosition(Vector3(headX, headY, headZ));
     skull->setShooter(this);

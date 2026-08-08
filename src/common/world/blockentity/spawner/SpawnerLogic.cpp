@@ -251,7 +251,12 @@ bool SpawnerLogic::spawnEntities(IWorld& world, f64 centerX, f64 centerY, f64 ce
         }
 
         // 创建实体
-        auto entity = entityType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            continue;
+        }
+        auto entity = entityType->create(&world, *registry);
         if (entity == nullptr) {
             continue;
         }

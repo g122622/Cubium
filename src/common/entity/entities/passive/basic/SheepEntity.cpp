@@ -51,14 +51,14 @@
 
 namespace mc {
 
-std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SheepEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<SheepEntity>(0);
+    return std::make_unique<SheepEntity>(0, registry);
 }
 
-SheepEntity::SheepEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+SheepEntity::SheepEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册属性
     registerAttributes();
@@ -134,8 +134,14 @@ bool SheepEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小羊
-    auto baby = std::make_unique<SheepEntity>(0);
+    auto baby = std::make_unique<SheepEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

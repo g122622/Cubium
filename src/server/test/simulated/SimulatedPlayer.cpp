@@ -12,8 +12,8 @@
 
 namespace mc::test {
 
-SimulatedPlayer::SimulatedPlayer(mc::EntityInstanceId id, const std::string& name)
-    : mc::ServerPlayer(id, name)
+SimulatedPlayer::SimulatedPlayer(mc::EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry)
+    : mc::ServerPlayer(id, name, registry)
 {}
 
 // === 静态工厂 ===
@@ -24,7 +24,11 @@ SimulatedPlayer* SimulatedPlayer::spawn(
     // GameTestHelper 恒绑 ServerWorld（构造契约），world() 返 IWorld& 安全向下转 ServerWorld&
     auto& world = static_cast<mc::server::ServerWorld&>(helper.world());
 
-    auto player = std::make_unique<SimulatedPlayer>(0, name);
+    // ECS 迁移：SimulatedPlayer（经 ServerPlayer→Player→Entity）构造需要 registry 句柄，
+    // 从绑定的 ServerWorld 取。
+    auto* ecsRegistry = world.entityRegistry();
+    MC_ASSERT_RELEASE(ecsRegistry != nullptr);
+    auto player = std::make_unique<SimulatedPlayer>(0, name, *ecsRegistry);
     player->setPlayerId(0); // 模拟玩家无网络会话，PlayerId=0 占位（不经 PlayerManager 分配）
     const BlockPos worldPos = helper.worldBlockPosition(relativePos);
     player->setPosition(

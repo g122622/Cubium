@@ -51,11 +51,12 @@ public:
      *
      * @param id 实体实例 id（传 0，真实 id 由 EntityManager 在 spawnEntity 时分配）。
      * @param name 玩家名（用于 offline UUID 与日志）。
+     * @param registry ECS 实体注册表句柄（透传给 ServerPlayer/Player/Entity 构造）。
      *
      * 注：构造后须依次 setPlayerId / setPosition / setServer / setWorld 再 spawnEntity，
      *     由 spawn() 工厂封装；外部不应直接构造。
      */
-    SimulatedPlayer(mc::EntityInstanceId id, const std::string& name);
+    SimulatedPlayer(mc::EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry);
 
     ~SimulatedPlayer() override = default;
 

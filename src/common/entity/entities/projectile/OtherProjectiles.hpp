@@ -49,12 +49,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit LlamaSpitEntity(EntityInstanceId id);
+    explicit LlamaSpitEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -97,12 +97,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit FishingBobberEntity(EntityInstanceId id);
+    explicit FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -365,12 +365,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 默认构造函数
      */
-    explicit ShulkerBulletEntity(EntityInstanceId id);
+    explicit ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 带目标的构造函数
@@ -379,7 +379,7 @@ public:
      * @param target 目标实体
      * @param axis 初始移动轴
      */
-    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis);
+    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -469,12 +469,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EvokerFangsEntity(EntityInstanceId id);
+    explicit EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -576,12 +576,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EyeOfEnderEntity(EntityInstanceId id);
+    explicit EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -640,12 +640,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit FireworkRocketEntity(EntityInstanceId id);
+    explicit FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 

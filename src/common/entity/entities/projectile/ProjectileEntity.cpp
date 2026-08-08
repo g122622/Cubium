@@ -68,8 +68,8 @@ const EntityClassInfo& ProjectileEntity::classInfo()
     return s_classInfo;
 }
 
-ProjectileEntity::ProjectileEntity(EntityInstanceId id)
-    : Entity(id)
+ProjectileEntity::ProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     m_noGravity = false;
 }
@@ -99,7 +99,7 @@ void ProjectileEntity::tick()
         }
     }
 
-    Vector3 velocity = m_velocity;
+    Vector3 velocity = m_builtIn.velocity->m_velocity;
     if (isInWater()) {
         // 水中阻力（子类可重写 getWaterDrag()）
         // 水中气泡粒子由子类（ThrowableEntity、AbstractArrowEntity 等）自行处理
@@ -112,9 +112,9 @@ void ProjectileEntity::tick()
         velocity.y -= getGravity();
     }
 
-    m_velocity = velocity;
-    m_prevPosition = m_position;
-    m_position = m_position + velocity;
+    m_builtIn.velocity->m_velocity = velocity;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos + velocity;
 
     updateRotation();
     Entity::tick();
@@ -165,13 +165,13 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
         z += gaussianZ;
     }
 
-    m_velocity = Vector3(x * velocity, y * velocity, z * velocity);
+    m_builtIn.velocity->m_velocity = Vector3(x * velocity, y * velocity, z * velocity);
 
     const f32 horizontalLength = std::sqrt(x * x + z * z);
-    m_yaw = std::atan2(x, z) * math::RAD_TO_DEG;
-    m_pitch = std::atan2(y, horizontalLength) * math::RAD_TO_DEG;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    m_builtIn.rotation->m_rot.x = std::atan2(x, z) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rot.y = std::atan2(y, horizontalLength) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 }
 
 void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
@@ -196,10 +196,10 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
     // 添加发射者速度
     const Vector3 shooterVelocity = shooter.velocity();
     if (!shooter.onGround()) {
-        m_velocity.y += shooterVelocity.y;
+        m_builtIn.velocity->m_velocity.y += shooterVelocity.y;
     }
-    m_velocity.x += shooterVelocity.x;
-    m_velocity.z += shooterVelocity.z;
+    m_builtIn.velocity->m_velocity.x += shooterVelocity.x;
+    m_builtIn.velocity->m_velocity.z += shooterVelocity.z;
 }
 
 bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
@@ -262,7 +262,7 @@ void ProjectileEntity::onEntityHit(const RayTraceResult& result)
 
 void ProjectileEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_velocity = Vector3(0.0f, 0.0f, 0.0f);
+    m_builtIn.velocity->m_velocity = Vector3(0.0f, 0.0f, 0.0f);
 
     // 通知命中方块有投掷物命中
     if (m_world != nullptr && result.type == RayTraceResultType::Block) {
@@ -342,8 +342,8 @@ bool ProjectileEntity::deflect(ProjectileDeflection deflection, Entity& deflecto
 
 RayTraceResult ProjectileEntity::performRayTrace()
 {
-    const Vector3 start = m_position;
-    Vector3 end = m_position + m_velocity;
+    const Vector3 start = m_builtIn.stateVector->m_pos;
+    Vector3 end = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     const RayTraceResult blockResult = rayTraceBlocks(start, end);
     if (blockResult.type == RayTraceResultType::Block) {

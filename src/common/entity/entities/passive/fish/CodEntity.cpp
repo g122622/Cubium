@@ -47,8 +47,8 @@ const entity::EntityClassInfo& CodEntity::classInfo()
     return s_classInfo;
 }
 
-CodEntity::CodEntity(EntityInstanceId id)
-    : AbstractGroupFishEntity(id)
+CodEntity::CodEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractGroupFishEntity(id, registry)
 {
     // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
     // 参考 MobEntity/AbstractSkeletonEntity 模式；Cod 无自身字段，调用幂等）。
@@ -59,9 +59,9 @@ CodEntity::CodEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CodEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CodEntity>(0);
+    return std::make_unique<CodEntity>(0, registry);
 }
 
 void CodEntity::registerAttributes()

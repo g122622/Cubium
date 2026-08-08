@@ -174,8 +174,8 @@ const entity::EntityClassInfo& Player::classInfo()
     return s_classInfo;
 }
 
-Player::Player(EntityInstanceId id, const std::string& username)
-    : LivingEntity(id)
+Player::Player(EntityInstanceId id, const std::string& username, ecs::EntityRegistry& registry)
+    : LivingEntity(id, nullptr, registry)
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {
@@ -238,7 +238,7 @@ void Player::setPosition(f32 x, f32 y, f32 z)
     snapshotInterpolationState();
 
     // 外部改坐标时同步复位步距采样，避免沿用旧位移或旧脚步阈值
-    m_moveDistanceSamplePosition = m_position;
+    m_moveDistanceSamplePosition = m_builtIn.stateVector->m_pos;
     m_moveDistanceWalked = 0.0f;
     m_prevMoveDistanceWalked = 0.0f;
     m_moveDistanceSwam = 0.0f;
@@ -482,7 +482,7 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool dropAround, bool traceItem)
     f64 dropY = static_cast<f64>(y()) + static_cast<f64>(eyeHeight()) - 0.3;
 
     // 获取掉落速度
-    Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, dropAround, m_yaw, m_pitch);
+    Vector3 velocity = ItemDropHelper::getPlayerDropVelocity(rng, dropAround, m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
 
     // 生成物品实体
     ItemEntity* itemEntity = ItemDropHelper::spawnItemEntity(m_world,
@@ -677,7 +677,7 @@ bool Player::_canFitPose(EntityPose pose) const
     }
 
     AxisAlignedBB candidateBox =
-        getDimensions(pose).makeBoundingBox(m_position.x, m_position.y, m_position.z).shrink(PLAYER_POSE_FIT_EPSILON);
+        getDimensions(pose).makeBoundingBox(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z).shrink(PLAYER_POSE_FIT_EPSILON);
     return !m_world->hasBlockCollision(candidateBox) && !m_world->hasEntityCollision(candidateBox, this);
 }
 
@@ -937,7 +937,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
     }
 
     if (forward != 0.0f || strafe != 0.0f) {
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -950,8 +950,8 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
             moveZ /= length;
         }
 
-        m_velocity.x += moveX * speedFactor;
-        m_velocity.z += moveZ * speedFactor;
+        m_builtIn.velocity->m_velocity.x += moveX * speedFactor;
+        m_builtIn.velocity->m_velocity.z += moveZ * speedFactor;
     }
 
     if (m_abilities.flying) {
@@ -965,7 +965,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
         if (verticalInput != 0) {
             f32 verticalSpeed = m_abilities.flySpeed * physics::FLY_VERTICAL_INPUT_MULTIPLIER *
                 (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
-            m_velocity.y += static_cast<f32>(verticalInput) * verticalSpeed;
+            m_builtIn.velocity->m_velocity.y += static_cast<f32>(verticalInput) * verticalSpeed;
         }
     } else {
         if (jumping && m_onGround && m_jumpTicks == 0) {
@@ -1020,7 +1020,7 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
 
     // 根据朝向计算水平移动方向
     if (forward != 0.0f || strafe != 0.0f) {
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -1036,25 +1036,25 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
         }
 
         // 添加到速度
-        m_velocity.x += moveX * swimSpeed;
-        m_velocity.z += moveZ * swimSpeed;
+        m_builtIn.velocity->m_velocity.x += moveX * swimSpeed;
+        m_builtIn.velocity->m_velocity.z += moveZ * swimSpeed;
     }
 
     // 垂直移动（跳跃向上，潜行向下）
     if (jumping) {
         // 向上游泳
         // MC: this.setMotion(this.getMotion().add(0.0D, 0.04D, 0.0D));
-        m_velocity.y += physics::SWIM_UP_SPEED;
+        m_builtIn.velocity->m_velocity.y += physics::SWIM_UP_SPEED;
     } else if (sneaking) {
         // 向下潜
-        m_velocity.y -= physics::SWIM_DOWN_SPEED;
+        m_builtIn.velocity->m_velocity.y -= physics::SWIM_DOWN_SPEED;
     }
 
     // 应用水中阻力
     // 垂直方向阻力固定为 0.8
-    m_velocity.x *= waterDrag;
-    m_velocity.y *= 0.8f;
-    m_velocity.z *= waterDrag;
+    m_builtIn.velocity->m_velocity.x *= waterDrag;
+    m_builtIn.velocity->m_velocity.y *= 0.8f;
+    m_builtIn.velocity->m_velocity.z *= waterDrag;
 
     // 应用水中的"浮力"效果
     // 重力减少到 1/16 (0.08 / 16 = 0.005)
@@ -1063,15 +1063,15 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
         f32 buoyancy = gravity / 16.0f;
 
         // 下落时应用浮力
-        if (m_velocity.y < 0.0f) {
-            m_velocity.y += buoyancy;
+        if (m_builtIn.velocity->m_velocity.y < 0.0f) {
+            m_builtIn.velocity->m_velocity.y += buoyancy;
         }
     }
 
     // 碰撞到墙后尝试上跳（爬出水面的行为）
     if (m_collidedHorizontally && !m_onGround && m_physicsEngine) {
         // 尝试向上跳
-        m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
+        m_builtIn.velocity->m_velocity.y = physics::WATER_WALL_JUMP_VELOCITY;
     }
 
     // 重置过小的速度
@@ -1087,7 +1087,7 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
 
     // 根据朝向计算移动方向
     if (forward != 0.0f || strafe != 0.0f) {
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -1100,26 +1100,26 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
             moveZ /= length;
         }
 
-        m_velocity.x += moveX * lavaSpeed;
-        m_velocity.z += moveZ * lavaSpeed;
+        m_builtIn.velocity->m_velocity.x += moveX * lavaSpeed;
+        m_builtIn.velocity->m_velocity.z += moveZ * lavaSpeed;
     }
 
     // 垂直移动（岩浆中也能向上游，但更慢）
     if (jumping) {
-        m_velocity.y += physics::SWIM_UP_SPEED * 0.5f; // 岩浆中向上游更慢
+        m_builtIn.velocity->m_velocity.y += physics::SWIM_UP_SPEED * 0.5f; // 岩浆中向上游更慢
     } else if (sneaking) {
-        m_velocity.y -= physics::SWIM_DOWN_SPEED * 0.5f;
+        m_builtIn.velocity->m_velocity.y -= physics::SWIM_DOWN_SPEED * 0.5f;
     }
 
     // 岩浆阻力（比水更大）
-    m_velocity.x *= physics::LAVA_DRAG;
-    m_velocity.y *= physics::LAVA_DRAG;
-    m_velocity.z *= physics::LAVA_DRAG;
+    m_builtIn.velocity->m_velocity.x *= physics::LAVA_DRAG;
+    m_builtIn.velocity->m_velocity.y *= physics::LAVA_DRAG;
+    m_builtIn.velocity->m_velocity.z *= physics::LAVA_DRAG;
 
     // 岩浆中重力（减弱）
     if (!m_abilities.flying) {
-        if (m_velocity.y < 0.0f && !sneaking) {
-            m_velocity.y += physics::LAVA_GRAVITY;
+        if (m_builtIn.velocity->m_velocity.y < 0.0f && !sneaking) {
+            m_builtIn.velocity->m_velocity.y += physics::LAVA_GRAVITY;
         }
     }
 
@@ -1129,7 +1129,7 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
 void Player::jump()
 {
     if (m_onGround && m_jumpTicks == 0) {
-        m_velocity.y = physics::JUMP_VELOCITY;
+        m_builtIn.velocity->m_velocity.y = physics::JUMP_VELOCITY;
         m_onGround = false;
         m_jumpTicks = JUMP_COOLDOWN; // 设置跳跃冷却
 
@@ -1144,9 +1144,9 @@ void Player::jump()
 
 void Player::_clampMotion()
 {
-    if (std::abs(m_velocity.x) < physics::MOTION_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < physics::MOTION_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < physics::MOTION_THRESHOLD) m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < physics::MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
 }
 
 f32 Player::_groundSlipperiness() const
@@ -1155,9 +1155,9 @@ f32 Player::_groundSlipperiness() const
         return physics::SLIPPERINESS_DEFAULT;
     }
 
-    BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* blockState = m_world->getBlockState(blockPos);
     if (blockState == nullptr) {
         return physics::SLIPPERINESS_DEFAULT;
@@ -1194,16 +1194,16 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const
     AxisAlignedBB box = boundingBox();
 
     // 计算移动后的位置
-    f32 newX = m_position.x + movement.x;
-    f32 newZ = m_position.z + movement.z;
+    f32 newX = m_builtIn.stateVector->m_pos.x + movement.x;
+    f32 newZ = m_builtIn.stateVector->m_pos.z + movement.z;
 
     // 检查移动后的位置下方是否有方块
     // 向下检测一小段距离
     AxisAlignedBB testBox = AxisAlignedBB(newX - PLAYER_WIDTH / 2.0f,
-        m_position.y - SNEAK_EDGE_DISTANCE,
+        m_builtIn.stateVector->m_pos.y - SNEAK_EDGE_DISTANCE,
         newZ - PLAYER_WIDTH / 2.0f,
         newX + PLAYER_WIDTH / 2.0f,
-        m_position.y,
+        m_builtIn.stateVector->m_pos.y,
         newZ + PLAYER_WIDTH / 2.0f);
 
     // 检查是否有碰撞
@@ -1245,7 +1245,7 @@ void Player::updatePhysics()
     // 这里只处理地面和空中的物理
     if ((isInWater() || isInLava()) && !m_abilities.flying) {
         // 水中/岩浆中的移动和碰撞
-        Vector3 movement(m_velocity.x, m_velocity.y, m_velocity.z);
+        Vector3 movement(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
         if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
             moveWithCollision(movement.x, movement.y, movement.z);
         }
@@ -1254,38 +1254,38 @@ void Player::updatePhysics()
     if (!(isInWater() || isInLava()) || m_abilities.flying) {
         // 2. 应用重力（飞行时不应用重力）
         if (!m_abilities.flying && !hasNoGravity()) {
-            m_velocity.y -= physics::GRAVITY;
+            m_builtIn.velocity->m_velocity.y -= physics::GRAVITY;
         }
 
         // 3. 应用阻力
         // 飞行时阻力处理不同：Y方向用0.6，水平方向用0.91
         if (m_abilities.flying) {
             // 飞行模式
-            m_velocity.x *= physics::FLY_HORIZONTAL_DRAG;
-            m_velocity.y *= physics::FLY_VERTICAL_DRAG;
-            m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
+            m_builtIn.velocity->m_velocity.x *= physics::FLY_HORIZONTAL_DRAG;
+            m_builtIn.velocity->m_velocity.y *= physics::FLY_VERTICAL_DRAG;
+            m_builtIn.velocity->m_velocity.z *= physics::FLY_HORIZONTAL_DRAG;
         } else {
             const f32 horizontalDrag =
                 m_onGround ? tickGroundSlipperiness * physics::DRAG_GROUND : physics::DRAG_GROUND;
-            m_velocity.x *= horizontalDrag;
-            m_velocity.y *= physics::DRAG_AIR;
-            m_velocity.z *= horizontalDrag;
+            m_builtIn.velocity->m_velocity.x *= horizontalDrag;
+            m_builtIn.velocity->m_velocity.y *= physics::DRAG_AIR;
+            m_builtIn.velocity->m_velocity.z *= horizontalDrag;
         }
 
         // 4. 如果在地面，停止Y方向速度（防止下落速度累积）
         // 飞行模式下不处理
-        if (!m_abilities.flying && m_onGround && m_velocity.y < 0.0f) {
-            m_velocity.y = 0.0f;
+        if (!m_abilities.flying && m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
+            m_builtIn.velocity->m_velocity.y = 0.0f;
         }
 
         // 5. 潜行边缘检测（飞行时不检测）
-        Vector3 movement(m_velocity.x, m_velocity.y, m_velocity.z);
+        Vector3 movement(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
         if (m_isSneaking && !m_abilities.flying) {
             movement = maybeBackOffFromEdge(movement);
         }
 
         // 6. 记录移动前的位置（用于自动跳跃检测）
-        Vector3 prevPos = m_position;
+        Vector3 prevPos = m_builtIn.stateVector->m_pos;
 
         // 7. 使用碰撞检测移动
         if (m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
@@ -1295,12 +1295,12 @@ void Player::updatePhysics()
             // 飞行模式下碰撞时不重置水平速度（可以穿透方块边缘的感觉）
             if (!m_abilities.flying) {
                 if (m_collidedHorizontally) {
-                    m_velocity.x = 0.0f;
-                    m_velocity.z = 0.0f;
+                    m_builtIn.velocity->m_velocity.x = 0.0f;
+                    m_builtIn.velocity->m_velocity.z = 0.0f;
                 }
             }
             if (m_collidedVertically) {
-                m_velocity.y = 0.0f;
+                m_builtIn.velocity->m_velocity.y = 0.0f;
             }
         } else if (!m_physicsEngine && (movement.x != 0.0f || movement.y != 0.0f || movement.z != 0.0f)) {
             move(movement.x, movement.y, movement.z);
@@ -1309,7 +1309,7 @@ void Player::updatePhysics()
         // 9. 自动跳跃检测（在移动后）
         if (m_autoJump.isEnabled() && !m_abilities.flying && m_onGround && !m_isSneaking) {
             // 计算实际移动距离
-            Vector2 actualMovement(m_position.x - prevPos.x, m_position.z - prevPos.z);
+            Vector2 actualMovement(m_builtIn.stateVector->m_pos.x - prevPos.x, m_builtIn.stateVector->m_pos.z - prevPos.z);
             f32 moveDistSq = actualMovement.x * actualMovement.x + actualMovement.y * actualMovement.y;
 
             // 只有在确实移动了才检测
@@ -1999,7 +1999,7 @@ void Player::travel(f32 strafing, f32 vertical, f32 forward)
         f32 prevJumpFactor = m_jumpMovementFactor;
         m_jumpMovementFactor = m_abilities.flySpeed * (m_isSprinting ? physics::SPRINT_FLY_MULTIPLIER : 1.0f);
         LivingEntity::travel(strafing, vertical, forward);
-        m_velocity.y *= physics::FLY_VERTICAL_DRAG;
+        m_builtIn.velocity->m_velocity.y *= physics::FLY_VERTICAL_DRAG;
         m_jumpMovementFactor = prevJumpFactor;
         m_fallDistance = 0.0f;
     } else {
@@ -2158,7 +2158,7 @@ void Player::swimUp()
 {
     // 水中向上游泳
     if (isInWater() && !m_abilities.flying) {
-        m_velocity.y += physics::SWIM_UP_SPEED;
+        m_builtIn.velocity->m_velocity.y += physics::SWIM_UP_SPEED;
     }
 }
 
@@ -2194,9 +2194,9 @@ void Player::updateMoveDistance()
     m_prevMoveDistanceSwam = m_moveDistanceSwam;
 
     // 只累计上次采样后的增量，避免 tick 和物理更新重复统计同一段位移
-    f32 dx = m_position.x - m_moveDistanceSamplePosition.x;
-    f32 dy = m_position.y - m_moveDistanceSamplePosition.y;
-    f32 dz = m_position.z - m_moveDistanceSamplePosition.z;
+    f32 dx = m_builtIn.stateVector->m_pos.x - m_moveDistanceSamplePosition.x;
+    f32 dy = m_builtIn.stateVector->m_pos.y - m_moveDistanceSamplePosition.y;
+    f32 dz = m_builtIn.stateVector->m_pos.z - m_moveDistanceSamplePosition.z;
     f32 distance = std::sqrt(dx * dx + dz * dz); // 水平距离
 
     // 重置声音触发标志
@@ -2234,14 +2234,14 @@ void Player::updateMoveDistance()
             m_shouldPlaySwimSound = true;
         } else {
             // 记录脚下方块位置（用于获取正确的声音类型）
-            m_stepSoundPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 0.2f)), // 脚底位置
-                static_cast<i32>(std::floor(m_position.z)));
+            m_stepSoundPos = BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 0.2f)), // 脚底位置
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             m_shouldPlayStepSound = true;
         }
     }
 
-    m_moveDistanceSamplePosition = m_position;
+    m_moveDistanceSamplePosition = m_builtIn.stateVector->m_pos;
     _updateCameraYaw();
 
     // 饥饿消耗（基于移动距离）
@@ -2274,7 +2274,7 @@ void Player::_updateCameraYaw()
 
     f32 targetCameraYaw = 0.0f;
     if (m_onGround && !isDead() && !isSwimming()) {
-        targetCameraYaw = std::min(0.1f, std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z));
+        targetCameraYaw = std::min(0.1f, std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x + m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z));
     }
     m_cameraYaw += (targetCameraYaw - m_cameraYaw) * 0.4f;
 }
@@ -2870,8 +2870,8 @@ Vector3 Player::getLookVector() const
     // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
     // pitch 正值向下看，负值向上看
 
-    f32 yawRad = math::toRadians(m_yaw);
-    f32 pitchRad = math::toRadians(m_pitch);
+    f32 yawRad = math::toRadians(m_builtIn.rotation->m_rot.x);
+    f32 pitchRad = math::toRadians(m_builtIn.rotation->m_rot.y);
 
     // 计算方向向量
     f32 cosYaw = std::cos(yawRad);

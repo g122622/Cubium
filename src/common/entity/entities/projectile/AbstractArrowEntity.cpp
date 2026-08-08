@@ -71,8 +71,8 @@ math::Random createRandomFromEntity(const Entity& entity)
 // AbstractArrowEntity
 // ============================================================================
 
-AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
 {
     m_noGravity = false;
 }
@@ -102,16 +102,18 @@ void AbstractArrowEntity::tick()
         if (m_world) {
             for (int j = 0; j < 4; ++j) {
                 f32 offset = 0.25f;
-                Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-                m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+                Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                    y() - m_builtIn.velocity->m_velocity.y * offset,
+                    z() - m_builtIn.velocity->m_velocity.z * offset);
+                m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
             }
         }
     }
 
     // ========== 检查是否在方块内 ==========
-    BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_position.x)),
-        static_cast<BlockCoord>(std::floor(m_position.y)),
-        static_cast<BlockCoord>(std::floor(m_position.z)));
+    BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
     if (m_world) {
         const BlockState* blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
         // 检查是否在非空气方块的碰撞箱内
@@ -127,7 +129,7 @@ void AbstractArrowEntity::tick()
 
                 // 检查箭矢位置是否在任意碰撞箱内
                 for (const AxisAlignedBB& box : worldBoxes) {
-                    if (box.contains(m_position)) {
+                    if (box.contains(m_builtIn.stateVector->m_pos)) {
                         m_inGround = true;
                         m_inBlockState = *blockState;
                         break;
@@ -162,9 +164,10 @@ void AbstractArrowEntity::tickInGround()
 {
     // 检查方块是否仍然存在
     if (m_world) {
-        const BlockState* currentBlock = m_world->getBlockState(static_cast<BlockCoord>(std::floor(m_position.x)),
-            static_cast<BlockCoord>(std::floor(m_position.y)),
-            static_cast<BlockCoord>(std::floor(m_position.z)));
+        const BlockState* currentBlock =
+            m_world->getBlockState(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
         // 检查方块变更导致箭矢脱落
         if (currentBlock != nullptr && m_inBlockState.has_value() && *currentBlock != *m_inBlockState &&
@@ -187,12 +190,12 @@ bool AbstractArrowEntity::checkInBlockEmpty()
 {
     // 检查箭矢周围是否有碰撞箱
     // 创建一个很小的检测盒（0.06）
-    AxisAlignedBB testBox(m_position.x - 0.06f,
-        m_position.y - 0.06f,
-        m_position.z - 0.06f,
-        m_position.x + 0.06f,
-        m_position.y + 0.06f,
-        m_position.z + 0.06f);
+    AxisAlignedBB testBox(m_builtIn.stateVector->m_pos.x - 0.06f,
+        m_builtIn.stateVector->m_pos.y - 0.06f,
+        m_builtIn.stateVector->m_pos.z - 0.06f,
+        m_builtIn.stateVector->m_pos.x + 0.06f,
+        m_builtIn.stateVector->m_pos.y + 0.06f,
+        m_builtIn.stateVector->m_pos.z + 0.06f);
 
     if (m_world) {
         return m_world->hasNoCollisions(testBox);
@@ -209,7 +212,7 @@ void AbstractArrowEntity::detachFromBlock()
     f32 randX = rng.nextFloat() * 0.2f;
     f32 randY = rng.nextFloat() * 0.2f;
     f32 randZ = rng.nextFloat() * 0.2f;
-    m_velocity = Vector3(randX, randY, randZ);
+    m_builtIn.velocity->m_velocity = Vector3(randX, randY, randZ);
 
     m_ticksInGround = 0;
     m_timeInGround = 0;
@@ -264,7 +267,9 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     mc::Entity* target = result.hitEntity;
 
     // 计算伤害
-    f32 speed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y + m_velocity.z * m_velocity.z);
+    f32 speed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
+        m_builtIn.velocity->m_velocity.y * m_builtIn.velocity->m_velocity.y +
+        m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
     i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * m_damage), 0.0, 2147483647.0));
 
     // 暴击伤害加成
@@ -309,7 +314,7 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     // 击退效果
     if (m_knockbackStrength > 0) {
         f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -346,10 +351,10 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 
     // 计算并设置箭矢位置（回退一点使其嵌入方块）
     Vector3 hitVec = result.hitPosition;
-    Vector3 hitOffset = hitVec - m_position;
-    m_velocity = hitOffset;
+    Vector3 hitOffset = hitVec - m_builtIn.stateVector->m_pos;
+    m_builtIn.velocity->m_velocity = hitOffset;
     Vector3 normalizedOffset = hitOffset.normalized() * 0.05f;
-    m_position = m_position - normalizedOffset;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos - normalizedOffset;
 
     m_arrowShake = 7;
 
@@ -463,7 +468,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
         math::Random rng = createRandomFromEntity(*this);
         m_world->playSound(SoundEvents::ENTITY_ITEM_PICKUP,
             sound::SoundCategory::Players,
-            m_position,
+            m_builtIn.stateVector->m_pos,
             0.2f,                                  // 音量
             1.0f + (rng.nextFloat() - 0.5f) * 0.2f // 音调带随机变化
         );
@@ -478,20 +483,27 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
 // ArrowEntity
 // ============================================================================
 
-ArrowEntity::ArrowEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+ArrowEntity::ArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
     m_damage = 2.0f;
 }
 
-std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ArrowEntity>(0);
+    return std::make_unique<ArrowEntity>(0, registry);
 }
 
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
-    auto arrow = std::make_unique<ArrowEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，静态方法无 this，从 IWorld* 参数取；
+    // ClientWorld 返回 nullptr 表客户端不接入 ECS，此时无法构造箭矢
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto arrow = std::make_unique<ArrowEntity>(0, *registry);
     arrow->setTypeId(EntityTypeKeys::ARROW);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
@@ -581,15 +593,15 @@ ItemStack ArrowEntity::getArrowStack() const
 // SpectralArrowEntity
 // ============================================================================
 
-SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
     m_damage = 2.0f;
 }
 
-std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpectralArrowEntity>(0);
+    return std::make_unique<SpectralArrowEntity>(0, registry);
 }
 
 void SpectralArrowEntity::tick()

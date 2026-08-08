@@ -101,8 +101,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    explicit CopperGolemEntity(EntityInstanceId id);
+    explicit CopperGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~CopperGolemEntity() override = default;
 
@@ -119,7 +120,7 @@ public:
      * @param world 世界实例
      * @return 新的铜傀儡实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 氧化状态 ==========
 

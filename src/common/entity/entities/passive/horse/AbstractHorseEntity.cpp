@@ -82,8 +82,8 @@ const entity::EntityClassInfo& AbstractHorseEntity::classInfo()
     return s_classInfo;
 }
 
-AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     setStepHeight(1.0f);
 

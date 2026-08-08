@@ -107,6 +107,10 @@ namespace server {
 class ServerWorld; // 前向声明，用于asServerWorld()
 }
 
+namespace ecs {
+class EntityRegistry; // 前向声明，用于 entityRegistry()
+} // namespace ecs
+
 // 前向声明，用于createFeatureRegion()
 class WorldGenRegion;
 
@@ -794,6 +798,22 @@ public:
     [[nodiscard]] virtual const world::tick::TickManager& tickManager() const = 0;
 
     // ========== 实体管理 ==========
+
+    /**
+     * @brief 获取本世界的 ECS 实体注册表
+     *
+     * 实体工厂 EntityType::create(world, registry) 构造实体时，经此 registry 在 ECS 层
+     * create 实体并 attach 高频组件。entt 实体不可跨 registry 迁移，故构造时 registry
+     * 必须就位——common 层代码（实体自身方法/反序列化/方块实体）无法下转 ServerWorld，
+     * 统一经此虚方法取 registry，避免 common 反向依赖 server。
+     *
+     * ServerWorld 返回其 m_entityRegistry；ClientWorld 首批不接入 ECS，返回 nullptr。
+     * 调用方在服务端上下文可断言非空。
+     *
+     * @return ECS 实体注册表指针，未接入 ECS 的世界返回 nullptr
+     */
+    [[nodiscard]] virtual ecs::EntityRegistry* entityRegistry() { return nullptr; }
+    [[nodiscard]] virtual const ecs::EntityRegistry* entityRegistry() const { return nullptr; }
 
     /**
      * @brief 生成实体到世界中

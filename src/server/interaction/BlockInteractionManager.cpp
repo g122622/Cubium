@@ -28,6 +28,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -528,7 +529,10 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
             return block->onBlockActivated(*state, *world, pos, *realPlayer, hand, hitResult);
         }
         // 回退路径：无法获取真实玩家实体时使用临时 Player（保持向后兼容）
-        Player interactionPlayer(playerId, playerData->username);
+        // ECS 迁移：占位 Player 构造需要 registry 句柄，此处无 world 上下文故配静态 registry。
+        // TODO: 占位 Player 是临时方案，后续应重构为不构造完整 Player。
+        static ecs::EntityRegistry s_interactionPlayerRegistry{"block-interaction"};
+        Player interactionPlayer(playerId, playerData->username, s_interactionPlayerRegistry);
         return block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
     }();
 

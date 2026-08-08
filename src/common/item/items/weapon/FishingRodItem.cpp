@@ -93,7 +93,12 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         i32 speedBonus = enchant::EnchantmentHelper::getEnchantmentLevel(rodStack, &enchant::AllEnchantments::LURE);
 
         // 创建浮标实体
-        auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityInstanceId(0));
+        // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+        auto* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return ItemActionResult::fail(rodStack);
+        }
+        auto bobber = std::make_unique<entity::FishingBobberEntity>(EntityInstanceId(0), *registry);
         bobber->setTypeId(entity::EntityTypeKeys::FISHING_BOBBER);
         bobber->setWorld(&world);
         bobber->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());

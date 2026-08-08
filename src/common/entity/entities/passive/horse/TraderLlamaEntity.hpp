@@ -62,7 +62,7 @@ public:
      * @brief 构造商队羊驼
      * @param id 实体 ID
      */
-    TraderLlamaEntity(EntityInstanceId id);
+    TraderLlamaEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~TraderLlamaEntity() override = default;
 
@@ -74,7 +74,7 @@ public:
     /**
      * @brief 创建商队羊驼
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 标识 ==========
 

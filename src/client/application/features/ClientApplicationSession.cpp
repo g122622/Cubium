@@ -435,7 +435,10 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     m_physicsEngine = std::make_unique<PhysicsEngine>(m_world);
 
     // 创建玩家
-    m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), m_settings.username.get());
+    // ECS 迁移：Player 构造需要 registry 句柄，从 ClientWorld 取（客户端已接入 ECS）。
+    auto* playerRegistry = m_world.entityRegistry();
+    MC_ASSERT_RELEASE(playerRegistry != nullptr);
+    m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), m_settings.username.get(), *playerRegistry);
     m_player->setPosition(8.0, 50.0, 8.0);
     m_player->setPhysicsEngine(m_physicsEngine.get());
     m_player->setGameMode(config.defaultGameMode);

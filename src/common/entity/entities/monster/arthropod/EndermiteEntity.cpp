@@ -47,13 +47,13 @@ namespace mc {
 // EndermiteEntity 实现
 // ============================================================================
 
-std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EndermiteEntity>(EntityInstanceId(0));
+    return std::make_unique<EndermiteEntity>(EntityInstanceId(0), registry);
 }
 
-EndermiteEntity::EndermiteEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+EndermiteEntity::EndermiteEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 末影螨不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -128,13 +128,13 @@ void EndermiteEntity::registerAttributes()
 // SilverfishEntity 实现
 // ============================================================================
 
-std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SilverfishEntity>(EntityInstanceId(0));
+    return std::make_unique<SilverfishEntity>(EntityInstanceId(0), registry);
 }
 
-SilverfishEntity::SilverfishEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+SilverfishEntity::SilverfishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
     , m_summonGoal(nullptr)
 {
     // 蠹虫不在阳光下燃烧

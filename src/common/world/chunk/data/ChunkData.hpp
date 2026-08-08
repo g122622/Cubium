@@ -342,6 +342,15 @@ public:
     [[nodiscard]] size_t loadedEntityCount() const { return m_loadedEntities.size(); }
     std::vector<std::unique_ptr<Entity>> takeLoadedEntities();
 
+    // ---- 已加载实体 NBT（Java 存档路径）----
+    // Java 区块里的实体在 JavaColumnReader::_readEntities 阶段仅以原始 NBT 形式暂存于此，
+    // 不立即反序列化——反序列化需要所在维度的 ecs::EntityRegistry（Entity 构造时即 attach
+    // 高频组件，entt 实体不可跨 registry 迁移），而 storage 层不持有 world。故推迟到
+    // ServerWorld::onChunkLoaded（持有 *entityRegistry()）spawn 点再反序列化并注入世界。
+    void addLoadedEntityNbt(std::unique_ptr<nbt::tags::compound_tag> tag);
+    [[nodiscard]] bool hasLoadedEntityNbt() const { return !m_loadedEntityNbt.empty(); }
+    std::vector<std::unique_ptr<nbt::tags::compound_tag>> takeLoadedEntityNbt();
+
     // ========================================================================
     // 后处理位置
     // ========================================================================
@@ -520,6 +529,9 @@ private:
 
     // 从存储加载出的运行时实体，先挂在 chunk 上，后续由世界层统一注入 EntityManager
     std::vector<std::unique_ptr<Entity>> m_loadedEntities;
+
+    // Java 存档路径的实体原始 NBT（反序列化推迟到 onChunkLoaded，见上方 addLoadedEntityNbt 注释）
+    std::vector<std::unique_ptr<nbt::tags::compound_tag>> m_loadedEntityNbt;
 
     // 后处理位置（按区块段索引存储）
     // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z

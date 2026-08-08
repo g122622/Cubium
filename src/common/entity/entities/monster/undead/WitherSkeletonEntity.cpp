@@ -39,8 +39,8 @@
 
 namespace mc {
 
-WitherSkeletonEntity::WitherSkeletonEntity(EntityInstanceId id)
-    : AbstractSkeletonEntity(id)
+WitherSkeletonEntity::WitherSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractSkeletonEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -48,9 +48,9 @@ WitherSkeletonEntity::WitherSkeletonEntity(EntityInstanceId id)
     setCombatTask();
 }
 
-std::unique_ptr<Entity> WitherSkeletonEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WitherSkeletonEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WitherSkeletonEntity>(EntityInstanceId(0));
+    return std::make_unique<WitherSkeletonEntity>(EntityInstanceId(0), registry);
 }
 
 void WitherSkeletonEntity::registerGoals()

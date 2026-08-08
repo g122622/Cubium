@@ -49,15 +49,15 @@
 
 namespace mc {
 
-std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ChickenEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
-    return std::make_unique<ChickenEntity>(0);
+    return std::make_unique<ChickenEntity>(0, registry);
 }
 
-ChickenEntity::ChickenEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+ChickenEntity::ChickenEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册属性
     registerAttributes();
@@ -119,8 +119,14 @@ bool ChickenEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小鸡
-    auto baby = std::make_unique<ChickenEntity>(0);
+    auto baby = std::make_unique<ChickenEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -202,8 +208,14 @@ void ChickenEntity::tick()
         --m_eggTimer;
 
         if (m_eggTimer <= 0 && world() != nullptr) {
+            // ECS 迁移：ItemEntity 构造需要 registry 句柄
+            auto* registry = m_world->entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
+
             // 下蛋
-            auto egg = std::make_unique<ItemEntity>(0, ItemStack(Items::EGG, 1), x(), y() + 0.2f, z());
+            auto egg = std::make_unique<ItemEntity>(0, ItemStack(Items::EGG, 1), x(), y() + 0.2f, z(), *registry);
 
             // 播放下蛋音效
             playSound(

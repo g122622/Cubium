@@ -38,20 +38,21 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 
 namespace mc {
 
-std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
-    return std::make_unique<CowEntity>(0);
+    return std::make_unique<CowEntity>(0, registry);
 }
 
-CowEntity::CowEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+CowEntity::CowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -106,8 +107,14 @@ bool CowEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小牛
-    auto baby = std::make_unique<CowEntity>(0);
+    auto baby = std::make_unique<CowEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

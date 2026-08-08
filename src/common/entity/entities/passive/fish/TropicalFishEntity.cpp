@@ -67,8 +67,8 @@ void TropicalFishEntity::registerData()
     m_dataManager.registerParam(DATA_VARIANT_PARAM, 0);
 }
 
-TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
-    : AbstractGroupFishEntity(id)
+TropicalFishEntity::TropicalFishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractGroupFishEntity(id, registry)
 {
     // 显式调用 registerData() 注册 DATA_VARIANT（C++ 基类构造期虚函数不派发，
     // Entity::Entity() 内部调用的 registerData() 解析到父类而非本类）。
@@ -82,9 +82,9 @@ TropicalFishEntity::TropicalFishEntity(EntityInstanceId id)
     randomizeVariant();
 }
 
-std::unique_ptr<Entity> TropicalFishEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TropicalFishEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TropicalFishEntity>(0);
+    return std::make_unique<TropicalFishEntity>(0, registry);
 }
 
 TropicalFishEntity::FishShape TropicalFishEntity::getShape() const

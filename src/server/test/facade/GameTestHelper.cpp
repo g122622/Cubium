@@ -451,7 +451,7 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Unknown entity type '{0}'", {entityType}};
     }
-    auto entity = type->create(&m_world);
+    auto entity = type->create(&m_world, *m_world.entityRegistry());
     if (entity == nullptr) {
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Failed to create entity '{0}'", {entityType}};

@@ -47,14 +47,14 @@
 
 namespace mc {
 
-std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<PigEntity>(0);
+    return std::make_unique<PigEntity>(0, registry);
 }
 
-PigEntity::PigEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+PigEntity::PigEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -95,8 +95,14 @@ bool PigEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小猪
-    auto baby = std::make_unique<PigEntity>(0);
+    auto baby = std::make_unique<PigEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

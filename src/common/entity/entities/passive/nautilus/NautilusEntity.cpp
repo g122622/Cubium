@@ -45,8 +45,8 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-NautilusEntity::NautilusEntity(EntityInstanceId id)
-    : AbstractNautilusEntity(id)
+NautilusEntity::NautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractNautilusEntity(id, registry)
 {
     // 显式调用 registerData()，注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类
@@ -63,10 +63,10 @@ NautilusEntity::NautilusEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> NautilusEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> NautilusEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时 ID 0，实际 ID 由 EntityManager 分配
-    return std::make_unique<NautilusEntity>(0);
+    return std::make_unique<NautilusEntity>(0, registry);
 }
 
 // ============================================================================
@@ -75,8 +75,14 @@ std::unique_ptr<Entity> NautilusEntity::create(IWorld* /*world*/)
 
 std::unique_ptr<AnimalEntity> NautilusEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 对应 MC 1.21.11 Nautilus.getBreedOffspring()
-    auto baby = std::make_unique<NautilusEntity>(0);
+    auto baby = std::make_unique<NautilusEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

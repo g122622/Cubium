@@ -128,8 +128,13 @@ bool throwHalfStackToTarget(VillagerEntity* villager,
             vz += (rng.nextFloat() - 0.5f) * 0.3f;
 
             // 生成物品实体
-            auto itemEntity =
-                std::make_unique<ItemEntity>(EntityInstanceId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz);
+            // ECS 迁移：实体构造需要 registry 句柄（world 在调用路径已确保非空）
+            auto* registry = world->entityRegistry();
+            if (registry == nullptr) {
+                return false;
+            }
+            auto itemEntity = std::make_unique<ItemEntity>(
+                EntityInstanceId(0), throwStack, spawnX, spawnY, spawnZ, vx, vy, vz, *registry);
 
             // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
             itemEntity->setTypeId(EntityTypeKeys::ITEM);

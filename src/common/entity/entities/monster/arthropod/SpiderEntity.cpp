@@ -116,8 +116,8 @@ private:
 
 // ==================== SpiderEntity ====================
 
-SpiderEntity::SpiderEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+SpiderEntity::SpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -126,18 +126,18 @@ SpiderEntity::SpiderEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpiderEntity>(EntityInstanceId(0));
+    return std::make_unique<SpiderEntity>(EntityInstanceId(0), registry);
 }
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const
 {
     // 蜘蛛只在黑暗中攻击（光照等级 < 7）
     if (m_world != nullptr) {
-        u8 lightLevel = m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_position.x)),
-                                                        static_cast<i32>(std::floor(m_position.y)),
-                                                        static_cast<i32>(std::floor(m_position.z))),
+        u8 lightLevel = m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                                                        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                                                        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))),
             0);
         if (lightLevel < 7) {
             return MonsterEntity::shouldAttack(target);

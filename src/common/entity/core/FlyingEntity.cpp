@@ -43,8 +43,8 @@ const entity::EntityClassInfo& FlyingEntity::classInfo()
     return s_classInfo;
 }
 
-FlyingEntity::FlyingEntity(EntityInstanceId id)
-    : MobEntity(id)
+FlyingEntity::FlyingEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MobEntity(id, registry)
 {
     // 飞行生物默认不受重力影响
     // 重力由 hasGravity() 返回 false 来控制
@@ -63,7 +63,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         moveRelative(physics::SWIM_SPEED_BASE, strafing, vertical, forward);
 
         // 执行移动（带碰撞检测）
-        move(entity::MoverType::Self, m_velocity);
+        move(entity::MoverType::Self, m_builtIn.velocity->m_velocity);
 
         // 水中阻力：保留 80% 速度
         scaleVelocity(physics::WATER_DRAG);
@@ -74,7 +74,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         moveRelative(physics::LAVA_SWIM_SPEED, strafing, vertical, forward);
 
         // 执行移动（带碰撞检测）
-        move(entity::MoverType::Self, m_velocity);
+        move(entity::MoverType::Self, m_builtIn.velocity->m_velocity);
 
         // 岩浆阻力：保留 50% 速度（比水更粘稠）
         scaleVelocity(physics::LAVA_DRAG);
@@ -86,9 +86,9 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 slipperiness = physics::SLIPPERINESS_DEFAULT; // 默认滑度 0.6
 
         if (m_onGround && m_world != nullptr) {
-            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 1.0)),
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos groundPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 1.0)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             const BlockState* blockState = m_world->getBlockState(groundPos);
             if (blockState != nullptr) {
                 slipperiness = blockState->getBlock().getSlipperiness(*blockState, m_world, &groundPos, this);
@@ -107,9 +107,9 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 重新获取摩擦因子用于最终阻力
         f32 finalFriction = 0.91f;
         if (m_onGround && m_world != nullptr) {
-            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 1.0)),
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos groundPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 1.0)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             const BlockState* blockState = m_world->getBlockState(groundPos);
             if (blockState != nullptr) {
                 finalFriction = blockState->getBlock().getSlipperiness(*blockState, m_world, &groundPos, this) * 0.91f;
@@ -124,7 +124,7 @@ void FlyingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         moveRelative(moveFactor, strafing, vertical, forward);
 
         // 执行移动（带碰撞检测）
-        move(entity::MoverType::Self, m_velocity);
+        move(entity::MoverType::Self, m_builtIn.velocity->m_velocity);
 
         // 应用阻力
         scaleVelocity(finalFriction);

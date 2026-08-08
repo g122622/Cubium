@@ -518,7 +518,12 @@ void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Directio
     vy += rng.nextGaussian(0.0f, INACCURACY);
     vz += rng.nextGaussian(0.0f, INACCURACY);
 
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), stack, x, y, z, vx, vy, vz);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), stack, x, y, z, vx, vy, vz, *registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);

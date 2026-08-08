@@ -52,7 +52,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    CaveSpiderEntity(EntityInstanceId id);
+    CaveSpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~CaveSpiderEntity() override = default;
 
@@ -67,7 +67,7 @@ public:
     /**
      * @brief 创建洞穴蜘蛛实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 攻击 ==========
 

@@ -41,7 +41,7 @@ namespace mc {
  */
 class StrayEntity : public AbstractSkeletonEntity {
 public:
-    StrayEntity(EntityInstanceId id);
+    StrayEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~StrayEntity() override = default;
 
@@ -50,7 +50,7 @@ public:
     StrayEntity(StrayEntity&&) = delete;
     StrayEntity& operator=(StrayEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 

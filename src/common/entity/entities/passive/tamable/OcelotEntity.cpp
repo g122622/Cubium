@@ -83,8 +83,8 @@ const entity::EntityClassInfo& OcelotEntity::classInfo()
 
 // ==================== OcelotEntity ====================
 
-OcelotEntity::OcelotEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+OcelotEntity::OcelotEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -99,9 +99,9 @@ OcelotEntity::OcelotEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<OcelotEntity>(0);
+    return std::make_unique<OcelotEntity>(0, registry);
 }
 
 bool OcelotEntity::trustsPlayer(u64 playerId) const
@@ -140,8 +140,14 @@ bool OcelotEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> OcelotEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建一个新的豹猫实体，不需要继承父母特征
-    auto baby = std::make_unique<OcelotEntity>(0);
+    auto baby = std::make_unique<OcelotEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

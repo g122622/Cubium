@@ -86,6 +86,10 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    # Entity ECS - 实体系统 OOP→ECS 迁移（基岩版式混合架构）
+    # 组件均为 header-only，仅 context/EntityRegistry.cpp 需登记
+    entity/ecs/context/EntityRegistry.cpp
+    entity/ecs/systems/EntitySystemScheduler.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp

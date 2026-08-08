@@ -160,6 +160,8 @@ using mc::world::chunk::SectionPos;
 
 ServerWorld::ServerWorld(const ServerWorldConfig& config)
     : m_config(config)
+    , m_entityRegistry(std::string{"server-dim"} + std::to_string(static_cast<i32>(config.dimension)))
+    , m_entityManager(m_entityRegistry)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
     // 构造时同步模拟距离到实体管理器（与带 chunkManager 的重载对齐，运行时变更走 setConfig）。
@@ -172,6 +174,8 @@ ServerWorld::ServerWorld(const ServerWorldConfig& config)
 ServerWorld::ServerWorld(const ServerWorldConfig& config, std::unique_ptr<ServerChunkManager> chunkManager)
     : m_config(config)
     , m_chunkManager(std::move(chunkManager))
+    , m_entityRegistry(std::string{"server-dim"} + std::to_string(static_cast<i32>(config.dimension)))
+    , m_entityManager(m_entityRegistry)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::Constructor", "dimension", config.dimension);
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
@@ -1205,7 +1209,12 @@ void ServerWorld::tick()
         // canRainAt、canSeeSky 判定）
         auto [ok, pos] = m_weatherManager->trySpawnLightning();
         if (ok) {
-            auto bolt = entity::LightningBoltEntity::create(this);
+            // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+            auto* registry = entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
+            auto bolt = entity::LightningBoltEntity::create(this, *registry);
             bolt->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
             EntityInstanceId boltId = spawnEntity(std::move(bolt));
             if (boltId == 0) {
@@ -2036,7 +2045,7 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
             continue;
         }
 
-        std::unique_ptr<Entity> entity = entityType->create(this);
+        std::unique_ptr<Entity> entity = entityType->create(this, m_entityRegistry);
         if (!entity) {
             continue;
         }
@@ -2139,6 +2148,29 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         }
     }
 
+    // Java 存档路径：实体以原始 NBT 暂存于 ChunkData（storage 层不持有 registry，无法在
+    // JavaColumnReader 阶段反序列化）。此处持有 *entityRegistry()，在此 spawn 点反序列化
+    // 并注入世界——满足"Entity 构造时 registry 就位"的铁律。
+    if (chunk != nullptr && chunk->hasLoadedEntityNbt()) {
+        auto loadedEntityNbt = chunk->takeLoadedEntityNbt();
+        for (auto& entityTagPtr : loadedEntityNbt) {
+            if (entityTagPtr == nullptr) {
+                continue;
+            }
+            auto entityResult =
+                entity::serialization::EntityDeserializer::deserialize(*entityTagPtr, *entityRegistry());
+            if (entityResult.failed()) {
+                spdlog::warn(
+                    "Failed to deserialize Java entity in chunk ({}, {}): {}", x, z, entityResult.error().message());
+                continue;
+            }
+            auto entity = entityResult.value();
+            if (entity != nullptr) {
+                _spawnLoadedEntity(std::move(entity), x, z, std::nullopt);
+            }
+        }
+    }
+
     // Native 路径：从 EntityStorageManager 加载区块内所有实体并注入世界
     if (!m_storage || !m_storage->isOpen()) {
         return;
@@ -2149,7 +2181,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         return;
     }
 
-    auto result = entityStorage->loadEntitiesInChunk(x, z, m_config.dimension);
+    auto result = entityStorage->loadEntitiesInChunk(x, z, m_config.dimension, *entityRegistry());
     if (result.failed()) {
         spdlog::error("Failed to load entities for chunk ({}, {}): {}", x, z, result.error().message());
         return;

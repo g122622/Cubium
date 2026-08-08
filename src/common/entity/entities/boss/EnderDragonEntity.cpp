@@ -67,8 +67,8 @@ using ParticleTypeId = particle::ParticleTypeId;
 // BossEntity
 // ============================================================================
 
-BossEntity::BossEntity(EntityInstanceId id)
-    : MobEntity(id)
+BossEntity::BossEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MobEntity(id, registry)
 {
     // Boss 级实体默认显示生命条
 }
@@ -77,8 +77,8 @@ BossEntity::BossEntity(EntityInstanceId id)
 // EnderDragonPartEntity
 // ============================================================================
 
-EnderDragonPartEntity::EnderDragonPartEntity(EntityInstanceId id)
-    : Entity(id)
+EnderDragonPartEntity::EnderDragonPartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     // 部件尺寸较小，用于碰撞检测
 }
@@ -115,13 +115,13 @@ void EnderDragonPartEntity::updatePosition(f32 offsetX, f32 offsetY, f32 offsetZ
 // EnderDragonEntity
 // ============================================================================
 
-std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EnderDragonEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EnderDragonEntity>(EntityInstanceId(0));
+    return std::make_unique<EnderDragonEntity>(EntityInstanceId(0), registry);
 }
 
-EnderDragonEntity::EnderDragonEntity(EntityInstanceId id)
-    : BossEntity(id)
+EnderDragonEntity::EnderDragonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : BossEntity(id, registry)
 {
     // 初始化龙部件
     initDragonParts();
@@ -146,50 +146,53 @@ void EnderDragonEntity::initDragonParts()
     // 创建所有龙部件
     // 部件列表顺序：头、颈、身、尾1、尾2、尾3、左翼、右翼
 
+    // ECS 迁移：部件构造需要 registry 句柄，从本实体（已由基类构造建立）的 context 取。
+    auto& registry = m_entityContext->registry();
+
     // 头部
-    m_dragonPartHead = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartHead = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartHead->setPart(EnderDragonPartEntity::Part::Head);
     m_dragonPartHead->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartHead);
 
     // 颈部
-    m_dragonPartNeck = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartNeck = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartNeck->setPart(EnderDragonPartEntity::Part::Neck);
     m_dragonPartNeck->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartNeck);
 
     // 身体
-    m_dragonPartBody = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartBody = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartBody->setPart(EnderDragonPartEntity::Part::Body);
     m_dragonPartBody->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartBody);
 
     // 尾部1
-    m_dragonPartTail1 = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartTail1 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartTail1->setPart(EnderDragonPartEntity::Part::Tail1);
     m_dragonPartTail1->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail1);
 
     // 尾部2
-    m_dragonPartTail2 = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartTail2 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartTail2->setPart(EnderDragonPartEntity::Part::Tail2);
     m_dragonPartTail2->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail2);
 
     // 尾部3
-    m_dragonPartTail3 = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartTail3 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartTail3->setPart(EnderDragonPartEntity::Part::Tail3);
     m_dragonPartTail3->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartTail3);
 
     // 左翼
-    m_dragonPartLeftWing = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartLeftWing = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartLeftWing->setPart(EnderDragonPartEntity::Part::WingLeft);
     m_dragonPartLeftWing->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartLeftWing);
 
     // 右翼
-    m_dragonPartRightWing = new EnderDragonPartEntity(EntityInstanceId(0));
+    m_dragonPartRightWing = new EnderDragonPartEntity(EntityInstanceId(0), registry);
     m_dragonPartRightWing->setPart(EnderDragonPartEntity::Part::WingRight);
     m_dragonPartRightWing->setParentDragon(this);
     m_dragonParts.push_back(m_dragonPartRightWing);
@@ -798,7 +801,7 @@ void EnderDragonEntity::_onDeathUpdate()
     //         enderdragonpart.setOldPosAndRot();
     //         enderdragonpart.setPos(enderdragonpart.position().add(vec3));
     //     }
-    // Cubium 的 Entity::setPosition() 内部会将 m_prevPosition 更新为当前位置，
+    // Cubium 的 Entity::setPosition() 内部会将 m_builtIn.stateVector->m_posPrev 更新为当前位置，
     // 再设置新位置，等价于 MC 的 setOldPosAndRot() + setPos() 组合。
     for (EnderDragonPartEntity* part : m_dragonParts) {
         if (part == nullptr) {

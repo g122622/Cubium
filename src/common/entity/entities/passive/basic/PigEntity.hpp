@@ -54,7 +54,7 @@ public:
     using LivingEntity::getEquipment;
     using LivingEntity::setEquipment;
 
-    PigEntity(EntityInstanceId id);
+    PigEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PigEntity() override = default;
 
     /**
@@ -64,7 +64,7 @@ public:
      * @param world 世界实例
      * @return 新创建的实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 声音 ==========
 

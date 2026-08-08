@@ -70,8 +70,8 @@ const entity::EntityClassInfo& EvokerEntity::classInfo()
     return s_classInfo;
 }
 
-EvokerEntity::EvokerEntity(EntityInstanceId id)
-    : SpellcastingIllagerEntity(id)
+EvokerEntity::EvokerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SpellcastingIllagerEntity(id, registry)
 {
     registerAttributes();
 
@@ -81,9 +81,9 @@ EvokerEntity::EvokerEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> EvokerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EvokerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EvokerEntity>(EntityInstanceId(0));
+    return std::make_unique<EvokerEntity>(EntityInstanceId(0), registry);
 }
 
 void EvokerEntity::startCasting(i32 spellType)
@@ -205,8 +205,14 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         // 尖牙的Y坐标 = 方块Y坐标 + 碰撞箱上表面高度
         f32 groundY = static_cast<f32>(blockPos.y) + shapeMaxY;
 
+        // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+        auto* registry = m_world->entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
         // 创建唤魔者尖牙实体
-        auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityInstanceId(0));
+        auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityInstanceId(0), *registry);
         fangs->setPosition(posX, groundY, posZ);
         fangs->setRotation(angle * math::RAD_TO_DEG, 0.0f);
         fangs->setWarmupDelay(warmupDelay);
@@ -237,8 +243,14 @@ void EvokerEntity::summonVex()
         i32 offsetZ = -2 + rng.nextInt(5);
         BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);
 
+        // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+        auto* registry = m_world->entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
         // 创建恼鬼实体
-        auto vex = std::make_unique<VexEntity>(EntityInstanceId(0));
+        auto vex = std::make_unique<VexEntity>(EntityInstanceId(0), *registry);
         vex->setPosition(static_cast<f32>(spawnPos.x), static_cast<f32>(spawnPos.y), static_cast<f32>(spawnPos.z));
         vex->setRotation(0.0f, 0.0f);
 

@@ -50,8 +50,8 @@
 
 namespace mc {
 
-PandaEntity::PandaEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+PandaEntity::PandaEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 随机生成性格
     randomizePersonality();
@@ -63,9 +63,9 @@ PandaEntity::PandaEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PandaEntity>(0);
+    return std::make_unique<PandaEntity>(0, registry);
 }
 
 void PandaEntity::randomizePersonality()
@@ -210,7 +210,13 @@ void PandaEntity::updatePersonalityFromGenes()
 
 std::unique_ptr<AnimalEntity> PandaEntity::spawnBaby(AnimalEntity& partner)
 {
-    auto baby = std::make_unique<PandaEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto baby = std::make_unique<PandaEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -363,7 +369,7 @@ void PandaEntity::_onSneezeComplete()
 
     // 2. 生成喷嚏粒子
     // 粒子位置在熊猫头部前方
-    f32 renderYawOffset = m_yaw; // 使用yaw作为朝向
+    f32 renderYawOffset = m_builtIn.rotation->m_rot.x; // 使用yaw作为朝向
     f32 yawRad = math::toRadians(renderYawOffset);
     f32 sinYaw = std::sin(yawRad);
     f32 cosYaw = std::cos(yawRad);

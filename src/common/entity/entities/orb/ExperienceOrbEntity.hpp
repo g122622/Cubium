@@ -82,9 +82,10 @@ public:
 
     /**
      * @brief 默认构造函数
-     * @param xpValue 经验值（默认为1）
+     * @param xpValue 经验值
+     * @param registry ECS 实体注册表
      */
-    explicit ExperienceOrbEntity(i32 xpValue = 1);
+    explicit ExperienceOrbEntity(i32 xpValue, ecs::EntityRegistry& registry);
 
     /**
      * @brief 完整构造函数
@@ -93,15 +94,17 @@ public:
      * @param y Y坐标
      * @param z Z坐标
      * @param xpValue 经验值
+     * @param registry ECS 实体注册表
      */
-    ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue);
+    ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, ecs::EntityRegistry& registry);
 
     /**
      * @brief 工厂方法（用于实体注册）
      * @param world 世界指针
+     * @param registry ECS 实体注册表
      * @return 新创建的经验球实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     ~ExperienceOrbEntity() override = default;
 

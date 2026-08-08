@@ -78,8 +78,8 @@ namespace mc {
 //   调整跳跃高度（0.2/0.3/0.5）。项目当前 LivingEntity::jump() 为非虚函数且使用
 //   m_jumpUpwardsMotion，重写跳跃力度需要更大的架构改动，暂留待未来处理。
 
-RabbitEntity::RabbitEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+RabbitEntity::RabbitEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 替换为兔子专属的跳跃/移动控制器（对应 MC Rabbit 构造函数中：
     //   this.jumpControl = new RabbitJumpControl(this);
@@ -108,9 +108,9 @@ RabbitEntity::RabbitEntity(EntityInstanceId id)
     }
 }
 
-std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> RabbitEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<RabbitEntity>(0);
+    return std::make_unique<RabbitEntity>(0, registry);
 }
 
 void RabbitEntity::setRandomRabbitType()
@@ -254,7 +254,13 @@ bool RabbitEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
 {
-    auto baby = std::make_unique<RabbitEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto baby = std::make_unique<RabbitEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

@@ -71,11 +71,12 @@ public:
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit ChestBoatEntity(Type type = Type::OAK);
+    explicit ChestBoatEntity(Type type, ecs::EntityRegistry& registry);
 
     ~ChestBoatEntity() override = default;
 

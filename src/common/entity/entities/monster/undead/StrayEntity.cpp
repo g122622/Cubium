@@ -29,8 +29,8 @@
 
 namespace mc {
 
-StrayEntity::StrayEntity(EntityInstanceId id)
-    : AbstractSkeletonEntity(id)
+StrayEntity::StrayEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractSkeletonEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -39,9 +39,9 @@ StrayEntity::StrayEntity(EntityInstanceId id)
     setCombatTask();
 }
 
-std::unique_ptr<Entity> StrayEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> StrayEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<StrayEntity>(EntityInstanceId(0));
+    return std::make_unique<StrayEntity>(EntityInstanceId(0), registry);
 }
 
 void StrayEntity::registerAttributes()

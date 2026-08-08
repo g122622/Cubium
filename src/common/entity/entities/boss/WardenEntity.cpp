@@ -68,17 +68,17 @@ const EntityClassInfo& WardenEntity::classInfo()
 // 工厂方法
 // ============================================================================
 
-std::unique_ptr<Entity> WardenEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WardenEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WardenEntity>(EntityInstanceId(0));
+    return std::make_unique<WardenEntity>(EntityInstanceId(0), registry);
 }
 
 // ============================================================================
 // 构造函数
 // ============================================================================
 
-WardenEntity::WardenEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+WardenEntity::WardenEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // MC 1.21.11 Warden 构造函数: this.xpReward = 5
     setExperienceValue(5);

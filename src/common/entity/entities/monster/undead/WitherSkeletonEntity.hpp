@@ -53,7 +53,7 @@ class LivingEntity;
  */
 class WitherSkeletonEntity : public AbstractSkeletonEntity {
 public:
-    WitherSkeletonEntity(EntityInstanceId id);
+    WitherSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~WitherSkeletonEntity() override = default;
 
@@ -62,7 +62,7 @@ public:
     WitherSkeletonEntity(WitherSkeletonEntity&&) = delete;
     WitherSkeletonEntity& operator=(WitherSkeletonEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /// 凋零效果持续时间（ticks），200 ticks = 10 秒
     static constexpr i32 WITHER_DURATION_TICKS = 200;

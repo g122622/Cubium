@@ -97,8 +97,8 @@ const entity::EntityClassInfo& WolfEntity::classInfo()
     return s_classInfo;
 }
 
-WolfEntity::WolfEntity(EntityInstanceId id)
-    : TameableEntity(id)
+WolfEntity::WolfEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -113,10 +113,10 @@ WolfEntity::WolfEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<WolfEntity>(0);
+    return std::make_unique<WolfEntity>(0, registry);
 }
 
 bool WolfEntity::isTameItem(const ItemStack& itemStack) const
@@ -555,8 +555,14 @@ bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* o
 
 std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小狼
-    auto baby = std::make_unique<WolfEntity>(0);
+    auto baby = std::make_unique<WolfEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

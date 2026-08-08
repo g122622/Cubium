@@ -46,8 +46,8 @@
 
 namespace mc {
 
-IronGolemEntity::IronGolemEntity(EntityInstanceId id)
-    : GolemEntity(id)
+IronGolemEntity::IronGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GolemEntity(id, registry)
 {
     // 铁傀儡可以走上1格高的方块
     setStepHeight(1.0f);
@@ -59,9 +59,9 @@ IronGolemEntity::IronGolemEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<IronGolemEntity>(0);
+    return std::make_unique<IronGolemEntity>(0, registry);
 }
 
 void IronGolemEntity::tick()

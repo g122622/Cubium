@@ -82,8 +82,8 @@ constexpr i32 LLAMA_ATTACK_INTERVAL = 40;         // 攻击间隔 ticks
 // 构造函数
 // ============================================================================
 
-LlamaEntity::LlamaEntity(EntityInstanceId id)
-    : AbstractChestedHorseEntity(id)
+LlamaEntity::LlamaEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractChestedHorseEntity(id, registry)
 {
     randomizeAppearance();
 
@@ -94,9 +94,9 @@ LlamaEntity::LlamaEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> LlamaEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<LlamaEntity>(0);
+    return std::make_unique<LlamaEntity>(0, registry);
 }
 
 void LlamaEntity::randomizeAppearance()
@@ -188,9 +188,15 @@ bool LlamaEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> LlamaEntity::spawnBaby(AnimalEntity& partner)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     math::Random rng(ticksExisted());
 
-    auto baby = std::make_unique<LlamaEntity>(0);
+    auto baby = std::make_unique<LlamaEntity>(0, *registry);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 
@@ -331,8 +337,14 @@ void LlamaEntity::_spit(LivingEntity* target)
         return;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 创建口水实体
-    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityInstanceId(0));
+    auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityInstanceId(0), *registry);
 
     // 设置发射者
     spitEntity->setShooter(this);

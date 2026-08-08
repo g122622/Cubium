@@ -69,8 +69,8 @@ namespace mc {
 // CopperGolemEntity 实现
 // ============================================================================
 
-CopperGolemEntity::CopperGolemEntity(EntityInstanceId id)
-    : GolemEntity(id)
+CopperGolemEntity::CopperGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GolemEntity(id, registry)
 {
     // 对应 MC 1.21.11 CopperGolem 构造函数：
     //   setPersistenceRequired();
@@ -97,9 +97,9 @@ CopperGolemEntity::CopperGolemEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CopperGolemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CopperGolemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CopperGolemEntity>(0);
+    return std::make_unique<CopperGolemEntity>(0, registry);
 }
 
 void CopperGolemEntity::spawnFromStatue(entity::CopperGolemWeatherState weatherState)

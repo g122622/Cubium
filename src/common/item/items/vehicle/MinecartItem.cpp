@@ -103,36 +103,42 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
     // 创建矿车实体
     std::unique_ptr<entity::AbstractMinecartEntity> minecart;
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return ActionResultType::Fail;
+    }
+
     switch (m_minecartType) {
         case entity::AbstractMinecartEntity::Type::Rideable:
-            minecart = std::make_unique<entity::RideableMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::RideableMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Chest:
-            minecart = std::make_unique<entity::ChestMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::ChestMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::CHEST_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Furnace:
-            minecart = std::make_unique<entity::FurnaceMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::FurnaceMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::FURNACE_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::TNT:
-            minecart = std::make_unique<entity::TNTMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::TNTMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::TNT_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::Hopper:
-            minecart = std::make_unique<entity::HopperMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::HopperMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::HOPPER_MINECART);
             break;
         case entity::AbstractMinecartEntity::Type::CommandBlock:
-            minecart = std::make_unique<entity::CommandBlockMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::CommandBlockMinecartEntity>(EntityInstanceId(0), *registry);
             break;
         case entity::AbstractMinecartEntity::Type::Spawner:
-            minecart = std::make_unique<entity::SpawnerMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::SpawnerMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::SPAWNER_MINECART);
             break;
         default:
-            minecart = std::make_unique<entity::RideableMinecartEntity>(EntityInstanceId(0));
+            minecart = std::make_unique<entity::RideableMinecartEntity>(EntityInstanceId(0), *registry);
             minecart->setTypeId(entity::EntityTypeKeys::MINECART);
             break;
     }

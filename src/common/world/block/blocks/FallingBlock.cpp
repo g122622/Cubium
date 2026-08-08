@@ -105,7 +105,13 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
         return;
     }
 
-    auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
+    auto fallingEntity = std::make_unique<entity::FallingBlockEntity>(*registry);
     fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
     fallingEntity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);

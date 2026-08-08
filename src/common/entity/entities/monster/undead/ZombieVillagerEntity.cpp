@@ -97,8 +97,8 @@ constexpr i32 NAUSEA_DURATION = 200; // 10秒
 // 构造函数
 // ============================================================================
 
-ZombieVillagerEntity::ZombieVillagerEntity(EntityInstanceId id)
-    : ZombieEntity(id)
+ZombieVillagerEntity::ZombieVillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ZombieEntity(id, registry)
 {
     // 僵尸村民比普通僵尸慢
     // 职业随机设置（在 VanillaEntities 中设置）
@@ -117,9 +117,9 @@ ZombieVillagerEntity::ZombieVillagerEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombieVillagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZombieVillagerEntity>(EntityInstanceId(0));
+    return std::make_unique<ZombieVillagerEntity>(EntityInstanceId(0), registry);
 }
 
 // ============================================================================
@@ -271,12 +271,20 @@ void ZombieVillagerEntity::finishConverting()
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* villagerType = registry.getType("minecraft:villager");
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = m_world->entityRegistry();
+    // ECS 迁移：实体构造强制需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS，
+    // 此时无法构造实体，直接放弃转换（转换本就只应在服务端进行）
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
     std::unique_ptr<Entity> newEntity;
     if (villagerType && villagerType->canSummon()) {
-        newEntity = villagerType->create(m_world);
+        newEntity = villagerType->create(m_world, *ecsRegistry);
     } else {
         // 回退：直接创建 VillagerEntity
-        newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0));
+        newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0), *ecsRegistry);
     }
 
     if (!newEntity) {
@@ -292,8 +300,8 @@ void ZombieVillagerEntity::finishConverting()
     }
 
     // 设置位置和旋转
-    villager->setPosition(m_position);
-    villager->setRotation(m_yaw, m_pitch);
+    villager->setPosition(m_builtIn.stateVector->m_pos);
+    villager->setRotation(m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
 
     // 继承村民数据
     villager->setVillagerData(m_villagerData);

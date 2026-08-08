@@ -50,7 +50,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    AnimalEntity(EntityInstanceId id);
+    AnimalEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~AnimalEntity() override = default;
 
     /// 本类继承链标识（parent = AgeableEntity::classInfo()）。见 Entity::classInfo()。

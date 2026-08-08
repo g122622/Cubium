@@ -78,13 +78,13 @@ const entity::EntityClassInfo& VindicatorEntity::classInfo()
 
 // ==================== PillagerEntity ====================
 
-std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)
+std::unique_ptr<Entity> PillagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PillagerEntity>(EntityInstanceId(0));
+    return std::make_unique<PillagerEntity>(EntityInstanceId(0), registry);
 }
 
-PillagerEntity::PillagerEntity(EntityInstanceId id)
-    : AbstractIllagerEntity(id)
+PillagerEntity::PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractIllagerEntity(id, registry)
 {
     registerAttributes();
 
@@ -157,7 +157,12 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 
     // 创建箭矢实体
     // 掠夺者不消耗弹药，直接创建箭矢
-    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0), *registry);
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);
@@ -256,13 +261,13 @@ void PillagerEntity::registerAttributes()
 
 // ==================== VindicatorEntity ====================
 
-std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world)
+std::unique_ptr<Entity> VindicatorEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VindicatorEntity>(EntityInstanceId(0));
+    return std::make_unique<VindicatorEntity>(EntityInstanceId(0), registry);
 }
 
-VindicatorEntity::VindicatorEntity(EntityInstanceId id)
-    : AbstractIllagerEntity(id)
+VindicatorEntity::VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractIllagerEntity(id, registry)
 {
     registerAttributes();
 

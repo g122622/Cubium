@@ -47,7 +47,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    HuskEntity(EntityInstanceId id);
+    HuskEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~HuskEntity() override = default;
 
@@ -66,7 +66,7 @@ public:
     /**
      * @brief 创建尸壳实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 阳光燃烧 ==========
 

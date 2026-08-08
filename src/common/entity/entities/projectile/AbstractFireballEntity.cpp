@@ -49,19 +49,19 @@
 namespace mc {
 namespace entity {
 
-AbstractFireballEntity::AbstractFireballEntity(EntityInstanceId id)
-    : DamagingProjectileEntity(id)
+AbstractFireballEntity::AbstractFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : DamagingProjectileEntity(id, registry)
 {}
 
-FireballEntity::FireballEntity(EntityInstanceId id)
-    : AbstractFireballEntity(id)
+FireballEntity::FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractFireballEntity(id, registry)
 {
     setDamage(6.0f);
 }
 
-std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FireballEntity>(0);
+    return std::make_unique<FireballEntity>(0, registry);
 }
 
 void FireballEntity::onEntityHit(const RayTraceResult& result)
@@ -121,15 +121,15 @@ void FireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-SmallFireballEntity::SmallFireballEntity(EntityInstanceId id)
-    : AbstractFireballEntity(id)
+SmallFireballEntity::SmallFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractFireballEntity(id, registry)
 {
     setDamage(5.0f);
 }
 
-std::unique_ptr<Entity> SmallFireballEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SmallFireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SmallFireballEntity>(0);
+    return std::make_unique<SmallFireballEntity>(0, registry);
 }
 
 void SmallFireballEntity::onEntityHit(const RayTraceResult& result)
@@ -197,15 +197,15 @@ void SmallFireballEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-DragonFireballEntity::DragonFireballEntity(EntityInstanceId id)
-    : AbstractFireballEntity(id)
+DragonFireballEntity::DragonFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractFireballEntity(id, registry)
 {
     setDamage(12.0f);
 }
 
-std::unique_ptr<Entity> DragonFireballEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> DragonFireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<DragonFireballEntity>(0);
+    return std::make_unique<DragonFireballEntity>(0, registry);
 }
 
 void DragonFireballEntity::onEntityHit(const RayTraceResult& result)
@@ -232,7 +232,12 @@ void DragonFireballEntity::_createDragonBreathCloud()
 
     // 创建龙息区域效果云
     // 参数：半径 3.0，持续时间 600 ticks (30秒)，半径变化率扩展到 7.0
-    auto cloud = std::make_unique<AreaEffectCloudEntity>();
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto cloud = std::make_unique<AreaEffectCloudEntity>(*registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     cloud->setTypeId(EntityTypeKeys::AREA_EFFECT_CLOUD);
@@ -285,15 +290,15 @@ particle::ParticleTypeId DragonFireballEntity::getParticleType() const
     return particle::ParticleTypeId::DragonBreath;
 }
 
-WitherSkullEntity::WitherSkullEntity(EntityInstanceId id)
-    : AbstractFireballEntity(id)
+WitherSkullEntity::WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractFireballEntity(id, registry)
 {
     setDamage(8.0f);
 }
 
-std::unique_ptr<Entity> WitherSkullEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WitherSkullEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WitherSkullEntity>(0);
+    return std::make_unique<WitherSkullEntity>(0, registry);
 }
 
 void WitherSkullEntity::onEntityHit(const RayTraceResult& result)

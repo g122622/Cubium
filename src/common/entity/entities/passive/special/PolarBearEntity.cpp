@@ -126,8 +126,8 @@ private:
 
 // ==================== PolarBearEntity ====================
 
-PolarBearEntity::PolarBearEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+PolarBearEntity::PolarBearEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -138,9 +138,9 @@ PolarBearEntity::PolarBearEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PolarBearEntity>(0);
+    return std::make_unique<PolarBearEntity>(0, registry);
 }
 
 void PolarBearEntity::setStanding(bool standing)

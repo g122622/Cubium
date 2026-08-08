@@ -122,8 +122,8 @@ const entity::EntityClassInfo& LivingEntity::classInfo()
 // 构造函数
 // ============================================================================
 
-LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world)
-    : Entity(id, world)
+LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry)
+    : Entity(id, world, registry)
     , m_combatTracker(this)
 {
     // 构造函数中设置 stepHeight = 0.6F
@@ -503,9 +503,9 @@ f32 LivingEntity::getBlockSpeedFactor()
     // 获取脚下方块的 speedFactor
     f32 blockSpeedFactor = 1.0f;
     if (m_world != nullptr) {
-        BlockPos belowPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos belowPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* state = m_world->getBlockState(belowPos);
         if (state != nullptr) {
             blockSpeedFactor = state->getBlock().getSpeedFactor(*state, m_world, &belowPos);
@@ -574,7 +574,7 @@ void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
     if (m_world != nullptr && !isSilent()) {
         m_world->playSound(SoundEvents::ENTITY_ITEM_BREAK,
             getSoundCategory(),
-            m_position,
+            m_builtIn.stateVector->m_pos,
             0.8f,
             0.8f + m_world->getRandom().nextFloat() * 0.4f);
     }
@@ -823,9 +823,9 @@ void LivingEntity::tick()
     // baseTick 全程守卫）。原版 LivingEntity.tick 假设 level 非空（实体注册后才 tick），
     // 但 Cubium 允许"无世界 tick 基类部分"，此处需显式守卫避免空指针解引用。
     if (m_world != nullptr && !m_world->isClientSide()) {
-        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         if (currentBlockPos != m_lastBlockPos) {
             m_lastBlockPos = currentBlockPos;
             onChangedBlock();
@@ -1231,9 +1231,9 @@ void LivingEntity::playFallSound(f32 distance)
     }
 
     // 播放脚下方块的摔落音效
-    BlockPos landPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y - 0.2f)), // 脚底位置
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos landPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 0.2f)), // 脚底位置
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* landState = m_world->getBlockState(landPos);
     if (landState != nullptr && !landState->isAir()) {
         const BlockSoundType& soundType = landState->getSoundType();
@@ -1258,7 +1258,7 @@ void LivingEntity::jump()
     }
 
     // 设置垂直速度
-    m_velocity.y = jumpPower;
+    m_builtIn.velocity->m_velocity.y = jumpPower;
 
     // 冲刺跳跃
     // 如果正在冲刺，添加额外的向前动量
@@ -1267,8 +1267,8 @@ void LivingEntity::jump()
         f32 yawRad = yaw() * math::DEG_TO_RAD;
         f32 forwardX = -std::sin(yawRad) * 0.2f;
         f32 forwardZ = std::cos(yawRad) * 0.2f;
-        m_velocity.x += forwardX;
-        m_velocity.z += forwardZ;
+        m_builtIn.velocity->m_velocity.x += forwardX;
+        m_builtIn.velocity->m_velocity.z += forwardZ;
     }
 
     m_onGround = false;
@@ -1345,9 +1345,9 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     // 获取脚下方块的滑度
     f32 slipperiness = 0.6f; // 默认滑度
     if (m_onGround && m_world != nullptr) {
-        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* blockState = m_world->getBlockState(blockPos);
         if (blockState != nullptr) {
             slipperiness = blockState->getBlock().getSlipperiness(*blockState, m_world, &blockPos, this);
@@ -1381,7 +1381,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 normalizedForward = forward / length * moveFactor;
 
         // 根据偏航角计算实际移动方向
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -1390,8 +1390,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
 
         // 添加到速度（累加，不是替换）
-        m_velocity.x += moveX;
-        m_velocity.z += moveZ;
+        m_builtIn.velocity->m_velocity.x += moveX;
+        m_builtIn.velocity->m_velocity.z += moveZ;
     }
 
     // 2. 应用重力或攀爬物理
@@ -1400,12 +1400,12 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 水平速度限制为 0.15，重力被抵消
 
         // 限制水平速度
-        f32 horizontalSpeed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z);
+        f32 horizontalSpeed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x + m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
         constexpr f32 LADDER_MAX_SPEED = 0.15f;
         if (horizontalSpeed > LADDER_MAX_SPEED) {
             f32 scale = LADDER_MAX_SPEED / horizontalSpeed;
-            m_velocity.x *= scale;
-            m_velocity.z *= scale;
+            m_builtIn.velocity->m_velocity.x *= scale;
+            m_builtIn.velocity->m_velocity.z *= scale;
         }
 
         // 梯子上的垂直移动
@@ -1417,14 +1417,14 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 否则应用轻微重力使其缓慢下滑
         if (forward > 0.0f) {
             // 向上攀爬
-            m_velocity.y = physics::LADDER_CLIMB_SPEED;
+            m_builtIn.velocity->m_velocity.y = physics::LADDER_CLIMB_SPEED;
         } else if (forward < 0.0f) {
             // 向下滑落（比正常下落慢）
-            m_velocity.y = -physics::LADDER_SLIDE_SPEED;
+            m_builtIn.velocity->m_velocity.y = -physics::LADDER_SLIDE_SPEED;
         } else {
             // 不按键时，缓慢滑落
-            if (m_velocity.y < -physics::LADDER_SPEED_MAX) {
-                m_velocity.y = -physics::LADDER_SPEED_MAX;
+            if (m_builtIn.velocity->m_velocity.y < -physics::LADDER_SPEED_MAX) {
+                m_builtIn.velocity->m_velocity.y = -physics::LADDER_SPEED_MAX;
             }
         }
 
@@ -1438,7 +1438,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // vec3.y 为本帧重力位移，这里等价为"加成替代重力"：飘浮时不应用重力，
         // 仅施加向上加成，并重置摔落距离。
         const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
-        m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
+        m_builtIn.velocity->m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
         m_fallDistance = 0.0f;
     } else if (!hasNoGravity()) {
         // 缓降效果处理
@@ -1452,21 +1452,21 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         }
 
         // 应用重力
-        m_velocity.y -= gravity;
+        m_builtIn.velocity->m_velocity.y -= gravity;
     }
 
     // 3. 执行碰撞移动
     // 注意：moveWithCollision() 内部会根据碰撞结果重置速度
-    if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
-        moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f || m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 4. 应用摩擦/阻力（在移动后）
     if (m_onGround) {
         // 地面摩擦 = slipperiness * 0.91
         f32 groundFriction = slipperiness * 0.91f;
-        m_velocity.x *= groundFriction;
-        m_velocity.z *= groundFriction;
+        m_builtIn.velocity->m_velocity.x *= groundFriction;
+        m_builtIn.velocity->m_velocity.z *= groundFriction;
     } else if (isInWater()) {
         // 水中阻力
         f32 waterDrag = physics::DRAG_WATER;
@@ -1489,29 +1489,29 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             }
         }
 
-        m_velocity.x *= waterDrag;
-        m_velocity.y *= waterDrag * 0.8f; // 垂直阻力略大
-        m_velocity.z *= waterDrag;
+        m_builtIn.velocity->m_velocity.x *= waterDrag;
+        m_builtIn.velocity->m_velocity.y *= waterDrag * 0.8f; // 垂直阻力略大
+        m_builtIn.velocity->m_velocity.z *= waterDrag;
     } else if (isInLava()) {
         // 岩浆阻力
-        m_velocity.x *= physics::DRAG_LAVA;
-        m_velocity.y *= physics::DRAG_LAVA * 0.8f;
-        m_velocity.z *= physics::DRAG_LAVA;
+        m_builtIn.velocity->m_velocity.x *= physics::DRAG_LAVA;
+        m_builtIn.velocity->m_velocity.y *= physics::DRAG_LAVA * 0.8f;
+        m_builtIn.velocity->m_velocity.z *= physics::DRAG_LAVA;
     } else if (!onLadder) {
         // 空气阻力（不在梯子上）
-        m_velocity.x *= DRAG_AIR;
-        m_velocity.y *= DRAG_AIR;
-        m_velocity.z *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.x *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.y *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.z *= DRAG_AIR;
     } else {
         // 梯子上的阻力
-        m_velocity.x *= DRAG_GROUND;
-        m_velocity.z *= DRAG_GROUND;
+        m_builtIn.velocity->m_velocity.x *= DRAG_GROUND;
+        m_builtIn.velocity->m_velocity.z *= DRAG_GROUND;
     }
 
     // 5. 重置过小的速度
-    if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
 }
 
 // ============================================================================
@@ -1623,9 +1623,9 @@ void LivingEntity::updateFallFlying()
 
         // 触发 ELYTRA_GLIDE 游戏事件（通知幽匿感测体）
         if (m_world != nullptr) {
-            BlockPos eventPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y)),
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos eventPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
         }
     }
@@ -1678,22 +1678,22 @@ void LivingEntity::travelFallFlying(const Vector3& travelVec)
     }
 
     // 记录移动前的水平速度（用于撞墙伤害计算）
-    const Vector3 velocityBefore = m_velocity;
+    const Vector3 velocityBefore = m_builtIn.velocity->m_velocity;
     const f64 prevHorizontalSpeed = std::sqrt(
         static_cast<f64>(velocityBefore.x) * velocityBefore.x + static_cast<f64>(velocityBefore.z) * velocityBefore.z);
 
     // 计算滑翔后的速度
-    m_velocity = updateFallFlyingMovement(velocityBefore);
+    m_builtIn.velocity->m_velocity = updateFallFlyingMovement(velocityBefore);
 
     // 执行移动（碰撞检测）
-    if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
-        moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f || m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 服务端检测撞墙伤害
     if (m_world != nullptr && !m_world->isClientSide()) {
         const f64 currHorizontalSpeed =
-            std::sqrt(static_cast<f64>(m_velocity.x) * m_velocity.x + static_cast<f64>(m_velocity.z) * m_velocity.z);
+            std::sqrt(static_cast<f64>(m_builtIn.velocity->m_velocity.x) * m_builtIn.velocity->m_velocity.x + static_cast<f64>(m_builtIn.velocity->m_velocity.z) * m_builtIn.velocity->m_velocity.z);
         handleFallFlyingCollisions(prevHorizontalSpeed, currHorizontalSpeed);
     }
 }
@@ -1702,7 +1702,7 @@ Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) c
 {
     // 对应 MC 1.21.11 LivingEntity.updateFallFlyingMovement(Vec3)
     Vector3 look = getLookAngle();
-    const f32 pitchRad = m_pitch * math::DEG_TO_RAD;
+    const f32 pitchRad = m_builtIn.rotation->m_rot.y * math::DEG_TO_RAD;
     const f64 d0 = std::sqrt(static_cast<f64>(look.x) * look.x + static_cast<f64>(look.z) * look.z); // 视线水平分量长度
     const f64 d1 = std::sqrt(static_cast<f64>(currentVelocity.x) * currentVelocity.x +
         static_cast<f64>(currentVelocity.z) * currentVelocity.z); // 速度水平分量长度
@@ -1769,8 +1769,8 @@ Vector3 LivingEntity::getLookAngle() const
     // 与 Player::getLookVector 算法一致：
     // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
     // pitch 正值向下看，负值向上看
-    const f32 yawRad = math::toRadians(m_yaw);
-    const f32 pitchRad = math::toRadians(m_pitch);
+    const f32 yawRad = math::toRadians(m_builtIn.rotation->m_rot.x);
+    const f32 pitchRad = math::toRadians(m_builtIn.rotation->m_rot.y);
     const f32 cosYaw = std::cos(yawRad);
     const f32 sinYaw = std::sin(yawRad);
     const f32 cosPitch = std::cos(pitchRad);
@@ -1782,7 +1782,7 @@ f64 LivingEntity::getEffectiveGravity() const
 {
     // 对应 MC 1.21.11 LivingEntity.getEffectiveGravity()
     // 向下移动且有缓降效果时，重力被钳制到最大 0.01
-    const bool movingDown = m_velocity.y <= 0.0;
+    const bool movingDown = m_builtIn.velocity->m_velocity.y <= 0.0;
     if (movingDown && hasEffect(entity::effect::EffectType::SlowFalling)) {
         return std::min(getAttributeValue(entity::attribute::Attributes::ENTITY_GRAVITY, GRAVITY), 0.01);
     }
@@ -1934,18 +1934,18 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     f64 newVelocityY;
     if (m_onGround) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
-        newVelocityY = std::min(0.4, static_cast<f64>(m_velocity.y) / 2.0 + static_cast<f64>(strength));
+        newVelocityY = std::min(0.4, static_cast<f64>(m_builtIn.velocity->m_velocity.y) / 2.0 + static_cast<f64>(strength));
     } else {
         // 在空中时：保持当前Y速度
-        newVelocityY = static_cast<f64>(m_velocity.y);
+        newVelocityY = static_cast<f64>(m_builtIn.velocity->m_velocity.y);
     }
 
     // 设置新速度
     // X轴：当前速度的一半减去击退向量
     // Z轴：当前速度的一半减去击退向量
-    m_velocity.x = static_cast<f32>(static_cast<f64>(m_velocity.x) / 2.0 - knockbackX);
-    m_velocity.y = static_cast<f32>(newVelocityY);
-    m_velocity.z = static_cast<f32>(static_cast<f64>(m_velocity.z) / 2.0 - knockbackZ);
+    m_builtIn.velocity->m_velocity.x = static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.x) / 2.0 - knockbackX);
+    m_builtIn.velocity->m_velocity.y = static_cast<f32>(newVelocityY);
+    m_builtIn.velocity->m_velocity.z = static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.z) / 2.0 - knockbackZ);
 
     // 设置为空中状态
     m_onGround = false;
@@ -1961,8 +1961,8 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)
     }
 
     // 从攻击者位置计算击退方向
-    f64 ratioX = static_cast<f64>(attacker->position().x - m_position.x);
-    f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
+    f64 ratioX = static_cast<f64>(attacker->position().x - m_builtIn.stateVector->m_pos.x);
+    f64 ratioZ = static_cast<f64>(attacker->position().z - m_builtIn.stateVector->m_pos.z);
 
     applyKnockback(strength, ratioX, ratioZ);
 }
@@ -2177,10 +2177,10 @@ void LivingEntity::updateAirSupply()
     if (inWater && m_world != nullptr) {
         // 计算实体所在方块位置（使用眼睛高度）
         // MC Java: BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())
-        f32 eyeY = m_position.y + eyeHeight();
-        BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_position.x)),
+        f32 eyeY = m_builtIn.stateVector->m_pos.y + eyeHeight();
+        BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
             static_cast<i32>(std::floor(eyeY)),
-            static_cast<i32>(std::floor(m_position.z)));
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* eyeState = m_world->getBlockState(eyeBlockPos);
         if (eyeState != nullptr && eyeState->is(VanillaBlocks::BUBBLE_COLUMN)) {
             inBubbleColumn = true;

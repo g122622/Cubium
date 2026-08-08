@@ -42,8 +42,8 @@
 
 namespace mc {
 
-SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id)
-    : AbstractHorseEntity(id)
+SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractHorseEntity(id, registry)
 {
     // 骷髅马默认已驯服
     setTame(true);
@@ -55,9 +55,9 @@ SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SkeletonHorseEntity>(0);
+    return std::make_unique<SkeletonHorseEntity>(0, registry);
 }
 
 bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
@@ -100,6 +100,12 @@ void SkeletonHorseEntity::triggerTrap()
         return;
     }
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 1. 清除陷阱状态
     m_trap = false;
 
@@ -125,7 +131,7 @@ void SkeletonHorseEntity::triggerTrap()
 
     // 6. 创建第一个骷髅骑手（骑在这匹马上）
     {
-        auto skeleton = skeletonType->create(world);
+        auto skeleton = skeletonType->create(world, *registry);
         if (skeleton == nullptr) {
             return;
         }
@@ -187,7 +193,7 @@ void SkeletonHorseEntity::triggerTrap()
             continue;
         }
 
-        auto extraHorse = skeletonHorseType->create(world);
+        auto extraHorse = skeletonHorseType->create(world, *registry);
         if (extraHorse == nullptr) {
             continue;
         }
@@ -226,7 +232,7 @@ void SkeletonHorseEntity::triggerTrap()
         }
 
         // 创建骷髅骑手
-        auto extraSkeleton = skeletonType->create(world);
+        auto extraSkeleton = skeletonType->create(world, *registry);
         if (extraSkeleton == nullptr) {
             continue;
         }
@@ -282,7 +288,8 @@ void SkeletonHorseEntity::triggerTrap()
     }
 
     // 在骷髅马位置生成纯视觉效果闪电（不造成伤害、不点燃方块）
-    auto lightning = std::make_unique<entity::LightningBoltEntity>();
+    // 复用 triggerTrap() 顶部已取的 registry（world->entityRegistry() 已判空）
+    auto lightning = std::make_unique<entity::LightningBoltEntity>(*registry);
     lightning->setPosition(horsePos);
     lightning->setEffectOnly(true);
     world->spawnEntity(std::move(lightning));

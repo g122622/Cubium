@@ -34,8 +34,8 @@
 
 namespace mc {
 
-BatEntity::BatEntity(EntityInstanceId id)
-    : AmbientEntity(id)
+BatEntity::BatEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AmbientEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -47,9 +47,9 @@ BatEntity::BatEntity(EntityInstanceId id)
     m_flying = true;
 }
 
-std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BatEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BatEntity>(0);
+    return std::make_unique<BatEntity>(0, registry);
 }
 
 bool BatEntity::canRest() const
@@ -58,9 +58,9 @@ bool BatEntity::canRest() const
     if (m_world == nullptr) {
         return false;
     }
-    BlockPos above(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y + 1.0)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos above(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y + 1.0)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* state = m_world->getBlockState(above);
     if (state == nullptr) {
         return false;

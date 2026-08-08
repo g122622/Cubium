@@ -110,13 +110,13 @@ constexpr i32 MIN_CATCHABLE_TICKS = 20; // 最小捕获窗口 (1秒)
 constexpr i32 MAX_CATCHABLE_TICKS = 40; // 最大捕获窗口 (2秒)
 } // namespace
 
-LlamaSpitEntity::LlamaSpitEntity(EntityInstanceId id)
-    : ThrowableEntity(id)
+LlamaSpitEntity::LlamaSpitEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ThrowableEntity(id, registry)
 {}
 
-std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<LlamaSpitEntity>(0);
+    return std::make_unique<LlamaSpitEntity>(0, registry);
 }
 
 void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
@@ -162,8 +162,8 @@ const EntityClassInfo& FishingBobberEntity::classInfo()
     return s_classInfo;
 }
 
-FishingBobberEntity::FishingBobberEntity(EntityInstanceId id)
-    : Entity(id)
+FishingBobberEntity::FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     m_noGravity = false;
     // C++ 虚函数在构造函数中不会派生到子类，因此 Entity 基类构造函数中
@@ -187,9 +187,9 @@ void FishingBobberEntity::registerData()
     m_dataManager.registerParam(DATA_BITING_PARAM, false);
 }
 
-std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FishingBobberEntity>(0);
+    return std::make_unique<FishingBobberEntity>(0, registry);
 }
 
 void FishingBobberEntity::setShooter(Entity* shooter)
@@ -232,9 +232,9 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
     }
 
     // 设置速度
-    m_velocity.x = x;
-    m_velocity.y = y;
-    m_velocity.z = z;
+    m_builtIn.velocity->m_velocity.x = x;
+    m_builtIn.velocity->m_velocity.y = y;
+    m_builtIn.velocity->m_velocity.z = z;
 }
 
 void FishingBobberEntity::tick()
@@ -364,9 +364,9 @@ bool FishingBobberEntity::_checkOpenWater()
         return false;
     }
 
-    BlockPos bobberPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos bobberPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     WaterType prevType = WaterType::Invalid;
 
@@ -535,7 +535,8 @@ void FishingBobberEntity::_spawnFishingParticles()
     if (isInWater() && m_world) {
         math::Random rng;
         if (rng.nextInt(5) == 0) {
-            m_world->addParticle(particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
+            m_world->addParticle(
+                particle::ParticleTypeId::Fishing, m_builtIn.stateVector->m_pos, Vector3(0.0f, 0.01f, 0.0f));
         }
     }
 }
@@ -669,8 +670,14 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
         f64 offsetY = random.nextDouble() * 0.2;
         f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
 
-        auto orb =
-            std::make_unique<ExperienceOrbEntity>(m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp);
+        // ECS 迁移：实体构造需要 registry 句柄（m_world 在调用路径已确保非空）
+        auto* registry = m_world->entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
+        auto orb = std::make_unique<ExperienceOrbEntity>(
+            m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp, *registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
@@ -724,8 +731,8 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
     }
 
     // 计算射线起点和终点
-    const Vector3 start = m_position;
-    const Vector3 end = m_position + m_velocity;
+    const Vector3 start = m_builtIn.stateVector->m_pos;
+    const Vector3 end = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     // 先检测方块
     const Vector3 delta = end - start;
@@ -799,7 +806,7 @@ void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
     _syncCaughtEntityId();
 
     // 清零速度
-    m_velocity = Vector3(0.0, 0.0, 0.0);
+    m_builtIn.velocity->m_velocity = Vector3(0.0, 0.0, 0.0);
 
     // 切换到钩住状态
     m_state = State::Hooked;
@@ -808,7 +815,7 @@ void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
 void FishingBobberEntity::_onBlockHit(const RayTraceResult& result)
 {
     // 命中方块时停止移动，进入漂浮状态
-    m_velocity = Vector3(0.0, 0.0, 0.0);
+    m_builtIn.velocity->m_velocity = Vector3(0.0, 0.0, 0.0);
 
     // 如果在水上方块，设置 BOBBING 状态
     if (isInWater()) {
@@ -850,8 +857,8 @@ void FishingBobberEntity::_syncCaughtEntityId()
 // ShulkerBulletEntity
 // ============================================================================
 
-ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
     , m_direction(Direction::Up)
     , m_targetDelta(0.0, 0.0, 0.0)
 {
@@ -859,8 +866,9 @@ ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id)
     m_noClip = true; // 穿墙
 }
 
-ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis)
-    : ShulkerBulletEntity(0)
+ShulkerBulletEntity::ShulkerBulletEntity(
+    IWorld* world, LivingEntity* shooter, Entity* target, Axis axis, ecs::EntityRegistry& registry)
+    : ShulkerBulletEntity(0, registry)
 {
     if (shooter) {
         setShooter(shooter);
@@ -880,9 +888,9 @@ ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, E
     _selectNextMoveDirection(axis);
 }
 
-std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ShulkerBulletEntity>(0);
+    return std::make_unique<ShulkerBulletEntity>(0, registry);
 }
 
 void ShulkerBulletEntity::setTarget(Entity* target)
@@ -907,7 +915,7 @@ void ShulkerBulletEntity::tick()
         if (m_target == nullptr || !m_target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
             // 目标无效，下落
             if (!m_noGravity) {
-                m_velocity.y -= 0.04;
+                m_builtIn.velocity->m_velocity.y -= 0.04;
             }
         } else {
             // 加速追踪
@@ -916,9 +924,9 @@ void ShulkerBulletEntity::tick()
             m_targetDelta.z = std::clamp(m_targetDelta.z * ACCELERATION, -1.0, 1.0);
 
             // 向目标方向加速
-            m_velocity.x += (m_targetDelta.x - m_velocity.x) * 0.2;
-            m_velocity.y += (m_targetDelta.y - m_velocity.y) * 0.2;
-            m_velocity.z += (m_targetDelta.z - m_velocity.z) * 0.2;
+            m_builtIn.velocity->m_velocity.x += (m_targetDelta.x - m_builtIn.velocity->m_velocity.x) * 0.2;
+            m_builtIn.velocity->m_velocity.y += (m_targetDelta.y - m_builtIn.velocity->m_velocity.y) * 0.2;
+            m_builtIn.velocity->m_velocity.z += (m_targetDelta.z - m_builtIn.velocity->m_velocity.z) * 0.2;
         }
 
         // 执行射线检测
@@ -930,9 +938,9 @@ void ShulkerBulletEntity::tick()
     }
 
     // 更新位置
-    m_position.x += m_velocity.x;
-    m_position.y += m_velocity.y;
-    m_position.z += m_velocity.z;
+    m_builtIn.stateVector->m_pos.x += m_builtIn.velocity->m_velocity.x;
+    m_builtIn.stateVector->m_pos.y += m_builtIn.velocity->m_velocity.y;
+    m_builtIn.stateVector->m_pos.z += m_builtIn.velocity->m_velocity.z;
 
     // 更新旋转朝向运动方向
     ProjectileEntity::updateRotation();
@@ -952,9 +960,9 @@ void ShulkerBulletEntity::tick()
 
         // 检查是否需要改变方向
         if (m_direction != Direction::None) {
-            BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y)),
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos currentPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             Axis axis = Directions::getAxis(m_direction);
 
             // 检查前方是否有方块
@@ -997,9 +1005,9 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
     BlockPos targetPos;
 
     if (m_target == nullptr) {
-        targetPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)) - 1,
-            static_cast<i32>(std::floor(m_position.z)));
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)) - 1,
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     } else {
         targetOffsetY = static_cast<f64>(m_target->height()) * 0.5;
         targetPos = BlockPos(static_cast<i32>(std::floor(m_target->x())),
@@ -1014,9 +1022,9 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
     Direction newDirection = Direction::None;
 
     // 如果距离足够近（<2格），直接向目标移动
-    BlockPos myPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos myPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     f64 distSq = static_cast<f64>(myPos.x - targetPos.x) * (myPos.x - targetPos.x) +
         static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
         static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
@@ -1089,18 +1097,18 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 
         // 计算目标速度
         if (newDirection != Direction::None) {
-            targetX = m_position.x + Directions::xOffset(newDirection);
-            targetY = m_position.y + Directions::yOffset(newDirection);
-            targetZ = m_position.z + Directions::zOffset(newDirection);
+            targetX = m_builtIn.stateVector->m_pos.x + Directions::xOffset(newDirection);
+            targetY = m_builtIn.stateVector->m_pos.y + Directions::yOffset(newDirection);
+            targetZ = m_builtIn.stateVector->m_pos.z + Directions::zOffset(newDirection);
         }
     }
 
     _setDirection(newDirection);
 
     // 计算速度增量
-    f64 dx = targetX - m_position.x;
-    f64 dy = targetY - m_position.y;
-    f64 dz = targetZ - m_position.z;
+    f64 dx = targetX - m_builtIn.stateVector->m_pos.x;
+    f64 dy = targetY - m_builtIn.stateVector->m_pos.y;
+    f64 dz = targetZ - m_builtIn.stateVector->m_pos.z;
     f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
 
     if (dist == 0.0) {
@@ -1181,7 +1189,7 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
     // 命中方块时生成爆炸粒子
     if (m_world != nullptr) {
         m_world->addParticle(particle::ParticleTypeId::Explosion,
-            m_position,
+            m_builtIn.stateVector->m_pos,
             Vector3(0.0f, 0.0f, 0.0f), // 速度为 0
             Vector3(0.2f, 0.2f, 0.2f), // 随机偏移范围
             2);                        // 数量 2
@@ -1202,15 +1210,15 @@ void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
 // EvokerFangsEntity
 // ============================================================================
 
-EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id)
-    : Entity(id)
+EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     m_warmupDelay = 0;
 }
 
-std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EvokerFangsEntity>(0);
+    return std::make_unique<EvokerFangsEntity>(0, registry);
 }
 
 void EvokerFangsEntity::setOwner(LivingEntity* owner)
@@ -1302,7 +1310,7 @@ void EvokerFangsEntity::_damageEntities()
     LivingEntity* owner = getOwner();
 
     // 获取碰撞箱扩展 0.2 范围内的所有实体
-    AxisAlignedBB searchBox = m_boundingBox.expand(0.2f, 0.0f, 0.2f);
+    AxisAlignedBB searchBox = m_builtIn.aabbShape->m_aabb.expand(0.2f, 0.0f, 0.2f);
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : entities) {
@@ -1404,15 +1412,15 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
 // EyeOfEnderEntity
 // ============================================================================
 
-EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id)
-    : Entity(id)
+EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     m_noGravity = false;
 }
 
-std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EyeOfEnderEntity>(0);
+    return std::make_unique<EyeOfEnderEntity>(0, registry);
 }
 
 void EyeOfEnderEntity::tick()
@@ -1424,17 +1432,17 @@ void EyeOfEnderEntity::tick()
     // 向目标移动
     if (m_targetX != 0 || m_targetZ != 0) {
         // 计算方向
-        f32 dx = static_cast<f32>(m_targetX) - m_position.x;
-        f32 dz = static_cast<f32>(m_targetZ) - m_position.z;
+        f32 dx = static_cast<f32>(m_targetX) - m_builtIn.stateVector->m_pos.x;
+        f32 dz = static_cast<f32>(m_targetZ) - m_builtIn.stateVector->m_pos.z;
         f32 dist = std::sqrt(dx * dx + dz * dz);
 
         if (dist > 0.0f) {
             // 设置速度
-            m_velocity.x = dx / dist * 0.5f;
-            m_velocity.z = dz / dist * 0.5f;
+            m_builtIn.velocity->m_velocity.x = dx / dist * 0.5f;
+            m_builtIn.velocity->m_velocity.z = dz / dist * 0.5f;
 
             // Y轴波动
-            m_velocity.y = std::sin(m_lifetime * 0.1f) * 0.1f;
+            m_builtIn.velocity->m_velocity.y = std::sin(m_lifetime * 0.1f) * 0.1f;
         }
     }
 
@@ -1461,16 +1469,16 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 // FireworkRocketEntity
 // ============================================================================
 
-FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
     , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
 {
     m_noGravity = false;
 }
 
-std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FireworkRocketEntity>(0);
+    return std::make_unique<FireworkRocketEntity>(0, registry);
 }
 
 void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
@@ -1544,7 +1552,7 @@ void FireworkRocketEntity::tick()
         // 使用高斯分布随机速度
         mc::math::Random rng = createRandomFromEntity(*this);
         f32 vx = static_cast<f32>(rng.nextGaussian() * 0.05);
-        f32 vy = static_cast<f32>(-m_velocity.y * 0.5); // Y速度与火箭运动方向相反
+        f32 vy = static_cast<f32>(-m_builtIn.velocity->m_velocity.y * 0.5); // Y速度与火箭运动方向相反
         f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
 
         m_world->addParticle(particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));

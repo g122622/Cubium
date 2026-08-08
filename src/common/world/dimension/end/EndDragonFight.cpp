@@ -446,7 +446,15 @@ Entity* EndDragonFight::_createNewDragon(IWorld& world)
     }
 
     // 2. 工厂方法创建实例（Entity 构造时自动生成随机 UUID）
-    std::unique_ptr<Entity> dragonEntity = dragonType->create(&world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    // 注意：本函数上方 registry 是实体类型注册表（entity::EntityRegistry），
+    // 此处 ECS registry 取自世界，二者不同，故命名为 ecsRegistry 以避免遮蔽。
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        spdlog::warn("EndDragonFight: World has no entity registry");
+        return nullptr;
+    }
+    std::unique_ptr<Entity> dragonEntity = dragonType->create(&world, *ecsRegistry);
     if (dragonEntity == nullptr) {
         spdlog::warn("EndDragonFight: Ender dragon factory returned nullptr.");
         return nullptr;

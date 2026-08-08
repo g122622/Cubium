@@ -67,8 +67,8 @@ const entity::EntityClassInfo& IllusionerEntity::classInfo()
     return s_classInfo;
 }
 
-IllusionerEntity::IllusionerEntity(EntityInstanceId id)
-    : SpellcastingIllagerEntity(id)
+IllusionerEntity::IllusionerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SpellcastingIllagerEntity(id, registry)
 {
     // 初始化镜像分身偏移数组为零向量
     for (auto& offsets : m_illusionOffsets) {
@@ -79,9 +79,9 @@ IllusionerEntity::IllusionerEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> IllusionerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> IllusionerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<IllusionerEntity>(EntityInstanceId(0));
+    return std::make_unique<IllusionerEntity>(EntityInstanceId(0), registry);
 }
 
 void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)

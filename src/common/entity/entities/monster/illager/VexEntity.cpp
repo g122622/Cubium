@@ -50,8 +50,8 @@ const entity::EntityClassInfo& VexEntity::classInfo()
     return s_classInfo;
 }
 
-VexEntity::VexEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+VexEntity::VexEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 恼鬼使用专用的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::VexMovementController>(this);
@@ -63,9 +63,9 @@ VexEntity::VexEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VexEntity>(EntityInstanceId(0));
+    return std::make_unique<VexEntity>(EntityInstanceId(0), registry);
 }
 
 void VexEntity::tick()

@@ -68,8 +68,8 @@ const entity::EntityClassInfo& RavagerEntity::classInfo()
     return s_classInfo;
 }
 
-RavagerEntity::RavagerEntity(EntityInstanceId id)
-    : AbstractRaiderEntity(id)
+RavagerEntity::RavagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractRaiderEntity(id, registry)
 {
     // 劫掠兽可以走上1格高的方块
     setStepHeight(1.0f);
@@ -88,9 +88,9 @@ RavagerEntity::RavagerEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<RavagerEntity>(EntityInstanceId(0));
+    return std::make_unique<RavagerEntity>(EntityInstanceId(0), registry);
 }
 
 void RavagerEntity::tick()

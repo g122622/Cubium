@@ -31,8 +31,8 @@
 
 namespace mc {
 
-MuleEntity::MuleEntity(EntityInstanceId id)
-    : AbstractChestedHorseEntity(id)
+MuleEntity::MuleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractChestedHorseEntity(id, registry)
 {
     setJumpStrength(0.5f);
 
@@ -41,9 +41,9 @@ MuleEntity::MuleEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<MuleEntity>(0);
+    return std::make_unique<MuleEntity>(0, registry);
 }
 
 void MuleEntity::registerGoals()

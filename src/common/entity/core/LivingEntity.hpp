@@ -107,9 +107,10 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
-     * @param world 世界指针（可选）
+     * @param world 世界指针（可为 nullptr）
+     * @param registry ECS 实体注册表，透传给 Entity 构造函数
      */
-    LivingEntity(EntityInstanceId id, IWorld* world = nullptr);
+    LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
 
     ~LivingEntity() override = default;
 
@@ -865,7 +866,7 @@ public:
     /**
      * @brief 设置头部俯仰角
      */
-    void setRotationPitch(f32 pitch) { m_pitch = pitch; }
+    void setRotationPitch(f32 pitch) { m_builtIn.rotation->m_rot.y = pitch; }
 
     /**
      * @brief 是否正在挥动手臂

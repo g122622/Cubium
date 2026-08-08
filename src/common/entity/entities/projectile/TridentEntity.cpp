@@ -59,16 +59,16 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-TridentEntity::TridentEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
     m_damage = 8.0f; // 三叉戟伤害更高
     setPickupStatus(PickupStatus::Allowed);
 }
 
-std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TridentEntity>(0);
+    return std::make_unique<TridentEntity>(0, registry);
 }
 
 void TridentEntity::tick()
@@ -130,8 +130,9 @@ void TridentEntity::_tickReturning()
     }
 
     // 计算到射手眼部位置的方向
-    Vector3 direction(
-        shooter->x() - m_position.x, shooter->y() + shooter->eyeHeight() - m_position.y, shooter->z() - m_position.z);
+    Vector3 direction(shooter->x() - m_builtIn.stateVector->m_pos.x,
+        shooter->y() + shooter->eyeHeight() - m_builtIn.stateVector->m_pos.y,
+        shooter->z() - m_builtIn.stateVector->m_pos.z);
     f32 distance = direction.length();
 
     // 非玩家射手：当三叉戟足够近时掉落物品
@@ -152,21 +153,21 @@ void TridentEntity::_tickReturning()
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
     // Y轴微小偏移
-    m_position.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
+    m_builtIn.stateVector->m_pos.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
 
     // 返回速度
     f32 speed = 0.05f * static_cast<f32>(m_loyaltyLevel);
 
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
-    Vector3 currentVel = m_velocity;
+    Vector3 currentVel = m_builtIn.velocity->m_velocity;
     Vector3 normalizedDir = direction.normalized();
-    m_velocity = Vector3(currentVel.x * 0.95f + normalizedDir.x * speed,
+    m_builtIn.velocity->m_velocity = Vector3(currentVel.x * 0.95f + normalizedDir.x * speed,
         currentVel.y * 0.95f + normalizedDir.y * speed,
         currentVel.z * 0.95f + normalizedDir.z * speed);
 
     // 更新位置
-    m_prevPosition = m_position;
-    m_position = m_position + m_velocity;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     // 玩家射手：检查是否到达射手，添加到背包（仅服务端）
     if (player != nullptr && distance < 2.0f) {
@@ -186,8 +187,10 @@ void TridentEntity::_tickReturning()
     if (isInWater() && m_world) {
         for (int i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
-            Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                y() - m_builtIn.velocity->m_velocity.y * offset,
+                z() - m_builtIn.velocity->m_velocity.z * offset);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
         }
     }
 
@@ -238,7 +241,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 击退效果
     if (m_knockbackStrength > 0) {
         f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -258,7 +261,12 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
-                auto lightning = std::make_unique<entity::LightningBoltEntity>();
+                // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+                auto* registry = m_world->entityRegistry();
+                if (registry == nullptr) {
+                    return;
+                }
+                auto lightning = std::make_unique<entity::LightningBoltEntity>(*registry);
                 lightning->setTypeId(EntityTypeKeys::LIGHTNING_BOLT);
                 lightning->setPosition(target->x(), target->y(), target->z());
 
@@ -278,7 +286,9 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 速度反转为轻微反弹
-    m_velocity = Vector3(m_velocity.x * -0.01f, m_velocity.y * -0.1f, m_velocity.z * -0.01f);
+    m_builtIn.velocity->m_velocity = Vector3(m_builtIn.velocity->m_velocity.x * -0.01f,
+        m_builtIn.velocity->m_velocity.y * -0.1f,
+        m_builtIn.velocity->m_velocity.z * -0.01f);
 
     // 三叉戟不移除，而是等待返回
     // 如果没有忠诚附魔，会进入 m_inGround 状态

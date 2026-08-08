@@ -51,8 +51,8 @@ const entity::EntityClassInfo& MonsterEntity::classInfo()
     return s_classInfo;
 }
 
-MonsterEntity::MonsterEntity(EntityInstanceId id)
-    : CreatureEntity(id)
+MonsterEntity::MonsterEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : CreatureEntity(id, registry)
 {
     // 怪物默认经验值为 5
     setExperienceValue(5);

@@ -33,6 +33,10 @@ namespace mc {
 class Entity;
 class IWorld;
 
+namespace ecs {
+class EntityRegistry;
+} // namespace ecs
+
 namespace entity::serialization {
 
 /**
@@ -63,19 +67,23 @@ public:
      * 由调用方在 spawn 主实体后调用 attachPassengers 处理。
      *
      * @param tag NBT 复合标签
+     * @param registry ECS 实体注册表。EntityType::create 在此 registry 内 create ECS 实体
+     *   并 attach 高频组件（entt 实体不可跨 registry 迁移，故构造时 registry 必须就位）。
+     *   调用方（chunk 加载/存档读入）由所在 ServerWorld 透传 `world.entityManager().registry()`。
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserialize(const nbt::tags::compound_tag& tag);
+    static Result<std::unique_ptr<Entity>> deserialize(const nbt::tags::compound_tag& tag, ecs::EntityRegistry& registry);
 
     /**
      * @brief 从二进制数据反序列化实体
      *
-     * 本方法仅反序列化主实体本身，Passengers 处理同 deserialize(tag)。
+     * 本方法仅反序列化主实体本身，Passengers 处理同 deserialize(tag, registry)。
      *
      * @param data 压缩的 NBT 二进制数据
+     * @param registry ECS 实体注册表，透传给 deserialize
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserializeFromBinary(const std::vector<u8>& data);
+    static Result<std::unique_ptr<Entity>> deserializeFromBinary(const std::vector<u8>& data, ecs::EntityRegistry& registry);
 
     /**
      * @brief 挂载主实体的待处理乘客

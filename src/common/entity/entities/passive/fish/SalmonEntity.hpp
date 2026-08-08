@@ -51,8 +51,9 @@ public:
     /**
      * @brief 构造鲑鱼实体
      * @param id 实体 ID
+     * @param registry 实体注册表（ECS）
      */
-    SalmonEntity(EntityInstanceId id);
+    SalmonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SalmonEntity() override = default;
 
     SalmonEntity(const SalmonEntity&) = delete;
@@ -68,7 +69,7 @@ public:
     /**
      * @brief 创建鲑鱼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief vanilla 鲑鱼最大群体大小为 5

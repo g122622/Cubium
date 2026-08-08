@@ -88,7 +88,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    ShulkerEntity(EntityInstanceId id);
+    ShulkerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ShulkerEntity() override = default;
 
     // 禁止拷贝
@@ -104,7 +104,7 @@ public:
      * @param world 世界实例
      * @return 新的潜影贝实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 颜色系统 ==========
 

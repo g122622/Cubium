@@ -622,8 +622,14 @@ void SnifferEggBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
             world.setBlockState(pos, airState, 2);
         }
 
+        // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+        auto* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
         // 创建嗅探兽幼体
-        auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+        auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), *registry);
         if (sniffer) {
             // 设置为幼体（-48000 tick，40 分钟）
             // SnifferEntity::setChild 覆盖了 AgeableEntity::setChild，设置正确的嗅探兽幼年期

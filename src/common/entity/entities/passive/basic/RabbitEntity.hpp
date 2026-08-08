@@ -70,7 +70,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    RabbitEntity(EntityInstanceId id);
+    RabbitEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~RabbitEntity() override = default;
 
     // 禁止拷贝
@@ -86,7 +86,7 @@ public:
      * @param world 世界实例
      * @return 新的兔子实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 皮肤类型 ==========
 

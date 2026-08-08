@@ -71,7 +71,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ProjectileItemEntity(EntityInstanceId id);
+    explicit ProjectileItemEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // 物品堆
     ItemStack m_itemStack;
@@ -87,12 +87,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit SnowballEntity(EntityInstanceId id);
+    explicit SnowballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -111,12 +111,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EggEntity(EntityInstanceId id);
+    explicit EggEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -142,12 +142,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EnderPearlEntity(EntityInstanceId id);
+    explicit EnderPearlEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -166,12 +166,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit PotionEntity(EntityInstanceId id);
+    explicit PotionEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -202,12 +202,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit ExperienceBottleEntity(EntityInstanceId id);
+    explicit ExperienceBottleEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 

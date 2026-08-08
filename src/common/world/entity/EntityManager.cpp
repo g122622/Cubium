@@ -47,7 +47,8 @@ using namespace mc::trace;
 
 namespace mc {
 
-EntityManager::EntityManager() {}
+EntityManager::EntityManager(ecs::EntityRegistry& registry)
+    : m_registry(registry) {}
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 {

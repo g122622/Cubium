@@ -139,8 +139,13 @@ mc::Item& registerBlockBackedItem(
  */
 mc::entity::EntityType makeEntityTypeForSpawnEgg(const char* entityName)
 {
+    // 刷怪蛋内 EntityType 仅作名称载体，工厂返回 nullptr（实际实体生成由
+    // SpawnEggItem::spawnEntity / MobEntity::_spawnOffspringFromSpawnEgg 通过
+    // EntityRegistry::getType(name)->create(world, registry) 完成）。
+    // 此处 lambda 签名须与 EntityFactory = function<unique_ptr<Entity>(IWorld*, ecs::EntityRegistry&)> 一致。
     auto entityType = mc::entity::EntityType::Builder(
-        [](mc::IWorld*) -> std::unique_ptr<mc::Entity> { return nullptr; }, mc::entity::EntityClassification::Creature)
+        [](mc::IWorld*, mc::ecs::EntityRegistry&) -> std::unique_ptr<mc::Entity> { return nullptr; },
+        mc::entity::EntityClassification::Creature)
                           .size(0.6f, 1.8f)
                           .trackingRange(5)
                           .updateInterval(3)

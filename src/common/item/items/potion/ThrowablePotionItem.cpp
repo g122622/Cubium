@@ -75,9 +75,14 @@ void ThrowablePotionItem::playThrowSound(Player& player) const
 // ========== ProjectileItem 接口实现 ==========
 
 std::unique_ptr<entity::ProjectileEntity> ThrowablePotionItem::createProjectileEntity(
-    IWorld& /*world*/, const ItemStack& stack) const
+    IWorld& world, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::PotionEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::PotionEntity>(EntityInstanceId(0), *registry);
     entity->setItemStack(stack);
     entity->setLingering(isLingering());
     entity->setTypeId(entity::EntityTypeKeys::POTION);

@@ -44,7 +44,7 @@ namespace mc {
  */
 class PatrollerEntity : public MonsterEntity {
 public:
-    PatrollerEntity(EntityInstanceId id);
+    PatrollerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PatrollerEntity() override = default;
 
     PatrollerEntity(const PatrollerEntity&) = delete;

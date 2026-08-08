@@ -72,8 +72,8 @@ const entity::EntityClassInfo& AbstractSkeletonEntity::classInfo()
     return s_classInfo;
 }
 
-AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 战斗目标不再在构造函数中创建，而是在 setCombatTask() 中按需创建。
     // setCombatTask() 会在 registerGoals() 之后（构造函数末尾）或

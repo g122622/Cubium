@@ -88,13 +88,13 @@ constexpr f32 WIND_BURST_PITCH = 1.0f;
 // 构造函数
 // ============================================================================
 
-WindChargeEntity::WindChargeEntity(EntityInstanceId id)
-    : ThrowableEntity(id)
+WindChargeEntity::WindChargeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ThrowableEntity(id, registry)
 {}
 
-std::unique_ptr<Entity> WindChargeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WindChargeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WindChargeEntity>(EntityInstanceId(0));
+    return std::make_unique<WindChargeEntity>(EntityInstanceId(0), registry);
 }
 
 // ============================================================================

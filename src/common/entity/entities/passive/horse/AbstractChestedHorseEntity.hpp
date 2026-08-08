@@ -45,8 +45,8 @@ public:
      * @brief 构造可携带箱子的马类实体
      * @param id 实体 ID
      */
-    AbstractChestedHorseEntity(EntityInstanceId id)
-        : AbstractHorseEntity(id)
+    AbstractChestedHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractHorseEntity(id, registry)
     {}
 
     ~AbstractChestedHorseEntity() override = default;

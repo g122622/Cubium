@@ -157,8 +157,8 @@ bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 // CatEntity 实现
 // ============================================================================
 
-CatEntity::CatEntity(EntityInstanceId id)
-    : TameableEntity(id)
+CatEntity::CatEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -176,9 +176,9 @@ CatEntity::CatEntity(EntityInstanceId id)
     setRandomCatType();
 }
 
-std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CatEntity>(0);
+    return std::make_unique<CatEntity>(0, registry);
 }
 
 void CatEntity::setRandomCatType()
@@ -210,8 +210,14 @@ bool CatEntity::isFoodItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小猫
-    auto baby = std::make_unique<CatEntity>(0);
+    auto baby = std::make_unique<CatEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

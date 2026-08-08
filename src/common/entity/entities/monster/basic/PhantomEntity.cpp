@@ -50,13 +50,13 @@
 
 namespace mc {
 
-std::unique_ptr<Entity> PhantomEntity::create(IWorld* world)
+std::unique_ptr<Entity> PhantomEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PhantomEntity>(EntityInstanceId(0));
+    return std::make_unique<PhantomEntity>(EntityInstanceId(0), registry);
 }
 
-PhantomEntity::PhantomEntity(EntityInstanceId id)
-    : FlyingEntity(id)
+PhantomEntity::PhantomEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : FlyingEntity(id, registry)
 {
     // 注册 AI 目标与属性。
     // C++ 虚函数在基类构造函数中不会派发到派生类（FlyingEntity/MobEntity 构造期间调 registerGoals
@@ -202,7 +202,7 @@ void PhantomEntity::_clientTickEffects()
         if (!isSilent()) {
             world()->playSound(SoundEvents::ENTITY_PHANTOM_FLAP,
                 getSoundCategory(),
-                m_position,
+                m_builtIn.stateVector->m_pos,
                 0.95f + rng.nextFloat() * 0.05f,
                 0.95f + rng.nextFloat() * 0.05f);
         }

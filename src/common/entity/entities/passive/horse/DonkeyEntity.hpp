@@ -48,7 +48,7 @@ public:
      * @brief 构造驴实体
      * @param id 实体 ID
      */
-    DonkeyEntity(EntityInstanceId id);
+    DonkeyEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~DonkeyEntity() override = default;
 
     DonkeyEntity(const DonkeyEntity&) = delete;
@@ -59,7 +59,7 @@ public:
     /**
      * @brief 创建驴实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 检查物品是否可用于繁殖

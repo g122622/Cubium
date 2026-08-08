@@ -59,8 +59,8 @@ const entity::EntityClassInfo& WitchEntity::classInfo()
     return s_classInfo;
 }
 
-WitchEntity::WitchEntity(EntityInstanceId id)
-    : AbstractRaiderEntity(id)
+WitchEntity::WitchEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractRaiderEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -69,9 +69,9 @@ WitchEntity::WitchEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WitchEntity>(EntityInstanceId(0));
+    return std::make_unique<WitchEntity>(EntityInstanceId(0), registry);
 }
 
 // ========== 药水决策逻辑 ==========
@@ -371,7 +371,12 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
     f32 horizontalDist = std::sqrt(static_cast<f32>(dx * dx + dz * dz));
 
     // 创建药水实体
-    auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0), *registry);
     potion->setWorld(worldPtr);
 
     // 设置发射者

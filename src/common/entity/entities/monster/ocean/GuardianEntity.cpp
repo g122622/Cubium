@@ -46,8 +46,8 @@
 
 namespace mc {
 
-GuardianEntity::GuardianEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+GuardianEntity::GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -56,9 +56,9 @@ GuardianEntity::GuardianEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<GuardianEntity>(EntityInstanceId(0));
+    return std::make_unique<GuardianEntity>(EntityInstanceId(0), registry);
 }
 
 bool GuardianEntity::isInWater() const

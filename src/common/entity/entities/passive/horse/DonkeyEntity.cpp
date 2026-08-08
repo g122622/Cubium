@@ -32,12 +32,13 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
 
-DonkeyEntity::DonkeyEntity(EntityInstanceId id)
-    : AbstractChestedHorseEntity(id)
+DonkeyEntity::DonkeyEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractChestedHorseEntity(id, registry)
 {
     setJumpStrength(0.5f);
 
@@ -46,9 +47,9 @@ DonkeyEntity::DonkeyEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<DonkeyEntity>(0);
+    return std::make_unique<DonkeyEntity>(0, registry);
 }
 
 bool DonkeyEntity::isBreedingItem(const ItemStack& itemStack) const
@@ -81,12 +82,18 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 {
     // 驴 + 驴 = 驴，驴 + 马 = 骡
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 检查配偶是否是马（产生骡）
     const HorseEntity* partnerHorse = dynamic_cast<const HorseEntity*>(&partner);
 
     if (partnerHorse != nullptr) {
         // 驴 + 马 = 骡
-        auto mule = std::make_unique<MuleEntity>(0);
+        auto mule = std::make_unique<MuleEntity>(0, *registry);
         mule->setChild(true);
         mule->setPosition(x(), y(), z());
 
@@ -96,7 +103,7 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
     }
 
     // 驴 + 驴 = 驴
-    auto baby = std::make_unique<DonkeyEntity>(0);
+    auto baby = std::make_unique<DonkeyEntity>(0, *registry);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 

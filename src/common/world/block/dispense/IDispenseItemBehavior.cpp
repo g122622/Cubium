@@ -134,6 +134,11 @@ ItemStack DefaultDispenseItemBehavior::_doDispense(IWorld& world,
         static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
 
     // 创建物品实体
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return stack;
+    }
     auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), // ID由世界分配
         dispensedStack,
         dispensePos.x,
@@ -141,7 +146,8 @@ ItemStack DefaultDispenseItemBehavior::_doDispense(IWorld& world,
         dispensePos.z,
         vx,
         vy,
-        vz);
+        vz,
+        *registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
@@ -196,8 +202,13 @@ void DefaultDispenseItemBehavior::_spawnItemEntity(
     f32 vz = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +
         static_cast<f32>(Directions::zOffset(direction)) * baseVelocity;
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
     auto itemEntity = std::make_unique<ItemEntity>(
-        EntityInstanceId(0), itemStack, dispensePos.x, adjustedY, dispensePos.z, vx, vy, vz);
+        EntityInstanceId(0), itemStack, dispensePos.x, adjustedY, dispensePos.z, vx, vy, vz, *registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
@@ -392,7 +403,13 @@ ItemStack BoatDispenseBehavior::dispense(
     }
 
     // 创建船实体
-    auto boatEntity = std::make_unique<entity::BoatEntity>(m_boatType);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return ItemStack();
+    }
+
+    auto boatEntity = std::make_unique<entity::BoatEntity>(m_boatType, *registry);
     boatEntity->setTypeId(entity::EntityTypeKeys::BOAT);
     boatEntity->setPosition(x, y + waterLevel, z);
 
@@ -740,7 +757,13 @@ ItemStack TNTDispenseBehavior::dispense(
     const entity::EntityType* tntType = registry.getType(entity::EntityTypeKeys::TNT);
 
     if (tntType != nullptr && tntType->isValid()) {
-        auto tntEntity = tntType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry == nullptr) {
+            _setSuccess(false);
+            return stack;
+        }
+        auto tntEntity = tntType->create(&world, *ecsRegistry);
         if (tntEntity != nullptr) {
             // 设置 TNT 位置：在发射器前方偏移
             static constexpr f32 TNT_OFFSET = 1.125f;

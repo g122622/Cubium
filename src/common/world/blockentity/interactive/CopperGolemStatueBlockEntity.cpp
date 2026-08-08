@@ -76,7 +76,13 @@ std::unique_ptr<Entity> CopperGolemStatueBlockEntity::removeStatue(const BlockSt
         return nullptr;
     }
 
-    std::unique_ptr<Entity> entity = copperGolemType->create(world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world->entityRegistry();
+    if (ecsRegistry == nullptr) {
+        return nullptr;
+    }
+
+    std::unique_ptr<Entity> entity = copperGolemType->create(world, *ecsRegistry);
     if (entity == nullptr) {
         return nullptr;
     }

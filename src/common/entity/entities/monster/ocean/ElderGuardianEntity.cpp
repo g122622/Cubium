@@ -35,16 +35,16 @@
 
 namespace mc {
 
-ElderGuardianEntity::ElderGuardianEntity(EntityInstanceId id)
-    : GuardianEntity(id)
+ElderGuardianEntity::ElderGuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GuardianEntity(id, registry)
 {
     // 注册属性
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ElderGuardianEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ElderGuardianEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ElderGuardianEntity>(EntityInstanceId(0));
+    return std::make_unique<ElderGuardianEntity>(EntityInstanceId(0), registry);
 }
 
 void ElderGuardianEntity::tick()
@@ -57,7 +57,7 @@ void ElderGuardianEntity::tick()
         m_fatigueTimer = 0;
         // 给附近的玩家挖掘疲劳效果
         if (m_world != nullptr) {
-            std::vector<Entity*> nearbyEntities = m_world->getEntitiesInRange(m_position, MINING_FATIGUE_RANGE);
+            std::vector<Entity*> nearbyEntities = m_world->getEntitiesInRange(m_builtIn.stateVector->m_pos, MINING_FATIGUE_RANGE);
             for (Entity* entity : nearbyEntities) {
                 // 只对玩家生效
                 if (auto* player = dynamic_cast<Player*>(entity)) {

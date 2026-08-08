@@ -61,8 +61,8 @@ const entity::EntityClassInfo& DrownedEntity::classInfo()
     return s_classInfo;
 }
 
-DrownedEntity::DrownedEntity(EntityInstanceId id)
-    : ZombieEntity(id)
+DrownedEntity::DrownedEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ZombieEntity(id, registry)
 {
     // 溺尸可以走上1格高的方块
     setStepHeight(1.0f);
@@ -82,9 +82,9 @@ DrownedEntity::DrownedEntity(EntityInstanceId id)
     // 默认不持有三叉戟，避免构造期随机带来的不确定性。
 }
 
-std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<DrownedEntity>(EntityInstanceId(0));
+    return std::make_unique<DrownedEntity>(EntityInstanceId(0), registry);
 }
 
 bool DrownedEntity::isInWater() const
@@ -136,8 +136,14 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
         return;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄（world() 已判空，此处 registry 必非空）
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 创建三叉戟实体
-    auto trident = std::make_unique<entity::TridentEntity>(EntityInstanceId(0));
+    auto trident = std::make_unique<entity::TridentEntity>(EntityInstanceId(0), *registry);
     if (trident == nullptr) {
         return;
     }

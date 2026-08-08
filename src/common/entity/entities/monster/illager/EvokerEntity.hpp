@@ -39,7 +39,7 @@ namespace mc {
  */
 class EvokerEntity : public SpellcastingIllagerEntity {
 public:
-    EvokerEntity(EntityInstanceId id);
+    EvokerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~EvokerEntity() override = default;
 
     EvokerEntity(const EvokerEntity&) = delete;
@@ -51,7 +51,7 @@ public:
     // 透传层无自身同步字段，classInfo 仅作父链遍历节点。
     static const entity::EntityClassInfo& classInfo();
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     [[nodiscard]] bool isCasting() const { return isSpellcasting(); }
     [[nodiscard]] i32 getSpellType() const { return static_cast<i32>(spellType()); }

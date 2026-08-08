@@ -69,8 +69,8 @@ void AnimalEntity::registerData()
     AgeableEntity::registerData();
 }
 
-AnimalEntity::AnimalEntity(EntityInstanceId id)
-    : AgeableEntity(id)
+AnimalEntity::AnimalEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AgeableEntity(id, registry)
 {
     // 注册属性
     registerAttributes();

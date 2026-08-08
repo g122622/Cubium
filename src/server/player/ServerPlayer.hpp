@@ -64,7 +64,7 @@ public:
      * @param id 实体ID。
      * @param name 玩家名称。
      */
-    ServerPlayer(EntityInstanceId id, const std::string& name);
+    ServerPlayer(EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry);
     ServerPlayer(ServerPlayer&& other) noexcept = default;
     ServerPlayer& operator=(ServerPlayer&& other) noexcept = default;
     ~ServerPlayer() override = default;

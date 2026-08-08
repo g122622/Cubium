@@ -29,6 +29,8 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include <exception>
@@ -43,7 +45,8 @@
 
 namespace mc::entity::serialization {
 
-Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags::compound_tag& tag)
+Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(
+    const nbt::tags::compound_tag& tag, ecs::EntityRegistry& registry)
 {
     // 1. 读取 "id" 标签获取实体类型字符串
     auto typeIdOpt = nbt_helper::tryGetString(tag, nbt_keys::ID);
@@ -60,8 +63,10 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserialize(const nbt::tags:
     }
 
     // 3. 调用 EntityType::create() 创建实例
-    // 创建时实体 id 为 0（== INVALID_ENTITY_ID），由后续 spawnEntity 分配真实 id
-    auto entity = entityType->create(nullptr);
+    // 创建时实体 id 为 0（== INVALID_ENTITY_ID），由后续 spawnEntity 分配真实 id。
+    // world 传 nullptr：反序列化阶段不绑定世界（readFromNBT 内会读 Pos 但不要求 world 就位），
+    // registry 必须传入——Entity 构造时即在此 registry 内 create ECS 实体并 attach 高频组件。
+    auto entity = entityType->create(nullptr, registry);
     if (entity == nullptr) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to create entity of type: {}", typeId));
     }
@@ -102,9 +107,15 @@ Result<void> EntityDeserializer::attachPassengers(Entity& vehicle, IWorld& world
     // 取走待处理乘客 NBT 列表（takePendingPassengersNbt 会清空 vehicle 的字段）
     auto pendingPassengers = vehicle.takePendingPassengersNbt();
 
+    // 乘客反序列化需在本维度 ECS registry 内 create。经 IWorld::entityRegistry() 取
+    // （common 层不能下转 ServerWorld，否则反向依赖 server）。
+    auto* registryPtr = world.entityRegistry();
+    MC_ASSERT_RELEASE(registryPtr != nullptr);
+    ecs::EntityRegistry& registry = *registryPtr;
+
     for (auto& passengerTag : pendingPassengers) {
         // 递归反序列化乘客（同样不在此处 spawn 乘客的乘客）
-        auto passengerResult = deserialize(passengerTag);
+        auto passengerResult = deserialize(passengerTag, registry);
         if (passengerResult.failed()) {
             return passengerResult.error();
         }
@@ -145,7 +156,8 @@ Result<void> EntityDeserializer::attachPassengers(Entity& vehicle, IWorld& world
     return Result<void>::ok();
 }
 
-Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(const std::vector<u8>& data)
+Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(
+    const std::vector<u8>& data, ecs::EntityRegistry& registry)
 {
     if (data.empty()) {
         return Error(ErrorCode::InvalidData, "Empty entity data");
@@ -188,7 +200,7 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(const 
             return Error(ErrorCode::InvalidData, "Failed to parse entity NBT");
         }
 
-        return deserialize(*root);
+        return deserialize(*root, registry);
     }
     catch (const std::exception& e) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to deserialize entity from binary: {}", e.what()));

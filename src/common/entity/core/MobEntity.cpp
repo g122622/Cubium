@@ -112,8 +112,8 @@ const entity::EntityClassInfo& MobEntity::classInfo()
     return s_classInfo;
 }
 
-MobEntity::MobEntity(EntityInstanceId id)
-    : LivingEntity(id)
+MobEntity::MobEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : LivingEntity(id, nullptr, registry)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
     , m_jumpController(std::make_unique<entity::ai::controller::JumpController>(this))
@@ -765,7 +765,12 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
     }
 
     // 创建幼体实体
-    auto baby = myType->create(m_world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto baby = myType->create(m_world, *registry);
     if (baby == nullptr) {
         return false;
     }
@@ -1034,7 +1039,7 @@ void MobEntity::tickLeash()
     }
 
     // 计算与持有者的距离
-    Vector3d mobPos(m_position.x, m_position.y, m_position.z);
+    Vector3d mobPos(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
     f64 distance = mobPos.distance(holderPos);
 
     // 拴绳断裂距离
@@ -1065,9 +1070,9 @@ void MobEntity::tickLeash()
         Vector3d deltaMovement(direction.x * force * 0.8, direction.y * force * 0.2, direction.z * force * 0.8);
 
         // 施加拉力（添加到速度向量）
-        m_velocity.x += static_cast<f32>(deltaMovement.x);
-        m_velocity.y += static_cast<f32>(deltaMovement.y);
-        m_velocity.z += static_cast<f32>(deltaMovement.z);
+        m_builtIn.velocity->m_velocity.x += static_cast<f32>(deltaMovement.x);
+        m_builtIn.velocity->m_velocity.y += static_cast<f32>(deltaMovement.y);
+        m_builtIn.velocity->m_velocity.z += static_cast<f32>(deltaMovement.z);
     }
 }
 

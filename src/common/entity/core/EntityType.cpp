@@ -35,13 +35,13 @@ const EntityType EntityType::UNKNOWN{};
 
 EntityType::~EntityType() = default;
 
-std::unique_ptr<Entity> EntityType::create(IWorld* world) const
+std::unique_ptr<Entity> EntityType::create(IWorld* world, ecs::EntityRegistry& registry) const
 {
     if (!m_factory) {
         return nullptr;
     }
 
-    auto entity = m_factory(world);
+    auto entity = m_factory(world, registry);
     if (entity) {
         entity->setTypeId(m_name);
     }

@@ -123,7 +123,7 @@ public:
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
-    Player(EntityInstanceId id, const std::string& username);
+    Player(EntityInstanceId id, const std::string& username, ecs::EntityRegistry& registry);
     ~Player() override;
 
     // 同步数据参数注册（对齐 vanilla 1.21.11 Player/Avatar.defineId）。
