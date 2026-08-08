@@ -223,8 +223,8 @@ void Player::registerData()
     //   DATA_PLAYER_SHOULDER_PARROT_LEFT(id19) OptionalUnsignedInt，默认 absent
     //   DATA_PLAYER_SHOULDER_PARROT_RIGHT(id20) OptionalUnsignedInt，默认 absent
     // TODO(后期完善): DATA_PLAYER_ABSORPTION 当前仅在 registerData 写入初值 0，
-    //   未与 LivingEntity::setAbsorptionAmount/m_absorption 联动同步——后者位于基类无法
-    //   直接写 Player 字段。后期需在 Player 重写 setAbsorptionAmount 下发该字段。
+    //   未与 LivingEntity::setAbsorptionAmount/ecs::HurtStateComponent.m_absorption 联动同步——
+    //   后者位于基类无法直接写 Player 字段。后期需在 Player 重写 setAbsorptionAmount 下发该字段。
     //   肩膀鹦鹉两字段本项目无对应玩法，恒为 absent，不影响 wire 正确性。
     m_dataManager.registerParam(DATA_PLAYER_ABSORPTION_PARAM, 0.0f);
     m_dataManager.registerParam(DATA_PLAYER_SCORE_PARAM, m_score);

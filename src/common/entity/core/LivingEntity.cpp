@@ -191,7 +191,9 @@ void LivingEntity::setAbsorptionAmount(f32 amount)
 {
     // 与 MC 原版一致：吸收值限制在 [0, maxAbsorption] 范围内
     const f32 maxAbsorption = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MAX_ABSORPTION, 0.0));
-    m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        c->m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+    }
 }
 
 void LivingEntity::heal(f32 amount)
@@ -223,7 +225,9 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         m_lastDamage = amount;
         m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
         // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
-        m_hurtTime = m_maxHurtTime;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = c->m_maxHurtTime;
+        }
         actuallyHurt(source, amount);
     }
 
@@ -297,9 +301,10 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     amount = applyPotionDamageCalculations(source, amount);
 
     // 4. 吸收值处理（金苹果额外生命）
-    if (m_absorption > 0.0f) {
-        const f32 absorbed = std::min(m_absorption, amount);
-        setAbsorptionAmount(m_absorption - absorbed);
+    auto* hurtState = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+    if (hurtState != nullptr && hurtState->m_absorption > 0.0f) {
+        const f32 absorbed = std::min(hurtState->m_absorption, amount);
+        setAbsorptionAmount(hurtState->m_absorption - absorbed);
         amount -= absorbed;
     }
 
@@ -444,7 +449,9 @@ void LivingEntity::die(DamageSource& /*cause*/)
         return; // 已经死亡，避免重复执行
     }
 
-    m_deathTime = 0;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        c->m_deathTime = 0;
+    }
 
     // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
     // 避免实体死亡后属性修饰符残留
@@ -850,8 +857,10 @@ void LivingEntity::tick()
     }
 
     // 更新受伤动画计时器
-    if (m_hurtTime > 0) {
-        m_hurtTime--;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        if (c->m_hurtTime > 0) {
+            c->m_hurtTime--;
+        }
     }
 
     // 更新攻击动画
@@ -1045,10 +1054,14 @@ void LivingEntity::tickHealth()
 
 void LivingEntity::tickDeath()
 {
-    m_deathTime++;
+    auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+    if (c == nullptr) {
+        return;
+    }
+    c->m_deathTime++;
 
     // 死亡动画（20 ticks = 1 秒）
-    if (m_deathTime >= 20) {
+    if (c->m_deathTime >= 20) {
         remove(); // 移除实体
     }
 }
@@ -2354,13 +2367,13 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::HEALTH, m_health);
 
     // AbsorptionAmount (f32)
-    tag.put(nbt_keys::ABSORPTION_AMOUNT, m_absorption);
+    tag.put(nbt_keys::ABSORPTION_AMOUNT, absorptionAmount());
 
     // HurtTime (i16)
-    tag.put(nbt_keys::HURT_TIME, static_cast<i16>(m_hurtTime));
+    tag.put(nbt_keys::HURT_TIME, static_cast<i16>(hurtTime()));
 
     // DeathTime (i16)
-    tag.put(nbt_keys::DEATH_TIME, static_cast<i16>(m_deathTime));
+    tag.put(nbt_keys::DEATH_TIME, static_cast<i16>(deathTime()));
 
     // HurtByTimestamp (i32)
     tag.put(nbt_keys::HURT_BY_TIMESTAMP, m_lastDamageTimestamp);
@@ -2430,12 +2443,16 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 
     // HurtTime (i16)
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HURT_TIME)) {
-        m_hurtTime = *val;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = *val;
+        }
     }
 
     // DeathTime (i16)
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::DEATH_TIME)) {
-        m_deathTime = *val;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_deathTime = *val;
+        }
     }
 
     // HurtByTimestamp (i32)

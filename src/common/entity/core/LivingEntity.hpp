@@ -33,6 +33,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -154,7 +155,11 @@ public:
     /**
      * @brief 获取吸收伤害值（金苹果效果）
      */
-    [[nodiscard]] f32 absorptionAmount() const { return m_absorption; }
+    [[nodiscard]] f32 absorptionAmount() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_absorption : 0.0f;
+    }
 
     /**
      * @brief 设置吸收伤害值
@@ -636,12 +641,20 @@ public:
     /**
      * @brief 获取受伤无敌时间
      */
-    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
+    [[nodiscard]] i32 hurtTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_hurtTime : 0;
+    }
 
     /**
      * @brief 获取最大受伤无敌时间
      */
-    [[nodiscard]] i32 maxHurtTime() const { return m_maxHurtTime; }
+    [[nodiscard]] i32 maxHurtTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_maxHurtTime : 0;
+    }
 
     /**
      * @brief 获取无敌帧计时器
@@ -679,7 +692,11 @@ public:
      *
      * 等于 m_maxHurtTime（受击时恒为 10），damageTilt 据此归一化 hurtTime。
      */
-    [[nodiscard]] i32 hurtDuration() const { return m_maxHurtTime; }
+    [[nodiscard]] i32 hurtDuration() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_maxHurtTime : 0;
+    }
 
     /**
      * @brief 记录受伤方向并触发网络同步（LivingEntity.indicateDamage）
@@ -696,7 +713,9 @@ public:
      */
     virtual void animateHurt(f32 hurtDir)
     {
-        m_hurtTime = m_maxHurtTime;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = c->m_maxHurtTime;
+        }
         m_hurtDir = hurtDir;
     }
 
@@ -1308,12 +1327,20 @@ public:
     /**
      * @brief 是否正在死亡
      */
-    [[nodiscard]] bool isDying() const { return m_deathTime > 0; }
+    [[nodiscard]] bool isDying() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr && c->m_deathTime > 0;
+    }
 
     /**
      * @brief 获取死亡时间
      */
-    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+    [[nodiscard]] i32 deathTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_deathTime : 0;
+    }
 
     // ========== 箭矢计数 ==========
 
@@ -1650,7 +1677,7 @@ protected:
     // 生命值
     f32 m_health = 20.0f;
     f32 m_lastHealth = 20.0f; // 上一tick的生命值
-    f32 m_absorption = 0.0f;  // 吸收值（金苹果）
+    // m_absorption 已迁移至 ecs::HurtStateComponent.m_absorption（见 absorptionAmount/setAbsorptionAmount）
     // 首帧生命值同步标志。构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH，
     // m_health 停在默认 20.0，违反 health<=maxHealth 不变式。tick 首帧检测到未同步则
     // setHealth(maxHealth()) 兜底。详见 LivingEntity 构造注释。
@@ -1681,8 +1708,7 @@ protected:
     HandSide m_primaryHand = HandSide::Right; // 默认右手为主手
 
     // 受伤无敌帧
-    i32 m_hurtTime = 0;                                // 受伤无敌时间
-    i32 m_maxHurtTime = 10;                            // 最大受伤无敌时间
+    // m_hurtTime / m_maxHurtTime 已迁移至 ecs::HurtStateComponent（见 hurtTime/maxHurtTime/hurtDuration）
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
@@ -1698,7 +1724,7 @@ protected:
     i32 m_lastDamageTimestamp = 0; // 最后受伤时间戳
 
     // 死亡
-    i32 m_deathTime = 0; // 死亡时间
+    // m_deathTime 已迁移至 ecs::HurtStateComponent.m_deathTime（见 deathTime/isDying）
 
     // 回血
     i32 m_healTime = 0;         // 回血计时器
