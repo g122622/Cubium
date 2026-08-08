@@ -37,6 +37,7 @@ cmake --build --preset macos-relwithdebinfo -- -j10
 ```bash
 ./build/bin/RelWithDebInfo/minecraft-client --quick-play-new # 客户端（会同时启动内置服务端）
 ./build/bin/RelWithDebInfo/minecraft-server # 服务端（命令行参数由 gflags 解析，可用 --gametest 无头跑测试、--config 指定配置）
+./build/bin/RelWithDebInfo/minecraft-server.exe --gametest # 服务端无头跑集成测试
 ./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*GameTestServer*" # GameTestServer自动化集成测试
 ./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="你的测试过滤器" # 其他单元测试
 
