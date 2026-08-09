@@ -71,6 +71,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/ecs/components/PlayerScoreComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/entity/player/SleepResult.hpp"
@@ -179,6 +180,11 @@ Player::Player(EntityInstanceId id, const std::string& username, ecs::EntityRegi
     , m_username(username)
     , m_experienceManager(std::make_unique<entity::experience::ExperienceManager>(*this))
 {
+    // 第四批：attach PlayerScoreComponent（承载 m_score，真相源，DATA_PLAYER_SCORE_PARAM 退为镜像）。
+    // 须在 registerData() 之前 attach——后者经 getScore() 取组件填默认值。LivingEntity 基类构造
+    // 已完成，m_entityContext 已就位。
+    m_entityContext->enttRegistry().emplace<ecs::PlayerScoreComponent>(m_entityContext->entity());
+
     // 绑定玩家类型标识。Player 在 EntityRegistry 中注册为 "minecraft:player"
     // （factory=nullptr，Player 不走注册表工厂）。此处仅设置 m_typeId，entityType()
     // 首次访问时懒查表填充指针，与 VanillaEntityTypeKeys::PLAYER 同源可指针比较。
@@ -222,12 +228,11 @@ void Player::registerData()
     //   DATA_PLAYER_SCORE(id18) Int，默认 0
     //   DATA_PLAYER_SHOULDER_PARROT_LEFT(id19) OptionalUnsignedInt，默认 absent
     //   DATA_PLAYER_SHOULDER_PARROT_RIGHT(id20) OptionalUnsignedInt，默认 absent
-    // TODO(后期完善): DATA_PLAYER_ABSORPTION 当前仅在 registerData 写入初值 0，
-    //   未与 LivingEntity::setAbsorptionAmount/ecs::HurtStateComponent.m_absorption 联动同步——
-    //   后者位于基类无法直接写 Player 字段。后期需在 Player 重写 setAbsorptionAmount 下发该字段。
+    // DATA_PLAYER_ABSORPTION 由 Player::setAbsorptionAmount 重写下发（调基类写 HurtStateComponent
+    //   含 clamp 后，再 m_dataManager.set 同步该字段）。真相源在 HurtStateComponent.m_absorption。
     //   肩膀鹦鹉两字段本项目无对应玩法，恒为 absent，不影响 wire 正确性。
     m_dataManager.registerParam(DATA_PLAYER_ABSORPTION_PARAM, 0.0f);
-    m_dataManager.registerParam(DATA_PLAYER_SCORE_PARAM, m_score);
+    m_dataManager.registerParam(DATA_PLAYER_SCORE_PARAM, static_cast<i32>(0));
     m_dataManager.registerParam(DATA_PLAYER_SHOULDER_PARROT_LEFT_PARAM, entity::OptionalUnsignedIntValue{false, 0});
     m_dataManager.registerParam(DATA_PLAYER_SHOULDER_PARROT_RIGHT_PARAM, entity::OptionalUnsignedIntValue{false, 0});
 }
@@ -657,12 +662,12 @@ void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forc
 
 f32 Player::height() const
 {
-    return getPlayerPoseHeight(m_pose);
+    return getPlayerPoseHeight(pose());
 }
 
 f32 Player::eyeHeight() const
 {
-    return getPlayerPoseEyeHeight(m_pose);
+    return getPlayerPoseEyeHeight(pose());
 }
 
 entity::EntitySize Player::getDimensions(EntityPose pose) const
@@ -673,7 +678,7 @@ entity::EntitySize Player::getDimensions(EntityPose pose) const
 
 bool Player::_canFitPose(EntityPose pose) const
 {
-    if (pose == m_pose || m_world == nullptr) {
+    if (pose == this->pose() || m_world == nullptr) {
         return true;
     }
 
@@ -1032,7 +1037,7 @@ void Player::_handleWaterMovement(f32 forward, f32 strafe, bool jumping, bool sn
 
     // 应用水中的"浮力"效果
     // 重力减少到 1/16 (0.08 / 16 = 0.005)
-    if (!m_abilities.flying && !m_noGravity) {
+    if (!m_abilities.flying && !hasNoGravity()) {
         f32 gravity = physics::GRAVITY;
         f32 buoyancy = gravity / 16.0f;
 
@@ -3104,7 +3109,7 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     m_enderChestInventory.toNbt(tag);
 
     // ========== 分数 ==========
-    tag.put(SCORE, m_score);
+    tag.put(SCORE, getScore());
 
     // ========== 最后死亡位置 ==========
     if (m_lastDeathLocation.has_value()) {
@@ -3259,9 +3264,8 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
 
     // ========== 分数 ==========
     if (auto scoreOpt = nbt_helper::tryGetInt(tag, SCORE)) {
-        m_score = *scoreOpt;
-        // NBT 加载后回填同步字段 DATA_PLAYER_SCORE，避免 set_entity_data 下发旧值 0。
-        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+        // setScore 同时写 PlayerScoreComponent（真相源）+ DATA_PLAYER_SCORE_PARAM（镜像）。
+        setScore(*scoreOpt);
     }
 
     // ========== 最后死亡位置 ==========

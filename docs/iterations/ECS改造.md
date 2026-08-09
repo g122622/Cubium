@@ -88,12 +88,43 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 **暂未处理**：`tests/` 741 处测试构造仍不透传 registry（永久约束）。Player 子类重写 getMutableEquipment/setEquipment 委托到 PlayerInventory，不读写 EquipmentComponent，本组件仅承载非 Player 的 LivingEntity 装备。
 
+## 第四批：C 类字段全量组件真相源化（2026-08-09 落地）
+
+批次4 原计划「用基岩版 SynchedData 中间层替换 EntityDataManager」，但深度勘察发现 **EntityDataManager 已是对齐 vanilla ClassTreeIdRegistry 的成熟 SynchedEntityData 等价物**（ID 继承链分配 / wire 格式 1.21.11 / dirty 机制完整），并非待替换的旧物。故本批真实目标改为：**把剩余 C 类同步字段全部改成组件真相源 + DataParameter 镜像模式**，与已完成的 health/arrows/ticksFrozen 同模式规模化，统一 ECS 数据层。wire 格式不变，网络层零改动。
+
+对 EntityDataManager 全部 22 个 DataParameter 逐字段勘察（成员字段/setter 双写/syncMetadata 回填/NBT/客户端消费），分三类：
+- **迁移 9 字段**：Entity 层 7 个（flags/air/customName/customNameVisible/silent/noGravity/pose）+ Player score + Player absorption 下发。
+- **不迁移 13 个**：6 个纯占位（effect 粒子/睡眠位/主手/肩膀鹦鹉）+ DATA_LIVING_FLAGS 半残 + DATA_MOB_FLAGS 已符合 + DATA_PLAYER_MODE_CUSTOMISATION 收益低留后续。
+
+**新增 3 组件 + 1 枚举头提取**：
+- `EntityFlagsComponent`（m_flags）：Entity 层，所有实体 attach。DATA_FLAGS_PARAM(id0) 退镜像。
+- `EntityStateComponent`（m_air/m_customName/m_customNameVisible/m_silent/m_noGravity/m_pose 6 字段）：Entity 层，所有实体 attach。聚合轻量同步元数据避免组件爆炸。m_customName 用 `unique_ptr<ITextComponent>` 承接原类型（保留样式/颜色），DataParameter 仅存 OptionalComponentValue 作有损同步投影。
+- `PlayerScoreComponent`（m_score）：仅 Player attach。DATA_PLAYER_SCORE_PARAM(id18) 退镜像。
+- `EntityFlags.hpp`：把原内联于 Entity.hpp 的 `EntityFlags` 枚举 + 位运算符提取为独立头（参照 EquipmentSlot 提取先例），消除 EntityFlagsComponent 对 Entity.hpp 的循环依赖。
+
+**Player absorption 特殊处理（无新组件）**：真相源已在 HurtStateComponent.m_absorption（第三批）。缺陷是 LivingEntity::setAbsorptionAmount 非虚、不下发 DATA_PLAYER_ABSORPTION_PARAM。修复：把 LivingEntity::setAbsorptionAmount 改 `virtual`，Player `override` 重写——调基类写 HurtStateComponent（含 clamp）后，再 `m_dataManager.set(DATA_PLAYER_ABSORPTION_PARAM, absorptionAmount())` 下发 clamp 后值。基类 actuallyHurt 内调用经虚派发到 Player 版本，同步链路完整。
+
+**关键设计决策**：
+- syncMetadataFromDataManager 删除全部 7 字段回填行，函数体空保留骨架 + 注释（组件为真相源，不从镜像回填）。延续第二批 freeze 模式。
+- setPose 迁移后**保留 refreshDimensions() 副作用**（潜行变矮/游泳变扁的碰撞箱更新）。syncMetadata 末尾原 refreshDimensions（服务 pose 回填）随回填行删除，但 setPose 内的 refreshDimensions 保留。
+- customName 一致性：setCustomNameComponent 内先写组件 `c->m_customName = std::move(name)`，再从组件取 text 写 DataParameter，确保组件与镜像一致。
+- registerData 字面量默认值不变（构造期组件虽已 attach 但 registerParam 不读组件，与现状一致）。
+- inline getter（pose/flags/air 等）走 tryGetComponent + MC_ASSERT_RELEASE 守卫，与第三批 attributes() 同模式。Entity.hpp 补 include AssertMacros.hpp。
+
+**子类直接访问修复（7 处）**：原 protected 成员被子类直接访问，删成员后改 getter/setter：LivingEntity.cpp:1703（m_pose→pose()）、Player.cpp height/eyeHeight/_canFitPose/水浮力（m_pose→pose()、m_noGravity→hasNoGravity()）、FishingBobberEntity/EyeOfEnderEntity 构造（m_noGravity=false→setNoGravity(false)）。ShulkerBulletEntity 访问的是 ProjectileEntity 自己的 m_noGravity（合法未动）。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests）。
+- GameTest 回归：8/8 passed exitCode=0 零回归（simpleMobTest 首跑偶发超时为已知 flaky——fox AI 时序敏感 + 光照引擎 TOCTOU，非本批引入，复跑通过）。
+- 修复构建错误：EntityStateComponent.hpp 用 `EntityPose` 未限定 `entity::` 命名空间（组件在 mc::ecs，枚举在 mc::entity）。
+
+**暂未处理**：`tests/` 741 处测试构造仍不透传 registry（永久约束）。DATA_PLAYER_MODE_CUSTOMISATION_PARAM 留后续批次。
+
 ## 后续批次路线（备忘，未落地）
 
-- **批次4**：同步体系重构为 SynchedData 中间层（替换 EntityDataManager，保留 vanilla ID 分配语义）。剩余 C 类同步字段（air/health/noGravity/pose/flags 等）在此批统一改真相源在组件。
 - **批次5**：11 个混入接口转 tag/capability component；约 1220 处 dynamic_cast 改组件查询。
 - **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 13 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 14 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件），迁移后续批次前务必先读。

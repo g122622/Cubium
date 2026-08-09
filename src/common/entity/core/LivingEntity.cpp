@@ -1700,7 +1700,7 @@ bool LivingEntity::isVisuallySwimming() const
     if (Entity::isVisuallySwimming()) {
         return true;
     }
-    return !isElytraFlying() && m_pose == EntityPose::FallFlying;
+    return !isElytraFlying() && pose() == EntityPose::FallFlying;
 }
 
 void LivingEntity::travelFallFlying(const Vector3& travelVec)

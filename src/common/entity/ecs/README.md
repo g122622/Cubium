@@ -29,6 +29,9 @@ src/common/entity/ecs/
 │   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment/m_lastEquipmentInitialized（第三批，仅 LivingEntity，无同步单写）
 │   ├── ArrowStateComponent.hpp      # m_arrowCount/m_stingerCount/m_arrowHitTimer（第三批，仅 LivingEntity，arrowCount/stingerCount 同步真相源）
 │   ├── AttributeComponent.hpp       # unique_ptr<AttributeMap> 包裹属性表（第三批，仅 LivingEntity，不可移动类型包装范式）
+│   ├── EntityFlagsComponent.hpp     # m_flags 位掩码（第四批，所有实体，DATA_FLAGS 退镜像）
+│   ├── EntityStateComponent.hpp     # m_air/m_customName/m_customNameVisible/m_silent/m_noGravity/m_pose 6 字段聚合（第四批，所有实体，unique_ptr<ITextComponent> 包裹）
+│   ├── PlayerScoreComponent.hpp     # m_score（第四批，仅 Player，DATA_PLAYER_SCORE 退镜像）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
 └── systems/                         # 系统层
@@ -80,8 +83,9 @@ IWorld（ServerWorld / ClientWorld）
 ## 组件工厂
 
 未建独立 `factory/` 目录。组件 attach 内联在构造链内：
-- **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 8 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze），缓存 5 高频裸指针到 `m_builtIn`。
+- **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 10 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze + 第四批 EntityFlags/EntityState），缓存 5 高频裸指针到 `m_builtIn`。
 - **LivingEntity 构造**：续接 attach 5 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。
+- **Player 构造**：续接 attach PlayerScoreComponent（第四批），须在 `registerData()` 之前——后者经 `getScore()` 取组件填默认值。Player 另重写 `setAbsorptionAmount`（基类改 virtual）下发 DATA_PLAYER_ABSORPTION_PARAM，无新组件（复用 HurtStateComponent）。
 - **叶子类工厂** `EntityType::create(IWorld*, ecs::EntityRegistry&)`：构造 Entity 子类 → 返回 `unique_ptr<Entity>`。
 
 差异化组件的工厂注入留待后续批次（见 `docs/iterations/ECS改造.md` 路线）。
@@ -153,3 +157,14 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 - inline getter 用了 `MC_ASSERT_RELEASE` 须显式 include `common/util/assert/AssertMacros.hpp`（基类 Entity.hpp 未传递，tests/ 包含时暴露 IWYU 违规）。
 - 属性注册时序：基类 LivingEntity 构造期调 `registerAttributes()` 因虚函数不向下派发仅注册基类属性，叶子类构造体显式再调 `registerAttributes()` 经继承链逐层向上注册专属属性——组件化后 `registerAttributes()` 内 `attributes().xxx` 在叶子类构造体执行时基类已 attach 组件，时序成立。
 - getter 返回引用（`AttributeMap&`），链式 `attributes().setBaseValue(...)` 语义与原 `m_attributes.setBaseValue(...)` 等价，顺序敏感的 remove+add 序列无副作用（同一组件同一对象）。
+
+### 14. C 类字段全量组件化规模化：枚举提取消除循环依赖 + 异构字段聚合组件
+
+第四批把 Entity 层剩余 7 个 C 类同步字段（flags/air/customName/customNameVisible/silent/noGravity/pose）+ Player score + Player absorption 下发全部组件真相源化，沿用第二批 freeze / 第三批 health/arrows 的同步镜像模式规模化。**规模化的几个新坑**：
+- **枚举提取消除循环依赖**：`EntityFlags` 原内联于 `Entity.hpp`，新建 `EntityFlagsComponent.hpp` 若 include `Entity.hpp` 则与 `Entity.hpp` include 组件头形成循环。解法：把 `EntityFlags` 枚举 + 位运算符提取到独立头 `src/common/entity/core/EntityFlags.hpp`（参照 `EquipmentSlot` 提取先例），组件头只 include 这个轻量枚举头。`Entity.hpp` 删除内联定义改为 include `EntityFlags.hpp`，下游零改动。
+- **异构字段聚合进单组件**：`EntityStateComponent` 聚合 6 个类型异构的轻量同步字段（`i32`/`unique_ptr<ITextComponent>`/3×`bool`/`EntityPose`），对齐基岩版 ActorDataSynched 组件族（轻量元数据聚合，`mc/entity/components/`）。聚合避免组件爆炸——若每字段一组件，Entity 层 10+ 组件徒增内存与查询开销。HealthComponent 已证明"同层多字段进单组件"可行，本批把模式推广到异构类型字段。
+- **customName unique_ptr 组件存储**：组件存 `std::unique_ptr<text::ITextComponent>` 承接原 `m_customName` 类型（保留样式/颜色富文本），与 `AttributeComponent` 用 `unique_ptr<AttributeMap>` 包裹范式一致。DataParameter 仅存 `OptionalComponentValue`（present + 纯文本）作有损同步投影，组件与镜像并非全等。`setCustomNameComponent` 内须先 `c->m_customName = std::move(name)` 写组件，再从组件取 text 写 DataParameter，确保两份一致。组件头前向声明 `class ITextComponent` + include `<memory>`，不 include 全定义。
+- **inline getter MC_ASSERT_RELEASE 守卫**：pose/flags/air 等 getter 走 `tryGetComponent + MC_ASSERT_RELEASE`，与第三批 `attributes()` 同模式。`Entity.hpp` 须显式 include `common/util/assert/AssertMacros.hpp`（基类不传递，IWYU 违规在 tests/ 暴露）。
+- **pose refreshDimensions 副作用保留**：`setPose` 迁移后**必须保留 `refreshDimensions()` 调用**（潜行变矮/游泳变扁的碰撞箱更新）。`syncMetadataFromDataManager` 末尾原 `refreshDimensions`（服务端 pose 回填时触发的）随回填行删除，但 `setPose` 内的 `refreshDimensions` 保留。删回填行时勿误删 setPose 路径的副作用。
+- **syncMetadataFromDataManager 清空留骨架**：删除全部 7 字段回填行后函数体空，保留空函数 + 注释「组件为真相源，不再从 DataParameter 回填」。ClientEntity 是独立类有自己的 syncMetadata 实现，仅删 Entity::syncMetadata 不影响客户端。
+- **setAbsorptionAmount 改 virtual + Player override 下发**：absorption 真相源已在 `HurtStateComponent.m_absorption`（第三批），无需新组件。缺陷是原 `LivingEntity::setAbsorptionAmount` 非虚、不下发 `DATA_PLAYER_ABSORPTION_PARAM`。修复：基类改 `virtual`，Player `override` 重写——调基类写组件（含 clamp）后再 `m_dataManager.set(DATA_PLAYER_ABSORPTION_PARAM, absorptionAmount())` 下发 clamp 后值。基类 `actuallyHurt` 内调用经虚派发到 Player 版本，同步链路完整。这是"真相源已在组件、仅需打通下发"的轻量收口范式，区别于新建组件的重迁移。

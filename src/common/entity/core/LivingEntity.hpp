@@ -151,8 +151,12 @@ public:
     /**
      * @brief 设置吸收伤害值
      * @param amount 新的吸收值，会被限制在 [0, maxAbsorption] 范围内
+     *
+     * 声明为 virtual：Player 重写以在下发 HurtStateComponent（真相源）后，额外同步
+     * DATA_PLAYER_ABSORPTION_PARAM 到客户端（基类不持有该 Player 专属 DataParameter）。
+     * 基类内部调用（如 actuallyHurt）经虚函数派发到 Player 版本，确保同步链路完整。
      */
-    void setAbsorptionAmount(f32 amount);
+    virtual void setAbsorptionAmount(f32 amount);
 
     /**
      * @brief 治疗实体

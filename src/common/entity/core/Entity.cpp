@@ -57,6 +57,8 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MoverType.hpp"
+#include "common/entity/ecs/components/EntityFlagsComponent.hpp"
+#include "common/entity/ecs/components/EntityStateComponent.hpp"
 #include "common/entity/ecs/components/FireComponent.hpp"
 #include "common/entity/ecs/components/FreezeComponent.hpp"
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
@@ -147,6 +149,11 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     registry.raw().emplace<ecs::FireComponent>(ecsEntity);
     m_builtIn.physicsState = &registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
     registry.raw().emplace<ecs::FreezeComponent>(ecsEntity);
+    // 第四批：attach EntityFlags/EntityState 两组件，承载 flags/air/customName/
+    // customNameVisible/silent/noGravity/pose 七个 C 类同步字段（真相源），
+    // 对应 DataParameter 退为同步镜像。低频走 tryGetComponent 查询。
+    registry.raw().emplace<ecs::EntityFlagsComponent>(ecsEntity);
+    registry.raw().emplace<ecs::EntityStateComponent>(ecsEntity);
     m_entityContext = std::make_unique<ecs::EntityContext>(registry, ecsEntity);
 
     // 生成随机 UUID（使用实体的持久化随机数生成器）。
@@ -194,7 +201,7 @@ entity::EntitySize Entity::getDimensions(EntityPose pose) const
 
 void Entity::refreshDimensions()
 {
-    m_dimensions = getDimensions(m_pose);
+    m_dimensions = getDimensions(pose());
     m_dimensionsInitialized = true;
     reapplyPosition();
 }
@@ -202,7 +209,7 @@ void Entity::refreshDimensions()
 void Entity::reapplyPosition()
 {
     if (!m_dimensionsInitialized) {
-        m_dimensions = getDimensions(m_pose);
+        m_dimensions = getDimensions(pose());
         m_dimensionsInitialized = true;
     }
 
@@ -210,33 +217,41 @@ void Entity::reapplyPosition()
         m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
 }
 
-void Entity::setPose(EntityPose pose)
+void Entity::setPose(EntityPose poseIn)
 {
-    if (m_pose == pose) {
+    if (pose() == poseIn) {
         return;
     }
 
-    m_pose = pose;
-    m_dataManager.set(DATA_POSE_PARAM, entity::PoseValue{pose});
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_pose = poseIn;
+    m_dataManager.set(DATA_POSE_PARAM, entity::PoseValue{poseIn});
     refreshDimensions();
 }
 
 void Entity::setFlags(EntityFlags flags)
 {
-    m_flags = flags;
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = flags;
     m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(flags)));
 }
 
 void Entity::addFlag(EntityFlags flag)
 {
-    m_flags = m_flags | flag;
-    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = c->m_flags | flag;
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(c->m_flags)));
 }
 
 void Entity::removeFlag(EntityFlags flag)
 {
-    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_flags) & ~static_cast<u8>(flag));
-    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = static_cast<EntityFlags>(static_cast<u8>(c->m_flags) & ~static_cast<u8>(flag));
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(c->m_flags)));
 }
 
 bool Entity::isGlowing() const
@@ -266,33 +281,39 @@ bool Entity::isVisuallySwimming() const
 {
     // 基类实现：仅依赖 Swimming 姿态判定
     // LivingEntity 重写时会额外考虑 FallFlying 姿态
-    return m_pose == EntityPose::Swimming;
+    return pose() == EntityPose::Swimming;
 }
 
 void Entity::setAir(i32 air)
 {
-    m_air = air;
-    m_dataManager.set(DATA_AIR_PARAM, m_air);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_air = air;
+    m_dataManager.set(DATA_AIR_PARAM, c->m_air);
 }
 
 void Entity::setCustomName(const std::string& name)
 {
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
     if (name.empty()) {
-        m_customName = nullptr;
+        c->m_customName = nullptr;
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     } else {
-        m_customName = std::make_unique<text::StringTextComponent>(name);
+        c->m_customName = std::make_unique<text::StringTextComponent>(name);
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, name});
     }
 }
 
 void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 {
-    m_customName = std::move(name);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_customName = std::move(name);
     // 数据管理器存 OptionalComponentValue（present + 纯文本），用于网络同步。
-    if (m_customName) {
+    if (c->m_customName) {
         m_dataManager.set(
-            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, m_customName->getUnformattedText()});
+            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, c->m_customName->getUnformattedText()});
     } else {
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     }
@@ -300,8 +321,10 @@ void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 
 std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
 {
-    if (m_customName) {
-        return m_customName->deepCopy();
+    const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    if (c->m_customName) {
+        return c->m_customName->deepCopy();
     }
     // 返回默认名称
     return std::make_unique<text::StringTextComponent>("entity");
@@ -309,20 +332,26 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
 
 void Entity::setCustomNameVisible(bool visible)
 {
-    m_customNameVisible = visible;
-    m_dataManager.set(DATA_CUSTOM_NAME_VISIBLE_PARAM, m_customNameVisible);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_customNameVisible = visible;
+    m_dataManager.set(DATA_CUSTOM_NAME_VISIBLE_PARAM, c->m_customNameVisible);
 }
 
 void Entity::setSilent(bool silent)
 {
-    m_silent = silent;
-    m_dataManager.set(DATA_SILENT_PARAM, m_silent);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_silent = silent;
+    m_dataManager.set(DATA_SILENT_PARAM, c->m_silent);
 }
 
 void Entity::setNoGravity(bool noGravity)
 {
-    m_noGravity = noGravity;
-    m_dataManager.set(DATA_NO_GRAVITY_PARAM, m_noGravity);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_noGravity = noGravity;
+    m_dataManager.set(DATA_NO_GRAVITY_PARAM, c->m_noGravity);
 }
 
 // ============================================================================
@@ -967,25 +996,11 @@ f32 Entity::getBrightness() const
 
 void Entity::syncMetadataFromDataManager()
 {
-    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
-    m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
-    // m_ticksFrozen 不再从同步层回填：FreezeComponent 为真相源，DATA_TICKS_FROZEN_PARAM
-    // 退为同步镜像。所有写入统一走 setTicksFrozen()（同时写组件 + DataParameter）。
-    // 从数据管理器同步自定义名称（OptionalComponent：present + 纯文本）
-    {
-        const entity::OptionalComponentValue nameComp =
-            m_dataManager.get<entity::OptionalComponentValue>(DATA_CUSTOM_NAME_PARAM);
-        if (!nameComp.present || nameComp.text.empty()) {
-            m_customName = nullptr;
-        } else {
-            m_customName = std::make_unique<text::StringTextComponent>(nameComp.text);
-        }
-    }
-    m_customNameVisible = m_dataManager.get<bool>(DATA_CUSTOM_NAME_VISIBLE_PARAM);
-    m_silent = m_dataManager.get<bool>(DATA_SILENT_PARAM);
-    m_noGravity = m_dataManager.get<bool>(DATA_NO_GRAVITY_PARAM);
-    m_pose = m_dataManager.get<entity::PoseValue>(DATA_POSE_PARAM).value;
-    refreshDimensions();
+    // 第四批：flags/air/customName/customNameVisible/silent/noGravity/pose 七字段均已迁入
+    // ecs::EntityFlagsComponent / EntityStateComponent（真相源），DataParameter 退为同步镜像。
+    // 组件不从镜像回填，避免双写时序错乱。延续第二批 freeze / 第三批 health/arrows 模式。
+    // m_ticksFrozen 同理（FreezeComponent 真相源，DATA_TICKS_FROZEN_PARAM 退为镜像），
+    // 所有写入统一走 setTicksFrozen()（同时写组件 + DataParameter）。
 }
 
 void Entity::updateFallDistance()
@@ -1439,7 +1454,7 @@ void Entity::applyPhysics(f32 /*deltaTime*/)
     // 注意：重力应该始终应用（除非 noGravity），碰撞检测会处理停止
 
     // 重力始终应用（除非 noGravity 标志为 true）
-    if (!m_noGravity) {
+    if (!hasNoGravity()) {
         m_builtIn.velocity->m_velocity.y -= physics::GRAVITY;
     }
 
@@ -2124,10 +2139,9 @@ std::string Entity::toString() const
        << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", "
        << m_builtIn.velocity->m_velocity.z << ")"
        << ", onGround=" << m_builtIn.physicsState->m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
-       << ", flags=" << static_cast<u32>(m_flags) << ", air=" << m_air << ", customName=\""
-       << (m_customName ? m_customName->getUnformattedText() : "") << "\""
-       << ", customNameVisible=" << m_customNameVisible << ", silent=" << m_silent << ", noGravity=" << m_noGravity
-       << ", pose=" << static_cast<u32>(m_pose) << "}";
+       << ", flags=" << static_cast<u32>(flags()) << ", air=" << air() << ", customName=\"" << customNameText() << "\""
+       << ", customNameVisible=" << isCustomNameVisible() << ", silent=" << isSilent()
+       << ", noGravity=" << hasNoGravity() << ", pose=" << static_cast<u32>(pose()) << "}";
     return ss.str();
 }
 
@@ -2426,7 +2440,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::FIRE, static_cast<i16>(getRemainingFireTicks()));
 
     // 空气剩余 tick
-    tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
+    tag.put(nbt_keys::AIR, static_cast<i16>(air()));
 
     // 地面标记 (byte 0/1)
     tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_builtIn.physicsState->m_onGround ? 1 : 0));
@@ -2447,18 +2461,18 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     nbt_helper::putUuid(tag, m_uuid);
 
     // 自定义名称
-    if (m_customName) {
-        tag.put(nbt_keys::CUSTOM_NAME, m_customName->getUnformattedText());
+    if (hasCustomName()) {
+        tag.put(nbt_keys::CUSTOM_NAME, customNameText());
     }
 
     // 自定义名称可见 (byte 0/1)
-    tag.put(nbt_keys::CUSTOM_NAME_VISIBLE, static_cast<i8>(m_customNameVisible ? 1 : 0));
+    tag.put(nbt_keys::CUSTOM_NAME_VISIBLE, static_cast<i8>(isCustomNameVisible() ? 1 : 0));
 
     // 静默 (byte 0/1)
-    tag.put(nbt_keys::SILENT, static_cast<i8>(m_silent ? 1 : 0));
+    tag.put(nbt_keys::SILENT, static_cast<i8>(isSilent() ? 1 : 0));
 
     // 无重力 (byte 0/1)
-    tag.put(nbt_keys::NO_GRAVITY, static_cast<i8>(m_noGravity ? 1 : 0));
+    tag.put(nbt_keys::NO_GRAVITY, static_cast<i8>(hasNoGravity() ? 1 : 0));
 
     // 发光 (byte 0/1)
     tag.put(nbt_keys::GLOWING, static_cast<i8>(m_glowing ? 1 : 0));
@@ -2551,7 +2565,7 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 空气
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AIR)) {
-        m_air = *val;
+        setAir(static_cast<i32>(*val));
     }
 
     // 地面标记
@@ -2587,17 +2601,17 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 
     // 自定义名称可见
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CUSTOM_NAME_VISIBLE)) {
-        m_customNameVisible = *val;
+        setCustomNameVisible(*val);
     }
 
     // 静默
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::SILENT)) {
-        m_silent = *val;
+        setSilent(*val);
     }
 
     // 无重力
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::NO_GRAVITY)) {
-        m_noGravity = *val;
+        setNoGravity(*val);
     }
 
     // 发光

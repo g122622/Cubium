@@ -36,6 +36,7 @@
 #include "../../world/block/BlockPos.hpp"
 #include "../entities/projectile/ProjectileDeflection.hpp"
 #include "EntityDataManager.hpp"
+#include "EntityFlags.hpp"
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "MoverType.hpp"
@@ -43,12 +44,15 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
+#include "common/entity/ecs/components/EntityFlagsComponent.hpp"
+#include "common/entity/ecs/components/EntityStateComponent.hpp"
 #include "common/entity/ecs/components/FireComponent.hpp"
 #include "common/entity/ecs/components/FreezeComponent.hpp"
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
 #include "common/entity/ecs/components/PortalComponent.hpp"
 #include "common/entity/ecs/context/EntityContext.hpp"
 #include "common/profiler/MemoryTracking.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -99,32 +103,8 @@ using EntityPose = entity::EntityPose;
 // ============================================================================
 // 实体标志位
 // ============================================================================
-
-enum class EntityFlags : u8 {
-    None = 0,
-    OnFire = 1 << 0,
-    Crouching = 1 << 1,
-    Sprinting = 1 << 3,
-    Swimming = 1 << 4,
-    Invisible = 1 << 5,
-    Glowing = 1 << 6,
-    FallFlying = 1 << 7
-};
-
-inline EntityFlags operator|(EntityFlags a, EntityFlags b)
-{
-    return static_cast<EntityFlags>(static_cast<u8>(a) | static_cast<u8>(b));
-}
-
-inline EntityFlags operator&(EntityFlags a, EntityFlags b)
-{
-    return static_cast<EntityFlags>(static_cast<u8>(a) & static_cast<u8>(b));
-}
-
-inline bool hasFlag(EntityFlags flags, EntityFlags flag)
-{
-    return (static_cast<u8>(flags) & static_cast<u8>(flag)) != 0;
-}
+// EntityFlags 枚举及位运算符已提取到独立头 EntityFlags.hpp（第四批 ECS 迁移），
+// 供 EntityFlagsComponent 以值类型承载而不循环依赖本文件。参照 EquipmentSlot 提取先例。
 
 // ============================================================================
 // 实体基类
@@ -445,8 +425,19 @@ public:
 
     [[nodiscard]] bool onGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isRemoved() const { return m_removed; }
-    [[nodiscard]] EntityPose pose() const { return m_pose; }
-    [[nodiscard]] EntityFlags flags() const { return m_flags; }
+    // pose/flags 已迁入 ecs::EntityStateComponent/EntityFlagsComponent（真相源），经组件查询读取。
+    [[nodiscard]] EntityPose pose() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_pose;
+    }
+    [[nodiscard]] EntityFlags flags() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_flags;
+    }
     [[nodiscard]] virtual bool isChild() const { return false; }
 
     // ========== 声音 ==========
@@ -602,7 +593,7 @@ public:
     // 标志操作
     void addFlag(EntityFlags flag);
     void removeFlag(EntityFlags flag);
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(m_flags, flag); }
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(flags(), flag); }
 
     /**
      * @brief 检查是否正在鞘翅飞行
@@ -1779,7 +1770,12 @@ public:
     /**
      * @brief 获取空气值
      */
-    [[nodiscard]] i32 air() const { return m_air; }
+    [[nodiscard]] i32 air() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_air;
+    }
 
     /**
      * @brief 设置空气值
@@ -1886,7 +1882,12 @@ public:
      * @brief 获取自定义名称组件
      * @return 自定义名称组件指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const { return m_customName.get(); }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName.get();
+    }
 
     /**
      * @brief 获取自定义名称的纯文本
@@ -1894,14 +1895,21 @@ public:
      */
     [[nodiscard]] std::string customNameText() const
     {
-        return m_customName ? m_customName->getUnformattedText() : std::string();
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName ? c->m_customName->getUnformattedText() : std::string();
     }
 
     /**
      * @brief 检查是否有自定义名称
      * @return 如果有自定义名称返回true
      */
-    [[nodiscard]] bool hasCustomName() const { return m_customName != nullptr; }
+    [[nodiscard]] bool hasCustomName() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName != nullptr;
+    }
 
     /**
      * @brief 获取显示名称
@@ -1927,7 +1935,12 @@ public:
     /**
      * @brief 检查自定义名称是否可见
      */
-    [[nodiscard]] bool isCustomNameVisible() const { return m_customNameVisible; }
+    [[nodiscard]] bool isCustomNameVisible() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customNameVisible;
+    }
 
     /**
      * @brief 设置自定义名称可见性
@@ -1939,7 +1952,12 @@ public:
     /**
      * @brief 检查是否静音
      */
-    [[nodiscard]] bool isSilent() const { return m_silent; }
+    [[nodiscard]] bool isSilent() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_silent;
+    }
 
     /**
      * @brief 设置静音状态
@@ -1951,7 +1969,12 @@ public:
     /**
      * @brief 检查是否受重力影响
      */
-    [[nodiscard]] bool hasNoGravity() const { return m_noGravity; }
+    [[nodiscard]] bool hasNoGravity() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_noGravity;
+    }
 
     /**
      * @brief 设置是否受重力影响
@@ -2770,8 +2793,9 @@ protected:
     bool m_removed = false;
     bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
     bool m_glowing = false; // 发光状态（服务端使用）
-    EntityPose m_pose = EntityPose::Standing;
-    EntityFlags m_flags = EntityFlags::None;
+    // m_pose / m_flags 已迁入 ecs::EntityStateComponent / EntityFlagsComponent（真相源），
+    // DATA_POSE_PARAM / DATA_FLAGS_PARAM 退为同步镜像。经 pose()/flags()/setPose()/setFlags()
+    // 等读写（见 m_entityContext->tryGetComponent）。
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);
     // m_boundingBox 已迁入 AABBShapeComponent（见 m_builtIn.aabbShape->m_aabb）。
     bool m_dimensionsInitialized = false;
@@ -2837,7 +2861,8 @@ protected:
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置
 
     // 空气值
-    i32 m_air = 300; // 默认最大空气值
+    // m_air 已迁入 ecs::EntityStateComponent（真相源），DATA_AIR_PARAM 退为同步镜像。
+    // 经 air()/setAir() 读写（见 m_entityContext->tryGetComponent）。
 
     // 无敌
     bool m_invulnerable = false;
@@ -2847,14 +2872,17 @@ protected:
     bool m_hurtMarked = false;
 
     // 自定义名称
-    std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称
-    bool m_customNameVisible = false;
+    // m_customName / m_customNameVisible 已迁入 ecs::EntityStateComponent（真相源），
+    // DATA_CUSTOM_NAME_PARAM / DATA_CUSTOM_NAME_VISIBLE_PARAM 退为同步镜像。
+    // 经 getCustomNameComponent()/setCustomName()/setCustomNameVisible() 等读写。
 
     // 静音
-    bool m_silent = false;
+    // m_silent 已迁入 ecs::EntityStateComponent（真相源），DATA_SILENT_PARAM 退为同步镜像。
+    // 经 isSilent()/setSilent() 读写。
 
     // 重力
-    bool m_noGravity = false;
+    // m_noGravity 已迁入 ecs::EntityStateComponent（真相源），DATA_NO_GRAVITY_PARAM 退为同步镜像。
+    // 经 hasNoGravity()/setNoGravity() 读写。
 
     // 实体标签（最多1024个标签）
     std::set<std::string> m_tags;

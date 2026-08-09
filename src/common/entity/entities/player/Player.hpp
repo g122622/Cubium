@@ -48,6 +48,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/ecs/components/PlayerScoreComponent.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp" // for mc::Uuid + util::uuidFromString
 #include "common/util/assert/AssertMacros.hpp"
@@ -1436,16 +1437,23 @@ public:
      * 分数是一个简单的整数计数器，在玩家死亡时增加。
      * 与计分板系统（Scoreboard）独立，MC Java 中通过实体数据同步。
      */
-    [[nodiscard]] i32 getScore() const { return m_score; }
+    [[nodiscard]] i32 getScore() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_score;
+    }
 
     /**
      * @brief 设置玩家分数
      */
     void setScore(i32 score)
     {
-        m_score = score;
+        auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        c->m_score = score;
         // 同步到 vanilla DATA_PLAYER_SCORE（set_entity_data 经此下发客户端）
-        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, c->m_score);
     }
 
     /**
@@ -1453,9 +1461,23 @@ public:
      */
     void increaseScore(i32 amount)
     {
-        m_score += amount;
+        auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        c->m_score += amount;
         // 同步到 vanilla DATA_PLAYER_SCORE
-        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, c->m_score);
+    }
+
+    /**
+     * @brief 重写吸收值设置：基类写 HurtStateComponent（真相源，含 clamp）后，
+     * 额外下发 Player 专属 DATA_PLAYER_ABSORPTION_PARAM 到客户端。
+     * 基类 LivingEntity 不持有该 DataParameter，故须在 Player 层补同步。
+     */
+    void setAbsorptionAmount(f32 amount) override
+    {
+        LivingEntity::setAbsorptionAmount(amount);
+        // 取 clamp 后的真相源值下发镜像，确保客户端拿到与组件一致的值。
+        m_dataManager.set(DATA_PLAYER_ABSORPTION_PARAM, absorptionAmount());
     }
 
     /**
@@ -2018,7 +2040,8 @@ private:
     PlayerEnderChestInventory m_enderChestInventory; // 末影箱物品栏
     AbstractContainerMenu* m_openContainerMenu = nullptr;
 
-    i32 m_score = 0; // 玩家分数（死亡计分，与计分板系统独立）
+    // m_score 已迁入 ecs::PlayerScoreComponent（真相源），DATA_PLAYER_SCORE_PARAM 退为同步镜像。
+    // 经 getScore()/setScore()/increaseScore() 读写（见 m_entityContext->tryGetComponent）。
 
     // 经验管理器（唯一数据源）
     std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;

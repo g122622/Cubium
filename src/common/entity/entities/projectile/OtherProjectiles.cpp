@@ -165,7 +165,7 @@ const EntityClassInfo& FishingBobberEntity::classInfo()
 FishingBobberEntity::FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
 {
-    m_noGravity = false;
+    setNoGravity(false);
     // C++ 虚函数在构造函数中不会派生到子类，因此 Entity 基类构造函数中
     // 调用的 registerData() 只会执行 Entity::registerData()。
     // 子类必须在此显式调用自身的 registerData() 以注册子类专属数据参数。
@@ -1415,7 +1415,7 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
 EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
 {
-    m_noGravity = false;
+    setNoGravity(false);
 }
 
 std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
