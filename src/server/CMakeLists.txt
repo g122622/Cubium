@@ -261,6 +261,7 @@ target_sources(minecraft-server
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegister.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptTestHelper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestError.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptGameTestTypes.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptRegistrationBuilderBinding.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/script/binding/ScriptSequence.cpp
