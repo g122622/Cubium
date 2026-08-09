@@ -31,8 +31,14 @@
 #include "../../core/Entity.hpp"
 #include "../../core/EntityDataManager.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../ecs/components/ChestMinecartComponent.hpp"
+#include "../../ecs/components/CommandBlockMinecartComponent.hpp"
+#include "../../ecs/components/FurnaceMinecartComponent.hpp"
+#include "../../ecs/components/HopperMinecartComponent.hpp"
 #include "../../ecs/components/MinecartDisplayComponent.hpp"
 #include "../../ecs/components/MinecartStateComponent.hpp"
+#include "../../ecs/components/SpawnerMinecartComponent.hpp"
+#include "../../ecs/components/TntMinecartComponent.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
@@ -594,10 +600,6 @@ public:
      * @brief 获取库存指针
      */
     [[nodiscard]] IInventory* getInventory();
-
-private:
-    /// 27格库存（与箱子相同）
-    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
 };
 
 /**
@@ -622,11 +624,18 @@ public:
 
     FurnaceMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
         : AbstractMinecartEntity(Type::Furnace, id, registry)
-    {}
+    {
+        m_entityContext->enttRegistry().emplace<ecs::FurnaceMinecartComponent>(m_entityContext->entity());
+    }
 
     void tick() override;
 
-    [[nodiscard]] bool isActivated() const override { return m_fuel > 0; }
+    [[nodiscard]] bool isActivated() const override
+    {
+        const auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_fuel > 0;
+    }
 
     /**
      * @brief 熔炉矿车速度较慢
@@ -642,7 +651,12 @@ public:
     /**
      * @brief 获取剩余燃料
      */
-    [[nodiscard]] i32 getFuel() const { return m_fuel; }
+    [[nodiscard]] i32 getFuel() const
+    {
+        const auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_fuel;
+    }
 
     /**
      * @brief 设置推动方向
@@ -651,8 +665,10 @@ public:
      */
     void setPushDirection(f32 x, f32 z)
     {
-        m_pushX = x;
-        m_pushZ = z;
+        auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_pushX = x;
+        c->m_pushZ = z;
     }
 
     /**
@@ -680,11 +696,6 @@ public:
      * @param source 造成矿车破坏的伤害来源，可能为 nullptr
      */
     void dropItem(DamageSource* source = nullptr) override;
-
-private:
-    i32 m_fuel = 0;
-    f32 m_pushX = 0.0f;
-    f32 m_pushZ = 0.0f;
 };
 
 /**
@@ -712,7 +723,9 @@ public:
 
     TNTMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
         : AbstractMinecartEntity(Type::TNT, id, registry)
-    {}
+    {
+        m_entityContext->enttRegistry().emplace<ecs::TntMinecartComponent>(m_entityContext->entity());
+    }
 
     void tick() override;
 
@@ -720,12 +733,22 @@ public:
      * @brief 点燃TNT
      * @param fuseTicks 引信时间（tick），默认80
      */
-    void prime(i32 fuseTicks = DEFAULT_FUSE) { m_fuse = fuseTicks; }
+    void prime(i32 fuseTicks = DEFAULT_FUSE)
+    {
+        auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_fuse = fuseTicks;
+    }
 
     /**
      * @brief 是否已点燃
      */
-    [[nodiscard]] bool isPrimed() const { return m_fuse > -1; }
+    [[nodiscard]] bool isPrimed() const
+    {
+        const auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_fuse > -1;
+    }
 
     /**
      * @brief 获取剩余引信时间
@@ -733,7 +756,12 @@ public:
      * 返回剩余引信 tick 数；-1 表示未点燃。
      * 渲染器据此判断 TNT 闪烁叠加层是否生效及计算闪烁缩放因子。
      */
-    [[nodiscard]] i32 fuse() const { return m_fuse; }
+    [[nodiscard]] i32 fuse() const
+    {
+        const auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_fuse;
+    }
 
     /**
      * @brief 激活铁轨点燃TNT
@@ -794,12 +822,6 @@ private:
      * @return 是否能点燃TNT
      */
     [[nodiscard]] static bool _damageSourceIgnitesTnt(const DamageSource& source);
-
-    i32 m_fuse = -1; ///< -1 表示未点燃
-
-    /// 引爆来源（首次点燃时设置，之后不再覆盖）
-    /// 对应 MC Java 的 ignitionSource 字段，用于爆炸伤害归因
-    std::unique_ptr<DamageSource> m_ignitionSource;
 };
 
 /**
@@ -889,17 +911,32 @@ public:
     /**
      * @brief 是否可以吸取物品
      */
-    [[nodiscard]] bool canSuckItems() const { return m_suckCooldown <= 0 && !m_disabled; }
+    [[nodiscard]] bool canSuckItems() const
+    {
+        const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_suckCooldown <= 0 && !c->m_disabled;
+    }
 
     /**
      * @brief 是否被红石禁用
      */
-    [[nodiscard]] bool isDisabled() const { return m_disabled; }
+    [[nodiscard]] bool isDisabled() const
+    {
+        const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_disabled;
+    }
 
     /**
      * @brief 设置禁用状态（红石控制）
      */
-    void setDisabled(bool disabled) { m_disabled = disabled; }
+    void setDisabled(bool disabled)
+    {
+        auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_disabled = disabled;
+    }
 
     /**
      * @brief 激活铁轨通过回调
@@ -917,10 +954,6 @@ private:
      * @brief 向下方容器传输物品
      */
     void _transferItemsOut();
-
-    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
-    i32 m_suckCooldown = 0;
-    bool m_disabled = false; ///< 红石禁用状态
 };
 
 /**
@@ -930,29 +963,51 @@ class CommandBlockMinecartEntity : public AbstractMinecartEntity {
 public:
     CommandBlockMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
         : AbstractMinecartEntity(Type::CommandBlock, id, registry)
-    {}
+    {
+        m_entityContext->enttRegistry().emplace<ecs::CommandBlockMinecartComponent>(m_entityContext->entity());
+    }
 
     void tick() override;
 
     /**
      * @brief 设置命令
      */
-    void setCommand(const std::string& command) { m_command = command; }
+    void setCommand(const std::string& command)
+    {
+        auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_command = command;
+    }
 
     /**
      * @brief 获取命令
      */
-    [[nodiscard]] const std::string& getCommand() const { return m_command; }
+    [[nodiscard]] const std::string& getCommand() const
+    {
+        const auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_command;
+    }
 
     /**
      * @brief 获取上次输出
      */
-    [[nodiscard]] const std::string& getLastOutput() const { return m_lastOutput; }
+    [[nodiscard]] const std::string& getLastOutput() const
+    {
+        const auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_lastOutput;
+    }
 
     /**
      * @brief 获取成功次数
      */
-    [[nodiscard]] i32 getSuccessCount() const { return m_successCount; }
+    [[nodiscard]] i32 getSuccessCount() const
+    {
+        const auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_successCount;
+    }
 
     /**
      * @brief 设置成功次数
@@ -961,7 +1016,12 @@ public:
      *
      * @param count 成功次数
      */
-    void setSuccessCount(i32 count) { m_successCount = count; }
+    void setSuccessCount(i32 count)
+    {
+        auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_successCount = count;
+    }
 
     // ========== Entity 接口重写 ==========
 
@@ -982,11 +1042,6 @@ private:
      * @brief 执行命令
      */
     void _executeCommand();
-
-    std::string m_command;
-    std::string m_lastOutput;
-    i32 m_successCount = 0;
-    bool mPowered = false; ///< 当前是否被激活
 };
 
 /**
@@ -1019,19 +1074,9 @@ public:
 
     void tick() override;
 
-    /**
-     * @brief 序列化额外数据
-     *
-     * 保存刷怪笼逻辑参数（生成延迟、实体类型、生成候选列表等）。
-     */
-    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
-
-    /**
-     * @brief 反序列化额外数据
-     *
-     * 读取刷怪笼逻辑参数。
-     */
-    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+    // 注：刷怪笼逻辑参数（Delay/SpawnData/SpawnPotentials 等）的持久化已搬入组件序列化器
+    // 注册表（MinecartComponentSerialization），不再 override addAdditionalSaveData/
+    // readAdditionalSaveData（搬注册表后双重写入会键冲突）。回落到基类空实现。
 
     // ========== 刷怪笼逻辑访问 ==========
 
@@ -1039,12 +1084,19 @@ public:
      * @brief 获取刷怪笼逻辑
      * @return 刷怪笼逻辑的引用
      */
-    [[nodiscard]] blockentity::SpawnerLogic& getSpawnerLogic() { return m_spawnerLogic; }
-    [[nodiscard]] const blockentity::SpawnerLogic& getSpawnerLogic() const { return m_spawnerLogic; }
+    [[nodiscard]] blockentity::SpawnerLogic& getSpawnerLogic()
+    {
+        auto* c = tryGetComponent<ecs::SpawnerMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_spawnerLogic;
+    }
 
-private:
-    /// 刷怪笼逻辑（对应 MC Java 的 BaseSpawner）
-    blockentity::SpawnerLogic m_spawnerLogic;
+    [[nodiscard]] const blockentity::SpawnerLogic& getSpawnerLogic() const
+    {
+        const auto* c = tryGetComponent<ecs::SpawnerMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_spawnerLogic;
+    }
 };
 
 } // namespace entity

@@ -1134,8 +1134,10 @@ std::unique_ptr<Entity> ChestMinecartEntity::create(IWorld* /*world*/, ecs::Enti
 
 ChestMinecartEntity::ChestMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractMinecartEntity(Type::Chest, id, registry)
-    , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
-{}
+{
+    auto& comp = m_entityContext->enttRegistry().emplace<ecs::ChestMinecartComponent>(m_entityContext->entity());
+    comp.m_inventory = std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE);
+}
 
 void ChestMinecartEntity::applyDrag()
 {
@@ -1159,15 +1161,18 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
         return;
     }
 
+    auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 容器内容物掉落也受 doEntityDrops 游戏规则控制
     // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
     bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
 
-    if (doEntityDrops && m_inventory) {
+    if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品
         math::Random& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
-            ItemStack stack = m_inventory->getItem(i);
+            ItemStack stack = c->m_inventory->getItem(i);
             if (!stack.isEmpty()) {
                 // 使用 ItemDropHelper 在矿车位置生成物品实体
                 ItemDropHelper::spawnItemEntity(
@@ -1182,49 +1187,65 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
 
 i32 ChestMinecartEntity::getContainerSize() const
 {
-    return m_inventory ? m_inventory->getContainerSize() : 0;
+    const auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->getContainerSize() : 0;
 }
 
 bool ChestMinecartEntity::isInventoryEmpty() const
 {
-    return m_inventory ? m_inventory->isEmpty() : true;
+    const auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->isEmpty() : true;
 }
 
 ItemStack ChestMinecartEntity::getInventoryItem(i32 slot) const
 {
-    return m_inventory ? m_inventory->getItem(slot) : ItemStack();
+    const auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->getItem(slot) : ItemStack();
 }
 
 void ChestMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack)
 {
-    if (m_inventory) {
-        m_inventory->setItem(slot, stack);
+    auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (c->m_inventory) {
+        c->m_inventory->setItem(slot, stack);
     }
 }
 
 ItemStack ChestMinecartEntity::removeInventoryItem(i32 slot, i32 count)
 {
-    return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
+    auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->removeItem(slot, count) : ItemStack();
 }
 
 void ChestMinecartEntity::clearInventory()
 {
-    if (m_inventory) {
-        m_inventory->clear();
+    auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (c->m_inventory) {
+        c->m_inventory->clear();
     }
 }
 
 IInventory* ChestMinecartEntity::getInventory()
 {
-    return m_inventory.get();
+    auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory.get();
 }
 
 i32 ChestMinecartEntity::getComparatorOutput() const
 {
-    if (!m_inventory) {
+    const auto* c = tryGetComponent<ecs::ChestMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (!c->m_inventory) {
         return 0;
     }
-    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*m_inventory);
+    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*c->m_inventory);
 }
 
 // ============================================================================
@@ -1240,17 +1261,20 @@ void FurnaceMinecartEntity::tick()
 {
     AbstractMinecartEntity::tick();
 
+    auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     IWorld* worldPtr = Entity::world();
     if (worldPtr && !worldPtr->isClientSide()) {
         // 消耗燃料
-        if (m_fuel > 0) {
-            m_fuel--;
+        if (c->m_fuel > 0) {
+            c->m_fuel--;
         }
 
         // 燃料耗尽时清除推动方向
-        if (m_fuel <= 0) {
-            m_pushX = 0.0f;
-            m_pushZ = 0.0f;
+        if (c->m_fuel <= 0) {
+            c->m_pushX = 0.0f;
+            c->m_pushZ = 0.0f;
         }
     }
 
@@ -1267,32 +1291,38 @@ void FurnaceMinecartEntity::tick()
 
 void FurnaceMinecartEntity::updatePushDirection()
 {
+    auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 根据当前速度更新推动方向
     f64 vx = velocityX();
     f64 vz = velocityZ();
     f64 speedSq = vx * vx + vz * vz;
-    f64 pushSq = m_pushX * m_pushX + m_pushZ * m_pushZ;
+    f64 pushSq = c->m_pushX * c->m_pushX + c->m_pushZ * c->m_pushZ;
 
     if (pushSq > 1.0e-4 && speedSq > 0.001) {
         f64 speed = std::sqrt(speedSq);
         f64 pushMag = std::sqrt(pushSq);
-        m_pushX = static_cast<f32>(vx / speed * pushMag);
-        m_pushZ = static_cast<f32>(vz / speed * pushMag);
+        c->m_pushX = static_cast<f32>(vx / speed * pushMag);
+        c->m_pushZ = static_cast<f32>(vz / speed * pushMag);
     }
 }
 
 void FurnaceMinecartEntity::applyDrag()
 {
+    auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 熔炉矿车摩擦力计算
-    f64 pushMag = m_pushX * m_pushX + m_pushZ * m_pushZ;
+    f64 pushMag = c->m_pushX * c->m_pushX + c->m_pushZ * c->m_pushZ;
 
     if (pushMag > 1.0e-7) {
         pushMag = std::sqrt(pushMag);
-        m_pushX /= static_cast<f32>(pushMag);
-        m_pushZ /= static_cast<f32>(pushMag);
+        c->m_pushX /= static_cast<f32>(pushMag);
+        c->m_pushZ /= static_cast<f32>(pushMag);
 
         f32 drag = 0.8f;
-        setVelocity(velocityX() * drag + m_pushX * 0.1f, velocityY(), velocityZ() * drag + m_pushZ * 0.1f);
+        setVelocity(velocityX() * drag + c->m_pushX * 0.1f, velocityY(), velocityZ() * drag + c->m_pushZ * 0.1f);
     } else {
         f32 drag = 0.98f;
         setVelocity(velocityX() * drag, velocityY(), velocityZ() * drag);
@@ -1303,11 +1333,14 @@ void FurnaceMinecartEntity::applyDrag()
 
 void FurnaceMinecartEntity::addFuel(i32 ticks)
 {
+    auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 燃料上限检查
-    if (m_fuel + ticks <= MAX_FUEL) {
-        m_fuel += ticks;
+    if (c->m_fuel + ticks <= MAX_FUEL) {
+        c->m_fuel += ticks;
     } else {
-        m_fuel = MAX_FUEL;
+        c->m_fuel = MAX_FUEL;
     }
 }
 
@@ -1325,13 +1358,16 @@ void FurnaceMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powere
     MC_UNUSED(z);
 
     if (powered) {
+        auto* c = tryGetComponent<ecs::FurnaceMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+
         // 根据当前移动方向更新推动方向
         f32 vx = velocityX();
         f32 vz = velocityZ();
         f32 speed = std::sqrt(vx * vx + vz * vz);
         if (speed > 0.01f) {
-            m_pushX = vx / speed;
-            m_pushZ = vz / speed;
+            c->m_pushX = vx / speed;
+            c->m_pushZ = vz / speed;
         }
     }
 }
@@ -1376,13 +1412,16 @@ void TNTMinecartEntity::tick()
 {
     AbstractMinecartEntity::tick();
 
+    auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // TNT引信倒计时
-    if (m_fuse > 0) {
-        m_fuse--;
+    if (c->m_fuse > 0) {
+        c->m_fuse--;
 
         // 引信燃烧时产生烟雾粒子
         // 引信每 4 tick 产生一次烟雾
-        if (m_fuse % 4 == 0) {
+        if (c->m_fuse % 4 == 0) {
             IWorld* worldPtr = Entity::world();
             if (worldPtr) {
                 using namespace particle;
@@ -1390,10 +1429,10 @@ void TNTMinecartEntity::tick()
             }
         }
 
-        if (m_fuse == 0) {
+        if (c->m_fuse == 0) {
             // 引信归零时爆炸，传递引爆来源作为伤害归因
             f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
-            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource.get());
+            _explode(static_cast<f32>(std::sqrt(speedSq)), c->m_ignitionSource.get());
         }
     }
 
@@ -1404,13 +1443,16 @@ void TNTMinecartEntity::tick()
     if (m_builtIn.physicsState->m_collidedHorizontally) {
         f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
         if (speedSq >= 0.01) {
-            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource.get());
+            _explode(static_cast<f32>(std::sqrt(speedSq)), c->m_ignitionSource.get());
         }
     }
 }
 
 void TNTMinecartEntity::_ignite(const DamageSource* source)
 {
+    auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 对应 MC Java 的 MinecartTNT.primeFuse() 中的 GameRules.TNT_EXPLODES 检查
     // 如果 tntExplodes 游戏规则为 false，则不点燃
     IWorld* worldPtr = Entity::world();
@@ -1422,15 +1464,15 @@ void TNTMinecartEntity::_ignite(const DamageSource* source)
 
     // 对应 MC Java 的 primeFuse(DamageSource) 中的 ignitionSource 设置逻辑
     // 首次点燃时记录引爆来源，后续不再覆盖
-    if (source != nullptr && m_ignitionSource == nullptr) {
+    if (source != nullptr && c->m_ignitionSource == nullptr) {
         // 将原始伤害源转换为爆炸伤害源：
         // directEntity = this（TNT矿车自身），causeEntity = 原始伤害的造成者
         Entity* causeEntity = source->getEntity();
-        m_ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, causeEntity, this);
-        static_cast<IndirectEntityDamageSource*>(m_ignitionSource.get())->setExplosion();
+        c->m_ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, causeEntity, this);
+        static_cast<IndirectEntityDamageSource*>(c->m_ignitionSource.get())->setExplosion();
     }
 
-    m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
+    c->m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
 
     if (worldPtr && !worldPtr->isClientSide()) {
         // 广播实体状态 10，通知客户端 TNT 矿车已被引燃
@@ -1448,8 +1490,11 @@ void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
     MC_UNUSED(y);
     MC_UNUSED(z);
 
+    auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 激活铁轨充能时点燃TNT，无伤害来源（对应 MC Java 中 primeFuse(null)）
-    if (powered && m_fuse < 0) {
+    if (powered && c->m_fuse < 0) {
         _ignite(nullptr);
     }
 }
@@ -1540,15 +1585,18 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
     } else {
         // 火焰/爆炸伤害或高速碰撞时点燃 TNT 矿车
         // 对应 MC Java 中 destroy() 里的 primeFuse(damageSource)
-        if (m_fuse < 0) {
+        auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+        MC_ASSERT_RELEASE(c);
+
+        if (c->m_fuse < 0) {
             _ignite(source);
             // 随机点燃时间 0-38 ticks（对应 MC Java 的 random.nextInt(20) + random.nextInt(20)）
             IWorld* worldPtr = world();
             if (worldPtr) {
                 math::Random& rng = worldPtr->getRandom();
-                m_fuse = rng.nextInt(20) + rng.nextInt(20);
+                c->m_fuse = rng.nextInt(20) + rng.nextInt(20);
             } else {
-                m_fuse = 20;
+                c->m_fuse = 20;
             }
         }
     }
@@ -1556,8 +1604,11 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
 
 void TNTMinecartEntity::_checkFireIgnition()
 {
+    auto* c = tryGetComponent<ecs::TntMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 在火焰或岩浆中自动点燃（无伤害来源，对应 MC Java 中红石/火焰直接点燃）
-    if (m_fuse < 0) {
+    if (c->m_fuse < 0) {
         if (isOnFire() || isInLava()) {
             _ignite(nullptr);
         }
@@ -1633,16 +1684,21 @@ std::unique_ptr<Entity> HopperMinecartEntity::create(IWorld* /*world*/, ecs::Ent
 
 HopperMinecartEntity::HopperMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractMinecartEntity(Type::Hopper, id, registry)
-    , m_inventory(std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE))
-{}
+{
+    auto& comp = m_entityContext->enttRegistry().emplace<ecs::HopperMinecartComponent>(m_entityContext->entity());
+    comp.m_inventory = std::make_unique<blockentity::SimpleInventory>(INVENTORY_SIZE);
+}
 
 void HopperMinecartEntity::tick()
 {
     AbstractMinecartEntity::tick();
 
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 冷却计时
-    if (m_suckCooldown > 0) {
-        m_suckCooldown--;
+    if (c->m_suckCooldown > 0) {
+        c->m_suckCooldown--;
     }
 
     IWorld* worldPtr = Entity::world();
@@ -1658,7 +1714,7 @@ void HopperMinecartEntity::tick()
     // 必须经过一个未充能的激活铁轨才会重新启用。
 
     // 如果被禁用，跳过吸取和传输
-    if (m_disabled) {
+    if (c->m_disabled) {
         return;
     }
 
@@ -1673,8 +1729,11 @@ void HopperMinecartEntity::tick()
 
 void HopperMinecartEntity::_suckItems()
 {
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     IWorld* worldPtr = Entity::world();
-    if (!worldPtr || !m_inventory) {
+    if (!worldPtr || !c->m_inventory) {
         return;
     }
 
@@ -1697,17 +1756,17 @@ void HopperMinecartEntity::_suckItems()
 
         // 尝试将物品放入漏斗库存
         ItemStack stack = itemEntity->getItemStack().copy();
-        ItemStack remaining = m_inventory->addItem(stack);
+        ItemStack remaining = c->m_inventory->addItem(stack);
 
         if (remaining.isEmpty()) {
             // 完全吸收
             itemEntity->remove();
-            m_suckCooldown = TRANSFER_COOLDOWN;
+            c->m_suckCooldown = TRANSFER_COOLDOWN;
             return; // 每tick只处理一个物品
         } else if (remaining.getCount() < stack.getCount()) {
             // 部分吸收
             itemEntity->setItemStack(remaining);
-            m_suckCooldown = TRANSFER_COOLDOWN;
+            c->m_suckCooldown = TRANSFER_COOLDOWN;
             return;
         }
     }
@@ -1715,8 +1774,11 @@ void HopperMinecartEntity::_suckItems()
 
 void HopperMinecartEntity::_transferItemsOut()
 {
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     IWorld* worldPtr = Entity::world();
-    if (!worldPtr || !m_inventory) {
+    if (!worldPtr || !c->m_inventory) {
         return;
     }
 
@@ -1743,7 +1805,7 @@ void HopperMinecartEntity::_transferItemsOut()
 
     // 遍历漏斗库存，尝试输出物品
     for (i32 slot = 0; slot < INVENTORY_SIZE; ++slot) {
-        ItemStack stack = m_inventory->getItem(slot);
+        ItemStack stack = c->m_inventory->getItem(slot);
         if (stack.isEmpty()) {
             continue;
         }
@@ -1751,58 +1813,72 @@ void HopperMinecartEntity::_transferItemsOut()
         // 尝试将物品放入目标库存
         ItemStack toTransfer = stack.split(1);
         ItemStack remaining = blockentity::HopperEntity::putStackInInventoryAllSlots(
-            m_inventory.get(), targetInventory, toTransfer, Direction::Up);
+            c->m_inventory.get(), targetInventory, toTransfer, Direction::Up);
 
         if (remaining.isEmpty()) {
             // 传输成功
-            m_inventory->setItem(slot, stack);
-            m_suckCooldown = TRANSFER_COOLDOWN;
+            c->m_inventory->setItem(slot, stack);
+            c->m_suckCooldown = TRANSFER_COOLDOWN;
             return;
         } else {
             // 传输失败，恢复物品
             stack.grow(1);
-            m_inventory->setItem(slot, stack);
+            c->m_inventory->setItem(slot, stack);
         }
     }
 }
 
 i32 HopperMinecartEntity::getContainerSize() const
 {
-    return m_inventory ? m_inventory->getContainerSize() : 0;
+    const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->getContainerSize() : 0;
 }
 
 bool HopperMinecartEntity::isInventoryEmpty() const
 {
-    return m_inventory ? m_inventory->isEmpty() : true;
+    const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->isEmpty() : true;
 }
 
 ItemStack HopperMinecartEntity::getInventoryItem(i32 slot) const
 {
-    return m_inventory ? m_inventory->getItem(slot) : ItemStack();
+    const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->getItem(slot) : ItemStack();
 }
 
 void HopperMinecartEntity::setInventoryItem(i32 slot, const ItemStack& stack)
 {
-    if (m_inventory) {
-        m_inventory->setItem(slot, stack);
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (c->m_inventory) {
+        c->m_inventory->setItem(slot, stack);
     }
 }
 
 ItemStack HopperMinecartEntity::removeInventoryItem(i32 slot, i32 count)
 {
-    return m_inventory ? m_inventory->removeItem(slot, count) : ItemStack();
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory ? c->m_inventory->removeItem(slot, count) : ItemStack();
 }
 
 void HopperMinecartEntity::clearInventory()
 {
-    if (m_inventory) {
-        m_inventory->clear();
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (c->m_inventory) {
+        c->m_inventory->clear();
     }
 }
 
 IInventory* HopperMinecartEntity::getInventory()
 {
-    return m_inventory.get();
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    return c->m_inventory.get();
 }
 
 void HopperMinecartEntity::dropItem(DamageSource* source)
@@ -1815,15 +1891,18 @@ void HopperMinecartEntity::dropItem(DamageSource* source)
         return;
     }
 
+    auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 容器内容物掉落受 doEntityDrops 游戏规则控制
     // 参考 ContainerEntity.chestVehicleDestroyed() 中的 ENTITY_DROPS 检查
     bool doEntityDrops = worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS);
 
-    if (doEntityDrops && m_inventory) {
+    if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品
         math::Random& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
-            ItemStack stack = m_inventory->getItem(i);
+            ItemStack stack = c->m_inventory->getItem(i);
             if (!stack.isEmpty()) {
                 // 使用 ItemDropHelper 在矿车位置生成物品实体
                 ItemDropHelper::spawnItemEntity(
@@ -1838,10 +1917,12 @@ void HopperMinecartEntity::dropItem(DamageSource* source)
 
 i32 HopperMinecartEntity::getComparatorOutput() const
 {
-    if (!m_inventory) {
+    const auto* c = tryGetComponent<ecs::HopperMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+    if (!c->m_inventory) {
         return 0;
     }
-    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*m_inventory);
+    return world::redstone::RedstoneHelper::calcRedstoneFromInventory(*c->m_inventory);
 }
 
 void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
@@ -1865,7 +1946,7 @@ void HopperMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered
     MC_UNUSED(y);
     MC_UNUSED(z);
 
-    m_disabled = powered;
+    setDisabled(powered);
 }
 
 // ============================================================================
@@ -1882,7 +1963,7 @@ void CommandBlockMinecartEntity::tick()
 
 i32 CommandBlockMinecartEntity::getComparatorOutput() const
 {
-    return std::min(m_successCount, 15);
+    return std::min(getSuccessCount(), 15);
 }
 
 void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
@@ -1891,22 +1972,28 @@ void CommandBlockMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool p
     MC_UNUSED(y);
     MC_UNUSED(z);
 
+    auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 激活铁轨触发命令执行
     // 只在上升沿执行（从不激活变为激活）
-    if (powered && !mPowered) {
-        mPowered = true;
+    if (powered && !c->mPowered) {
+        c->mPowered = true;
         _executeCommand();
     } else if (!powered) {
-        mPowered = false;
+        c->mPowered = false;
     }
 }
 
 void CommandBlockMinecartEntity::_executeCommand()
 {
+    auto* c = tryGetComponent<ecs::CommandBlockMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 通过 IWorld 接口执行命令
     // 命令方块矿车的权限级别为 2（相当于 OP 级别）
 
-    if (m_command.empty()) {
+    if (c->m_command.empty()) {
         return;
     }
 
@@ -1924,13 +2011,13 @@ void CommandBlockMinecartEntity::_executeCommand()
     // 当前传默认 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），矿车 `^` 坐标按 yaw=0 解析，
     // 与矿车实际朝向可能不符。GameTest cloneBlocksCommand 用的是命令方块（CommandBlockEntity），
     // 不经此路径，故暂不阻塞。
-    m_successCount = worldPtr->executeCommand(m_command, position, 2);
+    c->m_successCount = worldPtr->executeCommand(c->m_command, position, 2);
 
     // 设置最后输出（成功或失败）
-    if (m_successCount > 0) {
-        m_lastOutput = "Command executed successfully";
+    if (c->m_successCount > 0) {
+        c->m_lastOutput = "Command executed successfully";
     } else {
-        m_lastOutput = "Command execution failed";
+        c->m_lastOutput = "Command execution failed";
     }
 }
 
@@ -1940,7 +2027,9 @@ void CommandBlockMinecartEntity::_executeCommand()
 
 SpawnerMinecartEntity::SpawnerMinecartEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractMinecartEntity(Type::Spawner, id, registry)
-{}
+{
+    m_entityContext->enttRegistry().emplace<ecs::SpawnerMinecartComponent>(m_entityContext->entity());
+}
 
 std::unique_ptr<Entity> SpawnerMinecartEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
@@ -1952,6 +2041,9 @@ void SpawnerMinecartEntity::tick()
     // 先调用基类 tick（铁轨运动、碰撞等）
     AbstractMinecartEntity::tick();
 
+    auto* c = tryGetComponent<ecs::SpawnerMinecartComponent>();
+    MC_ASSERT_RELEASE(c);
+
     // 刷怪笼逻辑 tick
     IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
@@ -1960,10 +2052,10 @@ void SpawnerMinecartEntity::tick()
 
     if (worldPtr->isClientSide()) {
         // 客户端：更新旋转动画
-        m_spawnerLogic.clientTick(*worldPtr, x(), y(), z());
+        c->m_spawnerLogic.clientTick(*worldPtr, x(), y(), z());
     } else {
         // 服务端：执行刷怪逻辑
-        m_spawnerLogic.serverTick(*worldPtr, x(), y(), z(), [this](IWorld& w) {
+        c->m_spawnerLogic.serverTick(*worldPtr, x(), y(), z(), [this](IWorld& w) {
             // 成功生成实体后广播刷怪笼粒子事件
             // 对应 MC Java BaseSpawner.serverTick() 中成功生成后调用
             // level.broadcastEntityEvent(MinecartSpawner.this, (byte)1)
@@ -1971,33 +2063,6 @@ void SpawnerMinecartEntity::tick()
             w.broadcastEntityStatus(id(), static_cast<u8>(1));
         });
     }
-}
-
-void SpawnerMinecartEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
-{
-    AbstractMinecartEntity::addAdditionalSaveData(tag);
-
-    // 保存刷怪笼逻辑数据
-    nbt::CompoundTag spawnerTag;
-    m_spawnerLogic.saveToNBT(spawnerTag);
-
-    // 将刷怪笼数据合并到实体标签中
-    for (auto& [key, value] : spawnerTag.value) {
-        tag.value.emplace(key, std::move(value));
-    }
-}
-
-Result<void> SpawnerMinecartEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
-{
-    auto result = AbstractMinecartEntity::readAdditionalSaveData(tag);
-    if (!result.success()) {
-        return result;
-    }
-
-    // 读取刷怪笼逻辑数据
-    m_spawnerLogic.loadFromNBT(tag);
-
-    return Result<void>();
 }
 
 } // namespace entity

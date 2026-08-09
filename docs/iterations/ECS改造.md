@@ -230,11 +230,61 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 
 **验证**：增量构建 minecraft-server+minecraft-client 零错误（`--target` 绕过 mc_tests）；GameTest 8/8 零回归（simpleMobTest 偶发 flaky 超时复跑即过非回归）。Brain 模板未做泛型化（全仓仅 VillagerEntity 一个实例化点，泛型化收益为零且 Brain.hpp 未动），子目标3 实质为"Brain tick 调度上移 System"。
 
+## 批次7：minecart 大族整块 ECS 化（2026-08-09 落地）
+
+minecart 族（`AbstractMinecartEntity` 基类 + 7 叶子类：Chest/Furnace/TNT/Hopper/CommandBlock/Spawner/Rideable）的特有状态字段仍全是 OOP 成员，且继承自 projectile 族的 8 步范式整块迁移成熟度。本批目标：全族整块 ECS 化，按基类子批（B7.1）+ 叶子类子批（B7.2）两步推进，沿用 projectile 族"组件真相源 + OOP 字段删除"零双写范式。
+
+### 子批 7.1：基类状态组件化（commit 9f9986ef2）
+
+AbstractMinecartEntity 基类的 15 个字段（铁轨运行状态/速度配置/损坏动画/可推动标志/显示方块占位等）整批搬入 2 组件。基类先迁移，7 个矿车子类经基类构造自动获得基类组件，叶子类自有字段留 B7.2。
+
+**已交付**：
+- **Step0（修 FurnaceMinecart 遮蔽 bug）**：删基类 `m_pushX`/`m_pushZ` 死字段——纯死字段（基类版零读写），FurnaceMinecart 子类 hpp:649-650 重声明遮蔽基类版致双真相源（同 projectile 族 m_noGravity 遮蔽同源模式）。子类字段升格唯一真相源。
+- **Step1（2 组件骨架+attach）**：新建 `MinecartStateComponent`（12 字段：铁轨状态/速度配置/损坏动画/可推动）+ `MinecartDisplayComponent`（3 字段：显示方块待接 wire）。AbstractMinecart 构造 attach，7 个矿车子类经此自动获得组件。CMake 登记新头。
+- **Step2（15 字段迁移）**：hpp inline getter/setter 改走 `tryGetComponent<>()` + `MC_ASSERT_RELEASE`；cpp 24 处成员访问改方法内缓存组件指针（坑9 范式）。删 OOP 成员，零双写。`m_type` 不进组件（构造期定值类型标识，无运行时变更）。
+- **Step3（m_damage 同步字段处理）**：m_damage 进 `MinecartStateComponent` 作 B 类无镜像。保持现有"成员不同步 `DATA_DAMAGE_PARAM`"脱节现状（加镜像会改变行为超 ECS 范围），`DATA_DAMAGE_PARAM` 注册保留作同步层占位。m_maxSpeed 等速度配置既有 `setMaxSpeed` 零调用且 `getMaxSpeed` 读常量不读成员，迁移保持该死字段现状不扩大范围。
+
+### 子批 7.2：叶子类特有字段组件化 + SpawnerMinecart 持久化搬注册表
+
+7 叶子类的特有字段组件化。RideableMinecart 无特有字段不建组件；其余 6 类各建独立组件承载特有状态。SpawnerMinecart 的 SpawnerLogic 持久化从 OOP 虚函数搬到组件序列化器注册表（沿用子目标1/6.2 范式）。
+
+**已交付**：
+- **Step1（6 组件骨架+attach，B7.2）**：新建 6 个 minecart 叶子类组件头文件（`src/common/entity/ecs/components/`）：
+  - `ChestMinecartComponent`（`unique_ptr<SimpleInventory>` 包裹 27 格库存）：不可拷贝但 noexcept 可移动的 SimpleInventory 用 unique_ptr 包裹（沿用 AttributeComponent/SpawnerMinecart 范式）。header-only，组件隐式默认 ctor/dtor/move（unique_ptr 默认空、noexcept 移动、析构自动 delete 需完整类型已 include）。
+  - `FurnaceMinecartComponent`（i32 fuel + f32 pushX/pushZ）：纯 POD 直接存值。
+  - `TntMinecartComponent`（i32 fuse + `unique_ptr<DamageSource>` ignitionSource）。
+  - `HopperMinecartComponent`（`unique_ptr<SimpleInventory>` inventory + i32 suckCooldown + bool disabled）。
+  - `CommandBlockMinecartComponent`（string command/lastOutput + i32 successCount + bool mPowered，mPowered 保留驼峰对齐 vanilla）。
+  - `SpawnerMinecartComponent`（直接存值 SpawnerLogic，全成员 noexcept 可移动无需包裹）。
+  3 个 inline 构造函数（Furnace/TNT/CommandBlock）+ 3 个 .cpp 构造函数（Chest/Hopper/Spawner）attach 对应组件；Chest/Hopper/Spawner 构造体在 attach 后给组件赋值（库存 `make_unique<SimpleInventory>(INVENTORY_SIZE)` 等）。RideableMinecart 无字段不 attach。
+- **Step2（6 叶子类字段迁移，B7.2）**：删全部叶子类 private OOP 字段，所有 inline getter/setter + cpp 方法改走 `tryGetComponent<ecs::XxxComponent>()` + `MC_ASSERT_RELEASE`。const 方法用 const 指针。方法内开头取组件指针缓存（坑9 范式）。返回引用的 getter（getCommand/getLastOutput/getSpawnerLogic）返回 `c->m_xxx`（组件在实体存活期稳定）。HopperMinecart::onActivatorRailPass 改调 `setDisabled(powered)`（已是组件版 inline）。
+- **Step3（SpawnerMinecart 持久化搬注册表，B7.2）**：新建 `MinecartComponentSerialization.hpp/.cpp`（`src/common/entity/serialization/components/`），模式 A（tryGetComponent 早退）+ 委托 SpawnerLogic 直写 tag 根层。`registerMinecartComponentSerializers` 在 `ComponentSerializerRegistry::registerAll()` 中 Projectile 之后注册。删除 SpawnerMinecartEntity 的 `addAdditionalSaveData`/`readAdditionalSaveData` OOP override（cpp 函数体 + hpp 声明），回落 AbstractMinecartEntity/Entity 基类空实现防双重写入。
+
+**仅 SpawnerMinecartComponent 注册序列化器的依据**（对齐 vanilla 1.21.11 各 minecart 叶子类持久化字段清单）：
+- SpawnerMinecart：SpawnerLogic 全参数（Delay/MinSpawnDelay/MaxSpawnDelay/SpawnCount/MaxNearbyEntities/RequiredPlayerRange/SpawnRange/SpawnData/SpawnPotentials）透传 `saveToNBT`/`loadFromNBT`（与 MobSpawnerBlockEntity 共用同一逻辑类）。
+- ChestMinecart/HopperMinecart 库存内容走 LootableContainer 体系（容器 NBT 由 ContainerEntity 层处理，非实体 addAdditionalSaveData），项目当前未接通 vehicle 容器持久化（TODO）。
+- FurnaceMinecart 的 fuel/pushX/pushZ 是运行时状态（vanilla MinecartFurnace 不存盘）。
+- TntMinecart 的 fuse/ignitionSource 是运行时状态（vanilla MinecartTNT 不存盘）。
+- CommandBlockMinecart 的 command/lastOutput/successCount 走 CommandBlockEntity 体系，vanilla MinecartCommandBlock 持久化 Command/LastOutput/SuccessCount，项目当前未接通（TODO，待 command block 矿车持久化业务接入后补序列化器）。
+
+**关键设计决策**：
+- **基类先迁、叶子类后迁两步推进**：基类 15 字段先搬组件（B7.1），7 子类经基类构造自动获得基类组件；叶子类特有字段再各自建独立组件（B7.2）。避免一次性全族迁移 diff 过大，且基类组件就位后叶子类只处理自有字段，边界清晰。
+- **SimpleInventory 用 unique_ptr 包裹**：SimpleInventory 禁拷贝但 noexcept 可移动，理论可直接内嵌；但含动态资源，沿用 AttributeComponent/SpawnerMinecart 的 unique_ptr 包裹范式更稳妥（组件移动只搬指针，被包裹类型本体不移动，容错性高）。
+- **SpawnerLogic 直接存值无需包裹**：SpawnerLogic 全成员 noexcept 可移动（无 mutex/atomic/不可移动容器），可直接内嵌为组件成员。这是"全可移动类型直接内嵌"的判定——与 unique_ptr 包裹形成对照，按类型实际可移动性选择。
+- **SpawnerLogic 透传直写 tag 根层**：SpawnerLogic 自身已实现 saveToNBT/loadFromNBT（与 MobSpawnerBlockEntity 共用），序列化器仅作透传——取组件内 SpawnerLogic 引用，直接调其 saveToNBT/loadFromNBT 把键平铺到实体 compound 根层。SpawnerLogic 键（Delay/SpawnData 等）与 minecart 基类组件序列化键（Pos/Motion/Rotation 等）无冲突，平铺安全（同 EvokerFangs 既有 OOP 实现）。
+- **m_type 不进组件**：构造期定值类型标识（AbstractMinecartEntity::Type 枚举），无运行时变更、无同步/持久化需求，留作构造期参数不入组件，避免无意义组件化。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests；CMakeLists 改动触发 vcpkg VS 探测失败用 `./scripts/configure.sh build` setup VS dev env 解决 configure）。
+- GameTest 回归：8/8 passed exitCode=0 零回归。关键回归门 minibiomes（矿车载猪+铁轨运动+乘客同步，本批直接动 MinecartEntity）PASSED，证明基类+叶子类全族 ECS 化无回归。
+
+**暂未处理**：`tests/` 仍不透传 registry（永久约束）。ChestMinecart/HopperMinecart 库存持久化、CommandBlockMinecart 命令持久化待业务接入后补序列化器（已标 TODO）。MinecartDisplayComponent 3 字段待接 wire 同步层（项目当前 minecart 显示方块同步未实现）。
+
 ## 后续批次路线（备忘，未落地）
 
 - **批次5（已收束于 5.1）**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」——mixin 接口相关 cast 仅 IMob 5 处可纯 tag 迁移（5.1 已落地）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。**剩余 10 个 mixin 接口（IShearable/IEquipable/ICrossbowUser/IRangedAttackMob/IJumpingMount/IRideable/ContainerUser/IAngerable/IFlinging/IFlyingAnimal）的 dynamic_cast 经 5.2 勘察确认为「接口多态分发」模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用，违反 AI 保留 OOP 决策；IFlinging/IFlyingAnimal 虽能纯 tag 但零消费点是架构债**。故批次5 收束于 5.1 IMob 试点，剩余 mixin 接口 OOP 多态作混合架构合理行为层保留。详见上文「批次5 收束决策」段。
 - **批次6**：子目标1（序列化按组件注册序列化器）已于 2026-08-09 落地，见上文「第六批子目标1」段；子目标2 projectile 族整块 ECS 化已于 2026-08-09 落地，见上文「第六批子目标2」段；子目标3 Brain tick 调度上移 System 已于 2026-08-09 落地，见上文「第六批子目标3」段。批次6 三个子目标全部完成。
-- **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
+- **批次7**：minecart 大族整块 ECS 化已于 2026-08-09 落地，见上文「批次7」段（基类子批 7.1 commit 9f9986ef2 + 叶子类子批 7.2）。原路线图"server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）+ 客户端冰冻渲染 + FreezeComponent 回填点"仍待办，顺延至后续批次。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 18 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件、projectile 族整块 ECS 化同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化、Brain tick 调度上移 System 回调委托型非组件驱动 + 时序迁移到 PostEntityTick + dynamic_cast 类型识别），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 19 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件、projectile 族整块 ECS 化同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化、Brain tick 调度上移 System 回调委托型非组件驱动 + 时序迁移到 PostEntityTick + dynamic_cast 类型识别、minecart 族整块 ECS 化基类先迁叶子类后迁两步推进 + 不可移动类型判定 + SpawnerLogic 透传直写 tag 根层），迁移后续批次前务必先读。

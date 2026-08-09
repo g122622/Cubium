@@ -26,6 +26,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/components/EntityComponentSerialization.hpp"
 #include "common/entity/serialization/components/LivingEntityComponentSerialization.hpp"
+#include "common/entity/serialization/components/MinecartComponentSerialization.hpp"
 #include "common/entity/serialization/components/PlayerComponentSerialization.hpp"
 #include "common/entity/serialization/components/ProjectileComponentSerialization.hpp"
 #include <algorithm>
@@ -75,6 +76,11 @@ void ComponentSerializerRegistry::registerAll()
     // 对齐 vanilla 1.21.11）。序列化器内部 tryGetComponent 早退（无组件实体不参与）。
     // load 按 priority 升序：TridentState=0 先于 ArrowState=10（三叉戟 item 先读重算 loyalty）。
     registerProjectileComponentSerializers(*this);
+
+    // 注册 Minecart 族组件序列化器（覆盖 minecart 叶子类特有持久化字段，当前仅
+    // SpawnerMinecartComponent 透传 SpawnerLogic 的 saveToNBT/loadFromNBT）。序列化器内部
+    // tryGetComponent 早退（无组件实体不参与）。
+    registerMinecartComponentSerializers(*this);
 
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
     std::stable_sort(

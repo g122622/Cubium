@@ -48,6 +48,14 @@ src/common/entity/ecs/
 │   ├── FireworkRocketComponent.hpp          # fireworkItem(unique_ptr)/flightTime/lifetime/lifeTime/shotFromCrossbow（第六批 6.2，仅 FireworkRocket）
 │   ├── FishingBobberComponent.hpp           # 13 字段含 angler/caughtEntity/state 等（第六批 6.2，仅 FishingBobber，直接继承 Entity 无 ProjectileOwnerComponent）
 │   ├── EvokerFangsComponent.hpp             # owner(指针)/ownerUuid/warmupDelay/sentAttackEvent/lifeTicks/clientSideAttackStarted（第六批 6.2，仅 EvokerFangs，直接继承 Entity 独立 owner 机制）
+│   ├── MinecartStateComponent.hpp           # 12 字段铁轨运行/速度配置/损坏动画/可推动（批次7 7.1，AbstractMinecart 基类 attach，7 子类自动获得）
+│   ├── MinecartDisplayComponent.hpp         # 3 字段显示方块占位待接 wire（批次7 7.1，AbstractMinecart 基类 attach）
+│   ├── ChestMinecartComponent.hpp           # unique_ptr<SimpleInventory> 27 格库存（批次7 7.2，仅 ChestMinecart，不可拷贝类型 unique_ptr 包裹）
+│   ├── FurnaceMinecartComponent.hpp         # fuel/pushX/pushZ 纯 POD（批次7 7.2，仅 FurnaceMinecart）
+│   ├── TntMinecartComponent.hpp             # fuse/unique_ptr<DamageSource> ignitionSource（批次7 7.2，仅 TntMinecart）
+│   ├── HopperMinecartComponent.hpp          # unique_ptr<SimpleInventory> inventory/suckCooldown/disabled（批次7 7.2，仅 HopperMinecart）
+│   ├── CommandBlockMinecartComponent.hpp    # command/lastOutput/successCount/mPowered（批次7 7.2，仅 CommandBlockMinecart）
+│   ├── SpawnerMinecartComponent.hpp         # SpawnerLogic 直接存值（批次7 7.2，仅 SpawnerMinecart，全可移动类型无需包裹）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
 └── systems/                         # 系统层
@@ -239,3 +247,22 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **类型识别用 `dynamic_cast<entity::VillagerEntity*>`**（非 Entity 基类虚函数）：①调度决策留 System 符合"System 做调度"，加虚函数 `tickBrain()` 是把调度下沉到 Entity 违背方向；②不动 Entity 基类 vtable；③与本仓既有 dynamic_cast 范式一致（序列化器/MobEntity 分类）。当前仅 VillagerEntity 持 Brain，RTTI 开销可忽略。新增持 Brain 实体类型时只改 `_tickBrains` 一处 dynamic_cast。
 
 **死亡帧与客户端**：`isRemoved()` 在 `remove()` 时置 true（死亡消散结束后才 remove），死亡帧 `isRemoved()==false` Brain 仍 tick，与原时序一致不引入新风险。ClientWorld 不继承 IWorld，客户端不构造 VillagerEntity，BrainTickSystem 只注册到服务端 EntityManager，客户端无影响。
+
+### 19. minecart 族整块 ECS 化：基类先迁叶子类后迁两步推进 + 不可移动类型判定 + SpawnerLogic 透传直写 tag 根层
+
+批次7 把 minecart 族（AbstractMinecartEntity 基类 + 7 叶子类）整块 ECS 化，沿用 projectile 族 8 步范式。**族整块迁移的几个要点**：
+
+**基类先迁、叶子类后迁两步推进（族迁移编排）**：基类 15 字段先搬组件（子批 7.1），7 子类经基类构造自动获得基类组件；叶子类特有字段再各自建独立组件（子批 7.2）。避免一次性全族迁移 diff 过大，且基类组件就位后叶子类只处理自有字段，边界清晰。这是"继承根族"迁移的标准编排——基类组件先就位，叶子类零重复 attach 基类组件只 attach 自有组件。
+
+**不可移动/含动态资源类型用 unique_ptr 包裹 vs 全可移动类型直接内嵌的判定**：minecart 族两类对照——
+- `ChestMinecartComponent`/`HopperMinecartComponent` 用 `unique_ptr<SimpleInventory>` 包裹库存（SimpleInventory 禁拷贝含动态资源），沿用 AttributeComponent/ArrowEffectsComponent 范式（坑12）。
+- `SpawnerMinecartComponent` 直接内嵌 `SpawnerLogic`（全成员 noexcept 可移动，无 mutex/atomic/不可移动容器），无需包裹。
+判定标准：类型是否含不可移动成员（mutex/atomic/不可移动容器/禁拷贝且 noexcept 不可移动）。全可移动直接内嵌更省一次堆分配，但容错性略低于 unique_ptr 包裹（组件移动会触发被包裹类型 move ctor）；含动态资源但全可移动的类型（如 SpawnerLogic）直接内嵌是合理选择，按类型实际可移动性决定，不盲目包裹。
+
+**SpawnerLogic 透传直写 tag 根层（委托型序列化器）**：SpawnerMinecart 的 SpawnerLogic 自身已实现 `saveToNBT`/`loadFromNBT`（与 MobSpawnerBlockEntity 共用同一逻辑类），序列化器仅作透传——取组件内 SpawnerLogic 引用，直接调其 saveToNBT/loadFromNBT 把键平铺到实体 compound 根层。SpawnerLogic 键（Delay/SpawnData 等）与 minecart 基类组件序列化键（Pos/Motion/Rotation 等）无冲突，平铺安全。这是"被承载类型自带 NBT 读写"时的序列化器范式——序列化器只做委托不做字段映射，与 projectile 族 owner UUID 双 long 的"序列化器做字段映射"范式形成对照。委托型前提：被委托类型的 NBT 键与实体其他序列化键无冲突（须核对）。
+
+**仅注册有持久化字段的组件序列化器**：minecart 族 6 叶子类仅 SpawnerMinecartComponent 注册序列化器，其余 5 类（Chest/Furnace/TNT/Hopper/CommandBlock）当前无自有持久化字段需存盘——Chest/Hopper 库存走 LootableContainer 体系未接通（TODO）、Furnace/TNT 是运行时状态 vanilla 不存盘、CommandBlock 走 CommandBlockEntity 体系未接通（TODO）。序列化器注册表只注册有实际持久化字段的组件，不注册空序列化器（无字段存盘的组件注册空 save/load 是死代码）。
+
+**m_type 等构造期定值标识不进组件**：AbstractMinecartEntity::Type 枚举（Chest/Furnace/TNT/...）是构造期定值类型标识，无运行时变更、无同步/持久化需求，留作构造期参数不入组件。判定标准：字段是否在构造后只读且无同步/持久化消费——是则不入组件（避免无意义组件化膨胀）。同批 m_maxSpeed 等速度配置既有 setter 零调用且 getter 读常量不读成员，属死字段，迁移保持死字段现状不扩大范围。
+
+**遮蔽 bug 同源模式**：B7.1 Step0 修 FurnaceMinecart 的 m_pushX/m_pushZ 遮蔽——基类版死字段被子类重声明遮蔽，与 projectile 族 m_noGravity 遮蔽（批次6 6.2 Step0）同源。族迁移 Step0 须先排查子类是否重声明基类字段致双真相源。

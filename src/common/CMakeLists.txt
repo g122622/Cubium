@@ -108,6 +108,7 @@ add_library(mc_common STATIC
     entity/serialization/components/ComponentSerializerRegistry.cpp
     entity/serialization/components/EntityComponentSerialization.cpp
     entity/serialization/components/LivingEntityComponentSerialization.cpp
+    entity/serialization/components/MinecartComponentSerialization.cpp
     entity/serialization/components/PlayerComponentSerialization.cpp
     entity/serialization/components/ProjectileComponentSerialization.cpp
     # Entity - Effect
