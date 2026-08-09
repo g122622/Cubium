@@ -64,9 +64,7 @@ ThrowableEntity::ThrowableEntity(EntityInstanceId id, ecs::EntityRegistry& regis
 void ThrowableEntity::tick()
 {
     // 先执行射线追踪和碰撞检测
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 执行射线追踪
     const RayTraceResult result = performRayTrace();

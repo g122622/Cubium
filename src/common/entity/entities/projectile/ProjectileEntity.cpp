@@ -92,9 +92,7 @@ bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
 
 void ProjectileEntity::tick()
 {
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     const RayTraceResult result = performRayTrace();
     if (result.type != RayTraceResultType::Miss) {
@@ -128,23 +126,29 @@ void ProjectileEntity::tick()
 
 Entity* ProjectileEntity::getShooter() const
 {
-    if (m_world == nullptr || m_shooterEntityId == INVALID_ENTITY_ID) {
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    if (owner == nullptr || m_world == nullptr || owner->m_shooterEntityId == INVALID_ENTITY_ID) {
         return nullptr;
     }
 
-    return m_world->getEntity(m_shooterEntityId);
+    return m_world->getEntity(owner->m_shooterEntityId);
 }
 
 void ProjectileEntity::setShooter(Entity* shooter)
 {
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    MC_ASSERT_RELEASE(owner != nullptr); // attach 是硬约束，ProjectileEntity 构造已 attach
+    if (owner == nullptr) {
+        return; // 防御：Release 断言被剥离时仍不崩
+    }
     if (shooter == nullptr) {
-        m_shooterUuid.clear();
-        m_shooterEntityId = INVALID_ENTITY_ID;
+        owner->m_shooterUuid.clear();
+        owner->m_shooterEntityId = INVALID_ENTITY_ID;
         return;
     }
 
-    m_shooterUuid = shooter->uuid();
-    m_shooterEntityId = shooter->id();
+    owner->m_shooterUuid = shooter->uuid();
+    owner->m_shooterEntityId = shooter->id();
 }
 
 void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
@@ -218,7 +222,7 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 
     // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
     const Entity* shooter = getShooter();
-    if (!m_leftShooter && shooter != nullptr && shooter->isRidingSameEntity(target)) {
+    if (!hasLeftShooter() && shooter != nullptr && shooter->isRidingSameEntity(target)) {
         return false;
     }
 
@@ -289,10 +293,15 @@ void ProjectileEntity::onImpact(const RayTraceResult& result)
         // 对应 MC Java 的 Projectile.hitTargetOrDeflectSelf()
         const ProjectileDeflection deflection = result.hitEntity->deflection(*this);
         if (deflection != ProjectileDeflection::None) {
+            auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+            const EntityInstanceId lastDeflectedById =
+                (owner != nullptr) ? owner->m_lastDeflectedById : INVALID_ENTITY_ID;
             // 防止同一实体连续偏转
-            if (result.hitEntity->id() != m_lastDeflectedById) {
+            if (result.hitEntity->id() != lastDeflectedById) {
                 if (deflect(deflection, *result.hitEntity, false)) {
-                    m_lastDeflectedById = result.hitEntity->id();
+                    if (owner != nullptr) {
+                        owner->m_lastDeflectedById = result.hitEntity->id();
+                    }
                 }
             }
             // 被偏转后不调用 onEntityHit，直接返回
@@ -327,6 +336,14 @@ bool ProjectileEntity::checkLeftShooter()
 
     // 检查投掷物是否已离开发射者的碰撞箱
     return !boundingBox().intersects(shooter->boundingBox());
+}
+
+void ProjectileEntity::tryUpdateLeftShooter()
+{
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    if (owner != nullptr && !owner->m_leftShooter) {
+        owner->m_leftShooter = checkLeftShooter();
+    }
 }
 
 bool ProjectileEntity::deflect(ProjectileDeflection deflection, Entity& deflector, bool wasPlayerDeflect)

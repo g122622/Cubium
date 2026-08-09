@@ -1226,12 +1226,11 @@ void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
 EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
 {
-    m_warmupDelay = 0;
     // 批次6 子目标2 Step1：attach EvokerFangsComponent（owner/预热/生命 6 字段）。
     // EvokerFangsEntity 直接继承 Entity 不经 ProjectileEntity，独立 owner（唤魔者），
-    // 故不挂 ProjectileOwnerComponent，本组件独立承载 owner。Step2/4 将把 m_owner/
+    // 故不挂 ProjectileOwnerComponent，本组件独立承载 owner。Step2 已把 m_owner/
     // m_ownerUuid/m_warmupDelay/m_sentAttackEvent/m_lifeTicks/m_clientSideAttackStarted
-    // 读写改走组件。
+    // 读写改走组件（字段声明已删）。
     m_entityContext->enttRegistry().emplace<ecs::EvokerFangsComponent>(m_entityContext->entity());
 }
 
@@ -1242,67 +1241,115 @@ std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/, ecs::Entity
 
 void EvokerFangsEntity::setOwner(LivingEntity* owner)
 {
-    m_owner = owner;
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_owner = owner;
     if (owner != nullptr) {
-        m_ownerUuid = owner->uuid();
+        comp->m_ownerUuid = owner->uuid();
     } else {
-        m_ownerUuid.clear();
+        comp->m_ownerUuid.clear();
     }
 }
 
 LivingEntity* EvokerFangsEntity::getOwner()
 {
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return nullptr;
+    }
     // 如果缓存指针有效且实体未被移除，直接返回
-    if (m_owner != nullptr && m_owner->isAlive()) {
-        return m_owner;
+    if (comp->m_owner != nullptr && comp->m_owner->isAlive()) {
+        return comp->m_owner;
     }
 
     // 缓存失效，尝试通过 UUID 在世界中重新查找
     // 使用 IWorld::getEntityByUuid() 进行 O(1) 查找
-    if (!m_ownerUuid.empty() && m_world != nullptr) {
-        Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
+    if (!comp->m_ownerUuid.empty() && m_world != nullptr) {
+        Entity* entity = m_world->getEntityByUuid(comp->m_ownerUuid);
         if (entity != nullptr && entity->isAlive()) {
             LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
             if (living != nullptr) {
-                m_owner = living;
-                return m_owner;
+                comp->m_owner = living;
+                return comp->m_owner;
             }
         }
     }
 
     // UUID 查找也失败，清空缓存指针
-    m_owner = nullptr;
+    comp->m_owner = nullptr;
     return nullptr;
 }
 
 void EvokerFangsEntity::setOwnerUuid(const std::string& uuid)
 {
-    m_ownerUuid = uuid;
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_ownerUuid = uuid;
     // 不设置 m_owner 指针，等到 getOwner() 被调用时再通过 UUID 懒加载查找
-    m_owner = nullptr;
+    comp->m_owner = nullptr;
+}
+
+LivingEntity* EvokerFangsEntity::owner() const
+{
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_owner : nullptr;
+}
+
+const std::string& EvokerFangsEntity::ownerUuid() const
+{
+    static const std::string s_empty;
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_ownerUuid : s_empty;
+}
+
+void EvokerFangsEntity::setWarmupDelay(i32 delay)
+{
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_warmupDelay = delay;
+}
+
+i32 EvokerFangsEntity::warmupDelay() const
+{
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_warmupDelay : 0;
 }
 
 void EvokerFangsEntity::tick()
 {
     Entity::tick();
 
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+
     // 服务端逻辑
-    if (m_warmupDelay > 0) {
-        m_warmupDelay--;
+    if (comp->m_warmupDelay > 0) {
+        comp->m_warmupDelay--;
     } else {
         // warmupDelayTicks < 0 后开始攻击逻辑
-        if (m_warmupDelay == -8) {
+        if (comp->m_warmupDelay == -8) {
             // 在 -8 tick 时对范围内实体造成伤害
             _damageEntities();
         }
 
-        if (!m_sentAttackEvent) {
+        if (!comp->m_sentAttackEvent) {
             // 发送攻击事件给客户端（用于播放音效和粒子）
-            m_sentAttackEvent = true;
+            comp->m_sentAttackEvent = true;
         }
 
-        m_lifeTicks--;
-        if (m_lifeTicks < 0) {
+        comp->m_lifeTicks--;
+        if (comp->m_lifeTicks < 0) {
             remove();
         }
     }
@@ -1310,10 +1357,14 @@ void EvokerFangsEntity::tick()
 
 f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
 {
-    if (!m_clientSideAttackStarted) {
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return 0.0f;
+    }
+    if (!comp->m_clientSideAttackStarted) {
         return 0.0f;
     } else {
-        i32 i = m_lifeTicks - 2;
+        i32 i = comp->m_lifeTicks - 2;
         return i <= 0 ? 1.0f : 1.0f - (static_cast<f32>(i) - partialTicks) / 20.0f;
     }
 }
@@ -1365,16 +1416,21 @@ void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) cons
 {
     Entity::addAdditionalSaveData(tag);
 
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+
     using namespace serialization::nbt_keys;
 
     // 预热延迟
-    tag.put(WARMUP, m_warmupDelay);
+    tag.put(WARMUP, comp->m_warmupDelay);
 
     // 所有者 UUID
     // 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Owner"
     // 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储，与 AreaEffectCloudEntity 一致
-    if (!m_ownerUuid.empty()) {
-        auto uuidBytes = util::uuidFromString(m_ownerUuid);
+    if (!comp->m_ownerUuid.empty()) {
+        auto uuidBytes = util::uuidFromString(comp->m_ownerUuid);
         if (uuidBytes.size() == 16) {
             i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
                 (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
@@ -1394,11 +1450,16 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
 {
     MC_TRY(Entity::readAdditionalSaveData(tag));
 
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return Result<void>::ok();
+    }
+
     using namespace serialization::nbt_keys;
 
     // 预热延迟
     if (auto val = serialization::nbt_helper::tryGetInt(tag, WARMUP)) {
-        m_warmupDelay = *val;
+        comp->m_warmupDelay = *val;
     }
 
     // 所有者 UUID
@@ -1417,11 +1478,11 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
             uuidBytes[i] = static_cast<u8>(l & 0xFF);
             l >>= 8;
         }
-        m_ownerUuid = util::uuidToString(uuidBytes);
-        m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
+        comp->m_ownerUuid = util::uuidToString(uuidBytes);
+        comp->m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
     } else {
-        m_ownerUuid.clear();
-        m_owner = nullptr;
+        comp->m_ownerUuid.clear();
+        comp->m_owner = nullptr;
     }
 
     return Result<void>::ok();

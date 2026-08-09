@@ -47,9 +47,7 @@ DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::Ent
 
 void DamagingProjectileEntity::tick()
 {
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 火球类实体每 tick 燃烧 1 秒（20 ticks）
     if (isFiery()) {

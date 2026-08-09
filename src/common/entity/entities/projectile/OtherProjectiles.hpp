@@ -517,13 +517,13 @@ public:
      * @brief 获取所有者（const版本，不触发懒加载查找）
      * @return 所有者实体缓存指针，可能为 nullptr
      */
-    [[nodiscard]] LivingEntity* owner() const { return m_owner; }
+    [[nodiscard]] LivingEntity* owner() const;
 
     /**
      * @brief 获取所有者 UUID
      * @return 所有者 UUID 字符串（32字符十六进制），可能为空
      */
-    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& ownerUuid() const;
 
     /**
      * @brief 仅设置所有者 UUID（用于 NBT 反序列化）
@@ -538,12 +538,12 @@ public:
      * @brief 设置预热延迟
      * @param delay 预热延迟（ticks）
      */
-    void setWarmupDelay(i32 delay) { m_warmupDelay = delay; }
+    void setWarmupDelay(i32 delay);
 
     /**
      * @brief 获取预热延迟
      */
-    [[nodiscard]] i32 warmupDelay() const { return m_warmupDelay; }
+    [[nodiscard]] i32 warmupDelay() const;
 
     /**
      * @brief 获取动画进度
@@ -557,13 +557,6 @@ private:
      * @brief 对范围内实体造成伤害
      */
     void _damageEntities();
-
-    LivingEntity* m_owner = nullptr;        ///< 所有者缓存指针（唤魔者）
-    std::string m_ownerUuid;                ///< 所有者 UUID（持久化，用于跨 tick 重新查找）
-    i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
-    bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
-    i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），默认22
-    bool m_clientSideAttackStarted = false; ///< 客户端攻击开始标志
 };
 
 /**

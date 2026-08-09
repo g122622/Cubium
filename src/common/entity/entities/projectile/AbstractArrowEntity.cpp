@@ -86,9 +86,7 @@ AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistr
 void AbstractArrowEntity::tick()
 {
     // 检查是否已离开发射者
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 如果插在方块中，执行不同的tick逻辑
     if (m_inGround) {

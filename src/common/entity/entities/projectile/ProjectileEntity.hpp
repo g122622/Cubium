@@ -29,6 +29,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ProjectileOwnerComponent.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -163,7 +164,15 @@ public:
     /**
      * @brief 获取发射者UUID
      */
-    [[nodiscard]] const std::string& shooterUuid() const { return m_shooterUuid; }
+    [[nodiscard]] const std::string& shooterUuid() const
+    {
+        const auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+        if (owner != nullptr) {
+            return owner->m_shooterUuid;
+        }
+        static const std::string s_empty;
+        return s_empty;
+    }
 
     /**
      * @brief 设置发射者
@@ -176,7 +185,11 @@ public:
      *
      * 投掷物在发射后需要离开发射者的碰撞箱才能伤害发射者
      */
-    [[nodiscard]] bool hasLeftShooter() const { return m_leftShooter; }
+    [[nodiscard]] bool hasLeftShooter() const
+    {
+        const auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+        return owner != nullptr && owner->m_leftShooter;
+    }
 
     // noGravity 走基类 Entity::hasNoGravity()/setNoGravity()（EntityStateComponent 真相源 +
     // DATA_NO_GRAVITY_PARAM 镜像）。本类历史上曾重声明 m_noGravity + 遮蔽 getter/setter，
@@ -299,6 +312,13 @@ protected:
     bool checkLeftShooter();
 
     /**
+     * @brief 若尚未离开发射者则检查并更新（写 ProjectileOwnerComponent::m_leftShooter）
+     *
+     * 子类重写 tick 时复用此方法，避免各自直接读写已迁入组件的 leftShooter 字段。
+     */
+    void tryUpdateLeftShooter();
+
+    /**
      * @brief 执行射线追踪
      * @return 命中结果
      */
@@ -320,13 +340,8 @@ protected:
      */
     RayTraceResult rayTraceBlocks(const Vector3& start, const Vector3& end);
 
-    // 发射者信息
-    std::string m_shooterUuid;                              // 发射者UUID
-    EntityInstanceId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
-    bool m_leftShooter = false;                             // 是否已离开发射者
-
-    /// 上一个偏转此弹射物的实体ID，防止同一实体连续偏转
-    EntityInstanceId m_lastDeflectedById = INVALID_ENTITY_ID;
+    // 发射者信息已迁入 ecs::ProjectileOwnerComponent（shooterUuid/shooterEntityId/
+    // leftShooter/lastDeflectedById/hasBeenShot），经 tryGetComponent 读写。
 };
 
 } // namespace entity
