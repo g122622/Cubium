@@ -65,82 +65,87 @@ public:
     /**
      * @brief 获取伤害值
      */
-    [[nodiscard]] f32 damage() const { return m_damage; }
+    [[nodiscard]] f32 damage() const;
 
     /**
      * @brief 设置伤害值
      */
-    void setDamage(f32 damage) { m_damage = damage; }
+    void setDamage(f32 damage);
 
     /**
      * @brief 获取击退强度
      */
-    [[nodiscard]] i32 knockbackStrength() const { return m_knockbackStrength; }
+    [[nodiscard]] i32 knockbackStrength() const;
 
     /**
      * @brief 设置击退强度
      */
-    void setKnockbackStrength(i32 strength) { m_knockbackStrength = strength; }
+    void setKnockbackStrength(i32 strength);
 
     /**
      * @brief 是否暴击
      */
-    [[nodiscard]] bool isCritical() const { return m_critical; }
+    [[nodiscard]] bool isCritical() const;
 
     /**
      * @brief 设置暴击状态
      */
-    void setCritical(bool critical) { m_critical = critical; }
+    void setCritical(bool critical);
 
     /**
      * @brief 获取穿透等级
      */
-    [[nodiscard]] u8 pierceLevel() const { return m_pierceLevel; }
+    [[nodiscard]] u8 pierceLevel() const;
 
     /**
      * @brief 设置穿透等级
      */
-    void setPierceLevel(u8 level) { m_pierceLevel = level; }
+    void setPierceLevel(u8 level);
 
     /**
      * @brief 是否插在方块中
      */
-    [[nodiscard]] bool isInGround() const { return m_inGround; }
+    [[nodiscard]] bool isInGround() const;
 
     /**
      * @brief 设置是否插在方块中（测试用）
      */
-    void setInGround(bool inGround) { m_inGround = inGround; }
+    void setInGround(bool inGround);
 
     /**
      * @brief 获取拾取状态
      */
-    [[nodiscard]] PickupStatus pickupStatus() const { return m_pickupStatus; }
+    [[nodiscard]] PickupStatus pickupStatus() const;
 
     /**
      * @brief 设置拾取状态
      */
-    void setPickupStatus(PickupStatus status) { m_pickupStatus = status; }
+    void setPickupStatus(PickupStatus status);
 
     /**
      * @brief 是否从弩射出
      */
-    [[nodiscard]] bool shotFromCrossbow() const { return m_shotFromCrossbow; }
+    [[nodiscard]] bool shotFromCrossbow() const;
 
     /**
      * @brief 设置是否从弩射出
      */
-    void setShotFromCrossbow(bool fromCrossbow) { m_shotFromCrossbow = fromCrossbow; }
+    void setShotFromCrossbow(bool fromCrossbow);
 
     /**
      * @brief 是否已造成伤害（用于三叉戟返回逻辑）
      */
-    [[nodiscard]] bool hasDealtDamage() const { return m_dealtDamage; }
+    [[nodiscard]] bool hasDealtDamage() const;
+
+    /**
+     * @brief 设置是否已造成伤害（protected，仅子类如 TridentEntity 返回逻辑用）
+     */
+    void setDealtDamage(bool dealt);
 
     /**
      * @brief 获取在方块中的时间
      */
-    [[nodiscard]] i32 timeInGround() const { return m_timeInGround; }
+    [[nodiscard]] i32 timeInGround() const;
 
     // ========== 物理 ==========
 
@@ -223,6 +228,11 @@ protected:
     void tickInGround();
 
     /**
+     * @brief 获取箭矢抖动时间（protected，子类拾取判定用）
+     */
+    [[nodiscard]] i32 arrowShake() const;
+
+    /**
      * @brief 检查是否应该从方块中脱落
      * @return 如果应该脱落返回true
      */
@@ -254,24 +264,9 @@ protected:
      */
     [[nodiscard]] bool canHitEntityWithPierce(const mc::Entity& target) const;
 
-    // 属性
-    f32 m_damage = 2.0f;         // 基础伤害
-    i32 m_knockbackStrength = 0; // 击退强度
-    bool m_critical = false;     // 是否暴击
-    u8 m_pierceLevel = 0;        // 穿透等级
-    bool m_inGround = false;     // 是否插在方块中
-    i32 m_ticksInGround = 0;     // 插在方块中的总时间（用于超时移除）
-    i32 m_timeInGround = 0;      // 当前连续插在方块中的时间（用于三叉戟返回）
-    i32 m_arrowShake = 0;        // 箭矢抖动时间
-    PickupStatus m_pickupStatus = PickupStatus::Disallowed;
-    bool m_shotFromCrossbow = false;
-    bool m_dealtDamage = false; // 是否已造成伤害（三叉戟用）
-
-    // 穿透追踪（使用 unordered_set 实现 O(1) 查找）
-    std::unordered_set<EntityInstanceId> m_piercedEntities;
-
-    // 命中的方块状态
-    std::optional<BlockState> m_inBlockState;
+    // 批次6 子目标2 Step3：以下 13 字段已迁入 ecs::ProjectileArrowStateComponent，
+    // 经 tryGetComponent<ecs::ProjectileArrowStateComponent>() 读写（见各 getter/setter
+    // 与 .cpp 内 tick/onEntityHit/onBlockHit 等实现）。
 };
 
 /**

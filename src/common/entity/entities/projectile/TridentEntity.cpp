@@ -39,6 +39,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
 #include "common/entity/ecs/components/TridentStateComponent.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -63,7 +64,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractArrowEntity(id, registry)
 {
-    m_damage = 8.0f; // 三叉戟伤害更高
+    setDamage(8.0f); // 三叉戟伤害更高
     setPickupStatus(PickupStatus::Allowed);
     // 批次6 子目标2 Step1：attach TridentStateComponent（三叉戟物品/命中/返回/忠诚 6 字段）。
     // dealtDamage 复用父类 ProjectileArrowStateComponent::m_dealtDamage 不另存。
@@ -80,13 +81,13 @@ std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegi
 void TridentEntity::tick()
 {
     // 检查是否应该开始返回
-    if (m_timeInGround > 4) {
-        m_dealtDamage = true;
+    if (timeInGround() > 4) {
+        setDealtDamage(true);
     }
 
     // 检查忠诚附魔状态
     Entity* shooter = getShooter();
-    if ((m_dealtDamage || isInGround()) && shooter != nullptr) {
+    if ((hasDealtDamage() || isInGround()) && shooter != nullptr) {
         const i32 loyaltyLevel = m_loyaltyLevel;
 
         if (loyaltyLevel > 0 && !_shouldReturnToThrower()) {
@@ -237,7 +238,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 标记已造成伤害
-    m_dealtDamage = true;
+    setDealtDamage(true);
 
     // 应用伤害
     if (livingTarget != nullptr) {
@@ -245,8 +246,8 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 击退效果
-    if (m_knockbackStrength > 0) {
-        f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
+    if (knockbackStrength() > 0) {
+        f32 ratio = 0.6f * static_cast<f32>(knockbackStrength());
         Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
@@ -302,21 +303,22 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
 void TridentEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_inGround = true;
+    setInGround(true);
     m_hitBlock = true;
     m_hitBlockPos = result.blockPos;
 
+    auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
     // 保存方块状态
-    if (m_world && result.type == RayTraceResultType::Block) {
+    if (arrowState != nullptr && m_world && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
         if (state != nullptr) {
-            m_inBlockState = *state;
+            *arrowState->m_inBlockState = *state;
         }
     }
 
     // 清除暴击和穿透状态
-    m_critical = false;
-    m_pierceLevel = 0;
+    setCritical(false);
+    setPierceLevel(0);
     clearPiercedEntities();
 
     // 三叉戟有特殊的命中地面音效
@@ -342,7 +344,7 @@ void TridentEntity::setBaseDamageFromMob(f32 power)
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
-    m_damage = power * 2.0f + triangle;
+    setDamage(power * 2.0f + triangle);
 }
 
 void TridentEntity::setItemStack(const ItemStack& stack)
@@ -361,12 +363,12 @@ bool TridentEntity::onPlayerPickup(Player& player)
     }
 
     // 只有当三叉戟在地上或返回时才能被拾取
-    if (!m_inGround && !noClip()) {
+    if (!isInGround() && !noClip()) {
         return false;
     }
 
     // 箭矢不能处于抖动状态
-    if (m_arrowShake > 0) {
+    if (arrowShake() > 0) {
         return false;
     }
 
