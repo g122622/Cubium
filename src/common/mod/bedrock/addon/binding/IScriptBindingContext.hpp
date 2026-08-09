@@ -197,8 +197,31 @@ public:
 
     [[nodiscard]] virtual void* throwTypeError(const char* message) = 0;
     [[nodiscard]] virtual void* throwInternalError(const char* message) = 0;
+    /**
+     * @brief 抛出任意 JS 值作为异常。
+     *
+     * 与 throwTypeError/throwInternalError 不同，本方法抛出调用方预先构造的 JS 值（如自定义 Error
+     * 子类实例），使 JS 侧能经 instanceof 判别异常类型。供 GameTestError/GameTestCompletedError 等
+     * 自定义错误类抛出。
+     *
+     * @param value 待抛出的 JS 值句柄（调用方拥有所有权；本方法内部复制一份供抛出，不消耗入参所有权，
+     *              调用方仍须在用完后 releaseValue）。
+     * @return 异常句柄（语义对齐 throwTypeError：引擎实现返回 JS_EXCEPTION 的包装句柄）。
+     */
+    [[nodiscard]] virtual void* throwValue(void* value) = 0;
     [[nodiscard]] virtual void* getException() = 0;
     [[nodiscard]] virtual std::string getExceptionMessage(void* exception) const = 0;
+
+    /**
+     * @brief 设置对象的原型（[[Prototype]]）。
+     *
+     * 供建立继承链（如 GameTestError.prototype.__proto__ = Error.prototype），使自定义类成为 Error
+     * 子类，支持 instanceof 判定。obj/proto 句柄所有权均不转移（仍归调用方，引擎实现内部不消耗引用）。
+     *
+     * @param obj 待设原型的对象句柄。
+     * @param proto 新原型句柄。
+     */
+    virtual void setPrototypeOf(void* obj, void* proto) = 0;
 
     // ===== 类注册 =====
 

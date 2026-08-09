@@ -433,6 +433,22 @@ void* QuickJSBindingContext::throwInternalError(const char* message)
     return wrapValue(JS_EXCEPTION);
 }
 
+void* QuickJSBindingContext::throwValue(void* value)
+{
+    // JS_Throw 不消耗传入值的引用（内部不增加 refcount，仅把 val 记录为当前异常）。
+    // unwrapValue 返回的是入参句柄底层 JSValue 的副本（不增加 refcount），若直接抛出，
+    // 调用方随后 releaseValue 释放入参句柄会使抛出的异常值悬垂。故这里 Dup 一份独立引用
+    // 交给 JS_Throw，入参所有权仍归调用方。
+    JS_Throw(m_ctx, JS_DupValue(m_ctx, unwrapValue(value)));
+    return wrapValue(JS_EXCEPTION);
+}
+
+void QuickJSBindingContext::setPrototypeOf(void* obj, void* proto)
+{
+    // JS_SetPrototype 不消耗 obj/proto 的引用（内部按需 Dup），调用方对二者仍持有原所有权。
+    JS_SetPrototype(m_ctx, unwrapValue(obj), unwrapValue(proto));
+}
+
 void* QuickJSBindingContext::getException()
 {
     return wrapValue(JS_GetException(m_ctx));

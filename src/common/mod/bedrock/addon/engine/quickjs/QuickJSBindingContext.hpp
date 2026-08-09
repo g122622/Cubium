@@ -123,8 +123,16 @@ public:
 
     [[nodiscard]] void* throwTypeError(const char* message) override;
     [[nodiscard]] void* throwInternalError(const char* message) override;
+    [[nodiscard]] void* throwValue(void* value) override;
     [[nodiscard]] void* getException() override;
     [[nodiscard]] std::string getExceptionMessage(void* exception) const override;
+
+    /**
+     * @brief 设置对象原型（[[Prototype]]），供建立继承链（如自定义 Error 子类）。
+     *
+     * 实现：JS_SetPrototype（不消耗 obj/proto 引用，内部自行 Dup）。
+     */
+    void setPrototypeOf(void* obj, void* proto) override;
 
     // ===== 类注册 =====
 
