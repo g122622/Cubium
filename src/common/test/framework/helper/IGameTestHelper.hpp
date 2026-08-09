@@ -14,7 +14,12 @@ namespace mc {
 class BlockState;
 class Entity;
 class IWorld;
+class ItemStack;
 } // namespace mc
+
+namespace mc::blocks {
+class SculkSpreader;
+} // namespace mc::blocks
 
 namespace mc::math {
 template <typename>
@@ -27,6 +32,20 @@ namespace mc::test {
 // 前向声明：避免 helper/ 与 sequence/ 互引成环。GameTestSequence 在 framework/sequence/ 定义。
 class GameTestSequence;
 class SimulatedPlayer;
+
+/**
+ * @brief 栅栏连接性值对象（对齐基岩 `FenceConnectivity`）。
+ *
+ * `getFenceConnectivity(pos)` 返回此结构：该位置栅栏在四个水平方向上的连接状态。
+ * 脚本绑定层据此组装 JS `FenceConnectivity` 值对象（{north,east,south,west} 四 bool，
+ * 原型由 ScriptGameTestTypes 注册作 instanceof 锚点）。
+ */
+struct FenceConnectivity {
+    bool north = false;
+    bool east = false;
+    bool south = false;
+    bool west = false;
+};
 
 /**
  * @brief 测试助手纯虚接口。
@@ -85,6 +104,23 @@ public:
     [[nodiscard]] virtual GameTestResult assertRedstonePower(BlockPos relativePos, i32 power) = 0;
     [[nodiscard]] virtual GameTestResult assertIsWaterlogged(BlockPos relativePos, bool isWaterlogged) = 0;
 
+    // 容器/排列/流体断言与操作（批次4 补齐，对齐基岩 Test 类官方 JS API）。
+    /// 断言 pos 处容器（如箱子）含指定物品栈（按物品类型匹配，至少 1 个）。底层 IInventory 就绪。
+    [[nodiscard]] virtual GameTestResult assertContainerContains(
+        const mc::ItemStack& itemStack, BlockPos relativePos) = 0;
+    /// 断言 pos 处容器为空。底层 IInventory::isEmpty 就绪。
+    [[nodiscard]] virtual GameTestResult assertContainerEmpty(BlockPos relativePos) = 0;
+    /// 按 BlockPermutation（C++ 侧为 BlockState）设 pos 方块，对齐基岩 setBlockPermutation。
+    [[nodiscard]] virtual GameTestResult setBlockPermutation(
+        const mc::BlockState& permutation, BlockPos relativePos) = 0;
+    /// 设 pos 处流体容器（如炼药锅）的流体类型。底层 ILiquidContainer 写入体系未就绪，stub。
+    [[nodiscard]] virtual GameTestResult setFluidContainer(BlockPos relativePos, const std::string& fluidType) = 0;
+    /// 触发方块内部事件（对齐基岩 triggerInternalBlockEvent）。依赖方块事件体系未就绪，stub。
+    virtual void triggerInternalBlockEvent(BlockPos relativePos, const std::string& eventName) = 0;
+    /// 测试多方块传播：从 fromFace 向 direction 传播（对齐基岩 spreadFromFaceTowardDirection，用于 sculk/苔藓等）。
+    /// 依赖 MultifaceSpreader 接线体系未就绪，stub。
+    virtual void spreadFromFaceTowardDirection(BlockPos relativePos, Direction fromFace, Direction direction) = 0;
+
     // === 4. 实体断言与 spawn ===
     [[nodiscard]] virtual GameTestResult assertEntityPresent(
         const std::string& entityType, BlockPos relativePos, f32 searchDistance, bool isPresent) = 0;
@@ -109,6 +145,38 @@ public:
     [[nodiscard]] virtual GameTestResult spawnItemAt(
         const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity) = 0;
 
+    // 实体 spawn 变体与实体状态断言（批次4 补齐，对齐基岩 Test 类官方 JS API）。
+    /// 在世界绝对 Vector3 位置生成实体（spawn 的浮点位置变体，对齐基岩 spawnAtLocation）。
+    [[nodiscard]] virtual GameTestResult spawnAtLocation(
+        const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) = 0;
+    /// 生成无 AI 行为的实体（对齐基岩 spawnWithoutBehaviors，供 walkTo 等可预测行为测试）。
+    /// 依赖行为移除体系未就绪，stub（当前等同 spawnEntity，TODO）。
+    [[nodiscard]] virtual GameTestResult spawnWithoutBehaviors(
+        const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) = 0;
+    /// 生成无 AI 行为的实体（spawnAtLocation 的无行为变体，对齐基岩 spawnWithoutBehaviorsAtLocation）。stub。
+    [[nodiscard]] virtual GameTestResult spawnWithoutBehaviorsAtLocation(
+        const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) = 0;
+    /// 断言 pos 处实体装备指定护甲槽/护甲名/数据值。依赖装备槽体系未就绪，stub。
+    [[nodiscard]] virtual GameTestResult assertEntityHasArmor(const std::string& entityType,
+        i32 armorSlot,
+        const std::string& armorName,
+        i32 armorData,
+        BlockPos relativePos,
+        bool hasArmor) = 0;
+    /// 断言 pos 处实体含指定组件。依赖实体组件体系未就绪，stub。
+    [[nodiscard]] virtual GameTestResult assertEntityHasComponent(
+        const std::string& entityType, const std::string& componentId, BlockPos relativePos, bool hasComponent) = 0;
+    /// 断言 pos 处实体满足 predicate。predicate 接 Entity&，返回 false 即断言失败。依赖实体查询体系 stub。
+    [[nodiscard]] virtual GameTestResult assertEntityState(
+        BlockPos relativePos, const std::string& entityType, std::function<bool(const mc::Entity&)> predicate) = 0;
+    /// 断言实体能否寻路到达 pos。依赖 PathNavigator（硬依赖 dynamic_cast<MobEntity*>）未就绪，stub。
+    [[nodiscard]] virtual GameTestResult assertCanReachLocation(
+        mc::Entity& entity, BlockPos relativePos, bool canReach) = 0;
+    /// 模拟实体跳跃事件（对齐基岩 onPlayerJump）。依赖跳跃事件体系未就绪，stub。
+    virtual void onPlayerJump(mc::Entity& entity, i32 jumpAmount) = 0;
+    /// 设可爆炸实体（TNT 等）的引信时长。依赖实体 fuse 体系未就绪，stub。
+    virtual void setTntFuse(mc::Entity& entity, i32 fuseLength) = 0;
+
     // === 5. 坐标变换 ===
     [[nodiscard]] virtual BlockPos worldBlockPosition(BlockPos relativePos) const noexcept = 0;
     [[nodiscard]] virtual BlockPos relativeBlockPosition(BlockPos worldPos) const noexcept = 0;
@@ -125,6 +193,10 @@ public:
     virtual void succeedOnTick(i32 tick) = 0;
     virtual void succeedOnTickWhen(i32 tick, std::function<GameTestResult()> fn) = 0;
     virtual void failIf(std::function<GameTestResult()> fn) = 0;
+    /// 每 tick 检查 pos 处实体是否含指定组件，满足时标记成功（对齐基岩 succeedWhenEntityHasComponent）。
+    /// 依赖实体组件体系未就绪，stub（注册空 succeed 条件，TODO 组件查询做实后补）。
+    virtual void succeedWhenEntityHasComponent(
+        const std::string& entityType, const std::string& componentId, BlockPos relativePos, bool hasComponent) = 0;
 
     // === 7. SimulatedPlayer ===
     [[nodiscard]] virtual GameTestResult spawnSimulatedPlayer(
@@ -133,6 +205,11 @@ public:
 
     // === 8. 查询 ===
     [[nodiscard]] virtual const mc::BlockState* getBlock(BlockPos relativePos) const = 0;
+    /// 取 pos 处栅栏的连接性（四方向 bool）。底层 BlockState NORTH/EAST/SOUTH/WEST 属性就绪。
+    [[nodiscard]] virtual FenceConnectivity getFenceConnectivity(BlockPos relativePos) const = 0;
+    /// 取 pos 处的幽匿扩散器。项目无 SculkCatalystBlockEntity（spreader 载体缺失），返回新建空 spreader
+    /// 快照（maxCharge 做实，cursors 空）。TODO: SculkCatalystBlockEntity 实现后取真实 spreader。
+    [[nodiscard]] virtual mc::blocks::SculkSpreader* getSculkSpreader(BlockPos relativePos) const = 0;
     [[nodiscard]] virtual mc::IWorld& world() noexcept = 0;
 
     // === 9. 工具 ===

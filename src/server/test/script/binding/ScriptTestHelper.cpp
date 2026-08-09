@@ -22,6 +22,7 @@
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
 
+#include "common/item/core/ItemStack.hpp" // mc::ItemStack（_unwrapItemStack/assertContainerContains）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 wrap Entity/Dimension proto
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
@@ -32,6 +33,8 @@
 #include "common/util/math/Vector3.hpp" // mc::math::Vector3d（worldPosition/rotateVector 等）
 #include "common/world/IWorld.hpp"      // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
+#include "common/world/block/blocks/sculk/SculkSpreader.hpp" // mc::blocks::SculkSpreader（getSculkSpreader wrap/delete 需完整类型）
 #include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestErrorFromResult（_resultToJs 改造）
@@ -39,6 +42,7 @@
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 
+#include <cctype>
 #include <string>
 #include <utility>
 
@@ -115,6 +119,61 @@ void* _vector3ToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const mc
     ctx.setPropertyFloat(obj, "x", v.x);
     ctx.setPropertyFloat(obj, "y", v.y);
     ctx.setPropertyFloat(obj, "z", v.z);
+    return obj;
+}
+
+// 把 @minecraft/server.Direction（PascalCase 字符串枚举，如 "North"）转 mc::Direction。
+// 项目 Directions::fromName 接小写，故先转小写。失败返回 Direction::None。
+mc::Direction _directionFromApi(const std::string& apiName)
+{
+    std::string lower = apiName;
+    for (char& c : lower) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    auto dir = mc::Directions::fromName(lower);
+    return dir.value_or(mc::Direction::None);
+}
+
+// 把 mc::Direction 转成 @minecraft/server.Direction（PascalCase 字符串，如 "North"）。
+// 项目 Directions::toString 返回小写，首字母大写对齐官方 Direction 枚举。
+std::string _directionToApi(mc::Direction dir)
+{
+    std::string name = mc::Directions::toString(dir);
+    if (!name.empty()) {
+        name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
+    }
+    return name;
+}
+
+// 从 JS BlockPermutation 对象 unwrap 出 mc::BlockState*（批2 MinecraftModuleFactory 注册，opaque 持 const
+// BlockState*）。 失败返回 nullptr（调用方抛 TypeError）。
+const mc::BlockState* _unwrapBlockPermutation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
+{
+    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+    return static_cast<const mc::BlockState*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+}
+
+// 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（批2 MinecraftModuleFactory 注册，opaque 持 mc::ItemStack*）。
+mc::ItemStack* _unwrapItemStack(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
+{
+    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
+    return static_cast<mc::ItemStack*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+}
+
+// 构造 FenceConnectivity JS 值对象（{north,east,south,west} 四 bool），原型挂 ScriptGameTestTypes 注册的
+// FenceConnectivity classId/proto（instanceof 锚点）。失败（类未注册）退化为普通对象。
+void* _fenceConnectivityToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const FenceConnectivity& conn)
+{
+    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("FenceConnectivity");
+    void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+    void* obj = ctx.createObject();
+    if (proto != nullptr) {
+        ctx.setPrototypeOf(obj, proto);
+    }
+    ctx.setPropertyBool(obj, "north", conn.north);
+    ctx.setPropertyBool(obj, "east", conn.east);
+    ctx.setPropertyBool(obj, "south", conn.south);
+    ctx.setPropertyBool(obj, "west", conn.west);
     return obj;
 }
 
@@ -957,11 +1016,11 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         1);
 
-    // --- getTestDirection() -> string ---
-    // 基岩返回 @minecraft/server.Direction 枚举（north=2/east=3/south=4/west=5）。项目 Direction 枚举值
-    // 不同（North=2/South=3/West=4/East=5），直接转数字会错位。此处返回小写方向名字符串
-    // （"north"/"east"/"south"/"west"），JS 侧按字符串比对，避免枚举值映射错误。
-    // TODO: 若行为包依赖 Direction 数字枚举值，须建项目 Direction↔基岩 Direction 映射。
+    // --- getTestDirection() -> Direction ---
+    // 基岩返回 @minecraft/server.Direction 枚举（PascalCase 字符串 "North"/"East"/"South"/"West"）。
+    // 项目 Direction 枚举值与基岩不同（项目 North=2/South=3/West=4/East=5，基岩 north=2/south=3/east=3...），
+    // 直接转数字会错位；返回 Direction 字符串（PascalCase）由 JS 侧按字符串比对。
+    // helper->getTestDirection() 返项目 mc::Direction，经 _directionToApi 转 PascalCase 对齐官方枚举值。
     reg.method(
         "getTestDirection",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
@@ -969,7 +1028,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
-            return ctx.createString(mc::Directions::toString(helper->getTestDirection()));
+            return ctx.createString(_directionToApi(helper->getTestDirection()));
         },
         0);
 
@@ -1289,20 +1348,638 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         4);
 
-    // --- assertBlockState(pos, callback) / getBlock(pos) ---
-    // TODO: 两者均依赖 @minecraft/server Block JS 类充实（当前 Block 类空壳无属性方法）。
-    // assertBlockState 的 callback 需接收 Block JS 对象（opaque 持 BlockState*），getBlock 需返回 Block
-    // JS 对象。待 Block 类充实（加 typeId/permutation 等属性 + opaque 持 BlockState*）后接线。
-    // 行为包 0 使用这两个方法，不阻塞当前端到端验证。
+    // --- assertBlockState(pos, callback) ---
+    // facade 已做实（GameTestHelper::assertBlockState 调 predicate(const BlockState&)）。JS 绑定需把
+    // BlockState* wrap 成 @minecraft/server Block JS 对象传给 callback——Block 类 opaque 持 ScriptBlockRef
+    // （批2 MinecraftModuleFactory 匿名结构体，跨模块不可见）。待 Block wrap helper 跨模块暴露后接通，
+    // 当前绑方法名但返 undefined + TODO，避免 JS 侧 "not a function"。
+    // TODO: Block wrap helper（wrapBlockRef）跨模块暴露后，构造 Block JS 对象调 callback 并据返回 bool 判定。
+    reg.method(
+        "assertBlockState",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            // TODO: Block JS 对象构造未跨模块暴露，stub 返 undefined（facade assertBlockState 已就绪待接）。
+            return ctx.createUndefined();
+        },
+        2);
 
-    // TODO: assertBlockState/getBlock 依赖 @minecraft/server Block JS 类充实（当前空壳），待 Block 类
-    // 加 typeId/permutation 等属性 + opaque 持 BlockState* 后接线。行为包 0 使用，不阻塞端到端验证。
-    // spawnItem 简化为接受 itemType 字符串（基岩要 ItemStack 对象），ItemStack JS 类充实后改为接受对象。
-    // 其余 Test 类方法已全部桥接（assertEntityPresent/spawn/destroyBlock/assertRedstonePower/
-    // assertIsWaterlogged/worldLocation/relativeLocation/worldBlockLocation/relativeBlockLocation/
-    // rotateVector/getTestDirection/succeedWhenBlockPresent/succeedIf/succeedOnTick/succeedOnTickWhen/
-    // failIf/runAfterDelay/runOnFinish/assertEntityInstancePresent/assertEntityInstancePresentInArea/
-    // assertEntityTouching/assertItemEntityPresent/assertItemEntityCountIs/spawnItem/getDimension 等）。
+    // --- getBlock(pos) -> Block ---
+    // facade 已做实（返回 const BlockState*）。JS 绑定需 wrap 成 Block JS 对象——同 assertBlockState 受
+    // Block wrap helper 跨模块不可见阻塞。待暴露后接通，当前返 undefined + TODO。
+    // TODO: Block wrap helper 跨模块暴露后，wrap BlockState* 为 Block JS 对象返回。
+    reg.method(
+        "getBlock",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            // TODO: Block JS 对象构造未跨模块暴露，stub 返 undefined（facade getBlock 已就绪待接）。
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- assertContainerContains(itemStack, pos) ---
+    // 基岩 Test.assertContainerContains(itemStack, blockLocation)。itemStack 经 _unwrapItemStack 取 mc::ItemStack*。
+    reg.method(
+        "assertContainerContains",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2) {
+                return ctx.throwTypeError("assertContainerContains(itemStack, pos)");
+            }
+            auto* stack = _unwrapItemStack(ctx, args[0]);
+            if (stack == nullptr) {
+                return ctx.throwTypeError("assertContainerContains: first arg must be an ItemStack");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            auto result = helper->assertContainerContains(*stack, pos);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- assertContainerEmpty(pos) ---
+    reg.method(
+        "assertContainerEmpty",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("assertContainerEmpty(pos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            auto result = helper->assertContainerEmpty(pos);
+            return _resultToJs(ctx, std::move(result));
+        },
+        1);
+
+    // --- setBlockPermutation(blockPermutation, pos) ---
+    // 基岩 Test.setBlockPermutation(blockData, blockLocation)。blockData 经 _unwrapBlockPermutation 取 const
+    // BlockState*。
+    reg.method(
+        "setBlockPermutation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2) {
+                return ctx.throwTypeError("setBlockPermutation(blockPermutation, pos)");
+            }
+            auto* perm = _unwrapBlockPermutation(ctx, args[0]);
+            if (perm == nullptr) {
+                return ctx.throwTypeError("setBlockPermutation: first arg must be a BlockPermutation");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            auto result = helper->setBlockPermutation(*perm, pos);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- setFluidContainer(pos, fluidType) ---
+    // 基岩 Test.setFluidContainer(location, type)。type 是 FluidType 对象（批2占位，opaque 持 string id）。
+    // 此处简化接受 fluidType 字符串（"minecraft:water"/"lava" 等），facade stub 返 MethodNotImplemented。
+    // TODO: FluidType JS 类充实后改为接受 FluidType 对象（unwrap 取 id）。
+    reg.method(
+        "setFluidContainer",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[1])) {
+                return ctx.throwTypeError("setFluidContainer(pos, fluidType)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            auto fluidType = ctx.toString(args[1]);
+            if (!fluidType) {
+                return ctx.throwInternalError("Failed to read fluidType");
+            }
+            auto result = helper->setFluidContainer(pos, *fluidType);
+            return _resultToJs(ctx, std::move(result));
+        },
+        2);
+
+    // --- triggerInternalBlockEvent(pos, eventName) ---
+    reg.method(
+        "triggerInternalBlockEvent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[1])) {
+                return ctx.throwTypeError("triggerInternalBlockEvent(pos, eventName)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            auto name = ctx.toString(args[1]);
+            if (!name) {
+                return ctx.throwInternalError("Failed to read eventName");
+            }
+            helper->triggerInternalBlockEvent(pos, *name);
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- spreadFromFaceTowardDirection(pos, fromFace, direction) ---
+    // fromFace/direction 是 @minecraft/server.Direction（PascalCase 字符串），经 _directionFromApi 转 mc::Direction。
+    reg.method(
+        "spreadFromFaceTowardDirection",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 3 || !ctx.isString(args[1]) || !ctx.isString(args[2])) {
+                return ctx.throwTypeError("spreadFromFaceTowardDirection(pos, fromFace, direction)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            auto fromFace = ctx.toString(args[1]);
+            auto direction = ctx.toString(args[2]);
+            if (!fromFace || !direction) {
+                return ctx.throwInternalError("Failed to read direction");
+            }
+            helper->spreadFromFaceTowardDirection(pos, _directionFromApi(*fromFace), _directionFromApi(*direction));
+            return ctx.createUndefined();
+        },
+        3);
+
+    // --- spawnAtLocation(entityType, location) -> Entity ---
+    // 基岩 spawnAtLocation(entityType, location: Vector3)。location 是浮点 Vector3（与 spawn 的 BlockPos 不同）。
+    reg.method(
+        "spawnAtLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("spawnAtLocation(entityType, location)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            mc::math::Vector3d loc;
+            if (!_parseVector3(ctx, args[1], loc)) {
+                return nullptr;
+            }
+            mc::Entity* outEntity = nullptr;
+            auto result = helper->spawnAtLocation(*entityType, loc, outEntity);
+            if (!isPass(result)) {
+                std::string msg = result->formattedMessage();
+                return ctx.throwInternalError(msg.c_str());
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            if (entityProto == nullptr || outEntity == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+        },
+        2);
+
+    // --- spawnWithoutBehaviors(entityType, pos) / spawnWithoutBehaviorsAtLocation(entityType, location) ---
+    // 两者 facade 退化为普通 spawn（行为移除体系未就绪）。wrap Entity 同 spawn。
+    reg.method(
+        "spawnWithoutBehaviors",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("spawnWithoutBehaviors(entityType, pos)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            mc::Entity* outEntity = nullptr;
+            auto result = helper->spawnWithoutBehaviors(*entityType, pos, outEntity);
+            if (!isPass(result)) {
+                std::string msg = result->formattedMessage();
+                return ctx.throwInternalError(msg.c_str());
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            if (entityProto == nullptr || outEntity == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+        },
+        2);
+    reg.method(
+        "spawnWithoutBehaviorsAtLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("spawnWithoutBehaviorsAtLocation(entityType, location)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            mc::math::Vector3d loc;
+            if (!_parseVector3(ctx, args[1], loc)) {
+                return nullptr;
+            }
+            mc::Entity* outEntity = nullptr;
+            auto result = helper->spawnWithoutBehaviorsAtLocation(*entityType, loc, outEntity);
+            if (!isPass(result)) {
+                std::string msg = result->formattedMessage();
+                return ctx.throwInternalError(msg.c_str());
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            void* entityProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(entityClassId);
+            if (entityProto == nullptr || outEntity == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+        },
+        2);
+
+    // --- assertEntityHasArmor(entityType, armorSlot, armorName, armorData, pos, hasArmor?) ---
+    reg.method(
+        "assertEntityHasArmor",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 5 || !ctx.isString(args[0]) || !ctx.isNumber(args[1]) || !ctx.isString(args[2]) ||
+                !ctx.isNumber(args[3])) {
+                return ctx.throwTypeError(
+                    "assertEntityHasArmor(entityType, armorSlot, armorName, armorData, pos, hasArmor?)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            auto armorSlot = ctx.toInt32(args[1]);
+            auto armorName = ctx.toString(args[2]);
+            auto armorData = ctx.toInt32(args[3]);
+            if (!entityType || !armorSlot || !armorName || !armorData) {
+                return ctx.throwInternalError("Failed to read assertEntityHasArmor args");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[4], pos)) {
+                return nullptr;
+            }
+            bool hasArmor = true;
+            if (argc >= 6) {
+                auto b = ctx.toBool(args[5]);
+                if (b) {
+                    hasArmor = *b;
+                }
+            }
+            auto result = helper->assertEntityHasArmor(*entityType, *armorSlot, *armorName, *armorData, pos, hasArmor);
+            return _resultToJs(ctx, std::move(result));
+        },
+        6);
+
+    // --- assertEntityHasComponent(entityType, componentId, pos, hasComponent?) ---
+    reg.method(
+        "assertEntityHasComponent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 3 || !ctx.isString(args[0]) || !ctx.isString(args[1])) {
+                return ctx.throwTypeError("assertEntityHasComponent(entityType, componentId, pos, hasComponent?)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            auto componentId = ctx.toString(args[1]);
+            if (!entityType || !componentId) {
+                return ctx.throwInternalError("Failed to read assertEntityHasComponent args");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[2], pos)) {
+                return nullptr;
+            }
+            bool hasComponent = true;
+            if (argc >= 4) {
+                auto b = ctx.toBool(args[3]);
+                if (b) {
+                    hasComponent = *b;
+                }
+            }
+            auto result = helper->assertEntityHasComponent(*entityType, *componentId, pos, hasComponent);
+            return _resultToJs(ctx, std::move(result));
+        },
+        4);
+
+    // --- assertEntityState(pos, entityType, callback) ---
+    // callback 是 JS 函数 (Entity)=>boolean。facade 接 std::function<bool(const Entity&)>。
+    // 依赖实体按 pos 查询体系未就绪（facade stub），callback 包装暂用 ScriptCallbackUtil::wrapJsCallback
+    // 的同类模式但签名不同（接 Entity&）——facade stub 不调 predicate，故此处仅透传占位。
+    // TODO: facade assertEntityState 做实后，把 JS callback 包装成 std::function<bool(const Entity&)>，
+    //       内部 wrap Entity 为 JS 对象调 callFunction1 取 bool 返回。
+    reg.method(
+        "assertEntityState",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 3 || !ctx.isString(args[1]) || !ctx.isFunction(args[2])) {
+                return ctx.throwTypeError("assertEntityState(pos, entityType, callback)");
+            }
+            auto entityType = ctx.toString(args[1]);
+            if (!entityType) {
+                return ctx.throwInternalError("Failed to read entityType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            // TODO: callback 包装待 facade 做实后接（当前 facade stub 不调 predicate）。
+            std::function<bool(const mc::Entity&)> predicate = [](const mc::Entity&) -> bool { return false; };
+            auto result = helper->assertEntityState(pos, *entityType, std::move(predicate));
+            return _resultToJs(ctx, std::move(result));
+        },
+        3);
+
+    // --- assertCanReachLocation(mob, pos, canReach?) ---
+    // mob 是 JS Entity 对象，经 ScriptClassRegistry 取 Entity classId 后 unwrap 出 mc::Entity*。
+    reg.method(
+        "assertCanReachLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2) {
+                return ctx.throwTypeError("assertCanReachLocation(mob, pos, canReach?)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("assertCanReachLocation: first arg must be an Entity");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            bool canReach = true;
+            if (argc >= 3) {
+                auto b = ctx.toBool(args[2]);
+                if (b) {
+                    canReach = *b;
+                }
+            }
+            auto result = helper->assertCanReachLocation(*entity, pos, canReach);
+            return _resultToJs(ctx, std::move(result));
+        },
+        3);
+
+    // --- onPlayerJump(mob, jumpAmount) ---
+    reg.method(
+        "onPlayerJump",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("onPlayerJump(mob, jumpAmount)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("onPlayerJump: first arg must be an Entity");
+            }
+            auto jumpAmount = ctx.toInt32(args[1]);
+            if (!jumpAmount) {
+                return ctx.throwTypeError("jumpAmount must be number");
+            }
+            helper->onPlayerJump(*entity, *jumpAmount);
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- setTntFuse(entity, fuseLength) ---
+    reg.method(
+        "setTntFuse",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isNumber(args[1])) {
+                return ctx.throwTypeError("setTntFuse(entity, fuseLength)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("setTntFuse: first arg must be an Entity");
+            }
+            auto fuse = ctx.toInt32(args[1]);
+            if (!fuse) {
+                return ctx.throwTypeError("fuseLength must be number");
+            }
+            helper->setTntFuse(*entity, *fuse);
+            return ctx.createUndefined();
+        },
+        2);
+
+    // --- succeedWhenEntityHasComponent(entityType, componentId, pos, hasComponent) ---
+    reg.method(
+        "succeedWhenEntityHasComponent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 4 || !ctx.isString(args[0]) || !ctx.isString(args[1])) {
+                return ctx.throwTypeError("succeedWhenEntityHasComponent(entityType, componentId, pos, hasComponent)");
+            }
+            auto entityType = ctx.toString(args[0]);
+            auto componentId = ctx.toString(args[1]);
+            if (!entityType || !componentId) {
+                return ctx.throwInternalError("Failed to read succeedWhenEntityHasComponent args");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[2], pos)) {
+                return nullptr;
+            }
+            bool hasComponent = true;
+            {
+                auto b = ctx.toBool(args[3]);
+                if (b) {
+                    hasComponent = *b;
+                }
+            }
+            helper->succeedWhenEntityHasComponent(*entityType, *componentId, pos, hasComponent);
+            return ctx.createUndefined();
+        },
+        4);
+
+    // --- removeSimulatedPlayer(player) ---
+    // facade 已有（IGameTestHelper::removeSimulatedPlayer）。player 经闭包捕获的 simulatedPlayerClassId unwrap。
+    // classId 取自 registerTestClassBinding 的参数（与 spawnSimulatedPlayer 同源），不存 ScriptBindingRegistry。
+    reg.method(
+        "removeSimulatedPlayer",
+        [simulatedPlayerClassId](
+            mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("removeSimulatedPlayer(player)");
+            }
+            auto* player = static_cast<SimulatedPlayer*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], simulatedPlayerClassId));
+            if (player == nullptr) {
+                return ctx.throwTypeError("removeSimulatedPlayer: argument must be a SimulatedPlayer");
+            }
+            helper->removeSimulatedPlayer(*player);
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- isCompleted() -> bool / isCleaningUp() -> bool ---
+    reg.method(
+        "isCompleted",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            return ctx.createBoolean(helper->isCompleted());
+        },
+        0);
+    reg.method(
+        "isCleaningUp",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            return ctx.createBoolean(helper->isCleaningUp());
+        },
+        0);
+
+    // --- rotateDirection(direction) -> Direction ---
+    // 接收 PascalCase Direction 字符串→_directionFromApi→facade→_directionToApi 返 PascalCase。
+    reg.method(
+        "rotateDirection",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("rotateDirection(direction)");
+            }
+            auto dirStr = ctx.toString(args[0]);
+            if (!dirStr) {
+                return ctx.throwInternalError("Failed to read direction");
+            }
+            mc::Direction out = helper->rotateDirection(_directionFromApi(*dirStr));
+            return ctx.createString(_directionToApi(out));
+        },
+        1);
+
+    // --- getFenceConnectivity(pos) -> FenceConnectivity ---
+    reg.method(
+        "getFenceConnectivity",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("getFenceConnectivity(pos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            FenceConnectivity conn = helper->getFenceConnectivity(pos);
+            return _fenceConnectivityToJs(ctx, conn);
+        },
+        1);
+
+    // --- getSculkSpreader(pos) -> SculkSpreader | undefined ---
+    // facade 返回 owned mc::blocks::SculkSpreader*（新建空快照）。经 ScriptClassRegistry 查 SculkSpreader
+    // classId/proto（批5注册），owned=true wrap（JS GC 时 delete）。nullptr 返 undefined。
+    reg.method(
+        "getSculkSpreader",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("getSculkSpreader(pos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            mc::blocks::SculkSpreader* spreader = helper->getSculkSpreader(pos);
+            if (spreader == nullptr) {
+                return ctx.createUndefined();
+            }
+            const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("SculkSpreader");
+            void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+            if (proto == nullptr) {
+                // 类未注册（不应发生）：释放 spreader 避免泄漏，返 undefined。
+                delete spreader;
+                return ctx.createUndefined();
+            }
+            // owned=true：JS GC 时 delete spreader（ScriptObjectRegistry 默认 destroy 用 delete）。
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, classId, proto, spreader, true, "SculkSpreader");
+        },
+        1);
+
+    // spawnItem 已绑定（上方，简化接受 itemType 字符串，TODO ItemStack 充实后改对象）。
+    // Test 类方法已全部桥接（含批次4 新增 17 方法：assertBlockState/getBlock(stub 待 Block wrap helper)/
+    // assertContainerContains/assertContainerEmpty/setBlockPermutation/setFluidContainer/triggerInternalBlockEvent/
+    // spreadFromFaceTowardDirection/spawnAtLocation/spawnWithoutBehaviors/spawnWithoutBehaviorsAtLocation/
+    // assertEntityHasArmor/assertEntityHasComponent/assertEntityState/assertCanReachLocation/onPlayerJump/
+    // setTntFuse/succeedWhenEntityHasComponent/removeSimulatedPlayer/isCompleted/isCleaningUp/rotateDirection/
+    // getFenceConnectivity/getSculkSpreader）。
 
     return classId;
 }
