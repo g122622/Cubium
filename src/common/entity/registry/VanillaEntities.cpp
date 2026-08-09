@@ -112,6 +112,7 @@
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <mutex>
 #include <string>
@@ -1269,6 +1270,11 @@ void VanillaEntities::doRegisterAll()
 
     // 初始化实体类型指针缓存
     VanillaEntityTypeKeys::initialize();
+
+    // 注册组件序列化器（批次6 子目标1：序列化按组件注册）。
+    // 放在 doRegisterAll 末尾而非 registerAll 开头，避免 PI G 哨兵早退跳过。
+    // registerAll 幂等，测试 EntityRegistry::clear() 后重跑会重新注册。
+    serialization::components::ComponentSerializerRegistry::instance().registerAll();
 
     spdlog::info("Registered {} entity types", registry.size());
 }

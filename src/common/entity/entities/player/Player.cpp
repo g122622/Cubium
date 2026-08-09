@@ -3108,8 +3108,8 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // ========== 末影箱物品栏 ==========
     m_enderChestInventory.toNbt(tag);
 
-    // ========== 分数 ==========
-    tag.put(SCORE, getScore());
+    // Score 已迁入按 PlayerScoreComponent 注册的组件序列化器，经 Entity::writeToNBT 的
+    // saveAll 写出（批次6 子目标1 Step5），此处不再重复写。
 
     // ========== 最后死亡位置 ==========
     if (m_lastDeathLocation.has_value()) {
@@ -3262,11 +3262,8 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     // ========== 末影箱物品栏 ==========
     m_enderChestInventory.fromNbt(tag);
 
-    // ========== 分数 ==========
-    if (auto scoreOpt = nbt_helper::tryGetInt(tag, SCORE)) {
-        // setScore 同时写 PlayerScoreComponent（真相源）+ DATA_PLAYER_SCORE_PARAM（镜像）。
-        setScore(*scoreOpt);
-    }
+    // Score 已迁入按 PlayerScoreComponent 注册的组件序列化器，经 Entity::readFromNBT 的
+    // loadAll 读回（批次6 子目标1 Step5），此处不再重复读。
 
     // ========== 最后死亡位置 ==========
     if (auto* deathTag = nbt_helper::tryGetCompound(tag, LAST_DEATH_LOCATION)) {

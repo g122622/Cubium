@@ -6,10 +6,15 @@
 
 ```
 src/common/entity/serialization/
-├── EntityDeserializer.hpp/cpp   # 实体反序列化器
-├── EntityNbtKeys.hpp            # NBT 键名常量
-├── EquipmentSlotNames.hpp/cpp   # EquipmentSlot 枚举名与 NBT 键名映射（MC 1.21.11 equipment 格式）
-├── NbtHelper.hpp/cpp            # NBT 辅助工具函数
+├── EntityDeserializer.hpp/cpp          # 实体反序列化器
+├── EntityNbtKeys.hpp                   # NBT 键名常量
+├── EquipmentSlotNames.hpp/cpp          # EquipmentSlot 枚举名与 NBT 键名映射（MC 1.21.11 equipment 格式）
+├── NbtHelper.hpp/cpp                   # NBT 辅助工具函数
+├── components/                          # 组件序列化器注册表（批次6 子目标1）
+│   ├── ComponentSerializerRegistry.hpp/cpp        # 注册表（进程单例，entt::type_id 键 + 裸函数指针）
+│   ├── EntityComponentSerialization.hpp/cpp        # Entity 层 13 字段（Pos/Motion/Rotation/.../FallFlying）
+│   ├── LivingEntityComponentSerialization.hpp/cpp  # LivingEntity 层 5 字段（Health/.../Equipment）
+│   └── PlayerComponentSerialization.hpp/cpp        # Player 层 Score
 └── README.md
 ```
 
@@ -239,6 +244,55 @@ equipment: {
 - 头文件 `EquipmentSlotNames.hpp` 仅前向声明 `EquipmentSlot`，避免循环包含
 - 实现文件 `EquipmentSlotNames.cpp` 包含 `LivingEntity.hpp` 获取完整枚举定义
 - `fromName()` 对未知键名返回 `std::nullopt`，便于静默跳过无效数据
+
+## 组件序列化器注册表（批次6 子目标1）
+
+`components/ComponentSerializerRegistry` 把已 ECS 组件化的实体字段的 NBT 序列化逻辑，从 OOP 虚函数链（`writeToNBT`/`addAdditionalSaveData` 逐层 super）搬到按组件注册的自由函数序列化器。对齐基岩版 `InternalComponentRegistry`（`unordered_map<组件名, {save,load,legacy-convert}>` 静态注册表，与 `addAdditionalSaveData` 虚函数并存）。
+
+### 设计要点
+
+- **键用 `entt::type_id<T>().hash()`**（编译期类型安全）而非基岩版的 `HashedString`。项目单二进制无需跨进程稳定字符串标识，类型错配编译期即报错。
+- **裸函数指针** `SaveFn`/`LoadFn`（无状态闭包，零分配）而非 `std::function`。
+- **`std::vector<Entry>`** 而非 `unordered_map`（仅 13 条目，cache 友好，可按 priority 排序）。
+- **序列化器签名 `Entity&` 非 `EntityContext&`**：序列化器必须调 setter（C 类字段 DataParameter 同步副作用是硬约束，绕过 setter 直写组件会丢网络同步）。setter 是 Entity 继承体系成员，只能经 `Entity&` 调。
+- **存档格式不变**：保持 Java 版平铺格式（Pos/Motion/Health 等直接在根 tag），不走基岩版 `internalComponents` 命名空间隔离，零迁移成本旧存档兼容。
+- **注册时机**：`VanillaEntities::doRegisterAll()` 末尾调 `registerAll()`（PIG 哨兵致 `registerAll()` 早退，故放 `doRegisterAll` 内部）。`registerAll` 幂等（`m_registered` 标志 + clear 重注册，同 typeId 覆盖非追加）。
+
+### 字段访问策略
+
+13 个序列化器对，按承载组件注册，覆盖 19 字段：
+
+| 组件 | 字段 | 读写路径 |
+|---|---|---|
+| StateVectorComponent | Pos | `tryGetComponent` 直写 m_pos（绕过 setPosition 副作用：不污染 m_posPrev/不重建 AABB） |
+| VelocityComponent | Motion | `setVelocity`（纯直写无副作用，等价） |
+| EntityRotationComponent | Rotation | `tryGetComponent` 直写 m_rot（绕过 setRotation 副作用：不污染 m_rotPrev）+ setYHeadRot/setYBodyRot |
+| PhysicsStateComponent | FallDistance + OnGround | FallDistance 走 `setFallDistance`（纯直写）；OnGround 直写组件（绕过 setOnGround 落地清 climbPos 副作用） |
+| FireComponent | Fire | `setRemainingFireTicks`（纯直写） |
+| PortalComponent | PortalCooldown | `setPortalCooldown`（纯直写） |
+| FreezeComponent | TicksFrozen | `setTicksFrozen`（写组件 + DataParameter 同步） |
+| EntityStateComponent | Air + CustomName + CustomNameVisible + Silent + NoGravity | 走对应 setter（含 DataParameter 同步） |
+| EntityFlagsComponent | FallFlying | `isElytraFlying` 读 + `addFlag`/`removeFlag` 写（从 LivingEntity 层上提） |
+| HealthComponent | Health | `setHealth`（clamp(0,maxHealth)）+ 置 m_healthSynced=true 避免首帧覆盖 |
+| HurtStateComponent | Absorption + HurtTime + DeathTime | Absorption 走 `setAbsorptionAmount`（virtual，Player override 下发镜像）；HurtTime/DeathTime 无 setter 直写组件 |
+| EquipmentComponent | Equipment | `getEquipment`/`setEquipment`（virtual，Player 派发到 PlayerInventory），含旧格式 HandItems/ArmorItems 回退 |
+| PlayerScoreComponent | Score | `getScore`/`setScore`（同步 DATA_PLAYER_SCORE_PARAM 镜像） |
+
+**核心取舍**：能调 public setter 的优先调（保留 DataParameter 同步副作用）。3 个字段（Pos/Rotation/OnGround）现行 `readFromNBT` 刻意绕过 setter 副作用直写 `m_builtIn.*` 组件，序列化器经 public `tryGetComponent<T>()` 拿同一组件指针直写，语义完全一致（`m_builtIn.stateVector` 就是 `tryGetComponent<StateVectorComponent>()` 返回值）。
+
+### dynamic_cast 早退
+
+LivingEntity/Player 层序列化器经 `Entity&` 调用，内部 `dynamic_cast<LivingEntity*>`/`dynamic_cast<Player*>`。非目标类型实体（ItemEntity/ItemFrame 等调 LivingEntity 序列化器）返回 nullptr 早退，无副作用。LivingEntity/Player 均 非 final，Entity 虚析构，RTTI 可用。
+
+### writeToNBT/readFromNBT 改造后结构
+
+`Entity::writeToNBT`：① 纯 OOP 基类字段（UUID/Invulnerable/Glowing/Tags）直写 → ② `saveAll(*this, tag)` 注册表遍历写 19 组件字段 → ③ `addAdditionalSaveData(tag)` 虚函数（剩余纯 OOP 字段：HurtByTimestamp/ActiveEffects/Attributes；Player 的 GameMode/Food/XP/Inventory/...；MobEntity 全层）→ ④ Passengers 递归。
+
+`Entity::readFromNBT` 对称：① 纯 OOP 基类字段直读 → ② `loadAll(*this, tag)` 按 priority 升序读 19 组件字段 → ③ `reapplyPosition()` 重建 AABB → ④ `readAdditionalSaveData(tag)` 虚函数。
+
+### load 顺序依赖
+
+本批 19 字段间无依赖。Health/Absorption 的 `setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位（派生类 MAX_HEALTH 默认值），非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内）。`loadAll` 在 `readAdditionalSaveData` 之前调，Health load 时 Attributes NBT 尚未读入，与原顺序一致。`Entry` 保留 `priority` 字段为未来扩展（Attributes priority=100 / ActiveEffects priority=200 保证顺序），`loadAll` 按 priority 升序遍历，`saveAll` 无序。
 
 ## 参考
 

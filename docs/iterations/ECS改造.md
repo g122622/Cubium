@@ -156,11 +156,37 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 性能上，剩余 cast 多在低频路径（物品右键 ShearsItem/SaddleItem、骑乘键 IJumpingMount、开容器 ContainerUser），仅 ICrossbowUser/IRangedAttackMob 在 RangedAttackGoals 每 tick 跑但量级是 per-mob（当前攻击中的怪物）非 per-entity 遍历（对比 IMob 是 sensor 遍历范围内所有实体判怪），RTTI 开销可忽略。基岩版混合架构决策（七项根本决策第 1 条：AI/序列化等低频逻辑暂留 OOP）本就允许 OOP 行为层保留。强行 ECS 化要么半吊子（capability component 持接口指针委托，没消除多态只省 RTTI 字符串比较，且与基岩版 EntityContext 查询模式不对齐）要么破坏 AI 保留 OOP 决策（把虚方法分发本身改成系统查询，违反 Goal/Brain/Navigator 约 5 万行不 ECS 化的决策）。故**批次5 收束于 5.1**，剩余 mixin 接口 OOP 多态作为混合架构的合理行为层保留，转向批次6。
 
+## 第六批子目标1：序列化按组件注册（2026-08-09 落地）
+
+批次1-4 完成实体状态数据层 ECS 化（约 19 字段迁入 entt 组件）后，**序列化仍是 OOP 虚函数链**：4 层 `writeToNBT`/`addAdditionalSaveData`（Entity→LivingEntity→MobEntity→Player 逐层 super）承载约 66 个 NBT 字段，其中 19 个已组件化字段的序列化代码仍埋在 OOP 虚函数里经 getter/setter 间接读写组件——组件本身无任何序列化代码。本批目标：搭「组件序列化器注册表」基础设施，把 19 个已组件化字段的序列化逻辑从 OOP 虚函数搬到组件序列化器。打通后后续每迁一个组件自带持久化，避免"迁组件再补 NBT"双段式工作。
+
+**已交付**：
+- **注册表基础设施**（`src/common/entity/serialization/components/`）：`ComponentSerializerRegistry`（进程单例，`std::vector<Entry>`，Entry=`{entt::type_id<T>().hash(), SaveFn, LoadFn, priority}`）。键用 `entt::type_id`（编译期类型安全）非基岩版 `HashedString`；裸函数指针 `SaveFn`/`LoadFn` 非 `std::function`；`vector` 非 `unordered_map`（仅 13 条目 cache 友好可排序）。对齐基岩版 `InternalComponentRegistry`（`unordered_map<组件名,{save,load,legacy-convert}>` 静态注册表与 `addAdditionalSaveData` 虚函数并存）。去掉 legacy-convert（项目对齐 Java 版平铺格式无旧版存档转换需求）。
+- **Entity public tryGetComponent 包装**：Entity.hpp 加 public `tryGetComponent<T>()` const/非 const 双重载（透传 `m_entityContext->tryGetComponent<T>()`），与第五批 hasComponent 配套。注释限定"仅供序列化器/AI/BlockEntity 等横切关注点使用，业务逻辑走 getter/setter"。
+- **13 个序列化器对**（按继承层分 3 文件），覆盖 19 字段：
+  - `EntityComponentSerialization`（9 序列化器，13 字段）：StateVector→Pos / Velocity→Motion / EntityRotation→Rotation / PhysicsState→FallDistance+OnGround / Fire→Fire / Portal→PortalCooldown / Freeze→TicksFrozen / EntityState→Air+CustomName+CustomNameVisible+Silent+NoGravity / EntityFlags→FallFlying。
+  - `LivingEntityComponentSerialization`（3 序列化器，5 字段，`dynamic_cast<LivingEntity*>` 早退）：Health→Health（+置 m_healthSynced） / HurtState→Absorption+HurtTime+DeathTime / Equipment→Equipment（含旧格式 HandItems/ArmorItems 回退）。
+  - `PlayerComponentSerialization`（1 序列化器，1 字段，`dynamic_cast<Player*>` 早退）：PlayerScore→Score。
+- **writeToNBT/readFromNBT 改造**：`Entity::writeToNBT` 删 13 字段直写改调 `saveAll`，保留 UUID/Invulnerable/Glowing/Tags/Passengers；`readFromNBT` 删 13 字段直读改调 `loadAll`，保留 UUID/Invulnerable/Glowing/Tags/reapplyPosition。`LivingEntity::addAdditionalSaveData/readAdditionalSaveData` 删 Health/Absorption/HurtTime/DeathTime/Equipment/FallFlying，保留 HurtByTimestamp/ActiveEffects/Attributes。`Player::addAdditionalSaveData/readAdditionalSaveData` 删 Score。FallFlying 从 LivingEntity 层上提到 Entity 层（按 EntityFlagsComponent 注册）。
+- **字段访问策略**：能调 public setter 的优先调（保留 DataParameter 同步副作用——C 类字段硬约束）。3 字段（Pos/Rotation/OnGround）现行 `readFromNBT` 刻意绕过 setter 副作用直写 `m_builtIn.*` 组件，序列化器经 public `tryGetComponent<T>()` 拿同一组件指针直写，语义完全一致。Health load 调 `setHealth`（clamp(0,maxHealth)）后置 `m_healthSynced=true` 避免首帧覆盖。
+
+**关键设计决策**：
+- **存档格式不变**：保持 Java 版平铺格式（Pos/Motion/Health 等直接在根 tag），键名不变，零迁移成本旧存档兼容。`writeToNBT` 被 11 处复用（DataAccessor/EntityResolver/CopyNbtFunction/Template/NBTPredicate/PlayerResolver/EntityDeserializer），改造内部结构对调用方透明。
+- **load 顺序依赖（已化解）**：Health/Absorption 的 `setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位（派生类 MAX_HEALTH 默认值），非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内），维持现状。`loadAll` 在 `readAdditionalSaveData` 之前调，与原顺序一致。`Entry.priority` 字段为未来迁 Attributes（=100）/ActiveEffects（=200）保证顺序预留。
+- **注册时机**：`VanillaEntities::registerAll()`（:132）用 `hasType(PIG)` 哨兵提前返回，故 `ComponentSerializerRegistry::registerAll()` 须放 `doRegisterAll()` 末尾。`registerAll` 幂等（`m_registered` 标志 + clear 重注册，同 typeId 覆盖非追加）。
+- **dynamic_cast 早退**：LivingEntity/Player 层序列化器经 `Entity&` 调用，内部 `dynamic_cast<LivingEntity*>`/`dynamic_cast<Player*>`。非目标类型实体返回 nullptr 早退无副作用。LivingEntity/Player 非 final、Entity 虚析构，RTTI 可用。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests）。
+- GameTest 回归：核心场景全过——cloneBlocksCommand（结构 NBT 实体序列化）/ simpleMobTest（fox 属性/寻路）/ zombie_villager_chase / iron_golem_arena（怪物 AI，LivingEntity 序列化）/ alwaysSucceed / minibiomes。zoglin_float/collapsing/simpleMobTest 偶发超时为已知 flaky 群（shulker AI 时序 + 光照引擎 TOCTOU，记忆 `ecs-migration-batch2-landed` 记录非本批引入），多次复跑每次失败的是 flaky 三元组内不同子集，无固定失败。Player Score 序列化路径不在 mob GameTest 覆盖范围（无玩家存档重载测试），靠代码逻辑等价性保证（save 走 getScore，load 走 setScore，与原 readAdditionalSaveData 完全一致）。
+
+**暂未处理**：`tests/` 仍不透传 registry（永久约束）。48 个纯 OOP 字段（Player 背包/FoodStats/ExperienceManager/ActiveEffects/Attributes/MobEntity 全层等）仍走 `addAdditionalSaveData`/`readAdditionalSaveData` 虚函数，留待后续批次随组件化逐步迁入注册表。批次6 子目标2（projectile 族整块 ECS 化）/子目标3（Brain 模板实例化重构为泛型 System）待办。
+
 ## 后续批次路线（备忘，未落地）
 
 - **批次5（已收束于 5.1）**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」——mixin 接口相关 cast 仅 IMob 5 处可纯 tag 迁移（5.1 已落地）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。**剩余 10 个 mixin 接口（IShearable/IEquipable/ICrossbowUser/IRangedAttackMob/IJumpingMount/IRideable/ContainerUser/IAngerable/IFlinging/IFlyingAnimal）的 dynamic_cast 经 5.2 勘察确认为「接口多态分发」模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用，违反 AI 保留 OOP 决策；IFlinging/IFlyingAnimal 虽能纯 tag 但零消费点是架构债**。故批次5 收束于 5.1 IMob 试点，剩余 mixin 接口 OOP 多态作混合架构合理行为层保留。详见上文「批次5 收束决策」段。
-- **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
+- **批次6**：子目标1（序列化按组件注册序列化器）已于 2026-08-09 落地，见上文「第六批子目标1」段。剩余：子目标2 projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）；子目标3 Brain 模板实例化重构为泛型 System。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 15 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 16 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件），迁移后续批次前务必先读。

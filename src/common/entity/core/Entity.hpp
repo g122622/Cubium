@@ -452,6 +452,27 @@ public:
         return m_entityContext->hasComponent<T>();
     }
 
+    /**
+     * @brief 查询组件指针（透传 EntityContext::tryGetComponent）
+     *
+     * 供 Entity 继承体系外的调用方（序列化器、AI goal/sensor、BlockEntity 等）做
+     * capability/tag 组件读写，替代 dynamic_cast<接口*>。const 安全。批次6 子目标1
+     * 起组件序列化器经它直写组件内部字段（如 HealthComponent.m_healthSynced）。
+     *
+     * 注意：业务逻辑仍走 getter/setter（保持 DataParameter 同步副作用），仅在序列化
+     * 等需直访组件内部的横切关注点使用本方法。
+     */
+    template <class T>
+    [[nodiscard]] T* tryGetComponent()
+    {
+        return m_entityContext->tryGetComponent<T>();
+    }
+    template <class T>
+    [[nodiscard]] const T* tryGetComponent() const
+    {
+        return m_entityContext->tryGetComponent<T>();
+    }
+
     [[nodiscard]] virtual bool isChild() const { return false; }
 
     // ========== 声音 ==========

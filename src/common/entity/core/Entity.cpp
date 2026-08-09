@@ -46,6 +46,7 @@
 #include "../entities/projectile/ProjectileEntity.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "../serialization/components/ComponentSerializerRegistry.hpp"
 #include "../tag/EntityTypeTags.hpp"
 #include "EntityRegistry.hpp"
 #include "common/command/ICommandSource.hpp"
@@ -2416,68 +2417,16 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
 {
     using namespace mc::entity::serialization;
 
-    // 位置 (Pos - double list)
-    nbt_helper::putDoubleList(tag,
-        nbt_keys::POS,
-        {static_cast<f64>(m_builtIn.stateVector->m_pos.x),
-            static_cast<f64>(m_builtIn.stateVector->m_pos.y),
-            static_cast<f64>(m_builtIn.stateVector->m_pos.z)});
-
-    // 运动 (Motion - double list)
-    nbt_helper::putDoubleList(tag,
-        nbt_keys::MOTION,
-        {static_cast<f64>(m_builtIn.velocity->m_velocity.x),
-            static_cast<f64>(m_builtIn.velocity->m_velocity.y),
-            static_cast<f64>(m_builtIn.velocity->m_velocity.z)});
-
-    // 旋转 (Rotation - float list: yaw, pitch)
-    nbt_helper::putFloatList(tag, nbt_keys::ROTATION, {m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y});
-
-    // 坠落距离
-    tag.put(nbt_keys::FALL_DISTANCE, m_builtIn.physicsState->m_fallDistance);
-
-    // 火焰剩余 tick
-    tag.put(nbt_keys::FIRE, static_cast<i16>(getRemainingFireTicks()));
-
-    // 空气剩余 tick
-    tag.put(nbt_keys::AIR, static_cast<i16>(air()));
-
-    // 地面标记 (byte 0/1)
-    tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_builtIn.physicsState->m_onGround ? 1 : 0));
-
-    // 无敌标记
-    tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
-
-    // 传送门冷却
-    tag.put(nbt_keys::PORTAL_COOLDOWN, portalCooldown());
-
-    // 冰冻计时器（仅当 > 0 时保存）
-    const i32 ticksFrozen = getTicksFrozen();
-    if (ticksFrozen > 0) {
-        tag.put(nbt_keys::TICKS_FROZEN, ticksFrozen);
-    }
-
-    // UUID (UUIDMost/UUIDLeast)
+    // UUID (UUIDMost/UUIDLeast) — 纯 OOP 基类字段，保留直写
     nbt_helper::putUuid(tag, m_uuid);
 
-    // 自定义名称
-    if (hasCustomName()) {
-        tag.put(nbt_keys::CUSTOM_NAME, customNameText());
-    }
+    // 无敌标记 (byte 0/1) — 纯 OOP 基类字段，保留直写
+    tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
 
-    // 自定义名称可见 (byte 0/1)
-    tag.put(nbt_keys::CUSTOM_NAME_VISIBLE, static_cast<i8>(isCustomNameVisible() ? 1 : 0));
-
-    // 静默 (byte 0/1)
-    tag.put(nbt_keys::SILENT, static_cast<i8>(isSilent() ? 1 : 0));
-
-    // 无重力 (byte 0/1)
-    tag.put(nbt_keys::NO_GRAVITY, static_cast<i8>(hasNoGravity() ? 1 : 0));
-
-    // 发光 (byte 0/1)
+    // 发光 (byte 0/1) — 纯 OOP 基类字段（m_glowing 未组件化），保留直写
     tag.put(nbt_keys::GLOWING, static_cast<i8>(m_glowing ? 1 : 0));
 
-    // Tags (字符串列表)
+    // Tags (字符串列表) — 纯 OOP 基类字段，保留直写
     if (!m_tags.empty()) {
         auto tagsList = std::make_unique<nbt::tags::string_list_tag>();
         for (const auto& tagStr : m_tags) {
@@ -2486,7 +2435,13 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
         tag.value.emplace(nbt_keys::TAGS, std::move(tagsList));
     }
 
-    // 调用子类特有数据序列化
+    // 已组件化字段（Pos/Motion/Rotation/FallDistance/Fire/Air/OnGround/PortalCooldown/
+    // TicksFrozen/CustomName/CustomNameVisible/Silent/NoGravity/FallFlying 共 14 字段，
+    // 9 个序列化器对）经组件序列化器注册表写出。批次6 子目标1。
+    components::ComponentSerializerRegistry::instance().saveAll(*this, tag);
+
+    // 调用子类特有数据序列化（剩余纯 OOP 字段：LivingEntity 的 HurtByTimestamp/
+    // ActiveEffects/Attributes；Player 的 GameMode/Food/XP/Inventory/...；MobEntity 全层）
     addAdditionalSaveData(tag);
 
     // Passengers (乘客列表)
@@ -2519,107 +2474,23 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 {
     using namespace mc::entity::serialization;
 
-    // 位置 (Pos)
-    auto pos = nbt_helper::getDoubleList(tag, nbt_keys::POS);
-    if (pos.size() >= 3) {
-        m_builtIn.stateVector->m_pos.x = static_cast<f32>(pos[0]);
-        m_builtIn.stateVector->m_pos.y = static_cast<f32>(pos[1]);
-        m_builtIn.stateVector->m_pos.z = static_cast<f32>(pos[2]);
-    }
-
-    // 运动 (Motion)
-    auto motion = nbt_helper::getDoubleList(tag, nbt_keys::MOTION);
-    if (motion.size() >= 3) {
-        // 运动分量限制在 ±10.0
-        m_builtIn.velocity->m_velocity.x = static_cast<f32>(std::clamp(motion[0], -10.0, 10.0));
-        m_builtIn.velocity->m_velocity.y = static_cast<f32>(std::clamp(motion[1], -10.0, 10.0));
-        m_builtIn.velocity->m_velocity.z = static_cast<f32>(std::clamp(motion[2], -10.0, 10.0));
-    }
-
-    // 旋转 (Rotation)
-    auto rotation = nbt_helper::getFloatList(tag, nbt_keys::ROTATION);
-    if (rotation.size() >= 2) {
-        m_builtIn.rotation->m_rot.x = rotation[0];
-        m_builtIn.rotation->m_rot.y = rotation[1];
-    }
-
-    // 同步身体/头部旋转为 yaw（对齐 MC 1.21.11 Entity#load）
-    // MC 在加载 NBT 后会调用：
-    //   this.setYHeadRot(this.getYRot());
-    //   this.setYBodyRot(this.getYRot());
-    // 保证从存档/结构模板 NBT 加载的实体身体与头部朝向与 yaw 一致，
-    // 而不是保持字段构造初值 0。Entity 基类的 setYBodyRot/setYHeadRot
-    // 默认空实现，LivingEntity 子类重写后才会真正写入字段。
-    setYHeadRot(m_builtIn.rotation->m_rot.x);
-    setYBodyRot(m_builtIn.rotation->m_rot.x);
-
-    // 坠落距离
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::FALL_DISTANCE)) {
-        m_builtIn.physicsState->m_fallDistance = *val;
-    }
-
-    // 火焰
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::FIRE)) {
-        setRemainingFireTicks(*val);
-    }
-
-    // 空气
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AIR)) {
-        setAir(static_cast<i32>(*val));
-    }
-
-    // 地面标记
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::ON_GROUND)) {
-        m_builtIn.physicsState->m_onGround = *val;
-    }
-
-    // 无敌
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::INVULNERABLE)) {
-        m_invulnerable = *val;
-    }
-
-    // 传送门冷却
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::PORTAL_COOLDOWN)) {
-        setPortalCooldown(*val);
-    }
-
-    // 冰冻计时器
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TICKS_FROZEN)) {
-        setTicksFrozen(*val);
-    }
-
-    // UUID
+    // UUID — 纯 OOP 基类字段，保留直读
     std::string uuid = nbt_helper::getUuid(tag);
     if (!uuid.empty()) {
         m_uuid = uuid;
     }
 
-    // 自定义名称
-    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::CUSTOM_NAME)) {
-        setCustomName(*val);
+    // 无敌 — 纯 OOP 基类字段，保留直读
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::INVULNERABLE)) {
+        m_invulnerable = *val;
     }
 
-    // 自定义名称可见
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CUSTOM_NAME_VISIBLE)) {
-        setCustomNameVisible(*val);
-    }
-
-    // 静默
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::SILENT)) {
-        setSilent(*val);
-    }
-
-    // 无重力
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::NO_GRAVITY)) {
-        setNoGravity(*val);
-    }
-
-    // 发光
+    // 发光 — 纯 OOP 基类字段（m_glowing 未组件化），保留直读
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::GLOWING)) {
         m_glowing = *val;
     }
 
-    // Tags
+    // Tags — 纯 OOP 基类字段，保留直读
     if (auto* tagsList = nbt_helper::tryGetList(tag, nbt_keys::TAGS)) {
         if (tagsList->element_id() == nbt::TagId::String) {
             auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(*tagsList);
@@ -2630,10 +2501,16 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 更新碰撞箱
+    // 已组件化字段（Pos/Motion/Rotation/FallDistance/Fire/Air/OnGround/PortalCooldown/
+    // TicksFrozen/CustomName/CustomNameVisible/Silent/NoGravity/FallFlying 共 14 字段）
+    // 经组件序列化器注册表读回。序列化器经 tryGetComponent 直写 Pos/Rotation/OnGround 组件，
+    // 与原直写 m_builtIn.* 语义一致。批次6 子目标1。
+    MC_TRY(components::ComponentSerializerRegistry::instance().loadAll(*this, tag));
+
+    // 更新碰撞箱（Pos 经 loadAll 直写组件后重建 AABB）
     reapplyPosition();
 
-    // 调用子类特有数据反序列化
+    // 调用子类特有数据反序列化（剩余纯 OOP 字段）
     return readAdditionalSaveData(tag);
 }
 

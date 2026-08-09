@@ -2398,23 +2398,14 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     Entity::addAdditionalSaveData(tag);
 
-    // Health (f32)
-    tag.put(nbt_keys::HEALTH, health());
+    // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
+    // 经 Entity::writeToNBT 的 saveAll 写出（批次6 子目标1 Step4），此处不再重复写。
 
-    // AbsorptionAmount (f32)
-    tag.put(nbt_keys::ABSORPTION_AMOUNT, absorptionAmount());
-
-    // HurtTime (i16)
-    tag.put(nbt_keys::HURT_TIME, static_cast<i16>(hurtTime()));
-
-    // DeathTime (i16)
-    tag.put(nbt_keys::DEATH_TIME, static_cast<i16>(deathTime()));
-
-    // HurtByTimestamp (i32)
+    // HurtByTimestamp (i32) — 纯 OOP 字段（m_lastDamageTimestamp 未组件化），保留直写
     tag.put(nbt_keys::HURT_BY_TIMESTAMP, m_lastDamageTimestamp);
 
-    // FallFlying (byte) - 鞘翅飞行状态
-    tag.put(nbt_keys::FALL_FLYING, static_cast<i8>(isElytraFlying() ? 1 : 0));
+    // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经
+    // Entity::writeToNBT 的 saveAll 写出（批次6 子目标1），此处不再重复写。
 
     // ActiveEffects - 药水效果列表
     const auto& effects = m_effectManager.getAllEffects();
@@ -2431,29 +2422,7 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // Attributes - 属性列表
     nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, attributes());
 
-    // Equipment - MC 1.21.11 新格式：使用 "equipment" 复合标签存储装备
-    // 参考: net.minecraft.world.entity.LivingEntity.addAdditionalSaveData()
-    // 键名为 EquipmentSlot 枚举的序列化名称，空槽位不写入
-    // （与 MC 原版 EntityEquipment.CODEC 一致）
-    {
-        nbt::tags::compound_tag equipmentTag;
-
-        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
-            auto slot = static_cast<EquipmentSlot>(i);
-            const ItemStack& stack = getEquipment(slot);
-            if (!stack.isEmpty()) {
-                nbt::tags::compound_tag itemTag;
-                stack.toNbt(itemTag);
-                equipmentTag.value.emplace(
-                    EquipmentSlotNames::toName(slot), std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-            }
-        }
-
-        // 仅在装备非空时写入 equipment 标签
-        if (!equipmentTag.value.empty()) {
-            tag.value.emplace(nbt_keys::EQUIPMENT, std::make_unique<nbt::tags::compound_tag>(std::move(equipmentTag)));
-        }
-    }
+    // Equipment 已迁入组件序列化器（见上注释）。
 }
 
 Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -2463,48 +2432,16 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // 先调用基类实现
     MC_TRY(Entity::readAdditionalSaveData(tag));
 
-    // Health (f32)
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {
-        // NBT 加载的 health 是权威值，经 setHealth 完成组件真相源 + DataParameter 镜像双写。
-        // 置 m_healthSynced 避免 tick 首帧 setHealth(maxHealth) 覆盖权威值。
-        setHealth(*val);
-        if (auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>()) {
-            c->m_healthSynced = true;
-        }
-    }
+    // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
+    // 经 Entity::readFromNBT 的 loadAll 读回（批次6 子目标1 Step4），此处不再重复读。
 
-    // AbsorptionAmount (f32)
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::ABSORPTION_AMOUNT)) {
-        setAbsorptionAmount(*val);
-    }
-
-    // HurtTime (i16)
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HURT_TIME)) {
-        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
-            c->m_hurtTime = *val;
-        }
-    }
-
-    // DeathTime (i16)
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::DEATH_TIME)) {
-        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
-            c->m_deathTime = *val;
-        }
-    }
-
-    // HurtByTimestamp (i32)
+    // HurtByTimestamp (i32) — 纯 OOP 字段，保留直读
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::HURT_BY_TIMESTAMP)) {
         m_lastDamageTimestamp = *val;
     }
 
-    // FallFlying (byte)
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::FALL_FLYING)) {
-        if (*val) {
-            addFlag(EntityFlags::FallFlying);
-        } else {
-            removeFlag(EntityFlags::FallFlying);
-        }
-    }
+    // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经
+    // Entity::readFromNBT 的 loadAll 读回（批次6 子目标1），此处不再重复读。
 
     // Attributes - 属性列表
     // 参考 MC Java: 属性必须在效果之前加载，因为效果 NBT 中的修改器已作为 permanentModifiers
@@ -2522,57 +2459,6 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsList);
             for (const auto& effectTag : compoundList.value) {
                 m_effectManager.getAllEffects().push_back(entity::effect::EffectInstance::fromNbt(effectTag));
-            }
-        }
-    }
-
-    // Equipment - MC 1.21.11 新格式：从 "equipment" 复合标签读取装备
-    // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()
-    // 新格式使用 EquipmentSlot 枚举名作为键，空槽位不存在
-    // 向后兼容：如果不存在 equipment 标签，回退到旧版 HandItems/ArmorItems 格式
-    if (auto* equipmentTag = nbt_helper::tryGetCompound(tag, nbt_keys::EQUIPMENT)) {
-        // 新格式：从 equipment 复合标签读取
-        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
-            auto slot = static_cast<EquipmentSlot>(i);
-            const char* name = EquipmentSlotNames::toName(slot);
-            if (auto* itemCompound = nbt_helper::tryGetCompound(*equipmentTag, name)) {
-                auto stackResult = ItemStack::fromNbt(*itemCompound);
-                if (stackResult.success()) {
-                    setEquipment(slot, stackResult.value());
-                }
-            }
-        }
-    } else {
-        // 旧格式：从 HandItems/ArmorItems 列表读取（MC 1.21.11 之前的存档）
-        if (auto* handItems = nbt_helper::tryGetList(tag, nbt_keys::HAND_ITEMS)) {
-            if (handItems->element_id() == nbt::TagId::Compound) {
-                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*handItems);
-                if (!compoundList.value.empty()) {
-                    auto mainHandResult = ItemStack::fromNbt(compoundList.value[0]);
-                    if (mainHandResult.success()) {
-                        setMainHandItem(mainHandResult.value());
-                    }
-                }
-                if (compoundList.value.size() > 1) {
-                    auto offHandResult = ItemStack::fromNbt(compoundList.value[1]);
-                    if (offHandResult.success()) {
-                        setOffHandItem(offHandResult.value());
-                    }
-                }
-            }
-        }
-
-        if (auto* armorItems = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_ITEMS)) {
-            if (armorItems->element_id() == nbt::TagId::Compound) {
-                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*armorItems);
-                constexpr std::array<EquipmentSlot, 4> armorOrder = {
-                    EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
-                for (size_t i = 0; i < armorOrder.size() && i < compoundList.value.size(); ++i) {
-                    auto armorResult = ItemStack::fromNbt(compoundList.value[i]);
-                    if (armorResult.success()) {
-                        setEquipment(armorOrder[i], armorResult.value());
-                    }
-                }
             }
         }
     }

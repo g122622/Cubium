@@ -179,3 +179,15 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 - **IMob 唯一继承点单点 attach**：IMob 唯一继承点是 MonsterEntity（`class MonsterEntity : public CreatureEntity, public entity::IMob`），20+ 怪物子类经 MonsterEntity 间接获得 tag。只需在 MonsterEntity 构造 attach 一次，不在每个子类重复 attach。中间基类（AbstractSkeletonEntity/PatrollerEntity 等）也无需 attach。
 - **热路径 RTTI 收益**：4 处外部指针 dynamic_cast 在每_tick 调用的 AI 谓词里（Sensors/AvoidHostileGoal/ConduitEntity/ShulkerGoals），`dynamic_cast` 走 RTTI 字符串比较，改 `hasComponent`（entt `all_of` 编译期类型 id 比较）收益显著。
 - **Player 子类下行 cast 保留**：Sensors.cpp:615 改 IMob 判定为 hasComponent 后，同处的 `dynamic_cast<Player*>(other)`（判创造/旁观模式）保留——那是实体子类下行，子类太多且组件查询无法替代虚函数，另案处理，不在本批。
+
+### 16. 组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件
+
+第六批子目标1 把已组件化字段的 NBT 序列化从 OOP 虚函数链（`writeToNBT`/`addAdditionalSaveData` 逐层 super）搬到按组件注册的自由函数序列化器（`src/common/entity/serialization/components/`）。**几个关键坑**：
+- **序列化器签名选 `Entity&` 非 `EntityContext&`**：序列化器必须调 setter（C 类字段 DataParameter 同步副作用是硬约束，绕过 setter 直写组件会丢网络同步）。setter 是 Entity 继承体系成员，经 `EntityContext` 无法调（不持 Entity 指针）。
+- **Entity public tryGetComponent 包装**：序列化器经 `Entity&` 调，需直写组件内部（Pos/Rotation/OnGround 绕过 setter 副作用，Health 的 m_healthSynced 置位）。`m_entityContext` 是 protected，序列化器是自由函数无法访问。解法：Entity.hpp public 段加 `template<class T> T* tryGetComponent()` const/非 const 双重载透传（与第五批 hasComponent 包装配套）。注释限定"仅供序列化器/AI/BlockEntity 等横切关注点使用，业务逻辑走 getter/setter"。
+- **3 字段绕过 setter 副作用直写组件**：Pos（`setPosition` 会污染 m_posPrev + 重建 AABB）、Rotation（`setRotation` 会污染 m_rotPrev）、OnGround（`setOnGround` 落地瞬间清 m_lastClimbPos）。原 `readFromNBT` 刻意直写 `m_builtIn.*` 组件绕过这些副作用，序列化器经 `tryGetComponent<T>()` 拿同一组件指针直写，语义完全一致（`m_builtIn.stateVector` 就是 `tryGetComponent<StateVectorComponent>()` 返回值）。**勿改调 setter**——会引入 prev 更新/AABB 重建/climbPos 清空副作用，破坏反序列化语义。
+- **dynamic_cast 早退**：LivingEntity/Player 层序列化器经 `Entity&` 调用，内部 `dynamic_cast<LivingEntity*>`/`dynamic_cast<Player*>`。非目标类型实体返回 nullptr 早退无副作用。LivingEntity/Player 非 final、Entity 虚析构，RTTI 可用。序列化器按继承层分文件（EntityComponentSerialization/LivingEntityComponentSerialization/PlayerComponentSerialization），dynamic_cast 集中一处。
+- **注册时机坑**：`VanillaEntities::registerAll()`（:132）用 `hasType(PIG)` 哨兵提前返回，故 `ComponentSerializerRegistry::registerAll()` 不能放 `registerAll()` 开头，须放 `doRegisterAll()` 末尾。`registerAll` 幂等（`m_registered` 标志 + clear 重注册，同 typeId 覆盖非追加），测试 EntityRegistry::clear 后重跑 doRegisterAll 顺带重注册序列化器。
+- **FallFlying 跨层迁移**：原在 `LivingEntity::addAdditionalSaveData/readAdditionalSaveData` 处理（属 EntityFlags 位标志），本批上提为按 `EntityFlagsComponent` 注册的自由函数（仅依赖 Entity 基类 public 接口 isElytraFlying/addFlag/removeFlag）。须从 LivingEntity 同步删除避免重复写。
+- **Health load 顺序依赖（已化解）**：`setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位，非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内）。`loadAll` 在 `readAdditionalSaveData` 之前调，Health load 时 Attributes NBT 尚未读入，与原顺序一致。`Entry` 保留 `priority` 字段为未来迁 Attributes（priority=100）/ActiveEffects（priority=200）保证顺序。
+- **存档格式不变**：保持 Java 版平铺格式，键名不变，零迁移成本旧存档兼容。`writeToNBT` 被 11 处复用（DataAccessor/EntityResolver/CopyNbtFunction/Template/NBTPredicate/PlayerResolver/EntityDeserializer），改造内部结构对调用方透明。
