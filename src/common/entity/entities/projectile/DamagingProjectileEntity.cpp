@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/DamagingProjectileComponent.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/IWorld.hpp"
@@ -38,6 +39,10 @@ DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::Ent
     : ProjectileEntity(id, registry)
 {
     setNoGravity(true);
+    // 批次6 子目标2 Step1：attach DamagingProjectileComponent（加速度+伤害 4 字段）。
+    // Fireball/SmallFireball/DragonFireball/WitherSkull 经 AbstractFireballEntity 继承本类，
+    // 故均获得此组件。Step4 将把 m_accelerationX/Y/Z/m_damage 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::DamagingProjectileComponent>(m_entityContext->entity());
 }
 
 void DamagingProjectileEntity::tick()
@@ -108,7 +113,9 @@ void DamagingProjectileEntity::spawnWaterParticles()
     if (m_world != nullptr && m_world->isClientSide()) {
         for (i32 i = 0; i < 4; ++i) {
             constexpr f32 offset = 0.25f;
-            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset, y() - m_builtIn.velocity->m_velocity.y * offset, z() - m_builtIn.velocity->m_velocity.z * offset);
+            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                y() - m_builtIn.velocity->m_velocity.y * offset,
+                z() - m_builtIn.velocity->m_velocity.z * offset);
             m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
         }
     }

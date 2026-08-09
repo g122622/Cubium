@@ -26,6 +26,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/WindChargeStateComponent.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
@@ -90,7 +91,11 @@ constexpr f32 WIND_BURST_PITCH = 1.0f;
 
 WindChargeEntity::WindChargeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ThrowableEntity(id, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach WindChargeStateComponent（风弹爆裂状态 3 字段）。
+    // Step4 将把 m_hasBurst/m_burstCenter/m_hasBurstCenter 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::WindChargeStateComponent>(m_entityContext->entity());
+}
 
 std::unique_ptr<Entity> WindChargeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {

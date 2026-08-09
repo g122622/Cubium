@@ -29,6 +29,9 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ArrowEffectsComponent.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/ecs/components/SpectralArrowComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -73,7 +76,12 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach ProjectileArrowStateComponent（箭矢 13 字段状态）。
+    // ArrowEntity/SpectralArrowEntity/TridentEntity/SpearEntity 子类经此自动获得组件。
+    // Step3 将把 m_damage/m_critical/m_pierceLevel/m_inGround 等 13 字段读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileArrowStateComponent>(m_entityContext->entity());
+}
 
 void AbstractArrowEntity::tick()
 {
@@ -485,6 +493,10 @@ ArrowEntity::ArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractArrowEntity(id, registry)
 {
     m_damage = 2.0f;
+    // 批次6 子目标2 Step1：attach ArrowEffectsComponent（药水箭颜色/发光/效果列表）。
+    // 普通弓箭不挂此组件，仅药水箭（Tipped Arrow）实例化 ArrowEntity 后由 setEffects
+    // 填充。Step4 将把 m_color/m_glowing/m_effects 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ArrowEffectsComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -595,6 +607,9 @@ SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id, ecs::EntityRegistr
     : AbstractArrowEntity(id, registry)
 {
     m_damage = 2.0f;
+    // 批次6 子目标2 Step1：attach SpectralArrowComponent（光灵箭发光持续时间）。
+    // Step4 将把 m_glowDuration 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::SpectralArrowComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

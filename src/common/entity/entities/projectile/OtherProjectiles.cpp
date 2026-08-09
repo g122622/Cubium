@@ -56,6 +56,11 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/EvokerFangsComponent.hpp"
+#include "common/entity/ecs/components/EyeOfEnderComponent.hpp"
+#include "common/entity/ecs/components/FireworkRocketComponent.hpp"
+#include "common/entity/ecs/components/FishingBobberComponent.hpp"
+#include "common/entity/ecs/components/ShulkerBulletComponent.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/item/Items.hpp"
@@ -170,6 +175,11 @@ FishingBobberEntity::FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistr
     // 调用的 registerData() 只会执行 Entity::registerData()。
     // 子类必须在此显式调用自身的 registerData() 以注册子类专属数据参数。
     registerData();
+    // 批次6 子目标2 Step1：attach FishingBobberComponent（钓鱼浮标 13 字段）。
+    // FishingBobberEntity 直接继承 Entity 不经 ProjectileEntity，独立 owner（m_angler），
+    // 故不挂 ProjectileOwnerComponent，本组件独立承载 angler 引用。
+    // Step4 将把 m_angler/m_caughtEntity/m_state 等 13 字段读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::FishingBobberComponent>(m_entityContext->entity());
 }
 
 void FishingBobberEntity::registerData()
@@ -864,6 +874,9 @@ ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistr
 {
     setNoGravity(true);
     m_noClip = true; // 穿墙
+    // 批次6 子目标2 Step1：attach ShulkerBulletComponent（目标/方向/步数/增量 5 字段）。
+    // Step4 将把 m_target/m_targetUuid/m_direction/m_flightSteps/m_targetDelta 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ShulkerBulletComponent>(m_entityContext->entity());
 }
 
 ShulkerBulletEntity::ShulkerBulletEntity(
@@ -1214,6 +1227,12 @@ EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& r
     : Entity(id, nullptr, registry)
 {
     m_warmupDelay = 0;
+    // 批次6 子目标2 Step1：attach EvokerFangsComponent（owner/预热/生命 6 字段）。
+    // EvokerFangsEntity 直接继承 Entity 不经 ProjectileEntity，独立 owner（唤魔者），
+    // 故不挂 ProjectileOwnerComponent，本组件独立承载 owner。Step2/4 将把 m_owner/
+    // m_ownerUuid/m_warmupDelay/m_sentAttackEvent/m_lifeTicks/m_clientSideAttackStarted
+    // 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::EvokerFangsComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -1416,6 +1435,10 @@ EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     : Entity(id, nullptr, registry)
 {
     setNoGravity(false);
+    // 批次6 子目标2 Step1：attach EyeOfEnderComponent（目标XZ/存活/碎裂 4 字段）。
+    // EyeOfEnderEntity 直接继承 Entity 不经 ProjectileEntity，故不挂 ProjectileOwnerComponent。
+    // Step4 将把 m_targetX/m_targetZ/m_lifetime/m_break 读写改走组件；Step5 补 DATA_ITEM_STACK。
+    m_entityContext->enttRegistry().emplace<ecs::EyeOfEnderComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -1472,7 +1495,12 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
     , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
-{}
+{
+    // 批次6 子目标2 Step1：attach FireworkRocketComponent（烟花物品/飞行/生命 5 字段）。
+    // Step4 将把 m_fireworkItem/m_flightTime/m_lifetime/m_lifeTime/m_shotFromCrossbow 读写
+    // 改走组件；Step5 补 DATA_FIREWORKS_ITEM/DATA_ATTACHED_TO_TARGET/DATA_SHOT_AT_ANGLE 同步字段。
+    m_entityContext->enttRegistry().emplace<ecs::FireworkRocketComponent>(m_entityContext->entity());
+}
 
 std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {

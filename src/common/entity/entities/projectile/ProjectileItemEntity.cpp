@@ -29,6 +29,9 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ExperienceBottleComponent.hpp"
+#include "common/entity/ecs/components/PotionProjectileComponent.hpp"
+#include "common/entity/ecs/components/ProjectileItemComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
@@ -67,7 +70,12 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 ProjectileItemEntity::ProjectileItemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ThrowableEntity(id, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach ProjectileItemComponent（投掷物承载物品）。
+    // Snowball/Egg/EnderPearl/Potion/ExperienceBottle 经本类继承获得此组件。
+    // Step4 将把 m_itemStack 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileItemComponent>(m_entityContext->entity());
+}
 
 void ProjectileItemEntity::tick()
 {
@@ -255,7 +263,11 @@ void EnderPearlEntity::onImpact(const RayTraceResult& result)
 
 PotionEntity::PotionEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileItemEntity(id, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach PotionProjectileComponent（药水类型 lingering 标志）。
+    // Step4 将把 m_lingering 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::PotionProjectileComponent>(m_entityContext->entity());
+}
 
 std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
@@ -404,7 +416,11 @@ void PotionEntity::onImpact(const RayTraceResult& result)
 
 ExperienceBottleEntity::ExperienceBottleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileItemEntity(id, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach ExperienceBottleComponent（经验瓶释放经验值）。
+    // Step4 将把 m_experience 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ExperienceBottleComponent>(m_entityContext->entity());
+}
 
 std::unique_ptr<Entity> ExperienceBottleEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {

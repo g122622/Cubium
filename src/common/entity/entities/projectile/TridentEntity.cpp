@@ -39,6 +39,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/TridentStateComponent.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -64,6 +65,11 @@ TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 {
     m_damage = 8.0f; // 三叉戟伤害更高
     setPickupStatus(PickupStatus::Allowed);
+    // 批次6 子目标2 Step1：attach TridentStateComponent（三叉戟物品/命中/返回/忠诚 6 字段）。
+    // dealtDamage 复用父类 ProjectileArrowStateComponent::m_dealtDamage 不另存。
+    // Step4 将把 m_tridentStack/m_hitBlock/m_returning/m_hitBlockPos/m_loyaltyLevel/
+    // m_returningTicks 读写改走组件；Step5 补 DATA_LOYALTY/DATA_FOIL 同步字段。
+    m_entityContext->enttRegistry().emplace<ecs::TridentStateComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

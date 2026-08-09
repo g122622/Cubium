@@ -28,6 +28,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/FireballStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -57,6 +58,9 @@ FireballEntity::FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     : AbstractFireballEntity(id, registry)
 {
     setDamage(6.0f);
+    // 批次6 子目标2 Step1：attach FireballStateComponent（火球族状态，本类用 m_explosionPower）。
+    // Step4 将把 m_explosionPower 读写改走组件；Step5 补 DATA_ITEM_STACK 同步字段对齐 vanilla。
+    m_entityContext->enttRegistry().emplace<ecs::FireballStateComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -294,6 +298,9 @@ WitherSkullEntity::WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& r
     : AbstractFireballEntity(id, registry)
 {
     setDamage(8.0f);
+    // 批次6 子目标2 Step1：attach FireballStateComponent（火球族状态，本类用 m_blue）。
+    // Step4 将把 m_blue 读写改走组件；Step5 补 DATA_DANGEROUS 同步字段对齐 vanilla。
+    m_entityContext->enttRegistry().emplace<ecs::FireballStateComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> WitherSkullEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)

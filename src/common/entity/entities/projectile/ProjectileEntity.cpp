@@ -29,6 +29,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/ecs/components/ProjectileOwnerComponent.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
@@ -70,7 +71,14 @@ const EntityClassInfo& ProjectileEntity::classInfo()
 
 ProjectileEntity::ProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
-{}
+{
+    // 批次6 子目标2 Step1：attach ProjectileOwnerComponent（发射者追踪组件）。
+    // 所有 ProjectileEntity 子树（含 Throwable/DamagingProjectile/AbstractArrow/
+    // ShulkerBullet/FireworkRocket 支系）经此自动获得 owner 组件。Step2 将把
+    // m_shooterUuid/m_shooterEntityId/m_leftShooter/m_lastDeflectedById 读写改走组件。
+    // FishingBobber/EvokerFangs/EyeOfEnder 直接继承 Entity 不经本类，各自独立 owner。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileOwnerComponent>(m_entityContext->entity());
+}
 
 bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
 {

@@ -27,6 +27,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/PickupStatus.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -41,15 +42,6 @@ namespace mc {
 // 前向声明 - ItemStack 在 mc 命名空间中
 class ItemStack;
 namespace entity {
-
-/**
- * @brief 箭矢拾取状态
- */
-enum class PickupStatus : u8 {
-    Disallowed,  // 不允许拾取
-    Allowed,     // 允许拾取
-    CreativeOnly // 仅创造模式拾取
-};
 
 /**
  * @brief 抽象箭矢实体基类
