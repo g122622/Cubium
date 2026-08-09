@@ -33,6 +33,21 @@ src/common/entity/ecs/
 │   ├── EntityStateComponent.hpp     # m_air/m_customName/m_customNameVisible/m_silent/m_noGravity/m_pose 6 字段聚合（第四批，所有实体，unique_ptr<ITextComponent> 包裹）
 │   ├── PlayerScoreComponent.hpp     # m_score（第四批，仅 Player，DATA_PLAYER_SCORE 退镜像）
 │   ├── MobFlagComponent.hpp         # 空 struct tag（第五批 5.1，仅 MonsterEntity attach，IMob 接口 tag 层）
+│   ├── ProjectileOwnerComponent.hpp         # shooterUuid/shooterEntityId/leftShooter/lastDeflectedById/hasBeenShot（第六批 6.2，ProjectileEntity 基类 attach，全投掷物族）
+│   ├── ProjectileArrowStateComponent.hpp    # AbstractArrow 13 字段含 dealtDamage（第六批 6.2，Arrow/SpectralArrow/Trident/Spear 共用；与 LivingEntity ArrowStateComponent 重名故加 Projectile 前缀）
+│   ├── TridentStateComponent.hpp            # tridentStack(unique_ptr)/hitBlock/returning/hitBlockPos/loyaltyLevel/returningTicks（第六批 6.2，仅 Trident；dealtDamage 复用父类 ProjectileArrowStateComponent）
+│   ├── DamagingProjectileComponent.hpp      # accelerationXYZ/damage（第六批 6.2，DamagingProjectile 子树=火球族）
+│   ├── FireballStateComponent.hpp           # explosionPower/blue（第六批 6.2，Fireball+WitherSkull 共用）
+│   ├── ArrowEffectsComponent.hpp            # color/glowing/effects(unique_ptr<vector>)（第六批 6.2，仅 ArrowEntity 药水箭）
+│   ├── SpectralArrowComponent.hpp           # glowDuration（第六批 6.2，仅 SpectralArrow）
+│   ├── ProjectileItemComponent.hpp          # itemStack(unique_ptr)（第六批 6.2，ProjectileItemEntity 子树+Spear 共用）
+│   ├── PotionProjectileComponent.hpp        # lingering（第六批 6.2，仅 Potion）
+│   ├── ExperienceBottleComponent.hpp        # experience（第六批 6.2，仅 ExperienceBottle）
+│   ├── WindChargeStateComponent.hpp         # hasBurst/burstCenter/hasBurstCenter（第六批 6.2，仅 WindCharge）
+│   ├── ShulkerBulletComponent.hpp           # target(指针)/targetUuid/direction/flightSteps/targetDelta（第六批 6.2，仅 ShulkerBullet）
+│   ├── FireworkRocketComponent.hpp          # fireworkItem(unique_ptr)/flightTime/lifetime/lifeTime/shotFromCrossbow（第六批 6.2，仅 FireworkRocket）
+│   ├── FishingBobberComponent.hpp           # 13 字段含 angler/caughtEntity/state 等（第六批 6.2，仅 FishingBobber，直接继承 Entity 无 ProjectileOwnerComponent）
+│   ├── EvokerFangsComponent.hpp             # owner(指针)/ownerUuid/warmupDelay/sentAttackEvent/lifeTicks/clientSideAttackStarted（第六批 6.2，仅 EvokerFangs，直接继承 Entity 独立 owner 机制）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
 └── systems/                         # 系统层
@@ -191,3 +206,21 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 - **FallFlying 跨层迁移**：原在 `LivingEntity::addAdditionalSaveData/readAdditionalSaveData` 处理（属 EntityFlags 位标志），本批上提为按 `EntityFlagsComponent` 注册的自由函数（仅依赖 Entity 基类 public 接口 isElytraFlying/addFlag/removeFlag）。须从 LivingEntity 同步删除避免重复写。
 - **Health load 顺序依赖（已化解）**：`setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位，非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内）。`loadAll` 在 `readAdditionalSaveData` 之前调，Health load 时 Attributes NBT 尚未读入，与原顺序一致。`Entry` 保留 `priority` 字段为未来迁 Attributes（priority=100）/ActiveEffects（priority=200）保证顺序。
 - **存档格式不变**：保持 Java 版平铺格式，键名不变，零迁移成本旧存档兼容。`writeToNBT` 被 11 处复用（DataAccessor/EntityResolver/CopyNbtFunction/Template/NBTPredicate/PlayerResolver/EntityDeserializer），改造内部结构对调用方透明。
+
+### 17. projectile 族整块 ECS 化：同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化
+
+**同步字段 id 续接（沿用 FishingBobber 范式）**：投掷物族补齐对齐 vanilla 1.21.11 的 C 类 DataParameter 同步字段。`EntityClassInfo` 父链占位节点机制：无同步字段的中间基类（DamagingProjectile/AbstractFireball）补 `classInfo()` 占位节点（无 `registerData` override），供子类 `ClassRegisterGuard` 沿父链查找最高 id 时穿过续接。子类首字段续接到 id8（Entity 用 id0..7，ProjectileEntity 无同步字段）。不同类树（Fireball vs WitherSkull vs Firework vs AbstractArrow）id 各自从父链续接，同类树内唯一即可，客户端按实体类型分发不冲突（vanilla 行为）。C++ 虚函数在构造函数不派生，子类构造函数须显式调本类 `registerData()`。
+
+**同步字段真相源进组件 + DataParameter 镜像（批次4 模式）**：AbstractArrow DATA_ARROW_FLAGS(u8 位标志 bit0=crit/bit2=shotFromCrossbow)/PIERCE_LEVEL/IN_GROUND、Trident DATA_LOYALTY/DATA_FOIL、FireworkRocket DATA_FIREWORKS_ITEM/ATTACHED_TO_TARGET/SHOT_AT_ANGLE、Fireball DATA_ITEM_STACK、WitherSkull DATA_DANGEROUS、EyeOfEnder DATA_ITEM_STACK。setter 同时写组件+镜像，`syncMetadataFromDataManager` 不回填。位标志字段（DATA_ARROW_FLAGS）用 `_syncArrowFlags()` 辅助聚合 crit+shotFromCrossbow 写回。
+
+**dealtDamage 归属与 load 顺序 priority**：dealtDamage 是 ThrownTrident 的字段但复用父类 `ProjectileArrowStateComponent.m_dealtDamage`（vanilla AbstractArrow 也有此字段仅 Trident 用），不另存。load 顺序靠 priority：`TridentStateComponent`=0 先 load（读 Trident item 调 `setItemStack` 重算 loyalty），`ProjectileArrowStateComponent`=10 后 load（读 dealtDamage）。`loyalty` 不存盘（从 item 忠诚附魔重算，对齐 vanilla ThrownTrident）。
+
+**owner UUID 双 long 格式（非 vanilla 1.21.11 单键）**：vanilla 1.21.11 已改用 `EntityReference` 单一 "Owner" 键。项目沿用 `OwnerUUIDMost/OwnerUUIDLeast` 双 long 格式（与既有 EvokerFangs/AreaEffectCloud 一致，零迁移成本），此为项目既有存档约定。owner 字段无 DataParameter 同步副作用，序列化器直写组件（与 EvokerFangs 既有 OOP 实现一致）。
+
+**FishingBobber 不持久化（对齐 vanilla）**：vanilla `FishingHook` 两个 save 方法体全空（连 Owner 都不存）。项目 `FishingBobberComponent` 不注册序列化器。同理 ArrowEffects/SpectralArrow/Potion/ExperienceBottle/WindCharge 子类 vanilla 无自有 NBT 键（纯继承），不注册序列化器。
+
+**OOP override 删除防双重写入**：EvokerFangs/FireworkRocket/Spear 既有 OOP `addAdditionalSaveData`/`readAdditionalSaveData` override 搬注册表后改空壳（保留 override 声明防未来误加字段）。`Entity::writeToNBT` 先 `saveAll`（注册表）再 `addAdditionalSaveData`（虚函数），删除子类 override 后回落 Entity 基类空实现，否则双重写入键冲突。
+
+**ProjectileItemComponent 跨子树键名分发**：Spear（AbstractArrow 子树）用小写 "item" 键（对齐 vanilla AbstractArrow），ThrowableItemProjectile 子树（Snowball/Egg/Potion/ExperienceBottle/EnderPearl）用 "Item" 键。序列化器按 `dynamic_cast<AbstractArrowEntity*>` 分发键名。
+
+**EyeOfEnder 断链特例**：vanilla EyeOfEnder 覆盖 save 且不调 super（只存 Item 不存 Owner）。项目 EyeOfEnderEntity 直接继承 Entity 无 ProjectileOwnerComponent，与 vanilla 断链语义一致（自然不存 owner）。当前无 item 字段，序列化器占位标 TODO。

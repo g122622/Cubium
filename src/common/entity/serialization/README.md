@@ -14,7 +14,8 @@ src/common/entity/serialization/
 │   ├── ComponentSerializerRegistry.hpp/cpp        # 注册表（进程单例，entt::type_id 键 + 裸函数指针）
 │   ├── EntityComponentSerialization.hpp/cpp        # Entity 层 13 字段（Pos/Motion/Rotation/.../FallFlying）
 │   ├── LivingEntityComponentSerialization.hpp/cpp  # LivingEntity 层 5 字段（Health/.../Equipment）
-│   └── PlayerComponentSerialization.hpp/cpp        # Player 层 Score
+│   ├── PlayerComponentSerialization.hpp/cpp        # Player 层 Score
+│   └── ProjectileComponentSerialization.hpp/cpp    # Projectile 族 10 组件（owner/arrow/trident/fireball/firework/...，第六批 6.2）
 └── README.md
 ```
 
@@ -278,6 +279,8 @@ equipment: {
 | EquipmentComponent | Equipment | `getEquipment`/`setEquipment`（virtual，Player 派发到 PlayerInventory），含旧格式 HandItems/ArmorItems 回退 |
 | PlayerScoreComponent | Score | `getScore`/`setScore`（同步 DATA_PLAYER_SCORE_PARAM 镜像） |
 
+**Projectile 族（第六批 6.2，10 组件，详见下「Projectile 族序列化器」段）**：ProjectileOwnerComponent（owner UUID 双 long + LeftOwner + HasBeenShot，直写组件）、ProjectileArrowStateComponent（AbstractArrow 8 字段 + dealtDamage，priority=10）、TridentStateComponent（Trident item，priority=0 先 load 重算 loyalty）、ProjectileItemComponent（item，按 dynamic_cast 分发 "item"/"Item" 键）、DamagingProjectileComponent（acceleration_power 模长）、FireballStateComponent（ExplosionPower/dangerous）、FireworkRocketComponent（Life/LifeTime/FireworksItem/ShotAtAngle，经 setFireworkItem 重算 flightTime）、EvokerFangsComponent（Warmup + owner UUID）、ShulkerBulletComponent（Target/Dir/Steps/TXD/TYD/TZD）、EyeOfEnderComponent（TODO 占位）。
+
 **核心取舍**：能调 public setter 的优先调（保留 DataParameter 同步副作用）。3 个字段（Pos/Rotation/OnGround）现行 `readFromNBT` 刻意绕过 setter 副作用直写 `m_builtIn.*` 组件，序列化器经 public `tryGetComponent<T>()` 拿同一组件指针直写，语义完全一致（`m_builtIn.stateVector` 就是 `tryGetComponent<StateVectorComponent>()` 返回值）。
 
 ### dynamic_cast 早退
@@ -293,6 +296,26 @@ LivingEntity/Player 层序列化器经 `Entity&` 调用，内部 `dynamic_cast<L
 ### load 顺序依赖
 
 本批 19 字段间无依赖。Health/Absorption 的 `setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位（派生类 MAX_HEALTH 默认值），非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内）。`loadAll` 在 `readAdditionalSaveData` 之前调，Health load 时 Attributes NBT 尚未读入，与原顺序一致。`Entry` 保留 `priority` 字段为未来扩展（Attributes priority=100 / ActiveEffects priority=200 保证顺序），`loadAll` 按 priority 升序遍历，`saveAll` 无序。
+
+### Projectile 族序列化器（批次6 子目标2）
+
+`ProjectileComponentSerialization.hpp/.cpp` 注册投掷物族 20 个类的特有持久化字段，对齐 vanilla 1.21.11 各 projectile 类的 `addAdditionalSaveData`/`readAdditionalSaveData`。10 个序列化器按承载组件注册，序列化器内部 `tryGetComponent<T>()` 早退（无组件实体不参与）。
+
+**load 顺序 priority 首次启用**：`TridentStateComponent`=0 先 load（读 Trident item 调 `TridentEntity::setItemStack` 重算 loyalty + 镜像同步 DATA_LOYALTY/DATA_FOIL），`ProjectileArrowStateComponent`=10 后 load（读 dealtDamage，复用父组件字段须晚于 TridentState）。其余 8 组件 priority=0（无跨组件依赖）。这是注册表 `priority` 字段首次实际使用（子目标1 全 0）。
+
+**owner UUID 双 long 格式**：vanilla 1.21.11 已改用 `EntityReference` 单一 "Owner" 键。项目沿用 `OwnerUUIDMost/OwnerUUIDLeast` 双 long（与既有 EvokerFangs/AreaEffectCloud 一致，零迁移成本）。`writeOwnerUuid`/`readOwnerUuid` 辅助函数复用。owner 字段无 DataParameter 同步副作用，直写组件。
+
+**对齐 vanilla 的持久化裁剪**：
+- FishingBobber 不持久化（vanilla `FishingHook` 两个 save 方法体全空，连 Owner 都不存），`FishingBobberComponent` 不注册序列化器。
+- ArrowEffects/SpectralArrow/Potion/ExperienceBottle/WindCharge 子类 vanilla 无自有 NBT 键（纯继承 Projectile owner + 父类字段），不注册序列化器。
+- loyalty 不存盘（从 item 忠诚附魔重算，对齐 vanilla ThrownTrident）。
+- EyeOfEnder vanilla 只存 Item 不存 Owner（断链特例），项目 EyeOfEnderEntity 直接继承 Entity 无 ProjectileOwnerComponent，与 vanilla 语义一致；当前无 item 字段，序列化器占位标 TODO。
+
+**OOP override 删除防双重写入**：EvokerFangs/FireworkRocket/Spear 既有 OOP `addAdditionalSaveData`/`readAdditionalSaveData` override 搬注册表后改空壳（保留 override 声明）。`Entity::writeToNBT` 先 `saveAll`（注册表）再 `addAdditionalSaveData`（虚函数），删除子类 override 后回落 Entity 基类空实现，否则双重写入键冲突。
+
+**DamagingProjectile 字段结构差异（TODO）**：vanilla `AbstractHurtingProjectile` 存单一 `acceleration_power`(double)，项目分 XYZ 三分量。存盘取模长，读盘均分到三分量（方向信息丢失，待字段结构统一后修正）。
+
+**FireballStateComponent 共用组件分发**：Fireball（ExplosionPower）与 WitherSkull（dangerous）共用此组件。两键都写（vanilla 客户端按实体类型只读其一），TODO 补精确类型判定后单键分发。注意 vanilla Fireball 存 Item 不存 ExplosionPower（ExplosionPower 是 LargeFireball/恶魂的键），项目 FireballEntity 用 m_explosionPower 作爆炸威力，此为项目既有设计差异。
 
 ## 参考
 

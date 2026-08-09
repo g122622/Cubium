@@ -180,7 +180,31 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 - 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests）。
 - GameTest 回归：核心场景全过——cloneBlocksCommand（结构 NBT 实体序列化）/ simpleMobTest（fox 属性/寻路）/ zombie_villager_chase / iron_golem_arena（怪物 AI，LivingEntity 序列化）/ alwaysSucceed / minibiomes。zoglin_float/collapsing/simpleMobTest 偶发超时为已知 flaky 群（shulker AI 时序 + 光照引擎 TOCTOU，记忆 `ecs-migration-batch2-landed` 记录非本批引入），多次复跑每次失败的是 flaky 三元组内不同子集，无固定失败。Player Score 序列化路径不在 mob GameTest 覆盖范围（无玩家存档重载测试），靠代码逻辑等价性保证（save 走 getScore，load 走 setScore，与原 readAdditionalSaveData 完全一致）。
 
-**暂未处理**：`tests/` 仍不透传 registry（永久约束）。48 个纯 OOP 字段（Player 背包/FoodStats/ExperienceManager/ActiveEffects/Attributes/MobEntity 全层等）仍走 `addAdditionalSaveData`/`readAdditionalSaveData` 虚函数，留待后续批次随组件化逐步迁入注册表。批次6 子目标2（projectile 族整块 ECS 化）/子目标3（Brain 模板实例化重构为泛型 System）待办。
+**暂未处理**：`tests/` 仍不透传 registry（永久约束）。48 个纯 OOP 字段（Player 背包/FoodStats/ExperienceManager/ActiveEffects/Attributes/MobEntity 全层等）仍走 `addAdditionalSaveData`/`readAdditionalSaveData` 虚函数，留待后续批次随组件化逐步迁入注册表。批次6 子目标3（Brain 模板实例化重构为泛型 System）待办。
+
+## 第六批子目标2：projectile 族整块 ECS 化（2026-08-09 落地）
+
+projectile 族（20 个类，3 个继承根：ProjectileEntity 子树 / FishingBobber / EvokerFangs / EyeOfEnder）的特有状态字段仍全是 OOP 成员，且存在三处与 vanilla 1.21.11 的系统性偏差：网络同步缺口（除 FishingBobber 外全无 C 类 DataParameter，客户端拿不到暴击/插地/owner 等状态）、持久化缺口（箭/三叉戟整族不存盘，owner UUID 全族完全不持久化）、m_noGravity 遮蔽双真相源 bug（批次4 遗留）。本批目标：全族整块 ECS 化 + 补齐网络同步字段 + 补齐持久化 + 先修 bug。分 8 步（Step0 修 bug → Step1 组件骨架 → Step2 owner ECS 化 → Step3 AbstractArrow 13 字段 → Step4 叶子类组件化 → Step5 同步字段补齐 → Step6 持久化补齐 → Step7 验证+文档）。
+
+**已交付**：
+- **Step0（修 m_noGravity 遮蔽 bug，commit b0eaf2e0b）**：删 `ProjectileEntity.hpp` 重声明的 `m_noGravity` 成员 + inline getter/setter，让调用回落基类 `Entity::hasNoGravity/setNoGravity`（走 EntityStateComponent / DATA_NO_GRAVITY 镜像）。此前火球/潜影贝子弹 `setNoGravity(true)` 只写子类成员，组件+镜像恒假，客户端见 projectile 受重力下坠。
+- **Step1（组件骨架+attach，commit b75feec14）**：新建 16 个 projectile 族组件头文件（`src/common/entity/ecs/components/`），纯 struct 数据。不可移动类型（unordered_set/ItemStack/vector）用 `unique_ptr<T>` 包裹（沿用 AttributeComponent 范式）。各 projectile 构造函数 attach 对应组件。CMake 登记新头。组件与 OOP 字段并存空跑（不删 OOP 字段）。
+- **Step2（owner ECS 化，commit f262e0b76）**：ProjectileEntity 5 字段（shooterUuid/shooterEntityId/leftShooter/lastDeflectedById/hasBeenShot）迁入 `ProjectileOwnerComponent`。`getShooter`/`setShooter`/`hasLeftShooter`/`checkLeftShooter` 改走 `tryGetComponent`。getShooter nullptr 安全降级，setShooter nullptr 断言（attach 硬约束）。35 处 owner 调用点签名不变。EvokerFangs 6 字段迁 EvokerFangsComponent（独立 owner 机制）。FishingBobber m_angler 迁 FishingBobberComponent。
+- **Step3（AbstractArrow 13 字段，commit a6e0873be）**：AbstractArrowEntity 13 字段（damage/knockback/critical/pierceLevel/inGround/ticksInGround/timeInGround/arrowShake/pickupStatus/shotFromCrossbow/dealtDamage/piercedEntities/inBlockState）迁入 `ProjectileArrowStateComponent`（注意与 LivingEntity 既有 `ArrowStateComponent` 重名故加 Projectile 前缀）。ArrowEntity/SpectralArrowEntity/TridentEntity/SpearEntity 子类对父字段访问改组件。
+- **Step4（叶子类+直系支系组件化，commit f90869013）**：ArrowEntity→ArrowEffectsComponent、SpectralArrow→SpectralArrowComponent、Fireball/WitherSkull→FireballStateComponent（共用）、Potion→PotionProjectileComponent、ExperienceBottle→ExperienceBottleComponent、ProjectileItemEntity→ProjectileItemComponent、WindCharge→WindChargeStateComponent、DamagingProjectile→DamagingProjectileComponent、ShulkerBullet→ShulkerBulletComponent、FireworkRocket→FireworkRocketComponent、Trident→TridentStateComponent、EyeOfEnder→EyeOfEnderComponent。各类 getter/setter 改组件读写，删 OOP 字段声明。
+- **Step5（同步字段补齐，commit 4374e2f46）**：补齐对齐 vanilla 1.21.11 的 C 类 DataParameter：AbstractArrow DATA_ARROW_FLAGS(u8 位标志 bit0=crit/bit2=shotFromCrossbow)/PIERCE_LEVEL/IN_GROUND（id8/9/10）、Trident DATA_LOYALTY/DATA_FOIL（id11/12）、FireworkRocket DATA_FIREWORKS_ITEM/ATTACHED_TO_TARGET/SHOT_AT_ANGLE（id8/9/10）、Fireball DATA_ITEM_STACK（id8 占位）、WitherSkull DATA_DANGEROUS（id8 镜像 m_blue）、EyeOfEnder DATA_ITEM_STACK（id8 占位）。中间基类 DamagingProjectile/AbstractFireball 补 classInfo 占位节点（无字段，无 registerData override）。同步字段真相源进组件 + DataParameter 镜像（批次4 模式），构造函数显式调 registerData。客户端消费分支留 TODO（真 Java 客户端通过 SetEntityData 自行消费）。
+- **Step6（持久化补齐，commit cf7b41f1b）**：新建 `ProjectileComponentSerialization.hpp/.cpp`，注册 10 个组件序列化器到 ComponentSerializerRegistry。对齐 vanilla 1.21.11 各 projectile 类持久化字段清单。owner UUID 用双 long（OwnerUUIDMost/Least，与 EvokerFangs/AreaEffectCloud 一致非 vanilla EntityReference 单键）。dealtDamage 归父组件 ProjectileArrowStateComponent，load 顺序 priority 首次启用（TridentState=0 先 load 重算 loyalty，ArrowState=10 后 load dealtDamage）。loyalty 不存盘（从 item 重算）。EvokerFangs/FireworkRocket/Spear 既有 OOP override 改空壳（搬注册表防双重写入）。FishingBobber 不持久化（对齐 vanilla FishingHook 空实现）。
+
+**验证**：增量构建 minecraft-server+minecraft-client 零错误；GameTest 8/8 零回归（zoglin_float 偶发 flaky 超时复跑即过）。客户端手测渲染（暴击粒子/三叉戟光泽/凋灵之首蓝色）属独立子任务，服务端同步字段补齐即可让真 Java 客户端正常渲染。
+
+**关键设计决策**：
+- **dealtDamage 归属**：放 ProjectileArrowStateComponent（vanilla AbstractArrow 也有此字段仅 Trident 用），TridentEntity 复用父类字段不另存。load 顺序靠 priority（TridentState=0 先 load item 重算 loyalty，ArrowState=10 后 load dealtDamage）。
+- **组件命名**：箭矢状态组件须叫 `ProjectileArrowStateComponent`（既有 `ecs::ArrowStateComponent` 是 LivingEntity 箭矢计数，重名冲突）。
+- **owner 持久化格式**：双 long（OwnerUUIDMost/Least），与 EvokerFangs 现有实现一致，不走 vanilla EntityReference compound。
+- **同步字段真相源**：进组件 + DataParameter 镜像（批次4 模式），客户端 syncMetadataFromDataManager 扩展 id 范围。
+- **序列化走注册表**：本批字段全组件化，全走子目标1 的 ComponentSerializerRegistry（非 OOP 虚函数）。
+
+**暂未处理**：Fireball/EyeOfEnder 的 item 字段项目当前无（vanilla 持久化 Item），序列化器占位标 TODO 待补。DamagingProjectile acceleration_power 方向信息存盘丢失（项目 XYZ 三分量 vs vanilla 单值，TODO 待字段结构统一）。客户端 ClientEntity 投掷物族消费分支待配套渲染器集成时补。`tests/` 仍不透传 registry（永久约束）。
 
 ## 后续批次路线（备忘，未落地）
 
