@@ -12,7 +12,7 @@ description: 基于现有集成测试框架，为项目增加集成测试，以�
 1. 调用 `docs\minecraft-wiki-source\.claude\skills\minecraft-wiki-retrieval\SKILL.md` 中的 `minecraft-wiki-retrieval` 技能，根据用户指定的范围，检索原版MC的行为、数据、逻辑等的wiki原文，并将检索结果作为参考。
 2. 思考要设计怎样的集成测试。设计准则见下面章节。
 3. 开始着手编写typescript测试用例。必须参考现有测试用例的语法和结构，以及随时查询官方ScriptAPI的文档：E:\dev\MC\Mods\minecraft-creator\creator\ScriptAPI\minecraft\server-gametest
-4. 有时候测试失败、崩溃的原因可能不在于测试用例或者被测代码本身，而是项目的集成测试框架、脚本系统等的bug导致的（这里的bug多种多样，比如：api实际行为与官方文档不一致或与实际基岩版api不一致、api未完整实现等）。这种情况下请修复、补全集成测试框架、脚本系统等的bug，确保测试用例能够顺利运行，然后继续编写测试用例。
+4. 有时候测试失败、崩溃的原因可能不在于测试用例或者被测代码本身，而是项目的集成测试框架、脚本系统等的bug导致的（这里的bug多种多样，比如：api实际行为与官方文档不一致或与实际基岩版api不一致、api未完整实现等）。这种情况下请修复、补全集成测试框架、脚本系统等的bug，确保测试用例能够顺利运行，然后继续编写测试用例。脚本系统可从src\common\mod\bedrock\addon\modules\MinecraftModuleFactory.cpp入手。
 
 # 3. 集成测试设计准则和案例
 
