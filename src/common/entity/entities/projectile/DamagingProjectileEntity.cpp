@@ -45,6 +45,49 @@ DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::Ent
     m_entityContext->enttRegistry().emplace<ecs::DamagingProjectileComponent>(m_entityContext->entity());
 }
 
+// 批次6 子目标2 Step4：以下 getter/setter 经 ecs::DamagingProjectileComponent 读写。
+f32 DamagingProjectileEntity::accelerationX() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationX : 0.0f;
+}
+
+f32 DamagingProjectileEntity::accelerationY() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationY : 0.0f;
+}
+
+f32 DamagingProjectileEntity::accelerationZ() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationZ : 0.0f;
+}
+
+void DamagingProjectileEntity::setAcceleration(f32 x, f32 y, f32 z)
+{
+    auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    if (c != nullptr) {
+        c->m_accelerationX = x;
+        c->m_accelerationY = y;
+        c->m_accelerationZ = z;
+    }
+}
+
+f32 DamagingProjectileEntity::damage() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_damage : 0.0f;
+}
+
+void DamagingProjectileEntity::setDamage(f32 damage)
+{
+    auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    if (c != nullptr) {
+        c->m_damage = damage;
+    }
+}
+
 void DamagingProjectileEntity::tick()
 {
     tryUpdateLeftShooter();
@@ -75,9 +118,12 @@ void DamagingProjectileEntity::tick()
         spawnWaterParticles();
     }
 
-    m_builtIn.velocity->m_velocity = Vector3((velocity.x + m_accelerationX) * motionFactor,
-        (velocity.y + m_accelerationY) * motionFactor,
-        (velocity.z + m_accelerationZ) * motionFactor);
+    const auto* dmg = tryGetComponent<ecs::DamagingProjectileComponent>();
+    const f32 ax = dmg ? dmg->m_accelerationX : 0.0f;
+    const f32 ay = dmg ? dmg->m_accelerationY : 0.0f;
+    const f32 az = dmg ? dmg->m_accelerationZ : 0.0f;
+    m_builtIn.velocity->m_velocity =
+        Vector3((velocity.x + ax) * motionFactor, (velocity.y + ay) * motionFactor, (velocity.z + az) * motionFactor);
 
     // 生成拖尾粒子，位置 Y+0.5 偏移
     spawnTrailParticles(Vector3(nextPosition.x, nextPosition.y + 0.5f, nextPosition.z));

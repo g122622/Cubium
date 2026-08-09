@@ -80,6 +80,8 @@ std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegi
 
 void TridentEntity::tick()
 {
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+
     // 检查是否应该开始返回
     if (timeInGround() > 4) {
         setDealtDamage(true);
@@ -88,7 +90,7 @@ void TridentEntity::tick()
     // 检查忠诚附魔状态
     Entity* shooter = getShooter();
     if ((hasDealtDamage() || isInGround()) && shooter != nullptr) {
-        const i32 loyaltyLevel = m_loyaltyLevel;
+        const i32 loyaltyLevel = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
 
         if (loyaltyLevel > 0 && !_shouldReturnToThrower()) {
             // 忠诚附魔但无法返回（射手已死亡或是旁观者模式），掉落物品
@@ -159,11 +161,14 @@ void TridentEntity::_tickReturning()
     // 更新旋转朝向运动方向
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const i32 loyalty = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
+
     // Y轴微小偏移
-    m_builtIn.stateVector->m_pos.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
+    m_builtIn.stateVector->m_pos.y += direction.y * 0.015f * static_cast<f32>(loyalty);
 
     // 返回速度
-    f32 speed = 0.05f * static_cast<f32>(m_loyaltyLevel);
+    f32 speed = 0.05f * static_cast<f32>(loyalty);
 
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
     Vector3 currentVel = m_builtIn.velocity->m_velocity;
@@ -185,10 +190,13 @@ void TridentEntity::_tickReturning()
     }
 
     // 播放返回音效（首次）
-    if (m_returningTicks == 0) {
+    const i32 retTicks = trident ? trident->m_returningTicks : 0;
+    if (retTicks == 0) {
         playSound(SoundEvents::ITEM_TRIDENT_RETURN, 10.0f, 1.0f);
     }
-    ++m_returningTicks;
+    if (trident != nullptr) {
+        ++trident->m_returningTicks;
+    }
 
     // 检查是否在水中，生成气泡粒子
     if (isInWater() && m_world) {
@@ -212,17 +220,21 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
     Entity* target = result.hitEntity;
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const bool hasStack =
+        (trident != nullptr && trident->m_tridentStack != nullptr && !trident->m_tridentStack->isEmpty());
+
     // 计算基础伤害
     f32 damage = 8.0f;
 
     // 应用穿刺附魔伤害（对水生生物造成额外伤害，每级 2.5 点）
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
-    if (livingTarget != nullptr && !m_tridentStack.isEmpty()) {
+    if (livingTarget != nullptr && hasStack) {
         // 获取目标的生物属性类型
         CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
         // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
-        damage +=
-            mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(m_tridentStack, static_cast<u32>(creatureType));
+        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
+            *trident->m_tridentStack, static_cast<u32>(creatureType));
     }
 
     // 获取射击者
@@ -259,7 +271,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 引雷附魔
     if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
         // 检查是否有引雷附魔
-        if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
+        if (hasStack && mc::item::enchant::EnchantmentHelper::hasChanneling(*trident->m_tridentStack)) {
             // 检查是否在雷暴天气且能看到天空
             BlockPos targetPos(
                 static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
@@ -304,8 +316,11 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 void TridentEntity::onBlockHit(const RayTraceResult& result)
 {
     setInGround(true);
-    m_hitBlock = true;
-    m_hitBlockPos = result.blockPos;
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    if (trident != nullptr) {
+        trident->m_hitBlock = true;
+        trident->m_hitBlockPos = result.blockPos;
+    }
 
     auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
     // 保存方块状态
@@ -349,9 +364,13 @@ void TridentEntity::setBaseDamageFromMob(f32 power)
 
 void TridentEntity::setItemStack(const ItemStack& stack)
 {
-    m_tridentStack = stack;
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    if (trident == nullptr || trident->m_tridentStack == nullptr) {
+        return;
+    }
+    *trident->m_tridentStack = stack;
     // 从物品堆获取忠诚附魔等级
-    m_loyaltyLevel =
+    trident->m_loyaltyLevel =
         static_cast<u8>(mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
 }
 
@@ -381,12 +400,16 @@ bool TridentEntity::onPlayerPickup(Player& player)
         return false;
     }
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const bool hasStack =
+        (trident != nullptr && trident->m_tridentStack != nullptr && !trident->m_tridentStack->isEmpty());
+
     // 只有 Allowed 状态才检查背包空间
     // 三叉戟的 pickupStatus 通常是 Allowed，所以总是检查背包
-    if (!m_tridentStack.isEmpty()) {
-        i32 added = player.inventory().add(m_tridentStack);
+    if (hasStack) {
+        i32 added = player.inventory().add(*trident->m_tridentStack);
         // 三叉戟只能有一个，检查是否成功添加
-        if (m_tridentStack.getCount() > 0) {
+        if (trident->m_tridentStack->getCount() > 0) {
             return false; // 背包满了
         }
     }
@@ -402,11 +425,80 @@ bool TridentEntity::onPlayerPickup(Player& player)
 
 void TridentEntity::tickInGroundTrident()
 {
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const i32 loyalty = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑
-    if (pickupStatus() != PickupStatus::Allowed || m_loyaltyLevel <= 0) {
+    if (pickupStatus() != PickupStatus::Allowed || loyalty <= 0) {
         AbstractArrowEntity::tickInGround();
     }
     // 否则不超时，等待返回
+}
+
+// 批次6 子目标2 Step4：以下 getter/setter 经 ecs::TridentStateComponent 读写。
+ItemStack TridentEntity::getItemStack() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr && c->m_tridentStack != nullptr) ? *c->m_tridentStack : ItemStack();
+}
+
+ItemStack TridentEntity::getArrowStack() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr && c->m_tridentStack != nullptr) ? c->m_tridentStack->copy() : ItemStack();
+}
+
+bool TridentEntity::isReturning() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_returning : false;
+}
+
+void TridentEntity::setReturning(bool returning)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_returning = returning;
+    }
+}
+
+bool TridentEntity::hasHitBlock() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_hitBlock : false;
+}
+
+BlockPos TridentEntity::hitBlockPos() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_hitBlockPos : BlockPos{};
+}
+
+u8 TridentEntity::loyaltyLevel() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_loyaltyLevel : 0;
+}
+
+void TridentEntity::setLoyaltyLevel(u8 level)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_loyaltyLevel = level;
+    }
+}
+
+i32 TridentEntity::returningTicks() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_returningTicks : 0;
+}
+
+void TridentEntity::setReturningTicks(i32 ticks)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_returningTicks = ticks;
+    }
 }
 
 } // namespace entity

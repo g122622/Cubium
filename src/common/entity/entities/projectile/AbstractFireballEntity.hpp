@@ -66,15 +66,14 @@ public:
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
 
-    [[nodiscard]] i32 explosionPower() const { return m_explosionPower; }
-    void setExplosionPower(i32 power) { m_explosionPower = power; }
+    [[nodiscard]] i32 explosionPower() const;
+    void setExplosionPower(i32 power);
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 
-private:
-    i32 m_explosionPower = 1;
+    // 批次6 子目标2 Step4：m_explosionPower 迁入 ecs::FireballStateComponent（与 WitherSkull 共用）。
 };
 
 class SmallFireballEntity : public AbstractFireballEntity {
@@ -126,8 +125,8 @@ public:
     [[nodiscard]] f32 width() const override { return 0.3125f; }
     [[nodiscard]] f32 height() const override { return 0.3125f; }
 
-    [[nodiscard]] bool isBlue() const { return m_blue; }
-    void setBlue(bool blue) { m_blue = blue; }
+    [[nodiscard]] bool isBlue() const;
+    void setBlue(bool blue);
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -138,8 +137,7 @@ protected:
     // 凋灵之首不燃烧
     [[nodiscard]] bool isFiery() const override;
 
-private:
-    bool m_blue = false;
+    // 批次6 子目标2 Step4：m_blue 迁入 ecs::FireballStateComponent（与 Fireball 共用）。
 };
 
 } // namespace entity

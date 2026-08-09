@@ -94,7 +94,7 @@ void FireballEntity::onEntityHit(const RayTraceResult& result)
             : world::explosion::ExplosionMode::None;
 
         worldPtr->createExplosion(result.hitPosition,
-            static_cast<f32>(m_explosionPower),
+            static_cast<f32>(explosionPower()),
             mode,
             true, // 产生火焰
             shooter);
@@ -116,13 +116,28 @@ void FireballEntity::onBlockHit(const RayTraceResult& result)
             : world::explosion::ExplosionMode::None;
 
         worldPtr->createExplosion(result.hitPosition,
-            static_cast<f32>(m_explosionPower),
+            static_cast<f32>(explosionPower()),
             mode,
             true, // 产生火焰
             shooter);
     }
 
     remove();
+}
+
+// 批次6 子目标2 Step4：Fireball/WitherSkull 状态字段经 ecs::FireballStateComponent 读写。
+i32 FireballEntity::explosionPower() const
+{
+    const auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    return (c != nullptr) ? c->m_explosionPower : 1;
+}
+
+void FireballEntity::setExplosionPower(i32 power)
+{
+    auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    if (c != nullptr) {
+        c->m_explosionPower = power;
+    }
 }
 
 SmallFireballEntity::SmallFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
@@ -393,7 +408,7 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
 
         // 蓝色凋灵之首（dangerous skull）使用特殊爆炸上下文，
         // 可以穿透高抗性方块（黑曜石等），但不能破坏 WITHER_IMMUNE 方块（基岩等）
-        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, m_blue);
+        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, isBlue());
 
         worldPtr->createExplosionWithContext(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS,
@@ -420,7 +435,7 @@ void WitherSkullEntity::onBlockHit(const RayTraceResult& result)
 
         // 蓝色凋灵之首（dangerous skull）使用特殊爆炸上下文，
         // 可以穿透高抗性方块（黑曜石等），但不能破坏 WITHER_IMMUNE 方块（基岩等）
-        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, m_blue);
+        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, isBlue());
 
         worldPtr->createExplosionWithContext(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS,
@@ -436,13 +451,27 @@ void WitherSkullEntity::onBlockHit(const RayTraceResult& result)
 f32 WitherSkullEntity::getMotionFactor() const
 {
     // 蓝色凋灵之首运动因子为 0.73，普通为 0.95
-    return m_blue ? 0.73f : 0.95f;
+    return isBlue() ? 0.73f : 0.95f;
 }
 
 bool WitherSkullEntity::isFiery() const
 {
     // 凋灵之首不燃烧
     return false;
+}
+
+bool WitherSkullEntity::isBlue() const
+{
+    const auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    return (c != nullptr) ? c->m_blue : false;
+}
+
+void WitherSkullEntity::setBlue(bool blue)
+{
+    auto* c = tryGetComponent<ecs::FireballStateComponent>();
+    if (c != nullptr) {
+        c->m_blue = blue;
+    }
 }
 
 } // namespace entity

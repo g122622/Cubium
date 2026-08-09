@@ -62,13 +62,13 @@ public:
     /**
      * @brief 获取三叉戟物品堆
      */
-    [[nodiscard]] ItemStack getItemStack() const { return m_tridentStack; }
+    [[nodiscard]] ItemStack getItemStack() const;
 
     /**
      * @brief 获取箭矢对应的物品堆（AbstractArrowEntity 接口实现）
      * @return 三叉戟物品堆副本
      */
-    [[nodiscard]] ItemStack getArrowStack() const override { return m_tridentStack.copy(); }
+    [[nodiscard]] ItemStack getArrowStack() const override;
 
     /**
      * @brief 设置三叉戟物品堆（同时更新附魔等级）
@@ -78,32 +78,42 @@ public:
     /**
      * @brief 是否在返回中（忠诚附魔）
      */
-    [[nodiscard]] bool isReturning() const { return m_returning; }
+    [[nodiscard]] bool isReturning() const;
 
     /**
      * @brief 设置返回状态
      */
-    void setReturning(bool returning) { m_returning = returning; }
+    void setReturning(bool returning);
 
     /**
      * @brief 是否已击中方块（插入方块）
      */
-    [[nodiscard]] bool hasHitBlock() const { return m_hitBlock; }
+    [[nodiscard]] bool hasHitBlock() const;
 
     /**
      * @brief 击中方块的坐标
      */
-    [[nodiscard]] BlockPos hitBlockPos() const { return m_hitBlockPos; }
+    [[nodiscard]] BlockPos hitBlockPos() const;
 
     /**
      * @brief 获取忠诚附魔等级
      */
-    [[nodiscard]] u8 loyaltyLevel() const { return m_loyaltyLevel; }
+    [[nodiscard]] u8 loyaltyLevel() const;
 
     /**
      * @brief 设置忠诚附魔等级
      */
-    void setLoyaltyLevel(u8 level) { m_loyaltyLevel = level; }
+    void setLoyaltyLevel(u8 level);
+
+    /**
+     * @brief 获取返回计时器
+     */
+    [[nodiscard]] i32 returningTicks() const;
+
+    /**
+     * @brief 设置返回计时器
+     */
+    void setReturningTicks(i32 ticks);
 
     /**
      * @brief 获取水中阻力
@@ -145,12 +155,8 @@ protected:
      */
     bool _shouldReturnToThrower();
 
-    ItemStack m_tridentStack; // 三叉戟物品
-    bool m_hitBlock = false;  // 是否击中方块
-    bool m_returning = false; // 是否在返回中
-    BlockPos m_hitBlockPos;   // 击中方块的坐标
-    u8 m_loyaltyLevel = 0;    // 忠诚附魔等级
-    i32 m_returningTicks = 0; // 返回计时器
+    // 批次6 子目标2 Step4：m_tridentStack/m_hitBlock/m_returning/m_hitBlockPos/
+    // m_loyaltyLevel/m_returningTicks 迁入 ecs::TridentStateComponent。
 };
 
 } // namespace entity

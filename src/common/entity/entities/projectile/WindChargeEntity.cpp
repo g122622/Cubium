@@ -133,11 +133,15 @@ void WindChargeEntity::onBlockHit(const RayTraceResult& result)
     // 命中方块时，将风爆中心沿命中面法线偏移
     // 对应 MC: Vec3.atLowerCornerOf(result.direction.getNormal()).multiply(0.25, 0.25, 0.25)
     if (result.type == RayTraceResultType::Block) {
-        const BlockPos& hitPos = result.blockPos;
-        // 将命中方块的坐标乘以 0.25 作为偏移量
-        m_burstCenter = Vector3(
-            static_cast<f32>(hitPos.x) * 0.25f, static_cast<f32>(hitPos.y) * 0.25f, static_cast<f32>(hitPos.z) * 0.25f);
-        m_hasBurstCenter = true;
+        auto* wind = tryGetComponent<ecs::WindChargeStateComponent>();
+        if (wind != nullptr) {
+            const BlockPos& hitPos = result.blockPos;
+            // 将命中方块的坐标乘以 0.25 作为偏移量
+            wind->m_burstCenter = Vector3(static_cast<f32>(hitPos.x) * 0.25f,
+                static_cast<f32>(hitPos.y) * 0.25f,
+                static_cast<f32>(hitPos.z) * 0.25f);
+            wind->m_hasBurstCenter = true;
+        }
     }
 
     // 命中方块后触发风爆
@@ -178,18 +182,22 @@ f32 WindChargeEntity::getKnockbackMultiplier() const
 
 Vector3 WindChargeEntity::getBurstCenter() const
 {
-    if (m_hasBurstCenter) {
-        return m_burstCenter;
+    const auto* wind = tryGetComponent<ecs::WindChargeStateComponent>();
+    if (wind != nullptr && wind->m_hasBurstCenter) {
+        return wind->m_burstCenter;
     }
     return position();
 }
 
 void WindChargeEntity::applyWindBurst()
 {
-    if (m_hasBurst) {
+    auto* wind = tryGetComponent<ecs::WindChargeStateComponent>();
+    if (wind != nullptr && wind->m_hasBurst) {
         return;
     }
-    m_hasBurst = true;
+    if (wind != nullptr) {
+        wind->m_hasBurst = true;
+    }
 
     if (m_world == nullptr) {
         return;

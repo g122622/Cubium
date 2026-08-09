@@ -83,6 +83,21 @@ void ProjectileItemEntity::tick()
     // 气泡粒子已在 ThrowableEntity::tick() 中处理，此处无需重复
 }
 
+// 批次6 子目标2 Step4：m_itemStack 迁入 ecs::ProjectileItemComponent。
+ItemStack ProjectileItemEntity::getItemStack() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? *c->m_itemStack : ItemStack();
+}
+
+void ProjectileItemEntity::setItemStack(const ItemStack& stack)
+{
+    auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    if (c != nullptr && c->m_itemStack != nullptr) {
+        *c->m_itemStack = stack;
+    }
+}
+
 // ============================================================================
 // SnowballEntity
 // ============================================================================
@@ -284,7 +299,8 @@ const Item* PotionEntity::getDefaultItem() const
 void PotionEntity::onImpact(const RayTraceResult& result)
 {
     // 获取药水效果
-    auto effects = potion::PotionUtils::getEffects(m_itemStack);
+    const ItemStack itemStack = getItemStack();
+    auto effects = potion::PotionUtils::getEffects(itemStack);
 
     // 喷溅药水影响范围为 4.0 格
     constexpr f32 SPLASH_RADIUS = 4.0f;
@@ -356,7 +372,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         }
 
         // 如果是滞留型药水，创建区域效果云
-        if (m_lingering) {
+        if (isLingering()) {
             // ECS 迁移：实体构造需要 registry 句柄（m_world 为投射物所属世界，此处必非空）
             auto* registry = m_world->entityRegistry();
             if (registry == nullptr) {
@@ -399,7 +415,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
             }
 
             // 设置颜色（如果药水有自定义颜色）
-            u32 potionColor = potion::PotionUtils::getColor(m_itemStack);
+            u32 potionColor = potion::PotionUtils::getColor(itemStack);
             cloud->setColor(potionColor);
 
             // 生成效果云实体
@@ -471,6 +487,36 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
     }
 
     remove();
+}
+
+// 批次6 子目标2 Step4：m_lingering 迁入 ecs::PotionProjectileComponent。
+bool PotionEntity::isLingering() const
+{
+    const auto* c = tryGetComponent<ecs::PotionProjectileComponent>();
+    return (c != nullptr) ? c->m_lingering : false;
+}
+
+void PotionEntity::setLingering(bool lingering)
+{
+    auto* c = tryGetComponent<ecs::PotionProjectileComponent>();
+    if (c != nullptr) {
+        c->m_lingering = lingering;
+    }
+}
+
+// 批次6 子目标2 Step4：m_experience 迁入 ecs::ExperienceBottleComponent。
+i32 ExperienceBottleEntity::experience() const
+{
+    const auto* c = tryGetComponent<ecs::ExperienceBottleComponent>();
+    return (c != nullptr) ? c->m_experience : 0;
+}
+
+void ExperienceBottleEntity::setExperience(i32 exp)
+{
+    auto* c = tryGetComponent<ecs::ExperienceBottleComponent>();
+    if (c != nullptr) {
+        c->m_experience = exp;
+    }
 }
 
 } // namespace entity

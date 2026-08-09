@@ -54,19 +54,14 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 accelerationX() const { return m_accelerationX; }
-    [[nodiscard]] f32 accelerationY() const { return m_accelerationY; }
-    [[nodiscard]] f32 accelerationZ() const { return m_accelerationZ; }
+    [[nodiscard]] f32 accelerationX() const;
+    [[nodiscard]] f32 accelerationY() const;
+    [[nodiscard]] f32 accelerationZ() const;
 
-    void setAcceleration(f32 x, f32 y, f32 z)
-    {
-        m_accelerationX = x;
-        m_accelerationY = y;
-        m_accelerationZ = z;
-    }
+    void setAcceleration(f32 x, f32 y, f32 z);
 
-    [[nodiscard]] f32 damage() const { return m_damage; }
-    void setDamage(f32 damage) { m_damage = damage; }
+    [[nodiscard]] f32 damage() const;
+    void setDamage(f32 damage);
 
     [[nodiscard]] bool canBeCollidedWith() const override { return true; }
     [[nodiscard]] f32 getCollisionBorderSize() const override { return 1.0f; }
@@ -104,10 +99,7 @@ protected:
      */
     void spawnWaterParticles();
 
-    f32 m_accelerationX = 0.0f;
-    f32 m_accelerationY = 0.0f;
-    f32 m_accelerationZ = 0.0f;
-    f32 m_damage = 0.0f;
+    // 批次6 子目标2 Step4：m_accelerationX/Y/Z/m_damage 迁入 ecs::DamagingProjectileComponent。
 };
 
 } // namespace entity

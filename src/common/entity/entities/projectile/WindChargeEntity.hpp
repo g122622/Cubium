@@ -140,14 +140,7 @@ private:
      */
     Vector3 getBurstCenter() const;
 
-    /// 是否已产生风爆（防止重复触发）
-    bool m_hasBurst = false;
-
-    /// 风爆爆炸中心（命中方块时偏移）
-    Vector3 m_burstCenter{0.0f, 0.0f, 0.0f};
-
-    /// 是否已设置风爆中心
-    bool m_hasBurstCenter = false;
+    // 批次6 子目标2 Step4：m_hasBurst/m_burstCenter/m_hasBurstCenter 迁入 ecs::WindChargeStateComponent。
 
     /**
      * @brief 计算实体碰撞箱对爆炸中心的可见比例

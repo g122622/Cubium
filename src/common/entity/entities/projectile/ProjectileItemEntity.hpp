@@ -59,12 +59,12 @@ public:
      * @brief 获取物品堆
      * @return 物品堆
      */
-    [[nodiscard]] ItemStack getItemStack() const { return m_itemStack; }
+    [[nodiscard]] ItemStack getItemStack() const;
 
     /**
      * @brief 设置物品堆
      */
-    void setItemStack(const ItemStack& stack) { m_itemStack = stack; }
+    void setItemStack(const ItemStack& stack);
 
 protected:
     /**
@@ -73,8 +73,7 @@ protected:
      */
     explicit ProjectileItemEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    // 物品堆
-    ItemStack m_itemStack;
+    // 批次6 子目标2 Step4：m_itemStack 迁入 ecs::ProjectileItemComponent。
 };
 
 /**
@@ -178,18 +177,17 @@ public:
     /**
      * @brief 是否为滞留型药水
      */
-    [[nodiscard]] bool isLingering() const { return m_lingering; }
+    [[nodiscard]] bool isLingering() const;
 
     /**
      * @brief 设置是否为滞留型药水
      */
-    void setLingering(bool lingering) { m_lingering = lingering; }
+    void setLingering(bool lingering);
 
 protected:
     void onImpact(const RayTraceResult& result) override;
 
-private:
-    bool m_lingering = false;
+    // 批次6 子目标2 Step4：m_lingering 迁入 ecs::PotionProjectileComponent。
 };
 
 /**
@@ -214,18 +212,17 @@ public:
     /**
      * @brief 获取经验值
      */
-    [[nodiscard]] i32 experience() const { return m_experience; }
+    [[nodiscard]] i32 experience() const;
 
     /**
      * @brief 设置经验值
      */
-    void setExperience(i32 exp) { m_experience = exp; }
+    void setExperience(i32 exp);
 
 protected:
     void onImpact(const RayTraceResult& result) override;
 
-private:
-    i32 m_experience = 0;
+    // 批次6 子目标2 Step4：m_experience 迁入 ecs::ExperienceBottleComponent。
 };
 
 } // namespace entity

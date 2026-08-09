@@ -699,17 +699,78 @@ std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shoote
     return arrow;
 }
 
+// 批次6 子目标2 Step4：ArrowEntity 3 字段（m_color/m_glowing/m_effects）迁入
+// ecs::ArrowEffectsComponent，以下 getter/setter 经组件读写。
+void ArrowEntity::setColor(u32 color)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr) {
+        c->m_color = color;
+    }
+}
+
+u32 ArrowEntity::color() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr) ? c->m_color : 0xFFFFFFFF;
+}
+
+void ArrowEntity::setGlowing(bool glowing)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr) {
+        c->m_glowing = glowing;
+    }
+}
+
+bool ArrowEntity::isGlowing() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr) ? c->m_glowing : false;
+}
+
+void ArrowEntity::addEffect(const entity::effect::EffectInstance& effect)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr && c->m_effects != nullptr) {
+        c->m_effects->push_back(effect);
+    }
+}
+
+void ArrowEntity::setEffects(const std::vector<entity::effect::EffectInstance>& effects)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr && c->m_effects != nullptr) {
+        *c->m_effects = effects;
+    }
+}
+
+const std::vector<entity::effect::EffectInstance>& ArrowEntity::effects() const
+{
+    // nullptr 兜底：返回静态空 vector 引用，避免悬垂。
+    static const std::vector<entity::effect::EffectInstance> s_empty;
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr && c->m_effects != nullptr) ? *c->m_effects : s_empty;
+}
+
+bool ArrowEntity::hasEffects() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr && c->m_effects != nullptr) ? !c->m_effects->empty() : false;
+}
+
 void ArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
     // 药水箭的粒子效果处理
-    if (m_color != 0xFFFFFFFF && !isInGround() && m_world && m_world->isClientSide()) {
+    const u32 arrowColor = color();
+    if (arrowColor != 0xFFFFFFFF && !isInGround() && m_world && m_world->isClientSide()) {
         // 将 ARGB 颜色转换为 RGB 分量 (0.0-1.0 范围)
         // 使用 EntityEffect 粒子，速度参数作为颜色传递
-        f32 r = static_cast<f32>((m_color >> 16) & 0xFF) / 255.0f;
-        f32 g = static_cast<f32>((m_color >> 8) & 0xFF) / 255.0f;
-        f32 b = static_cast<f32>(m_color & 0xFF) / 255.0f;
+        f32 r = static_cast<f32>((arrowColor >> 16) & 0xFF) / 255.0f;
+        f32 g = static_cast<f32>((arrowColor >> 8) & 0xFF) / 255.0f;
+        f32 b = static_cast<f32>(arrowColor & 0xFF) / 255.0f;
 
         // 飞行中每 tick 生成 2 个粒子
         math::Random rng = createRandomFromEntity(*this);
@@ -733,14 +794,15 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
     AbstractArrowEntity::onEntityHit(result);
 
     // 应用药水效果到被命中的生物
-    if (!result.hitEntity || m_effects.empty()) {
+    const auto& arrowEffects = effects();
+    if (!result.hitEntity || arrowEffects.empty()) {
         return;
     }
 
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (livingTarget != nullptr && livingTarget->isAlive()) {
         // 对目标施加所有药水效果
-        for (const auto& effect : m_effects) {
+        for (const auto& effect : arrowEffects) {
             livingTarget->addEffect(effect);
         }
     }
@@ -748,6 +810,9 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
 
 ItemStack ArrowEntity::getArrowStack() const
 {
+    const u32 arrowColor = color();
+    const auto& arrowEffects = effects();
+
     // 如果有药水效果，返回药水箭；否则返回普通箭矢
     if (hasEffects()) {
         // 创建药水箭物品堆
@@ -756,11 +821,11 @@ ItemStack ArrowEntity::getArrowStack() const
         // 设置药水效果到物品堆的 NBT 标签
         // 注意：ArrowEntity 没有存储 Potion 类型，只有效果列表
         // 所以只设置自定义效果和颜色
-        potion::PotionUtils::setCustomEffects(tippedArrow, m_effects);
+        potion::PotionUtils::setCustomEffects(tippedArrow, arrowEffects);
 
         // 设置自定义颜色（如果有）
-        if (m_color != 0xFFFFFFFF) {
-            potion::PotionUtils::setCustomPotionColor(tippedArrow, m_color);
+        if (arrowColor != 0xFFFFFFFF) {
+            potion::PotionUtils::setCustomPotionColor(tippedArrow, arrowColor);
         }
 
         return tippedArrow;
@@ -812,8 +877,8 @@ void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
 
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (livingTarget != nullptr) {
-        // 施加发光效果，持续时间 m_glowDuration ticks（默认 200 ticks = 10 秒）
-        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, m_glowDuration, 0));
+        // 施加发光效果，持续时间 glowDuration() ticks（默认 200 ticks = 10 秒）
+        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, glowDuration(), 0));
     }
 }
 
@@ -821,6 +886,21 @@ ItemStack SpectralArrowEntity::getArrowStack() const
 {
     // 光灵箭总是返回光灵箭物品
     return ItemStack(*Items::SPECTRAL_ARROW, 1);
+}
+
+// 批次6 子目标2 Step4：m_glowDuration 迁入 ecs::SpectralArrowComponent。
+i32 SpectralArrowEntity::glowDuration() const
+{
+    const auto* c = tryGetComponent<ecs::SpectralArrowComponent>();
+    return (c != nullptr) ? c->m_glowDuration : 0;
+}
+
+void SpectralArrowEntity::setGlowDuration(i32 duration)
+{
+    auto* c = tryGetComponent<ecs::SpectralArrowComponent>();
+    if (c != nullptr) {
+        c->m_glowDuration = duration;
+    }
 }
 
 } // namespace entity

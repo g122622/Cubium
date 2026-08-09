@@ -40,6 +40,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/ecs/components/ProjectileItemComponent.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -78,6 +79,8 @@ SpearEntity::SpearEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 长矛投掷命中伤害与三叉戟一致（8.0）
     setDamage(8.0f);
     setPickupStatus(PickupStatus::Allowed);
+    // 批次6 子目标2 Step4：attach ProjectileItemComponent 承载 m_spearStack。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileItemComponent>(m_entityContext->entity());
 }
 
 std::unique_ptr<Entity> SpearEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -165,6 +168,27 @@ f32 SpearEntity::getWaterDrag() const
     return 0.99f;
 }
 
+// 批次6 子目标2 Step4：m_spearStack 迁入 ecs::ProjectileItemComponent。
+ItemStack SpearEntity::getItemStack() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? *c->m_itemStack : ItemStack();
+}
+
+ItemStack SpearEntity::getArrowStack() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? c->m_itemStack->copy() : ItemStack();
+}
+
+void SpearEntity::setItemStack(const ItemStack& stack)
+{
+    auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    if (c != nullptr && c->m_itemStack != nullptr) {
+        *c->m_itemStack = stack;
+    }
+}
+
 void SpearEntity::setBaseDamageFromMob(f32 power)
 {
     // 长矛不使用弓类附魔（力量/冲击/火焰），公式与三叉戟相同：
@@ -201,10 +225,13 @@ bool SpearEntity::onPlayerPickup(Player& player)
     }
 
     // 添加到玩家背包
-    if (!m_spearStack.isEmpty()) {
-        i32 added = player.inventory().add(m_spearStack);
+    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
+    const bool hasStack =
+        (itemComp != nullptr && itemComp->m_itemStack != nullptr && !itemComp->m_itemStack->isEmpty());
+    if (hasStack) {
+        i32 added = player.inventory().add(*itemComp->m_itemStack);
         (void)added;
-        if (m_spearStack.getCount() > 0) {
+        if (itemComp->m_itemStack->getCount() > 0) {
             return false; // 背包满了
         }
     }
@@ -231,11 +258,15 @@ void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 
     using namespace serialization::nbt_helper;
 
+    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
+
     // 长矛物品堆（参考 ItemEntity::addAdditionalSaveData 的 ItemStack 写入模式）
     // 键名沿用 MC 1.21.11 AbstractArrow 的 "item" 键
-    nbt::tags::compound_tag itemTag;
-    m_spearStack.toNbt(itemTag);
-    tag.value.emplace(serialization::nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+    if (itemComp != nullptr && itemComp->m_itemStack != nullptr) {
+        nbt::tags::compound_tag itemTag;
+        itemComp->m_itemStack->toNbt(itemTag);
+        tag.value.emplace(serialization::nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+    }
 
     // 拾取状态（byte：0=Disallowed, 1=Allowed, 2=CreativeOnly）
     if (arrowState != nullptr) {
@@ -267,6 +298,7 @@ Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& 
     MC_TRY(Entity::readAdditionalSaveData(tag));
 
     auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
 
     using namespace serialization::nbt_helper;
 
@@ -274,8 +306,8 @@ Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& 
     const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, serialization::nbt_keys::ITEM);
     if (itemTag != nullptr) {
         auto stackResult = ItemStack::fromNbt(*itemTag);
-        if (stackResult.success()) {
-            m_spearStack = stackResult.value();
+        if (stackResult.success() && itemComp != nullptr && itemComp->m_itemStack != nullptr) {
+            *itemComp->m_itemStack = stackResult.value();
         }
         // 反序列化失败时保留默认空堆，避免存档损坏导致崩溃
     }

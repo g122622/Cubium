@@ -313,22 +313,22 @@ public:
      * @brief 设置箭矢颜色
      * @param color RGB颜色值
      */
-    void setColor(u32 color) { m_color = color; }
+    void setColor(u32 color);
 
     /**
      * @brief 获取箭矢颜色
      */
-    [[nodiscard]] u32 color() const { return m_color; }
+    [[nodiscard]] u32 color() const;
 
     /**
      * @brief 设置是否为光灵箭
      */
-    void setGlowing(bool glowing) { m_glowing = glowing; }
+    void setGlowing(bool glowing);
 
     /**
      * @brief 是否为光灵箭
      */
-    [[nodiscard]] bool isGlowing() const { return m_glowing; }
+    [[nodiscard]] bool isGlowing() const;
 
     // ========== 药水效果 ==========
 
@@ -336,23 +336,23 @@ public:
      * @brief 添加药水效果
      * @param effect 效果实例
      */
-    void addEffect(const entity::effect::EffectInstance& effect) { m_effects.push_back(effect); }
+    void addEffect(const entity::effect::EffectInstance& effect);
 
     /**
      * @brief 设置药水效果列表
      * @param effects 效果列表
      */
-    void setEffects(const std::vector<entity::effect::EffectInstance>& effects) { m_effects = effects; }
+    void setEffects(const std::vector<entity::effect::EffectInstance>& effects);
 
     /**
      * @brief 获取药水效果列表
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const { return m_effects; }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const;
 
     /**
      * @brief 是否有药水效果
      */
-    [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
+    [[nodiscard]] bool hasEffects() const;
 
     // ========== AbstractArrowEntity 接口实现 ==========
 
@@ -363,9 +363,7 @@ public:
     [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
-    u32 m_color = 0xFFFFFFFF;                              // 箭矢颜色（药水箭）
-    bool m_glowing = false;                                // 是否发光（光灵箭）
-    std::vector<entity::effect::EffectInstance> m_effects; // 药水效果列表
+    // 批次6 子目标2 Step4：m_color/m_glowing/m_effects 迁入 ecs::ArrowEffectsComponent。
 };
 
 /**
@@ -406,8 +404,18 @@ public:
      */
     [[nodiscard]] ItemStack getArrowStack() const override;
 
+    /**
+     * @brief 获取发光持续时间
+     */
+    [[nodiscard]] i32 glowDuration() const;
+
+    /**
+     * @brief 设置发光持续时间
+     */
+    void setGlowDuration(i32 duration);
+
 private:
-    i32 m_glowDuration = 200; // 发光持续时间（ticks）
+    // 批次6 子目标2 Step4：m_glowDuration 迁入 ecs::SpectralArrowComponent。
 };
 
 } // namespace entity
