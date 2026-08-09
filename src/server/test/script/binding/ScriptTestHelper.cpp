@@ -34,6 +34,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
+#include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestErrorFromResult（_resultToJs 改造）
 #include "server/test/script/binding/ScriptSequence.hpp"
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
@@ -62,15 +63,12 @@ GameTestHelper* _requireHelper(mc::mod::bedrock::addon::IScriptBindingContext& c
     return helper;
 }
 
-// 把 GameTestResult 映射为 JS 行为：通过→createUndefined；失败→throwInternalError。
-// 返回 nullptr 表示已 throw，调用方 return。
+// 把 GameTestResult 映射为 JS 行为：通过→createUndefined；失败→构造 GameTestError JS 实例并 throwValue。
+// 返回 nullptr 表示已 throw，调用方 return。委托 ScriptGameTestError::throwGameTestErrorFromResult，
+// 使 JS 侧经 instanceof GameTestError/Error 判别异常类型并携带 type/message/context/params 字段。
 void* _resultToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, GameTestResult result)
 {
-    if (isPass(result)) {
-        return ctx.createUndefined();
-    }
-    std::string msg = result->formattedMessage();
-    return ctx.throwInternalError(msg.c_str());
+    return throwGameTestErrorFromResult(ctx, std::move(result));
 }
 
 // 解析 BlockPos 参数（JS 传 {x,y,z} 对象形式）。

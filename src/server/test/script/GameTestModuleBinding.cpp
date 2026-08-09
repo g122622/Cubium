@@ -24,6 +24,7 @@
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
+#include "server/test/script/binding/ScriptGameTestError.hpp" // 错误类 + 枚举常量（批次3）
 #include "server/test/script/binding/ScriptRegister.hpp"
 #include "server/test/script/binding/ScriptRegistrationBuilderBinding.hpp"
 #include "server/test/script/binding/ScriptSequence.hpp"
@@ -60,6 +61,11 @@ bool GameTestModuleBinding::registerBindings(mc::mod::bedrock::addon::IScriptCon
     ScriptBindingRegistry::instance().setScheduler(m_scheduler);
 
     mc::mod::bedrock::addon::NativeModuleBuilder builder(ctx, "@minecraft/server-gametest");
+
+    // 0. 错误类（GameTestError/GameTestCompletedError/GameTestErrorContext，作 Error 子类）+ 枚举常量
+    //    （GameTestErrorType/GameTestCompletedErrorReason/Tags）。先于业务类注册：Test/SimulatedPlayer 方法
+    //    回调内经 ScriptClassRegistry 按名查错误类 classId/proto 构造实例 throwValue（_resultToJs/stub）。
+    registerGameTestErrorClasses(builder, ctx);
 
     // 注册顺序：依赖 classId 的后注册。
     // 1. RegistrationBuilder 类（顶层 register 返回值）
