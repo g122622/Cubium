@@ -36,6 +36,7 @@
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
@@ -330,6 +331,30 @@ void ClientEntity::syncMetadataFromDataManager()
                 const i64 angerTime = value->get<i64>();
                 setWolfIsAngry(angerTime > 0);
             }
+        }
+    }
+
+    // 马类状态同步（驯服/鞍/繁殖/吃草/扬蹄/张嘴 6 bit 位标志）
+    // 服务端 AbstractHorseEntity 通过 STATUS_PARAM（i8）写入 6 bit 位标志，
+    // 由 EntityTracker 广播 ir::play::SetEntityData 到客户端，客户端在此处读取并按
+    // 6 bit 掩码拆解调用 setHorse* 更新镜像状态。7 个马类子类（Horse/Donkey/Mule/
+    // Llama/TraderLlama/SkeletonHorse/ZombieHorse）共用同一 STATUS_PARAM，经 typeId
+    // 判断 + hasParam 自动覆盖。修复前客户端无 horse 分支致 hasSaddle/isTame 等恒 false。
+    if (m_typeId == "minecraft:horse" || m_typeId == "horse" || m_typeId == "minecraft:donkey" ||
+        m_typeId == "donkey" || m_typeId == "minecraft:mule" || m_typeId == "mule" || m_typeId == "minecraft:llama" ||
+        m_typeId == "llama" || m_typeId == "minecraft:trader_llama" || m_typeId == "trader_llama" ||
+        m_typeId == "minecraft:skeleton_horse" || m_typeId == "skeleton_horse" ||
+        m_typeId == "minecraft:zombie_horse" || m_typeId == "zombie_horse") {
+        // STATUS_PARAM（i8）位标志对齐 vanilla 1.21.11 AbstractHorse.DATA_FLAGS_ID：
+        //   bit1(tame,0x02)/bit2(saddle,0x04)/bit3(bred,0x08)/bit4(eating,0x10)/
+        //   bit5(rearing,0x20)/bit6(mouthOpen,0x40)
+        if (const auto flags = _readMetadata<i8>(::mc::AbstractHorseEntity::getStatusParamId()); flags.has_value()) {
+            setHorseTamed((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_TAME) != 0);
+            setHorseSaddled((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_SADDLE) != 0);
+            setHorseBred((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_BRED) != 0);
+            setHorseEating((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_EATING) != 0);
+            setHorseRearing((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_REARING) != 0);
+            setHorseMouthOpen((*flags & ::mc::AbstractHorseEntity::STATUS_FLAG_MOUTH_OPEN) != 0);
         }
     }
 

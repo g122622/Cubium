@@ -280,11 +280,40 @@ AbstractMinecartEntity 基类的 15 个字段（铁轨运行状态/速度配置/
 
 **暂未处理**：`tests/` 仍不透传 registry（永久约束）。ChestMinecart/HopperMinecart 库存持久化、CommandBlockMinecart 命令持久化待业务接入后补序列化器（已标 TODO）。MinecartDisplayComponent 3 字段待接 wire 同步层（项目当前 minecart 显示方块同步未实现）。
 
+## 批次8：horse 大族整块 ECS 化（2026-08-09 B8.1 落地）
+
+horse 族（`AbstractHorseEntity` 基类 + `AbstractChestedHorseEntity` 中间层 + 7 叶子类：Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）是 minecart 之后的第二个整块 ECS 化大族。基类约 30 个 OOP 状态字段 + 1 个同步字段（STATUS_PARAM i8 位标志 6 bit）+ 客户端 syncMetadata 缺 horse 分支的脱节 bug。本批沿用 minecart 族"基类子批 + 叶子类子批"两步范式，拆 B8.1（基类+中间层）/ B8.2（叶子类）。
+
+### 子批 8.1：基类+中间层组件化（2026-08-09 落地）
+
+AbstractHorseEntity 基类约 30 字段搬入 7 组件，AbstractChestedHorseEntity 中间层 1 字段搬入 1 组件。STATUS_PARAM 6 bool 走组件真相源 + 镜像统一化，客户端补 horse 分支修复脱节 bug，持久化搬组件序列化器注册表。
+
+**已交付**：
+- **Step0（遮蔽排查）**：7 叶子类无私有字段重声明基类，m_horseHealth 已改名规避 health 冲突，无遮蔽 bug。m_jumpHeight 死字段全仓零写入点，迁移时删除 + TODO。
+- **Step1（8 组件骨架+attach+构造时序修正）**：新建 8 组件头（`src/common/entity/ecs/components/`）：HorseStatusComponent（6 bool，C 类 STATUS_PARAM 镜像）/HorseTamingComponent（temper/maxTemper/ownerUuid）/HorseJumpComponent（5 字段含 jumpStrength 同步 AttributeMap）/HorseBoostComponent（2 字段运行时）/HorseAttributeComponent（speed/horseHealth，NBT 真相源同步 AttributeMap）/HorseInventoryComponent（unique_ptr<SimpleInventory> 包裹，沿用 ChestMinecartComponent 范式）/HorseAnimationComponent（5 计数器+6 插值量共 11 字段运行时）/ChestedHorseComponent（hasChest，中间层 attach 决定 getInventorySize）。AbstractHorse 构造 attach 7 基类组件，7 马类子类经此自动获得。**构造时序修正**：attach → initRandomAttributes（写组件字段）→ registerAttributes（读组件写 AttributeMap）→ registerData → initHorseChest。attach 必须先于 registerAttributes（原时序 registerAttributes 读默认 0 致 AttributeMap 错误）。
+- **Step2（基类字段迁移）**：hpp/.cpp 删 7 类成员字段，inline getter/setter + cpp 方法改走 tryGetComponent + MC_ASSERT_RELEASE，方法内开头取组件指针缓存（坑9 范式）。m_rider（Player*）保留 OOP 不进组件（运行时指针、不存盘不同步、生命周期由 passengers 体系外部管理，对齐 minecart 乘客系统不进组件范式）。补 public getHorseHealth() getter 供叶子类 registerAttributes 读取（m_speed 已有 getSpeed()）。
+- **Step3（STATUS_PARAM 双端同步修复）**：服务端新增 protected _syncStatusFlags()——读 HorseStatusComponent 6 bool 聚合成 i8（bit1-6）一次 m_dataManager.set(STATUS_PARAM, ...) 下发，替代旧 setHorseWatchableBoolean 每次 read-modify-write 冗余读。6 setter 写完组件字段调 _syncStatusFlags。STATUS_FLAG_* 提 public + getStatusParamId() 返回 u16（对齐 TameableEntity::getTamedParamId 范式，ClientEntity::_readMetadata 形参为 u16）。客户端 ClientEntity 加 6 horse 成员 + getter/setter（同 wolf 范式，ClientEntity 不持 ECS 组件），syncMetadataFromDataManager 加 horse 分支（7 马类 typeId 判断 + hasParam + _readMetadata<i8> + 6 bit 掩码拆解）。EntityRendererManager horse 分支补齐 setSaddled/setRidden/setRearingAmount/setMouthOpennessAngle。修复前客户端无 horse 分支致 hasSaddle/isTame 等恒 false（HorseRenderer 鞍渲染层永不激活）。
+- **Step4（中间层字段迁移）**：AbstractChestedHorseEntity m_hasChest 迁入 ChestedHorseComponent，hasChest/setChest/getInventorySize 改走 tryGetComponent + MC_ASSERT_RELEASE。
+- **Step5（持久化搬注册表基类部分）**：新建 HorseComponentSerialization.hpp/.cpp（`src/common/entity/serialization/components/`），注册 4 序列化器：HorseTamingComponent（priority=0，Temper+OwnerUUIDMost/Least 双 long，ownerUuid 调 setOwnerUuid 触发 setTame 联动）/HorseJumpComponent（priority=0，JumpStrength 同步 AttributeMap）/HorseStatusComponent（priority=10，Tame/Bred/Saddle/EatingHaystack 走 setter 写 STATUS_PARAM）/HorseAttributeComponent（priority=20，Speed/HorseHealth 同步 AttributeMap）。序列化器在 mc::entity::serialization::components 命名空间，引用 ::mc::util/::mc::entity::attribute/::mc::LivingEntity/::mc::AbstractHorseEntity 须全限定（两段查找不回退到 mc::）。registerHorseComponentSerializers 在 ComponentSerializerRegistry::registerAll() minecart 之后注册。AbstractHorseEntity 删 addAdditionalSaveData override（回落基类空实现防双重写入键冲突），readAdditionalSaveData 改薄壳（仅基类调用 + initHorseChest，因 initHorseChest 需在所有组件 load 完成后按新 NBT 重置库存规模，loadAll 无法感知"所有组件 load 完"时序）。
+
+**关键设计决策**：
+- **属性字段与 AttributeMap 双份一致性**：speed/horseHealth/jumpStrength 是 NBT 真相源，registerAttributes 拷贝到 AttributeMap。load 后 AttributeMap 仍是构造期值，序列化器 load 后调 setBaseValue 同步。叶子类 registerAttributes 改读 getSpeed()/getHorseHealth()（不再直接访问已删的 m_speed/m_horseHealth）。
+- **ownerUuid 联动 setTame**：序列化器 load ownerUuid 调 setOwnerUuid 触发 setTame(true) + _syncStatusFlags 写 STATUS_PARAM。load 期 m_dataManager 已注册 STATUS_PARAM（构造期 registerData 已调），set 安全且不广播（实体未加入世界）。NBT 中 Tame 与 OwnerUUID 一致，HorseStatusComponent(prio=10) 后 load 的 setTame 覆盖 ownerUuid 联动值幂等。
+- **initHorseChest 时序**：readAdditionalSaveData 薄壳保留 initHorseChest 在末尾（loadAll 已完成，ChestedHorseComponent.m_hasChest 就位，getInventorySize 返回正确值）。
+- **客户端不持 ECS 组件**：ClientEntity 独立类不继承 mc::Entity、不 attach ECS 组件（同 ecs/README 坑10）。客户端 horse 分支须加 ClientEntity 自有 horse 成员（同 wolf 范式），不能 tryGetComponent<HorseStatusComponent>。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target minecraft-client/minecraft-server` 绕过 mc_tests；CMakeLists 改动触发 vcpkg VS 探测失败用 `./scripts/configure.sh build` setup VS dev env 解决 configure，再增量构建两 target）。
+- GameTest 回归：8/8 passed exitCode=0 零回归。无 Horse 专属 GameTest，靠 minibiomes/simpleMobTest 间接覆盖。
+
+**暂未处理**：`tests/` 仍不透传 registry（永久约束）。B8.2 叶子类子批（4 叶子类组件 HorseVariant/Llama/TraderLlama/SkeletonHorse + TraderLlama DespawnDelay 持久化搬注册表）待启动。HorseInventoryComponent 库存持久化（LootableContainer 体系）待业务接入后补（TODO）。
+
 ## 后续批次路线（备忘，未落地）
 
 - **批次5（已收束于 5.1）**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」——mixin 接口相关 cast 仅 IMob 5 处可纯 tag 迁移（5.1 已落地）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。**剩余 10 个 mixin 接口（IShearable/IEquipable/ICrossbowUser/IRangedAttackMob/IJumpingMount/IRideable/ContainerUser/IAngerable/IFlinging/IFlyingAnimal）的 dynamic_cast 经 5.2 勘察确认为「接口多态分发」模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用，违反 AI 保留 OOP 决策；IFlinging/IFlyingAnimal 虽能纯 tag 但零消费点是架构债**。故批次5 收束于 5.1 IMob 试点，剩余 mixin 接口 OOP 多态作混合架构合理行为层保留。详见上文「批次5 收束决策」段。
 - **批次6**：子目标1（序列化按组件注册序列化器）已于 2026-08-09 落地，见上文「第六批子目标1」段；子目标2 projectile 族整块 ECS 化已于 2026-08-09 落地，见上文「第六批子目标2」段；子目标3 Brain tick 调度上移 System 已于 2026-08-09 落地，见上文「第六批子目标3」段。批次6 三个子目标全部完成。
 - **批次7**：minecart 大族整块 ECS 化已于 2026-08-09 落地，见上文「批次7」段（基类子批 7.1 commit 9f9986ef2 + 叶子类子批 7.2）。原路线图"server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）+ 客户端冰冻渲染 + FreezeComponent 回填点"仍待办，顺延至后续批次。
+- **批次8**：horse 大族整块 ECS 化。基类+中间层子批 B8.1 已于 2026-08-09 落地，见上文「批次8」段。叶子类子批 B8.2（4 叶子类组件 + TraderLlama DespawnDelay 持久化）待启动。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
 > 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 19 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件、projectile 族整块 ECS 化同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化、Brain tick 调度上移 System 回调委托型非组件驱动 + 时序迁移到 PostEntityTick + dynamic_cast 类型识别、minecart 族整块 ECS 化基类先迁叶子类后迁两步推进 + 不可移动类型判定 + SpawnerLogic 透传直写 tag 根层），迁移后续批次前务必先读。

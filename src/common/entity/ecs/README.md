@@ -48,6 +48,14 @@ src/common/entity/ecs/
 │   ├── FireworkRocketComponent.hpp          # fireworkItem(unique_ptr)/flightTime/lifetime/lifeTime/shotFromCrossbow（第六批 6.2，仅 FireworkRocket）
 │   ├── FishingBobberComponent.hpp           # 13 字段含 angler/caughtEntity/state 等（第六批 6.2，仅 FishingBobber，直接继承 Entity 无 ProjectileOwnerComponent）
 │   ├── EvokerFangsComponent.hpp             # owner(指针)/ownerUuid/warmupDelay/sentAttackEvent/lifeTicks/clientSideAttackStarted（第六批 6.2，仅 EvokerFangs，直接继承 Entity 独立 owner 机制）
+│   ├── HorseStatusComponent.hpp             # tame/saddled/bred/eating/rearing/mouthOpen 6 bool（批次8 8.1，AbstractHorse 基类 attach，STATUS_PARAM 6 bit 镜像真相源）
+│   ├── HorseTamingComponent.hpp             # temper/maxTemper/ownerUuid（批次8 8.1，AbstractHorse 基类 attach，持久化 Temper+OwnerUUIDMost/Least）
+│   ├── HorseJumpComponent.hpp               # jumpPower/jumpStrength/isJumping/allowStandSliding/jumpCooldown（批次8 8.1，AbstractHorse 基类 attach，jumpStrength 同步 AttributeMap）
+│   ├── HorseBoostComponent.hpp              # boostTime/isBoosting（批次8 8.1，AbstractHorse 基类 attach，运行时不存盘）
+│   ├── HorseAttributeComponent.hpp          # speed/horseHealth（批次8 8.1，AbstractHorse 基类 attach，NBT 真相源同步 AttributeMap）
+│   ├── HorseInventoryComponent.hpp          # unique_ptr<SimpleInventory> 鞍槽+马铠槽库存（批次8 8.1，AbstractHorse 基类 attach，不可拷贝类型 unique_ptr 包裹）
+│   ├── HorseAnimationComponent.hpp          # 5 计数器+6 插值量共 11 字段（批次8 8.1，AbstractHorse 基类 attach，运行时动画不存盘）
+│   ├── ChestedHorseComponent.hpp            # hasChest bool（批次8 8.1，AbstractChestedHorse 中间层 attach，决定 getInventorySize 库存规模）
 │   ├── MinecartStateComponent.hpp           # 12 字段铁轨运行/速度配置/损坏动画/可推动（批次7 7.1，AbstractMinecart 基类 attach，7 子类自动获得）
 │   ├── MinecartDisplayComponent.hpp         # 3 字段显示方块占位待接 wire（批次7 7.1，AbstractMinecart 基类 attach）
 │   ├── ChestMinecartComponent.hpp           # unique_ptr<SimpleInventory> 27 格库存（批次7 7.2，仅 ChestMinecart，不可拷贝类型 unique_ptr 包裹）
@@ -111,6 +119,7 @@ IWorld（ServerWorld / ClientWorld）
 - **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 10 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze + 第四批 EntityFlags/EntityState），缓存 5 高频裸指针到 `m_builtIn`。
 - **LivingEntity 构造**：续接 attach 5 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。
 - **Player 构造**：续接 attach PlayerScoreComponent（第四批），须在 `registerData()` 之前——后者经 `getScore()` 取组件填默认值。Player 另重写 `setAbsorptionAmount`（基类改 virtual）下发 DATA_PLAYER_ABSORPTION_PARAM，无新组件（复用 HurtStateComponent）。
+- **AbstractHorseEntity 构造**（批次8 8.1）：attach 7 基类组件（Status/Taming/Jump/Boost/Attribute/Inventory/Animation），7 马类子类经此自动获得。时序关键：`attach → initRandomAttributes（写组件字段）→ registerAttributes（读组件写 AttributeMap）→ registerData → initHorseChest`。**attach 必须先于 registerAttributes**——registerAttributes 读 HorseJumpComponent/HorseAttributeComponent 写 AttributeMap（HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED），时序颠倒则读默认 0。AbstractChestedHorseEntity 中间层构造续接 attach ChestedHorseComponent（决定 getInventorySize 库存规模）。
 - **叶子类工厂** `EntityType::create(IWorld*, ecs::EntityRegistry&)`：构造 Entity 子类 → 返回 `unique_ptr<Entity>`。
 
 差异化组件的工厂注入留待后续批次（见 `docs/iterations/ECS改造.md` 路线）。

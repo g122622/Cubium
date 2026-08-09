@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/components/EntityComponentSerialization.hpp"
+#include "common/entity/serialization/components/HorseComponentSerialization.hpp"
 #include "common/entity/serialization/components/LivingEntityComponentSerialization.hpp"
 #include "common/entity/serialization/components/MinecartComponentSerialization.hpp"
 #include "common/entity/serialization/components/PlayerComponentSerialization.hpp"
@@ -81,6 +82,14 @@ void ComponentSerializerRegistry::registerAll()
     // SpawnerMinecartComponent 透传 SpawnerLogic 的 saveToNBT/loadFromNBT）。序列化器内部
     // tryGetComponent 早退（无组件实体不参与）。
     registerMinecartComponentSerializers(*this);
+
+    // 注册 Horse 族基类组件序列化器（覆盖 AbstractHorseEntity 的 Temper/OwnerUUID/
+    // JumpStrength/Tame/Bred/Saddle/EatingHaystack/Speed/HorseHealth 9 字段，对齐 vanilla
+    // 1.21.11）。序列化器内部 tryGetComponent 早退（无组件实体不参与）。load 按 priority 升序：
+    // Taming=0/Jump=0 先 load（ownerUuid 联动 setTame；jumpStrength 同步 AttributeMap），
+    // Status=10 后 load（tame/bred/saddle/eating 走 setter 写 STATUS_PARAM），Attribute=20
+    // 最后 load（speed/horseHealth 同步 AttributeMap）。
+    registerHorseComponentSerializers(*this);
 
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
     std::stable_sort(

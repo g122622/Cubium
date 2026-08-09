@@ -121,8 +121,10 @@ void DonkeyEntity::registerGoals()
 void DonkeyEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth > 0 ? m_horseHealth : 15.0f);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed > 0 ? m_speed : 0.175f);
+    const f32 health = getHorseHealth();
+    const f32 speed = getSpeed();
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health > 0 ? health : 15.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed > 0 ? speed : 0.175f);
 }
 
 } // namespace mc

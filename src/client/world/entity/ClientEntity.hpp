@@ -1133,6 +1133,69 @@ public:
      */
     void setWolfIsAngry(bool angry) { m_wolfIsAngry = angry; }
 
+    // ========== 马类状态 ==========
+
+    /**
+     * @brief 马类是否已驯服
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit1, mask 0x02）。
+     * 由 syncMetadataFromDataManager 在收到元数据更新时调用 setHorseTamed 更新。
+     * 7 个马类子类（Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）
+     * 共用同一 STATUS_PARAM，经 typeId 判断 + hasParam 自动覆盖。
+     */
+    [[nodiscard]] bool horseTamed() const { return m_horseTamed; }
+
+    void setHorseTamed(bool tamed) { m_horseTamed = tamed; }
+
+    /**
+     * @brief 马类是否装备鞍
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit2, mask 0x04）。
+     * HorseRenderer 鞍渲染层读取此状态判断是否渲染鞍。
+     */
+    [[nodiscard]] bool horseSaddled() const { return m_horseSaddled; }
+
+    void setHorseSaddled(bool saddled) { m_horseSaddled = saddled; }
+
+    /**
+     * @brief 马类是否已繁殖
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit3, mask 0x08）。
+     */
+    [[nodiscard]] bool horseBred() const { return m_horseBred; }
+
+    void setHorseBred(bool bred) { m_horseBred = bred; }
+
+    /**
+     * @brief 马类是否正在吃草
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit4, mask 0x10）。
+     * 驱动低头吃草动画（headLean 插值）。
+     */
+    [[nodiscard]] bool horseEating() const { return m_horseEating; }
+
+    void setHorseEating(bool eating) { m_horseEating = eating; }
+
+    /**
+     * @brief 马类是否正在扬蹄
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit5, mask 0x20）。
+     * 驱动扬蹄动画（rearingAmount 插值）与乘客位置偏移。
+     */
+    [[nodiscard]] bool horseRearing() const { return m_horseRearing; }
+
+    void setHorseRearing(bool rearing) { m_horseRearing = rearing; }
+
+    /**
+     * @brief 马类嘴巴是否张开
+     *
+     * 通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM（bit6, mask 0x40）。
+     * 驱动张嘴动画（mouthOpenness 插值）。
+     */
+    [[nodiscard]] bool horseMouthOpen() const { return m_horseMouthOpen; }
+
+    void setHorseMouthOpen(bool open) { m_horseMouthOpen = open; }
+
     // ========== 末影人状态 ==========
 
     /**
@@ -1611,6 +1674,16 @@ private:
     f32 m_wolfShakeAnimO = 0.0f;       ///< 上一 tick 的甩水进度（用于插值）
     f32 m_wolfInterestedAngle = 0.0f;  ///< 乞求食物头部角度（向 1.0 或 0.0 插值）
     f32 m_wolfInterestedAngleO = 0.0f; ///< 上一 tick 的乞求角度（用于插值）
+
+    // 马类状态（通过元数据同步自服务端 AbstractHorseEntity::STATUS_PARAM，i8 位标志 6 bit）
+    // 7 个马类子类共用同一 STATUS_PARAM，syncMetadataFromDataManager 经 typeId 判断 + hasParam
+    // 读取后按 6 bit 掩码拆解写入下列 6 bool。HorseRenderer 鞍层等读取这些状态驱动渲染。
+    bool m_horseTamed = false;     ///< 是否已驯服（bit1, mask 0x02）
+    bool m_horseSaddled = false;   ///< 是否装备鞍（bit2, mask 0x04）
+    bool m_horseBred = false;      ///< 是否已繁殖（bit3, mask 0x08）
+    bool m_horseEating = false;    ///< 是否正在吃草（bit4, mask 0x10）
+    bool m_horseRearing = false;   ///< 是否正在扬蹄（bit5, mask 0x20）
+    bool m_horseMouthOpen = false; ///< 嘴巴是否张开（bit6, mask 0x40）
 
     // 末影人状态（通过元数据同步自服务端 EndermanEntity）
     const ::mc::BlockState* m_endermanHeldBlockState =

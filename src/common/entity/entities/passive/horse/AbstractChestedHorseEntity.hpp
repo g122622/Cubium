@@ -25,8 +25,10 @@
 
 #include "AbstractHorseEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/components/ChestedHorseComponent.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
 
@@ -47,7 +49,13 @@ public:
      */
     AbstractChestedHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
         : AbstractHorseEntity(id, registry)
-    {}
+    {
+        // 批次8 Horse 族迁移 Step1：attach ChestedHorseComponent（m_hasChest 箱子状态）。
+        // Donkey/Mule/Llama/TraderLlama 经此中间层自动获得组件。Horse/SkeletonHorse/
+        // ZombieHorse 不继承此中间层不 attach。Step4 起 hasChest/setChest/getInventorySize
+        // 改走组件（同 minecart 族叶子类 inline attach 范式）。
+        m_entityContext->enttRegistry().emplace<ecs::ChestedHorseComponent>(m_entityContext->entity());
+    }
 
     ~AbstractChestedHorseEntity() override = default;
 
@@ -59,12 +67,22 @@ public:
     /**
      * @brief 当前是否装备了箱子
      */
-    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+    [[nodiscard]] bool hasChest() const
+    {
+        const auto* c = tryGetComponent<ecs::ChestedHorseComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_hasChest;
+    }
 
     /**
      * @brief 设置箱子状态
      */
-    void setChest(bool chest) { m_hasChest = chest; }
+    void setChest(bool chest)
+    {
+        auto* c = tryGetComponent<ecs::ChestedHorseComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_hasChest = chest;
+    }
 
     /**
      * @brief 返回箱子库存列数
@@ -81,7 +99,7 @@ public:
      */
     [[nodiscard]] i32 getInventorySize() const override
     {
-        if (!m_hasChest) {
+        if (!hasChest()) {
             return AbstractHorseEntity::getInventorySize();
         }
 
@@ -116,9 +134,6 @@ protected:
      * 子类可覆写以提供不同的音效（驴/骡 vs 羊驼）。
      */
     [[nodiscard]] virtual const ResourceLocation& getChestEquipSound() const;
-
-private:
-    bool m_hasChest = false;
 };
 
 } // namespace mc

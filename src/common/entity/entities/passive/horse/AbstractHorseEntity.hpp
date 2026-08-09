@@ -30,6 +30,13 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/ecs/components/HorseAnimationComponent.hpp"
+#include "common/entity/ecs/components/HorseAttributeComponent.hpp"
+#include "common/entity/ecs/components/HorseBoostComponent.hpp"
+#include "common/entity/ecs/components/HorseInventoryComponent.hpp"
+#include "common/entity/ecs/components/HorseJumpComponent.hpp"
+#include "common/entity/ecs/components/HorseStatusComponent.hpp"
+#include "common/entity/ecs/components/HorseTamingComponent.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IJumpingMount.hpp"
@@ -80,7 +87,7 @@ public:
     // ========== IJumpingMount 接口实现 ==========
 
     void onJump() override;
-    [[nodiscard]] i32 getJumpPower() const override { return m_jumpPower; }
+    [[nodiscard]] i32 getJumpPower() const override;
     void setJumpPower(i32 power) override;
     [[nodiscard]] f32 getMaxJumpHeight() const override;
     [[nodiscard]] bool canJump() const override;
@@ -118,12 +125,12 @@ public:
     /**
      * @brief 是否已驯服
      */
-    [[nodiscard]] bool isTame() const { return m_tame; }
+    [[nodiscard]] bool isTame() const;
 
     /**
      * @brief 检查是否有主人（非空UUID）
      */
-    [[nodiscard]] bool hasOwner() const { return !m_ownerUuid.empty(); }
+    [[nodiscard]] bool hasOwner() const;
 
     /**
      * @brief 设置驯服状态
@@ -191,37 +198,37 @@ public:
      * @brief 检查是否正在吃
      * @return 是否正在吃
      */
-    [[nodiscard]] bool isEating() const { return getHorseWatchableBoolean(STATUS_FLAG_EATING); }
+    [[nodiscard]] bool isEating() const;
 
     /**
      * @brief 设置进食状态
      * @param eating 是否正在吃
      */
-    void setEating(bool eating) { setHorseWatchableBoolean(STATUS_FLAG_EATING, eating); }
+    void setEating(bool eating);
 
     /**
      * @brief 检查是否已繁殖
      * @return 是否已繁殖
      */
-    [[nodiscard]] bool isBred() const { return getHorseWatchableBoolean(STATUS_FLAG_BRED); }
+    [[nodiscard]] bool isBred() const;
 
     /**
      * @brief 设置繁殖状态
      * @param bred 是否已繁殖
      */
-    void setBred(bool bred) { setHorseWatchableBoolean(STATUS_FLAG_BRED, bred); }
+    void setBred(bool bred);
 
     /**
      * @brief 检查嘴巴是否张开
      * @return 嘴巴是否张开
      */
-    [[nodiscard]] bool isMouthOpen() const { return getHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN); }
+    [[nodiscard]] bool isMouthOpen() const;
 
     /**
      * @brief 设置嘴巴张开状态
      * @param open 嘴巴是否张开
      */
-    void setMouthOpen(bool open) { setHorseWatchableBoolean(STATUS_FLAG_MOUTH_OPEN, open); }
+    void setMouthOpen(bool open);
 
     /**
      * @brief 获取愤怒音效
@@ -247,7 +254,7 @@ public:
      * @brief 获取主人UUID
      * @return 主人UUID字符串，如果没有主人返回空字符串
      */
-    [[nodiscard]] const std::string& getOwnerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& getOwnerUuid() const;
 
     /**
      * @brief 设置主人UUID
@@ -272,7 +279,7 @@ public:
     /**
      * @brief 获取驯服进度 (0-100)
      */
-    [[nodiscard]] i32 getTemper() const { return m_temper; }
+    [[nodiscard]] i32 getTemper() const;
 
     /**
      * @brief 增加驯服进度
@@ -284,7 +291,7 @@ public:
     /**
      * @brief 获取最大驯服进度
      */
-    [[nodiscard]] i32 getMaxTemper() const { return m_maxTemper; }
+    [[nodiscard]] i32 getMaxTemper() const;
 
     /**
      * @brief 张开马嘴（播放进食动画）
@@ -347,12 +354,12 @@ public:
     /**
      * @brief 是否有马铠
      */
-    [[nodiscard]] bool hasArmor() const { return m_hasArmor; }
+    [[nodiscard]] bool hasArmor() const;
 
     /**
      * @brief 设置马铠状态
      */
-    void setArmor(bool armor) { m_hasArmor = armor; }
+    void setArmor(bool armor);
 
     // ========== 速度和跳跃 ==========
 
@@ -362,14 +369,21 @@ public:
     [[nodiscard]] f32 getSpeed() const;
 
     /**
+     * @brief 获取马的基础生命值（HorseAttributeComponent.m_horseHealth）
+     *
+     * 供叶子类 registerAttributes 读取（迁移后字段进组件，叶子类不再能直接访问 m_horseHealth）。
+     */
+    [[nodiscard]] f32 getHorseHealth() const;
+
+    /**
      * @brief 获取跳跃强度
      */
-    [[nodiscard]] f32 getJumpStrength() const { return m_jumpStrength; }
+    [[nodiscard]] f32 getJumpStrength() const;
 
     /**
      * @brief 设置跳跃强度
      */
-    void setJumpStrength(f32 strength) { m_jumpStrength = strength; }
+    void setJumpStrength(f32 strength);
 
     // ========== IEquipable 接口实现 ==========
 
@@ -440,7 +454,7 @@ public:
      * @brief 检查是否装备了鞍
      * MC 1.16.5: AbstractHorseEntity.isHorseSaddled()
      */
-    [[nodiscard]] bool hasSaddle() const { return m_saddled; }
+    [[nodiscard]] bool hasSaddle() const;
 
     /**
      * @brief 设置鞍的状态
@@ -451,7 +465,7 @@ public:
      * @brief 检查是否可以被控制方向
      * MC 1.16.5: 马需要鞍才能被控制
      */
-    [[nodiscard]] bool canBeSteered() const override { return m_saddled; }
+    [[nodiscard]] bool canBeSteered() const override;
 
     // ========== 生命周期 ==========
 
@@ -470,12 +484,12 @@ public:
     void aiStep() override;
 
     /**
-     * @brief 序列化额外数据到 NBT
-     */
-    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
-
-    /**
-     * @brief 从 NBT 读取额外数据
+     * @brief 从 NBT 读取额外数据（薄壳）
+     *
+     * 批次8 Step5：字段级 NBT 读写已搬 ComponentSerializerRegistry（HorseTaming/Jump/
+     * Status/Attribute 四序列化器，loadAll 在本方法之前调）。本薄壳仅调基类 + initHorseChest：
+     * initHorseChest 需在所有组件 load 完成后按新 NBT（装箱子后 getInventorySize 变大）
+     * 重置库存规模，loadAll 无法感知"所有组件 load 完"时序，故保留此薄壳在末尾调 initHorseChest。
      */
     Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
@@ -570,16 +584,14 @@ protected:
     // ========== 状态标志辅助方法 ==========
 
     /**
-     * @brief 获取状态标志
-     * MC 1.16.5: getHorseWatchableBoolean()
+     * @brief 聚合 6 状态标志写入 STATUS_PARAM DataParameter
+     *
+     * 读 HorseStatusComponent 6 bool（tame/saddled/bred/eating/rearing/mouthOpen）
+     * 组合成 i8（bit1-6）调 m_dataManager.set(STATUS_PARAM, ...)。一次 setter 一次 set，
+     * 替代旧 setHorseWatchableBoolean 每次 read-modify-write 的冗余读。6 个状态 setter
+     * 写完组件字段后调本方法同步镜像下发客户端。
      */
-    [[nodiscard]] bool getHorseWatchableBoolean(i8 flag) const;
-
-    /**
-     * @brief 设置状态标志
-     * MC 1.16.5: setHorseWatchableBoolean()
-     */
-    void setHorseWatchableBoolean(i8 flag, bool value);
+    void _syncStatusFlags();
 
     /**
      * @brief 设置后代属性
@@ -650,47 +662,9 @@ protected:
     void initHorseChest();
 
 protected:
-    // 骑乘状态
+    // 骑乘状态（m_rider 不进组件：运行时指针、不存盘不同步、生命周期由 passengers 体系
+    // 外部管理。getRider/setRider 高频 inline 保留 OOP 成员，对齐 minecart 乘客系统不进组件范式）
     Player* m_rider = nullptr;
-    bool m_saddled = false;
-    bool m_hasArmor = false;
-
-    // 驯服状态
-    bool m_tame = false;
-    i32 m_temper = 0;
-    i32 m_maxTemper = 100;
-
-    // 跳跃状态
-    i32 m_jumpPower = 0;       // MC 1.16.5: 跳跃力度 (0-100)
-    f32 m_jumpStrength = 0.0f; // 基础跳跃强度
-    bool m_isJumping = false;
-    bool m_allowStandSliding = false; // MC 1.16.5: 允许站立滑动
-    i32 m_jumpCooldown = 0;
-
-    // 加速状态
-    i32 m_boostTime = 0;
-    bool m_isBoosting = false;
-
-    // 属性（马特有）
-    f32 m_speed = 0.0f;
-    f32 m_jumpHeight = 0.0f;
-    f32 m_horseHealth = 0.0f; // 改名避免与基类冲突
-
-    // 库存（鞍槽 + 马铠槽）
-    std::unique_ptr<blockentity::SimpleInventory> m_inventory;
-
-    // 动画状态
-    i32 m_eatingCounter = 0;
-    i32 m_openMouthCounter = 0;
-    i32 m_jumpRearingCounter = 0;
-    i32 m_tailCounter = 0;
-    i32 m_sprintCounter = 0;
-    f32 m_headLean = 0.0f;
-    f32 m_prevHeadLean = 0.0f;
-    f32 m_rearingAmount = 0.0f;
-    f32 m_prevRearingAmount = 0.0f;
-    f32 m_mouthOpenness = 0.0f;
-    f32 m_prevMouthOpenness = 0.0f;
 
 private:
     // MC 1.21.11 数据参数
@@ -700,8 +674,8 @@ protected:
     /// 本类继承链标识（parent = AnimalEntity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();
 
-private:
-    // MC 1.21.11 状态标志位
+public:
+    // MC 1.21.11 状态标志位（public 供客户端 ClientEntity 解析 STATUS_PARAM 拆位使用）
     static constexpr i8 STATUS_FLAG_TAME = 2;        // bit 1: 已驯服
     static constexpr i8 STATUS_FLAG_SADDLE = 4;      // bit 2: 已装备鞍
     static constexpr i8 STATUS_FLAG_BRED = 8;        // bit 3: 已繁殖
@@ -709,9 +683,15 @@ private:
     static constexpr i8 STATUS_FLAG_REARING = 32;    // bit 5: 正在扬蹄
     static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 64; // bit 6: 嘴张开
 
-    // 主人UUID（128位UUID字符串，与项目其他实体一致）
-    std::string m_ownerUuid;
+    /**
+     * @brief 获取 STATUS_PARAM 的 DataParameter id（供客户端 ClientEntity hasParam/_readMetadata 判断）
+     *
+     * 返回 u16 id 而非 DataParameter 引用，对齐 TameableEntity::getTamedParamId 范式
+     * （ClientEntity::_readMetadata 形参为 u16）。
+     */
+    [[nodiscard]] static u16 getStatusParamId() { return STATUS_PARAM.id(); }
 
+private:
     // 常量
     static constexpr f32 MIN_SPEED = 0.1127f;      // 最小速度
     static constexpr f32 MAX_SPEED = 0.3375f;      // 最大速度

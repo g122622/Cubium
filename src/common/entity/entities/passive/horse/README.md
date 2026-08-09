@@ -207,15 +207,17 @@ AnimalEntity
 
 ### #11. 状态标志位掩码
 
-状态使用 `STATUS_PARAM` 的位掩码存储：
-- bit 1(2)：已驯服
-- bit 2(4)：已装备鞍
-- bit 3(8)：已繁殖
-- bit 4(16)：正在吃
-- bit 5(32)：正在扬蹄
-- bit 6(64)：嘴张开
+状态使用 `STATUS_PARAM`（i8 DataParameter）的位掩码存储，6 bool 真相源在 `HorseStatusComponent`：
+- bit 1(2)：已驯服（`m_tame`）
+- bit 2(4)：已装备鞍（`m_saddled`）
+- bit 3(8)：已繁殖（`m_bred`）
+- bit 4(16)：正在吃（`m_eating`）
+- bit 5(32)：正在扬蹄（`m_rearing`）
+- bit 6(64)：嘴张开（`m_mouthOpen`）
 
-使用 `getHorseWatchableBoolean()` 和 `setHorseWatchableBoolean()` 操作，不要直接操作位。
+ECS 迁移后（批次8 B8.1）：6 个 setter（`setSaddle`/`setTame`/`setEating`/`setBred`/`setMouthOpen`/`setRearing`）写完 `HorseStatusComponent` 字段后调 `_syncStatusFlags()` 聚合成 i8 一次 `m_dataManager.set(STATUS_PARAM, ...)` 下发客户端。不要直接操作位；旧 `getHorseWatchableBoolean()`/`setHorseWatchableBoolean()`（每次 read-modify-write）已删除。
+
+客户端 `ClientEntity::syncMetadataFromDataManager` 有 horse 分支：读 `STATUS_PARAM` i8 按 6 bit 掩码拆解写入 ClientEntity 自有的 6 horse 成员（`m_horseTamed`/`m_horseSaddled`/...）。`STATUS_FLAG_*` 常量与 `getStatusParamId()` 均为 public，供客户端解析使用。
 
 ### #12. 动画计数器系统
 
@@ -249,24 +251,26 @@ MC 1.21.11 的 `AbstractHorse.tick()` 和 `aiStep()` 管理以下动画计数器
 
 ### #13. NBT 序列化
 
-`AbstractHorseEntity` 实现了 `addAdditionalSaveData()` / `readAdditionalSaveData()`，序列化以下字段：
+ECS 迁移后（批次8 B8.1），字段级 NBT 读写已从 `AbstractHorseEntity::addAdditionalSaveData`/`readAdditionalSaveData` 搬到 `ComponentSerializerRegistry`（`HorseComponentSerialization.cpp` 注册 4 序列化器）。`addAdditionalSaveData` override 已删除（回落基类空实现），`readAdditionalSaveData` 改薄壳（仅调基类 + `initHorseChest`，因 `initHorseChest` 需在所有组件 load 完成后按新 NBT 重置库存规模）。
 
-| NBT 键 | 类型 | 字段 | 说明 |
-|--------|------|------|------|
-| `OwnerUUIDMost` | i64 | `m_ownerUuid` | 主人 UUID 高 64 位 |
-| `OwnerUUIDLeast` | i64 | `m_ownerUuid` | 主人 UUID 低 64 位 |
-| `Temper` | i32 | `m_temper` | 驯服进度 |
-| `Tame` | i8(bool) | `m_tame` | 是否已驯服 |
-| `Bred` | i8(bool) | bred 标志 | 是否已繁殖 |
-| `Saddle` | i8(bool) | `m_saddled` | 是否装备鞍 |
-| `JumpStrength` | f32 | `m_jumpStrength` | 跳跃强度 |
-| `Speed` | f32 | `m_speed` | 移动速度 |
-| `HorseHealth` | f32 | `m_horseHealth` | 生命值 |
-| `EatingHaystack` | i8(bool) | eating 标志 | 是否在吃草 |
+| NBT 键 | 类型 | 组件（真相源） | priority | 说明 |
+|--------|------|----------------|----------|------|
+| `OwnerUUIDMost` | i64 | HorseTamingComponent | 0 | 主人 UUID 高 64 位 |
+| `OwnerUUIDLeast` | i64 | HorseTamingComponent | 0 | 主人 UUID 低 64 位 |
+| `Temper` | i32 | HorseTamingComponent | 0 | 驯服进度 |
+| `JumpStrength` | f32 | HorseJumpComponent | 0 | 跳跃强度（load 后同步 AttributeMap） |
+| `Tame` | i8(bool) | HorseStatusComponent | 10 | 是否已驯服（走 setter 写 STATUS_PARAM） |
+| `Bred` | i8(bool) | HorseStatusComponent | 10 | 是否已繁殖 |
+| `Saddle` | i8(bool) | HorseStatusComponent | 10 | 是否装备鞍 |
+| `EatingHaystack` | i8(bool) | HorseStatusComponent | 10 | 是否在吃草 |
+| `Speed` | f32 | HorseAttributeComponent | 20 | 移动速度（load 后同步 AttributeMap） |
+| `HorseHealth` | f32 | HorseAttributeComponent | 20 | 生命值（load 后同步 AttributeMap） |
 
-UUID 存储使用 `OwnerUUIDMost`/`OwnerUUIDLeast` 双 long 格式（与 MC 原版兼容），
-通过 `util::uuidFromString()` / `util::uuidToString()` 进行字符串与字节转换。
-布尔值以 i8(0/1) 存储，读取时使用 `nbt_helper::tryGetBool()`。
+load 按 priority 升序：Taming=0/Jump=0 先 load（`ownerUuid` 联动 `setOwnerUuid` 触发 `setTame(true)` 写 STATUS_PARAM），Status=10 后 load（tame/bred/saddle/eating 走 setter，ownerUuid 联动的 setTame 覆盖幂等），Attribute=20 最后 load（speed/horseHealth 同步 AttributeMap）。
+
+UUID 存储使用 `OwnerUUIDMost`/`OwnerUUIDLeast` 双 long 格式（与 MC 原版兼容），通过 `util::uuidFromString()` / `util::uuidToString()` 进行字符串与字节转换。布尔值以 i8(0/1) 存储，读取时使用 `nbt_helper::tryGetBool()`。
+
+属性字段（speed/horseHealth/jumpStrength）是 NBT 真相源，`registerAttributes` 拷贝到 AttributeMap；load 后序列化器调 `setBaseValue` 同步 AttributeMap。`getSpeed()`/`getHorseHealth()` 为组件读取的公开 getter，供叶子类 `registerAttributes` 使用。
 
 ### #12. 马的 AI 目标优先级
 
