@@ -31,6 +31,8 @@
 #include "../../core/Entity.hpp"
 #include "../../core/EntityDataManager.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../ecs/components/MinecartDisplayComponent.hpp"
+#include "../../ecs/components/MinecartStateComponent.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
@@ -39,6 +41,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <array>
 #include <cmath>
@@ -122,7 +125,12 @@ public:
     /**
      * @brief 检查是否可以被推动
      */
-    [[nodiscard]] bool canBePushed() const { return m_canBePushed; }
+    [[nodiscard]] bool canBePushed() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_canBePushed;
+    }
 
 protected:
     /**
@@ -174,29 +182,54 @@ public:
     /**
      * @brief 获取空中最大横向速度
      */
-    [[nodiscard]] virtual f32 getMaxSpeedAirLateral() const { return m_maxSpeedAirLateral; }
+    [[nodiscard]] virtual f32 getMaxSpeedAirLateral() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_maxSpeedAirLateral;
+    }
 
     /**
      * @brief 获取空中最大纵向速度
      */
-    [[nodiscard]] virtual f32 getMaxSpeedAirVertical() const { return m_maxSpeedAirVertical; }
+    [[nodiscard]] virtual f32 getMaxSpeedAirVertical() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_maxSpeedAirVertical;
+    }
 
     /**
      * @brief 获取空气阻力
      */
-    [[nodiscard]] virtual f32 getDragAir() const { return m_dragAir; }
+    [[nodiscard]] virtual f32 getDragAir() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_dragAir;
+    }
 
     /**
      * @brief 设置最大速度
      */
-    void setMaxSpeed(f32 speed) { m_maxSpeed = speed; }
+    void setMaxSpeed(f32 speed)
+    {
+        auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_maxSpeed = speed;
+    }
 
     // ========== 铁轨相关 ==========
 
     /**
      * @brief 检查是否在铁轨上
      */
-    [[nodiscard]] bool isOnRail() const { return m_onRail; }
+    [[nodiscard]] bool isOnRail() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_onRail;
+    }
 
     /**
      * @brief 检查当前位置是否在铁轨上
@@ -207,41 +240,76 @@ public:
     /**
      * @brief 获取当前铁轨形状
      */
-    [[nodiscard]] RailShape getRailShape() const { return m_railShape; }
+    [[nodiscard]] RailShape getRailShape() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_railShape;
+    }
 
     /**
      * @brief 获取当前铁轨位置
      */
-    [[nodiscard]] const BlockPos& getRailPosition() const { return m_railPos; }
+    [[nodiscard]] const BlockPos& getRailPosition() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_railPos;
+    }
 
     // ========== 损坏和动画 ==========
 
     /**
      * @brief 获取矿车的损坏值
      */
-    [[nodiscard]] i32 getDamage() const { return m_damage; }
+    [[nodiscard]] i32 getDamage() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_damage;
+    }
 
     /**
      * @brief 设置损坏值
      */
-    void setDamage(i32 damage) { m_damage = damage; }
+    void setDamage(i32 damage)
+    {
+        auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        c->m_damage = damage;
+    }
 
     /**
      * @brief 获取摇晃幅度
      */
-    [[nodiscard]] i32 getRollingAmplitude() const { return m_rollingAmplitude; }
+    [[nodiscard]] i32 getRollingAmplitude() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_rollingAmplitude;
+    }
 
     /**
      * @brief 获取摇晃方向
      */
-    [[nodiscard]] i32 getRollingDirection() const { return m_rollingDirection; }
+    [[nodiscard]] i32 getRollingDirection() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_rollingDirection;
+    }
 
     /**
      * @brief 是否翻转
      *
      * 矿车在铁轨方向变化超过 90° 时会翻转，渲染器据此调整朝向。
      */
-    [[nodiscard]] bool isFlipped() const { return m_flipped; }
+    [[nodiscard]] bool isFlipped() const
+    {
+        const auto* c = tryGetComponent<ecs::MinecartStateComponent>();
+        MC_ASSERT_RELEASE(c);
+        return c->m_flipped;
+    }
 
     // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
 
@@ -416,39 +484,8 @@ protected:
     static const EntityClassInfo& classInfo();
 
 private:
-    // 矿车类型
+    // 矿车类型（构造期定值不变，是实体类型标识，不进 ECS 组件）
     Type m_type;
-
-    // 铁轨状态
-    bool m_onRail = false;
-    BlockPos m_railPos;
-    RailShape m_railShape = RailShape::NorthSouth;
-    bool m_flipped = false; // 是否翻转
-
-    // 速度
-    f32 m_maxSpeed = DEFAULT_MAX_SPEED;
-    f32 m_maxSpeedAirLateral = DEFAULT_MAX_SPEED_AIR_LATERAL;
-    f32 m_maxSpeedAirVertical = DEFAULT_MAX_SPEED_AIR_VERTICAL;
-    f32 m_dragAir = DEFAULT_AIR_DRAG;
-
-    // 损坏和动画
-    i32 m_damage = 0;
-    i32 m_rollingAmplitude = 0;
-    i32 m_rollingDirection = 1;
-
-    // 显示方块（vanilla 1.21.11 走 wire DATA_CUSTOM_DISPLAY_BLOCK_PARAM 同步,项目尚未接业务）
-    // TODO: 待实现矿车内显示方块业务(熔炉/刷怪笼/命令方块矿车等),通过 DATA_CUSTOM_DISPLAY_BLOCK_PARAM
-    //       (OptionalBlockStateValue) 同步到客户端,并扩展渲染器消费。当前成员声明保留供未来接入。
-    i32 m_displayTile = 0;       // 方块状态ID（待接入 wire）
-    i32 m_displayTileOffset = 6; // 显示偏移（待接入 wire）
-    bool m_showBlock = false;    // 是否显示方块（待接入 wire,对应 Optional present）
-
-    // 推动力（熔炉矿车用）
-    f32 m_pushX = 0.0f;
-    f32 m_pushZ = 0.0f;
-
-    // 可推动状态
-    bool m_canBePushed = true;
 
     // 常量
     static constexpr f32 DEFAULT_MAX_SPEED = 0.4f;               // 最大铁轨速度

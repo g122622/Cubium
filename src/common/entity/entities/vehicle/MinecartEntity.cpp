@@ -30,6 +30,8 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/MinecartDisplayComponent.hpp"
+#include "common/entity/ecs/components/MinecartStateComponent.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
@@ -110,6 +112,11 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type, EntityInstanceId id, e
     : Entity(id, nullptr, registry)
     , m_type(type)
 {
+    // 批次7 矿车大族迁移 Step1：attach MinecartStateComponent（12 字段运行/配置状态）+
+    // MinecartDisplayComponent（3 字段显示方块）。7 个矿车子类经此自动获得组件。
+    // Step2 起把 m_onRail/m_railPos/m_damage 等 15 字段读写改走组件，删 OOP 成员。
+    m_entityContext->enttRegistry().emplace<ecs::MinecartStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::MinecartDisplayComponent>(m_entityContext->entity());
     // 矿车默认属性
     registerData();
 }
@@ -118,6 +125,8 @@ AbstractMinecartEntity::AbstractMinecartEntity(Type type, ecs::EntityRegistry& r
     : Entity(EntityInstanceId(0), nullptr, registry)
     , m_type(type)
 {
+    m_entityContext->enttRegistry().emplace<ecs::MinecartStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::MinecartDisplayComponent>(m_entityContext->entity());
     registerData();
 }
 
@@ -141,20 +150,23 @@ void AbstractMinecartEntity::registerData()
 
 void AbstractMinecartEntity::tick()
 {
+    auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 更新摇晃动画
     _updateRollingAnimation();
 
     // 减少损坏值
-    if (m_damage > 0) {
-        m_damage--;
+    if (mc->m_damage > 0) {
+        mc->m_damage--;
     }
 
     // 检查铁轨状态
     _checkRailState();
 
-    if (m_onRail) {
+    if (mc->m_onRail) {
         // 在铁轨上移动
-        _moveAlongTrack(m_railPos);
+        _moveAlongTrack(mc->m_railPos);
     } else {
         // 脱轨移动
         _moveDerailedMinecart();
@@ -196,6 +208,9 @@ bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const
 
 void AbstractMinecartEntity::_checkRailState()
 {
+    auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 检查当前位置或下方一格是否有铁轨
     BlockPos currentPos(static_cast<BlockCoord>(std::floor(x())),
         static_cast<BlockCoord>(std::floor(y())),
@@ -205,8 +220,8 @@ void AbstractMinecartEntity::_checkRailState()
 
     // 检查当前方块
     if (isOnRailAt(currentPos)) {
-        m_onRail = true;
-        m_railPos = currentPos;
+        mc->m_onRail = true;
+        mc->m_railPos = currentPos;
 
         // 从方块状态获取铁轨形状
         if (worldPtr) {
@@ -215,7 +230,7 @@ void AbstractMinecartEntity::_checkRailState()
                 const Block* block = &state->getBlock();
                 const AbstractRailBlock* railBlock = dynamic_cast<const AbstractRailBlock*>(block);
                 if (railBlock) {
-                    m_railShape = railBlock->getRailShape(*state);
+                    mc->m_railShape = railBlock->getRailShape(*state);
                 }
             }
         }
@@ -225,8 +240,8 @@ void AbstractMinecartEntity::_checkRailState()
     // 检查下方一格
     BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
     if (isOnRailAt(belowPos)) {
-        m_onRail = true;
-        m_railPos = belowPos;
+        mc->m_onRail = true;
+        mc->m_railPos = belowPos;
 
         // 从方块状态获取铁轨形状
         if (worldPtr) {
@@ -235,18 +250,21 @@ void AbstractMinecartEntity::_checkRailState()
                 const Block* block = &state->getBlock();
                 const AbstractRailBlock* railBlock = dynamic_cast<const AbstractRailBlock*>(block);
                 if (railBlock) {
-                    m_railShape = railBlock->getRailShape(*state);
+                    mc->m_railShape = railBlock->getRailShape(*state);
                 }
             }
         }
         return;
     }
 
-    m_onRail = false;
+    mc->m_onRail = false;
 }
 
 void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
 {
+    auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 矿车在铁轨上不会积累摔落伤害
     setFallDistance(0.0f);
 
@@ -278,11 +296,11 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
     }
 
     // 获取铁轨形状
-    RailShape railshape = m_railShape;
+    RailShape railshape = mc->m_railShape;
     const AbstractRailBlock* abstractRailBlock = dynamic_cast<const AbstractRailBlock*>(railBlock);
     if (abstractRailBlock) {
         railshape = abstractRailBlock->getRailShape(*railState);
-        m_railShape = railshape; // 更新缓存
+        mc->m_railShape = railshape; // 更新缓存
     }
 
     // 检查是否为动力铁轨（非激活铁轨）
@@ -292,8 +310,8 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
     // 此处暂不在此处做特殊区分，由 _isPoweredRail 和 _isRailPowered 方法处理
 
     // 检查是否为动力铁轨且被充能
-    if (_isPoweredRail(m_railPos)) {
-        isPoweredRailFlag = _isRailPowered(m_railPos);
+    if (_isPoweredRail(mc->m_railPos)) {
+        isPoweredRailFlag = _isRailPowered(mc->m_railPos);
         isUnpoweredRailFlag = !isPoweredRailFlag;
     }
 
@@ -751,9 +769,12 @@ void AbstractMinecartEntity::_handleMinecartCollisions()
 
 void AbstractMinecartEntity::_updateRollingAnimation()
 {
+    auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 摇晃动画更新
-    if (m_rollingAmplitude > 0) {
-        m_rollingAmplitude--;
+    if (mc->m_rollingAmplitude > 0) {
+        mc->m_rollingAmplitude--;
     }
 }
 
@@ -776,7 +797,9 @@ void AbstractMinecartEntity::_updateRotation()
 
         // 检测是否需要翻转
         if (yawDiff > 90.0f || yawDiff < -90.0f) {
-            m_flipped = !m_flipped;
+            auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+            MC_ASSERT_RELEASE(mc);
+            mc->m_flipped = !mc->m_flipped;
         }
 
         setRotation(targetYaw, pitch());
@@ -896,8 +919,11 @@ void AbstractMinecartEntity::_moveMinecartOnRail(const BlockPos& pos)
 
 f32 AbstractMinecartEntity::getMaxSpeedWithRail() const
 {
+    const auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 如果不在铁轨上，使用基础最大速度
-    if (!m_onRail) {
+    if (!mc->m_onRail) {
         return getMaxSpeed();
     }
 
@@ -1025,17 +1051,20 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
         return true;
     }
 
+    auto* mc = tryGetComponent<ecs::MinecartStateComponent>();
+    MC_ASSERT_RELEASE(mc);
+
     // 4. 设置摇晃动画
-    m_rollingDirection = -m_rollingDirection;
+    mc->m_rollingDirection = -mc->m_rollingDirection;
 
     // 5. 设置摇晃时间
-    m_rollingAmplitude = 10;
+    mc->m_rollingAmplitude = 10;
 
     // 6. 标记速度已改变（用于同步到客户端）
     markHurt();
 
     // 7. 累积伤害
-    m_damage += static_cast<i32>(amount * 10.0f);
+    mc->m_damage += static_cast<i32>(amount * 10.0f);
 
     // 8. 检查攻击者是否为创造模式玩家
     bool isCreative = false;
@@ -1046,7 +1075,7 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     }
 
     // 9. 检查是否应该摧毁矿车
-    if (isCreative || m_damage > static_cast<i32>(DAMAGE_THRESHOLD)) {
+    if (isCreative || mc->m_damage > static_cast<i32>(DAMAGE_THRESHOLD)) {
         // 移除所有乘客
         removePassengers();
 
