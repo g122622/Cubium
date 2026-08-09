@@ -133,15 +133,8 @@ void VillagerEntity::tick()
 {
     AbstractVillagerEntity::tick();
 
-    // 更新Brain系统
-    if (m_brain && m_world) {
-        // 获取游戏时间和白天时间
-        i64 gameTime = m_world->currentTick();
-        i32 dayTime = static_cast<i32>(m_world->dayTimeOfDay());
-
-        // Brain tick使用实体的持久化随机数生成器
-        m_brain->tick(m_world, this, gameTime, dayTime, getRandom());
-    }
+    // Brain tick 已上移至 BrainTickSystem（PostEntityTick 阶段，见 EntityManager::_tickBrains）。
+    // m_brain 成员与 brain() 访问器保留不变，Goal/Task/Sensor 仍经 owner->brain() 访问。
 
     // 更新声音冷却
     if (m_soundCooldown > 0) {

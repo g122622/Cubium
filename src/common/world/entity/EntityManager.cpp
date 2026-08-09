@@ -27,14 +27,17 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/ecs/systems/BrainTickSystem.hpp"
 #include "common/entity/ecs/systems/EntityLegacyTickSystem.hpp"
 #include "common/entity/ecs/systems/FireTickSystem.hpp"
 #include "common/entity/ecs/systems/PortalTickSystem.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <cstdlib>
 #include <functional>
@@ -65,6 +68,13 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
     // 两者在 EntityTick 之后执行，可读到本帧 updateEnvironmentState 产出的环境状态。
     m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick, std::make_shared<ecs::PortalTickSystem>());
     m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick, std::make_shared<ecs::FireTickSystem>());
+
+    // PostEntityTick 阶段：Brain tick 系统（批次6子目标3）。
+    // 注册在 PortalTickSystem/FireTickSystem 之后，使 Brain tick 在所有实体 OOP tick
+    // + portal/fire 递减之后执行。回调委托 _tickBrains()（复用 _tickEntities 门控框架）。
+    // Brain 仍是 OOP 成员，本 System 只搬 tick 调度决策，不 ECS 化 Brain 数据。
+    m_scheduler.registerSystem(ecs::SystemPhase::PostEntityTick,
+        std::make_shared<ecs::BrainTickSystem>([this](ecs::EntityRegistry&) { this->_tickBrains(); }));
 }
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
@@ -317,6 +327,48 @@ void EntityManager::_tickEntities()
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Tick, "EntityManager::tick.perEntity", "entityId", id, "name", entity->getTypeId());
         entity->tick();
+    }
+}
+
+void EntityManager::_tickBrains()
+{
+    // 复用 _tickEntities 的遍历+门控框架。playerChunks 独立快照（ServerPlayer 数量少，
+    // 重复快照成本可忽略；若共用须把快照提到 tick() 顶层改变三步编排，不值得）。
+    const bool freezeEnabled = m_simulationDistance < 32;
+    std::vector<world::chunk::ChunkPos> playerChunks;
+    if (freezeEnabled) {
+        const auto players = getPlayers();
+        playerChunks.reserve(players.size());
+        for (const auto* player : players) {
+            playerChunks.emplace_back(player->position());
+        }
+    }
+
+    for (auto& [id, entity] : m_entities) {
+        if (entity->isRemoved()) {
+            continue;
+        }
+        // 非玩家实体模拟距离门控（Player 无 Brain，门控对其无意义但保持框架一致）。
+        if (freezeEnabled && entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER &&
+            !_isEntityInSimulationRange(*entity, playerChunks)) {
+            continue; // 冻结：不调 brain().tick()
+        }
+
+        // 类型识别：当前仅 VillagerEntity 持 Brain。dynamic_cast 失败早退。
+        auto* villager = dynamic_cast<entity::VillagerEntity*>(entity.get());
+        if (villager == nullptr) {
+            continue;
+        }
+
+        // 判空 + 参数获取（逐字搬迁 VillagerEntity::tick 原 line 137-144）。
+        // brain() 返回 *m_brain 引用（构造恒 make_unique<VillagerBrain> 非空），故只判 world。
+        IWorld* world = villager->world();
+        if (world == nullptr) {
+            continue;
+        }
+        const i64 gameTime = static_cast<i64>(world->currentTick());
+        const i32 dayTime = static_cast<i32>(world->dayTimeOfDay());
+        villager->brain().tick(world, villager, gameTime, dayTime, villager->getRandom());
     }
 }
 

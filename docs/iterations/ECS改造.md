@@ -206,11 +206,35 @@ projectile 族（20 个类，3 个继承根：ProjectileEntity 子树 / FishingB
 
 **暂未处理**：Fireball/EyeOfEnder 的 item 字段项目当前无（vanilla 持久化 Item），序列化器占位标 TODO 待补。DamagingProjectile acceleration_power 方向信息存盘丢失（项目 XYZ 三分量 vs vanilla 单值，TODO 待字段结构统一）。客户端 ClientEntity 投掷物族消费分支待配套渲染器集成时补。`tests/` 仍不透传 registry（永久约束）。
 
+## 第六批子目标3：Brain tick 调度上移 System（2026-08-09 落地）
+
+ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Controller 约 5 万行不 ECS 化），System 做 tick 调度"。子目标3 落实这句"System 做 tick 调度"——把 Brain 的 tick 调用从 OOP `VillagerEntity::tick()` 内部抽到统一 ECS System，**不 ECS 化 Brain 数据**（Brain 仍是 OOP 成员），只搬调度决策。
+
+**现状**：`Brain<E>` 是 header-only 模板类（`src/common/entity/ai/brain/Brain.hpp`），全仓仅 `Brain<VillagerEntity>` 一个实例化点。原 `VillagerEntity::tick()` 在 `AbstractVillagerEntity::tick()` 之后、业务逻辑（声音/粒子/交易/升级）之前硬编码调 `m_brain->tick(m_world, this, gameTime, dayTime, getRandom())`，调度决策耦合在实体 tick 内部，不符合"System 做 tick 调度"架构方向。
+
+**用户拍板方向**（本会话 AskUserQuestion）：保留 `Brain<E>` 模板不变，新增 `BrainTickSystem` 接入 `EntitySystemScheduler`，用 System 统一调度所有持有 Brain 实体的 `brain().tick()`，替代每个实体 `tick()` 各自调 `m_brain->tick()`。
+
+**已交付**：
+- **新建 `BrainTickSystem.hpp`**（header-only 回调委托型 System）：逐字仿 `EntityLegacyTickSystem.hpp`，持 `std::function<void(EntityRegistry&)>` 回调，注册到 `SystemPhase::PostEntityTick`，回调委托 `EntityManager::_tickBrains()`。无 .cpp 不登记 CMake。
+- **`EntityManager.hpp` 声明 `_tickBrains()`**：私有方法，由 BrainTickSystem 回调委托，复用 `_tickEntities` 门控框架，对 `dynamic_cast<entity::VillagerEntity*>` 成功实体调 `brain().tick()`，假设已持 `m_mutex`。
+- **`EntityManager.cpp` 实现 `_tickBrains()` + 构造函数注册**：include 三个头（BrainTickSystem.hpp/VillagerEntity.hpp/IWorld.hpp），构造函数在 FireTickSystem 之后注册 BrainTickSystem 到 PostEntityTick。`_tickBrains()` 复用 `_tickEntities` 全部门控（playerChunks 快照/isRemoved 跳过/ServerPlayer 短路/模拟距离门控），对 dynamic_cast 成功实体逐字搬迁原 `VillagerEntity::tick` line 137-144 的 brain().tick 调用（gameTime 转 i64、dayTime 转 i32 对齐 `Brain::tick(IWorld*, E*, i64, i32, Random&)` 签名）。
+- **`VillagerEntity.cpp` 删除 Brain tick 代码块**：`tick()` 中原 line 136-144 的 `if (m_brain && m_world) {...}` 整块删除，替换为简短注释指向 BrainTickSystem。`m_brain` 成员/`brain()` 访问器/`initializeBrain()` 全部保留（Goal/Task/Sensor 仍经 `owner->brain()` 访问）。
+
+**关键设计决策**：
+- **路线选回调委托型而非组件驱动型**：不把 `unique_ptr<Brain>` 包进组件——Brain 含虚函数破坏"组件纯数据"边界且违背"AI 不 ECS 化"决策；System 内复现模拟距离门控须访问 EntityManager 形成循环依赖；Brain 模板类型擦除须引入 IBrain 抽象基类改动 5 万行 AI 代码。回调委托型把 System 仅当"何时调 tick()"调度壳，Brain 数据仍 OOP 成员，契合混合架构。
+- **阶段 PostEntityTick（注册在 Portal/Fire 之后）**：Brain tick 在所有实体 OOP tick（含 goalSelector.tick/navigator.tick）+ portal/fire 递减之后执行。跨实体传感器（NearestPlayersSensor 等）读到本帧最终位置，**行为更正确**。
+- **类型识别 `dynamic_cast<entity::VillagerEntity*>`**（非 Entity 基类虚函数）：调度决策留 System 符合"System 做调度"，不动基类 vtable，与本仓既有 dynamic_cast 范式一致（序列化器/MobEntity 分类）。当前仅 VillagerEntity 持 Brain，RTTI 开销可忽略；新增持 Brain 实体类型时只改 `_tickBrains` 一处 dynamic_cast。
+- **playerChunks 独立快照**：不与 `_tickEntities` 共用（共用须把快照提到 `tick()` 顶层改变三步编排结构，不值得；ServerPlayer 数量少重复快照成本可忽略）。
+
+**风险与行为影响**：①Brain tick 时序迁移（主风险）——原同帧紧邻 goalSelector，新时序延后到所有实体 tick + portal/fire 之后，潜在 1 tick 延迟（Goal 读 Brain memory 可能读到上一帧值），单帧 50ms 玩家无感，GameTest 验证村民日程/工作/睡眠切换无回归。②死亡帧 Brain tick——`isRemoved()` 在 `remove()` 时置 true（死亡消散结束后才 remove），死亡帧 `isRemoved()==false` Brain 仍 tick，与原时序一致不引入新风险。③客户端——ClientWorld 不继承 IWorld，客户端不构造 VillagerEntity，BrainTickSystem 只注册到服务端 EntityManager，客户端无影响。
+
+**验证**：增量构建 minecraft-server+minecraft-client 零错误（`--target` 绕过 mc_tests）；GameTest 8/8 零回归（simpleMobTest 偶发 flaky 超时复跑即过非回归）。Brain 模板未做泛型化（全仓仅 VillagerEntity 一个实例化点，泛型化收益为零且 Brain.hpp 未动），子目标3 实质为"Brain tick 调度上移 System"。
+
 ## 后续批次路线（备忘，未落地）
 
 - **批次5（已收束于 5.1）**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」——mixin 接口相关 cast 仅 IMob 5 处可纯 tag 迁移（5.1 已落地）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。**剩余 10 个 mixin 接口（IShearable/IEquipable/ICrossbowUser/IRangedAttackMob/IJumpingMount/IRideable/ContainerUser/IAngerable/IFlinging/IFlyingAnimal）的 dynamic_cast 经 5.2 勘察确认为「接口多态分发」模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用，违反 AI 保留 OOP 决策；IFlinging/IFlyingAnimal 虽能纯 tag 但零消费点是架构债**。故批次5 收束于 5.1 IMob 试点，剩余 mixin 接口 OOP 多态作混合架构合理行为层保留。详见上文「批次5 收束决策」段。
-- **批次6**：子目标1（序列化按组件注册序列化器）已于 2026-08-09 落地，见上文「第六批子目标1」段。剩余：子目标2 projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）；子目标3 Brain 模板实例化重构为泛型 System。
+- **批次6**：子目标1（序列化按组件注册序列化器）已于 2026-08-09 落地，见上文「第六批子目标1」段；子目标2 projectile 族整块 ECS 化已于 2026-08-09 落地，见上文「第六批子目标2」段；子目标3 Brain tick 调度上移 System 已于 2026-08-09 落地，见上文「第六批子目标3」段。批次6 三个子目标全部完成。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 16 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 18 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造、组件序列化器注册表：序列化按组件注册 + Entity public tryGetComponent 包装 + setter 副作用绕过直写组件、projectile 族整块 ECS 化同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化、Brain tick 调度上移 System 回调委托型非组件驱动 + 时序迁移到 PostEntityTick + dynamic_cast 类型识别），迁移后续批次前务必先读。

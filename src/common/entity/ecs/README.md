@@ -56,6 +56,7 @@ src/common/entity/ecs/
     ├── SystemPhase.hpp              # 命名阶段枚举（EntityTick / PostEntityTick）
     ├── EntitySystemScheduler.hpp/cpp # 阶段化编排器（EntityManager::tick 委托，阶段内预留 organizer 钩子）
     ├── EntityLegacyTickSystem.hpp   # 包装 Entity::tick() 虚函数链为系统，注册入 EntityTick 阶段
+    ├── BrainTickSystem.hpp          # 第六批 6.3 回调委托型 System：VillagerEntity 的 brain().tick() 上移调度，注册入 PostEntityTick
     ├── PortalTickSystem.hpp/cpp     # 第二批真实 System：portal 计时/冷却/传送触发，注册入 PostEntityTick
     └── FireTickSystem.hpp/cpp       # 第二批真实 System：fire 递减/燃烧伤害/雨中扑灭，注册入 PostEntityTick
 ```
@@ -69,7 +70,7 @@ IWorld（ServerWorld / ClientWorld）
        ├─ EntityManager::tick() 委托 scheduler ← 第二批接入（首批为孤儿骨架）
        │    └─ EntitySystemScheduler.tick(registry)
        │         ├─ EntityTick 阶段:  EntityLegacyTickSystem → _tickEntities() 遍历调 entity->tick()
-       │         └─ PostEntityTick 阶段: PortalTickSystem / FireTickSystem（真实业务 System）
+       │         └─ PostEntityTick 阶段: PortalTickSystem / FireTickSystem / BrainTickSystem（真实业务 System，BrainTickSystem 回调委托 _tickBrains()）
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
             │
@@ -224,3 +225,17 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 **ProjectileItemComponent 跨子树键名分发**：Spear（AbstractArrow 子树）用小写 "item" 键（对齐 vanilla AbstractArrow），ThrowableItemProjectile 子树（Snowball/Egg/Potion/ExperienceBottle/EnderPearl）用 "Item" 键。序列化器按 `dynamic_cast<AbstractArrowEntity*>` 分发键名。
 
 **EyeOfEnder 断链特例**：vanilla EyeOfEnder 覆盖 save 且不调 super（只存 Item 不存 Owner）。项目 EyeOfEnderEntity 直接继承 Entity 无 ProjectileOwnerComponent，与 vanilla 断链语义一致（自然不存 owner）。当前无 item 字段，序列化器占位标 TODO。
+
+### 18. Brain tick 调度上移 System：回调委托型非组件驱动 + 时序迁移到 PostEntityTick
+
+ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Controller 约 5 万行不 ECS 化），System 做 tick 调度"。`Brain<E>` 是 header-only 模板类，全仓仅 `Brain<VillagerEntity>` 一个实例化点。原调度决策耦合在 `VillagerEntity::tick()` 内部（`AbstractVillagerEntity::tick()` 之后硬编码调 `m_brain->tick()`）。子目标3 把这块调用从 OOP `tick()` 抽到统一 ECS System。
+
+**回调委托型而非组件驱动型**：新建 `BrainTickSystem`（持 `std::function<void(EntityRegistry&)>` 回调），逐字仿 `EntityLegacyTickSystem.hpp`，注册到 `SystemPhase::PostEntityTick`（注册在 PortalTickSystem/FireTickSystem 之后），回调委托 `EntityManager::_tickBrains()`。不把 `unique_ptr<Brain>` 包进组件——Brain 含虚函数破坏"组件纯数据"边界，且违背"AI 不 ECS 化"决策；System 内复现模拟距离门控须访问 EntityManager 形成循环依赖；Brain 模板类型擦除须引入 IBrain 抽象基类改动 5 万行 AI 代码。回调委托型把 System 仅当"何时调用 tick()"的调度壳，Brain 数据仍 OOP 成员，契合混合架构。
+
+**门控零重复复用**：`_tickBrains()` 复用 `_tickEntities()` 的全部门控框架——playerChunks 快照 + `isRemoved()` 跳过 + ServerPlayer 短路 + 模拟距离门控。`playerChunks` 独立快照不与 `_tickEntities` 共用（共用须把快照提到 `tick()` 顶层改变三步编排结构，不值得；ServerPlayer 数量少重复快照成本可忽略）。
+
+**时序迁移（主风险）**：原 Brain tick 在 `VillagerEntity::tick` 内紧邻 `goalSelector.tick`/`navigator.tick`；新时序延后到所有实体 OOP tick + portal/fire 递减之后。**行为更正确**：跨实体传感器（NearestPlayersSensor 等）读到本帧最终位置而非中间状态。潜在 1 tick 延迟：Goal 读 Brain memory 可能读到上一帧值（原同帧紧邻），单帧 50ms 玩家无感。须 GameTest 验证村民日程/工作/睡眠切换无回归。
+
+**类型识别用 `dynamic_cast<entity::VillagerEntity*>`**（非 Entity 基类虚函数）：①调度决策留 System 符合"System 做调度"，加虚函数 `tickBrain()` 是把调度下沉到 Entity 违背方向；②不动 Entity 基类 vtable；③与本仓既有 dynamic_cast 范式一致（序列化器/MobEntity 分类）。当前仅 VillagerEntity 持 Brain，RTTI 开销可忽略。新增持 Brain 实体类型时只改 `_tickBrains` 一处 dynamic_cast。
+
+**死亡帧与客户端**：`isRemoved()` 在 `remove()` 时置 true（死亡消散结束后才 remove），死亡帧 `isRemoved()==false` Brain 仍 tick，与原时序一致不引入新风险。ClientWorld 不继承 IWorld，客户端不构造 VillagerEntity，BrainTickSystem 只注册到服务端 EntityManager，客户端无影响。
