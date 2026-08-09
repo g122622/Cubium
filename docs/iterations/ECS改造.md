@@ -120,7 +120,7 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 **暂未处理**：`tests/` 741 处测试构造仍不透传 registry（永久约束）。DATA_PLAYER_MODE_CUSTOMISATION_PARAM 留后续批次。
 
-## 第五批：实体能力 mixin 接口转 tag/capability component（子批 5.1 IMob 试点，2026-08-09 落地）
+## 第五批：实体能力 mixin 接口转 tag/capability component（5.1 IMob 试点落地，2026-08-09 收束于 5.1）
 
 批次1-4 完成实体**状态数据层** ECS 化后，批次5 转向**类型标识层**：把实体能力 mixin 接口（IMob/IShearable/IRideable 等 11 个）转成 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」：实体能力 mixin 接口仅 5 处生产 dynamic_cast（原「16 处」含其他子批预估），其余为 NBT 节点 429 处 / 实体子类下行约 280 处 / UI 与结构生成约 60 处 / 方块能力 21 处 / 容器接口 16 处 / IWorld 跨边界 10 处，均不在本批。详见末尾路线图修正条目。
 
@@ -144,11 +144,21 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 - 构建：client/server 本体均 exit 0 链接产出（`--target` 绕过 mc_tests）。
 - GameTest 回归：核心场景 zombie_villager_chase（村民避险 AvoidHostileGoal/Sensors）/ iron_golem_arena（怪物 AI）/ simpleMobTest 三次复跑均稳定 PASSED，证明 hasComponent 替代 dynamic_cast 语义等价。zoglin_float/collapsing 偶发超时为已知 flaky 群（shulker AI 时序 + 光照引擎 TOCTOU，记忆 `ecs-migration-batch2-landed` 记录非本批引入），三次复跑每次恰好 1 个不同 flaky 测试超时，无固定失败。
 
-**暂未处理**：`tests/` 9 处 dynamic_cast<IMob*> 保留（接口存在即可编译，永久约束）。子批 5.2-5.4 待续。
+**暂未处理**：`tests/` 9 处 dynamic_cast<IMob*> 保留（接口存在即可编译，永久约束）。
+
+## 批次5 收束决策（2026-08-09）
+
+5.2-5.4 取消。全仓勘察剩余 10 个 mixin 接口（`src/common/entity/interfaces/`）后发现，5.1 IMob 是**纯类型标记接口**的特例（仅虚析构无业务虚方法，所有 5 处 cast 后只判 nullptr），其「接口转 tag + dynamic_cast 改 hasComponent」模式不可推广。剩余接口的 dynamic_cast 绝大多数是**接口多态分发**模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用：
+
+- **接口多态分发（11 处生产 cast，cast 后调虚方法）**：IShearable（ShearsItem 调 shear/isShearable）/IEquipable（SaddleItem 调 getEquipment/setEquipment）/ICrossbowUser（RangedAttackGoals 4 处调 setChargingCrossbow/shootCrossbow/getCrossbowChargeTime）/IRangedAttackMob（RangedAttackGoals 调 attackEntityWithRangedAttack）/IJumpingMount（ServerPlayHandler 2 处调 startJumping/stopJumping）/IRideable（OnAStickItem+SaddleItem 调 boost/hasSaddle/setSaddle）/ContainerUser（ChestEntity+CopperGolemGoals 调 hasContainerOpen/getContainerInteractionRange，另含 2 处接口引用参数多态 ChestEntity::startOpen/stopOpen 经 `ContainerUser&` 调 getLivingEntity）。
+- **带状态接口（0 生产 cast 但模板静态多态消费）**：IAngerable 经 `ResetAngerGoal<T>` 静态多态调 getRevengeTarget/setAngry/setAngerTime 等带状态虚方法，实现类众多（Tameable/Golem/Enderman/Bee/PolarBear/Piglin），愤怒计时器/复仇目标是状态字段，属 5.3 带状态范畴。
+- **零消费点（能纯 tag 但 tag 本身无用）**：IFlinging/IFlyingAnimal 0 cast + 0 接口指针多态消费，虚方法无运行时消费点（IFlinging 的 attackWithFling 是静态方法调用不走多态；IFlyingAnimal 的 isFlying/setFlying 等仅被实现类 override 占位，外部不通过接口分发）。建 tag 是无消费点的架构债。
+
+性能上，剩余 cast 多在低频路径（物品右键 ShearsItem/SaddleItem、骑乘键 IJumpingMount、开容器 ContainerUser），仅 ICrossbowUser/IRangedAttackMob 在 RangedAttackGoals 每 tick 跑但量级是 per-mob（当前攻击中的怪物）非 per-entity 遍历（对比 IMob 是 sensor 遍历范围内所有实体判怪），RTTI 开销可忽略。基岩版混合架构决策（七项根本决策第 1 条：AI/序列化等低频逻辑暂留 OOP）本就允许 OOP 行为层保留。强行 ECS 化要么半吊子（capability component 持接口指针委托，没消除多态只省 RTTI 字符串比较，且与基岩版 EntityContext 查询模式不对齐）要么破坏 AI 保留 OOP 决策（把虚方法分发本身改成系统查询，违反 Goal/Brain/Navigator 约 5 万行不 ECS 化的决策）。故**批次5 收束于 5.1**，剩余 mixin 接口 OOP 多态作为混合架构的合理行为层保留，转向批次6。
 
 ## 后续批次路线（备忘，未落地）
 
-- **批次5**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域仅 **11 个接口 / 16 处生产 dynamic_cast / 26 个继承点**（原路线图「约 1220 处」估算错误，已修正）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。策略：**接口保留作 OOP 行为层（虚函数 shear/boost/ride 等不删），tag/capability component 作类型标记层，dynamic_cast 改 `hasComponent<T>()`，二者并存**对齐基岩版混合架构，tests/ 零改动。性能收益集中在 AI 热路径（Sensors.cpp 每_tick 遍历实体 dynamic_cast<IMob> 6 处、RangedAttackGoals 弩攻击 5 处、AvoidHostileGoal/Conduit/ShulkerGoals 各 1-2 处），RTTI 字符串比较转编译期类型 id 比较。分四个子批：5.1 IMob 单接口试点验证模式 → 5.2 纯 tag 接口（IShearable/IEquipable/IFlinging）→ 5.3 带状态接口（IAngerable/IRideable 转 capability component 含字段迁移）→ 5.4 跨子系统接口（ContainerUser）。
+- **批次5（已收束于 5.1）**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」——mixin 接口相关 cast 仅 IMob 5 处可纯 tag 迁移（5.1 已落地）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。**剩余 10 个 mixin 接口（IShearable/IEquipable/ICrossbowUser/IRangedAttackMob/IJumpingMount/IRideable/ContainerUser/IAngerable/IFlinging/IFlyingAnimal）的 dynamic_cast 经 5.2 勘察确认为「接口多态分发」模式（cast 后立即调接口虚方法），hasComponent 无法替代虚方法调用，违反 AI 保留 OOP 决策；IFlinging/IFlyingAnimal 虽能纯 tag 但零消费点是架构债**。故批次5 收束于 5.1 IMob 试点，剩余 mixin 接口 OOP 多态作混合架构合理行为层保留。详见上文「批次5 收束决策」段。
 - **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
