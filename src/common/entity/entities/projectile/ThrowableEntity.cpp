@@ -140,7 +140,7 @@ void ThrowableEntity::tick()
     velocity = velocity * drag;
 
     // 应用重力
-    if (!m_noGravity) {
+    if (!hasNoGravity()) {
         velocity.y -= getGravity();
     }
 

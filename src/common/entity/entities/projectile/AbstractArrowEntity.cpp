@@ -73,9 +73,7 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
-{
-    m_noGravity = false;
-}
+{}
 
 void AbstractArrowEntity::tick()
 {

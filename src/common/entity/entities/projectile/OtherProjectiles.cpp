@@ -862,7 +862,7 @@ ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistr
     , m_direction(Direction::Up)
     , m_targetDelta(0.0, 0.0, 0.0)
 {
-    m_noGravity = true;
+    setNoGravity(true);
     m_noClip = true; // 穿墙
 }
 
@@ -914,7 +914,7 @@ void ShulkerBulletEntity::tick()
         Player* playerTarget = dynamic_cast<Player*>(m_target);
         if (m_target == nullptr || !m_target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
             // 目标无效，下落
-            if (!m_noGravity) {
+            if (!hasNoGravity()) {
                 m_builtIn.velocity->m_velocity.y -= 0.04;
             }
         } else {
@@ -1472,9 +1472,7 @@ void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
     , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
-{
-    m_noGravity = false;
-}
+{}
 
 std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {

@@ -178,15 +178,9 @@ public:
      */
     [[nodiscard]] bool hasLeftShooter() const { return m_leftShooter; }
 
-    /**
-     * @brief 检查是否不受重力影响
-     */
-    [[nodiscard]] bool hasNoGravity() const { return m_noGravity; }
-
-    /**
-     * @brief 设置是否受重力影响
-     */
-    void setNoGravity(bool noGravity) { m_noGravity = noGravity; }
+    // noGravity 走基类 Entity::hasNoGravity()/setNoGravity()（EntityStateComponent 真相源 +
+    // DATA_NO_GRAVITY_PARAM 镜像）。本类历史上曾重声明 m_noGravity + 遮蔽 getter/setter，
+    // 致火球/潜影贝子弹的 setNoGravity(true) 只写子类成员、组件与镜像恒假，已删除修正。
 
     // ========== 发射方法 ==========
 
@@ -330,7 +324,6 @@ protected:
     std::string m_shooterUuid;                              // 发射者UUID
     EntityInstanceId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
     bool m_leftShooter = false;                             // 是否已离开发射者
-    bool m_noGravity = false;                               // 是否不受重力
 
     /// 上一个偏转此弹射物的实体ID，防止同一实体连续偏转
     EntityInstanceId m_lastDeflectedById = INVALID_ENTITY_ID;

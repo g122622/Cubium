@@ -70,9 +70,7 @@ const EntityClassInfo& ProjectileEntity::classInfo()
 
 ProjectileEntity::ProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
-{
-    m_noGravity = false;
-}
+{}
 
 bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
 {
@@ -108,7 +106,7 @@ void ProjectileEntity::tick()
         velocity = velocity * getAirDrag();
     }
 
-    if (!m_noGravity) {
+    if (!hasNoGravity()) {
         velocity.y -= getGravity();
     }
 
