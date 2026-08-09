@@ -1528,80 +1528,18 @@ void EvokerFangsEntity::_damageEntities()
     }
 }
 
-void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    Entity::addAdditionalSaveData(tag);
-
-    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
-    if (comp == nullptr) {
-        return;
-    }
-
-    using namespace serialization::nbt_keys;
-
-    // 预热延迟
-    tag.put(WARMUP, comp->m_warmupDelay);
-
-    // 所有者 UUID
-    // 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Owner"
-    // 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储，与 AreaEffectCloudEntity 一致
-    if (!comp->m_ownerUuid.empty()) {
-        auto uuidBytes = util::uuidFromString(comp->m_ownerUuid);
-        if (uuidBytes.size() == 16) {
-            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
-                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
-                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
-                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
-            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
-                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
-                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
-                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
-            tag.put(FANGS_OWNER_UUID_MOST, most);
-            tag.put(FANGS_OWNER_UUID_LEAST, least);
-        }
-    }
+    // 批次6 子目标2 Step6：EvokerFangs 持久化（Warmup + Owner UUID）已搬至按组件注册的
+    // 序列化器（ProjectileComponentSerialization.cpp 的 saveEvokerFangs/loadEvokerFangs），
+    // 经 ComponentSerializerRegistry::saveAll/loadAll 调用。此 override 保留空壳避免子类
+    // 回落到 Entity 基类后再被未来代码误加字段（与 FireworkRocket/Spear 同范式）。
 }
 
-Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
-    if (comp == nullptr) {
-        return Result<void>::ok();
-    }
-
-    using namespace serialization::nbt_keys;
-
-    // 预热延迟
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, WARMUP)) {
-        comp->m_warmupDelay = *val;
-    }
-
-    // 所有者 UUID
-    // 读取 FANGS_OWNER_UUID_MOST/FANGS_OWNER_UUID_LEAST，转换为 UUID 字符串
-    auto mostVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_MOST);
-    auto leastVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_LEAST);
-    if (mostVal.has_value() && leastVal.has_value()) {
-        i64 m = mostVal.value();
-        i64 l = leastVal.value();
-        std::array<u8, 16> uuidBytes{};
-        for (i32 i = 7; i >= 0; --i) {
-            uuidBytes[i] = static_cast<u8>(m & 0xFF);
-            m >>= 8;
-        }
-        for (i32 i = 15; i >= 8; --i) {
-            uuidBytes[i] = static_cast<u8>(l & 0xFF);
-            l >>= 8;
-        }
-        comp->m_ownerUuid = util::uuidToString(uuidBytes);
-        comp->m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
-    } else {
-        comp->m_ownerUuid.clear();
-        comp->m_owner = nullptr;
-    }
-
-    return Result<void>::ok();
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
 }
 
 // ============================================================================
@@ -1955,74 +1893,17 @@ void FireworkRocketEntity::_explode()
     remove();
 }
 
-void FireworkRocketEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void FireworkRocketEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    Entity::addAdditionalSaveData(tag);
-
-    using namespace serialization::nbt_keys;
-
-    const auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
-
-    // 烟花物品（compound，由 ItemStack::toNbt 写入）
-    if (fw != nullptr && fw->m_fireworkItem != nullptr && !fw->m_fireworkItem->isEmpty()) {
-        nbt::tags::compound_tag itemTag;
-        fw->m_fireworkItem->toNbt(itemTag);
-        tag.value.emplace(FIREWORKS_ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-    }
-
-    // 已存在时间
-    if (fw != nullptr) {
-        tag.put(LIFE, fw->m_lifetime);
-    }
-
-    // 总生命时间（创建时一次性确定的随机值）
-    // 仅在已计算时写出，避免写出 -1 占位符
-    if (fw != nullptr && fw->m_lifeTime >= 0) {
-        tag.put(LIFE_TIME, fw->m_lifeTime);
-    }
-
-    // 是否从弩射出（i8 bool，与 MC 原版 ShotAtAngle 一致）
-    if (fw != nullptr) {
-        tag.put(SHOT_AT_ANGLE, static_cast<i8>(fw->m_shotFromCrossbow ? 1 : 0));
-    }
+    // 批次6 子目标2 Step6：FireworkRocket 持久化（Life/LifeTime/FireworksItem/ShotAtAngle）已搬至
+    // 按组件注册的序列化器（ProjectileComponentSerialization.cpp 的 saveFireworkRocket/loadFireworkRocket），
+    // 经 ComponentSerializerRegistry::saveAll/loadAll 调用。此 override 保留空壳。
 }
 
-Result<void> FireworkRocketEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> FireworkRocketEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    using namespace serialization::nbt_keys;
-
-    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
-
-    // 烟花物品（恢复 m_fireworkItem 与 m_flightTime）
-    if (const nbt::tags::compound_tag* itemTag = serialization::nbt_helper::tryGetCompound(tag, FIREWORKS_ITEM)) {
-        auto stackResult = ItemStack::fromNbt(*itemTag);
-        if (stackResult.success()) {
-            setFireworkItem(stackResult.value());
-        }
-    }
-
-    if (fw == nullptr) {
-        return Result<void>::ok();
-    }
-
-    // 已存在时间
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE)) {
-        fw->m_lifetime = *val;
-    }
-
-    // 总生命时间（覆盖 setFireworkItem 中的 -1 重置）
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE_TIME)) {
-        fw->m_lifeTime = *val;
-    }
-
-    // 是否从弩射出
-    if (auto val = serialization::nbt_helper::tryGetByte(tag, SHOT_AT_ANGLE)) {
-        fw->m_shotFromCrossbow = (*val != 0);
-    }
-
-    return Result<void>::ok();
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
 }
 
 // 批次6 子目标2 Step4：FireworkRocket 5 字段经 ecs::FireworkRocketComponent 读写。

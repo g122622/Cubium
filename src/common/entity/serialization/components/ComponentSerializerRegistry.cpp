@@ -27,6 +27,7 @@
 #include "common/entity/serialization/components/EntityComponentSerialization.hpp"
 #include "common/entity/serialization/components/LivingEntityComponentSerialization.hpp"
 #include "common/entity/serialization/components/PlayerComponentSerialization.hpp"
+#include "common/entity/serialization/components/ProjectileComponentSerialization.hpp"
 #include <algorithm>
 
 namespace mc::entity::serialization::components {
@@ -69,6 +70,11 @@ void ComponentSerializerRegistry::registerAll()
     // 注册 Player 层 1 个组件序列化器（覆盖 Score 1 字段）。
     // 序列化器内部 dynamic_cast<Player*>，非 Player 实体早退。
     registerPlayerComponentSerializers(*this);
+
+    // 注册 Projectile 族组件序列化器（覆盖投掷物族 20 个类的特有持久化字段，
+    // 对齐 vanilla 1.21.11）。序列化器内部 tryGetComponent 早退（无组件实体不参与）。
+    // load 按 priority 升序：TridentState=0 先于 ArrowState=10（三叉戟 item 先读重算 loyalty）。
+    registerProjectileComponentSerializers(*this);
 
     // load 按 priority 升序遍历（本批全 0 无序；未来 Attributes=100/ActiveEffects=200）
     std::stable_sort(

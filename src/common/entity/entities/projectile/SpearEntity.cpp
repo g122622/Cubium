@@ -52,18 +52,6 @@ namespace entity {
 
 namespace {
 
-// ========== NBT 键名常量 ==========
-// 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData() / ThrownTrident.addAdditionalSaveData()
-// 注意：键名沿用 MC 1.16.5/1.21.11 的大小写规范，以保持与原版存档兼容。
-
-constexpr const char* NBT_KEY_PICKUP = "pickup";            // 拾取状态（byte）
-constexpr const char* NBT_KEY_DAMAGE = "damage";            // 基础伤害（float）
-constexpr const char* NBT_KEY_IN_GROUND = "inGround";       // 是否插在方块中（byte/bool）
-constexpr const char* NBT_KEY_CRIT = "crit";                // 是否暴击（byte/bool）
-constexpr const char* NBT_KEY_PIERCE_LEVEL = "PierceLevel"; // 穿透等级（byte）
-constexpr const char* NBT_KEY_DEALT_DAMAGE = "DealtDamage"; // 是否已造成伤害（byte/bool）
-constexpr const char* NBT_KEY_KNOCKBACK = "knockback";      // 击退强度（int）
-
 // 辅助函数：基于实体ID和tick创建随机数生成器
 math::Random createRandomFromEntity(const Entity& entity)
 {
@@ -249,113 +237,18 @@ bool SpearEntity::onPlayerPickup(Player& player)
 // NBT 序列化
 // ============================================================================
 
-void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    // 先调用基类实现（Entity 基类，AbstractArrowEntity 未重写）
-    Entity::addAdditionalSaveData(tag);
-
-    const auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
-
-    using namespace serialization::nbt_helper;
-
-    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
-
-    // 长矛物品堆（参考 ItemEntity::addAdditionalSaveData 的 ItemStack 写入模式）
-    // 键名沿用 MC 1.21.11 AbstractArrow 的 "item" 键
-    if (itemComp != nullptr && itemComp->m_itemStack != nullptr) {
-        nbt::tags::compound_tag itemTag;
-        itemComp->m_itemStack->toNbt(itemTag);
-        tag.value.emplace(serialization::nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-    }
-
-    // 拾取状态（byte：0=Disallowed, 1=Allowed, 2=CreativeOnly）
-    if (arrowState != nullptr) {
-        tag.put(NBT_KEY_PICKUP, static_cast<i8>(arrowState->m_pickupStatus));
-
-        // 基础伤害（float）
-        tag.put(NBT_KEY_DAMAGE, arrowState->m_damage);
-
-        // 是否插在方块中（bool，底层 byte）
-        tag.put(NBT_KEY_IN_GROUND, static_cast<i8>(arrowState->m_inGround ? 1 : 0));
-
-        // 是否暴击（bool，底层 byte）
-        tag.put(NBT_KEY_CRIT, static_cast<i8>(arrowState->m_critical ? 1 : 0));
-
-        // 穿透等级（byte）
-        tag.put(NBT_KEY_PIERCE_LEVEL, static_cast<i8>(arrowState->m_pierceLevel));
-
-        // 是否已造成伤害（bool，底层 byte）—— 参考 ThrownTrident 的 "DealtDamage" 键
-        tag.put(NBT_KEY_DEALT_DAMAGE, static_cast<i8>(arrowState->m_dealtDamage ? 1 : 0));
-
-        // 击退强度（int）
-        tag.put(NBT_KEY_KNOCKBACK, arrowState->m_knockbackStrength);
-    }
+    // 批次6 子目标2 Step6：Spear 持久化（item + arrow 8 字段 + dealtDamage）已搬至按组件注册的
+    // 序列化器（ProjectileComponentSerialization.cpp 的 saveProjectileItem/loadProjectileItem +
+    // saveArrowState/loadArrowState），经 ComponentSerializerRegistry::saveAll/loadAll 调用。
+    // 此 override 保留空壳。
 }
 
-Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    // 先调用基类实现，用 MC_TRY 传播错误
-    MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
-    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
-
-    using namespace serialization::nbt_helper;
-
-    // 长矛物品堆
-    const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, serialization::nbt_keys::ITEM);
-    if (itemTag != nullptr) {
-        auto stackResult = ItemStack::fromNbt(*itemTag);
-        if (stackResult.success() && itemComp != nullptr && itemComp->m_itemStack != nullptr) {
-            *itemComp->m_itemStack = stackResult.value();
-        }
-        // 反序列化失败时保留默认空堆，避免存档损坏导致崩溃
-    }
-
-    if (arrowState == nullptr) {
-        return Result<void>::ok();
-    }
-
-    // 拾取状态
-    if (auto val = tryGetByte(tag, NBT_KEY_PICKUP)) {
-        // 防御性 clamp，避免存档数据越界
-        i8 v = *val;
-        if (v >= static_cast<i8>(PickupStatus::Disallowed) && v <= static_cast<i8>(PickupStatus::CreativeOnly)) {
-            arrowState->m_pickupStatus = static_cast<PickupStatus>(v);
-        }
-    }
-
-    // 基础伤害
-    if (auto val = tryGetFloat(tag, NBT_KEY_DAMAGE)) {
-        arrowState->m_damage = *val;
-    }
-
-    // 是否插在方块中
-    if (auto val = tryGetBool(tag, NBT_KEY_IN_GROUND)) {
-        arrowState->m_inGround = *val;
-    }
-
-    // 是否暴击
-    if (auto val = tryGetBool(tag, NBT_KEY_CRIT)) {
-        arrowState->m_critical = *val;
-    }
-
-    // 穿透等级
-    if (auto val = tryGetByte(tag, NBT_KEY_PIERCE_LEVEL)) {
-        arrowState->m_pierceLevel = static_cast<u8>(*val);
-    }
-
-    // 是否已造成伤害
-    if (auto val = tryGetBool(tag, NBT_KEY_DEALT_DAMAGE)) {
-        arrowState->m_dealtDamage = *val;
-    }
-
-    // 击退强度
-    if (auto val = tryGetInt(tag, NBT_KEY_KNOCKBACK)) {
-        arrowState->m_knockbackStrength = *val;
-    }
-
-    return Result<void>::ok();
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
 }
 
 } // namespace entity
