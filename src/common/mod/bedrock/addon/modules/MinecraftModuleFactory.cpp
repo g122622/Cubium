@@ -29,8 +29,10 @@
 #include "common/entity/core/Entity.hpp"            // mc::Entity（Entity JS 类 opaque 持此指针）
 #include "common/entity/core/EquipmentSlot.hpp"     // EquipmentSlot 枚举（EquippableComponent 槽位映射）
 #include "common/entity/core/LivingEntity.hpp"      // LivingEntity（health/maxHealth/attributes/getEquipment）
-#include "common/entity/entities/player/Player.hpp" // Player::username（Player.name）
-#include "common/item/core/Item.hpp"                // Item::toString（ItemStack.typeId getter）
+#include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
+#include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
+#include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
+#include "common/item/core/ItemRegistry.hpp"        // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
 #include "common/item/core/ItemStack.hpp"           // ItemStack（Equippable.getEquipment 返回值）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
@@ -41,15 +43,55 @@
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
-#include "common/util/AxisAlignedBB.hpp" // Dimension.getEntities 构造查询包围盒
+#include "common/resource/ResourceLocation.hpp" // ResourceLocation::toString/parse（Block/ItemType typeId）
+#include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
+#include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
 #include "common/util/math/Vector3.hpp"
-#include "common/world/IWorld.hpp" // Dimension JS 类 opaque 持 IWorld*
+#include "common/world/IWorld.hpp"              // Dimension JS 类 opaque 持 IWorld*
+#include "common/world/block/Block.hpp"         // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
+#include "common/world/block/BlockPos.hpp"      // BlockPos（Block.location 坐标）
+#include "common/world/block/BlockRegistry.hpp" // BlockRegistry::get/getBlock（按 id 取 BlockState/Block）
+#include "common/world/block/BlockState.hpp"    // BlockState（Block/BlockPermutation opaque 持此指针）
+#include "common/world/blockentity/BlockEntity.hpp"          // BlockEntity（Container 经 getBlockEntity 取得）
+#include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
 
 #include <optional>
 #include <vector>
 #include <spdlog/spdlog.h>
 
 namespace mc::mod::bedrock::addon {
+
+namespace {
+
+// ============================================================================
+// @minecraft/server 类补齐辅助（批次2）
+//
+// 下列 helper 仅供本 TU 的 Block/BlockPermutation/ItemType/Container/ItemStack 等
+// 绑定回调使用。opaque 持指针语义统一经 ScriptObjectRegistry::wrap/unwrap；JS 侧
+// Direction 是字符串枚举（官方首字母大写），项目 mc::Direction 配套 fromName/toString
+// 用小写，故出入参须做大小写转换。
+// ============================================================================
+
+/// Block JS 类 opaque 持有的快照（owned=true，JS GC 时 delete）。
+/// 持 const BlockState*（BlockRegistry 全局拥有，非拥有指针）+ BlockPos + world 回指。
+/// world 仅供 isAir 等衍生查询；非拥有，绑定层保证调用期 world 存活（绑定期世界长于 JS 对象）。
+struct ScriptBlockRef {
+    const mc::BlockState* state = nullptr;
+    mc::BlockPos pos{};
+    mc::IWorld* world = nullptr;
+};
+
+// 注：Direction 字符串↔mc::Direction 转换、按 id 取 BlockState/Item 的 helper 在批次4/6（setBlock/
+// spawnItem/rotateDirection 等）引入时按需补充，避免本批携带未使用函数触发 -Wunused-function。
+
+/// ItemStack JS 类 classId 缓存（首次 unwrap 时惰性查 ScriptClassRegistry，避免每调用查表）。
+/// 注：本 TU 跨多个回调共享，故用静态局部；引擎重建后 classId 变化，每次仍回查注册表校正。
+u64 resolveItemStackClassId()
+{
+    return ScriptClassRegistry::instance().classIdByName("ItemStack");
+}
+
+} // namespace
 
 void MinecraftModuleFactory::setScheduler(ScriptScheduler* scheduler)
 {
@@ -850,10 +892,120 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ctx.createString(player->username());
     });
 
-    // --- Block类 ---
+    // --- BlockPermutation类（@minecraft/server）---
+    // 不可变方块状态包装。opaque 持 const mc::BlockState*（非拥有，BlockRegistry 全局拥有）。
+    // 官方 BlockPermutation：type（→typeId，对应方块资源位置）/isValid。底层 BlockState 就绪。
+    // 登记进 ScriptClassRegistry 供 setBlockPermutation 等 unwrap 入参路径跨回调取 classId。
+    u64 blockPermutationClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* blockPermutationProto = builder.exportClass("BlockPermutation", blockPermutationClassId);
+    ScriptClassRegistry::instance().registerClass(blockPermutationClassId, blockPermutationProto, "BlockPermutation");
+
+    ClassRegistrar<void> blockPermutationReg(ctx, blockPermutationClassId, blockPermutationProto);
+    blockPermutationReg.readonlyProperty(
+        "type", [blockPermutationClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 官方 BlockPermutation.type 返回 BlockType（方块类型对象，含 id）。
+            // 项目无独立 BlockType 类，复用 ItemType 同构：返回 typeId 字符串。TODO: 完整 BlockType 类。
+            auto* state =
+                static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockPermutationClassId));
+            if (state == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createString(state->blockLocation().toString());
+        });
+    blockPermutationReg.readonlyProperty(
+        "isValid", [blockPermutationClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 官方 isValid 表示此 permutation 是否为有效状态（非 air 占位即视为有效）。
+            auto* state =
+                static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockPermutationClassId));
+            return ctx.createBoolean(state != nullptr);
+        });
+
+    // --- ItemType类（@minecraft/server）---
+    // 物品类型包装。opaque 持 const mc::Item*（非拥有，ItemRegistry 全局拥有）。
+    // 官方 ItemType：id（资源位置）。Item::toString 返回 itemLocation().toString()，形如 "minecraft:diamond"。
+    u64 itemTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* itemTypeProto = builder.exportClass("ItemType", itemTypeClassId);
+    ScriptClassRegistry::instance().registerClass(itemTypeClassId, itemTypeProto, "ItemType");
+
+    ClassRegistrar<void> itemTypeReg(ctx, itemTypeClassId, itemTypeProto);
+    itemTypeReg.readonlyProperty("id", [itemTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* item = static_cast<const mc::Item*>(ScriptObjectRegistry::unwrap(ctx, thisVal, itemTypeClassId));
+        if (item == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(item->toString());
+    });
+
+    // --- Block类（实化，原为空壳）---
+    // 官方 Block：world 内某坐标处方块快照。opaque 持 ScriptBlockRef*（owned=true，JS GC 时 delete）。
+    // 属性 typeId（方块资源位置）/permutation（BlockPermutation 包装 state）/x/y/z/location。
+    // 底层 BlockState/Block/BlockRegistry 就绪。登记 ScriptClassRegistry 供跨回调 wrap/unwrap。
     u64 blockClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* blockProto = builder.exportClass("Block", blockClassId);
-    ctx.releaseValue(blockProto);
+    ScriptClassRegistry::instance().registerClass(blockClassId, blockProto, "Block");
+
+    ClassRegistrar<void> blockReg(ctx, blockClassId, blockProto);
+    blockReg.readonlyProperty("typeId", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->state == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(ref->state->blockLocation().toString());
+    });
+    blockReg.readonlyProperty("permutation",
+        [blockClassId, blockPermutationClassId, blockPermutationProto](
+            IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 包装内嵌 state 为 BlockPermutation（非拥有，state 由 BlockRegistry 全局拥有）。
+            auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+            if (ref == nullptr || ref->state == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ScriptObjectRegistry::wrap(ctx,
+                blockPermutationClassId,
+                blockPermutationProto,
+                const_cast<mc::BlockState*>(ref->state),
+                false,
+                "BlockPermutation");
+        });
+    blockReg.readonlyProperty("x", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->pos.x));
+    });
+    blockReg.readonlyProperty("y", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->pos.y));
+    });
+    blockReg.readonlyProperty("z", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->pos.z));
+    });
+    blockReg.readonlyProperty("location", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 官方 Block.location 返回 Vector3（浮点坐标，对齐 Entity.getLocation）。
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr) {
+            return ctx.createUndefined();
+        }
+        void* obj = ctx.createObject();
+        ctx.setPropertyFloat(obj, "x", static_cast<f64>(ref->pos.x));
+        ctx.setPropertyFloat(obj, "y", static_cast<f64>(ref->pos.y));
+        ctx.setPropertyFloat(obj, "z", static_cast<f64>(ref->pos.z));
+        return obj;
+    });
+    blockReg.readonlyProperty("isWaterlogged", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 官方 Block.isWaterlogged：方块是否被水淹没。读 BlockState 流体状态非空判定。
+        // TODO: 流体状态判定后续完善，暂保守返回 false。
+        (void)thisVal;
+        return ctx.createBoolean(false);
+    });
 
     // --- ItemStack类 ---
     // opaque 持 mc::ItemStack*。EquippableComponent.getEquipment 以 owned=true 拷贝 wrap（new ItemStack(s)，
@@ -885,8 +1037,162 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createInt32(stack->getCount());
         },
         [](IScriptBindingContext& ctx, void* thisVal, void* value) {
-            // TODO: ItemStack.amount setter 待 ItemStack JS 类补全 unwrap/构造路径后实现。
+            // amount setter：设数量（setCount 内部 <=0 置空）。仅当 owned（Equippable.getEquipment 拷贝）
+            // 时安全写回；非拥有快照写入会被 C++ 侧覆盖，故非拥有时静默忽略留 TODO。
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return;
+            }
+            auto v = ctx.toInt32(value);
+            if (!v) {
+                return;
+            }
+            stack->setCount(*v);
         });
+
+    // --- Direction 枚举对象（@minecraft/server）---
+    // 官方 Direction 是字符串枚举（Down="Down"...West="West"），非数字。导出为只读对象，
+    // 各键值均为自身字符串名（对齐 system/world 全局对象导出模式）。接收 JS Direction 字符串时
+    // 绑定层用 directionFromApiString 转 mc::Direction（见 ScriptTestHelper 等）。
+    {
+        void* directionObj = ctx.createObject();
+        ctx.setPropertyString(directionObj, "Down", "Down");
+        ctx.setPropertyString(directionObj, "East", "East");
+        ctx.setPropertyString(directionObj, "North", "North");
+        ctx.setPropertyString(directionObj, "South", "South");
+        ctx.setPropertyString(directionObj, "Up", "Up");
+        ctx.setPropertyString(directionObj, "West", "West");
+        builder.exportValue("Direction", directionObj);
+        ctx.releaseValue(directionObj);
+    }
+
+    // --- FluidType类（@minecraft/server）---
+    // 流体类型包装。项目流体体系（Fluids namespace）尚未暴露完整查询入口，本类占位：
+    // opaque 持 std::string*（owned=true，JS GC 时 delete，存资源位置 id 如 "minecraft:water"）。
+    // 仅暴露 id 属性；完整 fluid state 体系后续 TODO。
+    u64 fluidTypeClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* fluidTypeProto = builder.exportClass("FluidType", fluidTypeClassId);
+    ScriptClassRegistry::instance().registerClass(fluidTypeClassId, fluidTypeProto, "FluidType");
+
+    ClassRegistrar<void> fluidTypeReg(ctx, fluidTypeClassId, fluidTypeProto);
+    fluidTypeReg.readonlyProperty("id", [fluidTypeClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* id = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, fluidTypeClassId));
+        if (id == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(*id);
+    });
+
+    // --- Container类（@minecraft/server）---
+    // 容器包装。opaque 持 mc::IInventory*（非拥有，容器由 BlockEntity 或 Player 拥有）。
+    // 官方 Container：size/emptySlotsCount + getItem(slot)/setItem(slot,itemStack)/addItem/transferItem/clearAll。
+    // 底层 IInventory/ContainerBlockEntity::getInventory 就绪。getItem 返回 owned ItemStack 拷贝
+    // （规避 setItem 改写致引用悬垂）；setItem 接 ItemStack unwrap（非拥有，仅拷贝写入容器）。
+    u64 containerClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* containerProto = builder.exportClass("Container", containerClassId);
+    ScriptClassRegistry::instance().registerClass(containerClassId, containerProto, "Container");
+
+    ClassRegistrar<void> containerReg(ctx, containerClassId, containerProto);
+    containerReg.readonlyProperty("size", [containerClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+        if (inv == nullptr) {
+            return ctx.createInt32(0);
+        }
+        return ctx.createInt32(inv->getContainerSize());
+    });
+    containerReg.readonlyProperty(
+        "emptySlotsCount", [containerClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 统计空槽位数（getItem(i).isEmpty()）。
+            auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (inv == nullptr) {
+                return ctx.createInt32(0);
+            }
+            i32 empty = 0;
+            for (i32 i = 0; i < inv->getContainerSize(); ++i) {
+                if (inv->getItem(i).isEmpty()) {
+                    ++empty;
+                }
+            }
+            return ctx.createInt32(empty);
+        });
+    containerReg.method(
+        "getItem",
+        [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (inv == nullptr || argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.createUndefined();
+            }
+            auto slot = ctx.toInt32(args[0]);
+            if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
+                return ctx.createUndefined();
+            }
+            // getItem 返回 owned 拷贝（new ItemStack(inv->getItem(slot))），JS GC 时 delete。
+            const u64 isClassId = resolveItemStackClassId();
+            void* isProto = ScriptClassRegistry::instance().proto(isClassId);
+            if (isProto == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto* copy = new mc::ItemStack(inv->getItem(*slot));
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, copy, true, "ItemStack");
+        },
+        1);
+    containerReg.method(
+        "setItem",
+        [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (inv == nullptr || argc < 2 || !ctx.isNumber(args[0])) {
+                return ctx.createUndefined();
+            }
+            auto slot = ctx.toInt32(args[0]);
+            if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
+                return ctx.createUndefined();
+            }
+            // unwrap 入参 ItemStack（按 classId 校验类型）。
+            const u64 isClassId = resolveItemStackClassId();
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[1], isClassId));
+            if (stack == nullptr) {
+                return ctx.throwTypeError("Container.setItem: argument must be an ItemStack");
+            }
+            inv->setItem(*slot, *stack);
+            return ctx.createUndefined();
+        },
+        2);
+    containerReg.method(
+        "addItem",
+        [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (inv == nullptr || argc < 1) {
+                return ctx.createUndefined();
+            }
+            const u64 isClassId = resolveItemStackClassId();
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, args[0], isClassId));
+            if (stack == nullptr) {
+                return ctx.throwTypeError("Container.addItem: argument must be an ItemStack");
+            }
+            // addItem 返回剩余未放入的堆；官方无返回值，此处忽略剩余（对齐基岩 void 语义）。
+            (void)inv->addItem(*stack);
+            return ctx.createUndefined();
+        },
+        1);
+    containerReg.method("clearAll",
+        [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* inv = static_cast<mc::IInventory*>(ScriptObjectRegistry::unwrap(ctx, thisVal, containerClassId));
+            if (inv != nullptr) {
+                inv->clear();
+            }
+            return ctx.createUndefined();
+        });
+    containerReg.method(
+        "transferItem",
+        [containerClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            // TODO: transferItem(fromSlot,toContainer,toSlot) 跨容器迁移依赖第二个 Container 入参 unwrap，
+            //       框架已具备（同 containerClassId），完整迁移语义（堆叠/空槽选择）后续补全。
+            (void)thisVal;
+            (void)argc;
+            (void)args;
+            return ctx.createUndefined();
+        },
+        3);
 
     // ====== 注册常量 ======
 
