@@ -133,7 +133,33 @@ public:
      */
     bool onPlayerPickup(Player& player) override;
 
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 ThrownTrident.defineSynchedData():
+    //   ID_LOYALTY(Byte, id11)  ID_FOIL(Boolean, id12)
+    // 真相源为 TridentStateComponent.m_loyaltyLevel 与 tridentStack 附魔光泽判定。
+    static entity::DataParameter<i8> DATA_LOYALTY_PARAM; ///< 忠诚附魔等级
+    static entity::DataParameter<bool> DATA_FOIL_PARAM;  ///< 是否有附魔光泽
+
+    [[nodiscard]] static u16 getLoyaltyParamId() { return DATA_LOYALTY_PARAM.id(); }
+    [[nodiscard]] static u16 getFoilParamId() { return DATA_FOIL_PARAM.id(); }
+
 protected:
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 AbstractArrowEntity::registerData()，首行调用父类注册（id8/9/10），
+     * 续接注册三叉戟专属参数 DATA_LOYALTY(id11)/DATA_FOIL(id12)。
+     *
+     * 注意：C++ 虚函数在构造函数中不会派生到子类，TridentEntity 构造函数
+     * 必须显式调用此方法。
+     */
+    void registerData() override;
+
+    /**
+     * @brief 本类继承链标识（parent = AbstractArrowEntity::classInfo()）。
+     */
+    static const EntityClassInfo& classInfo();
+
     void onEntityHit(const RayTraceResult& result) override;
     void onBlockHit(const RayTraceResult& result) override;
 

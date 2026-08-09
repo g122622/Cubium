@@ -32,6 +32,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/FishingBobberState.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>
@@ -575,6 +576,27 @@ public:
      */
     [[nodiscard]] bool shouldBreak() const;
 
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 EyeOfEnder.defineSynchedData(): DATA_ITEM_STACK(ItemStack, id8)。
+    // vanilla 末影之眼同步其物品本体（玩家手持的末影之眼物品）；项目 EyeOfEnderEntity 当前
+    // 无 item 字段，此处注册占位空 ItemStackView 保持 wire 字段位置对齐。
+    // TODO: 补齐 EyeOfEnderEntity 的物品字段后，镜像真实物品到 DATA_ITEM_STACK。
+    static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
+
+    [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
+
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 Entity::registerData()，注册 EyeOfEnder 专属同步参数 DATA_ITEM_STACK（id8）。
+     * EyeOfEnderEntity 直接继承 Entity，C++ 虚函数在构造函数中不会派生到子类，
+     * 构造函数必须显式调用此方法。
+     */
+    void registerData() override;
+
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
 private:
     // 批次6 子目标2 Step4：m_targetX/m_targetZ/m_lifetime/m_break 迁入 ecs::EyeOfEnderComponent。
 };
@@ -710,6 +732,33 @@ public:
      * 伤害计算：5 + 爆炸效果数量 * 2，根据距离衰减。
      */
     void dealExplosionDamage();
+
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 FireworkRocket.defineSynchedData():
+    //   DATA_FIREWORKS_ITEM(ItemStack, id8) / DATA_ATTACHED_TO_TARGET(OptionalInt, id9) /
+    //   DATA_SHOT_AT_ANGLE(Boolean, id10)
+    // 真相源为 FireworkRocketComponent：m_fireworkItem/m_shotFromCrossbow；DATA_ATTACHED_TO_TARGET
+    // 项目当前无附着目标机制，占位 -1（vanilla OptionalInt absent=0，present=id+1；此处用 i32=-1
+    // 表 absent，TODO 待补 OptionalInt 序列化器后改精确编码）。
+    static entity::DataParameter<network::ir::play::ItemStackView> DATA_FIREWORKS_ITEM_PARAM;
+    static entity::DataParameter<i32> DATA_ATTACHED_TO_TARGET_PARAM;
+    static entity::DataParameter<bool> DATA_SHOT_AT_ANGLE_PARAM;
+
+    [[nodiscard]] static u16 getFireworksItemParamId() { return DATA_FIREWORKS_ITEM_PARAM.id(); }
+    [[nodiscard]] static u16 getAttachedToTargetParamId() { return DATA_ATTACHED_TO_TARGET_PARAM.id(); }
+    [[nodiscard]] static u16 getShotAtAngleParamId() { return DATA_SHOT_AT_ANGLE_PARAM.id(); }
+
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写基类 registerData()，注册 FireworkRocket 专属同步参数
+     * （DATA_FIREWORKS_ITEM id8 / DATA_ATTACHED_TO_TARGET id9 / DATA_SHOT_AT_ANGLE id10）。
+     * C++ 虚函数在构造函数中不会派生到子类，构造函数必须显式调用此方法。
+     */
+    void registerData() override;
+
+    /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
 
 private:
     /**

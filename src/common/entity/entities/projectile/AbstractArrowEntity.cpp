@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -75,6 +76,47 @@ math::Random createRandomFromEntity(const Entity& entity)
 // AbstractArrowEntity
 // ============================================================================
 
+// 静态数据参数定义（对应 MC 1.21.11 AbstractArrow.defineSynchedData()）。
+// 在静态初始化阶段通过 EntityDataManager::createKey<T>() 分配全局唯一 ID。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配（Entity 8 字段后 → id8/9/10）。
+entity::DataParameter<i8> AbstractArrowEntity::DATA_ARROW_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i8> AbstractArrowEntity::DATA_PIERCE_LEVEL_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<bool> AbstractArrowEntity::DATA_IN_GROUND_PARAM = entity::EntityDataManager::createKey<bool>();
+
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = ProjectileEntity::classInfo()）。
+// 子类（TridentEntity）的 registerData 首行调 AbstractArrowEntity::registerData()，
+// 其 ClassRegisterGuard 沿父链穿过本节点续接 id。
+const EntityClassInfo& AbstractArrowEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"AbstractArrowEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
+void AbstractArrowEntity::registerData()
+{
+    // 先调用基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册箭矢专属同步参数（id8/9/10，对应 vanilla AbstractArrow）
+    // DATA_ARROW_FLAGS：bit0=critical, bit2=shotFromCrossbow（vanilla getFlags/setFlags 编码）
+    m_dataManager.registerParam(DATA_ARROW_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_PIERCE_LEVEL_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_IN_GROUND_PARAM, false);
+}
+
+void AbstractArrowEntity::_syncArrowFlags()
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c == nullptr) {
+        return;
+    }
+    // vanilla AbstractArrow.getFlags(): bit0=critical, bit2=shotFromCrossbow
+    i8 flags = static_cast<i8>((c->m_critical ? 1 : 0) | (c->m_shotFromCrossbow ? 4 : 0));
+    m_dataManager.set(DATA_ARROW_FLAGS_PARAM, flags);
+}
+
 AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
 {
@@ -82,6 +124,11 @@ AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistr
     // ArrowEntity/SpectralArrowEntity/TridentEntity/SpearEntity 子类经此自动获得组件。
     // Step3 已把 m_damage/m_critical/m_pierceLevel/m_inGround 等 13 字段读写改走组件。
     m_entityContext->enttRegistry().emplace<ecs::ProjectileArrowStateComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 Entity 基类构造调用的 registerData()
+    // 只执行 ProjectileEntity 链。子类必须在此显式调用本类 registerData() 注册箭矢同步字段。
+    // 注意：子类（TridentEntity）构造会先调本构造函数，再调自身 registerData()——本调用
+    // 注册 id8/9/10，Trident 后续 registerData 续接 id11/12，无重复（PARAM 静态幂等）。
+    registerData();
 }
 
 // 批次6 子目标2 Step3：以下 getter/setter 经 ProjectileArrowStateComponent 读写。
@@ -125,6 +172,8 @@ void AbstractArrowEntity::setCritical(bool critical)
     if (c != nullptr) {
         c->m_critical = critical;
     }
+    // 同步 DATA_ARROW_FLAGS 镜像（bit0=critical）
+    _syncArrowFlags();
 }
 
 u8 AbstractArrowEntity::pierceLevel() const
@@ -139,6 +188,8 @@ void AbstractArrowEntity::setPierceLevel(u8 level)
     if (c != nullptr) {
         c->m_pierceLevel = level;
     }
+    // 同步 DATA_PIERCE_LEVEL 镜像
+    m_dataManager.set(DATA_PIERCE_LEVEL_PARAM, static_cast<i8>(level));
 }
 
 bool AbstractArrowEntity::isInGround() const
@@ -153,6 +204,8 @@ void AbstractArrowEntity::setInGround(bool inGround)
     if (c != nullptr) {
         c->m_inGround = inGround;
     }
+    // 同步 DATA_IN_GROUND 镜像
+    m_dataManager.set(DATA_IN_GROUND_PARAM, inGround);
 }
 
 PickupStatus AbstractArrowEntity::pickupStatus() const
@@ -181,6 +234,8 @@ void AbstractArrowEntity::setShotFromCrossbow(bool fromCrossbow)
     if (c != nullptr) {
         c->m_shotFromCrossbow = fromCrossbow;
     }
+    // 同步 DATA_ARROW_FLAGS 镜像（bit2=shotFromCrossbow）
+    _syncArrowFlags();
 }
 
 bool AbstractArrowEntity::hasDealtDamage() const

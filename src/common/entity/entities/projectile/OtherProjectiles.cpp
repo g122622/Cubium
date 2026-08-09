@@ -70,6 +70,8 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/ray/Ray.hpp"
 #include <algorithm>
@@ -1606,6 +1608,35 @@ Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound
 // EyeOfEnderEntity
 // ============================================================================
 
+// ============================================================================
+// EyeOfEnderEntity
+// ============================================================================
+
+// 静态数据参数定义（对应 MC 1.21.11 EyeOfEnder.defineSynchedData() 的 DATA_ITEM_STACK）。
+// EyeOfEnderEntity 直接继承 Entity，真实 id 在 registerData() 内由 ClassRegisterGuard
+// 沿继承链续接分配（Entity 8 字段后 → id8）。
+entity::DataParameter<network::ir::play::ItemStackView> EyeOfEnderEntity::DATA_ITEM_STACK_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
+
+const EntityClassInfo& EyeOfEnderEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"EyeOfEnderEntity", &Entity::classInfo()};
+    return s_classInfo;
+}
+
+void EyeOfEnderEntity::registerData()
+{
+    // 先调基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册末影之眼专属同步参数（id8，对应 vanilla EyeOfEnder.DATA_ITEM_STACK）。
+    // TODO: 项目 EyeOfEnderEntity 当前无 item 字段，占位空 ItemStackView 保持 wire 位置对齐；
+    // 补齐物品字段后镜像真实物品。
+    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack()));
+}
+
 EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : Entity(id, nullptr, registry)
 {
@@ -1614,6 +1645,9 @@ EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     // EyeOfEnderEntity 直接继承 Entity 不经 ProjectileEntity，故不挂 ProjectileOwnerComponent。
     // Step4 将把 m_targetX/m_targetZ/m_lifetime/m_break 读写改走组件；Step5 补 DATA_ITEM_STACK。
     m_entityContext->enttRegistry().emplace<ecs::EyeOfEnderComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 Entity 基类构造调用的 registerData()
+    // 只执行 Entity::registerData()。此处显式调用注册末影之眼专属同步字段（id8）。
+    registerData();
 }
 
 std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -1693,6 +1727,37 @@ bool EyeOfEnderEntity::shouldBreak() const
 // FireworkRocketEntity
 // ============================================================================
 
+// 静态数据参数定义（对应 MC 1.21.11 FireworkRocket.defineSynchedData()）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （Entity 8 字段后 → id8/9/10，ProjectileEntity 无同步字段不占 id）。
+entity::DataParameter<network::ir::play::ItemStackView> FireworkRocketEntity::DATA_FIREWORKS_ITEM_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
+entity::DataParameter<i32> FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> FireworkRocketEntity::DATA_SHOT_AT_ANGLE_PARAM =
+    entity::EntityDataManager::createKey<bool>();
+
+const EntityClassInfo& FireworkRocketEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"FireworkRocketEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
+void FireworkRocketEntity::registerData()
+{
+    // 先调基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册烟花火箭专属同步参数（id8/9/10，对应 vanilla FireworkRocket）。
+    m_dataManager.registerParam(DATA_FIREWORKS_ITEM_PARAM, network::ir::toItemStackView(ItemStack()));
+    // DATA_ATTACHED_TO_TARGET：vanilla OptionalInt，absent=0/present=id+1。项目无附着目标机制，
+    // 占位 -1 表 absent（TODO 待补 OptionalInt 序列化器后改精确编码）。
+    m_dataManager.registerParam(DATA_ATTACHED_TO_TARGET_PARAM, static_cast<i32>(-1));
+    m_dataManager.registerParam(DATA_SHOT_AT_ANGLE_PARAM, false);
+}
+
 FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
 {
@@ -1700,6 +1765,9 @@ FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegis
     // Step4 将把 m_fireworkItem/m_flightTime/m_lifetime/m_lifeTime/m_shotFromCrossbow 读写
     // 改走组件；Step5 补 DATA_FIREWORKS_ITEM/DATA_ATTACHED_TO_TARGET/DATA_SHOT_AT_ANGLE 同步字段。
     m_entityContext->enttRegistry().emplace<ecs::FireworkRocketComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 ProjectileEntity 构造调用的 registerData()
+    // 不会派生到 FireworkRocketEntity::registerData()。此处显式调用注册烟花专属同步字段（id8/9/10）。
+    registerData();
 }
 
 std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -1730,6 +1798,9 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
     // 物品变更后，已计算的 lifeTime 失效，需重新懒初始化
     // （NBT 反序列化路径会在 setFireworkItem 之后显式 setLifeTime 覆盖此处的重置）
     fw->m_lifeTime = -1;
+
+    // 批次6 子目标2 Step5：镜像同步 DATA_FIREWORKS_ITEM（对齐 vanilla FireworkRocket）。
+    m_dataManager.set(DATA_FIREWORKS_ITEM_PARAM, network::ir::toItemStackView(item));
 }
 
 void FireworkRocketEntity::_ensureLifeTimeComputed()
@@ -1974,6 +2045,8 @@ void FireworkRocketEntity::setShotFromCrossbow(bool value)
     if (c != nullptr) {
         c->m_shotFromCrossbow = value;
     }
+    // 批次6 子目标2 Step5：镜像同步 DATA_SHOT_AT_ANGLE（对齐 vanilla FireworkRocket）。
+    m_dataManager.set(DATA_SHOT_AT_ANGLE_PARAM, value);
 }
 
 i32 FireworkRocketEntity::flightTime() const

@@ -35,6 +35,15 @@
 namespace mc {
 namespace entity {
 
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = ProjectileEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点供子类（AbstractFireball → Fireball/WitherSkull）
+// ClassRegisterGuard 沿父链查找最高 id 时穿过。
+const EntityClassInfo& DamagingProjectileEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"DamagingProjectileEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
 DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : ProjectileEntity(id, registry)
 {

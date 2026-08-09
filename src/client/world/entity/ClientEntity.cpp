@@ -488,6 +488,23 @@ void ClientEntity::syncMetadataFromDataManager()
             }
         }
     }
+
+    // TODO(批次6 子目标2 Step5 客户端消费): 投掷物族同步字段已在服务端补齐对齐 vanilla，
+    // 但客户端消费分支尚未接入（需新增 ClientEntity 镜像字段 + setter + 渲染器读取）：
+    //   - AbstractArrow DATA_ARROW_FLAGS(bit0=critical,bit2=shotFromCrossbow)/PIERCE_LEVEL/IN_GROUND
+    //     → 暴击粒子（Crit）驱动 / 穿刺渲染 / 插地状态。getter id 见
+    //     AbstractArrowEntity::getArrowFlagsParamId()/getPierceLevelParamId()/getInGroundParamId()。
+    //   - Trident DATA_LOYALTY/DATA_FOIL → 三叉戟附魔光泽渲染。
+    //     getter id 见 TridentEntity::getLoyaltyParamId()/getFoilParamId()。
+    //   - FireworkRocket DATA_FIREWORKS_ITEM/ATTACHED_TO_TARGET/SHOT_AT_ANGLE → 烟花物品渲染/附着实体。
+    //     getter id 见 FireworkRocketEntity::getFireworksItemParamId() 等。
+    //   - Fireball DATA_ITEM_STACK → 火球物品渲染。getter id 见 FireballEntity::getItemStackParamId()。
+    //   - WitherSkull DATA_DANGEROUS → 凋灵之首蓝色变体纹理。getter id 见
+    //     WitherSkullEntity::getDangerousParamId()。
+    //   - EyeOfEnder DATA_ITEM_STACK → 末影之眼物品渲染。getter id 见
+    //     EyeOfEnderEntity::getItemStackParamId()。
+    // 真 Java 客户端通过 SetEntityData 自行消费这些字段（vanilla 客户端有完整 onSyncedDataUpdated），
+    // 故服务端同步字段补齐即可让真客户端正常渲染；项目自有客户端的消费分支待对应渲染器接入时补。
 }
 
 void ClientEntity::setItemStack(const ItemStack& stack)

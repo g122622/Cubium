@@ -26,6 +26,7 @@
 #include "ProjectileEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 
 // 前向声明粒子类型（与 common/particle/ParticleTypes.hpp 中的定义一致）
@@ -100,6 +101,11 @@ protected:
     void spawnWaterParticles();
 
     // 批次6 子目标2 Step4：m_accelerationX/Y/Z/m_damage 迁入 ecs::DamagingProjectileComponent。
+
+    /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+    /// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
+    /// 时穿过本节点续接（DamagingProjectile 无字段，最高 id 来自 ProjectileEntity/Entity）。
+    static const EntityClassInfo& classInfo();
 };
 
 } // namespace entity

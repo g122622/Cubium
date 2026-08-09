@@ -24,6 +24,7 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -34,6 +35,8 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/projectile/DamagingProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -50,9 +53,31 @@
 namespace mc {
 namespace entity {
 
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = DamagingProjectileEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点供子类（Fireball/WitherSkull）ClassRegisterGuard
+// 沿父链查找最高 id 时穿过（DamagingProjectile/AbstractFireball 均无字段，最高 id 来自
+// ProjectileEntity/Entity），子类首字段续接到 id8。
+const EntityClassInfo& AbstractFireballEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"AbstractFireballEntity", &DamagingProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
 AbstractFireballEntity::AbstractFireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : DamagingProjectileEntity(id, registry)
 {}
+
+// 静态数据参数定义（对应 MC 1.21.11 Fireball.defineSynchedData() 的 DATA_ITEM_STACK）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （Entity 8 字段后 → id8，DamagingProjectile/AbstractFireball 无字段不占 id）。
+entity::DataParameter<network::ir::play::ItemStackView> FireballEntity::DATA_ITEM_STACK_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
+
+const EntityClassInfo& FireballEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"FireballEntity", &AbstractFireballEntity::classInfo()};
+    return s_classInfo;
+}
 
 FireballEntity::FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractFireballEntity(id, registry)
@@ -61,6 +86,27 @@ FireballEntity::FireballEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     // 批次6 子目标2 Step1：attach FireballStateComponent（火球族状态，本类用 m_explosionPower）。
     // Step4 将把 m_explosionPower 读写改走组件；Step5 补 DATA_ITEM_STACK 同步字段对齐 vanilla。
     m_entityContext->enttRegistry().emplace<ecs::FireballStateComponent>(m_entityContext->entity());
+    // 注册同步字段 DATA_ITEM_STACK（id8，占位空 ItemStackView）。C++ 虚函数在构造函数不派生，
+    // AbstractFireballEntity 构造调用的 registerData 不会派生到 Fireball，故此处显式调用本类
+    // registerData 注册火球专属同步字段。
+    registerData();
+}
+
+void FireballEntity::registerData()
+{
+    // 先调基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）。
+    // DamagingProjectile/AbstractFireball 为无同步字段的中间基类（无 registerData override），
+    // 此限定调用经 ProjectileEntity 虚分发到 Entity::registerData，注册 id0..7。
+    // 本类 classInfo 节点（parent=AbstractFireball→DamagingProjectile→Projectile→Entity）
+    // 由下方 guard 压栈，allocateIdForCurrentClass 沿父链查最高 id=7，DATA_ITEM_STACK 续接到 id8。
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册火球专属同步参数（id8，对应 vanilla Fireball.DATA_ITEM_STACK）。
+    // TODO: 项目 FireballEntity 当前无 item 字段，占位空 ItemStackView 保持 wire 位置对齐；
+    // 补齐物品字段后镜像真实物品。
+    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack()));
 }
 
 std::unique_ptr<Entity> FireballEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -309,6 +355,11 @@ particle::ParticleTypeId DragonFireballEntity::getParticleType() const
     return particle::ParticleTypeId::DragonBreath;
 }
 
+// 静态数据参数定义（对应 MC 1.21.11 WitherSkull.defineSynchedData() 的 DATA_DANGEROUS）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （Entity 8 字段后 → id8，DamagingProjectile/AbstractFireball 无字段不占 id）。
+entity::DataParameter<bool> WitherSkullEntity::DATA_DANGEROUS_PARAM = entity::EntityDataManager::createKey<bool>();
+
 WitherSkullEntity::WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractFireballEntity(id, registry)
 {
@@ -316,6 +367,27 @@ WitherSkullEntity::WitherSkullEntity(EntityInstanceId id, ecs::EntityRegistry& r
     // 批次6 子目标2 Step1：attach FireballStateComponent（火球族状态，本类用 m_blue）。
     // Step4 将把 m_blue 读写改走组件；Step5 补 DATA_DANGEROUS 同步字段对齐 vanilla。
     m_entityContext->enttRegistry().emplace<ecs::FireballStateComponent>(m_entityContext->entity());
+    // 注册同步字段 DATA_DANGEROUS（id8）。C++ 虚函数在构造函数不派生，AbstractFireballEntity
+    // 构造调用的 registerData 不会派生到 WitherSkull，故此处显式调用本类 registerData。
+    registerData();
+}
+
+const EntityClassInfo& WitherSkullEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"WitherSkullEntity", &AbstractFireballEntity::classInfo()};
+    return s_classInfo;
+}
+
+void WitherSkullEntity::registerData()
+{
+    // 先调基类注册基础参数（id0..7）。DamagingProjectile/AbstractFireball 无 registerData override，
+    // 此限定调用经 ProjectileEntity 虚分发到 Entity::registerData。
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册凋灵之首专属同步参数（id8，对应 vanilla WitherSkull.DATA_DANGEROUS）。
+    m_dataManager.registerParam(DATA_DANGEROUS_PARAM, false);
 }
 
 std::unique_ptr<Entity> WitherSkullEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -472,6 +544,8 @@ void WitherSkullEntity::setBlue(bool blue)
     if (c != nullptr) {
         c->m_blue = blue;
     }
+    // 批次6 子目标2 Step5：镜像同步 DATA_DANGEROUS（对齐 vanilla WitherSkull）。
+    m_dataManager.set(DATA_DANGEROUS_PARAM, blue);
 }
 
 } // namespace entity

@@ -61,6 +61,30 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
+// 静态数据参数定义（对应 MC 1.21.11 ThrownTrident.defineSynchedData()）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （AbstractArrow id8/9/10 后 → id11/12）。
+entity::DataParameter<i8> TridentEntity::DATA_LOYALTY_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<bool> TridentEntity::DATA_FOIL_PARAM = entity::EntityDataManager::createKey<bool>();
+
+const EntityClassInfo& TridentEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"TridentEntity", &AbstractArrowEntity::classInfo()};
+    return s_classInfo;
+}
+
+void TridentEntity::registerData()
+{
+    // 先调用父类注册 AbstractArrow 同步字段（id8/9/10）
+    AbstractArrowEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册三叉戟专属同步参数（id11/12，对应 vanilla ThrownTrident）
+    m_dataManager.registerParam(DATA_LOYALTY_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_FOIL_PARAM, false);
+}
+
 TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractArrowEntity(id, registry)
 {
@@ -68,9 +92,12 @@ TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     setPickupStatus(PickupStatus::Allowed);
     // 批次6 子目标2 Step1：attach TridentStateComponent（三叉戟物品/命中/返回/忠诚 6 字段）。
     // dealtDamage 复用父类 ProjectileArrowStateComponent::m_dealtDamage 不另存。
-    // Step4 将把 m_tridentStack/m_hitBlock/m_returning/m_hitBlockPos/m_loyaltyLevel/
+    // Step4 已把 m_tridentStack/m_hitBlock/m_returning/m_hitBlockPos/m_loyaltyLevel/
     // m_returningTicks 读写改走组件；Step5 补 DATA_LOYALTY/DATA_FOIL 同步字段。
     m_entityContext->enttRegistry().emplace<ecs::TridentStateComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 AbstractArrowEntity 构造调用的 registerData()
+    // 不会派生到 TridentEntity::registerData()。此处显式调用注册三叉戟专属同步字段（id11/12）。
+    registerData();
 }
 
 std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -372,6 +399,10 @@ void TridentEntity::setItemStack(const ItemStack& stack)
     // 从物品堆获取忠诚附魔等级
     trident->m_loyaltyLevel =
         static_cast<u8>(mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
+    // 批次6 子目标2 Step5：镜像同步 DATA_LOYALTY / DATA_FOIL（对齐 vanilla ThrownTrident）。
+    // foil = 物品是否有任意附魔光泽（vanilla ItemStack.hasFoil 语义）。
+    m_dataManager.set(DATA_LOYALTY_PARAM, static_cast<i8>(trident->m_loyaltyLevel));
+    m_dataManager.set(DATA_FOIL_PARAM, mc::item::enchant::EnchantmentHelper::hasEnchantments(stack));
 }
 
 bool TridentEntity::onPlayerPickup(Player& player)
@@ -485,6 +516,8 @@ void TridentEntity::setLoyaltyLevel(u8 level)
     if (c != nullptr) {
         c->m_loyaltyLevel = level;
     }
+    // 批次6 子目标2 Step5：镜像同步 DATA_LOYALTY（对齐 vanilla ThrownTrident）。
+    m_dataManager.set(DATA_LOYALTY_PARAM, static_cast<i8>(level));
 }
 
 i32 TridentEntity::returningTicks() const

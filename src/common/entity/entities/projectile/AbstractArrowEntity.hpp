@@ -264,6 +264,58 @@ protected:
      */
     [[nodiscard]] bool canHitEntityWithPierce(const mc::Entity& target) const;
 
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 AbstractArrow.defineSynchedData():
+    //   ID_FLAGS(Byte, bit0=critical, bit2=shotFromCrossbow)
+    //   PIERCE_LEVEL(Byte)
+    //   IN_GROUND(Boolean)
+    // 真相源为 ProjectileArrowStateComponent，DataParameter 作镜像（批次4 EntityStateComponent 模式）。
+    // 静态成员在 .cpp 中通过 EntityDataManager::createKey<T>() 定义，静态初始化分配全局唯一 ID。
+    static entity::DataParameter<i8> DATA_ARROW_FLAGS_PARAM;  ///< 箭矢标志位（bit0=crit, bit2=shotFromCrossbow）
+    static entity::DataParameter<i8> DATA_PIERCE_LEVEL_PARAM; ///< 穿透等级
+    static entity::DataParameter<bool> DATA_IN_GROUND_PARAM;  ///< 是否插在方块中
+
+    /**
+     * @brief 获取 DATA_ARROW_FLAGS_PARAM 的参数 ID（客户端元数据同步用）
+     *
+     * 客户端 ClientEntity::syncMetadataFromDataManager() 通过此 ID 读取箭矢标志位，
+     * 用于驱动暴击粒子等渲染。
+     */
+    [[nodiscard]] static u16 getArrowFlagsParamId() { return DATA_ARROW_FLAGS_PARAM.id(); }
+
+    /**
+     * @brief 获取 DATA_PIERCE_LEVEL_PARAM 的参数 ID（客户端元数据同步用）
+     */
+    [[nodiscard]] static u16 getPierceLevelParamId() { return DATA_PIERCE_LEVEL_PARAM.id(); }
+
+    /**
+     * @brief 获取 DATA_IN_GROUND_PARAM 的参数 ID（客户端元数据同步用）
+     */
+    [[nodiscard]] static u16 getInGroundParamId() { return DATA_IN_GROUND_PARAM.id(); }
+
+protected:
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 Entity::registerData()，注册 AbstractArrow 的网络同步参数
+     * （DATA_ARROW_FLAGS/DATA_PIERCE_LEVEL/DATA_IN_GROUND）。
+     *
+     * 注意：由于 C++ 虚函数在构造函数中不会派生到子类，
+     * AbstractArrowEntity 构造函数必须显式调用此方法，且子类（TridentEntity）
+     * 的 registerData 必须首行调用 AbstractArrowEntity::registerData() 以续接 id。
+     */
+    void registerData() override;
+
+    /**
+     * @brief 将箭矢标志位（crit/shotFromCrossbow）写回 DATA_ARROW_FLAGS 镜像
+     */
+    void _syncArrowFlags();
+
+    /**
+     * @brief 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+     */
+    static const EntityClassInfo& classInfo();
+
     // 批次6 子目标2 Step3：以下 13 字段已迁入 ecs::ProjectileArrowStateComponent，
     // 经 tryGetComponent<ecs::ProjectileArrowStateComponent>() 读写（见各 getter/setter
     // 与 .cpp 内 tick/onEntityHit/onBlockHit 等实现）。
