@@ -438,6 +438,20 @@ public:
         MC_ASSERT_RELEASE(c != nullptr);
         return c->m_flags;
     }
+
+    /**
+     * @brief 是否拥有某 ECS 组件（透传 EntityContext::hasComponent）
+     *
+     * 供 Entity 继承体系外的调用方（AI goal/sensor、BlockEntity 等）做 tag/
+     * capability 类型标记查询，替代 dynamic_cast<接口*>。const 安全。批次5 子批
+     * 5.1 起 tag component 查询的统一外部入口。
+     */
+    template <class T>
+    [[nodiscard]] bool hasComponent() const
+    {
+        return m_entityContext->hasComponent<T>();
+    }
+
     [[nodiscard]] virtual bool isChild() const { return false; }
 
     // ========== 声音 ==========

@@ -46,11 +46,11 @@
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../core/AgeableEntity.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../ecs/components/MobFlagComponent.hpp"
 #include "../entities/hanging/HangingEntity.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
-#include "../interfaces/IMob.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
 #include "../utils/ItemDropHelper.hpp"
@@ -740,8 +740,8 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 
 bool MobEntity::canBeLeashed() const
 {
-    // 敌对生物不能被拴住
-    return dynamic_cast<const entity::IMob*>(this) == nullptr;
+    // 敌对生物不能被拴住（MobFlagComponent 标记组件，IMob 接口的 tag 层）
+    return !hasComponent<ecs::MobFlagComponent>();
 }
 
 bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEggItem& spawnEgg, ItemStack& heldItem)

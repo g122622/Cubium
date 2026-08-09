@@ -120,11 +120,37 @@ entt已经通过vcpkg安装，源码和文档在 D:\MiscProjects\entt 可供参�
 
 **暂未处理**：`tests/` 741 处测试构造仍不透传 registry（永久约束）。DATA_PLAYER_MODE_CUSTOMISATION_PARAM 留后续批次。
 
+## 第五批：实体能力 mixin 接口转 tag/capability component（子批 5.1 IMob 试点，2026-08-09 落地）
+
+批次1-4 完成实体**状态数据层** ECS 化后，批次5 转向**类型标识层**：把实体能力 mixin 接口（IMob/IShearable/IRideable 等 11 个）转成 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域远小于原路线图「约 1220 处」：实体能力 mixin 接口仅 5 处生产 dynamic_cast（原「16 处」含其他子批预估），其余为 NBT 节点 429 处 / 实体子类下行约 280 处 / UI 与结构生成约 60 处 / 方块能力 21 处 / 容器接口 16 处 / IWorld 跨边界 10 处，均不在本批。详见末尾路线图修正条目。
+
+子批 5.1 是 IMob 单接口试点，验证「接口保留 + tag 并存」混合架构模式。
+
+**策略**：接口保留作 OOP 行为层（IMob.hpp 不动，MonsterEntity 仍 `public IMob`），tag component 作 ECS 类型标记层，dynamic_cast 改 `hasComponent<T>()`，二者并存对齐基岩版混合架构，tests/ 零改动。
+
+**已交付**：
+- **新组件** `MobFlagComponent`（空 struct tag，`src/common/entity/ecs/components/`）：承载 IMob 类型标记语义。MonsterEntity 构造 attach 一次，20+ 怪物子类（Zombie/Skeleton/Creeper/Shulker/Enderman/Blaze 等）经 MonsterEntity 间接获得 tag。header-only 不改 CMake。
+- **Entity public hasComponent 包装**：Entity.hpp 加 `template<class T> bool hasComponent() const` 透传 `m_entityContext->hasComponent<T>()`。这是 4 处外部指针改造的前置条件——`m_entityContext` 是 protected 成员，AI goal/sensor、BlockEntity 等继承体系外的调用方无法直接访问。包装只暴露布尔查询不暴露整个 EntityContext，是 ECS 混合架构的外部查询统一入口，后续 5.2/5.3/5.4 复用。
+- **5 处生产 dynamic_cast<IMob*> 改造**：Sensors.cpp:615（AvoidEntitySensor 避险判定）、AvoidHostileGoal.cpp:136（村民避敌谓词）、ConduitEntity.cpp:293（潮涌核心攻击敌对生物）、ShulkerGoals.cpp:226（潜影贝防御攻击谓词）、MobEntity.cpp:744（canBeLeashed 拴绳判定）。前 4 处用 `other->hasComponent<MobFlagComponent>()`（外部指针经 Entity public 包装），第 5 处用 `hasComponent<MobFlagComponent>()`（this 场景，派生类内 public 方法）。每处移除无用 `IMob.hpp` include 加 `MobFlagComponent.hpp`。Sensors.cpp:615 中 Player 的 dynamic_cast 保留（实体子类下行，另案）。
+- **文档同步**：core/README.md:537 canBeLeashed 描述更新为 hasComponent。
+
+**关键设计决策**：
+- **接口保留不删**：tag 只承担类型标记，行为层（虚函数）继续走 vftable。tests/ 9 处 `dynamic_cast<IMob*>`（4 文件：EntityTrackerUuidTest/SensorsTest/MobEntityInteractTest/ShulkerEntityTest）因此零改动——测试走 OOP 接口层，生产走 ECS tag 层，并存即设计意图。
+- **Entity public hasComponent（方案 A）**：只暴露布尔查询，不暴露整个 EntityContext（方案 B 权限过大）。const 安全，ShulkerGoals 的 `const LivingEntity*` 与 MobEntity `canBeLeashed() const` 均兼容。
+- **MonsterEntity 单点 attach**：IMob 唯一继承点是 MonsterEntity，子类经此间接获得 tag，不在每个子类重复 attach。
+- **空 struct tag 零内存开销**：entt 原生支持空 tag（`all_of<EmptyTag>` 编译期类型 id 比较），对齐基岩版 `Is*FlagComponent` 命名约定。
+
+**验证结果**（2026-08-09）：
+- 构建：client/server 本体均 exit 0 链接产出（`--target` 绕过 mc_tests）。
+- GameTest 回归：核心场景 zombie_villager_chase（村民避险 AvoidHostileGoal/Sensors）/ iron_golem_arena（怪物 AI）/ simpleMobTest 三次复跑均稳定 PASSED，证明 hasComponent 替代 dynamic_cast 语义等价。zoglin_float/collapsing 偶发超时为已知 flaky 群（shulker AI 时序 + 光照引擎 TOCTOU，记忆 `ecs-migration-batch2-landed` 记录非本批引入），三次复跑每次恰好 1 个不同 flaky 测试超时，无固定失败。
+
+**暂未处理**：`tests/` 9 处 dynamic_cast<IMob*> 保留（接口存在即可编译，永久约束）。子批 5.2-5.4 待续。
+
 ## 后续批次路线（备忘，未落地）
 
-- **批次5**：11 个混入接口转 tag/capability component；约 1220 处 dynamic_cast 改组件查询。
+- **批次5**：实体能力 mixin 接口转 tag/capability component。经全仓勘察，生产代码 dynamic_cast 共 1458 处，但批次5 真实作用域仅 **11 个接口 / 16 处生产 dynamic_cast / 26 个继承点**（原路线图「约 1220 处」估算错误，已修正）。其余 dynamic_cast 分布：NBT/Tag 节点遍历 429 处（NBT 多态树固有模式，不迁移）、实体具体子类下行约 280 处（Player/LivingEntity/MobEntity/各 Entity 子类，不适合转 tag——子类太多且生命周期与实体绑定，另案）、UI 控件/结构生成具体类约 60 处（不迁移）、方块能力接口 21 处（world/block 域）、容器接口 16 处（inventory 域）、IWorld 跨边界转型 10 处（结构生成子系统另案）。策略：**接口保留作 OOP 行为层（虚函数 shear/boost/ride 等不删），tag/capability component 作类型标记层，dynamic_cast 改 `hasComponent<T>()`，二者并存**对齐基岩版混合架构，tests/ 零改动。性能收益集中在 AI 热路径（Sensors.cpp 每_tick 遍历实体 dynamic_cast<IMob> 6 处、RangedAttackGoals 弩攻击 5 处、AvoidHostileGoal/Conduit/ShulkerGoals 各 1-2 处），RTTI 字符串比较转编译期类型 id 比较。分四个子批：5.1 IMob 单接口试点验证模式 → 5.2 纯 tag 接口（IShearable/IEquipable/IFlinging）→ 5.3 带状态接口（IAngerable/IRideable 转 capability component 含字段迁移）→ 5.4 跨子系统接口（ContainerUser）。
 - **批次6**：序列化按组件注册序列化器；Brain 模板实例化重构为泛型 System。projectile 族整块 ECS 化（验证创建→tick→同步→销毁全链路，原批次2 试点延后至此）。
 - **批次7**：server/client 专属 system 落地（EntityTracker 同步 system、客户端镜像 system）。客户端冰冻渲染 + FreezeComponent 回填点在此批补。
 - **批次8**：引入定义驱动层（ActorDefinitionIdentifier + 组件工厂），适配脚本/gametest 组件式 API。
 
-> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 14 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件），迁移后续批次前务必先读。
+> 本目录 `src/common/entity/ecs/README.md` 记录了 ECS 层内部结构、上下游依赖与 15 条容易踩的坑（双写禁忌、句柄脆弱性、跨 registry 不可迁移、命名遮蔽、指针稳定性、CMake 显式列举、ClientWorld 不继承 IWorld、占位 Player registry 来源、低频组件查询性能、同步镜像字段组件化、SystemPhase 演进与跨帧延迟、不可移动类型 unique_ptr 包裹范式、C 类同步字段批量迁移 protected 转 getter 委托、C 类字段全量组件化规模化枚举提取消除循环依赖 + 异构字段聚合组件、mixin 接口转 tag component 接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造），迁移后续批次前务必先读。

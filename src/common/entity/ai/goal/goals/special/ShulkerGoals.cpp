@@ -30,10 +30,10 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/ecs/components/MobFlagComponent.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/interfaces/IMob.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -222,8 +222,8 @@ ShulkerDefenseAttackGoal::ShulkerDefenseAttackGoal(ShulkerEntity* shulker)
           true, // checkSight
           10,   // chance: 每10tick检查一次
           [](const LivingEntity* entity) -> bool {
-              // 只攻击敌对生物（IMob接口）
-              return dynamic_cast<const entity::IMob*>(entity) != nullptr;
+              // 只攻击敌对生物（MobFlagComponent 标记组件，IMob 接口的 tag 层）
+              return entity->hasComponent<ecs::MobFlagComponent>();
           })
 {}
 

@@ -32,6 +32,7 @@ src/common/entity/ecs/
 │   ├── EntityFlagsComponent.hpp     # m_flags 位掩码（第四批，所有实体，DATA_FLAGS 退镜像）
 │   ├── EntityStateComponent.hpp     # m_air/m_customName/m_customNameVisible/m_silent/m_noGravity/m_pose 6 字段聚合（第四批，所有实体，unique_ptr<ITextComponent> 包裹）
 │   ├── PlayerScoreComponent.hpp     # m_score（第四批，仅 Player，DATA_PLAYER_SCORE 退镜像）
+│   ├── MobFlagComponent.hpp         # 空 struct tag（第五批 5.1，仅 MonsterEntity attach，IMob 接口 tag 层）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
 └── systems/                         # 系统层
@@ -168,3 +169,13 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 - **pose refreshDimensions 副作用保留**：`setPose` 迁移后**必须保留 `refreshDimensions()` 调用**（潜行变矮/游泳变扁的碰撞箱更新）。`syncMetadataFromDataManager` 末尾原 `refreshDimensions`（服务端 pose 回填时触发的）随回填行删除，但 `setPose` 内的 `refreshDimensions` 保留。删回填行时勿误删 setPose 路径的副作用。
 - **syncMetadataFromDataManager 清空留骨架**：删除全部 7 字段回填行后函数体空，保留空函数 + 注释「组件为真相源，不再从 DataParameter 回填」。ClientEntity 是独立类有自己的 syncMetadata 实现，仅删 Entity::syncMetadata 不影响客户端。
 - **setAbsorptionAmount 改 virtual + Player override 下发**：absorption 真相源已在 `HurtStateComponent.m_absorption`（第三批），无需新组件。缺陷是原 `LivingEntity::setAbsorptionAmount` 非虚、不下发 `DATA_PLAYER_ABSORPTION_PARAM`。修复：基类改 `virtual`，Player `override` 重写——调基类写组件（含 clamp）后再 `m_dataManager.set(DATA_PLAYER_ABSORPTION_PARAM, absorptionAmount())` 下发 clamp 后值。基类 `actuallyHurt` 内调用经虚派发到 Player 版本，同步链路完整。这是"真相源已在组件、仅需打通下发"的轻量收口范式，区别于新建组件的重迁移。
+
+### 15. mixin 接口转 tag component：接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造
+
+第五批把实体能力 mixin 接口（IMob/IShearable/IRideable 等）转 tag/capability component，**接口保留作 OOP 行为层**（虚函数不删），tag 作类型标记层，`dynamic_cast<接口*>` 改 `hasComponent<TagComponent>()`，二者并存对齐基岩版混合架构。子批 5.1（IMob→MobFlagComponent）落地的几个坑：
+- **Entity public hasComponent 包装是外部指针改造的前置条件**：`m_entityContext` 是 Entity 的 **protected** 成员，无 public 访问器。4 处外部指针 dynamic_cast（AI goal/sensor、BlockEntity 等继承体系外调用方）无法访问 `other->m_entityContext`。解法：Entity.hpp public 段加 `template<class T> bool hasComponent() const { return m_entityContext->hasComponent<T>(); }` 透传包装。只暴露布尔查询不暴露整个 EntityContext（方案 A，权限可控；暴露整个 context 的方案 B 权限过大）。const 安全，`const LivingEntity*` 与 `const` 方法兼容。这是后续 5.2/5.3/5.4 及更远批次 tag 查询的统一外部入口。MobEntity.cpp:744 的 `this` 场景无需包装（派生类内 protected 可达，直接 `hasComponent<T>()` 调 public 包装即可）。
+- **接口保留不删，tests/ 零改动**：IMob.hpp 不动，MonsterEntity 仍 `public IMob`。tag 只承担类型标记，行为层虚函数继续走 vftable。tests/ 9 处 `dynamic_cast<IMob*>`（4 文件）因此零改动——测试走 OOP 接口层，生产走 ECS tag 层，并存即设计意图。激进删除接口类会致 20+ 测试文件连锁崩溃，不可取。
+- **空 struct tag 零内存开销**：entt 原生支持空 tag（`emplace<EmptyTag>` / `all_of<EmptyTag>` 编译期类型 id 比较），对齐基岩版 `Is*FlagComponent` 命名约定。MobFlagComponent 是空 struct，无数据字段。
+- **IMob 唯一继承点单点 attach**：IMob 唯一继承点是 MonsterEntity（`class MonsterEntity : public CreatureEntity, public entity::IMob`），20+ 怪物子类经 MonsterEntity 间接获得 tag。只需在 MonsterEntity 构造 attach 一次，不在每个子类重复 attach。中间基类（AbstractSkeletonEntity/PatrollerEntity 等）也无需 attach。
+- **热路径 RTTI 收益**：4 处外部指针 dynamic_cast 在每_tick 调用的 AI 谓词里（Sensors/AvoidHostileGoal/ConduitEntity/ShulkerGoals），`dynamic_cast` 走 RTTI 字符串比较，改 `hasComponent`（entt `all_of` 编译期类型 id 比较）收益显著。
+- **Player 子类下行 cast 保留**：Sensors.cpp:615 改 IMob 判定为 hasComponent 后，同处的 `dynamic_cast<Player*>(other)`（判创造/旁观模式）保留——那是实体子类下行，子类太多且组件查询无法替代虚函数，另案处理，不在本批。

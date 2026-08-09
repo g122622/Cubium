@@ -534,7 +534,7 @@
                 *：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前
                     Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发 -
             拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`）， 完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现 - `canBeLeashed()` -
-            判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳） -
+            判断生物是否可被拴绳拴住，默认实现通过 `hasComponent<MobFlagComponent>()` 判断（敌对生物不可拴绳，IMob 接口的 tag 层） -
             拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost / UUIDLeast）和栅栏柱坐标（X / Y /
                 Z）两种格式 -
             拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT

@@ -28,12 +28,12 @@
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/MobFlagComponent.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
-#include "common/entity/interfaces/IMob.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/GlobalPos.hpp"
@@ -608,12 +608,10 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
 template <typename E>
 bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
 {
-    // 使用 IMob 标记接口判断敌对生物。
-    // 只有继承 MonsterEntity 并实现 IMob 接口的实体才被视为敌对。
-    // 这与原版的 Enemy 接口语义一致：MonsterEntity implements Enemy(IMob)。
+    // 使用 MobFlagComponent 标记组件判断敌对生物。
+    // 只有继承 MonsterEntity 的实体才 attach MobFlagComponent（IMob 接口的 tag 层），
     // 被动生物（牛、羊、猪等）不会触发避险。
-    entity::IMob* mob = dynamic_cast<entity::IMob*>(other);
-    if (mob != nullptr) {
+    if (other->hasComponent<ecs::MobFlagComponent>()) {
         // 玩家在创造/旁观模式下不需要避险
         Player* player = dynamic_cast<Player*>(other);
         if (player && (player->isCreative() || player->isSpectator())) {
