@@ -65,6 +65,15 @@ DEFINE_string(gametest_packs,
     "Extra behavior pack scan directory for --gametest mode (repo-internal tests/integrated by default). "
     "Each subdirectory with a manifest.json is loaded as an independent behavior pack. "
     "Empty falls back to MC_SOURCE_ROOT/tests/integrated.");
+DEFINE_string(gametest_report,
+    "",
+    "JUnit XML report output path for --gametest mode (relative to game directory root or absolute). "
+    "Empty disables JUnit XML report (only stdout log).");
+DEFINE_string(gametest_tests,
+    "",
+    "Test name filter pattern for --gametest mode (e.g. simpleMobTest or simple.*). "
+    "Empty runs all registered non-manualOnly non-broken tests. "
+    "Pattern matches against testName (not className); supports prefix.* and exact match.");
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
@@ -146,6 +155,8 @@ void ServerApplicationEntry::onFlagsParsed()
     }
 
     m_gametestMode = FLAGS_gametest;
+    m_gametestReportPath = FLAGS_gametest_report;
+    m_gametestTestsFilter = FLAGS_gametest_tests;
 }
 
 void ServerApplicationEntry::prepareRun()
@@ -184,6 +195,20 @@ int ServerApplicationEntry::runApplication()
             spdlog::info("[GameTest] Extra behavior pack dir: '{}'", packsDir.string());
         } else {
             spdlog::warn("[GameTest] Extra behavior pack dir not found: '{}'", packsDir.string());
+        }
+
+        // --gametest-tests：测试名过滤通配符（空=全部）。按 testName 匹配（非 className），
+        // 支持 prefix.* 与全等，由 GameTestRegistry::getTestsByPattern 实现。
+        if (!m_gametestTestsFilter.empty()) {
+            gtParams.testsFilter = m_gametestTestsFilter;
+            spdlog::info("[GameTest] Tests filter: {}", m_gametestTestsFilter);
+        }
+
+        // --gametest-report：JUnit XML 输出路径。相对路径相对 gameDirectory.root()
+        // （GameTestServer 内部解析，见 GameTestServer.cpp 的 reportFull 处理）。
+        if (!m_gametestReportPath.empty()) {
+            gtParams.reportPath = m_gametestReportPath;
+            spdlog::info("[GameTest] JUnit report path: {}", m_gametestReportPath);
         }
 
         auto gtInit = gtServer.initialize(gtParams);

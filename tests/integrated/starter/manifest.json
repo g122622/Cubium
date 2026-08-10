@@ -4,8 +4,16 @@
     "description": "Starter GameTests: simple mob behavior.",
     "name": "Cubium Starter GameTests",
     "uuid": "a1c1c000-0004-4a75-91b7-4cdf0a04c007",
-    "version": [1, 0, 0],
-    "min_engine_version": [1, 21, 0]
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
   },
   "modules": [
     {
@@ -13,14 +21,18 @@
       "type": "script",
       "language": "javascript",
       "uuid": "a1c1c001-0004-4a75-91b7-4cdf0a04c008",
-      "version": [1, 0, 0],
+      "version": [
+        1,
+        0,
+        0
+      ],
       "entry": "scripts/StarterTests.js"
     }
   ],
   "dependencies": [
     {
       "module_name": "@minecraft/server",
-      "version": "1.13.0-beta"
+      "version": "2.0.0"
     },
     {
       "module_name": "@minecraft/server-gametest",
