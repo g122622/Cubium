@@ -473,6 +473,24 @@ public:
         return m_entityContext->tryGetComponent<T>();
     }
 
+    /**
+     * @brief 获取本实体所属的 ECS registry（构造时透传绑定，存于 EntityContext）
+     *
+     * ECS 迁移后实体构造透传 ecs::EntityRegistry& 并 attach 组件，EntityContext 持有该
+     * registry 引用。本方法返回该引用，供需要创建子实体/同级实体（如 spawnBaby、
+     * spawnChild、summon）的场景获取 registry，避免硬依赖 m_world。
+     *
+     * 背景：原 spawnBaby 等通过 m_world->entityRegistry() 获取 registry，但单元测试中
+     * 构造的裸实体未 setWorld（m_world==nullptr）会解引用空指针崩溃。实体构造时已绑定
+     * registry，自给自足更合理。生产场景下实体总在 world 内，本方法返回的 registry 与
+     * m_world->entityRegistry() 一致；测试场景下实体未 setWorld 也能正确返回构造时传入
+     * 的 registry。
+     *
+     * 返回引用，调用方须确保本实体生命周期内 registry 仍有效（实体与 registry 同生命周期）。
+     */
+    [[nodiscard]] ecs::EntityRegistry& ecsRegistry() { return m_entityContext->registry(); }
+    [[nodiscard]] const ecs::EntityRegistry& ecsRegistry() const { return m_entityContext->registry(); }
+
     [[nodiscard]] virtual bool isChild() const { return false; }
 
     // ========== 声音 ==========

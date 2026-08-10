@@ -550,7 +550,7 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
 {
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return nullptr;
     }
@@ -1156,7 +1156,7 @@ void WanderingTraderEntity::spawnLlamas()
     // 在流浪商人附近生成贸易羊驼
     // 最多2只羊驼，生成在商人后方
     // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return;
     }

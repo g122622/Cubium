@@ -120,7 +120,7 @@ bool ChickenEntity::canMateWith(const AnimalEntity& other) const
 std::unique_ptr<AnimalEntity> ChickenEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return nullptr;
     }
@@ -209,7 +209,7 @@ void ChickenEntity::tick()
 
         if (m_eggTimer <= 0 && world() != nullptr) {
             // ECS 迁移：ItemEntity 构造需要 registry 句柄
-            auto* registry = m_world->entityRegistry();
+            auto* registry = &ecsRegistry();
             if (registry == nullptr) {
                 return;
             }

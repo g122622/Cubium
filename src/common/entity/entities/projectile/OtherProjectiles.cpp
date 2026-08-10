@@ -708,7 +708,7 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
         f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
 
         // ECS 迁移：实体构造需要 registry 句柄（m_world 在调用路径已确保非空）
-        auto* registry = m_world->entityRegistry();
+        auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
         }

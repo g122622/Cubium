@@ -137,7 +137,7 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
     }
 
     // ECS 迁移：实体构造需要 registry 句柄（world() 已判空，此处 registry 必非空）
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return;
     }

@@ -271,20 +271,16 @@ void ZombieVillagerEntity::finishConverting()
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* villagerType = registry.getType("minecraft:villager");
 
-    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
-    auto* ecsRegistry = m_world->entityRegistry();
-    // ECS 迁移：实体构造强制需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS，
-    // 此时无法构造实体，直接放弃转换（转换本就只应在服务端进行）
-    if (ecsRegistry == nullptr) {
-        return;
-    }
+    // 实体自身的 ECS registry 句柄（构造时绑定于 EntityContext，永远非空）。
+    // 注意局部变量名须与方法名 ecsRegistry() 区分（此处已有名为 registry 的类型注册表引用）。
+    auto* ecsReg = &ecsRegistry();
 
     std::unique_ptr<Entity> newEntity;
     if (villagerType && villagerType->canSummon()) {
-        newEntity = villagerType->create(m_world, *ecsRegistry);
+        newEntity = villagerType->create(m_world, *ecsReg);
     } else {
         // 回退：直接创建 VillagerEntity
-        newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0), *ecsRegistry);
+        newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0), *ecsReg);
     }
 
     if (!newEntity) {

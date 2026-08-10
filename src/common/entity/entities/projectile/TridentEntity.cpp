@@ -308,7 +308,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
                 // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-                auto* registry = m_world->entityRegistry();
+                auto* registry = &ecsRegistry();
                 if (registry == nullptr) {
                     return;
                 }

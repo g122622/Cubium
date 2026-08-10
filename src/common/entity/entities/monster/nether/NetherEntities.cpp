@@ -394,7 +394,7 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
 
     // 创建箭矢实体
     // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return;
     }

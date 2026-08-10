@@ -207,7 +207,7 @@ void OminousItemSpawnerEntity::spawnItem()
     } else {
         // 普通物品：创建物品实体自然掉落
         // ECS 迁移：实体构造需要 registry 句柄（m_world 为成员所属世界，调用路径已确保非空）
-        auto* registry = m_world->entityRegistry();
+        auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
         }

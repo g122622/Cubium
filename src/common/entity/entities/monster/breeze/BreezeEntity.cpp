@@ -322,7 +322,7 @@ void BreezeEntity::shootWindCharge()
 
     // 创建风弹弹射物实体（通过发射者类型自动判定为旋风人风弹）
     // ECS 迁移：实体构造需要 registry 句柄，m_world 在攻击路径已确保非空
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return;
     }

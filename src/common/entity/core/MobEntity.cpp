@@ -766,7 +766,7 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
 
     // 创建幼体实体
     // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
-    auto* registry = m_world->entityRegistry();
+    auto* registry = &ecsRegistry();
     if (registry == nullptr) {
         return false;
     }

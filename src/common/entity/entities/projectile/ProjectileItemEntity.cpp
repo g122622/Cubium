@@ -374,7 +374,7 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         // 如果是滞留型药水，创建区域效果云
         if (isLingering()) {
             // ECS 迁移：实体构造需要 registry 句柄（m_world 为投射物所属世界，此处必非空）
-            auto* registry = m_world->entityRegistry();
+            auto* registry = &ecsRegistry();
             if (registry == nullptr) {
                 return;
             }
@@ -453,7 +453,7 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
     // 生成经验球（3-11点经验）
     if (m_world) {
         // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-        auto* registry = m_world->entityRegistry();
+        auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
         }

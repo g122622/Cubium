@@ -206,7 +206,7 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         f32 groundY = static_cast<f32>(blockPos.y) + shapeMaxY;
 
         // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-        auto* registry = m_world->entityRegistry();
+        auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
         }
@@ -244,7 +244,7 @@ void EvokerEntity::summonVex()
         BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);
 
         // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-        auto* registry = m_world->entityRegistry();
+        auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
         }
