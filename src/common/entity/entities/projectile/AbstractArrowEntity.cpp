@@ -732,14 +732,13 @@ std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/, ecs::EntityRegist
 
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
-    // ECS 迁移：实体构造需要 registry 句柄，静态方法无 this，从 IWorld* 参数取；
-    // ClientWorld 返回 nullptr 表客户端不接入 ECS，此时无法构造箭矢
-    auto* registry = world->entityRegistry();
-    if (registry == nullptr) {
-        return nullptr;
-    }
+    // ECS 迁移：实体构造需要 registry 句柄。静态方法无 this，从 shooter 自持的 ECS registry
+    // 取句柄（Entity 构造时绑定，ecsRegistry() 返回引用必非空），避免解引用可能为空的 world
+    // 指针。生产调用者（ArrowItem/AbstractSkeletonEntity 等）传非空 world，测试可能传 nullptr，
+    // 两者均能正确构造箭矢。world 仍传给 setWorld 供箭矢后续 tick/碰撞使用（可为 nullptr）。
+    auto& registry = shooter.ecsRegistry();
 
-    auto arrow = std::make_unique<ArrowEntity>(0, *registry);
+    auto arrow = std::make_unique<ArrowEntity>(0, registry);
     arrow->setTypeId(EntityTypeKeys::ARROW);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());

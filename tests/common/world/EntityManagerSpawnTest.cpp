@@ -44,7 +44,15 @@ using namespace mc::entity;
  */
 class EntityManagerSpawnTest : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaEntities::registerAll(); }
+    void SetUp() override
+    {
+        VanillaEntities::registerAll();
+        // 禁用 simulationDistance 冻结门控（>=32 等价全量 tick）。EntityManager 默认
+        // m_simulationDistance=10<32 启用冻结：无玩家时 _isEntityInSimulationRange 返回 false，
+        // 非玩家实体（如 ReentrantQueryEntity）不 tick，tick 内的重入范围查询无法验证。
+        // 本测试套件聚焦 spawn/遍历语义而非激活范围，故显式 opt-out 冻结。
+        m_manager.setSimulationDistance(32);
+    }
 
     void TearDown() override {}
 

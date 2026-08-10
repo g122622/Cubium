@@ -311,8 +311,9 @@ TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To20)
 // 链2: AbstractFish.FROM_BUCKET（vanilla 1.21.11 鱼链不经 AgeableMob，FROM_BUCKET 在 Mob id15 之后）
 //   AbstractFish id16 FROM_BUCKET(Boolean)
 //   Pufferfish id17 DATA_PUFF_STATE(Int)（经 AbstractFish）
-//   Cod/Salmon 透传层无自身字段，id 集合与 AbstractFish 一致(id0..16)
-//   TropicalFish 占位：vanilla 有 DATA_VARIANT(id17) 但项目当前不同步，本次仅占位 id0..16
+//   Cod 透传层无自身字段，id 集合与 AbstractFish 一致(id0..16)
+//   Salmon id17 DATA_TYPE(Int，体型 small/medium/large)
+//   TropicalFish id17 DATA_VARIANT(Int，packed shape|baseColor<<8|patternColor<<16)
 // 此链对齐关系真客户端 set_entity_data：FROM_BUCKET 是 Boolean(id16)，与 AgeableMob.DATA_BABY
 // 在不同类树分支，各自独立编号不冲突。
 // ============================================================================
@@ -351,19 +352,23 @@ TEST(EntityMetadataIdGoldenTest, CodEntityHasIds0To16)
     EXPECT_EQ(collectParamIds(cod.dataManager()), expectedRange(0, 16));
 }
 
-TEST(EntityMetadataIdGoldenTest, SalmonEntityHasIds0To16)
+TEST(EntityMetadataIdGoldenTest, SalmonEntityHasIds0To17)
 {
     SalmonEntity salmon(EntityInstanceId(1), mc::test::testEcsRegistry());
-    // 透传层无自身字段，与 AbstractFish 一致。
-    EXPECT_EQ(collectParamIds(salmon.dataManager()), expectedRange(0, 16));
+    // AbstractFish 0..16 + Salmon 17(DATA_TYPE，体型 small/medium/large)，对齐 vanilla
+    // 1.21.11 Salmon.DATA_TYPE(Int)。
+    EXPECT_EQ(collectParamIds(salmon.dataManager()), expectedRange(0, 17));
+    EXPECT_FALSE(salmon.dataManager().hasParam(18));
 }
 
-// TropicalFish 当前为占位（vanilla DATA_VARIANT 未同步），字段集合与 AbstractFish 一致。
-// 待后续逐实体字段对齐补 DATA_VARIANT(id17) 后，此处应改为 expectedRange(0, 17)。
-TEST(EntityMetadataIdGoldenTest, TropicalFishEntityPlaceholderHasIds0To16)
+// TropicalFish 自带 DATA_VARIANT@17(Int，packed shape|baseColor<<8|patternColor<<16)，
+// 对齐 vanilla 1.21.11 TropicalFish.DATA_ID_TYPE_VARIANT(Int)。构造时 randomizeVariant
+// 写 m_variant 成员，不影响 registerParam 注册的 id 集合（id 由继承链分配，初始值 0）。
+TEST(EntityMetadataIdGoldenTest, TropicalFishEntityHasIds0To17)
 {
     TropicalFishEntity tropical(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_EQ(collectParamIds(tropical.dataManager()), expectedRange(0, 16));
+    EXPECT_EQ(collectParamIds(tropical.dataManager()), expectedRange(0, 17));
+    EXPECT_FALSE(tropical.dataManager().hasParam(18));
 }
 
 // ============================================================================
