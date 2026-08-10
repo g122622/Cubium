@@ -29,6 +29,7 @@
 #include "server/test/script/binding/ScriptRegistrationBuilder.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 
+#include <functional> // std::function（批次回调 lambda 转 C++ 回调）
 #include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -128,25 +129,80 @@ void registerTopLevelFunctions(mc::mod::bedrock::addon::NativeModuleBuilder& bui
     ctx.releaseValue(registerAsyncFn);
 
     // --- setBeforeBatchCallback(batchName, fn) ---
-    // TODO: 批次回调经 GameTestRegistry.registerBeforeBatchFunction 注册，需保留 JS 回调并在批次开始触发。
-    //       第一阶段为骨架，暂不接线（throw InternalError 由调用方感知）。
+    // 批次前置回调：把 JS 函数注册到 GameTestRegistry，由 BaseGameTestBatchRunner 在批次开始时触发。
+    // 触发链已通（GameTestServer 取 getBeforeBatchFunction 注入 GameTestBatch，runner 调 batch.beforeBatch()()），
+    // 本处只补 JS→C++ 桥接。
     void* setBeforeBatchFn = ctx.createFunction(
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return ctx.throwInternalError("setBeforeBatchCallback not implemented yet"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
+            if (argc < 2 || !ctx.isString(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("setBeforeBatchCallback(batchName, fn)");
+            }
+            auto batchName = ctx.toString(args[0]);
+            if (!batchName) {
+                return ctx.throwInternalError("Failed to read batch name");
+            }
+            // dupValue 保留独立 JS 句柄（trampoline 在回调返回后会释放 args[1] handle，dupValue 不受影响）。
+            void* fnHandle = ctx.dupValue(args[1]);
+            // 构造 C++ 回调：捕获 ctx 指针 + fn 句柄，触发时 callFunction0 调 JS 函数。
+            // JS 异常记 warn 不中断批次（对齐 ScriptGameTestFunction::run 的异常处理语义）。
+            auto* ctxPtr = &ctx;
+            std::function<void()> cb = [ctxPtr, fnHandle]() {
+                void* undef = ctxPtr->createUndefined();
+                void* ret = ctxPtr->callFunction0(fnHandle, undef);
+                ctxPtr->releaseValue(undef);
+                if (ctxPtr->isException(ret)) {
+                    void* exc = ctxPtr->getException();
+                    auto msg = ctxPtr->getExceptionMessage(exc);
+                    ctxPtr->releaseValue(exc);
+                    spdlog::warn("[GameTest] beforeBatch callback threw: {}", msg);
+                }
+                ctxPtr->releaseValue(ret); // callFunction0 返回 owned 句柄，须 release
+            };
+            GameTestRegistry::instance().registerBeforeBatchFunction(*batchName, std::move(cb));
+            return ctx.createUndefined();
+        },
         "setBeforeBatchCallback",
         2);
     builder.exportValue("setBeforeBatchCallback", setBeforeBatchFn);
     ctx.releaseValue(setBeforeBatchFn);
 
     // --- setAfterBatchCallback(batchName, fn) ---
-    // TODO: 同 setBeforeBatchCallback。
+    // 同 setBeforeBatchCallback，注册到 afterBatch（批次结束时触发）。
     void* setAfterBatchFn = ctx.createFunction(
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return ctx.throwInternalError("setAfterBatchCallback not implemented yet"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
+            if (argc < 2 || !ctx.isString(args[0]) || !ctx.isFunction(args[1])) {
+                return ctx.throwTypeError("setAfterBatchCallback(batchName, fn)");
+            }
+            auto batchName = ctx.toString(args[0]);
+            if (!batchName) {
+                return ctx.throwInternalError("Failed to read batch name");
+            }
+            void* fnHandle = ctx.dupValue(args[1]);
+            auto* ctxPtr = &ctx;
+            std::function<void()> cb = [ctxPtr, fnHandle]() {
+                void* undef = ctxPtr->createUndefined();
+                void* ret = ctxPtr->callFunction0(fnHandle, undef);
+                ctxPtr->releaseValue(undef);
+                if (ctxPtr->isException(ret)) {
+                    void* exc = ctxPtr->getException();
+                    auto msg = ctxPtr->getExceptionMessage(exc);
+                    ctxPtr->releaseValue(exc);
+                    spdlog::warn("[GameTest] afterBatch callback threw: {}", msg);
+                }
+                ctxPtr->releaseValue(ret);
+            };
+            GameTestRegistry::instance().registerAfterBatchFunction(*batchName, std::move(cb));
+            return ctx.createUndefined();
+        },
         "setAfterBatchCallback",
         2);
     builder.exportValue("setAfterBatchCallback", setAfterBatchFn);
     ctx.releaseValue(setAfterBatchFn);
+    // TODO: fn 句柄（dupValue 的 owned handle）未显式 release——底层 JS 对象由 JS_FreeRuntime 引擎销毁时全清，
+    //       但 handle 的 C++ 内存（new JSValue）极小泄漏（每次注册 16 字节；行为包极少用此 API）。
+    //       主动 release 会面临 GameTestRegistry 单例析构（进程退出）时 ctx 已死的崩溃风险，故暂不释放；
+    //       待批次回调生命周期管理完善（按 environment 分组 + 接入 releaseAllScriptResources 显式释放链）后补全。
+    // TODO: 当前只有 "default" 一个批次（GameTestServer 未做按 environment 分组），其他 batchName 回调注册但不触发。
 
     // --- spawnSimulatedPlayer(name, location) -> SimulatedPlayer ---
     // 顶层 spawn 无 Test 上下文（与 Test.spawnSimulatedPlayer 不同，无 Test 对象定位结构原点），
