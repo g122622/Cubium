@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/entity/entities/passive/tamable/ShoulderRidingEntity.hpp"
 
@@ -31,7 +32,7 @@ namespace {
 
 TEST(ShoulderRidingEntityTest, ParrotUsesShoulderRidingLayer)
 {
-    ParrotEntity parrot(EntityInstanceId(1));
+    ParrotEntity parrot(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_NE(dynamic_cast<ShoulderRidingEntity*>(&parrot), nullptr);
     EXPECT_FALSE(parrot.isOnShoulder());
@@ -40,7 +41,7 @@ TEST(ShoulderRidingEntityTest, ParrotUsesShoulderRidingLayer)
 
 TEST(ShoulderRidingEntityTest, RequiresCooldownTameStateAndStandingBeforeMounting)
 {
-    ParrotEntity parrot(EntityInstanceId(1));
+    ParrotEntity parrot(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(parrot.canSitOnShoulder());
     EXPECT_FALSE(parrot.mountShoulder(42));

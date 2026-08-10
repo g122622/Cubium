@@ -44,7 +44,7 @@ using namespace mc::weather;
 
 namespace {
 
-class WeatherUtilsTestWorld : public test::BaseChunkBackedTestWorld {
+class WeatherUtilsTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
     {

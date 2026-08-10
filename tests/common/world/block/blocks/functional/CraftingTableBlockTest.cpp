@@ -59,7 +59,7 @@ namespace {
  * - isClientSide() / asServerWorld() 用于区分客户端/服务端
  * - openContainer() 用于测试容器打开
  */
-class CraftingTableTestWorld : public test::BaseTestWorld {
+class CraftingTableTestWorld : public mc::test::BaseTestWorld {
 public:
     explicit CraftingTableTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -206,7 +206,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSuc
     world.setBlockStateAt(pos_, &craftingTable_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = craftingTable_->defaultState();
@@ -229,7 +229,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensConta
     world.setBlockStateAt(pos_, &craftingTable_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = craftingTable_->defaultState();
@@ -255,7 +255,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     world.setBlockStateAt(pos_, &craftingTable_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 使用副手执行交互
     const auto& state = craftingTable_->defaultState();
@@ -291,7 +291,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_OpenContainerFails_Re
     world.setBlockStateAt(pos_, &craftingTable_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = craftingTable_->defaultState();

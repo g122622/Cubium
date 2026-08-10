@@ -57,7 +57,7 @@ namespace {
 /**
  * @brief 测试用 Mock World 类
  */
-class WitherTestWorld final : public test::BaseTestWorld {
+class WitherTestWorld final : public mc::test::BaseTestWorld {
 public:
     WitherTestWorld()
     {
@@ -188,7 +188,7 @@ protected:
 
 TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 所有头部目标初始值应该为 0（无目标）
     EXPECT_EQ(wither.getWatchedTargetId(0), 0); // 主头
@@ -198,7 +198,7 @@ TEST_F(WitherEntityTest, DataParameter_InitialState_IsZero)
 
 TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置主头目标
     wither.updateWatchedTargetId(0, 100);
@@ -215,7 +215,7 @@ TEST_F(WitherEntityTest, DataParameter_SetAndGet_HeadTarget)
 
 TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置不同头的不同目标
     wither.updateWatchedTargetId(0, 111);
@@ -236,7 +236,7 @@ TEST_F(WitherEntityTest, DataParameter_IndependentHeadTargets)
 
 TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置并清除目标
     wither.updateWatchedTargetId(0, 500);
@@ -248,7 +248,7 @@ TEST_F(WitherEntityTest, DataParameter_ClearHeadTarget)
 
 TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 无效索引应该返回 0
     EXPECT_EQ(wither.getWatchedTargetId(-1), 0);
@@ -260,7 +260,7 @@ TEST_F(WitherEntityTest, DataParameter_InvalidHeadIndex_ReturnsZero)
 
 TEST_F(WitherEntityTest, Invulnerability_GetAndSet)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_EQ(wither.getInvulTime(), 0);
     EXPECT_FALSE(wither.isInvulnerablePhase());
@@ -276,7 +276,7 @@ TEST_F(WitherEntityTest, Invulnerability_GetAndSet)
 
 TEST_F(WitherEntityTest, Invulnerability_Ignite)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 初始状态
@@ -292,7 +292,7 @@ TEST_F(WitherEntityTest, Invulnerability_Ignite)
 
 TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 凋灵最大生命值为 300
@@ -315,7 +315,7 @@ TEST_F(WitherEntityTest, Charged_WhenHealthBelowHalf)
 
 TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 无敌阶段不能远程攻击
     wither.setInvulTime(100);
@@ -330,7 +330,7 @@ TEST_F(WitherEntityTest, RangedAttack_DisabledDuringInvulnerability)
 
 TEST_F(WitherEntityTest, Attributes_DefaultValues)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // MC 1.16.5 凋灵属性
@@ -344,7 +344,7 @@ TEST_F(WitherEntityTest, Attributes_DefaultValues)
 
 TEST_F(WitherEntityTest, CreatureAttribute_IsUndead)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 凋灵是亡灵生物
     EXPECT_EQ(wither.getCreatureAttribute(), CreatureAttribute::Undead);
@@ -352,7 +352,7 @@ TEST_F(WitherEntityTest, CreatureAttribute_IsUndead)
 
 TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 凋灵是 Boss
     EXPECT_FALSE(wither.isNonBoss());
@@ -362,7 +362,7 @@ TEST_F(WitherEntityTest, IsNonBoss_ReturnsFalse)
 
 TEST_F(WitherEntityTest, GetBossName_DefaultName)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 无自定义名称时返回默认名称
     EXPECT_EQ(wither.getBossName(), "Wither");
@@ -371,7 +371,7 @@ TEST_F(WitherEntityTest, GetBossName_DefaultName)
 
 TEST_F(WitherEntityTest, GetBossName_CustomName)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -384,7 +384,7 @@ TEST_F(WitherEntityTest, GetBossName_CustomName)
 
 TEST_F(WitherEntityTest, GetBossName_EmptyCustomName)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -399,7 +399,7 @@ TEST_F(WitherEntityTest, GetBossName_EmptyCustomName)
 
 TEST_F(WitherEntityTest, GetBossName_ClearCustomName)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 设置自定义名称
@@ -420,7 +420,7 @@ TEST_F(WitherEntityTest, BreakNearbyBlocks_RespectsWitherImmuneTag)
     // 初始化 BlockTags
     BlockTags::initialize();
 
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 0.0, 0.0));
 
@@ -438,7 +438,7 @@ TEST_F(WitherEntityTest, BreakNearbyBlocks_RespectsWitherImmuneTag)
 
 TEST_F(WitherEntityTest, Hurt_CreatureAttributeUndead_ImmuneToWitherDamage)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setHealth(300.0f);
 
@@ -448,7 +448,7 @@ TEST_F(WitherEntityTest, Hurt_CreatureAttributeUndead_ImmuneToWitherDamage)
 
 TEST_F(WitherEntityTest, Hurt_InvulnerabilityPhase_PreventsDamage)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setHealth(300.0f);
 
@@ -463,7 +463,7 @@ TEST_F(WitherEntityTest, Hurt_InvulnerabilityPhase_PreventsDamage)
 
 TEST_F(WitherEntityTest, Hurt_ChargedImmuneToArrows)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 满血时不充能，不免疫箭矢
@@ -483,7 +483,7 @@ TEST_F(WitherEntityTest, Hurt_ChargedImmuneToArrows)
 
 TEST_F(WitherEntityTest, BlueSkull_ChargedStateAffectsSkullType)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 满血时不充能
@@ -501,7 +501,7 @@ TEST_F(WitherEntityTest, BlueSkull_ChargedStateAffectsSkullType)
 
 TEST_F(WitherEntityTest, BlueSkull_LaunchWitherSkullToEntity_SetsBlueFlag)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setHealth(300.0f);
@@ -514,7 +514,7 @@ TEST_F(WitherEntityTest, BlueSkull_LaunchWitherSkullToEntity_SetsBlueFlag)
 
 TEST_F(WitherEntityTest, BlueSkull_LaunchWitherSkullToPosition_CreatesSkull)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -531,7 +531,7 @@ TEST_F(WitherEntityTest, BlueSkull_LaunchWitherSkullToPosition_CreatesSkull)
 
 TEST_F(WitherEntityTest, Despawn_PreventDespawn_ReturnsTrue)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 凋灵永不自然消失
     EXPECT_TRUE(wither.preventDespawn());
@@ -539,7 +539,7 @@ TEST_F(WitherEntityTest, Despawn_PreventDespawn_ReturnsTrue)
 
 TEST_F(WitherEntityTest, Despawn_IsDespawnPeaceful_ReturnsTrue)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 和平难度下凋灵应被移除
     EXPECT_TRUE(wither.isDespawnPeaceful());
@@ -549,7 +549,7 @@ TEST_F(WitherEntityTest, Despawn_IsDespawnPeaceful_ReturnsTrue)
 
 TEST_F(WitherEntityTest, FlyingMovementController_IsSetInConstructor)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证凋灵的移动控制器存在
     auto* moveCtrl = wither.moveController();
@@ -558,7 +558,7 @@ TEST_F(WitherEntityTest, FlyingMovementController_IsSetInConstructor)
 
 TEST_F(WitherEntityTest, FlyingMovementController_NoGravityOnMove)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 初始状态：构造函数设置 noGravity=true
@@ -571,7 +571,7 @@ TEST_F(WitherEntityTest, FlyingMovementController_NoGravityOnMove)
 
 TEST_F(WitherEntityTest, FlyingMovementController_UsesFlyingSpeedAttribute)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 验证凋灵注册了 FLYING_SPEED 属性
@@ -584,7 +584,7 @@ TEST_F(WitherEntityTest, FlyingMovementController_UsesFlyingSpeedAttribute)
 
 TEST_F(WitherEntityTest, FlightBehavior_YAxisDamping)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -599,7 +599,7 @@ TEST_F(WitherEntityTest, FlightBehavior_YAxisDamping)
 
 TEST_F(WitherEntityTest, FlightBehavior_NoTarget_NoHorizontalThrust)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -615,7 +615,7 @@ TEST_F(WitherEntityTest, FlightBehavior_NoTarget_NoHorizontalThrust)
 
 TEST_F(WitherEntityTest, FlightBehavior_RotationFromVelocity)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -633,7 +633,7 @@ TEST_F(WitherEntityTest, FlightBehavior_RotationFromVelocity)
 
 TEST_F(WitherEntityTest, IdleHeadAttack_NormalDifficultyEnabled)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // Normal 难度下，空闲侧头攻击逻辑启用
@@ -644,7 +644,7 @@ TEST_F(WitherEntityTest, IdleHeadAttack_NormalDifficultyEnabled)
 
 TEST_F(WitherEntityTest, IdleHeadAttack_SideHeadsTrackRange)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 侧头追踪范围为 20 格（HEAD_TRACK_RANGE = 20.0f）
     // 对应 MC Java: TARGETING_CONDITIONS = TargetingConditions.forCombat().range(20.0)
@@ -656,7 +656,7 @@ TEST_F(WitherEntityTest, IdleHeadAttack_SideHeadsTrackRange)
 
 TEST_F(WitherEntityTest, Attributes_FlyingSpeed)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 凋灵注册了 FLYING_SPEED 属性，值为 0.6
@@ -667,7 +667,7 @@ TEST_F(WitherEntityTest, Attributes_FlyingSpeed)
 
 TEST_F(WitherEntityTest, WitherRandomFlyGoal_ShouldNotExecuteDuringInvulnerability)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 无敌阶段不应执行随机飞行
@@ -680,7 +680,7 @@ TEST_F(WitherEntityTest, WitherRandomFlyGoal_ShouldNotExecuteDuringInvulnerabili
 
 TEST_F(WitherEntityTest, WitherRandomFlyGoal_GoalPriority)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 验证 WitherDoNothingGoal 优先级为 0，WitherRandomFlyGoal 优先级为 5

@@ -34,6 +34,7 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "server/player/ServerPlayer.hpp"
@@ -218,14 +219,14 @@ protected:
 TEST_F(PlayerAsServerPlayerTest, Player_ReturnsNullptr)
 {
     // 普通 Player 应返回 nullptr
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_EQ(player.asServerPlayer(), nullptr);
 }
 
 TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis)
 {
     // ServerPlayer 应返回 this
-    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer");
+    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer", mc::test::testEcsRegistry());
     EXPECT_EQ(serverPlayer.asServerPlayer(), &serverPlayer);
 
     const ServerPlayer& constServerPlayer = serverPlayer;
@@ -235,7 +236,7 @@ TEST_F(PlayerAsServerPlayerTest, ServerPlayer_ReturnsThis)
 TEST_F(PlayerAsServerPlayerTest, ServerPlayerThroughBasePointer_Works)
 {
     // 通过基类指针调用
-    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer");
+    ServerPlayer serverPlayer(EntityInstanceId(1), "TestServerPlayer", mc::test::testEcsRegistry());
     Player* basePtr = &serverPlayer;
 
     EXPECT_EQ(basePtr->asServerPlayer(), &serverPlayer);

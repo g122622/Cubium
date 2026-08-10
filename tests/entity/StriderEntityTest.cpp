@@ -62,7 +62,7 @@ namespace {
 
 class StriderEntityMountedYOffsetTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(1)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     std::unique_ptr<StriderEntity> strider;
 };
@@ -346,7 +346,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        strider = std::make_unique<StriderEntity>(EntityInstanceId(1));
+        strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<StriderEntity> strider;
@@ -413,7 +413,7 @@ TEST_F(StriderEntityBasicTest, EyeHeightDependsOnAge)
 
     // 幼体眼睛高度 = 0.5
     // 参考 MC 1.16.5 StriderEntity.getEyeHeight()
-    StriderEntity childStrider(EntityInstanceId(2));
+    StriderEntity childStrider(EntityInstanceId(2), mc::test::testEcsRegistry());
     childStrider.setChild(true);
     EXPECT_TRUE(childStrider.isChild());
     EXPECT_FLOAT_EQ(childStrider.eyeHeight(), 0.5f);
@@ -466,7 +466,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        strider = std::make_unique<StriderEntity>(EntityInstanceId(1));
+        strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<StriderEntity> strider;
@@ -617,7 +617,7 @@ TEST_F(StriderEntityEquipableTest, CannotEquipToInvalidSlot)
  *
  * 提供最小化测试环境，支持追踪 playSound 调用
  */
-class StriderInteractTestWorld final : public test::BaseTestWorld {
+class StriderInteractTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -730,7 +730,7 @@ protected:
  */
 TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_SetsInLoveAndPlaysEatSound)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
 
@@ -738,7 +738,7 @@ TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_SetsInLoveAndPlaysE
     ASSERT_FALSE(strider.isChild());
     ASSERT_TRUE(strider.canBreed());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 3));
@@ -770,11 +770,11 @@ TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_SetsInLoveAndPlaysE
  */
 TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_CreativeMode_NoItemConsume)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.setGameMode(GameMode::Creative);
@@ -801,7 +801,7 @@ TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_CreativeMode_NoItem
  */
 TEST_F(StriderInteractTestFixture, FeedChildStrider_AcceleratesGrowth)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setChild(true);
@@ -810,7 +810,7 @@ TEST_F(StriderInteractTestFixture, FeedChildStrider_AcceleratesGrowth)
     i32 initialAge = strider.getGrowingAge();
     ASSERT_LT(initialAge, 0);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 2));
@@ -838,7 +838,7 @@ TEST_F(StriderInteractTestFixture, FeedChildStrider_AcceleratesGrowth)
  */
 TEST_F(StriderInteractTestFixture, FeedAdultAlreadyInLove_ReturnsPassOnServer)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
 
@@ -847,7 +847,7 @@ TEST_F(StriderInteractTestFixture, FeedAdultAlreadyInLove_ReturnsPassOnServer)
     ASSERT_TRUE(strider.isInLove());
     ASSERT_FALSE(strider.canBreed());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 3));
@@ -867,7 +867,7 @@ TEST_F(StriderInteractTestFixture, FeedAdultAlreadyInLove_ReturnsPassOnServer)
  */
 TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHand_ReturnsSuccess)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSaddle(true);
@@ -875,7 +875,7 @@ TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHand_ReturnsSuccess)
     ASSERT_TRUE(strider.hasSaddle());
     ASSERT_TRUE(strider.getPassengers().empty());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     // 手持钻石（非食物、非鞍）
@@ -894,12 +894,12 @@ TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHand_ReturnsSuccess)
  */
 TEST_F(StriderInteractTestFixture, RideSaddledStrider_HoldingFood_FeedNotRide)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSaddle(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     // 手持诡异菌（食物）
@@ -919,13 +919,13 @@ TEST_F(StriderInteractTestFixture, RideSaddledStrider_HoldingFood_FeedNotRide)
  */
 TEST_F(StriderInteractTestFixture, RideUnsaddledStrider_ReturnsPass)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     // 未装备鞍
     ASSERT_FALSE(strider.hasSaddle());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
@@ -943,12 +943,12 @@ TEST_F(StriderInteractTestFixture, RideUnsaddledStrider_ReturnsPass)
  */
 TEST_F(StriderInteractTestFixture, RideSaddledStrider_PlayerSneaking_NoRide)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSaddle(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
@@ -966,13 +966,13 @@ TEST_F(StriderInteractTestFixture, RideSaddledStrider_PlayerSneaking_NoRide)
  */
 TEST_F(StriderInteractTestFixture, HoldSaddle_ReturnsPass_DelegatesToSaddleItem)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     // 未装备鞍
     ASSERT_FALSE(strider.hasSaddle());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::SADDLE, 1));
@@ -989,12 +989,12 @@ TEST_F(StriderInteractTestFixture, HoldSaddle_ReturnsPass_DelegatesToSaddleItem)
  */
 TEST_F(StriderInteractTestFixture, HoldSaddleOnAlreadySaddledStrider_TriggerRide)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSaddle(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::SADDLE, 1));
@@ -1013,12 +1013,12 @@ TEST_F(StriderInteractTestFixture, HoldSaddleOnAlreadySaddledStrider_TriggerRide
  */
 TEST_F(StriderInteractTestFixture, HoldNonFoodNonSaddleUnsaddled_ReturnsPass)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     ASSERT_FALSE(strider.hasSaddle());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
@@ -1034,12 +1034,12 @@ TEST_F(StriderInteractTestFixture, HoldNonFoodNonSaddleUnsaddled_ReturnsPass)
  */
 TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHandNoItem)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSaddle(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     // 空手（主手没有物品）
@@ -1056,12 +1056,12 @@ TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHandNoItem)
  */
 TEST_F(StriderInteractTestFixture, FeedSilentStrider_NoSoundPlayed)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
     strider.setSilent(true); // 设置为静默
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 1));
@@ -1082,11 +1082,11 @@ TEST_F(StriderInteractTestFixture, FeedSilentStrider_NoSoundPlayed)
  */
 TEST_F(StriderInteractTestFixture, WarpedFungusOnAStick_NotFoodForBreeding)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS_ON_A_STICK, 1));
@@ -1105,11 +1105,11 @@ TEST_F(StriderInteractTestFixture, WarpedFungusOnAStick_NotFoodForBreeding)
  */
 TEST_F(StriderInteractTestFixture, FeedWithOffHand)
 {
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
     strider.setWorld(&m_world);
     strider.setTypeId("minecraft:strider");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPlayerId(PlayerId(42));
     // 副手持食物

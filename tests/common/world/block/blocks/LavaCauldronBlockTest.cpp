@@ -43,7 +43,7 @@ using namespace mc::blocks;
 // 测试用世界桩 - 用于需要 IWorld 引用的测试
 // ============================================================================
 
-class LavaCauldronTestWorld : public test::BaseTestWorld {
+class LavaCauldronTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
 };

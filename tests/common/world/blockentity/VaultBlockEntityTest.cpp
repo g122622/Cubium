@@ -42,7 +42,7 @@ using namespace mc;
 // VaultTestWorld - 测试用 Mock 世界
 // ============================================================================
 
-class VaultTestWorld final : public test::BaseTestWorld {
+class VaultTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -405,7 +405,7 @@ TEST_F(VaultStateMachineTest, Tick_InactiveToActiveWhenPlayerInRange)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -428,7 +428,7 @@ TEST_F(VaultStateMachineTest, Tick_InactiveSkipsDetectionWithinInterval)
 {
     world_.setCurrentTick(5); // 远小于 STATE_UPDATE_INTERVAL(20)
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -453,7 +453,7 @@ TEST_F(VaultStateMachineTest, Tick_ActiveStaysActiveWhenPlayerPresent)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -479,7 +479,7 @@ TEST_F(VaultStateMachineTest, Tick_IgnoresSpectatorPlayer)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     player.setGameMode(GameMode::Spectator);
     world_.setEntitiesInRangeResult({&player});
@@ -491,7 +491,7 @@ TEST_F(VaultStateMachineTest, Tick_IgnoresSpectatorPlayer)
 // 完整的状态循环: Inactive -> Active -> Inactive
 TEST_F(VaultStateMachineTest, Tick_FullCycleInactiveActiveInactive)
 {
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
 
     // Tick 100: 玩家进入 -> Inactive -> Active
@@ -516,7 +516,7 @@ TEST_F(VaultStateMachineTest, Tick_FullCycleInactiveActiveInactive)
 // tryInsertKey: Inactive 状态下拒绝插入钥匙
 TEST_F(VaultStateMachineTest, TryInsertKey_RejectsWhenInactive)
 {
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     player.setWorld(&world_);
 

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
@@ -101,7 +102,7 @@ private:
 class MockEntityWithTeamForSweep : public Entity {
 public:
     MockEntityWithTeamForSweep()
-        : Entity(EntityInstanceId(1))
+        : Entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }
@@ -136,7 +137,7 @@ protected:
 TEST_F(SweepAttackFilterTest, ArmorStand_MarkerMode_ShouldBeExcluded)
 {
     // 创建标记模式的盔甲架
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     armorStand.setMarker(true);
 
     // 标记模式盔甲架应该被排除
@@ -147,7 +148,7 @@ TEST_F(SweepAttackFilterTest, ArmorStand_MarkerMode_ShouldBeExcluded)
 TEST_F(SweepAttackFilterTest, ArmorStand_NonMarkerMode_ShouldBeIncluded)
 {
     // 创建非标记模式的盔甲架
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     armorStand.setMarker(false);
 
     // 非标记模式盔甲架不应该被排除
@@ -158,14 +159,14 @@ TEST_F(SweepAttackFilterTest, ArmorStand_NonMarkerMode_ShouldBeIncluded)
 TEST_F(SweepAttackFilterTest, ArmorStand_DefaultNotMarker)
 {
     // 默认创建的盔甲架不是标记模式
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     EXPECT_FALSE(armorStand.isMarker());
 }
 
 TEST_F(SweepAttackFilterTest, ArmorStand_MarkerHasZeroBoundingBox)
 {
     // 标记模式的盔甲架碰撞箱大小为 0
-    ArmorStandEntity markerStand;
+    ArmorStandEntity markerStand{mc::test::testEcsRegistry()};
     markerStand.setMarker(true);
 
     EXPECT_FLOAT_EQ(markerStand.width(), 0.0f);
@@ -175,7 +176,7 @@ TEST_F(SweepAttackFilterTest, ArmorStand_MarkerHasZeroBoundingBox)
 TEST_F(SweepAttackFilterTest, ArmorStand_NonMarkerHasNormalBoundingBox)
 {
     // 非标记模式的盔甲架有正常碰撞箱
-    ArmorStandEntity normalStand;
+    ArmorStandEntity normalStand{mc::test::testEcsRegistry()};
     normalStand.setMarker(false);
 
     // MC 1.16.5: 非标记模式盔甲架宽度 0.5，高度约 1.975

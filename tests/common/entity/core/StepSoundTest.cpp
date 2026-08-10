@@ -42,7 +42,7 @@ namespace {
 // 测试用声音捕获世界
 // ============================================================================
 
-class StepSoundTestWorld final : public test::BaseTestWorld {
+class StepSoundTestWorld final : public mc::test::BaseTestWorld {
 public:
     struct SoundRecord {
         ResourceLocation soundEventId;
@@ -104,7 +104,7 @@ private:
 class TestStepSoundEntity : public Entity {
 public:
     TestStepSoundEntity(IWorld* world = nullptr)
-        : Entity(EntityInstanceId(1), world)
+        : Entity(EntityInstanceId(1), world, mc::test::testEcsRegistry())
     {}
 
     // 暴露 playStepSound 等受保护方法

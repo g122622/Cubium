@@ -106,12 +106,12 @@ public:
 // ============================================================================
 class TestEntity final : public Entity {
 public:
-    explicit TestEntity(IWorld& world)
-        : Entity(EntityInstanceId(1), &world)
+    explicit TestEntity(IWorld& world, ecs::EntityRegistry& registry)
+        : Entity(EntityInstanceId(1), &world, registry)
     {}
 
     // 测试辅助：设置位置
-    void setTestPosition(const Vector3& pos) { m_position = pos; }
+    void setTestPosition(const Vector3& pos) { setPosition(pos); }
 
     // 测试辅助：设置是否在地面（公开父类protected方法）
     using Entity::setOnGround;
@@ -561,7 +561,7 @@ TEST_F(BigDripleafRedstoneTest, OnEntityCollision_RedstoneSignalPreventsTilt)
     world_.setBlockState(powerPos, &powerBlock_->defaultState());
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(true);
     entity.setTestPosition(Vector3(0.5f, 65.6876f, 0.5f)); // 在方块上方0.6875以上
 
@@ -578,7 +578,7 @@ TEST_F(BigDripleafRedstoneTest, OnEntityCollision_NoRedstoneSignal_TriggersTilt)
     setupDripleafAt(pos);
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(true);
     entity.setTestPosition(Vector3(0.5f, 65.6876f, 0.5f));
 
@@ -626,7 +626,7 @@ TEST_F(BigDripleafCanEntityTiltTest, OnGroundAboveThreshold_TriggersTilt)
     setupDripleafAt(pos);
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(true);
     entity.setTestPosition(Vector3(0.5f, 65.6876f, 0.5f)); // 刚好超过0.6875
 
@@ -642,7 +642,7 @@ TEST_F(BigDripleafCanEntityTiltTest, NotOnGround_DoesNotTriggerTilt)
     setupDripleafAt(pos);
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(false); // 不在地面
     entity.setTestPosition(Vector3(0.5f, 65.6876f, 0.5f));
 
@@ -658,7 +658,7 @@ TEST_F(BigDripleafCanEntityTiltTest, OnGroundBelowThreshold_DoesNotTriggerTilt)
     setupDripleafAt(pos);
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(true);
     entity.setTestPosition(Vector3(0.5f, 65.5f, 0.5f)); // Y = 65.5 < 65.6875
 
@@ -679,7 +679,7 @@ TEST_F(BigDripleafCanEntityTiltTest, AlreadyUnstable_DoesNotRetriggerTilt)
     world_.setBlockStateCopy(pos, unstableState);
 
     const BlockState& state = getTiltState(pos);
-    TestEntity entity(world_);
+    TestEntity entity(world_, mc::test::testEcsRegistry());
     entity.setOnGround(true);
     entity.setTestPosition(Vector3(0.5f, 65.6876f, 0.5f));
 
@@ -806,7 +806,7 @@ TEST_F(BigDripleafProjectileTest, OnProjectileHit_SetsTiltToFull)
     Vector3 hitPos(0.5f, 65.5f, 0.5f);
     Direction hitFace = Direction::Up;
     BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, hitFace, 1.0f);
-    TestEntity projectile(world_);
+    TestEntity projectile(world_, mc::test::testEcsRegistry());
 
     block_->onProjectileHit(world_, state, hitResult, projectile);
 
@@ -822,7 +822,7 @@ TEST_F(BigDripleafProjectileTest, OnProjectileHit_PlaysTiltDownSound)
     const BlockState& state = getTiltState(pos);
     Vector3 hitPos(0.5f, 65.5f, 0.5f);
     BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, Direction::Up, 1.0f);
-    TestEntity projectile(world_);
+    TestEntity projectile(world_, mc::test::testEcsRegistry());
 
     world_.clearTrackedCalls();
     block_->onProjectileHit(world_, state, hitResult, projectile);
@@ -840,7 +840,7 @@ TEST_F(BigDripleafProjectileTest, OnProjectileHit_TriggersBlockChangeEvent)
     const BlockState& state = getTiltState(pos);
     Vector3 hitPos(0.5f, 65.5f, 0.5f);
     BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, Direction::Up, 1.0f);
-    TestEntity projectile(world_);
+    TestEntity projectile(world_, mc::test::testEcsRegistry());
 
     world_.clearTrackedCalls();
     block_->onProjectileHit(world_, state, hitResult, projectile);
@@ -864,7 +864,7 @@ TEST_F(BigDripleafProjectileTest, OnProjectileHit_WithRedstoneSignal_StillSetsFu
     const BlockState& state = getTiltState(pos);
     Vector3 hitPos(0.5f, 65.5f, 0.5f);
     BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, Direction::Up, 1.0f);
-    TestEntity projectile(world_);
+    TestEntity projectile(world_, mc::test::testEcsRegistry());
 
     block_->onProjectileHit(world_, state, hitResult, projectile);
 

@@ -61,7 +61,7 @@ namespace {
  * - isClientSide() / asServerWorld() 用于区分客户端/服务端
  * - openContainer() 用于测试容器打开
  */
-class StonecutterTestWorld : public test::BaseTestWorld {
+class StonecutterTestWorld : public mc::test::BaseTestWorld {
 public:
     explicit StonecutterTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -201,7 +201,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSucce
     world.setBlockStateAt(pos_, &stonecutter_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = stonecutter_->defaultState();
@@ -224,7 +224,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_ServerSide_OpensContain
     world.setBlockStateAt(pos_, &stonecutter_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = stonecutter_->defaultState();
@@ -250,7 +250,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     world.setBlockStateAt(pos_, &stonecutter_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 使用副手执行交互
     const auto& state = stonecutter_->defaultState();
@@ -286,7 +286,7 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OpenContainerFails_Retu
     world.setBlockStateAt(pos_, &stonecutter_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = stonecutter_->defaultState();

@@ -61,7 +61,7 @@ namespace {
 /**
  * @brief 测试用模拟世界
  */
-class FoodTestWorld final : public test::BaseTestWorld {
+class FoodTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -141,7 +141,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_GetsFoodEffect_Spider
 
     TestFoodItem testFoodItem(&spiderEyeFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -172,7 +172,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_MultipleEffects)
 
     TestFoodItem testFoodItem(&pufferfishFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -210,7 +210,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_NoEffectFoodNoEffect)
 
     TestFoodItem testFoodItem(&appleFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -233,7 +233,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_NonPlayerLivingEntity_ProbabilisticEffect)
     constexpr int maxAttempts = 30;
 
     for (int i = 0; i < maxAttempts; ++i) {
-        MobEntity mob(static_cast<EntityInstanceId>(100 + i));
+        MobEntity mob(static_cast<EntityInstanceId>(100 + i), mc::test::testEcsRegistry());
         mob.setWorld(&m_world);
         mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -266,7 +266,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_MushroomStew_ReturnsBowl)
         GTEST_SKIP() << "MUSHROOM_STEW or BOWL item not registered";
     }
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -291,7 +291,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_FoodItemWithNoContainer_ShrinksAndReturnsEm
     item::food::Food appleFood(4, 0.3f); // 无效果、无容器物品
     TestFoodItem testFoodItem(&appleFood, ItemProperties().maxStackSize(64));
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -315,7 +315,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_PlayerGetsHungerAndEffects_NonPlayerGetsOnl
     TestFoodItem testFoodItem(&spiderEyeFood, ItemProperties().maxStackSize(64));
 
     // 玩家食用
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -332,7 +332,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_PlayerGetsHungerAndEffects_NonPlayerGetsOnl
     EXPECT_TRUE(player.hasEffect(entity::effect::EffectType::Poison));
 
     // 非玩家实体食用
-    MobEntity mob(EntityInstanceId(2));
+    MobEntity mob(EntityInstanceId(2), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -355,7 +355,7 @@ TEST_F(FoodItemTest, OnItemUseFinish_ContainerItem_NonPlayer_ReturnsBowl)
     item::food::Food stewFood(6, 0.6f); // 蘑菇煲食物属性
     TestFoodItem testStewItem(&stewFood, ItemProperties().maxStackSize(1).containerItem(Items::BOWL));
 
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     mob.setPosition(0.0f, 64.0f, 0.0f);
 

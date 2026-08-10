@@ -40,7 +40,7 @@ namespace test {
 /**
  * @brief 支持实体查询的测试用世界
  */
-class UnseenMemoryTestWorld : public test::BaseTestWorld {
+class UnseenMemoryTestWorld : public mc::test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
 
@@ -59,7 +59,7 @@ private:
 class TestPigEntity : public PigEntity {
 public:
     explicit TestPigEntity(EntityInstanceId id)
-        : PigEntity(id)
+        : PigEntity(id, mc::test::testEcsRegistry())
     {}
 
     using PigEntity::tick;

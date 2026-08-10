@@ -302,7 +302,7 @@ class LootContextBuilderValidationTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 
-    class TestWorld : public test::BaseTestWorld {
+    class TestWorld : public mc::test::BaseTestWorld {
     public:
         [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
         {

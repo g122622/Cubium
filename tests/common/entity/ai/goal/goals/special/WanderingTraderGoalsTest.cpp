@@ -43,7 +43,7 @@ namespace {
 // Test World for WanderingTrader Goals
 // ============================================================================
 
-class TestWanderingTraderWorld : public test::BaseTestWorld {
+class TestWanderingTraderWorld : public mc::test::BaseTestWorld {
 public:
     TestWanderingTraderWorld()
         : m_dayTime(0)
@@ -70,7 +70,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -143,7 +143,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -227,7 +227,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -345,7 +345,7 @@ protected:
         Items::initialize();
 
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -546,7 +546,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestWanderingTraderWorld>();
-        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1));
+        m_trader = std::make_unique<WanderingTraderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_trader->setWorld(m_world.get());
         m_trader->setPosition(0.0f, 64.0f, 0.0f);
     }

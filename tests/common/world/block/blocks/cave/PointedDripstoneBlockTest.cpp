@@ -370,8 +370,8 @@ TEST_F(PointedDripstoneBlockTest, TipMerge_NotTipForStalagmiteDamage)
 // 测试用 LivingEntity，追踪 hurt 调用以验证摔落伤害类型和数值
 class DamageTrackingEntity final : public LivingEntity {
 public:
-    explicit DamageTrackingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityInstanceId(1), world)
+    explicit DamageTrackingEntity(IWorld* world, ecs::EntityRegistry& registry)
+        : LivingEntity(EntityInstanceId(1), world, registry)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
         , m_lastDamageType(static_cast<DamageType>(255))
@@ -455,7 +455,7 @@ TEST_F(PointedDripstoneFallDamageTest, StalagmiteTip_AppliesEnhancedDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     // 从5格高摔落到石笋上
@@ -482,7 +482,7 @@ TEST_F(PointedDripstoneFallDamageTest, StalactiteTip_AppliesNormalDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     entity.setHealth(20.0f);
     BlockPos pos(0, 64, 0);
 
@@ -507,7 +507,7 @@ TEST_F(PointedDripstoneFallDamageTest, NonTip_AppliesNormalDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Base);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     entity.setHealth(20.0f);
     BlockPos pos(0, 64, 0);
 
@@ -528,7 +528,7 @@ TEST_F(PointedDripstoneFallDamageTest, TipMerge_AppliesNormalDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     entity.setHealth(20.0f);
     BlockPos pos(0, 64, 0);
 
@@ -551,7 +551,7 @@ TEST_F(PointedDripstoneFallDamageTest, Stalagmite_ShortFall_NoDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     entity.setHealth(20.0f);
     BlockPos pos(0, 64, 0);
 
@@ -570,7 +570,7 @@ TEST_F(PointedDripstoneFallDamageTest, Stalagmite_HighFall_MoreDamageThanNormal)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
 
-    DamageTrackingEntity entity(&world_);
+    DamageTrackingEntity entity(&world_, mc::test::testEcsRegistry());
     entity.setHealth(20.0f);
     BlockPos pos(0, 64, 0);
 

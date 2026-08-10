@@ -51,7 +51,7 @@ namespace {
 class TestBoatEntity : public entity::BoatEntity {
 public:
     explicit TestBoatEntity(entity::BoatEntity::Type type = entity::BoatEntity::Type::OAK)
-        : entity::BoatEntity(type)
+        : entity::BoatEntity(type, mc::test::testEcsRegistry())
     {}
 
     using BoatEntity::handleInput;
@@ -65,7 +65,7 @@ public:
  *
  * 继承 BaseTestWorld 并覆写 getEntity/spawnEntity 以支持乘客系统测试。
  */
-class BoatFrictionTestWorld final : public test::BaseTestWorld {
+class BoatFrictionTestWorld final : public mc::test::BaseTestWorld {
 public:
     BoatFrictionTestWorld() = default;
 
@@ -153,7 +153,7 @@ TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOr
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
     // 创建 Player 乘客
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     // 设置类型ID以使 entityType() 返回正确的 PLAYER 类型指针
     player->setTypeId(entity::EntityTypeKeys::PLAYER);
@@ -204,7 +204,7 @@ TEST_F(BoatLandFrictionTest, NonPlayerPassenger_FrictionNotHalved)
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
     // 创建 Zombie 乘客（非 Player）
-    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(2));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie->setWorld(m_world.get());
     // 设置类型ID以使 entityType() 返回正确的 ZOMBIE 类型指针（非 PLAYER）
     zombie->setTypeId(entity::EntityTypeKeys::ZOMBIE);
@@ -320,7 +320,7 @@ TEST_F(BoatLandFrictionTest, GetControllingPassenger_ReturnsFirstPassenger)
     boat->setId(EntityInstanceId(1));
     boat->setWorld(m_world.get());
 
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setTypeId(entity::EntityTypeKeys::PLAYER);
 
@@ -354,7 +354,7 @@ TEST_F(BoatLandFrictionTest, InWater_FrictionUnaffectedByPlayerPassenger)
     boat->setStatus(entity::BoatStatus::InWater);
     boat->setVelocity(Vector3(1.0f, 0.0f, 1.0f));
 
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setTypeId(entity::EntityTypeKeys::PLAYER);
 

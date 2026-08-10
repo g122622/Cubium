@@ -55,7 +55,7 @@ namespace {
  *
  * 提供僵尸转化测试所需的最小 IWorld 接口实现
  */
-class ZombieTestWorld final : public test::BaseTestWorld {
+class ZombieTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -125,7 +125,7 @@ protected:
         m_world = std::make_unique<ZombieTestWorld>();
 
         // 创建僵尸
-        m_zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
+        m_zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_zombie->setWorld(m_world.get());
         m_zombie->setPosition(0.0, 64.0, 0.0);
     }
@@ -358,7 +358,7 @@ TEST_F(ZombieEntityTest, ConvertToDrownedResetsConversionState)
 TEST_F(ZombieEntityTest, ConvertToDrownedWithoutWorld)
 {
     // 创建没有世界的僵尸
-    auto zombieNoWorld = std::make_unique<ZombieEntity>(EntityInstanceId(2));
+    auto zombieNoWorld = std::make_unique<ZombieEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     // 不应该崩溃
     zombieNoWorld->convertToDrowned();
@@ -594,14 +594,14 @@ TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
 TEST_F(ZombieEntityTest, DrownedShouldNotDrown)
 {
     // 溺尸不应该触发溺水转化（已经是溺尸状态）
-    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(100));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(100), mc::test::testEcsRegistry());
     EXPECT_FALSE(drowned->shouldDrown());
 }
 
 TEST_F(ZombieEntityTest, DrownedCanSpawnInLiquids)
 {
     // 溺尸可以在液体中生成（增援生成时允许在水中）
-    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(101));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(101), mc::test::testEcsRegistry());
     EXPECT_TRUE(drowned->canSpawnInLiquids());
 }
 

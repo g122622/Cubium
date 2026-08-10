@@ -82,7 +82,7 @@ namespace {
  * - setBlockState 调用追踪（用于验证作物生长）
  * - GameRules 支持
  */
-class BeeGoalTestWorld final : public test::BaseTestWorld {
+class BeeGoalTestWorld final : public mc::test::BaseTestWorld {
 public:
     BeeGoalTestWorld() = default;
 
@@ -193,7 +193,7 @@ protected:
         VanillaBlocks::initialize();
     }
 
-    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(0)); }
+    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
 
     void TearDown() override { bee.reset(); }
 
@@ -455,7 +455,7 @@ class BeePassiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         // Create a concrete implementation for testing
         goal = std::make_unique<BeePassiveGoalConcrete>(bee.get());
     }
@@ -543,7 +543,7 @@ class BeeStingGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeStingGoal>(bee.get());
     }
 
@@ -582,7 +582,7 @@ class BeeEnterHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeEnterHiveGoal>(bee.get());
     }
 
@@ -621,7 +621,7 @@ class BeePollinateGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeePollinateGoal>(bee.get());
     }
 
@@ -673,7 +673,7 @@ class BeeUpdateHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeUpdateHiveGoal>(bee.get());
     }
 
@@ -712,7 +712,7 @@ class BeeFindHiveGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeFindHiveGoal>(bee.get());
     }
 
@@ -752,7 +752,7 @@ class BeeFindFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeFindFlowerGoal>(bee.get());
     }
 
@@ -785,7 +785,7 @@ class BeeFindPollinationTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeFindPollinationTargetGoal>(bee.get());
     }
 
@@ -818,7 +818,7 @@ class BeeWanderGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeWanderGoal>(bee.get());
     }
 
@@ -843,7 +843,7 @@ class BeeAngerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeAngerGoal>(bee.get());
     }
 
@@ -875,7 +875,7 @@ class BeeAttackPlayerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeAttackPlayerGoal>(bee.get(), 10);
     }
 
@@ -914,7 +914,7 @@ class BeeResetAngerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(0));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BeeResetAngerGoal>(bee.get());
     }
 
@@ -1011,7 +1011,7 @@ protected:
 
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world);
         // 蜜蜂默认位于 (0, 64, 0)，站在 y=63 的方块上
         bee->setPosition(0.5, 64.0, 0.5);
@@ -1514,7 +1514,7 @@ class BeeEnterHiveGoalTest2 : public ::testing::Test {
 protected:
     static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 
-    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(1)); }
+    void SetUp() override { bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { bee.reset(); }
 
@@ -1555,7 +1555,7 @@ protected:
 
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world);
     }
 
@@ -1734,7 +1734,7 @@ protected:
 
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world);
         // 设置蜜蜂在有花粉、非愤怒状态
         bee->setHasNectar(true);
@@ -2068,7 +2068,7 @@ namespace {
  *
  * 用于验证 BeeEntity::tick() 中冷却递减仅服务端执行的行为。
  */
-class ClientSideTestWorld final : public test::BaseTestWorld {
+class ClientSideTestWorld final : public mc::test::BaseTestWorld {
 public:
     explicit ClientSideTestWorld(bool clientSide)
         : m_clientSide(clientSide)
@@ -2088,8 +2088,8 @@ class BeeEntityCooldownTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        serverBee = std::make_unique<BeeEntity>(EntityInstanceId(1));
-        clientBee = std::make_unique<BeeEntity>(EntityInstanceId(2));
+        serverBee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+        clientBee = std::make_unique<BeeEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         serverWorld = std::make_unique<ClientSideTestWorld>(false);
         clientWorld = std::make_unique<ClientSideTestWorld>(true);
 
@@ -2224,7 +2224,7 @@ protected:
 
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world);
         goal = std::make_unique<TestablePollinateGoal>(bee.get());
     }
@@ -2392,7 +2392,7 @@ protected:
 
     void SetUp() override
     {
-        bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world);
         bee->setPosition(0.5, 64.0, 0.5);
         goal = std::make_unique<TestableWanderGoal>(bee.get());
@@ -2436,7 +2436,7 @@ TEST_F(BeeWanderIsValidLocationTest, NonSolidBlockLocationReturnsTrue)
 TEST_F(BeeWanderIsValidLocationTest, NullWorldReturnsFalse)
 {
     // 没有世界时返回 false
-    auto beeNoWorld = std::make_unique<BeeEntity>(EntityInstanceId(2));
+    auto beeNoWorld = std::make_unique<BeeEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     TestableWanderGoal goalNoWorld(beeNoWorld.get());
 
     EXPECT_FALSE(goalNoWorld.testIsValidLocation(math::Vector3f(10.0f, 70.0f, 10.0f)));

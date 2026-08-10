@@ -24,6 +24,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -53,15 +54,22 @@ using entity::PickupStatus;
 class TestableTridentEntity : public entity::TridentEntity {
 public:
     explicit TestableTridentEntity(EntityInstanceId id)
-        : TridentEntity(id)
+        : TridentEntity(id, mc::test::testEcsRegistry())
     {}
 
     using TridentEntity::_shouldReturnToThrower;
     using TridentEntity::_tickReturning;
     using TridentEntity::tickInGroundTrident;
 
-    void setDealtDamage(bool dealt) { m_dealtDamage = dealt; }
-    void setTimeInGround(i32 time) { m_timeInGround = time; }
+    // 批次6 子目标2：m_dealtDamage/m_timeInGround 已迁入 ecs::ProjectileArrowStateComponent。
+    // dealtDamage 走基类 public setter；timeInGround 通过组件直接写（无 public setter）。
+    void setDealtDamage(bool dealt) { AbstractArrowEntity::setDealtDamage(dealt); }
+    void setTimeInGround(i32 time)
+    {
+        if (auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>()) {
+            c->m_timeInGround = time;
+        }
+    }
 };
 
 // ============================================================================
@@ -74,7 +82,7 @@ public:
  * 提供 TridentEntity 测试所需的最小 IWorld 实现，
  * 支持实体存储、查询和物品生成追踪。
  */
-class TridentLoyaltyTestWorld : public test::BaseTestWorld {
+class TridentLoyaltyTestWorld : public mc::test::BaseTestWorld {
 public:
     TridentLoyaltyTestWorld()
         : m_random(12345)
@@ -197,7 +205,7 @@ protected:
     /// 创建一个玩家实体
     Player& createPlayer(EntityInstanceId id = EntityInstanceId(100), const std::string& name = "TestPlayer")
     {
-        auto& player = m_world->addEntity<Player>(id, name);
+        auto& player = m_world->addEntity<Player>(id, name, mc::test::testEcsRegistry());
         player.setPosition(10.0, 64.0, 0.0);
         return player;
     }

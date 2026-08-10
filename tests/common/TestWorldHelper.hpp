@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -39,6 +40,29 @@
 
 namespace mc {
 namespace test {
+
+/**
+ * @brief 测试共享 ECS 实体注册表
+ *
+ * ECS 重构后所有 Entity 派生类构造函数末尾新增 ecs::EntityRegistry& 参数（构造时
+ * 在此 registry 内 create 出 entt 实体并 attach 基础组件）。tests/ 下大量测试需
+ * 构造实体而无真实 ServerWorld，统一经此共享 registry 获取引用。
+ *
+ * 与生产代码 IntegratedServer::_getMenuPlayer / ContainerManager /
+ * BlockInteractionManager 的"静态局部 registry"先例一致。
+ *
+ * 注意：Entity 析构为 = default，不回 registry.destroy()，故此 registry 会随测试
+ * 进程累积 entt 实体；但测试为 per-case 进程隔离（见 crosstest-isolation-model），
+ * 单进程内累积量受控，且测试仅消费 OOP 层方法不依赖 ECS 查询语义，可接受。
+ *
+ * 需要与某个 IWorld 的 registry 保持一致的场景（实体经 addEntity 进入真实世界），
+ * 应改用 m_world.entityRegistry() 取该世界自身的 registry，而非本函数。
+ */
+inline ecs::EntityRegistry& testEcsRegistry()
+{
+    static ecs::EntityRegistry s_testRegistry{"test"};
+    return s_testRegistry;
+}
 
 /**
  * @brief 测试用的空 TickManager 实现
@@ -123,6 +147,12 @@ public:
 
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    // 提供 ECS 实体注册表，供测试构造 Entity 派生类（构造函数透传 registry）。
+    // 统一返回 testEcsRegistry() 全局静态实例，保证测试内所有实体构造在同一 registry，
+    // 避免出现"m_world 的 registry 与 fixture 的 registry 不一致"的歧义。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &testEcsRegistry(); }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &testEcsRegistry(); }
 
 protected:
     BaseTestWorld() = default;

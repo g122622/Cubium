@@ -47,7 +47,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class FishBucketTestWorld final : public test::BaseTestWorld {
+class FishBucketTestWorld final : public mc::test::BaseTestWorld {
 public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return true; }
 
@@ -157,7 +157,7 @@ TEST_F(FishBucketItemTest, TropicalFishBucketItemLocation)
 TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn)
 {
     // 创建鳕鱼并验证 FromBucket 标签影响消失行为
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     cod.setWorld(m_world.get());
 
     // 默认情况下不是从桶放出的
@@ -174,7 +174,7 @@ TEST_F(FishBucketItemTest, FishFromBucketPreventsDespawn)
 
 TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认情况下，鱼可以消失（没有自定义名称）
     EXPECT_TRUE(cod.canDespawn(128.0));
@@ -192,10 +192,10 @@ TEST_F(FishBucketItemTest, FromBucketFishCannotDespawn)
 
 TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket)
 {
-    CodEntity cod(EntityInstanceId(1));
-    SalmonEntity salmon(EntityInstanceId(2));
-    PufferfishEntity pufferfish(EntityInstanceId(3));
-    TropicalFishEntity tropicalFish(EntityInstanceId(4));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
+    SalmonEntity salmon(EntityInstanceId(2), mc::test::testEcsRegistry());
+    PufferfishEntity pufferfish(EntityInstanceId(3), mc::test::testEcsRegistry());
+    TropicalFishEntity tropicalFish(EntityInstanceId(4), mc::test::testEcsRegistry());
 
     // 所有鱼类默认不是从桶放出的
     EXPECT_FALSE(cod.isFromBucket());
@@ -217,7 +217,7 @@ TEST_F(FishBucketItemTest, AllFishTypesSupportFromBucket)
 
 TEST_F(FishBucketItemTest, FromBucketAndRidingBothPreventDespawn)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     cod.setWorld(m_world.get());
 
     // 默认情况下不在骑乘状态，FromBucket 也是 false

@@ -52,7 +52,7 @@ using namespace mc::world::biome;
  *
  * 继承 BaseTestWorld，提供可控的方块状态存储、天气控制和随机数控制。
  */
-class CauldronTestWorld : public test::BaseTestWorld {
+class CauldronTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {

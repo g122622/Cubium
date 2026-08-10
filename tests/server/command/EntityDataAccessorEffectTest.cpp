@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -50,7 +51,7 @@ protected:
 
     void SetUp() override
     {
-        m_entity = std::make_unique<LivingEntity>(EntityInstanceId(1));
+        m_entity = std::make_unique<LivingEntity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_entity->registerData();
         m_entity->registerAttributes();
         // 注册效果测试需要的属性
@@ -199,7 +200,7 @@ TEST_F(EntityDataAccessorEffectTest, GetData_MultipleEffects_AllSerialized)
 TEST_F(EntityDataAccessorEffectTest, GetData_NonLivingEntity_NoEffects)
 {
     // 非 LivingEntity（普通 Entity）不应有序列化的效果
-    Entity entity(EntityInstanceId(2));
+    Entity entity(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     entity.registerData();
 
     EntityDataAccessor accessor(&entity);
@@ -448,7 +449,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_ReplaceEffectWithWeaker_Attribute
 TEST_F(EntityDataAccessorEffectTest, MergeData_PlayerEntity_ThrowsException)
 {
     // 玩家实体不允许修改 NBT 数据
-    Player player(EntityInstanceId(10), "TestPlayer");
+    Player player(EntityInstanceId(10), "TestPlayer", mc::test::testEcsRegistry());
     player.registerData();
     player.registerAttributes();
 
@@ -476,7 +477,7 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_SerializeDeserialize_PreservesEff
     ASSERT_NE(data, nullptr);
 
     // 创建新实体并反序列化
-    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2));
+    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     entity2->registerData();
     entity2->registerAttributes();
     entity2->attributes().registerAttribute(*Attributes::attackDamage());
@@ -521,7 +522,7 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_EmptyEffects_RoundTrip)
     EXPECT_EQ(it, data->value.end());
 
     // 在另一个有效果的实体上反序列化（不应改变效果）
-    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2));
+    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     entity2->registerData();
     entity2->registerAttributes();
     entity2->setHealth(entity2->maxHealth());
@@ -568,7 +569,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersInNbt)
     ASSERT_EQ(attrsIt->second->id(), nbt::TagId::List);
 
     // 创建新实体并反序列化
-    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2));
+    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     entity2->registerData();
     entity2->registerAttributes();
     entity2->attributes().registerAttribute(*Attributes::attackDamage());
@@ -608,7 +609,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
     ASSERT_NE(data, nullptr);
 
     // 创建新实体，先手动添加一个不同的修改器（模拟已有修改器）
-    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2));
+    auto entity2 = std::make_unique<LivingEntity>(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     entity2->registerData();
     entity2->registerAttributes();
     entity2->attributes().registerAttribute(*Attributes::attackDamage());

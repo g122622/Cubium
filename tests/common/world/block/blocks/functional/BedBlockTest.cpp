@@ -31,6 +31,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
@@ -566,7 +567,7 @@ protected:
 TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadWhenFootBroken)
 {
     // 创造模式：破坏脚部时，头部应被设为空气
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     ASSERT_TRUE(player.isCreative());
 
@@ -592,7 +593,7 @@ TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadWhenFootBroken)
 TEST_F(BedBlockDestroyTest, SurvivalModeDoesNotDestroyHeadWhenFootBroken)
 {
     // 生存模式：破坏脚部时，头部不应被移除
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     ASSERT_FALSE(player.isCreative());
 
@@ -617,7 +618,7 @@ TEST_F(BedBlockDestroyTest, SurvivalModeDoesNotDestroyHeadWhenFootBroken)
 TEST_F(BedBlockDestroyTest, DestroyingHeadDoesNotAffectFoot)
 {
     // 破坏头部不应影响脚部（即使创造模式）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     const BlockState& footState = bed_->defaultState()
@@ -642,7 +643,7 @@ TEST_F(BedBlockDestroyTest, DestroyingHeadDoesNotAffectFoot)
 TEST_F(BedBlockDestroyTest, CreativeModeDoesNotRemoveHeadIfNoHeadPresent)
 {
     // 创造模式破坏脚部但头部位置没有床头方块 → 不应崩溃
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     const BlockState& footState = bed_->defaultState()
@@ -658,7 +659,7 @@ TEST_F(BedBlockDestroyTest, CreativeModeDoesNotRemoveHeadIfNoHeadPresent)
 TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadAllDirections)
 {
     // 验证四个方向的创造模式破坏均正确移除头部
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     struct TestCase {
@@ -697,7 +698,7 @@ TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadAllDirections)
 TEST_F(BedBlockDestroyTest, AdventureModeDoesNotDestroyHead)
 {
     // 冒险模式也不应自动移除头部
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Adventure);
     ASSERT_FALSE(player.isCreative());
 

@@ -36,7 +36,7 @@
 namespace mc {
 namespace {
 
-class PlayerPoseCollisionWorld : public test::BaseTestWorld {
+class PlayerPoseCollisionWorld : public mc::test::BaseTestWorld {
 public:
     void setLowCeiling(bool enabled) { m_lowCeiling = enabled; }
 
@@ -76,7 +76,7 @@ protected:
 
 TEST_F(PlayerPoseCollisionTest, SetSneakingFalseStandsUpInClearSpace)
 {
-    Player player(1, "Steve");
+    Player player(1, "Steve", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPosition(0.0f, 0.0f, 0.0f);
 
@@ -94,7 +94,7 @@ TEST_F(PlayerPoseCollisionTest, SetSneakingFalseKeepsCrouchWhenCeilingBlocksStan
 {
     m_world.setLowCeiling(true);
 
-    Player player(2, "Alex");
+    Player player(2, "Alex", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPosition(0.0f, 0.0f, 0.0f);
 
@@ -112,7 +112,7 @@ TEST_F(PlayerPoseCollisionTest, SetSwimmingFalseFallsBackToCrouchWhenCeilingBloc
 {
     m_world.setLowCeiling(true);
 
-    Player player(3, "Steve");
+    Player player(3, "Steve", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPosition(0.0f, 0.0f, 0.0f);
 
@@ -130,7 +130,7 @@ TEST_F(PlayerPoseCollisionTest, SetSleepingFalseFallsBackToCrouchWhenCeilingBloc
 {
     m_world.setLowCeiling(true);
 
-    Player player(4, "Steve");
+    Player player(4, "Steve", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setPosition(0.0f, 0.0f, 0.0f);
 

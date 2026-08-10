@@ -47,7 +47,7 @@ namespace {
 class TestFlyingEntity : public FlyingEntity {
 public:
     TestFlyingEntity()
-        : FlyingEntity(EntityInstanceId(1))
+        : FlyingEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -57,7 +57,7 @@ public:
 /**
  * @brief 测试用存根世界
  */
-class StubWorld final : public test::BaseTestWorld {
+class StubWorld final : public mc::test::BaseTestWorld {
 public:
     void setInWater(bool inWater) { m_inWater = inWater; }
     void setInLava(bool inLava) { m_inLava = inLava; }

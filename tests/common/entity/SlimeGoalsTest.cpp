@@ -24,6 +24,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/ai/goal/goals/special/SlimeGoals.hpp"
 #include "entity/entities/monster/basic/SlimeEntity.hpp"
 
@@ -34,7 +36,7 @@ namespace test {
 
 class SlimeGoalsEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { slime = std::make_unique<SlimeEntity>(EntityInstanceId(1)); }
+    void SetUp() override { slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { slime.reset(); }
 
@@ -47,7 +49,7 @@ class SlimeFloatGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1));
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::SlimeFloatGoal>(slime.get());
     }
 
@@ -67,7 +69,7 @@ class SlimeAttackGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1));
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::SlimeAttackGoal>(slime.get());
     }
 
@@ -87,7 +89,7 @@ class SlimeFaceRandomGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1));
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::SlimeFaceRandomGoal>(slime.get());
     }
 
@@ -107,7 +109,7 @@ class SlimeHopGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1));
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::SlimeHopGoal>(slime.get());
     }
 
@@ -303,7 +305,7 @@ class SlimeGoalsIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1));
+        slime = std::make_unique<SlimeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         floatGoal = std::make_unique<entity::ai::goal::SlimeFloatGoal>(slime.get());
         attackGoal = std::make_unique<entity::ai::goal::SlimeAttackGoal>(slime.get());
         faceRandomGoal = std::make_unique<entity::ai::goal::SlimeFaceRandomGoal>(slime.get());

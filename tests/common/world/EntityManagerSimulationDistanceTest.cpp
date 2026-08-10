@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -41,7 +42,7 @@ namespace {
 class CountingEntity final : public Entity {
 public:
     CountingEntity()
-        : Entity(EntityInstanceId(0), nullptr)
+        : Entity(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry())
     {}
 
     void tick() override
@@ -76,7 +77,7 @@ protected:
 
     void TearDown() override {}
 
-    EntityManager m_manager;
+    EntityManager m_manager{mc::test::testEcsRegistry()};
 };
 
 // ============================================================================
@@ -87,7 +88,7 @@ TEST_F(EntityManagerSimulationDistanceTest, FreezeDisabledWhenDistanceAtLeast32)
     // 32 为配置上限，>=32 等价全量 tick（freezeEnabled=false），不做距离门控。
     m_manager.setSimulationDistance(32);
 
-    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor");
+    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor", mc::test::testEcsRegistry());
     player->setPosition(0.0f, 0.0f, 0.0f);
     Player* playerPtr = player.get();
     m_manager.addEntity(std::move(player));
@@ -115,12 +116,12 @@ TEST_F(EntityManagerSimulationDistanceTest, PlayerAlwaysTicksRegardlessOfDistanc
     m_manager.setSimulationDistance(2);
 
     // 玩家锚点设在原点
-    auto anchor = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor");
+    auto anchor = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor", mc::test::testEcsRegistry());
     anchor->setPosition(0.0f, 0.0f, 0.0f);
     m_manager.addEntity(std::move(anchor));
 
     // 另一个 Player 设在远处（100 区块外），应永远 tick（Player 短路，不走距离门控）
-    auto farPlayer = std::make_unique<Player>(PLAYER_ID_BASE + 1, "FarPlayer");
+    auto farPlayer = std::make_unique<Player>(PLAYER_ID_BASE + 1, "FarPlayer", mc::test::testEcsRegistry());
     farPlayer->setPosition(100.0f * world::CHUNK_WIDTH, 0.0f, 0.0f);
     Player* farPlayerPtr = farPlayer.get();
     m_manager.addEntity(std::move(farPlayer));
@@ -141,7 +142,7 @@ TEST_F(EntityManagerSimulationDistanceTest, NonPlayerEntityFrozenBeyondSimulatio
 {
     m_manager.setSimulationDistance(2);
 
-    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor");
+    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor", mc::test::testEcsRegistry());
     player->setPosition(0.0f, 0.0f, 0.0f);
     m_manager.addEntity(std::move(player));
 
@@ -179,7 +180,7 @@ TEST_F(EntityManagerSimulationDistanceTest, ChebyshevDistanceDiagonal)
 {
     m_manager.setSimulationDistance(2);
 
-    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor");
+    auto player = std::make_unique<Player>(PLAYER_ID_BASE, "Anchor", mc::test::testEcsRegistry());
     player->setPosition(0.0f, 0.0f, 0.0f);
     m_manager.addEntity(std::move(player));
 
@@ -211,12 +212,12 @@ TEST_F(EntityManagerSimulationDistanceTest, MultiplePlayersUnion)
     m_manager.setSimulationDistance(2);
 
     // 玩家 A 在原点
-    auto playerA = std::make_unique<Player>(PLAYER_ID_BASE, "A");
+    auto playerA = std::make_unique<Player>(PLAYER_ID_BASE, "A", mc::test::testEcsRegistry());
     playerA->setPosition(0.0f, 0.0f, 0.0f);
     m_manager.addEntity(std::move(playerA));
 
     // 玩家 B 在 (10,0,10) 区块
-    auto playerB = std::make_unique<Player>(PLAYER_ID_BASE + 1, "B");
+    auto playerB = std::make_unique<Player>(PLAYER_ID_BASE + 1, "B", mc::test::testEcsRegistry());
     playerB->setPosition(10.0f * world::CHUNK_WIDTH, 0.0f, 10.0f * world::CHUNK_WIDTH);
     m_manager.addEntity(std::move(playerB));
 

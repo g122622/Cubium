@@ -37,6 +37,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -123,7 +124,7 @@ private:
 class TestServerPlayer : public ServerPlayer {
 public:
     explicit TestServerPlayer(EntityInstanceId id, const std::string& name)
-        : ServerPlayer(id, name)
+        : ServerPlayer(id, name, mc::test::testEcsRegistry())
     {}
 
     void setMockTeam(scoreboard::Team* team) { m_mockTeam = team; }

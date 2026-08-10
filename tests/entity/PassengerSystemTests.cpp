@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/effect/EffectEntities.hpp"
@@ -40,7 +41,7 @@ using namespace mc::entity;
 TEST(PassengerSystemTest, DefaultCouldAcceptPassengerReturnsTrue)
 {
     // Entity 基类默认 couldAcceptPassenger() 返回 true
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_TRUE(boat.couldAcceptPassenger());
 }
 
@@ -48,7 +49,7 @@ TEST(PassengerSystemTest, DefaultCanAddPassengerReturnsTrueWhenEmpty)
 {
     // Entity 基类默认 canAddPassenger() 在乘客未满时返回 true
     // 使用 ArmorStandEntity 测试（默认 getMaxPassengers() == 1）
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     // canAddPassenger 不检查 passenger 参数，仅检查乘客数量
     EXPECT_TRUE(armorStand.canAddPassenger(armorStand));
 }
@@ -56,7 +57,7 @@ TEST(PassengerSystemTest, DefaultCanAddPassengerReturnsTrueWhenEmpty)
 TEST(PassengerSystemTest, DefaultGetMaxPassengersIsOne)
 {
     // Entity 基类默认 getMaxPassengers() 返回 1
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     EXPECT_EQ(armorStand.getMaxPassengers(), 1);
 }
 
@@ -67,21 +68,21 @@ TEST(PassengerSystemTest, DefaultGetMaxPassengersIsOne)
 TEST(PassengerSystemTest, OminousItemSpawnerDoesNotTriggerPressurePlate)
 {
     // OminousItemSpawner 不触发压力板
-    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(spawner.doesEntityNotTriggerPressurePlate());
 }
 
 TEST(PassengerSystemTest, OminousItemSpawnerCannotAcceptPassengers)
 {
     // OminousItemSpawner 不能接受任何乘客
-    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(spawner.couldAcceptPassenger());
 }
 
 TEST(PassengerSystemTest, OminousItemSpawnerCannotAddPassenger)
 {
     // OminousItemSpawner 不能添加任何乘客
-    OminousItemSpawnerEntity spawner(EntityInstanceId(1));
+    OminousItemSpawnerEntity spawner(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(spawner.canAddPassenger(spawner));
 }
 
@@ -92,7 +93,7 @@ TEST(PassengerSystemTest, OminousItemSpawnerCannotAddPassenger)
 TEST(PassengerSystemTest, ArmorStandNormalModeTriggersPressurePlate)
 {
     // 普通模式盔甲架触发压力板
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     EXPECT_FALSE(armorStand.isMarker());
     EXPECT_FALSE(armorStand.doesEntityNotTriggerPressurePlate());
 }
@@ -100,7 +101,7 @@ TEST(PassengerSystemTest, ArmorStandNormalModeTriggersPressurePlate)
 TEST(PassengerSystemTest, ArmorStandMarkerModeDoesNotTriggerPressurePlate)
 {
     // 标记模式盔甲架不触发压力板
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     armorStand.setMarker(true);
     EXPECT_TRUE(armorStand.isMarker());
     EXPECT_TRUE(armorStand.doesEntityNotTriggerPressurePlate());
@@ -113,7 +114,7 @@ TEST(PassengerSystemTest, ArmorStandMarkerModeDoesNotTriggerPressurePlate)
 TEST(PassengerSystemTest, BatDoesNotTriggerPressurePlate)
 {
     // 蝙蝠不触发压力板
-    BatEntity bat(EntityInstanceId(1));
+    BatEntity bat(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(bat.doesEntityNotTriggerPressurePlate());
 }
 
@@ -124,7 +125,7 @@ TEST(PassengerSystemTest, BatDoesNotTriggerPressurePlate)
 TEST(PassengerSystemTest, BoatCanAddPassengerWhenNotFull)
 {
     // 船未满时可以添加乘客
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(boat.getMaxPassengers(), 2);
     // 空船应该可以添加乘客
     EXPECT_TRUE(boat.canAddPassenger(boat));
@@ -133,7 +134,7 @@ TEST(PassengerSystemTest, BoatCanAddPassengerWhenNotFull)
 TEST(PassengerSystemTest, BoatCouldAcceptPassengers)
 {
     // 船可以接受乘客
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_TRUE(boat.couldAcceptPassenger());
 }
 
@@ -144,13 +145,13 @@ TEST(PassengerSystemTest, BoatCouldAcceptPassengers)
 TEST(PassengerSystemTest, DefaultEntityTriggersPressurePlate)
 {
     // ArmorStand（非 marker 模式）默认触发压力板
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     EXPECT_FALSE(armorStand.doesEntityNotTriggerPressurePlate());
 }
 
 TEST(PassengerSystemTest, DefaultEntityCanAcceptPassengers)
 {
     // Entity 基类默认可以接受乘客
-    ArmorStandEntity armorStand;
+    ArmorStandEntity armorStand{mc::test::testEcsRegistry()};
     EXPECT_TRUE(armorStand.couldAcceptPassenger());
 }

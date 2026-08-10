@@ -48,7 +48,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class EffectTestWorld final : public test::BaseTestWorld {
+class EffectTestWorld final : public mc::test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
@@ -80,7 +80,7 @@ protected:
 TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer)
 {
     // 创建玩家并设置世界
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -103,7 +103,7 @@ TEST_F(HungerEffectTest, HungerEffectAddExhaustionToPlayer)
 
 TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -122,7 +122,7 @@ TEST_F(HungerEffectTest, HungerEffectIIIncreasesExhaustionMore)
 
 TEST_F(HungerEffectTest, HungerEffectIIIIncreasesExhaustionMore)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -143,7 +143,7 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
 {
     // 饥饿效果对非玩家实体不应该做任何事情
     // 这个测试验证 tick 不会崩溃
-    MobEntity mob(EntityInstanceId(2));
+    MobEntity mob(EntityInstanceId(2), mc::test::testEcsRegistry());
     mob.setWorld(m_world.get());
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -155,7 +155,7 @@ TEST_F(HungerEffectTest, HungerEffectDoesNotAffectNonPlayer)
 
 TEST_F(HungerEffectTest, HungerEffectMultipleTicks)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 

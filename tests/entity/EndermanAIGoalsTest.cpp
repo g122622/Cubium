@@ -24,6 +24,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -46,7 +47,7 @@ using namespace mc::entity::ai;
 class TestCreature : public CreatureEntity {
 public:
     TestCreature()
-        : CreatureEntity(EntityInstanceId(1))
+        : CreatureEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -175,7 +176,7 @@ protected:
     void SetUp() override
     {
         // 使用已实例化的 EndermanEntity
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { enderman.reset(); }
@@ -271,7 +272,7 @@ class EndermanAIGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         // registerAttributes 在构造函数中已调用
     }
 

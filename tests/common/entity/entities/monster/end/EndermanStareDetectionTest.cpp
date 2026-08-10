@@ -38,6 +38,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/EndermanGoals.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
@@ -51,7 +52,7 @@ namespace test {
 
 class PlayerLookVectorTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 
@@ -139,7 +140,7 @@ TEST_F(PlayerLookVectorTest, GetLookVector_Normalized)
 
 class PlayerEyePositionTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 
@@ -175,7 +176,7 @@ TEST_F(PlayerEyePositionTest, GetEyePosition_ChangesWithPosition)
 
 class PlayerPumpkinTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 
@@ -197,8 +198,8 @@ class PlayerLookingAtTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer");
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(2));
+        player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     }
 
     void TearDown() override
@@ -307,7 +308,7 @@ TEST_F(PlayerLookingAtTest, IsLookingAt_SlightlyOffCenter_MayBeLooking)
 
 class EndermanStareGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1)); }
+    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { enderman.reset(); }
 
@@ -342,7 +343,7 @@ TEST_F(EndermanStareGoalTest, ShouldExecute_WithoutTarget_ReturnsFalse)
 
 class EndermanFindPlayerGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1)); }
+    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { enderman.reset(); }
 
@@ -378,8 +379,8 @@ class EndermanShouldAttackPlayerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer");
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(2));
+        player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     }
 
     void TearDown() override
@@ -474,7 +475,7 @@ TEST_F(EndermanConstantsTest, EndermanEntity_AngerDurationIsCorrect)
 
 class LookVectorPrecisionTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 

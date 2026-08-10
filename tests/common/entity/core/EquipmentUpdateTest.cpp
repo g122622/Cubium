@@ -42,7 +42,7 @@ namespace {
 // 测试用 mock 世界
 // ============================================================================
 
-class EquipmentUpdateTestWorld final : public test::BaseTestWorld {
+class EquipmentUpdateTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -64,7 +64,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerData();
         registerAttributes();
@@ -80,13 +80,13 @@ public:
 class TestLivingEntityWithAttack : public LivingEntity {
 public:
     TestLivingEntityWithAttack()
-        : LivingEntity(EntityInstanceId(2))
+        : LivingEntity(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry())
     {
         registerData();
         registerAttributes();
         // MonsterEntity 会注册这两个属性，此处手动注册以模拟怪物实体
-        m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-        m_attributes.registerAttribute(*entity::attribute::Attributes::attackSpeed());
+        attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+        attributes().registerAttribute(*entity::attribute::Attributes::attackSpeed());
         setHealth(maxHealth());
     }
 };

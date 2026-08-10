@@ -64,7 +64,7 @@ using namespace mc;
 
 namespace {
 
-class DummyWorld final : public test::BaseTestWorld {
+class DummyWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -277,7 +277,7 @@ TEST(BlockEntityTodoTest, EnderChestOpenCloseAndTickAnimationBehavesCorrectly)
     EXPECT_FALSE(enderChest.openContainer(nullptr));
     EXPECT_FALSE(enderChest.canPlayerAccess(nullptr));
 
-    Player player(1, "tester");
+    Player player(1, "tester", mc::test::testEcsRegistry());
     EXPECT_TRUE(enderChest.canPlayerAccess(&player));
     ASSERT_TRUE(enderChest.openContainer(&player));
     EXPECT_EQ(enderChest.getOpenCount(), 1);
@@ -333,7 +333,7 @@ TEST(BlockEntityTodoTest, EnchantingTableAnimationOpensWhenNearbyPlayerExists)
     blockentity::EnchantingTableEntity table(BlockPos(8, 64, 8));
     DummyWorld world;
 
-    Player nearbyPlayer(42, "nearby");
+    Player nearbyPlayer(42, "nearby", mc::test::testEcsRegistry());
     nearbyPlayer.setPosition(8.5f, 64.0f, 9.5f);
     world.setEntitiesInRangeResult({&nearbyPlayer});
 
@@ -346,7 +346,7 @@ TEST(BlockEntityTodoTest, EnchantingTableAnimationClosesWithoutNearbyPlayers)
     blockentity::EnchantingTableEntity table(BlockPos(8, 64, 8));
     DummyWorld world;
 
-    Player nearbyPlayer(42, "nearby");
+    Player nearbyPlayer(42, "nearby", mc::test::testEcsRegistry());
     nearbyPlayer.setPosition(8.5f, 64.0f, 9.5f);
     world.setEntitiesInRangeResult({&nearbyPlayer});
     table.updateAnimation(world, 1.0f / 20.0f);
@@ -475,7 +475,7 @@ TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection)
         BlockPos(0, 64, 0), VanillaBlocks::getState(VanillaBlocks::STONE), Direction::East, true, false);
 
     DummyWorld world;
-    Entity pushedEntity(EntityInstanceId(101), &world);
+    Entity pushedEntity(EntityInstanceId(101), &world, mc::test::testEcsRegistry());
     pushedEntity.setPosition(0.5f, 64.1f, 0.5f);
     const f32 beforeX = pushedEntity.x();
 

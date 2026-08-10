@@ -30,6 +30,8 @@
 #include "util/text/TranslationTextComponent.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::blockentity;
 

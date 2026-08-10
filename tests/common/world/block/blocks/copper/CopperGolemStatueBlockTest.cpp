@@ -78,7 +78,7 @@ namespace {
  * - playSound / gameEvent 捕获
  * - TickManager 支持（用于含水调度）
  */
-class CopperGolemStatueTestWorld final : public test::BaseTestWorld {
+class CopperGolemStatueTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemStatueTestWorld() { m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this); }
 
@@ -879,7 +879,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
     // 创建玩家（空手）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
 
     const BlockState* state = world.getBlockState(pos);
@@ -931,7 +931,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnWaxedStatueRetur
     world.setBlockState(pos, &VanillaBlocks::WAXED_COPPER_GOLEM_STATUE->defaultState());
 
     // 创建玩家并设置手持铁斧
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -967,7 +967,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnExposedStatueRet
 
     world.setBlockState(pos, &VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1022,7 +1022,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueSpawns
     world.setBlockEntity(pos, be.release());
 
     // 创建玩家并设置手持铁斧
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1081,7 +1081,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueDamage
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
     world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1115,7 +1115,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueNoBloc
     // 放置方块但不创建方块实体
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1161,7 +1161,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeFacingDirectionsCo
         world.setBlockState(pos, &placedState);
         world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-        Player player(EntityInstanceId(1), "TestPlayer");
+        Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         player.setWorld(&world);
         player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1192,7 +1192,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueGolemI
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
     world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.inventory().getSelectedStackRef() = ItemStack(*Items::IRON_AXE, 1);
 
@@ -1220,7 +1220,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHandOnBaseStatue
 
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
 
     const BlockState* state = world.getBlockState(pos);
@@ -1254,7 +1254,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
     // 起始姿态：Standing
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
 
     BlockRaycastResult hit;

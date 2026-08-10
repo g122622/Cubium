@@ -39,7 +39,7 @@ namespace {
 class TestRideableEntity : public Entity {
 public:
     explicit TestRideableEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] f32 width() const override { return 0.6f; }
@@ -54,7 +54,7 @@ public:
 class TestProjectile : public entity::ProjectileEntity {
 public:
     explicit TestProjectile(EntityInstanceId id)
-        : ProjectileEntity(id)
+        : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] std::string getTypeId() const override { return "test:projectile"; }
@@ -65,7 +65,7 @@ public:
  *
  * 重写 getEntity 以支持骑乘相关的实体查找和 getShooter 查找。
  */
-class CanHitEntityTestWorld : public test::BaseTestWorld {
+class CanHitEntityTestWorld : public mc::test::BaseTestWorld {
 public:
     CanHitEntityTestWorld() = default;
 
@@ -206,7 +206,7 @@ TEST_F(CanHitEntityTest, CanHitEntityNotOnSameVehicle)
  */
 TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
 {
-    entity::BoatEntity vehicle(entity::BoatEntity::Type::OAK);
+    entity::BoatEntity vehicle(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     // BoatEntity 默认 EntityInstanceId 为 0，等同于 INVALID_ENTITY_ID，
     // 会导致骑乘系统无法正常工作，需要设置为有效的非零 ID
     vehicle.setId(EntityInstanceId(100));
@@ -255,7 +255,7 @@ TEST_F(CanHitEntityTest, CannotHitNonCollidableEntity)
     class NonCollidableEntity : public Entity {
     public:
         explicit NonCollidableEntity(EntityInstanceId id)
-            : Entity(id)
+            : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
         [[nodiscard]] f32 width() const override { return 0.6f; }
         [[nodiscard]] f32 height() const override { return 1.8f; }
@@ -282,7 +282,7 @@ TEST_F(CanHitEntityTest, CannotHitDeadEntity)
     class DeadEntity : public Entity {
     public:
         explicit DeadEntity(EntityInstanceId id)
-            : Entity(id)
+            : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
         [[nodiscard]] f32 width() const override { return 0.6f; }
         [[nodiscard]] f32 height() const override { return 1.8f; }

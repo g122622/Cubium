@@ -34,6 +34,7 @@
 //
 // JavaEntityTypeIdMap 提供 name→vanilla id 映射；船类按木种选变体。本测试锁定关键映射防回归。
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "entity/entities/vehicle/BoatEntity.hpp"
 #include "entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -163,8 +164,8 @@ TEST(JavaEntityTypeIdMapTest, BoatEntitySelectsVariantByWoodType)
     };
 
     for (const auto& c : cases) {
-        BoatEntity boat(c.type);
-        ChestBoatEntity chestBoat(c.type);
+        BoatEntity boat(c.type, mc::test::testEcsRegistry());
+        ChestBoatEntity chestBoat(c.type, mc::test::testEcsRegistry());
         EXPECT_EQ(boat.getJavaEntityTypeId(), c.expectedBoatId) << "boat wood type " << static_cast<int>(c.type);
         EXPECT_EQ(chestBoat.getJavaEntityTypeId(), c.expectedChestId)
             << "chest boat wood type " << static_cast<int>(c.type);

@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/util/property/Properties.hpp"

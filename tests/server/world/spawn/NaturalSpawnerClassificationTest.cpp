@@ -28,6 +28,7 @@
 //   water_creature 分类。生成循环每 tick 从 EntityManager 重新统计真实分类计数，
 //   错配导致 water_ambient 计数永远为 0，容量上限形同虚设，鱼类无限生成。
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -43,7 +44,7 @@ class NaturalSpawnerClassificationTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaEntities::registerAll(); }
 
-    EntityManager m_manager;
+    EntityManager m_manager{mc::test::testEcsRegistry()};
 };
 
 // 断言实体类型注册的分类。辅助函数避免重复样板。
@@ -104,7 +105,7 @@ TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMatchesSpawnCatego
 
     constexpr i32 kSalmonCount = 30;
     for (i32 i = 0; i < kSalmonCount; ++i) {
-        auto salmon = salmonType->create(nullptr);
+        auto salmon = salmonType->create(nullptr, mc::test::testEcsRegistry());
         ASSERT_NE(salmon, nullptr);
         m_manager.addEntity(std::move(salmon));
     }
@@ -128,13 +129,13 @@ TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMixedFish)
     ASSERT_NE(squidType, nullptr);
 
     for (i32 i = 0; i < 10; ++i) {
-        m_manager.addEntity(codType->create(nullptr));
+        m_manager.addEntity(codType->create(nullptr, mc::test::testEcsRegistry()));
     }
     for (i32 i = 0; i < 5; ++i) {
-        m_manager.addEntity(salmonType->create(nullptr));
+        m_manager.addEntity(salmonType->create(nullptr, mc::test::testEcsRegistry()));
     }
     for (i32 i = 0; i < 3; ++i) {
-        m_manager.addEntity(squidType->create(nullptr));
+        m_manager.addEntity(squidType->create(nullptr, mc::test::testEcsRegistry()));
     }
 
     auto counts = m_manager.countEntitiesByClassification();

@@ -58,7 +58,7 @@ using mc::ServerDimensionManager;
 /**
  * @brief 测试服务器，用于 TriggerCommand 测试
  */
-class TriggerTestServer final : public test::BaseTestServer {
+class TriggerTestServer final : public mc::test::BaseTestServer {
 public:
     TriggerTestServer() { scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria(); }
 

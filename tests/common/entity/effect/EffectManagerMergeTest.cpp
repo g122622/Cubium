@@ -29,6 +29,8 @@
 #include "entity/effect/EffectType.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity::effect;
 using namespace mc::entity::attribute;
@@ -44,7 +46,7 @@ protected:
 
     void SetUp() override
     {
-        m_entity = std::make_unique<LivingEntity>(EntityInstanceId(1));
+        m_entity = std::make_unique<LivingEntity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_entity->registerData();
         m_entity->registerAttributes();
         // LivingEntity::registerAttributes() 不注册以下属性（由子类注册），

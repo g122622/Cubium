@@ -320,7 +320,7 @@ TEST_F(ComposterBlockTest, GetShape_AllLevelsFillHeightMatchesMC)
  *
  * 继承 BaseTestWorld，提供可控的方块状态存储、随机数控制和 TickManager。
  */
-class ComposterContainerTestWorld : public test::BaseTestWorld {
+class ComposterContainerTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {

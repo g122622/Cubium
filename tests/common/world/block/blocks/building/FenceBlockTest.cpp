@@ -54,7 +54,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class FenceWallTestWorld final : public test::BaseTestWorld {
+class FenceWallTestWorld final : public mc::test::BaseTestWorld {
 public:
     FenceWallTestWorld() = default;
 

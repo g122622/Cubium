@@ -72,7 +72,7 @@ namespace {
  * onBlockPlacedBy 仅需要 getBlockEntity，但 BaseTestWorld 默认返回 nullptr，
  * 因此必须在此覆写以返回已注册的 BrewingStandEntity。
  */
-class BrewingStandTestWorld : public test::BaseTestWorld {
+class BrewingStandTestWorld : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

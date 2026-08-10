@@ -47,7 +47,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class StopSoundTestServer final : public test::BaseTestServer {
+class StopSoundTestServer final : public mc::test::BaseTestServer {
 public:
     StopSoundTestServer() = default;
 

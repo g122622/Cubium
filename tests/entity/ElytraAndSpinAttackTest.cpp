@@ -31,6 +31,7 @@
  * - startSpinAttack()/stopSpinAttack(): 管理激流攻击状态
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityPose.hpp"
@@ -49,7 +50,7 @@ using namespace mc::entity;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1), nullptr)
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         // 注册数据参数
         registerData();

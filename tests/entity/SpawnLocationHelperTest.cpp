@@ -41,7 +41,7 @@
 namespace mc {
 namespace {
 
-class SpawnLocationTestWorld : public test::BaseChunkBackedTestWorld {
+class SpawnLocationTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
     SpawnLocationTestWorld() = default;
 

@@ -58,12 +58,12 @@ namespace {
 /**
  * @brief 捕获 broadcastEntityAnimation 调用的测试世界
  *
- * 复用 test::BaseTestWorld（默认 isClientSide()=false，满足服务端广播条件），
+ * 复用 mc::test::BaseTestWorld（默认 isClientSide()=false，满足服务端广播条件），
  * 重写 broadcastEntityAnimation 记录最后一次调用的 entityId 与 animation。
  *
  * 参考 AnimalSoundTests.cpp 的 SoundCaptureWorld（捕获 playSound）模式。
  */
-class AnimationCaptureWorld final : public test::BaseTestWorld {
+class AnimationCaptureWorld final : public mc::test::BaseTestWorld {
 public:
     struct AnimationRecord {
         EntityInstanceId entityId;
@@ -93,7 +93,7 @@ private:
  *
  * 用于验证 swing() 在客户端不广播动画事件。
  */
-class ClientSideTestWorld final : public test::BaseTestWorld {
+class ClientSideTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isClientSide() const override { return true; }
 
@@ -114,7 +114,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

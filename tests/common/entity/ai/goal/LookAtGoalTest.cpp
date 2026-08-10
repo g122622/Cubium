@@ -24,6 +24,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
@@ -37,7 +39,7 @@ namespace test {
 
 class LookAtGoalTypeFilterTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { pig.reset(); }
 

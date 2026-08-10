@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -68,7 +69,9 @@ protected:
         // 注册测试猪
         registry.registerType(EntityTypeKeys::PIG,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
+                [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                    return std::make_unique<Entity>(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry());
+                },
                 EntityClassification::Creature)
                 .size(0.9f, 0.9f)
                 .trackingRange(10)
@@ -78,7 +81,9 @@ protected:
         // 注册测试牛
         registry.registerType(EntityTypeKeys::COW,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
+                [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                    return std::make_unique<Entity>(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry());
+                },
                 EntityClassification::Creature)
                 .size(0.9f, 1.4f)
                 .trackingRange(10)
@@ -88,7 +93,9 @@ protected:
         // 注册测试羊
         registry.registerType(EntityTypeKeys::SHEEP,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
+                [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                    return std::make_unique<Entity>(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry());
+                },
                 EntityClassification::Creature)
                 .size(0.9f, 1.3f)
                 .trackingRange(10)
@@ -98,7 +105,9 @@ protected:
         // 注册测试鸡
         registry.registerType(EntityTypeKeys::CHICKEN,
             EntityType::Builder(
-                [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); },
+                [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                    return std::make_unique<Entity>(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry());
+                },
                 EntityClassification::Creature)
                 .size(0.4f, 0.7f)
                 .trackingRange(10)
@@ -245,7 +254,7 @@ TEST_F(ChunkSpawnIntegrationTest, EntityCreation)
     ASSERT_NE(pigType, nullptr);
 
     // 创建实体
-    std::unique_ptr<Entity> pig = pigType->create(nullptr);
+    std::unique_ptr<Entity> pig = pigType->create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(pig, nullptr);
 }
 
@@ -443,7 +452,8 @@ TEST_F(ChunkSpawnIntegrationTest, EntityTypeCanSummon)
 
     // 注册一个不能被召唤的实体类型
     registry.registerType("test:unsummonable",
-        EntityType::Builder([](IWorld*) -> std::unique_ptr<Entity> { return nullptr; }, EntityClassification::Misc)
+        EntityType::Builder([](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; },
+            EntityClassification::Misc)
             .canSummon(false)
             .build());
 

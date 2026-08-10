@@ -13,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -37,7 +38,7 @@ protected:
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
 
-        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
     void TearDown() override { m_player.reset(); }

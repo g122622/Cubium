@@ -47,7 +47,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持广播实体状态
  */
-class HorseJumpBoostTestWorld final : public test::BaseTestWorld {
+class HorseJumpBoostTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
 
@@ -104,7 +104,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_IncreasesJumpForce)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置固定的跳跃强度以便测试
@@ -150,7 +150,7 @@ TEST(HorseJumpBoostTest, JumpBoostLevel_AddsCorrectAmount)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始无效果
@@ -192,7 +192,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_Removed_JumpForceReturnsToNormal)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 添加跳跃提升 II
@@ -217,7 +217,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksWithOtherEffects)
     VanillaBlocks::initialize();
 
     HorseJumpBoostTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 添加速度效果
@@ -246,7 +246,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试马
     {
-        HorseEntity horse(EntityInstanceId(1));
+        HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
         horse.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
@@ -256,7 +256,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试驴
     {
-        DonkeyEntity donkey(EntityInstanceId(2));
+        DonkeyEntity donkey(EntityInstanceId(2), mc::test::testEcsRegistry());
         donkey.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);
@@ -266,7 +266,7 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_WorksForAllHorseTypes)
 
     // 测试骡
     {
-        MuleEntity mule(EntityInstanceId(3));
+        MuleEntity mule(EntityInstanceId(3), mc::test::testEcsRegistry());
         mule.setWorld(&world);
 
         entity::effect::EffectInstance jumpBoost(entity::effect::EffectType::JumpBoost, 200, 1, false, true);

@@ -54,7 +54,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class TeamTestServer final : public test::BaseTestServer {
+class TeamTestServer final : public mc::test::BaseTestServer {
 public:
     // 覆盖 dimensionManager，返回一个未注册任何维度的空 DimensionManager。
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，

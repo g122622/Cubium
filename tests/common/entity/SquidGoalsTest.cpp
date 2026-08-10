@@ -67,7 +67,7 @@ struct ParticleRecord {
  * - 默认状态：目标位置返回水流体、null方块（空气）
  * - 可通过 setTargetFluidWater/setTargetFluidEmpty/setTargetBlockAir/setTargetBlockSolid 切换
  */
-class SquidTestWorld final : public test::BaseTestWorld {
+class SquidTestWorld final : public mc::test::BaseTestWorld {
 public:
     SquidTestWorld()
         : m_targetFluidWater(true)
@@ -160,7 +160,7 @@ private:
 
 class SquidEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { squid = std::make_unique<SquidEntity>(EntityInstanceId(0)); }
+    void SetUp() override { squid = std::make_unique<SquidEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
 
     void TearDown() override { squid.reset(); }
 
@@ -223,7 +223,7 @@ class SquidMoveRandomGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(EntityInstanceId(0));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<SquidMoveRandomGoal>(squid.get());
     }
 
@@ -281,7 +281,7 @@ class SquidFleeGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        squid = std::make_unique<SquidEntity>(EntityInstanceId(0));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<SquidFleeGoal>(squid.get());
     }
 
@@ -394,13 +394,13 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<SquidTestWorld>();
-        squid = std::make_unique<SquidEntity>(EntityInstanceId(1));
+        squid = std::make_unique<SquidEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         squid->setWorld(world.get());
         squid->setInWater(true);
         squid->setPosition(0.0f, 64.0f, 0.0f);
 
         // 创建攻击者实体并设置复仇目标
-        attacker = std::make_unique<SquidEntity>(EntityInstanceId(2));
+        attacker = std::make_unique<SquidEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         attacker->setWorld(world.get());
         attacker->setPosition(1.0f, 64.0f, 0.0f); // 距离鱿鱼 1 格
         squid->setLastHurtBy(attacker.get());

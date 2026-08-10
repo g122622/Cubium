@@ -66,7 +66,7 @@ namespace {
  * - openContainer() 用于测试容器打开
  * - getBlockState() / getBlockEntity() 用于方块和方块实体访问
  */
-class EnderChestTestWorld final : public test::BaseTestWorld {
+class EnderChestTestWorld final : public mc::test::BaseTestWorld {
 public:
     explicit EnderChestTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -317,7 +317,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSucces
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enderChest_->defaultState();
@@ -341,7 +341,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_ServerSide_WithEntity_Re
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家并设置位置（在末影箱附近以便 canPlayerAccess 返回 true）
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(10.5f, 64.5f, 20.5f);
     player.setWorld(&world);
 
@@ -363,7 +363,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_NoBlockEntity_ReturnsPas
     world.setBlockStateAt(pos_, &enderChest_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enderChest_->defaultState();
@@ -387,7 +387,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_WrongBlockEntityType_Ret
     world.setOwnedBlockEntity(std::move(wrongEntity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enderChest_->defaultState();
@@ -422,7 +422,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_AboveBlocked_ReturnsSucc
     const auto& state = enderChest_->defaultState();
     BlockRaycastResult hit;
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(10.5f, 64.5f, 20.5f);
     player.setWorld(&world);
 
@@ -445,7 +445,7 @@ TEST_F(EnderChestBlockInteractionTest, OnBlockActivated_EnderChestEntityOpenCoun
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家并设置位置
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(10.5f, 64.5f, 20.5f);
     player.setWorld(&world);
 

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/physics/PhysicsConstants.hpp"
@@ -38,7 +39,7 @@ namespace {
 class TestEntity : public Entity {
 public:
     TestEntity()
-        : Entity(EntityInstanceId(1))
+        : Entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         // 初始化尺寸
         refreshDimensions();
@@ -53,7 +54,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         setHealth(maxHealth());
     }

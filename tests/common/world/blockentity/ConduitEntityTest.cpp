@@ -47,7 +47,7 @@ using namespace mc;
 // ============================================================================
 // ConduitTestWorld - Mock World for ConduitEntity Tests
 // ============================================================================
-class ConduitTestWorld final : public test::BaseTestWorld {
+class ConduitTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -373,7 +373,7 @@ TEST_F(UuidTest, UuidStringFormat)
 class MockLivingEntityForConduit : public LivingEntity {
 public:
     explicit MockLivingEntityForConduit(EntityInstanceId id)
-        : LivingEntity(id, nullptr)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -384,7 +384,7 @@ public:
 class MockMobEntityForConduit : public LivingEntity, public entity::IMob {
 public:
     explicit MockMobEntityForConduit(EntityInstanceId id)
-        : LivingEntity(id, nullptr)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -395,7 +395,7 @@ public:
 class MockNonLivingEntityForConduit : public Entity {
 public:
     explicit MockNonLivingEntityForConduit(EntityInstanceId id)
-        : Entity(id, nullptr)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 };
 
@@ -619,7 +619,7 @@ TEST(ConduitEntityFindTargetTest, SaveDoesNotWriteTargetUuidWhenNull)
 // ============================================================================
 
 // 支持 getFluidState 重写的测试世界
-class ConduitWaterTestWorld final : public test::BaseTestWorld {
+class ConduitWaterTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

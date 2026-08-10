@@ -43,7 +43,7 @@ namespace {
 /**
  * @brief 风弹物品测试用世界存根
  */
-class WindChargeTestWorld final : public test::BaseTestWorld {
+class WindChargeTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -115,7 +115,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_SpawnsEntity_CreativeMode
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -140,7 +140,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_ConsumesItem_SurvivalMode
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -165,7 +165,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_SetsCooldown)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -185,7 +185,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_OnRightClick_FailsDuringCooldown)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -215,7 +215,7 @@ TEST_F(WindChargeItemTest, WindChargeItem_CanUseAgain_AfterCooldownExpires)
 {
     ASSERT_NE(Items::WIND_CHARGE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -246,13 +246,13 @@ TEST_F(WindChargeItemTest, WindChargeItem_CanUseAgain_AfterCooldownExpires)
 
 TEST_F(WindChargeItemTest, WindChargeEntity_CanBeCreated)
 {
-    entity::WindChargeEntity windCharge(EntityInstanceId(1));
+    entity::WindChargeEntity windCharge(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(windCharge.isAlive());
 }
 
 TEST_F(WindChargeItemTest, WindChargeEntity_GravityIsCorrect)
 {
-    entity::WindChargeEntity windCharge(EntityInstanceId(1));
+    entity::WindChargeEntity windCharge(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 风弹重力应与 ThrowableEntity 默认值一致
     EXPECT_FLOAT_EQ(windCharge.getGravity(), 0.03f);
 }

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/stats/Stats.hpp"
@@ -98,7 +99,7 @@ TEST_F(AwardCustomStatTest, StatsConstants_MatchRegistry)
 TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_IncrementsManager)
 {
     // 创建 ServerPlayer 并验证 awardCustomStat 委托给 StatisticsManager
-    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 初始值应为 0
     EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_BARREL)), 0);
@@ -119,7 +120,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_IncrementsManager)
 
 TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_MultipleIncrements)
 {
-    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 多次增量不同的统计
     player->awardCustomStat(ResourceLocation(stats::INTERACT_WITH_FURNACE), 1);
@@ -136,7 +137,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_MultipleIncrements)
 TEST_F(AwardCustomStatTest, PlayerBaseClass_AwardCustomStat_DoesNotCrash)
 {
     // Player 基类的 awardCustomStat 是空实现，调用不应崩溃
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 1));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::SLEEP_IN_BED), 100));
 }
@@ -216,7 +217,7 @@ TEST_F(AwardCustomStatTest, StatRegistry_NonExistentStats)
 TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_ZeroIncrement)
 {
     // count=0 不应创建新条目
-    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     player->awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 0);
     EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_BARREL)), 0);
@@ -230,7 +231,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_ZeroIncrement)
 TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_NegativeIncrement)
 {
     // 负数增量应正常累加（可能导致值为负数或回退）
-    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     player->awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 10);
     EXPECT_EQ(player->getStats().getValue(StatType::Custom, ResourceLocation(stats::OPEN_CHEST)), 10);
@@ -242,7 +243,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_NegativeIncrement)
 TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_UnregisteredStatId)
 {
     // 使用未注册的 statId 调用 awardCustomStat 不应崩溃
-    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer");
+    auto player = std::make_unique<ServerPlayer>(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     EXPECT_NO_THROW(player->awardCustomStat(ResourceLocation("minecraft:nonexistent_stat"), 1));
 }
@@ -250,7 +251,7 @@ TEST_F(AwardCustomStatTest, ServerPlayer_AwardCustomStat_UnregisteredStatId)
 TEST_F(AwardCustomStatTest, PlayerBaseClass_AwardCustomStat_WithZeroAndNegative)
 {
     // Player 基类的空实现对任何参数都不应崩溃
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 0));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), -1));
     EXPECT_NO_THROW(player.awardCustomStat(ResourceLocation("minecraft:fake_stat"), 100));

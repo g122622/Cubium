@@ -77,7 +77,7 @@ namespace {
  *
  * 提供 GolemBlock 测试所需的最小 IWorld 接口实现
  */
-class GolemTestWorld final : public test::BaseTestWorld {
+class GolemTestWorld final : public mc::test::BaseTestWorld {
 public:
     GolemTestWorld()
     {

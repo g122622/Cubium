@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
@@ -204,11 +205,11 @@ TEST(SkeletonBowStateTest, InitialStateConstants)
 TEST(SkeletonAttackIntervalTest, DefaultAttackIntervals)
 {
     // 普通骷髅和流浪者使用基类默认值
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(skeleton->getHardAttackInterval(), 20); // HARD_ATTACK_INTERVAL
     EXPECT_EQ(skeleton->getAttackInterval(), 40);     // NORMAL_ATTACK_INTERVAL
 
-    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(2));
+    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     EXPECT_EQ(stray->getHardAttackInterval(), 20); // 流浪者继承基类值（MC 1.21.11）
     EXPECT_EQ(stray->getAttackInterval(), 40);     // 流浪者继承基类值（MC 1.21.11）
 }
@@ -216,7 +217,7 @@ TEST(SkeletonAttackIntervalTest, DefaultAttackIntervals)
 TEST(SkeletonAttackIntervalTest, WitherSkeletonAttackIntervals)
 {
     // 凋灵骷髅使用近战，但攻击间隔方法仍然返回基类值
-    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(3));
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     EXPECT_EQ(witherSkeleton->getHardAttackInterval(), 20);
     EXPECT_EQ(witherSkeleton->getAttackInterval(), 40);
 }
@@ -235,7 +236,7 @@ TEST(SkeletonAttackIntervalTest, DifficultyBasedIntervalLogic)
     // 验证难度与攻击间隔的对应关系
     // 困难难度: 普通骷髅 20 ticks（射击更快）
     // 其他难度: 普通骷髅 40 ticks（射击更慢）
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(4));
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(4), mc::test::testEcsRegistry());
 
     // 困难难度: 使用 getHardAttackInterval()
     EXPECT_EQ(skeleton->getHardAttackInterval(), AbstractSkeletonEntity::HARD_ATTACK_INTERVAL);

@@ -27,6 +27,7 @@
  * 测试活塞头方块的存活检查和更新逻辑。
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/blocks/redstone/PistonHeadBlock.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -691,7 +692,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_DestroysFittingBase)
     BlockPos basePos(0, 64, 0);
 
     // 创建创造模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     ASSERT_TRUE(player.isCreative());
 
@@ -726,7 +727,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_NoFittingBase_NoChang
     BlockPos basePos(0, 64, 0);
 
     // 创建创造模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     // 反方向原本是空气
@@ -765,7 +766,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_SurvivalMode_DoesNotDestroyBase)
     BlockPos basePos(0, 64, 0);
 
     // 创建生存模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     ASSERT_FALSE(player.isCreative());
 
@@ -805,7 +806,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_BaseNotExtended_NoCas
     BlockPos basePos(0, 64, 0);
 
     // 创建创造模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     // 调用 playerWillDestroy
@@ -840,7 +841,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_ThenOnBlockRemoved_No
     BlockPos basePos(0, 64, 0);
 
     // 创建创造模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     // 先调用 playerWillDestroy（创造模式下销毁基座）
@@ -883,7 +884,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_StickyPistonHead_Matc
     BlockPos basePos(0, 64, 0);
 
     // 创建创造模式玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     // 调用 playerWillDestroy

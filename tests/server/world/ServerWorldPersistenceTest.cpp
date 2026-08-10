@@ -1,3 +1,4 @@
+#include "common/TestWorldHelper.hpp"
 #include "common/TempDirHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
@@ -49,7 +50,7 @@ protected:
         if (!entity::EntityRegistry::instance().hasType("minecraft:unknown")) {
             auto registerResult = entity::EntityRegistry::instance().registerType("minecraft:unknown",
                 entity::EntityType::Builder(
-                    [](IWorld* world) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world); },
+                    [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world, mc::test::testEcsRegistry()); },
                     entity::EntityClassification::Misc)
                     .build());
             ASSERT_TRUE(registerResult.success()) << registerResult.error().message();
@@ -104,7 +105,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     auto saveChunkResult = m_storage.saveChunk(chunk, 0);
     ASSERT_TRUE(saveChunkResult.success()) << saveChunkResult.error().message();
 
-    auto entity = std::make_unique<Entity>(0, world.get());
+    auto entity = std::make_unique<Entity>(0, world.get(), mc::test::testEcsRegistry());
     entity->setTypeId("minecraft:unknown");
     entity->setPosition(1.0f, 64.0f, 1.0f);
     EntityInstanceId entityId = world->spawnEntity(std::move(entity));
@@ -140,7 +141,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     auto blockEntitySaveResult = m_storage.saveChunk(*persistedChunk, 0);
     ASSERT_TRUE(blockEntitySaveResult.success()) << blockEntitySaveResult.error().message();
 
-    auto entityLoadResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0);
+    auto entityLoadResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
     ASSERT_TRUE(entityLoadResult.success()) << entityLoadResult.error().message();
     EXPECT_EQ(entityLoadResult.value().size(), 1u);
 
@@ -153,7 +154,7 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
 {
     auto world = createWorld();
 
-    auto entity = std::make_unique<Entity>(0, world.get());
+    auto entity = std::make_unique<Entity>(0, world.get(), mc::test::testEcsRegistry());
     entity->setTypeId("minecraft:unknown");
     entity->setPosition(1.0f, 64.0f, 1.0f);
     EntityInstanceId entityId = world->spawnEntity(std::move(entity));
@@ -176,11 +177,11 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
 
     EXPECT_EQ(world->getEntity(entityId), nullptr);
 
-    auto oldChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0);
+    auto oldChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
     ASSERT_TRUE(oldChunkResult.success()) << oldChunkResult.error().message();
     EXPECT_TRUE(oldChunkResult.value().empty());
 
-    auto newChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(2, 0, 0);
+    auto newChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(2, 0, 0, mc::test::testEcsRegistry());
     ASSERT_TRUE(newChunkResult.success()) << newChunkResult.error().message();
     ASSERT_EQ(newChunkResult.value().size(), 1u);
     EXPECT_NEAR(newChunkResult.value()[0]->x(), 33.0f, 0.001f);

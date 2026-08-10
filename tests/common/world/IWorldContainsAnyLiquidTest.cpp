@@ -45,7 +45,7 @@ namespace {
  *
  * 在指定坐标返回水源 FluidState，其余位置返回空流体。
  */
-class ContainsAnyLiquidTestWorld final : public test::BaseTestWorld {
+class ContainsAnyLiquidTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {

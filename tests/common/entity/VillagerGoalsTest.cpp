@@ -90,7 +90,7 @@ private:
 // Test World for Villager Goals
 // ============================================================================
 
-class TestVillagerWorld : public test::BaseTestWorld {
+class TestVillagerWorld : public mc::test::BaseTestWorld {
 public:
     TestVillagerWorld()
         : m_dayTime(0)
@@ -133,7 +133,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -245,7 +245,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
     }
 
@@ -317,7 +317,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -498,7 +498,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setProfession(VillagerProfession::Farmer);
         m_villager->setWorkStation(BlockPos(0, 64, 0));
@@ -568,7 +568,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -639,7 +639,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -689,7 +689,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -732,7 +732,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -775,7 +775,7 @@ TEST_F(AvoidHostileGoalTest, MutexFlags)
  *
  * 用于需要精确控制方块布局的农民工作目标测试
  */
-class FarmerTestWorld : public test::BaseTestWorld {
+class FarmerTestWorld : public mc::test::BaseTestWorld {
 public:
     FarmerTestWorld()
         : m_dayTime(5000)
@@ -839,7 +839,7 @@ protected:
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
         m_villager->setProfession(VillagerProfession::Farmer);
@@ -990,7 +990,7 @@ protected:
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0, 64.0, 0.0);
         m_villager->setProfession(VillagerProfession::Farmer);
@@ -1740,7 +1740,7 @@ TEST_F(FarmerBlockTest, HasFarmSeedsWithVariousItems)
  * FarmerTestWorld 的扩展版本，增加了 VillageManager（含POI）和
  * DummyTickManager 支持，用于测试 _tryCompost 行为。
  */
-class FarmerCompostTestWorld : public test::BaseTestWorld {
+class FarmerCompostTestWorld : public mc::test::BaseTestWorld {
 public:
     FarmerCompostTestWorld()
         : m_dayTime(5000)
@@ -1844,7 +1844,7 @@ protected:
         const BlockState* composterEmpty = &VanillaBlocks::COMPOSTER->defaultState();
         m_world->setBlockStateAt(m_composterPos.x, m_composterPos.y, m_composterPos.z, composterEmpty);
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0, 64.0, 0.0);
         m_villager->setProfession(VillagerProfession::Farmer);
@@ -2096,7 +2096,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -2194,11 +2194,11 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager1 = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager1 = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager1->setWorld(m_world.get());
         m_villager1->setPosition(0.0f, 64.0f, 0.0f);
 
-        m_villager2 = std::make_unique<VillagerEntity>(EntityInstanceId(2));
+        m_villager2 = std::make_unique<VillagerEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         m_villager2->setWorld(m_world.get());
         m_villager2->setPosition(5.0f, 64.0f, 0.0f); // 5格远
     }
@@ -2290,7 +2290,7 @@ protected:
         Items::initialize();
 
         m_world = std::make_unique<TestVillagerWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0, 64.0, 0.0);
     }
@@ -2421,12 +2421,12 @@ protected:
         Items::initialize();
 
         m_world = std::make_unique<TestVillagerWorld>();
-        m_farmer = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_farmer = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_farmer->setWorld(m_world.get());
         m_farmer->setPosition(0.0, 64.0, 0.0);
         m_farmer->setProfession(VillagerProfession::Farmer);
 
-        m_target = std::make_unique<VillagerEntity>(EntityInstanceId(2));
+        m_target = std::make_unique<VillagerEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         m_target->setWorld(m_world.get());
         m_target->setPosition(2.0, 64.0, 0.0);
     }
@@ -2469,7 +2469,7 @@ TEST_F(ShareItemsGoalTest, FarmerWithWheatOnly)
 TEST_F(ShareItemsGoalTest, NonFarmerCannotShareItems)
 {
     // 非农民职业不应该有 ShareItemsGoal
-    auto librarian = std::make_unique<VillagerEntity>(EntityInstanceId(3));
+    auto librarian = std::make_unique<VillagerEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     librarian->setWorld(m_world.get());
     // 图书管理员的职业不是农民
     librarian->setProfession(VillagerProfession::Librarian);
@@ -2514,7 +2514,7 @@ protected:
         m_poiStorage = &villageManager->getPOIStorage();
         m_world->setVillageManager(std::move(villageManager));
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -2866,7 +2866,7 @@ namespace {
  * - tick() 中突袭恐慌触发 VillagerSplash (42) 粒子
  * - VillagerBreedGoal 无床位时触发 VillagerAngry (13) 粒子
  */
-class VillagerParticleTestWorld : public test::BaseTestWorld {
+class VillagerParticleTestWorld : public mc::test::BaseTestWorld {
 public:
     VillagerParticleTestWorld()
         : m_dayTime(5000)
@@ -2962,7 +2962,7 @@ protected:
         auto villageManager = std::make_unique<world::village::VillageManager>(*m_world);
         m_world->setVillageManager(std::move(villageManager));
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -2980,7 +2980,7 @@ protected:
 TEST_F(VillagerSetLastHurtByTest, PlayerAttackBroadcastsAngryParticles)
 {
     // MC原版: 当村民被玩家攻击时，广播 VillagerAngry (13) 粒子效果
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
 
     m_villager->setLastHurtBy(&player);
@@ -2996,7 +2996,7 @@ TEST_F(VillagerSetLastHurtByTest, NonPlayerAttackDoesNotBroadcastAngryParticles)
 {
     // MC原版: 被非玩家实体攻击时不广播愤怒粒子（只触发VILLAGER_HURT声望事件）
     // 创建另一个村民作为攻击者（非Player类型）
-    auto attacker = std::make_unique<VillagerEntity>(EntityInstanceId(2));
+    auto attacker = std::make_unique<VillagerEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     attacker->setWorld(m_world.get());
 
     m_villager->setLastHurtBy(attacker.get());
@@ -3027,17 +3027,17 @@ TEST_F(VillagerSetLastHurtByTest, SelfAttackDoesNotBroadcast)
 TEST_F(VillagerSetLastHurtByTest, AttackWithoutWorldDoesNotCrash)
 {
     // 没有世界的村民被攻击不应崩溃
-    auto orphanVillager = std::make_unique<VillagerEntity>(EntityInstanceId(3));
+    auto orphanVillager = std::make_unique<VillagerEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     // 不设置世界
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_NO_THROW(orphanVillager->setLastHurtBy(&player)) << "setLastHurtBy with null world should not crash";
 }
 
 TEST_F(VillagerSetLastHurtByTest, PlayerAttackBroadcastsCorrectEntityId)
 {
     // 验证广播的是被攻击村民的EntityInstanceId
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
 
     m_villager->setLastHurtBy(&player);
@@ -3059,12 +3059,12 @@ protected:
         auto villageManager = std::make_unique<world::village::VillageManager>(*m_world);
         m_world->setVillageManager(std::move(villageManager));
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
         m_villager->setWillingToBreed(true);
 
-        m_partner = std::make_unique<VillagerEntity>(EntityInstanceId(2));
+        m_partner = std::make_unique<VillagerEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         m_partner->setWorld(m_world.get());
         m_partner->setPosition(1.0f, 64.0f, 0.0f);
         m_partner->setWillingToBreed(true);
@@ -3159,7 +3159,7 @@ protected:
         auto villageManager = std::make_unique<world::village::VillageManager>(*m_world);
         m_world->setVillageManager(std::move(villageManager));
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -3234,13 +3234,13 @@ protected:
 TEST_F(VillagerVirtualMethodTest, SetLastHurtByIsVirtualAndDispatchesCorrectly)
 {
     // 验证setLastHurtBy是虚方法，且VillagerEntity的override正确分发
-    auto villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+    auto villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager->setWorld(m_world.get());
     villager->setPosition(0.0f, 64.0f, 0.0f);
 
     // 通过LivingEntity基类指针调用setLastHurtBy
     LivingEntity* livingEntity = villager.get();
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
 
     // 应该正确分发到VillagerEntity::setLastHurtBy
@@ -3255,10 +3255,10 @@ TEST_F(VillagerVirtualMethodTest, SetLastHurtByCallsParentCorrectly)
 {
     // 验证VillagerEntity::setLastHurtBy正确调用父类方法
     // 父类方法更新m_lastHurtBy字段
-    auto villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+    auto villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager->setWorld(m_world.get());
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
 
     villager->setLastHurtBy(&player);
@@ -3285,7 +3285,7 @@ protected:
         item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<FarmerTestWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0, 64.0, 0.0);
         m_villager->setProfession(VillagerProfession::Farmer);
@@ -3546,7 +3546,7 @@ protected:
         const BlockState* composterEmpty = &VanillaBlocks::COMPOSTER->defaultState();
         m_world->setBlockStateAt(m_composterPos.x, m_composterPos.y, m_composterPos.z, composterEmpty);
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0, 64.0, 0.0);
         m_villager->setProfession(VillagerProfession::Farmer);

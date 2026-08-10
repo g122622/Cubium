@@ -30,6 +30,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -60,7 +61,7 @@ protected:
         BlockItemRegistry::instance().initializeVanillaBlockItems();
 
         // 创建玩家
-        m_player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+        m_player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setGameMode(GameMode::Survival);
         // 设置玩家在地面（避免空中挖掘惩罚）
         m_player->setOnGround(true);

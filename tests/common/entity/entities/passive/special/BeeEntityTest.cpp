@@ -58,7 +58,7 @@ namespace {
 /**
  * @brief 测试用模拟世界
  */
-class BeeTestWorld final : public test::BaseTestWorld {
+class BeeTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -110,7 +110,7 @@ private:
  * 扩展 BeeTestWorld，添加 getBlockEntity/setBlockEntity 支持，
  * 用于测试 BeeEntity 的蜂巢验证、蜂巢交互等方法。
  */
-class BeeHiveTestWorld final : public test::BaseTestWorld {
+class BeeHiveTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -241,7 +241,7 @@ private:
  * 扩展 BeeHiveTestWorld，添加 isRaining/isThundering/dayTime 控制，
  * 用于测试 BeeEntity 的天气/夜间回巢逻辑（BEES_STAY_IN_HIVE 等效）。
  */
-class BeeWeatherTestWorld final : public test::BaseTestWorld {
+class BeeWeatherTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -392,7 +392,7 @@ protected:
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsDandelion)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* dandelionItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DANDELION);
     ASSERT_NE(dandelionItem, nullptr);
@@ -403,7 +403,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsDandelion)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPoppy)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* poppyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::POPPY);
     ASSERT_NE(poppyItem, nullptr);
@@ -414,7 +414,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPoppy)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsBlueOrchid)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* blueOrchidItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BLUE_ORCHID);
     ASSERT_NE(blueOrchidItem, nullptr);
@@ -425,7 +425,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsBlueOrchid)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsAllium)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* alliumItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ALLIUM);
     ASSERT_NE(alliumItem, nullptr);
@@ -436,7 +436,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsAllium)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsSunflower)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* sunflowerItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SUNFLOWER);
     ASSERT_NE(sunflowerItem, nullptr);
@@ -447,7 +447,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsSunflower)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilac)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* lilacItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::LILAC);
     ASSERT_NE(lilacItem, nullptr);
@@ -458,7 +458,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilac)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsRoseBush)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* roseBushItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ROSE_BUSH);
     ASSERT_NE(roseBushItem, nullptr);
@@ -469,7 +469,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsRoseBush)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPeony)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* peonyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PEONY);
     ASSERT_NE(peonyItem, nullptr);
@@ -480,7 +480,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsPeony)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsCornflower)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* cornflowerItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CORNFLOWER);
     ASSERT_NE(cornflowerItem, nullptr);
@@ -491,7 +491,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsCornflower)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilyOfTheValley)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* lilyItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::LILY_OF_THE_VALLEY);
     ASSERT_NE(lilyItem, nullptr);
@@ -502,7 +502,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsLilyOfTheValley)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsTulips)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 测试所有颜色的郁金香
     const BlockItem* redTulipItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::RED_TULIP);
@@ -523,7 +523,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsTulips)
 
 TEST_F(BeeEntityTest, IsBreedingItem_AcceptsWitherRose)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const BlockItem* witherRoseItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WITHER_ROSE);
     ASSERT_NE(witherRoseItem, nullptr);
@@ -534,7 +534,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_AcceptsWitherRose)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsWheat)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     if (Items::WHEAT != nullptr) {
         ItemStack wheatStack(Items::WHEAT, 1);
@@ -544,7 +544,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsWheat)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsCarrot)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     if (Items::CARROT != nullptr) {
         ItemStack carrotStack(Items::CARROT, 1);
@@ -554,7 +554,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsCarrot)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsEmptyStack)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     ItemStack emptyStack;
     EXPECT_FALSE(bee.isBreedingItem(emptyStack));
@@ -562,7 +562,7 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsEmptyStack)
 
 TEST_F(BeeEntityTest, IsBreedingItem_RejectsDiamond)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 使用钻石作为非花朵物品测试
     // 注意：STONE 可能在某些测试环境中未注册为 BlockItem
@@ -578,11 +578,11 @@ TEST_F(BeeEntityTest, IsBreedingItem_RejectsDiamond)
 
 TEST_F(BeeEntityTest, SpawnBaby_CreatesChildBee)
 {
-    BeeEntity parent1(EntityInstanceId(1));
+    BeeEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
 
-    BeeEntity parent2(EntityInstanceId(2));
+    BeeEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     auto baby = parent1.spawnBaby(parent2);
 
@@ -596,11 +596,11 @@ TEST_F(BeeEntityTest, SpawnBaby_CreatesChildBee)
 
 TEST_F(BeeEntityTest, SpawnBaby_PositionNearParent)
 {
-    BeeEntity parent(EntityInstanceId(1));
+    BeeEntity parent(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent.setWorld(&m_world);
     parent.setPosition(100.0f, 64.0f, 200.0f);
 
-    BeeEntity partner(EntityInstanceId(2));
+    BeeEntity partner(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     auto baby = parent.spawnBaby(partner);
 
@@ -622,13 +622,13 @@ TEST_F(BeeEntityTest, SpawnBaby_PositionNearParent)
 
 TEST_F(BeeEntityTest, NectarState_DefaultFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.hasNectar());
 }
 
 TEST_F(BeeEntityTest, NectarState_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setHasNectar(true);
     EXPECT_TRUE(bee.hasNectar());
@@ -643,13 +643,13 @@ TEST_F(BeeEntityTest, NectarState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, StungState_DefaultFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.hasStung());
 }
 
 TEST_F(BeeEntityTest, StungState_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setHasStung(true);
     EXPECT_TRUE(bee.hasStung());
@@ -664,13 +664,13 @@ TEST_F(BeeEntityTest, StungState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, FlyingState_DefaultFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.isFlying());
 }
 
 TEST_F(BeeEntityTest, FlyingState_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setFlying(true);
     EXPECT_TRUE(bee.isFlying());
@@ -685,13 +685,13 @@ TEST_F(BeeEntityTest, FlyingState_CanSetAndGet)
 
 TEST_F(BeeEntityTest, HivePosition_DefaultNoHive)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.hasHive());
 }
 
 TEST_F(BeeEntityTest, HivePosition_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     BlockPos hivePos(100, 64, 200);
     bee.setHivePos(hivePos);
@@ -706,13 +706,13 @@ TEST_F(BeeEntityTest, HivePosition_CanSetAndGet)
 
 TEST_F(BeeEntityTest, FlowerPosition_DefaultNoFlower)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.hasFlower());
 }
 
 TEST_F(BeeEntityTest, FlowerPosition_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     BlockPos flowerPos(50, 64, 100);
     bee.setFlowerPos(flowerPos);
@@ -727,7 +727,7 @@ TEST_F(BeeEntityTest, FlowerPosition_CanSetAndGet)
 
 TEST_F(BeeEntityTest, Attributes_HasCorrectBaseValues)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 蜜蜂生命值为 10
     EXPECT_DOUBLE_EQ(bee.maxHealth(), 10.0);
@@ -742,7 +742,7 @@ TEST_F(BeeEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(BeeEntityTest, EyeHeight_IsCorrect)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     // MC 1.16.5: 蜜蜂眼睛高度 0.3
     EXPECT_FLOAT_EQ(bee.eyeHeight(), 0.3f);
 }
@@ -753,7 +753,7 @@ TEST_F(BeeEntityTest, EyeHeight_IsCorrect)
 
 TEST_F(BeeEntityTest, Anger_CanSetAngerTime)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setAngerTime(100);
     EXPECT_EQ(bee.getAngerTime(), 100);
@@ -762,7 +762,7 @@ TEST_F(BeeEntityTest, Anger_CanSetAngerTime)
 
 TEST_F(BeeEntityTest, Anger_CanSetAngry)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setAngry(true);
     EXPECT_TRUE(bee.isAngry());
@@ -771,7 +771,7 @@ TEST_F(BeeEntityTest, Anger_CanSetAngry)
 
 TEST_F(BeeEntityTest, Anger_CanClearAnger)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 先设置为愤怒状态
     bee.setAngerTime(100);
@@ -789,7 +789,7 @@ TEST_F(BeeEntityTest, Anger_CanClearAnger)
 
 TEST_F(BeeEntityTest, Attributes_HasAttackDamage)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 蜜蜂攻击伤害为 2.0
     // 注意：需要在构造函数中设置属性
@@ -799,7 +799,7 @@ TEST_F(BeeEntityTest, Attributes_HasAttackDamage)
 
 TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 蜜蜂跟随范围为 48.0
     EXPECT_DOUBLE_EQ(bee.getAttributeValue("generic.follow_range", 0.0), 48.0);
@@ -807,7 +807,7 @@ TEST_F(BeeEntityTest, Attributes_HasFollowRange)
 
 TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 蜜蜂飞行速度为 0.6
     // 属性值已经设置
@@ -823,7 +823,7 @@ TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 
 TEST_F(BeeEntityTest, UnderwaterTimer_InitialState)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
 
     // 初始状态下溺水计时器应为 0
@@ -839,13 +839,13 @@ TEST_F(BeeEntityTest, UnderwaterTimer_InitialState)
 
 TEST_F(BeeEntityTest, StayOutOfHiveCountdown_DefaultZero)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 0);
 }
 
 TEST_F(BeeEntityTest, StayOutOfHiveCountdown_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setStayOutOfHiveCountdown(400);
     EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 400);
@@ -859,13 +859,13 @@ TEST_F(BeeEntityTest, StayOutOfHiveCountdown_CanSetAndGet)
 
 TEST_F(BeeEntityTest, HiveLocateCooldown_DefaultZero)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bee.getHiveLocateCooldown(), 0);
 }
 
 TEST_F(BeeEntityTest, HiveLocateCooldown_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setHiveLocateCooldown(200);
     EXPECT_EQ(bee.getHiveLocateCooldown(), 200);
@@ -879,7 +879,7 @@ TEST_F(BeeEntityTest, HiveLocateCooldown_CanSetAndGet)
 
 TEST_F(BeeEntityTest, DropHive_ClearsHiveAndSetsCooldown)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHivePos(BlockPos(100, 64, 200));
 
     EXPECT_TRUE(bee.hasHive());
@@ -895,7 +895,7 @@ TEST_F(BeeEntityTest, DropHive_ClearsHiveAndSetsCooldown)
 
 TEST_F(BeeEntityTest, DropHive_WhenNoHive_SetsCooldown)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 没有蜂巢时调用 dropHive
     EXPECT_FALSE(bee.hasHive());
 
@@ -907,13 +907,13 @@ TEST_F(BeeEntityTest, DropHive_WhenNoHive_SetsCooldown)
 
 TEST_F(BeeEntityTest, TicksWithoutNectar_DefaultZero)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bee.getTicksWithoutNectar(), 0);
 }
 
 TEST_F(BeeEntityTest, TicksWithoutNectar_CanReset)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 模拟递增（通过直接设置内部状态不可行，但可以验证 resetTicksWithoutNectar）
     bee.resetTicksWithoutNectar();
     EXPECT_EQ(bee.getTicksWithoutNectar(), 0);
@@ -921,13 +921,13 @@ TEST_F(BeeEntityTest, TicksWithoutNectar_CanReset)
 
 TEST_F(BeeEntityTest, Pollinating_DefaultFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(bee.isPollinating());
 }
 
 TEST_F(BeeEntityTest, Pollinating_CanSetAndGet)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bee.setPollinating(true);
     EXPECT_TRUE(bee.isPollinating());
@@ -962,7 +962,7 @@ protected:
 
 TEST_F(BeeHiveInteractionTest, IsHiveValid_NoHive_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
 
     // 没有设置蜂巢位置
@@ -972,7 +972,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_NoHive_ReturnsFalse)
 
 TEST_F(BeeHiveInteractionTest, IsHiveValid_NoWorld_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHivePos(BlockPos(10, 64, 20));
 
     EXPECT_TRUE(bee.hasHive());
@@ -985,7 +985,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_WithValidHive_ReturnsTrue)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -999,7 +999,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_HiveTooFar_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     // 蜜蜂距离蜂巢超过 48 格
     bee.setPosition(200.0f, 64.0f, 200.0f);
@@ -1014,7 +1014,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_NoBlockAtHivePos_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     // 不设置蜂巢方块
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1032,7 +1032,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_NonBeehiveBlock_ReturnsFalse)
         m_world.setBlockAt(hivePos, &VanillaBlocks::STONE->defaultState());
     }
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1052,7 +1052,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveValid_NoBlockEntityAtHivePos_ReturnsFalse)
     }
     // 不调用 setBeehiveAt，所以没有方块实体
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1067,7 +1067,7 @@ TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_ValidHive_ReturnsEntity)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1083,7 +1083,7 @@ TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_InvalidHive_ReturnsNullptr)
     BlockPos hivePos(10, 64, 20);
     // 不设置蜂巢
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1096,7 +1096,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_WithNectar_ReturnsTrue)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1114,7 +1114,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_WithoutNectarButTired_ReturnsTru
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1133,7 +1133,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_StayOutOfHiveCountdown_ReturnsFa
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1149,7 +1149,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_Pollinating_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1166,7 +1166,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_HasStung_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1183,7 +1183,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_NoNectarNoTired_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1200,7 +1200,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveNearFire_NoFire_ReturnsFalse)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(hivePos);
 
@@ -1216,7 +1216,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireAdjacent_ReturnsTrue)
     BlockPos firePos(11, 64, 20);
     m_world.setFireAt(firePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(hivePos);
 
@@ -1232,7 +1232,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireAbove_ReturnsTrue)
     BlockPos firePos(10, 65, 20);
     m_world.setFireAt(firePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(hivePos);
 
@@ -1248,7 +1248,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireTooFar_ReturnsFalse)
     BlockPos firePos(13, 64, 20);
     m_world.setFireAt(firePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(hivePos);
 
@@ -1257,7 +1257,7 @@ TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireTooFar_ReturnsFalse)
 
 TEST_F(BeeHiveInteractionTest, IsHiveNearFire_NoHive_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
 
     // 没有蜂巢
@@ -1274,7 +1274,7 @@ TEST_F(BeeHiveInteractionTest, WantsToEnterHive_FireNearHive_ReturnsFalse)
     BlockPos firePos(11, 64, 20);
     m_world.setFireAt(firePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1290,7 +1290,7 @@ TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_WithinRange_ReturnsEntity)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     // 蜜蜂在蜂巢旁边（在 48 格范围内）
     bee.setPosition(11.5f, 64.0f, 20.5f);
@@ -1305,7 +1305,7 @@ TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_OutOfRange_ReturnsNullptr)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     // 蜜蜂距离蜂巢超过 48 格
     bee.setPosition(200.0f, 64.0f, 200.0f);
@@ -1319,7 +1319,7 @@ TEST_F(BeeHiveInteractionTest, DropHive_ClearsHivePosition)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1361,7 +1361,7 @@ protected:
 
 TEST_F(BeeWeatherTest, IsTiredOfLookingForNectar_BelowThreshold_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(BlockPos(10, 64, 20));
 
@@ -1383,7 +1383,7 @@ TEST_F(BeeWeatherTest, IsTiredOfLookingForNectar_ThresholdIs3600)
     // 通过 wantsToEnterHive 间接验证
     // 此测试确认 API 契约：3600 tick 后蜜蜂厌倦寻找花蜜
     // 注意：实际递增需要通过 tick()，本测试验证方法存在和可调用
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setHivePos(BlockPos(10, 64, 20));
     bee.setHasNectar(false);
@@ -1401,7 +1401,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_Raining_ReturnsTrue)
     m_world.setBeehiveAt(hivePos);
     m_world.setRaining(true);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1419,7 +1419,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_Thundering_ReturnsTrue)
     m_world.setBeehiveAt(hivePos);
     m_world.setThundering(true);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1438,7 +1438,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_Nighttime_ReturnsTrue)
     // isDaytime() = dayTimeOfDay() < 12000，所以 14000 为夜间
     m_world.setDayTime(14000);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1458,7 +1458,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_DaytimeClearNoNectar_ReturnsFalse)
     EXPECT_FALSE(m_world.isRaining());
     EXPECT_FALSE(m_world.isThundering());
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1475,7 +1475,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_RainingButStung_ReturnsFalse)
     m_world.setBeehiveAt(hivePos);
     m_world.setRaining(true);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1492,7 +1492,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_RainingButPollinating_ReturnsFalse)
     m_world.setBeehiveAt(hivePos);
     m_world.setRaining(true);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1509,7 +1509,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_RainingButStayOutOfHive_ReturnsFalse)
     m_world.setBeehiveAt(hivePos);
     m_world.setRaining(true);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1527,7 +1527,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_RainingAndHiveNearFire_ReturnsFalse)
     BlockPos firePos(11, 64, 20);
     m_world.setFireAt(firePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1545,7 +1545,7 @@ TEST_F(BeeWeatherTest, WantsToEnterHive_NighttimeDaytimeBoundary)
     BlockPos hivePos(10, 64, 20);
     m_world.setBeehiveAt(hivePos);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
     bee.setHivePos(hivePos);
@@ -1580,7 +1580,7 @@ TEST_F(BeeWeatherTest, Beehive_ReleasePreventedDuringRain)
     ASSERT_NE(beehive, nullptr);
 
     // 创建蜜蜂并加入蜂巢
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHasNectar(true);
     beehive->addOccupant(bee);
     EXPECT_EQ(beehive->getOccupantCount(), 1);
@@ -1607,7 +1607,7 @@ TEST_F(BeeWeatherTest, Beehive_ReleasePreventedDuringNight)
     auto* beehive = static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
     ASSERT_NE(beehive, nullptr);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHasNectar(false);
     beehive->addOccupant(bee);
     EXPECT_EQ(beehive->getOccupantCount(), 1);
@@ -1635,7 +1635,7 @@ TEST_F(BeeWeatherTest, Beehive_ReleaseAllowedDuringDaytime)
     auto* beehive = static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
     ASSERT_NE(beehive, nullptr);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHasNectar(false);
     beehive->addOccupant(bee);
     EXPECT_EQ(beehive->getOccupantCount(), 1);
@@ -1665,7 +1665,7 @@ TEST_F(BeeWeatherTest, Beehive_EmergencyReleaseDuringRain)
     auto* beehive = static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
     ASSERT_NE(beehive, nullptr);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHasNectar(false);
     beehive->addOccupant(bee);
     EXPECT_EQ(beehive->getOccupantCount(), 1);
@@ -1690,7 +1690,7 @@ TEST_F(BeeWeatherTest, Beehive_ReleasePreventedDuringThunder)
     auto* beehive = static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
     ASSERT_NE(beehive, nullptr);
 
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setHasNectar(false);
     beehive->addOccupant(bee);
 
@@ -1730,21 +1730,21 @@ protected:
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_NoWorld_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 没有设置世界，navigator() 返回 nullptr
     EXPECT_FALSE(bee.pathfindRandomlyTowards(BlockPos(10, 64, 20)));
 }
 
 TEST_F(BeeNavigationTest, PathfindDirectlyTowards_NoWorld_ReturnsFalse)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 没有设置世界，navigator() 返回 nullptr
     EXPECT_FALSE(bee.pathfindDirectlyTowards(BlockPos(10, 64, 20)));
 }
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_SamePositionAsTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
 
@@ -1756,7 +1756,7 @@ TEST_F(BeeNavigationTest, PathfindRandomlyTowards_SamePositionAsTarget)
 
 TEST_F(BeeNavigationTest, PathfindDirectlyTowards_SamePositionAsTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(10.5f, 64.0f, 20.5f);
 
@@ -1767,7 +1767,7 @@ TEST_F(BeeNavigationTest, PathfindDirectlyTowards_SamePositionAsTarget)
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_FarTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -1778,7 +1778,7 @@ TEST_F(BeeNavigationTest, PathfindRandomlyTowards_FarTarget)
 
 TEST_F(BeeNavigationTest, PathfindDirectlyTowards_FarTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -1789,7 +1789,7 @@ TEST_F(BeeNavigationTest, PathfindDirectlyTowards_FarTarget)
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_AboveTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(50.0f, 80.0f, 50.0f);
 
@@ -1799,7 +1799,7 @@ TEST_F(BeeNavigationTest, PathfindRandomlyTowards_AboveTarget)
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_BelowTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(50.0f, 64.0f, 50.0f);
 
@@ -1809,7 +1809,7 @@ TEST_F(BeeNavigationTest, PathfindRandomlyTowards_BelowTarget)
 
 TEST_F(BeeNavigationTest, PathfindRandomlyTowards_NearTarget)
 {
-    BeeEntity bee(EntityInstanceId(1));
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
     bee.setWorld(&m_world);
     bee.setPosition(50.0f, 64.0f, 50.0f);
 

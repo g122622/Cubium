@@ -70,7 +70,7 @@ const Uuid kOtherUuid = util::uuidFromString("fedcba9876543210fedcba9876543210")
  * 提供最小化测试环境用于狼实体功能测试
  * 支持追踪 broadcastEntityStatus、playSound、onTameAnimal 调用
  */
-class WolfTestWorld final : public test::BaseTestWorld {
+class WolfTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -232,7 +232,7 @@ protected:
 
 TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 骨头是驯服狼的唯一物品
     ItemStack boneStack(Items::BONE, 1);
@@ -241,7 +241,7 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Bone_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 肉类不能驯服狼，只能繁殖
     ItemStack porkchopStack(Items::PORKCHOP, 1);
@@ -260,7 +260,7 @@ TEST_F(WolfEntityTestFixture, IsTameItem_Meat_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -268,7 +268,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Porkchop_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::COOKED_PORKCHOP, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -276,7 +276,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedPorkchop_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -284,7 +284,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Beef_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::COOKED_BEEF, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -292,7 +292,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedBeef_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -300,7 +300,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Chicken_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::COOKED_CHICKEN, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -308,7 +308,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedChicken_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -316,7 +316,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Rabbit_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::COOKED_RABBIT, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -324,7 +324,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedRabbit_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::MUTTON, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -332,7 +332,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Mutton_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_CookedMutton_ReturnsTrue)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::COOKED_MUTTON, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -346,7 +346,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue)
 {
     // 参考: MC 1.16.5 WolfEntity.isBreedingItem()
     // 狼可以用任何肉类繁殖，腐肉在 Foods.java 中标记为 .meat()
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::ROTTEN_FLESH, 1);
     EXPECT_TRUE(wolf.isBreedingItem(stack));
@@ -355,7 +355,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_RottenFlesh_ReturnsTrue)
 TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue)
 {
     // 狼的食物（用于治疗）与繁殖物品相同
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack stack(Items::ROTTEN_FLESH, 1);
     EXPECT_TRUE(wolf.isFoodItem(stack));
@@ -367,7 +367,7 @@ TEST_F(WolfEntityTestFixture, IsFoodItem_RottenFlesh_ReturnsTrue)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 小麦不能用于狼繁殖
     ItemStack wheatStack(Items::WHEAT, 1);
@@ -384,7 +384,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_NonMeat_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 骨头只能驯服，不能繁殖
     ItemStack boneStack(Items::BONE, 1);
@@ -397,7 +397,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_Bone_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(wolf.isBreedingItem(emptyStack));
@@ -405,7 +405,7 @@ TEST_F(WolfEntityTestFixture, IsBreedingItem_EmptyStack_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(wolf.isTameItem(emptyStack));
@@ -417,8 +417,8 @@ TEST_F(WolfEntityTestFixture, IsTameItem_EmptyStack_ReturnsFalse)
 
 TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
 {
-    WolfEntity parent1(EntityInstanceId(0));
-    WolfEntity parent2(EntityInstanceId(0));
+    WolfEntity parent1(EntityInstanceId(0), mc::test::testEcsRegistry());
+    WolfEntity parent2(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     auto baby = parent1.spawnBaby(parent2);
     ASSERT_NE(baby, nullptr);
@@ -437,7 +437,7 @@ TEST_F(WolfEntityTestFixture, SpawnBaby_CreatesChildWolf)
 
 TEST_F(WolfEntityTestFixture, OnTamed_IncreasesMaxHealth)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 驯服前生命值为 8
     EXPECT_EQ(wolf.maxHealth(), 8.0f);
@@ -450,7 +450,7 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesMaxHealth)
 
 TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 驯服前攻击力为 2
     // 注意：需要使用 getAttributeValueUnsafe 或检查属性是否存在
@@ -473,7 +473,7 @@ TEST_F(WolfEntityTestFixture, OnTamed_IncreasesAttackDamage)
 
 TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 默认颈圈颜色为红色
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
@@ -481,7 +481,7 @@ TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
 
 TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 设置为蓝色
     wolf.setCollarColor(DyeColor::Blue);
@@ -498,7 +498,7 @@ TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
 
 TEST_F(WolfEntityTestFixture, TailAngle_HealthyWolf)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setHealth(8.0f); // 满血
 
     // 健康狼尾巴角度应该接近 TAIL_ANGLE_HEALTHY (0.698f)
@@ -509,7 +509,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_HealthyWolf)
 
 TEST_F(WolfEntityTestFixture, TailAngle_UnhealthyWolf)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setHealth(2.0f); // 低血量
 
     // 不健康狼尾巴角度应该接近 TAIL_ANGLE_UNHEALTHY (-0.175f)
@@ -520,7 +520,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_UnhealthyWolf)
 
 TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setAngry(true);
 
     // 愤怒狼尾巴角度应该竖起
@@ -545,7 +545,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_BoundedRange_NonAngryWolf)
     // TAIL_ANGLE_UNHEALTHY ≈ -0.175 (约 -10°)
     // TAIL_ANGLE_HEALTHY ≈ 0.698 (约 40°)
     // 这与 ageInTicks（可无限增长）不同，是有界的
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setAngry(false);
 
     // 满血
@@ -572,7 +572,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_NeverEqualToAgeInTicks)
     // 回归测试：确保 getTailAngle() 不会返回类似 ageInTicks 的无界值
     // ageInTicks 是帧计数器，随时间无限增长，而 getTailAngle() 应该是
     // 基于生命值/愤怒状态的有界值
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setAngry(false);
     wolf.setHealth(wolf.maxHealth());
 
@@ -592,7 +592,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_HealthyVsUnhealthyGradient)
 {
     // 满血狼尾巴角度应该高于低血量狼
     // 验证尾巴角度与生命值成正比（健康=高尾巴，不健康=低尾巴）
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setAngry(false);
 
     wolf.setHealth(wolf.maxHealth());
@@ -611,7 +611,7 @@ TEST_F(WolfEntityTestFixture, TailAngle_HealthyVsUnhealthyGradient)
 
 TEST_F(WolfEntityTestFixture, Interested_CanBeSet)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(wolf.isInterested());
 
@@ -636,7 +636,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_InterestedParamId_IsValid)
 TEST_F(WolfEntityTestFixture, DataParameter_IsInterested_ReadsFromDataManager)
 {
     // isInterested() 应该从 DataManager 读取而非成员变量
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FALSE(wolf.isInterested());
 
     wolf.setInterested(true);
@@ -652,7 +652,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_IsInterested_ReadsFromDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_SetInterested_WritesToDataManager)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getInterestedParamId();
 
@@ -669,7 +669,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetInterested_WritesToDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnInterestedChange)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
 
     // 初始状态不应有脏数据
@@ -693,7 +693,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnInterestedChange)
 TEST_F(WolfEntityTestFixture, DataParameter_SyncsStateChanges)
 {
     // 验证多次状态变更正确同步
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(wolf.isInterested());
 
@@ -710,7 +710,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SyncsStateChanges)
 TEST_F(WolfEntityTestFixture, DataParameter_RegisteredOnConstruction)
 {
     // 验证 WolfEntity 构造后 DATA_INTERESTED_PARAM 已注册到 DataManager
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getInterestedParamId();
 
@@ -735,7 +735,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_TamedParamId_IsValid)
 TEST_F(WolfEntityTestFixture, DataParameter_IsTamed_ReadsFromDataManager)
 {
     // isTamed() 应该从 DataManager 读取而非成员变量
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FALSE(wolf.isTamed());
 
     wolf.setTamed(true);
@@ -751,7 +751,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_IsTamed_ReadsFromDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_SetTamed_WritesToDataManager)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = TameableEntity::getTamedParamId();
 
@@ -768,7 +768,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetTamed_WritesToDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnTamedChange)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
 
     // 初始状态不应有脏数据
@@ -792,7 +792,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnTamedChange)
 TEST_F(WolfEntityTestFixture, DataParameter_TamedRegisteredOnConstruction)
 {
     // 验证 WolfEntity 构造后 DATA_TAMED_PARAM 已注册到 DataManager
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = TameableEntity::getTamedParamId();
 
@@ -817,7 +817,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_CollarColorParamId_IsValid)
 TEST_F(WolfEntityTestFixture, DataParameter_GetCollarColor_ReadsFromDataManager)
 {
     // getCollarColor() 应该从 DataManager 读取而非成员变量
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
 
     wolf.setCollarColor(DyeColor::Blue);
@@ -833,7 +833,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_GetCollarColor_ReadsFromDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_SetCollarColor_WritesToDataManager)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getCollarColorParamId();
 
@@ -850,7 +850,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetCollarColor_WritesToDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnCollarColorChange)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
 
     // 初始状态不应有脏数据
@@ -874,7 +874,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnCollarColorChange)
 TEST_F(WolfEntityTestFixture, DataParameter_CollarColorDefaultIsRed)
 {
     // 验证 WolfEntity 构造后 DATA_COLLAR_COLOR_PARAM 默认值为红色
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getCollarColorParamId();
 
@@ -888,7 +888,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_CollarColorDefaultIsRed)
 TEST_F(WolfEntityTestFixture, DataParameter_CollarColor_AllDyeColorsRoundTrip)
 {
     // 验证所有 16 种 DyeColor 都能正确通过 DataParameter 存取
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getCollarColorParamId();
 
@@ -909,11 +909,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_ReturnsSuccessAnd
 {
     // 未驯服的狼用骨头交互：应该消耗物品、播放声音、尝试驯服
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack boneStack(Items::BONE, 10);
@@ -948,11 +948,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_CreativeMode_NoCo
 {
     // 创造模式下骨头不被消耗
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack boneStack(Items::BONE, 10);
@@ -972,12 +972,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_SilentWolf_NoSoun
 {
     // 静音狼不应该播放声音
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setSilent(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
@@ -995,12 +995,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_AngryWolf_BoneDoesNotTame)
 {
     // 愤怒的狼不能用骨头驯服
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setAngry(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
@@ -1021,11 +1021,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_NonBoneItem_PassesToParent
 {
     // 未驯服的狼用非骨头物品交互，交给父类处理
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack appleStack(Items::APPLE, 10);
     player.inventory().setItem(0, appleStack);
@@ -1044,11 +1044,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_OffHandBone)
 {
     // 副手骨头测试
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -1073,7 +1073,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessAndSets
     // 驯服成功场景 - 直接验证状态设置
     WolfTestWorld world;
 
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     EXPECT_FALSE(wolf.isTamed());
@@ -1091,11 +1091,11 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessO
 {
     // 驯服尝试：验证广播为成功或失败之一
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack boneStack(Items::BONE, 10);
     player.inventory().setItem(0, boneStack);
@@ -1121,13 +1121,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodDamaged_HealsAndPlaysSou
 {
     // 已驯服的狼 + 食物 + 未满血 → 治疗并播放声音
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(10.0f); // 未满血（驯服后满血 20.0f）
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1156,13 +1156,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodFullHealth_DoesNotHeal)
 {
     // 已驯服的狼 + 食物 + 满血 → 跳过治疗分支，进入繁殖/成长分支
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(wolf.maxHealth()); // 满血
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1184,13 +1184,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RottenFlesh_Heals)
 {
     // 腐肉治疗测试
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(5.0f); // 受伤
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack rottenFleshStack(Items::ROTTEN_FLESH, 10);
@@ -1208,13 +1208,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_CookedBeef_Heals)
 {
     // 熟牛排治疗测试
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(5.0f); // 受伤
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack cookedBeefStack(Items::COOKED_BEEF, 10);
@@ -1232,13 +1232,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodCreativeMode_NoConsumpti
 {
     // 创造模式下喂食不消耗物品
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(10.0f);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1261,14 +1261,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_SilentFoodHeal_NoSound)
 {
     // 静音狼喂食不播放声音
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setHealth(10.0f);
     wolf.setSilent(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack porkchopStack(Items::PORKCHOP, 10);
     player.inventory().setItem(0, porkchopStack);
@@ -1290,14 +1290,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
 {
     // 已驯服的狼 + 染料 + 主人 → 改变颈圈颜色
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -1321,14 +1321,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeNonOwner_NoCollarChange)
 {
     // 已驯服的狼 + 染料 + 非主人 → 不改变颈圈颜色，进入坐下/站起分支
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
 
-    Player player(EntityInstanceId(2), "OtherPlayer");
+    Player player(EntityInstanceId(2), "OtherPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -1355,14 +1355,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeSameColor_NoConsumption)
 {
     // 已驯服的狼 + 相同颜色染料 + 主人 → 不消耗物品，返回 Success
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     // 默认红色颈圈
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::RED_DYE, 10);
@@ -1388,13 +1388,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealDye_WhiteCollar)
 {
     // 骨粉作为白色染料
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack boneMealStack(Items::BONE_MEAL, 10);
@@ -1412,13 +1412,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacDye_BlackCollar)
 {
     // 墨囊作为黑色染料
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack inkSacStack(Items::INK_SAC, 10);
@@ -1440,7 +1440,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_AcceleratesGrowth)
 {
     // 已驯服的幼年狼 + 食物 → 加速成长
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1448,7 +1448,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_AcceleratesGrowth)
     wolf.setChild(true); // 设为幼体
     EXPECT_TRUE(wolf.isChild());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1480,14 +1480,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_CreativeMode_NoCon
 {
     // 创造模式下幼年狼喂食不消耗物品
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     wolf.setChild(true);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1511,7 +1511,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_EntersLov
 {
     // 已驯服的成年狼 + 食物 + 满血 + 可繁殖 → 进入求爱状态
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1520,7 +1520,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_EntersLov
     EXPECT_FALSE(wolf.isChild());     // 成年
     EXPECT_TRUE(wolf.canBreed());     // 可繁殖
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1549,14 +1549,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_CreativeM
 {
     // 创造模式下繁殖不消耗物品
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1580,13 +1580,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerEmptyHand_TogglesSittin
 {
     // 已驯服的狼 + 主人 + 空手 → 切换坐下/站起
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     // 空手（不设置任何物品）
     ItemStack emptyStack(nullptr, 0);
@@ -1611,7 +1611,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerSitting_TogglesToStandi
 {
     // 已驯服坐着的狼 + 主人 → 站起
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1619,7 +1619,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerSitting_TogglesToStandi
     wolf.setSitting(true);
     EXPECT_TRUE(wolf.isSitting());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     ItemStack emptyStack(nullptr, 0);
     player.inventory().setItem(0, emptyStack);
@@ -1635,13 +1635,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerEmptyHand_Passes)
 {
     // 已驯服的狼 + 非主人 + 空手 → 返回 Pass
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player otherPlayer(EntityInstanceId(2), "OtherPlayer");
+    Player otherPlayer(EntityInstanceId(2), "OtherPlayer", mc::test::testEcsRegistry());
     otherPlayer.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     ItemStack emptyStack(nullptr, 0);
     otherPlayer.inventory().setItem(0, emptyStack);
@@ -1665,14 +1665,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DamagedFoodPrioritizedOverBr
     // 已驯服的狼 + 食物 + 未满血 → 应该治疗，而不是进入繁殖
     // 这验证了治疗优先级高于繁殖
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(5.0f); // 受伤
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1693,14 +1693,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodHealPrioritizedOverDye)
     // 已驯服的狼 + 满血 + 猪排 → 应该进入繁殖状态，而非治疗
     // 这验证满血时食物不被用于治疗
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(wolf.maxHealth()); // 满血
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1719,7 +1719,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_ChildFoodPrioritizedOverDye)
 {
     // 已驯服的幼年狼 + 食物 → 加速成长（而非染色，因为食物不是染料）
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1727,7 +1727,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_ChildFoodPrioritizedOverDye)
     wolf.setChild(true);
     wolf.setHealth(wolf.maxHealth()); // 幼年狼满血
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack porkchopStack(Items::PORKCHOP, 10);
@@ -1753,7 +1753,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
 {
     // 已驯服的狼 + 染料（不是食物）+ 主人 → 染色而非坐下切换
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1761,7 +1761,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
     wolf.setHealth(wolf.maxHealth()); // 满血
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
     ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
@@ -1785,14 +1785,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_HealAndDyeSeparateInteractio
 {
     // 先治疗，再染色 - 验证多次交互独立工作
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     wolf.setHealth(5.0f); // 受伤
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -1823,13 +1823,13 @@ TEST_F(WolfEntityTestFixture, CanShearEquipment_OwnerCanShear)
 {
     // 主人可以剪切狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     EXPECT_TRUE(wolf.canShearEquipment(player));
@@ -1839,13 +1839,13 @@ TEST_F(WolfEntityTestFixture, CanShearEquipment_NonOwnerCannotShear)
 {
     // 非主人不能剪切狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player stranger(EntityInstanceId(2), "Stranger");
+    Player stranger(EntityInstanceId(2), "Stranger", mc::test::testEcsRegistry());
     stranger.setUuid(util::uuidToString(kOtherUuid));
 
     EXPECT_FALSE(wolf.canShearEquipment(stranger));
@@ -1855,7 +1855,7 @@ TEST_F(WolfEntityTestFixture, BodyArmor_GetAndSet)
 {
     // 测试 MobEntity 身体护甲便捷方法
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
 
@@ -1875,13 +1875,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_EquipWolfArmor)
 {
     // 主人右键驯服的狼 + 手持狼铠 → 装备狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -1903,13 +1903,13 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerCannotEquipArmor)
 {
     // 非主人不能装备狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
 
-    Player stranger(EntityInstanceId(2), "Stranger");
+    Player stranger(EntityInstanceId(2), "Stranger", mc::test::testEcsRegistry());
     stranger.setUuid(util::uuidToString(kOtherUuid));
 
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
@@ -1924,7 +1924,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_AlreadyEquippedCannotEquipAg
 {
     // 已装备狼铠时不能再装备
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1935,7 +1935,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_AlreadyEquippedCannotEquipAg
     wolf.setBodyArmorItem(wolfArmorStack);
     EXPECT_TRUE(wolf.isWearingBodyArmor());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -1953,7 +1953,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairWolfArmor)
 {
     // 主人右键坐下的狼 + 手持犰狳鳞甲 + 狼铠已受损 → 修复狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -1967,7 +1967,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairWolfArmor)
     wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(32);
     EXPECT_TRUE(wolf.getBodyArmorItem().isDamaged());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -1992,7 +1992,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
 {
     // 狼铠修复需要狼坐下
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2004,7 +2004,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
     wolf.setBodyArmorItem(wolfArmorStack);
     wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(32);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     ItemStack scuteStack(Items::ARMADILLO_SCUTE, 10);
@@ -2029,7 +2029,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_WolfHealthUnchanged)
 {
     // 穿戴狼铠的狼受到非绕过护甲伤害时，狼生命值不变，狼铠耐久降低
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2064,7 +2064,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_BypassesArmor_DamagesWo
     // 穿戴狼铠的狼受到绕过狼铠伤害时，狼扣血，狼铠耐久不变
     // MC 1.21.11: BYPASSES_WOLF_ARMOR 标签包含 drown（溺水），狼铠不吸收溺水伤害
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2092,7 +2092,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_WithoutWolfArmor_WolfTakesDamage)
 {
     // 未穿戴狼铠的狼受到伤害时，正常扣血
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2113,7 +2113,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorAbsorption_PlaysDamageSound)
 {
     // 狼铠吸收伤害时播放 ENTITY_WOLF_ARMOR_DAMAGE 音效
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2140,7 +2140,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorBreak_PlaysBreakSoundAndClearsSl
 {
     // 狼铠耐久降至 0 时播放 ENTITY_WOLF_ARMOR_BREAK 音效，且槽位清空
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2177,7 +2177,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorNotBroken_NoBreakSound)
 {
     // 狼铠耐久未降至 0 时不播放破损音效，槽位仍装备狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2216,7 +2216,7 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_CrackLevelChange_PlaysCrackSound)
 {
     // 狼铠从无裂纹（None）受损到 Low 裂纹时，播放 ENTITY_WOLF_ARMOR_CRACK 音效
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2254,7 +2254,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_OwnerWithShears_ShearsWolfA
 {
     // 主人手持剪刀右键已装备狼铠的狼 → 剪下狼铠
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2265,7 +2265,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_OwnerWithShears_ShearsWolfA
     wolf.setBodyArmorItem(wolfArmorStack);
     EXPECT_TRUE(wolf.isWearingBodyArmor());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
 
@@ -2303,7 +2303,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_NonOwnerWithShears_DoesNotS
 {
     // 非主人手持剪刀不能剪下狼铠（WolfEntity::canShearEquipment 仅允许主人剪切）
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2312,7 +2312,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_NonOwnerWithShears_DoesNotS
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
 
-    Player stranger(EntityInstanceId(2), "Stranger");
+    Player stranger(EntityInstanceId(2), "Stranger", mc::test::testEcsRegistry());
     stranger.setUuid(util::uuidToString(kOtherUuid)); // 非主人
 
     ItemStack shearsStack(Items::SHEARS, 1);
@@ -2332,7 +2332,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_Shears_NoArmor_NoEffect)
 {
     // 手持剪刀但狼未装备狼铠时，剪刀分支不触发，进入 interactMob
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2340,7 +2340,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_Shears_NoArmor_NoEffect)
 
     EXPECT_FALSE(wolf.isWearingBodyArmor());
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
 
     ItemStack shearsStack(Items::SHEARS, 1);
@@ -2362,7 +2362,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_SneakingWithShears_DoesNotS
 {
     // 玩家潜行时手持剪刀不触发剪切（与 MC 1.21.11 一致）
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2371,7 +2371,7 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_SneakingWithShears_DoesNotS
     ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
     wolf.setBodyArmorItem(wolfArmorStack);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.setSneaking(true); // 潜行状态
@@ -2402,7 +2402,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor
 {
     // 主人手持染料 + 已装备狼铠 → 改变狼铠颜色
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2418,7 +2418,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor
     u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
     EXPECT_EQ(initialColor, 0xA06540);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
 
@@ -2445,7 +2445,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorC
 {
     // 非主人手持染料 + 已装备狼铠 → 不改变狼铠颜色
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2458,7 +2458,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorC
     ASSERT_NE(dyeableArmor, nullptr);
     u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
 
-    Player stranger(EntityInstanceId(2), "Stranger");
+    Player stranger(EntityInstanceId(2), "Stranger", mc::test::testEcsRegistry());
     stranger.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     stranger.abilities().creativeMode = false;
 
@@ -2481,7 +2481,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
     // 多次染色应该混合颜色（与当前颜色取 RGB 平均值）
     // 狼铠默认颜色为犰狳鳞甲棕色 0xA06540 = (160, 101, 64)
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
@@ -2493,7 +2493,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
     const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(wolf.getBodyArmorItem().getItem());
     ASSERT_NE(dyeableArmor, nullptr);
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true; // 创造模式不消耗物品
 
@@ -2539,14 +2539,14 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly
 {
     // 未装备狼铠时，染料仅改变颈圈颜色（不进入狼铠染色分支）
     WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色颈圈
 
-    Player player(EntityInstanceId(2), "TestPlayer");
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
@@ -2578,7 +2578,7 @@ namespace {
 class TestWolfEntity : public WolfEntity {
 public:
     explicit TestWolfEntity(EntityInstanceId id)
-        : WolfEntity(id)
+        : WolfEntity(id, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] bool isInWaterOrRain() const override { return m_forceInWaterOrRain; }
@@ -2605,7 +2605,7 @@ private:
 TEST_F(WolfEntityTestFixture, Shake_DefaultState_AllZero)
 {
     // 默认状态：isWet=false, isShaking=false, shakeAnim=0
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(wolf.isWet());
     EXPECT_FALSE(wolf.isShaking());
     EXPECT_FLOAT_EQ(wolf.getShakeAnim(0.0f), 0.0f);
@@ -2969,7 +2969,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_AngerTimeParamId_IsValid)
 TEST_F(WolfEntityTestFixture, DataParameter_IsAngry_ReadsFromDataManager)
 {
     // isAngry() 应该从 DataManager 读取而非成员变量
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FALSE(wolf.isAngry());
     EXPECT_EQ(wolf.getAngerTime(), 0);
 
@@ -2988,7 +2988,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_IsAngry_ReadsFromDataManager)
 TEST_F(WolfEntityTestFixture, DataParameter_SetAngry_WritesToDataManager)
 {
     // setAngry(true) 应该通过虚函数 setAngerTime 路由到 DATA_ANGER_TIME_PARAM
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getAngerTimeParamId();
 
@@ -3007,7 +3007,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngry_WritesToDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_SetAngerTime_WritesToDataManager)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getAngerTimeParamId();
 
@@ -3024,7 +3024,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngerTime_WritesToDataManager)
 
 TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnAngerChange)
 {
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
 
     // 初始状态不应有脏数据
@@ -3053,7 +3053,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_DirtyFlag_OnAngerChange)
 TEST_F(WolfEntityTestFixture, DataParameter_AngerTimeRegisteredOnConstruction)
 {
     // 验证 WolfEntity 构造后 DATA_ANGER_TIME_PARAM 已注册到 DataManager
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getAngerTimeParamId();
 
@@ -3068,7 +3068,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_AngerTimeRegisteredOnConstruction)
 TEST_F(WolfEntityTestFixture, DataParameter_AngerState_SyncsStateChanges)
 {
     // 验证多次状态变更正确同步
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(wolf.isAngry());
 
@@ -3091,7 +3091,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_AngerState_SyncsStateChanges)
 TEST_F(WolfEntityTestFixture, DataParameter_TailAngle_UsesAngerFromDataManager)
 {
     // 验证 getTailAngle() 在愤怒时返回 1.539f，且愤怒状态来自 DataParameter 而非成员变量
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 非愤怒状态：尾巴角度基于生命值
     wolf.setHealth(wolf.maxHealth());

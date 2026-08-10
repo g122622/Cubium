@@ -152,7 +152,7 @@ public:
         if (dragonType == nullptr) {
             return std::string();
         }
-        std::unique_ptr<Entity> dragonEntity = dragonType->create(this);
+        std::unique_ptr<Entity> dragonEntity = dragonType->create(this, mc::test::testEcsRegistry());
         if (dragonEntity == nullptr) {
             return std::string();
         }

@@ -294,7 +294,7 @@ TEST(MobSpawnerBlockEntityTriggerEventTest, UnknownEvent_ReturnsFalse)
 
 namespace {
 /// 测试用 IWorld 子类，用于验证 Block::triggerEvent 默认行为
-class BlockEventTestWorld : public test::BaseTestWorld {
+class BlockEventTestWorld : public mc::test::BaseTestWorld {
 public:
     BlockEventTestWorld() = default;
 };

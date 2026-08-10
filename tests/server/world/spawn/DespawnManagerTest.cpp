@@ -61,7 +61,7 @@ void ensureVanillaEntitiesRegistered()
 class TestMob : public MobEntity {
 public:
     TestMob(EntityInstanceId id)
-        : MobEntity(id)
+        : MobEntity(id, mc::test::testEcsRegistry())
     {
         ensureVanillaEntitiesRegistered();
         setTypeId(EntityTypeKeys::ZOMBIE);
@@ -75,7 +75,7 @@ public:
 class TestMonster : public MonsterEntity {
 public:
     TestMonster(EntityInstanceId id)
-        : MonsterEntity(id)
+        : MonsterEntity(id, mc::test::testEcsRegistry())
     {
         ensureVanillaEntitiesRegistered();
         setTypeId(EntityTypeKeys::ZOMBIE);
@@ -88,7 +88,7 @@ public:
 class TestAnimal : public AnimalEntity {
 public:
     TestAnimal(EntityInstanceId id)
-        : AnimalEntity(id)
+        : AnimalEntity(id, mc::test::testEcsRegistry())
     {
         ensureVanillaEntitiesRegistered();
         setTypeId(EntityTypeKeys::COW);
@@ -98,7 +98,7 @@ public:
 };
 
 // 简化的测试世界
-class DespawnTestWorld : public test::BaseTestWorld {
+class DespawnTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }

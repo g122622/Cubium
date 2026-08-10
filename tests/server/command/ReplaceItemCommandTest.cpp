@@ -48,7 +48,7 @@ namespace command {
 // 测试服务器
 // ============================================================================
 
-class ReplaceItemTestServer final : public test::BaseTestServer {
+class ReplaceItemTestServer final : public mc::test::BaseTestServer {
 public:
     ReplaceItemTestServer() { Items::initialize(); }
 

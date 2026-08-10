@@ -50,7 +50,7 @@ using namespace mc::entity::attribute;
 
 namespace {
 
-class GroundSupportWorld final : public test::BaseTestWorld {
+class GroundSupportWorld final : public mc::test::BaseTestWorld {
 public:
     void setSupportEnabled(bool enabled) { m_supportEnabled = enabled; }
 
@@ -120,7 +120,7 @@ private:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(2))
+        : MobEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -140,7 +140,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -430,7 +430,7 @@ TEST(LivingEntityTest, MobFallsWhenSupportIsRemoved)
     VanillaBlocks::initialize();
 
     GroundSupportWorld world;
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.setWorld(&world);
     mob.setPosition(0.3f, 1.0f, 0.3f);
 
@@ -551,7 +551,7 @@ TEST(AttackContextTest, MeleeDamageAppliesStrengthAndWeakness)
     class TestMonster : public MonsterEntity {
     public:
         TestMonster()
-            : MonsterEntity(EntityInstanceId(1))
+            : MonsterEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
         {
             // C++ 虚方法在基类构造中只 dispatch 到基类版本，LivingEntity 构造调用的
             // registerAttributes 不会派发到 MonsterEntity::registerAttributes，故需在此
@@ -807,7 +807,7 @@ TEST(LivingEntityTest, SwingAnimation_SwingProgress)
 // 空气供应和溺水测试
 // ============================================================================
 
-class MockRandomWorld final : public test::BaseTestWorld {
+class MockRandomWorld final : public mc::test::BaseTestWorld {
 public:
     MockRandomWorld() = default;
 
@@ -851,7 +851,7 @@ TEST(LivingEntityTest, CanBreatheUnderwater_Default)
 class TestUndeadEntity : public LivingEntity {
 public:
     TestUndeadEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

@@ -42,7 +42,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class ArmorTestWorld final : public test::BaseTestWorld {
+class ArmorTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -111,7 +111,7 @@ protected:
 TEST_F(ArmorValueTest, EmptyArmorReturnsZero)
 {
     // 创建一个玩家，不穿戴任何护甲
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 护甲值应该为0
     EXPECT_EQ(player.armorValue(), 0);
@@ -123,7 +123,7 @@ TEST_F(ArmorValueTest, TotalArmorValueWithFullDiamondArmor)
     // 头盔: 3, 胸甲: 8, 护腿: 6, 靴子: 3 = 20
     if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE && Items::DIAMOND_LEGGINGS && Items::DIAMOND_BOOTS) {
 
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::DIAMOND_HELMET, 1));
@@ -144,7 +144,7 @@ TEST_F(ArmorValueTest, TotalArmorValueWithFullIronArmor)
     // 头盔: 2, 胸甲: 6, 护腿: 5, 靴子: 2 = 15
     if (Items::IRON_HELMET && Items::IRON_CHESTPLATE && Items::IRON_LEGGINGS && Items::IRON_BOOTS) {
 
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::IRON_HELMET, 1));
@@ -161,7 +161,7 @@ TEST_F(ArmorValueTest, TotalArmorValueWithPartialArmor)
 {
     // 只穿戴部分护甲
     if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE) {
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         // 只戴头盔和胸甲
@@ -178,7 +178,7 @@ TEST_F(ArmorValueTest, TotalArmorValueWithMixedArmor)
     // 混合护甲
     if (Items::DIAMOND_HELMET && Items::IRON_CHESTPLATE && Items::DIAMOND_LEGGINGS && Items::IRON_BOOTS) {
 
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::DIAMOND_HELMET, 1));      // 3
@@ -195,7 +195,7 @@ TEST_F(ArmorValueTest, NonArmorItemsDoNotContribute)
 {
     // 非护甲物品不应该贡献护甲值
     if (Items::STONE && Items::IRON_HELMET) {
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         // 在头盔槽放石头
@@ -215,7 +215,7 @@ TEST_F(ArmorValueTest, NonArmorItemsDoNotContribute)
 TEST_F(ArmorValueTest, EmptyStackDoesNotContribute)
 {
     // 空物品堆不应该贡献护甲值
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory& inv = player.inventory();
 
     // 设置为空堆
@@ -231,7 +231,7 @@ TEST_F(ArmorValueTest, ArmorValueStaticMethod)
 {
     // 测试静态方法 ArmorItem::getTotalArmorValue
     if (Items::DIAMOND_HELMET && Items::DIAMOND_CHESTPLATE) {
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::DIAMOND_HELMET, 1));
@@ -250,7 +250,7 @@ TEST_F(ArmorValueTest, ArmorToughnessDiamondArmor)
 {
     // 钻石护甲韧性：每件2点，全套8点
     if (Items::DIAMOND_HELMET) {
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::DIAMOND_HELMET, 1));
@@ -267,7 +267,7 @@ TEST_F(ArmorValueTest, ArmorToughnessNetheriteArmor)
 {
     // 下界合金护甲韧性：每件3点，全套12点
     if (Items::NETHERITE_HELMET) {
-        Player player(1, "TestPlayer");
+        Player player(1, "TestPlayer", mc::test::testEcsRegistry());
         PlayerInventory& inv = player.inventory();
 
         inv.setHelmet(ItemStack(Items::NETHERITE_HELMET, 1));
@@ -287,7 +287,7 @@ TEST_F(ArmorValueTest, ArmorToughnessNetheriteArmor)
 
 TEST_F(ArmorValueTest, GetDestroySpeedWithEmptyHand)
 {
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 空手应该返回 1.0
     // 注意：需要一个有效的BlockState来测试

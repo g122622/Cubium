@@ -30,6 +30,7 @@
  * - MoveToLavaGoal: shouldExecute, shouldContinueExecuting, shouldMoveTo
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/special/MoveToLavaGoal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
@@ -44,7 +45,7 @@ using namespace mc::entity::ai::goal;
 
 class MoveToLavaGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
 
     void TearDown() override { strider.reset(); }
 
@@ -121,7 +122,7 @@ TEST_F(MoveToLavaGoalTest, Constants_MatchMC1165)
 
 class StriderEntityGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0)); }
+    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
 
     void TearDown() override { strider.reset(); }
 

@@ -284,7 +284,7 @@ protected:
  */
 TEST_F(FallingBlockEntityTest, DefaultConstruction)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
     EXPECT_EQ(entity->getBlockId(), 0);
     EXPECT_FALSE(entity->shouldHurtEntities());
@@ -300,7 +300,7 @@ TEST_F(FallingBlockEntityTest, DefaultConstruction)
  */
 TEST_F(FallingBlockEntityTest, EntitySize)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(entity->width(), 0.98f);
     EXPECT_FLOAT_EQ(entity->height(), 0.98f);
 }
@@ -310,7 +310,7 @@ TEST_F(FallingBlockEntityTest, EntitySize)
  */
 TEST_F(FallingBlockEntityTest, IsNotPushable)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(entity->isPushable());
 }
 
@@ -319,7 +319,7 @@ TEST_F(FallingBlockEntityTest, IsNotPushable)
  */
 TEST_F(FallingBlockEntityTest, CannotBeCollidedWith)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(entity->canBeCollidedWith());
 }
 
@@ -328,7 +328,7 @@ TEST_F(FallingBlockEntityTest, CannotBeCollidedWith)
  */
 TEST_F(FallingBlockEntityTest, SetBlockId)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     entity->setBlockId(12); // 砂岩
     EXPECT_EQ(entity->getBlockId(), 12);
@@ -346,7 +346,7 @@ TEST_F(FallingBlockEntityTest, SetBlockId)
  */
 TEST_F(FallingBlockEntityTest, GetSpawnDataReturnsBlockStateStateId)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 未设置任何状态 → 0（空气）
     EXPECT_EQ(entity->getSpawnData(), 0);
@@ -367,7 +367,7 @@ TEST_F(FallingBlockEntityTest, GetSpawnDataReturnsBlockStateStateId)
  */
 TEST_F(FallingBlockEntityTest, SetHurtEntities)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     EXPECT_FALSE(entity->shouldHurtEntities());
 
@@ -383,7 +383,7 @@ TEST_F(FallingBlockEntityTest, SetHurtEntities)
  */
 TEST_F(FallingBlockEntityTest, SetFallStartPos)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     entity->setFallStartPos(100.0);
     // 没有直接的 getter，但可以通过伤害计算间接测试
@@ -394,7 +394,7 @@ TEST_F(FallingBlockEntityTest, SetFallStartPos)
  */
 TEST_F(FallingBlockEntityTest, SetShouldDropItem)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     EXPECT_TRUE(entity->shouldDropItem());
 
@@ -410,7 +410,7 @@ TEST_F(FallingBlockEntityTest, SetShouldDropItem)
  */
 TEST_F(FallingBlockEntityTest, SetDontSetBlock)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     EXPECT_FALSE(entity->dontSetBlock());
 
@@ -437,7 +437,7 @@ TEST_F(FallingBlockEntityTest, LandingPlacesBlockOnGround)
     // 设置地面
     m_world.setBlockAt(0, -1, 0, &VanillaBlocks::STONE->defaultState());
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 1.0f, 0.5f); // 地面上方 1 格
     entity->setBlockId(sandState->blockId());
@@ -474,7 +474,7 @@ TEST_F(FallingBlockEntityTest, LandingDropsItemWhenCannotPlace)
     // 不设置地面，让方块落到世界底部以下
     // 这种情况下方块无法放置
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
@@ -507,7 +507,7 @@ TEST_F(FallingBlockEntityTest, DontSetBlockPreventsPlacement)
     // 设置地面
     m_world.setBlockAt(0, -1, 0, &VanillaBlocks::STONE->defaultState());
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 1.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
@@ -536,7 +536,7 @@ TEST_F(FallingBlockEntityTest, ShouldDropItemFalsePreventsItemDrop)
     const BlockState* sandState = &VanillaBlocks::SAND->defaultState();
     ASSERT_NE(sandState, nullptr);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
@@ -568,7 +568,7 @@ TEST_F(FallingBlockEntityTest, HurtEntitiesWhenEnabled)
     ASSERT_NE(sandState, nullptr);
 
     // 创建一个会伤害实体的下落方块
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 5.0f, 0.5f); // 从较高位置下落
     entity->setBlockId(sandState->blockId());
@@ -593,7 +593,7 @@ TEST_F(FallingBlockEntityTest, GameRuleDoEntityDropsAffectsItemDrop)
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, false, nullptr);
     EXPECT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS));
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.0f, 0.5f);
     entity->setBlockId(sandState->blockId());
@@ -620,7 +620,7 @@ TEST_F(FallingBlockEntityTest, GameRuleDoEntityDropsAffectsItemDrop)
  */
 TEST_F(FallingBlockEntityTest, GravityIsApplied)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.0f, 100.0f, 0.0f);
     entity->setVelocity(0.0f, 0.0f, 0.0f);
@@ -643,7 +643,7 @@ TEST_F(FallingBlockEntityTest, GravityIsApplied)
  */
 TEST_F(FallingBlockEntityTest, AirResistanceIsApplied)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.0f, 100.0f, 0.0f);
     entity->setVelocity(1.0f, 0.0f, 1.0f);
@@ -662,7 +662,7 @@ TEST_F(FallingBlockEntityTest, AirResistanceIsApplied)
  */
 TEST_F(FallingBlockEntityTest, MaxFallTimeTriggersLanding)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.0f, 100.0f, 0.0f); // 高位置，不会落地
 
@@ -701,7 +701,7 @@ TEST_F(FallingBlockEntityTest, ConstantsMatchMC1165)
  */
 TEST_F(FallingBlockEntityTest, AnvilDamageParameters)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 默认参数
     EXPECT_FALSE(entity->shouldHurtEntities());
@@ -725,7 +725,7 @@ TEST_F(FallingBlockEntityTest, AnvilDamageParameters)
  */
 TEST_F(FallingBlockEntityTest, FallingStatePreservation)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 默认为 nullptr
     EXPECT_EQ(entity->getFallingState(), nullptr);
@@ -745,7 +745,7 @@ TEST_F(FallingBlockEntityTest, FallingStatePreservation)
  */
 TEST_F(FallingBlockEntityTest, CancelDropFlag)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 默认为 false
     EXPECT_FALSE(entity->cancelDrop());
@@ -765,7 +765,7 @@ TEST_F(FallingBlockEntityTest, CancelDropFlag)
  */
 TEST_F(FallingBlockEntityTest, CustomDamageParameters)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 设置自定义伤害参数（模拟沙子等普通下落方块使用默认值）
     entity->setFallDamagePerDistance(2.0f);
@@ -793,7 +793,7 @@ TEST_F(FallingBlockEntityTest, AnvilDegradeUpdatesFallingState)
     const Block* anvil = block_registry::BuildingBlocks::ANVIL;
     ASSERT_NE(anvil, nullptr);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     const BlockState* anvilState =
         &anvil->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     entity->setBlockId(anvilState->blockId());
@@ -829,7 +829,7 @@ TEST_F(FallingBlockEntityTest, AnvilDegradeUpdatesFallingState)
  */
 TEST_F(FallingBlockEntityTest, AnvilFullDestroySetsDontSetBlockNotCancelDrop)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 验证初始状态
     EXPECT_FALSE(entity->dontSetBlock());
@@ -858,7 +858,7 @@ TEST_F(FallingBlockEntityTest, AnvilFullDamageChainViaEntity)
     const Block* anvil = block_registry::BuildingBlocks::ANVIL;
     ASSERT_NE(anvil, nullptr);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     const BlockState* state = &anvil->defaultState();
     entity->setBlockId(state->blockId());
     entity->setFallingState(state);
@@ -896,7 +896,7 @@ TEST_F(FallingBlockEntityTest, DropItemUsesFallingStateBlockId)
     ASSERT_NE(anvil, nullptr);
     ASSERT_NE(chippedAnvil, nullptr);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     // 初始设置为铁砧
     const BlockState* anvilState = &anvil->defaultState();
@@ -938,7 +938,7 @@ TEST_F(FallingBlockEntityTest, ConcretePowderBlockId)
     const Block* powder = VanillaBlocks::WHITE_CONCRETE_POWDER;
     ASSERT_NE(powder, nullptr);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powder->defaultState().blockId());
     EXPECT_EQ(entity->getBlockId(), powder->defaultState().blockId());
 
@@ -969,7 +969,7 @@ TEST_F(FallingBlockEntityTest, ConcretePowderTickSolidifiesInWater)
     const fluid::FluidState* waterState = &waterFluid->defaultState();
     m_world.setFluidAt(0, 0, 0, waterState);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.5f, 0.5f); // 在水位置
     entity->setBlockId(powder->defaultState().blockId());
@@ -1002,7 +1002,7 @@ TEST_F(FallingBlockEntityTest, ConcretePowderTickNoSolidifyWithoutWater)
     // 设置地面，但不放水
     m_world.setBlockAt(0, -1, 0, &VanillaBlocks::STONE->defaultState());
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 5.0f, 0.5f); // 高位置
     entity->setBlockId(powder->defaultState().blockId());
@@ -1035,7 +1035,7 @@ TEST_F(FallingBlockEntityTest, ConcretePowderTickNoSolidifyInLava)
     const fluid::FluidState* lavaState = &lavaFluid->defaultState();
     m_world.setFluidAt(0, 0, 0, lavaState);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.5f, 0.5f);
     entity->setBlockId(powder->defaultState().blockId());
@@ -1069,7 +1069,7 @@ TEST_F(FallingBlockEntityTest, SandInWaterDoesNotSolidifyEarly)
     const fluid::FluidState* waterState = &waterFluid->defaultState();
     m_world.setFluidAt(0, 0, 0, waterState);
 
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     entity->setPosition(0.5f, 0.5f, 0.5f);
     entity->setBlockId(sand->defaultState().blockId());
@@ -1128,7 +1128,7 @@ TEST_F(FallingBlockEntityTest, MovingPistonBlockExists)
  */
 TEST_F(FallingBlockEntityTest, Hurt_InvulnerableSource_ReturnsFalse_NoMarkHurt)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setInvulnerable(true);
     EXPECT_FALSE(entity->isHurtMarked());
 
@@ -1146,7 +1146,7 @@ TEST_F(FallingBlockEntityTest, Hurt_InvulnerableSource_ReturnsFalse_NoMarkHurt)
  */
 TEST_F(FallingBlockEntityTest, Hurt_NormalSource_MarksHurt_ReturnsFalse)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(entity->isHurtMarked());
 
     auto source = DamageSources::generic();
@@ -1161,7 +1161,7 @@ TEST_F(FallingBlockEntityTest, Hurt_NormalSource_MarksHurt_ReturnsFalse)
  */
 TEST_F(FallingBlockEntityTest, Hurt_AnyAmount_ReturnsFalse)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     auto source = DamageSources::generic();
     EXPECT_FALSE(entity->hurt(source, 0.0f));
@@ -1173,7 +1173,7 @@ TEST_F(FallingBlockEntityTest, Hurt_AnyAmount_ReturnsFalse)
  */
 TEST_F(FallingBlockEntityTest, Hurt_ClearAndReMarkHurt)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     auto source = DamageSources::generic();
     EXPECT_FALSE(entity->hurt(source, 1.0f));
@@ -1193,7 +1193,7 @@ TEST_F(FallingBlockEntityTest, Hurt_ClearAndReMarkHurt)
  */
 TEST_F(FallingBlockEntityTest, Hurt_DoesNotRemoveEntity)
 {
-    auto entity = std::make_unique<FallingBlockEntity>();
+    auto entity = std::make_unique<FallingBlockEntity>(mc::test::testEcsRegistry());
 
     auto source = DamageSources::generic();
     entity->hurt(source, 1000.0f);

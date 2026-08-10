@@ -52,7 +52,7 @@ namespace {
  *
  * 提供史莱姆测试所需的最小 IWorld 接口实现
  */
-class SlimeTestWorld final : public test::BaseTestWorld {
+class SlimeTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -130,7 +130,7 @@ protected:
 
 TEST_F(SlimeEntityTest, SetSlimeSize_UpdatesAttributes)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     // 设置尺寸为 4
@@ -151,7 +151,7 @@ TEST_F(SlimeEntityTest, SetSlimeSize_UpdatesAttributes)
 
 TEST_F(SlimeEntityTest, SetSlimeSize_ClampsToValidRange)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 测试下限
     slime.setSlimeSize(0, false);
@@ -164,7 +164,7 @@ TEST_F(SlimeEntityTest, SetSlimeSize_ClampsToValidRange)
 
 TEST_F(SlimeEntityTest, IsSmallSlime_ReturnsTrueForSizeOne)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     slime.setSlimeSize(1, false);
     EXPECT_TRUE(slime.isSmallSlime());
@@ -178,7 +178,7 @@ TEST_F(SlimeEntityTest, IsSmallSlime_ReturnsTrueForSizeOne)
 
 TEST_F(SlimeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     slime.setSlimeSize(1, false);
     EXPECT_FALSE(slime.canSplit());
@@ -194,7 +194,7 @@ TEST_F(SlimeEntityTest, CanSplit_ReturnsTrueForSizeGreaterThanOne)
 
 TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true); // 大史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
@@ -218,7 +218,7 @@ TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes)
 
 TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setSlimeSize(1, true); // 小史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
@@ -236,7 +236,7 @@ TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit)
 
 TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
     slime.setPosition(100.0, 64.0, 100.0);
@@ -255,7 +255,7 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName)
 
 TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
     slime.setPosition(100.0, 64.0, 100.0);
@@ -274,7 +274,7 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability)
 
 TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setSlimeSize(2, true); // 中型史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
@@ -296,7 +296,7 @@ TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes)
 
 TEST_F(SlimeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 小史莱姆
     slime.setSlimeSize(1, false);
@@ -314,7 +314,7 @@ TEST_F(SlimeEntityTest, GetHurtSound_ReturnsCorrectSoundForSize)
 
 TEST_F(SlimeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 小史莱姆
     slime.setSlimeSize(1, false);
@@ -331,7 +331,7 @@ TEST_F(SlimeEntityTest, GetDeathSound_ReturnsCorrectSoundForSize)
 
 TEST_F(SlimeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 小史莱姆
     slime.setSlimeSize(1, false);
@@ -350,7 +350,7 @@ TEST_F(SlimeEntityTest, GetSquishSound_ReturnsCorrectSoundForSize)
 
 TEST_F(SlimeEntityTest, GetDimensions_ScalesWithSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // size = 1: 0.6 * 0.255 = 0.153
     slime.setSlimeSize(1, false);
@@ -367,7 +367,7 @@ TEST_F(SlimeEntityTest, GetDimensions_ScalesWithSize)
 
 TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     slime.setSlimeSize(1, false);
     // eyeHeight = 0.625 * height = 0.625 * (0.6 * 0.255 * size)
@@ -387,7 +387,7 @@ TEST_F(SlimeEntityTest, EyeHeight_ScalesWithSize)
 
 TEST_F(SlimeEntityTest, CanDamagePlayer_ReturnsFalseForSmallSlime)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     // 小史莱姆不能伤害玩家
@@ -401,7 +401,7 @@ TEST_F(SlimeEntityTest, CanDamagePlayer_ReturnsFalseForSmallSlime)
 
 TEST_F(SlimeEntityTest, GetSoundVolume_ScalesWithSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 体积 = 0.4 * size
     slime.setSlimeSize(1, false);
@@ -415,7 +415,7 @@ TEST_F(SlimeEntityTest, GetSoundVolume_ScalesWithSize)
 
 TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     // 注意：setSlimeSize 会设置经验值等于尺寸
@@ -438,7 +438,7 @@ TEST_F(SlimeEntityTest, ExperienceValue_EqualsSize)
  *
  * 扩展 SlimeTestWorld，添加客户端模式支持和粒子记录功能。
  */
-class ParticleTestWorld final : public test::BaseTestWorld {
+class ParticleTestWorld final : public mc::test::BaseTestWorld {
 public:
     ParticleTestWorld() = default;
 
@@ -527,7 +527,7 @@ protected:
 
 TEST_F(SlimeParticleTest, LandingGeneratesParticles_ClientSide)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     m_world.setClientSide(true);
     slime.setWorld(&m_world);
     slime.setSlimeSize(2, true);
@@ -549,7 +549,7 @@ TEST_F(SlimeParticleTest, LandingGeneratesParticles_ClientSide)
 
 TEST_F(SlimeParticleTest, NoParticles_ServerSide)
 {
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     m_world.setClientSide(false); // 服务端
     slime.setWorld(&m_world);
     slime.setSlimeSize(4, true);
@@ -604,7 +604,7 @@ TEST_F(SlimeTargetSelectorTest, TargetSelector_HasCorrectGoalCount)
     // MC 1.16.5: 史莱姆应该有两个目标选择器
     // 优先级 1: NearestAttackableTargetGoal<Player>
     // 优先级 3: NearestAttackableTargetGoal<IronGolem>
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     const auto& targetSelector = slime.targetSelector();
@@ -617,7 +617,7 @@ TEST_F(SlimeTargetSelectorTest, TargetSelector_HasCorrectGoalCount)
 TEST_F(SlimeTargetSelectorTest, TargetSelector_PlayerGoal_HasPriority1)
 {
     // MC 1.16.5: 玩家目标应该在优先级 1
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     const auto& targetSelector = slime.targetSelector();
@@ -637,7 +637,7 @@ TEST_F(SlimeTargetSelectorTest, TargetSelector_PlayerGoal_HasPriority1)
 TEST_F(SlimeTargetSelectorTest, TargetSelector_IronGolemGoal_HasPriority3)
 {
     // MC 1.16.5: 铁傀儡目标应该在优先级 3
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     const auto& targetSelector = slime.targetSelector();
@@ -661,7 +661,7 @@ TEST_F(SlimeTargetSelectorTest, GoalSelector_HasCorrectGoalCount)
     // 优先级 2: SlimeAttackGoal (攻击)
     // 优先级 3: SlimeFaceRandomGoal (随机转向)
     // 优先级 5: SlimeHopGoal (跳跃)
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
 
     const auto& goalSelector = slime.goalSelector();
@@ -675,7 +675,7 @@ TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_Is4Blocks)
 {
     // MC 1.16.5: 史莱姆只攻击 Y 轴高度差 <= 4 格的玩家
     // 这是一个数学逻辑验证测试
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setPosition(0.0, 64.0, 0.0);
 
@@ -703,7 +703,7 @@ TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_Is4Blocks)
 TEST_F(SlimeTargetSelectorTest, YDifferenceLimit_EdgeCases)
 {
     // 测试边界情况
-    SlimeEntity slime(EntityInstanceId(1));
+    SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
     slime.setPosition(0.0, 64.0, 0.0);
 

@@ -24,6 +24,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/DolphinGoals.hpp"
 #include "entity/damage/DamageSource.hpp"
@@ -37,7 +39,7 @@ namespace test {
 
 class DolphinGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(1)); }
+    void SetUp() override { dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { dolphin.reset(); }
 

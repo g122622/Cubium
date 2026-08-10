@@ -83,7 +83,7 @@ void registerSimpleLootTable(
  * 可通过 setLootTableManager() 注入自定义管理器（用于测试战利品填充）。
  * 可通过 setNoLootTableManager() 模拟客户端场景（lootTableManager() 返回 nullptr）。
  */
-class LootCallbackTestWorld final : public test::BaseTestWorld {
+class LootCallbackTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

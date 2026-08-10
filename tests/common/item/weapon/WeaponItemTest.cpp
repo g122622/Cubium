@@ -47,7 +47,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class WeaponTestWorld final : public test::BaseTestWorld {
+class WeaponTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

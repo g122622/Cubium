@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/interact/LandOnOwnersShoulderGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/FollowMobGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal.hpp"
@@ -44,7 +45,7 @@ namespace {
 class TestFlyingCreature : public CreatureEntity {
 public:
     TestFlyingCreature()
-        : CreatureEntity(EntityInstanceId(1))
+        : CreatureEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -63,7 +64,7 @@ public:
 class TestMob : public MobEntity {
 public:
     TestMob()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -81,7 +82,7 @@ public:
 
 class LandOnOwnersShoulderGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1)); }
+    void SetUp() override { parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { parrot.reset(); }
 
@@ -314,7 +315,7 @@ protected:
     void SetUp() override
     {
         Items::initialize();
-        parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1));
+        parrot = std::make_unique<ParrotEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { parrot.reset(); }

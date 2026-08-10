@@ -23,6 +23,8 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity;
 
@@ -378,7 +380,7 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
 class TestArrowEntity : public AbstractArrowEntity {
 public:
     TestArrowEntity(EntityInstanceId id)
-        : AbstractArrowEntity(id)
+        : AbstractArrowEntity(id, mc::test::testEcsRegistry())
     {}
 
     static std::unique_ptr<Entity> create(IWorld* /*world*/)

@@ -38,47 +38,47 @@ namespace {
 // 测试辅助：带世界的 LivingEntity
 // ============================================================================
 
-class KnockbackTestWorld : public test::BaseTestWorld {
+class KnockbackTestWorld : public mc::test::BaseTestWorld {
 public:
     KnockbackTestWorld() = default;
 };
 
 class KnockbackTestEntity : public LivingEntity {
 public:
-    explicit KnockbackTestEntity(EntityInstanceId id)
-        : LivingEntity(id)
+    explicit KnockbackTestEntity(EntityInstanceId id, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : LivingEntity(id, nullptr, registry)
     {
         registerAttributes();
-        m_attributes.setBaseValue(Attributes::MAX_HEALTH, 20.0);
-        m_attributes.setBaseValue(Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        attributes().setBaseValue(Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, 0.0);
         // 注册 ATTACK_KNOCKBACK 属性（基类不注册，需要子类手动注册）
-        m_attributes.registerAttribute(*Attributes::attackKnockback());
-        m_attributes.setBaseValue(Attributes::ATTACK_KNOCKBACK, 0.0);
+        attributes().registerAttribute(*Attributes::attackKnockback());
+        attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, 0.0);
         setHealth(20.0f);
     }
 
-    void setKnockbackResistance(f64 value) { m_attributes.setBaseValue(Attributes::KNOCKBACK_RESISTANCE, value); }
-    void setAttackKnockback(f64 value) { m_attributes.setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
+    void setKnockbackResistance(f64 value) { attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, value); }
+    void setAttackKnockback(f64 value) { attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<KnockbackTestEntity>(0); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<KnockbackTestEntity>(0, mc::test::testEcsRegistry()); }
 };
 
 class KnockbackTestMob : public MobEntity {
 public:
     explicit KnockbackTestMob(EntityInstanceId id)
-        : MobEntity(id)
+        : MobEntity(id, mc::test::testEcsRegistry())
     {
         registerAttributes();
-        m_attributes.setBaseValue(Attributes::MAX_HEALTH, 20.0);
-        m_attributes.setBaseValue(Attributes::KNOCKBACK_RESISTANCE, 0.0);
-        m_attributes.setBaseValue(Attributes::ATTACK_DAMAGE, 2.0);
+        attributes().setBaseValue(Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        attributes().setBaseValue(Attributes::ATTACK_DAMAGE, 2.0);
         // 注册 ATTACK_KNOCKBACK 属性（基类不注册，需要子类手动注册）
-        m_attributes.registerAttribute(*Attributes::attackKnockback());
-        m_attributes.setBaseValue(Attributes::ATTACK_KNOCKBACK, 0.0);
+        attributes().registerAttribute(*Attributes::attackKnockback());
+        attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, 0.0);
         setHealth(20.0f);
     }
 
-    void setAttackKnockback(f64 value) { m_attributes.setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
+    void setAttackKnockback(f64 value) { attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
 
     static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<KnockbackTestMob>(0); }
 };
@@ -91,7 +91,7 @@ TEST(GetKnockbackTest, DefaultAttributeReturnsZero)
 {
     // 默认 ATTACK_KNOCKBACK 为 0.0，无附魔武器时应返回 0.0
     KnockbackTestMob mob(1);
-    KnockbackTestEntity target(2);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
 
     f32 knockback = mob.getKnockback(target);
 
@@ -103,7 +103,7 @@ TEST(GetKnockbackTest, AttributeKnockbackHalved)
 {
     // ATTACK_KNOCKBACK 属性值为 1.0 时，应返回 0.5
     KnockbackTestMob mob(1);
-    KnockbackTestEntity target(2);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
 
     mob.setAttackKnockback(1.0);
 
@@ -117,7 +117,7 @@ TEST(GetKnockbackTest, LargeAttributeKnockbackHalved)
 {
     // ATTACK_KNOCKBACK 属性值为 2.0 时，应返回 1.0
     KnockbackTestMob mob(1);
-    KnockbackTestEntity target(2);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
 
     mob.setAttackKnockback(2.0);
 
@@ -133,7 +133,7 @@ TEST(GetKnockbackTest, ZeroKnockbackMeansNoExtraKnockbackFromMob)
     // 这意味着 getKnockback() 返回 0.0，causeExtraKnockback 不施加额外击退
     // 但 hurt() 中的基础击退仍然存在
     KnockbackTestMob mob(1);
-    KnockbackTestEntity target(2);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
 
     f32 knockback = mob.getKnockback(target);
     EXPECT_FLOAT_EQ(knockback, 0.0f);
@@ -144,7 +144,7 @@ TEST(GetKnockbackTest, KnockbackDivisionByTwo)
     // getKnockback 始终将结果除以 2.0
     // 这是与 hurt() 中基础击退 (0.4) 的配合设计
     KnockbackTestMob mob(1);
-    KnockbackTestEntity target(2);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
 
     // 测试各种属性值
     mob.setAttackKnockback(0.5);
@@ -162,7 +162,7 @@ class ApplyKnockbackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        entity = std::make_unique<KnockbackTestEntity>(1);
+        entity = std::make_unique<KnockbackTestEntity>(1, mc::test::testEcsRegistry());
         entity->setWorld(&world);
         entity->setHealth(20.0f);
     }

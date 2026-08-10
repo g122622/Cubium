@@ -43,7 +43,7 @@ using namespace mc::world::biome;
  *
  * 继承 BaseTestWorld，提供可控的方块状态、流体状态和光照。
  */
-class FreezeTestWorld : public test::BaseTestWorld {
+class FreezeTestWorld : public mc::test::BaseTestWorld {
 public:
     // 设置指定位置的方块状态
     void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[{x, y, z}] = state; }
@@ -64,7 +64,7 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         auto it = m_fluids.find({x, y, z});
-        return it != m_fluids.end() ? it->second : test::BaseTestWorld::getFluidState(x, y, z);
+        return it != m_fluids.end() ? it->second : mc::test::BaseTestWorld::getFluidState(x, y, z);
     }
 
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override

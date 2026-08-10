@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/processing/FurnaceEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"

@@ -35,6 +35,7 @@
  * + ClientPlayVisitor 集成测试覆盖（sendSystemMessage/sendChatMessage 现发 SystemChat IR）。
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include <memory>
@@ -51,7 +52,7 @@ protected:
     void SetUp() override
     {
         // 创建 ServerPlayer（无连接）
-        m_player = std::make_unique<ServerPlayer>(1, "TestPlayer");
+        m_player = std::make_unique<ServerPlayer>(1, "TestPlayer", mc::test::testEcsRegistry());
     }
 
     void TearDown() override { m_player.reset(); }

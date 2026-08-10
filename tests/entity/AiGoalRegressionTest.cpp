@@ -47,7 +47,7 @@ using namespace mc::entity::ai::goal;
 
 namespace {
 
-class TestGoalWorld final : public test::BaseTestWorld {
+class TestGoalWorld final : public mc::test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
 
@@ -138,7 +138,7 @@ private:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(EntityInstanceId(1))
+        : CreatureEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -192,14 +192,14 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems)
     TestTemptItem temptItem;
     TestPlainItem nonTemptItem;
 
-    Player closePlayer(2, "ClosePlayer");
+    Player closePlayer(2, "ClosePlayer", mc::test::testEcsRegistry());
     closePlayer.setWorld(&world);
     closePlayer.setPosition(2.0f, 64.0f, 0.0f);
     closePlayer.setHealth(closePlayer.maxHealth());
     closePlayer.getHeldItem(Hand::MainHand) = ItemStack(&nonTemptItem, 1);
     closePlayer.getHeldItem(Hand::OffHand) = ItemStack(&nonTemptItem, 1);
 
-    Player temptingPlayer(3, "TemptingPlayer");
+    Player temptingPlayer(3, "TemptingPlayer", mc::test::testEcsRegistry());
     temptingPlayer.setWorld(&world);
     temptingPlayer.setPosition(6.0f, 64.0f, 0.0f);
     temptingPlayer.setHealth(temptingPlayer.maxHealth());

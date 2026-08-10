@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -45,7 +46,10 @@ using namespace mc::entity;
  */
 class ShulkerBulletParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_bullet = std::make_unique<ShulkerBulletEntity>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        m_bullet = std::make_unique<ShulkerBulletEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<ShulkerBulletEntity> m_bullet;
 };
@@ -154,7 +158,10 @@ TEST_F(ShulkerBulletParticleParamsTest, ExplosionParticleVelocity_IsZero)
 
 class EvokerFangsParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_fangs = std::make_unique<EvokerFangsEntity>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        m_fangs = std::make_unique<EvokerFangsEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<EvokerFangsEntity> m_fangs;
 };
@@ -195,7 +202,10 @@ TEST_F(EvokerFangsParticleTest, GetAnimationProgress_ReturnsValidRange)
 
 class FishingBobberParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_bobber = std::make_unique<FishingBobberEntity>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        m_bobber = std::make_unique<FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<FishingBobberEntity> m_bobber;
 };
@@ -207,7 +217,7 @@ TEST_F(FishingBobberParticleTest, DefaultValues_AreCorrect)
     EXPECT_FLOAT_EQ(m_bobber->height(), 0.25f);
 
     // 默认状态为 Flying
-    EXPECT_EQ(m_bobber->state(), FishingBobberEntity::State::Flying);
+    EXPECT_EQ(m_bobber->state(), FishingBobberState::Flying);
 
     // 默认无钓鱼者
     EXPECT_EQ(m_bobber->getAngler(), nullptr);
@@ -237,7 +247,10 @@ TEST_F(FishingBobberParticleTest, IsInOpenWater_InitiallyFalse)
 
 class LlamaSpitParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_spit = std::make_unique<LlamaSpitEntity>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        m_spit = std::make_unique<LlamaSpitEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<LlamaSpitEntity> m_spit;
 };
@@ -258,7 +271,10 @@ TEST_F(LlamaSpitParticleTest, DefaultValues_AreCorrect)
 
 class EyeOfEnderParticleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_eye = std::make_unique<EyeOfEnderEntity>(EntityInstanceId(1)); }
+    void SetUp() override
+    {
+        m_eye = std::make_unique<EyeOfEnderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<EyeOfEnderEntity> m_eye;
 };

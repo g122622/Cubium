@@ -39,7 +39,7 @@
 namespace mc {
 namespace {
 
-class ProjectileHelperTestWorld : public test::BaseTestWorld {
+class ProjectileHelperTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
@@ -111,7 +111,7 @@ private:
 class TestTargetEntity : public Entity {
 public:
     TestTargetEntity(EntityInstanceId id, bool collidable)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
         , m_collidable(collidable)
     {}
 
@@ -124,22 +124,29 @@ private:
 class RotationProbeEntity : public Entity {
 public:
     explicit RotationProbeEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 };
 
 class ExposedProjectileEntity : public entity::ProjectileEntity {
 public:
     explicit ExposedProjectileEntity(EntityInstanceId id)
-        : ProjectileEntity(id)
+        : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
-    void setLeftShooterFlag(bool value) { m_leftShooter = value; }
+    // ECS迁移后 m_leftShooter 迁入 ProjectileOwnerComponent，无公开 setter，
+    // 测试桩直接操作组件以强制“已离开发射者”状态。
+    void setLeftShooterFlag(bool value)
+    {
+        if (auto* c = tryGetComponent<ecs::ProjectileOwnerComponent>()) {
+            c->m_leftShooter = value;
+        }
+    }
 };
 
 TEST(ProjectileHelperTest, RotateTowardsMovementMatchesVanillaYawPitch)
 {
-    RotationProbeEntity probe(1);
+    RotationProbeEntity probe(EntityInstanceId(1));
     probe.setVelocity(0.0f, 0.0f, 1.0f);
 
     entity::ProjectileHelper::rotateTowardsMovement(probe, 1.0f);
@@ -151,7 +158,7 @@ TEST(ProjectileHelperTest, RotateTowardsMovementMatchesVanillaYawPitch)
 TEST(ProjectileHelperTest, RayTraceEntitiesReturnsNearestCollidableTarget)
 {
     ProjectileHelperTestWorld world;
-    RotationProbeEntity projectile(1);
+    RotationProbeEntity projectile(EntityInstanceId(1));
     projectile.setPosition(0.0f, 64.0f, 0.0f);
 
     auto& first = world.addEntity<TestTargetEntity>(2, true);
@@ -177,7 +184,7 @@ TEST(ProjectileHelperTest, RayTraceEntitiesReturnsNearestCollidableTarget)
 TEST(ProjectileHelperTest, ProjectileCanHitEntityHonorsCollisionAndShooterState)
 {
     ProjectileHelperTestWorld world;
-    ExposedProjectileEntity projectile(10);
+    ExposedProjectileEntity projectile(EntityInstanceId(10));
     projectile.setWorld(&world);
 
     auto& shooter = world.addEntity<TestTargetEntity>(20, true);

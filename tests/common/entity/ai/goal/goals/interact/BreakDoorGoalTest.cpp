@@ -29,6 +29,7 @@
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/DoorBlock.hpp"
@@ -53,7 +54,7 @@ namespace {
  *
  * 支持方块状态、游戏规则、难度和世界事件的设置和追踪。
  */
-class BreakDoorTestWorld final : public test::BaseTestWorld {
+class BreakDoorTestWorld final : public mc::test::BaseTestWorld {
 public:
     BreakDoorTestWorld() = default;
 
@@ -140,7 +141,7 @@ private:
 class TestBreakDoorMob final : public MobEntity {
 public:
     TestBreakDoorMob()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -153,7 +154,14 @@ public:
 
     void setWorldForTest(IWorld* world) { setWorld(world); }
 
-    void setCollidedHorizontallyForTest(bool value) { m_collidedHorizontally = value; }
+    void setCollidedHorizontallyForTest(bool value)
+    {
+        // m_collidedHorizontally 已迁入 ecs::PhysicsStateComponent（无 public setter），
+        // 测试通过组件直接写以模拟"实体碰撞门"触发 BreakDoorGoal。
+        if (auto* c = tryGetComponent<ecs::PhysicsStateComponent>()) {
+            c->m_collidedHorizontally = value;
+        }
+    }
 
     void setNavigatorCanOpenDoors(bool value)
     {

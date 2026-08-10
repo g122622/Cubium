@@ -39,7 +39,7 @@ using namespace mc;
 using namespace mc::loot;
 
 // 测试用 IWorld 实现
-class ReferenceConditionTestWorld : public test::BaseTestWorld {
+class ReferenceConditionTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {

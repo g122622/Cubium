@@ -52,7 +52,7 @@ namespace {
 // 服务端测试世界（isClientSide() 返回 false），使 LivingEntity::updateAirSupply
 // 的 m_world==nullptr / 客户端早退分支不再触发。BaseTestWorld 默认构造为 protected，
 // 需通过派生类暴露 public 默认构造以作为夹具成员。
-class PlayerSwimWorld final : public test::BaseTestWorld {};
+class PlayerSwimWorld final : public mc::test::BaseTestWorld {};
 
 } // namespace
 
@@ -68,7 +68,7 @@ protected:
     void SetUp() override
     {
         // 创建玩家并绑定服务端测试世界
-        player = std::make_unique<Player>(1, "TestPlayer");
+        player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
         player->setWorld(&m_world);
     }
 

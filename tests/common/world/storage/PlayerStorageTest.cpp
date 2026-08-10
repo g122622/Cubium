@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/TempDirHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "server/core/ServerPlayerData.hpp"
@@ -893,7 +894,7 @@ TEST_F(PlayerDataManagerTest, CallbackTest)
 
 class ApplyToPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry()); }
     void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;
@@ -1141,7 +1142,7 @@ TEST_F(ApplyToPlayerTest, RestoresFullPlayerState)
 
 class FromPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "FromPlayerTest"); }
+    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "FromPlayerTest", mc::test::testEcsRegistry()); }
     void TearDown() override { player.reset(); }
 
     std::unique_ptr<Player> player;

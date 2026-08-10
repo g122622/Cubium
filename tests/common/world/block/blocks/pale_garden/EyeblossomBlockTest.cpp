@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
@@ -942,7 +943,7 @@ protected:
     /// 创建一只蜜蜂并绑定到世界
     std::unique_ptr<BeeEntity> makeBee()
     {
-        auto bee = std::make_unique<BeeEntity>(EntityInstanceId(1));
+        auto bee = std::make_unique<BeeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         bee->setWorld(&world_);
         return bee;
     }
@@ -1048,7 +1049,7 @@ TEST_F(EyeblossomBeeCollisionTest, NonBeeEntity_DoesNotApplyPoison)
 
     struct NonBeeAnimal : public AnimalEntity {
         explicit NonBeeAnimal(EntityInstanceId id)
-            : AnimalEntity(id)
+            : AnimalEntity(id, mc::test::testEcsRegistry())
         {}
         // AnimalEntity::spawnBaby 是纯虚，必须实现
         std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override { return nullptr; }

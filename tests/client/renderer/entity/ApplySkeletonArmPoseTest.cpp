@@ -51,6 +51,7 @@
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/monster/SkeletonModel.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 

@@ -205,7 +205,7 @@ public:
         if (type == nullptr) {
             return nullptr;
         }
-        std::unique_ptr<Entity> ent = type->create(this);
+        std::unique_ptr<Entity> ent = type->create(this, mc::test::testEcsRegistry());
         if (ent == nullptr) {
             return nullptr;
         }

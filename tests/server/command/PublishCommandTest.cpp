@@ -44,7 +44,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class DedicatedTestServer final : public test::BaseTestServer {
+class DedicatedTestServer final : public mc::test::BaseTestServer {
 public:
     [[nodiscard]] bool isIntegrated() const noexcept override { return false; }
     [[nodiscard]] bool isDedicated() const noexcept override { return true; }
@@ -71,7 +71,7 @@ private:
     DimensionManager m_dimensionManager;
 };
 
-class IntegratedTestServer final : public test::BaseTestServer {
+class IntegratedTestServer final : public mc::test::BaseTestServer {
 public:
     [[nodiscard]] bool isIntegrated() const noexcept override { return true; }
     [[nodiscard]] bool isDedicated() const noexcept override { return false; }

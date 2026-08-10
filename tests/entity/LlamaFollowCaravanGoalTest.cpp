@@ -55,7 +55,7 @@ namespace {
  * 覆写 getEntitiesInAABB() 返回预设的实体列表，
  * 用于测试 LlamaFollowCaravanGoal 的搜索逻辑。
  */
-class CaravanTestWorld final : public test::BaseTestWorld {
+class CaravanTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
 
@@ -116,7 +116,7 @@ private:
 std::unique_ptr<LlamaEntity> createLlama(
     EntityInstanceId id, CaravanTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto llama = std::make_unique<LlamaEntity>(id);
+    auto llama = std::make_unique<LlamaEntity>(id, mc::test::testEcsRegistry());
     llama->setTypeId(entity::EntityTypeKeys::LLAMA);
     llama->setWorld(&world);
     llama->setPosition(x, y, z);
@@ -637,7 +637,7 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ChainHeadLeashedToEntity)
 TEST(LlamaCaravanTest, TraderLlamaCanBeLeashedToFence)
 {
     CaravanTestWorld world;
-    auto traderLlama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(1));
+    auto traderLlama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     traderLlama->setWorld(&world);
 
     EXPECT_FALSE(traderLlama->isLeashed());

@@ -45,7 +45,7 @@ namespace {
 // 测试用世界 - 暴露BaseTestWorld的受保护构造函数
 // ============================================================================
 
-class KnowledgeBookTestWorld : public test::BaseTestWorld {
+class KnowledgeBookTestWorld : public mc::test::BaseTestWorld {
 public:
     KnowledgeBookTestWorld() = default;
 };
@@ -57,7 +57,7 @@ public:
 class KnowledgeBookTestPlayer : public Player {
 public:
     explicit KnowledgeBookTestPlayer(IWorld* world = nullptr)
-        : Player(EntityInstanceId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

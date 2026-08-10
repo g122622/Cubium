@@ -41,7 +41,7 @@ protected:
 
 // Entity::canSee 经 raycastBlocks(*m_world) 做视线检测，无 world 时直接返回 false。
 // EntitySensesTestWorld 提供 getBlockState=nullptr（空气）的空世界，使视线无阻挡。
-class EntitySensesTestWorld final : public test::BaseTestWorld {
+class EntitySensesTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 };
@@ -49,8 +49,8 @@ public:
 TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityInstanceId(1));
-    MobEntity target(EntityInstanceId(2));
+    MobEntity observer(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MobEntity target(EntityInstanceId(2), mc::test::testEcsRegistry());
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -67,8 +67,8 @@ TEST(EntitySensesTest, VisibleEntityIsCachedWithinSameTick)
 TEST(EntitySensesTest, CacheClearsOnTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityInstanceId(3));
-    MobEntity target(EntityInstanceId(4));
+    MobEntity observer(EntityInstanceId(3), mc::test::testEcsRegistry());
+    MobEntity target(EntityInstanceId(4), mc::test::testEcsRegistry());
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -87,8 +87,8 @@ TEST(EntitySensesTest, CacheClearsOnTick)
 TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 {
     EntitySensesTestWorld world;
-    MobEntity observer(EntityInstanceId(5));
-    MobEntity target(EntityInstanceId(6));
+    MobEntity observer(EntityInstanceId(5), mc::test::testEcsRegistry());
+    MobEntity target(EntityInstanceId(6), mc::test::testEcsRegistry());
     observer.setWorld(&world);
     target.setWorld(&world);
 
@@ -104,7 +104,7 @@ TEST(EntitySensesTest, InvisibleEntityIsCachedWithinSameTick)
 
 TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
 {
-    MobEntity resetMob(EntityInstanceId(7));
+    MobEntity resetMob(EntityInstanceId(7), mc::test::testEcsRegistry());
     resetMob.setRotation(45.0f, 15.0f);
 
     entity::ai::controller::LookController resetController(&resetMob);
@@ -114,7 +114,7 @@ TEST(EntitySensesTest, LookControllerIdlePitchResetHonorsHook)
     // MC 1.16.5: 俯仰角重置为0.0f（当shouldResetPitch返回true时）
     EXPECT_FLOAT_EQ(resetMob.pitch(), 0.0f);
 
-    MobEntity lockedMob(EntityInstanceId(8));
+    MobEntity lockedMob(EntityInstanceId(8), mc::test::testEcsRegistry());
     lockedMob.setRotation(45.0f, 15.0f);
 
     NoResetLookController lockedController(&lockedMob);

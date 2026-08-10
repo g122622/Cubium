@@ -46,6 +46,7 @@
 #include <gtest/gtest.h>
 
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -70,7 +71,7 @@ namespace {
  */
 void ensureMobFlagsParamAllocated()
 {
-    static const auto s_serverMob = std::make_unique<::mc::MobEntity>(EntityInstanceId(1));
+    static const auto s_serverMob = std::make_unique<::mc::MobEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverMob;
 }
 

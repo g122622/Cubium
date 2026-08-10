@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/goals/special/BreezeGoals.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/entities/monster/breeze/BreezeEntity.hpp"
@@ -89,7 +90,7 @@ private:
 
 class BreezeEntityTest : public ::testing::Test {
 protected:
-    BreezeEntity m_breeze{EntityInstanceId(1)};
+    BreezeEntity m_breeze{EntityInstanceId(1), mc::test::testEcsRegistry()};
     test::BreezeEntityTestAccessor m_accessor{m_breeze};
 
     void SetUp() override

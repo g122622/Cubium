@@ -132,7 +132,7 @@ protected:
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
         m_world = std::make_unique<VillagerTestWorld>();
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -152,7 +152,7 @@ protected:
 TEST_F(VillagerEntityTest, ReleaseAllPois_NoWorld_EarlyReturn)
 {
     // 村民没有世界时应安全返回
-    VillagerEntity orphanVillager(EntityInstanceId(2));
+    VillagerEntity orphanVillager(EntityInstanceId(2), mc::test::testEcsRegistry());
     // 不调用 setWorld，m_world 为 nullptr
     orphanVillager.releaseAllPois();
     // 不崩溃即可

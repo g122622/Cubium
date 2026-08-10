@@ -64,7 +64,7 @@ using namespace item;
 /**
  * @brief 测试用世界存根
  */
-class StickItemTestWorld final : public test::BaseTestWorld {
+class StickItemTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
@@ -291,7 +291,7 @@ TEST_F(OnAStickItemTest, EntityIdMatching)
 TEST_F(OnAStickItemTest, PigCanBeSteeredRequiresSaddleAndPlayer)
 {
     // 创建猪实体
-    PigEntity pig(EntityInstanceId(1));
+    PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 无鞍且无乘客时不能控制
     // 注意：BoostHelper 未初始化，hasSaddle() 返回 false
@@ -307,7 +307,7 @@ TEST_F(OnAStickItemTest, PigCanBeSteeredRequiresSaddleAndPlayer)
 TEST_F(OnAStickItemTest, StriderCanBeSteeredRequiresSaddleAndPlayer)
 {
     // 创建炽足兽实体
-    StriderEntity strider(EntityInstanceId(1));
+    StriderEntity strider(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 无鞍且无乘客时不能控制
     // 注意：BoostHelper 未初始化，hasSaddle() 返回 false

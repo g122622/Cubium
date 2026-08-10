@@ -54,7 +54,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class WallTestWorld final : public test::BaseTestWorld {
+class WallTestWorld final : public mc::test::BaseTestWorld {
 public:
     WallTestWorld() = default;
 

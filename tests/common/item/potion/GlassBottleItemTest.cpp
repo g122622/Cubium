@@ -44,7 +44,7 @@
 namespace mc {
 namespace {
 
-class GlassBottleTestWorld final : public test::BaseTestWorld {
+class GlassBottleTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -98,7 +98,7 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterSource_ReturnsWaterBottle)
     m_world.setBlockState(0, 65, 3, &VanillaBlocks::WATER->defaultState());
 
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
-    Player player(1, "BottleTester");
+    Player player(1, "BottleTester", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.5f);
     player.setRotation(0.0f, 0.0f);
     player.getHeldItem(Hand::MainHand) = ItemStack(&item, 1);
@@ -119,7 +119,7 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterCauldron_ReturnsWaterBottle)
     m_world.setBlockState(0, 65, 3, &waterCauldron);
 
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
-    Player player(1, "BottleTester");
+    Player player(1, "BottleTester", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.5f);
     player.setRotation(0.0f, 0.0f);
     player.getHeldItem(Hand::MainHand) = ItemStack(&item, 1);
@@ -135,7 +135,7 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterCauldron_ReturnsWaterBottle)
 TEST_F(GlassBottleItemTest, OnItemRightClick_WhenNothingMatches_PassesThroughHeldItem)
 {
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
-    Player player(1, "BottleTester");
+    Player player(1, "BottleTester", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.5f);
     player.setRotation(0.0f, 0.0f);
     player.getHeldItem(Hand::MainHand) = ItemStack(&item, 1);

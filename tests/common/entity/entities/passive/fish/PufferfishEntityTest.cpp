@@ -36,6 +36,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -51,7 +52,7 @@ protected:
     void SetUp() override
     {
         // 创建河豚实体
-        pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0));
+        pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { pufferfish.reset(); }
@@ -327,7 +328,7 @@ TEST_F(PufferfishEntityTest, EyeHeight_HasCorrectValue)
 
 class PuffGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0)); }
+    void SetUp() override { pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
 
     void TearDown() override { pufferfish.reset(); }
 
@@ -533,7 +534,7 @@ TEST_F(PufferfishEntityTest, MaxHealth_IsCorrect)
 TEST_F(PufferfishEntityTest, Create_ReturnsValidEntity)
 {
     // 创建工厂方法
-    auto entity = PufferfishEntity::create(nullptr);
+    auto entity = PufferfishEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->entityType(), nullptr);
 }

@@ -174,7 +174,7 @@ namespace {
 // 测试用世界 - 支持方块状态和方块实体
 // ============================================================================
 
-class TransportItemsTestWorld final : public test::BaseTestWorld {
+class TransportItemsTestWorld final : public mc::test::BaseTestWorld {
 public:
     TransportItemsTestWorld() = default;
 
@@ -280,7 +280,7 @@ std::unique_ptr<CopperGolemEntity> createCopperGolem(TransportItemsTestWorld& wo
     f32 y = 64.0f,
     f32 z = 0.0f)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(id);
+    auto golem = std::make_unique<CopperGolemEntity>(id, mc::test::testEcsRegistry());
     golem->setTypeId(entity::EntityTypeKeys::COPPER_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);

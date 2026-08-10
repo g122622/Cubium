@@ -28,6 +28,8 @@
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 // 测试用的简单方块实体

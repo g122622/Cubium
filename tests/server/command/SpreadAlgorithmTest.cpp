@@ -51,7 +51,7 @@ namespace {
 // 测试用世界 - 基于区块存储支持方块读写
 // ============================================================================
 
-class SpreadTestWorld : public test::BaseChunkBackedTestWorld {
+class SpreadTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
     SpreadTestWorld() = default;
 

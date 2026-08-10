@@ -44,13 +44,12 @@ class FishingBobberTestAccess {
 public:
     static bool checkOpenWater(FishingBobberEntity& bobber) { return bobber._checkOpenWater(); }
 
-    static FishingBobberEntity::WaterType getOpenWaterTypeForBlock(
-        const FishingBobberEntity& bobber, const BlockPos& pos)
+    static FishingWaterType getOpenWaterTypeForBlock(const FishingBobberEntity& bobber, const BlockPos& pos)
     {
         return bobber._getOpenWaterTypeForBlock(pos);
     }
 
-    static FishingBobberEntity::WaterType getOpenWaterTypeForArea(
+    static FishingWaterType getOpenWaterTypeForArea(
         const FishingBobberEntity& bobber, const BlockPos& from, const BlockPos& to)
     {
         return bobber._getOpenWaterTypeForArea(from, to);
@@ -64,13 +63,15 @@ using OpenWaterAccess = entity::FishingBobberTestAccess;
 
 namespace {
 
+using mc::entity::FishingWaterType;
+
 /**
  * @brief 开放水域检测测试世界
  *
  * 重写 getBlockState 和 getFluidState 以提供可控的方块/流体状态，
  * 用于测试 FishingBobberEntity::_checkOpenWater 的分层检测逻辑。
  */
-class OpenWaterTestWorld : public test::BaseTestWorld {
+class OpenWaterTestWorld : public mc::test::BaseTestWorld {
 public:
     OpenWaterTestWorld() = default;
 
@@ -169,7 +170,7 @@ protected:
  */
 TEST_F(OpenWaterCheckTest, EmptyWorldReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -213,15 +214,15 @@ TEST_F(OpenWaterCheckTest, LilyPadIsRecognized)
 }
 
 /**
- * @brief 测试 WaterType 枚举值
+ * @brief 测试 FishingWaterType 枚举值
  *
- * 验证 WaterType 枚举有正确的值。
+ * 验证 FishingWaterType 枚举有正确的值。
  */
 TEST_F(OpenWaterCheckTest, WaterTypeEnumValues)
 {
-    EXPECT_EQ(static_cast<int>(entity::FishingBobberEntity::WaterType::AboveWater), 0);
-    EXPECT_EQ(static_cast<int>(entity::FishingBobberEntity::WaterType::InsideWater), 1);
-    EXPECT_EQ(static_cast<int>(entity::FishingBobberEntity::WaterType::Invalid), 2);
+    EXPECT_EQ(static_cast<int>(FishingWaterType::AboveWater), 0);
+    EXPECT_EQ(static_cast<int>(FishingWaterType::InsideWater), 1);
+    EXPECT_EQ(static_cast<int>(FishingWaterType::Invalid), 2);
 }
 
 // ============================================================================
@@ -233,7 +234,7 @@ TEST_F(OpenWaterCheckTest, WaterTypeEnumValues)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Air)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 66.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -241,8 +242,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Air)
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
     m_world->setBlockStateAt(0, 66, 0, airState);
 
-    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 66, 0)),
-        entity::FishingBobberEntity::WaterType::AboveWater);
+    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 66, 0)), FishingWaterType::AboveWater);
 }
 
 /**
@@ -250,7 +250,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Air)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_WaterSource)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -260,8 +260,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_WaterSource)
     m_world->setBlockStateAt(0, 64, 0, waterState);
     m_world->setFluidStateAt(0, 64, 0, waterFluid);
 
-    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)),
-        entity::FishingBobberEntity::WaterType::InsideWater);
+    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)), FishingWaterType::InsideWater);
 }
 
 /**
@@ -269,7 +268,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_WaterSource)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Stone)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -277,8 +276,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Stone)
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     m_world->setBlockStateAt(0, 64, 0, stoneState);
 
-    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)),
-        entity::FishingBobberEntity::WaterType::Invalid);
+    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)), FishingWaterType::Invalid);
 }
 
 /**
@@ -286,13 +284,12 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Stone)
  */
 TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Nullptr)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
     // 未设置方块 → nullptr → Invalid
-    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)),
-        entity::FishingBobberEntity::WaterType::Invalid);
+    EXPECT_EQ(OpenWaterAccess::getOpenWaterTypeForBlock(bobber, BlockPos(0, 64, 0)), FishingWaterType::Invalid);
 }
 
 // ============================================================================
@@ -306,7 +303,7 @@ TEST_F(OpenWaterCheckTest, GetOpenWaterTypeForBlock_Nullptr)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_FullWaterSource)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -324,7 +321,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_FullWaterSource)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterWithAirAbove)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -344,7 +341,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterWithAirAbove)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_AirAtBottomReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -364,7 +361,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_AirAtBottomReturnsFalse)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_StoneInWaterReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 
@@ -386,7 +383,7 @@ TEST_F(OpenWaterCheckTest, CheckOpenWater_StoneInWaterReturnsFalse)
  */
 TEST_F(OpenWaterCheckTest, CheckOpenWater_WaterAirWaterReturnsFalse)
 {
-    entity::FishingBobberEntity bobber(EntityInstanceId(1));
+    entity::FishingBobberEntity bobber(EntityInstanceId(1), mc::test::testEcsRegistry());
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setWorld(m_world.get());
 

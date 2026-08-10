@@ -46,7 +46,7 @@ namespace {
 /**
  * @brief 测试用模拟世界
  */
-class PolarBearTestWorld final : public test::BaseTestWorld {
+class PolarBearTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -103,7 +103,7 @@ protected:
 
 TEST_F(PolarBearEntityTest, Construction_DefaultValues)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始状态
     EXPECT_FALSE(bear.isStanding());
@@ -115,8 +115,8 @@ TEST_F(PolarBearEntityTest, Construction_DefaultValues)
 
 TEST_F(PolarBearEntityTest, EyeHeight_AdultVsChild)
 {
-    PolarBearEntity adultBear(EntityInstanceId(1));
-    PolarBearEntity childBear(EntityInstanceId(2));
+    PolarBearEntity adultBear(EntityInstanceId(1), mc::test::testEcsRegistry());
+    PolarBearEntity childBear(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     // 设置成年和幼体状态
     childBear.setGrowingAge(-24000); // 负数表示幼体
@@ -128,7 +128,7 @@ TEST_F(PolarBearEntityTest, EyeHeight_AdultVsChild)
 
 TEST_F(PolarBearEntityTest, BreedingItem_AlwaysReturnsFalse)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 北极熊不可繁殖
     ItemStack anyItem;
@@ -137,8 +137,8 @@ TEST_F(PolarBearEntityTest, BreedingItem_AlwaysReturnsFalse)
 
 TEST_F(PolarBearEntityTest, SpawnBaby_ReturnsNullptr)
 {
-    PolarBearEntity bear1(EntityInstanceId(1));
-    PolarBearEntity bear2(EntityInstanceId(2));
+    PolarBearEntity bear1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    PolarBearEntity bear2(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     // 北极熊不能繁殖
     auto baby = bear1.spawnBaby(bear2);
@@ -149,7 +149,7 @@ TEST_F(PolarBearEntityTest, SpawnBaby_ReturnsNullptr)
 
 TEST_F(PolarBearEntityTest, Standing_CanSetAndClear)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bear.setStanding(true);
     EXPECT_TRUE(bear.isStanding());
@@ -160,7 +160,7 @@ TEST_F(PolarBearEntityTest, Standing_CanSetAndClear)
 
 TEST_F(PolarBearEntityTest, Standing_TimerSetOnStanding)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bear.setStanding(true);
 
@@ -172,7 +172,7 @@ TEST_F(PolarBearEntityTest, Standing_TimerSetOnStanding)
 
 TEST_F(PolarBearEntityTest, Warning_CanSetAndGet)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bear.setWarning(true);
     EXPECT_TRUE(bear.isWarning());
@@ -185,7 +185,7 @@ TEST_F(PolarBearEntityTest, Warning_CanSetAndGet)
 
 TEST_F(PolarBearEntityTest, Anger_CanSetAngry)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(bear.isAngry());
 
@@ -200,7 +200,7 @@ TEST_F(PolarBearEntityTest, Anger_CanSetAngry)
 
 TEST_F(PolarBearEntityTest, Anger_AngerTimeRange)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bear.setAngry(true);
     i32 angerTime = bear.getAngerTime();
@@ -213,7 +213,7 @@ TEST_F(PolarBearEntityTest, Anger_AngerTimeRange)
 
 TEST_F(PolarBearEntityTest, Anger_SetAngerTimeDirectly)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bear.setAngerTime(100);
     EXPECT_EQ(bear.getAngerTime(), 100);
@@ -224,7 +224,7 @@ TEST_F(PolarBearEntityTest, Anger_SetAngerTimeDirectly)
 
 TEST_F(PolarBearEntityTest, Anger_SetAttackTarget)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 直接设置攻击目标
     LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234); // 仅用于指针测试
@@ -237,7 +237,7 @@ TEST_F(PolarBearEntityTest, Anger_SetAttackTarget)
 
 TEST_F(PolarBearEntityTest, Anger_SetRevengeTarget_ClearsCorrectly)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置愤怒状态
     bear.setAngry(true);
@@ -254,8 +254,8 @@ TEST_F(PolarBearEntityTest, Anger_SetRevengeTarget_ClearsCorrectly)
 
 TEST_F(PolarBearEntityTest, Sound_AmbientSound_AdultVsChild)
 {
-    PolarBearEntity adultBear(EntityInstanceId(1));
-    PolarBearEntity childBear(EntityInstanceId(2));
+    PolarBearEntity adultBear(EntityInstanceId(1), mc::test::testEcsRegistry());
+    PolarBearEntity childBear(EntityInstanceId(2), mc::test::testEcsRegistry());
     childBear.setGrowingAge(-24000);
 
     auto adultSound = adultBear.getAmbientSound();
@@ -271,7 +271,7 @@ TEST_F(PolarBearEntityTest, Sound_AmbientSound_AdultVsChild)
 
 TEST_F(PolarBearEntityTest, Sound_HurtSound)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 创建一个伤害源（使用空指针进行简单测试）
     EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
@@ -283,7 +283,7 @@ TEST_F(PolarBearEntityTest, Sound_HurtSound)
 
 TEST_F(PolarBearEntityTest, Sound_DeathSound)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     auto deathSound = bear.getDeathSound();
 
@@ -298,7 +298,7 @@ TEST_F(PolarBearEntityTest, Constants_AngerTimeRange)
     // 验证愤怒时间范围符合 MC 1.16.5 规范
     // 常量 ANGER_TIME_MIN = 20, ANGER_TIME_MAX = 39
 
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
     bear.setAngry(true);
 
     i32 angerTime = bear.getAngerTime();
@@ -310,7 +310,7 @@ TEST_F(PolarBearEntityTest, Constants_AngerTimeRange)
 
 TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Adult)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 成年北极熊基础尺寸：宽 1.4，高 1.4
     EXPECT_FLOAT_EQ(bear.getBaseWidth(), 1.4f);
@@ -319,7 +319,7 @@ TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Adult)
 
 TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Child)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
     bear.setGrowingAge(-24000); // 幼熊
 
     // 幼熊基础尺寸的 width/height 由 AgeableEntity 缩放
@@ -331,7 +331,7 @@ TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Child)
 
 TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_AdultNotStanding)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 未站立时，m_clientSideStandAnimation 为 0
     auto dims = bear.getDimensions(EntityPose::Standing);
@@ -344,7 +344,7 @@ TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_AdultNotStanding)
 
 TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_ChildNotStanding)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
     bear.setGrowingAge(-24000); // 幼熊
 
     auto dims = bear.getDimensions(EntityPose::Standing);
@@ -357,7 +357,7 @@ TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_ChildNotStanding)
 
 TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ScalesHeight)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 站立动画为 0（四足站立），高度为基础高度 1.4
     bear.setClientSideStandAnimation(0.0f);
@@ -389,7 +389,7 @@ TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ScalesHeight)
 
 TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ChildScalesHeight)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
     bear.setGrowingAge(-24000); // 幼熊
 
     // 幼熊四足站立，高度 0.7
@@ -410,7 +410,7 @@ TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ChildScalesHeight)
 
 TEST_F(PolarBearEntityTest, Attributes_VerifyValues)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5 北极熊属性
     // MAX_HEALTH = 30.0
@@ -436,7 +436,7 @@ TEST_F(PolarBearEntityTest, Attributes_VerifyValues)
 
 TEST_F(PolarBearEntityTest, WarningSound_DoesNotCrash)
 {
-    PolarBearEntity bear(EntityInstanceId(1));
+    PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证调用警告声音不会崩溃
     // 由于 playWarningSound 依赖世界对象，这里只验证不会崩溃
@@ -455,7 +455,7 @@ TEST_F(PolarBearEntityTest, Random_AngerTimeVaries)
     std::set<i32> observedAngerTimes;
 
     for (int i = 0; i < 20; ++i) {
-        PolarBearEntity bear(EntityInstanceId(static_cast<u32>(i + 100)));
+        PolarBearEntity bear(EntityInstanceId(static_cast<u32>(i + 100)), mc::test::testEcsRegistry());
         bear.setAngry(true);
         observedAngerTimes.insert(bear.getAngerTime());
     }
@@ -471,7 +471,7 @@ TEST_F(PolarBearEntityTest, Random_StandingTimerVaries)
     std::set<bool> standingStates;
 
     for (int i = 0; i < 10; ++i) {
-        PolarBearEntity bear(EntityInstanceId(static_cast<u32>(i + 200)));
+        PolarBearEntity bear(EntityInstanceId(static_cast<u32>(i + 200)), mc::test::testEcsRegistry());
         bear.setStanding(true);
         standingStates.insert(bear.isStanding());
     }

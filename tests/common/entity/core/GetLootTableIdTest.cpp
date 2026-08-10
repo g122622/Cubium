@@ -35,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
@@ -52,7 +53,7 @@ using namespace mc::entity;
 class TestProjectileEntity : public ProjectileEntity {
 public:
     explicit TestProjectileEntity(EntityInstanceId id)
-        : ProjectileEntity(id)
+        : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 };
 
@@ -64,7 +65,7 @@ TEST(GetLootTableIdTest, EmptyTypeIdReturnsEmpty)
 {
     // Entity 构造时 m_typeId 为空，getLootTableId() 检查内部 m_typeId，
     // 为空时返回空字符串。getTypeId() 对未设类型实体也返回空串。
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.getLootTableId().empty());
 }
 
@@ -72,7 +73,7 @@ TEST(GetLootTableIdTest, NamespacedTypeIdDerivesLootTablePath)
 {
     // 带命名空间的 typeId（如 "minecraft:pig"）应生成 "minecraft:entities/pig"
     // 对齐 MC Java: EntityType.Builder.withPrefix("entities/")
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setTypeId("minecraft:pig");
     EXPECT_EQ(entity.getLootTableId(), "minecraft:entities/pig");
 }
@@ -80,7 +81,7 @@ TEST(GetLootTableIdTest, NamespacedTypeIdDerivesLootTablePath)
 TEST(GetLootTableIdTest, NamespacedTypeIdCustomNamespace)
 {
     // 自定义命名空间的 typeId
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setTypeId("mymod:custom_mob");
     EXPECT_EQ(entity.getLootTableId(), "mymod:entities/custom_mob");
 }
@@ -88,7 +89,7 @@ TEST(GetLootTableIdTest, NamespacedTypeIdCustomNamespace)
 TEST(GetLootTableIdTest, NamespacedTypeIdMultiComponentPath)
 {
     // 多段路径的 typeId
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setTypeId("minecraft:zombie_villager");
     EXPECT_EQ(entity.getLootTableId(), "minecraft:entities/zombie_villager");
 }
@@ -97,7 +98,7 @@ TEST(GetLootTableIdTest, NoNamespaceTypeIdDefaultsToMinecraft)
 {
     // 不带命名空间的 typeId 应被当作无命名空间前缀处理
     // 当前实现：直接加 "minecraft:entities/" 前缀
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setTypeId("pig");
     EXPECT_EQ(entity.getLootTableId(), "minecraft:entities/pig");
 }
@@ -109,7 +110,7 @@ TEST(GetLootTableIdTest, NoNamespaceTypeIdDefaultsToMinecraft)
 TEST(GetLootTableIdTest, MobEntityWithoutDeathLootTableFallsBackToBase)
 {
     // MobEntity 没有设置 DeathLootTable 时，应回退到基类的实现
-    MobEntity mob(EntityInstanceId(10));
+    MobEntity mob(EntityInstanceId(10), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:zombie");
     EXPECT_EQ(mob.getLootTableId(), "minecraft:entities/zombie");
 }
@@ -118,7 +119,7 @@ TEST(GetLootTableIdTest, MobEntityWithDeathLootTableOverridesBase)
 {
     // MobEntity 设置了 DeathLootTable 后，应优先使用自定义掉落表
     // 对齐 MC Java: this.lootTable.isPresent() ? this.lootTable : super.getLootTable()
-    MobEntity mob(EntityInstanceId(11));
+    MobEntity mob(EntityInstanceId(11), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:zombie");
     mob.setDeathLootTable("minecraft:entities/custom_zombie");
     EXPECT_EQ(mob.getLootTableId(), "minecraft:entities/custom_zombie");
@@ -127,7 +128,7 @@ TEST(GetLootTableIdTest, MobEntityWithDeathLootTableOverridesBase)
 TEST(GetLootTableIdTest, MobEntityWithEmptyDeathLootTableFallsBackToBase)
 {
     // DeathLootTable 设为空字符串时应回退到基类实现
-    MobEntity mob(EntityInstanceId(12));
+    MobEntity mob(EntityInstanceId(12), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:skeleton");
     mob.setDeathLootTable("");
     EXPECT_EQ(mob.getLootTableId(), "minecraft:entities/skeleton");
@@ -136,7 +137,7 @@ TEST(GetLootTableIdTest, MobEntityWithEmptyDeathLootTableFallsBackToBase)
 TEST(GetLootTableIdTest, MobEntityWithNulloptDeathLootTableFallsBackToBase)
 {
     // DeathLootTable 设为 nullopt 时应回退到基类实现
-    MobEntity mob(EntityInstanceId(13));
+    MobEntity mob(EntityInstanceId(13), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:creeper");
     mob.setDeathLootTable(std::nullopt);
     EXPECT_EQ(mob.getLootTableId(), "minecraft:entities/creeper");
@@ -161,7 +162,7 @@ TEST(GetLootTableIdTest, FishingBobberEntityReturnsEmpty)
 {
     // FishingBobberEntity 覆写返回空
     // 对齐 MC Java: noLootTable() for FishingBobber
-    FishingBobberEntity bobber(EntityInstanceId(21));
+    FishingBobberEntity bobber(EntityInstanceId(21), mc::test::testEcsRegistry());
     EXPECT_TRUE(bobber.getLootTableId().empty());
 }
 
@@ -169,7 +170,7 @@ TEST(GetLootTableIdTest, EvokerFangsEntityReturnsEmpty)
 {
     // EvokerFangsEntity 覆写返回空
     // 对齐 MC Java: noLootTable() for EvokerFangs
-    EvokerFangsEntity fangs(EntityInstanceId(22));
+    EvokerFangsEntity fangs(EntityInstanceId(22), mc::test::testEcsRegistry());
     EXPECT_TRUE(fangs.getLootTableId().empty());
 }
 
@@ -177,7 +178,7 @@ TEST(GetLootTableIdTest, EyeOfEnderEntityReturnsEmpty)
 {
     // EyeOfEnderEntity 覆写返回空
     // 对齐 MC Java: noLootTable() for EyeOfEnder
-    EyeOfEnderEntity eye(EntityInstanceId(23));
+    EyeOfEnderEntity eye(EntityInstanceId(23), mc::test::testEcsRegistry());
     EXPECT_TRUE(eye.getLootTableId().empty());
 }
 
@@ -185,7 +186,7 @@ TEST(GetLootTableIdTest, FireworkRocketEntityReturnsEmpty)
 {
     // FireworkRocketEntity 覆写返回空
     // 对齐 MC Java: noLootTable() for FireworkRocket
-    FireworkRocketEntity rocket(EntityInstanceId(24));
+    FireworkRocketEntity rocket(EntityInstanceId(24), mc::test::testEcsRegistry());
     EXPECT_TRUE(rocket.getLootTableId().empty());
 }
 
@@ -193,7 +194,7 @@ TEST(GetLootTableIdTest, TNTEntityReturnsEmpty)
 {
     // TNTEntity 覆写返回空
     // 对齐 MC Java: noLootTable() for TNT
-    TNTEntity tnt(EntityInstanceId(25));
+    TNTEntity tnt(EntityInstanceId(25), mc::test::testEcsRegistry());
     EXPECT_TRUE(tnt.getLootTableId().empty());
 }
 
@@ -202,7 +203,7 @@ TEST(GetLootTableIdTest, MinecartEntityReturnsEmpty)
     // RideableMinecartEntity 继承自 AbstractMinecartEntity，
     // 后者覆写 getLootTableId() 返回空，覆盖所有矿车子类
     // 对齐 MC Java: 所有 Minecart 子类型都调用 noLootTable()
-    RideableMinecartEntity minecart(EntityInstanceId(26));
+    RideableMinecartEntity minecart(EntityInstanceId(26), mc::test::testEcsRegistry());
     EXPECT_TRUE(minecart.getLootTableId().empty());
 }
 
@@ -213,7 +214,7 @@ TEST(GetLootTableIdTest, MinecartEntityReturnsEmpty)
 TEST(GetLootTableIdTest, MobEntityTypeIdDerivesCorrectPath)
 {
     // MobEntity 继承 Entity 的 getLootTableId() 路径推导逻辑
-    MobEntity mob(EntityInstanceId(30));
+    MobEntity mob(EntityInstanceId(30), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:armor_stand");
     EXPECT_EQ(mob.getLootTableId(), "minecraft:entities/armor_stand");
 }
@@ -223,7 +224,7 @@ TEST(GetLootTableIdTest, ConsistencyWithMCJavaFormat)
     // 验证生成的战利品表ID格式对齐 MC Java
     // MC Java 中 EntityType.Builder.withPrefix("entities/") 生成的格式：
     // "minecraft:pig" -> "minecraft:entities/pig"
-    Entity entity(EntityInstanceId(40));
+    Entity entity(EntityInstanceId(40), nullptr, mc::test::testEcsRegistry());
 
     entity.setTypeId("minecraft:cow");
     EXPECT_EQ(entity.getLootTableId(), "minecraft:entities/cow");
@@ -243,7 +244,7 @@ TEST(GetLootTableIdTest, PolymorphicCallResolvesCorrectly)
     EXPECT_TRUE(basePtr->getLootTableId().empty());
 
     // MobEntity 通过基类指针调用应使用 MobEntity 覆写
-    MobEntity mob(EntityInstanceId(51));
+    MobEntity mob(EntityInstanceId(51), mc::test::testEcsRegistry());
     mob.setTypeId("minecraft:blaze");
     basePtr = &mob;
     EXPECT_EQ(basePtr->getLootTableId(), "minecraft:entities/blaze");

@@ -22,6 +22,7 @@
  */
 
 #include "server/world/ServerWorld.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/TempDirHelper.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -842,7 +843,7 @@ TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker)
 
     // 创建一个简单实体
     ItemStack stack; // 空物品堆
-    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 100.0f, 64.0f, 100.0f);
+    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 100.0f, 64.0f, 100.0f, mc::test::testEcsRegistry());
     EntityInstanceId entityId = entity->id();
 
     // 生成实体
@@ -881,9 +882,9 @@ TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
 
     // 创建多个实体
     ItemStack stack; // 空物品堆
-    auto entity1 = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 0.0f, 64.0f, 0.0f);
-    auto entity2 = std::make_unique<ItemEntity>(EntityInstanceId(2), stack, 10.0f, 64.0f, 10.0f);
-    auto entity3 = std::make_unique<ItemEntity>(EntityInstanceId(3), stack, 20.0f, 64.0f, 20.0f);
+    auto entity1 = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 0.0f, 64.0f, 0.0f, mc::test::testEcsRegistry());
+    auto entity2 = std::make_unique<ItemEntity>(EntityInstanceId(2), stack, 10.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
+    auto entity3 = std::make_unique<ItemEntity>(EntityInstanceId(3), stack, 20.0f, 64.0f, 20.0f, mc::test::testEcsRegistry());
 
     EntityInstanceId id1 = entity1->id();
     EntityInstanceId id2 = entity2->id();
@@ -989,7 +990,7 @@ TEST_F(ServerWorldTest, GetClosestPlayer_ReturnsNullptrWhenNoPlayersInRange)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建玩家并放置在远处
-    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(Vector3(1000.0f, 64.0f, 1000.0f));
     player->setWorld(world.get());
     world->spawnEntity(std::move(player));
@@ -1004,19 +1005,19 @@ TEST_F(ServerWorldTest, GetClosestPlayer_ReturnsClosestPlayer)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建三个玩家
-    auto player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1");
+    auto player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1", mc::test::testEcsRegistry());
     player1->setPosition(Vector3(10.0f, 64.0f, 0.0f)); // 距离原点 10 格
     player1->setWorld(world.get());
     EntityInstanceId id1 = player1->id();
     world->spawnEntity(std::move(player1));
 
-    auto player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2");
+    auto player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2", mc::test::testEcsRegistry());
     player2->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格（最近）
     player2->setWorld(world.get());
     EntityInstanceId id2 = player2->id();
     world->spawnEntity(std::move(player2));
 
-    auto player3 = std::make_unique<Player>(EntityInstanceId(3), "Player3");
+    auto player3 = std::make_unique<Player>(EntityInstanceId(3), "Player3", mc::test::testEcsRegistry());
     player3->setPosition(Vector3(20.0f, 64.0f, 0.0f)); // 距离原点 20 格
     player3->setWorld(world.get());
     world->spawnEntity(std::move(player3));
@@ -1033,14 +1034,14 @@ TEST_F(ServerWorldTest, GetClosestPlayer_ExcludesSpectatorPlayers)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建一个观察者模式玩家（近）
-    auto spectator = std::make_unique<Player>(EntityInstanceId(1), "Spectator");
+    auto spectator = std::make_unique<Player>(EntityInstanceId(1), "Spectator", mc::test::testEcsRegistry());
     spectator->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
     spectator->setGameMode(GameMode::Spectator);        // 观察者模式
     spectator->setWorld(world.get());
     world->spawnEntity(std::move(spectator));
 
     // 创建一个生存模式玩家（远）
-    auto survival = std::make_unique<Player>(EntityInstanceId(2), "Survival");
+    auto survival = std::make_unique<Player>(EntityInstanceId(2), "Survival", mc::test::testEcsRegistry());
     survival->setPosition(Vector3(15.0f, 64.0f, 0.0f)); // 距离原点 15 格
     survival->setGameMode(GameMode::Survival);
     survival->setWorld(world.get());
@@ -1059,13 +1060,13 @@ TEST_F(ServerWorldTest, GetClosestPlayer_ExcludesSpecifiedEntity)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建两个玩家
-    auto player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1");
+    auto player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1", mc::test::testEcsRegistry());
     player1->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
     player1->setWorld(world.get());
     EntityInstanceId id1 = player1->id();
     world->spawnEntity(std::move(player1));
 
-    auto player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2");
+    auto player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2", mc::test::testEcsRegistry());
     player2->setPosition(Vector3(10.0f, 64.0f, 0.0f)); // 距离原点 10 格
     player2->setWorld(world.get());
     EntityInstanceId id2 = player2->id();
@@ -1096,7 +1097,7 @@ TEST_F(ServerWorldTest, GetClosestPlayerDistanceSq_ReturnsCorrectDistance)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建玩家在 (10, 64, 0)
-    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(Vector3(10.0f, 64.0f, 0.0f));
     player->setWorld(world.get());
     world->spawnEntity(std::move(player));
@@ -1115,14 +1116,14 @@ TEST_F(ServerWorldTest, GetClosestPlayerDistanceSq_ExcludesSpectatorPlayers)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建一个观察者模式玩家（近）
-    auto spectator = std::make_unique<Player>(EntityInstanceId(1), "Spectator");
+    auto spectator = std::make_unique<Player>(EntityInstanceId(1), "Spectator", mc::test::testEcsRegistry());
     spectator->setPosition(Vector3(5.0f, 64.0f, 0.0f)); // 距离原点 5 格
     spectator->setGameMode(GameMode::Spectator);
     spectator->setWorld(world.get());
     world->spawnEntity(std::move(spectator));
 
     // 创建一个生存模式玩家（远）
-    auto survival = std::make_unique<Player>(EntityInstanceId(2), "Survival");
+    auto survival = std::make_unique<Player>(EntityInstanceId(2), "Survival", mc::test::testEcsRegistry());
     survival->setPosition(Vector3(15.0f, 64.0f, 0.0f)); // 距离原点 15 格
     survival->setGameMode(GameMode::Survival);
     survival->setWorld(world.get());
@@ -1138,7 +1139,7 @@ TEST_F(ServerWorldTest, GetClosestPlayer_ConstVersionWorks)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建玩家
-    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(Vector3(10.0f, 64.0f, 0.0f));
     player->setWorld(world.get());
     EntityInstanceId playerId = player->id();

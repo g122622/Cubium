@@ -22,6 +22,7 @@
  */
 
 #include "entity/inventory/container/EnchantmentContainer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
@@ -192,7 +193,7 @@ protected:
     void SetUp() override
     {
         Items::initialize();
-        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 

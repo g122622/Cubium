@@ -46,7 +46,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持广播实体状态
  */
-class HorseTamingTestWorld final : public test::BaseTestWorld {
+class HorseTamingTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
 
@@ -114,7 +114,7 @@ TEST(HorseTamingTest, SetTame_UpdatesTameState)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isTame());
@@ -135,7 +135,7 @@ TEST(HorseTamingTest, MakeMad_TriggersRearingAnimation)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 愤怒前未扬蹄
@@ -153,7 +153,7 @@ TEST(HorseTamingTest, MakeMad_DoesNotRearIfAlreadyRearing)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 先设置扬蹄状态
@@ -179,7 +179,7 @@ TEST(HorseTamingTest, MakeHorseRear_SetsRearingFlag)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isRearing());
@@ -193,7 +193,7 @@ TEST(HorseTamingTest, MakeHorseRear_ClearsEatingFlag)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置进食状态
@@ -215,7 +215,7 @@ TEST(HorseTamingTest, Rearing_CanBeSetAndCleared)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始不扬蹄
@@ -235,7 +235,7 @@ TEST(HorseTamingTest, Rearing_ClearsEatingWhenSet)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置进食状态
@@ -257,7 +257,7 @@ TEST(HorseTamingTest, Temper_StartsAtZero)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_EQ(horse.getTemper(), 0);
@@ -268,7 +268,7 @@ TEST(HorseTamingTest, IncreaseTemper_IncreasesTemper)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 增加驯服进度
@@ -284,7 +284,7 @@ TEST(HorseTamingTest, IncreaseTemper_ReturnsTrueWhenMaxReached)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 默认 maxTemper 是 100
@@ -305,7 +305,7 @@ TEST(HorseTamingTest, SetSaddle_UpdatesSaddleState)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.hasSaddle());
@@ -326,7 +326,7 @@ TEST(HorseTamingTest, Horse_GetAngrySound_ReturnsCorrectSound)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     auto sound = horse.getAngrySound();
@@ -343,7 +343,7 @@ TEST(HorseTamingTest, Eating_CanBeSetAndCleared)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isEating());
@@ -364,7 +364,7 @@ TEST(HorseTamingTest, Bred_CanBeSetAndCleared)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isBred());
@@ -385,7 +385,7 @@ TEST(HorseTamingTest, MouthOpen_CanBeSetAndCleared)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     EXPECT_FALSE(horse.isMouthOpen());
@@ -406,7 +406,7 @@ TEST(HorseTamingTest, Donkey_CanBeCreated)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    DonkeyEntity donkey(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(1), mc::test::testEcsRegistry());
     donkey.setWorld(&world);
 
     EXPECT_FALSE(donkey.isTame());
@@ -419,7 +419,7 @@ TEST(HorseTamingTest, Mule_CanBeCreated)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    MuleEntity mule(EntityInstanceId(1));
+    MuleEntity mule(EntityInstanceId(1), mc::test::testEcsRegistry());
     mule.setWorld(&world);
 
     EXPECT_FALSE(mule.isTame());
@@ -436,7 +436,7 @@ TEST(HorseTamingTest, JumpPower_CanBeSetAndRetrieved)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始跳跃力度为 0
@@ -459,7 +459,7 @@ TEST(HorseTamingTest, JumpStrength_CanBeSetAndRetrieved)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置跳跃强度
@@ -476,7 +476,7 @@ TEST(HorseTamingTest, Speed_IsInitialized)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 速度应该在 MIN_SPEED 和 MAX_SPEED 之间
@@ -494,7 +494,7 @@ TEST(HorseTamingTest, EquipmentSlotCount_ReturnsCorrectValue)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 马有 2 个装备槽（鞍和马铠）
@@ -506,7 +506,7 @@ TEST(HorseTamingTest, DonkeyEquipmentSlotCount_WithChest)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    DonkeyEntity donkey(EntityInstanceId(1));
+    DonkeyEntity donkey(EntityInstanceId(1), mc::test::testEcsRegistry());
     donkey.setWorld(&world);
 
     // 驴默认有 2 个槽位
@@ -526,7 +526,7 @@ TEST(HorseTamingTest, RearingAmount_InitialValueIsZero)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始扬蹄动画进度为 0
@@ -540,7 +540,7 @@ TEST(HorseTamingTest, RearingAmount_IncreasesWhenRearing)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置扬蹄状态
@@ -561,7 +561,7 @@ TEST(HorseTamingTest, RearingAmount_DecreasesWhenNotRearing)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始状态，不扬蹄
@@ -576,7 +576,7 @@ TEST(HorseTamingTest, RearingAmount_InterpolationFormula)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 测试插值方法的数学正确性
@@ -598,7 +598,7 @@ TEST(HorseTamingTest, HeadLeanAmount_InitialValueIsZero)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始低头动画进度为 0
@@ -610,7 +610,7 @@ TEST(HorseTamingTest, HeadLeanAmount_SetEatingState)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置进食状态
@@ -627,7 +627,7 @@ TEST(HorseTamingTest, HeadLeanAmount_ClearsWhenRearing)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置进食状态
@@ -650,7 +650,7 @@ TEST(HorseTamingTest, MouthOpennessAmount_InitialValueIsZero)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 初始张嘴动画进度为 0
@@ -662,7 +662,7 @@ TEST(HorseTamingTest, MouthOpennessAmount_SetMouthOpenState)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 设置张嘴状态
@@ -678,7 +678,7 @@ TEST(HorseTamingTest, MouthOpennessAmount_InterpolationFormula)
     VanillaBlocks::initialize();
 
     HorseTamingTestWorld world;
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
     // 测试插值方法的数学正确性

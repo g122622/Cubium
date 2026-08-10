@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/DonkeyEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
@@ -34,10 +35,10 @@ namespace {
 
 TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 {
-    HorseEntity horse(EntityInstanceId(1));
-    DonkeyEntity donkey(EntityInstanceId(2));
-    MuleEntity mule(EntityInstanceId(3));
-    LlamaEntity llama(EntityInstanceId(4));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
+    DonkeyEntity donkey(EntityInstanceId(2), mc::test::testEcsRegistry());
+    MuleEntity mule(EntityInstanceId(3), mc::test::testEcsRegistry());
+    LlamaEntity llama(EntityInstanceId(4), mc::test::testEcsRegistry());
 
     EXPECT_EQ(dynamic_cast<AbstractChestedHorseEntity*>(&horse), nullptr);
     EXPECT_NE(dynamic_cast<AbstractChestedHorseEntity*>(&donkey), nullptr);
@@ -47,9 +48,9 @@ TEST(AbstractChestedHorseEntityTest, CoversChestHorseSubtypesButNotPlainHorse)
 
 TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 {
-    DonkeyEntity donkey(EntityInstanceId(1));
-    MuleEntity mule(EntityInstanceId(2));
-    LlamaEntity llama(EntityInstanceId(3));
+    DonkeyEntity donkey(EntityInstanceId(1), mc::test::testEcsRegistry());
+    MuleEntity mule(EntityInstanceId(2), mc::test::testEcsRegistry());
+    LlamaEntity llama(EntityInstanceId(3), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(donkey.hasChest());
     EXPECT_EQ(donkey.getInventorySize(), 2);
@@ -74,7 +75,7 @@ TEST(AbstractChestedHorseEntityTest, UsesVanillaStyleChestInventorySizing)
 
 TEST(HorseSupportTypesTest, LlamaStrengthIsClampedToVanillaRange)
 {
-    LlamaEntity llama(EntityInstanceId(1));
+    LlamaEntity llama(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     llama.setStrength(0);
     EXPECT_EQ(llama.getStrength(), 1);

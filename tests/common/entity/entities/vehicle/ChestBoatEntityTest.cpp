@@ -24,6 +24,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -59,7 +60,7 @@ std::unique_ptr<nbt::tags::compound_tag> saveToNbt(const ChestBoatEntity& entity
 std::unique_ptr<ChestBoatEntity> loadFromNbt(
     const nbt::tags::compound_tag& tag, BoatEntity::Type type = BoatEntity::Type::OAK)
 {
-    auto entity = std::make_unique<ChestBoatEntity>(type);
+    auto entity = std::make_unique<ChestBoatEntity>(type, mc::test::testEcsRegistry());
     auto result = entity->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success()) << "readAdditionalSaveData should succeed";
     return entity;
@@ -78,7 +79,7 @@ protected:
 
 TEST_F(ChestBoatEntityTest, DefaultConstructor_CreatesOakChestBoat)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_EQ(chestBoat.getBoatType(), BoatEntity::Type::OAK);
     EXPECT_TRUE(chestBoat.hasChest());
@@ -86,31 +87,31 @@ TEST_F(ChestBoatEntityTest, DefaultConstructor_CreatesOakChestBoat)
 
 TEST_F(ChestBoatEntityTest, TypedConstructor_CreatesCorrectType)
 {
-    ChestBoatEntity spruceBoat(BoatEntity::Type::SPRUCE);
+    ChestBoatEntity spruceBoat(BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
     EXPECT_EQ(spruceBoat.getBoatType(), BoatEntity::Type::SPRUCE);
     EXPECT_TRUE(spruceBoat.hasChest());
 
-    ChestBoatEntity birchBoat(BoatEntity::Type::BIRCH);
+    ChestBoatEntity birchBoat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
     EXPECT_EQ(birchBoat.getBoatType(), BoatEntity::Type::BIRCH);
     EXPECT_TRUE(birchBoat.hasChest());
 
-    ChestBoatEntity bambooBoat(BoatEntity::Type::BAMBOO);
+    ChestBoatEntity bambooBoat(BoatEntity::Type::BAMBOO, mc::test::testEcsRegistry());
     EXPECT_EQ(bambooBoat.getBoatType(), BoatEntity::Type::BAMBOO);
     EXPECT_TRUE(bambooBoat.hasChest());
 }
 
 TEST_F(ChestBoatEntityTest, HasChest_AlwaysTrue)
 {
-    ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_TRUE(chestBoat.hasChest());
 
-    ChestBoatEntity chestBoat2(BoatEntity::Type::BAMBOO);
+    ChestBoatEntity chestBoat2(BoatEntity::Type::BAMBOO, mc::test::testEcsRegistry());
     EXPECT_TRUE(chestBoat2.hasChest());
 }
 
 TEST_F(ChestBoatEntityTest, ContainerSize_Is27)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_EQ(ChestBoatEntity::CONTAINER_SIZE, 27);
     EXPECT_EQ(chestBoat.getContainerSize(), 27);
@@ -127,7 +128,7 @@ protected:
 
 TEST_F(ChestBoatInventoryTest, Constructor_CreatesEmptyInventory)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_EQ(chestBoat.getContainerSize(), 27);
     EXPECT_TRUE(chestBoat.isInventoryEmpty());
@@ -135,7 +136,7 @@ TEST_F(ChestBoatInventoryTest, Constructor_CreatesEmptyInventory)
 
 TEST_F(ChestBoatInventoryTest, GetInventoryItem_OutOfBoundsReturnsEmpty)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(chestBoat.getInventoryItem(-1).isEmpty());
     EXPECT_TRUE(chestBoat.getInventoryItem(27).isEmpty());
@@ -144,7 +145,7 @@ TEST_F(ChestBoatInventoryTest, GetInventoryItem_OutOfBoundsReturnsEmpty)
 
 TEST_F(ChestBoatInventoryTest, GetInventoryItem_AllSlotsInitiallyEmpty)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     for (i32 i = 0; i < 27; ++i) {
         EXPECT_TRUE(chestBoat.getInventoryItem(i).isEmpty()) << "Slot " << i << " should be empty";
@@ -153,7 +154,7 @@ TEST_F(ChestBoatInventoryTest, GetInventoryItem_AllSlotsInitiallyEmpty)
 
 TEST_F(ChestBoatInventoryTest, SetInventoryItem_AndGetInventoryItem)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     ItemStack stack(*Items::OAK_BOAT, 1);
@@ -169,7 +170,7 @@ TEST_F(ChestBoatInventoryTest, SetInventoryItem_AndGetInventoryItem)
 
 TEST_F(ChestBoatInventoryTest, SetInventoryItem_MultipleSlots)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     ASSERT_NE(Items::SPRUCE_BOAT, nullptr);
@@ -189,7 +190,7 @@ TEST_F(ChestBoatInventoryTest, SetInventoryItem_MultipleSlots)
 
 TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_OutOfBoundsReturnsEmpty)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(chestBoat.removeInventoryItem(-1, 1).isEmpty());
     EXPECT_TRUE(chestBoat.removeInventoryItem(100, 1).isEmpty());
@@ -197,7 +198,7 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_OutOfBoundsReturnsEmpty)
 
 TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FromEmptySlotReturnsEmpty)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(chestBoat.removeInventoryItem(0, 1).isEmpty());
     EXPECT_TRUE(chestBoat.removeInventoryItem(26, 1).isEmpty());
@@ -205,7 +206,7 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FromEmptySlotReturnsEmpty)
 
 TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_PartialRemoval)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
@@ -220,7 +221,7 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_PartialRemoval)
 
 TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FullRemoval)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 3));
@@ -235,7 +236,7 @@ TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FullRemoval)
 
 TEST_F(ChestBoatInventoryTest, ClearInventory_EmptiesAllSlots)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
@@ -252,7 +253,7 @@ TEST_F(ChestBoatInventoryTest, ClearInventory_EmptiesAllSlots)
 
 TEST_F(ChestBoatInventoryTest, GetInventory_ReturnsNonNullptr)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     IInventory* inventory = chestBoat.getInventory();
     ASSERT_NE(inventory, nullptr);
@@ -261,7 +262,7 @@ TEST_F(ChestBoatInventoryTest, GetInventory_ReturnsNonNullptr)
 
 TEST_F(ChestBoatInventoryTest, ContainerSizeMatchesConstant)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_EQ(chestBoat.getContainerSize(), ChestBoatEntity::CONTAINER_SIZE);
 
@@ -301,7 +302,7 @@ TEST_F(ChestBoatGetBoatItemTest, AllTypes_ReturnCorrectChestBoatItems)
     };
 
     for (const auto& tc : testCases) {
-        ChestBoatEntity chestBoat(tc.type);
+        ChestBoatEntity chestBoat(tc.type, mc::test::testEcsRegistry());
         const Item* item = chestBoat.getBoatItem();
 
         EXPECT_NE(item, nullptr) << "getBoatItem() should not return nullptr for type " << tc.name;
@@ -311,8 +312,8 @@ TEST_F(ChestBoatGetBoatItemTest, AllTypes_ReturnCorrectChestBoatItems)
 
 TEST_F(ChestBoatGetBoatItemTest, ChestBoatItems_DifferentFromNormalBoatItems)
 {
-    ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
-    BoatEntity normalBoat(BoatEntity::Type::OAK);
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    BoatEntity normalBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_NE(chestBoat.getBoatItem(), normalBoat.getBoatItem());
     EXPECT_EQ(chestBoat.getBoatItem(), Items::OAK_CHEST_BOAT);
@@ -395,7 +396,7 @@ protected:
 
 TEST_F(ChestBoatInheritanceTest, IsBoatEntitySubclass)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     BoatEntity* boatPtr = &chestBoat;
     EXPECT_EQ(boatPtr->getBoatType(), BoatEntity::Type::OAK);
@@ -407,13 +408,13 @@ TEST_F(ChestBoatInheritanceTest, IsBoatEntitySubclass)
 
 TEST_F(ChestBoatInheritanceTest, VirtualGetBoatItem_OverriddenCorrectly)
 {
-    ChestBoatEntity chestBoat(BoatEntity::Type::BIRCH);
+    ChestBoatEntity chestBoat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
     BoatEntity& boatRef = chestBoat;
 
     EXPECT_EQ(boatRef.getBoatItem(), Items::BIRCH_CHEST_BOAT);
     EXPECT_EQ(chestBoat.getBoatItem(), Items::BIRCH_CHEST_BOAT);
 
-    BoatEntity normalBoat(BoatEntity::Type::BIRCH);
+    BoatEntity normalBoat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
     EXPECT_EQ(normalBoat.getBoatItem(), Items::BIRCH_BOAT);
 }
 
@@ -439,7 +440,7 @@ TEST_F(ChestBoatInheritanceTest, AllTypes_GetBoatItemViaBasePointer)
     };
 
     for (const auto& tc : testCases) {
-        ChestBoatEntity chestBoat(tc.type);
+        ChestBoatEntity chestBoat(tc.type, mc::test::testEcsRegistry());
         BoatEntity* boatPtr = &chestBoat;
 
         EXPECT_EQ(boatPtr->getBoatItem(), tc.expectedItem)
@@ -458,7 +459,7 @@ protected:
 
 TEST_F(ChestBoatPassengerTest, CanAddPassenger_DefaultState_AllowsOnePassenger)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 默认状态（InWater，非水下），没有乘客时应该允许添加乘客
     // canAddPassenger 检查: getPassengers().size() < 1 && getStatus() != UnderWater
@@ -473,8 +474,8 @@ TEST_F(ChestBoatPassengerTest, CanAddPassenger_MaxOnePassenger)
 {
     // 箱子船限制最多1名乘客（普通船允许2名）
     // 验证：canAddPassenger 检查 size < 1
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    BoatEntity normalBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 箱子船：size < 1 → 最多1名
     // 普通船：size < 2 → 最多2名
@@ -494,14 +495,14 @@ protected:
 
 TEST_F(ChestBoatMountTest, GetMountedYOffset_ReturnsCorrectValue)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), -0.1);
 }
 
 TEST_F(ChestBoatMountTest, MountedYOffset_SameAsNormalBoat)
 {
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    BoatEntity normalBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), normalBoat.getMountedYOffset());
 }
@@ -517,13 +518,13 @@ protected:
 
 TEST_F(ChestBoatComparatorTest, EmptyContainer_OutputIsZero)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(chestBoat.getComparatorOutput(), 0);
 }
 
 TEST_F(ChestBoatComparatorTest, PartiallyFilledContainer_OutputNonZero)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
@@ -535,7 +536,7 @@ TEST_F(ChestBoatComparatorTest, PartiallyFilledContainer_OutputNonZero)
 
 TEST_F(ChestBoatComparatorTest, SingleItemInLargeContainer_OutputIsOne)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
@@ -548,7 +549,7 @@ TEST_F(ChestBoatComparatorTest, SingleItemInLargeContainer_OutputIsOne)
 
 TEST_F(ChestBoatComparatorTest, FullContainer_OutputIsFifteen)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     for (i32 i = 0; i < ChestBoatEntity::CONTAINER_SIZE; ++i) {
@@ -570,7 +571,7 @@ protected:
 
 TEST_F(ChestBoatDisplayNameTest, GetDisplayName_ReturnsCorrectKey)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(chestBoat.getDisplayName(), "container.chestBoat");
 }
 
@@ -585,7 +586,7 @@ protected:
 
 TEST_F(ChestBoatStillValidTest, StillValid_FalseWhenEntityRemoved)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 未移除时 stillValid 的距离检查需要 Player 对象
     // 但 isRemoved() 检查不需要 Player
@@ -607,7 +608,7 @@ protected:
 
 TEST_F(ChestBoatNbtTest, EmptyInventory_RoundTrip)
 {
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 序列化
     auto tag = saveToNbt(original);
@@ -622,7 +623,7 @@ TEST_F(ChestBoatNbtTest, EmptyInventory_RoundTrip)
 
 TEST_F(ChestBoatNbtTest, InventoryItems_RoundTrip)
 {
-    ChestBoatEntity original(BoatEntity::Type::BIRCH);
+    ChestBoatEntity original(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     ASSERT_NE(Items::SPRUCE_BOAT, nullptr);
@@ -657,7 +658,7 @@ TEST_F(ChestBoatNbtTest, InventoryItems_RoundTrip)
 
 TEST_F(ChestBoatNbtTest, NbtKeys_ItemsKeyUsed)
 {
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
@@ -676,7 +677,7 @@ TEST_F(ChestBoatNbtTest, NbtKeys_ItemsKeyUsed)
 
 TEST_F(ChestBoatNbtTest, NbtKeys_LootTableKeyUsed)
 {
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 直接构造带战利品表的 NBT 数据
     nbt::tags::compound_tag tag;
@@ -752,7 +753,7 @@ TEST_F(ChestBoatNbtTest, BoatTypePreservedByBaseClass)
 {
     // BoatEntity::addAdditionalSaveData 保存船类型
     // 验证船类型在序列化/反序列化后保持一致
-    ChestBoatEntity original(BoatEntity::Type::SPRUCE);
+    ChestBoatEntity original(BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
 
     auto tag = saveToNbt(original);
 
@@ -772,8 +773,8 @@ protected:
 
 TEST_F(ChestBoatVsNormalBoatTest, DifferentDropItems)
 {
-    ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
-    BoatEntity normalBoat(BoatEntity::Type::OAK);
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    BoatEntity normalBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     EXPECT_NE(chestBoat.getBoatItem(), normalBoat.getBoatItem());
     EXPECT_EQ(chestBoat.getBoatItem(), Items::OAK_CHEST_BOAT);
@@ -803,8 +804,8 @@ TEST_F(ChestBoatVsNormalBoatTest, AllTypes_DifferentChestAndNormalItems)
     };
 
     for (const auto& tc : testCases) {
-        ChestBoatEntity chestBoat(tc.type);
-        BoatEntity normalBoat(tc.type);
+        ChestBoatEntity chestBoat(tc.type, mc::test::testEcsRegistry());
+        BoatEntity normalBoat(tc.type, mc::test::testEcsRegistry());
 
         EXPECT_NE(chestBoat.getBoatItem(), normalBoat.getBoatItem())
             << "Type " << tc.name << ": chest boat and normal boat should have different items";
@@ -817,8 +818,8 @@ TEST_F(ChestBoatVsNormalBoatTest, AllTypes_DifferentChestAndNormalItems)
 
 TEST_F(ChestBoatVsNormalBoatTest, ChestBoat_HasContainer_NormalBoat_DoesNot)
 {
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
+    BoatEntity normalBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 箱子船有容器
     EXPECT_EQ(chestBoat.getContainerSize(), 27);
@@ -845,7 +846,7 @@ protected:
 
 TEST_F(ChestBoatLootTableTest, DefaultState_NoLootTable)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 默认状态下没有战利品表
     EXPECT_FALSE(chestBoat.hasLootTable());
@@ -855,7 +856,7 @@ TEST_F(ChestBoatLootTableTest, DefaultState_NoLootTable)
 
 TEST_F(ChestBoatLootTableTest, SetLootTable_SetsValuesCorrectly)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     chestBoat.setLootTable("minecraft:chests/village_armorer", 42L);
 
@@ -866,7 +867,7 @@ TEST_F(ChestBoatLootTableTest, SetLootTable_SetsValuesCorrectly)
 
 TEST_F(ChestBoatLootTableTest, SetLootTable_ZeroSeed)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     chestBoat.setLootTable("minecraft:chests/spawn_bonus_chest", 0L);
 
@@ -877,7 +878,7 @@ TEST_F(ChestBoatLootTableTest, SetLootTable_ZeroSeed)
 
 TEST_F(ChestBoatLootTableTest, SetLootTable_IsInventoryEmptyReturnsFalse)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 设置战利品表后，isInventoryEmpty() 应返回 false（容器可能有物品）
     chestBoat.setLootTable("minecraft:chests/simple_dungeon", 123L);
@@ -889,7 +890,7 @@ TEST_F(ChestBoatLootTableTest, SetLootTable_IsInventoryEmptyReturnsFalse)
 
 TEST_F(ChestBoatLootTableTest, SetLootTable_NbtRoundTrip)
 {
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     original.setLootTable("minecraft:chests/abandoned_mineshaft", 999L);
 
     auto tag = saveToNbt(original);
@@ -903,7 +904,7 @@ TEST_F(ChestBoatLootTableTest, SetLootTable_NbtRoundTrip)
 TEST_F(ChestBoatLootTableTest, LootTableSupersedesItemsInNbt)
 {
     // 有战利品表时，NBT 不应保存物品
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
     original.setLootTable("minecraft:chests/shipwreck_treasure", 77L);
@@ -927,7 +928,7 @@ TEST_F(ChestBoatLootTableTest, LootTableSupersedesItemsInNbt)
 TEST_F(ChestBoatLootTableTest, NoLootTable_ItemsSavedInNbt)
 {
     // 没有战利品表时，NBT 应保存物品
-    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ChestBoatEntity original(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     ASSERT_NE(Items::OAK_BOAT, nullptr);
     original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 3));
 
@@ -944,7 +945,7 @@ TEST_F(ChestBoatLootTableTest, NoLootTable_ItemsSavedInNbt)
 
 TEST_F(ChestBoatLootTableTest, UnpackLootTable_NoWorld_NoEffect)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     chestBoat.setLootTable("minecraft:chests/simple_dungeon", 42L);
 
     // 没有世界环境（m_world == nullptr），unpackLootTable 应为空操作
@@ -957,7 +958,7 @@ TEST_F(ChestBoatLootTableTest, UnpackLootTable_NoWorld_NoEffect)
 
 TEST_F(ChestBoatLootTableTest, UnpackLootTable_EmptyLootTable_NoEffect)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 没有设置战利品表，unpackLootTable 应为空操作
     chestBoat.unpackLootTable(nullptr);
@@ -968,7 +969,7 @@ TEST_F(ChestBoatLootTableTest, UnpackLootTable_EmptyLootTable_NoEffect)
 
 TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_BasicOperation)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     ASSERT_NE(Items::OAK_BOAT, nullptr);
 
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
@@ -981,7 +982,7 @@ TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_BasicOperation)
 
 TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_EmptySlotReturnsEmpty)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     ItemStack removed = chestBoat.removeInventoryItemNoUpdate(0);
     EXPECT_TRUE(removed.isEmpty());
@@ -989,7 +990,7 @@ TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_EmptySlotReturnsEmpty
 
 TEST_F(ChestBoatLootTableTest, ClearInventory_ResetsEmptyState)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     ASSERT_NE(Items::OAK_BOAT, nullptr);
 
     chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
@@ -1006,7 +1007,7 @@ TEST_F(ChestBoatLootTableTest, ClearInventory_ResetsEmptyState)
 
 TEST_F(ChestBoatLootTableTest, SetLootTableThenClearInventory_LootTableStillSet)
 {
-    ChestBoatEntity chestBoat;
+    ChestBoatEntity chestBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     ASSERT_NE(Items::OAK_BOAT, nullptr);
 
     // 设置物品和战利品表

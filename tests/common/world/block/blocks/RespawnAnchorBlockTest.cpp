@@ -35,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -169,7 +170,7 @@ TEST_F(RespawnAnchorBlockTest, RespawnAnchorDoesNotWorkInEnd)
 class TestPlayer final : public mc::Player {
 public:
     TestPlayer(EntityInstanceId id, const std::string& name)
-        : mc::Player(id, name)
+        : mc::Player(id, name, mc::test::testEcsRegistry())
     {
         abilities().creativeMode = false;
         abilities().invulnerable = false;

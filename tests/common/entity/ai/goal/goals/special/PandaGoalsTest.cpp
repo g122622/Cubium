@@ -24,6 +24,7 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/PandaGoals.hpp"
@@ -41,7 +42,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { panda.reset(); }
@@ -215,7 +216,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { panda.reset(); }
@@ -300,7 +301,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        panda = std::make_unique<PandaEntity>(EntityInstanceId(1));
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { panda.reset(); }

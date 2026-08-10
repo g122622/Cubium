@@ -353,7 +353,7 @@ TEST_F(ItemTooltipTest, SmithingTemplateSlotDescriptionKeys)
 // ============================================================================
 
 // 最小化的 IWorld 测试桩，继承 BaseTestWorld
-class TooltipTestWorld : public test::BaseTestWorld {};
+class TooltipTestWorld : public mc::test::BaseTestWorld {};
 
 class ItemTooltipIntegrationTest : public ::testing::Test {
 protected:

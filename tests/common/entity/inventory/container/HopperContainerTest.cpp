@@ -28,6 +28,8 @@
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 // ========== HopperContainer 测试 ==========
@@ -36,7 +38,7 @@ class HopperContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player_ = std::make_unique<Player>(1, "HopperTestPlayer");
+        player_ = std::make_unique<Player>(1, "HopperTestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
         // 创建漏斗背包容器（5格）
         hopperInventory_ = std::make_unique<blockentity::SimpleInventory>(HopperContainer::HOPPER_SIZE);

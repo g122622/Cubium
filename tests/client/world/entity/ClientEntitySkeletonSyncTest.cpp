@@ -44,6 +44,7 @@
 #include <gtest/gtest.h>
 
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
@@ -65,13 +66,13 @@ namespace {
  * 触发 bad_variant_access。静态成员进程内幂等，首次构造即分配，后续复用。
  *
  * 用具体子类 SkeletonEntity 而非 AbstractSkeletonEntity：后者构造函数为 protected
- * （设计为抽象基类），无法在测试中直接 std::make_unique。SkeletonEntity::create(IWorld*)
+ * （设计为抽象基类），无法在测试中直接 std::make_unique。SkeletonEntity::create(IWorld*, mc::test::testEcsRegistry())
  * 忽略 world 参数直接构造实体，证明其构造不依赖 IWorld；registerGoals/Attributes/
  * setCombatTask 在无 world 下可安全执行。
  */
 void ensureSkeletonParamsAllocated()
 {
-    static const auto s_serverSkeleton = std::make_unique<::mc::SkeletonEntity>(EntityInstanceId(1));
+    static const auto s_serverSkeleton = std::make_unique<::mc::SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverSkeleton;
 }
 

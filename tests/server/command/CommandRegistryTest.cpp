@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/BaseTestServer.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
@@ -55,7 +56,7 @@ using mc::server::ServerPlayerEntityManager;
 using mc::server::ServerWorld;
 using mc::server::ServerWorldConfig;
 
-class FakeServer final : public test::BaseTestServer {
+class FakeServer final : public mc::test::BaseTestServer {
 public:
     FakeServer()
         : BaseTestServer()
@@ -132,7 +133,7 @@ public:
      */
     ServerPlayer* spawnTestPlayerEntity(PlayerId playerId, const std::string& username)
     {
-        auto player = std::make_unique<ServerPlayer>(static_cast<EntityInstanceId>(playerId), username);
+        auto player = std::make_unique<ServerPlayer>(static_cast<EntityInstanceId>(playerId), username, mc::test::testEcsRegistry());
         player->setPlayerId(playerId);
         auto* raw = player.get();
         m_world->spawnEntity(std::move(player));
@@ -148,8 +149,8 @@ public:
      *
      * @warning 测试用例应保证 `playerId` 唯一，否则 `PlayerManager` 会拒绝插入。
      */
-    using test::BaseTestServer::lastConnection;
-    using test::BaseTestServer::stopRequested;
+    using mc::test::BaseTestServer::lastConnection;
+    using mc::test::BaseTestServer::stopRequested;
 
 private:
     // 构造测试世界：创建带噪声区块生成器的 ServerWorld
@@ -593,7 +594,7 @@ TEST_F(CommandRegistryServerTest, SpectateCommandAcceptsSpectatorGameMode)
 
     // 生成旁观目标实体（普通 Player 即可，SpectateCommand 仅要求目标是 Entity*）。
     // 使用 @e[name=Alex,limit=1] 按名称选中目标，避免 “Cannot spectate yourself”。
-    auto targetEntity = std::make_unique<Player>(EntityInstanceId(1000), "Alex");
+    auto targetEntity = std::make_unique<Player>(EntityInstanceId(1000), "Alex", mc::test::testEcsRegistry());
     targetEntity->setPosition(5.0f, 64.0f, 0.0f);
     m_server.world()->spawnEntity(std::move(targetEntity));
 

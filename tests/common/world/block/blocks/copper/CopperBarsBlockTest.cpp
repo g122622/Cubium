@@ -53,7 +53,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class CopperBarsTestWorld final : public test::BaseTestWorld {
+class CopperBarsTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperBarsTestWorld() = default;
 

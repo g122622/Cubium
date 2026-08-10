@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/DamagingProjectileEntity.hpp"
 
@@ -38,7 +39,7 @@ TEST(DamagingProjectileSupportTypesTest, FireballLayerInheritsDamagingProjectile
 
 TEST(DamagingProjectileSupportTypesTest, FireballDefaultsComeFromDamagingProjectileBase)
 {
-    entity::FireballEntity fireball(EntityInstanceId(1));
+    entity::FireballEntity fireball(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FLOAT_EQ(fireball.damage(), 6.0f);
     EXPECT_TRUE(fireball.canBeCollidedWith());
@@ -47,7 +48,7 @@ TEST(DamagingProjectileSupportTypesTest, FireballDefaultsComeFromDamagingProject
 
 TEST(DamagingProjectileSupportTypesTest, TickAppliesAccelerationUsingVanillaStyleMotionFactor)
 {
-    entity::FireballEntity fireball(EntityInstanceId(1));
+    entity::FireballEntity fireball(EntityInstanceId(1), mc::test::testEcsRegistry());
     fireball.setPosition(0.0f, 64.0f, 0.0f);
     fireball.setVelocity(1.0f, 0.0f, 0.0f);
     fireball.setAcceleration(0.1f, 0.0f, 0.0f);

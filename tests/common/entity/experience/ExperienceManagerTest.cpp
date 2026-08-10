@@ -26,6 +26,8 @@
 #include "util/math/random/Random.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity::experience;
 
@@ -35,7 +37,7 @@ class ExperienceManagerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         // 使用 Player 内部的 ExperienceManager
         manager = &player->experienceManager();
     }

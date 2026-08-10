@@ -33,6 +33,7 @@
  * - RecipeUnlockedTrigger 条件实例
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
@@ -138,7 +139,7 @@ protected:
         advancement::CriterionTriggers::instance().registerBuiltinTriggers();
 
         // 创建测试玩家
-        m_player = std::make_unique<ServerPlayer>(1, "TestPlayer");
+        m_player = std::make_unique<ServerPlayer>(1, "TestPlayer", mc::test::testEcsRegistry());
     }
 
     void TearDown() override

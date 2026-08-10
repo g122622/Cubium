@@ -43,7 +43,7 @@ namespace {
 // 测试用 mock 世界 — 捕获 broadcastEntityStatus 和 playSound 调用
 // ============================================================================
 
-class BreakEventTestWorld final : public test::BaseTestWorld {
+class BreakEventTestWorld final : public mc::test::BaseTestWorld {
 public:
     struct StatusRecord {
         EntityInstanceId entityId;
@@ -102,7 +102,7 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(42))
+        : LivingEntity(EntityInstanceId(42), nullptr, mc::test::testEcsRegistry())
     {
         registerData();
         registerAttributes();

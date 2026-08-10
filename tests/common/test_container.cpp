@@ -35,6 +35,8 @@
 #include "../src/server/menu/CraftingMenu.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 // ============================================================================
@@ -79,7 +81,7 @@ TEST_F(AbstractContainerMenuTest, QuickMoveShiftClickMovesStack)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // Shift+点击槽位0应将物品移到玩家背包
     menu.clicked(0, 0, ClickType::QuickMove, player);
@@ -116,7 +118,7 @@ TEST_F(AbstractContainerMenuTest, SwapWithNumberKey)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 按数字键1应该交换槽位9和快捷栏槽位0
     menu.clicked(9, 0, ClickType::Swap, player); // button=0 表示快捷栏槽位0
@@ -147,7 +149,7 @@ TEST_F(AbstractContainerMenuTest, DragDistributionEvenly)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置鼠标物品
     menu.setCarriedItem(ItemStack(*m_diamond, 64));
@@ -205,7 +207,7 @@ TEST_F(AbstractContainerMenuTest, PickAllDoubleClick)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // PickAll（双击）在空鼠标状态下点击有物品的槽位，应该拾取所有相同物品
     // 鼠标初始为空，点击槽位0应该拾取所有钻石（10+20+30=60）
@@ -242,7 +244,7 @@ TEST_F(AbstractContainerMenuTest, CloneInCreativeMode)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative); // 设置为创造模式
 
     // 中键复制

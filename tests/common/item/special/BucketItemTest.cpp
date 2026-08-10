@@ -46,7 +46,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class MilkingTestWorld final : public test::BaseTestWorld {
+class MilkingTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

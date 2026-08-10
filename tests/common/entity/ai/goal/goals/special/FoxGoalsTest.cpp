@@ -51,7 +51,7 @@ namespace test {
  *
  * 继承 BaseTestWorld 以访问其 protected 构造函数
  */
-class FoxSimpleTestWorld : public test::BaseTestWorld {
+class FoxSimpleTestWorld : public mc::test::BaseTestWorld {
 public:
     FoxSimpleTestWorld() = default;
 };
@@ -60,7 +60,7 @@ public:
 
 class FoxGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { fox.reset(); }
 
@@ -379,7 +379,7 @@ TEST_F(FoxGoalsTest, FoxRevengeGoal_UsesGetPlayersNotAABBSearch)
 
 class FoxEntityStateTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { fox.reset(); }
 
@@ -563,7 +563,7 @@ TEST_F(FoxEntityStateTest, WakeUp)
 
 class FoxEntityTrustTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { fox.reset(); }
 
@@ -640,7 +640,7 @@ TEST_F(FoxEntityTrustTest, DuplicateTrust)
 
 class FoxEntitySoundTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { fox.reset(); }
 
@@ -678,7 +678,7 @@ TEST_F(FoxEntitySoundTest, DeathSound)
 
 class FoxEntityBreedTest : public ::testing::Test {
 protected:
-    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1)); }
+    void SetUp() override { fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { fox.reset(); }
 
@@ -765,7 +765,7 @@ TEST_F(FoxGoalsTest, FoxSitAndLookGoal_Constants)
 /**
  * @brief 支持方块状态和 GameRules 的测试世界，用于 FoxEatBerriesGoal 测试
  */
-class FoxBerryTestWorld : public test::BaseTestWorld {
+class FoxBerryTestWorld : public mc::test::BaseTestWorld {
 public:
     FoxBerryTestWorld()
         : m_dayTime(6000)
@@ -822,7 +822,7 @@ protected:
         Items::initialize();
 
         m_world = std::make_unique<FoxBerryTestWorld>();
-        m_fox = std::make_unique<FoxEntity>(EntityInstanceId(1));
+        m_fox = std::make_unique<FoxEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_fox->setWorld(m_world.get());
         m_fox->setPosition(0.0, 64.0, 0.0);
     }
@@ -962,7 +962,7 @@ TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingDefault_IsTrue)
 class TestFoxEntityForTargets : public FoxEntity {
 public:
     explicit TestFoxEntityForTargets(EntityInstanceId id)
-        : FoxEntity(id)
+        : FoxEntity(id, mc::test::testEcsRegistry())
     {}
 
     entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }

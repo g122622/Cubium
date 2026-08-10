@@ -56,13 +56,13 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
     }
 
-    explicit TestMobEntity(EntityInstanceId id)
-        : MobEntity(id)
+    explicit TestMobEntity(EntityInstanceId id, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : MobEntity(id, registry)
     {
         registerAttributes();
     }
@@ -194,7 +194,7 @@ TEST(PathfindingMalusTest, ShouldPassengersInheritMalus_DefaultFalse)
 TEST(PathfindingMalusTest, ShouldPassengersInheritMalus_PigEntityDefaultFalse)
 {
     // 通过具体实体类型验证默认行为
-    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(pig->shouldPassengersInheritMalus());
 }
 
@@ -218,25 +218,25 @@ protected:
 
 TEST_F(CopperGolemMalusTest, DangerFire_InitializedTo16)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DangerFire), 16.0f);
 }
 
 TEST_F(CopperGolemMalusTest, DangerOther_InitializedTo16)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DangerOther), 16.0f);
 }
 
 TEST_F(CopperGolemMalusTest, DamageFire_InitializedToNegative1)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::DamageFire), -1.0f);
 }
 
 TEST_F(CopperGolemMalusTest, OtherTypes_UseDefaultValues)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 未显式设置的类型应保持默认代价
     EXPECT_FLOAT_EQ(golem->getPathfindingMalus(PathNodeType::Water), 8.0f);
@@ -248,7 +248,7 @@ TEST_F(CopperGolemMalusTest, OtherTypes_UseDefaultValues)
 // 乘客继承 malus 测试
 // ============================================================================
 
-class InheritMalusTestWorld final : public test::BaseTestWorld {
+class InheritMalusTestWorld final : public mc::test::BaseTestWorld {
 public:
     InheritMalusTestWorld() = default;
 
@@ -281,7 +281,7 @@ private:
 class InheritMalusMob : public MobEntity {
 public:
     InheritMalusMob()
-        : MobEntity(EntityInstanceId(2))
+        : MobEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         // 模拟炽足兽（Strider）：乘客继承 malus

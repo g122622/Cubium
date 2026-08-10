@@ -35,6 +35,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/test/framework/helper/NullGameTestHelper.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
@@ -45,8 +46,8 @@ using mc::BlockPos; // BlockPos 属 mc::（非 mc::test），测试内简写
 
 TEST(SimulatedPlayerTest, ConstructWithIdAndName)
 {
-    auto player =
-        std::make_unique<mc::test::SimulatedPlayer>(static_cast<mc::EntityInstanceId>(1001), std::string{"TestBot"});
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1001), std::string{"TestBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
     EXPECT_EQ(player->helper(), nullptr);
 }
@@ -54,8 +55,8 @@ TEST(SimulatedPlayerTest, ConstructWithIdAndName)
 TEST(SimulatedPlayerTest, SetHelperRoundTrip)
 {
     mc::test::NullGameTestHelper helper;
-    auto player =
-        std::make_unique<mc::test::SimulatedPlayer>(static_cast<mc::EntityInstanceId>(1002), std::string{"HelperBot"});
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1002), std::string{"HelperBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
 
     player->setHelper(helper);
@@ -67,8 +68,8 @@ TEST(SimulatedPlayerTest, TodoStubsDoNotCrash)
     // flyToLocation/attack 为 TODO stub（占位实现），验证调用不崩溃。
     // TODO: 待原生侧实现飞行/攻击后改为行为断言。
     mc::test::NullGameTestHelper helper;
-    auto player =
-        std::make_unique<mc::test::SimulatedPlayer>(static_cast<mc::EntityInstanceId>(1003), std::string{"StubBot"});
+    auto player = std::make_unique<mc::test::SimulatedPlayer>(
+        static_cast<mc::EntityInstanceId>(1003), std::string{"StubBot"}, mc::test::testEcsRegistry());
     ASSERT_NE(player, nullptr);
     player->setHelper(helper);
 

@@ -91,10 +91,10 @@ private:
 /**
  * @brief 测试用 IWorld 实现，支持掉落测试
  */
-class WaterFluidTestWorld : public test::BaseTestWorld {
+class WaterFluidTestWorld : public mc::test::BaseTestWorld {
 public:
     WaterFluidTestWorld()
-        : m_entityManager()
+        : m_entityManager(mc::test::testEcsRegistry())
     {
         // 初始化掉落表管理器
         m_lootTableManager = std::make_unique<MockLootTableManager>();
@@ -181,7 +181,7 @@ private:
     }
 
     std::unordered_map<i64, const BlockState*> m_blocks;
-    EntityManager m_entityManager;
+    EntityManager m_entityManager{mc::test::testEcsRegistry()};
     std::unique_ptr<MockLootTableManager> m_lootTableManager;
 };
 

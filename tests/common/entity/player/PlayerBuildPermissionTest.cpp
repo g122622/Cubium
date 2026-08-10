@@ -43,28 +43,28 @@ using namespace mc;
 
 TEST(PlayerMayBuildTest, SurvivalModeCanBuild)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     EXPECT_TRUE(player.mayBuild());
 }
 
 TEST(PlayerMayBuildTest, CreativeModeCanBuild)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     EXPECT_TRUE(player.mayBuild());
 }
 
 TEST(PlayerMayBuildTest, AdventureModeCannotBuild)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Adventure);
     EXPECT_FALSE(player.mayBuild());
 }
 
 TEST(PlayerMayBuildTest, SpectatorModeCannotBuild)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Spectator);
     EXPECT_FALSE(player.mayBuild());
 }
@@ -72,7 +72,7 @@ TEST(PlayerMayBuildTest, SpectatorModeCannotBuild)
 TEST(PlayerMayBuildTest, AllowEditOverrideInSurvival)
 {
     // 生存模式下手动关闭 allowEdit（如通过命令）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     EXPECT_TRUE(player.mayBuild());
 
@@ -82,7 +82,7 @@ TEST(PlayerMayBuildTest, AllowEditOverrideInSurvival)
 
 TEST(PlayerMayBuildTest, SetGameModeResetsAllowEdit)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     EXPECT_TRUE(player.mayBuild());
 
@@ -125,7 +125,7 @@ TEST(GameModeUtilsIsBlockPlacingRestrictedTest, SpectatorRestricted)
 
 namespace {
 
-class BuildPermissionTestWorld final : public test::BaseTestWorld {
+class BuildPermissionTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -165,7 +165,7 @@ protected:
         BlockTags::initialize();
         Items::initialize();
 
-        m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+        m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(&m_world);
 
         // 在 (10, 64, 20) 放置石方块，用于 CanPlaceOn 测试
@@ -272,7 +272,7 @@ protected:
         BlockTags::initialize();
         Items::initialize();
 
-        m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+        m_player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(&m_world);
 
         // 在 (10, 64, 20) 放置石方块，用于 CanDestroy 测试
@@ -366,7 +366,7 @@ TEST_F(PlayerBlockActionRestrictedTest, AdventureModeWithCanPlaceOnNotCanDestroy
 
 TEST_F(PlayerBlockActionRestrictedTest, AdventureModeAllowEditOverrideNotRestricted)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Adventure);
     BlockPos pos(10, 64, 20);

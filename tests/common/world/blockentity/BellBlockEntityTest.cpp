@@ -263,7 +263,7 @@ namespace {
 class MockLivingEntity : public LivingEntity {
 public:
     explicit MockLivingEntity(EntityInstanceId id = 1)
-        : LivingEntity(id, nullptr)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
     void setAlive(bool alive) { m_alive = alive; }
@@ -279,7 +279,7 @@ private:
 };
 
 /// @brief 测试用世界桩，控制 getEntitiesInAABB/currentTick/isClientSide/playSound/addParticle
-class BellTestWorld final : public test::BaseTestWorld {
+class BellTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setCurrentTick(u64 tick) { m_currentTick = tick; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }

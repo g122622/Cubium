@@ -59,7 +59,7 @@ namespace {
  * 继承自 BaseTestWorld，提供方块状态存储、方块实体存储、音效捕获能力。
  * 用于测试 ShelfBlock::onBlockActivated 的物品交换逻辑和 heldItemTransformedTo 语义。
  */
-class ShelfTestWorld final : public test::BaseTestWorld {
+class ShelfTestWorld final : public mc::test::BaseTestWorld {
 public:
     ShelfTestWorld() = default;
 
@@ -214,7 +214,7 @@ private:
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_EmptyHandAndEmptyShelf_ReturnsPass)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 玩家手持空
     player.inventory().getSelectedStackRef() = ItemStack();
 
@@ -231,7 +231,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_EmptyHandAndEmptySh
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaceItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 玩家手持 5 个石头
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
@@ -269,7 +269,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaceItem_ReturnsSu
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_SwapItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 玩家手持 3 个石头
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
@@ -303,7 +303,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_SwapItem_ReturnsSuc
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_TakeItem_ReturnsSuccessWithTransformedItem)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 玩家空手
     player.inventory().getSelectedStackRef() = ItemStack();
 
@@ -334,7 +334,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_TakeItem_ReturnsSuc
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_OffHand_ReturnsPass)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
     player.inventory().getSelectedStackRef() = ItemStack(*stone, 5);
@@ -351,7 +351,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_OffHand_ReturnsPass)
 
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaysPlaceItemSound)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
     ASSERT_NE(stone, nullptr);
     player.inventory().getSelectedStackRef() = ItemStack(*stone, 5);
@@ -377,7 +377,7 @@ TEST_F(ShelfBlockInteractionTest,
     OnBlockActivated_Powered_SwapHotbar_SelectedItemChanged_ReturnsSuccessWithTransformedItem)
 {
     setPowered();
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 选中热栏槽位 6（会被交换）
     player.inventory().setSelectedSlot(6);
 
@@ -420,7 +420,7 @@ TEST_F(ShelfBlockInteractionTest,
     OnBlockActivated_Powered_SwapHotbar_SelectedItemUnchanged_ReturnsSuccessWithoutTransformedItem)
 {
     setPowered();
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 选中热栏槽位 6（会被交换）
     player.inventory().setSelectedSlot(6);
 
@@ -458,7 +458,7 @@ TEST_F(ShelfBlockInteractionTest,
 TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Powered_NoSwap_ReturnsConsume)
 {
     setPowered();
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 选中热栏槽位 6
     player.inventory().setSelectedSlot(6);
 

@@ -144,7 +144,7 @@ protected:
         /// @brief 注册一个裸 LivingEntity 并指定初始血量。
         EntityInstanceId addLivingEntityWithHealth(EntityInstanceId id, f32 health)
         {
-            auto entity = std::make_unique<LivingEntity>(id, nullptr);
+            auto entity = std::make_unique<LivingEntity>(id, nullptr, mc::test::testEcsRegistry());
             entity->registerData();
             entity->registerAttributes();
             entity->setHealth(health);
@@ -155,7 +155,7 @@ protected:
         /// @brief 注册一个非 LivingEntity 的纯 Entity，用于测试 dynamic_cast 失败分支。
         EntityInstanceId addBareEntity(EntityInstanceId id)
         {
-            auto entity = std::make_unique<Entity>(id, nullptr);
+            auto entity = std::make_unique<Entity>(id, nullptr, mc::test::testEcsRegistry());
             m_entities[static_cast<u64>(id)] = std::move(entity);
             return id;
         }

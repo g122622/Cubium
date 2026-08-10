@@ -45,7 +45,7 @@ namespace test {
 class TestDrownedEntity : public DrownedEntity {
 public:
     explicit TestDrownedEntity(EntityInstanceId id)
-        : DrownedEntity(id)
+        : DrownedEntity(id, mc::test::testEcsRegistry())
     {}
 
     using DrownedEntity::tick;
@@ -62,7 +62,7 @@ public:
 class TestZombieEntity : public ZombieEntity {
 public:
     explicit TestZombieEntity(EntityInstanceId id)
-        : ZombieEntity(id)
+        : ZombieEntity(id, mc::test::testEcsRegistry())
     {}
 
     using ZombieEntity::tick;

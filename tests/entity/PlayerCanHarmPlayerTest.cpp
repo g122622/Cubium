@@ -33,6 +33,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
@@ -119,7 +120,7 @@ private:
 class CanHarmPlayerMockPlayer : public Player {
 public:
     explicit CanHarmPlayerMockPlayer(const std::string& name = "TestPlayer")
-        : Player(EntityInstanceId(1), name)
+        : Player(EntityInstanceId(1), name, mc::test::testEcsRegistry())
     {}
 
     void setMockTeam(scoreboard::Team* team) { m_mockTeam = team; }

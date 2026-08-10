@@ -31,6 +31,7 @@
 #include <gtest/gtest.h>
 
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -64,7 +65,7 @@ namespace {
 // 测试服务器 — 扩展 BaseTestServer，提供维度管理器和世界支持
 // ============================================================================
 
-class EntityResolverTestServer final : public test::BaseTestServer {
+class EntityResolverTestServer final : public mc::test::BaseTestServer {
 public:
     EntityResolverTestServer()
         : BaseTestServer()
@@ -166,7 +167,7 @@ std::unique_ptr<Entity> createEntityByType(const char* typeId)
     if (type == nullptr) {
         return nullptr;
     }
-    return type->create(nullptr);
+    return type->create(nullptr, mc::test::testEcsRegistry());
 }
 
 } // namespace
@@ -690,7 +691,8 @@ TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionWithPositionOverride)
 TEST_F(EntityResolverTest, VolumeFilterSelfSelectorWithDx)
 {
     // @s 选择器也支持体积过滤
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(5.0f, 64.0f, 5.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -1620,7 +1622,8 @@ TEST_F(EntityResolverTest, SelfSelectorWithPlayerSource)
 
     // 创建 mc::ServerPlayer 实体并生成到世界中
     // 注意：需要使用 mc::ServerPlayer 而非 mc::server::ServerPlayer（StatisticsManager 中的前向声明）
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -1639,7 +1642,8 @@ TEST_F(EntityResolverTest, SelfSelectorWithPlayerSource)
 TEST_F(EntityResolverTest, SelfSelectorWithDistanceFilter)
 {
     // 创建 mc::ServerPlayer 并作为命令源
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();

@@ -26,6 +26,8 @@
 #include "entity/inventory/PlayerInventory.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity::inventory::container;
 
@@ -35,7 +37,7 @@ class LoomContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player_ = std::make_unique<Player>(1, "LoomTestPlayer");
+        player_ = std::make_unique<Player>(1, "LoomTestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 

@@ -57,7 +57,7 @@ namespace {
  *
  * 提供完整的实体生成和查询功能
  */
-class SkeletonHorseTrapTestWorld final : public test::BaseTestWorld {
+class SkeletonHorseTrapTestWorld final : public mc::test::BaseTestWorld {
 public:
     SkeletonHorseTrapTestWorld()
     {
@@ -302,7 +302,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, EntityTypes_Registered)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -322,7 +322,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NormalDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -339,7 +339,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(false);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -355,7 +355,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NonTrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -370,7 +370,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SkeletonEquipment_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -390,7 +390,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, Tick_TrapHorse_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 
@@ -404,7 +404,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_EasyDifficulty_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     // 不设置世界
 
@@ -418,7 +418,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_NoWorld_NoCrash)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 骷髅马默认跳跃强度应该是 1.0
     EXPECT_FLOAT_EQ(horse->getJumpStrength(), 1.0f);
@@ -429,7 +429,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, JumpStrength_DefaultValue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 骷髅马默认已驯服
     EXPECT_TRUE(horse->isTame());
@@ -440,7 +440,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, IsTame_DefaultTrue)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, SetTrap_RegistersAndRemovesGoal)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始状态：无陷阱
     EXPECT_FALSE(horse->isTrap());
@@ -477,7 +477,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstants_MatchMC1165)
  */
 TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstructor_NoCrash)
 {
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
 
     // 创建 Goal 应该不崩溃
@@ -500,7 +500,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SpawnsLightningEntity)
 {
     m_world->setDifficulty(Difficulty::Normal);
 
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(100, 64, 200));
 
@@ -557,7 +557,7 @@ TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_LightningIsE
 {
     m_world->setDifficulty(Difficulty::Hard);
 
-    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1));
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse->setTrap(true);
     horse->setPosition(Vector3(0, 64, 0));
 

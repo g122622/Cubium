@@ -59,7 +59,7 @@ namespace {
  *
  * 提供最小化的 IWorld 实现，用于测试海绵吸水功能。
  */
-class SpongeTestWorld final : public test::BaseTestWorld {
+class SpongeTestWorld final : public mc::test::BaseTestWorld {
 public:
     SpongeTestWorld() = default;
 

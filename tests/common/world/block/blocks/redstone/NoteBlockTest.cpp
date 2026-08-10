@@ -51,7 +51,7 @@ namespace {
  *
  * 提供最小化的 IWorld 实现用于测试音符盒乐器检测逻辑。
  */
-class NoteBlockTestWorld final : public test::BaseTestWorld {
+class NoteBlockTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

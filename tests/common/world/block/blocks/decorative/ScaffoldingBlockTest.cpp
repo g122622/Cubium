@@ -56,7 +56,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class ScaffoldingTestWorld final : public test::BaseTestWorld {
+class ScaffoldingTestWorld final : public mc::test::BaseTestWorld {
 public:
     ScaffoldingTestWorld() = default;
 

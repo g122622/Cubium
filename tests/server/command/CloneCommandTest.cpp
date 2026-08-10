@@ -47,7 +47,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class CloneTestServer final : public test::BaseTestServer {
+class CloneTestServer final : public mc::test::BaseTestServer {
 public:
     CloneTestServer()
     {

@@ -22,6 +22,7 @@
  */
 
 #include "entity/inventory/container/AnvilContainer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
@@ -212,7 +213,7 @@ protected:
     void SetUp() override
     {
         Items::initialize();
-        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+        player_ = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
     }
 

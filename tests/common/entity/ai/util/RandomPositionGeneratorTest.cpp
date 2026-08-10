@@ -25,6 +25,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/ai/util/RandomPositionGenerator.hpp"
 #include "util/math/MathConstants.hpp"
 

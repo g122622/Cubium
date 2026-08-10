@@ -36,7 +36,7 @@ namespace {
 class TestHurtEntity final : public LivingEntity {
 public:
     explicit TestHurtEntity(EntityInstanceId id)
-        : LivingEntity(id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -51,20 +51,20 @@ public:
 
 TEST(HurtMarkedTest, DefaultIsFalse)
 {
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     EXPECT_FALSE(entity.isHurtMarked());
 }
 
 TEST(HurtMarkedTest, MarkHurtSetsFlag)
 {
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.markHurt();
     EXPECT_TRUE(entity.isHurtMarked());
 }
 
 TEST(HurtMarkedTest, ClearHurtMarkedResetsFlag)
 {
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.markHurt();
     EXPECT_TRUE(entity.isHurtMarked());
     entity.clearHurtMarked();
@@ -74,7 +74,7 @@ TEST(HurtMarkedTest, ClearHurtMarkedResetsFlag)
 TEST(HurtMarkedTest, MultipleMarkHurtCallsAreIdempotent)
 {
     // 多次 markHurt() 调用不应导致任何问题，标记仍然是 true
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.markHurt();
     entity.markHurt();
     entity.markHurt();
@@ -87,7 +87,7 @@ TEST(HurtMarkedTest, MultipleMarkHurtCallsAreIdempotent)
 TEST(HurtMarkedTest, MarkHurtClearCycle)
 {
     // 模拟 EntityTracker 的 tick 循环：mark -> check -> clear
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
 
     // 初始状态
     EXPECT_FALSE(entity.isHurtMarked());
@@ -108,7 +108,7 @@ TEST(HurtMarkedTest, MarkHurtClearCycle)
 // LivingEntity::hurt() 自动标记 hurtMarked 测试
 // ============================================================================
 
-class HurtMarkedWorld final : public test::BaseTestWorld {
+class HurtMarkedWorld final : public mc::test::BaseTestWorld {
 public:
     HurtMarkedWorld()
     {
@@ -143,7 +143,7 @@ TEST(HurtMarkedTest, HurtSetsMarkHurtFlag)
 {
     // LivingEntity::hurt() 成功造成伤害时应自动设置 hurtMarked
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.5f, 1.0f, 0.5f));
     entity.setOnGround(true);
@@ -163,7 +163,7 @@ TEST(HurtMarkedTest, HurtInvulnerableDoesNotSetMarkHurtFlag)
 {
     // 无敌状态下 hurt() 返回 false，不应设置 hurtMarked
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.5f, 1.0f, 0.5f));
     entity.setOnGround(true);
@@ -184,7 +184,7 @@ TEST(HurtMarkedTest, ApplyKnockbackSetsMarkHurtFlag)
 {
     // applyKnockback() 应自动设置 hurtMarked
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.0f, 1.0f, 0.0f));
     entity.setOnGround(true);
@@ -203,7 +203,7 @@ TEST(HurtMarkedTest, ApplyKnockbackWithZeroDirectionStillSetsFlag)
     // commit 3265b790d 起对齐 MC Java：零向量方向不提前返回，而是随机扰动
     // 方向（ratioX/Z = (random-random)*0.01）后继续应用击退，故仍设置 hurtMarked。
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.0f, 1.0f, 0.0f));
     entity.setOnGround(true);
@@ -221,7 +221,7 @@ TEST(HurtMarkedTest, HurtThenKnockbackBothSetFlag)
 {
     // hurt() 和 applyKnockback() 都设置标记，标记应保持为 true
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.0f, 1.0f, 0.0f));
     entity.setOnGround(true);
@@ -246,7 +246,7 @@ TEST(HurtMarkedTest, HurtThenKnockbackBothSetFlag)
 TEST(HurtMarkedTest, NoTrackingPlayersClearIsSafe)
 {
     // 没有追踪玩家时 clearHurtMarked() 应安全无副作用
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.markHurt();
     EXPECT_TRUE(entity.isHurtMarked());
     // 即使没有 EntityTracker 在追踪，清除标记也是安全的
@@ -258,7 +258,7 @@ TEST(HurtMarkedTest, AddVelocityDoesNotSetMarkHurtFlag)
 {
     // Entity::addVelocity() 不应自动设置 hurtMarked
     // 与 MC Java 行为一致：addDeltaMovement 不设置 hurtMarked
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.addVelocity(1.0f, 0.5f, 1.0f);
     // addVelocity 不设置 hurtMarked
     EXPECT_FALSE(entity.isHurtMarked());
@@ -267,7 +267,7 @@ TEST(HurtMarkedTest, AddVelocityDoesNotSetMarkHurtFlag)
 TEST(HurtMarkedTest, SetVelocityDoesNotSetMarkHurtFlag)
 {
     // Entity::setVelocity() 不应自动设置 hurtMarked
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setVelocity(1.0f, 0.5f, 1.0f);
     EXPECT_FALSE(entity.isHurtMarked());
 }
@@ -277,7 +277,7 @@ TEST(HurtMarkedTest, HurtResistantTimePreventsHurtAndMarkHurt)
     // 在无敌帧期间，hurt() 返回 false（isInvulnerableTo 检查优先于累积伤害逻辑），
     // 因此 hurtMarked 不会被设置
     HurtMarkedWorld world;
-    TestHurtEntity entity(1);
+    TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.5f, 1.0f, 0.5f));
     entity.setOnGround(true);

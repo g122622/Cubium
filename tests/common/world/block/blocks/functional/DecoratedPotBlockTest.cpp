@@ -68,7 +68,7 @@ namespace {
  * 支持方块存储、方块实体、音效/游戏事件追踪、setBlockState 标志追踪、
  * 实体生成追踪、游戏规则等。
  */
-class DecoratedPotTestWorld final : public test::BaseTestWorld {
+class DecoratedPotTestWorld final : public mc::test::BaseTestWorld {
 public:
     DecoratedPotTestWorld()
     {
@@ -639,7 +639,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SwordSetsCracked)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     // 给玩家手持钻石剑
@@ -669,7 +669,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_PickaxeSetsCracked)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     if (Items::DIAMOND_PICKAXE != nullptr) {
@@ -692,7 +692,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_EmptyHandDoesNotSetCracked)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     // 空手：默认 ItemStack 为空
 
@@ -711,7 +711,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_NonTagItemDoesNotSetCracked)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     // 钻石不是工具类物品，不在 BREAKS_DECORATED_POTS 标签中
@@ -734,7 +734,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_AlreadyCracked_NoDoubleSet)
     m_world.setBlockAt(pos, &crackedState);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     if (Items::DIAMOND_SWORD != nullptr) {
@@ -762,12 +762,12 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_ProjectileSetsCrackedAndDestroys)
     m_world.setClientSide(false);
 
     // 创建一个箭矢投射物，设置射手为生存模式玩家
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Survival);
     m_world.registerEntity(player.get());
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -795,7 +795,7 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_ClientSide_DoesNothing)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(true); // 客户端
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -818,7 +818,7 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_NonProjectileEntity_DoesNothing)
     m_world.setClientSide(false);
 
     // 使用普通 Entity（不是 ProjectileEntity 的子类）
-    Entity nonProjectile(EntityInstanceId(300));
+    Entity nonProjectile(EntityInstanceId(300), nullptr, mc::test::testEcsRegistry());
     nonProjectile.setWorld(&m_world);
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
@@ -838,12 +838,12 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_MayInteractFalse_DoesNothing)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure); // 冒险模式：mayInteract 返回 false
     m_world.registerEntity(player.get());
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -869,11 +869,11 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_MobGriefingFalse_DoesNothing)
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
 
     // 非玩家实体作为射手
-    Entity mob(EntityInstanceId(300));
+    Entity mob(EntityInstanceId(300), nullptr, mc::test::testEcsRegistry());
     mob.setWorld(&m_world);
     m_world.registerEntity(&mob);
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -896,7 +896,7 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_NullShooter_Allowed)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -920,12 +920,12 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_AlreadyCracked_StillDestroys)
     m_world.setBlockAt(pos, &crackedState);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Survival);
     m_world.registerEntity(player.get());
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -1107,7 +1107,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
     entity->setWorld(&m_world);
     m_world.setBlockEntity(pos, std::move(entity));
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
@@ -1132,7 +1132,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound
     entity->setWorld(&m_world);
     m_world.setBlockEntity(pos, std::move(entity));
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     // 手持钻石
@@ -1168,7 +1168,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_OffHand_Pass)
     entity->setWorld(&m_world);
     m_world.setBlockEntity(pos, std::move(entity));
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
@@ -1211,7 +1211,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SilkTouchPreventsCracked)
     m_world.setBlockAt(pos, &state);
     m_world.setClientSide(false);
 
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
 
     if (Items::DIAMOND_SWORD != nullptr) {
@@ -1235,12 +1235,12 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SilkTouchPreventsCracked)
 TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_SurvivalPlayer_Allowed)
 {
     // 生存模式玩家的投射物 mayInteract 返回 true，应能破坏陶罐
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Survival);
     m_world.registerEntity(player.get());
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -1254,12 +1254,12 @@ TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_SurvivalPlayer_Allowed)
 TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_AdventurePlayer_Denied)
 {
     // 冒险模式玩家的投射物 mayInteract 返回 false
-    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);
     m_world.registerEntity(player.get());
 
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);
@@ -1273,7 +1273,7 @@ TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_AdventurePlayer_Denied)
 TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_NullShooter_Allowed)
 {
     // 无主投射物 mayInteract 返回 true
-    entity::ArrowEntity arrow(EntityInstanceId(200));
+    entity::ArrowEntity arrow(EntityInstanceId(200), mc::test::testEcsRegistry());
     // 直接构造的 ArrowEntity 未设 typeId，需显式设为 minecraft:arrow 使 mayBreak()
     // 的 IMPACT_PROJECTILES 标签检查通过（对齐 commit 8bb41781b 测试修复策略）。
     arrow.setTypeId(entity::EntityTypeKeys::ARROW);

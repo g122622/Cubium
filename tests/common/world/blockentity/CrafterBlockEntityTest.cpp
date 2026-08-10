@@ -61,7 +61,7 @@ Item* ensureTestItem(const char* path)
 // CrafterTestWorld - 测试用 Mock 世界（用于 tick 测试）
 // ============================================================================
 
-class CrafterTestWorld final : public test::BaseTestWorld {
+class CrafterTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

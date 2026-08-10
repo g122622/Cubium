@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -40,12 +41,12 @@ namespace {
 class TestLivingEntity : public LivingEntity {
 public:
     explicit TestLivingEntity(EntityInstanceId id)
-        : LivingEntity(id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         // 设置基础属性值
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-        m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
         setHealth(20.0f);
     }
 
@@ -55,12 +56,12 @@ public:
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(EntityInstanceId id)
-        : Player(id, "TestPlayer")
+        : Player(id, "TestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
-        m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
+        attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
         setHealth(20.0f);
     }
 

@@ -43,7 +43,7 @@ protected:
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
-        drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1));
+        drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { drowned.reset(); }
@@ -175,7 +175,7 @@ TEST_F(DrownedGoalsTest, DrownedSwimUpGoal_ShouldNotExecuteWithoutWorld)
 
 TEST_F(DrownedGoalsTest, StartAndResetManagingSearchingForLand)
 {
-    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1));
+    auto drowned = std::make_unique<DrownedEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto goal = std::make_unique<entity::ai::goal::DrownedSwimUpGoal>(drowned.get(), 1.0, 63);
 
     // startExecuting 应设置 searchingForLand 为 true
