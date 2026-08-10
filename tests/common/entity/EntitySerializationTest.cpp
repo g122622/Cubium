@@ -61,6 +61,10 @@ public:
     const PhysicsEngine* physicsEngine() const override { return nullptr; }
     world::tick::TickManager& tickManager() override { return m_tickManager; }
     const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    // attachPassengers 经 world.entityRegistry() 取 ECS registry 反序列化乘客，
+    // 须返回测试 registry（与实体构造所用一致），否则 MC_ASSERT_RELEASE(nullptr) 崩溃。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
     DimensionId dimension() const override { return 0; }
     u64 seed() const override { return 0; }
     u64 currentTick() const override { return 0; }
@@ -87,7 +91,9 @@ void registerTestEntityType()
     entity::EntityRegistry::instance().clear();
     auto registerResult = entity::EntityRegistry::instance().registerType("test:entity",
         entity::EntityType::Builder(
-            [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world, registry); },
+            [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                return std::make_unique<Entity>(0, world, registry);
+            },
             entity::EntityClassification::Misc)
             .build());
     ASSERT_TRUE(registerResult.success());
@@ -344,7 +350,8 @@ TEST(EntitySerializationTest, SerializeDeserializeRoundTripPreservesPassengers)
 
     // 反序列化（新世界，模拟存档加载）
     TestSerializationWorld loadWorld;
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserializeFromBinary(binaryData, mc::test::testEcsRegistry());
+    auto deserializeResult =
+        entity::serialization::EntityDeserializer::deserializeFromBinary(binaryData, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto loadedVehicle = std::move(deserializeResult.value());
     ASSERT_NE(loadedVehicle, nullptr);

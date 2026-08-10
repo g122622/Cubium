@@ -29,6 +29,7 @@
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -393,6 +394,7 @@ TEST(AbstractHorseOwnerTest, GetOwner_ReturnsNullptrWithoutWorld)
 TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     const std::string testUuid = "0123456789abcdef0123456789abcdef";
@@ -401,7 +403,7 @@ TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
 
     // 序列化
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     // 验证 UUID 键存在
     using namespace mc::entity::serialization;
@@ -412,7 +414,7 @@ TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
 
     // 反序列化到新实体
     HorseEntity horse2(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = horse2.readAdditionalSaveData(tag);
+    auto result = horse2.readFromNBT(tag);
     EXPECT_TRUE(result.success());
 
     // 验证 UUID 一致
@@ -423,15 +425,16 @@ TEST(AbstractHorseNbtTest, OwnerUuid_RoundTrip)
 TEST(AbstractHorseNbtTest, Temper_RoundTrip)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.increaseTemper(50);
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     HorseEntity horse2(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = horse2.readAdditionalSaveData(tag);
+    auto result = horse2.readFromNBT(tag);
     EXPECT_TRUE(result.success());
 
     EXPECT_EQ(horse2.getTemper(), horse.getTemper());
@@ -440,16 +443,17 @@ TEST(AbstractHorseNbtTest, Temper_RoundTrip)
 TEST(AbstractHorseNbtTest, TameAndSaddle_RoundTrip)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setTame(true);
     horse.setSaddle(true);
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     HorseEntity horse2(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = horse2.readAdditionalSaveData(tag);
+    auto result = horse2.readFromNBT(tag);
     EXPECT_TRUE(result.success());
 
     EXPECT_TRUE(horse2.isTame());
@@ -459,16 +463,17 @@ TEST(AbstractHorseNbtTest, TameAndSaddle_RoundTrip)
 TEST(AbstractHorseNbtTest, EatingAndBred_RoundTrip)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setEating(true);
     horse.setBred(true);
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     HorseEntity horse2(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = horse2.readAdditionalSaveData(tag);
+    auto result = horse2.readFromNBT(tag);
     EXPECT_TRUE(result.success());
 
     EXPECT_TRUE(horse2.isEating());
@@ -478,15 +483,16 @@ TEST(AbstractHorseNbtTest, EatingAndBred_RoundTrip)
 TEST(AbstractHorseNbtTest, JumpStrengthAndSpeed_RoundTrip)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setJumpStrength(0.75f);
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     HorseEntity horse2(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = horse2.readAdditionalSaveData(tag);
+    auto result = horse2.readFromNBT(tag);
     EXPECT_TRUE(result.success());
 
     EXPECT_FLOAT_EQ(horse2.getJumpStrength(), 0.75f);
@@ -495,12 +501,13 @@ TEST(AbstractHorseNbtTest, JumpStrengthAndSpeed_RoundTrip)
 TEST(AbstractHorseNbtTest, ClearOwnerUuid_NotSerializedWhenEmpty)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.clearOwnerUuid();
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     // 没有 UUID 时不应该写入 OwnerUUIDMost/Least
     using namespace mc::entity::serialization;
@@ -513,12 +520,13 @@ TEST(AbstractHorseNbtTest, ClearOwnerUuid_NotSerializedWhenEmpty)
 TEST(AbstractHorseNbtTest, UntamedHorse_DoesNotWriteTameTag)
 {
     VanillaBlocks::initialize();
+    entity::VanillaEntities::registerAll();
 
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setTame(false);
 
     nbt::tags::compound_tag tag;
-    horse.addAdditionalSaveData(tag);
+    horse.writeToNBT(tag);
 
     // 未驯服时不应该写入 "Tame" 标签（因为是 false，MC 原版不写入 false 值）
     using namespace mc::entity::serialization;

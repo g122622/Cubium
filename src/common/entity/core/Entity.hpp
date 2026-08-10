@@ -150,7 +150,15 @@ public:
      *   时挂同一套基础组件，差异化组件由后续批次在工厂 attachAll 中补充。
      */
     Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
-    virtual ~Entity() = default;
+    // 析构时销毁 ECS 实体（entt entity + 其全部组件）。
+    // 【为何必须 destroy】EntityOwnerComponent 经 self-attach 持本 Entity 的非拥有裸指针，
+    // 供 FireTickSystem/PortalTickSystem 等经 view<..., EntityOwnerComponent> 反查 OOP 句柄。
+    // 若析构不 destroy entt 实体，残留 entt 条目的 EntityOwnerComponent 将持悬垂 Entity*，
+    // 系统遍历到时 isRemoved()/hurt() 等解引用即 UAF。destroy 后系统 view 不再遍历到本实体。
+    // 安全性：m_entityContext 是非拥有视图，Entity 析构后无人应再经它访问（已建立契约）；
+    // 成员析构顺序保证 ~Entity body 先执行（此时 m_entityContext 仍存活可取 entity id），
+    // 随后才析构 m_entityContext 本身。
+    virtual ~Entity();
 
     // 禁止拷贝
     Entity(const Entity&) = delete;

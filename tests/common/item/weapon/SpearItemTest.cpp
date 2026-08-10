@@ -26,9 +26,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/SpearEntity.hpp"
-#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -124,6 +125,9 @@ protected:
     {
         Items::initialize();
         item::tag::ItemTags::initialize();
+        // SpearEntity 字段级 NBT 序列化已搬 ComponentSerializerRegistry（投掷物族批次6.2），
+        // 须注册序列化器才能在 writeToNBT/readFromNBT 经 saveAll/loadAll 读写。
+        entity::VanillaEntities::registerAll();
     }
 
     SpearTestWorld m_world;
@@ -756,10 +760,10 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesItemStack)
     spear1.setItemStack(ItemStack(Items::DIAMOND_SPEAR, 1));
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_EQ(spear2.getItemStack().getItem(), Items::DIAMOND_SPEAR);
@@ -775,10 +779,10 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesDamageAndPickupStatus)
     spear1.setPickupStatus(entity::PickupStatus::CreativeOnly);
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_FLOAT_EQ(spear2.damage(), 12.5f);
@@ -795,7 +799,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesInGroundAndDealtDamage)
     // 由于 m_dealtDamage 是 protected 成员，通过 NBT 往返间接验证
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     // 验证 NBT 中存在 DealtDamage 键且为 true
     auto dealtDamage = entity::serialization::nbt_helper::tryGetBool(tag, "DealtDamage");
@@ -804,7 +808,7 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesInGroundAndDealtDamage)
     EXPECT_FALSE(*dealtDamage);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_TRUE(spear2.isInGround());
@@ -820,10 +824,10 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesCriticalAndPierceLevel)
     spear1.setPierceLevel(3);
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_TRUE(spear2.isCritical());
@@ -837,10 +841,10 @@ TEST_F(SpearItemTest, NbtRoundTrip_DefaultValues)
     spear1.setItemStack(ItemStack(Items::IRON_SPEAR, 1));
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     // 默认值检查
@@ -860,7 +864,7 @@ TEST_F(SpearItemTest, NbtDeserialize_EmptyTag_KeepsDefaults)
     entity::SpearEntity spear(EntityInstanceId(10), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag emptyTag;
-    auto result = spear.readAdditionalSaveData(emptyTag);
+    auto result = spear.readFromNBT(emptyTag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     // 默认值
@@ -881,12 +885,13 @@ TEST_F(SpearItemTest, NbtSerialize_WritesAllExpectedKeys)
     spear.setCritical(false);
 
     nbt::tags::compound_tag tag;
-    spear.addAdditionalSaveData(tag);
+    spear.writeToNBT(tag);
 
     using namespace entity::serialization::nbt_helper;
 
-    // 物品堆子复合标签
-    EXPECT_NE(tryGetCompound(tag, "Item"), nullptr);
+    // 物品堆子复合标签（AbstractArrow 子树含 Spear 用小写 "item" 键，与 vanilla 1.21 一致；
+    // ThrowableItemProjectile 子树才用大写 "Item"）
+    EXPECT_NE(tryGetCompound(tag, "item"), nullptr);
     // 拾取状态
     EXPECT_TRUE(tryGetByte(tag, "pickup").has_value());
     // 伤害值
@@ -899,8 +904,7 @@ TEST_F(SpearItemTest, NbtSerialize_WritesAllExpectedKeys)
     EXPECT_TRUE(tryGetByte(tag, "PierceLevel").has_value());
     // 已造成伤害
     EXPECT_TRUE(tryGetBool(tag, "DealtDamage").has_value());
-    // 击退强度
-    EXPECT_TRUE(tryGetInt(tag, "knockback").has_value());
+    // 注意：knockback（击退强度）运行时从附魔 Punch 读取，vanilla 不持久化，故不验证该键。
 }
 
 TEST_F(SpearItemTest, NbtRoundTrip_PreservesDurabilityDamage)
@@ -912,10 +916,10 @@ TEST_F(SpearItemTest, NbtRoundTrip_PreservesDurabilityDamage)
     spear1.setItemStack(stack);
 
     nbt::tags::compound_tag tag;
-    spear1.addAdditionalSaveData(tag);
+    spear1.writeToNBT(tag);
 
     entity::SpearEntity spear2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = spear2.readAdditionalSaveData(tag);
+    auto result = spear2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_EQ(spear2.getItemStack().getItem(), Items::IRON_SPEAR);

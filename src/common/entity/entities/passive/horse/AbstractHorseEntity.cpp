@@ -112,13 +112,17 @@ AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id, ecs::EntityRegistr
     // m_speed/m_horseHealth），随后 registerAttributes 读组件同步 AttributeMap。
     initRandomAttributes();
 
-    // 注册 AI 目标、属性与同步数据参数。
+    // 注册属性与同步数据参数。
     // C++ 虚函数在基类构造期间不派发到派生类：AnimalEntity 构造调 registerAttributes 命中的是
     // AnimalEntity 版而非 AbstractHorseEntity override，故 override 永不执行。必须在派生类自己的
-    // 构造函数体里显式调用，参考 ZombieEntity / PhantomEntity 模式。此前漏调 registerAttributes /
-    // registerData 致 HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED 属性与 STATUS_PARAM 同步参数
-    // 永不注册，所有马类子类（Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）均受影响。
-    registerGoals();
+    // 构造函数体里显式调用，参考 ZombieEntity / PhantomEntity 模式。
+    //
+    // 注意：registerGoals 不在此基类构造调用——goalSelector.addGoal 是累加语义，若基类构造调
+    // registerGoals 注册基类目标、派生构造再调 registerGoals 又注册一遍基类目标，会导致目标重复
+    // （Llama/TraderLlama 构造显式调 registerGoals 时基类 8 目标被注册两次共 18 个）。故
+    // registerGoals 统一由最派生类构造负责调用（见各子类构造体），基类构造不介入。
+    // registerAttributes 为 setBaseValue 覆盖语义，重复调用幂等无害，仍在此调用以兼容未显式
+    // 补调的子类。
     registerAttributes();
     registerData();
 

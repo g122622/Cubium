@@ -827,7 +827,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_GetCollarColor_ReadsFromDataManager)
     auto& dataManager = wolf.dataManager();
     u16 paramId = WolfEntity::getCollarColorParamId();
     EXPECT_TRUE(dataManager.hasParam(paramId));
-    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
+    i32 storedValue = static_cast<i32>(dataManager.get<i32>(entity::DataParameter<i32>(paramId)));
     EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Blue));
 }
 
@@ -839,7 +839,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetCollarColor_WritesToDataManager)
 
     // 设置颈圈颜色
     wolf.setCollarColor(DyeColor::Green);
-    i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
+    i32 storedValue = static_cast<i32>(dataManager.get<i32>(entity::DataParameter<i32>(paramId)));
     EXPECT_EQ(storedValue, static_cast<i32>(DyeColor::Green));
 
     // 设置为白色
@@ -896,7 +896,7 @@ TEST_F(WolfEntityTestFixture, DataParameter_CollarColor_AllDyeColorsRoundTrip)
         DyeColor color = static_cast<DyeColor>(i);
         wolf.setCollarColor(color);
         EXPECT_EQ(wolf.getCollarColor(), color);
-        i32 storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
+        i32 storedValue = static_cast<i32>(dataManager.get<i32>(entity::DataParameter<i32>(paramId)));
         EXPECT_EQ(storedValue, i);
     }
 }
@@ -3001,7 +3001,8 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngry_WritesToDataManager)
     // 清除愤怒状态
     wolf.setAngry(false);
     EXPECT_FALSE(wolf.isAngry());
-    storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    // DATA_ANGER_TIME_PARAM 注册为 i64（对齐 vanilla Long），须以 get<i64> 读取。
+    storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, 0);
 }
 
@@ -3018,7 +3019,8 @@ TEST_F(WolfEntityTestFixture, DataParameter_SetAngerTime_WritesToDataManager)
 
     // 设置为 0
     wolf.setAngerTime(0);
-    storedValue = dataManager.get<i32>(entity::DataParameter<i32>(paramId));
+    // DATA_ANGER_TIME_PARAM 注册为 i64（对齐 vanilla Long），须以 get<i64> 读取。
+    storedValue = static_cast<i32>(dataManager.get<i64>(entity::DataParameter<i64>(paramId)));
     EXPECT_EQ(storedValue, 0);
 }
 

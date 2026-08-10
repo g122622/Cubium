@@ -40,8 +40,10 @@ ZombieHorseEntity::ZombieHorseEntity(EntityInstanceId id, ecs::EntityRegistry& r
     // 设置跳跃强度
     setJumpStrength(0.96f);
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 累加语义，基类构造不再调用
+    // 以避免重复。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 

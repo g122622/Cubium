@@ -59,6 +59,7 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MoverType.hpp"
 #include "common/entity/ecs/components/EntityFlagsComponent.hpp"
+#include "common/entity/ecs/components/EntityOwnerComponent.hpp"
 #include "common/entity/ecs/components/EntityStateComponent.hpp"
 #include "common/entity/ecs/components/FireComponent.hpp"
 #include "common/entity/ecs/components/FreezeComponent.hpp"
@@ -155,6 +156,12 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     // 对应 DataParameter 退为同步镜像。低频走 tryGetComponent 查询。
     registry.raw().emplace<ecs::EntityFlagsComponent>(ecsEntity);
     registry.raw().emplace<ecs::EntityStateComponent>(ecsEntity);
+    // 反向桥接组件：ECS→OOP。FireTickSystem/PortalTickSystem 等 System 经
+    // view<..., EntityOwnerComponent> 遍历实体时，由此反查 OOP 句柄调虚函数
+    // （isInWater/hurt/canTeleport 等）。非拥有裸指针——Entity 所有权归
+    // EntityManager::m_entities 或测试局部变量，本组件仅反查。Entity 析构时
+    // destroy entt 实体（含本组件），故指针不会悬垂。详见 EntityOwnerComponent.hpp。
+    registry.raw().emplace<ecs::EntityOwnerComponent>(ecsEntity, this);
     m_entityContext = std::make_unique<ecs::EntityContext>(registry, ecsEntity);
 
     // 生成随机 UUID（使用实体的持久化随机数生成器）。
@@ -166,6 +173,17 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
 
     // 注册数据参数
     registerData();
+}
+
+Entity::~Entity()
+{
+    // 销毁 ECS 实体及其全部组件（含 EntityOwnerComponent，消除悬垂反查指针）。
+    // m_entityContext 此刻仍存活（成员在 ~Entity body 之后析构），可安全取 registry 与 entity id。
+    // valid() 校验防御：极少数路径（如 move-into-graveyard 后实体被显式 destroy）下
+    // entt 实体可能已失效，此时跳过避免重复 destroy 断言。
+    if (m_entityContext != nullptr && m_entityContext->valid()) {
+        m_entityContext->registry().destroy(m_entityContext->entity());
+    }
 }
 
 void Entity::registerData()

@@ -411,9 +411,11 @@ TEST(LlamaAiGoalsTest, BaseGoalCount)
     auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     llama->setWorld(&world);
 
-    // 继承自 AbstractHorseEntity: 8 个目标
-    EXPECT_EQ(getTotalGoalCount(llama->goalSelector()), 8)
-        << "LlamaEntity should have 8 base goals from AbstractHorseEntity";
+    // 继承自 AbstractHorseEntity: 8 个基础目标 + Llama 专属 2 个
+    // (LlamaFollowCaravanGoal 优先级2 + RangedAttackGoal 优先级3) = 共 10 个 goalSelector 目标。
+    // targetSelector 的 HurtByTarget/LlamaDefend 不计入 goalSelector 总数。
+    EXPECT_EQ(getTotalGoalCount(llama->goalSelector()), 10)
+        << "LlamaEntity should have 10 goals (8 base from AbstractHorseEntity + 2 llama-specific)";
 }
 
 // ============================================================================

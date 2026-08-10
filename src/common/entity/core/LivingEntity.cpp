@@ -195,6 +195,10 @@ void LivingEntity::setHealth(f32 health)
     // 组件为真相源，DATA_HEALTH_PARAM 退为同步镜像。
     if (auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>()) {
         c->m_health = clamped;
+        // 任何显式 setHealth 都视为已完成首帧生命值同步：避免 tick() 首帧兜底
+        // setHealth(maxHealth) 覆盖测试/业务在构造后手动设置的 health（如 setHealth(5)
+        // 后 hurt 致死，兜底会把 health 重置回 maxHealth 致 isDying/deathTime 不更新）。
+        c->m_healthSynced = true;
     }
     m_dataManager.set(DATA_HEALTH_PARAM, clamped);
 }

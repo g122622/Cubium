@@ -60,9 +60,11 @@ HorseEntity::HorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 {
     randomizeAppearance();
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。Horse 的 registerAttributes 设
-    // MAX_HEALTH=getHorseHealth()。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 注册 AI 目标（累加语义，
+    // 基类构造不再调用以避免重复），registerAttributes 设 MAX_HEALTH=getHorseHealth()。
+    // 详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 
