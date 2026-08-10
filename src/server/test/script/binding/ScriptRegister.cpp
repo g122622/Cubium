@@ -23,7 +23,9 @@
 #include "server/test/script/binding/ScriptRegister.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry/ClassRegistrar
+#include "common/test/base/error/GameTestErrorType.hpp"            // GameTestErrorType::MethodNotImplemented
 #include "common/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（spawnSimulatedPlayer stub）
 #include "server/test/script/binding/ScriptRegistrationBuilder.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 
@@ -147,10 +149,17 @@ void registerTopLevelFunctions(mc::mod::bedrock::addon::NativeModuleBuilder& bui
     ctx.releaseValue(setAfterBatchFn);
 
     // --- spawnSimulatedPlayer(name, location) -> SimulatedPlayer ---
-    // TODO: 顶层 spawn 需当前测试上下文（与 Test.spawnSimulatedPlayer 不同，无 Test 对象），待接线。
+    // 顶层 spawn 无 Test 上下文（与 Test.spawnSimulatedPlayer 不同，无 Test 对象定位结构原点），
+    // 项目 GameTest 框架的 SimulatedPlayer::spawn 需 GameTestHelper（结构相对坐标→世界绝对），
+    // 顶层无此上下文故 stub。对齐基岩 throwGameTestError(MethodNotImplemented)（非 throwInternalError）。
+    // TODO: 顶层 spawn 体系（全局结构原点/世界坐标直接传入）实现后接通。
     void* spawnSimulatedPlayerFn = ctx.createFunction(
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return ctx.throwInternalError("spawnSimulatedPlayer not implemented yet"); },
+            -> void* {
+            return throwGameTestError(ctx,
+                GameTestErrorType::MethodNotImplemented,
+                "spawnSimulatedPlayer not implemented yet (no top-level test context for structure origin)");
+        },
         "spawnSimulatedPlayer",
         2);
     builder.exportValue("spawnSimulatedPlayer", spawnSimulatedPlayerFn);

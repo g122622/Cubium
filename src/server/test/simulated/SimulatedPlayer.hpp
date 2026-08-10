@@ -10,6 +10,9 @@
 // 前向声明，避免循环 include：GameTestHelper 持 SimulatedPlayer*（spawn 时返回），
 // SimulatedPlayer 持 IGameTestHelper*（回指用于坐标相对化与完成路径），两者互引故前向声明。
 // 持接口 IGameTestHelper*（而非具体 GameTestHelper*）以便单元测试用 NullGameTestHelper 注入。
+namespace mc {
+class ItemStack;
+} // namespace mc
 namespace mc::server {
 class ServerWorld;
 }
@@ -110,6 +113,68 @@ public:
      * @param target 目标实体。
      */
     void lookAtEntity(const mc::Entity& target);
+
+    /**
+     * @brief 转头朝向某方块位置（对齐基岩 SimulatedPlayer::lookAtBlock）。
+     *
+     * 语义等同 lookAtLocation（都接结构相对 BlockPos），duration 参数当前忽略（瞬时定向），
+     * TODO: 加插值对齐基岩 LookDuration（Continuous/Instant/UntilMove）。
+     *
+     * @param relativePos 结构相对坐标。
+     * @param duration 朝向持续时间语义（LookDuration），当前忽略。
+     */
+    void lookAtBlock(BlockPos relativePos);
+
+    /**
+     * @brief 朝目标方块位置行走（对齐基岩 SimulatedPlayer::moveToBlock）。
+     *
+     * 语义等同 moveToLocation（直线单步驱动）。options（maxStraightLineReach 等）当前忽略，TODO。
+     *
+     * @param relativePos 结构相对坐标。
+     * @param speed 行走速度倍率（当前忽略，固定单步）。
+     */
+    void moveToBlock(BlockPos relativePos, f32 speed);
+
+    /**
+     * @brief 使模拟玩家跳跃（对齐基岩 SimulatedPlayer::jump）。
+     *
+     * 转发 Player::jump（地面 + 冷却为 0 才跳）。基岩返 bool 表示是否真的跳了，
+     * 项目 Player::jump 返 void，此处返 true 占位（TODO: Player::jump 改返 bool 后回填真实判定）。
+     *
+     * @return 是否执行了跳跃（当前恒 true 占位）。
+     */
+    bool jump();
+
+    /**
+     * @brief 模拟玩家断开连接（对齐基岩 SimulatedPlayer::disconnect）。
+     *
+     * SimulatedPlayer 无网络连接，"断开"语义即从世界移除该实体。转发 Entity::discard（标记 m_removed，
+     * 由 EntityManager tick 清理，不掉落）。对齐基岩 disconnect 触发的玩家离开流程。
+     */
+    void disconnect();
+
+    /**
+     * @brief 给模拟玩家物品（对齐基岩 SimulatedPlayer::giveItem）。
+     *
+     * 经 PlayerInventory::add 注入物品栈（尝试合并再放空槽）。selectSlot 当前忽略（TODO: 设选中槽）。
+     *
+     * @param stack 物品栈（按值传入，add 内部按需修改/拷贝）。
+     * @param selectSlot 是否设为选中槽（当前忽略）。
+     * @return 是否完全添加（add 返回剩余 0 即完全添加）。
+     */
+    bool giveItem(mc::ItemStack stack, bool selectSlot);
+
+    /**
+     * @brief 设模拟玩家指定槽位的物品（对齐基岩 SimulatedPlayer::setItem）。
+     *
+     * 经 PlayerInventory::setItem 直接设槽。selectSlot 当前忽略（TODO）。
+     *
+     * @param stack 物品栈。
+     * @param slot 槽位索引（0..40）。
+     * @param selectSlot 是否设为选中槽（当前忽略）。
+     * @return 是否设置成功（当前恒 true，TODO: 槽位越界校验后回填）。
+     */
+    bool setItem(mc::ItemStack stack, i32 slot, bool selectSlot);
 
     /**
      * @brief 以该玩家身份执行命令（对齐基岩 SimulatedPlayer::chat 的命令变体）。
