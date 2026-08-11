@@ -15,6 +15,8 @@
 - 需要Vulkan开发环境以及支持Vulkan的GPU
 - Vcpkg
 
+详见BUILD.md
+
 ## 克隆仓库
 
 ## 拉取子项目
