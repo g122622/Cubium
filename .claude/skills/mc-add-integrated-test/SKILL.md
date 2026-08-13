@@ -117,6 +117,7 @@ node scripts/test/run_diff.ts --step cubium
 验证要点：
 - Cubium 日志 `[GameTest] Registered test '<className>.<testName>'` 中 className/testName 与预期一致（改目录结构不应改 className，否则对比工具的 fullName 对齐会断）。
 - 若报 `Module not found: .../scripts/./XxxTests.js`，检查 `main.ts` 的 import 路径与文件实际位置是否一致（注意子目录层级对应的 `../` 数量）。
+- 若有ts类型问题，看 node_modules 里的类型定义（如`node_modules/@minecraft/server-gametest/index.d.ts`，这些文件较大，请避免全量读取）
 
 # 5. 与官方基岩 BDS 对比测试
 
