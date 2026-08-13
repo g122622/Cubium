@@ -135,6 +135,55 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 
 **设计原则**：零外部依赖（仅 `node:` 内置模块）、node>=22 原生类型剥离、ESM 单文件。
 
+### 为什么 Cubium（~6 秒）比基岩（~90 秒）快这么多
+
+这不是基岩"慢"，是 Cubium **刻意加速**——两者跑的根本不是同一种时间。实测数据：
+
+| | Cubium | Bedrock BDS |
+|---|---|---|
+| wall-clock 总耗时 | ~6.4 秒 | ~90 秒 |
+| 测试逻辑 tick 总量 | 1145 ticks | 1145 ticks（同一套源码） |
+| 每 tick 实际墙钟 | ~5.6 ms | 50 ms（真实 20 tps） |
+| tick 与墙钟关系 | **脱钩**（虚拟 tick） | **绑定**（真实时间） |
+
+**根因**：Cubium `--gametest` 是**无头门面**（`ServerApplicationEntry`："无头批量自动跑门面，自含行为包加载/JS 模块注册/runner 构造"），其 `GameTestServer::run()` 的 tick 循环（`src/server/test/facade/GameTestServer.cpp:374`）**没有 `sleep`/帧率同步**：
+
+```cpp
+while (m_running.load() && !m_runner->isComplete()) {
+    tickOnce();      // 世界 tick → GameTestTicker → runner
+    ++tickCount;
+}
+```
+
+CPU 全速推进，一个 tick 不必等真实 50ms。这是对齐 Java `GameTestMainUtil` 的 CI 友好设计。官方基岩 BDS 是真实服务端，严格 20 tps，`iron_golem_arena` 的 `maxTicks(810)` 真实就是 810×50ms = 40.5 秒，雷打不动。
+
+**公平性**：两端跑**完全相同的 `tests/integrated` 源码**，maxTicks 一致。Cubium 不是少跑 tick，是用更短墙钟跑完相同 tick 数。pass/fail 判定基于游戏逻辑（tick 内事件），与墙钟速度无关，**对比公平性不受影响**。
+
+**次要加成**：Bedrock 端还有工具层每个测试间 1.5 秒串行间隔（避免结构方块冲突）+ 串行 `gametest run` 命令往返，8 测试 × 1.5s ≈ 12 秒纯等待。
+
+### 基岩能加速吗？——不能（1.26.43.1 BDS 无官方途径）
+
+Java 版有 `/tick rate N` / `/tick step` 命令加速 GameTest，但基岩 BDS **没有这条命令**。实测基岩 1.26.43.1：
+
+```
+help tick     → Syntax error: Unexpected "tick"
+tick          → Unknown command: tick
+tick rate     → Unknown command: tick
+```
+
+文档仓库（minecraft-creator）`creator/Commands/commands/` 下也无 `/tick` 收录。其他途径同样无效：
+- gamerule 只有 `randomTickSpeed`（方块随机 tick，如作物生长，**不影响主循环 tps**）。
+- server.properties 有 `tick-distance`（区块 ticking 距离，性能调优非速率）、watchdog 阈值（卡顿检测非加速）——都控制不了 tps。
+
+**原因**：基岩 BDS 是真实多人服务端，tps 绑定真实时间是为了保证客户端同步、物理一致性、网络公平。给"加速 tick"会破坏这些不变量。Cubium 的无头门面能加速，是因为它不服务客户端、不维持真实帧率，测试跑完即退。
+
+**对工具的影响**：Bedrock 端的 ~90 秒是**物理下限**，无法用命令加速。可行的优化只剩：
+1. **减小串行间隔**：当前每测试间 1.5 秒（防结构方块冲突），可试探降到 0.5 秒省 ~8 秒，但有 `Could not find StructureBlockActor` 假失败风险，需实测。
+2. **并行跑独立测试**：不同 className 的结构方块不冲突，理论上可并行——但基岩单进程 GameTest 是否支持并发 run 未验证，风险高。
+3. **接受现状**：90 秒是基岩真实游戏时间，对比公平性不受影响。
+
+最务实是 **#3 接受 + 可选 #1 微调**。基岩 tps 是设计约束，不是缺陷。
+
 ### 前置：一次性环境准备
 
 ```bash
