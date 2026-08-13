@@ -406,17 +406,34 @@ u64 registerSimulatedPlayerClassBinding(
             -> void* { return _throwNotImplemented(ctx, "stopMoving"); },
         0);
 
-    // === 攻击/交互/破坏/建造 stub（依赖攻击事件/射线检测/破坏链路未就绪）===
-    // TODO: 各方法待对应体系（攻击事件派发/raycast/destroyBlock 战利品/建造放置）实现后做实。
+    // === 攻击/交互/破坏/建造 ===
+    // attack() 无参版本：基岩语义为攻击当前看向的实体，依赖 raycast 命中检测，TODO 待射线体系就绪。
     reg.method(
         "attack",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
             -> void* { return _throwNotImplemented(ctx, "attack"); },
         0);
+    // --- attackEntity(entity) ---
+    // 转发 SimulatedPlayer::attack → Player::attack(target) 走完整玩家攻击伤害链
+    // （playerAttack source → target.hurt → actuallyHurt → setLastHurtBy → 群体仇恨触发）。
+    // 用于验证 HurtByTargetGoal alertOthers 群体仇恨、近战伤害等行为。
     reg.method(
         "attackEntity",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "attackEntity"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("attackEntity(entity)");
+            }
+            auto* target = _unwrapEntity(ctx, args[0]);
+            if (target == nullptr) {
+                return ctx.throwTypeError("attackEntity: first arg must be an Entity");
+            }
+            player->attack(*target);
+            return ctx.createUndefined();
+        },
         1);
     reg.method(
         "interact",

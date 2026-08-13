@@ -193,8 +193,13 @@ void SimulatedPlayer::flyToLocation(BlockPos relativePos, f32 speed)
 
 void SimulatedPlayer::attack(mc::Entity& target)
 {
-    // TODO: 派发攻击事件 + 伤害计算（依赖攻击/伤害事件派发链）
-    (void)target;
+    // 委托 Player::attack：内部构造 DamageSources::playerAttack(this) → target.hurt →
+    // LivingEntity::actuallyHurt → setLastHurtBy(this) → 下一 tick HurtByTargetGoal::shouldExecute
+    // 读 getLastHurtBy() 触发群体仇恨（alertOthers 警醒附近同类）。
+    // Player::attack 已含完整伤害链：暴击/附魔/冷却衰减/击退/横扫/武器损耗/饱食度消耗。
+    // SimulatedPlayer 经 ServerPlayer→Player 继承，无网络连接时发包路径 no-op（setConnection(nullptr)）。
+    // 直接调 Player::attack（非 ServerPlayer::attack）以跳过 ServerPlayer 的旁观者 setCamera 网络路径。
+    Player::attack(target);
 }
 
 } // namespace mc::test

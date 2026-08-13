@@ -198,7 +198,8 @@ public:
 
     // TODO: flyToLocation / glide / swim（飞行/滑翔/游泳物理，依赖 LivingEntity fall-flying 状态机细化）
     void flyToLocation(BlockPos relativePos, f32 speed);
-    // TODO: attack(entity)（依赖攻击/伤害事件派发链）
+    // attack(entity) 已实现：转发 Player::attack(target) 走完整玩家攻击伤害链
+    // （playerAttack source → target.hurt → actuallyHurt → setLastHurtBy → 群体仇恨触发）。
     void attack(mc::Entity& target) override;
     // TODO: interact(entity/block)（依赖交互管理器 handleItemUseOn 完整化）
     // TODO: useItem(itemStack)（依赖物品使用派发）
