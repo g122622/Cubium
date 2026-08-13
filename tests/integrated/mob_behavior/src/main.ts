@@ -3,6 +3,7 @@
 // 未来为每个生物加行为测试时，放入对应分类目录即可。
 
 import { registerZombieTests } from "./tests/monster/undead/ZombieTests.js";
+import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
 import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
 import { registerPhantomTests } from "./tests/monster/basic/PhantomTests.js";
@@ -12,6 +13,7 @@ import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
 import { registerChickenTests } from "./tests/passive/basic/ChickenTests.js";
 
 registerZombieTests();
+registerSkeletonTests();
 registerIronGolemTests();
 registerZoglinTests();
 registerPhantomTests();
