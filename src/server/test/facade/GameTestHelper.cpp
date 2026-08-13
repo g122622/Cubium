@@ -10,10 +10,10 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/LivingEntity.hpp"                  // killEntity 走 onKillCommand 伤害致死链路
-#include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime 尺寸事件
-#include "common/entity/inventory/IInventory.hpp"               // getItem/getContainerSize/isEmpty（容器断言）
-#include "common/item/core/ItemStack.hpp"                       // isSameItem（assertContainerContains 类型匹配）
+#include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
+#include "common/entity/inventory/IInventory.hpp" // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -112,9 +112,11 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         normalizedEvent = "minecraft:" + normalizedEvent;
     }
 
-    // 史莱姆尺寸事件：spawn_large=4 / spawn_medium=2 / spawn_small=1（对齐基岩 slime 行为包事件
-    // minecraft:spawn_large/medium/small，wiki tech_史莱姆.txt#生成：尺寸 4=大型/2=中型/1=小型）。
-    if (normalizedType == "minecraft:slime") {
+    // 史莱姆/岩浆怪尺寸事件：spawn_large=4 / spawn_medium=2 / spawn_small=1（对齐基岩 slime/magma_cube
+    // 行为包事件 minecraft:spawn_large/medium/small，wiki tech_史莱姆.txt#生成 / tech_岩浆怪.txt#生成：
+    // 尺寸 4=大型/2=中型/1=小型）。岩浆怪继承 SlimeEntity 且 override setSlimeSize（额外设置护甲=size*3），
+    // dynamic_cast<SlimeEntity*> 对岩浆怪成立，故两者走同一派发逻辑。
+    if (normalizedType == "minecraft:slime" || normalizedType == "minecraft:magma_cube") {
         auto* slime = dynamic_cast<mc::SlimeEntity*>(entity);
         if (slime == nullptr) {
             return;
@@ -129,7 +131,7 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         // 其他事件（如 minecraft:entity_spawned）TODO 待行为包事件系统接入。
         return;
     }
-    // TODO: 其他实体的 spawn 事件（如 magma_cube 同款尺寸事件）按需补全。
+    // TODO: 其他实体的 spawn 事件按需补全。
 }
 } // namespace
 

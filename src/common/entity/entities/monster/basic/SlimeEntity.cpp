@@ -148,10 +148,20 @@ void SlimeEntity::split()
     performSplit();
 }
 
+f32 SlimeEntity::getAttackDamage() const
+{
+    // 对齐 Java Slime.getAttackDamage：返回 ATTACK_DAMAGE 属性值（updateSizeAttributes 设为 size）。
+    // 岩浆怪 override 在此基础上 +2（见 MagmaCubeEntity::getAttackDamage）。
+    return static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
+}
+
 void SlimeEntity::dealDamage(LivingEntity& target)
 {
-    // 只有尺寸大于 1 的史莱姆才能造成伤害
-    if (m_size <= 1) {
+    // 对齐 Java Slime.dealDamage：canDamagePlayer() 为真时按 getAttackDamage() 伤害目标。
+    // canDamagePlayer() 已含尺寸门控：史莱姆 size>1 才真，岩浆怪 override 始终真（不限尺寸）。
+    // 故此处不再重复 m_size<=1 判断——此前该判断会让小型岩浆怪（canDamagePlayer=true）误不伤害，
+    // 与 wiki "小型岩浆怪伤害=3" 矛盾。canDamagePlayer() 假时 onCollideWithPlayer 不会调本函数。
+    if (!canDamagePlayer()) {
         return;
     }
 
@@ -160,8 +170,8 @@ void SlimeEntity::dealDamage(LivingEntity& target)
         return;
     }
 
-    // 伤害值等于尺寸
-    f32 damage = static_cast<f32>(m_size);
+    // 伤害值取 getAttackDamage()（属性驱动，子类可 override）
+    f32 damage = getAttackDamage();
 
     // 对目标造成伤害
     auto damageSource = DamageSources::mobAttack(this);
@@ -170,15 +180,18 @@ void SlimeEntity::dealDamage(LivingEntity& target)
 
 bool SlimeEntity::canDamagePlayer() const
 {
-    // 只有尺寸大于 1 的史莱姆才能伤害玩家
+    // 只有尺寸大于 1 的史莱姆才能伤害玩家（对齐 Java Slime.isDealsDamage: size>1）。
+    // 岩浆怪 override 此方法不限尺寸（小型岩浆怪也能伤害，见 MagmaCubeEntity::canDamagePlayer）。
     return m_size > 1;
 }
 
-void SlimeEntity::onCollideWithPlayer(LivingEntity& player)
+void SlimeEntity::onCollideWithPlayer(Player& player)
 {
-    if (canDamagePlayer()) {
-        dealDamage(player);
-    }
+    // 玩家碰撞时尝试造成伤害。canDamagePlayer() 为尺寸/类型门控。
+    // 注：参数类型为 Player& 以 override 基类 Entity::onCollideWithPlayer(Player&)，
+    // 此前误用 LivingEntity& 不构成 override 致本函数从未被调用（死代码）。
+    // Player 继承 LivingEntity，可直接传给 dealDamage(LivingEntity&)。
+    dealDamage(player);
 }
 
 f32 SlimeEntity::eyeHeight() const
@@ -338,12 +351,14 @@ void SlimeEntity::performSplit()
         return; // 不能分裂成更小的史莱姆
     }
 
-    // 获取实体类型来创建新实例
-    auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* slimeType = registry.getType(entity::EntityTypeKeys::SLIME);
-
+    // 获取实体类型来创建新实例。用当前实体自身的类型（entityType()）而非硬编码 SLIME——
+    // 这样 MagmaCubeEntity（继承 SlimeEntity）分裂时取到 magma_cube 类型，工厂绑定
+    // MagmaCubeEntity::create，生成真正的 MagmaCubeEntity 对象（对齐 Java Slime.remove 的
+    // convertTo(本类 EntityType, true) 语义）。此前硬编码 SLIME 会导致岩浆怪分裂出" typeId 为
+    // magma_cube 但 C++ 对象类型为 SlimeEntity "的混乱态（见第 423 行 setTypeId 后的字段错配）。
+    const entity::EntityType* slimeType = entityType();
     if (!slimeType || !slimeType->canSummon()) {
-        spdlog::warn("SlimeEntity: Slime entity type not found or not summonable");
+        spdlog::warn("SlimeEntity: entity type not found or not summonable: {}", getTypeId());
         return;
     }
 

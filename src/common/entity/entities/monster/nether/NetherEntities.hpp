@@ -145,9 +145,10 @@ public:
 
     /**
      * @brief 获取攻击伤害
-     * 攻击伤害 = 属性值 + 2.0F
+     * override SlimeEntity::getAttackDamage：攻击伤害 = 属性值 + 2.0F（属性值=size，故 =size+2，
+     * 与 wiki "尺寸+3" 等价：小型 size=1→3、中型 size=2→4、大型 size=4→6）。
      */
-    [[nodiscard]] f32 getAttackDamage() const;
+    [[nodiscard]] f32 getAttackDamage() const override;
 
     // ========== 跳跃 ==========
 

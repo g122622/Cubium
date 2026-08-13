@@ -37,6 +37,7 @@ namespace mc {
 // Forward declarations
 class IWorld;
 class DamageSource;
+class Player;
 class LivingEntity;
 
 /**
@@ -53,8 +54,6 @@ class LivingEntity;
  */
 class SlimeEntity : public MonsterEntity {
 public:
-    using Entity::onCollideWithPlayer;
-
     /**
      * @brief 构造函数
      * @param id 实体ID
@@ -198,16 +197,31 @@ public:
     // ========== 攻击 ==========
 
     /**
-     * @brief 对目标造成伤害
+     * @brief 获取近战攻击伤害值
+     * 对齐 Java Slime.getAttackDamage：返回 ATTACK_DAMAGE 属性值（updateSizeAttributes 设为 size）。
+     * 岩浆怪 override 返回 属性值+2（=size+2，与 wiki "尺寸+3" 等价，因属性基础值=size）。
+     * 小型史莱姆/岩浆怪是否实际造成伤害由 canDamagePlayer() 门控（史莱姆 size>1，岩浆怪不限尺寸）。
      */
-    void dealDamage(LivingEntity& target);
+    [[nodiscard]] virtual f32 getAttackDamage() const;
+
+    /**
+     * @brief 对目标造成伤害
+     * 对齐 Java Slime.dealDamage：canDamagePlayer() 为真时按 getAttackDamage() 伤害目标。
+     * canDamagePlayer() 已含尺寸门控（史莱姆 size>1 才真，岩浆怪始终真），故此处不再重复
+     * m_size<=1 判断——此前 m_size<=1 return 会让小型岩浆怪（canDamagePlayer=true）误不伤害，
+     * 与 wiki "小型岩浆怪伤害=3" 矛盾。
+     */
+    virtual void dealDamage(LivingEntity& target);
 
     // ========== 碰撞 ==========
 
     /**
      * @brief 玩家碰撞处理
+     * override 基类 Entity::onCollideWithPlayer(Player&)——签名必须为 Player& 才构成 override
+     * （此前误写 LivingEntity& 且用 using 引入基类空实现，致碰撞伤害回调分派到基类空操作，
+     * 整条史莱姆/岩浆怪碰撞伤害链路为死代码）。
      */
-    void onCollideWithPlayer(LivingEntity& player);
+    void onCollideWithPlayer(Player& player) override;
 
     // ========== 阳光燃烧 ==========
 
