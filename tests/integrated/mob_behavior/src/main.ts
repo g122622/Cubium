@@ -5,6 +5,7 @@
 import { registerZombieTests } from "./tests/monster/undead/ZombieTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
+import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
 import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
 import { registerMagmaCubeTests } from "./tests/monster/nether/MagmaCubeTests.js";
 import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPiglinTests.js";
@@ -23,6 +24,7 @@ import { registerChickenTests } from "./tests/passive/basic/ChickenTests.js";
 registerZombieTests();
 registerSkeletonTests();
 registerIronGolemTests();
+registerSnowGolemTests();
 registerZoglinTests();
 registerMagmaCubeTests();
 registerZombifiedPiglinTests();
