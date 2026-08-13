@@ -97,6 +97,7 @@ public:
     [[nodiscard]] GameTestResult assertItemEntityCountIs(
         const std::string& itemType, BlockPos relativePos, f32 searchDistance, i32 count) override;
     [[nodiscard]] GameTestResult killAllEntities() override;
+    [[nodiscard]] GameTestResult killEntity(mc::Entity& entity) override;
     [[nodiscard]] GameTestResult spawnEntity(
         const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnItemAt(

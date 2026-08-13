@@ -136,6 +136,10 @@ public:
     [[nodiscard]] virtual GameTestResult assertItemEntityCountIs(
         const std::string& itemType, BlockPos relativePos, f32 searchDistance, i32 count) = 0;
     [[nodiscard]] virtual GameTestResult killAllEntities() = 0;
+    /// 杀死指定实体（对齐基岩 /kill 语义，走伤害致死链路，触发完整死亡流程：die → deathTime 倒计时 → remove）。
+    /// 与 killAllEntities 的 discard（静默移除不掉落、不触发死亡）不同，killEntity 让实体经死亡链路移除，
+    /// 从而触发"死亡时"行为（如史莱姆分裂、僵尸增援、掉落物/经验）。基岩 Test 类无此 API，此为项目测试设施。
+    [[nodiscard]] virtual GameTestResult killEntity(mc::Entity& entity) = 0;
 
     // spawn 返回 Entity*（失败时 error 携带在出参或 variant）。此处用 std::variant 语义：
     // 返回 Entity*；失败时由调用方先检查单独的 lastError()。为简化，spawn 返回 GameTestResult，

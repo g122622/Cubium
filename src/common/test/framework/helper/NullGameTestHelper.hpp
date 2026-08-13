@@ -135,6 +135,7 @@ public:
         return std::nullopt;
     }
     [[nodiscard]] GameTestResult killAllEntities() override { return std::nullopt; }
+    [[nodiscard]] GameTestResult killEntity(mc::Entity& /*entity*/) override { return std::nullopt; }
     [[nodiscard]] GameTestResult spawnEntity(
         const std::string& /*entityType*/, BlockPos /*relativePos*/, mc::Entity*& outEntity) override
     {

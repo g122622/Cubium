@@ -10,8 +10,10 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/inventory/IInventory.hpp" // getItem/getContainerSize/isEmpty（容器断言）
-#include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
+#include "common/entity/core/LivingEntity.hpp"                  // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime 尺寸事件
+#include "common/entity/inventory/IInventory.hpp"               // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/item/core/ItemStack.hpp"                       // isSameItem（assertContainerContains 类型匹配）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -39,12 +41,46 @@ namespace mc::test {
 using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 
 namespace {
+
+// 解析 test.spawn 的实体类型标识符（对齐基岩 Test.spawn 官方语义）。
+// 基岩 spawn(entityTypeIdentifier, ...) 的 identifier 支持可选 <spawnEvent> 后缀：
+//   "namespace:entityType<spawnEvent>"（见基岩 Test.md#spawn）。后缀指定实体初始 spawn 事件
+// （行为包定义的事件，如 "minecraft:slime<minecraft:spawn_large>" 生成大型史莱姆）。
+// 本函数把后缀剥离出来，baseType 再交 normalizeEntityType 补全命名空间/基岩别名。
+// 无后缀时 spawnEvent 为空字符串。仅识别第一对 <...>，且要求位于类型名末尾。
+struct EntityTypeAndEvent {
+    std::string baseType;
+    std::string spawnEvent;
+};
+EntityTypeAndEvent extractSpawnEvent(const std::string& identifier)
+{
+    EntityTypeAndEvent result;
+    const auto lt = identifier.find('<');
+    if (lt == std::string::npos) {
+        result.baseType = identifier;
+        return result;
+    }
+    const auto gt = identifier.find('>', lt + 1);
+    if (gt == std::string::npos) {
+        // 未闭合的 <...>：按基岩容错，整体当类型名（spawn 会因未知类型失败并报错）。
+        result.baseType = identifier;
+        return result;
+    }
+    result.baseType = identifier.substr(0, lt);
+    result.spawnEvent = identifier.substr(lt + 1, gt - lt - 1);
+    return result;
+}
+
 // 规范化实体类型名：基岩行为包用短名（如 "fox"），项目注册表用全名 "minecraft:fox"。
 // 无命名空间前缀时补 "minecraft:"，使 spawn/assert 能查到对应实体类型。
 // 已含 ":" 前缀（如 "minecraft:fox" 或其他命名空间）原样返回（随后再过基岩别名表）。
+// 入参若带 <spawnEvent> 后缀（见 extractSpawnEvent），先剥离后缀再规范化——这样查询类断言
+// （assertEntityPresent 等）即便误传带后缀的标识符也能正确匹配类型。
 std::string normalizeEntityType(const std::string& name)
 {
-    std::string full = name.find(':') == std::string::npos ? "minecraft:" + name : name;
+    // 先剥离 <spawnEvent> 后缀，取 baseType。
+    std::string base = extractSpawnEvent(name).baseType;
+    std::string full = base.find(':') == std::string::npos ? "minecraft:" + base : base;
 
     // 基岩版与 Java 版实体类型命名差异别名表。基岩行为包用基岩名（如 villager_v2），
     // 项目实体注册表用 Java 名（如 minecraft:villager）。此处把基岩名归一化为项目注册表名，
@@ -58,6 +94,42 @@ std::string normalizeEntityType(const std::string& name)
         return it->second;
     }
     return full;
+}
+
+// 对刚创建的实体派发 spawn 事件（对齐基岩 spawn <spawnEvent> 后缀语义）。
+// 基岩的 spawn 事件由实体行为包定义（如 minecraft:spawn_large 设史莱姆尺寸）。项目尚无行为包
+// 事件引擎，此处对 GameTest 已用到的事件做硬编码派发；未知实体/事件静默忽略（对齐基岩容错，
+// 未知 spawnEvent 不报错）。TODO: 接入行为包事件系统后改为通用 triggerEvent 派发。
+void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, const std::string& spawnEvent)
+{
+    if (entity == nullptr || spawnEvent.empty()) {
+        return;
+    }
+
+    // spawnEvent 既接受 "minecraft:spawn_large" 也接受 "spawn_large"，不含 ':' 时补 minecraft: 前缀。
+    std::string normalizedEvent = spawnEvent;
+    if (normalizedEvent.find(':') == std::string::npos) {
+        normalizedEvent = "minecraft:" + normalizedEvent;
+    }
+
+    // 史莱姆尺寸事件：spawn_large=4 / spawn_medium=2 / spawn_small=1（对齐基岩 slime 行为包事件
+    // minecraft:spawn_large/medium/small，wiki tech_史莱姆.txt#生成：尺寸 4=大型/2=中型/1=小型）。
+    if (normalizedType == "minecraft:slime") {
+        auto* slime = dynamic_cast<mc::SlimeEntity*>(entity);
+        if (slime == nullptr) {
+            return;
+        }
+        if (normalizedEvent == "minecraft:spawn_large") {
+            slime->setSlimeSize(4, true);
+        } else if (normalizedEvent == "minecraft:spawn_medium") {
+            slime->setSlimeSize(2, true);
+        } else if (normalizedEvent == "minecraft:spawn_small") {
+            slime->setSlimeSize(1, true);
+        }
+        // 其他事件（如 minecraft:entity_spawned）TODO 待行为包事件系统接入。
+        return;
+    }
+    // TODO: 其他实体的 spawn 事件（如 magma_cube 同款尺寸事件）按需补全。
 }
 } // namespace
 
@@ -526,10 +598,27 @@ GameTestResult GameTestHelper::killAllEntities()
     return std::nullopt;
 }
 
+GameTestResult GameTestHelper::killEntity(mc::Entity& entity)
+{
+    // 走伤害致死链路（对齐 /kill 语义）：LivingEntity::onKillCommand 用虚空伤害 hurt 致死 →
+    // actuallyHurt 扣血至 0 → die → 此后每 tick tickDeath 累计 deathTime，达 20 调 remove()。
+    // 对史莱姆等"死亡时"行为（SlimeEntity::remove 触发 performSplit），分裂在致死约 20 tick 后发生。
+    // 非 LivingEntity（如矿车/掉落物）回退 Entity::onKillCommand（直接 remove，无死亡动画）。
+    auto* living = dynamic_cast<mc::LivingEntity*>(&entity);
+    if (living != nullptr) {
+        living->onKillCommand();
+    } else {
+        entity.onKillCommand();
+    }
+    return std::nullopt;
+}
+
 GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity)
 {
     outEntity = nullptr;
-    const auto fullType = normalizeEntityType(entityType);
+    // 解析 <spawnEvent> 后缀（对齐基岩 Test.spawn 语义），fullType 已剥离后缀。
+    const auto parsed = extractSpawnEvent(entityType);
+    const auto fullType = normalizeEntityType(parsed.baseType);
     const auto* type = mc::entity::EntityRegistry::instance().getType(fullType);
     if (type == nullptr) {
         return GameTestError{
@@ -544,6 +633,8 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
     entity->setPosition(
         static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
     mc::Entity* raw = entity.get();
+    // 在实体加入世界前派发 spawn 事件（如 slime<minecraft:spawn_large> 设尺寸），确保首 tick 即正确状态。
+    applySpawnEvent(raw, fullType, parsed.spawnEvent);
     const auto id = m_world.spawnEntity(std::move(entity));
     if (id == 0) {
         return GameTestError{GameTestErrorType::LevelStateModificationFailed,
@@ -570,7 +661,9 @@ GameTestResult GameTestHelper::spawnAtLocation(
     // 对齐基岩 Test.spawnAtLocation：在世界绝对 Vector3 位置生成实体（spawn 的浮点位置变体）。
     // 复用 spawnEntity 的创建/注册逻辑，位置从 BlockPos 改为 Vector3d（浮点）。
     outEntity = nullptr;
-    const auto fullType = normalizeEntityType(entityType);
+    // 解析 <spawnEvent> 后缀（对齐基岩 Test.spawnAtLocation 语义），fullType 已剥离后缀。
+    const auto parsed = extractSpawnEvent(entityType);
+    const auto fullType = normalizeEntityType(parsed.baseType);
     const auto* type = mc::entity::EntityRegistry::instance().getType(fullType);
     if (type == nullptr) {
         return GameTestError{
@@ -583,6 +676,8 @@ GameTestResult GameTestHelper::spawnAtLocation(
     }
     entity->setPosition(static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z));
     mc::Entity* raw = entity.get();
+    // 在实体加入世界前派发 spawn 事件（如 slime<minecraft:spawn_large> 设尺寸）。
+    applySpawnEvent(raw, fullType, parsed.spawnEvent);
     const auto id = m_world.spawnEntity(std::move(entity));
     if (id == 0) {
         return GameTestError{GameTestErrorType::LevelStateModificationFailed,

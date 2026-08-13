@@ -330,6 +330,31 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         0);
 
+    // --- kill(entity) ---
+    // 项目测试设施（基岩 Test 类无）：杀死指定实体，走伤害致死链路（onKillCommand）触发完整死亡流程。
+    // 与 killAllEntities 的 discard（静默移除）不同，kill 让实体经死亡链路移除，触发"死亡时"行为
+    // （史莱姆分裂、掉落物/经验等）。entity 经 ScriptClassRegistry 取 @minecraft/server Entity classId unwrap。
+    reg.method(
+        "kill",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("kill(entity)");
+            }
+            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
+            auto* entity = static_cast<mc::Entity*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            if (entity == nullptr) {
+                return ctx.throwTypeError("kill: argument must be an Entity");
+            }
+            auto result = helper->killEntity(*entity);
+            return _resultToJs(ctx, std::move(result));
+        },
+        1);
+
     // --- succeed() ---
     reg.method(
         "succeed",
