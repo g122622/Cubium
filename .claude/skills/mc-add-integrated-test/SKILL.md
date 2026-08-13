@@ -120,7 +120,7 @@ node scripts/test/run_diff.ts --step cubium
 
 # 5. 与官方基岩 BDS 对比测试
 
-集成测试除了"在 Cubium 上能跑通"，还要**与官方基岩 BDS 跑同一套用例对比**，以官方基岩为 ground truth，自动发现 Cubium 的行为偏差/缺陷。这是验证"与原版 MC 对齐"的最权威手段。
+集成测试除了"在 Cubium 上能跑通"，还要**与官方基岩 BDS 跑同一套用例对比**，以官方基岩为 ground truth，自动发现 Cubium 的行为偏差/缺陷。这是验证"与原版 MC 对齐"的最权威手段。因此你写的测试不仅要在 Cubium 上跑通，还要在官方基岩上跑通。
 
 ## 5.1 工具与流程
 
