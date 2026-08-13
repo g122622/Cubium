@@ -33,6 +33,7 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/item/Items.hpp"
@@ -214,8 +215,30 @@ void ChickenEntity::tick()
                 return;
             }
 
-            // 下蛋
-            auto egg = std::make_unique<ItemEntity>(0, ItemStack(Items::EGG, 1), x(), y() + 0.2f, z(), *registry);
+            // 通过 EntityType 工厂创建 ItemEntity（而非直接 make_unique）：工厂在创建后会调
+            // setTypeId("minecraft:item")，使 getTypeId()/entityType() 返回正确类型标识。
+            // 直接 make_unique<ItemEntity> 绕过工厂会导致 m_typeId 为空，JS 侧按 typeId 过滤
+            // 实体的断言（assertEntityInVolume "item"）与 C++ 侧 getTypeId()=="minecraft:item"
+            // 判定全部失效（系统性问题：所有 make_unique 直接构造的实体均缺 typeId，此处先修鸡下蛋）。
+            const entity::EntityType* itemType =
+                entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ITEM);
+            if (itemType == nullptr) {
+                resetEggTimer();
+                return;
+            }
+            auto egg = itemType->create(world(), *registry);
+            if (egg == nullptr) {
+                resetEggTimer();
+                return;
+            }
+            // 工厂创建的 ItemEntity 在原点、持空 stack；补齐下蛋位置与物品。
+            auto* eggEntity = dynamic_cast<ItemEntity*>(egg.get());
+            if (eggEntity == nullptr) {
+                resetEggTimer();
+                return;
+            }
+            eggEntity->setItemStack(ItemStack(Items::EGG, 1));
+            eggEntity->setPosition(x(), y() + 0.2f, z());
 
             // 播放下蛋音效
             playSound(

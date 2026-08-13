@@ -301,6 +301,7 @@ add_custom_command(
             ${_integrated_root}/mob_behavior/src/tests/passive/basic/CowTests.ts
             ${_integrated_root}/mob_behavior/src/tests/passive/basic/PigTests.ts
             ${_integrated_root}/mob_behavior/src/tests/passive/basic/SheepTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/passive/basic/ChickenTests.ts
             ${_integrated_root}/mob_behavior/src/tests/passive/golem/IronGolemTests.ts
             ${_integrated_root}/mob_behavior/src/utils/block/build.ts
             ${_integrated_root}/mob_behavior/src/utils/entity/assert.ts
