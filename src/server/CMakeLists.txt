@@ -295,7 +295,15 @@ add_custom_command(
             ${_integrated_root}/command/src/main.ts
             ${_integrated_root}/command/src/CommandTests.ts
             ${_integrated_root}/mob_behavior/src/main.ts
-            ${_integrated_root}/mob_behavior/src/MobBehaviorTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/monster/basic/PhantomTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/monster/nether/ZoglinTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/monster/undead/ZombieTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/passive/basic/CowTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/passive/basic/PigTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/passive/basic/SheepTests.ts
+            ${_integrated_root}/mob_behavior/src/tests/passive/golem/IronGolemTests.ts
+            ${_integrated_root}/mob_behavior/src/utils/block/build.ts
+            ${_integrated_root}/mob_behavior/src/utils/entity/assert.ts
             ${_integrated_root}/starter/src/StarterTests.ts
     WORKING_DIRECTORY ${_integrated_root}
     COMMENT "Compiling integrated behavior packs (TypeScript -> JavaScript)"

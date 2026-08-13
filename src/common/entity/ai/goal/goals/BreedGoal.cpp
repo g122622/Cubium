@@ -114,9 +114,11 @@ void BreedGoal::tick()
 
     m_spawnBabyDelay++;
 
-    // 检查是否足够接近以进行繁殖
+    // 检查是否足够接近以进行繁殖。对齐 vanilla BreedGoal.tick：
+    // loveTime >= adjustedTickDelay(60)，减半补偿半 tick 评估（loveTime 每 tick ++）。
+    // shouldContinueExecuting 仍用裸 SPAWN_BABY_DELAY 作上限保护（对齐 vanilla canContinueToUse 裸 60）。
     f64 distSq = m_animal->distanceSqTo(*m_targetMate);
-    if (m_spawnBabyDelay >= constants::SPAWN_BABY_DELAY && distSq < constants::BREED_DISTANCE_SQ) {
+    if (m_spawnBabyDelay >= adjustedTickDelay(constants::SPAWN_BABY_DELAY) && distSq < constants::BREED_DISTANCE_SQ) {
         spawnBaby();
     }
 }

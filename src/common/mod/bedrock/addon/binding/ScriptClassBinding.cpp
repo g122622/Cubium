@@ -124,19 +124,28 @@ void* NativeModuleBuilder::exportClass(const std::string& className, u64 classId
         return m_ctx.createUndefined();
     }
 
+    // 默认构造函数不可直接调用 new，抛 TypeError（对齐基岩"Use factory methods instead"语义）。
+    auto stubCtor = [className](IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/) -> void* {
+        return ctx.throwTypeError(
+            ("Cannot directly construct " + className + ". Use factory methods instead.").c_str());
+    };
+    return exportClass(className, classId, std::move(stubCtor));
+}
+
+void* NativeModuleBuilder::exportClass(const std::string& className, u64 classId, ScriptMethodCallback ctorCallback)
+{
+    if (m_finalized) {
+        spdlog::error("[BedrockAddon] Cannot export class '{}' to finalized module", className);
+        return m_ctx.createUndefined();
+    }
+
     // 注册类定义（带finalizer以释放ObjectData）
     m_ctx.registerClass(classId, className.c_str(), true);
 
     // 创建原型对象
     void* proto = m_ctx.createClassProto(classId);
 
-    // 创建构造函数（不可直接调用new，抛出TypeError）
-    auto ctorCallback = [className](
-                            IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/) -> void* {
-        return ctx.throwTypeError(
-            ("Cannot directly construct " + className + ". Use factory methods instead.").c_str());
-    };
-
+    // 创建构造函数（由调用方提供回调，支持 new ClassName(...) 真实构造）
     void* ctor = m_ctx.createFunction(std::move(ctorCallback), className.c_str(), 0);
 
     // 关联构造函数和原型

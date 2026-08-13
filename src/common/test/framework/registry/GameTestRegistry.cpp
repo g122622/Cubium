@@ -41,6 +41,11 @@ std::vector<std::shared_ptr<BaseGameTestFunction>> GameTestRegistry::allTestFunc
     for (const auto& [name, fn] : m_byName) {
         all.push_back(fn);
     }
+    // m_byName 是 unordered_map，迭代顺序运行间不固定，会致下游 BatchRunner 的结构原点分配
+    // （m_nextOrigin 游标按测试顺序推进）非确定，进而使依赖精确方块/坐标的测试 flaky
+    // （如 sheep_eat_grass 脚下方块在 grass/cobblestone 间漂移）。按 testName 字典序排序，
+    // 保证测试执行顺序与结构原点分配在运行间确定。
+    std::sort(all.begin(), all.end(), [](const auto& a, const auto& b) { return a->testName() < b->testName(); });
     return all;
 }
 
@@ -68,6 +73,8 @@ std::vector<std::shared_ptr<BaseGameTestFunction>> GameTestRegistry::getTestsByP
             result.push_back(it->second);
         }
     }
+    // 同 allTestFunctions：排序保证下游结构原点分配确定（见其注释）。
+    std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) { return a->testName() < b->testName(); });
     return result;
 }
 
@@ -80,6 +87,8 @@ std::vector<std::shared_ptr<BaseGameTestFunction>> GameTestRegistry::getTestsByT
             result.push_back(fn);
         }
     }
+    // 同 allTestFunctions：排序保证下游结构原点分配确定（见其注释）。
+    std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) { return a->testName() < b->testName(); });
     return result;
 }
 

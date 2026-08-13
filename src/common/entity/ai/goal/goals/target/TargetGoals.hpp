@@ -88,7 +88,9 @@ public:
      */
     TargetGoal& setUnseenMemoryTicks(i32 ticks)
     {
-        m_unseenMemoryTicks = ticks;
+        // 对齐 vanilla TargetGoal.setUnseenMemoryTicks：unseenMemoryTicks = reducedTickDelay(ticks)。
+        // shouldContinueExecuting 每 tick 评估、m_unseenTicks 每 tick ++，故减半补偿。
+        m_unseenMemoryTicks = reducedTickDelay(ticks);
         return *this;
     }
 
@@ -115,9 +117,10 @@ protected:
     i32 m_unseenTicks = 0;
 
     // 看不到目标后的记忆时间（游戏刻）
-    // 默认60刻（3秒），可通过 setUnseenMemoryTicks() 调整
-    // MC Java 中此值会通过 reducedTickDelay 减半，但本项目 shouldContinueExecuting 每 tick 调用，
-    // 因此直接使用原始值作为阈值即可保证与 MC 相同的有效持续时间
+    // 默认60刻（3秒），可通过 setUnseenMemoryTicks() 调整。
+    // 对齐 vanilla TargetGoal：默认 unseenMemoryTicks=60（裸值，未 reducedTickDelay），
+    // shouldContinueExecuting 每 tick 评估、m_unseenTicks 每 tick ++，故默认 60 与 vanilla 一致。
+    // 显式调用 setUnseenMemoryTicks(n) 时 vanilla 会 reducedTickDelay(n) 减半，此处对齐。
     i32 m_unseenMemoryTicks = 60;
 };
 

@@ -153,11 +153,13 @@ bool SimulatedPlayer::giveItem(mc::ItemStack stack, bool selectSlot)
 
 bool SimulatedPlayer::setItem(mc::ItemStack stack, i32 slot, bool selectSlot)
 {
-    // PlayerInventory::setItem 直接设槽（越界由 PlayerInventory 内部断言/钳制）。
-    // selectSlot 当前忽略（TODO: 设 setSelectedSlot(slot)）。
+    // PlayerInventory::setItem 直接设槽（越界由 PlayerInventory 内部钳制）。
+    // selectSlot 为 true 时同步选中该槽，使主手立即持有该物品（用于诱惑/喂食等手持判定）。
     // TODO: 槽位越界校验返 false（当前 setItem 内部处理，恒返 true）。
-    (void)selectSlot;
     inventory().setItem(slot, stack);
+    if (selectSlot) {
+        inventory().setSelectedSlot(slot);
+    }
     return true;
 }
 

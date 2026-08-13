@@ -145,8 +145,9 @@ void TemptGoal::resetTask()
         m_creature->clearNavigation();
     }
 
-    // 设置冷却
-    m_delayTemptCounter = TEMPT_COOLDOWN;
+    // 设置冷却。对齐 vanilla TemptGoal.stop：calmDown = reducedTickDelay(100)。
+    // m_delayTemptCounter 在 shouldExecute（半 tick 评估）里递减，故冷却减半补偿。
+    m_delayTemptCounter = reducedTickDelay(TEMPT_COOLDOWN);
 }
 
 void TemptGoal::tick()

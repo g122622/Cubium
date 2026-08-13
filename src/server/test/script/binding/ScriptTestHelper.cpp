@@ -399,7 +399,8 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         0);
 
-    // --- spawnSimulatedPlayer(name, blockPos, gameMode?) -> SimulatedPlayer ---
+    // --- spawnSimulatedPlayer(blockLocation, name?, gameMode?) -> SimulatedPlayer ---
+    // 对齐官方基岩签名：位置在前，名字与游戏模式可选。省略 name 时用默认名 "SimulatedPlayer"。
     reg.method(
         "spawnSimulatedPlayer",
         [simulatedPlayerClassId](
@@ -408,26 +409,34 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
-            if (argc < 2 || !ctx.isString(args[0]) || !ctx.isObject(args[1])) {
-                return ctx.throwTypeError("spawnSimulatedPlayer(name, pos, gameMode?)");
-            }
-            auto name = ctx.toString(args[0]);
-            if (!name) {
-                return ctx.throwInternalError("Failed to read name");
+            if (argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.throwTypeError("spawnSimulatedPlayer(blockLocation, name?, gameMode?)");
             }
             BlockPos pos;
-            if (!_parseBlockPos(ctx, args[1], pos)) {
+            if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
+            // name 可选：未提供或非字符串时用默认名（对齐基岩省略 name 行为）。
+            std::string name = "SimulatedPlayer";
+            if (argc >= 2 && ctx.isString(args[1])) {
+                auto nameOpt = ctx.toString(args[1]);
+                if (!nameOpt) {
+                    return ctx.throwInternalError("Failed to read name");
+                }
+                name = *nameOpt;
+            }
             mc::GameMode gameMode = mc::GameMode::Creative;
-            if (argc >= 3 && ctx.isNumber(args[2])) {
-                auto gm = ctx.toInt32(args[2]);
+            // gameMode 位置随 name 是否省略而后移：name 提供时 gameMode 在 args[2]，省略时在 args[1]。
+            // 对齐基岩：基岩按形参位置匹配，省略 name 时 gameMode 仍在第 2 个槽位（args[1]）。
+            i32 gameModeIdx = (argc >= 2 && ctx.isString(args[1])) ? 2 : 1;
+            if (argc > gameModeIdx && ctx.isNumber(args[gameModeIdx])) {
+                auto gm = ctx.toInt32(args[gameModeIdx]);
                 if (gm) {
                     gameMode = static_cast<mc::GameMode>(*gm);
                 }
             }
             SimulatedPlayer* player = nullptr;
-            auto result = helper->spawnSimulatedPlayer(*name, pos, gameMode, player);
+            auto result = helper->spawnSimulatedPlayer(name, pos, gameMode, player);
             if (!isPass(result)) {
                 std::string msg = result->formattedMessage();
                 return ctx.throwInternalError(msg.c_str());

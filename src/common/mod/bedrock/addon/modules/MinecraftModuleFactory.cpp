@@ -309,7 +309,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // --- Dimension类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。GameTest 单维度场景下维度即世界；
     // test.getDimension() 与 world.getDimension() 均 wrap 同一 IWorld*。getEntities 按基岩语义
-    // {type, location, volume} 查询：location 是中心、volume 是全尺寸（非半尺寸），AABB = loc ± vol/2。
+    // {type, location, volume} 查询：location 是包围盒的 min 角点，volume 是从该角点延伸的尺寸，
+    // AABB = [location, location + volume]。这与 utils/entity/assert.ts 的角点意图一致
+    // （assert.ts 取 from 角点为 location、to-from 为 volume），基岩 BDS 实测同此语义。
     u64 dimensionClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* dimensionProto = builder.exportClass("Dimension", dimensionClassId);
     ScriptClassRegistry::instance().registerClass(dimensionClassId, dimensionProto, "Dimension");
@@ -375,8 +377,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 ctx.releaseValue(volVal);
 
                 if (hasLoc && hasVol) {
-                    mc::AxisAlignedBB box(
-                        lx - vx * 0.5f, ly - vy * 0.5f, lz - vz * 0.5f, lx + vx * 0.5f, ly + vy * 0.5f, lz + vz * 0.5f);
+                    // 角点语义：location 是 min 角点，AABB = [location, location + volume]。
+                    mc::AxisAlignedBB box(lx, ly, lz, lx + vx, ly + vy, lz + vz);
                     auto entities = world->getEntitiesInAABB(box, nullptr);
                     void* arr = ctx.createArray();
                     u32 outIdx = 0;
@@ -1010,8 +1012,39 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // --- ItemStack类 ---
     // opaque 持 mc::ItemStack*。EquippableComponent.getEquipment 以 owned=true 拷贝 wrap（new ItemStack(s)，
     // JS GC 时 delete），规避 setEquipment 改写装备数组致 owned=false 引用悬垂。typeId/amount 为只读快照。
+    // 构造函数支持官方基岩 API：new ItemStack(typeId: string, amount?: number)，按 typeId 查 Item 构造
+    // owned 拷贝（JS GC 时 delete），与 Container.getItem/Equippable.getEquipment 的 wrap 范式一致。
     u64 itemStackClassId = ScriptObjectRegistry::allocateClassId(ctx);
-    void* itemStackProto = builder.exportClass("ItemStack", itemStackClassId);
+    void* itemStackProto = builder.exportClass("ItemStack",
+        itemStackClassId,
+        [](IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
+            // new ItemStack(typeId: string, amount?: number = 1)
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("new ItemStack(typeId: string, amount?: number)");
+            }
+            auto typeId = ctx.toString(args[0]);
+            if (!typeId) {
+                return ctx.throwInternalError("Failed to read typeId");
+            }
+            i32 amount = 1;
+            if (argc >= 2 && ctx.isNumber(args[1])) {
+                auto a = ctx.toInt32(args[1]);
+                if (a && *a > 0) {
+                    amount = *a;
+                }
+            }
+            const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(*typeId));
+            if (item == nullptr) {
+                return ctx.throwTypeError(("Unknown item type: " + *typeId).c_str());
+            }
+            const u64 isClassId = resolveItemStackClassId();
+            void* isProto = ScriptClassRegistry::instance().proto(isClassId);
+            if (isProto == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto* stack = new mc::ItemStack(item, amount); // owned，JS GC 时 delete
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, stack, true, "ItemStack");
+        });
     ScriptClassRegistry::instance().registerClass(itemStackClassId, itemStackProto, "ItemStack");
 
     ClassRegistrar<void> itemStackReg(ctx, itemStackClassId, itemStackProto);

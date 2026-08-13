@@ -29,6 +29,8 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 #include <quickjs.h>
 
@@ -49,6 +51,7 @@ namespace mc::mod::bedrock::addon {
 class QuickJSBindingContext : public IScriptBindingContext {
 public:
     explicit QuickJSBindingContext(JSContext* ctx);
+    ~QuickJSBindingContext();
 
     // ===== 值创建 =====
 
@@ -227,11 +230,16 @@ private:
     bool m_moduleFinalized = false;
     void* m_contextData = nullptr;
 
-    /// 待设值的模块导出条目（name → JSValue）。
+    /// 待设值的模块导出条目（按 JSModuleDef* 隔离，每个原生模块一份）。
     /// QuickJS 要求 JS_AddModuleExport 在 import 前（声明），JS_SetModuleExport 在 init 回调内（var_ref 建好后）。
     /// 故 export* 只调 AddModuleExport 声明并把值暂存于此，由 _moduleInit 在模块被 import 时统一 SetModuleExport。
     /// 暂存的 JSValue 经 JS_DupValue 持有，_moduleInit 消费或析构时释放。
-    std::vector<std::pair<std::string, JSValue>> m_pendingExports;
+    ///
+    /// 【关键】必须按 JSModuleDef* 隔离：一个 QuickJSBindingContext 单实例会先后注册多个原生模块
+    /// （如 @minecraft/server 与 @minecraft/server-gametest）。若用单一 vector，后注册模块的
+    /// createNativeModule 会 clear 掉先注册模块尚未被 _moduleInit 消费的 pending 值，导致先注册模块
+    /// 的所有命名导出变为 undefined（_moduleInit 在 import 时才触发，远晚于注册期）。
+    std::unordered_map<JSModuleDef*, std::vector<std::pair<std::string, JSValue>>> m_pendingExports;
 
     /**
      * @brief C 模块 init 回调：模块被 import 时由 QuickJS 调用。

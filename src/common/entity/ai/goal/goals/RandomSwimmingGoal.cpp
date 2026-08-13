@@ -69,8 +69,9 @@ bool RandomSwimmingGoal::shouldExecute()
         return false;
     }
 
-    // 随机概率执行
-    if (m_executionChance > 0 && m_creature->getRandom().nextInt(m_executionChance) != 0) {
+    // 随机概率执行。对齐 vanilla RandomSwimmingGoal（继承 RandomStrollGoal.canUse）：
+    // nextInt(reducedTickDelay(interval))，减半补偿 GoalSelector 半 tick 评估。
+    if (m_executionChance > 0 && m_creature->getRandom().nextInt(reducedTickDelay(m_executionChance)) != 0) {
         return false;
     }
 
