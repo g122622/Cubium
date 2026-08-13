@@ -331,6 +331,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // 解析查询参数 {type?, location?, volume?}（均可选，对齐基岩 EntityQueryOptions）
             std::string typeFilter;
             bool hasType = false;
+            // 基岩 EntityQueryOptions.type 既接受 "minecraft:zoglin" 也接受 "zoglin"（自动补前缀）。
+            // getTypeId() 恒返回带 "minecraft:" 前缀的完整 id，故将 typeFilter 规范化为完整 id 后比较。
+            // 此前 normalizedType 仅在 hasLoc&&hasVol 分支内声明，无 location 的全类型遍历分支
+            // （下方 getEntitiesByType）误用未规范化的 typeFilter（如 "spider"），与 getTypeId()
+            // （"minecraft:spider"）不等致 getEntities({type:"spider"}) 恒返回空——蜘蛛攻击测试
+            // succeedWhen 取不到实体而超时。此处在外层计算，AABB 与全类型两分支共用。
+            std::string normalizedType;
             if (argc >= 1 && ctx.isObject(args[0])) {
                 void* opts = args[0];
                 void* typeVal = ctx.getProperty(opts, "type");
@@ -342,6 +349,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     }
                 }
                 ctx.releaseValue(typeVal);
+                normalizedType = typeFilter;
+                if (hasType && normalizedType.find(':') == std::string::npos) {
+                    normalizedType = "minecraft:" + normalizedType;
+                }
 
                 // location 中心 + volume 全尺寸 → AABB
                 f32 lx = 0, ly = 0, lz = 0;
@@ -384,12 +395,6 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     u32 outIdx = 0;
                     const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
                     void* entProto = ScriptClassRegistry::instance().proto(entClassId);
-                    // 基岩 EntityQueryOptions.type 既接受 "minecraft:zoglin" 也接受 "zoglin"（自动补前缀）。
-                    // getTypeId() 恒返回带 "minecraft:" 前缀的完整 id，故将 typeFilter 规范化为完整 id 后比较。
-                    std::string normalizedType = typeFilter;
-                    if (hasType && normalizedType.find(':') == std::string::npos) {
-                        normalizedType = "minecraft:" + normalizedType;
-                    }
                     for (auto* ent : entities) {
                         if (ent == nullptr) {
                             continue;
@@ -410,7 +415,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // 无 location/volume：退化为全类型遍历（仅按 type 过滤），对齐基岩空 query 语义。
             // TODO: 无区域约束的全局遍历在大世界性能差，GameTest 小范围场景可接受；生产侧慎用。
             if (hasType) {
-                auto entities = world->getEntitiesByType(typeFilter);
+                auto entities = world->getEntitiesByType(normalizedType);
                 void* arr = ctx.createArray();
                 u32 outIdx = 0;
                 const u64 entClassId = ScriptClassRegistry::instance().classIdByName("Entity");
@@ -482,6 +487,22 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             ctx.setPropertyFloat(obj, "z", static_cast<f64>(pos.z));
             return obj;
         });
+    // 基岩 Entity.location 是标准 readonly 属性（@minecraft/server Entity.location: Vector3），
+    // 返回实体世界坐标。与 getLocation() 方法等价（基岩同时暴露属性与方法，社区测试多用 .location）。
+    // 此前仅绑定 getLocation() 方法，测试用 entity.location 取坐标得 undefined →
+    // "cannot read property 'x' of undefined"。补 readonly property 委托同一逻辑。
+    entityReg.readonlyProperty("location", [entityClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+        if (ent == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto pos = ent->position();
+        void* obj = ctx.createObject();
+        ctx.setPropertyFloat(obj, "x", static_cast<f64>(pos.x));
+        ctx.setPropertyFloat(obj, "y", static_cast<f64>(pos.y));
+        ctx.setPropertyFloat(obj, "z", static_cast<f64>(pos.z));
+        return obj;
+    });
     entityReg.method(
         "getComponent",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {

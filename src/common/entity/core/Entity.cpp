@@ -1001,16 +1001,35 @@ bool Entity::isInRain() const
 
 f32 Entity::getBrightness() const
 {
-    // 获取实体眼睛位置的亮度
+    // 对齐 vanilla 1.21.11 Entity.getLightLevelDependentMagicValue()（Entity.java:1643）。
+    // vanilla 公式（LevelReader.java:118）：
+    //   float f  = getMaxLocalRawBrightness(pos) / 15.0F;   // getMaxLocalRawBrightness 含 getSkyDarken() 时间衰减
+    //   float f1 = f / (4.0F - 3.0F * f);                   // 非线性 gamma 曲线
+    //   return Mth.lerp(dimensionType.ambientLight(), f1, 1.0F);
+    // 此前实现走 IWorld::getBrightness(pos) = getLightSubtracted(pos,0)/15——skyDarkening 硬传 0 无时间衰减，
+    // 夜晚露天（skyLight=15）仍返回 1.0，导致 SpiderTargetGoal(brightness<0.5F) 永不触发、蜘蛛夜晚不攻击。
+    // 改用 getMaxLocalRawBrightness（含 getSkyDarkening 夜晚≈11 的时间衰减）+ gamma 曲线 + ambientLight。
     if (m_world == nullptr) {
         return 0.0f;
     }
 
-    // 使用眼睛高度位置
+    // 使用眼睛高度位置（vanilla BlockPos.containing(getX, getEyeY, getZ)）
     BlockPos pos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
         static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y + static_cast<f64>(eyeHeight()))),
         static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
-    return m_world->getBrightness(pos);
+
+    const i32 rawBrightness = m_world->getMaxLocalRawBrightness(pos); // 含 getSkyDarkening 时间衰减
+    const f32 f = static_cast<f32>(rawBrightness) / 15.0f;
+    // gamma：f=0→0, f=1→1, 中间值被压低（f=0.267→0.083），使"半暗"判定更敏感
+    const f32 f1 = f / (4.0f - 3.0f * f);
+    // ambientLight：下界=0.1（微弱环境光），主世界/末地=0.0（对齐 DimensionType.cpp:63/103/143）。
+    // IWorld 无 dimensionType 访问器，用 dimension() 推导避免新增虚函数改所有子类。
+    // 维度 id：主世界 OVERWORLD=0，下界 NETHER=-1，末地 THE_END=1（DimensionManager.hpp:64-70）。
+    // 下界/末地均 hasSkyLight=false，getMaxLocalRawBrightness 只返回 blockLight，此分支实际不影响
+    // 亡灵燃烧判定（无天空光维度无露天），但 ambientLight 须与 vanilla 一致以保其他光照判定正确。
+    const f32 ambientLight = (m_world->dimension() == -1) ? 0.1f : 0.0f;
+    // MathUtils::lerp(a,b,t) 参数顺序≠Mth.lerp(t,a,b)：Mth.lerp(ambient,f1,1.0) == lerp(f1,1.0,ambient)
+    return mc::math::lerp(f1, 1.0f, ambientLight);
 }
 
 void Entity::syncMetadataFromDataManager()

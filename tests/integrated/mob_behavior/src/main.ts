@@ -8,6 +8,7 @@ import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js"
 import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
 import { registerPhantomTests } from "./tests/monster/basic/PhantomTests.js";
 import { registerCreeperTests } from "./tests/monster/basic/CreeperTests.js";
+import { registerSpiderTests } from "./tests/monster/arthropod/SpiderTests.js";
 import { registerPigTests } from "./tests/passive/basic/PigTests.js";
 import { registerCowTests } from "./tests/passive/basic/CowTests.js";
 import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
@@ -19,6 +20,7 @@ registerIronGolemTests();
 registerZoglinTests();
 registerPhantomTests();
 registerCreeperTests();
+registerSpiderTests();
 registerPigTests();
 registerCowTests();
 registerSheepTests();

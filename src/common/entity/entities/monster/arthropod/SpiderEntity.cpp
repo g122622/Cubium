@@ -133,13 +133,17 @@ std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/, ecs::EntityRegis
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const
 {
-    // 蜘蛛只在黑暗中攻击（光照等级 < 7）
+    // 蜘蛛只在黑暗中攻击（光照等级 < 7）。
+    // 用 getLight(pos)（含 getSkyDarkening 时间衰减，夜晚≈11）而非 getLightSubtracted(pos,0)
+    // （skyDarkening=0 无时间衰减，夜晚露天仍 15 误判为白天）。对齐 SpiderTargetGoal 的
+    // getBrightness()<0.5F 门控（7/15≈0.47≈0.5 阈值，语义一致）。
+    // TODO: shouldAttack 当前零调用（目标选择由 SpiderTargetGoal::shouldExecute 的 getBrightness
+    // 门控 + TargetGoal::isSuitableTarget 完成），此方法是项目自创的额外光照门控，vanilla Spider
+    // 无 shouldAttack override。保留以备未来目标选择链接入，若确认不接入可删除。
     if (m_world != nullptr) {
-        u8 lightLevel =
-            m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
-                                            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
-                                            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))),
-                0);
+        u8 lightLevel = m_world->getLight(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))));
         if (lightLevel < 7) {
             return MonsterEntity::shouldAttack(target);
         }
