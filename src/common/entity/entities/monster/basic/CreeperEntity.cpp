@@ -85,14 +85,18 @@ std::optional<ResourceLocation> CreeperEntity::getDeathSound() const
 i32 CreeperEntity::getCreeperState() const
 {
     // -1 = idle, 1 = fusing
-    if (m_timeSinceIgnited > 0) {
-        return 1;
-    }
-    return -1;
+    // 对齐 vanilla Creeper.getCreeperState(): 直接返回独立的膨胀方向字段 swellDir，
+    // 而非从 m_timeSinceIgnited 反推。旧实现用 m_timeSinceIgnited>0 反推状态会自举死锁：
+    // m_timeSinceIgnited 增长需 state=1，state=1 需 m_timeSinceIgnited>0，二者互为前提，
+    // 导致 m_timeSinceIgnited 恒为 0，引信永不达 fuseTime，苦力怕膨胀但不爆炸。
+    return m_swellDir;
 }
 
 void CreeperEntity::setCreeperState(i32 state)
 {
+    // 对齐 vanilla Creeper.setCreeperState(): 写入独立的膨胀方向字段。
+    // state>0 表示进入膨胀，调 ignite() 标记点燃（保留原有副作用语义）。
+    m_swellDir = state;
     if (state > 0) {
         ignite();
     }

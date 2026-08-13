@@ -36,5 +36,15 @@ function skeletonBurnsInDaylight(test: Test): void {
 export function registerSkeletonTests(): void {
   GameTest.register("MobBehaviorTests", "skeleton_burns_in_daylight", skeletonBurnsInDaylight)
     .structureName("gametests:grass_pen")
+    // skyAccess(true)：GameTestServer gridStartY=-59 把结构埋在地下 worldgen 石头中，结构上方全是
+    // worldgen 方块致 canSeeSky 恒 false（骷髅阳光燃烧测试稳定失败的根因）。skyAccess=true 让
+    // MinecraftStructurePlacer 清空结构 footprint 正上方至世界顶部的所有方块，制造露天列使
+    // canSeeSky=true。不设此值则 grass_pen 顶部被 worldgen 石头覆盖，第一次 PASSED 是结构偶然
+    // 落在 worldgen 洞穴位置的 flaky 假象。
+    .skyAccess(true)
+    // setupTicks(20)：结构清空上方方块后，光照变更入队 m_lightQueue，需若干世界 tick 由
+    // ServerWorld::tick 的 drainAndProcess 批量重算 skyLight 达 15。setupTicks 阶段（负 tickCount）
+    // 让世界先 tick 20 次让光照稳定，再正式跑测试体，避免首 tick canSeeSky 仍为 false。
+    .setupTicks(20)
     .maxTicks(500);
 }

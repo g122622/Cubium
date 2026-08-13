@@ -96,6 +96,16 @@ ScriptRegistrationBuilder& ScriptRegistrationBuilder::setupTicks(i32 n) noexcept
     return *this;
 }
 
+ScriptRegistrationBuilder& ScriptRegistrationBuilder::skyAccess(bool s) noexcept
+{
+    // 对齐基岩 RegistrationBuilder.skyAccess(boolean)：声明测试结构需要露天/天空光照进入。
+    // TestData.m_skyAccess 默认 false（封顶隔离光照），现有测试不设此值故行为不变。
+    // MinecraftStructurePlacer 在 skyAccess=true 时向上清理 air 列至世界顶部，确保
+    // canSeeSky=true（结构埋于 gridStartY=-59 地下 worldgen 中时 sunlight 不可达）。
+    m_data.setSkyAccess(s);
+    return *this;
+}
+
 ScriptRegistrationBuilder& ScriptRegistrationBuilder::structureName(std::string name)
 {
     m_data.setStructure(std::move(name));

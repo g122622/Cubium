@@ -228,11 +228,12 @@ private:
     // 状态变量
     i32 m_fuseTime = DEFAULT_FUSE_TIME;               // 点燃时间配置（可修改）
     i32 m_explosionRadius = DEFAULT_EXPLOSION_RADIUS; // 爆炸半径（可修改）
-    i32 m_timeSinceIgnited = 0;                       // 已点燃时间
-    i32 m_lastActiveTime = 0;                         // 上一次点燃时间（渲染插值）
-    bool m_ignited = false;                           // 是否被点燃
-    bool m_powered = false;                           // 是否是高压苦力怕
-    i32 m_droppedSkulls = 0;                          // 已掉落的头颅数量
+    i32 m_swellDir = -1;        // 膨胀方向（-1=idle 收缩, 1=fusing 膨胀），对齐 vanilla Creeper.swellDir
+    i32 m_timeSinceIgnited = 0; // 已点燃时间
+    i32 m_lastActiveTime = 0;   // 上一次点燃时间（渲染插值）
+    bool m_ignited = false;     // 是否被点燃
+    bool m_powered = false;     // 是否是高压苦力怕
+    i32 m_droppedSkulls = 0;    // 已掉落的头颅数量
 
     // 常量
     static constexpr i32 DEFAULT_FUSE_TIME = 30;         // 默认点燃时间 (1.5秒)

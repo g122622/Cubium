@@ -64,6 +64,7 @@ public:
     ScriptRegistrationBuilder& requiredSuccessfulAttempts(i32 n) noexcept;
     ScriptRegistrationBuilder& rotateTest(bool r) noexcept;
     ScriptRegistrationBuilder& setupTicks(i32 n) noexcept;
+    ScriptRegistrationBuilder& skyAccess(bool s) noexcept;
     ScriptRegistrationBuilder& structureName(std::string name);
     ScriptRegistrationBuilder& structureLocation(std::string name);
     ScriptRegistrationBuilder& tag(std::string t);

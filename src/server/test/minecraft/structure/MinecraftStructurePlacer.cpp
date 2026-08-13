@@ -4,6 +4,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"  // MC_ASSERT_RELEASE
 #include "common/world/IWorld.hpp"              // IWorld（setBlockState/getRandom）
+#include "common/world/WorldConstants.hpp"      // MAX_BUILD_HEIGHT
 #include "common/world/block/BlockRegistry.hpp" // mc::BlockRegistry::airState
 #include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
@@ -14,6 +15,7 @@
 #include "server/world/ServerChunkManager.hpp" // ServerChunkManager（chunkManager()->ticketManager()）
 #include "server/world/ServerWorld.hpp"
 
+#include <algorithm> // std::max
 #include <spdlog/spdlog.h>
 
 namespace mc::test {
@@ -42,14 +44,18 @@ const Template* _getTemplate(const std::string& structureName)
 
 /**
  * @brief 用 air 清空指定 StructureBoundingBox 范围（含方块更新）。
+ *
+ * @param flags setBlockState flags（对齐 vanilla Block.setFlags）：默认 3（UPDATE_NEIGHBORS|NOTIFY）
+ *              触发 6 向邻居更新，适合小范围 padding 清理；大范围清理（如 skyAccess 清空高空 worldgen）
+ *              传 18（UPDATE_CLIENTS|NOTIFY，无 bit0）避免每方块 6 向邻居更新的指数级开销。
  */
-void _clearBox(mc::server::ServerWorld& world, const StructureBoundingBox& box)
+void _clearBox(mc::server::ServerWorld& world, const StructureBoundingBox& box, i32 flags = 3)
 {
     const mc::BlockState* air = mc::BlockRegistry::instance().airState();
     for (i32 x = box.minX(); x <= box.maxX(); ++x) {
         for (i32 y = box.minY(); y <= box.maxY(); ++y) {
             for (i32 z = box.minZ(); z <= box.maxZ(); ++z) {
-                world.setBlockState(x, y, z, air);
+                world.setBlockState(x, y, z, air, flags);
             }
         }
     }
@@ -144,6 +150,30 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
             placedBox.maxY() + 1,
             placedBox.maxZ() + data.padding());
         _clearBox(world, topBox);
+    }
+
+    // skyAccess=true 时清空结构 footprint（含 padding 外围）正上方至世界顶部的所有方块，
+    // 确保该列无 worldgen 方块遮挡，canSeeSky=true（skyLight 重算后达 15）。
+    // 背景：GameTestServer gridStartY=-59 把结构埋在地下 worldgen 石头中，结构上方（y>placedBox.maxY）
+    // 全是 worldgen 方块，canSeeSky 恒 false——这会使依赖阳光的测试（如骷髅阳光下燃烧）稳定失败。
+    // 对齐基岩 GameTest skyAccess 语义："结构上方露天，允许天空光照进入"——基岩结构本就放在地表露天，
+    // 而项目结构埋于地下，故需主动清空上方 worldgen 制造露天列。对齐 vanilla heightmap：整列无遮挡方
+    // 块时 skyLight=15，canSeeSky=true。
+    // 清理范围 X/Z 用 padding 扩展（与封顶逻辑对称），Y 从 placedBox.maxY+1 到 MAX_BUILD_HEIGHT-1。
+    // setBlockState(air) 入队光照变更（m_lightQueue），后续世界 tick 的 drainAndProcess 批量重算
+    // skyLight；测试设 setupTicks 给光照重算留时间（见各 skyAccess 测试）。
+    if (data.skyAccess()) {
+        const i32 padXZ = std::max(0, data.padding());
+        const StructureBoundingBox skyBox(placedBox.minX() - padXZ,
+            placedBox.maxY() + 1,
+            placedBox.minZ() - padXZ,
+            placedBox.maxX() + padXZ,
+            mc::world::MAX_BUILD_HEIGHT - 1,
+            placedBox.maxZ() + padXZ);
+        // flags=18（UPDATE_CLIENTS|NOTIFY，无 UPDATE_NEIGHBORS bit0）：清空高空 worldgen 不触发
+        // 6 向邻居更新（30300 方块 ×6 邻居的指数级开销），对齐 placeInWorld 的 flags=18 语义。
+        // 光照变更仍入队 m_lightQueue（flags 不影响光照入队），后续 tick 重算 skyLight。
+        _clearBox(world, skyBox, 18);
     }
 
     // 结构尺寸由 placedBox 跨度推导（旋转后权威值）
