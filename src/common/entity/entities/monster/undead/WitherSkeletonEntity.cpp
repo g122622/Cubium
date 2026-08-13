@@ -35,6 +35,8 @@
 #include "../nether/NetherEntities.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 
 namespace mc {
@@ -72,6 +74,19 @@ void WitherSkeletonEntity::registerAttributes()
 
     // 凋灵骷髅攻击伤害为 4.0（比普通骷髅的 2.0 高）
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+}
+
+void WitherSkeletonEntity::populateDefaultEquipmentSlots(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    // 凋灵骷髅主手持石剑（近战武器），不继承基类给弓的逻辑（凋灵骷髅用近战非远程）。
+    // 直接调祖父 MonsterEntity 填充护甲，跳过 AbstractSkeletonEntity 的弓。
+    // 对应原版 WitherSkeleton.populateDefaultEquipmentSlots()：凋灵骷髅持石剑近战。
+    MonsterEntity::populateDefaultEquipmentSlots(random, difficulty);
+
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::STONE_SWORD != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::STONE_SWORD, 1));
+    }
 }
 
 void WitherSkeletonEntity::setCombatTask()

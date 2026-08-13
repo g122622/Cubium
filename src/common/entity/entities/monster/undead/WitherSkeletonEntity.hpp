@@ -125,6 +125,16 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    /**
+     * @brief 填充默认装备（主手石剑）
+     *
+     * 凋灵骷髅主手持石剑（近战武器），覆盖基类给弓的逻辑——凋灵骷髅使用近战攻击
+     * （setCombatTask override 强制 MeleeAttackGoal），不应持弓。对应原版
+     * WitherSkeleton.populateDefaultEquipmentSlots() 主手石剑。
+     */
+    void populateDefaultEquipmentSlots(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty) override;
+
 private:
     bool m_hasStoneSword = true;
 };

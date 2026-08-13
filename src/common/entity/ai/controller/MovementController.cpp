@@ -245,6 +245,15 @@ bool MovementController::canWalkAt(f64 x, f64 z) const
     if (navigator && navigator->getPathFinder()) {
         auto* nodeProcessor = navigator->getPathFinder()->getNodeProcessor();
         if (nodeProcessor) {
+            // NodeProcessor::m_region 仅在 PathNavigator::moveTo 执行期间有效（栈上 WorldRegion），
+            // 寻路结束后立即被置空。此 canWalkAt 在 MovementController::tick 的 Strafe 分支每帧
+            // 调用，此时 region 必然已为 nullptr。无有效 region 时不可做节点可行性判断，
+            // 默认返回 true 走原有 strafe 逻辑（vanilla MoveControl 本就不在 strafe 时查节点），
+            // 避免把 getNodeType 的 Blocked 守卫返回值误判为"真不可走"导致实体卡住。
+            if (!nodeProcessor->hasRegion()) {
+                return true;
+            }
+
             i32 blockX = floorTo<i32>(x);
             i32 blockY = floorTo<i32>(m_mob->y());
             i32 blockZ = floorTo<i32>(z);

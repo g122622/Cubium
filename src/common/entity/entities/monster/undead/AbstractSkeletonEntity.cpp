@@ -140,6 +140,9 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
         ARROW_VELOCITY,
         inaccuracy);
 
+    // 子类定制箭矢钩子（如流浪者附加缓慢效果），在 spawn 前调用
+    customizeArrow(*arrow);
+
     // 播放射箭音效
     math::Random& rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
@@ -334,6 +337,25 @@ void AbstractSkeletonEntity::finalizeSpawn(
                 setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
             }
         }
+    }
+}
+
+void AbstractSkeletonEntity::populateDefaultEquipmentSlots(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    // 先调用父类方法：基于难度概率填充护甲
+    MonsterEntity::populateDefaultEquipmentSlots(random, difficulty);
+
+    // 骷髅系怪物主手默认持弓（非和平难度）。
+    // 对应 MC 原版 AbstractSkeleton.populateDefaultEquipmentSlots()：骷髅/流浪者主手必然持弓
+    // （远程攻击前提）。凋零骷髅 override 此方法用石剑（近战）。
+    // 和平难度不持弓（原版和平骷髅不生成且无武装，此处对齐）。
+    if (difficulty.getDifficulty() == Difficulty::Peaceful) {
+        return;
+    }
+
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::BOW != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::BOW, 1));
     }
 }
 

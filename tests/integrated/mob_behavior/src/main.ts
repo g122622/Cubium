@@ -12,6 +12,7 @@ import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPi
 import { registerEndermanTests } from "./tests/monster/end/EndermanTests.js";
 import { registerWitherSkeletonTests } from "./tests/monster/undead/WitherSkeletonTests.js";
 import { registerHuskTests } from "./tests/monster/undead/HuskTests.js";
+import { registerStrayTests } from "./tests/monster/undead/StrayTests.js";
 import { registerPhantomTests } from "./tests/monster/basic/PhantomTests.js";
 import { registerCreeperTests } from "./tests/monster/basic/CreeperTests.js";
 import { registerSlimeTests } from "./tests/monster/basic/SlimeTests.js";
@@ -31,6 +32,7 @@ registerZombifiedPiglinTests();
 registerEndermanTests();
 registerWitherSkeletonTests();
 registerHuskTests();
+registerStrayTests();
 registerPhantomTests();
 registerCreeperTests();
 registerSlimeTests();

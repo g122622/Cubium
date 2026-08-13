@@ -46,7 +46,7 @@ Entity
 - **ZombieVillagerEntity**：继承 ZombieEntity，实现治愈系统（铁栏杆/床加速、力量效果加速）
 
 各实体通过重写父类方法实现差异化行为：
-- `shouldBurnInDaylight()`：HuskEntity/DrownedEntity 返回 false
+- `shouldBurnInDaylight()`：HuskEntity/DrownedEntity 返回 false（尸壳/溺尸不在阳光下燃烧）。流浪者（StrayEntity）作为亡灵骷髅变种继承基类默认 true，会在阳光下燃烧
 - `shouldDrown()`：ZombieVillagerEntity 返回 false，DrownedEntity 返回 false
 - `canSpawnInLiquids()`：DrownedEntity 返回 true（增援生成时允许在水中生成），其他僵尸返回 false
 - `setCombatTask()`：WitherSkeletonEntity 重写使用近战，其他骷髅使用远程
