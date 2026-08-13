@@ -31,6 +31,7 @@
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -169,6 +170,7 @@ void CreeperEntity::_spawnLingeringCloud()
         return;
     }
     auto cloud = std::make_unique<entity::AreaEffectCloudEntity>(*registry);
+    cloud->setTypeId(entity::EntityTypeKeys::AREA_EFFECT_CLOUD); // 工厂绕过补救：直接构造缺 typeId
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
 

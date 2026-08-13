@@ -33,6 +33,7 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
@@ -147,6 +148,7 @@ void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charg
     if (trident == nullptr) {
         return;
     }
+    trident->setTypeId(entity::EntityTypeKeys::TRIDENT); // 工厂绕过补救：直接构造缺 typeId
 
     trident->setWorld(world());
     trident->setPosition(x(), static_cast<f32>(getEyeY() - 0.1f), z());

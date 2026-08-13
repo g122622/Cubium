@@ -587,6 +587,7 @@ void ZombieEntity::convertToDrowned()
     } else {
         // 回退：直接创建实体类
         newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0), *ecsRegistry);
+        newEntity->setTypeId(entity::EntityTypeKeys::DROWNED); // 工厂绕过补救：直接构造缺 typeId
     }
 
     DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());

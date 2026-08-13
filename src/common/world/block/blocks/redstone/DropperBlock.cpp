@@ -24,6 +24,7 @@
 #include "DropperBlock.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -158,6 +159,7 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
         return false;
     }
     auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), dispensedStack, x, y, z, vx, vy, vz, *registry);
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(10);

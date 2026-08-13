@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
@@ -345,6 +346,7 @@ void LlamaEntity::_spit(LivingEntity* target)
 
     // 创建口水实体
     auto spitEntity = std::make_unique<entity::LlamaSpitEntity>(EntityInstanceId(0), *registry);
+    spitEntity->setTypeId(entity::EntityTypeKeys::LLAMA_SPIT); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置发射者
     spitEntity->setShooter(this);

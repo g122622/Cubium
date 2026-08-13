@@ -34,6 +34,7 @@
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
@@ -115,6 +116,7 @@ std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建小牛
     auto baby = std::make_unique<CowEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::COW); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);

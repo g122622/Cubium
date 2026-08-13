@@ -38,6 +38,7 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityDataManager.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
@@ -206,6 +207,7 @@ std::unique_ptr<AnimalEntity> SnifferEntity::spawnBaby(AnimalEntity& /*partner*/
 
     // 创建幼体嗅探兽
     auto baby = std::make_unique<SnifferEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::SNIFFER); // 工厂绕过补救：直接构造缺 typeId
     // 设置为幼体（-48000 tick，40 分钟）
     baby->setChild(true);
     // 设置位置（在父体位置附近）

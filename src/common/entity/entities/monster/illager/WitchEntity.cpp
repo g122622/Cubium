@@ -29,6 +29,7 @@
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -377,6 +378,7 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
         return;
     }
     auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0), *registry);
+    potion->setTypeId(entity::EntityTypeKeys::POTION); // 工厂绕过补救：直接构造缺 typeId
     potion->setWorld(worldPtr);
 
     // 设置发射者

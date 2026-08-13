@@ -292,6 +292,7 @@ void SkeletonHorseEntity::triggerTrap()
     // 在骷髅马位置生成纯视觉效果闪电（不造成伤害、不点燃方块）
     // 复用 triggerTrap() 顶部已取的 registry（world->entityRegistry() 已判空）
     auto lightning = std::make_unique<entity::LightningBoltEntity>(*registry);
+    lightning->setTypeId(entity::EntityTypeKeys::LIGHTNING_BOLT); // 工厂绕过补救：直接构造缺 typeId
     lightning->setPosition(horsePos);
     lightning->setEffectOnly(true);
     world->spawnEntity(std::move(lightning));

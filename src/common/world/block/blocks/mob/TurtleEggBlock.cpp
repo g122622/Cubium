@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -208,6 +209,7 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         for (i32 i = 0; i < eggs; ++i) {
             auto turtle = std::make_unique<TurtleEntity>(EntityInstanceId(0), *registry);
             if (turtle) {
+                turtle->setTypeId(entity::EntityTypeKeys::TURTLE); // 工厂绕过补救：直接构造缺 typeId
                 // 设置为幼体（-24000 ticks = 20分钟）
                 turtle->setChild(true);
 

@@ -35,6 +35,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
@@ -213,6 +214,7 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
 
         // 创建唤魔者尖牙实体
         auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityInstanceId(0), *registry);
+        fangs->setTypeId(entity::EntityTypeKeys::EVOKER_FANGS); // 工厂绕过补救：直接构造缺 typeId
         fangs->setPosition(posX, groundY, posZ);
         fangs->setRotation(angle * math::RAD_TO_DEG, 0.0f);
         fangs->setWarmupDelay(warmupDelay);
@@ -251,6 +253,7 @@ void EvokerEntity::summonVex()
 
         // 创建恼鬼实体
         auto vex = std::make_unique<VexEntity>(EntityInstanceId(0), *registry);
+        vex->setTypeId(entity::EntityTypeKeys::VEX); // 工厂绕过补救：直接构造缺 typeId
         vex->setPosition(static_cast<f32>(spawnPos.x), static_cast<f32>(spawnPos.y), static_cast<f32>(spawnPos.z));
         vex->setRotation(0.0f, 0.0f);
 

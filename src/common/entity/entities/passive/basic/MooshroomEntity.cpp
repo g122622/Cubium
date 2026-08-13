@@ -39,6 +39,7 @@
 #include "../../../../world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "../../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../../world/block/registry/VanillaBlocks.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
@@ -115,6 +116,7 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
         return drops;
     }
     auto cow = std::make_unique<CowEntity>(0, *registry);
+    cow->setTypeId(entity::EntityTypeKeys::COW); // 工厂绕过补救：直接构造缺 typeId
 
     // 继承位置和朝向
     cow->setPosition(x(), y(), z());

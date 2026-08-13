@@ -24,6 +24,7 @@
 #include "ShulkerEntity.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -241,6 +242,7 @@ void ShulkerEntity::shootBullet()
     // 创建潜影贝子弹
     auto bullet = std::make_unique<entity::ShulkerBulletEntity>(
         m_world, this, target, Directions::getAxis(m_attachmentFacing), *registry);
+    bullet->setTypeId(entity::EntityTypeKeys::SHULKER_BULLET); // 工厂绕过补救：直接构造缺 typeId
     m_world->spawnEntity(std::move(bullet));
 
     // 设置攻击冷却

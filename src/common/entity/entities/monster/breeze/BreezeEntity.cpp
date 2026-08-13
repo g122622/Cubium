@@ -33,6 +33,7 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -327,6 +328,7 @@ void BreezeEntity::shootWindCharge()
         return;
     }
     auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0), *registry);
+    entity->setTypeId(::mc::entity::EntityTypeKeys::WIND_CHARGE); // 工厂绕过补救：直接构造缺 typeId
     entity->setWorld(m_world);
     entity->setPosition(firingPos.x, firingPos.y, firingPos.z);
     entity->setShooter(this);

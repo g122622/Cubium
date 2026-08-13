@@ -22,6 +22,7 @@
  */
 
 #include "DispenserBlock.hpp"
+#include "../../../../entity/core/EntityRegistry.hpp"
 #include "../../../../entity/entities/item/ItemEntity.hpp"
 #include "../../../../entity/inventory/IInventory.hpp"
 #include "../../../../item/core/ItemStack.hpp"
@@ -293,6 +294,7 @@ void DispenserBlock::spawnItemEntity(IWorld& world, const BlockPos& pos, Directi
         return;
     }
     auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), stack, x, y, z, vx, vy, vz, *registry);
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置拾取延迟，防止立即被玩家拾取
     itemEntity->setPickupDelay(10);

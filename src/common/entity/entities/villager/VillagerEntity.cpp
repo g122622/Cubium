@@ -51,6 +51,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -555,6 +556,7 @@ std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
         return nullptr;
     }
     auto child = std::make_unique<VillagerEntity>(0, *registry);
+    child->setTypeId(EntityTypeKeys::VILLAGER); // 工厂绕过补救：直接构造缺 typeId
     child->setChild(true);
 
     // 继承村民类型
@@ -1173,6 +1175,7 @@ void WanderingTraderEntity::spawnLlamas()
 
         // 创建商队羊驼
         auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), *registry);
+        llama->setTypeId(EntityTypeKeys::TRADER_LLAMA); // 工厂绕过补救：直接构造缺 typeId
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 

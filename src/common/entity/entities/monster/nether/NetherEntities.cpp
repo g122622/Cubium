@@ -39,6 +39,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
@@ -150,6 +151,7 @@ void GhastEntity::shootFireball()
         return;
     }
     auto fireball = std::make_unique<entity::FireballEntity>(EntityInstanceId(0), *registry);
+    fireball->setTypeId(entity::EntityTypeKeys::FIREBALL); // 工厂绕过补救：直接构造缺 typeId
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
@@ -399,6 +401,7 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
         return;
     }
     auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0), *registry);
+    arrow->setTypeId(entity::EntityTypeKeys::ARROW); // 工厂绕过补救：直接构造缺 typeId
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);

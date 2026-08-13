@@ -31,6 +31,7 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -233,6 +234,7 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
 
             // 创建并发射小火球
             auto fireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0), *registry);
+            fireball->setTypeId(::mc::entity::EntityTypeKeys::SMALL_FIREBALL); // 工厂绕过补救：直接构造缺 typeId
 
             // 设置世界
             fireball->setWorld(m_blaze->world());

@@ -281,6 +281,7 @@ void ZombieVillagerEntity::finishConverting()
     } else {
         // 回退：直接创建 VillagerEntity
         newEntity = std::make_unique<entity::VillagerEntity>(EntityInstanceId(0), *ecsReg);
+        newEntity->setTypeId(entity::EntityTypeKeys::VILLAGER); // 工厂绕过补救：直接构造缺 typeId
     }
 
     if (!newEntity) {

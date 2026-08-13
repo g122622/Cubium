@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -163,6 +164,7 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
         return;
     }
     auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0), *registry);
+    arrow->setTypeId(entity::EntityTypeKeys::ARROW); // 工厂绕过补救：直接构造缺 typeId
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);

@@ -39,6 +39,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/special/TurtleGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
@@ -158,6 +159,7 @@ std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
 
     // 创建小海龟，继承出生地记忆
     auto baby = std::make_unique<TurtleEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::TURTLE); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);
