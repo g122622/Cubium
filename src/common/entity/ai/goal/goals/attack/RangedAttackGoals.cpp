@@ -319,7 +319,11 @@ void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge)
 
     // 设置攻击冷却（弓箭专用逻辑）
     math::Random& rng = m_mob->getRandom();
-    m_attackTime = m_attackIntervalMin + rng.nextInt(m_attackIntervalMax - m_attackIntervalMin + 1);
+    // 防御性 clamp：setMinAttackInterval 已保 max>=min 不变量，但此处兜底确保 bound>=1，
+    // 避免任何意外路径（子类直接改 m_attackIntervalMin 等）触发 nextInt 的
+    // MC_ASSERT_RELEASE(bound>0) 断言崩溃。
+    i32 bound = std::max(1, m_attackIntervalMax - m_attackIntervalMin + 1);
+    m_attackTime = m_attackIntervalMin + rng.nextInt(bound);
 }
 
 // ==================== RangedCrossbowAttackGoal ====================
