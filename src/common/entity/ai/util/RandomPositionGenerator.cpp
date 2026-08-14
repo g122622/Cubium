@@ -364,11 +364,17 @@ bool RandomPositionGenerator::isPositionWalkable(CreatureEntity* creature, i32 x
     const BlockState* block1 = world->getBlockState(x, y, z);
     const BlockState* block2 = world->getBlockState(x, y + 1, z);
 
-    if (block1 && !block1->isAir() && !block1->isLiquid()) {
-        return false; // 被阻挡
+    // 阻挡判定须用 blocksMovement() 而非 !isAir()&&!isLiquid()：甜浆果灌木、花、草丛、蘑菇等
+    // noCollision 方块既非空气也非液体，但 blocksMovement=false（不阻挡移动），vanilla
+    // isPathfindable(LAND) 对此类方块返回 true（可穿过/可行走）。此前用 !isAir()&&!isLiquid()
+    // 把这些方块误判为"被阻挡"，致 RandomWalkingGoal 在灌木丛等环境找不到可行走目标，实体静止不动，
+    // 进而导致甜浆果灌木 onEntityCollision 的水平移动检测永不满足（不触发伤害）。对齐同文件
+    // findRandomTargetBlockAwayFrom 内 !getMaterial().blocksMovement() 的判定语义。
+    if (block1 && !block1->isAir() && !block1->isLiquid() && block1->blocksMovement()) {
+        return false; // 被实心方块阻挡
     }
-    if (block2 && !block2->isAir() && !block2->isLiquid()) {
-        return false; // 头部被阻挡
+    if (block2 && !block2->isAir() && !block2->isLiquid() && block2->blocksMovement()) {
+        return false; // 头部被实心方块阻挡
     }
 
     // 检查脚下方块是否可以站立

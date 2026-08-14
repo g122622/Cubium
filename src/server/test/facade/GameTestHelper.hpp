@@ -70,6 +70,10 @@ public:
     [[nodiscard]] GameTestResult assertBlockState(
         BlockPos relativePos, std::function<bool(const mc::BlockState&)> predicate) override;
     [[nodiscard]] GameTestResult setBlock(const std::string& blockType, BlockPos relativePos, i32 updateFlags) override;
+    [[nodiscard]] GameTestResult setBlockWithStates(const std::string& blockType,
+        BlockPos relativePos,
+        const std::unordered_map<std::string, std::string>& states,
+        i32 updateFlags) override;
     [[nodiscard]] GameTestResult destroyBlock(BlockPos relativePos, bool dropResources) override;
     [[nodiscard]] GameTestResult pressButton(BlockPos relativePos) override;
     [[nodiscard]] GameTestResult pullLever(BlockPos relativePos) override;

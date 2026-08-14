@@ -9,6 +9,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 namespace mc {
 class BlockState;
@@ -97,6 +98,14 @@ public:
         BlockPos relativePos, std::function<bool(const mc::BlockState&)> predicate) = 0;
     [[nodiscard]] virtual GameTestResult setBlock(
         const std::string& blockType, BlockPos relativePos, i32 updateFlags) = 0;
+    /// 按 typeId + 属性键值对（如 {{"age","3"}}）设 pos 方块为指定状态。
+    /// 用于放置带 block state 的方块（如成熟甜浆果丛 age=3），底层经 Block::defaultState +
+    /// StateContainer::getProperty + IProperty::parseValue + StateHolder::withValueIndex 构造目标状态。
+    /// states 中的属性名/值字符串须与方块状态定义匹配；未匹配的属性静默忽略（返回默认状态）。
+    [[nodiscard]] virtual GameTestResult setBlockWithStates(const std::string& blockType,
+        BlockPos relativePos,
+        const std::unordered_map<std::string, std::string>& states,
+        i32 updateFlags) = 0;
     [[nodiscard]] virtual GameTestResult destroyBlock(BlockPos relativePos, bool dropResources) = 0;
     [[nodiscard]] virtual GameTestResult pressButton(BlockPos relativePos) = 0;
     [[nodiscard]] virtual GameTestResult pullLever(BlockPos relativePos) = 0;

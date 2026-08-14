@@ -58,6 +58,13 @@ public:
     {
         return std::nullopt;
     }
+    [[nodiscard]] GameTestResult setBlockWithStates(const std::string& /*blockType*/,
+        BlockPos /*relativePos*/,
+        const std::unordered_map<std::string, std::string>& /*states*/,
+        i32 /*updateFlags*/) override
+    {
+        return std::nullopt;
+    }
     [[nodiscard]] GameTestResult destroyBlock(BlockPos /*relativePos*/, bool /*dropResources*/) override
     {
         return std::nullopt;

@@ -36,6 +36,7 @@ import { registerCowTests } from "./tests/passive/basic/CowTests.js";
 import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
 import { registerChickenTests } from "./tests/passive/basic/ChickenTests.js";
 import { registerPolarBearTests } from "./tests/passive/special/PolarBearTests.js";
+import { registerFoxTests } from "./tests/passive/special/FoxTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -71,3 +72,4 @@ registerCowTests();
 registerSheepTests();
 registerChickenTests();
 registerPolarBearTests();
+registerFoxTests();

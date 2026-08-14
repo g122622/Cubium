@@ -275,6 +275,50 @@ GameTestResult GameTestHelper::setBlock(const std::string& blockType, BlockPos r
     return std::nullopt;
 }
 
+GameTestResult GameTestHelper::setBlockWithStates(const std::string& blockType,
+    BlockPos relativePos,
+    const std::unordered_map<std::string, std::string>& states,
+    i32 updateFlags)
+{
+    // 按 typeId + 属性键值对构造目标 BlockState 后写入。用于放置带 block state 的方块（如成熟甜浆果丛
+    // age=3）。复用 _resolveBlock 取默认 state，再逐属性经 StateContainer::getProperty +
+    // IProperty::parseValue + StateHolder::withValueIndex 应用 states。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+
+    // 解析 typeId 为 Block*（_resolveBlock 返回默认 BlockState*，但取 Block 需再走一次注册表）。
+    std::string full = blockType.find(':') == std::string::npos ? "minecraft:" + blockType : blockType;
+    const mc::ResourceLocation loc(full);
+    const mc::Block* block = mc::BlockRegistry::instance().getBlock(loc);
+    if (block == nullptr) {
+        return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Unknown block type '{0}'", {blockType}};
+    }
+
+    // 从默认 state 出发，逐属性应用 states。
+    const mc::BlockState* state = &block->defaultState();
+    const auto& container = block->stateContainer();
+    for (const auto& [propName, valueStr] : states) {
+        const mc::IProperty* prop = container.getProperty(propName);
+        if (prop == nullptr) {
+            // 属性不存在静默忽略——允许调用方传多余属性（容错），不阻断写入。
+            continue;
+        }
+        auto parsed = prop->parseValue(valueStr);
+        if (!parsed.has_value()) {
+            return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+                "Invalid value '{0}' for property '{1}' on block '{2}'",
+                {valueStr, propName, blockType}};
+        }
+        state = &state->withValueIndex(*prop, *parsed);
+    }
+
+    if (!m_world.setBlockState(worldPos, state, updateFlags)) {
+        return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+            "Failed to set block '{0}' at {1}",
+            {blockType, worldPos.toString()}};
+    }
+    return std::nullopt;
+}
+
 GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResources)
 {
     // 项目 IWorld/ServerWorld 无 destroyBlock 方法（见调研）：手动置 air + TODO 掉落物

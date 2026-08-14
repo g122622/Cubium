@@ -115,7 +115,9 @@ public:
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+    // 注：不重写 getCollisionShape——甜浆果丛无碰撞（对齐 vanilla noCollision()，见 BushBlock 基类
+    // getCollisionShape 返回 empty）。实体可穿过灌木落入其中持续触发 onEntityCollision 造成伤害。
+    // 此前曾 override 返回 fullShape 致实体被挡在灌木外，onEntityCollision 伤害链路变死代码。
 
     // ========== 实体碰撞 ==========
 
@@ -150,11 +152,8 @@ protected:
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
 private:
-    /// 各年龄阶段的形状缓存
+    /// 各年龄阶段的形状缓存（渲染形状 getShape 用；甜浆果丛无碰撞形状，继承 BushBlock 的 empty）
     std::array<CollisionShape, 4> m_shapesByAge;
-
-    /// 各年龄阶段的碰撞形状缓存
-    std::array<CollisionShape, 4> m_collisionShapesByAge;
 
     /**
      * @brief 初始化形状缓存

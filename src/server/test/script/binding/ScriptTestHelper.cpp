@@ -43,7 +43,9 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 
 #include <cctype>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 namespace mc::test {
@@ -252,6 +254,68 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             return _resultToJs(ctx, std::move(result));
         },
         3);
+
+    // --- setBlockWithStates(blockType, blockPos, statesStr, updateFlags=3) ---
+    // 按 typeId + 属性字符串设带 block state 的方块。statesStr 格式 "prop=value" 或 "p1=v1,p2=v2"
+    // （如 "age=3"）。绑定上下文无枚举 JS 对象 key 的 API，故用字符串编码属性，绑定层解析为
+    // unordered_map<string,string> 传 facade。用于放置成熟甜浆果丛等带 state 方块。
+    reg.method(
+        "setBlockWithStates",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 3 || !ctx.isString(args[0]) || !ctx.isString(args[2])) {
+                return ctx.throwTypeError("setBlockWithStates(blockType, pos, statesStr, updateFlags?)");
+            }
+            auto blockType = ctx.toString(args[0]);
+            if (!blockType) {
+                return ctx.throwInternalError("Failed to read blockType");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            auto statesStr = ctx.toString(args[2]);
+            if (!statesStr) {
+                return ctx.throwInternalError("Failed to read statesStr");
+            }
+            i32 flags = 3;
+            if (argc >= 4 && ctx.isNumber(args[3])) {
+                auto f = ctx.toInt32(args[3]);
+                if (f) {
+                    flags = *f;
+                }
+            }
+            // 解析 "p1=v1,p2=v2" 为 map。空字符串视为无属性（设默认 state）。
+            std::unordered_map<std::string, std::string> states;
+            std::string token;
+            std::istringstream stream(*statesStr);
+            while (std::getline(stream, token, ',')) {
+                auto eq = token.find('=');
+                if (eq == std::string::npos) {
+                    continue;
+                }
+                std::string key = token.substr(0, eq);
+                std::string val = token.substr(eq + 1);
+                // 去除首尾空白
+                auto trim = [](std::string& s) {
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+                        s.erase(0, 1);
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+                        s.pop_back();
+                };
+                trim(key);
+                trim(val);
+                if (!key.empty()) {
+                    states[key] = val;
+                }
+            }
+            auto result = helper->setBlockWithStates(*blockType, pos, states, flags);
+            return _resultToJs(ctx, std::move(result));
+        },
+        4);
 
     // --- pressButton(pos) ---
     reg.method(

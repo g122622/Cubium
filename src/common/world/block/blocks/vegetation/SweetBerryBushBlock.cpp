@@ -163,12 +163,9 @@ const CollisionShape& SweetBerryBushBlock::getShape(const BlockState& state) con
     return m_shapesByAge[age];
 }
 
-const CollisionShape& SweetBerryBushBlock::getCollisionShape(const BlockState& state) const
-{
-    i32 age = getAge(state);
-    MC_ASSERT(age >= 0 && age <= 3);
-    return m_collisionShapesByAge[age];
-}
+// 注：不重写 getCollisionShape——甜浆果丛无碰撞（对齐 vanilla noCollision()）。继承 BushBlock 基类
+// getCollisionShape 返回 empty，实体可穿过灌木落入其中触发 onEntityCollision 伤害。此前 override
+// 返回 fullShape 致实体被挡在灌木外，伤害链路死代码。
 
 void SweetBerryBushBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
@@ -280,14 +277,8 @@ void SweetBerryBushBlock::initShapes()
     m_shapesByAge[2] = fullShape;
     m_shapesByAge[3] = fullShape;
 
-    // 碰撞形状
-    // AGE 0: 无碰撞
-    m_collisionShapesByAge[0] = CollisionShape::empty();
-
-    // AGE 1-3: 有碰撞
-    m_collisionShapesByAge[1] = fullShape;
-    m_collisionShapesByAge[2] = fullShape;
-    m_collisionShapesByAge[3] = fullShape;
+    // 注：甜浆果丛无碰撞形状（对齐 vanilla noCollision()），不初始化 m_collisionShapesByAge——
+    // getCollisionShape 不重写，继承 BushBlock 基类返回 empty。
 }
 
 } // namespace blocks
