@@ -288,7 +288,7 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         }
 
         // 存储定义
-        spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
+        // spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
         s_byId[location] = def.get();
 
         // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。

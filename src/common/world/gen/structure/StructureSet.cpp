@@ -106,7 +106,7 @@ void StructureSetRegistry::registerSet(std::unique_ptr<StructureSet> set)
     }
 
     const ResourceLocation id = set->id();
-    spdlog::info("Registering structure set '{}' with {} entries", id.toString(), set->entries().size());
+    // spdlog::info("Registering structure set '{}' with {} entries", id.toString(), set->entries().size());
 
     // 建立结构 ID → 所属集合的反向索引
     for (const auto& entry : set->entries()) {
