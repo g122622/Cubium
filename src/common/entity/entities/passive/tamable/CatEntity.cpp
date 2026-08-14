@@ -272,6 +272,13 @@ void CatEntity::registerGoals()
     // 优先级 7: 跟随主人（驯服后）
     m_goalSelector.addGoal(7, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f));
 
+    // 优先级 8: 近战攻击（未驯服猫猎杀兔子/幼海龟）。
+    // targetSelector 的 NonTamedTargetGoal<RabbitEntity/TurtleEntity> 设 attackTarget 后，
+    // 由本 goal 执行接近+攻击。此前缺少此 goal，猫锁定目标却不攻击。
+    // vanilla Cat 用 OcelotAttackGoal(extends MeleeAttackGoal)，此处用 MeleeAttackGoal 等价。
+    // longMemory=true 使猫在短暂失去视线时仍持续追踪目标。
+    m_goalSelector.addGoal(8, new entity::ai::goal::MeleeAttackGoal(this, 1.0, true));
+
     // 优先级 10: 避水随机漫步
     m_goalSelector.addGoal(10, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8, 1.0000001E-5f));
 
@@ -326,6 +333,13 @@ void CatEntity::registerAttributes()
     // 猫的属性
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+
+    // 近战伤害：vanilla Cat.createAttributes 设 ATTACK_DAMAGE=3.0。ATTACK_DAMAGE 属性在
+    // MobEntity/AnimalEntity 基类中未注册（仅 MonsterEntity 注册），需显式 registerAttribute
+    // 后再 setBaseValue，否则 MeleeAttackGoal 取伤害时 getAttributeValue 返回默认值 1.0，
+    // 未驯服猫猎杀兔子/幼海龟的伤害偏低。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 
     // 与 MC 原版 LivingEntity 构造逻辑一致：构造完成后生命值应等于 maxHealth。
     // 由于 C++ 基类构造函数中虚函数 registerAttributes 不会派发到子类，MAX_HEALTH

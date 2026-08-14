@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -503,6 +504,9 @@ private:
     static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
     static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度
     static constexpr f32 AVOID_DISTANCE = 16.0f;  // 逃避检测距离
+
+    // 猫的近战伤害（未驯服猫猎杀兔子/幼海龟）。vanilla Cat.createAttributes 设 ATTACK_DAMAGE=3.0。
+    static constexpr f32 ATTACK_DAMAGE = 3.0f;
 
     // 猫的食物治疗量（生鳕鱼/生鲑鱼的饥饿值为 2，治疗量 = 饥饿值）
     static constexpr f32 FOOD_HEAL_AMOUNT = 2.0f;

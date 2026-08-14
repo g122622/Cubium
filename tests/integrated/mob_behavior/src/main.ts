@@ -39,6 +39,7 @@ import { registerPolarBearTests } from "./tests/passive/special/PolarBearTests.j
 import { registerFoxTests } from "./tests/passive/special/FoxTests.js";
 import { registerBeeTests } from "./tests/passive/special/BeeTests.js";
 import { registerWolfTests } from "./tests/passive/tamable/WolfTests.js";
+import { registerCatTests } from "./tests/passive/tamable/CatTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -77,3 +78,4 @@ registerPolarBearTests();
 registerFoxTests();
 registerBeeTests();
 registerWolfTests();
+registerCatTests();
