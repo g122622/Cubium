@@ -34,6 +34,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
 #include "common/item/potion/Potion.hpp"
@@ -264,6 +265,15 @@ void WitchEntity::registerGoals()
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
+
+    // 优先级 2: NearestAttackableTargetGoal<Player>（主动攻击玩家）。
+    // 对齐 MC 1.21.11 Witch.registerGoals(): targetSelector.addGoal(2,
+    //   new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false))。
+    // wiki tech_女巫.txt#行为: 女巫会主动攻击半径 16 格(JE)/10 格(BE)内的玩家。
+    // 此前 Cubium 女巫只注册了 HurtByTargetGoal（受伤反击），无主动攻击目标 goal，
+    // 与原版不一致——原版女巫主动攻击玩家，Cubium 女巫只能被攻击后反击。
+    // checkSight=true 对齐原版第四参数（需视线可见才选目标）。
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // 女巫 AI 目标
     // priority 1: 游泳目标（已在父类注册）
