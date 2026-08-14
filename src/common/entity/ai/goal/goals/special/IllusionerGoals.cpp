@@ -47,7 +47,7 @@ namespace mc::entity::ai::goal {
 // ============================================================================
 
 IllusionerSpellGoal::IllusionerSpellGoal(IllusionerEntity* illusioner)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    : Goal()
     , m_illusioner(illusioner)
 {
     MC_ASSERT_RELEASE(illusioner != nullptr);
@@ -126,6 +126,44 @@ void IllusionerSpellGoal::tick()
             // 播放施法完成音效
             m_illusioner->playSound(SoundEvents::ENTITY_ILLUSIONER_CAST_SPELL, 1.0f, 1.0f);
         }
+    }
+}
+
+// ============================================================================
+// IllusionerCastingSpellGoal - 施法时看向目标并停步
+//
+// 对齐原版 SpellcasterIllager.SpellcasterCastingSpellGoal(MOVE+LOOK)：isSpellcasting()
+// 期间启动，占用 Move+Look 使幻术师施法时停步、持续看向攻击目标。原版 Illusioner 在
+// registerGoals 优先级1 显式注册此 goal（Illusioner.java:66），Cubium 此前缺失本次补齐。
+// ============================================================================
+
+IllusionerCastingSpellGoal::IllusionerCastingSpellGoal(IllusionerEntity* illusioner)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    , m_illusioner(illusioner)
+{
+    MC_ASSERT_RELEASE(illusioner != nullptr);
+}
+
+bool IllusionerCastingSpellGoal::shouldExecute()
+{
+    return m_illusioner != nullptr && m_illusioner->isSpellcasting();
+}
+
+bool IllusionerCastingSpellGoal::shouldContinueExecuting()
+{
+    return shouldExecute();
+}
+
+void IllusionerCastingSpellGoal::tick()
+{
+    if (m_illusioner == nullptr) {
+        return;
+    }
+
+    // 施法期间持续看向攻击目标（对齐原版 SpellcasterCastingSpellGoal.tick 调 lookControl）
+    LivingEntity* target = m_illusioner->attackTarget();
+    if (target != nullptr) {
+        m_illusioner->lookController()->setLookPositionWithEntity(*target, 30.0f, 30.0f);
     }
 }
 

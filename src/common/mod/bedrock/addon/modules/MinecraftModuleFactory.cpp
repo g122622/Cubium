@@ -26,9 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/Entity.hpp"            // mc::Entity（Entity JS 类 opaque 持此指针）
-#include "common/entity/core/EquipmentSlot.hpp"     // EquipmentSlot 枚举（EquippableComponent 槽位映射）
-#include "common/entity/core/LivingEntity.hpp"      // LivingEntity（health/maxHealth/attributes/getEquipment）
+#include "common/entity/core/Entity.hpp"           // mc::Entity（Entity JS 类 opaque 持此指针）
+#include "common/entity/core/EquipmentSlot.hpp"    // EquipmentSlot 枚举（EquippableComponent 槽位映射）
+#include "common/entity/core/LivingEntity.hpp"     // LivingEntity（health/maxHealth/attributes/getEquipment）
+#include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
+#include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
@@ -606,6 +608,87 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             return ctx.createInt32(ent->getRemainingFireTicks());
         });
+
+    // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
+    // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），
+    // 无该效果返回 undefined。effectType 既接受 "minecraft:blindness" 也接受简写 "blindness"。
+    // 此处定义为 lambda 供 Entity.getEffect / getEffects 复用：解析 effectType→EffectType，
+    // 从 LivingEntity::getEffect 取 EffectInstance，构造普通对象（不注册 JS 类，属性快照现取）。
+    auto buildEffectObject =
+        [](IScriptBindingContext& ctx, mc::LivingEntity* living, mc::entity::effect::EffectType type) -> void* {
+        const mc::entity::effect::EffectInstance* inst = living->getEffect(type);
+        if (inst == nullptr) {
+            return ctx.createUndefined();
+        }
+        void* obj = ctx.createObject();
+        // typeId：基岩用 "minecraft:blindness" 形式的资源位置。
+        ctx.setPropertyString(obj, "typeId", mc::entity::effect::getEffectResourceLocation(type).toString());
+        ctx.setPropertyInt(obj, "amplifier", inst->amplifier());
+        ctx.setPropertyInt(obj, "duration", inst->duration());
+        return obj;
+    };
+    // 解析 JS effectType 参数（string 或 EffectType 对象）为 EffectType，失败返 nullopt。
+    // 基岩允许传字符串（"blindness"）或 EffectType 对象（.id）。Cubium 暂仅支持字符串。
+    auto parseEffectType = [](IScriptBindingContext& ctx, void* arg) -> std::optional<mc::entity::effect::EffectType> {
+        if (arg == nullptr || !ctx.isString(arg)) {
+            return std::nullopt;
+        }
+        auto s = ctx.toString(arg);
+        if (!s) {
+            return std::nullopt;
+        }
+        std::string id = *s;
+        if (id.find(':') == std::string::npos) {
+            id = "minecraft:" + id;
+        }
+        return mc::entity::effect::getEffectByResourceLocation(mc::ResourceLocation(id));
+    };
+
+    // Entity.getEffect(effectType)：对齐基岩 Entity.getEffect，返回 Effect 普通对象
+    // （{ typeId, amplifier, duration }），无该效果/非 LivingEntity 返回 undefined。
+    // 用于 GameTest 检测实体状态效果（如幻术师镜像隐身、失明法术）。
+    entityReg.method(
+        "getEffect",
+        [entityClassId, &buildEffectObject, &parseEffectType](
+            IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr || argc < 1) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            return buildEffectObject(ctx, living, *typeOpt);
+        },
+        1);
+
+    // Entity.getEffects()：对齐基岩 Entity.getEffects，返回 Effect[]（实体当前所有效果）。
+    entityReg.method(
+        "getEffects",
+        [entityClassId, &buildEffectObject](
+            IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr) {
+                return ctx.createArray();
+            }
+            const auto& effects = living->effectManager().getAllEffects();
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            for (const auto& inst : effects) {
+                void* obj = buildEffectObject(ctx, living, inst.type());
+                // buildEffectObject 无该效果返 undefined（理论上 getAllEffects 不含空项，守卫跳过）。
+                if (obj != nullptr && !ctx.isUndefined(obj)) {
+                    ctx.setArrayElement(arr, outIdx, obj); // 不消耗所有权
+                    ctx.releaseValue(obj);
+                    ++outIdx;
+                }
+            }
+            return arr;
+        },
+        0);
 
     // --- HealthComponent类（minecraft:health，Attribute 族）---
     // opaque 持 mc::Entity*。HealthComponent 仅 LivingEntity attach，getter 内 dynamic_cast<LivingEntity*>，

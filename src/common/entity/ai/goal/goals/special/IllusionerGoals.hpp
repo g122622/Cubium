@@ -53,6 +53,16 @@ public:
     /**
      * @brief 构造函数
      * @param illusioner 幻术师实体
+     *
+     * flag 对齐原版 SpellcasterIllager.SpellcasterUseSpellGoal：原版施法 goal 不设置任何
+     * Goal.Flag（默认空 EnumSet）。施法 goal 必须无 flag，否则会与 IllusionerCastingSpellGoal
+     * (优先级1, 占 Move+Look) 互斥抢占——施法 goal startExecuting 调 setSpellTicks 设
+     * isSpellcasting()=true，CastingSpellGoal 随即 shouldExecute=true 启动，若两者共享 flag
+     * (如 Look)，CastingSpellGoal 启动会 reset 施法 goal（_startGoal 抢占共享 flag 的运行中 goal），
+     * 施法 goal 的 warmup 计数被 resetTask 清掉，castSpell 永不执行。
+     *   无 flag 后施法 goal 不被任何 goal 抢占，warmup 持续递减到 0 执行 castSpell 施放
+     * 失明/镜像法术。施法期间的"停步 + 看向目标"由 IllusionerCastingSpellGoal(优先级1, Move+Look)
+     * 接管，对齐原版 SpellcasterCastingSpellGoal(MOVE+LOOK) 语义。
      */
     explicit IllusionerSpellGoal(IllusionerEntity* illusioner);
 
@@ -100,6 +110,32 @@ protected:
     IllusionerEntity* m_illusioner;
     i32 m_spellWarmup = 0;
     i32 m_spellCooldown = 0;
+};
+
+/**
+ * @brief 幻术师施法时看向目标并停步
+ *
+ * 对齐原版 SpellcasterIllager.SpellcasterCastingSpellGoal：占 Move+Look flag，
+ * isSpellcasting() 期间启动，使幻术师施法时停步并持续看向攻击目标。
+ * 原版 Illusioner.registerGoals 优先级1 显式注册（Illusioner.java:66 addGoal(1,
+ * new SpellcasterCastingSpellGoal())），Cubium 此前注释误称"父类已注册"实未注册，
+ * 导致施法期间幻术师不停步、不强制看向目标——本次补齐。
+ *
+ * 优先级1 高于 RangedBowAttackGoal(6)，施法期间 RangedBowAttackGoal 无法抢占 Move，
+ * 幻术师施法期间不射箭、不被走位打断，对齐原版 SpellcasterCastingSpellGoal(MOVE+LOOK) 语义。
+ */
+class IllusionerCastingSpellGoal : public Goal {
+public:
+    explicit IllusionerCastingSpellGoal(IllusionerEntity* illusioner);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "IllusionerCastingSpellGoal"; }
+
+private:
+    IllusionerEntity* m_illusioner;
 };
 
 /**

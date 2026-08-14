@@ -34,6 +34,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
@@ -43,6 +44,8 @@
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -73,6 +76,20 @@ IllusionerEntity::IllusionerEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     // 初始化镜像分身偏移数组为零向量
     for (auto& offsets : m_illusionOffsets) {
         offsets.fill(Vector3(0.0f, 0.0f, 0.0f));
+    }
+
+    // 幻术师不在阳光下燃烧：幻术师是灾厄村民（非亡灵），原版 Illusioner 不燃。
+    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员
+    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
+    // 故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
+    // 默认主手持弓：幻术师使用弓远程攻击，RangedBowAttackGoal::shouldExecute 依赖主手持弓
+    // （getUseAction==Bow），不持弓则弓箭攻击 goal 永不启动。原版 Illusioner.finalizeSpawn 给弓，
+    // 但 GameTest 的 test.spawn 不走 finalizeSpawn/populateDefaultEquipmentSlots，故构造期补弓
+    // 确保 GameTest spawn 的幻术师也能远程攻击。isEmpty 守卫避免自然生成路径重复给弓。
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::BOW != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::BOW, 1));
     }
 
     registerGoals();
@@ -218,14 +235,20 @@ void IllusionerEntity::_updateIllusionLogic()
 
 void IllusionerEntity::registerGoals()
 {
-    // 调用父类方法
-    SpellcastingIllagerEntity::registerGoals();
+    // 不调用父类 registerGoals：SpellcastingIllagerEntity 无 registerGoals override，向上解析到
+    // MonsterEntity::registerGoals（仅注册 SwimGoal+CreatureEntity 基类 goal）。本类已自行注册
+    // SwimGoal（优先级0），若再调父类会重复注册 SwimGoal。对齐 EvokerEntity 的自包含注册模式。
 
     // 行为目标选择器 (goalSelector)
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 施法时看向目标（父类已注册 CastingSpellGoal）
+    // 优先级 1: 施法时看向目标并停步
+    // 对齐原版 Illusioner.registerGoals（Illusioner.java:66 addGoal(1, SpellcasterCastingSpellGoal)）。
+    // 此前注释误称"父类已注册 CastingSpellGoal"实未注册——幻术师施法期间不停步、不强制看目标，
+    // 本次补齐 IllusionerCastingSpellGoal(优先级1, Move+Look)。优先级1 高于 RangedBowAttackGoal(6)，
+    // 施法期间弓箭 goal 无法抢占 Move，幻术师施法时不射箭、不被走位打断。
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::IllusionerCastingSpellGoal>(this));
 
     // 优先级 4: 镜像法术（隐身）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::IllusionerMirrorSpellGoal>(this));
