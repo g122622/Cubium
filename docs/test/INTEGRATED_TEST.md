@@ -452,6 +452,40 @@ for(const name of ['creeper_pit','glass_pit']){
 
 早期失败的垫片方案是「直接 `GameTest.register = Proxy`」且无 try/catch——在 Cubium 侧抛 read-only 异常未捕获，导致垫片模块自身加载失败、连带整个包崩。正确做法是 prototype 注入（根本不碰 register）+ try/catch 兜底。
 
+### 6.6 mcstructure 必含 `structure_world_origin` 字段
+
+**现象**：基岩 BDS 1.26 严格校验 mcstructure，缺失 `structure_world_origin` 字段时报：
+```
+[Structure] Loading structure 'gametests:creeper_pit' from behavior pack: ... | "structure_world_origin" field, a required field, is missing from the structure.
+```
+随后 GameTest 报 `Could not find StructureBlockActor associated to this test`（与 6.3 的时序竞态同款报错，但根因不同：这里是结构压根没加载成功）。Cubium 容错能读缺该字段的结构，故仅基岩侧受影响。
+
+**字段格式**：`structure_world_origin` 是 root compound 的一个顶层字段，类型 TAG_LIST of TAG_INT，长度 3，表示结构在世界中的原点坐标 `[ox, oy, oz]`。GameTest 场景下基岩按 test 位置 + 结构内相对坐标放置，origin 值 `[0,0,0]` 即可（基岩对具体数值不敏感，只要字段存在）。已知可加载的 `glass_pit`/`mediumglass` 用 `[10,10,10]`，`[0,0,0]` 同样工作。
+
+**修复**：用 `scripts/test/_fix_structure_origin.mjs` 为缺字段的结构注入 `structure_world_origin`（默认 `[0,0,0]`），保持其他字段字节不变：
+```bash
+node scripts/test/_fix_structure_origin.mjs tests/integrated/mob_behavior/structures/gametests/creeper_pit.mcstructure 0 0 0
+```
+本次修复了 `creeper_pit`、`grass_pen` 两个结构（`glass_pit`、`mediumglass` 原本就有该字段）。
+
+> 排查要点：当基岩报 `Could not find StructureBlockActor` 时，先检查结构文件是否含 `structure_world_origin`（用 6.4 的解析思路或 `_fix_structure_origin.mjs` 的检测逻辑），排除字段缺失后再考虑 6.3 的时序竞态。
+
+### 6.7 `minecraft:equippable` 组件的跨平台差异（mob 卸装备）
+
+**现象**：`Entity.getComponent("minecraft:equippable")` 对骷髅等 mob：
+- **Cubium**：对所有 `LivingEntity` 返回有效组件（善意扩展，`MinecraftModuleFactory.cpp` setEquipment 绑定，第二参数 `undefined` 清空槽位 → `living->setEquipment(slot, ItemStack::EMPTY)`）。
+- **基岩 BDS**：返回 `undefined`。基岩 `minecraft:equippable` 是 BP 实体组件，**只有显式声明了它的实体才有**（马科/驼科的鞍/地毯槽），原版骷髅无此组件。骷髅主手弓来自生成期 `minecraft:equipment` 战利品表（只读，脚本不可改）。
+
+**根因**：这是 Cubium 对基岩 API 语义的偏离（让 mob 都返回 equippable 是善意扩展，方便测试操作 mob 装备）。基岩官方 `EntityEquippableComponent` 文档明确"只存在于 player 实体"。
+
+**对测试的影响**：需要给 mob 卸装备的测试（如 `skeleton_fights_in_melee_without_bow` 给骷髅卸弓验近战）存在跨平台不可调和差异：
+- Cubium 唯一路径：`equippable.setEquipment("Mainhand", undefined)`。
+- 基岩无 equippable；唯一脚本化卸 mob 装备的途径是 `Entity.runCommand("replaceitem entity @s slot.weapon.mainhand 0 air")`（基岩 mob 主手槽名 `slot.weapon.mainhand`，带 `slot.` 前缀）。
+- **但 Cubium 未绑定 `Entity.runCommand`/`Dimension.runCommand`**（脚本侧无命令执行入口），故 runCommand 路径在 Cubium 是死路。
+- 平台分流方案：运行时按 `equippable` 组件存在性检测——Cubium 有 equippable 走 setEquipment，基岩无 equippable 走 runCommand。Cubium 的 `/replaceitem entity` 命令虽存在但仅支持玩家目标（`EntityArgumentType::players()`），无法卸 mob 弓，故 Cubium 不能走命令路径。
+
+> 决策原则：当某行为在 Cubium 可测但在基岩受 API 限制无法脚本触发时（非测试逻辑缺陷），测试以 Cubium 验证为准，基岩差异在测试注释中标注。基岩行为本身存在（骷髅无弓时会近战，由 `has_ranged_weapon` 触发器切换组件组），只是无法通过脚本在基岩复现该前置条件。
+
 ---
 
 ## 参考
