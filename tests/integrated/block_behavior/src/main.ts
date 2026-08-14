@@ -17,6 +17,7 @@ import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js"
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
 import { registerCactusTests } from "./tests/vegetation/CactusTests.js";
 import { registerSnowTests } from "./tests/ice/SnowTests.js";
+import { registerTntTests } from "./tests/redstone/TntTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -26,3 +27,4 @@ registerFallingBlockTests();
 registerCoralTests();
 registerCactusTests();
 registerSnowTests();
+registerTntTests();
