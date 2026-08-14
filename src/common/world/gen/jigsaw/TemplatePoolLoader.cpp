@@ -204,11 +204,11 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
         return Error(ErrorCode::InvalidData, "Template pool missing 'elements' array");
     }
 
-    i32 legacyCount = 0;
-    i32 featureCount = 0;
-    i32 singleCount = 0;
-    i32 listCount = 0;
-    i32 emptyCount = 0;
+    // i32 legacyCount = 0;
+    // i32 featureCount = 0;
+    // i32 singleCount = 0;
+    // i32 listCount = 0;
+    // i32 emptyCount = 0;
 
     const auto& elements = jsonObj["elements"];
     for (const auto& element : elements) {
@@ -216,18 +216,18 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
         i32 weight = 1;
         if (_parseElement(element, piece, weight) && piece) {
             // 统计元素类型（必须在 addPiece/std::move 之前，因为 move 后 piece 变为 nullptr）
-            const auto& typeName = piece->getTypeName();
-            if (typeName == "legacy_single_pool_element") {
-                ++legacyCount;
-            } else if (typeName == "single_pool_element") {
-                ++singleCount;
-            } else if (typeName == "list_pool_element") {
-                ++listCount;
-            } else if (typeName == "feature_pool_element") {
-                ++featureCount;
-            } else if (typeName == "empty_pool_element") {
-                ++emptyCount;
-            }
+            // const auto& typeName = piece->getTypeName();
+            // if (typeName == "legacy_single_pool_element") {
+            //     ++legacyCount;
+            // } else if (typeName == "single_pool_element") {
+            //     ++singleCount;
+            // } else if (typeName == "list_pool_element") {
+            //     ++listCount;
+            // } else if (typeName == "feature_pool_element") {
+            //     ++featureCount;
+            // } else if (typeName == "empty_pool_element") {
+            //     ++emptyCount;
+            // }
 
             pool->addPiece(std::move(piece), weight);
         }
@@ -241,14 +241,14 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
         return Error(ErrorCode::InvalidData, "Template pool has no valid elements");
     }
 
-    spdlog::info("Template pool '{}': {} elements (legacy={}, single={}, list={}, feature={}, empty={})",
-        name.toString(),
-        pool->getTotalWeight(),
-        legacyCount,
-        singleCount,
-        listCount,
-        featureCount,
-        emptyCount);
+    // spdlog::info("Template pool '{}': {} elements (legacy={}, single={}, list={}, feature={}, empty={})",
+    //     name.toString(),
+    //     pool->getTotalWeight(),
+    //     legacyCount,
+    //     singleCount,
+    //     listCount,
+    //     featureCount,
+    //     emptyCount);
 
     return pool;
 }

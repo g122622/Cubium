@@ -488,20 +488,20 @@ Result<void> ProcessorListLoader::_loadFromJsonObj(const nlohmann::json& jsonObj
     }
 
     auto processorList = std::make_unique<StructureProcessorList>();
-    i32 processorCount = 0;
+    // i32 processorCount = 0;
 
     for (const auto& processorObj : jsonObj["processors"]) {
         auto processor = _parseProcessor(processorObj);
         if (processor) {
             processorList->addProcessor(std::move(processor));
-            ++processorCount;
+            // ++processorCount;
         }
     }
 
     // 注册处理器列表
     ProcessorListRegistry::instance().registerList(location, *processorList);
 
-    spdlog::info("Processor list '{}': {} processors", location.toString(), processorCount);
+    // spdlog::info("Processor list '{}': {} processors", location.toString(), processorCount);
     return Result<void>::ok();
 }
 
