@@ -55,6 +55,7 @@ import { registerLlamaTests } from "./tests/passive/horse/LlamaTests.js";
 import { registerBreezeTests } from "./tests/monster/breeze/BreezeTests.js";
 import { registerSquidTests } from "./tests/passive/water/SquidTests.js";
 import { registerGlowSquidTests } from "./tests/passive/water/GlowSquidTests.js";
+import { registerAxolotlTests } from "./tests/passive/water/AxolotlTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -103,3 +104,4 @@ registerLlamaTests();
 registerBreezeTests();
 registerSquidTests();
 registerGlowSquidTests();
+registerAxolotlTests();
