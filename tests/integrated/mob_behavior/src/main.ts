@@ -24,6 +24,7 @@ import { registerCaveSpiderTests } from "./tests/monster/arthropod/CaveSpiderTes
 import { registerEndermiteTests } from "./tests/monster/arthropod/EndermiteTests.js";
 import { registerSilverfishTests } from "./tests/monster/arthropod/SilverfishTests.js";
 import { registerWitchTests } from "./tests/monster/illager/WitchTests.js";
+import { registerRavagerTests } from "./tests/monster/illager/RavagerTests.js";
 import { registerPigTests } from "./tests/passive/basic/PigTests.js";
 import { registerCowTests } from "./tests/passive/basic/CowTests.js";
 import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
@@ -51,6 +52,7 @@ registerCaveSpiderTests();
 registerEndermiteTests();
 registerSilverfishTests();
 registerWitchTests();
+registerRavagerTests();
 registerPigTests();
 registerCowTests();
 registerSheepTests();

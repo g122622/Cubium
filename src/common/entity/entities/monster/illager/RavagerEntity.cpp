@@ -71,6 +71,11 @@ const entity::EntityClassInfo& RavagerEntity::classInfo()
 RavagerEntity::RavagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AbstractRaiderEntity(id, registry)
 {
+    // 劫掠兽不在阳光下燃烧：劫掠兽是袭击生物（非亡灵），wiki tech_劫掠兽.txt 通篇未提阳光燃烧。
+    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
+    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
     // 劫掠兽可以走上1格高的方块
     setStepHeight(1.0f);
 
