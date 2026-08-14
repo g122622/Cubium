@@ -12,8 +12,9 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
-#include "common/entity/inventory/IInventory.hpp" // getItem/getContainerSize/isEmpty（容器断言）
-#include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
+#include "common/entity/inventory/IInventory.hpp"                // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/item/core/ItemStack.hpp"                        // isSameItem（assertContainerContains 类型匹配）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -129,6 +130,24 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             slime->setSlimeSize(1, true);
         }
         // 其他事件（如 minecraft:entity_spawned）TODO 待行为包事件系统接入。
+        return;
+    }
+
+    // 兔子杀手变种事件：spawn_killer 把兔子设为杀手兔（RabbitType::Killer=99）。
+    // 对齐 wiki tech_兔子.txt#杀手兔：杀手兔是 Java 独有变种，{RabbitType:99} 命令生成，
+    // 非和平难度下迅速跳向 16 格内玩家并近战攻击 8 伤害。setRabbitType(Killer) 内部调
+    // applyRabbitType 注册 MeleeAttackGoal + NearestAttackableTargetGoal<Player>（见
+    // RabbitEntity.cpp:147-176，对齐 vanilla Rabbit.setVariant(EVIL)）。
+    // GameTest 通过 test.spawn("rabbit<spawn_killer>", pos) 触发，派发后普通兔子变为攻击型杀手兔。
+    if (normalizedType == "minecraft:rabbit") {
+        auto* rabbit = dynamic_cast<mc::RabbitEntity*>(entity);
+        if (rabbit == nullptr) {
+            return;
+        }
+        if (normalizedEvent == "minecraft:spawn_killer") {
+            rabbit->setRabbitType(mc::RabbitEntity::RabbitType::Killer);
+        }
+        // 其他事件 TODO 待行为包事件系统接入。
         return;
     }
     // TODO: 其他实体的 spawn 事件按需补全。
