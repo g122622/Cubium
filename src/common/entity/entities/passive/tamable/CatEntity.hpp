@@ -102,7 +102,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    CatEntity(EntityInstanceId id);
+    CatEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~CatEntity() override = default;
 
     // 禁止拷贝
@@ -118,7 +118,7 @@ public:
      * @param world 世界实例
      * @return 新的猫实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 皮肤类型 ==========
 

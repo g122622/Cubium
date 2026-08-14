@@ -4,8 +4,16 @@
     "description": "Mob behavior GameTests: zombie chase, iron golem, zoglin float, phantom cat.",
     "name": "Cubium Mob Behavior GameTests",
     "uuid": "a1c1c000-0003-4a75-91b7-4cdf0a03c005",
-    "version": [1, 0, 0],
-    "min_engine_version": [1, 21, 0]
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
   },
   "modules": [
     {
@@ -13,14 +21,18 @@
       "type": "script",
       "language": "javascript",
       "uuid": "a1c1c001-0003-4a75-91b7-4cdf0a03c006",
-      "version": [1, 0, 0],
+      "version": [
+        1,
+        0,
+        0
+      ],
       "entry": "scripts/main.js"
     }
   ],
   "dependencies": [
     {
       "module_name": "@minecraft/server",
-      "version": "1.13.0-beta"
+      "version": "2.0.0"
     },
     {
       "module_name": "@minecraft/server-gametest",

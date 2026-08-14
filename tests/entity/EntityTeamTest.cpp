@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/MobEntity.hpp"
@@ -109,7 +110,7 @@ private:
 class MockEntityWithTeam : public Entity {
 public:
     MockEntityWithTeam()
-        : Entity(EntityInstanceId(1))
+        : Entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {}
 
     void setTeam(scoreboard::Team* team) { m_team = team; }

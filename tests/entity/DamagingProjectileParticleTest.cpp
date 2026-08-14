@@ -50,7 +50,7 @@ struct ParticleRecord {
 /**
  * @brief 测试用世界存根，支持粒子记录和水中状态
  */
-class DamagingProjectileTestWorld final : public test::BaseTestWorld {
+class DamagingProjectileTestWorld final : public mc::test::BaseTestWorld {
 public:
     DamagingProjectileTestWorld()
         : m_inWater(false)
@@ -124,31 +124,32 @@ private:
 class TestDamagingProjectile : public DamagingProjectileEntity {
 public:
     TestDamagingProjectile(IWorld* world)
-        : DamagingProjectileEntity(EntityInstanceId(1))
+        : DamagingProjectileEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         setWorld(world);
-        m_position = Vector3(100.0f, 64.0f, 200.0f);
-        m_velocity = Vector3(1.0f, 0.0f, 0.0f);
+        setPosition(Vector3(100.0f, 64.0f, 200.0f));
+        setVelocity(Vector3(1.0f, 0.0f, 0.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { m_velocity = vel; }
-    void setTestPosition(const Vector3& pos) { m_position = pos; }
+    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
+    void setTestPosition(const Vector3& pos) { setPosition(pos); }
 
     // 暴露 protected 方法用于测试
     using DamagingProjectileEntity::getParticleType;
     using DamagingProjectileEntity::spawnTrailParticles;
     using DamagingProjectileEntity::spawnWaterParticles;
 
-    // 重写 tick 以避免射线检测
+    // tick 重写以避免射线检测
     void tick() override
     {
         // 只更新位置，不执行完整的 tick 逻辑
-        m_prevPosition = m_position;
-        m_position = m_position + m_velocity;
+        // TODO(ECS迁移): m_prevPosition 已迁入组件且无公开 setter，测试桩不再维护 prevPosition；
+        // 粒子测试仅校验当前位置生成的粒子，不依赖 prevPosition。
+        setPosition(position() + velocity());
     }
 
-    // 标记已离开发射者
-    void markLeftShooter() { m_leftShooter = true; }
+    // 标记已离开发射者（ECS迁移后 m_leftShooter 迁入 ProjectileOwnerComponent，无公开 setter；
+    // 该测试桩从未被调用，已删除以避免直接访问已迁移成员）
 };
 
 /**
@@ -157,10 +158,10 @@ public:
 class TestDragonFireball : public DragonFireballEntity {
 public:
     TestDragonFireball(IWorld* world)
-        : DragonFireballEntity(EntityInstanceId(1))
+        : DragonFireballEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         setWorld(world);
-        m_position = Vector3(100.0f, 64.0f, 200.0f);
+        setPosition(Vector3(100.0f, 64.0f, 200.0f));
     }
 
     // 暴露 protected 方法

@@ -36,13 +36,23 @@
 #include "../../world/block/BlockPos.hpp"
 #include "../entities/projectile/ProjectileDeflection.hpp"
 #include "EntityDataManager.hpp"
+#include "EntityFlags.hpp"
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "MoverType.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
+#include "common/entity/ecs/components/EntityFlagsComponent.hpp"
+#include "common/entity/ecs/components/EntityStateComponent.hpp"
+#include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/components/FreezeComponent.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
+#include "common/entity/ecs/components/PortalComponent.hpp"
+#include "common/entity/ecs/context/EntityContext.hpp"
 #include "common/profiler/MemoryTracking.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -93,32 +103,8 @@ using EntityPose = entity::EntityPose;
 // ============================================================================
 // 实体标志位
 // ============================================================================
-
-enum class EntityFlags : u8 {
-    None = 0,
-    OnFire = 1 << 0,
-    Crouching = 1 << 1,
-    Sprinting = 1 << 3,
-    Swimming = 1 << 4,
-    Invisible = 1 << 5,
-    Glowing = 1 << 6,
-    FallFlying = 1 << 7
-};
-
-inline EntityFlags operator|(EntityFlags a, EntityFlags b)
-{
-    return static_cast<EntityFlags>(static_cast<u8>(a) | static_cast<u8>(b));
-}
-
-inline EntityFlags operator&(EntityFlags a, EntityFlags b)
-{
-    return static_cast<EntityFlags>(static_cast<u8>(a) & static_cast<u8>(b));
-}
-
-inline bool hasFlag(EntityFlags flags, EntityFlags flag)
-{
-    return (static_cast<u8>(flags) & static_cast<u8>(flag)) != 0;
-}
+// EntityFlags 枚举及位运算符已提取到独立头 EntityFlags.hpp（第四批 ECS 迁移），
+// 供 EntityFlagsComponent 以值类型承载而不循环依赖本文件。参照 EquipmentSlot 提取先例。
 
 // ============================================================================
 // 实体基类
@@ -151,11 +137,28 @@ public:
 
     /**
      * @brief 构造函数
+     *
      * @param id 实体ID
-     * @param world 世界指针（可选）
+     * @param world 世界指针（可为 nullptr，测试/反序列化场景）
+     * @param registry ECS 实体注册表引用。构造时立即在此 registry 内 create 出 ECS
+     *   实体并 attach 4 个高频组件（StateVector/Velocity/AABBShape/EntityRotation），
+     *   缓存裸指针到 m_builtIn，使后续 position()/velocity() 等 getter 直接解引用。
+     *
+     *   【为何构造时即 attach】entt 的实体与组件绑定在创建它的 registry 上、不可跨
+     *   registry 迁移，故构造时 registry 必须就位（对齐基岩版 Actor(ILevel&,
+     *   EntityContext&) 构造签名透传 EntityContext 的设计）。首批所有实体类型在构造
+     *   时挂同一套基础组件，差异化组件由后续批次在工厂 attachAll 中补充。
      */
-    Entity(EntityInstanceId id, IWorld* world = nullptr);
-    virtual ~Entity() = default;
+    Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
+    // 析构时销毁 ECS 实体（entt entity + 其全部组件）。
+    // 【为何必须 destroy】EntityOwnerComponent 经 self-attach 持本 Entity 的非拥有裸指针，
+    // 供 FireTickSystem/PortalTickSystem 等经 view<..., EntityOwnerComponent> 反查 OOP 句柄。
+    // 若析构不 destroy entt 实体，残留 entt 条目的 EntityOwnerComponent 将持悬垂 Entity*，
+    // 系统遍历到时 isRemoved()/hurt() 等解引用即 UAF。destroy 后系统 view 不再遍历到本实体。
+    // 安全性：m_entityContext 是非拥有视图，Entity 析构后无人应再经它访问（已建立契约）；
+    // 成员析构顺序保证 ~Entity body 先执行（此时 m_entityContext 仍存活可取 entity id），
+    // 随后才析构 m_entityContext 本身。
+    virtual ~Entity();
 
     // 禁止拷贝
     Entity(const Entity&) = delete;
@@ -288,11 +291,16 @@ public:
     [[nodiscard]] const entity::EntityDataManager& dataManager() const { return m_dataManager; }
 
     // ========== 位置 ==========
+    //
+    // 位置/速度/旋转/AABB 四类高频数据已迁入 ECS 组件（StateVectorComponent 等），
+    // 本类不再持有可写字段副本，getter/setter 直接读写 m_builtIn 缓存的组件裸指针
+    // （零双写硬约束：避免同帧字段与组件两份可写副本不一致）。m_builtIn 在构造时
+    // attach 组件后填充，随 Entity 生命周期稳定（首批4组件永不移除，指针稳定）。
 
-    [[nodiscard]] Vector3 position() const { return m_position; }
-    [[nodiscard]] f32 x() const { return m_position.x; }
-    [[nodiscard]] f32 y() const { return m_position.y; }
-    [[nodiscard]] f32 z() const { return m_position.z; }
+    [[nodiscard]] Vector3 position() const { return m_builtIn.stateVector->m_pos; }
+    [[nodiscard]] f32 x() const { return m_builtIn.stateVector->m_pos.x; }
+    [[nodiscard]] f32 y() const { return m_builtIn.stateVector->m_pos.y; }
+    [[nodiscard]] f32 z() const { return m_builtIn.stateVector->m_pos.z; }
 
     /**
      * @brief 获取实体高度按比例偏移后的 Y 坐标
@@ -315,7 +323,7 @@ public:
      */
     [[nodiscard]] f64 getY(f64 partialY) const
     {
-        return static_cast<f64>(m_position.y) + static_cast<f64>(height()) * partialY;
+        return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(height()) * partialY;
     }
 
     /**
@@ -330,7 +338,10 @@ public:
      *
      * @return 眼睛 Y 坐标（f64 精度）
      */
-    [[nodiscard]] f64 getEyeY() const { return static_cast<f64>(m_position.y) + static_cast<f64>(eyeHeight()); }
+    [[nodiscard]] f64 getEyeY() const
+    {
+        return static_cast<f64>(m_builtIn.stateVector->m_pos.y) + static_cast<f64>(eyeHeight());
+    }
 
     /**
      * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）
@@ -342,30 +353,36 @@ public:
      */
     [[nodiscard]] BlockPos onPos() const
     {
-        return BlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)) - 1,
-            static_cast<i32>(std::floor(m_position.z)));
+        return BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)) - 1,
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     }
 
     // 前一帧位置（用于插值）
-    [[nodiscard]] Vector3 prevPosition() const { return m_prevPosition; }
-    [[nodiscard]] f32 prevX() const { return m_prevPosition.x; }
-    [[nodiscard]] f32 prevY() const { return m_prevPosition.y; }
-    [[nodiscard]] f32 prevZ() const { return m_prevPosition.z; }
+    [[nodiscard]] Vector3 prevPosition() const { return m_builtIn.stateVector->m_posPrev; }
+    [[nodiscard]] f32 prevX() const { return m_builtIn.stateVector->m_posPrev.x; }
+    [[nodiscard]] f32 prevY() const { return m_builtIn.stateVector->m_posPrev.y; }
+    [[nodiscard]] f32 prevZ() const { return m_builtIn.stateVector->m_posPrev.z; }
 
     /**
      * @brief 计算到另一个实体的距离
      * @param other 另一个实体
      * @return 距离（非平方）
      */
-    [[nodiscard]] f32 distanceTo(const Entity& other) const { return m_position.distance(other.m_position); }
+    [[nodiscard]] f32 distanceTo(const Entity& other) const
+    {
+        return m_builtIn.stateVector->m_pos.distance(other.m_builtIn.stateVector->m_pos);
+    }
 
     /**
      * @brief 计算到另一个实体的距离平方
      * @param other 另一个实体
      * @return 距离的平方（避免开方运算，适合比较）
      */
-    [[nodiscard]] f32 distanceSqTo(const Entity& other) const { return m_position.distanceSquared(other.m_position); }
+    [[nodiscard]] f32 distanceSqTo(const Entity& other) const
+    {
+        return m_builtIn.stateVector->m_pos.distanceSquared(other.m_builtIn.stateVector->m_pos);
+    }
 
     /**
      * @brief 计算到指定位置的距离平方
@@ -376,9 +393,9 @@ public:
      */
     [[nodiscard]] f32 distanceSqTo(f32 px, f32 py, f32 pz) const
     {
-        f32 dx = px - m_position.x;
-        f32 dy = py - m_position.y;
-        f32 dz = pz - m_position.z;
+        f32 dx = px - m_builtIn.stateVector->m_pos.x;
+        f32 dy = py - m_builtIn.stateVector->m_pos.y;
+        f32 dz = pz - m_builtIn.stateVector->m_pos.z;
         return dx * dx + dy * dy + dz * dz;
     }
 
@@ -387,37 +404,101 @@ public:
      */
     [[nodiscard]] f32 distanceHorizontalSqTo(f32 px, f32 pz) const
     {
-        f32 dx = px - m_position.x;
-        f32 dz = pz - m_position.z;
+        f32 dx = px - m_builtIn.stateVector->m_pos.x;
+        f32 dz = pz - m_builtIn.stateVector->m_pos.z;
         return dx * dx + dz * dz;
     }
 
     // ========== 旋转 ==========
 
-    [[nodiscard]] f32 yaw() const { return m_yaw; }
-    [[nodiscard]] f32 pitch() const { return m_pitch; }
-    [[nodiscard]] f32 prevYaw() const { return m_prevYaw; }
-    [[nodiscard]] f32 prevPitch() const { return m_prevPitch; }
+    [[nodiscard]] f32 yaw() const { return m_builtIn.rotation->m_rot.x; }
+    [[nodiscard]] f32 pitch() const { return m_builtIn.rotation->m_rot.y; }
+    [[nodiscard]] f32 prevYaw() const { return m_builtIn.rotation->m_rotPrev.x; }
+    [[nodiscard]] f32 prevPitch() const { return m_builtIn.rotation->m_rotPrev.y; }
 
     /// 设置偏航角（不更新 prevYaw，用于偏转等场景）
-    void setYaw(f32 yaw) { m_yaw = yaw; }
+    void setYaw(f32 yaw) { m_builtIn.rotation->m_rot.x = yaw; }
 
     /// 设置上一tick偏航角
-    void setPrevYaw(f32 prevYaw) { m_prevYaw = prevYaw; }
+    void setPrevYaw(f32 prevYaw) { m_builtIn.rotation->m_rotPrev.x = prevYaw; }
 
     // ========== 速度 ==========
 
-    [[nodiscard]] Vector3 velocity() const { return m_velocity; }
-    [[nodiscard]] f32 velocityX() const { return m_velocity.x; }
-    [[nodiscard]] f32 velocityY() const { return m_velocity.y; }
-    [[nodiscard]] f32 velocityZ() const { return m_velocity.z; }
+    [[nodiscard]] Vector3 velocity() const { return m_builtIn.velocity->m_velocity; }
+    [[nodiscard]] f32 velocityX() const { return m_builtIn.velocity->m_velocity.x; }
+    [[nodiscard]] f32 velocityY() const { return m_builtIn.velocity->m_velocity.y; }
+    [[nodiscard]] f32 velocityZ() const { return m_builtIn.velocity->m_velocity.z; }
 
     // ========== 状态 ==========
 
-    [[nodiscard]] bool onGround() const { return m_onGround; }
+    [[nodiscard]] bool onGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isRemoved() const { return m_removed; }
-    [[nodiscard]] EntityPose pose() const { return m_pose; }
-    [[nodiscard]] EntityFlags flags() const { return m_flags; }
+    // pose/flags 已迁入 ecs::EntityStateComponent/EntityFlagsComponent（真相源），经组件查询读取。
+    [[nodiscard]] EntityPose pose() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_pose;
+    }
+    [[nodiscard]] EntityFlags flags() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_flags;
+    }
+
+    /**
+     * @brief 是否拥有某 ECS 组件（透传 EntityContext::hasComponent）
+     *
+     * 供 Entity 继承体系外的调用方（AI goal/sensor、BlockEntity 等）做 tag/
+     * capability 类型标记查询，替代 dynamic_cast<接口*>。const 安全。批次5 子批
+     * 5.1 起 tag component 查询的统一外部入口。
+     */
+    template <class T>
+    [[nodiscard]] bool hasComponent() const
+    {
+        return m_entityContext->hasComponent<T>();
+    }
+
+    /**
+     * @brief 查询组件指针（透传 EntityContext::tryGetComponent）
+     *
+     * 供 Entity 继承体系外的调用方（序列化器、AI goal/sensor、BlockEntity 等）做
+     * capability/tag 组件读写，替代 dynamic_cast<接口*>。const 安全。批次6 子目标1
+     * 起组件序列化器经它直写组件内部字段（如 HealthComponent.m_healthSynced）。
+     *
+     * 注意：业务逻辑仍走 getter/setter（保持 DataParameter 同步副作用），仅在序列化
+     * 等需直访组件内部的横切关注点使用本方法。
+     */
+    template <class T>
+    [[nodiscard]] T* tryGetComponent()
+    {
+        return m_entityContext->tryGetComponent<T>();
+    }
+    template <class T>
+    [[nodiscard]] const T* tryGetComponent() const
+    {
+        return m_entityContext->tryGetComponent<T>();
+    }
+
+    /**
+     * @brief 获取本实体所属的 ECS registry（构造时透传绑定，存于 EntityContext）
+     *
+     * ECS 迁移后实体构造透传 ecs::EntityRegistry& 并 attach 组件，EntityContext 持有该
+     * registry 引用。本方法返回该引用，供需要创建子实体/同级实体（如 spawnBaby、
+     * spawnChild、summon）的场景获取 registry，避免硬依赖 m_world。
+     *
+     * 背景：原 spawnBaby 等通过 m_world->entityRegistry() 获取 registry，但单元测试中
+     * 构造的裸实体未 setWorld（m_world==nullptr）会解引用空指针崩溃。实体构造时已绑定
+     * registry，自给自足更合理。生产场景下实体总在 world 内，本方法返回的 registry 与
+     * m_world->entityRegistry() 一致；测试场景下实体未 setWorld 也能正确返回构造时传入
+     * 的 registry。
+     *
+     * 返回引用，调用方须确保本实体生命周期内 registry 仍有效（实体与 registry 同生命周期）。
+     */
+    [[nodiscard]] ecs::EntityRegistry& ecsRegistry() { return m_entityContext->registry(); }
+    [[nodiscard]] const ecs::EntityRegistry& ecsRegistry() const { return m_entityContext->registry(); }
+
     [[nodiscard]] virtual bool isChild() const { return false; }
 
     // ========== 声音 ==========
@@ -514,9 +595,9 @@ public:
      */
     void addVelocity(f32 dx, f32 dy, f32 dz)
     {
-        m_velocity.x += dx;
-        m_velocity.y += dy;
-        m_velocity.z += dz;
+        m_builtIn.velocity->m_velocity.x += dx;
+        m_builtIn.velocity->m_velocity.y += dy;
+        m_builtIn.velocity->m_velocity.z += dz;
     }
 
     /**
@@ -533,9 +614,9 @@ public:
      */
     void scaleVelocity(f32 factor)
     {
-        m_velocity.x *= factor;
-        m_velocity.y *= factor;
-        m_velocity.z *= factor;
+        m_builtIn.velocity->m_velocity.x *= factor;
+        m_builtIn.velocity->m_velocity.y *= factor;
+        m_builtIn.velocity->m_velocity.z *= factor;
     }
 
     /**
@@ -561,11 +642,11 @@ public:
      */
     void setOnGround(bool onGround)
     {
-        if (onGround && !m_onGround) {
+        if (onGround && !m_builtIn.physicsState->m_onGround) {
             // 落地时清空攀爬位置
             m_lastClimbPos = std::nullopt;
         }
-        m_onGround = onGround;
+        m_builtIn.physicsState->m_onGround = onGround;
     }
     void setPose(EntityPose pose);
     void setFlags(EntityFlags flags);
@@ -573,7 +654,7 @@ public:
     // 标志操作
     void addFlag(EntityFlags flag);
     void removeFlag(EntityFlags flag);
-    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(m_flags, flag); }
+    [[nodiscard]] bool hasFlag(EntityFlags flag) const { return mc::hasFlag(flags(), flag); }
 
     /**
      * @brief 检查是否正在鞘翅飞行
@@ -780,7 +861,7 @@ public:
         if (!m_dimensionsInitialized) {
             const_cast<Entity*>(this)->refreshDimensions();
         }
-        return m_boundingBox;
+        return m_builtIn.aabbShape->m_aabb;
     }
 
     /**
@@ -942,15 +1023,15 @@ public:
 
     // ========== 碰撞状态 ==========
 
-    [[nodiscard]] bool collidedHorizontally() const { return m_collidedHorizontally; }
-    [[nodiscard]] bool collidedVertically() const { return m_collidedVertically; }
-    [[nodiscard]] f32 fallDistance() const { return m_fallDistance; }
+    [[nodiscard]] bool collidedHorizontally() const { return m_builtIn.physicsState->m_collidedHorizontally; }
+    [[nodiscard]] bool collidedVertically() const { return m_builtIn.physicsState->m_collidedVertically; }
+    [[nodiscard]] f32 fallDistance() const { return m_builtIn.physicsState->m_fallDistance; }
 
     /**
      * @brief 设置摔落距离
      * @param distance 摔落距离
      */
-    void setFallDistance(f32 distance) { m_fallDistance = distance; }
+    void setFallDistance(f32 distance) { m_builtIn.physicsState->m_fallDistance = distance; }
 
     // ========== 移除 ==========
 
@@ -992,46 +1073,73 @@ public:
      * @brief 获取传送冷却时间
      * @return 剩余冷却时间（tick），0 表示可以传送
      */
-    [[nodiscard]] i32 portalCooldown() const { return m_portalCooldown; }
+    [[nodiscard]] i32 portalCooldown() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalCooldown : 0;
+    }
 
     /**
      * @brief 设置传送冷却时间
      * @param cooldown 冷却时间（tick）
      */
-    void setPortalCooldown(i32 cooldown) { m_portalCooldown = cooldown; }
+    void setPortalCooldown(i32 cooldown)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalCooldown = cooldown;
+        }
+    }
 
     /**
      * @brief 检查是否可以传送
      * @return 如果冷却时间为 0 则返回 true
      */
-    [[nodiscard]] bool canTeleport() const { return m_portalCooldown <= 0; }
+    [[nodiscard]] bool canTeleport() const { return portalCooldown() <= 0; }
 
     /**
      * @brief 获取在传送门中的累计时间
      * @return 累计时间（tick）
      */
-    [[nodiscard]] i32 portalTime() const { return m_portalTime; }
+    [[nodiscard]] i32 portalTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalTime : 0;
+    }
 
     /**
      * @brief 设置在传送门中的累计时间
      * @param time 累计时间（tick）
      */
-    void setPortalTime(i32 time) { m_portalTime = time; }
+    void setPortalTime(i32 time)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalTime = time;
+        }
+    }
 
     /**
      * @brief 重置传送门计时
      */
-    void resetPortalTime() { m_portalTime = 0; }
+    void resetPortalTime() { setPortalTime(0); }
 
     /**
      * @brief 检查是否在传送门中
      */
-    [[nodiscard]] bool isInPortal() const { return m_inPortal; }
+    [[nodiscard]] bool isInPortal() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_inPortal : false;
+    }
 
     /**
      * @brief 设置是否在传送门中
      */
-    void setInPortal(bool inPortal) { m_inPortal = inPortal; }
+    void setInPortal(bool inPortal)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_inPortal = inPortal;
+        }
+    }
 
     /**
      * @brief 获取在传送门中停留所需的最大时间
@@ -1044,21 +1152,13 @@ public:
     [[nodiscard]] virtual i32 getMaxInPortalTime() const { return 0; }
 
     /**
-     * @brief 处理传送门 tick
-     *
-     * 每帧调用，更新传送冷却和传送门计时。
-     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
-     * 其他实体需要约 1 tick。
-     *
-     * @return true 如果应该触发传送
-     */
-    virtual bool tickPortal();
-
-    /**
      * @brief 当传送门触发时调用
      *
      * 当实体在传送门中停留足够时间后触发。
      * 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑。
+     *
+     * 传送门 tick 逻辑（计时递进/冷却递减/inPortal 重置）已迁入 PortalTickSystem
+     * （PostEntityTick 阶段），本方法仅由 System 在达阈值时调用，执行重置 + 触发冷却。
      *
      * @return true 如果传送成功
      */
@@ -1071,12 +1171,22 @@ public:
      *
      * @param pos 传送门方块位置
      */
-    void setPortalPos(const BlockPos& pos) { m_portalPos = pos; }
+    void setPortalPos(const BlockPos& pos)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>()) {
+            c->m_portalPos = pos;
+        }
+    }
 
     /**
      * @brief 获取实体所在的传送门方块位置
      */
-    [[nodiscard]] const BlockPos& portalPos() const { return m_portalPos; }
+    [[nodiscard]] const BlockPos& portalPos() const
+    {
+        // 返回引用：组件存在时返回组件内字段引用，不存在时返回静态默认值。
+        const auto* c = m_entityContext->tryGetComponent<ecs::PortalComponent>();
+        return c != nullptr ? c->m_portalPos : ecs::PortalComponent::s_defaultPos;
+    }
 
     /**
      * @brief 触发传送冷却
@@ -1084,7 +1194,7 @@ public:
      * 传送后设置冷却时间，防止立即再次传送。
      * 默认冷却时间为 300 tick (15秒)。
      */
-    void triggerPortalCooldown() { m_portalCooldown = getPortalCooldown(); }
+    void triggerPortalCooldown() { setPortalCooldown(getPortalCooldown()); }
 
     /**
      * @brief 获取默认传送冷却时间
@@ -1404,7 +1514,7 @@ public:
      *
      * 火焰免疫的实体永远不会被认为着火。
      */
-    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && m_fire > 0; }
+    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && getRemainingFireTicks() > 0; }
 
     /**
      * @brief 获取剩余着火时间（tick）
@@ -1412,7 +1522,11 @@ public:
      * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
      * 对应 MC Java 的 getRemainingFireTicks()。
      */
-    [[nodiscard]] i32 getRemainingFireTicks() const { return m_fire; }
+    [[nodiscard]] i32 getRemainingFireTicks() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>();
+        return c != nullptr ? c->m_fire : 0;
+    }
 
     /**
      * @brief 设置剩余着火时间
@@ -1423,19 +1537,24 @@ public:
      *
      * @param ticks 火焰计时器值
      */
-    void setRemainingFireTicks(i32 ticks) { m_fire = ticks; }
+    void setRemainingFireTicks(i32 ticks)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            c->m_fire = ticks;
+        }
+    }
 
     /**
      * @brief 获取着火时间（tick）
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 fire() const { return m_fire; }
+    [[nodiscard]] i32 fire() const { return getRemainingFireTicks(); }
 
     /**
      * @brief 获取火焰计时器
      * @deprecated 使用 getRemainingFireTicks() 替代
      */
-    [[nodiscard]] i32 getFireTimer() const { return m_fire; }
+    [[nodiscard]] i32 getFireTimer() const { return getRemainingFireTicks(); }
 
     /**
      * @brief 点燃实体指定秒数
@@ -1459,8 +1578,10 @@ public:
      */
     void igniteForTicks(i32 ticks)
     {
-        if (m_fire < ticks) {
-            m_fire = ticks;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            if (c->m_fire < ticks) {
+                c->m_fire = ticks;
+            }
         }
         clearFreeze();
     }
@@ -1477,8 +1598,10 @@ public:
      */
     void setFire(i32 ticks)
     {
-        if (m_fire < ticks) {
-            m_fire = ticks;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            if (c->m_fire < ticks) {
+                c->m_fire = ticks;
+            }
         }
     }
 
@@ -1491,7 +1614,12 @@ public:
      *
      * @param ticks 火焰计时器值
      */
-    virtual void forceFireTicks(i32 ticks) { m_fire = ticks; }
+    virtual void forceFireTicks(i32 ticks)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
+            c->m_fire = ticks;
+        }
+    }
 
     /**
      * @brief 清除冰冻状态
@@ -1500,7 +1628,7 @@ public:
      * 基类实现将冰冻计时器重置为 0。
      * LivingEntity 重写此方法以额外移除冰冻减速修饰符。
      */
-    virtual void clearFreeze() { m_ticksFrozen = 0; }
+    virtual void clearFreeze() { setTicksFrozen(0); }
 
     /**
      * @brief 获取冰冻计时器值
@@ -1511,7 +1639,11 @@ public:
      *
      * @return 冰冻计时器值
      */
-    [[nodiscard]] i32 getTicksFrozen() const { return m_ticksFrozen; }
+    [[nodiscard]] i32 getTicksFrozen() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>();
+        return c != nullptr ? c->m_ticksFrozen : 0;
+    }
 
     /**
      * @brief 设置冰冻计时器值
@@ -1522,7 +1654,10 @@ public:
      */
     void setTicksFrozen(i32 ticks)
     {
-        m_ticksFrozen = ticks;
+        // FreezeComponent 为真相源，DATA_TICKS_FROZEN_PARAM 退为同步镜像。
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+            c->m_ticksFrozen = ticks;
+        }
         m_dataManager.set(DATA_TICKS_FROZEN_PARAM, ticks);
     }
 
@@ -1545,7 +1680,7 @@ public:
     [[nodiscard]] f32 getPercentFrozen() const
     {
         const i32 required = getTicksRequiredToFreeze();
-        return static_cast<f32>(std::min(m_ticksFrozen, required)) / static_cast<f32>(required);
+        return static_cast<f32>(std::min(getTicksFrozen(), required)) / static_cast<f32>(required);
     }
 
     /**
@@ -1556,7 +1691,7 @@ public:
      *
      * @return 是否完全冰冻
      */
-    [[nodiscard]] bool isFullyFrozen() const { return m_ticksFrozen >= getTicksRequiredToFreeze(); }
+    [[nodiscard]] bool isFullyFrozen() const { return getTicksFrozen() >= getTicksRequiredToFreeze(); }
 
     /**
      * @brief 检查实体是否正在冰冻中
@@ -1565,7 +1700,7 @@ public:
      *
      * @return 是否正在冰冻
      */
-    [[nodiscard]] bool isFreezing() const { return m_ticksFrozen > 0; }
+    [[nodiscard]] bool isFreezing() const { return getTicksFrozen() > 0; }
 
     /**
      * @brief 检查实体是否可以冰冻
@@ -1585,14 +1720,23 @@ public:
      *
      * @param inPowderSnow 是否在细雪中
      */
-    void setIsInPowderSnow(bool inPowderSnow) { m_isInPowderSnow = inPowderSnow; }
+    void setIsInPowderSnow(bool inPowderSnow)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+            c->m_isInPowderSnow = inPowderSnow;
+        }
+    }
 
     /**
      * @brief 检查实体是否处于细雪中
      *
      * @return 是否在细雪中
      */
-    [[nodiscard]] bool isInPowderSnow() const { return m_isInPowderSnow; }
+    [[nodiscard]] bool isInPowderSnow() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::FreezeComponent>();
+        return c != nullptr && c->m_isInPowderSnow;
+    }
 
     /** @brief 冰冻所需的基础 tick 数（140 tick = 7 秒） */
     static constexpr i32 BASE_TICKS_REQUIRED_TO_FREEZE = 140;
@@ -1687,7 +1831,12 @@ public:
     /**
      * @brief 获取空气值
      */
-    [[nodiscard]] i32 air() const { return m_air; }
+    [[nodiscard]] i32 air() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_air;
+    }
 
     /**
      * @brief 设置空气值
@@ -1794,7 +1943,12 @@ public:
      * @brief 获取自定义名称组件
      * @return 自定义名称组件指针，如果没有返回 nullptr
      */
-    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const { return m_customName.get(); }
+    [[nodiscard]] const text::ITextComponent* getCustomNameComponent() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName.get();
+    }
 
     /**
      * @brief 获取自定义名称的纯文本
@@ -1802,14 +1956,21 @@ public:
      */
     [[nodiscard]] std::string customNameText() const
     {
-        return m_customName ? m_customName->getUnformattedText() : std::string();
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName ? c->m_customName->getUnformattedText() : std::string();
     }
 
     /**
      * @brief 检查是否有自定义名称
      * @return 如果有自定义名称返回true
      */
-    [[nodiscard]] bool hasCustomName() const { return m_customName != nullptr; }
+    [[nodiscard]] bool hasCustomName() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customName != nullptr;
+    }
 
     /**
      * @brief 获取显示名称
@@ -1835,7 +1996,12 @@ public:
     /**
      * @brief 检查自定义名称是否可见
      */
-    [[nodiscard]] bool isCustomNameVisible() const { return m_customNameVisible; }
+    [[nodiscard]] bool isCustomNameVisible() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_customNameVisible;
+    }
 
     /**
      * @brief 设置自定义名称可见性
@@ -1847,7 +2013,12 @@ public:
     /**
      * @brief 检查是否静音
      */
-    [[nodiscard]] bool isSilent() const { return m_silent; }
+    [[nodiscard]] bool isSilent() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_silent;
+    }
 
     /**
      * @brief 设置静音状态
@@ -1859,7 +2030,12 @@ public:
     /**
      * @brief 检查是否受重力影响
      */
-    [[nodiscard]] bool hasNoGravity() const { return m_noGravity; }
+    [[nodiscard]] bool hasNoGravity() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_noGravity;
+    }
 
     /**
      * @brief 设置是否受重力影响
@@ -2656,42 +2832,46 @@ protected:
     // const 方法内的懒查询。指向 EntityRegistry::m_types 内对象，地址稳定。
     // 声明于 m_typeId 之后，与 m_memTrack 布局约束兼容（m_memTrack 须居数据成员前）。
     mutable const entity::EntityType* m_entityType = nullptr;
-    Vector3 m_position;     // 当前位置
-    Vector3 m_prevPosition; // 上一帧位置
-    Vector3 m_velocity;     // 速度
+
+    // ========== ECS 桥接 ==========
+    //
+    // m_entityContext：ECS 实体的非拥有视图三元组（registry 引用 + entt registry
+    // 引用 + EntityId），由构造时 registry.create() 建立。通过它可查询任意组件
+    // （首批4高频组件已由 m_builtIn 缓存裸指针加速，其余组件走 context 查询）。
+    //
+    // m_builtIn：4 高频组件（StateVector/Velocity/AABBShape/EntityRotation）的裸
+    // 指针缓存，构造 attach 后填充。position()/velocity() 等 getter 直接解引用，
+    // 避免每次走 entt 查询。指针稳定性契约见 BuiltInEntityComponents.hpp。
+    //
+    // 原 m_position/m_prevPosition/m_velocity/m_yaw/m_pitch/m_prevYaw/m_prevPitch/
+    // m_boundingBox 8 个字段已删除，数据迁入上述组件（零双写硬约束）。
+    std::unique_ptr<ecs::EntityContext> m_entityContext;
+    ecs::BuiltInEntityComponents m_builtIn{};
 
     mutable math::Random m_random; ///< 实体随机数生成器，构造时初始化
 
-    f32 m_yaw = 0.0f;   // 偏航角 (Y轴旋转)
-    f32 m_pitch = 0.0f; // 俯仰角 (X轴旋转)
-    f32 m_prevYaw = 0.0f;
-    f32 m_prevPitch = 0.0f;
-
-    bool m_onGround = false;
+    // m_onGround 已迁入 PhysicsStateComponent（见 m_builtIn.physicsState->m_onGround）。
     bool m_removed = false;
     bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
     bool m_glowing = false; // 发光状态（服务端使用）
-    EntityPose m_pose = EntityPose::Standing;
-    EntityFlags m_flags = EntityFlags::None;
+    // m_pose / m_flags 已迁入 ecs::EntityStateComponent / EntityFlagsComponent（真相源），
+    // DATA_POSE_PARAM / DATA_FLAGS_PARAM 退为同步镜像。经 pose()/flags()/setPose()/setFlags()
+    // 等读写（见 m_entityContext->tryGetComponent）。
     entity::EntitySize m_dimensions = entity::EntitySize::flexible(0.6f, 1.8f);
-    AxisAlignedBB m_boundingBox = AxisAlignedBB::fromPosition(Vector3(0.0f, 0.0f, 0.0f), 0.6f, 1.8f);
+    // m_boundingBox 已迁入 AABBShapeComponent（见 m_builtIn.aabbShape->m_aabb）。
     bool m_dimensionsInitialized = false;
 
     // 物理相关
     PhysicsEngine* m_physicsEngine = nullptr;
-    bool m_collidedHorizontally = false;
-    bool m_collidedVertically = false;
-    f32 m_fallDistance = 0.0f;
+    // m_collidedHorizontally/m_collidedVertically/m_fallDistance 已迁入 PhysicsStateComponent
+    // （见 m_builtIn.physicsState）。
     f32 m_stepHeight = 0.0f; // 步进高度，默认0.0f，LivingEntity设置为0.6f
 
     DimensionId m_dimension = 0;
     u32 m_ticksExisted = 0;
 
-    // 传送门相关
-    i32 m_portalCooldown = 0; // 传送冷却（防止频繁传送，单位：tick）
-    i32 m_portalTime = 0;     // 在传送门中的累计时间（单位：tick）
-    bool m_inPortal = false;  // 是否在传送门中
-    BlockPos m_portalPos;     // 所在传送门方块的位置
+    // 传送门相关字段（m_portalCooldown/m_portalTime/m_inPortal/m_portalPos）已迁入
+    // ecs::PortalComponent，经 m_entityContext->tryGetComponent 读写。
 
     // 世界引用
     IWorld* m_world = nullptr;
@@ -2731,17 +2911,19 @@ protected:
     f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
-    i32 m_fire = 0;             // 剩余着火时间（tick），正值=燃烧，负值=火焰免疫期倒计时
+    // m_fire（剩余着火时间）已迁入 ecs::FireComponent，经 m_entityContext->tryGetComponent 读写。
 
     // 冰冻状态
-    i32 m_ticksFrozen = 0;         ///< 冰冻计时器（正值=冰冻进度，达到 getTicksRequiredToFreeze() 时完全冰冻）
-    bool m_isInPowderSnow = false; ///< 当前 tick 是否处于细雪中（每帧重置，由 PowderSnowBlock::onEntityCollision 设置）
+    // m_ticksFrozen / m_isInPowderSnow 已迁入 ecs::FreezeComponent（真相源），
+    // DATA_TICKS_FROZEN_PARAM 退为同步镜像。经 getTicksFrozen/setTicksFrozen/
+    // isInPowderSnow/setIsInPowderSnow 读写（见 m_entityContext->tryGetComponent）。
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置
 
     // 空气值
-    i32 m_air = 300; // 默认最大空气值
+    // m_air 已迁入 ecs::EntityStateComponent（真相源），DATA_AIR_PARAM 退为同步镜像。
+    // 经 air()/setAir() 读写（见 m_entityContext->tryGetComponent）。
 
     // 无敌
     bool m_invulnerable = false;
@@ -2751,14 +2933,17 @@ protected:
     bool m_hurtMarked = false;
 
     // 自定义名称
-    std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称
-    bool m_customNameVisible = false;
+    // m_customName / m_customNameVisible 已迁入 ecs::EntityStateComponent（真相源），
+    // DATA_CUSTOM_NAME_PARAM / DATA_CUSTOM_NAME_VISIBLE_PARAM 退为同步镜像。
+    // 经 getCustomNameComponent()/setCustomName()/setCustomNameVisible() 等读写。
 
     // 静音
-    bool m_silent = false;
+    // m_silent 已迁入 ecs::EntityStateComponent（真相源），DATA_SILENT_PARAM 退为同步镜像。
+    // 经 isSilent()/setSilent() 读写。
 
     // 重力
-    bool m_noGravity = false;
+    // m_noGravity 已迁入 ecs::EntityStateComponent（真相源），DATA_NO_GRAVITY_PARAM 退为同步镜像。
+    // 经 hasNoGravity()/setNoGravity() 读写。
 
     // 实体标签（最多1024个标签）
     std::set<std::string> m_tags;

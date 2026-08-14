@@ -46,7 +46,12 @@ std::unique_ptr<entity::ProjectileEntity> FireworkRocketItem::asProjectile(IWorl
     f32 /*directionY*/,
     f32 /*directionZ*/) const
 {
-    auto entity = entity::FireworkRocketEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = entity::FireworkRocketEntity::create(&world, *registry);
     if (entity) {
         // 必须在 setFireworkItem 之前 setWorld，以便 _ensureLifeTimeComputed 能访问世界 RNG
         entity->setWorld(&world);

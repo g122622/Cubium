@@ -67,7 +67,7 @@ using namespace mc::world::biome;
  *
  * 继承 BaseTestWorld，提供可控的方块状态存储、天气控制和随机数控制。
  */
-class LayeredCauldronTestWorld : public test::BaseTestWorld {
+class LayeredCauldronTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {
@@ -533,8 +533,8 @@ TEST_F(LayeredCauldronPrecipTest, HandlePrecipitation_LevelTwoCanReachMax)
  */
 class LayeredCauldronTestEntity : public LivingEntity {
 public:
-    LayeredCauldronTestEntity(EntityInstanceId id, IWorld* world = nullptr)
-        : LivingEntity(id, world)
+    LayeredCauldronTestEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry)
+        : LivingEntity(id, world, registry)
     {
         setHealth(20.0f);
     }
@@ -577,7 +577,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, Level1_BurningEntity_ExtinguishesAndL
     placeWaterCauldron(pos, 1);
     ASSERT_EQ(world_.getCauldronLevel(pos), 1);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
     ASSERT_TRUE(entity.isOnFire());
 
@@ -596,7 +596,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, Level2_BurningEntity_ExtinguishesAndL
     placeWaterCauldron(pos, 2);
     ASSERT_EQ(world_.getCauldronLevel(pos), 2);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
     ASSERT_TRUE(entity.isOnFire());
 
@@ -613,7 +613,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, Level3_BurningEntity_ExtinguishesAndL
     placeWaterCauldron(pos, 3);
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
     ASSERT_TRUE(entity.isOnFire());
 
@@ -630,7 +630,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, NonBurningEntity_NoEffect)
     placeWaterCauldron(pos, 3);
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     ASSERT_FALSE(entity.isOnFire());
 
     waterCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
@@ -645,7 +645,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, FireImmuneBurningEntity_NoExtinguishN
     placeWaterCauldron(pos, 3);
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.setImmuneToFire(true);
     entity.igniteForTicks(100);
     ASSERT_FALSE(entity.isOnFire()) << "Fire-immune entity should not be considered on fire";
@@ -664,7 +664,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, MultipleExtinguish_DecreasesLevelEach
 
     // 第一次：水位3 → 2
     {
-        LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+        LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
         entity.igniteForTicks(100);
         waterCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
         EXPECT_EQ(world_.getCauldronLevel(pos), 2);
@@ -672,7 +672,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, MultipleExtinguish_DecreasesLevelEach
 
     // 第二次：水位2 → 1
     {
-        LayeredCauldronTestEntity entity(EntityInstanceId(2), &world_);
+        LayeredCauldronTestEntity entity(EntityInstanceId(2), &world_, mc::test::testEcsRegistry());
         entity.igniteForTicks(100);
         waterCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
         EXPECT_EQ(world_.getCauldronLevel(pos), 1);
@@ -680,7 +680,7 @@ TEST_F(LayeredCauldronEntityCollisionTest, MultipleExtinguish_DecreasesLevelEach
 
     // 第三次：水位1 → 空炼药锅
     {
-        LayeredCauldronTestEntity entity(EntityInstanceId(3), &world_);
+        LayeredCauldronTestEntity entity(EntityInstanceId(3), &world_, mc::test::testEcsRegistry());
         entity.igniteForTicks(100);
         waterCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
         // 水位降至0，替换为空炼药锅
@@ -994,7 +994,7 @@ TEST_F(LayeredCauldronDripTest, ReceiveStalactiteDrip_WaterDrip_DoesNotExceedMax
  *
  * 在 LayeredCauldronTestWorld 基础上增加细雪炼药锅判定辅助方法。
  */
-class PowderSnowCauldronTestWorld : public test::BaseTestWorld {
+class PowderSnowCauldronTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {
@@ -1227,7 +1227,7 @@ TEST_F(PowderSnowCauldronEntityCollisionTest, Level3_BurningEntity_ConvertsToWat
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
     ASSERT_TRUE(entity.isOnFire());
 
@@ -1248,7 +1248,7 @@ TEST_F(PowderSnowCauldronEntityCollisionTest, Level2_BurningEntity_ConvertsToWat
     placePowderSnowCauldron(pos, 2);
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
 
     powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
@@ -1264,7 +1264,7 @@ TEST_F(PowderSnowCauldronEntityCollisionTest, Level1_BurningEntity_ConvertsToEmp
     placePowderSnowCauldron(pos, 1);
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.igniteForTicks(100);
 
     powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
@@ -1280,7 +1280,7 @@ TEST_F(PowderSnowCauldronEntityCollisionTest, NonBurningEntity_NoEffect)
     const BlockPos pos(0, 64, 0);
     placePowderSnowCauldron(pos, 3);
 
-    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_);
+    LayeredCauldronTestEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     ASSERT_FALSE(entity.isOnFire());
 
     powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
@@ -1369,7 +1369,7 @@ TEST_F(PowderSnowCauldronComparatorTest, ComparatorSignalEqualsLevel)
  * 提供 playSound、gameEvent、spawnEntity 等方法的 stub 实现，
  * 确保 onBlockActivated 不会因为缺少世界方法而崩溃。
  */
-class CauldronInteractionTestWorld : public test::BaseTestWorld {
+class CauldronInteractionTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {
@@ -1582,7 +1582,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsPowderSnowFromFull
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true; // 创造模式避免物品替换逻辑
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);
@@ -1608,7 +1608,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_NonFullPowderSnowCauldron_
     placePowderSnowCauldron(pos, 2);
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);
@@ -1635,7 +1635,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FillsPowderSnowCauldr
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 1);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
@@ -1660,7 +1660,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_OnWaterCauldron_NoFil
     ASSERT_TRUE(world_.isWaterCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 1);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
@@ -1685,7 +1685,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_ConvertsPowderSnowToWaterC
     placePowderSnowCauldron(pos, 2);
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
@@ -1710,7 +1710,7 @@ TEST_F(PowderSnowCauldronInteractionTest, LavaBucket_ConvertsPowderSnowToLavaCau
     placePowderSnowCauldron(pos, 2);
     ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::LAVA_BUCKET, 1);
@@ -1732,7 +1732,7 @@ TEST_F(PowderSnowCauldronInteractionTest, GlassBottle_PowderSnowCauldron_Returns
     const BlockPos pos(0, 64, 0);
     placePowderSnowCauldron(pos, 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::GLASS_BOTTLE, 1);
@@ -1756,7 +1756,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBottle_PowderSnowCauldron_Returns
     const BlockPos pos(0, 64, 0);
     placePowderSnowCauldron(pos, 2);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     // 创建水瓶
@@ -1778,7 +1778,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyHand_PowderSnowCauldron_ReturnsPa
     const BlockPos pos(0, 64, 0);
     placePowderSnowCauldron(pos, 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     // 空手
     player.getHeldItem(Hand::MainHand) = ItemStack();
@@ -1802,7 +1802,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FullPowderSnowCauldro
     placePowderSnowCauldron(pos, 3);
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
@@ -1828,7 +1828,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FullWaterCauldron_NoEffect
     ASSERT_TRUE(world_.isWaterCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
@@ -1853,7 +1853,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FillsWaterCauldronToLevel3
     ASSERT_TRUE(world_.isWaterCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 1);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
@@ -1878,7 +1878,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsWaterFromFullWater
     ASSERT_TRUE(world_.isWaterCauldron(pos));
     ASSERT_EQ(world_.getCauldronLevel(pos), 3);
 
-    Player player(EntityInstanceId(100), "TestPlayer");
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.abilities().creativeMode = true;
     player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);

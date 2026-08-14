@@ -56,7 +56,7 @@ namespace {
 /**
  * @brief 洞穴藤蔓测试用 Mock 世界实现
  */
-class CaveVinesTestWorld final : public test::BaseTestWorld {
+class CaveVinesTestWorld final : public mc::test::BaseTestWorld {
 public:
     CaveVinesTestWorld() { VanillaBlocks::initialize(); }
 
@@ -247,7 +247,7 @@ TEST_F(CaveVinesBlockTest, GetCloneItemStackWithBerries)
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -262,7 +262,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -280,7 +280,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_UsesFlag2)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -296,7 +296,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_UsesFlag2)
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(10, 64, 10);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -323,7 +323,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_PlaysPickSound)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(20, 64, 20);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -345,7 +345,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ClientSide_NoDropNoSound
 {
     CaveVinesTestWorld world;
     world.setClientSide(true); // 客户端
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(30, 64, 30);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -367,7 +367,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ClientSide_NoDropNoSound
 TEST_F(CaveVinesBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(40, 64, 40);
 
     const BlockState& state = m_vines->defaultState().with(BlockStateProperties::BERRIES(), false);
@@ -438,7 +438,7 @@ TEST_F(CaveVinesPlantBlockTest, GetCloneItemStackReturnsGlowBerries)
 TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     const BlockState& state = m_plant->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -453,7 +453,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
 TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(0, 64, 0);
 
     const BlockState& state = m_plant->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -470,7 +470,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
 TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(10, 64, 10);
 
     const BlockState& state = m_plant->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -495,7 +495,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
 TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_PlaysPickSound)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(20, 64, 20);
 
     const BlockState& state = m_plant->defaultState().with(BlockStateProperties::BERRIES(), true);
@@ -514,7 +514,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_PlaysPickSound)
 TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
 {
     CaveVinesTestWorld world;
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     BlockPos pos(40, 64, 40);
 
     const BlockState& state = m_plant->defaultState().with(BlockStateProperties::BERRIES(), false);

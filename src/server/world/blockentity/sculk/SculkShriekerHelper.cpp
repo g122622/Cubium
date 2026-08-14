@@ -237,8 +237,14 @@ bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& p
                 continue;
             }
 
+            // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+            auto* registry = world.entityRegistry();
+            if (registry == nullptr) {
+                return false;
+            }
+
             // 有效生成位置，创建监守者实体
-            auto wardenEntity = wardenType->create(&world);
+            auto wardenEntity = wardenType->create(&world, *registry);
             if (wardenEntity == nullptr) {
                 return false;
             }

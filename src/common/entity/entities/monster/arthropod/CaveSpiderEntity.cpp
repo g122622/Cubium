@@ -36,8 +36,8 @@
 
 namespace mc {
 
-CaveSpiderEntity::CaveSpiderEntity(EntityInstanceId id)
-    : SpiderEntity(id)
+CaveSpiderEntity::CaveSpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SpiderEntity(id, registry)
 {
     // 注册属性
     registerAttributes();
@@ -50,9 +50,9 @@ std::optional<ResourceLocation> CaveSpiderEntity::getAmbientSound() const
     return SoundEvents::ENTITY_SPIDER_AMBIENT;
 }
 
-std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CaveSpiderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CaveSpiderEntity>(EntityInstanceId(0));
+    return std::make_unique<CaveSpiderEntity>(EntityInstanceId(0), registry);
 }
 
 void CaveSpiderEntity::registerAttributes()
@@ -61,9 +61,9 @@ void CaveSpiderEntity::registerAttributes()
     SpiderEntity::registerAttributes();
 
     // 洞穴蜘蛛的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 bool CaveSpiderEntity::attackEntityAsMob(LivingEntity& target)

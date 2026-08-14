@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/DamagingProjectileComponent.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/world/IWorld.hpp"
@@ -34,17 +35,71 @@
 namespace mc {
 namespace entity {
 
-DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = ProjectileEntity::classInfo()）。
+// 本类无同步字段，classInfo 仅作父链遍历节点供子类（AbstractFireball → Fireball/WitherSkull）
+// ClassRegisterGuard 沿父链查找最高 id 时穿过。
+const EntityClassInfo& DamagingProjectileEntity::classInfo()
+{
+    static const EntityClassInfo s_classInfo{"DamagingProjectileEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
+DamagingProjectileEntity::DamagingProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
 {
     setNoGravity(true);
+    // 批次6 子目标2 Step1：attach DamagingProjectileComponent（加速度+伤害 4 字段）。
+    // Fireball/SmallFireball/DragonFireball/WitherSkull 经 AbstractFireballEntity 继承本类，
+    // 故均获得此组件。Step4 将把 m_accelerationX/Y/Z/m_damage 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::DamagingProjectileComponent>(m_entityContext->entity());
+}
+
+// 批次6 子目标2 Step4：以下 getter/setter 经 ecs::DamagingProjectileComponent 读写。
+f32 DamagingProjectileEntity::accelerationX() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationX : 0.0f;
+}
+
+f32 DamagingProjectileEntity::accelerationY() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationY : 0.0f;
+}
+
+f32 DamagingProjectileEntity::accelerationZ() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_accelerationZ : 0.0f;
+}
+
+void DamagingProjectileEntity::setAcceleration(f32 x, f32 y, f32 z)
+{
+    auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    if (c != nullptr) {
+        c->m_accelerationX = x;
+        c->m_accelerationY = y;
+        c->m_accelerationZ = z;
+    }
+}
+
+f32 DamagingProjectileEntity::damage() const
+{
+    const auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    return (c != nullptr) ? c->m_damage : 0.0f;
+}
+
+void DamagingProjectileEntity::setDamage(f32 damage)
+{
+    auto* c = tryGetComponent<ecs::DamagingProjectileComponent>();
+    if (c != nullptr) {
+        c->m_damage = damage;
+    }
 }
 
 void DamagingProjectileEntity::tick()
 {
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 火球类实体每 tick 燃烧 1 秒（20 ticks）
     if (isFiery()) {
@@ -60,8 +115,8 @@ void DamagingProjectileEntity::tick()
         }
     }
 
-    const Vector3 velocity = m_velocity;
-    const Vector3 nextPosition = m_position + velocity;
+    const Vector3 velocity = m_builtIn.velocity->m_velocity;
+    const Vector3 nextPosition = m_builtIn.stateVector->m_pos + velocity;
 
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
@@ -72,15 +127,18 @@ void DamagingProjectileEntity::tick()
         spawnWaterParticles();
     }
 
-    m_velocity = Vector3((velocity.x + m_accelerationX) * motionFactor,
-        (velocity.y + m_accelerationY) * motionFactor,
-        (velocity.z + m_accelerationZ) * motionFactor);
+    const auto* dmg = tryGetComponent<ecs::DamagingProjectileComponent>();
+    const f32 ax = dmg ? dmg->m_accelerationX : 0.0f;
+    const f32 ay = dmg ? dmg->m_accelerationY : 0.0f;
+    const f32 az = dmg ? dmg->m_accelerationZ : 0.0f;
+    m_builtIn.velocity->m_velocity =
+        Vector3((velocity.x + ax) * motionFactor, (velocity.y + ay) * motionFactor, (velocity.z + az) * motionFactor);
 
     // 生成拖尾粒子，位置 Y+0.5 偏移
     spawnTrailParticles(Vector3(nextPosition.x, nextPosition.y + 0.5f, nextPosition.z));
 
-    m_prevPosition = m_position;
-    m_position = nextPosition;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = nextPosition;
 
     Entity::tick();
 }
@@ -108,8 +166,10 @@ void DamagingProjectileEntity::spawnWaterParticles()
     if (m_world != nullptr && m_world->isClientSide()) {
         for (i32 i = 0; i < 4; ++i) {
             constexpr f32 offset = 0.25f;
-            Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                y() - m_builtIn.velocity->m_velocity.y * offset,
+                z() - m_builtIn.velocity->m_velocity.z * offset);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
         }
     }
 }

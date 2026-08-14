@@ -31,6 +31,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/MobFlagComponent.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -51,9 +52,15 @@ const entity::EntityClassInfo& MonsterEntity::classInfo()
     return s_classInfo;
 }
 
-MonsterEntity::MonsterEntity(EntityInstanceId id)
-    : CreatureEntity(id)
+MonsterEntity::MonsterEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : CreatureEntity(id, registry)
 {
+    // 批次5 子批 5.1：attach MobFlagComponent（IMob 接口的 tag component 层）。
+    // 基类 LivingEntity 构造已 attach 10 组件，此处续接 attach 怪物标记。
+    // 所有 MonsterEntity 子类（Zombie/Skeleton/Creeper 等）经此自动获得 tag，
+    // 供 hasComponent<MobFlagComponent>() 替代 dynamic_cast<IMob*> 类型查询。
+    m_entityContext->enttRegistry().emplace<ecs::MobFlagComponent>(m_entityContext->entity());
+
     // 怪物默认经验值为 5
     setExperienceValue(5);
 
@@ -68,7 +75,7 @@ void MonsterEntity::registerAttributes()
     CreatureEntity::registerAttributes();
 
     // 注册攻击伤害属性（默认值为 0，子类设置具体值）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
 }
 
 std::optional<ResourceLocation> MonsterEntity::getHurtSound(DamageSource& /*source*/) const

@@ -53,7 +53,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class PaneTestWorld final : public test::BaseTestWorld {
+class PaneTestWorld final : public mc::test::BaseTestWorld {
 public:
     PaneTestWorld() = default;
 

@@ -39,6 +39,7 @@
 #include "../../../../world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "../../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../../world/block/registry/VanillaBlocks.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
@@ -58,17 +59,17 @@ namespace mc {
 
 using namespace entity::serialization::nbt_helper;
 
-MooshroomEntity::MooshroomEntity(EntityInstanceId id)
-    : CowEntity(id)
+MooshroomEntity::MooshroomEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : CowEntity(id, registry)
 {
     // 默认红色哞菇
     // 注册 AI 目标（继承自 CowEntity）
     registerGoals();
 }
 
-std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> MooshroomEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<MooshroomEntity>(0);
+    return std::make_unique<MooshroomEntity>(0, registry);
 }
 
 std::vector<ItemStack> MooshroomEntity::shear(Player* player)
@@ -109,7 +110,13 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
     }
 
     // 创建新的牛实体替代哞菇
-    auto cow = std::make_unique<CowEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return drops;
+    }
+    auto cow = std::make_unique<CowEntity>(0, *registry);
+    cow->setTypeId(entity::EntityTypeKeys::COW); // 工厂绕过补救：直接构造缺 typeId
 
     // 继承位置和朝向
     cow->setPosition(x(), y(), z());
@@ -312,8 +319,14 @@ std::optional<std::pair<entity::effect::EffectType, i32>> MooshroomEntity::_getS
 
 std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建幼年哞菇
-    auto baby = std::make_unique<MooshroomEntity>(0);
+    auto baby = std::make_unique<MooshroomEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);

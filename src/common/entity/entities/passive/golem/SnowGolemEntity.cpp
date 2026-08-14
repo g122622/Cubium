@@ -62,8 +62,8 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-SnowGolemEntity::SnowGolemEntity(EntityInstanceId id)
-    : GolemEntity(id)
+SnowGolemEntity::SnowGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GolemEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -76,9 +76,9 @@ SnowGolemEntity::SnowGolemEntity(EntityInstanceId id)
 // 静态工厂方法
 // ============================================================================
 
-std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SnowGolemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SnowGolemEntity>(0);
+    return std::make_unique<SnowGolemEntity>(0, registry);
 }
 
 // ============================================================================
@@ -94,8 +94,11 @@ std::vector<ItemStack> SnowGolemEntity::shear(Player* /*player*/)
 
         // 播放剪刀音效
         if (world() != nullptr) {
-            world()->playSound(
-                SoundEvents::ENTITY_SNOW_GOLEM_SHEAR, sound::SoundCategory::Neutral, m_position, 1.0f, 1.0f);
+            world()->playSound(SoundEvents::ENTITY_SNOW_GOLEM_SHEAR,
+                sound::SoundCategory::Neutral,
+                m_builtIn.stateVector->m_pos,
+                1.0f,
+                1.0f);
         }
 
         // 掉落雕刻南瓜
@@ -161,8 +164,14 @@ void SnowGolemEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*c
         return;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world()->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 创建雪球实体
-    auto snowballEntity = entity::SnowballEntity::create(world());
+    auto snowballEntity = entity::SnowballEntity::create(world(), *registry);
     entity::SnowballEntity* snowball = static_cast<entity::SnowballEntity*>(snowballEntity.get());
 
     // 设置位置（从眼睛高度发射）
@@ -298,8 +307,8 @@ void SnowGolemEntity::registerAttributes()
     // 调用父类方法
     GolemEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 4.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
 // ============================================================================

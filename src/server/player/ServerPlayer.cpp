@@ -78,8 +78,8 @@
 
 namespace mc {
 
-ServerPlayer::ServerPlayer(EntityInstanceId id, const std::string& name)
-    : Player(id, name)
+ServerPlayer::ServerPlayer(EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry)
+    : Player(id, name, registry)
 {
     initAdvancements();
     setupInventoryCallback();
@@ -693,9 +693,9 @@ void ServerPlayer::onInsideBlock(const BlockState& blockState)
     }
 
     // 获取当前位置
-    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos pos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     // 发布 EnterBlockEvent
     m_world->onEnterBlock(static_cast<PlayerId>(id()), pos, &blockState);

@@ -58,7 +58,7 @@ namespace {
 // 测试用世界 - 支持可控游戏时间、playSound、gameEvent、spawnEntity
 // ============================================================================
 
-class CopperGolemTestWorld final : public test::BaseTestWorld {
+class CopperGolemTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemTestWorld() = default;
 
@@ -134,7 +134,7 @@ protected:
     {
         VanillaBlocks::initialize();
         VanillaEntities::registerAll();
-        golem_ = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+        golem_ = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<CopperGolemEntity> golem_;
@@ -209,7 +209,7 @@ TEST_F(CopperGolemEntityTest, Attributes_HasCorrectBaseValues)
 TEST_F(CopperGolemEntityTest, Create_ReturnsValidEntity)
 {
     CopperGolemTestWorld world;
-    auto entity = CopperGolemEntity::create(&world);
+    auto entity = CopperGolemEntity::create(&world, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     auto* golem = dynamic_cast<CopperGolemEntity*>(entity.get());
@@ -518,7 +518,7 @@ TEST_F(CopperGolemEntityTest, NBT_RoundTrip_PreservesWeatherState)
     nbt::tags::compound_tag saveTag;
     golem_->addAdditionalSaveData(saveTag);
 
-    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
+    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     auto result = golem2->readAdditionalSaveData(saveTag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -533,7 +533,7 @@ TEST_F(CopperGolemEntityTest, NBT_ReadResetsBehaviorStateToIdle)
     nbt::tags::compound_tag saveTag;
     golem_->addAdditionalSaveData(saveTag);
 
-    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
+    auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     golem2->setBehaviorState(CopperGolemState::DroppingItem);
     auto result = golem2->readAdditionalSaveData(saveTag);
     EXPECT_TRUE(static_cast<bool>(result));
@@ -554,7 +554,7 @@ TEST_F(CopperGolemEntityTest, NBT_AllWeatherStateStrings_RoundTrip)
     };
 
     for (const auto& c : cases) {
-        auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+        auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         golem->setWeatherState(c.state);
 
         nbt::tags::compound_tag tag;
@@ -564,7 +564,7 @@ TEST_F(CopperGolemEntityTest, NBT_AllWeatherStateStrings_RoundTrip)
         ASSERT_TRUE(strVal.has_value());
         EXPECT_EQ(*strVal, c.str) << "Failed for weather state " << static_cast<i32>(c.state);
 
-        auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2));
+        auto golem2 = std::make_unique<CopperGolemEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         auto result = golem2->readAdditionalSaveData(tag);
         EXPECT_TRUE(static_cast<bool>(result));
         EXPECT_EQ(golem2->getWeatherState(), c.state);

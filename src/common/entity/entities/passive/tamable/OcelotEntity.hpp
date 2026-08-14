@@ -91,7 +91,7 @@ public:
      * @param type 实体类型
      * @param id 实体ID
      */
-    OcelotEntity(EntityInstanceId id);
+    OcelotEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~OcelotEntity() override = default;
 
     // 禁止拷贝
@@ -107,7 +107,7 @@ public:
      * @param world 世界实例
      * @return 新的豹猫实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 信任系统 ==========
 

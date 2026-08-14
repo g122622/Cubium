@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -78,13 +79,13 @@ const entity::EntityClassInfo& VindicatorEntity::classInfo()
 
 // ==================== PillagerEntity ====================
 
-std::unique_ptr<Entity> PillagerEntity::create(IWorld* world)
+std::unique_ptr<Entity> PillagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PillagerEntity>(EntityInstanceId(0));
+    return std::make_unique<PillagerEntity>(EntityInstanceId(0), registry);
 }
 
-PillagerEntity::PillagerEntity(EntityInstanceId id)
-    : AbstractIllagerEntity(id)
+PillagerEntity::PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractIllagerEntity(id, registry)
 {
     registerAttributes();
 
@@ -157,7 +158,13 @@ void PillagerEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f3
 
     // 创建箭矢实体
     // 掠夺者不消耗弹药，直接创建箭矢
-    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0), *registry);
+    arrow->setTypeId(entity::EntityTypeKeys::ARROW); // 工厂绕过补救：直接构造缺 typeId
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);
@@ -248,21 +255,21 @@ void PillagerEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
 // ==================== VindicatorEntity ====================
 
-std::unique_ptr<Entity> VindicatorEntity::create(IWorld* world)
+std::unique_ptr<Entity> VindicatorEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VindicatorEntity>(EntityInstanceId(0));
+    return std::make_unique<VindicatorEntity>(EntityInstanceId(0), registry);
 }
 
-VindicatorEntity::VindicatorEntity(EntityInstanceId id)
-    : AbstractIllagerEntity(id)
+VindicatorEntity::VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractIllagerEntity(id, registry)
 {
     registerAttributes();
 
@@ -337,11 +344,11 @@ void VindicatorEntity::registerAttributes()
 {
     AbstractIllagerEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
     // 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
 
 } // namespace mc

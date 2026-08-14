@@ -60,7 +60,7 @@ protected:
 TEST_F(HangingEntityTest, CanPlaceOnReturnsFalseWhenWorldIsNull)
 {
     // 创建画作实体
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
 
     // 没有设置世界时应该返回 false
     EXPECT_FALSE(painting.canPlaceOn());
@@ -70,7 +70,7 @@ TEST_F(HangingEntityTest, CanPlaceOnReturnsTrueForValidPosition)
 {
     // 这个测试需要模拟世界，目前只验证方法存在
     // 实际测试需要 Mock IWorld
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
 
     // 验证方法可以调用
     // 由于没有设置世界，应该返回 false
@@ -80,7 +80,7 @@ TEST_F(HangingEntityTest, CanPlaceOnReturnsTrueForValidPosition)
 TEST_F(HangingEntityTest, LeashKnotEntityCanBeCreated)
 {
     // 验证拴绳结实体可以创建
-    entity::LeashKnotEntity leashKnot;
+    entity::LeashKnotEntity leashKnot{mc::test::testEcsRegistry()};
 
     EXPECT_EQ(leashKnot.getWidth(), 1);
     EXPECT_EQ(leashKnot.getHeight(), 1);
@@ -89,7 +89,7 @@ TEST_F(HangingEntityTest, LeashKnotEntityCanBeCreated)
 TEST_F(HangingEntityTest, ItemFrameEntityCanBeCreated)
 {
     // 验证物品展示框实体可以创建
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     EXPECT_EQ(itemFrame.getWidth(), 1);
     EXPECT_EQ(itemFrame.getHeight(), 1);
@@ -101,7 +101,7 @@ TEST_F(HangingEntityTest, ItemFrameEntityCanBeCreated)
 
 TEST_F(HangingEntityTest, PaintingEntityMotiveCanBeSet)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
 
     // 验证默认画作
     EXPECT_EQ(painting.getMotive(), "Kebab");
@@ -118,7 +118,7 @@ TEST_F(HangingEntityTest, PaintingEntityMotiveCanBeSet)
 TEST_F(HangingEntityTest, PaintingEntityDimensions)
 {
     // 验证不同画作的尺寸
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
 
     // 1x1 画作
     painting.setMotive("Kebab");
@@ -138,7 +138,7 @@ TEST_F(HangingEntityTest, PaintingEntityDimensions)
 
 TEST_F(HangingEntityTest, ItemFrameRotation)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     // 初始旋转
     EXPECT_EQ(itemFrame.getItemRotation(), 0);
@@ -170,7 +170,7 @@ TEST_F(HangingEntityTest, ItemFrameRotation)
 TEST_F(HangingEntityTest, ItemFrameAnalogOutput_NoItem_ReturnsZero)
 {
     // MC 1.16.5: 无物品时返回 0
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     EXPECT_FALSE(itemFrame.hasItem());
     EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
@@ -179,7 +179,7 @@ TEST_F(HangingEntityTest, ItemFrameAnalogOutput_NoItem_ReturnsZero)
 TEST_F(HangingEntityTest, ItemFrameAnalogOutput_WithItem_ReturnsRotationPlusOne)
 {
     // MC 1.16.5: 有物品时返回 rotation % 8 + 1
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     // 设置物品
     ItemStack diamond(Items::DIAMOND, 1);
@@ -208,7 +208,7 @@ TEST_F(HangingEntityTest, ItemFrameAnalogOutput_WithItem_ReturnsRotationPlusOne)
 TEST_F(HangingEntityTest, ItemFrameAnalogOutput_RotationRange)
 {
     // MC 1.16.5: 测试所有旋转值的信号强度
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     ItemStack item(Items::DIAMOND, 1);
     itemFrame.setDisplayedItem(item);
 
@@ -227,7 +227,7 @@ TEST_F(HangingEntityTest, ItemFrameAnalogOutput_RotationRange)
 TEST_F(HangingEntityTest, ItemFrameSetDisplayedItem_ResetsRotation)
 {
     // MC 1.16.5: 设置物品时重置旋转为 0
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     // 先设置旋转
     itemFrame.setItemRotation(5);
@@ -242,7 +242,7 @@ TEST_F(HangingEntityTest, ItemFrameSetDisplayedItem_ResetsRotation)
 TEST_F(HangingEntityTest, ItemFrameHorizontalFacing_ConvertsCorrectly)
 {
     // MC 1.16.5: 测试方向转换
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     // 测试所有方向的转换
     // HangingEntity::Direction: SOUTH=0, WEST=1, NORTH=2, EAST=3
@@ -265,7 +265,7 @@ TEST_F(HangingEntityTest, ItemFrameHorizontalFacing_ConvertsCorrectly)
 
 TEST_F(HangingEntityTest, LeashKnotCanAttachEntities)
 {
-    entity::LeashKnotEntity leashKnot;
+    entity::LeashKnotEntity leashKnot{mc::test::testEcsRegistry()};
 
     // 验证可以绑定和解绑实体
     EXPECT_TRUE(leashKnot.getLeashedEntities().empty());
@@ -276,7 +276,7 @@ TEST_F(HangingEntityTest, LeashKnotCanAttachEntities)
 
 TEST_F(HangingEntityTest, HangingDirection)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
 
     // 验证默认方向
     EXPECT_EQ(painting.getDirection(), entity::HangingEntity::Direction::SOUTH);
@@ -383,7 +383,7 @@ private:
 class TestHangingMobEntity : public MobEntity {
 public:
     TestHangingMobEntity()
-        : MobEntity(EntityInstanceId(200))
+        : MobEntity(EntityInstanceId(200), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -410,7 +410,7 @@ protected:
  */
 TEST_F(HangingEntityHurtTest, InvulnerableSource_ReturnsFalse_NoMarkHurt)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setInvulnerable(true);
     EXPECT_FALSE(painting.isHurtMarked());
 
@@ -428,7 +428,7 @@ TEST_F(HangingEntityHurtTest, MobGriefingOff_MobAttacker_ReturnsFalse_NoDropNoRe
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
     ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
 
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
     TestHangingMobEntity mob;
@@ -446,7 +446,7 @@ TEST_F(HangingEntityHurtTest, MobGriefingOn_MobAttacker_DropsAndRemoves)
 {
     ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
 
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
     TestHangingMobEntity mob;
@@ -462,7 +462,7 @@ TEST_F(HangingEntityHurtTest, MobGriefingOn_MobAttacker_DropsAndRemoves)
  */
 TEST_F(HangingEntityHurtTest, NormalDamage_DropsAndRemoves_MarksHurt)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -476,7 +476,7 @@ TEST_F(HangingEntityHurtTest, NormalDamage_DropsAndRemoves_MarksHurt)
  */
 TEST_F(HangingEntityHurtTest, ItemFrame_NormalDamage_DropsAndRemoves)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -493,7 +493,7 @@ TEST_F(HangingEntityHurtTest, ItemFrame_NormalDamage_DropsAndRemoves)
  */
 TEST_F(HangingEntityHurtTest, AlreadyRemovedEntity_NoDropNoRemoveNoMarkHurt_ReturnsTrue)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
     // 第一次 hurt 正常工作
@@ -520,7 +520,7 @@ TEST_F(HangingEntityHurtTest, MobGriefingOff_EnvironmentalDamage_StillWorks)
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
     ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
 
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -534,7 +534,7 @@ TEST_F(HangingEntityHurtTest, MobGriefingOff_EnvironmentalDamage_StillWorks)
  */
 TEST_F(HangingEntityHurtTest, NoWorld_MobAttacker_StillDamages)
 {
-    entity::PaintingEntity painting;
+    entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     // 不设置 world -> mobGriefing 检查被跳过
 
     TestHangingMobEntity mob;
@@ -681,7 +681,7 @@ protected:
  */
 TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithUpdateComparator_DoesNotCrash)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
 
     // 放入物品，触发比较器更新，不应崩溃
@@ -704,7 +704,7 @@ TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithUpdateComparator_DoesNotCra
  */
 TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithoutUpdateComparator_SkipsComparatorUpdate)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
 
     // updateComparator=false 不应崩溃
@@ -719,7 +719,7 @@ TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithoutUpdateComparator_SkipsCo
  */
 TEST_F(ItemFrameComparatorTest, SetItemRotation_WithUpdateComparator_DoesNotCrash)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
     ItemStack diamond(Items::DIAMOND, 1);
     itemFrame.setDisplayedItem(diamond, false);
@@ -739,7 +739,7 @@ TEST_F(ItemFrameComparatorTest, SetItemRotation_WithUpdateComparator_DoesNotCras
  */
 TEST_F(ItemFrameComparatorTest, SetItemRotation_WithoutUpdateComparator_SkipsComparatorUpdate)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
     ItemStack diamond(Items::DIAMOND, 1);
     itemFrame.setDisplayedItem(diamond, false);
@@ -754,7 +754,7 @@ TEST_F(ItemFrameComparatorTest, SetItemRotation_WithoutUpdateComparator_SkipsCom
  */
 TEST_F(ItemFrameComparatorTest, RotateItem_TriggersComparatorUpdate_DoesNotCrash)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
     ItemStack diamond(Items::DIAMOND, 1);
     itemFrame.setDisplayedItem(diamond, false);
@@ -773,7 +773,7 @@ TEST_F(ItemFrameComparatorTest, RotateItem_TriggersComparatorUpdate_DoesNotCrash
  */
 TEST_F(ItemFrameComparatorTest, NotifyComparatorUpdate_NoWorld_DoesNotCrash)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     // 不设置 world
 
     // 不应崩溃
@@ -788,7 +788,7 @@ TEST_F(ItemFrameComparatorTest, NotifyComparatorUpdate_NoWorld_DoesNotCrash)
  */
 TEST_F(ItemFrameComparatorTest, SetDisplayedItem_DefaultParameter_TriggersComparatorUpdate)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
 
     // 不传 updateComparator 参数，默认为 true，不应崩溃
@@ -802,7 +802,7 @@ TEST_F(ItemFrameComparatorTest, SetDisplayedItem_DefaultParameter_TriggersCompar
  */
 TEST_F(ItemFrameComparatorTest, SetItemRotation_DefaultParameter_TriggersComparatorUpdate)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
     ItemStack diamond(Items::DIAMOND, 1);
     itemFrame.setDisplayedItem(diamond, false);
@@ -817,7 +817,7 @@ TEST_F(ItemFrameComparatorTest, SetItemRotation_DefaultParameter_TriggersCompara
  */
 TEST_F(ItemFrameComparatorTest, DropItem_TriggersGameEvent)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
     BlockPos pos(10, 64, 20);
     itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::SOUTH);
@@ -841,7 +841,7 @@ TEST_F(ItemFrameComparatorTest, DropItem_TriggersGameEvent)
  */
 TEST_F(ItemFrameComparatorTest, DropItem_ClearsItem_AnalogOutputReturnsZero)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
     itemFrame.setWorld(&m_world);
 
     // 设置物品
@@ -861,7 +861,7 @@ TEST_F(ItemFrameComparatorTest, DropItem_ClearsItem_AnalogOutputReturnsZero)
  */
 TEST_F(ItemFrameComparatorTest, AnalogOutput_ReflectsSetDisplayedItem)
 {
-    entity::ItemFrameEntity itemFrame;
+    entity::ItemFrameEntity itemFrame{mc::test::testEcsRegistry()};
 
     // 无物品返回 0
     EXPECT_EQ(itemFrame.getAnalogOutput(), 0);

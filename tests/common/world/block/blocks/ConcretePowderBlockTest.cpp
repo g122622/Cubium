@@ -271,7 +271,7 @@ TEST_F(ConcretePowderBlockTest, OnEndFallingSolidifiesInWater)
     // 创建一个模拟的 FallingBlockEntity（用 nullptr，onEndFalling 不使用实体）
     // 模拟落地：调用 onEndFalling
     // 创建 FallingBlockEntity 用于 onEndFalling 回调
-    auto entity = std::make_unique<entity::FallingBlockEntity>();
+    auto entity = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powderState.blockId());
 
     const BlockState& hitState = VanillaBlocks::AIR->defaultState();
@@ -298,7 +298,7 @@ TEST_F(ConcretePowderBlockTest, OnEndFallingNoSolidifyWithoutWater)
     ASSERT_NE(concretePowder, nullptr);
 
     // 创建 FallingBlockEntity 用于 onEndFalling 回调
-    auto entity = std::make_unique<entity::FallingBlockEntity>();
+    auto entity = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powderState.blockId());
 
     const BlockState& hitState = VanillaBlocks::AIR->defaultState();
@@ -331,7 +331,7 @@ TEST_F(ConcretePowderBlockTest, OnEndFallingSolidifiesWithWaterBelow)
     ASSERT_NE(concretePowder, nullptr);
 
     // 创建 FallingBlockEntity 用于 onEndFalling 回调
-    auto entity = std::make_unique<entity::FallingBlockEntity>();
+    auto entity = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powderState.blockId());
 
     const BlockState& hitState = VanillaBlocks::AIR->defaultState();
@@ -363,7 +363,7 @@ TEST_F(ConcretePowderBlockTest, OnEndFallingSolidifiesWithWaterAbove)
     ASSERT_NE(concretePowder, nullptr);
 
     // 创建 FallingBlockEntity 用于 onEndFalling 回调
-    auto entity = std::make_unique<entity::FallingBlockEntity>();
+    auto entity = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powderState.blockId());
 
     const BlockState& hitState = VanillaBlocks::AIR->defaultState();
@@ -500,7 +500,7 @@ TEST_F(ConcretePowderBlockTest, OnEndFallingNoSolidifyWithLava)
     ASSERT_NE(concretePowder, nullptr);
 
     // 创建 FallingBlockEntity 用于 onEndFalling 回调
-    auto entity = std::make_unique<entity::FallingBlockEntity>();
+    auto entity = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     entity->setBlockId(powderState.blockId());
 
     const BlockState& hitState = VanillaBlocks::AIR->defaultState();

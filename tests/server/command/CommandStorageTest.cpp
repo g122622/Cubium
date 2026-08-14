@@ -229,9 +229,9 @@ TEST(CommandStorageTest, SaveAndLoad)
 
 TEST(CommandStorageTest, BaseTestServerProvidesCommandStorage)
 {
-    test::BaseTestServer server;
+    mc::test::BaseTestServer server;
     auto& storage = server.commandStorage();
-    const auto& constStorage = static_cast<const test::BaseTestServer&>(server).commandStorage();
+    const auto& constStorage = static_cast<const mc::test::BaseTestServer&>(server).commandStorage();
 
     // 验证非常量和常量版本引用同一对象
     EXPECT_EQ(&storage, &constStorage);

@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
@@ -226,8 +227,7 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresYBelow40)
     bool anySuccess = false;
     for (i32 i = 0; i < 100; ++i) {
         math::Random random(static_cast<u64>(i * 3571 + 17));
-        if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                "minecraft:slime", world, SpawnReason::ChunkGeneration, posUnderground, random)) {
+        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, posUnderground, random)) {
             anySuccess = true;
             break;
         }
@@ -266,8 +266,7 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRejectsYAtOrAbove40)
     bool anySuccess = false;
     for (i32 i = 0; i < 100; ++i) {
         math::Random random(static_cast<u64>(i * 3571 + 17));
-        if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                "minecraft:slime", world, SpawnReason::ChunkGeneration, posAt40, random)) {
+        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, posAt40, random)) {
             anySuccess = true;
             break;
         }
@@ -309,8 +308,7 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresChunkGeneration)
         bool anySuccess = false;
         for (i32 i = 0; i < 100; ++i) {
             math::Random random(static_cast<u64>(i * 7919 + 31));
-            if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                    "minecraft:slime", world, SpawnReason::Natural, pos, random)) {
+            if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::Natural, pos, random)) {
                 anySuccess = true;
                 break;
             }
@@ -324,8 +322,7 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresChunkGeneration)
         constexpr i32 TOTAL_ATTEMPTS = 1000;
         for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
             math::Random random(static_cast<u64>(i * 7919 + 31));
-            if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                    "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
+            if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
                 ++successCount;
             }
         }
@@ -645,8 +642,7 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkAndSwampBiomeBothPathsAvailable)
     constexpr i32 TOTAL_ATTEMPTS = 500;
     for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
         math::Random random(static_cast<u64>(i * 7919 + 31));
-        if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
+        if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
             ++successCount;
         }
     }
@@ -730,12 +726,10 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkDeterministicWithSameSeed)
 
     // 相同的 Random 种子应该得到相同的结果（使用 ChunkGeneration 以走地下路径）
     math::Random random1(42);
-    bool result1 = EntitySpawnPlacementRegistry::canSpawnEntity(
-        "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random1);
+    bool result1 = EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random1);
 
     math::Random random2(42);
-    bool result2 = EntitySpawnPlacementRegistry::canSpawnEntity(
-        "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random2);
+    bool result2 = EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random2);
 
     EXPECT_EQ(result1, result2);
 }

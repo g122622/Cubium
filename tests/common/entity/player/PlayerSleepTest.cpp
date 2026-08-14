@@ -31,6 +31,7 @@
  * - 睡眠计时器和位置管理
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -45,7 +46,7 @@ namespace {
  */
 class PlayerSleepTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 

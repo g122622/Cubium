@@ -49,6 +49,7 @@
 #include "client/renderer/trident/entity/model/base/BipedModel.hpp"
 #include "client/renderer/trident/entity/model/monster/MonsterVariantModels.hpp"
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 #include <cmath>

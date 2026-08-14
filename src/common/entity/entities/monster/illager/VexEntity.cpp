@@ -50,9 +50,15 @@ const entity::EntityClassInfo& VexEntity::classInfo()
     return s_classInfo;
 }
 
-VexEntity::VexEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+VexEntity::VexEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
+    // 恼鬼不在阳光下燃烧：wiki tech_恼鬼.txt#行为 章节未提阳光燃烧，原版 Vex 不燃。
+    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
+    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    // hpp 中的 shouldBurnInDaylight() override 语义正确（返回 false）但因死代码不生效，保留以备未来清理。
+    setBurnsInDaylight(false);
+
     // 恼鬼使用专用的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::VexMovementController>(this);
 
@@ -63,9 +69,9 @@ VexEntity::VexEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> VexEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VexEntity>(EntityInstanceId(0));
+    return std::make_unique<VexEntity>(EntityInstanceId(0), registry);
 }
 
 void VexEntity::tick()
@@ -143,9 +149,9 @@ void VexEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 恼鬼属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 14.0f);
     // MOVEMENT_SPEED: 使用默认值（恼鬼飞行速度由移动控制器控制）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);
     // FOLLOW_RANGE: 使用默认值
 }
 

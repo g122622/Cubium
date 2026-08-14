@@ -83,7 +83,7 @@ namespace {
 // 测试用世界 - 支持方块状态存储和音效捕获
 // ============================================================================
 
-class FireChargeTestWorld final : public test::BaseTestWorld {
+class FireChargeTestWorld final : public mc::test::BaseTestWorld {
 public:
     FireChargeTestWorld()
     {
@@ -475,7 +475,7 @@ TEST_F(FireChargeItemTest, OnItemUse_CreativeMode_DoesNotConsumeItem)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     // 创造模式玩家
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
 
@@ -514,7 +514,7 @@ TEST_F(FireChargeItemTest, OnItemUse_SurvivalMode_ConsumesItem)
     m_world.setBlockState(0, 63, 0, &solidBlock.defaultState());
 
     // 生存模式玩家
-    Player player(EntityInstanceId(2), "TestPlayer2");
+    Player player(EntityInstanceId(2), "TestPlayer2", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
 

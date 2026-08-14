@@ -24,6 +24,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -43,7 +44,7 @@ using namespace mc::server;
 class TestEntity : public Entity {
 public:
     TestEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {
         setPosition(0.0f, 64.0f, 0.0f);
     }
@@ -54,7 +55,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityInstanceId id)
-        : LivingEntity(id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -66,7 +67,7 @@ public:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity(EntityInstanceId id)
-        : MobEntity(id)
+        : MobEntity(id, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -77,7 +78,7 @@ public:
 class TestMonsterEntity : public MonsterEntity {
 public:
     TestMonsterEntity(EntityInstanceId id)
-        : MonsterEntity(id)
+        : MonsterEntity(id, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

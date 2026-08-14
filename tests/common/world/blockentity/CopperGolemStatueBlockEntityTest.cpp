@@ -56,7 +56,7 @@ namespace {
 // 测试用世界 - 支持 spawnEntity / playSound / setBlockState / getBlockEntity
 // ============================================================================
 
-class CopperGolemStatueEntityTestWorld final : public test::BaseTestWorld {
+class CopperGolemStatueEntityTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemStatueEntityTestWorld() { m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this); }
 

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -59,7 +60,7 @@ namespace {
 class TestProjectile : public ProjectileEntity {
 public:
     explicit TestProjectile(EntityInstanceId id)
-        : ProjectileEntity(id)
+        : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_projectile"; }
@@ -301,7 +302,7 @@ TEST(ProjectileShootInaccuracyTest, ShootFrom_WithNegativeInaccuracy_DoesNotCras
     class SimpleShooter : public Entity {
     public:
         explicit SimpleShooter(EntityInstanceId id)
-            : Entity(id)
+            : Entity(id, nullptr, mc::test::testEcsRegistry())
         {}
         [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_shooter"; }
     };

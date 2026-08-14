@@ -23,53 +23,30 @@
 
 #pragma once
 
-#include "common/core/Types.hpp"
-#include <atomic>
-#include <thread>
+#include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 
-namespace mc::client {
+namespace mc::entity::serialization::components {
 
 /**
- * @brief 内存追踪线程
+ * @brief Player 层 Score 组件序列化器
  *
- * 在独立线程中定期采样进程内存使用量并写入 Perfetto 追踪。
- * 避免内存采样阻塞主渲染循环。
+ * 把 Player::addAdditionalSaveData/readAdditionalSaveData 中 Score 字段的 NBT 读写逻辑
+ * 搬到按 PlayerScoreComponent 注册的自由函数序列化器。
  *
- * 采样频率：每秒 100 次（每 10ms 一次）。
+ * | 组件 | 字段 | 读写路径 |
+ * |---|---|---|
+ * | PlayerScoreComponent | Score | getScore 读 / setScore 写（同步 DATA_PLAYER_SCORE_PARAM 镜像） |
+ *
+ * dynamic_cast 早退：序列化器经 Entity& 调用，内部 dynamic_cast<Player*>。非 Player 实体
+ * 返回 nullptr 早退。Player 非 final、Entity 虚析构，RTTI 可用。
+ *
+ * Score 必须走 setter：setScore 同时写 PlayerScoreComponent 真相源 + DATA_PLAYER_SCORE_PARAM
+ * 镜像下发客户端，直写组件会丢同步。
+ *
+ * 批次6 子目标1 Step5。
  */
-class MemoryTraceThread {
-public:
-    MemoryTraceThread();
-    ~MemoryTraceThread();
 
-    // 禁止拷贝
-    MemoryTraceThread(const MemoryTraceThread&) = delete;
-    MemoryTraceThread& operator=(const MemoryTraceThread&) = delete;
+/** 注册 Player 层组件序列化器到注册表（在 ComponentSerializerRegistry::registerAll 内调用） */
+void registerPlayerComponentSerializers(ComponentSerializerRegistry& registry);
 
-    /**
-     * @brief 启动追踪线程
-     */
-    void start();
-
-    /**
-     * @brief 停止追踪线程
-     */
-    void stop();
-
-    /**
-     * @brief 检查线程是否正在运行
-     */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running.load(std::memory_order::acquire); }
-
-private:
-    /**
-     * @brief 线程主循环
-     */
-    void run();
-
-    std::thread m_thread;
-    std::atomic<bool> m_running{false};
-    std::atomic<bool> m_stop{false};
-};
-
-} // namespace mc::client
+} // namespace mc::entity::serialization::components

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/ChatVisibility.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
@@ -54,7 +55,7 @@ TEST(PlayerModelPartTest, ExposesVanillaMasksAndNames)
 
 TEST(PlayerSupportTypesTest, PlayerTracksChatVisibilityAndModelParts)
 {
-    Player player(1, "Steve");
+    Player player(1, "Steve", mc::test::testEcsRegistry());
 
     EXPECT_EQ(player.chatVisibility(), ChatVisibility::Full);
     EXPECT_TRUE(player.isWearing(PlayerModelPart::Cape));

@@ -101,8 +101,8 @@ private:
  */
 class TestLivingEntity final : public LivingEntity {
 public:
-    explicit TestLivingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityInstanceId(1), world)
+    explicit TestLivingEntity(IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : LivingEntity(EntityInstanceId(1), world, registry)
     {
         setHealth(20.0f);
     }
@@ -145,7 +145,7 @@ TEST(BlockCollisionTest, LivingEntityTriggersCactusDamageViaAiStep)
     // 创建实体，位置在仙人掌内部，使碰撞箱与方块重叠
     // 实体碰撞箱：宽0.6，高1.8，以position为中心底部
     // 仙人掌位于 (0,0,0)-(1,1,1)，实体中心在 (0.5, 0.5, 0.5) 可确保重叠
-    TestLivingEntity entity(&world);
+    TestLivingEntity entity(&world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.5f, 0.5f);
     entity.setOnGround(true);
 
@@ -173,7 +173,7 @@ TEST(BlockCollisionTest, LivingEntityNoDamageWhenNotInBlock)
     BlockCollisionTestWorld world;
     // 不放置任何方块
 
-    TestLivingEntity entity(&world);
+    TestLivingEntity entity(&world, mc::test::testEcsRegistry());
     entity.setPosition(5.0f, 100.0f, 5.0f);
     entity.setOnGround(true);
 
@@ -202,7 +202,7 @@ TEST(BlockCollisionTest, LivingEntitySlowedByCobwebViaAiStep)
     const BlockState& webState = VanillaBlocks::COBWEB->defaultState();
     world.setBlockAt(BlockPos(0, 0, 0), &webState);
 
-    TestLivingEntity entity(&world);
+    TestLivingEntity entity(&world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.5f, 0.5f);
 
     // 设置一个水平速度
@@ -236,7 +236,7 @@ TEST(BlockCollisionTest, LivingEntityPushedByBubbleColumnViaAiStep)
     const BlockState& bubbleState = VanillaBlocks::BUBBLE_COLUMN->defaultState();
     world.setBlockAt(BlockPos(0, 0, 0), &bubbleState);
 
-    TestLivingEntity entity(&world);
+    TestLivingEntity entity(&world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.5f, 0.5f);
 
     f32 initialVelY = entity.velocity().y;
@@ -265,7 +265,7 @@ TEST(BlockCollisionTest, DirectDoBlockCollisionsCactusDamage)
     // 仙人掌位于 (0,0,0)，实体位于 (0.5, 0.5, 0.5) 以确保碰撞箱与方块重叠
     world.setBlockAt(BlockPos(0, 0, 0), &cactusState);
 
-    TestLivingEntity entity(&world);
+    TestLivingEntity entity(&world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.5f, 0.5f);
 
     EXPECT_FLOAT_EQ(entity.health(), 20.0f);
@@ -295,7 +295,7 @@ TEST(BlockCollisionTest, CactusDoesNotDamageNonLivingEntity)
     world.setBlockAt(BlockPos(0, 0, 0), &cactusState);
 
     // 使用普通 Entity（非 LivingEntity）
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), &world, mc::test::testEcsRegistry());
     entity.setWorld(&world);
     entity.setPosition(0.5f, 0.5f, 0.5f);
 

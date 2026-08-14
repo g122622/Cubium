@@ -61,7 +61,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class WaterlogTestWorld final : public test::BaseTestWorld {
+class WaterlogTestWorld final : public mc::test::BaseTestWorld {
 public:
     WaterlogTestWorld() = default;
 

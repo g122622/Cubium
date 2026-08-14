@@ -33,9 +33,9 @@
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/ecs/components/MobFlagComponent.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/entities/player/Player.hpp"
-#include "entity/interfaces/IMob.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -288,9 +288,9 @@ void ConduitEntity::_attackMobs(IWorld& world)
                 continue;
             }
 
-            // 检查是否为敌对生物 (IMob 接口)
-            // 只有实现 IMob 接口的实体才是敌对生物
-            if (dynamic_cast<entity::IMob*>(living) == nullptr) {
+            // 检查是否为敌对生物（MobFlagComponent 标记组件，IMob 接口的 tag 层）
+            // 只有 MonsterEntity 子类 attach 此 tag，才是敌对生物
+            if (!living->hasComponent<ecs::MobFlagComponent>()) {
                 continue;
             }
 

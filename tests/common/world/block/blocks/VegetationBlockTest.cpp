@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -245,7 +246,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         setHealth(maxHealth());
     }

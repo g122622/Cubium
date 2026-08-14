@@ -51,7 +51,7 @@ using namespace mc;
 namespace {
 
 /// 测试用世界桩，仅满足 Player 构造所需 IWorld 依赖
-class PiglinAiGoldTestWorld final : public test::BaseTestWorld {
+class PiglinAiGoldTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -84,7 +84,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<PiglinAiGoldTestWorld>();
-        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "GoldArmorTestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "GoldArmorTestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(m_world.get());
     }
 

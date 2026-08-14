@@ -39,6 +39,7 @@
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/special/TurtleGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
@@ -69,8 +70,8 @@ const entity::EntityClassInfo& TurtleEntity::classInfo()
     return s_classInfo;
 }
 
-TurtleEntity::TurtleEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+TurtleEntity::TurtleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 海龟可以走上1格高的方块
     setStepHeight(1.0f);
@@ -87,9 +88,9 @@ TurtleEntity::TurtleEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TurtleEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TurtleEntity>(0);
+    return std::make_unique<TurtleEntity>(0, registry);
 }
 
 void TurtleEntity::setHomePos(const BlockPos& pos)
@@ -150,8 +151,15 @@ bool TurtleEntity::canBreed() const
 
 std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小海龟，继承出生地记忆
-    auto baby = std::make_unique<TurtleEntity>(0);
+    auto baby = std::make_unique<TurtleEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::TURTLE); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);
@@ -282,8 +290,8 @@ void TurtleEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 海龟的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     // 海龟在陆地上移动较慢，通过 travel() 方法实现
     // 陆地速度 = max(AIMoveSpeed / 2.0, 0.06F)，约为水中速度的 24%
 }
@@ -372,7 +380,7 @@ bool TurtleEntity::_isOnSand(const IWorld& world, const BlockPos& pos)
 void TurtleEntity::travel(const Vector3& travelVec)
 {
     // 获取基础移动速度
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25));
 
     if (isInWater()) {
         // 水中移动

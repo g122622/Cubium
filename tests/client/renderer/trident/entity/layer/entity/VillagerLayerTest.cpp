@@ -38,6 +38,7 @@
 #include <gtest/gtest.h>
 
 #include "client/renderer/trident/entity/layer/entity/VillagerLayer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 

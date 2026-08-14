@@ -43,8 +43,8 @@
 
 namespace mc {
 
-BlazeEntity::BlazeEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+BlazeEntity::BlazeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 烈焰人不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -59,9 +59,9 @@ BlazeEntity::BlazeEntity(EntityInstanceId id)
     setExperienceValue(10);
 }
 
-std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BlazeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BlazeEntity>(EntityInstanceId(0));
+    return std::make_unique<BlazeEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> BlazeEntity::getAmbientSound() const
@@ -115,7 +115,7 @@ void BlazeEntity::tick()
         if (random.nextInt(24) == 0 && !isSilent()) {
             world()->playSound(SoundEvents::ENTITY_BLAZE_BURN,
                 sound::SoundCategory::Hostile,
-                m_position,
+                m_builtIn.stateVector->m_pos,
                 1.0f + random.nextFloat() * 0.3f, // 音量
                 random.nextFloat() * 0.7f + 0.3f  // 音调
             );
@@ -170,10 +170,10 @@ void BlazeEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 烈焰人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
 void BlazeEntity::updateAITasks()

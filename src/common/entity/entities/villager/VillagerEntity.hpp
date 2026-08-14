@@ -72,12 +72,14 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
+     * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    VillagerEntity(EntityInstanceId id);
+    VillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~VillagerEntity() noexcept override = default;
 
@@ -498,12 +500,14 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
+     * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    WanderingTraderEntity(EntityInstanceId id);
+    WanderingTraderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~WanderingTraderEntity() noexcept override = default;
 

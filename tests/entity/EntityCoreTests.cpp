@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "entity/core/DataParameter.hpp"
@@ -265,7 +266,7 @@ public:
 
 TEST(EntityType, Builder)
 {
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
         return nullptr; // 测试用
     };
 
@@ -288,7 +289,7 @@ TEST(EntityType, Builder)
 
 TEST(EntityType, FixedSize)
 {
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
 
     entity::EntityType type =
         entity::EntityType::Builder(factory, EntityClassification::Misc).fixedSize(1.0f, 1.0f).build();
@@ -298,7 +299,7 @@ TEST(EntityType, FixedSize)
 
 TEST(EntityType, Flags)
 {
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
 
     entity::EntityType type = entity::EntityType::Builder(factory, EntityClassification::Monster)
                                   .immuneToFire()
@@ -334,7 +335,9 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(EntityInstanceId(0)); };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+        return std::make_unique<Entity>(EntityInstanceId(0), nullptr, mc::test::testEcsRegistry());
+    };
 
     auto registerResult = registry.registerType(
         "test:spawned_entity", entity::EntityType::Builder(factory, EntityClassification::Misc).build());
@@ -343,7 +346,7 @@ TEST(EntityType, CreateInjectsRegisteredTypeId)
     const entity::EntityType* type = registry.getType("test:spawned_entity");
     ASSERT_NE(type, nullptr);
 
-    auto entity = type->create(nullptr);
+    auto entity = type->create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
     EXPECT_EQ(entity->getTypeId(), "test:spawned_entity");
 
@@ -354,14 +357,14 @@ TEST(Entity, DefaultTypeIdIsUnknown)
 {
     // Entity created without a factory has no type ID set
     // getTypeId() returns empty string for untyped entities (no fabricated placeholder)
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.getTypeId().empty());
     EXPECT_EQ(entity.entityType(), nullptr);
 }
 
 TEST(Entity, ExplicitTypeIdCanBeSet)
 {
-    Entity testEntity(EntityInstanceId(1));
+    Entity testEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     testEntity.setTypeId("minecraft:custom_entity");
 
     EXPECT_EQ(testEntity.getTypeId(), "minecraft:custom_entity");
@@ -379,7 +382,7 @@ TEST(EntityRegistry, RegisterType)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear(); // 清空以便测试
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> {
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
         return nullptr; // 测试用
     };
 
@@ -404,7 +407,7 @@ TEST(EntityRegistry, GetTypeByName)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
 
     auto result = registry.registerType(
         "test:cow", entity::EntityType::Builder(factory, EntityClassification::Creature).size(0.9f, 0.9f).build());
@@ -427,7 +430,7 @@ TEST(EntityRegistry, HasType)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
 
     EXPECT_FALSE(registry.hasType("test:sheep"));
 
@@ -445,7 +448,7 @@ TEST(EntityRegistry, Size)
     EntityRegistry& registry = EntityRegistry::instance();
     registry.clear();
 
-    auto factory = [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; };
+    auto factory = [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; };
 
     EXPECT_EQ(registry.size(), 0u);
 
@@ -689,14 +692,14 @@ TEST(EntityDataManager, UniqueIds)
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(100))
+        : MobEntity(EntityInstanceId(100), mc::test::testEcsRegistry())
     {}
 };
 
 TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 {
     TestMobEntity vehicle;
-    Entity rider(EntityInstanceId(101));
+    Entity rider(EntityInstanceId(101), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_EQ(vehicle.isBeingRidden(), vehicle.hasPassengers());
     EXPECT_FALSE(rider.isRiding());
@@ -731,7 +734,7 @@ TEST(MobEntityTest, IsBeingRiddenReflectsPassengerState)
 class TestInteractableEntity : public Entity {
 public:
     TestInteractableEntity()
-        : Entity(EntityInstanceId(1))
+        : Entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
         , m_processInitialInteractCalled(false)
         , m_applyPlayerInteractionCalled(false)
         , m_lastHitPosition(0.0f, 0.0f, 0.0f)

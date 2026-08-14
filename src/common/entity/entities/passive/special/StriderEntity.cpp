@@ -71,8 +71,8 @@ constexpr f32 LAVA_BUOYANCY = 0.05f;        // 熔岩浮力
 
 } // namespace
 
-StriderEntity::StriderEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+StriderEntity::StriderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 设置 AI 导航优先级
     // this.setPathPriority(PathNodeType.WATER, -1.0F);
@@ -86,9 +86,9 @@ StriderEntity::StriderEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> StriderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> StriderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<StriderEntity>(0);
+    return std::make_unique<StriderEntity>(0, registry);
 }
 
 // ========== 熔岩状态 ==========
@@ -149,7 +149,7 @@ void StriderEntity::setSaddle(bool saddle)
 
 f32 StriderEntity::getSteeringSpeed() const
 {
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     return baseSpeed * (isCold() ? MOUNTED_SPEED_COLD : MOUNTED_SPEED_NORMAL);
 }
 
@@ -167,7 +167,7 @@ void StriderEntity::travelTowards(const Vector3& travelVec)
 void StriderEntity::travel(const Vector3& travelVec)
 {
     // 设置 AI 移动速度（考虑寒冷状态）
-    const f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)) *
+    const f32 moveSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED)) *
         (isCold() ? STRIDE_SPEED_COLD : STRIDE_SPEED_NORMAL);
     setAIMoveSpeed(moveSpeed);
 
@@ -193,8 +193,14 @@ bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小炽足兽
-    auto baby = std::make_unique<StriderEntity>(0);
+    auto baby = std::make_unique<StriderEntity>(0, *registry);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;
@@ -312,9 +318,9 @@ void StriderEntity::_updateColdStatus()
     }
 
     // 检查当前位置和下方方块
-    BlockPos currentPos(static_cast<BlockCoord>(std::floor(m_position.x)),
-        static_cast<BlockCoord>(std::floor(m_position.y)),
-        static_cast<BlockCoord>(std::floor(m_position.z)));
+    BlockPos currentPos(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
     BlockPos belowPos = currentPos.down();
 
     // 检查是否接触熔岩
@@ -362,9 +368,9 @@ void StriderEntity::_updateLavaWalking()
     }
 
     // 获取当前位置的流体状态
-    BlockPos pos(static_cast<BlockCoord>(std::floor(m_position.x)),
-        static_cast<BlockCoord>(std::floor(m_position.y)),
-        static_cast<BlockCoord>(std::floor(m_position.z)));
+    BlockPos pos(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     const fluid::FluidState* fluid = m_world->getFluidState(pos);
     if (fluid != nullptr && !fluid->isEmpty()) {
@@ -380,8 +386,8 @@ void StriderEntity::_updateLavaWalking()
                 aboveFluid->getFluid().isIn(fluid::FluidTags::LAVA()));
 
             // 如果站在熔岩表面且上方没有熔岩，则设置 onGround
-            if (m_position.y >= fluidSurfaceY - 0.1f && !hasLavaAbove) {
-                m_onGround = true;
+            if (m_builtIn.stateVector->m_pos.y >= fluidSurfaceY - 0.1f && !hasLavaAbove) {
+                m_builtIn.physicsState->m_onGround = true;
                 m_onLavaSurface = true;
             } else {
                 // 在熔岩中，应用浮力和减速
@@ -514,8 +520,8 @@ void StriderEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 设置炽足兽特定属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }
 
 void StriderEntity::die(DamageSource& cause)

@@ -51,7 +51,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GolemEntity(EntityInstanceId id);
+    GolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GolemEntity() override = default;
 
     /// 本类继承链标识（parent = CreatureEntity::classInfo()）。见 Entity::classInfo()。

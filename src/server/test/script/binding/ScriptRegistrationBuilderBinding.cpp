@@ -194,6 +194,13 @@ u64 registerRegistrationBuilderClassBinding(
         1);
 
     reg.method(
+        "skyAccess",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            return _applyBoolChain(ctx, thisVal, argc, args, &ScriptRegistrationBuilder::skyAccess);
+        },
+        1);
+
+    reg.method(
         "structureName",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
             return _applyStringChain(ctx, thisVal, argc, args, &ScriptRegistrationBuilder::structureName);

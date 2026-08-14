@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 
@@ -89,7 +90,7 @@ protected:
  */
 TEST_F(PiglinEntityTest, CreateFactory)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<PiglinEntity*>(entity.get()), nullptr);
 }
@@ -99,7 +100,7 @@ TEST_F(PiglinEntityTest, CreateFactory)
  */
 TEST_F(PiglinEntityTest, DefaultAttributes)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -113,7 +114,7 @@ TEST_F(PiglinEntityTest, DefaultAttributes)
  */
 TEST_F(PiglinEntityTest, BabyState)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -134,7 +135,7 @@ TEST_F(PiglinEntityTest, BabyState)
  */
 TEST_F(PiglinEntityTest, CrossbowChargingState)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -155,7 +156,7 @@ TEST_F(PiglinEntityTest, CrossbowChargingState)
  */
 TEST_F(PiglinEntityTest, CrossbowChargeTime)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -168,7 +169,7 @@ TEST_F(PiglinEntityTest, CrossbowChargeTime)
  */
 TEST_F(PiglinEntityTest, AttackInterval)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -181,7 +182,7 @@ TEST_F(PiglinEntityTest, AttackInterval)
  */
 TEST_F(PiglinEntityTest, CanRangedAttack)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -194,7 +195,7 @@ TEST_F(PiglinEntityTest, CanRangedAttack)
  */
 TEST_F(PiglinEntityTest, FireImmunity)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 
@@ -211,7 +212,7 @@ TEST_F(PiglinEntityTest, FireImmunity)
  */
 TEST_F(PiglinBruteEntityTest, CreateFactory)
 {
-    auto entity = PiglinBruteEntity::create(nullptr);
+    auto entity = PiglinBruteEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<PiglinBruteEntity*>(entity.get()), nullptr);
 }
@@ -221,7 +222,7 @@ TEST_F(PiglinBruteEntityTest, CreateFactory)
  */
 TEST_F(PiglinBruteEntityTest, FireImmunity)
 {
-    auto entity = PiglinBruteEntity::create(nullptr);
+    auto entity = PiglinBruteEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* brute = dynamic_cast<PiglinBruteEntity*>(entity.get());
     ASSERT_NE(brute, nullptr);
 
@@ -238,7 +239,7 @@ TEST_F(PiglinBruteEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<ZombifiedPiglinEntity*>(entity.get()), nullptr);
 }
@@ -248,7 +249,7 @@ TEST_F(ZombifiedPiglinEntityTest, CreateFactory)
  */
 TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_TRUE(entity->isImmuneToFire());
 }
 
@@ -257,7 +258,7 @@ TEST_F(ZombifiedPiglinEntityTest, FireImmunity)
  */
 TEST_F(ZombifiedPiglinEntityTest, AngerState)
 {
-    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
+    auto entity = std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     auto* zombifiedPiglin = entity.get();
 
     // 默认不愤怒
@@ -284,7 +285,7 @@ TEST_F(ZombifiedPiglinEntityTest, AngerState)
  */
 TEST_F(HoglinEntityTest, CreateFactory)
 {
-    auto entity = HoglinEntity::create(nullptr);
+    auto entity = HoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<HoglinEntity*>(entity.get()), nullptr);
 }
@@ -294,7 +295,7 @@ TEST_F(HoglinEntityTest, CreateFactory)
  */
 TEST_F(HoglinEntityTest, FireImmunity)
 {
-    auto entity = HoglinEntity::create(nullptr);
+    auto entity = HoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
     ASSERT_NE(hoglin, nullptr);
 
@@ -307,7 +308,7 @@ TEST_F(HoglinEntityTest, FireImmunity)
  */
 TEST_F(HoglinEntityTest, BabyState)
 {
-    auto entity = HoglinEntity::create(nullptr);
+    auto entity = HoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
     ASSERT_NE(hoglin, nullptr);
 
@@ -338,7 +339,7 @@ TEST_F(HoglinEntityTest, BabyState)
  */
 TEST_F(ZoglinEntityTest, CreateFactory)
 {
-    auto entity = ZoglinEntity::create(nullptr);
+    auto entity = ZoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_NE(dynamic_cast<ZoglinEntity*>(entity.get()), nullptr);
 }
@@ -348,7 +349,7 @@ TEST_F(ZoglinEntityTest, CreateFactory)
  */
 TEST_F(ZoglinEntityTest, BabyState)
 {
-    auto entity = ZoglinEntity::create(nullptr);
+    auto entity = ZoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* zoglin = dynamic_cast<ZoglinEntity*>(entity.get());
     ASSERT_NE(zoglin, nullptr);
 
@@ -376,7 +377,7 @@ TEST_F(ZoglinEntityTest, BabyState)
  */
 TEST_F(HoglinEntityTest, IsChildOverridesEntityVirtual)
 {
-    auto entity = HoglinEntity::create(nullptr);
+    auto entity = HoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
     ASSERT_NE(hoglin, nullptr);
 
@@ -404,7 +405,7 @@ TEST_F(HoglinEntityTest, IsChildOverridesEntityVirtual)
  */
 TEST_F(ZoglinEntityTest, IsChildOverridesEntityVirtual)
 {
-    auto entity = ZoglinEntity::create(nullptr);
+    auto entity = ZoglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* zoglin = dynamic_cast<ZoglinEntity*>(entity.get());
     ASSERT_NE(zoglin, nullptr);
 
@@ -432,7 +433,7 @@ TEST_F(ZoglinEntityTest, IsChildOverridesEntityVirtual)
  */
 TEST_F(PiglinEntityTest, IsChildOverridesEntityVirtual)
 {
-    auto entity = PiglinEntity::create(nullptr);
+    auto entity = PiglinEntity::create(nullptr, mc::test::testEcsRegistry());
     auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
     ASSERT_NE(piglin, nullptr);
 

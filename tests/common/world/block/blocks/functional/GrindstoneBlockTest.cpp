@@ -227,7 +227,7 @@ namespace {
  * - isClientSide() / asServerWorld() 用于区分客户端/服务端
  * - openContainer() 用于测试容器打开
  */
-class GrindstoneTestWorld : public test::BaseTestWorld {
+class GrindstoneTestWorld : public mc::test::BaseTestWorld {
 public:
     explicit GrindstoneTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -336,7 +336,7 @@ TEST_F(GrindstoneBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSucces
     world.setBlockStateAt(pos_, &grindstone_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = grindstone_->defaultState();
@@ -359,7 +359,7 @@ TEST_F(GrindstoneBlockInteractionTest, OnBlockActivated_ServerSide_OpensContaine
     world.setBlockStateAt(pos_, &grindstone_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = grindstone_->defaultState();
@@ -385,7 +385,7 @@ TEST_F(GrindstoneBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     world.setBlockStateAt(pos_, &grindstone_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 使用副手执行交互
     const auto& state = grindstone_->defaultState();
@@ -421,7 +421,7 @@ TEST_F(GrindstoneBlockInteractionTest, OnBlockActivated_OpenContainerFails_Retur
     world.setBlockStateAt(pos_, &grindstone_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = grindstone_->defaultState();

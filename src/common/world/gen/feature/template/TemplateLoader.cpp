@@ -53,6 +53,38 @@ namespace template_ {
 
 namespace {
 
+// 从 NBT 整型序列字段读取 int 数组，兼容基岩版 .mcstructure 两种存储形式：
+//   - List<Int>（TagId::List，元素为 IntTag）：旧工具链/部分导出器产出
+//   - IntArray（TagId::IntArray）：新工具链产出（如 Blockography/部分结构导出器把 size、
+//     block_indices 内层存为 TAG_Int_Array 而非 List<Int>）。
+// 两者在 NBT 二进制层不同（List 有 elementType 前缀，IntArray 无），但语义都是 int 数组。
+// 此前 _loadFromBedrockNbt 仅接受 List<Int>，遇 IntArray 在 size 字段就 return 空模板，
+// 致整个结构放置静默失败（placeInWorld 因 palette 空返回 true 不报错），结构体全是 worldgen
+// 方块——表现为 GameTest 实体 spawn 在 deepslate/tuff 中而非结构地板上。
+// 返回空 vector 表示 tag 类型不符或为空。
+std::vector<i32> readIntSequence(const nbt::Tag& tag)
+{
+    std::vector<i32> result;
+    if (tag.id() == nbt::TagId::List) {
+        const auto& list = dynamic_cast<const nbt::ListTag&>(tag);
+        result.reserve(list.size());
+        for (size_t i = 0; i < list.size(); ++i) {
+            // operator[] 按值返回 unique_ptr，须绑定到 const 引用延长生命周期（同 block_palette 段写法）。
+            const auto elemPtr = list[i];
+            const nbt::Tag* elem = elemPtr.get();
+            if (elem != nullptr && elem->id() == nbt::TagId::Int) {
+                result.push_back(dynamic_cast<const nbt::IntTag&>(*elem).value);
+            } else {
+                result.push_back(0);
+            }
+        }
+    } else if (tag.id() == nbt::TagId::IntArray) {
+        const auto& arr = dynamic_cast<const nbt::IntArrayTag&>(tag);
+        result = arr.value;
+    }
+    return result;
+}
+
 // 基岩版整型属性 → Java 属性 (key, value) 字符串。
 // 已覆盖：
 // - facing_direction (int 0-5: 0=down,1=up,2=north,3=south,4=east,5=west)：基岩通用 6 向 → Java facing
@@ -726,22 +758,24 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
 {
     auto templ = std::make_unique<Template>();
 
-    // size: List<Int> = [x, y, z]
+    // size: List<Int> 或 IntArray = [x, y, z]
+    // 基岩版 .mcstructure 的 size 字段在不同导出工具下可能存为 List<Int>(TagId::List) 或
+    // IntArray(TagId::IntArray)，两者均需兼容（见 readIntSequence 注释）。
     if (root.value.count("size") == 0) {
         spdlog::warn("GameTest: .mcstructure missing 'size' key");
         return templ;
     }
     auto& sizeTag = *root.value.at("size");
-    if (sizeTag.id() != nbt::TagId::List) {
+    const std::vector<i32> sizeVec = readIntSequence(sizeTag);
+    if (sizeVec.size() < 3) {
+        spdlog::warn("GameTest: .mcstructure 'size' has <3 elements (id={}, count={})",
+            static_cast<i32>(sizeTag.id()),
+            sizeVec.size());
         return templ;
     }
-    auto& sizeList = dynamic_cast<const nbt::ListTag&>(sizeTag);
-    if (sizeList.size() < 3) {
-        return templ;
-    }
-    const i32 sizeX = dynamic_cast<const nbt::IntTag&>(*sizeList[0]).value;
-    const i32 sizeY = dynamic_cast<const nbt::IntTag&>(*sizeList[1]).value;
-    const i32 sizeZ = dynamic_cast<const nbt::IntTag&>(*sizeList[2]).value;
+    const i32 sizeX = sizeVec[0];
+    const i32 sizeY = sizeVec[1];
+    const i32 sizeZ = sizeVec[2];
     templ->setSize(BlockPos(sizeX, sizeY, sizeZ));
 
     // structure: Compound { block_indices, palette{ default{ block_palette } }, entities }
@@ -791,9 +825,10 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
         return templ;
     }
 
-    // block_indices: List<List<Int>>，每层一个索引数组（对应一个 palette 变体）
+    // block_indices: List<List<Int>> 或 List<IntArray>，每层一个索引数组（对应一个 palette 变体）
     // 基岩版结构通常只有 1 层；多层时取第一层（多 palette 变体语义在项目 Template 中以 addPalette 表达，
-    // 但 GameTest 结构无需变体，取首层即可）
+    // 但 GameTest 结构无需变体，取首层即可）。内层索引数组可能存为 List<Int> 或 IntArray（见
+    // readIntSequence 注释），两者均兼容。
     if (structure.value.count("block_indices") == 0) {
         return templ;
     }
@@ -806,13 +841,20 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
         return templ;
     }
 
-    // 取第一层索引数组
-    const auto& firstLayerTagPtr = blockIndicesList[0];
+    // 取第一层索引数组（兼容 List<Int> 与 IntArray 两种内层存储）
+    // operator[] 按值返回 unique_ptr，须拷贝到局部变量持有所有权（同 readIntSequence 写法）。
+    const auto firstLayerTagPtr = blockIndicesList[0];
     const nbt::Tag* firstLayerTag = firstLayerTagPtr.get();
-    if (firstLayerTag == nullptr || firstLayerTag->id() != nbt::TagId::List) {
+    if (firstLayerTag == nullptr) {
         return templ;
     }
-    const auto& indices = dynamic_cast<const nbt::ListTag&>(*firstLayerTag);
+    const std::vector<i32> indices = readIntSequence(*firstLayerTag);
+    if (indices.empty()) {
+        // 内层既非 List<Int> 也非 IntArray，无法解析索引
+        spdlog::warn("GameTest: .mcstructure block_indices layer0 not int sequence (id={})",
+            static_cast<i32>(firstLayerTag->id()));
+        return templ;
+    }
 
     // structure_world_origin: 结构保存时所在的世界坐标（仅元信息，记录结构方块在世界中的原位）。
     // 放置结构到新位置时应忽略它——block_indices 的索引→坐标映射须从结构内相对坐标 (0,0,0) 起，
@@ -833,12 +875,7 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     std::vector<BlockInfo> blockInfos;
     blockInfos.reserve(indices.size());
     for (size_t i = 0; i < indices.size(); ++i) {
-        const auto& idxTagPtr = indices[i];
-        const nbt::Tag* idxTag = idxTagPtr.get();
-        if (idxTag == nullptr) {
-            continue;
-        }
-        const i32 idx = dynamic_cast<const nbt::IntTag&>(*idxTag).value;
+        const i32 idx = indices[i];
 
         u32 stateId = 0; // 默认空气
         if (idx >= 0 && static_cast<size_t>(idx) < blockPaletteStates.size()) {

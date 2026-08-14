@@ -25,6 +25,7 @@
 #include "common/mod/bedrock/addon/core/ScriptData.hpp"
 #include "common/mod/bedrock/addon/pack/BehaviorPack.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <utility>
@@ -47,20 +48,36 @@ std::optional<ScriptData> ScriptPluginSource::loadScript(const std::string& modu
         return std::nullopt;
     }
 
-    // 尝试解析为行为包内的脚本文件
-    std::string relativePath = moduleName;
+    // QuickJS 的 moduleNormalize 会把"导入者文件路径 + import specifier"拼接成模块名，
+    // 因此到达此处的 moduleName 可能是以下任一形态：
+    //   (a) 纯 specifier："./utils/entity/assert.js"（仅 entry 首次 import 可能）
+    //   (b) 含导入者目录前缀 + ./ 段："tests/integrated\mob_behavior/scripts/./tests/.../XxxTests.js"
+    //   (c) 含 .. 段的回退路径。
+    // readScriptFile 会用 m_path / relativePath 拼接，故这里必须把 moduleName 规整成
+    // **相对 pack 内部**的路径（不含 pack 前缀、不含 . / .. 段），否则双重前缀或残留 . 段
+    // 会导致文件找不到（多文件包 entry import 相对路径模块时必现）。
+    namespace fs = std::filesystem;
+    fs::path normalized = fs::path(moduleName).lexically_normal();
+    std::string relPathStr = normalized.generic_string();
 
-    // 处理相对路径前缀
-    if (relativePath.starts_with("./")) {
-        relativePath = relativePath.substr(2);
+    // 剥离 pack 路径前缀：若 moduleName 形态 (b) 带 pack 前缀，lexically_normal 不会去掉它，
+    // 需手动剥离。pack 路径分隔符可能含 '\'（Windows），统一比较 generic 形式。
+    const std::string packPathGeneric = fs::path(m_pack.path()).lexically_normal().generic_string();
+    if (!packPathGeneric.empty() && relPathStr.rfind(packPathGeneric + "/", 0) == 0) {
+        relPathStr = relPathStr.substr(packPathGeneric.size() + 1);
+    }
+
+    // 处理残余的相对前缀（剥离 pack 前缀后可能暴露出开头的 "./"）
+    while (relPathStr.starts_with("./")) {
+        relPathStr = relPathStr.substr(2);
     }
 
     // 尝试添加.js扩展名
-    if (!relativePath.ends_with(".js")) {
-        relativePath += ".js";
+    if (!relPathStr.ends_with(".js")) {
+        relPathStr += ".js";
     }
 
-    auto result = m_pack.readScriptFile(relativePath);
+    auto result = m_pack.readScriptFile(relPathStr);
     if (result.failed()) {
         // 模块未找到，返回空值让调用者处理
         return std::nullopt;
@@ -69,7 +86,7 @@ std::optional<ScriptData> ScriptPluginSource::loadScript(const std::string& modu
     ScriptData data;
     data.name = moduleName;
     data.source = std::move(result.value());
-    data.filePath = m_pack.path() + "/" + relativePath;
+    data.filePath = m_pack.path() + "/" + relPathStr;
     data.isModule = true;
     return data;
 }

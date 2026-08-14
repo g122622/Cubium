@@ -69,8 +69,8 @@ namespace mc {
 // CopperGolemEntity 实现
 // ============================================================================
 
-CopperGolemEntity::CopperGolemEntity(EntityInstanceId id)
-    : GolemEntity(id)
+CopperGolemEntity::CopperGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GolemEntity(id, registry)
 {
     // 对应 MC 1.21.11 CopperGolem 构造函数：
     //   setPersistenceRequired();
@@ -97,9 +97,9 @@ CopperGolemEntity::CopperGolemEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CopperGolemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CopperGolemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CopperGolemEntity>(0);
+    return std::make_unique<CopperGolemEntity>(0, registry);
 }
 
 void CopperGolemEntity::spawnFromStatue(entity::CopperGolemWeatherState weatherState)
@@ -358,8 +358,8 @@ void CopperGolemEntity::registerAttributes()
     //       .add(Attributes.MOVEMENT_SPEED, 0.2F)
     //       .add(Attributes.STEP_HEIGHT, 1.0)
     //       .add(Attributes.MAX_HEALTH, 12.0)
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 12.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
     // STEP_HEIGHT 在构造函数中通过 setStepHeight(1.0f) 设置
 }
 

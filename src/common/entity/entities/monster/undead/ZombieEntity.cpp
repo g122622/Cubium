@@ -123,8 +123,8 @@ void ZombieEntity::registerData()
     m_dataManager.registerParam(DATA_DROWNED_CONVERSION_PARAM, false);
 }
 
-ZombieEntity::ZombieEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+ZombieEntity::ZombieEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 僵尸可以在阳光下燃烧
     setBurnsInDaylight(true);
@@ -140,9 +140,9 @@ ZombieEntity::ZombieEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombieEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZombieEntity>(EntityInstanceId(0));
+    return std::make_unique<ZombieEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> ZombieEntity::getAmbientSound() const
@@ -226,9 +226,9 @@ void ZombieEntity::setBaby(bool baby)
     if (baby) {
         entity::attribute::AttributeModifier modifier(
             BABY_SPEED_BOOST_ID, "Baby speed boost", 0.5, entity::attribute::Operation::MultiplyBase);
-        m_attributes.addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, modifier);
+        attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, modifier);
     } else {
-        m_attributes.removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, BABY_SPEED_BOOST_ID);
+        attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, BABY_SPEED_BOOST_ID);
     }
 }
 
@@ -247,7 +247,7 @@ void ZombieEntity::trySummonReinforcements(LivingEntity* explicitTarget)
     }
 
     // 增援概率检查
-    f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
+    f64 spawnChance = attributes().getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
     if (getRandom().nextDouble() >= spawnChance) {
         return;
     }
@@ -266,7 +266,7 @@ void ZombieEntity::trySummonReinforcements(LivingEntity* explicitTarget)
 
 bool ZombieEntity::canSummonReinforcements() const
 {
-    return m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
+    return attributes().getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
 }
 
 void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
@@ -287,9 +287,9 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
     math::Random& rng = getRandom();
 
     // 僵尸位置（取整）
-    i32 baseX = math::floorTo<i32>(m_position.x);
-    i32 baseY = math::floorTo<i32>(m_position.y);
-    i32 baseZ = math::floorTo<i32>(m_position.z);
+    i32 baseX = math::floorTo<i32>(m_builtIn.stateVector->m_pos.x);
+    i32 baseY = math::floorTo<i32>(m_builtIn.stateVector->m_pos.y);
+    i32 baseZ = math::floorTo<i32>(m_builtIn.stateVector->m_pos.z);
 
     // 创建 ISpawnWorldReader 适配器，用于 EntitySpawnPlacementRegistry 的生成位置检查
     world::spawn::IWorldSpawnAdapter spawnWorldAdapter(world);
@@ -334,7 +334,12 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         }
 
         // 创建增援僵尸实体
-        std::unique_ptr<Entity> newEntity = entityType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry == nullptr) {
+            continue;
+        }
+        std::unique_ptr<Entity> newEntity = entityType->create(&world, *ecsRegistry);
         if (newEntity == nullptr) {
             continue;
         }
@@ -383,19 +388,19 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         // 召唤成功：给召唤者施加 caller charge 修饰符
         // MC 原版：如果已有修饰符则累加，否则新建
         f64 callerChargeValue = REINFORCEMENT_CALLEE_CHARGE; // -0.05
-        if (m_attributes.hasModifier(
+        if (attributes().hasModifier(
                 entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID)) {
-            f64 existingValue = m_attributes.getModifierValue(
+            f64 existingValue = attributes().getModifierValue(
                 entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID, 0.0);
             callerChargeValue = existingValue + REINFORCEMENT_CALLEE_CHARGE;
-            m_attributes.removeModifier(
+            attributes().removeModifier(
                 entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID);
         }
         entity::attribute::AttributeModifier callerModifier(REINFORCEMENT_CALLER_CHARGE_ID,
             "Reinforcement caller charge",
             callerChargeValue,
             entity::attribute::Operation::Addition);
-        m_attributes.addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, callerModifier);
+        attributes().addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, callerModifier);
 
         // 给被召唤的增援僵尸施加 callee charge 修饰符（防止连锁增援）
         // 注意：此时 newEntity 已被 spawnEntity 移走，需要通过 ID 查找
@@ -544,15 +549,15 @@ void ZombieEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 僵尸属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0);
 
     // 注册僵尸增援概率属性
     auto reinforcementAttr = entity::attribute::Attributes::zombieSpawnReinforcements();
-    m_attributes.registerAttribute(*reinforcementAttr);
+    attributes().registerAttribute(*reinforcementAttr);
 }
 
 void ZombieEntity::convertToDrowned()
@@ -568,12 +573,21 @@ void ZombieEntity::convertToDrowned()
     const entity::EntityType* drownedType = registry.getType("minecraft:drowned");
 
     // 2. 创建溺尸实体
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = worldPtr->entityRegistry();
+    // ECS 迁移：实体构造强制需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS，
+    // 此时无法构造实体，直接放弃转换（转换本就只应在服务端进行）
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
     std::unique_ptr<Entity> newEntity;
     if (drownedType && drownedType->canSummon()) {
-        newEntity = drownedType->create(worldPtr);
+        newEntity = drownedType->create(worldPtr, *ecsRegistry);
     } else {
         // 回退：直接创建实体类
-        newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0));
+        newEntity = std::make_unique<DrownedEntity>(EntityInstanceId(0), *ecsRegistry);
+        newEntity->setTypeId(entity::EntityTypeKeys::DROWNED); // 工厂绕过补救：直接构造缺 typeId
     }
 
     DrownedEntity* drowned = dynamic_cast<DrownedEntity*>(newEntity.get());
@@ -582,8 +596,8 @@ void ZombieEntity::convertToDrowned()
     }
 
     // 3. 复制位置和旋转
-    drowned->setPosition(m_position);
-    drowned->setRotation(m_yaw, m_pitch);
+    drowned->setPosition(m_builtIn.stateVector->m_pos);
+    drowned->setRotation(m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
 
     // 4. 复制生命值（按比例）
     f32 healthRatio = health() / maxHealth();
@@ -630,7 +644,9 @@ void ZombieEntity::convertToDrowned()
     // 11. 播放转化音效
     playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
     worldPtr->playEvent(world::WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND,
-        BlockPos(static_cast<i32>(m_position.x), static_cast<i32>(m_position.y), static_cast<i32>(m_position.z)),
+        BlockPos(static_cast<i32>(m_builtIn.stateVector->m_pos.x),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.y),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.z)),
         0);
 
     // 12. 重置转化状态
@@ -774,12 +790,12 @@ void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
 {
 
     // 随机设置增援概率基础值（0.0 ~ 0.1）
-    m_attributes.setBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, rng.nextDouble() * 0.1);
+    attributes().setBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, rng.nextDouble() * 0.1);
 
     // 击退抗性添加随机生成加成
     entity::attribute::AttributeModifier knockbackModifier(
         RANDOM_SPAWN_BONUS_ID, "Random spawn bonus", rng.nextDouble() * 0.05, entity::attribute::Operation::Addition);
-    m_attributes.addModifier(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, knockbackModifier);
+    attributes().addModifier(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, knockbackModifier);
 
     // 跟随范围添加随机生成加成（条件性）
     f64 followRangeBonus = rng.nextDouble() * 1.5 * static_cast<f64>(specialMultiplier);
@@ -788,7 +804,7 @@ void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
             "Zombie random spawn bonus",
             followRangeBonus,
             entity::attribute::Operation::MultiplyTotal);
-        m_attributes.addModifier(entity::attribute::Attributes::FOLLOW_RANGE, followModifier);
+        attributes().addModifier(entity::attribute::Attributes::FOLLOW_RANGE, followModifier);
     }
 
     // 领袖僵尸判定（概率 = specialMultiplier * 0.05）
@@ -798,7 +814,7 @@ void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
             "Leader zombie bonus",
             rng.nextDouble() * 0.25 + 0.5,
             entity::attribute::Operation::Addition);
-        m_attributes.addModifier(
+        attributes().addModifier(
             entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, leaderReinforcementModifier);
 
         // 领袖僵尸最大生命值增加
@@ -806,7 +822,7 @@ void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
             "Leader zombie bonus",
             rng.nextDouble() * 3.0 + 1.0,
             entity::attribute::Operation::MultiplyTotal);
-        m_attributes.addModifier(entity::attribute::Attributes::MAX_HEALTH, leaderHealthModifier);
+        attributes().addModifier(entity::attribute::Attributes::MAX_HEALTH, leaderHealthModifier);
 
         // 领袖僵尸可以破门
         setBreakDoorsAbility(true);

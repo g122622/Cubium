@@ -39,8 +39,8 @@ public:
      * @brief 构造肩膀乘坐实体
      * @param id 实体 ID
      */
-    ShoulderRidingEntity(EntityInstanceId id)
-        : TameableEntity(id)
+    ShoulderRidingEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : TameableEntity(id, registry)
     {}
 
     ~ShoulderRidingEntity() override = default;

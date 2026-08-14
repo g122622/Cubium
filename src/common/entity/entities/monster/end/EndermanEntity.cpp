@@ -50,8 +50,8 @@
 
 namespace mc {
 
-EndermanEntity::EndermanEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+EndermanEntity::EndermanEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 末影人不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -99,9 +99,9 @@ void EndermanEntity::registerData()
     m_dataManager.registerParam(DATA_SCREAMING_PARAM, false);
 }
 
-std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EndermanEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EndermanEntity>(EntityInstanceId(0));
+    return std::make_unique<EndermanEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> EndermanEntity::getAmbientSound() const
@@ -230,7 +230,9 @@ bool EndermanEntity::teleportToTarget()
     }
 
     // 计算远离目标的方向向量
-    Vector3 direction(m_position.x - attackTarget()->position().x, 0.0, m_position.z - attackTarget()->position().z);
+    Vector3 direction(m_builtIn.stateVector->m_pos.x - attackTarget()->position().x,
+        0.0,
+        m_builtIn.stateVector->m_pos.z - attackTarget()->position().z);
 
     // 归一化方向向量
     f32 length = direction.length();
@@ -247,9 +249,11 @@ bool EndermanEntity::teleportToTarget()
 
     // 目标位置：远离目标 16 格
     math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_ticksExisted));
-    f32 targetX = m_position.x + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.x * 16.0f;
-    f32 targetY = m_position.y + static_cast<f32>(rng.nextInt(16) - 8);
-    f32 targetZ = m_position.z + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.z * 16.0f;
+    f32 targetX =
+        m_builtIn.stateVector->m_pos.x + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.x * 16.0f;
+    f32 targetY = m_builtIn.stateVector->m_pos.y + static_cast<f32>(rng.nextInt(16) - 8);
+    f32 targetZ =
+        m_builtIn.stateVector->m_pos.z + static_cast<f32>(rng.nextDouble() - 0.5) * 8.0f - direction.z * 16.0f;
 
     // 尝试瞬移
     bool success = attemptTeleport(targetX, targetY, targetZ, true);
@@ -464,10 +468,10 @@ void EndermanEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 末影人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
 }
 
 // ========== 寻路权重 ==========

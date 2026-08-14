@@ -2,6 +2,7 @@
 
 #include "common/test/framework/batch/GameTestBatch.hpp"
 #include "common/test/framework/environment/EnvironmentRegistry.hpp"
+#include "common/test/framework/environment/TimeOfDayEnvironment.hpp" // TimeOfDayEnvironment（night/day 批时间环境）
 #include "common/test/framework/function/BaseGameTestFunction.hpp"
 #include "common/test/framework/registry/GameTestRegistry.hpp"
 #include "common/test/framework/ticker/GameTestTicker.hpp"
@@ -37,6 +38,7 @@
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <unordered_map>
 #include <utility>
 
 namespace mc::test {
@@ -318,15 +320,57 @@ bool GameTestServer::_selectAndBuildRunner()
         return false;
     }
 
-    // 构造单批次（第一阶段简化：全部 runnable 测试一个批次，环境用 "default"）。
-    // TODO: 按 TestData.environment() 分组 + MAX_TESTS_PER_BATCH=50 切片（GameTestBatchFactory，对齐 Java）
-    auto defaultEnv = EnvironmentRegistry::instance().getEnvironment("default");
+    // 按批次名（batchName）分组构造批次，对齐基岩 /gametest runset 的预定义批次语义。
+    // 基岩预定义 "day"/"night" 批次：day 批设白天，night 批设夜晚。此前实现把所有测试塞进单 "default"
+    // 批（空 environment），batch("night") 仅设 batchName 字符串不真正设夜晚——致依赖昼夜的测试
+    // （蜘蛛夜晚攻击/亡灵白天燃烧的负向判定等）无法工作。现按 batchName 分组：
+    //   - "night"    → TimeOfDayEnvironment(18000)  夜晚（skyDarkening≈11，露天亮度≈0.083<0.5）
+    //   - "day"/其他 → TimeOfDayEnvironment(6000)   正午（skyDarkening=0，露天亮度=1.0>0.5）
+    // day 批用 6000（正午）而非 1000（6:00AM）：getBrightness 对齐 vanilla
+    // getLightLevelDependentMagicValue 后用 getMaxLocalRawBrightness（含 getSkyDarkening 时间衰减）+
+    // gamma 曲线 f/(4-3f)。dayTime=1000 时项目 getCelestialAngle(1000)=0.0417 → skyDarkening≈4 →
+    // 露天 rawBrightness=15-4=11 → f=0.733 → f1=0.407 <0.5，致亡灵白天燃烧测试
+    // （skeleton_burns_in_daylight）isInDaylight 的 brightness>0.5 判定失败不燃烧而超时。
+    // dayTime=6000 正午 skyDarkening=0 → rawBrightness=15 → f=1.0 → f1=1.0 >0.5 燃烧正常。
+    // environment 在 _applyBatchEnvironmentSetup 经 MinecraftEnvironmentApplier 应用（调
+    // TimeManager::setDayTime）。daylight cycle 开着 dayTime 每 tick 递增，但单批测试通常数百 tick
+    // 内完成，18000+数百仍 <24000 在夜晚区间，6000+数百仍 <12000 在白天区间。
+    // TODO: 完整对齐基岩 GameTestBatchFactory 按 environment 分组 + MAX_TESTS_PER_BATCH=50 切片。
+    std::unordered_map<std::string, std::shared_ptr<TestEnvironmentDefinition>> envCache;
+    auto getEnvForBatch = [&](const std::string& name) -> std::shared_ptr<TestEnvironmentDefinition> {
+        const bool isNight = (name == "night");
+        const std::string key = isNight ? std::string{"night"} : std::string{"day"};
+        auto it = envCache.find(key);
+        if (it != envCache.end()) {
+            return it->second;
+        }
+        auto env = std::make_shared<TimeOfDayEnvironment>(isNight ? 18000 : 6000);
+        envCache[key] = env;
+        return env;
+    };
+
+    // 按 batchName 聚合测试到有序批次（保留首次出现顺序，对齐基岩 runset 顺序执行语义）
+    // 注意：用 fn->data().batchName()（TestData 的批次名，JS batch("night") 设此字段），而非
+    // fn->batchName()（BaseGameTestFunction::m_batchName，ScriptGameTestFunction 构造时被传入
+    // className "MobBehaviorTests"，是历史命名混淆，非真实批次名）。
+    std::vector<std::string> batchOrder;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<BaseGameTestFunction>>> byBatch;
+    for (auto& fn : runnable) {
+        const std::string& bn = fn->data().batchName();
+        if (byBatch.find(bn) == byBatch.end()) {
+            batchOrder.push_back(bn);
+        }
+        byBatch[bn].push_back(fn);
+    }
+
     std::vector<GameTestBatch> batches;
-    batches.emplace_back(std::string{"default"},
-        std::move(runnable),
-        GameTestRegistry::instance().getBeforeBatchFunction("default"),
-        GameTestRegistry::instance().getAfterBatchFunction("default"),
-        defaultEnv);
+    for (const auto& bn : batchOrder) {
+        batches.emplace_back(bn,
+            std::move(byBatch[bn]),
+            GameTestRegistry::instance().getBeforeBatchFunction(bn),
+            GameTestRegistry::instance().getAfterBatchFunction(bn),
+            getEnvForBatch(bn));
+    }
 
     // 构造 runner（overworld 经 dimensionManager 取，_selectAndBuildRunner 在 initialize 末尾调用时维度已就绪）
     auto* overworldDim = m_dimensionManager->getOverworld();

@@ -60,7 +60,7 @@ namespace {
  * 提供方块存储、实体生成追踪、客户端/服务端切换等基本能力，
  * 参考 MobBlocksTestWorld 的设计。
  */
-class SnifferEggTestWorld final : public test::BaseTestWorld {
+class SnifferEggTestWorld final : public mc::test::BaseTestWorld {
 public:
     SnifferEggTestWorld()
     {
@@ -597,7 +597,7 @@ protected:
 
 TEST_F(SnifferEntityTest, SetChild_True_SetsAgeToNegative48000)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 初始年龄为 0（成体）
     EXPECT_EQ(sniffer->getGrowingAge(), 0);
@@ -613,7 +613,7 @@ TEST_F(SnifferEntityTest, SetChild_True_SetsAgeToNegative48000)
 
 TEST_F(SnifferEntityTest, SetChild_False_SetsAgeToZero)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     sniffer->setChild(true);
     ASSERT_TRUE(sniffer->isChild());
 
@@ -627,13 +627,13 @@ TEST_F(SnifferEntityTest, SetChild_False_SetsAgeToZero)
 
 TEST_F(SnifferEntityTest, GetState_InitialStateIsIdling)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_EQ(sniffer->getState(), SnifferEntity::State::Idling);
 }
 
 TEST_F(SnifferEntityTest, SetState_UpdatesState)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     sniffer->setState(SnifferEntity::State::Digging);
     EXPECT_EQ(sniffer->getState(), SnifferEntity::State::Digging);
@@ -647,7 +647,7 @@ TEST_F(SnifferEntityTest, SetState_UpdatesState)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 火把花种子是嗅探兽食物
     if (Items::TORCHFLOWER_SEEDS != nullptr) {
@@ -658,7 +658,7 @@ TEST_F(SnifferEntityTest, IsBreedingItem_TorchflowerSeeds_ReturnsTrue)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 瓶草荚果是嗅探兽食物
     if (Items::PITCHER_POD != nullptr) {
@@ -669,7 +669,7 @@ TEST_F(SnifferEntityTest, IsBreedingItem_PitcherPod_ReturnsTrue)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_OtherItem_ReturnsFalse)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 小麦不是嗅探兽食物
     if (Items::WHEAT != nullptr) {
@@ -680,33 +680,33 @@ TEST_F(SnifferEntityTest, IsBreedingItem_OtherItem_ReturnsFalse)
 
 TEST_F(SnifferEntityTest, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     ItemStack empty;
     EXPECT_FALSE(sniffer->isBreedingItem(empty));
 }
 
 TEST_F(SnifferEntityTest, EyeHeight_AdultReturns105)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     // 默认成体
     EXPECT_FLOAT_EQ(sniffer->eyeHeight(), 1.05f);
 }
 
 TEST_F(SnifferEntityTest, EyeHeight_BabyReturns525)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     sniffer->setChild(true);
     EXPECT_FLOAT_EQ(sniffer->eyeHeight(), 0.525f);
 }
 
 TEST_F(SnifferEntityTest, GetBaseWidth_Returns19)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(sniffer->getBaseWidth(), 1.9f);
 }
 
 TEST_F(SnifferEntityTest, GetBaseHeight_Returns175)
 {
-    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0));
+    auto sniffer = std::make_unique<SnifferEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(sniffer->getBaseHeight(), 1.75f);
 }

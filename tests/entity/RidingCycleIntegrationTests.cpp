@@ -88,7 +88,7 @@ private:
 class MultiPassengerEntity : public Entity {
 public:
     MultiPassengerEntity(EntityInstanceId id, IWorld* world = nullptr)
-        : Entity(id, world)
+        : Entity(id, world, mc::test::testEcsRegistry())
     {}
     i32 getMaxPassengers() const override { return 2; }
 };
@@ -113,8 +113,8 @@ protected:
 TEST_F(RidingCycleIntegrationTest, DirectCycle_RejectedWithWorld)
 {
     // 创建两个实体并注册到世界
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     a.setWorld(m_world.get());
     b.setWorld(m_world.get());
     m_world->registerEntity(&a);
@@ -143,9 +143,9 @@ TEST_F(RidingCycleIntegrationTest, DirectCycle_RejectedWithWorld)
 TEST_F(RidingCycleIntegrationTest, DirectCycle_ThreeEntities)
 {
     // 三个实体的直接循环尝试
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -183,10 +183,10 @@ TEST_F(RidingCycleIntegrationTest, DirectCycle_ThreeEntities)
 
 TEST_F(RidingCycleIntegrationTest, IndirectCycle_FourEntities)
 {
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
-    Entity d(EntityInstanceId(4), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
+    Entity d(EntityInstanceId(4), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c, &d}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -215,9 +215,9 @@ TEST_F(RidingCycleIntegrationTest, IndirectCycle_FourEntities)
 
 TEST_F(RidingCycleIntegrationTest, NonCycleChain_AllowedWithWorld)
 {
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -248,8 +248,8 @@ TEST_F(RidingCycleIntegrationTest, NonCycleChain_AllowedWithWorld)
 
 TEST_F(RidingCycleIntegrationTest, StopRiding_WithWorld_CleansUpBothSides)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider(EntityInstanceId(2), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider.setWorld(m_world.get());
     m_world->registerEntity(&vehicle);
@@ -279,9 +279,9 @@ TEST_F(RidingCycleIntegrationTest, StopRiding_MiddleOfChain_CleansUpCorrectly)
     // 链：A -> B -> C（A骑B，B骑C）
     // B 下骑后，A 也应该被弹出（因为 B 不再是 C 的乘客，
     // 但 A 仍然骑乘 B，只是 B 不再骑乘 C）
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -311,8 +311,8 @@ TEST_F(RidingCycleIntegrationTest, StopRiding_MiddleOfChain_CleansUpCorrectly)
 TEST_F(RidingCycleIntegrationTest, RemovePassengers_WithWorld)
 {
     MultiPassengerEntity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider1(EntityInstanceId(2), m_world.get());
-    Entity rider2(EntityInstanceId(3), m_world.get());
+    Entity rider1(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider1.setWorld(m_world.get());
     rider2.setWorld(m_world.get());
@@ -346,9 +346,9 @@ TEST_F(RidingCycleIntegrationTest, RemovePassengers_WithWorld)
 
 TEST_F(RidingCycleIntegrationTest, GetLowestRidingEntity_ChainTraversal)
 {
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -378,7 +378,7 @@ TEST_F(RidingCycleIntegrationTest, GetLowestRidingEntity_ChainTraversal)
 
 TEST_F(RidingCycleIntegrationTest, GetLowestRidingEntity_NoRiding)
 {
-    Entity entity(EntityInstanceId(1), m_world.get());
+    Entity entity(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
     entity.setWorld(m_world.get());
     m_world->registerEntity(&entity);
 
@@ -392,8 +392,8 @@ TEST_F(RidingCycleIntegrationTest, GetLowestRidingEntity_NoRiding)
 
 TEST_F(RidingCycleIntegrationTest, IsRidingOrBeingRiddenBy_DirectRelation)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider(EntityInstanceId(2), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider.setWorld(m_world.get());
     m_world->registerEntity(&vehicle);
@@ -414,9 +414,9 @@ TEST_F(RidingCycleIntegrationTest, IsRidingOrBeingRiddenBy_DirectRelation)
 TEST_F(RidingCycleIntegrationTest, IsRidingOrBeingRiddenBy_IndirectRelation)
 {
     // A -> B -> C（A骑B，B骑C）
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -440,9 +440,9 @@ TEST_F(RidingCycleIntegrationTest, IsRidingOrBeingRiddenBy_IndirectRelation)
 
 TEST_F(RidingCycleIntegrationTest, IsRidingOrBeingRiddenBy_NoRelation)
 {
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -466,8 +466,8 @@ TEST_F(RidingCycleIntegrationTest, IsRidingSameEntity_SharedRoot)
 {
     // A -> C, B -> C（A和B都骑乘C）
     MultiPassengerEntity c(EntityInstanceId(3), m_world.get());
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     a.setWorld(m_world.get());
     b.setWorld(m_world.get());
     c.setWorld(m_world.get());
@@ -486,10 +486,10 @@ TEST_F(RidingCycleIntegrationTest, IsRidingSameEntity_SharedRoot)
 TEST_F(RidingCycleIntegrationTest, IsRidingSameEntity_DifferentRoot)
 {
     // A -> B, C -> D（不同根载具）
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
-    Entity d(EntityInstanceId(4), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
+    Entity d(EntityInstanceId(4), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c, &d}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -510,8 +510,8 @@ TEST_F(RidingCycleIntegrationTest, IsRidingSameEntity_DifferentRoot)
 
 TEST_F(RidingCycleIntegrationTest, FullRidingLifecycle)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider(EntityInstanceId(2), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider.setWorld(m_world.get());
     m_world->registerEntity(&vehicle);
@@ -558,10 +558,10 @@ TEST_F(RidingCycleIntegrationTest, FullRidingLifecycle)
 TEST_F(RidingCycleIntegrationTest, CycleDetectionDoesNotBlockValidChains)
 {
     // A -> B -> C -> D（四层链，无循环）
-    Entity a(EntityInstanceId(1), m_world.get());
-    Entity b(EntityInstanceId(2), m_world.get());
-    Entity c(EntityInstanceId(3), m_world.get());
-    Entity d(EntityInstanceId(4), m_world.get());
+    Entity a(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
+    Entity d(EntityInstanceId(4), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&a, &b, &c, &d}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -590,7 +590,7 @@ TEST_F(RidingCycleIntegrationTest, CycleDetectionDoesNotBlockValidChains)
 
 TEST_F(RidingCycleIntegrationTest, SelfRiding_RejectedWithWorld)
 {
-    Entity entity(EntityInstanceId(1), m_world.get());
+    Entity entity(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
     entity.setWorld(m_world.get());
     m_world->registerEntity(&entity);
 
@@ -605,8 +605,8 @@ TEST_F(RidingCycleIntegrationTest, SelfRiding_RejectedWithWorld)
 
 TEST_F(RidingCycleIntegrationTest, AlreadyRidingSameVehicle_ReturnsFalse)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider(EntityInstanceId(2), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider.setWorld(m_world.get());
     m_world->registerEntity(&vehicle);
@@ -627,9 +627,9 @@ TEST_F(RidingCycleIntegrationTest, AlreadyRidingSameVehicle_ReturnsFalse)
 
 TEST_F(RidingCycleIntegrationTest, AddPassenger_PassengerAlreadyBoundToOtherVehicle_Fails)
 {
-    Entity vehicle1(EntityInstanceId(1), m_world.get());
-    Entity vehicle2(EntityInstanceId(2), m_world.get());
-    Entity rider(EntityInstanceId(3), m_world.get());
+    Entity vehicle1(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity vehicle2(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&vehicle1, &vehicle2, &rider}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -652,9 +652,9 @@ TEST_F(RidingCycleIntegrationTest, AddPassenger_PassengerAlreadyBoundToOtherVehi
 
 TEST_F(RidingCycleIntegrationTest, StartRidingFailure_RollbackVehicle_WithWorld)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider1(EntityInstanceId(2), m_world.get());
-    Entity rider2(EntityInstanceId(3), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider1(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), m_world.get(), mc::test::testEcsRegistry());
     for (auto* e : {&vehicle, &rider1, &rider2}) {
         e->setWorld(m_world.get());
         m_world->registerEntity(e);
@@ -681,8 +681,8 @@ TEST_F(RidingCycleIntegrationTest, StartRidingFailure_RollbackVehicle_WithWorld)
 
 TEST_F(RidingCycleIntegrationTest, Detach_WithWorld_CleansUpAllRelationships)
 {
-    Entity vehicle(EntityInstanceId(1), m_world.get());
-    Entity rider(EntityInstanceId(2), m_world.get());
+    Entity vehicle(EntityInstanceId(1), m_world.get(), mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), m_world.get(), mc::test::testEcsRegistry());
     vehicle.setWorld(m_world.get());
     rider.setWorld(m_world.get());
     m_world->registerEntity(&vehicle);

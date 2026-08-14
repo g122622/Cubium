@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -207,7 +208,7 @@ TEST_F(ItemDropHelperTest, VelocitiesAreRandomized)
 
 TEST_F(ItemDropHelperTest, SpawnDropsCreatesItemEntities)
 {
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
     math::Random rng(12345);
 
     auto* shears = Items::SHEARS;
@@ -231,7 +232,7 @@ TEST_F(ItemDropHelperTest, SpawnDropsCreatesItemEntities)
 
 TEST_F(ItemDropHelperTest, SpawnMultipleItemEntities)
 {
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
     math::Random rng(12345);
 
     auto* apple = Items::APPLE;
@@ -248,7 +249,7 @@ TEST_F(ItemDropHelperTest, SpawnMultipleItemEntities)
 
 TEST_F(ItemDropHelperTest, SpawnEmptyDropsReturnsEmpty)
 {
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
 
     const BlockPos pos(0, 0, 0);
     const std::vector<ItemStack> emptyDrops;
@@ -261,7 +262,7 @@ TEST_F(ItemDropHelperTest, SpawnEmptyDropsReturnsEmpty)
 
 TEST_F(ItemDropHelperTest, SpawnWithEmptyStackSkipped)
 {
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
 
     auto* apple = Items::APPLE;
     ASSERT_NE(apple, nullptr);
@@ -279,7 +280,7 @@ TEST_F(ItemDropHelperTest, SpawnWithEmptyStackSkipped)
 
 TEST_F(ItemDropHelperTest, SpawnWithThrowerUuid)
 {
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
 
     auto* apple = Items::APPLE;
     ASSERT_NE(apple, nullptr);
@@ -341,7 +342,7 @@ TEST_F(ItemDropHelperTest, SpawnItemEntityWithNullWorldReturnsNullptr)
 TEST_F(ItemDropHelperTest, SpawnItemEntityWithEmptyStackReturnsNullptr)
 {
     // 空物品堆应返回 nullptr
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
     math::Random rng(12345);
 
     ItemStack emptyStack;                                         // 默认构造为空
@@ -392,7 +393,7 @@ TEST_F(ItemDropHelperTest, SpawnItemEntitiesWithNullWorldReturnsEmpty)
 TEST_F(ItemDropHelperTest, SpawnItemEntitiesWithEmptyDropsReturnsEmpty)
 {
     // 空掉落列表应返回空向量
-    EntityManager entityManager;
+    EntityManager entityManager(mc::test::testEcsRegistry());
     math::Random rng(12345);
 
     BlockPos pos(0, 64, 0);

@@ -1687,6 +1687,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/test/script/context/ScriptBindingRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegister.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptTestHelper.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestError.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestTypes.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptRegistrationBuilderBinding.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptSequence.cpp

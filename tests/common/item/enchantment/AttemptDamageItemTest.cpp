@@ -51,8 +51,9 @@ using namespace mc::item::enchant;
 
 class DamageTestLivingEntity : public LivingEntity {
 public:
-    explicit DamageTestLivingEntity(IWorld* world = nullptr)
-        : LivingEntity(EntityInstanceId(1), world)
+    explicit DamageTestLivingEntity(IWorld* world = nullptr,
+        ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : LivingEntity(EntityInstanceId(1), world, registry)
     {
         registerData();
         registerAttributes();
@@ -63,7 +64,7 @@ public:
 // 测试用世界，使用固定种子的随机数生成器
 // ============================================================================
 
-class DamageTestWorld : public test::BaseTestWorld {
+class DamageTestWorld : public mc::test::BaseTestWorld {
 public:
     DamageTestWorld() = default;
 
@@ -114,7 +115,7 @@ TEST_F(AttemptDamageItemTest, NoEnchantmentDamageWithEntity)
     Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
     ASSERT_NE(diamondSword, nullptr);
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     ItemStack stack(diamondSword, 1);
     i32 maxDamage = stack.getMaxDamage();
@@ -158,7 +159,7 @@ TEST_F(AttemptDamageItemTest, ItemBreaksWithEntity)
     Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
     ASSERT_NE(diamondSword, nullptr);
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     ItemStack stack(diamondSword, 1);
     bool broken = stack.attemptDamageItem(2000, &entity);
@@ -179,7 +180,7 @@ TEST_F(AttemptDamageItemTest, WithEntityUsesWorldRandom)
     Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
     ASSERT_NE(diamondSword, nullptr);
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     // 添加耐久 I 附魔
     int ignoreCount = 0;
@@ -276,7 +277,7 @@ TEST_F(AttemptDamageItemTest, EntityWithoutWorldFallbackRandom)
     ASSERT_NE(diamondSword, nullptr);
 
     // 创建没有世界的实体
-    DamageTestLivingEntity entityNoWorld(nullptr);
+    DamageTestLivingEntity entityNoWorld(nullptr, mc::test::testEcsRegistry());
     EXPECT_EQ(entityNoWorld.world(), nullptr);
 
     int ignoreCount = 0;
@@ -310,7 +311,7 @@ TEST_F(AttemptDamageItemTest, HigherUnbreakingLevelMoreProtection)
     Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
     ASSERT_NE(diamondSword, nullptr);
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     int ignoreCountLevel1 = 0;
     int ignoreCountLevel3 = 0;
@@ -353,7 +354,7 @@ TEST_F(AttemptDamageItemTest, ArmorUnbreakingReducedEffectiveness)
     ASSERT_NE(diamondChestplate, nullptr);
     ASSERT_TRUE(diamondChestplate->isArmor());
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     int ignoreCountArmor = 0;
     int ignoreCountNonArmor = 0;
@@ -400,7 +401,7 @@ TEST_F(AttemptDamageItemTest, WorldRandomProducesDeterministicResults)
     Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
     ASSERT_NE(diamondSword, nullptr);
 
-    DamageTestLivingEntity entity(&world);
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
 
     // 第一轮：记录损伤序列
     std::vector<i32> damages1;

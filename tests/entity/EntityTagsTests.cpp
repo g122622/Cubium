@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/core/Entity.hpp"
 #include "entity/core/MobEntity.hpp"
 
@@ -40,7 +42,7 @@ using namespace mc::entity;
  */
 TEST(EntityTags, AddAndRemove)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 初始状态应该没有标签
     EXPECT_TRUE(entity.getTags().empty());
@@ -77,7 +79,7 @@ TEST(EntityTags, AddAndRemove)
  */
 TEST(EntityTags, MaxTagLimit)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 添加 1024 个标签应该成功
     for (int i = 0; i < 1024; ++i) {
@@ -100,7 +102,7 @@ TEST(EntityTags, MaxTagLimit)
  */
 TEST(EntityTags, ClearTags)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     entity.addTag("tag1");
     entity.addTag("tag2");
@@ -119,7 +121,7 @@ TEST(EntityTags, ClearTags)
  */
 TEST(EntityTags, TagsImmutability)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.addTag("tag1");
 
     const auto& tags = entity.getTags();
@@ -137,7 +139,7 @@ TEST(EntityTags, TagsImmutability)
  */
 TEST(EntityTags, EmptyTagName)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 空字符串是有效的标签名
     EXPECT_TRUE(entity.addTag(""));
@@ -156,8 +158,8 @@ TEST(EntityTags, EmptyTagName)
  */
 TEST(EntityTags, IndependentTags)
 {
-    Entity entity1(EntityInstanceId(1), nullptr);
-    Entity entity2(EntityInstanceId(2), nullptr);
+    Entity entity1(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity entity2(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     entity1.addTag("pig_tag");
     entity2.addTag("cow_tag");
@@ -181,7 +183,7 @@ TEST(EntityTags, IndependentTags)
 TEST(EntityTags, Polymorphism)
 {
     // 直接使用 Entity 测试多态性，因为 MobEntity 构造函数参数不同
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(entity.addTag("mob_tag"));
     EXPECT_TRUE(entity.hasTag("mob_tag"));
@@ -197,7 +199,7 @@ TEST(EntityTags, Polymorphism)
  */
 TEST(EntityTags, TagPersistence)
 {
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     entity.addTag("persistent_tag");
     entity.addTag("another_tag");

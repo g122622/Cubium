@@ -178,8 +178,14 @@ ExperienceOrbEntity* ExperienceDropHandler::_createExperienceOrb(
         return nullptr;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建经验球实体
-    auto orb = std::make_unique<ExperienceOrbEntity>(world, x, y, z, xpValue);
+    auto orb = std::make_unique<ExperienceOrbEntity>(world, x, y, z, xpValue, *registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);

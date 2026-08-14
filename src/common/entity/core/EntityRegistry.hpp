@@ -67,7 +67,7 @@ void reset();
  *
  * // 查询实体类型
  * const EntityType* pigType = registry.getType("minecraft:pig");
- * auto pig = pigType->create(world);
+ * auto pig = pigType->create(world, ecsRegistry);
  * @endcode
  */
 class EntityRegistry {

@@ -56,8 +56,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    SquidEntity(EntityInstanceId id);
+    SquidEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SquidEntity() override = default;
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
@@ -80,7 +81,7 @@ public:
      * @param world 世界实例
      * @return 新的鱿鱼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 游泳行为 ==========
 

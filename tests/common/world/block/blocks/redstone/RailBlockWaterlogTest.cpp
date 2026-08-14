@@ -62,7 +62,7 @@ namespace {
  * 支持切换客户端/服务端模式以测试 isClientSide 守卫。
  * 提供 DummyTickManager 以支持 updatePostPlacement 中含水铁轨的 scheduleWaterTick 调用。
  */
-class RailWaterlogTestWorld : public test::BaseTestWorld {
+class RailWaterlogTestWorld : public mc::test::BaseTestWorld {
 public:
     RailWaterlogTestWorld()
         : m_airState(&VanillaBlocks::AIR->defaultState())
@@ -133,7 +133,7 @@ public:
     }
 
 private:
-    test::DummyTickManager m_tickManager;
+    mc::test::DummyTickManager m_tickManager;
     std::unordered_map<i64, const BlockState*> m_blocks;
     std::unordered_map<i64, const fluid::FluidState*> m_fluids;
     const BlockState* m_airState;

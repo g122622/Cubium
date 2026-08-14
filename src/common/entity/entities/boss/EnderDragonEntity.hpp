@@ -61,7 +61,7 @@ namespace entity {
  */
 class BossEntity : public MobEntity {
 public:
-    explicit BossEntity(EntityInstanceId id);
+    explicit BossEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~BossEntity() override = default;
 
     // ========== Boss 特有功能 ==========
@@ -130,7 +130,7 @@ public:
     /**
      * @brief 构造函数
      */
-    explicit EnderDragonPartEntity(EntityInstanceId id);
+    explicit EnderDragonPartEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~EnderDragonPartEntity() override = default;
 
@@ -204,12 +204,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EnderDragonEntity(EntityInstanceId id);
+    explicit EnderDragonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~EnderDragonEntity() override = default;
 

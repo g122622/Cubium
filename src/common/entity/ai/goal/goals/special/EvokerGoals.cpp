@@ -47,9 +47,21 @@ namespace entity::ai::goal {
 // ============================================================================
 // EvokerSpellGoal - 施法目标基类
 // ============================================================================
+//
+// flag 对齐原版 SpellcasterIllager.SpellcasterUseSpellGoal：原版施法 goal 不设置任何
+// Goal.Flag（默认空 EnumSet）。施法 goal 必须无 flag，否则会与 EvokerCastingSpellGoal
+// (优先级1, 占 Move+Look) 互斥抢占——施法 goal startExecuting 调 startCasting 设
+// isSpellcasting()=true，CastingSpellGoal 随即 shouldExecute=true 启动，若两者共享 flag
+// (如 Look)，CastingSpellGoal 启动会 reset 施法 goal（_startGoal 抢占共享 flag 的运行中 goal），
+// 施法 goal 的 warmup 计数被 resetTask 清掉，castSpell 永不执行。
+//   无 flag 后施法 goal 不被任何 goal 抢占，warmup 持续递减到 0 执行 castSpell 生成尖牙/召唤恼鬼。
+// 施法期间的"停步 + 看向目标"由 EvokerCastingSpellGoal(优先级1, Move+Look) 接管：其优先级1
+// 高于 AvoidEntityGoal(2)，AvoidEntity 无法抢占 MOVE，唤魔者施法时停步不被 flee 打断，对齐原版
+// SpellcasterCastingSpellGoal(MOVE+LOOK) 语义。施法 warmup 期间看向目标由本 goal tick 主动调
+// lookController()->setLookPositionWithEntity 实现，不依赖 Look flag。
 
 EvokerSpellGoal::EvokerSpellGoal(EvokerEntity* evoker)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    : Goal()
     , m_evoker(evoker)
 {
     MC_ASSERT(evoker != nullptr);
@@ -210,10 +222,15 @@ i32 EvokerSummonSpellGoal::_countNearbyVexes() const
 
 // ============================================================================
 // EvokerCastingSpellGoal - 施法时看向目标
+//
+// 施法期间让唤魔者看向目标，并占用 MOVE+LOOK flag 使唤魔者施法时停步。
+// flag 对齐原版 SpellcasterIllager.SpellcasterCastingSpellGoal(MOVE+LOOK)：原版施法 goal
+// (SpellcasterUseSpellGoal) 不占 flag，由本 goal 在 isCastingSpell() 期间接管 MOVE 停步。
+// 优先级1 高于 AvoidEntityGoal(2)，施法期间 AvoidEntity 无法抢占 MOVE，唤魔者不被 flee 打断。
 // ============================================================================
 
 EvokerCastingSpellGoal::EvokerCastingSpellGoal(EvokerEntity* evoker)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
     , m_evoker(evoker)
 {
     MC_ASSERT(evoker != nullptr);
@@ -243,10 +260,13 @@ void EvokerCastingSpellGoal::tick()
 
 // ============================================================================
 // EvokerWololoSpellGoal - 唔噜噜法术（将蓝色羊变成红色羊）
+//
+// flag 对齐原版 SpellcasterIllager.SpellcasterUseSpellGoal：原版 Wololo 施法 goal 不占 flag
+// （与 EvokerSpellGoal 同理，避免被 EvokerCastingSpellGoal 抢占 reset 致 warmup 丢失）。
 // ============================================================================
 
 EvokerWololoSpellGoal::EvokerWololoSpellGoal(EvokerEntity* evoker)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look})
+    : Goal()
     , m_evoker(evoker)
 {
     MC_ASSERT(evoker != nullptr);

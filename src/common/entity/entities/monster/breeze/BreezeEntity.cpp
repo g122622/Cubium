@@ -33,6 +33,7 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -61,8 +62,8 @@
 
 namespace mc {
 
-BreezeEntity::BreezeEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+BreezeEntity::BreezeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -71,9 +72,9 @@ BreezeEntity::BreezeEntity(EntityInstanceId id)
     setExperienceValue(10);
 }
 
-std::unique_ptr<Entity> BreezeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BreezeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BreezeEntity>(EntityInstanceId(0));
+    return std::make_unique<BreezeEntity>(EntityInstanceId(0), registry);
 }
 
 void BreezeEntity::tick()
@@ -247,10 +248,10 @@ void BreezeEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, MAX_HEALTH);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, MOVEMENT_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, FOLLOW_RANGE);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
 std::optional<ResourceLocation> BreezeEntity::getAmbientSound() const
@@ -321,7 +322,13 @@ void BreezeEntity::shootWindCharge()
     const f32 dz = static_cast<f32>(static_cast<f64>(m_attackTarget->z()) - static_cast<f64>(firingPos.z));
 
     // 创建风弹弹射物实体（通过发射者类型自动判定为旋风人风弹）
-    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，m_world 在攻击路径已确保非空
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0), *registry);
+    entity->setTypeId(::mc::entity::EntityTypeKeys::WIND_CHARGE); // 工厂绕过补救：直接构造缺 typeId
     entity->setWorld(m_world);
     entity->setPosition(firingPos.x, firingPos.y, firingPos.z);
     entity->setShooter(this);

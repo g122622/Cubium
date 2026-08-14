@@ -531,7 +531,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ClientSide_ReturnsSuccess)
 
     AnvilTestWorld world(true); // 客户端
     BlockPos pos(10, 64, 20);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;
@@ -556,7 +556,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ServerSide_OpensAnvilContainer)
 
     AnvilTestWorld world(false); // 服务端
     BlockPos pos(10, 64, 20);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;

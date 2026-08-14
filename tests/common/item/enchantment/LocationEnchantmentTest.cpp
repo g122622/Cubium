@@ -537,7 +537,7 @@ namespace {
  * - isWaterAt 检查（用于冰霜行者水源检测）
  * - 属性修饰符验证（用于灵魂疾行速度修饰符）
  */
-class LocationEnchantmentTestWorld final : public test::BaseTestWorld {
+class LocationEnchantmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     LocationEnchantmentTestWorld() = default;
 
@@ -662,7 +662,7 @@ private:
 class TestLivingEntityForLocation : public LivingEntity {
 public:
     TestLivingEntityForLocation()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerData();
         registerAttributes();

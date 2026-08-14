@@ -62,9 +62,9 @@ namespace {
  *
  * 继承 BaseChunkBackedTestWorld，支持设置区块群系以测试兔子类型选择。
  */
-class RabbitTestWorld final : public test::BaseChunkBackedTestWorld {
+class RabbitTestWorld final : public mc::test::BaseChunkBackedTestWorld {
 public:
-    using test::BaseChunkBackedTestWorld::ensureChunk;
+    using mc::test::BaseChunkBackedTestWorld::ensureChunk;
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -170,7 +170,7 @@ protected:
 
 TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 默认类型由 setRandomRabbitType 设置，测试概率分布
     // 由于随机性，我们只测试类型在有效范围内
     EXPECT_GE(static_cast<u8>(rabbit.getRabbitType()), 0);
@@ -179,7 +179,7 @@ TEST_F(RabbitEntityTest, RabbitType_DefaultIsBrown)
 
 TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::White);
     EXPECT_EQ(rabbit.getRabbitType(), RabbitEntity::RabbitType::White);
@@ -194,7 +194,7 @@ TEST_F(RabbitEntityTest, RabbitType_CanSetAndGetType)
 
 TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
     EXPECT_FALSE(rabbit.isKillerRabbit());
@@ -207,7 +207,7 @@ TEST_F(RabbitEntityTest, RabbitType_KillerRabbitDetection)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     ItemStack carrotStack(Items::CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(carrotStack));
@@ -215,7 +215,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsCarrot)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     ItemStack goldenCarrotStack(Items::GOLDEN_CARROT, 1);
     EXPECT_TRUE(rabbit.isBreedingItem(goldenCarrotStack));
@@ -223,7 +223,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsGoldenCarrot)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 获取蒲公英方块物品
     const BlockItem* dandelionItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DANDELION);
@@ -235,7 +235,7 @@ TEST_F(RabbitEntityTest, IsBreedingItem_AcceptsDandelion)
 
 TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 测试不接受其他物品
     if (Items::WHEAT != nullptr) {
@@ -252,12 +252,12 @@ TEST_F(RabbitEntityTest, IsBreedingItem_RejectsOtherItems)
 
 TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit)
 {
-    RabbitEntity parent1(EntityInstanceId(1));
+    RabbitEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setRabbitType(RabbitEntity::RabbitType::Brown);
 
-    RabbitEntity parent2(EntityInstanceId(2));
+    RabbitEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
     parent2.setRabbitType(RabbitEntity::RabbitType::White);
 
     auto baby = parent1.spawnBaby(parent2);
@@ -272,12 +272,12 @@ TEST_F(RabbitEntityTest, SpawnBaby_CreatesChildRabbit)
 
 TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType)
 {
-    RabbitEntity parent1(EntityInstanceId(1));
+    RabbitEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent1.setWorld(&m_world);
     parent1.setPosition(0.0f, 64.0f, 0.0f);
     parent1.setRabbitType(RabbitEntity::RabbitType::Gold);
 
-    RabbitEntity parent2(EntityInstanceId(2));
+    RabbitEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
     parent2.setRabbitType(RabbitEntity::RabbitType::SaltAndPepper);
 
     // 多次测试类型继承（由于随机性）
@@ -302,7 +302,7 @@ TEST_F(RabbitEntityTest, SpawnBaby_InheritsParentType)
 
 TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
 
     EXPECT_EQ(rabbit.getSoundCategory(), sound::SoundCategory::Neutral);
@@ -310,7 +310,7 @@ TEST_F(RabbitEntityTest, SoundCategory_NeutralForNormalRabbit)
 
 TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
 
     EXPECT_EQ(rabbit.getSoundCategory(), sound::SoundCategory::Hostile);
@@ -320,7 +320,7 @@ TEST_F(RabbitEntityTest, SoundCategory_HostileForKillerRabbit)
 
 TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 兔子生命值为 3
     EXPECT_DOUBLE_EQ(rabbit.maxHealth(), 3.0);
@@ -333,7 +333,7 @@ TEST_F(RabbitEntityTest, Attributes_HasCorrectBaseValues)
 
 TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize)
 {
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setChild(false); // 设置为成体
 
     // MC 1.16.5: 兔子宽度 0.4，高度 0.5
@@ -348,10 +348,10 @@ TEST_F(RabbitEntityTest, Dimensions_CorrectBaseSize)
 
 TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult)
 {
-    RabbitEntity adultRabbit(EntityInstanceId(1));
+    RabbitEntity adultRabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     adultRabbit.setChild(false);
 
-    RabbitEntity childRabbit(EntityInstanceId(2));
+    RabbitEntity childRabbit(EntityInstanceId(2), mc::test::testEcsRegistry());
     childRabbit.setChild(true);
 
     // 成体眼睛高度 0.35，幼体 0.2
@@ -364,7 +364,7 @@ TEST_F(RabbitEntityTest, EyeHeight_DifferentForChildAndAdult)
 TEST_F(RabbitEntityTest, BiomeType_NullWorldReturnsBrown)
 {
     // 无世界时默认返回棕色
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 无世界，getDefaultRabbitTypeForBiome 应返回 Brown
     EXPECT_EQ(rabbit.getDefaultRabbitTypeForBiome(), RabbitEntity::RabbitType::Brown);
 }
@@ -372,7 +372,7 @@ TEST_F(RabbitEntityTest, BiomeType_NullWorldReturnsBrown)
 TEST_F(RabbitEntityTest, BiomeType_NullChunkReturnsBrown)
 {
     // 有世界但无区块时默认返回棕色
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(100.0f, 64.0f, 100.0f); // 位置不在任何区块中
 
@@ -383,7 +383,7 @@ TEST_F(RabbitEntityTest, BiomeType_SnowyPlainsProducesWhiteOrSpotted)
 {
     m_world.setChunkBiome(0, 0, Biomes::SnowyPlains);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f); // 区块 (0,0) 内的位置
 
@@ -401,7 +401,7 @@ TEST_F(RabbitEntityTest, BiomeType_IceSpikesProducesWhiteOrSpotted)
 {
     m_world.setChunkBiome(0, 0, Biomes::IceSpikes);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -417,7 +417,7 @@ TEST_F(RabbitEntityTest, BiomeType_DesertProducesGold)
 {
     m_world.setChunkBiome(0, 0, Biomes::Desert);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -432,7 +432,7 @@ TEST_F(RabbitEntityTest, BiomeType_DesertHillsProducesGold)
 {
     m_world.setChunkBiome(0, 0, Biomes::DesertHills);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -447,7 +447,7 @@ TEST_F(RabbitEntityTest, BiomeType_PlainsProducesBrownSaltOrBlack)
 {
     m_world.setChunkBiome(0, 0, Biomes::Plains);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -464,7 +464,7 @@ TEST_F(RabbitEntityTest, BiomeType_ForestProducesBrownSaltOrBlack)
 {
     m_world.setChunkBiome(0, 0, Biomes::Forest);
 
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -487,7 +487,7 @@ TEST_F(RabbitEntityTest, BiomeType_DefaultTypeDistribution)
     const int iterations = 1000;
 
     for (int i = 0; i < iterations; ++i) {
-        RabbitEntity rabbit(EntityInstanceId(static_cast<EntityInstanceId>(i + 100)));
+        RabbitEntity rabbit(EntityInstanceId(static_cast<EntityInstanceId>(i + 100)), mc::test::testEcsRegistry());
         rabbit.setWorld(&m_world);
         rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -527,7 +527,7 @@ TEST_F(RabbitEntityTest, BiomeType_SnowyDistribution)
     const int iterations = 1000;
 
     for (int i = 0; i < iterations; ++i) {
-        RabbitEntity rabbit(EntityInstanceId(static_cast<EntityInstanceId>(i + 100)));
+        RabbitEntity rabbit(EntityInstanceId(static_cast<EntityInstanceId>(i + 100)), mc::test::testEcsRegistry());
         rabbit.setWorld(&m_world);
         rabbit.setPosition(5.0f, 64.0f, 5.0f);
 
@@ -556,12 +556,12 @@ TEST_F(RabbitEntityTest, SpawnBaby_UsesParentBiomeForRandomType)
     // 在沙漠群系中，5% 概率的随机类型应该是金色
     m_world.setChunkBiome(0, 0, Biomes::Desert);
 
-    RabbitEntity parent1(EntityInstanceId(1));
+    RabbitEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent1.setWorld(&m_world);
     parent1.setPosition(5.0f, 64.0f, 5.0f);
     parent1.setRabbitType(RabbitEntity::RabbitType::Brown);
 
-    RabbitEntity parent2(EntityInstanceId(2));
+    RabbitEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
     parent2.setRabbitType(RabbitEntity::RabbitType::White);
 
     // 多次测试繁殖后代的类型
@@ -629,7 +629,7 @@ TEST(PhysicsConstantsTest, SlipperinessIceValues)
 TEST_F(RabbitEntityTest, Jump_DefaultState_NoJumpInProgress)
 {
     // 默认状态：未在跳跃中
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(rabbit.rabbitJumpTicks(), 0);
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 0);
     EXPECT_FALSE(rabbit.isJumping());
@@ -643,7 +643,7 @@ TEST_F(RabbitEntityTest, Jump_StartJumping_StartsJumpAnimation)
 {
     // startJumping() 应启动跳跃动画：jumpDuration=10, jumpTicks=0, isJumping=true
     // 对应 MC 1.21.11 Rabbit.startJumping(): setJumping(true); jumpDuration=10; jumpTicks=0;
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     rabbit.startJumping();
@@ -657,7 +657,7 @@ TEST_F(RabbitEntityTest, Jump_StartJumping_BroadcastsRabbitJumpStatus)
 {
     // startJumping() 应广播 RabbitJump(1) 状态码到客户端
     // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中 broadcastEntityEvent(this, (byte)1)
-    RabbitEntity rabbit(EntityInstanceId(42));
+    RabbitEntity rabbit(EntityInstanceId(42), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     m_world.resetBroadcastTracking();
 
@@ -672,7 +672,7 @@ TEST_F(RabbitEntityTest, Jump_StartJumping_IdempotentWhileJumping)
 {
     // 跳跃动画进行中再次 startJumping() 不应重置状态或重复广播
     // 对应 MC RabbitJumpControl.tick() 每 tick 可能调用 startJumping()，必须幂等
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     rabbit.startJumping(); // 启动跳跃
@@ -692,7 +692,7 @@ TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_Formula)
 {
     // 对应 MC 1.21.11 Rabbit.getJumpCompletion(partialTick):
     //   jumpDuration == 0 ? 0 : (jumpTicks + partialTick) / jumpDuration
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping(); // jumpDuration=10, jumpTicks=0
 
@@ -717,7 +717,7 @@ TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_Formula)
 TEST_F(RabbitEntityTest, Jump_AiStep_AdvancesJumpTicks)
 {
     // aiStep() 每 tick 推进 jumpTicks，对应 MC Rabbit.aiStep() 的 jumpTicks++
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping();
 
@@ -742,7 +742,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_ResetsAtJumpDuration)
     //   ...
     //   aiStep #10: jumpTicks 9→10 (now == jumpDuration, 但本次仍走 ++ 分支)
     //   aiStep #11: jumpTicks==jumpDuration → 触发归零分支
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping(); // jumpDuration=10
 
@@ -766,7 +766,7 @@ TEST_F(RabbitEntityTest, Jump_AiStep_ExactTickBoundary)
 {
     // 验证跳跃动画持续 10 tick 后，在第 11 tick 结束
     // 跳跃动画的有效渲染区间为 jumpTicks ∈ [0, 10]（含端点）
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping();
 
@@ -789,7 +789,7 @@ TEST_F(RabbitEntityTest, Jump_CompletionReachesOne_BeforeReset)
 {
     // 验证在跳跃动画最后一 tick，getJumpCompletion(1.0) 等于 1.0
     // 第 9 tick 后: jumpTicks=9, completion(1.0) = (9+1)/10 = 1.0
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping();
 
@@ -804,7 +804,7 @@ TEST_F(RabbitEntityTest, Jump_SetJumpingFalse_DoesNotAffectAnimation)
 {
     // setJumping(false) 不应直接终止跳跃动画（动画由 aiStep 推进逻辑负责）
     // 这与 MC 行为一致：setJumping(false) 只设置 jumping 标志
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping(); // 启动: jumpDuration=10
     EXPECT_EQ(rabbit.rabbitJumpDuration(), 10);
@@ -817,7 +817,7 @@ TEST_F(RabbitEntityTest, Jump_SetJumpingFalse_DoesNotAffectAnimation)
 TEST_F(RabbitEntityTest, Jump_CanRestartAfterCompletion)
 {
     // 跳跃动画完成后，可以启动新的跳跃
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     // 第一次跳跃
@@ -844,7 +844,7 @@ TEST_F(RabbitEntityTest, Jump_CanRestartAfterCompletion)
 TEST_F(RabbitEntityTest, Jump_GetJumpCompletion_PartialTickRange)
 {
     // 验证 partialTick 在 [0, 1] 范围内的插值
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.startJumping(); // jumpDuration=10, jumpTicks=0
 
@@ -874,7 +874,7 @@ TEST_F(RabbitEntityTest, Jump_RabbitJumpStatusConstant_IsOne)
 TEST_F(RabbitEntityTest, RabbitJumpControl_DefaultCanJump)
 {
     // 新建的 RabbitJumpControl 默认 canJump=true
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* jumpCtrl = rabbit.jumpController();
@@ -888,7 +888,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_DefaultCanJump)
 TEST_F(RabbitEntityTest, RabbitJumpControl_SetCanJump)
 {
     // setCanJump 可以启用/禁用跳跃
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* jumpCtrl = rabbit.jumpController();
@@ -905,7 +905,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_SetCanJump)
 TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_TriggersStartJumping)
 {
     // RabbitJumpControl::tick() 在 wantJump 时调用 startJumping()
-    RabbitEntity rabbit(EntityInstanceId(42));
+    RabbitEntity rabbit(EntityInstanceId(42), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     m_world.resetBroadcastTracking();
 
@@ -931,7 +931,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_TriggersStartJumping)
 TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_IdempotentWhenAlreadyJumping)
 {
     // 跳跃动画进行中再次 tick 不应重复触发
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* jumpCtrl = rabbit.jumpController();
@@ -954,7 +954,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_IdempotentWhenAlreadyJumping)
 TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_NoActionWhenNotWantJump)
 {
     // wantJump 为 false 时 tick 不应触发跳跃
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     m_world.resetBroadcastTracking();
 
@@ -975,7 +975,7 @@ TEST_F(RabbitEntityTest, RabbitJumpControl_Tick_NoActionWhenNotWantJump)
 TEST_F(RabbitEntityTest, RabbitMoveControl_DefaultNextJumpSpeed)
 {
     // 新建的 RabbitMoveControl 默认 nextJumpSpeed=0
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* moveCtrl = rabbit.moveController();
@@ -988,7 +988,7 @@ TEST_F(RabbitEntityTest, RabbitMoveControl_DefaultNextJumpSpeed)
 TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_RecordsNextJumpSpeed)
 {
     // setMoveTo 应记录 nextJumpSpeed（仅当 speed > 0）
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* moveCtrl = rabbit.moveController();
@@ -1003,7 +1003,7 @@ TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_RecordsNextJumpSpeed)
 TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_ZeroSpeedDoesNotUpdateNextJumpSpeed)
 {
     // speed=0 不应更新 nextJumpSpeed（对应 MC if (speed > 0.0)）
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* moveCtrl = rabbit.moveController();
@@ -1024,7 +1024,7 @@ TEST_F(RabbitEntityTest, RabbitMoveControl_SetMoveTo_ZeroSpeedDoesNotUpdateNextJ
 TEST_F(RabbitEntityTest, LandingDelay_DefaultZero)
 {
     // 新建的兔子 jumpDelayTicks 为 0
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(rabbit.jumpDelayTicks(), 0);
     EXPECT_FALSE(rabbit.wasOnGround());
 }
@@ -1033,7 +1033,7 @@ TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_SlowSpeed)
 {
     // setLandingDelay: 速度 < 2.2 时延迟 10 tick
     // 对应 MC Rabbit.setLandingDelay(): if (speed < 2.2) jumpDelayTicks=10; else jumpDelayTicks=1;
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     // 设置移动速度 < 2.2
@@ -1053,7 +1053,7 @@ TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_SlowSpeed)
 TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_FastSpeed)
 {
     // setLandingDelay: 速度 >= 2.2 时延迟 1 tick
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* moveCtrl = rabbit.moveController();
@@ -1070,7 +1070,7 @@ TEST_F(RabbitEntityTest, LandingDelay_SetLandingDelay_FastSpeed)
 TEST_F(RabbitEntityTest, LandingDelay_DecrementsOverTime)
 {
     // jumpDelayTicks 每 tick 递减
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     auto* moveCtrl = rabbit.moveController();
@@ -1089,7 +1089,7 @@ TEST_F(RabbitEntityTest, LandingDelay_DecrementsOverTime)
 TEST_F(RabbitEntityTest, MoreCarrotTicks_DefaultZero)
 {
     // 新建的兔子 moreCarrotTicks 为 0
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(rabbit.moreCarrotTicks(), 0);
     EXPECT_TRUE(rabbit.wantsMoreFood());
 }
@@ -1097,7 +1097,7 @@ TEST_F(RabbitEntityTest, MoreCarrotTicks_DefaultZero)
 TEST_F(RabbitEntityTest, MoreCarrotTicks_SetAndDecrement)
 {
     // setMoreCarrotTicks 可以设置值，updateAITasks 会递减
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     rabbit.setMoreCarrotTicks(40);
@@ -1116,7 +1116,7 @@ TEST_F(RabbitEntityTest, MoreCarrotTicks_SetAndDecrement)
 TEST_F(RabbitEntityTest, KillerRabbit_HasArmorAndAttackDamage)
 {
     // 杀手兔应有 ARMOR=8 和 ATTACK_DAMAGE=3+5=8
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
 
@@ -1131,7 +1131,7 @@ TEST_F(RabbitEntityTest, KillerRabbit_HasArmorAndAttackDamage)
 TEST_F(RabbitEntityTest, NormalRabbit_HasZeroArmorAndNoAttackModifier)
 {
     // 普通兔子 ARMOR=0 且无 EVIL 攻击修改器
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setRabbitType(RabbitEntity::RabbitType::Brown);
 
@@ -1145,7 +1145,7 @@ TEST_F(RabbitEntityTest, NormalRabbit_HasZeroArmorAndNoAttackModifier)
 TEST_F(RabbitEntityTest, KillerRabbit_ToNormal_RemovesAttackModifier)
 {
     // 从杀手兔切回普通兔应移除 EVIL 攻击修改器
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setRabbitType(RabbitEntity::RabbitType::Killer);
     EXPECT_FLOAT_EQ(
@@ -1181,7 +1181,7 @@ void placeCarrotAtAge(RabbitTestWorld& world, i32 x, i32 y, i32 z, i32 age)
 TEST_F(RabbitEntityTest, RaidGardenGoal_RegisteredInRabbitGoals)
 {
     // 兔子的 goalSelector 中应包含 RaidGardenGoal
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
 
     // 遍历 goalSelector 中的目标，检查是否存在 RaidGardenGoal
@@ -1199,7 +1199,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_RegisteredInRabbitGoals)
 TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldNotExecute_WhenMobGriefingDisabled)
 {
     // MOB_GRIEFING=false 时，饥饿兔子也不应执行 RaidGardenGoal
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿状态
     EXPECT_TRUE(rabbit.wantsMoreFood());
@@ -1214,7 +1214,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldNotExecute_WhenMobGriefingDisabled
 TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldNotExecute_WhenNotHungry)
 {
     // MOB_GRIEFING=true 但 moreCarrotTicks>0（不饿）时，不应找到目标
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(40); // 不饿
     EXPECT_FALSE(rabbit.wantsMoreFood());
@@ -1238,7 +1238,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_FindsMatureCarrotAndRaidsIt)
     // 饥饿兔子在成熟胡萝卜旁（兔子生成在原点，胡萝卜在脚下耕地正上方），
     // shouldExecute 找到目标，tick() 因兔子已到达目标触发掠夺：
     // AGE=7 → 6，moreCarrotTicks 设为 40。
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿
     EXPECT_TRUE(rabbit.wantsMoreFood());
@@ -1282,7 +1282,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_FindsMatureCarrotAndRaidsIt)
 TEST_F(RabbitEntityTest, RaidGardenGoal_RaidsAgeZeroCarrot_RemovesBlock)
 {
     // AGE=0 的胡萝卜被掠夺后应变为 AIR（对应 MC setBlock(AIR)）
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿
 
@@ -1305,7 +1305,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_RejectsNonFarmland)
 {
     // 非耕地（如草地）上方有成熟胡萝卜时，shouldMoveTo 应返回 false
     // 通过 shouldExecute 间接验证：兔子在草地上即使有成熟胡萝卜也不应找到目标
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿
 
@@ -1326,7 +1326,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_RejectsNonFarmland)
 TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_RejectsImmatureCarrot)
 {
     // 耕地上方有未成熟胡萝卜（AGE<7）时，shouldMoveTo 应返回 false
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿
 
@@ -1346,7 +1346,7 @@ TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_RejectsImmatureCarrot)
 TEST_F(RabbitEntityTest, RaidGardenGoal_ShouldMoveTo_AcceptsMatureCarrotOnFarmland)
 {
     // 耕地 + 成熟胡萝卜（AGE=7）是有效目标
-    RabbitEntity rabbit(EntityInstanceId(1));
+    RabbitEntity rabbit(EntityInstanceId(1), mc::test::testEcsRegistry());
     rabbit.setWorld(&m_world);
     rabbit.setMoreCarrotTicks(0); // 饥饿
 

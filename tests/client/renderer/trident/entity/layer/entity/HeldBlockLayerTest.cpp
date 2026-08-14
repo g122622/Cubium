@@ -44,6 +44,7 @@
 #include <type_traits>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 
@@ -67,7 +68,7 @@ namespace mc::renderer::layer::test {
  */
 TEST(HeldBlockLayerEndermanEntityTest, DataParametersRegistered)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证 DataParameter ID 已分配（非 0 表示已注册）
     // 注意：DataParameter::id() 返回的是参数在 DataManager 中的唯一标识，
@@ -92,7 +93,7 @@ TEST(HeldBlockLayerEndermanEntityTest, DataParametersRegistered)
  */
 TEST(HeldBlockLayerEndermanEntityTest, DefaultNoBlock)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(enderman.isHoldingBlock()) << "New EndermanEntity should not be holding a block by default";
     EXPECT_EQ(enderman.getHeldBlockState(), nullptr)
@@ -106,7 +107,7 @@ TEST(HeldBlockLayerEndermanEntityTest, DefaultNoBlock)
  */
 TEST(HeldBlockLayerEndermanEntityTest, DefaultNotScreaming)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(enderman.isScreaming()) << "New EndermanEntity should not be screaming by default";
 }
 
@@ -119,7 +120,7 @@ TEST(HeldBlockLayerEndermanEntityTest, DefaultNotScreaming)
  */
 TEST(HeldBlockLayerEndermanEntityTest, ScreamingState)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(enderman.isScreaming());
 
@@ -141,7 +142,7 @@ TEST(HeldBlockLayerEndermanEntityTest, ScreamingState)
  */
 TEST(HeldBlockLayerEndermanEntityTest, ClearHeldBlock)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 清除未持有的方块（应该无效果）
     enderman.setHeldBlockState(nullptr);
@@ -175,7 +176,7 @@ TEST(HeldBlockLayerEndermanEntityTest, InheritanceHierarchy)
  */
 TEST(HeldBlockLayerShouldRenderTest, NoBlockShouldNotRender)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 模拟 HeldBlockLayer::shouldRender 的逻辑
     // shouldRender = (endermanHeldBlockState != nullptr)
@@ -196,7 +197,7 @@ TEST(HeldBlockLayerShouldRenderTest, NoBlockShouldNotRender)
  */
 TEST(HeldBlockLayerShouldRenderTest, HoldingBlockShouldRender)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // setHeldBlockState(nullptr) 写入 stateId=0，isHoldingBlock 返回 false
     EXPECT_FALSE(enderman.isHoldingBlock());
@@ -224,7 +225,7 @@ TEST(HeldBlockLayerShouldRenderTest, HoldingBlockShouldRender)
  */
 TEST(HeldBlockLayerEndermanEntityTest, AngryStateAffectsScreaming)
 {
-    EndermanEntity enderman(EntityInstanceId(1));
+    EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认不愤怒
     EXPECT_FALSE(enderman.isAngry());

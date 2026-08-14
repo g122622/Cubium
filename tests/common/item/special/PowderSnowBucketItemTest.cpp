@@ -42,7 +42,7 @@ namespace {
 // 测试用世界存根 - 支持方块设置和音效记录
 // ============================================================================
 
-class PowderSnowTestWorld final : public test::BaseTestWorld {
+class PowderSnowTestWorld final : public mc::test::BaseTestWorld {
 public:
     PowderSnowTestWorld() = default;
 

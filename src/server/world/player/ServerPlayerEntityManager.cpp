@@ -67,7 +67,13 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     // - Player::asServerPlayer() 返回有效指针，打通成就触发、命令系统、选择器等路径
     // 注意：必须使用 mc::ServerPlayer 全限定名，避免被 mc::server::ServerPlayer
     // （StatisticsManager.hpp 中的前向声明）错误遮蔽。
-    auto player = std::make_unique<mc::ServerPlayer>(0, username);
+    // ECS 迁移：ServerPlayer 构造需要 registry 句柄，从传入的 ServerWorld 取。
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        spdlog::error("ServerPlayerEntityManager: World has no entity registry for {}", username);
+        return nullptr;
+    }
+    auto player = std::make_unique<mc::ServerPlayer>(0, username, *ecsRegistry);
     if (!player) {
         spdlog::error("ServerPlayerEntityManager: Failed to create ServerPlayer for {}", username);
         return nullptr;

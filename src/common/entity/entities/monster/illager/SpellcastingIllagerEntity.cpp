@@ -44,8 +44,8 @@ const entity::EntityClassInfo& SpellcastingIllagerEntity::classInfo()
     return s_classInfo;
 }
 
-SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityInstanceId id)
-    : AbstractIllagerEntity(id)
+SpellcastingIllagerEntity::SpellcastingIllagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractIllagerEntity(id, registry)
 {}
 
 SpellcastingIllagerEntity::SpellType SpellcastingIllagerEntity::spellTypeFromId(i32 id) noexcept

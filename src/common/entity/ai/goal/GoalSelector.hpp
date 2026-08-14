@@ -48,8 +48,13 @@ class GoalSelector {
 public:
     /**
      * @brief 默认 tick 间隔
+     *
+     * 对齐 vanilla Mob.serverAiStep 的 (tickCount+id)%2：goal 的 shouldExecute
+     * 每 2 tick 评估一次。vanilla 不同 mob 按 id 错峰，本项目用单一计数器所有 mob
+     * 同步评估，但评估频率（1/2）与 vanilla 一致。此值配合 Goal::adjustedTickDelay()
+     * 使用：shouldExecute 内的概率/冷却经 adjustedTickDelay 减半补偿半 tick 评估。
      */
-    static constexpr i32 DEFAULT_TICK_RATE = 3;
+    static constexpr i32 DEFAULT_TICK_RATE = 2;
 
     /**
      * @brief 构造函数

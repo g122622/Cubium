@@ -78,6 +78,16 @@ public:
     void setRegion(const Region* region) { m_region = region; }
 
     /**
+     * @brief 是否持有有效的世界区域指针
+     *
+     * NodeProcessor::m_region 是不参与所有权的裸指针，寻路期由 PathNavigator
+     * 注入栈上 WorldRegion，寻路结束后置空。外部调用方（如
+     * MovementController::canWalkAt）在解引用前须用此接口判空，避免在
+     * 非寻路时把 getNodeType 返回的 Blocked 误判为"真不可走"。
+     */
+    [[nodiscard]] bool hasRegion() const noexcept { return m_region != nullptr; }
+
+    /**
      * @brief 设置实体尺寸
      * @param width 实体宽度
      * @param height 实体高度

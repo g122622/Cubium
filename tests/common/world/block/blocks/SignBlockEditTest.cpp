@@ -57,7 +57,7 @@ using namespace mc::blockentity;
 namespace {
 
 /// 测试用世界，支持 getBlockEntity / setBlockEntity / getEntityByUuid
-class SignEditTestWorld final : public test::BaseTestWorld {
+class SignEditTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
@@ -345,12 +345,12 @@ protected:
         BlockEntityRegistry::instance().registerBuiltinTypes();
         m_signEntity = std::make_unique<SignEntity>(BlockPos(10, 64, 20));
 
-        m_player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1");
+        m_player1 = std::make_unique<Player>(EntityInstanceId(1), "Player1", mc::test::testEcsRegistry());
         m_player1->setUuid("uuid-1");
         m_player1->setPosition(Vector3(10.5f, 64.5f, 20.5f));
         m_world.registerPlayer(*m_player1);
 
-        m_player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2");
+        m_player2 = std::make_unique<Player>(EntityInstanceId(2), "Player2", mc::test::testEcsRegistry());
         m_player2->setUuid("uuid-2");
         m_player2->setPosition(Vector3(11.5f, 64.5f, 20.5f));
         m_world.registerPlayer(*m_player2);

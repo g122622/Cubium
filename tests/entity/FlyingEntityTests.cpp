@@ -47,7 +47,7 @@ namespace {
 class TestFlyingEntity : public FlyingEntity {
 public:
     TestFlyingEntity()
-        : FlyingEntity(EntityInstanceId(1))
+        : FlyingEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -57,7 +57,7 @@ public:
 /**
  * @brief 测试用存根世界
  */
-class StubWorld final : public test::BaseTestWorld {
+class StubWorld final : public mc::test::BaseTestWorld {
 public:
     void setInWater(bool inWater) { m_inWater = inWater; }
     void setInLava(bool inLava) { m_inLava = inLava; }
@@ -371,12 +371,15 @@ TEST(FlyingEntityTravelTest, Travel_ThreeDimensionalMovement)
     TestFlyingEntity entity;
     entity.setWorld(&world);
     entity.setPosition(0.0f, 100.0f, 0.0f);
-    entity.setRotation(45.0f, 0.0f); // 朝向东北方向
+    // yaw=0：moveRelative 中 moveX=strafe*cos(0)-forward*sin(0)=strafe，moveZ=forward*cos(0)+strafe*sin(0)=forward，
+    // 三轴分量均非零，可同时验证水平+垂直三维移动。注意勿用 yaw=45°+strafe==forward：此时
+    // moveX=strafe*cos(45)-forward*sin(45) 因 strafe==forward 而 ==0，X 分量数学上恒为零。
+    entity.setRotation(0.0f, 0.0f);
     entity.setVelocity(0.0f, 0.0f, 0.0f);
     entity.setOnGround(false);
 
-    // 同时向多个方向移动
-    entity.travel(1.0f, 1.0f, 1.0f); // 左、上、前
+    // 同时向多方向移动（左、上、前）
+    entity.travel(1.0f, 1.0f, 1.0f);
 
     // 所有速度分量应该非零
     EXPECT_NE(entity.velocityX(), 0.0f);

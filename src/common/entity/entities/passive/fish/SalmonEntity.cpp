@@ -65,8 +65,8 @@ void SalmonEntity::registerData()
     m_dataManager.registerParam(DATA_TYPE_PARAM, 0);
 }
 
-SalmonEntity::SalmonEntity(EntityInstanceId id)
-    : AbstractGroupFishEntity(id)
+SalmonEntity::SalmonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractGroupFishEntity(id, registry)
 {
     // 显式调用 registerData() 确保沿正确继承链注册（C++ 基类构造期虚函数不派发，
     // 参考 MobEntity/AbstractSkeletonEntity 模式）。
@@ -77,16 +77,16 @@ SalmonEntity::SalmonEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SalmonEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SalmonEntity>(0);
+    return std::make_unique<SalmonEntity>(0, registry);
 }
 
 void SalmonEntity::registerAttributes()
 {
     AbstractGroupFishEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
 }
 
 std::optional<ResourceLocation> SalmonEntity::getFlopSound() const

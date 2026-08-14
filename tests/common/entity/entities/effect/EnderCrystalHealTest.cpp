@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/world/IWorld.hpp"
@@ -89,7 +90,7 @@ TEST_F(EnderCrystalHealTest, ExplosionRadiusConstant)
 TEST_F(EnderCrystalHealTest, CrystalDimensions)
 {
     // 创建末影水晶实体
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 验证尺寸
     // MC 1.16.5: 末影水晶宽高都是 2.0
@@ -99,7 +100,7 @@ TEST_F(EnderCrystalHealTest, CrystalDimensions)
 
 TEST_F(EnderCrystalHealTest, BeamTargetInitialization)
 {
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 初始状态没有光束目标
     EXPECT_FALSE(crystal.hasBeamTarget());
@@ -113,7 +114,7 @@ TEST_F(EnderCrystalHealTest, BeamTargetInitialization)
 
 TEST_F(EnderCrystalHealTest, SetBeamTarget)
 {
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 设置光束目标
     BlockPos target(100, 64, -200);
@@ -128,7 +129,7 @@ TEST_F(EnderCrystalHealTest, SetBeamTarget)
 
 TEST_F(EnderCrystalHealTest, ShowBottomFlag)
 {
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 默认不显示底座
     EXPECT_FALSE(crystal.shouldShowBottom());
@@ -144,7 +145,7 @@ TEST_F(EnderCrystalHealTest, ShowBottomFlag)
 
 TEST_F(EnderCrystalHealTest, InnerRotationIncrements)
 {
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 初始内部旋转为 0
     EXPECT_EQ(crystal.innerRotation(), 0);
@@ -172,7 +173,7 @@ TEST_F(EnderCrystalHealTest, InnerRotationIncrements)
  */
 TEST_F(EnderCrystalHealTest, HealCooldownMechanism)
 {
-    EnderCrystalEntity crystal;
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
 
     // 初始冷却为 0
     // 在无世界环境下调用 healDragon() 应该直接返回
@@ -210,7 +211,7 @@ TEST_F(EnderCrystalHealTest, HealRangeConstant)
 
 TEST_F(EnderCrystalHealTest, AreaEffectCloudDefaultParameters)
 {
-    AreaEffectCloudEntity cloud;
+    AreaEffectCloudEntity cloud{mc::test::testEcsRegistry()};
 
     // MC 1.16.5 默认值验证
     EXPECT_FLOAT_EQ(cloud.getRadius(), 3.0f);
@@ -221,7 +222,7 @@ TEST_F(EnderCrystalHealTest, AreaEffectCloudDefaultParameters)
 
 TEST_F(EnderCrystalHealTest, AreaEffectCloudRadiusModification)
 {
-    AreaEffectCloudEntity cloud;
+    AreaEffectCloudEntity cloud{mc::test::testEcsRegistry()};
 
     // 设置半径
     cloud.setRadius(5.0f);
@@ -242,7 +243,7 @@ TEST_F(EnderCrystalHealTest, AreaEffectCloudRadiusModification)
 
 TEST_F(EnderCrystalHealTest, LightningBoltDimensions)
 {
-    LightningBoltEntity lightning;
+    LightningBoltEntity lightning{mc::test::testEcsRegistry()};
 
     // 闪电没有碰撞箱
     EXPECT_FLOAT_EQ(lightning.width(), 0.0f);
@@ -251,7 +252,7 @@ TEST_F(EnderCrystalHealTest, LightningBoltDimensions)
 
 TEST_F(EnderCrystalHealTest, LightningBoltEffectOnly)
 {
-    LightningBoltEntity lightning;
+    LightningBoltEntity lightning{mc::test::testEcsRegistry()};
 
     // 默认不是仅效果
     EXPECT_FALSE(lightning.isEffectOnly());
@@ -263,7 +264,7 @@ TEST_F(EnderCrystalHealTest, LightningBoltEffectOnly)
 
 TEST_F(EnderCrystalHealTest, LightningBoltCaster)
 {
-    LightningBoltEntity lightning;
+    LightningBoltEntity lightning{mc::test::testEcsRegistry()};
 
     // 默认无施法者
     EXPECT_EQ(lightning.caster(), 0);
@@ -275,7 +276,7 @@ TEST_F(EnderCrystalHealTest, LightningBoltCaster)
 
 TEST_F(EnderCrystalHealTest, LightningBoltState)
 {
-    LightningBoltEntity lightning;
+    LightningBoltEntity lightning{mc::test::testEcsRegistry()};
 
     // 默认闪电状态为 2
     EXPECT_EQ(lightning.lightningState(), 2);

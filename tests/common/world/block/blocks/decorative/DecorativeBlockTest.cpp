@@ -164,7 +164,7 @@ TEST_F(CarpetBlockTest, GetCollisionShape_ReturnsEmpty)
 namespace {
 
 /// 简单测试用世界（继承 BaseTestWorld 以访问其 protected 构造函数）
-class FlowerPotTestWorld : public test::BaseTestWorld {};
+class FlowerPotTestWorld : public mc::test::BaseTestWorld {};
 
 } // anonymous namespace
 
@@ -312,7 +312,7 @@ namespace {
  *
  * 支持方块存储、setBlockState 标志追踪、游戏事件追踪、实体生成追踪。
  */
-class FlowerPotInteractionTestWorld final : public test::BaseTestWorld {
+class FlowerPotInteractionTestWorld final : public mc::test::BaseTestWorld {
 public:
     FlowerPotInteractionTestWorld()
     {
@@ -469,7 +469,7 @@ protected:
     /// 创建玩家并关联到测试世界
     std::unique_ptr<Player> createPlayer()
     {
-        auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer");
+        auto player = std::make_unique<Player>(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
         player->setWorld(&m_world);
         m_world.registerEntity(player.get());
         return player;

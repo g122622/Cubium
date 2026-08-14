@@ -76,6 +76,25 @@ public:
     {
         return std::nullopt;
     }
+    [[nodiscard]] GameTestResult assertContainerContains(
+        const mc::ItemStack& /*itemStack*/, BlockPos /*relativePos*/) override
+    {
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult assertContainerEmpty(BlockPos /*relativePos*/) override { return std::nullopt; }
+    [[nodiscard]] GameTestResult setBlockPermutation(
+        const mc::BlockState& /*permutation*/, BlockPos /*relativePos*/) override
+    {
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult setFluidContainer(BlockPos /*relativePos*/, const std::string& /*fluidType*/) override
+    {
+        return std::nullopt;
+    }
+    void triggerInternalBlockEvent(BlockPos /*relativePos*/, const std::string& /*eventName*/) override {}
+    void spreadFromFaceTowardDirection(
+        BlockPos /*relativePos*/, Direction /*fromFace*/, Direction /*direction*/) override
+    {}
 
     // 4. 实体断言与 spawn
     [[nodiscard]] GameTestResult assertEntityPresent(const std::string& /*entityType*/,
@@ -116,6 +135,7 @@ public:
         return std::nullopt;
     }
     [[nodiscard]] GameTestResult killAllEntities() override { return std::nullopt; }
+    [[nodiscard]] GameTestResult killEntity(mc::Entity& /*entity*/) override { return std::nullopt; }
     [[nodiscard]] GameTestResult spawnEntity(
         const std::string& /*entityType*/, BlockPos /*relativePos*/, mc::Entity*& outEntity) override
     {
@@ -128,6 +148,53 @@ public:
         outEntity = nullptr;
         return std::nullopt;
     }
+    [[nodiscard]] GameTestResult spawnAtLocation(
+        const std::string& /*entityType*/, const mc::math::Vector3d& /*position*/, mc::Entity*& outEntity) override
+    {
+        outEntity = nullptr;
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult spawnWithoutBehaviors(
+        const std::string& /*entityType*/, BlockPos /*relativePos*/, mc::Entity*& outEntity) override
+    {
+        outEntity = nullptr;
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult spawnWithoutBehaviorsAtLocation(
+        const std::string& /*entityType*/, const mc::math::Vector3d& /*position*/, mc::Entity*& outEntity) override
+    {
+        outEntity = nullptr;
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult assertEntityHasArmor(const std::string& /*entityType*/,
+        i32 /*armorSlot*/,
+        const std::string& /*armorName*/,
+        i32 /*armorData*/,
+        BlockPos /*relativePos*/,
+        bool /*hasArmor*/) override
+    {
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult assertEntityHasComponent(const std::string& /*entityType*/,
+        const std::string& /*componentId*/,
+        BlockPos /*relativePos*/,
+        bool /*hasComponent*/) override
+    {
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult assertEntityState(BlockPos /*relativePos*/,
+        const std::string& /*entityType*/,
+        std::function<bool(const mc::Entity&)> /*predicate*/) override
+    {
+        return std::nullopt;
+    }
+    [[nodiscard]] GameTestResult assertCanReachLocation(
+        mc::Entity& /*entity*/, BlockPos /*relativePos*/, bool /*canReach*/) override
+    {
+        return std::nullopt;
+    }
+    void onPlayerJump(mc::Entity& /*entity*/, i32 /*jumpAmount*/) override {}
+    void setTntFuse(mc::Entity& /*entity*/, i32 /*fuseLength*/) override {}
 
     // 5. 坐标变换 —— 无旋转，原样返回
     [[nodiscard]] BlockPos worldBlockPosition(BlockPos relativePos) const noexcept override { return relativePos; }
@@ -156,6 +223,11 @@ public:
     void succeedOnTick(i32 /*tick*/) override {}
     void succeedOnTickWhen(i32 /*tick*/, std::function<GameTestResult()> /*fn*/) override {}
     void failIf(std::function<GameTestResult()> /*fn*/) override {}
+    void succeedWhenEntityHasComponent(const std::string& /*entityType*/,
+        const std::string& /*componentId*/,
+        BlockPos /*relativePos*/,
+        bool /*hasComponent*/) override
+    {}
 
     // 7. SimulatedPlayer
     [[nodiscard]] GameTestResult spawnSimulatedPlayer(const std::string& /*name*/,
@@ -170,6 +242,11 @@ public:
 
     // 8. 查询
     [[nodiscard]] const mc::BlockState* getBlock(BlockPos /*relativePos*/) const override { return nullptr; }
+    [[nodiscard]] FenceConnectivity getFenceConnectivity(BlockPos /*relativePos*/) const override { return {}; }
+    [[nodiscard]] mc::blocks::SculkSpreader* getSculkSpreader(BlockPos /*relativePos*/) const override
+    {
+        return nullptr;
+    }
     [[nodiscard]] mc::IWorld& world() noexcept override;
 
     // 9. 工具

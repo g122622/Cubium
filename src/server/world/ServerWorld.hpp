@@ -46,6 +46,7 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -438,6 +439,9 @@ public:
 
     [[nodiscard]] ServerWorld* asServerWorld() noexcept override { return this; }
     [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override { return this; }
+
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept override { return &m_entityRegistry; }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept override { return &m_entityRegistry; }
 
     // ========== 按需特征放置 ==========
 
@@ -1492,6 +1496,9 @@ private:
     world::storage::SingleLevelStorageManager* m_storage = nullptr; ///< 世界级共享单存档存储门面（不拥有）
     IServer* m_server = nullptr;                                    ///< 服务器接口（不拥有，由 MinecraftServer 注入）
     std::unique_ptr<ServerChunkManager> m_chunkManager;
+    /// 本维度 ECS 实体注册表。每维度一个，三维度三 registry 天然隔离。
+    /// 必须声明在 m_entityManager 之前（成员按声明顺序构造，registry 先构造，manager 持其引用）。
+    ecs::EntityRegistry m_entityRegistry;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;
     EntityChunkTracker m_entityChunkTracker;

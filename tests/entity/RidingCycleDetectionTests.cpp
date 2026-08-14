@@ -41,6 +41,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "entity/core/Entity.hpp"
 
@@ -54,7 +55,7 @@ using namespace mc::entity;
 class MultiPassengerEntity : public Entity {
 public:
     MultiPassengerEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
     i32 getMaxPassengers() const override { return 2; }
 };
@@ -66,8 +67,8 @@ public:
 TEST(RidingCycleDetectionTest, StartRidingBasicSuccess)
 {
     // 基本场景：A 骑乘 B，应该成功
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_FALSE(rider.isRiding());
     EXPECT_FALSE(vehicle.hasPassengers());
@@ -85,7 +86,7 @@ TEST(RidingCycleDetectionTest, StartRidingBasicSuccess)
 TEST(RidingCycleDetectionTest, StartRidingSelfFails)
 {
     // 不能骑乘自己
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.startRiding(entity));
     EXPECT_FALSE(entity.isRiding());
     EXPECT_FALSE(entity.hasPassengers());
@@ -104,8 +105,8 @@ TEST(RidingCycleDetectionTest, DirectCycle_NoWorld_CycleDetectionSkipped)
     // 因此 A 骑 B 后，B 仍可骑 A（循环检测不生效）。
     // 这是有意为之——循环检测依赖 World 来遍历 vehicle 链。
     // 有 World 的集成测试应验证循环检测的正确性。
-    Entity a(EntityInstanceId(1));
-    Entity b(EntityInstanceId(2));
+    Entity a(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     // A 骑乘 B，应该成功
     EXPECT_TRUE(a.startRiding(b));
@@ -133,9 +134,9 @@ TEST(RidingCycleDetectionTest, DirectCycle_NoWorld_CycleDetectionSkipped)
 TEST(RidingCycleDetectionTest, IndirectCycle_NoWorld_CycleDetectionSkipped)
 {
     // 无 World 环境下，间接循环检测也不生效
-    Entity a(EntityInstanceId(1));
-    Entity b(EntityInstanceId(2));
-    Entity c(EntityInstanceId(3));
+    Entity a(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity b(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity c(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
 
     // A 骑乘 B
     EXPECT_TRUE(a.startRiding(b));
@@ -158,9 +159,9 @@ TEST(RidingCycleDetectionTest, AddPassenger_PassengerAlreadyBoundToOtherVehicle_
 {
     // 如果 passenger 已经关联到另一个载具（vehicle != INVALID 且 vehicle != this），
     // addPassenger 应该失败
-    Entity vehicle1(EntityInstanceId(1));
-    Entity vehicle2(EntityInstanceId(2));
-    Entity rider(EntityInstanceId(3));
+    Entity vehicle1(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity vehicle2(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
 
     // rider 骑乘 vehicle1
     EXPECT_TRUE(rider.startRiding(vehicle1));
@@ -182,8 +183,8 @@ TEST(RidingCycleDetectionTest, AddPassenger_NoVehicleSet_Fails_StrictCheck)
     // 这是编程错误，addPassenger 应该拒绝。
     // 这与 MC Java 的 IllegalStateException 行为一致：必须通过 startRiding 设置关联，
     // 而不能直接调用 addPassenger。
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     // rider 未骑乘任何实体
     EXPECT_EQ(rider.getVehicle(), INVALID_ENTITY_ID);
@@ -199,8 +200,8 @@ TEST(RidingCycleDetectionTest, AddPassenger_NoVehicleSet_Fails_StrictCheck)
 TEST(RidingCycleDetectionTest, AddPassenger_AlreadyAPassenger_Fails)
 {
     // 如果 rider 已经是 vehicle 的乘客，再次添加应该失败
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(rider.startRiding(vehicle));
     EXPECT_TRUE(vehicle.isPassenger(rider.id()));
@@ -219,9 +220,9 @@ TEST(RidingCycleDetectionTest, StartRidingFailure_RollbackVehicle)
     // 我们通过让 vehicle 已经满载来触发 addPassenger 失败
 
     // Entity 基类默认 getMaxPassengers() == 1
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider1(EntityInstanceId(2));
-    Entity rider2(EntityInstanceId(3));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider1(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
 
     // 第一个乘客骑乘成功
     EXPECT_TRUE(rider1.startRiding(vehicle));
@@ -247,8 +248,8 @@ TEST(RidingCycleDetectionTest, StartRidingFailure_RollbackVehicle)
 TEST(RidingCycleDetectionTest, StartRiding_AlreadyRidingSameVehicle_ReturnsFalse)
 {
     // 对齐 MC Java: if (p_19966_ == this.vehicle) return false
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     // 首次骑乘成功
     EXPECT_TRUE(rider.startRiding(vehicle));
@@ -271,8 +272,8 @@ TEST(RidingCycleDetectionTest, StartRiding_AlreadyRidingSameVehicle_ReturnsFalse
 
 TEST(RidingCycleDetectionTest, StopRiding_ClearsVehicleRef)
 {
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(rider.startRiding(vehicle));
     EXPECT_TRUE(rider.isRiding());
@@ -296,8 +297,8 @@ TEST(RidingCycleDetectionTest, StopRiding_ClearsVehicleRef)
 TEST(RidingCycleDetectionTest, RideCooldown_BlocksImmediateRemount)
 {
     // 骑乘后有冷却时间，在冷却期间 cannotBeRidden
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     // 首次骑乘成功
     EXPECT_TRUE(rider.startRiding(vehicle));
@@ -323,8 +324,8 @@ TEST(RidingCycleDetectionTest, RideCooldown_BlocksImmediateRemount)
 TEST(RidingCycleDetectionTest, MultiPassengerVehicle_TwoPassengers)
 {
     MultiPassengerEntity vehicle(EntityInstanceId(1));
-    Entity rider1(EntityInstanceId(2));
-    Entity rider2(EntityInstanceId(3));
+    Entity rider1(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
 
     // 两个乘客都可以骑乘
     EXPECT_TRUE(rider1.startRiding(vehicle));
@@ -339,9 +340,9 @@ TEST(RidingCycleDetectionTest, MultiPassengerVehicle_TwoPassengers)
 TEST(RidingCycleDetectionTest, MultiPassengerVehicle_ExceedsCapacity_Fails)
 {
     MultiPassengerEntity vehicle(EntityInstanceId(1));
-    Entity rider1(EntityInstanceId(2));
-    Entity rider2(EntityInstanceId(3));
-    Entity rider3(EntityInstanceId(4));
+    Entity rider1(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
+    Entity rider3(EntityInstanceId(4), nullptr, mc::test::testEcsRegistry());
 
     // 前两个乘客成功
     EXPECT_TRUE(rider1.startRiding(vehicle));
@@ -369,9 +370,9 @@ TEST(RidingCycleDetectionTest, CouldNotAcceptPassenger_ReturnsFalse)
     // Entity 基类 couldAcceptPassenger() 默认返回 true
     // 我们改为测试 canAddPassenger 通过乘客数量限制
 
-    Entity vehicle(EntityInstanceId(1)); // maxPassengers == 1
-    Entity rider1(EntityInstanceId(2));
-    Entity rider2(EntityInstanceId(3));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry()); // maxPassengers == 1
+    Entity rider1(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    Entity rider2(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(rider1.startRiding(vehicle));
 
@@ -386,8 +387,8 @@ TEST(RidingCycleDetectionTest, CouldNotAcceptPassenger_ReturnsFalse)
 
 TEST(RidingCycleDetectionTest, GetPassengers_MatchesIsPassenger)
 {
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_TRUE(rider.startRiding(vehicle));
 
@@ -407,8 +408,8 @@ TEST(RidingCycleDetectionTest, GetPassengers_MatchesIsPassenger)
 
 TEST(RidingCycleDetectionTest, IsBeingRiddenAndHasPassengers)
 {
-    Entity vehicle(EntityInstanceId(1));
-    Entity rider(EntityInstanceId(2));
+    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_FALSE(vehicle.isBeingRidden());
     EXPECT_FALSE(vehicle.hasPassengers());
@@ -426,7 +427,7 @@ TEST(RidingCycleDetectionTest, IsBeingRiddenAndHasPassengers)
 
 TEST(RidingCycleDetectionTest, SelfRidingRejected)
 {
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.startRiding(entity));
     EXPECT_FALSE(entity.isRiding());
     EXPECT_EQ(entity.getVehicle(), INVALID_ENTITY_ID);

@@ -81,7 +81,7 @@ private:
 class TestAvoidCreature : public CreatureEntity {
 public:
     TestAvoidCreature()
-        : CreatureEntity(EntityInstanceId(1))
+        : CreatureEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

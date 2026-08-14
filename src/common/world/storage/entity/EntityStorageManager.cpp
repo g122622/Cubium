@@ -134,7 +134,7 @@ Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId 
 }
 
 Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
-    const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
+    const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry)
 {
     EntityKey key{chunkX, chunkZ, uuid};
     auto dbKey = _makeKey(key);
@@ -149,7 +149,7 @@ Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
         return std::unique_ptr<Entity>(nullptr);
     }
 
-    return entity::serialization::EntityDeserializer::deserializeFromBinary(data);
+    return entity::serialization::EntityDeserializer::deserializeFromBinary(data, registry);
 }
 
 Result<void> EntityStorageManager::deleteEntity(
@@ -163,7 +163,7 @@ Result<void> EntityStorageManager::deleteEntity(
 // ========== 区块级操作 ==========
 
 Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesInChunk(
-    ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
+    ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry)
 {
     std::vector<std::unique_ptr<Entity>> entities;
 
@@ -190,7 +190,7 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
         auto value = iter->value();
         std::vector<u8> data(value.data(), value.data() + value.size());
 
-        auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data);
+        auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data, registry);
         if (!entityResult.success()) {
             spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
         } else {

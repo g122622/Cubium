@@ -4,7 +4,9 @@
 #include "server/test/facade/GameTestHelper.hpp"
 
 #include "common/entity/core/Entity.hpp"
-#include "common/util/math/MathUtils.hpp" // toDegrees / toRadians / clamp
+#include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
+#include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数
+#include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
 #include "server/world/ServerWorld.hpp"
 
 #include <cmath>
@@ -12,8 +14,8 @@
 
 namespace mc::test {
 
-SimulatedPlayer::SimulatedPlayer(mc::EntityInstanceId id, const std::string& name)
-    : mc::ServerPlayer(id, name)
+SimulatedPlayer::SimulatedPlayer(mc::EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry)
+    : mc::ServerPlayer(id, name, registry)
 {}
 
 // === 静态工厂 ===
@@ -24,7 +26,11 @@ SimulatedPlayer* SimulatedPlayer::spawn(
     // GameTestHelper 恒绑 ServerWorld（构造契约），world() 返 IWorld& 安全向下转 ServerWorld&
     auto& world = static_cast<mc::server::ServerWorld&>(helper.world());
 
-    auto player = std::make_unique<SimulatedPlayer>(0, name);
+    // ECS 迁移：SimulatedPlayer（经 ServerPlayer→Player→Entity）构造需要 registry 句柄，
+    // 从绑定的 ServerWorld 取。
+    auto* ecsRegistry = world.entityRegistry();
+    MC_ASSERT_RELEASE(ecsRegistry != nullptr);
+    auto player = std::make_unique<SimulatedPlayer>(0, name, *ecsRegistry);
     player->setPlayerId(0); // 模拟玩家无网络会话，PlayerId=0 占位（不经 PlayerManager 分配）
     const BlockPos worldPos = helper.worldBlockPosition(relativePos);
     player->setPosition(
@@ -107,6 +113,56 @@ void SimulatedPlayer::lookAtEntity(const mc::Entity& target)
     // TODO: 对齐基岩 lookAt 的 deltaYaw/deltaPitch 插值（当前为瞬时定向）
 }
 
+void SimulatedPlayer::lookAtBlock(BlockPos relativePos)
+{
+    // 语义等同 lookAtLocation（都接结构相对 BlockPos 朝向其中心）。duration 当前忽略（瞬时）。
+    // TODO: 支持 LookDuration（Continuous/Instant/UntilMove）插值语义。
+    lookAtLocation(relativePos);
+}
+
+void SimulatedPlayer::moveToBlock(BlockPos relativePos, f32 speed)
+{
+    // 语义等同 moveToLocation（直线单步驱动）。options 当前忽略。
+    // TODO: 支持 MoveToOptions（maxStraightLineReach 等）。
+    moveToLocation(relativePos, speed);
+}
+
+bool SimulatedPlayer::jump()
+{
+    // Player::jump 返 void（地面 + 冷却为 0 才跳）。基岩返 bool 表示是否真跳，
+    // 此处返 true 占位（调用方语义=已请求跳跃）。TODO: Player::jump 改返 bool 后回填真实判定。
+    Player::jump();
+    return true;
+}
+
+void SimulatedPlayer::disconnect()
+{
+    // SimulatedPlayer 无连接，"断开"= 从世界移除。转发 Entity::discard（标记 m_removed，不掉落）。
+    // 对齐基岩 disconnect 触发的玩家离开流程（项目无连接管理，discard 足够）。
+    discard();
+}
+
+bool SimulatedPlayer::giveItem(mc::ItemStack stack, bool selectSlot)
+{
+    // PlayerInventory::add 尝试合并再放空槽，返回剩余未添加数。剩余 0=完全添加。
+    // selectSlot 当前忽略（TODO: add 后定位该物所在槽并 setSelectedSlot）。
+    (void)selectSlot;
+    const i32 remaining = inventory().add(stack);
+    return remaining == 0;
+}
+
+bool SimulatedPlayer::setItem(mc::ItemStack stack, i32 slot, bool selectSlot)
+{
+    // PlayerInventory::setItem 直接设槽（越界由 PlayerInventory 内部钳制）。
+    // selectSlot 为 true 时同步选中该槽，使主手立即持有该物品（用于诱惑/喂食等手持判定）。
+    // TODO: 槽位越界校验返 false（当前 setItem 内部处理，恒返 true）。
+    inventory().setItem(slot, stack);
+    if (selectSlot) {
+        inventory().setSelectedSlot(slot);
+    }
+    return true;
+}
+
 i32 SimulatedPlayer::chat(const std::string& command)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::chat: helper not bound");
@@ -137,8 +193,13 @@ void SimulatedPlayer::flyToLocation(BlockPos relativePos, f32 speed)
 
 void SimulatedPlayer::attack(mc::Entity& target)
 {
-    // TODO: 派发攻击事件 + 伤害计算（依赖攻击/伤害事件派发链）
-    (void)target;
+    // 委托 Player::attack：内部构造 DamageSources::playerAttack(this) → target.hurt →
+    // LivingEntity::actuallyHurt → setLastHurtBy(this) → 下一 tick HurtByTargetGoal::shouldExecute
+    // 读 getLastHurtBy() 触发群体仇恨（alertOthers 警醒附近同类）。
+    // Player::attack 已含完整伤害链：暴击/附魔/冷却衰减/击退/横扫/武器损耗/饱食度消耗。
+    // SimulatedPlayer 经 ServerPlayer→Player 继承，无网络连接时发包路径 no-op（setConnection(nullptr)）。
+    // 直接调 Player::attack（非 ServerPlayer::attack）以跳过 ServerPlayer 的旁观者 setCamera 网络路径。
+    Player::attack(target);
 }
 
 } // namespace mc::test

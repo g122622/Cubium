@@ -47,7 +47,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    ElderGuardianEntity(EntityInstanceId id);
+    ElderGuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~ElderGuardianEntity() override = default;
 
@@ -62,7 +62,7 @@ public:
     /**
      * @brief 创建远古守卫者实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 挖掘疲劳 ==========
 

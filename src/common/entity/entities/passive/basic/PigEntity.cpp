@@ -22,39 +22,40 @@
  */
 
 #include "PigEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../../utils/ItemDropHelper.hpp"
-#include "../../player/Player.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 
 namespace mc {
 
-std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PigEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<PigEntity>(0);
+    return std::make_unique<PigEntity>(0, registry);
 }
 
-PigEntity::PigEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+PigEntity::PigEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -95,8 +96,14 @@ bool PigEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小猪
-    auto baby = std::make_unique<PigEntity>(0);
+    auto baby = std::make_unique<PigEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -124,7 +131,7 @@ void PigEntity::onPlayerStopRiding(Player* /*player*/)
 f32 PigEntity::getSteeringSpeed() const
 {
     // 骑乘速度 = 基础速度 * 0.225
-    f32 baseSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 baseSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     return baseSpeed * MOUNTED_SPEED_MULT;
 }
 
@@ -191,7 +198,7 @@ void PigEntity::travelTowards(const Vector3& travelVec)
 void PigEntity::travel(const Vector3& travelVec)
 {
     // 设置 AI 移动速度
-    f32 moveSpeed = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
+    f32 moveSpeed = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED));
     setAIMoveSpeed(moveSpeed);
 
     // 调用 IRideable::ride() 处理骑乘移动
@@ -254,7 +261,7 @@ void PigEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 设置猪的基础移动速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, PIG_SPEED);
 }
 
 void PigEntity::die(DamageSource& cause)
@@ -314,6 +321,58 @@ bool PigEntity::canEquip(const ItemStack& item, i32 slot) const
 
     // 检查是否是鞍物品
     return item.getItem() == Items::SADDLE;
+}
+
+// ========== 雷击 ==========
+
+void PigEntity::onStruckByLightning()
+{
+    // 客户端不执行实体转化逻辑
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 和平难度下闪电不转化猪
+    if (m_world->difficulty() == Difficulty::Peaceful) {
+        return;
+    }
+
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
+    // 经 EntityType 工厂创建僵尸猪灵，避免本目录反向依赖 monster/nether 目录
+    const entity::EntityType* type =
+        entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ZOMBIFIED_PIGLIN);
+    if (type == nullptr) {
+        return;
+    }
+    auto piglin = type->create(m_world, *registry);
+    if (piglin == nullptr) {
+        return;
+    }
+
+    // 继承位置与朝向
+    piglin->setPosition(x(), y(), z());
+    piglin->setRotation(yaw(), pitch());
+
+    // 继承自定义名
+    if (hasCustomName()) {
+        piglin->setCustomName(customNameText());
+        piglin->setCustomNameVisible(isCustomNameVisible());
+    }
+
+    // 闪电转化的僵尸猪灵需持久化留存
+    MobEntity* piglinMob = dynamic_cast<MobEntity*>(piglin.get());
+    if (piglinMob != nullptr) {
+        piglinMob->enablePersistence();
+    }
+
+    // 生成僵尸猪灵并移除原猪
+    m_world->spawnEntity(std::move(piglin));
+    discard();
 }
 
 } // namespace mc

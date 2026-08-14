@@ -27,6 +27,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/PickupStatus.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -41,15 +42,6 @@ namespace mc {
 // 前向声明 - ItemStack 在 mc 命名空间中
 class ItemStack;
 namespace entity {
-
-/**
- * @brief 箭矢拾取状态
- */
-enum class PickupStatus : u8 {
-    Disallowed,  // 不允许拾取
-    Allowed,     // 允许拾取
-    CreativeOnly // 仅创造模式拾取
-};
 
 /**
  * @brief 抽象箭矢实体基类
@@ -73,82 +65,87 @@ public:
     /**
      * @brief 获取伤害值
      */
-    [[nodiscard]] f32 damage() const { return m_damage; }
+    [[nodiscard]] f32 damage() const;
 
     /**
      * @brief 设置伤害值
      */
-    void setDamage(f32 damage) { m_damage = damage; }
+    void setDamage(f32 damage);
 
     /**
      * @brief 获取击退强度
      */
-    [[nodiscard]] i32 knockbackStrength() const { return m_knockbackStrength; }
+    [[nodiscard]] i32 knockbackStrength() const;
 
     /**
      * @brief 设置击退强度
      */
-    void setKnockbackStrength(i32 strength) { m_knockbackStrength = strength; }
+    void setKnockbackStrength(i32 strength);
 
     /**
      * @brief 是否暴击
      */
-    [[nodiscard]] bool isCritical() const { return m_critical; }
+    [[nodiscard]] bool isCritical() const;
 
     /**
      * @brief 设置暴击状态
      */
-    void setCritical(bool critical) { m_critical = critical; }
+    void setCritical(bool critical);
 
     /**
      * @brief 获取穿透等级
      */
-    [[nodiscard]] u8 pierceLevel() const { return m_pierceLevel; }
+    [[nodiscard]] u8 pierceLevel() const;
 
     /**
      * @brief 设置穿透等级
      */
-    void setPierceLevel(u8 level) { m_pierceLevel = level; }
+    void setPierceLevel(u8 level);
 
     /**
      * @brief 是否插在方块中
      */
-    [[nodiscard]] bool isInGround() const { return m_inGround; }
+    [[nodiscard]] bool isInGround() const;
 
     /**
      * @brief 设置是否插在方块中（测试用）
      */
-    void setInGround(bool inGround) { m_inGround = inGround; }
+    void setInGround(bool inGround);
 
     /**
      * @brief 获取拾取状态
      */
-    [[nodiscard]] PickupStatus pickupStatus() const { return m_pickupStatus; }
+    [[nodiscard]] PickupStatus pickupStatus() const;
 
     /**
      * @brief 设置拾取状态
      */
-    void setPickupStatus(PickupStatus status) { m_pickupStatus = status; }
+    void setPickupStatus(PickupStatus status);
 
     /**
      * @brief 是否从弩射出
      */
-    [[nodiscard]] bool shotFromCrossbow() const { return m_shotFromCrossbow; }
+    [[nodiscard]] bool shotFromCrossbow() const;
 
     /**
      * @brief 设置是否从弩射出
      */
-    void setShotFromCrossbow(bool fromCrossbow) { m_shotFromCrossbow = fromCrossbow; }
+    void setShotFromCrossbow(bool fromCrossbow);
 
     /**
      * @brief 是否已造成伤害（用于三叉戟返回逻辑）
      */
-    [[nodiscard]] bool hasDealtDamage() const { return m_dealtDamage; }
+    [[nodiscard]] bool hasDealtDamage() const;
+
+    /**
+     * @brief 设置是否已造成伤害（protected，仅子类如 TridentEntity 返回逻辑用）
+     */
+    void setDealtDamage(bool dealt);
 
     /**
      * @brief 获取在方块中的时间
      */
-    [[nodiscard]] i32 timeInGround() const { return m_timeInGround; }
+    [[nodiscard]] i32 timeInGround() const;
 
     // ========== 物理 ==========
 
@@ -213,7 +210,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit AbstractArrowEntity(EntityInstanceId id);
+    explicit AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 箭矢命中实体时的处理
@@ -229,6 +226,11 @@ protected:
      * @brief 箭矢插在方块中的tick处理
      */
     void tickInGround();
+
+    /**
+     * @brief 获取箭矢抖动时间（protected，子类拾取判定用）
+     */
+    [[nodiscard]] i32 arrowShake() const;
 
     /**
      * @brief 检查是否应该从方块中脱落
@@ -262,24 +264,61 @@ protected:
      */
     [[nodiscard]] bool canHitEntityWithPierce(const mc::Entity& target) const;
 
-    // 属性
-    f32 m_damage = 2.0f;         // 基础伤害
-    i32 m_knockbackStrength = 0; // 击退强度
-    bool m_critical = false;     // 是否暴击
-    u8 m_pierceLevel = 0;        // 穿透等级
-    bool m_inGround = false;     // 是否插在方块中
-    i32 m_ticksInGround = 0;     // 插在方块中的总时间（用于超时移除）
-    i32 m_timeInGround = 0;      // 当前连续插在方块中的时间（用于三叉戟返回）
-    i32 m_arrowShake = 0;        // 箭矢抖动时间
-    PickupStatus m_pickupStatus = PickupStatus::Disallowed;
-    bool m_shotFromCrossbow = false;
-    bool m_dealtDamage = false; // 是否已造成伤害（三叉戟用）
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 AbstractArrow.defineSynchedData():
+    //   ID_FLAGS(Byte, bit0=critical, bit2=shotFromCrossbow)
+    //   PIERCE_LEVEL(Byte)
+    //   IN_GROUND(Boolean)
+    // 真相源为 ProjectileArrowStateComponent，DataParameter 作镜像（批次4 EntityStateComponent 模式）。
+    // 静态成员在 .cpp 中通过 EntityDataManager::createKey<T>() 定义，静态初始化分配全局唯一 ID。
+    static entity::DataParameter<i8> DATA_ARROW_FLAGS_PARAM;  ///< 箭矢标志位（bit0=crit, bit2=shotFromCrossbow）
+    static entity::DataParameter<i8> DATA_PIERCE_LEVEL_PARAM; ///< 穿透等级
+    static entity::DataParameter<bool> DATA_IN_GROUND_PARAM;  ///< 是否插在方块中
 
-    // 穿透追踪（使用 unordered_set 实现 O(1) 查找）
-    std::unordered_set<EntityInstanceId> m_piercedEntities;
+    /**
+     * @brief 获取 DATA_ARROW_FLAGS_PARAM 的参数 ID（客户端元数据同步用）
+     *
+     * 客户端 ClientEntity::syncMetadataFromDataManager() 通过此 ID 读取箭矢标志位，
+     * 用于驱动暴击粒子等渲染。
+     */
+    [[nodiscard]] static u16 getArrowFlagsParamId() { return DATA_ARROW_FLAGS_PARAM.id(); }
 
-    // 命中的方块状态
-    std::optional<BlockState> m_inBlockState;
+    /**
+     * @brief 获取 DATA_PIERCE_LEVEL_PARAM 的参数 ID（客户端元数据同步用）
+     */
+    [[nodiscard]] static u16 getPierceLevelParamId() { return DATA_PIERCE_LEVEL_PARAM.id(); }
+
+    /**
+     * @brief 获取 DATA_IN_GROUND_PARAM 的参数 ID（客户端元数据同步用）
+     */
+    [[nodiscard]] static u16 getInGroundParamId() { return DATA_IN_GROUND_PARAM.id(); }
+
+protected:
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 Entity::registerData()，注册 AbstractArrow 的网络同步参数
+     * （DATA_ARROW_FLAGS/DATA_PIERCE_LEVEL/DATA_IN_GROUND）。
+     *
+     * 注意：由于 C++ 虚函数在构造函数中不会派生到子类，
+     * AbstractArrowEntity 构造函数必须显式调用此方法，且子类（TridentEntity）
+     * 的 registerData 必须首行调用 AbstractArrowEntity::registerData() 以续接 id。
+     */
+    void registerData() override;
+
+    /**
+     * @brief 将箭矢标志位（crit/shotFromCrossbow）写回 DATA_ARROW_FLAGS 镜像
+     */
+    void _syncArrowFlags();
+
+    /**
+     * @brief 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+     */
+    static const EntityClassInfo& classInfo();
+
+    // 批次6 子目标2 Step3：以下 13 字段已迁入 ecs::ProjectileArrowStateComponent，
+    // 经 tryGetComponent<ecs::ProjectileArrowStateComponent>() 读写（见各 getter/setter
+    // 与 .cpp 内 tick/onEntityHit/onBlockHit 等实现）。
 };
 
 /**
@@ -293,12 +332,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit ArrowEntity(EntityInstanceId id);
+    explicit ArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 从发射者创建
@@ -326,22 +365,22 @@ public:
      * @brief 设置箭矢颜色
      * @param color RGB颜色值
      */
-    void setColor(u32 color) { m_color = color; }
+    void setColor(u32 color);
 
     /**
      * @brief 获取箭矢颜色
      */
-    [[nodiscard]] u32 color() const { return m_color; }
+    [[nodiscard]] u32 color() const;
 
     /**
      * @brief 设置是否为光灵箭
      */
-    void setGlowing(bool glowing) { m_glowing = glowing; }
+    void setGlowing(bool glowing);
 
     /**
      * @brief 是否为光灵箭
      */
-    [[nodiscard]] bool isGlowing() const { return m_glowing; }
+    [[nodiscard]] bool isGlowing() const;
 
     // ========== 药水效果 ==========
 
@@ -349,23 +388,23 @@ public:
      * @brief 添加药水效果
      * @param effect 效果实例
      */
-    void addEffect(const entity::effect::EffectInstance& effect) { m_effects.push_back(effect); }
+    void addEffect(const entity::effect::EffectInstance& effect);
 
     /**
      * @brief 设置药水效果列表
      * @param effects 效果列表
      */
-    void setEffects(const std::vector<entity::effect::EffectInstance>& effects) { m_effects = effects; }
+    void setEffects(const std::vector<entity::effect::EffectInstance>& effects);
 
     /**
      * @brief 获取药水效果列表
      */
-    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const { return m_effects; }
+    [[nodiscard]] const std::vector<entity::effect::EffectInstance>& effects() const;
 
     /**
      * @brief 是否有药水效果
      */
-    [[nodiscard]] bool hasEffects() const { return !m_effects.empty(); }
+    [[nodiscard]] bool hasEffects() const;
 
     // ========== AbstractArrowEntity 接口实现 ==========
 
@@ -376,9 +415,7 @@ public:
     [[nodiscard]] ItemStack getArrowStack() const override;
 
 private:
-    u32 m_color = 0xFFFFFFFF;                              // 箭矢颜色（药水箭）
-    bool m_glowing = false;                                // 是否发光（光灵箭）
-    std::vector<entity::effect::EffectInstance> m_effects; // 药水效果列表
+    // 批次6 子目标2 Step4：m_color/m_glowing/m_effects 迁入 ecs::ArrowEffectsComponent。
 };
 
 /**
@@ -391,12 +428,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit SpectralArrowEntity(EntityInstanceId id);
+    explicit SpectralArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -419,8 +456,18 @@ public:
      */
     [[nodiscard]] ItemStack getArrowStack() const override;
 
+    /**
+     * @brief 获取发光持续时间
+     */
+    [[nodiscard]] i32 glowDuration() const;
+
+    /**
+     * @brief 设置发光持续时间
+     */
+    void setGlowDuration(i32 duration);
+
 private:
-    i32 m_glowDuration = 200; // 发光持续时间（ticks）
+    // 批次6 子目标2 Step4：m_glowDuration 迁入 ecs::SpectralArrowComponent。
 };
 
 } // namespace entity

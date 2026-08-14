@@ -19,6 +19,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerListener.hpp"
@@ -191,7 +192,7 @@ TEST_F(PlayerEnderChestInventoryTest, OpenInventoryWithNoActiveChestDoesNotCrash
 {
     // 没有 activeChest 时，openInventory → startOpen 不应崩溃
     // startOpen 在 m_activeChest == nullptr 时不调用 EnderChestEntity::openContainer
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_NO_THROW(inventory.openInventory(player));
 }
 
@@ -199,7 +200,7 @@ TEST_F(PlayerEnderChestInventoryTest, CloseInventoryWithNoActiveChestDoesNotCras
 {
     // 没有 activeChest 时，closeInventory → stopOpen 不应崩溃
     // stopOpen 在 m_activeChest == nullptr 时仅设置 m_activeChest = nullptr（无操作）
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_NO_THROW(inventory.closeInventory(player));
 }
 

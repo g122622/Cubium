@@ -40,7 +40,7 @@ namespace mc {
  */
 class SkeletonEntity : public AbstractSkeletonEntity {
 public:
-    SkeletonEntity(EntityInstanceId id);
+    SkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SkeletonEntity() override = default;
 
     SkeletonEntity(const SkeletonEntity&) = delete;
@@ -48,7 +48,7 @@ public:
     SkeletonEntity(SkeletonEntity&&) = delete;
     SkeletonEntity& operator=(SkeletonEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     [[nodiscard]] f32 eyeHeight() const override { return 1.74f; }
     [[nodiscard]] f32 width() const override { return 0.6f; }

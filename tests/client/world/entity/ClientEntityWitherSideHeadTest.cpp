@@ -57,6 +57,7 @@
 #include <functional>
 
 #include "client/world/entity/ClientEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
@@ -96,7 +97,7 @@ protected:
         // 否则 getHeadTarget2ParamId() 返回 0xFFFF，多个未分配静态成员互相别名，
         // syncMetadataFromDataManager 的 getRaw(0xFFFF).get<T>() 类型不符抛 bad variant access。
         // 静态成员进程内幂等，首次构造即分配，后续复用。
-        static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+        static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         (void)s_serverWither;
 
         // 创建凋灵 ClientEntity
@@ -494,7 +495,7 @@ TEST(ClientEntityWitherSideHeadTypeIdTest, WitherWithoutPrefix_SyncsHeadTarget)
     // 以触发 registerData() 为静态 DataParameter 分配真实 id（首次进程内幂等），
     // 否则 getHeadTarget2ParamId() 返回哨兵 0xFFFF，set 在 0xFFFF 创建条目被
     // syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
-    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverWither;
 
     ClientEntity wither(EntityInstanceId(1), "wither");
@@ -519,7 +520,7 @@ TEST(ClientEntityWitherSideHeadTypeIdTest, NonWither_DoesNotSyncHeadTarget)
     // 独立 TEST 须自行构造服务端 WitherEntity 触发 registerData() 分配真实 id，
     // 否则 getHeadTarget2ParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF 建条目，
     // 被 MobFlags 分支误读为 i8 触发 bad_variant_access。
-    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1));
+    static const auto s_serverWither = std::make_unique<::mc::entity::WitherEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverWither;
 
     ClientEntity zombie(EntityInstanceId(1), "minecraft:zombie");

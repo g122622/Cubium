@@ -70,7 +70,7 @@ struct SoundRecord {
 /**
  * @brief 测试用世界存根，支持粒子、声音记录和随机数
  */
-class WaterSplashTestWorld final : public test::BaseTestWorld {
+class WaterSplashTestWorld final : public mc::test::BaseTestWorld {
 public:
     WaterSplashTestWorld()
         : m_dayTime(0)
@@ -159,17 +159,17 @@ private:
  */
 class TestEntity : public Entity {
 public:
-    TestEntity(IWorld* world)
-        : Entity(EntityInstanceId(1), world)
+    TestEntity(IWorld* world, ecs::EntityRegistry& registry)
+        : Entity(EntityInstanceId(1), world, registry)
     {
         // 初始化实体
-        m_position = Vector3(100.0f, 64.0f, 200.0f);
-        m_velocity = Vector3(0.0f, 0.0f, 0.0f);
+        setPosition(Vector3(100.0f, 64.0f, 200.0f));
+        setVelocity(Vector3(0.0f, 0.0f, 0.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { m_velocity = vel; }
+    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
 
-    void setTestPosition(const Vector3& pos) { m_position = pos; }
+    void setTestPosition(const Vector3& pos) { setPosition(pos); }
 
     // 暴露受保护的方法用于测试
     using Entity::doWaterSplashEffect;
@@ -181,15 +181,15 @@ public:
 class TestPlayer : public Player {
 public:
     TestPlayer(IWorld* world)
-        : Player(EntityInstanceId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry())
     {
         setWorld(world);
-        m_position = Vector3(100.0f, 64.0f, 200.0f);
+        setPosition(Vector3(100.0f, 64.0f, 200.0f));
     }
 
-    void setTestVelocity(const Vector3& vel) { m_velocity = vel; }
+    void setTestVelocity(const Vector3& vel) { setVelocity(vel); }
 
-    void setTestPosition(const Vector3& pos) { m_position = pos; }
+    void setTestPosition(const Vector3& pos) { setPosition(pos); }
 };
 
 } // namespace
@@ -201,7 +201,7 @@ public:
 TEST(WaterSplashTest, EntityGetSplashSoundReturnsGenericSplash)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     // Entity 基类应该返回通用溅水声音
     EXPECT_EQ(entity.getSplashSound(), SoundEvents::ENTITY_GENERIC_SPLASH);
@@ -225,7 +225,7 @@ TEST(WaterSplashTest, PlayerGetSplashSoundReturnsPlayerSplash)
 TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     // 设置实体位置和速度
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
@@ -265,7 +265,7 @@ TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles)
 TEST(WaterSplashTest, DoWaterSplashEffectPlaysSound)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
     entity.setTestVelocity(Vector3(0.0f, 0.0f, 0.0f)); // 低速
@@ -287,7 +287,7 @@ TEST(WaterSplashTest, DoWaterSplashEffectPlaysSound)
 TEST(WaterSplashTest, DoWaterSplashEffectHighSpeedPlaysHighSpeedSound)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
     // 设置高速（向下跳水）
@@ -308,7 +308,7 @@ TEST(WaterSplashTest, DoWaterSplashEffectHighSpeedPlaysHighSpeedSound)
 TEST(WaterSplashTest, DoWaterSplashEffectParticlePosition)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     Vector3 entityPos(100.5f, 64.3f, 200.7f);
     entity.setTestPosition(entityPos);
@@ -330,7 +330,7 @@ TEST(WaterSplashTest, DoWaterSplashEffectParticlePosition)
 TEST(WaterSplashTest, DoWaterSplashEffectSoundPitchRandomized)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
     entity.setTestVelocity(Vector3(0.0f, 0.0f, 0.0f));
@@ -409,7 +409,7 @@ TEST(WaterSplashTest, SpectatorPlayerDoesNotGenerateSplash)
 TEST(WaterSplashTest, VelocityFactorCalculation)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));
 
@@ -442,7 +442,7 @@ TEST(WaterSplashTest, VelocityFactorCalculation)
 TEST(WaterSplashTest, ParticleVelocityInheritance)
 {
     WaterSplashTestWorld world;
-    TestEntity entity(&world);
+    TestEntity entity(&world, mc::test::testEcsRegistry());
 
     Vector3 entityVel(1.0f, 2.0f, 0.5f);
     entity.setTestPosition(Vector3(100.0f, 64.0f, 200.0f));

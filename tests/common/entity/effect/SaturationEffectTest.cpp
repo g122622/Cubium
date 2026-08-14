@@ -48,7 +48,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class EffectTestWorld final : public test::BaseTestWorld {
+class EffectTestWorld final : public mc::test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
     void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
@@ -80,7 +80,7 @@ protected:
 TEST_F(SaturationEffectTest, SaturationIRestoresOneFoodAndTwoSaturation)
 {
     // 饱和效果 I (amplifier=0): 恢复 1 点饥饿值，2 点饱和度
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -100,7 +100,7 @@ TEST_F(SaturationEffectTest, SaturationIRestoresOneFoodAndTwoSaturation)
 TEST_F(SaturationEffectTest, SaturationIIRestoresTwoFoodAndFourSaturation)
 {
     // 饱和效果 II (amplifier=1): 恢复 2 点饥饿值，4 点饱和度
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -119,7 +119,7 @@ TEST_F(SaturationEffectTest, SaturationIIRestoresTwoFoodAndFourSaturation)
 TEST_F(SaturationEffectTest, SaturationDoesNotAffectNonPlayer)
 {
     // 饱和效果对非玩家实体无效
-    MobEntity mob(EntityInstanceId(2));
+    MobEntity mob(EntityInstanceId(2), mc::test::testEcsRegistry());
     mob.setWorld(m_world.get());
     mob.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -131,7 +131,7 @@ TEST_F(SaturationEffectTest, SaturationDoesNotAffectNonPlayer)
 TEST_F(SaturationEffectTest, SaturationFoodLevelCappedAt20)
 {
     // 饱和效果不会使饥饿值超过上限 20
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -153,7 +153,7 @@ TEST_F(SaturationEffectTest, SaturationFoodLevelCappedAt20)
 TEST_F(SaturationEffectTest, SaturationThroughEffectManager)
 {
     // 饱和效果通过 EffectManager::addEffect 添加时，应立即执行后不保存到效果列表
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -176,7 +176,7 @@ TEST_F(SaturationEffectTest, SaturationThroughEffectManager)
 TEST_F(SaturationEffectTest, MultipleSaturationEffectsStack)
 {
     // 连续添加多次饱和效果，应每次都恢复饥饿值
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -205,7 +205,7 @@ TEST_F(SaturationEffectTest, MultipleSaturationEffectsStack)
 TEST_F(SaturationEffectTest, InstantEffectNotStoredInManager)
 {
     // 验证所有瞬间效果（InstantHealth, InstantDamage, Saturation）都不保存在 EffectManager 中
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(m_world.get());
     player.setPosition(0.0f, 64.0f, 0.0f);
 

@@ -1208,9 +1208,10 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
 
         // 马及其变种（驴/骡/骷髅马/僵尸马）主模型动画
         // 第三人称马走 GPU 管线路径，需要调用 setLivingAnimations 处理步态/姿态。
-        // ClientEntity 当前未镜像马鞍/骑乘/grassEating/rearing 等马专用状态
-        // （AbstractHorseEntity 用非 DataParameter 的本地标志位），故此处仅推进
-        // 通用步态动画，专用姿态保持模型默认值。TODO: 待马专用状态同步到客户端后补齐。
+        // ClientEntity 已镜像马鞍/骑乘/吃草/扬蹄/张嘴状态（由 AbstractHorseEntity::STATUS_PARAM
+        // 6 bit 位标志同步，见 ClientEntity::syncMetadataFromDataManager horse 分支）。
+        // rearingAmount/mouthOpenness 客户端无 prev/current 插值量（服务端 HorseAnimationComponent
+        // 持有），此处用 bool 转 0.0/1.0 近似（同 cat 范式）。TODO: 待插值量同步后实现平滑动画。
         if (normalizedId == "horse" || normalizedId == "minecraft:horse" || normalizedId == "donkey" ||
             normalizedId == "minecraft:donkey" || normalizedId == "mule" || normalizedId == "minecraft:mule" ||
             normalizedId == "skeleton_horse" || normalizedId == "minecraft:skeleton_horse" ||
@@ -1218,6 +1219,10 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             auto* horseModel = dynamic_cast<model::animal::HorseModel*>(model.get());
             if (horseModel != nullptr) {
                 horseModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+                horseModel->setSaddled(entity.horseSaddled());
+                horseModel->setRidden(!entity.passengers().empty());
+                horseModel->setRearingAmount(entity.horseRearing() ? 1.0f : 0.0f);
+                horseModel->setMouthOpennessAngle(entity.horseMouthOpen() ? 1.0f : 0.0f);
             }
         }
 

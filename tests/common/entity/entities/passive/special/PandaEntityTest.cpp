@@ -55,7 +55,7 @@ namespace {
  * - addParticle (记录调用)
  * - spawnEntity (记录生成的实体)
  */
-class PandaTestWorld final : public test::BaseTestWorld {
+class PandaTestWorld final : public mc::test::BaseTestWorld {
 public:
     PandaTestWorld()
         : m_gameRules()
@@ -142,7 +142,7 @@ private:
 class TestablePandaEntity : public PandaEntity {
 public:
     TestablePandaEntity(EntityInstanceId id)
-        : PandaEntity(id)
+        : PandaEntity(id, mc::test::testEcsRegistry())
     {}
 
     // 暴露 protected 方法用于测试
@@ -155,7 +155,7 @@ TEST(PandaEntityPersonalityTest, RandomizePersonalityGeneratesValidGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     auto personality = panda.getPersonality();
     EXPECT_GE(static_cast<u8>(personality), 0);
@@ -182,7 +182,7 @@ TEST(PandaEntityPersonalityAccessorsTest, SetAndGetPersonality)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     panda.setPersonality(PandaEntity::Personality::Lazy);
     EXPECT_EQ(panda.getPersonality(), PandaEntity::Personality::Lazy);
@@ -219,7 +219,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezing)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(panda.isSneezing());
 
@@ -234,7 +234,7 @@ TEST(PandaEntityStateTest, SetAndGetSneezeTimer)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_EQ(panda.getSneezeTimer(), 0);
 
@@ -249,7 +249,7 @@ TEST(PandaEntityStateTest, SetAndGetRolling)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(panda.isRolling());
 
@@ -264,7 +264,7 @@ TEST(PandaEntityStateTest, SetAndGetEating)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(panda.isEating());
 
@@ -279,7 +279,7 @@ TEST(PandaEntityStateTest, SetAndGetLying)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(panda.isLying());
 
@@ -296,7 +296,7 @@ TEST(PandaEntityEyeHeightTest, AdultHasCorrectEyeHeight)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setChild(false);
 
     EXPECT_FLOAT_EQ(panda.eyeHeight(), 1.2f);
@@ -306,7 +306,7 @@ TEST(PandaEntityEyeHeightTest, ChildHasCorrectEyeHeight)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setChild(true);
 
     EXPECT_FLOAT_EQ(panda.eyeHeight(), 0.6f);
@@ -442,7 +442,7 @@ TEST(PandaEntityGeneTest, GetAndSetMainGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     panda.setMainGene(3);
     EXPECT_EQ(panda.getMainGene(), 3);
@@ -455,7 +455,7 @@ TEST(PandaEntityGeneTest, GetAndSetHiddenGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     panda.setHiddenGene(2);
     EXPECT_EQ(panda.getHiddenGene(), 2);
@@ -468,7 +468,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_AggressiveDominant)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5 Gene.func_221101_b() 规则：
     // 如果主基因是显性的（Aggressive），直接返回主基因
@@ -489,7 +489,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_LazyAggressiveCombo)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: Lazy + Aggressive 组合表达为 Aggressive（好斗是显性的）
     // 参考: Gene.func_221101_b()
@@ -505,7 +505,7 @@ TEST(PandaEntityGeneTest, CalculateExpressedPersonality_NormalMainGene)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 普通基因作为主基因
     panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Normal));
@@ -524,7 +524,7 @@ TEST(PandaEntityGeneTest, GetOneOfGenesRandomly)
 
     math::Random rng(12345);
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setMainGene(2);
     panda.setHiddenGene(4);
 
@@ -537,7 +537,7 @@ TEST(PandaEntityGeneTest, UpdatePersonalityFromGenes)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     panda.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
     panda.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Normal));
@@ -561,11 +561,11 @@ protected:
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_CreatesChildPanda)
 {
-    PandaEntity mother(EntityInstanceId(1));
+    PandaEntity mother(EntityInstanceId(1), mc::test::testEcsRegistry());
     mother.setWorld(&m_world);
     mother.setPosition(0.0f, 64.0f, 0.0f);
 
-    PandaEntity father(EntityInstanceId(2));
+    PandaEntity father(EntityInstanceId(2), mc::test::testEcsRegistry());
     father.setWorld(&m_world);
 
     auto baby = mother.spawnBaby(father);
@@ -580,11 +580,11 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_CreatesChildPanda)
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_PositionNearMother)
 {
-    PandaEntity mother(EntityInstanceId(1));
+    PandaEntity mother(EntityInstanceId(1), mc::test::testEcsRegistry());
     mother.setWorld(&m_world);
     mother.setPosition(100.0f, 64.0f, 200.0f);
 
-    PandaEntity father(EntityInstanceId(2));
+    PandaEntity father(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     auto baby = mother.spawnBaby(father);
 
@@ -602,13 +602,13 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_PositionNearMother)
 
 TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_InheritsGenes)
 {
-    PandaEntity mother(EntityInstanceId(1));
+    PandaEntity mother(EntityInstanceId(1), mc::test::testEcsRegistry());
     mother.setWorld(&m_world);
     mother.setPosition(0.0f, 64.0f, 0.0f);
     mother.setMainGene(static_cast<u8>(PandaEntity::Personality::Aggressive));
     mother.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Lazy));
 
-    PandaEntity father(EntityInstanceId(2));
+    PandaEntity father(EntityInstanceId(2), mc::test::testEcsRegistry());
     father.setMainGene(static_cast<u8>(PandaEntity::Personality::Playful));
     father.setHiddenGene(static_cast<u8>(PandaEntity::Personality::Worried));
 
@@ -628,14 +628,14 @@ TEST_F(PandaEntitySpawnBabyTest, SpawnBaby_InheritsGenes)
 
 TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_BothParents)
 {
-    PandaEntity child(EntityInstanceId(3));
+    PandaEntity child(EntityInstanceId(3), mc::test::testEcsRegistry());
     child.setWorld(&m_world);
 
-    PandaEntity father(EntityInstanceId(1));
+    PandaEntity father(EntityInstanceId(1), mc::test::testEcsRegistry());
     father.setMainGene(2);
     father.setHiddenGene(3);
 
-    PandaEntity mother(EntityInstanceId(2));
+    PandaEntity mother(EntityInstanceId(2), mc::test::testEcsRegistry());
     mother.setMainGene(4);
     mother.setHiddenGene(5);
 
@@ -650,10 +650,10 @@ TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_BothParents)
 
 TEST_F(PandaEntitySpawnBabyTest, InheritGenesFromParents_FatherOnly)
 {
-    PandaEntity child(EntityInstanceId(3));
+    PandaEntity child(EntityInstanceId(3), mc::test::testEcsRegistry());
     child.setWorld(&m_world);
 
-    PandaEntity father(EntityInstanceId(1));
+    PandaEntity father(EntityInstanceId(1), mc::test::testEcsRegistry());
     father.setMainGene(1);
     father.setHiddenGene(2);
 
@@ -673,7 +673,7 @@ TEST(PandaEntityRollTest, SetAndGetRollTimer)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_EQ(panda.getRollTimer(), 0);
 
@@ -688,7 +688,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenIdle)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始状态，所有行为状态都是 false
     EXPECT_TRUE(panda.canPerformAction());
@@ -698,7 +698,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenSneezing)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setSneezing(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -708,7 +708,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenRolling)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setRolling(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -718,7 +718,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenEating)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setEating(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -728,7 +728,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenLying)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
     panda.setLying(true);
 
     EXPECT_FALSE(panda.canPerformAction());
@@ -738,7 +738,7 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
 {
     Items::initialize();
 
-    PandaEntity panda(EntityInstanceId(1));
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 任何一个状态为 true 就不能执行动作
     panda.setSneezing(true);

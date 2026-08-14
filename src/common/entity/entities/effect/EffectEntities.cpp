@@ -129,13 +129,13 @@ void applyInstantEffect(
 
 // ==================== EnderCrystalEntity ====================
 
-EnderCrystalEntity::EnderCrystalEntity()
-    : Entity(EntityInstanceId(0))
+EnderCrystalEntity::EnderCrystalEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {}
 
-std::unique_ptr<Entity> EnderCrystalEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EnderCrystalEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EnderCrystalEntity>();
+    return std::make_unique<EnderCrystalEntity>(registry);
 }
 
 f32 EnderCrystalEntity::width() const
@@ -243,7 +243,7 @@ void EnderCrystalEntity::explode()
     // 末地水晶爆炸，爆炸半径 6.0，模式 DESTROY（破坏方块并掉落物品）
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
-        worldPtr->createExplosion(m_position,
+        worldPtr->createExplosion(m_builtIn.stateVector->m_pos,
             6.0f, // 爆炸半径
             world::explosion::ExplosionMode::Destroy,
             false,  // 不生成火焰
@@ -276,7 +276,7 @@ bool EnderCrystalEntity::hurt(DamageSource& source, f32 /*amount*/)
         if (worldPtr != nullptr) {
             // 使用当前水晶作为爆炸源，伤害来源作为造成者（用于击杀归因）
             // MC: level.explode(this, damagesource, null, x, y, z, 6.0F, false, BLOCK)
-            worldPtr->createExplosion(m_position,
+            worldPtr->createExplosion(m_builtIn.stateVector->m_pos,
                 EXPLOSION_RADIUS,
                 world::explosion::ExplosionMode::Break,
                 false, // 不生成火焰
@@ -296,15 +296,15 @@ bool EnderCrystalEntity::hurt(DamageSource& source, f32 /*amount*/)
 
 // ==================== LightningBoltEntity ====================
 
-LightningBoltEntity::LightningBoltEntity()
-    : Entity(EntityInstanceId(0))
+LightningBoltEntity::LightningBoltEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {
     // 闪电总是可见，即使不在视锥内
 }
 
-std::unique_ptr<Entity> LightningBoltEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> LightningBoltEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<LightningBoltEntity>();
+    return std::make_unique<LightningBoltEntity>(registry);
 }
 
 f32 LightningBoltEntity::width() const
@@ -364,14 +364,14 @@ void LightningBoltEntity::tick()
             f32 thunderPitch = 0.8f + static_cast<f32>(m_boltVertex % 100) / 100.0f * 0.2f;
             m_world->playSound(SoundEvents::WEATHER_THUNDER,
                 sound::SoundCategory::Weather,
-                m_position,
+                m_builtIn.stateVector->m_pos,
                 10000.0f, // 音量（可传很远）
                 thunderPitch);
 
             // 播放雷击声音效（音量 2，音调 0.5-0.7）
             f32 impactPitch = 0.5f + static_cast<f32>((m_boltVertex >> 8) % 100) / 100.0f * 0.2f;
             m_world->playSound(
-                SoundEvents::WEATHER_THUNDER, sound::SoundCategory::Weather, m_position, 2.0f, impactPitch);
+                SoundEvents::WEATHER_THUNDER, sound::SoundCategory::Weather, m_builtIn.stateVector->m_pos, 2.0f, impactPitch);
         }
 
         // 服务端造成伤害（非 effectOnly，非客户端）
@@ -426,9 +426,9 @@ void LightningBoltEntity::_igniteBlocks(i32 extraIgnitions)
     }
 
     // 获取当前位置
-    BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     // 在当前位置放置火焰
     const BlockState* currentState = m_world->getBlockState(blockPos);
@@ -479,12 +479,12 @@ void LightningBoltEntity::_damageEntities()
     }
 
     // 构建碰撞箱
-    AxisAlignedBB box(m_position.x - DAMAGE_RADIUS_XZ,
-        m_position.y - DAMAGE_RADIUS_Y_OFFSET,
-        m_position.z - DAMAGE_RADIUS_XZ,
-        m_position.x + DAMAGE_RADIUS_XZ,
-        m_position.y + DAMAGE_RADIUS_Y + DAMAGE_RADIUS_Y_OFFSET,
-        m_position.z + DAMAGE_RADIUS_XZ);
+    AxisAlignedBB box(m_builtIn.stateVector->m_pos.x - DAMAGE_RADIUS_XZ,
+        m_builtIn.stateVector->m_pos.y - DAMAGE_RADIUS_Y_OFFSET,
+        m_builtIn.stateVector->m_pos.z - DAMAGE_RADIUS_XZ,
+        m_builtIn.stateVector->m_pos.x + DAMAGE_RADIUS_XZ,
+        m_builtIn.stateVector->m_pos.y + DAMAGE_RADIUS_Y + DAMAGE_RADIUS_Y_OFFSET,
+        m_builtIn.stateVector->m_pos.z + DAMAGE_RADIUS_XZ);
 
     // 获取范围内的实体
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
@@ -523,16 +523,16 @@ void LightningBoltEntity::_damageEntities()
 
 // ==================== AreaEffectCloudEntity ====================
 
-AreaEffectCloudEntity::AreaEffectCloudEntity()
-    : Entity(EntityInstanceId(0))
+AreaEffectCloudEntity::AreaEffectCloudEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {
     // 药水云无碰撞
     setNoClip(true);
 }
 
-std::unique_ptr<Entity> AreaEffectCloudEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> AreaEffectCloudEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<AreaEffectCloudEntity>();
+    return std::make_unique<AreaEffectCloudEntity>(registry);
 }
 
 f32 AreaEffectCloudEntity::width() const
@@ -672,12 +672,12 @@ void AreaEffectCloudEntity::_applyEffects()
     }
 
     // 获取范围内的生物
-    AxisAlignedBB box(m_position.x - m_radius,
-        m_position.y - 0.5f,
-        m_position.z - m_radius,
-        m_position.x + m_radius,
-        m_position.y + 0.5f,
-        m_position.z + m_radius);
+    AxisAlignedBB box(m_builtIn.stateVector->m_pos.x - m_radius,
+        m_builtIn.stateVector->m_pos.y - 0.5f,
+        m_builtIn.stateVector->m_pos.z - m_radius,
+        m_builtIn.stateVector->m_pos.x + m_radius,
+        m_builtIn.stateVector->m_pos.y + 0.5f,
+        m_builtIn.stateVector->m_pos.z + m_radius);
 
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
 
@@ -708,8 +708,8 @@ void AreaEffectCloudEntity::_applyEffects()
         }
 
         // 检查水平距离（只检查XZ平面）
-        f32 dx = static_cast<f32>(entity->x() - m_position.x);
-        f32 dz = static_cast<f32>(entity->z() - m_position.z);
+        f32 dx = static_cast<f32>(entity->x() - m_builtIn.stateVector->m_pos.x);
+        f32 dz = static_cast<f32>(entity->z() - m_builtIn.stateVector->m_pos.z);
         f32 distSq = dx * dx + dz * dz;
 
         if (distSq <= m_radius * m_radius) {
@@ -949,13 +949,13 @@ Result<void> AreaEffectCloudEntity::readAdditionalSaveData(const nbt::tags::comp
 
 // ==================== ArmorStandEntity ====================
 
-ArmorStandEntity::ArmorStandEntity()
-    : Entity(EntityInstanceId(0))
+ArmorStandEntity::ArmorStandEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {}
 
-std::unique_ptr<Entity> ArmorStandEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ArmorStandEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ArmorStandEntity>();
+    return std::make_unique<ArmorStandEntity>(registry);
 }
 
 f32 ArmorStandEntity::width() const

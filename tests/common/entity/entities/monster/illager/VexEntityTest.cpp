@@ -47,7 +47,7 @@ namespace {
  *
  * 提供 VexEntity 测试所需的最小 IWorld 接口实现
  */
-class VexTestWorld final : public test::BaseTestWorld {
+class VexTestWorld final : public mc::test::BaseTestWorld {
 public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
@@ -81,7 +81,7 @@ private:
 TEST(VexEntityTest, Construction)
 {
     // 使用 Unknown 类型，因为 Vex 没有在 LegacyEntityType 中定义
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证恼鬼尺寸
     EXPECT_FLOAT_EQ(vex.width(), 0.4f);
@@ -99,7 +99,7 @@ TEST(VexEntityTest, Construction)
 
 TEST(VexEntityTest, LifeTimeSettings)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 测试生命时间设置
     vex.setLifeTime(100);
@@ -115,7 +115,7 @@ TEST(VexEntityTest, LifeTimeSettings)
 
 TEST(VexEntityTest, OwnerSettings)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 恼鬼可以设置主人（唤魔者）
     // 注意：这里使用 nullptr 作为测试，实际应该使用 EvokerEntity
@@ -129,7 +129,7 @@ TEST(VexEntityTest, OwnerSettings)
 
 TEST(VexEntityTest, ChargingState)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认不充电
     EXPECT_FALSE(vex.isCharging());
@@ -144,7 +144,7 @@ TEST(VexEntityTest, ChargingState)
 
 TEST(VexEntityTest, Attributes)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 注册属性后检查
     // VexEntity::registerAttributes() 在构造函数中被调用
@@ -158,7 +158,7 @@ TEST(VexEntityTest, NoClipDuringTick)
 {
     // 这个测试验证 noClip 标志的正确设置
     // 注意：tick() 需要完整的世界初始化，这里只测试标志的设置和获取
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认没有 noClip
     EXPECT_FALSE(vex.noClip());
@@ -175,7 +175,7 @@ TEST(VexEntityTest, NoClipDuringTick)
 TEST(VexEntityTest, NoGravitySetting)
 {
     // 这个测试验证 noGravity 标志的正确设置
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置 noGravity
     vex.setNoGravity(true);
@@ -190,7 +190,7 @@ TEST(VexEntityTest, LifeTimeDecreases)
 {
     // 注意：m_limitedLife 和 m_lifeTime 是私有成员
     // 这里只测试公共接口
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 测试生命时间设置
     vex.setLifeTime(100);
@@ -209,7 +209,7 @@ TEST(VexEntityTest, LifeTimeDecreases)
 
 TEST(VexEntityTest, CanFly)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 恼鬼可以飞行
     EXPECT_TRUE(vex.canFly());
@@ -217,7 +217,7 @@ TEST(VexEntityTest, CanFly)
 
 TEST(VexEntityTest, ShouldNotBurnInDaylight)
 {
-    VexEntity vex(EntityInstanceId(1));
+    VexEntity vex(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 恼鬼不会在日光下燃烧
     EXPECT_FALSE(vex.shouldBurnInDaylight());
@@ -225,7 +225,7 @@ TEST(VexEntityTest, ShouldNotBurnInDaylight)
 
 TEST(VexEntityTest, CreateFactory)
 {
-    auto entity = VexEntity::create(nullptr);
+    auto entity = VexEntity::create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     // 验证创建的是 VexEntity

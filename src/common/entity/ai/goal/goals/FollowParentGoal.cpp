@@ -97,9 +97,10 @@ void FollowParentGoal::tick()
     if (!m_childAnimal || !m_parentAnimal) return;
 
     // tick 方法只有路径更新逻辑，没有 lookAt
-    // 等待延迟计数器
+    // 等待延迟计数器。对齐 vanilla FollowParentGoal.tick：
+    // timeToRecalcPath = adjustedTickDelay(10)，减半补偿半 tick 评估。
     if (--m_delayCounter <= 0) {
-        m_delayCounter = FOLLOW_DELAY_INTERVAL; // 10 tick
+        m_delayCounter = adjustedTickDelay(FOLLOW_DELAY_INTERVAL);
 
         // 尝试移动到父母实体位置
         if (auto* nav = m_childAnimal->navigator()) {

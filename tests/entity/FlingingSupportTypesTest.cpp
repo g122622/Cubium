@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/interfaces/IFlinging.hpp"
@@ -35,7 +36,7 @@ namespace {
 class FlingingDummyTarget : public LivingEntity {
 public:
     explicit FlingingDummyTarget(EntityInstanceId id)
-        : LivingEntity(id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {}
 };
 
@@ -47,7 +48,7 @@ TEST(FlingingSupportTypesTest, HoglinAndZoglinImplementMarker)
 
 TEST(FlingingSupportTypesTest, AttackWithFlingAppliesDamageAndKnockback)
 {
-    HoglinEntity hoglin(EntityInstanceId(1));
+    HoglinEntity hoglin(EntityInstanceId(1), mc::test::testEcsRegistry());
     hoglin.setPosition(0.0f, 64.0f, 0.0f);
 
     FlingingDummyTarget target(2);
@@ -64,7 +65,7 @@ TEST(FlingingSupportTypesTest, AttackWithFlingAppliesDamageAndKnockback)
 
 TEST(FlingingSupportTypesTest, HoglinAttackUpdatesAnimationTicks)
 {
-    HoglinEntity hoglin(EntityInstanceId(1));
+    HoglinEntity hoglin(EntityInstanceId(1), mc::test::testEcsRegistry());
     hoglin.setPosition(0.0f, 64.0f, 0.0f);
 
     FlingingDummyTarget target(2);

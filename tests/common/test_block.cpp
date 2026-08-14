@@ -50,6 +50,7 @@
 #include "../src/common/world/fluid/FluidRegistry.hpp"
 #include "../src/common/world/fluid/Fluids.hpp"
 #include "../src/common/world/tick/manager/TickManager.hpp"
+#include "common/TestWorldHelper.hpp"
 #include <atomic>
 #include <memory>
 #include <unordered_map>
@@ -235,6 +236,12 @@ public:
     [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
+
+    // 提供 ECS 实体注册表：方块 tick（如 FallingBlock::tick）在 ECS 迁移后构造实体需 registry
+    // 句柄，world.entityRegistry()==nullptr 时静默跳过 spawn（沙子不掉落）。返回共享测试 registry
+    // 与 BaseTestWorld 对齐，使 FallingBlock 等能正常 spawn 实体。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {

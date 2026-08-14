@@ -56,7 +56,7 @@ namespace {
  *
  * 提供僵尸村民测试所需的最小 IWorld 接口实现
  */
-class ZombieVillagerTestWorld final : public test::BaseTestWorld {
+class ZombieVillagerTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -126,7 +126,7 @@ protected:
         m_world = std::make_unique<ZombieVillagerTestWorld>();
 
         // 创建僵尸村民
-        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1));
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_zombieVillager->setWorld(m_world.get());
         m_zombieVillager->setPosition(0.0, 64.0, 0.0);
     }
@@ -364,7 +364,7 @@ TEST_F(ZombieVillagerEntityTest, SoundEvents)
  *
  * 需要支持物品注册和实体生成
  */
-class ZombieVillagerEquipmentTestWorld final : public test::BaseTestWorld {
+class ZombieVillagerEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     ZombieVillagerEquipmentTestWorld() { Items::initialize(); }
 
@@ -405,7 +405,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<ZombieVillagerEquipmentTestWorld>();
-        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1));
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_zombieVillager->setWorld(m_world.get());
         m_zombieVillager->setPosition(0.0, 64.0, 0.0);
     }

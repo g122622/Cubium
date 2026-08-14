@@ -512,23 +512,29 @@ RaiderType Raid::_selectRaiderType(i32 waveNum, i32 index, i32 total) const
  */
 EntityInstanceId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return 0;
+    }
+
     std::unique_ptr<Entity> entity;
 
     switch (type) {
         case RaiderType::Pillager:
-            entity = PillagerEntity::create(&world);
+            entity = PillagerEntity::create(&world, *registry);
             break;
         case RaiderType::Vindicator:
-            entity = VindicatorEntity::create(&world);
+            entity = VindicatorEntity::create(&world, *registry);
             break;
         case RaiderType::Evoker:
-            entity = EvokerEntity::create(&world);
+            entity = EvokerEntity::create(&world, *registry);
             break;
         case RaiderType::Ravager:
-            entity = RavagerEntity::create(&world);
+            entity = RavagerEntity::create(&world, *registry);
             break;
         case RaiderType::Witch:
-            entity = WitchEntity::create(&world);
+            entity = WitchEntity::create(&world, *registry);
             break;
         default:
             return 0;

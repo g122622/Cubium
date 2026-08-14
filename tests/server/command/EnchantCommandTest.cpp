@@ -45,7 +45,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class EnchantTestServer final : public test::BaseTestServer {
+class EnchantTestServer final : public mc::test::BaseTestServer {
 public:
     EnchantTestServer() { item::enchant::EnchantmentRegistry::initialize(); }
 

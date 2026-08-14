@@ -39,6 +39,8 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/ecs/components/TridentStateComponent.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -59,29 +61,63 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-TridentEntity::TridentEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+// 静态数据参数定义（对应 MC 1.21.11 ThrownTrident.defineSynchedData()）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （AbstractArrow id8/9/10 后 → id11/12）。
+entity::DataParameter<i8> TridentEntity::DATA_LOYALTY_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<bool> TridentEntity::DATA_FOIL_PARAM = entity::EntityDataManager::createKey<bool>();
+
+const EntityClassInfo& TridentEntity::classInfo()
 {
-    m_damage = 8.0f; // 三叉戟伤害更高
-    setPickupStatus(PickupStatus::Allowed);
+    static const EntityClassInfo s_classInfo{"TridentEntity", &AbstractArrowEntity::classInfo()};
+    return s_classInfo;
 }
 
-std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/)
+void TridentEntity::registerData()
 {
-    return std::make_unique<TridentEntity>(0);
+    // 先调用父类注册 AbstractArrow 同步字段（id8/9/10）
+    AbstractArrowEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册三叉戟专属同步参数（id11/12，对应 vanilla ThrownTrident）
+    m_dataManager.registerParam(DATA_LOYALTY_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_FOIL_PARAM, false);
+}
+
+TridentEntity::TridentEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
+{
+    setDamage(8.0f); // 三叉戟伤害更高
+    setPickupStatus(PickupStatus::Allowed);
+    // 批次6 子目标2 Step1：attach TridentStateComponent（三叉戟物品/命中/返回/忠诚 6 字段）。
+    // dealtDamage 复用父类 ProjectileArrowStateComponent::m_dealtDamage 不另存。
+    // Step4 已把 m_tridentStack/m_hitBlock/m_returning/m_hitBlockPos/m_loyaltyLevel/
+    // m_returningTicks 读写改走组件；Step5 补 DATA_LOYALTY/DATA_FOIL 同步字段。
+    m_entityContext->enttRegistry().emplace<ecs::TridentStateComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 AbstractArrowEntity 构造调用的 registerData()
+    // 不会派生到 TridentEntity::registerData()。此处显式调用注册三叉戟专属同步字段（id11/12）。
+    registerData();
+}
+
+std::unique_ptr<Entity> TridentEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
+{
+    return std::make_unique<TridentEntity>(0, registry);
 }
 
 void TridentEntity::tick()
 {
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+
     // 检查是否应该开始返回
-    if (m_timeInGround > 4) {
-        m_dealtDamage = true;
+    if (timeInGround() > 4) {
+        setDealtDamage(true);
     }
 
     // 检查忠诚附魔状态
     Entity* shooter = getShooter();
-    if ((m_dealtDamage || isInGround()) && shooter != nullptr) {
-        const i32 loyaltyLevel = m_loyaltyLevel;
+    if ((hasDealtDamage() || isInGround()) && shooter != nullptr) {
+        const i32 loyaltyLevel = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
 
         if (loyaltyLevel > 0 && !_shouldReturnToThrower()) {
             // 忠诚附魔但无法返回（射手已死亡或是旁观者模式），掉落物品
@@ -130,8 +166,9 @@ void TridentEntity::_tickReturning()
     }
 
     // 计算到射手眼部位置的方向
-    Vector3 direction(
-        shooter->x() - m_position.x, shooter->y() + shooter->eyeHeight() - m_position.y, shooter->z() - m_position.z);
+    Vector3 direction(shooter->x() - m_builtIn.stateVector->m_pos.x,
+        shooter->y() + shooter->eyeHeight() - m_builtIn.stateVector->m_pos.y,
+        shooter->z() - m_builtIn.stateVector->m_pos.z);
     f32 distance = direction.length();
 
     // 非玩家射手：当三叉戟足够近时掉落物品
@@ -151,22 +188,25 @@ void TridentEntity::_tickReturning()
     // 更新旋转朝向运动方向
     ProjectileHelper::rotateTowardsMovement(*this, 0.2f);
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const i32 loyalty = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
+
     // Y轴微小偏移
-    m_position.y += direction.y * 0.015f * static_cast<f32>(m_loyaltyLevel);
+    m_builtIn.stateVector->m_pos.y += direction.y * 0.015f * static_cast<f32>(loyalty);
 
     // 返回速度
-    f32 speed = 0.05f * static_cast<f32>(m_loyaltyLevel);
+    f32 speed = 0.05f * static_cast<f32>(loyalty);
 
     // 设置速度：当前速度缩放 0.95 后加上朝向射手的方向
-    Vector3 currentVel = m_velocity;
+    Vector3 currentVel = m_builtIn.velocity->m_velocity;
     Vector3 normalizedDir = direction.normalized();
-    m_velocity = Vector3(currentVel.x * 0.95f + normalizedDir.x * speed,
+    m_builtIn.velocity->m_velocity = Vector3(currentVel.x * 0.95f + normalizedDir.x * speed,
         currentVel.y * 0.95f + normalizedDir.y * speed,
         currentVel.z * 0.95f + normalizedDir.z * speed);
 
     // 更新位置
-    m_prevPosition = m_position;
-    m_position = m_position + m_velocity;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     // 玩家射手：检查是否到达射手，添加到背包（仅服务端）
     if (player != nullptr && distance < 2.0f) {
@@ -177,17 +217,22 @@ void TridentEntity::_tickReturning()
     }
 
     // 播放返回音效（首次）
-    if (m_returningTicks == 0) {
+    const i32 retTicks = trident ? trident->m_returningTicks : 0;
+    if (retTicks == 0) {
         playSound(SoundEvents::ITEM_TRIDENT_RETURN, 10.0f, 1.0f);
     }
-    ++m_returningTicks;
+    if (trident != nullptr) {
+        ++trident->m_returningTicks;
+    }
 
     // 检查是否在水中，生成气泡粒子
     if (isInWater() && m_world) {
         for (int i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
-            Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+            Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                y() - m_builtIn.velocity->m_velocity.y * offset,
+                z() - m_builtIn.velocity->m_velocity.z * offset);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
         }
     }
 
@@ -202,17 +247,21 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
     Entity* target = result.hitEntity;
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const bool hasStack =
+        (trident != nullptr && trident->m_tridentStack != nullptr && !trident->m_tridentStack->isEmpty());
+
     // 计算基础伤害
     f32 damage = 8.0f;
 
     // 应用穿刺附魔伤害（对水生生物造成额外伤害，每级 2.5 点）
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
-    if (livingTarget != nullptr && !m_tridentStack.isEmpty()) {
+    if (livingTarget != nullptr && hasStack) {
         // 获取目标的生物属性类型
         CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
         // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
-        damage +=
-            mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(m_tridentStack, static_cast<u32>(creatureType));
+        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
+            *trident->m_tridentStack, static_cast<u32>(creatureType));
     }
 
     // 获取射击者
@@ -228,7 +277,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 标记已造成伤害
-    m_dealtDamage = true;
+    setDealtDamage(true);
 
     // 应用伤害
     if (livingTarget != nullptr) {
@@ -236,9 +285,9 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 击退效果
-    if (m_knockbackStrength > 0) {
-        f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+    if (knockbackStrength() > 0) {
+        f32 ratio = 0.6f * static_cast<f32>(knockbackStrength());
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -249,7 +298,7 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 引雷附魔
     if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
         // 检查是否有引雷附魔
-        if (mc::item::enchant::EnchantmentHelper::hasChanneling(m_tridentStack)) {
+        if (hasStack && mc::item::enchant::EnchantmentHelper::hasChanneling(*trident->m_tridentStack)) {
             // 检查是否在雷暴天气且能看到天空
             BlockPos targetPos(
                 static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
@@ -258,7 +307,12 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
             if (isThundering && canSeeSky) {
                 // 创建闪电实体
-                auto lightning = std::make_unique<entity::LightningBoltEntity>();
+                // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+                auto* registry = &ecsRegistry();
+                if (registry == nullptr) {
+                    return;
+                }
+                auto lightning = std::make_unique<entity::LightningBoltEntity>(*registry);
                 lightning->setTypeId(EntityTypeKeys::LIGHTNING_BOLT);
                 lightning->setPosition(target->x(), target->y(), target->z());
 
@@ -278,7 +332,9 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 速度反转为轻微反弹
-    m_velocity = Vector3(m_velocity.x * -0.01f, m_velocity.y * -0.1f, m_velocity.z * -0.01f);
+    m_builtIn.velocity->m_velocity = Vector3(m_builtIn.velocity->m_velocity.x * -0.01f,
+        m_builtIn.velocity->m_velocity.y * -0.1f,
+        m_builtIn.velocity->m_velocity.z * -0.01f);
 
     // 三叉戟不移除，而是等待返回
     // 如果没有忠诚附魔，会进入 m_inGround 状态
@@ -286,21 +342,25 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
 
 void TridentEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_inGround = true;
-    m_hitBlock = true;
-    m_hitBlockPos = result.blockPos;
+    setInGround(true);
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    if (trident != nullptr) {
+        trident->m_hitBlock = true;
+        trident->m_hitBlockPos = result.blockPos;
+    }
 
+    auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
     // 保存方块状态
-    if (m_world && result.type == RayTraceResultType::Block) {
+    if (arrowState != nullptr && m_world && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
         if (state != nullptr) {
-            m_inBlockState = *state;
+            *arrowState->m_inBlockState = *state;
         }
     }
 
     // 清除暴击和穿透状态
-    m_critical = false;
-    m_pierceLevel = 0;
+    setCritical(false);
+    setPierceLevel(0);
     clearPiercedEntities();
 
     // 三叉戟有特殊的命中地面音效
@@ -326,15 +386,23 @@ void TridentEntity::setBaseDamageFromMob(f32 power)
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
-    m_damage = power * 2.0f + triangle;
+    setDamage(power * 2.0f + triangle);
 }
 
 void TridentEntity::setItemStack(const ItemStack& stack)
 {
-    m_tridentStack = stack;
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    if (trident == nullptr || trident->m_tridentStack == nullptr) {
+        return;
+    }
+    *trident->m_tridentStack = stack;
     // 从物品堆获取忠诚附魔等级
-    m_loyaltyLevel =
+    trident->m_loyaltyLevel =
         static_cast<u8>(mc::item::enchant::EnchantmentHelper::getEnchantmentLevel(stack, "minecraft:loyalty"));
+    // 批次6 子目标2 Step5：镜像同步 DATA_LOYALTY / DATA_FOIL（对齐 vanilla ThrownTrident）。
+    // foil = 物品是否有任意附魔光泽（vanilla ItemStack.hasFoil 语义）。
+    m_dataManager.set(DATA_LOYALTY_PARAM, static_cast<i8>(trident->m_loyaltyLevel));
+    m_dataManager.set(DATA_FOIL_PARAM, mc::item::enchant::EnchantmentHelper::hasEnchantments(stack));
 }
 
 bool TridentEntity::onPlayerPickup(Player& player)
@@ -345,12 +413,12 @@ bool TridentEntity::onPlayerPickup(Player& player)
     }
 
     // 只有当三叉戟在地上或返回时才能被拾取
-    if (!m_inGround && !noClip()) {
+    if (!isInGround() && !noClip()) {
         return false;
     }
 
     // 箭矢不能处于抖动状态
-    if (m_arrowShake > 0) {
+    if (arrowShake() > 0) {
         return false;
     }
 
@@ -363,12 +431,16 @@ bool TridentEntity::onPlayerPickup(Player& player)
         return false;
     }
 
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const bool hasStack =
+        (trident != nullptr && trident->m_tridentStack != nullptr && !trident->m_tridentStack->isEmpty());
+
     // 只有 Allowed 状态才检查背包空间
     // 三叉戟的 pickupStatus 通常是 Allowed，所以总是检查背包
-    if (!m_tridentStack.isEmpty()) {
-        i32 added = player.inventory().add(m_tridentStack);
+    if (hasStack) {
+        i32 added = player.inventory().add(*trident->m_tridentStack);
         // 三叉戟只能有一个，检查是否成功添加
-        if (m_tridentStack.getCount() > 0) {
+        if (trident->m_tridentStack->getCount() > 0) {
             return false; // 背包满了
         }
     }
@@ -384,11 +456,82 @@ bool TridentEntity::onPlayerPickup(Player& player)
 
 void TridentEntity::tickInGroundTrident()
 {
+    auto* trident = tryGetComponent<ecs::TridentStateComponent>();
+    const i32 loyalty = trident ? static_cast<i32>(trident->m_loyaltyLevel) : 0;
     // 如果不允许拾取或没有忠诚附魔，则使用普通超时逻辑
-    if (pickupStatus() != PickupStatus::Allowed || m_loyaltyLevel <= 0) {
+    if (pickupStatus() != PickupStatus::Allowed || loyalty <= 0) {
         AbstractArrowEntity::tickInGround();
     }
     // 否则不超时，等待返回
+}
+
+// 批次6 子目标2 Step4：以下 getter/setter 经 ecs::TridentStateComponent 读写。
+ItemStack TridentEntity::getItemStack() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr && c->m_tridentStack != nullptr) ? *c->m_tridentStack : ItemStack();
+}
+
+ItemStack TridentEntity::getArrowStack() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr && c->m_tridentStack != nullptr) ? c->m_tridentStack->copy() : ItemStack();
+}
+
+bool TridentEntity::isReturning() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_returning : false;
+}
+
+void TridentEntity::setReturning(bool returning)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_returning = returning;
+    }
+}
+
+bool TridentEntity::hasHitBlock() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_hitBlock : false;
+}
+
+BlockPos TridentEntity::hitBlockPos() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_hitBlockPos : BlockPos{};
+}
+
+u8 TridentEntity::loyaltyLevel() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_loyaltyLevel : 0;
+}
+
+void TridentEntity::setLoyaltyLevel(u8 level)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_loyaltyLevel = level;
+    }
+    // 批次6 子目标2 Step5：镜像同步 DATA_LOYALTY（对齐 vanilla ThrownTrident）。
+    m_dataManager.set(DATA_LOYALTY_PARAM, static_cast<i8>(level));
+}
+
+i32 TridentEntity::returningTicks() const
+{
+    const auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    return (c != nullptr) ? c->m_returningTicks : 0;
+}
+
+void TridentEntity::setReturningTicks(i32 ticks)
+{
+    auto* c = tryGetComponent<ecs::TridentStateComponent>();
+    if (c != nullptr) {
+        c->m_returningTicks = ticks;
+    }
 }
 
 } // namespace entity

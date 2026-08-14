@@ -7,7 +7,7 @@
 构建后，所有测试可执行文件位于 `build/bin/RelWithDebInfo/`（多配置生成器，配置名 `RelWithDebInfo`）。
 
 ```bash
-# 方式 A（推荐）：通过 CTest 运行，支持单用例限时、并行、筛选
+# 方式 A（推荐）：通过 CTest 运行，支持单用例限时、并行、筛选。强烈推荐使用ctest进行测试以便发挥cpu的并行能力。
 cd build
 ctest --build-config RelWithDebInfo --output-on-failure -j8
 

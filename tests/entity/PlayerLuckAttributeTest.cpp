@@ -33,6 +33,7 @@
  * 参考 MC 1.16.5: PlayerEntity.registerAttributes() 注册 generic.luck 属性
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -48,7 +49,7 @@ namespace {
  */
 class PlayerLuckAttributeTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 

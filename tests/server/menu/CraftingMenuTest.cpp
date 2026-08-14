@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemRegistry.hpp"
@@ -97,7 +98,7 @@ class CraftingMenuTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_player = std::make_unique<Player>(1, "MenuTester");
+        m_player = std::make_unique<Player>(1, "MenuTester", mc::test::testEcsRegistry());
         m_playerInventory = std::make_unique<PlayerInventory>(m_player.get());
     }
 
@@ -170,7 +171,7 @@ class InventoryCraftingMenuTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_player = std::make_unique<Player>(1, "InventoryMenuTester");
+        m_player = std::make_unique<Player>(1, "InventoryMenuTester", mc::test::testEcsRegistry());
         m_playerInventory = std::make_unique<PlayerInventory>(m_player.get());
     }
 

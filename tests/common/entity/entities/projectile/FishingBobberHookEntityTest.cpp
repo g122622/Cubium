@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/FishingBobberComponent.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -43,14 +44,38 @@ namespace entity {
  * @brief 测试辅助类，用于访问 FishingBobberEntity 的私有方法
  *
  * 必须在 mc::entity 命名空间中，以便 friend 声明能正确引用。
+ *
+ * 注意：批次6 子目标2 后 m_caughtEntity/m_state/m_ticksCatchable/m_ticksCatchableDelay
+ * 已迁入 ecs::FishingBobberComponent，本辅助类经 Entity public tryGetComponent 读写。
+ * setCaughtEntity 的第三参数 registry 仅用于调用点兼容（早期迁移桩保留），实际不使用。
  */
 class FishingBobberTestAccess {
 public:
     static void syncCaughtEntityId(FishingBobberEntity& bobber) { bobber._syncCaughtEntityId(); }
-    static void setCaughtEntity(FishingBobberEntity& bobber, Entity* entity) { bobber.m_caughtEntity = entity; }
-    static void setState(FishingBobberEntity& bobber, FishingBobberEntity::State state) { bobber.m_state = state; }
-    static void setTicksCatchable(FishingBobberEntity& bobber, i32 value) { bobber.m_ticksCatchable = value; }
-    static void setTicksCatchableDelay(FishingBobberEntity& bobber, i32 value) { bobber.m_ticksCatchableDelay = value; }
+    static void setCaughtEntity(FishingBobberEntity& bobber, Entity* entity, ecs::EntityRegistry& /*registry*/)
+    {
+        if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
+            c->m_caughtEntity = entity;
+        }
+    }
+    static void setState(FishingBobberEntity& bobber, FishingBobberState state)
+    {
+        if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
+            c->m_state = state;
+        }
+    }
+    static void setTicksCatchable(FishingBobberEntity& bobber, i32 value)
+    {
+        if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
+            c->m_ticksCatchable = value;
+        }
+    }
+    static void setTicksCatchableDelay(FishingBobberEntity& bobber, i32 value)
+    {
+        if (auto* c = bobber.tryGetComponent<ecs::FishingBobberComponent>()) {
+            c->m_ticksCatchableDelay = value;
+        }
+    }
 };
 
 } // namespace entity
@@ -60,12 +85,14 @@ using FishingBobberAccess = entity::FishingBobberTestAccess;
 
 namespace {
 
+using mc::entity::FishingBobberState;
+
 /**
  * @brief 钓鱼浮标测试世界
  *
  * 提供 FishingBobberEntity 测试所需的最小 IWorld 实现
  */
-class FishingBobberTestWorld : public test::BaseTestWorld {
+class FishingBobberTestWorld : public mc::test::BaseTestWorld {
 public:
     FishingBobberTestWorld()
         : m_random(12345) // 固定种子用于可重复测试
@@ -139,7 +166,7 @@ private:
 class TestEntity : public Entity {
 public:
     TestEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] bool canBeCollidedWith() const override { return m_collidable; }
@@ -166,8 +193,8 @@ protected:
  */
 TEST_F(FishingBobberHookEntityTest, InitialStateIsFlying)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
-    EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Flying);
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_EQ(bobber.state(), FishingBobberState::Flying);
 }
 
 /**
@@ -175,7 +202,7 @@ TEST_F(FishingBobberHookEntityTest, InitialStateIsFlying)
  */
 TEST_F(FishingBobberHookEntityTest, InitialCaughtEntityIsNull)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bobber.getCaughtEntity(), nullptr);
     EXPECT_EQ(bobber.getCaughtEntityId(), 0);
 }
@@ -185,7 +212,7 @@ TEST_F(FishingBobberHookEntityTest, InitialCaughtEntityIsNull)
  */
 TEST_F(FishingBobberHookEntityTest, SetShooterCorrectlySetsAngler)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto& testEntity = m_world->addEntity<TestEntity>(EntityInstanceId(2));
 
     bobber.setShooter(&testEntity);
@@ -199,7 +226,7 @@ TEST_F(FishingBobberHookEntityTest, SetShooterCorrectlySetsAngler)
  */
 TEST_F(FishingBobberHookEntityTest, SetFishingBonusCorrectlySetsBonus)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bobber.setFishingBonus(3, 2); // 海之眷顾 III，饵钓 II
     // 注意：这个测试只验证方法可以调用，实际效果在钓鱼逻辑中体现
@@ -212,7 +239,7 @@ TEST_F(FishingBobberHookEntityTest, SetFishingBonusCorrectlySetsBonus)
  */
 TEST_F(FishingBobberHookEntityTest, BobberDimensionsCorrect)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FLOAT_EQ(bobber.width(), 0.25f);
     EXPECT_FLOAT_EQ(bobber.height(), 0.25f);
@@ -223,12 +250,12 @@ TEST_F(FishingBobberHookEntityTest, BobberDimensionsCorrect)
  */
 TEST_F(FishingBobberHookEntityTest, ReelInWithoutCatchReturnsZero)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto& testEntity = m_world->addEntity<TestEntity>(EntityInstanceId(2));
 
     bobber.setShooter(&testEntity);
     // 在 Flying 状态下收杆
-    EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Flying);
+    EXPECT_EQ(bobber.state(), FishingBobberState::Flying);
 
     i32 damage = bobber.reelIn();
     EXPECT_EQ(damage, 0);
@@ -239,7 +266,7 @@ TEST_F(FishingBobberHookEntityTest, ReelInWithoutCatchReturnsZero)
  */
 TEST_F(FishingBobberHookEntityTest, BobberRemovesWhenAnglerIsNull)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 不设置钓鱼者
 
     bobber.tick();
@@ -252,7 +279,7 @@ TEST_F(FishingBobberHookEntityTest, BobberRemovesWhenAnglerIsNull)
  */
 TEST_F(FishingBobberHookEntityTest, InOpenWaterInitialValue)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(bobber.isInOpenWater());
 }
@@ -264,13 +291,13 @@ TEST_F(FishingBobberHookEntityTest, InOpenWaterInitialValue)
  */
 TEST_F(FishingBobberHookEntityTest, HookedStateClearsVelocity)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     bobber.setPosition(0.0, 64.0, 0.0);
     bobber.setVelocity(1.0f, 0.5f, 1.0f); // 设置初始速度
 
     // 验证初始状态
-    EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Flying);
+    EXPECT_EQ(bobber.state(), FishingBobberState::Flying);
     EXPECT_FLOAT_EQ(bobber.velocity().x, 1.0f);
     EXPECT_FLOAT_EQ(bobber.velocity().y, 0.5f);
     EXPECT_FLOAT_EQ(bobber.velocity().z, 1.0f);
@@ -285,7 +312,7 @@ TEST_F(FishingBobberHookEntityTest, HookedStateClearsVelocity)
  */
 TEST_F(FishingBobberHookEntityTest, RegisterDataRegistersHookedEntityAndBitingParams)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // DATA_HOOKED_ENTITY_PARAM 应已注册，初始值为 0（无被钩住实体）
     const u16 hookedParamId = entity::FishingBobberEntity::getHookedEntityParamId();
@@ -310,7 +337,7 @@ TEST_F(FishingBobberHookEntityTest, RegisterDataRegistersHookedEntityAndBitingPa
  */
 TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithNullWritesZero)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 通过 Friend 访问器调用私有 _syncCaughtEntityId
     // 由于此时 m_caughtEntity == nullptr，应写入 0
@@ -334,11 +361,11 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithNullWritesZero)
  */
 TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithEntityWritesIdPlusOne)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto& caughtEntity = m_world->addEntity<TestEntity>(EntityInstanceId(42));
 
     // 设置被钩住实体
-    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity, mc::test::testEcsRegistry());
 
     // 调用 _syncCaughtEntityId
     FishingBobberAccess::syncCaughtEntityId(bobber);
@@ -363,11 +390,11 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithEntityWritesIdPlusOne)
  */
 TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdTransitionFromEntityToNull)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto& caughtEntity = m_world->addEntity<TestEntity>(EntityInstanceId(42));
 
     // 先钩住实体
-    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity, mc::test::testEcsRegistry());
     FishingBobberAccess::syncCaughtEntityId(bobber);
 
     const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
@@ -377,7 +404,7 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdTransitionFromEntityToNull
     bobber.dataManager().clearDirty();
 
     // 然后清除被钩住实体
-    FishingBobberAccess::setCaughtEntity(bobber, nullptr);
+    FishingBobberAccess::setCaughtEntity(bobber, nullptr, mc::test::testEcsRegistry());
     FishingBobberAccess::syncCaughtEntityId(bobber);
 
     EXPECT_EQ(bobber.getCaughtEntityId(), 0);
@@ -392,11 +419,11 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdTransitionFromEntityToNull
  */
 TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdSameValueDoesNotMarkDirty)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     auto& caughtEntity = m_world->addEntity<TestEntity>(EntityInstanceId(42));
 
     // 第一次同步
-    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity);
+    FishingBobberAccess::setCaughtEntity(bobber, &caughtEntity, mc::test::testEcsRegistry());
     FishingBobberAccess::syncCaughtEntityId(bobber);
     EXPECT_TRUE(bobber.dataManager().hasDirtyData());
 
@@ -422,7 +449,7 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdSameValueDoesNotMarkDirty)
  */
 TEST_F(FishingBobberHookEntityTest, BitingParam_InitialValueIsFalse)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
     const auto* value = bobber.dataManager().getRaw(bitingParamId);
@@ -438,15 +465,15 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_InitialValueIsFalse)
  */
 TEST_F(FishingBobberHookEntityTest, BitingParam_SetToFalse_WhenFishingStateExpires)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     // tick() 前置守卫要求 m_angler 存在、存活且 isFishing() 为 true，
     // 因此需要设置真实的 Player 作为钓鱼者并标记其正在钓鱼。
-    auto& player = m_world->addEntity<Player>(EntityInstanceId(2), "TestPlayer");
+    auto& player = m_world->addEntity<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     bobber.setShooter(&player);
     player.setFishingBobber(bobber.id());
 
     // 手动设置 Fishing 状态，m_ticksCatchable=1，DATA_BITING 预设为 true
-    FishingBobberAccess::setState(bobber, entity::FishingBobberEntity::State::Fishing);
+    FishingBobberAccess::setState(bobber, FishingBobberState::Fishing);
     FishingBobberAccess::setTicksCatchable(bobber, 1);
     const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
     bobber.dataManager().set(entity::DataParameter<bool>(bitingParamId), true);
@@ -458,7 +485,7 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_SetToFalse_WhenFishingStateExpir
     const auto* value = bobber.dataManager().getRaw(bitingParamId);
     ASSERT_NE(value, nullptr);
     EXPECT_FALSE(value->get<bool>());
-    EXPECT_EQ(bobber.state(), entity::FishingBobberEntity::State::Bobbing);
+    EXPECT_EQ(bobber.state(), FishingBobberState::Bobbing);
 }
 
 /**
@@ -469,13 +496,13 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_SetToFalse_WhenFishingStateExpir
  */
 TEST_F(FishingBobberHookEntityTest, BitingParam_Cleared_WhenFishingStateWithZeroCatchable)
 {
-    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1));
+    auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 同上：tick() 前置守卫要求有效的 Player 钓鱼者。
-    auto& player = m_world->addEntity<Player>(EntityInstanceId(2), "TestPlayer");
+    auto& player = m_world->addEntity<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     bobber.setShooter(&player);
     player.setFishingBobber(bobber.id());
 
-    FishingBobberAccess::setState(bobber, entity::FishingBobberEntity::State::Fishing);
+    FishingBobberAccess::setState(bobber, FishingBobberState::Fishing);
     FishingBobberAccess::setTicksCatchable(bobber, 0);
     const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
     bobber.dataManager().set(entity::DataParameter<bool>(bitingParamId), true);

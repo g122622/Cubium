@@ -70,7 +70,7 @@ protected:
 TEST_F(TurtleEntityTest, StepHeightIsOne)
 {
     // MC 1.16.5: TurtleEntity 构造函数中设置 stepHeight = 1.0F
-    TurtleEntity turtle(EntityInstanceId(0));
+    TurtleEntity turtle(EntityInstanceId(0), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(turtle.stepHeight(), 1.0f);
 }
 
@@ -78,7 +78,7 @@ TEST_F(TurtleEntityTest, StepHeightIsOne)
 
 TEST_F(TurtleEntityTest, Create_HasCorrectProperties)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证初始状态
     EXPECT_FALSE(turtle.hasEgg());
@@ -90,7 +90,7 @@ TEST_F(TurtleEntityTest, Create_HasCorrectProperties)
 
 TEST_F(TurtleEntityTest, HomePos_CanBeSetAndRetrieved)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     BlockPos homePos(100, 64, -200);
     turtle.setHomePos(homePos);
@@ -101,10 +101,10 @@ TEST_F(TurtleEntityTest, HomePos_CanBeSetAndRetrieved)
 
 TEST_F(TurtleEntityTest, EyeHeight_DiffersByAge)
 {
-    TurtleEntity adult(EntityInstanceId(1));
+    TurtleEntity adult(EntityInstanceId(1), mc::test::testEcsRegistry());
     adult.setChild(false);
 
-    TurtleEntity baby(EntityInstanceId(2));
+    TurtleEntity baby(EntityInstanceId(2), mc::test::testEcsRegistry());
     baby.setChild(true);
 
     // MC 1.16.5: 成体眼睛高度 0.4f，幼体 0.2f
@@ -114,7 +114,7 @@ TEST_F(TurtleEntityTest, EyeHeight_DiffersByAge)
 
 TEST_F(TurtleEntityTest, SetHasEgg_ChangesState)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(turtle.hasEgg());
 
@@ -127,7 +127,7 @@ TEST_F(TurtleEntityTest, SetHasEgg_ChangesState)
 
 TEST_F(TurtleEntityTest, SetLayingEgg_ChangesState)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(turtle.isLayingEgg());
 
@@ -140,7 +140,7 @@ TEST_F(TurtleEntityTest, SetLayingEgg_ChangesState)
 
 TEST_F(TurtleEntityTest, StartLayEgg_ResetsTimerAndState)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置为下蛋状态
     turtle.setHasEgg(true);
@@ -153,7 +153,7 @@ TEST_F(TurtleEntityTest, StartLayEgg_ResetsTimerAndState)
 
 TEST_F(TurtleEntityTest, SetGoingHome_ChangesState)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(turtle.isGoingHome());
 
@@ -166,7 +166,7 @@ TEST_F(TurtleEntityTest, SetGoingHome_ChangesState)
 
 TEST_F(TurtleEntityTest, SetTravelling_ChangesState)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(turtle.isTravelling());
 
@@ -181,7 +181,7 @@ TEST_F(TurtleEntityTest, SetTravelling_ChangesState)
 
 TEST_F(TurtleEntityTest, IsOnLand_ReturnsOppositeOfIsInWater)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始状态不在水中
     EXPECT_FALSE(turtle.isInWater());
@@ -200,7 +200,7 @@ TEST_F(TurtleEntityTest, IsOnLand_ReturnsOppositeOfIsInWater)
  * 注意：由于 BlockTags::SAND() 需要完整的标签系统初始化，
  * 本测试不验证方块放置，只验证状态重置逻辑
  */
-class TurtleLayEggTestWorld final : public test::BaseTestWorld {
+class TurtleLayEggTestWorld final : public mc::test::BaseTestWorld {
 public:
     // 播放的音效记录
     struct PlayedSound {
@@ -278,7 +278,7 @@ protected:
 TEST_F(TurtleLayEggTest, LayEggTimer_ResetsAfterDuration)
 {
     // 创建海龟
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.5f, 64.0f, 0.5f);
     turtle.setHasEgg(true);
@@ -301,7 +301,7 @@ TEST_F(TurtleLayEggTest, LayEggTimer_ResetsAfterDuration)
 TEST_F(TurtleLayEggTest, LayEggTimer_DoesNotTriggerBeforeDuration)
 {
     // 创建海龟
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.5f, 64.0f, 0.5f);
     turtle.setHasEgg(true);
@@ -320,7 +320,7 @@ TEST_F(TurtleLayEggTest, LayEggTimer_DoesNotTriggerBeforeDuration)
 TEST_F(TurtleLayEggTest, LayEggTimer_StateChangesOnlyWhenComplete)
 {
     // 创建海龟
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.5f, 64.0f, 0.5f);
     turtle.setHasEgg(true);
@@ -419,7 +419,7 @@ TEST_F(TurtleEntityTest, IsBreedingItem_Seagrass_ReturnsTrue)
 {
     // MC 1.16.5: 海龟仅接受海草作为繁殖物品
     // 参考: net.minecraft.entity.passive.TurtleEntity.isBreedingItem()
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     ItemStack seagrassStack(Items::SEAGRASS, 1);
     EXPECT_TRUE(turtle.isBreedingItem(seagrassStack));
@@ -427,7 +427,7 @@ TEST_F(TurtleEntityTest, IsBreedingItem_Seagrass_ReturnsTrue)
 
 TEST_F(TurtleEntityTest, IsBreedingItem_OtherItems_ReturnsFalse)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 小麦不能繁殖海龟
     ItemStack wheatStack(Items::WHEAT, 1);
@@ -452,7 +452,7 @@ TEST_F(TurtleEntityTest, IsBreedingItem_OtherItems_ReturnsFalse)
 
 TEST_F(TurtleEntityTest, IsBreedingItem_EmptyStack_ReturnsFalse)
 {
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     ItemStack emptyStack(nullptr, 0);
     EXPECT_FALSE(turtle.isBreedingItem(emptyStack));
@@ -463,7 +463,7 @@ TEST_F(TurtleEntityTest, CanBreed_WhenHasEgg_ReturnsFalse)
     // MC 1.16.5: 海龟只有在没有蛋的情况下才能繁殖
     // 参考: net.minecraft.entity.passive.TurtleEntity.canBreed()
     // return super.canBreed() && !this.hasEgg();
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置为成体
     turtle.setChild(false);
@@ -480,7 +480,7 @@ TEST_F(TurtleEntityTest, CanBreed_WhenHasEgg_ReturnsFalse)
 TEST_F(TurtleEntityTest, CanBreed_WhenChild_ReturnsFalse)
 {
     // 幼体不能繁殖
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setChild(true);
     turtle.setHasEgg(false);
 
@@ -489,8 +489,8 @@ TEST_F(TurtleEntityTest, CanBreed_WhenChild_ReturnsFalse)
 
 TEST_F(TurtleEntityTest, SpawnBaby_CreatesChildTurtle)
 {
-    TurtleEntity parent1(EntityInstanceId(1));
-    TurtleEntity parent2(EntityInstanceId(2));
+    TurtleEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    TurtleEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     parent1.setPosition(100.0f, 64.0f, -200.0f);
 
@@ -509,8 +509,8 @@ TEST_F(TurtleEntityTest, SpawnBaby_InheritsHomePos)
 {
     // MC 1.16.5: 小海龟继承父母的出生地
     // 这样小海龟长大后也会回到这里产卵
-    TurtleEntity parent1(EntityInstanceId(1));
-    TurtleEntity parent2(EntityInstanceId(2));
+    TurtleEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    TurtleEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     parent1.setPosition(100.0f, 64.0f, -200.0f);
     BlockPos homePos(150, 65, -180);
@@ -530,8 +530,8 @@ TEST_F(TurtleEntityTest, SpawnBaby_InheritsHomePos)
 TEST_F(TurtleEntityTest, SpawnBaby_WithoutHomePos_DoesNotHaveHomePos)
 {
     // 父母没有出生地时，幼体也没有
-    TurtleEntity parent1(EntityInstanceId(1));
-    TurtleEntity parent2(EntityInstanceId(2));
+    TurtleEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    TurtleEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     parent1.setPosition(100.0f, 64.0f, -200.0f);
     // 不设置 homePos
@@ -548,7 +548,7 @@ TEST_F(TurtleEntityTest, SpawnBaby_WithoutHomePos_DoesNotHaveHomePos)
 
 TEST_F(TurtleEntityTest, SpawnBaby_PositionNearParent)
 {
-    TurtleEntity parent(EntityInstanceId(1));
+    TurtleEntity parent(EntityInstanceId(1), mc::test::testEcsRegistry());
     parent.setPosition(100.0f, 64.0f, -200.0f);
 
     auto baby = parent.spawnBaby(parent);
@@ -571,7 +571,7 @@ TEST_F(TurtleEntityTest, SpawnBaby_PositionNearParent)
  *
  * 提供最小化的世界接口实现
  */
-class TurtleTravelTestWorld final : public test::BaseTestWorld {
+class TurtleTravelTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -606,7 +606,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_NormalSpeed)
 {
     // MC 1.16.5: 水中海龟保持基础移动速度 0.25
     // 并获得轻微上升动力 (+0.005 y)
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
     turtle.setInWater(true);
@@ -626,7 +626,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_NormalSpeed)
 TEST_F(TurtleTravelTest, WaterSpeed_FarFromHome_Slower)
 {
     // MC 1.16.5: 远离出生地超过 16 格时，速度减半，最低 0.08F
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
 
     // 设置出生地
@@ -648,7 +648,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_FarFromHome_Slower)
 TEST_F(TurtleTravelTest, WaterSpeed_Child_Slower)
 {
     // MC 1.16.5: 幼体在水中速度降低为 1/3，最低 0.06F
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setChild(true); // 设置为幼体
     turtle.setPosition(0.0f, 64.0f, 0.0f);
@@ -666,7 +666,7 @@ TEST_F(TurtleTravelTest, LandSpeed_HalfSpeed)
 {
     // MC 1.16.5: 陆地速度减半，最低 0.06F
     // 基础速度 0.25 / 2 = 0.125，大于 0.06
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
     turtle.setInWater(false);
@@ -683,7 +683,7 @@ TEST_F(TurtleTravelTest, LandSpeed_MinimumSpeed)
 {
     // 验证陆地速度最低为 0.06F
     // 即使基础速度很低，陆地速度也不应低于 0.06
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
     turtle.setInWater(false);
@@ -702,7 +702,7 @@ TEST_F(TurtleTravelTest, AirSpeed_NoSpeedChange)
 {
     // MC 1.16.5: 空中（跳跃或下落）保持当前 AI 速度
     // 不做额外调整
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
     turtle.setInWater(false);
@@ -726,7 +726,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_ChildFarFromHome_Minimum)
     // 2. 远离出生地减半 -> 0.125
     // 3. 幼体再除以 3 -> 0.0416...
     // 4. 最低 0.06
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setChild(true);
 
@@ -751,8 +751,8 @@ TEST_F(TurtleTravelTest, WaterSpeed_ChildFarFromHome_Minimum)
 TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyOnLandMatchesFilter)
 {
     // 幼年海龟在陆地上 -> isChild()=true, isInWater()=false -> 匹配
-    TurtleEntity parent1(EntityInstanceId(1));
-    TurtleEntity parent2(EntityInstanceId(2));
+    TurtleEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    TurtleEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
     parent1.setPosition(100.0f, 64.0f, -200.0f);
 
     auto baby = parent1.spawnBaby(parent2);
@@ -769,7 +769,7 @@ TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyOnLandMatchesFilter)
 TEST_F(TurtleEntityTest, BabyOnLandSelector_AdultDoesNotMatchFilter)
 {
     // 成年海龟 -> isChild()=false -> 不匹配
-    TurtleEntity adult(EntityInstanceId(1));
+    TurtleEntity adult(EntityInstanceId(1), mc::test::testEcsRegistry());
     adult.setPosition(100.0f, 64.0f, -200.0f);
 
     EXPECT_FALSE(adult.isChild());
@@ -778,8 +778,8 @@ TEST_F(TurtleEntityTest, BabyOnLandSelector_AdultDoesNotMatchFilter)
 TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyInWaterDoesNotMatchFilter)
 {
     // 幼年海龟在水中 -> isChild()=true, isInWater()=true -> 不匹配
-    TurtleEntity parent1(EntityInstanceId(1));
-    TurtleEntity parent2(EntityInstanceId(2));
+    TurtleEntity parent1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    TurtleEntity parent2(EntityInstanceId(2), mc::test::testEcsRegistry());
     parent1.setPosition(100.0f, 64.0f, -200.0f);
 
     auto baby = parent1.spawnBaby(parent2);
@@ -816,7 +816,7 @@ protected:
 TEST_F(TurtleTargetSelectorTest, Ocelot_HasTurtleTargetGoal)
 {
     // 创建豹猫实体，验证其目标选择器中注册了 TurtleEntity 攻击目标
-    OcelotEntity ocelot(EntityInstanceId(2));
+    OcelotEntity ocelot(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     bool foundTurtleGoal = false;
     for (const auto& prioritizedGoal : ocelot.targetSelector().getAllGoals()) {
@@ -834,7 +834,7 @@ TEST_F(TurtleTargetSelectorTest, Ocelot_HasTurtleTargetGoal)
 TEST_F(TurtleTargetSelectorTest, Ocelot_HasChickenTargetGoal)
 {
     // 验证豹猫同时注册了小鸡攻击目标
-    OcelotEntity ocelot(EntityInstanceId(3));
+    OcelotEntity ocelot(EntityInstanceId(3), mc::test::testEcsRegistry());
 
     bool foundChickenGoal = false;
     for (const auto& prioritizedGoal : ocelot.targetSelector().getAllGoals()) {

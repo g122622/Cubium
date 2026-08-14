@@ -50,7 +50,7 @@ namespace {
 /**
  * @brief 测试用的 IWorld 实现，用于测试 SpreadableSnowyDirtBlock
  */
-class SnowyDirtTestWorld final : public test::BaseTestWorld {
+class SnowyDirtTestWorld final : public mc::test::BaseTestWorld {
 public:
     SnowyDirtTestWorld() = default;
 

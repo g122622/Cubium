@@ -58,8 +58,8 @@ const entity::EntityClassInfo& PufferfishEntity::classInfo()
     return s_classInfo;
 }
 
-PufferfishEntity::PufferfishEntity(EntityInstanceId id)
-    : AbstractFishEntity(id)
+PufferfishEntity::PufferfishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractFishEntity(id, registry)
 {
     // 显式调用 registerData() 注册 DATA_PUFF_STATE（C++ 基类构造期虚函数不派发，
     // AbstractFishEntity 构造函数已调，但本类有自身字段须由本类 override 注册）。
@@ -72,9 +72,9 @@ PufferfishEntity::PufferfishEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PufferfishEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PufferfishEntity>(0);
+    return std::make_unique<PufferfishEntity>(0, registry);
 }
 
 f32 PufferfishEntity::getPuffSize() const
@@ -227,8 +227,8 @@ void PufferfishEntity::registerAttributes()
     AbstractFishEntity::registerAttributes();
 
     // 河豚属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 void PufferfishEntity::registerData()

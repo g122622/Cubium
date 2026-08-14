@@ -27,6 +27,8 @@
 #include "world/block/BlockPos.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 namespace mc {
 namespace entity::ai::goal {
 namespace test {

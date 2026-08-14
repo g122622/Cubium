@@ -40,8 +40,8 @@ const entity::EntityClassInfo& HuskEntity::classInfo()
     return s_classInfo;
 }
 
-HuskEntity::HuskEntity(EntityInstanceId id)
-    : ZombieEntity(id)
+HuskEntity::HuskEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ZombieEntity(id, registry)
 {
     // 显式调用 registerData() 确保 Zombie 三字段沿正确继承链注册（C++ 基类构造期
     // 虚函数不派发，ZombieEntity 构造函数已调，但 Husk 无 override 故不重复注册自身字段）。
@@ -52,9 +52,9 @@ HuskEntity::HuskEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> HuskEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<HuskEntity>(EntityInstanceId(0));
+    return std::make_unique<HuskEntity>(EntityInstanceId(0), registry);
 }
 
 void HuskEntity::registerAttributes()

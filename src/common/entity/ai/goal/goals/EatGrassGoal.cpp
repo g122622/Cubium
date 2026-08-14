@@ -56,10 +56,12 @@ bool EatGrassGoal::shouldExecute()
         return false;
     }
 
-    // 概率检查：幼年动物 1/50，成年动物 1/1000
+    // 概率检查：幼年动物 1/50，成年动物 1/1000。
+    // 对齐 vanilla EatBlockGoal.canUse：nextInt(adjustedTickDelay(isBaby?50:1000))。
+    // adjustedTickDelay 把门槛减半（ceil(n/2)）以补偿 GoalSelector 每 2 tick 评估一次的半 tick 节流。
     math::Random& rng = m_mob->getRandom();
     const i32 chance = m_isChild && m_isChild() ? CHILD_CHANCE : ADULT_CHANCE;
-    if (rng.nextInt(chance) != 0) {
+    if (rng.nextInt(adjustedTickDelay(chance)) != 0) {
         return false;
     }
 
@@ -93,7 +95,10 @@ bool EatGrassGoal::shouldContinueExecuting()
 
 void EatGrassGoal::startExecuting()
 {
-    m_eatingGrassTimer = EAT_DURATION;
+    // 对齐 vanilla EatBlockGoal.start：eatAnimationTick = adjustedTickDelay(40)。
+    // 动画时长减半补偿半 tick 评估模型（tick 每 tick 递减，但 shouldExecute 半 tick 评估，
+    // 故计时器初值需减半以保持真实时间行为与 vanilla 一致）。
+    m_eatingGrassTimer = adjustedTickDelay(EAT_DURATION);
 
     // 清除导航路径
     if (m_mob) {
@@ -118,8 +123,9 @@ void EatGrassGoal::tick()
     // 递减计时器
     m_eatingGrassTimer = std::max(0, m_eatingGrassTimer - 1);
 
-    // 在第 4 tick 时执行吃草动作
-    if (m_eatingGrassTimer == EAT_TICK) {
+    // 在第 adjustedTickDelay(EAT_TICK) tick 时执行吃草动作。
+    // 对齐 vanilla EatBlockGoal.tick：eatAnimationTick == adjustedTickDelay(4)。
+    if (m_eatingGrassTimer == adjustedTickDelay(EAT_TICK)) {
         _eatGrass();
     }
 }

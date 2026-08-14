@@ -108,8 +108,15 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world->entityRegistry();
+    if (ecsRegistry == nullptr) {
+        source.sendError("commands.summon.failed.noRegistry");
+        return 0;
+    }
+
     // 创建实体
-    std::unique_ptr<Entity> entity = entityType->create(world);
+    std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
         source.sendError("commands.summon.failed.createFailed");
         return 0;
@@ -185,8 +192,15 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
         return 0;
     }
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world->entityRegistry();
+    if (ecsRegistry == nullptr) {
+        source.sendError("commands.summon.failed.noRegistry");
+        return 0;
+    }
+
     // 创建实体
-    std::unique_ptr<Entity> entity = entityType->create(world);
+    std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
         source.sendError("commands.summon.failed.createFailed");
         return 0;

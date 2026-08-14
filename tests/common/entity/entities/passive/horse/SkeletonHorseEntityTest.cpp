@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
@@ -38,7 +39,7 @@ protected:
     void SetUp() override
     {
         // 创建骷髅马实例
-        m_horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(0));
+        m_horse = std::make_unique<SkeletonHorseEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<SkeletonHorseEntity> m_horse;

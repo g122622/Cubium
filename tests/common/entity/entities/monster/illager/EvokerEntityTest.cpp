@@ -55,7 +55,7 @@ namespace {
  *
  * 提供可编程的方块状态存储，支持测试 _spawnFangs 的碰撞箱高度计算。
  */
-class EvokerFangsSpawnTestWorld final : public test::BaseTestWorld {
+class EvokerFangsSpawnTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -130,7 +130,7 @@ private:
 
 TEST(EvokerEntityTest, Construction)
 {
-    EvokerEntity evoker(EntityInstanceId(1));
+    EvokerEntity evoker(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证唤魔者尺寸
     EXPECT_FLOAT_EQ(evoker.width(), 0.6f);
@@ -143,7 +143,7 @@ TEST(EvokerEntityTest, Construction)
 
 TEST(EvokerEntityTest, Attributes)
 {
-    EvokerEntity evoker(EntityInstanceId(1));
+    EvokerEntity evoker(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 唤魔者属性
     EXPECT_FLOAT_EQ(static_cast<f32>(evoker.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 24.0f);
@@ -153,7 +153,7 @@ TEST(EvokerEntityTest, Attributes)
 
 TEST(EvokerEntityTest, Spellcasting)
 {
-    EvokerEntity evoker(EntityInstanceId(1));
+    EvokerEntity evoker(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认不施法
     EXPECT_FALSE(evoker.isSpellcasting());
@@ -186,7 +186,7 @@ TEST(EvokerEntityTest, SpellTypeConversion)
 
 TEST(EvokerEntityTest, CreateFactory)
 {
-    auto entity = EvokerEntity::create(nullptr);
+    auto entity = EvokerEntity::create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     // 验证创建的是 EvokerEntity
@@ -196,7 +196,7 @@ TEST(EvokerEntityTest, CreateFactory)
 
 TEST(EvokerEntityTest, SpellCooldowns)
 {
-    EvokerEntity evoker(EntityInstanceId(1));
+    EvokerEntity evoker(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证冷却常量通过公共接口间接测试
     evoker.startCasting(static_cast<i32>(SpellcastingIllagerEntity::SpellType::Fangs));
@@ -209,7 +209,7 @@ TEST(EvokerEntityTest, SpellCooldowns)
 
 TEST(EvokerFangsEntityTest, Construction)
 {
-    entity::EvokerFangsEntity fangs(EntityInstanceId(1));
+    entity::EvokerFangsEntity fangs(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证尖牙尺寸
     EXPECT_FLOAT_EQ(fangs.width(), 0.5f);
@@ -222,7 +222,7 @@ TEST(EvokerFangsEntityTest, Construction)
 
 TEST(EvokerFangsEntityTest, WarmupDelay)
 {
-    entity::EvokerFangsEntity fangs(EntityInstanceId(1));
+    entity::EvokerFangsEntity fangs(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     fangs.setWarmupDelay(10);
     EXPECT_EQ(fangs.warmupDelay(), 10);
@@ -233,7 +233,7 @@ TEST(EvokerFangsEntityTest, WarmupDelay)
 
 TEST(EvokerFangsEntityTest, Owner)
 {
-    entity::EvokerFangsEntity fangs(EntityInstanceId(1));
+    entity::EvokerFangsEntity fangs(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_EQ(fangs.owner(), nullptr);
 
@@ -243,14 +243,14 @@ TEST(EvokerFangsEntityTest, Owner)
 
 TEST(EvokerFangsEntityTest, AnimationProgress)
 {
-    entity::EvokerFangsEntity fangs(EntityInstanceId(1));
+    entity::EvokerFangsEntity fangs(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FLOAT_EQ(fangs.getAnimationProgress(0.0f), 0.0f);
 }
 
 TEST(EvokerFangsEntityTest, CreateFactory)
 {
-    auto entity = entity::EvokerFangsEntity::create(nullptr);
+    auto entity = entity::EvokerFangsEntity::create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     auto* fangsPtr = dynamic_cast<entity::EvokerFangsEntity*>(entity.get());
@@ -418,12 +418,12 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangsOnFullBlock_YPositionAtBlockLevel)
     }
 
     // 创建唤魔者和目标
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 65.0f, 0.0f);
     evoker->setWorld(&m_world);
 
     // 目标距离 < 3 格（触发近距离攻击）
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 65.0f, 0.0f);
     target->setWorld(&m_world);
 
@@ -443,12 +443,12 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangs_NoSolidGround_NoFangs)
 {
     // 在空中（没有固体地面）不应生成尖牙
     // 所有位置都是空气
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 100.0f, 0.0f);
     evoker->setWorld(&m_world);
 
     // 目标距离 < 3 格（触发近距离攻击，但仍无地面）
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 100.0f, 0.0f);
     target->setWorld(&m_world);
 
@@ -469,11 +469,11 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangs_GameEventTriggered)
         }
     }
 
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 65.0f, 0.0f);
     evoker->setWorld(&m_world);
 
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 65.0f, 0.0f);
     target->setWorld(&m_world);
 
@@ -509,12 +509,12 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangs_CloseRange_TwoRings)
         }
     }
 
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 65.0f, 0.0f);
     evoker->setWorld(&m_world);
 
     // 目标距离 < 3 格（触发近距离攻击）
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 65.0f, 0.0f);
     target->setWorld(&m_world);
 
@@ -534,12 +534,12 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangs_LongRange_LineOfFangs)
         m_world.setBlockState(x, 64, 0, stoneState);
     }
 
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 65.0f, 0.0f);
     evoker->setWorld(&m_world);
 
     // 目标距离 >= 3 格（触发远距离攻击）
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(10.0f, 65.0f, 0.0f);
     target->setWorld(&m_world);
 
@@ -684,11 +684,11 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangsOnBottomSlab_YPositionIncludesSlabHei
     // 搜索从 y=65: 下方 y=64 = 石头(isSolidSide(Up)=true) → 找到地面
     //   当前位置 y=65 = 下半台阶(非空气), 碰撞箱 maxY = 0.5
     //   groundY = 65 + 0.5 = 65.5
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 64.5f, 0.0f);
     evoker->setWorld(&m_world);
 
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 64.5f, 0.0f);
     target->setWorld(&m_world);
 
@@ -730,12 +730,12 @@ TEST_F(EvokerFangsCollisionTest, SpawnFangsOnPackedIce_IsSolidSidePreventsSpawn)
         }
     }
 
-    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1));
+    auto evoker = std::make_unique<EvokerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     evoker->setPosition(0.0f, 65.0f, 0.0f);
     evoker->setWorld(&m_world);
 
     // 目标距离 < 3 格（近距离攻击）
-    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget");
+    auto target = std::make_unique<Player>(EntityInstanceId(2), "TestTarget", mc::test::testEcsRegistry());
     target->setPosition(1.0f, 65.0f, 0.0f);
     target->setWorld(&m_world);
 

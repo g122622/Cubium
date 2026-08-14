@@ -67,7 +67,7 @@ namespace {
  * 注意：setBlockState 存储 BlockState 副本（而非指针），因为调用方
  * 传入的可能是临时 BlockState 对象（如 getWaxed() 返回值）。
  */
-class WaxTestWorld final : public test::BaseTestWorld {
+class WaxTestWorld final : public mc::test::BaseTestWorld {
 public:
     WaxTestWorld() = default;
 
@@ -984,7 +984,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
     signPtr->setLineFromLegacy(0, "Hello");
 
     // 创建玩家并设置手持蜜脾
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
@@ -1017,7 +1017,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_CreativeModeDoesNotConsume
     m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
 
     // 创建创造模式玩家并设置手持蜜脾
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.abilities().creativeMode = true;
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
@@ -1044,7 +1044,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_AlreadyWaxedReturnsConsume
     m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
 
     // 创建玩家并设置手持蜜脾
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
     // 调用 onBlockActivated
@@ -1070,7 +1070,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NoBlockEntityReturnsPass)
     m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
 
     // 创建玩家并设置手持蜜脾
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
@@ -1095,7 +1095,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NonHoneycombItemExecutesCo
     m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
 
     // 创建玩家但不手持蜜脾（空手）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();

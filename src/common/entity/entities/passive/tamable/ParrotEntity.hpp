@@ -54,7 +54,7 @@ public:
      * @param type 实体类型
      * @param id 实体 ID
      */
-    ParrotEntity(EntityInstanceId id);
+    ParrotEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ParrotEntity() override = default;
 
     ParrotEntity(const ParrotEntity&) = delete;
@@ -65,7 +65,7 @@ public:
     /**
      * @brief 创建鹦鹉实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取鹦鹉变种

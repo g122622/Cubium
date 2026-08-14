@@ -107,6 +107,13 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
 
     _trimPath();
 
+    // 寻路结束后立即清空 region 指针：region 是本函数栈对象，返回后即析构。
+    // NodeProcessor::m_region 是裸指针且 setRegion 不做所有权管理，若不清空将悬垂。
+    // 后续 MovementController::canWalkAt(Strafe 分支)会调 NodeProcessor::getNodeType
+    // 解引用 m_region，悬垂虚调用(isLoaded)会跳到已释放栈内存的虚表槽致 SEGV。
+    // 此处置空后，getNodeType 内的 !m_region 守卫会返回 Blocked，canWalkAt 走兜底。
+    m_pathFinder->setRegion(nullptr);
+
     return hasPath();
 }
 
@@ -145,6 +152,9 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
         startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range), m_maxVisitedNodesMultiplier));
 
     _trimPath();
+
+    // 寻路结束后清空 region 指针避免悬垂（详见 moveTo 末尾同名注释）。
+    m_pathFinder->setRegion(nullptr);
 
     return hasPath();
 }

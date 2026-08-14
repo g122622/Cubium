@@ -385,7 +385,7 @@ namespace {
  *
  * 提供 MobBlocks 测试所需的最小 IWorld 接口实现
  */
-class MobBlocksTestWorld final : public test::BaseTestWorld {
+class MobBlocksTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -485,8 +485,8 @@ private:
  */
 class MockLivingEntity : public LivingEntity {
 public:
-    MockLivingEntity(EntityInstanceId id)
-        : LivingEntity(id, nullptr)
+    MockLivingEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : LivingEntity(id, nullptr, registry)
     {}
 
     void tick() override {}
@@ -501,7 +501,7 @@ public:
 class MockPlayer : public Player {
 public:
     MockPlayer(EntityInstanceId id)
-        : Player(id, "TestPlayer")
+        : Player(id, "TestPlayer", mc::test::testEcsRegistry())
     {}
 
     void tick() override {}
@@ -557,7 +557,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnEntityWalk_TurtleCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建海龟实体
-    TurtleEntity turtle(EntityInstanceId(1));
+    TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setPosition(5.5f, 1.0f, 5.5f);
 
     // 海龟走过不应该踩破蛋
@@ -579,7 +579,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_ZombieDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建僵尸实体（僵尸不会踩破海龟蛋）
-    MockLivingEntity zombie(EntityInstanceId(1));
+    MockLivingEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
     zombie.setPosition(5.5f, 5.0f, 5.5f);
 
     // 僵尸摔落在蛋上
@@ -601,7 +601,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_HuskDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建尸壳实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity husk(EntityInstanceId(1));
+    MockLivingEntity husk(EntityInstanceId(1), mc::test::testEcsRegistry());
     husk.setPosition(5.5f, 5.0f, 5.5f);
 
     // 尸壳摔落在蛋上
@@ -622,7 +622,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_DrownedDoesNotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建溺尸实体（僵尸变种，不会踩破海龟蛋）
-    MockLivingEntity drowned(EntityInstanceId(1));
+    MockLivingEntity drowned(EntityInstanceId(1), mc::test::testEcsRegistry());
     drowned.setPosition(5.5f, 5.0f, 5.5f);
 
     // 溺尸摔落在蛋上
@@ -643,7 +643,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_BatCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建蝙蝠实体（蝙蝠不能踩破蛋）
-    MockLivingEntity bat(EntityInstanceId(1));
+    MockLivingEntity bat(EntityInstanceId(1), mc::test::testEcsRegistry());
     bat.setPosition(5.5f, 5.0f, 5.5f);
 
     // 蝙蝠摔落在蛋上
@@ -664,7 +664,7 @@ TEST_F(TurtleEggBlockTrampleTest, OnFallenUpon_NonLivingEntityCannotTrample)
     world_.setBlockAt(eggPos, &eggState);
 
     // 创建物品实体（非 LivingEntity，不能踩破蛋）
-    Entity item(EntityInstanceId(1));
+    Entity item(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     item.setPosition(5.5f, 5.0f, 5.5f);
 
     // 物品摔落在蛋上
@@ -983,8 +983,8 @@ TEST_F(InfestedBlockStaticTest, RegisterInfestedBlock_MultipleMappings)
  */
 class DamageTrackingLivingEntity : public LivingEntity {
 public:
-    DamageTrackingLivingEntity(EntityInstanceId id, IWorld* world = nullptr)
-        : LivingEntity(id, world)
+    DamageTrackingLivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry)
+        : LivingEntity(id, world, registry)
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
         , m_lastDamageType(static_cast<DamageType>(255)) // 无效类型作为初始值
@@ -1037,7 +1037,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_LivingEntity_NoDamage)
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1060,7 +1060,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_ClientSide_NoDamage)
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1083,7 +1083,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_NonLivingEntity_NoDamag
     world_.setBlockAt(pos, &state);
 
     // 创建非生物实体（物品实体）
-    Entity item(EntityInstanceId(1));
+    Entity item(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     item.setPosition(0.5f, 0.0f, 0.5f);
 
     // 触发碰撞 - 不应该崩溃
@@ -1103,7 +1103,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_MultipleCollisions_NoDa
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1127,7 +1127,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DragonBreathBlock_NoDir
     world_.setBlockAt(pos, &state);
 
     // 创建生物实体
-    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_);
+    DamageTrackingLivingEntity entity(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -1160,7 +1160,7 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_No
     };
 
     for (size_t i = 0; i < entityTypeIds.size(); ++i) {
-        DamageTrackingLivingEntity entity(EntityInstanceId(static_cast<u32>(i + 1)), &world_);
+        DamageTrackingLivingEntity entity(EntityInstanceId(static_cast<u32>(i + 1)), &world_, mc::test::testEcsRegistry());
         entity.setPosition(0.5f, 0.0f, 0.5f);
         entity.setHealth(20.0f);
 

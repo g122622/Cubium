@@ -51,7 +51,7 @@ using namespace mc;
 // TrialSpawnerTestWorld - 测试用 Mock 世界
 // ============================================================================
 
-class TrialSpawnerTestWorld final : public test::BaseTestWorld {
+class TrialSpawnerTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -497,7 +497,7 @@ TEST_F(TrialSpawnerStateMachineTest, Tick_InactiveToWaitingWhenPlayerDetected)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -520,7 +520,7 @@ TEST_F(TrialSpawnerStateMachineTest, Tick_InactiveSkipsDetectionWithinInterval)
 {
     world_.setCurrentTick(5); // 远小于 PLAYER_SCAN_INTERVAL(20)
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -533,7 +533,7 @@ TEST_F(TrialSpawnerStateMachineTest, Tick_InactiveIgnoresSpectatorPlayer)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("test-uuid-1");
     player.setGameMode(GameMode::Spectator);
     world_.setEntitiesInRangeResult({&player});
@@ -547,7 +547,7 @@ TEST_F(TrialSpawnerStateMachineTest, Tick_WaitingToActiveWhenPlayerPresent)
 {
     world_.setCurrentTick(100);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("uuid-1");
     world_.setEntitiesInRangeResult({&player});
 
@@ -621,9 +621,9 @@ TEST_F(TrialSpawnerBlockEntityTest, ConfigPerPlayerScalingValues)
 
 TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_FindsNonSpectatorPlayers)
 {
-    Player player1(1, "TestPlayer1");
+    Player player1(1, "TestPlayer1", mc::test::testEcsRegistry());
     player1.setUuid("uuid-1");
-    Player player2(2, "TestPlayer2");
+    Player player2(2, "TestPlayer2", mc::test::testEcsRegistry());
     player2.setUuid("uuid-2");
     world_.setEntitiesInRangeResult({&player1, &player2});
 
@@ -633,9 +633,9 @@ TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_FindsNonSpectatorPlayers)
 
 TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_ExcludesSpectators)
 {
-    Player player1(1, "TestPlayer1");
+    Player player1(1, "TestPlayer1", mc::test::testEcsRegistry());
     player1.setUuid("uuid-1");
-    Player spectator(2, "SpectatorPlayer");
+    Player spectator(2, "SpectatorPlayer", mc::test::testEcsRegistry());
     spectator.setUuid("uuid-2");
     spectator.setGameMode(GameMode::Spectator);
     world_.setEntitiesInRangeResult({&player1, &spectator});
@@ -654,7 +654,7 @@ TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_ReturnsEmptyWhenNoEntities)
 
 TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_ReturnsEmptyWhenOnlySpectators)
 {
-    Player spectator(1, "SpectatorPlayer");
+    Player spectator(1, "SpectatorPlayer", mc::test::testEcsRegistry());
     spectator.setUuid("uuid-1");
     spectator.setGameMode(GameMode::Spectator);
     world_.setEntitiesInRangeResult({&spectator});
@@ -667,7 +667,7 @@ TEST_F(TrialSpawnerStateMachineTest, DetectPlayers_ReturnsEmptyWhenOnlySpectator
 // 生成逻辑测试所需扩展 Mock 世界
 // ============================================================================
 
-class TrialSpawnerSpawnTestWorld final : public test::BaseTestWorld {
+class TrialSpawnerSpawnTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -1345,7 +1345,7 @@ namespace {
  * 同时提供实体生成、tick、音效等必要存根，以支撑 _findSpawnPosition 调用链。
  * 使用 map 存储方块位置到方块状态的映射，未设置的位置返回 nullptr（空气）。
  */
-class TrialSpawnerLineOfSightTestWorld final : public test::BaseTestWorld {
+class TrialSpawnerLineOfSightTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

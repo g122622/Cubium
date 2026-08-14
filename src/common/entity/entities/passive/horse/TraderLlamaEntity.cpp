@@ -55,8 +55,8 @@ namespace mc {
 // TraderLlamaEntity
 // ============================================================================
 
-TraderLlamaEntity::TraderLlamaEntity(EntityInstanceId id)
-    : LlamaEntity(id)
+TraderLlamaEntity::TraderLlamaEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : LlamaEntity(id, registry)
 {
     // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
     // 派生 override 永不执行，须在派生类构造显式调用。TraderLlama 的 registerGoals 加专属
@@ -73,9 +73,9 @@ std::optional<ResourceLocation> TraderLlamaEntity::getAmbientSound() const
     return SoundEvents::ENTITY_LLAMA_AMBIENT;
 }
 
-std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<TraderLlamaEntity>(EntityInstanceId(0));
+    return std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), registry);
 }
 
 bool TraderLlamaEntity::canDespawn(double /*distanceToClosestPlayer*/) const noexcept

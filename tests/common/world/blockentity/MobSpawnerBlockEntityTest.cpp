@@ -47,7 +47,7 @@ using namespace mc::blockentity;
 // MobSpawnerTestWorld - 测试用 Mock 世界
 // ============================================================================
 
-class MobSpawnerTestWorld final : public test::BaseTestWorld {
+class MobSpawnerTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -639,7 +639,7 @@ TEST_F(MobSpawnerTickTest, Tick_PlayerNearby_AllowsSpawning)
     spawner_->setRequiredPlayerRange(16);
 
     // 创建一个模拟玩家（只要 getEntitiesInRange 返回的指针能 dynamic_cast 为 Player*）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -655,7 +655,7 @@ TEST_F(MobSpawnerTickTest, Tick_DelayCountdown)
     spawner_->setMinSpawnDelay(5);
     spawner_->setMaxSpawnDelay(5);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -674,7 +674,7 @@ TEST_F(MobSpawnerTickTest, Tick_SpawnDelayMinusOne_ResetsDelay)
     math::Random rng(42);
     spawner_->setEntityId(ResourceLocation(entity::EntityTypeKeys::PIG), rng);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     world_->setEntitiesInRangeResult({&player});
     world_->setSeed(12345);
     world_->setCurrentTick(100);
@@ -939,7 +939,7 @@ public:
 // 光照和生成规则测试用 Mock 世界
 // ============================================================================
 
-class MobSpawnerLightTestWorld final : public test::BaseTestWorld {
+class MobSpawnerLightTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -1122,7 +1122,7 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_MonsterPeacefulDifficulty_Blocks
     // 由于 _spawnEntities 中在 CustomSpawnRules 检查之前先判断难度，
     // 非和平分类在和平难度下直接返回 false，不会到达 _isValidSpawnPosition
     // 这里测试的是 _spawnEntities 层面的逻辑，通过 tick 测试来验证
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     world_->setEntitiesInRangeResult({&player});
     spawner_->setRequiredPlayerRange(0);
     spawner_->setMinSpawnDelay(0);

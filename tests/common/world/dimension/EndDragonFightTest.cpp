@@ -43,7 +43,7 @@ using namespace mc;
 // 测试用世界 - 支持 setBlockState / getBlockState / getHeight / playEvent
 // ============================================================================
 
-class DragonFightTestWorld final : public test::BaseTestWorld {
+class DragonFightTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -827,7 +827,7 @@ TEST_F(EndDragonFightTest, ScanStateNoDragonSetsDragonKilled)
 TEST_F(EndDragonFightTest, ScanStateWithDragonRecordsUUID)
 {
     // 模拟一条末影龙实体
-    auto dragon = std::make_unique<Entity>(EntityInstanceId(100));
+    auto dragon = std::make_unique<Entity>(EntityInstanceId(100), nullptr, mc::test::testEcsRegistry());
     std::string dragonUUID = dragon->uuid();
     m_world.setMockDragon(std::move(dragon));
 
@@ -852,7 +852,7 @@ TEST_F(EndDragonFightTest, ScanStateWithDragonRecordsUUID)
 TEST_F(EndDragonFightTest, ScanStateDragonWithoutPortalDiscardsDragon)
 {
     // 有龙但无传送门时，龙应被 discard（标记为已移除）
-    auto dragon = std::make_unique<Entity>(EntityInstanceId(100));
+    auto dragon = std::make_unique<Entity>(EntityInstanceId(100), nullptr, mc::test::testEcsRegistry());
     EXPECT_FALSE(dragon->isRemoved());
 
     Entity* rawDragon = dragon.get();

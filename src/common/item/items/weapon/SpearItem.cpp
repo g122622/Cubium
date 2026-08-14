@@ -107,7 +107,12 @@ void SpearItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEnti
     }
 
     // 创建长矛投掷实体
-    auto spearEntity = std::make_unique<entity::SpearEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto spearEntity = std::make_unique<entity::SpearEntity>(EntityInstanceId(0), *registry);
     spearEntity->setTypeId(entity::EntityTypeKeys::SPEAR);
     spearEntity->setWorld(&world);
     spearEntity->setPosition(player->x(), player->y() + player->eyeHeight() - 0.1f, player->z());

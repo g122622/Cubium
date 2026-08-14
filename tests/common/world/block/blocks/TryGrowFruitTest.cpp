@@ -48,7 +48,7 @@ namespace {
 // 继承 BaseTestWorld，覆写方块存取和光照方法，以支持 tryGrowFruit 测试。
 // ============================================================================
 
-class TryGrowFruitTestWorld final : public test::BaseTestWorld {
+class TryGrowFruitTestWorld final : public mc::test::BaseTestWorld {
 public:
     using BaseTestWorld::getBlockState;
     using BaseTestWorld::setBlockState;

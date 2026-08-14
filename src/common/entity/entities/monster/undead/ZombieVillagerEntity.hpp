@@ -68,7 +68,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    ZombieVillagerEntity(EntityInstanceId id);
+    ZombieVillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZombieVillagerEntity() noexcept override = default;
 
     // 禁止拷贝
@@ -84,7 +84,7 @@ public:
      * @param world 世界实例
      * @return 新的僵尸村民实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 数据同步 ==========
 

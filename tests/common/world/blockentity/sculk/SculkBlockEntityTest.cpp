@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"

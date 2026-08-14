@@ -40,7 +40,7 @@ namespace {
 // Test World for FishSwimGoal
 // ============================================================================
 
-class TestFishSwimWorld final : public test::BaseTestWorld {
+class TestFishSwimWorld final : public mc::test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
 
@@ -97,14 +97,14 @@ private:
 
 TEST(FishSwimGoalTest, ConstructionWithFish)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity::ai::goal::FishSwimGoal goal(&cod);
     EXPECT_EQ(goal.getTypeName(), "FishSwimGoal");
 }
 
 TEST(FishSwimGoalTest, ConstructionWithSpeedAndChance)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity::ai::goal::FishSwimGoal goal(&cod, 1.5, 20);
     EXPECT_EQ(goal.getTypeName(), "FishSwimGoal");
 }
@@ -129,7 +129,7 @@ protected:
 TEST_F(FishSwimGoalShouldExecuteTest, ShouldExecuteForRegularFish)
 {
     // 普通鱼类（非群游）总是可以随机游泳
-    PufferfishEntity pufferfish(EntityInstanceId(1));
+    PufferfishEntity pufferfish(EntityInstanceId(1), mc::test::testEcsRegistry());
     pufferfish.setWorld(m_world.get());
     pufferfish.setPosition(0.0f, 62.0f, 0.0f);
 
@@ -145,7 +145,7 @@ TEST_F(FishSwimGoalShouldExecuteTest, ShouldExecuteForRegularFish)
 TEST_F(FishSwimGoalShouldExecuteTest, ShouldExecuteForSchoolingFishWithoutLeader)
 {
     // 群游鱼类没有群首时可以随机游泳
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     cod.setWorld(m_world.get());
     cod.setPosition(0.0f, 62.0f, 0.0f);
 
@@ -160,8 +160,8 @@ TEST_F(FishSwimGoalShouldExecuteTest, ShouldExecuteForSchoolingFishWithoutLeader
 TEST_F(FishSwimGoalShouldExecuteTest, ShouldNotExecuteForSchoolingFishWithLeader)
 {
     // 群游鱼类有群首时不能随机游泳（跟随群首）
-    CodEntity leader(EntityInstanceId(1));
-    CodEntity follower(EntityInstanceId(2));
+    CodEntity leader(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     leader.setWorld(m_world.get());
     follower.setWorld(m_world.get());
@@ -188,18 +188,18 @@ TEST_F(FishSwimGoalShouldExecuteTest, ShouldNotExecuteForSchoolingFishWithLeader
 TEST(FishSwimGoalCanRandomSwimTest, AbstractFishEntityReturnsTrue)
 {
     // 抽象鱼类基类默认返回 true
-    PufferfishEntity pufferfish(EntityInstanceId(1));
+    PufferfishEntity pufferfish(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(pufferfish.canRandomSwim());
 }
 
 TEST(FishSwimGoalCanRandomSwimTest, SchoolingFishWithoutLeaderReturnsTrue)
 {
     // 群游鱼类没有群首时返回 true
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(cod.hasGroupLeader());
     EXPECT_TRUE(cod.canRandomSwim());
 
-    SalmonEntity salmon(EntityInstanceId(2));
+    SalmonEntity salmon(EntityInstanceId(2), mc::test::testEcsRegistry());
     EXPECT_FALSE(salmon.hasGroupLeader());
     EXPECT_TRUE(salmon.canRandomSwim());
 }
@@ -207,8 +207,8 @@ TEST(FishSwimGoalCanRandomSwimTest, SchoolingFishWithoutLeaderReturnsTrue)
 TEST(FishSwimGoalCanRandomSwimTest, SchoolingFishWithLeaderReturnsFalse)
 {
     // 群游鱼类有群首时返回 false
-    CodEntity leader(EntityInstanceId(1));
-    CodEntity follower(EntityInstanceId(2));
+    CodEntity leader(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     follower.joinGroup(leader);
 
@@ -219,8 +219,8 @@ TEST(FishSwimGoalCanRandomSwimTest, SchoolingFishWithLeaderReturnsFalse)
 TEST(FishSwimGoalCanRandomSwimTest, LeaderFishReturnsTrue)
 {
     // 群首自己返回 true（没有 leader）
-    CodEntity leader(EntityInstanceId(1));
-    CodEntity follower(EntityInstanceId(2));
+    CodEntity leader(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     follower.joinGroup(leader);
 
@@ -237,7 +237,7 @@ TEST(FishSwimGoalCanRandomSwimTest, LeaderFishReturnsTrue)
 TEST(FishSwimGoalFlagsTest, HasCorrectMutexFlags)
 {
     // FishSwimGoal 继承 RandomSwimmingGoal，应该有 Move 标志
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity::ai::goal::FishSwimGoal goal(&cod);
 
     auto flags = goal.getMutexFlags();
@@ -259,9 +259,9 @@ protected:
 
 TEST_F(FishSwimGoalGroupTest, LeaderCanSwimAfterGainingFollowers)
 {
-    CodEntity leader(EntityInstanceId(1));
-    CodEntity follower1(EntityInstanceId(2));
-    CodEntity follower2(EntityInstanceId(3));
+    CodEntity leader(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower1(EntityInstanceId(2), mc::test::testEcsRegistry());
+    CodEntity follower2(EntityInstanceId(3), mc::test::testEcsRegistry());
 
     leader.setWorld(m_world.get());
     follower1.setWorld(m_world.get());
@@ -282,8 +282,8 @@ TEST_F(FishSwimGoalGroupTest, LeaderCanSwimAfterGainingFollowers)
 
 TEST_F(FishSwimGoalGroupTest, FollowerCanSwimAfterLeavingGroup)
 {
-    CodEntity leader(EntityInstanceId(1));
-    CodEntity follower(EntityInstanceId(2));
+    CodEntity leader(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     leader.setWorld(m_world.get());
     follower.setWorld(m_world.get());
@@ -300,10 +300,10 @@ TEST_F(FishSwimGoalGroupTest, FollowerCanSwimAfterLeavingGroup)
 TEST_F(FishSwimGoalGroupTest, MultipleGroupsIndependent)
 {
     // 多个独立群体
-    CodEntity leader1(EntityInstanceId(1));
-    CodEntity follower1(EntityInstanceId(2));
-    CodEntity leader2(EntityInstanceId(3));
-    CodEntity follower2(EntityInstanceId(4));
+    CodEntity leader1(EntityInstanceId(1), mc::test::testEcsRegistry());
+    CodEntity follower1(EntityInstanceId(2), mc::test::testEcsRegistry());
+    CodEntity leader2(EntityInstanceId(3), mc::test::testEcsRegistry());
+    CodEntity follower2(EntityInstanceId(4), mc::test::testEcsRegistry());
 
     leader1.setWorld(m_world.get());
     follower1.setWorld(m_world.get());
@@ -339,7 +339,7 @@ protected:
 TEST_F(AbstractFishEntityGoalsTest, PufferfishIsNotSchooling)
 {
     // 河豚不是群游鱼类
-    PufferfishEntity pufferfish(EntityInstanceId(1));
+    PufferfishEntity pufferfish(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(pufferfish.canSchool());
     EXPECT_TRUE(pufferfish.canRandomSwim());
 }
@@ -347,21 +347,21 @@ TEST_F(AbstractFishEntityGoalsTest, PufferfishIsNotSchooling)
 TEST_F(AbstractFishEntityGoalsTest, CodIsSchooling)
 {
     // 鳕鱼是群游鱼类
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(cod.canSchool());
 }
 
 TEST_F(AbstractFishEntityGoalsTest, SalmonIsSchooling)
 {
     // 鲑鱼是群游鱼类
-    SalmonEntity salmon(EntityInstanceId(1));
+    SalmonEntity salmon(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(salmon.canSchool());
 }
 
 TEST_F(AbstractFishEntityGoalsTest, TropicalFishIsSchooling)
 {
     // 热带鱼是群游鱼类
-    TropicalFishEntity tropicalFish(EntityInstanceId(1));
+    TropicalFishEntity tropicalFish(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(tropicalFish.canSchool());
 }
 
@@ -371,7 +371,7 @@ TEST_F(AbstractFishEntityGoalsTest, TropicalFishIsSchooling)
 
 TEST(FishSwimGoalTypeNameTest, ReturnsCorrectTypeName)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity::ai::goal::FishSwimGoal goal(&cod);
     EXPECT_EQ(goal.getTypeName(), "FishSwimGoal");
 }

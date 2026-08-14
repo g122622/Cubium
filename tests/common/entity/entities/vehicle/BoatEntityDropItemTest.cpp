@@ -12,6 +12,8 @@
 #include "item/core/ItemStack.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity;
 
@@ -35,7 +37,7 @@ protected:
  */
 TEST_F(BoatEntityGetBoatItemTest, OakBoat_ReturnsOakBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -50,7 +52,7 @@ TEST_F(BoatEntityGetBoatItemTest, OakBoat_ReturnsOakBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, SpruceBoat_ReturnsSpruceBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::SPRUCE);
+    BoatEntity boat(BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -65,7 +67,7 @@ TEST_F(BoatEntityGetBoatItemTest, SpruceBoat_ReturnsSpruceBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, BirchBoat_ReturnsBirchBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::BIRCH);
+    BoatEntity boat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -80,7 +82,7 @@ TEST_F(BoatEntityGetBoatItemTest, BirchBoat_ReturnsBirchBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, JungleBoat_ReturnsJungleBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::JUNGLE);
+    BoatEntity boat(BoatEntity::Type::JUNGLE, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -95,7 +97,7 @@ TEST_F(BoatEntityGetBoatItemTest, JungleBoat_ReturnsJungleBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, AcaciaBoat_ReturnsAcaciaBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::ACACIA);
+    BoatEntity boat(BoatEntity::Type::ACACIA, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -110,7 +112,7 @@ TEST_F(BoatEntityGetBoatItemTest, AcaciaBoat_ReturnsAcaciaBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, DarkOakBoat_ReturnsDarkOakBoatItem)
 {
-    BoatEntity boat(BoatEntity::Type::DARK_OAK);
+    BoatEntity boat(BoatEntity::Type::DARK_OAK, mc::test::testEcsRegistry());
 
     const Item* boatItem = boat.getBoatItem();
 
@@ -123,7 +125,7 @@ TEST_F(BoatEntityGetBoatItemTest, DarkOakBoat_ReturnsDarkOakBoatItem)
  */
 TEST_F(BoatEntityGetBoatItemTest, SetBoatType_UpdatesReturnedItem)
 {
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(boat.getBoatItem(), Items::OAK_BOAT);
 
     boat.setBoatType(BoatEntity::Type::BIRCH);
@@ -158,7 +160,7 @@ TEST_F(BoatEntityGetBoatItemTest, AllTypes_HaveCorrespondingItems)
     };
 
     for (const auto& tc : testCases) {
-        BoatEntity boat(tc.type);
+        BoatEntity boat(tc.type, mc::test::testEcsRegistry());
         const Item* item = boat.getBoatItem();
 
         EXPECT_NE(item, nullptr) << "getBoatItem() should not return nullptr for type " << tc.name;
@@ -184,7 +186,7 @@ protected:
  */
 TEST_F(BoatEntityTypeTest, DefaultConstructor_CreatesOakBoat)
 {
-    BoatEntity boat; // 默认构造
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry()); // 默认 OAK 类型
 
     EXPECT_EQ(boat.getBoatType(), BoatEntity::Type::OAK);
     EXPECT_EQ(boat.getBoatItem(), Items::OAK_BOAT);
@@ -195,7 +197,7 @@ TEST_F(BoatEntityTypeTest, DefaultConstructor_CreatesOakBoat)
  */
 TEST_F(BoatEntityTypeTest, GetSetBoatType_WorksCorrectly)
 {
-    BoatEntity boat(BoatEntity::Type::BIRCH);
+    BoatEntity boat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
 
     EXPECT_EQ(boat.getBoatType(), BoatEntity::Type::BIRCH);
 
@@ -238,22 +240,22 @@ TEST_F(BoatEntityTypeTest, DropItem_GetBoatItemReturnsCorrectItem)
     // 创建每种类型的船，验证 getBoatItem() 返回正确的物品
     // 这是 dropItem() 的核心逻辑，实际的物品实体生成需要世界环境
 
-    BoatEntity oakBoat(BoatEntity::Type::OAK);
+    BoatEntity oakBoat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(oakBoat.getBoatItem(), Items::OAK_BOAT);
 
-    BoatEntity spruceBoat(BoatEntity::Type::SPRUCE);
+    BoatEntity spruceBoat(BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
     EXPECT_EQ(spruceBoat.getBoatItem(), Items::SPRUCE_BOAT);
 
-    BoatEntity birchBoat(BoatEntity::Type::BIRCH);
+    BoatEntity birchBoat(BoatEntity::Type::BIRCH, mc::test::testEcsRegistry());
     EXPECT_EQ(birchBoat.getBoatItem(), Items::BIRCH_BOAT);
 
-    BoatEntity jungleBoat(BoatEntity::Type::JUNGLE);
+    BoatEntity jungleBoat(BoatEntity::Type::JUNGLE, mc::test::testEcsRegistry());
     EXPECT_EQ(jungleBoat.getBoatItem(), Items::JUNGLE_BOAT);
 
-    BoatEntity acaciaBoat(BoatEntity::Type::ACACIA);
+    BoatEntity acaciaBoat(BoatEntity::Type::ACACIA, mc::test::testEcsRegistry());
     EXPECT_EQ(acaciaBoat.getBoatItem(), Items::ACACIA_BOAT);
 
-    BoatEntity darkOakBoat(BoatEntity::Type::DARK_OAK);
+    BoatEntity darkOakBoat(BoatEntity::Type::DARK_OAK, mc::test::testEcsRegistry());
     EXPECT_EQ(darkOakBoat.getBoatItem(), Items::DARK_OAK_BOAT);
 }
 
@@ -338,7 +340,7 @@ TEST_F(BoatEntityTypeTest, AllBoatItems_AreUnique)
  *     if (hasCustomName()) { stack.setCustomName(customNameText()); }
  *
  *     // 5. 使用 ItemDropHelper 生成物品实体 - 有独立测试
- *     ItemDropHelper::spawnItemEntity(...);
+ *     ItemDropHelper::spawnItemEntity(..., mc::test::testEcsRegistry());
  * }
  * ```
  *
@@ -356,7 +358,7 @@ TEST_F(BoatEntityTypeTest, AllBoatItems_AreUnique)
  */
 TEST_F(BoatEntityTypeTest, Hurt_CallsDropItemWhenThresholdExceeded)
 {
-    BoatEntity boat(BoatEntity::Type::OAK);
+    BoatEntity boat(BoatEntity::Type::OAK, mc::test::testEcsRegistry());
 
     // 初始状态：伤害为 0
     EXPECT_EQ(boat.getDamageTaken(), 0.0f);
@@ -402,7 +404,7 @@ TEST_F(BoatEntityTypeTest, BoatType_ItemMapping_Complete)
     };
 
     for (const auto& tc : testCases) {
-        BoatEntity boat(tc.type);
+        BoatEntity boat(tc.type, mc::test::testEcsRegistry());
         const Item* item = boat.getBoatItem();
 
         // 验证物品指针不为空

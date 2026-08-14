@@ -76,6 +76,12 @@ public:
     [[nodiscard]] GameTestResult pulseRedstone(BlockPos relativePos, i32 duration) override;
     [[nodiscard]] GameTestResult assertRedstonePower(BlockPos relativePos, i32 power) override;
     [[nodiscard]] GameTestResult assertIsWaterlogged(BlockPos relativePos, bool isWaterlogged) override;
+    [[nodiscard]] GameTestResult assertContainerContains(const mc::ItemStack& itemStack, BlockPos relativePos) override;
+    [[nodiscard]] GameTestResult assertContainerEmpty(BlockPos relativePos) override;
+    [[nodiscard]] GameTestResult setBlockPermutation(const mc::BlockState& permutation, BlockPos relativePos) override;
+    [[nodiscard]] GameTestResult setFluidContainer(BlockPos relativePos, const std::string& fluidType) override;
+    void triggerInternalBlockEvent(BlockPos relativePos, const std::string& eventName) override;
+    void spreadFromFaceTowardDirection(BlockPos relativePos, Direction fromFace, Direction direction) override;
 
     // === 4. 实体断言与 spawn ===
     [[nodiscard]] GameTestResult assertEntityPresent(
@@ -91,10 +97,33 @@ public:
     [[nodiscard]] GameTestResult assertItemEntityCountIs(
         const std::string& itemType, BlockPos relativePos, f32 searchDistance, i32 count) override;
     [[nodiscard]] GameTestResult killAllEntities() override;
+    [[nodiscard]] GameTestResult killEntity(mc::Entity& entity) override;
     [[nodiscard]] GameTestResult spawnEntity(
         const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) override;
     [[nodiscard]] GameTestResult spawnItemAt(
         const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult spawnAtLocation(
+        const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult spawnWithoutBehaviors(
+        const std::string& entityType, BlockPos relativePos, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult spawnWithoutBehaviorsAtLocation(
+        const std::string& entityType, const mc::math::Vector3d& position, mc::Entity*& outEntity) override;
+    [[nodiscard]] GameTestResult assertEntityHasArmor(const std::string& entityType,
+        i32 armorSlot,
+        const std::string& armorName,
+        i32 armorData,
+        BlockPos relativePos,
+        bool hasArmor) override;
+    [[nodiscard]] GameTestResult assertEntityHasComponent(const std::string& entityType,
+        const std::string& componentId,
+        BlockPos relativePos,
+        bool hasComponent) override;
+    [[nodiscard]] GameTestResult assertEntityState(
+        BlockPos relativePos, const std::string& entityType, std::function<bool(const mc::Entity&)> predicate) override;
+    [[nodiscard]] GameTestResult assertCanReachLocation(
+        mc::Entity& entity, BlockPos relativePos, bool canReach) override;
+    void onPlayerJump(mc::Entity& entity, i32 jumpAmount) override;
+    void setTntFuse(mc::Entity& entity, i32 fuseLength) override;
 
     // === 5. 坐标变换 ===
     [[nodiscard]] BlockPos worldBlockPosition(BlockPos relativePos) const noexcept override;
@@ -112,6 +141,10 @@ public:
     void succeedOnTick(i32 tick) override;
     void succeedOnTickWhen(i32 tick, std::function<GameTestResult()> fn) override;
     void failIf(std::function<GameTestResult()> fn) override;
+    void succeedWhenEntityHasComponent(const std::string& entityType,
+        const std::string& componentId,
+        BlockPos relativePos,
+        bool hasComponent) override;
 
     // === 7. SimulatedPlayer ===
     [[nodiscard]] GameTestResult spawnSimulatedPlayer(
@@ -120,6 +153,8 @@ public:
 
     // === 8. 查询 ===
     [[nodiscard]] const mc::BlockState* getBlock(BlockPos relativePos) const override;
+    [[nodiscard]] FenceConnectivity getFenceConnectivity(BlockPos relativePos) const override;
+    [[nodiscard]] mc::blocks::SculkSpreader* getSculkSpreader(BlockPos relativePos) const override;
     [[nodiscard]] mc::IWorld& world() noexcept override { return m_world; }
 
     // === 9. 工具 ===

@@ -85,8 +85,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    DolphinEntity(EntityInstanceId id);
+    DolphinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~DolphinEntity() override = default;
 
     // 禁止拷贝
@@ -102,7 +103,7 @@ public:
      * @param world 世界实例
      * @return 新的海豚实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
     // vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，字段 BABY@16(继承)/

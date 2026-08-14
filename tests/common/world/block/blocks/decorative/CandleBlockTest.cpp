@@ -71,7 +71,7 @@ namespace {
 // 测试用世界，支持方块和流体状态存储
 // ============================================================================
 
-class CandleTestWorld final : public test::BaseTestWorld {
+class CandleTestWorld final : public mc::test::BaseTestWorld {
 public:
     CandleTestWorld()
     {

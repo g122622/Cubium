@@ -45,7 +45,7 @@ namespace {
 class TestCatEntity : public CatEntity {
 public:
     explicit TestCatEntity(EntityInstanceId id)
-        : CatEntity(id)
+        : CatEntity(id, mc::test::testEcsRegistry())
     {}
 
     entity::ai::GoalSelector& testGoalSelector() { return goalSelector(); }

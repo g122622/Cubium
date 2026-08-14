@@ -37,8 +37,8 @@ const entity::EntityClassInfo& AmbientEntity::classInfo()
     return s_classInfo;
 }
 
-AmbientEntity::AmbientEntity(EntityInstanceId id)
-    : MobEntity(id)
+AmbientEntity::AmbientEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MobEntity(id, registry)
 {
     // 注册属性
     registerAttributes();

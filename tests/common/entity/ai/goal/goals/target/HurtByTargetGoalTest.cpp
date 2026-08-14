@@ -40,7 +40,7 @@ namespace test {
 
 class HurtByTargetGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { pig.reset(); }
 
@@ -143,7 +143,7 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndIgnoreAlert)
  *
  * 用于测试 HurtByTargetGoal::startExecuting() 中的盟友警醒逻辑。
  */
-class HurtByTargetTestWorld : public test::BaseTestWorld {
+class HurtByTargetTestWorld : public mc::test::BaseTestWorld {
 public:
     void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
 
@@ -165,7 +165,7 @@ private:
 class TestPigEntity : public PigEntity {
 public:
     explicit TestPigEntity(EntityInstanceId id)
-        : PigEntity(id)
+        : PigEntity(id, mc::test::testEcsRegistry())
     {}
 
     using PigEntity::tick;

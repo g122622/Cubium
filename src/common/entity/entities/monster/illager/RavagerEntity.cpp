@@ -68,9 +68,14 @@ const entity::EntityClassInfo& RavagerEntity::classInfo()
     return s_classInfo;
 }
 
-RavagerEntity::RavagerEntity(EntityInstanceId id)
-    : AbstractRaiderEntity(id)
+RavagerEntity::RavagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractRaiderEntity(id, registry)
 {
+    // 劫掠兽不在阳光下燃烧：劫掠兽是袭击生物（非亡灵），wiki tech_劫掠兽.txt 通篇未提阳光燃烧。
+    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
+    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
     // 劫掠兽可以走上1格高的方块
     setStepHeight(1.0f);
 
@@ -88,9 +93,9 @@ RavagerEntity::RavagerEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> RavagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<RavagerEntity>(EntityInstanceId(0));
+    return std::make_unique<RavagerEntity>(EntityInstanceId(0), registry);
 }
 
 void RavagerEntity::tick()
@@ -102,13 +107,13 @@ void RavagerEntity::tick()
     // 更新速度属性（根据攻击状态调整）
     if (isMovementBlocked()) {
         // 禁止移动时速度为 0
-        m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
     } else {
         // 有攻击目标时速度更快
         f64 targetSpeed = attackTarget() != nullptr ? 0.35 : 0.3;
-        f64 currentSpeed = m_attributes.getBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED);
+        f64 currentSpeed = attributes().getBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED);
         f64 newSpeed = math::lerp(0.1, currentSpeed, targetSpeed);
-        m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, newSpeed);
+        attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, newSpeed);
     }
 
     // 碰撞时破坏树叶
@@ -387,14 +392,14 @@ void RavagerEntity::registerAttributes()
     AbstractRaiderEntity::registerAttributes();
 
     // 注册 ATTACK_KNOCKBACK 属性（不在基类中注册）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.75);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.5);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.75);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.5);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 
     // 设置经验值
     setExperienceValue(20);

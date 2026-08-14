@@ -54,7 +54,7 @@ public:
     using LivingEntity::getEquipment;
     using LivingEntity::setEquipment;
 
-    PigEntity(EntityInstanceId id);
+    PigEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PigEntity() override = default;
 
     /**
@@ -64,7 +64,7 @@ public:
      * @param world 世界实例
      * @return 新创建的实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 声音 ==========
 
@@ -155,6 +155,15 @@ public:
      * 猪只能装备鞍
      */
     [[nodiscard]] bool canEquip(const ItemStack& item, i32 slot) const override;
+
+    // ========== 雷击 ==========
+
+    /**
+     * @brief 被闪电击中时的回调
+     *
+     * 猪被闪电击中会转化为僵尸猪灵（和平难度下不转化）。
+     */
+    void onStruckByLightning() override;
 
 protected:
     void registerGoals() override;

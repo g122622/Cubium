@@ -44,9 +44,10 @@ public:
     /**
      * @brief 构造群游鱼类实体
      * @param id 实体 ID
+     * @param registry 实体注册表（ECS）
      */
-    AbstractGroupFishEntity(EntityInstanceId id)
-        : AbstractFishEntity(id)
+    AbstractGroupFishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : AbstractFishEntity(id, registry)
     {}
 
     ~AbstractGroupFishEntity() override = default;

@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/items/block/GameMasterBlockItem.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -302,7 +303,7 @@ TEST_F(GameMasterBlockItemPlacementTest, AllowsPlacementWhenPlayerHasPermission)
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(2);
 
@@ -324,7 +325,7 @@ TEST_F(GameMasterBlockItemPlacementTest, AllowsPlacementWhenPlayerHasOwnerPermis
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(4);
 
@@ -346,7 +347,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenSurvivalModeWithPerm
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
     player.setPermissionLevel(2);
 
@@ -367,7 +368,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenCreativeModeWithoutP
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(0);
 
@@ -388,7 +389,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenCreativeModeWithMode
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(1);
 
@@ -409,7 +410,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenAdventureModeWithPer
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Adventure);
     player.setPermissionLevel(2);
 
@@ -430,7 +431,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenSpectatorModeWithPer
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Spectator);
     player.setPermissionLevel(2);
 
@@ -451,7 +452,7 @@ TEST_F(GameMasterBlockItemPlacementTest, DeniesPlacementWhenDefaultPlayer)
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认：生存模式，OP等级0
 
     TestGameMasterBlock gameMasterBlock;
@@ -476,7 +477,7 @@ TEST_P(GameMasterBlockItemPermissionComboTest, ParameterizedPlacementCheck)
     GameMasterTestWorld world;
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(gameMode);
     player.setPermissionLevel(permLevel);
 
@@ -530,7 +531,7 @@ TEST_F(GameMasterBlockItemPlacementTest, NormalBlockItemAlwaysAllowsPlacement)
     world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
 
     // 生存模式、无OP权限的玩家
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认：生存模式，OP等级0
 
     const BlockItem* stoneItem = BlockItemRegistry::instance().getBlockItem(VanillaBlocks::STONE->blockId());

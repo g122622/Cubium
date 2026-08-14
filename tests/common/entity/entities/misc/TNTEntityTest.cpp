@@ -260,7 +260,7 @@ protected:
  */
 TEST_F(TNTEntityTest, DefaultConstruction)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     ASSERT_NE(tnt, nullptr);
     EXPECT_EQ(tnt->getFuse(), 0);
     EXPECT_FALSE(tnt->isPrimed());
@@ -272,7 +272,7 @@ TEST_F(TNTEntityTest, DefaultConstruction)
  */
 TEST_F(TNTEntityTest, Ignite)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(tnt->isPrimed());
     EXPECT_EQ(tnt->getFuse(), 0);
 
@@ -288,7 +288,7 @@ TEST_F(TNTEntityTest, Ignite)
  */
 TEST_F(TNTEntityTest, SetFuse)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
 
     tnt->setFuse(40);
     EXPECT_EQ(tnt->getFuse(), 40);
@@ -304,7 +304,7 @@ TEST_F(TNTEntityTest, SetFuse)
  */
 TEST_F(TNTEntityTest, SetExplosionRadius)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
 
     tnt->setExplosionRadius(6.0f);
     EXPECT_FLOAT_EQ(tnt->getExplosionRadius(), 6.0f);
@@ -319,7 +319,7 @@ TEST_F(TNTEntityTest, SetExplosionRadius)
 TEST_F(TNTEntityTest, EntitySize)
 {
     // MC 1.16.5: TNT 实体尺寸为 0.98 x 0.98
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(tnt->width(), 0.98f);
     EXPECT_FLOAT_EQ(tnt->height(), 0.98f);
 }
@@ -329,7 +329,7 @@ TEST_F(TNTEntityTest, EntitySize)
  */
 TEST_F(TNTEntityTest, IsNotPushable)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(tnt->isPushable());
 }
 
@@ -338,7 +338,7 @@ TEST_F(TNTEntityTest, IsNotPushable)
  */
 TEST_F(TNTEntityTest, CannotBeCollidedWith)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     EXPECT_FALSE(tnt->canBeCollidedWith());
 }
 
@@ -349,7 +349,7 @@ TEST_F(TNTEntityTest, CannotBeCollidedWith)
  */
 TEST_F(TNTEntityTest, DefaultFuseTime)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     // 默认引信时间应该是 80 tick
     tnt->ignite();
     EXPECT_EQ(tnt->getFuse(), 80);
@@ -360,7 +360,7 @@ TEST_F(TNTEntityTest, DefaultFuseTime)
  */
 TEST_F(TNTEntityTest, FactoryMethod)
 {
-    auto entity = TNTEntity::create(&m_world);
+    auto entity = TNTEntity::create(&m_world, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     auto* tnt = dynamic_cast<TNTEntity*>(entity.get());
@@ -376,7 +376,7 @@ TEST_F(TNTEntityTest, FactoryMethod)
  */
 TEST_F(TNTEntityTest, ExplodeTriggersWhenFuseReachesZero)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
 
@@ -410,7 +410,7 @@ TEST_F(TNTEntityTest, ExplodeTriggersWhenFuseReachesZero)
  */
 TEST_F(TNTEntityTest, ExplodeOnlyOnce)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
 
@@ -432,7 +432,7 @@ TEST_F(TNTEntityTest, ExplodeOnlyOnce)
  */
 TEST_F(TNTEntityTest, CustomExplosionRadius)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
     tnt->setExplosionRadius(8.0f);
@@ -454,7 +454,7 @@ TEST_F(TNTEntityTest, ExplodeOnClientSide)
 {
     m_world.setClientSide(true);
 
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
     tnt->setFuse(1);
@@ -472,7 +472,7 @@ TEST_F(TNTEntityTest, ExplodeOnClientSide)
  */
 TEST_F(TNTEntityTest, SetOwner)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     EXPECT_EQ(tnt->getOwner(), nullptr);
 
     // 注意：实际测试需要 LivingEntity 实例
@@ -486,7 +486,7 @@ TEST_F(TNTEntityTest, SetOwner)
  */
 TEST_F(TNTEntityTest, FuseDecreasesEachTick)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
 
     tnt->ignite();
@@ -516,7 +516,7 @@ TEST_F(TNTEntityTest, FuseDecreasesEachTick)
  */
 TEST_F(TNTEntityTest, NoGravityMode)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(0.0f, 64.0f, 0.0f);
     tnt->setVelocity(0.0f, 0.0f, 0.0f);
@@ -550,7 +550,7 @@ TEST_F(TNTEntityTest, EntityRegistration)
  */
 TEST_F(TNTEntityTest, FuseBoundaryValues)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
 
     // 设置为 0
     tnt->setFuse(0);
@@ -573,7 +573,7 @@ TEST_F(TNTEntityTest, FuseBoundaryValues)
  */
 TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
 
     // 最小半径
     tnt->setExplosionRadius(0.0f);
@@ -595,7 +595,7 @@ TEST_F(TNTEntityTest, ClientSideSmokeParticles)
 
     m_world.setClientSide(true);
 
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
     tnt->ignite(); // 设置引信为 80
@@ -628,7 +628,7 @@ TEST_F(TNTEntityTest, ServerSideNoParticles)
 {
     m_world.setClientSide(false);
 
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
     tnt->ignite();
@@ -649,7 +649,7 @@ TEST_F(TNTEntityTest, ServerSideNoParticles)
  */
 TEST_F(TNTEntityTest, IgniteWithCustomFuse)
 {
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->ignite(20);
     EXPECT_EQ(tnt->getFuse(), 20);
 
@@ -672,7 +672,7 @@ TEST_F(TNTEntityTest, ExplodeDoesNotCreateExplosionWhenRuleDisabled)
     // 设置 tntExplodes=false
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
 
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
     tnt->setFuse(1);
@@ -692,7 +692,7 @@ TEST_F(TNTEntityTest, ExplodeCreatesExplosionWhenRuleEnabled)
     // 默认 tntExplodes=true
     EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
 
-    auto tnt = std::make_unique<TNTEntity>();
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
     tnt->setWorld(&m_world);
     tnt->setPosition(10.0f, 64.0f, 20.0f);
     tnt->setFuse(1);

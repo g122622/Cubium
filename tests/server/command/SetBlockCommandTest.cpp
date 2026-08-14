@@ -47,7 +47,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class SetBlockTestServer final : public test::BaseTestServer {
+class SetBlockTestServer final : public mc::test::BaseTestServer {
 public:
     SetBlockTestServer()
     {

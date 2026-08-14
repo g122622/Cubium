@@ -79,7 +79,7 @@ namespace {
  * - broadcastExplosion：捕获传入的位置、半径、玩家击退映射，用于断言
  * - playSound / addParticle：空操作（避免测试噪音）
  */
-class WindChargeBurstTestWorld final : public test::BaseTestWorld {
+class WindChargeBurstTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -174,7 +174,7 @@ protected:
     void SetUp() override
     {
         // 创建风弹实体，位置设为原点
-        m_windCharge = std::make_unique<WindChargeEntity>(EntityInstanceId(1));
+        m_windCharge = std::make_unique<WindChargeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_windCharge->setPosition(0.0f, 64.0f, 0.0f);
         m_windCharge->setWorld(&m_world);
         // 注册风弹自身到世界（避免 getShooter 等查找时返回 nullptr 造成非预期路径）
@@ -230,7 +230,7 @@ TEST_F(WindChargeEntityBurstTest, ApplyWindBurst_Twice_OnlyBroadcastsOnce)
 TEST_F(WindChargeEntityBurstTest, SurvivalPlayer_AddedToKnockbackMap)
 {
     // 生存模式玩家在爆炸范围内：应被加入 playerKnockback 映射
-    Player player(EntityInstanceId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer", mc::test::testEcsRegistry());
     // 玩家位于风弹正东 0.5 格（在 1.2*2=2.4 范围内）
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
@@ -264,7 +264,7 @@ TEST_F(WindChargeEntityBurstTest, KnockbackVector_MatchesAppliedVelocity)
     // 对应 MC Java: ServerPlayer 的 motion 是 client-authoritative，服务端不通过 SetEntityMotionPacket
     // 把自身速度同步给自己。Cubium 的 EntityTracker 采用 "AndSelf" 模式，因此玩家分支必须显式
     // 跳过 addVelocity 并 clearHurtMarked，让击退仅通过 Explosion IR 在客户端应用。
-    Player player(EntityInstanceId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer", mc::test::testEcsRegistry());
     player.setPosition(1.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -300,7 +300,7 @@ TEST_F(WindChargeEntityBurstTest, PlayerVelocity_UnchangedAfterBurst)
 {
     // 额外验证：生存模式玩家被风弹击中后，服务端速度保持不变
     // （击退仅通过 Explosion IR 在客户端应用）
-    Player player(EntityInstanceId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -324,7 +324,7 @@ TEST_F(WindChargeEntityBurstTest, PlayerVelocity_UnchangedAfterBurst)
 TEST_F(WindChargeEntityBurstTest, Player_NotHurtMarked_AfterBurst)
 {
     // 验证 hurtMarked 在玩家分支被清除
-    Player player(EntityInstanceId(2), "SurvivalPlayer");
+    Player player(EntityInstanceId(2), "SurvivalPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
@@ -358,7 +358,7 @@ TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_VelocityStillChanged)
     class TestLivingEntity final : public LivingEntity {
     public:
         explicit TestLivingEntity(EntityInstanceId id)
-            : LivingEntity(id)
+            : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
         {
             registerAttributes();
             setHealth(maxHealth());
@@ -396,7 +396,7 @@ TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_HurtMarkedNotCleared)
     class TestLivingEntity final : public LivingEntity {
     public:
         explicit TestLivingEntity(EntityInstanceId id)
-            : LivingEntity(id)
+            : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
         {
             registerAttributes();
             setHealth(maxHealth());
@@ -421,7 +421,7 @@ TEST_F(WindChargeEntityBurstTest, NonPlayerEntity_HurtMarkedNotCleared)
 TEST_F(WindChargeEntityBurstTest, SpectatorPlayer_FilteredFromKnockback)
 {
     // 旁观模式玩家不应被加入 playerKnockback
-    Player player(EntityInstanceId(2), "SpectatorPlayer");
+    Player player(EntityInstanceId(2), "SpectatorPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Spectator);
@@ -439,7 +439,7 @@ TEST_F(WindChargeEntityBurstTest, SpectatorPlayer_FilteredFromKnockback)
 TEST_F(WindChargeEntityBurstTest, CreativeFlyingPlayer_FilteredFromKnockback)
 {
     // 创造模式 + 飞行中的玩家不应被加入 playerKnockback
-    Player player(EntityInstanceId(2), "CreativeFlyingPlayer");
+    Player player(EntityInstanceId(2), "CreativeFlyingPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -457,7 +457,7 @@ TEST_F(WindChargeEntityBurstTest, CreativeFlyingPlayer_FilteredFromKnockback)
 TEST_F(WindChargeEntityBurstTest, CreativeNonFlyingPlayer_AddedToKnockback)
 {
     // 创造模式但未飞行的玩家仍应被加入 playerKnockback（与 MC Java 过滤规则一致）
-    Player player(EntityInstanceId(2), "CreativeWalkingPlayer");
+    Player player(EntityInstanceId(2), "CreativeWalkingPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.5f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -476,26 +476,26 @@ TEST_F(WindChargeEntityBurstTest, CreativeNonFlyingPlayer_AddedToKnockback)
 TEST_F(WindChargeEntityBurstTest, MultiplePlayers_OnlyNonFilteredAdded)
 {
     // 混合多个玩家：生存、旁观、创造飞行、创造步行
-    Player survival(EntityInstanceId(2), "Survival");
+    Player survival(EntityInstanceId(2), "Survival", mc::test::testEcsRegistry());
     survival.setPosition(0.5f, 64.0f, 0.0f);
     survival.setWorld(&m_world);
     survival.setGameMode(GameMode::Survival);
     m_world.registerEntity(&survival);
 
-    Player spectator(EntityInstanceId(3), "Spectator");
+    Player spectator(EntityInstanceId(3), "Spectator", mc::test::testEcsRegistry());
     spectator.setPosition(-0.5f, 64.0f, 0.0f);
     spectator.setWorld(&m_world);
     spectator.setGameMode(GameMode::Spectator);
     m_world.registerEntity(&spectator);
 
-    Player creativeFlying(EntityInstanceId(4), "CreativeFlying");
+    Player creativeFlying(EntityInstanceId(4), "CreativeFlying", mc::test::testEcsRegistry());
     creativeFlying.setPosition(0.0f, 64.0f, 0.5f);
     creativeFlying.setWorld(&m_world);
     creativeFlying.setGameMode(GameMode::Creative);
     creativeFlying.abilities().flying = true;
     m_world.registerEntity(&creativeFlying);
 
-    Player creativeWalking(EntityInstanceId(5), "CreativeWalking");
+    Player creativeWalking(EntityInstanceId(5), "CreativeWalking", mc::test::testEcsRegistry());
     creativeWalking.setPosition(0.0f, 64.0f, -0.5f);
     creativeWalking.setWorld(&m_world);
     creativeWalking.setGameMode(GameMode::Creative);
@@ -518,7 +518,7 @@ TEST_F(WindChargeEntityBurstTest, MultiplePlayers_OnlyNonFilteredAdded)
 TEST_F(WindChargeEntityBurstTest, PlayerOutOfRange_NotAdded)
 {
     // 玩家在爆炸范围外（> radius * 2 = 2.4 格）不应被加入击退映射
-    Player player(EntityInstanceId(2), "FarPlayer");
+    Player player(EntityInstanceId(2), "FarPlayer", mc::test::testEcsRegistry());
     // 距离 5.0 格 > 2.4
     player.setPosition(5.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);

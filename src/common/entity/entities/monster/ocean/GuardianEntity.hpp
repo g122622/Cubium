@@ -52,7 +52,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    GuardianEntity(EntityInstanceId id);
+    GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GuardianEntity() override = default;
 
     // 禁止拷贝
@@ -66,7 +66,7 @@ public:
     /**
      * @brief 创建守卫者实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 激光攻击 ==========
 

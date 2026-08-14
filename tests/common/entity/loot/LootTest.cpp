@@ -301,7 +301,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
 } // namespace
 
 // Test implementation of IWorld for loot testing
-class LootTestWorld : public test::BaseTestWorld {
+class LootTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
@@ -783,7 +783,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_EmptyStack)
     LootContext context(m_world, rng);
 
     // 创建玩家
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid("550e8400-e29b-41d4-a716-446655440000");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -816,7 +816,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerWithUUID)
     LootContext context(m_world, rng);
 
     // 创建玩家并设置 UUID
-    Player player(EntityInstanceId(1), "Steve");
+    Player player(EntityInstanceId(1), "Steve", mc::test::testEcsRegistry());
     player.setUuid("550e8400-e29b-41d4-a716-446655440000");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -845,7 +845,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerNoUUID)
     LootContext context(m_world, rng);
 
     // 创建玩家，不手动设置 UUID（但 Entity 构造函数会自动生成）
-    Player player(EntityInstanceId(1), "AutoUUIDPlayer");
+    Player player(EntityInstanceId(1), "AutoUUIDPlayer", mc::test::testEcsRegistry());
     context.set(LootParams::KILLER_PLAYER, &player);
 
     ASSERT_NE(Items::PLAYER_HEAD, nullptr);
@@ -871,7 +871,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceThis)
     LootContext context(m_world, rng);
 
     // 创建玩家作为 THIS_ENTITY
-    Player player(EntityInstanceId(2), "Alex");
+    Player player(EntityInstanceId(2), "Alex", mc::test::testEcsRegistry());
     player.setUuid("12345678-1234-1234-1234-123456789abc");
     Entity* entity = &player; // 显式转换为 Entity*
     context.set(LootParams::THIS_ENTITY, entity);
@@ -898,7 +898,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceKiller)
     LootContext context(m_world, rng);
 
     // 创建玩家作为 KILLER_ENTITY
-    Player player(EntityInstanceId(3), "KillerSteve");
+    Player player(EntityInstanceId(3), "KillerSteve", mc::test::testEcsRegistry());
     player.setUuid("abcdef12-3456-7890-abcd-ef1234567890");
     Entity* entity = &player; // 显式转换为 Entity*
     context.set(LootParams::KILLER_ENTITY, entity);
@@ -924,7 +924,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceKillerNonPlayer)
     LootContext context(m_world, rng);
 
     // 创建非玩家实体作为 KILLER_ENTITY
-    Entity zombie(EntityInstanceId(4));
+    Entity zombie(EntityInstanceId(4), nullptr, mc::test::testEcsRegistry());
     context.set(LootParams::KILLER_ENTITY, &zombie);
 
     ASSERT_NE(Items::PLAYER_HEAD, nullptr);
@@ -962,7 +962,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_OverwritesExistingSkullOwner)
     LootContext context(m_world, rng);
 
     // 创建玩家
-    Player player(EntityInstanceId(1), "NewOwner");
+    Player player(EntityInstanceId(1), "NewOwner", mc::test::testEcsRegistry());
     player.setUuid("00000000-0000-0000-0000-000000000001");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -996,7 +996,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_NonPlayerHeadItemUnchanged)
     LootContext context(m_world, rng);
 
     // 创建玩家
-    Player player(EntityInstanceId(1), "Steve");
+    Player player(EntityInstanceId(1), "Steve", mc::test::testEcsRegistry());
     player.setUuid("550e8400-e29b-41d4-a716-446655440000");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -1018,7 +1018,7 @@ TEST_F(LootTest, FillPlayerHeadFunction_OtherSkullItemsUnchanged)
     math::Random rng(12345);
     LootContext context(m_world, rng);
 
-    Player player(EntityInstanceId(1), "Steve");
+    Player player(EntityInstanceId(1), "Steve", mc::test::testEcsRegistry());
     player.setUuid("550e8400-e29b-41d4-a716-446655440000");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -1779,7 +1779,7 @@ TEST_F(LootTest, CopyNameFunction_EntityWithoutCustomName)
     LootContext context(m_world, rng);
 
     // 创建一个没有自定义名称的实体
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     context.set(LootParams::THIS_ENTITY, &entity);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1799,7 +1799,7 @@ TEST_F(LootTest, CopyNameFunction_EntityWithCustomName)
     LootContext context(m_world, rng);
 
     // 创建一个有自定义名称的实体
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setCustomName("Custom Pig Name");
     context.set(LootParams::THIS_ENTITY, &entity);
 
@@ -1821,7 +1821,7 @@ TEST_F(LootTest, CopyNameFunction_KillerEntity)
     LootContext context(m_world, rng);
 
     // 创建击杀者实体
-    Entity killer(EntityInstanceId(2), nullptr);
+    Entity killer(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     killer.setCustomName("Killer Zombie");
     context.set(LootParams::KILLER_ENTITY, &killer);
 
@@ -1842,7 +1842,7 @@ TEST_F(LootTest, CopyNameFunction_KillerPlayer)
     LootContext context(m_world, rng);
 
     // 创建玩家
-    Player player(EntityInstanceId(3), "TestPlayer");
+    Player player(EntityInstanceId(3), "TestPlayer", mc::test::testEcsRegistry());
     context.set(LootParams::KILLER_PLAYER, &player);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -1862,7 +1862,7 @@ TEST_F(LootTest, CopyNameFunction_KillerPlayerWithCustomName)
     LootContext context(m_world, rng);
 
     // 创建有自定义名称的玩家
-    Player player(EntityInstanceId(4), "OriginalName");
+    Player player(EntityInstanceId(4), "OriginalName", mc::test::testEcsRegistry());
     player.setCustomName("CustomPlayerName");
     context.set(LootParams::KILLER_PLAYER, &player);
 
@@ -1927,13 +1927,13 @@ TEST_F(LootTest, CopyNameFunction_DifferentSourcesIndependent)
     ASSERT_NE(diamond, nullptr);
 
     // 创建多个实体
-    Entity thisEntity(EntityInstanceId(1), nullptr);
+    Entity thisEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     thisEntity.setCustomName("This Pig");
 
-    Entity killerEntity(EntityInstanceId(2), nullptr);
+    Entity killerEntity(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
     killerEntity.setCustomName("Killer Zombie");
 
-    Player player(EntityInstanceId(3), "PlayerName");
+    Player player(EntityInstanceId(3), "PlayerName", mc::test::testEcsRegistry());
     player.setCustomName("Custom Player");
 
     blockentity::ChestEntity chest(BlockPos(0, 64, 0));
@@ -1999,7 +1999,7 @@ TEST_F(LootTest, CopyNameFunction_OverwritesExistingName)
     LootContext context(m_world, rng);
 
     // 创建实体
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setCustomName("New Name");
     context.set(LootParams::THIS_ENTITY, &entity);
 

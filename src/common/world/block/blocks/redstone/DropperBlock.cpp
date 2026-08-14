@@ -24,6 +24,7 @@
 #include "DropperBlock.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -152,7 +153,13 @@ bool DropperBlock::tryDispense(IWorld& world, const BlockPos& pos, const BlockSt
     f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DROP_SPEED;
 
     // 创建物品实体
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), dispensedStack, x, y, z, vx, vy, vz);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), dispensedStack, x, y, z, vx, vy, vz, *registry);
+    itemEntity->setTypeId(entity::EntityTypeKeys::ITEM); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置拾取延迟
     itemEntity->setPickupDelay(10);

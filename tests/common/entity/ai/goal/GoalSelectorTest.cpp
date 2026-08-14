@@ -24,6 +24,8 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"
@@ -52,7 +54,7 @@ public:
 
 class GoalSelectorRemoveGoalsOfTypeTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { pig.reset(); }
 
@@ -184,7 +186,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveAllGoals_ClearsEverything)
 
 class GoalSelectorBasicTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { pig.reset(); }
 

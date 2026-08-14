@@ -95,9 +95,10 @@ public:
      *
      * 用于 EntityRegistry 注册
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 新创建的实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 构造函数 ==========
 
@@ -108,8 +109,9 @@ public:
      * @param x X坐标
      * @param y Y坐标
      * @param z Z坐标
+     * @param registry ECS 实体注册表
      */
-    ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z);
+    ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造物品实体（带投掷速度）
@@ -121,8 +123,17 @@ public:
      * @param vx X方向速度
      * @param vy Y方向速度
      * @param vz Z方向速度
+     * @param registry ECS 实体注册表
      */
-    ItemEntity(EntityInstanceId id, const ItemStack& stack, f32 x, f32 y, f32 z, f32 vx, f32 vy, f32 vz);
+    ItemEntity(EntityInstanceId id,
+        const ItemStack& stack,
+        f32 x,
+        f32 y,
+        f32 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        ecs::EntityRegistry& registry);
 
     ~ItemEntity() override = default;
 

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -54,7 +55,7 @@ std::unique_ptr<nbt::tags::compound_tag> savePlayerToNbt(const Player& player)
 // 辅助函数：从 NBT 反序列化到新的 Player
 std::unique_ptr<Player> loadPlayerFromNbt(const nbt::tags::compound_tag& tag)
 {
-    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     auto result = player->readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success()) << "readAdditionalSaveData should succeed";
     return player;
@@ -66,7 +67,7 @@ std::unique_ptr<Player> loadPlayerFromNbt(const nbt::tags::compound_tag& tag)
 
 TEST(PlayerSerializationTest, GameMode_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     auto tag = savePlayerToNbt(player);
@@ -78,7 +79,7 @@ TEST(PlayerSerializationTest, GameMode_RoundTrip)
 TEST(PlayerSerializationTest, GameMode_AllModes)
 {
     for (auto mode : {GameMode::Survival, GameMode::Creative, GameMode::Adventure, GameMode::Spectator}) {
-        Player player(EntityInstanceId(1), "TestPlayer");
+        Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         player.setGameMode(mode);
 
         auto tag = savePlayerToNbt(player);
@@ -92,7 +93,7 @@ TEST(PlayerSerializationTest, GameMode_AllModes)
 
 TEST(PlayerSerializationTest, FoodStats_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.foodStats().setFoodLevel(15);
     player.foodStats().setSaturationLevel(3.5f);
     player.foodStats().setExhaustionLevel(1.2f);
@@ -110,7 +111,7 @@ TEST(PlayerSerializationTest, FoodStats_RoundTrip)
 TEST(PlayerSerializationTest, FoodStats_DefaultValuesPreservedWhenMissing)
 {
     // 空 NBT 不应改变默认值
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     i32 defaultFoodLevel = player.foodStats().foodLevel();
     f32 defaultSaturation = player.foodStats().saturationLevel();
 
@@ -126,7 +127,7 @@ TEST(PlayerSerializationTest, FoodStats_DefaultValuesPreservedWhenMissing)
 
 TEST(PlayerSerializationTest, Experience_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.experienceManager().setExperience(30, 0.75f, 1200);
     player.experienceManager().setXpSeed(42);
 
@@ -143,7 +144,7 @@ TEST(PlayerSerializationTest, Experience_RoundTrip)
 
 TEST(PlayerSerializationTest, Abilities_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative); // 设置为创造模式，canFly 和 invulnerable 应该为 true
 
     // 手动覆盖能力值
@@ -167,7 +168,7 @@ TEST(PlayerSerializationTest, Abilities_RoundTrip)
 
 TEST(PlayerSerializationTest, Abilities_DefaultSurvivalMode)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认生存模式：invulnerable=false, flying=false, canFly=false
     auto tag = savePlayerToNbt(player);
     auto loaded = loadPlayerFromNbt(*tag);
@@ -182,7 +183,7 @@ TEST(PlayerSerializationTest, Abilities_DefaultSurvivalMode)
 
 TEST(PlayerSerializationTest, Abilities_MissingAbilitiesTag_PreservesDefaults)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     nbt::tags::compound_tag emptyTag;
     auto result = player.readAdditionalSaveData(emptyTag);
     EXPECT_TRUE(result.success());
@@ -197,7 +198,7 @@ TEST(PlayerSerializationTest, Abilities_MissingAbilitiesTag_PreservesDefaults)
 
 TEST(PlayerSerializationTest, ImpulseContext_NoImpulse_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认状态：无冲量上下文
     EXPECT_FALSE(player.isIgnoringFallDamageFromCurrentImpulse());
     EXPECT_FALSE(player.currentImpulseImpactPos().has_value());
@@ -211,7 +212,7 @@ TEST(PlayerSerializationTest, ImpulseContext_NoImpulse_RoundTrip)
 
 TEST(PlayerSerializationTest, ImpulseContext_WithImpactPosition_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setCurrentImpulseImpactPos(Vector3(100.0f, 64.0f, 200.0f));
     player.setIgnoreFallDamageFromCurrentImpulse(true);
 
@@ -228,7 +229,7 @@ TEST(PlayerSerializationTest, ImpulseContext_WithImpactPosition_RoundTrip)
 
 TEST(PlayerSerializationTest, ImpulseContext_GraceTime_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setIgnoreFallDamageFromCurrentImpulse(true);
     // 宽限期应该是 40（由 setIgnoreFallDamageFromCurrentImpulse(true) 设置）
     EXPECT_EQ(player.currentImpulseContextResetGraceTime(), 40);
@@ -242,7 +243,7 @@ TEST(PlayerSerializationTest, ImpulseContext_GraceTime_RoundTrip)
 
 TEST(PlayerSerializationTest, ImpulseContext_ExtendedGraceTime_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setIgnoreFallDamageFromCurrentImpulse(true);
     player.applyPostImpulseGraceTime(10); // 不改变 40 tick 宽限期（取最大值）
     EXPECT_EQ(player.currentImpulseContextResetGraceTime(), 40);
@@ -255,7 +256,7 @@ TEST(PlayerSerializationTest, ImpulseContext_ExtendedGraceTime_RoundTrip)
 
 TEST(PlayerSerializationTest, ImpulseContext_EmptyNbt_ClearsImpulseState)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setCurrentImpulseImpactPos(Vector3(50.0f, 70.0f, 80.0f));
     player.setIgnoreFallDamageFromCurrentImpulse(true);
 
@@ -278,7 +279,7 @@ TEST(PlayerSerializationTest, ImpulseContext_EmptyNbt_ClearsImpulseState)
 
 TEST(PlayerSerializationTest, SpawnPoint_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setSpawnPoint(DimensionId(0), BlockPos(100, 64, 200), true);
 
     auto tag = savePlayerToNbt(player);
@@ -295,7 +296,7 @@ TEST(PlayerSerializationTest, SpawnPoint_RoundTrip)
 
 TEST(PlayerSerializationTest, SpawnPoint_NoSpawnPoint_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认没有重生点
     EXPECT_FALSE(player.getSpawnPoint().has_value());
 
@@ -309,7 +310,7 @@ TEST(PlayerSerializationTest, SpawnPoint_NoSpawnPoint_RoundTrip)
 
 TEST(PlayerSerializationTest, EnteredNetherPosition_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setEnteredNetherPosition(Vector3d(100.5, 64.0, -200.3));
 
     auto tag = savePlayerToNbt(player);
@@ -324,7 +325,7 @@ TEST(PlayerSerializationTest, EnteredNetherPosition_RoundTrip)
 
 TEST(PlayerSerializationTest, EnteredNetherPosition_NoPosition_RoundTrip)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_FALSE(player.getEnteredNetherPosition().has_value());
 
     auto tag = savePlayerToNbt(player);
@@ -337,7 +338,7 @@ TEST(PlayerSerializationTest, EnteredNetherPosition_NoPosition_RoundTrip)
 
 TEST(PlayerSerializationTest, NbtKeys_CorrectKeyNames)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Survival);
 
     auto tag = savePlayerToNbt(player);
@@ -354,7 +355,7 @@ TEST(PlayerSerializationTest, NbtKeys_CorrectKeyNames)
 
 TEST(PlayerSerializationTest, FullRoundTrip_AllFields)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置各种状态
     player.setGameMode(GameMode::Creative);

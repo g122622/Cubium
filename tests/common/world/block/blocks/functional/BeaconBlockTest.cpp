@@ -65,7 +65,7 @@ namespace {
  * - openContainer() 用于测试容器打开
  * - getBlockEntity() 用于测试方块实体检查
  */
-class BeaconTestWorld : public test::BaseTestWorld {
+class BeaconTestWorld : public mc::test::BaseTestWorld {
 public:
     explicit BeaconTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -236,7 +236,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSuccess)
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = beacon_->defaultState();
@@ -261,7 +261,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_ServerSide_OpensContainer)
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = beacon_->defaultState();
@@ -287,7 +287,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_NoBlockEntity_ReturnsPass)
     world.setBlockStateAt(pos_, &beacon_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = beacon_->defaultState();
@@ -314,7 +314,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_WrongBlockEntityType_Returns
     world.setOwnedBlockEntity(std::move(wrongEntity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = beacon_->defaultState();
@@ -339,7 +339,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 使用副手执行交互
     const auto& state = beacon_->defaultState();
@@ -377,7 +377,7 @@ TEST_F(BeaconBlockInteractionTest, OnBlockActivated_OpenContainerFails_ReturnsPa
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = beacon_->defaultState();

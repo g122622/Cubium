@@ -86,6 +86,12 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    # Entity ECS - 实体系统 OOP→ECS 迁移（基岩版式混合架构）
+    # 组件均为 header-only，仅 context/EntityRegistry.cpp 需登记
+    entity/ecs/context/EntityRegistry.cpp
+    entity/ecs/systems/EntitySystemScheduler.cpp
+    entity/ecs/systems/PortalTickSystem.cpp
+    entity/ecs/systems/FireTickSystem.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp
@@ -99,6 +105,13 @@ add_library(mc_common STATIC
     entity/serialization/EntityDeserializer.cpp
     entity/serialization/EquipmentSlotNames.cpp
     entity/serialization/NbtHelper.cpp
+    entity/serialization/components/ComponentSerializerRegistry.cpp
+    entity/serialization/components/EntityComponentSerialization.cpp
+    entity/serialization/components/HorseComponentSerialization.cpp
+    entity/serialization/components/LivingEntityComponentSerialization.cpp
+    entity/serialization/components/MinecartComponentSerialization.cpp
+    entity/serialization/components/PlayerComponentSerialization.cpp
+    entity/serialization/components/ProjectileComponentSerialization.cpp
     # Entity - Effect
     entity/effect/EffectType.cpp
     entity/effect/EffectInstance.cpp

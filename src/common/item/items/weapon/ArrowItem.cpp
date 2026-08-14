@@ -82,7 +82,12 @@ std::unique_ptr<entity::ProjectileEntity> ArrowItem::asProjectile(IWorld& world,
     f32 /*directionY*/,
     f32 /*directionZ*/) const
 {
-    auto entity = entity::ArrowEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = entity::ArrowEntity::create(&world, *registry);
     if (entity) {
         entity->setPosition(position.x, position.y, position.z);
         // 发射器发射的箭矢允许被玩家拾取

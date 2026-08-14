@@ -39,7 +39,7 @@ using namespace mc;
 // 测试用世界 - 支持 setBlockState / getBlockState 的 HashMap 实现
 // ============================================================================
 
-class EndTeleporterTestWorld final : public test::BaseTestWorld {
+class EndTeleporterTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {

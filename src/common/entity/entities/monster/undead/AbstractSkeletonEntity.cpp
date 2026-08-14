@@ -72,8 +72,8 @@ const entity::EntityClassInfo& AbstractSkeletonEntity::classInfo()
     return s_classInfo;
 }
 
-AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+AbstractSkeletonEntity::AbstractSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 战斗目标不再在构造函数中创建，而是在 setCombatTask() 中按需创建。
     // setCombatTask() 会在 registerGoals() 之后（构造函数末尾）或
@@ -139,6 +139,9 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
         static_cast<f32>(dz),
         ARROW_VELOCITY,
         inaccuracy);
+
+    // 子类定制箭矢钩子（如流浪者附加缓慢效果），在 spawn 前调用
+    customizeArrow(*arrow);
 
     // 播放射箭音效
     math::Random& rng = getRandom();
@@ -307,9 +310,9 @@ void AbstractSkeletonEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ARROW_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ARROW_DAMAGE);
 }
 
 void AbstractSkeletonEntity::finalizeSpawn(
@@ -334,6 +337,25 @@ void AbstractSkeletonEntity::finalizeSpawn(
                 setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
             }
         }
+    }
+}
+
+void AbstractSkeletonEntity::populateDefaultEquipmentSlots(
+    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+{
+    // 先调用父类方法：基于难度概率填充护甲
+    MonsterEntity::populateDefaultEquipmentSlots(random, difficulty);
+
+    // 骷髅系怪物主手默认持弓（非和平难度）。
+    // 对应 MC 原版 AbstractSkeleton.populateDefaultEquipmentSlots()：骷髅/流浪者主手必然持弓
+    // （远程攻击前提）。凋零骷髅 override 此方法用石剑（近战）。
+    // 和平难度不持弓（原版和平骷髅不生成且无武装，此处对齐）。
+    if (difficulty.getDifficulty() == Difficulty::Peaceful) {
+        return;
+    }
+
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::BOW != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::BOW, 1));
     }
 }
 

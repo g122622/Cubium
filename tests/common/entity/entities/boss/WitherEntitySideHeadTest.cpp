@@ -81,7 +81,7 @@ namespace {
  * 支持 spawnEntity / getEntity，用于侧头目标追踪测试。
  * tickManager() 抛出异常——WitherEntity::aiStep() 不会触发 tickManager。
  */
-class WitherSideHeadTestWorld final : public test::BaseTestWorld {
+class WitherSideHeadTestWorld final : public mc::test::BaseTestWorld {
 public:
     WitherSideHeadTestWorld() { VanillaBlocks::initialize(); }
 
@@ -205,7 +205,7 @@ protected:
 
 TEST_F(WitherEntitySideHeadTest, InitialState_SideHeadAnglesAreZero)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
 
     // 初始状态：两侧头 pitch/yaw 均为 0
@@ -227,7 +227,7 @@ TEST_F(WitherEntitySideHeadTest, InitialState_SideHeadAnglesAreZero)
 
 TEST_F(WitherEntitySideHeadTest, NoTarget_YawLerpsTowardBodyRot)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -244,7 +244,7 @@ TEST_F(WitherEntitySideHeadTest, NoTarget_YawLerpsTowardBodyRot)
 
 TEST_F(WitherEntitySideHeadTest, NoTarget_PitchUnchanged)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -264,7 +264,7 @@ TEST_F(WitherEntitySideHeadTest, NoTarget_PitchUnchanged)
 
 TEST_F(WitherEntitySideHeadTest, NoTarget_MultipleTicks_ConvergesToBodyRot)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 
@@ -290,7 +290,7 @@ TEST_F(WitherEntitySideHeadTest, NoTarget_MultipleTicks_ConvergesToBodyRot)
 
 TEST_F(WitherEntitySideHeadTest, WithTarget_YawConvergesTowardTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
@@ -301,7 +301,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_YawConvergesTowardTarget)
     // 让 eyeY == headY → targetY = 66.2 - 2.0 = 64.2
     // 目标在 (1.3, 64.2, 20) 时，dx=0, dz=20
     // targetYaw = atan2(20, 0) * 180/PI - 90 = 90 - 90 = 0
-    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2));
+    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     target->setPosition(Vector3(1.3, 64.2, 20.0));
     EntityInstanceId targetId = m_world->spawnEntity(std::move(target));
 
@@ -317,7 +317,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_YawConvergesTowardTarget)
 
 TEST_F(WitherEntitySideHeadTest, WithTarget_PitchConvergesTowardTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
@@ -328,7 +328,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_PitchConvergesTowardTarget)
     // dx=0, dy = 62.0 - 66.2 = -4.2, dz=0.1
     // horizontalDist = sqrt(0 + 0.01) = 0.1
     // targetPitch = -(atan2(-4.2, 0.1) * 180/PI) = -(-88.6) = 88.6°
-    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2));
+    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     target->setPosition(Vector3(1.3, 60.0, 0.1));
     EntityInstanceId targetId = m_world->spawnEntity(std::move(target));
 
@@ -347,7 +347,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_PitchConvergesTowardTarget)
 
 TEST_F(WitherEntitySideHeadTest, WithTarget_YawRateLimitedTo10DegreesPerTick)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
@@ -356,7 +356,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_YawRateLimitedTo10DegreesPerTick)
     // 侧头1 位置 = (1.3, 66.2, 0)
     // 目标在 (1.3, 64.2, -20) 时（eyeY=64.2+2.0=66.2==headY），dx=0, dz=-20
     // targetYaw = atan2(-20, 0) * 180/PI - 90 = -90 - 90 = -180°
-    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2));
+    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     target->setPosition(Vector3(1.3, 64.2, -20.0));
     EntityInstanceId targetId = m_world->spawnEntity(std::move(target));
 
@@ -371,13 +371,13 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_YawRateLimitedTo10DegreesPerTick)
 
 TEST_F(WitherEntitySideHeadTest, WithTarget_MultipleTicks_ConvergesToTargetYaw)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
 
     // 目标在 -Z 方向，targetYaw = -180°
-    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2));
+    auto target = std::make_unique<entity::WitherEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     target->setPosition(Vector3(1.3, 64.2, -20.0));
     EntityInstanceId targetId = m_world->spawnEntity(std::move(target));
 
@@ -398,7 +398,7 @@ TEST_F(WitherEntitySideHeadTest, WithTarget_MultipleTicks_ConvergesToTargetYaw)
 
 TEST_F(WitherEntitySideHeadTest, TargetIdPositive_ButEntityNotFound_FallsBackToNoTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(30.0f);
@@ -415,7 +415,7 @@ TEST_F(WitherEntitySideHeadTest, TargetIdPositive_ButEntityNotFound_FallsBackToN
 
 TEST_F(WitherEntitySideHeadTest, TargetIdZero_FallsBackToNoTarget)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(20.0f);
@@ -431,7 +431,7 @@ TEST_F(WitherEntitySideHeadTest, TargetIdZero_FallsBackToNoTarget)
 
 TEST_F(WitherEntitySideHeadTest, NoWorld_DoesNotCrash)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 故意不设置 world
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
@@ -450,7 +450,7 @@ TEST_F(WitherEntitySideHeadTest, NoWorld_DoesNotCrash)
 
 TEST_F(WitherEntitySideHeadTest, PrevAngles_BackupBeforeUpdate)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(30.0f);
@@ -480,20 +480,20 @@ TEST_F(WitherEntitySideHeadTest, PrevAngles_BackupBeforeUpdate)
 
 TEST_F(WitherEntitySideHeadTest, TwoSideHeads_IndependentTargets)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
     wither.setRenderYawOffset(0.0f);
 
     // 侧头1（左头，j=0）目标在 +Z（targetYaw≈0）
-    auto target1 = std::make_unique<entity::WitherEntity>(EntityInstanceId(2));
+    auto target1 = std::make_unique<entity::WitherEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     target1->setPosition(Vector3(1.3, 64.2, 20.0));
     EntityInstanceId target1Id = m_world->spawnEntity(std::move(target1));
     wither.updateWatchedTargetId(1, static_cast<i32>(static_cast<u32>(target1Id)));
 
     // 侧头2（右头，j=1）目标在 -Z（targetYaw≈-180）
     // 侧头2 位置 = bodyRot + 180 = 180°，(0+cos(180)*1.3, 66.2, 0+sin(180)*1.3) = (-1.3, 66.2, 0)
-    auto target2 = std::make_unique<entity::WitherEntity>(EntityInstanceId(3));
+    auto target2 = std::make_unique<entity::WitherEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     target2->setPosition(Vector3(-1.3, 64.2, -20.0));
     EntityInstanceId target2Id = m_world->spawnEntity(std::move(target2));
     wither.updateWatchedTargetId(2, static_cast<i32>(static_cast<u32>(target2Id)));
@@ -513,7 +513,7 @@ TEST_F(WitherEntitySideHeadTest, TwoSideHeads_IndependentTargets)
 
 TEST_F(WitherEntitySideHeadTest, NoTarget_YawWrapAround_ShortestPath)
 {
-    entity::WitherEntity wither(EntityInstanceId(1));
+    entity::WitherEntity wither(EntityInstanceId(1), mc::test::testEcsRegistry());
     wither.setWorld(m_world.get());
     wither.setPosition(Vector3(0.0, 64.0, 0.0));
 

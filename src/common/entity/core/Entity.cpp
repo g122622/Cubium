@@ -46,6 +46,7 @@
 #include "../entities/projectile/ProjectileEntity.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "../serialization/components/ComponentSerializerRegistry.hpp"
 #include "../tag/EntityTypeTags.hpp"
 #include "EntityRegistry.hpp"
 #include "common/command/ICommandSource.hpp"
@@ -57,6 +58,13 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/MoverType.hpp"
+#include "common/entity/ecs/components/EntityFlagsComponent.hpp"
+#include "common/entity/ecs/components/EntityOwnerComponent.hpp"
+#include "common/entity/ecs/components/EntityStateComponent.hpp"
+#include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/components/FreezeComponent.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
+#include "common/entity/ecs/components/PortalComponent.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
@@ -118,16 +126,44 @@ const entity::EntityClassInfo& Entity::classInfo()
 // Entity 实现
 // ============================================================================
 
-Entity::Entity(EntityInstanceId id, IWorld* world)
+Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry)
     : m_memTrack(this)
     , m_id(id)
-    , m_position(0.0f, 0.0f, 0.0f)
-    , m_prevPosition(0.0f, 0.0f, 0.0f)
-    , m_velocity(0.0f, 0.0f, 0.0f)
     , m_random(
           static_cast<u64>(id) ^ static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
     , m_world(world)
 {
+    // 在传入 registry 内 create 出 ECS 实体，并 attach 4 个高频组件，缓存裸指针到
+    // m_builtIn。此后 position()/velocity() 等 getter 直接解引用 m_builtIn，零双写。
+    // 对齐基岩版 Actor(ILevel&, EntityContext&) 构造签名透传 + _addActorBuiltInComponents
+    // attach 基础组件的设计（基岩版 attach 在 initializeComponents 阶段，首批4组件简单，
+    // 此处构造时一次 attach）。
+    const ecs::EntityId ecsEntity = registry.create();
+    m_builtIn.stateVector = &registry.raw().emplace<ecs::StateVectorComponent>(ecsEntity);
+    m_builtIn.velocity = &registry.raw().emplace<ecs::VelocityComponent>(ecsEntity);
+    m_builtIn.aabbShape = &registry.raw().emplace<ecs::AABBShapeComponent>(ecsEntity);
+    m_builtIn.rotation = &registry.raw().emplace<ecs::EntityRotationComponent>(ecsEntity);
+    // 第二批：attach Portal/Fire/PhysicsState/Freeze 四组件。Portal/Fire/Freeze 不进
+    // m_builtIn 缓存（低频，走 tryGetComponent）；PhysicsState 高频（move/checkOnGround/
+    // updateFallDistance 及各 tick 40+ 处直接访问），破例进 m_builtIn 缓存裸指针。
+    // HurtStateComponent 由 LivingEntity 构造时 attach。
+    registry.raw().emplace<ecs::PortalComponent>(ecsEntity);
+    registry.raw().emplace<ecs::FireComponent>(ecsEntity);
+    m_builtIn.physicsState = &registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
+    registry.raw().emplace<ecs::FreezeComponent>(ecsEntity);
+    // 第四批：attach EntityFlags/EntityState 两组件，承载 flags/air/customName/
+    // customNameVisible/silent/noGravity/pose 七个 C 类同步字段（真相源），
+    // 对应 DataParameter 退为同步镜像。低频走 tryGetComponent 查询。
+    registry.raw().emplace<ecs::EntityFlagsComponent>(ecsEntity);
+    registry.raw().emplace<ecs::EntityStateComponent>(ecsEntity);
+    // 反向桥接组件：ECS→OOP。FireTickSystem/PortalTickSystem 等 System 经
+    // view<..., EntityOwnerComponent> 遍历实体时，由此反查 OOP 句柄调虚函数
+    // （isInWater/hurt/canTeleport 等）。非拥有裸指针——Entity 所有权归
+    // EntityManager::m_entities 或测试局部变量，本组件仅反查。Entity 析构时
+    // destroy entt 实体（含本组件），故指针不会悬垂。详见 EntityOwnerComponent.hpp。
+    registry.raw().emplace<ecs::EntityOwnerComponent>(ecsEntity, this);
+    m_entityContext = std::make_unique<ecs::EntityContext>(registry, ecsEntity);
+
     // 生成随机 UUID（使用实体的持久化随机数生成器）。
     // 必须用 util::generateRandomUuid + util::uuidToString 生成固定 32 字符的十六进制
     // 字符串——不能用 `ss << std::hex << u64 << u64`，那种写法不补零，会得到 <32 字符
@@ -137,6 +173,17 @@ Entity::Entity(EntityInstanceId id, IWorld* world)
 
     // 注册数据参数
     registerData();
+}
+
+Entity::~Entity()
+{
+    // 销毁 ECS 实体及其全部组件（含 EntityOwnerComponent，消除悬垂反查指针）。
+    // m_entityContext 此刻仍存活（成员在 ~Entity body 之后析构），可安全取 registry 与 entity id。
+    // valid() 校验防御：极少数路径（如 move-into-graveyard 后实体被显式 destroy）下
+    // entt 实体可能已失效，此时跳过避免重复 destroy 断言。
+    if (m_entityContext != nullptr && m_entityContext->valid()) {
+        m_entityContext->registry().destroy(m_entityContext->entity());
+    }
 }
 
 void Entity::registerData()
@@ -173,7 +220,7 @@ entity::EntitySize Entity::getDimensions(EntityPose pose) const
 
 void Entity::refreshDimensions()
 {
-    m_dimensions = getDimensions(m_pose);
+    m_dimensions = getDimensions(pose());
     m_dimensionsInitialized = true;
     reapplyPosition();
 }
@@ -181,40 +228,49 @@ void Entity::refreshDimensions()
 void Entity::reapplyPosition()
 {
     if (!m_dimensionsInitialized) {
-        m_dimensions = getDimensions(m_pose);
+        m_dimensions = getDimensions(pose());
         m_dimensionsInitialized = true;
     }
 
-    m_boundingBox = m_dimensions.makeBoundingBox(m_position.x, m_position.y, m_position.z);
+    m_builtIn.aabbShape->m_aabb = m_dimensions.makeBoundingBox(
+        m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
 }
 
-void Entity::setPose(EntityPose pose)
+void Entity::setPose(EntityPose poseIn)
 {
-    if (m_pose == pose) {
+    if (pose() == poseIn) {
         return;
     }
 
-    m_pose = pose;
-    m_dataManager.set(DATA_POSE_PARAM, entity::PoseValue{pose});
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_pose = poseIn;
+    m_dataManager.set(DATA_POSE_PARAM, entity::PoseValue{poseIn});
     refreshDimensions();
 }
 
 void Entity::setFlags(EntityFlags flags)
 {
-    m_flags = flags;
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = flags;
     m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(flags)));
 }
 
 void Entity::addFlag(EntityFlags flag)
 {
-    m_flags = m_flags | flag;
-    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = c->m_flags | flag;
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(c->m_flags)));
 }
 
 void Entity::removeFlag(EntityFlags flag)
 {
-    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_flags) & ~static_cast<u8>(flag));
-    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityFlagsComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_flags = static_cast<EntityFlags>(static_cast<u8>(c->m_flags) & ~static_cast<u8>(flag));
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(c->m_flags)));
 }
 
 bool Entity::isGlowing() const
@@ -244,33 +300,39 @@ bool Entity::isVisuallySwimming() const
 {
     // 基类实现：仅依赖 Swimming 姿态判定
     // LivingEntity 重写时会额外考虑 FallFlying 姿态
-    return m_pose == EntityPose::Swimming;
+    return pose() == EntityPose::Swimming;
 }
 
 void Entity::setAir(i32 air)
 {
-    m_air = air;
-    m_dataManager.set(DATA_AIR_PARAM, m_air);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_air = air;
+    m_dataManager.set(DATA_AIR_PARAM, c->m_air);
 }
 
 void Entity::setCustomName(const std::string& name)
 {
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
     if (name.empty()) {
-        m_customName = nullptr;
+        c->m_customName = nullptr;
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     } else {
-        m_customName = std::make_unique<text::StringTextComponent>(name);
+        c->m_customName = std::make_unique<text::StringTextComponent>(name);
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, name});
     }
 }
 
 void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 {
-    m_customName = std::move(name);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_customName = std::move(name);
     // 数据管理器存 OptionalComponentValue（present + 纯文本），用于网络同步。
-    if (m_customName) {
+    if (c->m_customName) {
         m_dataManager.set(
-            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, m_customName->getUnformattedText()});
+            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, c->m_customName->getUnformattedText()});
     } else {
         m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
     }
@@ -278,8 +340,10 @@ void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 
 std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
 {
-    if (m_customName) {
-        return m_customName->deepCopy();
+    const auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    if (c->m_customName) {
+        return c->m_customName->deepCopy();
     }
     // 返回默认名称
     return std::make_unique<text::StringTextComponent>("entity");
@@ -287,20 +351,26 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
 
 void Entity::setCustomNameVisible(bool visible)
 {
-    m_customNameVisible = visible;
-    m_dataManager.set(DATA_CUSTOM_NAME_VISIBLE_PARAM, m_customNameVisible);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_customNameVisible = visible;
+    m_dataManager.set(DATA_CUSTOM_NAME_VISIBLE_PARAM, c->m_customNameVisible);
 }
 
 void Entity::setSilent(bool silent)
 {
-    m_silent = silent;
-    m_dataManager.set(DATA_SILENT_PARAM, m_silent);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_silent = silent;
+    m_dataManager.set(DATA_SILENT_PARAM, c->m_silent);
 }
 
 void Entity::setNoGravity(bool noGravity)
 {
-    m_noGravity = noGravity;
-    m_dataManager.set(DATA_NO_GRAVITY_PARAM, m_noGravity);
+    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
+    MC_ASSERT_RELEASE(c != nullptr);
+    c->m_noGravity = noGravity;
+    m_dataManager.set(DATA_NO_GRAVITY_PARAM, c->m_noGravity);
 }
 
 // ============================================================================
@@ -407,7 +477,7 @@ void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pit
         return;
     }
 
-    m_world->playSound(soundEventId, getSoundCategory(), m_position, volume, pitch);
+    m_world->playSound(soundEventId, getSoundCategory(), m_builtIn.stateVector->m_pos, volume, pitch);
 }
 
 ResourceLocation Entity::getSplashSound() const
@@ -457,7 +527,7 @@ void Entity::doWaterSplashEffect()
     i32 particleCount = static_cast<i32>(1.0f + width() * 20.0f);
 
     // Y 坐标: floor(posY) + 1.0 (水面上方一格)
-    f32 particleY = std::floor(m_position.y) + 1.0f;
+    f32 particleY = std::floor(m_builtIn.stateVector->m_pos.y) + 1.0f;
 
     // 引入粒子类型
     using particle::ParticleTypeId;
@@ -468,8 +538,8 @@ void Entity::doWaterSplashEffect()
         f32 offsetX = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
         f32 offsetZ = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
 
-        f32 particleX = m_position.x + static_cast<f32>(offsetX);
-        f32 particleZ = m_position.z + static_cast<f32>(offsetZ);
+        f32 particleX = m_builtIn.stateVector->m_pos.x + static_cast<f32>(offsetX);
+        f32 particleZ = m_builtIn.stateVector->m_pos.z + static_cast<f32>(offsetZ);
 
         // 速度: 使用实体速度，Y 方向减去随机值
         f32 bubbleVy = vy - static_cast<f32>(rng.nextDouble() * 0.2);
@@ -484,8 +554,8 @@ void Entity::doWaterSplashEffect()
         f32 offsetX = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
         f32 offsetZ = (rng.nextDouble() * 2.0 - 1.0) * static_cast<f64>(width());
 
-        f32 particleX = m_position.x + static_cast<f32>(offsetX);
-        f32 particleZ = m_position.z + static_cast<f32>(offsetZ);
+        f32 particleX = m_builtIn.stateVector->m_pos.x + static_cast<f32>(offsetX);
+        f32 particleZ = m_builtIn.stateVector->m_pos.z + static_cast<f32>(offsetZ);
 
         // 速度: 使用实体速度
         m_world->addParticle(ParticleTypeId::Splash, Vector3(particleX, particleY, particleZ), Vector3(vx, vy, vz));
@@ -610,29 +680,29 @@ void Entity::playAmethystStepSound()
 
 void Entity::setPosition(f32 x, f32 y, f32 z)
 {
-    m_prevPosition = m_position;
-    m_position = Vector3(x, y, z);
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = Vector3(x, y, z);
     reapplyPosition();
 }
 
 void Entity::snapshotInterpolationState()
 {
-    m_prevPosition = m_position;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 }
 
 void Entity::setRotation(f32 yaw, f32 pitch)
 {
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
-    m_yaw = yaw;
-    m_pitch = pitch;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
+    m_builtIn.rotation->m_rot.x = yaw;
+    m_builtIn.rotation->m_rot.y = pitch;
 }
 
 void Entity::setVelocity(f32 x, f32 y, f32 z)
 {
-    m_velocity = Vector3(x, y, z);
+    m_builtIn.velocity->m_velocity = Vector3(x, y, z);
 }
 
 void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward)
@@ -666,7 +736,7 @@ void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward)
     // MC 公式: absoluteX = vec.x * cos - vec.z * sin
     //          absoluteZ = vec.z * cos + vec.x * sin
     // 注意: strafe 对应 x 方向，forward 对应 z 方向
-    f32 yawRad = m_yaw * math::DEG_TO_RAD;
+    f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
     f32 sinYaw = std::sin(yawRad);
     f32 cosYaw = std::cos(yawRad);
 
@@ -674,9 +744,9 @@ void Entity::moveRelative(f32 factor, f32 strafe, f32 vertical, f32 forward)
     f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
 
     // 添加到当前速度
-    m_velocity.x += moveX;
-    m_velocity.y += normalizedVertical;
-    m_velocity.z += moveZ;
+    m_builtIn.velocity->m_velocity.x += moveX;
+    m_builtIn.velocity->m_velocity.y += normalizedVertical;
+    m_builtIn.velocity->m_velocity.z += moveZ;
 }
 
 void Entity::tick()
@@ -686,18 +756,16 @@ void Entity::tick()
     // 基础 tick
     baseTick();
 
-    // 处理传送门逻辑
-    if (tickPortal()) {
-        onPortalTriggered();
-    }
+    // 传送门逻辑（tickPortal + onPortalTriggered）已迁入 PortalTickSystem，
+    // 在 SystemPhase::PostEntityTick 阶段执行（本 tick 之后）。见 PortalTickSystem.hpp。
 }
 
 void Entity::baseTick()
 {
     // 更新前一帧位置
-    m_prevPosition = m_position;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 
     // 检查车辆是否被移除
     // 如果正在骑乘且车辆已被移除，则下车
@@ -712,10 +780,7 @@ void Entity::baseTick()
         }
     }
 
-    // 更新传送冷却
-    if (m_portalCooldown > 0) {
-        m_portalCooldown--;
-    }
+    // 更新传送冷却——已迁入 PortalTickSystem（PostEntityTick 阶段）。
 
     // 更新骑乘冷却
     if (m_rideCooldown > 0) {
@@ -725,48 +790,22 @@ void Entity::baseTick()
     // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
     // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
     // 此处将 updateEnvironmentState() 移至火焰处理之前，与 MC 原版时序一致
+    // 火焰链（fire 递减/伤害/水中熄灭/雨中扑灭）已迁入 FireTickSystem（PostEntityTick 阶段），
+    // 在本 baseTick 之后执行，可读到此处刚产出的环境状态。
     updateEnvironmentState();
-
-    // 处理着火
-    // MC Java: Entity.baseTick() 火焰处理逻辑
-    // 正值 m_fire = 燃烧剩余 tick，负值 = 火焰免疫期倒计时
-    if (m_fire > 0) {
-        if (isImmuneToFire()) {
-            // 免疫火焰的实体立即清除火焰
-            clearFire();
-        } else if (isInWater()) {
-            // MC Java: 水中熄灭火焰由 applyEffectsFromBlocks() 中方块碰撞触发
-            // 此处简化处理：水中直接熄灭，播放音效并设置免疫期
-            extinguishFire();
-            setFireImmunityCooldown();
-        } else {
-            // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
-            // 注意：在岩浆中时不造成燃烧伤害，因为岩浆伤害由 lavaHurt() 单独处理
-            if (m_fire % 20 == 0 && !isInLava()) {
-                auto onFireSource = DamageSources::onFire();
-                hurt(onFireSource, 1.0f);
-            }
-            m_fire--;
-        }
-    }
-
-    // MC Java: applyEffectsFromBlocks() 中雨中灭火 + 灭火音效
-    // 在雨中熄灭火焰时，播放音效并设置免疫期
-    if (isInRain() && isOnFire()) {
-        extinguishFire();
-        setFireImmunityCooldown();
-    }
 
     // 在岩浆中减少坠落距离
     if (isInLava()) {
-        m_fallDistance *= 0.5f;
+        m_builtIn.physicsState->m_fallDistance *= 0.5f;
     }
 
     // 冰冻状态处理
     // 在火焰处理之后重置 isInPowderSnow
     // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
     // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
-    m_isInPowderSnow = false;
+    if (auto* freeze = m_entityContext->tryGetComponent<ecs::FreezeComponent>()) {
+        freeze->m_isInPowderSnow = false;
+    }
 
     // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
     // 非 LivingEntity 实体（如 ItemEntity）不使用 Entity 层的空气处理
@@ -784,47 +823,14 @@ void Entity::baseTick()
     // 在 Vehicle/tick() 中应该调用 updatePassengers()
 }
 
-bool Entity::tickPortal()
-{
-    // 关键行为：inPortal 每帧重置，由 NetherPortalBlock.onEntityCollision 重新设置
-    // 冷却递减在 baseTick() 中处理
-
-    if (!m_inPortal) {
-        if (m_portalTime > 0) {
-            m_portalTime = std::max(0, m_portalTime - 4);
-        }
-        return false;
-    }
-
-    // 无论是否传送，都重置 inPortal
-    m_inPortal = false;
-
-    if (!canTeleport()) {
-        return false;
-    }
-
-    // 递增计时并检查阈值
-    // 非玩家：第一次进入时成立
-    // 玩家：需要 80 tick
-    m_portalTime++;
-
-    const i32 maxPortalTime = getMaxInPortalTime();
-    if (m_portalTime >= maxPortalTime) {
-        m_portalTime = maxPortalTime;
-        return true;
-    }
-
-    return false;
-}
-
 bool Entity::onPortalTriggered()
 {
     // 基类实现：默认不做任何事
     // 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑
 
     // 重置传送门状态
-    m_inPortal = false;
-    m_portalTime = 0;
+    setInPortal(false);
+    resetPortalTime();
     triggerPortalCooldown();
 
     return false;
@@ -873,7 +879,7 @@ void Entity::updateEnvironmentState()
     // 需要遍历碰撞箱内的所有方块，计算流体浸入高度
 
     // 眼睛位置（用于判断眼睛是否在水下）
-    const f32 eyeY = m_position.y + eyeHeight();
+    const f32 eyeY = m_builtIn.stateVector->m_pos.y + eyeHeight();
     const i32 eyeBlockY = static_cast<i32>(std::floor(eyeY));
 
     // 重置流体状态
@@ -979,67 +985,73 @@ bool Entity::isInRain() const
     }
 
     // 检查实体脚底位置是否可以降雨
-    BlockPos footPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos footPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     if (m_world->canRainAt(footPos)) {
         return true;
     }
 
     // 检查实体碰撞盒顶部位置是否可以降雨
-    BlockPos topPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_boundingBox.maxY)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos topPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.maxY)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     return m_world->canRainAt(topPos);
 }
 
 f32 Entity::getBrightness() const
 {
-    // 获取实体眼睛位置的亮度
+    // 对齐 vanilla 1.21.11 Entity.getLightLevelDependentMagicValue()（Entity.java:1643）。
+    // vanilla 公式（LevelReader.java:118）：
+    //   float f  = getMaxLocalRawBrightness(pos) / 15.0F;   // getMaxLocalRawBrightness 含 getSkyDarken() 时间衰减
+    //   float f1 = f / (4.0F - 3.0F * f);                   // 非线性 gamma 曲线
+    //   return Mth.lerp(dimensionType.ambientLight(), f1, 1.0F);
+    // 此前实现走 IWorld::getBrightness(pos) = getLightSubtracted(pos,0)/15——skyDarkening 硬传 0 无时间衰减，
+    // 夜晚露天（skyLight=15）仍返回 1.0，导致 SpiderTargetGoal(brightness<0.5F) 永不触发、蜘蛛夜晚不攻击。
+    // 改用 getMaxLocalRawBrightness（含 getSkyDarkening 夜晚≈11 的时间衰减）+ gamma 曲线 + ambientLight。
     if (m_world == nullptr) {
         return 0.0f;
     }
 
-    // 使用眼睛高度位置
-    BlockPos pos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y + static_cast<f64>(eyeHeight()))),
-        static_cast<i32>(std::floor(m_position.z)));
-    return m_world->getBrightness(pos);
+    // 使用眼睛高度位置（vanilla BlockPos.containing(getX, getEyeY, getZ)）
+    BlockPos pos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y + static_cast<f64>(eyeHeight()))),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
+
+    const i32 rawBrightness = m_world->getMaxLocalRawBrightness(pos); // 含 getSkyDarkening 时间衰减
+    const f32 f = static_cast<f32>(rawBrightness) / 15.0f;
+    // gamma：f=0→0, f=1→1, 中间值被压低（f=0.267→0.083），使"半暗"判定更敏感
+    const f32 f1 = f / (4.0f - 3.0f * f);
+    // ambientLight：下界=0.1（微弱环境光），主世界/末地=0.0（对齐 DimensionType.cpp:63/103/143）。
+    // IWorld 无 dimensionType 访问器，用 dimension() 推导避免新增虚函数改所有子类。
+    // 维度 id：主世界 OVERWORLD=0，下界 NETHER=-1，末地 THE_END=1（DimensionManager.hpp:64-70）。
+    // 下界/末地均 hasSkyLight=false，getMaxLocalRawBrightness 只返回 blockLight，此分支实际不影响
+    // 亡灵燃烧判定（无天空光维度无露天），但 ambientLight 须与 vanilla 一致以保其他光照判定正确。
+    const f32 ambientLight = (m_world->dimension() == -1) ? 0.1f : 0.0f;
+    // MathUtils::lerp(a,b,t) 参数顺序≠Mth.lerp(t,a,b)：Mth.lerp(ambient,f1,1.0) == lerp(f1,1.0,ambient)
+    return mc::math::lerp(f1, 1.0f, ambientLight);
 }
 
 void Entity::syncMetadataFromDataManager()
 {
-    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
-    m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
-    m_ticksFrozen = m_dataManager.get<i32>(DATA_TICKS_FROZEN_PARAM);
-    // 从数据管理器同步自定义名称（OptionalComponent：present + 纯文本）
-    {
-        const entity::OptionalComponentValue nameComp =
-            m_dataManager.get<entity::OptionalComponentValue>(DATA_CUSTOM_NAME_PARAM);
-        if (!nameComp.present || nameComp.text.empty()) {
-            m_customName = nullptr;
-        } else {
-            m_customName = std::make_unique<text::StringTextComponent>(nameComp.text);
-        }
-    }
-    m_customNameVisible = m_dataManager.get<bool>(DATA_CUSTOM_NAME_VISIBLE_PARAM);
-    m_silent = m_dataManager.get<bool>(DATA_SILENT_PARAM);
-    m_noGravity = m_dataManager.get<bool>(DATA_NO_GRAVITY_PARAM);
-    m_pose = m_dataManager.get<entity::PoseValue>(DATA_POSE_PARAM).value;
-    refreshDimensions();
+    // 第四批：flags/air/customName/customNameVisible/silent/noGravity/pose 七字段均已迁入
+    // ecs::EntityFlagsComponent / EntityStateComponent（真相源），DataParameter 退为同步镜像。
+    // 组件不从镜像回填，避免双写时序错乱。延续第二批 freeze / 第三批 health/arrows 模式。
+    // m_ticksFrozen 同理（FreezeComponent 真相源，DATA_TICKS_FROZEN_PARAM 退为镜像），
+    // 所有写入统一走 setTicksFrozen()（同时写组件 + DataParameter）。
 }
 
 void Entity::updateFallDistance()
 {
     // 更新摔落距离
-    if (!m_onGround && m_velocity.y < 0.0f) {
-        m_fallDistance -= m_velocity.y;
-    } else if (m_onGround && m_fallDistance > 0.0f) {
+    if (!m_builtIn.physicsState->m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
+        m_builtIn.physicsState->m_fallDistance -= m_builtIn.velocity->m_velocity.y;
+    } else if (m_builtIn.physicsState->m_onGround && m_builtIn.physicsState->m_fallDistance > 0.0f) {
         // 着地时触发踩上方块的 onFallenUpon 回调
         // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
         // 子类（如 PointedDripstoneBlock）可替代默认摔落伤害
         _handleLandingOnBlock();
-        m_fallDistance = 0.0f;
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
     }
 }
 
@@ -1084,30 +1096,31 @@ void Entity::_handleLandingOnBlock()
         return;
     }
     // 获取实体脚下方块
-    BlockPos landingPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(m_position.y) - 1,
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos landingPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(m_builtIn.stateVector->m_pos.y) - 1,
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* state = m_world->getBlockState(landingPos);
     if (state != nullptr) {
         // onFallenUpon 是非 const 方法，需要通过 getBlockMutable() 获取可变引用
-        state->getBlockMutable().onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+        state->getBlockMutable().onFallenUpon(
+            *m_world, landingPos, *state, *this, m_builtIn.physicsState->m_fallDistance);
     }
 }
 
 void Entity::update()
 {
     // 保存上一帧位置
-    m_prevPosition = m_position;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 }
 
 void Entity::move(f32 dx, f32 dy, f32 dz)
 {
-    m_prevPosition = m_position;
-    m_position.x += dx;
-    m_position.y += dy;
-    m_position.z += dz;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos.x += dx;
+    m_builtIn.stateVector->m_pos.y += dy;
+    m_builtIn.stateVector->m_pos.z += dz;
     reapplyPosition();
 }
 
@@ -1121,16 +1134,16 @@ void Entity::move(entity::MoverType type, const Vector3& delta)
 
 void Entity::rotate(f32 deltaYaw, f32 deltaPitch)
 {
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
-    m_yaw += deltaYaw;
-    m_pitch += deltaPitch;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
+    m_builtIn.rotation->m_rot.x += deltaYaw;
+    m_builtIn.rotation->m_rot.y += deltaPitch;
 
     // 限制俯仰角范围
-    m_pitch = std::clamp(m_pitch, -90.0f, 90.0f);
+    m_builtIn.rotation->m_rot.y = std::clamp(m_builtIn.rotation->m_rot.y, -90.0f, 90.0f);
 
     // 规范化偏航角到 [0, 360) 范围
-    m_yaw = math::wrapDegreesPositive(m_yaw);
+    m_builtIn.rotation->m_rot.x = math::wrapDegreesPositive(m_builtIn.rotation->m_rot.x);
 }
 
 /**
@@ -1150,9 +1163,9 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     // noClip 检查 - 无视碰撞的实体直接移动
     if (m_noClip) {
         // 无碰撞模式：直接更新位置，不检测碰撞
-        m_position.x += dx;
-        m_position.y += dy;
-        m_position.z += dz;
+        m_builtIn.stateVector->m_pos.x += dx;
+        m_builtIn.stateVector->m_pos.y += dy;
+        m_builtIn.stateVector->m_pos.z += dz;
         reapplyPosition();
 
         // 即使 noClip=true 也要触发方块碰撞
@@ -1168,8 +1181,8 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     }
 
     // 重置碰撞状态
-    m_collidedHorizontally = false;
-    m_collidedVertically = false;
+    m_builtIn.physicsState->m_collidedHorizontally = false;
+    m_builtIn.physicsState->m_collidedVertically = false;
 
     // 优先使用 World 的物理引擎
     PhysicsEngine* physics = physicsEngine();
@@ -1190,25 +1203,25 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
 
     // 从碰撞箱更新位置
     // 实体位置 = 碰撞箱底部中心
-    m_position = Vector3((entityBox.minX + entityBox.maxX) / 2.0f, // 中心X
-        entityBox.minY,                                            // 底部Y
-        (entityBox.minZ + entityBox.maxZ) / 2.0f                   // 中心Z
+    m_builtIn.stateVector->m_pos = Vector3((entityBox.minX + entityBox.maxX) / 2.0f, // 中心X
+        entityBox.minY,                                                              // 底部Y
+        (entityBox.minZ + entityBox.maxZ) / 2.0f                                     // 中心Z
     );
     reapplyPosition();
 
     // 更新碰撞状态（从物理引擎获取）
-    m_collidedHorizontally = physics->collidedHorizontally();
-    m_collidedVertically = physics->collidedVertically();
+    m_builtIn.physicsState->m_collidedHorizontally = physics->collidedHorizontally();
+    m_builtIn.physicsState->m_collidedVertically = physics->collidedVertically();
 
     // 更新地面状态
     // 优先使用"向下移动时发生垂直碰撞"的判定，避免纯接触检测抖动。
-    bool groundedByCollision = m_collidedVertically && desiredMovement.y < 0.0f;
+    bool groundedByCollision = m_builtIn.physicsState->m_collidedVertically && desiredMovement.y < 0.0f;
     bool groundedByContact = physics->isOnGround(entityBox);
-    bool wasOnGround = m_onGround;
-    m_onGround = groundedByCollision || groundedByContact;
+    bool wasOnGround = m_builtIn.physicsState->m_onGround;
+    m_builtIn.physicsState->m_onGround = groundedByCollision || groundedByContact;
 
     // 落地时清空攀爬位置
-    if (m_onGround && !wasOnGround) {
+    if (m_builtIn.physicsState->m_onGround && !wasOnGround) {
         m_lastClimbPos = std::nullopt;
     }
 
@@ -1216,15 +1229,15 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     // 注意：使用 MC 的 MathHelper.epsilonEquals 比较，阈值约 1e-7
     if (std::abs(desiredMovement.x - actualMovement.x) > math::EPSILON_COLLISION) {
         // X轴碰撞，清零X速度
-        m_velocity.x = 0.0f;
+        m_builtIn.velocity->m_velocity.x = 0.0f;
     }
     if (std::abs(desiredMovement.y - actualMovement.y) > math::EPSILON_COLLISION) {
         // Y轴碰撞，清零Y速度
-        m_velocity.y = 0.0f;
+        m_builtIn.velocity->m_velocity.y = 0.0f;
     }
     if (std::abs(desiredMovement.z - actualMovement.z) > math::EPSILON_COLLISION) {
         // Z轴碰撞，清零Z速度
-        m_velocity.z = 0.0f;
+        m_builtIn.velocity->m_velocity.z = 0.0f;
     }
 
     // 方块碰撞回调
@@ -1268,16 +1281,16 @@ void Entity::checkOnGround()
         groundProbe.minY -= 0.1f;                   // 向下延伸一点
         groundProbe.maxY = groundProbe.minY + 0.1f; // 扁平的检测区域
 
-        m_onGround = m_world->hasBlockCollision(groundProbe);
+        m_builtIn.physicsState->m_onGround = m_world->hasBlockCollision(groundProbe);
         return;
     }
 
     if (m_physicsEngine) {
-        m_onGround = m_physicsEngine->isOnGround(box);
+        m_builtIn.physicsState->m_onGround = m_physicsEngine->isOnGround(box);
         return;
     }
 
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 }
 
 void Entity::doBlockCollisions()
@@ -1290,10 +1303,10 @@ void Entity::doBlockCollisions()
 
     // MC Java: applyEffectsFromBlocks() - 记录方块碰撞前的火焰计时器
     // 用于判断方块碰撞是否点燃了实体，如果未被点燃且不处于燃烧状态，则设置火焰免疫期
-    i32 fireTicksBeforeCollision = m_fire;
+    i32 fireTicksBeforeCollision = getRemainingFireTicks();
 
     // 获取碰撞箱范围，稍微收缩避免边界精度问题
-    AxisAlignedBB box = m_boundingBox.shrink(0.001);
+    AxisAlignedBB box = m_builtIn.aabbShape->m_aabb.shrink(0.001);
     BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
         static_cast<i32>(std::floor(box.minY)),
         static_cast<i32>(std::floor(box.minZ)));
@@ -1322,7 +1335,7 @@ void Entity::doBlockCollisions()
                         isInsideBlock = true;
                     } else if (!insideShape.isEmpty()) {
                         // 精确路径：使用形状的 AABB 进行相交检测
-                        isInsideBlock = insideShape.intersects(m_boundingBox, pos.x, pos.y, pos.z);
+                        isInsideBlock = insideShape.intersects(m_builtIn.aabbShape->m_aabb, pos.x, pos.y, pos.z);
                     }
 
                     if (isInsideBlock) {
@@ -1354,7 +1367,7 @@ void Entity::doBlockCollisions()
     // MC Java: applyEffectsFromBlocks() - 方块碰撞后检查火焰免疫期
     // 如果实体不在燃烧，且方块碰撞没有增加火焰计时器，则设置火焰免疫期
     // 这防止实体刚离开火方块时被立即重新点燃
-    bool fireTicksIncreased = m_fire > fireTicksBeforeCollision;
+    bool fireTicksIncreased = getRemainingFireTicks() > fireTicksBeforeCollision;
     if (m_world != nullptr && !m_world->isClientSide() && !isOnFire() && !fireTicksIncreased) {
         setFireImmunityCooldown();
     }
@@ -1371,15 +1384,16 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
 
     // 获取实体脚下所在的方块位置
     // 使用碰撞箱底部的中心坐标
-    BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)), // 稍微向下偏移
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)), // 稍微向下偏移
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     // 派发自定义方块组件回调 - onStepOff
     // 检测实体是否离开了之前所站的方块
-    BlockPos prevBlockPos(static_cast<i32>(std::floor(m_prevPosition.x)),
-        static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f - (m_position.y - m_prevPosition.y))),
-        static_cast<i32>(std::floor(m_prevPosition.z)));
+    BlockPos prevBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_posPrev.x)),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f -
+            (m_builtIn.stateVector->m_pos.y - m_builtIn.stateVector->m_posPrev.y))),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_posPrev.z)));
     if (prevBlockPos != blockPos) {
         const BlockState* prevBlockState = m_world->getBlockState(prevBlockPos);
         if (prevBlockState != nullptr && !prevBlockState->isAir()) {
@@ -1413,7 +1427,7 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
 
         // 派发自定义方块组件回调 - onEntityFallOn
         // 仅当实体有下落距离时才触发
-        if (m_fallDistance > 0.0f) {
+        if (m_builtIn.physicsState->m_fallDistance > 0.0f) {
             auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
             std::string typeId = block.blockLocation().toString();
             if (blockReg.hasEntityFallOnCallback(typeId)) {
@@ -1424,14 +1438,14 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
                 event.blockZ = blockPos.z;
                 event.dimensionId = m_world->dimension();
                 event.entityId = id();
-                event.fallDistance = m_fallDistance;
+                event.fallDistance = m_builtIn.physicsState->m_fallDistance;
                 blockReg.dispatchEntityFallOn(typeId, event);
             }
         }
     }
 
     // 2. onEntityWalk 回调 - 当在地面行走时
-    if (m_onGround && !isSteppingCarefully()) {
+    if (m_builtIn.physicsState->m_onGround && !isSteppingCarefully()) {
         block.onEntityWalk(*blockState, *m_world, blockPos, *this);
 
         // 派发自定义方块组件回调 - onStepOn
@@ -1450,7 +1464,7 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
     }
 
     // 3. onInsideBlock 回调 - 遍历碰撞箱内所有方块
-    AxisAlignedBB box = m_boundingBox.shrink(0.001);
+    AxisAlignedBB box = m_builtIn.aabbShape->m_aabb.shrink(0.001);
     BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
         static_cast<i32>(std::floor(box.minY)),
         static_cast<i32>(std::floor(box.minZ)));
@@ -1478,14 +1492,14 @@ void Entity::applyPhysics(f32 /*deltaTime*/)
     // 注意：重力应该始终应用（除非 noGravity），碰撞检测会处理停止
 
     // 重力始终应用（除非 noGravity 标志为 true）
-    if (!m_noGravity) {
-        m_velocity.y -= physics::GRAVITY;
+    if (!hasNoGravity()) {
+        m_builtIn.velocity->m_velocity.y -= physics::GRAVITY;
     }
 
     // 应用空气阻力
-    m_velocity.x *= physics::DRAG_AIR;
-    m_velocity.y *= physics::DRAG_AIR;
-    m_velocity.z *= physics::DRAG_AIR;
+    m_builtIn.velocity->m_velocity.x *= physics::DRAG_AIR;
+    m_builtIn.velocity->m_velocity.y *= physics::DRAG_AIR;
+    m_builtIn.velocity->m_velocity.z *= physics::DRAG_AIR;
 
     // 注意：MC 物理是基于 tick 的，deltaTime 参数被忽略
 }
@@ -1917,7 +1931,9 @@ f64 Entity::getMountedYOffset() const
 Vector3 Entity::getRidingPosition() const
 {
     // 默认骑乘位置在实体顶部中心
-    return Vector3(m_position.x, m_position.y + static_cast<f32>(getMountedYOffset()), m_position.z);
+    return Vector3(m_builtIn.stateVector->m_pos.x,
+        m_builtIn.stateVector->m_pos.y + static_cast<f32>(getMountedYOffset()),
+        m_builtIn.stateVector->m_pos.z);
 }
 
 void Entity::updatePassengers()
@@ -1946,10 +1962,10 @@ void Entity::positionRider(Entity& passenger)
     }
 
     // 计算骑乘位置
-    f64 y = static_cast<f64>(m_position.y) + getMountedYOffset() + passenger.getYOffset();
+    f64 y = static_cast<f64>(m_builtIn.stateVector->m_pos.y) + getMountedYOffset() + passenger.getYOffset();
 
     // 设置乘客位置
-    passenger.setPosition(m_position.x, static_cast<f32>(y), m_position.z);
+    passenger.setPosition(m_builtIn.stateVector->m_pos.x, static_cast<f32>(y), m_builtIn.stateVector->m_pos.z);
 }
 
 void Entity::updateRidden()
@@ -1980,7 +1996,7 @@ void Entity::applyOrientationToEntity(Entity& passenger)
 {
     // 默认实现：同步旋转
     // 子类（如BoatEntity）可以重写此方法以限制旋转范围
-    passenger.setRotation(m_yaw, passenger.pitch());
+    passenger.setRotation(m_builtIn.rotation->m_rot.x, passenger.pitch());
 }
 
 bool Entity::canPassengerSteer() const
@@ -2119,8 +2135,8 @@ void Entity::clearFire()
 {
     // MC Java: setRemainingFireTicks(Math.min(0, getRemainingFireTicks()))
     // 保留负值（火焰免疫期倒计时），仅将正值清零
-    if (m_fire > 0) {
-        m_fire = 0;
+    if (getRemainingFireTicks() > 0) {
+        setRemainingFireTicks(0);
     }
 }
 
@@ -2148,21 +2164,22 @@ void Entity::setFireImmunityCooldown()
     // 基类 getFireImmuneTicks() 返回 0（无免疫期），Player 重写返回 20（1 秒）。
     i32 immuneTicks = getFireImmuneTicks();
     if (immuneTicks > 0) {
-        m_fire = -immuneTicks;
+        setRemainingFireTicks(-immuneTicks);
     }
 }
 
 std::string Entity::toString() const
 {
     std::stringstream ss;
-    ss << "Entity{id=" << m_id << ", type=" << getTypeId() << ", uuid=" << m_uuid << ", position=(" << m_position.x
-       << ", " << m_position.y << ", " << m_position.z << ")"
-       << ", velocity=(" << m_velocity.x << ", " << m_velocity.y << ", " << m_velocity.z << ")"
-       << ", onGround=" << m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
-       << ", flags=" << static_cast<u32>(m_flags) << ", air=" << m_air << ", customName=\""
-       << (m_customName ? m_customName->getUnformattedText() : "") << "\""
-       << ", customNameVisible=" << m_customNameVisible << ", silent=" << m_silent << ", noGravity=" << m_noGravity
-       << ", pose=" << static_cast<u32>(m_pose) << "}";
+    ss << "Entity{id=" << m_id << ", type=" << getTypeId() << ", uuid=" << m_uuid << ", position=("
+       << m_builtIn.stateVector->m_pos.x << ", " << m_builtIn.stateVector->m_pos.y << ", "
+       << m_builtIn.stateVector->m_pos.z << ")"
+       << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", "
+       << m_builtIn.velocity->m_velocity.z << ")"
+       << ", onGround=" << m_builtIn.physicsState->m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
+       << ", flags=" << static_cast<u32>(flags()) << ", air=" << air() << ", customName=\"" << customNameText() << "\""
+       << ", customNameVisible=" << isCustomNameVisible() << ", silent=" << isSilent()
+       << ", noGravity=" << hasNoGravity() << ", pose=" << static_cast<u32>(pose()) << "}";
     return ss.str();
 }
 
@@ -2173,9 +2190,9 @@ std::string Entity::toString() const
 bool Entity::attemptTeleport(f64 x, f64 y, f64 z, bool playEffects)
 {
     // 保存当前位置作为备份
-    f64 originalX = m_position.x;
-    f64 originalY = m_position.y;
-    f64 originalZ = m_position.z;
+    f64 originalX = m_builtIn.stateVector->m_pos.x;
+    f64 originalY = m_builtIn.stateVector->m_pos.y;
+    f64 originalZ = m_builtIn.stateVector->m_pos.z;
 
     // 如果正在骑乘，先下坐骑
     if (isRiding()) {
@@ -2237,9 +2254,9 @@ bool Entity::randomTeleport(f64 range, bool playEffects, bool avoidFluid)
         static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
     // 记录原位置用于音效
-    f64 originalX = m_position.x;
-    f64 originalY = m_position.y;
-    f64 originalZ = m_position.z;
+    f64 originalX = m_builtIn.stateVector->m_pos.x;
+    f64 originalY = m_builtIn.stateVector->m_pos.y;
+    f64 originalZ = m_builtIn.stateVector->m_pos.z;
 
     // 尝试最多 16 次传送
     constexpr i32 MAX_ATTEMPTS = 16;
@@ -2437,63 +2454,16 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
 {
     using namespace mc::entity::serialization;
 
-    // 位置 (Pos - double list)
-    nbt_helper::putDoubleList(tag,
-        nbt_keys::POS,
-        {static_cast<f64>(m_position.x), static_cast<f64>(m_position.y), static_cast<f64>(m_position.z)});
-
-    // 运动 (Motion - double list)
-    nbt_helper::putDoubleList(tag,
-        nbt_keys::MOTION,
-        {static_cast<f64>(m_velocity.x), static_cast<f64>(m_velocity.y), static_cast<f64>(m_velocity.z)});
-
-    // 旋转 (Rotation - float list: yaw, pitch)
-    nbt_helper::putFloatList(tag, nbt_keys::ROTATION, {m_yaw, m_pitch});
-
-    // 坠落距离
-    tag.put(nbt_keys::FALL_DISTANCE, m_fallDistance);
-
-    // 火焰剩余 tick
-    tag.put(nbt_keys::FIRE, static_cast<i16>(m_fire));
-
-    // 空气剩余 tick
-    tag.put(nbt_keys::AIR, static_cast<i16>(m_air));
-
-    // 地面标记 (byte 0/1)
-    tag.put(nbt_keys::ON_GROUND, static_cast<i8>(m_onGround ? 1 : 0));
-
-    // 无敌标记
-    tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
-
-    // 传送门冷却
-    tag.put(nbt_keys::PORTAL_COOLDOWN, m_portalCooldown);
-
-    // 冰冻计时器（仅当 > 0 时保存）
-    if (m_ticksFrozen > 0) {
-        tag.put(nbt_keys::TICKS_FROZEN, m_ticksFrozen);
-    }
-
-    // UUID (UUIDMost/UUIDLeast)
+    // UUID (UUIDMost/UUIDLeast) — 纯 OOP 基类字段，保留直写
     nbt_helper::putUuid(tag, m_uuid);
 
-    // 自定义名称
-    if (m_customName) {
-        tag.put(nbt_keys::CUSTOM_NAME, m_customName->getUnformattedText());
-    }
+    // 无敌标记 (byte 0/1) — 纯 OOP 基类字段，保留直写
+    tag.put(nbt_keys::INVULNERABLE, static_cast<i8>(m_invulnerable ? 1 : 0));
 
-    // 自定义名称可见 (byte 0/1)
-    tag.put(nbt_keys::CUSTOM_NAME_VISIBLE, static_cast<i8>(m_customNameVisible ? 1 : 0));
-
-    // 静默 (byte 0/1)
-    tag.put(nbt_keys::SILENT, static_cast<i8>(m_silent ? 1 : 0));
-
-    // 无重力 (byte 0/1)
-    tag.put(nbt_keys::NO_GRAVITY, static_cast<i8>(m_noGravity ? 1 : 0));
-
-    // 发光 (byte 0/1)
+    // 发光 (byte 0/1) — 纯 OOP 基类字段（m_glowing 未组件化），保留直写
     tag.put(nbt_keys::GLOWING, static_cast<i8>(m_glowing ? 1 : 0));
 
-    // Tags (字符串列表)
+    // Tags (字符串列表) — 纯 OOP 基类字段，保留直写
     if (!m_tags.empty()) {
         auto tagsList = std::make_unique<nbt::tags::string_list_tag>();
         for (const auto& tagStr : m_tags) {
@@ -2502,7 +2472,13 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
         tag.value.emplace(nbt_keys::TAGS, std::move(tagsList));
     }
 
-    // 调用子类特有数据序列化
+    // 已组件化字段（Pos/Motion/Rotation/FallDistance/Fire/Air/OnGround/PortalCooldown/
+    // TicksFrozen/CustomName/CustomNameVisible/Silent/NoGravity/FallFlying 共 14 字段，
+    // 9 个序列化器对）经组件序列化器注册表写出。批次6 子目标1。
+    components::ComponentSerializerRegistry::instance().saveAll(*this, tag);
+
+    // 调用子类特有数据序列化（剩余纯 OOP 字段：LivingEntity 的 HurtByTimestamp/
+    // ActiveEffects/Attributes；Player 的 GameMode/Food/XP/Inventory/...；MobEntity 全层）
     addAdditionalSaveData(tag);
 
     // Passengers (乘客列表)
@@ -2535,108 +2511,23 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
 {
     using namespace mc::entity::serialization;
 
-    // 位置 (Pos)
-    auto pos = nbt_helper::getDoubleList(tag, nbt_keys::POS);
-    if (pos.size() >= 3) {
-        m_position.x = static_cast<f32>(pos[0]);
-        m_position.y = static_cast<f32>(pos[1]);
-        m_position.z = static_cast<f32>(pos[2]);
-    }
-
-    // 运动 (Motion)
-    auto motion = nbt_helper::getDoubleList(tag, nbt_keys::MOTION);
-    if (motion.size() >= 3) {
-        // 运动分量限制在 ±10.0
-        m_velocity.x = static_cast<f32>(std::clamp(motion[0], -10.0, 10.0));
-        m_velocity.y = static_cast<f32>(std::clamp(motion[1], -10.0, 10.0));
-        m_velocity.z = static_cast<f32>(std::clamp(motion[2], -10.0, 10.0));
-    }
-
-    // 旋转 (Rotation)
-    auto rotation = nbt_helper::getFloatList(tag, nbt_keys::ROTATION);
-    if (rotation.size() >= 2) {
-        m_yaw = rotation[0];
-        m_pitch = rotation[1];
-    }
-
-    // 同步身体/头部旋转为 yaw（对齐 MC 1.21.11 Entity#load）
-    // MC 在加载 NBT 后会调用：
-    //   this.setYHeadRot(this.getYRot());
-    //   this.setYBodyRot(this.getYRot());
-    // 保证从存档/结构模板 NBT 加载的实体身体与头部朝向与 yaw 一致，
-    // 而不是保持字段构造初值 0。Entity 基类的 setYBodyRot/setYHeadRot
-    // 默认空实现，LivingEntity 子类重写后才会真正写入字段。
-    setYHeadRot(m_yaw);
-    setYBodyRot(m_yaw);
-
-    // 坠落距离
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::FALL_DISTANCE)) {
-        m_fallDistance = *val;
-    }
-
-    // 火焰
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::FIRE)) {
-        m_fire = *val;
-    }
-
-    // 空气
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AIR)) {
-        m_air = *val;
-    }
-
-    // 地面标记
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::ON_GROUND)) {
-        m_onGround = *val;
-    }
-
-    // 无敌
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::INVULNERABLE)) {
-        m_invulnerable = *val;
-    }
-
-    // 传送门冷却
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::PORTAL_COOLDOWN)) {
-        m_portalCooldown = *val;
-    }
-
-    // 冰冻计时器
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TICKS_FROZEN)) {
-        m_ticksFrozen = *val;
-        m_dataManager.set(DATA_TICKS_FROZEN_PARAM, m_ticksFrozen);
-    }
-
-    // UUID
+    // UUID — 纯 OOP 基类字段，保留直读
     std::string uuid = nbt_helper::getUuid(tag);
     if (!uuid.empty()) {
         m_uuid = uuid;
     }
 
-    // 自定义名称
-    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::CUSTOM_NAME)) {
-        setCustomName(*val);
+    // 无敌 — 纯 OOP 基类字段，保留直读
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::INVULNERABLE)) {
+        m_invulnerable = *val;
     }
 
-    // 自定义名称可见
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CUSTOM_NAME_VISIBLE)) {
-        m_customNameVisible = *val;
-    }
-
-    // 静默
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::SILENT)) {
-        m_silent = *val;
-    }
-
-    // 无重力
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::NO_GRAVITY)) {
-        m_noGravity = *val;
-    }
-
-    // 发光
+    // 发光 — 纯 OOP 基类字段（m_glowing 未组件化），保留直读
     if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::GLOWING)) {
         m_glowing = *val;
     }
 
-    // Tags
+    // Tags — 纯 OOP 基类字段，保留直读
     if (auto* tagsList = nbt_helper::tryGetList(tag, nbt_keys::TAGS)) {
         if (tagsList->element_id() == nbt::TagId::String) {
             auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(*tagsList);
@@ -2647,10 +2538,16 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
         }
     }
 
-    // 更新碰撞箱
+    // 已组件化字段（Pos/Motion/Rotation/FallDistance/Fire/Air/OnGround/PortalCooldown/
+    // TicksFrozen/CustomName/CustomNameVisible/Silent/NoGravity/FallFlying 共 14 字段）
+    // 经组件序列化器注册表读回。序列化器经 tryGetComponent 直写 Pos/Rotation/OnGround 组件，
+    // 与原直写 m_builtIn.* 语义一致。批次6 子目标1。
+    MC_TRY(components::ComponentSerializerRegistry::instance().loadAll(*this, tag));
+
+    // 更新碰撞箱（Pos 经 loadAll 直写组件后重建 AABB）
     reapplyPosition();
 
-    // 调用子类特有数据反序列化
+    // 调用子类特有数据反序列化（剩余纯 OOP 字段）
     return readAdditionalSaveData(tag);
 }
 

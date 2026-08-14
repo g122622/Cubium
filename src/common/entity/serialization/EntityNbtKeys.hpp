@@ -209,6 +209,68 @@ constexpr const char* LIFE = "Life";                    ///< 已存在时间（i
 constexpr const char* LIFE_TIME = "LifeTime";           ///< 总生命时间（i32，创建时一次性随机确定）
 constexpr const char* SHOT_AT_ANGLE = "ShotAtAngle";    ///< 是否从弩射出（i8 bool，对应 m_shotFromCrossbow）
 
+// ========== Projectile 族通用键 ==========
+// 参考 MC 1.21.11 Projectile.addAdditionalSaveData()/readAdditionalSaveData()。
+// owner UUID 格式说明：vanilla 1.21.11 已改用 EntityReference 单一 "Owner" 键（int[4] 或 UUID）。
+// 项目沿用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式（与既有 EvokerFangs/AreaEffectCloud 一致，
+// 零迁移成本），此为项目既有存档约定，非 vanilla 原版格式。
+
+constexpr const char* PROJECTILE_OWNER_UUID_MOST = "OwnerUUIDMost";   ///< 投掷物发射者 UUID 高 64 位
+constexpr const char* PROJECTILE_OWNER_UUID_LEAST = "OwnerUUIDLeast"; ///< 投掷物发射者 UUID 低 64 位
+constexpr const char* PROJECTILE_LEFT_OWNER = "LeftOwner";            ///< 是否已离开发射者碰撞箱（bool）
+constexpr const char* PROJECTILE_HAS_BEEN_SHOT = "HasBeenShot";       ///< 是否已发射（bool）
+
+// ========== AbstractArrow 键 ==========
+// 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData()/readAdditionalSaveData()。
+// 项目 AbstractArrow 持久化 8 字段（vanilla 11 字段中 SoundEvent/weapon 标 TODO 暂不持久化）。
+
+constexpr const char* ARROW_LIFE = "life";                ///< 在地里存活 tick（short）
+constexpr const char* ARROW_SHAKE = "shake";              ///< 抖动时间（byte）
+constexpr const char* ARROW_IN_GROUND = "inGround";       ///< 是否插在方块中（bool）
+constexpr const char* ARROW_PICKUP = "pickup";            ///< 拾取状态（byte：0/1/2）
+constexpr const char* ARROW_DAMAGE = "damage";            ///< 基础伤害（float）
+constexpr const char* ARROW_CRIT = "crit";                ///< 是否暴击（bool）
+constexpr const char* ARROW_PIERCE_LEVEL = "PierceLevel"; ///< 穿透等级（byte）
+constexpr const char* ARROW_ITEM = "item";                ///< 拾取物品堆（compound，ItemStack::toNbt）
+// TODO: ARROW_SOUND_EVENT / ARROW_WEAPON（vanilla 持久化，项目暂无对应字段，待补）
+
+// ========== ThrownTrident 键 ==========
+// 参考 MC 1.21.11 ThrownTrident.addAdditionalSaveData()/readAdditionalSaveData()。
+// loyalty 不存盘（从 item 忠诚附魔重算）；DealtDamage 存盘。
+
+constexpr const char* TRIDENT_ITEM = "Trident";             ///< 三叉戟物品（compound，ItemStack::toNbt）
+constexpr const char* TRIDENT_DEALT_DAMAGE = "DealtDamage"; ///< 是否已造成伤害（bool）
+
+// ========== Fireball 族键 ==========
+// 参考 MC 1.21.11 Fireball.addAdditionalSaveData()(Item) / WitherSkull(dangerous)。
+// 项目 FireballStateComponent 为 Fireball+WitherSkull 共用：m_explosionPower(Fireball)/m_blue(WitherSkull)。
+// 注意：vanilla Fireball 存 Item，ExplosionPower 是 LargeFireball(恶魂) 的键；项目 FireballEntity
+// 用 m_explosionPower 作爆炸威力，此为项目既有设计差异，沿用项目现状持久化 explosionPower。
+
+constexpr const char* FIREBALL_EXPLOSION_POWER = "ExplosionPower"; ///< 火球爆炸威力（byte，项目用 i32）
+constexpr const char* WITHER_SKULL_DANGEROUS = "dangerous";        ///< 凋灵之首是否蓝色（bool）
+
+// ========== DamagingProjectile 键 ==========
+// 参考 MC 1.21.11 AbstractHurtingProjectile.addAdditionalSaveData()(acceleration_power)。
+
+constexpr const char* ACCELERATION_POWER = "acceleration_power"; ///< 加速力（double，vanilla 默认 0.1）
+
+// ========== ShulkerBullet 键 ==========
+// 参考 MC 1.21.11 ShulkerBullet.addAdditionalSaveData()/readAdditionalSaveData()。
+
+constexpr const char* SHULKER_BULLET_TARGET = "Target"; ///< 目标实体 UUID
+constexpr const char* SHULKER_BULLET_DIR = "Dir";       ///< 当前移动方向（byte，Direction legacy id）
+constexpr const char* SHULKER_BULLET_STEPS = "Steps";   ///< 飞行步数（int）
+constexpr const char* SHULKER_BULLET_TXD = "TXD";       ///< 目标增量 X（double）
+constexpr const char* SHULKER_BULLET_TYD = "TYD";       ///< 目标增量 Y（double）
+constexpr const char* SHULKER_BULLET_TZD = "TZD";       ///< 目标增量 Z（double）
+
+// ========== EyeOfEnder 键 ==========
+// 参考 MC 1.21.11 EyeOfEnder.addAdditionalSaveData()(Item，不调 super 故不存 Owner)。
+// 项目 EyeOfEnderEntity 直接继承 Entity 无 ProjectileOwnerComponent，与 vanilla 断链语义一致。
+
+constexpr const char* EYE_OF_ENDER_ITEM = "Item"; ///< 末影之眼物品（compound，ItemStack::toNbt）
+
 // ========== Player 键 ==========
 
 constexpr const char* PLAYER_GAME_TYPE = "playerGameType";

@@ -41,8 +41,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry 实体注册表（ECS）
      */
-    AmbientEntity(EntityInstanceId id);
+    AmbientEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~AmbientEntity() override = default;
 
     /// 本类继承链标识（parent = MobEntity::classInfo()）。见 Entity::classInfo()。

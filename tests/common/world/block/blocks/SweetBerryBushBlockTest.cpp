@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -238,7 +239,7 @@ private:
 class TestLivingEntity : public LivingEntity {
 public:
     explicit TestLivingEntity(const std::string& typeId = "minecraft:player")
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         setTypeId(typeId);
         setHealth(maxHealth());
@@ -253,7 +254,7 @@ public:
 class TestFoxEntity : public LivingEntity {
 public:
     TestFoxEntity()
-        : LivingEntity(EntityInstanceId(2))
+        : LivingEntity(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry())
     {
         setTypeId("minecraft:fox");
         setHealth(maxHealth());
@@ -266,7 +267,7 @@ public:
 class TestBeeEntity : public LivingEntity {
 public:
     TestBeeEntity()
-        : LivingEntity(EntityInstanceId(3))
+        : LivingEntity(EntityInstanceId(3), nullptr, mc::test::testEcsRegistry())
     {
         setTypeId("minecraft:bee");
         setHealth(maxHealth());

@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -198,10 +199,17 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
             world.setBlockState(pos, airState, 2);
         }
 
+        // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+        auto* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
         // 为每个蛋生成一只小海龟
         for (i32 i = 0; i < eggs; ++i) {
-            auto turtle = std::make_unique<TurtleEntity>(EntityInstanceId(0));
+            auto turtle = std::make_unique<TurtleEntity>(EntityInstanceId(0), *registry);
             if (turtle) {
+                turtle->setTypeId(entity::EntityTypeKeys::TURTLE); // 工厂绕过补救：直接构造缺 typeId
                 // 设置为幼体（-24000 ticks = 20分钟）
                 turtle->setChild(true);
 

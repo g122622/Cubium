@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include "common/item/Items.hpp"
@@ -223,7 +224,7 @@ TEST_F(ShearsEntityInteractionTest, SheepWoolColorMappingReturnsWhiteForInvalid)
 
 TEST_F(ShearsEntityInteractionTest, SheepImplementsIShearable)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证羊实现了 IShearable 接口
     auto* shearable = dynamic_cast<entity::IShearable*>(&sheep);
@@ -232,7 +233,7 @@ TEST_F(ShearsEntityInteractionTest, SheepImplementsIShearable)
 
 TEST_F(ShearsEntityInteractionTest, SheepIsShearableWhenAdultAndNotSheared)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 成年且未剪毛的羊可以被剪
     sheep.setChild(false);
@@ -243,7 +244,7 @@ TEST_F(ShearsEntityInteractionTest, SheepIsShearableWhenAdultAndNotSheared)
 
 TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenSheared)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     sheep.setChild(false);
     sheep.setSheared(true);
@@ -253,7 +254,7 @@ TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenSheared)
 
 TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenChild)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     sheep.setChild(true);
     sheep.setSheared(false);
@@ -263,7 +264,7 @@ TEST_F(ShearsEntityInteractionTest, SheepNotShearableWhenChild)
 
 TEST_F(ShearsEntityInteractionTest, SheepShearReturnsWoolItems)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(false);
     sheep.setSheared(false);
     sheep.setFleeceColor(DyeColor::White);
@@ -288,7 +289,7 @@ TEST_F(ShearsEntityInteractionTest, SheepShearReturnsWoolItems)
 
 TEST_F(ShearsEntityInteractionTest, SheepShearSetsShearedFlag)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(false);
     sheep.setSheared(false);
 
@@ -301,7 +302,7 @@ TEST_F(ShearsEntityInteractionTest, SheepShearSetsShearedFlag)
 
 TEST_F(ShearsEntityInteractionTest, SheepCannotBeShearedTwice)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(false);
     sheep.setSheared(false);
 
@@ -317,7 +318,7 @@ TEST_F(ShearsEntityInteractionTest, SheepCannotBeShearedTwice)
 
 TEST_F(ShearsEntityInteractionTest, SheepColoredWoolDrops)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(false);
     sheep.setSheared(false);
     sheep.setFleeceColor(DyeColor::Red);
@@ -341,7 +342,7 @@ TEST_F(ShearsEntityInteractionTest, SheepColoredWoolDrops)
 
 TEST_F(ShearsEntityInteractionTest, SheepFleeceColorDefaultIsWhite)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认羊毛颜色应该是白色
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::White);
@@ -349,7 +350,7 @@ TEST_F(ShearsEntityInteractionTest, SheepFleeceColorDefaultIsWhite)
 
 TEST_F(ShearsEntityInteractionTest, SheepFleeceColorCanBeSet)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     sheep.setFleeceColor(DyeColor::Pink);
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::Pink);

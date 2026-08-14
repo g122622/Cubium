@@ -25,6 +25,7 @@
 // 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
 
 #include "common/core/GameDirectory.hpp"
+#include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -55,6 +56,15 @@ class WorldGenRegistryEnvironment : public ::testing::Environment {
 public:
     void SetUp() override
     {
+        // 注册组件序列化器（进程单例，幂等）。Entity::writeToNBT/readFromNBT 经
+        // ComponentSerializerRegistry::saveAll/loadAll 把已 ECS 组件化的字段（Pos/Motion/
+        // Rotation/Health/Equipment 等 13+ 字段）序列化到 NBT。未注册时 saveAll/loadAll 遍历空
+        // m_entries 静默空转，实体的组件化字段不写不读，NBT 往返测试（装备/位置持久化等）会静默
+        // 丢字段。此注册不依赖数据包/方块注册表，放最前无条件执行，确保任何环境下的测试都能
+        // 正确序列化组件字段。原先各测试需自行调 VanillaEntities::registerAll() 才间接触发，
+        // 漏调即静默失败；集中到全局环境根治此类 setup 陷阱。
+        mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {
             return;

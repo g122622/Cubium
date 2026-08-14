@@ -40,7 +40,7 @@ namespace {
 // 测试用 mock 世界
 // ============================================================================
 
-class MutableEquipmentTestWorld final : public test::BaseTestWorld {
+class MutableEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -62,7 +62,7 @@ public:
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerData();
         registerAttributes();
@@ -77,7 +77,7 @@ public:
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(2))
+        : MobEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -367,7 +367,7 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<MutableEquipmentTestWorld>();
-        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(10), "TestPlayer");
+        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(10), "TestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(m_world.get());
     }
 

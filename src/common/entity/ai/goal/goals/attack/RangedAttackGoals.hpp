@@ -120,7 +120,17 @@ public:
      *
      * @param interval 新的最小攻击间隔（ticks）
      */
-    void setMinAttackInterval(i32 interval) { m_attackIntervalMin = interval; }
+    void setMinAttackInterval(i32 interval)
+    {
+        m_attackIntervalMin = interval;
+        // 保护 max>=min 不变量：performAttack 用 nextInt(max-min+1) 计算冷却，
+        // 若新 min > 构造时硬编码的 max（如沼骸 min=50/70 > 默认 max=40），
+        // max-min+1 会变为非正数触发 nextInt 的 MC_ASSERT_RELEASE(bound>0) 断言。
+        // 此时把 max 抬到 min，使 nextInt(1) 返回 0（冷却=min，确定性）。
+        if (m_attackIntervalMax < m_attackIntervalMin) {
+            m_attackIntervalMax = m_attackIntervalMin;
+        }
+    }
 
 protected:
     void performAttack(LivingEntity* target, f32 charge) override;

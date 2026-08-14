@@ -39,7 +39,7 @@ namespace {
 /**
  * @brief 测试用世界实现
  */
-class WitchTestWorld final : public test::BaseTestWorld {
+class WitchTestWorld final : public mc::test::BaseTestWorld {
 public:
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
@@ -79,7 +79,7 @@ private:
 
 TEST(WitchEntityTest, Construction)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证女巫尺寸
     EXPECT_FLOAT_EQ(witch.width(), 0.6f);
@@ -93,14 +93,14 @@ TEST(WitchEntityTest, Construction)
 
 TEST(WitchEntityTest, EyeHeightCorrect)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
     // MC 1.16.5: 女巫眼睛高度为 1.62
     EXPECT_FLOAT_EQ(witch.eyeHeight(), 1.62f);
 }
 
 TEST(WitchEntityTest, DoesNotBurnInDaylight)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
     // MC 1.16.5: 女巫不在阳光下燃烧
     EXPECT_FALSE(witch.shouldBurnInDaylight());
 }
@@ -109,7 +109,7 @@ TEST(WitchEntityTest, DoesNotBurnInDaylight)
 
 TEST(WitchEntityTest, DrinkingStateCanBeSet)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(witch.isDrinking());
 
@@ -122,7 +122,7 @@ TEST(WitchEntityTest, DrinkingStateCanBeSet)
 
 TEST(WitchEntityTest, DrinkTimerCanBeSet)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     witch.setDrinkTimer(32);
     EXPECT_EQ(witch.getDrinkTimer(), 32);
@@ -133,7 +133,7 @@ TEST(WitchEntityTest, DrinkTimerCanBeSet)
 
 TEST(WitchEntityTest, AttackCooldownCanBeReset)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     witch.resetAttackCooldown();
     EXPECT_EQ(witch.getAttackCooldown(), 60); // 3秒 = 60 ticks
@@ -143,7 +143,7 @@ TEST(WitchEntityTest, AttackCooldownCanBeReset)
 
 TEST(WitchEntityTest, InstantHealingRestoresHealth)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 设置初始生命值
     witch.setHealth(10.0f);
@@ -156,7 +156,7 @@ TEST(WitchEntityTest, InstantHealingRestoresHealth)
 
 TEST(WitchEntityTest, SpeedEffectCanBeAdded)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 添加速度效果
     entity::effect::EffectInstance speedEffect(entity::effect::EffectType::Speed,
@@ -175,7 +175,7 @@ TEST(WitchEntityTest, SpeedEffectCanBeAdded)
 
 TEST(WitchEntityTest, WaterBreathingEffectCanBeAdded)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 添加水肺效果
     entity::effect::EffectInstance waterBreathingEffect(
@@ -188,7 +188,7 @@ TEST(WitchEntityTest, WaterBreathingEffectCanBeAdded)
 
 TEST(WitchEntityTest, FireResistanceEffectCanBeAdded)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 添加抗火效果
     entity::effect::EffectInstance fireResistanceEffect(
@@ -203,7 +203,7 @@ TEST(WitchEntityTest, FireResistanceEffectCanBeAdded)
 
 TEST(WitchEntityTest, MagicDamageReducedBy85Percent)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 创建魔法伤害来源
     auto magicSource = DamageSources::magic();
@@ -217,7 +217,7 @@ TEST(WitchEntityTest, MagicDamageReducedBy85Percent)
 
 TEST(WitchEntityTest, ImmuneToSelfDamage)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 创建来自女巫自己的伤害
     EntityDamageSource selfSource(DamageType::Magic, &witch);
@@ -232,7 +232,7 @@ TEST(WitchEntityTest, ImmuneToSelfDamage)
 
 TEST(WitchEntityTest, ConstantsAreCorrect)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证常量符合 MC 1.16.5
     // ATTACK_COOLDOWN = 60 (3秒)
@@ -244,7 +244,7 @@ TEST(WitchEntityTest, ConstantsAreCorrect)
 
 TEST(WitchEntityTest, CreateFactory)
 {
-    auto entity = WitchEntity::create(nullptr);
+    auto entity = WitchEntity::create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entity, nullptr);
 
     // 验证创建的是 WitchEntity
@@ -256,7 +256,7 @@ TEST(WitchEntityTest, CreateFactory)
 
 TEST(WitchEntityTest, ImplementsIRangedAttackMob)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证女巫实现了 IRangedAttackMob 接口
     auto* rangedAttacker = dynamic_cast<entity::IRangedAttackMob*>(&witch);
@@ -277,7 +277,7 @@ TEST(WitchEntityTest, ImplementsIRangedAttackMob)
 
 TEST(WitchEntityTest, DrinkingPotionAddsSpeedPenaltyModifier)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始移动速度应为 0.25
     f64 initialSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
@@ -297,7 +297,7 @@ TEST(WitchEntityTest, DrinkingPotionAddsSpeedPenaltyModifier)
 
 TEST(WitchEntityTest, FinishingDrinkingRemovesSpeedPenaltyModifier)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 添加速度修饰符
     entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
@@ -321,7 +321,7 @@ TEST(WitchEntityTest, FinishingDrinkingRemovesSpeedPenaltyModifier)
 
 TEST(WitchEntityTest, SpeedPenaltyModifierUsesAdditionOperation)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证修饰符使用 Addition 操作（值直接相加，而非乘法）
     entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
@@ -346,7 +346,7 @@ TEST(WitchEntityTest, SpeedPenaltyUUIDIsCorrect)
 
 TEST(WitchEntityTest, SelectAttackPotionType_ReturnsHarmingByDefault)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认情况：目标无特殊状态，应该返回伤害药水
     // 注意：这需要 Mock LivingEntity，这里只测试基本逻辑
@@ -355,7 +355,7 @@ TEST(WitchEntityTest, SelectAttackPotionType_ReturnsHarmingByDefault)
 
 TEST(WitchEntityTest, AttackCooldownCorrectValue)
 {
-    WitchEntity witch(EntityInstanceId(1));
+    WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // MC 1.16.5: 女巫攻击冷却为 60 ticks (3秒)
     EXPECT_EQ(witch.getAttackInterval(), 60);

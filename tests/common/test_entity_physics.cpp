@@ -24,6 +24,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "entity/attribute/AttributeMap.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/core/Entity.hpp"
@@ -45,7 +46,7 @@ using namespace mc;
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity(EntityInstanceId id = 1)
-        : LivingEntity(id, nullptr)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
     {
         // 设置默认属性
         setHealth(20.0f);
@@ -285,7 +286,7 @@ TEST(KnockbackCalculation, GroundKnockbackFormula)
 TEST(PlayerPoseWidth, SleepingWidth)
 {
     // Sleeping姿态宽度应为 0.2
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(player.getDimensions(EntityPose::Sleeping).width(), 0.2f);
 }
 

@@ -1243,7 +1243,7 @@ protected:
 TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithChestMenu_CountsAsOpener)
 {
     // 场景：玩家打开了此箱子的 ChestContainer，_recheckOpeners 应将其计为打开者
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1275,7 +1275,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithOtherContainer_CountsAsClo
 {
     // 场景：玩家打开了熔炉等其他容器的菜单（非 ChestContainer），
     // _recheckOpeners 不应将其计为此箱子的打开者
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1307,7 +1307,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithNoMenu_CountsAsClosed)
 {
     // 场景：玩家在箱子附近但没有打开任何容器菜单，
     // _recheckOpeners 不应将其计为打开者
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
 
     // 玩家没有设置 openContainerMenu（默认 nullptr）
@@ -1327,7 +1327,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithNoMenu_CountsAsClosed)
 TEST_F(ChestEntityOwnContainerTest, Recheck_SpectatorPlayer_NotCounted)
 {
     // 场景：旁观者玩家即使打开了此箱子的菜单也不应被计入
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f);
     player->setGameMode(GameMode::Spectator);
 
@@ -1353,7 +1353,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerOutOfRange_NotCounted)
 {
     // 场景：玩家打开了此箱子的菜单但走远了（超过 MAX_ACCESS_DISTANCE=8格），
     // _recheckOpeners 不应将其计为打开者
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(50.0f, 64.5f, 50.0f); // 远离箱子
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1377,7 +1377,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerOutOfRange_NotCounted)
 TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerClosesMenu_CountsAsClosed)
 {
     // 场景：玩家打开箱子后关闭菜单，_recheckOpeners 应检测到并修正计数
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f);
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1411,7 +1411,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_DoubleChest_PlayerOpensDoubleChest)
     auto chestB = std::make_unique<ChestEntity>(BlockPos(1, 64, 0));
     chestB->setWorld(&world_);
 
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f);
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1440,10 +1440,10 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_DoubleChest_PlayerOpensDoubleChest)
 TEST_F(ChestEntityOwnContainerTest, Recheck_MultiplePlayers_OnlyChestUsersCounted)
 {
     // 场景：两个玩家在箱子附近，一个打开了此箱子，一个打开了其他容器
-    auto playerA = std::make_unique<Player>(1, "PlayerA");
+    auto playerA = std::make_unique<Player>(1, "PlayerA", mc::test::testEcsRegistry());
     playerA->setPosition(0.5f, 64.5f, 0.5f);
 
-    auto playerB = std::make_unique<Player>(2, "PlayerB");
+    auto playerB = std::make_unique<Player>(2, "PlayerB", mc::test::testEcsRegistry());
     playerB->setPosition(1.5f, 64.5f, 0.5f);
 
     auto inventoryA = std::make_unique<PlayerInventory>(playerA.get());
@@ -1479,7 +1479,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_SameInventoryPointer_SingleChest)
     // 场景：验证单箱场景下指针比较的正确性
     // ChestContainer 持有的 getChestInventory() 应等于 &chest_->m_inventory
     // 但因为 m_inventory 是 private，我们通过 getInventory() 验证
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f);
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());
@@ -1509,7 +1509,7 @@ TEST_F(ChestEntityOwnContainerTest, Recheck_OtherChestInventory_NotCounted)
     // 场景：玩家打开了另一个箱子（不同位置）的菜单，不应被计为此箱子的打开者
     auto otherChest = std::make_unique<ChestEntity>(BlockPos(100, 64, 100));
 
-    auto player = std::make_unique<Player>(1, "TestPlayer");
+    auto player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry());
     player->setPosition(0.5f, 64.5f, 0.5f); // 在当前箱子附近
 
     auto playerInventory = std::make_unique<PlayerInventory>(player.get());

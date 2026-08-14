@@ -60,7 +60,12 @@ ItemActionResult WindChargeItem::onItemRightClick(IWorld& world, Player& player,
     }
 
     // 创建风弹弹射物实体
-    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return ItemActionResult::fail(heldStack);
+    }
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0), *registry);
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
@@ -102,7 +107,12 @@ std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& w
     f32 directionY,
     f32 directionZ) const
 {
-    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityInstanceId(0), *registry);
     entity->setWorld(&world);
     entity->setPosition(position.x, position.y, position.z);
     entity->setTypeId(entity::EntityTypeKeys::WIND_CHARGE);

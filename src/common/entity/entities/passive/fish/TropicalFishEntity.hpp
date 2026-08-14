@@ -69,8 +69,9 @@ public:
     /**
      * @brief 构造热带鱼实体
      * @param id 实体 ID
+     * @param registry 实体注册表（ECS）
      */
-    TropicalFishEntity(EntityInstanceId id);
+    TropicalFishEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~TropicalFishEntity() override = default;
 
     TropicalFishEntity(const TropicalFishEntity&) = delete;
@@ -86,7 +87,7 @@ public:
     /**
      * @brief 创建热带鱼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取变种 ID

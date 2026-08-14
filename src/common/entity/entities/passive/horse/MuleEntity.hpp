@@ -44,7 +44,7 @@ public:
      * @brief 构造骡实体
      * @param id 实体 ID
      */
-    MuleEntity(EntityInstanceId id);
+    MuleEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~MuleEntity() override = default;
 
     MuleEntity(const MuleEntity&) = delete;
@@ -55,7 +55,7 @@ public:
     /**
      * @brief 创建骡实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 骡不能繁殖

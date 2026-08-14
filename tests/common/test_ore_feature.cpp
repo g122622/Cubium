@@ -40,7 +40,7 @@ namespace state = mc::world::gen::feature::state;
 
 namespace {
 // BaseTestWorld 默认构造为 protected，派生一个 public 构造的测试世界供采样调用。
-class OreTestWorld : public test::BaseTestWorld {
+class OreTestWorld : public mc::test::BaseTestWorld {
 public:
     OreTestWorld() = default;
 };

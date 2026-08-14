@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/monster/illager/EvokerEntity.hpp"
 #include "common/entity/entities/monster/illager/IllusionerEntity.hpp"
@@ -42,7 +43,7 @@ TEST(SpellcastingIllagerSupportTypesTest, IllagerSpellcastersInheritSharedBase)
 
 TEST(SpellcastingIllagerSupportTypesTest, EvokerCastingStateUsesSharedSpellTicks)
 {
-    EvokerEntity evoker(EntityInstanceId(1));
+    EvokerEntity evoker(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     evoker.setSpellType(SpellcastingIllagerEntity::SpellType::Fangs);
     evoker.setSpellTicks(40);
@@ -56,7 +57,7 @@ TEST(SpellcastingIllagerSupportTypesTest, EvokerCastingStateUsesSharedSpellTicks
 
 TEST(SpellcastingIllagerSupportTypesTest, IllusionerSpellcastingAndAttributesAreInitialized)
 {
-    IllusionerEntity illusioner(EntityInstanceId(2));
+    IllusionerEntity illusioner(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     // 验证施法状态
     EXPECT_FALSE(illusioner.isSpellcasting());
@@ -76,7 +77,7 @@ TEST(SpellcastingIllagerSupportTypesTest, IllusionerSpellcastingAndAttributesAre
 
 TEST(SpellcastingIllagerSupportTypesTest, IllusionerImplementsIRangedAttackMob)
 {
-    IllusionerEntity illusioner(EntityInstanceId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证幻术师实现了 IRangedAttackMob 接口
     auto* rangedAttacker = dynamic_cast<entity::IRangedAttackMob*>(&illusioner);
@@ -96,7 +97,7 @@ TEST(SpellcastingIllagerSupportTypesTest, IllusionerImplementsIRangedAttackMob)
 
 TEST(SpellcastingIllagerSupportTypesTest, IllusionerEyeHeight)
 {
-    IllusionerEntity illusioner(EntityInstanceId(1));
+    IllusionerEntity illusioner(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(illusioner.eyeHeight(), 1.62f);
 }
 

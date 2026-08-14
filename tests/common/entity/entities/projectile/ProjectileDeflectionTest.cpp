@@ -51,7 +51,7 @@ using entity::RayTraceResultType;
 class CountingProjectile : public entity::ProjectileEntity {
 public:
     explicit CountingProjectile(EntityInstanceId id)
-        : ProjectileEntity(id)
+        : ProjectileEntity(id, mc::test::testEcsRegistry())
     {}
 
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:arrow"; }
@@ -68,7 +68,7 @@ protected:
 class DeflectingEntity : public Entity {
 public:
     explicit DeflectingEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {
         setTypeId("minecraft:shulker");
     }
@@ -85,7 +85,7 @@ public:
 class NonDeflectingEntity : public Entity {
 public:
     explicit NonDeflectingEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {
         setTypeId("minecraft:zombie");
     }
@@ -102,7 +102,7 @@ public:
 class CustomDeflectionEntity : public Entity {
 public:
     explicit CustomDeflectionEntity(EntityInstanceId id)
-        : Entity(id)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {
         setTypeId("minecraft:custom_deflector");
     }
@@ -123,7 +123,7 @@ public:
 /**
  * @brief 偏转测试专用世界
  */
-class DeflectionTestWorld : public test::BaseTestWorld {
+class DeflectionTestWorld : public mc::test::BaseTestWorld {
 public:
     DeflectionTestWorld() = default;
 
@@ -216,7 +216,7 @@ TEST_F(ProjectileDeflectionTest, DefaultDeflectionReverseForTaggedEntity)
 TEST_F(ProjectileDeflectionTest, BreezeDeflectsNonWindChargeProjectiles)
 {
     // 旋风人偏转非风弹投射物
-    BreezeEntity breeze(EntityInstanceId(1));
+    BreezeEntity breeze(EntityInstanceId(1), mc::test::testEcsRegistry());
     breeze.setTypeId("minecraft:breeze");
     breeze.setWorld(m_world.get());
     CountingProjectile projectile(EntityInstanceId(2));
@@ -228,9 +228,9 @@ TEST_F(ProjectileDeflectionTest, BreezeDeflectsNonWindChargeProjectiles)
 TEST_F(ProjectileDeflectionTest, BreezeDoesNotDeflectWindCharge)
 {
     // 旋风人不偏转风弹
-    BreezeEntity breeze(EntityInstanceId(1));
+    BreezeEntity breeze(EntityInstanceId(1), mc::test::testEcsRegistry());
     breeze.setWorld(m_world.get());
-    entity::WindChargeEntity windCharge(EntityInstanceId(2));
+    entity::WindChargeEntity windCharge(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     ProjectileDeflection result = breeze.deflection(windCharge);
     EXPECT_EQ(result, ProjectileDeflection::None);
@@ -422,7 +422,7 @@ TEST_F(ProjectileDeflectionTest, DeflectCallsOnDeflection)
     class DeflectionTrackingProjectile : public entity::ProjectileEntity {
     public:
         explicit DeflectionTrackingProjectile(EntityInstanceId id)
-            : ProjectileEntity(id)
+            : ProjectileEntity(id, mc::test::testEcsRegistry())
         {}
 
         [[nodiscard]] std::string getTypeId() const override { return "minecraft:arrow"; }

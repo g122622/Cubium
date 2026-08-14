@@ -35,6 +35,8 @@
 #include "entity/entities/passive/ambient/BatEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity::ai::goal;
 
@@ -45,7 +47,7 @@ protected:
     void SetUp() override
     {
         // 创建蝙蝠实体
-        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { bat.reset(); }
@@ -101,7 +103,7 @@ class BatRandomFlyGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BatRandomFlyGoal>(bat.get());
     }
 
@@ -173,7 +175,7 @@ class BatRestGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         goal = std::make_unique<BatRestGoal>(bat.get());
     }
 
@@ -263,7 +265,7 @@ class BatGoalsIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bat = std::make_unique<BatEntity>(EntityInstanceId(0));
+        bat = std::make_unique<BatEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
         flyGoal = std::make_unique<BatRandomFlyGoal>(bat.get());
         restGoal = std::make_unique<BatRestGoal>(bat.get());
     }

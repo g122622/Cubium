@@ -116,7 +116,7 @@ namespace {
 // - spawnEntity() 捕获生成的 ItemEntity（用于 dropPreservedEquipment 集成测试）
 // - hasChunk() 返回 true
 
-class OfferFlowerTestWorld final : public test::BaseTestWorld {
+class OfferFlowerTestWorld final : public mc::test::BaseTestWorld {
 public:
     OfferFlowerTestWorld() = default;
 
@@ -153,7 +153,7 @@ private:
 /// 创建铁傀儡并设置世界和位置
 std::unique_ptr<IronGolemEntity> createIronGolem(OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setTypeId(entity::EntityTypeKeys::IRON_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);
@@ -164,7 +164,7 @@ std::unique_ptr<IronGolemEntity> createIronGolem(OfferFlowerTestWorld& world, f3
 std::unique_ptr<CopperGolemEntity> createCopperGolem(
     EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto golem = std::make_unique<CopperGolemEntity>(id);
+    auto golem = std::make_unique<CopperGolemEntity>(id, mc::test::testEcsRegistry());
     golem->setTypeId(entity::EntityTypeKeys::COPPER_GOLEM);
     golem->setWorld(&world);
     golem->setPosition(x, y, z);
@@ -175,7 +175,7 @@ std::unique_ptr<CopperGolemEntity> createCopperGolem(
 std::unique_ptr<entity::VillagerEntity> createVillager(
     EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto villager = std::make_unique<entity::VillagerEntity>(id);
+    auto villager = std::make_unique<entity::VillagerEntity>(id, mc::test::testEcsRegistry());
     villager->setTypeId(entity::EntityTypeKeys::VILLAGER);
     villager->setWorld(&world);
     villager->setPosition(x, y, z);
@@ -186,7 +186,7 @@ std::unique_ptr<entity::VillagerEntity> createVillager(
 std::unique_ptr<Player> createPlayer(
     EntityInstanceId id, OfferFlowerTestWorld& world, f32 x = 0.0f, f32 y = 64.0f, f32 z = 0.0f)
 {
-    auto player = std::make_unique<Player>(id, std::string("TestPlayer"));
+    auto player = std::make_unique<Player>(id, std::string("TestPlayer"), mc::test::testEcsRegistry());
     player->setTypeId(entity::EntityTypeKeys::PLAYER);
     player->setWorld(&world);
     player->setPosition(x, y, z);

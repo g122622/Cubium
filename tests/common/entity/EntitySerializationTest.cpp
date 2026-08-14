@@ -1,3 +1,4 @@
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
@@ -60,6 +61,10 @@ public:
     const PhysicsEngine* physicsEngine() const override { return nullptr; }
     world::tick::TickManager& tickManager() override { return m_tickManager; }
     const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+    // attachPassengers 经 world.entityRegistry() 取 ECS registry 反序列化乘客，
+    // 须返回测试 registry（与实体构造所用一致），否则 MC_ASSERT_RELEASE(nullptr) 崩溃。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
     DimensionId dimension() const override { return 0; }
     u64 seed() const override { return 0; }
     u64 currentTick() const override { return 0; }
@@ -86,7 +91,9 @@ void registerTestEntityType()
     entity::EntityRegistry::instance().clear();
     auto registerResult = entity::EntityRegistry::instance().registerType("test:entity",
         entity::EntityType::Builder(
-            [](IWorld* world) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world); },
+            [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                return std::make_unique<Entity>(0, world, registry);
+            },
             entity::EntityClassification::Misc)
             .build());
     ASSERT_TRUE(registerResult.success());
@@ -145,7 +152,7 @@ TEST(EntitySerializationTest, DeserializeDefersPassengerSpawn)
     auto root = buildVehicleNbtWithOnePassenger();
 
     // 反序列化：不 spawn 乘客，仅暂存 Passengers NBT
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root);
+    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto vehicle = std::move(deserializeResult.value());
     ASSERT_NE(vehicle, nullptr);
@@ -173,7 +180,7 @@ TEST(EntitySerializationTest, AttachPassengersAfterSpawnBindsRealVehicleId)
 
     auto root = buildVehicleNbtWithOnePassenger();
 
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root);
+    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto vehicle = std::move(deserializeResult.value());
     ASSERT_NE(vehicle, nullptr);
@@ -223,7 +230,7 @@ TEST(EntitySerializationTest, AttachPassengersHandlesNestedPassengers)
 
     auto root = buildVehicleNbtWithNestedPassengers();
 
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root);
+    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto vehicle = std::move(deserializeResult.value());
     ASSERT_NE(vehicle, nullptr);
@@ -277,7 +284,7 @@ TEST(EntitySerializationTest, AttachPassengersNoOpWhenNoPendingPassengers)
     nbt::tags::compound_tag root;
     root.put("id", std::string("test:entity"));
 
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root);
+    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(root, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto vehicle = std::move(deserializeResult.value());
     ASSERT_NE(vehicle, nullptr);
@@ -314,14 +321,14 @@ TEST(EntitySerializationTest, SerializeDeserializeRoundTripPreservesPassengers)
 
     // 创建主实体并设置类型 id
     TestSerializationWorld setupWorld;
-    auto vehicle = std::make_unique<Entity>(0, &setupWorld);
+    auto vehicle = std::make_unique<Entity>(0, &setupWorld, mc::test::testEcsRegistry());
     vehicle->setTypeId("test:entity");
     vehicle->setPosition(Vector3(1.0, 2.0, 3.0));
     EntityInstanceId vehicleId = setupWorld.spawnEntity(std::move(vehicle));
     ASSERT_NE(vehicleId, 0);
 
     // 创建乘客并建立骑乘关系
-    auto passenger = std::make_unique<Entity>(0, &setupWorld);
+    auto passenger = std::make_unique<Entity>(0, &setupWorld, mc::test::testEcsRegistry());
     passenger->setTypeId("test:entity");
     passenger->setPosition(Vector3(1.0, 2.0, 3.0));
     EntityInstanceId passengerId = setupWorld.spawnEntity(std::move(passenger));
@@ -343,7 +350,8 @@ TEST(EntitySerializationTest, SerializeDeserializeRoundTripPreservesPassengers)
 
     // 反序列化（新世界，模拟存档加载）
     TestSerializationWorld loadWorld;
-    auto deserializeResult = entity::serialization::EntityDeserializer::deserializeFromBinary(binaryData);
+    auto deserializeResult =
+        entity::serialization::EntityDeserializer::deserializeFromBinary(binaryData, mc::test::testEcsRegistry());
     ASSERT_TRUE(deserializeResult.success()) << deserializeResult.error().message();
     auto loadedVehicle = std::move(deserializeResult.value());
     ASSERT_NE(loadedVehicle, nullptr);

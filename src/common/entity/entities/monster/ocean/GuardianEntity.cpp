@@ -46,8 +46,8 @@
 
 namespace mc {
 
-GuardianEntity::GuardianEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+GuardianEntity::GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -56,9 +56,9 @@ GuardianEntity::GuardianEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> GuardianEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<GuardianEntity>(EntityInstanceId(0));
+    return std::make_unique<GuardianEntity>(EntityInstanceId(0), registry);
 }
 
 bool GuardianEntity::isInWater() const
@@ -169,10 +169,10 @@ void GuardianEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 守卫者的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, LASER_DAMAGE);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, LASER_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 std::optional<ResourceLocation> GuardianEntity::getAmbientSound() const

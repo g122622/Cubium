@@ -157,8 +157,8 @@ bool CatEntity::CatAvoidPlayerGoal::shouldContinueExecuting()
 // CatEntity 实现
 // ============================================================================
 
-CatEntity::CatEntity(EntityInstanceId id)
-    : TameableEntity(id)
+CatEntity::CatEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -176,9 +176,9 @@ CatEntity::CatEntity(EntityInstanceId id)
     setRandomCatType();
 }
 
-std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CatEntity>(0);
+    return std::make_unique<CatEntity>(0, registry);
 }
 
 void CatEntity::setRandomCatType()
@@ -210,8 +210,14 @@ bool CatEntity::isFoodItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> CatEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小猫
-    auto baby = std::make_unique<CatEntity>(0);
+    auto baby = std::make_unique<CatEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -318,8 +324,8 @@ void CatEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 猫的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 
     // 与 MC 原版 LivingEntity 构造逻辑一致：构造完成后生命值应等于 maxHealth。
     // 由于 C++ 基类构造函数中虚函数 registerAttributes 不会派发到子类，MAX_HEALTH
@@ -423,7 +429,7 @@ void CatEntity::onTamed(bool tamed)
 {
     if (tamed) {
         // 驯服后增加生命值
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
         setHealth(10.0f);
 
         // 礼物计时器初始化

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/basic/PigEntity.hpp"
@@ -48,7 +49,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<PigEntity> pig;
@@ -154,7 +155,7 @@ TEST_F(PigEntityEquipableTest, CannotEquipToInvalidSlot)
 
 class PigEntityRideableTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1)); }
+    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -238,7 +239,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
-        pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<PigEntity> pig;

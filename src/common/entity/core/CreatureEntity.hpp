@@ -41,8 +41,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry ECS 实体注册表，透传给 MobEntity→LivingEntity→Entity 构造
      */
-    CreatureEntity(EntityInstanceId id);
+    CreatureEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~CreatureEntity() override = default;
 

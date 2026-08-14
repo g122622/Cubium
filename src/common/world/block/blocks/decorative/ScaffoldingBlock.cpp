@@ -215,8 +215,14 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
             // 移除原方块
             const BlockState* airState = BlockRegistry::instance().airState();
             if (airState != nullptr && world.setBlockState(pos, airState, 3)) {
+                // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+                auto* registry = world.entityRegistry();
+                if (registry == nullptr) {
+                    return;
+                }
+
                 // 创建下落实体
-                auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+                auto fallingEntity = std::make_unique<entity::FallingBlockEntity>(*registry);
                 fallingEntity->setTypeId(entity::EntityTypeKeys::FALLING_BLOCK);
                 fallingEntity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);

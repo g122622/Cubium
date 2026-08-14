@@ -56,6 +56,11 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/ecs/components/EvokerFangsComponent.hpp"
+#include "common/entity/ecs/components/EyeOfEnderComponent.hpp"
+#include "common/entity/ecs/components/FireworkRocketComponent.hpp"
+#include "common/entity/ecs/components/FishingBobberComponent.hpp"
+#include "common/entity/ecs/components/ShulkerBulletComponent.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/item/Items.hpp"
@@ -65,6 +70,8 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/ray/Ray.hpp"
 #include <algorithm>
@@ -110,13 +117,13 @@ constexpr i32 MIN_CATCHABLE_TICKS = 20; // 最小捕获窗口 (1秒)
 constexpr i32 MAX_CATCHABLE_TICKS = 40; // 最大捕获窗口 (2秒)
 } // namespace
 
-LlamaSpitEntity::LlamaSpitEntity(EntityInstanceId id)
-    : ThrowableEntity(id)
+LlamaSpitEntity::LlamaSpitEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ThrowableEntity(id, registry)
 {}
 
-std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> LlamaSpitEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<LlamaSpitEntity>(0);
+    return std::make_unique<LlamaSpitEntity>(0, registry);
 }
 
 void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
@@ -162,14 +169,19 @@ const EntityClassInfo& FishingBobberEntity::classInfo()
     return s_classInfo;
 }
 
-FishingBobberEntity::FishingBobberEntity(EntityInstanceId id)
-    : Entity(id)
+FishingBobberEntity::FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
-    m_noGravity = false;
+    setNoGravity(false);
     // C++ 虚函数在构造函数中不会派生到子类，因此 Entity 基类构造函数中
     // 调用的 registerData() 只会执行 Entity::registerData()。
     // 子类必须在此显式调用自身的 registerData() 以注册子类专属数据参数。
     registerData();
+    // 批次6 子目标2 Step1：attach FishingBobberComponent（钓鱼浮标 13 字段）。
+    // FishingBobberEntity 直接继承 Entity 不经 ProjectileEntity，独立 owner（m_angler），
+    // 故不挂 ProjectileOwnerComponent，本组件独立承载 angler 引用。
+    // Step4 将把 m_angler/m_caughtEntity/m_state 等 13 字段读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::FishingBobberComponent>(m_entityContext->entity());
 }
 
 void FishingBobberEntity::registerData()
@@ -187,15 +199,18 @@ void FishingBobberEntity::registerData()
     m_dataManager.registerParam(DATA_BITING_PARAM, false);
 }
 
-std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FishingBobberEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FishingBobberEntity>(0);
+    return std::make_unique<FishingBobberEntity>(0, registry);
 }
 
 void FishingBobberEntity::setShooter(Entity* shooter)
 {
     // 设置钓鱼者（仅支持玩家）
-    m_angler = dynamic_cast<Player*>(shooter);
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber != nullptr) {
+        bobber->m_angler = dynamic_cast<Player*>(shooter);
+    }
 }
 
 void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
@@ -232,26 +247,32 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
     }
 
     // 设置速度
-    m_velocity.x = x;
-    m_velocity.y = y;
-    m_velocity.z = z;
+    m_builtIn.velocity->m_velocity.x = x;
+    m_builtIn.velocity->m_velocity.y = y;
+    m_builtIn.velocity->m_velocity.z = z;
 }
 
 void FishingBobberEntity::tick()
 {
     Entity::tick();
 
-    m_lifetime++;
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        return;
+    }
+
+    bobber->m_lifetime++;
 
     // 检查钓鱼者是否存在
-    if (!m_angler || !m_angler->isAlive()) {
+    Player* angler = bobber->m_angler;
+    if (angler == nullptr || !angler->isAlive()) {
         remove();
         return;
     }
 
     // 检查玩家是否还持有钓鱼竿
     // 如果玩家切换了物品或钓鱼浮标ID已被清除，则移除浮标
-    if (!m_angler->isFishing() || m_angler->fishingBobber() != id()) {
+    if (!angler->isFishing() || angler->fishingBobber() != id()) {
         remove();
         return;
     }
@@ -259,8 +280,8 @@ void FishingBobberEntity::tick()
     // 更新水面状态
     _updateWaterState();
 
-    switch (m_state) {
-        case State::Flying: {
+    switch (bobber->m_state) {
+        case FishingBobberState::Flying: {
             // 浮标在飞行中，执行射线检测
             if (m_world != nullptr) {
                 RayTraceResult hitResult = _performRayTrace();
@@ -278,67 +299,69 @@ void FishingBobberEntity::tick()
 
             // 检测是否入水
             if (isInWater()) {
-                m_state = State::Bobbing;
+                bobber->m_state = FishingBobberState::Bobbing;
                 // 设置初始等待时间
                 _setWaitTime();
                 // 检测是否在开放水域
-                m_inOpenWater = _checkOpenWater();
+                bobber->m_inOpenWater = _checkOpenWater();
             }
             break;
         }
 
-        case State::Bobbing:
+        case FishingBobberState::Bobbing:
             // 浮标浮在水面，执行钓鱼逻辑
             if (isInWater()) {
-                m_outOfWaterTime = std::max(0, m_outOfWaterTime - 1);
+                bobber->m_outOfWaterTime = std::max(0, bobber->m_outOfWaterTime - 1);
                 // 检查开放水域状态（进入水后延迟检查）
-                if (m_outOfWaterTime < 10) {
-                    m_inOpenWater = m_inOpenWater && _checkOpenWater();
+                if (bobber->m_outOfWaterTime < 10) {
+                    bobber->m_inOpenWater = bobber->m_inOpenWater && _checkOpenWater();
                 }
                 _catchingFish();
             } else {
-                m_outOfWaterTime = std::min(10, m_outOfWaterTime + 1);
+                bobber->m_outOfWaterTime = std::min(10, bobber->m_outOfWaterTime + 1);
             }
             _spawnFishingParticles();
             break;
 
-        case State::Fishing:
+        case FishingBobberState::Fishing:
             // 咬钩中，等待玩家收杆
-            if (m_ticksCatchable > 0) {
-                m_ticksCatchable--;
-                m_fishAngle += 0.15f; // 鱼游动动画
+            if (bobber->m_ticksCatchable > 0) {
+                bobber->m_ticksCatchable--;
+                bobber->m_fishAngle += 0.15f; // 鱼游动动画
                 // 如果超时未收杆，重置状态
-                if (m_ticksCatchable <= 0) {
-                    m_state = State::Bobbing;
+                if (bobber->m_ticksCatchable <= 0) {
+                    bobber->m_state = FishingBobberState::Bobbing;
                     _setWaitTime();
                     // 对应 MC 1.21.11 FishingHook.catchingFish(): nibble 归零时
                     // 设置 DATA_BITING = false，客户端停止咬钩动画。
                     m_dataManager.set(DATA_BITING_PARAM, false);
                 }
             } else {
-                m_state = State::Bobbing;
+                bobber->m_state = FishingBobberState::Bobbing;
                 // 防御性：确保 DATA_BITING 已清除（虽然理论上不应进入此分支时仍为 true）
                 m_dataManager.set(DATA_BITING_PARAM, false);
             }
             break;
 
-        case State::Hooked:
+        case FishingBobberState::Hooked:
             // 钩住实体
-            if (m_caughtEntity != nullptr) {
-                if (m_caughtEntity->isRemoved() || !m_caughtEntity->isAlive()) {
+            if (bobber->m_caughtEntity != nullptr) {
+                if (bobber->m_caughtEntity->isRemoved() || !bobber->m_caughtEntity->isAlive()) {
                     // 实体被移除或死亡，恢复飞行状态
                     // 先清除 m_caughtEntity 再调用 _syncCaughtEntityId()，
                     // 以确保客户端同步收到 DATA_HOOKED_ENTITY=0 的更新。
-                    m_caughtEntity = nullptr;
+                    bobber->m_caughtEntity = nullptr;
                     _syncCaughtEntityId();
-                    m_state = State::Flying;
+                    bobber->m_state = FishingBobberState::Flying;
                 } else {
                     // 浮标跟随实体位置（设置位置到实体高度的 80% 处）
-                    setPosition(m_caughtEntity->x(), static_cast<f32>(m_caughtEntity->getY(0.8)), m_caughtEntity->z());
+                    setPosition(bobber->m_caughtEntity->x(),
+                        static_cast<f32>(bobber->m_caughtEntity->getY(0.8)),
+                        bobber->m_caughtEntity->z());
                 }
             } else {
                 // 没有被钩住的实体，恢复飞行状态
-                m_state = State::Flying;
+                bobber->m_state = FishingBobberState::Flying;
             }
             break;
     }
@@ -364,29 +387,29 @@ bool FishingBobberEntity::_checkOpenWater()
         return false;
     }
 
-    BlockPos bobberPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos bobberPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
-    WaterType prevType = WaterType::Invalid;
+    FishingWaterType prevType = FishingWaterType::Invalid;
 
     for (i32 dy = -1; dy <= 2; ++dy) {
         BlockPos from(bobberPos.x - 2, bobberPos.y + dy, bobberPos.z - 2);
         BlockPos to(bobberPos.x + 2, bobberPos.y + dy, bobberPos.z + 2);
-        WaterType layerType = _getOpenWaterTypeForArea(from, to);
+        FishingWaterType layerType = _getOpenWaterTypeForArea(from, to);
 
         switch (layerType) {
-            case WaterType::Invalid:
+            case FishingWaterType::Invalid:
                 return false;
-            case WaterType::AboveWater:
+            case FishingWaterType::AboveWater:
                 // 水上方块不能出现在最底层（前一层还是 Invalid 表示第一层就是 AboveWater）
-                if (prevType == WaterType::Invalid) {
+                if (prevType == FishingWaterType::Invalid) {
                     return false;
                 }
                 break;
-            case WaterType::InsideWater:
+            case FishingWaterType::InsideWater:
                 // 水内部不能出现在水上方块之后（不能从水面再回到水下）
-                if (prevType == WaterType::AboveWater) {
+                if (prevType == FishingWaterType::AboveWater) {
                     return false;
                 }
                 break;
@@ -398,51 +421,50 @@ bool FishingBobberEntity::_checkOpenWater()
     return true;
 }
 
-FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForBlock(const BlockPos& pos) const
+FishingWaterType FishingBobberEntity::_getOpenWaterTypeForBlock(const BlockPos& pos) const
 {
     // 对应 MC Java FishingHook.getOpenWaterTypeFor
     const BlockState* blockState = m_world->getBlockState(pos);
     if (blockState == nullptr) {
-        return WaterType::Invalid;
+        return FishingWaterType::Invalid;
     }
 
     // 空气 → AboveWater
     if (blockState->isAir()) {
-        return WaterType::AboveWater;
+        return FishingWaterType::AboveWater;
     }
 
     // 睡莲 → AboveWater
     if (blockState->is(block_registry::NaturalBlocks::LILY_PAD)) {
-        return WaterType::AboveWater;
+        return FishingWaterType::AboveWater;
     }
 
     // 非空气、非睡莲：检查是否为水源方块且碰撞箱为空
     const fluid::FluidState* fluidState = blockState->getFluidState();
     if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
         fluidState->isSource() && blockState->getCollisionShape().isEmpty()) {
-        return WaterType::InsideWater;
+        return FishingWaterType::InsideWater;
     }
 
-    return WaterType::Invalid;
+    return FishingWaterType::Invalid;
 }
 
-FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForArea(
-    const BlockPos& from, const BlockPos& to) const
+FishingWaterType FishingBobberEntity::_getOpenWaterTypeForArea(const BlockPos& from, const BlockPos& to) const
 {
     // 对应 MC Java FishingHook.getOpenWaterTypeForArea
-    // 区域内所有方块必须为同一 WaterType，否则整个区域为 Invalid
-    WaterType result = WaterType::Invalid;
+    // 区域内所有方块必须为同一 FishingWaterType，否则整个区域为 Invalid
+    FishingWaterType result = FishingWaterType::Invalid;
     bool first = true;
 
     for (i32 x = from.x; x <= to.x; ++x) {
         for (i32 y = from.y; y <= to.y; ++y) {
             for (i32 z = from.z; z <= to.z; ++z) {
-                WaterType type = _getOpenWaterTypeForBlock(BlockPos(x, y, z));
+                FishingWaterType type = _getOpenWaterTypeForBlock(BlockPos(x, y, z));
                 if (first) {
                     result = type;
                     first = false;
                 } else if (type != result) {
-                    return WaterType::Invalid;
+                    return FishingWaterType::Invalid;
                 }
             }
         }
@@ -453,12 +475,17 @@ FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForArea(
 
 void FishingBobberEntity::_catchingFish()
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        return;
+    }
+
     // 阶段1：等待咬钩
-    if (m_ticksCaughtDelay > 0) {
-        m_ticksCaughtDelay--;
+    if (bobber->m_ticksCaughtDelay > 0) {
+        bobber->m_ticksCaughtDelay--;
 
         // 接近咬钩时产生水花
-        if (m_ticksCaughtDelay < 100 && m_ticksCaughtDelay % 10 == 0 && m_world) {
+        if (bobber->m_ticksCaughtDelay < 100 && bobber->m_ticksCaughtDelay % 10 == 0 && m_world) {
             // 生成水花粒子
             math::Random rng;
             f32 angle = rng.nextFloat() * 360.0f * math::DEG_TO_RAD;
@@ -476,18 +503,18 @@ void FishingBobberEntity::_catchingFish()
     }
 
     // 阶段2：鱼接近浮标
-    if (m_ticksCatchableDelay > 0) {
-        m_ticksCatchableDelay--;
+    if (bobber->m_ticksCatchableDelay > 0) {
+        bobber->m_ticksCatchableDelay--;
 
         // 产生气泡和钓鱼粒子
-        if (m_ticksCatchableDelay % 5 == 0 && m_world) {
+        if (bobber->m_ticksCatchableDelay % 5 == 0 && m_world) {
             math::Random rng;
-            f32 angle = m_fishAngle * math::DEG_TO_RAD;
+            f32 angle = bobber->m_fishAngle * math::DEG_TO_RAD;
             f32 sinAngle = std::sin(angle);
             f32 cosAngle = std::cos(angle);
-            f32 d0 = x() + sinAngle * static_cast<f32>(m_ticksCatchableDelay) * 0.1f;
+            f32 d0 = x() + sinAngle * static_cast<f32>(bobber->m_ticksCatchableDelay) * 0.1f;
             f32 d1 = std::floor(y()) + 1.0f;
-            f32 d2 = z() + cosAngle * static_cast<f32>(m_ticksCatchableDelay) * 0.1f;
+            f32 d2 = z() + cosAngle * static_cast<f32>(bobber->m_ticksCatchableDelay) * 0.1f;
 
             // 15% 概率生成气泡
             if (rng.nextFloat() < 0.15f) {
@@ -505,12 +532,12 @@ void FishingBobberEntity::_catchingFish()
         }
 
         // 鱼接近角度动画
-        m_fishAngle += 0.1f;
+        bobber->m_fishAngle += 0.1f;
 
         // 接近完成，进入可捕获状态
-        if (m_ticksCatchableDelay <= 0) {
-            m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
-            m_state = State::Fishing;
+        if (bobber->m_ticksCatchableDelay <= 0) {
+            bobber->m_ticksCatchable = math::Random().nextInt(MIN_CATCHABLE_TICKS, MAX_CATCHABLE_TICKS);
+            bobber->m_state = FishingBobberState::Fishing;
             // 播放水溅音效
             playSound(SoundEvents::ENTITY_FISHING_BOBBER_SPLASH,
                 0.25f,
@@ -523,7 +550,7 @@ void FishingBobberEntity::_catchingFish()
     }
 
     // 阶段0：初始化等待
-    if (m_ticksCaughtDelay <= 0 && m_ticksCatchableDelay <= 0 && m_ticksCatchable <= 0) {
+    if (bobber->m_ticksCaughtDelay <= 0 && bobber->m_ticksCatchableDelay <= 0 && bobber->m_ticksCatchable <= 0) {
         // 设置下一轮等待时间
         _setWaitTime();
     }
@@ -535,30 +562,41 @@ void FishingBobberEntity::_spawnFishingParticles()
     if (isInWater() && m_world) {
         math::Random rng;
         if (rng.nextInt(5) == 0) {
-            m_world->addParticle(particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
+            m_world->addParticle(
+                particle::ParticleTypeId::Fishing, m_builtIn.stateVector->m_pos, Vector3(0.0f, 0.01f, 0.0f));
         }
     }
 }
 
 void FishingBobberEntity::_setWaitTime()
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        return;
+    }
     // 设置咬钩等待时间
     // 基础时间: 100-600 ticks
     // 饵钓附魔: 每级减少 100 ticks
     math::Random rng;
-    m_ticksCaughtDelay = rng.nextInt(MIN_WAIT_TICKS, MAX_WAIT_TICKS);
-    m_ticksCaughtDelay -= m_speedBonus * LURE_REDUCTION;
-    m_ticksCaughtDelay = std::max(20, m_ticksCaughtDelay); // 最小 1 秒
+    bobber->m_ticksCaughtDelay = rng.nextInt(MIN_WAIT_TICKS, MAX_WAIT_TICKS);
+    bobber->m_ticksCaughtDelay -= bobber->m_speedBonus * LURE_REDUCTION;
+    bobber->m_ticksCaughtDelay = std::max(20, bobber->m_ticksCaughtDelay); // 最小 1 秒
 
     // 鱼接近时间
-    m_ticksCatchableDelay = 0;
-    m_ticksCatchable = 0;
+    bobber->m_ticksCatchableDelay = 0;
+    bobber->m_ticksCatchable = 0;
 }
 
 i32 FishingBobberEntity::_spawnCatchItems()
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        return 0;
+    }
+    Player* angler = bobber->m_angler;
+
     // 使用钓鱼掉落表生成物品
-    if (!m_world || !m_angler) {
+    if (!m_world || angler == nullptr) {
         return 0;
     }
 
@@ -571,8 +609,8 @@ i32 FishingBobberEntity::_spawnCatchItems()
     }
 
     // 计算幸运值 = 海之眷顾附魔等级 + 玩家基础幸运
-    f32 totalLuck = static_cast<f32>(m_luckBonus);
-    totalLuck += static_cast<f32>(m_angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
+    f32 totalLuck = static_cast<f32>(bobber->m_luckBonus);
+    totalLuck += static_cast<f32>(angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
 
     // 获取随机数生成器
     math::Random& random = m_world->getRandom();
@@ -582,8 +620,8 @@ i32 FishingBobberEntity::_spawnCatchItems()
                        .withRandom(random)
                        .withLuck(totalLuck)
                        .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this))
-                       .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(m_angler))
-                       .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, m_inOpenWater)
+                       .withParameter(loot::LootParams::KILLER_ENTITY, static_cast<Entity*>(angler))
+                       .withOwnedValue(loot::LootParams::IS_IN_OPEN_WATER, bobber->m_inOpenWater)
                        .withLootTableResolver([this](const std::string& id) -> const loot::LootTable* {
                            return m_world->lootTableManager() ? m_world->lootTableManager()->getTable(id) : nullptr;
                        })
@@ -600,9 +638,9 @@ i32 FishingBobberEntity::_spawnCatchItems()
     std::vector<ItemStack> drops = fishingTable->generate(*context);
 
     // 计算从浮标到玩家的方向
-    f64 dx = m_angler->x() - x();
-    f64 dy = m_angler->y() + m_angler->eyeHeight() * 0.5 - y();
-    f64 dz = m_angler->z() - z();
+    f64 dx = angler->x() - x();
+    f64 dy = angler->y() + angler->eyeHeight() * 0.5 - y();
+    f64 dz = angler->z() - z();
     f64 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
     f64 sqrtDistance = std::sqrt(distance);
 
@@ -625,9 +663,9 @@ i32 FishingBobberEntity::_spawnCatchItems()
             z(), // 在浮标位置生成
             vx,
             vy,
-            vz,              // 朝玩家方向飞
-            10,              // 拾取延迟 10 ticks
-            m_angler->uuid() // 所有者 UUID，防止立即拾取自己的物品
+            vz,            // 朝玩家方向飞
+            10,            // 拾取延迟 10 ticks
+            angler->uuid() // 所有者 UUID，防止立即拾取自己的物品
         );
     }
 
@@ -669,8 +707,14 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
         f64 offsetY = random.nextDouble() * 0.2;
         f64 offsetZ = random.nextDouble() * 0.2 - 0.1;
 
-        auto orb =
-            std::make_unique<ExperienceOrbEntity>(m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp);
+        // ECS 迁移：实体构造需要 registry 句柄（m_world 在调用路径已确保非空）
+        auto* registry = &ecsRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+
+        auto orb = std::make_unique<ExperienceOrbEntity>(
+            m_world, x() + offsetX, y() + 0.5 + offsetY, z() + offsetZ, orbXp, *registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
@@ -685,19 +729,24 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
 
 i32 FishingBobberEntity::reelIn()
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        remove();
+        return 0;
+    }
     // 收杆
     i32 damage = 0; // 钓鱼竿耐久消耗
 
-    if (m_state == State::Fishing && m_ticksCatchable > 0) {
+    if (bobber->m_state == FishingBobberState::Fishing && bobber->m_ticksCatchable > 0) {
         // 成功钓到鱼
         damage = _spawnCatchItems();
         remove();
-    } else if (m_state == State::Hooked) {
+    } else if (bobber->m_state == FishingBobberState::Hooked) {
         // 钩住实体，拉过来
-        if (m_caughtEntity != nullptr && m_caughtEntity->isAlive()) {
+        if (bobber->m_caughtEntity != nullptr && bobber->m_caughtEntity->isAlive()) {
             _bringInHookedEntity();
             // 耐久消耗取决于实体类型：物品实体 3，其他实体 5
-            if (dynamic_cast<ItemEntity*>(m_caughtEntity) != nullptr) {
+            if (dynamic_cast<ItemEntity*>(bobber->m_caughtEntity) != nullptr) {
                 damage = 3;
             } else {
                 damage = 5;
@@ -724,8 +773,8 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
     }
 
     // 计算射线起点和终点
-    const Vector3 start = m_position;
-    const Vector3 end = m_position + m_velocity;
+    const Vector3 start = m_builtIn.stateVector->m_pos;
+    const Vector3 end = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     // 先检测方块
     const Vector3 delta = end - start;
@@ -772,7 +821,8 @@ bool FishingBobberEntity::_canHitEntity(const Entity& target) const
     // 但钓鱼浮标需要能钩住水中的物品实体，因此需要特殊处理。
 
     // 不能命中钓鱼者自己
-    if (&target == m_angler) {
+    const auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (&target == (bobber != nullptr ? bobber->m_angler : nullptr)) {
         return false;
     }
 
@@ -792,75 +842,131 @@ void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
         return;
     }
 
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr) {
+        return;
+    }
+
     // 记录被钩住的实体
-    m_caughtEntity = result.hitEntity;
+    bobber->m_caughtEntity = result.hitEntity;
 
     // 同步实体ID（用于客户端）
     _syncCaughtEntityId();
 
     // 清零速度
-    m_velocity = Vector3(0.0, 0.0, 0.0);
+    m_builtIn.velocity->m_velocity = Vector3(0.0, 0.0, 0.0);
 
     // 切换到钩住状态
-    m_state = State::Hooked;
+    bobber->m_state = FishingBobberState::Hooked;
 }
 
 void FishingBobberEntity::_onBlockHit(const RayTraceResult& result)
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
     // 命中方块时停止移动，进入漂浮状态
-    m_velocity = Vector3(0.0, 0.0, 0.0);
+    m_builtIn.velocity->m_velocity = Vector3(0.0, 0.0, 0.0);
 
     // 如果在水上方块，设置 BOBBING 状态
-    if (isInWater()) {
-        m_state = State::Bobbing;
+    if (isInWater() && bobber != nullptr) {
+        bobber->m_state = FishingBobberState::Bobbing;
         _setWaitTime();
-        m_inOpenWater = _checkOpenWater();
+        bobber->m_inOpenWater = _checkOpenWater();
     }
 }
 
 void FishingBobberEntity::_bringInHookedEntity()
 {
-    if (m_caughtEntity == nullptr || m_angler == nullptr) {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    if (bobber == nullptr || bobber->m_caughtEntity == nullptr || bobber->m_angler == nullptr) {
         return;
     }
+    Player* angler = bobber->m_angler;
+    Entity* caughtEntity = bobber->m_caughtEntity;
 
     // 计算从浮标指向钓鱼者的方向向量，缩放到 10% 的力
-    Vector3d direction(m_angler->x() - x(), m_angler->y() - y(), m_angler->z() - z());
+    Vector3d direction(angler->x() - x(), angler->y() - y(), angler->z() - z());
     direction = direction * 0.1;
 
     // 叠加到被钩实体的速度上
-    m_caughtEntity->addVelocity(
+    caughtEntity->addVelocity(
         static_cast<f32>(direction.x), static_cast<f32>(direction.y), static_cast<f32>(direction.z));
 }
 
 void FishingBobberEntity::_syncCaughtEntityId()
 {
+    auto* bobber = tryGetComponent<ecs::FishingBobberComponent>();
+    Entity* caughtEntity = (bobber != nullptr) ? bobber->m_caughtEntity : nullptr;
     // 存储时 +1，因为 0 表示"无实体"
     // 对应 MC 1.21.11 FishingHook.setHookedEntity():
     //   this.getEntityData().set(DATA_HOOKED_ENTITY, p_150158_ == null ? 0 : p_150158_.getId() + 1);
-    i32 syncedId = (m_caughtEntity != nullptr) ? static_cast<i32>(m_caughtEntity->id()) + 1 : 0;
-    m_caughtEntityId = syncedId;
+    i32 syncedId = (caughtEntity != nullptr) ? static_cast<i32>(caughtEntity->id()) + 1 : 0;
+    if (bobber != nullptr) {
+        bobber->m_caughtEntityId = syncedId;
+    }
 
     // 通过 EntityDataManager 同步到客户端
     // EntityTracker 会在 tick() 中检测脏数据并广播 ir::play::SetEntityData
     m_dataManager.set(DATA_HOOKED_ENTITY_PARAM, syncedId);
 }
 
+// 批次6 子目标2 Step4：m_angler/m_caughtEntity/m_caughtEntityId/m_state/m_inOpenWater/
+// m_luckBonus/m_speedBonus 迁入 ecs::FishingBobberComponent。
+Player* FishingBobberEntity::getAngler() const
+{
+    const auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    return (c != nullptr) ? c->m_angler : nullptr;
+}
+
+FishingBobberState FishingBobberEntity::state() const
+{
+    const auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    return (c != nullptr) ? c->m_state : FishingBobberState::Flying;
+}
+
+Entity* FishingBobberEntity::getCaughtEntity() const
+{
+    const auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    return (c != nullptr) ? c->m_caughtEntity : nullptr;
+}
+
+EntityInstanceId FishingBobberEntity::getCaughtEntityId() const
+{
+    const auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    return (c != nullptr) ? c->m_caughtEntityId : EntityInstanceId{0};
+}
+
+void FishingBobberEntity::setFishingBonus(i32 luckBonus, i32 speedBonus)
+{
+    auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    if (c != nullptr) {
+        c->m_luckBonus = luckBonus;
+        c->m_speedBonus = speedBonus;
+    }
+}
+
+bool FishingBobberEntity::isInOpenWater() const
+{
+    const auto* c = tryGetComponent<ecs::FishingBobberComponent>();
+    return (c != nullptr) ? c->m_inOpenWater : false;
+}
+
 // ============================================================================
 // ShulkerBulletEntity
 // ============================================================================
 
-ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
-    , m_direction(Direction::Up)
-    , m_targetDelta(0.0, 0.0, 0.0)
+ShulkerBulletEntity::ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
 {
-    m_noGravity = true;
+    setNoGravity(true);
     m_noClip = true; // 穿墙
+    // 批次6 子目标2 Step1：attach ShulkerBulletComponent（目标/方向/步数/增量 5 字段）。
+    // Step4 已把 m_target/m_targetUuid/m_direction/m_flightSteps/m_targetDelta 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ShulkerBulletComponent>(m_entityContext->entity());
 }
 
-ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis)
-    : ShulkerBulletEntity(0)
+ShulkerBulletEntity::ShulkerBulletEntity(
+    IWorld* world, LivingEntity* shooter, Entity* target, Axis axis, ecs::EntityRegistry& registry)
+    : ShulkerBulletEntity(0, registry)
 {
     if (shooter) {
         setShooter(shooter);
@@ -871,54 +977,78 @@ ShulkerBulletEntity::ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, E
         setPosition(shooterPos.x + 0.5, shooterPos.y + 0.5, shooterPos.z + 0.5);
     }
 
-    m_target = target;
-    if (target) {
-        m_targetUuid = target->uuid();
-    }
+    setTarget(target);
 
-    m_direction = Direction::Up;
+    auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    if (bullet != nullptr) {
+        bullet->m_direction = Direction::Up;
+    }
     _selectNextMoveDirection(axis);
 }
 
-std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ShulkerBulletEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ShulkerBulletEntity>(0);
+    return std::make_unique<ShulkerBulletEntity>(0, registry);
 }
 
 void ShulkerBulletEntity::setTarget(Entity* target)
 {
-    m_target = target;
-    if (target) {
-        m_targetUuid = target->uuid();
+    auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    if (bullet == nullptr) {
+        return;
     }
+    bullet->m_target = target;
+    if (target) {
+        bullet->m_targetUuid = target->uuid();
+    }
+}
+
+// 批次6 子目标2 Step4：m_target/m_targetUuid/m_direction/m_flightSteps/m_targetDelta
+// 迁入 ecs::ShulkerBulletComponent。
+Entity* ShulkerBulletEntity::target() const
+{
+    const auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    return (bullet != nullptr) ? bullet->m_target : nullptr;
+}
+
+Direction ShulkerBulletEntity::direction() const
+{
+    const auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    return (bullet != nullptr) ? bullet->m_direction : Direction::Up;
 }
 
 void ShulkerBulletEntity::_setDirection(Direction dir)
 {
-    m_direction = dir;
+    auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    if (bullet != nullptr) {
+        bullet->m_direction = dir;
+    }
 }
 
 void ShulkerBulletEntity::tick()
 {
+    auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    const Entity* target = (bullet != nullptr) ? bullet->m_target : nullptr;
+
     // 服务端逻辑
     if (m_world != nullptr) {
         // 检查目标是否有效
-        Player* playerTarget = dynamic_cast<Player*>(m_target);
-        if (m_target == nullptr || !m_target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
+        Player* playerTarget = dynamic_cast<Player*>(const_cast<Entity*>(target));
+        if (target == nullptr || !target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
             // 目标无效，下落
-            if (!m_noGravity) {
-                m_velocity.y -= 0.04;
+            if (!hasNoGravity()) {
+                m_builtIn.velocity->m_velocity.y -= 0.04;
             }
         } else {
             // 加速追踪
-            m_targetDelta.x = std::clamp(m_targetDelta.x * ACCELERATION, -1.0, 1.0);
-            m_targetDelta.y = std::clamp(m_targetDelta.y * ACCELERATION, -1.0, 1.0);
-            m_targetDelta.z = std::clamp(m_targetDelta.z * ACCELERATION, -1.0, 1.0);
+            bullet->m_targetDelta.x = std::clamp(bullet->m_targetDelta.x * ACCELERATION, -1.0, 1.0);
+            bullet->m_targetDelta.y = std::clamp(bullet->m_targetDelta.y * ACCELERATION, -1.0, 1.0);
+            bullet->m_targetDelta.z = std::clamp(bullet->m_targetDelta.z * ACCELERATION, -1.0, 1.0);
 
             // 向目标方向加速
-            m_velocity.x += (m_targetDelta.x - m_velocity.x) * 0.2;
-            m_velocity.y += (m_targetDelta.y - m_velocity.y) * 0.2;
-            m_velocity.z += (m_targetDelta.z - m_velocity.z) * 0.2;
+            m_builtIn.velocity->m_velocity.x += (bullet->m_targetDelta.x - m_builtIn.velocity->m_velocity.x) * 0.2;
+            m_builtIn.velocity->m_velocity.y += (bullet->m_targetDelta.y - m_builtIn.velocity->m_velocity.y) * 0.2;
+            m_builtIn.velocity->m_velocity.z += (bullet->m_targetDelta.z - m_builtIn.velocity->m_velocity.z) * 0.2;
         }
 
         // 执行射线检测
@@ -930,37 +1060,38 @@ void ShulkerBulletEntity::tick()
     }
 
     // 更新位置
-    m_position.x += m_velocity.x;
-    m_position.y += m_velocity.y;
-    m_position.z += m_velocity.z;
+    m_builtIn.stateVector->m_pos.x += m_builtIn.velocity->m_velocity.x;
+    m_builtIn.stateVector->m_pos.y += m_builtIn.velocity->m_velocity.y;
+    m_builtIn.stateVector->m_pos.z += m_builtIn.velocity->m_velocity.z;
 
     // 更新旋转朝向运动方向
     ProjectileEntity::updateRotation();
 
     // 更新飞行逻辑
-    if (m_world != nullptr && m_target != nullptr && m_target->isAlive()) {
+    if (m_world != nullptr && target != nullptr && target->isAlive() && bullet != nullptr) {
         // 更新飞行步数
-        if (m_flightSteps > 0) {
-            m_flightSteps--;
+        if (bullet->m_flightSteps > 0) {
+            bullet->m_flightSteps--;
 
             // 步数用完时重新选择方向
-            if (m_flightSteps == 0) {
-                Axis excludeAxis = (m_direction != Direction::None) ? Directions::getAxis(m_direction) : Axis::Y;
+            if (bullet->m_flightSteps == 0) {
+                Axis excludeAxis =
+                    (bullet->m_direction != Direction::None) ? Directions::getAxis(bullet->m_direction) : Axis::Y;
                 _selectNextMoveDirection(excludeAxis);
             }
         }
 
         // 检查是否需要改变方向
-        if (m_direction != Direction::None) {
-            BlockPos currentPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y)),
-                static_cast<i32>(std::floor(m_position.z)));
-            Axis axis = Directions::getAxis(m_direction);
+        if (bullet->m_direction != Direction::None) {
+            BlockPos currentPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
+            Axis axis = Directions::getAxis(bullet->m_direction);
 
             // 检查前方是否有方块
-            BlockPos nextPos(currentPos.x + Directions::xOffset(m_direction),
-                currentPos.y + Directions::yOffset(m_direction),
-                currentPos.z + Directions::zOffset(m_direction));
+            BlockPos nextPos(currentPos.x + Directions::xOffset(bullet->m_direction),
+                currentPos.y + Directions::yOffset(bullet->m_direction),
+                currentPos.z + Directions::zOffset(bullet->m_direction));
 
             const BlockState* nextState = m_world->getBlockState(nextPos);
             if (nextState != nullptr && nextState->blocksMovement()) {
@@ -968,9 +1099,9 @@ void ShulkerBulletEntity::tick()
                 _selectNextMoveDirection(axis);
             } else {
                 // 检查是否与目标对齐
-                BlockPos targetPos(static_cast<i32>(std::floor(m_target->x())),
-                    static_cast<i32>(std::floor(m_target->y())),
-                    static_cast<i32>(std::floor(m_target->z())));
+                BlockPos targetPos(static_cast<i32>(std::floor(target->x())),
+                    static_cast<i32>(std::floor(target->y())),
+                    static_cast<i32>(std::floor(target->z())));
                 bool aligned = false;
                 switch (axis) {
                     case Axis::X:
@@ -993,18 +1124,21 @@ void ShulkerBulletEntity::tick()
 
 void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 {
+    auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
+    const Entity* target = (bullet != nullptr) ? bullet->m_target : nullptr;
+
     f64 targetOffsetY = 0.5;
     BlockPos targetPos;
 
-    if (m_target == nullptr) {
-        targetPos = BlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)) - 1,
-            static_cast<i32>(std::floor(m_position.z)));
+    if (target == nullptr) {
+        targetPos = BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)) - 1,
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     } else {
-        targetOffsetY = static_cast<f64>(m_target->height()) * 0.5;
-        targetPos = BlockPos(static_cast<i32>(std::floor(m_target->x())),
-            static_cast<i32>(std::floor(m_target->y() + targetOffsetY)),
-            static_cast<i32>(std::floor(m_target->z())));
+        targetOffsetY = static_cast<f64>(target->height()) * 0.5;
+        targetPos = BlockPos(static_cast<i32>(std::floor(target->x())),
+            static_cast<i32>(std::floor(target->y() + targetOffsetY)),
+            static_cast<i32>(std::floor(target->z())));
     }
 
     f64 targetX = targetPos.x + 0.5;
@@ -1014,9 +1148,9 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
     Direction newDirection = Direction::None;
 
     // 如果距离足够近（<2格），直接向目标移动
-    BlockPos myPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y)),
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos myPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     f64 distSq = static_cast<f64>(myPos.x - targetPos.x) * (myPos.x - targetPos.x) +
         static_cast<f64>(myPos.y - targetPos.y) * (myPos.y - targetPos.y) +
         static_cast<f64>(myPos.z - targetPos.z) * (myPos.z - targetPos.z);
@@ -1089,30 +1223,33 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 
         // 计算目标速度
         if (newDirection != Direction::None) {
-            targetX = m_position.x + Directions::xOffset(newDirection);
-            targetY = m_position.y + Directions::yOffset(newDirection);
-            targetZ = m_position.z + Directions::zOffset(newDirection);
+            targetX = m_builtIn.stateVector->m_pos.x + Directions::xOffset(newDirection);
+            targetY = m_builtIn.stateVector->m_pos.y + Directions::yOffset(newDirection);
+            targetZ = m_builtIn.stateVector->m_pos.z + Directions::zOffset(newDirection);
         }
     }
 
     _setDirection(newDirection);
 
     // 计算速度增量
-    f64 dx = targetX - m_position.x;
-    f64 dy = targetY - m_position.y;
-    f64 dz = targetZ - m_position.z;
+    f64 dx = targetX - m_builtIn.stateVector->m_pos.x;
+    f64 dy = targetY - m_builtIn.stateVector->m_pos.y;
+    f64 dz = targetZ - m_builtIn.stateVector->m_pos.z;
     f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-    if (dist == 0.0) {
-        m_targetDelta = Vector3d(0.0, 0.0, 0.0);
-    } else {
-        m_targetDelta = Vector3d(dx / dist * BULLET_SPEED, dy / dist * BULLET_SPEED, dz / dist * BULLET_SPEED);
-    }
+    if (bullet != nullptr) {
+        if (dist == 0.0) {
+            bullet->m_targetDelta = Vector3d(0.0, 0.0, 0.0);
+        } else {
+            bullet->m_targetDelta =
+                Vector3d(dx / dist * BULLET_SPEED, dy / dist * BULLET_SPEED, dz / dist * BULLET_SPEED);
+        }
 
-    // 设置飞行步数
-    if (m_world != nullptr) {
-        math::Random& rng = m_world->getRandom();
-        m_flightSteps = MIN_STEPS + rng.nextInt(MAX_STEPS_EXTRA) * 10;
+        // 设置飞行步数
+        if (m_world != nullptr) {
+            math::Random& rng = m_world->getRandom();
+            bullet->m_flightSteps = MIN_STEPS + rng.nextInt(MAX_STEPS_EXTRA) * 10;
+        }
     }
 }
 
@@ -1181,7 +1318,7 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
     // 命中方块时生成爆炸粒子
     if (m_world != nullptr) {
         m_world->addParticle(particle::ParticleTypeId::Explosion,
-            m_position,
+            m_builtIn.stateVector->m_pos,
             Vector3(0.0f, 0.0f, 0.0f), // 速度为 0
             Vector3(0.2f, 0.2f, 0.2f), // 随机偏移范围
             2);                        // 数量 2
@@ -1202,80 +1339,133 @@ void ShulkerBulletEntity::onImpact(const RayTraceResult& result)
 // EvokerFangsEntity
 // ============================================================================
 
-EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id)
-    : Entity(id)
+EvokerFangsEntity::EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
-    m_warmupDelay = 0;
+    // 批次6 子目标2 Step1：attach EvokerFangsComponent（owner/预热/生命 6 字段）。
+    // EvokerFangsEntity 直接继承 Entity 不经 ProjectileEntity，独立 owner（唤魔者），
+    // 故不挂 ProjectileOwnerComponent，本组件独立承载 owner。Step2 已把 m_owner/
+    // m_ownerUuid/m_warmupDelay/m_sentAttackEvent/m_lifeTicks/m_clientSideAttackStarted
+    // 读写改走组件（字段声明已删）。
+    m_entityContext->enttRegistry().emplace<ecs::EvokerFangsComponent>(m_entityContext->entity());
 }
 
-std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EvokerFangsEntity>(0);
+    return std::make_unique<EvokerFangsEntity>(0, registry);
 }
 
 void EvokerFangsEntity::setOwner(LivingEntity* owner)
 {
-    m_owner = owner;
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_owner = owner;
     if (owner != nullptr) {
-        m_ownerUuid = owner->uuid();
+        comp->m_ownerUuid = owner->uuid();
     } else {
-        m_ownerUuid.clear();
+        comp->m_ownerUuid.clear();
     }
 }
 
 LivingEntity* EvokerFangsEntity::getOwner()
 {
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return nullptr;
+    }
     // 如果缓存指针有效且实体未被移除，直接返回
-    if (m_owner != nullptr && m_owner->isAlive()) {
-        return m_owner;
+    if (comp->m_owner != nullptr && comp->m_owner->isAlive()) {
+        return comp->m_owner;
     }
 
     // 缓存失效，尝试通过 UUID 在世界中重新查找
     // 使用 IWorld::getEntityByUuid() 进行 O(1) 查找
-    if (!m_ownerUuid.empty() && m_world != nullptr) {
-        Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
+    if (!comp->m_ownerUuid.empty() && m_world != nullptr) {
+        Entity* entity = m_world->getEntityByUuid(comp->m_ownerUuid);
         if (entity != nullptr && entity->isAlive()) {
             LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
             if (living != nullptr) {
-                m_owner = living;
-                return m_owner;
+                comp->m_owner = living;
+                return comp->m_owner;
             }
         }
     }
 
     // UUID 查找也失败，清空缓存指针
-    m_owner = nullptr;
+    comp->m_owner = nullptr;
     return nullptr;
 }
 
 void EvokerFangsEntity::setOwnerUuid(const std::string& uuid)
 {
-    m_ownerUuid = uuid;
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_ownerUuid = uuid;
     // 不设置 m_owner 指针，等到 getOwner() 被调用时再通过 UUID 懒加载查找
-    m_owner = nullptr;
+    comp->m_owner = nullptr;
+}
+
+LivingEntity* EvokerFangsEntity::owner() const
+{
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_owner : nullptr;
+}
+
+const std::string& EvokerFangsEntity::ownerUuid() const
+{
+    static const std::string s_empty;
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_ownerUuid : s_empty;
+}
+
+void EvokerFangsEntity::setWarmupDelay(i32 delay)
+{
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_warmupDelay = delay;
+}
+
+i32 EvokerFangsEntity::warmupDelay() const
+{
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    return (comp != nullptr) ? comp->m_warmupDelay : 0;
 }
 
 void EvokerFangsEntity::tick()
 {
     Entity::tick();
 
+    auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+
     // 服务端逻辑
-    if (m_warmupDelay > 0) {
-        m_warmupDelay--;
+    if (comp->m_warmupDelay > 0) {
+        comp->m_warmupDelay--;
     } else {
         // warmupDelayTicks < 0 后开始攻击逻辑
-        if (m_warmupDelay == -8) {
+        if (comp->m_warmupDelay == -8) {
             // 在 -8 tick 时对范围内实体造成伤害
             _damageEntities();
         }
 
-        if (!m_sentAttackEvent) {
+        if (!comp->m_sentAttackEvent) {
             // 发送攻击事件给客户端（用于播放音效和粒子）
-            m_sentAttackEvent = true;
+            comp->m_sentAttackEvent = true;
         }
 
-        m_lifeTicks--;
-        if (m_lifeTicks < 0) {
+        comp->m_lifeTicks--;
+        if (comp->m_lifeTicks < 0) {
             remove();
         }
     }
@@ -1283,10 +1473,14 @@ void EvokerFangsEntity::tick()
 
 f32 EvokerFangsEntity::getAnimationProgress(f32 partialTicks) const
 {
-    if (!m_clientSideAttackStarted) {
+    const auto* comp = tryGetComponent<ecs::EvokerFangsComponent>();
+    if (comp == nullptr) {
+        return 0.0f;
+    }
+    if (!comp->m_clientSideAttackStarted) {
         return 0.0f;
     } else {
-        i32 i = m_lifeTicks - 2;
+        i32 i = comp->m_lifeTicks - 2;
         return i <= 0 ? 1.0f : 1.0f - (static_cast<f32>(i) - partialTicks) / 20.0f;
     }
 }
@@ -1302,7 +1496,7 @@ void EvokerFangsEntity::_damageEntities()
     LivingEntity* owner = getOwner();
 
     // 获取碰撞箱扩展 0.2 范围内的所有实体
-    AxisAlignedBB searchBox = m_boundingBox.expand(0.2f, 0.0f, 0.2f);
+    AxisAlignedBB searchBox = m_builtIn.aabbShape->m_aabb.expand(0.2f, 0.0f, 0.2f);
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : entities) {
@@ -1334,148 +1528,198 @@ void EvokerFangsEntity::_damageEntities()
     }
 }
 
-void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    Entity::addAdditionalSaveData(tag);
-
-    using namespace serialization::nbt_keys;
-
-    // 预热延迟
-    tag.put(WARMUP, m_warmupDelay);
-
-    // 所有者 UUID
-    // 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Owner"
-    // 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储，与 AreaEffectCloudEntity 一致
-    if (!m_ownerUuid.empty()) {
-        auto uuidBytes = util::uuidFromString(m_ownerUuid);
-        if (uuidBytes.size() == 16) {
-            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
-                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
-                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
-                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
-            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
-                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
-                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
-                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
-            tag.put(FANGS_OWNER_UUID_MOST, most);
-            tag.put(FANGS_OWNER_UUID_LEAST, least);
-        }
-    }
+    // 批次6 子目标2 Step6：EvokerFangs 持久化（Warmup + Owner UUID）已搬至按组件注册的
+    // 序列化器（ProjectileComponentSerialization.cpp 的 saveEvokerFangs/loadEvokerFangs），
+    // 经 ComponentSerializerRegistry::saveAll/loadAll 调用。此 override 保留空壳避免子类
+    // 回落到 Entity 基类后再被未来代码误加字段（与 FireworkRocket/Spear 同范式）。
 }
 
-Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    using namespace serialization::nbt_keys;
-
-    // 预热延迟
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, WARMUP)) {
-        m_warmupDelay = *val;
-    }
-
-    // 所有者 UUID
-    // 读取 FANGS_OWNER_UUID_MOST/FANGS_OWNER_UUID_LEAST，转换为 UUID 字符串
-    auto mostVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_MOST);
-    auto leastVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_LEAST);
-    if (mostVal.has_value() && leastVal.has_value()) {
-        i64 m = mostVal.value();
-        i64 l = leastVal.value();
-        std::array<u8, 16> uuidBytes{};
-        for (i32 i = 7; i >= 0; --i) {
-            uuidBytes[i] = static_cast<u8>(m & 0xFF);
-            m >>= 8;
-        }
-        for (i32 i = 15; i >= 8; --i) {
-            uuidBytes[i] = static_cast<u8>(l & 0xFF);
-            l >>= 8;
-        }
-        m_ownerUuid = util::uuidToString(uuidBytes);
-        m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
-    } else {
-        m_ownerUuid.clear();
-        m_owner = nullptr;
-    }
-
-    return Result<void>::ok();
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
 }
 
 // ============================================================================
 // EyeOfEnderEntity
 // ============================================================================
 
-EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id)
-    : Entity(id)
+// ============================================================================
+// EyeOfEnderEntity
+// ============================================================================
+
+// 静态数据参数定义（对应 MC 1.21.11 EyeOfEnder.defineSynchedData() 的 DATA_ITEM_STACK）。
+// EyeOfEnderEntity 直接继承 Entity，真实 id 在 registerData() 内由 ClassRegisterGuard
+// 沿继承链续接分配（Entity 8 字段后 → id8）。
+entity::DataParameter<network::ir::play::ItemStackView> EyeOfEnderEntity::DATA_ITEM_STACK_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
+
+const EntityClassInfo& EyeOfEnderEntity::classInfo()
 {
-    m_noGravity = false;
+    static const EntityClassInfo s_classInfo{"EyeOfEnderEntity", &Entity::classInfo()};
+    return s_classInfo;
 }
 
-std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/)
+void EyeOfEnderEntity::registerData()
 {
-    return std::make_unique<EyeOfEnderEntity>(0);
+    // 先调基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    Entity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册末影之眼专属同步参数（id8，对应 vanilla EyeOfEnder.DATA_ITEM_STACK）。
+    // TODO: 项目 EyeOfEnderEntity 当前无 item 字段，占位空 ItemStackView 保持 wire 位置对齐；
+    // 补齐物品字段后镜像真实物品。
+    m_dataManager.registerParam(DATA_ITEM_STACK_PARAM, network::ir::toItemStackView(ItemStack()));
+}
+
+EyeOfEnderEntity::EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
+{
+    setNoGravity(false);
+    // 批次6 子目标2 Step1：attach EyeOfEnderComponent（目标XZ/存活/碎裂 4 字段）。
+    // EyeOfEnderEntity 直接继承 Entity 不经 ProjectileEntity，故不挂 ProjectileOwnerComponent。
+    // Step4 将把 m_targetX/m_targetZ/m_lifetime/m_break 读写改走组件；Step5 补 DATA_ITEM_STACK。
+    m_entityContext->enttRegistry().emplace<ecs::EyeOfEnderComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 Entity 基类构造调用的 registerData()
+    // 只执行 Entity::registerData()。此处显式调用注册末影之眼专属同步字段（id8）。
+    registerData();
+}
+
+std::unique_ptr<Entity> EyeOfEnderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
+{
+    return std::make_unique<EyeOfEnderEntity>(0, registry);
 }
 
 void EyeOfEnderEntity::tick()
 {
     Entity::tick();
 
-    m_lifetime++;
+    auto* eye = tryGetComponent<ecs::EyeOfEnderComponent>();
+    if (eye == nullptr) {
+        return;
+    }
+    ++eye->m_lifetime;
 
     // 向目标移动
-    if (m_targetX != 0 || m_targetZ != 0) {
+    if (eye->m_targetX != 0 || eye->m_targetZ != 0) {
         // 计算方向
-        f32 dx = static_cast<f32>(m_targetX) - m_position.x;
-        f32 dz = static_cast<f32>(m_targetZ) - m_position.z;
+        f32 dx = static_cast<f32>(eye->m_targetX) - m_builtIn.stateVector->m_pos.x;
+        f32 dz = static_cast<f32>(eye->m_targetZ) - m_builtIn.stateVector->m_pos.z;
         f32 dist = std::sqrt(dx * dx + dz * dz);
 
         if (dist > 0.0f) {
             // 设置速度
-            m_velocity.x = dx / dist * 0.5f;
-            m_velocity.z = dz / dist * 0.5f;
+            m_builtIn.velocity->m_velocity.x = dx / dist * 0.5f;
+            m_builtIn.velocity->m_velocity.z = dz / dist * 0.5f;
 
             // Y轴波动
-            m_velocity.y = std::sin(m_lifetime * 0.1f) * 0.1f;
+            m_builtIn.velocity->m_velocity.y = std::sin(eye->m_lifetime * 0.1f) * 0.1f;
         }
     }
 
     // 随机碎裂
     // 15% 概率碎裂
     // if (rand.nextInt(700) == 0) {
-    //     m_break = true;
+    //     eye->m_break = true;
     //     remove();
     // }
 
     // 超时移除
-    if (m_lifetime > 1200) { // 60秒
+    if (eye->m_lifetime > 1200) { // 60秒
         remove();
     }
 }
 
 void EyeOfEnderEntity::moveTo(BlockCoord targetX, BlockCoord targetZ)
 {
-    m_targetX = targetX;
-    m_targetZ = targetZ;
+    auto* eye = tryGetComponent<ecs::EyeOfEnderComponent>();
+    if (eye != nullptr) {
+        eye->m_targetX = targetX;
+        eye->m_targetZ = targetZ;
+    }
+}
+
+// 批次6 子目标2 Step4：m_targetX/m_targetZ/m_break 迁入 ecs::EyeOfEnderComponent。
+BlockCoord EyeOfEnderEntity::targetX() const
+{
+    const auto* c = tryGetComponent<ecs::EyeOfEnderComponent>();
+    return (c != nullptr) ? c->m_targetX : 0;
+}
+
+BlockCoord EyeOfEnderEntity::targetZ() const
+{
+    const auto* c = tryGetComponent<ecs::EyeOfEnderComponent>();
+    return (c != nullptr) ? c->m_targetZ : 0;
+}
+
+bool EyeOfEnderEntity::shouldBreak() const
+{
+    const auto* c = tryGetComponent<ecs::EyeOfEnderComponent>();
+    return (c != nullptr) ? c->m_break : false;
 }
 
 // ============================================================================
 // FireworkRocketEntity
 // ============================================================================
 
-FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
-    , m_fireworkItem(Items::AIR, 0) // 初始化为空物品
+// 静态数据参数定义（对应 MC 1.21.11 FireworkRocket.defineSynchedData()）。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配
+// （Entity 8 字段后 → id8/9/10，ProjectileEntity 无同步字段不占 id）。
+entity::DataParameter<network::ir::play::ItemStackView> FireworkRocketEntity::DATA_FIREWORKS_ITEM_PARAM =
+    entity::EntityDataManager::createKey<network::ir::play::ItemStackView>();
+entity::DataParameter<i32> FireworkRocketEntity::DATA_ATTACHED_TO_TARGET_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> FireworkRocketEntity::DATA_SHOT_AT_ANGLE_PARAM =
+    entity::EntityDataManager::createKey<bool>();
+
+const EntityClassInfo& FireworkRocketEntity::classInfo()
 {
-    m_noGravity = false;
+    static const EntityClassInfo s_classInfo{"FireworkRocketEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
 }
 
-std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/)
+void FireworkRocketEntity::registerData()
 {
-    return std::make_unique<FireworkRocketEntity>(0);
+    // 先调基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册烟花火箭专属同步参数（id8/9/10，对应 vanilla FireworkRocket）。
+    m_dataManager.registerParam(DATA_FIREWORKS_ITEM_PARAM, network::ir::toItemStackView(ItemStack()));
+    // DATA_ATTACHED_TO_TARGET：vanilla OptionalInt，absent=0/present=id+1。项目无附着目标机制，
+    // 占位 -1 表 absent（TODO 待补 OptionalInt 序列化器后改精确编码）。
+    m_dataManager.registerParam(DATA_ATTACHED_TO_TARGET_PARAM, static_cast<i32>(-1));
+    m_dataManager.registerParam(DATA_SHOT_AT_ANGLE_PARAM, false);
+}
+
+FireworkRocketEntity::FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
+{
+    // 批次6 子目标2 Step1：attach FireworkRocketComponent（烟花物品/飞行/生命 5 字段）。
+    // Step4 将把 m_fireworkItem/m_flightTime/m_lifetime/m_lifeTime/m_shotFromCrossbow 读写
+    // 改走组件；Step5 补 DATA_FIREWORKS_ITEM/DATA_ATTACHED_TO_TARGET/DATA_SHOT_AT_ANGLE 同步字段。
+    m_entityContext->enttRegistry().emplace<ecs::FireworkRocketComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 ProjectileEntity 构造调用的 registerData()
+    // 不会派生到 FireworkRocketEntity::registerData()。此处显式调用注册烟花专属同步字段（id8/9/10）。
+    registerData();
+}
+
+std::unique_ptr<Entity> FireworkRocketEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
+{
+    return std::make_unique<FireworkRocketEntity>(0, registry);
 }
 
 void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
 {
-    m_fireworkItem = item;
+    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (fw == nullptr || fw->m_fireworkItem == nullptr) {
+        return;
+    }
+    *fw->m_fireworkItem = item;
 
     // 从物品 NBT 读取飞行时间
     const nlohmann::json* tag = item.getTag();
@@ -1484,19 +1728,23 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
         if (fireworksIt != tag->end() && fireworksIt->is_object()) {
             auto flightIt = fireworksIt->find("Flight");
             if (flightIt != fireworksIt->end() && flightIt->is_number()) {
-                m_flightTime = std::max(1, flightIt->get<i32>());
+                fw->m_flightTime = std::max(1, flightIt->get<i32>());
             }
         }
     }
 
     // 物品变更后，已计算的 lifeTime 失效，需重新懒初始化
     // （NBT 反序列化路径会在 setFireworkItem 之后显式 setLifeTime 覆盖此处的重置）
-    m_lifeTime = -1;
+    fw->m_lifeTime = -1;
+
+    // 批次6 子目标2 Step5：镜像同步 DATA_FIREWORKS_ITEM（对齐 vanilla FireworkRocket）。
+    m_dataManager.set(DATA_FIREWORKS_ITEM_PARAM, network::ir::toItemStackView(item));
 }
 
 void FireworkRocketEntity::_ensureLifeTimeComputed()
 {
-    if (m_lifeTime >= 0) {
+    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (fw == nullptr || fw->m_lifeTime >= 0) {
         return; // 已计算或已从 NBT 恢复
     }
 
@@ -1505,14 +1753,18 @@ void FireworkRocketEntity::_ensureLifeTimeComputed()
     // 客户端不跑 FireworkRocketEntity::tick，无需此值
     if (m_world != nullptr && !m_world->isClientSide()) {
         math::Random& rng = m_world->getRandom();
-        m_lifeTime = m_flightTime * 10 + rng.nextInt(6) + rng.nextInt(7);
+        fw->m_lifeTime = fw->m_flightTime * 10 + rng.nextInt(6) + rng.nextInt(7);
     }
 }
 
 i32 FireworkRocketEntity::getExplosionCount() const
 {
+    const auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (fw == nullptr || fw->m_fireworkItem == nullptr) {
+        return 0;
+    }
     // 从物品 NBT 读取爆炸效果数量
-    const nlohmann::json* tag = m_fireworkItem.getTag();
+    const nlohmann::json* tag = fw->m_fireworkItem->getTag();
     if (tag == nullptr) {
         return 0;
     }
@@ -1534,17 +1786,21 @@ void FireworkRocketEntity::tick()
 {
     ProjectileEntity::tick();
 
-    m_lifetime++;
+    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (fw == nullptr) {
+        return;
+    }
+    ++fw->m_lifetime;
 
     // 生成飞行粒子（每 2 tick 生成一次粒子，仅在客户端执行）
-    if (m_world != nullptr && m_world->isClientSide() && m_lifetime % 2 == 0) {
+    if (m_world != nullptr && m_world->isClientSide() && fw->m_lifetime % 2 == 0) {
         // 粒子位置在火箭下方 0.3 格
         Vector3 particlePos(x(), y() - 0.3, z());
 
         // 使用高斯分布随机速度
         mc::math::Random rng = createRandomFromEntity(*this);
         f32 vx = static_cast<f32>(rng.nextGaussian() * 0.05);
-        f32 vy = static_cast<f32>(-m_velocity.y * 0.5); // Y速度与火箭运动方向相反
+        f32 vy = static_cast<f32>(-m_builtIn.velocity->m_velocity.y * 0.5); // Y速度与火箭运动方向相反
         f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
 
         m_world->addParticle(particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
@@ -1564,16 +1820,18 @@ void FireworkRocketEntity::tick()
     // 当前架构下客户端不跑 FireworkRocketEntity::tick（爆炸由服务端 remove 数据包驱动），
     // 故此回退分支仅在测试或异常路径触发。若未来引入客户端独立 tick 路径，需改为通过
     // EntityDataManager 同步 lifeTime 字段或使用跨端确定性 RNG 重新计算。
-    const i32 explodeThreshold = (m_lifeTime >= 0) ? m_lifeTime : (m_flightTime * 10 + 6);
-    if (m_lifetime >= explodeThreshold) {
+    const i32 explodeThreshold = (fw->m_lifeTime >= 0) ? fw->m_lifeTime : (fw->m_flightTime * 10 + 6);
+    if (fw->m_lifetime >= explodeThreshold) {
         _explode();
     }
 }
 
 void FireworkRocketEntity::_explode()
 {
+    auto* fw = tryGetComponent<ecs::FireworkRocketComponent>();
+
     // 如果从弩射出，对周围实体造成伤害
-    if (m_shotFromCrossbow) {
+    if (fw != nullptr && fw->m_shotFromCrossbow) {
         dealExplosionDamage();
     }
 
@@ -1635,62 +1893,75 @@ void FireworkRocketEntity::_explode()
     remove();
 }
 
-void FireworkRocketEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void FireworkRocketEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    Entity::addAdditionalSaveData(tag);
-
-    using namespace serialization::nbt_keys;
-
-    // 烟花物品（compound，由 ItemStack::toNbt 写入）
-    if (!m_fireworkItem.isEmpty()) {
-        nbt::tags::compound_tag itemTag;
-        m_fireworkItem.toNbt(itemTag);
-        tag.value.emplace(FIREWORKS_ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-    }
-
-    // 已存在时间
-    tag.put(LIFE, m_lifetime);
-
-    // 总生命时间（创建时一次性确定的随机值）
-    // 仅在已计算时写出，避免写出 -1 占位符
-    if (m_lifeTime >= 0) {
-        tag.put(LIFE_TIME, m_lifeTime);
-    }
-
-    // 是否从弩射出（i8 bool，与 MC 原版 ShotAtAngle 一致）
-    tag.put(SHOT_AT_ANGLE, static_cast<i8>(m_shotFromCrossbow ? 1 : 0));
+    // 批次6 子目标2 Step6：FireworkRocket 持久化（Life/LifeTime/FireworksItem/ShotAtAngle）已搬至
+    // 按组件注册的序列化器（ProjectileComponentSerialization.cpp 的 saveFireworkRocket/loadFireworkRocket），
+    // 经 ComponentSerializerRegistry::saveAll/loadAll 调用。此 override 保留空壳。
 }
 
-Result<void> FireworkRocketEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> FireworkRocketEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    MC_TRY(Entity::readAdditionalSaveData(tag));
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
+}
 
-    using namespace serialization::nbt_keys;
+// 批次6 子目标2 Step4：FireworkRocket 5 字段经 ecs::FireworkRocketComponent 读写。
+const ItemStack& FireworkRocketEntity::fireworkItem() const
+{
+    static const ItemStack s_empty;
+    const auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    return (c != nullptr && c->m_fireworkItem != nullptr) ? *c->m_fireworkItem : s_empty;
+}
 
-    // 烟花物品（恢复 m_fireworkItem 与 m_flightTime）
-    if (const nbt::tags::compound_tag* itemTag = serialization::nbt_helper::tryGetCompound(tag, FIREWORKS_ITEM)) {
-        auto stackResult = ItemStack::fromNbt(*itemTag);
-        if (stackResult.success()) {
-            setFireworkItem(stackResult.value());
-        }
+bool FireworkRocketEntity::shotFromCrossbow() const
+{
+    const auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    return (c != nullptr) ? c->m_shotFromCrossbow : false;
+}
+
+void FireworkRocketEntity::setShotFromCrossbow(bool value)
+{
+    auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (c != nullptr) {
+        c->m_shotFromCrossbow = value;
     }
+    // 批次6 子目标2 Step5：镜像同步 DATA_SHOT_AT_ANGLE（对齐 vanilla FireworkRocket）。
+    m_dataManager.set(DATA_SHOT_AT_ANGLE_PARAM, value);
+}
 
-    // 已存在时间
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE)) {
-        m_lifetime = *val;
+i32 FireworkRocketEntity::flightTime() const
+{
+    const auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    return (c != nullptr) ? c->m_flightTime : 1;
+}
+
+void FireworkRocketEntity::setFlightTime(i32 time)
+{
+    auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (c != nullptr) {
+        c->m_flightTime = time;
     }
+}
 
-    // 总生命时间（覆盖 setFireworkItem 中的 -1 重置）
-    if (auto val = serialization::nbt_helper::tryGetInt(tag, LIFE_TIME)) {
-        m_lifeTime = *val;
+i32 FireworkRocketEntity::lifeTime() const
+{
+    const auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    return (c != nullptr) ? c->m_lifeTime : -1;
+}
+
+void FireworkRocketEntity::setLifeTime(i32 time)
+{
+    auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    if (c != nullptr) {
+        c->m_lifeTime = time;
     }
+}
 
-    // 是否从弩射出
-    if (auto val = serialization::nbt_helper::tryGetByte(tag, SHOT_AT_ANGLE)) {
-        m_shotFromCrossbow = (*val != 0);
-    }
-
-    return Result<void>::ok();
+i32 FireworkRocketEntity::lifetime() const
+{
+    const auto* c = tryGetComponent<ecs::FireworkRocketComponent>();
+    return (c != nullptr) ? c->m_lifetime : 0;
 }
 
 void FireworkRocketEntity::dealExplosionDamage()

@@ -84,13 +84,13 @@ constexpr f64 INTERACTION_RANGE_SQ = 64.0; // 8格的平方
 // 工厂方法
 // ============================================================================
 
-std::unique_ptr<Entity> ChestBoatEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ChestBoatEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ChestBoatEntity>();
+    return std::make_unique<ChestBoatEntity>(Type::OAK, registry);
 }
 
-ChestBoatEntity::ChestBoatEntity(Type type)
-    : BoatEntity(type)
+ChestBoatEntity::ChestBoatEntity(Type type, ecs::EntityRegistry& registry)
+    : BoatEntity(type, registry)
     , m_inventory(std::make_unique<blockentity::SimpleInventory>(CONTAINER_SIZE))
     , m_lootFilled(false)
 {

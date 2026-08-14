@@ -34,6 +34,7 @@
  * - 旁观者模式下 attack() 设置旁观目标及 onCameraEntityChanged 通知
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <gtest/gtest.h>
@@ -51,12 +52,12 @@ using namespace mc;
 class CameraTrackingTestPlayer : public Player {
 public:
     explicit CameraTrackingTestPlayer(EntityInstanceId id)
-        : Player(id, "CameraTestPlayer")
+        : Player(id, "CameraTestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
-        m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
+        attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
         setHealth(20.0f);
     }
 
@@ -109,7 +110,7 @@ private:
 
 class PlayerSpectatorTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 
@@ -236,7 +237,7 @@ TEST_F(PlayerSpectatorTest, SpectatorAttackSetsCameraTarget)
     player->setGameMode(GameMode::Spectator);
 
     // 创建一个目标实体用于 attack 测试
-    Entity target(EntityInstanceId(99));
+    Entity target(EntityInstanceId(99), nullptr, mc::test::testEcsRegistry());
 
     // 旁观者模式下 attack 不应造成伤害，但会设置旁观目标
     player->attack(target);
@@ -252,7 +253,7 @@ TEST_F(PlayerSpectatorTest, NonSpectatorAttackDoesNotSetCamera)
     // 非旁观者模式下攻击不应该设置旁观目标
     player->setGameMode(GameMode::Survival);
 
-    Entity target(EntityInstanceId(99));
+    Entity target(EntityInstanceId(99), nullptr, mc::test::testEcsRegistry());
     // 注意：非旁观者的 attack 会正常执行攻击逻辑，
     // 但对于没有世界/没有 LivingEntity 目标的情况，attack 会提前返回
     player->attack(target);
@@ -394,7 +395,7 @@ TEST_F(CameraChangedTrackingTest, SpectatorAttackTriggersCameraChange)
     trackingPlayer->setGameMode(GameMode::Spectator);
     trackingPlayer->resetCameraChangeCalls();
 
-    Entity target(EntityInstanceId(99));
+    Entity target(EntityInstanceId(99), nullptr, mc::test::testEcsRegistry());
     trackingPlayer->attack(target);
 
     // attack 旁观者路径应该通过 setCameraEntityId 触发 onCameraEntityChanged
@@ -408,12 +409,12 @@ TEST_F(CameraChangedTrackingTest, SpectatorAttackToDifferentEntityTriggersChange
     trackingPlayer->setGameMode(GameMode::Spectator);
 
     // 第一次攻击实体 99
-    Entity target1(EntityInstanceId(99));
+    Entity target1(EntityInstanceId(99), nullptr, mc::test::testEcsRegistry());
     trackingPlayer->attack(target1);
     EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
 
     // 第二次攻击实体 100（切换目标）
-    Entity target2(EntityInstanceId(100));
+    Entity target2(EntityInstanceId(100), nullptr, mc::test::testEcsRegistry());
     trackingPlayer->attack(target2);
     EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 2u);
 
@@ -427,7 +428,7 @@ TEST_F(CameraChangedTrackingTest, SpectatorAttackSameEntityDoesNotTriggerChange)
     trackingPlayer->setGameMode(GameMode::Spectator);
 
     // 第一次攻击实体 99
-    Entity target(EntityInstanceId(99));
+    Entity target(EntityInstanceId(99), nullptr, mc::test::testEcsRegistry());
     trackingPlayer->attack(target);
     EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
 

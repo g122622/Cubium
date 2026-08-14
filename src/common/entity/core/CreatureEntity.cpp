@@ -39,8 +39,8 @@ const entity::EntityClassInfo& CreatureEntity::classInfo()
     return s_classInfo;
 }
 
-CreatureEntity::CreatureEntity(EntityInstanceId id)
-    : MobEntity(id)
+CreatureEntity::CreatureEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MobEntity(id, registry)
 {}
 
 bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed)

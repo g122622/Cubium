@@ -32,23 +32,26 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
 
-DonkeyEntity::DonkeyEntity(EntityInstanceId id)
-    : AbstractChestedHorseEntity(id)
+DonkeyEntity::DonkeyEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractChestedHorseEntity(id, registry)
 {
     setJumpStrength(0.5f);
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 累加语义，基类构造不再调用
+    // 以避免重复。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> DonkeyEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<DonkeyEntity>(0);
+    return std::make_unique<DonkeyEntity>(0, registry);
 }
 
 bool DonkeyEntity::isBreedingItem(const ItemStack& itemStack) const
@@ -81,12 +84,18 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
 {
     // 驴 + 驴 = 驴，驴 + 马 = 骡
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 检查配偶是否是马（产生骡）
     const HorseEntity* partnerHorse = dynamic_cast<const HorseEntity*>(&partner);
 
     if (partnerHorse != nullptr) {
         // 驴 + 马 = 骡
-        auto mule = std::make_unique<MuleEntity>(0);
+        auto mule = std::make_unique<MuleEntity>(0, *registry);
         mule->setChild(true);
         mule->setPosition(x(), y(), z());
 
@@ -96,7 +105,7 @@ std::unique_ptr<AnimalEntity> DonkeyEntity::spawnBaby(AnimalEntity& partner)
     }
 
     // 驴 + 驴 = 驴
-    auto baby = std::make_unique<DonkeyEntity>(0);
+    auto baby = std::make_unique<DonkeyEntity>(0, *registry);
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
 
@@ -114,8 +123,10 @@ void DonkeyEntity::registerGoals()
 void DonkeyEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth > 0 ? m_horseHealth : 15.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed > 0 ? m_speed : 0.175f);
+    const f32 health = getHorseHealth();
+    const f32 speed = getSpeed();
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health > 0 ? health : 15.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed > 0 ? speed : 0.175f);
 }
 
 } // namespace mc

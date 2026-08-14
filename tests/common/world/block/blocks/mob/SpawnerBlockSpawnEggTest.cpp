@@ -165,7 +165,7 @@ private:
 std::unique_ptr<item::SpawnEggItem> makeSpawnEgg(const std::string& entityName, u32 primaryColor, u32 secondaryColor)
 {
     auto entityType = entity::EntityType::Builder(
-        [](IWorld*) -> std::unique_ptr<Entity> { return nullptr; }, entity::EntityClassification::Creature)
+        [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; }, entity::EntityClassification::Creature)
                           .size(0.9f, 0.9f)
                           .trackingRange(10)
                           .updateInterval(3)
@@ -241,7 +241,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_SpawnEggSetsEntityId)
 
     ItemStack eggStack(pigEgg_.get(), 1);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.getHeldItem(Hand::MainHand) = eggStack;
 
@@ -256,7 +256,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_EmptyHandReturnsPass)
 {
     setupSpawnerWorld({10, 64, 20});
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), spawnerPos_, Direction::Up, 0.0f);
@@ -270,7 +270,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_NonSpawnEggItemReturnsPass)
 {
     setupSpawnerWorld({10, 64, 20});
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
 
     if (Items::STICK != nullptr) {
@@ -291,7 +291,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_CreativeModeDoesNotConsumeEgg)
 
     ItemStack eggStack(pigEgg_.get(), 5);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.setGameMode(GameMode::Creative);
     player.getHeldItem(Hand::MainHand) = eggStack;
@@ -308,7 +308,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_SurvivalModeConsumesEgg)
 
     ItemStack eggStack(pigEgg_.get(), 5);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.setGameMode(GameMode::Survival);
     player.getHeldItem(Hand::MainHand) = eggStack;
@@ -326,7 +326,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_ClientSideReturnsSuccess)
 
     ItemStack eggStack(pigEgg_.get(), 5);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.getHeldItem(Hand::MainHand) = eggStack;
 
@@ -348,7 +348,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_NoBlockEntityReturnsPass)
 
     ItemStack eggStack(pigEgg_.get(), 1);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.getHeldItem(Hand::MainHand) = eggStack;
 
@@ -364,7 +364,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnBlockActivated_DifferentEntityTypes)
 
     // 先使用僵尸刷怪蛋
     ItemStack zombieStack(zombieEgg_.get(), 2);
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.getHeldItem(Hand::MainHand) = zombieStack;
 
@@ -394,7 +394,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnItemUse_SpawnerBlockSetsEntityId)
 
     ItemStack eggStack(pigEgg_.get(), 5);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.getHeldItem(Hand::MainHand) = eggStack;
 
@@ -421,7 +421,7 @@ TEST_F(SpawnerBlockSpawnEggTest, OnItemUse_SpawnerBlockCreativeModeNoConsume)
 
     ItemStack eggStack(pigEgg_.get(), 5);
 
-    Player player(PlayerId(1), "TestPlayer");
+    Player player(PlayerId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world_);
     player.setGameMode(GameMode::Creative);
     player.getHeldItem(Hand::MainHand) = eggStack;

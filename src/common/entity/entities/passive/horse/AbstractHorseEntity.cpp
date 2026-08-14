@@ -41,6 +41,13 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/HorseAnimationComponent.hpp"
+#include "common/entity/ecs/components/HorseAttributeComponent.hpp"
+#include "common/entity/ecs/components/HorseBoostComponent.hpp"
+#include "common/entity/ecs/components/HorseInventoryComponent.hpp"
+#include "common/entity/ecs/components/HorseJumpComponent.hpp"
+#include "common/entity/ecs/components/HorseStatusComponent.hpp"
+#include "common/entity/ecs/components/HorseTamingComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -82,22 +89,42 @@ const entity::EntityClassInfo& AbstractHorseEntity::classInfo()
     return s_classInfo;
 }
 
-AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+AbstractHorseEntity::AbstractHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     setStepHeight(1.0f);
 
-    // 注册 AI 目标、属性与同步数据参数。
+    // 批次8 Horse 族迁移 Step1：attach 7 基类组件。7 个马类子类经此自动获得基类组件，
+    // 叶子类零重复 attach 基类组件（同 minecart 族范式）。Step2 起把 30 字段读写改走组件。
+    // 时序关键：attach 必须先于 registerAttributes——registerAttributes 读 HorseJumpComponent/
+    // HorseAttributeComponent 写 AttributeMap（HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED），
+    // initRandomAttributes 写组件字段后须由 registerAttributes 同步到 AttributeMap。
+    // 故顺序为 attach → initRandomAttributes → registerAttributes → registerData → initHorseChest。
+    m_entityContext->enttRegistry().emplace<ecs::HorseStatusComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseTamingComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseJumpComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseBoostComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseAttributeComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseInventoryComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HorseAnimationComponent>(m_entityContext->entity());
+
+    // 随机生成马特有属性（写 HorseJumpComponent.m_jumpStrength / HorseAttributeComponent
+    // m_speed/m_horseHealth），随后 registerAttributes 读组件同步 AttributeMap。
+    initRandomAttributes();
+
+    // 注册属性与同步数据参数。
     // C++ 虚函数在基类构造期间不派发到派生类：AnimalEntity 构造调 registerAttributes 命中的是
     // AnimalEntity 版而非 AbstractHorseEntity override，故 override 永不执行。必须在派生类自己的
-    // 构造函数体里显式调用，参考 ZombieEntity / PhantomEntity 模式。此前漏调 registerAttributes /
-    // registerData 致 HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED 属性与 STATUS_PARAM 同步参数
-    // 永不注册，所有马类子类（Horse/Donkey/Mule/Llama/TraderLlama/SkeletonHorse/ZombieHorse）均受影响。
-    registerGoals();
+    // 构造函数体里显式调用，参考 ZombieEntity / PhantomEntity 模式。
+    //
+    // 注意：registerGoals 不在此基类构造调用——goalSelector.addGoal 是累加语义，若基类构造调
+    // registerGoals 注册基类目标、派生构造再调 registerGoals 又注册一遍基类目标，会导致目标重复
+    // （Llama/TraderLlama 构造显式调 registerGoals 时基类 8 目标被注册两次共 18 个）。故
+    // registerGoals 统一由最派生类构造负责调用（见各子类构造体），基类构造不介入。
+    // registerAttributes 为 setBaseValue 覆盖语义，重复调用幂等无害，仍在此调用以兼容未显式
+    // 补调的子类。
     registerAttributes();
     registerData();
-
-    initRandomAttributes();
 
     // MC 1.16.5: 初始化马背包（鞍槽 + 马铠槽）
     initHorseChest();
@@ -117,30 +144,139 @@ void AbstractHorseEntity::registerData()
 
 // ========== 状态标志辅助方法 ==========
 
-bool AbstractHorseEntity::getHorseWatchableBoolean(i8 flag) const
+void AbstractHorseEntity::_syncStatusFlags()
 {
-    return (m_dataManager.get(STATUS_PARAM) & flag) != 0;
+    // 读 HorseStatusComponent 6 bool 聚合成 i8 写入 STATUS_PARAM 镜像下发客户端。
+    // bit 布局对齐 vanilla 1.21.11 AbstractHorse.DATA_FLAGS_ID：
+    //   bit1(tame)/bit2(saddle)/bit3(bred)/bit4(eating)/bit5(rearing)/bit6(mouthOpen)。
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    i8 flags = 0;
+    if (status->m_tame) {
+        flags |= STATUS_FLAG_TAME;
+    }
+    if (status->m_saddled) {
+        flags |= STATUS_FLAG_SADDLE;
+    }
+    if (status->m_bred) {
+        flags |= STATUS_FLAG_BRED;
+    }
+    if (status->m_eating) {
+        flags |= STATUS_FLAG_EATING;
+    }
+    if (status->m_rearing) {
+        flags |= STATUS_FLAG_REARING;
+    }
+    if (status->m_mouthOpen) {
+        flags |= STATUS_FLAG_MOUTH_OPEN;
+    }
+    m_dataManager.set(STATUS_PARAM, flags);
 }
 
-void AbstractHorseEntity::setHorseWatchableBoolean(i8 flag, bool value)
+bool AbstractHorseEntity::isTame() const
 {
-    i8 status = m_dataManager.get(STATUS_PARAM);
-    if (value) {
-        m_dataManager.set(STATUS_PARAM, static_cast<i8>(status | flag));
-    } else {
-        m_dataManager.set(STATUS_PARAM, static_cast<i8>(status & ~flag));
-    }
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_tame;
+}
+
+void AbstractHorseEntity::setTame(bool tame)
+{
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    status->m_tame = tame;
+    _syncStatusFlags();
+}
+
+bool AbstractHorseEntity::hasSaddle() const
+{
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_saddled;
 }
 
 void AbstractHorseEntity::setSaddle(bool saddle)
 {
-    m_saddled = saddle;
-    setHorseWatchableBoolean(STATUS_FLAG_SADDLE, saddle);
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    status->m_saddled = saddle;
+    _syncStatusFlags();
+}
+
+bool AbstractHorseEntity::canBeSteered() const
+{
+    return hasSaddle();
+}
+
+bool AbstractHorseEntity::isBred() const
+{
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_bred;
+}
+
+void AbstractHorseEntity::setBred(bool bred)
+{
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    status->m_bred = bred;
+    _syncStatusFlags();
+}
+
+bool AbstractHorseEntity::isEating() const
+{
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_eating;
+}
+
+void AbstractHorseEntity::setEating(bool eating)
+{
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    status->m_eating = eating;
+    _syncStatusFlags();
+}
+
+bool AbstractHorseEntity::isRearing() const
+{
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_rearing;
+}
+
+void AbstractHorseEntity::setRearing(bool rearing)
+{
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    // MC 1.16.5: if (rearing) { this.setEatingHaystack(false); } 扬蹄与吃草互斥
+    if (rearing) {
+        status->m_eating = false;
+    }
+    status->m_rearing = rearing;
+    _syncStatusFlags();
+}
+
+bool AbstractHorseEntity::isMouthOpen() const
+{
+    const auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    return status->m_mouthOpen;
+}
+
+void AbstractHorseEntity::setMouthOpen(bool open)
+{
+    auto* status = tryGetComponent<ecs::HorseStatusComponent>();
+    MC_ASSERT_RELEASE(status);
+    status->m_mouthOpen = open;
+    _syncStatusFlags();
 }
 
 void AbstractHorseEntity::onJump()
 {
-    if (!m_saddled || !m_isJumping) {
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    if (!hasSaddle() || !jump->m_isJumping) {
         return;
     }
 
@@ -150,19 +286,45 @@ void AbstractHorseEntity::onJump()
 void AbstractHorseEntity::setJumpPower(i32 power)
 {
     // MC 1.16.5: jumpPower 范围 0-100
-    m_jumpPower = std::clamp(power, 0, 100);
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    jump->m_jumpPower = std::clamp(power, 0, 100);
+}
+
+i32 AbstractHorseEntity::getJumpPower() const
+{
+    const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    return jump->m_jumpPower;
+}
+
+f32 AbstractHorseEntity::getJumpStrength() const
+{
+    const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    return jump->m_jumpStrength;
+}
+
+void AbstractHorseEntity::setJumpStrength(f32 strength)
+{
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    jump->m_jumpStrength = strength;
 }
 
 f32 AbstractHorseEntity::getMaxJumpHeight() const
 {
     // 根据跳跃强度计算最大跳跃高度
     // MC 公式: 0.6 * jumpStrength^2 + 0.1 * jumpStrength + 0.3
-    return 0.6f * m_jumpStrength * m_jumpStrength + 0.1f * m_jumpStrength + 0.3f;
+    const f32 jumpStrength = getJumpStrength();
+    return 0.6f * jumpStrength * jumpStrength + 0.1f * jumpStrength + 0.3f;
 }
 
 bool AbstractHorseEntity::canJump() const
 {
-    return m_saddled && m_jumpCooldown <= 0;
+    const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    return hasSaddle() && jump->m_jumpCooldown <= 0;
 }
 
 void AbstractHorseEntity::startJumping(i32 jumpPower)
@@ -171,22 +333,26 @@ void AbstractHorseEntity::startJumping(i32 jumpPower)
         return;
     }
 
-    m_isJumping = true;
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    jump->m_isJumping = true;
     // MC 1.16.5: 设置初始跳跃力度
     setJumpPower(jumpPower);
 }
 
 void AbstractHorseEntity::stopJumping()
 {
-    if (!m_isJumping) {
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    if (!jump->m_isJumping) {
         return;
     }
 
     // 执行跳跃
     performJump();
-    m_isJumping = false;
-    m_jumpPower = 0;
-    m_jumpCooldown = 10; // 跳跃冷却
+    jump->m_isJumping = false;
+    jump->m_jumpPower = 0;
+    jump->m_jumpCooldown = 10; // 跳跃冷却
 }
 
 bool AbstractHorseEntity::isBeingRidden() const
@@ -202,17 +368,11 @@ bool AbstractHorseEntity::canBeRiddenBy(Player* player) const
     }
 
     // 需要驯服才能骑乘（子类可覆盖此逻辑）
-    if (!m_tame) {
+    if (!isTame()) {
         return false;
     }
 
     return true;
-}
-
-void AbstractHorseEntity::setTame(bool tame)
-{
-    m_tame = tame;
-    setHorseWatchableBoolean(STATUS_FLAG_TAME, tame);
 }
 
 // ========== 库存初始化 ==========
@@ -220,25 +380,31 @@ void AbstractHorseEntity::setTame(bool tame)
 void AbstractHorseEntity::initHorseChest()
 {
     // MC 1.16.5: 创建马背包（鞍槽 + 马铠槽）
-    m_inventory = std::make_unique<blockentity::SimpleInventory>(getInventorySize());
+    auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    MC_ASSERT_RELEASE(inv);
+    inv->m_inventory = std::make_unique<blockentity::SimpleInventory>(getInventorySize());
 }
 
 // ========== IEquipable 接口实现 ==========
 
 ItemStack AbstractHorseEntity::getEquipment(i32 slot) const
 {
-    if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
+    const auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    MC_ASSERT_RELEASE(inv);
+    if (!inv->m_inventory || slot < 0 || slot >= getInventorySize()) {
         return ItemStack::EMPTY;
     }
-    return m_inventory->getItem(slot);
+    return inv->m_inventory->getItem(slot);
 }
 
 void AbstractHorseEntity::setEquipment(i32 slot, const ItemStack& item)
 {
-    if (!m_inventory || slot < 0 || slot >= getInventorySize()) {
+    auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    MC_ASSERT_RELEASE(inv);
+    if (!inv->m_inventory || slot < 0 || slot >= getInventorySize()) {
         return;
     }
-    m_inventory->setItem(slot, item);
+    inv->m_inventory->setItem(slot, item);
 
     // 更新鞍/马铠状态
     if (slot == 0) {
@@ -299,15 +465,93 @@ bool AbstractHorseEntity::isValidArmorForSlot(const ItemStack& item) const
     return false;
 }
 
+// ========== 装备/鞍系统 ==========
+
+bool AbstractHorseEntity::hasArmor() const
+{
+    const auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    MC_ASSERT_RELEASE(inv);
+    return inv->m_hasArmor;
+}
+
+void AbstractHorseEntity::setArmor(bool armor)
+{
+    auto* inv = tryGetComponent<ecs::HorseInventoryComponent>();
+    MC_ASSERT_RELEASE(inv);
+    inv->m_hasArmor = armor;
+}
+
 // ========== 鞍系统 ==========
+
+bool AbstractHorseEntity::hasOwner() const
+{
+    const auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    return !taming->m_ownerUuid.empty();
+}
+
+const std::string& AbstractHorseEntity::getOwnerUuid() const
+{
+    const auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    return taming->m_ownerUuid;
+}
+
+void AbstractHorseEntity::clearOwnerUuid()
+{
+    auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    taming->m_ownerUuid.clear();
+}
+
+void AbstractHorseEntity::setOwnerUuid(const std::string& uuid)
+{
+    auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    taming->m_ownerUuid = uuid;
+    // 同步驯服状态：有主人时自动标记为已驯服（触发 _syncStatusFlags 写 STATUS_PARAM）
+    if (!uuid.empty()) {
+        setTame(true);
+    }
+}
+
+LivingEntity* AbstractHorseEntity::getOwner() const
+{
+    const auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    if (taming->m_ownerUuid.empty() || m_world == nullptr) {
+        return nullptr;
+    }
+    Entity* entity = m_world->getEntityByUuid(taming->m_ownerUuid);
+    if (entity != nullptr) {
+        return dynamic_cast<LivingEntity*>(entity);
+    }
+    return nullptr;
+}
+
+i32 AbstractHorseEntity::getTemper() const
+{
+    const auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    return taming->m_temper;
+}
+
+i32 AbstractHorseEntity::getMaxTemper() const
+{
+    const auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    return taming->m_maxTemper;
+}
 
 bool AbstractHorseEntity::increaseTemper(i32 amount)
 {
-    m_temper += amount;
+    auto* taming = tryGetComponent<ecs::HorseTamingComponent>();
+    MC_ASSERT_RELEASE(taming);
+    taming->m_temper += amount;
 
-    if (m_temper >= m_maxTemper) {
+    if (taming->m_temper >= taming->m_maxTemper) {
         // 达到驯服阈值
-        m_temper = m_maxTemper;
+        taming->m_temper = taming->m_maxTemper;
         setTame(true);
         return true;
     }
@@ -370,8 +614,8 @@ void AbstractHorseEntity::openInventory(Player& player)
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTame()) {
                 // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI
-                // 当前马背包 SimpleInventory 已存在（m_inventory），但尚未实现
-                // HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
+                // 当前马背包 SimpleInventory 已存在（HorseInventoryComponent.m_inventory），
+                // 但尚未实现 HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
             }
         }
     }
@@ -405,20 +649,34 @@ void AbstractHorseEntity::doPlayerRide(Player& player)
 
 f32 AbstractHorseEntity::getSpeed() const
 {
-    return m_speed;
+    const auto* attr = tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(attr);
+    return attr->m_speed;
+}
+
+f32 AbstractHorseEntity::getHorseHealth() const
+{
+    const auto* attr = tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(attr);
+    return attr->m_horseHealth;
 }
 
 void AbstractHorseEntity::tick()
 {
     AnimalEntity::tick();
 
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+
     // 更新跳跃冷却
-    if (m_jumpCooldown > 0) {
-        m_jumpCooldown--;
+    if (jump->m_jumpCooldown > 0) {
+        jump->m_jumpCooldown--;
     }
 
     // 更新跳跃蓄力
-    if (m_isJumping) {
+    if (jump->m_isJumping) {
         updateJumpPower();
     }
 
@@ -428,29 +686,29 @@ void AbstractHorseEntity::tick()
     // MC 1.21.11 AbstractHorse.tick() 动画计数器更新
 
     // 张嘴计数器：递增，超过 30 tick 后关闭嘴巴
-    if (m_openMouthCounter > 0 && ++m_openMouthCounter > 30) {
-        m_openMouthCounter = 0;
+    if (anim->m_openMouthCounter > 0 && ++anim->m_openMouthCounter > 30) {
+        anim->m_openMouthCounter = 0;
         setMouthOpen(false);
     }
 
     // 扬蹄计数器：递减，归零时清除扬蹄状态
-    if (m_jumpRearingCounter > 0 && --m_jumpRearingCounter <= 0) {
+    if (anim->m_jumpRearingCounter > 0 && --anim->m_jumpRearingCounter <= 0) {
         clearRearing();
     }
 
     // 尾巴计数器：递增，超过 8 tick 后重置
-    if (m_tailCounter > 0 && ++m_tailCounter > 8) {
-        m_tailCounter = 0;
+    if (anim->m_tailCounter > 0 && ++anim->m_tailCounter > 8) {
+        anim->m_tailCounter = 0;
     }
 
     // 冲刺计数器：递增，超过 300 tick 后重置
     // TODO: m_sprintCounter 的初始触发由客户端渲染/动画系统设置，
     // MC 原版中由 HorseRenderer 等渲染器在外部设置 m_sprintCounter > 0，
     // 服务端 tick() 仅负责递增和超时重置逻辑。待客户端渲染系统实现后补全触发逻辑。
-    if (m_sprintCounter > 0) {
-        ++m_sprintCounter;
-        if (m_sprintCounter > 300) {
-            m_sprintCounter = 0;
+    if (anim->m_sprintCounter > 0) {
+        ++anim->m_sprintCounter;
+        if (anim->m_sprintCounter > 300) {
+            anim->m_sprintCounter = 0;
         }
     }
 
@@ -462,9 +720,12 @@ void AbstractHorseEntity::aiStep()
 {
     // MC 1.21.11 AbstractHorse.aiStep()
 
+    auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+
     // 随机尾巴摆动：每 tick 1/200 概率触发
     if (getRandom().nextInt(200) == 0) {
-        m_tailCounter = 1;
+        anim->m_tailCounter = 1;
     }
 
     // 调用父类 aiStep()
@@ -490,8 +751,8 @@ void AbstractHorseEntity::aiStep()
             }
 
             // 吃草计数器：递增，超过 50 tick 后停止吃草
-            if (isEating() && ++m_eatingCounter > 50) {
-                m_eatingCounter = 0;
+            if (isEating() && ++anim->m_eatingCounter > 50) {
+                anim->m_eatingCounter = 0;
                 setEating(false);
             }
         }
@@ -505,8 +766,11 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
         return;
     }
 
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+
     // 检查是否被骑乘且可以控制（需要鞍）
-    if (isBeingRidden() && canBeSteered() && m_saddled) {
+    if (isBeingRidden() && canBeSteered() && hasSaddle()) {
         // 获取控制乘客（玩家）
         const auto& passengerIds = getPassengers();
         Entity* controllingPassenger = nullptr;
@@ -529,15 +793,15 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
             // 在地面且没有跳跃力且正在扬蹄时不能移动
             // MC 1.16.5: jumpPower 是 0-100 的整数
-            if (onGround() && m_jumpPower == 0 && m_isJumping && !m_allowStandSliding) {
+            if (onGround() && jump->m_jumpPower == 0 && jump->m_isJumping && !jump->m_allowStandSliding) {
                 sideInput = 0.0f;
                 forwardInput = 0.0f;
             }
 
             // 处理跳跃
             // MC 1.16.5: jumpPower 转换为 0.0-1.0 的比例
-            f32 jumpPowerFactor = static_cast<f32>(m_jumpPower) / 100.0f;
-            if (jumpPowerFactor > 0.0f && !m_isJumping && onGround()) {
+            f32 jumpPowerFactor = static_cast<f32>(jump->m_jumpPower) / 100.0f;
+            if (jumpPowerFactor > 0.0f && !jump->m_isJumping && onGround()) {
                 // 计算跳跃力度
                 // MC 1.16.5 AbstractHorseEntity.travel():
                 // double d0 = this.getHorseJumpStrength() * (double)this.jumpPower * (double)this.getJumpFactor();
@@ -556,8 +820,8 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
                 // 设置跳跃速度
                 setVelocity(velocityX(), static_cast<f32>(jumpForce), velocityZ());
-                m_isJumping = true;
-                m_jumpPower = 0;
+                jump->m_isJumping = true;
+                jump->m_jumpPower = 0;
 
                 // 前进时额外推力
                 if (forwardInput > 0.0f) {
@@ -573,7 +837,7 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
             // 执行移动
             if (canPassengerSteer()) {
-                // setAIMoveSpeed(static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
+                // setAIMoveSpeed(static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED)));
                 AnimalEntity::travel(sideInput, vertical, forwardInput);
             } else {
                 // 无法控制时停止移动
@@ -582,8 +846,8 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
             // 着地时重置跳跃状态
             if (onGround()) {
-                m_jumpPower = 0;
-                m_isJumping = false;
+                jump->m_jumpPower = 0;
+                jump->m_isJumping = false;
             }
         }
     } else {
@@ -597,13 +861,22 @@ void AbstractHorseEntity::registerAttributes()
 {
     AnimalEntity::registerAttributes();
 
+    // 属性真相源在 HorseJumpComponent.m_jumpStrength / HorseAttributeComponent
+    // m_speed/m_horseHealth，此处读组件写 AttributeMap（B 类属性镜像）。
+    // 时序：构造期 attach 组件 → initRandomAttributes 写组件 → registerAttributes 读组件
+    // （见构造函数注释）。序列化器 load 后须补调 setBaseValue 同步 AttributeMap。
+    const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    const auto* attr = tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(attr);
+
     // 马类基础属性
-    m_attributes.registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
-    m_attributes.setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, m_jumpStrength);
+    attributes().registerAttribute(*entity::attribute::Attributes::horseJumpStrength());
+    attributes().setBaseValue(entity::attribute::Attributes::HORSE_JUMP_STRENGTH, jump->m_jumpStrength);
 
     // 设置生命值和速度
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, attr->m_horseHealth);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, attr->m_speed);
 }
 
 void AbstractHorseEntity::registerGoals()
@@ -644,22 +917,27 @@ void AbstractHorseEntity::updateRiding()
 {
     // MC 1.16.5: AbstractHorseEntity.tick() 中的动画更新逻辑
 
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+
     // 保存上一帧动画值
-    m_prevHeadLean = m_headLean;
-    m_prevRearingAmount = m_rearingAmount;
-    m_prevMouthOpenness = m_mouthOpenness;
+    anim->m_prevHeadLean = anim->m_headLean;
+    anim->m_prevRearingAmount = anim->m_rearingAmount;
+    anim->m_prevMouthOpenness = anim->m_mouthOpenness;
 
     // 更新低头吃草动画
     // MC 1.16.5: headLean 动画更新
     if (isEating()) {
-        m_headLean += (1.0f - m_headLean) * 0.4f + 0.05f;
-        if (m_headLean > 1.0f) {
-            m_headLean = 1.0f;
+        anim->m_headLean += (1.0f - anim->m_headLean) * 0.4f + 0.05f;
+        if (anim->m_headLean > 1.0f) {
+            anim->m_headLean = 1.0f;
         }
     } else {
-        m_headLean += (0.0f - m_headLean) * 0.4f - 0.05f;
-        if (m_headLean < 0.0f) {
-            m_headLean = 0.0f;
+        anim->m_headLean += (0.0f - anim->m_headLean) * 0.4f - 0.05f;
+        if (anim->m_headLean < 0.0f) {
+            anim->m_headLean = 0.0f;
         }
     }
 
@@ -667,37 +945,39 @@ void AbstractHorseEntity::updateRiding()
     // MC 1.16.5: rearingAmount 动画更新
     if (isRearing()) {
         // 扬蹄时重置低头动画
-        m_headLean = 0.0f;
-        m_prevHeadLean = m_headLean;
+        anim->m_headLean = 0.0f;
+        anim->m_prevHeadLean = anim->m_headLean;
 
         // 扬蹄动画渐入
-        m_rearingAmount += (1.0f - m_rearingAmount) * 0.4f + 0.05f;
-        if (m_rearingAmount > 1.0f) {
-            m_rearingAmount = 1.0f;
+        anim->m_rearingAmount += (1.0f - anim->m_rearingAmount) * 0.4f + 0.05f;
+        if (anim->m_rearingAmount > 1.0f) {
+            anim->m_rearingAmount = 1.0f;
         }
     } else {
         // 不再扬蹄时重置滑动标志
-        m_allowStandSliding = false;
+        jump->m_allowStandSliding = false;
 
         // 扬蹄动画渐出（使用三次方实现平滑过渡）
-        m_rearingAmount +=
-            (0.8f * m_rearingAmount * m_rearingAmount * m_rearingAmount - m_rearingAmount) * 0.6f - 0.05f;
-        if (m_rearingAmount < 0.0f) {
-            m_rearingAmount = 0.0f;
+        anim->m_rearingAmount +=
+            (0.8f * anim->m_rearingAmount * anim->m_rearingAmount * anim->m_rearingAmount - anim->m_rearingAmount) *
+                0.6f -
+            0.05f;
+        if (anim->m_rearingAmount < 0.0f) {
+            anim->m_rearingAmount = 0.0f;
         }
     }
 
     // 更新张嘴动画
     // MC 1.16.5: mouthOpenness 动画更新
     if (isMouthOpen()) {
-        m_mouthOpenness += (1.0f - m_mouthOpenness) * 0.7f + 0.05f;
-        if (m_mouthOpenness > 1.0f) {
-            m_mouthOpenness = 1.0f;
+        anim->m_mouthOpenness += (1.0f - anim->m_mouthOpenness) * 0.7f + 0.05f;
+        if (anim->m_mouthOpenness > 1.0f) {
+            anim->m_mouthOpenness = 1.0f;
         }
     } else {
-        m_mouthOpenness += (0.0f - m_mouthOpenness) * 0.7f - 0.05f;
-        if (m_mouthOpenness < 0.0f) {
-            m_mouthOpenness = 0.0f;
+        anim->m_mouthOpenness += (0.0f - anim->m_mouthOpenness) * 0.7f - 0.05f;
+        if (anim->m_mouthOpenness < 0.0f) {
+            anim->m_mouthOpenness = 0.0f;
         }
     }
 
@@ -722,9 +1002,12 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
         // 由于我们没有 MobEntity 的直接访问，这里跳过
     }
 
+    const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+
     // 扬蹄时调整乘客位置
     // MC 1.16.5: if (this.prevRearingAmount > 0.0F) { ... }
-    if (m_prevRearingAmount > 0.0f) {
+    if (anim->m_prevRearingAmount > 0.0f) {
         // 计算基于朝向的偏移
         // MC 1.16.5: float f3 = MathHelper.sin(this.renderYawOffset * ((float)Math.PI / 180F));
         //            float f = MathHelper.cos(this.renderYawOffset * ((float)Math.PI / 180F));
@@ -734,8 +1017,8 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
-        f32 offsetX = 0.7f * m_prevRearingAmount;
-        f32 offsetY = 0.15f * m_prevRearingAmount;
+        f32 offsetX = 0.7f * anim->m_prevRearingAmount;
+        f32 offsetY = 0.15f * anim->m_prevRearingAmount;
 
         // 计算新的乘客位置
         // MC 1.16.5: passenger.setPosition(
@@ -761,42 +1044,52 @@ f32 AbstractHorseEntity::getRearingAmount(f32 partialTicks) const
 {
     // MC 1.16.5: getRearingAmount(float partialTicks)
     // MathHelper.lerp(partialTicks, prevRearingAmount, rearingAmount)
-    return math::lerp(m_prevRearingAmount, m_rearingAmount, partialTicks);
+    const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+    return math::lerp(anim->m_prevRearingAmount, anim->m_rearingAmount, partialTicks);
 }
 
 f32 AbstractHorseEntity::getHeadLeanAmount(f32 partialTicks) const
 {
     // MC 1.16.5: getHeadLean(float partialTicks)
-    return math::lerp(m_prevHeadLean, m_headLean, partialTicks);
+    const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+    return math::lerp(anim->m_prevHeadLean, anim->m_headLean, partialTicks);
 }
 
 f32 AbstractHorseEntity::getMouthOpennessAmount(f32 partialTicks) const
 {
     // MC 1.16.5: getMouthOpennessAngle(float partialTicks)
-    return math::lerp(m_prevMouthOpenness, m_mouthOpenness, partialTicks);
+    const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+    return math::lerp(anim->m_prevMouthOpenness, anim->m_mouthOpenness, partialTicks);
 }
 
 void AbstractHorseEntity::updateJumpPower()
 {
     // MC 1.16.5: jumpPower 范围 0-100
-    if (m_jumpPower < 100) {
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    if (jump->m_jumpPower < 100) {
         // 蓄力增加
-        m_jumpPower += 5;
-        m_jumpPower = std::min(m_jumpPower, 100);
+        jump->m_jumpPower += 5;
+        jump->m_jumpPower = std::min(jump->m_jumpPower, 100);
     }
 }
 
 void AbstractHorseEntity::performJump()
 {
-    if (!canJump() || m_jumpPower <= 0) {
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+    if (!canJump() || jump->m_jumpPower <= 0) {
         return;
     }
 
     // MC 1.16.5: jumpPower 转换为 0.0-1.0 的比例
-    f32 jumpPowerFactor = static_cast<f32>(m_jumpPower) / 100.0f;
+    f32 jumpPowerFactor = static_cast<f32>(jump->m_jumpPower) / 100.0f;
 
     // 计算跳跃力度
-    f32 jumpForce = m_jumpStrength * jumpPowerFactor;
+    f32 jumpForce = jump->m_jumpStrength * jumpPowerFactor;
 
     // MC 1.16.5: 跳跃提升药水效果加成
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
@@ -809,16 +1102,18 @@ void AbstractHorseEntity::performJump()
     setVelocity(velocityX(), jumpForce, velocityZ());
 
     // 设置跳跃冷却
-    m_jumpCooldown = 10;
+    jump->m_jumpCooldown = 10;
 }
 
 void AbstractHorseEntity::updateBoost()
 {
-    if (m_boostTime > 0) {
-        m_boostTime--;
+    auto* boost = tryGetComponent<ecs::HorseBoostComponent>();
+    MC_ASSERT_RELEASE(boost);
+    if (boost->m_boostTime > 0) {
+        boost->m_boostTime--;
 
-        if (m_boostTime <= 0) {
-            m_isBoosting = false;
+        if (boost->m_boostTime <= 0) {
+            boost->m_isBoosting = false;
         }
     }
 }
@@ -827,10 +1122,15 @@ void AbstractHorseEntity::initRandomAttributes()
 {
     math::Random rng(ticksExisted());
 
-    // 随机生成马特有属性
-    m_speed = rng.nextFloat(MIN_SPEED, MAX_SPEED);
-    m_jumpStrength = rng.nextFloat(MIN_JUMP, MAX_JUMP);
-    m_horseHealth = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
+    auto* attr = tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(attr);
+    auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
+    MC_ASSERT_RELEASE(jump);
+
+    // 随机生成马特有属性（B 类：NBT 真相源字段，registerAttributes 拷贝到 AttributeMap）
+    attr->m_speed = rng.nextFloat(MIN_SPEED, MAX_SPEED);
+    jump->m_jumpStrength = rng.nextFloat(MIN_JUMP, MAX_JUMP);
+    attr->m_horseHealth = rng.nextFloat(MIN_HEALTH, MAX_HEALTH);
 }
 
 // ========== 驯服系统 ==========
@@ -884,7 +1184,9 @@ void AbstractHorseEntity::openMouth()
     if (m_world == nullptr || m_world->isClientSide()) {
         return;
     }
-    m_openMouthCounter = 1;
+    auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
+    anim->m_openMouthCounter = 1;
     setMouthOpen(true);
 }
 
@@ -897,57 +1199,21 @@ void AbstractHorseEntity::makeHorseRear()
     }
 
     if (canPassengerSteer() || (m_world != nullptr && !m_world->isClientSide())) {
+        auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+        MC_ASSERT_RELEASE(anim);
         // setStanding(20): 设置扬蹄状态，持续 20 tick
         setRearing(true);
-        m_jumpRearingCounter = 20;
+        anim->m_jumpRearingCounter = 20;
     }
 }
 
 void AbstractHorseEntity::clearRearing()
 {
     // MC 1.21.11: clearStanding()
+    auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
+    MC_ASSERT_RELEASE(anim);
     setRearing(false);
-    m_jumpRearingCounter = 0;
-}
-
-bool AbstractHorseEntity::isRearing() const
-{
-    return getHorseWatchableBoolean(STATUS_FLAG_REARING);
-}
-
-void AbstractHorseEntity::setRearing(bool rearing)
-{
-    // MC 1.16.5: if (rearing) { this.setEatingHaystack(false); }
-    if (rearing) {
-        setHorseWatchableBoolean(STATUS_FLAG_EATING, false);
-    }
-    setHorseWatchableBoolean(STATUS_FLAG_REARING, rearing);
-}
-
-void AbstractHorseEntity::setOwnerUuid(const std::string& uuid)
-{
-    m_ownerUuid = uuid;
-    // 同步驯服状态：有主人时自动标记为已驯服
-    if (!uuid.empty()) {
-        setTame(true);
-    }
-}
-
-void AbstractHorseEntity::clearOwnerUuid()
-{
-    m_ownerUuid.clear();
-}
-
-LivingEntity* AbstractHorseEntity::getOwner() const
-{
-    if (m_ownerUuid.empty() || m_world == nullptr) {
-        return nullptr;
-    }
-    Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
-    if (entity != nullptr) {
-        return dynamic_cast<LivingEntity*>(entity);
-    }
-    return nullptr;
+    anim->m_jumpRearingCounter = 0;
 }
 
 // ========== 食物处理 ==========
@@ -1073,10 +1339,12 @@ void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, A
     // MC 1.16.5: AbstractHorseEntity.setOffspringAttributes()
     // 遗传公式：(父本基础值 + 母本基础值 + 随机变异值) / 3
 
-    // 获取父本属性（this）
-    f64 parentMaxHealth = static_cast<f64>(m_horseHealth);
-    f64 parentJumpStrength = static_cast<f64>(m_jumpStrength);
-    f64 parentSpeed = static_cast<f64>(m_speed);
+    // 获取父本属性（this）—— B 类属性字段走 HorseAttributeComponent/HorseJumpComponent
+    const auto* selfAttr = tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(selfAttr);
+    f64 parentMaxHealth = static_cast<f64>(selfAttr->m_horseHealth);
+    f64 parentJumpStrength = static_cast<f64>(getJumpStrength());
+    f64 parentSpeed = static_cast<f64>(selfAttr->m_speed);
 
     // 获取母本属性
     const AbstractHorseEntity* partnerHorse = dynamic_cast<const AbstractHorseEntity*>(&partner);
@@ -1086,9 +1354,11 @@ void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, A
     f64 partnerSpeed = 0.175;      // 默认速度
 
     if (partnerHorse != nullptr) {
-        partnerMaxHealth = static_cast<f64>(partnerHorse->m_horseHealth);
-        partnerJumpStrength = static_cast<f64>(partnerHorse->m_jumpStrength);
-        partnerSpeed = static_cast<f64>(partnerHorse->m_speed);
+        const auto* pAttr = partnerHorse->tryGetComponent<ecs::HorseAttributeComponent>();
+        MC_ASSERT_RELEASE(pAttr);
+        partnerMaxHealth = static_cast<f64>(pAttr->m_horseHealth);
+        partnerJumpStrength = static_cast<f64>(partnerHorse->getJumpStrength());
+        partnerSpeed = static_cast<f64>(pAttr->m_speed);
     }
 
     // 计算随机变异值
@@ -1101,15 +1371,17 @@ void AbstractHorseEntity::setOffspringAttributes(const AgeableEntity& partner, A
     f64 babyJumpStrength = (parentJumpStrength + partnerJumpStrength + randomJump) / 3.0;
     f64 babySpeed = (parentSpeed + partnerSpeed + randomSpeed) / 3.0;
 
-    // 设置后代属性
-    offspring.m_horseHealth = static_cast<f32>(babyMaxHealth);
+    // 设置后代属性（B 类：NBT 真相源字段写组件，再同步 AttributeMap）
+    auto* babyAttr = offspring.tryGetComponent<ecs::HorseAttributeComponent>();
+    MC_ASSERT_RELEASE(babyAttr);
+    babyAttr->m_horseHealth = static_cast<f32>(babyMaxHealth);
     offspring.setJumpStrength(static_cast<f32>(babyJumpStrength));
-    offspring.m_speed = static_cast<f32>(babySpeed);
+    babyAttr->m_speed = static_cast<f32>(babySpeed);
 
     // 更新属性
-    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, offspring.m_horseHealth);
-    offspring.m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, offspring.m_speed);
-    offspring.m_attributes.setBaseValue(
+    offspring.attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, babyAttr->m_horseHealth);
+    offspring.attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, babyAttr->m_speed);
+    offspring.attributes().setBaseValue(
         entity::attribute::Attributes::HORSE_JUMP_STRENGTH, offspring.getJumpStrength());
 }
 
@@ -1138,132 +1410,19 @@ f64 AbstractHorseEntity::getModifiedMovementSpeed() const
 }
 
 // ========== NBT 序列化 ==========
-
-void AbstractHorseEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
-{
-    AnimalEntity::addAdditionalSaveData(tag);
-
-    using namespace mc::entity::serialization;
-
-    // 主人UUID（使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式）
-    if (!m_ownerUuid.empty()) {
-        auto uuidBytes = util::uuidFromString(m_ownerUuid);
-        if (uuidBytes.size() == 16) {
-            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
-                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
-                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
-                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
-
-            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
-                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
-                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
-                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
-
-            tag.put(nbt_keys::HORSE_OWNER_UUID_MOST, most);
-            tag.put(nbt_keys::HORSE_OWNER_UUID_LEAST, least);
-        }
-    }
-
-    // 驯服进度
-    tag.put(nbt_keys::TEMPER, m_temper);
-
-    // 是否已驯服（NBT 中布尔值使用 i8 存储）
-    if (isTame()) {
-        tag.put("Tame", static_cast<i8>(1));
-    }
-
-    // 是否已繁殖
-    if (isBred()) {
-        tag.put("Bred", static_cast<i8>(1));
-    }
-
-    // 是否装备鞍
-    if (hasSaddle()) {
-        tag.put("Saddle", static_cast<i8>(1));
-    }
-
-    // 跳跃强度
-    tag.put(nbt_keys::HORSE_JUMP_STRENGTH, m_jumpStrength);
-
-    // 速度
-    tag.put(nbt_keys::HORSE_SPEED, m_speed);
-
-    // 生命值
-    tag.put(nbt_keys::HORSE_HEALTH, m_horseHealth);
-
-    // 吃草状态
-    if (isEating()) {
-        tag.put(nbt_keys::EATING_HAYSTACK, static_cast<i8>(1));
-    }
-}
+// 批次8 Step5：addAdditionalSaveData override 已删除，字段级 NBT 写盘搬
+// ComponentSerializerRegistry（HorseTaming/Jump/Status/Attribute 四序列化器）。
+// AbstractHorseEntity 回落 AnimalEntity/Entity 基类的 addAdditionalSaveData 空实现。
 
 Result<void> AbstractHorseEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
 {
+    // 薄壳：字段级 NBT 读盘由 ComponentSerializerRegistry::loadAll 在本方法之前完成
+    // （HorseTaming/Jump/Status/Attribute 四序列化器按 priority 升序 load）。本方法仅调
+    // 基类 + initHorseChest：initHorseChest 需在所有组件 load 完成后按新 NBT（装箱子后
+    // getInventorySize 变大）重置库存规模，loadAll 无法感知"所有组件 load 完"时序。
     MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
 
-    using namespace mc::entity::serialization;
-
-    // 主人UUID（使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式）
-    auto ownerMostVal = nbt_helper::tryGetLong(tag, nbt_keys::HORSE_OWNER_UUID_MOST);
-    auto ownerLeastVal = nbt_helper::tryGetLong(tag, nbt_keys::HORSE_OWNER_UUID_LEAST);
-    if (ownerMostVal.has_value() && ownerLeastVal.has_value()) {
-        i64 most = ownerMostVal.value();
-        i64 least = ownerLeastVal.value();
-        std::array<u8, 16> uuidBytes{};
-        for (i32 i = 7; i >= 0; --i) {
-            uuidBytes[i] = static_cast<u8>(most & 0xFF);
-            most >>= 8;
-        }
-        for (i32 i = 15; i >= 8; --i) {
-            uuidBytes[i] = static_cast<u8>(least & 0xFF);
-            least >>= 8;
-        }
-        setOwnerUuid(util::uuidToString(uuidBytes));
-    } else {
-        clearOwnerUuid();
-    }
-
-    // 驯服进度
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TEMPER)) {
-        m_temper = *val;
-    }
-
-    // 是否已驯服
-    if (auto val = nbt_helper::tryGetBool(tag, "Tame")) {
-        setTame(*val);
-    }
-
-    // 是否已繁殖
-    if (auto val = nbt_helper::tryGetBool(tag, "Bred")) {
-        setBred(*val);
-    }
-
-    // 是否装备鞍
-    if (auto val = nbt_helper::tryGetBool(tag, "Saddle")) {
-        setSaddle(*val);
-    }
-
-    // 跳跃强度
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_JUMP_STRENGTH)) {
-        m_jumpStrength = *val;
-    }
-
-    // 速度
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_SPEED)) {
-        m_speed = *val;
-    }
-
-    // 生命值
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_HEALTH)) {
-        m_horseHealth = *val;
-    }
-
-    // 吃草状态
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::EATING_HAYSTACK)) {
-        setEating(*val);
-    }
-
-    // 从NBT加载后重新初始化背包
+    // 从NBT加载后重新初始化背包（组件已就位，getInventorySize 返回正确值）
     initHorseChest();
 
     return Result<void>::ok();

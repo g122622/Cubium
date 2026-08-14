@@ -56,8 +56,8 @@ const entity::EntityClassInfo& GlowSquidEntity::classInfo()
     return s_classInfo;
 }
 
-GlowSquidEntity::GlowSquidEntity(EntityInstanceId id)
-    : SquidEntity(id)
+GlowSquidEntity::GlowSquidEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SquidEntity(id, registry)
 {
     // 显式调用 registerData() 注册同步数据参数。
     // C++ 虚函数在基类构造函数中不会动态派发到派生类，因此 SquidEntity / WaterMobEntity
@@ -65,9 +65,9 @@ GlowSquidEntity::GlowSquidEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> GlowSquidEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> GlowSquidEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<GlowSquidEntity>(0);
+    return std::make_unique<GlowSquidEntity>(0, registry);
 }
 
 void GlowSquidEntity::registerData()

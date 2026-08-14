@@ -48,8 +48,9 @@ public:
     /**
      * @brief 构造鱼类实体
      * @param id 实体 ID
+     * @param registry 实体注册表（ECS）
      */
-    AbstractFishEntity(EntityInstanceId id);
+    AbstractFishEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~AbstractFishEntity() override = default;
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。

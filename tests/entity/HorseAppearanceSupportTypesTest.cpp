@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/passive/horse/CoatColors.hpp"
 #include "common/entity/entities/passive/horse/CoatTypes.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
@@ -54,7 +55,7 @@ TEST(CoatTypesTest, NormalizesIdsLikeVanilla)
 
 TEST(HorseAppearanceSupportTypesTest, HorseStoresPackedVariantWithSupportTypes)
 {
-    HorseEntity horse(EntityInstanceId(1));
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     horse.setColor(CoatColors::Black);
     horse.setMarking(CoatTypes::WhiteDots);

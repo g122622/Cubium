@@ -75,14 +75,21 @@ ActionResultType BoatItem::onItemUse(ItemUseContext& context)
 
     // 创建船实体（带箱子的船使用 ChestBoatEntity，普通船使用 BoatEntity）
     std::unique_ptr<mc::Entity> boat;
+
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return ActionResultType::Fail;
+    }
+
     if (m_hasChest) {
-        auto chestBoat = std::make_unique<entity::ChestBoatEntity>(m_boatType);
+        auto chestBoat = std::make_unique<entity::ChestBoatEntity>(m_boatType, *registry);
         chestBoat->setTypeId(entity::EntityTypeKeys::CHEST_BOAT);
         chestBoat->setPosition(x, y, z);
         chestBoat->setRotation(context.getPlayerYaw());
         boat = std::move(chestBoat);
     } else {
-        auto normalBoat = std::make_unique<entity::BoatEntity>(m_boatType);
+        auto normalBoat = std::make_unique<entity::BoatEntity>(m_boatType, *registry);
         normalBoat->setTypeId(entity::EntityTypeKeys::BOAT);
         normalBoat->setPosition(x, y, z);
         normalBoat->setRotation(context.getPlayerYaw());

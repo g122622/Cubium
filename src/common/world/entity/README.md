@@ -55,7 +55,8 @@ src/common/world/entity/
 `EntityManager::addEntity()` 接受 `std::unique_ptr<Entity>`，调用后原指针不再有效：
 
 ```cpp
-auto pig = pigType->create(nullptr);
+auto* ecsRegistry = world->entityRegistry();
+auto pig = pigType->create(world, *ecsRegistry);
 Entity* rawPtr = pig.get();
 EntityId id = manager.addEntity(std::move(pig));
 // pig 现在是 nullptr！需要通过 id 重新获取

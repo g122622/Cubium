@@ -157,6 +157,10 @@ std::vector<EntityInstanceId> BlockDropHandler::spawnDrops(EntityManager& entity
     f32 centerY = static_cast<f32>(pos.y) + 0.5f;
     f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
 
+    // ECS 迁移：实体构造需要 registry 句柄，此重载无 IWorld，经 EntityManager.registry() 取
+    // EntityManager 持有 ServerWorld 的 m_entityRegistry 引用（任务#24）
+    auto& registry = entityManager.registry();
+
     // 使用固定种子生成随机速度
     math::Random random(static_cast<u64>(pos.x ^ pos.z));
 
@@ -165,7 +169,7 @@ std::vector<EntityInstanceId> BlockDropHandler::spawnDrops(EntityManager& entity
             continue;
         }
 
-        auto itemEntity = std::make_unique<ItemEntity>(0, stack, centerX, centerY, centerZ);
+        auto itemEntity = std::make_unique<ItemEntity>(0, stack, centerX, centerY, centerZ, registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
@@ -344,8 +348,13 @@ i32 BlockDropHandler::spawnOreExperience(
     entity::experience::utils::splitExperience(xp, xpValues);
 
     i32 spawnedCount = 0;
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return 0;
+    }
     for (i32 xpValue : xpValues) {
-        auto orb = std::make_unique<ExperienceOrbEntity>(&world, centerX, centerY, centerZ, xpValue);
+        auto orb = std::make_unique<ExperienceOrbEntity>(&world, centerX, centerY, centerZ, xpValue, *registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         orb->setTypeId(entity::EntityTypeKeys::EXPERIENCE_ORB);
@@ -385,9 +394,12 @@ i32 BlockDropHandler::spawnOreExperience(
     entity::experience::utils::splitExperience(xp, xpValues);
 
     i32 spawnedCount = 0;
+    // ECS 迁移：实体构造需要 registry 句柄，此重载无 IWorld，经 EntityManager.registry() 取
+    // EntityManager 持有 ServerWorld 的 m_entityRegistry 引用（任务#24）
+    auto& registry = entityManager.registry();
     for (i32 xpValue : xpValues) {
         // 创建经验球实体（不传 world，后续添加到 entityManager 时设置）
-        auto orb = std::make_unique<ExperienceOrbEntity>(xpValue);
+        auto orb = std::make_unique<ExperienceOrbEntity>(xpValue, registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         orb->setTypeId(entity::EntityTypeKeys::EXPERIENCE_ORB);

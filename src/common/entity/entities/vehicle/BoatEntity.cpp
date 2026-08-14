@@ -103,13 +103,13 @@ const entity::EntityClassInfo& BoatEntity::classInfo()
     return s_classInfo;
 }
 
-std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BoatEntity>();
+    return std::make_unique<BoatEntity>(Type::OAK, registry);
 }
 
-BoatEntity::BoatEntity(Type type)
-    : Entity(EntityInstanceId(0))
+BoatEntity::BoatEntity(Type type, ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
     , m_type(type)
 {
     // 设置尺寸通过 width()/height()
@@ -193,8 +193,9 @@ void BoatEntity::tick()
     }
 
     // 检查摔落伤害
-    f64 currentYd = static_cast<f64>(m_position.y) - static_cast<f64>(m_prevPosition.y);
-    if (!m_onGround && currentYd < -0.5) {
+    f64 currentYd =
+        static_cast<f64>(m_builtIn.stateVector->m_pos.y) - static_cast<f64>(m_builtIn.stateVector->m_posPrev.y);
+    if (!m_builtIn.physicsState->m_onGround && currentYd < -0.5) {
         m_lastYd = currentYd;
     }
 
@@ -264,8 +265,9 @@ void BoatEntity::updateMotion()
         case BoatStatus::InWater:
             friction = WATER_FRICTION;
             // 计算浮力: d2 = (waterLevel - posY) / height
-            if (m_waterLevel > static_cast<f64>(m_position.y)) {
-                buoyancy = (m_waterLevel - static_cast<f64>(m_position.y)) / static_cast<f64>(height());
+            if (m_waterLevel > static_cast<f64>(m_builtIn.stateVector->m_pos.y)) {
+                buoyancy =
+                    (m_waterLevel - static_cast<f64>(m_builtIn.stateVector->m_pos.y)) / static_cast<f64>(height());
             }
             break;
         case BoatStatus::UnderWater:
@@ -321,7 +323,7 @@ void BoatEntity::floatBoat()
     }
 
     // 计算水面高度
-    m_waterLevel = static_cast<f64>(m_position.y);
+    m_waterLevel = static_cast<f64>(m_builtIn.stateVector->m_pos.y);
 
     // 获取船的碰撞箱
     AxisAlignedBB box = boundingBox();
@@ -352,9 +354,9 @@ void BoatEntity::floatBoat()
     }
 
     // 根据水位调整船的位置
-    if (m_waterLevel > static_cast<f64>(m_position.y)) {
+    if (m_waterLevel > static_cast<f64>(m_builtIn.stateVector->m_pos.y)) {
         // 船在水面以下，上浮
-        f64 diff = m_waterLevel - static_cast<f64>(m_position.y);
+        f64 diff = m_waterLevel - static_cast<f64>(m_builtIn.stateVector->m_pos.y);
         f64 lift = diff * BUOYANCY;
         setVelocity(velocity().x, velocity().y + static_cast<f32>(lift), velocity().z);
     }
@@ -391,11 +393,11 @@ void BoatEntity::controlBoat()
     m_speed = std::max(-MAX_SPEED, std::min(MAX_SPEED, m_speed));
 
     // 应用转向
-    m_yaw += m_deltaRotation;
+    m_builtIn.rotation->m_rot.x += m_deltaRotation;
     m_deltaRotation *= 0.8f;
 
     // 应用速度
-    f32 yawRad = math::toRadians(m_yaw);
+    f32 yawRad = math::toRadians(m_builtIn.rotation->m_rot.x);
     f32 vx = -std::sin(yawRad) * m_speed;
     f32 vz = std::cos(yawRad) * m_speed;
     setVelocity(vx, velocityY(), vz);
@@ -409,17 +411,17 @@ void BoatEntity::tickLerp()
     // 插值更新
     if (m_interpolationSteps > 0) {
         f64 lerpFactor = 1.0 / static_cast<f64>(m_interpolationSteps);
-        f64 dx = m_interpolationX - static_cast<f64>(m_position.x);
-        f64 dy = m_interpolationY - static_cast<f64>(m_position.y);
-        f64 dz = m_interpolationZ - static_cast<f64>(m_position.z);
-        f64 dYaw = m_interpolationYaw - static_cast<f64>(m_yaw);
-        f64 dPitch = m_interpolationPitch - static_cast<f64>(m_pitch);
+        f64 dx = m_interpolationX - static_cast<f64>(m_builtIn.stateVector->m_pos.x);
+        f64 dy = m_interpolationY - static_cast<f64>(m_builtIn.stateVector->m_pos.y);
+        f64 dz = m_interpolationZ - static_cast<f64>(m_builtIn.stateVector->m_pos.z);
+        f64 dYaw = m_interpolationYaw - static_cast<f64>(m_builtIn.rotation->m_rot.x);
+        f64 dPitch = m_interpolationPitch - static_cast<f64>(m_builtIn.rotation->m_rot.y);
 
-        setPosition(static_cast<f32>(static_cast<f64>(m_position.x) + dx * lerpFactor),
-            static_cast<f32>(static_cast<f64>(m_position.y) + dy * lerpFactor),
-            static_cast<f32>(static_cast<f64>(m_position.z) + dz * lerpFactor));
-        Entity::setRotation(static_cast<f32>(static_cast<f64>(m_yaw) + dYaw * lerpFactor),
-            static_cast<f32>(static_cast<f64>(m_pitch) + dPitch * lerpFactor));
+        setPosition(static_cast<f32>(static_cast<f64>(m_builtIn.stateVector->m_pos.x) + dx * lerpFactor),
+            static_cast<f32>(static_cast<f64>(m_builtIn.stateVector->m_pos.y) + dy * lerpFactor),
+            static_cast<f32>(static_cast<f64>(m_builtIn.stateVector->m_pos.z) + dz * lerpFactor));
+        Entity::setRotation(static_cast<f32>(static_cast<f64>(m_builtIn.rotation->m_rot.x) + dYaw * lerpFactor),
+            static_cast<f32>(static_cast<f64>(m_builtIn.rotation->m_rot.y) + dPitch * lerpFactor));
         m_interpolationSteps--;
     } else {
         setVelocity(velocity());
@@ -642,15 +644,17 @@ void BoatEntity::updateAllPassengerPositions()
         }
 
         // 根据船的朝向旋转偏移向量
-        f32 yawRad = math::toRadians(-m_yaw) - math::PI / 2.0f;
+        f32 yawRad = math::toRadians(-m_builtIn.rotation->m_rot.x) - math::PI / 2.0f;
         f32 rotatedX = offsetX * std::cos(yawRad);
         f32 rotatedZ = -offsetX * std::sin(yawRad);
 
         // 设置乘客位置
-        passenger->setPosition(m_position.x + rotatedX, m_position.y + offsetY, m_position.z + rotatedZ);
+        passenger->setPosition(m_builtIn.stateVector->m_pos.x + rotatedX,
+            m_builtIn.stateVector->m_pos.y + offsetY,
+            m_builtIn.stateVector->m_pos.z + rotatedZ);
 
         // 同步旋转
-        passenger->setRotation(m_yaw + m_deltaRotation, passenger->pitch());
+        passenger->setRotation(m_builtIn.rotation->m_rot.x + m_deltaRotation, passenger->pitch());
 
         // 应用朝向
         applyOrientationToEntity(*passenger);
@@ -660,12 +664,12 @@ void BoatEntity::updateAllPassengerPositions()
 void BoatEntity::applyOrientationToEntity(Entity& passenger)
 {
     // 将船的朝向应用到乘客
-    passenger.setRotation(m_yaw, passenger.pitch());
+    passenger.setRotation(m_builtIn.rotation->m_rot.x, passenger.pitch());
 
     // 限制乘客相对船的旋转范围
-    f32 angleDiff = math::wrapDegrees(passenger.yaw() - m_yaw);
+    f32 angleDiff = math::wrapDegrees(passenger.yaw() - m_builtIn.rotation->m_rot.x);
     f32 clampedDiff = std::max(-MAX_PASSENGER_ROTATION, std::min(MAX_PASSENGER_ROTATION, angleDiff));
-    passenger.setRotation(m_yaw + clampedDiff, passenger.pitch());
+    passenger.setRotation(m_builtIn.rotation->m_rot.x + clampedDiff, passenger.pitch());
 }
 
 void BoatEntity::updateRocking()
@@ -682,7 +686,7 @@ f32 BoatEntity::getWaterLevelAbove()
 {
     // 获取上方水面高度
     if (m_world == nullptr) {
-        return m_position.y + 1.0f;
+        return m_builtIn.stateVector->m_pos.y + 1.0f;
     }
 
     AxisAlignedBB box = boundingBox();
@@ -716,7 +720,7 @@ f32 BoatEntity::getWaterLevelAbove()
         }
     }
 
-    return m_position.y + 1.0f;
+    return m_builtIn.stateVector->m_pos.y + 1.0f;
 }
 
 f64 BoatEntity::getMountedYOffset() const

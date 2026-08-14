@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -94,7 +95,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanBePickedUp)
 {
     // 创建物品实体
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 刚创建时有拾取延迟
     EXPECT_FALSE(entity.canBePickedUp());
@@ -111,7 +112,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanBePickedUp)
 TEST_F(ItemPickupManagerTest, ItemEntity_PickupDelay)
 {
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 默认拾取延迟为 10 ticks
     EXPECT_EQ(entity.getPickupDelay(), 10);
@@ -124,7 +125,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_PickupDelay)
 TEST_F(ItemPickupManagerTest, ItemEntity_Age)
 {
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 初始年龄为 0
     EXPECT_EQ(entity.getAge(), 0);
@@ -147,8 +148,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanMergeWith)
     ItemStack stack1(Items::DIAMOND, 32);
     ItemStack stack2(Items::DIAMOND, 16);
 
-    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f);
-    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 可以合并
     EXPECT_TRUE(entity1.canMergeWith(entity2));
@@ -159,7 +160,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_CanMergeWith)
 
     // 不同物品不能合并
     ItemStack stack3(Items::IRON_INGOT, 16);
-    ItemEntity entity3(3, stack3, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity3(3, stack3, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity1.canMergeWith(entity3));
 }
 
@@ -169,8 +170,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith)
     ItemStack stack1(Items::DIAMOND, 32);
     ItemStack stack2(Items::DIAMOND, 16);
 
-    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f);
-    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 设置无拾取延迟
     entity1.setPickupDelay(0);
@@ -189,8 +190,8 @@ TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith_FullStack)
     ItemStack stack1(Items::DIAMOND, 64);
     ItemStack stack2(Items::DIAMOND, 64);
 
-    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f);
-    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity1(1, stack1, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity2(2, stack2, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 满堆叠不能合并
     EXPECT_FALSE(entity1.canMergeWith(entity2));
@@ -203,7 +204,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_TryMergeWith_FullStack)
 TEST_F(ItemPickupManagerTest, ItemEntity_Expiration)
 {
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 默认存活时间为 6000 ticks
     EXPECT_FALSE(entity.isExpired());
@@ -223,7 +224,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_Expiration)
 TEST_F(ItemPickupManagerTest, ItemEntity_InfiniteLifetime)
 {
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 设置无限存活时间
     entity.setLifetime(ItemEntity::INFINITE_LIFETIME);
@@ -242,7 +243,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_InfiniteLifetime)
 TEST_F(ItemPickupManagerTest, ItemEntity_Owner)
 {
     ItemStack stack(Items::DIAMOND, 1);
-    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 设置所有者
     entity.setOwner("player-uuid-123", "thrower-uuid-456");
@@ -258,7 +259,7 @@ TEST_F(ItemPickupManagerTest, ItemEntity_Owner)
 TEST_F(ItemPickupManagerTest, ItemEntity_SetItemStack)
 {
     ItemStack stack1(Items::DIAMOND, 10);
-    ItemEntity entity(1, stack1, 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(1, stack1, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     EXPECT_EQ(entity.getCount(), 10);
 

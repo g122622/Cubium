@@ -27,6 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/systems/FireTickSystem.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -138,8 +139,9 @@ namespace {
 
 class TestLivingEntity : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityInstanceId id, IWorld* world = nullptr)
-        : LivingEntity(id)
+    explicit TestLivingEntity(
+        EntityInstanceId id, IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : LivingEntity(id, world, registry)
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -157,7 +159,7 @@ public:
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world)
-        : Player(EntityInstanceId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -215,7 +217,7 @@ protected:
 
 TEST_F(EntityLavaFireTest, LavaIgnite_SetsFireForNonImmuneEntity)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isOnFire());
 
     entity.lavaIgnite();
@@ -225,7 +227,7 @@ TEST_F(EntityLavaFireTest, LavaIgnite_SetsFireForNonImmuneEntity)
 
 TEST_F(EntityLavaFireTest, LavaIgnite_DoesNotReduceExistingHigherFireTime)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     // 设置一个很高的火焰时间
     entity.forceFireTicks(500);
     entity.lavaIgnite();
@@ -235,7 +237,7 @@ TEST_F(EntityLavaFireTest, LavaIgnite_DoesNotReduceExistingHigherFireTime)
 
 TEST_F(EntityLavaFireTest, LavaIgnite_IncreasesLowFireTime)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(10);
     entity.lavaIgnite();
     // setFire(300) 会覆盖较低的值
@@ -248,7 +250,7 @@ TEST_F(EntityLavaFireTest, LavaIgnite_IncreasesLowFireTime)
 
 TEST_F(EntityLavaFireTest, LavaHurt_DealsDamageToNonImmuneEntity)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     f32 healthBefore = entity.health();
 
     entity.lavaHurt();
@@ -258,7 +260,7 @@ TEST_F(EntityLavaFireTest, LavaHurt_DealsDamageToNonImmuneEntity)
 
 TEST_F(EntityLavaFireTest, LavaHurt_PlaysSoundWhenDamageSucceeds)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.lavaHurt();
 
     // 基类 shouldPlayLavaHurtSound() 返回 true，且实体未静音
@@ -272,7 +274,7 @@ TEST_F(EntityLavaFireTest, LavaHurt_PlaysSoundWhenDamageSucceeds)
 
 TEST_F(EntityLavaFireTest, LavaHurt_NoSoundWhenEntityIsSilent)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setSilent(true);
     entity.lavaHurt();
 
@@ -283,7 +285,7 @@ TEST_F(EntityLavaFireTest, LavaHurt_NoSoundWhenEntityIsSilent)
 TEST_F(EntityLavaFireTest, LavaHurt_NoSoundWhenDamageFails)
 {
     // 无敌实体不会受伤，也不会播放音效
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
     entity.lavaHurt();
 
@@ -296,7 +298,7 @@ TEST_F(EntityLavaFireTest, LavaHurt_NoSoundWhenDamageFails)
 
 TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_BaseEntityReturnsTrue)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.shouldPlayLavaHurtSound());
 }
 
@@ -304,7 +306,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtZeroHealth)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 将生命值设为 0 或负数时应该返回 true
     entity.setHealth(0);
@@ -318,7 +320,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtNonZeroHealthTick
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // ticksExisted 初始为 0，0 % 10 == 0，应该返回 true
     EXPECT_EQ(entity.ticksExisted(), 0u);
@@ -329,7 +331,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtNonZeroHealthTick
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 模拟 tick 后 ticksExisted = 1
     // ItemEntity::tick() 会递增 ticksExisted
@@ -344,7 +346,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtTick10)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 推进 10 tick
     for (int i = 0; i < 10; ++i) {
@@ -359,7 +361,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtTick5)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 推进 5 tick
     for (int i = 0; i < 5; ++i) {
@@ -376,7 +378,7 @@ TEST_F(EntityLavaFireTest, ShouldPlayLavaHurtSound_ItemEntityAtTick5)
 
 TEST_F(EntityLavaFireTest, ClearFire_ZerosPositiveFireTimer)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFire(100);
     EXPECT_TRUE(entity.isOnFire());
     EXPECT_GT(entity.fire(), 0);
@@ -388,7 +390,7 @@ TEST_F(EntityLavaFireTest, ClearFire_ZerosPositiveFireTimer)
 
 TEST_F(EntityLavaFireTest, ClearFire_PreservesNegativeFireTimer)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     // 负值表示火焰免疫期倒计时（MC Java 中 clearFire 保留负值）
     entity.forceFireTicks(-5);
     EXPECT_EQ(entity.fire(), -5);
@@ -400,7 +402,7 @@ TEST_F(EntityLavaFireTest, ClearFire_PreservesNegativeFireTimer)
 
 TEST_F(EntityLavaFireTest, ClearFire_DoesNothingWhenAlreadyZero)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(0);
     EXPECT_EQ(entity.fire(), 0);
 
@@ -414,17 +416,18 @@ TEST_F(EntityLavaFireTest, ClearFire_DoesNothingWhenAlreadyZero)
 
 TEST_F(EntityLavaFireTest, BaseTick_FireTimerDecrements)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFire(20);
     EXPECT_EQ(entity.fire(), 20);
 
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
     EXPECT_EQ(entity.fire(), 19);
 }
 
 TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFire(100);
     EXPECT_TRUE(entity.isOnFire());
 
@@ -432,6 +435,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
     // 它会被 baseTick 内的 updateEnvironmentState() 重置）。
     enableWaterAtEntity();
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_FALSE(entity.isOnFire());
     EXPECT_EQ(entity.fire(), 0);
@@ -439,12 +443,13 @@ TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
 
 TEST_F(EntityLavaFireTest, BaseTick_FireNotClearedInLava)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFire(100);
 
     // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
     enableLavaAtEntity();
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     // 在岩浆中火焰计时器应递减但不清除
     EXPECT_TRUE(entity.isOnFire());
@@ -453,24 +458,26 @@ TEST_F(EntityLavaFireTest, BaseTick_FireNotClearedInLava)
 
 TEST_F(EntityLavaFireTest, BaseTick_FallDistanceHalvedInLava)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFallDistance(10.0f);
     // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
     enableLavaAtEntity();
 
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_FLOAT_EQ(entity.fallDistance(), 5.0f);
 }
 
 TEST_F(EntityLavaFireTest, BaseTick_FallDistanceNotAffectedOutsideLava)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFallDistance(10.0f);
     // 不在岩浆中：不启用流体覆盖，updateEnvironmentState() 后 isInLava() 为 false。
     entity.setInLava(false);
 
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_FLOAT_EQ(entity.fallDistance(), 10.0f);
 }
@@ -480,11 +487,12 @@ TEST_F(EntityLavaFireTest, BaseTick_OnFireDamageAtMultipleOf20)
     // onFire 伤害在 fire % 20 == 0 且不在岩浆中时触发
     // setFire(40) → fire=40
     // 第 1 次 baseTick: fire=40, 40%20==0 → 伤害, fire→39
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(40);
     f32 healthBefore = entity.health();
 
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     // fire 应从 40 递减到 39，且应受到 onFire 伤害
     EXPECT_EQ(entity.fire(), 39);
@@ -497,13 +505,14 @@ TEST_F(EntityLavaFireTest, BaseTick_OnFireDamageAtMultipleOf20)
 TEST_F(EntityLavaFireTest, BaseTick_NoOnFireDamageWhenInLava)
 {
     // 在岩浆中时 onFire 伤害不应触发
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(20);
     // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
     enableLavaAtEntity();
     f32 healthBefore = entity.health();
 
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     // 在岩浆中不造成 onFire 伤害
     EXPECT_FLOAT_EQ(entity.health(), healthBefore);
@@ -519,7 +528,7 @@ TEST_F(EntityLavaFireTest, ItemEntity_LavaHurtPlaysSoundAtTick0)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     // tick 0 时 shouldPlayLavaHurtSound 返回 true
@@ -535,7 +544,7 @@ TEST_F(EntityLavaFireTest, ItemEntity_LavaHurtDealsDamage)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     i32 healthBefore = entity.getHealth();
@@ -547,7 +556,7 @@ TEST_F(EntityLavaFireTest, ItemEntity_LavaIgniteSetsFire)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     entity.lavaIgnite();
     EXPECT_TRUE(entity.isOnFire());
@@ -560,14 +569,14 @@ TEST_F(EntityLavaFireTest, ItemEntity_LavaIgniteSetsFire)
 
 TEST_F(EntityLavaFireTest, LavaIgnite_SetsFireTo300Ticks)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.lavaIgnite();
     EXPECT_EQ(entity.fire(), 300);
 }
 
 TEST_F(EntityLavaFireTest, LavaHurt_DealsExactly4Damage)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     f32 healthBefore = entity.health();
     entity.lavaHurt();
     EXPECT_FLOAT_EQ(entity.health(), healthBefore - 4.0f);
@@ -579,7 +588,7 @@ TEST_F(EntityLavaFireTest, LavaHurt_IgnoresFireImmuneEntities)
     // 由于 TestLivingEntity 默认不是火焰免疫的（取决于 EntityType 注册），
     // 我们无法直接测试 isImmuneToFire=true 的路径，
     // 但可以通过 setInvulnerable 来验证 invulnerable 路径
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
 
     f32 healthBefore = entity.health();
@@ -596,13 +605,13 @@ TEST_F(EntityLavaFireTest, LavaHurt_IgnoresFireImmuneEntities)
 TEST_F(EntityLavaFireTest, GetFireImmuneTicks_BaseEntityReturnsZero)
 {
     // 基类 Entity 返回 0（无免疫期）
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.getFireImmuneTicks(), 0);
 }
 
 TEST_F(EntityLavaFireTest, GetRemainingFireTicks_PositiveWhenBurning)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(5.0f);
     EXPECT_GT(entity.getRemainingFireTicks(), 0);
     EXPECT_EQ(entity.getRemainingFireTicks(), 100); // 5秒 = 100 ticks
@@ -610,7 +619,7 @@ TEST_F(EntityLavaFireTest, GetRemainingFireTicks_PositiveWhenBurning)
 
 TEST_F(EntityLavaFireTest, GetRemainingFireTicks_NegativeWhenImmune)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(-10);
     EXPECT_LT(entity.getRemainingFireTicks(), 0);
     EXPECT_EQ(entity.getRemainingFireTicks(), -10);
@@ -618,14 +627,14 @@ TEST_F(EntityLavaFireTest, GetRemainingFireTicks_NegativeWhenImmune)
 
 TEST_F(EntityLavaFireTest, IgniteForSeconds_SetsCorrectTicks)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(8.0f);
     EXPECT_EQ(entity.getRemainingFireTicks(), 160); // 8秒 = 160 ticks
 }
 
 TEST_F(EntityLavaFireTest, IgniteForSeconds_DoesNotReduceExistingHigherFireTime)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(15.0f); // 300 ticks
     entity.igniteForSeconds(5.0f);  // 100 ticks < 300，不更新
     EXPECT_EQ(entity.getRemainingFireTicks(), 300);
@@ -634,7 +643,7 @@ TEST_F(EntityLavaFireTest, IgniteForSeconds_DoesNotReduceExistingHigherFireTime)
 TEST_F(EntityLavaFireTest, IgniteForSeconds_OverwritesImmunityCooldown)
 {
     // 免疫期（负值）时，igniteForSeconds 应覆盖免疫期
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(-20); // 免疫期
     EXPECT_LT(entity.getRemainingFireTicks(), 0);
 
@@ -645,14 +654,14 @@ TEST_F(EntityLavaFireTest, IgniteForSeconds_OverwritesImmunityCooldown)
 
 TEST_F(EntityLavaFireTest, IgniteForTicks_SetsCorrectTicks)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForTicks(50);
     EXPECT_EQ(entity.getRemainingFireTicks(), 50);
 }
 
 TEST_F(EntityLavaFireTest, SetRemainingFireTicks_DirectlySetsValue)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setRemainingFireTicks(-15);
     EXPECT_EQ(entity.getRemainingFireTicks(), -15);
 
@@ -663,7 +672,7 @@ TEST_F(EntityLavaFireTest, SetRemainingFireTicks_DirectlySetsValue)
 TEST_F(EntityLavaFireTest, IsOnFire_FalseWhenImmuneCooldown)
 {
     // 负值免疫期时，isOnFire() 应返回 false
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(-10);
     EXPECT_FALSE(entity.isOnFire());
 }
@@ -672,13 +681,14 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguish)
 {
     // 在水中灭火时，如果 getFireImmuneTicks() > 0 则设置免疫期
     // TestLivingEntity 的 getFireImmuneTicks() 返回 0，所以不会设置免疫期
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(5.0f);
     EXPECT_TRUE(entity.isOnFire());
 
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     // 基类 getFireImmuneTicks() 返回 0，所以 m_fire 应为 0 而非负值
     EXPECT_EQ(entity.getRemainingFireTicks(), 0);
@@ -695,6 +705,7 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguishWithPlayer)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     player.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     // Player 应获得 20 tick 免疫期
     EXPECT_EQ(player.getRemainingFireTicks(), -20);
@@ -723,7 +734,7 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_PlayerImmuneTicksIs20)
 
 TEST_F(EntityLavaFireTest, ExtinguishFire_PlaysSoundWhenBurning)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(5.0f);
     EXPECT_TRUE(entity.isOnFire());
 
@@ -735,7 +746,7 @@ TEST_F(EntityLavaFireTest, ExtinguishFire_PlaysSoundWhenBurning)
 
 TEST_F(EntityLavaFireTest, ExtinguishFire_NoSoundWhenNotBurning)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isOnFire());
 
     entity.extinguishFire();
@@ -744,7 +755,7 @@ TEST_F(EntityLavaFireTest, ExtinguishFire_NoSoundWhenNotBurning)
 
 TEST_F(EntityLavaFireTest, PlayExtinguishSound_PlaysCorrectSound)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.playExtinguishSound();
     EXPECT_EQ(m_world.soundPlayCount(), 1);
     EXPECT_EQ(m_world.lastSoundId(), SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE);
@@ -754,7 +765,7 @@ TEST_F(EntityLavaFireTest, PlayExtinguishSound_PlaysCorrectSound)
 TEST_F(EntityLavaFireTest, ClearFire_NegativeValuePreserved)
 {
     // clearFire 保留负值免疫期
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(-15);
     entity.clearFire();
     EXPECT_EQ(entity.getRemainingFireTicks(), -15); // 负值不变
@@ -762,7 +773,7 @@ TEST_F(EntityLavaFireTest, ClearFire_NegativeValuePreserved)
 
 TEST_F(EntityLavaFireTest, ClearFire_PositiveValueZeroed)
 {
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.igniteForSeconds(5.0f);
     EXPECT_GT(entity.getRemainingFireTicks(), 0);
     entity.clearFire();
@@ -811,6 +822,7 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     player.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_FALSE(player.isOnFire());
     EXPECT_EQ(m_world.soundPlayCount(), 1);
@@ -820,12 +832,13 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
 TEST_F(EntityLavaFireTest, WaterExtinguish_NoSoundWhenNotBurning)
 {
     // 不在燃烧时进入水中，不应播放灭火音效
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isOnFire());
 
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_EQ(m_world.soundPlayCount(), 0);
 }
@@ -843,6 +856,7 @@ TEST_F(EntityLavaFireTest, RainExtinguish_PlaysSound)
     m_world.setRaining(true);
     m_world.setCanRainAt(true);
     player.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_FALSE(player.isOnFire());
     EXPECT_EQ(m_world.soundPlayCount(), 1);
@@ -852,12 +866,13 @@ TEST_F(EntityLavaFireTest, RainExtinguish_PlaysSound)
 TEST_F(EntityLavaFireTest, RainExtinguish_NoSoundWhenNotBurning)
 {
     // 不在燃烧时在雨中，不应播放灭火音效
-    TestLivingEntity entity(EntityInstanceId(1), &m_world);
+    TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isOnFire());
 
     m_world.setRaining(true);
     m_world.setCanRainAt(true);
     entity.baseTick();
+    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
 
     EXPECT_EQ(m_world.soundPlayCount(), 0);
 }

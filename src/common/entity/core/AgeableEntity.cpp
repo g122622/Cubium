@@ -67,8 +67,8 @@ void AgeableEntity::registerData()
     m_dataManager.registerParam(DATA_BABY_PARAM, false);
 }
 
-AgeableEntity::AgeableEntity(EntityInstanceId id) noexcept
-    : CreatureEntity(id)
+AgeableEntity::AgeableEntity(EntityInstanceId id, ecs::EntityRegistry& registry) noexcept
+    : CreatureEntity(id, registry)
 {
     // 显式调用 registerData() 注册 DATA_BABY（C++ 基类构造期虚函数不派发，
     // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。

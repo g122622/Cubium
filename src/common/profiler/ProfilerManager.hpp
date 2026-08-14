@@ -62,9 +62,13 @@
 #include "../core/Types.hpp"
 #include "ProfilerConfig.hpp"
 
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -202,6 +206,21 @@ public:
     [[nodiscard]] const TraceConfig& config() const noexcept { return m_config; }
 
     /**
+     * @brief 注册进程内存采样回调
+     *
+     * ProfilerManager 自身处于比 PlatformInfo 更底层的 mc_profiler 库，不能直接依赖
+     * mc_common 的 PlatformInfo。故内存采样通过回调注入：调用方（client/server 初始化处，
+     * 能访问 PlatformInfo）注入一个返回 {工作集MB, 提交量MB} 的 lambda，ProfilerManager
+     * 的内存采样线程在 startTracing() 后周期性调用它并写入 TraceEvents.Memory.Usage 计数器。
+     *
+     * 必须在 startTracing() 之前调用：startTracing() 时若回调为空则不起采样线程。
+     * 注入的实现须线程安全且轻量（每 10ms 调一次），避免阻塞采样线程。
+     *
+     * @param sampler 返回 {工作集MB, 提交量MB} 的回调；传空则停用内存采样
+     */
+    void setMemorySampler(std::function<std::pair<i64, i64>()> sampler) { m_memorySampler = std::move(sampler); }
+
+    /**
      * @brief 设置当前进程名称（双轨）
      *
      * 同时写入 Perfetto 与 Tracy，便于两套工具分析。应在进程启动后调用。
@@ -244,6 +263,22 @@ private:
     bool m_enabled = true;
     bool m_tracing = false;
 
+    /**
+     * @brief 内存采样后台线程（随 startTracing 起、stopTracing/shutdown 停）。
+     *
+     * 定期调用 m_memorySampler 采样进程内存（工作集 + 提交量）写入
+     * TraceEvents.Memory.Usage 计数器，供 Perfetto/Tracy 分析。仅 MC_PROFILER_ENABLED
+     * 时存在；profiler 全关时本类展开为存根，无此线程。
+     */
+    std::thread m_memoryThread;
+    std::atomic<bool> m_memoryStop{false};
+
+    /// 进程内存采样回调（返回 {工作集MB, 提交量MB}），由上层注入；为空时不起采样线程。
+    std::function<std::pair<i64, i64>()> m_memorySampler;
+
+    /// 内存采样线程主循环（_runMemoryTrace）。
+    void _runMemoryTrace();
+
 #if MC_ENABLE_TRACING
     /** @brief Perfetto 后端（仅 MC_ENABLE_TRACING 时持有实例） */
     std::unique_ptr<PerfettoBackend> m_perfetto;
@@ -279,6 +314,7 @@ public:
     void setProcessName(const std::string&) noexcept {}
     void setThreadName(const std::string&) noexcept {}
     void setThreadName(const std::string&, int) noexcept {}
+    void setMemorySampler(std::function<std::pair<i64, i64>()>) noexcept {}
 
 private:
     ProfilerManager() = default;

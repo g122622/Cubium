@@ -37,6 +37,8 @@
 #if MC_ENABLE_TRACING
 #include "PerfettoBackend.hpp"
 #include "ProfilerConfig.hpp"
+#include "TraceCategories.hpp"
+#include "TraceEvents.hpp"
 #endif
 
 #if MC_ENABLE_TRACY
@@ -55,6 +57,7 @@
 #endif
 #endif // MC_ENABLE_TRACY
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <common/TracySystem.hpp>
@@ -73,6 +76,12 @@ ProfilerManager::ProfilerManager() = default;
 
 ProfilerManager::~ProfilerManager()
 {
+    // 先停内存采样线程，避免它在 profiler 后端销毁后继续写 counter。
+    m_memoryStop.store(true, std::memory_order::release);
+    if (m_memoryThread.joinable()) {
+        m_memoryThread.join();
+    }
+
 #if MC_ENABLE_TRACING
     if (m_perfetto) {
         if (m_tracing) {
@@ -137,10 +146,25 @@ void ProfilerManager::startTracing()
 #else
     // Tracy 自动采集，无显式 start 概念
 #endif
+
+    // 启动内存采样后台线程（若尚未运行）。仅当上层已通过 setMemorySampler 注入
+    // 采样回调时才起线程——ProfilerManager 处于比 PlatformInfo 更底层的 mc_profiler 库，
+    // 不能直接采样进程内存，故由调用方注入回调。MC_TRACE_COUNTER 双轨宏自动按启用的后端写入。
+    if (!m_memoryThread.joinable() && m_memorySampler) {
+        m_memoryStop.store(false, std::memory_order::release);
+        m_memoryThread = std::thread(&ProfilerManager::_runMemoryTrace, this);
+        spdlog::info("Memory trace thread started (100 Hz sampling)");
+    }
 }
 
 void ProfilerManager::stopTracing()
 {
+    // 先停内存采样线程，确保不再有 counter 写入后端后再停止 tracing 会话。
+    m_memoryStop.store(true, std::memory_order::release);
+    if (m_memoryThread.joinable()) {
+        m_memoryThread.join();
+    }
+
 #if MC_ENABLE_TRACING
     if (m_perfetto) {
         m_perfetto->stopTracing();
@@ -208,6 +232,30 @@ void ProfilerManager::setThreadName(const std::string& name, int siblingOrderRan
 #if MC_ENABLE_TRACY
     tracy::SetThreadName(name.c_str()); // Tracy 不参与排序，仅记录线程名
 #endif
+}
+
+void ProfilerManager::_runMemoryTrace()
+{
+    // 设置采样线程名称（双轨：Perfetto sibling_order_rank + Tracy）。
+    setThreadName("MemoryTrace");
+
+    // 采样间隔：1000 Hz = 1ms 一次。
+    constexpr auto kSampleInterval = std::chrono::milliseconds(1);
+
+    while (!m_memoryStop.load(std::memory_order::acquire)) {
+        // 调用上层注入的采样回调获取进程内存（工作集 + 提交量），写入
+        // TraceEvents.Memory.Usage 计数器：
+        // - ProcessMemory：工作集（WorkingSetSize），当前驻留物理 RAM 的页。
+        // - ProcessCommit：提交量（PagefileUsage），进程向 OS 申请保留的总虚拟内存。
+        // 工作集受页面复用影响，释放堆后常纹丝不动；提交量更及时反映结构优化是否
+        // 真实降低占用。两者并列便于在 Tracy/Perfetto 中对照分析。
+        // MC_TRACE_COUNTER 为双轨宏：按启用的后端（Perfetto/Tracy）自动写入。
+        const auto [memoryMB, commitMB] = m_memorySampler();
+        MC_TRACE_COUNTER(trace::TraceEvents.Memory.Usage, "ProcessMemory", memoryMB);
+        MC_TRACE_COUNTER(trace::TraceEvents.Memory.Usage, "ProcessCommit", commitMB);
+
+        std::this_thread::sleep_for(kSampleInterval);
+    }
 }
 
 } // namespace profiler

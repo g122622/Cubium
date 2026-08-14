@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
@@ -39,7 +40,7 @@ using namespace mc;
 TEST(CombatTrackerClimbPosTest, EntityHasLastClimbPos)
 {
     // 验证Entity类有攀爬位置追踪方法
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 初始状态应该没有攀爬位置
     EXPECT_FALSE(entity.getLastClimbPos().has_value());
@@ -58,7 +59,7 @@ TEST(CombatTrackerClimbPosTest, EntityHasLastClimbPos)
 TEST(CombatTrackerClimbPosTest, SetOnGroundClearsClimbPos)
 {
     // 验证落地时清空攀爬位置
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 设置攀爬位置
     BlockPos climbPos(10, 64, 20);
@@ -73,7 +74,7 @@ TEST(CombatTrackerClimbPosTest, SetOnGroundClearsClimbPos)
 TEST(CombatTrackerClimbPosTest, SetOnGroundNotClearWhenAlreadyOnGround)
 {
     // 验证已经在地面时不会清空攀爬位置
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 先设置在地面
     entity.setOnGround(true);
@@ -119,7 +120,7 @@ TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater)
     // 测试在水中时的摔落后缀
     // 这个测试验证实体在水中摔落时的后缀
 
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 设置在水中
     entity.setInWater(true);
@@ -132,7 +133,7 @@ TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater)
 TEST(CombatTrackerFallSuffixTest, EmptySuffixWhenNoClimbOrWater)
 {
     // 验证没有攀爬位置且不在水中时，后缀为空
-    Entity entity(EntityInstanceId(1), nullptr);
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     EXPECT_FALSE(entity.getLastClimbPos().has_value());
     EXPECT_FALSE(entity.isInWater());

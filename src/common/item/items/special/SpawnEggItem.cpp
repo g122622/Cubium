@@ -126,7 +126,12 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
 bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, world::spawn::SpawnReason spawnReason) const
 {
     // 通过实体注册表创建实体
-    auto entity = m_entityType.create(&world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto entity = m_entityType.create(&world, *registry);
     if (!entity) {
         return false;
     }

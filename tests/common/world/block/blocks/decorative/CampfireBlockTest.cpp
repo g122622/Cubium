@@ -59,7 +59,7 @@ using namespace mc::block_registry;
 namespace {
 
 /// 测试用世界，支持通过坐标设置和获取方块状态
-class CampfireTestWorld final : public test::BaseTestWorld {
+class CampfireTestWorld final : public mc::test::BaseTestWorld {
 public:
     CampfireTestWorld() = default;
 

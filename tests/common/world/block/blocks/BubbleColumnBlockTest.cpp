@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
@@ -428,8 +429,9 @@ TEST_F(MagmaBlockTest, MagmaBlock_TickCreatesBubbleColumn)
  */
 class HotFloorTrackingEntity : public LivingEntity {
 public:
-    HotFloorTrackingEntity(EntityInstanceId id, IWorld* world = nullptr)
-        : LivingEntity(id, world)
+    HotFloorTrackingEntity(EntityInstanceId id, IWorld* world = nullptr,
+        ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+        : LivingEntity(id, world, registry)
         , m_hurtCount(0)
         , m_lastDamageType(static_cast<DamageType>(255))
         , m_sneaking(false)
@@ -471,7 +473,7 @@ TEST_F(MagmaBlockTest, OnEntityWalk_LivingEntity_TakesHotFloorDamage)
     BlockPos magmaPos(0, 0, 0);
 
     // 创建追踪伤害的活体实体
-    HotFloorTrackingEntity entity(EntityInstanceId(1), &world);
+    HotFloorTrackingEntity entity(EntityInstanceId(1), &world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
 
@@ -497,7 +499,7 @@ TEST_F(MagmaBlockTest, OnEntityWalk_SneakingEntity_NoDamage)
     BlockPos magmaPos(0, 0, 0);
 
     // 创建潜行中的实体（isSteppingCarefully() 返回 true）
-    HotFloorTrackingEntity entity(EntityInstanceId(1), &world);
+    HotFloorTrackingEntity entity(EntityInstanceId(1), &world, mc::test::testEcsRegistry());
     entity.setPosition(0.5f, 0.0f, 0.5f);
     entity.setHealth(20.0f);
     entity.setSneaking(true);

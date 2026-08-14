@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/advancement/trigger/impl/PlayerKilledEntityTrigger.hpp"

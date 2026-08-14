@@ -41,8 +41,8 @@ const entity::EntityClassInfo& GolemEntity::classInfo()
     return s_classInfo;
 }
 
-GolemEntity::GolemEntity(EntityInstanceId id)
-    : CreatureEntity(id)
+GolemEntity::GolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : CreatureEntity(id, registry)
 {
     // 注册属性
     registerAttributes();

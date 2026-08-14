@@ -22,6 +22,7 @@
  */
 
 #include "IntegratedServer.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
@@ -101,10 +102,15 @@ namespace {
 /**
  * @brief 获取菜单玩家
  * TODO: 这是临时方案，后续需要优化容器系统的玩家上下文处理
+ *
+ * ECS 迁移：Player 构造需要 ecs::EntityRegistry 句柄。菜单 Player 无世界上下文，
+ * 故配一个静态局部 registry 供其构造。声明顺序保证 s_menuRegistry 先于 player
+ * 构造、后于 player 析构（函数内 static 逆序析构）。
  */
 Player& _getMenuPlayer()
 {
-    static Player player(0, "IntegratedServerMenu");
+    static ecs::EntityRegistry s_menuRegistry{"menu"};
+    static Player player(0, "IntegratedServerMenu", s_menuRegistry);
     return player;
 }
 

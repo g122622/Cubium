@@ -263,7 +263,12 @@ bool TNTBlock::prime(IWorld& world, const BlockPos& pos, LivingEntity* igniter)
     const entity::EntityType* tntType = registry.getType(entity::EntityTypeKeys::TNT);
 
     if (tntType != nullptr && tntType->isValid()) {
-        auto tntEntity = tntType->create(&world);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry == nullptr) {
+            return false;
+        }
+        auto tntEntity = tntType->create(&world, *ecsRegistry);
         if (tntEntity != nullptr) {
             // 设置TNT位置（方块中心）
             f32 centerX = static_cast<f32>(pos.x) + 0.5f;
@@ -347,7 +352,12 @@ void TNTBlock::onBlockExploded(
         const entity::EntityType* tntType = registry.getType(entity::EntityTypeKeys::TNT);
 
         if (tntType != nullptr && tntType->isValid()) {
-            auto tntEntity = tntType->create(&world);
+            // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+            auto* ecsRegistry = world.entityRegistry();
+            if (ecsRegistry == nullptr) {
+                return;
+            }
+            auto tntEntity = tntType->create(&world, *ecsRegistry);
             if (tntEntity != nullptr) {
                 // 设置TNT位置（方块中心）
                 f32 centerX = static_cast<f32>(pos.x) + 0.5f;

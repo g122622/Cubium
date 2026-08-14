@@ -53,7 +53,7 @@ class LivingEntity;
  */
 class WitherSkeletonEntity : public AbstractSkeletonEntity {
 public:
-    WitherSkeletonEntity(EntityInstanceId id);
+    WitherSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~WitherSkeletonEntity() override = default;
 
@@ -62,7 +62,7 @@ public:
     WitherSkeletonEntity(WitherSkeletonEntity&&) = delete;
     WitherSkeletonEntity& operator=(WitherSkeletonEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /// 凋零效果持续时间（ticks），200 ticks = 10 秒
     static constexpr i32 WITHER_DURATION_TICKS = 200;
@@ -124,6 +124,16 @@ public:
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+
+    /**
+     * @brief 填充默认装备（主手石剑）
+     *
+     * 凋灵骷髅主手持石剑（近战武器），覆盖基类给弓的逻辑——凋灵骷髅使用近战攻击
+     * （setCombatTask override 强制 MeleeAttackGoal），不应持弓。对应原版
+     * WitherSkeleton.populateDefaultEquipmentSlots() 主手石剑。
+     */
+    void populateDefaultEquipmentSlots(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty) override;
 
 private:
     bool m_hasStoneSword = true;

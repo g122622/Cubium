@@ -84,7 +84,7 @@ namespace {
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -97,7 +97,7 @@ public:
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world = nullptr)
-        : Player(EntityInstanceId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -117,7 +117,7 @@ public:
  * 提供方块状态查询、方块粒子生成、音效播放的捕获能力，
  * 用于验证 BrushItem::onUseTick 中的射线检测、粒子生成和音效播放逻辑。
  */
-class BrushTestWorld final : public test::BaseTestWorld {
+class BrushTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

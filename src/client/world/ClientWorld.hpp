@@ -31,6 +31,7 @@
 #include "ClientWeather.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/profiler/MemoryTracking.hpp"
@@ -389,6 +390,13 @@ public:
     [[nodiscard]] ClientEntityManager& entityManager() { return m_entityManager; }
     [[nodiscard]] const ClientEntityManager& entityManager() const { return m_entityManager; }
 
+    /// 客户端 ECS 实体注册表访问器。
+    /// 注意：ClientWorld 不继承 IWorld（继承 ICollisionWorld + IBlockAnimateContext），
+    /// 故此处非 override，而是 ClientWorld 自有方法。客户端实体（本地 Player 等）构造时
+    /// 从此取 registry 句柄。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() noexcept { return &m_entityRegistry; }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const noexcept { return &m_entityRegistry; }
+
     [[nodiscard]] ClientWeather& weather() { return m_weather; }
     [[nodiscard]] const ClientWeather& weather() const { return m_weather; }
 
@@ -732,6 +740,10 @@ private:
     i64 m_targetDayTime = 0;
     bool m_daylightCycleEnabled = true;
 
+    /// 客户端 ECS 实体注册表。客户端实体（本地 Player 等）构造时取此句柄。
+    /// 对齐 ServerWorld：每世界一个 registry。声明在 m_entityManager 前。
+    /// EntityRegistry 无默认构造（需 debugName），故此处显式初始化为 "client"。
+    ecs::EntityRegistry m_entityRegistry{"client"};
     ClientEntityManager m_entityManager;
     ClientWeather m_weather;
 

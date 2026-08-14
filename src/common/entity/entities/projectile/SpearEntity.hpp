@@ -51,12 +51,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit SpearEntity(EntityInstanceId id);
+    explicit SpearEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -68,18 +68,18 @@ public:
     /**
      * @brief 获取长矛物品堆
      */
-    [[nodiscard]] ItemStack getItemStack() const { return m_spearStack; }
+    [[nodiscard]] ItemStack getItemStack() const;
 
     /**
      * @brief 获取箭矢对应的物品堆（AbstractArrowEntity 接口实现）
      * @return 长矛物品堆副本
      */
-    [[nodiscard]] ItemStack getArrowStack() const override { return m_spearStack.copy(); }
+    [[nodiscard]] ItemStack getArrowStack() const override;
 
     /**
      * @brief 设置长矛物品堆
      */
-    void setItemStack(const ItemStack& stack) { m_spearStack = stack; }
+    void setItemStack(const ItemStack& stack);
 
     /**
      * @brief 获取水中阻力
@@ -134,8 +134,7 @@ protected:
      */
     void onBlockHit(const RayTraceResult& result) override;
 
-private:
-    ItemStack m_spearStack; // 长矛物品堆
+    // 批次6 子目标2 Step4：m_spearStack 迁入 ecs::ProjectileItemComponent。
 };
 
 } // namespace entity

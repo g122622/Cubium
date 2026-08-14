@@ -60,7 +60,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持亮度、方块状态、流体状态
  */
-class PathWeightOverrideTestWorld final : public test::BaseTestWorld {
+class PathWeightOverrideTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBrightness(f32 brightness) { m_brightness = brightness; }
     void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
@@ -131,7 +131,7 @@ private:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(EntityInstanceId(0))
+        : CreatureEntity(EntityInstanceId(0), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -144,7 +144,7 @@ public:
 class TestAnimalEntity final : public AnimalEntity {
 public:
     TestAnimalEntity()
-        : AnimalEntity(EntityInstanceId(1))
+        : AnimalEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -168,7 +168,7 @@ protected:
 class TestMonsterEntity final : public MonsterEntity {
 public:
     TestMonsterEntity()
-        : MonsterEntity(EntityInstanceId(2))
+        : MonsterEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -260,7 +260,7 @@ TEST_F(WaterMobPathWeightTest, ReturnsHighWeightInWater)
     // 水生生物在水中应返回 10.0f
     world.setWaterAt(0, 64, 0);
 
-    WaterMobEntity waterMob(EntityInstanceId(10));
+    WaterMobEntity waterMob(EntityInstanceId(10), mc::test::testEcsRegistry());
     waterMob.setWorld(&world);
     EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 10.0f);
 }
@@ -268,7 +268,7 @@ TEST_F(WaterMobPathWeightTest, ReturnsHighWeightInWater)
 TEST_F(WaterMobPathWeightTest, ReturnsZeroOnLand)
 {
     // 水生生物在陆地上应返回 0.0f
-    WaterMobEntity waterMob(EntityInstanceId(10));
+    WaterMobEntity waterMob(EntityInstanceId(10), mc::test::testEcsRegistry());
     waterMob.setWorld(&world);
     EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
@@ -276,7 +276,7 @@ TEST_F(WaterMobPathWeightTest, ReturnsZeroOnLand)
 TEST_F(WaterMobPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    WaterMobEntity waterMob(EntityInstanceId(10));
+    WaterMobEntity waterMob(EntityInstanceId(10), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -296,7 +296,7 @@ TEST_F(GuardianPathWeightTest, PrefersWaterOverLand)
     world.setWaterAt(0, 64, 0);
     world.setBrightness(0.5f);
 
-    GuardianEntity guardian(EntityInstanceId(20));
+    GuardianEntity guardian(EntityInstanceId(20), mc::test::testEcsRegistry());
     guardian.setWorld(&world);
     f32 waterWeight = guardian.getPathWeight(0.0f, 64.0f, 0.0f);
 
@@ -308,7 +308,7 @@ TEST_F(GuardianPathWeightTest, ReturnsMonsterWeightOnLand)
 {
     // 守卫者在陆地上应使用 MonsterEntity 的权重逻辑
     world.setBrightness(0.0f); // 黑暗中怪物偏好高
-    GuardianEntity guardian(EntityInstanceId(20));
+    GuardianEntity guardian(EntityInstanceId(20), mc::test::testEcsRegistry());
     guardian.setWorld(&world);
     f32 weight = guardian.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.5f); // MonsterEntity: 0.5 - 0.0 = 0.5
@@ -316,7 +316,7 @@ TEST_F(GuardianPathWeightTest, ReturnsMonsterWeightOnLand)
 
 TEST_F(GuardianPathWeightTest, ReturnsZeroWhenNoWorld)
 {
-    GuardianEntity guardian(EntityInstanceId(20));
+    GuardianEntity guardian(EntityInstanceId(20), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(guardian.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -335,7 +335,7 @@ TEST_F(StriderPathWeightTest, PrefersLava)
     // 炽足兽在岩浆中应返回 10.0f
     world.setLavaAt(0, 64, 0);
 
-    StriderEntity strider(EntityInstanceId(30));
+    StriderEntity strider(EntityInstanceId(30), mc::test::testEcsRegistry());
     strider.setWorld(&world);
     f32 lavaWeight = strider.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(lavaWeight, 10.0f);
@@ -344,7 +344,7 @@ TEST_F(StriderPathWeightTest, PrefersLava)
 TEST_F(StriderPathWeightTest, ReturnsZeroOnLandWhenNotInLava)
 {
     // 炽足兽在陆地上且自身不在岩浆中——返回 0.0f
-    StriderEntity strider(EntityInstanceId(30));
+    StriderEntity strider(EntityInstanceId(30), mc::test::testEcsRegistry());
     strider.setWorld(&world);
     EXPECT_FLOAT_EQ(strider.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
@@ -353,7 +353,7 @@ TEST_F(StriderPathWeightTest, ReturnsNegInfOnLandWhenInLava)
 {
     // 炽足兽自身在岩浆中，但目标位置不是岩浆——返回 -∞（强烈避免离开岩浆）
     // 对应 MC: isInLava() ? Float.NEGATIVE_INFINITY
-    StriderEntity strider(EntityInstanceId(30));
+    StriderEntity strider(EntityInstanceId(30), mc::test::testEcsRegistry());
     strider.setWorld(&world);
     strider.setInLava(true); // 模拟炽足兽当前站在岩浆中
 
@@ -364,7 +364,7 @@ TEST_F(StriderPathWeightTest, ReturnsNegInfOnLandWhenInLava)
 
 TEST_F(StriderPathWeightTest, ReturnsZeroWhenNoWorld)
 {
-    StriderEntity strider(EntityInstanceId(30));
+    StriderEntity strider(EntityInstanceId(30), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(strider.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -383,7 +383,7 @@ TEST_F(MooshroomPathWeightTest, PrefersMycelium)
     // 哞菇在菌丝上应返回 10.0f
     world.setMyceliumAt(0, 63, 0);
 
-    MooshroomEntity mooshroom(EntityInstanceId(40));
+    MooshroomEntity mooshroom(EntityInstanceId(40), mc::test::testEcsRegistry());
     mooshroom.setWorld(&world);
     f32 myceliumWeight = mooshroom.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(myceliumWeight, 10.0f);
@@ -393,7 +393,7 @@ TEST_F(MooshroomPathWeightTest, FallsBackToAnimalWeightOnNonMycelium)
 {
     // 哞菇在非菌丝上应委托 AnimalEntity 的逻辑
     world.setBrightness(1.0f);
-    MooshroomEntity mooshroom(EntityInstanceId(40));
+    MooshroomEntity mooshroom(EntityInstanceId(40), mc::test::testEcsRegistry());
     mooshroom.setWorld(&world);
 
     // 不在菌丝上，也不在草方块上，应返回 brightness - 0.5 = 0.5
@@ -405,7 +405,7 @@ TEST_F(MooshroomPathWeightTest, PrefersMyceliumOverDarkness)
 {
     // 哞菇在菌丝上应优于黑暗位置
     world.setMyceliumAt(0, 63, 0);
-    MooshroomEntity mooshroom(EntityInstanceId(40));
+    MooshroomEntity mooshroom(EntityInstanceId(40), mc::test::testEcsRegistry());
     mooshroom.setWorld(&world);
     f32 myceliumWeight = mooshroom.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(myceliumWeight, 10.0f);
@@ -418,7 +418,7 @@ TEST_F(MooshroomPathWeightTest, PrefersMyceliumOverDarkness)
 
 TEST_F(MooshroomPathWeightTest, ReturnsZeroWhenNoWorld)
 {
-    MooshroomEntity mooshroom(EntityInstanceId(40));
+    MooshroomEntity mooshroom(EntityInstanceId(40), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(mooshroom.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -436,7 +436,7 @@ TEST_F(EndermanPathWeightTest, ReturnsZeroInDarkness)
 {
     // 末影人不依赖光照，在黑暗中返回 0.0f
     world.setBrightness(0.0f);
-    EndermanEntity enderman(EntityInstanceId(50));
+    EndermanEntity enderman(EntityInstanceId(50), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
@@ -445,7 +445,7 @@ TEST_F(EndermanPathWeightTest, ReturnsZeroInBrightLight)
 {
     // 末影人在明亮中也返回 0.0f
     world.setBrightness(1.0f);
-    EndermanEntity enderman(EntityInstanceId(50));
+    EndermanEntity enderman(EntityInstanceId(50), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
@@ -453,7 +453,7 @@ TEST_F(EndermanPathWeightTest, ReturnsZeroInBrightLight)
 TEST_F(EndermanPathWeightTest, AlwaysReturnsZero)
 {
     // 末影人始终返回 0.0f
-    EndermanEntity enderman(EntityInstanceId(50));
+    EndermanEntity enderman(EntityInstanceId(50), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
     EXPECT_FLOAT_EQ(enderman.getPathWeight(100.0f, -10.0f, 200.0f), 0.0f);
@@ -462,7 +462,7 @@ TEST_F(EndermanPathWeightTest, AlwaysReturnsZero)
 TEST_F(EndermanPathWeightTest, CanSpawnAnywhere)
 {
     // 由于 getPathWeight 始终返回 0.0f，canSpawnAt 始终返回 true
-    EndermanEntity enderman(EntityInstanceId(50));
+    EndermanEntity enderman(EntityInstanceId(50), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     EXPECT_TRUE(enderman.canSpawnAt(0.0f, 64.0f, 0.0f));
 }
@@ -482,7 +482,7 @@ TEST_F(GiantPathWeightTest, PrefersBrightLight)
     // MC Giant.getWalkTargetValue: 返回 brightness - 0.5f（不取反）
     // 巨人是唯一偏好明亮区域的 Monster 子类
     world.setBrightness(1.0f);
-    GiantEntity giant(EntityInstanceId(60));
+    GiantEntity giant(EntityInstanceId(60), mc::test::testEcsRegistry());
     giant.setWorld(&world);
 
     // 亮度 1.0 → 1.0 - 0.5 = 0.5（正值，偏好）
@@ -494,7 +494,7 @@ TEST_F(GiantPathWeightTest, AvoidsDarkness)
 {
     // 亮度 0.0 → 0.0 - 0.5 = -0.5（负值，避免）
     world.setBrightness(0.0f);
-    GiantEntity giant(EntityInstanceId(60));
+    GiantEntity giant(EntityInstanceId(60), mc::test::testEcsRegistry());
     giant.setWorld(&world);
 
     f32 weight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -505,7 +505,7 @@ TEST_F(GiantPathWeightTest, NeutralAtHalfBrightness)
 {
     // 亮度 0.5 → 0.5 - 0.5 = 0.0（中性）
     world.setBrightness(0.5f);
-    GiantEntity giant(EntityInstanceId(60));
+    GiantEntity giant(EntityInstanceId(60), mc::test::testEcsRegistry());
     giant.setWorld(&world);
 
     f32 weight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -515,7 +515,7 @@ TEST_F(GiantPathWeightTest, NeutralAtHalfBrightness)
 TEST_F(GiantPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    GiantEntity giant(EntityInstanceId(60));
+    GiantEntity giant(EntityInstanceId(60), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(giant.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -525,7 +525,7 @@ TEST_F(GiantPathWeightTest, OppositeOfNormalMonster)
     // 普通怪物：0.5 - brightness（偏好黑暗）
     // 巨人：brightness - 0.5（偏好明亮）
     world.setBrightness(1.0f);
-    GiantEntity giant(EntityInstanceId(60));
+    GiantEntity giant(EntityInstanceId(60), mc::test::testEcsRegistry());
     giant.setWorld(&world);
     TestMonsterEntity monster;
     monster.setWorld(&world);
@@ -555,7 +555,7 @@ TEST_F(SilverfishPathWeightTest, PrefersInfestedBlocks)
     const BlockState* hostState = &VanillaBlocks::STONE->defaultState();
     world.setBlockStateAt(0, 63, 0, hostState);
 
-    SilverfishEntity silverfish(EntityInstanceId(70));
+    SilverfishEntity silverfish(EntityInstanceId(70), mc::test::testEcsRegistry());
     silverfish.setWorld(&world);
 
     // getPathWeight 检查脚下方块（y-1 = 63），可被虫蚀的宿主方块返回 10.0f
@@ -568,7 +568,7 @@ TEST_F(SilverfishPathWeightTest, FallsBackToMonsterWeightOnNonInfested)
     // 非虫蚀方块：委托给 MonsterEntity 的默认实现
     // MonsterEntity 返回 0.5 - brightness
     world.setBrightness(0.0f); // 黑暗中，MonsterEntity 返回 0.5
-    SilverfishEntity silverfish(EntityInstanceId(70));
+    SilverfishEntity silverfish(EntityInstanceId(70), mc::test::testEcsRegistry());
     silverfish.setWorld(&world);
 
     f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -579,7 +579,7 @@ TEST_F(SilverfishPathWeightTest, FallsBackToMonsterWeightInBrightLight)
 {
     // 明亮环境且非虫蚀方块：MonsterEntity 返回负值
     world.setBrightness(1.0f);
-    SilverfishEntity silverfish(EntityInstanceId(70));
+    SilverfishEntity silverfish(EntityInstanceId(70), mc::test::testEcsRegistry());
     silverfish.setWorld(&world);
 
     f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -593,7 +593,7 @@ TEST_F(SilverfishPathWeightTest, InfestedBlockOverridesDarknessPenalty)
     const BlockState* hostState = &VanillaBlocks::STONE->defaultState();
     world.setBlockStateAt(0, 63, 0, hostState);
 
-    SilverfishEntity silverfish(EntityInstanceId(70));
+    SilverfishEntity silverfish(EntityInstanceId(70), mc::test::testEcsRegistry());
     silverfish.setWorld(&world);
 
     f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
@@ -603,7 +603,7 @@ TEST_F(SilverfishPathWeightTest, InfestedBlockOverridesDarknessPenalty)
 TEST_F(SilverfishPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    SilverfishEntity silverfish(EntityInstanceId(70));
+    SilverfishEntity silverfish(EntityInstanceId(70), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(silverfish.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -622,7 +622,7 @@ TEST_F(HoglinPathWeightTest, PrefersCrimsonNylium)
     // MC Hoglin.getWalkTargetValue: 站在绯红菌岩上返回 10.0f
     world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
 
-    HoglinEntity hoglin(EntityInstanceId(80));
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
     hoglin.setWorld(&world);
     f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 10.0f);
@@ -631,7 +631,7 @@ TEST_F(HoglinPathWeightTest, PrefersCrimsonNylium)
 TEST_F(HoglinPathWeightTest, ReturnsZeroOnNonCrimsonNylium)
 {
     // 非绯红菌岩方块返回 0.0f
-    HoglinEntity hoglin(EntityInstanceId(80));
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
     hoglin.setWorld(&world);
     f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -640,7 +640,7 @@ TEST_F(HoglinPathWeightTest, ReturnsZeroOnNonCrimsonNylium)
 TEST_F(HoglinPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    HoglinEntity hoglin(EntityInstanceId(80));
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(hoglin.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -649,7 +649,7 @@ TEST_F(HoglinPathWeightTest, WarpedNyliumNotPreferred)
     // 诡异菌岩不是疣猪兽偏好方块，应返回 0.0f
     world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::WARPED_NYLIUM->defaultState());
 
-    HoglinEntity hoglin(EntityInstanceId(80));
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
     hoglin.setWorld(&world);
     f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -660,7 +660,7 @@ TEST_F(HoglinPathWeightTest, CrimsonNyliumOverridesDarknessPreference)
     // 绯红菌岩权重 (10.0f) 应远高于普通怪物的黑暗偏好
     world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
 
-    HoglinEntity hoglin(EntityInstanceId(80));
+    HoglinEntity hoglin(EntityInstanceId(80), mc::test::testEcsRegistry());
     hoglin.setWorld(&world);
     f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 10.0f);
@@ -695,7 +695,7 @@ TEST_F(PiglinPathWeightTest, RepelledByLitSoulCampfire)
     ASSERT_TRUE(blocks::CampfireBlock::isLitCampfire(litSoulCampfire));
     world.setBlockStateAt(0, 64, 0, &litSoulCampfire);
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, -1.0f);
@@ -710,7 +710,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledByUnlitSoulCampfire)
     ASSERT_FALSE(blocks::CampfireBlock::isLitCampfire(unlitSoulCampfire));
     world.setBlockStateAt(0, 64, 0, &unlitSoulCampfire);
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     // 未点燃的灵魂营火不排斥，应返回 CreatureEntity 默认值 0.0f
@@ -722,7 +722,7 @@ TEST_F(PiglinPathWeightTest, RepelledBySoulFire)
     // 灵魂火属于 PIGLIN_REPELLENTS 标签，应排斥猪灵
     world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::SOUL_FIRE->defaultState());
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, -1.0f);
@@ -737,7 +737,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledByWarpedFungus)
     // 因此猪灵在诡异菌附近应返回 CreatureEntity 默认值 0.0f。
     world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::WARPED_FUNGUS->defaultState());
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     // 诡异菌不排斥猪灵，应返回 CreatureEntity 默认值 0.0f
@@ -749,7 +749,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledByRegularCampfire)
     // 普通营火不属于 PIGLIN_REPELLENTS 标签，不应排斥猪灵
     world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::CAMPFIRE->defaultState());
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -758,7 +758,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledByRegularCampfire)
 TEST_F(PiglinPathWeightTest, NotRepelledWhenNoRepellentsNearby)
 {
     // 附近没有排斥物时返回默认值 0.0f
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -767,7 +767,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledWhenNoRepellentsNearby)
 TEST_F(PiglinPathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(piglin.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -778,7 +778,7 @@ TEST_F(PiglinPathWeightTest, RepelledBySoulCampfireAtDetectionRange)
     const BlockState& litSoulCampfire = block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState();
     world.setBlockStateAt(8, 64, 0, &litSoulCampfire);
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, -1.0f);
@@ -790,7 +790,7 @@ TEST_F(PiglinPathWeightTest, NotRepelledBySoulCampfireBeyondDetectionRange)
     const BlockState& litSoulCampfire = block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState();
     world.setBlockStateAt(9, 64, 0, &litSoulCampfire);
 
-    PiglinEntity piglin(EntityInstanceId(90));
+    PiglinEntity piglin(EntityInstanceId(90), mc::test::testEcsRegistry());
     piglin.setWorld(&world);
     f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
     EXPECT_FLOAT_EQ(weight, 0.0f);
@@ -807,7 +807,7 @@ TEST_F(TurtlePathWeightTest, PrefersWaterWhenNotGoingHome)
     // 非回家状态 + 水中：返回 10.0f
     world.setWaterAt(0, 64, 0);
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(false);
 
@@ -821,7 +821,7 @@ TEST_F(TurtlePathWeightTest, DoesNotPreferWaterWhenGoingHome)
     world.setWaterAt(0, 64, 0);
     world.setBrightness(0.8f);
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(true);
 
@@ -836,7 +836,7 @@ TEST_F(TurtlePathWeightTest, PrefersSandWhenGoingHome)
     world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
     world.setBrightness(0.0f); // 即使在黑暗中
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(true);
 
@@ -849,7 +849,7 @@ TEST_F(TurtlePathWeightTest, PrefersSandWhenNotGoingHome)
     // 非回家状态 + 沙滩上：返回 10.0f
     world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(false);
 
@@ -862,7 +862,7 @@ TEST_F(TurtlePathWeightTest, ReturnsBrightnessWeightOnNonWaterNonSand)
     // 非回家状态 + 非水非沙滩：返回 brightness - 0.5f
     world.setBrightness(0.8f);
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(false);
 
@@ -875,7 +875,7 @@ TEST_F(TurtlePathWeightTest, ReturnsNegativeWeightInDarkness)
     // 黑暗环境 + 非水非沙滩：返回负值
     world.setBrightness(0.0f);
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(false);
 
@@ -886,7 +886,7 @@ TEST_F(TurtlePathWeightTest, ReturnsNegativeWeightInDarkness)
 TEST_F(TurtlePathWeightTest, ReturnsZeroWhenNoWorld)
 {
     // 没有世界时返回 0.0f
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     EXPECT_FLOAT_EQ(turtle.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
@@ -896,7 +896,7 @@ TEST_F(TurtlePathWeightTest, WaterOverridesSandWhenNotGoingHome)
     world.setWaterAt(0, 64, 0);
     world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(false);
 
@@ -911,7 +911,7 @@ TEST_F(TurtlePathWeightTest, GoingHomeSandOverridesDarkness)
     world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
     world.setBrightness(0.0f);
 
-    TurtleEntity turtle(EntityInstanceId(90));
+    TurtleEntity turtle(EntityInstanceId(90), mc::test::testEcsRegistry());
     turtle.setWorld(&world);
     turtle.setGoingHome(true);
 

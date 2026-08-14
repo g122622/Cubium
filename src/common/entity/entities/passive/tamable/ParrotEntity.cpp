@@ -46,17 +46,17 @@
 
 namespace mc {
 
-ParrotEntity::ParrotEntity(EntityInstanceId id)
-    : ShoulderRidingEntity(id)
+ParrotEntity::ParrotEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ShoulderRidingEntity(id, registry)
 {
     randomizeVariant();
     registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ParrotEntity>(0);
+    return std::make_unique<ParrotEntity>(0, registry);
 }
 
 void ParrotEntity::randomizeVariant()
@@ -136,12 +136,12 @@ void ParrotEntity::registerAttributes()
     ShoulderRidingEntity::registerAttributes();
 
     // 注册飞行速度属性（LivingEntity 基类不注册此属性）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
 
     // 鹦鹉属性：生命值6，移动速度0.2，飞行速度0.4
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.4);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.4);
 }
 
 void ParrotEntity::onTamed(bool tamed)

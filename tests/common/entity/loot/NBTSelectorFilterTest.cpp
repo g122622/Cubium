@@ -510,7 +510,7 @@ TEST_F(PredicateConditionTest, PredicateIdToString)
 using namespace mc::loot;
 using namespace mc::world;
 
-class PredicateFilterTestWorld : public test::BaseTestWorld {
+class PredicateFilterTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {

@@ -31,6 +31,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -80,8 +81,8 @@ const EntityClassInfo& FallingBlockEntity::classInfo()
     return s_classInfo;
 }
 
-FallingBlockEntity::FallingBlockEntity()
-    : Entity(EntityInstanceId(0))
+FallingBlockEntity::FallingBlockEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {
     // 显式调用 registerData() 注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
@@ -104,9 +105,9 @@ void FallingBlockEntity::registerData()
     m_dataManager.registerParam(DATA_START_POS_PARAM, ::mc::Vector3i{});
 }
 
-std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<FallingBlockEntity>();
+    return std::make_unique<FallingBlockEntity>(registry);
 }
 
 void FallingBlockEntity::setBlockId(u32 blockId)
@@ -495,8 +496,8 @@ const EntityClassInfo& TNTEntity::classInfo()
     return s_classInfo;
 }
 
-TNTEntity::TNTEntity()
-    : Entity(EntityInstanceId(0))
+TNTEntity::TNTEntity(ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
 {
     // 显式调用 registerData() 注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类（Entity::Entity 内部调用
@@ -505,8 +506,8 @@ TNTEntity::TNTEntity()
     registerData();
 }
 
-TNTEntity::TNTEntity(EntityInstanceId id)
-    : Entity(id)
+TNTEntity::TNTEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     // 显式调用 registerData() 注册同步数据参数（同上）
     registerData();
@@ -537,11 +538,11 @@ void TNTEntity::registerData()
     m_dataManager.registerParam(DATA_BLOCK_STATE_PARAM, ::mc::entity::BlockStateValue{stateId});
 }
 
-std::unique_ptr<Entity> TNTEntity::create(IWorld* world)
+std::unique_ptr<Entity> TNTEntity::create(IWorld* world, ecs::EntityRegistry& registry)
 {
     MC_UNUSED(world);
     // 创建时使用Unknown类型，会在spawnEntity时分配ID
-    return std::make_unique<TNTEntity>();
+    return std::make_unique<TNTEntity>(registry);
 }
 
 i32 TNTEntity::getFuse() const

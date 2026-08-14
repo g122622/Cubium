@@ -45,7 +45,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持 getBlockState、getBrightness 等方法
  */
-class PathWeightTestWorld final : public test::BaseTestWorld {
+class PathWeightTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
 
@@ -96,7 +96,7 @@ private:
 class TestAnimalEntity : public AnimalEntity {
 public:
     TestAnimalEntity(EntityInstanceId id)
-        : AnimalEntity(id)
+        : AnimalEntity(id, mc::test::testEcsRegistry())
     {}
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& /*partner*/) override
@@ -109,7 +109,7 @@ public:
 class TestMonsterEntity : public MonsterEntity {
 public:
     TestMonsterEntity(EntityInstanceId id)
-        : MonsterEntity(id)
+        : MonsterEntity(id, mc::test::testEcsRegistry())
     {}
 };
 
@@ -287,7 +287,7 @@ TEST(MonsterEntityGetPathWeightTest, SlightlyDarkPreferredOverBright)
 /**
  * @brief 支持实体状态广播追踪的测试用世界
  */
-class LoveHeartTestWorld final : public test::BaseTestWorld {
+class LoveHeartTestWorld final : public mc::test::BaseTestWorld {
 public:
     void broadcastEntityStatus(EntityInstanceId entityId, u8 status) override
     {

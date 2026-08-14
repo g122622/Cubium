@@ -67,8 +67,8 @@ void SquidEntity::registerData()
     m_dataManager.registerParam(DATA_BABY_PLACEHOLDER_PARAM, false);
 }
 
-SquidEntity::SquidEntity(EntityInstanceId id)
-    : WaterMobEntity(id)
+SquidEntity::SquidEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : WaterMobEntity(id, registry)
 {
     // 显式调用 registerData() 注册占位字段（C++ 基类构造期虚函数不派发，
     // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
@@ -81,9 +81,9 @@ SquidEntity::SquidEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SquidEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SquidEntity>(0);
+    return std::make_unique<SquidEntity>(0, registry);
 }
 
 void SquidEntity::sprayInk()
@@ -202,8 +202,8 @@ void SquidEntity::registerAttributes()
     WaterMobEntity::registerAttributes();
 
     // 鱿鱼的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
 }
 
 } // namespace mc

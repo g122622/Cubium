@@ -34,6 +34,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
@@ -54,7 +55,7 @@ namespace entity {
 class TestEntity : public Entity {
 public:
     TestEntity(EntityInstanceId id)
-        : Entity(id, nullptr)
+        : Entity(id, nullptr, mc::test::testEcsRegistry())
     {}
 };
 } // namespace entity
@@ -109,7 +110,7 @@ TEST_F(GetTeamTest, EntityBaseClassGetTeamConstReturnsNullptr)
 TEST_F(GetTeamTest, ServerPlayerGetTeamWithoutServerReturnsNullptr)
 {
     // 创建 ServerPlayer，不设置服务器
-    ServerPlayer player(1, "TestPlayer");
+    ServerPlayer player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 无服务器时，getTeam() 应该返回 nullptr
     EXPECT_EQ(player.getTeam(), nullptr);

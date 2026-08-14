@@ -33,8 +33,8 @@
 
 namespace mc {
 
-GiantEntity::GiantEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+GiantEntity::GiantEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 巨人体型巨大 - 通过 width()/height() 设置
 
@@ -45,9 +45,9 @@ GiantEntity::GiantEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> GiantEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> GiantEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<GiantEntity>(EntityInstanceId(0));
+    return std::make_unique<GiantEntity>(EntityInstanceId(0), registry);
 }
 
 void GiantEntity::tick()
@@ -69,10 +69,10 @@ void GiantEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 巨人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
 }
 
 std::optional<ResourceLocation> GiantEntity::getAmbientSound() const

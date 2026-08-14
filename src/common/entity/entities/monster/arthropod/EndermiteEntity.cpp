@@ -47,13 +47,13 @@ namespace mc {
 // EndermiteEntity 实现
 // ============================================================================
 
-std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> EndermiteEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<EndermiteEntity>(EntityInstanceId(0));
+    return std::make_unique<EndermiteEntity>(EntityInstanceId(0), registry);
 }
 
-EndermiteEntity::EndermiteEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+EndermiteEntity::EndermiteEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 末影螨不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -119,22 +119,22 @@ void EndermiteEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 // ============================================================================
 // SilverfishEntity 实现
 // ============================================================================
 
-std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SilverfishEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SilverfishEntity>(EntityInstanceId(0));
+    return std::make_unique<SilverfishEntity>(EntityInstanceId(0), registry);
 }
 
-SilverfishEntity::SilverfishEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+SilverfishEntity::SilverfishEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
     , m_summonGoal(nullptr)
 {
     // 蠹虫不在阳光下燃烧
@@ -207,9 +207,9 @@ void SilverfishEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
 }
 
 void SilverfishEntity::notifySummonCooldown()

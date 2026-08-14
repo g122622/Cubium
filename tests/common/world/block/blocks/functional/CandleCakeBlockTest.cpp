@@ -73,7 +73,7 @@ namespace {
 // 测试用世界
 // ============================================================================
 
-class CandleCakeTestWorld final : public test::BaseTestWorld {
+class CandleCakeTestWorld final : public mc::test::BaseTestWorld {
 public:
     CandleCakeTestWorld()
     {
@@ -645,7 +645,7 @@ namespace {
 /**
  * @brief 支持 playSound 和 Player 交互的蜡烛蛋糕测试世界
  */
-class CandleCakeInteractionWorld final : public test::BaseTestWorld {
+class CandleCakeInteractionWorld final : public mc::test::BaseTestWorld {
 public:
     CandleCakeInteractionWorld()
     {
@@ -783,7 +783,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
 
     // 创建生存模式玩家（默认饥饿值20，canEat=false）
     // 需要降低饥饿值才能 canEat
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
     player.foodStats().setFoodLevel(18); // 低于20，canEat(true) 返回 true
@@ -817,7 +817,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
 
     // 创建满饥饿值的生存模式玩家 → canEat(false) 返回 false
-    Player player(EntityInstanceId(2), "TestPlayer2");
+    Player player(EntityInstanceId(2), "TestPlayer2", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
     // 默认 foodLevel=20，canEat(false) = false
@@ -847,7 +847,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), litState);
 
     // 创建生存模式玩家
-    Player player(EntityInstanceId(3), "TestPlayer3");
+    Player player(EntityInstanceId(3), "TestPlayer3", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival);
 
@@ -882,7 +882,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
     m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
 
     // 创建创造模式玩家 → canEat(false) 返回 false
-    Player player(EntityInstanceId(4), "TestPlayer4");
+    Player player(EntityInstanceId(4), "TestPlayer4", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
 

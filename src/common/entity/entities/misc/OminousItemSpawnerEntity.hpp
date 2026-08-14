@@ -71,7 +71,7 @@ public:
      * @brief 构造不祥物品生成器
      * @param id 实体ID
      */
-    explicit OminousItemSpawnerEntity(EntityInstanceId id);
+    explicit OminousItemSpawnerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~OminousItemSpawnerEntity() override = default;
 
@@ -82,7 +82,7 @@ public:
      * 注意：此方法不会设置物品和随机延迟，仅用于反序列化等场景。
      * 正常创建应使用 createWithItem()。
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 工厂方法（含物品）

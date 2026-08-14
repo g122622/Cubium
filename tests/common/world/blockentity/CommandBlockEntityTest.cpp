@@ -25,6 +25,8 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <gtest/gtest.h>
+
+#include "common/TestWorldHelper.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;

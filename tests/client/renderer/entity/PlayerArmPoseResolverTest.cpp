@@ -58,7 +58,7 @@ namespace {
 class TestPlayer : public Player {
 public:
     explicit TestPlayer(IWorld* world = nullptr)
-        : Player(EntityInstanceId(1), "TestPlayer")
+        : Player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -72,7 +72,7 @@ public:
 // 测试用世界桩
 // ============================================================================
 
-class ArmPoseTestWorld final : public test::BaseTestWorld {
+class ArmPoseTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

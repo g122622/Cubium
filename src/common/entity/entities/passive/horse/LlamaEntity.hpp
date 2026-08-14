@@ -65,7 +65,7 @@ public:
      * @brief 构造羊驼实体
      * @param id 实体 ID
      */
-    LlamaEntity(EntityInstanceId id);
+    LlamaEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~LlamaEntity() override = default;
 
     LlamaEntity(const LlamaEntity&) = delete;
@@ -76,7 +76,7 @@ public:
     /**
      * @brief 创建羊驼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取羊驼颜色

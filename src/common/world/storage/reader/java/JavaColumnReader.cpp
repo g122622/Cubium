@@ -24,7 +24,6 @@
 #include "JavaColumnReader.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -482,20 +481,13 @@ void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& c
             continue;
         }
 
-        auto entityResult = entity::serialization::EntityDeserializer::deserialize(*entityTag);
-        if (entityResult.failed()) {
-            spdlog::warn("JavaColumnReader: Failed to deserialize entity: {}", entityResult.error().message());
-            continue;
-        }
-        // 注意：Result<unique_ptr<T>>::value() 按值返回（内部 takeValue 会把 m_value
-        // 置空），每次调用都"取走"实体。不能在判空和 addLoadedEntity 里各调用一次
-        // （第二次取到空 unique_ptr，会把空实体加进区块）。这里先取出再判空。
-        auto entity = entityResult.value();
-        if (entity == nullptr) {
-            continue;
-        }
-
-        chunk.addLoadedEntity(std::move(entity));
+        // 仅以原始 NBT 形式暂存到 ChunkData，不在此反序列化——反序列化需要所在维度的
+        // ecs::EntityRegistry（Entity 构造时即 attach 高频组件，entt 实体不可跨 registry
+        // 迁移），而 storage 层不持有 world。推迟到 ServerWorld::onChunkLoaded（持有
+        // *entityRegistry()）spawn 点再反序列化。这里 deep copy NBT（list_tag 内元素为
+        // const unique_ptr<tag>，不可直接 move 出来）。
+        auto copied = entityTag->copy();
+        chunk.addLoadedEntityNbt(std::unique_ptr<compound_tag>(dynamic_cast<compound_tag*>(copied.release())));
     }
 }
 

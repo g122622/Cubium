@@ -104,9 +104,10 @@ void LookAtGoal::startExecuting()
 {
     if (!m_mob) return;
 
-    // 设置看向时间 (40 + random.nextInt(40))
+    // 设置看向时间。对齐 vanilla LookAtPlayerGoal.start：
+    // lookTime = adjustedTickDelay(40 + nextInt(40))，减半补偿半 tick 评估。
     math::Random& rng = m_mob->getRandom();
-    m_lookTime = LOOK_AT_MIN_TIME + rng.nextInt(LOOK_AT_MAX_TIME - LOOK_AT_MIN_TIME);
+    m_lookTime = adjustedTickDelay(LOOK_AT_MIN_TIME + rng.nextInt(LOOK_AT_MAX_TIME - LOOK_AT_MIN_TIME));
 }
 
 void LookAtGoal::resetTask()

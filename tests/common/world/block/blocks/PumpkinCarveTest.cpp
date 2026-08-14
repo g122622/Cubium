@@ -71,7 +71,7 @@ namespace {
  *
  * 提供 PumpkinCarve 测试所需的最小 IWorld 接口实现
  */
-class PumpkinCarveTestWorld final : public test::BaseTestWorld {
+class PumpkinCarveTestWorld final : public mc::test::BaseTestWorld {
 public:
     PumpkinCarveTestWorld()
     {
@@ -265,7 +265,7 @@ protected:
 TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置南瓜方块
     BlockPos pos(0, 64, 0);
@@ -293,7 +293,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithoutShears_ReturnsPass)
 TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家一个非剪刀物品（钻石剑）
     if (Items::DIAMOND_SWORD != nullptr) {
@@ -318,7 +318,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithNonShearsItem_ReturnsPass)
 TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -357,7 +357,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_CarvesPumpkin)
 TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -397,7 +397,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DropsPumpkinSeeds)
 TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -437,7 +437,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_WithShears_DamagesShears)
 TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setRotation(0.0f, 0.0f); // 面向南方（yaw=0）
 
@@ -470,7 +470,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SideClick_SetsCorrectFacing)
 TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 65.0f, 0.0f);
     player.setRotation(90.0f, 0.0f); // 面向西方（yaw=90）
 
@@ -504,7 +504,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_TopClick_UsesPlayerFacing)
 TEST_F(PumpkinCarveTest, OnBlockActivated_BottomClick_UsesPlayerFacing)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 63.0f, 0.0f);
     player.setRotation(180.0f, 0.0f); // 面向北方（yaw=180）
 
@@ -548,7 +548,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass)
         BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -578,7 +578,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_NullCarvedPumpkin_ReturnsPass)
 TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 把剪刀放在副手
     if (Items::SHEARS != nullptr) {
@@ -612,7 +612,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_OffHandShears_Works)
 TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {
@@ -653,7 +653,7 @@ TEST_F(PumpkinCarveTest, OnBlockActivated_SeedsSpawnAtCorrectPosition)
 TEST_F(PumpkinCarveTest, OnBlockActivated_PlaysCorrectSound)
 {
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 给玩家剪刀
     if (Items::SHEARS != nullptr) {

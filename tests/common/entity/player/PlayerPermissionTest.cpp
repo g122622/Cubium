@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <gtest/gtest.h>
@@ -32,7 +33,7 @@ using namespace mc;
 TEST(PlayerPermissionLevelTest, DefaultPermissionLevelIsZero)
 {
     // 默认创建的玩家权限等级为 0（普通玩家）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_EQ(player.permissionLevel(), 0);
     EXPECT_FALSE(player.hasPermission(1));
     EXPECT_FALSE(player.hasPermission(2));
@@ -40,7 +41,7 @@ TEST(PlayerPermissionLevelTest, DefaultPermissionLevelIsZero)
 
 TEST(PlayerPermissionLevelTest, SetPermissionLevel)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     player.setPermissionLevel(2);
     EXPECT_EQ(player.permissionLevel(), 2);
@@ -53,7 +54,7 @@ TEST(PlayerPermissionLevelTest, SetPermissionLevel)
 
 TEST(PlayerPermissionLevelTest, SetPermissionLevelOwner)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     player.setPermissionLevel(4);
     EXPECT_EQ(player.permissionLevel(), 4);
@@ -66,7 +67,7 @@ TEST(PlayerPermissionLevelTest, SetPermissionLevelOwner)
 
 TEST(PlayerPermissionLevelTest, HasPermissionBoundary)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
     player.setPermissionLevel(1);
     EXPECT_TRUE(player.hasPermission(0));
@@ -79,7 +80,7 @@ TEST(PlayerPermissionLevelTest, HasPermissionBoundary)
 TEST(PlayerCanUseGameMasterBlocksTest, SurvivalModeWithNoPermissionCannotUse)
 {
     // 生存模式 + 无 OP 权限 = 不能使用管理员方块
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_EQ(player.gameMode(), GameMode::Survival);
     EXPECT_EQ(player.permissionLevel(), 0);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -88,7 +89,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, SurvivalModeWithNoPermissionCannotUse)
 TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithNoPermissionCannotUse)
 {
     // 创造模式 + 无 OP 权限 = 不能使用管理员方块
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     EXPECT_EQ(player.permissionLevel(), 0);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -97,7 +98,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithNoPermissionCannotUse)
 TEST(PlayerCanUseGameMasterBlocksTest, SurvivalModeWithOpPermissionCannotUse)
 {
     // 生存模式 + OP 权限 = 不能使用管理员方块（需要创造模式）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPermissionLevel(2);
     EXPECT_EQ(player.gameMode(), GameMode::Survival);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -106,7 +107,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, SurvivalModeWithOpPermissionCannotUse)
 TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithGameMasterPermissionCanUse)
 {
     // 创造模式 + OP 等级 >= 2 = 可以使用管理员方块
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(2);
     EXPECT_TRUE(player.canUseGameMasterBlocks());
@@ -115,7 +116,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithGameMasterPermissionCanUs
 TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithAdminPermissionCanUse)
 {
     // 创造模式 + OP 等级 3 也可以
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(3);
     EXPECT_TRUE(player.canUseGameMasterBlocks());
@@ -124,7 +125,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithAdminPermissionCanUse)
 TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithOwnerPermissionCanUse)
 {
     // 创造模式 + OP 等级 4 也可以
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(4);
     EXPECT_TRUE(player.canUseGameMasterBlocks());
@@ -133,7 +134,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithOwnerPermissionCanUse)
 TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithModeratorPermissionCannotUse)
 {
     // 创造模式 + OP 等级 1（版主）= 不能使用管理员方块（需要 >= 2）
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
     player.setPermissionLevel(1);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -142,7 +143,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, CreativeModeWithModeratorPermissionCannot
 TEST(PlayerCanUseGameMasterBlocksTest, SpectatorModeWithOpPermissionCannotUse)
 {
     // 旁观者模式即使有 OP 权限也不能使用管理员方块
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Spectator);
     player.setPermissionLevel(2);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -151,7 +152,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, SpectatorModeWithOpPermissionCannotUse)
 TEST(PlayerCanUseGameMasterBlocksTest, AdventureModeWithOpPermissionCannotUse)
 {
     // 冒险模式即使有 OP 权限也不能使用管理员方块
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Adventure);
     player.setPermissionLevel(2);
     EXPECT_FALSE(player.canUseGameMasterBlocks());
@@ -160,7 +161,7 @@ TEST(PlayerCanUseGameMasterBlocksTest, AdventureModeWithOpPermissionCannotUse)
 TEST(PlayerCanUseGameMasterBlocksTest, SetGameModeResetsAbilitiesButNotPermissionLevel)
 {
     // 切换游戏模式会重置能力，但不会重置权限等级
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPermissionLevel(2);
     player.setGameMode(GameMode::Creative);
     EXPECT_TRUE(player.canUseGameMasterBlocks());
@@ -182,7 +183,7 @@ class CanUseGameMasterBlocksComboTest : public ::testing::TestWithParam<std::tup
 TEST_P(CanUseGameMasterBlocksComboTest, ParameterizedCheck)
 {
     auto [gameMode, permLevel, expected] = GetParam();
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(gameMode);
     player.setPermissionLevel(permLevel);
     EXPECT_EQ(player.canUseGameMasterBlocks(), expected)

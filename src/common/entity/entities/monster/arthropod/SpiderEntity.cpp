@@ -116,8 +116,8 @@ private:
 
 // ==================== SpiderEntity ====================
 
-SpiderEntity::SpiderEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+SpiderEntity::SpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -126,19 +126,24 @@ SpiderEntity::SpiderEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpiderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpiderEntity>(EntityInstanceId(0));
+    return std::make_unique<SpiderEntity>(EntityInstanceId(0), registry);
 }
 
 bool SpiderEntity::shouldAttack(LivingEntity* target) const
 {
-    // 蜘蛛只在黑暗中攻击（光照等级 < 7）
+    // 蜘蛛只在黑暗中攻击（光照等级 < 7）。
+    // 用 getLight(pos)（含 getSkyDarkening 时间衰减，夜晚≈11）而非 getLightSubtracted(pos,0)
+    // （skyDarkening=0 无时间衰减，夜晚露天仍 15 误判为白天）。对齐 SpiderTargetGoal 的
+    // getBrightness()<0.5F 门控（7/15≈0.47≈0.5 阈值，语义一致）。
+    // TODO: shouldAttack 当前零调用（目标选择由 SpiderTargetGoal::shouldExecute 的 getBrightness
+    // 门控 + TargetGoal::isSuitableTarget 完成），此方法是项目自创的额外光照门控，vanilla Spider
+    // 无 shouldAttack override。保留以备未来目标选择链接入，若确认不接入可删除。
     if (m_world != nullptr) {
-        u8 lightLevel = m_world->getLightSubtracted(BlockPos(static_cast<i32>(std::floor(m_position.x)),
-                                                        static_cast<i32>(std::floor(m_position.y)),
-                                                        static_cast<i32>(std::floor(m_position.z))),
-            0);
+        u8 lightLevel = m_world->getLight(BlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z))));
         if (lightLevel < 7) {
             return MonsterEntity::shouldAttack(target);
         }
@@ -201,9 +206,9 @@ void SpiderEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 蜘蛛的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
 }
 
 } // namespace mc

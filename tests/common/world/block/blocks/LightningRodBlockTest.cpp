@@ -48,7 +48,7 @@ using namespace mc::world::biome;
  *
  * 继承 BaseTestWorld，提供可控的方块状态存储、天气控制、红石和tick管理。
  */
-class LightningRodTestWorld : public test::BaseTestWorld {
+class LightningRodTestWorld : public mc::test::BaseTestWorld {
 public:
     void ensureTickManager()
     {

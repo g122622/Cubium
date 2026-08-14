@@ -55,8 +55,8 @@ public:
      */
     enum class Direction : u8 { SOUTH = 0, WEST = 1, NORTH = 2, EAST = 3 };
 
-    HangingEntity();
-    HangingEntity(BlockPos pos, Direction direction);
+    HangingEntity(ecs::EntityRegistry& registry);
+    HangingEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry);
     ~HangingEntity() override = default;
 
     // Entity overrides
@@ -148,12 +148,13 @@ public:
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    PaintingEntity();
-    PaintingEntity(BlockPos pos, Direction direction, const std::string& motive);
+    PaintingEntity(ecs::EntityRegistry& registry);
+    PaintingEntity(BlockPos pos, Direction direction, const std::string& motive, ecs::EntityRegistry& registry);
 
     void dropItem() override;
 
@@ -185,12 +186,13 @@ public:
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    ItemFrameEntity();
-    ItemFrameEntity(BlockPos pos, Direction direction);
+    ItemFrameEntity(ecs::EntityRegistry& registry);
+    ItemFrameEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry);
 
     void tick() override;
     void dropItem() override;
@@ -302,12 +304,13 @@ public:
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    LeashKnotEntity();
-    LeashKnotEntity(BlockPos pos, Direction direction);
+    LeashKnotEntity(ecs::EntityRegistry& registry);
+    LeashKnotEntity(BlockPos pos, Direction direction, ecs::EntityRegistry& registry);
 
     void tick() override;
     void dropItem() override;

@@ -55,7 +55,7 @@ public:
         Blindness = 5  ///< 失明法术（幻术师）- 深蓝/深紫色 (0.1, 0.1, 0.2)
     };
 
-    SpellcastingIllagerEntity(EntityInstanceId id);
+    SpellcastingIllagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SpellcastingIllagerEntity() override = default;
 
     /// 本类继承链标识（parent = AbstractIllagerEntity::classInfo()）。见 Entity::classInfo()。

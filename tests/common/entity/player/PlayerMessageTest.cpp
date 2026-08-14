@@ -30,6 +30,7 @@
  * - canReceiveMessages 默认返回 false
  */
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/ChatVisibility.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -43,7 +44,7 @@ namespace {
  */
 class PlayerMessageTest : public ::testing::Test {
 protected:
-    void SetUp() override { player = std::make_unique<Player>(1, "TestPlayer"); }
+    void SetUp() override { player = std::make_unique<Player>(1, "TestPlayer", mc::test::testEcsRegistry()); }
 
     void TearDown() override { player.reset(); }
 

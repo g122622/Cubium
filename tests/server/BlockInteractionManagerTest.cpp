@@ -49,7 +49,7 @@ using namespace mc;
 
 namespace {
 
-class BlockInteractionTestServer final : public test::BaseTestServer {
+class BlockInteractionTestServer final : public mc::test::BaseTestServer {
 public:
     explicit BlockInteractionTestServer(server::ServerWorld& world) { setPlayerWorld(&world); }
 

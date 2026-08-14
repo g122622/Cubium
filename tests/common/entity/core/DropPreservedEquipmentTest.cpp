@@ -39,7 +39,7 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -47,7 +47,7 @@ public:
 };
 
 // 测试用世界实现，支持实体生成
-class DropEquipmentTestWorld final : public test::BaseTestWorld {
+class DropEquipmentTestWorld final : public mc::test::BaseTestWorld {
 public:
     DropEquipmentTestWorld() { Items::initialize(); }
 

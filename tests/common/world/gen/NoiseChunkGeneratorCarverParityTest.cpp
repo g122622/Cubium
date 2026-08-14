@@ -60,7 +60,7 @@ protected:
         VanillaBlocks::initialize();
         // 从默认数据包目录加载 worldgen 注册表（carver/feature/biome）。
         // 失败时置标志，后续 TEST 用 GTEST_SKIP 跳过。
-        if (!test::loadVanillaWorldGenRegistries()) {
+        if (!mc::test::loadVanillaWorldGenRegistries()) {
             s_registriesLoaded = false;
         }
     }

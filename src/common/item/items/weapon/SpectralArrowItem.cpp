@@ -44,7 +44,12 @@ SpectralArrowItem::SpectralArrowItem(const ItemProperties& properties)
 entity::AbstractArrowEntity* SpectralArrowItem::createArrow(
     IWorld& world, const ItemStack& /*stack*/, LivingEntity& shooter) const
 {
-    auto entity = entity::SpectralArrowEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = entity::SpectralArrowEntity::create(&world, *registry);
     if (entity) {
         auto* arrow = dynamic_cast<entity::SpectralArrowEntity*>(entity.get());
         if (arrow) {
@@ -75,7 +80,12 @@ std::unique_ptr<entity::ProjectileEntity> SpectralArrowItem::asProjectile(IWorld
     f32 /*directionY*/,
     f32 /*directionZ*/) const
 {
-    auto entity = entity::SpectralArrowEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto entity = entity::SpectralArrowEntity::create(&world, *registry);
     if (entity) {
         entity->setTypeId(entity::EntityTypeKeys::SPECTRAL_ARROW);
         entity->setPosition(position.x, position.y, position.z);

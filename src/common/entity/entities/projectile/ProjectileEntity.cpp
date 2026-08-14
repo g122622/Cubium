@@ -29,6 +29,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/ecs/components/ProjectileOwnerComponent.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
@@ -68,10 +69,15 @@ const EntityClassInfo& ProjectileEntity::classInfo()
     return s_classInfo;
 }
 
-ProjectileEntity::ProjectileEntity(EntityInstanceId id)
-    : Entity(id)
+ProjectileEntity::ProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
-    m_noGravity = false;
+    // 批次6 子目标2 Step1：attach ProjectileOwnerComponent（发射者追踪组件）。
+    // 所有 ProjectileEntity 子树（含 Throwable/DamagingProjectile/AbstractArrow/
+    // ShulkerBullet/FireworkRocket 支系）经此自动获得 owner 组件。Step2 将把
+    // m_shooterUuid/m_shooterEntityId/m_leftShooter/m_lastDeflectedById 读写改走组件。
+    // FishingBobber/EvokerFangs/EyeOfEnder 直接继承 Entity 不经本类，各自独立 owner。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileOwnerComponent>(m_entityContext->entity());
 }
 
 bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
@@ -86,9 +92,7 @@ bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
 
 void ProjectileEntity::tick()
 {
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     const RayTraceResult result = performRayTrace();
     if (result.type != RayTraceResultType::Miss) {
@@ -99,7 +103,7 @@ void ProjectileEntity::tick()
         }
     }
 
-    Vector3 velocity = m_velocity;
+    Vector3 velocity = m_builtIn.velocity->m_velocity;
     if (isInWater()) {
         // 水中阻力（子类可重写 getWaterDrag()）
         // 水中气泡粒子由子类（ThrowableEntity、AbstractArrowEntity 等）自行处理
@@ -108,13 +112,13 @@ void ProjectileEntity::tick()
         velocity = velocity * getAirDrag();
     }
 
-    if (!m_noGravity) {
+    if (!hasNoGravity()) {
         velocity.y -= getGravity();
     }
 
-    m_velocity = velocity;
-    m_prevPosition = m_position;
-    m_position = m_position + velocity;
+    m_builtIn.velocity->m_velocity = velocity;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos + velocity;
 
     updateRotation();
     Entity::tick();
@@ -122,23 +126,29 @@ void ProjectileEntity::tick()
 
 Entity* ProjectileEntity::getShooter() const
 {
-    if (m_world == nullptr || m_shooterEntityId == INVALID_ENTITY_ID) {
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    if (owner == nullptr || m_world == nullptr || owner->m_shooterEntityId == INVALID_ENTITY_ID) {
         return nullptr;
     }
 
-    return m_world->getEntity(m_shooterEntityId);
+    return m_world->getEntity(owner->m_shooterEntityId);
 }
 
 void ProjectileEntity::setShooter(Entity* shooter)
 {
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    MC_ASSERT_RELEASE(owner != nullptr); // attach 是硬约束，ProjectileEntity 构造已 attach
+    if (owner == nullptr) {
+        return; // 防御：Release 断言被剥离时仍不崩
+    }
     if (shooter == nullptr) {
-        m_shooterUuid.clear();
-        m_shooterEntityId = INVALID_ENTITY_ID;
+        owner->m_shooterUuid.clear();
+        owner->m_shooterEntityId = INVALID_ENTITY_ID;
         return;
     }
 
-    m_shooterUuid = shooter->uuid();
-    m_shooterEntityId = shooter->id();
+    owner->m_shooterUuid = shooter->uuid();
+    owner->m_shooterEntityId = shooter->id();
 }
 
 void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
@@ -165,13 +175,13 @@ void ProjectileEntity::shoot(f32 x, f32 y, f32 z, f32 velocity, f32 inaccuracy)
         z += gaussianZ;
     }
 
-    m_velocity = Vector3(x * velocity, y * velocity, z * velocity);
+    m_builtIn.velocity->m_velocity = Vector3(x * velocity, y * velocity, z * velocity);
 
     const f32 horizontalLength = std::sqrt(x * x + z * z);
-    m_yaw = std::atan2(x, z) * math::RAD_TO_DEG;
-    m_pitch = std::atan2(y, horizontalLength) * math::RAD_TO_DEG;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    m_builtIn.rotation->m_rot.x = std::atan2(x, z) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rot.y = std::atan2(y, horizontalLength) * math::RAD_TO_DEG;
+    m_builtIn.rotation->m_rotPrev.x = m_builtIn.rotation->m_rot.x;
+    m_builtIn.rotation->m_rotPrev.y = m_builtIn.rotation->m_rot.y;
 }
 
 void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchOffset, f32 velocity, f32 inaccuracy)
@@ -196,10 +206,10 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
     // 添加发射者速度
     const Vector3 shooterVelocity = shooter.velocity();
     if (!shooter.onGround()) {
-        m_velocity.y += shooterVelocity.y;
+        m_builtIn.velocity->m_velocity.y += shooterVelocity.y;
     }
-    m_velocity.x += shooterVelocity.x;
-    m_velocity.z += shooterVelocity.z;
+    m_builtIn.velocity->m_velocity.x += shooterVelocity.x;
+    m_builtIn.velocity->m_velocity.z += shooterVelocity.z;
 }
 
 bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
@@ -212,7 +222,7 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 
     // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
     const Entity* shooter = getShooter();
-    if (!m_leftShooter && shooter != nullptr && shooter->isRidingSameEntity(target)) {
+    if (!hasLeftShooter() && shooter != nullptr && shooter->isRidingSameEntity(target)) {
         return false;
     }
 
@@ -262,7 +272,7 @@ void ProjectileEntity::onEntityHit(const RayTraceResult& result)
 
 void ProjectileEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_velocity = Vector3(0.0f, 0.0f, 0.0f);
+    m_builtIn.velocity->m_velocity = Vector3(0.0f, 0.0f, 0.0f);
 
     // 通知命中方块有投掷物命中
     if (m_world != nullptr && result.type == RayTraceResultType::Block) {
@@ -283,10 +293,15 @@ void ProjectileEntity::onImpact(const RayTraceResult& result)
         // 对应 MC Java 的 Projectile.hitTargetOrDeflectSelf()
         const ProjectileDeflection deflection = result.hitEntity->deflection(*this);
         if (deflection != ProjectileDeflection::None) {
+            auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+            const EntityInstanceId lastDeflectedById =
+                (owner != nullptr) ? owner->m_lastDeflectedById : INVALID_ENTITY_ID;
             // 防止同一实体连续偏转
-            if (result.hitEntity->id() != m_lastDeflectedById) {
+            if (result.hitEntity->id() != lastDeflectedById) {
                 if (deflect(deflection, *result.hitEntity, false)) {
-                    m_lastDeflectedById = result.hitEntity->id();
+                    if (owner != nullptr) {
+                        owner->m_lastDeflectedById = result.hitEntity->id();
+                    }
                 }
             }
             // 被偏转后不调用 onEntityHit，直接返回
@@ -323,6 +338,14 @@ bool ProjectileEntity::checkLeftShooter()
     return !boundingBox().intersects(shooter->boundingBox());
 }
 
+void ProjectileEntity::tryUpdateLeftShooter()
+{
+    auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
+    if (owner != nullptr && !owner->m_leftShooter) {
+        owner->m_leftShooter = checkLeftShooter();
+    }
+}
+
 bool ProjectileEntity::deflect(ProjectileDeflection deflection, Entity& deflector, bool wasPlayerDeflect)
 {
     if (deflection == ProjectileDeflection::None) {
@@ -342,8 +365,8 @@ bool ProjectileEntity::deflect(ProjectileDeflection deflection, Entity& deflecto
 
 RayTraceResult ProjectileEntity::performRayTrace()
 {
-    const Vector3 start = m_position;
-    Vector3 end = m_position + m_velocity;
+    const Vector3 start = m_builtIn.stateVector->m_pos;
+    Vector3 end = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     const RayTraceResult blockResult = rayTraceBlocks(start, end);
     if (blockResult.type == RayTraceResultType::Block) {

@@ -1047,6 +1047,19 @@ std::vector<std::unique_ptr<Entity>> ChunkData::takeLoadedEntities()
     return std::move(m_loadedEntities);
 }
 
+void ChunkData::addLoadedEntityNbt(std::unique_ptr<nbt::tags::compound_tag> tag)
+{
+    if (tag == nullptr) {
+        return;
+    }
+    m_loadedEntityNbt.push_back(std::move(tag));
+}
+
+std::vector<std::unique_ptr<nbt::tags::compound_tag>> ChunkData::takeLoadedEntityNbt()
+{
+    return std::move(m_loadedEntityNbt);
+}
+
 // ============================================================================
 // 后处理位置
 // ============================================================================

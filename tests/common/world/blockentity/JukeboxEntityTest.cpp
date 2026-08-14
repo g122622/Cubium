@@ -47,7 +47,7 @@ namespace {
 /**
  * @brief 测试用世界存根 - 记录 playEvent 和 gameEvent 调用
  */
-class JukeboxTestWorld final : public test::BaseTestWorld {
+class JukeboxTestWorld final : public mc::test::BaseTestWorld {
 public:
     struct PlayEventCall {
         i32 eventId;

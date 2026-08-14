@@ -38,6 +38,8 @@
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 namespace {
@@ -61,7 +63,7 @@ class CrafterContainerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        player_ = std::make_unique<Player>(1, "CrafterTestPlayer");
+        player_ = std::make_unique<Player>(1, "CrafterTestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
         // 创建合成器背包容器（9格，3x3合成网格）
         crafterInventory_ = std::make_unique<blockentity::SimpleInventory>(CrafterBlockEntity::CONTAINER_SIZE);
@@ -534,7 +536,7 @@ protected:
         // 确保 RecipeManager 为空，避免跨测试污染
         crafting::RecipeManager::instance().clear();
 
-        player_ = std::make_unique<Player>(1, "RecipeTestPlayer");
+        player_ = std::make_unique<Player>(1, "RecipeTestPlayer", mc::test::testEcsRegistry());
         playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
         crafterEntity_ = std::make_unique<CrafterBlockEntity>(BlockPos(0, 64, 0));
     }

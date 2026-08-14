@@ -381,25 +381,33 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
     // 生成雪傀儡实体
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* snowGolemType = registry.getType(entity::EntityTypeKeys::SNOW_GOLEM);
-    if (snowGolemType != nullptr) {
-        std::unique_ptr<Entity> entity = snowGolemType->create(&world);
-        if (entity != nullptr) {
-            // 位置设置在底部雪块的中心，Y偏移0.05
-            entity->setPosition(static_cast<f32>(below2.x) + 0.5f,
-                static_cast<f32>(below2.y) + 0.05f,
-                static_cast<f32>(below2.z) + 0.5f);
-            entity->setRotation(0.0f, 0.0f);
-
-            auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-            if (mobEntity != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance =
-                    entity::combat::DifficultyInstance::at(world, below2);
-                mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-            }
-
-            world.spawnEntity(std::move(entity));
-        }
+    if (snowGolemType == nullptr) {
+        return;
     }
+
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
+    std::unique_ptr<Entity> entity = snowGolemType->create(&world, *ecsRegistry);
+    if (entity == nullptr) {
+        return;
+    }
+
+    // 位置设置在底部雪块的中心，Y偏移0.05
+    entity->setPosition(
+        static_cast<f32>(below2.x) + 0.5f, static_cast<f32>(below2.y) + 0.05f, static_cast<f32>(below2.z) + 0.5f);
+    entity->setRotation(0.0f, 0.0f);
+
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, below2);
+        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+    }
+
+    world.spawnEntity(std::move(entity));
 }
 
 void CarvedPumpkinBlock::spawnIronGolem(
@@ -445,31 +453,39 @@ void CarvedPumpkinBlock::spawnIronGolem(
     // 生成铁傀儡实体
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* ironGolemType = registry.getType(entity::EntityTypeKeys::IRON_GOLEM);
-    if (ironGolemType != nullptr) {
-        std::unique_ptr<Entity> entity = ironGolemType->create(&world);
-        if (entity != nullptr) {
-            // 位置设置在身体位置中心，Y偏移0.05
-            entity->setPosition(static_cast<f32>(bodyPos.x) + 0.5f,
-                static_cast<f32>(bodyPos.y) + 0.05f,
-                static_cast<f32>(bodyPos.z) + 0.5f);
-            entity->setRotation(0.0f, 0.0f);
-
-            // 玩家建造的铁傀儡不攻击玩家
-            IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
-            if (ironGolem != nullptr) {
-                ironGolem->setPlayerCreated(true);
-            }
-
-            auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-            if (mobEntity != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance =
-                    entity::combat::DifficultyInstance::at(world, bodyPos);
-                mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-            }
-
-            world.spawnEntity(std::move(entity));
-        }
+    if (ironGolemType == nullptr) {
+        return;
     }
+
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
+    std::unique_ptr<Entity> entity = ironGolemType->create(&world, *ecsRegistry);
+    if (entity == nullptr) {
+        return;
+    }
+
+    // 位置设置在身体位置中心，Y偏移0.05
+    entity->setPosition(
+        static_cast<f32>(bodyPos.x) + 0.5f, static_cast<f32>(bodyPos.y) + 0.05f, static_cast<f32>(bodyPos.z) + 0.5f);
+    entity->setRotation(0.0f, 0.0f);
+
+    // 玩家建造的铁傀儡不攻击玩家
+    IronGolemEntity* ironGolem = dynamic_cast<IronGolemEntity*>(entity.get());
+    if (ironGolem != nullptr) {
+        ironGolem->setPlayerCreated(true);
+    }
+
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, bodyPos);
+        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+    }
+
+    world.spawnEntity(std::move(entity));
 }
 
 // ============================================================================
@@ -602,32 +618,36 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* copperGolemType = registry.getType(entity::EntityTypeKeys::COPPER_GOLEM);
     if (copperGolemType != nullptr) {
-        std::unique_ptr<Entity> entity = copperGolemType->create(&world);
-        if (entity != nullptr) {
-            // 铜傀儡在南瓜头部位置生成（与雪/铁傀儡在底部生成不同，
-            // 因为铜块底部会被铜箱子占据，傀儡需要站在箱子顶部）
-            entity->setPosition(static_cast<f32>(headPos.x) + 0.5f,
-                static_cast<f32>(headPos.y) + 0.05f,
-                static_cast<f32>(headPos.z) + 0.5f);
-            entity->setRotation(0.0f, 0.0f);
+        // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+        auto* ecsRegistry = world.entityRegistry();
+        if (ecsRegistry != nullptr) {
+            std::unique_ptr<Entity> entity = copperGolemType->create(&world, *ecsRegistry);
+            if (entity != nullptr) {
+                // 铜傀儡在南瓜头部位置生成（与雪/铁傀儡在底部生成不同，
+                // 因为铜块底部会被铜箱子占据，傀儡需要站在箱子顶部）
+                entity->setPosition(static_cast<f32>(headPos.x) + 0.5f,
+                    static_cast<f32>(headPos.y) + 0.05f,
+                    static_cast<f32>(headPos.z) + 0.5f);
+                entity->setRotation(0.0f, 0.0f);
 
-            // 设置氧化等级并播放生成音效
-            auto* copperGolem = dynamic_cast<CopperGolemEntity*>(entity.get());
-            if (copperGolem != nullptr) {
-                const entity::CopperGolemWeatherState weatherState = copperStateCopy.has_value()
-                    ? CarvedPumpkinBlock::getWeatherStateFromCopperBlock(*copperStateCopy)
-                    : entity::CopperGolemWeatherState::Unaffected;
-                copperGolem->spawnFromStatue(weatherState);
+                // 设置氧化等级并播放生成音效
+                auto* copperGolem = dynamic_cast<CopperGolemEntity*>(entity.get());
+                if (copperGolem != nullptr) {
+                    const entity::CopperGolemWeatherState weatherState = copperStateCopy.has_value()
+                        ? CarvedPumpkinBlock::getWeatherStateFromCopperBlock(*copperStateCopy)
+                        : entity::CopperGolemWeatherState::Unaffected;
+                    copperGolem->spawnFromStatue(weatherState);
+                }
+
+                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+                if (mobEntity != nullptr) {
+                    entity::combat::DifficultyInstance difficultyInstance =
+                        entity::combat::DifficultyInstance::at(world, copperPos);
+                    mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+                }
+
+                world.spawnEntity(std::move(entity));
             }
-
-            auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-            if (mobEntity != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance =
-                    entity::combat::DifficultyInstance::at(world, copperPos);
-                mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
-            }
-
-            world.spawnEntity(std::move(entity));
         }
     }
 

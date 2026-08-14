@@ -126,8 +126,8 @@ private:
 
 // ==================== PolarBearEntity ====================
 
-PolarBearEntity::PolarBearEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+PolarBearEntity::PolarBearEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     registerGoals();
     registerAttributes();
@@ -138,9 +138,9 @@ PolarBearEntity::PolarBearEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> PolarBearEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PolarBearEntity>(0);
+    return std::make_unique<PolarBearEntity>(0, registry);
 }
 
 void PolarBearEntity::setStanding(bool standing)
@@ -391,10 +391,10 @@ void PolarBearEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 北极熊属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 // ==================== PolarBearMeleeAttackGoal ====================

@@ -30,7 +30,9 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/FishingBobberState.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>
@@ -49,12 +51,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit LlamaSpitEntity(EntityInstanceId id);
+    explicit LlamaSpitEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -75,34 +77,18 @@ protected:
  */
 class FishingBobberEntity : public Entity {
 public:
-    /**
-     * @brief 钓鱼状态
-     */
-    enum class State : u8 {
-        Flying,  // 飞行中
-        Hooked,  // 钩住实体
-        Bobbing, // 浮在水面
-        Fishing  // 钓鱼中（咬钩状态）
-    };
-
-    /**
-     * @brief 水类型（用于开放水域检测）
-     */
-    enum class WaterType : u8 {
-        AboveWater,  // 水上方块（空气或睡莲）
-        InsideWater, // 水内部（完整水源方块）
-        Invalid      // 无效
-    };
+    // 钓鱼状态与水类型已提取到独立头 FishingBobberState.hpp
+    // （FishingBobberState / FishingWaterType），供 FishingBobberComponent 值类型承载。
 
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit FishingBobberEntity(EntityInstanceId id);
+    explicit FishingBobberEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -133,7 +119,7 @@ public:
     /**
      * @brief 获取钓鱼者
      */
-    [[nodiscard]] Player* getAngler() const { return m_angler; }
+    [[nodiscard]] Player* getAngler() const;
 
     /**
      * @brief 设置发射者（钓鱼者）
@@ -144,7 +130,7 @@ public:
     /**
      * @brief 获取当前状态
      */
-    [[nodiscard]] State state() const { return m_state; }
+    [[nodiscard]] FishingBobberState state() const;
 
     /**
      * @brief 发射浮标
@@ -167,13 +153,13 @@ public:
      * @brief 获取被钩住的实体
      * @return 被钩住的实体指针，如果没有则返回 nullptr
      */
-    [[nodiscard]] Entity* getCaughtEntity() const { return m_caughtEntity; }
+    [[nodiscard]] Entity* getCaughtEntity() const;
 
     /**
      * @brief 获取被钩住的实体ID（用于网络同步）
      * @return 实体ID，如果没有则返回 0
      */
-    [[nodiscard]] EntityInstanceId getCaughtEntityId() const { return m_caughtEntityId; }
+    [[nodiscard]] EntityInstanceId getCaughtEntityId() const;
 
     /**
      * @brief 获取 DATA_HOOKED_ENTITY_PARAM 的参数 ID（客户端元数据同步用）
@@ -205,16 +191,12 @@ public:
      * @param luckBonus 海之眷顾附魔等级
      * @param speedBonus 饵钓附魔等级
      */
-    void setFishingBonus(i32 luckBonus, i32 speedBonus)
-    {
-        m_luckBonus = luckBonus;
-        m_speedBonus = speedBonus;
-    }
+    void setFishingBonus(i32 luckBonus, i32 speedBonus);
 
     /**
      * @brief 是否在开放水域
      */
-    [[nodiscard]] bool isInOpenWater() const { return m_inOpenWater; }
+    [[nodiscard]] bool isInOpenWater() const;
 
 private:
     /**
@@ -244,7 +226,7 @@ private:
      * @param pos 方块位置
      * @return 水类型
      */
-    [[nodiscard]] WaterType _getOpenWaterTypeForBlock(const BlockPos& pos) const;
+    [[nodiscard]] FishingWaterType _getOpenWaterTypeForBlock(const BlockPos& pos) const;
 
     /**
      * @brief 判断一个矩形区域（5×1×5）的水类型
@@ -256,7 +238,7 @@ private:
      * @param to 结束位置（含）
      * @return 区域水类型
      */
-    [[nodiscard]] WaterType _getOpenWaterTypeForArea(const BlockPos& from, const BlockPos& to) const;
+    [[nodiscard]] FishingWaterType _getOpenWaterTypeForArea(const BlockPos& from, const BlockPos& to) const;
 
     /**
      * @brief 钓鱼逻辑tick
@@ -320,19 +302,8 @@ private:
      */
     void _syncCaughtEntityId();
 
-    Player* m_angler = nullptr;            // 钓鱼者
-    Entity* m_caughtEntity = nullptr;      // 被钩住的实体
-    EntityInstanceId m_caughtEntityId = 0; // 被钩住实体ID（用于网络同步，存储时+1，0表示无）
-    State m_state = State::Flying;         // 当前状态
-    i32 m_ticksCaughtDelay = 0;            // 咬钩等待计时器
-    i32 m_ticksCatchableDelay = 0;         // 鱼接近计时器
-    i32 m_ticksCatchable = 0;              // 可捕获窗口期
-    f32 m_fishAngle = 0.0f;                // 鱼的角度（用于动画）
-    bool m_inOpenWater = false;            // 是否在开放水域
-    i32 m_luckBonus = 0;                   // 海之眷顾附魔等级
-    i32 m_speedBonus = 0;                  // 饵钓附魔等级
-    i32 m_outOfWaterTime = 0;              // 离开水的时间计数器
-    i32 m_lifetime = 0;                    // 存在时间
+    // 批次6 子目标2 Step4：m_angler/m_caughtEntity/m_caughtEntityId/m_state/9 计时器字段
+    // 迁入 ecs::FishingBobberComponent。
 
     // ========== 网络同步数据参数 ==========
     // 对应 MC 1.21.11 FishingHook 的 DATA_HOOKED_ENTITY / DATA_BITING。
@@ -365,12 +336,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 默认构造函数
      */
-    explicit ShulkerBulletEntity(EntityInstanceId id);
+    explicit ShulkerBulletEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     /**
      * @brief 带目标的构造函数
@@ -379,7 +350,7 @@ public:
      * @param target 目标实体
      * @param axis 初始移动轴
      */
-    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis);
+    ShulkerBulletEntity(IWorld* world, LivingEntity* shooter, Entity* target, Axis axis, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -404,12 +375,12 @@ public:
     /**
      * @brief 获取目标
      */
-    [[nodiscard]] Entity* target() const { return m_target; }
+    [[nodiscard]] Entity* target() const;
 
     /**
      * @brief 获取当前移动方向
      */
-    [[nodiscard]] Direction direction() const { return m_direction; }
+    [[nodiscard]] Direction direction() const;
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
@@ -438,11 +409,8 @@ private:
      */
     void _updateFlight();
 
-    Entity* m_target = nullptr;            ///< 目标实体
-    std::string m_targetUuid;              ///< 目标UUID（用于重新查找）
-    Direction m_direction = Direction::Up; ///< 当前移动方向
-    i32 m_flightSteps = 0;                 ///< 剩余飞行步数
-    Vector3d m_targetDelta;                ///< 目标速度增量
+    // 批次6 子目标2 Step4：m_target/m_targetUuid/m_direction/m_flightSteps/m_targetDelta
+    // 迁入 ecs::ShulkerBulletComponent。
 
     // 常量
     static constexpr f32 BULLET_SPEED = 0.15;          ///< 子弹速度
@@ -469,12 +437,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EvokerFangsEntity(EntityInstanceId id);
+    explicit EvokerFangsEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -517,13 +485,13 @@ public:
      * @brief 获取所有者（const版本，不触发懒加载查找）
      * @return 所有者实体缓存指针，可能为 nullptr
      */
-    [[nodiscard]] LivingEntity* owner() const { return m_owner; }
+    [[nodiscard]] LivingEntity* owner() const;
 
     /**
      * @brief 获取所有者 UUID
      * @return 所有者 UUID 字符串（32字符十六进制），可能为空
      */
-    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+    [[nodiscard]] const std::string& ownerUuid() const;
 
     /**
      * @brief 仅设置所有者 UUID（用于 NBT 反序列化）
@@ -538,12 +506,12 @@ public:
      * @brief 设置预热延迟
      * @param delay 预热延迟（ticks）
      */
-    void setWarmupDelay(i32 delay) { m_warmupDelay = delay; }
+    void setWarmupDelay(i32 delay);
 
     /**
      * @brief 获取预热延迟
      */
-    [[nodiscard]] i32 warmupDelay() const { return m_warmupDelay; }
+    [[nodiscard]] i32 warmupDelay() const;
 
     /**
      * @brief 获取动画进度
@@ -557,13 +525,6 @@ private:
      * @brief 对范围内实体造成伤害
      */
     void _damageEntities();
-
-    LivingEntity* m_owner = nullptr;        ///< 所有者缓存指针（唤魔者）
-    std::string m_ownerUuid;                ///< 所有者 UUID（持久化，用于跨 tick 重新查找）
-    i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
-    bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
-    i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），默认22
-    bool m_clientSideAttackStarted = false; ///< 客户端攻击开始标志
 };
 
 /**
@@ -576,12 +537,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EyeOfEnderEntity(EntityInstanceId id);
+    explicit EyeOfEnderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -603,23 +564,41 @@ public:
     /**
      * @brief 获取目标X坐标
      */
-    [[nodiscard]] BlockCoord targetX() const { return m_targetX; }
+    [[nodiscard]] BlockCoord targetX() const;
 
     /**
      * @brief 获取目标Z坐标
      */
-    [[nodiscard]] BlockCoord targetZ() const { return m_targetZ; }
+    [[nodiscard]] BlockCoord targetZ() const;
 
     /**
      * @brief 是否应该碎裂
      */
-    [[nodiscard]] bool shouldBreak() const { return m_break; }
+    [[nodiscard]] bool shouldBreak() const;
+
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 EyeOfEnder.defineSynchedData(): DATA_ITEM_STACK(ItemStack, id8)。
+    // vanilla 末影之眼同步其物品本体（玩家手持的末影之眼物品）；项目 EyeOfEnderEntity 当前
+    // 无 item 字段，此处注册占位空 ItemStackView 保持 wire 字段位置对齐。
+    // TODO: 补齐 EyeOfEnderEntity 的物品字段后，镜像真实物品到 DATA_ITEM_STACK。
+    static entity::DataParameter<network::ir::play::ItemStackView> DATA_ITEM_STACK_PARAM;
+
+    [[nodiscard]] static u16 getItemStackParamId() { return DATA_ITEM_STACK_PARAM.id(); }
+
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写 Entity::registerData()，注册 EyeOfEnder 专属同步参数 DATA_ITEM_STACK（id8）。
+     * EyeOfEnderEntity 直接继承 Entity，C++ 虚函数在构造函数中不会派生到子类，
+     * 构造函数必须显式调用此方法。
+     */
+    void registerData() override;
+
+    /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
 
 private:
-    BlockCoord m_targetX = 0; // 目标X
-    BlockCoord m_targetZ = 0; // 目标Z
-    i32 m_lifetime = 0;       // 存在时间
-    bool m_break = false;     // 是否碎裂
+    // 批次6 子目标2 Step4：m_targetX/m_targetZ/m_lifetime/m_break 迁入 ecs::EyeOfEnderComponent。
 };
 
 /**
@@ -640,12 +619,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit FireworkRocketEntity(EntityInstanceId id);
+    explicit FireworkRocketEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     // ========== Entity 接口重写 ==========
 
@@ -688,27 +667,27 @@ public:
      * @brief 获取烟花物品
      * @return 烟花火箭物品堆（可能为空）
      */
-    [[nodiscard]] const ItemStack& fireworkItem() const { return m_fireworkItem; }
+    [[nodiscard]] const ItemStack& fireworkItem() const;
 
     /**
      * @brief 是否从弩射出
      */
-    [[nodiscard]] bool shotFromCrossbow() const { return m_shotFromCrossbow; }
+    [[nodiscard]] bool shotFromCrossbow() const;
 
     /**
      * @brief 设置是否从弩射出
      */
-    void setShotFromCrossbow(bool value) { m_shotFromCrossbow = value; }
+    void setShotFromCrossbow(bool value);
 
     /**
      * @brief 获取飞行时间
      */
-    [[nodiscard]] i32 flightTime() const { return m_flightTime; }
+    [[nodiscard]] i32 flightTime() const;
 
     /**
      * @brief 设置飞行时间
      */
-    void setFlightTime(i32 time) { m_flightTime = time; }
+    void setFlightTime(i32 time);
 
     /**
      * @brief 获取总生命时间（爆炸阈值）
@@ -718,7 +697,7 @@ public:
      *
      * 公式：lifeTime = flightTime * 10 + rand.nextInt(6) + rand.nextInt(7)
      */
-    [[nodiscard]] i32 lifeTime() const { return m_lifeTime; }
+    [[nodiscard]] i32 lifeTime() const;
 
     /**
      * @brief 设置总生命时间（仅供测试和 NBT 反序列化使用）
@@ -726,12 +705,12 @@ public:
      * 注意：常规代码不应调用此方法，lifeTime 应由 _ensureLifeTimeComputed() 懒初始化或
      * 由 readAdditionalSaveData 从 NBT 恢复。
      */
-    void setLifeTime(i32 time) { m_lifeTime = time; }
+    void setLifeTime(i32 time);
 
     /**
      * @brief 获取已存在时间
      */
-    [[nodiscard]] i32 lifetime() const { return m_lifetime; }
+    [[nodiscard]] i32 lifetime() const;
 
     /**
      * @brief 获取爆炸效果数量
@@ -754,6 +733,33 @@ public:
      */
     void dealExplosionDamage();
 
+    // ========== 网络同步数据参数 ==========
+    // 对齐 vanilla 1.21.11 FireworkRocket.defineSynchedData():
+    //   DATA_FIREWORKS_ITEM(ItemStack, id8) / DATA_ATTACHED_TO_TARGET(OptionalInt, id9) /
+    //   DATA_SHOT_AT_ANGLE(Boolean, id10)
+    // 真相源为 FireworkRocketComponent：m_fireworkItem/m_shotFromCrossbow；DATA_ATTACHED_TO_TARGET
+    // 项目当前无附着目标机制，占位 -1（vanilla OptionalInt absent=0，present=id+1；此处用 i32=-1
+    // 表 absent，TODO 待补 OptionalInt 序列化器后改精确编码）。
+    static entity::DataParameter<network::ir::play::ItemStackView> DATA_FIREWORKS_ITEM_PARAM;
+    static entity::DataParameter<i32> DATA_ATTACHED_TO_TARGET_PARAM;
+    static entity::DataParameter<bool> DATA_SHOT_AT_ANGLE_PARAM;
+
+    [[nodiscard]] static u16 getFireworksItemParamId() { return DATA_FIREWORKS_ITEM_PARAM.id(); }
+    [[nodiscard]] static u16 getAttachedToTargetParamId() { return DATA_ATTACHED_TO_TARGET_PARAM.id(); }
+    [[nodiscard]] static u16 getShotAtAngleParamId() { return DATA_SHOT_AT_ANGLE_PARAM.id(); }
+
+    /**
+     * @brief 注册实体同步数据参数
+     *
+     * 重写基类 registerData()，注册 FireworkRocket 专属同步参数
+     * （DATA_FIREWORKS_ITEM id8 / DATA_ATTACHED_TO_TARGET id9 / DATA_SHOT_AT_ANGLE id10）。
+     * C++ 虚函数在构造函数中不会派生到子类，构造函数必须显式调用此方法。
+     */
+    void registerData() override;
+
+    /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+    static const EntityClassInfo& classInfo();
+
 private:
     /**
      * @brief 爆炸
@@ -769,11 +775,8 @@ private:
      */
     void _ensureLifeTimeComputed();
 
-    ItemStack m_fireworkItem;        // 烟花火箭物品
-    i32 m_flightTime = 1;            // 飞行等级（从物品 NBT Fireworks.Flight 读取）
-    i32 m_lifetime = 0;              // 已存在时间（每 tick 递增）
-    i32 m_lifeTime = -1;             // 总生命时间（爆炸阈值，-1 表示尚未计算）
-    bool m_shotFromCrossbow = false; // 是否从弩射出
+    // 批次6 子目标2 Step4：m_fireworkItem/m_flightTime/m_lifetime/m_lifeTime/m_shotFromCrossbow
+    // 迁入 ecs::FireworkRocketComponent。
 };
 
 } // namespace entity

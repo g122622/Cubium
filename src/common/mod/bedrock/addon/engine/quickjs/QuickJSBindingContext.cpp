@@ -87,6 +87,17 @@ QuickJSBindingContext::QuickJSBindingContext(JSContext* ctx)
     JS_SetContextOpaque(ctx, this);
 }
 
+QuickJSBindingContext::~QuickJSBindingContext()
+{
+    // 释放未被 _moduleInit 消费的 pending JSValue（模块已声明但从未被 import 时残留）。
+    // 正常路径下 _moduleInit 会 erase 掉对应条目；此处兜底防泄漏。
+    for (auto& [module, entries] : m_pendingExports) {
+        for (auto& [name, value] : entries) {
+            JS_FreeValue(m_ctx, value);
+        }
+    }
+}
+
 // ===== 值创建 =====
 
 void* QuickJSBindingContext::createUndefined()
@@ -152,7 +163,15 @@ void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const
 
 void QuickJSBindingContext::setConstructor(void* ctor, void* proto)
 {
-    JS_SetConstructor(m_ctx, unwrapValue(ctor), unwrapValue(proto));
+    JSValue ctorVal = unwrapValue(ctor);
+    // JS_SetConstructor 把 proto 挂到 ctor.prototype 并把 proto.constructor 指回 ctor，
+    // 但不设 ctor 的 is_constructor 位。QuickJS 的 C 函数（JS_NewCFunctionMagic 以
+    // JS_CFUNC_generic_magic 创建）is_constructor 默认 false（仅 JS_CFUNC_constructor*
+    // 才置位），导致 `new ctor(...)` 在 JS_IsConstructor 检查处直接抛 "not a constructor"，
+    // 根本进不了构造回调。此处显式置位，使 `new ClassName(...)` 能进入 ctor 回调
+    // （回调内再决定真实构造或抛 TypeError "Use factory methods instead"）。
+    JS_SetConstructorBit(m_ctx, ctorVal, true);
+    JS_SetConstructor(m_ctx, ctorVal, unwrapValue(proto));
 }
 
 // ===== 值类型检查 =====
@@ -394,7 +413,17 @@ void QuickJSBindingContext::setOpaque(void* obj, void* data, u64 classId)
 
 void* QuickJSBindingContext::getOpaque(void* obj, u64 classId) const
 {
-    return JS_GetOpaque2(m_ctx, unwrapValue(obj), static_cast<JSClassID>(classId));
+    JSValue val = unwrapValue(obj);
+    // classId=0 在抽象层语义为"不检查类型，取任意 opaque"（ScriptObjectRegistry::unwrap 默认值）。
+    // 但 QuickJS 的 JS_GetOpaque 要求 p->class_id 精确等于传入 class_id，class_id=0 只能取
+    // class_id=0 的对象，对实际 class_id!=0 的包装对象一律返回 NULL。故 classId=0 时改用
+    // JS_GetAnyOpaque（不校验 class，直接取 opaque），以对齐抽象层"0=不检查"的设计意图；
+    // classId!=0 时仍走精确匹配（JS_GetOpaque2 会校验并在失败时抛 InvalidClass）。
+    if (classId == 0) {
+        JSClassID anyClassId = 0;
+        return JS_GetAnyOpaque(val, &anyClassId);
+    }
+    return JS_GetOpaque2(m_ctx, val, static_cast<JSClassID>(classId));
 }
 
 // ===== 函数调用 =====
@@ -431,6 +460,22 @@ void* QuickJSBindingContext::throwInternalError(const char* message)
 {
     JS_ThrowInternalError(m_ctx, "%s", message);
     return wrapValue(JS_EXCEPTION);
+}
+
+void* QuickJSBindingContext::throwValue(void* value)
+{
+    // JS_Throw 不消耗传入值的引用（内部不增加 refcount，仅把 val 记录为当前异常）。
+    // unwrapValue 返回的是入参句柄底层 JSValue 的副本（不增加 refcount），若直接抛出，
+    // 调用方随后 releaseValue 释放入参句柄会使抛出的异常值悬垂。故这里 Dup 一份独立引用
+    // 交给 JS_Throw，入参所有权仍归调用方。
+    JS_Throw(m_ctx, JS_DupValue(m_ctx, unwrapValue(value)));
+    return wrapValue(JS_EXCEPTION);
+}
+
+void QuickJSBindingContext::setPrototypeOf(void* obj, void* proto)
+{
+    // JS_SetPrototype 不消耗 obj/proto 的引用（内部按需 Dup），调用方对二者仍持有原所有权。
+    JS_SetPrototype(m_ctx, unwrapValue(obj), unwrapValue(proto));
 }
 
 void* QuickJSBindingContext::getException()
@@ -543,7 +588,8 @@ bool QuickJSBindingContext::createNativeModule(const std::string& moduleName)
     m_module = module;
     m_moduleName = moduleName;
     m_moduleFinalized = false;
-    m_pendingExports.clear();
+    // pending 按 JSModuleDef* 隔离：为新模块准备空条目，不清除其他模块尚未消费的 pending。
+    m_pendingExports[module];
     return true;
 }
 
@@ -555,7 +601,7 @@ bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* 
     JSValue fn =
         JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<int>(length));
     // 值暂存：SetModuleExport 推迟到 _moduleInit（import 时 var_ref 建好后再设）。
-    m_pendingExports.emplace_back(name, fn);
+    m_pendingExports[module].emplace_back(name, fn);
     return true;
 }
 
@@ -564,7 +610,7 @@ bool QuickJSBindingContext::exportNativeConst(const std::string& name, i32 value
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    m_pendingExports.emplace_back(name, JS_NewInt32(m_ctx, value));
+    m_pendingExports[module].emplace_back(name, JS_NewInt32(m_ctx, value));
     return true;
 }
 
@@ -573,7 +619,7 @@ bool QuickJSBindingContext::exportNativeConstFloat(const std::string& name, f64 
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    m_pendingExports.emplace_back(name, JS_NewFloat64(m_ctx, value));
+    m_pendingExports[module].emplace_back(name, JS_NewFloat64(m_ctx, value));
     return true;
 }
 
@@ -582,7 +628,7 @@ bool QuickJSBindingContext::exportNativeConstString(const std::string& name, con
     if (!m_module || m_moduleFinalized) return false;
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
-    m_pendingExports.emplace_back(name, JS_NewStringLen(m_ctx, value.c_str(), value.size()));
+    m_pendingExports[module].emplace_back(name, JS_NewStringLen(m_ctx, value.c_str(), value.size()));
     return true;
 }
 
@@ -593,7 +639,7 @@ bool QuickJSBindingContext::exportNativeValue(const std::string& name, void* val
     JS_AddModuleExport(m_ctx, module, name.c_str());
     // value 是 wrapValue 的 JSValue*（引用计数 1）；Dup 一份供 pending 持有，调用者仍持有原引用
     // （exportClass 在 exportNativeValue 后会 releaseValue 释放原引用，pending 的 Dup 不受影响）。
-    m_pendingExports.emplace_back(name, JS_DupValue(m_ctx, *static_cast<JSValue*>(value)));
+    m_pendingExports[module].emplace_back(name, JS_DupValue(m_ctx, *static_cast<JSValue*>(value)));
     return true;
 }
 
@@ -605,10 +651,15 @@ int QuickJSBindingContext::_moduleInit(JSContext* ctx, JSModuleDef* m)
     }
     // 此时 js_create_module_function 已为每个 AddModuleExport 声明的导出建好 var_ref，
     // 可安全 SetModuleExport 填值。SetModuleExport 会接管值的引用（pending 持有的 Dup 份需释放）。
-    for (auto& [name, value] : bindingCtx->m_pendingExports) {
+    // 按入参 m 取回该模块自己的 pending（多模块共享一个 bindingCtx，必须按 JSModuleDef* 隔离）。
+    auto it = bindingCtx->m_pendingExports.find(m);
+    if (it == bindingCtx->m_pendingExports.end()) {
+        return 0;
+    }
+    for (auto& [name, value] : it->second) {
         JS_SetModuleExport(ctx, m, name.c_str(), value);
     }
-    bindingCtx->m_pendingExports.clear();
+    bindingCtx->m_pendingExports.erase(it);
     return 0;
 }
 

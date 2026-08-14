@@ -25,6 +25,7 @@
 #include "InventoryManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -142,7 +143,11 @@ void ContainerManager::closeContainer(PlayerId playerId)
 
         auto* playerData = m_playerManager.getPlayer(playerId);
         const std::string username = (playerData != nullptr) ? playerData->username : std::string("ContainerPlayer");
-        Player menuPlayer(playerId, username);
+        // ECS 迁移：占位 Player 构造需要 registry 句柄。此处 menuPlayer 仅作 removed 回调形参，
+        // 无 world 上下文，故复用 handleClick 同款静态 registry。
+        // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
+        static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
+        Player menuPlayer(playerId, username, s_menuPlayerRegistry);
         it->second.menu->removed(menuPlayer);
     }
 
@@ -173,7 +178,11 @@ Result<ContainerClickResult> ContainerManager::handleClick(
 
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(mode), button);
 
-    Player menuPlayer(playerId, playerData->username);
+    // ECS 迁移：占位 Player 构造需要 registry 句柄。此处 menuPlayer 仅作容器点击
+    // 回调的 Player 形参（临时占位，非真实世界玩家），无 world 上下文，故配静态 registry。
+    // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
+    static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
+    Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
     openContainer.menu->setCarriedItem(carriedItem);
     openContainer.menu->clicked(slot, button, clickType, menuPlayer);
 

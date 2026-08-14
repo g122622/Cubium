@@ -53,7 +53,7 @@ namespace {
  * 提供方块状态存储和含水检测功能。
  * 未设置方块的位置返回空气方块状态。
  */
-class StairsTestWorld : public test::BaseTestWorld {
+class StairsTestWorld : public mc::test::BaseTestWorld {
 public:
     StairsTestWorld() { m_airState = &VanillaBlocks::AIR->defaultState(); }
 

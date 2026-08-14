@@ -43,7 +43,7 @@ using namespace mc::loot;
 using namespace mc::entity::effect;
 
 // Test implementation of IWorld for loot testing
-class SetStewEffectTestWorld : public test::BaseTestWorld {
+class SetStewEffectTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {

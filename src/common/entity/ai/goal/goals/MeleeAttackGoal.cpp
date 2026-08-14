@@ -220,6 +220,10 @@ void MeleeAttackGoal::tick()
                 m_pathRecalculateTimer += 15; // 路径失败惩罚
             }
         }
+
+        // 对齐 vanilla MeleeAttackGoal.tick：所有 bonus 累加后整体 adjustedTickDelay 减半，
+        // 补偿半 tick 评估（m_pathRecalculateTimer 在 tick 每 tick 递减）。
+        m_pathRecalculateTimer = adjustedTickDelay(m_pathRecalculateTimer);
     }
 
     // 减少攻击冷却
@@ -247,8 +251,8 @@ void MeleeAttackGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnem
     f32 attackReachSq = getAttackReachSqr(target);
 
     if (distToEnemySqr <= static_cast<f64>(attackReachSq) && m_attackCooldown <= 0) {
-        // 重置攻击冷却
-        m_attackCooldown = ATTACK_COOLDOWN_TICKS;
+        // 重置攻击冷却。对齐 vanilla MeleeAttackGoal.resetAttackCooldown：adjustedTickDelay(20)。
+        m_attackCooldown = adjustedTickDelay(ATTACK_COOLDOWN_TICKS);
 
         // 执行攻击
         _attackTarget(target);

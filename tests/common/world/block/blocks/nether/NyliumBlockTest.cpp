@@ -48,7 +48,7 @@ namespace {
  *
  * 支持方块状态和光照设置的测试世界，用于测试 NyliumBlock 的 IGrowable 接口。
  */
-class NyliumTestWorld final : public test::BaseTestWorld {
+class NyliumTestWorld final : public mc::test::BaseTestWorld {
 public:
     NyliumTestWorld()
     {

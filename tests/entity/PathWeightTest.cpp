@@ -43,7 +43,7 @@ namespace {
 /**
  * @brief 测试用 Mock World，支持亮度、方块状态等
  */
-class PathWeightTestWorld final : public test::BaseTestWorld {
+class PathWeightTestWorld final : public mc::test::BaseTestWorld {
 public:
     void setBrightness(f32 brightness) { m_brightness = brightness; }
     void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
@@ -92,7 +92,7 @@ private:
 class TestAnimalEntity final : public AnimalEntity {
 public:
     TestAnimalEntity()
-        : AnimalEntity(EntityInstanceId(1))
+        : AnimalEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -116,7 +116,7 @@ protected:
 class TestMonsterEntity final : public MonsterEntity {
 public:
     TestMonsterEntity()
-        : MonsterEntity(EntityInstanceId(2))
+        : MonsterEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -136,7 +136,7 @@ protected:
 class TestCreatureEntity final : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(EntityInstanceId(3))
+        : CreatureEntity(EntityInstanceId(3), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

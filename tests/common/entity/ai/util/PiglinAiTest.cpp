@@ -24,6 +24,7 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 
@@ -63,7 +64,7 @@ TEST_F(PiglinAiTest, Constants_AngerDuration_ValueMatchesMC)
 
 class PiglinEntityAngerTest : public ::testing::Test {
 protected:
-    void SetUp() override { piglin = std::make_unique<PiglinEntity>(EntityInstanceId(1)); }
+    void SetUp() override { piglin = std::make_unique<PiglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { piglin.reset(); }
 

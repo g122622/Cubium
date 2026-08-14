@@ -71,7 +71,7 @@ protected:
 // 测试：MonsterEntity（ZombieEntity）实现 IMob 接口
 TEST_F(SensorIMobTest, MonsterEntityImplementsIMob)
 {
-    ZombieEntity zombie(EntityInstanceId(10));
+    ZombieEntity zombie(EntityInstanceId(10), mc::test::testEcsRegistry());
     IMob* imob = dynamic_cast<IMob*>(&zombie);
     EXPECT_NE(imob, nullptr) << "ZombieEntity（继承 MonsterEntity）应该实现 IMob 接口";
 }
@@ -79,7 +79,7 @@ TEST_F(SensorIMobTest, MonsterEntityImplementsIMob)
 // 测试：AnimalEntity（PigEntity）不实现 IMob 接口
 TEST_F(SensorIMobTest, AnimalEntityDoesNotImplementIMob)
 {
-    PigEntity pig(EntityInstanceId(20));
+    PigEntity pig(EntityInstanceId(20), mc::test::testEcsRegistry());
     IMob* animalImob = dynamic_cast<IMob*>(&pig);
     EXPECT_EQ(animalImob, nullptr) << "PigEntity（继承 AnimalEntity）不应该实现 IMob 接口";
 }
@@ -87,7 +87,7 @@ TEST_F(SensorIMobTest, AnimalEntityDoesNotImplementIMob)
 // 测试：Player 不实现 IMob 接口
 TEST_F(SensorIMobTest, PlayerDoesNotImplementIMob)
 {
-    Player player(EntityInstanceId(30), "TestPlayer");
+    Player player(EntityInstanceId(30), "TestPlayer", mc::test::testEcsRegistry());
     IMob* playerImob = dynamic_cast<IMob*>(&player);
     EXPECT_EQ(playerImob, nullptr) << "Player 不应该实现 IMob 接口";
 }
@@ -104,8 +104,8 @@ protected:
 // 测试：shouldAvoid 对 MonsterEntity 返回 true（因为 MonsterEntity 实现了 IMob）
 TEST_F(AvoidEntitySensorTest, ShouldAvoidMonsterEntity)
 {
-    ZombieEntity zombie(EntityInstanceId(10));
-    VillagerEntity villager(EntityInstanceId(11));
+    ZombieEntity zombie(EntityInstanceId(10), mc::test::testEcsRegistry());
+    VillagerEntity villager(EntityInstanceId(11), mc::test::testEcsRegistry());
 
     bool result = AvoidEntitySensor<VillagerEntity>::shouldAvoid(&villager, &zombie);
     EXPECT_TRUE(result) << "AvoidEntitySensor 应该对 MonsterEntity（实现 IMob）返回 true";
@@ -114,8 +114,8 @@ TEST_F(AvoidEntitySensorTest, ShouldAvoidMonsterEntity)
 // 测试：shouldAvoid 对 AnimalEntity 返回 false（因为 AnimalEntity 不实现 IMob）
 TEST_F(AvoidEntitySensorTest, ShouldNotAvoidAnimalEntity)
 {
-    PigEntity pig(EntityInstanceId(20));
-    VillagerEntity villager(EntityInstanceId(21));
+    PigEntity pig(EntityInstanceId(20), mc::test::testEcsRegistry());
+    VillagerEntity villager(EntityInstanceId(21), mc::test::testEcsRegistry());
 
     bool result = AvoidEntitySensor<VillagerEntity>::shouldAvoid(&villager, &pig);
     EXPECT_FALSE(result) << "AvoidEntitySensor 不应该对 AnimalEntity（未实现 IMob）返回 true";
@@ -124,8 +124,8 @@ TEST_F(AvoidEntitySensorTest, ShouldNotAvoidAnimalEntity)
 // 测试：shouldAvoid 对普通 Player 返回 false
 TEST_F(AvoidEntitySensorTest, ShouldNotAvoidSurvivalPlayer)
 {
-    Player player(EntityInstanceId(30), "TestPlayer");
-    VillagerEntity villager(EntityInstanceId(31));
+    Player player(EntityInstanceId(30), "TestPlayer", mc::test::testEcsRegistry());
+    VillagerEntity villager(EntityInstanceId(31), mc::test::testEcsRegistry());
 
     bool result = AvoidEntitySensor<VillagerEntity>::shouldAvoid(&villager, &player);
     EXPECT_FALSE(result) << "AvoidEntitySensor 不应该对普通 Player 返回 true";
@@ -134,9 +134,9 @@ TEST_F(AvoidEntitySensorTest, ShouldNotAvoidSurvivalPlayer)
 // 测试：shouldAvoid 对创造模式 Player 返回 false
 TEST_F(AvoidEntitySensorTest, ShouldNotAvoidCreativePlayer)
 {
-    Player player(EntityInstanceId(40), "CreativePlayer");
+    Player player(EntityInstanceId(40), "CreativePlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
-    VillagerEntity villager(EntityInstanceId(41));
+    VillagerEntity villager(EntityInstanceId(41), mc::test::testEcsRegistry());
 
     bool result = AvoidEntitySensor<VillagerEntity>::shouldAvoid(&villager, &player);
     EXPECT_FALSE(result) << "AvoidEntitySensor 不应该对创造模式 Player 返回 true";
@@ -145,9 +145,9 @@ TEST_F(AvoidEntitySensorTest, ShouldNotAvoidCreativePlayer)
 // 测试：shouldAvoid 对旁观模式 Player 返回 false
 TEST_F(AvoidEntitySensorTest, ShouldNotAvoidSpectatorPlayer)
 {
-    Player player(EntityInstanceId(50), "SpectatorPlayer");
+    Player player(EntityInstanceId(50), "SpectatorPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Spectator);
-    VillagerEntity villager(EntityInstanceId(51));
+    VillagerEntity villager(EntityInstanceId(51), mc::test::testEcsRegistry());
 
     bool result = AvoidEntitySensor<VillagerEntity>::shouldAvoid(&villager, &player);
     EXPECT_FALSE(result) << "AvoidEntitySensor 不应该对旁观模式 Player 返回 true";
@@ -207,7 +207,7 @@ public:
 };
 
 // 支持 VillageManager 的测试世界
-class WorkStationSensorTestWorld : public test::BaseTestWorld {
+class WorkStationSensorTestWorld : public mc::test::BaseTestWorld {
 public:
     WorkStationSensorTestWorld()
         : m_dayTime(5000)
@@ -251,7 +251,7 @@ protected:
         m_poiStorage = &villageManager->getPOIStorage();
         m_world->setVillageManager(std::move(villageManager));
 
-        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1));
+        m_villager = std::make_unique<VillagerEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_villager->setWorld(m_world.get());
         m_villager->setPosition(0.0f, 64.0f, 0.0f);
 

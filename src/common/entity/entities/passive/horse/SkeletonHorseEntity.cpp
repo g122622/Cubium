@@ -42,22 +42,24 @@
 
 namespace mc {
 
-SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id)
-    : AbstractHorseEntity(id)
+SkeletonHorseEntity::SkeletonHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractHorseEntity(id, registry)
 {
     // 骷髅马默认已驯服
     setTame(true);
     // 设置跳跃强度
     setJumpStrength(1.0f);
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 累加语义，基类构造不再调用
+    // 以避免重复。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SkeletonHorseEntity>(0);
+    return std::make_unique<SkeletonHorseEntity>(0, registry);
 }
 
 bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
@@ -100,6 +102,12 @@ void SkeletonHorseEntity::triggerTrap()
         return;
     }
 
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
     // 1. 清除陷阱状态
     m_trap = false;
 
@@ -125,7 +133,7 @@ void SkeletonHorseEntity::triggerTrap()
 
     // 6. 创建第一个骷髅骑手（骑在这匹马上）
     {
-        auto skeleton = skeletonType->create(world);
+        auto skeleton = skeletonType->create(world, *registry);
         if (skeleton == nullptr) {
             return;
         }
@@ -187,7 +195,7 @@ void SkeletonHorseEntity::triggerTrap()
             continue;
         }
 
-        auto extraHorse = skeletonHorseType->create(world);
+        auto extraHorse = skeletonHorseType->create(world, *registry);
         if (extraHorse == nullptr) {
             continue;
         }
@@ -226,7 +234,7 @@ void SkeletonHorseEntity::triggerTrap()
         }
 
         // 创建骷髅骑手
-        auto extraSkeleton = skeletonType->create(world);
+        auto extraSkeleton = skeletonType->create(world, *registry);
         if (extraSkeleton == nullptr) {
             continue;
         }
@@ -282,7 +290,9 @@ void SkeletonHorseEntity::triggerTrap()
     }
 
     // 在骷髅马位置生成纯视觉效果闪电（不造成伤害、不点燃方块）
-    auto lightning = std::make_unique<entity::LightningBoltEntity>();
+    // 复用 triggerTrap() 顶部已取的 registry（world->entityRegistry() 已判空）
+    auto lightning = std::make_unique<entity::LightningBoltEntity>(*registry);
+    lightning->setTypeId(entity::EntityTypeKeys::LIGHTNING_BOLT); // 工厂绕过补救：直接构造缺 typeId
     lightning->setPosition(horsePos);
     lightning->setEffectOnly(true);
     world->spawnEntity(std::move(lightning));
@@ -325,8 +335,8 @@ void SkeletonHorseEntity::registerAttributes()
     AbstractHorseEntity::registerAttributes();
 
     // 骷髅马的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f);
 }
 
 } // namespace mc

@@ -34,24 +34,26 @@
 #include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../core/EntityRegistry.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 
 namespace mc {
 
-std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
     // 注意：不要使用静态计数器，以避免线程安全问题和ID冲突
-    return std::make_unique<CowEntity>(0);
+    return std::make_unique<CowEntity>(0, registry);
 }
 
-CowEntity::CowEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+CowEntity::CowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -106,8 +108,15 @@ bool CowEntity::canMateWith(const AnimalEntity& other) const
 
 std::unique_ptr<AnimalEntity> CowEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小牛
-    auto baby = std::make_unique<CowEntity>(0);
+    auto baby = std::make_unique<CowEntity>(0, *registry);
+    baby->setTypeId(entity::EntityTypeKeys::COW); // 工厂绕过补救：直接构造缺 typeId
 
     // 设置为幼体
     baby->setChild(true);
@@ -164,8 +173,8 @@ void CowEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 牛的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2);
 }
 
 } // namespace mc

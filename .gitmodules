@@ -4,3 +4,6 @@
 [submodule "third_party/OffsetAllocator"]
 	path = third_party/OffsetAllocator
 	url = https://github.com/sebbbi/OffsetAllocator.git
+[submodule "docs/minecraft-wiki-source"]
+	path = docs/minecraft-wiki-source
+	url = https://github.com/g122622/minecraft-wiki-source

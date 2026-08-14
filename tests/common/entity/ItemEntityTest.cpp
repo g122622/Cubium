@@ -55,7 +55,7 @@ namespace {
 class TestMobEntity : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(100))
+        : MobEntity(EntityInstanceId(100), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -134,7 +134,7 @@ TEST_F(ItemEntityWorldTest, DefaultHealthIsFive)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.getHealth(), 5);
 }
 
@@ -142,7 +142,7 @@ TEST_F(ItemEntityWorldTest, DefaultPickupDelayIsTen)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.getPickupDelay(), 10);
 }
 
@@ -150,7 +150,7 @@ TEST_F(ItemEntityWorldTest, DefaultLifetimeIs6000)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.DEFAULT_LIFETIME, 6000);
 }
 
@@ -158,7 +158,7 @@ TEST_F(ItemEntityWorldTest, Hurt_DefaultHealthIsFive)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.DEFAULT_HEALTH, 5);
 }
 
@@ -170,7 +170,7 @@ TEST_F(ItemEntityWorldTest, Hurt_InvulnerableEntityReturnsFalse)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
 
     auto genericDamage = DamageSources::generic();
@@ -181,7 +181,7 @@ TEST_F(ItemEntityWorldTest, Hurt_NormalItemHurtByFireReducesHealth)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     bool result = entity.hurt(fireDamage, 3.0f);
@@ -193,7 +193,7 @@ TEST_F(ItemEntityWorldTest, Hurt_NormalItemHurtByGenericDamage)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 2.0f);
@@ -205,7 +205,7 @@ TEST_F(ItemEntityWorldTest, Hurt_HealthZeroDiscardsEntity)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 6.0f);
@@ -217,7 +217,7 @@ TEST_F(ItemEntityWorldTest, Hurt_ExactHealthZeroDiscardsEntity)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 5.0f);
@@ -229,7 +229,7 @@ TEST_F(ItemEntityWorldTest, Hurt_MultipleHitsReduceHealth)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
 
@@ -252,7 +252,7 @@ TEST_F(ItemEntityWorldTest, Hurt_VoidDamageBypassesInvulnerability)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
 
     auto voidDamage = DamageSources::outOfWorld();
@@ -343,7 +343,7 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NormalItemNotImmune)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isImmuneToFire());
 }
 
@@ -351,7 +351,7 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetheriteItemImmune)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
@@ -359,7 +359,7 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetherStarImmune)
 {
     Item* netherStar = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star"));
     ASSERT_NE(netherStar, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netherStar, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netherStar, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
@@ -367,7 +367,7 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_AncientDebrisImmune)
 {
     Item* debris = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "ancient_debris"));
     ASSERT_NE(debris, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*debris, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*debris, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
@@ -379,7 +379,7 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItemNotHurtByFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -389,7 +389,7 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemHurtByGenericNotFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 2.0f);
@@ -401,7 +401,7 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemVoidDamageKills)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto voidDamage = DamageSources::outOfWorld();
     bool result = entity.hurt(voidDamage, 100.0f);
@@ -420,7 +420,7 @@ TEST_F(ItemEntityWorldTest, MobDamage_MobGriefingOn_AllowsDamage)
 
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     TestMobEntity mob;
@@ -438,7 +438,7 @@ TEST_F(ItemEntityWorldTest, MobDamage_MobGriefingOff_RejectsDamage)
 
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     TestMobEntity mob;
@@ -456,7 +456,7 @@ TEST_F(ItemEntityWorldTest, EnvironmentalDamage_MobGriefingOff_AllowsDamage)
 
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -469,7 +469,7 @@ TEST_F(ItemEntityWorldTest, MobDamage_NoWorld_SkipsMobGriefingCheck)
     // 没有 world 时，mobGriefing 检查被跳过，Mob 伤害正常生效
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     // 不设置 world -> m_world == nullptr
 
     TestMobEntity mob;
@@ -486,7 +486,7 @@ TEST_F(ItemEntityWorldTest, MobDamage_MobGriefingOff_DoesNotSetMarkHurt)
 
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     TestMobEntity mob;
@@ -504,7 +504,7 @@ TEST_F(ItemEntityWorldTest, Hurt_DispatchesEntityDamageGameEvent)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.5f, 64.3f, 10.7f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.5f, 64.3f, 10.7f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -519,7 +519,7 @@ TEST_F(ItemEntityWorldTest, Hurt_GameEventPositionMatchesEntityBlockPos)
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
     // 位置 (5.5, 64.3, 10.7) -> BlockPos (5, 64, 10)
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.5f, 64.3f, 10.7f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.5f, 64.3f, 10.7f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -532,7 +532,7 @@ TEST_F(ItemEntityWorldTest, Hurt_GameEventContextContainsSourceEntity)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     TestMobEntity mob;
@@ -547,7 +547,7 @@ TEST_F(ItemEntityWorldTest, Hurt_GameEventContextNullForEnvironmentalDamage)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -561,7 +561,7 @@ TEST_F(ItemEntityWorldTest, Hurt_InvulnerableDoesNotDispatchGameEvent)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
     entity.setInvulnerable(true);
 
@@ -574,7 +574,7 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantNotHurtByFire_NoGameEvent)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto fireDamage = DamageSources::inFire();
@@ -588,7 +588,7 @@ TEST_F(ItemEntityWorldTest, Hurt_MobGriefingOff_NoGameEvent)
 
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     TestMobEntity mob;
@@ -601,7 +601,7 @@ TEST_F(ItemEntityWorldTest, Hurt_MultipleHitsDispatchMultipleEvents)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto genericDamage = DamageSources::generic();
@@ -618,7 +618,7 @@ TEST_F(ItemEntityWorldTest, Hurt_NoWorld_DoesNotDispatchGameEvent)
     // 没有 world 时不会派发游戏事件
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     // 不设置 world
 
     auto genericDamage = DamageSources::generic();
@@ -634,7 +634,7 @@ TEST_F(ItemEntityWorldTest, Hurt_Success_SetsMarkHurt)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isHurtMarked()); // 默认为 false
 
     auto genericDamage = DamageSources::generic();
@@ -646,7 +646,7 @@ TEST_F(ItemEntityWorldTest, Hurt_Invulnerable_DoesNotSetMarkHurt)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
 
     auto genericDamage = DamageSources::generic();
@@ -658,7 +658,7 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_NotHurtByFire_DoesNotSetMarkH
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -669,7 +669,7 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_HurtByGeneric_SetsMarkHurt)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 防火物品被普通伤害击中时，hurt() 成功，应设置 hurtMarked
     auto genericDamage = DamageSources::generic();
@@ -681,7 +681,7 @@ TEST_F(ItemEntityWorldTest, Hurt_MultipleHits_KeepHurtMarkedTrue)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
 
@@ -696,7 +696,7 @@ TEST_F(ItemEntityWorldTest, Hurt_ClearHurtMarkedResetsFlag)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     EXPECT_TRUE(entity.hurt(genericDamage, 1.0f));
@@ -711,7 +711,7 @@ TEST_F(ItemEntityWorldTest, Hurt_VoidDamage_SetsMarkHurtBeforeDiscard)
     // 即使是虚空伤害导致立即销毁，markHurt() 也应被调用
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setInvulnerable(true);
 
     auto voidDamage = DamageSources::outOfWorld();
@@ -739,7 +739,7 @@ TEST_F(ItemEntityNbtTest, Health_DefaultRoundTrip)
     // 默认生命值 5 的往返序列化
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 序列化
     nbt::tags::compound_tag tag;
@@ -751,7 +751,7 @@ TEST_F(ItemEntityNbtTest, Health_DefaultRoundTrip)
     EXPECT_EQ(healthVal.value(), static_cast<i16>(5));
 
     // 反序列化到新实体
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 5);
@@ -761,7 +761,7 @@ TEST_F(ItemEntityNbtTest, Health_CustomValueRoundTrip)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setHealth(3);
 
     nbt::tags::compound_tag tag;
@@ -771,7 +771,7 @@ TEST_F(ItemEntityNbtTest, Health_CustomValueRoundTrip)
     ASSERT_TRUE(healthVal.has_value());
     EXPECT_EQ(healthVal.value(), static_cast<i16>(3));
 
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 3);
@@ -781,7 +781,7 @@ TEST_F(ItemEntityNbtTest, Health_ZeroValueRoundTrip)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setHealth(0);
 
     nbt::tags::compound_tag tag;
@@ -791,7 +791,7 @@ TEST_F(ItemEntityNbtTest, Health_ZeroValueRoundTrip)
     ASSERT_TRUE(healthVal.has_value());
     EXPECT_EQ(healthVal.value(), static_cast<i16>(0));
 
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 0);
@@ -801,7 +801,7 @@ TEST_F(ItemEntityNbtTest, Health_NegativeValueRoundTrip)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setHealth(-1);
 
     nbt::tags::compound_tag tag;
@@ -811,7 +811,7 @@ TEST_F(ItemEntityNbtTest, Health_NegativeValueRoundTrip)
     ASSERT_TRUE(healthVal.has_value());
     EXPECT_EQ(healthVal.value(), static_cast<i16>(-1));
 
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), -1);
@@ -822,7 +822,7 @@ TEST_F(ItemEntityNbtTest, Health_MissingKeyInNbtPreservesDefault)
     // 空 NBT 标签不应改变默认生命值
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_EQ(entity.getHealth(), 5);
 
     nbt::tags::compound_tag emptyTag;
@@ -836,14 +836,14 @@ TEST_F(ItemEntityNbtTest, Health_AfterDamageRoundTrip)
     // 模拟受伤后的序列化场景
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     // 受伤后生命值：5 - 3 = 2
     entity.setHealth(2);
 
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
 
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 2);
@@ -853,7 +853,7 @@ TEST_F(ItemEntityNbtTest, AgeAndPickupDelayRoundTrip)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setHealth(4);
     entity.setPickupDelay(20);
     // Age 通过 tick() 增长，这里直接通过 NBT 设置来测试
@@ -870,7 +870,7 @@ TEST_F(ItemEntityNbtTest, AgeAndPickupDelayRoundTrip)
     EXPECT_EQ(pickupDelayVal.value(), 20);
 
     // 反序列化
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 4);
@@ -881,7 +881,7 @@ TEST_F(ItemEntityNbtTest, OwnerAndThrowerRoundTrip)
 {
     Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity entity(EntityInstanceId(1), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity.setOwner("player-uuid-123", "thrower-uuid-456");
 
     nbt::tags::compound_tag tag;
@@ -897,7 +897,7 @@ TEST_F(ItemEntityNbtTest, OwnerAndThrowerRoundTrip)
     EXPECT_EQ(throwerVal.value(), "thrower-uuid-456");
 
     // 反序列化
-    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+    ItemEntity loaded(EntityInstanceId(2), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.ownerUuid(), "player-uuid-123");
@@ -932,7 +932,7 @@ protected:
     {
         Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
         EXPECT_NE(stone, nullptr);
-        auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f);
+        auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
         entity->setLifetime(lifetime);
         entity->setPickupDelay(pickupDelay);
         entity->setWorld(&m_world);
@@ -944,10 +944,10 @@ protected:
 // 当前实现缺少该检查 → 测试红。
 TEST_F(ItemEntityLifecycleTest, EmptyItemRemovedOnTick)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     // 默认构造的 ItemStack 为空（item==nullptr）
     ItemStack emptyStack;
-    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f);
+    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     EntityInstanceId id = manager.addEntity(std::move(entity));
     ASSERT_NE(id, 0);
@@ -963,7 +963,7 @@ TEST_F(ItemEntityLifecycleTest, EmptyItemRemovedOnTick)
 // 当前实现无条件递减 → 测试红。
 TEST_F(ItemEntityLifecycleTest, FakePickupDelayNotDecremented)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     constexpr i32 kFakeDelay = 32767;
     EntityInstanceId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, kFakeDelay);
 
@@ -981,7 +981,7 @@ TEST_F(ItemEntityLifecycleTest, FakePickupDelayNotDecremented)
 // 普通 pickupDelay 应随 tick 递减至 0 后停止。
 TEST_F(ItemEntityLifecycleTest, NormalPickupDelayDecrements)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     EntityInstanceId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, 5);
 
     auto* itemEntity = dynamic_cast<ItemEntity*>(manager.getEntity(id));
@@ -1000,7 +1000,7 @@ TEST_F(ItemEntityLifecycleTest, NormalPickupDelayDecrements)
 // 批量到期：500 个短寿命物品 tick 超过寿命后应全部被移除（不泄漏）。
 TEST_F(ItemEntityLifecycleTest, BatchExpiry)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     constexpr i32 kCount = 500;
     constexpr i32 kLifetime = 100;
 
@@ -1020,7 +1020,7 @@ TEST_F(ItemEntityLifecycleTest, BatchExpiry)
 // 无限寿命物品不应因年龄到期而移除。
 TEST_F(ItemEntityLifecycleTest, InfiniteLifetimeNeverExpires)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     EntityInstanceId id = spawnItem(manager, ItemEntity::INFINITE_LIFETIME, 0);
 
     // tick 远超普通寿命

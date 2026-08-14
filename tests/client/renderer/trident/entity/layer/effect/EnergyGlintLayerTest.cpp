@@ -30,6 +30,7 @@
 
 #include "client/renderer/trident/entity/layer/effect/EnergyGlintLayer.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -54,7 +55,7 @@ namespace mc::client::renderer::entity::layer::effect::test {
 class TestLivingEntity : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {}
 
     void tick() override {}

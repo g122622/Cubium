@@ -45,7 +45,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class GiveTestServer final : public test::BaseTestServer {
+class GiveTestServer final : public mc::test::BaseTestServer {
 public:
     GiveTestServer() { Items::initialize(); }
 

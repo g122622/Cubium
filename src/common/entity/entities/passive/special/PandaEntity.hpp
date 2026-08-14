@@ -77,7 +77,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    PandaEntity(EntityInstanceId id);
+    PandaEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PandaEntity() override = default;
 
     // 禁止拷贝
@@ -93,7 +93,7 @@ public:
      * @param world 世界实例
      * @return 新的熊猫实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 性格 ==========
 

@@ -124,7 +124,7 @@ public:
  * 可通过 setLootTableManager() 注入自定义管理器（用于测试战利品填充）。
  * 可通过 setNoLootTableManager() 模拟客户端场景（lootTableManager() 返回 nullptr）。
  */
-class LootableTestWorld final : public test::BaseTestWorld {
+class LootableTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -166,10 +166,10 @@ protected:
 TEST_F(LootableContainerCanOpenTest, UnlockedContainer_AllowsAllPlayers)
 {
     // 未锁定且无战利品表的容器：所有玩家可打开
-    Player survivalPlayer(1, "survival");
-    Player spectatorPlayer(2, "spectator");
+    Player survivalPlayer(1, "survival", mc::test::testEcsRegistry());
+    Player spectatorPlayer(2, "spectator", mc::test::testEcsRegistry());
     spectatorPlayer.setGameMode(GameMode::Spectator);
-    Player creativePlayer(3, "creative");
+    Player creativePlayer(3, "creative", mc::test::testEcsRegistry());
     creativePlayer.setGameMode(GameMode::Creative);
 
     EXPECT_TRUE(entity_->canOpen(&survivalPlayer, ItemStack()));
@@ -183,8 +183,8 @@ TEST_F(LootableContainerCanOpenTest, LockedContainer_RequiresKeyOrCreative)
     entity_->setLocked(true);
     entity_->setLockKey("secret_key");
 
-    Player survivalPlayer(1, "survival");
-    Player creativePlayer(2, "creative");
+    Player survivalPlayer(1, "survival", mc::test::testEcsRegistry());
+    Player creativePlayer(2, "creative", mc::test::testEcsRegistry());
     creativePlayer.setGameMode(GameMode::Creative);
 
     // 无钥匙的生存玩家不能打开
@@ -204,10 +204,10 @@ TEST_F(LootableContainerCanOpenTest, WithLootTable_SpectatorBlocked)
     // 设置战利品表但尚未填充时，观察者模式玩家不能打开
     entity_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player survivalPlayer(1, "survival");
-    Player spectatorPlayer(2, "spectator");
+    Player survivalPlayer(1, "survival", mc::test::testEcsRegistry());
+    Player spectatorPlayer(2, "spectator", mc::test::testEcsRegistry());
     spectatorPlayer.setGameMode(GameMode::Spectator);
-    Player creativePlayer(3, "creative");
+    Player creativePlayer(3, "creative", mc::test::testEcsRegistry());
     creativePlayer.setGameMode(GameMode::Creative);
 
     // 生存玩家可以打开（锁定检查通过 + 战利品表未填充但非观察者）
@@ -237,7 +237,7 @@ TEST_F(LootableContainerCanOpenTest, FilledLootTable_SpectatorAllowed)
     // 调用 fillWithLoot(nullptr) 需要 LootTableManager，这里无法直接填充
     // 但我们可以通过检查逻辑来验证：当 hasLootTable() 返回 false 时观察者可以通过
 
-    Player spectatorPlayer(1, "spectator");
+    Player spectatorPlayer(1, "spectator", mc::test::testEcsRegistry());
     spectatorPlayer.setGameMode(GameMode::Spectator);
 
     // 战利品表未填充时被阻止
@@ -256,10 +256,10 @@ TEST_F(LootableContainerCanOpenTest, LockedAndLootTable_CombinedCheck)
     entity_->setLocked(true);
     entity_->setLockKey("my_key");
 
-    Player survivalPlayer(1, "survival");
-    Player spectatorPlayer(2, "spectator");
+    Player survivalPlayer(1, "survival", mc::test::testEcsRegistry());
+    Player spectatorPlayer(2, "spectator", mc::test::testEcsRegistry());
     spectatorPlayer.setGameMode(GameMode::Spectator);
-    Player creativePlayer(3, "creative");
+    Player creativePlayer(3, "creative", mc::test::testEcsRegistry());
     creativePlayer.setGameMode(GameMode::Creative);
 
     // 锁定检查先执行：生存玩家无钥匙 → false
@@ -270,7 +270,7 @@ TEST_F(LootableContainerCanOpenTest, LockedAndLootTable_CombinedCheck)
 
     // 锁定检查先执行：创造模式 → true，然后战利品表检查（观察者） → false
     // 注意：创造模式不是观察者模式，isSpectator 返回 false
-    Player creativeNotSpectator(4, "creative2");
+    Player creativeNotSpectator(4, "creative2", mc::test::testEcsRegistry());
     creativeNotSpectator.setGameMode(GameMode::Creative);
     EXPECT_TRUE(entity_->canOpen(&creativeNotSpectator, ItemStack()));
 }
@@ -295,7 +295,7 @@ TEST_F(LootableContainerOpenTest, SpectatorWithLootTable_NotFilledAndNotOpened)
     // 2. 不增加打开计数
     entity_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
     EXPECT_TRUE(entity_->hasLootTable());
@@ -311,7 +311,7 @@ TEST_F(LootableContainerOpenTest, SurvivalPlayerWithLootTable_TriggersFillAndOpe
     // 虽然无法填充（没有 LootTableManager），但 openContainer 会被调用
     entity_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player survival(1, "survival");
+    Player survival(1, "survival", mc::test::testEcsRegistry());
     entity_->openContainer(&survival);
 
     // 没有世界/管理器，战利品表填充会跳过，但 m_hasLootTable 应该被清除
@@ -332,7 +332,7 @@ TEST_F(LootableContainerOpenTest, NullPlayerWithLootTable_OpenSucceeds)
 TEST_F(LootableContainerOpenTest, NoLootTable_SpectatorCanOpen)
 {
     // 没有战利品表的容器，观察者可以打开（基类 ContainerBlockEntity 处理计数）
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
     EXPECT_FALSE(entity_->hasLootTable());
@@ -361,10 +361,10 @@ TEST_F(ChestEntityInheritanceTest, CanOpen_DelegatesToLootableContainerBlockEnti
     // 验证 canOpen 正确重写：有战利品表时观察者被阻止
     chest_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
-    Player survival(2, "survival");
+    Player survival(2, "survival", mc::test::testEcsRegistry());
 
     EXPECT_FALSE(chest_->canOpen(&spectator, ItemStack()));
     EXPECT_TRUE(chest_->canOpen(&survival, ItemStack()));
@@ -375,8 +375,8 @@ TEST_F(ChestEntityInheritanceTest, CanOpen_LockedChest_RequiresKey)
     chest_->setLocked(true);
     chest_->setLockKey("treasure_key");
 
-    Player survival(1, "survival");
-    Player creative(2, "creative");
+    Player survival(1, "survival", mc::test::testEcsRegistry());
+    Player creative(2, "creative", mc::test::testEcsRegistry());
     creative.setGameMode(GameMode::Creative);
 
     // 无钥匙
@@ -408,10 +408,10 @@ TEST_F(BarrelEntityInheritanceTest, CanOpen_WithLootTable_SpectatorBlocked)
 {
     barrel_->setLootTable(ResourceLocation("minecraft", "chests/village_armorer"), 54321);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
-    Player survival(2, "survival");
+    Player survival(2, "survival", mc::test::testEcsRegistry());
 
     EXPECT_FALSE(barrel_->canOpen(&spectator, ItemStack()));
     EXPECT_TRUE(barrel_->canOpen(&survival, ItemStack()));
@@ -459,7 +459,7 @@ TEST_F(LootableContainerFillLootTest, FillWithPlayer_LuckAndEntitySet)
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_luck"), 42);
 
-    Player player(1, "lucky_player");
+    Player player(1, "lucky_player", mc::test::testEcsRegistry());
     // Player 构造时会注册 LUCK 属性，默认值为 0.0
     // 验证不会崩溃，幸运值正确传入
     bool result = entity_->fillWithLootFromTable(manager, &player);
@@ -476,7 +476,7 @@ TEST_F(LootableContainerFillLootTest, FillWithSpectatorPlayer_StillFillsWhenCall
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_spectator"), 42);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
     // 直接调用 fillWithLootFromTable 应该仍然填充
@@ -493,7 +493,7 @@ TEST_F(LootableContainerFillLootTest, FillAlreadyFilled_DoesNotRefill)
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_double"), 42);
 
-    Player player(1, "player");
+    Player player(1, "player", mc::test::testEcsRegistry());
 
     // 第一次填充
     bool result1 = entity_->fillWithLootFromTable(manager, &player);
@@ -514,7 +514,7 @@ TEST_F(LootableContainerFillLootTest, FillWithNonexistentTable_ClearsLootTableFl
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/nonexistent"), 42);
 
-    Player player(1, "player");
+    Player player(1, "player", mc::test::testEcsRegistry());
     bool result = entity_->fillWithLootFromTable(manager, &player);
     EXPECT_FALSE(result);
     EXPECT_FALSE(entity_->hasLootTable()); // 战利品表标记被清除
@@ -523,7 +523,7 @@ TEST_F(LootableContainerFillLootTest, FillWithNonexistentTable_ClearsLootTableFl
 TEST_F(LootableContainerFillLootTest, PlayerLuckAttributeValue_DefaultIsZero)
 {
     // 验证 Player 默认幸运值为 0
-    Player player(1, "test");
+    Player player(1, "test", mc::test::testEcsRegistry());
     f64 luck = player.getAttributeValue(entity::attribute::Attributes::LUCK, 0.0);
     EXPECT_DOUBLE_EQ(luck, 0.0);
 }
@@ -546,7 +546,7 @@ TEST_F(LockableCanOpenVirtualTest, CanOpenVirtualDispatch_WorksWithBasePointer)
     // 验证通过基类指针调用 canOpen 时正确虚分派到 LootableContainerBlockEntity::canOpen
     chest_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
     // 通过基类指针调用
@@ -554,7 +554,7 @@ TEST_F(LockableCanOpenVirtualTest, CanOpenVirtualDispatch_WorksWithBasePointer)
     EXPECT_FALSE(base->canOpen(&spectator, ItemStack()));
 
     // 生存模式玩家
-    Player survival(2, "survival");
+    Player survival(2, "survival", mc::test::testEcsRegistry());
     EXPECT_TRUE(base->canOpen(&survival, ItemStack()));
 }
 
@@ -563,7 +563,7 @@ TEST_F(LockableCanOpenVirtualTest, CanOpenVirtualDispatch_WorksWithLootablePoint
     // 通过 LootableContainerBlockEntity 指针调用
     chest_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 12345);
 
-    Player spectator(1, "spectator");
+    Player spectator(1, "spectator", mc::test::testEcsRegistry());
     spectator.setGameMode(GameMode::Spectator);
 
     LootableContainerBlockEntity* lootable = chest_.get();

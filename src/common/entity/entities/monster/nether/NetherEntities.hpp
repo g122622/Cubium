@@ -50,9 +50,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    GhastEntity(EntityInstanceId id);
+    GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GhastEntity() override = default;
 
     // ========== 飞行特性 ==========
@@ -118,9 +118,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    MagmaCubeEntity(EntityInstanceId id);
+    MagmaCubeEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~MagmaCubeEntity() override = default;
 
     // ========== 体型 ==========
@@ -145,9 +145,10 @@ public:
 
     /**
      * @brief 获取攻击伤害
-     * 攻击伤害 = 属性值 + 2.0F
+     * override SlimeEntity::getAttackDamage：攻击伤害 = 属性值 + 2.0F（属性值=size，故 =size+2，
+     * 与 wiki "尺寸+3" 等价：小型 size=1→3、中型 size=2→4、大型 size=4→6）。
      */
-    [[nodiscard]] f32 getAttackDamage() const;
+    [[nodiscard]] f32 getAttackDamage() const override;
 
     // ========== 跳跃 ==========
 
@@ -189,7 +190,7 @@ protected:
  */
 class AbstractPiglinEntity : public MonsterEntity {
 public:
-    AbstractPiglinEntity(EntityInstanceId id);
+    AbstractPiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~AbstractPiglinEntity() override = default;
 
     // ========== 猪灵状态 ==========
@@ -222,9 +223,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    PiglinEntity(EntityInstanceId id);
+    PiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PiglinEntity() override = default;
 
     // ========== 交易相关 ==========
@@ -306,9 +307,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    PiglinBruteEntity(EntityInstanceId id);
+    PiglinBruteEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~PiglinBruteEntity() override = default;
 
 protected:
@@ -328,9 +329,9 @@ public:
      * @param world 世界实例
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    ZombifiedPiglinEntity(EntityInstanceId id);
+    ZombifiedPiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZombifiedPiglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -364,9 +365,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    HoglinEntity(EntityInstanceId id);
+    HoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~HoglinEntity() override = default;
 
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
@@ -415,9 +416,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    ZoglinEntity(EntityInstanceId id);
+    ZoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }

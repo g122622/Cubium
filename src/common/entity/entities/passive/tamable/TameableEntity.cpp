@@ -59,8 +59,8 @@ const entity::EntityClassInfo& TameableEntity::classInfo()
     return s_classInfo;
 }
 
-TameableEntity::TameableEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+TameableEntity::TameableEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册属性
     registerAttributes();

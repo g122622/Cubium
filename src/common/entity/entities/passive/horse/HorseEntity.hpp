@@ -52,7 +52,7 @@ public:
      * @brief 构造马实体
      * @param id 实体 ID
      */
-    HorseEntity(EntityInstanceId id);
+    HorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~HorseEntity() override = default;
 
     HorseEntity(const HorseEntity&) = delete;
@@ -63,7 +63,7 @@ public:
     /**
      * @brief 创建马实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取马的毛色

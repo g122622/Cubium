@@ -46,8 +46,8 @@
 
 namespace mc {
 
-IronGolemEntity::IronGolemEntity(EntityInstanceId id)
-    : GolemEntity(id)
+IronGolemEntity::IronGolemEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : GolemEntity(id, registry)
 {
     // 铁傀儡可以走上1格高的方块
     setStepHeight(1.0f);
@@ -59,9 +59,9 @@ IronGolemEntity::IronGolemEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> IronGolemEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<IronGolemEntity>(0);
+    return std::make_unique<IronGolemEntity>(0, registry);
 }
 
 void IronGolemEntity::tick()
@@ -134,11 +134,11 @@ void IronGolemEntity::registerAttributes()
 
     // 铁傀儡的属性
     // ATTACK_DAMAGE 需要先注册（GolemEntity 继承链中未注册此属性，MonsterEntity 才注册）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE);
 }
 
 std::optional<ResourceLocation> IronGolemEntity::getAmbientSound() const

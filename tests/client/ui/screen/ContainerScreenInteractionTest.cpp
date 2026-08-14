@@ -48,6 +48,8 @@
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 // GLFW 修饰键常量（与 GLFW 定义一致，避免测试依赖 GLFW）
 // 这些值在 ContainerInteraction 中用于检测 Shift/Ctrl 等修饰键
 namespace TestGlfwConstants {
@@ -115,7 +117,7 @@ TEST_F(ContainerScreenInteractionTest, ShiftClickQuickMovesFromPlayerInventoryTo
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // Shift+点击玩家背包槽位1应将钻石移到容器槽位0
     menu.clicked(1, 0, ClickType::QuickMove, player);
@@ -160,7 +162,7 @@ TEST_F(ContainerScreenInteractionTest, NumberKeySwapExchangesSlotWithHotbar)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 数字键1（button=0）交换快捷栏槽位0和菜单槽位9
     // 菜单槽位9 = 主背包槽位9(铁锭)，快捷栏0 = 钻石
@@ -200,7 +202,7 @@ TEST_F(ContainerScreenInteractionTest, NumberKeySwapWithEmptyHotbarSlot)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 数字键4（button=3）交换快捷栏槽位3和菜单槽位9（主背包0，空）
     menu.clicked(9, 3, ClickType::Swap, player);
@@ -251,7 +253,7 @@ TEST_F(ContainerScreenInteractionTest, ThrowDropsOneItemFromSlot)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置丢弃回调来捕获丢弃的物品
     ItemStack droppedStack;
@@ -294,7 +296,7 @@ TEST_F(ContainerScreenInteractionTest, ThrowAllDropsEntireStackFromSlot)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置丢弃回调
     ItemStack droppedStack;
@@ -340,7 +342,7 @@ TEST_F(ContainerScreenInteractionTest, CloneInCreativeModeCopiesFullStack)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     player.setGameMode(GameMode::Creative);
 
     // 中键（button=2）创造模式复制
@@ -376,7 +378,7 @@ TEST_F(ContainerScreenInteractionTest, CloneDoesNothingInSurvivalMode)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     // 生存模式（默认）
 
     // 中键复制在生存模式下无效
@@ -421,7 +423,7 @@ TEST_F(ContainerScreenInteractionTest, PickupAllCollectsAllMatchingItems)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // PickAll要求光标为空且槽位有物品
     // 双击第一个槽位应该拾取所有钻石
@@ -464,7 +466,7 @@ TEST_F(ContainerScreenInteractionTest, PickupAllRespectsMaxStackSize)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // PickAll 应拾取最大堆叠量（64）
     menu.clicked(0, 0, ClickType::PickAll, player);
@@ -487,7 +489,7 @@ TEST_F(ContainerScreenInteractionTest, FullDragProtocolEvenDistribution)
 {
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -535,7 +537,7 @@ TEST_F(ContainerScreenInteractionTest, FullDragProtocolSingleDistribution)
 {
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -579,7 +581,7 @@ TEST_F(ContainerScreenInteractionTest, DragCannotDistributeToOccupiedDifferentSl
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(m_iron, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
     // 槽位1放铁锭（与光标上的钻石不同）
     inventory.setItem(1, ItemStack(*m_iron, 10));
@@ -638,7 +640,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_DegradesToP
 {
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -677,7 +679,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_DegradesT
 {
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -721,7 +723,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_PickupFromO
     // 因此本测试验证的是：光标有钻石 + 槽位也有钻石 → 降级为 PICKUP 后合并。
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
     // 槽位 0 已有 16 个钻石
     inventory.setItem(0, ItemStack(*m_diamond, 16));
@@ -764,7 +766,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_PickupHal
     // 单槽拖拽降级只发生在光标非空时（MC Java 在 START 时检查 carried 非空）。
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
     // 槽位 0 有 16 个钻石
     inventory.setItem(0, ItemStack(*m_diamond, 16));
@@ -807,7 +809,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_MultiSlotStillDistri
     // 反向回归测试：多槽（>=2）仍走原分发路径，不降级
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -850,7 +852,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_EvenMode_EndOnRealSl
     // 的降级路径——MC Java 不区分 END 事件槽位是 -999 还是实际槽位，统一处理。
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -893,7 +895,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_SingleMode_EndOnReal
     // END 事件发送到实际槽位时，MODE_SINGLE 应降级为 PICKUP 右键。
     ASSERT_NE(m_diamond, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
 
     class TestMenu : public AbstractContainerMenu {
@@ -939,7 +941,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_BundleOverride_NotTr
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(Items::BUNDLE, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
     // 槽位 0 放空收纳袋
     inventory.setItem(0, ItemStack(*Items::BUNDLE, 1));
@@ -989,7 +991,7 @@ TEST_F(ContainerScreenInteractionTest, QuickCraftSingleSlot_BundleInHand_NotTrig
     ASSERT_NE(m_diamond, nullptr);
     ASSERT_NE(Items::BUNDLE, nullptr);
 
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
     PlayerInventory inventory(&player);
     // 槽位 0 放 16 个钻石
     inventory.setItem(0, ItemStack(*m_diamond, 16));
@@ -1054,7 +1056,7 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDropsCarriedItem)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置光标物品
     menu.setCarriedItem(ItemStack(*m_diamond, 32));
@@ -1100,7 +1102,7 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDropsOneWithRightClick)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置光标物品
     menu.setCarriedItem(ItemStack(*m_diamond, 32));
@@ -1143,7 +1145,7 @@ TEST_F(ContainerScreenInteractionTest, ClickOutsideDoesNothingWhenCarriedEmpty)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 光标为空，点击外部不应有副作用
     menu.clicked(-999, 0, ClickType::Pick, player);
@@ -1264,7 +1266,7 @@ TEST_F(ContainerScreenInteractionTest, LeftClickPickupAndPlace)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 左键点击槽位0拾取（ClickType::Pick, button=0, 光标为空）
     menu.clicked(0, 0, ClickType::Pick, player);
@@ -1300,7 +1302,7 @@ TEST_F(ContainerScreenInteractionTest, RightClickPickupHalf)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 右键点击槽位0拾取一半（ClickType::PickSome, button=1）
     menu.clicked(0, 1, ClickType::PickSome, player);
@@ -1329,7 +1331,7 @@ TEST_F(ContainerScreenInteractionTest, RightClickPlaceOne)
     };
 
     TestMenu menu(&inventory);
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 设置光标有10个钻石
     menu.setCarriedItem(ItemStack(*m_diamond, 10));

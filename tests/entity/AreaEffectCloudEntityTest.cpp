@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -42,7 +43,7 @@ protected:
     void SetUp() override
     {
         // 创建 AreaEffectCloudEntity
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
@@ -186,7 +187,7 @@ TEST_F(AreaEffectCloudEntityTest, Height_IsFixed)
 
 TEST_F(AreaEffectCloudEntityTest, Create_ReturnsValidEntity)
 {
-    auto entity = AreaEffectCloudEntity::create(nullptr);
+    auto entity = AreaEffectCloudEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
 
     // 验证类型
@@ -336,7 +337,7 @@ class CreeperLingeringCloudScenarioTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
 
         // 模拟苦力怕爆炸后的药水云参数
         m_cloud->setRadius(2.5f);
@@ -384,7 +385,7 @@ class LingeringPotionCloudScenarioTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_cloud = std::make_unique<AreaEffectCloudEntity>();
+        m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
 
         // 滞留药水创建的效果云参数
         // 参考: PotionEntity.makeAreaOfEffectCloud()
@@ -519,10 +520,10 @@ class LingeringPotionVsCreeperCloudTest : public ::testing::Test {};
 TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLargerRadius)
 {
     // 滞留药水半径 3.0，苦力怕药水云半径 2.5
-    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     lingeringCloud->setRadius(3.0f);
 
-    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     creeperCloud->setRadius(2.5f);
 
     EXPECT_GT(lingeringCloud->getRadius(), creeperCloud->getRadius());
@@ -531,10 +532,10 @@ TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLargerRadius)
 TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLongerDuration)
 {
     // 滞留药水持续时间 600 tick（30秒），苦力怕药水云持续时间 300 tick（15秒）
-    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     // 默认 duration = 600
 
-    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     creeperCloud->setDuration(300);
 
     EXPECT_GT(lingeringCloud->getDuration(), creeperCloud->getDuration());
@@ -543,10 +544,10 @@ TEST_F(LingeringPotionVsCreeperCloudTest, LingeringPotion_HasLongerDuration)
 TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameRadiusOnUse)
 {
     // 两者都有 radiusOnUse = -0.5
-    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     lingeringCloud->setRadiusOnUse(-0.5f);
 
-    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     creeperCloud->setRadiusOnUse(-0.5f);
 
     // 两者参数相同
@@ -557,10 +558,10 @@ TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameRadiusOnUse)
 TEST_F(LingeringPotionVsCreeperCloudTest, BothHaveSameWaitTime)
 {
     // 两者都有 waitTime = 10
-    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto lingeringCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     lingeringCloud->setWaitTime(10);
 
-    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>();
+    auto creeperCloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     creeperCloud->setWaitTime(10);
 
     EXPECT_EQ(lingeringCloud->getWaitTime(), creeperCloud->getWaitTime());
@@ -693,7 +694,7 @@ TEST_F(EffectMultiplierTest, SplashPotionMultiplier_IsFull)
 
 class AreaEffectCloudLifecycleTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -744,7 +745,7 @@ TEST_F(AreaEffectCloudLifecycleTest, RadiusOnUse_DefaultIsZero)
 
 class AreaEffectCloudColorTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -805,7 +806,7 @@ TEST_F(AreaEffectCloudColorTest, NoEffects_ColorIsZero)
 
 class AreaEffectCloudOwnerTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -872,7 +873,7 @@ TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_DoesNotSetCachePointer)
 
 class AreaEffectCloudNbtTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -897,7 +898,7 @@ TEST_F(AreaEffectCloudNbtTest, SerializeDeserialize_RoundTrip)
     m_cloud->addAdditionalSaveData(tag);
 
     // 反序列化到新实体
-    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     auto result = cloud2->readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -924,7 +925,7 @@ TEST_F(AreaEffectCloudNbtTest, SerializeDeserialize_DefaultValues)
     nbt::tags::compound_tag tag;
     m_cloud->addAdditionalSaveData(tag);
 
-    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     auto result = cloud2->readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
@@ -957,7 +958,7 @@ TEST_F(AreaEffectCloudNbtTest, Serialize_OwnerUuid_WrittenAsUuidMostLeast)
     ASSERT_TRUE(least.has_value());
 
     // 反序列化并验证 UUID 一致
-    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     auto result = cloud2->readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
     EXPECT_EQ(cloud2->ownerUuid(), "0123456789abcdef0123456789abcdef");
@@ -996,7 +997,7 @@ TEST_F(AreaEffectCloudNbtTest, Deserialize_MissingKeys_KeepDefaults)
 
 class AreaEffectCloudOwnerLazyLoadTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -1034,7 +1035,7 @@ TEST_F(AreaEffectCloudOwnerLazyLoadTest, OwnerUuid_EmptyStringAfterClear)
 
 class AreaEffectCloudDamageSourceTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry()); }
 
     std::unique_ptr<AreaEffectCloudEntity> m_cloud;
 };
@@ -1067,7 +1068,7 @@ TEST_F(AreaEffectCloudDamageSourceTest, NbtRoundTrip_PreservesOwnerUuid)
     nbt::tags::compound_tag tag;
     m_cloud->addAdditionalSaveData(tag);
 
-    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     auto result = cloud2->readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
     EXPECT_EQ(cloud2->ownerUuid(), testUuid);
@@ -1083,7 +1084,7 @@ TEST_F(AreaEffectCloudDamageSourceTest, NbtRoundTrip_EffectsPreserved)
     nbt::tags::compound_tag tag;
     m_cloud->addAdditionalSaveData(tag);
 
-    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
     auto result = cloud2->readAdditionalSaveData(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 

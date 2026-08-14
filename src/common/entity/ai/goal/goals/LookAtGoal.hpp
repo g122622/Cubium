@@ -178,6 +178,11 @@ public:
     void resetTask() override;
     void tick() override;
 
+    // 对齐 vanilla RandomLookAroundGoal.requiresUpdateEveryTick()=true：
+    // 该 goal 每 tick 评估（不走 GoalSelector 半 tick 节流），故 shouldExecute 概率
+    // 与 startExecuting 的 lookTime 均用裸值，不经 adjustedTickDelay 减半。
+    [[nodiscard]] bool requiresUpdateEveryTick() const override { return true; }
+
     [[nodiscard]] std::string getTypeName() const override { return "LookRandomlyGoal"; }
 
 private:

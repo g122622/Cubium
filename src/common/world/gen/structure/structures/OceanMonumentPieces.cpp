@@ -254,7 +254,12 @@ bool OceanMonumentPiece::spawnElderGuardian(
     if (fullWorld == nullptr) {
         return false;
     }
-    auto elder = ElderGuardianEntity::create(fullWorld);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = fullWorld->entityRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto elder = ElderGuardianEntity::create(fullWorld, *registry);
     auto* entity = dynamic_cast<ElderGuardianEntity*>(elder.get());
     if (entity == nullptr) {
         return false;

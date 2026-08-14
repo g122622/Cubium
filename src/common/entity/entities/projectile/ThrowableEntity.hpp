@@ -66,7 +66,7 @@ protected:
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ThrowableEntity(EntityInstanceId id);
+    explicit ThrowableEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 };
 
 } // namespace entity

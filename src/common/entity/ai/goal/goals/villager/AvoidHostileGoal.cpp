@@ -28,8 +28,8 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/ecs/components/MobFlagComponent.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
-#include "common/entity/interfaces/IMob.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -131,10 +131,9 @@ void AvoidHostileGoal::_findNearestHostile()
             // 检查是否存活
             if (!entity || !entity->isAlive()) return false;
 
-            // 使用 IMob 接口判断是否是敌对生物
-            // IMob 是敌对生物的标记接口
-            IMob* mob = dynamic_cast<IMob*>(entity);
-            return mob != nullptr;
+            // 使用 MobFlagComponent 标记组件判断是否是敌对生物
+            // MonsterEntity 子类构造时 attach 此 tag，替代 dynamic_cast<IMob*>
+            return entity->hasComponent<ecs::MobFlagComponent>();
         });
 
     if (hostile) {

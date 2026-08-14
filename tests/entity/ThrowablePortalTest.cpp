@@ -46,10 +46,11 @@ namespace {
 class TestThrowableEntity : public entity::ThrowableEntity {
 public:
     explicit TestThrowableEntity(EntityInstanceId id)
-        : ThrowableEntity(id)
+        : ThrowableEntity(id, mc::test::testEcsRegistry())
     {
-        // 设置碰撞箱
-        m_boundingBox = AxisAlignedBB::fromPosition(Vector3(0.0, 0.0, 0.0), 0.25f, 0.25f);
+        // 批次6：m_boundingBox 已迁入 ecs::AABBShapeComponent（经 m_builtIn.aabbShape 缓存裸指针）。
+        // boundingBox() 仅为 const getter，写需直接访问组件。
+        m_builtIn.aabbShape->m_aabb = AxisAlignedBB::fromPosition(Vector3(0.0, 0.0, 0.0), 0.25f, 0.25f);
     }
 
     // 暴露 tick 方法用于测试
@@ -70,7 +71,7 @@ protected:
 /**
  * @brief 测试用世界，支持方块状态和方块实体
  */
-class ThrowablePortalTestWorld : public test::BaseTestWorld {
+class ThrowablePortalTestWorld : public mc::test::BaseTestWorld {
 public:
     ThrowablePortalTestWorld()
     {

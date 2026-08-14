@@ -31,19 +31,21 @@
 
 namespace mc {
 
-MuleEntity::MuleEntity(EntityInstanceId id)
-    : AbstractChestedHorseEntity(id)
+MuleEntity::MuleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractChestedHorseEntity(id, registry)
 {
     setJumpStrength(0.5f);
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 累加语义，基类构造不再调用
+    // 以避免重复。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> MuleEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<MuleEntity>(0);
+    return std::make_unique<MuleEntity>(0, registry);
 }
 
 void MuleEntity::registerGoals()
@@ -56,8 +58,10 @@ void MuleEntity::registerGoals()
 void MuleEntity::registerAttributes()
 {
     AbstractChestedHorseEntity::registerAttributes();
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, m_horseHealth > 0 ? m_horseHealth : 20.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_speed > 0 ? m_speed : 0.175f);
+    const f32 health = getHorseHealth();
+    const f32 speed = getSpeed();
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, health > 0 ? health : 20.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, speed > 0 ? speed : 0.175f);
 }
 
 } // namespace mc

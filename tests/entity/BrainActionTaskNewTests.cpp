@@ -118,7 +118,7 @@ protected:
 // 测试：BreedTask 在没有 VISIBLE_MOBS 记忆时不应执行
 TEST_F(BreedTaskTest, ShouldNotExecuteWithoutVisibleMobs)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -139,7 +139,7 @@ TEST_F(BreedTaskTest, ShouldNotExecuteWithoutVisibleMobs)
 // 测试：BreedTask 在 VISIBLE_MOBS 为空列表时不应执行
 TEST_F(BreedTaskTest, ShouldNotExecuteWithEmptyVisibleMobs)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -179,7 +179,7 @@ TEST_F(BreedTaskTest, CustomSpeedAndDistance)
 // 测试：BreedTask resetTask 清除 BREED_TARGET 和 WALK_TARGET
 TEST_F(BreedTaskTest, ResetTaskClearsMemories)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -249,7 +249,7 @@ protected:
 // 测试：PlayDeadTask 在没有 PLAY_DEAD_TICKS 记忆时不应执行
 TEST_F(PlayDeadTaskTest, ShouldNotExecuteWithoutPlayDeadTicks)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -268,7 +268,7 @@ TEST_F(PlayDeadTaskTest, ShouldNotExecuteWithoutPlayDeadTicks)
 // 测试：PlayDeadTask 在 PLAY_DEAD_TICKS 存在时应执行
 TEST_F(PlayDeadTaskTest, ShouldExecuteWithPlayDeadTicks)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -290,7 +290,7 @@ TEST_F(PlayDeadTaskTest, ShouldExecuteWithPlayDeadTicks)
 // 测试：PlayDeadTask 执行后设置 PACIFIED 记忆并清除 ATTACK_TARGET
 TEST_F(PlayDeadTaskTest, SetsPacifiedAndClearsAttackTarget)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -328,7 +328,7 @@ TEST_F(PlayDeadTaskTest, GetNameReturnsCorrectName)
 // 测试：PlayDeadTask 不应在已有 PACIFIED 记忆时重复触发
 TEST_F(PlayDeadTaskTest, ShouldNotExecuteWhenAlreadyPacified)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -419,7 +419,7 @@ protected:
 // 测试：KickTask 在没有 ATTACK_TARGET 记忆时不应执行
 TEST_F(KickTaskTest, ShouldNotExecuteWithoutAttackTarget)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -437,7 +437,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWithoutAttackTarget)
 // 测试：KickTask 在有 ATTACK_COOLING_DOWN 记忆时不应执行
 TEST_F(KickTaskTest, ShouldNotExecuteWhenCoolingDown)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -446,7 +446,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenCoolingDown)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置攻击目标
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -464,7 +464,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenCoolingDown)
 // 测试：KickTask 在所有条件满足时（近距离目标、无冷却）应执行
 TEST_F(KickTaskTest, ShouldExecuteWhenTargetInRangeAndNoCooldown)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -473,7 +473,7 @@ TEST_F(KickTaskTest, ShouldExecuteWhenTargetInRangeAndNoCooldown)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置近距离攻击目标
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f); // 距离1格，在默认2格范围内
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -489,7 +489,7 @@ TEST_F(KickTaskTest, ShouldExecuteWhenTargetInRangeAndNoCooldown)
 // 测试：KickTask 在目标太远时不应执行
 TEST_F(KickTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -498,7 +498,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置远距离攻击目标
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(10.0f, 64.0f, 0.0f); // 距离10格，超出默认2格范围
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -513,7 +513,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
 // 测试：KickTask 执行后设置 ATTACK_COOLING_DOWN 记忆
 TEST_F(KickTaskTest, SetsCoolingDownAfterKick)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -522,7 +522,7 @@ TEST_F(KickTaskTest, SetsCoolingDownAfterKick)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置近距离攻击目标
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -543,7 +543,7 @@ TEST_F(KickTaskTest, SetsCoolingDownAfterKick)
 // 测试：KickTask 是单次触发型任务
 TEST_F(KickTaskTest, IsSingleShotTask)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -552,7 +552,7 @@ TEST_F(KickTaskTest, IsSingleShotTask)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置近距离攻击目标
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -587,7 +587,7 @@ TEST_F(KickTaskTest, CustomRangeAndCooldown)
 // 测试：KickTask 自定义范围外不应执行
 TEST_F(KickTaskTest, CustomRangeRespected)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
@@ -596,7 +596,7 @@ TEST_F(KickTaskTest, CustomRangeRespected)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
     // 设置攻击目标距离1.5格
-    ZombieEntity zombie(EntityInstanceId(2));
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.5f, 64.0f, 0.0f);
     brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
@@ -634,7 +634,7 @@ protected:
 // 测试：EatTask 当前始终返回 false（饥饿系统未实现）
 TEST_F(EatTaskTest, ShouldNotExecuteWhenHungrySystemNotImplemented)
 {
-    VillagerEntity villager(EntityInstanceId(1));
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 

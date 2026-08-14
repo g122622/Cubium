@@ -113,7 +113,7 @@ private:
 class TestMinecartEntity : public RideableMinecartEntity {
 public:
     explicit TestMinecartEntity(EntityInstanceId id = EntityInstanceId(1))
-        : RideableMinecartEntity(id)
+        : RideableMinecartEntity(id, mc::test::testEcsRegistry())
     {}
 
     /**

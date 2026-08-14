@@ -74,7 +74,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    StriderEntity(EntityInstanceId id);
+    StriderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~StriderEntity() override = default;
 
     // 禁止拷贝
@@ -90,7 +90,7 @@ public:
      * @param world 世界实例
      * @return 新的炽足兽实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     // ========== 熔岩状态 ==========
 

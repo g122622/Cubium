@@ -49,7 +49,7 @@ namespace {
 // 测试用世界桩
 // ============================================================================
 
-class IceTestWorld final : public test::BaseTestWorld {
+class IceTestWorld final : public mc::test::BaseTestWorld {
 public:
     IceTestWorld() = default;
 

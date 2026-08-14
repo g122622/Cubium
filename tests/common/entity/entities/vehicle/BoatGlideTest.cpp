@@ -41,7 +41,7 @@ namespace {
  * 重写 getBlockState 以提供可控的方块状态，用于测试
  * BoatEntity::getBoatGlide() 的方块滑度采样逻辑。
  */
-class BoatGlideTestWorld : public test::BaseTestWorld {
+class BoatGlideTestWorld : public mc::test::BaseTestWorld {
 public:
     BoatGlideTestWorld() = default;
 
@@ -75,7 +75,7 @@ protected:
  */
 TEST_F(BoatGlideTest, BoatConstructsWithoutWorld)
 {
-    entity::BoatEntity boat(entity::BoatEntity::Type::OAK);
+    entity::BoatEntity boat(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
     // 不设置世界
     // 验证船只可以正常构造
     EXPECT_EQ(boat.getBoatType(), entity::BoatEntity::Type::OAK);

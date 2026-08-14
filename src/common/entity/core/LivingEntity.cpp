@@ -33,6 +33,11 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ArrowStateComponent.hpp"
+#include "common/entity/ecs/components/AttributeComponent.hpp"
+#include "common/entity/ecs/components/EquipmentComponent.hpp"
+#include "common/entity/ecs/components/HealthComponent.hpp"
+#include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
@@ -122,23 +127,30 @@ const entity::EntityClassInfo& LivingEntity::classInfo()
 // 构造函数
 // ============================================================================
 
-LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world)
-    : Entity(id, world)
+LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry)
+    : Entity(id, world, registry)
     , m_combatTracker(this)
 {
+    // 第二批：attach HurtStateComponent（仅 LivingEntity 持有，普通 Entity 不 attach）。
+    // 第三批：续接 attach HealthComponent（health 同步真相源）+ EquipmentComponent（装备无同步单写）
+    // + ArrowStateComponent（arrowCount/stingerCount 同步真相源）+ AttributeComponent
+    // （unique_ptr<AttributeMap> 包裹，须在 registerAttributes 之前 attach，因后者经
+    // attributes() getter 取组件填充默认属性）。
+    // 基类 Entity 构造已建好 ecsEntity 并 attach 7 组件，此处续接 attach。
+    m_entityContext->enttRegistry().emplace<ecs::HurtStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::HealthComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::EquipmentComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::ArrowStateComponent>(m_entityContext->entity());
+    m_entityContext->enttRegistry().emplace<ecs::AttributeComponent>(m_entityContext->entity());
+
     // 构造函数中设置 stepHeight = 0.6F
     setStepHeight(physics::STEP_HEIGHT);
-
-    // 初始化装备槽
-    for (auto& slot : m_equipment) {
-        slot = ItemStack();
-    }
 
     // 注册属性
     // 注意：此处 registerAttributes() 因 C++ 基类构造期虚函数不派发到派生类（vtable
     // 此时仍是 LivingEntity 的），仅注册基类默认属性（MAX_HEALTH 默认 20.0）。派生类
     // 构造体须显式再次调用 registerAttributes() 设实体专属值（如 chicken=4.0/fox=10.0）。
-    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 m_healthSynced），
+    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 HealthComponent.m_healthSynced），
     // 因派生类 registerAttributes 时序晚于 LivingEntity 构造，此处 setHealth 无法拿到
     // 派生类 MAX_HEALTH。
     registerAttributes();
@@ -158,7 +170,8 @@ void LivingEntity::registerData()
     // ARROW_COUNT(12)/STINGER_COUNT(13)/SLEEPING_POS(14)）。继承链分配器按此调用
     // 顺序连续分配 id 8..14，MobEntity 续接到 id 15。
     m_dataManager.registerParam(DATA_LIVING_FLAGS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(DATA_HEALTH_PARAM, m_health);
+    // health 默认值 20.0f 仅用于参数注册；真正同步由 setHealth 驱动（组件真相源 + 镜像）。
+    m_dataManager.registerParam(DATA_HEALTH_PARAM, 20.0f);
     m_dataManager.registerParam(DATA_EFFECT_PARTICLES_PARAM, entity::ParticlesValue{true}); // 空粒子列表
     m_dataManager.registerParam(DATA_EFFECT_AMBIENCE_PARAM, false);
     m_dataManager.registerParam(DATA_ARROW_COUNT_PARAM, static_cast<i32>(0));
@@ -172,27 +185,37 @@ void LivingEntity::registerData()
 
 f32 LivingEntity::maxHealth() const
 {
-    return static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::MAX_HEALTH, 20.0));
+    return static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MAX_HEALTH, 20.0));
 }
 
 void LivingEntity::setHealth(f32 health)
 {
     f32 max = maxHealth();
-    m_health = std::max(0.0f, std::min(health, max));
-    m_dataManager.set(DATA_HEALTH_PARAM, m_health);
+    const f32 clamped = std::max(0.0f, std::min(health, max));
+    // 组件为真相源，DATA_HEALTH_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>()) {
+        c->m_health = clamped;
+        // 任何显式 setHealth 都视为已完成首帧生命值同步：避免 tick() 首帧兜底
+        // setHealth(maxHealth) 覆盖测试/业务在构造后手动设置的 health（如 setHealth(5)
+        // 后 hurt 致死，兜底会把 health 重置回 maxHealth 致 isDying/deathTime 不更新）。
+        c->m_healthSynced = true;
+    }
+    m_dataManager.set(DATA_HEALTH_PARAM, clamped);
 }
 
 void LivingEntity::setAbsorptionAmount(f32 amount)
 {
     // 与 MC 原版一致：吸收值限制在 [0, maxAbsorption] 范围内
     const f32 maxAbsorption = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::MAX_ABSORPTION, 0.0));
-    m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        c->m_absorption = std::max(0.0f, std::min(amount, maxAbsorption));
+    }
 }
 
 void LivingEntity::heal(f32 amount)
 {
     if (amount > 0.0f && !isDead()) {
-        setHealth(m_health + amount);
+        setHealth(health() + amount);
     }
 }
 
@@ -218,7 +241,9 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         m_lastDamage = amount;
         m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
         // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
-        m_hurtTime = m_maxHurtTime;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = c->m_maxHurtTime;
+        }
         actuallyHurt(source, amount);
     }
 
@@ -268,8 +293,8 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
         return;
     }
 
-    // 记录受伤前的生命值
-    const f32 healthBefore = m_health;
+    // 生命值组件局部指针复用（避免热路径多次 try_get）
+    auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
 
     // 1. 盾牌格挡检查（子类可重写）
     if (canBlockDamageSource(source)) {
@@ -292,9 +317,10 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     amount = applyPotionDamageCalculations(source, amount);
 
     // 4. 吸收值处理（金苹果额外生命）
-    if (m_absorption > 0.0f) {
-        const f32 absorbed = std::min(m_absorption, amount);
-        setAbsorptionAmount(m_absorption - absorbed);
+    auto* hurtState = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+    if (hurtState != nullptr && hurtState->m_absorption > 0.0f) {
+        const f32 absorbed = std::min(hurtState->m_absorption, amount);
+        setAbsorptionAmount(hurtState->m_absorption - absorbed);
         amount -= absorbed;
     }
 
@@ -303,11 +329,13 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 5. 实际扣血
-    m_health -= amount;
-    m_lastHealth = m_health;
+    if (healthState != nullptr) {
+        healthState->m_health -= amount;
+        healthState->m_lastHealth = healthState->m_health;
+    }
 
     // 6. 记录到战斗追踪器
-    m_combatTracker.trackDamage(source, m_lastHealth, amount);
+    m_combatTracker.trackDamage(source, health(), amount);
 
     // 7. 记录伤害来源
     m_lastDamageSource = source.clone();
@@ -343,7 +371,7 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 11. 死亡检查
-    if (m_health <= 0.0f) {
+    if (health() <= 0.0f) {
         playDeathSound();
         die(source);
     } else {
@@ -373,8 +401,8 @@ f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
         return damage;
     }
 
-    const f32 armor = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR, 0.0));
-    const f32 toughness = static_cast<f32>(m_attributes.getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
+    const f32 armor = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR, 0.0));
+    const f32 toughness = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
 
     return entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
 }
@@ -439,7 +467,9 @@ void LivingEntity::die(DamageSource& /*cause*/)
         return; // 已经死亡，避免重复执行
     }
 
-    m_deathTime = 0;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        c->m_deathTime = 0;
+    }
 
     // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
     // 避免实体死亡后属性修饰符残留
@@ -472,13 +502,13 @@ void LivingEntity::remove()
 void LivingEntity::registerAttributes()
 {
     // 基础属性：所有生物实体都有
-    m_attributes.registerAttribute(*entity::attribute::Attributes::maxHealth());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::knockbackResistance());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::movementSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::maxAbsorption());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::movementEfficiency());
+    attributes().registerAttribute(*entity::attribute::Attributes::maxHealth());
+    attributes().registerAttribute(*entity::attribute::Attributes::knockbackResistance());
+    attributes().registerAttribute(*entity::attribute::Attributes::movementSpeed());
+    attributes().registerAttribute(*entity::attribute::Attributes::armor());
+    attributes().registerAttribute(*entity::attribute::Attributes::armorToughness());
+    attributes().registerAttribute(*entity::attribute::Attributes::maxAbsorption());
+    attributes().registerAttribute(*entity::attribute::Attributes::movementEfficiency());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -490,12 +520,12 @@ void LivingEntity::registerAttributes()
 
 f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) const
 {
-    return m_attributes.getValue(name, defaultValue);
+    return attributes().getValue(name, defaultValue);
 }
 
 void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
 {
-    m_attributes.setBaseValue(name, value);
+    attributes().setBaseValue(name, value);
 }
 
 f32 LivingEntity::getBlockSpeedFactor()
@@ -503,9 +533,9 @@ f32 LivingEntity::getBlockSpeedFactor()
     // 获取脚下方块的 speedFactor
     f32 blockSpeedFactor = 1.0f;
     if (m_world != nullptr) {
-        BlockPos belowPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos belowPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* state = m_world->getBlockState(belowPos);
         if (state != nullptr) {
             blockSpeedFactor = state->getBlock().getSpeedFactor(*state, m_world, &belowPos);
@@ -534,28 +564,32 @@ f32 LivingEntity::getSoundPitch() const
 const ItemStack& LivingEntity::getEquipment(EquipmentSlot slot) const
 {
     size_t index = static_cast<size_t>(slot);
-    if (index >= m_equipment.size()) {
+    auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (c == nullptr || index >= c->m_equipment.size()) {
         static ItemStack empty;
         return empty;
     }
-    return m_equipment[index];
+    return c->m_equipment[index];
 }
 
 ItemStack& LivingEntity::getMutableEquipment(EquipmentSlot slot)
 {
     size_t index = static_cast<size_t>(slot);
-    if (index >= m_equipment.size()) {
+    auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (c == nullptr || index >= c->m_equipment.size()) {
         static ItemStack empty;
         return empty;
     }
-    return m_equipment[index];
+    return c->m_equipment[index];
 }
 
 void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
     size_t index = static_cast<size_t>(slot);
-    if (index < m_equipment.size()) {
-        m_equipment[index] = stack;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>()) {
+        if (index < c->m_equipment.size()) {
+            c->m_equipment[index] = stack;
+        }
     }
 }
 
@@ -574,7 +608,7 @@ void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
     if (m_world != nullptr && !isSilent()) {
         m_world->playSound(SoundEvents::ENTITY_ITEM_BREAK,
             getSoundCategory(),
-            m_position,
+            m_builtIn.stateVector->m_pos,
             0.8f,
             0.8f + m_world->getRandom().nextFloat() * 0.4f);
     }
@@ -604,12 +638,17 @@ void LivingEntity::detectEquipmentUpdates()
         return;
     }
 
+    auto* equip = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+    if (equip == nullptr) {
+        return;
+    }
+
     // 首次调用时初始化装备快照
-    if (!m_lastEquipmentInitialized) {
+    if (!equip->m_lastEquipmentInitialized) {
         for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
-            m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
+            equip->m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
         }
-        m_lastEquipmentInitialized = true;
+        equip->m_lastEquipmentInitialized = true;
         return;
     }
 
@@ -618,7 +657,7 @@ void LivingEntity::detectEquipmentUpdates()
 
     for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
         auto slot = static_cast<EquipmentSlot>(i);
-        const ItemStack& lastStack = m_lastEquipment[i];
+        const ItemStack& lastStack = equip->m_lastEquipment[i];
         const ItemStack& currentStack = getEquipment(slot);
 
         if (equipmentHasChanged(lastStack, currentStack)) {
@@ -636,7 +675,7 @@ void LivingEntity::detectEquipmentUpdates()
     if (anyChanged) {
         for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
             auto slot = static_cast<EquipmentSlot>(i);
-            const ItemStack& lastStack = m_lastEquipment[i];
+            const ItemStack& lastStack = equip->m_lastEquipment[i];
             const ItemStack& currentStack = getEquipment(slot);
 
             if (equipmentHasChanged(lastStack, currentStack)) {
@@ -650,8 +689,8 @@ void LivingEntity::detectEquipmentUpdates()
                             if (entry.equipmentSlot == static_cast<i32>(slot)) {
                                 // 先移除可能存在的同ID修饰符，再添加新的
                                 // 对应 MC 原版 removeModifier(id) + addTransientModifier()
-                                m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
-                                m_attributes.addModifier(entry.attributeName, entry.modifier);
+                                attributes().removeModifier(entry.attributeName, entry.modifier.id());
+                                attributes().addModifier(entry.attributeName, entry.modifier);
                             }
                         }
                     }
@@ -664,7 +703,7 @@ void LivingEntity::detectEquipmentUpdates()
                 }
 
                 // 更新快照
-                m_lastEquipment[i] = currentStack;
+                equip->m_lastEquipment[i] = currentStack;
             }
         }
     }
@@ -687,7 +726,7 @@ void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlo
     item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
     for (const auto& entry : modifiers.getEntries()) {
         if (entry.equipmentSlot == static_cast<i32>(slot)) {
-            m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
+            attributes().removeModifier(entry.attributeName, entry.modifier.id());
         }
     }
 
@@ -790,10 +829,11 @@ void LivingEntity::tick()
 
     // 首帧生命值同步：构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH
     // （如 chicken=4.0），m_health 停在默认 20.0 违反 health<=maxHealth 不变式，致
-    // hurt 的 m_health -= amount 在超 max 基线上扣除，实体"打不死"。此处兜底同步。
+    // hurt 的扣血在超 max 基线上扣除，实体"打不死"。此处兜底同步。
     // 对齐 vanilla LivingEntity 构造末尾 setHealth(getMaxHealth())。
-    if (!m_healthSynced) {
-        m_healthSynced = true;
+    auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
+    if (healthState != nullptr && !healthState->m_healthSynced) {
+        healthState->m_healthSynced = true;
         setHealth(maxHealth());
     }
 
@@ -823,9 +863,9 @@ void LivingEntity::tick()
     // baseTick 全程守卫）。原版 LivingEntity.tick 假设 level 非空（实体注册后才 tick），
     // 但 Cubium 允许"无世界 tick 基类部分"，此处需显式守卫避免空指针解引用。
     if (m_world != nullptr && !m_world->isClientSide()) {
-        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         if (currentBlockPos != m_lastBlockPos) {
             m_lastBlockPos = currentBlockPos;
             onChangedBlock();
@@ -845,8 +885,10 @@ void LivingEntity::tick()
     }
 
     // 更新受伤动画计时器
-    if (m_hurtTime > 0) {
-        m_hurtTime--;
+    if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+        if (c->m_hurtTime > 0) {
+            c->m_hurtTime--;
+        }
     }
 
     // 更新攻击动画
@@ -916,10 +958,7 @@ void LivingEntity::tick()
 void LivingEntity::syncMetadataFromDataManager()
 {
     Entity::syncMetadataFromDataManager();
-    m_health = m_dataManager.get<f32>(DATA_HEALTH_PARAM);
-    m_lastHealth = m_health;
-    m_arrowCount = m_dataManager.get<i32>(DATA_ARROW_COUNT_PARAM);
-    m_stingerCount = m_dataManager.get<i32>(DATA_STINGER_COUNT_PARAM);
+    // health/arrowCount/stingerCount 已组件化为真相源，不从 DataParameter 镜像回填。
 }
 
 void LivingEntity::updateAnimation()
@@ -1018,7 +1057,7 @@ void LivingEntity::tickHealth()
 
     // 检查生命恢复效果
     const i32 regenLevel = getEffectLevel(entity::effect::EffectType::Regeneration);
-    if (regenLevel > 0 && m_health < maxHealth()) {
+    if (regenLevel > 0 && health() < maxHealth()) {
         // 生命恢复 tick 计数器
         m_regenTickCounter++;
         const i32 regenInterval = 50 / (regenLevel + 1);
@@ -1031,7 +1070,7 @@ void LivingEntity::tickHealth()
     }
 
     // 更新属性缓存
-    for (auto& [name, instance] : m_attributes.allInstances()) {
+    for (auto& [name, instance] : attributes().allInstances()) {
         if (instance->isDirty()) {
             (void)instance->getValue(); // 重新计算并缓存，故意丢弃返回值
         }
@@ -1040,10 +1079,14 @@ void LivingEntity::tickHealth()
 
 void LivingEntity::tickDeath()
 {
-    m_deathTime++;
+    auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+    if (c == nullptr) {
+        return;
+    }
+    c->m_deathTime++;
 
     // 死亡动画（20 ticks = 1 秒）
-    if (m_deathTime >= 20) {
+    if (c->m_deathTime >= 20) {
         remove(); // 移除实体
     }
 }
@@ -1113,7 +1156,7 @@ void LivingEntity::tickFreeze()
 void LivingEntity::removeFrost()
 {
     // 移除冰冻减速修饰符
-    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    auto* speedAttr = attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr != nullptr) {
         speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_UUID);
     }
@@ -1135,7 +1178,7 @@ void LivingEntity::tryAddFrost()
         }
     }
 
-    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    auto* speedAttr = attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr == nullptr) {
         return;
     }
@@ -1231,9 +1274,9 @@ void LivingEntity::playFallSound(f32 distance)
     }
 
     // 播放脚下方块的摔落音效
-    BlockPos landPos(static_cast<i32>(std::floor(m_position.x)),
-        static_cast<i32>(std::floor(m_position.y - 0.2f)), // 脚底位置
-        static_cast<i32>(std::floor(m_position.z)));
+    BlockPos landPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 0.2f)), // 脚底位置
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
     const BlockState* landState = m_world->getBlockState(landPos);
     if (landState != nullptr && !landState->isAir()) {
         const BlockSoundType& soundType = landState->getSoundType();
@@ -1258,7 +1301,7 @@ void LivingEntity::jump()
     }
 
     // 设置垂直速度
-    m_velocity.y = jumpPower;
+    m_builtIn.velocity->m_velocity.y = jumpPower;
 
     // 冲刺跳跃
     // 如果正在冲刺，添加额外的向前动量
@@ -1267,11 +1310,11 @@ void LivingEntity::jump()
         f32 yawRad = yaw() * math::DEG_TO_RAD;
         f32 forwardX = -std::sin(yawRad) * 0.2f;
         f32 forwardZ = std::cos(yawRad) * 0.2f;
-        m_velocity.x += forwardX;
-        m_velocity.z += forwardZ;
+        m_builtIn.velocity->m_velocity.x += forwardX;
+        m_builtIn.velocity->m_velocity.z += forwardZ;
     }
 
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 }
 
 void LivingEntity::aiStep()
@@ -1279,7 +1322,7 @@ void LivingEntity::aiStep()
     // 处理跳跃
     if (m_isJumping) {
         // 在地面时执行跳跃
-        if (m_onGround && m_jumpTicks == 0) {
+        if (m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
             jump();
             m_jumpTicks = 10; // 跳跃冷却
         }
@@ -1344,10 +1387,10 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 获取脚下方块的滑度
     f32 slipperiness = 0.6f; // 默认滑度
-    if (m_onGround && m_world != nullptr) {
-        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
-            static_cast<i32>(std::floor(m_position.z)));
+    if (m_builtIn.physicsState->m_onGround && m_world != nullptr) {
+        BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* blockState = m_world->getBlockState(blockPos);
         if (blockState != nullptr) {
             slipperiness = blockState->getBlock().getSlipperiness(*blockState, m_world, &blockPos, this);
@@ -1356,7 +1399,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
 
     // 根据是否在地面选择不同的移动因子
     f32 moveFactor;
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
@@ -1381,7 +1424,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 normalizedForward = forward / length * moveFactor;
 
         // 根据偏航角计算实际移动方向
-        f32 yawRad = m_yaw * math::DEG_TO_RAD;
+        f32 yawRad = m_builtIn.rotation->m_rot.x * math::DEG_TO_RAD;
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
 
@@ -1390,8 +1433,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         f32 moveZ = normalizedForward * cosYaw + normalizedStrafe * sinYaw;
 
         // 添加到速度（累加，不是替换）
-        m_velocity.x += moveX;
-        m_velocity.z += moveZ;
+        m_builtIn.velocity->m_velocity.x += moveX;
+        m_builtIn.velocity->m_velocity.z += moveZ;
     }
 
     // 2. 应用重力或攀爬物理
@@ -1400,12 +1443,13 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 水平速度限制为 0.15，重力被抵消
 
         // 限制水平速度
-        f32 horizontalSpeed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.z * m_velocity.z);
+        f32 horizontalSpeed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
+            m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
         constexpr f32 LADDER_MAX_SPEED = 0.15f;
         if (horizontalSpeed > LADDER_MAX_SPEED) {
             f32 scale = LADDER_MAX_SPEED / horizontalSpeed;
-            m_velocity.x *= scale;
-            m_velocity.z *= scale;
+            m_builtIn.velocity->m_velocity.x *= scale;
+            m_builtIn.velocity->m_velocity.z *= scale;
         }
 
         // 梯子上的垂直移动
@@ -1417,14 +1461,14 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 否则应用轻微重力使其缓慢下滑
         if (forward > 0.0f) {
             // 向上攀爬
-            m_velocity.y = physics::LADDER_CLIMB_SPEED;
+            m_builtIn.velocity->m_velocity.y = physics::LADDER_CLIMB_SPEED;
         } else if (forward < 0.0f) {
             // 向下滑落（比正常下落慢）
-            m_velocity.y = -physics::LADDER_SLIDE_SPEED;
+            m_builtIn.velocity->m_velocity.y = -physics::LADDER_SLIDE_SPEED;
         } else {
             // 不按键时，缓慢滑落
-            if (m_velocity.y < -physics::LADDER_SPEED_MAX) {
-                m_velocity.y = -physics::LADDER_SPEED_MAX;
+            if (m_builtIn.velocity->m_velocity.y < -physics::LADDER_SPEED_MAX) {
+                m_builtIn.velocity->m_velocity.y = -physics::LADDER_SPEED_MAX;
             }
         }
 
@@ -1438,8 +1482,8 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // vec3.y 为本帧重力位移，这里等价为"加成替代重力"：飘浮时不应用重力，
         // 仅施加向上加成，并重置摔落距离。
         const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
-        m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
-        m_fallDistance = 0.0f;
+        m_builtIn.velocity->m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
     } else if (!hasNoGravity()) {
         // 缓降效果处理
         f32 gravity = GRAVITY;
@@ -1448,25 +1492,27 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             // 缓降效果下重力大幅降低
             gravity = physics::SLOW_FALLING_GRAVITY;
             // 同时重置摔落距离
-            m_fallDistance = 0.0f;
+            m_builtIn.physicsState->m_fallDistance = 0.0f;
         }
 
         // 应用重力
-        m_velocity.y -= gravity;
+        m_builtIn.velocity->m_velocity.y -= gravity;
     }
 
     // 3. 执行碰撞移动
     // 注意：moveWithCollision() 内部会根据碰撞结果重置速度
-    if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
-        moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f ||
+        m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 4. 应用摩擦/阻力（在移动后）
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 地面摩擦 = slipperiness * 0.91
         f32 groundFriction = slipperiness * 0.91f;
-        m_velocity.x *= groundFriction;
-        m_velocity.z *= groundFriction;
+        m_builtIn.velocity->m_velocity.x *= groundFriction;
+        m_builtIn.velocity->m_velocity.z *= groundFriction;
     } else if (isInWater()) {
         // 水中阻力
         f32 waterDrag = physics::DRAG_WATER;
@@ -1489,29 +1535,29 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
             }
         }
 
-        m_velocity.x *= waterDrag;
-        m_velocity.y *= waterDrag * 0.8f; // 垂直阻力略大
-        m_velocity.z *= waterDrag;
+        m_builtIn.velocity->m_velocity.x *= waterDrag;
+        m_builtIn.velocity->m_velocity.y *= waterDrag * 0.8f; // 垂直阻力略大
+        m_builtIn.velocity->m_velocity.z *= waterDrag;
     } else if (isInLava()) {
         // 岩浆阻力
-        m_velocity.x *= physics::DRAG_LAVA;
-        m_velocity.y *= physics::DRAG_LAVA * 0.8f;
-        m_velocity.z *= physics::DRAG_LAVA;
+        m_builtIn.velocity->m_velocity.x *= physics::DRAG_LAVA;
+        m_builtIn.velocity->m_velocity.y *= physics::DRAG_LAVA * 0.8f;
+        m_builtIn.velocity->m_velocity.z *= physics::DRAG_LAVA;
     } else if (!onLadder) {
         // 空气阻力（不在梯子上）
-        m_velocity.x *= DRAG_AIR;
-        m_velocity.y *= DRAG_AIR;
-        m_velocity.z *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.x *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.y *= DRAG_AIR;
+        m_builtIn.velocity->m_velocity.z *= DRAG_AIR;
     } else {
         // 梯子上的阻力
-        m_velocity.x *= DRAG_GROUND;
-        m_velocity.z *= DRAG_GROUND;
+        m_builtIn.velocity->m_velocity.x *= DRAG_GROUND;
+        m_builtIn.velocity->m_velocity.z *= DRAG_GROUND;
     }
 
     // 5. 重置过小的速度
-    if (std::abs(m_velocity.x) < MOTION_THRESHOLD) m_velocity.x = 0.0f;
-    if (std::abs(m_velocity.y) < MOTION_THRESHOLD) m_velocity.y = 0.0f;
-    if (std::abs(m_velocity.z) < MOTION_THRESHOLD) m_velocity.z = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.x) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.x = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.y) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.y = 0.0f;
+    if (std::abs(m_builtIn.velocity->m_velocity.z) < MOTION_THRESHOLD) m_builtIn.velocity->m_velocity.z = 0.0f;
 }
 
 // ============================================================================
@@ -1623,9 +1669,9 @@ void LivingEntity::updateFallFlying()
 
         // 触发 ELYTRA_GLIDE 游戏事件（通知幽匿感测体）
         if (m_world != nullptr) {
-            BlockPos eventPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y)),
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos eventPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
         }
     }
@@ -1658,7 +1704,7 @@ bool LivingEntity::isVisuallySwimming() const
     if (Entity::isVisuallySwimming()) {
         return true;
     }
-    return !isElytraFlying() && m_pose == EntityPose::FallFlying;
+    return !isElytraFlying() && pose() == EntityPose::FallFlying;
 }
 
 void LivingEntity::travelFallFlying(const Vector3& travelVec)
@@ -1678,22 +1724,25 @@ void LivingEntity::travelFallFlying(const Vector3& travelVec)
     }
 
     // 记录移动前的水平速度（用于撞墙伤害计算）
-    const Vector3 velocityBefore = m_velocity;
+    const Vector3 velocityBefore = m_builtIn.velocity->m_velocity;
     const f64 prevHorizontalSpeed = std::sqrt(
         static_cast<f64>(velocityBefore.x) * velocityBefore.x + static_cast<f64>(velocityBefore.z) * velocityBefore.z);
 
     // 计算滑翔后的速度
-    m_velocity = updateFallFlyingMovement(velocityBefore);
+    m_builtIn.velocity->m_velocity = updateFallFlyingMovement(velocityBefore);
 
     // 执行移动（碰撞检测）
-    if (m_velocity.x != 0.0f || m_velocity.y != 0.0f || m_velocity.z != 0.0f) {
-        moveWithCollision(m_velocity.x, m_velocity.y, m_velocity.z);
+    if (m_builtIn.velocity->m_velocity.x != 0.0f || m_builtIn.velocity->m_velocity.y != 0.0f ||
+        m_builtIn.velocity->m_velocity.z != 0.0f) {
+        moveWithCollision(
+            m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
     }
 
     // 服务端检测撞墙伤害
     if (m_world != nullptr && !m_world->isClientSide()) {
         const f64 currHorizontalSpeed =
-            std::sqrt(static_cast<f64>(m_velocity.x) * m_velocity.x + static_cast<f64>(m_velocity.z) * m_velocity.z);
+            std::sqrt(static_cast<f64>(m_builtIn.velocity->m_velocity.x) * m_builtIn.velocity->m_velocity.x +
+                static_cast<f64>(m_builtIn.velocity->m_velocity.z) * m_builtIn.velocity->m_velocity.z);
         handleFallFlyingCollisions(prevHorizontalSpeed, currHorizontalSpeed);
     }
 }
@@ -1702,7 +1751,7 @@ Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) c
 {
     // 对应 MC 1.21.11 LivingEntity.updateFallFlyingMovement(Vec3)
     Vector3 look = getLookAngle();
-    const f32 pitchRad = m_pitch * math::DEG_TO_RAD;
+    const f32 pitchRad = m_builtIn.rotation->m_rot.y * math::DEG_TO_RAD;
     const f64 d0 = std::sqrt(static_cast<f64>(look.x) * look.x + static_cast<f64>(look.z) * look.z); // 视线水平分量长度
     const f64 d1 = std::sqrt(static_cast<f64>(currentVelocity.x) * currentVelocity.x +
         static_cast<f64>(currentVelocity.z) * currentVelocity.z); // 速度水平分量长度
@@ -1745,7 +1794,7 @@ Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) c
 void LivingEntity::handleFallFlyingCollisions(f64 prevHorizontalSpeed, f64 currHorizontalSpeed)
 {
     // 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)
-    if (!m_collidedHorizontally) {
+    if (!m_builtIn.physicsState->m_collidedHorizontally) {
         return;
     }
     const f64 d0 = prevHorizontalSpeed - currHorizontalSpeed;
@@ -1769,8 +1818,8 @@ Vector3 LivingEntity::getLookAngle() const
     // 与 Player::getLookVector 算法一致：
     // MC 坐标系：yaw=0 看向 +Z，yaw=90 看向 -X
     // pitch 正值向下看，负值向上看
-    const f32 yawRad = math::toRadians(m_yaw);
-    const f32 pitchRad = math::toRadians(m_pitch);
+    const f32 yawRad = math::toRadians(m_builtIn.rotation->m_rot.x);
+    const f32 pitchRad = math::toRadians(m_builtIn.rotation->m_rot.y);
     const f32 cosYaw = std::cos(yawRad);
     const f32 sinYaw = std::sin(yawRad);
     const f32 cosPitch = std::cos(pitchRad);
@@ -1782,7 +1831,7 @@ f64 LivingEntity::getEffectiveGravity() const
 {
     // 对应 MC 1.21.11 LivingEntity.getEffectiveGravity()
     // 向下移动且有缓降效果时，重力被钳制到最大 0.01
-    const bool movingDown = m_velocity.y <= 0.0;
+    const bool movingDown = m_builtIn.velocity->m_velocity.y <= 0.0;
     if (movingDown && hasEffect(entity::effect::EffectType::SlowFalling)) {
         return std::min(getAttributeValue(entity::attribute::Attributes::ENTITY_GRAVITY, GRAVITY), 0.01);
     }
@@ -1829,19 +1878,28 @@ i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const
 
 void LivingEntity::setArrowCountInEntity(i32 count)
 {
-    m_arrowCount = std::max(0, count);
-    m_dataManager.set(DATA_ARROW_COUNT_PARAM, m_arrowCount);
+    const i32 clamped = std::max(0, count);
+    // 组件为真相源，DATA_ARROW_COUNT_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>()) {
+        c->m_arrowCount = clamped;
+    }
+    m_dataManager.set(DATA_ARROW_COUNT_PARAM, clamped);
 }
 
 i32 LivingEntity::getStingerCount() const
 {
-    return m_stingerCount;
+    const auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>();
+    return c != nullptr ? c->m_stingerCount : 0;
 }
 
 void LivingEntity::setStingerCountInEntity(i32 count)
 {
-    m_stingerCount = std::max(0, count);
-    m_dataManager.set(DATA_STINGER_COUNT_PARAM, m_stingerCount);
+    const i32 clamped = std::max(0, count);
+    // 组件为真相源，DATA_STINGER_COUNT_PARAM 退为同步镜像。
+    if (auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>()) {
+        c->m_stingerCount = clamped;
+    }
+    m_dataManager.set(DATA_STINGER_COUNT_PARAM, clamped);
 }
 
 void LivingEntity::tickArrows()
@@ -1852,18 +1910,23 @@ void LivingEntity::tickArrows()
         return;
     }
 
-    if (m_arrowCount > 0) {
+    auto* arrowState = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>();
+    if (arrowState == nullptr) {
+        return;
+    }
+
+    if (arrowState->m_arrowCount > 0) {
         // 如果计时器未启动，初始化计时器
         // 公式: 20 * (30 - arrowCount) ticks
         // 箭矢越多，脱落越快
-        if (m_arrowHitTimer <= 0) {
-            m_arrowHitTimer = 20 * (30 - m_arrowCount);
+        if (arrowState->m_arrowHitTimer <= 0) {
+            arrowState->m_arrowHitTimer = 20 * (30 - arrowState->m_arrowCount);
         }
 
-        --m_arrowHitTimer;
-        if (m_arrowHitTimer <= 0) {
+        --arrowState->m_arrowHitTimer;
+        if (arrowState->m_arrowHitTimer <= 0) {
             // 计时器归零，减少一支箭
-            setArrowCountInEntity(m_arrowCount - 1);
+            setArrowCountInEntity(arrowState->m_arrowCount - 1);
         }
     }
 }
@@ -1932,23 +1995,26 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
 
     // Y轴速度
     f64 newVelocityY;
-    if (m_onGround) {
+    if (m_builtIn.physicsState->m_onGround) {
         // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
-        newVelocityY = std::min(0.4, static_cast<f64>(m_velocity.y) / 2.0 + static_cast<f64>(strength));
+        newVelocityY =
+            std::min(0.4, static_cast<f64>(m_builtIn.velocity->m_velocity.y) / 2.0 + static_cast<f64>(strength));
     } else {
         // 在空中时：保持当前Y速度
-        newVelocityY = static_cast<f64>(m_velocity.y);
+        newVelocityY = static_cast<f64>(m_builtIn.velocity->m_velocity.y);
     }
 
     // 设置新速度
     // X轴：当前速度的一半减去击退向量
     // Z轴：当前速度的一半减去击退向量
-    m_velocity.x = static_cast<f32>(static_cast<f64>(m_velocity.x) / 2.0 - knockbackX);
-    m_velocity.y = static_cast<f32>(newVelocityY);
-    m_velocity.z = static_cast<f32>(static_cast<f64>(m_velocity.z) / 2.0 - knockbackZ);
+    m_builtIn.velocity->m_velocity.x =
+        static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.x) / 2.0 - knockbackX);
+    m_builtIn.velocity->m_velocity.y = static_cast<f32>(newVelocityY);
+    m_builtIn.velocity->m_velocity.z =
+        static_cast<f32>(static_cast<f64>(m_builtIn.velocity->m_velocity.z) / 2.0 - knockbackZ);
 
     // 设置为空中状态
-    m_onGround = false;
+    m_builtIn.physicsState->m_onGround = false;
 
     // 标记受伤（击退改变了速度，需要同步到客户端）
     markHurt();
@@ -1961,8 +2027,8 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)
     }
 
     // 从攻击者位置计算击退方向
-    f64 ratioX = static_cast<f64>(attacker->position().x - m_position.x);
-    f64 ratioZ = static_cast<f64>(attacker->position().z - m_position.z);
+    f64 ratioX = static_cast<f64>(attacker->position().x - m_builtIn.stateVector->m_pos.x);
+    f64 ratioZ = static_cast<f64>(attacker->position().z - m_builtIn.stateVector->m_pos.z);
 
     applyKnockback(strength, ratioX, ratioZ);
 }
@@ -2177,10 +2243,10 @@ void LivingEntity::updateAirSupply()
     if (inWater && m_world != nullptr) {
         // 计算实体所在方块位置（使用眼睛高度）
         // MC Java: BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())
-        f32 eyeY = m_position.y + eyeHeight();
-        BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_position.x)),
+        f32 eyeY = m_builtIn.stateVector->m_pos.y + eyeHeight();
+        BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
             static_cast<i32>(std::floor(eyeY)),
-            static_cast<i32>(std::floor(m_position.z)));
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         const BlockState* eyeState = m_world->getBlockState(eyeBlockPos);
         if (eyeState != nullptr && eyeState->is(VanillaBlocks::BUBBLE_COLUMN)) {
             inBubbleColumn = true;
@@ -2336,23 +2402,14 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     Entity::addAdditionalSaveData(tag);
 
-    // Health (f32)
-    tag.put(nbt_keys::HEALTH, m_health);
+    // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
+    // 经 Entity::writeToNBT 的 saveAll 写出（批次6 子目标1 Step4），此处不再重复写。
 
-    // AbsorptionAmount (f32)
-    tag.put(nbt_keys::ABSORPTION_AMOUNT, m_absorption);
-
-    // HurtTime (i16)
-    tag.put(nbt_keys::HURT_TIME, static_cast<i16>(m_hurtTime));
-
-    // DeathTime (i16)
-    tag.put(nbt_keys::DEATH_TIME, static_cast<i16>(m_deathTime));
-
-    // HurtByTimestamp (i32)
+    // HurtByTimestamp (i32) — 纯 OOP 字段（m_lastDamageTimestamp 未组件化），保留直写
     tag.put(nbt_keys::HURT_BY_TIMESTAMP, m_lastDamageTimestamp);
 
-    // FallFlying (byte) - 鞘翅飞行状态
-    tag.put(nbt_keys::FALL_FLYING, static_cast<i8>(isElytraFlying() ? 1 : 0));
+    // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经
+    // Entity::writeToNBT 的 saveAll 写出（批次6 子目标1），此处不再重复写。
 
     // ActiveEffects - 药水效果列表
     const auto& effects = m_effectManager.getAllEffects();
@@ -2367,31 +2424,9 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     }
 
     // Attributes - 属性列表
-    nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
+    nbt_helper::writeAttributeMap(tag, nbt_keys::ATTRIBUTES, attributes());
 
-    // Equipment - MC 1.21.11 新格式：使用 "equipment" 复合标签存储装备
-    // 参考: net.minecraft.world.entity.LivingEntity.addAdditionalSaveData()
-    // 键名为 EquipmentSlot 枚举的序列化名称，空槽位不写入
-    // （与 MC 原版 EntityEquipment.CODEC 一致）
-    {
-        nbt::tags::compound_tag equipmentTag;
-
-        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
-            auto slot = static_cast<EquipmentSlot>(i);
-            const ItemStack& stack = getEquipment(slot);
-            if (!stack.isEmpty()) {
-                nbt::tags::compound_tag itemTag;
-                stack.toNbt(itemTag);
-                equipmentTag.value.emplace(
-                    EquipmentSlotNames::toName(slot), std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-            }
-        }
-
-        // 仅在装备非空时写入 equipment 标签
-        if (!equipmentTag.value.empty()) {
-            tag.value.emplace(nbt_keys::EQUIPMENT, std::make_unique<nbt::tags::compound_tag>(std::move(equipmentTag)));
-        }
-    }
+    // Equipment 已迁入组件序列化器（见上注释）。
 }
 
 Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -2401,47 +2436,21 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // 先调用基类实现
     MC_TRY(Entity::readAdditionalSaveData(tag));
 
-    // Health (f32)
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HEALTH)) {
-        m_health = *val;
-        m_lastHealth = m_health;
-        // NBT 加载的 health 是权威值，标记已同步，避免 tick 首帧 setHealth(maxHealth) 覆盖。
-        m_healthSynced = true;
-    }
+    // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
+    // 经 Entity::readFromNBT 的 loadAll 读回（批次6 子目标1 Step4），此处不再重复读。
 
-    // AbsorptionAmount (f32)
-    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::ABSORPTION_AMOUNT)) {
-        setAbsorptionAmount(*val);
-    }
-
-    // HurtTime (i16)
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HURT_TIME)) {
-        m_hurtTime = *val;
-    }
-
-    // DeathTime (i16)
-    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::DEATH_TIME)) {
-        m_deathTime = *val;
-    }
-
-    // HurtByTimestamp (i32)
+    // HurtByTimestamp (i32) — 纯 OOP 字段，保留直读
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::HURT_BY_TIMESTAMP)) {
         m_lastDamageTimestamp = *val;
     }
 
-    // FallFlying (byte)
-    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::FALL_FLYING)) {
-        if (*val) {
-            addFlag(EntityFlags::FallFlying);
-        } else {
-            removeFlag(EntityFlags::FallFlying);
-        }
-    }
+    // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经
+    // Entity::readFromNBT 的 loadAll 读回（批次6 子目标1），此处不再重复读。
 
     // Attributes - 属性列表
     // 参考 MC Java: 属性必须在效果之前加载，因为效果 NBT 中的修改器已作为 permanentModifiers
     // 保存在属性 NBT 中。readAttributeMap 会先清除旧修改器再从 NBT 加载，确保属性状态与存档一致。
-    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
+    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, attributes());
 
     // ActiveEffects - 药水效果列表
     // 参考 MC Java: LivingEntity.readAdditionalSaveData()
@@ -2454,57 +2463,6 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsList);
             for (const auto& effectTag : compoundList.value) {
                 m_effectManager.getAllEffects().push_back(entity::effect::EffectInstance::fromNbt(effectTag));
-            }
-        }
-    }
-
-    // Equipment - MC 1.21.11 新格式：从 "equipment" 复合标签读取装备
-    // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()
-    // 新格式使用 EquipmentSlot 枚举名作为键，空槽位不存在
-    // 向后兼容：如果不存在 equipment 标签，回退到旧版 HandItems/ArmorItems 格式
-    if (auto* equipmentTag = nbt_helper::tryGetCompound(tag, nbt_keys::EQUIPMENT)) {
-        // 新格式：从 equipment 复合标签读取
-        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
-            auto slot = static_cast<EquipmentSlot>(i);
-            const char* name = EquipmentSlotNames::toName(slot);
-            if (auto* itemCompound = nbt_helper::tryGetCompound(*equipmentTag, name)) {
-                auto stackResult = ItemStack::fromNbt(*itemCompound);
-                if (stackResult.success()) {
-                    setEquipment(slot, stackResult.value());
-                }
-            }
-        }
-    } else {
-        // 旧格式：从 HandItems/ArmorItems 列表读取（MC 1.21.11 之前的存档）
-        if (auto* handItems = nbt_helper::tryGetList(tag, nbt_keys::HAND_ITEMS)) {
-            if (handItems->element_id() == nbt::TagId::Compound) {
-                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*handItems);
-                if (!compoundList.value.empty()) {
-                    auto mainHandResult = ItemStack::fromNbt(compoundList.value[0]);
-                    if (mainHandResult.success()) {
-                        setMainHandItem(mainHandResult.value());
-                    }
-                }
-                if (compoundList.value.size() > 1) {
-                    auto offHandResult = ItemStack::fromNbt(compoundList.value[1]);
-                    if (offHandResult.success()) {
-                        setOffHandItem(offHandResult.value());
-                    }
-                }
-            }
-        }
-
-        if (auto* armorItems = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_ITEMS)) {
-            if (armorItems->element_id() == nbt::TagId::Compound) {
-                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*armorItems);
-                constexpr std::array<EquipmentSlot, 4> armorOrder = {
-                    EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
-                for (size_t i = 0; i < armorOrder.size() && i < compoundList.value.size(); ++i) {
-                    auto armorResult = ItemStack::fromNbt(compoundList.value[i]);
-                    if (armorResult.success()) {
-                        setEquipment(armorOrder[i], armorResult.value());
-                    }
-                }
             }
         }
     }

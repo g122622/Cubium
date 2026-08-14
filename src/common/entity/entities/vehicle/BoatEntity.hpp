@@ -91,11 +91,12 @@ public:
     /**
      * @brief 实体工厂方法
      * @param world 世界实例
+     * @param registry ECS 实体注册表
      * @return 实体实例
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    explicit BoatEntity(Type type = Type::OAK);
+    explicit BoatEntity(Type type, ecs::EntityRegistry& registry);
     ~BoatEntity() override = default;
 
     // ========== Entity 接口重写 ==========
@@ -365,7 +366,7 @@ public:
     /**
      * @brief 设置船的朝向
      */
-    void setRotation(f32 yaw) { Entity::setRotation(yaw, m_pitch); }
+    void setRotation(f32 yaw) { Entity::setRotation(yaw, m_builtIn.rotation->m_rot.y); }
 
     // ========== 数据参数访问器（供客户端渲染器读取同步状态） ==========
 

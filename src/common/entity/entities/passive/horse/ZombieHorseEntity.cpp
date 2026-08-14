@@ -32,22 +32,24 @@
 
 namespace mc {
 
-ZombieHorseEntity::ZombieHorseEntity(EntityInstanceId id)
-    : AbstractHorseEntity(id)
+ZombieHorseEntity::ZombieHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractHorseEntity(id, registry)
 {
     // 僵尸马默认已驯服
     setTame(true);
     // 设置跳跃强度
     setJumpStrength(0.96f);
 
-    // 补调 registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
-    // 派生 override 永不执行，须在派生类构造显式调用。详见 AbstractHorseEntity 构造注释。
+    // 补调 registerGoals / registerAttributes：AnimalEntity 构造只调基类版（vtable 指向 AnimalEntity），
+    // 派生 override 永不执行，须在派生类构造显式调用。registerGoals 累加语义，基类构造不再调用
+    // 以避免重复。详见 AbstractHorseEntity 构造注释。
+    registerGoals();
     registerAttributes();
 }
 
-std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZombieHorseEntity>(0);
+    return std::make_unique<ZombieHorseEntity>(0, registry);
 }
 
 bool ZombieHorseEntity::canBeRiddenBy(Player* player) const
@@ -78,8 +80,8 @@ void ZombieHorseEntity::registerAttributes()
     AbstractHorseEntity::registerAttributes();
 
     // 僵尸马的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.2f);
 }
 
 } // namespace mc

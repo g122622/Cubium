@@ -67,6 +67,12 @@ private:
     /// --gametest：走 GameTestServer 无头批量自动跑门面。
     bool m_gametestMode{false};
 
+    /// --gametest-report：JUnit XML 输出路径（空=不写文件，仅 stdout 日志）。
+    std::string m_gametestReportPath;
+
+    /// --gametest-tests：测试名过滤通配符（空=跑全部非 manualOnly 非 broken 测试）。
+    std::string m_gametestTestsFilter;
+
     /// 收到 SIGINT/SIGTERM 后置 true，runApplication 主循环轮询此标志优雅退出。
     static std::atomic<bool> s_shouldExit;
 

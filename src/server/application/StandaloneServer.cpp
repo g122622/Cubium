@@ -47,6 +47,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -182,6 +183,14 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     traceConfig.outputPath = "server_trace.perfetto-trace";
     traceConfig.bufferSizeKb = 65536 * 8;
     mc::profiler::ProfilerManager::instance().initialize(traceConfig);
+
+    // 注入进程内存采样回调（须在 startTracing 之前）：ProfilerManager 处于比 PlatformInfo
+    // 更底层的 mc_profiler 库，不能直接依赖 PlatformInfo，故由本层注入。返回 {工作集MB, 提交量MB}。
+    mc::profiler::ProfilerManager::instance().setMemorySampler([]() -> std::pair<i64, i64> {
+        return {static_cast<i64>(util::PlatformInfo::getProcessMemoryMB()),
+            static_cast<i64>(util::PlatformInfo::getProcessCommitMB())};
+    });
+
     mc::profiler::ProfilerManager::instance().startTracing();
 
     // 设置进程和主线程名称

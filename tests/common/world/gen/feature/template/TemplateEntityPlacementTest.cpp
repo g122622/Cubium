@@ -62,7 +62,7 @@ namespace mc {
 namespace {
 
 /// 捕获 spawnEntity 调用的测试世界
-class EntityPlacementTestWorld final : public test::BaseTestWorld {
+class EntityPlacementTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -187,7 +187,7 @@ TEST_F(TemplateEntityPlacementTest, EntityBase_SetYBodyRot_DefaultNoOp)
 {
     // Entity 基类的 setYBodyRot/setYHeadRot 默认为空实现，但 LivingEntity 重写后会写入字段。
     // 通过 Entity* 基类指针调用应正确分发到 LivingEntity 重写。
-    PigEntity pig(EntityInstanceId(1));
+    PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());
     Entity* basePtr = &pig;
 
     basePtr->setYBodyRot(45.0f);
@@ -200,7 +200,7 @@ TEST_F(TemplateEntityPlacementTest, EntityBase_SetYBodyRot_DefaultNoOp)
 
 TEST_F(TemplateEntityPlacementTest, LivingEntity_SetYBodyRot_WritesRenderYawOffset)
 {
-    PigEntity pig(EntityInstanceId(1));
+    PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());
     LivingEntity* living = &pig;
 
     living->setYBodyRot(90.0f);
@@ -453,7 +453,7 @@ TEST_F(TemplateEntityPlacementTest, ReadFromNbt_SyncsBodyHeadToYaw)
 {
     // 验证 Entity::readFromNBT 加载 Rotation 后会同步 body/head rotation 到 yaw
     // 对齐 MC 1.21.11 Entity#load 中的 setYHeadRot(getYRot()) / setYBodyRot(getYRot())
-    PigEntity pig(EntityInstanceId(1));
+    PigEntity pig(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 构造 NBT：Rotation=[123.0, 0.0]
     nbt::CompoundTag tag;

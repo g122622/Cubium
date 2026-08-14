@@ -102,8 +102,9 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
+     * @param registry ECS 实体注册表，透传给 LivingEntity→Entity 构造函数
      */
-    MobEntity(EntityInstanceId id);
+    MobEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~MobEntity() override;
 

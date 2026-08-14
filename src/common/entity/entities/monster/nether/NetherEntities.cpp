@@ -39,6 +39,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
@@ -73,13 +74,13 @@
 namespace mc {
 
 // GhastEntity
-std::unique_ptr<Entity> GhastEntity::create(IWorld* world)
+std::unique_ptr<Entity> GhastEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<GhastEntity>(EntityInstanceId(0));
+    return std::make_unique<GhastEntity>(EntityInstanceId(0), registry);
 }
 
-GhastEntity::GhastEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+GhastEntity::GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     setBurnsInDaylight(false);
     // 恶魂使用自定义的飞行移动控制器
@@ -144,7 +145,13 @@ void GhastEntity::shootFireball()
     const f32 dz = static_cast<f32>(target->z() - fireballZ);
 
     // 创建火球实体
-    auto fireball = std::make_unique<entity::FireballEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto fireball = std::make_unique<entity::FireballEntity>(EntityInstanceId(0), *registry);
+    fireball->setTypeId(entity::EntityTypeKeys::FIREBALL); // 工厂绕过补救：直接构造缺 typeId
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
@@ -193,20 +200,20 @@ void GhastEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 恶魂有极远的追踪范围
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 100.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.9);
 }
 
 // MagmaCubeEntity
-std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* world)
+std::unique_ptr<Entity> MagmaCubeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<MagmaCubeEntity>(EntityInstanceId(0));
+    return std::make_unique<MagmaCubeEntity>(EntityInstanceId(0), registry);
 }
 
-MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id)
-    : SlimeEntity(id)
+MagmaCubeEntity::MagmaCubeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : SlimeEntity(id, registry)
 {
     // 岩浆怪不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -221,7 +228,7 @@ void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
     // 调用父类设置尺寸，然后设置护甲属性 = size * 3
     SlimeEntity::setSlimeSize(size, resetHealth);
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, static_cast<f64>(size * 3));
 }
 
 bool MagmaCubeEntity::canDamagePlayer() const
@@ -289,10 +296,10 @@ void MagmaCubeEntity::registerAttributes()
     // 移动速度固定为 0.2（不随尺寸变化）
     // 注意：父类 SlimeEntity::registerAttributes() 会设置尺寸相关属性
     // 这里需要确保护甲属性已注册
-    m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
+    attributes().registerAttribute(*entity::attribute::Attributes::armor());
 
     // 初始尺寸为1，护甲为3
-    m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ARMOR, 3.0);
 }
 
 void MagmaCubeEntity::alterSquishAmount()
@@ -302,8 +309,8 @@ void MagmaCubeEntity::alterSquishAmount()
 }
 
 // AbstractPiglinEntity
-AbstractPiglinEntity::AbstractPiglinEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+AbstractPiglinEntity::AbstractPiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     setBurnsInDaylight(false);
 }
@@ -320,13 +327,13 @@ void AbstractPiglinEntity::registerGoals()
 }
 
 // PiglinEntity
-std::unique_ptr<Entity> PiglinEntity::create(IWorld* world)
+std::unique_ptr<Entity> PiglinEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PiglinEntity>(EntityInstanceId(0));
+    return std::make_unique<PiglinEntity>(EntityInstanceId(0), registry);
 }
 
-PiglinEntity::PiglinEntity(EntityInstanceId id)
-    : AbstractPiglinEntity(id)
+PiglinEntity::PiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractPiglinEntity(id, registry)
 {
     // 补调 registerGoals / registerAttributes：AbstractPiglinEntity 构造不调（vtable 指向基类时
     // 派生 override 永不执行），须在派生类构造显式调用。Piglin 的 registerGoals 加专属弩远程 /
@@ -388,7 +395,13 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
     f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(m_world->difficulty());
 
     // 创建箭矢实体
-    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto arrow = std::make_unique<entity::ArrowEntity>(EntityInstanceId(0), *registry);
+    arrow->setTypeId(entity::EntityTypeKeys::ARROW); // 工厂绕过补救：直接构造缺 typeId
     arrow->setWorld(m_world);
     arrow->setPosition(x(), static_cast<f32>(getEyeY() - 0.15), z());
     arrow->setShooter(this);
@@ -496,10 +509,10 @@ void PiglinEntity::registerAttributes()
 {
     AbstractPiglinEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 // ========== PiglinEntity IAngerable 接口实现 ==========
@@ -650,13 +663,13 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
 }
 
 // PiglinBruteEntity
-std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
+std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<PiglinBruteEntity>(EntityInstanceId(0));
+    return std::make_unique<PiglinBruteEntity>(EntityInstanceId(0), registry);
 }
 
-PiglinBruteEntity::PiglinBruteEntity(EntityInstanceId id)
-    : AbstractPiglinEntity(id)
+PiglinBruteEntity::PiglinBruteEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractPiglinEntity(id, registry)
 {
     // 补调 registerGoals / registerAttributes：AbstractPiglinEntity 构造不调（vtable 指向基类时
     // 派生 override 永不执行），须在派生类构造显式调用。PiglinBrute 的 registerGoals 加专属近战 /
@@ -700,19 +713,19 @@ void PiglinBruteEntity::registerAttributes()
     AbstractPiglinEntity::registerAttributes();
 
     // 猪灵蛮兵属性（金斧额外 +4 伤害）
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 50.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 7.0);
 }
 
 // ZombifiedPiglinEntity
-std::unique_ptr<Entity> ZombifiedPiglinEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombifiedPiglinEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0));
+    return std::make_unique<ZombifiedPiglinEntity>(EntityInstanceId(0), registry);
 }
 
-ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+ZombifiedPiglinEntity::ZombifiedPiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     setBurnsInDaylight(false);
 
@@ -766,19 +779,19 @@ void ZombifiedPiglinEntity::registerAttributes()
 {
     MonsterEntity::registerAttributes();
 
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
 }
 
 // HoglinEntity
-std::unique_ptr<Entity> HoglinEntity::create(IWorld* world)
+std::unique_ptr<Entity> HoglinEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<HoglinEntity>(EntityInstanceId(0));
+    return std::make_unique<HoglinEntity>(EntityInstanceId(0), registry);
 }
 
-HoglinEntity::HoglinEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+HoglinEntity::HoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     setBurnsInDaylight(false);
     registerAttributes();
@@ -863,15 +876,15 @@ void HoglinEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
     // 成年疣猪兽属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 // ========== 寻路权重 ==========
@@ -939,13 +952,13 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
 }
 
 // ZoglinEntity
-std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world)
+std::unique_ptr<Entity> ZoglinEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ZoglinEntity>(EntityInstanceId(0));
+    return std::make_unique<ZoglinEntity>(EntityInstanceId(0), registry);
 }
 
-ZoglinEntity::ZoglinEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+ZoglinEntity::ZoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 注意：MonsterEntity 基类构造虽调用了 registerGoals()/registerAttributes()，但 C++ 基类构造期
     // 虚函数不派发到派生类（vtable 此时仍是 MonsterEntity 的），导致 ZoglinEntity 的 override 版本
@@ -1030,15 +1043,15 @@ void ZoglinEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 注册攻击属性（MonsterEntity 不自动注册这些）
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackKnockback());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackKnockback());
 
     // 成年僵尸疣兽属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 40.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 1.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
 bool ZoglinEntity::canAttackType(const entity::EntityType& type) const

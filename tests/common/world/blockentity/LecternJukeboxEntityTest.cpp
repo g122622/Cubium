@@ -56,7 +56,7 @@ Item* ensureTestItem(const char* path)
     return &registry.registerItem(id, ItemProperties().maxStackSize(1));
 }
 
-class DummyWorld final : public test::BaseTestWorld {
+class DummyWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
     [[nodiscard]] world::tick::TickManager& tickManager() override

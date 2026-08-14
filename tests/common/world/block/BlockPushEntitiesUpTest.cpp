@@ -122,7 +122,7 @@ private:
 /// 创建一个 FallingBlockEntity 并设置位置（其宽度 0.98、高度 0.98）
 std::unique_ptr<entity::FallingBlockEntity> makeEntityAt(f32 x, f32 y, f32 z)
 {
-    auto e = std::make_unique<entity::FallingBlockEntity>();
+    auto e = std::make_unique<entity::FallingBlockEntity>(mc::test::testEcsRegistry());
     e->setPosition(x, y, z);
     return e;
 }

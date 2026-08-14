@@ -1108,9 +1108,9 @@ bool FoxStuckInSnowGoal::shouldContinueExecuting()
 
 void FoxStuckInSnowGoal::startExecuting()
 {
-    // 设置卡住持续时间（40 tick = 2 秒）
-    // 对应 MC Java: this.countdown = this.adjustedTickDelay(40);
-    m_countdown = STUCK_DURATION;
+    // 设置卡住持续时间。对齐 MC Java Fox.FaceplantGoal.start：countdown = adjustedTickDelay(40)。
+    // m_countdown 在 tick 每 tick 递减，减半补偿半 tick 评估以保持与 vanilla 相同的真实时长。
+    m_countdown = adjustedTickDelay(STUCK_DURATION);
 }
 
 void FoxStuckInSnowGoal::resetTask()

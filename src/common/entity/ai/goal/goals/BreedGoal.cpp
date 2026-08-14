@@ -114,9 +114,11 @@ void BreedGoal::tick()
 
     m_spawnBabyDelay++;
 
-    // 检查是否足够接近以进行繁殖
+    // 检查是否足够接近以进行繁殖。对齐 vanilla BreedGoal.tick：
+    // loveTime >= adjustedTickDelay(60)，减半补偿半 tick 评估（loveTime 每 tick ++）。
+    // shouldContinueExecuting 仍用裸 SPAWN_BABY_DELAY 作上限保护（对齐 vanilla canContinueToUse 裸 60）。
     f64 distSq = m_animal->distanceSqTo(*m_targetMate);
-    if (m_spawnBabyDelay >= constants::SPAWN_BABY_DELAY && distSq < constants::BREED_DISTANCE_SQ) {
+    if (m_spawnBabyDelay >= adjustedTickDelay(constants::SPAWN_BABY_DELAY) && distSq < constants::BREED_DISTANCE_SQ) {
         spawnBaby();
     }
 }
@@ -194,10 +196,15 @@ void BreedGoal::spawnBaby()
             m_targetMate->spawnHeartParticles();
 
             // 生成 1-7 个经验球
+            // ECS 迁移：实体构造需要 registry 句柄（world 已判空，此处 registry 必非空）
+            auto* registry = world->entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
             i32 xpCount = 1 + rng.nextInt(7);
             for (i32 i = 0; i < xpCount; ++i) {
-                auto xpOrb =
-                    std::make_unique<ExperienceOrbEntity>(world, m_animal->x(), m_animal->y(), m_animal->z(), 1);
+                auto xpOrb = std::make_unique<ExperienceOrbEntity>(
+                    world, m_animal->x(), m_animal->y(), m_animal->z(), 1, *registry);
 
                 // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
                 xpOrb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);

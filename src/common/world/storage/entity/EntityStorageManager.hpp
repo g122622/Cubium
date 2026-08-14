@@ -37,6 +37,10 @@ namespace mc {
 
 class Entity;
 
+namespace ecs {
+class EntityRegistry;
+} // namespace ecs
+
 namespace world::storage {
 
 // 前向声明
@@ -95,10 +99,12 @@ public:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param dimension 维度ID
+     * @param registry ECS 实体注册表，透传给 EntityDeserializer（Entity 构造时在此 registry 内
+     *   create ECS 实体并 attach 高频组件）。由调用方 ServerWorld 经 *entityRegistry() 传入。
      * @return 实体实例或错误
      */
     Result<std::unique_ptr<Entity>> loadEntity(
-        const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
+        const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry);
 
     /**
      * @brief 从存储删除实体
@@ -123,10 +129,11 @@ public:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param dimension 维度ID
+     * @param registry ECS 实体注册表，透传给 EntityDeserializer
      * @return 实体列表
      */
     Result<std::vector<std::unique_ptr<Entity>>> loadEntitiesInChunk(
-        ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
+        ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry);
 
     /**
      * @brief 保存区块内所有实体（批量写入）

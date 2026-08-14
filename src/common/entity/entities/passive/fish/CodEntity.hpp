@@ -50,8 +50,9 @@ public:
     /**
      * @brief 构造鳕鱼实体
      * @param id 实体 ID
+     * @param registry 实体注册表（ECS）
      */
-    CodEntity(EntityInstanceId id);
+    CodEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~CodEntity() override = default;
 
     CodEntity(const CodEntity&) = delete;
@@ -66,7 +67,7 @@ public:
     /**
      * @brief 创建鳕鱼实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 获取眼睛高度

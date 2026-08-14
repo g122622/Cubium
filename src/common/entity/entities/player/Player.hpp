@@ -48,6 +48,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/ecs/components/PlayerScoreComponent.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp" // for mc::Uuid + util::uuidFromString
 #include "common/util/assert/AssertMacros.hpp"
@@ -123,7 +124,7 @@ public:
     static constexpr i32 JUMP_COOLDOWN = 10;          // 跳跃冷却(ticks)
     static constexpr f32 SNEAK_EDGE_DISTANCE = 0.05f; // 潜行边缘检测距离
 
-    Player(EntityInstanceId id, const std::string& username);
+    Player(EntityInstanceId id, const std::string& username, ecs::EntityRegistry& registry);
     ~Player() override;
 
     // 同步数据参数注册（对齐 vanilla 1.21.11 Player/Avatar.defineId）。
@@ -740,7 +741,7 @@ public:
     PlayerAbilities& abilities() { return m_abilities; }
 
     // 状态
-    [[nodiscard]] bool isOnGround() const { return m_onGround; }
+    [[nodiscard]] bool isOnGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
@@ -1364,24 +1365,8 @@ public:
     void tick() override;
     void update() override;
 
-    /**
-     * @brief 处理传送门 tick
-     *
-     * 玩家需要 80 tick (4秒) 在传送门中才能传送。
-     * 创造模式（无敌状态）只需要 1 tick。
-     * 传送后设置 10 tick 冷却。
-     *
-     * 客户端行为：
-     * - 管理传送门计时器用于显示"传送门眩晕"动画效果
-     * - 不执行实际传送
-     *
-     * 服务端行为：
-     * - 管理传送门计时器
-     * - 计时到达阈值时调用 onPortalTriggered() 执行实际传送
-     *
-     * @return true 如果应该触发传送
-     */
-    bool tickPortal() override;
+    // tickPortal() 已删除：传送门 tick 逻辑迁入 PortalTickSystem（PostEntityTick 阶段）。
+    // 玩家 80 tick/创造 1 tick 的差异由 getMaxInPortalTime() override 承载，逻辑统一在 System。
 
     // ========== 物理/移动 ==========
 
@@ -1452,16 +1437,23 @@ public:
      * 分数是一个简单的整数计数器，在玩家死亡时增加。
      * 与计分板系统（Scoreboard）独立，MC Java 中通过实体数据同步。
      */
-    [[nodiscard]] i32 getScore() const { return m_score; }
+    [[nodiscard]] i32 getScore() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        return c->m_score;
+    }
 
     /**
      * @brief 设置玩家分数
      */
     void setScore(i32 score)
     {
-        m_score = score;
+        auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        c->m_score = score;
         // 同步到 vanilla DATA_PLAYER_SCORE（set_entity_data 经此下发客户端）
-        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, c->m_score);
     }
 
     /**
@@ -1469,9 +1461,23 @@ public:
      */
     void increaseScore(i32 amount)
     {
-        m_score += amount;
+        auto* c = m_entityContext->tryGetComponent<ecs::PlayerScoreComponent>();
+        MC_ASSERT_RELEASE(c != nullptr);
+        c->m_score += amount;
         // 同步到 vanilla DATA_PLAYER_SCORE
-        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, m_score);
+        m_dataManager.set(DATA_PLAYER_SCORE_PARAM, c->m_score);
+    }
+
+    /**
+     * @brief 重写吸收值设置：基类写 HurtStateComponent（真相源，含 clamp）后，
+     * 额外下发 Player 专属 DATA_PLAYER_ABSORPTION_PARAM 到客户端。
+     * 基类 LivingEntity 不持有该 DataParameter，故须在 Player 层补同步。
+     */
+    void setAbsorptionAmount(f32 amount) override
+    {
+        LivingEntity::setAbsorptionAmount(amount);
+        // 取 clamp 后的真相源值下发镜像，确保客户端拿到与组件一致的值。
+        m_dataManager.set(DATA_PLAYER_ABSORPTION_PARAM, absorptionAmount());
     }
 
     /**
@@ -2034,7 +2040,8 @@ private:
     PlayerEnderChestInventory m_enderChestInventory; // 末影箱物品栏
     AbstractContainerMenu* m_openContainerMenu = nullptr;
 
-    i32 m_score = 0; // 玩家分数（死亡计分，与计分板系统独立）
+    // m_score 已迁入 ecs::PlayerScoreComponent（真相源），DATA_PLAYER_SCORE_PARAM 退为同步镜像。
+    // 经 getScore()/setScore()/increaseScore() 读写（见 m_entityContext->tryGetComponent）。
 
     // 经验管理器（唯一数据源）
     std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;

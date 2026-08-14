@@ -35,6 +35,8 @@
 #include "item/core/ItemStack.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 // ==================== DolphinEntity Test Fixture ====================
@@ -44,7 +46,7 @@ protected:
     void SetUp() override
     {
         // 创建海豚实体
-        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0));
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { dolphin.reset(); }

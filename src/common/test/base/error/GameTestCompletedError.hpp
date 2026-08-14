@@ -17,6 +17,10 @@ enum class GameTestCompletedErrorReason : i32 {
     CleanUp = 1, // 测试已进入清理阶段
 };
 
+// 前向声明：GameTestCompletedError::toGameTestError() 内联引用此函数（定义在本文件类之后），
+// 须先声明使内联成员函数体可解析。
+[[nodiscard]] inline const char* gameTestCompletedErrorReasonName(GameTestCompletedErrorReason reason) noexcept;
+
 /**
  * @brief "测试已结束"信号错误。
  *

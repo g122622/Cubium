@@ -55,7 +55,7 @@ public:
      * @brief 构造函数
      * @param id 实体ID
      */
-    SkeletonHorseEntity(EntityInstanceId id);
+    SkeletonHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SkeletonHorseEntity() override = default;
 
     // 禁止拷贝
@@ -71,9 +71,9 @@ public:
      * @param world 世界实例
      * @return 新的骷髅马实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    // ========== 骑乘系统 ==========
+    // ========== 骑乘���统 ==========
 
     /**
      * @brief 检查玩家是否可以骑乘

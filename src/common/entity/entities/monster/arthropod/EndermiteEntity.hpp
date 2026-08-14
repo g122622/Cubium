@@ -47,9 +47,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    EndermiteEntity(EntityInstanceId id);
+    EndermiteEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~EndermiteEntity() noexcept override = default;
 
     // ========== 生命周期 ==========
@@ -91,9 +91,9 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    SilverfishEntity(EntityInstanceId id);
+    SilverfishEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SilverfishEntity() noexcept override = default;
 
     // ========== 生命周期 ==========

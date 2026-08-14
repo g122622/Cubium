@@ -24,7 +24,6 @@
 #pragma once
 
 #include "client/application/ClientAppStateMachine.hpp"
-#include "client/application/features/MemoryTraceThread.hpp"
 #include "client/dimension/ClientDimensionManager.hpp"
 #include "client/input/InputManager.hpp"
 #include "client/network/ClientNetwork.hpp"
@@ -617,9 +616,6 @@ private:
 
     // 心境音效采样位置随机数生成器（主线程侧，用于计算采样位置光照）
     math::Random m_moodRng;
-
-    // 内存追踪线程（独立线程采样，避免阻塞主循环）
-    MemoryTraceThread m_memoryTraceThread;
 
     // 客户端统一计算池（ClientCompute）。进程级，承接 chunkmesh/皮肤等客户端计算任务。
     // 由 ClientApplication 持有：initializeShell 阶段 start()，shutdown 阶段（销毁 mesh 系统/皮肤

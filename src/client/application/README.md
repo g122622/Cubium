@@ -24,7 +24,6 @@ src/client/application/
 │   ├── ClientApplicationTargetInfoUi.cpp # 准星目标信息与调试屏幕更新
 │   ├── ClientApplicationSettings.cpp    # 设置读取、应用、回调绑定
 │   ├── ClientApplicationSession.cpp     # 游戏会话管理
-│   ├── MemoryTraceThread.*pp            # 内存追踪线程
 │   └── README.md                        # 功能拆分说明
 └── README.md
 ```

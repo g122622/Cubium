@@ -46,7 +46,7 @@ namespace {
  *
  * 提供最小化测试环境用于 BegGoal 功能测试
  */
-class BegTestWorld final : public test::BaseTestWorld {
+class BegTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -101,7 +101,7 @@ TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_UntamedWolf_BoneReturnsFalse
 {
     // 未驯服的狼不应该对骨头乞求（MC 1.16.5 规则）
     // 只有已驯服的狼才对骨头乞求
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setTamed(false);
 
     // 使用反射或公开接口测试 isPlayerHoldingFood 的行为
@@ -117,7 +117,7 @@ TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_UntamedWolf_BoneReturnsFalse
 TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_TamedWolf_BoneReturnsTrue)
 {
     // 已驯服的狼应该对骨头乞求
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     wolf.setTamed(true);
 
     ItemStack boneStack(Items::BONE, 1);
@@ -129,10 +129,10 @@ TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_TamedWolf_BoneReturnsTrue)
 TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_AnyWolf_MeatReturnsTrue)
 {
     // 所有狼（无论是否驯服）都应该对肉类乞求
-    WolfEntity untamedWolf(EntityInstanceId(0));
+    WolfEntity untamedWolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     untamedWolf.setTamed(false);
 
-    WolfEntity tamedWolf(EntityInstanceId(1));
+    WolfEntity tamedWolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     tamedWolf.setTamed(true);
 
     ItemStack porkchopStack(Items::PORKCHOP, 1);
@@ -157,7 +157,7 @@ TEST_F(BegGoalTestFixture, Wolf_IsPlayerHoldingFood_AnyWolf_MeatReturnsTrue)
 TEST_F(BegGoalTestFixture, Cat_IsTameItem_CodAndSalmon)
 {
     // 猫用生鳕鱼和生鲑鱼驯服
-    CatEntity cat(EntityInstanceId(0));
+    CatEntity cat(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack codStack(Items::COD, 1);
     ItemStack salmonStack(Items::SALMON, 1);
@@ -181,7 +181,7 @@ TEST_F(BegGoalTestFixture, Cat_IsTameItem_CodAndSalmon)
 TEST_F(BegGoalTestFixture, Parrot_IsTameItem_Seeds)
 {
     // 鹦鹉用种子驯服
-    ParrotEntity parrot(EntityInstanceId(0));
+    ParrotEntity parrot(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack wheatSeedsStack(Items::WHEAT_SEEDS, 1);
     ItemStack pumpkinSeedsStack(Items::PUMPKIN_SEEDS, 1);
@@ -212,9 +212,9 @@ TEST_F(BegGoalTestFixture, TameableEntity_DefaultIsTameItem_ReturnsFalse)
     // 这里验证未重写 isTameItem 的情况（实际上所有子类都重写了）
 
     // 所有可驯服动物的 isTameItem 都应该有具体实现
-    WolfEntity wolf(EntityInstanceId(0));
-    CatEntity cat(EntityInstanceId(0));
-    ParrotEntity parrot(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
+    CatEntity cat(EntityInstanceId(0), mc::test::testEcsRegistry());
+    ParrotEntity parrot(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     ItemStack emptyStack(nullptr, 0);
 
@@ -231,7 +231,7 @@ TEST_F(BegGoalTestFixture, TameableEntity_DefaultIsTameItem_ReturnsFalse)
 TEST_F(BegGoalTestFixture, BegGoal_Construction_ValidParameters)
 {
     // 测试 BegGoal 构造
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // BegGoal 构造需要实体和最大距离
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
@@ -250,7 +250,7 @@ TEST_F(BegGoalTestFixture, BegGoal_Construction_ValidParameters)
 TEST_F(BegGoalTestFixture, BegGoal_ShouldExecute_NoWorld_ReturnsFalse)
 {
     // 当实体没有关联世界时，shouldExecute 应该返回 false
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     // 注意：wolf 没有设置世界
 
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
@@ -272,9 +272,9 @@ TEST_F(BegGoalTestFixture, IsTameItem_Override_CompileTimeCheck)
     // 如果 override 缺失，编译时会产生警告
     // 这是一个编译时检查，运行时总是通过
 
-    WolfEntity wolf(EntityInstanceId(0));
-    CatEntity cat(EntityInstanceId(0));
-    ParrotEntity parrot(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
+    CatEntity cat(EntityInstanceId(0), mc::test::testEcsRegistry());
+    ParrotEntity parrot(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 通过基类指针调用 isTameItem，验证多态性
     TameableEntity* tameableWolf = &wolf;
@@ -303,7 +303,7 @@ TEST_F(BegGoalTestFixture, IsTameItem_Override_CompileTimeCheck)
 TEST_F(BegGoalTestFixture, Wolf_TameItem_Vs_BreedingItem_Distinction)
 {
     // 狼的驯服物品和繁殖物品是不同的
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 骨头：只能驯服，不能繁殖
     ItemStack boneStack(Items::BONE, 1);
@@ -319,7 +319,7 @@ TEST_F(BegGoalTestFixture, Wolf_TameItem_Vs_BreedingItem_Distinction)
 TEST_F(BegGoalTestFixture, Cat_TameItem_And_BreedingItem_Same)
 {
     // 猫的驯服物品和繁殖物品是相同的
-    CatEntity cat(EntityInstanceId(0));
+    CatEntity cat(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 生鳕鱼：既能驯服也能繁殖
     ItemStack codStack(Items::COD, 1);
@@ -335,7 +335,7 @@ TEST_F(BegGoalTestFixture, Cat_TameItem_And_BreedingItem_Same)
 TEST_F(BegGoalTestFixture, Parrot_TameItem_Only_NoBreeding)
 {
     // 鹦鹉只有驯服物品，不能繁殖
-    ParrotEntity parrot(EntityInstanceId(0));
+    ParrotEntity parrot(EntityInstanceId(0), mc::test::testEcsRegistry());
 
     // 种子：只能驯服
     ItemStack seedsStack(Items::WHEAT_SEEDS, 1);
@@ -352,7 +352,7 @@ TEST_F(BegGoalTestFixture, BegGoal_StartExecuting_SetsWolfInterested)
     // 对应 MC 1.21.11 BegGoal.start(): this.wolf.setIsInterested(true)
     // BegGoal 在 startExecuting 时应调用 wolf.setInterested(true)，
     // 通过 DataParameter 同步到客户端，触发乞求头部倾斜动画。
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
 
     EXPECT_FALSE(wolf.isInterested());
@@ -366,7 +366,7 @@ TEST_F(BegGoalTestFixture, BegGoal_ResetTask_ClearsWolfInterested)
 {
     // 对应 MC 1.21.11 BegGoal.stop(): this.wolf.setIsInterested(false)
     // BegGoal 在 resetTask 时应调用 wolf.setInterested(false)。
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
 
     // 先设置为感兴趣
@@ -383,7 +383,7 @@ TEST_F(BegGoalTestFixture, BegGoal_StartExecuting_DataParameterDirty)
 {
     // 验证 startExecuting 修改兴趣状态后，DataManager 标记为脏数据，
     // 以便 EntityTracker 在下一 tick 广播元数据到客户端。
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
     auto& dataManager = wolf.dataManager();
 
@@ -398,7 +398,7 @@ TEST_F(BegGoalTestFixture, BegGoal_StartExecuting_DataParameterDirty)
 TEST_F(BegGoalTestFixture, BegGoal_ResetTask_DataParameterDirty)
 {
     // 验证 resetTask 修改兴趣状态后，DataManager 标记为脏数据
-    WolfEntity wolf(EntityInstanceId(0));
+    WolfEntity wolf(EntityInstanceId(0), mc::test::testEcsRegistry());
     entity::ai::goal::BegGoal begGoal(&wolf, 8.0f);
 
     // 先 start 让 interested=true

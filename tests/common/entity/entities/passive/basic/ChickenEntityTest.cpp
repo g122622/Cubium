@@ -42,7 +42,7 @@
 namespace mc {
 namespace {
 
-class ChickenTestWorld final : public test::BaseTestWorld {
+class ChickenTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -106,7 +106,7 @@ protected:
 
 TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires)
 {
-    ChickenEntity chicken(EntityInstanceId(1));
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
     chicken.setWorld(&m_world);
     chicken.setPosition(0.5f, 64.0f, 0.5f);
 

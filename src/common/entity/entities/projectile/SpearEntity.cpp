@@ -39,6 +39,8 @@
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/ecs/components/ProjectileItemComponent.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -50,18 +52,6 @@ namespace entity {
 
 namespace {
 
-// ========== NBT 键名常量 ==========
-// 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData() / ThrownTrident.addAdditionalSaveData()
-// 注意：键名沿用 MC 1.16.5/1.21.11 的大小写规范，以保持与原版存档兼容。
-
-constexpr const char* NBT_KEY_PICKUP = "pickup";            // 拾取状态（byte）
-constexpr const char* NBT_KEY_DAMAGE = "damage";            // 基础伤害（float）
-constexpr const char* NBT_KEY_IN_GROUND = "inGround";       // 是否插在方块中（byte/bool）
-constexpr const char* NBT_KEY_CRIT = "crit";                // 是否暴击（byte/bool）
-constexpr const char* NBT_KEY_PIERCE_LEVEL = "PierceLevel"; // 穿透等级（byte）
-constexpr const char* NBT_KEY_DEALT_DAMAGE = "DealtDamage"; // 是否已造成伤害（byte/bool）
-constexpr const char* NBT_KEY_KNOCKBACK = "knockback";      // 击退强度（int）
-
 // 辅助函数：基于实体ID和tick创建随机数生成器
 math::Random createRandomFromEntity(const Entity& entity)
 {
@@ -71,17 +61,19 @@ math::Random createRandomFromEntity(const Entity& entity)
 
 } // anonymous namespace
 
-SpearEntity::SpearEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+SpearEntity::SpearEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
     // 长矛投掷命中伤害与三叉戟一致（8.0）
-    m_damage = 8.0f;
+    setDamage(8.0f);
     setPickupStatus(PickupStatus::Allowed);
+    // 批次6 子目标2 Step4：attach ProjectileItemComponent 承载 m_spearStack。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileItemComponent>(m_entityContext->entity());
 }
 
-std::unique_ptr<Entity> SpearEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpearEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpearEntity>(0);
+    return std::make_unique<SpearEntity>(0, registry);
 }
 
 void SpearEntity::onEntityHit(const RayTraceResult& result)
@@ -108,7 +100,7 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 标记已造成伤害
-    m_dealtDamage = true;
+    setDealtDamage(true);
 
     // 应用伤害
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
@@ -117,9 +109,9 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 击退效果
-    if (m_knockbackStrength > 0) {
-        f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+    if (knockbackStrength() > 0) {
+        f32 ratio = 0.6f * static_cast<f32>(knockbackStrength());
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -128,7 +120,9 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 速度反转为轻微反弹（与三叉戟一致）
-    m_velocity = Vector3(m_velocity.x * -0.01f, m_velocity.y * -0.1f, m_velocity.z * -0.01f);
+    m_builtIn.velocity->m_velocity = Vector3(m_builtIn.velocity->m_velocity.x * -0.01f,
+        m_builtIn.velocity->m_velocity.y * -0.1f,
+        m_builtIn.velocity->m_velocity.z * -0.01f);
 
     // 播放命中音效
     playSound(SoundEvents::ITEM_SPEAR_HIT, 1.0f, 1.0f);
@@ -136,19 +130,20 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
 
 void SpearEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_inGround = true;
+    setInGround(true);
 
+    auto* arrowState = tryGetComponent<ecs::ProjectileArrowStateComponent>();
     // 保存方块状态
-    if (m_world && result.type == RayTraceResultType::Block) {
+    if (arrowState != nullptr && m_world && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
         if (state != nullptr) {
-            m_inBlockState = *state;
+            *arrowState->m_inBlockState = *state;
         }
     }
 
     // 清除暴击和穿透状态
-    m_critical = false;
-    m_pierceLevel = 0;
+    setCritical(false);
+    setPierceLevel(0);
     clearPiercedEntities();
 
     // 播放命中地面音效
@@ -161,6 +156,27 @@ f32 SpearEntity::getWaterDrag() const
     return 0.99f;
 }
 
+// 批次6 子目标2 Step4：m_spearStack 迁入 ecs::ProjectileItemComponent。
+ItemStack SpearEntity::getItemStack() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? *c->m_itemStack : ItemStack();
+}
+
+ItemStack SpearEntity::getArrowStack() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    return (c != nullptr && c->m_itemStack != nullptr) ? c->m_itemStack->copy() : ItemStack();
+}
+
+void SpearEntity::setItemStack(const ItemStack& stack)
+{
+    auto* c = tryGetComponent<ecs::ProjectileItemComponent>();
+    if (c != nullptr && c->m_itemStack != nullptr) {
+        *c->m_itemStack = stack;
+    }
+}
+
 void SpearEntity::setBaseDamageFromMob(f32 power)
 {
     // 长矛不使用弓类附魔（力量/冲击/火焰），公式与三叉戟相同：
@@ -168,7 +184,7 @@ void SpearEntity::setBaseDamageFromMob(f32 power)
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
-    m_damage = power * 2.0f + triangle;
+    setDamage(power * 2.0f + triangle);
 }
 
 bool SpearEntity::onPlayerPickup(Player& player)
@@ -179,12 +195,12 @@ bool SpearEntity::onPlayerPickup(Player& player)
     }
 
     // 只有当长矛在地上时才能被拾取
-    if (!m_inGround) {
+    if (!isInGround()) {
         return false;
     }
 
     // 长矛不能处于抖动状态
-    if (m_arrowShake > 0) {
+    if (arrowShake() > 0) {
         return false;
     }
 
@@ -197,10 +213,13 @@ bool SpearEntity::onPlayerPickup(Player& player)
     }
 
     // 添加到玩家背包
-    if (!m_spearStack.isEmpty()) {
-        i32 added = player.inventory().add(m_spearStack);
+    auto* itemComp = tryGetComponent<ecs::ProjectileItemComponent>();
+    const bool hasStack =
+        (itemComp != nullptr && itemComp->m_itemStack != nullptr && !itemComp->m_itemStack->isEmpty());
+    if (hasStack) {
+        i32 added = player.inventory().add(*itemComp->m_itemStack);
         (void)added;
-        if (m_spearStack.getCount() > 0) {
+        if (itemComp->m_itemStack->getCount() > 0) {
             return false; // 背包满了
         }
     }
@@ -218,98 +237,18 @@ bool SpearEntity::onPlayerPickup(Player& player)
 // NBT 序列化
 // ============================================================================
 
-void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& /*tag*/) const
 {
-    // 先调用基类实现（Entity 基类，AbstractArrowEntity 未重写）
-    Entity::addAdditionalSaveData(tag);
-
-    using namespace serialization::nbt_helper;
-
-    // 长矛物品堆（参考 ItemEntity::addAdditionalSaveData 的 ItemStack 写入模式）
-    // 键名沿用 MC 1.21.11 AbstractArrow 的 "item" 键
-    nbt::tags::compound_tag itemTag;
-    m_spearStack.toNbt(itemTag);
-    tag.value.emplace(serialization::nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
-
-    // 拾取状态（byte：0=Disallowed, 1=Allowed, 2=CreativeOnly）
-    tag.put(NBT_KEY_PICKUP, static_cast<i8>(m_pickupStatus));
-
-    // 基础伤害（float）
-    tag.put(NBT_KEY_DAMAGE, m_damage);
-
-    // 是否插在方块中（bool，底层 byte）
-    tag.put(NBT_KEY_IN_GROUND, static_cast<i8>(m_inGround ? 1 : 0));
-
-    // 是否暴击（bool，底层 byte）
-    tag.put(NBT_KEY_CRIT, static_cast<i8>(m_critical ? 1 : 0));
-
-    // 穿透等级（byte）
-    tag.put(NBT_KEY_PIERCE_LEVEL, static_cast<i8>(m_pierceLevel));
-
-    // 是否已造成伤害（bool，底层 byte）—— 参考 ThrownTrident 的 "DealtDamage" 键
-    tag.put(NBT_KEY_DEALT_DAMAGE, static_cast<i8>(m_dealtDamage ? 1 : 0));
-
-    // 击退强度（int）
-    tag.put(NBT_KEY_KNOCKBACK, m_knockbackStrength);
+    // 批次6 子目标2 Step6：Spear 持久化（item + arrow 8 字段 + dealtDamage）已搬至按组件注册的
+    // 序列化器（ProjectileComponentSerialization.cpp 的 saveProjectileItem/loadProjectileItem +
+    // saveArrowState/loadArrowState），经 ComponentSerializerRegistry::saveAll/loadAll 调用。
+    // 此 override 保留空壳。
 }
 
-Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& /*tag*/)
 {
-    // 先调用基类实现，用 MC_TRY 传播错误
-    MC_TRY(Entity::readAdditionalSaveData(tag));
-
-    using namespace serialization::nbt_helper;
-
-    // 长矛物品堆
-    const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, serialization::nbt_keys::ITEM);
-    if (itemTag != nullptr) {
-        auto stackResult = ItemStack::fromNbt(*itemTag);
-        if (stackResult.success()) {
-            m_spearStack = stackResult.value();
-        }
-        // 反序列化失败时保留默认空堆，避免存档损坏导致崩溃
-    }
-
-    // 拾取状态
-    if (auto val = tryGetByte(tag, NBT_KEY_PICKUP)) {
-        // 防御性 clamp，避免存档数据越界
-        i8 v = *val;
-        if (v >= static_cast<i8>(PickupStatus::Disallowed) && v <= static_cast<i8>(PickupStatus::CreativeOnly)) {
-            m_pickupStatus = static_cast<PickupStatus>(v);
-        }
-    }
-
-    // 基础伤害
-    if (auto val = tryGetFloat(tag, NBT_KEY_DAMAGE)) {
-        m_damage = *val;
-    }
-
-    // 是否插在方块中
-    if (auto val = tryGetBool(tag, NBT_KEY_IN_GROUND)) {
-        m_inGround = *val;
-    }
-
-    // 是否暴击
-    if (auto val = tryGetBool(tag, NBT_KEY_CRIT)) {
-        m_critical = *val;
-    }
-
-    // 穿透等级
-    if (auto val = tryGetByte(tag, NBT_KEY_PIERCE_LEVEL)) {
-        m_pierceLevel = static_cast<u8>(*val);
-    }
-
-    // 是否已造成伤害
-    if (auto val = tryGetBool(tag, NBT_KEY_DEALT_DAMAGE)) {
-        m_dealtDamage = *val;
-    }
-
-    // 击退强度
-    if (auto val = tryGetInt(tag, NBT_KEY_KNOCKBACK)) {
-        m_knockbackStrength = *val;
-    }
-
-    return Result<void>::ok();
+    // 持久化已搬注册表，此 override 空实现。
+    return {};
 }
 
 } // namespace entity

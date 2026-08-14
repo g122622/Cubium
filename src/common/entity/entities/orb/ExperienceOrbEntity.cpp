@@ -53,24 +53,24 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue)
-    : Entity(EntityInstanceId(0))
+ExperienceOrbEntity::ExperienceOrbEntity(i32 xpValue, ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), nullptr, registry)
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
     _initData();
 }
 
-ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue)
-    : Entity(EntityInstanceId(0), world)
+ExperienceOrbEntity::ExperienceOrbEntity(IWorld* world, f64 x, f64 y, f64 z, i32 xpValue, ecs::EntityRegistry& registry)
+    : Entity(EntityInstanceId(0), world, registry)
     , m_xpValue(std::clamp(xpValue, 1, MAX_ORB_SIZE))
 {
     setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     _initData();
 }
 
-std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ExperienceOrbEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ExperienceOrbEntity>(1);
+    return std::make_unique<ExperienceOrbEntity>(1, registry);
 }
 
 void ExperienceOrbEntity::_initData()
@@ -127,9 +127,9 @@ bool ExperienceOrbEntity::hurt(DamageSource& source, f32 amount)
 
     // 4. 发送 ENTITY_DAMAGE 游戏事件（用于幽匿感测体检测）
     if (m_world != nullptr) {
-        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
-            static_cast<i32>(std::floor(m_position.y)),
-            static_cast<i32>(std::floor(m_position.z)));
+        BlockPos blockPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
         m_world->gameEvent(
             gameevent::GameEvents::ENTITY_DAMAGE, blockPos, gameevent::GameEvent::Context::of(source.getEntity()));
     }
@@ -252,8 +252,11 @@ void ExperienceOrbEntity::onCollideWithPlayer(Player& player)
         if (m_world != nullptr) {
             math::Random rng(static_cast<u64>(m_id) ^ static_cast<u64>(m_age));
             f32 pitch = 0.5f * ((rng.nextFloat() - rng.nextFloat()) * 0.7f + 1.8f);
-            m_world->playSound(
-                SoundEvents::ENTITY_EXPERIENCE_ORB_PICKUP, sound::SoundCategory::Players, m_position, 0.1f, pitch);
+            m_world->playSound(SoundEvents::ENTITY_EXPERIENCE_ORB_PICKUP,
+                sound::SoundCategory::Players,
+                m_builtIn.stateVector->m_pos,
+                0.1f,
+                pitch);
         }
 
         remove();
@@ -298,9 +301,9 @@ void ExperienceOrbEntity::_updateMovement()
         // 获取脚下方块的实际滑度
         f32 slipperiness = 0.6f; // 默认滑度
         if (m_world != nullptr) {
-            BlockPos groundPos(static_cast<i32>(std::floor(m_position.x)),
-                static_cast<i32>(std::floor(m_position.y - 0.2)), // 脚下方块
-                static_cast<i32>(std::floor(m_position.z)));
+            BlockPos groundPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y - 0.2)), // 脚下方块
+                static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
             const BlockState* groundState = m_world->getBlockState(groundPos);
             if (groundState != nullptr) {
                 slipperiness = groundState->getBlock().getSlipperiness(*groundState, m_world, &groundPos, this);

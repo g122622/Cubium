@@ -31,8 +31,14 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ArrowStateComponent.hpp"
+#include "common/entity/ecs/components/AttributeComponent.hpp"
+#include "common/entity/ecs/components/EquipmentComponent.hpp"
+#include "common/entity/ecs/components/HealthComponent.hpp"
+#include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -42,6 +48,7 @@
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -57,29 +64,6 @@ namespace mc {
 
 // 前向声明
 class World;
-
-/**
- * @brief 装备槽位
- *
- * 定义实体可穿戴的装备槽位。
- * Head/Chest/Legs/Feet 为玩家护甲槽位（与 ArmorSlot 一一对应）。
- * Body 为非玩家实体护甲槽位（狼铠、鹦鹉螺铠甲、马铠等动物护甲）。
- * Saddle 为鞍槽，对应 MC 1.21.11 EquipmentSlot.SADDLE；铜傀儡的天线槽
- * (CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA) 复用此槽位，存放铁傀儡
- * 赠予的罂粟花（ItemTags.SHEARABLE_FROM_COPPER_GOLEM），可被剪刀剪下。
- * 参考: net.minecraft.world.entity.EquipmentSlot
- */
-enum class EquipmentSlot : u8 {
-    MainHand = 0, // 主手
-    OffHand = 1,  // 副手
-    Feet = 2,     // 靴子
-    Legs = 3,     // 护腿
-    Chest = 4,    // 胸甲
-    Head = 5,     // 头盔
-    Body = 6,     // 身体护甲（非玩家实体专用，如狼铠、鹦鹉螺铠甲、马铠）
-    Saddle = 7,   // 鞍槽（铜傀儡天线槽，复用于存放罂粟花等可剪切物品）
-    Count = 8     // 槽位数量
-};
 
 /**
  * @brief 生物实体基类
@@ -107,9 +91,10 @@ public:
     /**
      * @brief 构造函数
      * @param id 实体ID
-     * @param world 世界指针（可选）
+     * @param world 世界指针（可为 nullptr）
+     * @param registry ECS 实体注册表，透传给 Entity 构造函数
      */
-    LivingEntity(EntityInstanceId id, IWorld* world = nullptr);
+    LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
 
     ~LivingEntity() override = default;
 
@@ -137,7 +122,11 @@ public:
     /**
      * @brief 获取当前生命值
      */
-    [[nodiscard]] f32 health() const { return m_health; }
+    [[nodiscard]] f32 health() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HealthComponent>();
+        return c != nullptr ? c->m_health : 0.0f;
+    }
 
     /**
      * @brief 获取最大生命值
@@ -153,13 +142,21 @@ public:
     /**
      * @brief 获取吸收伤害值（金苹果效果）
      */
-    [[nodiscard]] f32 absorptionAmount() const { return m_absorption; }
+    [[nodiscard]] f32 absorptionAmount() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_absorption : 0.0f;
+    }
 
     /**
      * @brief 设置吸收伤害值
      * @param amount 新的吸收值，会被限制在 [0, maxAbsorption] 范围内
+     *
+     * 声明为 virtual：Player 重写以在下发 HurtStateComponent（真相源）后，额外同步
+     * DATA_PLAYER_ABSORPTION_PARAM 到客户端（基类不持有该 Player 专属 DataParameter）。
+     * 基类内部调用（如 actuallyHurt）经虚函数派发到 Player 版本，确保同步链路完整。
      */
-    void setAbsorptionAmount(f32 amount);
+    virtual void setAbsorptionAmount(f32 amount);
 
     /**
      * @brief 治疗实体
@@ -212,7 +209,7 @@ public:
     /**
      * @brief 是否死亡
      */
-    [[nodiscard]] bool isDead() const { return m_health <= 0.0f; }
+    [[nodiscard]] bool isDead() const { return health() <= 0.0f; }
 
     /**
      * @brief 死亡
@@ -307,9 +304,22 @@ public:
 
     /**
      * @brief 获取属性映射表
+     *
+     * 返回 AttributeComponent 内嵌的 AttributeMap 引用。AttributeComponent 在
+     * LivingEntity 构造时 attach 且永不移除（首批契约），故理论上非空。
      */
-    entity::attribute::AttributeMap& attributes() { return m_attributes; }
-    [[nodiscard]] const entity::attribute::AttributeMap& attributes() const { return m_attributes; }
+    entity::attribute::AttributeMap& attributes()
+    {
+        auto* c = m_entityContext->tryGetComponent<ecs::AttributeComponent>();
+        MC_ASSERT_RELEASE(c != nullptr && c->m_attributes != nullptr);
+        return *c->m_attributes;
+    }
+    [[nodiscard]] const entity::attribute::AttributeMap& attributes() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::AttributeComponent>();
+        MC_ASSERT_RELEASE(c != nullptr && c->m_attributes != nullptr);
+        return *c->m_attributes;
+    }
 
     /**
      * @brief 获取属性值
@@ -521,11 +531,16 @@ public:
      */
     [[nodiscard]] std::array<const ItemStack*, 4> getArmorSlots() const
     {
+        auto* c = m_entityContext->tryGetComponent<ecs::EquipmentComponent>();
+        if (c == nullptr) {
+            static const std::array<const ItemStack*, 4> empty{};
+            return empty;
+        }
         return {
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Head)],  // 头盔
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Chest)], // 胸甲
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Legs)],  // 护腿
-            &m_equipment[static_cast<size_t>(EquipmentSlot::Feet)]   // 靴子
+            &c->m_equipment[static_cast<size_t>(EquipmentSlot::Head)],  // 头盔
+            &c->m_equipment[static_cast<size_t>(EquipmentSlot::Chest)], // 胸甲
+            &c->m_equipment[static_cast<size_t>(EquipmentSlot::Legs)],  // 护腿
+            &c->m_equipment[static_cast<size_t>(EquipmentSlot::Feet)]   // 靴子
         };
     }
 
@@ -635,12 +650,20 @@ public:
     /**
      * @brief 获取受伤无敌时间
      */
-    [[nodiscard]] i32 hurtTime() const { return m_hurtTime; }
+    [[nodiscard]] i32 hurtTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_hurtTime : 0;
+    }
 
     /**
      * @brief 获取最大受伤无敌时间
      */
-    [[nodiscard]] i32 maxHurtTime() const { return m_maxHurtTime; }
+    [[nodiscard]] i32 maxHurtTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_maxHurtTime : 0;
+    }
 
     /**
      * @brief 获取无敌帧计时器
@@ -678,7 +701,11 @@ public:
      *
      * 等于 m_maxHurtTime（受击时恒为 10），damageTilt 据此归一化 hurtTime。
      */
-    [[nodiscard]] i32 hurtDuration() const { return m_maxHurtTime; }
+    [[nodiscard]] i32 hurtDuration() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_maxHurtTime : 0;
+    }
 
     /**
      * @brief 记录受伤方向并触发网络同步（LivingEntity.indicateDamage）
@@ -695,7 +722,9 @@ public:
      */
     virtual void animateHurt(f32 hurtDir)
     {
-        m_hurtTime = m_maxHurtTime;
+        if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
+            c->m_hurtTime = c->m_maxHurtTime;
+        }
         m_hurtDir = hurtDir;
     }
 
@@ -865,7 +894,7 @@ public:
     /**
      * @brief 设置头部俯仰角
      */
-    void setRotationPitch(f32 pitch) { m_pitch = pitch; }
+    void setRotationPitch(f32 pitch) { m_builtIn.rotation->m_rot.y = pitch; }
 
     /**
      * @brief 是否正在挥动手臂
@@ -1307,12 +1336,20 @@ public:
     /**
      * @brief 是否正在死亡
      */
-    [[nodiscard]] bool isDying() const { return m_deathTime > 0; }
+    [[nodiscard]] bool isDying() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr && c->m_deathTime > 0;
+    }
 
     /**
      * @brief 获取死亡时间
      */
-    [[nodiscard]] i32 deathTime() const { return m_deathTime; }
+    [[nodiscard]] i32 deathTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>();
+        return c != nullptr ? c->m_deathTime : 0;
+    }
 
     // ========== 箭矢计数 ==========
 
@@ -1323,7 +1360,11 @@ public:
      *
      * @return 箭矢数量
      */
-    [[nodiscard]] i32 getArrowCount() const { return m_arrowCount; }
+    [[nodiscard]] i32 getArrowCount() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::ArrowStateComponent>();
+        return c != nullptr ? c->m_arrowCount : 0;
+    }
 
     /**
      * @brief 设置插在身上的箭矢数量
@@ -1647,26 +1688,17 @@ protected:
     virtual void sendEndCombat() {}
 
     // 生命值
-    f32 m_health = 20.0f;
-    f32 m_lastHealth = 20.0f; // 上一tick的生命值
-    f32 m_absorption = 0.0f;  // 吸收值（金苹果）
-    // 首帧生命值同步标志。构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH，
-    // m_health 停在默认 20.0，违反 health<=maxHealth 不变式。tick 首帧检测到未同步则
-    // setHealth(maxHealth()) 兜底。详见 LivingEntity 构造注释。
-    bool m_healthSynced = false;
+    // m_health / m_lastHealth / m_healthSynced 已迁移至 ecs::HealthComponent（见
+    // health/setHealth/healthSynced）。m_health 为同步真相源，DATA_HEALTH_PARAM 退为镜像。
+    // m_absorption 已迁移至 ecs::HurtStateComponent.m_absorption（见 absorptionAmount/setAbsorptionAmount）
 
     // 属性
-    entity::attribute::AttributeMap m_attributes;
+    // m_attributes 已迁移至 ecs::AttributeComponent（unique_ptr<AttributeMap> 包裹，
+    // 因 AttributeMap 含 mutex 不可移动）。见 attributes() getter。
 
     // 装备
-    std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_equipment;
-
-    // 上一tick的装备快照（用于检测装备变化并同步属性修饰符）
-    // 对应 MC 原版 LivingEntity.lastEquipmentItems
-    std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_lastEquipment;
-
-    // 是否已初始化上一tick装备快照
-    bool m_lastEquipmentInitialized = false;
+    // m_equipment / m_lastEquipment / m_lastEquipmentInitialized 已迁移至
+    // ecs::EquipmentComponent（见 getEquipment/setEquipment/detectEquipmentUpdates）。
 
     // 上一tick的方块位置（用于检测位置变化触发位置依赖附魔效果）
     // 对应 MC Java 的 LivingEntity.lastPos
@@ -1680,8 +1712,7 @@ protected:
     HandSide m_primaryHand = HandSide::Right; // 默认右手为主手
 
     // 受伤无敌帧
-    i32 m_hurtTime = 0;                                // 受伤无敌时间
-    i32 m_maxHurtTime = 10;                            // 最大受伤无敌时间
+    // m_hurtTime / m_maxHurtTime 已迁移至 ecs::HurtStateComponent（见 hurtTime/maxHurtTime/hurtDuration）
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
@@ -1697,7 +1728,7 @@ protected:
     i32 m_lastDamageTimestamp = 0; // 最后受伤时间戳
 
     // 死亡
-    i32 m_deathTime = 0; // 死亡时间
+    // m_deathTime 已迁移至 ecs::HurtStateComponent.m_deathTime（见 deathTime/isDying）
 
     // 回血
     i32 m_healTime = 0;         // 回血计时器
@@ -1775,12 +1806,10 @@ protected:
     f32 m_swimAmount = 0.0f;
     f32 m_swimAmountO = 0.0f;
 
-    // 箭矢计数
-    i32 m_arrowCount = 0;    // 插在身上的箭矢数量
-    i32 m_arrowHitTimer = 0; // 箭矢脱落计时器
-
-    // 蜂针计数（对齐 vanilla LivingEntity.DATA_STINGER_COUNT_ID）
-    i32 m_stingerCount = 0; // 插在身上的蜂针数量
+    // 箭矢/蜂针计数
+    // m_arrowCount / m_stingerCount / m_arrowHitTimer 已迁移至 ecs::ArrowStateComponent
+    // （见 getArrowCount/setArrowCountInEntity/getStingerCount/setStingerCountInEntity/tickArrows）。
+    // m_arrowCount/m_stingerCount 为同步真相源，DATA_ARROW_COUNT_PARAM/DATA_STINGER_COUNT_PARAM 退为镜像。
 
     // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
     // 字段集对齐 vanilla 1.21.11 LivingEntity.defineId（id 8..14）。

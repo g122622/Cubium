@@ -38,6 +38,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/interfaces/BoostHelper.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/core/EntityDataManager.hpp"
@@ -59,14 +60,14 @@ namespace {
 class TestRideableEntity : public MobEntity, public IRideable {
 public:
     TestRideableEntity()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
         , m_saddled(false)
         , m_steeringSpeed(0.1f)
         , m_travelCalled(false)
         , m_lastTravelVec(0.0f, 0.0f, 0.0f)
     {
         // 注册基础属性
-        m_attributes.setBaseValue(attribute::Attributes::MOVEMENT_SPEED, 0.25);
+        attributes().setBaseValue(attribute::Attributes::MOVEMENT_SPEED, 0.25);
     }
 
     // ========== IRideable 接口实现 ==========

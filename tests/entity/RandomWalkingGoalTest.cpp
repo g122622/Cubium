@@ -24,6 +24,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
@@ -41,7 +42,7 @@ using namespace mc::entity::ai::goal;
 class TestCreatureEntity : public CreatureEntity {
 public:
     TestCreatureEntity()
-        : CreatureEntity(EntityInstanceId(1))
+        : CreatureEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         // 注册属性
         registerAttributes();

@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"

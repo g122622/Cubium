@@ -41,6 +41,10 @@ class Entity;
 class EntityTypeTag;
 class IWorld;
 
+namespace ecs {
+class EntityRegistry;
+} // namespace ecs
+
 namespace entity {
 
 // 引入 mc 命名空间的类型
@@ -84,8 +88,13 @@ inline bool hasEntityFlag(EntityFlags flags, EntityFlags flag)
  *
  * 用于创建实体实例的函数指针。
  * 返回 std::unique_ptr<Entity> 以支持多态。
+ *
+ * @param world 世界实例（可为 nullptr，测试/反序列化场景）
+ * @param registry ECS 实体注册表。工厂在构造实体时透传给 Entity 构造函数，
+ *   Entity 构造时即在此 registry 内 create ECS 实体并 attach 高频组件
+ *   （entt 实体不可跨 registry 迁移，故 registry 必须在构造时就位）。
  */
-using EntityFactory = std::function<std::unique_ptr<Entity>(IWorld*)>;
+using EntityFactory = std::function<std::unique_ptr<Entity>(IWorld*, ecs::EntityRegistry&)>;
 
 /**
  * @brief 实体类型基类
@@ -268,10 +277,11 @@ public:
 
     /**
      * @brief 创建实体实例
-     * @param world 世界实例
+     * @param world 世界实例（可为 nullptr）
+     * @param registry ECS 实体注册表，透传给 Entity 构造函数
      * @return 实体实例，如果工厂无效则返回nullptr
      */
-    std::unique_ptr<Entity> create(IWorld* world) const;
+    std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry) const;
 
     /**
      * @brief 获取实体分类

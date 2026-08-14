@@ -43,7 +43,7 @@ namespace {
 /**
  * @brief 测试用世界存根
  */
-class ThrowableTestWorld final : public test::BaseTestWorld {
+class ThrowableTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -106,7 +106,7 @@ TEST_F(ThrowableItemTest, SnowballItem_OnRightClick_SpawnsEntity)
 {
     ASSERT_NE(Items::SNOWBALL, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -143,7 +143,7 @@ TEST_F(ThrowableItemTest, EggItem_OnRightClick_SpawnsEntity)
 {
     ASSERT_NE(Items::EGG, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -177,7 +177,7 @@ TEST_F(ThrowableItemTest, EnderPearlItem_OnRightClick_SpawnsEntity)
 {
     ASSERT_NE(Items::ENDER_PEARL, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -211,7 +211,7 @@ TEST_F(ThrowableItemTest, ExperienceBottleItem_OnRightClick_SpawnsEntity)
 {
     ASSERT_NE(Items::EXPERIENCE_BOTTLE, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -234,7 +234,7 @@ TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem)
 {
     ASSERT_NE(Items::SNOWBALL, nullptr);
 
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setPosition(0.0f, 64.0f, 0.0f);
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Survival); // 生存模式
@@ -255,25 +255,25 @@ TEST_F(ThrowableItemTest, SnowballItem_SurvivalMode_ConsumesItem)
 
 TEST_F(ThrowableItemTest, SnowballEntity_CanBeCreated)
 {
-    entity::SnowballEntity snowball(EntityInstanceId(1));
+    entity::SnowballEntity snowball(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(snowball.isAlive());
 }
 
 TEST_F(ThrowableItemTest, EggEntity_CanBeCreated)
 {
-    entity::EggEntity egg(EntityInstanceId(1));
+    entity::EggEntity egg(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(egg.isAlive());
 }
 
 TEST_F(ThrowableItemTest, EnderPearlEntity_CanBeCreated)
 {
-    entity::EnderPearlEntity pearl(EntityInstanceId(1));
+    entity::EnderPearlEntity pearl(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(pearl.isAlive());
 }
 
 TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
 {
-    entity::ExperienceBottleEntity bottle(EntityInstanceId(1));
+    entity::ExperienceBottleEntity bottle(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(bottle.isAlive());
 }
 
@@ -284,28 +284,28 @@ TEST_F(ThrowableItemTest, ExperienceBottleEntity_CanBeCreated)
 TEST_F(ThrowableItemTest, SnowballEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::SnowballEntity snowball(EntityInstanceId(1));
+    entity::SnowballEntity snowball(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(snowball.getDefaultItem(), Items::SNOWBALL);
 }
 
 TEST_F(ThrowableItemTest, EggEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::EggEntity egg(EntityInstanceId(1));
+    entity::EggEntity egg(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(egg.getDefaultItem(), Items::EGG);
 }
 
 TEST_F(ThrowableItemTest, EnderPearlEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::EnderPearlEntity pearl(EntityInstanceId(1));
+    entity::EnderPearlEntity pearl(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(pearl.getDefaultItem(), Items::ENDER_PEARL);
 }
 
 TEST_F(ThrowableItemTest, ExperienceBottleEntity_GetDefaultItem)
 {
     Items::initialize();
-    entity::ExperienceBottleEntity bottle(EntityInstanceId(1));
+    entity::ExperienceBottleEntity bottle(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(bottle.getDefaultItem(), Items::EXPERIENCE_BOTTLE);
 }
 

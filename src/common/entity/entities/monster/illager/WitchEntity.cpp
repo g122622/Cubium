@@ -29,10 +29,12 @@
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
 #include "common/item/potion/Potion.hpp"
@@ -59,8 +61,8 @@ const entity::EntityClassInfo& WitchEntity::classInfo()
     return s_classInfo;
 }
 
-WitchEntity::WitchEntity(EntityInstanceId id)
-    : AbstractRaiderEntity(id)
+WitchEntity::WitchEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractRaiderEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -69,9 +71,9 @@ WitchEntity::WitchEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WitchEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WitchEntity>(EntityInstanceId(0));
+    return std::make_unique<WitchEntity>(EntityInstanceId(0), registry);
 }
 
 // ========== 药水决策逻辑 ==========
@@ -168,7 +170,7 @@ void WitchEntity::_startDrinkingPotion(entity::effect::EffectType effectType)
     // 女巫基础移动速度为 0.25，减去 0.25 后变为 0，即喝药水时完全停止移动
     entity::attribute::AttributeModifier speedPenalty(
         DRINKING_SPEED_PENALTY_UUID, "Drinking speed penalty", -0.25, entity::attribute::Operation::Addition);
-    m_attributes.addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
+    attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
 }
 
 void WitchEntity::_finishDrinkingPotion()
@@ -181,7 +183,7 @@ void WitchEntity::_finishDrinkingPotion()
     _applyDrankPotionEffect(m_currentPotionType);
 
     // 移除移动速度减益
-    m_attributes.removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
+    attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
 }
 
 void WitchEntity::_applyDrankPotionEffect(entity::effect::EffectType effectType)
@@ -264,6 +266,15 @@ void WitchEntity::registerGoals()
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
 
+    // 优先级 2: NearestAttackableTargetGoal<Player>（主动攻击玩家）。
+    // 对齐 MC 1.21.11 Witch.registerGoals(): targetSelector.addGoal(2,
+    //   new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false))。
+    // wiki tech_女巫.txt#行为: 女巫会主动攻击半径 16 格(JE)/10 格(BE)内的玩家。
+    // 此前 Cubium 女巫只注册了 HurtByTargetGoal（受伤反击），无主动攻击目标 goal，
+    // 与原版不一致——原版女巫主动攻击玩家，Cubium 女巫只能被攻击后反击。
+    // checkSight=true 对齐原版第四参数（需视线可见才选目标）。
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+
     // 女巫 AI 目标
     // priority 1: 游泳目标（已在父类注册）
     // priority 2: 药水攻击
@@ -281,8 +292,8 @@ void WitchEntity::registerAttributes()
     AbstractRaiderEntity::registerAttributes();
 
     // 女巫的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 26.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 26.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 // ========== 远程攻击 (IRangedAttackMob) ==========
@@ -371,7 +382,13 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
     f32 horizontalDist = std::sqrt(static_cast<f32>(dx * dx + dz * dz));
 
     // 创建药水实体
-    auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0));
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto potion = std::make_unique<entity::PotionEntity>(EntityInstanceId(0), *registry);
+    potion->setTypeId(entity::EntityTypeKeys::POTION); // 工厂绕过补救：直接构造缺 typeId
     potion->setWorld(worldPtr);
 
     // 设置发射者

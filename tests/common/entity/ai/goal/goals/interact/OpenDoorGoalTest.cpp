@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/interact/RaiderOpenDoorGoal.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/ecs/components/PhysicsStateComponent.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -51,7 +52,7 @@ namespace {
  *
  * 支持方块状态、游戏规则和门开关操作的设置和追踪。
  */
-class OpenDoorTestWorld final : public test::BaseTestWorld {
+class OpenDoorTestWorld final : public mc::test::BaseTestWorld {
 public:
     OpenDoorTestWorld() = default;
 
@@ -114,7 +115,7 @@ private:
 class TestOpenDoorMob final : public MobEntity {
 public:
     TestOpenDoorMob()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -127,7 +128,14 @@ public:
 
     void setWorldForTest(IWorld* world) { setWorld(world); }
 
-    void setCollidedHorizontallyForTest(bool value) { m_collidedHorizontally = value; }
+    void setCollidedHorizontallyForTest(bool value)
+    {
+        // m_collidedHorizontally 已迁入 ecs::PhysicsStateComponent（无 public setter），
+        // 测试通过组件直接写以模拟"实体碰撞门"触发 DoorGoal。
+        if (auto* c = tryGetComponent<ecs::PhysicsStateComponent>()) {
+            c->m_collidedHorizontally = value;
+        }
+    }
 
     void setNavigatorCanOpenDoors(bool value)
     {

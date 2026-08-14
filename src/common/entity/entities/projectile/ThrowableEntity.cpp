@@ -57,16 +57,14 @@ const EntityClassInfo& ThrowableEntity::classInfo()
     return s_classInfo;
 }
 
-ThrowableEntity::ThrowableEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+ThrowableEntity::ThrowableEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
 {}
 
 void ThrowableEntity::tick()
 {
     // 先执行射线追踪和碰撞检测
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 执行射线追踪
     const RayTraceResult result = performRayTrace();
@@ -116,7 +114,7 @@ void ThrowableEntity::tick()
     doBlockCollisions();
 
     // 应用物理
-    Vector3 velocity = m_velocity;
+    Vector3 velocity = m_builtIn.velocity->m_velocity;
 
     // 更新旋转
     updateRotation();
@@ -129,9 +127,9 @@ void ThrowableEntity::tick()
         math::Random rng = createRandomFromEntity(*this);
         for (i32 i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
-            Vector3 pos(m_position.x - velocity.x * offset,
-                m_position.y - velocity.y * offset,
-                m_position.z - velocity.z * offset);
+            Vector3 pos(m_builtIn.stateVector->m_pos.x - velocity.x * offset,
+                m_builtIn.stateVector->m_pos.y - velocity.y * offset,
+                m_builtIn.stateVector->m_pos.z - velocity.z * offset);
             m_world->addParticle(particle::ParticleTypeId::Bubble, pos, velocity);
         }
     }
@@ -140,15 +138,15 @@ void ThrowableEntity::tick()
     velocity = velocity * drag;
 
     // 应用重力
-    if (!m_noGravity) {
+    if (!hasNoGravity()) {
         velocity.y -= getGravity();
     }
 
-    m_velocity = velocity;
+    m_builtIn.velocity->m_velocity = velocity;
 
     // 更新位置
-    m_prevPosition = m_position;
-    m_position = m_position + m_velocity;
+    m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity;
 
     Entity::tick();
 }

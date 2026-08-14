@@ -44,7 +44,7 @@ namespace {
 /**
  * @brief 铁傀儡测试用世界
  */
-class IronGolemTestWorld final : public test::BaseTestWorld {
+class IronGolemTestWorld final : public mc::test::BaseTestWorld {
 public:
     IronGolemTestWorld() = default;
 
@@ -85,7 +85,7 @@ protected:
         // registerAll() 幂等且线程安全，多次调用无副作用。
         entity::VanillaEntities::registerAll();
         m_world = std::make_unique<IronGolemTestWorld>();
-        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         ironGolem->setWorld(m_world.get());
     }
 
@@ -229,7 +229,7 @@ protected:
         // registerAll() 幂等且线程安全，多次调用无副作用。
         entity::VanillaEntities::registerAll();
         m_world = std::make_unique<IronGolemTestWorld>();
-        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         ironGolem->setWorld(m_world.get());
         ironGolem->setPosition(0.0, 64.0, 0.0);
     }
@@ -247,7 +247,7 @@ protected:
 TEST_F(IronGolemAttackTest, AttackSetsAnimationState)
 {
     // 攻击后应设置攻击计时器和手臂举起状态
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 
@@ -261,7 +261,7 @@ TEST_F(IronGolemAttackTest, AttackSetsAnimationState)
 TEST_F(IronGolemAttackTest, AttackDealsDamageToTarget)
 {
     // 铁傀儡攻击应对目标造成伤害
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 
@@ -277,7 +277,7 @@ TEST_F(IronGolemAttackTest, AttackDealsDamageToTarget)
 TEST_F(IronGolemAttackTest, AttackAppliesYAxisKnockback)
 {
     // 铁傀儡攻击应将目标向上击飞
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 
@@ -294,7 +294,7 @@ TEST_F(IronGolemAttackTest, AttackAppliesYAxisKnockback)
 TEST_F(IronGolemAttackTest, KnockbackResistedByTargetAttribute)
 {
     // 目标有击退抗性时应减少击退
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer");
+    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player->setWorld(m_world.get());
     player->setPosition(2.0, 64.0, 0.0);
 

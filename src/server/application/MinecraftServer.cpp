@@ -1079,12 +1079,17 @@ void MinecraftServer::setupWorldCallbacks()
 
         // 设置实体生成回调
         world->chunkManager()->setEntitySpawnCallback([this, world](const std::vector<SpawnedEntityData>& entities) {
+            // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+            auto* registry = world->entityRegistry();
+            if (registry == nullptr) {
+                return;
+            }
             for (const auto& entityData : entities) {
                 const auto* entityType = entity::EntityRegistry::instance().getType(entityData.entityTypeId);
                 if (!entityType || !entityType->canSummon()) {
                     continue;
                 }
-                auto entity = entityType->create(world);
+                auto entity = entityType->create(world, *registry);
                 if (!entity) {
                     continue;
                 }

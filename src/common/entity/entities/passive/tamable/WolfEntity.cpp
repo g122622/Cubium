@@ -97,8 +97,8 @@ const entity::EntityClassInfo& WolfEntity::classInfo()
     return s_classInfo;
 }
 
-WolfEntity::WolfEntity(EntityInstanceId id)
-    : TameableEntity(id)
+WolfEntity::WolfEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -113,10 +113,10 @@ WolfEntity::WolfEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WolfEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时ID 0，实际ID由 EntityManager 分配
-    return std::make_unique<WolfEntity>(0);
+    return std::make_unique<WolfEntity>(0, registry);
 }
 
 bool WolfEntity::isTameItem(const ItemStack& itemStack) const
@@ -555,8 +555,14 @@ bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* o
 
 std::unique_ptr<AnimalEntity> WolfEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建小狼
-    auto baby = std::make_unique<WolfEntity>(0);
+    auto baby = std::make_unique<WolfEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -1008,9 +1014,9 @@ void WolfEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 狼的属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0); // 驯服前8血
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0); // 2点攻击力
 
     // 驯服后会增加到20血，由 onTamed 处理
 }
@@ -1045,16 +1051,16 @@ void WolfEntity::onTamed(bool tamed)
 {
     if (tamed) {
         // 驯服后增加生命值上限（从8血变为20血）
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
         setHealth(20.0f);
 
         // 驯服后增加攻击力
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0);
     } else {
         // 放弃驯服后恢复
-        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 8.0);
         setHealth(8.0f);
-        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+        attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     }
 }
 

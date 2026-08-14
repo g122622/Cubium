@@ -103,7 +103,7 @@ void registerEmptyLootTable(loot::LootTableManager& manager, const std::string& 
  * - getGameTime 可设置
  * - isClientSide 可设置（用于 scheduleBlockTick 测试）
  */
-class BrushableTestWorld final : public test::BaseTestWorld {
+class BrushableTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
     using IWorld::setBlockState;
@@ -354,7 +354,7 @@ protected:
         entity_->setLootTable(ResourceLocation("minecraft", "archaeology/test_brush"), 42LL);
 
         // 创建 LivingEntity（brush 需要 LivingEntity&）
-        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_);
+        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     }
 
     BrushableTestWorld world_;
@@ -649,7 +649,7 @@ protected:
         entity_->setWorld(&world_);
         entity_->setLootTable(ResourceLocation("minecraft", "archaeology/test_reset"), 42LL);
 
-        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_);
+        livingEntity_ = std::make_unique<LivingEntity>(EntityInstanceId(1), &world_, mc::test::testEcsRegistry());
     }
 
     // 辅助：将 brushCount 增加到指定值（每次间隔 10 tick 避免冷却）

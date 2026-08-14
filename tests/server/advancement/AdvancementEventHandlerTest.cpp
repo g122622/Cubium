@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/application/IServer.hpp"
@@ -185,7 +186,7 @@ TEST_F(AdvancementEventHandlerTest, ArchitectureGetServerPlayerPath)
 {
     // 验证调用链：
     // IServer::playerEntityManager() → ServerPlayerEntityManager
-    // ServerPlayerEntityManager::getPlayerEntity(playerId, world) → Player*
+    // ServerPlayerEntityManager::getPlayerEntity(playerId, world, mc::test::testEcsRegistry()) → Player*
     // Player::asServerPlayer() → ServerPlayer*
 
     // 这个测试验证架构文档中描述的调用路径存在

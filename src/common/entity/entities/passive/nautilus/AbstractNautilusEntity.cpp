@@ -89,8 +89,8 @@ const entity::EntityClassInfo& AbstractNautilusEntity::classInfo()
 // 构造函数
 // ============================================================================
 
-AbstractNautilusEntity::AbstractNautilusEntity(EntityInstanceId id)
-    : TameableEntity(id)
+AbstractNautilusEntity::AbstractNautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : TameableEntity(id, registry)
 {
     // 设置步进高度，鹦鹉螺可以走上 1 格高的方块
     setStepHeight(1.0f);
@@ -316,7 +316,7 @@ void AbstractNautilusEntity::executeRidersJump(f32 jumpScale, Player& rider)
     // 计算冲刺速度向量
     f32 speedFactor = dashMomentum * jumpScale;
     // 使用移动速度属性作为基础速度
-    f64 movementSpeed = m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED);
+    f64 movementSpeed = attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED);
     Vector3 dashVelocity = lookAngle * (speedFactor * static_cast<f32>(movementSpeed));
 
     // 施加速度
@@ -472,7 +472,7 @@ void AbstractNautilusEntity::applyRiderEffects()
 f32 AbstractNautilusEntity::getRiddenSpeed() const
 {
     // 对应 MC 1.21.11 AbstractNautilus.getRiddenSpeed()
-    f64 movementSpeed = m_attributes.getValue(entity::attribute::Attributes::MOVEMENT_SPEED);
+    f64 movementSpeed = attributes().getValue(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (isInWater()) {
         return RIDDEN_SPEED_MODIFIER_IN_WATER * static_cast<f32>(movementSpeed);
     }
@@ -729,10 +729,10 @@ void AbstractNautilusEntity::registerAttributes()
     TameableEntity::registerAttributes();
 
     // 鹦鹉螺基础属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0f);
-    m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.3f);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 15.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0f);
+    attributes().setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.3f);
 }
 
 // ============================================================================

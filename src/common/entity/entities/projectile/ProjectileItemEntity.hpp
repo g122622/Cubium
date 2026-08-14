@@ -59,22 +59,21 @@ public:
      * @brief 获取物品堆
      * @return 物品堆
      */
-    [[nodiscard]] ItemStack getItemStack() const { return m_itemStack; }
+    [[nodiscard]] ItemStack getItemStack() const;
 
     /**
      * @brief 设置物品堆
      */
-    void setItemStack(const ItemStack& stack) { m_itemStack = stack; }
+    void setItemStack(const ItemStack& stack);
 
 protected:
     /**
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit ProjectileItemEntity(EntityInstanceId id);
+    explicit ProjectileItemEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
-    // 物品堆
-    ItemStack m_itemStack;
+    // 批次6 子目标2 Step4：m_itemStack 迁入 ecs::ProjectileItemComponent。
 };
 
 /**
@@ -87,12 +86,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit SnowballEntity(EntityInstanceId id);
+    explicit SnowballEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -111,12 +110,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EggEntity(EntityInstanceId id);
+    explicit EggEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -142,12 +141,12 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit EnderPearlEntity(EntityInstanceId id);
+    explicit EnderPearlEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
@@ -166,30 +165,29 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit PotionEntity(EntityInstanceId id);
+    explicit PotionEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
     /**
      * @brief 是否为滞留型药水
      */
-    [[nodiscard]] bool isLingering() const { return m_lingering; }
+    [[nodiscard]] bool isLingering() const;
 
     /**
      * @brief 设置是否为滞留型药水
      */
-    void setLingering(bool lingering) { m_lingering = lingering; }
+    void setLingering(bool lingering);
 
 protected:
     void onImpact(const RayTraceResult& result) override;
 
-private:
-    bool m_lingering = false;
+    // 批次6 子目标2 Step4：m_lingering 迁入 ecs::PotionProjectileComponent。
 };
 
 /**
@@ -202,30 +200,29 @@ public:
     /**
      * @brief 工厂方法
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      */
-    explicit ExperienceBottleEntity(EntityInstanceId id);
+    explicit ExperienceBottleEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] const Item* getDefaultItem() const override;
 
     /**
      * @brief 获取经验值
      */
-    [[nodiscard]] i32 experience() const { return m_experience; }
+    [[nodiscard]] i32 experience() const;
 
     /**
      * @brief 设置经验值
      */
-    void setExperience(i32 exp) { m_experience = exp; }
+    void setExperience(i32 exp);
 
 protected:
     void onImpact(const RayTraceResult& result) override;
 
-private:
-    i32 m_experience = 0;
+    // 批次6 子目标2 Step4：m_experience 迁入 ecs::ExperienceBottleComponent。
 };
 
 } // namespace entity

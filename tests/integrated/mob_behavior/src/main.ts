@@ -1,5 +1,65 @@
 // mob_behavior 行为包入口：注册生物行为类 GameTest。
+// 测试按主角生物的 Cubium 实体分类（src/common/entity/entities）拆分到 src/tests/ 子目录，
+// 未来为每个生物加行为测试时，放入对应分类目录即可。
 
-import { registerMobBehaviorTests } from "./MobBehaviorTests.js";
+import { registerZombieTests } from "./tests/monster/undead/ZombieTests.js";
+import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
+import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
+import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
+import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
+import { registerMagmaCubeTests } from "./tests/monster/nether/MagmaCubeTests.js";
+import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPiglinTests.js";
+import { registerBlazeTests } from "./tests/monster/nether/BlazeTests.js";
+import { registerGuardianTests } from "./tests/monster/ocean/GuardianTests.js";
+import { registerEndermanTests } from "./tests/monster/end/EndermanTests.js";
+import { registerWitherSkeletonTests } from "./tests/monster/undead/WitherSkeletonTests.js";
+import { registerHuskTests } from "./tests/monster/undead/HuskTests.js";
+import { registerDrownedTests } from "./tests/monster/undead/DrownedTests.js";
+import { registerStrayTests } from "./tests/monster/undead/StrayTests.js";
+import { registerBoggedTests } from "./tests/monster/undead/BoggedTests.js";
+import { registerPhantomTests } from "./tests/monster/basic/PhantomTests.js";
+import { registerCreeperTests } from "./tests/monster/basic/CreeperTests.js";
+import { registerSlimeTests } from "./tests/monster/basic/SlimeTests.js";
+import { registerSpiderTests } from "./tests/monster/arthropod/SpiderTests.js";
+import { registerCaveSpiderTests } from "./tests/monster/arthropod/CaveSpiderTests.js";
+import { registerEndermiteTests } from "./tests/monster/arthropod/EndermiteTests.js";
+import { registerSilverfishTests } from "./tests/monster/arthropod/SilverfishTests.js";
+import { registerWitchTests } from "./tests/monster/illager/WitchTests.js";
+import { registerRavagerTests } from "./tests/monster/illager/RavagerTests.js";
+import { registerVexTests } from "./tests/monster/illager/VexTests.js";
+import { registerEvokerTests } from "./tests/monster/illager/EvokerTests.js";
+import { registerPigTests } from "./tests/passive/basic/PigTests.js";
+import { registerCowTests } from "./tests/passive/basic/CowTests.js";
+import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
+import { registerChickenTests } from "./tests/passive/basic/ChickenTests.js";
 
-registerMobBehaviorTests();
+registerZombieTests();
+registerSkeletonTests();
+registerIronGolemTests();
+registerSnowGolemTests();
+registerZoglinTests();
+registerMagmaCubeTests();
+registerZombifiedPiglinTests();
+registerBlazeTests();
+registerGuardianTests();
+registerEndermanTests();
+registerWitherSkeletonTests();
+registerHuskTests();
+registerDrownedTests();
+registerStrayTests();
+registerBoggedTests();
+registerPhantomTests();
+registerCreeperTests();
+registerSlimeTests();
+registerSpiderTests();
+registerCaveSpiderTests();
+registerEndermiteTests();
+registerSilverfishTests();
+registerWitchTests();
+registerRavagerTests();
+registerVexTests();
+registerEvokerTests();
+registerPigTests();
+registerCowTests();
+registerSheepTests();
+registerChickenTests();

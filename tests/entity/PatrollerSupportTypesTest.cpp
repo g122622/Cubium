@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/monster/illager/IllagerEntities.hpp"
 #include "common/entity/entities/monster/illager/PatrollerEntity.hpp"
@@ -41,7 +42,7 @@ TEST(PatrollerSupportTypesTest, RaidersInheritPatrollerBase)
 
 TEST(PatrollerSupportTypesTest, PatrolStateTracksLeaderAndTarget)
 {
-    PillagerEntity pillager(EntityInstanceId(1));
+    PillagerEntity pillager(EntityInstanceId(1), mc::test::testEcsRegistry());
     const BlockPos patrolTarget(12, 64, -8);
 
     EXPECT_FALSE(pillager.isPatrolling());
@@ -59,7 +60,7 @@ TEST(PatrollerSupportTypesTest, PatrolStateTracksLeaderAndTarget)
 
 TEST(PatrollerSupportTypesTest, ResetPatrolTargetCreatesNewTarget)
 {
-    VindicatorEntity vindicator(EntityInstanceId(2));
+    VindicatorEntity vindicator(EntityInstanceId(2), mc::test::testEcsRegistry());
 
     vindicator.setPosition(20.0f, 70.0f, -15.0f);
     vindicator.resetPatrolTarget();

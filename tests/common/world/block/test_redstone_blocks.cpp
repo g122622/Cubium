@@ -89,7 +89,7 @@ private:
     [[nodiscard]] static BlockProperties makeProperties() { return BlockProperties(Material::ROCK); }
 };
 
-class RedstoneBlockTestWorld final : public test::BaseTestWorld {
+class RedstoneBlockTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

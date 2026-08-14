@@ -31,19 +31,27 @@
 
 namespace mc {
 
+// 前向声明
+namespace entity {
+class ArrowEntity;
+}
+
 /**
- * @brief 沼骸骨实体
+ * @brief 沼骸实体
  *
- * 沼骸骨是骷髅的变种，在试炼密室中作为远程怪物生成，主要特征：
- * - 使用弓箭进行远程攻击
- * - 不在阳光下燃烧
- * - 生成于试炼密室
+ * 沼骸是骷髅的变种，生成于沼泽/红树林沼泽（代替 30% 骷髅生成）及试炼密室远程型
+ * 试炼刷怪笼，主要特征（对应原版 MC 1.21.11 Bogged）：
+ * - 使用弓箭远程攻击，射出的箭矢附带中毒效果（对应原版 getArrow 注入 POISON 100 ticks）
+ * - 作为亡灵骷髅变种会在阳光下燃烧（继承基类 shouldBurnInDaylight 默认 true，不 override）
+ * - 生命值 16（普通骷髅为 20）
+ * - 攻击间隔比普通骷髅慢：困难 50 ticks / 非困难 70 ticks（普通骷髅 20/40）
+ * - 可被剪刀剪去头上的蘑菇（依赖 interact 链路，暂未接入）
  *
- * 参考 MC Java: Bogged 类（1.21 试炼密室更新中新增）
+ * 参考 MC Java: net.minecraft.world.entity.monster.skeleton.Bogged
  */
 class BoggedEntity : public AbstractSkeletonEntity {
 public:
-    BoggedEntity(EntityInstanceId id);
+    BoggedEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~BoggedEntity() override = default;
 
@@ -52,12 +60,38 @@ public:
     BoggedEntity(BoggedEntity&&) = delete;
     BoggedEntity& operator=(BoggedEntity&&) = delete;
 
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
+    /// 中毒效果持续时间（ticks），100 ticks = 5 秒，对应原版 MobEffects.POISON, 100
+    static constexpr i32 POISON_DURATION_TICKS = 100;
+    /// 沼骸生命值（普通骷髅为 20），对应原版 createAttributes().add(MAX_HEALTH, 16.0)
+    static constexpr f32 BOGGED_MAX_HEALTH = 16.0f;
 
 protected:
     void registerAttributes() override;
+
+    /**
+     * @brief 为射出的箭矢附加中毒效果
+     *
+     * 重写基类 customizeArrow 钩子，attackEntityWithRangedAttack 发射箭矢前调用。
+     * 对应原版 Bogged.getArrow()：arrow.addEffect(MobEffectInstance(POISON, 100))，
+     * 箭矢命中生物时由 ArrowEntity::onEntityHit 施加 5 秒中毒 I。
+     */
+    void customizeArrow(entity::ArrowEntity& arrow) override;
+
+    /**
+     * @brief 困难难度最小攻击间隔（50 ticks，比普通骷髅 20 慢）
+     *
+     * 对应原版 Bogged.getHardAttackInterval() = 50。
+     */
+    [[nodiscard]] i32 getHardAttackInterval() const override { return INCREASED_HARD_ATTACK_INTERVAL; }
+
+    /**
+     * @brief 非困难难度最小攻击间隔（70 ticks，比普通骷髅 40 慢）
+     *
+     * 对应原版 Bogged.getAttackInterval() = 70。
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return INCREASED_NORMAL_ATTACK_INTERVAL; }
 };
 
 } // namespace mc

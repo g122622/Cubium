@@ -26,6 +26,7 @@
 #include "ProjectileEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 
 // 前向声明粒子类型（与 common/particle/ParticleTypes.hpp 中的定义一致）
@@ -54,25 +55,20 @@ public:
 
     void tick() override;
 
-    [[nodiscard]] f32 accelerationX() const { return m_accelerationX; }
-    [[nodiscard]] f32 accelerationY() const { return m_accelerationY; }
-    [[nodiscard]] f32 accelerationZ() const { return m_accelerationZ; }
+    [[nodiscard]] f32 accelerationX() const;
+    [[nodiscard]] f32 accelerationY() const;
+    [[nodiscard]] f32 accelerationZ() const;
 
-    void setAcceleration(f32 x, f32 y, f32 z)
-    {
-        m_accelerationX = x;
-        m_accelerationY = y;
-        m_accelerationZ = z;
-    }
+    void setAcceleration(f32 x, f32 y, f32 z);
 
-    [[nodiscard]] f32 damage() const { return m_damage; }
-    void setDamage(f32 damage) { m_damage = damage; }
+    [[nodiscard]] f32 damage() const;
+    void setDamage(f32 damage);
 
     [[nodiscard]] bool canBeCollidedWith() const override { return true; }
     [[nodiscard]] f32 getCollisionBorderSize() const override { return 1.0f; }
 
 protected:
-    explicit DamagingProjectileEntity(EntityInstanceId id);
+    explicit DamagingProjectileEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     [[nodiscard]] virtual bool isFiery() const { return true; }
     [[nodiscard]] virtual f32 getMotionFactor() const { return 0.95f; }
@@ -104,10 +100,12 @@ protected:
      */
     void spawnWaterParticles();
 
-    f32 m_accelerationX = 0.0f;
-    f32 m_accelerationY = 0.0f;
-    f32 m_accelerationZ = 0.0f;
-    f32 m_damage = 0.0f;
+    // 批次6 子目标2 Step4：m_accelerationX/Y/Z/m_damage 迁入 ecs::DamagingProjectileComponent。
+
+    /// 本类继承链标识（parent = ProjectileEntity::classInfo()）。见 Entity::classInfo()。
+    /// 本类无同步字段，classInfo 仅作父链遍历节点：子类 ClassRegisterGuard 沿父链查找最高 id
+    /// 时穿过本节点续接（DamagingProjectile 无字段，最高 id 来自 ProjectileEntity/Entity）。
+    static const EntityClassInfo& classInfo();
 };
 
 } // namespace entity

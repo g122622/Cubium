@@ -72,8 +72,8 @@ namespace {
 /// 测试用 LivingEntity 子类：用于作为 Breeze 的攻击目标。
 class TestTargetEntity : public LivingEntity {
 public:
-    explicit TestTargetEntity(EntityInstanceId id)
-        : LivingEntity(id, nullptr)
+    explicit TestTargetEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : LivingEntity(id, nullptr, registry)
     {}
 
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_target"; }
@@ -92,8 +92,8 @@ private:
 /// 测试用载具实体：作为目标的骑乘对象，用于触发 isRiding() 分支。
 class TestVehicleEntity : public LivingEntity {
 public:
-    explicit TestVehicleEntity(EntityInstanceId id)
-        : LivingEntity(id, nullptr)
+    explicit TestVehicleEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+        : LivingEntity(id, nullptr, registry)
     {}
 
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:test_vehicle"; }
@@ -110,7 +110,7 @@ public:
  * 关键设计：spawnEntity 默认实现会销毁 entity，本桩改为接管所有权，
  * 让测试能在 shootWindCharge 调用完成后检查风弹的速度向量。
  */
-class BreezeShootTestWorld final : public test::BaseTestWorld {
+class BreezeShootTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -187,13 +187,13 @@ protected:
     void SetUp() override
     {
         // 旋风人位于原点
-        m_breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1));
+        m_breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         m_breeze->setPosition(0.0f, 0.0f, 0.0f);
         m_breeze->setWorld(&m_world);
         m_accessor = std::make_unique<test::BreezeShootTestAccessor>(*m_breeze);
 
         // 目标实体位于 +X 方向 10 格，与旋风人同一高度
-        m_target = std::make_unique<TestTargetEntity>(EntityInstanceId(2));
+        m_target = std::make_unique<TestTargetEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
         m_target->setPosition(10.0f, 0.0f, 0.0f);
         m_target->setWorld(&m_world);
         m_target->setHeight(TARGET_HEIGHT);
@@ -308,7 +308,7 @@ TEST_F(BreezeShootWindChargeTest, NonRidingTarget_DoesNotUsePartialY_0_5)
 TEST_F(BreezeShootWindChargeTest, RidingTarget_UsesPartialY_0_8)
 {
     // 创建一个测试载具，让目标骑乘它
-    auto vehicle = std::make_unique<TestVehicleEntity>(EntityInstanceId(3));
+    auto vehicle = std::make_unique<TestVehicleEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     vehicle->setPosition(10.0f, 0.0f, 0.0f);
     vehicle->setWorld(&m_world);
     TestVehicleEntity* vehiclePtr = vehicle.get();
@@ -352,7 +352,7 @@ TEST_F(BreezeShootWindChargeTest, RidingTarget_HigherAimThanNonRiding)
     m_accessor->setShootCooldown(0);
 
     // 让目标骑乘载具
-    auto vehicle = std::make_unique<TestVehicleEntity>(EntityInstanceId(3));
+    auto vehicle = std::make_unique<TestVehicleEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
     vehicle->setPosition(10.0f, 0.0f, 0.0f);
     vehicle->setWorld(&m_world);
     TestVehicleEntity* vehiclePtr = vehicle.get();
@@ -374,7 +374,7 @@ TEST_F(BreezeShootWindChargeTest, RidingTarget_HigherAimThanNonRiding)
 TEST_F(BreezeShootWindChargeTest, NoWorld_DoesNothing)
 {
     // 无世界时不应崩溃，也不应产生 spawn
-    BreezeEntity breeze(EntityInstanceId(10));
+    BreezeEntity breeze(EntityInstanceId(10), mc::test::testEcsRegistry());
     breeze.setWorld(nullptr);
     test::BreezeShootTestAccessor accessor(breeze);
     accessor.setShootCooldown(0);

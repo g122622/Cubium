@@ -43,7 +43,7 @@ using namespace mc;
 
 namespace {
 
-class SoundCaptureWorld final : public test::BaseTestWorld {
+class SoundCaptureWorld final : public mc::test::BaseTestWorld {
 public:
     struct SoundRecord {
         ResourceLocation soundEventId;
@@ -113,7 +113,7 @@ private:
 class TestLivingEntity final : public LivingEntity {
 public:
     TestLivingEntity()
-        : LivingEntity(EntityInstanceId(1))
+        : LivingEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -123,7 +123,7 @@ public:
 class TestRabbitEntity final : public RabbitEntity {
 public:
     TestRabbitEntity()
-        : RabbitEntity(EntityInstanceId(2))
+        : RabbitEntity(EntityInstanceId(2), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());
@@ -133,7 +133,7 @@ public:
 class TestWolfEntity final : public WolfEntity {
 public:
     TestWolfEntity()
-        : WolfEntity(EntityInstanceId(3))
+        : WolfEntity(EntityInstanceId(3), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

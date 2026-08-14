@@ -38,8 +38,8 @@ const entity::EntityClassInfo& AbstractIllagerEntity::classInfo()
     return s_classInfo;
 }
 
-AbstractIllagerEntity::AbstractIllagerEntity(EntityInstanceId id)
-    : AbstractRaiderEntity(id)
+AbstractIllagerEntity::AbstractIllagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractRaiderEntity(id, registry)
 {}
 
 } // namespace mc

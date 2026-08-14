@@ -80,13 +80,13 @@ public:
      * @param world 世界实例（当前未使用，但保持与 EntityFactory 签名一致）
      * @return 新的监守者实体
      */
-    static std::unique_ptr<Entity> create(IWorld* world);
+    static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
      * @brief 构造函数
      * @param id 实体ID
      */
-    explicit WardenEntity(EntityInstanceId id);
+    explicit WardenEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     ~WardenEntity() noexcept override = default;
 

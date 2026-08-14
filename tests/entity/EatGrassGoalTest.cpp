@@ -150,7 +150,7 @@ protected:
 
 TEST_F(SheepEntityTest, InitialState)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 初始状态
     EXPECT_FALSE(sheep.isSheared());
@@ -160,7 +160,7 @@ TEST_F(SheepEntityTest, InitialState)
 
 TEST_F(SheepEntityTest, SetFleeceColor)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     sheep.setFleeceColor(DyeColor::Red);
     EXPECT_EQ(sheep.getFleeceColor(), DyeColor::Red);
@@ -171,7 +171,7 @@ TEST_F(SheepEntityTest, SetFleeceColor)
 
 TEST_F(SheepEntityTest, SetSheared)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_FALSE(sheep.isSheared());
     EXPECT_TRUE(sheep.isShearable());
@@ -187,7 +187,7 @@ TEST_F(SheepEntityTest, SetSheared)
 
 TEST_F(SheepEntityTest, ChildCannotBeSheared)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(true);
 
     EXPECT_FALSE(sheep.isShearable());
@@ -195,7 +195,7 @@ TEST_F(SheepEntityTest, ChildCannotBeSheared)
 
 TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setSheared(true);
 
     EXPECT_TRUE(sheep.isSheared());
@@ -207,7 +207,7 @@ TEST_F(SheepEntityTest, EatGrassBonusRegrowsWool)
 
 TEST_F(SheepEntityTest, EatGrassBonusAcceleratesChildGrowth)
 {
-    SheepEntity sheep(EntityInstanceId(1));
+    SheepEntity sheep(EntityInstanceId(1), mc::test::testEcsRegistry());
     sheep.setChild(true);
     sheep.setGrowingAge(-24000); // 幼羊，-24000 ticks
 
@@ -290,7 +290,7 @@ namespace {
 /**
  * @brief 测试用世界，支持方块状态和游戏规则设置
  */
-class EatGrassTestWorld final : public test::BaseTestWorld {
+class EatGrassTestWorld final : public mc::test::BaseTestWorld {
 public:
     EatGrassTestWorld() = default;
 
@@ -371,7 +371,7 @@ private:
 class TestMobEntity final : public MobEntity {
 public:
     TestMobEntity()
-        : MobEntity(EntityInstanceId(1))
+        : MobEntity(EntityInstanceId(1), mc::test::testEcsRegistry())
     {
         registerAttributes();
         setHealth(maxHealth());

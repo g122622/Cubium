@@ -64,8 +64,8 @@ const entity::EntityClassInfo& ZombieNautilusEntity::classInfo()
 // 构造函数
 // ============================================================================
 
-ZombieNautilusEntity::ZombieNautilusEntity(EntityInstanceId id)
-    : AbstractNautilusEntity(id)
+ZombieNautilusEntity::ZombieNautilusEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractNautilusEntity(id, registry)
 {
     // 显式调用 registerData()，注册同步数据参数
     // 由于 C++ 虚函数在基类构造函数中不会派发到派生类
@@ -82,10 +82,10 @@ ZombieNautilusEntity::ZombieNautilusEntity(EntityInstanceId id)
     registerGoals();
 }
 
-std::unique_ptr<Entity> ZombieNautilusEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ZombieNautilusEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
     // 使用临时 ID 0，实际 ID 由 EntityManager 分配
-    return std::make_unique<ZombieNautilusEntity>(0);
+    return std::make_unique<ZombieNautilusEntity>(0, registry);
 }
 
 // ============================================================================
@@ -219,7 +219,7 @@ void ZombieNautilusEntity::registerAttributes()
     // 僵尸鹦鹉螺比活体鹦鹉螺移动更快
     // 对应 MC 1.21.11 ZombieNautilus.createAttributes():
     // AbstractNautilus.createAttributes().add(Attributes.MOVEMENT_SPEED, 1.1F)
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.1f);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.1f);
 }
 
 // ============================================================================

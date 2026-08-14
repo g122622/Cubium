@@ -152,6 +152,12 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
         return nullptr;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
     // 创建物品实体
     auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0), // ID 将由世界分配
         stack,
@@ -160,7 +166,8 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
         static_cast<f32>(z),
         vx,
         vy,
-        vz);
+        vz,
+        *registry);
 
     // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
     itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);
@@ -207,6 +214,12 @@ std::vector<EntityInstanceId> ItemDropHelper::spawnItemEntities(IWorld* world,
         return spawnedEntities;
     }
 
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world->entityRegistry();
+    if (registry == nullptr) {
+        return spawnedEntities;
+    }
+
     // 在方块中心位置生成物品实体
     f64 centerX = static_cast<f64>(pos.x) + 0.5;
     f64 centerY = static_cast<f64>(pos.y) + 0.5;
@@ -233,7 +246,8 @@ std::vector<EntityInstanceId> ItemDropHelper::spawnItemEntities(IWorld* world,
             static_cast<f32>(offsetZ),
             velocity.x,
             velocity.y,
-            velocity.z);
+            velocity.z,
+            *registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         itemEntity->setTypeId(entity::EntityTypeKeys::ITEM);

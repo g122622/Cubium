@@ -33,6 +33,7 @@
 #include <gtest/gtest.h>
 
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/attribute/AttributeRegistry.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -71,7 +72,7 @@ namespace {
 // 与 EntityResolverTestServer 相同模式，使 EntityResolver 可用于测试
 // ============================================================================
 
-class AttributeCommandTestServer final : public test::BaseTestServer {
+class AttributeCommandTestServer final : public mc::test::BaseTestServer {
 public:
     AttributeCommandTestServer()
         : BaseTestServer()
@@ -169,7 +170,7 @@ std::unique_ptr<Entity> createEntityByType(const char* typeId)
     if (type == nullptr) {
         return nullptr;
     }
-    return type->create(nullptr);
+    return type->create(nullptr, mc::test::testEcsRegistry());
 }
 
 } // namespace
@@ -729,7 +730,8 @@ TEST_F(AttributeCommandTest, GetMultipleAttributeTypes)
 TEST_F(AttributeCommandTest, SelfSelectorWithServerPlayer)
 {
     // 创建一个 ServerPlayer 并作为命令源
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -747,7 +749,8 @@ TEST_F(AttributeCommandTest, SelfSelectorWithServerPlayer)
 
 TEST_F(AttributeCommandTest, SelfSelectorSetBaseHealth)
 {
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "TestPlayer", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();
@@ -897,7 +900,8 @@ TEST_F(AttributeCommandTest, AllEntitiesSelectorWithMultipleEntitiesFails)
 TEST_F(AttributeCommandTest, PlayerAttributeUsesUsername)
 {
     // ServerPlayer 有 username，_getEntityDisplayName 应返回 username
-    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "Steve");
+    auto serverPlayerEntity =
+        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1000), "Steve", mc::test::testEcsRegistry());
     serverPlayerEntity->setPosition(10.0f, 64.0f, 0.0f);
     serverPlayerEntity->setPlayerId(42);
     auto* serverPlayerPtr = serverPlayerEntity.get();

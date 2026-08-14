@@ -46,11 +46,11 @@
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../core/AgeableEntity.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../ecs/components/MobFlagComponent.hpp"
 #include "../entities/hanging/HangingEntity.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
-#include "../interfaces/IMob.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
 #include "../utils/ItemDropHelper.hpp"
@@ -112,8 +112,8 @@ const entity::EntityClassInfo& MobEntity::classInfo()
     return s_classInfo;
 }
 
-MobEntity::MobEntity(EntityInstanceId id)
-    : LivingEntity(id)
+MobEntity::MobEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : LivingEntity(id, nullptr, registry)
     , m_lookController(std::make_unique<entity::ai::controller::LookController>(this))
     , m_moveController(std::make_unique<entity::ai::controller::MovementController>(this))
     , m_jumpController(std::make_unique<entity::ai::controller::JumpController>(this))
@@ -156,8 +156,8 @@ void MobEntity::registerAttributes()
     LivingEntity::registerAttributes();
 
     // 注册并设置跟随范围，默认值为 16.0
-    m_attributes.registerAttribute(*entity::attribute::Attributes::followRange());
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
+    attributes().registerAttribute(*entity::attribute::Attributes::followRange());
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
 entity::ai::controller::LookController* MobEntity::lookController()
@@ -439,14 +439,11 @@ std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment()
 
 bool MobEntity::isInDaylight() const
 {
-    // 检查条件：
-    // 1. 不在客户端
-    // 2. 世界为白天 (isDaytime)
-    // 3. 亮度 > 0.5
-    // 4. 随机检查（亮度越高概率越大）
-    // 5. 不在水中或雨中
-    // 6. 天空可见 (canSeeSky)
-
+    // 对齐 vanilla 1.21 Mob.isSunBurnTick()：白天 + 亮度>0.5 + 非水中/雨中 + 天空可见 即返回 true。
+    // 此前实现含一个项目自创的随机检查（rng.nextFloat()*30 < (brightness-0.4)*2，正午仅 ~4%/tick
+    // 触发），vanilla 无此随机检查——亮度达标就每 tick 必然燃烧。随机检查把燃烧变成概率事件，
+    // 在光照重算竞态压缩有效燃烧窗口时引入 flaky（skeleton_burns_in_daylight 偶发超时根因之二）。
+    // 移除随机检查对齐 vanilla 确定性燃烧语义。调用方仅 burnUndead。
     if (m_world == nullptr || m_world->isClientSide()) {
         return false;
     }
@@ -456,17 +453,10 @@ bool MobEntity::isInDaylight() const
         return false;
     }
 
-    // getBrightness() > 0.5F
+    // getBrightness() > 0.5F（getBrightness 对齐 vanilla getLightLevelDependentMagicValue，
+    // 正午露天 skyDarkening=0 → rawBrightness=15 → f=1.0 → f1=1.0 >0.5）
     f32 brightness = getBrightness();
     if (brightness <= 0.5f) {
-        return false;
-    }
-
-    // 随机检查，亮度越高越容易触发
-    math::Random& rng = getRandom();
-    f32 randomCheck = rng.nextFloat() * 30.0f;
-    f32 brightnessThreshold = (brightness - 0.4f) * 2.0f;
-    if (randomCheck >= brightnessThreshold) {
         return false;
     }
 
@@ -740,8 +730,8 @@ ActionResultType MobEntity::interactMob(Player& /*player*/, Hand /*hand*/)
 
 bool MobEntity::canBeLeashed() const
 {
-    // 敌对生物不能被拴住
-    return dynamic_cast<const entity::IMob*>(this) == nullptr;
+    // 敌对生物不能被拴住（MobFlagComponent 标记组件，IMob 接口的 tag 层）
+    return !hasComponent<ecs::MobFlagComponent>();
 }
 
 bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEggItem& spawnEgg, ItemStack& heldItem)
@@ -765,7 +755,12 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
     }
 
     // 创建幼体实体
-    auto baby = myType->create(m_world);
+    // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return false;
+    }
+    auto baby = myType->create(m_world, *registry);
     if (baby == nullptr) {
         return false;
     }
@@ -1034,7 +1029,7 @@ void MobEntity::tickLeash()
     }
 
     // 计算与持有者的距离
-    Vector3d mobPos(m_position.x, m_position.y, m_position.z);
+    Vector3d mobPos(m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
     f64 distance = mobPos.distance(holderPos);
 
     // 拴绳断裂距离
@@ -1065,9 +1060,9 @@ void MobEntity::tickLeash()
         Vector3d deltaMovement(direction.x * force * 0.8, direction.y * force * 0.2, direction.z * force * 0.8);
 
         // 施加拉力（添加到速度向量）
-        m_velocity.x += static_cast<f32>(deltaMovement.x);
-        m_velocity.y += static_cast<f32>(deltaMovement.y);
-        m_velocity.z += static_cast<f32>(deltaMovement.z);
+        m_builtIn.velocity->m_velocity.x += static_cast<f32>(deltaMovement.x);
+        m_builtIn.velocity->m_velocity.y += static_cast<f32>(deltaMovement.y);
+        m_builtIn.velocity->m_velocity.z += static_cast<f32>(deltaMovement.z);
     }
 }
 

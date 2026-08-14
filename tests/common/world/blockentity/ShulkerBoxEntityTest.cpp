@@ -50,7 +50,7 @@ namespace {
 /**
  * @brief 测试用 DummyWorld，用于隔离测试 ShulkerBoxBlock
  */
-class ShulkerBoxTestWorld final : public test::BaseTestWorld {
+class ShulkerBoxTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 
@@ -527,7 +527,7 @@ TEST_F(ShulkerBoxEntityTest, CanOpen_WhenBlocked_ReturnsFalse)
     world.setBlockState(10, 20, 30, state);
 
     // 模拟有实体阻挡
-    Entity dummyEntity(EntityInstanceId(1));
+    Entity dummyEntity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     world.setEntitiesInAabbResult({&dummyEntity});
 
     // 验证无法打开

@@ -31,6 +31,7 @@
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -53,8 +54,8 @@ namespace mc {
 // 使用序列化命名空间
 using namespace entity::serialization;
 
-CreeperEntity::CreeperEntity(EntityInstanceId id)
-    : MonsterEntity(id)
+CreeperEntity::CreeperEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : MonsterEntity(id, registry)
 {
     // 苦力怕不在阳光下燃烧
     setBurnsInDaylight(false);
@@ -66,9 +67,9 @@ CreeperEntity::CreeperEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> CreeperEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<CreeperEntity>(EntityInstanceId(0));
+    return std::make_unique<CreeperEntity>(EntityInstanceId(0), registry);
 }
 
 std::optional<ResourceLocation> CreeperEntity::getHurtSound(DamageSource& /*source*/) const
@@ -84,14 +85,18 @@ std::optional<ResourceLocation> CreeperEntity::getDeathSound() const
 i32 CreeperEntity::getCreeperState() const
 {
     // -1 = idle, 1 = fusing
-    if (m_timeSinceIgnited > 0) {
-        return 1;
-    }
-    return -1;
+    // 对齐 vanilla Creeper.getCreeperState(): 直接返回独立的膨胀方向字段 swellDir，
+    // 而非从 m_timeSinceIgnited 反推。旧实现用 m_timeSinceIgnited>0 反推状态会自举死锁：
+    // m_timeSinceIgnited 增长需 state=1，state=1 需 m_timeSinceIgnited>0，二者互为前提，
+    // 导致 m_timeSinceIgnited 恒为 0，引信永不达 fuseTime，苦力怕膨胀但不爆炸。
+    return m_swellDir;
 }
 
 void CreeperEntity::setCreeperState(i32 state)
 {
+    // 对齐 vanilla Creeper.setCreeperState(): 写入独立的膨胀方向字段。
+    // state>0 表示进入膨胀，调 ignite() 标记点燃（保留原有副作用语义）。
+    m_swellDir = state;
     if (state > 0) {
         ignite();
     }
@@ -163,7 +168,13 @@ void CreeperEntity::_spawnLingeringCloud()
     }
 
     // 创建区域效果云实体
-    auto cloud = std::make_unique<entity::AreaEffectCloudEntity>();
+    // ECS 迁移：实体构造需要 registry 句柄（worldPtr 已判空，此处 registry 必非空）
+    auto* registry = worldPtr->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto cloud = std::make_unique<entity::AreaEffectCloudEntity>(*registry);
+    cloud->setTypeId(entity::EntityTypeKeys::AREA_EFFECT_CLOUD); // 工厂绕过补救：直接构造缺 typeId
     cloud->setWorld(worldPtr);
     cloud->setPosition(x(), y(), z());
 
@@ -302,7 +313,7 @@ void CreeperEntity::registerAttributes()
     MonsterEntity::registerAttributes();
 
     // 继承自 MonsterEntity: MAX_HEALTH = 20.0
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
 }
 
 std::optional<ResourceLocation> CreeperEntity::getAmbientSound() const

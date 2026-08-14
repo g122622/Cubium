@@ -250,7 +250,7 @@ TEST_F(EndermanHoldableTagTest, DoesNotContainWater)
 
 class EndermanHeldBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1)); }
+    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { enderman.reset(); }
 
@@ -298,7 +298,7 @@ class EndermanPlaceBlockGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::EndermanPlaceBlockGoal>(enderman.get());
     }
 
@@ -336,7 +336,7 @@ class EndermanTakeBlockGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(enderman.get());
     }
 
@@ -519,7 +519,7 @@ private:
     world::gamerule::GameRules m_gameRules;
     world::border::WorldBorder m_worldBorder;
     mutable math::Random m_random{12345};
-    test::DummyTickManager m_tickManager;
+    mc::test::DummyTickManager m_tickManager;
 };
 
 } // anonymous namespace
@@ -533,7 +533,7 @@ protected:
         VanillaBlocks::initialize();
         BlockTags::initialize();
 
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.0f, 64.0f, 0.0f);
 
@@ -582,7 +582,7 @@ TEST_F(EndermanCanPlaceBlockTest, PlaceBlockEmitsBlockPlaceEvent)
     // 几乎任意命中都会成功；setSeed 使每次试验确定，消除 id^now() 非确定性导致的 flaky。
     bool placed = false;
     for (uint64_t k = 1; k <= 200; ++k) {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
         enderman->setHeldBlockState(&dirtBlock->defaultState());
@@ -627,7 +627,7 @@ TEST_F(EndermanCanPlaceBlockTest, TakeBlockEmitsBlockDestroyEvent)
     // 旧实现依赖 id^now() 非确定种子 + shouldExecute 概率门，5000 次 P(0 成功)≈0.55% 导致 flaky。
     bool pickedUp = false;
     for (uint64_t k = 1; k <= 5000; ++k) {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
         enderman->getRandom().setSeed(k);
@@ -833,7 +833,7 @@ protected:
         // 使用 EntityInstanceId(1) 作为默认实体 ID。
         // 注意：Entity 构造用 id ^ high_resolution_clock::now() 作 RNG 种子（非确定），
         // 需要确定性的用例在 tick() 前用 getRandom().setSeed(k) 重置。
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
 
@@ -869,7 +869,7 @@ TEST_F(EndermanTakeBlockRaycastTest, CanPickUpVisibleBlock)
     // setSeed 完全重置 RNG 状态，每个 K 是独立确定性试验；48 个位置中 (1,64,0) 占其一。
     bool pickedUp = false;
     for (uint64_t k = 1; k <= 5000; ++k) {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
         enderman->getRandom().setSeed(k);
@@ -919,7 +919,7 @@ TEST_F(EndermanTakeBlockRaycastTest, CannotPickUpBlockedBlock)
     // 用 setSeed(K) 确定性控制 RNG，直接调 tick() 绕过 shouldExecute()，确保每次迭代
     // 真正进入 tick 路径；射线被 (6,64,5) 石头阻挡，末影人不应拾取 (7,64,5) 的泥土。
     for (uint64_t k = 1; k <= 500; ++k) {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(5.5f, 64.0f, 5.5f);
         enderman->getRandom().setSeed(k);
@@ -957,7 +957,7 @@ TEST_F(EndermanTakeBlockRaycastTest, CannotPickUpNonHoldableBlock)
     // 用 setSeed(K) 确定性控制 RNG，直接调 tick() 绕过 shouldExecute()，确保每次迭代
     // 真正进入 tick 路径；石头不可拾取，末影人应始终不持有方块。
     for (uint64_t k = 1; k <= 500; ++k) {
-        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1));
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         enderman->setWorld(&world);
         enderman->setPosition(0.5f, 64.0f, 0.5f);
         enderman->getRandom().setSeed(k);

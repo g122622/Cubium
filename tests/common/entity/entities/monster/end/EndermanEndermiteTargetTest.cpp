@@ -63,7 +63,7 @@ namespace {
  *
  * 提供末影人/末影螨测试所需的最小 IWorld 接口实现
  */
-class EndermanEndermiteTestWorld final : public test::BaseTestWorld {
+class EndermanEndermiteTestWorld final : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -148,7 +148,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
         endermite->setWorld(world.get());
     }
 
@@ -194,12 +194,12 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影人
-        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
         enderman->setWorld(world.get());
         enderman->setPosition(0.0, 64.0, 0.0);
 
         // 创建末影螨
-        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2));
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2), mc::test::testEcsRegistry());
         endermite->setWorld(world.get());
         endermite->setPosition(5.0, 64.0, 0.0); // 末影人5格外
     }
@@ -266,13 +266,13 @@ protected:
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
         // 创建末影螨（玩家生成）
-        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1));
+        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
         playerSpawnedEndermite->setWorld(world.get());
         playerSpawnedEndermite->setPosition(5.0, 64.0, 0.0);
         playerSpawnedEndermite->setSpawnedByPlayer(true);
 
         // 创建末影螨（自然生成）
-        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2));
+        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2), mc::test::testEcsRegistry());
         naturalEndermite->setWorld(world.get());
         naturalEndermite->setPosition(5.0, 64.0, 0.0);
         naturalEndermite->setSpawnedByPlayer(false);
@@ -340,7 +340,7 @@ TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
     };
 
     // 创建一个末影人作为非末影螨实体
-    auto enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(3));
+    auto enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(3), mc::test::testEcsRegistry());
     enderman->setWorld(world.get());
     enderman->setPosition(5.0, 64.0, 0.0);
 
@@ -355,7 +355,7 @@ protected:
     void SetUp() override
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
-        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1));
+        enderman = std::make_unique<EndermanEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
         enderman->setWorld(world.get());
     }
 

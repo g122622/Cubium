@@ -44,7 +44,7 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class LootTestServer final : public test::BaseTestServer {
+class LootTestServer final : public mc::test::BaseTestServer {
 public:
     LootTestServer() = default;
 

@@ -206,7 +206,7 @@ protected:
 
 TEST_F(OminousItemSpawnerTest, Construction_DefaultValues)
 {
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 默认物品为空
     EXPECT_TRUE(entity.getItem().isEmpty());
@@ -238,7 +238,7 @@ TEST_F(OminousItemSpawnerTest, Constants_MatchMCJava)
 TEST_F(OminousItemSpawnerTest, Create_FactoryMethod)
 {
     // create() 创建默认实体（无物品，延迟为最大值）
-    auto entityPtr = OminousItemSpawnerEntity::create(nullptr);
+    auto entityPtr = OminousItemSpawnerEntity::create(nullptr, mc::test::testEcsRegistry());
     ASSERT_NE(entityPtr, nullptr);
 
     auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
@@ -307,7 +307,7 @@ TEST_F(OminousItemSpawnerTest, CreateWithItem_RandomDelayInRange)
 
 TEST_F(OminousItemSpawnerTest, SetGetItem)
 {
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     EXPECT_TRUE(entity.getItem().isEmpty());
 
@@ -323,7 +323,7 @@ TEST_F(OminousItemSpawnerTest, SetGetItem)
 
 TEST_F(OminousItemSpawnerTest, SetItem_OverwritePrevious)
 {
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
@@ -354,7 +354,7 @@ protected:
 TEST_F(OminousItemSpawnerNbtTest, EmptyItem_RoundTrip)
 {
     // 无物品时不序列化 item 标签
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
@@ -364,7 +364,7 @@ TEST_F(OminousItemSpawnerNbtTest, EmptyItem_RoundTrip)
     EXPECT_EQ(itemTag, nullptr);
 
     // 反序列化应不崩溃
-    OminousItemSpawnerEntity loaded(EntityInstanceId(2));
+    OminousItemSpawnerEntity loaded(EntityInstanceId(2), mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_TRUE(loaded.getItem().isEmpty());
@@ -375,7 +375,7 @@ TEST_F(OminousItemSpawnerNbtTest, WithItem_RoundTrip)
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
 
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity.setItem(ItemStack(*diamond, 7));
 
     nbt::tags::compound_tag tag;
@@ -386,7 +386,7 @@ TEST_F(OminousItemSpawnerNbtTest, WithItem_RoundTrip)
     ASSERT_NE(itemTag, nullptr);
 
     // 反序列化
-    OminousItemSpawnerEntity loaded(EntityInstanceId(2));
+    OminousItemSpawnerEntity loaded(EntityInstanceId(2), mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
     EXPECT_FALSE(loaded.getItem().isEmpty());
@@ -396,7 +396,7 @@ TEST_F(OminousItemSpawnerNbtTest, WithItem_RoundTrip)
 
 TEST_F(OminousItemSpawnerNbtTest, SpawnItemAfterTicks_RoundTrip)
 {
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
@@ -408,7 +408,7 @@ TEST_F(OminousItemSpawnerNbtTest, SpawnItemAfterTicks_RoundTrip)
     EXPECT_EQ(ticksVal.value(), OminousItemSpawnerEntity::SPAWN_ITEM_DELAY_MAX);
 
     // 反序列化
-    OminousItemSpawnerEntity loaded(EntityInstanceId(2));
+    OminousItemSpawnerEntity loaded(EntityInstanceId(2), mc::test::testEcsRegistry());
     auto result = loaded.readAdditionalSaveData(tag);
     EXPECT_TRUE(result.success());
 }
@@ -416,7 +416,7 @@ TEST_F(OminousItemSpawnerNbtTest, SpawnItemAfterTicks_RoundTrip)
 TEST_F(OminousItemSpawnerNbtTest, MissingKeys_PreservesDefaults)
 {
     // 空 NBT 标签不应改变默认值
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.getItem().isEmpty());
 
     nbt::tags::compound_tag emptyTag;
@@ -434,7 +434,7 @@ TEST_F(OminousItemSpawnerTest, TickServer_SpawnsItemAndRemoves)
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
 
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity.setItem(ItemStack(*diamond, 1));
     entity.setWorld(&m_world);
     m_world.setClientSide(false);
@@ -464,7 +464,7 @@ TEST_F(OminousItemSpawnerTest, TickClient_SpawnsParticles)
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
 
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity.setItem(ItemStack(*diamond, 1));
     entity.setWorld(&m_world);
     m_world.setClientSide(true);
@@ -539,7 +539,7 @@ TEST_F(OminousItemSpawnerTest, TickServer_SpawnsItemEntityForNormalItem)
 TEST_F(OminousItemSpawnerTest, TickServer_NoItem_DoesNotSpawn)
 {
     // 无物品的实体不应生成任何东西
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
     m_world.setClientSide(false);
 
@@ -602,7 +602,7 @@ TEST_F(OminousItemSpawnerTest, TickServer_PlayEventTriggered)
 TEST_F(OminousItemSpawnerTest, TickServer_NoWorld_DoesNotCrash)
 {
     // 无世界引用时，tick 不应崩溃
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
     entity.setItem(ItemStack(*diamond, 1));
@@ -616,7 +616,7 @@ TEST_F(OminousItemSpawnerTest, TickServer_NoWorld_DoesNotCrash)
 TEST_F(OminousItemSpawnerTest, TickClient_NoWorld_DoesNotCrash)
 {
     // 无世界引用时，客户端 tick 不应崩溃
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
     entity.setItem(ItemStack(*diamond, 1));
@@ -673,7 +673,7 @@ TEST_F(OminousItemSpawnerTest, WarningSoundPlays36TicksBeforeSpawn)
 
 TEST_F(OminousItemSpawnerTest, GetPushReaction_IsIgnore)
 {
-    OminousItemSpawnerEntity entity(EntityInstanceId(1));
+    OminousItemSpawnerEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(entity.getPushReaction(), PushReaction::Ignore);
 }
 

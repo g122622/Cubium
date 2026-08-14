@@ -28,6 +28,8 @@
 #include "entity/effect/EffectType.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity;
 
@@ -40,7 +42,7 @@ protected:
     void SetUp() override
     {
         // 创建一个简单的 LivingEntity 用于测试
-        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1));
+        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_living->registerData();
     }
 
@@ -54,7 +56,7 @@ protected:
     void SetUp() override
     {
         // 创建一个简单的 Entity 用于测试
-        m_entity = std::make_unique<Entity>(EntityInstanceId(1));
+        m_entity = std::make_unique<Entity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_entity->registerData();
     }
 
@@ -184,7 +186,7 @@ class LivingEntityGlowEffectTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1));
+        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_living->registerData();
     }
 

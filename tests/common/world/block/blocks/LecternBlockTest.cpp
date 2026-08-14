@@ -44,7 +44,7 @@ using namespace mc::blocks;
 
 namespace {
 
-class LecternTestWorld final : public test::BaseTestWorld {
+class LecternTestWorld final : public mc::test::BaseTestWorld {
 public:
     using IWorld::getBlockState;
 

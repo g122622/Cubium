@@ -22,6 +22,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 
@@ -45,7 +46,7 @@ protected:
     void SetUp() override
     {
         // Player 构造需要注册全局属性，此处直接构造
-        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer");
+        player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
     void TearDown() override { player.reset(); }

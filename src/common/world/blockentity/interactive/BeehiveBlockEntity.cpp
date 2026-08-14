@@ -249,7 +249,13 @@ bool BeehiveBlockEntity::_releaseOccupant(
     }
 
     // 创建蜜蜂实体
-    auto beeEntity = BeeEntity::create(&world);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = world.entityRegistry();
+    if (registry == nullptr) {
+        m_bees.insert(m_bees.begin() + occupantIndex, occupant);
+        return false;
+    }
+    auto beeEntity = BeeEntity::create(&world, *registry);
     if (!beeEntity) {
         // 创建失败，放回蜜蜂数据
         m_bees.insert(m_bees.begin() + occupantIndex, occupant);

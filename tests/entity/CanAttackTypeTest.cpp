@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
 #include "common/entity/entities/monster/breeze/BreezeEntity.hpp"
@@ -62,7 +63,7 @@ TEST_F(CanAttackTypeTest, MobBase_ExcludesGhast)
 {
     // MC 原版 Mob.canAttackType() 排除恶魂
     // 使用 ZombieEntity 作为 MobEntity 的具体子类测试
-    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(zombie->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "MobEntity should not be able to attack GHAST type";
 }
@@ -70,7 +71,7 @@ TEST_F(CanAttackTypeTest, MobBase_ExcludesGhast)
 TEST_F(CanAttackTypeTest, MobBase_AllowsOtherTypes)
 {
     // Mob 基类允许攻击除恶魂外的所有实体类型
-    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(zombie->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "MobEntity should be able to attack PLAYER type";
     EXPECT_TRUE(zombie->canAttackType(*VanillaEntityTypeKeys::ZOMBIE))
@@ -87,7 +88,7 @@ TEST_F(CanAttackTypeTest, MobBase_AllowsOtherTypes)
 TEST_F(CanAttackTypeTest, MobBase_PassiveMobAlsoExcludesGhast)
 {
     // 被动生物（如猪）也继承 MobEntity，同样排除恶魂
-    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1));
+    auto pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(pig->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "Passive mobs (PigEntity) should also exclude GHAST type";
     EXPECT_TRUE(pig->canAttackType(*VanillaEntityTypeKeys::PLAYER)) << "Passive mobs should allow other types";
@@ -96,7 +97,7 @@ TEST_F(CanAttackTypeTest, MobBase_PassiveMobAlsoExcludesGhast)
 TEST_F(CanAttackTypeTest, MobBase_UnknownTypeAllowed)
 {
     // 使用不可能的 ID 测试：Mob 基类允许攻击非 GHAST 的任意类型
-    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1));
+    auto zombie = std::make_unique<ZombieEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(zombie->canAttackType(entity::EntityType::UNKNOWN))
         << "MobEntity should allow attacking unknown type IDs (except GHAST)";
 }
@@ -109,7 +110,7 @@ TEST_F(CanAttackTypeTest, Phantom_CanAttackGhast)
 {
     // MC 原版 Phantom.canAttackType() 返回 true，覆盖基类排除恶魂的限制
     // 幻翼本身是飞行生物，可以攻击空中目标
-    auto phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
+    auto phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(phantom->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "PhantomEntity should be able to attack GHAST (overrides base class exclusion)";
 }
@@ -117,7 +118,7 @@ TEST_F(CanAttackTypeTest, Phantom_CanAttackGhast)
 TEST_F(CanAttackTypeTest, Phantom_CanAttackAllTypes)
 {
     // Phantom 返回 true，允许攻击所有类型
-    auto phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1));
+    auto phantom = std::make_unique<PhantomEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(phantom->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "PhantomEntity should be able to attack PLAYER";
     EXPECT_TRUE(phantom->canAttackType(*VanillaEntityTypeKeys::ZOMBIE))
@@ -137,7 +138,7 @@ TEST_F(CanAttackTypeTest, Phantom_CanAttackAllTypes)
 TEST_F(CanAttackTypeTest, Breeze_CanAttackPlayer)
 {
     // MC 原版 Breeze.canAttackType() 白名单模式：仅允许攻击玩家
-    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1));
+    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(breeze->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "BreezeEntity should be able to attack PLAYER";
 }
@@ -145,7 +146,7 @@ TEST_F(CanAttackTypeTest, Breeze_CanAttackPlayer)
 TEST_F(CanAttackTypeTest, Breeze_CanAttackIronGolem)
 {
     // MC 原版 Breeze.canAttackType() 白名单模式：仅允许攻击铁傀儡
-    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1));
+    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(breeze->canAttackType(*VanillaEntityTypeKeys::IRON_GOLEM))
         << "BreezeEntity should be able to attack IRON_GOLEM";
 }
@@ -153,7 +154,7 @@ TEST_F(CanAttackTypeTest, Breeze_CanAttackIronGolem)
 TEST_F(CanAttackTypeTest, Breeze_CannotAttackOtherTypes)
 {
     // 白名单模式：除玩家和铁傀儡外的类型都不允许攻击
-    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1));
+    auto breeze = std::make_unique<BreezeEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(breeze->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "BreezeEntity should NOT be able to attack GHAST (not in whitelist)";
     EXPECT_FALSE(breeze->canAttackType(*VanillaEntityTypeKeys::ZOMBIE))
@@ -175,7 +176,7 @@ TEST_F(CanAttackTypeTest, Breeze_CannotAttackOtherTypes)
 TEST_F(CanAttackTypeTest, IronGolem_NeverAttacksCreeper)
 {
     // 铁傀儡不攻击苦力怕，无论是否玩家创建
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setPlayerCreated(true);
     EXPECT_FALSE(golem->canAttackType(*VanillaEntityTypeKeys::CREEPER))
         << "Player-created IronGolem should NOT attack CREEPER";
@@ -187,7 +188,7 @@ TEST_F(CanAttackTypeTest, IronGolem_NeverAttacksCreeper)
 TEST_F(CanAttackTypeTest, IronGolem_PlayerCreatedDoesNotAttackPlayer)
 {
     // 玩家创建的铁傀儡不攻击玩家
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setPlayerCreated(true);
     EXPECT_FALSE(golem->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "Player-created IronGolem should NOT attack PLAYER";
@@ -196,7 +197,7 @@ TEST_F(CanAttackTypeTest, IronGolem_PlayerCreatedDoesNotAttackPlayer)
 TEST_F(CanAttackTypeTest, IronGolem_WildGolemCanAttackPlayer)
 {
     // 野生铁傀儡可以攻击玩家
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setPlayerCreated(false);
     EXPECT_TRUE(golem->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "Wild IronGolem should be able to attack PLAYER";
@@ -207,7 +208,7 @@ TEST_F(CanAttackTypeTest, IronGolem_ExcludesGhastViaBaseClass)
     // 铁傀儡继承 MobEntity 基类排除恶魂的逻辑
     // IronGolem::canAttackType 对非 PLAYER/非 CREEPER 类型委托给 MobEntity::canAttackType
     // 而 MobEntity::canAttackType 排除 GHAST
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setPlayerCreated(false);
     EXPECT_FALSE(golem->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "IronGolem should NOT attack GHAST (inherited from MobEntity base class)";
@@ -216,7 +217,7 @@ TEST_F(CanAttackTypeTest, IronGolem_ExcludesGhastViaBaseClass)
 TEST_F(CanAttackTypeTest, IronGolem_CanAttackOtherTypes)
 {
     // 铁傀儡可以攻击除苦力怕、恶魂以外的类型
-    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     golem->setPlayerCreated(false);
     EXPECT_TRUE(golem->canAttackType(*VanillaEntityTypeKeys::ZOMBIE)) << "IronGolem should be able to attack ZOMBIE";
     EXPECT_TRUE(golem->canAttackType(*VanillaEntityTypeKeys::SKELETON))
@@ -235,7 +236,7 @@ TEST_F(CanAttackTypeTest, IronGolem_CanAttackOtherTypes)
 TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksCreeper)
 {
     // MC 原版 Zoglin.isTargetable 排除 Creeper
-    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1));
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(zoglin->canAttackType(*VanillaEntityTypeKeys::CREEPER))
         << "ZoglinEntity should NOT be able to attack CREEPER";
 }
@@ -243,7 +244,7 @@ TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksCreeper)
 TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksZoglin)
 {
     // MC 原版 Zoglin.isTargetable 排除同类 Zoglin
-    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1));
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(zoglin->canAttackType(*VanillaEntityTypeKeys::ZOGLIN))
         << "ZoglinEntity should NOT be able to attack ZOGLIN";
 }
@@ -251,7 +252,7 @@ TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksZoglin)
 TEST_F(CanAttackTypeTest, Zoglin_CanAttackOtherTypes)
 {
     // 僵尸疣兽可以攻击除同类和苦力怕以外的所有类型
-    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1));
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_TRUE(zoglin->canAttackType(*VanillaEntityTypeKeys::PLAYER))
         << "ZoglinEntity should be able to attack PLAYER";
     EXPECT_TRUE(zoglin->canAttackType(*VanillaEntityTypeKeys::ZOMBIE))
@@ -266,7 +267,7 @@ TEST_F(CanAttackTypeTest, Zoglin_CanAttackOtherTypes)
 TEST_F(CanAttackTypeTest, Zoglin_ExcludesGhastViaBaseClass)
 {
     // ZoglinEntity 继承 MonsterEntity -> MobEntity 基类排除恶魂的逻辑
-    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1));
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_FALSE(zoglin->canAttackType(*VanillaEntityTypeKeys::GHAST))
         << "ZoglinEntity should NOT attack GHAST (inherited from MobEntity base class)";
 }

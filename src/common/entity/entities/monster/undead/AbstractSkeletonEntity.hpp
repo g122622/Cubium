@@ -39,6 +39,10 @@ namespace mc {
 // Forward declarations
 class Item;
 
+namespace entity {
+class ArrowEntity;
+}
+
 /**
  * @brief 骷髅系怪物公共中间层
  *
@@ -50,8 +54,8 @@ class Item;
  *
  * 子类：
  * - SkeletonEntity: 普通骷髅，使用弓远程攻击
- * - StrayEntity: 流浪者，使用弓远程攻击，不在阳光下燃烧
- * - WitherSkeletonEntity: 凋灵骷髅，使用石剑近战攻击，施加凋零效果
+ * - StrayEntity: 流浪者，使用弓远程攻击，射出迟缓之箭，作为亡灵会在阳光下燃烧
+ * - WitherSkeletonEntity: 凋灵骷髅，使用石剑近战攻击，施加凋零效果，不在阳光下燃烧
  *
  * 关键设计：
  * - registerGoals() 只注册非战斗目标（移动、看向、目标选择）
@@ -206,10 +210,40 @@ public:
         mc::world::spawn::SpawnReason spawnReason) override;
 
 protected:
-    AbstractSkeletonEntity(EntityInstanceId id);
+    AbstractSkeletonEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
     void registerGoals() override;
     void registerAttributes() override;
+
+    /**
+     * @brief 填充默认装备（主手弓）
+     *
+     * 对应 MC 原版 AbstractSkeleton.populateDefaultEquipmentSlots()：骷髅系怪物
+     * 在非和平难度下主手默认持弓（普通骷髅/流浪者远程攻击，凋零骷髅 override 用石剑）。
+     * 持弓是 setCombatTask() 判定 shouldUseRanged=true 注册 RangedBowAttackGoal 的前提——
+     * 不持弓则退化用 MeleeAttackGoal 近战，与原版骷髅/流浪者远程攻击行为不符。
+     * 盔甲由基类 MobEntity::populateDefaultEquipmentSlots 按难度概率填充，此处只补主手弓。
+     *
+     * @param random 随机源
+     * @param difficulty 区域难度实例
+     */
+    void populateDefaultEquipmentSlots(
+        math::Random& random, const entity::combat::DifficultyInstance& difficulty) override;
+
+    /**
+     * @brief 定制射出箭矢的钩子（在箭矢发射前调用）
+     *
+     * attackEntityWithRangedAttack 创建并发射箭矢前调用此钩子，子类可重写以
+     * 为箭矢附加药水效果等定制内容。默认实现为空（普通骷髅射普通箭矢）。
+     *
+     * 流浪者（StrayEntity）重写此方法为箭矢附加缓慢效果，使射出的箭命中目标时
+     * 施加 30 秒缓慢 I（对应原版流浪者发射 Arrow of Slowness）。
+     *
+     * 对应 MC 原版 AbstractSkeleton.getArrow() 子类定制箭矢的扩展点。
+     *
+     * @param arrow 即将发射的箭矢实体（已设置位置/方向/伤害，尚未 spawn）
+     */
+    virtual void customizeArrow(entity::ArrowEntity& arrow) {}
 
     /**
      * @brief 注册同步数据参数

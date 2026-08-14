@@ -24,6 +24,7 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
@@ -38,7 +39,7 @@ namespace test {
 
 class IronGolemGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1)); }
+    void SetUp() override { ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { ironGolem.reset(); }
 
@@ -51,7 +52,7 @@ class OfferFlowerGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::OfferFlowerGoal>(ironGolem.get());
     }
 
@@ -133,7 +134,7 @@ class MoveTowardsTargetGoalTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         goal = std::make_unique<entity::ai::goal::MoveTowardsTargetGoal>(ironGolem.get(), 0.9, 32.0f);
     }
 
@@ -179,7 +180,7 @@ protected:
         // 注册原版实体类型，使 VanillaEntityTypeKeys 指针非空，可解引用传入 canAttackType。
         // registerAll() 幂等且线程安全，多次调用无副作用。
         entity::VanillaEntities::registerAll();
-        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1));
+        ironGolem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { ironGolem.reset(); }
@@ -265,7 +266,7 @@ TEST_F(IronGolemEntityTest, Dimensions)
 
 class GolemEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1)); }
+    void SetUp() override { golem = std::make_unique<IronGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
 
     void TearDown() override { golem.reset(); }
 

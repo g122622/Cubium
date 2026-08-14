@@ -374,15 +374,17 @@
 
 ### Entity 层冰冻状态
 
-- `m_ticksFrozen`（i32）— 冰冻计时器，正值表示冰冻进度，达到 `getTicksRequiredToFreeze()` 时完全冰冻
-- `m_isInPowderSnow`（bool）— 当前 tick 是否处于细雪中，每帧由 `baseTick()` 重置为 false，由 `PowderSnowBlock::onEntityCollision()` 设置为 true
-- `DATA_TICKS_FROZEN_PARAM` — 客户端同步数据参数，冰冻进度用于渲染冰冻视觉效果
-- `clearFreeze()` — 虚方法，基类重置 `m_ticksFrozen = 0`，LivingEntity 重写版本额外移除冰冻减速修饰符
+冰冻状态数据存于 `ecs::FreezeComponent`（真相源），`DATA_TICKS_FROZEN_PARAM` 退为客户端同步镜像。所有读写经 `tryGetComponent<FreezeComponent>`，不进 `m_builtIn` 缓存（低频）。
+
+- `FreezeComponent.m_ticksFrozen`（i32）— 冰冻计时器，正值表示冰冻进度，达到 `getTicksRequiredToFreeze()` 时完全冰冻
+- `FreezeComponent.m_isInPowderSnow`（bool）— 当前 tick 是否处于细雪中，每帧由 `baseTick()` 重置为 false，由 `PowderSnowBlock::onEntityCollision()` 设置为 true
+- `DATA_TICKS_FROZEN_PARAM` — 客户端同步镜像（非真相源），`setTicksFrozen()` 内同时写组件与镜像；服务端 `syncMetadataFromDataManager` 不再从镜像回填组件
+- `clearFreeze()` — 虚方法，基类调 `setTicksFrozen(0)`，LivingEntity 重写版本额外移除冰冻减速修饰符
 - `canFreeze()` — 虚方法，基类检查 `EntityTypeTags::FREEZE_IMMUNE_ENTITY_TYPES`（安全检查：标签未初始化时默认允许冰冻），LivingEntity 重写版本额外检查 `ItemTags::FREEZE_IMMUNE_WEARABLES`（皮革护甲）
-- `getPercentFrozen()` — 返回 `min(m_ticksFrozen, required) / required`，值域 [0.0, 1.0]
-- `isFullyFrozen()` — `m_ticksFrozen >= getTicksRequiredToFreeze()`
-- `isFreezing()` — `m_ticksFrozen > 0`
-- `setTicksFrozen(i32)` / `getTicksFrozen()` — 冰冻计时器存取
+- `getPercentFrozen()` — 返回 `min(getTicksFrozen(), required) / required`，值域 [0.0, 1.0]
+- `isFullyFrozen()` — `getTicksFrozen() >= getTicksRequiredToFreeze()`
+- `isFreezing()` — `getTicksFrozen() > 0`
+- `setTicksFrozen(i32)` / `getTicksFrozen()` — 冰冻计时器存取（setter 同时写组件 + 同步镜像）
 - `setIsInPowderSnow(bool)` / `isInPowderSnow()` — 细雪状态存取
 
 ### LivingEntity 冰冻逻辑
@@ -532,7 +534,7 @@
                 *：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前
                     Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发 -
             拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`）， 完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现 - `canBeLeashed()` -
-            判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳） -
+            判断生物是否可被拴绳拴住，默认实现通过 `hasComponent<MobFlagComponent>()` 判断（敌对生物不可拴绳，IMob 接口的 tag 层） -
             拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost / UUIDLeast）和栅栏柱坐标（X / Y /
                 Z）两种格式 -
             拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT

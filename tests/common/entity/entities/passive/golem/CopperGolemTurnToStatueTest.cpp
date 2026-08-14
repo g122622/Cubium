@@ -84,7 +84,7 @@ namespace {
 // - playSound() 播放变雕像音效
 // - spawnEntity() 由 dropLeash() -> ItemDropHelper 间接调用以掉落拴绳物品
 
-class CopperGolemTurnToStatueTestWorld final : public test::BaseTestWorld {
+class CopperGolemTurnToStatueTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemTurnToStatueTestWorld()
     {
@@ -236,7 +236,7 @@ protected:
     /// 创建一个铜傀儡，放置在 (8, 64, 8) 位置（脚下为空气）
     std::unique_ptr<CopperGolemEntity> createGolemAtStatuePosition()
     {
-        auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+        auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         golem->setWorld(m_world.get());
         // 位置 (8.5, 64, 8.5) → blockPosition() = (8, 64, 8)，下方为空气
         golem->setPosition(8.5f, 64.0f, 8.5f);
@@ -513,7 +513,7 @@ TEST_F(CopperGolemTurnToStatueTest, TurnToStatue_WithCustomNameAndLeashed_Preser
 TEST_F(CopperGolemTurnToStatueTest, TurnToStatue_WhenWorldNull_DoesNotCrash)
 {
     // 边界场景：实体未设置世界时调用 turnToStatue 应安全返回（不崩溃）
-    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1));
+    auto golem = std::make_unique<CopperGolemEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 不调用 setWorld，golem->world() 返回 nullptr
 
     // 应安全返回，不崩溃

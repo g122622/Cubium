@@ -44,7 +44,7 @@ using namespace mc;
 using namespace mc::loot;
 
 // Test implementation of IWorld for loot testing
-class MatchToolConditionTestWorld : public test::BaseTestWorld {
+class MatchToolConditionTestWorld : public mc::test::BaseTestWorld {
 public:
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {

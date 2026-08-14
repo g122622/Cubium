@@ -79,8 +79,8 @@ const entity::EntityClassInfo& BeeEntity::classInfo()
 // 构造与生命周期
 // ============================================================================
 
-BeeEntity::BeeEntity(EntityInstanceId id)
-    : AnimalEntity(id)
+BeeEntity::BeeEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AnimalEntity(id, registry)
 {
     // 注册 AI 目标
     registerGoals();
@@ -94,9 +94,9 @@ BeeEntity::BeeEntity(EntityInstanceId id)
     registerData();
 }
 
-std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> BeeEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<BeeEntity>(0);
+    return std::make_unique<BeeEntity>(0, registry);
 }
 
 // ============================================================================
@@ -291,7 +291,13 @@ bool BeeEntity::isBreedingItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AnimalEntity> BeeEntity::spawnBaby(AnimalEntity& /*partner*/)
 {
-    auto baby = std::make_unique<BeeEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+
+    auto baby = std::make_unique<BeeEntity>(0, *registry);
 
     // 设置为幼体
     baby->setChild(true);
@@ -440,15 +446,15 @@ void BeeEntity::registerAttributes()
 
     // 注意：AnimalEntity 不注册 FLYING_SPEED 和 ATTACK_DAMAGE
     // 需要先注册这些属性才能设置值
-    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
-    m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().registerAttribute(*entity::attribute::Attributes::flyingSpeed());
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
 
     // 设置属性值
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    attributes().setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
 }
 
 std::optional<ResourceLocation> BeeEntity::getAmbientSound() const

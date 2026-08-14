@@ -26,7 +26,10 @@
 #include "item/core/ItemRegistry.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/ContainerBlockEntity.hpp"
+#include "world/blockentity/core/SimpleInventory.hpp"
 #include <gtest/gtest.h>
+
+#include "common/TestWorldHelper.hpp"
 
 using namespace mc;
 
@@ -51,6 +54,51 @@ public:
     {
         return std::make_unique<TestContainerBlockEntity>(m_type, m_pos);
     }
+};
+
+// 测试用的「带真实背包」容器方块实体
+//
+// ContainerBlockEntity 基类的 getInventory() 默认返回 nullptr（契约：基类不持背包，子类负责提供），
+// 故 TestContainerBlockEntity（不 override getInventory）用于验证「默认空容器」契约
+// （Container_GetInventory_ReturnsNullByDefault / Container_IsEmpty_ReturnsTrueByDefault）。
+// 而 save/load 契约（Container_SaveLoad_* / Container_Load_UsesArrayIndexFallback*）需要非空
+// inventory 才能写入/读回 Items 数组，故另用本类持 SimpleInventory 成员并 override getInventory，
+// 与基类 save/load 协作验证存档往返。两个桩各司其职，避免单桩既要返回 nullptr 又要返回非空的矛盾。
+//
+// 同理，BlockEntity 基类的 getCustomName/setCustomName 是空桩，ContainerBlockEntity::save/load
+// 依赖子类 override 这两个方法维护 m_customName（与 BrewingStandEntity/CrafterBlockEntity 等生产
+// 子类同款契约，见 src/common/world/blockentity/processing/README.md）。本桩一并 override，
+// 否则 CustomName 不存储，save/load 往返丢失。
+class TestFilledContainerBlockEntity : public ContainerBlockEntity {
+public:
+    static constexpr i32 kSize = 27; // 与箱子同尺寸
+
+    TestFilledContainerBlockEntity(BlockEntityType type, const BlockPos& pos)
+        : ContainerBlockEntity(type, pos)
+        , m_inventory(kSize)
+    {}
+
+    [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
+    [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
+    [[nodiscard]] i32 getContainerSize() const override { return m_inventory.getContainerSize(); }
+
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+    void setCustomName(const std::string& name) override { m_customName = name; }
+
+    std::unique_ptr<BlockEntity> clone() const override
+    {
+        auto copy = std::make_unique<TestFilledContainerBlockEntity>(m_type, m_pos);
+        // SimpleInventory 不可拷贝，逐槽复制内容
+        for (i32 i = 0; i < m_inventory.getContainerSize(); ++i) {
+            copy->m_inventory.setItem(i, m_inventory.getItem(i).copy());
+        }
+        copy->m_customName = m_customName;
+        return copy;
+    }
+
+private:
+    blockentity::SimpleInventory m_inventory;
+    std::string m_customName;
 };
 
 namespace {
@@ -232,8 +280,10 @@ TEST_F(BlockEntityTest, Container_SaveLoad_PreservesItemsAndCustomName)
     auto* apple = ensureBlockEntityTestItem("apple");
     ASSERT_NE(apple, nullptr);
 
-    // vanilla 工作台不再是方块实体，改用 TestContainerBlockEntity 验证容器存档加载契约。
-    TestContainerBlockEntity table(BlockEntityType::Chest, BlockPos(4, 5, 6));
+    // vanilla 工作台不再是方块实体，改用 TestFilledContainerBlockEntity 验证容器存档加载契约。
+    // 该桩持真实 SimpleInventory（ContainerBlockEntity 基类 getInventory 默认返回 nullptr，
+    // 无法验证 Items 写读，故用带背包的桩）。
+    TestFilledContainerBlockEntity table(BlockEntityType::Chest, BlockPos(4, 5, 6));
     table.setCustomName("crafting.test");
     IInventory* inventory = table.getInventory();
     ASSERT_NE(inventory, nullptr);
@@ -242,7 +292,7 @@ TEST_F(BlockEntityTest, Container_SaveLoad_PreservesItemsAndCustomName)
     nlohmann::json data;
     table.save(data);
 
-    TestContainerBlockEntity loaded(BlockEntityType::Chest, BlockPos(0, 0, 0));
+    TestFilledContainerBlockEntity loaded(BlockEntityType::Chest, BlockPos(0, 0, 0));
     ASSERT_TRUE(loaded.load(data));
 
     const IInventory* loadedInventory = loaded.getInventory();
@@ -266,7 +316,7 @@ TEST_F(BlockEntityTest, Container_Load_UsesArrayIndexFallbackWhenSlotMissing)
     data["Items"] = nlohmann::json::array();
     data["Items"].push_back(ItemStack(stick, 2).toJson());
 
-    TestContainerBlockEntity loaded(BlockEntityType::Chest, BlockPos(0, 0, 0));
+    TestFilledContainerBlockEntity loaded(BlockEntityType::Chest, BlockPos(0, 0, 0));
     ASSERT_TRUE(loaded.load(data));
 
     const IInventory* loadedInventory = loaded.getInventory();

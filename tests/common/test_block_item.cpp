@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -198,7 +199,7 @@ TEST_F(BlockItemTest, RegistryMapsStoneBlockItem)
 
 TEST_F(BlockItemTest, CreativeInventoryGetsRegisteredBlockItems)
 {
-    Player player(1, "test");
+    Player player(1, "test", mc::test::testEcsRegistry());
     player.setCreativeModeInventory();
 
     const ItemStack selected = player.inventory().getSelectedStack();

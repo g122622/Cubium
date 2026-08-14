@@ -51,6 +51,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -115,13 +116,13 @@ const std::unordered_map<const Item*, i32>& VillagerEntity::foodPoints()
 // VillagerEntity
 // ============================================================================
 
-std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> VillagerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<VillagerEntity>(0);
+    return std::make_unique<VillagerEntity>(0, registry);
 }
 
-VillagerEntity::VillagerEntity(EntityInstanceId id)
-    : AbstractVillagerEntity(id)
+VillagerEntity::VillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractVillagerEntity(id, registry)
     , m_brain(std::make_unique<VillagerBrain>())
 {
     registerAttributes();
@@ -133,15 +134,8 @@ void VillagerEntity::tick()
 {
     AbstractVillagerEntity::tick();
 
-    // 更新Brain系统
-    if (m_brain && m_world) {
-        // 获取游戏时间和白天时间
-        i64 gameTime = m_world->currentTick();
-        i32 dayTime = static_cast<i32>(m_world->dayTimeOfDay());
-
-        // Brain tick使用实体的持久化随机数生成器
-        m_brain->tick(m_world, this, gameTime, dayTime, getRandom());
-    }
+    // Brain tick 已上移至 BrainTickSystem（PostEntityTick 阶段，见 EntityManager::_tickBrains）。
+    // m_brain 成员与 brain() 访问器保留不变，Goal/Task/Sensor 仍经 owner->brain() 访问。
 
     // 更新声音冷却
     if (m_soundCooldown > 0) {
@@ -556,7 +550,13 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
 
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()
 {
-    auto child = std::make_unique<VillagerEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return nullptr;
+    }
+    auto child = std::make_unique<VillagerEntity>(0, *registry);
+    child->setTypeId(EntityTypeKeys::VILLAGER); // 工厂绕过补救：直接构造缺 typeId
     child->setChild(true);
 
     // 继承村民类型
@@ -728,8 +728,8 @@ void VillagerEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 村民属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
 // ========== 补货系统 ==========
@@ -1109,13 +1109,13 @@ void VillagerEntity::_increaseMerchantCareer()
 // WanderingTraderEntity
 // ============================================================================
 
-std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> WanderingTraderEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<WanderingTraderEntity>(0);
+    return std::make_unique<WanderingTraderEntity>(0, registry);
 }
 
-WanderingTraderEntity::WanderingTraderEntity(EntityInstanceId id)
-    : AbstractVillagerEntity(id)
+WanderingTraderEntity::WanderingTraderEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractVillagerEntity(id, registry)
 {
     m_despawnDelay = 48000; // 40分钟 = 48000 ticks
     registerAttributes();
@@ -1157,6 +1157,11 @@ void WanderingTraderEntity::spawnLlamas()
 
     // 在流浪商人附近生成贸易羊驼
     // 最多2只羊驼，生成在商人后方
+    // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
     math::Random& rng = m_world->getRandom();
 
     for (i32 i = 0; i < m_llamaCount && i < 2; ++i) {
@@ -1169,7 +1174,8 @@ void WanderingTraderEntity::spawnLlamas()
         f64 spawnY = y();
 
         // 创建商队羊驼
-        auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0));
+        auto llama = std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), *registry);
+        llama->setTypeId(EntityTypeKeys::TRADER_LLAMA); // 工厂绕过补救：直接构造缺 typeId
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 
@@ -1333,8 +1339,8 @@ void WanderingTraderEntity::registerAttributes()
     AgeableEntity::registerAttributes();
 
     // 流浪商人属性
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
 }
 
 void WanderingTraderEntity::updateOffers()

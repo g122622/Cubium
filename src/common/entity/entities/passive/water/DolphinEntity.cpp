@@ -92,8 +92,8 @@ void DolphinEntity::registerData()
     m_dataManager.registerParam(DATA_MOISTNESS_LEVEL_PARAM, 2400);
 }
 
-DolphinEntity::DolphinEntity(EntityInstanceId id)
-    : WaterMobEntity(id)
+DolphinEntity::DolphinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : WaterMobEntity(id, registry)
 {
     // 设置空气值（4800 tick = 4分钟）
     setAir(MAX_AIR);
@@ -109,9 +109,9 @@ DolphinEntity::DolphinEntity(EntityInstanceId id)
     registerAttributes();
 }
 
-std::unique_ptr<Entity> DolphinEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> DolphinEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<DolphinEntity>(0);
+    return std::make_unique<DolphinEntity>(0, registry);
 }
 
 bool DolphinEntity::canJumpOutOfWater() const
@@ -328,9 +328,9 @@ void DolphinEntity::registerAttributes()
     // 最大生命值: 10.0
     // 移动速度: 1.2
     // 攻击伤害: 3.0
-    m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
-    m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 1.2);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
 }
 
 } // namespace mc

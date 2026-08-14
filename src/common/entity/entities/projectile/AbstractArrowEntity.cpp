@@ -25,10 +25,14 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/ecs/components/ArrowEffectsComponent.hpp"
+#include "common/entity/ecs/components/ProjectileArrowStateComponent.hpp"
+#include "common/entity/ecs/components/SpectralArrowComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -45,6 +49,7 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -71,28 +76,211 @@ math::Random createRandomFromEntity(const Entity& entity)
 // AbstractArrowEntity
 // ============================================================================
 
-AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id)
-    : ProjectileEntity(id)
+// 静态数据参数定义（对应 MC 1.21.11 AbstractArrow.defineSynchedData()）。
+// 在静态初始化阶段通过 EntityDataManager::createKey<T>() 分配全局唯一 ID。
+// 真实 id 在 registerData() 内由 ClassRegisterGuard 沿继承链续接分配（Entity 8 字段后 → id8/9/10）。
+entity::DataParameter<i8> AbstractArrowEntity::DATA_ARROW_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i8> AbstractArrowEntity::DATA_PIERCE_LEVEL_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<bool> AbstractArrowEntity::DATA_IN_GROUND_PARAM = entity::EntityDataManager::createKey<bool>();
+
+// 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = ProjectileEntity::classInfo()）。
+// 子类（TridentEntity）的 registerData 首行调 AbstractArrowEntity::registerData()，
+// 其 ClassRegisterGuard 沿父链穿过本节点续接 id。
+const EntityClassInfo& AbstractArrowEntity::classInfo()
 {
-    m_noGravity = false;
+    static const EntityClassInfo s_classInfo{"AbstractArrowEntity", &ProjectileEntity::classInfo()};
+    return s_classInfo;
+}
+
+void AbstractArrowEntity::registerData()
+{
+    // 先调用基类注册基础参数（FLAGS/AIR/CUSTOM_NAME 等，id0..7）
+    ProjectileEntity::registerData();
+
+    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
+
+    // 注册箭矢专属同步参数（id8/9/10，对应 vanilla AbstractArrow）
+    // DATA_ARROW_FLAGS：bit0=critical, bit2=shotFromCrossbow（vanilla getFlags/setFlags 编码）
+    m_dataManager.registerParam(DATA_ARROW_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_PIERCE_LEVEL_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_IN_GROUND_PARAM, false);
+}
+
+void AbstractArrowEntity::_syncArrowFlags()
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c == nullptr) {
+        return;
+    }
+    // vanilla AbstractArrow.getFlags(): bit0=critical, bit2=shotFromCrossbow
+    i8 flags = static_cast<i8>((c->m_critical ? 1 : 0) | (c->m_shotFromCrossbow ? 4 : 0));
+    m_dataManager.set(DATA_ARROW_FLAGS_PARAM, flags);
+}
+
+AbstractArrowEntity::AbstractArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : ProjectileEntity(id, registry)
+{
+    // 批次6 子目标2 Step1：attach ProjectileArrowStateComponent（箭矢 13 字段状态）。
+    // ArrowEntity/SpectralArrowEntity/TridentEntity/SpearEntity 子类经此自动获得组件。
+    // Step3 已把 m_damage/m_critical/m_pierceLevel/m_inGround 等 13 字段读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ProjectileArrowStateComponent>(m_entityContext->entity());
+    // C++ 虚函数在构造函数中不会派生到子类，故 Entity 基类构造调用的 registerData()
+    // 只执行 ProjectileEntity 链。子类必须在此显式调用本类 registerData() 注册箭矢同步字段。
+    // 注意：子类（TridentEntity）构造会先调本构造函数，再调自身 registerData()——本调用
+    // 注册 id8/9/10，Trident 后续 registerData 续接 id11/12，无重复（PARAM 静态幂等）。
+    registerData();
+}
+
+// 批次6 子目标2 Step3：以下 getter/setter 经 ProjectileArrowStateComponent 读写。
+f32 AbstractArrowEntity::damage() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_damage : 0.0f;
+}
+
+void AbstractArrowEntity::setDamage(f32 damage)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_damage = damage;
+    }
+}
+
+i32 AbstractArrowEntity::knockbackStrength() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_knockbackStrength : 0;
+}
+
+void AbstractArrowEntity::setKnockbackStrength(i32 strength)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_knockbackStrength = strength;
+    }
+}
+
+bool AbstractArrowEntity::isCritical() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_critical : false;
+}
+
+void AbstractArrowEntity::setCritical(bool critical)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_critical = critical;
+    }
+    // 同步 DATA_ARROW_FLAGS 镜像（bit0=critical）
+    _syncArrowFlags();
+}
+
+u8 AbstractArrowEntity::pierceLevel() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_pierceLevel : 0;
+}
+
+void AbstractArrowEntity::setPierceLevel(u8 level)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_pierceLevel = level;
+    }
+    // 同步 DATA_PIERCE_LEVEL 镜像
+    m_dataManager.set(DATA_PIERCE_LEVEL_PARAM, static_cast<i8>(level));
+}
+
+bool AbstractArrowEntity::isInGround() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_inGround : false;
+}
+
+void AbstractArrowEntity::setInGround(bool inGround)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_inGround = inGround;
+    }
+    // 同步 DATA_IN_GROUND 镜像
+    m_dataManager.set(DATA_IN_GROUND_PARAM, inGround);
+}
+
+PickupStatus AbstractArrowEntity::pickupStatus() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_pickupStatus : PickupStatus::Disallowed;
+}
+
+void AbstractArrowEntity::setPickupStatus(PickupStatus status)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_pickupStatus = status;
+    }
+}
+
+bool AbstractArrowEntity::shotFromCrossbow() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_shotFromCrossbow : false;
+}
+
+void AbstractArrowEntity::setShotFromCrossbow(bool fromCrossbow)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_shotFromCrossbow = fromCrossbow;
+    }
+    // 同步 DATA_ARROW_FLAGS 镜像（bit2=shotFromCrossbow）
+    _syncArrowFlags();
+}
+
+bool AbstractArrowEntity::hasDealtDamage() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_dealtDamage : false;
+}
+
+void AbstractArrowEntity::setDealtDamage(bool dealt)
+{
+    auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (c != nullptr) {
+        c->m_dealtDamage = dealt;
+    }
+}
+
+i32 AbstractArrowEntity::timeInGround() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_timeInGround : 0;
+}
+
+i32 AbstractArrowEntity::arrowShake() const
+{
+    const auto* c = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    return (c != nullptr) ? c->m_arrowShake : 0;
 }
 
 void AbstractArrowEntity::tick()
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    MC_ASSERT_RELEASE(comp != nullptr);
+
     // 检查是否已离开发射者
-    if (!m_leftShooter) {
-        m_leftShooter = checkLeftShooter();
-    }
+    tryUpdateLeftShooter();
 
     // 如果插在方块中，执行不同的tick逻辑
-    if (m_inGround) {
+    if (comp->m_inGround) {
         tickInGround();
         return;
     }
 
     // 检查抖动
-    if (m_arrowShake > 0) {
-        --m_arrowShake;
+    if (comp->m_arrowShake > 0) {
+        --comp->m_arrowShake;
     }
 
     // 如果在水中，灭火并生成气泡粒子
@@ -102,16 +290,18 @@ void AbstractArrowEntity::tick()
         if (m_world) {
             for (int j = 0; j < 4; ++j) {
                 f32 offset = 0.25f;
-                Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-                m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
+                Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
+                    y() - m_builtIn.velocity->m_velocity.y * offset,
+                    z() - m_builtIn.velocity->m_velocity.z * offset);
+                m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_builtIn.velocity->m_velocity);
             }
         }
     }
 
     // ========== 检查是否在方块内 ==========
-    BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_position.x)),
-        static_cast<BlockCoord>(std::floor(m_position.y)),
-        static_cast<BlockCoord>(std::floor(m_position.z)));
+    BlockPos currentPos = BlockPos(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+        static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
     if (m_world) {
         const BlockState* blockState = m_world->getBlockState(currentPos.x, currentPos.y, currentPos.z);
         // 检查是否在非空气方块的碰撞箱内
@@ -127,9 +317,9 @@ void AbstractArrowEntity::tick()
 
                 // 检查箭矢位置是否在任意碰撞箱内
                 for (const AxisAlignedBB& box : worldBoxes) {
-                    if (box.contains(m_position)) {
-                        m_inGround = true;
-                        m_inBlockState = *blockState;
+                    if (box.contains(m_builtIn.stateVector->m_pos)) {
+                        comp->m_inGround = true;
+                        *comp->m_inBlockState = *blockState;
                         break;
                     }
                 }
@@ -141,7 +331,7 @@ void AbstractArrowEntity::tick()
     ProjectileEntity::tick();
 
     // 暴击粒子效果
-    if (m_critical && !m_inGround && m_world) {
+    if (comp->m_critical && !comp->m_inGround && m_world) {
         math::Random rng = createRandomFromEntity(*this);
         // 每tick有概率生成暴击粒子
         if (rng.nextInt(3) == 0) {
@@ -160,25 +350,31 @@ void AbstractArrowEntity::tick()
 
 void AbstractArrowEntity::tickInGround()
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+
     // 检查方块是否仍然存在
     if (m_world) {
-        const BlockState* currentBlock = m_world->getBlockState(static_cast<BlockCoord>(std::floor(m_position.x)),
-            static_cast<BlockCoord>(std::floor(m_position.y)),
-            static_cast<BlockCoord>(std::floor(m_position.z)));
+        const BlockState* currentBlock =
+            m_world->getBlockState(static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.x)),
+                static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.y)),
+                static_cast<BlockCoord>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
         // 检查方块变更导致箭矢脱落
-        if (currentBlock != nullptr && m_inBlockState.has_value() && *currentBlock != *m_inBlockState &&
+        if (currentBlock != nullptr && comp->m_inBlockState->has_value() && *currentBlock != **comp->m_inBlockState &&
             checkInBlockEmpty()) {
             detachFromBlock();
             return;
         }
     }
 
-    ++m_ticksInGround;
-    ++m_timeInGround;
+    ++comp->m_ticksInGround;
+    ++comp->m_timeInGround;
 
     // 超时移除（1200 ticks = 60秒）
-    if (m_ticksInGround >= 1200) {
+    if (comp->m_ticksInGround >= 1200) {
         remove();
     }
 }
@@ -187,12 +383,12 @@ bool AbstractArrowEntity::checkInBlockEmpty()
 {
     // 检查箭矢周围是否有碰撞箱
     // 创建一个很小的检测盒（0.06）
-    AxisAlignedBB testBox(m_position.x - 0.06f,
-        m_position.y - 0.06f,
-        m_position.z - 0.06f,
-        m_position.x + 0.06f,
-        m_position.y + 0.06f,
-        m_position.z + 0.06f);
+    AxisAlignedBB testBox(m_builtIn.stateVector->m_pos.x - 0.06f,
+        m_builtIn.stateVector->m_pos.y - 0.06f,
+        m_builtIn.stateVector->m_pos.z - 0.06f,
+        m_builtIn.stateVector->m_pos.x + 0.06f,
+        m_builtIn.stateVector->m_pos.y + 0.06f,
+        m_builtIn.stateVector->m_pos.z + 0.06f);
 
     if (m_world) {
         return m_world->hasNoCollisions(testBox);
@@ -202,17 +398,21 @@ bool AbstractArrowEntity::checkInBlockEmpty()
 
 void AbstractArrowEntity::detachFromBlock()
 {
-    m_inGround = false;
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_inGround = false;
 
     // 随机弹射
     math::Random rng = createRandomFromEntity(*this);
     f32 randX = rng.nextFloat() * 0.2f;
     f32 randY = rng.nextFloat() * 0.2f;
     f32 randZ = rng.nextFloat() * 0.2f;
-    m_velocity = Vector3(randX, randY, randZ);
+    m_builtIn.velocity->m_velocity = Vector3(randX, randY, randZ);
 
-    m_ticksInGround = 0;
-    m_timeInGround = 0;
+    comp->m_ticksInGround = 0;
+    comp->m_timeInGround = 0;
 }
 
 bool AbstractArrowEntity::shouldDespawn()
@@ -223,7 +423,10 @@ bool AbstractArrowEntity::shouldDespawn()
 
 void AbstractArrowEntity::clearPiercedEntities()
 {
-    m_piercedEntities.clear();
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp != nullptr && comp->m_piercedEntities != nullptr) {
+        comp->m_piercedEntities->clear();
+    }
 }
 
 RayTraceResult AbstractArrowEntity::rayTraceEntities(const Vector3& start, const Vector3& end)
@@ -242,13 +445,19 @@ RayTraceResult AbstractArrowEntity::rayTraceEntities(const Vector3& start, const
 
 bool AbstractArrowEntity::canHitEntityWithPierce(const mc::Entity& target) const
 {
+    const auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return canHitEntity(target);
+    }
+
     // 基础检查
     if (!canHitEntity(target)) {
         return false;
     }
 
     // 检查是否已穿透过此实体
-    if (m_pierceLevel > 0 && m_piercedEntities.count(target.id()) > 0) {
+    if (comp->m_pierceLevel > 0 && comp->m_piercedEntities != nullptr &&
+        comp->m_piercedEntities->count(target.id()) > 0) {
         return false;
     }
 
@@ -257,6 +466,11 @@ bool AbstractArrowEntity::canHitEntityWithPierce(const mc::Entity& target) const
 
 void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+
     if (!result.hitEntity) {
         return;
     }
@@ -264,24 +478,27 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     mc::Entity* target = result.hitEntity;
 
     // 计算伤害
-    f32 speed = std::sqrt(m_velocity.x * m_velocity.x + m_velocity.y * m_velocity.y + m_velocity.z * m_velocity.z);
-    i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * m_damage), 0.0, 2147483647.0));
+    f32 speed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
+        m_builtIn.velocity->m_velocity.y * m_builtIn.velocity->m_velocity.y +
+        m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
+    i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * comp->m_damage), 0.0, 2147483647.0));
 
     // 暴击伤害加成
-    if (m_critical) {
+    if (comp->m_critical) {
         mc::math::Random rng = createRandomFromEntity(*this);
         i32 bonus = rng.nextInt(damage / 2 + 2);
         damage = static_cast<i32>(std::min(static_cast<i64>(damage) + bonus, static_cast<i64>(2147483647)));
     }
 
     // 穿透检查
-    if (m_pierceLevel > 0) {
-        if (static_cast<i32>(m_piercedEntities.size()) >= m_pierceLevel + 1) {
+    if (comp->m_pierceLevel > 0) {
+        if (comp->m_piercedEntities != nullptr &&
+            static_cast<i32>(comp->m_piercedEntities->size()) >= comp->m_pierceLevel + 1) {
             // 达到穿透上限，移除箭矢
             remove();
             return;
         }
-        m_piercedEntities.insert(target->id());
+        comp->m_piercedEntities->insert(target->id());
     }
 
     // 获取发射者
@@ -301,15 +518,15 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     if (livingTarget != nullptr) {
         bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
         // 只有非穿透箭在造成伤害后才增加箭矢计数
-        if (hurt && m_pierceLevel <= 0) {
+        if (hurt && comp->m_pierceLevel <= 0) {
             livingTarget->setArrowCountInEntity(livingTarget->getArrowCount() + 1);
         }
     }
 
     // 击退效果
-    if (m_knockbackStrength > 0) {
-        f32 ratio = 0.6f * static_cast<f32>(m_knockbackStrength);
-        Vector3 horizontalVel(m_velocity.x, 0.0f, m_velocity.z);
+    if (comp->m_knockbackStrength > 0) {
+        f32 ratio = 0.6f * static_cast<f32>(comp->m_knockbackStrength);
+        Vector3 horizontalVel(m_builtIn.velocity->m_velocity.x, 0.0f, m_builtIn.velocity->m_velocity.z);
         if (horizontalVel.lengthSquared() > 0.0f) {
             horizontalVel = horizontalVel.normalized();
             Vector3 knockback(horizontalVel.x * ratio, 0.1f, horizontalVel.z * ratio);
@@ -327,35 +544,39 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     playSound(SoundEvents::ENTITY_ARROW_HIT, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
 
     // 如果不是穿透箭，移除
-    if (m_pierceLevel <= 0) {
+    if (comp->m_pierceLevel <= 0) {
         remove();
     }
 }
 
 void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 {
-    m_inGround = true;
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
+    comp->m_inGround = true;
 
     // 保存命中的方块状态
     if (m_world && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
         if (state != nullptr) {
-            m_inBlockState = *state;
+            *comp->m_inBlockState = *state;
         }
     }
 
     // 计算并设置箭矢位置（回退一点使其嵌入方块）
     Vector3 hitVec = result.hitPosition;
-    Vector3 hitOffset = hitVec - m_position;
-    m_velocity = hitOffset;
+    Vector3 hitOffset = hitVec - m_builtIn.stateVector->m_pos;
+    m_builtIn.velocity->m_velocity = hitOffset;
     Vector3 normalizedOffset = hitOffset.normalized() * 0.05f;
-    m_position = m_position - normalizedOffset;
+    m_builtIn.stateVector->m_pos = m_builtIn.stateVector->m_pos - normalizedOffset;
 
-    m_arrowShake = 7;
+    comp->m_arrowShake = 7;
 
     // 清除暴击和穿透状态
-    m_critical = false;
-    m_pierceLevel = 0;
+    comp->m_critical = false;
+    comp->m_pierceLevel = 0;
     clearPiercedEntities();
 
     // 播放命中地面音效
@@ -365,27 +586,35 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
 
 void AbstractArrowEntity::setBaseDamageFromMob(f32 power)
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
     // 公式：power * 2.0 + triangle(difficulty * 0.11, 0.57425)
     math::Random rng = createRandomFromEntity(*this);
     f32 difficultyBonus = m_world ? static_cast<f32>(static_cast<u8>(m_world->difficulty())) * 0.11f : 0.0f;
     f32 triangle = difficultyBonus + (rng.nextFloat() - rng.nextFloat()) * 0.57425f;
-    m_damage = power * 2.0f + triangle;
+    comp->m_damage = power * 2.0f + triangle;
 }
 
 void AbstractArrowEntity::applyBowEnchantments(LivingEntity& shooter)
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
     // 力量附魔增加伤害（PowerEnchantment: 每级 +0.5 伤害 + 基础 0.5）
     i32 powerLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
         shooter.getMainHandItem(), &item::enchant::AllEnchantments::POWER);
     if (powerLevel > 0) {
-        m_damage += static_cast<f32>(powerLevel) * 0.5f + 0.5f;
+        comp->m_damage += static_cast<f32>(powerLevel) * 0.5f + 0.5f;
     }
 
     // 冲击附魔增加击退（PunchEnchantment: 每级增加 1 点击退强度）
     i32 punchLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
         shooter.getMainHandItem(), &item::enchant::AllEnchantments::PUNCH);
     if (punchLevel > 0) {
-        m_knockbackStrength = punchLevel;
+        comp->m_knockbackStrength = punchLevel;
     }
 
     // 火焰附魔：设置箭矢着火 100 ticks（5 秒），命中时点燃目标
@@ -397,13 +626,17 @@ void AbstractArrowEntity::applyBowEnchantments(LivingEntity& shooter)
 
 void AbstractArrowEntity::onCollideWithPlayer(Player& player)
 {
+    const auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return;
+    }
     // 只在服务端执行，检查拾取条件
     if (m_world && m_world->isClientSide()) {
         return;
     }
 
     // 检查是否可以拾取：必须插在方块中或处于穿甲状态，且不在抖动
-    if ((!m_inGround && !m_noClip) || m_arrowShake > 0) {
+    if ((!comp->m_inGround && !m_noClip) || comp->m_arrowShake > 0) {
         return;
     }
 
@@ -413,26 +646,30 @@ void AbstractArrowEntity::onCollideWithPlayer(Player& player)
 
 bool AbstractArrowEntity::onPlayerPickup(Player& player)
 {
+    auto* comp = tryGetComponent<ecs::ProjectileArrowStateComponent>();
+    if (comp == nullptr) {
+        return false;
+    }
     // 必须在服务端执行
     if (m_world && m_world->isClientSide()) {
         return false;
     }
 
     // 必须插在方块中或者是穿甲箭（noClip 状态）
-    if (!m_inGround && !m_noClip) {
+    if (!comp->m_inGround && !m_noClip) {
         return false;
     }
 
     // 箭矢不能处于抖动状态
-    if (m_arrowShake > 0) {
+    if (comp->m_arrowShake > 0) {
         return false;
     }
 
     // 检查拾取权限
     bool canPickup = false;
-    if (m_pickupStatus == PickupStatus::Allowed) {
+    if (comp->m_pickupStatus == PickupStatus::Allowed) {
         canPickup = true;
-    } else if (m_pickupStatus == PickupStatus::CreativeOnly && player.isCreative()) {
+    } else if (comp->m_pickupStatus == PickupStatus::CreativeOnly && player.isCreative()) {
         canPickup = true;
     } else if (m_noClip && getShooter() != nullptr && getShooter()->uuid() == player.uuid()) {
         // 穿甲箭且是自己射出的（忠诚附魔返回的三叉戟）
@@ -444,7 +681,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
     }
 
     // 只有 Allowed 状态才检查背包空间
-    if (m_pickupStatus == PickupStatus::Allowed) {
+    if (comp->m_pickupStatus == PickupStatus::Allowed) {
         // 获取箭矢物品堆
         ItemStack arrowStack = getArrowStack();
 
@@ -463,7 +700,7 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
         math::Random rng = createRandomFromEntity(*this);
         m_world->playSound(SoundEvents::ENTITY_ITEM_PICKUP,
             sound::SoundCategory::Players,
-            m_position,
+            m_builtIn.stateVector->m_pos,
             0.2f,                                  // 音量
             1.0f + (rng.nextFloat() - 0.5f) * 0.2f // 音调带随机变化
         );
@@ -478,20 +715,30 @@ bool AbstractArrowEntity::onPlayerPickup(Player& player)
 // ArrowEntity
 // ============================================================================
 
-ArrowEntity::ArrowEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+ArrowEntity::ArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
-    m_damage = 2.0f;
+    setDamage(2.0f);
+    // 批次6 子目标2 Step1：attach ArrowEffectsComponent（药水箭颜色/发光/效果列表）。
+    // 普通弓箭不挂此组件，仅药水箭（Tipped Arrow）实例化 ArrowEntity 后由 setEffects
+    // 填充。Step4 将把 m_color/m_glowing/m_effects 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::ArrowEffectsComponent>(m_entityContext->entity());
 }
 
-std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> ArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<ArrowEntity>(0);
+    return std::make_unique<ArrowEntity>(0, registry);
 }
 
 std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shooter, IWorld* world)
 {
-    auto arrow = std::make_unique<ArrowEntity>(0);
+    // ECS 迁移：实体构造需要 registry 句柄。静态方法无 this，从 shooter 自持的 ECS registry
+    // 取句柄（Entity 构造时绑定，ecsRegistry() 返回引用必非空），避免解引用可能为空的 world
+    // 指针。生产调用者（ArrowItem/AbstractSkeletonEntity 等）传非空 world，测试可能传 nullptr，
+    // 两者均能正确构造箭矢。world 仍传给 setWorld 供箭矢后续 tick/碰撞使用（可为 nullptr）。
+    auto& registry = shooter.ecsRegistry();
+
+    auto arrow = std::make_unique<ArrowEntity>(0, registry);
     arrow->setTypeId(EntityTypeKeys::ARROW);
     arrow->setWorld(world);
     arrow->setPosition(shooter.x(), shooter.y() + shooter.eyeHeight() - 0.1f, shooter.z());
@@ -506,17 +753,78 @@ std::unique_ptr<ArrowEntity> ArrowEntity::createFromShooter(LivingEntity& shoote
     return arrow;
 }
 
+// 批次6 子目标2 Step4：ArrowEntity 3 字段（m_color/m_glowing/m_effects）迁入
+// ecs::ArrowEffectsComponent，以下 getter/setter 经组件读写。
+void ArrowEntity::setColor(u32 color)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr) {
+        c->m_color = color;
+    }
+}
+
+u32 ArrowEntity::color() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr) ? c->m_color : 0xFFFFFFFF;
+}
+
+void ArrowEntity::setGlowing(bool glowing)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr) {
+        c->m_glowing = glowing;
+    }
+}
+
+bool ArrowEntity::isGlowing() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr) ? c->m_glowing : false;
+}
+
+void ArrowEntity::addEffect(const entity::effect::EffectInstance& effect)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr && c->m_effects != nullptr) {
+        c->m_effects->push_back(effect);
+    }
+}
+
+void ArrowEntity::setEffects(const std::vector<entity::effect::EffectInstance>& effects)
+{
+    auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    if (c != nullptr && c->m_effects != nullptr) {
+        *c->m_effects = effects;
+    }
+}
+
+const std::vector<entity::effect::EffectInstance>& ArrowEntity::effects() const
+{
+    // nullptr 兜底：返回静态空 vector 引用，避免悬垂。
+    static const std::vector<entity::effect::EffectInstance> s_empty;
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr && c->m_effects != nullptr) ? *c->m_effects : s_empty;
+}
+
+bool ArrowEntity::hasEffects() const
+{
+    const auto* c = tryGetComponent<ecs::ArrowEffectsComponent>();
+    return (c != nullptr && c->m_effects != nullptr) ? !c->m_effects->empty() : false;
+}
+
 void ArrowEntity::tick()
 {
     AbstractArrowEntity::tick();
 
     // 药水箭的粒子效果处理
-    if (m_color != 0xFFFFFFFF && !m_inGround && m_world && m_world->isClientSide()) {
+    const u32 arrowColor = color();
+    if (arrowColor != 0xFFFFFFFF && !isInGround() && m_world && m_world->isClientSide()) {
         // 将 ARGB 颜色转换为 RGB 分量 (0.0-1.0 范围)
         // 使用 EntityEffect 粒子，速度参数作为颜色传递
-        f32 r = static_cast<f32>((m_color >> 16) & 0xFF) / 255.0f;
-        f32 g = static_cast<f32>((m_color >> 8) & 0xFF) / 255.0f;
-        f32 b = static_cast<f32>(m_color & 0xFF) / 255.0f;
+        f32 r = static_cast<f32>((arrowColor >> 16) & 0xFF) / 255.0f;
+        f32 g = static_cast<f32>((arrowColor >> 8) & 0xFF) / 255.0f;
+        f32 b = static_cast<f32>(arrowColor & 0xFF) / 255.0f;
 
         // 飞行中每 tick 生成 2 个粒子
         math::Random rng = createRandomFromEntity(*this);
@@ -540,14 +848,15 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
     AbstractArrowEntity::onEntityHit(result);
 
     // 应用药水效果到被命中的生物
-    if (!result.hitEntity || m_effects.empty()) {
+    const auto& arrowEffects = effects();
+    if (!result.hitEntity || arrowEffects.empty()) {
         return;
     }
 
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (livingTarget != nullptr && livingTarget->isAlive()) {
         // 对目标施加所有药水效果
-        for (const auto& effect : m_effects) {
+        for (const auto& effect : arrowEffects) {
             livingTarget->addEffect(effect);
         }
     }
@@ -555,6 +864,9 @@ void ArrowEntity::onEntityHit(const RayTraceResult& result)
 
 ItemStack ArrowEntity::getArrowStack() const
 {
+    const u32 arrowColor = color();
+    const auto& arrowEffects = effects();
+
     // 如果有药水效果，返回药水箭；否则返回普通箭矢
     if (hasEffects()) {
         // 创建药水箭物品堆
@@ -563,11 +875,11 @@ ItemStack ArrowEntity::getArrowStack() const
         // 设置药水效果到物品堆的 NBT 标签
         // 注意：ArrowEntity 没有存储 Potion 类型，只有效果列表
         // 所以只设置自定义效果和颜色
-        potion::PotionUtils::setCustomEffects(tippedArrow, m_effects);
+        potion::PotionUtils::setCustomEffects(tippedArrow, arrowEffects);
 
         // 设置自定义颜色（如果有）
-        if (m_color != 0xFFFFFFFF) {
-            potion::PotionUtils::setCustomPotionColor(tippedArrow, m_color);
+        if (arrowColor != 0xFFFFFFFF) {
+            potion::PotionUtils::setCustomPotionColor(tippedArrow, arrowColor);
         }
 
         return tippedArrow;
@@ -581,15 +893,18 @@ ItemStack ArrowEntity::getArrowStack() const
 // SpectralArrowEntity
 // ============================================================================
 
-SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id)
-    : AbstractArrowEntity(id)
+SpectralArrowEntity::SpectralArrowEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : AbstractArrowEntity(id, registry)
 {
-    m_damage = 2.0f;
+    setDamage(2.0f);
+    // 批次6 子目标2 Step1：attach SpectralArrowComponent（光灵箭发光持续时间）。
+    // Step4 将把 m_glowDuration 读写改走组件。
+    m_entityContext->enttRegistry().emplace<ecs::SpectralArrowComponent>(m_entityContext->entity());
 }
 
-std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> SpectralArrowEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<SpectralArrowEntity>(0);
+    return std::make_unique<SpectralArrowEntity>(0, registry);
 }
 
 void SpectralArrowEntity::tick()
@@ -597,7 +912,7 @@ void SpectralArrowEntity::tick()
     AbstractArrowEntity::tick();
 
     // 光灵箭粒子效果 - 仅客户端执行
-    if (!m_inGround && m_world && m_world->isClientSide()) {
+    if (!isInGround() && m_world && m_world->isClientSide()) {
         // 使用 INSTANT_EFFECT 粒子
         // 粒子位置：箭矢当前位置，速度为零
         m_world->addParticle(particle::ParticleTypeId::InstantSpell, Vector3(x(), y(), z()), Vector3(0.0f, 0.0f, 0.0f));
@@ -616,8 +931,8 @@ void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
 
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (livingTarget != nullptr) {
-        // 施加发光效果，持续时间 m_glowDuration ticks（默认 200 ticks = 10 秒）
-        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, m_glowDuration, 0));
+        // 施加发光效果，持续时间 glowDuration() ticks（默认 200 ticks = 10 秒）
+        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, glowDuration(), 0));
     }
 }
 
@@ -625,6 +940,21 @@ ItemStack SpectralArrowEntity::getArrowStack() const
 {
     // 光灵箭总是返回光灵箭物品
     return ItemStack(*Items::SPECTRAL_ARROW, 1);
+}
+
+// 批次6 子目标2 Step4：m_glowDuration 迁入 ecs::SpectralArrowComponent。
+i32 SpectralArrowEntity::glowDuration() const
+{
+    const auto* c = tryGetComponent<ecs::SpectralArrowComponent>();
+    return (c != nullptr) ? c->m_glowDuration : 0;
+}
+
+void SpectralArrowEntity::setGlowDuration(i32 duration)
+{
+    auto* c = tryGetComponent<ecs::SpectralArrowComponent>();
+    if (c != nullptr) {
+        c->m_glowDuration = duration;
+    }
 }
 
 } // namespace entity

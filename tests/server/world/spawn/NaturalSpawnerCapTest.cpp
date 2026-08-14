@@ -30,6 +30,7 @@
 // (2*viewDistance+1)^2 作为区块计数，且加了 max(...,1) 下限保护，导致上限被
 // 放大且永不为 0，是实体无限累积的放大器之一。
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -131,17 +132,17 @@ TEST_F(NaturalSpawnerCapTest, CapHasNoForcedLowerBoundOfOne)
 
 TEST_F(NaturalSpawnerCapTest, PersistentEntitiesExcludedFromCapCount)
 {
-    EntityManager manager;
+    EntityManager manager{mc::test::testEcsRegistry()};
     const EntityType* zombieType = EntityRegistry::instance().getType("minecraft:zombie");
     ASSERT_NE(zombieType, nullptr);
 
     // 创建 5 个普通僵尸 + 5 个持久化僵尸
     for (i32 i = 0; i < 5; ++i) {
-        auto z = zombieType->create(nullptr);
+        auto z = zombieType->create(nullptr, mc::test::testEcsRegistry());
         manager.addEntity(std::move(z));
     }
     for (i32 i = 0; i < 5; ++i) {
-        auto z = zombieType->create(nullptr);
+        auto z = zombieType->create(nullptr, mc::test::testEcsRegistry());
         auto* mob = dynamic_cast<MobEntity*>(z.get());
         ASSERT_NE(mob, nullptr);
         mob->enablePersistence(); // 标记为持久化，不应计入 cap

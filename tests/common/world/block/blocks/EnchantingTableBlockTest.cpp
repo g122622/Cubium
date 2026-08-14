@@ -62,7 +62,7 @@ namespace {
  * - openContainer() 用于测试容器打开
  * - getBlockState() / getBlockEntity() 用于方块和方块实体访问
  */
-class EnchantingTableTestWorld final : public test::BaseTestWorld {
+class EnchantingTableTestWorld final : public mc::test::BaseTestWorld {
 public:
     explicit EnchantingTableTestWorld(bool isClient = false)
         : m_isClient(isClient)
@@ -253,7 +253,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsS
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
@@ -280,7 +280,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensCon
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
@@ -306,7 +306,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_Retur
     world.setBlockStateAt(pos_, &enchantingTable_->defaultState());
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
@@ -333,7 +333,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityTyp
     world.setOwnedBlockEntity(std::move(wrongEntity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
@@ -360,7 +360,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavio
     world.setOwnedBlockEntity(std::move(entity));
 
     // 创建玩家
-    Player player(1, "TestPlayer");
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     // 使用副手执行交互
     const auto& state = enchantingTable_->defaultState();

@@ -33,6 +33,7 @@
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
@@ -51,8 +52,8 @@ using namespace entity::serialization;
 // 构造函数
 // ============================================================================
 
-OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityInstanceId id)
-    : Entity(id)
+OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
+    : Entity(id, nullptr, registry)
 {
     // 实体穿透方块，不受碰撞影响
     setNoClip(true);
@@ -62,15 +63,18 @@ OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityInstanceId id)
     m_spawnItemAfterTicks = SPAWN_ITEM_DELAY_MAX;
 }
 
-std::unique_ptr<Entity> OminousItemSpawnerEntity::create(IWorld* /*world*/)
+std::unique_ptr<Entity> OminousItemSpawnerEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
 {
-    return std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0));
+    return std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0), registry);
 }
 
 std::unique_ptr<Entity> OminousItemSpawnerEntity::createWithItem(IWorld& world, const ItemStack& stack)
 {
     // 创建实体、设置随机延迟 [60, 120] ticks、设置物品
-    auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0));
+    // 从 world 获取 ECS 注册表（服务端必非空；客户端不接入 ECS，调用方不应在客户端用此工厂）
+    auto* registryPtr = world.entityRegistry();
+    MC_ASSERT_RELEASE(registryPtr != nullptr);
+    auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityInstanceId(0), *registryPtr);
     entity->m_spawnItemAfterTicks = world.getRandom().nextInt(SPAWN_ITEM_DELAY_MIN, SPAWN_ITEM_DELAY_MAX);
     entity->m_item = stack;
     return entity;
@@ -202,8 +206,17 @@ void OminousItemSpawnerEntity::spawnItem()
         spawnedEntity = spawnProjectile(*m_world, *projectileItem, itemStack);
     } else {
         // 普通物品：创建物品实体自然掉落
-        auto itemEntity = std::make_unique<ItemEntity>(
-            EntityInstanceId(0), itemStack, static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
+        // ECS 迁移：实体构造需要 registry 句柄（m_world 为成员所属世界，调用路径已确保非空）
+        auto* registry = &ecsRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(0),
+            itemStack,
+            static_cast<f32>(x()),
+            static_cast<f32>(y()),
+            static_cast<f32>(z()),
+            *registry);
 
         // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
         itemEntity->setTypeId(EntityTypeKeys::ITEM);

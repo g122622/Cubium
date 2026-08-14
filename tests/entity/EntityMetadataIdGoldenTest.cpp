@@ -72,6 +72,8 @@
 #include <set>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::entity;
 
@@ -107,7 +109,7 @@ namespace {
 
 TEST(EntityMetadataIdGoldenTest, EntityHasIds0To7)
 {
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.registerData();
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 7));
 }
@@ -124,7 +126,7 @@ TEST(EntityMetadataIdGoldenTest, EntityHasIds0To7)
 //   10=PoseValue(Pose) 11=OptionalComponentValue(OptionalComponent)
 TEST(EntityMetadataIdGoldenTest, EntityFieldIdAndTypeAlignVanilla)
 {
-    Entity entity(EntityInstanceId(1));
+    Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.registerData();
     const auto& mgr = entity.dataManager();
 
@@ -148,14 +150,14 @@ TEST(EntityMetadataIdGoldenTest, EntityFieldIdAndTypeAlignVanilla)
 
 TEST(EntityMetadataIdGoldenTest, LivingEntityHasIds0To14)
 {
-    LivingEntity living(EntityInstanceId(1));
+    LivingEntity living(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     living.registerData();
     EXPECT_EQ(collectParamIds(living.dataManager()), expectedRange(0, 14));
 }
 
 TEST(EntityMetadataIdGoldenTest, MobEntityHasIds0To15)
 {
-    MobEntity mob(EntityInstanceId(1));
+    MobEntity mob(EntityInstanceId(1), mc::test::testEcsRegistry());
     mob.registerData();
     EXPECT_EQ(collectParamIds(mob.dataManager()), expectedRange(0, 15));
 }
@@ -167,7 +169,7 @@ TEST(EntityMetadataIdGoldenTest, MobEntityHasIds0To15)
 
 TEST(EntityMetadataIdGoldenTest, PlayerHasIds0To20)
 {
-    Player player(EntityInstanceId(1), "TestPlayer");
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     EXPECT_EQ(collectParamIds(player.dataManager()), expectedRange(0, 20));
     // 第 21 个槽位不应存在（Player 仅 21 字段，id 最大 20）。
     EXPECT_FALSE(player.dataManager().hasParam(21));
@@ -179,7 +181,7 @@ TEST(EntityMetadataIdGoldenTest, PlayerHasIds0To20)
 
 TEST(EntityMetadataIdGoldenTest, FallingBlockEntityHasIds0To8)
 {
-    FallingBlockEntity entity;
+    FallingBlockEntity entity{mc::test::testEcsRegistry()};
     // FallingBlockEntity 仅 1 个自身字段 DATA_START_POS(BlockPos,id8)，加 Entity id0..7。
     // 对齐 vanilla 1.21.11：BlockState 不走 SynchedEntityData，经 AddEntity.data 下发。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 8));
@@ -191,7 +193,7 @@ TEST(EntityMetadataIdGoldenTest, FallingBlockEntityHasIds0To8)
 
 TEST(EntityMetadataIdGoldenTest, TNTEntityHasIds0To9)
 {
-    TNTEntity entity;
+    TNTEntity entity{mc::test::testEcsRegistry()};
     // DATA_FUSE(id8,Int) + DATA_BLOCK_STATE(id9,BlockStateValue→BLOCK_STATE id14) + Entity id0..7。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 9));
     // field8 = Int（variant index 1）。
@@ -205,14 +207,14 @@ TEST(EntityMetadataIdGoldenTest, TNTEntityHasIds0To9)
 
 TEST(EntityMetadataIdGoldenTest, FishingBobberEntityHasIds0To9)
 {
-    FishingBobberEntity entity(EntityInstanceId(1));
+    FishingBobberEntity entity(EntityInstanceId(1), mc::test::testEcsRegistry());
     // DATA_HOOKED_ENTITY(id8) + DATA_BITING(id9) + Entity id0..7。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 9));
 }
 
 TEST(EntityMetadataIdGoldenTest, AbstractMinecartEntityHasIds0To12)
 {
-    AbstractMinecartEntity entity(AbstractMinecartEntity::Type::Rideable);
+    AbstractMinecartEntity entity(AbstractMinecartEntity::Type::Rideable, mc::test::testEcsRegistry());
     // 对齐 vanilla 1.21.11：Entity id0..7 + 5 字段 id8..12（HURT/HURTDIR/DAMAGE/CUSTOM_DISPLAY_BLOCK/DISPLAY_OFFSET）。
     // 旧实现 6 字段 id8..13 含 rolling/show_block ghost 字段,且 display_tile 误用 i32 致真客户端
     // field11 类型校验崩(Optional<BlockState> vs Int);删 ghost + 改 OptionalBlockState 修复。
@@ -245,7 +247,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractMinecartEntityHasIds0To12)
 
 TEST(EntityMetadataIdGoldenTest, ZombieEntityHasIds0To18)
 {
-    ZombieEntity zombie(EntityInstanceId(1));
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + Zombie 16..18。
     EXPECT_EQ(collectParamIds(zombie.dataManager()), expectedRange(0, 18));
     // 第 19 个槽位不应存在。
@@ -256,7 +258,7 @@ TEST(EntityMetadataIdGoldenTest, ZombieEntityHasIds0To18)
 // DataValue variant index：1=i32(Int) 5=bool(Boolean)
 TEST(EntityMetadataIdGoldenTest, ZombieEntityFieldIdAndTypeAlignVanilla)
 {
-    ZombieEntity zombie(EntityInstanceId(1));
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = zombie.dataManager();
 
     const u16 babyId = ZombieEntity::getBabyParamId();
@@ -277,21 +279,21 @@ TEST(EntityMetadataIdGoldenTest, ZombieEntityFieldIdAndTypeAlignVanilla)
 
 TEST(EntityMetadataIdGoldenTest, HuskEntityHasIds0To18)
 {
-    HuskEntity husk(EntityInstanceId(1));
+    HuskEntity husk(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 透传层无自身字段，与 Zombie 一致。
     EXPECT_EQ(collectParamIds(husk.dataManager()), expectedRange(0, 18));
 }
 
 TEST(EntityMetadataIdGoldenTest, DrownedEntityHasIds0To18)
 {
-    DrownedEntity drowned(EntityInstanceId(1));
+    DrownedEntity drowned(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 透传层无自身字段，与 Zombie 一致。
     EXPECT_EQ(collectParamIds(drowned.dataManager()), expectedRange(0, 18));
 }
 
 TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To20)
 {
-    ZombieVillagerEntity zv(EntityInstanceId(1));
+    ZombieVillagerEntity zv(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Zombie 0..18 + ZombieVillager 19..20（CONVERTING + 单一复合 VILLAGER_DATA）。
     // 旧实现拆 3 个独立 i32(type/profession/level)致 id 19..22 多 2 槽且类型不符 vanilla
     // DATA_VILLAGER_DATA(VillagerData),已收敛为单一 VillagerDataValue 复合字段(id20)。
@@ -309,15 +311,16 @@ TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To20)
 // 链2: AbstractFish.FROM_BUCKET（vanilla 1.21.11 鱼链不经 AgeableMob，FROM_BUCKET 在 Mob id15 之后）
 //   AbstractFish id16 FROM_BUCKET(Boolean)
 //   Pufferfish id17 DATA_PUFF_STATE(Int)（经 AbstractFish）
-//   Cod/Salmon 透传层无自身字段，id 集合与 AbstractFish 一致(id0..16)
-//   TropicalFish 占位：vanilla 有 DATA_VARIANT(id17) 但项目当前不同步，本次仅占位 id0..16
+//   Cod 透传层无自身字段，id 集合与 AbstractFish 一致(id0..16)
+//   Salmon id17 DATA_TYPE(Int，体型 small/medium/large)
+//   TropicalFish id17 DATA_VARIANT(Int，packed shape|baseColor<<8|patternColor<<16)
 // 此链对齐关系真客户端 set_entity_data：FROM_BUCKET 是 Boolean(id16)，与 AgeableMob.DATA_BABY
 // 在不同类树分支，各自独立编号不冲突。
 // ============================================================================
 
 TEST(EntityMetadataIdGoldenTest, AbstractFishEntityHasIds0To16)
 {
-    AbstractFishEntity fish(EntityInstanceId(1));
+    AbstractFishEntity fish(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AbstractFish 16(FROM_BUCKET)。
     EXPECT_EQ(collectParamIds(fish.dataManager()), expectedRange(0, 16));
     EXPECT_FALSE(fish.dataManager().hasParam(17));
@@ -325,7 +328,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractFishEntityHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, AbstractFishFromBucketFieldIdAndTypeAlignVanilla)
 {
-    AbstractFishEntity fish(EntityInstanceId(1));
+    AbstractFishEntity fish(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = fish.dataManager();
 
     const u16 fromBucketId = AbstractFishEntity::getFromBucketParamId();
@@ -336,7 +339,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractFishFromBucketFieldIdAndTypeAlignVanill
 
 TEST(EntityMetadataIdGoldenTest, PufferfishEntityHasIds0To17)
 {
-    PufferfishEntity puffer(EntityInstanceId(1));
+    PufferfishEntity puffer(EntityInstanceId(1), mc::test::testEcsRegistry());
     // AbstractFish 0..16 + Pufferfish 17(DATA_PUFF_STATE)。
     EXPECT_EQ(collectParamIds(puffer.dataManager()), expectedRange(0, 17));
     EXPECT_FALSE(puffer.dataManager().hasParam(18));
@@ -344,24 +347,28 @@ TEST(EntityMetadataIdGoldenTest, PufferfishEntityHasIds0To17)
 
 TEST(EntityMetadataIdGoldenTest, CodEntityHasIds0To16)
 {
-    CodEntity cod(EntityInstanceId(1));
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 透传层无自身字段，与 AbstractFish 一致。
     EXPECT_EQ(collectParamIds(cod.dataManager()), expectedRange(0, 16));
 }
 
-TEST(EntityMetadataIdGoldenTest, SalmonEntityHasIds0To16)
+TEST(EntityMetadataIdGoldenTest, SalmonEntityHasIds0To17)
 {
-    SalmonEntity salmon(EntityInstanceId(1));
-    // 透传层无自身字段，与 AbstractFish 一致。
-    EXPECT_EQ(collectParamIds(salmon.dataManager()), expectedRange(0, 16));
+    SalmonEntity salmon(EntityInstanceId(1), mc::test::testEcsRegistry());
+    // AbstractFish 0..16 + Salmon 17(DATA_TYPE，体型 small/medium/large)，对齐 vanilla
+    // 1.21.11 Salmon.DATA_TYPE(Int)。
+    EXPECT_EQ(collectParamIds(salmon.dataManager()), expectedRange(0, 17));
+    EXPECT_FALSE(salmon.dataManager().hasParam(18));
 }
 
-// TropicalFish 当前为占位（vanilla DATA_VARIANT 未同步），字段集合与 AbstractFish 一致。
-// 待后续逐实体字段对齐补 DATA_VARIANT(id17) 后，此处应改为 expectedRange(0, 17)。
-TEST(EntityMetadataIdGoldenTest, TropicalFishEntityPlaceholderHasIds0To16)
+// TropicalFish 自带 DATA_VARIANT@17(Int，packed shape|baseColor<<8|patternColor<<16)，
+// 对齐 vanilla 1.21.11 TropicalFish.DATA_ID_TYPE_VARIANT(Int)。构造时 randomizeVariant
+// 写 m_variant 成员，不影响 registerParam 注册的 id 集合（id 由继承链分配，初始值 0）。
+TEST(EntityMetadataIdGoldenTest, TropicalFishEntityHasIds0To17)
 {
-    TropicalFishEntity tropical(EntityInstanceId(1));
-    EXPECT_EQ(collectParamIds(tropical.dataManager()), expectedRange(0, 16));
+    TropicalFishEntity tropical(EntityInstanceId(1), mc::test::testEcsRegistry());
+    EXPECT_EQ(collectParamIds(tropical.dataManager()), expectedRange(0, 17));
+    EXPECT_FALSE(tropical.dataManager().hasParam(18));
 }
 
 // ============================================================================
@@ -375,7 +382,7 @@ TEST(EntityMetadataIdGoldenTest, TropicalFishEntityPlaceholderHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, AgeableEntityHasIds0To16)
 {
-    AgeableEntity ageable(EntityInstanceId(1));
+    AgeableEntity ageable(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AgeableEntity 16(DATA_BABY)。
     EXPECT_EQ(collectParamIds(ageable.dataManager()), expectedRange(0, 16));
     EXPECT_FALSE(ageable.dataManager().hasParam(17));
@@ -383,7 +390,7 @@ TEST(EntityMetadataIdGoldenTest, AgeableEntityHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, AgeableEntityBabyFieldIdAndTypeAlignVanilla)
 {
-    AgeableEntity ageable(EntityInstanceId(1));
+    AgeableEntity ageable(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = ageable.dataManager();
 
     const u16 babyId = AgeableEntity::getBabyParamId();
@@ -397,7 +404,7 @@ TEST(EntityMetadataIdGoldenTest, AgeableEntityBabyFieldIdAndTypeAlignVanilla)
 // Wolf 自身三字段(DATA_INTERESTED/DATA_COLLAR_COLOR/DATA_ANGER_TIME) → id19/20/21，共 id0..21。
 TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
 {
-    WolfEntity wolf(EntityInstanceId(1));
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(collectParamIds(wolf.dataManager()), expectedRange(0, 21));
     EXPECT_FALSE(wolf.dataManager().hasParam(22));
 
@@ -433,7 +440,7 @@ TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
 // ============================================================================
 TEST(EntityMetadataIdGoldenTest, CatEntityHasIds0To22AndVariantAt19)
 {
-    CatEntity cat(EntityInstanceId(1));
+    CatEntity cat(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AgeableMob 16 + TamableAnimal 17/18 + Cat 19..22。
     EXPECT_EQ(collectParamIds(cat.dataManager()), expectedRange(0, 22));
     EXPECT_FALSE(cat.dataManager().hasParam(23));
@@ -472,7 +479,7 @@ TEST(EntityMetadataIdGoldenTest, CatEntityHasIds0To22AndVariantAt19)
 // ============================================================================
 TEST(EntityMetadataIdGoldenTest, NautilusEntityHasIds0To19AndFlagsAt17)
 {
-    NautilusEntity nautilus(EntityInstanceId(1));
+    NautilusEntity nautilus(EntityInstanceId(1), mc::test::testEcsRegistry());
     EXPECT_EQ(collectParamIds(nautilus.dataManager()), expectedRange(0, 19));
     EXPECT_FALSE(nautilus.dataManager().hasParam(20));
 
@@ -505,7 +512,7 @@ TEST(EntityMetadataIdGoldenTest, NautilusEntityHasIds0To19AndFlagsAt17)
 
 TEST(EntityMetadataIdGoldenTest, AbstractRaiderEntityHasIds0To16)
 {
-    AbstractRaiderEntity raider(EntityInstanceId(1));
+    AbstractRaiderEntity raider(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AbstractRaider 16(IS_CELEBRATING)。
     EXPECT_EQ(collectParamIds(raider.dataManager()), expectedRange(0, 16));
     EXPECT_FALSE(raider.dataManager().hasParam(17));
@@ -513,7 +520,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractRaiderEntityHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, AbstractRaiderIsCelebratingFieldIdAndTypeAlignVanilla)
 {
-    AbstractRaiderEntity raider(EntityInstanceId(1));
+    AbstractRaiderEntity raider(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = raider.dataManager();
 
     const u16 celebratingId = AbstractRaiderEntity::getIsCelebratingParamId();
@@ -524,7 +531,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractRaiderIsCelebratingFieldIdAndTypeAlignV
 
 TEST(EntityMetadataIdGoldenTest, PillagerEntityHasIds0To16)
 {
-    PillagerEntity pillager(EntityInstanceId(1));
+    PillagerEntity pillager(EntityInstanceId(1), mc::test::testEcsRegistry());
     // 经 AbstractIllager→AbstractRaider 透传，与 AbstractRaider 一致。
     EXPECT_EQ(collectParamIds(pillager.dataManager()), expectedRange(0, 16));
 }
@@ -542,7 +549,7 @@ TEST(EntityMetadataIdGoldenTest, PillagerEntityHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, SquidEntityHasIds0To16)
 {
-    SquidEntity squid(EntityInstanceId(1));
+    SquidEntity squid(EntityInstanceId(1), mc::test::testEcsRegistry());
     // Entity 0..7 + LivingEntity 8..14 + Mob 15 + Squid 16(DATA_BABY 占位)。
     EXPECT_EQ(collectParamIds(squid.dataManager()), expectedRange(0, 16));
     EXPECT_FALSE(squid.dataManager().hasParam(17));
@@ -550,7 +557,7 @@ TEST(EntityMetadataIdGoldenTest, SquidEntityHasIds0To16)
 
 TEST(EntityMetadataIdGoldenTest, SquidBabyPlaceholderFieldIdAndTypeAlignVanilla)
 {
-    SquidEntity squid(EntityInstanceId(1));
+    SquidEntity squid(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = squid.dataManager();
 
     const u16 placeholderId = SquidEntity::getBabyPlaceholderParamId();
@@ -563,7 +570,7 @@ TEST(EntityMetadataIdGoldenTest, SquidBabyPlaceholderFieldIdAndTypeAlignVanilla)
 // 修复前 DATA_DARK_TICKS 错占 id16(Int) 撞客户端 DATA_BABY(Boolean) 致类型校验崩。
 TEST(EntityMetadataIdGoldenTest, GlowSquidEntityDarkTicksAt17AndBabyPlaceholderAt16)
 {
-    GlowSquidEntity glowSquid(EntityInstanceId(1));
+    GlowSquidEntity glowSquid(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = glowSquid.dataManager();
 
     // DATA_DARK_TICKS 必为 id17（修复前错占 id16）。

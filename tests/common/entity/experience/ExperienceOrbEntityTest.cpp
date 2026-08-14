@@ -45,7 +45,7 @@ class ExperienceOrbEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        orb = std::make_unique<ExperienceOrbEntity>(10); // 10 XP orb
+        orb = std::make_unique<ExperienceOrbEntity>(10, mc::test::testEcsRegistry()); // 10 XP orb
     }
 
     void TearDown() override { orb.reset(); }
@@ -57,7 +57,7 @@ protected:
 
 TEST_F(ExperienceOrbEntityTest, DefaultConstruction)
 {
-    ExperienceOrbEntity defaultOrb;
+    ExperienceOrbEntity defaultOrb(1, mc::test::testEcsRegistry());
     EXPECT_EQ(defaultOrb.getXpValue(), 1);
     EXPECT_EQ(defaultOrb.getAge(), 0);
     // 原版 MC：构造函数不设置 pickupDelay，默认为 0
@@ -67,14 +67,14 @@ TEST_F(ExperienceOrbEntityTest, DefaultConstruction)
 
 TEST_F(ExperienceOrbEntityTest, ConstructionWithXpValue)
 {
-    ExperienceOrbEntity orb50(50);
+    ExperienceOrbEntity orb50(50, mc::test::testEcsRegistry());
     EXPECT_EQ(orb50.getXpValue(), 50);
 }
 
 TEST_F(ExperienceOrbEntityTest, ConstructionWithMaxValue)
 {
     // 值应该被限制在 MAX_ORB_SIZE
-    ExperienceOrbEntity largeOrb(5000);
+    ExperienceOrbEntity largeOrb(5000, mc::test::testEcsRegistry());
     EXPECT_EQ(largeOrb.getXpValue(), ExperienceOrbEntity::MAX_ORB_SIZE);
     EXPECT_EQ(largeOrb.getXpValue(), 2477);
 }
@@ -82,13 +82,13 @@ TEST_F(ExperienceOrbEntityTest, ConstructionWithMaxValue)
 TEST_F(ExperienceOrbEntityTest, ConstructionWithZeroValue)
 {
     // 最小值应该是 1
-    ExperienceOrbEntity zeroOrb(0);
+    ExperienceOrbEntity zeroOrb(0, mc::test::testEcsRegistry());
     EXPECT_EQ(zeroOrb.getXpValue(), 1);
 }
 
 TEST_F(ExperienceOrbEntityTest, ConstructionWithNegativeValue)
 {
-    ExperienceOrbEntity negativeOrb(-10);
+    ExperienceOrbEntity negativeOrb(-10, mc::test::testEcsRegistry());
     EXPECT_EQ(negativeOrb.getXpValue(), 1);
 }
 
@@ -148,22 +148,22 @@ TEST_F(ExperienceOrbEntityTest, GetOrbSize)
     // 7-16: 等级 2
     // ...
 
-    ExperienceOrbEntity orb1(1);
+    ExperienceOrbEntity orb1(1, mc::test::testEcsRegistry());
     EXPECT_EQ(orb1.getOrbSize(), 0);
 
-    ExperienceOrbEntity orb2(2);
+    ExperienceOrbEntity orb2(2, mc::test::testEcsRegistry());
     EXPECT_EQ(orb2.getOrbSize(), 0);
 
-    ExperienceOrbEntity orb3(3);
+    ExperienceOrbEntity orb3(3, mc::test::testEcsRegistry());
     EXPECT_EQ(orb3.getOrbSize(), 1);
 
-    ExperienceOrbEntity orb7(7);
+    ExperienceOrbEntity orb7(7, mc::test::testEcsRegistry());
     EXPECT_EQ(orb7.getOrbSize(), 2);
 
-    ExperienceOrbEntity orb17(17);
+    ExperienceOrbEntity orb17(17, mc::test::testEcsRegistry());
     EXPECT_EQ(orb17.getOrbSize(), 3);
 
-    ExperienceOrbEntity orbMax(2477);
+    ExperienceOrbEntity orbMax(2477, mc::test::testEcsRegistry());
     EXPECT_EQ(orbMax.getOrbSize(), 10); // 最大球大小
 }
 
@@ -192,8 +192,8 @@ TEST_F(ExperienceOrbEntityTest, CanMergeWithSelf)
 
 TEST_F(ExperienceOrbEntityTest, CanMergeWithDifferentValues)
 {
-    ExperienceOrbEntity orb1(10);
-    ExperienceOrbEntity orb2(20);
+    ExperienceOrbEntity orb1(10, mc::test::testEcsRegistry());
+    ExperienceOrbEntity orb2(20, mc::test::testEcsRegistry());
 
     // 在同一位置应该可以合并
     orb1.setPosition(0, 0, 0);
@@ -209,8 +209,8 @@ TEST_F(ExperienceOrbEntityTest, CanMergeWithDifferentValues)
 
 TEST_F(ExperienceOrbEntityTest, CanMergeWithExceedsMax)
 {
-    ExperienceOrbEntity orb1(2000);
-    ExperienceOrbEntity orb2(1000);
+    ExperienceOrbEntity orb1(2000, mc::test::testEcsRegistry());
+    ExperienceOrbEntity orb2(1000, mc::test::testEcsRegistry());
 
     orb1.setPosition(0, 0, 0);
     orb2.setPosition(0, 0, 0);
@@ -221,8 +221,8 @@ TEST_F(ExperienceOrbEntityTest, CanMergeWithExceedsMax)
 
 TEST_F(ExperienceOrbEntityTest, CanMergeWithDistance)
 {
-    ExperienceOrbEntity orb1(10);
-    ExperienceOrbEntity orb2(20);
+    ExperienceOrbEntity orb1(10, mc::test::testEcsRegistry());
+    ExperienceOrbEntity orb2(20, mc::test::testEcsRegistry());
 
     orb1.setPosition(0, 0, 0);
     orb2.setPosition(100, 0, 0); // 距离太远
@@ -232,8 +232,8 @@ TEST_F(ExperienceOrbEntityTest, CanMergeWithDistance)
 
 TEST_F(ExperienceOrbEntityTest, TryMerge)
 {
-    ExperienceOrbEntity orb1(10);
-    ExperienceOrbEntity orb2(20);
+    ExperienceOrbEntity orb1(10, mc::test::testEcsRegistry());
+    ExperienceOrbEntity orb2(20, mc::test::testEcsRegistry());
 
     orb1.setPosition(0, 0, 0);
     orb2.setPosition(0, 0, 0);
@@ -299,7 +299,7 @@ TEST_F(ExperienceOrbEntityIntegrationTest, XPSplitConsistency)
         EXPECT_LE(split, xp);
 
         // 创建对应大小的球
-        ExperienceOrbEntity orb(split);
+        ExperienceOrbEntity orb(split, mc::test::testEcsRegistry());
         EXPECT_EQ(orb.getXpValue(), split);
     }
 }
@@ -309,13 +309,13 @@ TEST_F(ExperienceOrbEntityIntegrationTest, OrbSizeConsistency)
     // 验证每个分割值对应的球大小
     for (int i = 0; i < xp_constants::XP_SPLIT_COUNT; ++i) {
         i32 value = xp_constants::XP_SPLIT_VALUES[i];
-        ExperienceOrbEntity orb(value);
+        ExperienceOrbEntity orb(value, mc::test::testEcsRegistry());
         i32 size = orb.getOrbSize();
 
         // 更大的分割值应该有更大的或相等的球大小
         if (i < xp_constants::XP_SPLIT_COUNT - 1) {
             i32 nextValue = xp_constants::XP_SPLIT_VALUES[i + 1];
-            ExperienceOrbEntity nextOrb(nextValue);
+            ExperienceOrbEntity nextOrb(nextValue, mc::test::testEcsRegistry());
             i32 nextSize = nextOrb.getOrbSize();
 
             EXPECT_GE(size, nextSize) << "Inconsistent orb sizes: " << value << " has size " << size << ", "
@@ -331,7 +331,7 @@ TEST_F(ExperienceOrbEntityIntegrationTest, MergeSimulation)
 
     // 创建多个小经验球
     for (int i = 0; i < 10; ++i) {
-        orbs.push_back(std::make_unique<ExperienceOrbEntity>(10)); // 每个10点经验
+        orbs.push_back(std::make_unique<ExperienceOrbEntity>(10, mc::test::testEcsRegistry())); // 每个10点经验
         orbs.back()->setPosition(0, 0, 0);
     }
 
@@ -433,7 +433,7 @@ protected:
 TEST_F(ExperienceOrbHurtTest, InvulnerableSource_ReturnsFalse_DoesNotMarkHurt)
 {
     // 无敌状态下，hurt() 应返回 false 且不调用 markHurt()
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setInvulnerable(true);
     EXPECT_FALSE(orb.isHurtMarked());
 
@@ -446,7 +446,7 @@ TEST_F(ExperienceOrbHurtTest, InvulnerableSource_ReturnsFalse_DoesNotMarkHurt)
 TEST_F(ExperienceOrbHurtTest, InvulnerableSource_VoidDamageBypasses_ReturnsTrue)
 {
     // 虚空伤害绕过无敌，hurt() 应返回 true
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setInvulnerable(true);
 
     auto voidSource = DamageSources::outOfWorld();
@@ -458,7 +458,7 @@ TEST_F(ExperienceOrbHurtTest, NormalDamage_ReducesHealth_MarksHurt_ReturnsTrue)
 {
     // 正常伤害减少生命值，标记 hurtMarked，返回 true
     // ExperienceOrbEntity 默认 m_health = 5
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -471,7 +471,7 @@ TEST_F(ExperienceOrbHurtTest, NormalDamage_ReducesHealth_MarksHurt_ReturnsTrue)
 TEST_F(ExperienceOrbHurtTest, SmallDamage_DoesNotDiscard)
 {
     // 3 点伤害：5 - 3 = 2，生命值 > 0，不会调用 discard()
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -482,7 +482,7 @@ TEST_F(ExperienceOrbHurtTest, SmallDamage_DoesNotDiscard)
 TEST_F(ExperienceOrbHurtTest, ExactHealthDamage_DiscardsEntity)
 {
     // 5 点伤害：5 - 5 = 0，生命值 <= 0，调用 discard()
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -493,7 +493,7 @@ TEST_F(ExperienceOrbHurtTest, ExactHealthDamage_DiscardsEntity)
 TEST_F(ExperienceOrbHurtTest, OverkillDamage_DiscardsEntity)
 {
     // 10 点伤害：5 - 10 = -5，生命值 < 0，调用 discard()
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -504,7 +504,7 @@ TEST_F(ExperienceOrbHurtTest, OverkillDamage_DiscardsEntity)
 TEST_F(ExperienceOrbHurtTest, MultipleHitsAccumulateDamage)
 {
     // 多次攻击累积伤害直到销毁
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setWorld(&m_world);
 
     auto source = DamageSources::generic();
@@ -525,7 +525,7 @@ TEST_F(ExperienceOrbHurtTest, MultipleHitsAccumulateDamage)
 TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_IsEmitted)
 {
     // hurt() 成功时应派发 ENTITY_DAMAGE 游戏事件
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setPosition(5.0f, 64.0f, 10.0f);
     orb.setWorld(&m_world);
 
@@ -540,7 +540,7 @@ TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_PositionMatchesEntityBlockPo
 {
     // 游戏事件位置应与实体的方块坐标一致
     // 位置 (5.5, 64.3, 10.7) -> BlockPos (5, 64, 10)
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setPosition(5.5f, 64.3f, 10.7f);
     orb.setWorld(&m_world);
 
@@ -553,7 +553,7 @@ TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_PositionMatchesEntityBlockPo
 TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_NullSourceForEnvironmentalDamage)
 {
     // 环境伤害的 sourceEntity 应为 nullptr
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setPosition(5.0f, 64.0f, 10.0f);
     orb.setWorld(&m_world);
 
@@ -566,7 +566,7 @@ TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_NullSourceForEnvironmentalDa
 TEST_F(ExperienceOrbHurtTest, InvulnerableSource_DoesNotDispatchGameEvent)
 {
     // 无敌状态下不派发游戏事件
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     orb.setPosition(5.0f, 64.0f, 10.0f);
     orb.setWorld(&m_world);
     orb.setInvulnerable(true);
@@ -579,7 +579,7 @@ TEST_F(ExperienceOrbHurtTest, InvulnerableSource_DoesNotDispatchGameEvent)
 TEST_F(ExperienceOrbHurtTest, NoWorld_DoesNotDispatchGameEvent)
 {
     // 没有 world 时不会派发游戏事件，也不会崩溃
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
     // 不设置 world
 
     auto source = DamageSources::generic();
@@ -590,7 +590,7 @@ TEST_F(ExperienceOrbHurtTest, NoWorld_DoesNotDispatchGameEvent)
 TEST_F(ExperienceOrbHurtTest, ClearHurtMarked_ResetsFlag)
 {
     // clearHurtMarked() 应重置 hurtMarked 标志
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
 
     auto source = DamageSources::generic();
     orb.hurt(source, 1.0f);
@@ -603,7 +603,7 @@ TEST_F(ExperienceOrbHurtTest, ClearHurtMarked_ResetsFlag)
 TEST_F(ExperienceOrbHurtTest, MarkHurtCalledBeforeDiscard)
 {
     // 即使伤害导致 discard()，markHurt 也应被调用
-    ExperienceOrbEntity orb(10);
+    ExperienceOrbEntity orb(10, mc::test::testEcsRegistry());
 
     auto source = DamageSources::generic();
     orb.hurt(source, 5.0f);

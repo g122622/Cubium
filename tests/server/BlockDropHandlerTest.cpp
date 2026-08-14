@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -65,7 +67,7 @@ TEST(BlockDropHandlerTest, SpawnDropsToEntityManagerCreatesItemEntities)
 
     ASSERT_NE(Items::APPLE, nullptr);
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     const BlockPos pos(12, 80, -4);
     const std::vector<ItemStack> drops{ItemStack(*Items::APPLE, 2)};
 
@@ -84,7 +86,7 @@ TEST(BlockDropHandlerTest, SpawnDropsEmptyListReturnsEmpty)
 {
     ensureRegistriesInitialized();
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     const BlockPos pos(0, 0, 0);
     const std::vector<ItemStack> drops;
 
@@ -101,7 +103,7 @@ TEST(BlockDropHandlerTest, SpawnDropsMultipleItems)
     ASSERT_NE(Items::STONE, nullptr);
     ASSERT_NE(Items::COBBLESTONE, nullptr);
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     const BlockPos pos(100, 64, -200);
     const std::vector<ItemStack> drops{ItemStack(*Items::STONE, 32), ItemStack(*Items::COBBLESTONE, 16)};
 
@@ -124,7 +126,7 @@ TEST(BlockDropHandlerTest, SpawnDropsSetsPickupDelay)
 
     ASSERT_NE(Items::COBBLESTONE, nullptr);
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     const BlockPos pos(0, 0, 0);
     const std::vector<ItemStack> drops{ItemStack(*Items::COBBLESTONE, 1)};
 
@@ -263,7 +265,7 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceNonOreReturnsZero)
 {
     ensureRegistriesInitialized();
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     math::Random rng(12345);
     const BlockPos pos(0, 0, 0);
 
@@ -281,7 +283,7 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceCoalOreGeneratesXP)
 {
     ensureRegistriesInitialized();
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     math::Random rng(12345);
     const BlockPos pos(0, 0, 0);
 
@@ -302,7 +304,7 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceDiamondOreGeneratesXP)
 {
     ensureRegistriesInitialized();
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     math::Random rng(54321);
     const BlockPos pos(100, 64, -50);
 
@@ -320,7 +322,7 @@ TEST(BlockDropHandlerTest, HandleBlockBreakExperienceGeneratesExperienceOrbs)
 {
     ensureRegistriesInitialized();
 
-    EntityManager entityManager;
+    EntityManager entityManager{mc::test::testEcsRegistry()};
     math::Random rng(99999);
     const BlockPos pos(10, 20, 30);
 

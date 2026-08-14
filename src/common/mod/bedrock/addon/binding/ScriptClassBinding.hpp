@@ -148,6 +148,20 @@ public:
     [[nodiscard]] void* exportClass(const std::string& className, u64 classId);
 
     /**
+     * @brief 在模块中创建一个类并导出可真实调用的构造函数
+     *
+     * 与无构造回调的重载不同，此重载允许传入 ctorCallback 实现 `new ClassName(...)`
+     * 的真实构造（对齐官方基岩 API，如 `new ItemStack(typeId, amount)`）。回调内负责创建
+     * C++ 对象并 wrap 成 JS 值返回；不传此重载的类仍走抛 TypeError 的 stub 构造。
+     *
+     * @param className 类名
+     * @param classId 类ID
+     * @param ctorCallback 构造回调（签名同 ScriptMethodCallback）
+     * @return 原型对象句柄
+     */
+    [[nodiscard]] void* exportClass(const std::string& className, u64 classId, ScriptMethodCallback ctorCallback);
+
+    /**
      * @brief 完成模块注册
      *
      * 必须在所有导出操作完成后调用。

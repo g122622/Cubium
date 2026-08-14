@@ -47,9 +47,9 @@ namespace mc::command {
 using mc::DimensionManager;
 using mc::ServerDimensionManager;
 
-class TellRawTestServer final : public test::BaseTestServer {
+class TellRawTestServer final : public mc::test::BaseTestServer {
 public:
-    [[nodiscard]] std::shared_ptr<test::FakeServerConnection> getConnection(PlayerId playerId)
+    [[nodiscard]] std::shared_ptr<mc::test::FakeServerConnection> getConnection(PlayerId playerId)
     {
         auto* playerData = playerManager().getPlayer(playerId);
         if (playerData != nullptr && playerData->hasConnection()) {

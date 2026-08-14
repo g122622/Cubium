@@ -26,6 +26,8 @@
 #include "entity/core/LivingEntity.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 
 // ============================================================================
@@ -36,7 +38,7 @@ class LivingEntityAbsorptionTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1));
+        m_living = std::make_unique<LivingEntity>(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
         m_living->registerData();
         m_living->registerAttributes();
         m_living->setHealth(m_living->maxHealth());
