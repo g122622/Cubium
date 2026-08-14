@@ -212,7 +212,7 @@ protected:
     /**
      * @brief 获取环境音效
      *
-     * 哞菇复用牛的环境音，对齐原版 Mooshroom（继承 AbstractCow.getAmbientSound）。
+     * 哞菇复用牛的环境音。
      * sounds.json 中无 entity.mooshroom.ambient，仅有 convert/eat/milk/shear，
      * 故不能走默认 makeSoundEventId("ambient")（会拼接出 mooshroom.ambient）。
      */

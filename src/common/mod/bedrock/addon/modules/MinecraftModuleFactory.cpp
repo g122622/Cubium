@@ -32,6 +32,7 @@
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
@@ -567,6 +568,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("IsChargedComponent");
             }
+            if (normalized == "minecraft:mark_variant") {
+                // 借用基岩 mark_variant（int 标记变种组件）承载哞菇红/棕变种。基岩原版哞菇无此组件，
+                // 此处为集成测试可读变种而设：dynamic_cast 到 MooshroomEntity，读 getMooshroomType()
+                // 映射为 int（Red=0/Brown=1，与 MooshroomType 枚举值及 NBT "Type" 字段一致）。
+                // 非哞菇返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                auto* mooshroom = dynamic_cast<mc::MooshroomEntity*>(ent);
+                if (mooshroom == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("MarkVariantComponent");
+            }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
@@ -628,6 +640,25 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     void* isChargedProto = builder.exportClass("IsChargedComponent", isChargedClassId);
     ScriptClassRegistry::instance().registerClass(isChargedClassId, isChargedProto, "IsChargedComponent");
     // 无 property/method：组件对象存在即 charged（与基岩 EntityIsChargedComponent 一致）。
+
+    // --- MarkVariantComponent类（minecraft:mark_variant，承载哞菇红/棕变种）---
+    // opaque 持 mc::Entity*。getComponent 已按 MooshroomEntity 过滤，此处 dynamic_cast 现取变种值。
+    // readonly value：MooshroomType 枚举值（Red=0/Brown=1），与 NBT "Type" 字段一致。
+    // 供集成测试断言闪电劈中后红↔棕翻转（MooshroomEntity::onStruckByLightning）。
+    u64 markVariantClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* markVariantProto = builder.exportClass("MarkVariantComponent", markVariantClassId);
+    ScriptClassRegistry::instance().registerClass(markVariantClassId, markVariantProto, "MarkVariantComponent");
+
+    ClassRegistrar<void> markVariantReg(ctx, markVariantClassId, markVariantProto);
+    markVariantReg.readonlyProperty("value", [markVariantClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, markVariantClassId));
+        auto* mooshroom = dynamic_cast<mc::MooshroomEntity*>(ent);
+        if (mooshroom == nullptr) {
+            return ctx.createUndefined();
+        }
+        // MooshroomType::Red=0/Brown=1，static_cast 取枚举底层数值。
+        return ctx.createInt32(static_cast<i32>(mooshroom->getMooshroomType()));
+    });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），

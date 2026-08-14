@@ -65,7 +65,7 @@ function rabbitFleesPlayer(test: Test): void {
 // 近战攻击 8 伤害；杀手兔是 Java 独有变种，{RabbitType:99} 命令生成）。
 //
 // C++ 链路：applySpawnEvent 派发 "rabbit<spawn_killer>" → setRabbitType(Killer) → applyRabbitType
-// （RabbitEntity.cpp:147-176，对齐 vanilla Rabbit.setVariant(EVIL)）注册：
+// （RabbitEntity.cpp:147-176，注册：
 //   targetSelector 优先级2 NearestAttackableTargetGoal<Player>(this, true)（checkSight=true 选玩家）→
 //   goalSelector 优先级4 MeleeAttackGoal(this, 1.4, true) 寻路接近 →
 //   attackEntityAsMob(玩家, ATTACK_DAMAGE)。ATTACK_DAMAGE 基础值 + EVIL_ATTACK_POWER_MODIFIER(+5)，
