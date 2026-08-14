@@ -11,6 +11,7 @@ import { registerMagmaCubeTests } from "./tests/monster/nether/MagmaCubeTests.js
 import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPiglinTests.js";
 import { registerBlazeTests } from "./tests/monster/nether/BlazeTests.js";
 import { registerGuardianTests } from "./tests/monster/ocean/GuardianTests.js";
+import { registerElderGuardianTests } from "./tests/monster/ocean/ElderGuardianTests.js";
 import { registerEndermanTests } from "./tests/monster/end/EndermanTests.js";
 import { registerWitherSkeletonTests } from "./tests/monster/undead/WitherSkeletonTests.js";
 import { registerHuskTests } from "./tests/monster/undead/HuskTests.js";
@@ -43,6 +44,7 @@ registerMagmaCubeTests();
 registerZombifiedPiglinTests();
 registerBlazeTests();
 registerGuardianTests();
+registerElderGuardianTests();
 registerEndermanTests();
 registerWitherSkeletonTests();
 registerHuskTests();

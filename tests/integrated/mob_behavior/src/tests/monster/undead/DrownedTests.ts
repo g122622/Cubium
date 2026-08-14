@@ -12,13 +12,11 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 // 溺尸在阳光下着火（wiki mob_溺尸_ED.txt#行为：溺尸是亡灵生物，会在阳光下着火，与僵尸一致）。
 // 溺尸是亡灵生物（drowned = 僵尸的水生变种），分类"亡灵生物"，白天露天陆地燃烧。
 //
-// C++ 链路：DrownedEntity : ZombieEntity : MonsterEntity。DrownedEntity 构造未调 setBurnsInDaylight，
-// 继承 ZombieEntity 构造期的 setBurnsInDaylight(true)（m_burnsInDaylight=true）。
-// MonsterEntity::tick→handleDaylightBurning→if(m_burnsInDaylight) burnUndead()→isInDaylight()
-// 校验 isDaytime + brightness>0.5 + !isWet + canSeeSky，全部满足则 igniteForSeconds 点燃。
-// 注意：DrownedEntity::shouldBurnInDaylight() override 返回 !isInWater()，但该虚函数全仓零调用
-// 是遗留死代码 API（真正生效的是 m_burnsInDaylight 成员 + isInDaylight 的 isWet 兜底）。
-// 溺尸白天陆地不在水中（isWet=false），燃烧判定通过——与原版一致。
+// C++ 链路：DrownedEntity : ZombieEntity : MonsterEntity。MonsterEntity::handleDaylightBurning()
+// 调用虚函数 shouldBurnInDaylight()，DrownedEntity override 返回 !isInWater()——陆地燃、水中不燃
+// （对齐原版 Drowned 只在陆地燃烧）。grass_pen 陆地 spawn 溺尸不在水中（isInWater=false），
+// shouldBurnInDaylight=true。burnUndead()→isInDaylight() 校验 isDaytime + brightness>0.5 + !isWet
+// + canSeeSky，全部满足则 igniteForSeconds(8.0f) 点燃。
 //
 // 与 zombie_burns_in_daylight（僵尸燃）+ husk_does_not_burn_in_daylight（尸壳不燃）
 // 形成对照：溺尸同为亡灵但与尸壳（沙漠变种不燃）不同，水生变种在陆地仍燃。
@@ -33,8 +31,9 @@ function drownedBurnsInDaylight(test: Test): void {
   // 因 Dimension 属性差异不兼容，显式标注触发 TS2322（见 SkeletonTests 同款注释）。
   const drowned = test.spawn(drownedType, { x: 4, y: 2, z: 4 });
 
-  // 概率时序：isInDaylight 随机检查，满亮度约 4%/tick，期望约 25 tick 首次点燃。
-  // 点燃后 igniteForSeconds 持续燃烧。grass_pen 无阴影，溺尸无处可躲。
+  // 时序：isInDaylight() 确定性检查（亮度达标即每 tick 必然燃烧，vanilla 无随机检查）。
+  // 溺尸陆地 canSeeSky=true，首 tick 即 burnUndead→igniteForSeconds 持续燃烧。
+  // grass_pen 无阴影，溺尸无处可躲。
   // maxTicks=500 留充足余量（与 zombie_burns/skeleton_burns/stray_burns/bogged_burns 同款）。
   // succeedWhen 轮询 onfire 组件：着火（组件非 undefined）即通过。
   test.succeedWhen(() => {

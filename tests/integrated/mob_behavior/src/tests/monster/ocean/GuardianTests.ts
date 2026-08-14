@@ -63,8 +63,9 @@ function guardianLaserDamagesPlayer(test: Test): void {
 //
 // 与 zombie_burns_in_daylight（僵尸燃）+ blaze_does_not_burn_in_daylight（烈焰人不燃）对照：
 // 僵尸验证 MonsterEntity 默认 shouldBurnInDaylight=true 对基础亡灵生效，守卫者验证水生怪物
-// override false 跳过燃烧。C++ 链路：MonsterEntity::tick→handleDaylightBurning→isInDaylight
-// 校验 shouldBurnInDaylight()，守卫者 override 返回 false 跳过燃烧判定。
+// override false 跳过燃烧。C++ 链路：MonsterEntity::tick→handleDaylightBurning→shouldBurnInDaylight()
+// 虚函数调度（handleDaylightBurning 调虚函数而非读成员，使 override 生效），守卫者 override 返回
+// false 跳过燃烧判定。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#行为（陆地不窒息、不燃烧）
 function guardianDoesNotBurnInDaylight(test: Test): void {
   const guardianType = "guardian";

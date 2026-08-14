@@ -145,7 +145,15 @@ void MonsterEntity::registerGoals()
 
 void MonsterEntity::handleDaylightBurning()
 {
-    if (m_burnsInDaylight) {
+    // 调用虚函数 shouldBurnInDaylight() 而非直接读成员 m_burnsInDaylight。
+    // 此前直接读成员导致子类的 shouldBurnInDaylight() override 全部成为死代码——
+    // Guardian/ElderGuardian/WitherSkeleton/Husk/Drowned/Shulker/Witch/Giant/Spider
+    // 均在 hpp override 返回 false（意图"不燃烧"），但成员默认 true 且构造期未调
+    // setBurnsInDaylight(false)，故这些生物实际会在阳光下燃烧，与原版严重矛盾。
+    // 改用虚函数调用后：override{return false} 生效；override 动态返回（如 Drowned
+    // 的 !isInWater()：陆地燃、水中不燃）也正确生效。已 setBurnsInDaylight(false)
+    // 的实体不受影响（虚函数默认实现返回 m_burnsInDaylight=false，结果一致）。
+    if (shouldBurnInDaylight()) {
         burnUndead();
     }
 }
