@@ -74,6 +74,11 @@ const entity::EntityClassInfo& EvokerEntity::classInfo()
 EvokerEntity::EvokerEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : SpellcastingIllagerEntity(id, registry)
 {
+    // 唤魔者不在阳光下燃烧：唤魔者是灾厄村民（非亡灵），wiki tech_唤魔者.txt 通篇未提阳光燃烧。
+    // 对齐原版，在构造时关闭日光燃烧。MonsterEntity::handleDaylightBurning() 读成员 m_burnsInDaylight
+    // （而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
     registerAttributes();
 
     // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造
@@ -206,7 +211,6 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         // 尖牙的Y坐标 = 方块Y坐标 + 碰撞箱上表面高度
         f32 groundY = static_cast<f32>(blockPos.y) + shapeMaxY;
 
-        // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
         auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
@@ -245,7 +249,6 @@ void EvokerEntity::summonVex()
         i32 offsetZ = -2 + rng.nextInt(5);
         BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);
 
-        // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
         auto* registry = &ecsRegistry();
         if (registry == nullptr) {
             return;
@@ -314,20 +317,17 @@ void EvokerEntity::registerGoals()
     }));
 
     // 目标选择器：HurtByTargetGoal - 唤魔者不会反击其他灾厄村民
-    // MC 原版: HurtByTargetGoal(this, Raider.class) — 不调用 setAlertOthers
     targetSelector().addGoal(
         1, new entity::ai::goal::HurtByTargetGoal(this, false, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
     // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
-    // MC 原版: NearestAttackableTargetGoal<>(this, Player.class, true).setUnseenMemoryTicks(300)
     {
         auto* playerTarget = new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true);
         playerTarget->setUnseenMemoryTicks(300);
         targetSelector().addGoal(2, playerTarget);
     }
     // 优先级 3: 攻击村民（穿透墙壁感知）
-    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, false).setUnseenMemoryTicks(300)
     // 注意：checkSight=false 时 unseenMemoryTicks 不生效，但与 MC 原版保持一致
     {
         auto* villagerTarget =
@@ -336,7 +336,6 @@ void EvokerEntity::registerGoals()
         targetSelector().addGoal(3, villagerTarget);
     }
     // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
-    // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, false)
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));
 }
 

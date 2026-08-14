@@ -59,8 +59,11 @@ public:
 protected:
     /**
      * @brief 获取施法准备时间
+     *
+     * 对齐原版 SpellcasterIllager.SpellcasterUseSpellGoal.getCastWarmupTime() 默认返回 20。
+     * 唤魔者尖牙/召唤恼鬼施法 goal 不重写此方法，用默认 20 tick 蓄力；Wololo 重写为 40。
      */
-    [[nodiscard]] virtual i32 getCastWarmupTime() const noexcept { return 0; }
+    [[nodiscard]] virtual i32 getCastWarmupTime() const noexcept { return 20; }
 
     /**
      * @brief 获取施法持续时间
@@ -106,7 +109,6 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "EvokerAttackSpellGoal"; }
 
 protected:
-    [[nodiscard]] i32 getCastWarmupTime() const noexcept override { return 0; }
     [[nodiscard]] i32 getCastingTime() const noexcept override { return 40; }
     [[nodiscard]] i32 getCastingInterval() const noexcept override { return 100; }
 
@@ -138,7 +140,6 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "EvokerSummonSpellGoal"; }
 
 protected:
-    [[nodiscard]] i32 getCastWarmupTime() const noexcept override { return 0; }
     [[nodiscard]] i32 getCastingTime() const noexcept override { return 100; }
     [[nodiscard]] i32 getCastingInterval() const noexcept override { return 340; }
 
