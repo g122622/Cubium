@@ -60,6 +60,7 @@ import { registerBreezeTests } from "./tests/monster/breeze/BreezeTests.js";
 import { registerSquidTests } from "./tests/passive/water/SquidTests.js";
 import { registerGlowSquidTests } from "./tests/passive/water/GlowSquidTests.js";
 import { registerAxolotlTests } from "./tests/passive/water/AxolotlTests.js";
+import { registerDolphinTests } from "./tests/passive/water/DolphinTests.js";
 import { registerPufferfishTests } from "./tests/passive/fish/PufferfishTests.js";
 
 registerZombieTests();
@@ -114,4 +115,5 @@ registerBreezeTests();
 registerSquidTests();
 registerGlowSquidTests();
 registerAxolotlTests();
+registerDolphinTests();
 registerPufferfishTests();

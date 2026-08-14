@@ -308,7 +308,6 @@ void DolphinEntity::registerGoals()
 
     // 目标选择器
     // 优先级 1: 被攻击后反击，并呼叫同类
-    // MC 原版: HurtByTargetGoal(this, Guardian.class).setAlertOthers()
     // 海豚不会反击守卫者和远古守卫者，但会警醒同类
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
