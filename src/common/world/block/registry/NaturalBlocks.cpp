@@ -263,68 +263,86 @@ void registerNaturalBlocks()
     NaturalBlocks::DEAD_HORN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_horn_coral_block"), blocks::CoralColor::Horn, deadCoralBlockProps);
 
-    const u32 deadTubeBlockId =
-        NaturalBlocks::DEAD_TUBE_CORAL_BLOCK ? NaturalBlocks::DEAD_TUBE_CORAL_BLOCK->blockId() : deadFallbackId;
-    const u32 deadBrainBlockId =
-        NaturalBlocks::DEAD_BRAIN_CORAL_BLOCK ? NaturalBlocks::DEAD_BRAIN_CORAL_BLOCK->blockId() : deadFallbackId;
-    const u32 deadBubbleBlockId =
-        NaturalBlocks::DEAD_BUBBLE_CORAL_BLOCK ? NaturalBlocks::DEAD_BUBBLE_CORAL_BLOCK->blockId() : deadFallbackId;
-    const u32 deadFireBlockId =
-        NaturalBlocks::DEAD_FIRE_CORAL_BLOCK ? NaturalBlocks::DEAD_FIRE_CORAL_BLOCK->blockId() : deadFallbackId;
-    const u32 deadHornBlockId =
-        NaturalBlocks::DEAD_HORN_CORAL_BLOCK ? NaturalBlocks::DEAD_HORN_CORAL_BLOCK->blockId() : deadFallbackId;
+    // 死珊瑚方块体（dead_*_coral_block）当前无消费方：CoralBlockBlock 注释明确"不会因缺水而死亡"
+    // （CoralBlock.hpp:283），无 m_deadBlock 字段，故不在此取 id。保留注释说明，避免误以为需要。
 
     NaturalBlocks::DEAD_TUBE_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_tube_coral_fan"),
             blocks::CoralColor::Tube,
-            deadTubeBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_BRAIN_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_brain_coral_fan"),
             blocks::CoralColor::Brain,
-            deadBrainBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_BUBBLE_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_bubble_coral_fan"),
             blocks::CoralColor::Bubble,
-            deadBubbleBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_FIRE_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_fire_coral_fan"),
             blocks::CoralColor::Fire,
-            deadFireBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_HORN_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_horn_coral_fan"),
             blocks::CoralColor::Horn,
-            deadHornBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
+
+    // 活珊瑚扇脱水死亡应变为对应的死珊瑚扇（CoralFanBlock 构造传入的死珊瑚扇即为死亡目标方块）。
+    // 此前误传 dead_*_coral_block（死珊瑚方块体）的 id，导致珊瑚扇死亡变成死珊瑚方块体。
+    const u32 deadTubeFanBlockId =
+        NaturalBlocks::DEAD_TUBE_CORAL_FAN ? NaturalBlocks::DEAD_TUBE_CORAL_FAN->blockId() : deadFallbackId;
+    const u32 deadBrainFanBlockId =
+        NaturalBlocks::DEAD_BRAIN_CORAL_FAN ? NaturalBlocks::DEAD_BRAIN_CORAL_FAN->blockId() : deadFallbackId;
+    const u32 deadBubbleFanBlockId =
+        NaturalBlocks::DEAD_BUBBLE_CORAL_FAN ? NaturalBlocks::DEAD_BUBBLE_CORAL_FAN->blockId() : deadFallbackId;
+    const u32 deadFireFanBlockId =
+        NaturalBlocks::DEAD_FIRE_CORAL_FAN ? NaturalBlocks::DEAD_FIRE_CORAL_FAN->blockId() : deadFallbackId;
+    const u32 deadHornFanBlockId =
+        NaturalBlocks::DEAD_HORN_CORAL_FAN ? NaturalBlocks::DEAD_HORN_CORAL_FAN->blockId() : deadFallbackId;
 
     NaturalBlocks::DEAD_TUBE_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:dead_tube_coral_wall_fan"),
             blocks::CoralColor::Tube,
-            deadTubeBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_BRAIN_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:dead_brain_coral_wall_fan"),
             blocks::CoralColor::Brain,
-            deadBrainBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_BUBBLE_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:dead_bubble_coral_wall_fan"),
             blocks::CoralColor::Bubble,
-            deadBubbleBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_FIRE_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:dead_fire_coral_wall_fan"),
             blocks::CoralColor::Fire,
-            deadFireBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
     NaturalBlocks::DEAD_HORN_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:dead_horn_coral_wall_fan"),
             blocks::CoralColor::Horn,
-            deadHornBlockId,
+            deadFallbackId,
             deadCoralPlantProps);
+
+    // 活墙珊瑚扇脱水死亡应变为对应的死墙珊瑚扇（构造传入的死墙珊瑚扇即为死亡目标方块）。
+    const u32 deadTubeWallFanBlockId =
+        NaturalBlocks::DEAD_TUBE_CORAL_WALL_FAN ? NaturalBlocks::DEAD_TUBE_CORAL_WALL_FAN->blockId() : deadFallbackId;
+    const u32 deadBrainWallFanBlockId =
+        NaturalBlocks::DEAD_BRAIN_CORAL_WALL_FAN ? NaturalBlocks::DEAD_BRAIN_CORAL_WALL_FAN->blockId() : deadFallbackId;
+    const u32 deadBubbleWallFanBlockId = NaturalBlocks::DEAD_BUBBLE_CORAL_WALL_FAN
+        ? NaturalBlocks::DEAD_BUBBLE_CORAL_WALL_FAN->blockId()
+        : deadFallbackId;
+    const u32 deadFireWallFanBlockId =
+        NaturalBlocks::DEAD_FIRE_CORAL_WALL_FAN ? NaturalBlocks::DEAD_FIRE_CORAL_WALL_FAN->blockId() : deadFallbackId;
+    const u32 deadHornWallFanBlockId =
+        NaturalBlocks::DEAD_HORN_CORAL_WALL_FAN ? NaturalBlocks::DEAD_HORN_CORAL_WALL_FAN->blockId() : deadFallbackId;
 
     NaturalBlocks::TUBE_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:tube_coral_block"), blocks::CoralColor::Tube, coralBlockProps);
@@ -338,32 +356,44 @@ void registerNaturalBlocks()
         ResourceLocation("minecraft:horn_coral_block"), blocks::CoralColor::Horn, coralBlockProps);
 
     NaturalBlocks::TUBE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
-        ResourceLocation("minecraft:tube_coral_fan"), blocks::CoralColor::Tube, deadTubeBlockId, coralPlantProps);
+        ResourceLocation("minecraft:tube_coral_fan"), blocks::CoralColor::Tube, deadTubeFanBlockId, coralPlantProps);
     NaturalBlocks::BRAIN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
-        ResourceLocation("minecraft:brain_coral_fan"), blocks::CoralColor::Brain, deadBrainBlockId, coralPlantProps);
-    NaturalBlocks::BUBBLE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
-        ResourceLocation("minecraft:bubble_coral_fan"), blocks::CoralColor::Bubble, deadBubbleBlockId, coralPlantProps);
+        ResourceLocation("minecraft:brain_coral_fan"), blocks::CoralColor::Brain, deadBrainFanBlockId, coralPlantProps);
+    NaturalBlocks::BUBBLE_CORAL_FAN =
+        &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:bubble_coral_fan"),
+            blocks::CoralColor::Bubble,
+            deadBubbleFanBlockId,
+            coralPlantProps);
     NaturalBlocks::FIRE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
-        ResourceLocation("minecraft:fire_coral_fan"), blocks::CoralColor::Fire, deadFireBlockId, coralPlantProps);
+        ResourceLocation("minecraft:fire_coral_fan"), blocks::CoralColor::Fire, deadFireFanBlockId, coralPlantProps);
     NaturalBlocks::HORN_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
-        ResourceLocation("minecraft:horn_coral_fan"), blocks::CoralColor::Horn, deadHornBlockId, coralPlantProps);
+        ResourceLocation("minecraft:horn_coral_fan"), blocks::CoralColor::Horn, deadHornFanBlockId, coralPlantProps);
 
-    NaturalBlocks::TUBE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
-        ResourceLocation("minecraft:tube_coral_wall_fan"), blocks::CoralColor::Tube, deadTubeBlockId, coralPlantProps);
+    NaturalBlocks::TUBE_CORAL_WALL_FAN =
+        &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:tube_coral_wall_fan"),
+            blocks::CoralColor::Tube,
+            deadTubeWallFanBlockId,
+            coralPlantProps);
     NaturalBlocks::BRAIN_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:brain_coral_wall_fan"),
             blocks::CoralColor::Brain,
-            deadBrainBlockId,
+            deadBrainWallFanBlockId,
             coralPlantProps);
     NaturalBlocks::BUBBLE_CORAL_WALL_FAN =
         &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:bubble_coral_wall_fan"),
             blocks::CoralColor::Bubble,
-            deadBubbleBlockId,
+            deadBubbleWallFanBlockId,
             coralPlantProps);
-    NaturalBlocks::FIRE_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
-        ResourceLocation("minecraft:fire_coral_wall_fan"), blocks::CoralColor::Fire, deadFireBlockId, coralPlantProps);
-    NaturalBlocks::HORN_CORAL_WALL_FAN = &registry.registerBlock<blocks::CoralWallFanBlock>(
-        ResourceLocation("minecraft:horn_coral_wall_fan"), blocks::CoralColor::Horn, deadHornBlockId, coralPlantProps);
+    NaturalBlocks::FIRE_CORAL_WALL_FAN =
+        &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:fire_coral_wall_fan"),
+            blocks::CoralColor::Fire,
+            deadFireWallFanBlockId,
+            coralPlantProps);
+    NaturalBlocks::HORN_CORAL_WALL_FAN =
+        &registry.registerBlock<blocks::CoralWallFanBlock>(ResourceLocation("minecraft:horn_coral_wall_fan"),
+            blocks::CoralColor::Horn,
+            deadHornWallFanBlockId,
+            coralPlantProps);
 
     // 潮涌核心 - 水下信标类方块，需要潮涌框架激活
     NaturalBlocks::CONDUIT = &registry.registerBlock<blocks::ConduitBlock>(ResourceLocation("minecraft:conduit"),

@@ -43,6 +43,29 @@ using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 
 namespace {
 
+// 判断 worldPos 当前方块是否已与目标 desired 一致（含 air 匹配：当前为 air 且目标也为 air）。
+// 用于 setBlock 等写入操作的兜底判定：ServerWorld::setBlockState 在“格子已是目标状态”时返回
+// false（no-op 成功语义，见 ServerWorld.cpp 状态比较早退），但 GameTestHelper 不能把这种 false
+// 当作硬失败——原版 Test.setBlock 对“已是目标方块”视为成功 no-op。此 helper 在 setBlockState
+// 返回 false 时复查当前格子，若已与目标一致则视为成功；仅在格子确实未被写入（如 chunk 未加载、
+// 调试世界拦截）时才返回 false，交由调用方报真失败。
+bool _blockAlreadyMatches(const mc::IWorld& world, const mc::BlockPos& worldPos, const mc::BlockState* desired)
+{
+    const mc::BlockState* current = world.getBlockState(worldPos);
+    const mc::BlockRegistry& registry = mc::BlockRegistry::instance();
+    const mc::BlockState* const airState = registry.airState();
+    // 双方归一化为注册表标准 air（nullptr 也视作 air），再比较 blockId。
+    const bool currentIsAir = (current == nullptr || current->isAir());
+    const bool desiredIsAir = (desired == nullptr || desired->isAir());
+    if (currentIsAir && desiredIsAir) {
+        return true;
+    }
+    if (current == nullptr || desired == nullptr) {
+        return false;
+    }
+    return current->blockId() == desired->blockId();
+}
+
 // 解析 test.spawn 的实体类型标识符（对齐基岩 Test.spawn 官方语义）。
 // 基岩 spawn(entityTypeIdentifier, ...) 的 identifier 支持可选 <spawnEvent> 后缀：
 //   "namespace:entityType<spawnEvent>"（见基岩 Test.md#spawn）。后缀指定实体初始 spawn 事件
@@ -134,10 +157,10 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
     }
 
     // 兔子杀手变种事件：spawn_killer 把兔子设为杀手兔（RabbitType::Killer=99）。
-    // 对齐 wiki tech_兔子.txt#杀手兔：杀手兔是 Java 独有变种，{RabbitType:99} 命令生成，
+    // wiki tech_兔子.txt#杀手兔：杀手兔是 Java 独有变种，{RabbitType:99} 命令生成，
     // 非和平难度下迅速跳向 16 格内玩家并近战攻击 8 伤害。setRabbitType(Killer) 内部调
     // applyRabbitType 注册 MeleeAttackGoal + NearestAttackableTargetGoal<Player>（见
-    // RabbitEntity.cpp:147-176，对齐 vanilla Rabbit.setVariant(EVIL)）。
+    // RabbitEntity.cpp:147-176）。
     // GameTest 通过 test.spawn("rabbit<spawn_killer>", pos) 触发，派发后普通兔子变为攻击型杀手兔。
     if (normalizedType == "minecraft:rabbit") {
         auto* rabbit = dynamic_cast<mc::RabbitEntity*>(entity);
@@ -287,9 +310,13 @@ GameTestResult GameTestHelper::setBlock(const std::string& blockType, BlockPos r
         return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Unknown block type '{0}'", {blockType}};
     }
     if (!m_world.setBlockState(worldPos, state, updateFlags)) {
-        return GameTestError{GameTestErrorType::LevelStateModificationFailed,
-            "Failed to set block '{0}' at {1}",
-            {blockType, worldPos.toString()}};
+        // setBlockState 对“格子已是目标状态”返回 false（no-op 成功），原版 Test.setBlock 同样视为
+        // 成功。仅当格子确实未被写入（chunk 未加载等）时才报真失败。
+        if (!_blockAlreadyMatches(m_world, worldPos, state)) {
+            return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+                "Failed to set block '{0}' at {1}",
+                {blockType, worldPos.toString()}};
+        }
     }
     return std::nullopt;
 }
@@ -331,9 +358,13 @@ GameTestResult GameTestHelper::setBlockWithStates(const std::string& blockType,
     }
 
     if (!m_world.setBlockState(worldPos, state, updateFlags)) {
-        return GameTestError{GameTestErrorType::LevelStateModificationFailed,
-            "Failed to set block '{0}' at {1}",
-            {blockType, worldPos.toString()}};
+        // setBlockState 对“格子已是目标状态”返回 false（no-op 成功），原版 Test.setBlock 同样视为
+        // 成功。仅当格子确实未被写入（chunk 未加载等）时才报真失败。
+        if (!_blockAlreadyMatches(m_world, worldPos, state)) {
+            return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+                "Failed to set block '{0}' at {1}",
+                {blockType, worldPos.toString()}};
+        }
     }
     return std::nullopt;
 }
@@ -347,8 +378,13 @@ GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResou
         return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Air block state unavailable"};
     }
     if (!m_world.setBlockState(worldPos, air, 3)) {
-        return GameTestError{
-            GameTestErrorType::LevelStateModificationFailed, "Failed to destroy block at {0}", {worldPos.toString()}};
+        // setBlockState 对“格子已是 air”返回 false（no-op 成功），原版 destroyBlock 同样视为成功。
+        // 仅当格子确实未被写入（chunk 未加载等）时才报真失败。
+        if (!_blockAlreadyMatches(m_world, worldPos, air)) {
+            return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+                "Failed to destroy block at {0}",
+                {worldPos.toString()}};
+        }
     }
     // TODO: dropResources=true 时按战利品表生成掉落物（需 LootTable 体系就绪）
     (void)dropResources;
@@ -460,8 +496,12 @@ GameTestResult GameTestHelper::setBlockPermutation(const mc::BlockState& permuta
     // 复用 setBlock 的写入路径（m_world.setBlockState），入参从 blockType 字符串换成 BlockState&。
     const BlockPos worldPos = worldBlockPosition(relativePos);
     if (!m_world.setBlockState(worldPos, &permutation, 3)) {
-        return generateErrorWithContext(
-            GameTestErrorType::LevelStateModificationFailed, "Failed to set block permutation at {0}", relativePos);
+        // setBlockState 对“格子已是目标状态”返回 false（no-op 成功），原版 Test.setBlockPermutation
+        // 同样视为成功。仅当格子确实未被写入（chunk 未加载等）时才报真失败。
+        if (!_blockAlreadyMatches(m_world, worldPos, &permutation)) {
+            return generateErrorWithContext(
+                GameTestErrorType::LevelStateModificationFailed, "Failed to set block permutation at {0}", relativePos);
+        }
     }
     return std::nullopt;
 }

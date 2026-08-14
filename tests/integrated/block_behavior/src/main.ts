@@ -13,8 +13,12 @@ import { registerLiquidTests } from "./tests/liquid/LiquidTests.js";
 import { registerSpongeTests } from "./tests/special/SpongeTests.js";
 import { registerFarmlandTests } from "./tests/agricultural/FarmlandTests.js";
 import { registerConcretePowderTests } from "./tests/building/ConcretePowderTests.js";
+import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js";
+import { registerCoralTests } from "./tests/coral/CoralTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
 registerFarmlandTests();
 registerConcretePowderTests();
+registerFallingBlockTests();
+registerCoralTests();

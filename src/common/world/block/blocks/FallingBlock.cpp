@@ -101,6 +101,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
         return;
     }
 
+    // 原格先变 air，再生成下落实体；即使实体生成失败，原格 air 也已成立。
     if (!world.setBlockState(pos, airState, 3)) {
         return;
     }
@@ -129,7 +130,6 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 }
 
 // 检查方块状态是否可穿透
-// 对齐 MC 1.21.11 FallingBlock.isFree()
 bool FallingBlock::canFallThrough(const BlockState* state)
 {
     if (state == nullptr) {
