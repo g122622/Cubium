@@ -205,9 +205,11 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
         return;
     }
 
-    // 计算发射方向
+    // 计算发射方向（对齐 MC 1.21.11 Blaze.BlazeAttackGoal.tick：d2 = target.getY(0.5) - blaze.getY(0.5)）。
+    // 用实体几何中心（height*0.5）而非 eyeHeight：vanilla 烈焰人火球瞄准目标身体中部，
+    // 用 eyeHeight 会使火球朝目标眼部偏上方飞，对矮小或站立目标的命中率偏离原版。
     f64 dx = target->x() - m_blaze->x();
-    f64 dy = target->y() + target->eyeHeight() - (m_blaze->y() + m_blaze->eyeHeight());
+    f64 dy = target->getY(0.5) - m_blaze->getY(0.5);
     f64 dz = target->z() - m_blaze->z();
 
     if (m_attackTime <= 0) {
@@ -239,9 +241,10 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
             // 设置世界
             fireball->setWorld(m_blaze->world());
 
-            // 设置位置：从烈焰人眼睛高度发射
+            // 设置位置：从烈焰人几何中心上方 0.5 发射（对齐 MC 1.21.11 Blaze：
+            // smallfireball.setPos(x, this.blaze.getY(0.5) + 0.5, z)）。
             f32 fireballX = static_cast<f32>(m_blaze->x());
-            f32 fireballY = static_cast<f32>(m_blaze->y() + m_blaze->eyeHeight() + 0.5);
+            f32 fireballY = static_cast<f32>(m_blaze->getY(0.5) + 0.5);
             f32 fireballZ = static_cast<f32>(m_blaze->z());
             fireball->setPosition(fireballX, fireballY, fireballZ);
 
