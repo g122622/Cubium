@@ -183,6 +183,19 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 雷击充能 ==========
+
+    /**
+     * @brief 被闪电击中时充能为闪电苦力怕
+     *
+     * 对齐 vanilla Creeper#thunderHit(ServerLevel, LightningBolt)：
+     * 仅 setPowered(true)，不移除自身、不转化实体、不检查难度（区别于 PigEntity 转化需
+     * 非 Peaceful，因充能产物仍是苦力怕本身、无和平消失问题）。wiki tech_苦力怕.txt#闪电苦力怕：
+     * “普通苦力怕会在周围4格以内位置出现闪电时，被转化为闪电苦力怕”。
+     * LightningBoltEntity::_damageEntities 已在 hurt(5) 之后调用本方法。
+     */
+    void onStruckByLightning() override;
+
     // ========== 属性 ==========
 
     /**

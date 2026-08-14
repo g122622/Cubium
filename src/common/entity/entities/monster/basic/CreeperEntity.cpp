@@ -324,6 +324,24 @@ std::optional<ResourceLocation> CreeperEntity::getAmbientSound() const
 }
 
 // ============================================================================
+// 雷击充能
+// ============================================================================
+
+void CreeperEntity::onStruckByLightning()
+{
+    // 客户端不执行充能逻辑
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 对齐 vanilla Creeper#thunderHit：仅标记高压，不转化实体、不移除自身、不检查难度。
+    // 注意：BE 专属行为“闪电劈中时中断已开始的膨胀”本项目暂未实现（wiki tech_苦力怕.txt#行为
+    // BE 段落），Java 版无此行为，故此处不重置 m_swellDir/m_timeSinceIgnited。
+    // TODO: 若需对齐 BE“闪电中断点燃”行为，可在此 setCreeperState(-1) 并重置 m_timeSinceIgnited。
+    setPowered(true);
+}
+
+// ============================================================================
 // NBT 序列化
 // ============================================================================
 

@@ -31,6 +31,7 @@
 #include "common/entity/core/LivingEntity.hpp"     // LivingEntity（health/maxHealth/attributes/getEquipment）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
+#include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
@@ -556,6 +557,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("OnFireComponent");
             }
+            if (normalized == "minecraft:is_charged") {
+                // 对齐基岩 EntityIsChargedComponent（componentId="minecraft:is_charged"）：
+                // "When added, this component signifies that this entity is charged"。组件存在即充能。
+                // 仅 CreeperEntity 有充能概念，dynamic_cast 后查 isPowered()；非苦力怕或未充能返 undefined。
+                auto* creeper = dynamic_cast<mc::CreeperEntity*>(ent);
+                if (creeper == nullptr || !creeper->isPowered()) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("IsChargedComponent");
+            }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
@@ -608,6 +619,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             return ctx.createInt32(ent->getRemainingFireTicks());
         });
+
+    // --- IsChargedComponent类（minecraft:is_charged）---
+    // opaque 持 mc::Entity*。对齐基岩 EntityIsChargedComponent：组件存在即代表已充能，
+    // 无属性（基岩原版仅以 componentId 存在性标识 charged）。getComponent 已按 isPowered() 过滤，
+    // 此处仅作为存在性标记返回，不暴露额外属性。
+    u64 isChargedClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* isChargedProto = builder.exportClass("IsChargedComponent", isChargedClassId);
+    ScriptClassRegistry::instance().registerClass(isChargedClassId, isChargedProto, "IsChargedComponent");
+    // 无 property/method：组件对象存在即 charged（与基岩 EntityIsChargedComponent 一致）。
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），
