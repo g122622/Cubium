@@ -33,6 +33,7 @@
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
+#include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
@@ -592,6 +593,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("GlowSquidDarkTicksComponent");
             }
+            if (normalized == "minecraft:pufferfish_puff_state") {
+                // 借用自定义 componentId 承载河豚膨胀等级（Java SynchedData PUFF_STATE，基岩原版无此
+                // 标准组件）。膨胀等级 0=未膨胀/1=半膨胀/2=完全膨胀，由 PuffGoal 检测 2 格内 scary
+                // 生物触发（startPuffTimer→tick 状态机：1 tick→SemiPuffed，40 tick→FullyPuffed）。
+                // 此处为集成测试可读膨胀状态而设：dynamic_cast 到 PufferfishEntity，读 getPuffState()
+                // （优先从 DataParameter 取同步值），非河豚返 undefined（对齐基岩"组件不存在则
+                // getComponent 返 undefined"）。注意：未膨胀(0)时仍返组件（value=0），以便测试断言
+                // 膨胀前后等级变化；与 is_charged/glow_squid_dark_ticks"满足条件才返"的语义不同。
+                auto* pufferfish = dynamic_cast<mc::PufferfishEntity*>(ent);
+                if (pufferfish == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("PufferfishPuffStateComponent");
+            }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
@@ -691,6 +706,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             return ctx.createInt32(glowSquid->getDarkTicksRemaining());
+        });
+
+    // --- PufferfishPuffStateComponent类（minecraft:pufferfish_puff_state，承载河豚膨胀等级）---
+    // opaque 持 mc::Entity*。getComponent 已按 PufferfishEntity 过滤，此处 dynamic_cast 现取膨胀等级。
+    // readonly value：膨胀等级 0=未膨胀/1=半膨胀/2=完全膨胀（PuffState 枚举底层数值）。
+    // 供集成测试断言 PuffGoal 触发膨胀链路（玩家/敌对生物接近 2 格→startPuffTimer→tick 状态机升级）。
+    u64 pufferfishPuffClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* pufferfishPuffProto = builder.exportClass("PufferfishPuffStateComponent", pufferfishPuffClassId);
+    ScriptClassRegistry::instance().registerClass(
+        pufferfishPuffClassId, pufferfishPuffProto, "PufferfishPuffStateComponent");
+
+    ClassRegistrar<void> pufferfishPuffReg(ctx, pufferfishPuffClassId, pufferfishPuffProto);
+    pufferfishPuffReg.readonlyProperty(
+        "value", [pufferfishPuffClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, pufferfishPuffClassId));
+            auto* pufferfish = dynamic_cast<mc::PufferfishEntity*>(ent);
+            if (pufferfish == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createInt32(static_cast<i32>(pufferfish->getPuffState()));
         });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
