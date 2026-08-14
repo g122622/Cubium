@@ -56,6 +56,6 @@ minecraft/
 5. **时间/天气不在 `ServerWorld` 直接方法**：时间走 `ServerWorld::timeManager()->setDayTime(i64)`，天气走 `ServerWorld::weatherManager()->setClear/setRain/setThunder/resetWeather`。`MinecraftEnvironmentApplier` 据此应用 `TimeOfDayEnvironment`/`WeatherEnvironment`。
 6. **`SetGameRulesEnvironment` 应用为 TODO**：项目 `GameRules` 用类型化键（`BooleanGameRuleKey`/`IntegerGameRuleKey`）+ `setBoolean`/`setInt`，非字符串名；需建规则名→键映射表后才能应用，当前 applier 仅记 warn 跳过。默认 `"default"` 环境是空 `AllOf`，不触此分支。
 7. **`MinecraftGameTestInstance::spawnStructure` 失败即 fail**（结构找不到/放置失败），错误码用 `MethodNotImplemented` 占位（TODO 细化）。`_isTestReady` 判 `m_structurePlaced`，未放置则 `tick()` 等待。
-8. **`MinecraftGameTestBatchRunner` 原点布局为 TODO**：第一阶段线性递增 X（按结构 X 跨度 + padding），完整网格布局（`testsPerRow` 换行 + 旋转后包围盒间距）待 1D `StructureGridSpawner` 接管。
+8. **`MinecraftGameTestBatchRunner` 原点布局为 `StructureGridSpawner` 网格**：批次内每个测试由 `StructureGridSpawner` 按 `testsPerRow`（默认 8）换行网格排列，间距 `SPACE_BETWEEN_COLUMNS/ROWS=32`（覆盖实体 FOLLOW_RANGE，避免相邻结构跨测试目标搜索污染）。两步协议：`peekOrigin()` 取本测试原点（不推进），放结构后 `advance(sizeX, sizeZ, padding)` 用真实旋转尺寸推进游标。游标跨 batch 累积，整个运行连续网格编号。
 9. **`MinecraftGameTestHelperProvider` 向下转型**：`createGameTestHelper` 内 `static_cast<MinecraftGameTestInstance&>` 取 origin/bounds，故 provider 仅适用于 `MinecraftGameTestInstance`（不适用于 headless 单测的 `NullGameTestHelper`）。
 10. **`TestInstanceBlockEntity` 整类 TODO**：项目 `StructureBlockEntity` 类未实现（结构方块仅有 Block 子类，无 BlockEntity 子类），游戏内信标光束可视化待方块实体体系就绪后接入。第一阶段可视化由 `WorldVisualizationListener` 的 spdlog 输出临时承载。

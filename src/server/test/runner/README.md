@@ -11,7 +11,7 @@ runner/
 ├── GameTestRunnerBuilder.hpp            # builder（world/ticker/batches/gridStart/testsPerRow → build）
 ├── GameTestRunnerBuilder.cpp
 ├── spawner/
-│   ├── StructureGridSpawner.hpp         # 网格布局（8/行，列间距5，行间距6）
+│   ├── StructureGridSpawner.hpp         # 网格布局（peekOrigin/advance 两步协议，8/行，列/行间距 32）
 │   └── StructureGridSpawner.cpp
 ├── reporter/                            # 报告输出（与 listener 概念区分：reporter 聚合全局结果）
 │   ├── TestReporter.hpp                 # 报告器接口（onTestPassed/onTestFailed/onBatchFinished/onAllFinished）
@@ -49,6 +49,6 @@ runner/
 2. **实例监听器挂载为 TODO**：`_RunnerListener`（更新 tracker + 广播 reporter）需挂到每个 `BaseGameTestInstance`，但 `MinecraftGameTestBatchRunner._runTest` 当前未暴露实例创建钩子。1D/1F 接线时经 `GameTestBatchListener` 在批次开始时遍历挂载，或改 batch runner 在 `_runTest` 内挂载。未挂载前 tracker/reporter 不更新（测试仍能跑，仅无报告）。
 3. **`JUnitTestReporter` 的 `time` 用 `tickCount/20.0`**（20 tps），非 wall-clock；`tickCount` 是 `BaseGameTestInstance` 的相对 tick（含 setup 负值阶段，可能为负或小）。JUnit schema 要求非负，负值会产出非法 XML——1F 接线时须 clamp 到 ≥0（TODO）。
 4. **`JUnitTestReporter` 写文件失败不抛**——置 `m_ioError=true` + warn 日志，调用方（`GameTestServer`）须查 `hasIoError()` 决定是否影响退出码（当前不影响，仅记日志）。
-5. **`StructureGridSpawner.originOf` 简化实现**：每列按"当前测试结构宽度 + 列间距"累加，假设同列测试同宽；精确值需遍历前列实际尺寸。`MinecraftGameTestBatchRunner` 第一阶段用线性递增 X（未用 spawner），spawner 待切换。
+5. **`StructureGridSpawner` 两步协议**：`peekOrigin()` 取本测试原点（不推进），放结构后 `advance(sizeX, sizeZ, padding)` 用旋转后真实尺寸 + padding 推进游标，供下一测试。`MinecraftGameTestBatchRunner._createGameTestInstance` 已切换到此 spawner（不再是线性递增 X），按 `testsPerRow` 换行网格排列，间距 `SPACE_BETWEEN_COLUMNS/ROWS=32` 覆盖实体 FOLLOW_RANGE 避免跨测试目标搜索污染。
 6. **`GlobalTestReporter` 是单例**——`GameTestServer`/`GameTestCommand` 启动期 `addReporter`，运行结束 `clear()` 避免跨运行残留。`-j16` 下各 `GameTestServer` 实例须用各自唯一 `JUnitTestReporter` 路径（`TempDirHelper` 已保证唯一）。
 7. **`LogTestReporter` 区分 required/optional**：required 失败 `spdlog::error`，optional 失败 `spdlog::warn`（对齐 Java LogTestReporter 语义，optional 不计退出码但仍告警）。

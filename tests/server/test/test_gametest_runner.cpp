@@ -25,7 +25,7 @@
 //
 // GameTestRunner::build() 需 ServerWorld&（runner 在其上放结构/生成实体），无法 headless。
 // 本测试覆盖可独立验证的编排组件：
-//   - StructureGridSpawner::originOf 网格几何（8/行、列间距 5、行间距 6）
+//   - StructureGridSpawner 网格几何（peekOrigin/advance 两步协议、8/行、列/行间距 32）
 //   - GameTestBatch 构造与访问器
 //   - GameTestRunnerBuilder 链式方法（不调 build，避免 ServerWorld 依赖）
 // 端到端 runner 调度由 test_gametest_server.cpp 覆盖。
@@ -66,6 +66,8 @@ std::shared_ptr<mc::test::NativeGameTestFunction> _makeFunction(const std::strin
 
 // ============================================================================
 // StructureGridSpawner 网格几何
+//
+// 两步协议：每个测试先 peekOrigin() 取原点（不推进），再 advance(sizeX, sizeZ, padding) 推进游标。
 // ============================================================================
 
 TEST(GameTestRunner, GridSpawnerFirstOriginAtGridStart)
@@ -73,8 +75,8 @@ TEST(GameTestRunner, GridSpawnerFirstOriginAtGridStart)
     mc::test::StructureGridSpawner spawner(mc::BlockPos{100, -59, 200}, 8);
     EXPECT_EQ(spawner.gridStart(), (mc::BlockPos{100, -59, 200}));
     EXPECT_EQ(spawner.testsPerRow(), 8);
-    // 第 0 个测试原点 = 网格起点（结构尺寸不影响首个原点）
-    EXPECT_EQ(spawner.originOf(0, 3, 3), (mc::BlockPos{100, -59, 200}));
+    // 首个测试原点 = 网格起点（peekOrigin 不推进，结构尺寸不影响首个原点）
+    EXPECT_EQ(spawner.peekOrigin(), (mc::BlockPos{100, -59, 200}));
 }
 
 TEST(GameTestRunner, GridSpawnerAdvancesXWithinRow)
@@ -82,9 +84,10 @@ TEST(GameTestRunner, GridSpawnerAdvancesXWithinRow)
     mc::test::StructureGridSpawner spawner(mc::BlockPos{0, 0, 0}, 8);
     const i32 sizeX = 3;
     const i32 sizeZ = 3;
-    const auto first = spawner.originOf(0, sizeX, sizeZ);
-    const auto second = spawner.originOf(1, sizeX, sizeZ);
-    // 同行第 2 个 X 应增大（结构 sizeX + 列间距 5），Z 不变
+    const auto first = spawner.peekOrigin();
+    spawner.advance(sizeX, sizeZ, 0);
+    const auto second = spawner.peekOrigin();
+    // 同行第 2 个 X 应增大（结构 sizeX + 列间距），Z 不变
     EXPECT_GT(second.x, first.x);
     EXPECT_EQ(second.z, first.z);
 }
@@ -94,13 +97,29 @@ TEST(GameTestRunner, GridSpawnerWrapsToNextRow)
     mc::test::StructureGridSpawner spawner(mc::BlockPos{0, 0, 0}, 2); // 每行 2 个
     const i32 sizeX = 3;
     const i32 sizeZ = 3;
-    const auto row0col0 = spawner.originOf(0, sizeX, sizeZ);
-    const auto row0col1 = spawner.originOf(1, sizeX, sizeZ);
-    const auto row1col0 = spawner.originOf(2, sizeX, sizeZ); // 换行
-    // 换行后 Z 增大（结构 sizeZ + 行间距 6），X 回到行首
+    const auto row0col0 = spawner.peekOrigin();
+    spawner.advance(sizeX, sizeZ, 0);
+    const auto row0col1 = spawner.peekOrigin();
+    spawner.advance(sizeX, sizeZ, 0);
+    const auto row1col0 = spawner.peekOrigin(); // 换行
+    // 换行后 Z 增大（结构 sizeZ + 行间距），X 回到行首
     EXPECT_GT(row1col0.z, row0col0.z);
     EXPECT_EQ(row1col0.x, row0col0.x);
     EXPECT_EQ(row0col1.z, row0col0.z); // 同行 Z 不变
+}
+
+TEST(GameTestRunner, GridSpawnerPaddingIncreasesSpacing)
+{
+    // padding 计入间距：相邻原点 X 差 = sizeX + 2*padding + SPACE_BETWEEN_COLUMNS
+    mc::test::StructureGridSpawner spawner(mc::BlockPos{0, 0, 0}, 8);
+    const i32 sizeX = 3;
+    const i32 sizeZ = 3;
+    const i32 padding = 2;
+    const auto first = spawner.peekOrigin();
+    spawner.advance(sizeX, sizeZ, padding);
+    const auto second = spawner.peekOrigin();
+    EXPECT_EQ(second.x - first.x, sizeX + padding * 2 + mc::test::StructureGridSpawner::SPACE_BETWEEN_COLUMNS);
+    EXPECT_EQ(second.z, first.z);
 }
 
 TEST(GameTestRunner, GridSpawnerZeroTestsPerRowDefaultsTo8)

@@ -2,6 +2,7 @@
 
 #include "common/test/framework/batch/BaseGameTestBatchRunner.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/runner/spawner/StructureGridSpawner.hpp"
 
 namespace mc::server {
 class ServerWorld;
@@ -12,14 +13,14 @@ namespace mc::test {
 /**
  * @brief `BaseGameTestBatchRunner` 的 `ServerWorld` 具体实现。
  *
- * 持 `ServerWorld&` 引用 + 当前批次原点生成器（结构网格布局），实现两个纯虚：
+ * 持 `ServerWorld&` 引用 + `StructureGridSpawner` 网格布局器，实现两个纯虚：
  * - `_createGameTestInstance(function, rotation)`：用 `MinecraftGameTestHelperProvider` +
  *   `MinecraftGameTestInstance` 构造实例（旋转已由基类 `Rotations::add` 叠加，此处不再处理）。
  * - `_runTest(instance)`：经 `_trackInstance` 纳入 ticker + runner 所有权，触发结构放置。
  *
- * 原点布局：批次内每个测试按 `testsPerRow` 换行，间距由 `StructureGridSpawner`（1D runner/spawner/）算；
- * 本 runner 持 `m_nextOrigin` 游标，`_createGameTestInstance` 内推进。第一阶段简化为线性递增 X，
- * 完整网格布局由 1D `StructureGridSpawner` 接管（TODO 切换）。
+ * 原点布局：批次内每个测试由 `StructureGridSpawner` 按 `testsPerRow` 换行网格排列，间距
+ * `SPACE_BETWEEN_COLUMNS/ROWS=32` 覆盖实体 FOLLOW_RANGE，避免相邻结构跨测试目标搜索污染。
+ * 游标跨 batch 累积，整个运行连续网格编号。
  *
  * 不对外——由 `GameTestRunner`（1D）或 `GameTestServer`（1F）门面间接持有。
  */
@@ -44,7 +45,7 @@ protected:
 
 private:
     mc::server::ServerWorld& m_world;
-    BlockPos m_nextOrigin;
+    StructureGridSpawner m_spawner;
 };
 
 } // namespace mc::test

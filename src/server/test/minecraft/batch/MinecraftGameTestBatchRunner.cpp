@@ -14,7 +14,7 @@ MinecraftGameTestBatchRunner::MinecraftGameTestBatchRunner(std::vector<GameTestB
     BlockPos gridStart)
     : BaseGameTestBatchRunner(std::move(batches), ticker, std::move(params))
     , m_world(world)
-    , m_nextOrigin(gridStart)
+    , m_spawner(gridStart, _params().testsPerRow())
 {}
 
 std::unique_ptr<BaseGameTestInstance> MinecraftGameTestBatchRunner::_createGameTestInstance(
@@ -23,22 +23,26 @@ std::unique_ptr<BaseGameTestInstance> MinecraftGameTestBatchRunner::_createGameT
     MC_UNUSED(rotation); // 旋转已由基类 _runBatch 内 Rotations::add 叠加到 function.data().rotation()，
                          // 此处不再二次叠加；实例经 function.data() 取最终旋转。
     auto helperProvider = std::make_unique<MinecraftGameTestHelperProvider>(m_world);
-    auto instance =
-        std::make_unique<MinecraftGameTestInstance>(function, std::move(helperProvider), m_world, m_nextOrigin);
+    // 先从网格布局器取得本测试原点（peekOrigin 不推进游标），构造实例并放置结构。
+    const BlockPos origin = m_spawner.peekOrigin();
+    auto instance = std::make_unique<MinecraftGameTestInstance>(function, std::move(helperProvider), m_world, origin);
 
-    // 先放置结构，再用放置后的真实包围盒推进下一测试原点。
+    // 先放置结构，再用放置后的真实包围盒推进布局器游标（供下一测试）。
     // 此前在放置前取 instance->bounds()，此时 m_bounds 尚为 nullptr（spawnStructure 在 _runTest 才调），
-    // spanX 退化为默认 1，致 m_nextOrigin.x 每次仅 +3（1+padding*2+2），远小于结构实际 X 跨度，
-    // 相邻测试结构在世界中重叠——后一测试的 air 方块覆盖前一测试已放置的 button 等依附类方块，
-    // 表现为"button 放置后变 air"。对齐 vanilla GameTestRunner：先放结构（spawnStructure）再算下一原点。
-    // spawnStructureIfNeeded 幂等：已放置则跳过，_runTest 再调不会重复放置。
+    // spanX 退化为默认 1，致游标推进不足，相邻测试结构在世界中重叠——后一测试的 air 方块覆盖前一测试
+    // 已放置的 button 等依附类方块，表现为"button 放置后变 air"。对齐 vanilla GameTestRunner：先放结构
+    // （spawnStructure）再算下一原点。spawnStructureIfNeeded 幂等：已放置则跳过，_runTest 再调不会重复放置。
     instance->spawnStructureIfNeeded();
 
-    // TODO: 原点布局切换为 1D StructureGridSpawner 的网格算式（testsPerRow 换行 + 旋转后包围盒间距）。
-    // 第一阶段简化为线性递增 X（按结构 X 跨度 + padding 间隔），避免重叠。
+    // 用本测试旋转后真实尺寸 + padding 推进网格游标。SPACE_BETWEEN_COLUMNS/ROWS=32 覆盖实体 FOLLOW_RANGE
+    // （默认 16，部分实体 32），确保相邻结构间距 > 目标搜索半径，从框架层根除跨测试 AI 目标搜索污染
+    // （NearestAttackableTargetGoal 等用 getEntitiesInRange(pos, FOLLOW_RANGE) 球形搜索全维度，间距不足时
+    // 覆盖邻结构，checkSight 射线被邻结构干扰致实体放弃本结构目标）。MinecraftStructurePlacer 已为每个
+    // 结构区域单独加 forced chunk ticket，增大间距不会导致远 chunk 不加载。
     const auto* bounds = instance->bounds();
-    const i32 spanX = bounds ? bounds->rotatedSize().x : 1;
-    m_nextOrigin.x += spanX + function.data().padding() * 2 + 2;
+    const i32 sizeX = bounds ? bounds->rotatedSize().x : 1;
+    const i32 sizeZ = bounds ? bounds->rotatedSize().z : 1;
+    m_spawner.advance(sizeX, sizeZ, function.data().padding());
 
     return instance;
 }
