@@ -12,9 +12,10 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
-#include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
-#include "common/entity/inventory/IInventory.hpp"                // getItem/getContainerSize/isEmpty（容器断言）
-#include "common/item/core/ItemStack.hpp"                        // isSameItem（assertContainerContains 类型匹配）
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"        // applySpawnEvent 派发 rabbit killer 变种事件
+#include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
+#include "common/entity/inventory/IInventory.hpp"                       // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/item/core/ItemStack.hpp" // isSameItem（assertContainerContains 类型匹配）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -169,6 +170,26 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         }
         if (normalizedEvent == "minecraft:spawn_killer") {
             rabbit->setRabbitType(mc::RabbitEntity::RabbitType::Killer);
+        }
+        // 其他事件 TODO 待行为包事件系统接入。
+        return;
+    }
+
+    // 骷髅马陷阱马事件：set_trap 把骷髅马设为陷阱马（m_trap=true）。
+    // wiki tech_骷髅马.txt#生成：雷暴天气中闪电有概率生成骷髅陷阱马，玩家接近 10 格内时触发，
+    // 陷阱马变成骷髅骑手（骷髅骑骷髅马），困难难度额外生成 3 只。setTrap(true) 内部向
+    // m_goalSelector 优先级1添加 TriggerSkeletonTrapGoal（见 SkeletonHorseEntity.cpp:74-92），
+    // 该 goal shouldExecute 检测 10 格内非创造/旁观玩家，tick() 调 triggerTrap 生成骷髅骑手。
+    // GameTest 通过 test.spawn("skeleton_horse<minecraft:set_trap>", pos) 触发，派发后普通骷髅马
+    // 变为陷阱马，玩家接近即激活陷阱。GameTestServer 默认难度 Normal（GameTestServer.hpp:45），
+    // triggerTrap 中 extraHorses=(Hard)?3:0=0，确定性生成 1 只骷髅骑手。
+    if (normalizedType == "minecraft:skeleton_horse") {
+        auto* horse = dynamic_cast<mc::SkeletonHorseEntity*>(entity);
+        if (horse == nullptr) {
+            return;
+        }
+        if (normalizedEvent == "minecraft:set_trap") {
+            horse->setTrap(true);
         }
         // 其他事件 TODO 待行为包事件系统接入。
         return;
