@@ -40,6 +40,7 @@ import { registerFoxTests } from "./tests/passive/special/FoxTests.js";
 import { registerBeeTests } from "./tests/passive/special/BeeTests.js";
 import { registerWolfTests } from "./tests/passive/tamable/WolfTests.js";
 import { registerCatTests } from "./tests/passive/tamable/CatTests.js";
+import { registerOcelotTests } from "./tests/passive/tamable/OcelotTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -79,3 +80,4 @@ registerFoxTests();
 registerBeeTests();
 registerWolfTests();
 registerCatTests();
+registerOcelotTests();
