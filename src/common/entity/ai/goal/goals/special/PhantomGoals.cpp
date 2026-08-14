@@ -31,7 +31,6 @@
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
-#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityUtils.hpp"
@@ -103,22 +102,27 @@ bool PhantomAttackPlayerTargetGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 检查是否仍可攻击目标
-    // 需要验证：目标是否是玩家、是否在旁观/创造模式
+    // 对齐 vanilla PhantomAttackPlayerTargetGoal.canContinueToUse：
+    //   return Phantom.this.canAttack(getServerLevel(...), getTarget(), TargetingConditions.DEFAULT);
+    // TargetingConditions.DEFAULT = forCombat()，range=-1（不检查距离），仅校验目标有效性、
+    // 非旁观、非创造（forCombat 语义）。故此处不检查距离——旧实现的
+    //   distanceSq <= followRange * followRange
+    // 是非 vanilla 的错误约束：幻翼环绕点 anchor 被 setAnchorAboveTarget clamp 到海平面以上
+    // （vanilla 行为），在低海拔世界（如 GameTest gridStartY=-59，玩家 y≈-57）幻翼飞至 anchor
+    // （y≈64）与玩家垂直差 ~120 格 > followRange(64)，旧距离检查会在此误判"目标过远"而 resetTask
+    // 清空 attackTarget，导致幻翼在"选目标→飞高→丢目标→重选"间循环，永远进不了 SWOOP 俯冲。
+    // vanilla DEFAULT 不检查距离，幻翼一旦锁定目标即持续追击，故移除距离检查。
     auto* player = dynamic_cast<Player*>(target);
     if (player == nullptr) {
         return false;
     }
 
-    // 不能攻击旁观者或创造模式玩家
+    // 不能攻击旁观者或创造模式玩家（对齐 TargetingConditions.forCombat）
     if (player->isSpectator() || player->isCreative()) {
         return false;
     }
 
-    // 检查距离
-    f64 distanceSq = m_phantom->position().distanceSquared(target->position());
-    f64 followRange = m_phantom->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
-    return distanceSq <= followRange * followRange;
+    return true;
 }
 
 void PhantomAttackPlayerTargetGoal::resetTask()
@@ -137,19 +141,25 @@ Player* PhantomAttackPlayerTargetGoal::_findAttackablePlayer()
     IWorld* world = m_phantom->world();
     math::Vector3 pos = m_phantom->position();
 
-    // 搜索范围 16x64x16
-    // 使用 EntityUtils 搜索玩家
+    // 搜索范围对齐 vanilla PhantomAttackPlayerTargetGoal.canUse：
+    //   getNearbyPlayers(attackTargeting, this, getBoundingBox().inflate(16, 64, 16))
+    //   attackTargeting = TargetingConditions.forCombat().range(64)
+    //   对列表按 Y 反向排序后，取第一个 canAttack(=TargetingConditions.DEFAULT.test) 通过的玩家。
+    // 这里用 findClosestEntity<Player> 在 SEARCH_RANGE=64 球内取最近玩家，过滤条件对齐
+    // TargetingConditions.forCombat 的语义：存活、非旁观、非创造（vanilla forCombat 排除 spectator/creative）。
+    //
+    // 【重要】vanilla 选目标时不检查玩家 Y 坐标 / 海平面——旧实现误加的
+    //   if (player->position().y < SEA_LEVEL) return false;
+    // 是非 vanilla 的错误过滤：GameTest 世界 gridStartY=-59，玩家 world y≈-57 远低于 SEA_LEVEL(63)，
+    // 该过滤会把所有 GameTest 玩家全部滤掉，导致幻翼永远找不到攻击目标（phantom 攻击测试阻塞，
+    // 也是偏离 vanilla 的 C++ 缺陷）。已移除。
     Player* nearestPlayer = EntityUtils::findClosestEntity<Player>(
         world, pos, static_cast<f32>(SEARCH_RANGE), m_phantom, [this](Player* player) -> bool {
             if (player == nullptr || !player->isAlive()) {
                 return false;
             }
-            // 不能攻击旁观者或创造模式玩家
+            // 不能攻击旁观者或创造模式玩家（对齐 TargetingConditions.forCombat）
             if (player->isSpectator() || player->isCreative()) {
-                return false;
-            }
-            // 玩家必须在海平面以上
-            if (player->position().y < static_cast<f64>(world::SEA_LEVEL)) {
                 return false;
             }
             return true;
@@ -324,7 +334,14 @@ void PhantomOrbitPointGoal::_updateOrbitOffset()
 // ============================================================================
 
 PhantomPickAttackGoal::PhantomPickAttackGoal(PhantomEntity* phantom)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
+    // 对齐 vanilla PhantomAttackStrategyGoal：不设任何 GoalFlag（vanilla `extends Goal` 无 setFlags）。
+    // 本 goal 仅负责攻击阶段切换（CIRCLE→SWOOP 倒计时），自身不驱动移动——实际飞行由
+    // OrbitPointGoal（CIRCLE 阶段）和 SweepAttackGoal（SWOOP 阶段，二者均带 Move flag）按 phase 互斥执行。
+    // 旧实现误设 GoalFlag::Move，导致本 goal 一旦锁定目标（shouldExecute: target!=null）就长期占据
+    // m_flagGoals[Move]，按优先级压制 SweepAttackGoal（同 Move、优先级更低）使其永远无法启动——
+    // 幻翼攻击链在此断裂，永远不俯冲攻击（phantom 攻击测试 broken 的根因）。移除 flag 后，
+    // SweepAttackGoal 可在 SWOOP 阶段正常抢占 Move 执行俯冲。
+    : Goal()
     , m_phantom(phantom)
     , m_tickDelay(0)
 {
