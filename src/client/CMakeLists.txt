@@ -22,7 +22,6 @@ add_executable(minecraft-client
     application/features/ClientApplicationResource.cpp
     application/features/ClientApplicationUi.cpp
     application/features/ClientApplicationSettings.cpp
-    application/features/MemoryTraceThread.cpp
     window/Window.cpp
     input/InputManager.cpp
     settings/ClientSettings.cpp

@@ -19,8 +19,6 @@ src/client/application/features/
 ├── ClientApplicationTargetInfoUi.cpp   # 准星目标信息与调试屏幕更新
 ├── ClientApplicationSettings.cpp       # 设置读取、应用、回调绑定、GUI 缩放
 ├── ClientApplicationSession.cpp        # 游戏会话管理（状态机、世界创建、会话销毁）
-├── MemoryTraceThread.hpp               # 内存追踪线程头文件
-├── MemoryTraceThread.cpp               # 内存追踪线程实现（独立线程定期采样内存）
 └── README.md
 ```
 

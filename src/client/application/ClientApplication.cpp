@@ -42,6 +42,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -85,15 +86,21 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         traceConfig.outputPath = "client_trace.perfetto-trace";
         traceConfig.bufferSizeKb = 65536 * 8;
         mc::profiler::ProfilerManager::instance().initialize(traceConfig);
+
+        // 注入进程内存采样回调（须在 startTracing 之前）：ProfilerManager 处于比 PlatformInfo
+        // 更底层的 mc_profiler 库，不能直接依赖 PlatformInfo，故由本层注入。返回 {工作集MB, 提交量MB}。
+        mc::profiler::ProfilerManager::instance().setMemorySampler([]() -> std::pair<i64, i64> {
+            return {static_cast<i64>(util::PlatformInfo::getProcessMemoryMB()),
+                static_cast<i64>(util::PlatformInfo::getProcessCommitMB())};
+        });
+
         mc::profiler::ProfilerManager::instance().startTracing();
 
         // 设置进程和主线程名称
         mc::profiler::ProfilerManager::instance().setProcessName("MinecraftClient");
         mc::profiler::ProfilerManager::instance().setThreadName("ClientMainThread");
         spdlog::info("Perfetto tracing initialized");
-
-        // 启动内存追踪线程
-        m_memoryTraceThread.start();
+        // 内存采样线程由 ProfilerManager 在 startTracing() 时自动接管，无需此处显式启动。
     } else {
         spdlog::info("Benchmark initialize-only mode enabled, skipping client perfetto tracing");
     }
@@ -703,10 +710,7 @@ void ClientApplication::shutdown()
     }
 
     if (!m_launchParams.benchmarkExitAfterInitialize) {
-        // 停止内存追踪线程
-        m_memoryTraceThread.stop();
-
-        // 关闭性能追踪
+        // 关闭性能追踪（内存采样线程由 ProfilerManager::stopTracing() 内部停止）
         mc::profiler::ProfilerManager::instance().stopTracing();
         mc::profiler::ProfilerManager::instance().shutdown();
         spdlog::info("Perfetto tracing stopped");
