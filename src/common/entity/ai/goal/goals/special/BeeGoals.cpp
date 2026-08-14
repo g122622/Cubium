@@ -110,9 +110,25 @@ void BeeStingGoal::startExecuting()
 void BeeStingGoal::tick()
 {
     MeleeAttackGoal::tick();
+}
 
-    // 如果攻击成功，设置蛰刺状态
-    // 在 MeleeAttackGoal 的攻击回调中处理
+void BeeStingGoal::checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr)
+{
+    // 记录攻击前冷却：基类 checkAndPerformAttack 仅在"距离达标 + 冷却结束(m_attackCooldown<=0)"
+    // 时调 _attackTarget 造成伤害并重置 m_attackCooldown=adjustedTickDelay(20)。故"冷却由 <=0 变 >0"
+    // 是攻击发生的精确判定（不依赖目标 HP 变化——目标可能因 regen/absorption 致 HP 不降，但攻击确实发生），
+    // 对齐 vanilla Bee.doHurtTarget 在真正攻击时无条件 setHasStung(true)。
+    const i32 cooldownBefore = m_attackCooldown;
+
+    MeleeAttackGoal::checkAndPerformAttack(target, distToEnemySqr);
+
+    // 攻击命中（冷却被重置为正）且未螫刺过 → 设 hasStung=true：
+    // ①激活 BeeEntity::tick() 螫刺后逐渐死亡链路（此前为死代码）；
+    // ②shouldExecute/shouldContinueExecuting 的 !hasStung() 检查此后为 false，蜜蜂停止蜇人
+    // （对齐 vanilla 蜜蜂蜇一次即弃攻）。已 stung 则不重复设置。
+    if (target != nullptr && !m_beeEntity->hasStung() && m_attackCooldown > cooldownBefore) {
+        m_beeEntity->setHasStung(true);
+    }
 }
 
 // ============================================================================
@@ -1081,7 +1097,18 @@ void BeeAngerGoal::startExecuting()
 {
     HurtByTargetGoal::startExecuting();
 
-    // 蜜蜂被攻击时会召唤附近的其他蜜蜂
+    // 受击后锁定复仇目标并进入愤怒状态。
+    // vanilla Bee 是 NeutralMob：受击时由 LivingEntity.hurt 链路设愤怒目标
+    // （setLastHurtByMob + setPersistentAngerTarget + setRemainingAngerTime）。
+    // Cubium 无 NeutralMob 中间层，将"受击设愤怒"语义落在 setRevengeTarget：
+    //   setAttackTarget(target) + setAngry(true) + revengeTargetId + revengeTimer。
+    // HurtByTargetGoal::startExecuting 已通过 TargetGoal::startExecuting 设了 attackTarget，
+    // 此处补设愤怒（setAngry→setAngerTime(MAX_ANGER_TIME)→isAngry()=true），否则
+    // BeeStingGoal::shouldExecute 的 isAngry() 检查恒为 false，蜜蜂有目标却不蜇人。
+    // m_target 由 HurtByTargetGoal::shouldExecute 设为 getLastHurtBy()（攻击者），此处非空。
+    if (m_target != nullptr) {
+        m_beeEntity->setRevengeTarget(m_target);
+    }
 }
 
 // ============================================================================

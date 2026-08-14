@@ -97,6 +97,14 @@ public:
     void startExecuting() override;
     void tick() override;
 
+    // 蜇刺攻击命中后设 hasStung=true，激活 BeeEntity::tick() 中"螫刺后逐渐死亡"链路
+    // （对齐 vanilla Bee.doHurtTarget：造成伤害后 this.setHasStung(true)）。
+    // override MeleeAttackGoal 的攻击入口：基类在距离+冷却达标时调 _attackTarget 造成伤害，
+    // 此处在基类执行后比较目标 HP 变化判定命中，命中且未螫刺过则设 stung。此前 BeeStingGoal::tick
+    // 仅转调基类、从不设 hasStung，致 m_hasStung 恒 false、蜇人后死亡链路为不可达死代码、
+    // 蜜蜂可无限蜇人（与 vanilla 偏差）。
+    void checkAndPerformAttack(LivingEntity* target, f64 distToEnemySqr) override;
+
     [[nodiscard]] std::string getTypeName() const noexcept override { return "BeeStingGoal"; }
 
 private:
