@@ -4,7 +4,8 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
-// y=0 为 grass_block 地板，y=1..4 为 air。方块测试在 y=1..2 空气层操作。
+// y=0 为 glass 底（满铺 49 glass），y=1..2 为玻璃墙围出的内部 air 空腔，y=3..4 air+顶部框架。
+// 方块测试在 y=1..2 空气层操作。
 
 // 沙子下方无支撑时下落，原格变为空气（wiki tech_沙子.txt#下落：沙子是受重力影响的方块，下方无支撑时下落）。
 //
