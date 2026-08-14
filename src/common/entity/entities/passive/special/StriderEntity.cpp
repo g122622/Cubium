@@ -520,6 +520,9 @@ void StriderEntity::registerAttributes()
     AnimalEntity::registerAttributes();
 
     // 设置炽足兽特定属性
+    // MAX_HEALTH=20（wiki 炽足兽 health={{hp|20}}）。AnimalEntity 默认 MAX_HEALTH=10（猪/牛等），
+    // 炽足兽须显式覆盖为 20。
+    attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, STRIDER_SPEED);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, STRIDER_FOLLOW_RANGE);
 }

@@ -287,11 +287,15 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 炽足兽
+    // immuneToFire: 炽足兽免疫火焰/岩浆伤害（对齐 Java EntityType.STRIDER.fireImmune()）。
+    // isOnFire() 非虚无法 override，火焰免疫通过实体类型标志承载：FireTickSystem 与
+    // Entity::lavaHurt/lavaIgnite 均以 isImmuneToFire() 为权威，免疫后立即 clearFire、跳过伤害。
     registry.registerType(EntityTypeKeys::STRIDER,
         EntityType::Builder(&StriderEntity::create, EntityClassification::Creature)
             .size(0.9f, 1.8f)
             .trackingRange(10)
             .updateInterval(3)
+            .immuneToFire()
             .canSummon(true)
             .build());
 
