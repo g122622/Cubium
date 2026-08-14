@@ -162,7 +162,7 @@ node scripts/test/run_diff.ts
 
 - Cubium `--gametest` 是无头门面，tick 脱钩墙钟，8 测试约 **6 秒**跑完。
 - 官方基岩 BDS 严格 20 tps（真实时间），同样 8 测试约 **90 秒**。这是基岩的设计约束（**无 `/tick rate` 命令加速**），不是缺陷，对比公平性不受影响（两端跑相同 tick 数）。
-- 全流程 `run_diff.ts` 约 2 分钟。
+- 全流程 `run_diff.ts` 会有一定的时间开销（数分钟起步），请耐心等待。
 
 # 6. 参考资源
 
