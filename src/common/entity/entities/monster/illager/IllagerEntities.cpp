@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/entities/monster/illager/AbstractIllagerEntity.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -92,6 +93,19 @@ PillagerEntity::PillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造
     // 显式调用。Pillager 的 registerGoals 加专属 SwimGoal / Crossbow / 近战等目标。
     registerGoals();
+
+    // 灾厄村民（非亡灵）不在阳光下燃烧。MonsterEntity::handleDaylightBurning() 读成员
+    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
+    // 故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
+    // 默认主手持弩：掠夺者使用弩远程攻击，RangedCrossbowAttackGoal::shouldExecute 依赖主手持弩
+    // （_isHoldingCrossbow 判 getUseAction==Crossbow），不持弩则弩攻击 goal 永不启动。
+    // GameTest 的 test.spawn 不走 finalizeSpawn/populateDefaultEquipmentSlots，故构造期补弩
+    // 确保 GameTest spawn 的掠夺者也能远程攻击。isEmpty 守卫避免自然生成路径重复给弩。
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::CROSSBOW != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::CROSSBOW, 1));
+    }
 }
 
 void PillagerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
@@ -229,9 +243,7 @@ void PillagerEntity::registerGoals()
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 15.0f));
 
     // 目标选择器
-    // 优先级 1: 被攻击后反击并呼叫支援
-    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
-    // 掠夺者不会反击其他灾厄村民
+    // 优先级 1: 被攻击后反击并呼叫支援，但不会反击其他灾厄村民
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
@@ -241,12 +253,10 @@ void PillagerEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民（穿透墙壁感知）
-    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, false)
     m_targetSelector.addGoal(3,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, false));
 
     // 优先级 3: 攻击铁傀儡
-    // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, true)
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
@@ -273,16 +283,29 @@ VindicatorEntity::VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& reg
 {
     registerAttributes();
 
+    // 灾厄村民（非亡灵）不在阳光下燃烧。MonsterEntity::handleDaylightBurning() 读成员
+    // m_burnsInDaylight（而非虚函数 shouldBurnInDaylight()，后者全仓零调用是遗留死代码 API），
+    // 故用 setBurnsInDaylight(false) 生效。
+    setBurnsInDaylight(false);
+
     // 补调 registerGoals：基类构造期间 vtable 指向基类，派生 override 永不执行，须在派生类构造
     // 显式调用。Vindicator 的 registerGoals 加专属破门 / 近战等目标。
     registerGoals();
+
+    // 默认主手持铁斧：卫道士近战伤害依赖主手武器加成。LivingEntity::detectEquipmentUpdates
+    // 在装备变化时把 ToolItem 的 ATTACK_DAMAGE 修饰符（铁斧 +9）叠到属性上，徒手则只有基础
+    // ATTACK_DAMAGE(5.0)，伤害偏离原版。GameTest 的 test.spawn 不走 finalizeSpawn/
+    // populateDefaultEquipmentSlots，故构造期补铁斧使伤害与原版普通难度（5+9=14）一致。
+    // isEmpty 守卫避免自然生成路径重复给斧。
+    if (getEquipment(EquipmentSlot::MainHand).isEmpty() && Items::IRON_AXE != nullptr) {
+        setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::IRON_AXE, 1));
+    }
 }
 
 void VindicatorEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
 
-    // 对应 MC Java 版 Vindicator.registerGoals / finalizeSpawn：
     // 卫道士需要开启导航器的开门能力，以便破门目标能够激活
     auto* nav = navigator();
     if (nav) {
@@ -318,9 +341,7 @@ void VindicatorEntity::registerGoals()
     m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 目标选择器
-    // 优先级 1: 被攻击后反击并呼叫支援
-    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
-    // 卫道士不会反击其他灾厄村民
+    // 优先级 1: 被攻击后反击并呼叫支援，但不会反击其他灾厄村民
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
@@ -330,12 +351,10 @@ void VindicatorEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民
-    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, true)
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, true));
 
     // 优先级 3: 攻击铁傀儡
-    // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, true)
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
@@ -346,7 +365,7 @@ void VindicatorEntity::registerAttributes()
 
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 24.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.35);
-    // 基础攻击伤害为 5.0（铁斧额外 +3，总计 8）
+    // 基础攻击伤害为 5.0；主手铁斧通过装备修饰符额外 +9，命中总伤害 14（普通难度）。
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 12.0);
 }
