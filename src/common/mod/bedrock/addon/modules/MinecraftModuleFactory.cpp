@@ -33,6 +33,7 @@
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
+#include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
@@ -579,6 +580,18 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("MarkVariantComponent");
             }
+            if (normalized == "minecraft:glow_squid_dark_ticks") {
+                // 借用自定义 componentId 承载发光鱿鱼受惊暗化剩余 tick（Java SynchedData
+                // DarkTicksRemaining，基岩原版无此标准组件）。发光鱿鱼受击后 setDarkTicks(100)（对齐
+                // wiki"被攻击后的100内停止发光"），tick() 逐帧递减。此处为集成测试可读暗化状态而设：
+                // dynamic_cast 到 GlowSquidEntity，读 getDarkTicksRemaining()，>0 返组件否则 undefined。
+                // 非发光鱿鱼或未暗化返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                auto* glowSquid = dynamic_cast<mc::GlowSquidEntity*>(ent);
+                if (glowSquid == nullptr || glowSquid->getDarkTicksRemaining() <= 0) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("GlowSquidDarkTicksComponent");
+            }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
@@ -659,6 +672,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         // MooshroomType::Red=0/Brown=1，static_cast 取枚举底层数值。
         return ctx.createInt32(static_cast<i32>(mooshroom->getMooshroomType()));
     });
+
+    // --- GlowSquidDarkTicksComponent类（minecraft:glow_squid_dark_ticks，承载发光鱿鱼受惊暗化剩余 tick）---
+    // opaque 持 mc::Entity*。getComponent 已按 GlowSquidEntity + getDarkTicksRemaining()>0 过滤，此处
+    // dynamic_cast 现取剩余暗化 tick 数。readonly value：剩余暗化 tick（受击后 100，逐帧递减）。
+    // 供集成测试断言发光鱿鱼受击后暗化链路（GlowSquidEntity::hurt→setDarkTicks）。
+    u64 glowSquidDarkClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* glowSquidDarkProto = builder.exportClass("GlowSquidDarkTicksComponent", glowSquidDarkClassId);
+    ScriptClassRegistry::instance().registerClass(
+        glowSquidDarkClassId, glowSquidDarkProto, "GlowSquidDarkTicksComponent");
+
+    ClassRegistrar<void> glowSquidDarkReg(ctx, glowSquidDarkClassId, glowSquidDarkProto);
+    glowSquidDarkReg.readonlyProperty(
+        "value", [glowSquidDarkClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, glowSquidDarkClassId));
+            auto* glowSquid = dynamic_cast<mc::GlowSquidEntity*>(ent);
+            if (glowSquid == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createInt32(glowSquid->getDarkTicksRemaining());
+        });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），
