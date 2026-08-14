@@ -174,8 +174,6 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         spdlog::set_level(spdlog::level::info);
     }
 
-    spdlog::info("=== Cubium Server ===");
-    spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing standalone server...");
 
     // 初始化性能追踪

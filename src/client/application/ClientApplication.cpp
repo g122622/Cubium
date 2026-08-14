@@ -158,8 +158,6 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::set_level(spdlog::level::info);
     }
 
-    spdlog::info("=== Cubium Client ===");
-    spdlog::info("Version: {}.{}.{}", MC_VERSION_MAJOR, MC_VERSION_MINOR, MC_VERSION_PATCH);
     spdlog::info("Initializing client...");
 
     // 初始化外壳（不包含游戏会话）
