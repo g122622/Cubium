@@ -216,14 +216,26 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 {
     // 对应 MC Java Projectile.canHitEntity:
     // 首先检查目标是否可被弹射物命中（综合判断存活状态、碰撞箱可交互性、旁观者模式等）
-    if (!target.canBeHitByProjectile()) {
+    const bool canBeHit = target.canBeHitByProjectile();
+    if (!canBeHit) {
         return false;
     }
 
-    // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
+    // 无条件排除发射者自身及与其骑乘同一载具的实体。
+    // 对应 MC Java Projectile.getEntityHitResult 的命中谓词：
+    //   entity -> !entity.isSpectator() && entity.isPickable() && entity != this.getOwner()
+    // 射线追踪对发射者自身无条件排除（不依赖 leftOwner 状态）。
+    //
+    // 此前仅判断 isRidingSameEntity 且加了 hasLeftShooter 条件——当羊驼贴脸吐口水时，
+    // 口水生成点位于羊驼前方约 0.95 格（_spit 偏移），首 tick tryUpdateLeftShooter 即判定
+    // 碰撞箱不相交而 leftShooter=true，致排除逻辑被跳过；随后 rayTraceEntities 的 searchBox
+    // 覆盖到羊驼碰撞箱，口水命中发射者自身（24 次全命中羊驼、0 次命中狼）。
+    // 修正为无条件排除，与 vanilla 射线追踪谓词一致。
     const Entity* shooter = getShooter();
-    if (!hasLeftShooter() && shooter != nullptr && shooter->isRidingSameEntity(target)) {
-        return false;
+    if (shooter != nullptr) {
+        if (&target == shooter || shooter->isRidingSameEntity(target)) {
+            return false;
+        }
     }
 
     return true;

@@ -148,9 +148,14 @@ void LlamaSpitEntity::onEntityHit(const RayTraceResult& result)
     }
 }
 
-void LlamaSpitEntity::onImpact(const RayTraceResult& /*result*/)
+void LlamaSpitEntity::onImpact(const RayTraceResult& result)
 {
-    // 播放命中粒子
+    // 先交基类处理命中回调：命中实体时调 onEntityHit（造成口水伤害），
+    // 命中方块时调 onBlockHit。此前本 override 直接 remove() 跳过了基类 onImpact，
+    // 致 onEntityHit 永不执行——羊驼口水命中实体不造成伤害（死代码 bug）。
+    ProjectileEntity::onImpact(result);
+
+    // 命中后移除自身（无论命中实体/方块/未命中由调用方保证 result 非 Miss 才进入 onImpact）
     remove();
 }
 

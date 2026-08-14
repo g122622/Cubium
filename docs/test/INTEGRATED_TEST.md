@@ -339,8 +339,118 @@ errorMessage 归一化：去坐标/tick 数、统一大小写、trim，再做语
 | 基岩 `Beta APIs experiment is not enabled` | level.dat 注入失败。检查 `build/bedrock-stdout.log`，确认 `Experiment(s) active: gtst` 出现。`enableBetaApiExperiment` 依赖 8 字节头 + length 重算。 |
 | 基岩卡在第 1 个测试不推进 | `runBedrock` 状态机索引 bug 已修：`sendNext` 发命令后必须立即 `testIdx++`，否则 onOutput 的 `testIdx > 0` 守卫挡住首个测试的完成检测。 |
 | Cubium 退出码 3221225477 | 0xC0000005 访问冲突，关闭阶段问题。stdout/XML 已写完，不影响结果。 |
-| 基岩 `Could not find StructureBlockActor` | 测试未串行，前一个结构方块未清理。工具已强制逐个串行 + 1.5s 间隔 + `gametest clearall`。 |
+| 基岩 `Could not find StructureBlockActor associated to this test` | **基岩 BDS 1.26 自身的时序竞态**，非测试缺陷。结构放置后 `StructureBlock` 方块实体完成服务端同步有延迟，`gametest run` 若在同步完成前查询即报此错。基岩有**自动重试**机制——同一次 `gametest run` 内会先 `onTestFailed` 再重试，重试通过即 `onTestPassed`（日志里同一测试名出现 Failed 后又 Passed）。与测试逻辑、结构格式、是否用 `spawnSimulatedPlayer` 无关：纯 mob + `glass_pit` 的 `enderman_takes_water_damage`/`magmacube_immune_to_fire` 同样偶发。**对策**：见 6.3 节，用 `_bedrock_single.ts` 多次跑取稳定模式，或加大测试间串行间隔让结构方块充分同步。 |
+| 基岩 `Failed to spawn test structure with path 'structures/.../xxx.mcstructure'` | mcstructure 文件格式损坏，基岩严格解析失败（Cubium 容错能读）。最常见是 `size` 的 NBT list 缺 count 字段（应为 `<tagType><int32 count><items>`，损坏时只有 `<tagType>` 没有后续 count）。见 6.4 节「mcstructure 格式陷阱」。 |
 | 报告摘要出现 `undefined` | 已修：`countByCategory` 对未出现类别返回 undefined，用 `?? 0` 兜底。 |
+
+---
+
+## 6. 基岩单测工具与经验沉淀
+
+本节沉淀「在官方基岩 BDS 上单独跑指定测试」的实践经验。当 `run_diff.ts` 全量对比（约 2 分钟、78 测试）过重、只想快速验证某几个测试在基岩的行为时，用单测工具。
+
+### 6.1 `_bedrock_single.ts`：基岩单测工具
+
+`scripts/test/_bedrock_single.ts` 启动基岩 BDS，等世界加载完成后逐个 `gametest run <Class:name>` 串行跑指定的测试，采集 `onTestPassed`/`onTestFailed` 日志。
+
+```bash
+# 用法：从仓库根目录跑（注意 cwd，脚本路径相对仓库根）
+node scripts/test/_bedrock_single.ts "MobBehaviorTests:llama_spits_at_attacker" "MobBehaviorTests:llama_defends_against_wolf"
+```
+
+- 前置：`node scripts/test/setup.ts` 已完成环境准备（junction + level.dat Beta APIs 开关 + server.properties）。
+- 基岩世界就绪（`Server started.`）后逐个发命令，每个测试等 `onTestPassed`/`onTestFailed` 后再发下一个。
+- 总超时 180 秒；基岩 20 tps 真实时间，单测试约 10–30 秒。
+- 输出直出 stdout，便于 `> /tmp/xxx.log 2>&1` 抓取后 grep `onTest`。
+
+> 该工具**不是临时文件**，作为基岩侧快速验证的常备工具保留。`run_diff.ts` 是全量对比工具（含 L1/L2/L3 分级报告），`_bedrock_single.ts` 是轻量单测探针，两者互补。
+
+### 6.2 单测过滤：Cubium `--gametest_tests` 是正则全匹配
+
+Cubium 无头跑单测用 `--gametest_tests=<regex>` 过滤，**过滤器对 testName 做正则匹配**。常见坑：
+
+```bash
+# ❌ "llama_" 不匹配——过滤器需要匹配 testName 子串，但实际是全匹配语义
+--gametest_tests=llama_          # → "no tests selected for filter 'llama_'"
+
+# ✅ 用 .* 包裹做通配
+--gametest_tests=.*llama.*       # 匹配 llama_spits_at_attacker / llama_defends_against_wolf
+```
+
+完整命令（从仓库根目录）：
+
+```bash
+./build/bin/RelWithDebInfo/minecraft-server.exe --gametest \
+  "--gametest_packs=tests/integrated" \
+  "--gametest_tests=.*llama.*" > /tmp/llama.log 2>&1
+```
+
+退出码 1 通常是「有测试在过滤子集里跑完」的正常退出（GameTestServer 跑完即退），**不代表失败**——看日志里 `PASSED:`/`FAILED:` 计数判断。
+
+### 6.3 `Could not find StructureBlockActor`：基岩时序竞态，非测试缺陷
+
+**现象**：基岩 `gametest run <test>` 后报 `Could not find StructureBlockActor associated to this test`，日志里 `onTestStructureLoaded`（结构加载成功）紧接着 `onTestFailed`。
+
+**根因**：基岩 BDS 1.26 自身的时序竞态。结构放置后 `StructureBlock` 方块实体完成服务端同步有延迟，`gametest run` 若在同步完成前查询测试锚点即报此错。
+
+**关键证据（推翻若干常见误判）**：
+- 与测试逻辑无关：纯 mob + `glass_pit` 的 `enderman_takes_water_damage`、`magmacube_immune_to_fire`、`zombified_piglin_immune_to_fire`（都不用 `spawnSimulatedPlayer`）同样偶发此错。
+- 与结构格式无关：`glass_pit`（格式正确）也偶发。
+- 与 `spawnSimulatedPlayer` 无关：用 SimulatedPlayer 的 `blaze_shoots_fireball_at_player` 同样偶发，但它能在基岩自动重试中通过。
+
+**基岩有自动重试**：同一次 `gametest run` 内，首次 `onTestFailed` 后基岩会重试，重试通过即 `onTestPassed`。日志里同一测试名出现 `onTestFailed` 后紧接 `onTestPassed` 即重试成功（如 `blaze`）。但重试并非必过——时序更糟时（如 `llama_spits_at_attacker` 连跑 3 次全 Failed）需更多重试或更大间隔。
+
+**对策**：
+- 单次失败不定性，用 `_bedrock_single.ts` 多次跑取稳定模式。
+- 加大测试间串行间隔让 StructureBlock 充分同步（`_bedrock_single.ts` 当前 ~1.5s，可调大）。
+- 这是基岩框架的固有非确定性，**不应通过改测试逻辑或 Cubium C++ 去修**——符合第 4 节「GameTest 非确定性」的总原则。
+
+### 6.4 mcstructure 格式陷阱：`size` list 必须含 count 字段
+
+**现象**：某 mcstructure 在 Cubium 能正常加载，基岩报 `Failed to spawn test structure with path 'structures/.../xxx.mcstructure'`。
+
+**根因**：mcstructure 是基岩 little-endian NBT。`size` 字段是 NBT list，格式为 `<elementType:1byte><count:int32LE><items...>`。若生成脚本漏写 count（只写 `<elementType>` 后直接跟 items），Cubium 容错解析能读，基岩严格解析把 items 首字节当 count 读，后续字段全部错位，最终越界/解析失败。
+
+**诊断方法**（node，零依赖）：对比能加载的结构与失败结构的 `size` 字段字节：
+
+```bash
+node -e "
+const fs=require('fs');
+const dir='tests/integrated/mob_behavior/structures/gametests/';
+for(const name of ['creeper_pit','glass_pit']){
+  const d=fs.readFileSync(dir+name+'.mcstructure');
+  const i=d.indexOf('size');
+  console.log(name, 'size bytes:', Array.from(d.slice(i+4,i+18)).map(b=>b.toString(16).padStart(2,'0')).join(' '));
+}
+# 正确: 03 03 00 00 00 07 00 00 00 05 00 00 00 07 ...  (type=3/int, count=3, 然后 [7,5,7])
+# 损坏: 03 00 00 00 07 00 00 00 05 00 00 00 07 ...     (type=3/int, count=0 ←错, 字段错位)
+"
+```
+
+**修复**：参照 `scripts/test/_rebuild_creeper_pit.ts`（保留作为格式参考样板），用正确的 little-endian NBT 序列化重建。关键点：
+- root compound 无名，含 `format_version`(int=1)、`size`(list<int>)、`structure`(compound)。
+- `structure.palette.default.block_palette` 是 list<compound>，每项 `{name, states:{}, version:17879555}`（version 是基岩方块版本号，对齐已知可加载结构）。
+- `structure.block_indices` 是 list<list<int>>，两层：layer0=方块索引，layer1=-1（液体层全空）。
+- 方块索引公式：`index = (x * size_y + y) * size_z + z`，遍历顺序 x→y→z（外层 x，内层 z）。
+
+> `_rebuild_creeper_pit.ts` 保留作为「正确 mcstructure 格式」的可运行参考样板，不删除。
+
+### 6.5 跨服务端兼容垫片：Cubium 专有 GameTest 链式方法
+
+**背景**：Cubium 在官方 `@minecraft/server-gametest` 的 `RegistrationBuilder` 之上扩展了 `skyAccess`（对齐 Java GameTest TestData 字段，让结构上方露天列使 `canSeeSky=true`）等链式方法，类型声明在 `tests/integrated/mob_behavior/src/cubium-gametest-augment.d.ts`。官方基岩 BDS 的 `RegistrationBuilder` 没有 `skyAccess`，测试代码调用 `.skyAccess(true)` 时抛 `TypeError: not a function`，发生在 `main.js` 顶层 register 阶段，致**整个行为包加载失败、所有测试都无法注册**。
+
+> 注意：`setupTicks` 是基岩 `RegistrationBuilder` **原生方法**（见 `index.d.ts`），两端都有，无需降级；仅 `skyAccess` 是 Cubium 专有。
+
+**垫片方案**（`tests/integrated/mob_behavior/src/gametest-shim.ts`，在 `main.ts` 最顶部 import 触发副作用）：
+
+1. **主策略——`RegistrationBuilder.prototype` 注入**：基岩 `RegistrationBuilder` 是导出 class，prototype 可扩展。在 prototype 上注入 `skyAccess` no-op（返回 this 保持链式）。基岩实例自身无 `skyAccess`，沿原型链命中注入的 no-op；Cubium 实例自身有 C++ 绑定的 `skyAccess`，覆盖 prototype，无副作用。**不替换 `GameTest.register`，最可靠**。
+2. **备用策略——`register` Proxy 包装**：若 prototype 注入失败（如基岩 prototype 冻结），退而用 Proxy 包装 `GameTest.register` 返回的 builder，对 `skyAccess` 降级 no-op。基岩 ESM namespace 属性可能 read-only（赋值抛 TypeError 或静默失败），用 try/catch 兜底。
+
+**跨服务端可写性差异**（核心认知）：
+- 基岩 BDS：`@minecraft/server-gametest` 是标准 ESM 模块，namespace 属性可写。
+- Cubium：`GameTest.register` 是 C++ 绑定的 read-only 属性，赋值抛 `TypeError: 'register' is read-only`。
+
+早期失败的垫片方案是「直接 `GameTest.register = Proxy`」且无 try/catch——在 Cubium 侧抛 read-only 异常未捕获，导致垫片模块自身加载失败、连带整个包崩。正确做法是 prototype 注入（根本不碰 register）+ try/catch 兜底。
 
 ---
 
@@ -349,5 +459,6 @@ errorMessage 归一化：去坐标/tick 数、统一大小写、trim，再做语
 - [`@minecraft/server-gametest` Module — Microsoft Learn](https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server-gametest/minecraft-server-gametest)
 - [`/gametest` Command — Microsoft Learn](https://learn.microsoft.com/en-us/minecraft/creator/commands/commands/gametest)
 - [Enabling experiments via NBT — wiki.bedrock.dev](https://wiki.bedrock.dev/nbt/enabling-experiments)
-- 工具源码：`scripts/test/setup.ts`、`scripts/test/run_diff.ts`
+- 工具源码：`scripts/test/setup.ts`、`scripts/test/run_diff.ts`、`scripts/test/_bedrock_single.ts`（基岩单测探针，见 6.1）、`scripts/test/_rebuild_creeper_pit.ts`（mcstructure 格式参考样板，见 6.4）
+- 跨服务端兼容垫片：`tests/integrated/mob_behavior/src/gametest-shim.ts`（见 6.5）、`tests/integrated/mob_behavior/src/cubium-gametest-augment.d.ts`（Cubium 专有方法类型声明）
 - Cubium GameTest 实现：`src/server/test/facade/GameTestServer.{hpp,cpp}`、`src/common/test/framework/registry/GameTestRegistry.cpp`、`src/server/test/runner/reporter/JUnitTestReporter.cpp`

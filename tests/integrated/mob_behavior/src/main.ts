@@ -2,6 +2,12 @@
 // 测试按主角生物的 Cubium 实体分类（src/common/entity/entities）拆分到 src/tests/ 子目录，
 // 未来为每个生物加行为测试时，放入对应分类目录即可。
 
+// 必须最先 import（副作用执行）：GameTest RegistrationBuilder 跨服务端兼容垫片。
+// Cubium 在官方 RegistrationBuilder 之上扩展了 skyAccess/setupTicks 链式方法（基岩 BDS 无此方法，
+// 调用抛 TypeError 致整个行为包加载失败）。垫片在基岩侧用 Proxy 把这些专有方法降级为 no-op，
+// Cubium 侧因 register 为 read-only 赋值失败而静默保留原实现。详见 gametest-shim.ts。
+import "./gametest-shim.js";
+
 import { registerZombieTests } from "./tests/monster/undead/ZombieTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
@@ -41,6 +47,7 @@ import { registerBeeTests } from "./tests/passive/special/BeeTests.js";
 import { registerWolfTests } from "./tests/passive/tamable/WolfTests.js";
 import { registerCatTests } from "./tests/passive/tamable/CatTests.js";
 import { registerOcelotTests } from "./tests/passive/tamable/OcelotTests.js";
+import { registerLlamaTests } from "./tests/passive/horse/LlamaTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -81,3 +88,4 @@ registerBeeTests();
 registerWolfTests();
 registerCatTests();
 registerOcelotTests();
+registerLlamaTests();

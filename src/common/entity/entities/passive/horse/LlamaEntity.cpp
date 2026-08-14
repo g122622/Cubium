@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
@@ -416,15 +417,32 @@ void LlamaEntity::registerGoals()
 {
     AbstractChestedHorseEntity::registerGoals();
 
+    // 对齐 vanilla Llama.registerGoals（Llama.java:117-131）：vanilla 完全 override，不继承
+    // AbstractHorse 的 MountPanicGoal(priority 1)，而是把普通 PanicGoal 与 RangedAttackGoal
+    // 同置 priority 3，且 RangedAttackGoal 注册在前。
+    //
+    // 本项目 GoalSelector 不按优先级排序、按注册顺序遍历，且同优先级 goal 不可互相抢占
+    // (isPreemptedBy 要求 other.priority < m.priority)。若沿用父类 PanicGoal(priority 1)，
+    // 受击后 PanicGoal(1) 先被遍历、先占据 Move flag，RangedAttackGoal(3) 因优先级更低无法
+    // 抢占而永不启动——羊驼受击只会 panic 逃跑而非吐口水反击，与 vanilla 不一致。
+    //
+    // 修复：移除继承的 PanicGoal(1)，在 RangedAttackGoal 之后以 priority 3 重新注册 PanicGoal。
+    // 这样受击后 RangedAttackGoal 先遍历、先占 Move flag（attackTarget 已由 HurtByTargetGoal
+    // 设上），同优先级 PanicGoal 无法抢占，羊驼吐口水反击；仅当无有效 target 时 PanicGoal 才接管。
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::PanicGoal>();
+
     // 优先级 2: 商队跟随目标
     m_goalSelector.addGoal(
         2, std::make_unique<entity::ai::goal::LlamaFollowCaravanGoal>(this, static_cast<f32>(LLAMA_CARAVAN_SPEED)));
 
-    // 优先级 3: 远程攻击目标
+    // 优先级 3: 远程攻击目标（必须先于 PanicGoal 注册，使其在同优先级下先占据 Move flag）
     // 参数：速度 1.25, 攻击间隔 40 ticks, 攻击半径 20 格
     m_goalSelector.addGoal(3,
         std::make_unique<entity::ai::goal::RangedAttackGoal>(
             this, LLAMA_RANGED_ATTACK_SPEED, LLAMA_ATTACK_INTERVAL, LLAMA_ATTACK_INTERVAL, LLAMA_RANGED_ATTACK_RADIUS));
+
+    // 优先级 3: 恐慌逃跑目标（同优先级，注册在远程攻击之后；仅当 RangedAttackGoal 未启动时接管）
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.2));
 
     // Target 优先级 1: 被攻击后反击
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
