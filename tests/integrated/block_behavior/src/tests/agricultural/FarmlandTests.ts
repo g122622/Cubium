@@ -4,7 +4,8 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
-// y=0 为 grass_block 地板，y=1..4 为 air。方块测试在 y=1 空气层操作。
+// y=0 为 glass 底（满铺 49 glass），y=1..2 为玻璃墙围出的内部 air 空腔，y=3..4 air+顶部框架。
+// 方块测试在内部 air 层操作，需特定支撑时显式 setBlockType 覆盖玻璃底。
 
 // 农田上方被不透明固体方块遮挡时退化为泥土（wiki tech_农田.txt#退化：农田上方放置固体方块会使其变回泥土）。
 //
@@ -20,8 +21,9 @@ import type { Test } from "@minecraft/server-gametest";
 // 延迟窗口），maxTicks 留足调度余量。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_农田.txt#退化（上方固体变泥土）
 function farmlandRevertsToDirtWhenSolidAbove(test: Test): void {
-  // 放农田 (3,1,1)，下方 (3,0,1) 为 grass_block 支撑。setBlockType 直写 defaultState（moisture=0），
-  // 不经 getStateForPlacement，放置本身不立即退化（退化靠上方放方块的 updatePostPlacement）。
+  // 放农田 (3,1,1)，下方 (3,0,1) 为 glass_pit 玻璃底（支撑与否不影响退化，退化只看上方固体）。
+  // setBlockType 直写 defaultState（moisture=0），不经 getStateForPlacement，放置本身不立即退化
+  // （退化靠上方放方块的 updatePostPlacement）。
   test.setBlockType("minecraft:farmland", { x: 3, y: 1, z: 1 });
 
   // 正上方 (3,2,1) 放 stone（Material::ROCK，hasOpaqueCollisionShape=true）。stone 放置向下方 farmland

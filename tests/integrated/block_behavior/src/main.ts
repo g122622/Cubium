@@ -15,6 +15,7 @@ import { registerFarmlandTests } from "./tests/agricultural/FarmlandTests.js";
 import { registerConcretePowderTests } from "./tests/building/ConcretePowderTests.js";
 import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js";
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
+import { registerCactusTests } from "./tests/vegetation/CactusTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -22,3 +23,4 @@ registerFarmlandTests();
 registerConcretePowderTests();
 registerFallingBlockTests();
 registerCoralTests();
+registerCactusTests();
