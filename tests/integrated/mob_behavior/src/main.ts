@@ -52,6 +52,7 @@ import { registerWolfTests } from "./tests/passive/tamable/WolfTests.js";
 import { registerCatTests } from "./tests/passive/tamable/CatTests.js";
 import { registerOcelotTests } from "./tests/passive/tamable/OcelotTests.js";
 import { registerLlamaTests } from "./tests/passive/horse/LlamaTests.js";
+import { registerBreezeTests } from "./tests/monster/breeze/BreezeTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -97,3 +98,4 @@ registerWolfTests();
 registerCatTests();
 registerOcelotTests();
 registerLlamaTests();
+registerBreezeTests();
