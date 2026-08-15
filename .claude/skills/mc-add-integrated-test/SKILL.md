@@ -12,8 +12,9 @@ description: 基于现有集成测试框架，为项目增加集成测试，以�
 1. 调用 `docs\minecraft-wiki-source\.claude\skills\minecraft-wiki-retrieval\SKILL.md` 中的 `minecraft-wiki-retrieval` 技能，根据用户指定的范围，检索原版MC的行为、数据、逻辑等的wiki原文，并将检索结果作为参考。
 2. 思考要设计怎样的集成测试。设计准则见下面章节。
 3. 开始着手编写typescript测试用例。必须参考现有测试用例的语法和结构，以及随时查询官方ScriptAPI的文档：E:\dev\MC\Mods\minecraft-creator\creator\ScriptAPI\minecraft\server-gametest
-4. 有时候测试失败、崩溃的原因可能不在于测试用例或者被测代码本身，而是项目的集成测试框架、脚本系统等的bug导致的（这里的bug多种多样，比如：api实际行为与官方文档不一致或与实际基岩版api不一致、api未完整实现等）。这种情况下请修复、补全集成测试框架、脚本系统等的bug，确保测试用例能够顺利运行，然后继续编写测试用例。脚本系统可从src\common\mod\bedrock\addon\modules\MinecraftModuleFactory.cpp入手。
-5. 如果遇到困难，可以与官方基岩 BDS 单独跑这同一套用例对比，以检验你编写的测试用例的正确性（以基岩版行为为唯一权威！）
+4. 编写完测试用例后，必须构建并运行验证，确保测试用例在Cubium上能跑通。如果跑不通，必须参照文档和本地的java版源码进行补全。【重要】你时间充足，上下文也充足，必须始终选择最彻底、最耗时、最正确、最准确、最完整的做法。
+5. 有时候测试失败、崩溃的原因可能不在于测试用例或者被测代码本身，而是项目的集成测试框架、脚本系统等的bug导致的（这里的bug多种多样，比如：api实际行为与官方文档不一致或与实际基岩版api不一致、api未完整实现等）。这种情况下请修复、补全集成测试框架、脚本系统等的bug，确保测试用例能够顺利运行，然后继续编写测试用例。脚本系统可从src\common\mod\bedrock\addon\modules\MinecraftModuleFactory.cpp入手。
+6. 如果遇到困难，可以与官方基岩 BDS 单独跑这同一套用例对比，以检验你编写的测试用例的正确性（以基岩版行为为唯一权威！）
 
 # 3. 集成测试设计准则和案例
 
