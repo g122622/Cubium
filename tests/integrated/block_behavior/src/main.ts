@@ -21,6 +21,7 @@ import { registerTntTests } from "./tests/redstone/TntTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
 import { registerSlimeBlockTests } from "./tests/special/SlimeBlockTests.js";
+import { registerHoneyBlockTests } from "./tests/special/HoneyBlockTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -34,3 +35,4 @@ registerTntTests();
 registerCampfireTests();
 registerMagmaTests();
 registerSlimeBlockTests();
+registerHoneyBlockTests();

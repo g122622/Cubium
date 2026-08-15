@@ -24,6 +24,7 @@
 #include "HoneyBlock.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -53,16 +54,28 @@ HoneyBlock::HoneyBlock(const BlockProperties& properties)
 
 void HoneyBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 蜂蜜块消除摔落伤害，但不弹跳
+    // 蜂蜜块不弹跳：Y 速度归零（对齐 Java updateEntityMovementAfterFallOn 走基类 super 不反弹）。
+    // 不重置 fallDistance——摔落减伤由 onFallenUpon 以 multiplier=0.2 处理（updateFallDistance 在
+    // onLanded 之后调用 onFallenUpon，fallDistance 仍是着地前累积值）。
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
     Vector3 velocity = entity.velocity();
-    // Y速度归零，但不反弹
     entity.setVelocity(velocity.x, 0.0f, velocity.z);
-    // 重置摔落距离（消��摔落伤害）
-    entity.setFallDistance(0.0f);
+}
+
+void HoneyBlock::onFallenUpon(
+    IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+{
+    // 蜂蜜块减伤 80%（保留 20%）：以 damageMultiplier=0.2 调 causeFallDamage。
+    // 对齐 Java HoneyBlock#fallOn（causeFallDamage(distance, 0.2F, fall)）与 wiki
+    // "摔在蜂蜜块上的生物受到的跌落伤害会减少80%"。LivingEntity::causeFallDamage 计算
+    // (distance-3)*0.2，大落差仍受少量伤害（非完全免疫，区别于粘液块的 0.0 完全免疫）。
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    entity.causeFallDamage(fallDistance, 0.2f, DamageSources::fall());
 }
 
 void HoneyBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const

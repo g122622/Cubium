@@ -57,9 +57,20 @@ public:
     /**
      * @brief 实体着地时调用
      *
-     * 消除摔落伤害，不弹跳。
+     * 蜂蜜块不弹跳：Y 速度归零（对齐 Java updateEntityMovementAfterFallOn 走基类不反弹）。
+     * 不在此处重置 fallDistance——摔落减伤由 onFallenUpon 以 multiplier=0.2 处理。
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    /**
+     * @brief 实体摔落在蜂蜜块上时调用
+     *
+     * 蜂蜜块减伤 80%（保留 20%）：以 damageMultiplier=0.2 调 causeFallDamage。
+     * 对齐 Java HoneyBlock#fallOn（causeFallDamage(distance, 0.2F, fall)）与 wiki
+     * "摔在蜂蜜块上的生物受到的跌落伤害会减少80%"。大落差仍会受少量伤害（非完全免疫）。
+     */
+    void onFallenUpon(
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
