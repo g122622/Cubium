@@ -23,6 +23,7 @@
 #include "server/test/script/binding/ScriptTestHelper.hpp"
 
 #include "common/item/core/ItemStack.hpp" // mc::ItemStack（_unwrapItemStack/assertContainerContains）
+#include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // wrapBlock（getBlock/assertBlockState 构造 Block JS 对象）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 wrap Entity/Dimension proto
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
@@ -1447,11 +1448,12 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         4);
 
     // --- assertBlockState(pos, callback) ---
-    // facade 已做实（GameTestHelper::assertBlockState 调 predicate(const BlockState&)）。JS 绑定需把
-    // BlockState* wrap 成 @minecraft/server Block JS 对象传给 callback——Block 类 opaque 持 ScriptBlockRef
-    // （批2 MinecraftModuleFactory 匿名结构体，跨模块不可见）。待 Block wrap helper 跨模块暴露后接通，
-    // 当前绑方法名但返 undefined + TODO，避免 JS 侧 "not a function"。
-    // TODO: Block wrap helper（wrapBlockRef）跨模块暴露后，构造 Block JS 对象调 callback 并据返回 bool 判定。
+    // facade 已做实（GameTestHelper::assertBlockState 调 predicate(const BlockState&)）。Block wrap helper
+    // 已跨模块暴露（wrapBlock），但 JS 绑定需把 BlockState wrap 成 Block JS 对象调 JS callback 并据其
+    // 返 bool 判定——callback 调用机制（ScriptCallbackUtil）适配 Block 对象参较复杂，当前绑方法名但
+    // 返 undefined + TODO，避免 JS 侧 "not a function"。骨粉测试判定经 getBlock+getState 链路实现，
+    // 不依赖 assertBlockState。
+    // TODO: 适配 callback 调用机制（构造 Block JS 对象传 callback，按返 bool 判定）后接通。
     reg.method(
         "assertBlockState",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
@@ -1459,24 +1461,37 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (helper == nullptr) {
                 return nullptr;
             }
-            // TODO: Block JS 对象构造未跨模块暴露，stub 返 undefined（facade assertBlockState 已就绪待接）。
+            // TODO: callback 调用机制未适配，stub 返 undefined（facade assertBlockState 已就绪待接）。
             return ctx.createUndefined();
         },
         2);
 
     // --- getBlock(pos) -> Block ---
-    // facade 已做实（返回 const BlockState*）。JS 绑定需 wrap 成 Block JS 对象——同 assertBlockState 受
-    // Block wrap helper 跨模块不可见阻塞。待暴露后接通，当前返 undefined + TODO。
-    // TODO: Block wrap helper 跨模块暴露后，wrap BlockState* 为 Block JS 对象返回。
+    // 基岩 Test.getBlock(blockLocation): Block。facade GameTestHelper::getBlock 已就绪（返回 const BlockState*），
+    // 经 wrapBlock 包装为 @minecraft/server Block JS 对象（ScriptBlockRef 快照，含 state/pos/world）。
+    // 下游 test.getBlock(pos).permutation.getState("age") 链路经 BlockPermutation.getState 取属性值。
+    // pos 为结构相对坐标，facade 内部经 worldBlockPosition 转世界绝对坐标。
     reg.method(
         "getBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
             auto* helper = _requireHelper(ctx, thisVal);
             if (helper == nullptr) {
                 return nullptr;
             }
-            // TODO: Block JS 对象构造未跨模块暴露，stub 返 undefined（facade getBlock 已就绪待接）。
-            return ctx.createUndefined();
+            if (argc < 1) {
+                return ctx.throwTypeError("getBlock(pos)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            const mc::BlockState* state = helper->getBlock(pos);
+            if (state == nullptr) {
+                return ctx.createUndefined();
+            }
+            // wrapBlock 内部经 classIdByName/protoByName 回查 Block 类注册，跨模块构造 Block JS 对象。
+            const mc::BlockPos worldPos = helper->worldBlockPosition(pos);
+            return mc::mod::bedrock::addon::wrapBlock(ctx, state, worldPos, &helper->world());
         },
         1);
 

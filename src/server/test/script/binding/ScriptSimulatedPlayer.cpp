@@ -26,11 +26,14 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack
 #include "common/test/base/error/GameTestErrorType.hpp"             // GameTestErrorType::MethodNotImplemented
+#include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
+#include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（stub 用）
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
+#include <cctype>
 #include <string>
 #include <string_view>
 
@@ -80,6 +83,51 @@ void* _throwNotImplemented(mc::mod::bedrock::addon::IScriptBindingContext& ctx, 
     msg += method;
     msg += " not implemented yet (dependency system not ready)";
     return throwGameTestError(ctx, GameTestErrorType::MethodNotImplemented, msg);
+}
+
+// 把 JS direction 参数转 mc::Direction。基岩 useItemOnBlock/useItemInSlotOnBlock 的 direction 参数
+// 官方文档默认值 = 1（数字，对应 Up），但 @minecraft/server.Direction 枚举值为 PascalCase 字符串
+// （"Down"/"Up"/"North"/"South"/"West"/"East"）。故同时接受：
+//   - 数字（0-5，与 mc::Direction 枚举序一致：Down=0..East=5）直接转；
+//   - 字符串（PascalCase 或小写，经 Directions::fromName 转）。
+// null/undefined 或解析失败返回默认 Up（对齐官方默认 1=Up）。
+mc::Direction _directionFromApi(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
+{
+    if (val == nullptr || ctx.isUndefined(val)) {
+        return mc::Direction::Up; // 官方默认 direction=1（Up）
+    }
+    if (ctx.isNumber(val)) {
+        auto n = ctx.toInt32(val);
+        if (n && *n >= 0 && *n <= 5) {
+            return static_cast<mc::Direction>(*n);
+        }
+        return mc::Direction::Up;
+    }
+    if (ctx.isString(val)) {
+        auto s = ctx.toString(val);
+        if (s) {
+            std::string lower = *s;
+            for (char& c : lower) {
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            }
+            auto dir = mc::Directions::fromName(lower);
+            return dir.value_or(mc::Direction::Up);
+        }
+    }
+    return mc::Direction::Up;
+}
+
+// 把 JS faceLocation 参数（Vector3 {x,y,z}，方块内 0-1 相对坐标）转 mc::Vector3。
+// 官方默认 null → 方块中心 (0.5, 0.5, 0.5)。
+mc::Vector3 _parseFaceLocation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
+{
+    if (val == nullptr || ctx.isUndefined(val) || !ctx.isObject(val)) {
+        return mc::Vector3(0.5f, 0.5f, 0.5f);
+    }
+    auto x = ctx.getPropertyFloat(val, "x");
+    auto y = ctx.getPropertyFloat(val, "y");
+    auto z = ctx.getPropertyFloat(val, "z");
+    return mc::Vector3(x.value_or(0.5f), y.value_or(0.5f), z.value_or(0.5f));
 }
 
 } // namespace
@@ -509,29 +557,102 @@ u64 registerSimulatedPlayerClassBinding(
             -> void* { return _throwNotImplemented(ctx, "stopSwimming"); },
         0);
 
-    // === 物品使用 stub（依赖物品使用派发/useOn 链路）===
-    // TODO: useItem/useItemInSlot/useItemOnBlock/useItemInSlotOnBlock/stopUsingItem/dropSelectedItem 待
-    // 物品使用派发（Item::use/useOn + 玩家交互管理器）实现后做实。
+    // === 物品使用 ===
+    // useItem/useItemInSlot 走 onItemRightClick（右键空气，vanilla 不消耗）。
+    // useItemOnBlock/useItemInSlotOnBlock 走 onItemUse（右键方块，消耗由 onItemUse 内部决定）。
+    // 原生实现见 SimulatedPlayer::useItem/useItemInSlot/useItemOnBlock/useItemInSlotOnBlock。
+    // stopUsingItem/dropSelectedItem 仍为 stub（依赖使用中状态机/掉落物体系）。
+
+    // --- useItem(itemStack) -> boolean ---
     reg.method(
         "useItem",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "useItem"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("useItem(itemStack)");
+            }
+            auto* stack = _unwrapItemStack(ctx, args[0]);
+            if (stack == nullptr) {
+                return ctx.throwTypeError("useItem: first arg must be an ItemStack");
+            }
+            return ctx.createBoolean(player->useItem(*stack));
+        },
         1);
+
+    // --- useItemInSlot(slot) -> boolean ---
     reg.method(
         "useItemInSlot",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "useItemInSlot"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("useItemInSlot(slot)");
+            }
+            auto slot = ctx.toInt32(args[0]);
+            if (!slot) {
+                return ctx.throwTypeError("useItemInSlot: slot must be a number");
+            }
+            return ctx.createBoolean(player->useItemInSlot(*slot));
+        },
         1);
+
+    // --- useItemOnBlock(itemStack, blockLocation, direction?, faceLocation?) -> boolean ---
     reg.method(
         "useItemOnBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "useItemOnBlock"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 2) {
+                return ctx.throwTypeError("useItemOnBlock(itemStack, blockLocation, direction?, faceLocation?)");
+            }
+            auto* stack = _unwrapItemStack(ctx, args[0]);
+            if (stack == nullptr) {
+                return ctx.throwTypeError("useItemOnBlock: first arg must be an ItemStack");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            const mc::Direction face = (argc >= 3) ? _directionFromApi(ctx, args[2]) : mc::Direction::Up;
+            const mc::Vector3 faceLocation =
+                (argc >= 4) ? _parseFaceLocation(ctx, args[3]) : mc::Vector3(0.5f, 0.5f, 0.5f);
+            return ctx.createBoolean(player->useItemOnBlock(*stack, pos, face, faceLocation));
+        },
         4);
+
+    // --- useItemInSlotOnBlock(slot, blockLocation, direction?, faceLocation?) -> boolean ---
     reg.method(
         "useItemInSlotOnBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "useItemInSlotOnBlock"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 2 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("useItemInSlotOnBlock(slot, blockLocation, direction?, faceLocation?)");
+            }
+            auto slot = ctx.toInt32(args[0]);
+            if (!slot) {
+                return ctx.throwTypeError("useItemInSlotOnBlock: slot must be a number");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+            const mc::Direction face = (argc >= 3) ? _directionFromApi(ctx, args[2]) : mc::Direction::Up;
+            const mc::Vector3 faceLocation =
+                (argc >= 4) ? _parseFaceLocation(ctx, args[3]) : mc::Vector3(0.5f, 0.5f, 0.5f);
+            return ctx.createBoolean(player->useItemInSlotOnBlock(*slot, pos, face, faceLocation));
+        },
         4);
+
     reg.method(
         "stopUsingItem",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)

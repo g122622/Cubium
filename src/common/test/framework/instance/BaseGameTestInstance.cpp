@@ -40,7 +40,14 @@ void BaseGameTestInstance::tick()
     if (m_tickCount == 0 && !m_testFunctionStarted) {
         _runTestFunction();
         m_testFunctionStarted = true;
-        m_state = GameTestState::Running;
+        // 仅当测试函数未在同步路径内终结时才进入 Running。同步测试（如骨粉催熟在函数体末尾直接
+        // test.succeed()）会在 _runTestFunction 内经 succeed() 把 state 置为 Succeeded 并已 _notifyPassed；
+        // 此处无条件覆盖回 Running 会让该实例继续 tick 至 maxTicks 超时再发一次 FAILED，造成同一测试
+        // PASSED + FAILED 双记录（total=1 但 passed+failed=2）。已终结（Succeeded/Failed）时保持终态，
+        // 由 isDone(m_state) 守卫让后续 tick 直接 return。
+        if (!isDone(m_state)) {
+            m_state = GameTestState::Running;
+        }
         _notifyStarted();
     }
 

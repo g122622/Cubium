@@ -12,6 +12,7 @@ import "./gametest-shim.js";
 import { registerLiquidTests } from "./tests/liquid/LiquidTests.js";
 import { registerSpongeTests } from "./tests/special/SpongeTests.js";
 import { registerFarmlandTests } from "./tests/agricultural/FarmlandTests.js";
+import { registerBoneMealTests } from "./tests/agricultural/BoneMealTests.js";
 import { registerConcretePowderTests } from "./tests/building/ConcretePowderTests.js";
 import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js";
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
@@ -30,6 +31,7 @@ import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTest
 registerLiquidTests();
 registerSpongeTests();
 registerFarmlandTests();
+registerBoneMealTests();
 registerConcretePowderTests();
 registerFallingBlockTests();
 registerCoralTests();

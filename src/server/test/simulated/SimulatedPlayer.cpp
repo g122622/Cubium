@@ -5,8 +5,13 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
-#include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数
+#include "common/item/context/ItemUseContext.hpp"      // useItemOnBlock 构造 ItemUseContext 调 onItemUse
+#include "common/item/core/ActionResult.hpp"           // ActionResultType / ItemActionResult
+#include "common/item/core/Item.hpp"                   // Item::onItemUse/onItemRightClick
+#include "common/item/core/ItemRegistry.hpp"           // ItemRegistry::getItem(itemId) 取非 const Item*
+#include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数 + useItem 系列
 #include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
+#include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
 #include "server/world/ServerWorld.hpp"
 
 #include <cmath>
@@ -200,6 +205,104 @@ void SimulatedPlayer::attack(mc::Entity& target)
     // SimulatedPlayer 经 ServerPlayer→Player 继承，无网络连接时发包路径 no-op（setConnection(nullptr)）。
     // 直接调 Player::attack（非 ServerPlayer::attack）以跳过 ServerPlayer 的旁观者 setCamera 网络路径。
     Player::attack(target);
+}
+
+// === 物品使用 ===
+//
+// 派发路径对齐 vanilla Item.useOn / Item.use（项目名 onItemUse / onItemRightClick）。
+// useItem/useItemInSlot 走 onItemRightClick（右键空气，vanilla 不消耗物品）。
+// useItemOnBlock/useItemInSlotOnBlock 走 onItemUse（右键方块，消耗由 onItemUse 内部决定，如骨粉 shrink(1)）。
+// 坐标语义：方法接收结构相对 BlockPos，经 m_helper->worldBlockPosition 转世界绝对坐标。
+// player 参数传 this（SimulatedPlayer 是 Player）：对齐 vanilla ItemUseContext 持 player，使桶/打火石等
+// 需玩家上下文的物品可正确派发（BlockInteractionManager::handleItemUseOn 传 nullptr 是因其消耗由
+// InventoryManager 统一管理；SimulatedPlayer 无该管理层，传 this 让 onItemUse 内部消耗作用于传入栈拷贝）。
+
+bool SimulatedPlayer::useItem(mc::ItemStack stack)
+{
+    // 空物品不可使用。
+    if (stack.isEmpty()) {
+        return false;
+    }
+    const mc::Item* itemC = stack.getItem();
+    if (itemC == nullptr) {
+        return false;
+    }
+    // Item 是无状态策略单例，onItemRightClick 非 const；经 ItemRegistry 取非 const 句柄调用。
+    mc::Item* item = mc::ItemRegistry::instance().getItem(itemC->itemId());
+    if (item == nullptr) {
+        return false;
+    }
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::useItem: helper not bound");
+    mc::IWorld& world = m_helper->world();
+    // vanilla Item.use 不消耗物品（onItemRightClick 返回的 ItemActionResult 的 stack 仅作结果传递）。
+    // success 判定对齐 handleItemUseOn：Success || Consume 视为已使用。
+    mc::ItemActionResult result = item->onItemRightClick(world, *this, mc::Hand::MainHand);
+    return result.isSuccessOrConsume();
+}
+
+bool SimulatedPlayer::useItemInSlot(i32 slot)
+{
+    // 取该槽位物品拷贝（getItem 按值返回），转 useItem。useItem 不消耗，无需回写槽位。
+    // 槽位越界由 PlayerInventory::getItem 内部钳制（返空堆），空堆在 useItem 内返 false。
+    mc::ItemStack stack = inventory().getItem(slot);
+    if (stack.isEmpty()) {
+        return false;
+    }
+    return useItem(std::move(stack));
+}
+
+bool SimulatedPlayer::useItemOnBlock(
+    mc::ItemStack stack, BlockPos blockLocation, mc::Direction face, mc::Vector3 faceLocation)
+{
+    // 空物品不可使用。
+    if (stack.isEmpty()) {
+        return false;
+    }
+    const mc::Item* itemC = stack.getItem();
+    if (itemC == nullptr) {
+        return false;
+    }
+    mc::Item* item = mc::ItemRegistry::instance().getItem(itemC->itemId());
+    if (item == nullptr) {
+        return false;
+    }
+    MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::useItemOnBlock: helper not bound");
+    mc::IWorld& world = m_helper->world();
+    // 结构相对坐标 → 世界绝对坐标。
+    const BlockPos worldPos = m_helper->worldBlockPosition(blockLocation);
+    // hitPos = 方块原点 + faceLocation（faceLocation 是方块内 0-1 相对坐标，对齐官方
+    // "Location relative to the bottom north-west corner of the block"）。
+    const mc::Vector3 hitPos(static_cast<f32>(worldPos.x) + faceLocation.x,
+        static_cast<f32>(worldPos.y) + faceLocation.y,
+        static_cast<f32>(worldPos.z) + faceLocation.z);
+    // 构造上下文：player=this（供桶/打火石等需玩家上下文的物品），stack 为传入拷贝（onItemUse 内
+    // 消耗如骨粉 shrink(1) 作用于该拷贝）。face/hand/yaw/pitch 对齐玩家点击语义。
+    mc::ItemUseContext context(world, this, stack, hitPos, worldPos, face, mc::Hand::MainHand, yaw(), pitch());
+    const mc::ActionResultType result = item->onItemUse(context);
+    // success 判定对齐 BlockInteractionManager::handleItemUseOn:441。
+    return result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume;
+}
+
+bool SimulatedPlayer::useItemInSlotOnBlock(
+    i32 slot, BlockPos blockLocation, mc::Direction face, mc::Vector3 faceLocation)
+{
+    // 取该槽位物品拷贝判定可用性（useItemOnBlock 按值接收，其内部 onItemUse 的消耗作用于该拷贝，丢弃）。
+    mc::ItemStack stack = inventory().getItem(slot);
+    if (stack.isEmpty()) {
+        return false;
+    }
+    const bool used = useItemOnBlock(std::move(stack), blockLocation, face, faceLocation);
+    // 权威槽位消耗：对齐 BlockInteractionManager::handleItemUseOn:447-457 的"成功即对选中栈 shrink(1)
+    // 回写"范式。onItemUse 内部对拷贝的 shrink 不影响权威槽位，故此处独立消耗一次（净消耗 1）。
+    // 创造模式不消耗（对齐 handleItemUseOn:458-460）。
+    if (used && !isCreative()) {
+        mc::ItemStack selected = inventory().getItem(slot);
+        if (!selected.isEmpty() && selected.getCount() > 0) {
+            selected.shrink(1);
+            inventory().setItem(slot, selected);
+        }
+    }
+    return used;
 }
 
 } // namespace mc::test

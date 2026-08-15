@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/core/Types.hpp" // EntityInstanceId / GameMode / i32 / f32
+#include "common/core/Types.hpp"        // EntityInstanceId / GameMode / Direction / i32 / f32
+#include "common/util/math/Vector3.hpp" // Vector3（useItemOnBlock 的 faceLocation 参数）
 #include "common/world/block/BlockPos.hpp"
 #include "server/player/ServerPlayer.hpp"
 
@@ -202,10 +203,67 @@ public:
     // （playerAttack source → target.hurt → actuallyHurt → setLastHurtBy → 群体仇恨触发）。
     void attack(mc::Entity& target) override;
     // TODO: interact(entity/block)（依赖交互管理器 handleItemUseOn 完整化）
-    // TODO: useItem(itemStack)（依赖物品使用派发）
     // TODO: breakBlock(pos)（依赖 destroyBlock + 战利品表，见 GameTestHelper::destroyBlock 同类 TODO）
     // TODO: placeBlock(pos, block)（依赖方块放置 + 玩家朝向）
     // TODO: jump / sprint 切换（jump 已有 Player::jump；sprint 切换待封装）
+
+    // === 物品使用（对齐基岩 SimulatedPlayer::useItem/useItemOnBlock/useItemInSlot/useItemInSlotOnBlock）===
+    // 经 ItemUseContext + Item::onItemUse/onItemRightClick 派发，支持骨粉/桶/锄头/斧头等所有非 block-item
+    // 的"对方块使用物品"语义。消耗由 onItemUse 内部决定（如 BoneMealItem::onItemUse 调 shrink(1)）。
+
+    /**
+     * @brief 使用物品（右键空气，对齐 useItem）。
+     *
+     * 调 Item::onItemRightClick（vanilla Item.use）。官方语义：不消耗物品。空物品或物品在冷却中返 false。
+     *
+     * @param stack 要使用的物品（拷贝，onItemRightClick 不应修改权威物品栏）。
+     * @return 物品是否被使用（onItemRightClick 非默认动作即视为使用）。
+     */
+    bool useItem(mc::ItemStack stack);
+
+    /**
+     * @brief 使用指定槽位的物品（右键空气，对齐 useItemInSlot）。
+     *
+     * 取玩家该槽位 ItemStack，转 useItem。槽位越界或空槽返 false。
+     *
+     * @param slot 物品栏槽位索引。
+     * @return 物品是否被使用。
+     */
+    bool useItemInSlot(i32 slot);
+
+    /**
+     * @brief 对方块使用物品（对齐 useItemOnBlock）。
+     *
+     * 构造 ItemUseContext（player=this，stack 为传入物品）调 Item::onItemUse。onItemUse 内部按需
+     * 消耗（骨粉 shrink(1)）。blockLocation 为结构相对坐标，内部经 worldBlockPosition 转世界坐标。
+     * face 为击中面（默认 Up），faceLocation 为方块内相对击中点（0-1，默认方块中心 0.5）。
+     *
+     * @param stack 要使用的物品（拷贝传入；onItemUse 的消耗作用于该拷贝，调用方据此感知数量变化）。
+     * @param blockLocation 结构相对方块坐标。
+     * @param face 击中面（默认 Up）。
+     * @param faceLocation 方块内相对击中点（默认中心）。
+     * @return 物品是否被使用（onItemUse 返回 Success/Consume）。
+     */
+    bool useItemOnBlock(mc::ItemStack stack,
+        BlockPos blockLocation,
+        mc::Direction face = mc::Direction::Up,
+        mc::Vector3 faceLocation = mc::Vector3(0.5f, 0.5f, 0.5f));
+
+    /**
+     * @brief 用指定槽位物品对方块使用（对齐 useItemInSlotOnBlock）。
+     *
+     * 取玩家该槽位 ItemStack，转 useItemOnBlock。成功消耗后回写该槽位（非创造模式）。槽位越界/空槽返 false。
+     *
+     * @param slot 物品栏槽位索引。
+     * @param blockLocation 结构相对方块坐标。
+     * @param face 击中面（默认 Up）。
+     * @param faceLocation 方块内相对击中点（默认中心）。
+     * @return 物品是否被使用。
+     */
+    bool useItemInSlotOnBlock(i32 slot,
+        BlockPos blockLocation,
+        mc::Direction face = mc::Direction::Up,
+        mc::Vector3 faceLocation = mc::Vector3(0.5f, 0.5f, 0.5f));
 
     // === 静态工厂 ===
 

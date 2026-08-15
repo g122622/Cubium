@@ -40,6 +40,7 @@
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
 #include "common/item/core/ItemRegistry.hpp"        // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
 #include "common/item/core/ItemStack.hpp"           // ItemStack（Equippable.getEquipment 返回值）
+#include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // ScriptBlockRef/wrapBlock/unwrapBlock（Block JS 类 opaque 快照）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
@@ -79,16 +80,9 @@ namespace {
 // 用小写，故出入参须做大小写转换。
 // ============================================================================
 
-/// Block JS 类 opaque 持有的快照（owned=true，JS GC 时 delete）。
-/// 持 const BlockState*（BlockRegistry 全局拥有，非拥有指针）+ BlockPos + world 回指。
-/// world 仅供 isAir 等衍生查询；非拥有，绑定层保证调用期 world 存活（绑定期世界长于 JS 对象）。
-struct ScriptBlockRef {
-    const mc::BlockState* state = nullptr;
-    mc::BlockPos pos{};
-    mc::IWorld* world = nullptr;
-};
-
-// 注：Direction 字符串↔mc::Direction 转换、按 id 取 BlockState/Item 的 helper 在批次4/6（setBlock/
+// 注：ScriptBlockRef 结构体已提升至公共头 ScriptBlockRef.hpp，供 server 侧
+// （ScriptTestHelper 的 getBlock/assertBlockState 绑定）跨模块构造 Block JS 对象。
+// Direction 字符串↔mc::Direction 转换、按 id 取 BlockState/Item 的 helper 在批次4/6（setBlock/
 // spawnItem/rotateDirection 等）引入时按需补充，避免本批携带未使用函数触发 -Wunused-function。
 
 /// ItemStack JS 类 classId 缓存（首次 unwrap 时惰性查 ScriptClassRegistry，避免每调用查表）。
@@ -1147,6 +1141,56 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
         return ctx.createBoolean(state != nullptr);
     });
+    // getState(propertyName) -> boolean | number | string | undefined。
+    // 官方 BlockPermutation.getState 读取指定 block state 属性的当前值。未命名属性返 undefined。
+    // 取值路径对齐 StateHolder::toString：state->values() 返回 vector<PropertyEntry{IProperty*, valueIndex}>，
+    // 按 entry.property->name() 匹配，按 property->typeName() 调度返回 JS 类型：
+    //   IntegerProperty → number（valueToString 返数字字符串，转 i32）；
+    //   BooleanProperty → boolean（valueToString 返 "true"/"false"）；
+    //   EnumProperty    → string（valueToString 返枚举名字符串）。
+    // typeName 统一经 IProperty 虚接口返回，无需 dynamic_cast 到具体 Property<T>，与 toString 范式一致。
+    blockPermutationReg.method(
+        "getState", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            if (argc < 1) {
+                return ctx.throwTypeError("BlockPermutation.getState(propertyName: string)");
+            }
+            const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+            auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
+            if (state == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto propName = ctx.toString(args[0]);
+            if (!propName) {
+                return ctx.throwTypeError("BlockPermutation.getState: propertyName must be a string");
+            }
+            // 遍历 state 的全部属性，按名匹配。
+            for (const auto& entry : state->values()) {
+                if (entry.property == nullptr) {
+                    continue;
+                }
+                if (entry.property->name() != *propName) {
+                    continue;
+                }
+                const std::string valStr = entry.property->valueToString(entry.valueIndex);
+                const char* tn = entry.property->typeName();
+                if (tn == std::string("IntegerProperty")) {
+                    // 数字属性：值字符串形如 "2"，转 i32 返 number。
+                    try {
+                        return ctx.createInt32(static_cast<i32>(std::stol(valStr)));
+                    }
+                    catch (...) {
+                        return ctx.createString(valStr); // 解析失败降级返字符串
+                    }
+                }
+                if (tn == std::string("BooleanProperty")) {
+                    return ctx.createBoolean(valStr == "true");
+                }
+                // EnumProperty 或未知类型：返字符串（枚举名）。
+                return ctx.createString(valStr);
+            }
+            // 属性不存在：返 undefined（对齐官方 getState 语义）。
+            return ctx.createUndefined();
+        });
 
     // BlockPermutation.resolve(blockType, states?) 静态方法：按 typeId + 可选 states 映射构造一个
     // BlockPermutation（不写入世界，仅返回 permutation 对象）。供 setBlockPermutation 等 API 消费。
