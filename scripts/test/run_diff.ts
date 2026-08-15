@@ -54,12 +54,13 @@ const BEDROCK_TOTAL_TIMEOUT_MS = 1_200_000; // 基岩侧全部测试跑完总超
 const CUBIUM_RUN_TIMEOUT_MS = 600_000; // Cubium --gametest 完成超时
 const BEDROCK_SHUTDOWN_TIMEOUT_MS = 15_000; // 发 stop 后等待退出超时
 
-// 基岩世界引用的 4 个 pack（header.uuid，与 setup.ts 的 PACKS 对应，已核对各 pack manifest）。
+// 基岩世界引用的 5 个 pack（header.uuid，与 setup.ts 的 PACKS 对应，已核对各 pack manifest）。
 const PACK_UUIDS = [
     "a1c1c000-0004-4a75-91b7-4cdf0a04c007", // starter
     "a1c1c000-0003-4a75-91b7-4cdf0a03c005", // mob_behavior
     "a1c1c000-0002-4a75-91b7-4cdf0a02c003", // command
     "a1c1c000-0001-4a75-91b7-4cdf0a01c001", // challenge
+    "a1c1c000-0004-4a75-91b7-4cdf0a03c007", // block_behavior
 ];
 
 // ============================================================================
@@ -383,7 +384,7 @@ function enableBetaApiExperiment(levelDatPath: string): void {
 }
 
 /**
- * 确保基岩专用世界的 world_behavior_packs.json 存在（引用 4 个 pack）。
+ * 确保基岩专用世界的 world_behavior_packs.json 存在（引用 5 个 pack）。
  * 基岩首次启动 gametest-diff 世界后才生成该目录，故在 runset 前检查。
  */
 async function ensureWorldBehaviorPacks(): Promise<void> {

@@ -76,6 +76,13 @@ def w_list_list_int(buf, list_of_ints):
         w_list_int(buf, ints)
 
 
+def w_empty_list(buf):
+    """写空 List：元素类型=TAG_End(0) + count=0。基岩 NBT 空列表标准写法。
+    用于 entities（结构内无预置实体，写空 list）。对齐 _rebuild_creeper_pit.ts:94-96。"""
+    buf += bytes([0])  # 元素类型 TAG_End（空列表占位）
+    buf += struct.pack("<i", 0)
+
+
 def w_list_compound(buf, compounds):
     buf += bytes([10])  # 元素类型 compound
     buf += struct.pack("<i", len(compounds))
@@ -131,16 +138,24 @@ def main():
 
     # 构建 NBT
     palette_compounds = [build_palette_entry(p["name"], p["states"]) for p in PALETTE]
-    default_palette = {"block_palette": (9, lambda b: w_list_compound(b, palette_compounds))}
+    # block_position_data：基岩 .mcstructure 的 required 字段（每个方块位置的可选元数据，如方块实体）。
+    # grass_pen 无方块实体，写空 compound {}。缺此字段基岩解析报 "block_position_data field, a required
+    # field, is missing"（虽容错继续，但为正确性补齐，对齐 _rebuild_creeper_pit.ts:119 的写法）。
+    default_palette = {
+        "block_palette": (9, lambda b: w_list_compound(b, palette_compounds)),
+        "block_position_data": (10, {}),
+    }
     # block_indices = List<List<Int>>：主层(方块索引) + 次层(全 -1，水层空，基岩标准 2 层)
     secondary_layer = [-1] * (SX * SY * SZ)
     structure = {
         "block_indices": (9, lambda b: w_list_list_int(b, [indices, secondary_layer])),
+        "entities": (9, lambda b: w_empty_list(b)),
         "palette": (10, {"default": (10, default_palette)}),
     }
     inner = {
         "format_version": (3, 1),
         "size": (9, lambda b: w_list_int(b, [SX, SY, SZ])),
+        "structure_world_origin": (9, lambda b: w_list_int(b, [0, 0, 0])),
         "structure": (10, structure),
     }
     # 基岩 .mcstructure 根 compound 的 root name 恒为空（NBT 协议约定），

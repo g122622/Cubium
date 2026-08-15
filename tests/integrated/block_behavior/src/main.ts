@@ -24,6 +24,7 @@ import { registerSlimeBlockTests } from "./tests/special/SlimeBlockTests.js";
 import { registerHoneyBlockTests } from "./tests/special/HoneyBlockTests.js";
 import { registerHayBlockTests } from "./tests/special/HayBlockTests.js";
 import { registerWitherRoseTests } from "./tests/vegetation/WitherRoseTests.js";
+import { registerSweetBerryBushTests } from "./tests/vegetation/SweetBerryBushTests.js";
 import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTests.js";
 
 registerLiquidTests();
@@ -41,4 +42,5 @@ registerSlimeBlockTests();
 registerHoneyBlockTests();
 registerHayBlockTests();
 registerWitherRoseTests();
+registerSweetBerryBushTests();
 registerPointedDripstoneTests();

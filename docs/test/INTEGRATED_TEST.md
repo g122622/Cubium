@@ -530,6 +530,51 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 
 > 排查要点：`structure not found in TemplateManager` 先查该结构在哪个包（`find tests/integrated -name "<name>.mcstructure"`），确认全量跑加载了提供该结构的包。`--gametest_packs` 传父目录（含多个包子目录），不传包目录本身。
 
+### 6.10 伤害/轮询类测试的跨服务端语义对齐（甜浆果案例）
+
+甜浆果灌木 `sweet_berry_bush` 集成测试（`block_behavior/src/tests/vegetation/SweetBerryBushTests.ts`）暴露了多个跨服务端（Cubium vs 官方基岩 BDS）测试设计陷阱，逐一记录。
+
+#### 6.10.1 `succeedWhen` 语义两端不一致 → 用 `pollUntilSucceed` 替代
+
+**现象**：伤害类测试需要"等待 AI 触发 + 无敌帧节流后才掉血"，条件何时满足不可预测。自然写法是 `test.succeedWhen(callback)`，回调里 `test.assert(condition)`，期望"该 tick 不满足就继续等下个 tick"。
+
+**两端语义差异**：
+- **Cubium**（`BaseGameTestInstance.cpp:83-98`）：succeedWhen 回调里 `assert` 失败 → `allPass=false`，**不 fail，继续轮询下个 tick**。即"assert 失败=条件未满足，继续等"。
+- **官方基岩 BDS**：succeedWhen 回调里 `assert` 失败 = **立即 FAIL**（非"继续等"）。
+
+故依赖 Cubium"继续轮询"语义的 `succeedWhen+assert` 测试，在基岩会首 tick 立即 FAIL（条件首 tick 必然未满足）。
+
+**解决**：用 `pollUntilSucceed`（`tests/integrated/utils/test/poll.ts`）——基于 `runAtTickTime`（两端语义一致：指定 tick 跑一次回调）实现周期轮询，两端统一语义。
+
+#### 6.10.2 `pollUntilSucceed` 必须预注册，不可自递归（迭代器失效）
+
+`pollUntilSucceed` 初版用"回调内再调 `runAtTickTime` 注册下一个检查点"的自递归。**这有 UB 风险**：`BaseGameTestInstance::tick`（`BaseGameTestInstance.cpp:52`）用 range-based for 遍历 `m_runAtTickTime` vector 执行到期回调；回调内 `runAtTickTime` 触发 `m_runAtTickTime.emplace_back`（`:183`），若 vector 扩容重分配，range-based for 的迭代器失效 → UB/崩溃。
+
+**解决**：预注册方案——测试函数体内一次性生成检查点 tick 列表 `[startTick, startTick+interval, ..., maxTick]`，逐个 `runAtTickTime` 注册。遍历期间不再修改 vector，彻底规避。`pollUntilSucceed` 顶部注释详述。
+
+#### 6.10.3 跨服务端 block state 名差异（age vs growth）+ 放置 API 差异
+
+甜浆果"生长阶段"state 两端命名不同：Cubium（对齐 Java）`age`（0-3），基岩 `growth`（0-3，值域一致）。放置带 state 方块的 API 也不同：Cubium 用专有 `Test.setBlockWithStates(type, pos, "age=N", flags)`，基岩用官方 `Test.setBlockPermutation(BlockPermutation.resolve(type, {growth:N}), pos)`。
+
+**解决**：跨服务端放置工具 `setSweetBerryBush`（`utils/block/sweetBerryBush.ts`）运行时检测平台（`typeof test.setBlockWithStates === "function"`，Cubium 有基岩无），分别用各自 API + 各自 state 名放置，使同一份 TS 测试两端正确放置指定阶段灌木。`BlockPermutation.resolve` 是基岩原生静态方法，Cubium 未实现（任务 #184 待补），故仅基岩分支调用。
+
+#### 6.10.4 甜浆果移动受伤测试的非确定性限制（两端都不可靠）
+
+甜浆果伤害机制（`SweetBerryBushBlock::onEntityCollision`）要求实体**本 tick 在灌木格内发生水平位移**（`prevX!=currX || prevZ!=currZ` 且 `|dx|或|dz|>=0.003`），age>0 才造伤。即"静止站在灌木里不掉血，移动才掉血"。这与营火/凋灵玫瑰"静止站立即伤"根本不同。
+
+测试用鸡（mob）作主角，依赖鸡 `RandomWalking` 自主穿越灌木带触发伤害。但这存在固有非确定性：
+
+- **Cubium 端**：单只鸡 800 tick 内通过率约 2/3（偶发鸡始终在草地侧游荡不进灌木带 → 超时 hp=4）。改用 **4 只鸡 + maxTicks=1200** 后稳定通过（实测 4/4）。
+- **基岩 BDS 端**：鸡 AI 寻路严格避开甜浆果灌木（`WalkNodeProcessor` 将灌木格判为 `DamageOther`，A* 不接纳其为邻居），鸡在灌木带内长时间静止，偶发移动时逃出灌木带，1200 tick 内大概率不触发"在灌木格内水平移动"→ 超时 hp=4。**基岩端不可靠**。
+
+**无法用确定性强制移动绕过**（基岩端 GameTest 无脚本级强制位移 API）：
+- `teleport` 不走 `travel`/`doBlockCollisions`，不触发 `onEntityCollision`。
+- `SimulatedPlayer.moveToLocation` 在 Cubium 服务端**不产生位移**：`moveToLocation`→`handleMovementInput` 只设输入标记，而 `Player::updatePhysics`（消费输入产生位移）仅在客户端 `ClientApplication` 调用，服务端 GameTest 无客户端 → 输入标记无人消费 → 无位移。且 `Player::aiStep` 重写不调用 `LivingEntity::aiStep`（后者含 `doBlockCollisions`），即使位移发生也不触发 `onEntityCollision`。
+
+**结论**：damages 测试保留 Cubium 端验证价值（多鸡稳定通过，确证 Cubium 甜浆果伤害机制正确），基岩端对比归类为 `one-sided`（仅 Cubium 跑）。这是测试设计层面的固有限制，非 Cubium 机制缺陷（Cubium 端机制与基岩一致：age>0 + 水平移动才伤害）。spare_age0（AGE=0 不伤）两端均通过，确证 age 阈值。
+
+> 排查要点：伤害类测试在基岩首 tick 立即 FAIL → 检查是否误用 `succeedWhen+assert`，改 `pollUntilSucceed`。Cubium 端伤害测试偶发超时 → 检查是否依赖 Mob 自主移动触发，增多 Mob + 延长 maxTicks。基岩端 Mob 不进入某方块 → 检查该方块是否被 `WalkNodeProcessor` 判为 `DamageOther`/`DANGER`（Mob AI 避开），此类"需 Mob 自主穿越危险方块"的测试在基岩端固有不可靠。
+
 ---
 
 ## 参考
