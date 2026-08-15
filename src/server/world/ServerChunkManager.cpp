@@ -869,7 +869,11 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         const ChunkCoord chunkZ = chunk.z();
 
         // 计算空区块段标记，更新空映射与区块段状态。
-        const ChunkSection* const* sections = chunkData->getSections();
+        // 注：LIGHT 路径无需对 section 取区块级读写锁（不同于 RuntimeLightTask/ChunkLoadLightTask）。
+        // setupCaches 的 isTwoRadius 守卫使 worker 只缓存 r1 内圈（中心+半径1，均未发布 ChunkPrimer）
+        // 的 ChunkSection 指针并读其 PalettedContainer；r2 已发布活体区块仅缓存 chunk/emptinessMap 指针，
+        // 不读 section。未发布 ChunkPrimer 由状态管线串行推进，主线程不写，故无并发写竞态。
+        const auto sectionsArr = chunkData->getSections();
         constexpr i32 sectionCount = world::CHUNK_SECTIONS;
 
         // 构造光照提供者：中心+半径1邻居经 WorldGenRegion 取 ChunkPrimer 底层 ChunkData，
@@ -883,7 +887,7 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
             // 更新方块光引擎空映射（仅方块光有空映射）+ 段状态，再 light()
             blockEngine->updateEmptinessMap(chunkX, chunkZ, chunkData);
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
                 blockEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }
@@ -894,7 +898,7 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         if (lightManager->hasSkyLight()) {
             auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
                 skyEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }

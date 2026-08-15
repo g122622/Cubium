@@ -315,11 +315,11 @@ std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvide
     i32 offX = chunk->x() << world::SECTION_SHIFT;
     i32 offZ = chunk->z() << world::SECTION_SHIFT;
 
-    const ChunkSection* const* sections = chunk->getSections();
+    const auto sectionsArr = chunk->getSections();
 
     for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
         i32 sectionIndex = sectionY - m_minSection;
-        const ChunkSection* section = sections[sectionIndex];
+        const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionIndex)];
         if (section == nullptr || section->isEmpty()) {
             continue;
         }

@@ -129,7 +129,7 @@ public:
     [[nodiscard]] const ChunkSection* getSection(i32 index) const override;
     [[nodiscard]] bool hasSection(i32 index) const override;
     ChunkSection* createSection(i32 index) override;
-    [[nodiscard]] const ChunkSection* const* getSections() const override;
+    [[nodiscard]] std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> getSections() const override;
 
     // 高度图
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;

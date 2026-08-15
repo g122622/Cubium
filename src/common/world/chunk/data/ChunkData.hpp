@@ -53,6 +53,7 @@
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -106,8 +107,40 @@ public:
     [[nodiscard]] bool hasSection(i32 index) const override;
     ChunkSection* createSection(i32 index) override;
 
-    // 获取所有区块段（用于光照引擎缓存）
-    [[nodiscard]] const ChunkSection* const* getSections() const override;
+    // 获取所有区块段（用于光照引擎缓存）。按值返回栈局部数组快照，避免多 worker
+    // 持共享锁并发调用时写同一成员数组的 data race（详见 IChunk::getSections 注释）。
+    [[nodiscard]] std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> getSections() const override;
+
+    // ========================================================================
+    // 区块级读写锁：串行化 worker 光照读 ChunkSection/PalettedContainer 与主线程写
+    // ========================================================================
+    // 运行时光照传播搬到 worker 线程后（commit 9ad40e5ad），worker 经 setupCaches
+    // 缓存 const ChunkSection* 指针并读 PalettedContainer，与主线程 setBlockState
+    // 写同一 PalettedContainer（getAndSet 触发 mode 转换重新分配 storage/palette
+    // 内部缓冲）并发，无串行化导致 worker 读已释放缓冲崩溃（0xC0000005）。
+    // 既有 5×5 shared_ptr 保活只防 ChunkData 析构、不防并发写；UniversalWorkerPool
+    // 区域锁只串行 worker 间、不阻止主线程。此处 per-ChunkData shared_mutex 补上
+    // 串行化：worker 光照任务读 section 持共享锁（多 worker 读读不互斥），
+    // 主线程 setBlockState/setBlockStateId/setSkyLight/setBlockLight 替换 section
+    // 或写 PalettedContainer 持独占锁。锁范围严格限定为 ChunkSection/PalettedContainer
+    // 的读写——nibble（SWMR 双缓冲）、emptinessMap（生产全 worker，区域锁串行）、
+    // lightCorrect（atomic）均不纳入，避免"worker 持共享锁却需写"的升级死锁。
+    // worker 持锁期间不升级独占（worker 任务内不调 setBlockState 等写方法），
+    // 主线程独占锁单区块单锁（邻居更新递归是独立 setBlockState 调用，不嵌套持锁），
+    // 无 AB-BA 死锁。详见 docs/INTEGRATED_TEST.md 与 plan
+    // squishy-stirring-dragonfly.md。
+
+    /// worker 光照任务读 section 期间持共享锁（const：worker 持 const ChunkData*）
+    [[nodiscard]] std::shared_lock<std::shared_mutex> lockForLightRead() const
+    {
+        return std::shared_lock<std::shared_mutex>(m_sectionRwLock);
+    }
+
+    /// 主线程写 section（替换 m_sections[idx] / 写 PalettedContainer）持独占锁
+    [[nodiscard]] std::unique_lock<std::shared_mutex> lockForBlockWrite()
+    {
+        return std::unique_lock<std::shared_mutex>(m_sectionRwLock);
+    }
 
     // 高度图 (IChunk 接口)
     [[nodiscard]] BlockCoord getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const override;
@@ -473,8 +506,10 @@ private:
     // 区块段 (可以为空)
     std::array<std::unique_ptr<ChunkSection>, mc::world::CHUNK_SECTIONS> m_sections;
 
-    // 区块段指针数组（用于 getSections() 接口，mutable 允许 const 方法更新）
-    mutable std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> m_sectionPtrs{};
+    // 区块级读写锁：串行化 worker 光照读 section 与主线程方块写 section（见
+    // lockForLightRead/lockForBlockWrite 注释）。mutable 使 const ChunkData*
+    // 视图（worker）也能取共享锁。
+    mutable std::shared_mutex m_sectionRwLock;
 
     // 高度图 (按 HeightmapType 枚举索引，O(1) 访问；WorldSurface 槽位作为快速查询缓存)
     std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> m_heightmaps;

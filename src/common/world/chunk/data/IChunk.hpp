@@ -93,10 +93,17 @@ public:
     virtual ChunkSection* createSection(i32 index) = 0;
 
     /**
-     * @brief 获取所有区块段数组
-     * @return 指向区块段指针数组的指针，数组大小为 CHUNK_SECTIONS
+     * @brief 获取所有区块段指针的数组快照
+     *
+     * 按值返回栈局部数组快照（而非持久存储的指针），避免多 worker 持共享锁并发
+     * 调用时写同一成员数组的 data race。调用方应在加锁作用域内取用 `.data()`
+     * 或直接索引——数组内每个 const ChunkSection* 指向的 ChunkSection 对象，
+     * 其存活与 PalettedContainer 内部缓冲的稳定由区块级读写锁保证
+     * （worker 光照读持共享锁，主线程 setBlockState 写持独占锁）。
+     *
+     * @return 大小为 CHUNK_SECTIONS 的 const ChunkSection* 数组，未创建的段为 nullptr
      */
-    [[nodiscard]] virtual const ChunkSection* const* getSections() const = 0;
+    [[nodiscard]] virtual std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> getSections() const = 0;
 
     // === 生物群系 ===
     [[nodiscard]] virtual BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const = 0;

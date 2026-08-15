@@ -65,7 +65,7 @@ void ZombieHorseEntity::tick()
 {
     AbstractHorseEntity::tick();
 
-    // 僵尸马在阳光下燃烧（MC 原版中在 BURN_IN_DAYLIGHT 标签中）
+    // 僵尸马是亡灵生物，在阳光下燃烧（tick 显式调 burnUndead，不经 MonsterEntity 门控）。
     burnUndead();
 }
 

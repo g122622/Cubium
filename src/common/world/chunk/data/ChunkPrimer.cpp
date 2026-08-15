@@ -191,7 +191,7 @@ ChunkSection* ChunkPrimer::createSection(i32 index)
     return m_data->createSection(index);
 }
 
-const ChunkSection* const* ChunkPrimer::getSections() const
+std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> ChunkPrimer::getSections() const
 {
     return m_data->getSections();
 }

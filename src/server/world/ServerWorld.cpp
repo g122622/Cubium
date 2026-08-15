@@ -2419,11 +2419,11 @@ void ServerWorld::_executeChunkLoadLight(RuntimeLightingProvider& provider, Chun
     auto* chunkData = static_cast<ChunkData*>(centerIChunk);
 
     std::vector<bool> emptySections;
-    const ChunkSection* const* sections = chunkData->getSections();
+    const auto sectionsArr = chunkData->getSections();
     constexpr i32 sectionCount = world::CHUNK_SECTIONS;
     emptySections.resize(static_cast<size_t>(sectionCount), false);
     for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-        const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+        const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
         emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
     }
 
@@ -2454,7 +2454,7 @@ void ServerWorld::_executeChunkLoadLight(RuntimeLightingProvider& provider, Chun
             auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
             blockEngine->updateEmptinessMap(x, z, chunkData);
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(x, world::sectionIndexToCoord(sectionY), z);
                 blockEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }
@@ -2465,7 +2465,7 @@ void ServerWorld::_executeChunkLoadLight(RuntimeLightingProvider& provider, Chun
         if (lightManager->hasSkyLight()) {
             auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(x, world::sectionIndexToCoord(sectionY), z);
                 skyEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }

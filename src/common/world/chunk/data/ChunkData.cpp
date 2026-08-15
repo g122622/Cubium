@@ -75,12 +75,13 @@ ChunkData::ChunkData(ChunkCoord x, ChunkCoord z)
 ChunkData::~ChunkData() = default;
 
 // 显式移动构造：m_lightCorrect 为 std::atomic<bool> 不可默认移动，须 load/store；
-// 其余成员逐成员移动。atomic 不参与默认移动构造，故此处显式列出全部成员。
+// m_sectionRwLock 为 std::shared_mutex 不可移动，目标对象默认构造一把新锁
+// （move 发生在区块未发布/无 worker 引用时，锁无需迁移状态）；
+// 其余成员逐成员移动。atomic/shared_mutex 不参与默认移动构造，故此处显式列出全部成员。
 ChunkData::ChunkData(ChunkData&& other) noexcept
     : m_x(other.m_x)
     , m_z(other.m_z)
     , m_sections(std::move(other.m_sections))
-    , m_sectionPtrs(std::move(other.m_sectionPtrs))
     , m_heightmaps(std::move(other.m_heightmaps))
     , m_heightmapInitialized(std::move(other.m_heightmapInitialized))
     , m_biomes(std::move(other.m_biomes))
@@ -122,7 +123,6 @@ ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
         m_x = other.m_x;
         m_z = other.m_z;
         m_sections = std::move(other.m_sections);
-        m_sectionPtrs = std::move(other.m_sectionPtrs);
         m_heightmaps = std::move(other.m_heightmaps);
         m_heightmapInitialized = std::move(other.m_heightmapInitialized);
         m_biomes = std::move(other.m_biomes);
@@ -195,6 +195,11 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
         return;
     }
 
+    // 独占锁：保护 m_sections[idx] 替换与 PalettedContainer 写，与 worker 光照任务
+    // 读 section（持共享锁）串行，避免并发改写致 worker 读已释放的 PalettedContainer
+    // 内部缓冲崩溃。见 lockForBlockWrite 注释。
+    auto lock = lockForBlockWrite();
+
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
@@ -239,6 +244,9 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
         z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
+
+    // 独占锁：同 setBlockState，串行化 section 替换与 PalettedContainer 写。
+    auto lock = lockForBlockWrite();
 
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
@@ -408,13 +416,17 @@ ChunkSection* ChunkData::createSection(i32 index)
     return m_sections[index].get();
 }
 
-const ChunkSection* const* ChunkData::getSections() const
+std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> ChunkData::getSections() const
 {
-    // 更新指针数组
+    // 按值返回栈局部数组快照（非持久成员数组），消除多 worker 持共享锁并发调用时
+    // 写同一成员数组的 data race。调用方须在区块级读写锁作用域内取用
+    // （worker 光照任务持共享锁，主线程写 section 持独占锁），锁保证 m_sections 元素
+    // 在快照使用期间不被替换、所指 ChunkSection 不被析构。
+    std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> sections{};
     for (size_t i = 0; i < mc::world::CHUNK_SECTIONS; ++i) {
-        m_sectionPtrs[i] = m_sections[i].get();
+        sections[i] = m_sections[i].get();
     }
-    return m_sectionPtrs.data();
+    return sections;
 }
 
 std::vector<u8> ChunkData::serialize() const
@@ -701,6 +713,10 @@ void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
         return;
     }
 
+    // 独占锁：light==15/0 之外的值会 make_unique 替换 m_sections[idx]，须与 worker
+    // 光照读 section 串行（worker 持共享锁读旧 section 时主线程不能替换它）。
+    auto lock = lockForBlockWrite();
+
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
 
@@ -739,6 +755,9 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
         z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
+
+    // 独占锁：同 setSkyLight，保护 section 替换与 nibble 写。
+    auto lock = lockForBlockWrite();
 
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];

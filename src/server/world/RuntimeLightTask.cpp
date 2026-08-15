@@ -29,10 +29,13 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/engine/BlockLightEngine.hpp"
 #include "common/world/lighting/engine/SkyLightEngine.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include <atomic>
+#include <memory>
+#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -73,6 +76,21 @@ bool RuntimeLightTask::execute(const std::atomic<bool>& abortSignal)
     // 运行时方块变更不改段空状态，changedSections 留空。
     WorldLightManager* lightManager = m_world->lightManager();
     MC_ASSERT_RELEASE(lightManager != nullptr);
+
+    // 对 provider 保活的 5×5 活体区块逐个取共享锁，覆盖下方 blocksChangedInChunk 全程
+    // （setupCaches 缓存 const ChunkSection* 后 performLightIncrease/Decrease 仍读这些
+    // 指针指向的 PalettedContainer）。共享锁与主线程 setBlockState 等写方法（持独占锁）
+    // 串行，消除并发改写 PalettedContainer 内部缓冲致 worker 读已释放缓冲崩溃。
+    // 共享锁之间不互斥，多 worker 可同时读同一区块，无死锁。详见
+    // ChunkData::lockForLightRead。
+    std::vector<std::shared_lock<std::shared_mutex>> sectionReadLocks;
+    const auto& keepalivePtrs = m_provider.keepaliveChunkPtrs();
+    sectionReadLocks.reserve(keepalivePtrs.size());
+    for (ChunkData* chunkData : keepalivePtrs) {
+        if (chunkData != nullptr) {
+            sectionReadLocks.push_back(chunkData->lockForLightRead());
+        }
+    }
 
     const std::vector<bool> changedSections;
 

@@ -72,6 +72,12 @@ class ServerWorld;
  */
 class RuntimeLightingProvider : public StarLightLightingProvider {
 public:
+    /// 5×5 区块保活范围（writeRadius=2 的两倍 + 1）。保活几何是 provider 对外承诺
+    /// 的契约（worker 依赖此范围取共享锁），故公开为常量而非 private 实现细节。
+    static constexpr i32 KEEPALIVE_RADIUS = 2;
+    static constexpr i32 KEEPALIVE_EXTENT = KEEPALIVE_RADIUS * 2 + 1;           // 5
+    static constexpr i32 KEEPALIVE_COUNT = KEEPALIVE_EXTENT * KEEPALIVE_EXTENT; // 25
+
     /**
      * @brief 构造运行时光照提供者
      *
@@ -113,12 +119,19 @@ public:
      */
     [[nodiscard]] std::vector<std::pair<LightType, SectionPos>> takeDirtySections();
 
-private:
-    /// 5×5 区块保活范围（writeRadius=2 的两倍 + 1）
-    static constexpr i32 KEEPALIVE_RADIUS = 2;
-    static constexpr i32 KEEPALIVE_EXTENT = KEEPALIVE_RADIUS * 2 + 1;           // 5
-    static constexpr i32 KEEPALIVE_COUNT = KEEPALIVE_EXTENT * KEEPALIVE_EXTENT; // 25
+    /**
+     * @brief 取 5×5 保活邻域的活体 ChunkData* 列表（供 worker 加共享锁）
+     *
+     * worker 光照任务在 execute 开头遍历此列表，对每个非 nullptr 的 ChunkData
+     * 取共享锁（lockForLightRead），覆盖整个 execute 期间读 ChunkSection/
+     * PalettedContainer，与主线程 setBlockState 等写方法（持独占锁）串行，
+     * 消除并发改写致 worker 读已释放缓冲崩溃。详见 ChunkData::lockForLightRead。
+     *
+     * 返回内部 m_chunkPtrs 的 const 引用（KEEPALIVE_COUNT 个，未加载槽位为 nullptr）。
+     */
+    [[nodiscard]] const std::array<ChunkData*, KEEPALIVE_COUNT>& keepaliveChunkPtrs() const { return m_chunkPtrs; }
 
+private:
     /// (dx+radius) + (dz+radius)*extent → 5×5 平面索引
     [[nodiscard]] static constexpr i32 _keepaliveIndex(i32 dx, i32 dz) noexcept
     {

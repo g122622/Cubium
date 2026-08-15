@@ -179,7 +179,8 @@ void StarLightEngine::setupCaches(
 
             if (!isTwoRadius) {
                 // 设置区块段和 Nibble 数组到缓存
-                setBlocksForChunkInCache(cx, cz, chunk->getSections());
+                const auto sectionsArr = chunk->getSections();
+                setBlocksForChunkInCache(cx, cz, sectionsArr.data());
                 setNibblesForChunkInCache(cx, cz, getNibblesOnChunk(chunk));
             }
         }
@@ -400,7 +401,8 @@ void StarLightEngine::forceHandleEmptySectionChanges(
 
     // 强制将当前区块加载到缓存
     setChunkInCache(chunkX, chunkZ, chunk);
-    setBlocksForChunkInCache(chunkX, chunkZ, chunk->getSections());
+    const auto sectionsArr = chunk->getSections();
+    setBlocksForChunkInCache(chunkX, chunkZ, sectionsArr.data());
     setNibblesForChunkInCache(chunkX, chunkZ, getNibblesOnChunk(chunk));
     setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
 
@@ -659,10 +661,8 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         setChunkInCache(chunkX, chunkZ, chunk);
 
         // 设置区块段到缓存
-        const ChunkSection* const* sections = chunk->getSections();
-        if (sections != nullptr) {
-            setBlocksForChunkInCache(chunkX, chunkZ, sections);
-        }
+        const auto sectionsArr = chunk->getSections();
+        setBlocksForChunkInCache(chunkX, chunkZ, sectionsArr.data());
 
         // 将临时 nibble 写入缓存（而不是直接读取 chunk 上现有 nibble）
         setNibblesForChunkInCache(chunkX, chunkZ, tempNibblePtrs.data());
@@ -673,8 +673,7 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
         // 计算 emptySections，并在未点亮模式下先跑一次空段处理（Moonrise light() 同构流程）
         std::vector<bool> emptySections(static_cast<size_t>(m_maxSection - m_minSection + 1), true);
         for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
-            const ChunkSection* section =
-                (sections == nullptr) ? nullptr : sections[static_cast<size_t>(sectionY - m_minSection)];
+            const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY - m_minSection)];
             emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->isEmpty());
         }
 

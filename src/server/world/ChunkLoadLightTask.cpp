@@ -80,16 +80,28 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
 
     auto* chunkData = static_cast<ChunkData*>(centerIChunk);
 
+    // 对 provider 保活的 5×5 活体区块逐个取共享锁，覆盖全程（getSections 读中心 section、
+    // forceHandleEmptySectionChanges/checkChunkEdges/light 内 setupCaches 读邻域 section）。
+    // 与主线程 setBlockState 等写方法（持独占锁）串行，消除并发改写崩溃。同 RuntimeLightTask。
+    std::vector<std::shared_lock<std::shared_mutex>> sectionReadLocks;
+    const auto& keepalivePtrs = m_provider.keepaliveChunkPtrs();
+    sectionReadLocks.reserve(keepalivePtrs.size());
+    for (ChunkData* neighbourData : keepalivePtrs) {
+        if (neighbourData != nullptr) {
+            sectionReadLocks.push_back(neighbourData->lockForLightRead());
+        }
+    }
+
     // 计算空区块段标记（与原 LightSyncManager::initializeChunkLighting 同构，
     // 对齐 Moonrise ChunkLightTask 的 emptySections 计算）。
-    const ChunkSection* const* sections = chunkData->getSections();
+    const auto sectionsArr = chunkData->getSections();
     constexpr i32 sectionCount = world::CHUNK_SECTIONS;
     std::vector<bool> emptySections;
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::EmptySections");
         emptySections.resize(static_cast<size_t>(sectionCount), false);
         for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-            const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+            const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
             emptySections[static_cast<size_t>(sectionY)] = (section == nullptr || section->isEmpty());
         }
     }
@@ -129,7 +141,7 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
             auto* blockEngine = WorldLightManager::acquireBlockLightEngine();
             blockEngine->updateEmptinessMap(m_chunkX, m_chunkZ, chunkData);
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(m_chunkX, world::sectionIndexToCoord(sectionY), m_chunkZ);
                 blockEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }
@@ -141,7 +153,7 @@ bool ChunkLoadLightTask::execute(const std::atomic<bool>& abortSignal)
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkLoadLightTask::execute::ComputeLight::Sky");
             auto* skyEngine = WorldLightManager::acquireSkyLightEngine();
             for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
-                const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+                const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY)];
                 const SectionPos sectionPos(m_chunkX, world::sectionIndexToCoord(sectionY), m_chunkZ);
                 skyEngine->updateSectionStatus(sectionPos, section == nullptr || section->isEmpty());
             }
