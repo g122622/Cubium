@@ -156,6 +156,21 @@ public:
     [[nodiscard]] virtual std::optional<bool> getPropertyBool(void* obj, const char* key) const = 0;
     [[nodiscard]] virtual std::optional<std::string> getPropertyString(void* obj, const char* key) const = 0;
 
+    /**
+     * @brief 枚举对象的自有可枚举字符串属性名。
+     *
+     * 遍历 obj 的自身属性（不含继承的原型链属性），返回键名均为字符串且可枚举的属性名列表。
+     * 数值索引属性（数组元素）也以字符串形式返回（如 "0"、"1"）。Symbol 键不返回。
+     *
+     * 供需要把任意 JS 对象（如 `Record<string, ...>` states 映射）的键值对逐一取出的绑定场景
+     * （如 `BlockPermutation.resolve(type, states)` 遍历 states）。此前绑定层无此能力，故
+     * `setBlockWithStates` 等用字符串编码属性绕过；本接口补齐后可直接接收 JS 对象。
+     *
+     * @param obj 对象句柄
+     * @return 属性名列表（均为字符串）；非对象返回空
+     */
+    [[nodiscard]] virtual std::vector<std::string> getPropertyNames(void* obj) const = 0;
+
     virtual void setArrayElementInt(void* arr, u32 index, i32 value) = 0;
     virtual void setArrayElementString(void* arr, u32 index, std::string_view value) = 0;
     /**
@@ -165,6 +180,21 @@ public:
      * 供需要把 JS 对象（非 int/string）塞入数组的场景（如 Dimension.getEntities 返回 Entity[]）。
      */
     virtual void setArrayElement(void* arr, u32 index, void* value) = 0;
+
+    /**
+     * @brief 在对象上设置一个原生函数属性。
+     *
+     * 用 createFunction 创建函数值后 setProperty 挂到 obj 的 key 上（消耗函数值所有权）。
+     * 供需要把引擎无关回调函数挂到**非原型对象**的场景——典型是类的静态方法：JS 中静态方法挂在
+     * 构造函数对象上（`Class.staticMethod`），而 `registerMethod` 只能挂到原型（实例方法）。
+     * 故静态方法注册流程为：从原型取 `constructor`（构造函数对象）→ setPropertyFunction 挂函数。
+     *
+     * @param obj 目标对象句柄（如构造函数对象）
+     * @param key 属性名（如静态方法名）
+     * @param callback 引擎无关回调
+     * @param length 函数 length 属性
+     */
+    virtual void setPropertyFunction(void* obj, const char* key, ScriptMethodCallback callback, i32 length = 0) = 0;
 
     // ===== 引用管理 =====
 

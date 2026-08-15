@@ -229,6 +229,34 @@ public:
     }
 
     /**
+     * @brief 注册静态方法（挂在构造函数对象上，而非原型）
+     *
+     * JS 中静态方法通过 `Class.staticMethod(...)` 调用，挂在构造函数对象（`Class` 本身）上，
+     * 实例方法则挂在原型上。`registerMethod` 只能挂原型（实例方法），故静态方法需另行从原型
+     * 取回构造函数对象（`proto.constructor`）再挂函数。官方基岩 API 大量使用静态方法
+     * （如 `BlockPermutation.resolve(type, states)`），本方法补齐此能力。
+     *
+     * 前提：类的构造函数已由 exportClass + setConstructor 关联（`proto.constructor` 指向构造函数）。
+     * exportClass 内部调 setConstructor 建立 proto→ctor 双向关联，故注册期 exportClass 返回 proto 后
+     * 即可调用本方法。
+     *
+     * @param name 静态方法名
+     * @param callback 方法回调（thisVal 为构造函数对象，通常静态方法不使用 thisVal）
+     * @param length 参数个数
+     */
+    ClassRegistrar& staticMethod(const std::string& name, ScriptMethodCallback callback, i32 length = 0)
+    {
+        // 从原型取构造函数对象。getProperty 返回 owned 句柄，用完需 release。
+        void* ctor = m_ctx.getProperty(m_proto, "constructor");
+        if (ctor == nullptr) {
+            return *this; // 理论不发生（exportClass 必建 constructor 关联）；防御性跳过
+        }
+        m_ctx.setPropertyFunction(ctor, name.c_str(), std::move(callback), length);
+        m_ctx.releaseValue(ctor);
+        return *this;
+    }
+
+    /**
      * @brief 注册只读属性（getter only，使用引擎无关回调）
      *
      * @param name 属性名

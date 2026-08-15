@@ -62,6 +62,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
 
 #include <optional>
+#include <unordered_map>
 #include <vector>
 #include <spdlog/spdlog.h>
 
@@ -1126,24 +1127,135 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ScriptClassRegistry::instance().registerClass(blockPermutationClassId, blockPermutationProto, "BlockPermutation");
 
     ClassRegistrar<void> blockPermutationReg(ctx, blockPermutationClassId, blockPermutationProto);
-    blockPermutationReg.readonlyProperty(
-        "type", [blockPermutationClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-            // 官方 BlockPermutation.type 返回 BlockType（方块类型对象，含 id）。
-            // 项目无独立 BlockType 类，复用 ItemType 同构：返回 typeId 字符串。TODO: 完整 BlockType 类。
-            auto* state =
-                static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockPermutationClassId));
-            if (state == nullptr) {
-                return ctx.createUndefined();
+    // type/isValid/resolve 的 unwrap/wrap classId 均运行时回查 classIdByName（不捕获注册期 blockPermutationClassId），
+    // 对齐 resolveItemStackClassId 模式：引擎重建后 classId 重新分配，ScriptClassRegistry 被新注册覆盖，
+    // 闭包捕获的旧 classId 会与 setBlockPermutation 等 unwrap 入参路径用 classIdByName 取的最新 classId 失配，
+    // 致 JS_GetOpaque2 返回 nullptr。回查保证 wrap 与 unwrap 用同一（最新）classId。详见 resolve 处注释。
+    blockPermutationReg.readonlyProperty("type", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 官方 BlockPermutation.type 返回 BlockType（方块类型对象，含 id）。
+        // 项目无独立 BlockType 类，复用 ItemType 同构：返回 typeId 字符串。TODO: 完整 BlockType 类。
+        const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+        auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
+        if (state == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(state->blockLocation().toString());
+    });
+    blockPermutationReg.readonlyProperty("isValid", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 官方 isValid 表示此 permutation 是否为有效状态（非 air 占位即视为有效）。
+        const u64 classId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+        auto* state = static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, classId));
+        return ctx.createBoolean(state != nullptr);
+    });
+
+    // BlockPermutation.resolve(blockType, states?) 静态方法：按 typeId + 可选 states 映射构造一个
+    // BlockPermutation（不写入世界，仅返回 permutation 对象）。供 setBlockPermutation 等 API 消费。
+    // 官方签名：resolve(blockType: BlockType | string, states?: Record<string, boolean|number|string>)。
+    // 本项目无独立 BlockType 类（type 属性返回 typeId 字符串），故 blockType 仅处理 string 形式。
+    //
+    // 解析链路对齐 GameTestHelper::setBlockWithStates（GameTestHelper.cpp:346-380）：
+    //   string → ResourceLocation（补 "minecraft:" 前缀 + 别名表）→ BlockRegistry::getBlock 取 Block*
+    //   → defaultState() → 逐 states 属性 StateContainer::getProperty + IProperty::parseValue +
+    //   BlockState::withValueIndex 应用 → 返回非拥有 wrap 的 BlockPermutation。
+    // states 值支持 boolean/number/string 三种 JS 类型，统一经 toString 转字符串后交 parseValue
+    // （IProperty::parseValue 接 string_view，如 IntegerProperty 解析 "2"、BooleanProperty 解析 "true"）。
+    // 未知属性名静默忽略（容错，与 setBlockWithStates 一致）；非法值抛 TypeError。
+    blockPermutationReg.staticMethod(
+        "resolve",
+        [blockPermutationClassId, blockPermutationProto](
+            IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
+            if (argc < 1) {
+                return ctx.throwTypeError("BlockPermutation.resolve(blockType, states?)");
             }
-            return ctx.createString(state->blockLocation().toString());
-        });
-    blockPermutationReg.readonlyProperty(
-        "isValid", [blockPermutationClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
-            // 官方 isValid 表示此 permutation 是否为有效状态（非 air 占位即视为有效）。
-            auto* state =
-                static_cast<const mc::BlockState*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockPermutationClassId));
-            return ctx.createBoolean(state != nullptr);
-        });
+            // 第一参：typeId 字符串。
+            auto blockType = ctx.toString(args[0]);
+            if (!blockType) {
+                return ctx.throwTypeError("BlockPermutation.resolve: blockType must be a string");
+            }
+
+            // string → Block*（补命名空间前缀 + 别名表，复用 setBlockWithStates 的别名对齐逻辑）。
+            std::string full = blockType->find(':') == std::string::npos ? "minecraft:" + *blockType : *blockType;
+            const mc::ResourceLocation loc(full);
+
+            static const std::unordered_map<std::string, std::string> kBlockAliases = {
+                {"minecraft:brick_block", "minecraft:bricks"},
+            };
+
+            const mc::Block* block = mc::BlockRegistry::instance().getBlock(loc);
+            if (block == nullptr) {
+                auto it = kBlockAliases.find(full);
+                if (it != kBlockAliases.end()) {
+                    block = mc::BlockRegistry::instance().getBlock(mc::ResourceLocation(it->second));
+                }
+            }
+            if (block == nullptr) {
+                return ctx.throwTypeError(
+                    ("BlockPermutation.resolve: unknown block type '" + *blockType + "'").c_str());
+            }
+
+            // 从默认 state 出发，逐属性应用 states。
+            const mc::BlockState* state = &block->defaultState();
+            const auto& container = block->stateContainer();
+
+            if (argc >= 2 && ctx.isObject(args[1])) {
+                // 遍历 states 对象的自身可枚举字符串键（getPropertyNames 补齐的枚举能力）。
+                for (const auto& propName : ctx.getPropertyNames(args[1])) {
+                    const mc::IProperty* prop = container.getProperty(propName);
+                    if (prop == nullptr) {
+                        continue; // 未知属性静默忽略（容错）
+                    }
+                    // 取属性值句柄（owned），按 JS 类型转字符串供 parseValue。
+                    void* valHandle = ctx.getProperty(args[1], propName.c_str());
+                    std::optional<std::string> valueStr;
+                    if (ctx.isString(valHandle)) {
+                        valueStr = ctx.toString(valHandle);
+                    } else if (ctx.isNumber(valHandle)) {
+                        auto d = ctx.toFloat64(valHandle);
+                        if (d) {
+                            valueStr = std::to_string(static_cast<i64>(*d));
+                        }
+                    } else {
+                        auto b = ctx.toBool(valHandle);
+                        if (b) {
+                            valueStr = std::string(*b ? "true" : "false");
+                        }
+                    }
+                    ctx.releaseValue(valHandle);
+
+                    if (!valueStr) {
+                        return ctx.throwTypeError(
+                            ("BlockPermutation.resolve: invalid value for property '" + propName + "'").c_str());
+                    }
+                    auto parsed = prop->parseValue(*valueStr);
+                    if (!parsed.has_value()) {
+                        return ctx.throwTypeError(("BlockPermutation.resolve: invalid value '" + *valueStr +
+                            "' for property '" + propName + "' on block '" + *blockType + "'")
+                                .c_str());
+                    }
+                    state = &state->withValueIndex(*prop, *parsed);
+                }
+            }
+
+            // 返回非拥有 wrap 的 BlockPermutation（state 由 BlockRegistry 全局拥有，与 Block.permutation
+            // 属性及 setBlockPermutation unwrap 路径一致）。
+            //
+            // classId 经 classIdByName 运行时回查（而非闭包捕获注册期的 blockPermutationClassId）：
+            // 引擎重建后 QuickJS 重新分配 classId（JS_NewClassID 按 runtime 递增），ScriptClassRegistry
+            // 被新注册覆盖为新 classId，但旧 JS 模块对象（BlockPermutation ctor/resolve 闭包）若跨重建
+            // 存活仍持有旧 classId。setBlockPermutation 等 unwrap 入参路径用 classIdByName 取最新 classId，
+            // 若 resolve wrap 用捕获的旧 classId，对象 class_id 与 unwrap classId 失配 → JS_GetOpaque2 返回
+            // nullptr → "first arg must be a BlockPermutation"。对齐 resolveItemStackClassId 的既定模式
+            // （"引擎重建后 classId 变化，每次仍回查注册表校正"）。proto 仍用注册期捕获值（不影响 unwrap，
+            // unwrap 只看对象 class_id 与 opaque；proto 仅决定方法/属性查找，旧 proto 跨重建仍存活）。
+            const u64 resolveClassId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
+            return ScriptObjectRegistry::wrap(ctx,
+                resolveClassId,
+                blockPermutationProto,
+                const_cast<mc::BlockState*>(state),
+                false,
+                "BlockPermutation");
+        },
+        2);
 
     // --- ItemType类（@minecraft/server）---
     // 物品类型包装。opaque 持 const mc::Item*（非拥有，ItemRegistry 全局拥有）。
@@ -1177,16 +1289,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         return ctx.createString(ref->state->blockLocation().toString());
     });
-    blockReg.readonlyProperty("permutation",
-        [blockClassId, blockPermutationClassId, blockPermutationProto](
-            IScriptBindingContext& ctx, void* thisVal) -> void* {
+    blockReg.readonlyProperty(
+        "permutation", [blockClassId, blockPermutationProto](IScriptBindingContext& ctx, void* thisVal) -> void* {
             // 包装内嵌 state 为 BlockPermutation（非拥有，state 由 BlockRegistry 全局拥有）。
+            // classId 运行时回查 classIdByName（引擎重建后 classId 失配，详见 BlockPermutation.type 处注释）。
             auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
             if (ref == nullptr || ref->state == nullptr) {
                 return ctx.createUndefined();
             }
+            const u64 permClassId = ScriptClassRegistry::instance().classIdByName("BlockPermutation");
             return ScriptObjectRegistry::wrap(ctx,
-                blockPermutationClassId,
+                permClassId,
                 blockPermutationProto,
                 const_cast<mc::BlockState*>(ref->state),
                 false,

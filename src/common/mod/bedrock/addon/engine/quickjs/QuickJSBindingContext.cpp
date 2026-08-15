@@ -358,6 +358,33 @@ std::optional<std::string> QuickJSBindingContext::getPropertyString(void* obj, c
     return result;
 }
 
+std::vector<std::string> QuickJSBindingContext::getPropertyNames(void* obj) const
+{
+    std::vector<std::string> names;
+    JSValue v = unwrapValue(obj);
+    if (!JS_IsObject(v)) {
+        return names;
+    }
+
+    // 只取自身、可枚举、字符串键（JS_GPN_STRING_MASK 排除 Symbol，JS_GPN_ENUM_ONLY 排除非可枚举如 length）。
+    JSPropertyEnum* tab = nullptr;
+    uint32_t len = 0;
+    if (JS_GetOwnPropertyNames(m_ctx, &tab, &len, v, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) != 0) {
+        return names; // 枚举失败（如 Proxy 异常）返回空，调用方按"无属性"处理
+    }
+
+    names.reserve(len);
+    for (uint32_t i = 0; i < len; ++i) {
+        const char* key = JS_AtomToCString(m_ctx, tab[i].atom);
+        if (key != nullptr) {
+            names.emplace_back(key);
+            JS_FreeCString(m_ctx, key);
+        }
+    }
+    JS_FreePropertyEnum(m_ctx, tab, len);
+    return names;
+}
+
 void QuickJSBindingContext::setArrayElementInt(void* arr, u32 index, i32 value)
 {
     JS_SetPropertyUint32(m_ctx, unwrapValue(arr), index, JS_NewInt32(m_ctx, value));
@@ -372,6 +399,16 @@ void QuickJSBindingContext::setArrayElement(void* arr, u32 index, void* value)
 {
     // 不消耗 value 所有权：DupValue 增引用给数组，原 handle 仍属调用方（须自行 release）。
     JS_SetPropertyUint32(m_ctx, unwrapValue(arr), index, JS_DupValue(m_ctx, unwrapValue(value)));
+}
+
+void QuickJSBindingContext::setPropertyFunction(void* obj, const char* key, ScriptMethodCallback callback, i32 length)
+{
+    // createFunction 返回 owned 函数句柄；setProperty 内部 DupValue 后挂到 obj，本句柄仍需释放。
+    // 走 createFunction + setProperty 而非直接 JS_SetPropertyStr(JS_NewCFunctionMagic(...))，是为了
+    // 复用 methodTrampoline（引擎无关回调 → QuickJS C 函数 trampoline），与 registerMethod 同机制，
+    // 保证回调内的 this/args 句柄包装与释放语义一致。
+    void* fn = createFunction(std::move(callback), key, length);
+    setProperty(obj, key, fn); // setProperty 消耗 fn 所有权（Dup 一份给 obj），fn 由 setProperty 释放
 }
 
 // ===== 引用管理 =====

@@ -101,9 +101,13 @@ public:
     [[nodiscard]] std::optional<bool> getPropertyBool(void* obj, const char* key) const override;
     [[nodiscard]] std::optional<std::string> getPropertyString(void* obj, const char* key) const override;
 
+    [[nodiscard]] std::vector<std::string> getPropertyNames(void* obj) const override;
+
     void setArrayElementInt(void* arr, u32 index, i32 value) override;
     void setArrayElementString(void* arr, u32 index, std::string_view value) override;
     void setArrayElement(void* arr, u32 index, void* value) override;
+
+    void setPropertyFunction(void* obj, const char* key, ScriptMethodCallback callback, i32 length = 0) override;
 
     // ===== 引用管理 =====
 
