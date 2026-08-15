@@ -167,7 +167,7 @@ node scripts/test/run_diff.ts
 
 # 6. 参考资源
 
-- 集成测试完整文档：`docs/test/INTEGRATED_TEST.md`（用例组织、构建、Cubium 无头跑、基岩对比、非确定性、故障排查）
+- 集成测试完整文档：`docs/test/INTEGRATED_TEST.md`（用例组织、构建、Cubium 无头跑、基岩对比、非确定性、故障排查）这个文档必须阅读
 - TS 迁移背景：`docs/test/INTEGRATED_TEST_MIGRATION_TO_TS.md`
 - 官方 ScriptAPI 文档：`E:\dev\MC\Mods\minecraft-creator\creator\ScriptAPI\minecraft\server-gametest`
 - wiki 检索技能：`docs\minecraft-wiki-source\.claude\skills\minecraft-wiki-retrieval\SKILL.md`
