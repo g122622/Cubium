@@ -24,8 +24,11 @@
 #include "MagmaBlock.hpp"
 #include "../ocean/BubbleColumnBlock.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
@@ -86,14 +89,24 @@ void MagmaBlock::onEntityWalk(const BlockState& state, IWorld& world, const Bloc
     MC_UNUSED(&world);
     MC_UNUSED(&pos);
 
-    // 非潜行的活体生物踩在岩浆块上受到烫脚伤害（1点 = 半颗心）
-    if (!entity.isSteppingCarefully()) {
-        auto* living = dynamic_cast<LivingEntity*>(&entity);
-        if (living != nullptr) {
-            auto damage = DamageSources::hotFloor();
-            living->hurt(damage, 1.0f);
-        }
+    // 非潜行的活体生物踩在岩浆块上受到烫脚伤害（1点 = 半颗心）。
+    // onEntityWalk 派发点（Entity.cpp:1448）已守卫 !isSteppingCarefully()（潜行免疫），
+    // 此处对活体生物额外检查冰霜行者靴子免疫（对齐 wiki：冰霜行者靴子完全免疫岩浆块伤害）。
+    auto* living = dynamic_cast<LivingEntity*>(&entity);
+    if (living == nullptr) {
+        return;
     }
+
+    // 冰霜行者靴子免疫岩浆块烫脚伤害（与 CampfireBlock 一致，检查 Feet 槽单件物品）。
+    // TODO: 抗火效果（Fire Resistance）应统一免疫所有火焰伤害（hotFloor 属 isFire()），
+    //       当前 LivingEntity::isInvulnerableTo 未实现抗火效果检查，留待通用机制补全。
+    const ItemStack& boots = living->getEquipment(EquipmentSlot::Feet);
+    if (item::enchant::EnchantmentHelper::hasFrostWalker(boots)) {
+        return;
+    }
+
+    auto damage = DamageSources::hotFloor();
+    living->hurt(damage, 1.0f);
 }
 
 } // namespace mc::blocks

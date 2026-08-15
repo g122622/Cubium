@@ -19,6 +19,7 @@ import { registerCactusTests } from "./tests/vegetation/CactusTests.js";
 import { registerSnowTests } from "./tests/ice/SnowTests.js";
 import { registerTntTests } from "./tests/redstone/TntTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
+import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -30,3 +31,4 @@ registerCactusTests();
 registerSnowTests();
 registerTntTests();
 registerCampfireTests();
+registerMagmaTests();
