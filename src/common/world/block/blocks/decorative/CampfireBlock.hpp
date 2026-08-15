@@ -160,6 +160,21 @@ public:
         Hand hand,
         const BlockRaycastResult& hit) override;
 
+    // ========== 实体碰撞 ==========
+
+    /**
+     * @brief 实体站在点燃的营火上时造成火焰伤害
+     *
+     * 对齐 wiki：点燃的营火每游戏刻对位于方块中的生物造成火焰伤害
+     * （普通营火 hp1，灵魂营火 hp2），但受击后伤害免疫使生物每半秒
+     * （10 tick）实际承受一次。穿冰霜行者靴子免疫。仅在服务端生效。
+     * 注意：营火不再引燃实体（1.19.60+ 移除 setOnFire），只走 hurt。
+     *
+     * Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_营火.txt#伤害
+     * Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_灵魂营火.txt#伤害
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
     // ========== 方块移除 ==========
 
     /**

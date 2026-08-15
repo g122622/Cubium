@@ -40,7 +40,11 @@
 #include "../../WaterLoggableHelpers.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
@@ -225,6 +229,44 @@ BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
     }
 
     return ActionResultType::Pass;
+}
+
+void CampfireBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    MC_UNUSED(pos);
+
+    // 熄灭的营火不造成伤害
+    if (!isLit(state)) {
+        return;
+    }
+
+    // 仅服务端执行伤害（避免客户端重复伤害）
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 只对 LivingEntity 生效（掉落物、经验球、投射物等非生物不受伤害）
+    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
+    if (livingEntity == nullptr) {
+        return;
+    }
+
+    // 冰霜行者靴子免疫营火伤害（对齐 wiki）。
+    // 检查靴子槽（EquipmentSlot::Feet）单件物品是否带 frost_walker 附魔。
+    const ItemStack& boots = livingEntity->getEquipment(EquipmentSlot::Feet);
+    if (item::enchant::EnchantmentHelper::hasFrostWalker(boots)) {
+        return;
+    }
+
+    // 伤害量：灵魂营火（m_lightValue==10）hp2，普通营火（m_lightValue==15）hp1。
+    // 对齐 wiki：灵魂营火伤害为营火的两倍（tech_灵魂营火.txt 历史 20w22a）。
+    // 伤害源类型 Campfire 是火焰伤害（DamageSource::isFire()==true），不绕过无敌帧
+    // （bypassesInvulnerability()==false），故 LivingEntity::hurt 内的受击免疫逻辑
+    // 会使每 tick 的 hurt 调用节流为约每 10 tick（半秒）实际生效一次，与 wiki 一致。
+    // 注意：1.19.60+ 营火不再引燃实体（移除 setOnFire），仅造成即时火焰伤害。
+    const f32 damageAmount = (m_lightValue == 10) ? 2.0f : 1.0f;
+    auto damageSource = DamageSources::campfire();
+    livingEntity->hurt(damageSource, damageAmount);
 }
 
 void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
