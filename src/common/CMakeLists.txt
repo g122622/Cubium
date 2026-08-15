@@ -951,6 +951,7 @@ add_library(mc_common STATIC
     world/block/blocks/special/ChainCommandBlock.cpp
     world/block/blocks/special/SlimeBlock.cpp
     world/block/blocks/special/HoneyBlock.cpp
+    world/block/blocks/special/HayBlock.cpp
     world/block/blocks/special/SpongeBlock.cpp
     world/block/blocks/special/WetSpongeBlock.cpp
     world/block/blocks/special/WebBlock.cpp

@@ -330,6 +330,9 @@ constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_LIVING = 1.0f;
 /// 史莱姆块弹跳系数 - 非生物实体
 constexpr f32 SLIME_BLOCK_BOUNCE_FACTOR_NON_LIVING = 0.8f;
 
+/// 干草块摔落伤害乘数（保留 20% 伤害，减伤 80%，对齐 Java HayBlock#fallOn 的 0.2F）
+constexpr f32 HAY_BLOCK_FALL_DAMAGE_MULTIPLIER = 0.2f;
+
 /// 甜浆果丛水平减速系数
 constexpr f32 SWEET_BERRY_BUSH_SLOWDOWN_XZ = 0.8f;
 

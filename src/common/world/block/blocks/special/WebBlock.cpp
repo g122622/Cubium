@@ -52,7 +52,7 @@ const CollisionShape& WebBlock::getShape(const BlockState& state) const
 void WebBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 蜘蛛网大幅减缓实体速度
-    // 实际效果是水平速度 * 0.025，垂直下落 * 0.05
+    // 实际效果是水平速度 * 0.25，垂直下落 * 0.05（对齐 Java CobwebBlock）
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);

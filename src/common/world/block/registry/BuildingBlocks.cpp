@@ -61,6 +61,7 @@
 #include "world/block/blocks/functional/SmithingTableBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/block/blocks/redstone/TNTBlock.hpp"
+#include "world/block/blocks/special/HayBlock.hpp"
 #include "world/block/blocks/special/SpongeBlock.hpp"
 #include "world/block/blocks/special/WetSpongeBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
@@ -463,8 +464,8 @@ void registerBuildingBlocks()
     BuildingBlocks::BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:bone_block"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
 
-    // 干草块 - 有轴属性
-    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:hay_block"),
+    // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。
+    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(ResourceLocation("minecraft:hay_block"),
         BlockProperties(Material::EARTH).hardness(0.5f).flammable().ignitedByLava());
 
     // ========== 铁砧系列 ==========

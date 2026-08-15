@@ -23,12 +23,11 @@
 
 #pragma once
 
-#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 
 namespace mc {
 
@@ -37,48 +36,31 @@ class IWorld;
 namespace blocks {
 
 /**
- * @brief 蜘蛛网方块
+ * @brief 干草块
  *
- * 实体经过时会被减速的网状方块。
+ * 柱状方块（继承 RotatedPillarBlock 保留 axis 属性，与原木/骨块同基类）。
  *
- * 物理：
- * - 水平移动速度减为 25%（乘以 0.25，对齐 Java CobwebBlock）
- * - Y轴下落速度减为 5%（仅下落时乘以 0.05）
- * - 不影响跳跃
+ * 物理：实体摔在干草块上时，摔落伤害减少 80%（保留 20%）。与蜂蜜块减伤乘数
+ * 相同（0.2），区别于粘液块的 0.0 完全免疫。onLanded 不重写——干草块不做弹跳、
+ * 不做特殊速度处理，行为与普通方块一致。
  */
-class WebBlock : public Block {
+class HayBlock : public RotatedPillarBlock {
 public:
-    explicit WebBlock(const BlockProperties& properties);
-    ~WebBlock() override = default;
+    explicit HayBlock(const BlockProperties& properties);
+    ~HayBlock() override = default;
 
     // ========== 实体交互 ==========
 
     /**
-     * @brief 实体碰撞时调用
+     * @brief 实体摔落于干草块上时调用
      *
-     * 大幅减缓实体速度。
+     * 干草块减伤 80%（保留 20%）：以 damageMultiplier=0.2 调 causeFallDamage。
+     * 对齐 Java HayBlock#fallOn（causeFallDamage(distance, 0.2F, fall)）与 wiki
+     * "摔在干草块上的生物受到的跌落伤害会减少 80%"。大落差仍会受少量伤害
+     * （非完全免疫，区别于粘液块的 0.0）。
      */
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
-    {
-        // 蜘蛛网无碰撞
-        static CollisionShape emptyShape = CollisionShape::empty();
-        return emptyShape;
-    }
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_shape;
+    void onFallenUpon(
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 };
 
 } // namespace blocks

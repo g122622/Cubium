@@ -22,6 +22,7 @@ import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
 import { registerSlimeBlockTests } from "./tests/special/SlimeBlockTests.js";
 import { registerHoneyBlockTests } from "./tests/special/HoneyBlockTests.js";
+import { registerHayBlockTests } from "./tests/special/HayBlockTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -36,3 +37,4 @@ registerCampfireTests();
 registerMagmaTests();
 registerSlimeBlockTests();
 registerHoneyBlockTests();
+registerHayBlockTests();

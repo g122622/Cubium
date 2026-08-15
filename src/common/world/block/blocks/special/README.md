@@ -98,7 +98,7 @@ Block (基类)
 - 放置时立即变干：`onBlockAdded()` 中检测并转换，附带蒸汽效果与火焰熄灭音效。
 
 ### 蜘蛛网减速
-- 水平减速：速度 × `physics::COBWEB_SLOWDOWN_XZ`（0.025）。
+- 水平减速：速度 × `physics::COBWEB_SLOWDOWN_XZ`（0.25，对齐 Java CobwebBlock）。
 - 垂直减速：仅下落时减速，速度 × `physics::COBWEB_SLOWDOWN_Y`（0.05）。
 - 无碰撞：`getCollisionShape()` 返回空形状。
 

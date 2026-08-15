@@ -21,65 +21,39 @@
  *
  */
 
-#pragma once
+#include "HayBlock.hpp"
 
-#include "common/physics/collision/CollisionShape.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "common/world/block/Material.hpp"
 
 namespace mc {
-
-class IWorld;
-
 namespace blocks {
 
-/**
- * @brief 蜘蛛网方块
- *
- * 实体经过时会被减速的网状方块。
- *
- * 物理：
- * - 水平移动速度减为 25%（乘以 0.25，对齐 Java CobwebBlock）
- * - Y轴下落速度减为 5%（仅下落时乘以 0.05）
- * - 不影响跳跃
- */
-class WebBlock : public Block {
-public:
-    explicit WebBlock(const BlockProperties& properties);
-    ~WebBlock() override = default;
+// ========== HayBlock ==========
 
-    // ========== 实体交互 ==========
+HayBlock::HayBlock(const BlockProperties& properties)
+    : RotatedPillarBlock(properties)
+{}
 
-    /**
-     * @brief 实体碰撞时调用
-     *
-     * 大幅减缓实体速度。
-     */
-    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
-
-    // ========== 形状 ==========
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override
-    {
-        // 蜘蛛网无碰撞
-        static CollisionShape emptyShape = CollisionShape::empty();
-        return emptyShape;
-    }
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
-private:
-    CollisionShape m_shape;
-};
+void HayBlock::onFallenUpon(
+    IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+{
+    // 干草块减伤 80%（保留 20%）：以 damageMultiplier=0.2 调 causeFallDamage。
+    // 对齐 Java HayBlock#fallOn（causeFallDamage(distance, 0.2F, fall)）与 wiki
+    // "摔在干草块上的生物受到的跌落伤害会减少 80%"。LivingEntity::causeFallDamage 计算
+    // (distance-3)*0.2，大落差仍受少量伤害（非完全免疫，区别于粘液块的 0.0 完全免疫）。
+    // onLanded 不重写：干草块不弹跳、不做特殊速度处理，行为与普通方块一致。
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    entity.causeFallDamage(fallDistance, physics::HAY_BLOCK_FALL_DAMAGE_MULTIPLIER, DamageSources::fall());
+}
 
 } // namespace blocks
 } // namespace mc
