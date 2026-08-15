@@ -54,9 +54,25 @@ public:
     /**
      * @brief 实体着地时调用
      *
-     * 实现弹跳效果：如果实体向下落，Y速度取反并乘以 0.9。
+     * 实现弹跳效果：如果实体向下落且非潜行（不阻尼弹跳），Y 速度取反并乘以弹跳系数。
+     * 弹跳系数：LivingEntity 使用 1.0（完全反弹），其他实体使用 0.8（每次损失 20%）。
+     * 潜行实体（isSteppingCarefully）不弹跳，按普通方块着地处理。
+     *
+     * 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    /**
+     * @brief 实体摔落在粘液块上时调用
+     *
+     * 粘液块免疫摔落伤害：以 damageMultiplier=0.0 调用 causeFallDamage（传播乘客摔落但不造成
+     * 自身伤害）。潜行实体同样免疫（Java fallOn 中 isSuppressingBounce 仅控制是否调用
+     * causeFallDamage，但 multiplier 恒为 0，结果一致）。
+     *
+     * 参考: net.minecraft.world.level.block.SlimeBlock#fallOn
+     */
+    void onFallenUpon(
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;
 
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

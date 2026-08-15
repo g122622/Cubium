@@ -20,6 +20,7 @@ import { registerSnowTests } from "./tests/ice/SnowTests.js";
 import { registerTntTests } from "./tests/redstone/TntTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
+import { registerSlimeBlockTests } from "./tests/special/SlimeBlockTests.js";
 
 registerLiquidTests();
 registerSpongeTests();
@@ -32,3 +33,4 @@ registerSnowTests();
 registerTntTests();
 registerCampfireTests();
 registerMagmaTests();
+registerSlimeBlockTests();
