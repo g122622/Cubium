@@ -486,6 +486,50 @@ node scripts/test/_fix_structure_origin.mjs tests/integrated/mob_behavior/struct
 
 > 决策原则：当某行为在 Cubium 可测但在基岩受 API 限制无法脚本触发时（非测试逻辑缺陷），测试以 Cubium 验证为准，基岩差异在测试注释中标注。基岩行为本身存在（骷髅无弓时会近战，由 `has_ranged_weapon` 触发器切换组件组），只是无法通过脚本在基岩复现该前置条件。
 
+### 6.8 GameTest spawn 的 Mob 必须设持久化（enablePersistence）
+
+**现象**：`wither_rose_spare_undead`（骷髅踩凋灵玫瑰应免疫、保持满血）在 Cubium 全量跑中报 `skeleton disappeared`——骷髅在测试判定时刻（t=120）已不存在。单独跑该测试却稳定通过（骷髅 t=119 仍存活满血）。
+
+**根因（两层，须分清）**：
+
+1. **诊断代码强制失败（测试逻辑层，真凶）**：排查初期在测试里插入 `DIAG3` 诊断块，末尾带 `test.assert(false, ...)` 强制失败以打印快照。**忘记移除该 `assert(false)`**，导致测试永远失败，而诊断快照显示 `lastSeen=t119 hp20 goneAt=t-1`（骷髅从未消失）。即：测试失败的唯一原因就是诊断代码本身。教训：**带 `assert(false)` 的诊断代码必须 100% 移除后再判定**，否则诊断工具自身成为失败源。
+
+2. **DespawnManager 误清测试 Mob（框架层，治本修复）**：全量跑 `mob_behavior` 时框架注入 Survival SimulatedPlayer（远程攻击测试需要），`DespawnManager::shouldDespawn`（`src/server/world/spawn/DespawnManager.cpp`）在"有玩家且实体距玩家 >128 格且 `canDespawn()`"时（line 141）立即 `remove()`。未设持久化的测试 Mob（自身无玩家陪伴，距 SimulatedPlayer 远）会在 spawn 后首个 despawn tick 即被移除。
+
+   - 关键分支顺序：line 114 Peaceful 分支 → **line 119 `isNoDespawnRequired()` 短路保留** → line 125 无玩家保留 → line 141 >128 格立即移除 → line 146 随机移除。persistence=true 命中 line 119 短路，绕过所有 despawn。
+   - 基岩靠 `DespawnComponent` 的"附近有可交互玩家则不 despawn"前置门控避免清 mob；本项目对齐 Java 的 `DespawnManager`（全局 despawnDistance=128），故按 Java `GameTestHelper.spawn`（`GameTestHelper.java:170`）方式在 spawn 处对 Mob 设 persistence。
+
+**治本修复**：`GameTestHelper::spawnEntity`/`spawnAtLocation`（`src/server/test/facade/GameTestHelper.cpp`）对所有 `MobEntity` 调 `enablePersistence()`，使 `isNoDespawnRequired()==true`，DespawnManager 短路保留。`m_persistenceRequired` 全仓无重置点（仅 set true + NBT 读写），一旦设置测试 Mob 永不自然消失。
+
+**排查要点**：
+- 测试报"实体消失"但单独跑通过、全量跑失败 → 先查全量跑是否注入 SimulatedPlayer（mob_behavior 远程攻击测试会注入），DespawnManager 会在 >128 格清除未持久化 Mob。
+- **诊断代码纪律**：任何 `test.assert(false, ...)` / `throw` 形式的强制失败诊断块，验证完必须立即删除，不能残留到提交。提交前 grep `assert(false` / `assert(!` / `DIAG` 确认无残留。
+- 验证修复时用"区域限定 + runAtTickTime(延迟判定)"：`getEntities({type, location, volume})` 限定到结构范围（排除并行测试污染），`runAtTickTime(120)` 强制等到足够长时间证明全程未掉血/未消失（`succeedWhen` 每 tick 检查会在条件首帧满足时立即 succeed，无法验证"持续 N tick 仍成立"）。
+
+### 6.9 block_behavior 测试结构跨包依赖 + 全量跑验证方法
+
+**现象**：`--gametest_packs` 指向 `tests/integrated/block_behavior` 单独全量跑时，大量测试报 `structure 'gametests:glass_pit' not found in TemplateManager`，仅 fall_tower 相关测试通过。
+
+**根因**：`block_behavior` 包自带的结构只有 `fall_tower`；`glass_pit`/`mediumglass`/`grass_pen`/`creeper_pit` 都在 `mob_behavior` 包的 `structures/gametests/` 下。block_behavior 测试依赖这些结构，全量跑必须同时加载 mob_behavior（或把结构复制进 block_behavior 包）。`--gametest_packs` 指向的目录是"包目录的父目录"（`loadPlugins` 扫描其下含 `manifest.json` 的子目录），直接指向包目录本身会扫不到子包。
+
+**全量跑 block_behavior 的隔离验证方法**（不引入 mob_behavior 的 SimulatedPlayer/已知崩溃）：
+```bash
+# 1. 建临时父目录，复制 block_behavior 包
+rm -rf /tmp/blk_only && mkdir -p /tmp/blk_only
+cp -r tests/integrated/block_behavior /tmp/blk_only/
+# 2. 把 block_behavior 依赖的共享结构从 mob_behavior 复制进来（自给自足）
+cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
+   tests/integrated/mob_behavior/structures/gametests/mediumglass.mcstructure \
+   /tmp/blk_only/block_behavior/structures/gametests/
+# 3. 全量跑（指向临时父目录）
+./build/bin/RelWithDebInfo/minecraft-server.exe --gametest --gametest_packs "/tmp/blk_only"
+# 预期：20/20 passed（17 block + 3 内置），exit 0，无崩溃
+```
+
+**框架清理行为（重要约束）**：`BaseGameTestBatchRunner::tick`（`src/common/test/framework/batch/BaseGameTestBatchRunner.cpp`）在批完成时仅 `m_currentBatchInstances.clear()`（析构实例对象），**不清世界中残留实体**；`BaseGameTestInstance::succeed/fail` 仅跑 `onFinish` 回调 + 通知监听器，**不调 killAllEntities**。`killAllEntities` 只经 JS 绑定（`ScriptTestHelper.cpp`）暴露给测试作者手动调用，且只清结构范围内实体。结合 6.8 的 enablePersistence（测试 Mob 永不自然消失），**测试 Mob 一旦 spawn 且未被测试逻辑杀死，会持续累积**。block_behavior 测试多为短时序 + 实体被测行为致死（摔死/烧死/窒息），累积风险低；但长时序 mob 测试全量跑时需注意此约束。
+
+> 排查要点：`structure not found in TemplateManager` 先查该结构在哪个包（`find tests/integrated -name "<name>.mcstructure"`），确认全量跑加载了提供该结构的包。`--gametest_packs` 传父目录（含多个包子目录），不传包目录本身。
+
 ---
 
 ## 参考

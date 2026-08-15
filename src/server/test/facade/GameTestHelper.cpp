@@ -11,6 +11,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
+#include "common/entity/core/MobEntity.hpp"    // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"        // applySpawnEvent 派发 rabbit killer 变种事件
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
@@ -556,9 +557,9 @@ GameTestResult GameTestHelper::assertEntityPresent(
 {
     const auto fullType = normalizeEntityType(entityType);
     const BlockPos worldPos = worldBlockPosition(relativePos);
-    // 对齐 Java GameTestHelper.assertEntityPresent(type, BlockPos)：用 AABB(blockpos)（1 格方块）
-    // 判定实体是否落在该方块内，而非球查询。searchDistance=0 表示精确 1 格方块（Java 默认语义）；
-    // searchDistance>0 表示以方块中心为中心、±searchDistance 格的容差盒（基岩带 distance 重载语义）。
+    // 用 AABB(blockpos)（1 格方块）判定实体是否落在该方块内，而非球查询。
+    // searchDistance=0 表示精确 1 格方块；searchDistance>0 表示以方块中心为中心、
+    // ±searchDistance 格的容差盒（基岩带 distance 重载语义）。
     // 此前用 getEntitiesInRange(center, 64.0) 球查询导致 succeedWhenEntityPresent 假通过
     // （实体在结构内任意位置都算 present，掩盖"实体未到精确位置"的失败）。
     const AxisAlignedBB box = (searchDistance > 0.0f)
@@ -755,6 +756,18 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Failed to create entity '{0}'", {entityType}};
     }
+    // spawn 的所有 Mob 一律设持久化，使 Mob.checkDespawn / DespawnManager 因
+    // isNoDespawnRequired()==true 短路保留实体，永不因距离或随机闲置而 discard。
+    // GameTest 场景的实体存活期由测试判定决定，不应被自然消失机制误清。
+    // 关键陷阱：全量跑 night 批会注入多个 Survival SimulatedPlayer（mob_behavior 的远程攻击测试），
+    // DespawnManager::shouldDespawn 在"有玩家且实体距玩家 >128 格且 canDespawn()"时立即 remove()。
+    // 未设持久化的测试 Mob（如 wither_rose 的骷髅，自身无玩家陪伴）会在 spawn 后首个 despawn tick
+    // 即被移除，表现为"t<20 消失、附近无实体"。基岩 GameTest spawn 虽不设 persistence，但基岩靠
+    // DespawnComponent 的"附近有可交互玩家则不 despawn"前置门控避免清 mob；本项目用全局
+    // despawnDistance=128 的 DespawnManager，故在 spawn 处设 persistence 以达等效保活。
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(entity.get()); mob != nullptr) {
+        mob->enablePersistence();
+    }
     const BlockPos worldPos = worldBlockPosition(relativePos);
     entity->setPosition(
         static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
@@ -799,6 +812,10 @@ GameTestResult GameTestHelper::spawnAtLocation(
     if (entity == nullptr) {
         return GameTestError{
             GameTestErrorType::LevelStateModificationFailed, "Failed to create entity '{0}'", {entityType}};
+    }
+    // 同 spawnEntity：对 Mob 设持久化，避免 DespawnManager 在全量并行环境下误清测试实体。
+    if (auto* mob = dynamic_cast<mc::MobEntity*>(entity.get()); mob != nullptr) {
+        mob->enablePersistence();
     }
     entity->setPosition(static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z));
     mc::Entity* raw = entity.get();

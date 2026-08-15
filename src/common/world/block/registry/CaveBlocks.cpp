@@ -187,10 +187,15 @@ void registerCaveBlocks()
             .soundType(BlockSoundTypes::DRIPSTONE_BLOCK));
 
     // 滴水石锥 - VERTICAL_DIRECTION + DRIPSTONE_THICKNESS + WATERLOGGED
+    // 不使用 noCollision()：滴水石锥在原版（Java/基岩）中具有锥形碰撞箱（PointedDripstoneBlock::getShape
+    // 已按厚度实现 0.375~0.75 宽、1.0 高的中心柱），实体会被石笋阻挡并落在其上触发 onFallenUpon
+    // 石笋摔落伤害。先前误用 noCollision() 使 getCollisionShape 永远返回空，导致实体穿过滴石、
+    // onFallenUpon 永不触发（石笋摔落伤害整条链路失效）。notSolid() 保留：滴石不作为通用固体支撑面
+    // （isSolidSide 仍为 false），其放置支撑由 isValidPointedDripstonePlacement 专用逻辑判定。
+    // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_滴水石锥.txt（碰撞箱宽度/高度；石笋摔落伤害）
     CaveBlocks::POINTED_DRIPSTONE =
         &registry.registerBlock<blocks::PointedDripstoneBlock>(ResourceLocation("minecraft:pointed_dripstone"),
             BlockProperties(Material::ROCK)
-                .noCollision()
                 .notSolid()
                 .hardness(1.5f)
                 .resistance(3.0f)

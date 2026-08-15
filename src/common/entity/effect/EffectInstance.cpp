@@ -115,6 +115,27 @@ bool EffectInstance::tick(LivingEntity& entity)
 {
     // 永久效果不减少持续时间
     if (!isPermanent()) {
+        if (m_duration <= 0) {
+            // 效果已结束，移除属性修改
+            if (m_applied) {
+                remove(entity);
+            }
+            return false;
+        }
+    }
+
+    // 先用递减前的 m_duration 执行效果逻辑，再递减持续时间：
+    //   int i = this.duration;  // 递减前
+    //   if (effect.shouldApplyEffectTickThisTick(i, amplifier) && !effect.applyEffectTick(...)) return false;
+    //   this.tickDownDuration();  // 递减在作用之后
+    // 间隔型效果（凋零/中毒/再生）的 shouldApplyEffectTickThisTick 判定用 duration % interval == 0，
+    // 必须用递减前的 duration，否则"duration 恰为 interval 整数倍"的那次作用会因递减后判定错位而漏掉
+    // （例如凋零 duration=40/interval=40：递减前 40%40==0 命中首次伤害；若先递减成 39 再判定则永远不命中，
+    // 且归零 tick 的 return false 会再吞掉一次，整个生命周期 0 次伤害）。
+    _applyEffect(entity);
+
+    // 作用之后递减持续时间
+    if (!isPermanent()) {
         if (m_duration > 0) {
             --m_duration;
         }
@@ -126,9 +147,6 @@ bool EffectInstance::tick(LivingEntity& entity)
             return false;
         }
     }
-
-    // 每tick执行效果逻辑
-    _applyEffect(entity);
 
     return true;
 }

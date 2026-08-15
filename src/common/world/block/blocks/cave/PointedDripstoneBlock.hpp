@@ -217,8 +217,9 @@ private:
     static constexpr i32 MAX_STALAGMITE_SEARCH_RANGE_WHEN_GROWING = 10;
     /// 尖端到炼药锅最大搜索距离
     static constexpr i32 MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON = 11;
-    /// 石笋摔落伤害距离偏移
-    static constexpr f32 STALAGMITE_FALL_DISTANCE_OFFSET = 2.5F;
+    /// 石笋摔落伤害距离偏移（wiki"计算时摔落高度增加 2"）。
+    /// 伤害 = ceil((fallDistance + 2 - 3) * 2)。
+    static constexpr f32 STALAGMITE_FALL_DISTANCE_OFFSET = 2.0F;
     /// 石笋摔落伤害倍率
     static constexpr i32 STALAGMITE_FALL_DAMAGE_MODIFIER = 2;
     /// 坠落钟乳石每格伤害系数

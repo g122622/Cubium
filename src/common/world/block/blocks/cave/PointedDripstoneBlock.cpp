@@ -317,12 +317,15 @@ void PointedDripstoneBlock::onFallenUpon(
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    // 只有朝上的TIP厚度才增加摔落伤害
-    // 石笋替代普通摔落伤害
+    // 只有朝上的 TIP 厚度才增加摔落伤害。石笋替代普通摔落伤害。
+    // TODO: 此处厚度条件硬编码 == Tip，未含 TipMerge（合并尖端）。Cubium 的 isTip(state, true)
+    //   会把 TipMerge 也算尖端（PointedDripstoneBlock.cpp:382-390），但本方法未复用。Java 原版
+    //   isStalagmiteTip 含 TipMerge，wiki 仅述"thickness 为 tip"。TipMerge 朝上是否应触发石笋
+    //   伤害待对照 Java 源码确认，暂按 wiki 字面仅 Tip 触发。
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
-        // 石笋伤害：摔落距离 + 2.5，伤害倍率 2.0
-        // 不调用父类 onFallenUpon，替代普通摔落伤害
+        // 石笋伤害：摔落距离 + 2.0（wiki"摔落高度增加 2"），伤害倍率 2.0（翻倍）。
+        // 不调用父类 onFallenUpon，替代普通摔落伤害。
         entity.causeFallDamage(fallDistance + STALAGMITE_FALL_DISTANCE_OFFSET,
             static_cast<f32>(STALAGMITE_FALL_DAMAGE_MODIFIER),
             DamageSources::stalagmite());
@@ -572,8 +575,7 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
             break;
         }
 
-        // 检查是否为可接收滴水的炼药锅
-        // 参考 MC 原版：使用 instanceof AbstractCauldronBlock && canReceiveStalactiteDrip(fluid)
+        // 检查是否为可接收滴水的炼药锅（AbstractCauldronBlock && canReceiveStalactiteDrip）
         const Block& block = state->getBlock();
         bool isCauldron = (&block == block_registry::BuildingBlocks::CAULDRON);
         bool isWaterCauldron = (&block == block_registry::BuildingBlocks::WATER_CAULDRON);

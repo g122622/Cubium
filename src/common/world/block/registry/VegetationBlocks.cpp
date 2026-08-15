@@ -38,6 +38,7 @@
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
 #include "world/block/blocks/vegetation/TreeGenerators.hpp"
+#include "world/block/blocks/vegetation/WitherRoseBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -191,9 +192,10 @@ void registerVegetationBlocks()
             static_cast<u32>(entity::effect::EffectType::JumpBoost),
             4);
 
-    // 凋零玫瑰 → 凋零 6秒（120 tick）
+    // 凋灵玫瑰 → 凋零 6秒（120 tick）。可疑炖汤效果（Wither I）。
+    // 碰撞施加凋零 I / 40tick 由 WitherRoseBlock::onEntityCollision 处理（与炖汤效果独立）。
     VegetationBlocks::WITHER_ROSE =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:wither_rose"),
+        &registry.registerBlock<blocks::WitherRoseBlock>(ResourceLocation("minecraft:wither_rose"),
             flowerProps,
             static_cast<u32>(entity::effect::EffectType::Wither),
             6);
