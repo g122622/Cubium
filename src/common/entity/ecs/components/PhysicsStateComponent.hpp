@@ -22,6 +22,11 @@ namespace mc::ecs {
  * - m_collidedHorizontally/m_collidedVertically：本帧是否发生水平/垂直碰撞（move 设定）。
  */
 struct PhysicsStateComponent {
+    // entt 指针稳定性：in_place_delete=true 保证本组件地址在 registry 生命周期内稳定
+    // （erase 走 in_place_pop 不重排），是 Entity::m_builtIn.physicsState 裸指针缓存的前提。
+    // 详见 StateVectorComponent 同名注释与 BuiltInEntityComponents.hpp 契约。
+    static constexpr bool in_place_delete = true;
+
     bool m_onGround{false};
     bool m_collidedHorizontally{false};
     bool m_collidedVertically{false};

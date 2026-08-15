@@ -150,7 +150,7 @@ entt 实体与组件绑定在创建它的 registry 上，`entt::entity` 在不�
 
 ### 5. BuiltInEntityComponents 指针稳定性契约
 
-`m_builtIn` 缓存的 4 裸指针指向 entt pool 内部数据。entt sparse_set 保证：组件 emplace 后只要不被 remove，其地址在 pool 生命周期内稳定（packed array 分页存储，不因其他实体增删而移动）。**前提：首批4组件一旦 attach 永不移除。** 后续批次若引入组件动态移除，须改用 `EntityContext` 查询或重设计缓存失效策略。
+`m_builtIn` 缓存的 5 裸指针（首批4 + PhysicsState）指向 entt pool 内部数据。5 个组件均声明 `static constexpr bool in_place_delete = true`，使 entt erase 实体时走 in_place_pop（原地标记 tombstone，不移动 packed array 中其他元素），保证已 emplace 组件的数据地址在 registry 生命周期内稳定。这是缓存裸指针的前提——entt 默认对可移动类型 in_place_delete=false，erase 走 swap_and_pop，会把末尾元素 move 到被删位置，导致缓存了末尾元素地址的其他实体裸指针悬垂（实测：全批 GameTest 共享 EntityManager 时，某实体 erase 触发重排，存活实体的 `m_pos` 读到别的实体数据，任务 #188）。tombstone 仅在显式 `compact()`/`sort()` 时被填补重排，项目全仓不对这些 storage 调 compact/sort（已核查），故地址绝对稳定。后续若引入对这些 storage 的 compact/sort，须改用 `EntityContext` 实时查询或重设计缓存失效策略。
 
 ### 6. CMake 显式列举
 
