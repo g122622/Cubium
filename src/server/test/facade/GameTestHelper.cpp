@@ -27,6 +27,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
+#include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
@@ -441,8 +442,25 @@ GameTestResult GameTestHelper::pressButton(BlockPos relativePos)
 
 GameTestResult GameTestHelper::pullLever(BlockPos relativePos)
 {
-    // TODO: 切换 LeverBlock powered 状态（LeverBlock 体系就绪前 stub）
-    (void)relativePos;
+    // 转发 LeverBlock::toggle：翻转 POWERED → setBlockState（触发邻居更新）→
+    // notifyNeighbors（输出方向 + 支撑方块）→ 相邻机械元件 neighborChanged 响应电平变化。
+    // 拉杆是双稳态（toggle 翻转当前状态），与按钮单稳态不同：pullLever 每次翻转，无自动复位。
+    const BlockPos worldPos = worldBlockPosition(relativePos);
+    const BlockState* state = m_world.getBlockState(worldPos);
+    if (state == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            "No block at lever position " + worldPos.toString(),
+            relativePos);
+    }
+    // getBlockMutable：toggle 非 const（会改世界状态），但 Block 对象自身无状态，
+    // BlockState::getBlockMutable 内部 const_cast 取非 const Block& 供调用非 const 方法。
+    auto* lever = dynamic_cast<mc::blocks::LeverBlock*>(&state->getBlockMutable());
+    if (lever == nullptr) {
+        return generateErrorWithContext(GameTestErrorType::LevelStateModificationFailed,
+            "Block at " + worldPos.toString() + " is not a lever",
+            relativePos);
+    }
+    mc::blocks::LeverBlock::toggle(m_world, worldPos, *state);
     return std::nullopt;
 }
 
