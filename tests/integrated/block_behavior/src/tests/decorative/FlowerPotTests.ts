@@ -23,10 +23,12 @@
 //   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
 //   player.getHeldItem(hand) 读到花。
 //
-// 测试覆盖（3 个场景，覆盖 wiki 放花/非植物不触发/已有内容物不重复放核心行为，可跨服务端对比）：
+// 测试覆盖（4 个场景，覆盖 wiki 放花/非植物不触发/已有内容物不重复放/空手取花回空花盆核心行为）：
 //   1. 放蒲公英：空花盆 + dandelion useItemOnBlock → potted_dandelion，返 true（Success）。
 //   2. 非植物不触发：空花盆 + 木棍 useItemOnBlock → 仍 flower_pot，返 false。
 //   3. 已有内容物不重复放：potted_dandelion + dandelion useItemOnBlock → 返 true（Consume），仍 potted_dandelion。
+//   4. 空手取花：potted_dandelion + interactWithBlock（空手右键）→ 返 true，花盆变回 flower_pot（one-sided，
+//      依赖 Cubium 补全的 interactWithBlock 绑定，基岩 BDS 该 API 行为需另行验证）。
 //
 // 关键约束：
 // 1. 花盆需放在固体方块上方（isValidPosition 检查 belowState.isSolid）——(3,1,1) 放 stone 支撑，
@@ -45,8 +47,9 @@
 //
 // 不测「空手取花」：onBlockActivated 取花走分支2（空手 useWithoutItem），但 SimulatedPlayer::
 //   useItemOnBlock 强制要 ItemStack 形参（_unwrapItemStack nullptr 即报错），useItemInSlotOnBlock
-//   空槽直接返 false 不调 useItemOnBlock，无法构造空手路径。TODO: 待 SimulatedPlayer 补空手
-//   interact/useOnBlock 脚本绑定后补 flower_pot_ejects_flower_when_empty_hand 测试。
+//   空槽直接返 false 不调 useItemOnBlock，无法构造空手路径。已补全 interactWithBlock 脚本绑定
+//   （ScriptSimulatedPlayer.cpp，空手右键复用 useItemOnBlock 空堆路径，仅走 Block.use 不走 Item.useOn），
+//   见下方 flower_pot_ejects_flower_when_empty_hand 场景。
 // 不测「下界/末地花盆行为」：花盆在下界/末地无特殊行为（不像床爆炸），跳过。
 //
 // 跨服务端：花盆 flower_pot/potted_dandelion 方块名两端一致，放花行为与 vanilla 一致。基岩无
@@ -175,6 +178,48 @@ function flowerPotDoesNotReplaceWhenAlreadyHasFlower(test: Test): void {
     test.succeed();
 }
 
+// 场景 4：空手取花——potted_dandelion + interactWithBlock（空手右键）→ 返 true，花盆变回 flower_pot。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) potted_dandelion（先放蒲公英使花盆有内容物）。
+// interactWithBlock 走 SimulatedPlayer 空手右键路径（复用 useItemOnBlock 空堆，仅 Block.use 不走 Item.useOn）。
+// onBlockActivated 分支2（空手 useWithoutItem）：heldStack.isEmpty()（空手）→ !isEmpty()（已是 potted_dandelion
+//   有内容物）→ 取出内容物入背包 + setBlockState 变回 minecraft:flower_pot → Success。
+//
+// 关键：interactWithBlock 内部不 setItem 到选中槽，玩家真实选中槽为空（创造模式默认空手），故
+//   onBlockActivated 的 getHeldItem(MainHand) 读到空堆，分支2 heldStack.isEmpty() 为 true 触发取花。
+//   故用新 spawn 的 SimulatedPlayer（选中槽未被先前 useItemOnBlock 污染）确保空手。
+//
+// 判定：interactWithBlock 返 true（Success），typeId === "minecraft:flower_pot"（花盆变回空花盆）。
+//
+// one-sided：依赖 Cubium 补全的 interactWithBlock 绑定。基岩 BDS 官方 SimulatedPlayer.interactWithBlock
+//   存在但本项目未与基岩对比验证其空手取花行为，故标 one-sided（仅 Cubium 跑）。
+function flowerPotEjectsFlowerWhenEmptyHand(test: Test): void {
+    placeFlowerPot(test);
+
+    // 先放蒲公英使花盆变为 potted_dandelion（模拟场景 1 的放花过程）。
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    const dandelion = new ItemStack("minecraft:dandelion", 1);
+    const placeResult = farmer.useItemOnBlock(
+        dandelion as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
+        { x: 3, y: 2, z: 1 },
+        Direction.Up,
+    );
+    test.assert(placeResult, "first dandelion placement should succeed");
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:potted_dandelion", `pot should be potted_dandelion before empty-hand interact, got ${getBlockTypeId(test, 3, 2, 1)}`);
+
+    // interactWithBlock 空手右键已盆栽花盆 → onBlockActivated 分支2 取花 + 变回 flower_pot → Success。
+    // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（基岩官方 API 名一致，但
+    // @minecraft/server-gametest 类型定义未声明），用 as any 绕过类型检查。
+    const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
+        .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
+    test.assert(used, "interactWithBlock should return true when ejecting flower with empty hand");
+
+    // 判定：花盆变回空 flower_pot（空手取出内容物后回空花盆）。
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:flower_pot", `pot should become empty flower_pot after empty-hand eject, got ${getBlockTypeId(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerFlowerPotTests(): void {
     GameTest.register("BlockBehaviorTests", "flower_pot_places_dandelion", flowerPotPlacesDandelion)
         .structureName("gametests:glass_pit")
@@ -183,6 +228,9 @@ export function registerFlowerPotTests(): void {
         .structureName("gametests:glass_pit")
         .maxTicks(60);
     GameTest.register("BlockBehaviorTests", "flower_pot_does_not_replace_when_already_has_flower", flowerPotDoesNotReplaceWhenAlreadyHasFlower)
+        .structureName("gametests:glass_pit")
+        .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "flower_pot_ejects_flower_when_empty_hand", flowerPotEjectsFlowerWhenEmptyHand)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 }

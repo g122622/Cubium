@@ -511,8 +511,36 @@ u64 registerSimulatedPlayerClassBinding(
         0);
     reg.method(
         "interactWithBlock",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "interactWithBlock"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            // interactWithBlock(blockLocation, direction?) -> boolean
+            // 官方基岩语义：空手右键方块（useWithoutItem 路径）。仅触发 Block.use（onBlockActivated），
+            // 不派发 Item.useOn（空手无物品）。对齐 vanilla MultiPlayerGameMode#useItemOn 空手分支：
+            // 空手仍调 Block.use，但不调 Item.useOn。
+            //
+            // 实现复用原生 useItemOnBlock(空 ItemStack, ...)：空堆路径下 useItemOnBlock 内部
+            // ① Block.use 前置分支正常执行（空手右键堆肥桶 level=8 收获骨粉、空手取花盆花、空手吃蛋糕、
+            // 空手熄灭点燃蜡烛蛋糕等 onBlockActivated 类行为可触发）；② Item.useOn 因 !stack.isEmpty()
+            // 守卫跳过（空手不派发物品侧行为）。故传空堆等价于空手右键，且不崩。
+            // 比 useItemOnBlock 优势：脚本侧无需构造占位 ItemStack，语义更贴合官方 interactWithBlock。
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("interactWithBlock(blockLocation, direction?)");
+            }
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[0], pos)) {
+                return nullptr;
+            }
+            const mc::Direction face = (argc >= 2) ? _directionFromApi(ctx, args[1]) : mc::Direction::Up;
+            const mc::Vector3 faceLocation = mc::Vector3(0.5f, 1.0f, 0.5f);
+            // 空手：传默认构造的空 ItemStack。faceLocation.y=1.0 对齐点击方块顶面中心（多数 onBlockActivated
+            // 的 hit.hitPosition().y - pos.y 判定取 0.5 阈值时，顶面命中 y≈1.0 落在「上半部」语义内，
+            // 如 CandleCakeBlock 熄灭需 hitY > 0.5）。
+            mc::ItemStack emptyStack;
+            return ctx.createBoolean(player->useItemOnBlock(emptyStack, pos, face, faceLocation));
+        },
         2);
     reg.method(
         "interactWithEntity",
