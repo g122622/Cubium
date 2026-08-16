@@ -207,7 +207,9 @@ BlockState RedstoneWireBlock::updatePostPlacement(const BlockState& state,
 void RedstoneWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
-    // 更新信号强度和连接状态
+    // 对齐 vanilla RedStoneWireBlock#onPlace：放置即重算 power 与四方向连接形态（updatePower 内部
+    // 无条件 calculateConnections，不依赖 power 是否变化）。红石线视觉连接（连红石线/电源元件/
+    // 向上爬墙）在放置瞬间即正确，与信号有无无关。
     updatePower(world, pos);
 }
 
@@ -231,21 +233,13 @@ void RedstoneWireBlock::neighborChanged(
 
 void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
+    MC_UNUSED(state);
     MC_UNUSED(random);
-    // 计算新的信号强度
-    i32 oldPower = getPower(state);
-    i32 newPower = _calculateInputPower(world, pos, state);
-
-    if (oldPower != newPower) {
-        // 更新状态
-        BlockState newState = withPower(state, newPower);
-        newState = calculateConnections(world, pos, newState);
-
-        world.setBlockState(pos, &newState, 2);
-
-        // 通知相邻红石线更新
-        _notifyWireNeighbors(world, pos);
-    }
+    // 对齐 vanilla RedStoneWireBlock#neighborChanged→updatePowerStrength：邻居变化触发的延迟 tick
+    // 无条件重算 power 与连接形态（updatePower 内部用 stateId 比较避免无谓写入）。原实现仅在
+    // oldPower!=newPower 时重算连接，与 updatePower 旧版同缺陷（无信号场景连接不重算），现统一委托
+    // updatePower，消除重复逻辑并修复 tick 路径的连接重算缺失。
+    updatePower(world, pos);
 }
 
 i32 RedstoneWireBlock::getWeakPower(
@@ -319,12 +313,19 @@ bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos)
         return false;
     }
 
-    i32 oldPower = getPower(*state);
     i32 newPower = _calculateInputPower(world, pos, *state);
 
-    if (oldPower != newPower) {
-        BlockState newState = withPower(*state, newPower);
-        newState = calculateConnections(world, pos, newState);
+    // 对齐 vanilla RedStoneWireBlock#onPlace/neighborChanged→updatePowerStrength：无条件重算 power
+    // 与四方向连接形态，不依赖 power 是否变化。原实现仅在 oldPower!=newPower 时才 calculateConnections
+    // 重算连接，导致无信号场景（如连拉杆/按钮/红石火把等未激活电源元件）下连接保持 defaultState
+    // (四方向 none)，与 vanilla「放置/邻居变化即自动调整形状」（wiki tech_红石粉.txt#形状 :174-177）
+    // 不一致。红石线视觉连接判定（shouldConnectTo）与电源是否激活无关，仅看相邻方块是否为红石线/
+    // canProvidePower 元件。故这里分离 power 更新与连接重算：连接恒重算，写回与否用整体 stateId 比较
+    // （power 或任一方向连接变化才 setBlockState + 通知邻居），避免无谓写入。
+    BlockState newState = withPower(*state, newPower);
+    newState = calculateConnections(world, pos, newState);
+
+    if (newState != *state) {
         world.setBlockState(pos, &newState, 2);
 
         // 通知相邻红石线更新
