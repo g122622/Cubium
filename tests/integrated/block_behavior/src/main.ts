@@ -68,6 +68,7 @@ import { registerJukeboxTests } from "./tests/functional/JukeboxTests.js";
 import { registerFlowerPotTests } from "./tests/decorative/FlowerPotTests.js";
 import { registerCandleTests } from "./tests/decorative/CandleTests.js";
 import { registerCakeTests } from "./tests/functional/CakeTests.js";
+import { registerRespawnAnchorTests } from "./tests/functional/RespawnAnchorTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -128,3 +129,4 @@ registerJukeboxTests();
 registerFlowerPotTests();
 registerCandleTests();
 registerCakeTests();
+registerRespawnAnchorTests();
