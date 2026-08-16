@@ -14,18 +14,24 @@
 //     defaultState.with(LEVEL_1_3, 3)（满水位 3）+ 倒水音效 + FLUID_PLACE 事件；非创造模式水桶变空桶。
 //     岩浆桶（Items::LAVA_BUCKET）→ 替换为 lava_cauldron。
 //   - 装填是方块类型替换（setBlockState 写新方块 state），非同方块 state 变化。
+//   - LavaCauldronBlock（LavaCauldronBlock.cpp:94-148）：岩浆炼药锅（lava_cauldron，满/空二态无 level
+//     state）。onBlockActivated 空桶（Items::BUCKET）→ setBlockState cauldron（空炼药锅）+ 岩浆桶
+//     （创造模式跳过空桶替换）+ ITEM_BUCKET_FILL_LAVA 音效 + FLUID_PICKUP 事件 → Success。
+//     岩浆炼药锅始终满，岩浆桶/水桶/其他交互返 Pass（不可再装填）。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
 //   fallback onItemUse）。炼药锅 onBlockActivated 处理桶/瓶交互返回 Success，短路不 fallback。
 //   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
 //   player.getHeldItem(hand) 读到水桶/岩浆桶。
 //
-// 测试覆盖（4 个场景，覆盖 wiki 水桶/岩浆桶装填+玻璃瓶取水+非容器不误触发核心行为）：
+// 测试覆盖（5 个场景，覆盖 wiki 水桶/岩浆桶装填+玻璃瓶取水+空桶取岩浆+非容器不误触发核心行为）：
 //   1. 水桶装水：空炼药锅 + 水桶 useItemOnBlock → water_cauldron level=3。
 //   2. 岩浆桶装岩浆：空炼药锅 + 岩浆桶 useItemOnBlock → lava_cauldron。
 //   3. 非容器不误触发：空炼药锅 + 石头 useItemOnBlock → 仍 cauldron（桶/瓶交互都 Pass，方块不变）。
 //   4. 玻璃瓶取水：water_cauldron level=3 + 玻璃瓶 useItemOnBlock → level 3→2（one-sided，setBlockWithStates
 //      放满水炼药锅）。
+//   5. 空桶取岩浆：lava_cauldron + 空桶 useItemOnBlock → cauldron（空炼药锅）+ 岩浆桶。两端可对比
+//      （setBlockType 放 lava_cauldron 默认 state，无需 setBlockWithStates）。
 //
 // 关键约束：
 // 1. 炼药锅需放在固体方块上方（isValidPosition 检查 belowState.isSolid）——(3,1,1) 放 stone 支撑，
@@ -205,6 +211,40 @@ function cauldronDrainedByGlassBottle(test: Test): void {
     test.succeed();
 }
 
+// 场景 5：空桶取岩浆——lava_cauldron + 空桶 useItemOnBlock → cauldron（空炼药锅）+ 岩浆桶。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) lava_cauldron（setBlockType 放默认 state，满岩浆，无需 level state）。
+// 这是与场景 2（装岩浆走 CauldronBlock._handleBucketInteraction LAVA_BUCKET）不同的代码路径——
+//   取岩浆走 LavaCauldronBlock::onBlockActivated BUCKET 分支（LavaCauldronBlock.cpp:111-142）：
+//   空桶 → setBlockState cauldron（空炼药锅）+ ITEM_BUCKET_FILL_LAVA 音效 + FLUID_PICKUP 事件 +
+//   非创造模式空桶变岩浆桶 → Success。
+// 与场景 4（玻璃瓶取水，one-sided）互补：本场景两端均可放 lava_cauldron（setBlockType 默认 state，
+//   无 setBlockWithStates），取岩浆行为两端可对比，非 one-sided。
+//
+// 判定：useItemOnBlock 返 true（Success），方块类型从 lava_cauldron → cauldron（空炼药锅）。
+function cauldronDrainedToEmptyByBucket(test: Test): void {
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 }); // 支撑
+    test.setBlockType("minecraft:lava_cauldron", { x: 3, y: 2, z: 1 }); // 满岩浆炼药锅（默认 state）
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:lava_cauldron", `block should be lava_cauldron before, got ${getBlockTypeId(test, 3, 2, 1)}`);
+
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    const bucket = new ItemStack("minecraft:bucket", 1);
+
+    // 对满岩浆炼药锅 useItemOnBlock 空桶 → LavaCauldronBlock.onBlockActivated BUCKET 分支 →
+    // setBlockState cauldron（空炼药锅）+ 岩浆桶 → Success。
+    const used = farmer.useItemOnBlock(
+        bucket as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
+        { x: 3, y: 2, z: 1 },
+        Direction.Up,
+    );
+    test.assert(used, "useItemOnBlock should return true when draining lava_cauldron with empty bucket");
+
+    // 判定：方块类型从 lava_cauldron → cauldron（空炼药锅，岩浆被空桶取走）。
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:cauldron", `block should become empty cauldron after lava drained, got ${getBlockTypeId(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerCauldronTests(): void {
     GameTest.register("BlockBehaviorTests", "cauldron_fills_with_water_bucket", cauldronFillsWithWaterBucket)
         .structureName("gametests:glass_pit")
@@ -216,6 +256,9 @@ export function registerCauldronTests(): void {
         .structureName("gametests:glass_pit")
         .maxTicks(60);
     GameTest.register("BlockBehaviorTests", "cauldron_drained_by_glass_bottle", cauldronDrainedByGlassBottle)
+        .structureName("gametests:glass_pit")
+        .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "cauldron_drained_to_empty_by_bucket", cauldronDrainedToEmptyByBucket)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 }
