@@ -28,7 +28,11 @@
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -72,6 +76,23 @@ DaylightDetectorBlock::DaylightDetectorBlock(const BlockProperties& properties)
 i32 DaylightDetectorBlock::getPower(const BlockState& state)
 {
     return state.get(BlockStateProperties::POWER_0_15());
+}
+
+BlockActionResult DaylightDetectorBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // 对齐 vanilla DaylightDetectorBlock.use：右键切换昼夜模式（翻转 INVERTED）并重算 power。
+    // toggleMode 内部 setBlockState 写回新 state + _notifyNeighbors。不检查手持物（空手右键即可）。
+    toggleMode(world, pos, state);
+    return ActionResultType::Success;
 }
 
 BlockState DaylightDetectorBlock::withPower(BlockState state, i32 power)
