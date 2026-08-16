@@ -43,6 +43,8 @@ import { registerPressurePlateTests } from "./tests/redstone/PressurePlateTests.
 import { registerButtonTests } from "./tests/redstone/ButtonTests.js";
 import { registerLeverTests } from "./tests/redstone/LeverTests.js";
 import { registerDaylightDetectorTests } from "./tests/redstone/DaylightDetectorTests.js";
+import { registerRepeaterTests } from "./tests/redstone/RepeaterTests.js";
+import { registerComparatorTests } from "./tests/redstone/ComparatorTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerPaneConnectionTests } from "./tests/decorative/PaneConnectionTests.js";
 import { registerLanternTests } from "./tests/decorative/LanternTests.js";
@@ -105,6 +107,8 @@ registerPressurePlateTests();
 registerButtonTests();
 registerLeverTests();
 registerDaylightDetectorTests();
+registerRepeaterTests();
+registerComparatorTests();
 registerCampfireTests();
 registerPaneConnectionTests();
 registerLanternTests();
