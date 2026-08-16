@@ -76,8 +76,61 @@ function campfireDamagesEntityOnTop(test: Test): void {
   });
 }
 
+// 营火信号火 GameTest：营火下方放干草块时 signal_fire state 变 true（烟雾信号高度增加）。
+//
+// wiki tech_灵魂营火.txt#烟雾信号（:67）："若灵魂营火下方有干草捆，烟雾上飘的高度将会增加至约
+// 25格。" 普通营火同理（信号火）。Cubium CampfireBlock::updatePostPlacement（CampfireBlock.cpp:
+// 139-145）当 facing==Down 时调 _isHayBlock(world, currentPos)（:364-375，检查下方方块是否为
+// HAY_BLOCK），若与当前 signal_fire 不一致则返回 state.with(SIGNAL_FIRE, signalFire)。反应同 tick
+// 同步（updatePostPlacement 直接返回新 state，ServerWorld 立即 setBlockState）。
+//
+// 关键约束：
+// 1. setBlockType 走 _resolveBlock 取 defaultState（lit=true, signal_fire=false），不经
+//    getStateForPlacement（getStateForPlacement 才会放置时即据下方干草块设 signalFire）。故先放营火
+//    （signal_fire=false），再放下方干草块触发营火 Down 方向 updatePostPlacement 更新 signal_fire=true。
+// 2. 放干草块必须是真实状态变化（下方原本 air，air→hay_block 非 no-op）以派发邻居更新。hay_block
+//    放置向 Up 邻居营火派发 updatePostPlacement(Down) → _isHayBlock true → signal_fire=true。
+// 3. 营火 y=2（glass_pit 空腔层），干草块 y=1（营火下方，原本 air）。营火上方 y=3 须为 air（不阻挡，
+//    本测试不测烟雾粒子，仅断言 signal_fire state）。
+//
+// 不测烟雾粒子上飘高度：粒子是客户端渲染行为，无头跑不可测，仅断言 signal_fire state（服务端
+// 状态，与 vanilla 一致）。
+// 不测移除干草块后 signal_fire 复位 false：与"放置触发"对称，updatePostPlacement(Down) 在 hay→air
+// 时 _isHayBlock false → signal_fire=false，但为控制测试数量，本文件仅覆盖"放置干草块→signal_fire=true"
+// 核心分支（双向复位逻辑相同路径，已由该测试间接验证 _isHayBlock 判定）。
+// TODO: 如需完整双向覆盖，可补 campfire_signal_fire_clears_when_hay_removed 测试。
+//
+// 跨服务端：signal_fire state 名两端一致（signal_fire，Java 式 bool），下方干草块触发判定两端一致，
+// 可跨服务端对比。getState("signal_fire") 用 as any 绕过 BlockStateSuperset 白名单（同栅栏/树叶范式）。
+//
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_灵魂营火.txt#烟雾信号（下方干草捆增加烟雾高度）
+// Ref: CampfireBlock.cpp（updatePostPlacement Down 分支 + _isHayBlock）
+function campfireSignalFireWhenHayBelow(test: Test): void {
+  // (3,2,1) 放营火（defaultState lit=true signal_fire=false，下方 y=1 原本 air，无干草块故 signal_fire
+  // 保持 false）。setBlockType 直写不经 getStateForPlacement，故放置时 signal_fire=false。
+  test.setBlockType("minecraft:campfire", { x: 3, y: 2, z: 1 });
+
+  // (3,1,1) 放干草块（营火下方，原本 air，air→hay_block 真实变化派发邻居更新）。hay_block 放置向
+  // Up 邻居营火派发 updatePostPlacement(Down) → _isHayBlock(y=1)=true → signal_fire=true。
+  test.setBlockType("minecraft:hay_block", { x: 3, y: 1, z: 1 });
+
+  // 断言营火 (3,2,1) signal_fire state 为 true。updatePostPlacement 同步，succeedWhen 每 tick 检查。
+  test.succeedWhen(() => {
+    const block = test.getBlock({ x: 3, y: 2, z: 1 });
+    test.assert(block !== undefined, "campfire block disappeared");
+    // getState 的 key 类型是 keyof BlockStateSuperset（官方白名单），"signal_fire" 不在其中（Cubium
+    // 营火专有 state 名）。用 as any 绕过编译期类型边界（同 LeavesDistanceTests/FenceConnectionTests）。
+    const signalFire = block?.permutation?.getState("signal_fire" as any);
+    test.assert(signalFire === true,
+      `campfire signal_fire should be true when hay block below, got ${signalFire}`);
+  });
+}
+
 export function registerCampfireTests(): void {
   GameTest.register("BlockBehaviorTests", "campfire_damages_entity_on_top", campfireDamagesEntityOnTop)
     .structureName("gametests:glass_pit")
     .maxTicks(200);
+  GameTest.register("BlockBehaviorTests", "campfire_signal_fire_when_hay_below", campfireSignalFireWhenHayBelow)
+    .structureName("gametests:glass_pit")
+    .maxTicks(60);
 }
