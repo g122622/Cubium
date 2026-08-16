@@ -258,6 +258,9 @@ std::unordered_map<const Block*, const Block*>& ShovelItem::_getPathMap()
         if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
             m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
         }
+        // TODO: 压土径映射不完整。wiki tech_锹.txt#用途 行281 指出上方为空气的草方块、泥土、砂土、
+        //   菌丝体、灰化土、缠根泥土均可被锹压为土径，此处仅映射了 grass_block。补全 dirt/coarse_dirt/
+        //   mycelium/podzol/rooted_dirt -> GRASS_PATH(DIRT_PATH) 映射后，需同步补集成测试（锹压泥土→土径等）。
 
         return m;
     }();

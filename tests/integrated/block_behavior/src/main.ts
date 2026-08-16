@@ -78,6 +78,7 @@ import { registerCakeTests } from "./tests/functional/CakeTests.js";
 import { registerRespawnAnchorTests } from "./tests/functional/RespawnAnchorTests.js";
 import { registerDragonEggTests } from "./tests/end/DragonEggTests.js";
 import { registerBeehiveTests } from "./tests/mob/BeehiveTests.js";
+import { registerShovelTests } from "./tests/decorative/ShovelTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -148,3 +149,4 @@ registerCakeTests();
 registerRespawnAnchorTests();
 registerDragonEggTests();
 registerBeehiveTests();
+registerShovelTests();
