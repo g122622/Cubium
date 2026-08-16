@@ -73,6 +73,7 @@ import { registerCandleTests } from "./tests/decorative/CandleTests.js";
 import { registerCakeTests } from "./tests/functional/CakeTests.js";
 import { registerRespawnAnchorTests } from "./tests/functional/RespawnAnchorTests.js";
 import { registerDragonEggTests } from "./tests/end/DragonEggTests.js";
+import { registerBeehiveTests } from "./tests/mob/BeehiveTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -138,3 +139,4 @@ registerCandleTests();
 registerCakeTests();
 registerRespawnAnchorTests();
 registerDragonEggTests();
+registerBeehiveTests();
