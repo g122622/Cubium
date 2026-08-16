@@ -21,9 +21,10 @@
 // 强放。BambooBlock/BambooSaplingBlock 无 onBlockAdded 重写，放置不向自身派发 updatePostPlacement，强放
 // 不立即自毁。需「第二步移除下方支撑」触发 Down 方向 updatePostPlacement 才自毁。
 //
-// 测试覆盖（2 个场景，行为与 Cubium 现有自毁链路一致）：
+// 测试覆盖（3 个场景，行为与 Cubium 现有自毁链路一致）：
 //   1. 竹子（minecraft:bamboo）下方 grass_block 支撑移除 → 自毁。
 //   2. 竹笋（minecraft:bamboo_sapling）下方 grass_block 支撑移除 → 自毁。
+//   3. 竹子种在 moss_block 上不自毁（回归保护：BAMBOO_PLANTABLE_ON 标签须含 #dirt 展开的苔藓块）。
 //
 // 关键约束（同支撑自毁范式，见 SugarCaneTests/LanternTests）：
 // 1. 先放 grass_block 支撑再放竹子/竹笋，保证强放时下方有支撑（贴近 vanilla 放置语义）。放置不向自身
@@ -101,11 +102,49 @@ function bambooSaplingBreaksWhenSupportBelowRemoved(test: Test): void {
     test.succeedWhenBlockPresent("minecraft:bamboo_sapling", { x: 3, y: 2, z: 1 }, false);
 }
 
+// 竹子种在苔藓块（moss_block）上不自毁，验证 BAMBOO_PLANTABLE_ON 标签包含 wiki#生长 列举的苔藓块。
+//
+// 背景：wiki tech_竹子.txt#生长（:75）明确竹子可种植在「苔藓块」上。Cubium 早期 BAMBOO_PLANTABLE_ON
+// 标签因不支持 #dirt 子标签引用而漏掉了 moss_block（moss_block 在 vanilla #dirt 标签内），导致竹子在
+// 苔藓块上无法种植（isValidPosition 返回 false）。该缺陷已修复（标签展开 #dirt 全部成员），本测试为
+// 回归保护：确保 moss_block 始终在 BAMBOO_PLANTABLE_ON 标签内，竹子在其上不被自毁判定破坏。
+//
+// 验证链路（利用 updatePostPlacement(Down) 同步触发 isValidPosition）：
+// 1. 先在 (3,2,1) 强放竹子（下方 (3,1,1) 暂为 air，强放绕过 isValidPosition，BambooBlock 无
+//    onBlockAdded 不立即自毁，悬空竹子存活到下一步）。
+// 2. 再在 (3,1,1) 放 moss_block（air→moss_block 真实状态变化，派发邻居更新）。moss_block 放置向 Up
+//    邻居竹子派发 updatePostPlacement(Down) → isValidPosition(下方=moss_block)：
+//    - 修复前：moss_block ∉ BAMBOO_PLANTABLE_ON → false → 返回 air，竹子自毁（测试失败）。
+//    - 修复后：moss_block ∈ BAMBOO_PLANTABLE_ON → true → 返回原 state，竹子存活（测试通过）。
+//
+// 判定：succeedWhenBlockPresent 断言竹子格 (3,2,1) 竹子仍在（true）。若标签回归漏掉 moss_block，
+// 竹子会在第二步被自毁，断言失败，从而暴露标签缺陷。
+//
+// 注意：本测试只验证 moss_block 单一新增种植面（代表 #dirt 展开修复），不为每种新种植面（mycelium/
+// rooted_dirt/mud/pale_moss_block/muddy_mangrove_roots/suspicious_gravel）各写一个测试——这些成员的
+// 标签包含关系已由 BlockTagsTest.BambooPlantableOnContains* 单元测试覆盖，本集成测试聚焦「竹子实际
+// 不自毁」的端到端行为，单一代表方块足够。
+function bambooSurvivesOnMossBlock(test: Test): void {
+    // (3,2,1) 强放竹子（下方 (3,1,1) 暂为 air，强放绕过 isValidPosition，悬空不立即自毁）。
+    test.setBlockType("minecraft:bamboo", { x: 3, y: 2, z: 1 });
+
+    // (3,1,1) 放 moss_block（air→moss_block 真实状态变化，派发邻居更新）。moss_block 放置向 Up 邻居竹子
+    // 派发 updatePostPlacement(Down) → isValidPosition(下方=moss_block) → moss_block ∈ BAMBOO_PLANTABLE_ON
+    // → true → 返回原 state，竹子存活（修复后行为）。
+    test.setBlockType("minecraft:moss_block", { x: 3, y: 1, z: 1 });
+
+    // 断言竹子格 (3,2,1) 竹子仍在（修复后 moss_block 是有效种植面，竹子不自毁）。
+    test.succeedWhenBlockPresent("minecraft:bamboo", { x: 3, y: 2, z: 1 }, true);
+}
+
 export function registerBambooTests(): void {
     GameTest.register("BlockBehaviorTests", "bamboo_breaks_when_support_below_removed", bambooBreaksWhenSupportBelowRemoved)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
     GameTest.register("BlockBehaviorTests", "bamboo_sapling_breaks_when_support_below_removed", bambooSaplingBreaksWhenSupportBelowRemoved)
+        .structureName("gametests:glass_pit")
+        .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "bamboo_survives_on_moss_block", bambooSurvivesOnMossBlock)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 }

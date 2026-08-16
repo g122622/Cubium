@@ -228,6 +228,55 @@ TEST_F(BlockTagsTest, BambooPlantableOnContainsBamboo)
     EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::BAMBOO));
 }
 
+// 对齐 vanilla 1.21.11 bamboo_plantable_on.json（#dirt + #sand + bamboo/bamboo_sapling/gravel/
+// suspicious_gravel）。验证 #dirt 展开的新成员（mycelium/rooted_dirt/moss_block/pale_moss_block/
+// mud/muddy_mangrove_roots）与 #sand 的 suspicious_sand、显式的 suspicious_gravel 均在标签内。
+TEST_F(BlockTagsTest, BambooPlantableOnContainsMycelium)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::MYCELIUM));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsRootedDirt)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::ROOTED_DIRT));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsMossBlock)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::MOSS_BLOCK));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsPaleMossBlock)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::PALE_MOSS_BLOCK));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsMud)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::MUD));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsMuddyMangroveRoots)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::MUDDY_MANGROVE_ROOTS));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsSuspiciousSand)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::SUSPICIOUS_SAND));
+}
+
+TEST_F(BlockTagsTest, BambooPlantableOnContainsSuspiciousGravel)
+{
+    EXPECT_TRUE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::SUSPICIOUS_GRAVEL));
+}
+
+// farmland 不在 vanilla bamboo_plantable_on 中（原 Cubium 实现误含，已修复移除）。
+TEST_F(BlockTagsTest, BambooPlantableOnDoesNotContainFarmland)
+{
+    EXPECT_FALSE(BlockTags::BAMBOO_PLANTABLE_ON().contains(*VanillaBlocks::FARMLAND));
+}
+
 // ============================================================================
 // BlockState Contains Tests
 // ============================================================================

@@ -1500,17 +1500,35 @@ void BlockTags::initialize()
     tags[woodenShelves->getId()] = std::move(woodenShelves);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
+    // 对齐 vanilla 1.21.11 data/minecraft/tags/block/bamboo_plantable_on.json：
+    //   { "#minecraft:sand", "#minecraft:dirt", "minecraft:bamboo",
+    //     "minecraft:bamboo_sapling", "minecraft:gravel", "minecraft:suspicious_gravel" }
+    // Cubium 标签不支持子标签引用（#sand/#dirt），此处手动展开为完整成员集合：
+    //   #dirt（10）+ #sand（3）+ bamboo + bamboo_sapling + gravel + suspicious_gravel = 17 项。
+    // 注意：原实现误含 farmland（vanilla 无），已移除——竹子不应能种在耕地上。
+    // wiki tech_竹子.txt#生长 列举的可种植方块：草方块/菌丝体/灰化土/泥土/缠根泥土/砂土/泥巴/沾泥的红树根/
+    //   苔藓块/苍白苔藓块/沙砾/可疑的沙砾/沙子/红沙/可疑的沙子，外加竹子与竹笋自身。
     auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));
-    bambooPlantableOn->addAll({ResourceLocation("minecraft", "grass_block"),
+    bambooPlantableOn->addAll({// #minecraft:dirt 展开（对齐 dirt.json 10 项）
         ResourceLocation("minecraft", "dirt"),
-        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "grass_block"),
         ResourceLocation("minecraft", "podzol"),
-        ResourceLocation("minecraft", "farmland"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "pale_moss_block"),
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        // #minecraft:sand 展开（对齐 sand.json 3 项）
         ResourceLocation("minecraft", "sand"),
         ResourceLocation("minecraft", "red_sand"),
-        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "suspicious_sand"),
+        // 显式成员
         ResourceLocation("minecraft", "bamboo"),
-        ResourceLocation("minecraft", "bamboo_sapling")});
+        ResourceLocation("minecraft", "bamboo_sapling"),
+        ResourceLocation("minecraft", "gravel"),
+        ResourceLocation("minecraft", "suspicious_gravel")});
     tags[bambooPlantableOn->getId()] = std::move(bambooPlantableOn);
 
     // 创建 VALID_SWEET_BERRY_BUSH_GROUND 标签
