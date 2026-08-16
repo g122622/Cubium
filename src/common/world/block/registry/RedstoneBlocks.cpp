@@ -122,14 +122,15 @@ void registerRedstoneBlocks()
         ResourceLocation("minecraft:redstone_wire"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石火把
-    RedstoneBlocks::REDSTONE_TORCH =
-        &registry.registerBlock<blocks::RedstoneTorchBlock>(ResourceLocation("minecraft:redstone_torch"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
+    // 发光等级随 LIT 状态动态变化（点亮7/熄灭0），由 RedstoneTorchBlock::getLightLevel override 提供，
+    // 不在注册期设静态 lightLevel（静态值会使熄灭火把仍发光，与原版不符）。
+    RedstoneBlocks::REDSTONE_TORCH = &registry.registerBlock<blocks::RedstoneTorchBlock>(
+        ResourceLocation("minecraft:redstone_torch"), BlockProperties(Material::DECORATION).noCollision().notSolid());
 
-    // 墙上的红石火把
+    // 墙上的红石火把（继承 RedstoneTorchBlock，复用 getLightLevel override）
     RedstoneBlocks::REDSTONE_WALL_TORCH =
         &registry.registerBlock<blocks::RedstoneWallTorchBlock>(ResourceLocation("minecraft:redstone_wall_torch"),
-            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(7));
+            BlockProperties(Material::DECORATION).noCollision().notSolid());
 
     // 红石灯
     RedstoneBlocks::REDSTONE_LAMP = &registry.registerBlock<blocks::RedstoneLampBlock>(

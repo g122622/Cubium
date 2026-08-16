@@ -1388,6 +1388,44 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         (void)thisVal;
         return ctx.createBoolean(false);
     });
+    // --- Block 光照查询扩展（Cubium 专有，官方 @minecraft/server Block 无光照 API）---
+    // 为集成测试直接读取光照数值而扩展，对齐 Java Level/World 的光照查询方法。
+    // 经 ScriptBlockRef.world（IWorld*，test.getBlock 构造时回指）调 IWorld 光照虚方法。
+    // IWorld::getBlockLight/getSkyLight/canSeeSky 主线程读 visible 侧 SWMRNibbleArray，atomic
+    // acquire 无锁安全（GameTest 回调在服务端主线程 post-tick 执行）。
+    // blockLight/skyLight：原始方块光/天空光等级（0-15），不含天气/时间衰减，可单独验证传播算法。
+    // brightness：综合亮度（IWorld::getLight，含天空减暗），对齐 Java Level.getLight，用于作物生长等判定。
+    // canSeeSky：是否露天（skyLight>=15，无天空光维度恒 false）。
+    // 类型声明见各包 src/cubium-gametest-augment.d.ts 的 @minecraft/server module augmentation。
+    blockReg.readonlyProperty("blockLight", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->world == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->world->getBlockLight(ref->pos)));
+    });
+    blockReg.readonlyProperty("skyLight", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->world == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->world->getSkyLight(ref->pos)));
+    });
+    blockReg.readonlyProperty("brightness", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 综合光照等级（含天空减暗），对齐 Java Level.getLight(BlockPos)。
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->world == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(static_cast<i32>(ref->world->getLight(ref->pos)));
+    });
+    blockReg.readonlyProperty("canSeeSky", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->world == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(ref->world->canSeeSky(ref->pos));
+    });
 
     // --- ItemStack类 ---
     // opaque 持 mc::ItemStack*。EquippableComponent.getEquipment 以 owned=true 拷贝 wrap（new ItemStack(s)，

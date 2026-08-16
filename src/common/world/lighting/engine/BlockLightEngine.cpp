@@ -186,7 +186,7 @@ void BlockStarLightEngine::checkBlock(StarLightLightingProvider* lightAccess, i3
     // 如果有发射光，添加到增亮队列
     if (emittedLevel != 0) {
         // 检查方块是否使用形状进行光照遮挡（条件透明）
-        bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
+        bool hasSidedTransparent = (blockState != nullptr && blockState->isConditionallyFullOpaque());
 
         appendToIncreaseQueue(((worldX + (worldZ << 6) + (worldY << 12) + encodeOffset) & ((1LL << 28) - 1)) |
             (static_cast<u64>(emittedLevel & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |
@@ -229,7 +229,7 @@ i32 BlockStarLightEngine::calculateLightValue(
 
     // 检查中心方块是否是条件透明方块
     const BlockState* conditionallyOpaqueState = nullptr;
-    if (centerState != nullptr && centerState->useShapeForLightOcclusion()) {
+    if (centerState != nullptr && centerState->isConditionallyFullOpaque()) {
         conditionallyOpaqueState = centerState;
     }
 
@@ -258,7 +258,7 @@ i32 BlockStarLightEngine::calculateLightValue(
         const BlockState* neighbourState = getBlockState(offX, offY, offZ);
 
         // 条件透明检查
-        if (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion()) {
+        if (neighbourState != nullptr && neighbourState->isConditionallyFullOpaque()) {
             // 方块可能是条件透明的（光线无法从中传播），需要检测
             // 大多数情况下这是 false，所以使用更快的透明度查找是值得的
             CollisionShape neighbourFace =
@@ -384,7 +384,7 @@ void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, co
         }
 
         // 检查方块是否使用形状进行光照遮挡（条件透明）
-        bool hasSidedTransparent = (blockState != nullptr && blockState->useShapeForLightOcclusion());
+        bool hasSidedTransparent = (blockState != nullptr && blockState->isConditionallyFullOpaque());
 
         appendToIncreaseQueue(((pos.x + (pos.z << 6) + (pos.y << 12) + encodeOffset) & ((1LL << 28) - 1)) |
             (static_cast<u64>(emittedLight & 0xF) << 28) | (static_cast<u64>(ALL_DIRECTIONS_BITSET) << 32) |

@@ -1,8 +1,10 @@
 #include "server/test/facade/GameTestServer.hpp"
 
 #include "common/test/framework/batch/GameTestBatch.hpp"
+#include "common/test/framework/environment/AllOfEnvironment.hpp"
 #include "common/test/framework/environment/EnvironmentRegistry.hpp"
 #include "common/test/framework/environment/TimeOfDayEnvironment.hpp" // TimeOfDayEnvironment（night/day 批时间环境）
+#include "common/test/framework/environment/WeatherEnvironment.hpp"   // WeatherEnvironment（day/night 批强制晴天）
 #include "common/test/framework/function/BaseGameTestFunction.hpp"
 #include "common/test/framework/registry/GameTestRegistry.hpp"
 #include "common/test/framework/ticker/GameTestTicker.hpp"
@@ -344,7 +346,19 @@ bool GameTestServer::_selectAndBuildRunner()
         if (it != envCache.end()) {
             return it->second;
         }
-        auto env = std::make_shared<TimeOfDayEnvironment>(isNight ? 18000 : 6000);
+        // 复合环境：时间 + 强制晴天。day/night 批除设时间外，必须强制晴天（WeatherEnvironment::Clear），
+        // 否则世界初始化时天气随机下雨（isRaining=true）会让 calculateSkyDarkening 在基础值上 +3
+        // （雷暴 +10），污染所有依赖露天 brightness 的测试：
+        //   - lighting 包：露天 brightness=15-skyDarkening，下雨时=12 而非 15，brightness_open_sky 等
+        //     断言失败；skyLight 本身不受影响（原始天空光不含 skyDarkening），但 brightness 综合值受污染。
+        //   - mob_behavior 包：亡灵白天燃烧判定 brightness>0.5 经 gamma 曲线，下雨 skyDarkening=3 致
+        //     rawBrightness=12 → f=0.8 → f1=0.667 仍 >0.5（恰能燃烧），但雷暴 skyDarkening=10 致
+        //     rawBrightness=5 → f=0.333 → f1=0.2 <0.5 不燃烧，skeleton_burns_in_daylight 随机失败。
+        // 强制晴天对齐基岩 GameTest day/night 批「确定晴天」语义，消除天气随机性导致的测试 flaky。
+        auto env = std::make_shared<AllOfEnvironment>(std::vector<std::shared_ptr<TestEnvironmentDefinition>>{
+            std::make_shared<TimeOfDayEnvironment>(isNight ? 18000 : 6000),
+            std::make_shared<WeatherEnvironment>(WeatherEnvironment::Type::Clear),
+        });
         envCache[key] = env;
         return env;
     };

@@ -1,0 +1,42 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "Lighting engine GameTests: sky light, block light, brightness thresholds, undead burning, snow/ice melt.",
+    "name": "Cubium Lighting GameTests",
+    "uuid": "a1c1c000-0005-4a75-91b7-4cdf0a03c009",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "description": "Lighting engine test logic and provisioning.",
+      "type": "script",
+      "language": "javascript",
+      "uuid": "a1c1c001-0005-4a75-91b7-4cdf0a03c010",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    },
+    {
+      "module_name": "@minecraft/server-gametest",
+      "version": "1.0.0-beta"
+    }
+  ]
+}

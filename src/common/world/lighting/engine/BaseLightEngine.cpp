@@ -1078,7 +1078,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 }
 
                 u64 flags = 0;
-                if (blockState->useShapeForLightOcclusion()) {
+                if (blockState->isConditionallyFullOpaque()) {
                     // 获取遮挡面
                     CollisionShape cullingFace =
                         blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
@@ -1127,7 +1127,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
 
                 // 检查源方块的遮挡面
                 CollisionShape fromShape; // 空 shape
-                if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
+                if (fromBlock != nullptr && fromBlock->isConditionallyFullOpaque()) {
                     fromShape = fromBlock->getFaceOcclusionShape(_getNMSDirection(propagate));
                 }
 
@@ -1154,7 +1154,7 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                 }
 
                 u64 flags = 0;
-                if (blockState->useShapeForLightOcclusion()) {
+                if (blockState->isConditionallyFullOpaque()) {
                     CollisionShape cullingFace =
                         blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
 
@@ -1247,7 +1247,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 }
 
                 u64 flags = 0;
-                if (blockState->useShapeForLightOcclusion()) {
+                if (blockState->isConditionallyFullOpaque()) {
                     CollisionShape cullingFace =
                         blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
                     if (cullingFace.isFullBlock()) {
@@ -1319,7 +1319,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
 
                 // 检查源方块的遮挡面
                 CollisionShape fromShape; // 空 shape
-                if (fromBlock != nullptr && fromBlock->useShapeForLightOcclusion()) {
+                if (fromBlock != nullptr && fromBlock->isConditionallyFullOpaque()) {
                     fromShape = fromBlock->getFaceOcclusionShape(_getNMSDirection(propagate));
                 }
 
@@ -1347,7 +1347,7 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                 }
 
                 u64 flags = 0;
-                if (blockState->useShapeForLightOcclusion()) {
+                if (blockState->isConditionallyFullOpaque()) {
                     CollisionShape cullingFace =
                         blockState->getFaceOcclusionShape(_getNMSDirection(_getOppositeDirection(propagate)));
 
@@ -1430,53 +1430,6 @@ void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty)
     // 子类实现
     (void)pos;
     (void)isEmpty;
-}
-
-// ============================================================================
-// 条件透明检查
-// ============================================================================
-
-bool StarLightEngine::isFaceOccluded(
-    const BlockState* fromState, const BlockState* toState, LightAxisDirection direction)
-{
-    // 空气不遮挡任何面
-    if (fromState == nullptr || toState == nullptr) {
-        return false;
-    }
-
-    // 检查任一方块是否需要形状遮挡检测
-    bool fromUseShape = useShapeForLightOcclusion(fromState);
-    bool toUseShape = useShapeForLightOcclusion(toState);
-
-    // 如果都不需要形状检测，使用传统的不透明度检查
-    if (!fromUseShape && !toUseShape) {
-        // 完整不透明方块会遮挡
-        // 注意：对于普通方块，不透明度检查在调用方已经完成
-        return false;
-    }
-
-    // 获取面遮挡方向
-    Direction fromDir = _getNMSDirection(direction);
-    Direction toDir = _getNMSDirection(_getOppositeDirection(direction));
-
-    // 获取遮挡形状
-    const CollisionShape& fromCollisionShape = fromState->getOcclusionShape();
-    const CollisionShape& toCollisionShape = toState->getOcclusionShape();
-
-    // 转换为 VoxelShape 进行面遮挡检测
-    VoxelShape fromShape = Shapes::fromCollisionShape(fromCollisionShape);
-    VoxelShape toShape = Shapes::fromCollisionShape(toCollisionShape);
-
-    // 使用 Shapes 类进行面遮挡检测
-    return Shapes::blockOccludes(fromShape, toShape, fromDir);
-}
-
-bool StarLightEngine::useShapeForLightOcclusion(const BlockState* state)
-{
-    if (state == nullptr) {
-        return false;
-    }
-    return state->useShapeForLightOcclusion();
 }
 
 // ============================================================================

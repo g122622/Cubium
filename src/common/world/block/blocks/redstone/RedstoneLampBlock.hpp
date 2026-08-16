@@ -61,6 +61,20 @@ public:
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
+    /**
+     * @brief 获取发光等级 - 点亮时为15，熄灭时为0
+     *
+     * 注册时未设静态 lightLevel（红石灯发光随 LIT 状态动态变化），此处按 LIT 属性返回，
+     * 对齐 net.minecraft.block.RedstoneLampBlock：lit 时发出 15 级方块光，unlit 时不发光。
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return isLit(state) ? 15 : 0;
+    }
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);

@@ -70,6 +70,21 @@ public:
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    /**
+     * @brief 获取发光等级 - 点亮时为7，熄灭时为0
+     *
+     * 红石火把发光随 LIT 状态动态变化（被充能或烧毁时熄灭）。注册时移除静态 lightLevel(7)，
+     * 此处按 LIT 属性返回，对齐 net.minecraft.block.RedstoneTorchBlock：lit 时发出 7 级方块光，
+     * unlit（熄灭/烧毁）时不发光。此前注册期静态 lightLevel(7) 使熄灭火把仍发光 7，与原版不符。
+     */
+    [[nodiscard]] u8 getLightLevel(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return isLit(state) ? 7 : 0;
+    }
+
     // ========== 红石接口 ==========
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override

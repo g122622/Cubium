@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -46,7 +47,6 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
-#include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"

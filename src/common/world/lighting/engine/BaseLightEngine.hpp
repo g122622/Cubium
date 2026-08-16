@@ -173,6 +173,9 @@ inline constexpr i32 getDirectionBitset(LightAxisDirection dir) noexcept
 
 /**
  * @brief 获取排除某方向后的位集
+ *
+ * 对应 Moonrise AxisDirection.everythingButThisDirection = ALL ^ (1 << this.ordinal())。
+ * 只排除 dir 自身。
  */
 inline constexpr i32 _getEverythingButDirection(LightAxisDirection dir) noexcept
 {
@@ -180,11 +183,19 @@ inline constexpr i32 _getEverythingButDirection(LightAxisDirection dir) noexcept
 }
 
 /**
- * @brief 获取排除某方向及其反方向后的位集
+ * @brief 获取排除某方向"反方向"后的位集（保留 dir 自身）
+ *
+ * 对应 Moonrise AxisDirection.everythingButTheOppositeDirection = ALL ^ (1 << (this.ordinal() ^ 1))。
+ * 仅排除 dir 的反方向（即光传来的"来时方向"），保留 dir 自身——这样光能沿原方向继续直线传播。
+ *
+ * 用途：光照增亮/减亮传播入队时，光从 pos 沿 propagate 到 off，off 处只需排除"来时反方向"
+ * opposite(propagate)，避免光立即原路折返造成冗余，但必须保留 propagate 自身让光直线前进。
+ * 若误改为同时排除 dir 与 opposite(dir)（即额外排除 propagate 自身），光到达 off 后将无法沿
+ * propagate 直线前进，被迫绕路，造成错误衰减（如 15→14→11 而非 15→14→13）。
  */
 inline constexpr i32 _getEverythingButOppositeDirection(LightAxisDirection dir) noexcept
 {
-    return ALL_DIRECTIONS_BITSET ^ (getDirectionBitset(dir) | getDirectionBitset(_getOppositeDirection(dir)));
+    return ALL_DIRECTIONS_BITSET ^ getDirectionBitset(_getOppositeDirection(dir));
 }
 
 /**
@@ -538,31 +549,6 @@ protected:
 
     /** 设置编码偏移 */
     void setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ);
-
-    /**
-     * @brief 检查两个方块之间是否遮挡光线
-     *
-     * 条件透明检查：判断光线是否可以从源方块传播到目标方块。
-     * 使用 VoxelShape 系统进行精确的面遮挡检测。
-     *
-     * @param fromState 源方块状态（光线发出位置）
-     * @param toState 目标方块状态（光线进入位置）
-     * @param direction 光线传播方向（从源到目标）
-     * @return true 如果面被完全遮挡（光线无法通过）
-     */
-    [[nodiscard]] static bool isFaceOccluded(
-        const BlockState* fromState, const BlockState* toState, LightAxisDirection direction);
-
-    /**
-     * @brief 检查方块是否使用形状进行光照遮挡
-     *
-     * 某些方块（如台阶、楼梯、栅栏）有非完整方块的碰撞形状，
-     * 需要精确的面遮挡检测。
-     *
-     * @param state 方块状态
-     * @return true 如果需要使用形状进行遮挡检测
-     */
-    [[nodiscard]] static bool useShapeForLightOcclusion(const BlockState* state);
 
 protected:
     // 世界引用

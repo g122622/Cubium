@@ -270,6 +270,27 @@ public:
     [[nodiscard]] bool useShapeForLightOcclusion() const { return m_useShapeForLightOcclusion; }
 
     /**
+     * @brief 是否为"条件完全遮挡"方块（StarLight 专用）
+     *
+     * 对齐 Moonrise StarLightEngine 的 isConditionallyFullOpaque：
+     *   isConditionallyFullOpaque = canOcclude && useShapeForLightOcclusion
+     * 其中 vanilla canOcclude = useShapeForLightOcclusion && opacity >= 15，
+     * 故等价于：useShapeForLightOcclusion && opacity >= MAX_LIGHT_LEVEL。
+     *
+     * 只有"用形状遮挡"且"完全不透明(opacity>=15)"的方块（如条件完整的实心方块）才会走
+     * StarLight 的条件透明（sided transparent）复杂传播路径。非完整方块（火把、栅栏、
+     * 台阶等）虽 useShapeForLightOcclusion=true，但 opacity<15，isConditionallyFullOpaque
+     * 为 false，应走普通简单传播路径——它们自身的形状遮挡已通过 getFaceOcclusionShape 在
+     * 传播时单独判定，不需要整块走复杂路径。
+     *
+     * 若误用 useShapeForLightOcclusion 代替本方法，火把等方块会错误进入复杂路径，导致
+     * 其发射的方块光无法正常传播到相邻空气格（如火把(14)邻格应得13却得0）。
+     *
+     * 参考: ca.spottedleaf.moonrise.patches.starlight.blockstate.StarlightAbstractBlockState
+     */
+    [[nodiscard]] bool isConditionallyFullOpaque() const { return m_useShapeForLightOcclusion && m_opacity >= 15; }
+
+    /**
      * @brief 是否有不透明碰撞形状
      *
      * 用于环境光遮蔽(AO)计算。如果方块有不透明的完整碰撞箱，

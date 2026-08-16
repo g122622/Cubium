@@ -318,7 +318,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
         const BlockState* current = getBlockState(worldX, currY, worldZ);
 
         VoxelShape fromShape = Shapes::empty();
-        if (above != nullptr && above->useShapeForLightOcclusion()) {
+        if (above != nullptr && above->isConditionallyFullOpaque()) {
             fromShape = Shapes::fromCollisionShape(above->getFaceOcclusionShape(Direction::Down));
             if (Shapes::faceShapeOccludes(Shapes::empty(), fromShape)) {
                 // above wont let us propagate
@@ -327,7 +327,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
         }
 
         u64 flags = 0;
-        if (current != nullptr && current->useShapeForLightOcclusion()) {
+        if (current != nullptr && current->isConditionallyFullOpaque()) {
             const VoxelShape cullingFace = Shapes::fromCollisionShape(current->getFaceOcclusionShape(Direction::Up));
             if (Shapes::faceShapeOccludes(fromShape, cullingFace)) {
                 // can't propagate here, we're done on this column
@@ -463,7 +463,7 @@ i32 SkyStarLightEngine::calculateLightValue(
     i32 opacity = 1; // 默认透明度
     if (centerState != nullptr) {
         opacity = std::max(1, centerState->getBlock().getOpacity(*centerState));
-        if (centerState->useShapeForLightOcclusion()) {
+        if (centerState->isConditionallyFullOpaque()) {
             conditionallyOpaqueState = centerState;
         }
     }
@@ -491,7 +491,7 @@ i32 SkyStarLightEngine::calculateLightValue(
         const BlockState* neighbourState = getBlockState(offX, offY, offZ);
 
         // 条件透明检查
-        if (neighbourState != nullptr && neighbourState->useShapeForLightOcclusion()) {
+        if (neighbourState != nullptr && neighbourState->isConditionallyFullOpaque()) {
             // here the block can be conditionally opaque (i.e light cannot propagate from it), so we need to test that
             // we don't read the blockstate because most of the time this is false, so using the faster
             // known transparency lookup results in a net win
