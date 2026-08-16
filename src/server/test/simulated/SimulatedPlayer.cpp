@@ -144,6 +144,13 @@ bool SimulatedPlayer::jump()
     return true;
 }
 
+void SimulatedPlayer::setFoodLevel(i32 level)
+{
+    // 转发 FoodStats::setFoodLevel（内部 clamp [0,20]）。测试扩展：让食物类测试直接设定饥饿值，
+    // 绕过生存模式无 OP 权限无法 /effect 降饥饿的限制。见头文件注释。
+    foodStats().setFoodLevel(level);
+}
+
 void SimulatedPlayer::disconnect()
 {
     // SimulatedPlayer 无连接，"断开"= 从世界移除。转发 Entity::discard（标记 m_removed，不掉落）。

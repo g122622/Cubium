@@ -39,6 +39,10 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
+class BlockActionResult;
+class BlockRaycastResult;
+enum class Hand : u8;
 
 namespace blocks {
 
@@ -63,6 +67,17 @@ public:
     // ========== 状态属性 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /// 右键吃蛋糕：对齐 vanilla CakeBlock.use。
+    /// 玩家 canEat(false)（非创造/旁观且饥饿<20）时吃一片（eatSlice bites+1）并恢复饥饿
+    /// （foodStats().addStats(2, 0.1f)），返回 Success；否则返回 Pass（创造模式/满饥饿吃不了）。
+    /// 注意：吃蛋糕不消耗手持物（空手右键即可），onBlockActivated 不检查 hand/heldItem。
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
@@ -108,7 +123,7 @@ public:
      * @brief 尝试吃蛋糕
      * @return 如果成功吃了返回true
      */
-    static bool eatSlice(IWorld& world, const BlockPos& pos, BlockState& state);
+    static bool eatSlice(IWorld& world, const BlockPos& pos, const BlockState& state);
 
 protected:
     /// 各片数的形状缓存

@@ -147,6 +147,18 @@ public:
     bool jump();
 
     /**
+     * @brief 直接设置模拟玩家的饥饿值（Cubium 测试扩展，基岩 SimulatedPlayer 无此 API）。
+     *
+     * 转发 Player::foodStats().setFoodLevel(level)（内部 clamp 到 [0,20]）。用于食物类方块/物品
+     * 集成测试控制进食前提（canEat 需 foodLevel<20）：生存模式玩家初始 foodLevel=20 满饥饿，
+     * 无法通过命令/效果快速可靠降饥饿（生存模式无 OP 权限执行 /effect），故暴露此绑定让测试
+     * 直接设定饥饿值，确定性验证「饥饿<20 才能吃」的进食行为。
+     *
+     * @param level 饥饿值（0-20，超范围由 FoodStats 钳制）。
+     */
+    void setFoodLevel(i32 level);
+
+    /**
      * @brief 模拟玩家断开连接（对齐基岩 SimulatedPlayer::disconnect）。
      *
      * SimulatedPlayer 无网络连接，"断开"语义即从世界移除该实体。转发 Entity::discard（标记 m_removed，

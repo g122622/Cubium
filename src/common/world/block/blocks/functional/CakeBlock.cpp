@@ -22,8 +22,12 @@
  */
 
 #include "CakeBlock.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/Properties.hpp"
@@ -87,6 +91,33 @@ BlockState CakeBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
+BlockActionResult CakeBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    // 对齐 vanilla CakeBlock.use：仅当玩家可进食（非创造/旁观且饥饿<20）时吃一片。
+    // canEat(false) 内部：创造/旁观返 false；否则 needsFood()（foodLevel<20）。
+    // 注意吃蛋糕不消耗手持物（空手右键即可），此处不检查 hand/heldItem。
+    if (!player.canEat(false)) {
+        return ActionResultType::Pass;
+    }
+
+    // 吃一片：eatSlice 内部 setBlockState bites+1（bites==6 时移除蛋糕）。
+    // vanilla 蛋糕每片恢复 nutrition=2, saturationModifier=0.1（cake 的 Food 值）。
+    if (eatSlice(world, pos, state)) {
+        player.foodStats().addStats(2, 0.1f);
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
 bool CakeBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
 
@@ -144,7 +175,7 @@ i32 CakeBlock::getComparatorInputOverride(const BlockState& state, IWorld& world
     return (7 - getBites(state)) * 2;
 }
 
-bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, BlockState& state)
+bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     i32 bites = getBites(state);
 

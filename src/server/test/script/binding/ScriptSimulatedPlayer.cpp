@@ -347,6 +347,27 @@ u64 registerSimulatedPlayerClassBinding(
         },
         0);
 
+    // --- setFoodLevel(level) -> undefined（Cubium 测试扩展）---
+    // 直接设定饥饿值，供食物类测试控制进食前提（canEat 需 foodLevel<20）。见 SimulatedPlayer.hpp 注释。
+    reg.method(
+        "setFoodLevel",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.throwTypeError("setFoodLevel(level)");
+            }
+            auto level = ctx.toInt32(args[0]);
+            if (!level) {
+                return ctx.throwTypeError("setFoodLevel: level must be a number");
+            }
+            player->setFoodLevel(*level);
+            return ctx.createUndefined();
+        },
+        1);
+
     // --- disconnect() ---
     reg.method(
         "disconnect",
