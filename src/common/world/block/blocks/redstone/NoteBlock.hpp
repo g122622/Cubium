@@ -60,6 +60,15 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
+    // 右键（空手/任意物品）升调：对齐 vanilla NoteBlock.useWithoutItem——cycle(NOTE) 循环升半音 +
+    //   setBlockState 写回 + triggerNote 播放新音高 → Success。此前的实现缺失该 override，右键无法升调。
+    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
