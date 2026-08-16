@@ -95,10 +95,8 @@ function campfireDamagesEntityOnTop(test: Test): void {
 //
 // 不测烟雾粒子上飘高度：粒子是客户端渲染行为，无头跑不可测，仅断言 signal_fire state（服务端
 // 状态，与 vanilla 一致）。
-// 不测移除干草块后 signal_fire 复位 false：与"放置触发"对称，updatePostPlacement(Down) 在 hay→air
-// 时 _isHayBlock false → signal_fire=false，但为控制测试数量，本文件仅覆盖"放置干草块→signal_fire=true"
-// 核心分支（双向复位逻辑相同路径，已由该测试间接验证 _isHayBlock 判定）。
-// TODO: 如需完整双向覆盖，可补 campfire_signal_fire_clears_when_hay_removed 测试。
+// 反向复位（移除干草块→signal_fire=false）由 campfire_signal_fire_clears_when_hay_removed 覆盖，
+// 与"放置触发"对称走同一条 updatePostPlacement(Down) 路径，构成双向覆盖。
 //
 // 跨服务端：signal_fire state 名两端一致（signal_fire，Java 式 bool），下方干草块触发判定两端一致，
 // 可跨服务端对比。getState("signal_fire") 用 as any 绕过 BlockStateSuperset 白名单（同栅栏/树叶范式）。
@@ -126,6 +124,42 @@ function campfireSignalFireWhenHayBelow(test: Test): void {
   });
 }
 
+// 营火信号火复位 GameTest：营火下方干草块被移除（设 air）时 signal_fire state 复位 false。
+//
+// 与 campfire_signal_fire_when_hay_below 对称，走同一条 updatePostPlacement(Down) 路径的复位分支：
+// hay_block→air 真实变化派发邻居更新 → 营火 updatePostPlacement(Down, air) → _isHayBlock false →
+// signal_fire=false（CampfireBlock.cpp:140-144，signalFire 与当前不一致则 with(SIGNAL_FIRE,false)）。
+//
+// 布局：(3,2,1) 营火 + (3,1,1) 干草块（先放使 signal_fire=true），再 (3,1,1) 设 air 移除干草块。
+// air 放置向 Up 邻居营火派发 updatePostPlacement(Down) → _isHayBlock false → signal_fire=false。
+//
+// 判定：succeedWhen 轮询营火 signal_fire === false（干草块移除后复位）。
+// 区域限定同 campfire_signal_fire_when_hay_below（仅断言 (3,2,1) 单格 state，无 getEntities 污染）。
+function campfireSignalFireClearsWhenHayRemoved(test: Test): void {
+  // (3,2,1) 放营火（signal_fire=false），(3,1,1) 放干草块 → 营火 signal_fire=true。
+  test.setBlockType("minecraft:campfire", { x: 3, y: 2, z: 1 });
+  test.setBlockType("minecraft:hay_block", { x: 3, y: 1, z: 1 });
+
+  // 等一拍确保 signal_fire=true 已生效（干草块放置触发 updatePostPlacement 同步写，留余量防时序）。
+  test.runAtTickTime(2, () => {
+    const block = test.getBlock({ x: 3, y: 2, z: 1 });
+    const signalFire = block?.permutation?.getState("signal_fire" as any);
+    test.assert(signalFire === true,
+      `campfire signal_fire should be true before hay removal, got ${signalFire}`);
+    // (3,1,1) 设 air 移除干草块 → 营火 updatePostPlacement(Down, air) → _isHayBlock false → signal_fire=false。
+    test.setBlockType("minecraft:air", { x: 3, y: 1, z: 1 });
+  });
+
+  // 断言营火 (3,2,1) signal_fire 复位 false。updatePostPlacement 同步，succeedWhen 每 tick 检查。
+  test.succeedWhen(() => {
+    const block = test.getBlock({ x: 3, y: 2, z: 1 });
+    test.assert(block !== undefined, "campfire block disappeared");
+    const signalFire = block?.permutation?.getState("signal_fire" as any);
+    test.assert(signalFire === false,
+      `campfire signal_fire should be false after hay removed, got ${signalFire}`);
+  });
+}
+
 export function registerCampfireTests(): void {
   GameTest.register("BlockBehaviorTests", "campfire_damages_entity_on_top", campfireDamagesEntityOnTop)
     .structureName("gametests:glass_pit")
@@ -133,4 +167,7 @@ export function registerCampfireTests(): void {
   GameTest.register("BlockBehaviorTests", "campfire_signal_fire_when_hay_below", campfireSignalFireWhenHayBelow)
     .structureName("gametests:glass_pit")
     .maxTicks(60);
+  GameTest.register("BlockBehaviorTests", "campfire_signal_fire_clears_when_hay_removed", campfireSignalFireClearsWhenHayRemoved)
+    .structureName("gametests:glass_pit")
+    .maxTicks(80);
 }
