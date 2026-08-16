@@ -49,6 +49,7 @@ import { registerDaylightDetectorTests } from "./tests/redstone/DaylightDetector
 import { registerRepeaterTests } from "./tests/redstone/RepeaterTests.js";
 import { registerComparatorTests } from "./tests/redstone/ComparatorTests.js";
 import { registerNoteBlockTests } from "./tests/redstone/NoteBlockTests.js";
+import { registerActivatorRailTests } from "./tests/redstone/ActivatorRailTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerPaneConnectionTests } from "./tests/decorative/PaneConnectionTests.js";
 import { registerLanternTests } from "./tests/decorative/LanternTests.js";
@@ -124,6 +125,7 @@ registerDaylightDetectorTests();
 registerRepeaterTests();
 registerComparatorTests();
 registerNoteBlockTests();
+registerActivatorRailTests();
 registerCampfireTests();
 registerPaneConnectionTests();
 registerLanternTests();
