@@ -10,9 +10,11 @@
 import "./gametest-shim.js";
 
 import { registerLiquidTests } from "./tests/liquid/LiquidTests.js";
+import { registerWaterLavaInteractionTests } from "./tests/liquid/WaterLavaInteractionTests.js";
 import { registerSpongeTests } from "./tests/special/SpongeTests.js";
 import { registerFarmlandTests } from "./tests/agricultural/FarmlandTests.js";
 import { registerBoneMealTests } from "./tests/agricultural/BoneMealTests.js";
+import { registerCropBoneMealTests } from "./tests/agricultural/CropBoneMealTests.js";
 import { registerConcretePowderTests } from "./tests/building/ConcretePowderTests.js";
 import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js";
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
@@ -26,13 +28,16 @@ import { registerHoneyBlockTests } from "./tests/special/HoneyBlockTests.js";
 import { registerHayBlockTests } from "./tests/special/HayBlockTests.js";
 import { registerWitherRoseTests } from "./tests/vegetation/WitherRoseTests.js";
 import { registerSweetBerryBushTests } from "./tests/vegetation/SweetBerryBushTests.js";
+import { registerLeavesDistanceTests } from "./tests/vegetation/LeavesDistanceTests.js";
 import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTests.js";
 import { registerAnvilTests } from "./tests/functional/AnvilTests.js";
 
 registerLiquidTests();
+registerWaterLavaInteractionTests();
 registerSpongeTests();
 registerFarmlandTests();
 registerBoneMealTests();
+registerCropBoneMealTests();
 registerConcretePowderTests();
 registerFallingBlockTests();
 registerCoralTests();
@@ -46,5 +51,6 @@ registerHoneyBlockTests();
 registerHayBlockTests();
 registerWitherRoseTests();
 registerSweetBerryBushTests();
+registerLeavesDistanceTests();
 registerPointedDripstoneTests();
 registerAnvilTests();
