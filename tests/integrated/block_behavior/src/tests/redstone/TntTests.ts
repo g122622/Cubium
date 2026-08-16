@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack, Direction } from "@minecraft/server";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
 // y=0 为 glass 底（满铺 49 glass），y=1..2 为玻璃墙围出的内部 air 空腔，y=3..4 air+顶部框架。
@@ -45,8 +46,52 @@ function tntPrimesWhenLavaAdjacent(test: Test): void {
   test.succeedWhenBlockPresent("minecraft:tnt", { x: 3, y: 1, z: 2 }, false);
 }
 
+// 用打火石右键 TNT 激活引信，原方块消失并生成被激活的 TNT 实体（wiki tech_TNT.txt#用途：可用打火石
+// 或火焰弹激活 TNT）。
+//
+// C++ 链路：TNTBlock::onBlockActivated（TNTBlock.cpp:137-190）：手持打火石（Items::FLINT_AND_STEEL）
+// 或火焰弹（Items::FIRE_CHARGE）→ prime(world, pos, &player)（生成 TNTEntity + 引信 80tick）→
+// setBlockState(pos, nullptr, 11) 移除 TNT 方块 → 打火石 hurtAndBreak 消耗耐久（创造不消耗）→ Success。
+// 非打火石/火焰弹返 Pass。prime 受 tntExplodes 游戏规则守卫（默认 true）。
+//
+// 派发链路：打火石 useItemOnBlock ① onBlockActivated（isFlintAndSteel → prime+移除+Success 短路），
+// 不进 ② fallback。
+//
+// 关键约束：
+// 1. TNT 放 (3,2,1)（air 层），无熔岩/火/红石邻居 → onBlockAdded 不 prime（hasFire/hasPower 均假），
+//    TNT 稳定存在。再用打火石激活。
+// 2. 打火石用 new ItemStack("minecraft:flint_and_steel", 1)（耐久 64，创造模式 hurtAndBreak 不消耗）。
+// 3. useItemOnBlock 传 Direction.Up（点击 TNT 顶面），onBlockActivated 不检查 face。
+// 4. prime 成功同步移除 TNT 方块（同调用栈），succeedWhenBlockPresent 断言 TNT 格消失。
+//    maxTicks=30 < 引信 80，爆炸在断言后发生，不干扰判定。
+//
+// 判定手段：放 TNT (3,2,1) → 打火石 useItemOnBlock → onBlockActivated prime+移除 → TNT 方块消失。
+// 注意：TNT 实体生成后约 80 tick 爆炸，爆炸可能波及 glass_pit 局部，但不影响已完成的方块消失断言。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_TNT.txt#用途（打火石/火焰弹激活 TNT）
+function tntPrimesWhenIgnitedByFlintAndSteel(test: Test): void {
+  // (3,2,1) 放 TNT（air 层无危险源，onBlockAdded 不 prime，稳定存在）。
+  test.setBlockType("minecraft:tnt", { x: 3, y: 2, z: 1 });
+
+  const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+  const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
+
+  // 对 TNT useItemOnBlock 打火石 → onBlockActivated isFlintAndSteel → prime+setBlockState(null)+Success。
+  const used = farmer.useItemOnBlock(
+    flintAndSteel as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
+    { x: 3, y: 2, z: 1 },
+    Direction.Up,
+  );
+  test.assert(used, "useItemOnBlock should return true when igniting TNT with flint and steel");
+
+  // 断言 TNT 格 (3,2,1) TNT 已被点燃消失（同 tick 同步）。maxTicks=30 < 引信 80，爆炸在断言后发生。
+  test.succeedWhenBlockPresent("minecraft:tnt", { x: 3, y: 2, z: 1 }, false);
+}
+
 export function registerTntTests(): void {
   GameTest.register("BlockBehaviorTests", "tnt_primes_when_lava_adjacent", tntPrimesWhenLavaAdjacent)
+    .structureName("gametests:glass_pit")
+    .maxTicks(30);
+  GameTest.register("BlockBehaviorTests", "tnt_primes_when_ignited_by_flint_and_steel", tntPrimesWhenIgnitedByFlintAndSteel)
     .structureName("gametests:glass_pit")
     .maxTicks(30);
 }
