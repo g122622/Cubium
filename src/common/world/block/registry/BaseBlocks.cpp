@@ -38,6 +38,7 @@
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/block/blocks/redstone/RedstoneBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/fluid/FluidRegistry.hpp"
@@ -383,7 +384,11 @@ void registerBaseBlocks()
         ResourceLocation("minecraft:lapis_block"), BlockProperties(Material::IRON).hardness(3.0f).resistance(3.0f));
     BaseBlocks::EMERALD_BLOCK = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:emerald_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
-    BaseBlocks::REDSTONE_BLOCK = &registry.registerBlock<SimpleBlock>(
+    // 红石块须注册为 RedstoneBlock（而非 SimpleBlock）才能输出强度 15 的红石信号（getWeakPower/
+    // getStrongPower 全向返回 MAX_POWER）。此前误注册为 SimpleBlock 导致其 getBlock() 返回基类、
+    // 虚函数分发到 Block::getWeakPower 默认实现返回 0，红石块实际不供电——无法激活相邻红石灯等
+    // 机械元件。RedstoneBlock.hpp/.cpp 此前为死代码，本次启用。
+    BaseBlocks::REDSTONE_BLOCK = &registry.registerBlock<blocks::RedstoneBlock>(
         ResourceLocation("minecraft:redstone_block"), BlockProperties(Material::IRON).hardness(5.0f).resistance(6.0f));
     BaseBlocks::NETHERITE_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:netherite_block"),
         BlockProperties(Material::IRON)
