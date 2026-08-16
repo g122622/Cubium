@@ -12,6 +12,7 @@
 export {};
 
 declare module "@minecraft/server-gametest" {
+    import type { Vector3 } from "@minecraft/server";
     interface RegistrationBuilder {
         /**
          * 声明测试结构需要露天/天空光照进入（对齐 Java GameTest TestData.skyAccess）。
@@ -24,6 +25,32 @@ declare module "@minecraft/server-gametest" {
          * @returns RegistrationBuilder（链式）
          */
         skyAccess(skyAccess: boolean): RegistrationBuilder;
+    }
+
+    interface Test {
+        /**
+         * 按 typeId + 属性字符串设带 block state 的方块。Cubium 专有方法（官方基岩 BDS Test 无）。
+         *
+         * 绑定：ScriptTestHelper.cpp:264 注册，转调 GameTestHelper::setBlockWithStates
+         * （GameTestHelper.cpp:346-380）。statesStr 解析为 unordered_map<string,string>，
+         * 格式 "prop=value" 或 "p1=v1,p2=v2"（如 "age=3"、"lit=true,candles=4"）。
+         * 未知属性名静默忽略（容错）；非法值抛 GameTestError。updateFlags 默认 3
+         * （NOTIFY | NEIGHBOR，与 setBlockType flags=3 一致，触发 onBlockAdded + 邻居更新）。
+         *
+         * 用于放置带特定 state 的方块（点燃熔炉、满能量重生锚、4根蜡烛、下半砖、含水树叶等），
+         * 弥补 setBlockType 只能放默认 state 的不足。
+         *
+         * @param blockType 方块 typeId（如 "minecraft:furnace"）
+         * @param blockLocation 结构相对坐标 {x,y,z}
+         * @param statesStr 属性字符串 "p1=v1,p2=v2"
+         * @param updateFlags 更新标志位（默认 3 = NOTIFY | NEIGHBOR）
+         */
+        setBlockWithStates(
+            blockType: string,
+            blockLocation: Vector3,
+            statesStr: string,
+            updateFlags?: number,
+        ): void;
     }
 }
 

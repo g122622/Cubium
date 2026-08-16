@@ -11,6 +11,16 @@
 //     bogged 燃 + wither_skeleton 免疫），本包不重复。雪/冰融化依赖 randomTick（概率事件，跨两端
 //     flaky），其光照前提（blockLight>=12）已被衰减测试确定性覆盖，故不单独写 flaky 融化测试。
 //
+// 不写「天空光散射」测试（water/lava/ice/leaves 散射）的设计决策：
+//   wiki「散射」（tech_亮度.txt#散射，JE 专有）：天空光向下穿过散射方块（Leaves/Ice/Water/Lava/含水）
+//   减1，即散射方块自身 skyLight=14、下方=13。Cubium 走 StarLight 算法实现散射的方式是
+//   "opacity>0 的格子垂直列 break + 水平 flood-fill 衰减 max(1,opacity)"，与 vanilla 散射语义是不同
+//   抽象层次，导致系统性偏差：water(opacity=0)不衰减→自身15/下方15（vanilla 应14/13）；ice(opacity=2)
+//   →自身13/下方14（vanilla 应14/13，方向相反）；仅 lava(opacity=1)巧合接近 14/13。此外 water/lava
+//   是流体，放置后流动会污染探针点（lava 流到探针格使其 skyLight 在 13/14 间非确定波动）。综上，
+//   散射行为既与 vanilla 不一致（按准则不为偏差写测试），又对流体系非确定，故不写散射测试。
+//   TODO: 待 Cubium 实现真正的 vanilla 散射语义（散射方块穿过统一减1，与 opacity 解耦）后补充。
+//
 // 跨服务端：blockLight/skyLight/brightness/canSeeSky 是 Cubium 专有，基岩 BDS 的 Block 无此属性（读得
 // undefined→-1）。故本包测试在基岩端归类为 one-sided（仅 Cubium 跑），不参与基岩对比的双向判定。
 
@@ -21,13 +31,23 @@ import "./gametest-shim.js";
 
 // BlockLightEmissionTests 在模块加载时即注册（registerEmissionTest 顶层调用），无 export，副作用 import。
 import "./tests/core/BlockLightEmissionTests.js";
+// ExtraEmissionTests 同设计：registerExtraEmissionTest 顶层调用注册紫晶簇系列发光方块，无 export，副作用 import。
+import "./tests/core/ExtraEmissionTests.js";
 
 import { registerBlockLightPropagationTests } from "./tests/core/BlockLightPropagationTests.js";
 import { registerSkyLightTests } from "./tests/core/SkyLightTests.js";
 import { registerBlockChangeRelightTests } from "./tests/core/BlockChangeRelightTests.js";
 import { registerBrightnessTests } from "./tests/core/BrightnessTests.js";
+import { registerOpacityBlockLightTests } from "./tests/core/OpacityBlockLightTests.js";
+import { registerShapeOcclusionSkyLightTests } from "./tests/core/ShapeOcclusionSkyLightTests.js";
+import { registerSkyLightColumnDepthTests } from "./tests/core/SkyLightColumnDepthTests.js";
+import { registerDynamicEmissionTests } from "./tests/core/DynamicEmissionTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
 registerBlockChangeRelightTests();
 registerBrightnessTests();
+registerOpacityBlockLightTests();
+registerShapeOcclusionSkyLightTests();
+registerSkyLightColumnDepthTests();
+registerDynamicEmissionTests();
