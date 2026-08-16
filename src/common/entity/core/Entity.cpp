@@ -1231,17 +1231,28 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
         // X轴碰撞，清零X速度
         m_builtIn.velocity->m_velocity.x = 0.0f;
     }
-    if (std::abs(desiredMovement.y - actualMovement.y) > math::EPSILON_COLLISION) {
-        // Y轴碰撞，清零Y速度
-        m_builtIn.velocity->m_velocity.y = 0.0f;
-    }
     if (std::abs(desiredMovement.z - actualMovement.z) > math::EPSILON_COLLISION) {
         // Z轴碰撞，清零Z速度
         m_builtIn.velocity->m_velocity.z = 0.0f;
     }
+    // Y轴：对齐 vanilla Entity.move（Entity.java:740-770）。vanilla 的 move 从不在 Y 碰撞时
+    // 无条件清零 Y 速度，而是调用 Block.updateEntityMovementAfterFallOn 让方块决定 Y 速度
+    // （SlimeBlock 反弹取反为正、普通方块 super 归零）。Cubium 的 onLanded
+    // （doBlockCollisionsAfterMove 内 :1424）对应此回调。此前此处无条件清零 Y 速度，导致
+    // onLanded 被调用时 velocity.y 已为 0，SlimeBlock::onLanded 的 `velocity.y < 0` 反弹条件
+    // 永不成立（粘液块不弹跳）。修复：Y 碰撞时不在 onLanded 之前清零，先调
+    // doBlockCollisionsAfterMove→onLanded（用未清零的下落速度反弹）；onLanded 后若 velocity.y
+    // 仍为下落（<0，普通方块未反弹）才清零，反弹的正速度（SlimeBlock）保留。
+    bool yCollision = std::abs(desiredMovement.y - actualMovement.y) > math::EPSILON_COLLISION;
 
-    // 方块碰撞回调
+    // 方块碰撞回调（含 onLanded，对齐 vanilla updateEntityMovementAfterFallOn，在 Y 速度清零前调用）
     doBlockCollisionsAfterMove(actualMovement, desiredMovement);
+
+    // onLanded 之后的 Y 速度收尾：Y 碰撞且 onLanded 未把 velocity.y 改为正（普通方块未反弹）时清零。
+    // SlimeBlock::onLanded 已 setVelocity(vx, -vy*bounceFactor, vz) 把 Y 改为正（反弹），此处保留。
+    if (yCollision && m_builtIn.velocity->m_velocity.y < 0.0f) {
+        m_builtIn.velocity->m_velocity.y = 0.0f;
+    }
 
     // 更新摔落距离并处理摔落伤害
     updateFallDistance();

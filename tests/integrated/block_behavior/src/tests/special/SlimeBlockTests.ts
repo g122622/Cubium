@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // mediumglass 结构尺寸 12×9×11（helper 相对坐标 x∈[0,11], y∈[0,8], z∈[0,10]）。
 // y=0 为 cobblestone 实心底，y=1..7 为玻璃墙围出的内部 air 空腔（x∈[2,10], z∈[2,10]），
@@ -103,11 +104,88 @@ function stoneBlockDealsFallDamage(test: Test): void {
   });
 }
 
+// 粘液块弹跳反弹 GameTest：猪从高处落到粘液块上后 Y 速度取反反弹，弹起高度接近原落差。
+//
+// C++ 链路：SlimeBlock::onLanded（SlimeBlock.cpp:48-74）。Entity::updateFallDistance
+// （Entity.cpp）着地时调 _handleLandingOnBlock → Block::onLanded。SlimeBlock 重写 onLanded：
+// 非潜行且 vy<0 时，LivingEntity 系数 1.0，setVelocity(vx, -vy*1.0, vz) 反弹 Y 速度。
+// 对比 Block::onLanded 默认实现仅 Y 速度归零（不反弹）。此前 slime_block 注册为 SimpleBlock
+// 走基类 onLanded（不反弹，猪落地即停），SlimeBlock::onLanded 沦为死代码——本次修复
+// （NaturalBlocks.cpp 改 registerBlock<blocks::SlimeBlock>）后弹跳启用。
+// 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
+// （LivingEntity 系数 1.0：vec3.y<0 时 setDeltaMovement(x, -y*1.0, z)）
+//
+// 落差设计：复用 mediumglass 玻璃管（与 slimeBlockPreventsFallDamage 同结构）。粘液块放
+// (6,1,6)（y=1 空腔底层，下方 y=0 cobble 支撑），猪 spawn (6,7,6)，落差 5 格。自由落体 5 格
+// 落地 vy≈-0.88（重力 0.08/tick，约 11 tick），反弹系数 1.0 → vy≈+0.88，弹起高度 vy²/(2g)≈4.8 格，
+// 从粘液块顶（相对 y=2）弹到相对 y≈6.8（接近 spawn 点 y=7）。
+//
+// 判定手段：pollUntilSucceed 密集轮询（startTick=15 落地反弹后，interval=2 捕获弹起峰值，
+// maxTick=100 留衰减余量）检查猪世界 y 曾 > spawn 世界 y - 1.5（即弹起到接近 spawn 高度）。
+// SimpleBlock 不弹跳则猪落地停在粘液块顶（相对 y≈2-3，世界 y 远低于 spawn-1.5），永不满足→超时 FAIL。
+// SlimeBlock 弹跳则首次反弹即满足→succeed。区域限定用 mediumglass 12×9×11 排除并行测试污染。
+// 落地+反弹是确定性物理时序（重力 + AABB，零随机），非 flaky。
+function slimeBlockBouncesEntityUpward(test: Test): void {
+  const pigType = "pig";
+
+  // (6,1,6) 放粘液块（y=1 空腔底层，下方 y=0 cobble 实心支撑）。
+  test.setBlockType("minecraft:slime_block", { x: 6, y: 1, z: 6 });
+
+  // 1×1 玻璃管：围 (6,*,6) 垂直路径 y=2..7 四周 glass，限制猪垂直弹跳防 AI 乱跑。
+  for (const y of [2, 3, 4, 5, 6, 7]) {
+    test.setBlockType("minecraft:glass", { x: 5, y, z: 6 });
+    test.setBlockType("minecraft:glass", { x: 7, y, z: 6 });
+    test.setBlockType("minecraft:glass", { x: 6, y, z: 5 });
+    test.setBlockType("minecraft:glass", { x: 6, y, z: 7 });
+  }
+
+  // 猪 spawn 于 (6,7,6)（粘液块正上方 5 格），自由落体到粘液块顶面后反弹。
+  test.spawn(pigType, { x: 6, y: 7, z: 6 });
+
+  // spawn 世界 y（相对 y=7 转世界坐标），反弹阈值 = spawnY - 1.5（弹起到接近 spawn 高度即满足）。
+  const spawnWorldY = test.worldLocation({ x: 6, y: 7, z: 6 }).y;
+  const bounceThreshold = spawnWorldY - 1.5;
+
+  // 密集轮询：落地反弹约在 spawn 后 11+ tick，startTick=15 留落地余量；interval=2 捕获弹起峰值
+  // （反弹上升仅约 12 tick 即达峰值，interval 过大会错过峰值）；maxTick=100 留多次衰减弹跳余量。
+  let maxY = -Infinity;
+  pollUntilSucceed(
+    test,
+    () => {
+      const pigs = test.getDimension().getEntities({
+        type: pigType,
+        location: test.worldLocation(MED_FROM),
+        volume: MED_VOLUME,
+      });
+      if (pigs.length === 0) {
+        return false;
+      }
+      const y = pigs[0].location.y;
+      if (y > maxY) {
+        maxY = y;
+      }
+      // 猪世界 y 超过反弹阈值即证明弹跳生效（SimpleBlock 不弹则猪停在粘液块顶 y≈落地点，远低于阈值）。
+      return y > bounceThreshold;
+    },
+    {
+      startTick: 15,
+      interval: 2,
+      maxTick: 100,
+      onTimeout: () => {
+        test.assert(false, `pig did not bounce upward on slime block (onLanded not rebounding), spawnY=${spawnWorldY}, threshold=${bounceThreshold}, maxYReached=${maxY}`);
+      },
+    },
+  );
+}
+
 export function registerSlimeBlockTests(): void {
   GameTest.register("BlockBehaviorTests", "slime_block_prevents_fall_damage", slimeBlockPreventsFallDamage)
     .structureName("gametests:mediumglass")
     .maxTicks(200);
   GameTest.register("BlockBehaviorTests", "stone_block_deals_fall_damage", stoneBlockDealsFallDamage)
+    .structureName("gametests:mediumglass")
+    .maxTicks(200);
+  GameTest.register("BlockBehaviorTests", "slime_block_bounces_entity_upward", slimeBlockBouncesEntityUpward)
     .structureName("gametests:mediumglass")
     .maxTicks(200);
 }
