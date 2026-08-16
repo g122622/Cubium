@@ -18,6 +18,7 @@ import { registerCropBoneMealTests } from "./tests/agricultural/CropBoneMealTest
 import { registerCocoaTests } from "./tests/agricultural/CocoaTests.js";
 import { registerPumpkinTests } from "./tests/agricultural/PumpkinTests.js";
 import { registerHoeTillTests } from "./tests/agricultural/HoeTillTests.js";
+import { registerAxeStripTests } from "./tests/building/AxeStripTests.js";
 import { registerConcretePowderTests } from "./tests/building/ConcretePowderTests.js";
 import { registerFenceConnectionTests } from "./tests/building/FenceConnectionTests.js";
 import { registerWallConnectionTests } from "./tests/building/WallConnectionTests.js";
@@ -87,6 +88,7 @@ registerCropBoneMealTests();
 registerCocoaTests();
 registerPumpkinTests();
 registerHoeTillTests();
+registerAxeStripTests();
 registerConcretePowderTests();
 registerFenceConnectionTests();
 registerWallConnectionTests();
