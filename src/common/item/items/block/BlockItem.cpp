@@ -197,10 +197,22 @@ BlockItemUseContext BlockItem::getBlockItemUseContext(BlockItemUseContext& conte
     return context;
 }
 
-const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& /* context */) const
+const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& context) const
 {
-    // 默认实现返回方块的默认状态
-    // 子类可以重写以支持有方向的方块（如楼梯、门等）
+    // 委托给方块侧 Block::getStateForPlacement（对齐 vanilla BlockItem.getPlacementState →
+    // block.getStateForPlacement）。方块可在 Block::getStateForPlacement override 中实现上下文感知的
+    // 放置状态计算（如 CandleBlock 同色蜡烛堆叠 CANDLES+1、BedBlock 朝向、楼梯朝向等）。
+    //
+    // Block::getStateForPlacement 返回 BlockState 值（其 stateId 指向注册表预计算状态）。此处将其规范化
+    // 为注册表持有的 canonical 指针后返回（对齐 ServerWorld::setBlockState 的 canonicalize 范式），
+    // 避免返回栈上临时值的指针。若方块侧返回的 state 不在注册表中（理论上不应发生），回退默认状态。
+    //
+    // m_block 是 const Block* 成员，Block::getStateForPlacement 非 const（部分 override 会读 world 但
+    // 不改 block 自身），此处 const_cast 仅用于满足签名，不破坏逻辑不变量。
+    BlockState placed = const_cast<Block&>(*m_block).getStateForPlacement(const_cast<BlockItemUseContext&>(context));
+    if (BlockState* canonical = Block::getBlockState(placed.stateId())) {
+        return canonical;
+    }
     return &m_block->defaultState();
 }
 

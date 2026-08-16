@@ -66,6 +66,7 @@ import { registerCauldronTests } from "./tests/functional/CauldronTests.js";
 import { registerLecternTests } from "./tests/functional/LecternTests.js";
 import { registerJukeboxTests } from "./tests/functional/JukeboxTests.js";
 import { registerFlowerPotTests } from "./tests/decorative/FlowerPotTests.js";
+import { registerCandleTests } from "./tests/decorative/CandleTests.js";
 import { registerCakeTests } from "./tests/functional/CakeTests.js";
 
 registerLiquidTests();
@@ -125,4 +126,5 @@ registerCauldronTests();
 registerLecternTests();
 registerJukeboxTests();
 registerFlowerPotTests();
+registerCandleTests();
 registerCakeTests();

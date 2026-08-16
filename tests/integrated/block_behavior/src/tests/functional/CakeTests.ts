@@ -96,7 +96,7 @@ function cakeEatenWhenHungrySurvival(test: Test): void {
     test.assert(getCakeBites(test, 3, 2, 1) === 0, `cake bites should be 0 before, got ${getCakeBites(test, 3, 2, 1)}`);
 
     // 生存模式（gameMode=0）spawn，setFoodLevel(10) 使 foodLevel<20 可进食。
-    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0);
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0 as any);
     (farmer as any).setFoodLevel(10);
 
     const stick = new ItemStack("minecraft:stick", 1);
@@ -126,7 +126,7 @@ function cakeNotEatenWhenFullHunger(test: Test): void {
     test.assert(getCakeBites(test, 3, 2, 1) === 0, `cake bites should be 0 before, got ${getCakeBites(test, 3, 2, 1)}`);
 
     // 生存模式 setFoodLevel(20) 满饥饿 → canEat false。
-    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0);
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0 as any);
     (farmer as any).setFoodLevel(20);
 
     const stick = new ItemStack("minecraft:stick", 1);
@@ -182,7 +182,7 @@ function cakeRemovedAfterEatingAllSlices(test: Test): void {
     test.assert(getCakeBites(test, 3, 2, 1) === 0, `cake bites should be 0 before, got ${getCakeBites(test, 3, 2, 1)}`);
 
     // 生存模式 setFoodLevel(0)，确保连续 7 次吃 canEat 始终通过（每次+2，最多到 14<20）。
-    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0);
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer", 0 as any);
     (farmer as any).setFoodLevel(0);
 
     const stick = new ItemStack("minecraft:stick", 1);
