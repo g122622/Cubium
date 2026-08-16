@@ -22,6 +22,7 @@ import { registerWallConnectionTests } from "./tests/building/WallConnectionTest
 import { registerStairsTests } from "./tests/building/StairsTests.js";
 import { registerTrapdoorTests } from "./tests/building/TrapdoorTests.js";
 import { registerDoorTests } from "./tests/building/DoorTests.js";
+import { registerFenceGateTests } from "./tests/building/FenceGateTests.js";
 import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js";
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
 import { registerCactusTests } from "./tests/vegetation/CactusTests.js";
@@ -72,6 +73,7 @@ registerWallConnectionTests();
 registerStairsTests();
 registerTrapdoorTests();
 registerDoorTests();
+registerFenceGateTests();
 registerFallingBlockTests();
 registerCoralTests();
 registerCactusTests();
