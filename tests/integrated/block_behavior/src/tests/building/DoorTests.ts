@@ -19,11 +19,14 @@
 //
 // 测试用铁门（minecraft:iron_door）：纯红石控制（无手动交互歧义），木门红石路径与铁门等价。
 //
-// 测试覆盖（4 个场景，覆盖 wiki 红石开关+双半同步核心行为，可跨服务端对比）：
+// 测试覆盖（6 个场景，覆盖 wiki 红石开关+双半同步+木门手动开关核心行为）：
 //   1. 充能打开：铁门（默认 open=false）相邻放红石块 → OPEN 翻 true（充能打开）。
 //   2. 断电关闭：铁门已开（open=true），移除红石块 → OPEN 翻回 false（断电关闭）。
 //   3. 再次充能打开：承接场景 2 终态（open=false），再放红石块 → OPEN=true（可重复触发）。
 //   4. 双半同步：双半铁门充能后，下半与上半 OPEN 同步翻转（验证双半配对同步链路）。
+//   5. 木门手动打开：双半橡木门（open=false）+ interactWithBlock（空手右键）→ OPEN 翻 true（one-sided，
+//      依赖 Cubium 补全的 interactWithBlock 绑定）。
+//   6. 木门手动关闭：承接场景 5（open=true）+ 再次 interactWithBlock → OPEN 翻回 false（one-sided）。
 //
 // 关键约束：
 // 1. 门逻辑在 neighborChanged（电平触发），放/移红石块走 setBlockState flags=3 → 邻居门
@@ -37,7 +40,8 @@
 // 6. 场景 2/3 用 runAtTickTime 分阶段编排（先等打开稳定，再移除/重放红石块）。
 //
 // 不测「木门手动开关」：依赖 SimulatedPlayer interact（Cubium 为 stub），跳过。
-//   TODO: 待 interact 实现后补 wooden_door_toggles_on_player_interact。
+//   已补全 interactWithBlock 空手右键绑定（ScriptSimulatedPlayer.cpp），见下方
+//   wooden_door_toggles_open_on_interact / wooden_door_toggles_back_on_second_interact 场景。
 // 不测「hinge 左右差异」：hinge 计算依赖放置上下文（BlockItemUseContext），setBlockType 不触发，
 //   默认 Left，跳过。
 // 不测「含水（waterlogged）」：涉水流+含水 state，复杂，跳过。
@@ -51,6 +55,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { Direction } from "@minecraft/server";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
@@ -205,6 +210,67 @@ function doorHalvesSyncOpen(test: Test): void {
     );
 }
 
+// 放支撑 + 双半橡木门：(3,1,1) stone 支撑，(3,2,1) 木门下半（half=Lower 默认），(3,3,1) 木门上半（half=upper）。
+// 木门（minecraft:oak_door）可手动开关（onBlockActivated 非铁门 → toggleDoor），与铁门（仅红石）互补。
+function placeWoodenDoorSetup(test: Test): void {
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 }); // 支撑
+    test.setBlockType("minecraft:oak_door", { x: 3, y: 2, z: 1 }); // 下半（half=Lower 默认）
+    test.setBlockWithStates("minecraft:oak_door", { x: 3, y: 3, z: 1 }, "half=upper"); // 上半
+}
+
+// 场景 5：木门手动打开——双半橡木门（open=false）+ interactWithBlock（空手右键）→ OPEN 翻 true。
+//
+// 布局：双半橡木门（默认 open=false）。
+// interactWithBlock（空手右键）→ onBlockActivated：m_isIron=false（木门）→ toggleDoor(world, pos, !open=true)
+//   → setBlockState(下半 OPEN=true) + setBlockState(上半 OPEN=true) → Success。
+//
+// 判定：interactWithBlock 返 true（Success），下半 (3,2,1) open === true（木门被手动打开）。
+// one-sided：依赖 Cubium 补全的 interactWithBlock 绑定。基岩 BDS 该 API 行为需另行验证。
+function woodenDoorTogglesOpenOnInteract(test: Test): void {
+    placeWoodenDoorSetup(test);
+    test.assert(getDoorOpen(test, 3, 2, 1) === false, `wooden door open should be false before, got ${getDoorOpen(test, 3, 2, 1)}`);
+
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+
+    // interactWithBlock 空手右键木门下半 → onBlockActivated 非铁门 → toggleDoor(OPEN=true) → Success。
+    // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
+    const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
+        .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
+    test.assert(used, "interactWithBlock should return true when toggling wooden door open");
+
+    // 判定：下半 open === true（木门手动打开，toggleDoor 写回下半+上半 OPEN=true）。
+    test.assert(getDoorOpen(test, 3, 2, 1) === true, `wooden door open should be true after interact, got ${getDoorOpen(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
+// 场景 6：木门手动关闭——承接场景 5（open=true）+ 再次 interactWithBlock → OPEN 翻回 false。
+//
+// 布局：双半橡木门 open=true（先 interact 打开）。
+// 再次 interactWithBlock → onBlockActivated → toggleDoor(world, pos, !open=false) → OPEN=false → Success。
+//
+// 判定：第二次 interactWithBlock 返 true，下半 open === false（木门手动关闭）。
+function woodenDoorTogglesBackOnSecondInteract(test: Test): void {
+    placeWoodenDoorSetup(test);
+
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    const interact = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean });
+
+    // 第一次 interact 打开木门（open false→true）。
+    const firstUsed = interact.interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
+    test.assert(firstUsed, "first interact should return true when toggling wooden door open");
+    test.assert(getDoorOpen(test, 3, 2, 1) === true, `wooden door open should be true after first interact, got ${getDoorOpen(test, 3, 2, 1)}`);
+
+    // 第二次 interact 关闭木门（open true→false）。
+    const secondUsed = interact.interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
+    test.assert(secondUsed, "second interact should return true when toggling wooden door closed");
+
+    // 判定：下半 open === false（木门手动关闭，toggleDoor 翻转回 false）。
+    test.assert(getDoorOpen(test, 3, 2, 1) === false, `wooden door open should be false after second interact, got ${getDoorOpen(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerDoorTests(): void {
     GameTest.register("BlockBehaviorTests", "door_opens_when_powered", doorOpensWhenPowered)
         .structureName("gametests:glass_pit")
@@ -216,6 +282,12 @@ export function registerDoorTests(): void {
         .structureName("gametests:glass_pit")
         .maxTicks(120);
     GameTest.register("BlockBehaviorTests", "door_halves_sync_open", doorHalvesSyncOpen)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
+    GameTest.register("BlockBehaviorTests", "wooden_door_toggles_open_on_interact", woodenDoorTogglesOpenOnInteract)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
+    GameTest.register("BlockBehaviorTests", "wooden_door_toggles_back_on_second_interact", woodenDoorTogglesBackOnSecondInteract)
         .structureName("gametests:glass_pit")
         .maxTicks(80);
 }
