@@ -799,8 +799,19 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
             newBlock.onBlockAdded(*this, changedPos, *newState);
         }
 
-        // 新方块有方块实体时创建
-        if (!newIsAir && newState->getBlock().hasBlockEntity()) {
+        // 新方块有方块实体时创建。
+        //
+        // 必须带 blockTypeChanged 守卫：同方块的状态变化（如唱片机 has_record false→true、讲台
+        // has_book false→true、信标 beacon_level 变化等）blockTypeChanged=false，此时方块实体已存在
+        // 且可能已被本调用链上游修改（如 JukeboxBlock::onBlockActivated 先 setRecord 写入唱片再
+        // setBlockState 翻转 has_record）。若不带守卫，会 createBlockEntity 新建一个空实体覆盖掉
+        // 原实体，导致已写入的数据丢失（唱片机放唱片后实体唱片被清空，取唱片取不出——生产 bug）。
+        // 对齐 vanilla Level.setBlock：BlockEntity 仅在方块类型变化时由 onPlace 触发创建/迁移，
+        // 同方块状态变化保留原实体。
+        //
+        // shouldChangedStateKeepBlockEntity 迁移路径（铜箱子氧化/涂蜡等跨类型保留实体）仍走
+        // blockTypeChanged=true 分支，不受影响。
+        if (!newIsAir && blockTypeChanged && newState->getBlock().hasBlockEntity()) {
             Block& newBlock = newState->getBlockMutable();
 
             // 检查旧方块是否要求保留方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）
