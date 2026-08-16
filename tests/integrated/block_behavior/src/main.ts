@@ -61,6 +61,7 @@ import { registerMossTests } from "./tests/cave/MossTests.js";
 import { registerVineTests } from "./tests/vegetation/VineTests.js";
 import { registerAnvilTests } from "./tests/functional/AnvilTests.js";
 import { registerComposterTests } from "./tests/functional/ComposterTests.js";
+import { registerCauldronTests } from "./tests/functional/CauldronTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -114,3 +115,4 @@ registerMossTests();
 registerVineTests();
 registerAnvilTests();
 registerComposterTests();
+registerCauldronTests();
