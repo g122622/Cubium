@@ -38,6 +38,8 @@ import { registerSweetBerryBushTests } from "./tests/vegetation/SweetBerryBushTe
 import { registerLeavesDistanceTests } from "./tests/vegetation/LeavesDistanceTests.js";
 import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTests.js";
 import { registerSporeBlossomTests } from "./tests/cave/SporeBlossomTests.js";
+import { registerMossTests } from "./tests/cave/MossTests.js";
+import { registerVineTests } from "./tests/vegetation/VineTests.js";
 import { registerAnvilTests } from "./tests/functional/AnvilTests.js";
 
 registerLiquidTests();
@@ -69,4 +71,6 @@ registerSweetBerryBushTests();
 registerLeavesDistanceTests();
 registerPointedDripstoneTests();
 registerSporeBlossomTests();
+registerMossTests();
+registerVineTests();
 registerAnvilTests();
