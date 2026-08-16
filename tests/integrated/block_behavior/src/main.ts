@@ -80,6 +80,7 @@ import { registerRespawnAnchorTests } from "./tests/functional/RespawnAnchorTest
 import { registerDragonEggTests } from "./tests/end/DragonEggTests.js";
 import { registerBeehiveTests } from "./tests/mob/BeehiveTests.js";
 import { registerShovelTests } from "./tests/decorative/ShovelTests.js";
+import { registerCopperGolemStatueTests } from "./tests/copper/CopperGolemStatueTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -152,3 +153,4 @@ registerRespawnAnchorTests();
 registerDragonEggTests();
 registerBeehiveTests();
 registerShovelTests();
+registerCopperGolemStatueTests();
