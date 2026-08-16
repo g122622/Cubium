@@ -15,9 +15,11 @@
 //   - hasEntityOnPlate 用 0.125-0.875 x 0.0-0.25 检测框（对齐 wiki 检测框）。
 //   - 木类 calculateSignalStrength 探测所有实体；石类只探测 Mob/生物（对齐 wiki「石压力板只探测生物」）。
 //
-// 测试覆盖（2 个场景，覆盖 wiki 实体探测 + 木/石生物触发核心行为）：
+// 测试覆盖（4 个场景，覆盖 wiki 实体探测 + 木/石差异核心行为）：
 //   1. 木压力板被生物触发开启：猪站到木压力板上 → POWERED 翻 true（探测所有实体）。
 //   2. 石压力板被生物触发开启：猪站到石压力板上 → POWERED 翻 true（探测生物）。
+//   3. 木压力板被物品实体触发开启：物品落到木压力板上 → POWERED 翻 true（木类探测物品实体）。
+//   4. 石压力板不被物品触发：物品落到石压力板上 → POWERED 保持 false（石类不探测物品实体）。
 //
 // 关键约束：
 // 1. 压力板每 10gt 更新状态，实体站上去后最多 10gt 延迟才 POWERED=true，pollUntilSucceed 留足余量。
@@ -25,18 +27,10 @@
 //    实体 spawn (3,3,1) 落到压力板上方（实体脚进入检测框触发）。
 // 3. 压力板须放在「方块支撑形状上表面完整」的方块上方——(3,1,1) stone 提供支撑。
 // 4. 读 powered state 用 getState("powered" as any) 绕过白名单。
-//
-// 未覆盖（Cubium 缺陷，待修复后补回，见下方 TODO）：
-//   3. 木压力板被物品实体触发、石压力板不被物品触发（wiki 关键差异）。
-//
-// TODO: 物品实体触发木压力板是 wiki 明确行为（木压力板探测所有实体含物品），但 Cubium 当前
-//   ItemEntity::tick（ItemEntity.cpp:230）只调 Entity::baseTick() 不调 doBlockCollisions()，故物品
-//   实体永不触发任何方块的 onEntityCollision（含压力板、仙人掌、甜浆果灌木、火等）。这是系统性物理
-//   缺陷——vanilla Java ItemEntity 经继承链调 doBlockCollisions，物品实体应触发 onEntityCollision。
-//   修复需在 ItemEntity::tick 加 doBlockCollisions() 调用（参考 BoatEntity.cpp:238、
-//   ThrowableEntity.cpp:114 的手动调用模式），并审查全部 44 个 onEntityCollision 实现对 ItemEntity 的
-//   安全性（多数有 dynamic_cast<LivingEntity*> 守卫，对 ItemEntity 安全 return）。修复后补回
-//   wooden_pressure_plate_powers_when_item_dropped / stone_pressure_plate_ignores_item 两个测试。
+// 5. 物品实体用 test.spawnItem 生成（落在压力板检测框内触发木压力板）。
+//    物品须静止落到压力板检测框 (0.125,0,0.125)-(0.875,0.25,0.875) 内才触发——这依赖
+//    ItemEntity::tick 无条件调 doBlockCollisions()（见 ItemEntity.cpp:tick 注释），物品静止后仍每 tick
+//    触发 onEntityCollision，压力板才能探测到物品实体。
 //
 // 不测「测重压力板信号随实体数变化」：需精确控制多实体计数 + 信号强度断言，时序与计数非确定，跳过。
 //   TODO: 可补 weighted_pressure_plate_signal_scales_with_entity_count。
@@ -48,7 +42,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\block_压力板.txt#用途（探测实体，木=所有实体，石=仅生物）
 // Ref: AbstractPressurePlateBlock.cpp（onEntityCollision 调度 tick，calculateSignalStrength 木/石差异）
 // Ref: hasEntityOnPlate 检测框 (0.125,0,0.125)-(0.875,0.25,0.875) 对齐 wiki
-// Ref: ItemEntity.cpp:230/577（ItemEntity 不调 doBlockCollisions，物品不触发 onEntityCollision 缺陷）
+// Ref: ItemEntity.cpp:tick（无条件 doBlockCollisions，物品静止仍触发 onEntityCollision）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
@@ -128,6 +122,64 @@ function stonePressurePlatePowersWhenMobStands(test: Test): void {
     );
 }
 
+// 场景 3：木压力板被物品实体触发开启 → POWERED 翻 true（wiki 关键差异：木类探测物品实体）。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) 木压力板，spawnItem 在 (3.5,3,1.5) 生成物品落到压力板上方。
+// 物品自由落体落到压力板检测框 (0.125,0,0.125)-(0.875,0.25,0.875) 内 → ItemEntity::tick 无条件
+// doBlockCollisions → onEntityCollision 调度 tick → calculateSignalStrength（木类探测所有实体含物品，
+// 返回 15）→ powered=true。
+//
+// 判定：pollUntilSucceed 轮询 powered===true。物品有拾取延迟+下落+10gt 更新，留足余量。
+// spawnItem 签名：Cubium 是 (itemType: string, location)——简化实现（ScriptTestHelper.cpp:911-914），
+// 偏离官方基岩 (itemStack: ItemStack, location)。Cubium ItemStack JS 类未充实（空壳），故用字符串。
+// TODO: Cubium ItemStack JS 类充实后改回 ItemStack 对象以对齐官方签名。
+function woodenPressurePlatePowersWhenItemDropped(test: Test): void {
+    placePlateOnStone(test, "minecraft:oak_pressure_plate");
+
+    // spawnItem 在压力板上方生成物品实体（落在检测框内触发木压力板）。用 stone 物品（常见，无特殊行为）。
+    (test.spawnItem as any)("minecraft:stone", { x: 3.5, y: 3, z: 1.5 });
+
+    // 轮询断言 powered === true（木压力板探测物品实体）。startTick=10 留物品下落+压力板 10gt 更新余量。
+    pollUntilSucceed(
+        test,
+        () => getPlatePowered(test, 3, 2, 1) === true,
+        {
+            startTick: 10,
+            interval: 4,
+            maxTick: 60,
+            onTimeout: () => {
+                test.assert(false, `wooden pressure plate powered: should be true when item dropped on it, got ${getPlatePowered(test, 3, 2, 1)}`);
+            },
+        },
+    );
+}
+
+// 场景 4：石压力板不被物品触发（保持 false）——wiki 关键差异：石类只探测生物，不探测物品实体。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) 石压力板，spawnItem 在 (3.5,3,1.5) 生成物品落到压力板上方。
+// 物品落到石压力板检测框内 → onEntityCollision 调度 tick → calculateSignalStrength（石类只探测生物，
+// 物品非生物返回 0）→ powered 保持 false。
+//
+// 判定：不能用 pollUntilSucceed(powered===false)（首 tick 即满足，无法区分「保持 false」与「尚未触发」）。
+// 用显式多时间点断言：在压力板更新窗口后（tick 15，>10gt 更新周期）断言 powered 仍 false，tick 30 再断言。
+function stonePressurePlateIgnoresItem(test: Test): void {
+    placePlateOnStone(test, "minecraft:stone_pressure_plate");
+
+    // spawnItem 在石压力板上方生成物品实体（Cubium 字符串签名，见上方说明）。
+    (test.spawnItem as any)("minecraft:stone", { x: 3.5, y: 3, z: 1.5 });
+
+    // 石压力板不探测物品实体 → powered 保持 false。在压力板更新窗口后断言 powered 仍 false。
+    test.runAtTickTime(15, () => {
+        const powered = getPlatePowered(test, 3, 2, 1);
+        test.assert(powered === false, `stone pressure plate should ignore items (powered should stay false at tick 15), got powered=${powered}`);
+    });
+    test.runAtTickTime(30, () => {
+        const powered = getPlatePowered(test, 3, 2, 1);
+        test.assert(powered === false, `stone pressure plate should still ignore items at tick 30, got powered=${powered}`);
+        test.succeed();
+    });
+}
+
 export function registerPressurePlateTests(): void {
     GameTest.register("BlockBehaviorTests", "wooden_pressure_plate_powers_when_mob_stands", woodenPressurePlatePowersWhenMobStands)
         .structureName("gametests:glass_pit")
@@ -135,4 +187,10 @@ export function registerPressurePlateTests(): void {
     GameTest.register("BlockBehaviorTests", "stone_pressure_plate_powers_when_mob_stands", stonePressurePlatePowersWhenMobStands)
         .structureName("gametests:glass_pit")
         .maxTicks(100);
+    GameTest.register("BlockBehaviorTests", "wooden_pressure_plate_powers_when_item_dropped", woodenPressurePlatePowersWhenItemDropped)
+        .structureName("gametests:glass_pit")
+        .maxTicks(100);
+    GameTest.register("BlockBehaviorTests", "stone_pressure_plate_ignores_item", stonePressurePlateIgnoresItem)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
 }

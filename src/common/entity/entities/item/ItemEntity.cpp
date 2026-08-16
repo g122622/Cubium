@@ -261,6 +261,21 @@ void ItemEntity::tick()
     // 更新物理
     _updatePhysics();
 
+    // 触发方块碰撞：对齐 MC Java Entity.tick() 在移动后无条件调用 checkInsideBlocks()
+    // （即 doBlockCollisions()）的语义，使物品实体能触发所处方块的 onEntityCollision 回调
+    // （压力板探测、漏斗吸取、仙人掌/火/岩浆销毁物品、甜浆果丛等）。
+    //
+    // 为何不能依赖 Entity::move() 内部的 doBlockCollisions()（Entity.cpp:1172/1249）：
+    // ItemEntity::_updatePhysics() 仅在「速度>0.001 或不在地面」时才调 move（ItemEntity.cpp:502），
+    // 物品落地静止后跳过 move，于是 doBlockCollisions 不再被调用，导致静止物品永不触发
+    // onEntityCollision（压力板/漏斗失效）。vanilla Java 的 checkInsideBlocks 是每 tick 无条件执行，
+    // 与实体是否移动无关，故此处手动无条件调用，参照 BoatEntity.cpp:238、ThrowableEntity.cpp:114 的
+    // 手动调用模式。放 _updatePhysics() 之后，确保用最新位置/碰撞箱遍历方块。
+    //
+    // 注意：岩浆点燃/伤害由 LiquidBlock::onEntityCollision 统一处理（LiquidBlock.cpp:370-371），
+    // 不再在 _applyLavaPhysics 重复调用（见下 _applyLavaPhysics 注释）。
+    doBlockCollisions();
+
     // 更新合并检测
     _updateMerge();
 }
@@ -572,12 +587,12 @@ void ItemEntity::_applyLavaPhysics()
     m_builtIn.velocity->m_velocity.y *= 0.95f;
     m_builtIn.velocity->m_velocity.z *= 0.95f;
 
-    // 岩浆点燃和伤害
-    // 参考 MC Java: LavaFluid.entityInside() -> lavaIgnite() + lavaHurt()
-    // ItemEntity 不经过 Entity::tick() -> doBlockCollisions() 路径，
-    // 因此需要在此处手动调用岩浆点燃和伤害
-    lavaIgnite();
-    lavaHurt();
+    // 岩浆点燃和伤害：由 LiquidBlock::onEntityCollision 统一处理（LiquidBlock.cpp:370-371 调
+    // entity.lavaIgnite() + entity.lavaHurt()），对应 MC Java LavaFluid.entityInside()。
+    // 此前因 ItemEntity::tick 未调 doBlockCollisions()，岩浆方块碰撞回调无法触发，故在此手动补偿
+    // 调 lavaIgnite()/lavaHurt()。现 tick 已无条件调 doBlockCollisions()（见 ItemEntity::tick），
+    // 若保留此补偿会导致每 tick 双倍岩浆伤害（4+4=8，物品仅 5 生命，瞬间销毁，违反 vanilla），
+    // 故移除补偿，岩浆伤害完全交由 LiquidBlock::onEntityCollision 处理。
 }
 
 // ============================================================================

@@ -16,7 +16,9 @@
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp"        // applySpawnEvent 派发 rabbit killer 变种事件
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
 #include "common/entity/inventory/IInventory.hpp"                       // getItem/getContainerSize/isEmpty（容器断言）
-#include "common/item/core/ItemStack.hpp" // isSameItem（assertContainerContains 类型匹配）
+#include "common/entity/utils/ItemDropHelper.hpp" // ItemDropHelper::spawnItemEntity（spawnItemAt 生成物品实体）
+#include "common/item/core/Item.hpp"              // Item::getItem（spawnItemAt 解析 itemType 字符串）
+#include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -787,10 +789,40 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
 GameTestResult GameTestHelper::spawnItemAt(
     const std::string& itemType, const mc::math::Vector3d& position, mc::Entity*& outEntity)
 {
-    // TODO: 构造 ItemEntity 并按 position 放置（ItemEntity/ItemStack 体系就绪前 stub）
-    (void)itemType;
-    (void)position;
+    // 对齐基岩 Test.spawnItem(itemStack, location)：在指定位置生成物品实体。
+    // 基岩签名接受 ItemStack 对象，此处简化接受 itemType 字符串（ScriptTestHelper.spawnItem 委托此方法，
+    // 详见 ScriptTestHelper.cpp:911 注释），内部解析为 Item* 构造 ItemStack(count=1)，再委托
+    // ItemDropHelper::spawnItemEntity 生成 ItemEntity 并加入世界。
+    //
+    // 速度设 0（不施加掉落散射速度），让物品在原位垂直下落，便于测试精确判定落点（如压力板检测框）。
+    // pickupDelay 用默认值（DEFAULT_PICKUP_DELAY=10），避免物品生成瞬间被测试 SimulatedPlayer 拾取。
     outEntity = nullptr;
+
+    // 解析物品类型字符串 → Item*
+    const auto* item = mc::Item::getItem(mc::resource::ResourceLocation(itemType));
+    if (item == nullptr) {
+        return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Unknown item type '{0}'", {itemType}};
+    }
+
+    // 构造 ItemStack(count=1)
+    mc::ItemStack stack(item, 1);
+    if (stack.isEmpty()) {
+        return GameTestError{
+            GameTestErrorType::LevelStateModificationFailed, "Failed to build ItemStack for '{0}'", {itemType}};
+    }
+
+    // 委托 ItemDropHelper 生成物品实体（显式 0 速度，避免散射偏移落点）。
+    // position 是相对结构坐标（与 test.spawn 系列一致），先经 worldPosition 转世界绝对坐标。
+    const auto worldPos = worldPosition(position);
+    auto* itemEntity =
+        mc::ItemDropHelper::spawnItemEntity(&m_world, stack, worldPos.x, worldPos.y, worldPos.z, 0.0f, 0.0f, 0.0f);
+    if (itemEntity == nullptr) {
+        return GameTestError{GameTestErrorType::LevelStateModificationFailed,
+            "Failed to spawn item entity '{0}' at ({1}, {2}, {3})",
+            {itemType, std::to_string(position.x), std::to_string(position.y), std::to_string(position.z)}};
+    }
+
+    outEntity = itemEntity;
     return std::nullopt;
 }
 
