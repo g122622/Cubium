@@ -45,6 +45,7 @@
 #include "world/block/blocks/cave/RootedDirtBlock.hpp"
 #include "world/block/blocks/cave/SmallDripleafBlock.hpp"
 #include "world/block/blocks/cave/SporeBlossomBlock.hpp"
+#include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
@@ -235,7 +236,11 @@ void registerCaveBlocks()
             .soundType(BlockSoundTypes::MOSS));
 
     // 苔藓地毯 - 地毯类方块
-    CaveBlocks::MOSS_CARPET = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:moss_carpet"),
+    // 用 CarpetBlock（与普通羊毛地毯同类）：getShape 返回 1/16 薄板（SimpleBox，非 FullBlock），
+    // 使 Block::propagatesSkylightDown 默认公式得 true，对齐 vanilla MossyCarpetBlock#propagatesSkylightDown=true
+    // （苔藓地毯透传天空光，opacity=0）。此前误用 SimpleBlock（getShape=fullBlock）致默认公式得 false、
+    // 天空光被错误阻断。
+    CaveBlocks::MOSS_CARPET = &registry.registerBlock<blocks::CarpetBlock>(ResourceLocation("minecraft:moss_carpet"),
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()

@@ -265,6 +265,13 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:glass_pane"), BlockProperties(Material::GLASS).hardness(0.3f).notSolid());
 
     // 铁栏杆 - 含水方块
+    // TODO(光照): iron_bars 当前 material=IRON 致 isOpaque=true，getOpacity 直接返回 15（完全遮光），
+    //   与 vanilla 不符——vanilla iron_bars 注册时调用 noOcclusion() 使 canOcclude=false，
+    //   isSolidRender = canOcclude && !useShapeForLightOcclusion = false，故 getLightBlock 走
+    //   propagatesSkylightDown?0:1 分支，iron_bars 默认公式（getShape 为薄板非 full）得 true→opacity=0（透光）。
+    //   根因是 Cubium Block::isOpaque 基于 material 判定，与 vanilla isSolidRender 基于 canOcclude 判定语义错配。
+    //   修复需调整 isOpaque/isSolidRender 机制（影响所有方块光照遮挡判定），属独立的系统性修复，不在本次
+    //   propagatesSkylightDown 修复范围内。glass_pane/stained_glass_pane 因 material=GLASS(isOpaque=false) 不受影响。
     BuildingBlocks::IRON_BARS = &registry.registerBlock<blocks::PaneBlock>(
         ResourceLocation("minecraft:iron_bars"), BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f));
 
@@ -274,6 +281,12 @@ void registerBuildingBlocks()
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
 
     // 潜影盒（无色变体）
+    // TODO(光照): shulker_box material=WOOD 致 isOpaque=true，getOpacity 直接返回 15（完全遮光），与 vanilla 不符。
+    //   vanilla shulker_box 注册 noOcclusion() 使 canOcclude=false，isSolidRender=false，故 lightBlock 走
+    //   propagatesSkylightDown?0:1 分支；vanilla ShulkerBoxBlock override pSD=false → opacity=1（衰减1级）。
+    //   Cubium 因 isOpaque(material) 与 vanilla isSolidRender(canOcclude) 语义错配致 opacity=15。pSD 本身已对齐
+    //   （默认公式 fullBlock→false，=vanilla false），但被 isOpaque 短路未生效。根因与 iron_bars 同，
+    //   属 isOpaque/isSolidRender 机制独立系统性修复，不在本次 propagatesSkylightDown 范围内。
     BuildingBlocks::SHULKER_BOX =
         &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
             std::nullopt,

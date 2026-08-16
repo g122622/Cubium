@@ -237,6 +237,12 @@ void registerNaturalBlocks()
         ResourceLocation("minecraft:tall_seagrass"), BlockProperties(Material::SEA_GRASS).noCollision().notSolid());
 
     // 气泡柱与海龟蛋
+    // 气泡柱：水柱方块。opacity 显式设 0（透光），propagatesSkylightDown 显式设 true。
+    // TODO(光照): vanilla BubbleColumnBlock override getFluidState 返回水（Fluids.WATER），故其
+    //   propagatesSkylightDown 走默认公式得 false（含水不透天空光）。Cubium BubbleColumnBlock 未 override
+    //   getFluidState 返回水，若移除此处显式 .propagatesSkylightDown() 走默认公式会得 true（偏差）。
+    //   当前 opacity=0 显式设置使 getOpacity 走第二分支不调用 pSD，故 pSD 值不影响光照。完整对齐需
+    //   BubbleColumnBlock override getFluidState 返回水后再移除显式 pSD，属独立修复。
     NaturalBlocks::BUBBLE_COLUMN =
         &registry.registerBlock<blocks::BubbleColumnBlock>(ResourceLocation("minecraft:bubble_column"),
             BlockProperties(Material::WATER).noCollision().notSolid().opacity(0).propagatesSkylightDown());

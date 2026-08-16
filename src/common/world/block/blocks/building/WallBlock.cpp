@@ -67,30 +67,13 @@ std::map<Direction, VoxelShape> WallBlock::s_testShapesWall = {
 WallBlock::WallBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::UP())
-            .add(BlockStateProperties::WALL_HEIGHT_NORTH())
-            .add(BlockStateProperties::WALL_HEIGHT_EAST())
-            .add(BlockStateProperties::WALL_HEIGHT_SOUTH())
-            .add(BlockStateProperties::WALL_HEIGHT_WEST())
-            .add(BlockStateProperties::WATERLOGGED())
-            .create([](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::UP(), true)
-            .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::None)
-            .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
-            .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::None)
-            .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
-            .with(BlockStateProperties::WATERLOGGED(), false));
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // 回调 getShape。若 m_shapes 此时未填充，构造期取到的是默认构造的空 CollisionShape，
+    // 使光照判定依赖"空 shape 恰好非 full block"的脆弱巧合。先填 shape 再 createBlockState，
+    // 保证构造期 getShape 返回真实形状。对齐 PointedDripstoneBlock / AmethystClusterBlock
+    // 的正确构造顺序。
 
     constexpr f32 P = 1.0f / 16.0f;
     m_pillarShape = CollisionShape::box(4.0f * P, 0.0f, 4.0f * P, 12.0f * P, 16.0f * P, 12.0f * P);
@@ -144,6 +127,31 @@ WallBlock::WallBlock(const BlockProperties& properties)
             }
         }
     }
+
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::UP())
+            .add(BlockStateProperties::WALL_HEIGHT_NORTH())
+            .add(BlockStateProperties::WALL_HEIGHT_EAST())
+            .add(BlockStateProperties::WALL_HEIGHT_SOUTH())
+            .add(BlockStateProperties::WALL_HEIGHT_WEST())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::UP(), true)
+            .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 BlockState WallBlock::getStateForPlacement(BlockItemUseContext& context)

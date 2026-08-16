@@ -83,6 +83,17 @@ public:
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+    /**
+     * @brief 屏障透传天空光（对齐 vanilla BarrierBlock#propagatesSkylightDown）
+     *
+     * vanilla: `return state.getFluidState().isEmpty()`。屏障 getShape 虽是完整立方体，
+     * 但 vanilla 显式 override 使其透传天空光（无水时=true）。Cubium 默认公式会因
+     * getShape=fullBlock 得 false（错误），故此处 override 对齐 vanilla：
+     * 无水时透传（opacity=0），含水时阻断（opacity=1，对齐含水屏障）。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 };
 
 } // namespace blocks

@@ -67,6 +67,23 @@ StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properti
     : BushBlock(properties)
     , m_crop(crop)
 {
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // 回调 getShape。std::array::operator[] 虽不抛异常，但构造期取到的是默认构造的空
+    // CollisionShape，使光照判定依赖"空 shape 恰好非 full block"的脆弱巧合。先填 shape
+    // 再 createBlockState，保证构造期 getShape 返回真实形状。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序。
+
+    // 预计算各生长阶段的形状
+    // 茎是居中的小柱子，随年龄增长高度增加
+    constexpr f32 P = 1.0f / 16.0f;
+    constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
+
+    for (int i = 0; i < 8; ++i) {
+        // 茎是居中的 2x2 像素柱子
+        m_shapesByAge[i] = CollisionShape::box(7.0f * P, 0.0f, 7.0f * P, 9.0f * P, heights[i] * P, 9.0f * P);
+    }
 
     // 创建状态容器
     auto container =
@@ -83,16 +100,6 @@ StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properti
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
-
-    // 预计算各生长阶段的形状
-    // 茎是居中的小柱子，随年龄增长高度增加
-    constexpr f32 P = 1.0f / 16.0f;
-    constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
-
-    for (int i = 0; i < 8; ++i) {
-        // 茎是居中的 2x2 像素柱子
-        m_shapesByAge[i] = CollisionShape::box(7.0f * P, 0.0f, 7.0f * P, 9.0f * P, heights[i] * P, 9.0f * P);
-    }
 }
 
 i32 StemBlock::getAge(const BlockState& state) const
@@ -292,22 +299,13 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
     : BushBlock(properties)
     , m_crop(crop)
 {
-
-    // 创建状态容器
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::HORIZONTAL_FACING())
-            .create([](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    // 设置默认状态
-    setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // （此时本构造函数体尚未执行到此处）回调 getShape。若 m_shapesByDirection 此时为空，
+    // getShape 的 fallback（m_shapesByDirection.at(North)）会命中空 unordered_map 抛
+    // std::out_of_range("invalid unordered_map<K, T> key")。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序（先填 shape 再 createBlockState）。
 
     // 预计算各方向的形状
     // 形状从中心 (6, 0, 6) 延伸到对应方向的边缘，高度 10 像素
@@ -327,6 +325,22 @@ AttachedStemBlock::AttachedStemBlock(const StemGrownBlock* crop, const BlockProp
     // East: (6, 0, 6) -> (16, 10, 10)
     m_shapesByDirection[Direction::East] =
         CollisionShape::box(6.0f * P, 0.0f, 6.0f * P, 16.0f * P, 10.0f * P, 10.0f * P);
+
+    // 创建状态容器
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 }
 
 BlockState AttachedStemBlock::getStateForPlacement(BlockItemUseContext& context)

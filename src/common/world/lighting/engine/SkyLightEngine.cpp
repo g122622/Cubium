@@ -307,7 +307,14 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
 
     const BlockState* above = getBlockState(worldX, startY + 1, worldZ);
 
-    for (i32 currY = startY; currY >= (m_minLightSection << world::SECTION_SHIFT); --currY) {
+    // 注意：迭代使用 currY 而非 startY，循环结束后 currY 指向"无法继续向下传播的最高格"
+    // （即首个 opacity>0 / 形状遮挡 / 触底 的位置，或越过 minLightSection 后的 -1 行）。
+    // 该返回值被 propagateBlockChanges 用作 maxPropagationY，决定"移除下方 15 源"循环的起点；
+    // 若错误地返回入口 startY，会把刚入 increase 队列的遮挡格自身（旧值仍为 15）误入 decrease 队列，
+    // processDelayedDecreases 随即将其清 0，覆盖 processDelayedIncreases 设置的 15，导致透光方块
+    // （glass/leaves 等 opacity==0）放置后 skyLight 错误归零。对齐 Moonrise 的 startY 迭代语义。
+    i32 currY = startY;
+    for (; currY >= (m_minLightSection << world::SECTION_SHIFT); --currY) {
         if ((currY & world::CHUNK_MASK) == world::CHUNK_MASK) {
             // ensure this section is always checked
             checkNullSection(worldX >> world::CHUNK_SHIFT,
@@ -375,7 +382,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
         }
     }
 
-    return startY;
+    return currY;
 }
 
 void SkyStarLightEngine::processDelayedIncreases()

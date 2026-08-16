@@ -70,5 +70,15 @@ const fluid::FluidState* BarrierBlock::getFluidState(const BlockState& state) co
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+bool BarrierBlock::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 对齐 vanilla BarrierBlock#propagatesSkylightDown = state.getFluidState().isEmpty()。
+    // 屏障无水时透传天空光（opacity=0），含水时阻断（opacity=1）。
+    const fluid::FluidState* fluidState = getFluidState(state);
+    return fluidState == nullptr || fluidState->isEmpty();
+}
+
 } // namespace blocks
 } // namespace mc

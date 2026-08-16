@@ -55,6 +55,23 @@ CropBlock::CropBlock(const BlockProperties& properties, const IntegerProperty& a
     : BushBlock(properties)
     , m_ageProperty(ageProperty)
 {
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // 回调 getShape。std::array::operator[] 虽不抛异常，但构造期取到的是默认构造的空
+    // CollisionShape，使光照判定依赖"空 shape 恰好非 full block"的脆弱巧合。先填 shape
+    // 再 createBlockState，保证构造期 getShape 返回真实形状。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序。
+
+    // 预计算各生长阶段的形状
+    // 年龄0-7对应高度2/16到16/16
+    constexpr f32 P = 1.0f / 16.0f;
+    constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
+
+    for (i32 i = 0; i < 8; ++i) {
+        m_shapesByAge[i] = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, heights[i] * P, 16.0f * P);
+    }
+
     // 创建状态容器，注册年龄属性
     // 注意：不能在构造函数中调用虚方法 getAgeProperty()，因为 C++ 基类构造期间
     // 虚分派会解析到基类而非派生类。因此通过构造函数参数传入年龄属性。
@@ -72,15 +89,6 @@ CropBlock::CropBlock(const BlockProperties& properties, const IntegerProperty& a
 
     // 设置默认状态为 age=0
     setDefaultState(defaultState().with(m_ageProperty, 0));
-
-    // 预计算各生长阶段的形状
-    // 年龄0-7对应高度2/16到16/16
-    constexpr f32 P = 1.0f / 16.0f;
-    constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
-
-    for (i32 i = 0; i < 8; ++i) {
-        m_shapesByAge[i] = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, heights[i] * P, 16.0f * P);
-    }
 }
 
 // ========== 状态属性 ==========

@@ -118,6 +118,11 @@ const CollisionShape& tallShape(Direction direction)
 MossyCarpetBlock::MossyCarpetBlock(const BlockProperties& properties)
     : Block(properties)
 {
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
+    // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
+    // 构造期回调 getShape 需 m_shapes 已就绪，否则依赖空 shape 的脆弱巧合。
+    _initShapes();
+
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::BOTTOM())
@@ -140,8 +145,6 @@ MossyCarpetBlock::MossyCarpetBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WALL_HEIGHT_EAST(), WallHeight::None)
             .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), WallHeight::None)
             .with(BlockStateProperties::WALL_HEIGHT_WEST(), WallHeight::None));
-
-    _initShapes();
 }
 
 const EnumProperty<MossyCarpetBlock::WallHeight>& MossyCarpetBlock::_propertyForDirection(Direction direction)

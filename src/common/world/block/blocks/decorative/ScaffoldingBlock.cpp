@@ -69,28 +69,9 @@ static constexpr f32 BOTTOM_Y_MAX = 2.0f / 16.0f;
 ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 创建状态容器
-    // DISTANCE 属性范围是 0-7
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::DISTANCE_0_7())
-            .add(BlockStateProperties::WATERLOGGED())
-            .add(BlockStateProperties::BOTTOM())
-            .create([this](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    // 设置默认状态: distance=7, waterlogged=false, bottom=false
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::DISTANCE_0_7(), 7)
-            .with(BlockStateProperties::WATERLOGGED(), false)
-            .with(BlockStateProperties::BOTTOM(), false));
-
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
+    // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
+    // 构造期回调 getShape 需 m_topShape/m_fullShape 等已就绪，否则依赖空 shape 的脆弱巧合。
     // 创建形状
     // 顶部平台：边框形状 (field_220121_d)
     // 四个角的支柱 + 顶部边缘
@@ -113,6 +94,28 @@ ScaffoldingBlock::ScaffoldingBlock(const BlockProperties& properties)
 
     // 空形状用于碰撞检测
     m_emptyShape = CollisionShape::empty();
+
+    // 创建状态容器
+    // DISTANCE 属性范围是 0-7
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::DISTANCE_0_7())
+            .add(BlockStateProperties::WATERLOGGED())
+            .add(BlockStateProperties::BOTTOM())
+            .create([this](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    // 设置默认状态: distance=7, waterlogged=false, bottom=false
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::DISTANCE_0_7(), 7)
+            .with(BlockStateProperties::WATERLOGGED(), false)
+            .with(BlockStateProperties::BOTTOM(), false));
 }
 
 BlockState ScaffoldingBlock::getStateForPlacement(BlockItemUseContext& context)

@@ -84,6 +84,22 @@ public:
     }
 
     /**
+     * @brief 紫颂植物不透传天空光（对齐 vanilla PipeBlock#propagatesSkylightDown=false）
+     *
+     * vanilla PipeBlock（紫颂植物基类）显式 override 返回 false。紫颂植物 getShape 虽是
+     * SimpleBox（非完整立方体），默认公式会得 true（错误），故 override 对齐 vanilla：
+     * 不透传天空光，opacity=1（衰减 1 级）。
+     */
+    [[nodiscard]] bool propagatesSkylightDown(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return false;
+    }
+
+    /**
      * @brief 根据连接状态计算形状索引
      *
      * 使用位掩码：Down=1, Up=2, North=4, South=8, West=16, East=32

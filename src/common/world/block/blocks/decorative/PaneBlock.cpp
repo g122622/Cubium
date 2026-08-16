@@ -47,31 +47,6 @@ namespace blocks {
 PaneBlock::PaneBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    // 创建状态容器
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::NORTH())
-            .add(BlockStateProperties::EAST())
-            .add(BlockStateProperties::SOUTH())
-            .add(BlockStateProperties::WEST())
-            .add(BlockStateProperties::WATERLOGGED())
-            .create([this](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    // 设置默认状态
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::NORTH(), false)
-            .with(BlockStateProperties::EAST(), false)
-            .with(BlockStateProperties::SOUTH(), false)
-            .with(BlockStateProperties::WEST(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false));
-
     constexpr f32 P = 1.0f / 16.0f;
 
     // 中心柱：2x16x2 像素
@@ -116,6 +91,31 @@ PaneBlock::PaneBlock(const BlockProperties& properties)
             }
         }
     }
+
+    // 创建状态容器
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::NORTH())
+            .add(BlockStateProperties::EAST())
+            .add(BlockStateProperties::SOUTH())
+            .add(BlockStateProperties::WEST())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    // 设置默认状态
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::NORTH(), false)
+            .with(BlockStateProperties::EAST(), false)
+            .with(BlockStateProperties::SOUTH(), false)
+            .with(BlockStateProperties::WEST(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 BlockState PaneBlock::getStateForPlacement(BlockItemUseContext& context)

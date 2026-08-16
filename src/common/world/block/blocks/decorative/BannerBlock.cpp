@@ -155,6 +155,21 @@ const CollisionShape& StandingBannerBlock::getShape(const BlockState& state) con
 WallBannerBlock::WallBannerBlock(const BlockProperties& properties, DyeColor color)
     : AbstractBannerBlock(properties, color)
 {
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // （此时本构造函数体尚未执行到此处）回调 getShape。若 m_shapesByDirection 此时为空，
+    // getShape 的 fallback（m_shapesByDirection.at(North)）会命中空 unordered_map 抛
+    // std::out_of_range("invalid unordered_map<K, T> key")。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序（先填 shape 再 createBlockState）。
+
+    // 各方向碰撞形状（贴墙薄板）
+    // 旗帜面宽度16，高度12.5，厚度2
+    m_shapesByDirection[Direction::North] = CollisionShape::box(0.0, 0.0, 14.0 / 16.0, 1.0, 12.5 / 16.0, 1.0);
+    m_shapesByDirection[Direction::South] = CollisionShape::box(0.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 2.0 / 16.0);
+    m_shapesByDirection[Direction::West] = CollisionShape::box(14.0 / 16.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 1.0);
+    m_shapesByDirection[Direction::East] = CollisionShape::box(0.0, 0.0, 0.0, 2.0 / 16.0, 12.5 / 16.0, 1.0);
+
     // vanilla 1.21.11 WallBannerBlock 仅有 facing 属性（无 waterlogged）
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -169,13 +184,6 @@ WallBannerBlock::WallBannerBlock(const BlockProperties& properties, DyeColor col
     createBlockState(std::move(container));
 
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
-
-    // 各方向碰撞形状（贴墙薄板）
-    // 旗帜面宽度16，高度12.5，厚度2
-    m_shapesByDirection[Direction::North] = CollisionShape::box(0.0, 0.0, 14.0 / 16.0, 1.0, 12.5 / 16.0, 1.0);
-    m_shapesByDirection[Direction::South] = CollisionShape::box(0.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 2.0 / 16.0);
-    m_shapesByDirection[Direction::West] = CollisionShape::box(14.0 / 16.0, 0.0, 0.0, 1.0, 12.5 / 16.0, 1.0);
-    m_shapesByDirection[Direction::East] = CollisionShape::box(0.0, 0.0, 0.0, 2.0 / 16.0, 12.5 / 16.0, 1.0);
 }
 
 BlockState WallBannerBlock::getStateForPlacement(BlockItemUseContext& context)

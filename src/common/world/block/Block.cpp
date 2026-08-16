@@ -221,6 +221,7 @@ Block::Block(BlockProperties properties)
     , m_isSolid(properties.m_isSolid)
     , m_isFlammable(properties.m_isFlammable)
     , m_propagatesSkylightDown(properties.m_propagatesSkylightDown)
+    , m_propagatesSkylightDownExplicit(properties.m_propagatesSkylightDownExplicit)
     , m_requiresTool(properties.m_requiresTool)
     , m_isReplaceable(properties.m_isReplaceable)
     , m_ticksRandomly(properties.m_ticksRandomly)
@@ -419,11 +420,33 @@ i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* po
 
 bool Block::propagatesSkylightDown(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
-    (void)state;
     (void)world;
     (void)pos;
-    // 默认返回属性值
-    return m_propagatesSkylightDown;
+    // 显式设置优先：注册时调用过 BlockProperties::propagatesSkylightDown() 的方块（如冰、玻璃、
+    // 苍穹光透传方块）直接返回显式值，不走默认公式。
+    if (m_propagatesSkylightDownExplicit) {
+        return m_propagatesSkylightDown;
+    }
+
+    // 对齐 vanilla BlockBehaviour#propagatesSkylightDown 默认实现：
+    //   !Block.isShapeFullBlock(state.getShape(EmptyBlockGetter, ZERO)) && state.getFluidState().isEmpty()
+    // 即"碰撞/遮挡形状非完整立方体 且 无流体"时透传天空光（propagatesSkylightDown=true）。
+    //
+    // Cubium 用 getOcclusionShape 而非 getShape：vanilla 的 getShape 在 noCollission 方块上返回空形状
+    // （hasCollision ? blockShape : empty），而 Cubium 的 getShape 默认返回 fullBlock（不看碰撞），
+    // 与 vanilla 语义不符。Cubium 的 getOcclusionShape 在透光/非碰撞方块上返回空（如花草、栅栏），
+    // 更接近 vanilla getShape 的光照语义。CollisionShape::isFullBlock() 等价于 vanilla isShapeFullBlock
+    // 对 FullBlock 类型的判定。
+    //
+    // 流体判定：getFluidState 返回指针可能为 nullptr（无流体状态）或 EmptyFluid（isEmpty=true），
+    // 两者均视为"无流体"→透传。含水方块（如含水栅栏）getFluidState 返回水→isEmpty=false→不透传，
+    // 对齐 vanilla CrossCollisionBlock/WallBlock 的 !WATERLOGGED 语义。
+    const CollisionShape& shape = getOcclusionShape(state);
+    if (shape.isFullBlock()) {
+        return false;
+    }
+    const fluid::FluidState* fluidState = getFluidState(state);
+    return fluidState == nullptr || fluidState->isEmpty();
 }
 
 const fluid::FluidState* Block::getFluidState(const BlockState& state) const

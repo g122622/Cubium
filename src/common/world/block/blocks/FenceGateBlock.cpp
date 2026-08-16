@@ -53,27 +53,14 @@ namespace blocks {
 FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     : Block(properties)
 {
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(BlockStateProperties::HORIZONTAL_FACING())
-            .add(BlockStateProperties::OPEN())
-            .add(BlockStateProperties::IN_WALL())
-            .add(BlockStateProperties::POWERED())
-            .create([](const Block& block,
-                        std::vector<size_t> values,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    setDefaultState(defaultState()
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
-            .with(BlockStateProperties::OPEN(), false)
-            .with(BlockStateProperties::IN_WALL(), false)
-            .with(BlockStateProperties::POWERED(), false));
-
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // 回调 getShape（FenceGateBlock 重写了 getOcclusionShape，访问 m_closedShapes 等成员）。
+    // 若这些成员此时未填充，构造期取到的是默认构造的空 CollisionShape，使光照判定依赖
+    // "空 shape 恰好非 full block"的脆弱巧合。先填 shape 再 createBlockState，保证构造期
+    // getShape/getOcclusionShape 返回真实形状。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序。
     m_closedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 1.0f, 0.5625f);
     m_openShape = VoxelShapes::empty();
     m_inWallClosedShape = VoxelShapes::cube(0.0f, 0.0f, 0.4375f, 1.0f, 0.8125f, 0.5625f);
@@ -95,6 +82,27 @@ FenceGateBlock::FenceGateBlock(const BlockProperties& properties)
     m_openShapes[static_cast<size_t>(Direction::West)] = m_openShape;
     m_inWallClosedShapes[static_cast<size_t>(Direction::West)] =
         VoxelShapes::cube(0.4375f, 0.0f, 0.0f, 0.5625f, 0.8125f, 1.0f);
+
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::HORIZONTAL_FACING())
+            .add(BlockStateProperties::OPEN())
+            .add(BlockStateProperties::IN_WALL())
+            .add(BlockStateProperties::POWERED())
+            .create([](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    setDefaultState(defaultState()
+            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+            .with(BlockStateProperties::OPEN(), false)
+            .with(BlockStateProperties::IN_WALL(), false)
+            .with(BlockStateProperties::POWERED(), false));
 }
 
 BlockState FenceGateBlock::getStateForPlacement(BlockItemUseContext& context)

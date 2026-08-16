@@ -54,6 +54,15 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
     : Block(properties)
 {
 
+    // 仙人掌形状：稍小的方块
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
+    // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
+    // 构造期回调 getShape 需 m_shapesByAge 已就绪，否则依赖空 shape 的脆弱巧合。
+    CollisionShape cactusShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
+    for (std::size_t i = 0; i < m_shapesByAge.size(); ++i) {
+        m_shapesByAge[i] = cactusShape;
+    }
+
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -69,12 +78,6 @@ CactusBlock::CactusBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::AGE_0_15(), 0));
-
-    // 仙人掌形状：稍小的方块
-    CollisionShape cactusShape = CollisionShape::box(0.0625f, 0.0f, 0.0625f, 0.9375f, 1.0f, 0.9375f);
-    for (std::size_t i = 0; i < m_shapesByAge.size(); ++i) {
-        m_shapesByAge[i] = cactusShape;
-    }
 }
 
 // ========== 状态属性 ==========

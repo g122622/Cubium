@@ -69,6 +69,15 @@ namespace {
 CocoaBlock::CocoaBlock(const BlockProperties& properties)
     : HorizontalBlock(properties)
 {
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充。
+    // 原因：createBlockState 会为每个 BlockState 调用 _cacheProperties，其中
+    // getOpacity→propagatesSkylightDown→getOcclusionShape→getShape 会在 BlockState 构造期
+    // 回调 getShape。若 m_shapesByDirectionAndAge 此时未填充，构造期取到的是默认构造的空
+    // CollisionShape，使光照判定依赖"空 shape 恰好非 full block"的脆弱巧合。先填 shape
+    // 再 createBlockState，保证构造期 getShape 返回真实形状。对齐 PointedDripstoneBlock /
+    // AmethystClusterBlock 的正确构造顺序。
+    _initShapes();
+
     // 创建状态容器，添加 AGE 属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).add(AGE()).create(
         [](const Block& block,
@@ -80,9 +89,6 @@ CocoaBlock::CocoaBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState().with(FACING(), Direction::North).with(AGE(), 0));
-
-    // 初始化形状
-    _initShapes();
 }
 
 i32 CocoaBlock::getAge(const BlockState& state) const

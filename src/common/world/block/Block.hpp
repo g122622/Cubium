@@ -272,6 +272,7 @@ public:
     BlockProperties& propagatesSkylightDown(bool value = true) noexcept
     {
         m_propagatesSkylightDown = value;
+        m_propagatesSkylightDownExplicit = true;
         return *this;
     }
 
@@ -520,6 +521,7 @@ private:
     bool m_isReplaceable;
     i32 m_opacity = 15; // 默认完全不透明
     bool m_propagatesSkylightDown = false;
+    bool m_propagatesSkylightDownExplicit = false; // 是否显式设置过 propagatesSkylightDown（区分显式值与默认哨兵）
     u8 m_harvestTool = HarvestTool::None;
     i32 m_harvestLevel = 0;
     std::string m_lootTableId;
@@ -2335,6 +2337,7 @@ protected:
     bool m_isSolid = true;
     bool m_isFlammable = false;
     bool m_propagatesSkylightDown = false;
+    bool m_propagatesSkylightDownExplicit = false; // 是否显式设置过 propagatesSkylightDown（区分显式值与默认哨兵）
     bool m_requiresTool = false;
     bool m_isReplaceable = false; // 是否可被替换
     bool m_ticksRandomly = false; // 是否响应随机刻

@@ -89,3 +89,65 @@ export function pollUntilSucceed(test: Test, condition: () => boolean, opts: Pol
     });
   }
 }
+
+export interface WaitForConditionOptions {
+  /** 首次检查的 tick（测试开始后），默认 10。须 >=1。 */
+  startTick?: number;
+  /** 检查间隔（tick），默认 4。 */
+  interval?: number;
+  /** 超时 tick：超过此 tick 仍未满足调 onTimeout。应 <= 测试 maxTicks。 */
+  maxTick: number;
+  /** 超时时调用，通常 test.assert(false, "清晰错误信息")。 */
+  onTimeout: () => void;
+}
+
+/**
+ * 等待 condition 返回 true 后调 onReady()，超时调 onTimeout()。
+ *
+ * 与 pollUntilSucceed 的区别：本函数满足条件后**不终止测试**（不调 succeed），而是调 onReady
+ * 触发下一阶段（如多步光照测试：第一阶段等"放光源后邻格亮"→onReady 里移除光源→第二阶段等"邻格变暗"→
+ * onReady 里 succeed）。用于需要严格时序分阶段、每阶段都等待光照重算稳定的场景。
+ *
+ * 同样采用预注册检查点（不递归），规避 runAtTickTime 遍历期间 vector 扩容的迭代器失效问题。
+ *
+ * @param test GameTest Test 对象
+ * @param condition 条件谓词，返回 true 表示满足（将调 onReady）。内部 try/catch 兜底，异常视为"未满足"。
+ * @param onReady 条件满足时调用（如触发下一阶段方块变更或 test.succeed）。
+ * @param opts 轮询参数
+ */
+export function waitForCondition(
+  test: Test,
+  condition: () => boolean,
+  onReady: () => void,
+  opts: WaitForConditionOptions,
+): void {
+  const startTick = opts.startTick ?? 10;
+  const interval = opts.interval ?? 4;
+  const maxTick = opts.maxTick;
+
+  const ticks: number[] = [];
+  for (let t = startTick; t < maxTick; t += interval) {
+    ticks.push(t);
+  }
+  ticks.push(maxTick);
+  const lastTick = ticks[ticks.length - 1];
+
+  for (const tick of ticks) {
+    const isLast = tick === lastTick;
+    test.runAtTickTime(tick, () => {
+      let satisfied = false;
+      try {
+        satisfied = condition();
+      } catch {
+        satisfied = false;
+      }
+      if (satisfied) {
+        onReady();
+        return;
+      }
+      if (isLast) {
+        opts.onTimeout();
+      }
+    });
+  }
+}

@@ -46,6 +46,25 @@ CakeBlock::CakeBlock(const BlockProperties& properties)
     : Block(properties)
 {
 
+    // 预计算各片数的形状
+    // 【构造顺序约束】shape 容器必须在 createBlockState 之前填充（详见其它方块注释）：
+    // createBlockState 触发 _cacheProperties→propagatesSkylightDown→getOcclusionShape→getShape，
+    // 构造期回调 getShape 需 m_shapesByBites 已就绪，否则依赖空 shape 的脆弱巧合。
+    // 蛋糕从左侧开始吃，每吃一片减少2像素宽度
+    // SHAPES[0] = (1,0,1)->(15,8,15) 完整蛋糕
+    // SHAPES[1] = (3,0,1)->(15,8,15) 吃了1片
+    // SHAPES[2] = (5,0,1)->(15,8,15) 吃了2片
+    // ...
+    // SHAPES[6] = (13,0,1)->(15,8,15) 吃了6片（最后一片）
+    constexpr f32 P = 1.0f / 16.0f;
+    constexpr i32 startX[] = {1, 3, 5, 7, 9, 11, 13};
+
+    for (i32 i = 0; i < 7; ++i) {
+        // 从左侧开始吃，每片增加2像素起始X位置
+        m_shapesByBites[i] =
+            CollisionShape::box(static_cast<f32>(startX[i]) * P, 0.0f, 1.0f * P, 15.0f * P, 8.0f * P, 15.0f * P);
+    }
+
     // 创建状态容器
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -61,22 +80,6 @@ CakeBlock::CakeBlock(const BlockProperties& properties)
 
     // 设置默认状态
     setDefaultState(defaultState().with(BlockStateProperties::BITES_0_6(), 0));
-
-    // 预计算各片数的形状
-    // 蛋糕从左侧开始吃，每吃一片减少2像素宽度
-    // SHAPES[0] = (1,0,1)->(15,8,15) 完整蛋糕
-    // SHAPES[1] = (3,0,1)->(15,8,15) 吃了1片
-    // SHAPES[2] = (5,0,1)->(15,8,15) 吃了2片
-    // ...
-    // SHAPES[6] = (13,0,1)->(15,8,15) 吃了6片（最后一片）
-    constexpr f32 P = 1.0f / 16.0f;
-    constexpr i32 startX[] = {1, 3, 5, 7, 9, 11, 13};
-
-    for (i32 i = 0; i < 7; ++i) {
-        // 从左侧开始吃，每片增加2像素起始X位置
-        m_shapesByBites[i] =
-            CollisionShape::box(static_cast<f32>(startX[i]) * P, 0.0f, 1.0f * P, 15.0f * P, 8.0f * P, 15.0f * P);
-    }
 }
 
 BlockState CakeBlock::getStateForPlacement(BlockItemUseContext& context)
