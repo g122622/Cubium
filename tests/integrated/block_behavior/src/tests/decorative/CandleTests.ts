@@ -3,8 +3,8 @@
 // wiki 行为（vanilla CandleBlock / AbstractCandleBlock，1.21.11）：
 //   - 蜡烛默认 lit=false，可用打火石/火焰弹点燃（lit=true），点燃时发光（3×CANDLES 等级）。
 //   - 含水蜡烛（waterlogged=true）不可点燃（打火石 onItemUse 检查 WATERLOGGED 返 Fail）。
-//   - 空手右键已点燃蜡烛可熄灭（lit→false），但 GameTest 脚本 useItemOnBlock 强制要 ItemStack 形参，
-//     无法模拟空手，故空手熄灭不在本组测试覆盖（TODO: 待空手点击 API 打通后补）。
+//   - 空手右键已点燃蜡烛可熄灭（lit→false）。已补全 interactWithBlock 空手右键绑定
+//     （ScriptSimulatedPlayer.cpp），见下方 candle_extinguished_by_empty_hand 场景。
 //   - 同色蜡烛可堆叠：对已有蜡烛位置 useItemOnBlock 蜡烛物品，getStateForPlacement 检测已有同类型
 //     → CANDLES 递增（1→2→3→4，满 4 不再增）。
 //   - 投掷物（燃烧的箭）击中可点燃（onProjectileHit），本组不测（涉投射物非确定性）。
@@ -21,9 +21,10 @@
 //   fallback onItemUse）。蜡烛 onBlockActivated 对打火石返 Pass（非空手熄灭条件），fallback 到打火石
 //   onItemUse 点燃。创造模式打火石不消耗（useItemOnBlock 第331行 isCreative 守卫），可重复使用。
 //
-// 测试覆盖（2 个场景，覆盖 wiki 打火石点燃 + 同色蜡烛堆叠核心确定行为）：
+// 测试覆盖（3 个场景，覆盖 wiki 打火石点燃 + 同色蜡烛堆叠 + 空手熄灭核心确定行为）：
 //   1. 打火石点燃蜡烛：放蜡烛（lit=false）+ 打火石 useItemOnBlock → lit=true，返 true。
 //   2. 蜡烛堆叠：连续 3 次 useItemOnBlock 蜡烛物品 → CANDLES 1→2→3→4。
+//   3. 空手熄灭：先打火石点燃蜡烛（lit=true）+ interactWithBlock（空手右键）→ lit=false，返 true（one-sided）。
 //
 // 关键约束：
 // 1. 蜡烛需 solid 下方（isValidPosition 检查 canSupportCenter(below, UP)）——(3,1,1) stone 支撑 +
@@ -34,7 +35,8 @@
 //    蜡烛 → CANDLES+1）。连续点击同位置堆叠。
 // 5. 堆叠场景 SimulatedPlayer 默认创造，蜡烛物品不消耗，可连续 3 次堆叠到 CANDLES=4。
 //
-// 不测「空手熄灭」：useItemOnBlock 强制要 ItemStack，无法模拟空手。TODO: 待空手点击 API 打通后补。
+// 不测「空手熄灭」：useItemOnBlock 强制要 ItemStack，无法模拟空手。已补全 interactWithBlock
+//   空手右键绑定（ScriptSimulatedPlayer.cpp），见下方 candle_extinguished_by_empty_hand 场景。
 // 不测「含水蜡烛无法点燃」：构造含水蜡烛需 setBlockWithStates 或水流交互，脚本侧无可靠 API，
 //   跳过。TODO: 待含水方块状态可控后补。
 // 不测「投掷物点燃」：涉投射物非确定性，跳过。
@@ -142,6 +144,47 @@ function candleStacksUpToFour(test: Test): void {
     test.succeed();
 }
 
+// 场景 3：空手熄灭——先打火石点燃蜡烛（lit=true）+ interactWithBlock（空手右键）→ lit=false，返 true。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) 蜡烛，先打火石点燃（lit=true），再空手右键熄灭。
+// 打火石 useItemOnBlock → onBlockActivated 非空手 Pass → fallback 打火石 onItemUse 点燃 lit=true。
+// interactWithBlock（空手右键）→ onBlockActivated：heldItem 空手 + mayBuild(创造 true) + isLit →
+//   extinguish(lit→false) → Success。
+//
+// 判定：先断言 lit===true（打火石点燃），再 interactWithBlock 返 true，lit===false（空手熄灭）。
+// one-sided：依赖 Cubium 补全的 interactWithBlock 绑定。
+function candleExtinguishedByEmptyHand(test: Test): void {
+    placeCandle(test);
+    test.assert(getCandleLit(test, 3, 2, 1) === false, `candle lit should be false before, got ${getCandleLit(test, 3, 2, 1)}`);
+
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+
+    // 第一步：打火石点燃蜡烛（lit false→true）。
+    const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
+    const litUsed = farmer.useItemOnBlock(
+        flintAndSteel as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
+        { x: 3, y: 2, z: 1 },
+        Direction.Up,
+    );
+    test.assert(litUsed, "useItemOnBlock should return true when lighting candle with flint and steel");
+    test.assert(getCandleLit(test, 3, 2, 1) === true, `candle lit should be true after lighting, got ${getCandleLit(test, 3, 2, 1)}`);
+
+    // 第二步：interactWithBlock 空手右键点燃的蜡烛 → onBlockActivated 空手+mayBuild+isLit → extinguish → Success。
+    // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
+    // 注意：interactWithBlock 内部不 setItem，但打火石点燃已把选中槽设为打火石（useItemOnBlock 设入），
+    //   故空手 interactWithBlock 会读到选中槽的打火石（非空手），onBlockActivated heldItem.isEmpty() 为 false
+    //   不触发熄灭！需用新 spawn 的 SimulatedPlayer（选中槽为空）确保空手。
+    const extinguisher = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "extinguisher");
+    const used = (extinguisher as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
+        .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
+    test.assert(used, "interactWithBlock should return true when extinguishing lit candle with empty hand");
+
+    // 判定：lit === false（空手熄灭点燃的蜡烛）。
+    test.assert(getCandleLit(test, 3, 2, 1) === false, `candle lit should be false after extinguish, got ${getCandleLit(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerCandleTests(): void {
     GameTest.register("BlockBehaviorTests", "candle_lit_by_flint_and_steel", candleLitByFlintAndSteel)
         .structureName("gametests:glass_pit")
@@ -149,4 +192,7 @@ export function registerCandleTests(): void {
     GameTest.register("BlockBehaviorTests", "candle_stacks_up_to_four", candleStacksUpToFour)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "candle_extinguished_by_empty_hand", candleExtinguishedByEmptyHand)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
 }
