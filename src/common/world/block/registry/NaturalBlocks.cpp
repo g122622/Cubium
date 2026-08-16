@@ -50,6 +50,8 @@
 #include "world/block/blocks/ocean/SeaPickleBlock.hpp"
 #include "world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "world/block/blocks/ocean/TallSeagrassBlock.hpp"
+#include "world/block/blocks/special/HoneyBlock.hpp"
+#include "world/block/blocks/special/SlimeBlock.hpp"
 #include "world/block/blocks/special/WebBlock.hpp"
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
@@ -171,12 +173,23 @@ void registerNaturalBlocks()
                 .propagatesSkylightDown()
                 .slipperiness(physics::SLIPPERINESS_ICE));
 
-    // 粘液块
-    NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<SimpleBlock>(
+    // 粘液块。须注册为 blocks::SlimeBlock（而非 SimpleBlock）才能启用弹跳（onLanded 反弹 Y 速度）、
+    // 摔落免疫（onFallenUpon multiplier=0.0）、活塞粘连（isStickyBlock/canStickTo）与滑度 0.8
+    // （构造函数设 m_slipperiness=SLIPPERINESS_SLIME）。此前误注册为 SimpleBlock 致上述虚函数分发到
+    // Block 基类默认实现（getSlipperiness 返回 0.6、onFallenUpon multiplier=1.0 施加完整摔落伤害、
+    // isStickyBlock 返回 false），SlimeBlock 子类沦为死代码——与红石块（BaseBlocks.cpp）同模式缺陷。
+    // 参考: net.minecraft.world.level.block.SlimeBlock
+    NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<blocks::SlimeBlock>(
         ResourceLocation("minecraft:slime_block"), BlockProperties(Material::SLIME).hardness(0.0f));
 
-    // 蜂蜜块
-    NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<SimpleBlock>(
+    // 蜂蜜块。须注册为 blocks::HoneyBlock（而非 SimpleBlock）才能启用摔落减伤（onFallenUpon
+    // multiplier=0.2）、不弹跳着地（onLanded Y 速度归零）、减速（onEntityCollision 水平 ×0.4）、
+    // 活塞粘连（isStickyBlock/canStickTo 仅粘蜂蜜块）、缩小碰撞箱（getCollisionShape 15/16 高）与
+    // 不透明（isOpaque=false）。此前误注册为 SimpleBlock 致上述虚函数分发到 Block 基类默认实现
+    // （onFallenUpon multiplier=1.0 完整摔落伤害、isStickyBlock/isOpaque 返回 false 碰巧部分一致但
+    // 行为语义错误、getCollisionShape 返回满方块），HoneyBlock 子类沦为死代码——与红石块/粘液块
+    // 同模式缺陷。参考: net.minecraft.world.level.block.HoneyBlock
+    NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<blocks::HoneyBlock>(
         ResourceLocation("minecraft:honey_block"), BlockProperties(Material::HONEY).hardness(0.0f).notSolid());
 
     // 仙人掌

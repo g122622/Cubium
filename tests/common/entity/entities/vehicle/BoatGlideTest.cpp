@@ -157,8 +157,8 @@ TEST_F(BoatGlideTest, WaterHasEmptyCollisionShape)
  * @brief 测试 Slipperiness 常量值与 MC 一致
  *
  * 验证项目中定义的滑度常量值与 MC Java 对应。
- * 注意：当前 SLIME_BLOCK 使用 SimpleBlock 注册而非 SlimeBlock，
- * 因此其滑度仍为默认值 0.6，待后续使用 SlimeBlock 注册后修正。
+ * slime_block 注册为 blocks::SlimeBlock，其构造函数设 m_slipperiness=SLIPPERINESS_SLIME(0.8)，
+ * 故 getSlipperiness 返回 0.8（对齐 Java SlimeBlock.friction=0.8）。
  */
 TEST_F(BoatGlideTest, SlipperinessConstantsMatchMC)
 {
@@ -166,10 +166,10 @@ TEST_F(BoatGlideTest, SlipperinessConstantsMatchMC)
     const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
     EXPECT_FLOAT_EQ(dirtState.getBlock().getSlipperiness(dirtState), 0.6f);
 
-    // MC Java SlimeBlock.friction = 0.8，但当前 SLIME_BLOCK
-    // 使用 SimpleBlock 注册而非 SlimeBlock，滑度仍为 0.6
+    // MC Java SlimeBlock.friction = 0.8。slime_block 注册为 blocks::SlimeBlock，
+    // 构造函数设 m_slipperiness=SLIPPERINESS_SLIME，故滑度为 0.8。
     const BlockState& slimeState = VanillaBlocks::SLIME_BLOCK->defaultState();
-    EXPECT_FLOAT_EQ(slimeState.getBlock().getSlipperiness(slimeState), 0.6f);
+    EXPECT_FLOAT_EQ(slimeState.getBlock().getSlipperiness(slimeState), 0.8f);
 }
 
 } // namespace
