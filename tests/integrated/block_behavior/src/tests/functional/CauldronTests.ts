@@ -20,10 +20,12 @@
 //   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
 //   player.getHeldItem(hand) 读到水桶/岩浆桶。
 //
-// 测试覆盖（3 个场景，覆盖 wiki 水桶/岩浆桶装填+非容器不误触发，可跨服务端对比）：
+// 测试覆盖（4 个场景，覆盖 wiki 水桶/岩浆桶装填+玻璃瓶取水+非容器不误触发核心行为）：
 //   1. 水桶装水：空炼药锅 + 水桶 useItemOnBlock → water_cauldron level=3。
 //   2. 岩浆桶装岩浆：空炼药锅 + 岩浆桶 useItemOnBlock → lava_cauldron。
 //   3. 非容器不误触发：空炼药锅 + 石头 useItemOnBlock → 仍 cauldron（桶/瓶交互都 Pass，方块不变）。
+//   4. 玻璃瓶取水：water_cauldron level=3 + 玻璃瓶 useItemOnBlock → level 3→2（one-sided，setBlockWithStates
+//      放满水炼药锅）。
 //
 // 关键约束：
 // 1. 炼药锅需放在固体方块上方（isValidPosition 检查 belowState.isSolid）——(3,1,1) 放 stone 支撑，
@@ -38,7 +40,8 @@
 //   复杂度高于桶，跳过。TODO: 待瓶交互链路验证后补 cauldron_fills_with_water_bottle。
 // 不测「降水/滴石填充」：handlePrecipitation 概率性（雨5%/雪10%），receiveStalactiteDrip 需滴石，
 //   非确定/复杂，跳过。
-// 不测「取水/取岩浆（反向）」：水炼药锅+空桶→水桶，涉 LayeredCauldronBlock 反向交互，跳过。
+// 不测「空桶取水（water_cauldron level3→0 + 水桶）」：与玻璃瓶取水同类（level 递减），本组测玻璃瓶
+//   已覆盖「取水 level 递减」行为点，跳过。
 //
 // 跨服务端：炼药锅 cauldron/water_cauldron/lava_cauldron 方块名两端一致，桶装填行为与 vanilla 一致。
 //   注意：基岩 BDS 无 setBlockWithStates，但本测试用 setBlockType 放空炼药锅（默认 state，无需设 level），
@@ -165,6 +168,43 @@ function cauldronIgnoresNonFluidItem(test: Test): void {
     test.succeed();
 }
 
+// 场景 4：玻璃瓶取水——water_cauldron level=3 + 玻璃瓶 useItemOnBlock → level 3→2。
+//
+// 布局：(3,1,1) stone 支撑 + (3,2,1) water_cauldron level=3（setBlockWithStates 直接放满水炼药锅）。
+// water_cauldron 是 LayeredCauldronBlock（非 CauldronBlock 空炼药锅），其 onBlockActivated：
+//   玻璃瓶 → _handleBottleInteraction → GLASS_BOTTLE 分支 → lowerFillLevel（level-1）+ 水瓶 → Success。
+// lowerFillLevel：level>1 → with(LEVEL_1_3, level-1)（level 3→2）；level==1 → 替换为空 cauldron。
+//
+// 判定：useItemOnBlock 返 true（Success），level === 2（玻璃瓶取走一格水）。
+// one-sided：setBlockWithStates 放满水炼药锅是 Cubium 专有 API（基岩 BDS 无），仅 Cubium 跑。
+function cauldronDrainedByGlassBottle(test: Test): void {
+    // setBlockWithStates 放满水炼药锅（water_cauldron level=3）。one-sided：Cubium 专有 API。
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 }); // 支撑
+    (test as unknown as {
+        setBlockWithStates: (type: string, pos: { x: number; y: number; z: number }, states: string) => boolean;
+    }).setBlockWithStates("minecraft:water_cauldron", { x: 3, y: 2, z: 1 }, "level=3");
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:water_cauldron", `block should be water_cauldron before, got ${getBlockTypeId(test, 3, 2, 1)}`);
+    test.assert(getWaterCauldronLevel(test, 3, 2, 1) === 3, `water_cauldron level should be 3 before, got ${getWaterCauldronLevel(test, 3, 2, 1)}`);
+
+    const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    const glassBottle = new ItemStack("minecraft:glass_bottle", 1);
+
+    // 对满水炼药锅 useItemOnBlock 玻璃瓶 → LayeredCauldronBlock.onBlockActivated → _handleBottleInteraction
+    // → GLASS_BOTTLE 分支 lowerFillLevel(level 3→2) + 水瓶 → Success。
+    const used = farmer.useItemOnBlock(
+        glassBottle as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
+        { x: 3, y: 2, z: 1 },
+        Direction.Up,
+    );
+    test.assert(used, "useItemOnBlock should return true when draining water_cauldron with glass bottle");
+
+    // 判定：level === 2（玻璃瓶取走一格水，water_cauldron 仍存在，水位降为 2）。
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:water_cauldron", `block should remain water_cauldron after one drain, got ${getBlockTypeId(test, 3, 2, 1)}`);
+    test.assert(getWaterCauldronLevel(test, 3, 2, 1) === 2, `water_cauldron level should be 2 after glass bottle drain, got ${getWaterCauldronLevel(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerCauldronTests(): void {
     GameTest.register("BlockBehaviorTests", "cauldron_fills_with_water_bucket", cauldronFillsWithWaterBucket)
         .structureName("gametests:glass_pit")
@@ -173,6 +213,9 @@ export function registerCauldronTests(): void {
         .structureName("gametests:glass_pit")
         .maxTicks(60);
     GameTest.register("BlockBehaviorTests", "cauldron_ignores_non_fluid_item", cauldronIgnoresNonFluidItem)
+        .structureName("gametests:glass_pit")
+        .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "cauldron_drained_by_glass_bottle", cauldronDrainedByGlassBottle)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 }
