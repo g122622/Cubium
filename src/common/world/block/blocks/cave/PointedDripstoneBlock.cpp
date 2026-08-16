@@ -324,7 +324,7 @@ void PointedDripstoneBlock::onFallenUpon(
     //   伤害待对照 Java 源码确认，暂按 wiki 字面仅 Tip 触发。
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
-        // 石笋伤害：摔落距离 + 2.0（wiki"摔落高度增加 2"），伤害倍率 2.0（翻倍）。
+        // 石笋伤害：摔落距离 + 2.5（对齐 Java PointedDripstoneBlock#fallOn 的 + 2.5），伤害倍率 2.0（翻倍）。
         // 不调用父类 onFallenUpon，替代普通摔落伤害。
         entity.causeFallDamage(fallDistance + STALAGMITE_FALL_DISTANCE_OFFSET,
             static_cast<f32>(STALAGMITE_FALL_DAMAGE_MODIFIER),
