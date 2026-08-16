@@ -81,6 +81,7 @@ import { registerDragonEggTests } from "./tests/end/DragonEggTests.js";
 import { registerBeehiveTests } from "./tests/mob/BeehiveTests.js";
 import { registerShovelTests } from "./tests/decorative/ShovelTests.js";
 import { registerCopperGolemStatueTests } from "./tests/copper/CopperGolemStatueTests.js";
+import { registerCopperWaxTests } from "./tests/copper/CopperWaxTests.js";
 import { registerBedTests } from "./tests/functional/BedTests.js";
 
 registerLiquidTests();
@@ -155,4 +156,5 @@ registerDragonEggTests();
 registerBeehiveTests();
 registerShovelTests();
 registerCopperGolemStatueTests();
+registerCopperWaxTests();
 registerBedTests();
