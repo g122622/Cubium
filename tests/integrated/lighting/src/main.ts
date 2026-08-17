@@ -51,6 +51,7 @@ import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmis
 import { registerCopperLanternEmissionTests } from "./tests/core/CopperLanternEmissionTests.js";
 import { registerFireflyBushEmissionTests } from "./tests/core/FireflyBushEmissionTests.js";
 import { registerCopperBulbEmissionTests } from "./tests/core/CopperBulbEmissionTests.js";
+import { registerRedstoneLampEmissionTests } from "./tests/core/RedstoneLampEmissionTests.js";
 import { registerNightSkyDarkeningTests } from "./tests/core/NightSkyDarkeningTests.js";
 import { registerWeatherSkyDarkeningTests } from "./tests/core/WeatherSkyDarkeningTests.js";
 
@@ -69,5 +70,6 @@ registerNetherPortalEmissionTests();
 registerCopperLanternEmissionTests();
 registerFireflyBushEmissionTests();
 registerCopperBulbEmissionTests();
+registerRedstoneLampEmissionTests();
 registerNightSkyDarkeningTests();
 registerWeatherSkyDarkeningTests();
