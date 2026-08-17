@@ -96,6 +96,7 @@ import { registerBellTests } from "./tests/functional/BellTests.js";
 import { registerBannerTests } from "./tests/decorative/BannerTests.js";
 import { registerBigDripleafTests } from "./tests/cave/BigDripleafTests.js";
 import { registerTurtleEggTests } from "./tests/mob/TurtleEggTests.js";
+import { registerBrewingStandTests } from "./tests/functional/BrewingStandTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -184,3 +185,4 @@ registerBellTests();
 registerBannerTests();
 registerBigDripleafTests();
 registerTurtleEggTests();
+registerBrewingStandTests();
