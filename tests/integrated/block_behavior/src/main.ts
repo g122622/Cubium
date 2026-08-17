@@ -92,6 +92,7 @@ import { registerRespawnAnchorTests } from "./tests/functional/RespawnAnchorTest
 import { registerDragonEggTests } from "./tests/end/DragonEggTests.js";
 import { registerEndRodTests } from "./tests/end/EndRodTests.js";
 import { registerSeaPickleTests } from "./tests/ocean/SeaPickleTests.js";
+import { registerBubbleColumnTests } from "./tests/ocean/BubbleColumnTests.js";
 import { registerBeehiveTests } from "./tests/mob/BeehiveTests.js";
 import { registerShovelTests } from "./tests/decorative/ShovelTests.js";
 import { registerCarpetTests } from "./tests/decorative/CarpetTests.js";
@@ -203,6 +204,7 @@ registerRespawnAnchorTests();
 registerDragonEggTests();
 registerEndRodTests();
 registerSeaPickleTests();
+registerBubbleColumnTests();
 registerBeehiveTests();
 registerShovelTests();
 registerCarpetTests();
