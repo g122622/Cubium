@@ -55,6 +55,7 @@
 #include "world/block/blocks/functional/ComposterBlock.hpp"
 #include "world/block/blocks/functional/CraftingTableBlock.hpp"
 #include "world/block/blocks/functional/FletchingTableBlock.hpp"
+#include "world/block/blocks/functional/GrindstoneBlock.hpp"
 #include "world/block/blocks/functional/JukeboxBlock.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/block/blocks/functional/LoomBlock.hpp"
@@ -93,6 +94,7 @@ Block* BuildingBlocks::TRAPPED_CHEST = nullptr;
 Block* BuildingBlocks::SHULKER_BOX = nullptr;
 Block* BuildingBlocks::LOOM = nullptr;
 Block* BuildingBlocks::BARREL = nullptr;
+Block* BuildingBlocks::GRINDSTONE = nullptr;
 Block* BuildingBlocks::CARTOGRAPHY_TABLE = nullptr;
 Block* BuildingBlocks::FLETCHING_TABLE = nullptr;
 Block* BuildingBlocks::SMITHING_TABLE = nullptr;
@@ -299,6 +301,15 @@ void registerBuildingBlocks()
     // 木桶
     BuildingBlocks::BARREL = &registry.registerBlock<blocks::BarrelBlock>(ResourceLocation("minecraft:barrel"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
+
+    // 砂轮
+    BuildingBlocks::GRINDSTONE =
+        &registry.registerBlock<blocks::GrindstoneBlock>(ResourceLocation("minecraft:grindstone"),
+            BlockProperties(Material::ROCK)
+                .hardness(3.0f)
+                .resistance(6.0f)
+                .requiresTool()
+                .harvestTool(HarvestTool::Pickaxe));
 
     // 制图台
     BuildingBlocks::CARTOGRAPHY_TABLE =

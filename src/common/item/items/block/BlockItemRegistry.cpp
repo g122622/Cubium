@@ -339,6 +339,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BLAST_FURNACE, "blast_furnace");
     registerSimpleBlock(VanillaBlocks::SMOKER, "smoker");
     registerSimpleBlock(VanillaBlocks::BARREL, "barrel");
+    registerSimpleBlock(VanillaBlocks::GRINDSTONE, "grindstone");
     registerSimpleBlock(VanillaBlocks::CARTOGRAPHY_TABLE, "cartography_table");
     registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE, "fletching_table");
     registerSimpleBlock(VanillaBlocks::SMITHING_TABLE, "smithing_table");

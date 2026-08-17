@@ -99,6 +99,7 @@ import { registerTurtleEggTests } from "./tests/mob/TurtleEggTests.js";
 import { registerBrewingStandTests } from "./tests/functional/BrewingStandTests.js";
 import { registerFurnaceTests } from "./tests/functional/FurnaceTests.js";
 import { registerBarrelTests } from "./tests/functional/BarrelTests.js";
+import { registerGrindstoneTests } from "./tests/functional/GrindstoneTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -190,3 +191,4 @@ registerTurtleEggTests();
 registerBrewingStandTests();
 registerFurnaceTests();
 registerBarrelTests();
+registerGrindstoneTests();
