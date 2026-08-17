@@ -44,6 +44,7 @@ import { registerSkyLightColumnDepthTests } from "./tests/core/SkyLightColumnDep
 import { registerDynamicEmissionTests } from "./tests/core/DynamicEmissionTests.js";
 import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTests.js";
 import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLightPropagationSymmetryTests.js";
+import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -55,3 +56,4 @@ registerSkyLightColumnDepthTests();
 registerDynamicEmissionTests();
 registerStatefulEmissionTests();
 registerBlockLightPropagationSymmetryTests();
+registerSkyLightHorizontalSpreadTests();
