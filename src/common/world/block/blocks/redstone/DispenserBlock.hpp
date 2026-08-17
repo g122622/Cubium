@@ -35,6 +35,7 @@ namespace mc {
 
 // 前向声明
 class IInventory;
+class BlockItemUseContext;
 
 namespace blocks {
 
@@ -65,6 +66,13 @@ public:
     explicit DispenserBlock(const BlockProperties& properties);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向：facing = opposite(getNearestLookingDirection())（六向含 Up/Down，发射口朝玩家视线方向）。
+    // 对齐 vanilla DispenserBlock.java:139 getNearestLookingDirection().getOpposite()。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
+    // 与 vanilla 严重分歧。修复后与 vanilla 严格对齐。投掷器继承本类自动获得正确朝向（vanilla
+    // DropperBlock 不重写该方法，靠继承复用）。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

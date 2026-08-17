@@ -106,6 +106,8 @@ import { registerLoomTests } from "./tests/functional/LoomTests.js";
 import { registerCartographyTableTests } from "./tests/functional/CartographyTableTests.js";
 import { registerFletchingTableTests } from "./tests/functional/FletchingTableTests.js";
 import { registerSmithingTableTests } from "./tests/functional/SmithingTableTests.js";
+import { registerDispenserTests } from "./tests/redstone/DispenserTests.js";
+import { registerDropperTests } from "./tests/redstone/DropperTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -204,3 +206,5 @@ registerLoomTests();
 registerCartographyTableTests();
 registerFletchingTableTests();
 registerSmithingTableTests();
+registerDispenserTests();
+registerDropperTests();
