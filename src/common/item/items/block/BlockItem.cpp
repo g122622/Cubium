@@ -235,8 +235,14 @@ bool BlockItem::canPlace(const BlockItemUseContext& context, const BlockState& s
         }
 
         // 调用方块的 isValidPosition 检查放置条件
+        // 对齐 vanilla BlockItem.canPlace（BlockItem.java:136-138）用 state 自身的 canSurvive
+        // （即 state.owner().canSurvive），而非 this.getBlock()。对 WallOrFloorItem 等返回与
+        // item.m_block 不同方块的 state（floor item 返回 wall 方块 state）至关重要：必须用
+        // state 的 owner 校验，否则用 floorBlock 的 isValidPosition 校验 wall state 会类型不匹配
+        // 误判失败（如 wall_banner state 用 StandingBannerBlock.isValidPosition 查下方而非贴墙侧）。
+        // 普通单方块 BlockItem 中 state.getBlock() == m_block，行为不变。
         IBlockReader& blockReader = const_cast<IBlockReader&>(static_cast<const IBlockReader&>(context.getWorld()));
-        if (!m_block->isValidPosition(state, blockReader, pos)) {
+        if (!state.getBlock().isValidPosition(state, blockReader, pos)) {
             return false;
         }
     }

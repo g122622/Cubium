@@ -93,6 +93,7 @@ import { registerCopperGolemStatueTests } from "./tests/copper/CopperGolemStatue
 import { registerCopperWaxTests } from "./tests/copper/CopperWaxTests.js";
 import { registerBedTests } from "./tests/functional/BedTests.js";
 import { registerBellTests } from "./tests/functional/BellTests.js";
+import { registerBannerTests } from "./tests/decorative/BannerTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -178,3 +179,4 @@ registerCopperGolemStatueTests();
 registerCopperWaxTests();
 registerBedTests();
 registerBellTests();
+registerBannerTests();
