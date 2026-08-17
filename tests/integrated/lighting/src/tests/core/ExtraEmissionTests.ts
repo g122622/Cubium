@@ -17,7 +17,9 @@
 //
 // 已知偏差/未实现（不写测试）：
 //   - copper_bulb：Cubium lit 恒=15 不分氧化度（wiki 15/12/8/4），偏差，跳过。
-//   - conduit/sculk_sensor/sculk_catalyst：注册但未实现发光（实际=0），跳过。
+//   - conduit/sculk_sensor/sculk_shrieker：注册但未实现发光（实际=0），跳过。
+//   - sculk_catalyst：实际已实现发光 6（注册处 SculkBlocks.cpp:85 .lightLevel(6)），与 wiki 6 一致，
+//     测试见 StatefulEmissionTests.ts（本组此前注释误标「未实现」，已纠正）。
 //
 // 跨服务端：blockLight 是 Cubium 专有，基岩端 one-sided。
 //

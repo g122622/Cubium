@@ -42,6 +42,7 @@ import { registerOpacityBlockLightTests } from "./tests/core/OpacityBlockLightTe
 import { registerShapeOcclusionSkyLightTests } from "./tests/core/ShapeOcclusionSkyLightTests.js";
 import { registerSkyLightColumnDepthTests } from "./tests/core/SkyLightColumnDepthTests.js";
 import { registerDynamicEmissionTests } from "./tests/core/DynamicEmissionTests.js";
+import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -51,3 +52,4 @@ registerOpacityBlockLightTests();
 registerShapeOcclusionSkyLightTests();
 registerSkyLightColumnDepthTests();
 registerDynamicEmissionTests();
+registerStatefulEmissionTests();
