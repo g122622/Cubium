@@ -70,6 +70,16 @@ public:
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
+    // ========== 堆叠替换 ==========
+
+    // 对齐 vanilla Java 1.21 TurtleEggBlock.canBeReplaced（TurtleEggBlock.java:147-152）：手持海龟蛋物品
+    // + 非潜行 + eggs<4 时，已有海龟蛋方块「可被替换」（实为堆叠，getStateForPlacement 据此把已有蛋
+    // eggs+1）。与 CandleBlock::isReplaceable 同构。修复前缺失此 override：基类 isReplaceable 返回
+    // m_isReplaceable（海龟蛋注册未调 .replaceable()，故 false），点击已有蛋顶面时 _canReplace=false →
+    // placementPos=上方 air → getStateForPlacement 检测 air（非已有蛋）→ 新放蛋落上方而非堆叠，
+    // 与 vanilla「一个方块空间最多 4 个蛋」偏差（wiki tech_海龟蛋.txt#用途）。
+    [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
+
     // ========== 孵化逻辑 ==========
 
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;

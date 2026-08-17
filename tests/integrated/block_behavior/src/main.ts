@@ -95,6 +95,7 @@ import { registerBedTests } from "./tests/functional/BedTests.js";
 import { registerBellTests } from "./tests/functional/BellTests.js";
 import { registerBannerTests } from "./tests/decorative/BannerTests.js";
 import { registerBigDripleafTests } from "./tests/cave/BigDripleafTests.js";
+import { registerTurtleEggTests } from "./tests/mob/TurtleEggTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -182,3 +183,4 @@ registerBedTests();
 registerBellTests();
 registerBannerTests();
 registerBigDripleafTests();
+registerTurtleEggTests();

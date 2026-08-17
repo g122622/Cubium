@@ -28,8 +28,12 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -136,6 +140,35 @@ bool TurtleEggBlock::isValidPosition(const BlockState& state, IBlockReader& worl
 
     // 检查是否为沙子类方块 (沙子、红沙、灵魂沙)
     return BlockTags::SAND().contains(*belowState);
+}
+
+bool TurtleEggBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
+{
+    // 对齐 vanilla Java 1.21 TurtleEggBlock.canBeReplaced（TurtleEggBlock.java:147-152）：
+    //   !ctx.isSecondaryUseActive() && ctx.getItemInHand().is(this.asItem()) && state.getValue(EGGS) < 4
+    //     ? true : super.canBeReplaced(state, ctx);
+    // 即：手持海龟蛋物品 + 非潜行 + eggs<4 时，已有海龟蛋「可被替换」（实为堆叠）。与
+    //   CandleBlock::isReplaceable 同构（Cubium 用 isSneaking() 对应 Java isSecondaryUseActive）。
+
+    // 潜行时不堆叠，回退基类行为
+    Player* player = context.getPlayer();
+    if (player != nullptr && player->isSneaking()) {
+        return Block::isReplaceable(state, context);
+    }
+
+    // 手持物品必须是此方块对应的物品（海龟蛋物品）
+    const ItemStack& heldItem = context.getItemStack();
+    if (heldItem.isEmpty()) {
+        return Block::isReplaceable(state, context);
+    }
+
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*this);
+    if (blockItem == nullptr || heldItem.getItem() != blockItem) {
+        return Block::isReplaceable(state, context);
+    }
+
+    // eggs < 4 时允许堆叠替换（最多 4 个蛋，对齐 wiki「一个方块空间最多 4 个海龟蛋」）
+    return state.get(BlockStateProperties::EGGS_1_4()) < 4;
 }
 
 bool TurtleEggBlock::_canGrow(IWorld& world, math::IRandom& random) const
