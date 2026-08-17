@@ -128,6 +128,13 @@ public:
             state->m_blockId = block->m_blockId;
             u32 stateId = _allocateStateId();
             const_cast<BlockState*>(state.get())->m_stateId = stateId;
+            // stateId 由 _allocateStateId 单调递增分配（0..N 连续稠密无空洞），直接作 vector 下标。
+            // 与 m_blocksById 同范式（见下方 resize 写法）。unordered_map 哈希查找在
+            // ChunkSection::_updateCounters 等每方块写入热路径上调用 2 次，改 vector 下标后
+            // 从几十 ns 降到 ~1 ns。
+            if (m_statesById.size() <= stateId) {
+                m_statesById.resize(stateId + 1, nullptr);
+            }
             m_statesById[stateId] = state.get();
         }
 
@@ -165,11 +172,14 @@ public:
 
     /**
      * @brief 根据状态ID获取方块状态
+     *
+     * stateId 由 _allocateStateId 单调递增分配（0..N 连续稠密），m_statesById 为 vector，
+     * 按 stateId 直接下标访问（O(1) 加法，无哈希）。越界（反序列化/网络包传入非法 stateId）
+     * 返回 nullptr，与历史行为一致。
      */
     [[nodiscard]] BlockState* getBlockState(u32 stateId) const
     {
-        auto it = m_statesById.find(stateId);
-        return it != m_statesById.end() ? it->second : nullptr;
+        return stateId < m_statesById.size() ? m_statesById[stateId] : nullptr;
     }
 
     /**
@@ -258,7 +268,9 @@ private:
     std::unordered_map<ResourceLocation, std::unique_ptr<Block>> m_blocks;
     std::unordered_map<ResourceLocation, u32> m_numericIds; // 字符串ID -> 数字ID
     std::vector<Block*> m_blocksById;
-    std::unordered_map<u32, BlockState*> m_statesById;
+    // 按 stateId 直接下标（stateId 由 _allocateStateId 单调递增分配，0..N 连续稠密无空洞）。
+    // 取代原 unordered_map<u32, BlockState*>，消除 _updateCounters 等热路径的哈希查找。
+    std::vector<BlockState*> m_statesById;
     u32 m_nextBlockId = 1; // 0保留给空气
     u32 m_nextStateId = 0;
 };
