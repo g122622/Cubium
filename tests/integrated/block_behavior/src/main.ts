@@ -103,6 +103,9 @@ import { registerBarrelTests } from "./tests/functional/BarrelTests.js";
 import { registerGrindstoneTests } from "./tests/functional/GrindstoneTests.js";
 import { registerStonecutterTests } from "./tests/functional/StonecutterTests.js";
 import { registerLoomTests } from "./tests/functional/LoomTests.js";
+import { registerCartographyTableTests } from "./tests/functional/CartographyTableTests.js";
+import { registerFletchingTableTests } from "./tests/functional/FletchingTableTests.js";
+import { registerSmithingTableTests } from "./tests/functional/SmithingTableTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -198,3 +201,6 @@ registerBarrelTests();
 registerGrindstoneTests();
 registerStonecutterTests();
 registerLoomTests();
+registerCartographyTableTests();
+registerFletchingTableTests();
+registerSmithingTableTests();
