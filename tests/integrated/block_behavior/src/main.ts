@@ -94,6 +94,7 @@ import { registerCopperWaxTests } from "./tests/copper/CopperWaxTests.js";
 import { registerBedTests } from "./tests/functional/BedTests.js";
 import { registerBellTests } from "./tests/functional/BellTests.js";
 import { registerBannerTests } from "./tests/decorative/BannerTests.js";
+import { registerBigDripleafTests } from "./tests/cave/BigDripleafTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -180,3 +181,4 @@ registerCopperWaxTests();
 registerBedTests();
 registerBellTests();
 registerBannerTests();
+registerBigDripleafTests();

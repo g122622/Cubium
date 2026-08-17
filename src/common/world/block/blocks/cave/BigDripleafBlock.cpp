@@ -142,17 +142,44 @@ BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
 const CollisionShape& BigDripleafBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
+    // TODO: getShape（渲染/选择形状）对齐 vanilla makeShapes（Shapes.or(SHAPE_LEAF, 茎连接 shape)，
+    //   按 facing 旋转的茎连接 + 按 tilt 的叶片薄层）。当前返回完整方块形状（m_fullShape），仅影响
+    //   渲染命中箱与选择高亮，不影响行为（行为用 getCollisionShape）。待渲染形状系统完善后补全。
     return m_fullShape;
 }
 
 const CollisionShape& BigDripleafBlock::getCollisionShape(const BlockState& state) const
 {
+    // 对齐 vanilla BigDripleafBlock.SHAPE_LEAF（getCollisionShape，BigDripleafBlock.java:60-71,263-265）：
+    //   NONE/UNSTABLE → Block.column(16, 11, 15)：x,z 全宽（0~16 像素），y=11~15 像素的顶部薄层
+    //     （11/16=0.6875 ~ 15/16=0.9375）。实体站在叶片顶面，脚 y≈pos.y+15/16，落入叶片格内触发
+    //     doBlockCollisions→onEntityCollision。
+    //   PARTIAL → Block.column(16, 11, 13)：y=11~13 像素（更薄，部分倾斜）。
+    //   FULL → Shapes.empty()：无碰撞，实体穿透下落（wiki「倾斜后实体摔落」）。
+    //
+    // 【关键修复】旧实现 NONE/UNSTABLE/PARTIAL 均返回 m_fullShape（完整方块 0~1），与 vanilla 顶部薄层
+    //   偏差。完整方块碰撞箱使实体脚停在叶片格上方 y=pos.y+1.0（fullBlock 顶），实体 AABB 不覆盖叶片格，
+    //   doBlockCollisions 不遍历叶片 → onEntityCollision 永不触发 → 实体踩踏无法触发倾斜状态机
+    //   （wiki「实体停留触发倾斜」失效）。改为顶部薄层后，实体脚停在 y=pos.y+15/16（叶片顶），AABB 覆盖
+    //   叶片格，onEntityCollision 正常触发，canEntityTilt（position.y > pos.y+0.6875）满足。
+    //
+    // 返回 const 引用：用函数内 static 缓存按 tilt 的形状（首次调用构造，Cubium 主 tick 单线程安全）。
+    // 不用成员（m_fullShape 仅一份，叶子有 3 种 tilt 碰撞箱需多份缓存）。
+    static const CollisionShape s_noneShape = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 15.0f, 16.0f);
+    static const CollisionShape s_partialShape = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 13.0f, 16.0f);
+
     BlockStateProperties::Tilt tilt = state.get(BlockStateProperties::TILT());
-    // 完全倾斜时玩家会掉落
-    if (tilt == BlockStateProperties::Tilt::Full) {
-        return VoxelShapes::empty();
+    switch (tilt) {
+        case BlockStateProperties::Tilt::Full:
+            // 完全倾斜时无碰撞，实体穿透下落
+            return VoxelShapes::empty();
+        case BlockStateProperties::Tilt::Partial:
+            return s_partialShape;
+        case BlockStateProperties::Tilt::None:
+        case BlockStateProperties::Tilt::Unstable:
+        default:
+            return s_noneShape;
     }
-    return m_fullShape;
 }
 
 const fluid::FluidState* BigDripleafBlock::getFluidState(const BlockState& state) const
