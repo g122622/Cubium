@@ -592,8 +592,9 @@ private:
     // 生物群系
     BiomeContainer m_biomes;
 
-    // 高度图
-    std::unordered_map<HeightmapType, Heightmap> m_heightmaps;
+    // 高度图 (按 HeightmapType 枚举索引，O(1) 访问；构造时全量初始化全部类型，
+    // 故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps 风格一致)
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> m_heightmaps;
 
     // 光源位置
     std::vector<BlockCoord> m_lightPositions;

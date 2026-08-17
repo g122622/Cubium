@@ -110,8 +110,11 @@ public:
 
     /**
      * @brief 是否为空气
+     *
+     * 读构造期缓存的 m_isAir（由 Block::isAir 虚函数在 _cacheProperties 中计算一次），
+     * 避免每次调用走虚分发。世界生成/方块写入热路径每方块至少调用一次。
      */
-    [[nodiscard]] bool isAir() const;
+    [[nodiscard]] bool isAir() const noexcept { return m_isAir; }
 
     /**
      * @brief 是否应该生成地形粒子
@@ -589,6 +592,7 @@ private:
     void _cacheProperties();
 
     // 缓存的属性
+    bool m_isAir = false; // 是否为空气（缓存自 Block::isAir 虚函数）
     bool m_isSolid = true;
     bool m_isOpaque = true;
     bool m_blocksMovement = false;

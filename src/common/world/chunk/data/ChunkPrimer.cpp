@@ -71,10 +71,11 @@ static const TypeAndFlag HEIGHTMAP_MAPPINGS[] = {
     {HeightmapType::LightBlocking, HeightmapFlag::LIGHT_BLOCKING},
 };
 
-void initializeAllHeightmaps(std::unordered_map<HeightmapType, Heightmap>& heightmaps)
+void initializeAllHeightmaps(std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>& heightmaps)
 {
-    for (HeightmapType type : ALL_HEIGHTMAP_TYPES) {
-        heightmaps[type] = Heightmap(type);
+    // 按 index 反向 cast 回 HeightmapType 设类型，与 ChunkData::_initHeightmaps 一致。
+    for (size_t i = 0; i < heightmaps.size(); ++i) {
+        heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
     }
 }
 
@@ -202,15 +203,12 @@ std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> ChunkPrimer::getSecti
 
 BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
-    auto it = m_heightmaps.find(type);
-    if (it != m_heightmaps.end()) {
-        // Heightmap 内部保存的是"最高方块上方一格"的 Y+1，所以这里要减 1
-        // 才是实际的方块坐标。OceanFloorWG 也遵循同一语义。
-        // 无方块列返回 NO_BLOCK_SENTINEL，回退为 MIN_BUILD_HEIGHT。
-        const BlockCoord height = it->second.getHeight(x, z);
-        return height != Heightmap::NO_BLOCK_SENTINEL ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
-    }
-    MC_ASSERT_RELEASE(false);
+    // Heightmap 内部保存的是"最高方块上方一格"的 Y+1，所以这里要减 1
+    // 才是实际的方块坐标。OceanFloorWG 也遵循同一语义。
+    // 无方块列返回 NO_BLOCK_SENTINEL，回退为 MIN_BUILD_HEIGHT。
+    const Heightmap& heightmap = m_heightmaps[static_cast<size_t>(type)];
+    const BlockCoord height = heightmap.getHeight(x, z);
+    return height != Heightmap::NO_BLOCK_SENTINEL ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
 }
 
 BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
@@ -218,11 +216,8 @@ BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoor
     // 直接返回 Heightmap 内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示空列），
     // 不做空列→MIN_BUILD_HEIGHT 的合并，供 HeightmapPlacement 等需要精确识别空列的
     // 调用方使用（对齐 MC Heightmap.getFirstAvailable）。
-    auto it = m_heightmaps.find(type);
-    if (it != m_heightmaps.end()) {
-        return it->second.getHeight(x, z);
-    }
-    MC_ASSERT_RELEASE(false);
+    const Heightmap& heightmap = m_heightmaps[static_cast<size_t>(type)];
+    return heightmap.getHeight(x, z);
 }
 
 void ChunkPrimer::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
@@ -281,18 +276,12 @@ void ChunkPrimer::addLightPosition(BlockCoord x, BlockCoord y, BlockCoord z)
 
 Heightmap& ChunkPrimer::getHeightmap(HeightmapType type)
 {
-    auto it = m_heightmaps.find(type);
-    if (it == m_heightmaps.end()) {
-        it = m_heightmaps.emplace(type, Heightmap(type)).first;
-    }
-    return it->second;
+    return m_heightmaps[static_cast<size_t>(type)];
 }
 
 const Heightmap& ChunkPrimer::getHeightmap(HeightmapType type) const
 {
-    static Heightmap dummy(HeightmapType::WorldSurface);
-    auto it = m_heightmaps.find(type);
-    return it != m_heightmaps.end() ? it->second : dummy;
+    return m_heightmaps[static_cast<size_t>(type)];
 }
 
 void ChunkPrimer::updateAllHeightmaps()
@@ -320,7 +309,7 @@ void ChunkPrimer::updateAllHeightmaps()
                         continue;
                     }
 
-                    auto& heightmap = m_heightmaps[ALL_HEIGHTMAP_TYPES[i]];
+                    auto& heightmap = m_heightmaps[static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i])];
                     if (heightmap.update(x, y, z, state)) {
                         resolved[i] = true;
                         --unresolvedCount;
@@ -377,10 +366,7 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
     // 先重置指定类型的高度图为"无方块"（哨兵值）
     for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (hasFlag(types, flag)) {
-            auto it = m_heightmaps.find(type);
-            if (it != m_heightmaps.end()) {
-                it->second.setAll(Heightmap::NO_BLOCK_SENTINEL);
-            }
+            m_heightmaps[static_cast<size_t>(type)].setAll(Heightmap::NO_BLOCK_SENTINEL);
         }
     }
 
@@ -399,10 +385,7 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
                     if (!hasFlag(types, flag)) {
                         continue;
                     }
-                    auto it = m_heightmaps.find(type);
-                    if (it != m_heightmaps.end()) {
-                        it->second.update(x, y, z, state);
-                    }
+                    m_heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
                 }
             }
         }
@@ -418,12 +401,12 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 确保高度图已更新
     updateAllHeightmaps();
 
-    // 同步 primer 的全部高度图到 ChunkData。此前 primer 的 m_heightmaps（map）与
+    // 同步 primer 的全部高度图到 ChunkData。此前 primer 的 m_heightmaps（array）与
     // m_data 的 m_heightmaps（array）是两套存储，生成路径只更新 primer 侧，
     // 导致 ChunkData 的 final 槽位 m_heightmapInitialized 恒为 false、getTopBlockY 回退 WorldSurface。
     // setHeightmapFromStorage 绕过 _isOpaque 整列写入并标记已初始化。
-    for (const auto& [type, heightmap] : m_heightmaps) {
-        m_data->setHeightmapFromStorage(type, heightmap.getData());
+    for (size_t i = 0; i < m_heightmaps.size(); ++i) {
+        m_data->setHeightmapFromStorage(static_cast<HeightmapType>(i), m_heightmaps[i].getData());
     }
 
     // 标记为完全生成
@@ -518,30 +501,13 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
 {
     const HeightmapFlag flags = m_persistedStatus->heightmaps();
 
-    // 检查是否有尚未创建的高度图需要先 prime
-    bool needsPrime = false;
-    for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
-        if (hasFlag(flags, flag) && m_heightmaps.find(type) == m_heightmaps.end()) {
-            needsPrime = true;
-            break;
-        }
-    }
-
-    // 如果有缺失的高度图，先从方块数据初始化它们
-    if (needsPrime) {
-        primeHeightmaps(flags);
-        return; // primeHeightmaps 已经完整计算了所有指定类型的高度图
-    }
-
-    // 增量更新已存在的高度图
+    // 构造时已全量初始化全部 7 种高度图，槽位恒存在，无需 prime 探测。直接按当前
+    // ChunkStatus 要求的类型集合做增量更新。
     for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (!hasFlag(flags, flag)) {
             continue;
         }
-        auto it = m_heightmaps.find(type);
-        if (it != m_heightmaps.end()) {
-            it->second.update(x, y, z, state);
-        }
+        m_heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
     }
 }
 

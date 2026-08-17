@@ -60,6 +60,7 @@ BlockState::BlockState(const Block& block,
 void BlockState::_cacheProperties()
 {
     // 缓存方块属性
+    m_isAir = m_owner->isAir(*this);
     m_isSolid = m_owner->isSolid(*this);
     m_isOpaque = m_owner->isOpaque(*this);
     m_blocksMovement = m_owner->material().blocksMovement();
@@ -77,11 +78,6 @@ void BlockState::_cacheProperties()
     m_harvestTool = m_owner->harvestTool();
     m_harvestLevel = m_owner->harvestLevel();
     m_mapColor = m_owner->getMapColor(*this, nullptr, nullptr);
-}
-
-bool BlockState::isAir() const
-{
-    return m_owner->isAir(*this);
 }
 
 const CollisionShape& BlockState::getCollisionShape() const
