@@ -27,6 +27,7 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -70,6 +71,18 @@ RedstoneDiodeBlock::RedstoneDiodeBlock(const std::string& id, const BlockPropert
     setDefaultState(defaultState()
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::POWERED(), false));
+}
+
+BlockState RedstoneDiodeBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向 = 玩家水平视线方向的反方向（输入端朝玩家、输出端背离玩家）。
+    // 朝向仅由玩家 yaw 决定（水平四向 South/West/North/East），不含 pitch。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North），与预期按水平视线决定朝向的行为不一致。重写后修正为按水平视线决定朝向。
+    // 中继器与比较器继承本类，继承本方法自动获得正确朝向（子类额外 state 如 DELAY/MODE 由 defaultState()
+    // 保留各自默认值，with 仅覆写 FACING）。
+    Direction facing = Directions::opposite(context.horizontalDirection());
+    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
 Direction RedstoneDiodeBlock::getFacing(const BlockState& state)
