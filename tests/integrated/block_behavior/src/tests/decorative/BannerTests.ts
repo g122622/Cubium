@@ -36,11 +36,12 @@
 //   WallOrFloorItem::getStateForPlacement（修复后委托 WallBannerBlock）→ setBlockState(placementPos)。
 //   placementPos = 被点击方块.relative(face)。SimulatedPlayer 默认创造模式（物品不消耗）。
 //
-// 测试覆盖（4 个场景，覆盖 wiki 墙挂朝向 + 站立/墙挂支撑自毁核心确定行为）：
+// 测试覆盖（5 个场景，覆盖 wiki 墙挂朝向 + 站立/墙挂支撑自毁 + 站立朝向核心确定行为）：
 //   1. 墙挂旗帜放置朝向：点击 stone 南面 → 墙挂旗帜 facing=south（修复后委托方块侧正确算朝向）。
 //   2. 墙挂旗帜支撑自毁：预置墙挂旗帜贴 South 侧 stone → 移除 South 侧 stone → 自毁为 air。
 //   3. 站立旗帜支撑自毁：预置站立旗帜下方 stone → 移除下方 stone → 自毁为 air。
 //   4. 墙挂旗帜移除非支撑侧不自毁：预置墙挂旗帜贴 South 侧 stone → 移除 North 侧（非支撑侧）→ 不自毁。
+//   5. 站立旗帜放置 rotation=玩家 yaw 映射：点击 stone 顶面 Up（4 朝向）→ rotation=round((180+yaw)*16/360)&15。
 //
 // 关键约束：
 // 1. 场景 1 被点击方块用 stone（stone onBlockActivated 基类 Pass，不短路放置）。点击 (3,2,1) stone
@@ -64,9 +65,9 @@
 //    读 standing banner rotation 用 getState("rotation" as any)（返 number）。
 // 6. 支撑方块用 stone（isSolid=true）。旗帜自身 notSolid（notSolid()=true），不影响支撑判定。
 //
-// 不测「站立旗帜放置朝向」：rotation 由玩家 yaw 映射 0-15（StandingBannerBlock:98），SimulatedPlayer
-//   默认朝向不可控，且物品放置走 WallOrFloorItem floor 分支委托 StandingBannerBlock.getStateForPlacement
-//   （修复后），rotation 取决于 yaw。跳过。TODO: 待 SimulatedPlayer yaw 可控后补 banner_standing_rotation。
+// 站立旗帜放置朝向：场景 5 已测（lookAtLocation 控制 yaw → StandingBannerBlock rotation=round((180+yaw)
+//   *16/360)&15，对齐 vanilla BannerBlock.java:56-57 + RotationSegment/SegmentedAnglePrecision）。
+//   rotation 由玩家 yaw 映射 0-15（每 22.5°一段），4 主方向 yaw=0/90/180/270→rotation=8/12/0/4。
 // 不测「旗帜图案/NBT」：涉方块实体 Patterns NBT，脚本侧不可断言图案，跳过。
 // 不测「炼药锅洗旗帜图案」：涉容器交互 + 图案 NBT，跳过。
 // 不测「盾牌/地图印图」：非方块放置行为，跳过。
@@ -115,6 +116,44 @@ function getFacing(test: Test, x: number, y: number, z: number): string | null {
     const value = block?.permutation?.getState("facing" as any);
     return typeof value === "string" ? value : null;
 }
+
+// 读取 (x,y,z) 站立旗帜 rotation state（0-15 整数）。返回 null 表示失败或非站立旗帜。
+// ROTATION_0_15() 的 C++ 属性名为 "rotation"（IntegerProperty 0-15）。
+function getRotation(test: Test, x: number, y: number, z: number): number | null {
+    const block = test.getBlock({ x, y, z });
+    if (block === undefined) {
+        return null;
+    }
+    const value = block?.permutation?.getState("rotation" as any);
+    return typeof value === "number" ? value : null;
+}
+
+// 站立旗帜放置 rotation 映射表（rotation 由玩家 yaw 映射 0-15）。
+// StandingBannerBlock.getStateForPlacement（BannerBlock.cpp:95-101，对齐 vanilla BannerBlock.java:56-57）：
+//   rotation = round((180+yaw)*16/360) & 15（Cubium floor(x+0.5) 等价 vanilla round，& 15 等价 normalize）。
+//   yaw 来自 context.getPlayerYaw()（玩家 yaw，仅 yaw 不读 pitch，故 lookAt.y 任意不影响 rotation）。
+// lookAtLocation yaw=atan2(-dx,dz)（SimulatedPlayer.cpp:99）：0→South,90→West,180→North,270→East。
+// 选 dx=0 或 dz=0 的坐标让 yaw 精确为 0/90/180/270，rotation 映射明确无歧义。
+interface StandingRotationCase {
+    name: string; // 玩家朝向名
+    playerPos: { x: number; y: number; z: number }; // 玩家 spawn 位置（在点击位反方向，朝点击位看）
+    lookAt: { x: number; y: number; z: number }; // lookAtLocation 目标（dx=0 或 dz=0 使 yaw 精确）
+    expectedRotation: number; // rotation=round((180+yaw)*16/360)&15
+}
+
+// 4 朝向推算（yaw 精确 0/90/180/270，rotation=round((180+yaw)*16/360)&15）：
+//   South（yaw=0→rotation=round(180*16/360)&15=round(8)&15=8）：玩家(3,2,0) lookAt(3,3,1)，dx=0,dz=1→yaw=0。
+//   West（yaw=90→rotation=round(270*16/360)&15=round(12)&15=12）：玩家(5,2,1) lookAt(4,3,1)，dx=-1,dz=0→yaw=90。
+//   North（yaw=180→rotation=round(360*16/360)&15=round(16)&15=0）：玩家(3,2,3) lookAt(3,3,2)，dx=0,dz=-1→yaw=180。
+//   East（yaw=270→rotation=round(450*16/360)&15=round(20)&15=4）：玩家(1,2,1) lookAt(2,3,1)，dx=1,dz=0→yaw=270。
+// 玩家位置不与 stone(3,1,1)/站立旗帜落点(3,2,1) 冲突；lookAt 目标均在 [0,6] 内。
+// lookAt.y=3=playerPos.y+1（pitch≈0，不影响 rotation 因 getPlayerYaw 仅读 yaw）。
+const STANDING_ROTATION_CASES: StandingRotationCase[] = [
+    { name: "south", playerPos: { x: 3, y: 2, z: 0 }, lookAt: { x: 3, y: 3, z: 1 }, expectedRotation: 8 },
+    { name: "west", playerPos: { x: 5, y: 2, z: 1 }, lookAt: { x: 4, y: 3, z: 1 }, expectedRotation: 12 },
+    { name: "north", playerPos: { x: 3, y: 2, z: 3 }, lookAt: { x: 3, y: 3, z: 2 }, expectedRotation: 0 },
+    { name: "east", playerPos: { x: 1, y: 2, z: 1 }, lookAt: { x: 2, y: 3, z: 1 }, expectedRotation: 4 },
+];
 
 // 场景 1：墙挂旗帜放置朝向——点击 stone 南面 → 墙挂旗帜 facing=south。
 //
@@ -242,6 +281,52 @@ function bannerWallSurvivesWhenNonSupportSideRemoved(test: Test): void {
     test.succeedWhenBlockPresent("minecraft:white_wall_banner", { x: 3, y: 2, z: 2 }, true);
 }
 
+// 场景 5：站立旗帜放置 rotation=玩家 yaw 映射——点击 stone 顶面 Up（4 朝向）→ rotation=round((180+yaw)*16/360)&15。
+//
+// 布局：(3,1,1) stone（被点击方块，站立旗帜下方支撑）。每朝向独立 spawn 玩家在 playerPos →
+//   lookAtLocation(lookAt) 设朝向（dx=0 或 dz=0 使 yaw 精确 0/90/180/270）→ 清理 (3,2,1) → 手持
+//   white_banner useItemOnBlock 点击 (3,1,1) stone 顶面 Up → placementPos=(3,2,1)（stone 上方）→
+//   WallOrFloorItem 遍历 getNearestLookingDirections：点击 Up 时 opposite(Up)=Down 被提首 → 委托
+//   StandingBannerBlock.getStateForPlacement → rotation=round((180+yaw)*16/360)&15，isValidPosition
+//   查 below (3,1,1) stone solid ✓ → 返站立旗帜 rotation=expectedRotation。
+//
+// 判定：4 朝向放置后 (3,2,1) typeId==="minecraft:white_banner" 且 rotation===expectedRotation
+//   （South→8, West→12, North→0, East→4）。
+//
+// 此场景补 BannerTests 此前 TODO（banner_standing_rotation）：验证 wiki「旗帜顶面放置（站立）」+
+//   StandingBannerBlock rotation 由玩家 yaw 映射 0-15（每 22.5°一段）。lookAtLocation 控制 yaw 精确到
+//   4 主方向，rotation 映射明确。每朝向用新 player 避免 yaw 残留；每次清理 (3,2,1) 避免旗帜残留阻断放置。
+function bannerStandingRotationFromPlayerYaw(test: Test): void {
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 });
+    test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);
+
+    for (const c of STANDING_ROTATION_CASES) {
+        const player = test.spawnSimulatedPlayer(c.playerPos, `p_${c.name}`);
+        // lookAtLocation 设朝向（dx=0 或 dz=0 使 yaw 精确 0/90/180/270 → rotation 映射明确）。
+        player.lookAtLocation(c.lookAt);
+
+        // 清理 (3,2,1) 避免上一朝向旗帜残留阻断放置。
+        test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
+
+        // 手持 white_banner 点击 (3,1,1) stone 顶面 Up → 站立旗帜落 (3,2,1)。
+        // WallOrFloorItem 点击 Up 时 Down 提首 → 委托 StandingBannerBlock → rotation=round((180+yaw)*16/360)&15。
+        const banner = new ItemStack("minecraft:white_banner", 1);
+        const used = player.useItemOnBlock(
+            banner as unknown as Parameters<typeof player.useItemOnBlock>[0],
+            { x: 3, y: 1, z: 1 },
+            Direction.Up,
+        );
+        test.assert(used, `useItemOnBlock should return true when placing standing banner rotation ${c.expectedRotation} (player facing ${c.name})`);
+
+        // 断言站立旗帜 (3,2,1) 已放置且 rotation=expectedRotation（玩家 yaw 映射）。
+        test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:white_banner", `standing banner should be placed at (3,2,1) for facing ${c.name}, got ${getBlockTypeId(test, 3, 2, 1)}`);
+        const rotation = getRotation(test, 3, 2, 1);
+        test.assert(rotation === c.expectedRotation, `standing banner rotation should be ${c.expectedRotation} (from player yaw ${c.name}), got ${rotation}`);
+    }
+
+    test.succeed();
+}
+
 export function registerBannerTests(): void {
     GameTest.register("BlockBehaviorTests", "banner_wall_facing_when_placed_on_south_face", bannerWallFacingWhenPlacedOnSouthFace)
         .structureName("gametests:glass_pit")
@@ -255,4 +340,7 @@ export function registerBannerTests(): void {
     GameTest.register("BlockBehaviorTests", "banner_wall_survives_when_non_support_side_removed", bannerWallSurvivesWhenNonSupportSideRemoved)
         .structureName("gametests:glass_pit")
         .maxTicks(80);
+    GameTest.register("BlockBehaviorTests", "banner_standing_rotation_from_player_yaw", bannerStandingRotationFromPlayerYaw)
+        .structureName("gametests:glass_pit")
+        .maxTicks(120);
 }
