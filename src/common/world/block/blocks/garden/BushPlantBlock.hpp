@@ -36,8 +36,6 @@ namespace blocks {
  * 终判生效，避免浮空。类名 BushPlantBlock 用以区别植物基类 BushBlock。
  *
  * MC ID: minecraft:bush
- *
- * 参考: net.minecraft.world.level.block.BushBlock（vanilla 具体方块类，非基类）
  */
 class BushPlantBlock : public BushBlock {
 public:

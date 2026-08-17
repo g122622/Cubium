@@ -39,8 +39,6 @@ namespace blocks {
  * 不具有可疑炖汤效果。
  *
  * MC ID: minecraft:cactus_flower
- *
- * 参考: net.minecraft.block.CactusFlowerBlock
  */
 class CactusFlowerBlock : public FlowerBlock {
 public:

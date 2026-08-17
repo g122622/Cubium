@@ -38,8 +38,6 @@ namespace blocks {
  * 使 SimpleBlockFeature 的 canSurvive 终判生效，避免世界生成时浮空。
  *
  * MC ID: minecraft:lily_pad
- *
- * 参考: net.minecraft.world.level.block.WaterlilyBlock
  */
 class WaterlilyBlock : public BushBlock {
 public:

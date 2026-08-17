@@ -38,8 +38,6 @@ namespace blocks {
  * 重写 canSustain 查询 #dry_vegetation_may_place_on 标签（= SAND + TERRACOTTA + DIRT + FARMLAND）。
  *
  * MC ID: minecraft:short_dry_grass / minecraft:tall_dry_grass
- *
- * 参考: net.minecraft.world.level.block.DryVegetationBlock
  */
 class DryVegetationBlock : public BushBlock {
 public:
