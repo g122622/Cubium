@@ -49,6 +49,7 @@ import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLi
 import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
 import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmissionTests.js";
 import { registerCopperLanternEmissionTests } from "./tests/core/CopperLanternEmissionTests.js";
+import { registerNightSkyDarkeningTests } from "./tests/core/NightSkyDarkeningTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -63,3 +64,4 @@ registerBlockLightPropagationSymmetryTests();
 registerSkyLightHorizontalSpreadTests();
 registerNetherPortalEmissionTests();
 registerCopperLanternEmissionTests();
+registerNightSkyDarkeningTests();
