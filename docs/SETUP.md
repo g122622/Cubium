@@ -5,7 +5,7 @@
 目前本项目能在下面两种平台上完成编译与运行：
 
 - x86_64（Raptor Lake） + Windows 11 + Visual Studio（Clang）
-- Apple Silicon（M4） + MacOS Tahoe + Clang
+- ARM64（Apple Silicon M4） + MacOS Tahoe + Clang
 
 本项目代码量达到150W行级别（本体），若加上各类依赖则可逼近千万级，因此需要较为强大的硬件配置来完成编译。
 
