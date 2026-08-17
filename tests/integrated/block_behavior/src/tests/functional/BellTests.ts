@@ -28,10 +28,12 @@
 //   → setBlockState(placementPos)。placementPos = 被点击方块.relative(face)。
 //   红石场景用 setBlockWithStates 预置钟（不走放置链路，直接写 state），用 test.pullLever 触发拉杆通知。
 //
-// 测试覆盖（3 个场景，覆盖 wiki 放置附着方式 + 红石激活核心确定行为）：
+// 测试覆盖（5 个场景，覆盖 wiki 放置附着方式 + 红石激活 + Floor/Ceiling 朝向核心确定行为）：
 //   1. SingleWall 放置：点击 stone 南面（一侧支撑）→ 钟 attachment=single_wall, facing=north。
 //   2. DoubleWall 放置：两侧 stone，点击一侧南面 → 钟 attachment=double_wall, facing=north。
 //   3. 红石激活 POWERED 翻转：预置钟 + 拉杆拨动 → 钟 powered 翻 true；再拨 → 翻回 false（双稳态）。
+//   4. Floor 放置 facing=玩家朝向：点击 stone 顶面 Up（4 朝向）→ 钟 attachment=floor, facing=玩家朝向（同向非 opposite）。
+//   5. Ceiling 放置 facing=玩家朝向：点击 stone 底面 Down → 钟 attachment=ceiling, facing=玩家朝向（同向）。
 //
 // 关键约束：
 // 1. 侧面墙放置被点击方块必须是 stone 等非钟方块（钟的 onBlockActivated 会敲钟短路不放置）。本测试
@@ -55,9 +57,9 @@
 //
 // 不测「右键敲钟」：敲钟不改 POWERED（与 vanilla 一致），useItemOnBlock 返 bool 无法区分敲钟 Success 与
 //   放置 fallback Success，摆动动画是 BlockEntity 内部状态脚本侧不可读。TODO: 待 BlockEntity 状态可读后补。
-// 不测「Floor/Ceiling 放置」：Floor/Ceiling 的 facing 取 context.horizontalDirection()（玩家 yaw），SimulatedPlayer
-//   默认朝向需额外控制，且天花板需抬头点击构造复杂。本测试聚焦侧面墙（facing=opposite(face) 完全确定）。
-//   TODO: 待 SimulatedPlayer yaw 可控后补 bell_floor_ceiling_facing。
+// Floor/Ceiling 放置：场景 4/5 已测（lookAtLocation 控制玩家 yaw → horizontalDirection → facing=玩家朝向）。
+//   BellBlock Y 轴分支 facing=horizontalDirection（玩家朝向同向），与侧面分支 facing=opposite(clickedFace) 不同，
+//   也与 furnace/barrel 的 facing=opposite(朝向) 不同——这是 BellBlock Y 轴用 horizontalDirection 的特点。
 // 不测「钟回响/村民警报」：涉实体搜索/标签/AI，非确定，跳过。
 // 不测「投射物击中敲钟」：需投射物实体 + 碰撞检测，非确定时序，跳过。
 //
@@ -125,6 +127,35 @@ function getPowered(test: Test, x: number, y: number, z: number): boolean | null
     const value = block?.permutation?.getState("powered" as any);
     return typeof value === "boolean" ? value : null;
 }
+
+// Floor/Ceiling 放置朝向映射表（Y 轴点击，facing=horizontalDirection(玩家朝向)，非 opposite）。
+// BellBlock.getStateForPlacement Y 轴分支（BellBlock.cpp:270-287，对齐 vanilla BellBlock.java:178-179）：
+//   facing = context.horizontalDirection()（玩家水平朝向本身，非 opposite）。
+//   attachment = (clickedFace==Up)?Floor:Ceiling。
+// horizontalDirection（BlockItemUseContext.cpp:111-125）：yaw∈[315,360)∪[0,45)→South，[45,135)→West，
+//   [135,225)→North，[225,315)→East。lookAtLocation yaw=atan2(-dx,dz)（SimulatedPlayer.cpp:99）。
+// 注：horizontalDirection 仅读 yaw 不读 pitch，故 lookAt.y 用 furnace 范式（=playerPos.y 即可，pitch 任意）。
+//   但为与 barrel 范式一致并避免边缘场景，仍取 lookAt.y=playerPos.y+1 使 pitch≈0（不影响 horizontalDirection）。
+interface FloorFacingCase {
+    name: string; // 玩家水平朝向名（lookAt 产生的 horizontalDirection）
+    playerPos: { x: number; y: number; z: number }; // 玩家 spawn 位置（不与 stone/钟落点重叠）
+    lookAt: { x: number; y: number; z: number }; // lookAtLocation 目标（产生目标 yaw）
+    expectedFacing: string; // 钟 facing=horizontalDirection(玩家朝向)，同向非 opposite
+}
+
+// 4 朝向推算（playerPos.y=2，lookAt.y=3 使 pitch≈0；horizontalDirection 仅 yaw 故 pitch 不影响）：
+//   South（yaw[315,360)∪[0,45)→facing=South）：玩家(1,2,1)，lookAt(3,3,6)，dx=2,dz=5→338°→South→facing=South。
+//   West（yaw[45,135)→facing=West）：玩家(5,2,1)，lookAt(0,3,1)，dx=-5,dz=0→90°→West→facing=West。
+//   North（yaw[135,225)→facing=North）：玩家(1,2,5)，lookAt(3,3,0)，dx=2,dz=-5→158°→North→facing=North。
+//   East（yaw[225,315)→facing=East）：玩家(1,2,1)，lookAt(6,3,1)，dx=5,dz=0→270°→East→facing=East。
+// 【关键】facing=玩家朝向（同向），与 furnace/barrel 的 facing=opposite(朝向) 相反——这是 BellBlock Y 轴分支
+//   用 horizontalDirection（非 getNearestLookingDirection().getOpposite()）的特点。
+const FLOOR_FACING_CASES: FloorFacingCase[] = [
+    { name: "south", playerPos: { x: 1, y: 2, z: 1 }, lookAt: { x: 3, y: 3, z: 6 }, expectedFacing: "south" },
+    { name: "west", playerPos: { x: 5, y: 2, z: 1 }, lookAt: { x: 0, y: 3, z: 1 }, expectedFacing: "west" },
+    { name: "north", playerPos: { x: 1, y: 2, z: 5 }, lookAt: { x: 3, y: 3, z: 0 }, expectedFacing: "north" },
+    { name: "east", playerPos: { x: 1, y: 2, z: 1 }, lookAt: { x: 6, y: 3, z: 1 }, expectedFacing: "east" },
+];
 
 // 场景 1：SingleWall 放置——点击 stone 南面（一侧支撑）→ 钟 attachment=single_wall, facing=north。
 //
@@ -268,6 +299,92 @@ function bellPowersWhenLeverPulled(test: Test): void {
     );
 }
 
+// 场景 4：Floor 放置 facing=玩家水平朝向——点击 stone 顶面 Up → 钟 attachment=floor, facing=玩家朝向（同向）。
+//
+// 布局：每朝向独立 spawn 玩家在 playerPos → lookAtLocation(lookAt) 设朝向 → 清理 (3,2,1) → 手持 bell
+//   useItemOnBlock 点击 (3,1,1) stone 顶面 Up → placementPos=(3,2,1)（stone 上方）→
+//   getStateForPlacement Y 轴分支：clickedFace=Up→Floor，facing=horizontalDirection(玩家朝向) →
+//   canSurvive hasEnoughSolidSide(world, (3,1,1), Up)=stone solid ✓ → 返 floor, facing=玩家朝向。
+//
+// 判定：4 朝向放置后 (3,2,1) attachment===floor 且 facing===expectedFacing（玩家朝向，同向非 opposite）。
+//
+// 此场景补 BellTests 此前 TODO（bell_floor_ceiling_facing）：验证 wiki「钟放上表面（floor）」+
+//   BellBlock Y 轴分支 facing=horizontalDirection（玩家朝向本身）。与 furnace/barrel 的 facing=opposite(朝向)
+//   相反——BellBlock Y 轴用 horizontalDirection 而非 getNearestLookingDirection().getOpposite()。
+//   每朝向用新 player 避免 yaw 残留；每次清理 (3,2,1) 避免钟残留阻断放置。
+function bellFloorFacingEqualsPlayerDirection(test: Test): void {
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 });
+    test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);
+
+    for (const c of FLOOR_FACING_CASES) {
+        const player = test.spawnSimulatedPlayer(c.playerPos, `p_${c.name}`);
+        // lookAtLocation 设朝向：yaw=atan2(-dx,dz) → horizontalDirection → 钟 facing=玩家朝向（同向）。
+        player.lookAtLocation(c.lookAt);
+
+        // 清理 (3,2,1) 避免上一朝向钟残留阻断放置。
+        test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
+
+        // 手持 bell 点击 (3,1,1) stone 顶面 Up → 钟落 (3,2,1)。
+        // getStateForPlacement Y 轴分支：clickedFace=Up→Floor, facing=horizontalDirection(玩家朝向)。
+        const bell = new ItemStack("minecraft:bell", 1);
+        const used = player.useItemOnBlock(
+            bell as unknown as Parameters<typeof player.useItemOnBlock>[0],
+            { x: 3, y: 1, z: 1 },
+            Direction.Up,
+        );
+        test.assert(used, `useItemOnBlock should return true when placing floor bell facing ${c.expectedFacing} (player facing ${c.name})`);
+
+        // 断言钟 (3,2,1) 已放置且 attachment=floor, facing=玩家朝向（同向非 opposite）。
+        test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:bell", `bell should be placed at (3,2,1) for facing ${c.name}, got ${getBlockTypeId(test, 3, 2, 1)}`);
+        test.assert(getAttachment(test, 3, 2, 1) === "floor", `bell attachment should be floor, got ${getAttachment(test, 3, 2, 1)}`);
+        const facing = getFacing(test, 3, 2, 1);
+        test.assert(facing === c.expectedFacing, `bell facing should be ${c.expectedFacing} (player direction, not opposite), got ${facing}`);
+    }
+
+    test.succeed();
+}
+
+// 场景 5：Ceiling 放置 facing=玩家水平朝向——点击 stone 底面 Down → 钟 attachment=ceiling, facing=玩家朝向。
+//
+// 布局：(3,3,1) stone（被点击方块，钟在其下方）。玩家 (1,2,1) 朝南 lookAtLocation({3,3,6})（yaw≈338°→South）。
+//   手持 bell useItemOnBlock 点击 (3,3,1) 底面 Down → placementPos=(3,2,1)（stone 下方）→
+//   getStateForPlacement Y 轴分支：clickedFace=Down→Ceiling，facing=horizontalDirection(South) →
+//   canSurvive canSupportCenter(world, (3,3,1), Down)=stone 中心支撑 ✓ → 返 ceiling, facing=south。
+//
+// 判定：(3,2,1) attachment===ceiling 且 facing===south（玩家朝向 South，同向）。
+//
+// 此场景验证 wiki「钟放底面下方（ceiling）」+ BellBlock Y 轴分支 Down→Ceiling，facing=horizontalDirection。
+//   canSupportCenter 判定 stone 中心支撑（与 Floor 的 hasEnoughSolidSide 完整面判定不同，验证 ceiling 分支）。
+//   仅测 1 朝向（South）聚焦 ceiling 分支判定 + facing 同向；4 朝向已在场景 4 floor 验证（ceiling 同逻辑）。
+function bellCeilingFacingEqualsPlayerDirection(test: Test): void {
+    // (3,3,1) stone（钟在其下方，被点击底面的方块，需中心支撑 canSupportCenter）。
+    test.setBlockType("minecraft:stone", { x: 3, y: 3, z: 1 });
+    test.assert(getBlockTypeId(test, 3, 3, 1) === "minecraft:stone", `stone should be at (3,3,1), got ${getBlockTypeId(test, 3, 3, 1)}`);
+    // 清理钟落点 (3,2,1)。
+    test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
+
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "p_south");
+    // 朝南：lookAt (3,3,6)，dx=2,dz=5→338°→South。
+    player.lookAtLocation({ x: 3, y: 3, z: 6 });
+
+    // 手持 bell 点击 (3,3,1) 底面 Down → 钟落 (3,2,1)（stone 下方）。
+    // getStateForPlacement Y 轴分支：clickedFace=Down→Ceiling, facing=horizontalDirection(South)。
+    const bell = new ItemStack("minecraft:bell", 1);
+    const used = player.useItemOnBlock(
+        bell as unknown as Parameters<typeof player.useItemOnBlock>[0],
+        { x: 3, y: 3, z: 1 },
+        Direction.Down,
+    );
+    test.assert(used, "useItemOnBlock should return true when placing ceiling bell");
+
+    // 断言钟 (3,2,1) 已放置且 attachment=ceiling, facing=south（玩家朝向，同向）。
+    test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:bell", `bell should be placed at (3,2,1), got ${getBlockTypeId(test, 3, 2, 1)}`);
+    test.assert(getAttachment(test, 3, 2, 1) === "ceiling", `bell attachment should be ceiling, got ${getAttachment(test, 3, 2, 1)}`);
+    test.assert(getFacing(test, 3, 2, 1) === "south", `bell facing should be south (player direction, not opposite), got ${getFacing(test, 3, 2, 1)}`);
+
+    test.succeed();
+}
+
 export function registerBellTests(): void {
     GameTest.register("BlockBehaviorTests", "bell_single_wall_when_placed_on_one_sided_wall", bellSingleWallWhenPlacedOnOneSidedWall)
         .structureName("gametests:glass_pit")
@@ -278,4 +395,10 @@ export function registerBellTests(): void {
     GameTest.register("BlockBehaviorTests", "bell_powers_when_lever_pulled", bellPowersWhenLeverPulled)
         .structureName("gametests:glass_pit")
         .maxTicks(100);
+    GameTest.register("BlockBehaviorTests", "bell_floor_facing_equals_player_direction", bellFloorFacingEqualsPlayerDirection)
+        .structureName("gametests:glass_pit")
+        .maxTicks(120);
+    GameTest.register("BlockBehaviorTests", "bell_ceiling_facing_equals_player_direction", bellCeilingFacingEqualsPlayerDirection)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
 }
