@@ -74,6 +74,7 @@ import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTest
 import { registerCaveVinesTests } from "./tests/cave/CaveVinesTests.js";
 import { registerSporeBlossomTests } from "./tests/cave/SporeBlossomTests.js";
 import { registerMossTests } from "./tests/cave/MossTests.js";
+import { registerAmethystBudGrowthTests } from "./tests/cave/AmethystBudGrowthTests.js";
 import { registerVineTests } from "./tests/vegetation/VineTests.js";
 import { registerAnvilTests } from "./tests/functional/AnvilTests.js";
 import { registerComposterTests } from "./tests/functional/ComposterTests.js";
@@ -181,6 +182,7 @@ registerPointedDripstoneTests();
 registerCaveVinesTests();
 registerSporeBlossomTests();
 registerMossTests();
+registerAmethystBudGrowthTests();
 registerVineTests();
 registerAnvilTests();
 registerComposterTests();
