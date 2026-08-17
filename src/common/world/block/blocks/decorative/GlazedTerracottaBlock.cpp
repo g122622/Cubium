@@ -58,8 +58,9 @@ GlazedTerracottaBlock::GlazedTerracottaBlock(const BlockProperties& properties)
 
 BlockState GlazedTerracottaBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据玩家朝向放置
-    Direction facing = context.horizontalDirection();
+    // 带釉陶瓦放置朝向与玩家朝向相反（箭头背离玩家），对齐 vanilla
+    // GlazedTerracottaBlock.java:28 getHorizontalDirection().getOpposite()。
+    Direction facing = Directions::opposite(context.horizontalDirection());
     return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
