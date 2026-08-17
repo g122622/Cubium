@@ -70,13 +70,20 @@ BlockState EndRodBlock::getStateForPlacement(BlockItemUseContext& context)
 {
     // 对齐 MC 1.21.11 EndRodBlock.getStateForPlacement：
     //   Direction direction = ctx.getClickedFace();
-    //   BlockState neighbor = level.getBlockState(clickedPos.relative(direction.getOpposite()));
+    //   BlockState neighbor = level.getBlockState(ctx.getClickedPos().relative(direction.getOpposite()));
     //   return neighbor.is(this) && neighbor.getValue(FACING) == direction
     //       ? defaultState().setValue(FACING, direction.getOpposite())
     //       : defaultState().setValue(FACING, direction);
+    //
+    // 关键语义：vanilla 的 ctx.getClickedPos() 是 BlockPlaceContext 重写版，返回「放置目标格」
+    // （replaceClicked ? clickedPos : clickedPos.relative(clickedFace)），而非 UseOnContext 父类返回的
+    // 「被点击现有方块」。Cubium 中与之等价的是 context.placementPos()。曾误用 context.blockPos()
+    // （被点击方块），导致「背靠背反向放置」判定查错邻居——点击已有 end_rod 顶面放新块时，本应取
+    // 放置目标格再反向回指被点击的现有 end_rod，却误取被点击方块再反向回指其下方格子，条件不成立
+    // 而 fallback 为正向朝向，与 vanilla 不符。改为 placementPos() 后与 vanilla 一致。
     const Direction direction = context.getClickedFace();
     const IWorld& world = context.getWorld();
-    const BlockPos neighborPos = context.blockPos().offset(Directions::opposite(direction));
+    const BlockPos neighborPos = context.placementPos().offset(Directions::opposite(direction));
     const BlockState* neighborState = world.getBlockState(neighborPos);
 
     Direction facing = direction;
