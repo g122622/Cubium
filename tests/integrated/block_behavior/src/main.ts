@@ -101,6 +101,8 @@ import { registerBrewingStandTests } from "./tests/functional/BrewingStandTests.
 import { registerFurnaceTests } from "./tests/functional/FurnaceTests.js";
 import { registerBarrelTests } from "./tests/functional/BarrelTests.js";
 import { registerGrindstoneTests } from "./tests/functional/GrindstoneTests.js";
+import { registerStonecutterTests } from "./tests/functional/StonecutterTests.js";
+import { registerLoomTests } from "./tests/functional/LoomTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -194,3 +196,5 @@ registerBrewingStandTests();
 registerFurnaceTests();
 registerBarrelTests();
 registerGrindstoneTests();
+registerStonecutterTests();
+registerLoomTests();

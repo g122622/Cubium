@@ -55,6 +55,7 @@ struct BuildingBlocks {
     static Block* LOOM;
     static Block* BARREL;
     static Block* GRINDSTONE;
+    static Block* STONECUTTER;
     static Block* CARTOGRAPHY_TABLE;
     static Block* FLETCHING_TABLE;
     static Block* SMITHING_TABLE;
