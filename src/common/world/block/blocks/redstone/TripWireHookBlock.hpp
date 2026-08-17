@@ -33,6 +33,10 @@
 #include "world/block/Block.hpp"
 
 namespace mc {
+
+// 前向声明
+class BlockItemUseContext;
+
 namespace blocks {
 
 /**
@@ -56,6 +60,14 @@ public:
     explicit TripWireHookBlock(const BlockProperties& properties);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向：facing = 玩家点击的墙面（水平四向）。绊线钩只能附在墙面（无 Floor/Ceiling 概念），
+    // 朝向直接等于点击的水平面。若点击面非水平（Up/Down，理论上不会发生因 isValidPosition 限制），
+    // 回退到玩家水平朝向。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North），与预期按点击墙面决定朝向的行为不一致。重写后修正。注意 HORIZONTAL_FACING 是水平四向
+    // 枚举，不可写入 Up/Down（会越界），须先水平化收窄。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

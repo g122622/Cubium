@@ -27,6 +27,7 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -74,6 +75,35 @@ AbstractButtonBlock::AbstractButtonBlock(const BlockProperties& properties, i32 
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
+}
+
+BlockState AbstractButtonBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向与附着面由玩家点击面决定（附墙方块语义，与朝玩家视线的 dispenser/piston 不同）：
+    //   点击顶面 → ATTACH_FACE=Floor，facing=玩家水平朝向（horizontalDirection，仅 yaw）；
+    //   点击底面 → ATTACH_FACE=Ceiling，facing=玩家水平朝向；
+    //   点击墙面 → ATTACH_FACE=Wall，facing=点击面（水平四向）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North、ATTACH_FACE 恒 Wall），与预期按点击面决定朝向/附着面的行为不一致。重写后修正。
+    // 石按钮/木按钮继承本类，继承本方法自动获得正确朝向。
+    Direction clickedFace = context.getClickedFace();
+    Direction horizontalFacing = context.horizontalDirection();
+
+    AttachFace attachFace;
+    Direction finalFacing = horizontalFacing;
+
+    if (clickedFace == Direction::Up) {
+        attachFace = AttachFace::Floor;
+    } else if (clickedFace == Direction::Down) {
+        attachFace = AttachFace::Ceiling;
+    } else {
+        attachFace = AttachFace::Wall;
+        finalFacing = clickedFace;
+    }
+
+    return defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), finalFacing)
+        .with(BlockStateProperties::ATTACH_FACE(), attachFace);
 }
 
 bool AbstractButtonBlock::isPowered(const BlockState& state) noexcept

@@ -17,18 +17,30 @@
 //   - tick（AbstractButtonBlock.cpp:166-181）：POWERED=true 时 set POWERED=false + 弹起音效 + notifyNeighbors。
 //   - 木按钮 WOOD_BUTTON_PRESS_TIME=30（WoodButtonBlock.cpp:36），石按钮 STONE_BUTTON_PRESS_TIME=20
 //     （StoneButtonBlock.cpp:36），游戏刻口径。
+//   - getStateForPlacement（AbstractButtonBlock 重写）：朝向与附着面由玩家点击面决定（附墙方块语义，
+//     与朝玩家视线的 dispenser/piston 不同）：点击顶面→face=floor、facing=玩家水平朝向；点击底面→
+//     ceiling、facing=玩家水平朝向；点击墙面→wall、facing=点击面（水平四向）。此前未重写该方法，落回
+//     基类 Block::getStateForPlacement 返回 defaultState()（facing 恒 North、face 恒 wall），与预期按
+//     点击面决定朝向/附着面的行为不一致。重写后修正。石/木按钮继承本类，继承本方法自动获得正确朝向。
 //   - getWeakPower/getStrongPower：isPowered?15:0，全向输出（基岩充能模型，Java 方向性输出 TODO 未实现）。
 //
 // 按压入口：GameTestHelper::pressButton（GameTestHelper.cpp:418-440）已实现（非 stub），
 //   dynamic_cast<AbstractButtonBlock*> 校验后调 button->press。JS 侧 test.pressButton(pos)。
 //   注意：pullLever/pulseRedstone 是 stub，按钮测试只能用 pressButton。
+//   放置朝向走 useItemOnBlock 手持按钮物品点击 stone 顶面/侧面 → BlockItem::tryPlace →
+//   getStateForPlacement（基类 facing/face 按点击面）→ setBlockState。
 //
-// 测试覆盖（5 个场景，覆盖 wiki 脉冲+时序+充能核心行为，可跨服务端对比）：
+// 测试覆盖（7 个场景，覆盖 wiki 脉冲+时序+充能+放置朝向核心行为，可跨服务端对比）：
 //   1. 石按钮按压开启：pressButton → POWERED 翻 true + 毗邻红石灯亮（充能毗邻）。
 //   2. 木按钮按压开启：pressButton → POWERED 翻 true + 红石灯亮（验证木按钮也能充能）。
 //   3. 石按钮 20gt 后弹起：按压后 tick 22+ → POWERED 翻回 false + 灯灭（石按钮 20gt 脉冲）。
 //   4. 木按钮 30gt 后弹起：按压后 tick 32+ → POWERED 翻回 false（木按钮 30gt，比石按钮长 10gt）。
 //   5. 重复按压不延长脉冲：按压后立即再按压 → 弹起时刻不延后（isPowered 守卫防重复触发）。
+//   6. Floor 4 朝向放置：点击 stone 顶面 Up → face=floor, facing=玩家水平朝向（4 朝向，复用
+//      GrindstoneTests Y 轴坐标配方，facing=horizontalDirection 同向非 opposite）。
+//   7. Wall 2 朝向放置（区分新旧实现）：点击 stone 侧面 → face=wall, facing=点击面（South/East 两轴，
+//      复用 GrindstoneTests Wall 坐标配方）。旧实现落基类 defaultState（face 恒 wall、facing 恒 North），
+//      新实现 face=wall、facing=点击面。
 //
 // 关键约束：
 // 1. setBlockType 放按钮用默认 state（Wall+North），支撑方块在按钮 South 侧（z+1，facing North 的反方向）。
@@ -39,22 +51,34 @@
 // 3. pressButton 同步置 POWERED=true，pollUntilSucceed 仅作时序余量保险。
 // 4. 弹起断言用 runAtTickTime 显式多时间点断言（不用 pollUntilSucceed 断 powered===false——首 tick 即
 //    满足 false 会误判「尚未按压」），参照 PressurePlateTests stonePressurePlateIgnoresItem 范式。
-// 5. 读 powered state 用 getState("powered" as any) 绕过 BlockStateSuperset 白名单。
+// 5. 读 powered state 用 getState("powered" as any) 绕过 BlockStateSuperset 白名单。读 facing/face state
+//    用 getState("facing"/"face" as any)（HORIZONTAL_FACING 返小写方向，ATTACH_FACE 返 floor/wall/ceiling）。
+// 6. 场景 6/7 朝向控制（复用 GrindstoneTests/BellTests 含 pitch lookAtLocation 范式 + 水平 4 朝向坐标
+//    配方）。Floor 分支 facing=horizontalDirection（玩家水平朝向，同向非 opposite，需 lookAt 控制 yaw）；
+//    Wall 分支 facing=clickedFace（点击面，与玩家朝向无关）。每朝向独立 spawn 玩家避免 yaw 残留；每次清理
+//    落点避免残留阻断放置。useItemOnBlock 第三参数 Direction=点击面（clickedFace），原样透传到
+//    context.getClickedFace()，placementPos=被点击方块.offset(clickedFace)。此前 Cubium 未重写
+//    getStateForPlacement（基类 defaultState，face 恒 wall、facing 恒 North），朝向放置全为默认值，断言
+//    失败；重写后修正。
 //
 // 不测「箭射中木按钮触发」：投射物碰撞链路未实现，跳过。TODO: 待投射物碰撞实现后补。
-// 不测「attachFace=Floor/Ceiling 朝向」：setBlockType 只能放默认 Wall，无 place 逻辑，跳过。
 // 不测「Java 方向性强输出」：Cubium 是基岩全向输出模型，Java 方向性 TODO 未实现，跳过。
 //
-// 跨服务端：按钮 powered state 名两端一致，脉冲时序（木 30gt/石 20gt）两端一致。
-//   注意：BE 用红石刻口径（木 15/石 10），Cubium 用游戏刻口径（木 30/石 20），数值等价。
+// 跨服务端：按钮 powered/facing/face state 名两端一致，脉冲时序（木 30gt/石 20gt）+ 放置朝向（face/facing
+//   按点击面）行为两端一致。注意：BE 用红石刻口径（木 15/石 10），Cubium 用游戏刻口径（木 30/石 20），
+//   数值等价。朝向测试用 useItemOnBlock 放置（lookAtLocation 是 Cubium 专有朝向控制，但 face/facing 按点击面
+//   放置行为两端可对比，非 one-sided）。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_按钮.txt#红石元件（按压开启，石 20gt/木 30gt 后弹起）
-// Ref: AbstractButtonBlock.cpp（press 置 POWERED+调度弹起 tick，tick 弹起，全向输出）
+// Ref: AbstractButtonBlock.cpp（press 置 POWERED+调度弹起 tick，tick 弹起，全向输出，getStateForPlacement 按点击面）
 // Ref: WoodButtonBlock.cpp:36（WOOD_BUTTON_PRESS_TIME=30）/ StoneButtonBlock.cpp:36（STONE_BUTTON_PRESS_TIME=20）
 // Ref: GameTestHelper.cpp:418-440（pressButton 调 AbstractButtonBlock::press）
+// Ref: GrindstoneTests.ts（附墙方块 Y 轴 Floor/Wall 朝向测试范式 + 坐标配方，按钮复用同构）
+// Ref: SimulatedPlayer.cpp（useItemOnBlock Direction 参数=clickedFace 原样透传 getClickedFace）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack, Direction } from "@minecraft/server";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
@@ -80,6 +104,93 @@ function getLampLit(test: Test, x: number, y: number, z: number): boolean | null
     const value = block?.permutation?.getState("lit" as any);
     return typeof value === "boolean" ? value : null;
 }
+
+// 读取 (x,y,z) 按钮 facing state（方向名字符串 "north"/"south"/"east"/"west"）。返回 null 表示失败或非按钮。
+// HORIZONTAL_FACING() 的 C++ 属性名为 "facing"（水平四向，无 up/down）。
+function getButtonFacing(test: Test, x: number, y: number, z: number): string | null {
+    const block = test.getBlock({ x, y, z });
+    if (block === undefined) {
+        return null;
+    }
+    const value = block?.permutation?.getState("facing" as any);
+    return typeof value === "string" ? value : null;
+}
+
+// 读取 (x,y,z) 按钮 face state（附着面字符串 "floor"/"wall"/"ceiling"）。返回 null 表示失败或非按钮。
+// ATTACH_FACE() 的 C++ 属性名为 "face"。
+function getButtonFace(test: Test, x: number, y: number, z: number): string | null {
+    const block = test.getBlock({ x, y, z });
+    if (block === undefined) {
+        return null;
+    }
+    const value = block?.permutation?.getState("face" as any);
+    return typeof value === "string" ? value : null;
+}
+
+// 读取 (x,y,z) 方块 typeId（Cubium Block 暴露 typeId 属性）。返回空串表示读取失败。
+function getBlockTypeId(test: Test, x: number, y: number, z: number): string {
+    const block = test.getBlock({ x, y, z }) as unknown as { typeId?: string } | undefined;
+    return block?.typeId ?? "";
+}
+
+// Floor 4 朝向放置映射表（复用 GrindstoneTests/BellTests 的 Y 轴坐标配方，按钮 Floor 分支 facing=
+// horizontalDirection 玩家水平朝向，同向非 opposite）。
+// horizontalDirection=orderedByNearest(yaw,pitch)[0] 的水平分量，pitch≈0 时 = 玩家水平朝向。
+// lookAtLocation yaw=atan2(-dx,dz)：0→South,90→West,180→North,270→East。
+// 【关键】lookAt.y=playerPos.y+1 使 pitch≈0（horizontalDirection 仅读 yaw，但 pitch≈0 与现有范式一致稳妥）。
+interface FloorFacingCase {
+    name: string; // 玩家水平朝向名（lookAt 产生的 horizontalDirection）
+    playerPos: { x: number; y: number; z: number }; // 玩家 spawn 位置（不与 stone/按钮落点重叠）
+    lookAt: { x: number; y: number; z: number }; // lookAtLocation 目标（y=playerPos.y+1 保证 pitch≈0）
+    expectedFacing: string; // 按钮 facing=玩家水平朝向（同向非 opposite）
+}
+
+// 4 朝向推算（playerPos.y=2→眼高3.62，lookAt.y=3→dy=-0.12→pitch≈1.3°，[0]=水平朝向，facing=水平朝向同向）：
+//   South（yaw[315,360)∪[0,45)→facing=South）：玩家(1,2,1)，lookAt(3,3,6)，dx=2,dz=5→338°→South→facing=south。
+//   West（yaw[45,135)→facing=West）：玩家(5,2,1)，lookAt(0,3,1)，dx=-5,dz=0→90°→West→facing=west。
+//   North（yaw[135,225)→facing=North）：玩家(1,2,5)，lookAt(3,3,0)，dx=2,dz=-5→158°→North→facing=north。
+//   East（yaw[225,315)→facing=East）：玩家(1,2,1)，lookAt(6,3,1)，dx=5,dz=0→270°→East→facing=east。
+// 玩家位置均不与 (3,1,1)/(3,2,1) 重叠；lookAt 目标均在 [0,6] 内不越界。
+const FLOOR_FACING_CASES: FloorFacingCase[] = [
+    { name: "south", playerPos: { x: 1, y: 2, z: 1 }, lookAt: { x: 3, y: 3, z: 6 }, expectedFacing: "south" },
+    { name: "west", playerPos: { x: 5, y: 2, z: 1 }, lookAt: { x: 0, y: 3, z: 1 }, expectedFacing: "west" },
+    { name: "north", playerPos: { x: 1, y: 2, z: 5 }, lookAt: { x: 3, y: 3, z: 0 }, expectedFacing: "north" },
+    { name: "east", playerPos: { x: 1, y: 2, z: 1 }, lookAt: { x: 6, y: 3, z: 1 }, expectedFacing: "east" },
+];
+
+// Wall 2 朝向放置映射表（复用 GrindstoneTests Wall 坐标配方，按钮 Wall 分支 facing=clickedFace 点击面本身）。
+// 每 case 独立 stone 位置 + 点击面 + 落点，玩家站远离落点处（避免实体碰撞阻断放置）。
+interface WallFacingCase {
+    name: string; // 点击面名（facing=该面）
+    stonePos: { x: number; y: number; z: number }; // 被点击 stone 位置（也是 wall 背面支撑）
+    clickedFace: Direction; // 点击面（facing=此面）
+    buttonPos: { x: number; y: number; z: number }; // 按钮落点（stone.offset(clickedFace)）
+    playerPos: { x: number; y: number; z: number }; // 玩家位置（远离落点，避免碰撞；朝向不影响 wall facing）
+    expectedFacing: string; // 按钮 facing=clickedFace
+}
+
+// 2 朝向（覆盖 Z 轴 South + X 轴 East，验证 wall 分支两轴判定）：
+//   South（Z 轴）：stone(3,2,1) 点击 South → 按钮落(3,2,2), facing=south。背面 opposite(south)=north=(3,2,1) stone ✓。
+//   East（X 轴）：stone(1,2,2) 点击 East → 按钮落(2,2,2), facing=east。背面 opposite(east)=west=(1,2,2) stone ✓。
+// 玩家站远离落点：South case 玩家(3,2,4)（落点(3,2,2) 北侧 2 格外）；East case 玩家(5,2,2)（落点(2,2,2) 东侧 3 格外）。
+const WALL_FACING_CASES: WallFacingCase[] = [
+    {
+        name: "south",
+        stonePos: { x: 3, y: 2, z: 1 },
+        clickedFace: Direction.South,
+        buttonPos: { x: 3, y: 2, z: 2 },
+        playerPos: { x: 3, y: 2, z: 4 },
+        expectedFacing: "south",
+    },
+    {
+        name: "east",
+        stonePos: { x: 1, y: 2, z: 2 },
+        clickedFace: Direction.East,
+        buttonPos: { x: 2, y: 2, z: 2 },
+        playerPos: { x: 5, y: 2, z: 2 },
+        expectedFacing: "east",
+    },
+];
 
 // 放支撑 + 按钮 + 被充能红石灯。
 // 顺序：先放支撑 (3,2,2) stone（按钮 South 侧），再放按钮 (3,2,1)，再放红石灯 (4,2,1)。
@@ -234,6 +345,97 @@ function buttonPressDoesNotExtendPulse(test: Test): void {
     });
 }
 
+// 场景 6：Floor 4 朝向放置——点击 stone 顶面 Up → face=floor, facing=玩家水平朝向（同向，非 opposite）。
+//
+// 布局：(3,1,1) stone（被点击方块，按钮 Floor 下方支撑）。每朝向独立 spawn 玩家在 playerPos →
+//   lookAtLocation(lookAt) 设朝向 → 清理 (3,2,1) → 手持 stone_button useItemOnBlock 点击 (3,1,1) 顶面 Up →
+//   placementPos=(3,2,1) → getStateForPlacement Y 轴分支：clickedFace=Up→floor, facing=horizontalDirection
+//   (玩家水平朝向) → updatePostPlacement Floor 查 supportDir=Down=(3,1,1)=stone 非空气（不自毁）→
+//   setBlockState 放按钮 (3,2,1)。
+//
+// 判定：4 朝向放置后 (3,2,1) face===floor 且 facing===expectedFacing（玩家水平朝向，同向非 opposite）。
+//
+// 此场景验证 AbstractButtonBlock.getStateForPlacement Y 轴 Up 分支：face=floor, facing=horizontalDirection
+//   （玩家朝向同向，同砂轮/钟 Y 轴分支）。旧实现落基类 defaultState（face 恒 wall、facing 恒 North），
+//   face 断言即失败（floor≠wall）；重写后修正。每朝向用新 player 避免 yaw 残留；每次清理 (3,2,1) 避免
+//   按钮残留阻断放置。坐标配方与 GrindstoneTests Y_AXIS_FACING_CASES 完全一致（已验证可放置）。
+function buttonFloorFacingEqualsPlayerDirection(test: Test): void {
+    test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 });
+    test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);
+
+    for (const c of FLOOR_FACING_CASES) {
+        const player = test.spawnSimulatedPlayer(c.playerPos, `p_${c.name}`);
+        // lookAtLocation 设朝向：yaw=atan2(-dx,dz) → horizontalDirection → 按钮 facing=玩家水平朝向（同向）。
+        player.lookAtLocation(c.lookAt);
+
+        // 清理 (3,2,1) 避免上一朝向按钮残留阻断放置。
+        test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
+
+        // 手持 stone_button 点击 (3,1,1) stone 顶面 Up → 按钮落 (3,2,1)。
+        // getStateForPlacement Y 轴分支：clickedFace=Up→floor, facing=horizontalDirection(玩家水平朝向)。
+        const buttonItem = new ItemStack("minecraft:stone_button", 1);
+        const used = player.useItemOnBlock(
+            buttonItem as unknown as Parameters<typeof player.useItemOnBlock>[0],
+            { x: 3, y: 1, z: 1 },
+            Direction.Up,
+        );
+        test.assert(used, `useItemOnBlock should return true when placing floor button facing ${c.expectedFacing} (player facing ${c.name})`);
+
+        // 断言按钮 (3,2,1) 已放置且 face=floor, facing=玩家水平朝向（同向非 opposite）。
+        test.assert(getBlockTypeId(test, 3, 2, 1) === "minecraft:stone_button", `button should be placed at (3,2,1) for facing ${c.name}, got ${getBlockTypeId(test, 3, 2, 1)}`);
+        test.assert(getButtonFace(test, 3, 2, 1) === "floor", `button face should be floor, got ${getButtonFace(test, 3, 2, 1)}`);
+        const facing = getButtonFacing(test, 3, 2, 1);
+        test.assert(facing === c.expectedFacing, `button facing should be ${c.expectedFacing} (player direction, not opposite), got ${facing}`);
+    }
+
+    test.succeed();
+}
+
+// 场景 7：Wall 2 朝向放置（区分新旧实现）——点击 stone 侧面 → face=wall, facing=点击面（South/East 两轴）。
+//
+// 布局：每 case 独立 stone 位置 + 点击面。手持 stone_button useItemOnBlock 点击 stone 侧面（clickedFace）→
+//   placementPos=stone.offset(clickedFace) → getStateForPlacement 水平分支：face=wall, facing=clickedFace →
+//   updatePostPlacement Wall 查 supportDir=opposite(clickedFace)=stone 本身非空气（不自毁）→ setBlockState。
+//
+// 判定：每 case 按钮落点 face===wall 且 facing===expectedFacing（点击面本身，非 opposite）。
+//
+// 此场景验证 AbstractButtonBlock.getStateForPlacement 水平分支：face=wall, facing=clickedFace（点击面本身）。
+//   旧实现落基类 defaultState（face 恒 wall、facing 恒 North）——face 碰巧相同（默认 wall）但 facing 恒 North，
+//   故 South/East 两 case 的 facing 断言失败（south≠north、east≠north）；重写后修正为 facing=clickedFace。
+//   2 朝向覆盖 Z 轴(South)+X 轴(East) 验证 wall 分支两轴判定。玩家朝向不影响 wall facing（facing=clickedFace），
+//   玩家位置仅须远离落点避免碰撞。坐标配方与 GrindstoneTests WALL_FACING_CASES 完全一致（已验证可放置）。
+function buttonWallFacingEqualsClickedFace(test: Test): void {
+    for (const c of WALL_FACING_CASES) {
+        // 放被点击 stone（也是 wall 背面支撑，opposite(clickedFace)=stone 本身须非空气）。
+        test.setBlockType("minecraft:stone", c.stonePos);
+        test.assert(getBlockTypeId(test, c.stonePos.x, c.stonePos.y, c.stonePos.z) === "minecraft:stone", `stone should be at (${c.stonePos.x},${c.stonePos.y},${c.stonePos.z}), got ${getBlockTypeId(test, c.stonePos.x, c.stonePos.y, c.stonePos.z)}`);
+        // 清理按钮落点。
+        test.setBlockType("minecraft:air", c.buttonPos);
+
+        const player = test.spawnSimulatedPlayer(c.playerPos, `p_${c.name}`);
+        // 玩家朝向不影响 wall facing（facing=clickedFace），lookAtLocation 仅自然朝向（避免 spawn 默认朝向）。
+        player.lookAtLocation(c.stonePos);
+
+        // 手持 stone_button 点击 stone 侧面 clickedFace → 按钮落 buttonPos。
+        // getStateForPlacement 水平分支：face=wall, facing=clickedFace。
+        const buttonItem = new ItemStack("minecraft:stone_button", 1);
+        const used = player.useItemOnBlock(
+            buttonItem as unknown as Parameters<typeof player.useItemOnBlock>[0],
+            c.stonePos,
+            c.clickedFace,
+        );
+        test.assert(used, `useItemOnBlock should return true when placing wall button facing ${c.expectedFacing} (clicked face ${c.name})`);
+
+        // 断言按钮落点 face=wall, facing=点击面本身（非 opposite）。
+        test.assert(getBlockTypeId(test, c.buttonPos.x, c.buttonPos.y, c.buttonPos.z) === "minecraft:stone_button", `button should be placed at (${c.buttonPos.x},${c.buttonPos.y},${c.buttonPos.z}) for ${c.name}, got ${getBlockTypeId(test, c.buttonPos.x, c.buttonPos.y, c.buttonPos.z)}`);
+        test.assert(getButtonFace(test, c.buttonPos.x, c.buttonPos.y, c.buttonPos.z) === "wall", `button face should be wall for ${c.name}, got ${getButtonFace(test, c.buttonPos.x, c.buttonPos.y, c.buttonPos.z)}`);
+        const facing = getButtonFacing(test, c.buttonPos.x, c.buttonPos.y, c.buttonPos.z);
+        test.assert(facing === c.expectedFacing, `button facing should be ${c.expectedFacing} (clicked face, not opposite) for ${c.name}, got ${facing}`);
+    }
+
+    test.succeed();
+}
+
 export function registerButtonTests(): void {
     GameTest.register("BlockBehaviorTests", "stone_button_powers_when_pressed", stoneButtonPowersWhenPressed)
         .structureName("gametests:glass_pit")
@@ -248,6 +450,12 @@ export function registerButtonTests(): void {
         .structureName("gametests:glass_pit")
         .maxTicks(90);
     GameTest.register("BlockBehaviorTests", "button_press_does_not_extend_pulse", buttonPressDoesNotExtendPulse)
+        .structureName("gametests:glass_pit")
+        .maxTicks(80);
+    GameTest.register("BlockBehaviorTests", "button_floor_facing_equals_player_direction", buttonFloorFacingEqualsPlayerDirection)
+        .structureName("gametests:glass_pit")
+        .maxTicks(120);
+    GameTest.register("BlockBehaviorTests", "button_wall_facing_equals_clicked_face", buttonWallFacingEqualsClickedFace)
         .structureName("gametests:glass_pit")
         .maxTicks(80);
 }

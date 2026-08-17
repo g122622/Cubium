@@ -32,6 +32,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
+
+// 前向声明
+class BlockItemUseContext;
+
 namespace blocks {
 
 /**
@@ -60,6 +64,13 @@ public:
     AbstractButtonBlock(const BlockProperties& properties, i32 ticksToStayPressed);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向与附着面：由玩家点击面决定。点击顶面→ATTACH_FACE=Floor、facing=玩家水平朝向；
+    // 点击底面→Ceiling、facing=玩家水平朝向；点击墙面→Wall、facing=点击面（水平四向）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING
+    // 恒 North、ATTACH_FACE 恒 Wall），与预期按点击面决定朝向/附着面的行为不一致。重写后修正。
+    // 石按钮（StoneButtonBlock）/木按钮（WoodButtonBlock）继承本类，继承本方法自动获得正确朝向。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

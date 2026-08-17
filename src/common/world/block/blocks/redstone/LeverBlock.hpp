@@ -31,6 +31,10 @@
 #include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
+
+// 前向声明
+class BlockItemUseContext;
+
 namespace blocks {
 
 /**
@@ -48,8 +52,6 @@ namespace blocks {
  * - 附着面变化时需要检测支撑
  * - 方向和附着面的组合复杂
  * - 需要正确处理所有输出方向
- *
- * 参考: net.minecraft.block.LeverBlock
  */
 class LeverBlock : public Block {
 public:
@@ -60,6 +62,12 @@ public:
     explicit LeverBlock(const BlockProperties& properties);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向与附着面：由玩家点击面决定（同按钮，附墙方块语义）。点击顶面→Floor、facing=玩家水平
+    // 朝向；点击底面→Ceiling、facing=玩家水平朝向；点击墙面→Wall、facing=点击面（水平四向）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North、ATTACH_FACE 恒 Wall），与预期按点击面决定朝向/附着面的行为不一致。重写后修正。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

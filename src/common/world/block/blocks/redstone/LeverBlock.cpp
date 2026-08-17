@@ -23,6 +23,7 @@
 
 #include "LeverBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
@@ -69,6 +70,34 @@ LeverBlock::LeverBlock(const BlockProperties& properties)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::ATTACH_FACE(), AttachFace::Wall));
+}
+
+BlockState LeverBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向与附着面由玩家点击面决定（附墙方块语义，同按钮）：
+    //   点击顶面 → ATTACH_FACE=Floor，facing=玩家水平朝向（horizontalDirection，仅 yaw）；
+    //   点击底面 → ATTACH_FACE=Ceiling，facing=玩家水平朝向；
+    //   点击墙面 → ATTACH_FACE=Wall，facing=点击面（水平四向）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North、ATTACH_FACE 恒 Wall），与预期按点击面决定朝向/附着面的行为不一致。重写后修正。
+    Direction clickedFace = context.getClickedFace();
+    Direction horizontalFacing = context.horizontalDirection();
+
+    AttachFace attachFace;
+    Direction finalFacing = horizontalFacing;
+
+    if (clickedFace == Direction::Up) {
+        attachFace = AttachFace::Floor;
+    } else if (clickedFace == Direction::Down) {
+        attachFace = AttachFace::Ceiling;
+    } else {
+        attachFace = AttachFace::Wall;
+        finalFacing = clickedFace;
+    }
+
+    return defaultState()
+        .with(BlockStateProperties::HORIZONTAL_FACING(), finalFacing)
+        .with(BlockStateProperties::ATTACH_FACE(), attachFace);
 }
 
 bool LeverBlock::isPowered(const BlockState& state)
