@@ -153,6 +153,17 @@ public:
     [[nodiscard]] const ItemStack& getItemStack() const { return ItemUseContext::getItemStack(); }
 
     /**
+     * @brief 获取玩家视线最近的方向（单数）
+     *
+     * 无条件返回玩家视线最近的方向（orderedByNearest(player)[0]），不经过「点击面反向提首」处理。
+     * 用于木桶/活塞/发射器等需要「朝向玩家视线反方向」放置的方块（对应 vanilla BlockPlaceContext
+     * 的 getNearestLookingDirection()，与 getNearestLookingDirections()[0] 在非替换场景不同）。
+     *
+     * @return 玩家视线最近的方向
+     */
+    [[nodiscard]] Direction getNearestLookingDirection() const;
+
+    /**
      * @brief 获取玩家视线方向的优先级列表
      *
      * 返回按玩家视线方向排序的方向列表。

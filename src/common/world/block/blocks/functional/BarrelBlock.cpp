@@ -84,8 +84,12 @@ BarrelBlock::BarrelBlock(const BlockProperties& properties)
 
 BlockState BarrelBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 木桶朝向玩家看向的方向的反方向
-    Direction facing = context.getClickedFace();
+    // 朝向玩家视线最近方向的反方向（桶盖朝向玩家）。与 MC 1.21.11 BarrelBlock.getStateForPlacement
+    // 对齐：facing = getNearestLookingDirection().getOpposite()。
+    // 此前误用 context.getClickedFace()（点击面），在「玩家视线近垂直却点击侧面」等边缘场景与 vanilla
+    // 分歧（vanilla 由视线决定，旧实现由点击面决定）。getNearestLookingDirection 无条件取视线最近方向，
+    // 修复后与 vanilla 严格对齐。
+    Direction facing = Directions::opposite(context.getNearestLookingDirection());
     return defaultState().with(BlockStateProperties::FACING(), facing);
 }
 

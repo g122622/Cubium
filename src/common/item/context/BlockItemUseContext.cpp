@@ -187,6 +187,25 @@ const BlockState* BlockItemUseContext::getBlockStateAtPlacementPos() const
     return m_world.getBlockState(m_placementPos);
 }
 
+Direction BlockItemUseContext::getNearestLookingDirection() const
+{
+    // 与 MC 1.21.11 BlockPlaceContext.getNearestLookingDirection 对齐：
+    //   return Direction.orderedByNearest(player)[0];
+    // 无条件返回玩家视线最近方向（不经过 getNearestLookingDirections 的「点击面反向提首」处理）。
+    // 用于木桶/活塞/发射器等「朝向玩家视线反方向」放置的方块（facing = opposite(this)）。
+    //
+    // 取玩家视线 yaw/pitch：优先真实玩家实体，回退构造时传入的 m_playerYaw/m_playerPitch
+    // （与 getNearestLookingDirections 一致）。
+    f32 yawDeg = m_playerYaw;
+    f32 pitchDeg = m_playerPitch;
+    if (m_player != nullptr) {
+        yawDeg = m_player->yaw();
+        pitchDeg = m_player->pitch();
+    }
+
+    return orderedByNearest(yawDeg, pitchDeg)[0];
+}
+
 std::vector<Direction> BlockItemUseContext::getNearestLookingDirections() const
 {
     // 与 MC 1.21.11 BlockPlaceContext.getNearestLookingDirections 对齐：
