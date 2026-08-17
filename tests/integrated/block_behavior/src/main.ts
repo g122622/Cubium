@@ -110,6 +110,8 @@ import { registerDispenserTests } from "./tests/redstone/DispenserTests.js";
 import { registerDropperTests } from "./tests/redstone/DropperTests.js";
 import { registerPistonTests } from "./tests/redstone/PistonTests.js";
 import { registerStickyPistonTests } from "./tests/redstone/StickyPistonTests.js";
+import { registerRedstoneBlockTests } from "./tests/redstone/RedstoneBlockTests.js";
+import { registerRedstoneTorchTests } from "./tests/redstone/RedstoneTorchTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -212,3 +214,5 @@ registerDispenserTests();
 registerDropperTests();
 registerPistonTests();
 registerStickyPistonTests();
+registerRedstoneBlockTests();
+registerRedstoneTorchTests();
