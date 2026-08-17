@@ -53,7 +53,9 @@
 //   ~120 tick（足够多 randomTick 命中），断言 age===0。门槛正确→每次命中都 return age 恒0；
 //   门槛 bug→命中时按概率 age+1，多次命中后 age 几乎必然>0。
 //   守卫：断言作物处 blockLight===0 && skyLight===0 确认黑暗环境成立（仅 Cubium 侧判定，基岩侧
-//   blockLight/skyLight 不可读跳过）。
+//   blockLight/skyLight 不可读跳过）。注意 Cubium 脚本 block.blockLight 调 world.getBlockLight(pos)
+//   返回该位置环境方块光（非方块自身 lightLevel）；实测 wheat 处读环境光正确，但 air 处恒0且光源距2格
+//   经 air 间隙传播归0（见排除项「光照8级」说明）。本守卫读 wheat 处（无光源）应0，黑暗成立可判。
 //
 // 测试2 crop_grows_in_light（门槛下界，光照≥9 生长）：
 //   (3,1,3) 作物旁 (4,1,3) 放 glowstone(15) 提供方块光，作物处光照=14≥9。调高 randomTickSpeed 后
@@ -63,13 +65,29 @@
 //   注：作物成熟 maxAge=7 后 isMaxAge 提前 return 不再生长，断言 age>0（非 age===7）避免过度等待。
 //
 // ============================ 排除项（不写测试）============================
-// - 低光照「接收方块更新掉落」（wiki 0-7级掉落）：Cubium BushBlock::updatePostPlacement 只查
-//   canSustain（耕地）不查光照（BushBlock.cpp:79-90），作物在低光照下不会因光照掉落，与 vanilla
-//   canSurvive 含光照检查偏差。按「不为 Cubium 与 vanilla 不一致行为写测试」准则跳过。
-//   TODO: 待 Cubium BushBlock/CropBlock 的 updatePostPlacement 接入光照检查（对齐 vanilla canSurvive
-//   光照门槛 CROP_SURVIVAL_LIGHT_THRESHOLD=8）后补充低光照掉落测试。
-// - 光照 8 级「停止生长」边界：构造精确光照=8 需精确控制光源距离，且门槛9 已由测试1(0)/测试2(≥9)
-//   覆盖上界与下界，边界值=8 测试价值有限，跳过。
+// - 低光照「接收方块更新掉落」（wiki 0-7级掉落）：经核查 Cubium 存在两处与 vanilla 偏差，致该行为不可测：
+//   ① CropBlock 未重写 updatePostPlacement 接入光照检查（BushBlock.cpp:67-93 仅在 facing==Down 查
+//      canSustain 耕地，不查光照，且限定 Down 方向）；而 vanilla VegetationBlock.updateShape 任意方向
+//      邻居变化都调 canSurvive（CropBlock.canSurvive 含 getRawBrightness>=8 光照检查，CropBlock.java:144-150）。
+//   ② 即便补上光照检查，Cubium 自毁链路也不掉落：updatePostPlacement 返回 AIR 后，ServerWorld::setBlockState
+//      （ServerWorld.cpp:914-917）只是静默写入 AIR，不调 Block::dropResources/spawnAfterBreak/getDrops/lootTable
+//      （ServerWorld.cpp 全文零掉落调用，onBlockRemoved 默认空操作 Block.cpp:516-523）。这是项目级缺陷——
+//      所有 BushBlock 子类（花/作物/树苗等）自毁均静默消失不掉落，非作物独有。UPDATE_SUPPRESS_DROPS(32)
+//      在此链路亦未读取（死定义）。掉落需走 scheduleBlockTick + tick() 内显式 dropResources 再 setBlockState(AIR)
+//      的模式（参照 BigDripleafStemBlock.cpp:145-151）。
+//   按「不为 Cubium 与 vanilla 不一致行为写测试」准则跳过。
+//   TODO: 待 Cubium 修复①CropBlock updatePostPlacement 接入 isValidPosition 光照检查（对齐 vanilla canSurvive
+//   CROP_SURVIVAL_LIGHT_THRESHOLD=8，任意方向）+②自毁链路接入 dropResources 掉落（项目级，参照
+//   BigDripleafStemBlock tick 模式）后，补充低光照（<8）接收方块更新时作物掉落为物品的测试。
+// - 光照 8 级「停止生长」边界（区分存活门槛8 与生长门槛9）：本次实测发现 Cubium 方块光传播存在缺陷——
+//   光源距1格能传播（glowstone15→14、crying_obsidian10→9），但距2格经 air 间隙传播归0（air 格光照数据
+//   未正确重算/存储）。作物处 blockLight 只能取「相邻光源-1」，无光等级=9 的方块可构造 blockLight=8
+//   （光等级10距1格→9 生长；光等级8距1格→7 不存活）。故无法在 Cubium 构造稳定的 blockLight=8 环境，
+//   边界测试不可行。此属 Cubium StarLight 与 vanilla BFS 传播的系统性偏差之一（同 skylight 散射偏差，
+//   不为偏差写测试）。门槛9 已由测试1(光照0<9不生长)/测试2(光照14≥9生长)覆盖上界与下界。跳过8级边界。
+//   TODO: 待 Cubium 修复方块光穿 air 间隙传播（对齐 vanilla BFS 衰减 -1/格）后，可用 crying_obsidian(10)
+//   距作物2格构造 blockLight=8 补「存活但不生长」边界测试，验证 CROP_SURVIVAL_LIGHT_THRESHOLD(8) <
+//   CROP_GROWTH_LIGHT_THRESHOLD(9) 的精确区分。
 //
 // ============================ 跨服务端对比 ============================
 // - /gamerule randomTickSpeed、SimulatedPlayer.chat、BlockPermutation.resolve、getState("age") 在
