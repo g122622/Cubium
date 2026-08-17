@@ -4,6 +4,9 @@
 // blockLight 等于发光等级。light_box 封顶实心隔绝天空光，blockLight 是唯一光源。
 //
 // 本组覆盖的发光方块（核查确认已实现且与 wiki 一致）：
+//   15: conduit（潮涌核心，ConduitBlock.hpp:126-133 getLightLevel override 恒返回15，无需潮涌框架激活）
+//   14: end_rod（末地烛，NetherBlocks.cpp:678 lightLevel(14) 静态，noCollision 但存活）
+//   10: crying_obsidian（哭泣的黑曜石，NetherBlocks.cpp:218 lightLevel(10) 静态）
 //   5:  amethyst_cluster（紫水晶簇，lightLevel(5) 静态）
 //   4:  large_amethyst_bud（大型紫晶芽，lightLevel(4)）
 //   2:  medium_amethyst_bud（中型紫晶芽，lightLevel(2)）
@@ -16,8 +19,11 @@
 //   TODO: 这些带 state 发光方块的等级测试待后续补充，需用 setBlockWithStates 构造对应前置状态。
 //
 // 已知偏差/未实现（不写测试）：
-//   - copper_bulb：Cubium lit 恒=15 不分氧化度（wiki 15/12/8/4），偏差，跳过。
-//   - conduit/sculk_sensor/sculk_shrieker：注册但未实现发光（实际=0），跳过。
+//   - copper_bulb 氧化变体（exposed/weathered/oxidized）：CopperBulbBlock.hpp:82-88 getLightLevel override 恒
+//     `lit?15:0` 不分氧化度（wiki 15/12/8/4），偏差，跳过氧化变体 12/8/4；基础 copper_bulb 点亮=15/未点亮=0
+//     与 wiki 一致，单独测试组 CopperBulbEmissionTests 覆盖。
+//   - sculk_sensor/calibrated_sculk_sensor：注册但未设 lightLevel 也无 override（实际=0），wiki 期望1，偏差，跳过。
+//   - end_portal_frame：静态 lightLevel(1)，但 wiki 是"有眼才发光1"，项目无眼也恒发光1，触发条件偏差，跳过。
 //   - sculk_catalyst：实际已实现发光 6（注册处 SculkBlocks.cpp:85 .lightLevel(6)），与 wiki 6 一致，
 //     测试见 StatefulEmissionTests.ts（本组此前注释误标「未实现」，已纠正）。
 //
@@ -66,3 +72,10 @@ registerExtraEmissionTest("light_large_amethyst_bud_emits_4", "minecraft:large_a
 registerExtraEmissionTest("light_medium_amethyst_bud_emits_2", "minecraft:medium_amethyst_bud", 2);
 // 小型紫晶芽发光等级 1。
 registerExtraEmissionTest("light_small_amethyst_bud_emits_1", "minecraft:small_amethyst_bud", 1);
+// 末地烛发光等级 14（NetherBlocks.cpp:678 lightLevel(14) 静态，noCollision 装饰光源，无附着存活）。
+registerExtraEmissionTest("light_end_rod_emits_14", "minecraft:end_rod", 14);
+// 潮涌核心发光等级 15（ConduitBlock.hpp:126-133 getLightLevel override 恒返回15，无需潮涌框架激活，
+// setBlockType 直接放即发光；激活态只影响 ConduitEntity 增益，与发光无关）。
+registerExtraEmissionTest("light_conduit_emits_15", "minecraft:conduit", 15);
+// 哭泣的黑曜石发光等级 10（NetherBlocks.cpp:218 lightLevel(10) 静态，SimpleBlock 无前置）。
+registerExtraEmissionTest("light_crying_obsidian_emits_10", "minecraft:crying_obsidian", 10);
