@@ -12,11 +12,17 @@
 //   2:  medium_amethyst_bud（中型紫晶芽，lightLevel(2)）
 //   1:  small_amethyst_bud（小型紫晶芽，lightLevel(1)）
 //
-// 未纳入（带 state/附着依赖，需单独构造场景，风险高，待后续）：
-//   - cave_vines(fruits=true 需朝下附着)、furnace(lit=true 需 state)、glow_lichen(需多面 state)、
-//     sea_pickle(需水中 waterlogged)、candle(需 candles count+lit)、respawn_anchor(需 charges)、
-//     redstone_ore(lit=true 需 state)、fire/campfire(需附着面)、nether_portal(需 axis)。
-//   TODO: 这些带 state 发光方块的等级测试待后续补充，需用 setBlockWithStates 构造对应前置状态。
+// 带 state/附着依赖的发光方块（本组只用 setBlockType 放静态发光方块，不便构造 state 场景），
+// 由专门的测试组覆盖：
+//   - DynamicEmissionTests：campfire/soul_campfire/furnace/redstone_ore/brewing_stand/respawn_anchor(部分)/
+//     candle(部分)/sea_pickle(部分) 等动态/state 发光。
+//   - StatefulEmissionTests：sculk_catalyst/redstone_torch/candle_cake/glow_lichen/cave_vines/sea_pickle 梯度/
+//     candle 梯度/respawn_anchor 梯度 等 state 依赖发光。
+//   - NetherPortalEmissionTests：nether_portal(axis=x) 发光11。
+//   - FroglightEmissionTests：蛙明灯3变体发光15。
+//   - CopperLanternEmissionTests：铜灯笼发光15。
+//   - CopperBulbEmissionTests：copper_bulb 点亮/未点亮发光15/0。
+//   - FireflyBushEmissionTests：萤火虫灌木发光2。
 //
 // 已知偏差/未实现（不写测试）：
 //   - copper_bulb 氧化变体（exposed/weathered/oxidized）：CopperBulbBlock.hpp:82-88 getLightLevel override 恒
