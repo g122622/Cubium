@@ -33,6 +33,8 @@ import "./gametest-shim.js";
 import "./tests/core/BlockLightEmissionTests.js";
 // ExtraEmissionTests 同设计：registerExtraEmissionTest 顶层调用注册紫晶簇系列发光方块，无 export，副作用 import。
 import "./tests/core/ExtraEmissionTests.js";
+// FroglightEmissionTests 同设计：registerFroglightEmissionTest 顶层调用注册蛙明灯3变体，无 export，副作用 import。
+import "./tests/core/FroglightEmissionTests.js";
 
 import { registerBlockLightPropagationTests } from "./tests/core/BlockLightPropagationTests.js";
 import { registerSkyLightTests } from "./tests/core/SkyLightTests.js";
@@ -46,6 +48,7 @@ import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTest
 import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLightPropagationSymmetryTests.js";
 import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
 import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmissionTests.js";
+import { registerCopperLanternEmissionTests } from "./tests/core/CopperLanternEmissionTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -59,3 +62,4 @@ registerStatefulEmissionTests();
 registerBlockLightPropagationSymmetryTests();
 registerSkyLightHorizontalSpreadTests();
 registerNetherPortalEmissionTests();
+registerCopperLanternEmissionTests();
