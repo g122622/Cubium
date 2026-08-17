@@ -31,6 +31,7 @@ import { registerFallingBlockTests } from "./tests/falling/FallingBlockTests.js"
 import { registerCoralTests } from "./tests/coral/CoralTests.js";
 import { registerCactusTests } from "./tests/vegetation/CactusTests.js";
 import { registerSugarCaneTests } from "./tests/vegetation/SugarCaneTests.js";
+import { registerGrassSpreadTests } from "./tests/vegetation/GrassSpreadTests.js";
 import { registerBambooTests } from "./tests/vegetation/BambooTests.js";
 import { registerDoublePlantTests } from "./tests/vegetation/DoublePlantTests.js";
 import { registerTallGrassTests } from "./tests/vegetation/TallGrassTests.js";
@@ -136,6 +137,7 @@ registerFallingBlockTests();
 registerCoralTests();
 registerCactusTests();
 registerSugarCaneTests();
+registerGrassSpreadTests();
 registerBambooTests();
 registerDoublePlantTests();
 registerTallGrassTests();
