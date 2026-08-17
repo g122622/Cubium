@@ -33,6 +33,7 @@
 #include "PistonHeadBlock.hpp"
 #include "PistonStructureHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -75,6 +76,18 @@ PistonBlock::PistonBlock(const BlockProperties& properties, bool sticky)
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING(), Direction::North)
             .with(BlockStateProperties::EXTENDED(), false));
+}
+
+BlockState PistonBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向玩家视线最近方向的反方向（活塞头朝向玩家）。与 MC 1.21.11 PistonBaseBlock.getStateForPlacement
+    // 对齐：facing = getNearestLookingDirection().getOpposite()，extended = false（放置时未伸出）。
+    // getNearestLookingDirection = orderedByNearest(yaw, pitch)[0]，六向含 Up/Down（由俯仰决定）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
+    // 与 vanilla 严重分歧（vanilla 由玩家视线决定）。修复后与 vanilla 严格对齐。
+    // 粘性活塞与普通活塞共用本类（m_sticky 区分），继承本方法自动获得正确朝向。
+    Direction facing = Directions::opposite(context.getNearestLookingDirection());
+    return defaultState().with(BlockStateProperties::FACING(), facing).with(BlockStateProperties::EXTENDED(), false);
 }
 
 bool PistonBlock::isExtended(const BlockState& state)

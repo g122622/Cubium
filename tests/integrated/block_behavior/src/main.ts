@@ -108,6 +108,8 @@ import { registerFletchingTableTests } from "./tests/functional/FletchingTableTe
 import { registerSmithingTableTests } from "./tests/functional/SmithingTableTests.js";
 import { registerDispenserTests } from "./tests/redstone/DispenserTests.js";
 import { registerDropperTests } from "./tests/redstone/DropperTests.js";
+import { registerPistonTests } from "./tests/redstone/PistonTests.js";
+import { registerStickyPistonTests } from "./tests/redstone/StickyPistonTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -208,3 +210,5 @@ registerFletchingTableTests();
 registerSmithingTableTests();
 registerDispenserTests();
 registerDropperTests();
+registerPistonTests();
+registerStickyPistonTests();

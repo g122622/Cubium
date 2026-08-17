@@ -32,6 +32,10 @@
 #include "common/world/block/Material.hpp"
 
 namespace mc {
+
+// 前向声明
+class BlockItemUseContext;
+
 namespace blocks {
 
 /**
@@ -61,6 +65,13 @@ public:
     PistonBlock(const BlockProperties& properties, bool sticky);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向：facing = opposite(getNearestLookingDirection())（六向含 Up/Down，活塞头朝玩家视线方向），
+    // extended = false（放置时未伸出）。对齐 vanilla PistonBaseBlock.java:99-101。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
+    // 与 vanilla 严重分歧（vanilla 由玩家视线决定）。修复后与 vanilla 严格对齐。粘性活塞与普通活塞共用
+    // 本类（m_sticky 区分），继承本方法自动获得正确朝向。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
