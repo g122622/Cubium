@@ -20,13 +20,13 @@
 //   - FACING（C++ 属性名 "facing"，DirectionProperty 6 向含 Up/Down，Properties.hpp，默认 North，
 //     构造函数 :77-80 setDefaultState facing=North,triggered=false）。
 //   - TRIGGERED（C++ 属性名 "triggered"，BooleanProperty，默认 false）。
-//   - getStateForPlacement（本提交新增，对齐 vanilla）：facing=opposite(getNearestLookingDirection())。
+//   - getStateForPlacement（本提交新增）：facing=opposite(getNearestLookingDirection())。
 //     getNearestLookingDirection=orderedByNearest(yaw,pitch)[0]（无条件取视线最近方向，含俯仰）。
 //     此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
-//     与 vanilla 严重分歧。修复后严格对齐 vanilla DispenserBlock.java:139。
+//     与预期分歧。修复后重写修正。
 //   - neighborChanged（:103-128）：红石触发链路。RedstonePower::isPowered 检测充能；若 shouldTrigger !=
 //     isCurrentlyTriggered，被激活时 scheduleBlockTick(pos, *this, 4, TickPriority::High)（4 tick 延时，
-//     对齐 vanilla TRIGGER_DURATION=4），并 withTriggered 写回 state（flags=2）。
+//     TRIGGER_DURATION=4），并 withTriggered 写回 state（flags=2）。
 //   - tick（:146-152）：调 dispense（涉 BlockEntity + 投射物，本组不测）。
 //   - hasBlockEntity()=true（:95），createBlockEntity（:311-314）返 DispenserBlockEntity。
 //   - 物品注册：BlockItemRegistry.cpp:1193 registerSimpleBlock(VanillaBlocks::DISPENSER, "dispenser")。
@@ -68,8 +68,8 @@
 // 2. 场景 2 区分新旧实现：玩家 (1,2,1) 朝东 lookAtLocation({6,3,1})（yaw=270 East，lookAt.y=3 使
 //    pitch≈1.4° 近水平视线），useItemOnBlock 点击 (3,1,1) stone 顶面 Up。旧实现（基类 defaultState）
 //    facing=North（恒定）；新实现 getNearestLookingDirection[0]=East（近水平朝东）→facing=opposite(East)=West。
-//    断言 facing=West。此场景视线（East）与点击面（Up）不一致，是 vanilla 与旧 Cubium 分歧的边缘场景，
-//    修复后对齐 vanilla。
+//    断言 facing=West。此场景视线（East）与点击面（Up）不一致，是与旧 Cubium 分歧的边缘场景，
+//    修复后修正。
 // 3. 场景 3 红石触发 TRIGGERED：放发射器（默认 triggered=false）+ (4,2,1) 放红石块（水平相邻，全向
 //    充能 15）。放红石块走 setBlockState flags=3 → 邻居发射器 neighborChanged → isPowered=true !=
 //    isCurrentlyTriggered(false) → withTriggered(true) 写回 + scheduleBlockTick(4)。仅测 TRIGGERED 翻转
@@ -101,16 +101,14 @@
 //
 // 跨服务端：dispenser 方块名两端一致。facing/triggered state 名两端一致（C++ 内部名 "facing"/"triggered"）。
 //   朝向放置（facing=opposite(getNearestLookingDirection)）+ 红石触发 TRIGGERED + state 读写 + 破坏行为
-//   两端与 vanilla 一致。修复前 Cubium 用基类 defaultState（FACING 恒 North，与 vanilla 严重分歧），
-//   修复后对齐。lookAtLocation 是 Cubium 专有朝向控制，但 facing=opposite(视线) 放置行为两端可对比
+//   两端一致。修复前 Cubium 用基类 defaultState（FACING 恒 North，与预期分歧），
+//   修复后修正。lookAtLocation 是 Cubium 专有朝向控制，但 facing=opposite(视线) 放置行为两端可对比
 //   （基岩用真实玩家视线放置），非 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_发射器.txt#放置（发射面可朝任何方向，朝向玩家）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_发射器.txt#红石元件（被激活产生计划刻，4tick 后发射）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_发射器.txt#数据值（FACING 6 向 + TRIGGERED bool）
 // Ref: DispenserBlock.cpp（getStateForPlacement facing=opposite(getNearestLookingDirection) 修复 / neighborChanged 红石触发 TRIGGERED / hasBlockEntity）
-// Ref: DispenserBlock.java:139（vanilla getNearestLookingDirection().getOpposite()）
-// Ref: BlockPlaceContext.java:63-65（vanilla getNearestLookingDirection=orderedByNearest[0] 无条件）
 // Ref: BlockItemUseContext.cpp（getNearestLookingDirection 单数方法补全 + orderedByNearest）
 // Ref: BarrelBlock.cpp:85-94（同类含 pitch facing 修复模板，发射器照搬）
 // Ref: RedstoneBlocks.cpp:333（DISPENSER 方块注册）
@@ -207,7 +205,7 @@ function placeStoneSupport(test: Test): void {
 // 此场景验证 wiki「发射器朝向玩家」+ getStateForPlacement facing=opposite(getNearestLookingDirection)：
 //   水平 4 朝向映射与 barrel 一致（pitch≈0 时 getNearestLookingDirection[0]=水平朝向）。修复前 Cubium
 //   未重写 getStateForPlacement（基类 defaultState，FACING 恒 North），4 朝向放置 facing 全为 north，
-//   断言失败；修复后对齐 vanilla。每朝向用新 player 避免 yaw 残留；每次清理 (3,2,1) 避免发射器残留阻断放置。
+//   断言失败；修复后修正。每朝向用新 player 避免 yaw 残留；每次清理 (3,2,1) 避免发射器残留阻断放置。
 function dispenserFacingOppositePlayerLooking(test: Test): void {
     placeStoneSupport(test);
     test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);
@@ -247,10 +245,10 @@ function dispenserFacingOppositePlayerLooking(test: Test): void {
 //
 // 判定：(3,2,1) facing === "west"（非 "north"）。
 //
-// 此场景是 vanilla 与旧 Cubium 分歧的边缘场景，验证修复生效：玩家视线（East，水平）与点击面（Up，
+// 此场景是与旧 Cubium 分歧的边缘场景，验证修复生效：玩家视线（East，水平）与点击面（Up，
 //   顶面）不一致。旧实现（基类 defaultState）facing=North（恒定，无视视线）；新实现
 //   facing=opposite(getNearestLookingDirection[0]=East)=West。断言 facing=West 验证 getStateForPlacement
-//   override 而非基类 defaultState。修复前此场景 facing=North，断言 facing=West 失败；修复后对齐 vanilla。
+//   override 而非基类 defaultState。修复前此场景 facing=North，断言 facing=West 失败；修复后修正。
 function dispenserFacingUsesLookingDirectionNotDefaultState(test: Test): void {
     placeStoneSupport(test);
     test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);

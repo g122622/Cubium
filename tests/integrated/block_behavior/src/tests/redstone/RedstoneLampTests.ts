@@ -23,7 +23,7 @@
 //   不向邻居传播红石信号，信号只在玩家 toggle（右键）路径传播（_notifyNeighbors 仅 toggle 调用）。由于
 //   GameTest 无右键交互 API（SimulatedPlayer interact 为 stub），无法用拉杆模拟「翻转供电」。红石块无
 //   state 切换、放置即全向供电，走 setBlockState flags=3 邻居 neighborChanged 链路，能可靠点亮红石灯。
-//   （注：拉杆放置不传播信号是与 vanilla 的偏差，vanilla 拉杆 setBlockState 触发 neighborChanged 链；
+//   （注：拉杆放置不传播信号是与原版的偏差，原版拉杆 setBlockState 触发 neighborChanged 链；
 //   该偏差属 LeverBlock 另一问题，本文件不涉及，仅以红石块规避。）
 //
 // 测试覆盖（2 个场景，行为与 wiki 一致，可跨服务端对比）：
@@ -49,8 +49,8 @@
 // 不测「红石粉指向激活」：依赖红石线连接形态 + 指向判定，RedstoneWireTests 已覆盖连接，本文件聚焦
 //   红石块直接供电。
 //
-// 跨服务端：红石灯 lit state 名两端一致（Java 式 bool），亮灭行为与 vanilla 一致（立即亮、4 tick 灭）。
-//   注意 Cubium tick(4) 延迟与 vanilla 4 游戏刻对应，pollUntilSucceed maxTick 需放宽容忍时序偏差。
+// 跨服务端：红石灯 lit state 名两端一致（Java 式 bool），亮灭行为两端一致（立即亮、4 tick 灭）。
+//   注意 Cubium tick(4) 延迟与 4 游戏刻对应，pollUntilSucceed maxTick 需放宽容忍时序偏差。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_红石灯.txt#用途（电源激活+4刻熄灭）
 // Ref: RedstoneLampBlock.cpp（onBlockAdded/neighborChanged/tick/isPowered 链路）

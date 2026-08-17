@@ -12,7 +12,7 @@
 // C++ 链路：粘性活塞与普通活塞共用 PistonBlock 类（redstone/PistonBlock.cpp），构造参数 sticky=true 区分：
 //   - 构造函数（:55-78）：与普通活塞完全相同的状态容器（FACING 6 向 + EXTENDED bool），默认 facing=North,
 //     extended=false。仅 m_sticky=true。
-//   - getStateForPlacement（本提交新增，对齐 vanilla）：与普通活塞完全相同的实现（facing=opposite(
+//   - getStateForPlacement（本提交新增）：与普通活塞完全相同的实现（facing=opposite(
 //     getNearestLookingDirection()), extended=false）。粘性活塞共用本类，继承自动获得正确朝向。修复前
 //     PistonBlock 未重写该方法（基类 defaultState，FACING 恒 North），粘性活塞同样 FACING 恒 North；
 //     修复后粘性活塞自动对齐。
@@ -65,15 +65,14 @@
 // 不测「半连接性」：JE only，BE 无，两端不一致不测。
 //
 // 跨服务端：sticky_piston 方块名两端一致。facing/extended state 名两端一致（C++ 内部名 "facing"/"extended"）。
-//   朝向放置（共用 PistonBlock facing=opposite(getNearestLookingDirection)）+ state 读写 + 破坏行为两端与
-//   vanilla 一致。修复前 Cubium 粘性活塞共用缺陷（基类 defaultState，FACING 恒 North），修复后对齐。
+//   朝向放置（共用 PistonBlock facing=opposite(getNearestLookingDirection)）+ state 读写 + 破坏行为两端一致。
+//   修复前 Cubium 粘性活塞共用缺陷（基类 defaultState，FACING 恒 North），修复后对齐。
 //   lookAtLocation 是 Cubium 专有朝向控制，但 facing=opposite(视线) 放置行为两端可对比（基岩用真实玩家视线
 //   放置），非 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_活塞.txt#放置（永远朝向玩家，粘性与普通共享）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_活塞.txt#数据值（FACING 6 向 + EXTENDED bool，同类共享）
 // Ref: PistonBlock.cpp（粘性活塞共用 PistonBlock，getStateForPlacement facing=opposite(getNearestLookingDirection) 修复 / retract 拉回逻辑）
-// Ref: PistonBaseBlock.java:99-101（vanilla getNearestLookingDirection().getOpposite() + EXTENDED=false，粘性共用）
 // Ref: RedstoneBlocks.cpp:317（STICKY_PISTON 方块注册，sticky=true）
 // Ref: BlockItemRegistry.cpp:1192（sticky_piston 物品注册）
 // Ref: BarrelTests.ts / DispenserTests.ts / PistonTests.ts（含 pitch lookAtLocation 朝向控制范式 + 水平 4 朝向坐标配方，粘性活塞复用）

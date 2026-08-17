@@ -38,7 +38,7 @@
 //   TODO: 可补 copper_bulb_comparator_outputs_15_when_lit。
 // 不测「涂蜡铜灯防氧化」：属 WeatheringCopperBlock 氧化体系，非边沿触发行为，跳过。
 //
-// 跨服务端：铜灯 lit/powered state 名两端一致（Java 式 bool），边沿触发+锁存行为与 vanilla 一致。
+// 跨服务端：铜灯 lit/powered state 名两端一致（Java 式 bool），边沿触发+锁存行为两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\block_铜灯.txt#用途（边沿触发锁存）
 // Ref: CopperBulbBlock.cpp（updatePostPlacement 上升沿翻转 LIT / 下降沿锁存）

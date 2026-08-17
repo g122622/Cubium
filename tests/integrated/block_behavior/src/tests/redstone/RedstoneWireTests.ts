@@ -17,8 +17,8 @@
 // 但其上方无红石线 → None。
 //
 // 更新链路：RedstoneWireBlock::onBlockAdded（:207-212）放置时调 updatePower（:315-338）→
-// calculateConnections（:340-352）同步全量重算四方向连接。updatePower 无条件重算连接（对齐 vanilla
-// RedStoneWireBlock#onPlace→updatePowerStrength），不依赖 power 是否变化——红石线视觉连接判定
+// calculateConnections（:340-352）同步全量重算四方向连接。updatePower 无条件重算连接（RedStoneWireBlock#onPlace→updatePowerStrength），
+// 不依赖 power 是否变化——红石线视觉连接判定
 // （shouldConnectTo）与电源是否激活无关，仅看相邻方块是否为红石线/canProvidePower 元件。故「先放
 // East 邻位邻居，再放红石线 A」时，A 放置瞬间 onBlockAdded 同步算好 east 连接，立即可读。
 // updatePostPlacement（:174-205）则在水平邻居变化时同步重算该方向（用于后放邻居场景，红石线邻居
@@ -30,7 +30,7 @@
 // getStateForPlacement。红石线无 isValidPosition 支撑自毁（updatePostPlacement 只处理水平连接），
 // 故强放在任意位置不立即自毁。onBlockAdded 同步全量重算连接。
 //
-// 测试覆盖（3 个场景，行为与 vanilla 一致，可跨服务端对比）：
+// 测试覆盖（3 个场景，行为两端一致，可跨服务端对比）：
 //   1. 红石线连红石线（同类）→ east=side。
 //   2. 红石线连拉杆（电源元件 canProvidePower）→ east=side。拉杆用 face=floor 放置（支撑在下方
 //      底层固体），避免默认 face=wall 因支撑在 (4,1,2) air 被 neighborChanged 自毁。

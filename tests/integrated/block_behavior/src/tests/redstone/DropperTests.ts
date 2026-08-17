@@ -16,8 +16,8 @@
 //
 // C++ 链路：DropperBlock（redstone/DropperBlock.cpp）继承 DispenserBlock：
 //   - 构造函数（:45-49）：noexcept，仅调基类 DispenserBlock(properties)，复用 FACING+TRIGGERED 状态容器
-//     与默认状态（facing=North,triggered=false）。对齐 vanilla DropperBlock extends DispenserBlock。
-//   - getStateForPlacement：DropperBlock 不重写该方法（vanilla 亦不重写），继承 DispenserBlock 的
+//     与默认状态（facing=North,triggered=false）。DropperBlock extends DispenserBlock。
+//   - getStateForPlacement：DropperBlock 不重写该方法（原版亦不重写），继承 DispenserBlock 的
 //     getStateForPlacement（本提交修复的 facing=opposite(getNearestLookingDirection)）。修复前
 //     DispenserBlock 未重写该方法（基类 defaultState，FACING 恒 North），投掷器继承缺陷同样 FACING 恒 North；
 //     修复后投掷器自动获得正确朝向。
@@ -53,7 +53,7 @@
 // 1. 场景 1 水平 4 朝向复用 BarrelTests/DispenserTests 的 4 朝向映射与坐标配方（投掷器继承发射器同属含
 //    pitch 类，lookAt.y=playerPos.y+1 使 pitch≈1.3°，水平距离≥5 放大后 [0]=水平朝向）。每朝向独立 spawn
 //    玩家避免 yaw 残留；每次清理 (3,2,1) 避免投掷器残留阻断放置。facing=opposite(水平朝向)。修复前 Cubium
-//    投掷器继承缺陷（基类 defaultState，FACING 恒 North），4 朝向放置 facing 全为 north，断言失败；修复后对齐 vanilla。
+//    投掷器继承缺陷（基类 defaultState，FACING 恒 North），4 朝向放置 facing 全为 north，断言失败；修复后修正。
 // 2. 场景 2 红石触发 TRIGGERED：放投掷器（默认 triggered=false）+ (4,2,1) 放红石块（水平相邻，全向充能 15）。
 //    放红石块走 setBlockState flags=3 → 邻居投掷器 neighborChanged（继承 DispenserBlock）→ isPowered=true
 //    != isCurrentlyTriggered(false) → withTriggered(true) 写回 + scheduleBlockTick(4)。仅测 TRIGGERED 翻转
@@ -86,7 +86,7 @@
 //
 // 跨服务端：dropper 方块名两端一致。facing/triggered state 名两端一致（C++ 内部名 "facing"/"triggered"）。
 //   朝向放置（继承 DispenserBlock facing=opposite(getNearestLookingDirection)）+ 红石触发 TRIGGERED + 破坏
-//   行为两端与 vanilla 一致。修复前 Cubium 投掷器继承缺陷（基类 defaultState，FACING 恒 North），修复后对齐。
+//   行为两端一致。修复前 Cubium 投掷器继承缺陷（基类 defaultState，FACING 恒 North），修复后修正。
 //   lookAtLocation 是 Cubium 专有朝向控制，但 facing=opposite(视线) 放置行为两端可对比（基岩用真实玩家视线
 //   放置），非 one-sided。
 //
@@ -95,7 +95,6 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_投掷器.txt#数据值（FACING 6 向 + TRIGGERED bool，继承发射器）
 // Ref: DropperBlock.cpp（继承 DispenserBlock，复用 getStateForPlacement / neighborChanged 红石触发 / dispense 投掷）
 // Ref: DispenserBlock.cpp（getStateForPlacement facing=opposite(getNearestLookingDirection) 修复，投掷器继承）
-// Ref: DropperBlock.java（extends DispenserBlock，无 getStateForPlacement override，靠继承复用）
 // Ref: RedstoneBlocks.cpp:337（DROPPER 方块注册）
 // Ref: BlockItemRegistry.cpp:1194（dropper 物品注册）
 // Ref: BarrelTests.ts（含 pitch lookAtLocation 朝向控制范式 + 水平 4 朝向坐标配方，投掷器复用）

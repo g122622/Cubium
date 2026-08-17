@@ -18,10 +18,10 @@
 //   - FACING（C++ 属性名 "facing"，DirectionProperty 6 向含 Up/Down，Properties.hpp，默认 North，
 //     构造函数 :75-77 setDefaultState facing=North,extended=false）。
 //   - EXTENDED（C++ 属性名 "extended"，BooleanProperty，默认 false）。
-//   - getStateForPlacement（本提交新增，对齐 vanilla）：facing=opposite(getNearestLookingDirection())，
+//   - getStateForPlacement（本提交新增）：facing=opposite(getNearestLookingDirection())，
 //     extended=false。getNearestLookingDirection=orderedByNearest(yaw,pitch)[0]（无条件取视线最近方向，含俯仰）。
 //     此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
-//     与 vanilla 严重分歧。修复后严格对齐 vanilla PistonBaseBlock.java:99-101。
+//     与预期分歧。修复后重写修正。
 //   - neighborChanged（:101-113）：红石触发链路，调 _checkForMove（shouldBeExtended 检测充能 → extend/retract）。
 //   - extend（:269-289）/retract（:291-327）：推动逻辑，调 _doMove 创建 MovingPiston + PistonBlockEntity。
 //     extend 会把活塞位置改成 moving_piston（:414）再 setBlockState extended=true（:286），依赖 BlockEntity
@@ -55,12 +55,12 @@
 //    同属含 pitch 类，lookAt.y=playerPos.y+1 使 pitch≈1.3°，水平距离≥5 放大后 [0]=水平朝向）。每朝向独立
 //    spawn 玩家避免 yaw 残留；每次清理 (3,2,1) 避免活塞残留阻断放置。facing=opposite(水平朝向)。修复前
 //    Cubium 未重写 getStateForPlacement（基类 defaultState，FACING 恒 North），4 朝向放置 facing 全为 north，
-//    断言失败；修复后对齐 vanilla。
+//    断言失败；修复后修正。
 // 2. 场景 2 区分新旧实现：玩家 (1,2,1) 朝东 lookAtLocation({6,3,1})（yaw=270 East，lookAt.y=3 使
 //    pitch≈1.4° 近水平视线），useItemOnBlock 点击 (3,1,1) stone 顶面 Up。旧实现（基类 defaultState）
 //    facing=North（恒定）；新实现 getNearestLookingDirection[0]=East（近水平朝东）→facing=opposite(East)=West。
-//    断言 facing=West。此场景视线（East）与点击面（Up）不一致，是 vanilla 与旧 Cubium 分歧的边缘场景，
-//    修复后对齐 vanilla。
+//    断言 facing=West。此场景视线（East）与点击面（Up）不一致，是与旧 Cubium 分歧的边缘场景，
+//    修复后修正。
 // 3. 场景 3 setBlockWithStates 预置 facing=down,extended=false（6 向 facing 含 Up/Down，验证非水平方向
 //    state）→ getState 双 state 均可读。
 // 4. 场景 4 放活塞后 setBlockType air 破坏：PistonBlock 无 onBlockRemoved override（基类
@@ -87,16 +87,14 @@
 // 不测「半连接性」：JE only，BE 无，两端不一致不测。
 //
 // 跨服务端：piston 方块名两端一致。facing/extended state 名两端一致（C++ 内部名 "facing"/"extended"）。
-//   朝向放置（facing=opposite(getNearestLookingDirection)）+ state 读写 + 破坏行为两端与 vanilla 一致。
-//   修复前 Cubium 用基类 defaultState（FACING 恒 North，与 vanilla 严重分歧），修复后对齐。lookAtLocation
+//   朝向放置（facing=opposite(getNearestLookingDirection)）+ state 读写 + 破坏行为两端一致。
+//   修复前 Cubium 用基类 defaultState（FACING 恒 North，与预期分歧），修复后修正。lookAtLocation
 //   是 Cubium 专有朝向控制，但 facing=opposite(视线) 放置行为两端可对比（基岩用真实玩家视线放置），非 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_活塞.txt#放置（永远朝向玩家）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_活塞.txt#红石（被激活伸出推动方块）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_活塞.txt#数据值（FACING 6 向 + EXTENDED bool）
 // Ref: PistonBlock.cpp（getStateForPlacement facing=opposite(getNearestLookingDirection) 修复 / neighborChanged 红石触发 / extend 推动逻辑）
-// Ref: PistonBaseBlock.java:99-101（vanilla getNearestLookingDirection().getOpposite() + EXTENDED=false）
-// Ref: BlockPlaceContext.java:63-65（vanilla getNearestLookingDirection=orderedByNearest[0] 无条件）
 // Ref: BlockItemUseContext.cpp（getNearestLookingDirection 单数方法补全 + orderedByNearest）
 // Ref: BarrelBlock.cpp:85-94 / DispenserBlock.cpp（同类含 pitch facing 修复模板，活塞照搬）
 // Ref: RedstoneBlocks.cpp:310（PISTON 方块注册）
@@ -190,7 +188,7 @@ function placeStoneSupport(test: Test): void {
 //
 // 此场景验证 wiki「活塞永远朝向玩家」+ getStateForPlacement facing=opposite(getNearestLookingDirection)：
 //   水平 4 朝向映射与 barrel/dispenser 一致。修复前 Cubium 未重写 getStateForPlacement（基类 defaultState，
-//   FACING 恒 North），4 朝向放置 facing 全为 north，断言失败；修复后对齐 vanilla。每朝向用新 player 避免
+//   FACING 恒 North），4 朝向放置 facing 全为 north，断言失败；修复后修正。每朝向用新 player 避免
 //   yaw 残留；每次清理 (3,2,1) 避免活塞残留阻断放置。
 function pistonFacingOppositePlayerLooking(test: Test): void {
     placeStoneSupport(test);
@@ -231,10 +229,10 @@ function pistonFacingOppositePlayerLooking(test: Test): void {
 //
 // 判定：(3,2,1) facing === "west"（非 "north"）。
 //
-// 此场景是 vanilla 与旧 Cubium 分歧的边缘场景，验证修复生效：玩家视线（East，水平）与点击面（Up，
+// 此场景是与旧 Cubium 分歧的边缘场景，验证修复生效：玩家视线（East，水平）与点击面（Up，
 //   顶面）不一致。旧实现（基类 defaultState）facing=North（恒定，无视视线）；新实现
 //   facing=opposite(getNearestLookingDirection[0]=East)=West。断言 facing=West 验证 getStateForPlacement
-//   override 而非基类 defaultState。修复前此场景 facing=North，断言 facing=West 失败；修复后对齐 vanilla。
+//   override 而非基类 defaultState。修复前此场景 facing=North，断言 facing=West 失败；修复后修正。
 function pistonFacingUsesLookingDirectionNotDefaultState(test: Test): void {
     placeStoneSupport(test);
     test.assert(getBlockTypeId(test, 3, 1, 1) === "minecraft:stone", `stone should be at (3,1,1), got ${getBlockTypeId(test, 3, 1, 1)}`);

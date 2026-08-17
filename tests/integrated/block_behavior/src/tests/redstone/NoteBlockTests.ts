@@ -6,9 +6,9 @@
 //   仅播放不升调。
 //
 // C++ 链路：NoteBlock（redstone/NoteBlock.cpp）有 NOTE_0_24 + INSTRUMENT + POWERED state。
-//   - onBlockActivated（本次补全，对齐 vanilla NoteBlock.useWithoutItem 1.21.11）：cycleNote(note+1)%25
+//   - onBlockActivated（本次补全）：cycleNote(note+1)%25
 //     升半音 → setBlockState 写回 + triggerNote 播放新音高 → return Success。不检查手持物（空手/任意
-//     物品右键均升调），不检查 mayBuild（vanilla useWithoutItem 无建造权限守卫）。
+//     物品右键均升调），不检查 mayBuild（useWithoutItem 无建造权限守卫）。
 //     此前 NoteBlock 缺 onBlockActivated override（基类返 Pass），右键无法升调——生产缺失行为，已补全。
 //   - cycleNote（:182）：(getNote+1) % NOTE_RANGE(25) 循环升半音。
 //   - NOTE state 名 "note"（Properties.hpp NOTE_0_24 = IntegerProperty("note",0,24)）。
@@ -17,7 +17,7 @@
 // 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
 //   fallback onItemUse）。音符盒 onBlockActivated 始终返 Success（不检查手持物/mayBuild），短路不 fallback。
 //   用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
-//   ItemStack 形参；vanilla useWithoutItem 是空手路径，Cubium useItemOnBlock 强制要 ItemStack，用 stick
+//   ItemStack 形参；useWithoutItem 是空手路径，Cubium useItemOnBlock 强制要 ItemStack，用 stick
 //   等价模拟空手右键升调）。
 //
 // 测试覆盖（2 个场景，覆盖 wiki 右键升调 + 循环复位核心确定行为）：
@@ -40,16 +40,15 @@
 // 不测「左键 attack 播放不升调」：SimulatedPlayer.attack 为 stub（MethodNotImplemented），不可测。
 //   TODO: 待 attack API 就绪后补。
 // 不测「上方方块决定乐器（NOTE_BLOCK_TOP_INSTRUMENTS）」：Cubium onBlockActivated 简化统一升调，
-//   未对齐 vanilla useItemOn 的 TOP_INSTRUMENTS+顶面 PASS 分支，跳过。TODO: 待标签/朝向守卫完善后补。
+//   未实现 useItemOn 的 TOP_INSTRUMENTS+顶面 PASS 分支，跳过。TODO: 待标签/朝向守卫完善后补。
 //
 // 跨服务端：音符盒 note_block 方块名两端一致，note state 名两端一致，右键升调 0→1→...→24→0 循环
-//   行为与 vanilla 一致。基岩无 setBlockWithStates，本测试用 setBlockType 放默认 state（note=0），
+//   行为两端一致。基岩无 setBlockWithStates，本测试用 setBlockType 放默认 state（note=0），
 //   两端均可放；右键升 note 行为两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_音符盒.txt#奏乐（每次使用提高半音，25 音循环复位）
 // Ref: NoteBlock.cpp（onBlockActivated cycleNote+triggerNote→Success；cycleNote (note+1)%25）
-// Ref: net/minecraft/world/level/block/NoteBlock.java（useWithoutItem cycle(NOTE)+setBlock+playNote→SUCCESS）
-// Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
+// Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";

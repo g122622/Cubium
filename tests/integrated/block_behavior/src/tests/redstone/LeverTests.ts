@@ -41,7 +41,7 @@
 //   方向性强充能导体场景涉强充能链路复杂，跳过。TODO: 待强充能链路测试完善后补。
 // 不测「Floor/Ceiling 朝向」：setBlockType 只能放默认 Wall，无 place 逻辑，跳过。
 //
-// 跨服务端：拉杆 powered state 名两端一致，双稳态翻转 + 持续供电行为与 vanilla 一致。
+// 跨服务端：拉杆 powered state 名两端一致，双稳态翻转 + 持续供电行为两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_拉杆.txt#红石元件（双稳态，拨动翻转，无自动复位）
 // Ref: LeverBlock.cpp（toggle 翻转 POWERED+notifyNeighbors；getWeakPower 全向 15；_notifyNeighbors 通知 outputDir+support）

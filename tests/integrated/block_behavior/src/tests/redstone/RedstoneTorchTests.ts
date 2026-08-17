@@ -66,7 +66,7 @@
 // 不测「强充能正上方红石导体 15」：需布置红石导体在火把正上方 + 比较器探测，链路复杂，跳过。
 // 不测「烧毁/复燃」：JE 60 tick 8 次翻转 / BE 燃烧值递增，需高频脉冲触发，GameTest 非确定，跳过。
 //   TODO: 待高频脉冲测试范式完善后补 redstone_torch_burnout_after_rapid_flips。
-// 不测「2 游戏刻延迟精确值」：REDSTONE_DELAY 常量值需对齐 vanilla 2 tick，但 GameTest tick 粒度 + 时序
+// 不测「2 游戏刻延迟精确值」：REDSTONE_DELAY 常量值需 2 tick，但 GameTest tick 粒度 + 时序
 //   偏差使精确断言不可靠，仅测翻转最终态（lit=false/true），不测精确延迟 tick。
 // 不测「墙红石火把（redstone_wall_torch）」：墙火把 facing + 附着侧面，放置形态选择链路复杂，本文件
 //   聚焦落地红石火把非门逻辑。TODO: 可补 redstone_wall_torch_placement_facing。
@@ -74,7 +74,7 @@
 // 不测「支撑变动掉落」：与 TorchTests 支撑自毁范式同构，跳过。
 //
 // 跨服务端：redstone_torch 方块名两端一致。lit state 名两端一致（C++ 内部名 "lit"）。非门逻辑（附着被
-//   充能则熄灭、移除充能复燃）+ 2 tick 延迟两端与 vanilla 一致。烧毁机制 JE/BE 实现不同（不测）。
+//   充能则熄灭、移除充能复燃）+ 2 tick 延迟两端一致。烧毁机制 JE/BE 实现不同（不测）。
 //   非 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_红石火把.txt#用途（非门：未激活亮输出15/激活熄灭）
@@ -127,7 +127,7 @@ function placeTorchOnSupport(test: Test): void {
 // 判定：pollUntilSucceed 轮询 (3,3,1) lit===true（非门默认输出，无电源点亮）。
 //
 // 此场景验证 wiki「红石火把未激活时亮起并输出信号」+ 默认 lit=true：放置无电源时火把点亮（非门默认
-//   输出 15），与 vanilla RedstoneTorchBlock 默认 LIT=true 一致。
+//   输出 15），与 RedstoneTorchBlock 默认 LIT=true 一致。
 function redstoneTorchLitByDefault(test: Test): void {
     placeTorchOnSupport(test);
     test.assert(getBlockTypeId(test, 3, 3, 1) === "minecraft:redstone_torch", `redstone_torch should be at (3,3,1), got ${getBlockTypeId(test, 3, 3, 1)}`);

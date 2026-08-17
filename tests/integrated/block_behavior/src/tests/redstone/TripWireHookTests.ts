@@ -4,7 +4,7 @@
 //   构成绊线链。当链完整（两端钩朝向相对 + 中间绊线连通）时，两端钩的 ATTACHED state 翻 true
 //   （视觉上钩"拉紧"连接绊线）。ATTACHED 是纯几何连接判定（不依赖实体触发），实体进入绊线区域才
 //   触发 POWERED（信号输出，本测试不测，涉实体非确定）。
-//   - 绊线钩于 1.3.1 加入，1.21.11 已包含，属 vanilla 正式特性。
+//   - 绊线钩于 1.3.1 加入，1.21.11 已包含，属正式特性。
 //
 // C++ 链路：TripWireHookBlock（redstone/TripWireHookBlock.cpp）继承 Block，有 HORIZONTAL_FACING +
 //   POWERED + ATTACHED 三个 state。默认 state（:81-84）：facing=North, powered=false, attached=false。
@@ -46,7 +46,7 @@
 //   掉落物实体污染测试区域，本文件聚焦 ATTACHED 连接。TODO: 可补 tripwire_hook_drops_without_support。
 //
 // 跨服务端：tripwire_hook/tripwire 方块名两端一致，attached state 名两端一致，绊线链 ATTACHED 连接
-//   判定与 vanilla 一致（两端钩朝向相对 + 中间绊线连通 → ATTACHED=true）。setBlockWithStates 设 facing
+//   判定两端一致（两端钩朝向相对 + 中间绊线连通 → ATTACHED=true）。setBlockWithStates 设 facing
 //   是 Cubium 专有写入（基岩侧用物品放置朝向），但 ATTACHED 行为本身两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_绊线.txt#绊线钩（绊线链连接，ATTACHED 拉紧）

@@ -12,7 +12,7 @@
 //   - neighborChanged（:114-137）：变化来自侦测面（facing 反方向）且未激活 → 调度 DETECT_DELAY(2) tick。
 //   - updatePostPlacement（:139-162）：facing 参数==侦测方向且未激活 → 调度 DETECT_DELAY(2) tick。
 //   - tick（:164-183）：未激活→set powered=true + 调度 PULSE_DURATION(2)tick 熄灭；已激活→set powered=false。
-//   - DETECT_DELAY=2, PULSE_DURATION=2（ObserverBlock.hpp:120-123，对齐 Java）。
+//   - DETECT_DELAY=2, PULSE_DURATION=2（ObserverBlock.hpp:120-123）。
 //   - onBlockAdded（:94）：放置时若已激活才取消（默认 false 不触发，对齐 wiki「放置不发出信号」）。
 //
 // 测试布局：侦测器放 (3,2,2)，facing 默认 South（输出朝南 z+），侦测面朝北 (3,2,1)。
@@ -35,12 +35,12 @@
 // 不测「侦测器互相检测形成时钟」：高频红石时钟，非确定且易触发 Cubium tick 调度边界，跳过。
 // 不测「活塞推动侦测器」：需活塞+移动方块实体链路，复杂，跳过。
 //
-// 跨服务端：侦测器 powered/facing state 名两端一致，检测+脉冲时序（2+2tick）与 vanilla JE 一致。
-// 注意：BE 侦测器实际为 2 红石刻（信号计算阶段差异），但 Cubium 对齐 JE 语义（2 游戏刻）。
+// 跨服务端：侦测器 powered/facing state 名两端一致，检测+脉冲时序（2+2tick）两端一致。
+// 注意：BE 侦测器实际为 2 红石刻（信号计算阶段差异），但 Cubium 采用 JE 语义（2 游戏刻）。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_侦测器.txt#行为（检测变化延迟2tick，脉冲持续2tick）
 // Ref: ObserverBlock.cpp（neighborChanged/updatePostPlacement 调度 DETECT_DELAY，tick 翻转 powered）
-// Ref: ObserverBlock.hpp:120-123（DETECT_DELAY=2, PULSE_DURATION=2，对齐 Java）
+// Ref: ObserverBlock.hpp:120-123（DETECT_DELAY=2, PULSE_DURATION=2）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";

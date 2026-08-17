@@ -37,7 +37,7 @@
 // 不测「朝向随放置面变化」：getStateForPlacement 依赖 clickedFace，GameTest setBlockType 不走放置上下文，
 //   漏斗默认 facing=Down，朝向测试需 SimulatedPlayer 放置，跳过。
 //
-// 跨服务端：漏斗 enabled state 名两端一致（Java 式 bool），红石锁定行为与 vanilla 一致。
+// 跨服务端：漏斗 enabled state 名两端一致（Java 式 bool），红石锁定行为两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_漏斗.txt#红石元件（未激活=开启/工作，激活=关闭/停止）
 // Ref: HopperBlock.cpp（_updateState: enabled=!isBlockPowered，充能锁定/断电解锁）

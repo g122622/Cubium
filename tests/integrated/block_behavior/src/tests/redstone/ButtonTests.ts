@@ -16,7 +16,7 @@
 //     scheduleBlockTick(m_ticksToStayPressed) 调度弹起。
 //   - tick（AbstractButtonBlock.cpp:166-181）：POWERED=true 时 set POWERED=false + 弹起音效 + notifyNeighbors。
 //   - 木按钮 WOOD_BUTTON_PRESS_TIME=30（WoodButtonBlock.cpp:36），石按钮 STONE_BUTTON_PRESS_TIME=20
-//     （StoneButtonBlock.cpp:36），对齐 Java 游戏刻口径。
+//     （StoneButtonBlock.cpp:36），游戏刻口径。
 //   - getWeakPower/getStrongPower：isPowered?15:0，全向输出（基岩充能模型，Java 方向性输出 TODO 未实现）。
 //
 // 按压入口：GameTestHelper::pressButton（GameTestHelper.cpp:418-440）已实现（非 stub），
@@ -45,7 +45,7 @@
 // 不测「attachFace=Floor/Ceiling 朝向」：setBlockType 只能放默认 Wall，无 place 逻辑，跳过。
 // 不测「Java 方向性强输出」：Cubium 是基岩全向输出模型，Java 方向性 TODO 未实现，跳过。
 //
-// 跨服务端：按钮 powered state 名两端一致，脉冲时序（木 30gt/石 20gt）与 vanilla Java 一致。
+// 跨服务端：按钮 powered state 名两端一致，脉冲时序（木 30gt/石 20gt）两端一致。
 //   注意：BE 用红石刻口径（木 15/石 10），Cubium 用游戏刻口径（木 30/石 20），数值等价。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_按钮.txt#红石元件（按压开启，石 20gt/木 30gt 后弹起）

@@ -37,7 +37,7 @@
 //   复位依赖链式 neighborChanged 时序，本文件聚焦充能+传导激活。TODO: 可补 powered_rail_depowers。
 //
 // 跨服务端：动力铁轨 powered_rail 方块名两端一致，powered state 名两端一致，红石激活+信号传导行为
-//   与 vanilla 一致。
+//   两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_铁轨.txt#动力铁轨（红石激活+信号传导）
 // Ref: PoweredRailBlock.cpp（neighborChanged: isPowered 直接优先 + _findPoweredRailSignal 传导；立即翻转）

@@ -37,7 +37,7 @@
 // 不测「强充能附着方块/激活毗邻机械元件」：需放红石粉/灯链路，复杂，跳过。
 // 不测「压力板支撑失效掉落」：与 Fence/Wall 支撑测试同类，跳过。
 //
-// 跨服务端：压力板 powered state 名两端一致，实体探测+木/石差异与 vanilla 一致。
+// 跨服务端：压力板 powered state 名两端一致，实体探测+木/石差异两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\block_压力板.txt#用途（探测实体，木=所有实体，石=仅生物）
 // Ref: AbstractPressurePlateBlock.cpp（onEntityCollision 调度 tick，calculateSignalStrength 木/石差异）

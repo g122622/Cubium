@@ -52,8 +52,8 @@
 // 不测「破坏掉落自身」：破坏掉落物非确定（项目范式不验证掉落物实体）。TODO: 待脚本侧破坏掉落物测试
 //   范式完善后补 redstone_block_drops_itself。
 //
-// 跨服务端：redstone_block 方块名两端一致。红石块全向强弱信号 15 + 激活机械元件/红石火把行为两端与
-//   vanilla 一致。无 state，无 one-sided 行为。
+// 跨服务端：redstone_block 方块名两端一致。红石块全向强弱信号 15 + 激活机械元件/红石火把行为两端一致。
+//   无 state，无 one-sided 行为。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_红石块.txt#用途（持续全向供电，激活火把/机械元件）
 // Ref: RedstoneBlock.cpp（getWeakPower/getStrongPower 全向 15，无 state 纯电源）
