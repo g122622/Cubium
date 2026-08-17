@@ -139,7 +139,10 @@ void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const 
     if (!_isValidBlockCoord(x, y, z)) {
         return;
     }
-    m_data->setBlockState(x, y, z, state);
+    // 生成态 ChunkPrimer 由状态管线串行推进、尚未发布到 m_chunks，无并发读者，
+    // 经无锁路径直写以消除每方块一次无竞争 shared_mutex 开销（FillNoiseCells 主要热点）。
+    // 安全性前提详见 ChunkData.hpp setBlockStateUnlocked 注释。
+    m_data->_setBlockStateUnlocked(x, y, z, state);
     m_modified = true;
 
     // setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图
@@ -159,7 +162,8 @@ void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 
     if (!_isValidBlockCoord(x, y, z)) {
         return;
     }
-    m_data->setBlockStateId(x, y, z, stateId);
+    // 生成态无锁直写，同 setBlockState。
+    m_data->_setBlockStateIdUnlocked(x, y, z, stateId);
     m_modified = true;
 
     // 与 setBlockState 相同，需要根据当前状态更新高度图

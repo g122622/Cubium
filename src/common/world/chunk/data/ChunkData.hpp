@@ -60,12 +60,22 @@
 
 namespace mc::world::chunk {
 
+// 前向声明：ChunkPrimer 在生成阶段经 friend 接口调用无锁写入路径（见 setBlockStateUnlocked）。
+class ChunkPrimer;
+
 // ============================================================================
 // 区块数据
 // ============================================================================
 
 class ChunkData : public IChunk {
 public:
+    // ChunkPrimer 在世界生成阶段（NOISE/SURFACE/CARVERS/FEATURES）独占访问尚未发布的
+    // ChunkData，经 setBlockStateUnlocked 跳过 shared_mutex 独占锁直写，消除每方块
+    // 一次无竞争锁开销（FillNoiseCells 主要热点）。安全性前提：生成态 ChunkPrimer 由
+    // 状态管线串行推进、尚未存入 m_chunks，主线程/光照 worker/mesh worker 均不访问
+    // （详见 ServerChunkManager.cpp:872 注释）。FULL 发布后运行时路径走加锁版本。
+    friend class ChunkPrimer;
+
     ChunkData();
     ChunkData(ChunkCoord x, ChunkCoord z);
     ~ChunkData() override;
@@ -493,6 +503,15 @@ public:
     void removeGameEventListenerRegistry(i32 sectionY);
 
 private:
+    // ========================================================================
+    // 生成态无锁写入路径（仅 ChunkPrimer 经 friend 调用）
+    // ========================================================================
+    // setBlockState/setBlockStateId 的无锁实现，公开版本加锁后转调本路径。
+    // 仅供 ChunkPrimer 在世界生成阶段（尚未发布的 ChunkData）调用以跳过无竞争锁开销。
+    // 调用方须保证：当前无其他线程读写本 ChunkData 的 section（生成态由状态管线串行推进）。
+    void _setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
+    void _setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId);
+
     // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
     // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动），避免
     // move 后旧地址仍留在 Tracy 活跃集、被堆复用时触发 MemAllocTwice 硬失败。

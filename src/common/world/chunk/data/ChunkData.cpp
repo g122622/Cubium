@@ -190,15 +190,19 @@ const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoor
 
 void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
-        z < 0 || z >= mc::world::CHUNK_WIDTH) {
-        return;
-    }
-
     // 独占锁：保护 m_sections[idx] 替换与 PalettedContainer 写，与 worker 光照任务
     // 读 section（持共享锁）串行，避免并发改写致 worker 读已释放的 PalettedContainer
     // 内部缓冲崩溃。见 lockForBlockWrite 注释。
     auto lock = lockForBlockWrite();
+    _setBlockStateUnlocked(x, y, z, state);
+}
+
+void ChunkData::_setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
+{
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
+        return;
+    }
 
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
@@ -240,13 +244,17 @@ u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
 
 void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
 {
+    // 独占锁：同 setBlockState，串行化 section 替换与 PalettedContainer 写。
+    auto lock = lockForBlockWrite();
+    _setBlockStateIdUnlocked(x, y, z, stateId);
+}
+
+void ChunkData::_setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
+{
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
         z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
     }
-
-    // 独占锁：同 setBlockState，串行化 section 替换与 PalettedContainer 写。
-    auto lock = lockForBlockWrite();
 
     i32 sectionIndex = mc::world::toSectionIndex(y);
     auto& section = m_sections[sectionIndex];
