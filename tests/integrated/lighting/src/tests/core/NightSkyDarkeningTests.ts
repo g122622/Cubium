@@ -1,4 +1,4 @@
-// 夜间内部天空光照衰减测试：验证内部天空光照随时间衰减（wiki 行434 核心机制）。
+// 夜间内部天空光照衰减测试：验证内部天空光照随时间衰减（wiki 行434 核心机制）+ 夜间方块光主导亮度。
 //
 // wiki 内部光照公式（tech_亮度.txt#内部光照，行434）：
 //   内部光照 = max(方块光照 L_b, 内部天空光照 L_i)
@@ -33,7 +33,7 @@
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
-import { getSkyLight, getBrightness } from "../utils/lightAssert.js";
+import { getBlockLight, getSkyLight, getBrightness } from "../utils/lightAssert.js";
 
 // 夜间露天 brightness 衰减到5：batch("night") dayTime=18000 午夜，skyDarkening=10（午夜前进后稳定），
 // 露天格 skyLight=15（与时间无关，不变），brightness=max(0,15-10)=5。
@@ -64,8 +64,51 @@ function nightOpenSkyBrightnessIsFive(test: Test): void {
     );
 }
 
+// 夜间火把方块光主导亮度（skyDarkening>0 下的 max 语义）：batch("night") 露天放火把(14)，火把自身格
+// blockLight=14（方块光与时间无关，夜间不变），skyLight=15（露天列，与时间无关），skyDarkening=10，
+// brightness=max(blockLight, max(0,skyLight-skyDarkening))=max(14, max(0,15-10))=max(14,5)=14。
+// 验证 skyDarkening>0 下 max 语义取方块光（14 > 衰减后天空光5，方块光占主导）。
+// 区别于 BrightnessTests.brightnessTakesMaxOfBlockAndSky（晴天白天 skyDarkening=0：max(14,15)=15 天空光主导），
+// 本组补 skyDarkening>0 夜间场景：天空光被衰减到5后，方块光14反超主导。
+// 同时验证方块光不受时间影响（夜间 blockLight 仍=14，与白天一致）。
+function nightTorchBlockLightDominates(test: Test): void {
+    test.setBlockType("minecraft:torch", { x: 4, y: 3, z: 3 });
+    pollUntilSucceed(
+        test,
+        () => {
+            return (
+                // 方块光与时间无关，夜间火把仍发光14。
+                getBlockLight(test, 4, 3, 3) === 14 &&
+                // 天空光与时间无关，露天列仍=15。
+                getSkyLight(test, 4, 3, 3) === 15 &&
+                // max(14, 15-10)=max(14,5)=14：夜间天空光衰减到5，方块光14占主导。
+                getBrightness(test, 4, 3, 3) === 14
+            );
+        },
+        {
+            startTick: 5,
+            interval: 4,
+            maxTick: 100,
+            onTimeout: () => {
+                test.assert(
+                    false,
+                    `night torch (4,3,3): blockLight=${getBlockLight(test, 4, 3, 3)} ` +
+                        `skyLight=${getSkyLight(test, 4, 3, 3)} brightness=${getBrightness(test, 4, 3, 3)} ` +
+                        `expected 14/15/14 (max(14, 15-10)=14, block light dominates at night)`,
+                );
+            },
+        },
+    );
+}
+
 export function registerNightSkyDarkeningTests(): void {
     GameTest.register("LightingTests", "light_night_open_sky_brightness_is_5", nightOpenSkyBrightnessIsFive)
+        .structureName("gametests:grass_pen")
+        .batch("night")
+        .skyAccess(true)
+        .setupTicks(20)
+        .maxTicks(150);
+    GameTest.register("LightingTests", "light_night_torch_block_light_dominates", nightTorchBlockLightDominates)
         .structureName("gametests:grass_pen")
         .batch("night")
         .skyAccess(true)
