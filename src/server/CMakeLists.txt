@@ -303,8 +303,10 @@ add_custom_command(
             ${_integrated_root}/mob_behavior/src/tests/passive/basic/SheepTests.ts
             ${_integrated_root}/mob_behavior/src/tests/passive/basic/ChickenTests.ts
             ${_integrated_root}/mob_behavior/src/tests/passive/golem/IronGolemTests.ts
-            ${_integrated_root}/mob_behavior/src/utils/block/build.ts
-            ${_integrated_root}/mob_behavior/src/utils/entity/assert.ts
+            # 注意：各行为包 src/utils/ 下的 build.ts/assert.ts 是 build.mjs 的 stageUtils()
+            # 在构建期从顶层 tests/integrated/utils/ 复制过去的生成产物，不是源文件，
+            # 不能列入 DEPENDS（否则 ninja 报 "missing and no known rule to make it"）。
+            # 顶层 utils/ 源文件已在上面第 291-292 行声明依赖。
             ${_integrated_root}/starter/src/StarterTests.ts
     WORKING_DIRECTORY ${_integrated_root}
     COMMENT "Compiling integrated behavior packs (TypeScript -> JavaScript)"
