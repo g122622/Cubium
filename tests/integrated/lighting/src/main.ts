@@ -45,6 +45,7 @@ import { registerDynamicEmissionTests } from "./tests/core/DynamicEmissionTests.
 import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTests.js";
 import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLightPropagationSymmetryTests.js";
 import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
+import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmissionTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -57,3 +58,4 @@ registerDynamicEmissionTests();
 registerStatefulEmissionTests();
 registerBlockLightPropagationSymmetryTests();
 registerSkyLightHorizontalSpreadTests();
+registerNetherPortalEmissionTests();
