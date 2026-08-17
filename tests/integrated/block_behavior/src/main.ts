@@ -67,6 +67,7 @@ import { registerScaffoldingTests } from "./tests/decorative/ScaffoldingTests.js
 import { registerGlazedTerracottaTests } from "./tests/decorative/GlazedTerracottaTests.js";
 import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
 import { registerSoulFireTests } from "./tests/nether/SoulFireTests.js";
+import { registerNetherRootsTests } from "./tests/nether/NetherRootsTests.js";
 import { registerSlimeBlockTests } from "./tests/special/SlimeBlockTests.js";
 import { registerHoneyBlockTests } from "./tests/special/HoneyBlockTests.js";
 import { registerHayBlockTests } from "./tests/special/HayBlockTests.js";
@@ -182,6 +183,7 @@ registerScaffoldingTests();
 registerGlazedTerracottaTests();
 registerMagmaTests();
 registerSoulFireTests();
+registerNetherRootsTests();
 registerSlimeBlockTests();
 registerHoneyBlockTests();
 registerHayBlockTests();
