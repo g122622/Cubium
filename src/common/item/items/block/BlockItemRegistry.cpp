@@ -788,6 +788,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PINK_PETALS, "pink_petals");
     registerSimpleBlock(VanillaBlocks::CACTUS_FLOWER, "cactus_flower");
     registerSimpleBlock(VanillaBlocks::WILDFLOWERS, "wildflowers");
+    registerSimpleBlock(VanillaBlocks::LEAF_LITTER, "leaf_litter");
     registerSimpleBlock(VanillaBlocks::SUNFLOWER, "sunflower");
     registerSimpleBlock(VanillaBlocks::LILAC, "lilac");
     registerSimpleBlock(VanillaBlocks::ROSE_BUSH, "rose_bush");

@@ -839,6 +839,7 @@ Item* Items::TORCHFLOWER = nullptr;
 Item* Items::PITCHER_PLANT = nullptr;
 Item* Items::CACTUS_FLOWER = nullptr;
 Item* Items::WILDFLOWERS = nullptr;
+Item* Items::LEAF_LITTER = nullptr;
 Item* Items::OPEN_EYEBLOSSOM = nullptr;
 Item* Items::CLOSED_EYEBLOSSOM = nullptr;
 Item* Items::BROWN_MUSHROOM = nullptr;
@@ -4221,6 +4222,10 @@ void Items::_registerVegetation()
     // 野花 - 地面装饰花，可堆叠放置
     WILDFLOWERS = &registerBlockBackedItem(
         registry, VanillaBlocks::WILDFLOWERS, "wildflowers", ItemProperties().maxStackSize(64));
+
+    // 枯叶堆 - 地面装饰枯叶，可分段堆叠放置（1-4段）
+    LEAF_LITTER = &registerBlockBackedItem(
+        registry, VanillaBlocks::LEAF_LITTER, "leaf_litter", ItemProperties().maxStackSize(64));
 
     // 开放的眼眸花 - 苍白花园发光花朵
     OPEN_EYEBLOSSOM = &registerBlockBackedItem(

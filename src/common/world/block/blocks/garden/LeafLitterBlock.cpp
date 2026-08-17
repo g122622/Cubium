@@ -36,6 +36,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <cstddef>
 #include <memory>
@@ -97,7 +98,6 @@ BlockState LeafLitterBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool LeafLitterBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
-    // 参考 MC SegmentableBlock.canBeReplaced
     // 条件1：玩家未潜行
     Player* player = context.getPlayer();
     if (player != nullptr && player->isSneaking()) {
@@ -121,6 +121,13 @@ bool LeafLitterBlock::isReplaceable(const BlockState& state, const BlockItemUseC
 
     // 条件4：当前 SEGMENT_AMOUNT < 4 时允许堆叠替换
     return state.get(SEGMENT_AMOUNT()) < 4;
+}
+
+bool LeafLitterBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
+    // 下方方块顶面支撑形状完整即可放置枯叶（草方块/泥土/石头/沙子/陶瓦/玻璃等顶面完整的方块）。
+    // 不沿用 BushBlock 默认的 DIRT 标签判定（那只允许泥土类），改用顶面完整判定与原版行为一致。
+    return groundState.isFaceSturdy(world, groundPos, Direction::Up, SupportType::Full);
 }
 
 // ========== 旋转/镜像 ==========
@@ -233,7 +240,6 @@ void LeafLitterBlock::_initShapes()
 CollisionShape LeafLitterBlock::_calculateShape(Direction facing, i32 amount)
 {
     // 枯叶形状：每个枯叶段为 8x1x8 像素盒子（高度 1/16）
-    // 参考 MC SegmentableBlock.getShapeCalculator：
     // 基础盒子 box(0,0,0, 8, height, 8) 旋转水平方向后得到各朝向的段0，
     // 然后逆时针旋转90度叠加段1、段2、段3。
     static constexpr f32 HEIGHT = 1.0f / 16.0f;
