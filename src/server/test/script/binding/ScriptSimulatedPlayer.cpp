@@ -289,6 +289,68 @@ u64 registerSimulatedPlayerClassBinding(
         },
         0);
 
+    // --- getComponent(componentId: string): Component | undefined ---
+    // 对齐基岩 @minecraft/server Entity.getComponent。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getComponent 不在其上，故需在此重绑。
+    // 派发通用组件（equippable/health/movement/rideable/onfire），与 MinecraftModuleFactory
+    // Entity.getComponent 一致；mob 专属组件（is_charged/mark_variant 等）对 SimulatedPlayer 无意义，
+    // 不派发（返 undefined，符合"组件不存在"语义）。供命令测试读玩家装备/属性（如 /enchant 后读主手附魔）。
+    reg.method(
+        "getComponent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createUndefined();
+            }
+            auto compId = ctx.toString(args[0]);
+            if (!compId) {
+                return ctx.createUndefined();
+            }
+            std::string normalized = *compId;
+            if (normalized.find(':') == std::string::npos) {
+                normalized = "minecraft:" + normalized;
+            }
+
+            mc::Entity* ent = player; // SimulatedPlayer 经 ServerPlayer→Player→LivingEntity→Entity
+            // 按类名 wrap 组件 JS 对象（opaque 持 ent，owned=false），与 Entity.getComponent 范式一致。
+            auto wrapComponent = [&ctx, ent](const char* className) -> void* {
+                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+                void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+                if (proto == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className);
+            };
+
+            if (normalized == "minecraft:rideable") {
+                return wrapComponent("RideableComponent");
+            }
+            if (normalized == "minecraft:health" || normalized == "minecraft:movement" ||
+                normalized == "minecraft:equippable") {
+                // health/movement/equippable 仅 LivingEntity attach，SimulatedPlayer 是 LivingEntity 子类，
+                // dynamic_cast 恒成功。对齐 Entity.getComponent 守卫。
+                if (dynamic_cast<mc::LivingEntity*>(ent) == nullptr) {
+                    return ctx.createUndefined();
+                }
+                if (normalized == "minecraft:health") {
+                    return wrapComponent("HealthComponent");
+                }
+                if (normalized == "minecraft:movement") {
+                    return wrapComponent("MovementComponent");
+                }
+                return wrapComponent("EquippableComponent");
+            }
+            if (normalized == "minecraft:onfire") {
+                if (!ent->isOnFire()) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("OnFireComponent");
+            }
+            // TODO: 其他基岩合法 componentId（is_baby/is_tamed 等）按需补全。
+            return ctx.createUndefined();
+        },
+        1);
+
     // --- getEffect(effectType: string): Effect | undefined ---
     // 对齐基岩 @minecraft/server Entity.getEffect。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
     // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getEffect 不在其上，故需在此重绑。

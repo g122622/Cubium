@@ -40,6 +40,7 @@
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
 #include "common/item/core/ItemRegistry.hpp"        // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
 #include "common/item/core/ItemStack.hpp"           // ItemStack（Equippable.getEquipment 返回值）
+#include "common/item/enchantment/EnchantmentHelper.hpp" // EnchantmentHelper::getEnchantments（ItemStack.getEnchantments）
 #include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // ScriptBlockRef/wrapBlock/unwrapBlock（Block JS 类 opaque 快照）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
@@ -1663,6 +1664,37 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             stack->setCount(*v);
         });
+
+    // --- ItemStack.getEnchantments(): Enchantment[] ---
+    // 对齐基岩 @minecraft/server ItemStack.getEnchantments。返回附魔对象数组，每项 { type, level }：
+    //   - type：附魔 id（如 "minecraft:sharpness"，Enchantment::id()）
+    //   - level：附魔等级（1-based）
+    // 无附魔返回空数组。供命令测试（/enchant）与装备附魔查询判定附魔生效。读 ItemStack 附魔 NBT
+    // （EnchantmentHelper::getEnchantments 解析 stack 的 Enchantments 标签）。
+    itemStackReg.method(
+        "getEnchantments",
+        [](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return ctx.createArray();
+            }
+            const auto enchantments = mc::item::enchant::EnchantmentHelper::getEnchantments(*stack);
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            for (const auto& [ench, level] : enchantments) {
+                if (ench == nullptr) {
+                    continue;
+                }
+                void* obj = ctx.createObject();
+                ctx.setPropertyString(obj, "type", ench->id());
+                ctx.setPropertyInt(obj, "level", level);
+                ctx.setArrayElement(arr, outIdx, obj); // 不消耗所有权
+                ctx.releaseValue(obj);
+                ++outIdx;
+            }
+            return arr;
+        },
+        0);
 
     // --- Direction 枚举对象（@minecraft/server）---
     // 官方 Direction 是字符串枚举（Down="Down"...West="West"），非数字。导出为只读对象，
