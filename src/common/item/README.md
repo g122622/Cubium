@@ -449,10 +449,14 @@ MC 1.21.11 共 87 种刷怪蛋物品，统一注册在 `Items::_registerSpawnEgg
 - MC 1.21.11 已将颜色从 Java 代码迁移至客户端纹理，本项目中颜色仅作为 API 字段保留（`SpawnEggItem::getPrimaryColor/getSecondaryColor`），不参与服务端逻辑
 
 **两种使用路径**：
-1. **右键方块**：`SpawnEggItem::onItemUse` 在方块面上方生成对应实体（调用 `SpawnEggItem::spawnEntity` → `m_entityType.create(&world, *registry)`，工厂返回 `nullptr`）
-2. **右键生物**：`MobEntity::processInitialInteract` 检测手持刷怪蛋 → `_spawnOffspringFromSpawnEgg` 比较刷怪蛋实体名与目标实体 `getTypeId()`，匹配时通过 `EntityRegistry::getType(getTypeId())->create(world, registry)` 生成幼体（仅 `AgeableEntity` 子类支持）
+1. **右键方块**：`SpawnEggItem::onItemUse` 在方块面上方生成对应实体。生成位置对齐 Java `useOn`：点击方块碰撞形状为空（草、花等）时在方块自身位置生成，否则在面偏移位置生成；生成位置不可替换时返回 `Fail`。生成成功后触发 `ENTITY_PLACE` 振动事件并消耗物品（非创造模式）。刷怪笼方块走单独分支：设置刷怪笼实体类型并触发 `BLOCK_CHANGE` 事件。
+2. **右键生物**：`MobEntity::processInitialInteract` 检测手持刷怪蛋 → `_spawnOffspringFromSpawnEgg` 比较刷怪蛋实体名与目标实体 `getTypeId()`，匹配时通过 `EntityRegistry::getType(getTypeId())->create(world, registry)` 生成幼体（仅 `AgeableEntity` 子类支持，非年龄型实体不生成）
+3. **右键空气/液体**：`SpawnEggItem::onItemRightClick` 沿视线做液体射线检测（对齐 Java `getPlayerPOVHitResult(Fluid.SOURCE_ONLY)`），在首个水源方块位置生成实体；命中水源时触发 `ENTITY_PLACE` 事件、消耗物品（非创造模式）并记录 `ITEM_USED` 统计，未命中水源返回 `Pass`
+
+**`spawnEntity` 反查真实工厂**：刷怪蛋持有的 `EntityType` 副本工厂为空（仅作名称载体），`SpawnEggItem::spawnEntity` 必须通过 `EntityRegistry::instance().getType(m_entityType.name())` 反查真实 `EntityType`，再调 `realType->create(&world, *registry)` 生成实体；反查失败（未知实体类型）返回 `false`。生成前还有和平难度检查（对齐 Java `isAllowedInPeaceful`）：怪物类实体（`EntityClassification::Monster`）在和平难度不生成。生成后对 `MobEntity` 调用 `finalizeSpawn` 进行基于区域难度的装备初始化。
 
 **注意事项**：
 - 刷怪蛋类型匹配使用实体类型名称字符串比较（如 `"minecraft:pig"`），而非 `EntityType` 对象比较，避免 `EntityType` 不可拷贝的问题
 - 客户端预测：`isClientSide() == true` 时直接返回 `Success`，不消耗物品、不生成实体（实际由服务端处理）
 - 创造模式下不消耗刷怪蛋物品
+- 服务端生成实体后经 `ServerWorld::spawnEntity` → `EntityTracker::notifyEntityTracked` → `_sendSpawnPacket` 向视距内在线玩家下发 `AddEntity` 包，`entityTypeId` 取 vanilla 1.21.11 `entity_type` 注册表 id（`Entity::getJavaEntityTypeId` 按 name 查 `JavaEntityTypeIdMap`），Java 客户端据此 spawn 对应实体

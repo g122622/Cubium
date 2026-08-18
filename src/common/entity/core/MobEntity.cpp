@@ -771,13 +771,17 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
         return false;
     }
 
-    // 设置为幼体
+    // 设置为幼体（仅年龄型实体支持）
+    // 对齐 Java SpawnEggItem.spawnOffspringFromSpawnEgg：调 setBaby(true) 后检查 isBaby()。
+    // Java 中 Mob.setBaby 基类为空实现，仅 AgeableMob override 使 isBaby 生效；
+    // 故非年龄型实体 setBaby 无效、isBaby() 仍为 false，Java 据此 return empty 放弃生成。
+    // 此处保持与 Java 一致：非年龄型实体不生成。
     auto* babyAgeable = dynamic_cast<AgeableEntity*>(babyMob);
     if (babyAgeable != nullptr) {
         // 年龄型实体（动物等）：通过 AgeableEntity::setChild 设置幼体状态
         babyAgeable->setChild(true);
     } else {
-        // 非年龄型实体：不支持幼体状态，无法生成幼体
+        // 非年龄型实体：setChild 无效，与 Java 一致放弃生成幼体
         return false;
     }
 
