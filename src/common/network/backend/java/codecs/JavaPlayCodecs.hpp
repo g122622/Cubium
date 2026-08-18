@@ -1454,6 +1454,23 @@ inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainer
         });
 }
 
+/// SetPlayerInventory（S→C，id=106）：VarInt(slotId) + ItemStack(optional)
+/// slotId 为 PlayerInventory 内部索引(0-40)，仅容器关闭塞回 carried 残留物品时下发。
+[[nodiscard]] inline auto setPlayerInventoryCodec()
+{
+    return makeCodec<ir::play::SetPlayerInventory>(
+        [](B& buf, const ir::play::SetPlayerInventory& v) {
+            buf.writeVarInt(v.slot);
+            play_detail::writeItemStack(buf, v.item);
+        },
+        [](B& buf) -> Result<ir::play::SetPlayerInventory> {
+            ir::play::SetPlayerInventory v{};
+            MC_TRY_ASSIGN(v.slot, buf.readVarInt());
+            MC_TRY_ASSIGN(v.item, play_detail::readItemStack(buf));
+            return v;
+        });
+}
+
 /// OpenScreen（S→C，id=57）
 [[nodiscard]] inline auto openScreenCodec()
 {

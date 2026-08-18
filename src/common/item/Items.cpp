@@ -689,6 +689,7 @@ Item* Items::SNOW_BLOCK = nullptr;
 Item* Items::TERRACOTTA = nullptr;
 Item* Items::BRICKS = nullptr;
 Item* Items::BOOKSHELF = nullptr;
+Item* Items::CHISELED_BOOKSHELF = nullptr;
 
 // 木质书架变体（1.21.4+）
 Item* Items::OAK_SHELF = nullptr;
@@ -816,6 +817,10 @@ Item* Items::DARK_OAK_SAPLING = nullptr;
 // 植被和花
 Item* Items::SHORT_GRASS = nullptr;
 Item* Items::TALL_GRASS = nullptr;
+Item* Items::BUSH = nullptr;
+Item* Items::FIREFLY_BUSH = nullptr;
+Item* Items::SHORT_DRY_GRASS = nullptr;
+Item* Items::TALL_DRY_GRASS = nullptr;
 Item* Items::FERN = nullptr;
 Item* Items::LARGE_FERN = nullptr;
 Item* Items::DANDELION = nullptr;
@@ -1053,6 +1058,7 @@ Item* Items::COMPOSTER = nullptr;
 Item* Items::LECTERN = nullptr;
 Item* Items::JUKEBOX = nullptr;
 Item* Items::RESPAWN_ANCHOR = nullptr;
+Item* Items::LODESTONE = nullptr;
 
 // 装饰/实用方块
 Item* Items::LADDER = nullptr;
@@ -1065,6 +1071,7 @@ Item* Items::END_ROD = nullptr;
 Item* Items::END_PORTAL_FRAME = nullptr;
 Item* Items::DRAGON_EGG = nullptr;
 Item* Items::TURTLE_EGG = nullptr;
+Item* Items::SNIFFER_EGG = nullptr;
 Item* Items::CHORUS_FLOWER = nullptr;
 
 // 红石方块
@@ -1110,6 +1117,8 @@ Item* Items::PISTON = nullptr;
 Item* Items::STICKY_PISTON = nullptr;
 Item* Items::DISPENSER = nullptr;
 Item* Items::DROPPER = nullptr;
+Item* Items::HOPPER = nullptr;
+Item* Items::CRAFTER = nullptr;
 Item* Items::NOTE_BLOCK = nullptr;
 Item* Items::TNT = nullptr;
 Item* Items::TARGET = nullptr;
@@ -1336,6 +1345,10 @@ Item* Items::SNORT_POTTERY_SHERD = nullptr;
 Item* Items::FLOW_POTTERY_SHERD = nullptr;
 Item* Items::GUSTER_POTTERY_SHERD = nullptr;
 Item* Items::SCRAPE_POTTERY_SHERD = nullptr;
+Item* Items::TRIAL_SPAWNER = nullptr;
+Item* Items::VAULT = nullptr;
+Item* Items::HEAVY_CORE = nullptr;
+Item* Items::DECORATED_POT = nullptr;
 
 // 音乐唱片
 Item* Items::MUSIC_DISC_13 = nullptr;
@@ -3492,6 +3505,8 @@ void Items::_registerBuildingBlocks()
     BRICKS = &registerBlockBackedItem(registry, VanillaBlocks::BRICKS, "bricks", ItemProperties().maxStackSize(64));
     BOOKSHELF =
         &registerBlockBackedItem(registry, VanillaBlocks::BOOKSHELF, "bookshelf", ItemProperties().maxStackSize(64));
+    CHISELED_BOOKSHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHISELED_BOOKSHELF, "chiseled_bookshelf", ItemProperties().maxStackSize(64));
 
     // 木质书架变体（1.21.4+）
     OAK_SHELF =
@@ -3761,6 +3776,8 @@ void Items::_registerBuildingBlocks()
     JUKEBOX = &registerBlockBackedItem(registry, VanillaBlocks::JUKEBOX, "jukebox", ItemProperties().maxStackSize(64));
     RESPAWN_ANCHOR = &registerBlockBackedItem(
         registry, VanillaBlocks::RESPAWN_ANCHOR, "respawn_anchor", ItemProperties().maxStackSize(64));
+    LODESTONE =
+        &registerBlockBackedItem(registry, VanillaBlocks::LODESTONE, "lodestone", ItemProperties().maxStackSize(64));
 
     // 装饰/实用方块
     LADDER = &registerBlockBackedItem(registry, VanillaBlocks::LADDER, "ladder", ItemProperties().maxStackSize(64));
@@ -3780,6 +3797,8 @@ void Items::_registerBuildingBlocks()
         &registerBlockBackedItem(registry, VanillaBlocks::DRAGON_EGG, "dragon_egg", ItemProperties().maxStackSize(64));
     TURTLE_EGG =
         &registerBlockBackedItem(registry, VanillaBlocks::TURTLE_EGG, "turtle_egg", ItemProperties().maxStackSize(64));
+    SNIFFER_EGG = &registerBlockBackedItem(
+        registry, VanillaBlocks::SNIFFER_EGG, "sniffer_egg", ItemProperties().maxStackSize(64));
     CHORUS_FLOWER = &registerBlockBackedItem(
         registry, VanillaBlocks::CHORUS_FLOWER, "chorus_flower", ItemProperties().maxStackSize(64));
 
@@ -4173,6 +4192,14 @@ void Items::_registerVegetation()
         &registerBlockBackedItem(registry, VanillaBlocks::SHORT_GRASS, "grass", ItemProperties().maxStackSize(64));
     TALL_GRASS =
         &registerBlockBackedItem(registry, VanillaBlocks::TALL_GRASS, "tall_grass", ItemProperties().maxStackSize(64));
+    // 1.21.6 干草/灌木系
+    BUSH = &registerBlockBackedItem(registry, VanillaBlocks::BUSH, "bush", ItemProperties().maxStackSize(64));
+    FIREFLY_BUSH = &registerBlockBackedItem(
+        registry, VanillaBlocks::FIREFLY_BUSH, "firefly_bush", ItemProperties().maxStackSize(64));
+    SHORT_DRY_GRASS = &registerBlockBackedItem(
+        registry, VanillaBlocks::SHORT_DRY_GRASS, "short_dry_grass", ItemProperties().maxStackSize(64));
+    TALL_DRY_GRASS = &registerBlockBackedItem(
+        registry, VanillaBlocks::TALL_DRY_GRASS, "tall_dry_grass", ItemProperties().maxStackSize(64));
     FERN = &registerBlockBackedItem(registry, VanillaBlocks::FERN, "fern", ItemProperties().maxStackSize(64));
     LARGE_FERN =
         &registerBlockBackedItem(registry, VanillaBlocks::LARGE_FERN, "large_fern", ItemProperties().maxStackSize(64));
@@ -4346,6 +4373,8 @@ void Items::_registerRedstone()
     DISPENSER =
         &registerBlockBackedItem(registry, VanillaBlocks::DISPENSER, "dispenser", ItemProperties().maxStackSize(64));
     DROPPER = &registerBlockBackedItem(registry, VanillaBlocks::DROPPER, "dropper", ItemProperties().maxStackSize(64));
+    HOPPER = &registerBlockBackedItem(registry, VanillaBlocks::HOPPER, "hopper", ItemProperties().maxStackSize(64));
+    CRAFTER = &registerBlockBackedItem(registry, VanillaBlocks::CRAFTER, "crafter", ItemProperties().maxStackSize(64));
     NOTE_BLOCK =
         &registerBlockBackedItem(registry, VanillaBlocks::NOTE_BLOCK, "note_block", ItemProperties().maxStackSize(64));
     TNT = &registerBlockBackedItem(registry, VanillaBlocks::TNT, "tnt", ItemProperties().maxStackSize(64));
@@ -5001,6 +5030,20 @@ void Items::_registerTrialChamberItems()
         &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:scrape_pottery_sherd"),
             blockentity::DecoratedPotPattern::Scrape,
             ItemProperties().maxStackSize(64));
+
+    // ========================================================================
+    // 试炼密室功能方块（1.21+）
+    // vanilla 中均为普通 BlockItem，玩家可手持放置（放置行为受服务端规则限制，
+    // 但物品本身无 GameMaster 门控，故用 registerBlockBackedItem 而非 GameMasterBlockItem）。
+    // ========================================================================
+    TRIAL_SPAWNER = &registerBlockBackedItem(
+        registry, VanillaBlocks::TRIAL_SPAWNER, "trial_spawner", ItemProperties().maxStackSize(64));
+    VAULT = &registerBlockBackedItem(registry, VanillaBlocks::VAULT, "vault", ItemProperties().maxStackSize(64));
+    HEAVY_CORE =
+        &registerBlockBackedItem(registry, VanillaBlocks::HEAVY_CORE, "heavy_core", ItemProperties().maxStackSize(64));
+    // 饰纹陶罐（1.20+，可放置可破碎，普通 BlockItem）
+    DECORATED_POT = &registerBlockBackedItem(
+        registry, VanillaBlocks::DECORATED_POT, "decorated_pot", ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerMusicDiscs()

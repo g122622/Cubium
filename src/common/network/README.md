@@ -184,7 +184,13 @@ size_t actualSize = ser.size();
 
 ### 4. 玩家背包同步
 
-玩家背包同步必须使用 `ir::play::SetPlayerInventory`。`ir::play::ContainerSetContent` 只保留给真正打开的容器菜单；玩家物品栏刷新、拾取同步和 `/clear` 这类操作都应走玩家背包包。
+玩家物品栏（`containerId=0`）的同步对齐 MC Java 1.21.11 `InventoryMenu` 的 46 槽布局（0=合成结果 / 1-4=合成格 / 5-8=护甲 / 9-35=主背包 / 36-44=快捷栏 / 45=副手），由 `src/common/entity/inventory/InventorySlotMapping.hpp` 的 `buildMenuContent()` / `playerInvToMenuSlot()` / `menuSlotToPlayerInvId()` 负责 41 槽 `PlayerInventory` 内部索引与 46 槽菜单索引的双向映射。三种包各司其职：
+
+- **全量同步**：`ir::play::ContainerSetContent(containerId=0)`，items 为 46 槽菜单布局。用于玩家加入、拾取、`/clear`、`/give`、`/loot`、`/replaceitem` 等需要刷新整个物品栏的场景。`stateId` 由 `ServerPlayerData::incrementPlayerInventoryStateId()` 自增。
+- **单槽增量**：`ir::play::ContainerSetSlot(containerId=0)`，slotId 为 `InventoryMenu` 索引。用于服务端检测到单个槽位变化时下推（对齐 vanilla `ServerPlayer.sendSlotChange`）。
+- **容器关闭塞回 carried**：`ir::play::SetPlayerInventory`（wire id=106），slot 为 `PlayerInventory` 内部索引（0-40，非菜单索引），仅用于容器关闭时把光标 carried 残留塞回玩家物品栏（对齐 vanilla `Inventory.placeItemBackInInventory`）。**不用于常规全量/增量同步**。
+
+`ContainerSetContent` / `ContainerSetSlot` 的 `containerId=0` 分支在客户端 `ClientPlayVisitor` 中按菜单索引反映射回 `PlayerInventory` 内部索引（合成格 0-4 跳过）。真正打开的容器菜单（`containerId≠0`）仍走各自的 `ContainerSetContent` / `ContainerSetSlot`，使用菜单原生槽布局。
 
 ### 5. 创造模式物品库写回
 

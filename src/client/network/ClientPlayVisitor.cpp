@@ -61,6 +61,7 @@
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
@@ -926,13 +927,17 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 const ItemStack carried = carriedResult.failed() ? ItemStack{} : std::move(carriedResult.value());
 
                 // containerId == 0：玩家背包（onPlayerInventory）
+                // 服务端发 46 槽 InventoryMenu 布局（0=craftResult/1-4=craft/5-8=armor/9-35=main/
+                // 36-44=hotbar/45=offhand），需反映射到 PlayerInventory 内部索引写回。
                 if (containerId == mc::inventory::PLAYER_CONTAINER_ID) {
                     auto& inventory = m_app.m_player->inventory();
                     // selectedSlot 不在此包中（由 SetHeldSlot 单独同步），保留当前选中槽
-                    for (i32 slotIndex = 0;
-                        slotIndex < static_cast<i32>(items.size()) && slotIndex < inventory.getContainerSize();
-                        ++slotIndex) {
-                        inventory.setItem(slotIndex, items[static_cast<size_t>(slotIndex)]);
+                    for (i32 menuSlot = 0; menuSlot < static_cast<i32>(items.size()); ++menuSlot) {
+                        const i32 playerInvSlot = mc::InventorySlotMapping::menuSlotToPlayerInvId(menuSlot);
+                        if (playerInvSlot < 0 || playerInvSlot >= inventory.getContainerSize()) {
+                            continue; // craftResult(0)/craft(1-4) 无对应槽，跳过
+                        }
+                        inventory.setItem(playerInvSlot, items[static_cast<size_t>(menuSlot)]);
                     }
                     if (auto* kageroScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(
                             ScreenManager::instance().getCurrentKageroScreen())) {
@@ -1038,6 +1043,38 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     if (applyContainerSlot(cartographyScreen->getMenu(), containerId, p.stateId, p.slot, item)) {
                         cartographyScreen->syncSlots();
                         return Result<void>::ok();
+                    }
+                }
+                return Result<void>::ok();
+            }
+            // ---- 玩家物品栏单槽（PlayerInventory 内部索引，容器关闭塞回 carried 用）----
+            else if constexpr (std::is_same_v<T, irplay::SetPlayerInventory>) {
+                const auto& p = pkt;
+                if (!m_app.m_player) {
+                    return Result<void>::ok();
+                }
+                auto itemResult = mc::network::ir::fromItemStackView(p.item);
+                const ItemStack item = itemResult.failed() ? ItemStack{} : std::move(itemResult.value());
+                auto& inventory = m_app.m_player->inventory();
+                // slot 为 PlayerInventory 内部索引(0-40)，直接写回，不反映射
+                if (p.slot >= 0 && p.slot < inventory.getContainerSize()) {
+                    inventory.setItem(p.slot, item);
+                }
+                // 若当前打开 InventoryScreen/CreativeScreen，同步刷新对应菜单镜像槽
+                const i32 menuSlot = mc::InventorySlotMapping::playerInvToMenuSlot(p.slot);
+                if (menuSlot >= 0) {
+                    if (auto* kageroScreen = dynamic_cast<ui::minecraft::InventoryScreen*>(
+                            ScreenManager::instance().getCurrentKageroScreen())) {
+                        if (auto* slot = kageroScreen->getMenu()->getSlot(menuSlot)) {
+                            slot->set(item);
+                        }
+                        kageroScreen->syncSlots();
+                    } else if (auto* creativeScreen = dynamic_cast<ui::minecraft::CreativeScreen*>(
+                                   ScreenManager::instance().getCurrentKageroScreen())) {
+                        if (auto* slot = creativeScreen->getMenu()->getSlot(menuSlot)) {
+                            slot->set(item);
+                        }
+                        creativeScreen->syncSlots();
                     }
                 }
                 return Result<void>::ok();

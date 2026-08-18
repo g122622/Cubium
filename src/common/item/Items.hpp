@@ -705,22 +705,23 @@ public:
     // ========================================================================
     // 基础建筑方块
     // ========================================================================
-    static Item* DIRT;        // 泥土
-    static Item* GRASS_BLOCK; // 草方块
-    static Item* SAND;        // 沙子
-    static Item* GRAVEL;      // 沙砾
-    static Item* BEDROCK;     // 基岩
-    static Item* OBSIDIAN;    // 黑曜石
-    static Item* NETHERRACK;  // 下界岩
-    static Item* GLOWSTONE;   // 荧石
-    static Item* END_STONE;   // 末地石
-    static Item* ICE;         // 冰
-    static Item* CLAY;        // 黏土块
-    static Item* SNOW;        // 雪
-    static Item* SNOW_BLOCK;  // 雪块
-    static Item* TERRACOTTA;  // 陶瓦
-    static Item* BRICKS;      // 砖块
-    static Item* BOOKSHELF;   // 书架
+    static Item* DIRT;               // 泥土
+    static Item* GRASS_BLOCK;        // 草方块
+    static Item* SAND;               // 沙子
+    static Item* GRAVEL;             // 沙砾
+    static Item* BEDROCK;            // 基岩
+    static Item* OBSIDIAN;           // 黑曜石
+    static Item* NETHERRACK;         // 下界岩
+    static Item* GLOWSTONE;          // 荧石
+    static Item* END_STONE;          // 末地石
+    static Item* ICE;                // 冰
+    static Item* CLAY;               // 黏土块
+    static Item* SNOW;               // 雪
+    static Item* SNOW_BLOCK;         // 雪块
+    static Item* TERRACOTTA;         // 陶瓦
+    static Item* BRICKS;             // 砖块
+    static Item* BOOKSHELF;          // 书架
+    static Item* CHISELED_BOOKSHELF; // 书纹书架
 
     // 木质书架变体（1.21.4+）
     static Item* OAK_SHELF;      // 橡木书架
@@ -862,8 +863,13 @@ public:
     // ========================================================================
     // 植被和花
     // ========================================================================
-    static Item* SHORT_GRASS;          // 矮草
-    static Item* TALL_GRASS;           // 高草
+    static Item* SHORT_GRASS; // 矮草
+    static Item* TALL_GRASS;  // 高草
+    // 1.21.6 干草/灌木系
+    static Item* BUSH;                 // 灌木
+    static Item* FIREFLY_BUSH;         // 萤火虫灌木
+    static Item* SHORT_DRY_GRASS;      // 矮枯草
+    static Item* TALL_DRY_GRASS;       // 高枯草
     static Item* FERN;                 // 蕨
     static Item* LARGE_FERN;           // 大型蕨
     static Item* DANDELION;            // 蒲公英
@@ -1102,6 +1108,7 @@ public:
     static Item* LECTERN;           // 讲台
     static Item* JUKEBOX;           // 唱片机
     static Item* RESPAWN_ANCHOR;    // 重生锚
+    static Item* LODESTONE;         // 磁石
 
     // ========================================================================
     // 装饰/实用方块
@@ -1116,6 +1123,7 @@ public:
     static Item* END_PORTAL_FRAME; // 末地传送门框架
     static Item* DRAGON_EGG;       // 龙蛋
     static Item* TURTLE_EGG;       // 海龟蛋
+    static Item* SNIFFER_EGG;      // 嗅探兽蛋
     static Item* CHORUS_FLOWER;    // 紫颂花
 
     // ========================================================================
@@ -1163,6 +1171,8 @@ public:
     static Item* STICKY_PISTON;                      // 粘性活塞
     static Item* DISPENSER;                          // 发射器
     static Item* DROPPER;                            // 投掷器
+    static Item* HOPPER;                             // 漏斗
+    static Item* CRAFTER;                            // 合成器
     static Item* NOTE_BLOCK;                         // 音符盒
     static Item* TNT;                                // TNT
     static Item* TARGET;                             // 标靶
@@ -1419,6 +1429,14 @@ public:
     static Item* FLOW_POTTERY_SHERD;       // 涡流陶片
     static Item* GUSTER_POTTERY_SHERD;     // 旋风陶片
     static Item* SCRAPE_POTTERY_SHERD;     // 刮削陶片
+
+    // ========================================================================
+    // 试炼密室功能方块（1.21+）与饰纹陶罐
+    // ========================================================================
+    static Item* TRIAL_SPAWNER; // 试炼刷怪笼
+    static Item* VAULT;         // 宝库
+    static Item* HEAVY_CORE;    // 重质核心
+    static Item* DECORATED_POT; // 饰纹陶罐
 
     // ========================================================================
     // 音乐唱片

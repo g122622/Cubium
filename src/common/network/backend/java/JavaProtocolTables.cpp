@@ -262,8 +262,8 @@ using B = buffer::RegistryByteBuf;
     //   set_camera=91, set_chunk_cache_center=92, set_chunk_cache_radius=93, set_cursor_item=94,
     //   set_default_spawn_position=95, set_display_objective=96, set_entity_data=97,
     //   set_entity_link=98, set_entity_motion=99, set_experience=101, set_held_slot=103, set_objective=104,
-    //   set_passengers=105, set_player_team=107, set_score=108, set_subtitle_text=110, set_time=111,
-    //   set_title_text=112, set_titles_animation=113, sound_entity=114, sound=115, stop_sound=117,
+    //   set_passengers=105, set_player_inventory=106, set_player_team=107, set_score=108, set_subtitle_text=110,
+    //   set_time=111, set_title_text=112, set_titles_animation=113, sound_entity=114, sound=115, stop_sound=117,
     //   take_item_entity=122, teleport_entity=123, update_advancements=128, update_recipes=131。
     b.addPacket<ir::play::AddEntity>(
         1, PacketType{PacketFlow::Clientbound, "add_entity"}, 28, codecs::addEntityCodec());
@@ -433,6 +433,10 @@ using B = buffer::RegistryByteBuf;
         37, PacketType{PacketFlow::Clientbound, "forget_level_chunk"}, 105, codecs::forgetLevelChunkCodec());
     b.addPacket<ir::play::SectionBlocksUpdate>(
         82, PacketType{PacketFlow::Clientbound, "section_blocks_update"}, 106, codecs::sectionBlocksUpdateCodec());
+    // SetPlayerInventory（S→C，id=106）：单槽同步玩家物品栏（PlayerInventory 内部索引 0-40）。
+    // 仅容器关闭塞回 carried 残留物品时下发。altIndex=110 对齐 variant 末尾。
+    b.addPacket<ir::play::SetPlayerInventory>(
+        106, PacketType{PacketFlow::Clientbound, "set_player_inventory"}, 110, codecs::setPlayerInventoryCodec());
     return b.build();
 }
 

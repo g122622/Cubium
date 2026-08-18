@@ -780,6 +780,25 @@ struct ContainerSetSlot {
 };
 
 /**
+ * @brief SetPlayerInventory（S→C，id=106）
+ *
+ * 单槽同步玩家物品栏。slotId 为 PlayerInventory 内部索引(0-40)（0-8 快捷栏 / 9-35 主背包
+ * / 36-39 护甲 / 40 副手），非 InventoryMenu 菜单索引。仅用于容器关闭时把 carried 残留
+ * 物品塞回玩家空槽（对应 vanilla Inventory.placeItemBackInInventory 的网络下发）。
+ *
+ * 与 ContainerSetSlot(containerId=0) 的区别：后者 slot 为 InventoryMenu 菜单索引(0-45)，
+ * 且携带 containerId/stateId；本包无 containerId/stateId，slot 直接对应 PlayerInventory 内部槽。
+ *
+ * 线格式：VarInt(slotId) + ItemStack(optional)。
+ */
+struct SetPlayerInventory {
+    i32 slot;
+    ItemStackView item;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetPlayerInventory&, const SetPlayerInventory&) noexcept = default;
+};
+
+/**
  * @brief OpenScreen（S→C，id=57）
  *
  * 线格式：VarInt(containerId)+VarInt(menuType)+Utf8(title JSON)。

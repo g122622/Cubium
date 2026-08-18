@@ -26,6 +26,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -228,11 +229,8 @@ void ItemPickupManager::_sendInventoryUpdate(IServer& server, Player& player)
     mc::network::ir::play::ContainerSetContent pkt;
     pkt.containerId = 0; // 玩家物品栏
     pkt.stateId = playerData->incrementPlayerInventoryStateId();
-    const i32 totalSlots = inventory.getContainerSize();
-    pkt.items.reserve(static_cast<size_t>(totalSlots));
-    for (i32 slot = 0; slot < totalSlots; ++slot) {
-        pkt.items.push_back(mc::network::ir::toItemStackView(inventory.getItem(slot)));
-    }
+    // items 按 InventoryMenu 46 槽布局构造，对齐 Java 客户端 containerId=0 期望。
+    pkt.items = mc::buildMenuContent(inventory);
     pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
 
     playerData->send(mc::network::ir::IrPacket{

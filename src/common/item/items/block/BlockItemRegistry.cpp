@@ -431,6 +431,13 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BLACKSTONE, "blackstone");
     registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone");
     registerSimpleBlock(VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone");
+    // 磨制黑石砖及衍生 (1.16+)
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BRICKS, "polished_blackstone_bricks");
+    registerSimpleBlock(VanillaBlocks::CRACKED_POLISHED_BLACKSTONE_BRICKS, "cracked_polished_blackstone_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_POLISHED_BLACKSTONE, "chiseled_polished_blackstone");
+    // 下界砖变种 (1.16+)
+    registerSimpleBlock(VanillaBlocks::CRACKED_NETHER_BRICKS, "cracked_nether_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_NETHER_BRICKS, "chiseled_nether_bricks");
     // 黑石衍生方块（楼梯/台阶/墙）
     registerSimpleBlock(VanillaBlocks::BLACKSTONE_STAIRS, "blackstone_stairs");
     registerSimpleBlock(VanillaBlocks::BLACKSTONE_SLAB, "blackstone_slab");
@@ -553,6 +560,34 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA_LEAVES, "flowering_azalea_leaves");
     registerSimpleBlock(VanillaBlocks::SPORE_BLOSSOM, "spore_blossom");
 
+    // 紫水晶系列 (1.17+)
+    registerSimpleBlock(VanillaBlocks::AMETHYST_BLOCK, "amethyst_block");
+    registerSimpleBlock(VanillaBlocks::BUDDING_AMETHYST, "budding_amethyst");
+    registerSimpleBlock(VanillaBlocks::SMALL_AMETHYST_BUD, "small_amethyst_bud");
+    registerSimpleBlock(VanillaBlocks::MEDIUM_AMETHYST_BUD, "medium_amethyst_bud");
+    registerSimpleBlock(VanillaBlocks::LARGE_AMETHYST_BUD, "large_amethyst_bud");
+    registerSimpleBlock(VanillaBlocks::AMETHYST_CLUSTER, "amethyst_cluster");
+    // 遮光玻璃 (1.17+)
+    registerSimpleBlock(VanillaBlocks::TINTED_GLASS, "tinted_glass");
+    // 钟乳石/滴水石 (1.17+)
+    registerSimpleBlock(VanillaBlocks::DRIPSTONE_BLOCK, "dripstone_block");
+    registerSimpleBlock(VanillaBlocks::POINTED_DRIPSTONE, "pointed_dripstone");
+    // 方解石 (1.17+)
+    registerSimpleBlock(VanillaBlocks::CALCITE, "calcite");
+    // 大/小垂滴叶 (1.17+)
+    registerSimpleBlock(VanillaBlocks::BIG_DRIPLEAF, "big_dripleaf");
+    registerSimpleBlock(VanillaBlocks::SMALL_DRIPLEAF, "small_dripleaf");
+    // 发光地衣 (1.17+)
+    registerSimpleBlock(VanillaBlocks::GLOW_LICHEN, "glow_lichen");
+
+    // 幽匿系列 (1.19+)
+    registerSimpleBlock(VanillaBlocks::SCULK, "sculk");
+    registerSimpleBlock(VanillaBlocks::SCULK_VEIN, "sculk_vein");
+    registerSimpleBlock(VanillaBlocks::SCULK_CATALYST, "sculk_catalyst");
+    registerSimpleBlock(VanillaBlocks::SCULK_SENSOR, "sculk_sensor");
+    registerSimpleBlock(VanillaBlocks::CALIBRATED_SCULK_SENSOR, "calibrated_sculk_sensor");
+    registerSimpleBlock(VanillaBlocks::SCULK_SHRIEKER, "sculk_shrieker");
+
     // 泥巴系列方块 (1.19+)
     registerSimpleBlock(VanillaBlocks::MUD, "mud");
     registerSimpleBlock(VanillaBlocks::PACKED_MUD, "packed_mud");
@@ -620,6 +655,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // tall_seagrass 在 vanilla 中没有独立物品（由骨粉作用于海草生成），不注册 BlockItem。
     registerSimpleBlock(VanillaBlocks::BAMBOO, "bamboo");
 
+    // 蛙明灯系列 + 蛙卵 (1.19+)
+    registerSimpleBlock(VanillaBlocks::OCHRE_FROGLIGHT, "ochre_froglight");
+    registerSimpleBlock(VanillaBlocks::VERDANT_FROGLIGHT, "verdant_froglight");
+    registerSimpleBlock(VanillaBlocks::PEARLESCENT_FROGLIGHT, "pearlescent_froglight");
+    registerSimpleBlock(VanillaBlocks::FROGSPAWN, "frogspawn");
+
+    // 紫颂植株 (末地植物，无独立生长阶段物品)
+    registerSimpleBlock(VanillaBlocks::CHORUS_PLANT, "chorus_plant");
+
     // 下界矿石
     registerSimpleBlock(VanillaBlocks::NETHER_QUARTZ_ORE, "nether_quartz_ore");
     registerSimpleBlock(VanillaBlocks::NETHER_GOLD_ORE, "nether_gold_ore");
@@ -661,6 +705,23 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 染色玻璃板
     registerSimpleBlock(VanillaBlocks::GLASS_PANE, "glass_pane");
+    // 染色玻璃板 (16色)
+    registerSimpleBlock(VanillaBlocks::WHITE_STAINED_GLASS_PANE, "white_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::ORANGE_STAINED_GLASS_PANE, "orange_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_STAINED_GLASS_PANE, "magenta_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_STAINED_GLASS_PANE, "light_blue_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::YELLOW_STAINED_GLASS_PANE, "yellow_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::LIME_STAINED_GLASS_PANE, "lime_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::PINK_STAINED_GLASS_PANE, "pink_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::GRAY_STAINED_GLASS_PANE, "gray_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_STAINED_GLASS_PANE, "light_gray_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::CYAN_STAINED_GLASS_PANE, "cyan_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::PURPLE_STAINED_GLASS_PANE, "purple_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::BLUE_STAINED_GLASS_PANE, "blue_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::BROWN_STAINED_GLASS_PANE, "brown_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::GREEN_STAINED_GLASS_PANE, "green_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::RED_STAINED_GLASS_PANE, "red_stained_glass_pane");
+    registerSimpleBlock(VanillaBlocks::BLACK_STAINED_GLASS_PANE, "black_stained_glass_pane");
 
     // 混凝土 (16色)
     registerSimpleBlock(VanillaBlocks::WHITE_CONCRETE, "white_concrete");
@@ -1193,6 +1254,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::STICKY_PISTON, "sticky_piston");
     registerSimpleBlock(VanillaBlocks::DISPENSER, "dispenser");
     registerSimpleBlock(VanillaBlocks::DROPPER, "dropper");
+    registerSimpleBlock(VanillaBlocks::HOPPER, "hopper");
     // tripwire 在 vanilla 中没有独立物品（由 tripwire_hook 与 string 触发形成），不注册 BlockItem。
     registerSimpleBlock(VanillaBlocks::TRIPWIRE_HOOK, "tripwire_hook");
 
@@ -1427,6 +1489,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         // BarrierBlock 使用普通 BlockItem 注册（MC Java 中 BarrierBlock 不是 GameMasterBlockItem，
         // 创造模式玩家均可放置，只有硬度=-1 防止破坏）
         registerSimpleBlock(VanillaBlocks::BARRIER, "barrier");
+
+        // 刷怪笼与结构空位：vanilla 中均为普通 BlockItem（非 GameMasterBlockItem），
+        // 玩家可手持放置（刷怪笼放置受服务端规则限制，但物品本身无门控）。
+        registerSimpleBlock(VanillaBlocks::SPAWNER, "spawner");
+        registerSimpleBlock(VanillaBlocks::STRUCTURE_VOID, "structure_void");
 
         // 命令方块 - 需要创造模式 + OP等级>=2 才能放置
         registerGameMasterBlock(VanillaBlocks::COMMAND_BLOCK, "command_block");

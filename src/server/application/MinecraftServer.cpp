@@ -37,6 +37,7 @@
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
@@ -929,15 +930,13 @@ void MinecraftServer::initializeInteractionManagers()
         // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
         // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例，
         // 由 ServerPlayerData::playerInventoryStateId 承载，每次下发自增）。
+        // items 按 InventoryMenu 46 槽布局构造（craftResult/craft 占位空、armor/main/hotbar/offhand
+        // 重映射），Java 客户端对 containerId=0 期望该布局。
         mc::network::ir::play::ContainerSetContent pkt;
         pkt.containerId = 0; // 玩家物品栏
         auto* playerData = m_playerManager->getPlayer(playerId);
         pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
-        const i32 totalSlots = inventory.getContainerSize();
-        pkt.items.reserve(static_cast<size_t>(totalSlots));
-        for (i32 slot = 0; slot < totalSlots; ++slot) {
-            pkt.items.push_back(mc::network::ir::toItemStackView(inventory.getItem(slot)));
-        }
+        pkt.items = mc::buildMenuContent(inventory);
         pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
 
         sendPacketToPlayer(playerId,
@@ -2346,8 +2345,10 @@ void MinecraftServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const m
     } else if (evt->slotNum == 45) {
         mappedSlot = 40; // 副手
     } else {
-        // slotNum 0(合成结果)/1-4(合成输入)/越界：项目 PlayerInventory 无对应槽，忽略。
-        spdlog::warn("SetCreativeModeSlot: unsupported slotNum {} from player {}", evt->slotNum, playerId);
+        // slotNum 0(合成结果)/1-4(合成输入)/>45(越界)：对齐 vanilla 静默忽略。
+        // vanilla 服务端对 slotNum 0 不写不丢（craftResult），对 1-4 写入合成输入槽；
+        // 项目 PlayerInventory 无合成网格槽，故 0-4 均静默忽略，不发 warn（创造背包含合成格，
+        // Java 客户端操作合成槽时发送这些 slotNum 属正常行为，刷 warn 无意义）。
         return;
     }
 

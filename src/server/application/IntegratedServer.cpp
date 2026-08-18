@@ -28,6 +28,7 @@
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
@@ -811,11 +812,8 @@ void IntegratedServer::_sendPlayerInventory()
     // stateId 取自本地玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例）。
     auto* playerData = _getPlayerData();
     content.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
-    const i32 invSize = m_clientInventory.getContainerSize();
-    content.items.reserve(invSize);
-    for (i32 i = 0; i < invSize; ++i) {
-        content.items.push_back(mc::network::ir::toItemStackView(m_clientInventory.getItem(i)));
-    }
+    // items 按 InventoryMenu 46 槽布局构造，对齐 Java 客户端 containerId=0 期望。
+    content.items = mc::buildMenuContent(m_clientInventory);
     // carriedItem 为空
     content.carriedItem = mc::network::ir::play::ItemStackView{};
     _sendToClientIr(mc::network::ir::IrPacket{
