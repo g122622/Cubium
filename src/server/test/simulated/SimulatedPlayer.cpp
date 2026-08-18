@@ -207,8 +207,14 @@ i32 SimulatedPlayer::chat(const std::string& command)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::chat: helper not bound");
     auto& world = static_cast<mc::server::ServerWorld&>(m_helper->world());
-    // 在玩家位置、玩家权限等级执行命令（创造模式默认权限 2，对齐 OP 等级）
-    const i32 permLevel = isCreative() ? 2 : 0;
+    // SimulatedPlayer 是测试辅助实体，始终拥有最高 OP 权限等级 4（对齐 vanilla 单人开启作弊时玩家的
+    // OP 等级，可执行包括 stop/save 在内的所有命令）。OP 权限等级与游戏模式在 vanilla 中相互独立
+    // （survival 模式的 OP 玩家有权执行 /gamemode 切到 creative），此处解耦 permLevel 与游戏模式：
+    // 此前 permLevel = isCreative() ? 2 : 0，把"创造模式"误等同于"OP 权限"，导致 survival 模式的
+    // SimulatedPlayer permLevel=0 无法执行需权限 2 的 /gamemode（陷入"要切创造需权限、要权限需创造"
+    // 的死循环），/difficulty、/attribute、/gamerule 等管理命令在 survival 模式下也全部被拒。
+    // 改为固定 permLevel=4 后，任意游戏模式的 SimulatedPlayer 均可执行所有管理命令，符合测试辅助语义。
+    const i32 permLevel = 4;
     // rotation 传模拟玩家自身朝向 (pitch, yaw)，对齐 vanilla 玩家执行命令时
     // CommandSourceStack.rotation 取实体朝向，使 `^` 局部坐标按玩家朝向解析。
     // 传 this（SimulatedPlayer 是 ServerPlayer 子类）作为命令源 player，使 ServerCommandSource

@@ -201,6 +201,29 @@ void* _applyTeleport(
     return returnBoolean ? ctx.createBoolean(true) : ctx.createUndefined();
 }
 
+/**
+ * @brief GameMode 枚举转官方 ScriptAPI 字符串。
+ *
+ * 对齐基岩 @minecraft/server GameMode 枚举值（"survival"/"creative"/"adventure"/"spectator"），
+ * 供 getGameMode() 返回。NotSet 映射为 "default"（官方 GameMode.default 用于恢复默认）。
+ */
+[[nodiscard]] const char* _gameModeToString(mc::GameMode mode)
+{
+    switch (mode) {
+        case mc::GameMode::Survival:
+            return "survival";
+        case mc::GameMode::Creative:
+            return "creative";
+        case mc::GameMode::Adventure:
+            return "adventure";
+        case mc::GameMode::Spectator:
+            return "spectator";
+        case mc::GameMode::NotSet:
+            return "default";
+    }
+    return "default";
+}
+
 } // namespace
 
 u64 registerSimulatedPlayerClassBinding(
@@ -221,6 +244,21 @@ u64 registerSimulatedPlayerClassBinding(
         // Player::username() 返构造时传入的名字（存 m_username）。
         return ctx.createString(player->username());
     });
+
+    // --- getGameMode(): GameMode ---
+    // 对齐基岩 @minecraft/server Player.getGameMode（beta）。返回当前游戏模式字符串
+    // （"survival"/"creative"/"adventure"/"spectator"）。供命令测试（/gamemode）判定模式切换生效。
+    // 读 Player::m_gameMode 实体字段（/gamemode 经 GameModeCommand 实体旁路写入），非 ServerPlayerData。
+    reg.method(
+        "getGameMode",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return ctx.createString(_gameModeToString(player->gameMode()));
+        },
+        0);
 
     // --- teleport(location: Vector3, teleportOptions?: TeleportOptions): void ---
     // 对齐基岩 Entity.teleport。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型），

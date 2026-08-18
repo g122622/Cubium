@@ -29,18 +29,58 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp" // Player::setGameMode（实体旁路）
 #include "common/util/assert/AssertMacros.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/GameModeManager.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp" // getPlayerEntity（实体旁路解析）
 
 #include <memory>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
+namespace {
+
+/**
+ * @brief 对单个玩家设置游戏模式，含 SimulatedPlayer 实体旁路。
+ *
+ * 真实玩家走 GameModeManager（改 ServerPlayerData + 发网络包，客户端收敛后实体生效）；
+ * GameModeManager 经 PlayerManager 查 ServerPlayerData，对 SimulatedPlayer（不进 PlayerManager）
+ * 返回 false，此时回退经 ServerPlayerEntityManager 解析实体直接调 Player::setGameMode
+ * （写实体 m_gameMode + abilities + noclip，立即生效）。对齐 TeleportCommand 的旁路模式。
+ *
+ * @return true 设置成功（含模式相同的短路）。
+ */
+[[nodiscard]] bool setGameModeOnPlayer(ServerCommandSource& source, PlayerId playerId, GameMode mode)
+{
+    auto* server = source.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    if (server->gameModeManager().setGameMode(playerId, mode)) {
+        return true;
+    }
+
+    // 回退：SimulatedPlayer 不在 PlayerManager，经实体管理器解析实体直接设游戏模式。
+    auto* world = source.world();
+    if (world == nullptr) {
+        return false;
+    }
+    mc::Player* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return false;
+    }
+    playerEntity->setGameMode(mode);
+    return true;
+}
+
+} // namespace
 
 void GameModeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -86,7 +126,7 @@ i32 GameModeCommand::_setGameModeSelf(CommandContext<ServerCommandSource>& conte
 
     const GameMode mode = context.getArgument<GameMode>("mode");
     const PlayerId playerId = source.playerId();
-    if (playerId == 0 || !server->gameModeManager().setGameMode(playerId, mode)) {
+    if (playerId == 0 || !setGameModeOnPlayer(source, playerId, mode)) {
         source.sendMessage("Failed to change game mode");
         return 0;
     }
@@ -119,7 +159,7 @@ i32 GameModeCommand::_setGameModeOthers(CommandContext<ServerCommandSource>& con
             continue;
         }
 
-        if (server->gameModeManager().setGameMode(playerId, mode)) {
+        if (setGameModeOnPlayer(source, playerId, mode)) {
             ++changedCount;
         }
     }
