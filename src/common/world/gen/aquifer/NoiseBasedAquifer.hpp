@@ -179,10 +179,20 @@ private:
      * @param blockZ 方块 Z 坐标
      * @param a 第一个含水层状态
      * @param b 第二个含水层状态
-     * @param cachedBarrierNoise 预计算的屏障噪声值（MC 1.21: 在 computeSubstance 开头计算一次）
+     * @param barrierComputed [in/out] barrierNoise 是否已计算缓存（跨同一方块的多次 calculatePressure 调用共享）
+     * @param barrierNoise [in/out] barrierNoise 缓存值（仅当 barrierComputed 为 true 时有效）
+     *
+     * MC 1.21 对齐：barrierNoise 惰性计算 + 缓存。仅在 pressure 落入 [-2,2] 屏障区间时才计算，
+     * 且同一方块的多次 calculatePressure 调用（三阶段压力）共享一个值（barrierComputed/barrierNoise 缓存）。
+     * 原版用 MutableDouble(Double.NaN) 哨兵实现，Cubium 用 bool+f64 显式缓存。
      */
-    [[nodiscard]] f64 calculatePressure(
-        i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b, f64 cachedBarrierNoise);
+    [[nodiscard]] f64 calculatePressure(i32 blockX,
+        i32 blockY,
+        i32 blockZ,
+        const AquiferStatus& a,
+        const AquiferStatus& b,
+        bool& barrierComputed,
+        f64& barrierNoise);
 
     /**
      * @brief 计算两个距离之间的相似度

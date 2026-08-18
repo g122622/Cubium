@@ -281,7 +281,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
     for (i32 localX = 0; localX < world::CHUNK_WIDTH; ++localX) {
         for (i32 localZ = 0; localZ < world::CHUNK_WIDTH; ++localZ) {
-            MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurfaceColumn", "localX", localX, "localZ", localZ);
+            // MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "BuildSurfaceColumn", "localX", localX, "localZ", localZ);
 
             const i32 worldX = startX + localX;
             const i32 worldZ = startZ + localZ;

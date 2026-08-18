@@ -95,8 +95,10 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
         return nullptr;
     }
 
-    // MC 1.21: 在 computeSubstance 开头计算 barrierNoise 一次，供 calculatePressure 复用
-    const f64 barrierNoise = m_barrierNoise.compute(blockX, blockY, blockZ);
+    // MC 1.21 对齐：barrierNoise 不在开头提前计算，改为在 calculatePressure 内按需惰性计算
+    // （仅 pressure 落入 [-2,2] 屏障区间时）并跨三阶段调用缓存。原版用 MutableDouble(NaN)。
+    // 此前 Cubium 在此无条件计算 barrierNoise 供 calculatePressure 复用，是偏离原版的实现，
+    // 导致每个 density<=0 方块都算一次 barrierNoise（曾占 FillNoiseCells ~22.6%），已修正。
 
     // 获取全局流体
     FluidStatus globalFluid = m_globalFluidPicker(blockX, blockY, blockZ);
@@ -197,6 +199,11 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
         }
     }
 
+    // barrierNoise 惰性缓存：跨下方三次 calculatePressure 调用共享（对齐原版 MutableDouble）。
+    // 仅当某次 calculatePressure 的 pressure 落入 [-2,2] 屏障区间时才计算并缓存。
+    bool barrierComputed = false;
+    f64 barrierNoise = 0.0;
+
     // 获取最近含水层的状态
     AquiferStatus aquifer1 = getAquiferStatus(gridIdx1X, gridIdx1Y, gridIdx1Z);
 
@@ -238,7 +245,8 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
 
     // MC 1.21: 三阶段压力计算
     // 第一阶段: 1st 和 2nd 最近点的压力
-    const f64 pressure1 = d1 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2, barrierNoise);
+    const f64 pressure1 =
+        d1 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer2, barrierComputed, barrierNoise);
     if (densityValue + pressure1 > 0.0) {
         return nullptr; // 压力使该位置保持固体
     }
@@ -247,7 +255,8 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     AquiferStatus aquifer3 = getAquiferStatus(gridIdx3X, gridIdx3Y, gridIdx3Z);
     const f64 d0 = similarity(distSq1, distSq3); // 1st vs 3rd
     if (d0 > 0.0) {
-        const f64 pressure2 = d1 * d0 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer3, barrierNoise);
+        const f64 pressure2 =
+            d1 * d0 * calculatePressure(blockX, blockY, blockZ, aquifer1, aquifer3, barrierComputed, barrierNoise);
         if (densityValue + pressure2 > 0.0) {
             return nullptr;
         }
@@ -256,7 +265,8 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
     // 第三阶段: 2nd 和 3rd 最近点的压力
     const f64 d4 = similarity(distSq2, distSq3); // 2nd vs 3rd
     if (d4 > 0.0) {
-        const f64 pressure3 = d1 * d4 * calculatePressure(blockX, blockY, blockZ, aquifer2, aquifer3, barrierNoise);
+        const f64 pressure3 =
+            d1 * d4 * calculatePressure(blockX, blockY, blockZ, aquifer2, aquifer3, barrierComputed, barrierNoise);
         if (densityValue + pressure3 > 0.0) {
             return nullptr;
         }
@@ -444,8 +454,13 @@ const BlockState* NoiseBasedAquifer::computeFluidType(i32 x, i32 y, i32 z, const
     return globalFluid.fluidType;
 }
 
-f64 NoiseBasedAquifer::calculatePressure(
-    i32 blockX, i32 blockY, i32 blockZ, const AquiferStatus& a, const AquiferStatus& b, f64 cachedBarrierNoise)
+f64 NoiseBasedAquifer::calculatePressure(i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    const AquiferStatus& a,
+    const AquiferStatus& b,
+    bool& barrierComputed,
+    f64& barrierNoise)
 {
     const BlockState* stateA = (a.fluidType != nullptr && blockY < a.fluidLevel) ? a.fluidType : nullptr;
     const BlockState* stateB = (b.fluidType != nullptr && blockY < b.fluidLevel) ? b.fluidType : nullptr;
@@ -479,9 +494,15 @@ f64 NoiseBasedAquifer::calculatePressure(
         pressure = v > 0 ? v / 3.0 : v / 10.0;
     }
 
-    // MC 1.21: 只在屏障附近使用 barrierNoise（值已缓存）
+    // MC 1.21 对齐：仅在屏障区间 [-2,2] 内才计算/使用 barrierNoise，且跨同一方块的多次
+    // calculatePressure 调用共享缓存值（barrierComputed 守卫）。原版用 MutableDouble(NaN) 哨兵。
+    // 绝大多数方块 pressure 不在此区间，直接返回 2.0*pressure，不算 barrierNoise。
     if (pressure >= -2.0 && pressure <= 2.0) {
-        return 2.0 * (cachedBarrierNoise + pressure);
+        if (!barrierComputed) {
+            barrierNoise = m_barrierNoise.compute(blockX, blockY, blockZ);
+            barrierComputed = true;
+        }
+        return 2.0 * (barrierNoise + pressure);
     }
 
     return 2.0 * pressure;
