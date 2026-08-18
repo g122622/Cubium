@@ -125,6 +125,30 @@ public:
         f32 spawnZ);
 
     /**
+     * @brief 为已自行加入世界的玩家实体建立 PlayerId ↔ EntityInstanceId 映射
+     *
+     * 与 createPlayerEntity 的区别：本方法不创建实体、不注入服务端上下文，
+     * 仅对调用方已 spawn 的实体（如 SimulatedPlayer，自行 make_unique + setServer/
+     * setWorld/setConnection + spawnEntity）补建映射并加入 EntityTracker。
+     *
+     * 用于打通命令系统对 SimulatedPlayer 的识别：命令（/tp、/gamemode、/effect、/give 等）
+     * 与 PlayerResolver 通过 PlayerId 经本映射解析实体；SimulatedPlayer 此前 PlayerId=0
+     * 不进映射，导致这些命令对其全部失效。
+     *
+     * 此方法不向 PlayerManager 注册（SimulatedPlayer 无网络会话，避免 keepalive/广播副作用），
+     * 仅建立实体层映射，故 PlayerManager 仍查不到该 PlayerId——命令层须改用本管理器解析实体。
+     *
+     * @param playerId 玩家ID（须非 0，由调用方从 PlayerManager::nextPlayerId 分配以保证全局唯一）
+     * @param entityId 已 spawn 实体的 EntityInstanceId
+     * @param world 世界引用（用于 EntityTracker）
+     * @return true 注册成功；false playerId 已存在或实体不存在
+     *
+     * @pre playerId != 0
+     * @pre world != nullptr
+     */
+    bool registerExistingPlayerEntity(PlayerId playerId, EntityInstanceId entityId, ServerWorld& world);
+
+    /**
      * @brief 移除玩家实体
      *
      * 此方法执行以下操作：

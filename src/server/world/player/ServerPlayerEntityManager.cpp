@@ -135,6 +135,46 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     return playerPtr;
 }
 
+bool ServerPlayerEntityManager::registerExistingPlayerEntity(
+    PlayerId playerId, EntityInstanceId entityId, ServerWorld& world)
+{
+    MC_ASSERT_RELEASE(playerId != 0);
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 检查 PlayerId 是否已注册
+    if (m_playerToEntity.find(playerId) != m_playerToEntity.end()) {
+        spdlog::warn("ServerPlayerEntityManager: Player {} already exists", playerId);
+        return false;
+    }
+
+    // 确认实体存在且是 Player（SimulatedPlayer 是 ServerPlayer 子类，dynamic_cast 成功）
+    Entity* entity = world.entityManager().getEntity(entityId);
+    if (entity == nullptr) {
+        spdlog::error("ServerPlayerEntityManager: Entity {} not found for player {}", entityId, playerId);
+        return false;
+    }
+    Player* playerPtr = dynamic_cast<Player*>(entity);
+    if (playerPtr == nullptr) {
+        spdlog::error("ServerPlayerEntityManager: Entity {} is not a Player for player {}", entityId, playerId);
+        return false;
+    }
+
+    // 加入实体追踪（与其他玩家同步；SimulatedPlayer 无连接时发包路径 no-op，安全）
+    world.entityTracker().trackEntity(playerPtr);
+
+    // 建立双向映射
+    m_playerToEntity[playerId] = entityId;
+    m_entityToPlayer[entityId] = playerId;
+
+    spdlog::info("ServerPlayerEntityManager: Registered existing player {} (PlayerId={}, EntityInstanceId={})",
+        playerPtr->username(),
+        playerId,
+        entityId);
+
+    return true;
+}
+
 void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorld& world)
 {
     std::lock_guard<std::mutex> lock(m_mutex);

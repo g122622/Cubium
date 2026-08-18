@@ -75,7 +75,8 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithCallback)
 
     // 设置回调
     world->setOnExecuteCommand(
-        [&](const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f&) -> i32 {
+        [&](const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f&, Player*)
+            -> i32 {
             capturedCommand = command;
             capturedPosition = position;
             capturedPermissionLevel = permissionLevel;
@@ -102,7 +103,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithDifferentPermissionLevel
         i32 capturedLevel = -1;
 
         world->setOnExecuteCommand(
-            [&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
+            [&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&, Player*) -> i32 {
                 capturedLevel = permissionLevel;
                 return 1;
             });
@@ -120,7 +121,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteEmptyCommand)
     std::string capturedCommand;
     bool callbackCalled = false;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&, Player*) -> i32 {
         capturedCommand = command;
         callbackCalled = true;
         return 0;
@@ -140,7 +141,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithSlashPrefix)
     // 测试带 '/' 前缀的命令
     std::string capturedCommand;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&, Player*) -> i32 {
         capturedCommand = command;
         return 1;
     });
@@ -157,7 +158,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithoutSlashPrefix)
     // 测试不带 '/' 前缀的命令
     std::string capturedCommand;
 
-    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&) -> i32 {
+    world->setOnExecuteCommand([&](const std::string& command, const Vector3d&, i32, const Vector2f&, Player*) -> i32 {
         capturedCommand = command;
         return 1;
     });
@@ -172,7 +173,7 @@ TEST_F(ServerWorldCommandExecuteTest, ExecuteCommandWithoutSlashPrefix)
 TEST_F(ServerWorldCommandExecuteTest, CallbackReturnsFailureCode)
 {
     // 测试回调返回失败代码
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32, const Vector2f&) -> i32 {
+    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32, const Vector2f&, Player*) -> i32 {
         return 0; // 失败
     });
 
@@ -188,7 +189,7 @@ TEST_F(ServerWorldCommandExecuteTest, MultipleCommandsSequential)
     std::vector<i32> permissionLevels;
 
     world->setOnExecuteCommand(
-        [&](const std::string& command, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
+        [&](const std::string& command, const Vector3d&, i32 permissionLevel, const Vector2f&, Player*) -> i32 {
             executedCommands.push_back(command);
             permissionLevels.push_back(permissionLevel);
             return static_cast<i32>(executedCommands.size());
@@ -214,10 +215,11 @@ TEST_F(ServerWorldCommandExecuteTest, CommandBlockMinecartPermissionLevel)
     // 测试命令方块矿车使用的权限级别（应为 2）
     i32 capturedPermissionLevel = -1;
 
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&) -> i32 {
-        capturedPermissionLevel = permissionLevel;
-        return 1;
-    });
+    world->setOnExecuteCommand(
+        [&](const std::string&, const Vector3d&, i32 permissionLevel, const Vector2f&, Player*) -> i32 {
+            capturedPermissionLevel = permissionLevel;
+            return 1;
+        });
 
     // 模拟命令方块矿车执行命令
     Vector3d minecartPosition(100.0, 64.0, 100.0);
@@ -233,7 +235,7 @@ TEST_F(ServerWorldCommandExecuteTest, CommandPositionPassedCorrectly)
     Vector3d expectedPosition(123.5, 64.0, -456.7);
     Vector3d capturedPosition(0, 0, 0);
 
-    world->setOnExecuteCommand([&](const std::string&, const Vector3d& position, i32, const Vector2f&) -> i32 {
+    world->setOnExecuteCommand([&](const std::string&, const Vector3d& position, i32, const Vector2f&, Player*) -> i32 {
         capturedPosition = position;
         return 1;
     });

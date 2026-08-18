@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation（实体旁路传送）
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -39,6 +40,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <memory>
 #include <sstream>
@@ -107,10 +109,29 @@ namespace {
             continue;
         }
 
+        // 真实玩家路径：经 TeleportManager 改 ServerPlayerData + 发传送包，客户端回移动包后实体收敛。
         if (server->teleportManager().requestTeleport(
                 playerId, position.x, position.y, position.z, rotation.x, rotation.y) != 0) {
             ++teleportedCount;
+            continue;
         }
+
+        // 回退路径：PlayerManager 查不到该 PlayerId（SimulatedPlayer 不进 PlayerManager，仅有
+        // ServerPlayerEntityManager 映射）。经实体管理器解析 ServerPlayer 实体直接 setPosition，
+        // 立即改变实体位置（Entity::setPosition 非虚、无网络副作用）。对齐 vanilla 服务端 /tp 立即
+        // 移动实体的语义。SimulatedPlayer 无连接，setRotation 写实体朝向即可。
+        auto* world = source.world();
+        if (world == nullptr) {
+            continue;
+        }
+        mc::Player* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (playerEntity == nullptr) {
+            continue;
+        }
+        playerEntity->setPosition(
+            static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z));
+        playerEntity->setRotation(rotation.x, rotation.y);
+        ++teleportedCount;
     }
 
     return teleportedCount;
