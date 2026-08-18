@@ -21,6 +21,5 @@
 [2026-08-04 13:24:19.943] [error] Attempted to remove non-existent entity with ID 4050
 ```
 6. 红石不工作（红石火把无法激活红石粉末）
-7. 流体无法流动（在integrated_server+原生客户端中则不会出现这个bug）
-8. 鼠标左键无法攻击动物（原生客户端integrated_server中也会出现这个bug）
+8. 能够攻击动物，但是攻击时动物不会显示红色受伤动画和声音（动物的其他受伤途径也没有动画和声音）
 9. registerGoals 非幂等致基类 goal 翻倍是预存在的体系问题（如 MonsterEntity::SwimGoal 翻倍）
