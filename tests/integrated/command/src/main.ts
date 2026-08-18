@@ -6,6 +6,7 @@ import { registerCloneCommandTests } from "./tests/world/CloneCommandTests.js";
 import { registerEntityCommandTests } from "./tests/entity/EntityCommandTests.js";
 import { registerTeleportCommandTests } from "./tests/entity/TeleportCommandTests.js";
 import { registerGameModeTests } from "./tests/player/GameModeTests.js";
+import { registerEffectTests } from "./tests/player/EffectTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -13,3 +14,4 @@ registerCloneCommandTests();
 registerEntityCommandTests();
 registerTeleportCommandTests();
 registerGameModeTests();
+registerEffectTests();

@@ -22,10 +22,14 @@
 
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 
-#include "common/entity/core/Entity.hpp"  // Entity::attemptTeleport/changeDimension/dimension（teleport/tryTeleport）
-#include "common/item/core/ItemStack.hpp" // giveItem/setItem 按值拷贝需完整类型
+#include "common/entity/core/Entity.hpp" // Entity::attemptTeleport/changeDimension/dimension（teleport/tryTeleport）
+#include "common/entity/core/LivingEntity.hpp"     // LivingEntity::getEffect（getEffect 绑定读实体效果）
+#include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect 返回效果实例）
+#include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
+#include "common/item/core/ItemStack.hpp"          // giveItem/setItem 按值拷贝需完整类型
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
+#include "common/resource/ResourceLocation.hpp"                     // ResourceLocation（getEffect typeId 资源位置）
 #include "common/test/base/error/GameTestErrorType.hpp"             // GameTestErrorType::MethodNotImplemented
 #include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
 #include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
@@ -37,6 +41,7 @@
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
 #include <cctype>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -224,6 +229,30 @@ void* _applyTeleport(
     return "default";
 }
 
+/**
+ * @brief 解析 JS effectType 参数为 EffectType。
+ *
+ * 对齐基岩 Entity.getEffect：接受 "minecraft:blindness" 全称或 "blindness" 简写。失败返 nullopt。
+ * 复用 MinecraftModuleFactory::parseEffectType 同款逻辑（SimulatedPlayer JS 类未继承 Entity 原型，
+ * 见 [[simulated-player-js-class-no-entity-inheritance]]，Entity.getEffect 不在其上，故本地重绑）。
+ */
+[[nodiscard]] std::optional<mc::entity::effect::EffectType> _parseEffectType(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg)
+{
+    if (arg == nullptr || !ctx.isString(arg)) {
+        return std::nullopt;
+    }
+    auto s = ctx.toString(arg);
+    if (!s) {
+        return std::nullopt;
+    }
+    std::string id = *s;
+    if (id.find(':') == std::string::npos) {
+        id = "minecraft:" + id;
+    }
+    return mc::entity::effect::getEffectByResourceLocation(mc::ResourceLocation(id));
+}
+
 } // namespace
 
 u64 registerSimulatedPlayerClassBinding(
@@ -259,6 +288,38 @@ u64 registerSimulatedPlayerClassBinding(
             return ctx.createString(_gameModeToString(player->gameMode()));
         },
         0);
+
+    // --- getEffect(effectType: string): Effect | undefined ---
+    // 对齐基岩 @minecraft/server Entity.getEffect。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getEffect 不在其上，故需在此重绑。
+    // 供命令测试（/effect give/clear）判定状态效果生效：返回 { typeId, amplifier, duration } 普通对象，
+    // 无该效果返回 undefined。读 LivingEntity::effectManager（实体层，/effect 经实体旁路写入处），
+    // 与 MinecraftModuleFactory Entity.getEffect 返回结构一致。
+    reg.method(
+        "getEffect",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = _parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            const mc::entity::effect::EffectInstance* inst = player->getEffect(*typeOpt);
+            if (inst == nullptr) {
+                return ctx.createUndefined();
+            }
+            void* obj = ctx.createObject();
+            ctx.setPropertyString(obj, "typeId", mc::entity::effect::getEffectResourceLocation(*typeOpt).toString());
+            ctx.setPropertyInt(obj, "amplifier", inst->amplifier());
+            ctx.setPropertyInt(obj, "duration", inst->duration());
+            return obj;
+        },
+        1);
 
     // --- teleport(location: Vector3, teleportOptions?: TeleportOptions): void ---
     // 对齐基岩 Entity.teleport。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型），

@@ -29,14 +29,16 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp" // LivingEntity::addEffect/hasEffect/removeEffect（实体层效果）
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp" // Player（实体旁路解析目标类型）
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EffectResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp" // getPlayerEntity（实体旁路解析）
 #include <cstddef>
 #include <memory>
 #include <sstream>
@@ -44,6 +46,33 @@
 
 namespace mc {
 namespace command {
+namespace {
+
+/**
+ * @brief 经实体管理器解析 PlayerId 到 Player 实体（含 SimulatedPlayer 旁路）。
+ *
+ * EffectCommand 此前经 PlayerManager.getPlayer 拿 ServerPlayerData 写其 effects 向量（网络数据层），
+ * 对不进 PlayerManager 的 SimulatedPlayer 返 nullptr 跳过失效；且即便真实玩家，ServerPlayerData.effects
+ * 与脚本侧 Entity.getEffect 读的 LivingEntity::effectManager（实体层）不互通，致 /effect 成功但脚本读不到。
+ * 统一改走实体层 LivingEntity 的 effect 方法：经 ServerPlayerEntityManager 解析实体（SimulatedPlayer 已
+ * 注册映射，真实玩家亦在 EntityManager），调 LivingEntity::addEffect 等写实体 m_effectManager，与脚本对齐。
+ *
+ * @return Player* 实体指针；解析失败（PlayerId 无映射或世界为空）返回 nullptr。
+ */
+[[nodiscard]] Player* resolvePlayerEntity(ServerCommandSource& source, PlayerId playerId)
+{
+    auto* server = source.server();
+    if (server == nullptr) {
+        return nullptr;
+    }
+    auto* world = source.world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+    return server->playerEntityManager().getPlayerEntity(playerId, *world);
+}
+
+} // namespace
 
 void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -143,19 +172,20 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
         hideParticles = context.getArgument<bool>("hideParticles");
     }
 
-    auto* server = source.server();
-    auto& playerManager = server->playerManager();
     i32 successCount = 0;
 
     for (PlayerId playerId : playerIds) {
-        auto* playerData = playerManager.getPlayer(playerId);
-        if (!playerData) {
+        // 统一经实体管理器解析实体（含 SimulatedPlayer 旁路），写实体层 LivingEntity::m_effectManager。
+        // 此前经 PlayerManager.getPlayer 写 ServerPlayerData.effects（网络数据层），对 SimulatedPlayer 失效，
+        // 且对真实玩家与脚本 Entity.getEffect（读实体 effectManager）层错配。改走实体层后两端对齐。
+        Player* player = resolvePlayerEntity(source, playerId);
+        if (player == nullptr) {
             continue;
         }
 
-        // 添加效果
+        // 添加效果：LivingEntity::addEffect 内部走 m_effectManager.addEffect（合并/覆盖同类型）。
         entity::effect::EffectInstance effect(effectType, seconds * 20, amplifier, false, !hideParticles);
-        playerData->addEffect(effect);
+        player->addEffect(std::move(effect));
         successCount++;
     }
 
@@ -182,18 +212,17 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
         return 0;
     }
 
-    auto* server = source.server();
-    auto& playerManager = server->playerManager();
     i32 successCount = 0;
 
     for (PlayerId playerId : playerIds) {
-        auto* playerData = playerManager.getPlayer(playerId);
-        if (!playerData) {
+        // 经实体管理器解析实体（含 SimulatedPlayer 旁路），操作实体层 LivingEntity::m_effectManager。
+        Player* player = resolvePlayerEntity(source, playerId);
+        if (player == nullptr) {
             continue;
         }
 
-        size_t effectCount = playerData->getAllEffects().size();
-        playerData->removeAllEffects();
+        size_t effectCount = player->effectManager().getAllEffects().size();
+        player->removeAllEffects();
         successCount += static_cast<i32>(effectCount);
     }
 
@@ -222,18 +251,17 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
     }
     entity::effect::EffectType effectType = effectTypeOpt.value();
 
-    auto* server = source.server();
-    auto& playerManager = server->playerManager();
     i32 successCount = 0;
 
     for (PlayerId playerId : playerIds) {
-        auto* playerData = playerManager.getPlayer(playerId);
-        if (!playerData) {
+        // 经实体管理器解析实体（含 SimulatedPlayer 旁路），操作实体层 LivingEntity::m_effectManager。
+        Player* player = resolvePlayerEntity(source, playerId);
+        if (player == nullptr) {
             continue;
         }
 
-        if (playerData->hasEffect(effectType)) {
-            playerData->removeEffect(effectType);
+        if (player->hasEffect(effectType)) {
+            player->removeEffect(effectType);
             successCount++;
         }
     }
