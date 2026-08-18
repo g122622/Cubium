@@ -383,6 +383,44 @@ u64 registerSimulatedPlayerClassBinding(
         },
         1);
 
+    // --- level (readonly property, number) ---
+    // 对齐基岩 @minecraft/server Player.level（只读，当前经验等级）。供命令测试（/xp add/set levels）
+    // 判定等级变化。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity 侧无 level 绑定，故需在此重绑。
+    // 读 Player::experienceLevel（实体层，/xp 经 ExperienceCommand 实体旁路写入处），非 ServerPlayerData。
+    reg.readonlyProperty("level", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+        if (player == nullptr) {
+            return ctx.throwTypeError("Invalid SimulatedPlayer");
+        }
+        return ctx.createInt32(player->experienceLevel());
+    });
+
+    // --- getTotalXp(): number ---
+    // 对齐基岩 @minecraft/server Player.getTotalXp（总经验点数）。供命令测试（/xp add/set points）判定
+    // 总经验点数变化。读 Player::totalExperience（实体层）。
+    reg.method(
+        "getTotalXp",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return ctx.createInt32(player->totalExperience());
+        },
+        0);
+
+    // --- xp (readonly property, number 0..1) ---
+    // 对齐基岩 @minecraft/server Player.xp（只读，当前等级经验条进度 0.0-1.0）。供命令测试判定经验条进度。
+    // 读 Player::experienceProgress（实体层）。注意：基岩属性名是 "xp" 非 "progress"。
+    reg.readonlyProperty("xp", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+        if (player == nullptr) {
+            return ctx.throwTypeError("Invalid SimulatedPlayer");
+        }
+        return ctx.createFloat64(player->experienceProgress());
+    });
+
     // --- teleport(location: Vector3, teleportOptions?: TeleportOptions): void ---
     // 对齐基岩 Entity.teleport。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型），
     // 故需在此绑定（逻辑见 _applyTeleport，与 Entity.teleport 一致）。跨维度走 changeDimension
