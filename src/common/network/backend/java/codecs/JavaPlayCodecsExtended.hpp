@@ -1347,16 +1347,20 @@ inline void writeSoundEventHolder(B& buf, const ir::play::SoundEventHolder& v)
 /**
  * @brief 写 WeightedList<ExplosionParticleInfo>
  *
- * 线格式：INT(count) + count×{ ExplosionParticleInfo + INT(weight) }
+ * 线格式：VarInt(count) + count×{ ExplosionParticleInfo + VarInt(weight) }。
+ * 对齐 vanilla WeightedList.streamCodec = Weighted.streamCodec(VarInt weight).apply(ByteBufCodecs.list)：
+ * list 的 count 走 ByteBufCodecs.writeCount→VarInt，Weighted.weight 走 ByteBufCodecs.VAR_INT。
+ * 若误用定长 I32 写 count/weight，空列表会多 3 字节（I32=4 vs VarInt(0)=1），
+ * 致真 Java 客户端解 ClientboundExplodePacket 时报 "N bytes extra" 断连。
  */
 inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::ExplosionParticleInfo>& v)
 {
-    buf.writeI32(static_cast<i32>(v.size()));
+    buf.writeVarInt(static_cast<i32>(v.size()));
     for (const auto& e : v) {
         writeParticleOptions(buf, e.particle);
         buf.writeF32(e.scaling);
         buf.writeF32(e.speed);
-        buf.writeI32(1); // weight（我方互通统一权重 1）
+        buf.writeVarInt(1); // weight（我方互通统一权重 1，VarInt 编码对齐 Weighted.weight）
     }
 }
 
@@ -1364,7 +1368,7 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 {
     std::vector<ir::play::ExplosionParticleInfo> out;
     i32 count = 0;
-    MC_TRY_ASSIGN(count, buf.readI32());
+    MC_TRY_ASSIGN(count, buf.readVarInt());
     if (count < 0) {
         return Error(ErrorCode::InvalidData, "ExplosionParticleInfo count is negative", "readExplosionParticleList");
     }
@@ -1375,7 +1379,7 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         MC_TRY_ASSIGN(e.scaling, buf.readF32());
         MC_TRY_ASSIGN(e.speed, buf.readF32());
         i32 weight = 0;
-        MC_TRY_ASSIGN(weight, buf.readI32());
+        MC_TRY_ASSIGN(weight, buf.readVarInt());
         (void)weight; // 我方互通统一权重，读侧丢弃
         out.push_back(std::move(e));
     }

@@ -1522,7 +1522,8 @@ inline constexpr u16 kActionUpdateLatency = 1u << 4;     // UPDATE_LATENCY(4)
 inline constexpr u16 kActionUpdateDisplayName = 1u << 5; // UPDATE_DISPLAY_NAME(5)
 inline constexpr u16 kActionUpdateListOrder = 1u << 6;   // UPDATE_LIST_ORDER(6)
 inline constexpr u16 kActionUpdateHat = 1u << 7;         // UPDATE_HAT(7)
-// 注：1.21.11 还可能有第 9 位 INITIALIZE_CHAT 之外的位；按 9 位 fixedBitSet，当前 8 位够用。
+// Action 枚举仅 8 个值（ordinal 0..7），writeEnumSet→writeFixedBitSet(bitset, 8) = 1 字节，
+// 故 actions 线格式为单字节 fixedBitSet（非 9 位/2 字节）。
 
 /**
  * @brief 跳过 VarInt 长度前缀的字节串（ByteArray）
@@ -1683,9 +1684,10 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
 {
     return makeCodec<ir::play::PlayerInfoUpdate>(
         [](B& buf, const ir::play::PlayerInfoUpdate& v) {
-            // actions：9 位 fixedBitSet → 2 字节。写 actions 的低 16 位（小端 2 字节）。
+            // actions：8 位 fixedBitSet → 1 字节。对齐 vanilla writeEnumSet(actions, Action.class)：
+            // Action 枚举仅 8 个值（ordinal 0..7），writeFixedBitSet(bitset, 8) = positiveCeilDiv(8,8) = 1 字节。
+            // 写 actions 低 8 位（高 8 位在 1.21.11 无 action 占用，恒 0）。
             buf.writeU8(static_cast<u8>(v.actions & 0xFF));
-            buf.writeU8(static_cast<u8>((v.actions >> 8) & 0xFF));
             buf.writeVarInt(static_cast<i32>(v.entries.size()));
             for (const auto& e : v.entries) {
                 player_info_detail::writeEntry(buf, v.actions, e);
@@ -1695,9 +1697,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             ir::play::PlayerInfoUpdate v{};
             u8 b0 = 0;
             MC_TRY_ASSIGN(b0, buf.readU8());
-            u8 b1 = 0;
-            MC_TRY_ASSIGN(b1, buf.readU8());
-            v.actions = static_cast<u16>(b0) | (static_cast<u16>(b1) << 8);
+            v.actions = static_cast<u16>(b0);
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             if (count < 0) {

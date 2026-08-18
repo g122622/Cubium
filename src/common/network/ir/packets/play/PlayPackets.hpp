@@ -831,8 +831,8 @@ struct ContainerSetData {
 /**
  * @brief PlayerInfoUpdate（S→C，id=68）
  *
- * 1.21.11 action 位掩码（9 位）+ entries。每个 entry 按 set 的 action 顺序载负载。
- * 当前承载 actions + per-entry 负载字段（可选）。
+ * 1.21.11 action 位掩码（8 位 fixedBitSet，单字节）+ entries。每个 entry 按 set 的 action 顺序载负载。
+ * Action 枚举仅 8 个值（ordinal 0..7），writeEnumSet→writeFixedBitSet(8)=1 字节。
  * INITIALIZE_CHAT（RemoteChatSession.Data）：我方离线模式 enforcesSecureChat=false，
  * 双端均写 Bool(false) 不携带 chat session（见 JavaPlayCodecs writeEntry/skipChatSessionData），
  * 读侧对真 Java 服务端 hasSession=true 安全跳过定界。完整 chat session 体系属在线签名
@@ -860,7 +860,7 @@ struct PlayerInfoEntry {
 };
 
 struct PlayerInfoUpdate {
-    u16 actions; // 9 位位掩码
+    u16 actions; // 8 位位掩码（线格式 1 字节 fixedBitSet，高 8 位恒 0）
     std::vector<PlayerInfoEntry> entries;
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const PlayerInfoUpdate&, const PlayerInfoUpdate&) noexcept = default;
