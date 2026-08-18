@@ -302,6 +302,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createUndefined();
             }
+            // 实体有效性守卫：对齐 Entity.getComponent 的 isRemoved 检查（见 MinecraftModuleFactory.cpp
+            // 同款注释）。SimulatedPlayer 测试中实体销毁后句柄悬垂，graveyard 窗口内 isRemoved()=true
+            // 提前返回 undefined 避免 UAF。
+            if (player->isRemoved()) {
+                return ctx.createUndefined();
+            }
             auto compId = ctx.toString(args[0]);
             if (!compId) {
                 return ctx.createUndefined();
