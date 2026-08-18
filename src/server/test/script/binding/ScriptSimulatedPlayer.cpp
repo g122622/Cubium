@@ -846,10 +846,37 @@ u64 registerSimulatedPlayerClassBinding(
             return ctx.createBoolean(player->useItemOnBlock(emptyStack, pos, face, faceLocation));
         },
         2);
+    // --- interactWithEntity(entity) -> boolean ---
+    // 对齐基岩官方 SimulatedPlayer.interactWithEntity(entity): boolean。
+    // 语义：玩家用当前主手物品右键实体。转发 Player::interactOn(target, Hand::MainHand)。
+    // interactOn 内部流程（Player.cpp:2771）：
+    //   1) 旁观者只开 INamedContainerProvider 容器；
+    //   2) target.processInitialInteract（实体侧交互，如村民交易、马匹骑乘）；
+    //   3) 实体不处理时，取主手物品调 Item::itemInteractionForEntity（金苹果治愈僵尸村民、
+    //      命名牌命名、小麦喂养动物、骨粉催熟幼体等）。
+    // 故测试侧可 player.setItem(golden_apple, 0, true) 后 interactWithEntity(zombieVillager)
+    // 触发金苹果治愈链路；空手 interactWithEntity 走 processInitialInteract（交易等）。
+    // 返回值映射基岩 boolean（"Returns true if the interaction was performed"）：
+    //   Success/Consume → true（交互被执行/物品被消耗），Fail/Pass → false。
+    // Hand 固定 MainHand（基岩 interactWithEntity 无 hand 参数，vanilla 默认主手）。
     reg.method(
         "interactWithEntity",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "interactWithEntity"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("interactWithEntity(entity)");
+            }
+            auto* target = _unwrapEntity(ctx, args[0]);
+            if (target == nullptr) {
+                return ctx.throwTypeError("interactWithEntity: first arg must be an Entity");
+            }
+            auto result = player->interactOn(*target, mc::Hand::MainHand);
+            return ctx.createBoolean(
+                result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume);
+        },
         1);
     reg.method(
         "stopInteracting",

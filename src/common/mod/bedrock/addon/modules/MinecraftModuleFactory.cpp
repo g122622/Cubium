@@ -825,6 +825,56 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         },
         1);
 
+    // Entity.addEffect(effectType, duration, options?): void —— 对齐基岩官方 Entity.addEffect。
+    // 官方签名：addEffect(effectType: EffectType | string, duration: number, options?:
+    // EntityEffectOptions): Effect | undefined。options={ amplifier?: number, showParticles?: boolean }。
+    // 成功返回 undefined（对齐官方"成功返回 undefined"）。effectType 支持简写("weakness")或全称
+    // ("minecraft:weakness")。duration 单位 tick。非 LivingEntity（掉落物/经验球等）无效果管理器，
+    // 返 undefined。
+    // 用于 GameTest 给实体施加状态效果（如僵尸村民治愈需先施虚弱、测试中毒/凋零伤害等），
+    // 此前仅 EffectCommand(/effect) 能施效果且只支持玩家选择器，对非玩家实体不可用。
+    // TODO: 官方还支持 effectType 传 EffectType 对象（.id），Cubium 暂仅支持字符串（同 parseEffectType 限制）。
+    entityReg.method(
+        "addEffect",
+        [entityClassId, &parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr || argc < 2) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            // duration: number（tick），基岩范围 [1, 20000000]。
+            // args[1] 是 JS number 原始值，用 toInt32 取整（对齐基岩 duration 取整语义）。
+            auto durationOpt = ctx.toInt32(args[1]);
+            if (!durationOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            i32 duration = *durationOpt;
+            // options?: EntityEffectOptions（可选对象）。
+            i32 amplifier = 0;
+            bool showParticles = true; // 对齐 EffectInstance 默认 visible=true
+            if (argc >= 3 && ctx.isObject(args[2])) {
+                void* opts = args[2];
+                auto ampOpt = ctx.getPropertyInt(opts, "amplifier");
+                if (ampOpt.has_value()) {
+                    amplifier = *ampOpt;
+                }
+                auto partOpt = ctx.getPropertyBool(opts, "showParticles");
+                if (partOpt.has_value()) {
+                    showParticles = *partOpt;
+                }
+            }
+            // EffectInstance(type, duration, amplifier, ambient=false, visible=showParticles)。
+            // 对齐 EffectCommand.cpp:187 用法（ambient 固定 false，visible 对应 showParticles）。
+            mc::entity::effect::EffectInstance effect(*typeOpt, duration, amplifier, false, showParticles);
+            living->addEffect(std::move(effect));
+            return ctx.createUndefined();
+        },
+        3);
+
     // Entity.teleport(location: Vector3, teleportOptions?: TeleportOptions): void
     // 对齐基岩 Entity.teleport。同维度（无 options.dimension 或 dimension 与实体当前维度相同）
     // 传送；跨维度（options.dimension 指定不同维度）走虚派发 changeDimension（ServerPlayer override

@@ -68,6 +68,7 @@ import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.j
 import { registerDespawnTests } from "./tests/spawn/despawn/DespawnTests.js";
 import { registerNaturalSpawnTests } from "./tests/spawn/natural/NaturalSpawnTests.js";
 import { registerZombieReinforcementTests } from "./tests/spawn/reinforcement/ZombieReinforcementTests.js";
+import { registerZombieVillagerTests } from "./tests/monster/undead/ZombieVillagerTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -129,3 +130,4 @@ registerMobSpawnerTests();
 registerDespawnTests();
 registerNaturalSpawnTests();
 registerZombieReinforcementTests();
+registerZombieVillagerTests();
