@@ -95,20 +95,31 @@ function blockLightThroughLeavesDecaysOne(test: Test): void {
     );
 }
 
-// 石头阻断方块光：光源 (1,3,3) 荧石15，(2,3,3) 石头(opacity=15)，(3,3,3) 探针。
-// 传播链：荧石15 → 石头格 max(1,15)=15 衰减得 0（targetLevel=0，不点亮石头格自身）→ 探针 air
-// 仅能从石头格(0)接收，得 0。验证 opacity=15 的实心方块完全阻断方块光传播。
+// 石头阻断方块光（封闭走廊构造）：光源 (1,3,3) 荧石15，(2,3,3) 石头(opacity=15) 阻断直线路径，
+// 探针 (3,3,3) air。若仅在直线上放单格石头，光会从开放空间绕路（曼哈顿4，15-4=11）到达探针，
+// 无法验证「完全阻断」。故把探针其余 5 面也封上石头，使探针唯一开口朝向阻断石头 (2,3,3)：
+//   探针 (3,3,3) 的 6 邻居：(2,3,3) 石头、(4,3,3) 石头、(3,2,3) 石头、(3,4,3) 石头、
+//   (3,3,2) 石头、(3,3,4) 石头——六面皆 opacity=15 的实心方块。
+// 探针只能从邻居接收光，而所有邻居 blockLight=0（opacity=15 不被点亮），故探针 blockLight=0。
+// 这确定性地验证 opacity=15 实心方块完全阻断方块光传播（光无法穿透实心方块到达被其包围的空腔）。
 // 石头格自身 blockLight=0（calculateLightValue 对 opacity>=15 直接返回 level=0）。
 function blockLightBlockedByStone(test: Test): void {
     test.setBlockType("minecraft:glowstone", { x: 1, y: 3, z: 3 });
+    // 直线阻断石头。
     test.setBlockType("minecraft:stone", { x: 2, y: 3, z: 3 });
+    // 封死探针其余 5 面，阻止光从开放空间绕路（否则绕路曼哈顿4，15-4=11≠0）。
+    test.setBlockType("minecraft:stone", { x: 4, y: 3, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 2, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 4, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 3, z: 2 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 3, z: 4 });
     pollUntilSucceed(
         test,
         () => {
             return (
-                // 石头格 opacity=15，不接收邻居光，自身 blockLight=0。
+                // 阻断石头格 opacity=15，不接收邻居光，自身 blockLight=0。
                 getBlockLight(test, 2, 3, 3) === 0 &&
-                // 探针 air：被石头阻断，仅能从远侧绕路（曼哈顿距离>4 远超 15-距离），得 0。
+                // 探针 air：六面皆 opacity=15 石头（blockLight=0），无法接收任何光，得 0。
                 getBlockLight(test, 3, 3, 3) === 0
             );
         },

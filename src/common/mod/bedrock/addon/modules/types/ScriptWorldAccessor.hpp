@@ -6,7 +6,11 @@
 #include <string>
 #include <vector>
 
-namespace mc::mod::bedrock::addon {
+namespace mc {
+
+class IWorld; // 前向声明：getDimension 返回 IWorld*，仅需不完整类型
+
+namespace mod::bedrock::addon {
 
 /**
  * @brief 脚本世界访问器接口
@@ -42,6 +46,13 @@ public:
     [[nodiscard]] u64 currentTick() const;
 
     /**
+     * @brief 获取指定维度的 IWorld（经 ServerDimensionManager 解析维度名）。
+     * @param dimensionId 维度名字符串（如 "minecraft:overworld"/"minecraft:nether"/"minecraft:the_end"）
+     * @return 对应维度的 IWorld*；维度不存在或回调未注册返回 nullptr
+     */
+    [[nodiscard]] mc::IWorld* getDimension(const std::string& dimensionId);
+
+    /**
      * @brief 设置消息发送回调
      * @param callback 回调函数
      */
@@ -59,12 +70,20 @@ public:
      */
     void setCurrentTickCallback(std::function<u64()> callback);
 
+    /**
+     * @brief 设置获取维度回调
+     * @param callback 回调函数（按维度名返回 IWorld*，不存在返回 nullptr）
+     */
+    void setGetDimensionCallback(std::function<mc::IWorld*(const std::string&)> callback);
+
 private:
     ScriptWorldAccessor() noexcept = default;
 
     std::function<void(const std::string&)> m_messageCallback;
     std::function<std::vector<std::string>()> m_getPlayerNamesCallback;
     std::function<u64()> m_currentTickCallback;
+    std::function<mc::IWorld*(const std::string&)> m_getDimensionCallback;
 };
 
-} // namespace mc::mod::bedrock::addon
+} // namespace mod::bedrock::addon
+} // namespace mc

@@ -33,6 +33,10 @@
 #include <string>
 
 namespace mc {
+
+// 前向声明
+class BlockItemUseContext;
+
 namespace blocks {
 
 /**
@@ -59,6 +63,14 @@ public:
     RedstoneDiodeBlock(const std::string& id, const BlockProperties& behaviour);
 
     // ========== Block 接口实现 ==========
+
+    // 放置朝向：facing = opposite(玩家水平视线方向)（水平四向，输入端朝玩家、输出端背离玩家）。
+    // 朝向仅由玩家 yaw 决定（水平四向 South/West/North/East），不含 pitch。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒 North），
+    // 与预期按水平视线决定朝向的行为不一致。重写后修正为按水平视线决定朝向。
+    // 中继器（RedstoneRepeaterBlock）与比较器（RedstoneComparatorBlock）继承本类，继承本方法自动获得
+    // 正确朝向（两者均不重写该方法，靠基类实现）。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 

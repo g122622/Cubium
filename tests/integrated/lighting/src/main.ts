@@ -33,6 +33,8 @@ import "./gametest-shim.js";
 import "./tests/core/BlockLightEmissionTests.js";
 // ExtraEmissionTests 同设计：registerExtraEmissionTest 顶层调用注册紫晶簇系列发光方块，无 export，副作用 import。
 import "./tests/core/ExtraEmissionTests.js";
+// FroglightEmissionTests 同设计：registerFroglightEmissionTest 顶层调用注册蛙明灯3变体，无 export，副作用 import。
+import "./tests/core/FroglightEmissionTests.js";
 
 import { registerBlockLightPropagationTests } from "./tests/core/BlockLightPropagationTests.js";
 import { registerSkyLightTests } from "./tests/core/SkyLightTests.js";
@@ -42,6 +44,16 @@ import { registerOpacityBlockLightTests } from "./tests/core/OpacityBlockLightTe
 import { registerShapeOcclusionSkyLightTests } from "./tests/core/ShapeOcclusionSkyLightTests.js";
 import { registerSkyLightColumnDepthTests } from "./tests/core/SkyLightColumnDepthTests.js";
 import { registerDynamicEmissionTests } from "./tests/core/DynamicEmissionTests.js";
+import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTests.js";
+import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLightPropagationSymmetryTests.js";
+import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
+import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmissionTests.js";
+import { registerCopperLanternEmissionTests } from "./tests/core/CopperLanternEmissionTests.js";
+import { registerFireflyBushEmissionTests } from "./tests/core/FireflyBushEmissionTests.js";
+import { registerCopperBulbEmissionTests } from "./tests/core/CopperBulbEmissionTests.js";
+import { registerRedstoneLampEmissionTests } from "./tests/core/RedstoneLampEmissionTests.js";
+import { registerNightSkyDarkeningTests } from "./tests/core/NightSkyDarkeningTests.js";
+import { registerWeatherSkyDarkeningTests } from "./tests/core/WeatherSkyDarkeningTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -51,3 +63,13 @@ registerOpacityBlockLightTests();
 registerShapeOcclusionSkyLightTests();
 registerSkyLightColumnDepthTests();
 registerDynamicEmissionTests();
+registerStatefulEmissionTests();
+registerBlockLightPropagationSymmetryTests();
+registerSkyLightHorizontalSpreadTests();
+registerNetherPortalEmissionTests();
+registerCopperLanternEmissionTests();
+registerFireflyBushEmissionTests();
+registerCopperBulbEmissionTests();
+registerRedstoneLampEmissionTests();
+registerNightSkyDarkeningTests();
+registerWeatherSkyDarkeningTests();

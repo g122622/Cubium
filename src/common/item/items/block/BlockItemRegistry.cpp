@@ -340,6 +340,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SMOKER, "smoker");
     registerSimpleBlock(VanillaBlocks::BARREL, "barrel");
     registerSimpleBlock(VanillaBlocks::GRINDSTONE, "grindstone");
+    registerSimpleBlock(VanillaBlocks::STONECUTTER, "stonecutter");
     registerSimpleBlock(VanillaBlocks::CARTOGRAPHY_TABLE, "cartography_table");
     registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE, "fletching_table");
     registerSimpleBlock(VanillaBlocks::SMITHING_TABLE, "smithing_table");
@@ -716,6 +717,24 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_TERRACOTTA, "red_terracotta");
     registerSimpleBlock(VanillaBlocks::BLACK_TERRACOTTA, "black_terracotta");
 
+    // 釉面陶瓦 (16色，可旋转、不可被活塞拉动)
+    registerSimpleBlock(VanillaBlocks::WHITE_GLAZED_TERRACOTTA, "white_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::ORANGE_GLAZED_TERRACOTTA, "orange_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_GLAZED_TERRACOTTA, "magenta_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_GLAZED_TERRACOTTA, "light_blue_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::YELLOW_GLAZED_TERRACOTTA, "yellow_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::LIME_GLAZED_TERRACOTTA, "lime_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::PINK_GLAZED_TERRACOTTA, "pink_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::GRAY_GLAZED_TERRACOTTA, "gray_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_GLAZED_TERRACOTTA, "light_gray_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::CYAN_GLAZED_TERRACOTTA, "cyan_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::PURPLE_GLAZED_TERRACOTTA, "purple_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::BLUE_GLAZED_TERRACOTTA, "blue_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::BROWN_GLAZED_TERRACOTTA, "brown_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::GREEN_GLAZED_TERRACOTTA, "green_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::RED_GLAZED_TERRACOTTA, "red_glazed_terracotta");
+    registerSimpleBlock(VanillaBlocks::BLACK_GLAZED_TERRACOTTA, "black_glazed_terracotta");
+
     // 去皮原木
     registerSimpleBlock(VanillaBlocks::STRIPPED_OAK_LOG, "stripped_oak_log");
     registerSimpleBlock(VanillaBlocks::STRIPPED_SPRUCE_LOG, "stripped_spruce_log");
@@ -769,6 +788,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PINK_PETALS, "pink_petals");
     registerSimpleBlock(VanillaBlocks::CACTUS_FLOWER, "cactus_flower");
     registerSimpleBlock(VanillaBlocks::WILDFLOWERS, "wildflowers");
+    registerSimpleBlock(VanillaBlocks::LEAF_LITTER, "leaf_litter");
     registerSimpleBlock(VanillaBlocks::SUNFLOWER, "sunflower");
     registerSimpleBlock(VanillaBlocks::LILAC, "lilac");
     registerSimpleBlock(VanillaBlocks::ROSE_BUSH, "rose_bush");

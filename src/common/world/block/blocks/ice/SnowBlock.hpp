@@ -122,8 +122,6 @@ public:
      *
      * 满层(8层)雪返回 0.2F（产生AO阴影，因为视觉上等价于完整方块），
      * 其他层数返回 1.0F（不产生阴影，因为层数较低时视觉上不完整）。
-     *
-     * 参考: net.minecraft.block.SnowLayerBlock#getShadeBrightness
      */
     [[nodiscard]] f32 getShadeBrightness(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
@@ -132,6 +130,18 @@ public:
         MC_UNUSED(pos);
         return state.get(LAYERS()) == 8 ? 0.2f : 1.0f;
     }
+
+    /**
+     * @brief 获取光照不透明度
+     *
+     * 雪层靠 useShapeForLightOcclusion 做精确形状遮挡，opacity 本身应为 0（1-7层），
+     * 使方块光能进入雪层所在格——否则雪层格永远 blockLight=0，永远无法因方块光
+     * 融化（与原版"方块亮度不低于12融化"不符）。满层(8层)雪等价雪块，opacity=15
+     * 完全遮挡光。基类 Block::getOpacity 因雪材质被标记为 opaque 而对所有层数
+     * 返回 15，需在此按层数重写纠正。
+     */
+    [[nodiscard]] i32 getOpacity(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     // ========== 形状 ==========
 

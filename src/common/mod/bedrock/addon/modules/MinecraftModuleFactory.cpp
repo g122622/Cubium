@@ -284,8 +284,29 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
     ClassRegistrar<void> worldReg(ctx, worldClassId, worldProto);
     worldReg.method("getDimension", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
-        // TODO: 返回Dimension对象
-        return ctx.createUndefined();
+        // 对齐基岩 world.getDimension(id: string): Dimension。按维度名经 ScriptWorldAccessor
+        // 回调解析（ServerDimensionManager，含 "minecraft:nether"->"minecraft:the_nether" 归一化），
+        // 拿到 IWorld* 后 wrap 成 Dimension JS 对象（owned=false，世界由服务器管理）。
+        // 模板来源：ScriptTestHelper.cpp 的 test.getDimension 绑定（classIdByName 动态查，
+        // 不捕获 dimensionClassId——其在下方 :316 才声明，捕获会编译失败）。
+        MC_UNUSED(thisVal);
+        if (argc < 1 || !ctx.isString(args[0])) {
+            return ctx.throwTypeError("world.getDimension requires a string argument");
+        }
+        auto idOpt = ctx.toString(args[0]);
+        if (!idOpt) {
+            return ctx.createUndefined();
+        }
+        mc::IWorld* world = ScriptWorldAccessor::instance().getDimension(*idOpt);
+        if (world == nullptr) {
+            return ctx.createUndefined(); // 维度不存在或回调未注册
+        }
+        const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
+        void* dimProto = ScriptClassRegistry::instance().proto(dimClassId);
+        if (dimProto == nullptr) {
+            return ctx.createUndefined(); // Dimension 类未注册（模块未加载）
+        }
+        return ScriptObjectRegistry::wrap(ctx, dimClassId, dimProto, world, false, "Dimension");
     });
     worldReg.method("getAllPlayers", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
         auto names = ScriptWorldAccessor::instance().getAllPlayerNames();
@@ -318,9 +339,25 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ScriptClassRegistry::instance().registerClass(dimensionClassId, dimensionProto, "Dimension");
 
     ClassRegistrar<void> dimensionReg(ctx, dimensionClassId, dimensionProto);
-    dimensionReg.readonlyProperty("id", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
-        // GameTest 单维度场景固定主世界；多维场景需 IWorld 暴露 dimensionId（TODO）。
-        return ctx.createString("minecraft:overworld");
+    dimensionReg.readonlyProperty("id", [dimensionClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 读 IWorld::dimension()（IWorld.hpp:975 纯虚，ServerWorld 实现）映射到基岩维度名字符串。
+        // 输出侧用基岩名（"minecraft:nether" 非 "minecraft:the_nether"），与 world.getDimension
+        // 读入侧的归一化（ServerScriptManager）对称。nullptr 容错返回 overworld（不应发生）。
+        // DimensionId 取值：0=OVERWORLD，-1=NETHER，1=THE_END（DimensionManager.hpp:64-70）。
+        auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+        if (world == nullptr) {
+            return ctx.createString("minecraft:overworld");
+        }
+        switch (world->dimension()) {
+            case 0:
+                return ctx.createString("minecraft:overworld");
+            case -1:
+                return ctx.createString("minecraft:nether");
+            case 1:
+                return ctx.createString("minecraft:the_end");
+            default:
+                return ctx.createString("minecraft:overworld");
+        }
     });
     dimensionReg.method(
         "getEntities",
@@ -777,6 +814,132 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return buildEffectObject(ctx, living, *typeOpt);
         },
         1);
+
+    // Entity.teleport(location: Vector3, teleportOptions?: TeleportOptions): void
+    // 对齐基岩 Entity.teleport。同维度（无 options.dimension 或 dimension 与实体当前维度相同）
+    // 传送；跨维度（options.dimension 指定不同维度）走虚派发 changeDimension（ServerPlayer override
+    // 调真实实现）。
+    //
+    // checkForBlocks 语义（对齐基岩 TeleportOptions.checkForBlocks）：
+    // - teleport 默认 checkForBlocks=false → 强制 setPosition，不经碰撞检测（基岩官方示例
+    //   teleportMovement.ts 把实体传到可能嵌入方块的位置，证明默认强制传送）。
+    // - 显式 checkForBlocks=true → 走 attemptTeleport（带 findSafeTeleportPosition + 碰撞检测）。
+    // tryTeleport 默认 checkForBlocks=true（见下方），与 teleport 默认相反。
+    //
+    // 注意：changeDimension 不接受自定义位置（位置由 Teleporter 计算：末地固定 (100,49,0)，
+    // 下界 1:8 缩放），故跨维度时 location 参数被忽略。这与基岩 teleport 跨维度支持 location 有差异。
+    // TODO: 若需支持跨维度自定义位置，需扩展 changeDimension 接受 optional<Vector3d> 并传给
+    //       transferPlayerToDimension（其已支持 position 参数）。
+    entityReg.method(
+        "teleport",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.createUndefined();
+            }
+            // 解析 location: Vector3 {x,y,z}
+            void* locObj = args[0];
+            auto xOpt = ctx.getPropertyFloat(locObj, "x");
+            auto yOpt = ctx.getPropertyFloat(locObj, "y");
+            auto zOpt = ctx.getPropertyFloat(locObj, "z");
+            if (!xOpt || !yOpt || !zOpt) {
+                return ctx.throwTypeError("teleport location requires {x,y,z}");
+            }
+            f64 x = *xOpt, y = *yOpt, z = *zOpt;
+
+            // 解析 options.dimension（可选）：若指定且与当前维度不同则跨维度传送。
+            // 解析 options.checkForBlocks（可选）：teleport 默认 false（强制传送）。
+            mc::DimensionId targetDim = ent->dimension();
+            bool crossDim = false;
+            bool checkForBlocks = false; // teleport 默认不检查碰撞
+            if (argc >= 2 && ctx.isObject(args[1])) {
+                void* opts = args[1];
+                void* dimVal = ctx.getProperty(opts, "dimension");
+                if (dimVal != nullptr && ctx.isObject(dimVal)) {
+                    // Dimension JS 对象 opaque 持 IWorld*，unwrap 后读 IWorld::dimension()
+                    const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
+                    auto* dimWorld = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
+                    if (dimWorld != nullptr) {
+                        targetDim = dimWorld->dimension();
+                        crossDim = (targetDim != ent->dimension());
+                    }
+                }
+                ctx.releaseValue(dimVal);
+                auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
+                if (checkOpt.has_value()) {
+                    checkForBlocks = *checkOpt;
+                }
+            }
+
+            if (crossDim) {
+                // 跨维度：经虚派发 changeDimension（ServerPlayer override 调真实实现）。
+                // 非 Player 实体基类返回 false（不传送），对齐当前 Cubium 限制。
+                ent->changeDimension(targetDim);
+            } else if (checkForBlocks) {
+                // 同维度 + 检查碰撞：attemptTeleport（findSafeTeleportPosition + 碰撞检测）。
+                ent->attemptTeleport(x, y, z, false);
+            } else {
+                // 同维度 + 强制传送：直接 setPosition，跳过碰撞检测（对齐基岩 checkForBlocks=false）。
+                ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            }
+            return ctx.createUndefined();
+        },
+        2);
+
+    // Entity.tryTeleport(location: Vector3, teleportOptions?: TeleportOptions): boolean
+    // 对齐基岩 tryTeleport：返回是否传送成功。tryTeleport 默认 checkForBlocks=true
+    // （基岩文档："can fail if...intersecting with blocks"）。同维度走 attemptTeleport 返回值；
+    // 跨维度走 changeDimension 返回值。显式 checkForBlocks=false 时强制传送（恒成功）。
+    entityReg.method(
+        "tryTeleport",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            void* locObj = args[0];
+            auto xOpt = ctx.getPropertyFloat(locObj, "x");
+            auto yOpt = ctx.getPropertyFloat(locObj, "y");
+            auto zOpt = ctx.getPropertyFloat(locObj, "z");
+            if (!xOpt || !yOpt || !zOpt) {
+                return ctx.createBoolean(false);
+            }
+            f64 x = *xOpt, y = *yOpt, z = *zOpt;
+
+            mc::DimensionId targetDim = ent->dimension();
+            bool crossDim = false;
+            bool checkForBlocks = true; // tryTeleport 默认检查碰撞
+            if (argc >= 2 && ctx.isObject(args[1])) {
+                void* opts = args[1];
+                void* dimVal = ctx.getProperty(opts, "dimension");
+                if (dimVal != nullptr && ctx.isObject(dimVal)) {
+                    const u64 dimClassId = ScriptClassRegistry::instance().classIdByName("Dimension");
+                    auto* dimWorld = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
+                    if (dimWorld != nullptr) {
+                        targetDim = dimWorld->dimension();
+                        crossDim = (targetDim != ent->dimension());
+                    }
+                }
+                ctx.releaseValue(dimVal);
+                auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
+                if (checkOpt.has_value()) {
+                    checkForBlocks = *checkOpt;
+                }
+            }
+
+            if (crossDim) {
+                bool ok = ent->changeDimension(targetDim);
+                return ctx.createBoolean(ok);
+            }
+            if (checkForBlocks) {
+                bool ok = ent->attemptTeleport(x, y, z, false);
+                return ctx.createBoolean(ok);
+            }
+            // 强制传送（checkForBlocks=false）：直接 setPosition，恒成功。
+            ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            return ctx.createBoolean(true);
+        },
+        2);
 
     // Entity.getEffects()：对齐基岩 Entity.getEffects，返回 Effect[]（实体当前所有效果）。
     entityReg.method(

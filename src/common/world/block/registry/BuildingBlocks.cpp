@@ -60,6 +60,7 @@
 #include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/block/blocks/functional/LoomBlock.hpp"
 #include "world/block/blocks/functional/SmithingTableBlock.hpp"
+#include "world/block/blocks/functional/StonecutterBlock.hpp"
 #include "world/block/blocks/mob/InfestedBlock.hpp"
 #include "world/block/blocks/redstone/TNTBlock.hpp"
 #include "world/block/blocks/special/HayBlock.hpp"
@@ -95,6 +96,7 @@ Block* BuildingBlocks::SHULKER_BOX = nullptr;
 Block* BuildingBlocks::LOOM = nullptr;
 Block* BuildingBlocks::BARREL = nullptr;
 Block* BuildingBlocks::GRINDSTONE = nullptr;
+Block* BuildingBlocks::STONECUTTER = nullptr;
 Block* BuildingBlocks::CARTOGRAPHY_TABLE = nullptr;
 Block* BuildingBlocks::FLETCHING_TABLE = nullptr;
 Block* BuildingBlocks::SMITHING_TABLE = nullptr;
@@ -308,6 +310,15 @@ void registerBuildingBlocks()
             BlockProperties(Material::ROCK)
                 .hardness(3.0f)
                 .resistance(6.0f)
+                .requiresTool()
+                .harvestTool(HarvestTool::Pickaxe));
+
+    // 切石机
+    BuildingBlocks::STONECUTTER =
+        &registry.registerBlock<blocks::StonecutterBlock>(ResourceLocation("minecraft:stonecutter"),
+            BlockProperties(Material::ROCK)
+                .hardness(3.5f)
+                .resistance(3.5f)
                 .requiresTool()
                 .harvestTool(HarvestTool::Pickaxe));
 

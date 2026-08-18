@@ -136,11 +136,9 @@ void IceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state,
 {
     MC_UNUSED(random);
 
-    // MC 原版: IceBlock.randomTick 检查方块光照减去自身不透明度
-    // 条件: getBrightness(LightLayer.BLOCK, pos) > 11 - getLightBlock()
-    // 冰的不透明度为 2，因此条件为 blockLight > 11 - 2 = 9
-    // 即方块光照 > 9 时冰融化
-    // 参考: net.minecraft.world.level.block.IceBlock.randomTick
+    // 冰在方块光照足够时融化：门槛为 blockLight > 11 - opacity。
+    // 冰的不透明度（opacity）为 1（非不透明材质，完整方块的 getOpacity 返回 1），故条件为
+    // blockLight > 10，即方块光照 >= 11 时融化。仅检查方块光照，阳光（天空光照）不直接融化冰。
     u8 blockLight = world.getBlockLight(pos);
     i32 opacity = state.getOpacity();
 
@@ -195,8 +193,7 @@ FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
 
 void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 原版: scheduleTick(this, Mth.nextInt(random, 60, 120))
-    // 初始 tick 延迟为 60-120 ticks
+    // 霜冰生成后调度一次延迟 tick，初始延迟为 60-120 ticks。
     world.tickManager().scheduleBlockTick(
         pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(60, 120), world::tick::TickPriority::Normal);
 }
@@ -207,9 +204,7 @@ void FrostedIceBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // MC 原版: neighborChanged 中检查触发变化的邻居是否为霜冰，
-    // 如果是，检查自身霜冰邻居是否少于2个，若不足则融化
-    // 参考: net.minecraft.world.level.block.FrostedIceBlock.neighborChanged
+    // 触发变化的邻居若是霜冰，检查自身霜冰邻居是否少于2个，不足则融化（霜冰需要相邻霜冰支撑）。
     if (neighborBlock.defaultState().is(this)) {
         const BlockState* state = world.getBlockState(pos);
         if (state && state->is(this)) {
@@ -225,24 +220,18 @@ void FrostedIceBlock::neighborChanged(
 
 void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 原版: FrostedIceBlock.tick
-    // 条件1: random.nextInt(3) == 0 || fewerNeighboursThan(4)
-    // 条件2: 光照 > 11 - AGE - opacity
-    // 光源: 末地维度仅用方块光, 其他维度用 getMaxLocalRawBrightness
-    // 参考: net.minecraft.world.level.block.FrostedIceBlock.tick
+    // 霜冰的融化判定：随机概率或邻居不足4个，且光照 > 11 - AGE - opacity 时融化。
+    // 光照来源：无天空光照的维度（末地）仅用方块光照；其他维度用 getMaxLocalRawBrightness（含
+    // 天气衰减的天空光照）。
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     i32 age = getAge(state);
 
-    // 光照检查
-    // MC 原版: dimension() == Level.END 时仅用方块光，否则用 getMaxLocalRawBrightness
-    // 等价判断: 无天空光照的维度仅用方块光
-    // 参考: net.minecraft.world.level.block.FrostedIceBlock.tick
     i32 lightLevel;
     if (!world.hasSkyLight()) {
-        // 无天空光照的维度(末地): 仅使用方块光照
+        // 无天空光照的维度（末地）：仅使用方块光照。
         lightLevel = static_cast<i32>(world.getBlockLight(pos));
     } else {
-        // 有天空光照的维度(主世界): 使用 getMaxLocalRawBrightness (含天气衰减的天空光照)
+        // 有天空光照的维度（主世界）：使用 getMaxLocalRawBrightness（含天气衰减的天空光照）。
         lightLevel = world.getMaxLocalRawBrightness(pos);
     }
 
@@ -252,32 +241,31 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
         (random.nextInt(3) == 0 || _shouldMelt(blockReader, pos, 4)) && lightLevel > MELT_LIGHT_LEVEL - age - opacity;
 
     if (shouldMeltNow && _slightlyMelt(world, pos, state)) {
-        // 完全融化，通知相邻霜冰检查
-        // MC 原版: 对每个霜冰邻居调用 slightlyMelt，只调度未完全融化的邻居
+        // 完全融化后，通知相邻霜冰检查自身（对每个霜冰邻居调用 slightlyMelt，只调度未完全融化的邻居）。
         for (Direction dir : Directions::all()) {
             BlockPos neighborPos = pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && neighborState->is(this)) {
-                // 对邻居调用 slightlyMelt
+                // 对邻居调用 slightlyMelt。
                 BlockState neighborStateMutable = *neighborState;
                 if (!_slightlyMelt(world, neighborPos, neighborStateMutable)) {
-                    // 邻居未完全融化，调度其 tick
+                    // 邻居未完全融化，调度其下一次 tick。
                     world.tickManager().scheduleBlockTick(
                         neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
                 }
             }
         }
     } else {
-        // 继续调度下一次 tick
+        // 未融化，调度下一次 tick。
         world.tickManager().scheduleBlockTick(pos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
     }
 }
 
 void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // MC 原版: FrostedIceBlock 继承自 IceBlock，不重写 randomTick
-    // 因此 randomTick 使用 IceBlock 的逻辑：仅检查方块光照 > 11 - opacity
-    // 参考: net.minecraft.world.level.block.IceBlock.randomTick
+    MC_UNUSED(random);
+
+    // 霜冰继承冰的 randomTick 逻辑：仅检查方块光照 > 11 - opacity 时融化。
     u8 blockLight = world.getBlockLight(pos);
     i32 opacity = state.getOpacity();
 

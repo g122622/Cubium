@@ -887,6 +887,7 @@ public:
     static Item* PITCHER_PLANT;        // 瓶草
     static Item* CACTUS_FLOWER;        // 仙人掌花
     static Item* WILDFLOWERS;          // 野花
+    static Item* LEAF_LITTER;          // 枯叶堆
     static Item* OPEN_EYEBLOSSOM;      // 开放的眼眸花
     static Item* CLOSED_EYEBLOSSOM;    // 闭合的眼眸花
     static Item* BROWN_MUSHROOM;       // 棕色蘑菇

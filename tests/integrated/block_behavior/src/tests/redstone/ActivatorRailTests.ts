@@ -34,8 +34,8 @@
 // 不测「探测铁轨（DetectorRail）POWERED」：走 tick() + 矿车实体检测（实体依赖），不可测，跳过。
 // 不测「激活铁轨令上方矿车 shaking/减速」：涉矿车实体 AI，非确定，跳过。
 //
-// 跨服务端：激活铁轨 activator_rail 方块名两端一致，powered state 名两端一致，红石电平激活行为与
-//   vanilla 一致（立即翻转无延迟）。
+// 跨服务端：激活铁轨 activator_rail 方块名两端一致，powered state 名两端一致，红石电平激活行为
+//   两端一致（立即翻转无延迟）。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_铁轨.txt#激活铁轨（红石激活，电平触发）
 // Ref: ActivatorRailBlock.cpp（neighborChanged: POWERED=isPowered，立即翻转无延迟）

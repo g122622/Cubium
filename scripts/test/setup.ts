@@ -35,9 +35,10 @@ const BEDROCK_PROPERTIES = path.join(BEDROCK_DIR, "server.properties");
 const PACKS_SRC = path.join(cubiumRoot, "tests", "integrated");
 const BUILD_MJS = path.join(PACKS_SRC, "build.mjs");
 
-// 5 个对比行为包（与 tests/integrated 子目录一致）。
+// 6 个对比行为包（与 tests/integrated 子目录一致）。
 // block_behavior 是基岩对比工具搭建后才新增的包，接入后让方块行为测试也能与官方基岩对比。
-const PACKS = ["starter", "mob_behavior", "command", "challenge", "block_behavior"];
+// teleport 同理后接入：跨维度传送 GameTest（下界门/末地门/脚本传送/维度 id）。
+const PACKS = ["starter", "mob_behavior", "command", "challenge", "block_behavior", "teleport"];
 
 // server.properties 需覆写的键值对（key → 目标值）。
 const PROPERTIES_OVERRIDES: Record<string, string> = {

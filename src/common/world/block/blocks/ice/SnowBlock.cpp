@@ -31,6 +31,7 @@
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -101,10 +102,8 @@ void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 {
     MC_UNUSED(random);
 
-    // MC 原版: SnowLayerBlock.randomTick 仅检查方块光照 (LightLayer.BLOCK)
-    // 条件: getBrightness(LightLayer.BLOCK, pos) > 11
-    // 即方块光照 > 11 时融化，不考虑天空光照
-    // 参考: net.minecraft.world.level.block.SnowLayerBlock.randomTick
+    // 雪层仅在方块光照 > 11（即 >= 12）时融化，不考虑天空光照。
+    // 阳光不直接融化雪，而是通过生物群系温度系统间接影响雪的生成与融化。
     u8 blockLight = world.getBlockLight(pos);
 
     if (blockLight > MELT_LIGHT_LEVEL) {
@@ -124,6 +123,16 @@ void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
         world.setBlockState(pos, airState);
     }
+}
+
+i32 SnowBlock::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 雪层靠 useShapeForLightOcclusion 做精确形状遮挡（见 useShapeForLightOcclusion），
+    // opacity 本身应为 0（1-7层）使方块光能进入雪层所在格，否则雪层格永远 blockLight=0，
+    // 永远无法因方块光融化。满层(8层)雪等价雪块，opacity=15 完全遮挡光。
+    return state.get(LAYERS()) == 8 ? game::MAX_LIGHT_LEVEL : 0;
 }
 
 bool SnowBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
@@ -153,8 +162,6 @@ bool SnowBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
     }
 
     // 5. 检查下方方块的碰撞形状上面是否完全覆盖
-    //    参考: net.minecraft.block.SnowLayerBlock#canSurvive
-    //    MC 使用 Block.isFaceFull(collisionShape, Direction.UP)
     return Block::isFaceFull(belowState->getCollisionShape(), Direction::Up);
 }
 

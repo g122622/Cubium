@@ -47,7 +47,7 @@
 //   无弯折行为可测。
 //
 // 跨服务端：rail 方块名两端一致，shape state 名两端一致（C++ 内部名，基岩对外 rail_direction 经
-//   TemplateLoader 映射，脚本侧 getState 用 C++ 名 "shape"），L 形弯折行为与 vanilla 一致（恰好
+//   TemplateLoader 映射，脚本侧 getState 用 C++ 名 "shape"），L 形弯折行为两端一致（恰好
 //   两相邻方向呈 90° → 弯轨）。两端均可放 rail 默认 state，弯折行为两端可对比，非 one-sided。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_铁轨.txt#普通铁轨（弯轨道岔，L 形连接弯折）

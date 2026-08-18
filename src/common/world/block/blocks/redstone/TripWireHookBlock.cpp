@@ -30,6 +30,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../redstone/RedstoneSystem.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
@@ -82,6 +83,19 @@ TripWireHookBlock::TripWireHookBlock(const BlockProperties& properties)
             .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
             .with(BlockStateProperties::POWERED(), false)
             .with(BlockStateProperties::ATTACHED(), false));
+}
+
+BlockState TripWireHookBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向 = 玩家点击的墙面（水平四向）。绊线钩只能附在墙面（无 Floor/Ceiling 概念），朝向直接等于
+    // 点击的水平面。若点击面非水平（Up/Down，理论上不会发生因 isValidPosition 限制墙面附着），回退
+    // 到玩家水平朝向。注意 HORIZONTAL_FACING 是水平四向枚举，不可写入 Up/Down（会越界），须先水平化
+    // 收窄。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒
+    // North），与预期按点击墙面决定朝向的行为不一致。重写后修正。
+    Direction clickedFace = context.getClickedFace();
+    Direction facing = Directions::isHorizontal(clickedFace) ? clickedFace : context.horizontalDirection();
+    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
 bool TripWireHookBlock::isPowered(const BlockState& state)

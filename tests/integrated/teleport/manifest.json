@@ -1,0 +1,42 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "Cross-dimension teleport GameTests: nether portal, end portal, script teleport, dimension id.",
+    "name": "Cubium Teleport GameTests",
+    "uuid": "a1c1c000-0006-4a75-91b7-4cdf0a05c011",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "description": "Teleport test logic and provisioning.",
+      "type": "script",
+      "language": "javascript",
+      "uuid": "a1c1c001-0006-4a75-91b7-4cdf0a05c012",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "entry": "scripts/main.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.0.0"
+    },
+    {
+      "module_name": "@minecraft/server-gametest",
+      "version": "1.0.0-beta"
+    }
+  ]
+}

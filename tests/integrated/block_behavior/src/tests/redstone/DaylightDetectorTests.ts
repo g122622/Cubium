@@ -5,7 +5,7 @@
 //   夜间输出强信号（信号反转）。右键不消耗手持物，仅翻转 INVERTED 并重算 power。
 //
 // C++ 链路：DaylightDetectorBlock（redstone/DaylightDetectorBlock.cpp）有 POWER_0_15 + INVERTED state。
-//   - onBlockActivated（已补全，对齐 vanilla DaylightDetectorBlock.use）：调 toggleMode 翻转 INVERTED
+//   - onBlockActivated（已补全）：调 toggleMode 翻转 INVERTED
 //     并重算 power + _notifyNeighbors → return Success。不检查手持物（空手右键即可）。
 //   - toggleMode（:92-105）：newInverted=!isInverted → withInverted + _calculateSignalStrength 重算 power
 //     → setBlockState 写回 + _notifyNeighbors。
@@ -33,13 +33,13 @@
 //   无头环境时间/光照非确定，跳过。TODO: 待时间/光照可控后补反相模式 power 反转测试。
 // 不测「比较器/红石线输出」：涉红石传导链路，跳过。
 //
-// 跨服务端：日光探测器 daylight_detector 方块名两端一致，inverted state 行为与 vanilla 一致。
+// 跨服务端：日光探测器 daylight_detector 方块名两端一致，inverted state 行为两端一致。
 //   基岩无 setBlockWithStates，本测试用 setBlockType 放默认 state（inverted=false），两端均可放；
 //   右键切换 inverted 行为两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_阳光探测器.txt#用途（右键切换昼夜模式/反相）
 // Ref: DaylightDetectorBlock.cpp（onBlockActivated toggleMode→Success；toggleMode 翻转 INVERTED+重算 power）
-// Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
+// Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";

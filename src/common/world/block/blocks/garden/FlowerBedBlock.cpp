@@ -95,7 +95,6 @@ BlockState FlowerBedBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool FlowerBedBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
-    // 参考 MC Java: SegmentableBlock.canBeReplaced
     // 条件1：玩家未潜行
     Player* player = context.getPlayer();
     if (player != nullptr && player->isSneaking()) {

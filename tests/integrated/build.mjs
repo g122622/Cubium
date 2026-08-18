@@ -21,7 +21,7 @@ const tscBin = path.join(integratedRoot, "node_modules", "typescript", "bin", "t
 const nodeModulesDir = path.join(integratedRoot, "node_modules");
 
 // 行为包目录名（每个目录是一个独立行为包，含 manifest.json + src/ + tsconfig.json）
-const PACKS = ["challenge", "command", "mob_behavior", "block_behavior", "lighting", "starter"];
+const PACKS = ["challenge", "command", "mob_behavior", "block_behavior", "lighting", "starter", "teleport"];
 
 const isClean = process.argv.includes("--clean");
 

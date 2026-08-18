@@ -1165,6 +1165,24 @@ public:
     virtual bool onPortalTriggered();
 
     /**
+     * @brief 跨维度传送（基类默认实现返回 false，不传送）。
+     *
+     * ServerPlayer override 调真实 changeDimension 实现。common 层方块（如 EndPortalBlock）
+     * 经此虚派发触发跨维度传送，无需 common->server 头文件依赖。
+     *
+     * @param targetDim 目标维度 ID
+     * @return true 如果传送成功；基类默认 false（非玩家实体当前不支持跨维度）
+     *
+     * @todo 非玩家实体的跨维度传送（vanilla 末地门对矿车/掉落物等也传送）暂未实现，
+     *       基类返回 false。后续如需支持，应在 ServerWorld 层实现通用实体迁移。
+     */
+    virtual bool changeDimension(DimensionId targetDim)
+    {
+        (void)targetDim;
+        return false;
+    }
+
+    /**
      * @brief 设置实体所在的传送门方块位置
      *
      * 当实体进入传送门方块时调用。

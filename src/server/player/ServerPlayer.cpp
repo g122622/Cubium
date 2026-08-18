@@ -795,18 +795,51 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
         targetPos.z);
 
     // 通过 ServerDimensionManager 执行实际的维度切换
-    PlayerId playerId = static_cast<PlayerId>(id());
-    bool success = m_server->dimensionManager().transferPlayerToDimension(playerId, targetDim, targetPos);
+    // 缺陷C修复：用 playerId()（Player.hpp:146，返回 m_playerId；SimulatedPlayer 占位 0）
+    // 而非 id()（EntityInstanceId，由 EntityManager 分配，值很大）。transferPlayerToDimension
+    // 内 getPlayerDimension/playerLeaveDimension 按 PlayerId 索引，用 id() 会查不到致链路空转。
+    bool success = m_server->dimensionManager().transferPlayerToDimension(playerId(), targetDim, targetPos);
 
     if (success) {
+        // 迁移前 m_world 仍指向源世界（transferPlayerToDimension 不改 m_world）
+        mc::server::ServerWorld* sourceWorld = m_world;
+
         // 更新实体的维度属性
         setDimension(targetDim);
         setPosition(static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z));
 
         // 更新 m_world 指针到目标维度的 ServerWorld
         ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
-        if (targetDimension != nullptr) {
-            setWorld(targetDimension->world());
+        mc::server::ServerWorld* targetWorld = (targetDimension != nullptr) ? targetDimension->world() : nullptr;
+        if (targetWorld != nullptr) {
+            setWorld(targetWorld);
+        }
+
+        // 缺陷B修复：迁移 EntityManager 归属。否则实体 m_world 指向目标世界但对象仍留源
+        // ServerWorld.EntityManager，源世界 tick 仍 tick 它并读目标世界方块 -> 数据不一致。
+        //
+        // unique_ptr move 不移动 Entity 对象（仅转移所有权），故 JS 侧 / 其他裸指针持有者仍有效。
+        // 顺序：先 setDimension/setPosition/setWorld 再迁移，使迁移期间实体字段已是目标维度语义。
+        // 迁移在 changeDimension 调用栈内同步完成（无 tick 中途让出），迁移后源世界不再 tick 该实体。
+        // PortalTickSystem 遍历 ECS EntityRegistry 组件 view（非 ServerWorld.EntityManager），
+        // doBlockCollisions 遍历方块坐标三层 for（非 EntityManager 迭代器），故迁移不会失效迭代器。
+        if (sourceWorld != nullptr && targetWorld != nullptr && sourceWorld != targetWorld) {
+            EntityInstanceId entityId = id();
+            auto entityPtr = sourceWorld->removeEntity(entityId);
+            if (entityPtr != nullptr) {
+                // spawnEntity 内部再次 setWorld(this)，幂等；返回新 EntityInstanceId
+                // （EntityManager 各自分配，可能与旧 ID 不同，但 SimulatedPlayer 的 PlayerId=0
+                // 不依赖 EntityInstanceId，JS 侧持裸 Entity* 也不依赖 ID）。
+                [[maybe_unused]] EntityInstanceId newId = targetWorld->spawnEntity(std::move(entityPtr));
+            } else {
+                // removeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
+                // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
+                // 更严重的不一致。
+                spdlog::warn("ServerPlayer::changeDimension: removeEntity returned null for entity {} "
+                             "during dimension migration (player={})",
+                    entityId,
+                    username());
+            }
         }
     }
 

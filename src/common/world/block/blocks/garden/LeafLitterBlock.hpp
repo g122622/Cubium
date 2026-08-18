@@ -53,6 +53,11 @@ namespace blocks {
  * - 右键已有枯叶：SEGMENT_AMOUNT+1（最多4），保持 FACING
  * - 潜行右键：正常放置新方块而非堆叠
  *
+ * ## 支撑判定
+ * - 可放置在任意顶面支撑形状完整（isFaceSturdy(Up, Full)）的方块上表面，
+ *   包括草方块、泥土、石头、沙子、陶瓦、玻璃等顶面完整的方块。
+ * - 重写 canSustain 用 isFaceSturdy(Up, Full) 判定，不沿用 BushBlock 的 DIRT 标签判定。
+ *
  * ## 形状
  * - 每个枯叶段为 8x1x8 像素的盒子（高度 1/16）
  * - 1 段：朝 FACING 方向
@@ -61,8 +66,6 @@ namespace blocks {
  * - 4 段：四段，填满整个方块
  *
  * MC ID: minecraft:leaf_litter
- *
- * 参考: net.minecraft.world.level.block.LeafLitterBlock
  */
 class LeafLitterBlock : public BushBlock {
 public:
@@ -105,6 +108,16 @@ public:
      * 当玩家未潜行、手持同类型物品且 SEGMENT_AMOUNT < 4 时返回 true。
      */
     [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
+
+    /**
+     * @brief 检查下方方块能否支撑枯叶
+     *
+     * 重写 BushBlock::canSustain：用下方方块顶面是否支撑形状完整（isFaceSturdy(Up, Full)）
+     * 判定，而非 BushBlock 默认的 DIRT 标签判定。这样枯叶可放置在任意顶面完整的方块上
+     * （草方块/泥土/石头/沙子/陶瓦/玻璃等），与原版行为一致。
+     */
+    [[nodiscard]] bool canSustain(
+        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 
     // ========== 旋转/镜像 ==========
 

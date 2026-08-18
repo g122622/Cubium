@@ -61,6 +61,7 @@
 #include "world/block/blocks/nether/NetherWartBlock.hpp"
 #include "world/block/blocks/nether/NyliumBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
+#include "world/block/blocks/nether/SoulSandBlock.hpp"
 #include "world/block/blocks/nether/TwistingVinesBlock.hpp"
 #include "world/block/blocks/nether/WeepingVinesBlock.hpp"
 
@@ -189,7 +190,8 @@ void registerNetherBlocks()
     // 灵魂沙
     // speedFactor=0.4: 实体走在上面会被减速（Block.speedFactor）
     // 配合 MOVEMENT_EFFICIENCY 属性，灵魂疾行附魔可以将减速效果抵消
-    NetherBlocks::SOUL_SAND = &registry.registerBlock<SimpleBlock>(
+    // SoulSandBlock: 上方有水源时生成涌流气泡柱（DRAG=false，向上推动），与岩浆块的涡流相反。
+    NetherBlocks::SOUL_SAND = &registry.registerBlock<blocks::SoulSandBlock>(
         ResourceLocation("minecraft:soul_sand"), BlockProperties(Material::SAND).hardness(0.5f).speedFactor(0.4f));
 
     // 灵魂土

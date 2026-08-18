@@ -22,13 +22,16 @@
 
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 
-#include "common/item/core/ItemStack.hpp"                           // giveItem/setItem 按值拷贝需完整类型
+#include "common/entity/core/Entity.hpp"  // Entity::attemptTeleport/changeDimension/dimension（teleport/tryTeleport）
+#include "common/item/core/ItemStack.hpp" // giveItem/setItem 按值拷贝需完整类型
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
-#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
 #include "common/test/base/error/GameTestErrorType.hpp"             // GameTestErrorType::MethodNotImplemented
 #include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
 #include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
+#include "common/world/IWorld.hpp"      // IWorld::dimension()（options.dimension 跨维度判定）
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（stub 用）
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
@@ -130,6 +133,74 @@ mc::Vector3 _parseFaceLocation(mc::mod::bedrock::addon::IScriptBindingContext& c
     return mc::Vector3(x.value_or(0.5f), y.value_or(0.5f), z.value_or(0.5f));
 }
 
+// teleport/tryTeleport 共享实现。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型），
+// 故需在此重复绑定 teleport/tryTeleport（对齐 @minecraft/server Entity.teleport/tryTeleport）。
+// 逻辑与 MinecraftModuleFactory.cpp 的 Entity.teleport/tryTeleport 回调一致：
+//   - 解析 location {x,y,z}（必需）
+//   - 解析 options.dimension（可选）：若指定且与实体当前维度不同则跨维度走 changeDimension（虚派发，
+//     ServerPlayer override 调真实实现），否则同维度走 attemptTeleport（带碰撞检测）
+//   - returnBoolean=false（teleport）返回 undefined；true（tryTeleport）返回 boolean
+// 注：跨维度时 location 被忽略（changeDimension 不接受位置，由 Teleporter 算）。
+void* _applyTeleport(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, mc::Entity* ent, i32 argc, void** args, bool returnBoolean)
+{
+    if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
+        return returnBoolean ? ctx.createBoolean(false) : ctx.createUndefined();
+    }
+    void* locObj = args[0];
+    auto xOpt = ctx.getPropertyFloat(locObj, "x");
+    auto yOpt = ctx.getPropertyFloat(locObj, "y");
+    auto zOpt = ctx.getPropertyFloat(locObj, "z");
+    if (!xOpt || !yOpt || !zOpt) {
+        if (returnBoolean) {
+            return ctx.createBoolean(false);
+        }
+        return ctx.throwTypeError("teleport location requires {x,y,z}");
+    }
+    f64 x = *xOpt, y = *yOpt, z = *zOpt;
+
+    // 解析 options.dimension（可选）：若指定且与当前维度不同则跨维度传送。
+    // 解析 options.checkForBlocks（可选）：returnBoolean=false（teleport）默认 false 强制传送；
+    // returnBoolean=true（tryTeleport）默认 true 检查碰撞。对齐基岩 TeleportOptions.checkForBlocks
+    // 与 Entity.teleport/tryTeleport 默认语义（见 MinecraftModuleFactory.cpp Entity 绑定注释）。
+    mc::DimensionId targetDim = ent->dimension();
+    bool crossDim = false;
+    bool checkForBlocks = returnBoolean; // teleport 默认 false，tryTeleport 默认 true
+    if (argc >= 2 && ctx.isObject(args[1])) {
+        void* opts = args[1];
+        void* dimVal = ctx.getProperty(opts, "dimension");
+        if (dimVal != nullptr && ctx.isObject(dimVal)) {
+            // Dimension JS 对象 opaque 持 IWorld*，unwrap 后读 IWorld::dimension()
+            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
+            auto* dimWorld = static_cast<mc::IWorld*>(
+                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, dimVal, dimClassId));
+            if (dimWorld != nullptr) {
+                targetDim = dimWorld->dimension();
+                crossDim = (targetDim != ent->dimension());
+            }
+        }
+        ctx.releaseValue(dimVal);
+        auto checkOpt = ctx.getPropertyBool(opts, "checkForBlocks");
+        if (checkOpt.has_value()) {
+            checkForBlocks = *checkOpt;
+        }
+    }
+
+    if (crossDim) {
+        // 跨维度：经虚派发 changeDimension（ServerPlayer override 调真实实现）。
+        bool ok = ent->changeDimension(targetDim);
+        return returnBoolean ? ctx.createBoolean(ok) : ctx.createUndefined();
+    }
+    if (checkForBlocks) {
+        // 同维度 + 检查碰撞：attemptTeleport（findSafeTeleportPosition + 碰撞检测）。
+        bool ok = ent->attemptTeleport(x, y, z, false);
+        return returnBoolean ? ctx.createBoolean(ok) : ctx.createUndefined();
+    }
+    // 同维度 + 强制传送：直接 setPosition，跳过碰撞检测（对齐基岩 checkForBlocks=false）。
+    ent->setPosition(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    return returnBoolean ? ctx.createBoolean(true) : ctx.createUndefined();
+}
+
 } // namespace
 
 u64 registerSimulatedPlayerClassBinding(
@@ -150,6 +221,34 @@ u64 registerSimulatedPlayerClassBinding(
         // Player::username() 返构造时传入的名字（存 m_username）。
         return ctx.createString(player->username());
     });
+
+    // --- teleport(location: Vector3, teleportOptions?: TeleportOptions): void ---
+    // 对齐基岩 Entity.teleport。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型），
+    // 故需在此绑定（逻辑见 _applyTeleport，与 Entity.teleport 一致）。跨维度走 changeDimension
+    // （虚派发，ServerPlayer override 调真实实现），同维度走 attemptTeleport。
+    reg.method(
+        "teleport",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return _applyTeleport(ctx, player, argc, args, /*returnBoolean=*/false);
+        },
+        2);
+
+    // --- tryTeleport(location: Vector3, teleportOptions?: TeleportOptions): boolean ---
+    // 对齐基岩 Entity.tryTeleport，返回是否传送成功。逻辑见 _applyTeleport。
+    reg.method(
+        "tryTeleport",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return _applyTeleport(ctx, player, argc, args, /*returnBoolean=*/true);
+        },
+        2);
 
     // --- headRotation (readonly property, Vector2 {x=pitch, y=yaw}) ---
     // 对齐基岩 headRotation: Vector2（x=pitch 俯仰, y=yaw 偏航）。用 Entity::pitch() + 头部 yaw。

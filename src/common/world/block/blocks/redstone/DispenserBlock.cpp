@@ -38,6 +38,7 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
@@ -78,6 +79,18 @@ DispenserBlock::DispenserBlock(const BlockProperties& properties)
     setDefaultState(defaultState()
             .with(BlockStateProperties::FACING(), Direction::North)
             .with(BlockStateProperties::TRIGGERED(), false));
+}
+
+BlockState DispenserBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 朝向玩家视线最近方向的反方向（发射口朝向玩家）。与 MC 1.21.11 DispenserBlock.getStateForPlacement
+    // 对齐：facing = getNearestLookingDirection().getOpposite()。
+    // getNearestLookingDirection = orderedByNearest(yaw, pitch)[0]，六向含 Up/Down（由俯仰决定）。
+    // 此前未重写该方法，落回基类 Block::getStateForPlacement 返回 defaultState()（FACING 恒 North），
+    // 与 vanilla 严重分歧（vanilla 由玩家视线决定）。修复后与 vanilla 严格对齐。
+    // 投掷器 DropperBlock 继承本方法自动获得正确朝向（vanilla DropperBlock 不重写该方法）。
+    Direction facing = Directions::opposite(context.getNearestLookingDirection());
+    return defaultState().with(BlockStateProperties::FACING(), facing);
 }
 
 bool DispenserBlock::isTriggered(const BlockState& state)
