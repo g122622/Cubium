@@ -28,6 +28,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD/THE_END 常量
 
 namespace mc {
 namespace blocks {
@@ -42,8 +43,10 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
 void EndPortalBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 末地传送门是立即传送的，不需要等待时间
-    // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)
+    // 末地传送门是立即传送的，不需要等待时间（vanilla Java EndPortalBlock 无 80tick 等待，
+    // 与下界传送门经 PortalTickSystem 计时不同）。
+    // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)（由 changeDimension 内
+    // Teleporter::getEndSpawnPosition 处理）；末地→主世界走 transformPosition（1:1 坐标）。
 
     MC_UNUSED(state);
     MC_UNUSED(world);
@@ -57,18 +60,17 @@ void EndPortalBlock::onEntityCollision(
     // 设置传送冷却，防止重复传送
     entity.setPortalCooldown(300); // 15秒冷却
 
-    // 确定目标维度
-    // 主世界 -> 末地: 传送到固定出生点 (100, 49, 0)
-    // 末地 -> 主世界: 返回重生点或床
-    DimensionId targetDim = (entity.dimension() == 1) ? DimensionId(0) : DimensionId(1);
+    // 确定目标维度：末地 → 主世界，其他（主世界）→ 末地。
+    DimensionId targetDim =
+        (entity.dimension() == DimensionManager::THE_END) ? DimensionManager::OVERWORLD : DimensionManager::THE_END;
 
-    // 设置实体的目标维度标志
-    // 实际传送由 ServerDimensionManager 处理
-    // 这里只设置传送请求标志
-    entity.setDimension(targetDim);
-
-    // 注意：实际的维度切换逻辑由服务端的 ServerDimensionManager 处理
-    // 客户端只需要处理动画效果
+    // 经虚派发触发真实传送：
+    // - ServerPlayer（含 SimulatedPlayer）override 调真实 changeDimension，内部按目标维度
+    //   处理末地固定出生点 (100,49,0)+黑曜石平台、末地→主世界用 transformPosition。
+    // - 非玩家实体基类返回 false（当前不支持，留 TODO）。
+    // 触发后立即 return：changeDimension 内会迁移 EntityManager 并改 m_world，
+    // 本回调返回后 doBlockCollisions 三层 for 循环不再读已变更的 m_world（本格已处理完）。
+    entity.changeDimension(targetDim);
 }
 
 const CollisionShape& EndPortalBlock::getShape(const BlockState& state) const

@@ -198,6 +198,19 @@ void ServerScriptManager::setServer(MinecraftServer* server)
     // 桥接system.currentTick到服务器tick计数
     accessor.setCurrentTickCallback([server]() -> u64 { return server->currentTick(); });
 
+    // 桥接world.getDimension到ServerDimensionManager（按维度名解析->ServerDimension->world()）。
+    // 读入归一化：基岩 API 用 "minecraft:nether"，内部注册表（DimensionType.cpp:79）注册的是
+    // "minecraft:the_nether"，须在回调内做名称归一化。Dimension.id 输出侧用基岩名（对称）。
+    accessor.setGetDimensionCallback([server](const std::string& dimensionId) -> mc::IWorld* {
+        std::string normalized = dimensionId;
+        if (normalized == "minecraft:nether") {
+            normalized = "minecraft:the_nether";
+        }
+        const mc::DimensionId dimId = server->dimensionManager().getDimensionIdByName(normalized);
+        auto* dim = server->dimensionManager().getDimension(dimId);
+        return dim != nullptr ? dim->world() : nullptr; // ServerWorld* -> IWorld*
+    });
+
     spdlog::info("[Server] ScriptWorldAccessor bridged to MinecraftServer");
 }
 

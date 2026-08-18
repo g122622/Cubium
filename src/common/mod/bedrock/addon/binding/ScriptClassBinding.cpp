@@ -23,7 +23,11 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     const char* typeName,
     void (*destroy)(void*))
 {
-    if (!ptr) {
+    // owned=true 时 nullptr 无意义（JS 将 GC delete nullptr，且语义上 owned 对象必须有实体），
+    // 返回 null 表示无对象。owned=false 时 ptr 可为 nullptr：用于无实体指针的全局单例对象
+    // （如 world/system，方法回调 MC_UNUSED thisVal 不解引用 ptr），此时仍创建有效 JS 对象，
+    // opaque 存 ObjectData{ptr=nullptr}，避免全局对象被导出为 JS null（world.getDimension 等失效）。
+    if (!ptr && owned) {
         return ctx.createNull();
     }
 

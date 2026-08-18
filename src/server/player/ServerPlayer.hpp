@@ -546,7 +546,7 @@ public:
      * @param targetDim 目标维度ID
      * @return true 如果传送成功
      */
-    [[nodiscard]] bool changeDimension(DimensionId targetDim);
+    [[nodiscard]] bool changeDimension(DimensionId targetDim) override;
 
     // ========== 反飞行阈值校验（跨 tick 状态） ==========
     // 对齐 Java ServerGamePacketListenerImpl.handleMovePlayer 的 moved-too-quickly /

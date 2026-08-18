@@ -16,6 +16,9 @@
 #include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
 #include "common/world/block/Block.hpp"                // Block::getBlock（onBlockActivated fallback）
 #include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
+#include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
+#include "server/application/IServer.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
+#include "server/dimension/ServerDimensionManager.hpp" // ServerDimensionManager::playerJoinDimension
 #include "server/world/ServerWorld.hpp"
 
 #include <cmath>
@@ -58,6 +61,14 @@ SimulatedPlayer* SimulatedPlayer::spawn(
     }
     // 注：真实 EntityInstanceId 由 EntityManager 在 spawnEntity 内重分配（构造传 0 仅占位），
     //     raw 指针仍有效（EntityManager 持有该对象）。
+
+    // 缺陷D修复：注册到 dimensionManager 的 m_playerDimensions。
+    // SimulatedPlayer spawn 于 helper 绑定的主世界（overworld），须显式 playerJoinDimension，
+    // 否则 changeDimension→transferPlayerToDimension 内 playerLeaveDimension 查不到
+    // （getPlayerDimension 返回 -1），_unloadPlayerChunks/_loadPlayerChunks 链路异常。
+    // PlayerId=0 是 SimulatedPlayer 占位（不经 PlayerManager 分配，真实玩家 PlayerId 从 1 起，不冲突）。
+    // _loadPlayerChunks/_unloadPlayerChunks 对 PlayerManager 中不存在的 PlayerId 安全 no-op（双重保护）。
+    world.server()->dimensionManager().playerJoinDimension(raw->playerId(), mc::DimensionManager::OVERWORLD);
     return raw;
 }
 

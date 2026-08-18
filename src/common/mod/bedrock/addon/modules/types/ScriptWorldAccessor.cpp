@@ -63,6 +63,14 @@ u64 ScriptWorldAccessor::currentTick() const
     return 0;
 }
 
+mc::IWorld* ScriptWorldAccessor::getDimension(const std::string& dimensionId)
+{
+    if (m_getDimensionCallback) {
+        return m_getDimensionCallback(dimensionId);
+    }
+    return nullptr;
+}
+
 void ScriptWorldAccessor::setMessageCallback(std::function<void(const std::string&)> callback)
 {
     m_messageCallback = std::move(callback);
@@ -76,6 +84,11 @@ void ScriptWorldAccessor::setGetPlayerNamesCallback(std::function<std::vector<st
 void ScriptWorldAccessor::setCurrentTickCallback(std::function<u64()> callback)
 {
     m_currentTickCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetDimensionCallback(std::function<mc::IWorld*(const std::string&)> callback)
+{
+    m_getDimensionCallback = std::move(callback);
 }
 
 } // namespace mc::mod::bedrock::addon
