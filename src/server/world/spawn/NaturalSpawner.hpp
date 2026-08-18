@@ -254,6 +254,49 @@ public:
      */
     void tick(mc::server::ServerWorld& world, bool hostile, bool passive);
 
+    /**
+     * @brief 对单个精确坐标执行一次自然生成判定（对齐 vanilla @VisibleForDebug 单点入口）。
+     *
+     * 对齐 Java 1.21.11 `NaturalSpawner.spawnCategoryForPosition(MobCategory, ServerLevel, BlockPos)`
+     * （NaturalSpawner.java:145-150，vanilla `/debugmobspawning` 命令背后的调试入口）。
+     *
+     * 与 `tick` 的随机区块选址 + 区块内随机位选址不同：本方法直接用传入坐标作为种子位，
+     * 绕过 `_collectSpawnableChunks`/`getRandomPosWithin` 的随机选址——使 GameTest 能对
+     * 精确坐标做一次完整条件检查 + 生成，消除小结构 footprint 命中率极低的随机性。
+     *
+     * 语义对齐 vanilla 3 参版（恒真 SpawnPredicate、空 AfterSpawnCallback）：
+     *   - 仍做外层 3 轮 ±5 抖动（vanilla 行 177 `rand(6)-rand(6)`）、最近玩家查找、
+     *     距离门控（>24 格）、随机选 SpawnEntry、放置规则/光照/碰撞检查、finalizeSpawn。
+     *   - **不检查全局 cap / 本地 cap / SpawnCosts**（vanilla 3 参版不更新 SpawnState，
+     *     可反复刷；对齐 vanilla `/debugmobspawning` 语义）。故本方法只适合测试"条件判定"，
+     *     不适合测试"cap 节流"行为（后者需走真实 tick）。
+     *   - 抖动后 y 用传入坐标的 y（对齐 vanilla 行 177 用原始 i），不重算 heightmap——
+     *     传入坐标须已是合法生成位（air 位，由调用方确保）。
+     *
+     * 前置条件（任一不满足则本方法不生成，返回 0）：
+     *   - 世界中存在玩家（最近玩家非空，距离门控基准）；
+     *   - 种子位 ±5 抖动后距最近玩家 >24 格且 <=128 格（MONSTER/CREATURE）；
+     *   - 抖动位 BlockState 非实心（可生成位）；
+     *   - biome SpawnEntry 池非空且抽中条目；
+     *   - 通过 `_canSpawnAt`（放置类型 + 光照门槛）；
+     *   - 无方块碰撞。
+     *
+     * @param world 世界
+     * @param classification 实体分类（Monster/Creature/Ambient/...）
+     * @param pos 种子位（须为合法 air 生成位）
+     * @param biomeOverride 非 0 时强制用该 biome 取 SpawnEntry（绕过世界真实 biome 查询），
+     *     0 表示用 pos 所在 chunk 的真实 biome（对齐 vanilla）。测试专用：GameTest 结构固定放
+     *     世界原点，原点 biome 由世界种子决定不可控（默认 seed=0 原点是 ColdOcean，无陆地动物
+     *     SpawnEntry），注入 biome 让测试能稳定验证"plains 能生成动物"等条件判定，不受世界种子
+     *     biome 分布制约。仅覆盖"biome→SpawnEntry 选择"一步，光照/距离/放置/finalizeSpawn 仍走
+     *     真实世界路径，故不破坏条件判定语义。生产 tick 路径不传此参（用真实 biome）。
+     * @return 实际生成的实体数量（0 表示本次未生成）
+     */
+    static i32 spawnCategoryForPosition(mc::server::ServerWorld& world,
+        entity::EntityClassification classification,
+        const Vector3i& pos,
+        BiomeId biomeOverride = 0);
+
     // ========== 生成配置 ==========
 
     /**
@@ -329,37 +372,45 @@ private:
     /**
      * @brief 在指定位置尝试生成实体
      * @return 生成的实体数量
+     *
+     * static：本方法不依赖任何实例状态（world/entry/random 均由参数传入），改为 static 以便
+     * `spawnCategoryForPosition` 单点入口（static）复用，同时是无状态方法的正确归类。
      */
-    i32 _trySpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
+    static i32 _trySpawnAt(
+        mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
 
     /**
      * @brief 随机选择生成条目
      */
-    [[nodiscard]] const SpawnEntry* _selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const;
+    [[nodiscard]] static const SpawnEntry* _selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random);
 
     /**
      * @brief 检查位置是否可以生成
      */
-    [[nodiscard]] bool _canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const;
+    [[nodiscard]] static bool _canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry);
 
     /**
      * @brief 检查光照条件
      */
-    [[nodiscard]] bool _checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const;
+    [[nodiscard]] static bool _checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster);
 
     /**
      * @brief 获取生成高度
      */
-    [[nodiscard]] i32 _getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const;
+    [[nodiscard]] static i32 _getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType);
 
     /**
      * @brief 选择指定分类的生成条目
+     *
+     * @param biomeOverride 非 0 时强制用该 biome 取 SpawnEntry（绕过 chunk 真实 biome 查询），
+     *     0 表示用 pos 所在 chunk 的真实 biome。测试专用（见 spawnCategoryForPosition 注释）。
      */
-    [[nodiscard]] const SpawnEntry* _getRandomSpawnEntry(mc::server::ServerWorld& world,
+    [[nodiscard]] static const SpawnEntry* _getRandomSpawnEntry(mc::server::ServerWorld& world,
         const ChunkData* chunk,
         entity::EntityClassification classification,
         const Vector3i& pos,
-        math::Random& random) const;
+        math::Random& random,
+        BiomeId biomeOverride = 0);
 
     /**
      * @brief 创建实体密度管理器

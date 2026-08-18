@@ -211,6 +211,12 @@ public:
 
     // ========== 属性 ==========
 
+    // 亡灵生物归类（对齐 Java Zombie.getMobType()==UNDEAD）。基类 LivingEntity::getCreatureAttribute
+    // 默认 Undefined，未覆写会导致：canBreatheUnderwater()=false 在水中溺水死亡（远早于 600tick 溺水
+    // 转化阈值）、亡灵杀手(Smite)附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤。
+    // 子类 HuskEntity/DrownedEntity/ZombieVillagerEntity 继承此覆写自动归类 Undead。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
     /**
      * @brief 获取眼睛高度
      */

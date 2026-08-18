@@ -61,6 +61,46 @@ void _clearBox(mc::server::ServerWorld& world, const StructureBoundingBox& box, 
     }
 }
 
+/// loadSpawnChunks 强制加载的区块半径（结构 footprint 中心周围）。
+///
+/// 不用 NaturalSpawner::SPAWN_DISTANCE_CHUNK=8（满载 289 区块）——289 区块同步 worldgen +
+/// post-process 积压致主 tick 严重滞后（backlog>256），测试超时无法完成。改用半径 3（7×7=49 区块）：
+///   - Monster cap = 70 * 49 / 289 = 11 > 0（怪物可生成）
+///   - Creature cap = 10 * 49 / 289 = 1 > 0（动物可生成，每 400 tick 节流 1 个名额）
+/// 49 区块 worldgen post-process backlog（~49）低于阈值 256，主 tick 不卡。
+/// 副作用：结构外 49 区块 worldgen 出真实地形，NaturalSpawner 在结构外列（heightmap 落 worldgen
+/// 地表 y≈62）也会选位——但结构 footprint 仅 3 区块，命中结构内 air 腔概率 3/49≈6%，需宽 maxTick
+/// 轮询。结构外生成位多在露天白天地表（brightness=15 怪物拒）或夜晚地表（怪物生成残留），
+/// 故 NaturalSpawner 测试须独立 batch（避免污染）+ 区域限定计数（只数结构内）。
+constexpr i32 LOAD_SPAWN_CHUNK_RADIUS = 3;
+
+/**
+ * @brief 强制加载以 (centerCx, centerCz) 为中心、半径 LOAD_SPAWN_CHUNK_RADIUS 的所有区块。
+ *
+ * GameTestServer 的 `SimulatedPlayer` 缺真实玩家区块加载链路（`_loadPlayerChunks` 对 PlayerId=0
+ * 是 no-op），NaturalSpawner._collectSpawnableChunks 仅数到结构 footprint 区块（3 个），
+ * cap=maxInstances*3/289=0 致 activeCategories.empty() 早退。本函数 force 结构中心周围区块
+ * 使 spawnableChunkCount 达 49，cap>0。
+ * 顺序同结构 footprint force：先 forceChunk ticket + processUpdates，再 requestFullChunkSync
+ * 同步 worldgen；已生成区块命中 `tryToGetChunkInMem` 短路，不重复 worldgen。
+ */
+void _forceSpawnChunks(mc::server::ServerChunkManager& chunkManager, mc::ChunkCoord centerCx, mc::ChunkCoord centerCz)
+{
+    auto& ticketManager = chunkManager.ticketManager();
+    for (i32 dx = -LOAD_SPAWN_CHUNK_RADIUS; dx <= LOAD_SPAWN_CHUNK_RADIUS; ++dx) {
+        for (i32 dz = -LOAD_SPAWN_CHUNK_RADIUS; dz <= LOAD_SPAWN_CHUNK_RADIUS; ++dz) {
+            ticketManager.forceChunk(centerCx + dx, centerCz + dz, true);
+        }
+    }
+    ticketManager.processUpdates();
+    for (i32 dx = -LOAD_SPAWN_CHUNK_RADIUS; dx <= LOAD_SPAWN_CHUNK_RADIUS; ++dx) {
+        for (i32 dz = -LOAD_SPAWN_CHUNK_RADIUS; dz <= LOAD_SPAWN_CHUNK_RADIUS; ++dz) {
+            // requestFullChunkSync 阻塞等待生成完成；返回值仅用于触发加载，不持有。
+            (void)chunkManager.requestFullChunkSync(centerCx + dx, centerCz + dz);
+        }
+    }
+}
+
 } // namespace
 
 std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
@@ -118,6 +158,18 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
                 // requestFullChunkSync 阻塞等待生成完成；返回值仅用于触发加载，不持有。
                 (void)chunkManager->requestFullChunkSync(cx, cz);
             }
+        }
+
+        // loadSpawnChunks：额外 force 结构 footprint 中心周围 SPAWN_DISTANCE_CHUNK(8) 区块。
+        // GameTestServer 无头门面无玩家区块加载链路，NaturalSpawner._collectSpawnableChunks
+        // 仅数到结构 footprint 区块（3 个），cap=maxInstances*3/289=0 致 activeCategories.empty()
+        // 早退。开启此标志以结构中心区块为圆心 force 8 区块半径（满载 289），对齐原版
+        // DistanceManager.getNaturalSpawnChunkCount。玩家站结构内，结构中心区块≈玩家所在区块，
+        // 覆盖玩家周围 8 区块。副作用见 _forceSpawnChunks 注释（结构外 worldgen + 自然生成污染）。
+        if (data.loadSpawnChunks()) {
+            const ChunkCoord centerCx = (minCx + maxCx) / 2;
+            const ChunkCoord centerCz = (minCz + maxCz) / 2;
+            _forceSpawnChunks(*chunkManager, centerCx, centerCz);
         }
     }
 

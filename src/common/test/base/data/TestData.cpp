@@ -51,6 +51,7 @@ void to_json(nlohmann::json& j, const TestData& d)
         {"sky_access", d.m_skyAccess},
         {"padding", d.m_padding},
         {"batch_name", d.m_batchName},
+        {"load_spawn_chunks", d.m_loadSpawnChunks},
     };
 }
 
@@ -72,6 +73,7 @@ void from_json(const nlohmann::json& j, TestData& d)
     if (j.contains("sky_access")) j.at("sky_access").get_to(d.m_skyAccess);
     if (j.contains("padding")) j.at("padding").get_to(d.m_padding);
     if (j.contains("batch_name")) j.at("batch_name").get_to(d.m_batchName);
+    if (j.contains("load_spawn_chunks")) j.at("load_spawn_chunks").get_to(d.m_loadSpawnChunks);
 }
 
 } // namespace mc::test

@@ -55,6 +55,11 @@ public:
     GuardianEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GuardianEntity() override = default;
 
+    // 水生生物归类（对齐 Java Guardian.getMobType()==WATER）。基类默认 Undefined，未覆写会导致
+    // 穿刺(Impaling)附魔无加成（ImpalingEnchantment 对 Water 属性额外伤害）等失效。
+    // 子类 ElderGuardianEntity 继承此覆写自动归类 Water。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Water; }
+
     // 禁止拷贝
     GuardianEntity(const GuardianEntity&) = delete;
     GuardianEntity& operator=(const GuardianEntity&) = delete;

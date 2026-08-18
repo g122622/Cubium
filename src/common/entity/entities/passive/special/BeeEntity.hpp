@@ -73,6 +73,10 @@ public:
     BeeEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~BeeEntity() override = default;
 
+    // 节肢生物归类（对齐 Java Bee.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
+    // 节肢杀手附魔无加成等失效。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+
     // 禁止拷贝
     BeeEntity(const BeeEntity&) = delete;
     BeeEntity& operator=(const BeeEntity&) = delete;

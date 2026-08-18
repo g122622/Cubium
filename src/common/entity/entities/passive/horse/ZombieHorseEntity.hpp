@@ -54,6 +54,11 @@ public:
     ZombieHorseEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZombieHorseEntity() override = default;
 
+    // 亡灵生物归类（对齐 Java ZombieHorse.getMobType()==UNDEAD）。本类已覆写 canBreatheUnderwater
+    // 直接返回 true，但未覆写 getCreatureAttribute 致亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、
+    // 凋灵玫瑰不免疫等亡灵特性失效。补覆写统一归类（canBreatheUnderwater 子类覆写优先不受影响）。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
     // 禁止拷贝
     ZombieHorseEntity(const ZombieHorseEntity&) = delete;
     ZombieHorseEntity& operator=(const ZombieHorseEntity&) = delete;

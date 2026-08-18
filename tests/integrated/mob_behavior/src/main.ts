@@ -64,6 +64,10 @@ import { registerAxolotlTests } from "./tests/passive/water/AxolotlTests.js";
 import { registerDolphinTests } from "./tests/passive/water/DolphinTests.js";
 import { registerPufferfishTests } from "./tests/passive/fish/PufferfishTests.js";
 import { registerCodTests } from "./tests/passive/fish/CodTests.js";
+import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
+import { registerDespawnTests } from "./tests/spawn/despawn/DespawnTests.js";
+import { registerNaturalSpawnTests } from "./tests/spawn/natural/NaturalSpawnTests.js";
+import { registerZombieReinforcementTests } from "./tests/spawn/reinforcement/ZombieReinforcementTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -121,3 +125,7 @@ registerAxolotlTests();
 registerDolphinTests();
 registerPufferfishTests();
 registerCodTests();
+registerMobSpawnerTests();
+registerDespawnTests();
+registerNaturalSpawnTests();
+registerZombieReinforcementTests();

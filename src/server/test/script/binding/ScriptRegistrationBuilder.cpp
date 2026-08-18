@@ -106,6 +106,18 @@ ScriptRegistrationBuilder& ScriptRegistrationBuilder::skyAccess(bool s) noexcept
     return *this;
 }
 
+ScriptRegistrationBuilder& ScriptRegistrationBuilder::loadSpawnChunks(bool s) noexcept
+{
+    // 项目独有（基岩无对应）：声明测试需强制加载结构周围 SPAWN_DISTANCE_CHUNK(8) 区块。
+    // GameTestServer 无头门面无玩家区块加载链路，NaturalSpawner._collectSpawnableChunks 仅数到
+    // 结构 footprint 区块（3 个），cap=maxInstances*3/289=0 致怪物/动物都不自然生成。开启此标志
+    // 让 MinecraftStructurePlacer force 结构中心周围 8 区块（满载 289），对齐原版
+    // DistanceManager.getNaturalSpawnChunkCount。仅 NaturalSpawner 类测试启用——副作用：结构外
+    // worldgen + 自然生成残留污染，须独立 batch + 区域限定计数隔离。详见 TestData.loadSpawnChunks。
+    m_data.setLoadSpawnChunks(s);
+    return *this;
+}
+
 ScriptRegistrationBuilder& ScriptRegistrationBuilder::structureName(std::string name)
 {
     m_data.setStructure(std::move(name));

@@ -340,7 +340,13 @@ bool GameTestServer::_selectAndBuildRunner()
     // TODO: 完整对齐基岩 GameTestBatchFactory 按 environment 分组 + MAX_TESTS_PER_BATCH=50 切片。
     std::unordered_map<std::string, std::shared_ptr<TestEnvironmentDefinition>> envCache;
     auto getEnvForBatch = [&](const std::string& name) -> std::shared_ptr<TestEnvironmentDefinition> {
-        const bool isNight = (name == "night");
+        // 夜晚批次：基岩预定义 "night" + 任何以 "night" 开头的批次名（项目独有扩展）。
+        // 扩展为前缀匹配以支持"独占批次"需求：某些负向测试须独占一个夜晚批次避免与同批含玩家测试
+        // 并行污染（如 natural_spawn_requires_player 依赖"世界中无玩家"，同批其他测试的玩家会被
+        // NaturalSpawner.getClosestPlayer 全局查到破坏负向语义）。用 night_solo 等独特批次名独占，
+        // 前缀匹配让其自动获得夜晚环境（18000），无需逐个登记。day 系同理（以 "day" 开头 → 白天 6000）。
+        // 现有 night/night_spawn 均以 night 开头，语义不变。
+        const bool isNight = (name.rfind("night", 0) == 0);
         const std::string key = isNight ? std::string{"night"} : std::string{"day"};
         auto it = envCache.find(key);
         if (it != envCache.end()) {

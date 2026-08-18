@@ -334,6 +334,10 @@ public:
     ZombifiedPiglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZombifiedPiglinEntity() override = default;
 
+    // 亡灵生物归类（对齐 Java ZombifiedPiglin.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
+    // 亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤等亡灵特性失效。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
     [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
@@ -420,6 +424,10 @@ public:
 
     ZoglinEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~ZoglinEntity() override = default;
+
+    // 亡灵生物归类（对齐 Java Zoglin.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
+    // 亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、凋灵同族互伤等亡灵特性失效。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
     [[nodiscard]] bool isChild() const override { return m_isBaby; }

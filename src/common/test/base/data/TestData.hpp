@@ -29,11 +29,22 @@ namespace mc::test {
  * - `skyAccess`：结构上方是否留空给光照（Java 独有，影响屏障是否封顶）。
  * - `padding`：结构周边清理格数（基岩独有，`MinecraftStructurePlacer` 据此清理外围）。
  * - `batchName`：所属批次名（基岩独有，用于 `before`/`after` 批次回调分组）。
+ * - `loadSpawnChunks`：是否强制加载结构周围 `SPAWN_DISTANCE_CHUNK(8)` 区块范围（项目独有）。
+ *   GameTestServer 是无头门面，`SimulatedPlayer::spawn` 不走真实玩家的区块加载链路
+ *   （`_loadPlayerChunks` 对 PlayerId=0 是 no-op），结构外区块不被加载。
+ *   `NaturalSpawner._collectSpawnableChunks` 遍历玩家周围 8 区块内 `hasChunk` 的区块计数
+ *   `spawnableChunkCount`，仅结构 footprint（3 区块）时 `cap=maxInstances*3/289=0`，
+ *   `activeCategories.empty()` 早退，怪物/动物都不自然生成。开启此标志让
+ *   `MinecraftStructurePlacer` 在放置结构时额外 force 玩家周围 8 区块（满载 289），
+ *   使 `spawnableChunkCount` 对齐原版 `DistanceManager.getNaturalSpawnChunkCount`。
+ *   副作用：force 的区块会 worldgen 出真实地形，`NaturalSpawner` 会在结构外黑暗洞穴
+ *   自然生成怪物残留世界——故仅 NaturalSpawner 类测试启用，且须放独立 batch（避免与
+ *   全维度 getEntities 查询测试并行污染）并区域限定计数。
  *
  * 支持 nlohmann::json 序列化：经 ADL 自由函数 `mc::test::to_json`/`from_json`（.cpp 实现），
  * nlohmann 经参数依赖查找自动发现。字段名对齐 Java codec：
  * environment/structure/max_ticks/setup_ticks/required/rotation/manual_only/max_attempts/
- * required_successes/sky_access/padding/batch_name。
+ * required_successes/sky_access/padding/batch_name/load_spawn_chunks。
  */
 class TestData {
 public:
@@ -51,6 +62,7 @@ public:
     [[nodiscard]] bool skyAccess() const noexcept { return m_skyAccess; }
     [[nodiscard]] i32 padding() const noexcept { return m_padding; }
     [[nodiscard]] const std::string& batchName() const noexcept { return m_batchName; }
+    [[nodiscard]] bool loadSpawnChunks() const noexcept { return m_loadSpawnChunks; }
 
     TestData& setEnvironment(std::string environment)
     {
@@ -112,6 +124,11 @@ public:
         m_batchName = std::move(batchName);
         return *this;
     }
+    TestData& setLoadSpawnChunks(bool loadSpawnChunks) noexcept
+    {
+        m_loadSpawnChunks = loadSpawnChunks;
+        return *this;
+    }
 
     /**
      * @brief 是否为 flaky 测试（需多次重试以达成 requiredSuccesses）。
@@ -133,6 +150,7 @@ private:
     bool m_skyAccess = false;
     i32 m_padding = 0;
     std::string m_batchName = "default";
+    bool m_loadSpawnChunks = false;
 
     // ADL 序列化自由函数访问私有字段（.cpp 实现 to_json/from_json）。
     friend void to_json(nlohmann::json& j, const TestData& d);

@@ -29,6 +29,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -654,11 +655,33 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
     SpawnerWorldAdapter adapter(world);
     // 刷怪笼生成使用 SpawnReason::Spawner
     math::Random rng(world.seed() ^ world.getGameTime());
-    return world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(entityType.name(),
-        adapter,
-        world::spawn::SpawnReason::Spawner,
-        Vector3i(spawnPos.x, spawnPos.y, spawnPos.z),
-        rng);
+    if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(entityType.name(),
+            adapter,
+            world::spawn::SpawnReason::Spawner,
+            Vector3i(spawnPos.x, spawnPos.y, spawnPos.z),
+            rng)) {
+        return false;
+    }
+
+    // 光照检查：对应 MC Java BaseSpawner.serverTick() 无 CustomSpawnRules 分支调用
+    // SpawnPlacements.checkSpawnRules(entityType, level, SPAWNER, pos, random)，对 Monster
+    // 分类走 Monster.checkMonsterSpawnRules，其逻辑为
+    //   difficulty != PEACEFUL && (ignoresLightRequirements(reason) || isDarkEnoughToSpawn(...))
+    // 关键：EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
+    // 故普通刷怪笼生成的怪物仍需通过 isDarkEnoughToSpawn 光照检查。
+    // Cubium 的 EntitySpawnPlacementRegistry 怪物谓词 canMonsterSpawnInLightPredicate 是 no-op
+    // （光照检查被拆到 NaturalSpawner::_checkLightLevel 单独做，刷怪笼路径不走 NaturalSpawner，
+    //  故漏查光照），此处对 Monster 分类补一次 MonsterEntity::isValidLightLevel（对齐 isDarkEnoughToSpawn）。
+    // 注：仅 Monster 分类查光照；Ambient（蝙蝠）等分类的刷怪笼光照规则暂未对齐（TODO），按现状放行。
+    if (entityType.classification() == entity::EntityClassification::Monster) {
+        math::Random lightRng(world.seed() ^ world.getGameTime() ^
+            (static_cast<i64>(spawnPos.x) * 341873128712ULL + static_cast<i64>(spawnPos.z) * 132897987541ULL));
+        if (!mc::MonsterEntity::isValidLightLevel(world, spawnPos, lightRng)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 i32 MobSpawnerBlockEntity::_countNearbyEntities(IWorld& world, const ResourceLocation& entityId) const
