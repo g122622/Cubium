@@ -960,20 +960,27 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // MC 1.21: 通过 ChunkPrimer 缓存 NoiseChunk，确保 biomes/noise/surface/carvers 阶段共享
     const i32 startBlockY = m_settings.noise.minY;
     const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
-    auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, &region, &chunk]() {
-        // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
-        // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
-        auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
-        auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
-            m_cellWidth,
-            m_cellHeight,
-            cellCountY,
-            startX,
-            startBlockY,
-            startZ,
-            std::move(beardifierDf));
-        return nc;
-    });
+    // subpart: 获取或创建 NoiseChunk（含路由器副本深拷贝与 Beardifier 集成）
+    // 用 IIFE 包裹，使 SCOPED_EVENT 生命周期精确覆盖 getOrCreateNoiseChunk 调用，
+    // 同时让 noiseChunk 引用正常逃逸到外层作用域供后续 subpart 使用。
+    auto& noiseChunk = [&]() -> world::gen::density::NoiseChunk& {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.World.ChunkGen, "GenerateNoise_DF::CreateNoiseChunk", "x", chunk.x(), "z", chunk.z());
+        return chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, &region, &chunk]() {
+            // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
+            // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
+            auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
+            auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+                m_cellWidth,
+                m_cellHeight,
+                cellCountY,
+                startX,
+                startBlockY,
+                startZ,
+                std::move(beardifierDf));
+            return nc;
+        });
+    }();
 
     // MC 1.21: 含水层采样器和方块状态规则链必须在 NoiseChunk 上设置。
     // 【重要】不能放在 getOrCreateNoiseChunk 的 factory lambda 中：generateBiomes 阶段会先创建
@@ -981,6 +988,14 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // 传入的 factory lambda 不会执行，含水层/方块状态规则链永远不会被设置。
     // 这里在获取 NoiseChunk 之后设置，并用 aquifer()==nullptr 守卫确保只设置一次。
     if (noiseChunk.aquifer() == nullptr) {
+        // subpart: 设置含水层采样器与方块状态材质规则链（仅在首次设置时执行）
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+            "GenerateNoise_DF::SetupAquiferAndMaterialRule",
+            "x",
+            chunk.x(),
+            "z",
+            chunk.z());
+
         // 使用 RandomState 中的 aquiferRandom（与 MC 1.21 RandomState.aquiferRandom() 对应）
         auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
             m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
@@ -1028,6 +1043,10 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
     // MC 1.21: Beardifier 已集成到 NoiseChunk 密度函数树中，
     // 无需在外部逐方块计算，finalDensity().compute() 已包含 Beardifier 贡献
+
+    // subpart: cell 插值与方块填充主循环（密度计算、材质判定、高度图更新、含水层后处理标记）
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.World.ChunkGen, "GenerateNoise_DF::FillNoiseCells", "x", chunk.x(), "z", chunk.z());
 
     const auto& cellConfig = noiseChunk.cellConfig();
     noiseChunk.initializeForFirstCellX();

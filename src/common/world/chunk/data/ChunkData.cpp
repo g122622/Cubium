@@ -199,6 +199,17 @@ void ChunkData::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const Bl
 
 void ChunkData::_setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
+    _setBlockStateUnlockedGen(x, y, z, state);
+
+    // 任意 final 高度图都可能受本次改方块影响（WorldSurface/OceanFloor/MotionBlocking/
+    // MotionBlockingNoLeaves/LightBlocking 最高点各异，且删方块需下降），
+    // 整列重算保证一致（此前仅按 WorldSurface 最高点判断，漏触发改动低于顶点的情况）。
+    // 生成态经 _setBlockStateUnlockedGen 跳过本调用（见头文件注释）。
+    updateHeightMap(x, z);
+}
+
+void ChunkData::_setBlockStateUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
+{
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
         z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
@@ -217,11 +228,6 @@ void ChunkData::_setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z,
     i32 localY = mc::world::toSectionLocalY(y);
     section->setBlockState(x, localY, z, state);
     m_dirty = true;
-
-    // 任意 final 高度图都可能受本次改方块影响（WorldSurface/OceanFloor/MotionBlocking/
-    // MotionBlockingNoLeaves/LightBlocking 最高点各异，且删方块需下降），
-    // 整列重算保证一致（此前仅按 WorldSurface 最高点判断，漏触发改动低于顶点的情况）。
-    updateHeightMap(x, z);
 }
 
 u32 ChunkData::getBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z) const
@@ -251,6 +257,15 @@ void ChunkData::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 st
 
 void ChunkData::_setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
 {
+    _setBlockStateIdUnlockedGen(x, y, z, stateId);
+
+    // 任意 final 高度图都可能受本次改方块影响，整列重算保证一致（见 setBlockState 同款说明）。
+    // 生成态经 _setBlockStateIdUnlockedGen 跳过本调用（见头文件注释）。
+    updateHeightMap(x, z);
+}
+
+void ChunkData::_setBlockStateIdUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId)
+{
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
         z < 0 || z >= mc::world::CHUNK_WIDTH) {
         return;
@@ -269,9 +284,6 @@ void ChunkData::_setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord 
     i32 localY = mc::world::toSectionLocalY(y);
     section->setBlockStateId(x, localY, z, stateId);
     m_dirty = true;
-
-    // 任意 final 高度图都可能受本次改方块影响，整列重算保证一致（见 setBlockState 同款说明）。
-    updateHeightMap(x, z);
 }
 
 BlockCoord ChunkData::getHighestBlock(BlockCoord x, BlockCoord z) const

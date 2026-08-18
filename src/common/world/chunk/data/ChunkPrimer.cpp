@@ -142,10 +142,17 @@ void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const 
     // 生成态 ChunkPrimer 由状态管线串行推进、尚未发布到 m_chunks，无并发读者，
     // 经无锁路径直写以消除每方块一次无竞争 shared_mutex 开销（FillNoiseCells 主要热点）。
     // 安全性前提详见 ChunkData.hpp setBlockStateUnlocked 注释。
-    m_data->_setBlockStateUnlocked(x, y, z, state);
+    //
+    // 使用 Gen 变体（跳过 ChunkData::updateHeightMap 整列重扫）：生成阶段所有高度图读取
+    // 走 ChunkPrimer::m_heightmaps（下方 _updateHeightmapsForCurrentStatus 维护），无代码读
+    // ChunkData::m_heightmaps；其 final 高度图由 primeHeightmaps/updateAllHeightmaps 在
+    // 后续阶段全量重建。跳过整列重扫省去每方块 384 次 getBlockState + 5×384 次 Heightmap::update，
+    // 是 setBlockState 单次耗时的 60-75%。详见 ChunkData.hpp _setBlockStateUnlockedGen 注释。
+    m_data->_setBlockStateUnlockedGen(x, y, z, state);
     m_modified = true;
 
     // setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图
+    // （维护 ChunkPrimer::m_heightmaps，FEATURES 阶段 placement 读取源，必须保留）
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }
 
@@ -162,11 +169,12 @@ void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 
     if (!_isValidBlockCoord(x, y, z)) {
         return;
     }
-    // 生成态无锁直写，同 setBlockState。
-    m_data->_setBlockStateIdUnlocked(x, y, z, stateId);
+    // 生成态无锁直写 + 跳过 ChunkData::updateHeightMap 整列重扫，同 setBlockState（见其注释）。
+    m_data->_setBlockStateIdUnlockedGen(x, y, z, stateId);
     m_modified = true;
 
     // 与 setBlockState 相同，需要根据当前状态更新高度图
+    // （维护 ChunkPrimer::m_heightmaps，必须保留）
     const BlockState* state = m_data->getBlockState(x, y, z);
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }

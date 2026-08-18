@@ -512,6 +512,28 @@ private:
     void _setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
     void _setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId);
 
+    // 生成态专用变体：与 _setBlockStateUnlocked/_setBlockStateIdUnlocked 相同，但
+    // **跳过末尾 updateHeightMap(x,z) 整列重扫**。
+    //
+    // 【为何生成态可跳过】updateHeightMap 维护的是 ChunkData::m_heightmaps 的 5 种 final
+    // 高度图（WorldSurface/OceanFloor/MotionBlocking/MotionBlockingNoLeaves/LightBlocking），
+    // 其正当用途是运行时（FULL 之后）玩家改方块后整列重算。但生成阶段（NOISE→FEATURES）
+    // 所有高度图读取都走 ChunkPrimer::m_heightmaps（含 final 槽位，由
+    // _updateHeightmapsForCurrentStatus 增量维护），无任何代码读 ChunkData::m_heightmaps；
+    // 且 primeHeightmaps(POST_FEATURES)（FEATURES 前）与 updateAllHeightmaps（FULL 时
+    // toChunkData）会全量重建并同步到 ChunkData，覆盖所有生成阶段写入的方块。故生成阶段
+    // 对 ChunkData::m_heightmaps 的增量维护是纯浪费。
+    //
+    // 【收益】updateHeightMap 整列重扫每方块 384 次 getBlockState + 最多 5×384 次
+    // Heightmap::update，占 setBlockState 单次耗时（~1769ns）的 60-75%，是 FillNoiseCells
+    // 逐方块循环体的最大可定位子段。生成态改调本变体后，单次 setBlockState 预期降至
+    // ~500-600ns。
+    //
+    // 【运行时不受影响】运行时改方块走 ChunkData::setBlockState（加锁版）→ 原版
+    // _setBlockStateUnlocked（含 updateHeightMap），运行时无全量重建步骤，必须保留整列重扫。
+    void _setBlockStateUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
+    void _setBlockStateIdUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId);
+
     // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
     // move ctor/assign 显式「释放旧地址 + 分配新地址」重绑定（守卫不可移动），避免
     // move 后旧地址仍留在 Tracy 活跃集、被堆复用时触发 MemAllocTwice 硬失败。
