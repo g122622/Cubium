@@ -36,6 +36,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
@@ -104,6 +105,12 @@ EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
         m_uuidToEntity[uuid] = entity.get();
     }
 
+    // 绑定反向指针并登记到空间索引（按当前位置一次性注册）。须在 move 进 m_entities
+    // 前完成——move 后 entity 为 nullptr。setEntityManager 后若实体再 setPosition 会经
+    // reapplyPosition 通知索引迁移，正确。
+    entity->setEntityManager(this);
+    m_spatialIndex.addEntity(*entity);
+
     m_entities[id] = std::move(entity);
     return id;
 }
@@ -128,6 +135,11 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
             m_uuidToEntity.erase(uuidIt);
         }
     }
+
+    // 从空间索引移除并解绑反向指针。须在 erase 前——此时 entity 仍持有对象所有权有效。
+    // 返回的 unique_ptr 随后析构实体，索引侧须先清理避免悬挂。
+    m_spatialIndex.removeEntity(*entity);
+    entity->setEntityManager(nullptr);
 
     m_entities.erase(it);
 
@@ -185,21 +197,15 @@ std::vector<Entity*> EntityManager::getEntitiesInAABB(const AxisAlignedBB& box, 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
-    for (const auto& [id, entity] : m_entities) {
-        if (entity.get() == except) {
-            continue;
+    // 走 3D section 空间索引：枚举 box 覆盖的 section，逐实体 AABB 精筛。
+    // isRemoved 双保险：entity->remove() 仅标记，下次 tick 的 _removeDeadEntitiesInternal
+    // 才从索引移除，故标记到清理之间仍可能命中，须过滤。
+    m_spatialIndex.collectEntitiesInAABB(box, except, [&](Entity& entity) -> bool {
+        if (!entity.isRemoved()) {
+            result.push_back(&entity);
         }
-
-        if (entity->isRemoved()) {
-            continue;
-        }
-
-        // 检查碰撞箱是否相交
-        AxisAlignedBB entityBox = entity->boundingBox();
-        if (box.intersects(entityBox)) {
-            result.push_back(entity.get());
-        }
-    }
+        return true; // 继续遍历
+    });
 
     return result;
 }
@@ -209,28 +215,14 @@ std::vector<Entity*> EntityManager::getEntitiesInRange(const Vector3& pos, f32 r
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
-    f32 rangeSq = range * range;
-
-    for (const auto& [id, entity] : m_entities) {
-        if (entity.get() == except) {
-            continue;
+    // 走 3D section 空间索引：球转外接盒枚举 + position 距离平方精筛（见 collectEntitiesInRange）。
+    // isRemoved 双保险：见 getEntitiesInAABB 注释。
+    m_spatialIndex.collectEntitiesInRange(pos, range, except, [&](Entity& entity) -> bool {
+        if (!entity.isRemoved()) {
+            result.push_back(&entity);
         }
-
-        if (entity->isRemoved()) {
-            continue;
-        }
-
-        // 检查距离
-        Vector3 entityPos = entity->position();
-        f32 dx = entityPos.x - pos.x;
-        f32 dy = entityPos.y - pos.y;
-        f32 dz = entityPos.z - pos.z;
-        f32 distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq <= rangeSq) {
-            result.push_back(entity.get());
-        }
-    }
+        return true; // 继续遍历
+    });
 
     return result;
 }
@@ -240,11 +232,21 @@ std::vector<Entity*> EntityManager::getEntitiesByType(const std::string& typeId)
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
-    for (const auto& [id, entity] : m_entities) {
-        if (entity->getTypeId() == typeId && !entity->isRemoved()) {
-            result.push_back(entity.get());
-        }
+    // 字符串 typeId → const EntityType* 指针（同一注册表对象，与 entity->entityType() 指针比较等价）。
+    // 未注册类型返回 nullptr，collectEntitiesByType 直接返回空。
+    const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeId);
+    if (type == nullptr) {
+        return result;
     }
+
+    // 走 3D section 空间索引：遍历各 section 的该类型子列表（懒加载）。
+    // isRemoved 双保险：见 getEntitiesInAABB 注释。
+    m_spatialIndex.collectEntitiesByType(type, [&](Entity& entity) -> bool {
+        if (!entity.isRemoved()) {
+            result.push_back(&entity);
+        }
+        return true; // 继续遍历
+    });
 
     return result;
 }
@@ -285,6 +287,12 @@ void EntityManager::tick()
 
     // 3. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
     _removeDeadEntitiesInternal();
+
+    // 4. DEBUG 一致性断言：校验空间索引与主存储一致（每实体在正确 section、玩家专表一致）。
+    //    仅调试构建生效（_assertConsistent 内 #ifndef NDEBUG 守卫），及早暴露索引漂移。
+#ifndef NDEBUG
+    m_spatialIndex._assertConsistent(m_entities);
+#endif
 }
 
 void EntityManager::_tickEntities()
@@ -394,6 +402,12 @@ void EntityManager::_removeDeadEntitiesInternal()
                 }
             }
 
+            // 从空间索引移除并解绑反向指针（须在 move 入 graveyard 前，此时对象仍有效）。
+            // 顺手修复现存隐患：原 _removeDeadEntitiesInternal 不通知任何 tracker，死亡实体
+            // 残留索引导致后续查询命中已死实体（靠 isRemoved 双保险兜底，但索引应保持干净）。
+            m_spatialIndex.removeEntity(*it->second);
+            it->second->setEntityManager(nullptr);
+
             // 延迟析构：实体对象入 graveyard，下一 tick 末尾才真正析构。
             // 避免持裸指针的 goal 在本 tick 末尾或下 tick 开头解引用悬垂内存。
             m_graveyard.push_back(std::move(it->second));
@@ -402,6 +416,13 @@ void EntityManager::_removeDeadEntitiesInternal()
             ++it;
         }
     }
+}
+
+void EntityManager::_onEntityPositionChanged(Entity& entity)
+{
+    // 假设已持有 m_mutex（Entity::reapplyPosition 在持锁上下文执行）。
+    // 转调空间索引：实体跨 section 移动时迁移，使索引实时准确。
+    m_spatialIndex.onEntityPositionChanged(entity);
 }
 
 bool EntityManager::_isEntityInSimulationRange(
@@ -497,9 +518,11 @@ std::vector<Entity*> EntityManager::getPlayers() const
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Entity*> result;
 
-    for (const auto& [id, entity] : m_entities) {
-        if (entity && !entity->isRemoved() && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
-            result.push_back(entity.get());
+    // 走玩家专表 O(1)：addEntity/removeEntity 时按 PLAYER 身份同步维护。
+    // isRemoved 双保险：见 getEntitiesInAABB 注释。
+    for (Entity* player : m_spatialIndex.players()) {
+        if (player != nullptr && !player->isRemoved()) {
+            result.push_back(player);
         }
     }
 

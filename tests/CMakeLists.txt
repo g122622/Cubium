@@ -1228,6 +1228,8 @@ add_executable(mc_tests
     common/world/EntityManagerUuidTest.cpp
     # EntityManager 模拟距离实体冻结语义测试
     common/world/EntityManagerSimulationDistanceTest.cpp
+    # 3D section 空间索引单元测试
+    common/world/entity/EntitySpatialIndexTest.cpp
     # 纰版挒缂撳瓨娴嬭瘯
     physics/CollisionCacheTests.cpp
     # 物理引擎测试
@@ -1600,7 +1602,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp

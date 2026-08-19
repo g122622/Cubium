@@ -79,6 +79,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -234,6 +235,13 @@ void Entity::reapplyPosition()
 
     m_builtIn.aabbShape->m_aabb = m_dimensions.makeBoundingBox(
         m_builtIn.stateVector->m_pos.x, m_builtIn.stateVector->m_pos.y, m_builtIn.stateVector->m_pos.z);
+
+    // 经 EntityManager 反向指针通知空间索引：实体位置变更可能跨 section，需迁移。
+    // addEntity 前调 setPosition 时 m_entityManager 仍为 nullptr，跳过——addEntity 时
+    // 按当前位置一次性登记索引，正确。addEntity 后调 setPosition 则触发迁移，正确。
+    if (m_entityManager != nullptr) {
+        m_entityManager->_onEntityPositionChanged(*this);
+    }
 }
 
 void Entity::setPose(EntityPose poseIn)

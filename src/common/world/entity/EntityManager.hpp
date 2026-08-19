@@ -32,6 +32,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/entity/spatial/EntitySpatialIndex.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -206,6 +207,15 @@ public:
      */
     void removeDeadEntities();
 
+    /**
+     * @brief 实体位置变更通知（由 Entity::reapplyPosition 经反向指针调用）
+     *
+     * 假设已持有 m_mutex（Entity::reapplyPosition 在持锁上下文执行）。转调
+     * `m_spatialIndex.onEntityPositionChanged`，实体跨 section 移动时迁移。
+     * public 是因为 Entity 非本类友元需经反向指针调用；`_` 前缀表明仅内部使用。
+     */
+    void _onEntityPositionChanged(Entity& entity);
+
     // ========== 模拟距离 ==========
 
     /**
@@ -219,6 +229,15 @@ public:
      * @brief 获取模拟距离（区块数）
      */
     [[nodiscard]] i32 simulationDistance() const { return m_simulationDistance; }
+
+    /**
+     * @brief 获取空间索引（供 ServerWorld 区块卸载/关机保存取实体）
+     *
+     * `ServerWorld::onChunkUnloading`/`shutdown` 经此调
+     * `getEntityIdsInChunkColumn` 替代已删除的 `EntityChunkTracker::getEntitiesInChunk`。
+     */
+    [[nodiscard]] EntitySpatialIndex& spatialIndex() noexcept { return m_spatialIndex; }
+    [[nodiscard]] const EntitySpatialIndex& spatialIndex() const noexcept { return m_spatialIndex; }
 
     // ========== ID分配 ==========
 
@@ -259,6 +278,10 @@ private:
 
     // 模拟距离（区块数）：超出该距离的非玩家实体不 tick。默认值与 defaults::server::simulationDistance 一致。
     i32 m_simulationDistance = 10;
+
+    // 3D section 空间索引：实体按 AABB 中心所在 section 分桶，所有空间/类型查询走索引。
+    // mutable：const 查询方法内回调经 Entity→_onEntityPositionChanged 触发 section 迁移（逻辑 const）。
+    mutable EntitySpatialIndex m_spatialIndex;
 
     // 内部方法（假设已持有锁）
     void _removeDeadEntitiesInternal();

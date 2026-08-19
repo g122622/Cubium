@@ -71,6 +71,7 @@ namespace mc {
 // 前向声明
 class PhysicsEngine;
 class IWorld;
+class EntityManager;
 class BlockState;
 class DamageSource;
 
@@ -284,6 +285,17 @@ public:
     [[nodiscard]] IWorld* world() { return m_world; }
     [[nodiscard]] const IWorld* world() const { return m_world; }
     void setWorld(IWorld* world) { m_world = world; }
+
+    /**
+     * @brief 绑定/解绑所属 EntityManager（用于空间索引实时维护）
+     *
+     * 由 `EntityManager::addEntity` 绑定 this、`removeEntity`/`_removeDeadEntitiesInternal`
+     * 解绑 nullptr。`reapplyPosition()` 经此反向指针通知索引迁移，使 3D section 索引
+     * 实时准确（同一 tick 内移动后查询读到新位置）。裸指针非拥有，EntityManager 与
+     * Entity 同在 common 模块，不破坏 common 不依赖 server。
+     */
+    void setEntityManager(EntityManager* manager) noexcept { m_entityManager = manager; }
+    [[nodiscard]] EntityManager* entityManager() const noexcept { return m_entityManager; }
 
     // ========== 数据管理 ==========
 
@@ -2893,6 +2905,10 @@ protected:
 
     // 世界引用
     IWorld* m_world = nullptr;
+
+    // 所属 EntityManager 反向指针（非拥有）：reapplyPosition 经它通知空间索引迁移。
+    // nullptr 表示未托管于任何 EntityManager（测试裸实体或 addEntity 前）。
+    EntityManager* m_entityManager = nullptr;
 
     // 数据管理器
     entity::EntityDataManager m_dataManager;

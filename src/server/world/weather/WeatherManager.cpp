@@ -274,15 +274,14 @@ std::pair<bool, BlockPos> WeatherManager::trySpawnLightning()
     }
 
     // 选择加载的区块进行闪电生成
-    // 由于 IWorld 接口限制，使用玩家位置附近的区块
-    // 获取一个足够大范围内的实体来找到玩家
-    auto entities =
-        m_world->getEntitiesInRange(Vector3(0, 0, 0), static_cast<f32>(world::CHUNK_LOAD_RADIUS * world::CHUNK_WIDTH));
+    // 走玩家专表 O(玩家数)（EntityManager::getPlayers 内部走 3D section 空间索引的玩家专表），
+    // 替代原先以原点为中心、CHUNK_LOAD_RADIUS*16 的巨型球查全服实体再手挑 PLAYER 的 O(全服实体) 扫描。
+    auto players = m_world->getPlayers();
 
-    // 过滤出玩家
+    // 过滤出活着的玩家
     std::vector<Entity*> playerEntities;
-    for (Entity* entity : entities) {
-        if (entity && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER && entity->isAlive()) {
+    for (Entity* entity : players) {
+        if (entity && entity->isAlive()) {
             playerEntities.push_back(entity);
         }
     }

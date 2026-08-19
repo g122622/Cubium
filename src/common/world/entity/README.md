@@ -6,13 +6,19 @@
 
 ```
 src/common/world/entity/
-├── EntityManager.hpp    # EntityManager 类声明 - 实体管理器接口（含 UUID 索引）
-└── EntityManager.cpp    # EntityManager 类实现
+├── EntityManager.hpp    # EntityManager 类声明 - 实体管理器接口（含 UUID 索引、3D section 空间索引）
+├── EntityManager.cpp    # EntityManager 类实现
+└── spatial/             # 3D section(16³) 空间索引（实体分桶/类型分桶/玩家专表）
+    ├── EntitySectionBucket.hpp/.cpp   # 单 section 容器（全实体列表 + 按类型子列表懒加载）
+    ├── EntitySpatialIndex.hpp/.cpp    # 主索引类（section 分桶/实时迁移/查询/玩家专表/区块列取实体）
+    └── README.md                       # 空间索引设计说明（结构树/查询算法/上下游/坑）
 ```
 
 ## 内部模块关系
 
-本目录仅包含 `EntityManager` 单个类，无内部模块划分。
+- `EntityManager`：实体生命周期/ID 分配/UUID 索引/查询服务/tick 循环的外壳，持 `EntitySpatialIndex m_spatialIndex` 成员，所有空间/类型/玩家查询委托给索引。
+- `EntitySpatialIndex`：3D section 空间索引，把实体按 AABB 中心所在 section 分桶，查询从 O(全服实体) 降到 O(覆盖 section 数 × section 内实体数)。详见 `spatial/README.md`。
+- `EntitySectionBucket`：单个 16³ section 内的实体集合，对齐 Java `ClassInstanceMultiMap`，全实体列表为真源、按类型子列表懒加载。
 
 ## 上下游外部依赖关系
 
@@ -63,16 +69,19 @@ EntityId id = manager.addEntity(std::move(pig));
 Entity* entity = manager.getEntity(id);
 ```
 
-### 2. ID 重用问题
+### 2. ID 永不复用
 
-实体 ID 会被重用。移除实体后，新添加的实体可能获得相同 ID：
+实体 ID 单调递增、永不复用（`allocateId()` 为 `m_nextId++`）。移除实体后其 ID 不会被新实体复用：
 
 ```cpp
 EntityId id1 = manager.addEntity(entity1);
 manager.removeEntity(id1);
 EntityId id2 = manager.addEntity(entity2);
-// id2 可能等于 id1！移除实体后必须清除所有对该 ID 的引用
+// id2 一定大于 id1，绝不等于 id1。不复用可避免客户端缓存的旧 ClientEntity
+// （typeId 不可变、网格按 ID 缓存）被错误套用到新实体上。
 ```
+
+注：若构造实体时显式设置了已存在的 id（或 id=0），`addEntity` 会改用 `allocateId()` 重新分配，避免冲突。
 
 ### 3. 线程安全与重入
 
@@ -119,4 +128,20 @@ manager.removeEntity(entity->id());
 
 ### 7. 空间查询性能
 
-`getEntitiesInRange()` 和 `getEntitiesInAABB()` 当前为 O(n) 遍历，大量实体时性能受限。对于已知 UUID 的查找，应使用 `getEntityByUuid()` 进行 O(1) 查找。
+`getEntitiesInRange()`/`getEntitiesInAABB()`/`getEntitiesByType()` 走 3D section 空间索引（`EntitySpatialIndex`）：按 AABB/球覆盖的 section 三重循环枚举，每 section 内逐实体精筛，复杂度从 O(全服实体) 降到 O(覆盖 section 数 × section 内实体数)。`getPlayers()` 走玩家专表 O(玩家数)。对于已知 UUID 的查找，仍应使用 `getEntityByUuid()` O(1)。
+
+调用方接口签名不变，~40 处调用点自动受益于索引。不再有"全扫后 `if type==X continue`"的反模式——类型查询走各 section 的按类型子列表（懒加载）。
+
+### 8. 空间索引实时性
+
+实体空间归属由 `EntitySpatialIndex` 实时维护，无需调用方手动注册：
+
+- **addEntity** 时按实体当前 AABB 中心一次性登记到对应 section，并按类型加入玩家专表（PLAYER）。
+- **实体 move** 经 `Entity::reapplyPosition()`（位置变更统一收口）末尾的 `m_entityManager->_onEntityPositionChanged` 通知索引，跨 section 移动立即迁移。同一 tick 内移动后查询读到新位置。
+- **removeEntity**/`_removeDeadEntitiesInternal` 时从索引移除，空 section 立即回收。
+
+注意：`entity->remove()` 仅标记 `m_removed=true`，下次 tick 的 `_removeDeadEntitiesInternal` 才从索引移除，故标记到清理之间死亡实体仍可能在索引中被枚举到——查询层用 `isRemoved()` 双保险过滤。`Entity` 持 `EntityManager*` 反向指针（非 `m_world`）使通知在 `m_world=nullptr` 的测试场景也工作。详见 `spatial/README.md`。
+
+### 9. 区块卸载取实体
+
+区块卸载/关机保存取实体改走 `EntityManager::spatialIndex().getEntityIdsInChunkColumn(cx, cz)`（遍历该 chunk 列 24 个 section 合并实体 ID），按实体**当前坐标**所在 section 取列——比原按 tracker 归属（可能滞后）更准确（实体真实在哪存哪）。
