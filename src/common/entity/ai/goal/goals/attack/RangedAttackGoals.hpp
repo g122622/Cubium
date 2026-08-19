@@ -81,7 +81,7 @@ protected:
     i32 m_attackTime = -1;     // 初始值为 -1
     i32 m_seenTime = 0;        // 能看到目标的时间
 
-    static constexpr i32 MIN_SEEN_TIME = 20; // 停止移动前需要看到的tick数
+    static constexpr i32 MIN_SEEN_TIME = 5; // 停止移动前需要看到的tick数（对齐 vanilla RangedAttackGoal.seeTime>=5）
 };
 
 /**
