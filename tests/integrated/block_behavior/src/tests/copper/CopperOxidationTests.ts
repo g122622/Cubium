@@ -42,6 +42,8 @@
 // 测试1 exposed_copper_oxidizes_to_weathered（孤立方块氧化进阶）：
 //   (3,1,3) 孤立 exposed_copper（周围4格内无其他铜方块），调高 randomTickSpeed 后等待，断言变
 //   weathered_copper（Exposed→Weathered 进阶）。验证 randomTick 驱动氧化 + 概率门限通过后进阶。
+//   轮询用 interval=1 每 tick 查（非默认 20），因 speed=1000 下 weathered 中间态窗口短，稀疏检查点
+//   偶发跳过致假失败（详见测试函数注释）。
 //
 // 测试2 lower_grade_neighbor_prevents_oxidation（更低等级邻居抑制氧化）：
 //   (3,1,3) exposed_copper + (4,1,3) copper_block（Unaffected，更低等级）。exposed randomTick 时
@@ -122,6 +124,15 @@ function raiseRandomTickSpeed(test: Test): void {
 
 // 孤立 exposed_copper 在随机刻下氧化进阶为 weathered_copper（wiki 氧化：铜块受氧化机制影响，基于随机刻）。
 // (3,1,3) 孤立 exposed_copper（周围4格内无其他铜方块），调高 randomTickSpeed 后等待，断言变 weathered_copper。
+//
+// 轮询密度选 interval=1（每 tick 查）而非默认 20，原因：speed=1000 下 exposed→weathered 与 weathered→oxidized
+// 两级氧化都很快（每次期望约 82 tick）。weathered 中间态窗口约 82 tick，但若用 interval=20 的稀疏检查点
+// [40,60,80,...]，全量并行环境下服务器 tick 调度抖动偶发使 exposed→weathered 与 weathered→oxidized 都落在
+// 同一检查点间隔内（两个检查点之间），导致检查点恰好跳过 weathered 中间态直接看到 oxidized_copper 假失败。
+// randomTick 机制保证 weathered 状态至少持续 1 个完整 tick（每格每 tick 至多一次 randomTick：tick N 做
+// exposed→weathered 后，weathered→oxidized 最早在 tick N+1 的下一个 randomTick），故每 tick 查必能抓到
+// weathered 中间态，彻底消除 timing 依赖。预注册 [40..360] 每 tick 一个 runAtTickTime 检查点（约 321 个），
+// 开销可接受。
 function exposedCopperOxidizesToWeathered(test: Test): void {
     test.setBlockType("minecraft:exposed_copper", COPPER);
     raiseRandomTickSpeed(test);
@@ -129,20 +140,22 @@ function exposedCopperOxidizesToWeathered(test: Test): void {
     pollUntilSucceed(
         test,
         () => {
-            // 氧化进阶：exposed_copper → weathered_copper。
+            // 氧化进阶：exposed_copper → weathered_copper。每 tick 查以抓 weathered 中间态。
             return getTypeId(test, COPPER) === "minecraft:weathered_copper";
         },
         {
             startTick: 40,
-            interval: 20,
-            maxTick: 320,
+            interval: 1,
+            maxTick: 360,
             onTimeout: () => {
                 const type = getTypeId(test, COPPER);
                 test.assert(
                     false,
                     `exposed_copper oxidation: expected weathered_copper, got ${type} ` +
                         `(if still exposed_copper, randomTickSpeed may not be raised or ` +
-                        `oxidation gate 5.69% chance too low — consider higher speed or longer maxTicks)`,
+                        `oxidation gate 5.69% chance too low — consider higher speed or longer maxTicks; ` +
+                        `if oxidized_copper, weathered intermediate was skipped — interval=1 per-tick poll ` +
+                        `should prevent this, investigate randomTick multi-step-per-tick)`,
                 );
             },
         },

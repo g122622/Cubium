@@ -21,10 +21,12 @@
 //   2. 叶链（原木-叶-叶-叶）→ 各叶 distance=1/2/3（多跳传播）。
 //   3. 孤立树叶（周围无原木无叶）→ distance 保持 7（无原木邻居，min 始终 7）。
 //
-// 枯萎（randomTick 概率消失）与 persistent 门测试不写：randomTick 由 tickEnvironment 概率性调度
-// （ServerWorld.cpp:1308-1375 每 tick 在 chunk section 随机选位），非确定；persistent=true 不枯萎
-// 需 randomTick 命中才区分，确定性范围内无法验证。按「随机性行为不强测」准则跳过。
-// TODO: 待需要时可用高 randomTickSpeed + maxTicks 概率性测枯萎，但非确定性。
+// 枯萎（randomTick 消失）与 persistent 门测试不写独立的枯萎概率测试，但需注意：vanilla LeavesBlock.randomTick
+// 的枯萎判定 decaying 无概率门限（!persistent && distance==7 即 removeBlock，对齐 Cubium LeavesBlock.cpp:138），
+// 故孤立树叶（persistent=false distance=7）在 randomTick 命中时必然枯萎消失。测试3 的孤立树叶用 persistent=true
+// 规避枯萎（见 leavesDistanceSevenWhenNoLog 注释），否则全量并行下被其他测试调高的 randomTickSpeed 污染致枯萎
+// 假失败。persistent=true 不影响 distance 计算（_updateDistance 不检查 persistent），仍能验证 distance 传播。
+// TODO: 待需要时可用高 randomTickSpeed + persistent=false + distance==7 概率性测枯萎消失行为本身。
 //
 // 跨服务端：distance state 名两端均为 distance（DISTANCE_1_7），值域 1-7 一致，传播机制两端一致，
 // 可跨服务端对比。
@@ -34,6 +36,8 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { BlockPermutation } from "@minecraft/server";
+import type { Vector3 } from "@minecraft/server";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
@@ -132,15 +136,32 @@ function leavesDistanceIncreasesAwayFromLog(test: Test): void {
 // 孤立树叶（周围无原木无叶）→ distance 保持 7（无原木邻居，min 始终 7）。
 //
 // 布局：(3,1,3) 放孤立树叶，六向邻居均为 air/glass（非原木非叶）。树叶 defaultState distance=7，
-// 放置后 updatePostPlacement 邻居 air _getDistance=7（其他方块），+1=8，但 DISTANCE_1_7 钳制 7；
-// _updateDistance min(7+1=8,...) 但实际 _getDistance 对 air 返回 7，min(7+1,...)=8，钳制回 7。
-// tick() 重算后 distance 维持 7。
+// 放置后无原木邻居，distance 维持 7。
+//
+// 【重要】必须用 persistent=true 的树叶，原因：树叶 randomTick 枯萎条件是 !persistent && distance==7
+// （LeavesBlock.cpp:138，对齐 vanilla LeavesBlock.decaying 无概率门限——vanilla randomTick 也是
+// decaying 为 true 即 removeBlock）。孤立树叶 defaultState persistent=false distance=7 恰满足枯萎条件，
+// 默认 randomTickSpeed=3 下 60 tick 内约 4.3% 概率被 randomTick 命中枯萎消失；全量并行环境下若其他测试
+// （CopperOxidationTests/GrassSpreadTests 等）调高 randomTickSpeed=1000 且 gamerule 跨测试持久未恢复，
+// 孤立树叶几乎必然枯萎消失 → distance 读取变 air → getState("distance") 返回 undefined → getLeavesDistance
+// 返回 -1，测试假失败（got -1）。用 persistent=true 树叶（对齐玩家手放 getStateForPlacement 设 persistent=true）
+// 规避枯萎：persistent=true 不满足 decaying 的 !persistent 条件，randomTick 不移除；distance 仍由
+// _updateDistance 正常计算（_updateDistance 不检查 persistent），无原木邻居时 distance=7。
+//
+// persistent=true 树叶用 BlockPermutation.resolve + setBlockPermutation 放置（setBlockType 取 defaultState
+// persistent=false 无法设 persistent，同 sweetBerryBush.ts 的 resolve+setBlockPermutation 范式）。
 //
 // 判定：等待若干 tick 后 distance==7（验证无原木邻居时 distance 不被错误降低）。startTick=5 留
-// updatePostPlacement + tick 重算窗口。
+// updatePostPlacement + tick 重算窗口。persistent=true 保证树叶存活不枯萎，distance 稳定 7。
 function leavesDistanceSevenWhenNoLog(test: Test): void {
-    // 孤立树叶 (3,1,3)（六向邻居 air/glass，无原木无叶）。
-    test.setBlockType("minecraft:oak_leaves", { x: 3, y: 1, z: 3 });
+    // 孤立树叶 (3,1,3)（六向邻居 air/glass，无原木无叶）。persistent=true 防枯萎消失。
+    const permutation = BlockPermutation.resolve("minecraft:oak_leaves", {
+        persistent: true,
+        distance: 7,
+    }) as any;
+    (test as unknown as {
+        setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+    }).setBlockPermutation(permutation, { x: 3, y: 1, z: 3 });
 
     pollUntilSucceed(
         test,
