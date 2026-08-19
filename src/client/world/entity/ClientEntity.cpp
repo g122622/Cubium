@@ -419,21 +419,10 @@ void ClientEntity::syncMetadataFromDataManager()
         }
     }
 
-    // 骷髅拉弓状态同步（普通骷髅 skeleton、流浪者 stray、沼骸骨 bogged）
-    // 通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步。
-    // 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态写入，
-    // 客户端读取后驱动 SkeletonModel 的 BowAndArrow 姿态（拉弓动画）。
-    // 凋灵骷髅不持弓，不注册此参数，hasParam 返回 false，分支自然跳过。
-    if (m_typeId == "minecraft:skeleton" || m_typeId == "skeleton" || m_typeId == "minecraft:stray" ||
-        m_typeId == "stray" || m_typeId == "minecraft:bogged" || m_typeId == "bogged") {
-        if (m_dataManager.hasParam(::mc::AbstractSkeletonEntity::getChargingBowParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::AbstractSkeletonEntity::getChargingBowParamId());
-                value != nullptr) {
-                const bool charging = value->get<bool>();
-                setChargingBow(charging);
-            }
-        }
-    }
+    // 骷髅拉弓状态不再单独同步——对齐 vanilla 1.21.11 AbstractSkeletonRenderer.getArmPose，
+    // 客户端据 Mob.isAggressive()（下方 DATA_MOB_FLAGS_PARAM 位 2 同步）+ 主手持弓判定
+    // 渲染 BowAndArrow。原 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM(id16) 同步已移除
+    // （该 id16 致 vanilla Stray/WitherSkeleton 客户端 set_entity_data 越界崩溃）。
 
     // Mob 激怒/攻击中状态同步（僵尸、尸壳、溺尸、僵尸村民等所有 Mob）
     // 通过 MobEntity::DATA_MOB_FLAGS_PARAM 的位 2 (MOB_FLAG_AGGRESSIVE) 同步。

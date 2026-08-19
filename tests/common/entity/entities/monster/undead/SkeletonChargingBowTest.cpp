@@ -23,27 +23,32 @@
 
 /**
  * @file SkeletonChargingBowTest.cpp
- * @brief AbstractSkeletonEntity 拉弓状态（DATA_CHARGING_BOW_PARAM）单元测试
+ * @brief AbstractSkeletonEntity 拉弓渲染状态同步机制单元测试
  *
- * 验证内容：
- * - registerData() 正确注册 DATA_CHARGING_BOW_PARAM（通过 hasParam 验证）
- * - isChargingBow/setChargingBow 通过 DataParameter 读写
- * - setChargingBow 标记脏数据（EntityTracker 自动广播）
- * - getChargingBowParamId 返回与服务端一致的参数 ID
- * - tick() 中 isUsingItem + 持弓状态正确驱动 chargingBow
- * - attackEntityWithRangedAttack 重置 chargingBow 为 false
- * - 子类（SkeletonEntity/StrayEntity/BoggedEntity）继承注册
- * - 凋灵骷髅（WitherSkeletonEntity）同样继承注册但不持弓
+ * 验证内容（对齐 vanilla 1.21.11 AbstractSkeletonRenderer.getArmPose）：
+ * - AbstractSkeletonEntity 及其 4 子类（Skeleton/Stray/Bogged/WitherSkeleton）
+ *   registerData 不注册任何 id16 SynchedEntityData 字段——vanilla Stray/
+ *   WitherSkeleton 客户端访问器数组长度=16，发送 id16 致
+ *   "Index 16 out of bounds for length 16" 崩溃，故项目删除原
+ *   DATA_CHARGING_BOW_PARAM(id16)，本测试守护此对齐不被回退。
+ * - 拉弓渲染状态改由 Mob.isAggressive（DATA_MOB_FLAGS_PARAM id15 位 2）同步，
+ *   由 RangedBowAttackGoal::startExecuting/resetTask 经 setAggroed 写入。
+ * - setAggressive/isAggressive 经 DATA_MOB_FLAGS_PARAM 位 2 读写。
+ * - setAggressive 标记脏数据（EntityTracker 自动广播）。
  *
- * 对应 MC 1.21.11 AbstractSkeletonRenderer.getArmPose：
- *   isAggressive && mainHandItem.is(Items.BOW) → BOW_AND_ARROW
- * 本项目用 chargingBow 布尔字段替代，由 tick 根据 isUsingItem + 持弓设置。
+ * 对应 MC 1.21.11：
+ *   AbstractSkeletonRenderer.getArmPose:
+ *     getMainArm()==arm && isAggressive() && mainHandItem.is(Items.BOW) → BOW_AND_ARROW
+ *   Mob.DATA_MOB_FLAGS_ID（id15）位 2 = MOB_FLAG_AGGRESSIVE
  */
 
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/BoggedEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
@@ -58,7 +63,7 @@ namespace mc {
 namespace {
 
 // ============================================================================
-// 测试世界 - 支持骷髅拉弓状态测试所需的最小 IWorld 接口
+// 测试世界 - 支持骷髅激怒状态测试所需的最小 IWorld 接口
 // ============================================================================
 
 class SkeletonChargingBowTestWorld final : public mc::test::BaseTestWorld {
@@ -101,225 +106,240 @@ protected:
 };
 
 // ============================================================================
-// DATA_CHARGING_BOW_PARAM 注册测试
+// 协议对齐核心：AbstractSkeleton 不注册 id16 字段
+//
+// vanilla 1.21.11 Stray/WitherSkeleton/Skeleton/Bogged 客户端 SynchedEntityData
+// 访问器数组长度=16（id 0..15，末位即 Mob.DATA_MOB_FLAGS_ID=15）。项目曾注册
+// DATA_CHARGING_BOW_PARAM(id16) 致真 Java 客户端 set_entity_data 越界崩溃
+// "Index 16 out of bounds for length 16"。删除后 hasParam(16)==false，对齐 vanilla。
+// 此组测试守护该对齐，防止 id16 字段被误加回。
 // ============================================================================
 
-TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Skeleton)
+TEST_F(SkeletonChargingBowTest, Skeleton_NoId16FieldRegistered_AlignedWithVanilla)
 {
-    // AbstractSkeletonEntity 构造函数显式调用 registerData()（参考 WolfEntity 模式），
-    // 注册 DATA_CHARGING_BOW_PARAM，默认值 false。
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     skeleton->setWorld(m_world.get());
-
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
     auto& dm = skeleton->dataManager();
-    EXPECT_TRUE(dm.hasParam(paramId)) << "DATA_CHARGING_BOW_PARAM 必须在 AbstractSkeletonEntity::registerData 中注册";
+
+    // id16 必须未注册（vanilla Skeleton 客户端数组长度=16，无 id16 槽位）
+    EXPECT_FALSE(dm.hasParam(16)) << "SkeletonEntity 不应注册 id16 字段（对齐 vanilla，防 set_entity_data 越界）";
+    // id15（Mob.DATA_MOB_FLAGS_PARAM）必须已注册
+    const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
+    EXPECT_TRUE(dm.hasParam(mobFlagsId)) << "MobEntity::DATA_MOB_FLAGS_PARAM(id15) 必须注册";
 }
 
-TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Stray)
+TEST_F(SkeletonChargingBowTest, Stray_NoId16FieldRegistered_AlignedWithVanilla)
 {
     auto stray = std::make_unique<StrayEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     stray->setWorld(m_world.get());
-
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
     auto& dm = stray->dataManager();
-    EXPECT_TRUE(dm.hasParam(paramId)) << "StrayEntity 应继承 AbstractSkeletonEntity 的 DATA_CHARGING_BOW_PARAM 注册";
+
+    // vanilla Stray 客户端数组长度=16，收到 id16 即越界崩溃——正是本修复的触发场景
+    EXPECT_FALSE(dm.hasParam(16)) << "StrayEntity 不应注册 id16 字段（vanilla Stray 数组长度=16）";
+    EXPECT_TRUE(dm.hasParam(MobEntity::getMobFlagsParamId()));
 }
 
-TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_Bogged)
+TEST_F(SkeletonChargingBowTest, Bogged_NoId16FieldRegistered_AlignedWithVanilla)
 {
     auto bogged = std::make_unique<BoggedEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     bogged->setWorld(m_world.get());
-
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
     auto& dm = bogged->dataManager();
-    EXPECT_TRUE(dm.hasParam(paramId)) << "BoggedEntity 应继承 AbstractSkeletonEntity 的 DATA_CHARGING_BOW_PARAM 注册";
+
+    EXPECT_FALSE(dm.hasParam(16)) << "BoggedEntity 不应注册 id16 字段（vanilla Bogged 数组长度=16）";
+    EXPECT_TRUE(dm.hasParam(MobEntity::getMobFlagsParamId()));
 }
 
-TEST_F(SkeletonChargingBowTest, DataChargingBowParam_RegisteredOnConstruction_WitherSkeleton)
+TEST_F(SkeletonChargingBowTest, WitherSkeleton_NoId16FieldRegistered_AlignedWithVanilla)
 {
-    // 凋灵骷髅不持弓（走 MeleeAttackGoal），但仍继承 AbstractSkeletonEntity 的 registerData，
-    // DATA_CHARGING_BOW_PARAM 会注册但永远不会被设置为 true（不持弓、不拉弓）。
     auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     witherSkeleton->setWorld(m_world.get());
-
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
     auto& dm = witherSkeleton->dataManager();
-    EXPECT_TRUE(dm.hasParam(paramId)) << "WitherSkeletonEntity 虽不持弓，但仍继承 DATA_CHARGING_BOW_PARAM 注册";
+
+    // vanilla WitherSkeleton 客户端数组长度=16，收到 id16 即越界崩溃——本修复触发场景
+    EXPECT_FALSE(dm.hasParam(16)) << "WitherSkeletonEntity 不应注册 id16 字段（vanilla WitherSkeleton 数组长度=16）";
+    EXPECT_TRUE(dm.hasParam(MobEntity::getMobFlagsParamId()));
 }
 
 // ============================================================================
-// isChargingBow / setChargingBow 读写测试
+// isAggressive / setAggressive 经 DATA_MOB_FLAGS_PARAM 位 2 读写
+//
+// 拉弓渲染状态不再有独立字段，改由 Mob.isAggressive（DATA_MOB_FLAGS_PARAM
+// id15 位 2，MOB_FLAG_AGGRESSIVE=0x04）承载。RangedBowAttackGoal::startExecuting
+// 调 setAggroed(true)（setAggressive 别名）置位，resetTask 调 setAggroed(false) 清位。
 // ============================================================================
 
-TEST_F(SkeletonChargingBowTest, IsChargingBow_DefaultFalse)
+TEST_F(SkeletonChargingBowTest, IsAggressive_DefaultFalse)
 {
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_FALSE(skeleton->isChargingBow()) << "拉弓状态默认应为 false";
+    skeleton->setWorld(m_world.get());
+    EXPECT_FALSE(skeleton->isAggressive()) << "激怒状态默认应为 false（未拉弓）";
 }
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_True_ReadsBackTrue)
+TEST_F(SkeletonChargingBowTest, SetAggressive_True_ReadsBackTrue)
 {
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
 
-    skeleton->setChargingBow(true);
-    EXPECT_TRUE(skeleton->isChargingBow());
+    skeleton->setAggressive(true);
+    EXPECT_TRUE(skeleton->isAggressive());
 }
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_False_ReadsBackFalse)
+TEST_F(SkeletonChargingBowTest, SetAggressive_False_ReadsBackFalse)
 {
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    skeleton->setChargingBow(true);
+    skeleton->setWorld(m_world.get());
+    skeleton->setAggressive(true);
 
-    skeleton->setChargingBow(false);
-    EXPECT_FALSE(skeleton->isChargingBow());
+    skeleton->setAggressive(false);
+    EXPECT_FALSE(skeleton->isAggressive());
 }
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_ToggleBackAndForth)
+TEST_F(SkeletonChargingBowTest, SetAggroed_AliasForSetAggressive)
+{
+    // setAggroed 是 setAggressive 的别名（RangedBowAttackGoal 用 setAggroed）
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
+
+    EXPECT_FALSE(skeleton->isAggroed());
+    skeleton->setAggroed(true);
+    EXPECT_TRUE(skeleton->isAggroed());
+    EXPECT_TRUE(skeleton->isAggressive()) << "setAggroed(true) 应等价于 setAggressive(true)";
+
+    skeleton->setAggroed(false);
+    EXPECT_FALSE(skeleton->isAggressive()) << "setAggroed(false) 应等价于 setAggressive(false)";
+}
+
+TEST_F(SkeletonChargingBowTest, SetAggressive_ToggleBackAndForth)
 {
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
 
-    skeleton->setChargingBow(true);
-    EXPECT_TRUE(skeleton->isChargingBow());
+    skeleton->setAggressive(true);
+    EXPECT_TRUE(skeleton->isAggressive());
 
-    skeleton->setChargingBow(false);
-    EXPECT_FALSE(skeleton->isChargingBow());
+    skeleton->setAggressive(false);
+    EXPECT_FALSE(skeleton->isAggressive());
 
-    skeleton->setChargingBow(true);
-    EXPECT_TRUE(skeleton->isChargingBow());
+    skeleton->setAggressive(true);
+    EXPECT_TRUE(skeleton->isAggressive());
 }
 
 // ============================================================================
-// setChargingBow 标记脏数据测试（EntityTracker 自动广播依赖）
+// setAggressive 标记脏数据测试（EntityTracker 自动广播依赖）
+//
+// setAggressive 写 DATA_MOB_FLAGS_PARAM 位 2，值变化时标记脏数据，
+// EntityTracker 监测 hasDirtyData() 并自动广播到客户端。
 // ============================================================================
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_True_MarksDirty)
+TEST_F(SkeletonChargingBowTest, SetAggressive_True_MarksDirty)
 {
-    // setChargingBow 通过 m_dataManager.set 写入 DataParameter。
-    // EntityTracker 监测 hasDirtyData() 并自动广播到客户端。
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
     auto& dm = skeleton->dataManager();
     dm.clearDirty(); // 清除构造期间可能的脏标记
 
-    skeleton->setChargingBow(true);
-    EXPECT_TRUE(dm.hasDirtyData()) << "拉弓状态变化应标记脏数据以触发网络广播";
+    skeleton->setAggressive(true);
+    EXPECT_TRUE(dm.hasDirtyData()) << "激怒状态变化应标记脏数据以触发网络广播";
 }
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_SameValue_NotDirty)
+TEST_F(SkeletonChargingBowTest, SetAggressive_SameValue_NotDirty)
 {
     // 设置相同值不应标记脏数据（EntityDataManager::set 的契约）
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    skeleton->setChargingBow(true);
+    skeleton->setWorld(m_world.get());
+    skeleton->setAggressive(true);
     auto& dm = skeleton->dataManager();
     dm.clearDirty();
 
-    skeleton->setChargingBow(true); // 相同值
+    skeleton->setAggressive(true); // 相同值
     EXPECT_FALSE(dm.hasDirtyData()) << "设置相同值不应标记脏数据";
 }
 
-TEST_F(SkeletonChargingBowTest, SetChargingBow_False_AfterTrue_MarksDirty)
+TEST_F(SkeletonChargingBowTest, SetAggressive_False_AfterTrue_MarksDirty)
 {
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    skeleton->setChargingBow(true);
+    skeleton->setWorld(m_world.get());
+    skeleton->setAggressive(true);
     auto& dm = skeleton->dataManager();
     dm.clearDirty();
 
-    skeleton->setChargingBow(false);
+    skeleton->setAggressive(false);
     EXPECT_TRUE(dm.hasDirtyData()) << "从 true 变 false 应标记脏数据";
 }
 
 // ============================================================================
-// getChargingBowParamId 一致性测试
-// ============================================================================
-
-TEST_F(SkeletonChargingBowTest, GetChargingBowParamId_ConsistentAcrossInstances)
-{
-    auto skeleton1 = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    auto skeleton2 = std::make_unique<SkeletonEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto stray = std::make_unique<StrayEntity>(EntityInstanceId(3), mc::test::testEcsRegistry());
-
-    // DATA_CHARGING_BOW_PARAM 是静态成员，所有实例共享同一个参数 ID
-    const u16 id1 = AbstractSkeletonEntity::getChargingBowParamId();
-    const u16 id2 = AbstractSkeletonEntity::getChargingBowParamId();
-    EXPECT_EQ(id1, id2);
-
-    // 客户端 ClientEntity::syncMetadataFromDataManager 依赖此 ID 与服务端匹配
-    EXPECT_TRUE(skeleton1->dataManager().hasParam(id1));
-    EXPECT_TRUE(skeleton2->dataManager().hasParam(id1));
-    EXPECT_TRUE(stray->dataManager().hasParam(id1));
-}
-
-// ============================================================================
-// DataParameter 直接读写验证（绕过 setter，验证底层存储）
-// ============================================================================
-
-TEST_F(SkeletonChargingBowTest, SetChargingBow_WritesToDataManager)
-{
-    // 验证 setChargingBow 确实通过 DataParameter::set 写入，
-    // 而非写入某个孤立的成员变量。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-
-    skeleton->setChargingBow(true);
-
-    // 直接从 dataManager 读取，验证与 isChargingBow 一致
-    auto& dm = skeleton->dataManager();
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
-    const auto* raw = dm.getRaw(paramId);
-    ASSERT_NE(raw, nullptr);
-    EXPECT_TRUE(raw->get<bool>());
-
-    EXPECT_TRUE(skeleton->isChargingBow());
-}
-
-TEST_F(SkeletonChargingBowTest, IsChargingBow_ReadsFromDataManager)
-{
-    // 反向验证：直接通过 DataParameter 写入，isChargingBow 应读到新值。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-
-    // 构造一个与服务端 DATA_CHARGING_BOW_PARAM 相同 ID 的参数键
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
-    entity::DataParameter<bool> param(paramId);
-
-    auto& dm = skeleton->dataManager();
-    dm.set(param, true);
-
-    EXPECT_TRUE(skeleton->isChargingBow()) << "isChargingBow 应直接读取 DataParameter 的值";
-}
-
-// ============================================================================
-// tick() 驱动 chargingBow 逻辑（间接验证）
+// DATA_MOB_FLAGS_PARAM 位 2 直接读写验证（绕过 setter，验证底层存储）
 //
-// AbstractSkeletonEntity::tick 中：
-//   nowCharging = isUsingItem() && getMainHandItem().getItem() == Items::BOW
-//   if (wasCharging != nowCharging) setChargingBow(nowCharging)
-//
-// 由于 tick() 会触发 LivingEntity::tick → Entity::tick 的完整链路，
-// 需要 tickManager 等基础设施。此处采用间接验证策略：
-// - 验证 isUsingItem() 在未调用 setActiveHand 时返回 false
-// - 验证持弓前置条件（getMainHandItem 可正确返回 BOW）
-// - 验证 setChargingBow 可被外部调用（attackEntityWithRangedAttack 用此重置）
+// setAggressive 写 DATA_MOB_FLAGS_PARAM 位 2（0x04），不影响其他位。
+// 验证：置 aggressive 后 flags 的位 2 = 1；清后位 2 = 0。
 // ============================================================================
 
-TEST_F(SkeletonChargingBowTest, Tick_Preconditions_IsUsingItemDefaultFalse)
+TEST_F(SkeletonChargingBowTest, SetAggressive_SetsBit2OfMobFlags)
 {
-    // 验证 tick() 中 nowCharging 计算的前置条件：
-    // 未调用 setActiveHand 时 isUsingItem() 必须返回 false，
-    // 因此 nowCharging = false && ... = false，不会误设 chargingBow。
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     skeleton->setWorld(m_world.get());
 
-    EXPECT_FALSE(skeleton->isUsingItem()) << "未调用 setActiveHand 时 isUsingItem 应为 false";
+    skeleton->setAggressive(true);
+
+    const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
+    auto& dm = skeleton->dataManager();
+    const auto* raw = dm.getRaw(mobFlagsId);
+    ASSERT_NE(raw, nullptr);
+    const i8 flags = raw->get<i8>();
+    EXPECT_NE(flags & static_cast<i8>(MobEntity::getAggressiveFlagMask()), 0)
+        << "setAggressive(true) 应置 DATA_MOB_FLAGS_PARAM 位 2（0x04）";
 }
 
-TEST_F(SkeletonChargingBowTest, Tick_Preconditions_BowEquipped_MainHandReturnsBow)
+TEST_F(SkeletonChargingBowTest, SetAggressiveFalse_ClearsBit2OfMobFlags)
+{
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
+    skeleton->setAggressive(true);
+
+    skeleton->setAggressive(false);
+
+    const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
+    auto& dm = skeleton->dataManager();
+    const auto* raw = dm.getRaw(mobFlagsId);
+    ASSERT_NE(raw, nullptr);
+    const i8 flags = raw->get<i8>();
+    EXPECT_EQ(flags & static_cast<i8>(MobEntity::getAggressiveFlagMask()), 0)
+        << "setAggressive(false) 应清 DATA_MOB_FLAGS_PARAM 位 2";
+}
+
+TEST_F(SkeletonChargingBowTest, IsAggressive_ReadsBit2OfMobFlags)
+{
+    // 反向验证：直接通过 DataParameter 写位 2，isAggressive 应读到对应值。
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    skeleton->setWorld(m_world.get());
+
+    const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
+    entity::DataParameter<i8> param(mobFlagsId);
+
+    auto& dm = skeleton->dataManager();
+    dm.set(param, static_cast<i8>(MobEntity::getAggressiveFlagMask())); // 仅置位 2
+
+    EXPECT_TRUE(skeleton->isAggressive()) << "isAggressive 应读取 DATA_MOB_FLAGS_PARAM 位 2";
+
+    dm.set(param, static_cast<i8>(0)); // 清所有位
+    EXPECT_FALSE(skeleton->isAggressive());
+}
+
+// ============================================================================
+// 持弓前置条件验证（拉弓渲染 = isAggressive && 持弓）
+//
+// 对齐 vanilla AbstractSkeletonRenderer.getArmPose：
+//   isAggressive && mainHandItem.is(Items.BOW) → BOW_AND_ARROW
+// 客户端 _applySkeletonArmPose 同此判定。此处验证服务端持弓前置条件。
+// ============================================================================
+
+TEST_F(SkeletonChargingBowTest, BowEquipped_MainHandReturnsBow)
 {
     // 验证持弓时 getMainHandItem().getItem() == Items::BOW，
-    // 配合 setActiveHand(MainHand) 后 isUsingItem=true，
-    // tick() 中 nowCharging 计算应为 true。
+    // 配合 isAggressive=true 即拉弓渲染条件。
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     skeleton->setWorld(m_world.get());
 
-    // 装备弓
     ASSERT_NE(Items::BOW, nullptr);
     skeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
 
@@ -328,10 +348,10 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_BowEquipped_MainHandReturnsBo
     EXPECT_EQ(mainHand.getItem(), Items::BOW);
 }
 
-TEST_F(SkeletonChargingBowTest, Tick_Preconditions_NoBow_MainHandNotBow)
+TEST_F(SkeletonChargingBowTest, NoBow_MainHandNotBow)
 {
     // 空手时 getMainHandItem().getItem() == nullptr，不等于 Items::BOW，
-    // 即使 isUsingItem=true，nowCharging 也为 false。
+    // 即使 isAggressive=true 也不进入 BowAndArrow（vanilla 判定）。
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     skeleton->setWorld(m_world.get());
 
@@ -340,89 +360,63 @@ TEST_F(SkeletonChargingBowTest, Tick_Preconditions_NoBow_MainHandNotBow)
     EXPECT_NE(mainHand.getItem(), Items::BOW);
 }
 
-TEST_F(SkeletonChargingBowTest, Tick_Preconditions_SetActiveHand_MarksUsingItem)
+TEST_F(SkeletonChargingBowTest, WitherSkeleton_DefaultNotAggressive_NoBow)
 {
-    // 持弓并调用 setActiveHand(MainHand) 后，isUsingItem 应返回 true。
-    // 此时 tick() 中 nowCharging = true && (BOW==BOW) = true。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    skeleton->setWorld(m_world.get());
+    // 凋灵骷髅走 MeleeAttackGoal（不持弓、不拉弓），
+    // 默认不激怒、主手非弓——拉弓渲染条件永不成立。
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    witherSkeleton->setWorld(m_world.get());
 
-    ASSERT_NE(Items::BOW, nullptr);
-    skeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
-
-    EXPECT_FALSE(skeleton->isUsingItem());
-    skeleton->setActiveHand(Hand::MainHand);
-    EXPECT_TRUE(skeleton->isUsingItem()) << "setActiveHand 后 isUsingItem 应为 true";
-
-    // 清理：停止使用物品
-    skeleton->stopActiveHand();
-    EXPECT_FALSE(skeleton->isUsingItem());
-}
-
-// ============================================================================
-// attackEntityWithRangedAttack 重置 chargingBow 测试
-//
-// attackEntityWithRangedAttack 中调用 setChargingBow(false) 重置拉弓状态。
-// 此处验证 setChargingBow(false) 可正确重置（attackEntityWithRangedAttack
-// 完整调用需要 world + target + 箭矢创建，过于重量级，此处验证核心契约）。
-// ============================================================================
-
-TEST_F(SkeletonChargingBowTest, AttackEntityWithRangedAttack_Preconditions_ChargingBowResettable)
-{
-    // attackEntityWithRangedAttack 开头调用 setChargingBow(false)。
-    // 验证拉弓状态可通过 setChargingBow(false) 重置，
-    // 这是 attackEntityWithRangedAttack 射击后重置拉弓的基础。
-    auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    skeleton->setChargingBow(true);
-    ASSERT_TRUE(skeleton->isChargingBow());
-
-    skeleton->setChargingBow(false);
-    EXPECT_FALSE(skeleton->isChargingBow()) << "attackEntityWithRangedAttack 应通过 setChargingBow(false) 重置";
+    EXPECT_FALSE(witherSkeleton->isAggressive());
+    const auto& mainHand = witherSkeleton->getMainHandItem();
+    EXPECT_NE(mainHand.getItem(), Items::BOW);
 }
 
 // ============================================================================
 // 子类继承一致性测试
+//
+// 所有骷髅子类继承 MobEntity 的 isAggressive/setAggressive（经 DATA_MOB_FLAGS_PARAM），
+// 无需各自覆写。验证 Stray/Bogged/WitherSkeleton 行为一致。
 // ============================================================================
 
-TEST_F(SkeletonChargingBowTest, Stray_ChargingBow_InheritsFromAbstractSkeleton)
+TEST_F(SkeletonChargingBowTest, Stray_Aggressive_InheritsFromMobEntity)
 {
     auto stray = std::make_unique<StrayEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_FALSE(stray->isChargingBow());
+    stray->setWorld(m_world.get());
+    EXPECT_FALSE(stray->isAggressive());
 
-    stray->setChargingBow(true);
-    EXPECT_TRUE(stray->isChargingBow());
+    stray->setAggressive(true);
+    EXPECT_TRUE(stray->isAggressive());
 
-    stray->setChargingBow(false);
-    EXPECT_FALSE(stray->isChargingBow());
+    stray->setAggressive(false);
+    EXPECT_FALSE(stray->isAggressive());
 }
 
-TEST_F(SkeletonChargingBowTest, Bogged_ChargingBow_InheritsFromAbstractSkeleton)
+TEST_F(SkeletonChargingBowTest, Bogged_Aggressive_InheritsFromMobEntity)
 {
     auto bogged = std::make_unique<BoggedEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_FALSE(bogged->isChargingBow());
+    bogged->setWorld(m_world.get());
+    EXPECT_FALSE(bogged->isAggressive());
 
-    bogged->setChargingBow(true);
-    EXPECT_TRUE(bogged->isChargingBow());
+    bogged->setAggressive(true);
+    EXPECT_TRUE(bogged->isAggressive());
 
-    bogged->setChargingBow(false);
-    EXPECT_FALSE(bogged->isChargingBow());
+    bogged->setAggressive(false);
+    EXPECT_FALSE(bogged->isAggressive());
 }
 
-TEST_F(SkeletonChargingBowTest, WitherSkeleton_ChargingBow_InheritsButNeverSet)
+TEST_F(SkeletonChargingBowTest, WitherSkeleton_Aggressive_InheritsFromMobEntity)
 {
-    // 凋灵骷髅继承 DATA_CHARGING_BOW_PARAM（hasParam=true），
-    // 但因不持弓（走 MeleeAttackGoal），tick 中 nowCharging 永远为 false，
-    // setChargingBow(true) 永远不会被调用。
+    // 凋灵骷髅虽走近战，但仍继承 MobEntity 的 aggressive 机制（MeleeAttackGoal 用之）
     auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_FALSE(witherSkeleton->isChargingBow());
+    witherSkeleton->setWorld(m_world.get());
+    EXPECT_FALSE(witherSkeleton->isAggressive());
 
-    // 验证参数已注册（继承自 AbstractSkeletonEntity）
-    const u16 paramId = AbstractSkeletonEntity::getChargingBowParamId();
-    EXPECT_TRUE(witherSkeleton->dataManager().hasParam(paramId));
+    witherSkeleton->setAggressive(true);
+    EXPECT_TRUE(witherSkeleton->isAggressive());
 
-    // 凋灵骷髅默认不持弓
-    const auto& mainHand = witherSkeleton->getMainHandItem();
-    EXPECT_NE(mainHand.getItem(), Items::BOW);
+    witherSkeleton->setAggressive(false);
+    EXPECT_FALSE(witherSkeleton->isAggressive());
 }
 
 } // namespace

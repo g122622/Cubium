@@ -1318,11 +1318,12 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         }
 
         // 骷髅拉弓手臂姿态
-        // 第三人称骷髅走 GPU 管线路径，需要在此根据 ClientEntity::isChargingBow()
-        // （通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步）设置
-        // SkeletonModel 的右臂 ArmPose 为 BowAndArrow，触发 BipedModel::handleRightArmPose
-        // 的拉弓动画。覆盖普通骷髅（skeleton）、流浪者（stray）和沼骸骨（bogged）。
-        // 凋灵骷髅（wither_skeleton）不持弓，不进入此分支。
+        // 第三人称骷髅走 GPU 管线路径，需要在此根据 ClientEntity::isAggressive()
+        // （通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2 同步，由 RangedBowAttackGoal
+        // 的 setAggroed 写入）+ 主手持弓判定，设置 SkeletonModel 的右臂 ArmPose 为
+        // BowAndArrow，触发 BipedModel::handleRightArmPose 的拉弓动画（对齐 vanilla
+        // AbstractSkeletonRenderer.getArmPose）。覆盖普通骷髅（skeleton）、流浪者
+        // （stray）和沼骸骨（bogged）。凋灵骷髅（wither_skeleton）不持弓，不进入此分支。
         if (normalizedId == "skeleton" || normalizedId == "minecraft:skeleton" || normalizedId == "stray" ||
             normalizedId == "minecraft:stray" || normalizedId == "bogged" || normalizedId == "minecraft:bogged") {
             auto* skeletonModel = dynamic_cast<model::monster::SkeletonModel*>(model.get());
@@ -1469,15 +1470,22 @@ void EntityRendererManager::_applySkeletonArmPose(
 {
     // 对应 MC 1.21.11 AbstractSkeletonRenderer.getArmPose：
     //   当 isAggressive && mainHandItem.is(Items.BOW) 时返回 BOW_AND_ARROW。
-    // 本项目用 chargingBow 布尔字段替代 isAggressive + isHoldingBow 组合判断，
-    // 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态设置，
-    // 通过 DATA_CHARGING_BOW_PARAM 同步到 ClientEntity::isChargingBow()。
+    // isAggressive 通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2 同步到 ClientEntity
+    // （由 RangedBowAttackGoal::startExecuting/resetTask 经 setAggroed 写入）。
+    // 持弓由主手物品判定。此前用独立 DATA_CHARGING_BOW_PARAM(id16) 同步是项目简化，
+    // 但 vanilla AbstractSkeleton/Stray/WitherSkeleton 无 id16 字段（客户端数组长度=16），
+    // 发送 id16 致真 Java 客户端 set_entity_data "Index 16 out of bounds for length 16"
+    // 崩溃，故改回 vanilla 的 isAggressive + 持弓判定。
     //
     // 骷髅默认右撇子（MC 原版骷髅不区分主手，统一用右手持弓拉弓），
     // 故仅设置右臂 ArmPose。BipedModel::handleRightArmPose 的 BowAndArrow 分支
     // 会同时设置右臂和左臂的角度（双手拉弓协调），无需额外设置左臂。
     using model::ArmPose;
-    if (entity.isChargingBow()) {
+    const bool holdingBow = [&] {
+        const ItemStack* mainHand = entity.getMainHandItem();
+        return mainHand != nullptr && mainHand->getItem() == Items::BOW;
+    }();
+    if (entity.isAggressive() && holdingBow) {
         skeletonModel.setRightArmPose(ArmPose::BowAndArrow);
         // 左臂保持 Empty，由 BipedModel::handleRightArmPose 的 BowAndArrow 分支
         // 统一设置双手角度（右臂 Y=-0.1+headYaw，左臂 Y=0.1+headYaw+0.4）。
