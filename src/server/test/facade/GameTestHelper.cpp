@@ -217,7 +217,47 @@ GameTestHelper::GameTestHelper(
     }
 }
 
-GameTestHelper::~GameTestHelper() = default; // unique_ptr<GameTestSequence> 需完整类型，故在此定义
+GameTestHelper::~GameTestHelper()
+{
+    // 测试完成清场：清结构 bounds 内所有实体（含 SimulatedPlayer），避免跨测试/跨批次实体残留污染。
+    //
+    // 根因：Cubium GameTest 框架的清场链路（clearStructure / GameTestClearTask / GameTestTicker::addClearTask）
+    // 均为空壳——clearStructure 无人调用，GameTestClearTask 无具体实现，addClearTask 无调用者。致测试完成后
+    // 结构内实体（含 SimulatedPlayer）残留世界，被后续测试的全局查询误用。典型受害：natural_spawn_requires_player
+    // 依赖"世界中无玩家"（NaturalSpawner.spawnCategoryForPosition players.empty() 早退），但同批/前批其他测试的
+    // SimulatedPlayer 残留，getClosestPlayer 找到 106 格外的残留玩家（<128 距离门控内），驱动生成 40 怪物，
+    // 破坏"无玩家不生成"负向语义。
+    //
+    // 对齐 Java GameTestInfo.succeed()（GameTestInfo.java:241-248）：测试成功时清结构 bounds（inflate 1.0）内
+    // 所有非 Player 实体（remove(DISCARDED)）。Cubium 扩展为：成功/失败都清（fail 后实体同样残留污染下批），
+    // 且清含 SimulatedPlayer——因 Cubium GameTestServer 是无头门面，无真实玩家生命周期管理（Java 的 MockPlayer
+    // 由 GameTestServer 关闭时统一清，Cubium 跑完全部测试才关，期间累积残留）。
+    //
+    // 时机：helper 是 instance 的 unique_ptr 成员，instance 在 BaseGameTestBatchRunner::tick 检测批次 allDone 后
+    // 经 m_currentBatchInstances.clear() 析构（BaseGameTestBatchRunner.cpp:154）。此时同批所有测试已完成，
+    // 清场只清本结构 bounds（结构间距 SPACE_BETWEEN_COLUMNS=73+ 格，bounds 不重叠），不影响他者；且在下一批
+    // _runBatch（行 157-159）前完成，清场同步立即生效（discard 即时移除），下批开始时上批实体已清。
+    //
+    // 注：killAllEntities() 公有 API 复用相同 AABB+discard 逻辑（注释误称"非玩家"，实际清含玩家，见
+    // EntityManager::getEntitiesInAABB 不排除 Player）。此处不调用 killAllEntities（它返回 GameTestResult，
+    // 析构无需结果），直接内联清场。
+    if (m_bounds != nullptr) {
+        const StructureBoundingBox bb = m_bounds->bounds();
+        // inflate 1.0 对齐 Java（aabb.inflate(1.0)）：清结构边界外扩 1 格内的实体（防实体卡在边界）。
+        const AxisAlignedBB box(static_cast<f32>(bb.minX() - 1),
+            static_cast<f32>(bb.minY() - 1),
+            static_cast<f32>(bb.minZ() - 1),
+            static_cast<f32>(bb.maxX() + 2),
+            static_cast<f32>(bb.maxY() + 2),
+            static_cast<f32>(bb.maxZ() + 2));
+        const auto found = m_world.getEntitiesInAABB(box, nullptr);
+        for (auto* e : found) {
+            if (e != nullptr && !e->isRemoved()) {
+                e->discard(); // 静默移除，不掉落、不触发死亡流程（含 SimulatedPlayer，对齐 removeSimulatedPlayer）
+            }
+        }
+    }
+}
 
 // === 1. 生命周期与状态 ===
 

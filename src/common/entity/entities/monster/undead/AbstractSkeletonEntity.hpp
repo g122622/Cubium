@@ -71,6 +71,11 @@ public:
     AbstractSkeletonEntity(AbstractSkeletonEntity&&) = delete;
     AbstractSkeletonEntity& operator=(AbstractSkeletonEntity&&) = delete;
 
+    // 亡灵生物归类（对齐 Java AbstractSkeleton.getMobType()==UNDEAD）。基类默认 Undefined，未覆写会导致
+    // 骷髅在水中溺水死亡、亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫、白天燃烧判定
+    // 等亡灵特性失效。子类 SkeletonEntity/StrayEntity/WitherSkeletonEntity/BoggedEntity 继承此覆写。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
     // ========== 常量 ==========
     /// 这些常量在测试中需要访问
 

@@ -71,6 +71,11 @@ public:
     SpiderEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SpiderEntity() override = default;
 
+    // 节肢生物归类（对齐 Java Spider.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
+    // 节肢杀手(Bane of Arthropods)附魔无加成、节肢类瞬间伤害药水无额外效果等失效。
+    // 子类 CaveSpiderEntity 继承此覆写自动归类 Arthropod。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+
     // 禁止拷贝
     SpiderEntity(const SpiderEntity&) = delete;
     SpiderEntity& operator=(const SpiderEntity&) = delete;

@@ -22,7 +22,8 @@
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
 
-#include "common/item/core/ItemStack.hpp" // mc::ItemStack（_unwrapItemStack/assertContainerContains）
+#include "common/entity/core/EntityClassification.hpp" // entity::EntityClassification（spawnNaturalAt category 映射）
+#include "common/item/core/ItemStack.hpp"              // mc::ItemStack（_unwrapItemStack/assertContainerContains）
 #include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // wrapBlock（getBlock/assertBlockState 构造 Block JS 对象）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 wrap Entity/Dimension proto
@@ -30,9 +31,10 @@
 #include "common/test/base/error/GameTestError.hpp"
 #include "common/test/base/error/GameTestResult.hpp"
 #include "common/test/framework/sequence/GameTestSequence.hpp"
-#include "common/util/Direction.hpp"    // Direction / Rotation
-#include "common/util/math/Vector3.hpp" // mc::math::Vector3d（worldPosition/rotateVector 等）
-#include "common/world/IWorld.hpp"      // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
+#include "common/util/Direction.hpp"       // Direction / Rotation
+#include "common/util/math/Vector3.hpp"    // mc::math::Vector3d（worldPosition/rotateVector 等）
+#include "common/world/IWorld.hpp"         // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
+#include "common/world/biome/BiomeIds.hpp" // Biomes::Plains 等（spawnNaturalAt biome 注入映射）
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp" // mc::blocks::SculkSpreader（getSculkSpreader wrap/delete 需完整类型）
@@ -42,6 +44,8 @@
 #include "server/test/script/binding/ScriptSequence.hpp"
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
+#include "server/world/ServerWorld.hpp"          // ServerWorld（asServerWorld 取 NaturalSpawner 单点入口）
+#include "server/world/spawn/NaturalSpawner.hpp" // NaturalSpawner::spawnCategoryForPosition（单点生成入口）
 
 #include <cctype>
 #include <sstream>
@@ -675,7 +679,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -943,7 +947,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -1675,7 +1679,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -1711,7 +1715,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
     reg.method(
@@ -1744,7 +1748,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -2085,6 +2089,135 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 ctx, classId, proto, spreader, true, "SculkSpreader");
         },
         1);
+
+    // --- spawnNaturalAt(category, pos[, biome]) -> number ---
+    // 项目独有（非基岩/Java GameTest API）：对单个精确坐标执行一次 NaturalSpawner 自然生成判定。
+    // 对齐 Java @VisibleForDebug NaturalSpawner.spawnCategoryForPosition(MobCategory, ServerLevel, BlockPos)
+    // （vanilla /debugmobspawning 命令背后的调试单点入口）。绕过 tick 的随机区块/区块内选址，
+    // 使 GameTest 能对精确坐标做一次完整条件检查 + 生成——消除小结构 footprint 命中率极低的随机性，
+    // 确定性验证光照门槛/距离门控/玩家门控等 NaturalSpawner 核心条件。
+    //
+    // 语义：不做 cap/SpawnCosts 检查（对齐 vanilla 3 参版恒真 predicate），仅测条件判定 + 生成。
+    // 返回实际生成实体数（0 表示本次未生成，可能是条件不满足或随机未抽中 entry）。
+    // category 取 vanilla MobCategory 名："monster"/"creature"/"ambient" 等。
+    // pos 须为合法 air 生成位（调用方用结构内 air 腔坐标），方法内对 pos 做 ±5 抖动（对齐 vanilla）。
+    // biome（可选）：强制用该 biome 取 SpawnEntry，绕过 pos 所在 chunk 的真实 biome。测试专用——
+    //   GameTest 结构固定放世界原点，原点 biome 由世界种子决定不可控（默认 seed=0 原点是 ColdOcean，
+    //   无陆地动物 SpawnEntry），注入 biome 让测试能稳定验证"plains 能生成动物"等条件判定。
+    //   取 vanilla biome 名："plains"/"forest"/"desert"/"swamp"/"river"/"ocean" 等。省略则用真实 biome。
+    reg.method(
+        "spawnNaturalAt",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* helper = _requireHelper(ctx, thisVal);
+            if (helper == nullptr) {
+                return nullptr;
+            }
+            if (argc < 2 || !ctx.isString(args[0]) || !ctx.isObject(args[1])) {
+                return ctx.throwTypeError("spawnNaturalAt(category, pos[, biome]) expects (string, {x,y,z}[, string])");
+            }
+            auto categoryStr = ctx.toString(args[0]);
+            if (!categoryStr) {
+                return ctx.throwInternalError("Failed to read category string");
+            }
+            // category 字符串 → EntityClassification（对齐 vanilla MobCategory 枚举名）。
+            entity::EntityClassification classification;
+            const std::string& cat = *categoryStr;
+            if (cat == "monster") {
+                classification = entity::EntityClassification::Monster;
+            } else if (cat == "creature") {
+                classification = entity::EntityClassification::Creature;
+            } else if (cat == "ambient") {
+                classification = entity::EntityClassification::Ambient;
+            } else if (cat == "axolotls") {
+                classification = entity::EntityClassification::Axolotls;
+            } else if (cat == "underground_water_creature") {
+                classification = entity::EntityClassification::UndergroundWaterCreature;
+            } else if (cat == "water_creature") {
+                classification = entity::EntityClassification::WaterCreature;
+            } else if (cat == "water_ambient") {
+                classification = entity::EntityClassification::WaterAmbient;
+            } else if (cat == "misc") {
+                classification = entity::EntityClassification::Misc;
+            } else {
+                const std::string msg = "spawnNaturalAt: unknown category '" + cat +
+                    "' (expected monster/creature/ambient/axolotls/underground_water_creature/"
+                    "water_creature/water_ambient/misc)";
+                return ctx.throwTypeError(msg.c_str());
+            }
+
+            BlockPos pos;
+            if (!_parseBlockPos(ctx, args[1], pos)) {
+                return nullptr;
+            }
+
+            // biome（可选）→ BiomeId。省略（undefined）则 biomeOverride=0（用 pos 所在 chunk 真实 biome）。
+            BiomeId biomeOverride = 0;
+            if (argc >= 3 && !ctx.isUndefined(args[2])) {
+                if (!ctx.isString(args[2])) {
+                    return ctx.throwTypeError("spawnNaturalAt: biome must be a string (e.g. 'plains')");
+                }
+                auto biomeStr = ctx.toString(args[2]);
+                if (!biomeStr) {
+                    return ctx.throwInternalError("Failed to read biome string");
+                }
+                const std::string& bn = *biomeStr;
+                // biome 名 → BiomeId（覆盖常用 overworld biome；未匹配则报错，避免静默用错 biome）。
+                if (bn == "ocean") {
+                    biomeOverride = Biomes::Ocean;
+                } else if (bn == "plains") {
+                    biomeOverride = Biomes::Plains;
+                } else if (bn == "desert") {
+                    biomeOverride = Biomes::Desert;
+                } else if (bn == "mountains" || bn == "extreme_hills") {
+                    biomeOverride = Biomes::Mountains;
+                } else if (bn == "forest") {
+                    biomeOverride = Biomes::Forest;
+                } else if (bn == "taiga") {
+                    biomeOverride = Biomes::Taiga;
+                } else if (bn == "swamp") {
+                    biomeOverride = Biomes::Swamp;
+                } else if (bn == "river") {
+                    biomeOverride = Biomes::River;
+                } else if (bn == "frozen_ocean") {
+                    biomeOverride = Biomes::FrozenOcean;
+                } else if (bn == "snowy_plains" || bn == "snowy_tundra") {
+                    biomeOverride = Biomes::SnowyPlains;
+                } else if (bn == "beach") {
+                    biomeOverride = Biomes::Beach;
+                } else if (bn == "jungle") {
+                    biomeOverride = Biomes::Jungle;
+                } else if (bn == "deep_ocean") {
+                    biomeOverride = Biomes::DeepOcean;
+                } else if (bn == "birch_forest") {
+                    biomeOverride = Biomes::BirchForest;
+                } else if (bn == "dark_forest") {
+                    biomeOverride = Biomes::DarkForest;
+                } else if (bn == "snowy_taiga") {
+                    biomeOverride = Biomes::SnowyTaiga;
+                } else if (bn == "savanna") {
+                    biomeOverride = Biomes::Savanna;
+                } else if (bn == "mushroom_fields") {
+                    biomeOverride = Biomes::MushroomFields;
+                } else if (bn == "cold_ocean") {
+                    biomeOverride = Biomes::ColdOcean;
+                } else {
+                    const std::string msg = "spawnNaturalAt: unknown biome '" + bn +
+                        "' (expected plains/forest/desert/swamp/river/ocean/...)";
+                    return ctx.throwTypeError(msg.c_str());
+                }
+            }
+
+            // helper->world() 返回 IWorld&，asServerWorld 取 ServerWorld* 调 NaturalSpawner 静态单点入口。
+            auto* serverWorld = helper->world().asServerWorld();
+            if (serverWorld == nullptr) {
+                return ctx.throwInternalError("spawnNaturalAt: world is not a ServerWorld");
+            }
+            const Vector3i spawnPos(pos.x, pos.y, pos.z);
+            const i32 spawned = mc::world::spawn::NaturalSpawner::spawnCategoryForPosition(
+                *serverWorld, classification, spawnPos, biomeOverride);
+            return ctx.createInt32(spawned);
+        },
+        2);
 
     // spawnItem 已绑定（上方，简化接受 itemType 字符串，TODO ItemStack 充实后改对象）。
     // Test 类方法已全部桥接（含批次4 新增 17 方法：assertBlockState/getBlock(stub 待 Block wrap helper)/

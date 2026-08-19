@@ -770,9 +770,15 @@ public:
      *
      * rotation 用于 `^` 局部坐标解析：命令方块传 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），
      * 实体传自身朝向，无朝向源传 (0,0)。
+     *
+     * player 用于构造玩家命令源（SimulatedPlayer::chat 传自身）：非空时 isPlayer()=true，
+     * 解锁需玩家源的命令（/tp <coords>、/effect give @s、/give @s 等）。命令方块/控制台传 nullptr。
      */
-    using CommandExecuteCallback = std::function<i32(
-        const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f& rotation)>;
+    using CommandExecuteCallback = std::function<i32(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel,
+        const Vector2f& rotation,
+        Player* player)>;
 
     void setOnExecuteCommand(CommandExecuteCallback callback) { m_onExecuteCommand = std::move(callback); }
 
@@ -914,10 +920,14 @@ public:
      * @param position 命令执行位置
      * @param permissionLevel 权限级别（0-4，命令方块矿车使用2）
      * @param rotation 命令源朝向 (pitch, yaw)，用于 `^` 局部坐标解析
+     * @param player 执行命令的玩家实体（可选，SimulatedPlayer::chat 传自身；命令方块/控制台传 nullptr）
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
-    [[nodiscard]] i32 executeCommand(
-        const std::string& command, const Vector3d& position, i32 permissionLevel, const Vector2f& rotation) override;
+    [[nodiscard]] i32 executeCommand(const std::string& command,
+        const Vector3d& position,
+        i32 permissionLevel,
+        const Vector2f& rotation,
+        Player* player = nullptr) override;
 
     /**
      * @brief 设置掉落表管理器

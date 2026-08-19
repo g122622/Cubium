@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -563,6 +564,12 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
             JSClassID cid = 0;
             auto* data = static_cast<ScriptObjectRegistry::ObjectData*>(JS_GetAnyOpaque(val, &cid));
             if (data) {
+                // Entity 系句柄（entityId != 0）须在 delete data 前从 ScriptHandleRegistry 注销，
+                // 防注册表持有已 delete 的 ObjectData*——否则后续实体销毁 invalidateAll 解引用
+                // 悬垂 data* UAF（见 ScriptHandleRegistry.hpp）。
+                if (data->entityId != 0) {
+                    ScriptHandleRegistry::instance().unregisterHandle(data);
+                }
                 if (data->owned && data->ptr && data->destroy) {
                     data->destroy(data->ptr);
                 }

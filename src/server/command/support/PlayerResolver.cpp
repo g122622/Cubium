@@ -71,8 +71,14 @@ namespace {
         return {};
     }
 
+    // 合并 PlayerManager（真实玩家）与 ServerPlayerEntityManager（含 SimulatedPlayer）的 PlayerId。
+    // 真实玩家同时存在于两者（PlayerManager 有 ServerPlayerData，实体管理器有 PlayerId↔Entity 映射），
+    // 须去重。SimulatedPlayer 仅在实体管理器（不进 PlayerManager），合并后方能被 @a/@p/@r 选中。
     auto playerIds = source.server()->playerManager().getPlayerIds();
+    auto entityPlayerIds = source.server()->playerEntityManager().getPlayerIds();
+    playerIds.insert(playerIds.end(), entityPlayerIds.begin(), entityPlayerIds.end());
     std::sort(playerIds.begin(), playerIds.end());
+    playerIds.erase(std::unique(playerIds.begin(), playerIds.end()), playerIds.end());
     return playerIds;
 }
 
@@ -95,7 +101,23 @@ namespace {
             resolvedPlayerId = playerData.playerId;
         }
     });
-    return resolvedPlayerId;
+    if (resolvedPlayerId != 0) {
+        return resolvedPlayerId;
+    }
+
+    // 回退：SimulatedPlayer 不进 PlayerManager，经 ServerPlayerEntityManager 遍历实体按 username 匹配。
+    // 命令源须有世界上下文以解析实体（getPlayerEntity 需 ServerWorld）。
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
+    for (PlayerId pid : source.server()->playerEntityManager().getPlayerIds()) {
+        mc::Player* entity = source.server()->playerEntityManager().getPlayerEntity(pid, *world);
+        if (entity != nullptr && entity->username() == username) {
+            return pid;
+        }
+    }
+    return 0;
 }
 
 /**

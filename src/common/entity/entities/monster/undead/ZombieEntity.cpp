@@ -242,12 +242,13 @@ void ZombieEntity::trySummonReinforcements(LivingEntity* explicitTarget)
     }
 
     // 必须在困难模式下
-    if (!entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
+    const bool canReinforce = entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty());
+    // 增援概率检查
+    f64 spawnChance = attributes().getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
+    if (!canReinforce) {
         return;
     }
 
-    // 增援概率检查
-    f64 spawnChance = attributes().getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
     if (getRandom().nextDouble() >= spawnChance) {
         return;
     }

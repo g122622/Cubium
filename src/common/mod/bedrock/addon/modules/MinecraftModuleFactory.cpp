@@ -40,6 +40,7 @@
 #include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
 #include "common/item/core/ItemRegistry.hpp"        // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
 #include "common/item/core/ItemStack.hpp"           // ItemStack（Equippable.getEquipment 返回值）
+#include "common/item/enchantment/EnchantmentHelper.hpp" // EnchantmentHelper::getEnchantments（ItemStack.getEnchantments）
 #include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // ScriptBlockRef/wrapBlock/unwrapBlock（Block JS 类 opaque 快照）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
@@ -441,7 +442,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                             continue;
                         }
                         if (entProto != nullptr) {
-                            void* jsEnt = ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity");
+                            // 传 ent->id() 登记 ScriptHandleRegistry：实体销毁时置 ptr=nullptr 防 UAF
+                            // （owned=false 裸 Entity* 跨 tick 悬垂，见 ScriptHandleRegistry.hpp）。
+                            void* jsEnt = ScriptObjectRegistry::wrap(
+                                ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
                             ctx.setArrayElement(arr, outIdx, jsEnt); // 不消耗所有权，须手动 release
                             ctx.releaseValue(jsEnt);
                             ++outIdx;
@@ -462,7 +466,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     if (ent == nullptr || entProto == nullptr) {
                         continue;
                     }
-                    void* jsEnt = ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity");
+                    void* jsEnt =
+                        ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
                     ctx.setArrayElement(arr, outIdx, jsEnt);
                     ctx.releaseValue(jsEnt);
                     ++outIdx;
@@ -552,6 +557,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
                 return ctx.createUndefined();
             }
+            // 实体有效性守卫：JS 包装对象 owned=false 持裸 mc::Entity*，实体销毁后句柄悬垂。
+            // 项目 EntityManager 有 graveyard 延迟析构——remove() 标记后对象存活到下一 tick 末尾才 free，
+            // 此窗口内 isRemoved()=true。此处检查挡住"已 remove 但尚未 free"的实体（对齐 graveyard 设计
+            // 意图：给裸指针持有方一帧时间通过 isAlive/isRemoved 检查避免 UAF，见 EntityManager.hpp 注释）。
+            // 注：对"立即 free"路径（removeEntity 丢弃 unique_ptr，如区块卸载）此检查仍可能 UAF，
+            // 彻底根治需脚本句柄持 EntityInstanceId 而非裸指针（TODO: 后续重构）。
+            if (ent->isRemoved()) {
+                return ctx.createUndefined();
+            }
             auto compId = ctx.toString(args[0]);
             if (!compId) {
                 return ctx.createUndefined();
@@ -563,13 +577,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             // 按类名 wrap 组件 JS 对象（opaque 持 ent，owned=false）。类未注册时返 undefined。
+            // 传 ent->id() 登记 ScriptHandleRegistry：组件对象与 Entity 对象 opaque 持同一 ent，
+            // 登记同一 entityId，实体销毁时 invalidateAll 一次清空 Entity + 所有组件句柄防 UAF。
             auto wrapComponent = [&ctx, ent](const char* className) -> void* {
                 const u64 classId = ScriptClassRegistry::instance().classIdByName(className);
                 void* proto = ScriptClassRegistry::instance().proto(classId);
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
-                return ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className);
+                return ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className, nullptr, ent->id());
             };
 
             if (normalized == "minecraft:rideable") {
@@ -814,6 +830,56 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return buildEffectObject(ctx, living, *typeOpt);
         },
         1);
+
+    // Entity.addEffect(effectType, duration, options?): void —— 对齐基岩官方 Entity.addEffect。
+    // 官方签名：addEffect(effectType: EffectType | string, duration: number, options?:
+    // EntityEffectOptions): Effect | undefined。options={ amplifier?: number, showParticles?: boolean }。
+    // 成功返回 undefined（对齐官方"成功返回 undefined"）。effectType 支持简写("weakness")或全称
+    // ("minecraft:weakness")。duration 单位 tick。非 LivingEntity（掉落物/经验球等）无效果管理器，
+    // 返 undefined。
+    // 用于 GameTest 给实体施加状态效果（如僵尸村民治愈需先施虚弱、测试中毒/凋零伤害等），
+    // 此前仅 EffectCommand(/effect) 能施效果且只支持玩家选择器，对非玩家实体不可用。
+    // TODO: 官方还支持 effectType 传 EffectType 对象（.id），Cubium 暂仅支持字符串（同 parseEffectType 限制）。
+    entityReg.method(
+        "addEffect",
+        [entityClassId, &parseEffectType](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            auto* living = dynamic_cast<mc::LivingEntity*>(ent);
+            if (living == nullptr || argc < 2) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            // duration: number（tick），基岩范围 [1, 20000000]。
+            // args[1] 是 JS number 原始值，用 toInt32 取整（对齐基岩 duration 取整语义）。
+            auto durationOpt = ctx.toInt32(args[1]);
+            if (!durationOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            i32 duration = *durationOpt;
+            // options?: EntityEffectOptions（可选对象）。
+            i32 amplifier = 0;
+            bool showParticles = true; // 对齐 EffectInstance 默认 visible=true
+            if (argc >= 3 && ctx.isObject(args[2])) {
+                void* opts = args[2];
+                auto ampOpt = ctx.getPropertyInt(opts, "amplifier");
+                if (ampOpt.has_value()) {
+                    amplifier = *ampOpt;
+                }
+                auto partOpt = ctx.getPropertyBool(opts, "showParticles");
+                if (partOpt.has_value()) {
+                    showParticles = *partOpt;
+                }
+            }
+            // EffectInstance(type, duration, amplifier, ambient=false, visible=showParticles)。
+            // 对齐 EffectCommand.cpp:187 用法（ambient 固定 false，visible 对应 showParticles）。
+            mc::entity::effect::EffectInstance effect(*typeOpt, duration, amplifier, false, showParticles);
+            living->addEffect(std::move(effect));
+            return ctx.createUndefined();
+        },
+        3);
 
     // Entity.teleport(location: Vector3, teleportOptions?: TeleportOptions): void
     // 对齐基岩 Entity.teleport。同维度（无 options.dimension 或 dimension 与实体当前维度相同）
@@ -1663,6 +1729,37 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             stack->setCount(*v);
         });
+
+    // --- ItemStack.getEnchantments(): Enchantment[] ---
+    // 对齐基岩 @minecraft/server ItemStack.getEnchantments。返回附魔对象数组，每项 { type, level }：
+    //   - type：附魔 id（如 "minecraft:sharpness"，Enchantment::id()）
+    //   - level：附魔等级（1-based）
+    // 无附魔返回空数组。供命令测试（/enchant）与装备附魔查询判定附魔生效。读 ItemStack 附魔 NBT
+    // （EnchantmentHelper::getEnchantments 解析 stack 的 Enchantments 标签）。
+    itemStackReg.method(
+        "getEnchantments",
+        [](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return ctx.createArray();
+            }
+            const auto enchantments = mc::item::enchant::EnchantmentHelper::getEnchantments(*stack);
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            for (const auto& [ench, level] : enchantments) {
+                if (ench == nullptr) {
+                    continue;
+                }
+                void* obj = ctx.createObject();
+                ctx.setPropertyString(obj, "type", ench->id());
+                ctx.setPropertyInt(obj, "level", level);
+                ctx.setArrayElement(arr, outIdx, obj); // 不消耗所有权
+                ctx.releaseValue(obj);
+                ++outIdx;
+            }
+            return arr;
+        },
+        0);
 
     // --- Direction 枚举对象（@minecraft/server）---
     // 官方 Direction 是字符串枚举（Down="Down"...West="West"），非数字。导出为只读对象，

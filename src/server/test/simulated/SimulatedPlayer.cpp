@@ -18,8 +18,10 @@
 #include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
 #include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
 #include "server/application/IServer.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
+#include "server/core/PlayerManager.hpp" // PlayerManager::nextPlayerId（SimulatedPlayer 分配全局唯一 PlayerId）
 #include "server/dimension/ServerDimensionManager.hpp" // ServerDimensionManager::playerJoinDimension
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp" // ServerPlayerEntityManager::registerExistingPlayerEntity（打通命令系统实体解析）
 
 #include <cmath>
 #include <utility>
@@ -43,7 +45,14 @@ SimulatedPlayer* SimulatedPlayer::spawn(
     auto* ecsRegistry = world.entityRegistry();
     MC_ASSERT_RELEASE(ecsRegistry != nullptr);
     auto player = std::make_unique<SimulatedPlayer>(0, name, *ecsRegistry);
-    player->setPlayerId(0); // 模拟玩家无网络会话，PlayerId=0 占位（不经 PlayerManager 分配）
+    // 分配非 0 的全局唯一 PlayerId：从 PlayerManager 的计数器取（仅借号，不进 PlayerManager.m_players）。
+    // 此前 PlayerId=0 占位导致命令系统（/tp、/gamemode、/effect、/give 等）与 PlayerResolver 经
+    // PlayerId 解析时全部失效（TeleportManager.teleportPlayers 对 playerId==0 直接 continue）。
+    // 改用非 0 PlayerId 并在 ServerPlayerEntityManager 注册映射后，命令层可经实体管理器解析到
+    // SimulatedPlayer 实体直接操作。SimulatedPlayer 仍不进 PlayerManager（无网络会话，避免
+    // keepalive/广播副作用），故 PlayerManager.getPlayer 仍查不到——命令层须改用 playerEntityManager。
+    const mc::PlayerId simPlayerId = world.server()->playerManager().nextPlayerId();
+    player->setPlayerId(simPlayerId);
     const BlockPos worldPos = helper.worldBlockPosition(relativePos);
     player->setPosition(
         static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
@@ -62,13 +71,17 @@ SimulatedPlayer* SimulatedPlayer::spawn(
     // 注：真实 EntityInstanceId 由 EntityManager 在 spawnEntity 内重分配（构造传 0 仅占位），
     //     raw 指针仍有效（EntityManager 持有该对象）。
 
+    // 在 ServerPlayerEntityManager 注册 PlayerId↔EntityInstanceId 映射，打通命令系统对
+    // SimulatedPlayer 的实体解析（registerExistingPlayerEntity 仅建映射+EntityTracker，
+    // 不向 PlayerManager 注册，无网络簿记副作用）。
+    world.server()->playerEntityManager().registerExistingPlayerEntity(simPlayerId, id, world);
+
     // 缺陷D修复：注册到 dimensionManager 的 m_playerDimensions。
     // SimulatedPlayer spawn 于 helper 绑定的主世界（overworld），须显式 playerJoinDimension，
     // 否则 changeDimension→transferPlayerToDimension 内 playerLeaveDimension 查不到
     // （getPlayerDimension 返回 -1），_unloadPlayerChunks/_loadPlayerChunks 链路异常。
-    // PlayerId=0 是 SimulatedPlayer 占位（不经 PlayerManager 分配，真实玩家 PlayerId 从 1 起，不冲突）。
     // _loadPlayerChunks/_unloadPlayerChunks 对 PlayerManager 中不存在的 PlayerId 安全 no-op（双重保护）。
-    world.server()->dimensionManager().playerJoinDimension(raw->playerId(), mc::DimensionManager::OVERWORLD);
+    world.server()->dimensionManager().playerJoinDimension(simPlayerId, mc::DimensionManager::OVERWORLD);
     return raw;
 }
 
@@ -194,12 +207,21 @@ i32 SimulatedPlayer::chat(const std::string& command)
 {
     MC_ASSERT_RELEASE_MSG(m_helper != nullptr, "SimulatedPlayer::chat: helper not bound");
     auto& world = static_cast<mc::server::ServerWorld&>(m_helper->world());
-    // 在玩家位置、玩家权限等级执行命令（创造模式默认权限 2，对齐 OP 等级）
-    const i32 permLevel = isCreative() ? 2 : 0;
+    // SimulatedPlayer 是测试辅助实体，始终拥有最高 OP 权限等级 4（对齐 vanilla 单人开启作弊时玩家的
+    // OP 等级，可执行包括 stop/save 在内的所有命令）。OP 权限等级与游戏模式在 vanilla 中相互独立
+    // （survival 模式的 OP 玩家有权执行 /gamemode 切到 creative），此处解耦 permLevel 与游戏模式：
+    // 此前 permLevel = isCreative() ? 2 : 0，把"创造模式"误等同于"OP 权限"，导致 survival 模式的
+    // SimulatedPlayer permLevel=0 无法执行需权限 2 的 /gamemode（陷入"要切创造需权限、要权限需创造"
+    // 的死循环），/difficulty、/attribute、/gamerule 等管理命令在 survival 模式下也全部被拒。
+    // 改为固定 permLevel=4 后，任意游戏模式的 SimulatedPlayer 均可执行所有管理命令，符合测试辅助语义。
+    const i32 permLevel = 4;
     // rotation 传模拟玩家自身朝向 (pitch, yaw)，对齐 vanilla 玩家执行命令时
     // CommandSourceStack.rotation 取实体朝向，使 `^` 局部坐标按玩家朝向解析。
+    // 传 this（SimulatedPlayer 是 ServerPlayer 子类）作为命令源 player，使 ServerCommandSource
+    // 的 isPlayer()=true，解锁需玩家源的命令（/tp <coords> 传自己、/effect give @s、/give @s 等）。
+    // 此前传 nullptr player 致 source.isPlayer()=false，/tp <coords> 报 "must be a player" 失败。
     return world.executeCommand(
-        command, mc::math::Vector3d(x(), y(), z()), permLevel, mc::math::Vector2f(pitch(), yaw()));
+        command, mc::math::Vector3d(x(), y(), z()), permLevel, mc::math::Vector2f(pitch(), yaw()), this);
 }
 
 void SimulatedPlayer::respawn()

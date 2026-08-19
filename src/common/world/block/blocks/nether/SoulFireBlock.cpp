@@ -87,6 +87,27 @@ bool SoulFireBlock::isSoulFireBase(const Block* block)
     return block != nullptr && BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(block);
 }
 
+void SoulFireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    // soul_fire 不响应刻（对齐 vanilla：SoulFireBlock 继承 BaseFireBlock，无 tick 实现）。
+    // 不老化、不蔓延，自毁仅由 updatePostPlacement 在失去支撑时处理。空实现避免继承自 FireBlock
+    // 的 tick 读取不存在的 AGE_0_15 属性而抛异常。详见头文件 Tick 段注释。
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(random);
+}
+
+void SoulFireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    // 同 tick：soul_fire 不响应随机刻。空实现防御性覆盖，即便 ticksRandomly()=false 下不应进入
+    // 随机刻池，此处也保证不会读 age 崩溃。
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(random);
+}
+
 bool SoulFireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(world);

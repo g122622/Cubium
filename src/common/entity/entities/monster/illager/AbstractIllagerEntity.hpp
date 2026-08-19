@@ -69,6 +69,12 @@ public:
     AbstractIllagerEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~AbstractIllagerEntity() override = default;
 
+    // 灾厄村民归类（对齐 Java AbstractIllager.getMobType()==ILLAGER）。基类默认 Undefined，未覆写会导致
+    // 灾厄相关判定（如灾厄村民不互伤、特定药水效果）失效。所有 AbstractIllagerEntity 子类
+    // （Evoker/Illusioner 经 SpellcastingIllagerEntity、Pillager/Vindicator 直接继承）自动归类 ILLAGER。
+    // 注：RavagerEntity 继承 AbstractRaiderEntity（非 AbstractIllagerEntity），原版 MobType=UNDEFINED，不在此覆写范围。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Illager; }
+
     // 禁止拷贝
     AbstractIllagerEntity(const AbstractIllagerEntity&) = delete;
     AbstractIllagerEntity& operator=(const AbstractIllagerEntity&) = delete;

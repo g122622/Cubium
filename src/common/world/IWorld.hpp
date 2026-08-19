@@ -1994,17 +1994,22 @@ public:
      * @param rotation 命令源朝向 (pitch, yaw)，用于 `^` 局部坐标解析。
      *                 命令方块传 (0,0)（基岩命令方块 `^` forward 固定朝南 +Z），
      *                 实体（矿车/玩家）应传自身朝向，控制台/无朝向源传 (0,0)。
+     * @param player 执行命令的玩家实体（可选）。非空时命令源 isPlayer()=true，
+     *               解锁需玩家源的命令（/tp <coords> 传自己、/effect give @s、/give @s 等）。
+     *               命令方块/告示牌/控制台传 nullptr。SimulatedPlayer::chat 传自身。
      * @return 命令执行结果码（成功返回正整数，失败返回0）
      */
     [[nodiscard]] virtual i32 executeCommand(const std::string& command,
         const Vector3d& position,
         i32 permissionLevel,
-        const Vector2f& rotation = Vector2f(0.0f, 0.0f))
+        const Vector2f& rotation = Vector2f(0.0f, 0.0f),
+        Player* player = nullptr)
     {
         (void)command;
         (void)position;
         (void)permissionLevel;
         (void)rotation;
+        (void)player;
         return 0;
     }
 

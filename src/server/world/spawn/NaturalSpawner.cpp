@@ -437,7 +437,11 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
 
         // 获取高度
         i32 spawnY = _getSpawnHeight(world, spawnX, spawnZ, heightmapType);
-        if (spawnY < 0) {
+        // 对齐 vanilla getTopNonCollidingPos：heightmap 顶部 Y 直接用作生成位，无 <0 检查
+        // （主世界无 ceiling，地下结构/洞穴生成位 Y 可为负，如 GameTest 结构埋 gridStartY=-59
+        // 地下时 spawnY≈-57 合法）。此前误用 spawnY<0 跳过致地下生成位全被忽略——偏差根因。
+        // 仅排除 heightmap 无效（<MIN_BUILD_HEIGHT，_getSpawnHeight chunk 缺失返 -1）。
+        if (spawnY < world::MIN_BUILD_HEIGHT) {
             continue;
         }
 
@@ -657,7 +661,7 @@ i32 NaturalSpawner::_trySpawnAt(
     return spawned;
 }
 
-const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random) const
+const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random)
 {
     if (entries.empty()) {
         return nullptr;
@@ -687,7 +691,7 @@ const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& en
     return nullptr;
 }
 
-bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry) const
+bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry)
 {
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
@@ -805,17 +809,27 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
     return true;
 }
 
-bool NaturalSpawner::_checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster) const
+bool NaturalSpawner::_checkLightLevel(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, bool isMonster)
 {
-    // 获取天空光照和方块光照
-    u8 skyLight = world.getSkyLight(x, y, z);
-    u8 blockLight = world.getBlockLight(x, y, z);
+    // 对齐 vanilla Monster.isDarkEnoughToSpawn（Monster.java:84-98）：怪物生成光照门槛用
+    // getMaxLocalRawBrightness（含 skyDarkening 时间衰减），而非原始 skyLight。
+    //
+    // 根因：原实现用 world.getSkyLight（原始天空光，不减 skyDarkening），夜晚露天 skyLight 仍=15，
+    // 怪物光照门槛 max(skyLight,blockLight)<=7 恒拒（15>7）——致怪物永不在夜晚露天地表自然生成，
+    // 违反 vanilla（vanilla 夜晚 skyDarkening 使 getMaxLocalRawBrightness 衰减到 ~4<=7 通过）。
+    // 修复：改用 getMaxLocalRawBrightness(pos)（calculateRawBrightness(blockLight, skyLight, skyDarkening)，
+    // 含 dayTime 驱动的时间衰减），对齐 vanilla isDarkEnoughTospawn 的 maxLocalRawBrightness 判定。
+    //
+    // getMaxLocalRawBrightness 已含 blockLight，故传给 SpawnConditions::checkLightLevel 时 blockLight
+    // 传 0 避免重复 max（checkLightLevel 取 max(skyLight,blockLight)<=7，传 (maxLocalRawBrightness,0)
+    // 等价于 maxLocalRawBrightness<=7，即 vanilla 的 maxLocalRawBrightness<=monsterSpawnLightTest(7)）。
+    const i32 maxLocalRawBrightness = world.getMaxLocalRawBrightness(BlockPos(x, y, z));
 
     // 使用 SpawnConditions 的光照检查
-    return SpawnConditions::checkLightLevel(static_cast<i32>(skyLight), static_cast<i32>(blockLight), isMonster);
+    return SpawnConditions::checkLightLevel(maxLocalRawBrightness, 0, isMonster);
 }
 
-i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType) const
+i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z, HeightmapType heightmapType)
 {
     // 获取区块
     ChunkCoord chunkX = world::toChunkCoord(x);
@@ -830,19 +844,27 @@ i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z
     i32 localX = world::toLocalCoord(x);
     i32 localZ = world::toLocalCoord(z);
 
-    // 使用指定类型的高度图获取高度
-    return chunk->getTopBlockY(heightmapType, localX, localZ);
+    // 使用指定类型的高度图获取高度。
+    // 对齐 vanilla LevelReader.getHeight：返回"最高实心方块上方第一格 air"的 Y（=heightmap 内部
+    // 存储"最高方块 Y+1"），即生成位（air 位）。ChunkData::getTopBlockY 返回 height-1（实心方块 Y），
+    // 故此处 +1 还原 air 位语义。此前直接返回 getTopBlockY（实心 Y）致生成位落在实心方块内，
+    // OnGround 放置检查（生成位须 air）全拒，怪物/动物均不自然生成——偏差根因。
+    return chunk->getTopBlockY(heightmapType, localX, localZ) + 1;
 }
 
 const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& world,
     const ChunkData* chunk,
     entity::EntityClassification classification,
     const Vector3i& pos,
-    math::Random& random) const
+    math::Random& random,
+    BiomeId biomeOverride)
 {
-    // 从 ChunkData 获取生物群系
+    // 从 ChunkData 获取生物群系（biomeOverride 非 0 时强制用注入值，测试专用，见
+    // spawnCategoryForPosition 注释）。
     BiomeId biomeId = Biomes::Plains;
-    if (chunk) {
+    if (biomeOverride != 0) {
+        biomeId = biomeOverride;
+    } else if (chunk) {
         i32 localX = world::toLocalCoord(pos.x);
         i32 localZ = world::toLocalCoord(pos.z);
         biomeId = chunk->getBiomeAtBlock(localX, pos.y, localZ);
@@ -996,6 +1018,88 @@ bool NaturalSpawner::_isSpawnCategoryReady(entity::EntityClassification classifi
 
     // 非持久化分类每次都检查
     return true;
+}
+
+i32 NaturalSpawner::spawnCategoryForPosition(mc::server::ServerWorld& world,
+    entity::EntityClassification classification,
+    const Vector3i& pos,
+    BiomeId biomeOverride)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
+        "NaturalSpawner::spawnCategoryForPosition",
+        "classification",
+        static_cast<i32>(classification),
+        "pos",
+        fmt::format("({},{},{})", pos.x, pos.y, pos.z));
+
+    // 对齐 vanilla spawnCategoryForPosition(MobCategory, ServerLevel, BlockPos)（3 参 @VisibleForDebug 版）。
+    // 单点入口：给定精确坐标做一次完整条件检查 + 生成，绕过 tick 的随机区块/区块内选址。
+    // 详见 hpp 方法注释。biomeOverride 非 0 时强制用该 biome 取 SpawnEntry（测试专用）。
+
+    // 取最近玩家作为距离门控基准（对齐 vanilla getNearestPlayer(d0,i,d1,-1.0,false)）。
+    // 无玩家则不生成——对齐 vanilla 行 183 player==null 时跳过。
+    auto players = world.entityManager().getPlayers();
+    if (players.empty()) {
+        return 0;
+    }
+    // 在种子位附近找最近玩家（用种子位中心查，对齐 vanilla 用抖动前原始坐标查最近玩家）。
+    const Vector3 seedCenter(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+    Entity* nearestPlayer = world.getClosestPlayer(seedCenter);
+    if (nearestPlayer == nullptr) {
+        return 0;
+    }
+    const Vector3 playerPos = nearestPlayer->position();
+
+    // 取种子位所在区块（供 _getRandomSpawnEntry 取 biome；biomeOverride 非 0 时 chunk 仅用于 fallback）。
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+    const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+
+    // 随机数：用世界 tick 派生（对齐 tick 路径用 worldTime 作种子），保证可复现。
+    math::Random random(static_cast<u64>(world.currentTick()));
+
+    // 对齐 vanilla 外层 3 轮（NaturalSpawner.java:165 k=0..2，MAX_SPAWN_ATTEMPTS_PER_CHUNK=3）。
+    i32 totalSpawned = 0;
+    for (i32 round = 0; round < MAX_SPAWN_ATTEMPTS_PER_CHUNK; ++round) {
+        // 对齐 vanilla 行 177 ±5 抖动：l += rand(6)-rand(6), i1 += rand(6)-rand(6)。
+        // y 用传入 pos.y（对齐 vanilla 行 177 用原始 i，不重算 heightmap）——调用方须确保 pos.y 是合法 air 位。
+        const i32 x = pos.x + random.nextInt(6) - random.nextInt(6);
+        const i32 z = pos.z + random.nextInt(6) - random.nextInt(6);
+        const i32 y = pos.y;
+
+        // 距离门控（对齐 vanilla isRightDistanceToPlayerAndSpawnPoint：distance²>576 即 >24 格）。
+        const f64 dx = static_cast<f64>(x) + 0.5 - playerPos.x;
+        const f64 dz = static_cast<f64>(z) + 0.5 - playerPos.z;
+        const f64 distSq = dx * dx + dz * dz;
+        if (distSq < MIN_SPAWN_DISTANCE_SQ || distSq > MAX_SPAWN_DISTANCE_SQ) {
+            continue;
+        }
+
+        // 选 SpawnEntry（对齐 vanilla getRandomSpawnMobAt，按 biome/分类权重随机）。
+        const Vector3i candPos(x, y, z);
+        const SpawnEntry* entry = _getRandomSpawnEntry(world, chunk, classification, candPos, random, biomeOverride);
+        if (entry == nullptr) {
+            continue;
+        }
+
+        // 放置规则 + 光照门槛 + 碰撞检查（对齐 vanilla isValidSpawnPostitionForType）。
+        // 注意：单点入口不检查 cap/SpawnCosts（对齐 vanilla 3 参版恒真 predicate、空回调，
+        // 不更新 SpawnState）。cap 节流行为须走真实 tick 测试，非本入口职责。
+        if (!_canSpawnAt(world, x, y, z, *entry)) {
+            continue;
+        }
+
+        // 生成（含 finalizeSpawn）。对齐 vanilla getMobForSpawn + addFreshEntity。
+        const i32 spawned = _trySpawnAt(world, x, y, z, *entry, random);
+        totalSpawned += spawned;
+
+        // 对齐 vanilla 行 631：本轮成功生成即结束（不 同轮堆叠）。
+        if (spawned > 0) {
+            break;
+        }
+    }
+
+    return totalSpawned;
 }
 
 } // namespace mc::world::spawn

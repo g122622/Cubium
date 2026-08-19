@@ -138,6 +138,49 @@ function snowGolemDoesNotBurnInDaylight(test: Test): void {
   });
 }
 
+// 雪傀儡用 2 个雪块竖叠 + 顶部放雕刻南瓜，最后放南瓜触发建造生成雪傀儡
+// （wiki tech_雪傀儡.txt#创建：2 个雪块竖向堆叠，顶部放雕刻南瓜即生成雪傀儡）。
+//
+// C++ 链路：CarvedPumpkinBlock::onBlockAdded → trySpawnGolem（MelonPumpkinBlocks.cpp:196-243）。
+// trySpawnGolem 优先级 雪>铁>铜，checkSnowGolemPattern（:262-276）校验：
+//   以南瓜 headPos 为顶，headPos.down()=snow_block + headPos.down(2)=snow_block。
+//   垂直 3 格：南瓜(顶)/雪块/雪块(底)，不检查南瓜两侧是否 air（雪傀儡图案无此约束）。
+//   匹配即 spawnSnowGolem：移除 3 格方块（设 air）+ 在底部雪块位置生成 snow_golem。
+//
+// 关键：只有放南瓜（CarvedPumpkinBlock onBlockAdded）才触发检测，雪块放置不触发——
+// 故测试顺序：先摆 2 雪块，最后放南瓜触发建造。对齐原版"最后放南瓜"语义。
+//
+// 图案坐标（glass_pit 内，南瓜 headPos=(3,4,3)）：
+//   顶层 y=4: (3,4,3)=carved_pumpkin（最后放）
+//   中层 y=3: (3,3,3)=snow_block
+//   底层 y=2: (3,2,3)=snow_block
+//
+// 判定手段：建造成功后 3 格方块变 air + snow_golem 出现。succeedWhen 轮询区域内 snow_golem 数>=1。
+// 建造是 onBlockAdded 同步触发（放南瓜那 tick 即 spawn），maxTicks=200 留 spawn 注册 + 余量。
+// 区域限定到本测试 7×5×7，排除 snow_golem_takes_water_damage 等并行测试的雪傀儡污染。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_雪傀儡.txt#创建（2 雪块 + 顶部南瓜）
+function snowGolemBuiltByPlayer(test: Test): void {
+  const golemType = "snow_golem";
+
+  // 先摆 2 个雪块（竖叠缺南瓜顶）。雪块放置不触发建造检测（仅南瓜 onBlockAdded 触发）。
+  test.setBlockType("minecraft:snow_block", { x: 3, y: 3, z: 3 });
+  test.setBlockType("minecraft:snow_block", { x: 3, y: 2, z: 3 });
+
+  // 最后放南瓜（顶层 3,4,3）：onBlockAdded → trySpawnGolem → checkSnowGolemPattern 匹配 →
+  // spawnSnowGolem 移除 3 格 + 生成 snow_golem。
+  test.setBlockType("minecraft:carved_pumpkin", { x: 3, y: 4, z: 3 });
+
+  // 建造是放南瓜那 tick 同步触发，snow_golem 立即 spawn 注册到世界。
+  test.succeedWhen(() => {
+    const golems = test.getDimension().getEntities({
+      type: golemType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(golems.length >= 1, `snow_golem not built, count=${golems.length}`);
+  });
+}
+
 export function registerSnowGolemTests(): void {
   GameTest.register("MobBehaviorTests", "snow_golem_takes_water_damage", snowGolemTakesWaterDamage)
     .structureName("gametests:glass_pit")
@@ -153,4 +196,8 @@ export function registerSnowGolemTests(): void {
     .skyAccess(true)
     .setupTicks(20)
     .maxTicks(500);
+
+  GameTest.register("MobBehaviorTests", "snow_golem_built_by_player", snowGolemBuiltByPlayer)
+    .structureName("gametests:glass_pit")
+    .maxTicks(200);
 }

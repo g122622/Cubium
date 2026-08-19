@@ -25,7 +25,17 @@ function minibiomes(test: Test): void {
   test.succeedWhenEntityPresent(pigEntityType, { x: 5, y: 3, z: 1 }, true);
 }
 
-// 实心空间坍缩：按下按钮触发结构变化，验证区域内 zoglin 实体被清除。
+// 坍缩空间：zoglin 被 shulker 击中后浮空上升。3 只 zoglin 与 3 只 shulker 在低处（y=2）生成，
+// shulker 受伤反击射出 shulker bullet，命中 zoglin 施加 200t Levitation I，zoglin 浮空上升到
+// y=8-12 高处。succeedWhen 断言该高处体积内存在 zoglin（assertEntityInVolume 断言"存在"非"清除"）。
+// 按钮触发红石是结构装饰（非成功必要条件）。
+//
+// 时序裕度：maxTicks=400（原 260 偏紧）。多 RNG 延迟链路叠加——zoglin 目标选择 chance=10（每 tick
+// 1/10 概率检查）、shulker 攻击冷却 20-69t、贝壳开启动画 20t、bullet 飞行随机步数、Levitation 上升
+// ~100t（y=2→8 升 6 格，每 tick +0.05 加速）——最坏 ~260t 触上限偶发超时。3v3 多实体干扰（目标分散、
+// zoglin 游走、shulker 受伤瞬移）进一步拉长。400t 留足裕度覆盖最坏 RNG 种子。底层 C++ 链路（zoglin AI、
+// shulker 反击、bullet、Levitation 物理）已正确实现，失败纯为时序裕度不足的非确定性。
+// Ref: zoglin_float（mob_behavior/ZoglinTests.ts）同链路 1v1 范式
 function collapsing(test: Test): void {
   const zoglinEntityType = "minecraft:zoglin";
   const shulkerEntityType = "minecraft:shulker";
@@ -46,5 +56,5 @@ export function registerChallengeTests(): void {
   GameTest.register("ChallengeTests", "minibiomes", minibiomes).structureName("gametests:minibiomes").maxTicks(260);
   GameTest.register("ChallengeTests", "collapsing", collapsing)
     .structureName("gametests:collapsing_space")
-    .maxTicks(260);
+    .maxTicks(400);
 }

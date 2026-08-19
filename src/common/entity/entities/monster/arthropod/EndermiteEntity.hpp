@@ -52,6 +52,10 @@ public:
     EndermiteEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~EndermiteEntity() noexcept override = default;
 
+    // 节肢生物归类（对齐 Java Endermite.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
+    // 节肢杀手附魔无加成等失效。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -95,6 +99,10 @@ public:
 
     SilverfishEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~SilverfishEntity() noexcept override = default;
+
+    // 节肢生物归类（对齐 Java Silverfish.getMobType()==ARTHROPOD）。基类默认 Undefined，未覆写会导致
+    // 节肢杀手附魔无加成等失效。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
 
     // ========== 生命周期 ==========
 

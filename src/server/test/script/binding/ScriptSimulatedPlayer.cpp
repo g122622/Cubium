@@ -22,10 +22,14 @@
 
 #include "server/test/script/binding/ScriptSimulatedPlayer.hpp"
 
-#include "common/entity/core/Entity.hpp"  // Entity::attemptTeleport/changeDimension/dimension（teleport/tryTeleport）
-#include "common/item/core/ItemStack.hpp" // giveItem/setItem 按值拷贝需完整类型
+#include "common/entity/core/Entity.hpp" // Entity::attemptTeleport/changeDimension/dimension（teleport/tryTeleport）
+#include "common/entity/core/LivingEntity.hpp"     // LivingEntity::getEffect（getEffect 绑定读实体效果）
+#include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect 返回效果实例）
+#include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
+#include "common/item/core/ItemStack.hpp"          // giveItem/setItem 按值拷贝需完整类型
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
+#include "common/resource/ResourceLocation.hpp"                     // ResourceLocation（getEffect typeId 资源位置）
 #include "common/test/base/error/GameTestErrorType.hpp"             // GameTestErrorType::MethodNotImplemented
 #include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
 #include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
@@ -37,6 +41,7 @@
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
 #include <cctype>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -201,6 +206,53 @@ void* _applyTeleport(
     return returnBoolean ? ctx.createBoolean(true) : ctx.createUndefined();
 }
 
+/**
+ * @brief GameMode 枚举转官方 ScriptAPI 字符串。
+ *
+ * 对齐基岩 @minecraft/server GameMode 枚举值（"survival"/"creative"/"adventure"/"spectator"），
+ * 供 getGameMode() 返回。NotSet 映射为 "default"（官方 GameMode.default 用于恢复默认）。
+ */
+[[nodiscard]] const char* _gameModeToString(mc::GameMode mode)
+{
+    switch (mode) {
+        case mc::GameMode::Survival:
+            return "survival";
+        case mc::GameMode::Creative:
+            return "creative";
+        case mc::GameMode::Adventure:
+            return "adventure";
+        case mc::GameMode::Spectator:
+            return "spectator";
+        case mc::GameMode::NotSet:
+            return "default";
+    }
+    return "default";
+}
+
+/**
+ * @brief 解析 JS effectType 参数为 EffectType。
+ *
+ * 对齐基岩 Entity.getEffect：接受 "minecraft:blindness" 全称或 "blindness" 简写。失败返 nullopt。
+ * 复用 MinecraftModuleFactory::parseEffectType 同款逻辑（SimulatedPlayer JS 类未继承 Entity 原型，
+ * 见 [[simulated-player-js-class-no-entity-inheritance]]，Entity.getEffect 不在其上，故本地重绑）。
+ */
+[[nodiscard]] std::optional<mc::entity::effect::EffectType> _parseEffectType(
+    mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg)
+{
+    if (arg == nullptr || !ctx.isString(arg)) {
+        return std::nullopt;
+    }
+    auto s = ctx.toString(arg);
+    if (!s) {
+        return std::nullopt;
+    }
+    std::string id = *s;
+    if (id.find(':') == std::string::npos) {
+        id = "minecraft:" + id;
+    }
+    return mc::entity::effect::getEffectByResourceLocation(mc::ResourceLocation(id));
+}
+
 } // namespace
 
 u64 registerSimulatedPlayerClassBinding(
@@ -220,6 +272,160 @@ u64 registerSimulatedPlayerClassBinding(
         }
         // Player::username() 返构造时传入的名字（存 m_username）。
         return ctx.createString(player->username());
+    });
+
+    // --- getGameMode(): GameMode ---
+    // 对齐基岩 @minecraft/server Player.getGameMode（beta）。返回当前游戏模式字符串
+    // （"survival"/"creative"/"adventure"/"spectator"）。供命令测试（/gamemode）判定模式切换生效。
+    // 读 Player::m_gameMode 实体字段（/gamemode 经 GameModeCommand 实体旁路写入），非 ServerPlayerData。
+    reg.method(
+        "getGameMode",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return ctx.createString(_gameModeToString(player->gameMode()));
+        },
+        0);
+
+    // --- getComponent(componentId: string): Component | undefined ---
+    // 对齐基岩 @minecraft/server Entity.getComponent。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getComponent 不在其上，故需在此重绑。
+    // 派发通用组件（equippable/health/movement/rideable/onfire），与 MinecraftModuleFactory
+    // Entity.getComponent 一致；mob 专属组件（is_charged/mark_variant 等）对 SimulatedPlayer 无意义，
+    // 不派发（返 undefined，符合"组件不存在"语义）。供命令测试读玩家装备/属性（如 /enchant 后读主手附魔）。
+    reg.method(
+        "getComponent",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createUndefined();
+            }
+            // 实体有效性守卫：对齐 Entity.getComponent 的 isRemoved 检查（见 MinecraftModuleFactory.cpp
+            // 同款注释）。SimulatedPlayer 测试中实体销毁后句柄悬垂，graveyard 窗口内 isRemoved()=true
+            // 提前返回 undefined 避免 UAF。
+            if (player->isRemoved()) {
+                return ctx.createUndefined();
+            }
+            auto compId = ctx.toString(args[0]);
+            if (!compId) {
+                return ctx.createUndefined();
+            }
+            std::string normalized = *compId;
+            if (normalized.find(':') == std::string::npos) {
+                normalized = "minecraft:" + normalized;
+            }
+
+            mc::Entity* ent = player; // SimulatedPlayer 经 ServerPlayer→Player→LivingEntity→Entity
+            // 按类名 wrap 组件 JS 对象（opaque 持 ent，owned=false），与 Entity.getComponent 范式一致。
+            auto wrapComponent = [&ctx, ent](const char* className) -> void* {
+                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+                void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
+                if (proto == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                    ctx, classId, proto, ent, false, className, nullptr, ent->id());
+            };
+
+            if (normalized == "minecraft:rideable") {
+                return wrapComponent("RideableComponent");
+            }
+            if (normalized == "minecraft:health" || normalized == "minecraft:movement" ||
+                normalized == "minecraft:equippable") {
+                // health/movement/equippable 仅 LivingEntity attach，SimulatedPlayer 是 LivingEntity 子类，
+                // dynamic_cast 恒成功。对齐 Entity.getComponent 守卫。
+                if (dynamic_cast<mc::LivingEntity*>(ent) == nullptr) {
+                    return ctx.createUndefined();
+                }
+                if (normalized == "minecraft:health") {
+                    return wrapComponent("HealthComponent");
+                }
+                if (normalized == "minecraft:movement") {
+                    return wrapComponent("MovementComponent");
+                }
+                return wrapComponent("EquippableComponent");
+            }
+            if (normalized == "minecraft:onfire") {
+                if (!ent->isOnFire()) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("OnFireComponent");
+            }
+            // TODO: 其他基岩合法 componentId（is_baby/is_tamed 等）按需补全。
+            return ctx.createUndefined();
+        },
+        1);
+
+    // --- getEffect(effectType: string): Effect | undefined ---
+    // 对齐基岩 @minecraft/server Entity.getEffect。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getEffect 不在其上，故需在此重绑。
+    // 供命令测试（/effect give/clear）判定状态效果生效：返回 { typeId, amplifier, duration } 普通对象，
+    // 无该效果返回 undefined。读 LivingEntity::effectManager（实体层，/effect 经实体旁路写入处），
+    // 与 MinecraftModuleFactory Entity.getEffect 返回结构一致。
+    reg.method(
+        "getEffect",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = _parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            const mc::entity::effect::EffectInstance* inst = player->getEffect(*typeOpt);
+            if (inst == nullptr) {
+                return ctx.createUndefined();
+            }
+            void* obj = ctx.createObject();
+            ctx.setPropertyString(obj, "typeId", mc::entity::effect::getEffectResourceLocation(*typeOpt).toString());
+            ctx.setPropertyInt(obj, "amplifier", inst->amplifier());
+            ctx.setPropertyInt(obj, "duration", inst->duration());
+            return obj;
+        },
+        1);
+
+    // --- level (readonly property, number) ---
+    // 对齐基岩 @minecraft/server Player.level（只读，当前经验等级）。供命令测试（/xp add/set levels）
+    // 判定等级变化。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity 侧无 level 绑定，故需在此重绑。
+    // 读 Player::experienceLevel（实体层，/xp 经 ExperienceCommand 实体旁路写入处），非 ServerPlayerData。
+    reg.readonlyProperty("level", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+        if (player == nullptr) {
+            return ctx.throwTypeError("Invalid SimulatedPlayer");
+        }
+        return ctx.createInt32(player->experienceLevel());
+    });
+
+    // --- getTotalXp(): number ---
+    // 对齐基岩 @minecraft/server Player.getTotalXp（总经验点数）。供命令测试（/xp add/set points）判定
+    // 总经验点数变化。读 Player::totalExperience（实体层）。
+    reg.method(
+        "getTotalXp",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return ctx.createInt32(player->totalExperience());
+        },
+        0);
+
+    // --- xp (readonly property, number 0..1) ---
+    // 对齐基岩 @minecraft/server Player.xp（只读，当前等级经验条进度 0.0-1.0）。供命令测试判定经验条进度。
+    // 读 Player::experienceProgress（实体层）。注意：基岩属性名是 "xp" 非 "progress"。
+    reg.readonlyProperty("xp", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+        if (player == nullptr) {
+            return ctx.throwTypeError("Invalid SimulatedPlayer");
+        }
+        return ctx.createFloat64(player->experienceProgress());
     });
 
     // --- teleport(location: Vector3, teleportOptions?: TeleportOptions): void ---
@@ -641,10 +847,37 @@ u64 registerSimulatedPlayerClassBinding(
             return ctx.createBoolean(player->useItemOnBlock(emptyStack, pos, face, faceLocation));
         },
         2);
+    // --- interactWithEntity(entity) -> boolean ---
+    // 对齐基岩官方 SimulatedPlayer.interactWithEntity(entity): boolean。
+    // 语义：玩家用当前主手物品右键实体。转发 Player::interactOn(target, Hand::MainHand)。
+    // interactOn 内部流程（Player.cpp:2771）：
+    //   1) 旁观者只开 INamedContainerProvider 容器；
+    //   2) target.processInitialInteract（实体侧交互，如村民交易、马匹骑乘）；
+    //   3) 实体不处理时，取主手物品调 Item::itemInteractionForEntity（金苹果治愈僵尸村民、
+    //      命名牌命名、小麦喂养动物、骨粉催熟幼体等）。
+    // 故测试侧可 player.setItem(golden_apple, 0, true) 后 interactWithEntity(zombieVillager)
+    // 触发金苹果治愈链路；空手 interactWithEntity 走 processInitialInteract（交易等）。
+    // 返回值映射基岩 boolean（"Returns true if the interaction was performed"）：
+    //   Success/Consume → true（交互被执行/物品被消耗），Fail/Pass → false。
+    // Hand 固定 MainHand（基岩 interactWithEntity 无 hand 参数，vanilla 默认主手）。
     reg.method(
         "interactWithEntity",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "interactWithEntity"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1) {
+                return ctx.throwTypeError("interactWithEntity(entity)");
+            }
+            auto* target = _unwrapEntity(ctx, args[0]);
+            if (target == nullptr) {
+                return ctx.throwTypeError("interactWithEntity: first arg must be an Entity");
+            }
+            auto result = player->interactOn(*target, mc::Hand::MainHand);
+            return ctx.createBoolean(
+                result == mc::ActionResultType::Success || result == mc::ActionResultType::Consume);
+        },
         1);
     reg.method(
         "stopInteracting",
@@ -838,7 +1071,8 @@ void* wrapSimulatedPlayer(mc::mod::bedrock::addon::IScriptBindingContext& ctx, u
     }
     // 非拥有：实体由 ServerWorld EntityManager 拥有，测试运行期间稳定。
     void* proto = ScriptBindingRegistry::instance().proto(classId);
-    return ScriptObjectRegistry::wrap(ctx, classId, proto, player, /*owned=*/false, "SimulatedPlayer");
+    return ScriptObjectRegistry::wrap(
+        ctx, classId, proto, player, /*owned=*/false, "SimulatedPlayer", nullptr, player->id());
 }
 
 } // namespace mc::test

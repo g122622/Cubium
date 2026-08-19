@@ -645,7 +645,8 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
     world.setOnExecuteCommand([this, &world](const std::string& command,
                                   const Vector3d& position,
                                   i32 permissionLevel,
-                                  const Vector2f& rotation) -> i32 {
+                                  const Vector2f& rotation,
+                                  Player* player) -> i32 {
         std::string cmd = command;
         if (!cmd.empty() && cmd[0] != '/') {
             cmd = "/" + cmd;
@@ -654,8 +655,15 @@ void MinecraftServer::attachWorldCommandBindings(ServerWorld& world)
         // rotation 由调用方传入，用于 `^` 局部坐标解析：命令方块传 (0,0)（基岩版命令方块 `^`
         // forward 固定朝南 +Z，与 FACING 无关，见 CommandBlockEntity::trigger），实体（矿车/玩家）
         // 传自身朝向 (pitch, yaw)。
+        // player 非空时（SimulatedPlayer::chat 传自身）构造玩家命令源，isPlayer()=true，解锁需玩家源
+        // 的命令（/tp <coords> 传自己、/effect give @s、/give @s 等）。命令方块/控制台传 nullptr。
+        // Player* → mc::ServerPlayer*：SimulatedPlayer 是 ServerPlayer 子类，dynamic_cast 安全；
+        // 非 ServerPlayer 的 Player（如未来 ClientPlayer）cast 返 nullptr，退化为非玩家源。
+        // 必须用显式 mc:: 限定：本文件位于 namespace mc::server，带限定 ServerPlayer 会被某头文件
+        // 内的 mc::server::ServerPlayer 前向声明遮蔽（incomplete type），与上方 line 463 既有写法一致。
+        mc::ServerPlayer* serverPlayer = player != nullptr ? dynamic_cast<mc::ServerPlayer*>(player) : nullptr;
         command::ServerCommandSource source(
-            this, nullptr, world.dimension(), position, rotation, permissionLevel, 0, "@");
+            this, serverPlayer, world.dimension(), position, rotation, permissionLevel, 0, "@");
         auto result = m_commandRegistry->execute(cmd, source);
         if (result.failed()) {
             spdlog::info("Command execution failed for '{}': {}", cmd, result.error().message());

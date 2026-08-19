@@ -39,7 +39,6 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <memory>
@@ -119,24 +118,23 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
     }
 
     auto* server = source.server();
-    auto& playerManager = server->playerManager();
     server::ServerWorld* world = source.world();
     i32 successCount = 0;
 
     for (PlayerId playerId : playerIds) {
-        auto* playerData = playerManager.getPlayer(playerId);
-        if (!playerData) {
-            continue;
-        }
-
-        // 获取玩家实体
+        // 经实体管理器解析实体（含 SimulatedPlayer 旁路）。此前用 playerManager.getPlayer 做前置守卫，
+        // 对不进 PlayerManager 的 SimulatedPlayer 返 nullptr 跳过，致 /enchant 对其失效；playerData 后续
+        // 未被使用，该守卫纯属冗余前置跳过，删除。
         Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (!player) {
+        if (player == nullptr) {
             continue;
         }
 
-        // 获取主手物品
-        ItemStack heldItem = player->inventory().getSelectedStack();
+        // 取主手物品的可变引用（getSelectedStackRef 返回 m_items[selectedSlot] 引用），
+        // 后续 addEnchantment 原地修改权威槽。此前用 getSelectedStack()（按值返回副本）+ addEnchantment
+        // 改副本，从未回写 player->inventory()，致附魔对全玩家（含真实玩家）静默失效——命令报
+        // "Applied ..." 但主手物品无附魔。改用引用原地改修复此写回缺陷。
+        ItemStack& heldItem = player->inventory().getSelectedStackRef();
 
         // 检查物品是否为空
         if (heldItem.isEmpty()) {
@@ -171,7 +169,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
             continue;
         }
 
-        // 应用附魔
+        // 应用附魔：原地修改权威槽位（heldItem 是引用），立即生效。
         heldItem.addEnchantment(enchantmentId, level);
         successCount++;
     }

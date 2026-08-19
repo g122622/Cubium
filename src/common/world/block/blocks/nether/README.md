@@ -24,7 +24,7 @@ nether/
 |------|------|----------|
 | `EnderChestBlock` | 末影箱（含水、水平朝向、开盖动画） | HORIZONTAL_FACING, WATERLOGGED |
 | `FireBlock` | 普通火焰，可蔓延 | AGE_0_15, NORTH/SOUTH/EAST/WEST/UP |
-| `SoulFireBlock` | 灵魂火焰（继承 FireBlock） | 同 FireBlock |
+| `SoulFireBlock` | 灵魂火焰（继承 FireBlock，空容器覆盖状态） | 无 |
 | `NetherPortalBlock` | 下界传送门 | HORIZONTAL_AXIS |
 | `NetherWartBlock` | 下界疣（可生长） | AGE_0_3 |
 | `NyliumBlock` | 绯红/诡异菌岩 | 无（实现 IGrowable） |
@@ -93,6 +93,10 @@ BushBlock (来自 agricultural/ 模块)
 ### 2. 灵魂火不能蔓延
 
 `SoulFireBlock::canBurn()` 返回 false，禁止蔓延到其他方块。普通火可以通过 `FireInfoRegistry` 配置蔓延参数，灵魂火则完全跳过。
+
+### 2.1 灵魂火不响应刻（继承隔离陷阱）
+
+`SoulFireBlock` 继承 `FireBlock` 仅为复用放置/碰撞逻辑，但构造时把状态容器覆盖为空（无 `AGE_0_15`，与 vanilla 一致）。`FireBlock::tick`/`randomTick`/`getAge` 依赖 `AGE_0_15`，soul_fire 继承后若不隔离会读不存在的属性抛 `std::invalid_argument`（`StateHolder::get` → fatal）。故 `SoulFireBlock` 必须重写 `ticksRandomly()=false` 与 `tick`/`randomTick` 为空。vanilla 中 `SoulFireBlock` 继承 `BaseFireBlock`（非 `FireBlock`），本就无 tick 实现，靠 `updatePostPlacement` 自毁。
 
 ### 3. 下界疣只能种在灵魂沙
 
