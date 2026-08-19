@@ -285,7 +285,7 @@ public:
      * @param stack 要检查的物品堆
      * @return 是否可以持握
      */
-    [[nodiscard]] bool canHoldItem(const ItemStack& stack) const;
+    [[nodiscard]] bool canHoldItem(const ItemStack& stack) const override;
 
     /**
      * @brief 判断物品是否是可食用的食物
@@ -315,7 +315,7 @@ public:
      *
      * @param itemEntity 要拾取的物品实体
      */
-    void pickUpItem(class ItemEntity& itemEntity);
+    void pickUpItem(class ItemEntity& itemEntity) override;
 
     // ========== 行为辅助方法 ==========
 
