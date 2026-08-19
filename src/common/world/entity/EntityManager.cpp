@@ -33,6 +33,7 @@
 #include "common/entity/ecs/systems/PortalTickSystem.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -130,6 +131,13 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
     }
 
     m_entities.erase(it);
+
+    // 路径B：实体从 EntityManager 移除（如区块卸载 ServerWorld.cpp:2276 丢弃 unique_ptr 立即 free）。
+    // 此时 JS 侧 owned=false 的 Entity/组件句柄仍持裸 Entity*，必须立即 invalidate（置 ptr=nullptr），
+    // 否则后续 getComponent("minecraft:onfire").isOnFire() 等回调解引用悬垂指针 UAF 段错误。
+    // 路径A（remove()/discard → graveyard 延迟析构）由 ~Entity 兜底 invalidate，但路径B可能绕过
+    // graveyard（unique_ptr 直接丢弃），故此处为路径B的唯一兜底入口。
+    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(id);
 
     return entity;
 }

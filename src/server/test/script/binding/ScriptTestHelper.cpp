@@ -679,7 +679,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -947,7 +947,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -1679,7 +1679,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 
@@ -1715,7 +1715,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
     reg.method(
@@ -1748,7 +1748,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
                 return ctx.createUndefined();
             }
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, entityClassId, entityProto, outEntity, false, "Entity");
+                ctx, entityClassId, entityProto, outEntity, false, "Entity", nullptr, outEntity->id());
         },
         2);
 

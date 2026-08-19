@@ -70,5 +70,20 @@ declare module "@minecraft/server-gametest" {
          * @returns 实际生成实体数（0 表示本次未生成）
          */
         spawnNaturalAt(category: string, pos: import("@minecraft/server").Vector3, biome?: string): number;
+
+        /**
+         * 注册测试结束回调（项目独有，非基岩/Java GameTest API）。
+         *
+         * Cubium 行为：回调在测试进入终态（PASSED/FAILED/TIMEOUT）时触发（见 BaseGameTestInstance.cpp
+         * 147-151,163-167 的 finish 路径），早于 GameTestHelper 析构（批次结束才 clear 实例），此时
+         * SimulatedPlayer 等实体仍存活，回调内可调 player.chat 等恢复世界级状态（如 gamerule）。
+         *
+         * 用途：GameTest 共享单一 ServerWorld，世界级状态（gamerule doMobSpawning 等）跨测试/跨批次
+         * 持久化、框架不自动重置。测试临时改 gamerule 后须用 runOnFinish 恢复，避免污染后续依赖该
+         * 规则的测试。回调可注册多个，按注册顺序执行。
+         *
+         * @param callback 测试结束时执行的回调（无参无返回值）
+         */
+        runOnFinish(callback: () => void): void;
     }
 }

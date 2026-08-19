@@ -325,7 +325,8 @@ u64 registerSimulatedPlayerClassBinding(
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
-                return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className);
+                return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                    ctx, classId, proto, ent, false, className, nullptr, ent->id());
             };
 
             if (normalized == "minecraft:rideable") {
@@ -1070,7 +1071,8 @@ void* wrapSimulatedPlayer(mc::mod::bedrock::addon::IScriptBindingContext& ctx, u
     }
     // 非拥有：实体由 ServerWorld EntityManager 拥有，测试运行期间稳定。
     void* proto = ScriptBindingRegistry::instance().proto(classId);
-    return ScriptObjectRegistry::wrap(ctx, classId, proto, player, /*owned=*/false, "SimulatedPlayer");
+    return ScriptObjectRegistry::wrap(
+        ctx, classId, proto, player, /*owned=*/false, "SimulatedPlayer", nullptr, player->id());
 }
 
 } // namespace mc::test

@@ -45,6 +45,10 @@ public:
      * @param owned 是否由JS管理生命周期（GC时delete）
      * @param typeName 类型名（调试用）
      * @param destroy 自定义销毁回调（可选，owned=true时默认delete）
+     * @param entityId 实体实例ID（可选，仅 Entity 系传非0值）：非0时登记到 ScriptHandleRegistry，
+     *        实体销毁时 ScriptHandleRegistry::invalidateAll 置本句柄 ptr=nullptr，防 UAF。
+     *        见 ScriptHandleRegistry.hpp 问题背景（owned=false Entity 句柄跨 tick 持裸 Entity*，
+     *        实体路径B立即free后悬垂，isOnFire 等回调 UAF 段错误）。
      * @return JS对象句柄（调用者拥有所有权）
      */
     [[nodiscard]] static void* wrap(IScriptBindingContext& ctx,
@@ -53,7 +57,8 @@ public:
         void* ptr,
         bool owned,
         const char* typeName,
-        void (*destroy)(void*) = nullptr);
+        void (*destroy)(void*) = nullptr,
+        EntityInstanceId entityId = 0);
 
     /**
      * @brief 从JS对象获取C++指针
@@ -61,7 +66,7 @@ public:
      * @param ctx 绑定上下文
      * @param val JS值句柄
      * @param classId 期望的类ID（0表示不检查类型）
-     * @return C++对象指针
+     * @return C++对象指针；若实体已销毁（ScriptHandleRegistry 置 nullptr）返回 nullptr
      */
     [[nodiscard]] static void* unwrap(IScriptBindingContext& ctx, void* val, u64 classId = 0);
 
@@ -79,12 +84,17 @@ public:
 
     /**
      * @brief 存储在JS对象opaque中的数据
+     *
+     * entityId 字段：仅 Entity 系 JS 对象（Entity 本身 + OnFire/Health/Movement/Equippable 等组件
+     * 对象，均 opaque 持同一 mc::Entity*）非0。wrap 时登记到 ScriptHandleRegistry，实体销毁时
+     * invalidateAll 置 ptr=nullptr；QuickJS finalizer 在 delete data 前据此调 unregisterHandle。
      */
     struct ObjectData {
         void* ptr;
         bool owned;
         const char* typeName;
         void (*destroy)(void*);
+        EntityInstanceId entityId = 0;
     };
 };
 
@@ -295,8 +305,10 @@ public:
      *
      * @param obj C++对象指针
      * @param owned 是否由JS管理生命周期
+     * @param entityId 实体实例ID（仅 Entity 系传非0，透传 ScriptObjectRegistry::wrap 登记
+     *        ScriptHandleRegistry 防 UAF）；非 Entity 类型默认 0 不登记。
      */
-    [[nodiscard]] void* wrap(T* obj, bool owned = false) const
+    [[nodiscard]] void* wrap(T* obj, bool owned = false, EntityInstanceId entityId = 0) const
     {
         if (!obj) return m_ctx.createNull();
         return ScriptObjectRegistry::wrap(m_ctx,
@@ -305,7 +317,8 @@ public:
             obj,
             owned,
             typeid(T).name(),
-            owned ? [](void* p) { delete static_cast<T*>(p); } : nullptr);
+            owned ? [](void* p) { delete static_cast<T*>(p); } : nullptr,
+            entityId);
     }
 
     /**

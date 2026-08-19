@@ -6,7 +6,9 @@
 //
 // 设计要点：
 //   1. /summon <entity> <x> <y> <z> 用世界绝对坐标（worldLocation 转换）。
-//   2. /kill @e[type=zombie] 按选择器过滤清除；/kill @e 清除区域内所有实体（含玩家，慎用）。
+//   2. /kill @e[type=zombie,distance=..10] 按选择器过滤清除；必须加 distance 区域限定，
+//      因 @e 无距离谓词时是全维度无范围门控选择器，会误杀同批并行测试的 zombie（详见
+//      killRemovesByTypeSelector 注释）。volume 谓词限定本结构范围，与 getEntities 区域计数一致。
 //   3. 实体生成/清除非当 tick 生效（spawn 经 finalizeSpawn、kill 经 remove + 下一 tick 出列），
 //      用 pollUntilSucceed 轮询区域计数。
 //   4. cmd_arena 9×7×9：内部空气腔 x,z∈[1,7]，y∈[1,5]。玩家站 (5,1,5)。
@@ -43,8 +45,15 @@ function summonSpawnsEntity(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     player.chat(`/summon minecraft:zombie ${worldCoords(test, { x: 3, y: 2, z: 3 })}`);
 
+    // /summon 经 chat 命令同步生成（spawnEntity 同步入 EntityManager），但 chat 命令从 JS 发出到 C++
+    // 处理存在 tick 延迟（命令包队列 + 下一 tick 处理）。全量跑高负载下该延迟偶发拉长，故用密集检查点
+    // （startTick=5、interval=5、maxTick=100，共 20 个检查点）替代默认稀疏检查点（4 个：10/30/50/60），
+    // 消除"检查点稀疏 + chat 时序抖动"导致的偶发超时。summon 功能正常时 zombie 必在数 tick 内出现，
+    // maxTick=100 不掩盖失效（失效时 100 tick 仍 0 zombie 照样 FAIL）。
     pollUntilSucceed(test, () => countEntities(test, "zombie") >= 1, {
-        maxTick: 60,
+        startTick: 5,
+        interval: 5,
+        maxTick: 100,
         onTimeout: () => test.assert(false, "summon did not spawn zombie"),
     });
 }
@@ -73,8 +82,21 @@ function summonSpawnsAtPosition(test: Test): void {
     });
 }
 
-// /kill @e[type=zombie] 清除区域内所有 zombie，cow 保留（选择器 type 过滤）。
+// /kill @e[type=zombie,distance=..10] 清除本结构内 zombie，cow 保留（选择器 type 过滤）。
+//
+// 必须加 distance=..10 区域限定：@e[type=zombie] 不带距离谓词时是【全维度无范围门控】选择器
+// （对齐 vanilla EntitySelector：无 distance/dx/dy/dz 时 collectAllEntities 走 forEachEntity 遍历
+// 该 world 全量实体，仅按 type 过滤，见 EntityResolver.cpp collectAllEntities 的无 AABB 分支）。
+// GameTest 同批并行测试共享单一 ServerWorld，结构网格间距仅 32 格（StructureGridSpawner），
+// 无区域限定的 /kill @e[type=zombie] 会杀光整个 overworld 所有 zombie——误杀同批并行的
+// summon_spawns_entity（tick1 生成的 zombie）、spawner_* 等测试的 zombie，致它们 zombie=0 假失败
+// （单独跑通过、全量跑必失败，根因即此跨测试误杀）。
+//
+// distance=..10：从执行者 player(5,1,5) 欧氏距离 10 格，覆盖整个 cmd_arena 9×7×9 结构（最远角点
+// (0,6,0) 距 player √75≈8.66），且远小于结构间距 32，绝不触及相邻结构的实体。cow(4,2,4) 距 player
+// √2，本就在范围内但因 type=zombie 不被选中——distance 限定只收紧 zombie 选择集，不影响 cow 存活判定。
 // Ref: wiki kill.txt（kill 接受选择器，按 type 过滤）
+// Ref: EntityResolver.cpp collectAllEntities（无 AABB 走 forEachEntity 全量遍历）
 function killRemovesByTypeSelector(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     // 预置 zombie + cow。
@@ -82,7 +104,7 @@ function killRemovesByTypeSelector(test: Test): void {
     test.spawn("cow", { x: 4, y: 2, z: 4 });
     // 等实体生成稳定后 kill。
     test.runAtTickTime(5, () => {
-        player.chat("/kill @e[type=zombie]");
+        player.chat("/kill @e[type=zombie,distance=..10]");
     });
 
     pollUntilSucceed(test, () => countEntities(test, "zombie") === 0 && countEntities(test, "cow") >= 1, {
@@ -93,16 +115,20 @@ function killRemovesByTypeSelector(test: Test): void {
     });
 }
 
-// /kill @e 清除区域内所有非玩家实体（@e 默认不含玩家需 type 谓词，但 @e 含玩家）。
-// 验证 zombie 被清除。注意 @e 含玩家，但玩家被 kill 会复活（Creative 无敌），不影响 zombie 计数。
+// /kill @e[type=zombie,distance=..10] 清除本结构内 zombie（@e 含玩家，但 type=zombie 排除玩家）。
+//
+// 同 killRemovesByTypeSelector，必须加 distance=..10 区域限定避免全维度 /kill 误杀同批并行测试的
+// zombie（详见 killRemovesByTypeSelector 注释）。@e[type=zombie] 已排除玩家，distance 限定不收紧玩家。
 // Ref: wiki kill.txt（@e 选择所有实体）
+// Ref: EntityResolver.cpp collectAllEntities（无 AABB 走 forEachEntity 全量遍历）
 function killAllRemovesEntities(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     test.spawn("zombie", { x: 2, y: 2, z: 2 });
     test.spawn("zombie", { x: 4, y: 2, z: 4 });
     test.runAtTickTime(5, () => {
-        // @e[type=zombie] 避免误杀玩家导致测试中断（玩家 Creative 被 kill 会 respawn，但保险起见限定 type）。
-        player.chat("/kill @e[type=zombie]");
+        // @e[type=zombie,distance=..10] 限定本结构范围，避免误杀同批并行测试的 zombie；
+        // type=zombie 排除玩家（玩家 Creative 被 kill 会 respawn，但保险起见限定 type）。
+        player.chat("/kill @e[type=zombie,distance=..10]");
     });
 
     pollUntilSucceed(test, () => countEntities(test, "zombie") === 0, {
@@ -132,7 +158,7 @@ function summonMultipleAccumulates(test: Test): void {
 export function registerEntityCommandTests(): void {
     GameTest.register("CommandTests", "summon_spawns_entity", summonSpawnsEntity)
         .structureName("gametests:cmd_arena")
-        .maxTicks(80);
+        .maxTicks(120);
 
     GameTest.register("CommandTests", "summon_spawns_at_position", summonSpawnsAtPosition)
         .structureName("gametests:cmd_arena")

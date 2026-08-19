@@ -67,6 +67,7 @@
 #include "common/entity/ecs/components/PortalComponent.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
@@ -184,6 +185,14 @@ Entity::~Entity()
     if (m_entityContext != nullptr && m_entityContext->valid()) {
         m_entityContext->registry().destroy(m_entityContext->entity());
     }
+
+    // 路径A兜底：实体析构（remove()/discard → graveyard 延迟析构，或其它直接析构路径）。
+    // invalidateAll 把所有指向本实体的 JS 句柄 ObjectData::ptr 置 nullptr，防 owned=false 裸 Entity*
+    // 句柄悬垂 UAF（见 ScriptHandleRegistry.hpp 问题背景）。与 EntityManager::removeEntity 的
+    // invalidateAll（路径B立即 free）形成双保险：路径A经 graveyard 延迟，可能先于析构就被 removeEntity
+    // 处理过（此时 invalidate 已幂等 no-op），也可能不经 removeEntity 直接析构（此处兜底）。
+    // 重复调用安全：已 invalidate 的 id 在注册表中已 erase，再次调为 no-op。
+    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(m_id);
 }
 
 void Entity::registerData()

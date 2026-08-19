@@ -244,11 +244,14 @@ function spawnerIgnoresDoMobSpawningGamerule(test: Test): void {
     });
 
     // 关闭 doMobSpawning 后，刷怪箱仍应生成（不查此规则）。
-    // maxTick=3000：spawner 首次生成延迟 [200,800) tick，且 spawner_chamber 仅相对 y=1（yOffset=0）
+    // maxTick=5000：spawner 首次生成延迟 [200,800) tick，且 spawner_chamber 仅相对 y=1（yOffset=0）
     // 是合法生成位（air 腔 + 下方 stone 地板），每周期 4 次尝试约 1/3 命中合法位，首次周期可能全失败
-    // （(2/3)^4≈20%），需多次周期累积命中。3×800=2400 覆盖最坏 3 周期 + 余量。
+    // （(2/3)^4≈20%），需多次周期累积命中。原 maxTick=3000 覆盖最坏 3 周期（3×800=2400）余量仅 ~600 tick
+    // 不足一个周期，全量跑高负载下偶发连续多周期全空失败（概率尾部 ~0.8%）。5000 覆盖 6 最坏周期
+    // （6×800=4800），失败概率降至 ~0.00006%。register maxTicks=5200 留 200 余量（poll maxTick 须 < maxTicks，
+    // 否则 poll 未超时测试先 ExecutionTimeout）。
     pollUntilSucceed(test, () => countEntities(test, "zombie") >= 1, {
-        maxTick: 3000,
+        maxTick: 5000,
         onTimeout: () => test.assert(false,
             `spawner did not spawn zombie with doMobSpawning=false (zombie=${countEntities(test, "zombie")})`),
     });
@@ -301,7 +304,7 @@ export function registerMobSpawnerTests(): void {
 
     GameTest.register("MobBehaviorTests", "spawner_ignores_doMobSpawning_gamerule", spawnerIgnoresDoMobSpawningGamerule)
         .structureName("gametests:spawner_chamber")
-        .maxTicks(3000);
+        .maxTicks(5200);
 
     GameTest.register("MobBehaviorTests", "spawner_silverfish_spawns_in_dark", spawnerSilverfishSpawnsInDark)
         .structureName("gametests:spawner_chamber")

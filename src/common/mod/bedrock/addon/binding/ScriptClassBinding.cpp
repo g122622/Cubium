@@ -4,6 +4,7 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 #include <string>
 #include <utility>
@@ -21,7 +22,8 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     void* ptr,
     bool owned,
     const char* typeName,
-    void (*destroy)(void*))
+    void (*destroy)(void*),
+    EntityInstanceId entityId)
 {
     // owned=true 时 nullptr 无意义（JS 将 GC delete nullptr，且语义上 owned 对象必须有实体），
     // 返回 null 表示无对象。owned=false 时 ptr 可为 nullptr：用于无实体指针的全局单例对象
@@ -37,8 +39,14 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
         return obj; // 返回异常句柄
     }
 
-    auto* data = new ObjectData{ptr, owned, typeName, destroy};
+    auto* data = new ObjectData{ptr, owned, typeName, destroy, entityId};
     ctx.setOpaque(obj, data, classId);
+
+    // Entity 系（entityId != 0）登记到 ScriptHandleRegistry：实体销毁时 invalidateAll 置本句柄
+    // ptr=nullptr，防 owned=false 裸 Entity* 跨 tick 悬垂 UAF（见 ScriptHandleRegistry.hpp 背景）。
+    if (entityId != 0) {
+        ScriptHandleRegistry::instance().registerHandle(entityId, data);
+    }
 
     return obj;
 }

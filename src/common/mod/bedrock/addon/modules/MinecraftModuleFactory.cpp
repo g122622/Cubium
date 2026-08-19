@@ -442,7 +442,10 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                             continue;
                         }
                         if (entProto != nullptr) {
-                            void* jsEnt = ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity");
+                            // 传 ent->id() 登记 ScriptHandleRegistry：实体销毁时置 ptr=nullptr 防 UAF
+                            // （owned=false 裸 Entity* 跨 tick 悬垂，见 ScriptHandleRegistry.hpp）。
+                            void* jsEnt = ScriptObjectRegistry::wrap(
+                                ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
                             ctx.setArrayElement(arr, outIdx, jsEnt); // 不消耗所有权，须手动 release
                             ctx.releaseValue(jsEnt);
                             ++outIdx;
@@ -463,7 +466,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                     if (ent == nullptr || entProto == nullptr) {
                         continue;
                     }
-                    void* jsEnt = ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity");
+                    void* jsEnt =
+                        ScriptObjectRegistry::wrap(ctx, entClassId, entProto, ent, false, "Entity", nullptr, ent->id());
                     ctx.setArrayElement(arr, outIdx, jsEnt);
                     ctx.releaseValue(jsEnt);
                     ++outIdx;
@@ -573,13 +577,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
 
             // 按类名 wrap 组件 JS 对象（opaque 持 ent，owned=false）。类未注册时返 undefined。
+            // 传 ent->id() 登记 ScriptHandleRegistry：组件对象与 Entity 对象 opaque 持同一 ent，
+            // 登记同一 entityId，实体销毁时 invalidateAll 一次清空 Entity + 所有组件句柄防 UAF。
             auto wrapComponent = [&ctx, ent](const char* className) -> void* {
                 const u64 classId = ScriptClassRegistry::instance().classIdByName(className);
                 void* proto = ScriptClassRegistry::instance().proto(classId);
                 if (proto == nullptr) {
                     return ctx.createUndefined();
                 }
-                return ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className);
+                return ScriptObjectRegistry::wrap(ctx, classId, proto, ent, false, className, nullptr, ent->id());
             };
 
             if (normalized == "minecraft:rideable") {
