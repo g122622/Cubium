@@ -145,7 +145,7 @@ void GhastLookAroundGoal::tick()
 // ============================================================================
 
 GhastFireballAttackGoal::GhastFireballAttackGoal(GhastEntity* ghast)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Look})
+    : Goal()
     , m_ghast(ghast)
     , m_target(nullptr)
     , m_attackTimer(0)

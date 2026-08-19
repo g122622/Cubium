@@ -38,8 +38,8 @@
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
-#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
@@ -85,6 +85,19 @@ GhastEntity::GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     setBurnsInDaylight(false);
     // 恶魂使用自定义的飞行移动控制器
     m_moveController = std::make_unique<entity::ai::controller::GhastMovementController>(this);
+
+    // 飞行特性：恶魂不受重力，对齐 vanilla Ghast。
+    // vanilla Ghast 覆写 travel() 委托 travelFlying（飞行物理，不应用重力）；
+    // Cubium 通过 setNoGravity(true) 让 LivingEntity::travel 跳过重力分支
+    // （LivingEntity.cpp:1487 `else if (!hasNoGravity())`），效果等价——
+    // 恶魂悬停于空中，配合 GhastMovementController 的 setVelocity 速度补偿
+    // 实现随机飞行。此前缺此调用，恶魂受重力持续下落（spawn 后逐 tick 沉降），
+    // GhastRandomFlyGoal 的随机速度补偿不足以抵消重力，恶魂无法稳定悬浮开火。
+    // 参考 VexEntity/WitherEntity 同用 setNoGravity(true) 实现飞行。
+    // TODO: 更彻底的对齐是覆写 travel() 委托 FlyingEntity::travel 的飞行物理
+    // （含飞行摩擦 0.91 + 飞行加速 0.02，对齐 vanilla travelFlying），但需提取
+    // FlyingEntity::travel 为共享静态方法供非 FlyingEntity 子类复用，待后续重构。
+    setNoGravity(true);
 
     // 补调 registerGoals / registerAttributes：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），
     // 派生 override 永不执行，须在派生类构造显式调用。Ghast 的 registerGoals 加专属 GhastRandomFly /
@@ -152,6 +165,7 @@ void GhastEntity::shootFireball()
     }
     auto fireball = std::make_unique<entity::FireballEntity>(EntityInstanceId(0), *registry);
     fireball->setTypeId(entity::EntityTypeKeys::FIREBALL); // 工厂绕过补救：直接构造缺 typeId
+    fireball->setWorld(worldPtr); // 直接构造的实体须显式 setWorld（对齐 BlazeFireballAttackGoal/DragonFireball）
     fireball->setShooter(this);
     fireball->setPosition(Vector3(fireballX, fireballY, fireballZ));
 
