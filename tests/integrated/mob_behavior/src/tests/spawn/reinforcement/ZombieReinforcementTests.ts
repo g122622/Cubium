@@ -142,6 +142,10 @@ function zombieSummonsReinforcementOnHurtHard(test: Test): void {
 
     // 1. 切 Hard 难度（canZombieReinforce 要求 Hard，DifficultyHelper）。
     player.chat("/difficulty hard");
+    // 恢复默认 normal 难度，防污染后续批次（difficulty 世界级跨测试持久化不自动重置）。
+    test.runOnFinish(() => {
+        player.chat("/difficulty normal");
+    });
     // 2. 强制僵尸增援属性为 1.0（test.spawn 不走 finalizeSpawn，属性默认 0.0，必须 /attribute 覆盖）。
     //    @e[type=zombie,limit=1,sort=nearest] 精确选中距玩家最近的 1 只僵尸（即 test.spawn 那只，距 2 格；
     //    limit=1 规避"多实体"错误，即便有自然生成残留也只取最近者）。

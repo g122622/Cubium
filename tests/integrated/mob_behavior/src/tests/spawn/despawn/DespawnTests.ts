@@ -41,6 +41,14 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 // 命令执行 + DespawnManager tick + remove 移除约 2-5 tick，maxTick=200 留充裕余量。
 //
 // 注：chat 执行命令仅 Cubium 端有效（基岩 BDS chat 是发消息语义），本测试 Cubium one-sided。
+//
+// 【并行污染隔离】/difficulty peaceful 是世界级命令，DespawnManager 和平清除分支遍历【全维度所有 MobEntity】
+// 立即清除（DespawnManager.cpp:114），会杀光同批并行测试的 zombie/silverfish 等（spawner/summon 类测试
+// zombie=0 假失败根因即此）。difficulty 是世界级状态跨测试持久化不自动重置。故：
+// 1. 独占 batch（night_peaceful，前缀 night 自动获夜晚环境避免亡灵白天燃烧死亡干扰"被清除"判定），
+//    批次间串行使本测试不与任何其他测试并行，peaceful 清除只影响本测试自己的 zombie。
+// 2. runOnFinish 恢复 difficulty=normal（PASSED/FAILED/TIMEOUT 三态均触发，早于 GameTestHelper 析构，
+//    player 存活可调 chat），防污染后续批次依赖默认难度的测试。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_怪物消失.txt（和平难度立即清除敌对生物）
 function monsterDespawnsOnPeaceful(test: Test): void {
     const zombieType = "zombie";
@@ -51,6 +59,10 @@ function monsterDespawnsOnPeaceful(test: Test): void {
 
     // 创造玩家 permLevel=2 执行 /difficulty peaceful。
     player.chat("/difficulty peaceful");
+    // 恢复默认 normal 难度，防污染后续批次（见上方并行污染隔离注释）。
+    test.runOnFinish(() => {
+        player.chat("/difficulty normal");
+    });
 
     // 轮询：和平清除后 zombie==0。
     pollUntilSucceed(test, () => {
@@ -76,6 +88,9 @@ function monsterDespawnsOnPeaceful(test: Test): void {
 //
 // 时序：命令生效后僵尸持续存活，等 100 tick（覆盖若干 DespawnManager tick）后断言仍存在。
 // night batch 避免亡灵白天燃烧死亡（区分"存活"与"烧死后消失"）。
+//
+// 【并行污染隔离】同 monsterDespawnsOnPeaceful：/difficulty hard 是世界级命令，独占 batch（night_hard）
+// 串行执行 + runOnFinish 恢复 normal，防污染同批/后续批次。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_怪物消失.txt（非和平难度不因难度清除）
 function monsterSurvivesOnHard(test: Test): void {
     const zombieType = "zombie";
@@ -83,6 +98,10 @@ function monsterSurvivesOnHard(test: Test): void {
     test.spawn(zombieType, { x: 3, y: 2, z: 3 });
     const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "op");
     player.chat("/difficulty hard");
+    // 恢复默认 normal 难度，防污染后续批次。
+    test.runOnFinish(() => {
+        player.chat("/difficulty normal");
+    });
 
     // 等 100 tick 后断言僵尸仍存活（DespawnManager 未清除）。
     test.runAtTickTime(100, () => {
@@ -99,11 +118,12 @@ function monsterSurvivesOnHard(test: Test): void {
 
 export function registerDespawnTests(): void {
     GameTest.register("MobBehaviorTests", "monster_despawns_on_peaceful", monsterDespawnsOnPeaceful)
+        .batch("night_peaceful")
         .structureName("gametests:glass_pit")
         .maxTicks(200);
 
     GameTest.register("MobBehaviorTests", "monster_survives_on_hard", monsterSurvivesOnHard)
-        .batch("night")
+        .batch("night_hard")
         .structureName("gametests:glass_pit")
         .maxTicks(150);
 }
