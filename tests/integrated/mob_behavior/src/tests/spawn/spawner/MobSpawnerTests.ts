@@ -233,6 +233,15 @@ function spawnerIgnoresDoMobSpawningGamerule(test: Test): void {
     );
 
     player.chat("/gamerule doMobSpawning false");
+    // doMobSpawning 是世界级游戏规则，GameTest 全程共享单一 ServerWorld，规则跨测试/跨批次持久化、
+    // 框架不自动重置（见 GameTestHelper 析构仅清实体不清 gamerule）。本测试设 false 后若不恢复，会
+    // 污染后续所有依赖自然生成的测试（NaturalSpawner 修复遵守 doMobSpawning 后，false 会全局关停
+    // 自然生成）。故用 runOnFinish 在测试结束（PASSED/FAILED/TIMEOUT 三态均触发，见
+    // BaseGameTestInstance.cpp:147-151,163-167）时恢复 true。runOnFinish 早于 GameTestHelper 析构
+    // （批次结束才 clear 实例），此时 player 实体仍存活，chat 可调。
+    test.runOnFinish(() => {
+        player.chat("/gamerule doMobSpawning true");
+    });
 
     // 关闭 doMobSpawning 后，刷怪箱仍应生成（不查此规则）。
     // maxTick=3000：spawner 首次生成延迟 [200,800) tick，且 spawner_chamber 仅相对 y=1（yOffset=0）

@@ -31,6 +31,7 @@
 #include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -161,10 +162,18 @@ void ServerDimension::tick()
         // 方块更新同步刷新
         m_blockUpdateSyncManager->flushPendingUpdates();
 
-        // 自然刷怪（仅主世界和下界有 hostile 刷怪）
+        // 自然刷怪（仅主世界和下界有 hostile 刷怪）。
+        // doMobSpawning 游戏规则门控：对齐 vanilla ServerChunkCache.tickChunks（ServerChunkCache.java:376）
+        // —— `boolean flag = level.getGameRules().get(GameRules.SPAWN_MOBS);`，flag=false 时 list=List.of()
+        // 跳过全部自然生成分类（Monster/Creature 均跳过）+ customSpawners。Cubium 此前无条件调 tick，
+        // doMobSpawning=false 时仍生成，偏离 vanilla。修复：规则 false 时跳过 m_naturalSpawner->tick。
+        // 注：难度门控（和平不刷怪）仍由 NaturalSpawner::tick 内 allowsMobSpawning 检查，此处仅补 doMobSpawning。
+        // hostile 维度开关同时被下方 VillageSiege 复用，故声明在 if 外。
         bool hostile = (id() == DimensionManager::OVERWORLD || id() == DimensionManager::NETHER);
-        bool passive = (id() == DimensionManager::OVERWORLD);
-        m_naturalSpawner->tick(*m_world, hostile, passive);
+        if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+            bool passive = (id() == DimensionManager::OVERWORLD);
+            m_naturalSpawner->tick(*m_world, hostile, passive);
+        }
 
         // 生物消失检查
         m_despawnManager->tick(*m_world);

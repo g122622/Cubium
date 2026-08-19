@@ -156,9 +156,18 @@ function naturalSpawnRequiresPlayer(test: Test): void {
 // blockLight=15 向上传播覆盖生成区（生成位 helper y=2 = glowstone 上方第一格 air）。glowstone 占文件
 // y=0 后该列生成位文件 y=1 仍 air，但 blockLight=15 拒绝。night batch 夜晚露天 skyLight 衰减 ~4，
 // 但 max(15,4)=15>7 仍拒绝。
+//
+// 关 doMobSpawning 隔离 tick 路径：countAny 查询整个结构（41×7×9），但 glowstone 仅铺 x∈[30,40]，
+// 结构内 x∈[0,29] 无 glowstone 保护的 air 腔可被 NaturalSpawner::tick 路径命中合规生成怪物（玩家 x=2，
+// x∈[27,29] 距玩家 25-27 格在门控内），被 countAny 捕获致 monsters>0 假失败。本测试验证的是【单点入口
+// spawnNaturalAt 的光照门槛】，故关 doMobSpawning（NaturalSpawner 遵守该规则，对齐 vanilla
+// ServerChunkCache.tickChunks:376）隔离 tick 路径，仅留单点入口做光照判定。runOnFinish 恢复 true
+// 防污染后续测试（PASSED/FAILED/TIMEOUT 三态均触发）。批次用 night_lit 独占，避免与 distance_gate
+// 同设 doMobSpawning=false 同批竞态。
 // Ref: NaturalSpawner _checkLightLevel（怪物 getMaxLocalRawBrightness<=7）
+// Ref: vanilla ServerChunkCache.tickChunks:376（doMobSpawning 门控自然生成）
 function naturalSpawnNoMonsterWhenLit(test: Test): void {
-    test.spawnSimulatedPlayer(PLAYER_POS, "observer");
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "observer");
 
     // 生成腔地板层 helper y=1（=文件 y=0）满铺 glowstone（x∈[30,40] z∈[0,8] 全 z 范围），提 blockLight=15
     // 覆盖 ±5 抖动全部 z 命中位。
@@ -167,6 +176,12 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
             test.setBlockType("minecraft:glowstone", { x, y: 1, z });
         }
     }
+
+    // 关停 tick 路径，隔离单点入口的光照门槛判定（见上方注释）。
+    player.chat("/gamerule doMobSpawning false");
+    test.runOnFinish(() => {
+        player.chat("/gamerule doMobSpawning true");
+    });
 
     pollUntilSucceed(test, () => {
         // 生成位 SPAWN_POS（x=35,y=2,z=4）已被 glowstone 照亮（blockLight=15），怪物光照门槛拒绝。
@@ -219,11 +234,30 @@ function naturalSpawnAnimalOnGrassDaytime(test: Test): void {
 // 对照测试：dark_cavern 玩家站生成位旁（x=30，生成位 x=35，距 5 格 <24），单点入口 ±5 抖动后生成位
 // 仍在玩家 24 格内，距离下限门控拒绝全部候选位。等若干检查点断言无怪物生成。
 //
-// 负向断言：若距离下限门控失效，夜晚露天玩家 24 格内会生成怪物，monster>0 暴露 bug。
+// 关键：必须关闭 doMobSpawning 游戏规则隔离 NaturalSpawner::tick 路径。原因：tick 路径每 tick 在
+// 结构内距玩家 25-128 格处合规生成怪物（dark_cavern 41 格长，玩家 x=30，结构内 x∈[0,5] 距玩家 25-30
+// 格恰在门控内，tick 路径在此区域合规生成怪物）。countAny 查询整个结构（41×7×9）会捕获到 tick 路径
+// 合规生成的怪物，致 monsters>0 假失败。本测试要验证的是【单点入口 spawnNaturalAt 的距离门控】，
+// 故用 chat("/gamerule doMobSpawning false") 关停 tick 路径（NaturalSpawner 遵守 doMobSpawning，
+// 对齐 vanilla ServerChunkCache.tickChunks:376），仅留单点入口路径做距离门控判定。
+//
+// doMobSpawning 是世界级规则，GameTest 共享单一 ServerWorld 不自动重置。本测试设 false 须用
+// runOnFinish 恢复 true（PASSED/FAILED/TIMEOUT 三态均触发），否则污染后续依赖自然生成的测试。
+// 同批 night 批的 natural_spawn_monster/no_monster_when_lit 用单点入口 spawnNaturalAt 不依赖 tick
+// 路径，关 doMobSpawning 不影响它们；其余 night 批测试用 test.spawn 不依赖 NaturalSpawner，亦不受影响。
+//
+// 负向断言：若距离下限门控失效，单点入口会在玩家 24 格内生成怪物，monster>0 暴露 bug。
 // Ref: NaturalSpawner MIN_SPAWN_DISTANCE_SQ=24²
+// Ref: vanilla ServerChunkCache.tickChunks:376（doMobSpawning 门控自然生成）
 function naturalSpawnDistanceGateUnder24(test: Test): void {
     // 玩家站 x=30，生成位 x=35（距 5 格 <24，±5 抖动后 x∈[30,40] 距玩家 0-10 格全 <24）。
-    test.spawnSimulatedPlayer({ x: 30, y: 2, z: 4 }, "observer");
+    const player = test.spawnSimulatedPlayer({ x: 30, y: 2, z: 4 }, "observer");
+
+    // 关停 tick 路径，隔离单点入口的距离门控判定（见上方注释）。
+    player.chat("/gamerule doMobSpawning false");
+    test.runOnFinish(() => {
+        player.chat("/gamerule doMobSpawning true");
+    });
 
     pollUntilSucceed(test, () => {
         test.spawnNaturalAt("monster", test.worldLocation(SPAWN_POS));
@@ -270,9 +304,10 @@ export function registerNaturalSpawnTests(): void {
 
     GameTest.register("MobBehaviorTests", "natural_spawn_no_monster_when_lit", naturalSpawnNoMonsterWhenLit)
         .structureName("gametests:dark_cavern")
-        // night batch：本测试自带玩家（PLAYER_POS），光照门槛判定（glowstone blockLight=15 拒怪物）与
-        // 玩家无关，不受同批其他测试干扰。countAny 区域限定本结构，不污染。详见上方 monster 测试批次注释。
-        .batch("night")
+        // night_lit 独占批次（前缀 night 自动获夜晚环境）：本测试设 doMobSpawning=false 隔离 tick 路径，
+        // 独占批次避免与 distance_gate / 其他 night 测试并行时 doMobSpawning 规则竞态。runOnFinish 恢复
+        // true 防污染后续批次。详见测试函数注释。
+        .batch("night_lit")
         .skyAccess(true)
         .setupTicks(20)
         .maxTicks(300);
@@ -288,9 +323,12 @@ export function registerNaturalSpawnTests(): void {
 
     GameTest.register("MobBehaviorTests", "natural_spawn_distance_gate_under_24", naturalSpawnDistanceGateUnder24)
         .structureName("gametests:dark_cavern")
-        // night batch：本测试玩家站 x=30 距生成位 x=35 仅 5 格（<24），单点入口 getClosestPlayer 返回本
-        // 测试玩家（5 格，最近），距离下限门控拒绝全部候选。同批其他测试玩家 73+ 格外更远，不干扰。
-        .batch("night")
+        // night_dist_gate 独占批次（前缀 night 自动获夜晚环境）：本测试设 doMobSpawning=false 隔离 tick
+        // 路径，独占批次避免与 night 批其他测试并行时 doMobSpawning 规则竞态（A 设 false / B 恢复 true
+        // 互相干扰）。批次间串行，独占跑不与他人并行。runOnFinish 恢复 true 防污染后续批次。
+        // 本测试玩家站 x=30 距生成位 x=35 仅 5 格（<24），单点入口 getClosestPlayer 返回本测试玩家
+        // （5 格，最近），距离下限门控拒绝全部候选。
+        .batch("night_dist_gate")
         .skyAccess(true)
         .setupTicks(20)
         .maxTicks(300);
