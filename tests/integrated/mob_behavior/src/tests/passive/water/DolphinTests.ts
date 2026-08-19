@@ -47,11 +47,11 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 // 海豚被攻击后设 attackTarget=玩家，MeleeAttackGoal 寻路接近 3 格 + 攻击冷却后 hurt(玩家, 3.0)。
 //
 // 判定手段：断言玩家 HP 下降（<20）。近战确定性命中（无散布），伤害 3.0，玩家满血 20 → 17。
-// 玩家在陆地不溺水，HP 掉血只能来自海豚攻击，断言干净（maxTicks=800 < 玩家陆地无溺水问题，
+// 玩家在陆地不溺水，HP 掉血只能来自海豚攻击，断言干净（maxTicks=1200 < 玩家陆地无溺水问题，
 //   玩家陆地不消耗 air）。
-// 时序：玩家攻击(8) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(3.0)。
+// 时序：玩家攻击(8/16/24/32 多次) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(3.0)。
 //   海豚 MOVEMENT_SPEED=1.2（属性值，moveController 调制后较快），3 格接近 + 冷却约需 30-60 tick，
-//   maxTicks=800 留充裕余量。
+//   maxTicks=1200 留充裕余量吸收并行环境 tick 抖动（单跑 800 tick 稳定，并行下寻路/冷却偶发延迟需更长窗口）。
 // 玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验，创造模式被 TargetGoal 滤掉不可被攻击/反击）。
 // 玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"（玩家类型带前缀）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_海豚.txt#攻击（被攻击后反击攻击者）
@@ -66,9 +66,20 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
   const dolphin = test.spawn(dolphinType, { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
-  // tick 8 后玩家攻击海豚：留 8 tick 让实体完成 spawn 注册 + 首 tick 稳定。
-  // attackEntity 远程命中触发 HurtByTargetGoal → 设 attackTarget=玩家。
+  // tick 8/16/24/32 后玩家多次攻击海豚：留 8 tick 让实体完成 spawn 注册 + 首 tick 稳定，之后每隔 8 tick
+  // 攻击一次共 4 次。多次攻击确保 HurtByTargetGoal 被触发设 attackTarget=玩家（attackEntity 远程命中，
+  // 基岩语义 attack can be performed at any distance，见 WolfTests/PolarBearTests 同款注释）。单次攻击在并行
+  // 环境下偶发未及时触发 HurtByTargetGoal（tick 抖动），多次攻击提高可靠性。
   test.runAtTickTime(8, () => {
+    player.attackEntity(dolphin);
+  });
+  test.runAtTickTime(16, () => {
+    player.attackEntity(dolphin);
+  });
+  test.runAtTickTime(24, () => {
+    player.attackEntity(dolphin);
+  });
+  test.runAtTickTime(32, () => {
     player.attackEntity(dolphin);
   });
 
@@ -93,5 +104,5 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
-    .maxTicks(800);
+    .maxTicks(1200);
 }

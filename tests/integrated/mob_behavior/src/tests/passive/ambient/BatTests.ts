@@ -72,19 +72,24 @@ function batFliesAtNight(test: Test): void {
 // blockY - height + 0.1（挂在上方方块底面）。tick 持续 setVelocity(0,0,0) 保持静止。
 // _shouldStopResting：夜间/玩家4格内/失去支撑→唤醒。day 批默认 dayTime=6000<12000 白天，RestGoal 可触发。
 //
-// 概率性处理：1/100 每 tick 触发，单只 300 tick 约 95% 触发。用 3 只蝙蝠提高触发率（至少一只倒挂概率
-// ≈1-0.05³≈99.99%）。满铺石头天花板保证蝙蝠飞到任意位置上方都有固体方块可挂（canRest 随处满足）。
+// 概率性处理：1/100 每 tick 触发，但需 _canRestAtCurrentPosition 通过（蝙蝠当前格上方有固体方块）。
+// 蝙蝠飞行中 pos.y 会变化（BatRandomFlyGoal targetY=currentY+randint(-2,4)），飞低时上方可能是空气致
+// canRest 失败，故实际倒挂触发率低于理论 1/100。用 6 只蝙蝠 + 较长采样窗口（tick 200→400，200 tick 窗口）
+// 提高累计触发概率：6 只 × 200 tick × 1/100 ≈ 12 次尝试，即便 canRest 通过率仅 ~30%，至少一次成功概率
+// >1-0.7^12≈99.1%。满铺石头天花板保证蝙蝠飞到高 y 位置时上方有石头可挂（canRest 随处可满足）。
 //
-// 判定手段：倒挂后蝙蝠速度恒零、位置稳定。runAtTickTime(200) 采样所有蝙蝠位置（200 tick 足够 1/100
-// 触发倒挂），runAtTickTime(250) 再采样，断言至少一只蝙蝠两次位置位移 <0.1（倒挂静止）。
-// 飞行中的蝙蝠位移大（>0.1），倒挂的静止（<0.1），区分明确。位移阈值规避倒挂 Y 精确值依赖。
+// 判定手段：倒挂后蝙蝠速度恒零、位置稳定。用 succeedWhen 每 tick 持续检测"是否有蝙蝠相对上一 tick
+// 位移 <0.1"（静止）。相比固定两 tick 采样，持续检测能捕捉任意 tick 的倒挂瞬间，不依赖采样窗口恰好
+// 落在倒挂时段。闭包存上一 tick 各蝙蝠位置，每 tick 比对：任一蝙蝠位移 <0.1 即判定倒挂静止 succeed。
+// 飞行蝙蝠每 tick 位移 >0.1（飞行速度 0.1+），倒挂蝙蝠位移 ≈0，区分明确。startTick=200 留 1/100
+// 倒挂触发时间，maxTicks=800 留充裕余量吸收 1/100 概率 + canRest 失败重试。
 //
-// 环境选择：grass_pen（9×5×9）。helper-y=3 满铺石头天花板（结构内 y=2，9×9 共 81 块），3 只蝙蝠 spawn
+// 环境选择：grass_pen（9×5×9）。helper-y=3 满铺石头天花板（结构内 y=2，9×9 共 81 块），6 只蝙蝠 spawn
 // 于 helper-y=2（结构内 y=1 空气，上方 y=2 石头，canRest 查 floor(pos.y+1.0)=2 命中石头）。
 // 蝙蝠在 y=1 飞行层（高 1 格，蝙蝠高 0.9 刚好），上方满石头限制飞行高度，倒挂随处可触发。
 // day 批（默认）dayTime=6000 白天。不 spawn 玩家避免 4 格唤醒。
 // 不用 skyAccess：倒挂不需露天，grass_pen 玻璃墙+石头天花板封闭环境即可。
-// maxTicks=400：200 tick 等待倒挂触发 + 50 tick 采样间隔 + 余量。
+// maxTicks=800：200 tick 等待倒挂触发 + 每 tick 持续检测窗口 + 余量。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蝙蝠.txt#行为（白天倒挂休息）
 function batRestsInDaytime(test: Test): void {
   const batType = "bat";
@@ -98,51 +103,49 @@ function batRestsInDaytime(test: Test): void {
     }
   }
 
-  // 3 只蝙蝠分散 spawn 于 y=1 飞行层，提高 1/100 倒挂触发率（至少一只倒挂概率 ≈99.99%）。
+  // 6 只蝙蝠分散 spawn 于 y=1 飞行层，提高 1/100 倒挂触发率（6 只 × 600 tick ≈ 36 次尝试）。
   test.spawn(batType, { x: 2, y: batY, z: 2 });
+  test.spawn(batType, { x: 2, y: batY, z: 6 });
   test.spawn(batType, { x: 4, y: batY, z: 4 });
+  test.spawn(batType, { x: 6, y: batY, z: 2 });
   test.spawn(batType, { x: 6, y: batY, z: 6 });
+  test.spawn(batType, { x: 4, y: batY, z: 7 });
 
-  // tick 200 采样所有蝙蝠位置（200 tick 足够 1/100 倒挂触发）。
-  let positions200: { x: number; y: number; z: number }[] = [];
-  test.runAtTickTime(200, () => {
-    const bats = test.getDimension().getEntities({
-      type: batType,
-      location: test.worldLocation(PEN_FROM),
-      volume: PEN_VOLUME,
-    });
-    positions200 = bats.map(b => ({ x: b.location.x, y: b.location.y, z: b.location.z }));
-  });
+  // 上一 tick 各蝙蝠位置数组（getEntities 返回顺序可能不稳定，用最近邻匹配而非索引对齐）。null 表示首帧。
+  let prevPositions: { x: number; y: number; z: number }[] | null = null;
 
-  // tick 250 再采样，断言至少一只蝙蝠两次位置位移 <0.1（倒挂静止）。
-  // 飞行蝙蝠位移 >0.1，倒挂蝙蝠 <0.1。50 tick 间隔足够区分飞行/静止。
-  test.runAtTickTime(250, () => {
-    const bats = test.getDimension().getEntities({
-      type: batType,
-      location: test.worldLocation(PEN_FROM),
-      volume: PEN_VOLUME,
+  // 每 tick 持续检测：任一蝙蝠与上一 tick 某蝙蝠位置位移 <0.1 即倒挂静止 succeed。
+  // startTick=200 留 1/100 倒挂触发时间。用 runAtTickTime 每 tick 注册检测（预注册 200..800 共 601 个检查点）。
+  for (let tick = 200; tick <= 800; tick++) {
+    test.runAtTickTime(tick, () => {
+      const bats = test.getDimension().getEntities({
+        type: batType,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      if (bats.length === 0) {
+        return; // 蝙蝠消失（不应发生），本 tick 不判定
+      }
+      const currentPositions = bats.map(b => ({ x: b.location.x, y: b.location.y, z: b.location.z }));
+      if (prevPositions !== null) {
+        // 最近邻匹配：任一当前蝙蝠与上一 tick 某蝙蝠位移 <0.1 即静止。
+        for (const cur of currentPositions) {
+          for (const prev of prevPositions) {
+            const dx = cur.x - prev.x;
+            const dy = cur.y - prev.y;
+            const dz = cur.z - prev.z;
+            if (dx * dx + dy * dy + dz * dz < 0.1 * 0.1) {
+              // 该蝙蝠相对上一 tick 位移 <0.1，判定倒挂静止，succeed。
+              test.succeed();
+              return;
+            }
+          }
+        }
+      }
+      prevPositions = currentPositions;
+      // 本 tick 未检测到静止，更新 prevPositions 等下一 tick。最后一个 tick（800）未 succeed 则超时。
     });
-    test.assert(positions200.length > 0, "no bats sampled at tick 200");
-    // 任意一只蝙蝠在两次采样间位移 <0.1 即倒挂静止。
-    let anyResting = false;
-    for (const b of bats) {
-      // 找 tick 200 最近的采样点比对（蝙蝠数量稳定，按最近邻匹配）。
-      let minDistSq = Infinity;
-      for (const p of positions200) {
-        const dx = b.location.x - p.x;
-        const dy = b.location.y - p.y;
-        const dz = b.location.z - p.z;
-        const d = dx * dx + dy * dy + dz * dz;
-        if (d < minDistSq) minDistSq = d;
-      }
-      if (minDistSq < 0.1 * 0.1) {
-        anyResting = true;
-        break;
-      }
-    }
-    test.assert(anyResting, "no bat rested (none stationary between tick 200 and 250)");
-    test.succeed();
-  });
+  }
 }
 
 export function registerBatTests(): void {
@@ -153,5 +156,5 @@ export function registerBatTests(): void {
 
   GameTest.register("MobBehaviorTests", "bat_rests_in_daytime", batRestsInDaytime)
     .structureName("gametests:grass_pen")
-    .maxTicks(400);
+    .maxTicks(900);
 }

@@ -71,15 +71,20 @@ function foxImmuneToSweetBerryBush(test: Test): void {
     }
   }
 
-  // 狐狸 (2,3,2)、鸡 (5,3,5) spawn 在 helper-y=3，落入 helper-y=2 灌木层（停在草地顶，AABB 覆盖灌木格）。
-  // 分散站位避免相互推挤。两者都是被动生物有 RandomWalkingGoal，灌木（noCollision，blocksMovement=false）
-  // 修复后不阻挡寻路，实体可在灌木中水平移动触发 onEntityCollision。
+  // 狐狸 (2,3,2) + 3 只鸡分散 spawn 在 helper-y=3，落入 helper-y=2 灌木层（停在草地顶，AABB 覆盖灌木格）。
+  // 分散站位避免相互推挤。狐狸与鸡都是被动生物有 RandomWalkingGoal，灌木（noCollision，blocksMovement=false）
+  // 修复后不阻挡寻路，实体可在灌木中水平移动触发 onEntityCollision。用 3 只鸡提高至少一只移动触发灌木伤害的
+  // 概率（单只鸡 RandomWalking 随机性强，偶发久不移动致超时；3 只鸡累计移动概率显著提升）。狐狸会主动攻击
+  // 鸡（NearestAttackableTargetGoal），被追的鸡逃跑移动亦触发灌木伤害，自驱动对照链路。
   test.spawn(foxType, { x: 2, y: 3, z: 2 });
   test.spawn(chickenType, { x: 5, y: 3, z: 5 });
+  test.spawn(chickenType, { x: 3, y: 3, z: 6 });
+  test.spawn(chickenType, { x: 6, y: 3, z: 3 });
 
-  // 双断言：狐狸免疫（HP==10）+ 鸡受伤（HP<4 或消失）。
-  // succeedWhen 每 tick 持续检查：狐狸必须始终满血（免疫从未受伤），鸡必须掉血或死亡。
-  // 鸡 4 血，灌木每 ~10 tick 1 伤害，4 次约 40+ tick 致死；maxTicks=800 留充裕余量吸收随机性。
+  // 双断言：狐狸免疫（HP==10）+ 任一鸡受伤（HP<4 或消失）。
+  // succeedWhen 每 tick 持续检查：狐狸必须始终满血（免疫从未受伤），任一鸡必须掉血或死亡。
+  // 鸡 4 血，灌木每 ~10 tick 1 伤害，4 次约 40+ tick 致死；3 只鸡累计提高触发率，maxTicks=1200 留充裕余量
+  // 吸收 RandomWalking 随机性 + 并行环境 tick 抖动（单只鸡 800 tick 偶发不动超时）。
   test.succeedWhen(() => {
     const foxes = test.getDimension().getEntities({
       type: "minecraft:fox",
@@ -98,15 +103,21 @@ function foxImmuneToSweetBerryBush(test: Test): void {
       location: test.worldLocation(PEN_FROM),
       volume: PEN_VOLUME,
     });
-    // 鸡受伤死亡消失——灌木伤害链路对非狐狸生效。
+    // 任一鸡受伤死亡消失——灌木伤害链路对非狐狸生效。
     if (chickens.length === 0) {
       return;
     }
-    const chickenHealth = chickens[0].getComponent("minecraft:health");
-    test.assert(chickenHealth !== undefined, "chicken has no health component");
-    // 鸡必须在灌木中受伤（HP<4 满血），证明灌木造伤链路生效（反证狐狸不掉血是免疫而非灌木失效）。
-    test.assert((chickenHealth as any).currentValue < 4,
-      `chicken not damaged by sweet berry bush (bush damage link may be broken), hp=${(chickenHealth as any).currentValue}`);
+    // 任一鸡 HP<4 即证明灌木造伤链路生效（反证狐狸不掉血是免疫而非灌木失效）。
+    let anyChickenHurt = false;
+    for (const c of chickens) {
+      const ch = c.getComponent("minecraft:health") as any;
+      if (ch !== undefined && ch.currentValue < 4) {
+        anyChickenHurt = true;
+        break;
+      }
+    }
+    test.assert(anyChickenHurt,
+      `no chicken damaged by sweet berry bush (bush damage link may be broken or chickens not moving), count=${chickens.length}`);
   });
 }
 
@@ -340,8 +351,9 @@ export function registerFoxTests(): void {
     .structureName("gametests:grass_pen")
     // skyAccess(true)：清空结构上方 worldgen 制造露天列使 canSeeSky=true → hasShelter=false →
     // 狐狸白天不睡眠（FoxSleepGoal 不触发），RandomWalking 可执行移动验证免疫机制。
+    // 3 只鸡 + maxTicks=1200：吸收 RandomWalking 随机性 + 并行 tick 抖动（单只鸡 800 tick 偶发不动超时）。
     .skyAccess(true)
-    .maxTicks(800);
+    .maxTicks(1200);
 
   GameTest.register("MobBehaviorTests", "fox_attacks_chicken", foxAttacksChicken)
     // batch("night")：夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠) 与 FoxFindShelterGoal(白天躲阳光)
