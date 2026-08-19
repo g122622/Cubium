@@ -278,8 +278,13 @@ function spawnerSilverfishSpawnsInDark(test: Test): void {
     setupSpawner(test, "minecraft:silverfish_spawn_egg");
 
     // 蠢鱼刷怪箱在黑暗中生成蠹虫（蠹虫是 Monster 分类，黑暗中 isValidLightLevel 通过）。
+    // maxTick=3000：spawner_chamber 仅相对 y=1（yOffset=0）是合法生成位（air 腔 + 下方 stone 地板），
+    // 每周期 4 次尝试约 1/3 命中合法位，首次周期可能全失败（(2/3)^4≈20%），需多次周期累积命中。
+    // 首次 delay [200,800) tick，3000 覆盖最坏 3 周期（3×800=2400）+ 余量。原 maxTick=1000 仅覆盖
+    // 1 周期，首周期全失败即超时（约 20% 概率失败，连跑 5 次 1 次失败）。对齐 spawnerSpawnsZombieInDark
+    // 的 maxTick=3000 范式。
     pollUntilSucceed(test, () => countEntities(test, "silverfish") >= 1, {
-        maxTick: 1000,
+        maxTick: 3000,
         onTimeout: () => test.assert(false,
             `silverfish spawner did not spawn in dark (silverfish=${countEntities(test, "silverfish")})`),
     });
@@ -308,5 +313,5 @@ export function registerMobSpawnerTests(): void {
 
     GameTest.register("MobBehaviorTests", "spawner_silverfish_spawns_in_dark", spawnerSilverfishSpawnsInDark)
         .structureName("gametests:spawner_chamber")
-        .maxTicks(3000);
+        .maxTicks(3200);
 }
