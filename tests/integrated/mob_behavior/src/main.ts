@@ -14,6 +14,7 @@ import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js"
 import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
 import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
 import { registerHoglinTests } from "./tests/monster/nether/HoglinTests.js";
+import { registerPiglinBruteTests } from "./tests/monster/nether/PiglinBruteTests.js";
 import { registerMagmaCubeTests } from "./tests/monster/nether/MagmaCubeTests.js";
 import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPiglinTests.js";
 import { registerPiglinTests } from "./tests/monster/nether/PiglinTests.js";
@@ -79,6 +80,7 @@ registerIronGolemTests();
 registerSnowGolemTests();
 registerZoglinTests();
 registerHoglinTests();
+registerPiglinBruteTests();
 registerMagmaCubeTests();
 registerZombifiedPiglinTests();
 registerPiglinTests();
