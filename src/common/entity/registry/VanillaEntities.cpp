@@ -507,9 +507,13 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 烈焰人
+    // immuneToFire: 烈焰人免疫火焰/岩浆伤害（对齐 Java EntityType.BLAZE.fireImmune()，
+    // EntityType.java:284）。isImmuneToFire() 在 FireTickSystem::tick（着火立即清除）+
+    // Entity::lavaHurt（岩浆伤害 return）+ Entity::lavaIgnite（不点燃）三处生效。
     registry.registerType(EntityTypeKeys::BLAZE,
         EntityType::Builder(&BlazeEntity::create, EntityClassification::Monster)
             .size(0.6f, 1.8f)
+            .immuneToFire()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
@@ -593,6 +597,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::WITHER_SKELETON,
         EntityType::Builder(&WitherSkeletonEntity::create, EntityClassification::Monster)
             .size(0.6f, 1.99f)
+            .immuneToFire()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
@@ -706,6 +711,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::WARDEN,
         EntityType::Builder(&WardenEntity::create, EntityClassification::Monster)
             .size(0.9f, 2.9f)
+            .immuneToFire()
             .trackingRange(16)
             .updateInterval(3)
             .canSummon(true)
@@ -838,6 +844,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::ZOGLIN,
         EntityType::Builder(&ZoglinEntity::create, EntityClassification::Monster)
             .size(1.3964844f, 1.4f)
+            .immuneToFire()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
@@ -903,6 +910,7 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::VEX,
         EntityType::Builder(&VexEntity::create, EntityClassification::Monster)
             .size(0.4f, 0.8f)
+            .immuneToFire()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)

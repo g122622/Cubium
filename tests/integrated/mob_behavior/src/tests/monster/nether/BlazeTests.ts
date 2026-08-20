@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { fillBlock } from "../../../utils/block/build.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -101,6 +102,85 @@ function blazeDoesNotBurnInDaylight(test: Test): void {
   });
 }
 
+// 烈焰人免疫火焰/熔岩伤害（wiki tech_烈焰人.txt#行为：免疫火焰伤害）。
+//
+// C++ 链路：VanillaEntities.cpp BLAZE 注册带 .immuneToFire()（对齐 Java EntityType.BLAZE.fireImmune()，
+// EntityType.java:284）。Entity::isImmuneToFire()（Entity.cpp:2126-2136）读注册标志，在三处生效：
+//   1. Entity::lavaHurt（Entity.cpp:2145-2159）：isImmuneToFire() 为真直接 return，不造成 4.0 岩浆伤害。
+//   2. Entity::lavaIgnite（Entity.cpp:2138-2143）：isImmuneToFire() 为真不点燃（不 igniteForSeconds）。
+//   3. FireTickSystem::tick（FireTickSystem.cpp:24-27）：isImmuneToFire() 为真立即 clearFire，不掉 onFire 伤害。
+//
+// 历史缺陷：BLAZE 注册曾遗漏 .immuneToFire()（仅 Strider/EnderDragon/Ghast/MagmaCube/Shulker/Wither/
+// ZombifiedPiglin 带），致烈焰人被熔岩/火焰伤害——与 Java 不一致。本测试验证修复后免疫生效。
+//
+// 几何与对照（复用 magma_cube_immune_to_fire 范式但调整 spawn 位置）：creeper_pit 铺两层 lava
+// （y=0..1），烈焰人与对照猪**直接 spawn 在熔岩层内 (y=1)**，首 tick 即浸入触发 lavaHurt。
+// 对照实体猪同环境浸入熔岩——猪 isImmuneToFire=false，lavaHurt 每 tick 4.0 伤害，掉血/死亡。
+// 猪对照排除"熔岩伤害机制未实现"的假性通过：若猪不掉血说明 lavaHurt 链路本身没触发，测试失败。
+//
+// 为何 spawn 在 y=1 熔岩内而非 y=3 下落：烈焰人 tick 有缓降（!onGround&&velocityY<0 时 velocityY*=0.6），
+// 下落极慢，spawn y=3 下落浸入熔岩需数十 tick，期间存在"猪已浸入掉血但烈焰人尚未浸入 HP=20"的时序窗口，
+// succeedWhen 会在此窗口假通过（烈焰人 HP>=20 且猪 HP<10 同时成立）。spawn 在 y=1 熔岩内首 tick 即浸入，
+// 消除时序窗口：fireImmune 缺失时烈焰人首 tick 即掉血 HP<20，永远无法假通过。
+//
+// 判定手段：负向断言（烈焰人 HP 不降），用 runAtTickTime(150) 等完整窗口而非 pollUntilSucceed/succeedWhen
+// （后者"条件满足即通过"会在烈焰人尚满血时提前通过漏判延迟掉血）。tick 150 断言：
+//   - 烈焰人存活且 HP>=20（fireImmune 免疫岩浆，首 tick 浸入不掉血）；
+//   - 猪 HP<10 或消失（lavaHurt 每 tick 4.0 伤害生效）。
+// 两端同时成立才证明"熔岩伤害机制有效 + 烈焰人免疫"。
+// 烈焰人水敏感（isWaterSensitive）：熔岩非水，不触发水伤害，不影响本测试。
+// maxTicks=300：实体浸入熔岩 + lavaHurt 每 tick 判定 + 余量。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_烈焰人.txt#行为（免疫火焰伤害）
+function blazeImmuneToFire(test: Test): void {
+  const blazeType = "blaze";
+  const pigType = "pig";
+
+  // 铺两层 lava（y=0..1 全 7×7），实体直接 spawn 在 y=1 熔岩层内首 tick 即浸入触发 lavaHurt。
+  // 两层 lava 必要：确保 y=1 熔岩格存在且实体碰撞箱触及。
+  fillBlock(test, "lava", 0, 0, 0, 6, 1, 6);
+
+  // 烈焰人 (2,1,2)、对照猪 (4,1,4)，都 spawn 在 y=1 熔岩层内，首 tick 浸入。
+  // 间隔足够不互相干扰。烈焰人 HP=20，fireImmune 应保持 20；猪 HP=10，浸入熔岩应掉血/死亡。
+  test.spawn(blazeType, { x: 2, y: 1, z: 2 });
+  test.spawn(pigType, { x: 4, y: 1, z: 4 });
+
+  // tick 150 断言（负向断言等完整窗口）：烈焰人存活且满血 20（免疫熔岩）；猪 HP<10 或消失（lavaHurt 生效）。
+  // 用 runAtTickTime 而非 succeedWhen/pollUntilSucceed：烈焰人缓降下落慢，succeedWhen 会在"猪掉血但烈焰人
+  // 尚未浸入"的时序窗口假通过；spawn 在 y=1 已消除该窗口，但仍用 runAtTickTime 等完整窗口确保
+  // 烈焰人充分浸入熔岩后 HP 仍 20（fireImmune 全程生效）。实体查询用区域限定排除并行测试污染。
+  test.runAtTickTime(150, () => {
+    const blazes = test.getDimension().getEntities({
+      type: blazeType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+
+    const blazeHp = blazes.length > 0
+      ? (blazes[0].getComponent("minecraft:health") as any)?.currentValue
+      : "gone";
+    const pigHp = pigs.length > 0
+      ? (pigs[0].getComponent("minecraft:health") as any)?.currentValue
+      : "gone";
+
+    // 烈焰人应存活且满血（免疫熔岩）。
+    test.assert(blazes.length > 0, `blaze died in lava (should be fireImmune), pig hp=${pigHp}`);
+    test.assert(blazeHp !== undefined && blazeHp >= 20,
+      `blaze should be immune to lava, blaze hp=${blazeHp}, pig hp=${pigHp}`);
+
+    // 对照实体猪应受伤（HP<10）或已死亡消失——证明熔岩伤害机制确实生效。
+    // 猪 HP<10 或消失（pigs.length===0 即猪已死）任一成立即证明 lavaHurt 生效。
+    test.assert(pigs.length === 0 || (pigHp !== undefined && pigHp < 10),
+      `pig should take lava damage, pig hp=${pigHp}, blaze hp=${blazeHp}`);
+
+    test.succeed();
+  });
+}
+
 export function registerBlazeTests(): void {
   GameTest.register("MobBehaviorTests", "blaze_shoots_fireball_at_player", blazeShootsFireballAtPlayer)
     .structureName("gametests:creeper_pit")
@@ -111,4 +191,8 @@ export function registerBlazeTests(): void {
     .skyAccess(true)
     .setupTicks(20)
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "blaze_immune_to_fire", blazeImmuneToFire)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(300);
 }
