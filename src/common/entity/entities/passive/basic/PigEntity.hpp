@@ -91,11 +91,34 @@ public:
 
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 玩家右键交互（对齐 Java 1.21.11 Pig.mobInteract）
+     *
+     * 玩家右键配鞍的猪时骑上它：
+     *   条件：手持非繁殖食物 + 已配鞍 + 无乘客 + 玩家未蹲下 → 服务端 player.startRiding(*this) + Success。
+     * 否则委托父类 AnimalEntity::interactMob（喂食/繁殖）；父类返 Pass 时，若手持鞍则返 Pass，
+     * 由 Player::interactOn 第4步调 SaddleItem::itemInteractionForEntity 装鞍。
+     *
+     * 此前 Cubium PigEntity 无 interactMob override（落入 AnimalEntity::interactMob 仅处理喂食），
+     * 空手右键配鞍猪返 Pass 不骑乘（对齐缺陷）。本次补全实体侧骑乘入口（与 StriderEntity 同构）。
+     *
+     * 参考: net.minecraft.world.entity.animal.pig.Pig#mobInteract(Player, InteractionHand)
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
     // ========== IRideable 接口实现 ==========
 
-    [[nodiscard]] bool hasSaddle() const override { return m_boostHelper.getSaddled(); }
+    // 鞍状态存储（对齐 Java 1.21.11 Mob.isSaddled() 语义：鞍状态独立于同步数据，
+    // 由 SaddleItem::itemInteractionForEntity 调 setSaddle(true) 置位）。
+    // 注意：Cubium BoostHelper 走 EntityDataManager 同步参数，但 PigEntity 构造期未 init
+    // BoostHelper（m_initialized=false），故 BoostHelper.getSaddled() 恒返 false，
+    // hasSaddle() 读它会致装鞍后仍判无鞍、骑乘分支永不命中。改用独立 bool 成员（与
+    // StriderEntity::m_saddled 同构）保证装鞍状态正确读写。
+    [[nodiscard]] bool hasSaddle() const override { return m_saddled; }
 
-    void setSaddle(bool saddle) override { m_boostHelper.setSaddledFromBoolean(saddle); }
+    void setSaddle(bool saddle) override { m_saddled = saddle; }
 
     void onPlayerStartRiding(Player* player) override;
 
@@ -188,6 +211,7 @@ protected:
 
 private:
     BoostHelper m_boostHelper; ///< 加速辅助器
+    bool m_saddled = false;    ///< 鞍状态（独立存储，对齐 Java Mob.isSaddled 装备槽语义）
 
     // 常量
     static constexpr f32 PIG_SPEED = 0.25f;           // 基础移动速度

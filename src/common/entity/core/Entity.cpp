@@ -835,9 +835,16 @@ void Entity::baseTick()
     // 每帧开始时清除，由 onEntityCollision 在需要时重新设置
     clearMotionMultiplier();
 
-    // 如果是乘客，调用 updateRidden()
-    // 注意：这里需要子类重写以实现乘客逻辑
-    // 在 Vehicle/tick() 中应该调用 updatePassengers()
+    // 载具乘客位置同步（对齐 Java Entity.rideTick 中的 positionRider 调用）。
+    // Java 由 Level.tickPassenger 对每个乘客调 passenger.rideTick()，其中
+    // getVehicle().positionRider(this) 把乘客位置吸附到载具。Cubium 无世界级
+    // tickPassenger 阶段，故在 baseTick 末尾由载具主动同步自身所有乘客位置。
+    // 时序：baseTick 是实体 tick 第一步，载具本 tick 后续移动（aiStep/travel）尚未
+    // 应用，乘客位置滞后一 tick 收敛；GameTest 轮询判定可接受。
+    // 仅当本实体是载具（有乘客）时才同步，避免无谓遍历。
+    if (!m_passengers.empty()) {
+        updatePassengers();
+    }
 }
 
 bool Entity::onPortalTriggered()

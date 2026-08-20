@@ -114,6 +114,57 @@ std::unique_ptr<AnimalEntity> PigEntity::spawnBaby(AnimalEntity& /*partner*/)
     return baby;
 }
 
+// ========== 玩家交互 ==========
+
+ActionResultType PigEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 Pig.mobInteract(Player, InteractionHand)：
+    //   boolean flag = isFood(itemInHand);
+    //   if (!flag && isSaddled() && !isVehicle() && !player.isSecondaryUseActive()) {
+    //       if (!level().isClientSide()) player.startRiding(this);
+    //       return SUCCESS;
+    //   } else {
+    //       InteractionResult r = super.mobInteract(...);          // AnimalEntity 喂食/繁殖
+    //       if (!r.consumesAction()) {
+    //           ItemStack itemstack = getItemInHand(hand);
+    //           return isEquippableInSlot(itemstack, SADDLE)
+    //               ? itemstack.interactLivingEntity(player, this, hand)   // 装鞍
+    //               : PASS;
+    //       }
+    //       return r;
+    //   }
+    //
+    // 此前 Cubium PigEntity 无 interactMob override（落入 AnimalEntity::interactMob 仅处理喂食），
+    // 空手右键配鞍猪返 Pass 不骑乘（对齐缺陷）。本次补全实体侧骑乘入口，与 StriderEntity 同构。
+    // 装鞍不在实体侧直接做：手持鞍时返 Pass，由 Player::interactOn 第4步调
+    // SaddleItem::itemInteractionForEntity 装鞍（与 StriderEntity 一致）。
+    ItemStack& heldItem = player.getHeldItem(hand);
+    const bool isFood = isBreedingItem(heldItem);
+
+    // 骑乘分支：非食物 + 已配鞍 + 无乘客 + 玩家未蹲下 → 玩家骑上猪。
+    // isVehicle() 用 getPassengers().empty() 等价（Cubium 无 isVehicle()，StriderEntity 同款判断）。
+    // isSecondaryUseActive 对应 Cubium player.isSneaking()（蹲下时不骑乘，用于装鞍等副操作）。
+    if (!isFood && hasSaddle() && getPassengers().empty() && !player.isSneaking()) {
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            player.startRiding(*this);
+        }
+        return ActionResultType::Success;
+    }
+
+    // 委托父类 AnimalEntity::interactMob 处理喂食/繁殖（食物分支）。
+    const ActionResultType result = AnimalEntity::interactMob(player, hand);
+    if (result != ActionResultType::Pass) {
+        return result;
+    }
+
+    // 父类未处理（Pass）：手持鞍 → 返 Pass，由 Player::interactOn 第4步走
+    // SaddleItem::itemInteractionForEntity 装鞍（canEquip 判定鞍槽可装备）。
+    if (canEquip(heldItem, 0)) {
+        return ActionResultType::Pass;
+    }
+    return ActionResultType::Pass;
+}
+
 // ========== IRideable 接口实现 ==========
 
 void PigEntity::onPlayerStartRiding(Player* /*player*/)

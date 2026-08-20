@@ -101,6 +101,103 @@ function pigBreedsWhenFedCarrot(test: Test): void {
   });
 }
 
+// 玩家手持鞍右键猪装鞍，再右键配鞍猪骑上它（wiki tech_猪.txt#骑乘：玩家可手持鞍右键猪装鞍，
+// 装鞍后空手（或持非食物）右键猪即可骑上，用胡萝卜钓竿控制方向）。
+//
+// C++ 链路（对齐 Java 1.21.11 Pig.mobInteract）：
+//   1) 玩家主手持鞍 + interactWithEntity(pig)（无鞍状态）→ Player::interactOn（Player.cpp:2843）
+//      → pig.processInitialInteract → MobEntity::processInitialInteract → interactMob（MobEntity.cpp:753）
+//      → PigEntity::interactMob override：鞍非 isBreedingItem，!isFood 命中，但 hasSaddle()=false 骑乘分支
+//        不命中 → 委托 AnimalEntity::interactMob（鞍非食物返 Pass）→ canEquip(鞍,0)=true 返 Pass
+//      → Player::interactOn 第4步走 Item::itemInteractionForEntity → SaddleItem::itemInteractionForEntity
+//        （SaddleItem.cpp:76）：检测 IEquipable/IRideable → setSaddle(true)+setEquipment(0,鞍) 装鞍。
+//   2) 玩家再 interactWithEntity(pig)（已鞍状态）→ PigEntity::interactMob：!isFood(鞍) && hasSaddle()=true
+//      && getPassengers().empty() && !player.isSneaking() → player.startRiding(*this) + 返 Success。
+//      startRiding 设置玩家为猪的乘客，tick 中乘客位置随载具同步。
+//
+// 此前 Cubium PigEntity 无 interactMob override（落入 AnimalEntity::interactMob 仅处理喂食），
+// 空手/持鞍右键配鞍猪返 Pass 不骑乘（对齐缺陷）。本次补全 PigEntity::interactMob override 骑乘入口。
+//
+// 判定手段：脚本无 passengers/isRiding API，用位置判定——骑乘前玩家 (5,2,3) 距猪 (3,2,3) 水平 2 格，
+// 骑乘后玩家作为乘客附着猪位置，水平距离趋近 0。轮询断言玩家与猪水平距离 < 1 格。
+// 鞍非食物故第二次 interactWithEntity 仍持鞍即可触发骑乘分支（无需切换空手），与 Java !flag 对鞍成立一致。
+// 创造模式不消耗鞍（SaddleItem.cpp:139 creativeMode 跳过），同一鞍可装鞍+骑乘两步复用。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏草地）。与 pig_breeds_when_fed_carrot 同结构同坐标 (4,2,4)，
+// 已验证猪在该坐标存活（脚踩 y=0 草地地板）。注意：每个测试实例的结构由 Cubium 在不同世界坐标放置，
+// 实体绝对世界 y 会因结构基址偏移而不同（如本实例可能放置在 y=-59 基址，helper y=2 对应世界 y=-57），
+// 这是框架放置机制，非实体下落。判定用区域限定 getEntities + 水平距离，不依赖绝对 y。
+// 猪无 RestrictSun，day/night 均可，默认 day 批次。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_猪.txt#骑乘（装鞍+右键骑乘）
+function pigRiddenByPlayerAfterSaddle(test: Test): void {
+  const pigType = "pig";
+
+  // 猪 (4,2,4)（grass_pen y=0 草地地板，helper y=2→结构 y=1 空气，脚踩 y=0 草地）。
+  // 用 pig_breeds_when_fed_carrot 已验证的存活坐标。
+  const pig = test.spawn(pigType, { x: 4, y: 2, z: 4 });
+  // 创造玩家 (2,2,4) 持鞍，距猪 2 格。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "pigRider");
+  const saddle = new ItemStack("minecraft:saddle", 1);
+  player.setItem(saddle as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 第1步（tick 5）：玩家持鞍 interactWithEntity(pig)（无鞍状态）→ PigEntity::interactMob：
+  //   鞍非 isBreedingItem，!isFood 命中但 hasSaddle()=false 骑乘分支不命中 → 委托 AnimalEntity::interactMob
+  //   （鞍非食物返 Pass）→ canEquip(鞍,0)=true 返 Pass → Player::interactOn 第4步走
+  //   SaddleItem::itemInteractionForEntity 装鞍（setSaddle(true)+setEquipment(0,鞍)）。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(pig);
+  });
+
+  // 第2步（tick 12）：玩家持鞍 interactWithEntity(pig)（已鞍状态）→ PigEntity::interactMob 骑乘分支：
+  //   !isFood(鞍) && hasSaddle()=true && getPassengers().empty() && !player.isSneaking()
+  //   → player.startRiding(*this) + 返 Success。玩家成为猪的乘客。
+  // 鞍非食物故第二次 interactWithEntity 仍持鞍即可触发骑乘分支（无需切换空手），与 Java !flag 对鞍成立一致。
+  // 创造模式不消耗鞍（SaddleItem.cpp:139 creativeMode 跳过），同一鞍可装鞍+骑乘两步复用。
+  test.runAtTickTime(12, () => {
+    (player as any).interactWithEntity(pig);
+  });
+
+  // 轮询断言玩家骑上猪：玩家与猪水平距离 < 1 格（骑乘前 2 格，骑乘后乘客附着猪位置趋近 0）。
+  // startRiding 在 tick 12 触发，乘客位置随后几 tick 同步。startTick=16 留 4 tick 同步，maxTick=80。
+  pollUntilSucceed(test, () => {
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    if (pigs.length === 0 || players.length === 0) return false;
+    const dx = players[0].location.x - pigs[0].location.x;
+    const dz = players[0].location.z - pigs[0].location.z;
+    return dx * dx + dz * dz < 1.0;
+  }, {
+    startTick: 16,
+    interval: 2,
+    maxTick: 80,
+    onTimeout: () => {
+      const pigs = test.getDimension().getEntities({
+        type: pigType,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const pigLoc = pigs.length > 0 ? pigs[0].location : null;
+      const playerLoc = players.length > 0 ? players[0].location : null;
+      const pigSaddle = pigs.length > 0 ? (pigs[0] as any).hasSaddle?.() : "n/a";
+      test.assert(false,
+        `player did not ride saddled pig (interactMob riding branch broken), pigLoc=${JSON.stringify(pigLoc)} playerLoc=${JSON.stringify(playerLoc)} pigHasSaddle=${pigSaddle}`);
+    },
+  });
+}
+
 export function registerPigTests(): void {
   GameTest.register("MobBehaviorTests", "pig_lightning_strike", pigLightningStrike)
     .structureName("gametests:glass_pit")
@@ -109,6 +206,10 @@ export function registerPigTests(): void {
   GameTest.register("MobBehaviorTests", "pig_breeds_when_fed_carrot", pigBreedsWhenFedCarrot)
     .structureName("gametests:grass_pen")
     .maxTicks(700);
+
+  GameTest.register("MobBehaviorTests", "pig_ridden_by_player_after_saddle", pigRiddenByPlayerAfterSaddle)
+    .structureName("gametests:grass_pen")
+    .maxTicks(200);
 }
 
 
