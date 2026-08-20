@@ -2,6 +2,14 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
+
+// grass_pen 结构尺寸 9×5×9（helper 相对坐标 x,z∈[0,8], y∈[0,4]）。
+// 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构全尺寸 9×5×9。
+// 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
+const PEN_FROM = { x: 0, y: 0, z: 0 };
+const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -64,8 +72,83 @@ function mooshroomLightningConvert(test: Test): void {
   });
 }
 
+// 两只哞菇各喂小麦后进入爱心状态，BreedGoal 驱动互相靠近并繁殖出小哞菇
+// （wiki tech_哞菇.txt#繁殖：手持小麦右键两只成年哞菇使其进入"爱心模式"，两只哞菇靠近后繁殖出小哞菇，
+//   双亲进入 5 分钟繁殖冷却，玩家获得 1-7 经验球；小哞菇皮肤类型由双亲遗传，同色双亲有 1/1024
+//   概率变异为另一色，异色双亲随机继承双亲之一）。
+//
+// 本测试验证基础繁殖链路（不验证皮肤遗传概率）。皮肤遗传的 1/1024 变异概率极低，单次测试无法稳定
+// 触发；异色双亲随机继承概率 50%，单次结果非确定。故皮肤遗传不设计确定性断言（留 TODO）。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Mooshroom + BreedGoal，与 cow_breeds_when_fed_wheat 同构）：
+//   1) 玩家主手持小麦 + interactWithEntity(mooshroom) → Player::interactOn → mooshroom.processInitialInteract
+//      → MobEntity::interactMob → AnimalEntity::interactMob override（AnimalEntity.cpp:90-141）：
+//      MooshroomEntity 未重写 isBreedingItem，继承 CowEntity::isBreedingItem（小麦）命中
+//      → 成体 canBreed() → setInLove(player.playerId())。创造模式喂食不消耗小麦，同一根喂两只哞菇。
+//   2) BreedGoal::shouldExecute（BreedGoal.cpp:62-74）：isInLove() && findNearbyMate() 非空。
+//   3) BreedGoal::tick：navigator.moveTo(配偶) + m_spawnBabyDelay++，达 adjustedTickDelay(60)=30
+//      且 distSq<BREED_DISTANCE_SQ=9 时 spawnBaby()。
+//   4) MooshroomEntity::spawnBaby（MooshroomEntity.cpp:320-362）：构造 MooshroomEntity 幼体
+//      + setChild(true) + 遗传 setMooshroomType；BreedGoal:153 兜底 setTypeId(MOOSHROOM) 保证 getEntities 可查。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。两只哞菇放中心 (4,2,4) 与 (4,2,6) 相距 2 格
+//   （distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。哞菇继承牛 MOVEMENT_SPEED=0.2，BreedGoal speed=1.0。
+//
+// 判定手段：繁殖完成后区域内 mooshroom 数 >=3（原 2 + 幼体 1）。pollUntilSucceed 轮询。
+// 时序：喂食 2×（tick 5、10）+ BreedGoal 评估 + 30 tick spawnBabyDelay + 余量。startTick=30，maxTick=700。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_哞菇.txt#繁殖（喂小麦→爱心→繁殖小哞菇+冷却+经验球）
+function mooshroomBreedsWhenFedWheat(test: Test): void {
+  const mooshroomType = "mooshroom";
+
+  // 两只成年哞菇放中心相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。
+  const mooshroom1 = test.spawn(mooshroomType, { x: 4, y: 2, z: 4 });
+  const mooshroom2 = test.spawn(mooshroomType, { x: 4, y: 2, z: 6 });
+
+  // 创造玩家持小麦：创造模式喂食不消耗小麦（同一根喂两只哞菇）。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "mooshroomBreeder");
+  const wheat = new ItemStack("minecraft:wheat", 1);
+  // 两份 @minecraft/server ItemStack 类型分裂（顶层 1.13-beta 与 server-gametest 嵌套 1.19），
+  // setItem 形参类型不兼容；运行时同一 Cubium ItemStack opaque，强转绕过编译期。
+  player.setItem(wheat as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 依次喂两只哞菇：interactWithEntity 转发 interactOn → AnimalEntity::interactMob → setInLove。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(mooshroom1);
+  });
+  test.runAtTickTime(10, () => {
+    (player as any).interactWithEntity(mooshroom2);
+  });
+
+  // 轮询：繁殖完成后区域内 mooshroom 数 >=3（原 2 + 幼体 1）。
+  pollUntilSucceed(test, () => {
+    const mooshrooms = test.getDimension().getEntities({
+      type: mooshroomType,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    return mooshrooms.length >= 3;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 700,
+    onTimeout: () => {
+      const mooshrooms = test.getDimension().getEntities({
+        type: mooshroomType,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      test.assert(false,
+        `mooshroom did not breed: mooshroomCount=${mooshrooms.length} (expected >=3 after feeding wheat)`);
+    },
+  });
+}
+
 export function registerMooshroomTests(): void {
   GameTest.register("MobBehaviorTests", "mooshroom_lightning_convert", mooshroomLightningConvert)
     .structureName("gametests:creeper_pit")
     .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "mooshroom_breeds_when_fed_wheat", mooshroomBreedsWhenFedWheat)
+    .structureName("gametests:grass_pen")
+    .maxTicks(700);
 }
