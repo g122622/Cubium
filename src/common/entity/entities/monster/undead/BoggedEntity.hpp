@@ -26,8 +26,10 @@
 #include "AbstractSkeletonEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
 
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -45,11 +47,11 @@ class ArrowEntity;
  * - 作为亡灵骷髅变种会在阳光下燃烧（继承基类 shouldBurnInDaylight 默认 true，不 override）
  * - 生命值 16（普通骷髅为 20）
  * - 攻击间隔比普通骷髅慢：困难 50 ticks / 非困难 70 ticks（普通骷髅 20/40）
- * - 可被剪刀剪去头上的蘑菇（依赖 interact 链路，暂未接入）
+ * - 可被剪刀剪去头上的蘑菇（实现 IShearable，对齐 Java Bogged.mobInteract 剪菇分支）
  *
  * 参考 MC Java: net.minecraft.world.entity.monster.skeleton.Bogged
  */
-class BoggedEntity : public AbstractSkeletonEntity {
+class BoggedEntity : public AbstractSkeletonEntity, public entity::IShearable {
 public:
     BoggedEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
 
@@ -66,6 +68,51 @@ public:
     static constexpr i32 POISON_DURATION_TICKS = 100;
     /// 沼骸生命值（普通骷髅为 20），对应原版 createAttributes().add(MAX_HEALTH, 16.0)
     static constexpr f32 BOGGED_MAX_HEALTH = 16.0f;
+    /// 被剪刀剪去蘑菇后掉落的蘑菇数量（对齐 wiki：对沼骸使用剪刀掉落 2 个随机颜色蘑菇）
+    static constexpr i32 SHEAR_MUSHROOM_COUNT = 2;
+
+    // ========== 蘑菇剪取状态（对齐 Java Bogged.isSheared/setSheared + DATA_SHEARED） ==========
+
+    /**
+     * @brief 是否已被剪去蘑菇
+     * @return 已剪返回 true（剪过后头部不再有蘑菇，不可再剪）
+     *
+     * 对应原版 Bogged.isSheared()（entityData.get(DATA_SHEARED)）。
+     * 持久化到 NBT "sheared" 字段（对齐 addAdditionalSaveData/readAdditionalSaveData）。
+     */
+    [[nodiscard]] bool isSheared() const { return m_sheared; }
+
+    /**
+     * @brief 设置蘑菇剪取状态
+     * @param sheared 是否已剪
+     *
+     * 对应原版 Bogged.setSheared(boolean)（entityData.set(DATA_SHEARED, ...)）。
+     */
+    void setSheared(bool sheared) { m_sheared = sheared; }
+
+    // ========== IShearable 接口实现 ==========
+
+    /**
+     * @brief 是否可被剪刀剪蘑菇
+     * @return 未剪过且存活返回 true
+     *
+     * 对应原版 Bogged.readyForShearing()：!isSheared() && isAlive()。
+     * ShearsItem::itemInteractionForEntity 调此判定（对齐 Java 在 mobInteract 内
+     * 检测 itemstack.is(SHEARS) && readyForShearing() 的等价路径）。
+     */
+    [[nodiscard]] bool isShearable() const override;
+
+    /**
+     * @brief 执行剪蘑菇
+     * @param player 执行剪菇的玩家（可能为 nullptr）
+     * @return 剪下的蘑菇物品列表（2 个随机颜色蘑菇）
+     *
+     * 对应原版 Bogged.shear()：播放 BOGGED_SHEAR 音效 + spawnShearedMushrooms
+     * （从 BOGGED_SHEAR 战利品表掉落 2 个随机红/棕蘑菇）+ setSheared(true)。
+     * 战利品表等价为固定 2 个蘑菇，颜色随机（红蘑菇/棕蘑菇各 50% 概率，对齐 wiki
+     * "掉落 2 个随机颜色的蘑菇"）。
+     */
+    std::vector<ItemStack> shear(Player* player = nullptr) override;
 
 protected:
     void registerAttributes() override;
@@ -92,6 +139,9 @@ protected:
      * 对应原版 Bogged.getAttackInterval() = 70。
      */
     [[nodiscard]] i32 getAttackInterval() const override { return INCREASED_NORMAL_ATTACK_INTERVAL; }
+
+private:
+    bool m_sheared = false; ///< 蘑菇是否已被剪去（对齐 Java DATA_SHEARED）
 };
 
 } // namespace mc

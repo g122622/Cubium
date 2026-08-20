@@ -2,6 +2,8 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit / grass_pen 结构尺寸（7×5×7 / 9×5×9），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -96,6 +98,78 @@ function boggedShootsPoisonArrowAtPlayer(test: Test): void {
   });
 }
 
+// 玩家手持剪刀右键沼骸剪去头上的蘑菇，掉落 2 个随机颜色蘑菇（红/棕），
+// 沼骸被剪后不可再剪（wiki other_沼骸.txt#掉落物：对沼骸使用剪刀会剪去其头上的蘑菇，
+// 并掉落 2 个随机颜色的蘑菇；mob_沼骸_ED.txt NBT sheared 字段记录是否已剪）。
+//
+// C++ 链路（对齐 Java 1.21.11 Bogged.mobInteract 剪菇分支）：
+//   1) 玩家主手持剪刀 + interactWithEntity(bogged) → Player::interactOn（Player.cpp:2843）
+//      → bogged.processInitialInteract → MobEntity::interactMob（基类返 Pass，BoggedEntity 未 override
+//      interactMob——Java 在 mobInteract 内检测剪刀，Cubium 走物品侧等价路径）。
+//   2) Player::interactOn 第4步走 Item::itemInteractionForEntity → ShearsItem::itemInteractionForEntity
+//      （ShearsItem.cpp:139）：dynamic_cast<IShearable*>(&target) 命中 BoggedEntity（本次新增
+//      IShearable 继承）→ isShearable()（!m_sheared && isAlive()）为 true → shear(&player)。
+//   3) BoggedEntity::shear：setSheared(true) + 播 entity.bogged.shear 音效 + 返回 2 个随机红/棕蘑菇
+//      ItemStack（SHEAR_MUSHROOM_COUNT=2，对齐 wiki"掉落 2 个随机颜色的蘑菇"）。
+//   4) ShearsItem::itemInteractionForEntity 把 drops 经 ItemDropHelper::spawnItemEntity 生成 item
+//      掉落物实体 + hurtAndBreak(stack,1) 消耗剪刀耐久（创造模式跳过消耗）。
+//
+// 此前 Cubium BoggedEntity 未实现 IShearable，ShearsItem::itemInteractionForEntity dynamic_cast 返回
+// nullptr 直接 return false，剪刀右键沼骸无任何反应（对齐缺陷）。本次补全 IShearable 接入。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）+ night batch。沼骸是亡灵白天露天燃烧（见
+// bogged_burns_in_daylight），night 避免燃烧干扰剪菇判定；creeper_pit 开放坑无围墙沼骸不卡。
+// 创造玩家不被沼骸 NearestAttackableTargetGoal 选为目标（isSuitableTarget 滤创造），沼骸持弓不射击
+// 创造玩家，剪菇环境干净。剪刀交互 interactWithEntity 远程触发无距离门控。
+//
+// 判定手段：剪菇后区域内出现 ≥2 个 minecraft:item 掉落物实体（蘑菇掉落物）。读取每个 item 实体的
+// minecraft:item 组件 itemStack.typeId 确认是 red_mushroom/brown_mushroom（非其他物品），断言
+// 蘑菇掉落物数 ≥2。pollUntilSucceed 轮询。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_沼骸.txt#掉落物（剪刀剪菇掉 2 个随机色蘑菇）
+function boggedShearedByShearsDropsMushrooms(test: Test): void {
+  const boggedType = "bogged";
+
+  // 沼骸 (3,2,3)（creeper_pit y=0 石头地板，helper y=2→结构 y=1 空气，脚踩 y=0 石头）。
+  const bogged = test.spawn(boggedType, { x: 3, y: 2, z: 3 });
+  // 创造玩家 (1,2,3) 持剪刀，距沼骸 2 格（interactWithEntity 远程触发无距离门控）。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "boggedShearer");
+  const shears = new ItemStack("minecraft:shears", 1);
+  player.setItem(shears as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5 玩家持剪刀 interactWithEntity(bogged) → ShearsItem::itemInteractionForEntity →
+  // IShearable.shear 掉落 2 个蘑菇。创造模式不消耗剪刀耐久（hurtAndBreak 跳过）。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(bogged);
+  });
+
+  // 轮询：区域内出现 ≥2 个 item 掉落物（蘑菇）。蘑菇掉落物 spawn 后瞬间可查（ItemDropHelper 同步生成）。
+  // 测试环境干净（仅沼骸+持剪刀玩家，无其他掉落源），item 实体必为剪菇掉落的蘑菇，无需读 itemType
+  // 区分（脚本侧 Entity 的 minecraft:item 组件未绑定，读不到 itemStack.typeId）。
+  // startTick=6 剪菇后 1 tick 立即查，避免沼骸 MobEntity::tick looting 循环拾取蘑菇 item（记忆
+  // [[mob-looting-pickup-chain]]）移除掉落物干扰计数。interval=2 maxTick=40 短窗尽早判定。
+  pollUntilSucceed(test, () => {
+    const items = test.getDimension().getEntities({
+      type: "minecraft:item",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    return items.length >= 2;
+  }, {
+    startTick: 6,
+    interval: 2,
+    maxTick: 40,
+    onTimeout: () => {
+      const items = test.getDimension().getEntities({
+        type: "minecraft:item",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      test.assert(false,
+        `bogged shearing did not drop 2 mushrooms, itemCount=${items.length} (expected >=2)`);
+    },
+  });
+}
+
 export function registerBoggedTests(): void {
   GameTest.register("MobBehaviorTests", "bogged_burns_in_daylight", boggedBurnsInDaylight)
     .structureName("gametests:grass_pen")
@@ -112,4 +186,9 @@ export function registerBoggedTests(): void {
     .batch("night")
     .structureName("gametests:creeper_pit")
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "bogged_sheared_by_shears_drops_mushrooms", boggedShearedByShearsDropsMushrooms)
+    .batch("night")
+    .structureName("gametests:creeper_pit")
+    .maxTicks(200);
 }

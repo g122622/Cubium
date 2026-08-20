@@ -24,7 +24,6 @@
 #include "ShearsItem.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"

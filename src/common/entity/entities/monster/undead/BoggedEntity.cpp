@@ -28,10 +28,13 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
@@ -75,6 +78,50 @@ void BoggedEntity::customizeArrow(entity::ArrowEntity& arrow)
     // 对应原版 Bogged.getArrow()：arrow.addEffect(MobEffectInstance(MobEffects.POISON, 100))。
     // EffectType::Poison = 中毒，amplifier=0 即等级 I，duration=100 ticks = 5 秒。
     arrow.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, POISON_DURATION_TICKS, 0));
+}
+
+// ========== IShearable 接口实现 ==========
+
+bool BoggedEntity::isShearable() const
+{
+    // 对齐原版 Bogged.readyForShearing()：未剪过且存活才可剪蘑菇。
+    return !m_sheared && isAlive();
+}
+
+std::vector<ItemStack> BoggedEntity::shear(Player* /*player*/)
+{
+    std::vector<ItemStack> drops;
+
+    // 对齐原版 Bogged.shear()：播放 BOGGED_SHEAR 音效 + spawnShearedMushrooms
+    // （掉落 2 个随机颜色蘑菇）+ setSheared(true)。
+    // ShearsItem::itemInteractionForEntity 在调本方法后负责在世界生成掉落物，
+    // 故此处只需返回掉落物品列表并更新实体状态/播音效。
+    if (!isShearable()) {
+        return drops;
+    }
+
+    // 标记已剪（剪过后头部不再有蘑菇，不可再剪）。
+    m_sheared = true;
+
+    // 播放沼骸剪菇音效（makeSoundEventId("shear") 生成 minecraft:entity.bogged.shear，
+    // 对应原版 SoundEvents.BOGGED_SHEAR）。
+    auto soundId = makeSoundEventId("shear");
+    if (soundId.has_value()) {
+        playSound(*soundId, 1.0f, 1.0f);
+    }
+
+    // 掉落 2 个随机颜色蘑菇（红/棕各 50%，对齐 wiki"掉落 2 个随机颜色的蘑菇"，
+    // 等价原版从 BOGGED_SHEAR 战利品表抽取）。
+    math::Random& rng = getRandom();
+    for (i32 i = 0; i < SHEAR_MUSHROOM_COUNT; ++i) {
+        // 每个蘑菇独立 50% 概率红/棕（对齐战利品表随机抽取）。
+        const Item* mushroom = rng.nextBoolean() ? Items::RED_MUSHROOM : Items::BROWN_MUSHROOM;
+        if (mushroom != nullptr) {
+            drops.emplace_back(mushroom, 1);
+        }
+    }
+
+    return drops;
 }
 
 } // namespace mc
