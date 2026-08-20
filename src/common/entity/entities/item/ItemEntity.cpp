@@ -48,6 +48,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
@@ -169,6 +170,12 @@ bool ItemEntity::isImmuneToFire() const
         return true;
     }
     return Entity::isImmuneToFire();
+}
+
+bool ItemEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 仅当爆炸影响方块类实体时才受影响；否则掉落物忽略爆炸（不被击飞/销毁）。
+    return ctx.shouldAffectBlocklikeEntities ? Entity::ignoreExplosion(ctx) : true;
 }
 
 bool ItemEntity::hurt(DamageSource& source, f32 amount)

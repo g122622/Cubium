@@ -30,6 +30,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
+#include "../../../world/explosion/ExplosionImmunityContext.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
@@ -370,8 +371,11 @@ void LightningBoltEntity::tick()
 
             // 播放雷击声音效（音量 2，音调 0.5-0.7）
             f32 impactPitch = 0.5f + static_cast<f32>((m_boltVertex >> 8) % 100) / 100.0f * 0.2f;
-            m_world->playSound(
-                SoundEvents::WEATHER_THUNDER, sound::SoundCategory::Weather, m_builtIn.stateVector->m_pos, 2.0f, impactPitch);
+            m_world->playSound(SoundEvents::WEATHER_THUNDER,
+                sound::SoundCategory::Weather,
+                m_builtIn.stateVector->m_pos,
+                2.0f,
+                impactPitch);
         }
 
         // 服务端造成伤害（非 effectOnly，非客户端）
@@ -984,6 +988,14 @@ void ArmorStandEntity::tick()
         vel.z *= 0.98f;
         setVelocity(vel);
     }
+}
+
+bool ArmorStandEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 仅当爆炸影响方块类实体时才受影响；不可见盔甲架忽略爆炸。
+    // TODO: vanilla 用 Entity.isInvisible()（共享 flags），Cubium Entity 暂无通用 isInvisible，
+    //       此处用 ArmorStand 自身 isInvisible() 近似，未来 Entity 引入通用 invisible 后切换。
+    return ctx.shouldAffectBlocklikeEntities ? isInvisible() : true;
 }
 
 void ArmorStandEntity::setHeadRotation(f32 x, f32 y, f32 z)

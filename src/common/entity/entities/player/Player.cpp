@@ -43,6 +43,7 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/dimension/MapDimensionId.hpp"
+#include "../../../world/explosion/ExplosionImmunityContext.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/AttributeModifier.hpp"
 #include "../../attribute/AttributeModifierUUIDs.hpp"
@@ -1751,13 +1752,23 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
         burstPos.z + range);
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
+    // 风爆路径等价 vanilla TRIGGER：不破坏方块，shouldAffectBlocklikeEntities 恒 false，
+    // 故掉落物/盔甲架等"方块类实体"在此路径下恒忽略爆炸（不受击退）。
+    // 间接源为玩家自身（LivingEntity），供载具判定间接源是否为 Mob。
+    const world::explosion::ExplosionImmunityContext immunityCtx{
+        .shouldAffectBlocklikeEntities = false,
+        .indirectSource = this,
+        .directSource = this,
+        .mobGriefing = m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING),
+    };
+
     for (Entity* entity : entities) {
         if (entity == nullptr || entity->isRemoved()) {
             continue;
         }
 
-        // 免疫爆炸的实体不受击退
-        if (entity->isImmuneToExplosions()) {
+        // 忽略爆炸的实体不受击退
+        if (entity->ignoreExplosion(immunityCtx)) {
             continue;
         }
 

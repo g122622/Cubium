@@ -22,12 +22,15 @@
  */
 
 #include "ExplosionContext.hpp"
+#include "Explosion.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
+#include <cmath>
 #include <optional>
 
 namespace mc {
@@ -66,6 +69,34 @@ bool ExplosionContext::canDestroyBlock(const BlockState& blockState, f32 /*explo
     // 默认情况下，所有方块都可以被破坏
     // 但方块的实际抗性会在射线追踪中决定是否真的被破坏
     return !blockState.isAir();
+}
+
+bool ExplosionContext::shouldDamageEntity(const Explosion& /*explosion*/, const Entity& /*entity*/) const
+{
+    // 默认：所有实体都可被爆炸伤害
+    return true;
+}
+
+f32 ExplosionContext::getKnockbackMultiplier(const Explosion& /*explosion*/, const Entity& /*entity*/) const
+{
+    // 默认：正常击退倍率
+    return 1.0f;
+}
+
+f32 ExplosionContext::getEntityDamageAmount(const Explosion& explosion, const Entity& entity, f32 seenPercent) const
+{
+    // 伤害公式：
+    //   d0 = 距离 / (radius*2) = 距离比例（钳到 1.0）
+    //   d1 = (1-d0) * seenPercent = 冲击系数 impact
+    //   damage = floor((d1²+d1)/2 * 7 * (radius*2) + 1)
+    // damageRadius = radius*2（实体影响范围），与采样距离的分母一致
+    const f32 damageRadius = explosion.damageRadius();
+    const Vector3 entityPos = entity.position();
+    const Vector3 delta = entityPos - explosion.position();
+    const f32 distSq = delta.lengthSquared();
+    const f32 d0 = std::min(1.0f, std::sqrt(distSq) / damageRadius);
+    const f32 d1 = (1.0f - d0) * seenPercent;
+    return std::floor((d1 * d1 + d1) / 2.0f * game::explosion::DAMAGE_MULTIPLIER * damageRadius + 1.0f);
 }
 
 // ========== EntityExplosionContext ==========
@@ -110,8 +141,6 @@ std::optional<f32> WitherSkullExplosionContext::getExplosionResistance(
     }
 
     // 蓝色凋灵之首（dangerous skull）：对不在 WITHER_IMMUNE 中的非空方块，限制抗性上限为 0.8
-    // 对应 MC Java 的 WitherSkull.getBlockExplosionResistance()：
-    //   return this.isDangerous() && WitherBoss.canDestroy(p_480179_) ? Math.min(0.8F, p_480544_) : p_480544_;
     // 其中 WitherBoss.canDestroy() = !state.isAir() && !state.is(BlockTags.WITHER_IMMUNE)
 
     if (!blockState.isAir() && !BlockTags::WITHER_IMMUNE().contains(blockState)) {

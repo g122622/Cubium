@@ -26,11 +26,14 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -221,23 +224,50 @@ BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& wo
     i32 currentY = static_cast<i32>(std::floor(adjustedStart.y));
     i32 currentZ = static_cast<i32>(std::floor(adjustedStart.z));
 
+    // per-raycast 区块缓存：DDA 步进通常在少数几个区块内移动，复用上一次 getChunk
+    // 的 const ChunkData* 直读可避免每步都对 m_chunksMutex 加锁 + unordered_map 哈希查找。
+    // 复刻 ServerWorld::getBlockState 的直读模式（getChunk + 本地坐标 + chunk->getBlockState），
+    // 仅在跨区块边界时刷新缓存指针。raycast 在主线程同步执行，区块卸载由主线程 tick 驱动，
+    // 故裸指针在一次 raycast（微秒级）期间稳定安全。
+    const ChunkData* cachedChunk = nullptr;
+    ChunkCoord cachedChunkX = 0;
+    ChunkCoord cachedChunkZ = 0;
+    // 标记当前缓存坐标是否已确认 getChunk 返回 nullptr（避免对同一未加载区块反复 getChunk）。
+    // 同时用于回退判定：getChunk 返回 nullptr 时（区块未加载，或测试桩世界不实现 getChunk）
+    // 回退到 world.getBlockState，保持与原 raycast 行为一致。
+    bool cachedChunkIsNull = false;
+
+    // 缓存式 getBlockState：命中缓存则直读，否则刷新缓存；getChunk 返回 nullptr 时回退到
+    // world.getBlockState（测试桩世界的 getBlockState 可能有独立于 getChunk 的实现）。
+    const auto getCachedBlockState = [&](i32 x, i32 y, i32 z) -> const BlockState* {
+        const ChunkCoord chunkX = world::toChunkCoord(x);
+        const ChunkCoord chunkZ = world::toChunkCoord(z);
+        if (cachedChunk == nullptr || chunkX != cachedChunkX || chunkZ != cachedChunkZ) {
+            cachedChunkX = chunkX;
+            cachedChunkZ = chunkZ;
+            cachedChunk = world.getChunk(chunkX, chunkZ);
+            cachedChunkIsNull = (cachedChunk == nullptr);
+        }
+        if (cachedChunkIsNull) {
+            // 区块未加载或测试桩不实现 getChunk：回退到 world.getBlockState，行为与原 raycast 一致
+            return world.getBlockState(x, y, z);
+        }
+        // ChunkData::getBlockState 要求 X/Z 为区块内本地坐标 [0,15]、Y 为世界坐标，越界自处理
+        const BlockCoord localX = x - chunkX * world::CHUNK_WIDTH;
+        const BlockCoord localZ = z - chunkZ * world::CHUNK_WIDTH;
+        return cachedChunk->getBlockState(localX, y, localZ);
+    };
+
     // 先检查起点位置的方块（MC的重要步骤！）
     if (world.isWithinWorldBounds(currentX, currentY, currentZ)) {
-        const BlockState* state = world.getBlockState(currentX, currentY, currentZ);
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
         if (state != nullptr && !state->isAir() && !state->isLiquid()) {
             Vector3 hitPos;
             Direction hitFace = Direction::None;
             f32 hitDistance = 0.0f;
-            if (traceBlockShape(*state,
-                    currentX,
-                    currentY,
-                    currentZ,
-                    adjustedStart,
-                    ddaDelta,
-                    start,
-                    hitPos,
-                    hitFace,
-                    hitDistance)) {
+            const bool hit = traceBlockShape(
+                *state, currentX, currentY, currentZ, adjustedStart, ddaDelta, start, hitPos, hitFace, hitDistance);
+            if (hit) {
                 return BlockRaycastResult::hit(start, BlockPos(currentX, currentY, currentZ), hitFace, 0.0f);
             }
         }
@@ -295,8 +325,8 @@ BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& wo
             return BlockRaycastResult::miss();
         }
 
-        // 获取方块状态
-        const BlockState* state = world.getBlockState(currentX, currentY, currentZ);
+        // 获取方块状态（命中区块缓存则直读，避免重复加锁查找）
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
 
         // 区块未加载，视为空气继续
         if (state == nullptr) {
@@ -311,8 +341,9 @@ BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& wo
         Vector3 hitPos;
         Direction hitFace = Direction::None;
         f32 hitDistance = 0.0f;
-        if (!traceBlockShape(
-                *state, currentX, currentY, currentZ, adjustedStart, ddaDelta, start, hitPos, hitFace, hitDistance)) {
+        const bool hit = traceBlockShape(
+            *state, currentX, currentY, currentZ, adjustedStart, ddaDelta, start, hitPos, hitFace, hitDistance);
+        if (!hit) {
             continue;
         }
 

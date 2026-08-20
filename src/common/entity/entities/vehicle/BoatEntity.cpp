@@ -30,10 +30,12 @@
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../world/entity/JavaEntityTypeIdMap.hpp"
+#include "../../../world/explosion/ExplosionImmunityContext.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../core/DataParameter.hpp"
+#include "../../core/MobEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../registry/VanillaEntityTypeKeys.hpp"
@@ -773,6 +775,17 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount)
         remove();
     }
 
+    return true;
+}
+
+bool BoatEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 间接源为 Mob 且 mobGriefing 关闭时，生物引发的爆炸会破坏载具（受影响）；
+    // 其他情况（非 Mob 源、或 mobGriefing 开启）载具忽略爆炸。
+    if (ctx.indirectSource != nullptr && dynamic_cast<const MobEntity*>(ctx.indirectSource) != nullptr &&
+        !ctx.mobGriefing) {
+        return false;
+    }
     return true;
 }
 

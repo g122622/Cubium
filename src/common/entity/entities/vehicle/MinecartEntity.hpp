@@ -63,6 +63,10 @@ class ItemEntity;
 class Block;
 class IWorld;
 
+namespace world::explosion {
+struct ExplosionImmunityContext;
+} // namespace world::explosion
+
 namespace entity {
 
 // 使用 blocks 命名空间中的 RailShape
@@ -127,6 +131,14 @@ public:
      * @brief 检查是否可以被碰撞
      */
     [[nodiscard]] bool canBeCollidedWith() const override { return isAlive(); }
+
+    /**
+     * @brief 判断矿车是否忽略此次爆炸
+     *
+     * 间接源为 Mob 的爆炸：受不受影响取决于 mobGriefing（关闭则忽略）。
+     * 其他爆炸回退基类行为。TNT 矿车自身爆炸不经过此判定（它在 _explode 内直接处理）。
+     */
+    [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
     /**
      * @brief 检查是否可以被推动

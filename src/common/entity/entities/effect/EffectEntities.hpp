@@ -42,6 +42,10 @@ namespace mc {
 class Player;
 class LivingEntity;
 
+namespace world::explosion {
+struct ExplosionImmunityContext;
+} // namespace world::explosion
+
 namespace entity {
 
 /**
@@ -493,10 +497,17 @@ public:
      * @brief 检查实体是否不触发压力板/绊线
      * @return 标记模式返回 true，否则返回 false
      *
-     * 对应 MC Java 的 ArmorStand.isIgnoringBlockTriggers()
      * 标记模式的盔甲架不触发压力板和绊线。
      */
     [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return m_marker; }
+
+    /**
+     * @brief 判断盔甲架是否忽略此次爆炸
+     *
+     * 仅当爆炸影响方块类实体时（shouldAffectBlocklikeEntities）才受爆炸影响，
+     * 且不可见盔甲架（m_invisible）忽略爆炸。
+     */
+    [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
     /**
      * @brief 检查是否有重力
@@ -508,6 +519,15 @@ public:
      * @brief 检查是否可见（非标记模式）
      */
     [[nodiscard]] bool isVisible() const { return !m_invisible && !m_marker; }
+
+    /**
+     * @brief 检查是否为不可见状态
+     *
+     * 不可见盔甲架在 shouldAffectBlocklikeEntities 为真时仍忽略爆炸（对齐 Java
+     * ArmorStand.ignoreExplosion 用 Entity.isInvisible() 判定）。
+     */
+    [[nodiscard]] bool isInvisible() const { return m_invisible; }
+    void setInvisible(bool invisible) { m_invisible = invisible; }
 
     /**
      * @brief 检查是否为标记模式

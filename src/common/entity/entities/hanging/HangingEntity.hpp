@@ -41,6 +41,10 @@ namespace mc {
 class Player;
 class ItemEntity;
 
+namespace world::explosion {
+struct ExplosionImmunityContext;
+} // namespace world::explosion
+
 namespace entity {
 
 /**
@@ -72,9 +76,15 @@ public:
      *
      * 悬挂实体（画、物品展示框、拴绳结）被任何伤害一击即毁。
      * 当 mobGriefing 游戏规则关闭时，生物造成的伤害不会影响悬挂实体。
-     * 对应 MC Java 的 BlockAttachedEntity.hurtServer()。
      */
     bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 判断悬挂实体是否忽略此次爆炸
+     *
+     * 直接源在水中的爆炸不破坏悬挂实体；否则仅当爆炸影响方块类实体时才受影响。
+     */
+    [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
     /**
      * @brief 设置悬挂位置

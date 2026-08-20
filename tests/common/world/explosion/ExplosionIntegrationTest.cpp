@@ -32,6 +32,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 
 #include <cmath>
@@ -70,13 +71,17 @@ TEST(ExplosionBlockDensityTest, DensityFormulaCorrect)
 // 实体爆炸免疫测试
 // ============================================================================
 
-TEST(ExplosionImmunityTest, DefaultIsImmuneToExplosions)
+TEST(ExplosionImmunityTest, DefaultContextFields)
 {
-    // 测试默认实体不免疫爆炸
-    // Entity 基类的 isImmuneToExplosions() 默认返回 false
-    // 这个测试验证基类行为
-    bool defaultImmune = false; // Entity::isImmuneToExplosions() 默认行为
-    EXPECT_FALSE(defaultImmune);
+    // 默认构造的 ExplosionImmunityContext：所有字段为默认值，等价于"无爆炸源、
+    // 不影响方块类实体、mobGriefing 关闭"的最保守上下文。
+    // Entity 基类 ignoreExplosion() 默认返回 false（不忽略），覆写类依据本上下文字段判定。
+    // 各实体类覆写的行为覆盖见 ExplosionIgnoreTest。
+    ExplosionImmunityContext ctx;
+    EXPECT_FALSE(ctx.shouldAffectBlocklikeEntities);
+    EXPECT_EQ(ctx.indirectSource, nullptr);
+    EXPECT_EQ(ctx.directSource, nullptr);
+    EXPECT_FALSE(ctx.mobGriefing);
 }
 
 // ============================================================================
@@ -447,17 +452,20 @@ TEST(ExplosionContextTest, BlastResistantBlock)
 
 TEST(ExplosionDamageTest, DamageFormula)
 {
-    // 测试 MC 1.16.5 爆炸伤害公式
-    // damage = floor((impact^2 + impact) / 2 * 7 * radius + 1)
+    // 爆炸伤害公式（对齐 Java 1.21.11 ExplosionDamageCalculator.getEntityDamageAmount）：
+    //   impact = (1 - distanceRatio) * seenPercent
+    //   damage = floor((impact^2 + impact) / 2 * 7 * damageRadius + 1)
+    //   其中 damageRadius = radius * 2（实体影响范围半径）
 
     f32 radius = 4.0f;                             // TNT 半径
     f32 distanceRatio = 0.5f;                      // 在半径一半的位置
     f32 density = 1.0f;                            // 无遮挡
     f32 impact = (1.0f - distanceRatio) * density; // 0.5
 
-    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
-    // impact = 0.5, damage = floor((0.25 + 0.5) / 2 * 7 * 4 + 1) = floor(0.375 * 28 + 1) = floor(11.5) = 11
-    EXPECT_FLOAT_EQ(damage, 11.0f);
+    f32 damageRadius = radius * 2.0f;
+    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * damageRadius + 1.0f);
+    // impact = 0.5, damage = floor(0.375 * 7 * 8 + 1) = floor(0.375 * 56 + 1) = floor(22) = 22
+    EXPECT_FLOAT_EQ(damage, 22.0f);
 }
 
 TEST(ExplosionDamageTest, DamageAtCenter)
@@ -468,9 +476,10 @@ TEST(ExplosionDamageTest, DamageAtCenter)
     f32 density = 1.0f;                            // 无遮挡
     f32 impact = (1.0f - distanceRatio) * density; // 1.0
 
-    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
-    // impact = 1.0, damage = floor((1 + 1) / 2 * 7 * 4 + 1) = floor(1 * 28 + 1) = 29
-    EXPECT_FLOAT_EQ(damage, 29.0f);
+    f32 damageRadius = radius * 2.0f;
+    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * damageRadius + 1.0f);
+    // impact = 1.0, damage = floor(1 * 7 * 8 + 1) = floor(57) = 57
+    EXPECT_FLOAT_EQ(damage, 57.0f);
 }
 
 TEST(ExplosionDamageTest, DamageAtEdge)
@@ -481,7 +490,8 @@ TEST(ExplosionDamageTest, DamageAtEdge)
     f32 density = 1.0f;                            // 无遮挡
     f32 impact = (1.0f - distanceRatio) * density; // 0.0
 
-    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
+    f32 damageRadius = radius * 2.0f;
+    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * damageRadius + 1.0f);
     // impact = 0.0, damage = floor(0 + 1) = 1
     EXPECT_FLOAT_EQ(damage, 1.0f);
 }
@@ -494,9 +504,10 @@ TEST(ExplosionDamageTest, DamageWithObstruction)
     f32 density = 0.5f;                            // 50% 遮挡
     f32 impact = (1.0f - distanceRatio) * density; // 0.25
 
-    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * radius + 1.0f);
-    // impact = 0.25, damage = floor((0.0625 + 0.25) / 2 * 28 + 1) = floor(0.15625 * 28 + 1) = floor(5.375) = 5
-    EXPECT_FLOAT_EQ(damage, 5.0f);
+    f32 damageRadius = radius * 2.0f;
+    f32 damage = std::floor((impact * impact + impact) / 2.0f * 7.0f * damageRadius + 1.0f);
+    // impact = 0.25, damage = floor(0.15625 * 56 + 1) = floor(8.75 + 1) = floor(9.75) = 9
+    EXPECT_FLOAT_EQ(damage, 9.0f);
 }
 
 // ============================================================================
