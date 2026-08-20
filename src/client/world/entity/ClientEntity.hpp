@@ -1293,28 +1293,12 @@ public:
     void setTntBlockState(const ::mc::BlockState* state) { m_tntBlockState = state; }
 
     // ========== 骷髅拉弓状态 ==========
-
-    /**
-     * @brief 获取骷髅是否正在拉弓
-     *
-     * 通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM。
-     * 由 AbstractSkeletonEntity::tick 根据 isUsingItem + 持弓状态写入。
-     * EntityRendererManager 在 skeleton 模型分支读取此状态，
-     * 驱动 SkeletonModel 的 ArmPose::BowAndArrow 姿态（拉弓动画）。
-     *
-     * 覆盖类型：普通骷髅（skeleton）、流浪者（stray）、沼骸骨（bogged）。
-     * 凋灵骷髅不持弓，不会注册此参数，hasParam 返回 false。
-     */
-    [[nodiscard]] bool isChargingBow() const { return m_chargingBow; }
-
-    /**
-     * @brief 设置骷髅是否正在拉弓
-     *
-     * 由 syncMetadataFromDataManager 在收到元数据更新时调用。
-     *
-     * @param charging 是否正在拉弓
-     */
-    void setChargingBow(bool charging) { m_chargingBow = charging; }
+    // 注：骷髅拉弓渲染状态不再用独立镜像字段——对齐 vanilla 1.21.11
+    // AbstractSkeletonRenderer.getArmPose：据 Mob.isAggressive()（见下方
+    // m_isAggressive，由 DATA_MOB_FLAGS_PARAM 位 2 同步）+ 主手持弓判定渲染
+    // BowAndArrow。原 m_chargingBow 镜像（同步自 AbstractSkeletonEntity::
+    // DATA_CHARGING_BOW_PARAM id16）已移除——该 id16 字段致 vanilla Stray/
+    // WitherSkeleton 客户端（访问器数组长度=16）set_entity_data 越界崩溃。
 
     // ========== Mob 激怒/攻击中状态 ==========
 
@@ -1704,9 +1688,6 @@ private:
     // 默认 0（未点燃），与服务端 DataParameter 默认值一致。
     i32 m_tntFuse = 0;
     const ::mc::BlockState* m_tntBlockState = nullptr;
-
-    // 骷髅拉弓状态（通过元数据同步自服务端 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM）
-    bool m_chargingBow = false; ///< 是否正在拉弓（驱动 SkeletonModel 的 BowAndArrow 姿态）
 
     // Mob 激怒/攻击中状态（通过元数据同步自服务端 MobEntity::DATA_MOB_FLAGS_PARAM 位 2）
     // 对应 MC 1.21.11 Mob.isAggressive()。由 MeleeAttackGoal 等攻击目标在 start/reset 时设置，

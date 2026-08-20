@@ -26,23 +26,31 @@
  * @brief EntityRendererManager::_applySkeletonArmPose 契约单元测试
  *
  * _applySkeletonArmPose 是 EntityRendererManager 的私有方法，其完整契约为：
- * 1. 读取 ClientEntity::isChargingBow()
- * 2. 若 isChargingBow=true：skeletonModel.setRightArmPose(ArmPose::BowAndArrow)
- *    若 isChargingBow=false：skeletonModel.setRightArmPose(ArmPose::Empty)
+ * 1. 读取 ClientEntity::isAggressive() 与主手持弓状态（getMainHandItem()->getItem()==Items::BOW）
+ * 2. 若 isAggressive=true 且持弓：skeletonModel.setRightArmPose(ArmPose::BowAndArrow)
+ *    否则：skeletonModel.setRightArmPose(ArmPose::Empty)
  * 3. 重新调用 skeletonModel.setAngles(context.limbSwing, context.limbSwingAmount,
  *    context.ageInTicks, context.netHeadYaw, context.headPitch, context.scale * 16.0)
  *
  * 由于 EntityRendererManager 构造需要 Vulkan 管线（EntityPipeline、纹理图集、
  * 命令缓冲区等），在单元测试中无法实例化。此处采用与 ElytraSpeedValueTest 相同的
- * 策略：通过公开 API（ClientEntity::isChargingBow + SkeletonModel::setRightArmPose +
- * SkeletonModel::setAngles）复制方法逻辑，验证 _applySkeletonArmPose 声称履行的契约。
+ * 策略：通过公开 API（ClientEntity::isAggressive + setMainHandItem +
+ * SkeletonModel::setRightArmPose + SkeletonModel::setAngles）复制方法逻辑，验证
+ * _applySkeletonArmPose 声称履行的契约。
  *
  * 数据流验证：
- *   ClientEntity::isChargingBow() → setRightArmPose(BowAndArrow/Empty)
+ *   ClientEntity::isAggressive() + getMainHandItem() → setRightArmPose(BowAndArrow/Empty)
  *   → setAngles → handleRightArmPose → 右臂 Y/X 旋转角度
  *
  * 对应 MC 1.21.11 AbstractSkeletonRenderer.getArmPose：
  *   isAggressive && mainHandItem.is(Items.BOW) → BOW_AND_ARROW
+ *
+ * 注：原项目曾用独立 DATA_CHARGING_BOW_PARAM(id16) 同步拉弓状态，但 vanilla
+ * AbstractSkeleton/Stray/WitherSkeleton 客户端 SynchedEntityData 数组长度=16
+ * （无 id16 字段），发送 id16 致真 Java 客户端 set_entity_data
+ * "Index 16 out of bounds for length 16" 崩溃，故改回 vanilla 的
+ * isAggressive + 持弓判定。isAggressive 经 MobEntity::DATA_MOB_FLAGS_PARAM 位 2
+ * 同步，由 RangedBowAttackGoal::startExecuting/resetTask 经 setAggroed 写入。
  */
 
 #include <gtest/gtest.h>
@@ -53,6 +61,8 @@
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 #include <cmath>
@@ -71,13 +81,17 @@ namespace {
  * 用于在不实例化 EntityRendererManager 的情况下测试方法契约。
  *
  * @param skeletonModel 已创建的骷髅模型
- * @param entity 客户端实体（提供 isChargingBow）
+ * @param entity 客户端实体（提供 isAggressive + 主手持弓判定）
  * @param context 动画上下文（提供 limbSwing 等）
  */
 void applySkeletonArmPoseContract(
     monster::SkeletonModel& skeletonModel, const mc::client::ClientEntity& entity, const AnimationContext& context)
 {
-    if (entity.isChargingBow()) {
+    const bool holdingBow = [&] {
+        const mc::ItemStack* mainHand = entity.getMainHandItem();
+        return mainHand != nullptr && mainHand->getItem() == mc::Items::BOW;
+    }();
+    if (entity.isAggressive() && holdingBow) {
         skeletonModel.setRightArmPose(ArmPose::BowAndArrow);
     } else {
         skeletonModel.setRightArmPose(ArmPose::Empty);
@@ -123,20 +137,24 @@ protected:
         m_context.reset();
     }
 
+    /// 给实体主手装备弓（对齐 vanilla 骷髅拉弓前置条件）
+    void equipBow() { m_entity->setMainHandItem(mc::ItemStack(*mc::Items::BOW, 1)); }
+
     std::unique_ptr<monster::SkeletonModel> m_model;
     std::unique_ptr<mc::client::ClientEntity> m_entity;
     std::unique_ptr<AnimationContext> m_context;
 };
 
 // ============================================================================
-// isChargingBow=true → BowAndArrow 姿态测试
+// isAggressive=true + 持弓 → BowAndArrow 姿态测试
 // ============================================================================
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_SetsRightArmBowAndArrow)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithBow_SetsRightArmBowAndArrow)
 {
-    // 设置 ClientEntity::isChargingBow=true
-    m_entity->setChargingBow(true);
-    ASSERT_TRUE(m_entity->isChargingBow());
+    // 设置 ClientEntity::isAggressive=true + 主手持弓
+    equipBow();
+    m_entity->setIsAggressive(true);
+    ASSERT_TRUE(m_entity->isAggressive());
 
     // 执行 _applySkeletonArmPose 契约
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -145,12 +163,13 @@ TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_SetsRightArmBowAndArrow)
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
     EXPECT_NEAR(rightArm->rotateAngleY(), -0.1f, 1e-5f)
-        << "isChargingBow=true 时 _applySkeletonArmPose 应设置右臂 BowAndArrow（Y=-0.1）";
+        << "isAggressive=true 且持弓时 _applySkeletonArmPose 应设置右臂 BowAndArrow（Y=-0.1）";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_SetsRightArmPitchToMinusPiOverTwo)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithBow_SetsRightArmPitchToMinusPiOverTwo)
 {
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
 
     auto rightArm = m_model->getRightArm();
@@ -158,10 +177,11 @@ TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_SetsRightArmPitchToMinusPiOverT
     EXPECT_NEAR(rightArm->rotateAngleX(), static_cast<f32>(-PI_DOUBLE / 2.0), 1e-5f) << "BowAndArrow 右臂 X 应为 -PI/2";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_LeftArmPitchAlsoSetByBowAndArrow)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithBow_LeftArmPitchAlsoSetByBowAndArrow)
 {
     // BowAndArrow 分支在 handleRightArmPose 中同时设置左臂 X = -PI/2
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
 
     auto leftArm = m_model->getLeftArm();
@@ -171,69 +191,90 @@ TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_LeftArmPitchAlsoSetByBowAndArro
 }
 
 // ============================================================================
-// isChargingBow=false → Empty 姿态测试
+// 非拉弓状态 → Empty 姿态测试
 // ============================================================================
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowFalse_SetsRightArmEmpty)
+TEST_F(ApplySkeletonArmPoseTest, NotAggressiveWithBow_SetsRightArmEmpty)
 {
-    m_entity->setChargingBow(false);
-    ASSERT_FALSE(m_entity->isChargingBow());
+    // 持弓但未激怒（RangedBowAttackGoal 未启动）→ 不拉弓
+    equipBow();
+    m_entity->setIsAggressive(false);
+    ASSERT_FALSE(m_entity->isAggressive());
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
 
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
-    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f)
-        << "isChargingBow=false 时 _applySkeletonArmPose 应设置右臂 Empty（Y=0）";
+    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "isAggressive=false 时即使持弓也应设置右臂 Empty（Y=0）";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowFalse_RightArmPitchStaysDefault)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithoutBow_SetsRightArmEmpty)
 {
-    m_entity->setChargingBow(false);
+    // 激怒但未持弓（如近战/换武器）→ 不进入 BowAndArrow
+    m_entity->setIsAggressive(true);
+    // 不装备弓，主手为空
+    ASSERT_EQ(m_entity->getMainHandItem(), nullptr);
+
+    applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
+
+    auto rightArm = m_model->getRightArm();
+    ASSERT_NE(rightArm, nullptr);
+    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "未持弓时即使 isAggressive=true 也应设置右臂 Empty（Y=0）";
+}
+
+TEST_F(ApplySkeletonArmPoseTest, NotAggressiveWithoutBow_SetsRightArmEmpty)
+{
+    // 既未激怒也未持弓 → Empty
+    m_entity->setIsAggressive(false);
+    ASSERT_EQ(m_entity->getMainHandItem(), nullptr);
+
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
 
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
     // Empty 姿态下基类不设置 rightArm.X，保持默认 0
+    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "Empty 姿态右臂 Y 应为 0";
     EXPECT_NEAR(rightArm->rotateAngleX(), 0.0f, 1e-5f) << "Empty 姿态右臂 X 应保持默认 0";
 }
 
 // ============================================================================
-// 切换 isChargingBow 状态测试
+// 切换 isAggressive/持弓 状态测试
 // ============================================================================
 
-TEST_F(ApplySkeletonArmPoseTest, ToggleChargingBow_TrueThenFalse_UpdatesArmPose)
+TEST_F(ApplySkeletonArmPoseTest, ToggleAggressive_TrueThenFalse_UpdatesArmPose)
 {
-    // 第一次：isChargingBow=true → BowAndArrow
-    m_entity->setChargingBow(true);
+    equipBow();
+    // 第一次：isAggressive=true → BowAndArrow
+    m_entity->setIsAggressive(true);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
     EXPECT_NEAR(rightArm->rotateAngleY(), -0.1f, 1e-5f);
 
-    // 第二次：isChargingBow=false → Empty
-    m_entity->setChargingBow(false);
+    // 第二次：isAggressive=false → Empty（对齐 RangedBowAttackGoal::resetTask 清 aggressive）
+    m_entity->setIsAggressive(false);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
     rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
-    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "切换到 isChargingBow=false 后右臂应回到 Empty（Y=0）";
+    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "切换到 isAggressive=false 后右臂应回到 Empty（Y=0）";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ToggleChargingBow_FalseThenTrue_UpdatesArmPose)
+TEST_F(ApplySkeletonArmPoseTest, ToggleAggressive_FalseThenTrue_UpdatesArmPose)
 {
-    // 第一次：isChargingBow=false → Empty
-    m_entity->setChargingBow(false);
+    equipBow();
+    // 第一次：isAggressive=false → Empty
+    m_entity->setIsAggressive(false);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
     EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f);
 
-    // 第二次：isChargingBow=true → BowAndArrow
-    m_entity->setChargingBow(true);
+    // 第二次：isAggressive=true → BowAndArrow（对齐 RangedBowAttackGoal::startExecuting 置 aggressive）
+    m_entity->setIsAggressive(true);
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
     rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
-    EXPECT_NEAR(rightArm->rotateAngleY(), -0.1f, 1e-5f) << "切换到 isChargingBow=true 后右臂应为 BowAndArrow（Y=-0.1）";
+    EXPECT_NEAR(rightArm->rotateAngleY(), -0.1f, 1e-5f) << "切换到 isAggressive=true 后右臂应为 BowAndArrow（Y=-0.1）";
 }
 
 // ============================================================================
@@ -243,10 +284,11 @@ TEST_F(ApplySkeletonArmPoseTest, ToggleChargingBow_FalseThenTrue_UpdatesArmPose)
 // 验证 context.netHeadYaw 正确传递到 setAngles（影响 BowAndArrow 的右臂 Y）。
 // ============================================================================
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_HeadYawPropagatedToRightArm)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithBow_HeadYawPropagatedToRightArm)
 {
     // 头部 yaw=30°：rightArm.Y = -0.1 + 30°(rad)
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     m_context->netHeadYaw = 30.0;
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -258,10 +300,11 @@ TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_HeadYawPropagatedToRightArm)
         << "context.netHeadYaw 应传递到 setAngles，影响 BowAndArrow 右臂 Y";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_HeadPitchPropagatedToRightArm)
+TEST_F(ApplySkeletonArmPoseTest, AggressiveWithBow_HeadPitchPropagatedToRightArm)
 {
     // 头部 pitch=20°：rightArm.X = -PI/2 + 20°(rad)
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     m_context->headPitch = 20.0;
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -273,10 +316,10 @@ TEST_F(ApplySkeletonArmPoseTest, ChargingBowTrue_HeadPitchPropagatedToRightArm)
         << "context.headPitch 应传递到 setAngles，影响 BowAndArrow 右臂 X";
 }
 
-TEST_F(ApplySkeletonArmPoseTest, ChargingBowFalse_HeadYawDoesNotAffectRightArm)
+TEST_F(ApplySkeletonArmPoseTest, Empty_HeadYawDoesNotAffectRightArm)
 {
     // Empty 姿态下右臂 Y 固定为 0，不受 headYaw 影响
-    m_entity->setChargingBow(false);
+    m_entity->setIsAggressive(false);
     m_context->netHeadYaw = 45.0;
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -297,7 +340,8 @@ TEST_F(ApplySkeletonArmPoseTest, ScaleConversion_SixteenthsToOnePassedToSetAngle
 {
     // context.scale = 1/16 → setAngles 收到 1.0
     // 验证不崩溃且角度正确（BowAndArrow 分支）
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     m_context->scale = 1.0 / 16.0; // 默认值
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -310,7 +354,8 @@ TEST_F(ApplySkeletonArmPoseTest, ScaleConversion_SixteenthsToOnePassedToSetAngle
 TEST_F(ApplySkeletonArmPoseTest, ScaleConversion_DifferentScaleDoesNotCrash)
 {
     // 幼体骷髅 scale 更小，验证不同 scale 不崩溃
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
     m_context->scale = 0.5 / 16.0; // 幼体缩放
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
@@ -327,7 +372,8 @@ TEST_F(ApplySkeletonArmPoseTest, ScaleConversion_DifferentScaleDoesNotCrash)
 
 TEST_F(ApplySkeletonArmPoseTest, RepeatedCall_Idempotent_WhenStateUnchanged)
 {
-    m_entity->setChargingBow(true);
+    equipBow();
+    m_entity->setIsAggressive(true);
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
     auto rightArm1 = m_model->getRightArm();
@@ -344,16 +390,17 @@ TEST_F(ApplySkeletonArmPoseTest, RepeatedCall_Idempotent_WhenStateUnchanged)
 // 默认 ClientEntity 状态测试
 // ============================================================================
 
-TEST_F(ApplySkeletonArmPoseTest, DefaultClientEntity_ChargingBowFalse_SetsEmpty)
+TEST_F(ApplySkeletonArmPoseTest, DefaultClientEntity_NotAggressive_SetsEmpty)
 {
-    // 新创建的 ClientEntity 默认 isChargingBow=false
-    EXPECT_FALSE(m_entity->isChargingBow());
+    // 新创建的 ClientEntity 默认 isAggressive=false、主手无物品
+    EXPECT_FALSE(m_entity->isAggressive());
+    EXPECT_EQ(m_entity->getMainHandItem(), nullptr);
 
     applySkeletonArmPoseContract(*m_model, *m_entity, *m_context);
 
     auto rightArm = m_model->getRightArm();
     ASSERT_NE(rightArm, nullptr);
-    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "默认 ClientEntity（isChargingBow=false）应设置右臂 Empty";
+    EXPECT_NEAR(rightArm->rotateAngleY(), 0.0f, 1e-5f) << "默认 ClientEntity（非激怒、无物品）应设置右臂 Empty";
 }
 
 } // namespace

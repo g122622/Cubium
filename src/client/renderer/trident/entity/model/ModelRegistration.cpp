@@ -168,9 +168,9 @@ void initializeModelRegistration()
     factory.registerModel(ET::PHANTOM, []() { return std::make_unique<monster::PhantomModel>(); });
     factory.registerModel(ET::WITHER_SKELETON, []() { return std::make_unique<monster::SkeletonModel>(); });
     // 沼骸骨（bogged）与普通骷髅结构相同，复用 SkeletonModel。
-    // 拉弓状态通过 AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM 同步到
-    // ClientEntity::isChargingBow()，由 EntityRendererManager::_applySkeletonArmPose
-    // 设置右臂 BowAndArrow 姿态。
+    // 拉弓状态通过 MobEntity::DATA_MOB_FLAGS_PARAM 位 2（isAggressive）同步，
+    // 由 EntityRendererManager::_applySkeletonArmPose 据 isAggressive + 持弓
+    // 设置右臂 BowAndArrow 姿态（对齐 vanilla AbstractSkeletonRenderer.getArmPose）。
     factory.registerModel(ET::BOGGED, []() { return std::make_unique<monster::SkeletonModel>(); });
 
     // 灾厄村民 (MoreMonsterModels)

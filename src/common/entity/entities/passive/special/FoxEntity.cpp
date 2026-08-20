@@ -64,6 +64,11 @@ namespace mc {
 FoxEntity::FoxEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AnimalEntity(id, registry)
 {
+    // 对齐 vanilla Fox 构造（Fox.java:148）：setCanPickUpLoot(true) 使狐狸能拾取掉落物。
+    // 由 MobEntity::tick 的 looting 扫描段驱动，经 wantsToPickUp(canHoldItem) 判定后调
+    // FoxEntity::pickUpItem（手持物品语义：取 1 个入主手，多余掉落，吐出旧手持物）。
+    setCanPickUpLoot(true);
+
     // 注册 AI 目标
     registerGoals();
 

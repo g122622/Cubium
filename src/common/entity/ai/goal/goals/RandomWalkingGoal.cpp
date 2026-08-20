@@ -66,13 +66,17 @@ bool RandomWalkingGoal::shouldExecute()
     // 如果不需要强制更新，检查概率
     if (!m_forceUpdate) {
         // 检查空闲时间（如果 m_checkIdleTime 为 true 且空闲时间 >= 100 则不执行）
-        if (m_checkIdleTime && m_creature->idleTime() >= 100) return false;
+        if (m_checkIdleTime && m_creature->idleTime() >= 100) {
+            return false;
+        }
 
         // 检查执行概率。对齐 vanilla RandomStrollGoal.canUse：
         // nextInt(reducedTickDelay(interval))，interval 默认 120。
         // reducedTickDelay 把门槛减半补偿 GoalSelector 半 tick 评估。
         math::Random& rng = m_creature->getRandom();
-        if (rng.nextInt(reducedTickDelay(m_executionChance)) != 0) return false;
+        if (rng.nextInt(reducedTickDelay(m_executionChance)) != 0) {
+            return false;
+        }
     }
 
     // 获取随机位置
@@ -111,7 +115,7 @@ void RandomWalkingGoal::startExecuting()
 
     // 使用 navigator.tryMoveToXYZ
     if (auto* nav = m_creature->navigator()) {
-        static_cast<void>(nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed));
+        (void)nav->moveTo(m_targetX, m_targetY, m_targetZ, m_speed);
     }
     // 初始化超时计数器
     m_timeoutCounter = MAX_WALK_TIME;

@@ -56,6 +56,7 @@ namespace mc {
 // 前向声明
 class Player;
 class Item;
+class ItemEntity;
 
 namespace item {
 class SpawnEggItem;
@@ -580,9 +581,55 @@ public:
     /**
      * @brief 设置生物是否可以拾取物品
      *
-     * @param canPickUp 是否可以拾取物品
+     * @param canPickUp 是否可以拾取
      */
     void setCanPickUpLoot(bool canPickUp) { m_canPickUpLoot = canPickUp; }
+
+    /**
+     * @brief 拾取范围（对齐 vanilla Mob.getPickupReach）
+     *
+     * 返回 AABB 在三轴上的 inflate 量。vanilla 默认 Vec3i(1, 0, 1)——
+     * 仅水平 ±1 格、Y 不扩展（同高度扫描）。子类可覆写增大（如拾取距离更远的实体）。
+     *
+     * @return 三轴 inflate 量（块为单位）
+     */
+    [[nodiscard]] virtual Vector3i getPickupReach() const;
+
+    /**
+     * @brief 生物是否想要拾取该物品（对齐 vanilla Mob.wantsToPickUp）
+     *
+     * 默认实现委托 canHoldItem。子类（如 Fox）可覆写以加入更精细的判断。
+     *
+     * @param itemStack 待拾取物品堆
+     * @return 是否愿意拾取
+     */
+    [[nodiscard]] virtual bool wantsToPickUp(const ItemStack& itemStack) const;
+
+    /**
+     * @brief 生物是否能持有该物品（对齐 vanilla Mob.canHoldItem）
+     *
+     * 基类默认实现：装备槽为空时可拾取任何可装备物品。子类（如 Fox）覆写为
+     * 手持物品语义。vanilla Mob.canHoldItem 默认检查装备槽可替换性。
+     *
+     * TODO: 基类版仅做装备槽空位检查的简化判定，vanilla 完整 canHoldItem 还含
+     *   dropChances 守卫（dropChance<=1 才允许拾取装备）与 canReplaceCurrentItem
+     *   装备对比替换逻辑，待装备拾取链路完整补全后对齐。
+     *
+     * @param itemStack 待判定物品堆
+     * @return 是否能持有
+     */
+    [[nodiscard]] virtual bool canHoldItem(const ItemStack& itemStack) const;
+
+    /**
+     * @brief 拾取物品实体（对齐 vanilla Mob.pickUpItem）
+     *
+     * 由 MobEntity::tick 的 looting 扫描段在 AABB.inflate(getPickupReach) 内发现
+     * 可拾取 ItemEntity 且 wantsToPickUp 为真时调用。基类默认实现走装备槽拾取
+     * （equipItemIfPossible 语义），子类（如 Fox）覆写为手持物品语义。
+     *
+     * @param itemEntity 被拾取的物品实体
+     */
+    virtual void pickUpItem(ItemEntity& itemEntity);
 
     // ========== 掉落概率 (DropChances) ==========
 

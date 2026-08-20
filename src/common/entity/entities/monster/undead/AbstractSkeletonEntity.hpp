@@ -106,29 +106,14 @@ public:
     void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
 
     // ========== 弓箭状态管理 ==========
-
-    /**
-     * @brief 获取是否正在拉弓
-     *
-     * 通过 DataParameter 同步到客户端，由 ClientEntity::syncMetadataFromDataManager
-     * 读取并写入 ClientEntity::m_chargingBow 镜像字段。
-     * 渲染层据此设置 SkeletonModel 的 ArmPose::BowAndArrow，触发拉弓动画。
-     */
-    [[nodiscard]] bool isChargingBow() const { return m_dataManager.get<bool>(DATA_CHARGING_BOW_PARAM); }
-
-    /**
-     * @brief 设置拉弓状态
-     *
-     * 写入 DataParameter，由 EntityTracker 自动广播到所有观察者客户端。
-     * 由 AbstractSkeletonEntity::tick 根据 m_attackTimer 推进设置，
-     * 由 attackEntityWithRangedAttack 在射击时重置为 false。
-     */
-    void setChargingBow(bool charging) { m_dataManager.set(DATA_CHARGING_BOW_PARAM, charging); }
-
-    /**
-     * @brief 获取拉弓状态参数 ID（供客户端 syncMetadataFromDataManager 使用）
-     */
-    [[nodiscard]] static u16 getChargingBowParamId() { return DATA_CHARGING_BOW_PARAM.id(); }
+    // 注：拉弓（充能）渲染状态不通过独立 SynchedEntityData 字段同步——对齐 vanilla
+    // 1.21.11 AbstractSkeletonRenderer.getArmPose：客户端据 Mob.isAggressive()
+    // （DATA_MOB_FLAGS_PARAM 位 2，由 RangedBowAttackGoal::startExecuting/resetTask
+    // 经 setAggroed 写入）+ 主手持弓判定，设置 SkeletonModel 的 ArmPose::BowAndArrow。
+    // 此前用独立 DATA_CHARGING_BOW_PARAM(id16) 同步是项目简化，但 vanilla
+    // AbstractSkeleton/Stray/WitherSkeleton 无 id16 字段（客户端数组长度=16），
+    // 发送 id16 致真 Java 客户端 set_entity_data "Index 16 out of bounds for length 16"
+    // 崩溃，故移除该字段，统一走 aggressive 位。
 
     [[nodiscard]] i32 getAttackTimer() const { return m_attackTimer; }
     void setAttackTimer(i32 timer) { m_attackTimer = timer; }
@@ -253,7 +238,9 @@ protected:
     /**
      * @brief 注册同步数据参数
      *
-     * 重写 MonsterEntity::registerData，注册 DATA_CHARGING_BOW_PARAM。
+     * 重写 MonsterEntity::registerData。AbstractSkeleton 自身无 SynchedEntityData 字段
+     * （对齐 vanilla AbstractSkeleton——其无 defineSynchedData）；拉弓渲染状态走
+     * Mob.isAggressive（DATA_MOB_FLAGS_PARAM 位 2），不再注册独立 chargingBow 字段。
      * 由于 C++ 虚函数在基类构造函数中不会派发到派生类，
      * 派生类构造函数必须显式调用 registerData()，参考 WolfEntity 模式。
      */
@@ -271,17 +258,6 @@ protected:
 
     i32 m_attackTimer = 0;
     i32 m_attackCooldown = 0;
-
-    /**
-     * @brief 拉弓状态同步参数
-     *
-     * 对应 MC 1.21.11 AbstractSkeleton.DATA_CHARGING_BOW（虽原版骷髅走 isAggressive
-     * + isHoldingBow 渲染状态，本项目简化为单独的 chargingBow 布尔字段）。
-     * 由 setChargingBow 写入，由 EntityTracker 自动广播到所有观察者客户端。
-     * 客户端 ClientEntity::syncMetadataFromDataManager 读取此参数并调用
-     * ClientEntity::setChargingBow，驱动 SkeletonModel 的 BowAndArrow 姿态。
-     */
-    static entity::DataParameter<bool> DATA_CHARGING_BOW_PARAM;
 
     /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();

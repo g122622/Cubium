@@ -63,8 +63,6 @@
 namespace mc {
 
 // ==================== 静态成员初始化 ====================
-entity::DataParameter<bool> AbstractSkeletonEntity::DATA_CHARGING_BOW_PARAM =
-    entity::EntityDataManager::createKey<bool>();
 
 const entity::EntityClassInfo& AbstractSkeletonEntity::classInfo()
 {
@@ -94,12 +92,15 @@ void AbstractSkeletonEntity::registerData()
     // 先调用父类方法，确保基类数据参数已注册
     MonsterEntity::registerData();
 
+    // AbstractSkeleton 自身无 SynchedEntityData 字段（对齐 vanilla AbstractSkeleton——
+    // 其无 defineSynchedData）。拉弓渲染状态由 Mob.isAggressive（DATA_MOB_FLAGS_PARAM
+    // 位 2）经 RangedBowAttackGoal::startExecuting/resetTask 的 setAggroed 同步，客户端
+    // 据 isAggressive + 持弓判定渲染 BowAndArrow（对齐 vanilla AbstractSkeletonRenderer）。
+    // 此前的 DATA_CHARGING_BOW_PARAM(id16) 已移除——vanilla Stray/WitherSkeleton 客户端
+    // 访问器数组长度=16，发送 id16 致 "Index 16 out of bounds for length 16" 崩溃。
+    // 仍保留 ClassRegisterGuard 将本类 classInfo 链入继承链，确保子类（如 Skeleton/Bogged
+    // 若未来新增 vanilla 的 DATA_STRAY_CONVERSION/DATA_SHEARED）id 从 id16 起续接。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
-
-    // 注册拉弓状态数据参数，用于客户端-服务端同步
-    // 默认值为 false（未拉弓），由 setChargingBow 写入，
-    // 由 tick 根据 m_attackTimer 推进，由 attackEntityWithRangedAttack 重置。
-    m_dataManager.registerParam(DATA_CHARGING_BOW_PARAM, false);
 }
 
 void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
@@ -108,8 +109,8 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
         return;
     }
 
-    // 重置弓箭状态
-    setChargingBow(false);
+    // 重置弓箭攻击计时（拉弓渲染状态由 RangedBowAttackGoal 的 setAggroed 管理，
+    // 在 goal resetTask 时清除 aggressive，此处不再单独重置）
     m_attackTimer = 0;
     m_attackCooldown = ATTACK_COOLDOWN;
 
@@ -160,23 +161,13 @@ void AbstractSkeletonEntity::tick()
         --m_attackCooldown;
     }
 
-    // 拉弓状态同步：当正在使用物品（弓蓄力）且主手为弓时，设为拉弓状态。
-    // 对应 MC 1.21.11 AbstractSkeletonRenderer 通过 isUsingItem + BOW 物品判断拉弓。
-    // 通过 DataParameter setter 写入，触发 EntityTracker 自动广播到客户端，
-    // 客户端 ClientEntity::syncMetadataFromDataManager 读取并设置 m_chargingBow，
-    // 驱动 SkeletonModel 的 BowAndArrow 姿态。
+    // 拉弓渲染状态不再由本类同步：对齐 vanilla AbstractSkeletonRenderer.getArmPose，
+    // 客户端据 Mob.isAggressive()（DATA_MOB_FLAGS_PARAM 位 2，由 RangedBowAttackGoal
+    // 的 startExecuting/resetTask 经 setAggroed 写入）+ 主手持弓判定渲染 BowAndArrow。
     // 仅在服务端执行（客户端走 ClientEntity::tick，不会调用此方法）。
-    const bool wasCharging = isChargingBow();
-    const bool nowCharging = isUsingItem() && getMainHandItem().getItem() == Items::BOW;
-    if (wasCharging != nowCharging) {
-        setChargingBow(nowCharging);
-    }
 
     if (m_attackTimer > 0) {
         --m_attackTimer;
-        if (m_attackTimer == 0) {
-            setChargingBow(false);
-        }
     }
 }
 

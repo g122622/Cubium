@@ -48,6 +48,7 @@
 #include "../damage/DamageSource.hpp"
 #include "../ecs/components/MobFlagComponent.hpp"
 #include "../entities/hanging/HangingEntity.hpp"
+#include "../entities/item/ItemEntity.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
@@ -350,6 +351,42 @@ void MobEntity::tick()
     }
 
     // 注意：aiStep() 已在 LivingEntity::tick() 中调用，这里不需要再次调用
+
+    // 拾取掉落物（对齐 vanilla Mob.aiStep 的 "looting" 段，Mob.java:444-462）。
+    // canPickUpLoot() && isAlive() && !dead && mobGriefing 游戏规则 时，扫描
+    // getBoundingBox().inflate(getPickupReach()) 内的 ItemEntity，对每个未移除、
+    // 非空、可拾取（pickupDelay<=0）且 wantsToPickUp 的物品实体调用 pickUpItem。
+    // pickUpItem 由子类覆写（Fox→手持物品语义；基类→装备槽语义）。
+    // TODO: vanilla 还检查 serverlevel.getGameRules().get(MOB_GRIEFING)，本实现已对齐。
+    //   基类 pickUpItem 的装备槽替换逻辑（equipItemIfPossible/canReplaceCurrentItem）为简化实现，
+    //   待装备拾取链路完整补全后对齐。
+    if (m_world != nullptr && canPickUpLoot() && isAlive() && !isDead() &&
+        m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        const Vector3i reach = getPickupReach();
+        const AxisAlignedBB searchBox =
+            boundingBox().expand(static_cast<f32>(reach.x), static_cast<f32>(reach.y), static_cast<f32>(reach.z));
+
+        auto nearbyEntities = m_world->getEntitiesInAABB(searchBox, this);
+        for (Entity* entity : nearbyEntities) {
+            if (entity == nullptr || entity->isRemoved()) {
+                continue;
+            }
+            if (entity->entityType() != entity::VanillaEntityTypeKeys::ITEM) {
+                continue;
+            }
+
+            auto* itemEntity = static_cast<ItemEntity*>(entity);
+            const ItemStack& stack = itemEntity->getItemStack();
+            if (stack.isEmpty() || !itemEntity->canBePickedUp()) {
+                continue;
+            }
+            if (!wantsToPickUp(stack)) {
+                continue;
+            }
+
+            pickUpItem(*itemEntity);
+        }
+    }
 
     // 拴绳物理约束
     tickLeash();
@@ -1301,6 +1338,40 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
     }
 
     return Result<void>::ok();
+}
+
+// ============================================================================
+// 拾取物品 (CanPickUpLoot)
+// ============================================================================
+
+Vector3i MobEntity::getPickupReach() const
+{
+    // 对齐 vanilla Mob.ITEM_PICKUP_REACH = Vec3i(1, 0, 1)——仅水平 ±1 格、Y 不扩展。
+    return Vector3i(1, 0, 1);
+}
+
+bool MobEntity::wantsToPickUp(const ItemStack& itemStack) const
+{
+    // 对齐 vanilla Mob.wantsToPickUp 默认实现 = canHoldItem。
+    return canHoldItem(itemStack);
+}
+
+bool MobEntity::canHoldItem(const ItemStack& itemStack) const
+{
+    // 简化实现：物品非空即视为可持有（基类无装备槽语义时保守允许）。
+    // TODO: vanilla Mob.canHoldItem 默认检查装备槽可替换性（getEquipmentSlotForItem +
+    //   canReplaceCurrentItem + dropChances 守卫），待装备拾取链路完整补全后对齐。
+    //   子类（如 FoxEntity）覆写为手持物品语义，不依赖本基类实现。
+    return !itemStack.isEmpty();
+}
+
+void MobEntity::pickUpItem(ItemEntity& itemEntity)
+{
+    // 基类默认实现：装备槽拾取语义（对齐 vanilla Mob.pickUpItem→equipItemIfPossible）。
+    // TODO: 完整装备拾取链路（equipItemIfPossible/canReplaceCurrentItem/getEquipmentSlotForItem
+    //   /onItemPickup/take）尚未实现，基类暂不处理。子类（如 FoxEntity）覆写 pickUpItem
+    //   实现具体拾取逻辑（手持物品）。待装备槽拾取链路补全后在此对齐 vanilla。
+    (void)itemEntity;
 }
 
 // ============================================================================
