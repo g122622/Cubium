@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // grass_pen 结构尺寸（9×5×9），helper 相对坐标。
@@ -399,6 +400,91 @@ function foxPicksUpItem(test: Test): void {
   });
 }
 
+// 两只狐狸各喂甜浆果后进入爱心状态，BreedGoal 驱动互相靠近并繁殖出小狐狸
+// （wiki tech_狐狸.txt#繁殖：手持甜浆果/发光浆果右键两只成年狐狸使其进入"爱心模式"，两只狐狸靠近后
+//   繁殖出小狐狸，双亲进入 5 分钟繁殖冷却，玩家获得 1-7 经验球；小狐狸继承父母信任的玩家）。
+//
+// 关键设计——远程喂食规避 AvoidEntityGoal + night/skyAccess 规避睡眠：
+//   1) AvoidEntityGoal 干扰：FoxEntity AvoidEntityGoal(玩家,优先级4,16格) 高于 BreedGoal(优先级3)
+//      （FoxEntity.cpp:594-611），未信任玩家 16 格内触发 Avoid 阻塞 BreedGoal。用远程喂食范式
+//      （见 [[gametest-remote-feed-breed-avoid-avoidentitygoal]]）：玩家全程站距狐狸 22 格外（>16），
+//      interactWithEntity 远程转发 interactOn（无距离门控）→ setInLove，AvoidEntityGoal 恒不触发。
+//   2) FoxSleepGoal/FoxFindShelterGoal 干扰：FoxSleepGoal(优先级7,canFoxStart=isDaytime&&hasShelter&&...)
+//      与 FoxFindShelterGoal(优先级6,canFoxStart=isDaytime&&hasShelter) 白天占 Move flag。用 batch("night")
+//      夜晚 isDaytime()=false 规避两者；skyAccess(true) 露天使 canSeeSky=true→hasShelter=false 双保险。
+//   3) 优先级分析：BreedGoal(3) 仅次于 SwimGoal(0)/FoxStuckInSnowGoal(1)/PanicGoal(2)（均需特定条件触发，
+//      正常繁殖时不触发）。AvoidEntityGoal(4) 远程喂食规避后不触发。BreedGoal(3) 是最高可执行 goal，
+//      isInLove 时独占驱动繁殖。FoxFollowTargetGoal(5)/FoxPounceGoal(6)/FoxBiteGoal(7) 需 attackTarget
+//      才触发，无攻击目标时不干扰 BreedGoal。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Fox + BreedGoal）：
+//   1) 玩家主手持甜浆果 + interactWithEntity(fox)（远程，玩家在 22 格外）→ Player::interactOn
+//      → fox.processInitialInteract → MobEntity::interactMob → AnimalEntity::interactMob override
+//      （AnimalEntity.cpp:90-141）：FoxEntity::isBreedingItem(甜浆果) 命中（FoxEntity.cpp:411-420
+//      item->isIn(FOX_FOOD 标签，含 sweet_berries/glow_berries)）→ 成体 canBreed() → setInLove。
+//      创造模式喂食不消耗甜浆果，同一根喂两只狐狸。
+//   2) BreedGoal::shouldExecute（BreedGoal.cpp:62-74）：isInLove() && findNearbyMate() 非空。
+//   3) BreedGoal::tick：navigator.moveTo(配偶) + m_spawnBabyDelay++，达 adjustedTickDelay(60)=30
+//      且 distSq<BREED_DISTANCE_SQ=9 时 spawnBaby()。
+//   4) FoxEntity::spawnBaby（FoxEntity.cpp:422-461）：构造 FoxEntity 幼体 + setChild(true) + 皮肤遗传
+//      （50% 任一父母）+ trust 遗传（继承父母信任玩家）；BreedGoal:153 兜底 setTypeId(FOX) 保证 getEntities 可查。
+//
+// 环境选择：open_grass_hall（41×7×9 露天草地长廊，四壁玻璃墙）。两只狐狸放 (24,2,4)+(24,2,6) 相距 2 格
+//   （distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。玩家站远端 (2,2,4) 距狐狸 ~22 格 >16 避 Avoid。
+//   狐狸 MOVEMENT_SPEED=0.3，BreedGoal speed=1.0 倍率。
+//
+// 判定手段：繁殖完成后区域内 fox 数 >=3（原 2 + 幼体 1）。pollUntilSucceed 轮询。
+// 时序：喂食 2×（tick 5、10）+ BreedGoal 评估 + 30 tick spawnBabyDelay + 余量。startTick=30，maxTick=900。
+//   注：狐狸 typeId 查询用 "minecraft:fox"（带前缀，与其他 fox_* 测试一致）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#繁殖（喂甜浆果→爱心→繁殖小狐狸+冷却+经验球）
+function foxBreedsWhenFedSweetBerries(test: Test): void {
+  const foxType = "fox";
+
+  // 两只成年狐狸放 (24,2,4)+(24,2,6) 相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。
+  // open_grass_hall helper-y=2 是 air 层，y=0 grass_block 地板，狐狸 spawn y=2 落到 y=1 草地顶。
+  const fox1 = test.spawn(foxType, { x: 24, y: 2, z: 4 });
+  const fox2 = test.spawn(foxType, { x: 24, y: 2, z: 6 });
+
+  // 创造玩家站远端 (2,2,4)，距狐狸 ~22 格 >16 格避免 AvoidEntityGoal(玩家,16格) 触发。
+  // interactWithEntity 远程生效（interactOn 无距离门控），玩家无需靠近狐狸喂食。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "foxBreeder");
+  const sweetBerries = new ItemStack("minecraft:sweet_berries", 1);
+  // 两份 @minecraft/server ItemStack 类型分裂（顶层 1.13-beta 与 server-gametest 嵌套 1.19），
+  // setItem 形参类型不兼容；运行时同一 Cubium ItemStack opaque，强转绕过编译期。
+  player.setItem(sweetBerries as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 依次喂两只狐狸：interactWithEntity 远程转发 interactOn → AnimalEntity::interactMob → setInLove。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(fox1);
+  });
+  test.runAtTickTime(10, () => {
+    (player as any).interactWithEntity(fox2);
+  });
+
+  // 轮询：繁殖完成后区域内 fox 数 >=3（原 2 + 幼体 1）。
+  pollUntilSucceed(test, () => {
+    const foxes = test.getDimension().getEntities({
+      type: "minecraft:fox",
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
+    });
+    return foxes.length >= 3;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 900,
+    onTimeout: () => {
+      const foxes = test.getDimension().getEntities({
+        type: "minecraft:fox",
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      test.assert(false,
+        `fox did not breed: foxCount=${foxes.length} (expected >=3 after feeding sweet berries)`);
+    },
+  });
+}
+
 export function registerFoxTests(): void {
   GameTest.register("MobBehaviorTests", "fox_immune_to_sweet_berry_bush", foxImmuneToSweetBerryBush)
     .structureName("gametests:grass_pen")
@@ -432,4 +518,14 @@ export function registerFoxTests(): void {
     .structureName("gametests:creeper_pit")
     .skyAccess(true)
     .maxTicks(1300);
+
+  GameTest.register("MobBehaviorTests", "fox_breeds_when_fed_sweet_berries", foxBreedsWhenFedSweetBerries)
+    // batch("night") + skyAccess(true)：夜晚规避 FoxSleepGoal(白天睡眠)/FoxFindShelterGoal(白天躲阳光)
+    // 占 Move flag 阻塞 BreedGoal。skyAccess 露天使 hasShelter=false 双保险。
+    // open_grass_hall（41×7×9）：狐狸 x=24 + 玩家 x=2 距 22 格 >16 避 AvoidEntityGoal(玩家,16格)，
+    // 远程喂食范式（interactWithEntity 无距离门控）。详见测试函数注释。
+    .batch("night")
+    .structureName("gametests:open_grass_hall")
+    .skyAccess(true)
+    .maxTicks(1000);
 }
