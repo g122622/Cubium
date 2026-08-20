@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -118,6 +119,214 @@ function ironGolemBuiltNorthSouthArms(test: Test): void {
   });
 }
 
+// 铁傀儡不攻击苦力怕（wiki tech_铁傀儡.txt#行为：铁傀儡主动攻击敌对生物，但唯独不攻击苦力怕）。
+//
+// C++ 链路：IronGolemEntity::canAttackType（IronGolemEntity.cpp:217-231）对 CREEPER 类型硬返 false：
+//   if (&type == VanillaEntityTypeKeys::CREEPER) return false;
+// 该过滤在 TargetGoal::isSuitableTarget（TargetGoals.cpp:124-126）中自动调用，覆盖两条目标获取路径：
+//   1. NearestAttackableTargetGoal（优先级3，选 MonsterEntity 子类）：苦力怕虽是 MonsterEntity 子类，
+//      但 isSuitableTarget→canAttackType(CREEPER) 返 false，故不设为 attackTarget，铁傀儡不追不攻。
+//   2. HurtByTargetGoal（优先级2，受击反击）：苦力怕不攻击铁傀儡（苦力怕 NearestAttackableTargetGoal
+//      仅匹配 PLAYER），铁傀儡不被伤害，HurtByTargetGoal 不触发。
+// 双路径均被 canAttackType 拦截，苦力怕与铁傀儡和平共存。
+//
+// 对照 iron_golem_arena：铁傀儡会主动攻击 zombie/skeleton（同为 MonsterEntity 子类，canAttackType 放行），
+// 证明铁傀儡 AI 正常——本测试排除"铁傀儡 AI 整体失效"的假阴性。
+//
+// 判定手段：铁傀儡若攻击苦力怕，attackEntityAsMob 随机化伤害 7~21（IronGolemEntity.cpp:184-189），
+// 苦力怕 20 血，1~2 击秒杀。铁傀儡需先移动到苦力怕旁（MoveTowardsTargetGoal 32 格范围 + MeleeAttackGoal），
+// 但因 canAttackType 拦截根本无 target，不会移动。故等 150 tick（远超铁傀儡接近+攻击时序）后苦力怕仍存活，
+// 即证明铁傀儡未把苦力怕当目标、未攻击。
+//
+// 苦力怕不爆炸：无 SimulatedPlayer，苦力怕 NearestAttackableTargetGoal 不选任何目标，CreeperSwellGoal
+// 需 attackTarget 且 distSq<9，attackTarget 恒 null，不膨胀。苦力怕不燃（shouldBurnInDaylight=false），
+// day/night 均可，用默认 day 批次。
+//
+// 区域限定到本测试 7×5×7（PIT_FROM/PIT_VOLUME），排除 iron_golem_arena 等并行测试的实体污染。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_铁傀儡.txt#行为（不攻击苦力怕）
+function ironGolemDoesNotAttackCreeper(test: Test): void {
+  const ironGolemType = "iron_golem";
+  const creeperType = "creeper";
+
+  // 铁傀儡 (4,3,3)、苦力怕 (3,3,3)，紧邻 1 格。若 canAttackType 失效，铁傀儡立即选苦力怕为目标，
+  // 1~2 击（约 20-40 tick）秒杀苦力怕。等 150 tick 后苦力怕仍存活即证明未受攻击。
+  test.spawn(ironGolemType, { x: 4, y: 3, z: 3 });
+  test.spawn(creeperType, { x: 3, y: 3, z: 3 });
+
+  // tick 150 断言苦力怕仍存活（区域内 creeper 数 >= 1）。150 tick 远超铁傀儡接近+秒杀时序。
+  test.runAtTickTime(150, () => {
+    const creepers = test.getDimension().getEntities({
+      type: creeperType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(creepers.length >= 1,
+      `creeper was attacked/killed by iron_golem (canAttackType CREEPER filter failed), count=${creepers.length}`);
+    test.succeed();
+  });
+}
+
+// 玩家建造的铁傀儡被玩家攻击后不反击（wiki tech_铁傀儡.txt#行为：玩家建造的铁傀儡不会攻击玩家）。
+//
+// C++ 链路：IronGolemEntity::canAttackType（IronGolemEntity.cpp:217-231）对玩家建造的铁傀儡走专属守卫：
+//   if (isPlayerCreated() && &type == VanillaEntityTypeKeys::PLAYER) return false;
+// 该过滤在 TargetGoal::isSuitableTarget（TargetGoals.cpp:124-126）中自动调用。玩家攻击铁傀儡后，
+// HurtByTargetGoal::shouldExecute（TargetGoals.cpp:267-299）取 lastHurtBy=player，调 isSuitableTarget(player)
+// → canAttackType(PLAYER) → isPlayerCreated=true 命中守卫返 false → isSuitableTarget 返 false →
+// HurtByTargetGoal 不触发，铁傀儡不设玩家为 attackTarget，不反击。
+//
+// 对照：自然生成的铁傀儡（isPlayerCreated=false）被玩家攻击会反击（canAttackType 守卫不走 isPlayerCreated
+// 分支，返回 MobEntity::canAttackType 默认 true）。本测试用建造流程生成铁傀儡（spawnIronGolem 内
+// setPlayerCreated(true)，MelonPumpkinBlocks.cpp:479），确保 isPlayerCreated=true 触发守卫。
+//
+// 建造流程：复用 iron_golem_built_by_player 的东西手臂 T 形（4 铁块 + 顶南瓜），铁傀儡生成在 bodyPos=(3,2,3)。
+// Survival 玩家 (4,2,3) 紧邻（直线 1 格，attackEntity 远程命中不受距离限）。玩家脚下 (4,1,3) 放 glass 支撑
+// 防下落（glass_pit y=1 air，参照 SilverfishTests 同款支撑范式）。
+//
+// 判定手段：玩家攻击铁傀儡后，轮询断言玩家 HP 恒 20（未掉血）。铁傀儡若反击（canAttackType 守卫失效），
+// attackEntityAsMob 随机化伤害 7~21（IronGolemEntity.cpp:184-189），玩家 20 血 1~2 击秒杀，HP 必降。
+// HP 恒 20 即证明铁傀儡未反击。攻击在 tick 10 执行（留建造 spawn + 玩家 spawn 注册稳定时间），
+// 轮询 maxTick=150 覆盖铁傀儡反击时序（铁傀儡 HurtByTargetGoal 触发+MeleeAttackGoal 攻击约 20-40 tick）。
+//
+// 注意：玩家攻击铁傀儡造伤害 1（空手），铁傀儡 100 血不会死。铁傀儡 HurtByTargetGoal 不触发故不反击。
+// 铁傀儡 NearestAttackableTargetGoal 只选 MonsterEntity 不选玩家，双路径均不攻击玩家。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_铁傀儡.txt#行为（玩家建造不攻击玩家）
+function ironGolemPlayerCreatedDoesNotAttackPlayer(test: Test): void {
+  const ironGolemType = "iron_golem";
+
+  // 先摆 4 个铁块（东西手臂 T 形缺南瓜顶），与 iron_golem_built_by_player 同款图案。
+  // 底层 body：(3,2,3)。中层 armCenter：(3,3,3)。中层东西手臂：(3,3,2)(3,3,4)。
+  test.setBlockType("minecraft:iron_block", { x: 3, y: 2, z: 3 });
+  test.setBlockType("minecraft:iron_block", { x: 3, y: 3, z: 3 });
+  test.setBlockType("minecraft:iron_block", { x: 3, y: 3, z: 2 });
+  test.setBlockType("minecraft:iron_block", { x: 3, y: 3, z: 4 });
+
+  // 最后放南瓜触发建造：onBlockAdded → trySpawnGolem → checkIronGolemPattern 匹配 →
+  // spawnIronGolem 移除 5 格 + 生成 iron_golem + setPlayerCreated(true)。
+  test.setBlockType("minecraft:carved_pumpkin", { x: 3, y: 4, z: 3 });
+
+  // 玩家脚下 (4,1,3) 放 glass 支撑（glass_pit y=1 air，防 Survival 玩家下落）。
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
+
+  // Survival 玩家 (4,2,3)，紧邻铁傀儡 (3,2,3) 直线 1 格。gameMode=0=Survival（attackEntity 需造伤害）。
+  const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "attacker", 0 as any);
+
+  // tick 10 玩家攻击铁傀儡：留建造 spawn + 玩家 spawn 注册稳定时间。
+  // attackEntity 转发 Player::attack → playerAttack(EntitySource) → 铁傀儡 hurt（1 伤害，100 血不死）→
+  // 铁傀儡 lastHurtBy=player + lastHurtByTimestamp 更新。HurtByTargetGoal 下次评估取 lastHurtBy=player，
+  // isSuitableTarget→canAttackType(PLAYER)→isPlayerCreated 守卫返 false→不触发，铁傀儡不反击。
+  test.runAtTickTime(10, () => {
+    const golems = test.getDimension().getEntities({
+      type: ironGolemType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (golems.length > 0) {
+      player.attackEntity(golems[0]);
+    }
+  });
+
+  // tick 150 断言玩家 HP 仍满血 20（铁傀儡未反击）。
+  // 攻击在 tick 10，铁傀儡 HurtByTargetGoal 若误触发 + MeleeAttackGoal 反击约 tick 30-50，
+  // 玩家 HP 必降（伤害 7~21，1~2 击秒杀）。等 150 tick 远超反击时序，HP 仍 20 即证明铁傀儡全程未反击。
+  // 用 runAtTickTime 而非 pollUntilSucceed：本测试是负向断言（HP 不降），须等完整反击窗口过才判定，
+  // pollUntilSucceed 的"条件满足即 succeed"会在 tick 60 首检 HP=20 立即 succeed，漏掉延迟反击。
+  test.runAtTickTime(150, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared");
+    const health = players[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "player has no health component");
+    const hp = (health as any).currentValue;
+    test.assert(hp >= 20,
+      `player-created iron_golem attacked player (canAttackType PLAYER guard failed), player hp=${hp}`);
+    test.succeed();
+  });
+}
+
+// 自然生成的铁傀儡被玩家攻击后会反击（wiki tech_铁傀儡.txt#行为：非玩家建造的铁傀儡受击反击攻击者）。
+//
+// 本测试是 iron_golem_player_created_does_not_attack_player 的**对照组**，交叉验证 canAttackType 的
+// isPlayerCreated 守卫真正生效：
+//   - 自然铁傀儡（isPlayerCreated=false）：canAttackType(PLAYER) 不走 isPlayerCreated 守卫分支，
+//     返回 MobEntity::canAttackType 默认值（仅排除恶魂，对 PLAYER 返 true）→ HurtByTargetGoal 触发 →
+//     铁傀儡反击玩家，玩家 HP 降。本测试断言此行为。
+//   - 玩家建造铁傀儡（isPlayerCreated=true）：canAttackType(PLAYER) 命中守卫返 false → 不反击，HP 不降。
+//
+// 两测试互补：若玩家攻击对铁傀儡无效（attackEntity 未造伤害、lastHurtBy 未设），则两测试都会"假通过"
+// （自然铁傀儡也不反击）。本对照测试要求自然铁傀儡**必须反击**，强制验证 attackEntity 造伤害链路通 +
+// HurtByTargetGoal 评估链路通，从而排除 player_created 测试的假通过风险。
+//
+// C++ 链路：test.spawn("iron_golem") 创建自然铁傀儡（m_playerCreated=false，IronGolemEntity.hpp:209）。
+// 玩家 attackEntity → 铁傀儡 hurt → lastHurtBy=player。HurtByTargetGoal::shouldExecute（TargetGoals.cpp:267）
+// 取 lastHurtBy=player，isSuitableTarget→canAttackType(PLAYER)→isPlayerCreated=false 不走守卫→
+// MobEntity::canAttackType 返 true→isSuitableTarget 返 true→设 player 为 attackTarget。
+// MeleeAttackGoal（优先级1）+ MoveTowardsTargetGoal（优先级2，32 格范围）驱动铁傀儡接近玩家攻击。
+//
+// 判定手段：玩家攻击铁傀儡后，轮询断言玩家 HP<20（铁傀儡反击造伤害）。铁傀儡 attackEntityAsMob
+// 随机化伤害 7~21，玩家 20 血，1~2 击即 HP<20。攻击在 tick 10，反击约 tick 30-60，maxTick=200 留余量。
+// 用 pollUntilSucceed（正向断言 HP 降，条件满足即 succeed 合理）。
+//
+// 注：铁傀儡 100 血，玩家空手 1 伤害/次不致死；玩家 20 血，铁傀儡 7~21 伤害 1~2 击秒杀，但 pollUntilSucceed
+// 首次检测到 HP<20 即 succeed，不会等玩家死亡。Survival 玩家（gameMode=0）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_铁傀儡.txt#行为（受击反击）
+function ironGolemNaturalAttacksPlayerWhenHurt(test: Test): void {
+  const ironGolemType = "iron_golem";
+
+  // 自然铁傀儡 (3,2,3)（test.spawn 创建，isPlayerCreated=false）。
+  test.spawn(ironGolemType, { x: 3, y: 2, z: 3 });
+
+  // 玩家脚下 (4,1,3) 放 glass 支撑（glass_pit y=1 air，防 Survival 玩家下落）。
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
+
+  // Survival 玩家 (4,2,3)，紧邻铁傀儡直线 1 格。
+  const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "attacker", 0 as any);
+
+  // tick 10 玩家攻击铁傀儡：留 spawn 注册稳定时间。攻击触发铁傀儡 hurt→lastHurtBy=player。
+  test.runAtTickTime(10, () => {
+    const golems = test.getDimension().getEntities({
+      type: ironGolemType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (golems.length > 0) {
+      player.attackEntity(golems[0]);
+    }
+  });
+
+  // 轮询断言玩家 HP<20（铁傀儡反击造伤害）。攻击 tick 10，反击约 tick 30-60，maxTick=200 留余量。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length === 0) return false;
+    const health = players[0].getComponent("minecraft:health");
+    if (health === undefined) return false;
+    return (health as any).currentValue < 20;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 200,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const hp = players.length > 0
+        ? (players[0].getComponent("minecraft:health") as any)?.currentValue
+        : "player gone";
+      test.assert(false,
+        `natural iron_golem did not counterattack player when hurt (attackEntity ineffective or HurtByTargetGoal broken), player hp=${hp}`);
+    },
+  });
+}
+
 export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_arena", ironGolemArena)
     .batch("night")
@@ -131,4 +340,16 @@ export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_built_north_south_arms", ironGolemBuiltNorthSouthArms)
     .structureName("gametests:glass_pit")
     .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "iron_golem_does_not_attack_creeper", ironGolemDoesNotAttackCreeper)
+    .structureName("gametests:glass_pit")
+    .maxTicks(250);
+
+  GameTest.register("MobBehaviorTests", "iron_golem_player_created_does_not_attack_player", ironGolemPlayerCreatedDoesNotAttackPlayer)
+    .structureName("gametests:glass_pit")
+    .maxTicks(250);
+
+  GameTest.register("MobBehaviorTests", "iron_golem_natural_attacks_player_when_hurt", ironGolemNaturalAttacksPlayerWhenHurt)
+    .structureName("gametests:glass_pit")
+    .maxTicks(250);
 }
