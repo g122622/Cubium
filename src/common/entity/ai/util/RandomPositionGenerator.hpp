@@ -418,8 +418,12 @@ private:
 
     /**
      * @brief 生成随机偏移
+     *
+     * 对齐 vanilla RandomPos.generateRandomDirectionWithinRadians：偏移超界时本次尝试失败，
+     * 返回 std::nullopt（而非 zero），由 findBestPosition 跳过——避免把"超界失败"误当"原地有效候选"
+     * 致逃避位退化为实体自身位置（AvoidEntityGoal 原地不动被威胁源追上）。
      */
-    static Vector3 generateRandomOffset(
+    static std::optional<Vector3> generateRandomOffset(
         CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias);
 
     /**

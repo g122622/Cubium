@@ -435,28 +435,47 @@ f32 RandomPositionGenerator::calculatePositionScore(CreatureEntity* creature, co
 
 // ==================== 私有方法实现 ====================
 
-Vector3 RandomPositionGenerator::generateRandomOffset(
+std::optional<Vector3> RandomPositionGenerator::generateRandomOffset(
     CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& directionBias)
 {
-    if (!creature) return Vector3::zero();
+    if (!creature) return std::nullopt;
 
     Random& rng = creature->getRandom();
 
-    // 生成基础随机偏移
+    // 对齐 vanilla RandomPos.generateRandomDirectionWithinRadians（Java 1.21.11）：
+    // 当存在方向偏好（findRandomTargetBlockAwayFrom 传远离方向、findRandomTargetTowards 传朝向方向）
+    // 时，随机方向被限制在偏好方向 ±PI/2 锥角内（半圆），距离用 sqrt(rand) 在 [0, xzRange] 上插值
+    // 偏近端，再乘 SQRT2。这保证逃避位始终落在远离（或朝向）目标的半圆内——而非早期实现"50% 概率
+    // 叠加 0.3 强度偏好"导致逃避位经常朝向威胁源（如狐狸逃避狼时朝狼跑被咬死）。
+    //
+    // vanilla 算法（getPosAway/getPosToward 调用，angleRange=PI/2）：
+    //   d0 = atan2(vec.z, vec.x) - PI/2          // 偏好方向的基准角度
+    //   d1 = d0 + (2*rand-1) * PI/2              // 基准角 ±90° 锥内随机
+    //   d2 = lerp(sqrt(rand), 0, xzRange) * SQRT2 // 距离偏近端
+    //   dx = -d2 * sin(d1);  dz = d2 * cos(d1)   // 偏移向量
+    //   若 |dx|<=xzRange 且 |dz|<=xzRange 则采用，否则该次尝试失败（返 nullopt 由调用方重试）。
+    if (directionBias.lengthSquared() > 0.001f) {
+        constexpr f32 kAngleRange = math::PI / 2.0f; // ±90° 锥角（vanilla getPosAway 传 PI/2）
+        const f32 baseAngle = std::atan2(directionBias.z, directionBias.x) - math::PI / 2.0f;
+        const f32 angle = baseAngle + (rng.nextFloat() * 2.0f - 1.0f) * kAngleRange;
+        // 距离：lerp(sqrt(rand), 0, xzRange) * SQRT2，偏近端且 SQRT2 补偿锥角内最大投影。
+        const f32 dist = std::sqrt(rng.nextFloat()) * static_cast<f32>(xzRange) * math::SQRT2;
+        const f32 dx = -dist * std::sin(angle);
+        const f32 dz = dist * std::cos(angle);
+        if (std::abs(dx) <= static_cast<f32>(xzRange) && std::abs(dz) <= static_cast<f32>(xzRange)) {
+            // dy 对齐 vanilla nextInt(2*yRange+1)-yRange（整数 y 偏移），保持垂直探索范围。
+            const f32 dy = static_cast<f32>(rng.nextInt(2 * yRange + 1) - yRange);
+            return Vector3(dx, dy, dz);
+        }
+        // 超出 xzRange：该次尝试失败，返回 nullopt，findBestPosition 跳过此次（对齐 vanilla
+        // generateRandomDirectionWithinRadians 返回 null 时 generateRandomPos 跳过该候选）。
+        return std::nullopt;
+    }
+
+    // 无方向偏好（findRandomTarget 全随机）：均匀随机偏移。
     f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
     f32 dy = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(yRange);
     f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
-
-    // 如果有方向偏好，添加一些偏向
-    if (directionBias.lengthSquared() > 0.001f) {
-        // MC 1.16.5: 50% 概率使用方向偏好
-        if (rng.nextFloat() < 0.5f) {
-            f32 biasStrength = static_cast<f32>(xzRange) * 0.3f;
-            dx += directionBias.x * biasStrength;
-            dy += directionBias.y * biasStrength;
-            dz += directionBias.z * biasStrength;
-        }
-    }
 
     return Vector3(dx, dy, dz);
 }
@@ -506,7 +525,14 @@ bool RandomPositionGenerator::findBestPosition(
     bool found = false;
 
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
-        Vector3 offset = generateRandomOffset(creature, xzRange, yRange, directionBias);
+        // generateRandomOffset 在锥角偏移超界时返回 nullopt（对齐 vanilla
+        // generateRandomDirectionWithinRadians 返回 null）。跳过 nullopt 候选——否则会把
+        // offset=0（实体自身位置）当作有效候选，逃避位退化为原地不动。
+        auto offsetOpt = generateRandomOffset(creature, xzRange, yRange, directionBias);
+        if (!offsetOpt) {
+            continue;
+        }
+        const Vector3 offset = *offsetOpt;
 
         Vector3 candidatePos(creature->x() + offset.x, creature->y() + offset.y, creature->z() + offset.z);
 

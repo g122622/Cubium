@@ -14,6 +14,12 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 
+// open_grass_hall 结构尺寸（41×7×9），helper 相对坐标。四壁 glass 墙 + 内部/顶部全 air 露天草地长廊，
+// y=0 grass_block 地板。狐狸逃避狼用：41 格长度容纳 AvoidEntityGoal ESCAPE_HORIZONTAL_RANGE=16 的逃避位移，
+// 玻璃墙在边界阻止狐狸跑出查询区域。
+const HALL_FROM = { x: 0, y: 0, z: 0 };
+const HALL_VOLUME = { x: 41, y: 7, z: 9 };
+
 // 狐狸免疫甜浆果灌木伤害与减速（wiki tech_狐狸.txt#行为：狐狸不受甜浆果灌木的伤害和减速影响；
 // 蜜蜂同理免疫）。成熟（AGE≥2）灌木对其他 LivingEntity 在其中水平移动时每 ~10 tick 造成 1 伤害。
 //
@@ -23,101 +29,134 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 //   （有无敌帧约 10 tick 一次）。 Entity::doBlockCollisions（Entity.cpp:1296-1365）遍历实体 AABB
 //   覆盖的所有方块格调 onEntityCollision，故实体 AABB 须覆盖灌木格。
 //   碰撞箱对齐：甜浆果灌木不重写 getCollisionShape，继承 BushBlock 返回 empty（对齐 vanilla
-//   noCollision()），实体可穿过灌木落入其中持续触发 onEntityCollision。此前 override 返回 fullShape
-//   致实体被挡在灌木外，伤害链路变死代码——已修复（删除 getCollisionShape override）。
+//   noCollision()），实体可穿过灌木落入其中持续触发 onEntityCollision。
+//
+// 布局设计（关键修复，对齐 sweetBerryBushDamagesMovingEntity 范式）：
+//   早期版本满铺 7×7 灌木（x,z∈[1,7]）——此布局致实体所在灌木格的水平 8 邻居全是灌木格，
+//   而 WalkNodeProcessor::getNodeType 把灌木格判为 PathNodeType::DamageOther，
+//   getNeighbors 白名单（Walkable/Water/Climbable/WalkableDoor/DoorOpen/FenceGate）不接纳
+//   DamageOther → A* 搜不出路径（仅起点单点）→ 实体静止 → 不触发"水平移动"伤害分支 → 测试假通过/超时。
+//   此排除行为与 vanilla Java 1.21.11（WalkNodeEvaluator.DAMAGE_OTHER malus=-1，findAcceptedNode 对
+//   malus<0 邻居返回 null）及基岩 BDS 严格一致，非 Cubium 缺陷。满铺灌木场景下 vanilla 也静止。
+//   修复：改灌木带（z=4 一行 x∈[1,7]）+ 两侧草地（z=3/z=5 不铺灌木）。实体站在灌木带（z=4）时，
+//   水平邻居 z=3/z=5 是草地（Walkable），A* 能搜出穿越灌木-草地边界的路径，实体水平移动触发伤害。
+//
+// 对照实体选择（关键修复）：必须用"狐狸不主动攻击"的实体作对照。
+//   早期版本用鸡——但 FoxEntity 的 NearestAttackableTargetGoal 谓词匹配 CHICKEN/RABBIT
+//   （FoxEntity.cpp:690），狐狸会主动咬鸡。被追的鸡逃跑移动 + 被咬致死均使鸡 HP 下降/消失，
+//   混淆对照（鸡掉血可能是狐狸咬伤而非灌木造伤，致"灌木造伤"判定假通过）。
+//   修复：改用猪。狐狸 NearestAttackableTargetGoal 不匹配 PIG，狐狸完全忽略猪；猪 HP 下降
+//   纯粹来自甜浆果灌木伤害，对照干净。猪继承 AnimalEntity MAX_HEALTH=10（与狐狸同），体型 0.9×0.9，
+//   有 RandomWalkingGoal（优先级5），移动性与鸡相当，AABB 充分覆盖灌木格。
 //
 // 环境选择：grass_pen（9×5×9）。结构放置抬高一格（placeOrigin=origin+(0,1,0)），
 // helper 相对坐标用 origin（gridStartY=-59），故 helper-y=N → 世界 y=-59+N：
 //   helper-y=1 → 世界 y=-58 = 结构内 y=0（满铺 grass_block 草地地板）
-//   helper-y=2 → 世界 y=-57 = 结构内 y=1（air，本测试在此满铺 AGE=3 灌木）
+//   helper-y=2 → 世界 y=-57 = 结构内 y=1（air，本测试在此铺 z=4 灌木带）
 //   helper-y=3 → 世界 y=-56 = 结构内 y=2（air，实体 spawn 位）
 // 甜浆果灌木需种在草地/泥土上（canSustain 检查 BlockTags::VALID_SWEET_BERRY_BUSH_GROUND），
 // helper-y=2 灌木的下方 helper-y=1 是 grass_block 草地，支撑通过。实体 spawn 在 helper-y=3，
-// 落到草地顶（世界 y=-57.0=灌木格底），AABB 覆盖灌木格（世界 y=-57）：鸡高 0.7 → AABB y∈[-57,-56.3]
+// 落到草地顶（世界 y=-57.0=灌木格底），AABB 覆盖灌木格（世界 y=-57）：猪高 0.9 → AABB y∈[-57,-56.1]
 // 覆盖灌木格 y=-57；狐狸用基类默认高 1.8 → AABB y∈[-57,-55.2] 覆盖灌木格 y=-57。两者均触发
-// onEntityCollision。满铺 7×7（x,z∈[1,7]）确保实体随机走动始终处于灌木格水平投影内。
-//
-// 实体移动前提（关键修复）：onEntityCollision 伤害需实体水平移动。RandomWalkingGoal 经
-//   RandomPositionGenerator::findRandomTarget→isPositionWalkable 找可行走目标。此前 isPositionWalkable
-//   用 !isAir()&&!isLiquid() 判阻挡，把 noCollision 的灌木误判为"被阻挡"，致 RandomWalking 找不到
-//   目标、实体静止、水平位移为 0、伤害永不触发。已修复为 !isAir()&&!isLiquid()&&blocksMovement()
-//   （对齐 vanilla isPathfindable(LAND)：noCollision 方块不阻挡寻路）。
+// onEntityCollision。
 //
 // 狐狸睡眠规避：FoxSleepGoal（白天+hasShelter 时触发，mutex 占用 Move 阻塞 RandomWalking）。
 //   hasShelter = !canSeeSky。grass_pen 埋在 gridStartY=-59 地下 worldgen 石头中，canSeeSky 恒 false
 //   → hasShelter=true → 狐狸白天睡眠不动。故加 skyAccess(true) 清空结构上方制造露天列，canSeeSky=true
 //   → hasShelter=false → 狐狸不睡，RandomWalking 可执行（狐狸免疫，移动也不掉血，验证免疫需它移动）。
 //
-// 对照设计（严谨性）：单断言"狐狸不掉血"无法排除"灌木根本不造成伤害"的假阴性。故加鸡作对照——
-//   鸡在灌木中水平移动受伤（HP<4 或死亡），证明灌木伤害链路对非狐狸生效，反证狐狸"不掉血"是免疫
-//   而非灌木失效。双断言：狐狸 HP==10（免疫）+ 鸡 HP<4 或消失（灌木造伤）。
+// 双断言（严谨性）：狐狸 HP==10（免疫从未受伤）+ 猪 HP<10（曾受灌木伤害）。
+//   猪首次受灌木伤害即 HP<10（满血10→9），比鸡 HP<4 阈值更快达成（鸡需 1 次伤害即 4→3 满足<4，
+//   猪也需 1 次伤害即 10→9 满足<10，等效；但猪 10 血更耐折腾，不会因偶发意外死亡消失致对照失效）。
+//   猪受伤反证"灌木造伤链路对非狐狸生效"，狐狸不掉血是免疫而非灌木失效。
 //
-// 判定手段：succeedWhen 每 tick 查区域内狐狸与鸡，断言狐狸 HP==10（从未受伤）且鸡 HP<4 或消失。
-// 时序：实体落入灌木 + RandomWalking 水平移动触发 onEntityCollision，鸡 4 血每 ~10 tick 1 伤害，
-// 4 次约 40+ tick 致死。狐狸始终免疫 HP=10。maxTicks=800 留充裕余量吸收随机移动 + 无敌帧节奏 +
-//   GameTest 非确定性。狐狸/鸡查询用区域限定排除并行测试污染；type 用 "minecraft:fox"/"minecraft:chicken"。
+// 判定手段：pollUntilSucceed 每 20 tick 查区域内狐狸与猪，断言狐狸 HP==10（从未受伤）且猪 HP<10（曾受伤）。
+// 时序：实体落入灌木 + RandomWalking 水平移动触发 onEntityCollision，猪/鸡每 ~10 tick 1 伤害。
+//   首次伤害时间非确定（依赖 RandomWalking 随机穿越灌木带），多猪提高至少一只触发概率。
+//   maxTicks=1200 留充裕余量吸收随机移动 + 无敌帧节奏 + 并行 tick 抖动。
+//   狐狸/猪查询用区域限定排除并行测试污染；type 用 "minecraft:fox"/"minecraft:pig"。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#行为（免疫甜浆果灌木伤害与减速）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\other_甜浆果.txt#生物（除狐狸蜜蜂外 age≥2 灌木移动受伤）
 function foxImmuneToSweetBerryBush(test: Test): void {
   const foxType = "fox";
-  const chickenType = "chicken";
+  const pigType = "pig";
 
-  // 在 helper-y=2（世界 y=-57）满铺 7×7 AGE=3 甜浆果灌木（x,z∈[1,7]）。下方 helper-y=1 是 grass_pen
-  // 草地，支撑灌木（canSustain 通过）。setBlockWithStates 设 age=3（成熟，AGE>0 造伤）。
-  // flags=3 含邻居更新，放灌木时下方草地已就位，updatePostPlacement 支撑检查通过不移除。
+  // 在 helper-y=2（世界 y=-57）的 z=4 一行（x∈[1,7]）铺 AGE=3 甜浆果灌木。下方 helper-y=1 是 grass_pen
+  // 草地，支撑灌木（canSustain 通过）。两侧 z=3/z=5 保留草地不铺灌木，作为实体寻路的 Walkable 邻居
+  // （灌木带布局原理见函数头注释）。AGE=3（成熟，AGE>0 造伤）。
+  // setBlockWithStates flags=3 含邻居更新，放灌木时下方草地已就位，updatePostPlacement 支撑检查通过不移除。
   for (let x = 1; x <= 7; x++) {
-    for (let z = 1; z <= 7; z++) {
-      (test as any).setBlockWithStates("minecraft:sweet_berry_bush", { x, y: 2, z }, "age=3", 3);
-    }
+    (test as any).setBlockWithStates("minecraft:sweet_berry_bush", { x, y: 2, z: 4 }, "age=3", 3);
   }
 
-  // 狐狸 (2,3,2) + 3 只鸡分散 spawn 在 helper-y=3，落入 helper-y=2 灌木层（停在草地顶，AABB 覆盖灌木格）。
-  // 分散站位避免相互推挤。狐狸与鸡都是被动生物有 RandomWalkingGoal，灌木（noCollision，blocksMovement=false）
-  // 修复后不阻挡寻路，实体可在灌木中水平移动触发 onEntityCollision。用 3 只鸡提高至少一只移动触发灌木伤害的
-  // 概率（单只鸡 RandomWalking 随机性强，偶发久不移动致超时；3 只鸡累计移动概率显著提升）。狐狸会主动攻击
-  // 鸡（NearestAttackableTargetGoal），被追的鸡逃跑移动亦触发灌木伤害，自驱动对照链路。
-  test.spawn(foxType, { x: 2, y: 3, z: 2 });
-  test.spawn(chickenType, { x: 5, y: 3, z: 5 });
-  test.spawn(chickenType, { x: 3, y: 3, z: 6 });
-  test.spawn(chickenType, { x: 6, y: 3, z: 3 });
+  // 狐狸 (2,3,4) + 3 只猪分散 spawn 在 helper-y=3 的灌木带（z=4）上，落入 helper-y=2 灌木层
+  // （停在草地顶，AABB 覆盖灌木格）。猪用 z=4 灌木带不同 x 位置分散站位避免相互推挤。
+  // 狐狸与猪都是被动生物有 RandomWalkingGoal，灌木带（z=4）两侧 z=3/z=5 是草地（Walkable 邻居），
+  // A* 能搜出穿越灌木-草地边界的路径，实体水平移动触发 onEntityCollision 伤害。
+  // 用 3 只猪提高至少一只移动触发灌木伤害的概率（单只猪 RandomWalking 随机性强，偶发久不移动致超时；
+  // 3 只猪累计移动概率显著提升）。狐狸免疫不掉血（HP 恒 10）；猪受伤掉血（HP<10）作对照。
+  // 狐狸不攻击猪（NearestAttackableTargetGoal 谓词仅 CHICKEN/RABBIT），故猪 HP 下降纯粹来自灌木。
+  test.spawn(foxType, { x: 2, y: 3, z: 4 });
+  test.spawn(pigType, { x: 4, y: 3, z: 4 });
+  test.spawn(pigType, { x: 6, y: 3, z: 4 });
+  test.spawn(pigType, { x: 3, y: 3, z: 4 });
 
-  // 双断言：狐狸免疫（HP==10）+ 任一鸡受伤（HP<4 或消失）。
-  // succeedWhen 每 tick 持续检查：狐狸必须始终满血（免疫从未受伤），任一鸡必须掉血或死亡。
-  // 鸡 4 血，灌木每 ~10 tick 1 伤害，4 次约 40+ tick 致死；3 只鸡累计提高触发率，maxTicks=1200 留充裕余量
-  // 吸收 RandomWalking 随机性 + 并行环境 tick 抖动（单只鸡 800 tick 偶发不动超时）。
-  test.succeedWhen(() => {
+  // 双断言：狐狸免疫（HP==10）+ 任一猪曾受伤（HP<10）。
+  // pollUntilSucceed 轮询：狐狸必须始终满血（免疫从未受伤），任一猪必须掉过血（HP<10）。
+  // 猪 10 血，灌木每 ~10 tick 1 伤害，首次伤害即 10→9 满足 HP<10；3 只猪累计提高触发率，maxTick 留
+  // 充裕余量吸收 RandomWalking 随机性 + 并行环境 tick 抖动。
+  // onTimeout 诊断：超时时打印狐狸/猪 HP 与位置，定位是"猪不动"还是"灌木不伤"还是"狐狸掉血"。
+  pollUntilSucceed(test, () => {
     const foxes = test.getDimension().getEntities({
       type: "minecraft:fox",
       location: test.worldLocation(PEN_FROM),
       volume: PEN_VOLUME,
     });
-    test.assert(foxes.length > 0, "fox disappeared (should be immune, not die)");
-    const foxHealth = foxes[0].getComponent("minecraft:health");
-    test.assert(foxHealth !== undefined, "fox has no health component");
+    if (foxes.length === 0) return false;
+    const foxHealth = foxes[0].getComponent("minecraft:health") as any;
+    if (foxHealth === undefined) return false;
     // 狐狸免疫：HP 必须保持满血 10（从未受灌木伤害）。
-    test.assert((foxHealth as any).currentValue === 10,
-      `fox took sweet berry bush damage (should be immune), hp=${(foxHealth as any).currentValue}`);
+    if (foxHealth.currentValue !== 10) return false;
 
-    const chickens = test.getDimension().getEntities({
-      type: "minecraft:chicken",
+    const pigs = test.getDimension().getEntities({
+      type: "minecraft:pig",
       location: test.worldLocation(PEN_FROM),
       volume: PEN_VOLUME,
     });
-    // 任一鸡受伤死亡消失——灌木伤害链路对非狐狸生效。
-    if (chickens.length === 0) {
-      return;
-    }
-    // 任一鸡 HP<4 即证明灌木造伤链路生效（反证狐狸不掉血是免疫而非灌木失效）。
-    let anyChickenHurt = false;
-    for (const c of chickens) {
-      const ch = c.getComponent("minecraft:health") as any;
-      if (ch !== undefined && ch.currentValue < 4) {
-        anyChickenHurt = true;
-        break;
+    // 任一猪 HP<10 即证明灌木造伤链路对非狐狸生效（反证狐狸不掉血是免疫而非灌木失效）。
+    for (const p of pigs) {
+      const ph = p.getComponent("minecraft:health") as any;
+      if (ph !== undefined && ph.currentValue < 10) {
+        return true;
       }
     }
-    test.assert(anyChickenHurt,
-      `no chicken damaged by sweet berry bush (bush damage link may be broken or chickens not moving), count=${chickens.length}`);
+    return false;
+  }, {
+    maxTick: 1180,
+    onTimeout: () => {
+      const foxes = test.getDimension().getEntities({
+        type: "minecraft:fox",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const pigs = test.getDimension().getEntities({
+        type: "minecraft:pig",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const foxHp = foxes.length > 0
+        ? (foxes[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      const foxPos = foxes.length > 0
+        ? `(${foxes[0].location.x.toFixed(1)},${foxes[0].location.y.toFixed(1)},${foxes[0].location.z.toFixed(1)})`
+        : "gone";
+      const pigInfo = pigs.map(p => {
+        const ph = p.getComponent("minecraft:health") as any;
+        return `hp=${ph?.currentValue}@(${p.location.x.toFixed(1)},${p.location.y.toFixed(1)},${p.location.z.toFixed(1)})`;
+      }).join(" ");
+      test.assert(false,
+        `fox_immune timeout (fox=${foxes.length} hp=${foxHp} pos=${foxPos}; pigs=${pigs.length} [${pigInfo}])`);
+    },
   });
 }
 
@@ -205,74 +244,88 @@ function foxAttacksChicken(test: Test): void {
 //     （AABB 距离搜索，不查视线）找到 8 格内狼即 _findEscapePosition 逃离寻路。
 //   AvoidEntityGoal 占 Move flag，狐狸朝远离狼方向移动（_isEscapePositionValid 保证逃跑位更远离狼）。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）+ batch("night") + skyAccess(true)。
-//   1. night batch 夜晚 isDaytime()=false 规避 FoxSleepGoal/FoxFindShelterGoal（见 foxAttacksChicken 注释）。
-//   2. 开放坑无墙寻路通畅：AvoidEntityGoal _findEscapePosition 用 RandomPositionGenerator 找远离狼的位置，
-//      玻璃墙（grass_pen）会阻挡逃跑寻路致 shouldExecute 返 false 不逃避；开放坑 air 路径通畅逃避正常。
-//   3. 无玩家避免 AvoidEntityGoal(玩家) 干扰。
+// 环境选择：open_grass_hall（41×7×9 露天草地长廊，四壁玻璃墙）+ skyAccess(true)。
+//   1. skyAccess(true) 露天使 canSeeSky=true → hasShelter=false → 狐狸白天不睡眠（FoxSleepGoal 需
+//      hasShelter）、不躲阳光（FoxFindShelterGoal 需 hasShelter），AvoidEntityGoal(优先级4 占 Move flag) 可触发。
+//   2. 41 格长度容纳逃避位移（关键修复）：AvoidEntityGoal._findEscapePosition 用
+//      RandomPositionGenerator.findRandomTargetBlockAwayFrom(ESCAPE_HORIZONTAL_RANGE=16) 选远离狼的逃避位，
+//      16 格范围在 open_grass_hall 41 长度内可达。早期版本用 grass_pen(9×9) 或 creeper_pit(7×7)：
+//      grass_pen 9×9 太小，逃避位常选到墙外不可达位置致 nav->moveTo 寻路失败→shouldExecute 返 false→
+//      狐狸不逃避被狼咬死；creeper_pit 开放坑无墙，狐狸逃避跑出 7×7 查询区域致 fox=0。open_grass_hall
+//      41×9 内部空间大，逃避位落在墙内可达，玻璃墙阻止狐狸跑出查询区域。
+//   3. 修复 Cubium RandomPositionGenerator.generateRandomOffset 偏差（对齐 vanilla
+//      RandomPos.generateRandomDirectionWithinRadians）：原"50% 概率叠加 0.3 强度偏好"致逃避位经常
+//      朝向威胁源（狐狸逃避狼时朝狼跑被咬死）；改为远离方向 ±PI/2 锥角内随机（vanilla getPosAway 语义），
+//      逃避位始终落在远离狼的半圆内。
+//   4. 无玩家避免 AvoidEntityGoal(玩家) 干扰。
 //
-// 关键设计：狐狸逃避速度 1.6 远快于狼 0.3，狼追不上。判定阈值只需 +1.5 格（狐狸逃避 ~2 tick 即拉开），
-//   在狐狸逃出 7×7 区域前 succeed（creeper_pit 开放坑狐狸逃远会跑出区域查询范围，故阈值小、maxTick 短，
-//   在跑出前捕获逃避行为）。狐狸 HP 10、狼攻 4，短窗口内狼来不及咬死狐狸。
+// 关键设计：狐狸逃避远距速度 1.6（farSpeed/walkSpeedModifier）近距 1.4（nearSpeed/sprintSpeedModifier），
+//   对齐 vanilla AvoidEntityGoal(this, Wolf.class, 8.0F, 1.6, 1.4)（Fox.java:182）。狼基础移速 0.3 ×
+//   MeleeAttackGoal 1.0 = 0.3 格/tick；狐狸逃避 0.3 × 1.6 = 0.48 格/tick（仅快 60%，无法瞬间甩开）。
+//   狐狸 spawn 在长廊中部(x=20)，狼在 x=24（距4 < avoidDistance 8 触发逃避），狐狸朝远离狼方向(x-方向)
+//   逃避。vanilla AvoidEntityGoal 一次逃避位移 ESCAPE_HORIZONTAL_RANGE=16 格，但因 shouldContinueExecuting
+//   路径走完即停 + 逃避位计算偶发失败（findBestPosition 候选越界/不可行走），狐狸走走停停，与狼距离波动。
+//   故判定不要求"持续保持远离"，而是捕获"狐狸曾朝远离狼方向(x-)移动明显距离"——狐狸逃避的整体趋势。
 //
-// 判定手段：狐狸与狼水平距离 > 初始距离 + 1.5 格（狐狸主动逃离拉开距离）。pollUntilSucceed 轮询，
-//   逃避 goal 触发后狐狸朝远离狼方向移动，距离拉开即 succeed。maxTick=400 短窗口在狐狸跑出区域前捕获。
-//   区域限定排除并行测试污染。
+// 判定手段：狐狸 x 坐标 < 初始 x - 3（狐狸朝远离狼的 x- 方向移动 3 格以上）。狐狸初始 x=20.5，狼在 x+
+//   (24.5)，awayDirection=fox-wolf 朝 x-，逃避位 escapePos.x < fox.x，狐狸整体朝 x- 移动。判定 fox.x<17.5
+//   捕获逃避成功瞬间，不受与狼距离波动影响（狼追击致 dist 波动但狐狸 x 持续减小）。狐狸逃避速度 0.48/tick，
+//   移动 3 格需 ~6 tick，pollUntilSucceed 间隔 4 tick 在 t=4,8,12 采样能捕获。maxTick=400 留充足余量吸收
+//   逃避 goal 启停随机性。区域限定 open_grass_hall 41×9 排除并行测试污染。
+//   狐狸 HP 10、狼攻 2（WolfEntity ATTACK_DAMAGE=2），狐狸逃避快于狼追击，400 tick 内不被咬死（需 ~20 次命中）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#行为（逃离狼/北极熊/不信任玩家）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#天敌（狼主动攻击狐狸）
 function foxFleesFromWolf(test: Test): void {
   const foxType = "fox";
   const wolfType = "wolf";
 
-  // 狐狸 (2,2,3)、狼 (4,2,3)，初始水平距 2 格 < AvoidEntityGoal 检测距离 8 格，触发狐狸逃避。
-  test.spawn(foxType, { x: 2, y: 2, z: 3 });
-  test.spawn(wolfType, { x: 4, y: 2, z: 3 });
+  // 狐狸 (20,2,4)、狼 (24,2,4)，初始水平距 4 格 < AvoidEntityGoal 检测距离 8 格，触发狐狸逃避。
+  // open_grass_hall helper-y=2 是 air 层，实体 spawn y=2 落到 y=1 草地顶。狐狸在中部 x=20，朝远离狼
+  // (x-方向)逃避，16 格内到 x=4 仍在墙内（墙在 x=0/40）。z=4 在 9 宽度的中部。
+  test.spawn(foxType, { x: 20, y: 2, z: 4 });
+  test.spawn(wolfType, { x: 24, y: 2, z: 4 });
 
-  const foxStart = test.worldLocation({ x: 2, y: 2, z: 3 });
-  const wolfStart = test.worldLocation({ x: 4, y: 2, z: 3 });
-  const initialDist = Math.hypot(foxStart.x - wolfStart.x, foxStart.z - wolfStart.z);
+  const foxStart = test.worldLocation({ x: 20, y: 2, z: 4 });
+  // 狐狸朝远离狼(x+)方向(x-)逃避的判定阈值：fox.x < foxStart.x - 3（朝 x- 移动 3 格以上）。
+  const fleeThresholdX = foxStart.x - 3.0;
 
-  // 轮询：狐狸与狼水平距离 > 初始距离 + 1.5 格（狐狸逃离拉开距离）。
+  // 轮询：狐狸 x < 初始 x - 3（狐狸朝远离狼的 x- 方向移动 3 格以上）。间隔 4 tick 捕获逃避瞬间。
   pollUntilSucceed(test, () => {
     const foxes = test.getDimension().getEntities({
       type: "minecraft:fox",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
     });
-    const wolves = test.getDimension().getEntities({
-      type: "minecraft:wolf",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
-    });
-    if (foxes.length === 0 || wolves.length === 0) {
+    if (foxes.length === 0) {
       return false;
     }
-    const fx = foxes[0].location.x;
-    const fz = foxes[0].location.z;
-    const wx = wolves[0].location.x;
-    const wz = wolves[0].location.z;
-    const dist = Math.hypot(fx - wx, fz - wz);
-    // 狐狸逃离：与狼距离拉开到初始距离 + 1.5 格以上。
-    return dist > initialDist + 1.5;
+    // 狐狸逃离：x 坐标朝远离狼(x+)方向(x-)移动 3 格以上。
+    return foxes[0].location.x < fleeThresholdX;
   }, {
+    interval: 4,
     maxTick: 400,
     onTimeout: () => {
       const foxes = test.getDimension().getEntities({
         type: "minecraft:fox",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
       });
       const wolves = test.getDimension().getEntities({
         type: "minecraft:wolf",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
       });
-      const dist = (foxes.length > 0 && wolves.length > 0)
-        ? Math.hypot(foxes[0].location.x - wolves[0].location.x,
-            foxes[0].location.z - wolves[0].location.z)
-        : -1;
+      const foxPos = foxes.length > 0
+        ? `(${foxes[0].location.x.toFixed(1)},${foxes[0].location.z.toFixed(1)})`
+        : "gone";
+      const wolfPos = wolves.length > 0
+        ? `(${wolves[0].location.x.toFixed(1)},${wolves[0].location.z.toFixed(1)})`
+        : "gone";
+      const foxHp = foxes.length > 0 ? (foxes[0].getComponent("minecraft:health") as any)?.currentValue : "?";
+      const foxX = foxes.length > 0 ? foxes[0].location.x : NaN;
       test.assert(false,
-        `fox did not flee from wolf (fox=${foxes.length}, wolf=${wolves.length}, initialDist=${initialDist.toFixed(2)}, curDist=${dist.toFixed(2)})`);
+        `fox did not flee from wolf (fox=${foxes.length}@${foxPos} hp=${foxHp} x=${foxX.toFixed(1)}, ` +
+        `wolf=${wolves.length}@${wolfPos}, fleeThresholdX=${fleeThresholdX.toFixed(2)})`);
     },
   });
 }
@@ -351,9 +404,10 @@ export function registerFoxTests(): void {
     .structureName("gametests:grass_pen")
     // skyAccess(true)：清空结构上方 worldgen 制造露天列使 canSeeSky=true → hasShelter=false →
     // 狐狸白天不睡眠（FoxSleepGoal 不触发），RandomWalking 可执行移动验证免疫机制。
-    // 3 只鸡 + maxTicks=1200：吸收 RandomWalking 随机性 + 并行 tick 抖动（单只鸡 800 tick 偶发不动超时）。
+    // 3 只猪对照 + maxTicks=1300：吸收 RandomWalking 随机性 + 并行 tick 抖动（pollUntilSucceed maxTick=1180
+    // 留余量 < 测试 maxTicks，避免测试先 ExecutionTimeout）。详见测试函数注释。
     .skyAccess(true)
-    .maxTicks(1200);
+    .maxTicks(1300);
 
   GameTest.register("MobBehaviorTests", "fox_attacks_chicken", foxAttacksChicken)
     // batch("night")：夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠) 与 FoxFindShelterGoal(白天躲阳光)
@@ -364,8 +418,10 @@ export function registerFoxTests(): void {
     .maxTicks(1300);
 
   GameTest.register("MobBehaviorTests", "fox_flees_from_wolf", foxFleesFromWolf)
-    .batch("night")
-    .structureName("gametests:creeper_pit")
+    // skyAccess(true) 露天使狐狸不睡不躲（hasShelter=false），AvoidEntityGoal 可触发。
+    // open_grass_hall（41×7×9）41 格长度容纳 AvoidEntityGoal ESCAPE_HORIZONTAL_RANGE=16 的逃避位移，
+    // 玻璃墙阻止狐狸跑出查询区域。详见测试函数注释。
+    .structureName("gametests:open_grass_hall")
     .skyAccess(true)
     .maxTicks(500);
 

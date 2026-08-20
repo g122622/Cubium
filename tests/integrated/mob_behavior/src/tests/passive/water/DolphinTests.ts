@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标 x,z∈[0,6], y∈[0,4]。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -83,26 +84,58 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
     player.attackEntity(dolphin);
   });
 
-  // 断言玩家掉血：succeedWhen 每 tick 持续检查玩家 HP<20。
-  // 时序：玩家攻击(8) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(3.0)。
-  // 海豚 1.2 速度接近 3 格约需 30-60 tick，maxTicks=800 留充裕余量（且远小于海豚陆地窒息线 4820）。
+  // 断言玩家掉血：pollUntilSucceed 轮询玩家 HP<20（海豚反击命中）。
+  // 时序：玩家攻击(8/16/24/32) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(3.0)。
+  // 海豚 1.2 速度接近 3 格约需 30-60 tick，maxTicks 留充裕余量（且远小于海豚陆地窒息线 4820）。
   // 玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"（玩家类型带前缀）。
-  test.succeedWhen(() => {
+  // onTimeout 诊断：超时时打印海豚/玩家位置、距离、HP，定位是"未设目标"还是"寻路不动"还是"未命中"。
+  pollUntilSucceed(test, () => {
     const players = test.getDimension().getEntities({
       type: "minecraft:player",
       location: test.worldLocation(PIT_FROM),
       volume: PIT_VOLUME,
     });
-    test.assert(players.length > 0, "player disappeared");
-    const health = players[0].getComponent("minecraft:health");
-    test.assert(health !== undefined, "player has no health component");
-    test.assert((health as any).currentValue < 20,
-      `dolphin did not retaliate, hp=${(health as any).currentValue}`);
+    if (players.length === 0) return false;
+    const health = players[0].getComponent("minecraft:health") as any;
+    if (health === undefined) return false;
+    return health.currentValue < 20;
+  }, {
+    maxTick: 400,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const dolphins = test.getDimension().getEntities({
+        type: "minecraft:dolphin",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const playerHp = players.length > 0
+        ? (players[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      const dolphinHp = dolphins.length > 0
+        ? (dolphins[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      const dist = (players.length > 0 && dolphins.length > 0)
+        ? Math.hypot(players[0].location.x - dolphins[0].location.x,
+            players[0].location.z - dolphins[0].location.z)
+        : -1;
+      const dPos = dolphins.length > 0
+        ? `(${dolphins[0].location.x.toFixed(1)},${dolphins[0].location.y.toFixed(1)},${dolphins[0].location.z.toFixed(1)})`
+        : "gone";
+      const pPos = players.length > 0
+        ? `(${players[0].location.x.toFixed(1)},${players[0].location.y.toFixed(1)},${players[0].location.z.toFixed(1)})`
+        : "gone";
+      test.assert(false,
+        `dolphin did not retaliate (dolphin=${dolphins.length} hp=${dolphinHp} pos=${dPos}; player=${players.length} hp=${playerHp} pos=${pPos}; dist=${dist.toFixed(2)})`);
+    },
   });
 }
 
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
-    .maxTicks(1200);
+    .maxTicks(450);
 }
