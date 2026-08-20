@@ -36,7 +36,9 @@
 #include "../../../../world/fluid/Fluid.hpp"
 #include "../../../../world/fluid/FluidTags.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
+#include "../../../ai/goal/goals/FollowParentGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
+#include "../../../ai/goal/goals/SwimGoal.hpp"
 #include "../../../ai/goal/goals/special/TurtleGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
@@ -247,8 +249,14 @@ void TurtleEntity::_layEgg()
 
 void TurtleEntity::registerGoals()
 {
-    // 优先级 0: 恐慌逃跑（最高优先级）
-    // 海龟恐慌时优先寻找水源
+    // 注意：AnimalEntity::registerGoals() 是空操作（AnimalEntity.cpp:204-224 基类不注册任何 goal，
+    // 注释明示每个动物子类须自己注册完整 AI）。此前 TurtleEntity 旧注释错误声称"由 AnimalEntity::
+    // registerGoals() 注册 FollowParentGoal/SwimGoal 等基础动物 AI"，实际缺 SwimGoal/
+    // FollowParentGoal/LookRandomlyGoal。照搬 CowEntity 范式补全（海龟特有 goal 已完整，仅补基础缺项）。
+    // 调用基类保持继承链守卫一致（空操作无副作用）。
+    AnimalEntity::registerGoals();
+
+    // 优先级 0: 恐慌逃跑（最高优先级）——海龟恐慌时优先寻找水源
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::TurtlePanicGoal>(this, 1.2));
 
     // 优先级 1: 繁殖和产卵
@@ -264,8 +272,12 @@ void TurtleEntity::registerGoals()
     // 优先级 4: 返回出生地
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::TurtleGoHomeGoal>(this, 1.0));
 
-    // 优先级 5: 跟随父母（幼年海龟）
-    // 由 AnimalEntity::registerGoals() 注册
+    // 优先级 5: 跟随父母（幼年海龟）——对齐 vanilla Turtle.registerGoals 优先级5 FollowParentGoal。
+    // 旧注释误以为由 AnimalEntity::registerGoals() 注册（空操作），实际未注册，幼年海龟不跟随父母。
+    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
+
+    // 优先级 6: 游泳——对齐 vanilla Turtle.registerGoals 优先级6。海龟在水中需上浮换气。
+    m_goalSelector.addGoal(6, new entity::ai::goal::SwimGoal(this));
 
     // 优先级 7: 旅行（在水中随机游泳）
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::TurtleTravelGoal>(this, 1.0));
@@ -280,8 +292,9 @@ void TurtleEntity::registerGoals()
     // 优先级 9: 随机游荡（只在陆地上）
     m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::TurtleWanderGoal>(this, 1.0, 100));
 
-    // 调用父类方法注册基础动物 AI（包括 SwimGoal、FollowParentGoal 等）
-    AnimalEntity::registerGoals();
+    // 优先级 10: 随机看向——对齐 vanilla Turtle.registerGoals 优先级10 RandomLookAroundGoal。
+    // 旧实现缺此 goal，海龟无随机朝向观察。
+    m_goalSelector.addGoal(10, new entity::ai::goal::LookRandomlyGoal(this));
 }
 
 void TurtleEntity::registerAttributes()
