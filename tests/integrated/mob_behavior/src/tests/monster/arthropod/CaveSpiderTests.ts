@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -85,6 +86,63 @@ function caveSpiderDoesNotBurnInDaylight(test: Test): void {
   });
 }
 
+// 洞穴蜘蛛近战攻击玩家时施加中毒效果（wiki tech_洞穴蜘蛛.txt#行为：洞穴蜘蛛攻击附带中毒，
+// 普通难度 7 秒中毒 I，困难 15 秒，简单无中毒）。
+//
+// C++ 链路（对齐 Java CaveSpider.doHurtTarget）：CaveSpiderEntity::attackEntityAsMob override 调
+// SpiderEntity::attackEntityAsMob 基础攻击后，按难度施加中毒（Normal 7*20=140 ticks，等级 I）。
+// GameTestServer 默认 Normal 难度，中毒生效。
+//
+// MeleeAttackGoal 委托：通用 MeleeAttackGoal::_attackTarget 调 m_creature->attackEntityAsMob(target)
+// （对齐 vanilla doHurtTarget 派发），使 CaveSpider override 生效。此前 MeleeAttackGoal 直接
+// target->hurt 绕过虚派发，中毒 override 从不触发——本测试验证该修复（与 husk_inflicts_hunger/
+// wither_skeleton_inflicts_wither 同源修复）。getEffect JS 绑定已就绪（elder_guardian_applies_mining_fatigue
+// 用 getEffect("mining_fatigue") 验证），此前注释"药水效果组件未绑定 JS 不可读"已过时。
+//
+// 环境选择：creeper_pit 开放坑无围墙（checkSight 射线不被玻璃阻挡）。SpiderTargetGoal 需亮度<0.5
+// 触发敌对，故用 night batch。洞穴蜘蛛 (2,2,3) + Survival 玩家 (3,2,3) 紧邻 1 格直接命中。
+//
+// 判定手段：玩家获得 poison 效果（getEffect("poison") !== undefined）。近战确定性命中，首击即
+// 施加中毒 140 ticks。pollUntilSucceed 正向断言。Survival 玩家（gameMode=0）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_洞穴蜘蛛.txt#行为（攻击附带中毒）
+function caveSpiderInflictsPoison(test: Test): void {
+  const caveSpiderType = "cave_spider";
+
+  // 洞穴蜘蛛 (2,2,3)、Survival 玩家 (3,2,3)，紧邻 1 格 < 近战攻击距离。
+  // 洞穴蜘蛛/玩家脚下各放玻璃支撑（creeper_pit y=1 air，防下落）。
+  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
+  test.spawn(caveSpiderType, { x: 2, y: 2, z: 3 });
+  test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "bait", 0 as any);
+
+  // 轮询断言玩家获得 poison 效果。SpiderTargetGoal night 选目标 + MeleeAttackGoal 首攻冷却 20 tick，
+  // 命中即 addEffect(Poison)。startTick=30 留 spawn 注册 + 选目标 + 首攻时间，maxTick=250 留余量。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length === 0) return false;
+    const poison = (players[0] as any).getEffect("poison");
+    return poison !== undefined;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 250,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const poison = players.length > 0 ? (players[0] as any).getEffect("poison") : undefined;
+      test.assert(false,
+        `cave_spider did not inflict poison on player (attackEntityAsMob override or MeleeAttackGoal delegation broken), poison=${poison ? "present" : "absent"}`);
+    },
+  });
+}
+
 export function registerCaveSpiderTests(): void {
   GameTest.register("MobBehaviorTests", "cave_spider_attacks_player_at_night", caveSpiderAttacksPlayerAtNight)
     .batch("night")
@@ -96,4 +154,9 @@ export function registerCaveSpiderTests(): void {
     .skyAccess(true)
     .setupTicks(20)
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "cave_spider_inflicts_poison", caveSpiderInflictsPoison)
+    .batch("night")
+    .structureName("gametests:creeper_pit")
+    .maxTicks(300);
 }
