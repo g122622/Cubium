@@ -168,6 +168,54 @@ bool DolphinEntity::isFoodItem(const ItemStack& itemStack) const
     return item == Items::COD || item == Items::SALMON || item == Items::PUFFERFISH || item == Items::TROPICAL_FISH;
 }
 
+ActionResultType DolphinEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 Dolphin.mobInteract(Player, InteractionHand)：
+    //   ItemStack itemstack = player.getItemInHand(hand);
+    //   if (!itemstack.isEmpty() && itemstack.is(ItemTags.FISHES)) {
+    //       if (!level().isClientSide()) playSound(DOLPHIN_EAT, 1, 1);
+    //       if (isBaby()) { itemstack.consume(1, player); ageUp(...); }
+    //       else { setGotFish(true); itemstack.consume(1, player); }
+    //       return SUCCESS;
+    //   } else {
+    //       return super.mobInteract(player, hand);
+    //   }
+    //
+    // Cubium 用 isFoodItem 等价 Java 的 itemstack.is(ItemTags.FISHES)
+    // （FISHES 标签 = COD/SALMON/PUFFERFISH/TROPICAL_FISH 四种生鱼，cooked 不在内）。
+    //
+    // 幼体分支（ageUp）：TODO 海豚幼体语义未实现（BABY 占位恒 false，见 registerData 注释，
+    //   项目 WaterMobEntity 不经 AgeableEntity 无 isChild/ageUp）。海豚在 Cubium 永远是成体，
+    //   故喂鱼恒走 setGotFish 分支。幼体加速成长待 AgeableWaterCreature 体系补全后实现。
+    ItemStack& heldItem = player.getHeldItem(hand);
+
+    if (!heldItem.isEmpty() && isFoodItem(heldItem)) {
+        // 播放 DOLPHIN_EAT 进食音效（makeSoundEventId("eat") 生成 minecraft:entity.dolphin.eat，
+        // 对应 Java SoundEvents.DOLPHIN_EAT）。仅服务端播放（GameTest 跑在服务端）。
+        if (m_world != nullptr && !m_world->isClientSide() && !isSilent()) {
+            auto soundId = makeSoundEventId("eat");
+            if (soundId.has_value()) {
+                playSound(*soundId, 1.0f, 1.0f);
+            }
+        }
+
+        // 成体喂鱼 → setGotFish(true) 触发 SwimToTreasureGoal 寻宝引导。
+        // （幼体 ageUp 分支因海豚无幼体语义省略，见上方 TODO。）
+        setGotFish(true);
+
+        // 消耗 1 个鱼（创造模式跳过，对齐 Java itemstack.consume(1, player) +
+        // Player 创造不消耗约定，与 AnimalEntity::interactMob 一致）。
+        if (!player.abilities().creativeMode) {
+            heldItem.shrink(1);
+        }
+
+        return ActionResultType::Success;
+    }
+
+    // 非食物委托父类（WaterMobEntity→MobEntity 默认返 Pass）。
+    return WaterMobEntity::interactMob(player, hand);
+}
+
 bool DolphinEntity::closeToTarget() const
 {
     // 检查是否接近导航目标

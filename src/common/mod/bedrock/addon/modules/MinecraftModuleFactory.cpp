@@ -608,6 +608,15 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("OnFireComponent");
             }
+            if (normalized == "minecraft:inventory") {
+                // 对齐基岩 EntityInventoryComponent：仅 Player 持有背包组件（基岩原版仅玩家/容器实体有
+                // inventory 组件）。dynamic_cast Player 失败（非玩家实体）返 undefined。组件对象的 container
+                // 只读属性返回包装 Player::inventory()（PlayerInventory : IInventory）的 Container。
+                if (dynamic_cast<mc::Player*>(ent) == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("EntityInventoryComponent");
+            }
             if (normalized == "minecraft:is_charged") {
                 // 对齐基岩 EntityIsChargedComponent（componentId="minecraft:is_charged"）：
                 // "When added, this component signifies that this entity is charged"。组件存在即充能。
@@ -1904,6 +1913,41 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createUndefined();
         },
         3);
+
+    // --- EntityInventoryComponent类（minecraft:inventory，Player 背包组件）---
+    // opaque 持 mc::Entity*（owned=false，与 HealthComponent 等同范式）。getComponent("minecraft:inventory")
+    // 已按 Player 过滤，此处 container 只读属性 dynamic_cast<Player*> 取 inventory()（PlayerInventory:
+    // IInventory）包装为 Container 返回。Container opaque 持 IInventory*（非拥有，Player 拥有
+    // m_inventory 成员），实体销毁时 ScriptHandleRegistry 经 entityId invalidate 组件句柄防 UAF
+    // （与 onfire 等组件同机制）。
+    // 官方 EntityInventoryComponent 仅一个只读属性 container: Container。
+    u64 entityInventoryClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* entityInventoryProto = builder.exportClass("EntityInventoryComponent", entityInventoryClassId);
+    ScriptClassRegistry::instance().registerClass(
+        entityInventoryClassId, entityInventoryProto, "EntityInventoryComponent");
+
+    ClassRegistrar<void> entityInventoryReg(ctx, entityInventoryClassId, entityInventoryProto);
+    entityInventoryReg.readonlyProperty(
+        "container", [entityInventoryClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityInventoryClassId));
+            auto* player = dynamic_cast<mc::Player*>(ent);
+            if (player == nullptr) {
+                return ctx.createUndefined();
+            }
+            // resolve Container classId/proto（运行时按名查，与 Container.getItem resolveItemStackClassId 同范式）。
+            const u64 containerClassIdResolved = ScriptClassRegistry::instance().classIdByName("Container");
+            void* containerProto = ScriptClassRegistry::instance().proto(containerClassIdResolved);
+            if (containerProto == nullptr) {
+                return ctx.createUndefined();
+            }
+            // PlayerInventory : IInventory，取其地址作为 Container opaque 持有的 IInventory*（非拥有）。
+            mc::IInventory* inv = &player->inventory();
+            // 传 player->id() 登记 ScriptHandleRegistry：Container 句柄 owned=false 持 IInventory*（Player
+            // m_inventory 成员地址），实体销毁时 invalidateAll 经同一 entityId 清空组件+Container 句柄防 UAF
+            // （对齐 onfire 等组件 owned=false 句柄登记范式，见 ScriptHandleRegistry）。
+            return ScriptObjectRegistry::wrap(
+                ctx, containerClassIdResolved, containerProto, inv, false, "Container", nullptr, player->id());
+        });
 
     // ====== 注册常量 ======
 

@@ -353,6 +353,17 @@ u64 registerSimulatedPlayerClassBinding(
                 }
                 return wrapComponent("OnFireComponent");
             }
+            if (normalized == "minecraft:inventory") {
+                // 对齐基岩 EntityInventoryComponent：仅 Player 持有背包组件。SimulatedPlayer 经
+                // ServerPlayer→Player，dynamic_cast<Player*> 恒成功。组件对象的 container 只读属性返回
+                // 包装 Player::inventory()（PlayerInventory : IInventory）的 Container（见
+                // MinecraftModuleFactory EntityInventoryComponent 注册）。供集成测试读玩家背包物品
+                // （如喂食后断言主手物品消耗）。
+                if (dynamic_cast<mc::Player*>(ent) == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("EntityInventoryComponent");
+            }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed 等）按需补全。
             return ctx.createUndefined();
         },

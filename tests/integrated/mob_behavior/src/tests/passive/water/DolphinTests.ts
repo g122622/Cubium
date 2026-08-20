@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标 x,z∈[0,6], y∈[0,4]。
@@ -134,8 +135,85 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
   });
 }
 
+// 玩家手持生鳕鱼右键海豚喂食，海豚进入"得到鱼"状态（wiki tech_海豚.txt#行为：喂食生鳕鱼/
+// 生鲑鱼/河豚/热带鱼后，海豚会游向最近的沉船或海底废墟引导玩家寻宝）。
+//
+// C++ 链路（对齐 Java 1.21.11 Dolphin.mobInteract）：
+//   1) Survival 玩家主手持生鳕鱼 + interactWithEntity(dolphin) → Player::interactOn
+//      → dolphin.processInitialInteract → MobEntity::interactMob（基类返 Pass）
+//      → DolphinEntity::interactMob override（本次新增）。
+//   2) DolphinEntity::interactMob：heldItem 非空且 isFoodItem（COD/SALMON/PUFFERFISH/
+//      TROPICAL_FISH）→ 播 DOLPHIN_EAT 音效 + setGotFish(true)（同步 DATA_GOT_FISH_PARAM id17，
+//      触发 SwimToTreasureGoal 寻宝引导）+ shrink(1) 消耗生鳕鱼（创造跳过）+ 返 Success。
+//
+// 此前 Cubium DolphinEntity 无 interactMob override（继承 WaterMobEntity→MobEntity 默认返 Pass），
+// 玩家持鱼右键海豚无任何反应——setGotFish 永不置位，寻宝引导链路断裂（对齐缺陷）。本次补全。
+// 注：Java 幼体喂鱼走 ageUp 加速成长分支，但 Cubium 海豚幼体语义未实现（BABY 占位恒 false，
+//   WaterMobEntity 不经 AgeableEntity 无 isChild/ageUp，见 DolphinEntity.hpp registerData 注释），
+//   海豚永远是成体，喂鱼恒走 setGotFish 分支。幼体加速成长待 AgeableWaterCreature 体系补全。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）+ Survival 玩家。海豚是水生友好生物（非亡灵/怪物）不在阳光下
+// 燃烧，白天即可喂食（不 batch night）。海豚是中性生物（HurtByTargetGoal 仅受击反击），主动不攻击
+// Survival 玩家，喂鱼环境干净。海豚陆地会缓慢消耗空气（MAX_AIR=4800，4820 tick 后才窒息），maxTicks=200
+// 远小于此，海豚存活不干扰判定。interactWithEntity 远程触发无距离门控，海豚乱跑不影响喂食。
+//
+// 判定手段：Survival 玩家持 5 个生鳕鱼 interactWithEntity(dolphin) 后，主手槽生鳕鱼数量减少（5→4）。
+// setGotFish 是 C++ 内部状态（DATA_GOT_FISH_PARAM），脚本侧无 API 直接读取；SwimToTreasureGoal 寻宝
+// 需附近有沉船/海底废墟结构（creeper_pit 无），寻宝行为不可观测。故以"物品消耗"作为喂食成功的直接证据
+// （对齐 Java itemstack.consume(1, player)）。创造模式不消耗，故必须 Survival 玩家。
+// 读取主手槽用 getComponent("minecraft:inventory").container.getItem(0)（slot 0=主手，对齐 setItem(...,0,true)）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_海豚.txt#行为（喂食鱼后引导寻宝）
+function dolphinFedFishSetsGotFish(test: Test): void {
+  const dolphinType = "dolphin";
+  const COD_ITEM = "minecraft:cod";
+  const COD_COUNT = 5;
+
+  // 海豚 (3,2,3)（creeper_pit y=0 石头地板，helper y=2→结构 y=1 空气，脚踩 y=0 石头，无需玻璃支撑）。
+  const dolphin = test.spawn(dolphinType, { x: 3, y: 2, z: 3 });
+  // Survival 玩家 (1,2,3) 持 5 个生鳕鱼（slot 0 主手）。距海豚 2 格（interactWithEntity 远程触发无距离门控）。
+  // Survival 模式喂食会消耗生鳕鱼（创造跳过），消耗是喂食成功的判定证据。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "dolphinFeeder", 0 as any);
+  const cod = new ItemStack(COD_ITEM, COD_COUNT);
+  player.setItem(cod as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5 玩家持生鳕鱼 interactWithEntity(dolphin) → DolphinEntity::interactMob → setGotFish + shrink(1)。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(dolphin);
+  });
+
+  // 轮询：主手槽生鳕鱼数量从 5 减至 4（消耗 1 个）。喂食 tick 5 后下一 tick 即可查（shrink 同步生效）。
+  pollUntilSucceed(test, () => {
+    const inv = player.getComponent("minecraft:inventory") as any;
+    if (inv === undefined || inv.container === undefined) return false;
+    const mainHand = inv.container.getItem(0);
+    if (mainHand === undefined) return false;
+    return mainHand.typeId === COD_ITEM && mainHand.amount === COD_COUNT - 1;
+  }, {
+    startTick: 6,
+    interval: 2,
+    maxTick: 40,
+    onTimeout: () => {
+      const inv = player.getComponent("minecraft:inventory") as any;
+      const mainHand = (inv?.container?.getItem?.(0)) as any;
+      const amt = mainHand?.amount;
+      const typeId = mainHand?.typeId;
+      const dolphins = test.getDimension().getEntities({
+        type: "minecraft:dolphin",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      test.assert(false,
+        `dolphin feeding did not consume cod: mainHand={typeId:${typeId}, amount:${amt}} (expected ${COD_ITEM} x${COD_COUNT - 1}); dolphins=${dolphins.length}`);
+    },
+  });
+}
+
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
     .maxTicks(450);
+
+  GameTest.register("MobBehaviorTests", "dolphin_fed_fish_sets_got_fish", dolphinFedFishSetsGotFish)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(200);
 }

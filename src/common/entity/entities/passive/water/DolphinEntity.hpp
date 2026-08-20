@@ -265,6 +265,23 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 玩家与海豚交互（喂鱼）
+     *
+     * 对齐 Java 1.21.11 Dolphin.mobInteract(Player, InteractionHand)：
+     * 手持 FISHES 标签物品（生鳕鱼/生鲑鱼/河豚/热带鱼）时：
+     *   - 幼体：ageUp 加速成长（TODO: 海豚幼体语义未实现，此分支暂不可达）
+     *   - 成体：setGotFish(true)（触发 SwimToTreasureGoal 寻宝引导）+ 消耗物品
+     * 播放 DOLPHIN_EAT 进食音效，返回 Success；否则委托父类 interactMob。
+     *
+     * 此前 Cubium DolphinEntity 无 interactMob override（继承 WaterMobEntity→MobEntity
+     * 默认返 Pass），玩家持鱼右键海豚无任何反应——setGotFish 永不置位，寻宝引导链路
+     * 断裂（对齐缺陷）。本次补全喂鱼入口。
+     */
+    ActionResultType interactMob(Player& player, Hand hand) override;
+
     // ========== 同步数据注册 ==========
     // 派生类构造函数须显式调用 registerData()（C++ 基类构造期虚函数不派发，参考 SquidEntity）。
     void registerData() override;
