@@ -34,6 +34,12 @@
 #include <Psapi.h>
 // clang-format on
 #include <intrin.h>
+// 链接 winmm 导入库（timeBeginPeriod/timeEndPeriod）。与 CrashHandler.cpp 链接
+// dbghelp.lib 的模式对称：单 TU 用 Windows 专用 API，pragma 把链接声明与唯一
+// 调用点共置一处。mmsystem.h 声明 timeBeginPeriod/timeEndPeriod 与 TIMERR_NOERROR。
+#pragma comment(lib, "winmm.lib")
+#include <atomic>
+#include <mmsystem.h>
 #elif defined(__linux__)
 #include <fstream>
 #include <sstream>
@@ -223,6 +229,42 @@ std::string PlatformInfo::getPlatformNameWindows()
     }
 
     return "Windows";
+}
+
+// 定时器分辨率引用计数：request/release 共享同一计数器。timeBeginPeriod 非幂等，
+// Windows 维护按 period 值的内部计数，须配对相等次数的 timeEndPeriod 才真正归还分辨率。
+namespace {
+std::atomic<int> g_highResTimerRefCount{0};
+}
+
+void PlatformInfo::requestHighResTimer()
+{
+    // 仅 0→1 时真正调 timeBeginPeriod。
+    if (g_highResTimerRefCount.fetch_add(1, std::memory_order::acq_rel) == 0) {
+        // TODO: Win10 2004 之前 timeBeginPeriod 为全局影响（提升整个 OS 中断频率），
+        //       2004+ 改为进程级。当前目标平台 Win11，故为进程级。若未来需兼容老 Windows
+        //       或在最小化/非运行态省电，可改为按窗口可见性动态 request/release。
+        if (timeBeginPeriod(1) != TIMERR_NOERROR) {
+            spdlog::warn("timeBeginPeriod(1) failed, sleep_for precision stays at default ~15.6ms");
+        }
+    }
+}
+
+void PlatformInfo::releaseHighResTimer()
+{
+    // 下溢保护：release 次数 > request 次数时不再调 timeEndPeriod 并告警，还原计数避免持续负漂。
+    const int prev = g_highResTimerRefCount.fetch_sub(1, std::memory_order::acq_rel);
+    if (prev <= 0) {
+        g_highResTimerRefCount.fetch_add(1, std::memory_order::acq_rel);
+        spdlog::warn("releaseHighResTimer called without matching request (refcount underflow)");
+        return;
+    }
+    // 仅 1→0 时真正调 timeEndPeriod 归还分辨率。
+    if (prev == 1) {
+        if (timeEndPeriod(1) != TIMERR_NOERROR) {
+            spdlog::warn("timeEndPeriod(1) failed");
+        }
+    }
 }
 
 // ============================================================================
@@ -599,6 +641,13 @@ std::string PlatformInfo::getPlatformNameMacOS()
 // ============================================================================
 // 跨平台实现
 // ============================================================================
+
+// 非 Windows 平台空实现：timeBeginPeriod/timeEndPeriod 是 Windows 专有 API，
+// Linux/macOS 的 std::this_thread::sleep_for 默认已具备高精度（nanosleep/clock_nanosleep）。
+#ifndef _WIN32
+void PlatformInfo::requestHighResTimer() {}
+void PlatformInfo::releaseHighResTimer() {}
+#endif
 
 GpuInfo PlatformInfo::getGpuInfoFromVulkan(
     const VkPhysicalDeviceProperties_T* properties, const VkPhysicalDeviceMemoryProperties_T* memoryProperties)

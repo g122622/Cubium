@@ -26,6 +26,7 @@
 #include "LogManager.hpp"
 
 #include "common/profiler/ProfilerManager.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "minecraft-reborn/version.h"
 
@@ -35,6 +36,23 @@
 #include <iostream>
 
 namespace mc::application {
+
+namespace {
+// RAII 守卫：在进程入口提升 Windows 定时器分辨率到 1ms，使 std::this_thread::sleep_for
+// 精度从默认 ~15.6ms 提升到 ~1ms（覆盖内存采样线程 1ms 间隔、服务端 tick 节流、客户端
+// 帧率限制三处对 sleep 精度敏感的主循环）。析构时归还。进程级单次调用，覆盖本进程所有线程。
+// 非 Windows 平台 request/release 为空实现。
+class _HighResTimerGuard {
+public:
+    _HighResTimerGuard() { mc::util::PlatformInfo::requestHighResTimer(); }
+    ~_HighResTimerGuard() { mc::util::PlatformInfo::releaseHighResTimer(); }
+
+    _HighResTimerGuard(const _HighResTimerGuard&) = delete;
+    _HighResTimerGuard& operator=(const _HighResTimerGuard&) = delete;
+    _HighResTimerGuard(_HighResTimerGuard&&) = delete;
+    _HighResTimerGuard& operator=(_HighResTimerGuard&&) = delete;
+};
+} // namespace
 
 // ============================================================================
 // 公共 flag 定义（子类专属 flag 在各自 TU 顶层 DEFINE）。
@@ -105,6 +123,12 @@ int BaseApplicationEntry::run(int argc, char* argv[])
 {
     // 1. 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用等，输出调用栈和局部变量。
     mc::assert::CrashHandler::install();
+
+    // 提升进程定时器分辨率到 1ms（仅 Windows）。放在 CrashHandler::install 之后：崩溃时
+    // OS 进程终止会自动回收分辨率计数，无需在 crash cleanup 回调里 release。RAII 守卫
+    // 覆盖本函数全部退出路径（含 catch 异常）。覆盖内存采样线程/服务端 tick/客户端帧率
+    // 限制三处对 sleep_for 精度敏感的主循环。
+    _HighResTimerGuard highResTimerGuard;
 
     // 注册崩溃清理回调：崩溃时 flush Perfetto 跟踪数据（避免依赖进程退出时的析构链，
     // 析构链中途二次崩溃会丢 trace）。
