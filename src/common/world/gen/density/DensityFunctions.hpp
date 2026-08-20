@@ -1319,6 +1319,58 @@ private:
     std::shared_ptr<DensityFunction> m_shared;
 };
 
+/**
+ * @brief 共享只读拓扑子树 — 纯拓扑密度函数子树的跨区块身份共享
+ *
+ * 与 SharedHolder 的关键区别：SharedHolder::mapAll 会递归深拷贝内部子树
+ * （每次 mapAll 都 make_unique 出新节点），而本类的 mapAll 返回一个持**同一
+ * shared_ptr** 的新 SharedTopology 包装——零深拷贝。这是纯拓扑子树跨区块
+ * 共享的核心机制。
+ *
+ * 语义前提：被包装的子树必须是"纯拓扑"的——其所有节点 compute() 无 this 上的
+ * 可变状态（无 mutable 缓存字段、无 per-chunk 绑定）。这类子树的计算结果只依赖
+ * 输入坐标与不可变配置（含 shared_ptr<const NormalNoise>），与区块无关，故可被
+ * 多个 NoiseChunk 并发只读共享。
+ *
+ * 不可共享的节点（Marker / Cache2D / FlatCache / CacheAllInCell /
+ * NoiseInterpolator / CellCache / CacheOnce / Beardifier 及含它们的子树）
+ * 仍由 NoiseBindingVisitor 走原 mapAll 深拷贝路径，每区块独立实例。
+ *
+ * 线程安全：内部子树 compute() 纯只读，多 worker 并发 compute 同一共享实例安全；
+ * mapAll 不修改内部，并发 mapAll 安全（仅 shared_ptr 引用计数原子操作）。
+ *
+ * 生命周期：被包装子树由 shared_ptr<const DensityFunction> 共享持有，首个引用者
+ * 构造、最后一个引用者析构。RandomState 缓存一份长期引用，每个 NoiseChunk 的
+ * SharedTopology 持额外引用，区块析构时释放引用计数，RandomState 退出时最终释放。
+ */
+class SharedTopology final : public DensityFunction {
+public:
+    explicit SharedTopology(std::shared_ptr<const DensityFunction> inner)
+        : m_shared(std::move(inner))
+    {}
+
+    [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
+    {
+        return m_shared->compute(blockX, blockY, blockZ);
+    }
+
+    [[nodiscard]] f64 minValue() const override { return m_shared->minValue(); }
+    [[nodiscard]] f64 maxValue() const override { return m_shared->maxValue(); }
+
+    /** 被共享的只读子树 */
+    [[nodiscard]] const DensityFunction& inner() const { return *m_shared; }
+
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        // 关键：不递归 mapAll 内部子树（否则失去共享意义）。返回持同一 shared_ptr 的新包装，
+        // 让 visitor.apply 有机会做身份去重/透传，但内部子树保持共享。
+        return visitor.apply(std::make_unique<SharedTopology>(m_shared));
+    }
+
+private:
+    std::shared_ptr<const DensityFunction> m_shared;
+};
+
 // ============================================================================
 // EndIslands — 末地岛屿密度函数
 // ============================================================================

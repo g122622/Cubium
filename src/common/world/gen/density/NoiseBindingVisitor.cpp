@@ -30,12 +30,14 @@
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include <memory>
 #include <utility>
+#include <variant>
 
 namespace mc::world::gen::density {
 
-NoiseBindingVisitor::NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed)
+NoiseBindingVisitor::NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed, bool enableSharing)
     : m_randomState(randomState)
     , m_worldSeed(worldSeed)
+    , m_enableSharing(enableSharing)
 {}
 
 std::unique_ptr<DensityFunction> NoiseBindingVisitor::apply(std::unique_ptr<DensityFunction> function)
@@ -59,8 +61,91 @@ std::unique_ptr<DensityFunction> NoiseBindingVisitor::apply(std::unique_ptr<Dens
         return bindUnbound(std::move(*leaf));
     }
 
-    // 其余节点：mapAll 已 make_unique 出深拷贝新节点，原样返回
+    // 性能优化：纯拓扑子树跨区块共享（仅 create 期 buildRouterFromTemplate 启用）。
+    // 此时 function 是 mapAll 深拷贝后的新节点，其子树已绑定完毕（占位已替换为真叶子，
+    // 子节点若纯拓扑也已被本分支递归包装为 SharedTopology）。若整棵子树纯拓扑，移入
+    // shared_ptr 包成 SharedTopology 返回——后续 createRouterCopy / NoiseChunk::apply 的
+    // 每次 mapAll 遇到 SharedTopology 都零深拷贝（SharedTopology::mapAll 返回持同一
+    // shared_ptr 的新包装）。仅含 Marker / per-chunk 可变节点的路径不共享，走原深拷贝。
+    //
+    // isShareable 对 SharedTopology 直接返回 true（语义不变量），故自底向上：叶子纯拓扑
+    // →SharedTopology；复合节点（子已 SharedTopology）→ 整棵 SharedTopology；含 Marker
+    // 的节点 → false 保留独立，但其纯拓扑子树已共享化。
+    //
+    // createRouterCopy（enableSharing=false）不跑此分支：m_router 已共享化，再次包装只会
+    // 造成 SharedTopology 嵌套（虽数值正确但每区块冗余 make_unique）。透传分支对
+    // SharedTopology 原样返回（SharedTopology::mapAll 已 make_unique 新轻量包装，内部零深拷贝）。
+    if (m_enableSharing && isShareable(*function)) {
+        return std::make_unique<SharedTopology>(std::shared_ptr<const DensityFunction>(std::move(function)));
+    }
+
+    // 含 Marker / per-chunk 可变节点 / 已共享化的 SharedTopology（createRouterCopy 透传）：
+    // 原样返回（mapAll 的 make_unique 已深拷贝，保留新节点）
     return function;
+}
+
+bool NoiseBindingVisitor::isShareable(const DensityFunction& function)
+{
+    // 可共享叶子：compute 纯只读，无子 DF，无 mutable，无 per-chunk 绑定。
+    if (dynamic_cast<const Constant*>(&function) != nullptr ||
+        dynamic_cast<const YClampedGradient*>(&function) != nullptr ||
+        dynamic_cast<const MappedNoise*>(&function) != nullptr ||
+        dynamic_cast<const NoiseDensity*>(&function) != nullptr ||
+        dynamic_cast<const ShiftNoise*>(&function) != nullptr ||
+        dynamic_cast<const EndIslands*>(&function) != nullptr ||
+        dynamic_cast<const BlendedNoise*>(&function) != nullptr ||
+        dynamic_cast<const SharedTopology*>(&function) != nullptr) {
+        return true;
+    }
+
+    // 可共享复合：递归所有子 DF const getter。
+    if (const auto* n = dynamic_cast<const Clamp*>(&function)) {
+        return isShareable(n->input());
+    }
+    if (const auto* n = dynamic_cast<const Mapped*>(&function)) {
+        return isShareable(n->input());
+    }
+    if (const auto* n = dynamic_cast<const TwoArgument*>(&function)) {
+        return isShareable(n->arg1()) && isShareable(n->arg2());
+    }
+    if (const auto* n = dynamic_cast<const Lerp*>(&function)) {
+        return isShareable(n->delta()) && isShareable(n->start()) && isShareable(n->end());
+    }
+    if (const auto* n = dynamic_cast<const RangeChoice*>(&function)) {
+        return isShareable(n->input()) && isShareable(n->whenInRange()) && isShareable(n->whenOutOfRange());
+    }
+    if (const auto* n = dynamic_cast<const ShiftedNoise*>(&function)) {
+        return isShareable(n->shiftX()) && isShareable(n->shiftY()) && isShareable(n->shiftZ());
+    }
+    if (const auto* n = dynamic_cast<const WeirdScaledSampler*>(&function)) {
+        return isShareable(n->input());
+    }
+    if (const auto* n = dynamic_cast<const FindTopSurface*>(&function)) {
+        return isShareable(n->density()) && isShareable(n->upperBound());
+    }
+    if (const auto* n = dynamic_cast<const SharedHolder*>(&function)) {
+        return isShareable(n->inner());
+    }
+    if (const auto* n = dynamic_cast<const CubicSpline*>(&function)) {
+        // 递归 input + points() 中 variant 持有的嵌套子 CubicSpline
+        if (!isShareable(n->input())) {
+            return false;
+        }
+        for (const auto& point : n->points()) {
+            const auto* childSpline = std::get_if<std::shared_ptr<CubicSpline>>(&point.value);
+            if (childSpline != nullptr && *childSpline != nullptr) {
+                if (!isShareable(**childSpline)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // 其他类型（Marker / BeardifierMarker / Beardifier / Cache2D / FlatCache /
+    // CacheAllInCell / NoiseInterpolator / CellCache / CacheOnce / UnboundNoiseLeaf /
+    // UnboundEndIslands / 未知）：保守判否，走每区块深拷贝。
+    return false;
 }
 
 std::unique_ptr<DensityFunction> NoiseBindingVisitor::bindUnbound(UnboundNoiseLeaf leaf)

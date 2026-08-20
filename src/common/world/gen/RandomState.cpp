@@ -53,9 +53,11 @@ RandomState::RandomState(u64 worldSeed, const DimensionSettings& settings)
 namespace {
 
 /// 从 m_routerDfs 模板（15 槽 UnboundNoiseLeaf 占位）经 NoiseBindingVisitor 绑定后构造 NoiseRouter。
-/// mapAll 对每个槽 DF 递归深拷贝 + 替换占位（一次完成深拷贝 + 绑定），每区块得到独立绑定树。
-/// const RandomState&：create（非 const）与 createRouterCopy（const）共用此路径；NoiseBindingVisitor
-/// 仅调用 getOrCreateNoiseShared（const，mutable 噪声缓存）+ positionalRandom() const 重载。
+/// mapAll 对每个槽 DF 递归深拷贝 + 替换占位（一次完成深拷贝 + 绑定），同时 NoiseBindingVisitor::apply
+/// 对纯拓扑子树包装为 SharedTopology（跨区块共享）。仅 RandomState::create 调用一次产出 m_router；
+/// createRouterCopy 不再走此路径，改为 m_router->mapAllCopy 复用共享化树。
+/// const RandomState&：NoiseBindingVisitor 仅调用 getOrCreateNoiseShared（const，mutable 噪声缓存）
+/// + positionalRandom() const 重载。
 density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, const RandomState& rs, u64 worldSeed)
 {
     MC_ASSERT_MSG(settings.m_noiseSettingsId.isValid(),
@@ -166,9 +168,22 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
 
 density::NoiseRouter RandomState::createRouterCopy() const
 {
-    // 每区块需独立路由器副本：m_routerDfs 模板经 NoiseBindingVisitor mapAll 重新绑定（深拷贝 + 占位替换）。
-    // 底层 NormalNoise 经 getOrCreateNoiseShared 缓存共享，不每区块重建 PerlinNoise 倍频置换表。
-    return buildRouterFromTemplate(m_settings, *this, m_worldSeed);
+    // 每区块需独立路由器副本：从 create 期已共享化的 m_router 派生。
+    //
+    // m_router 的树中纯拓扑子树已由 NoiseBindingVisitor::apply 包装为 SharedTopology
+    // （create 期 buildRouterFromTemplate 时完成）。mapAllCopy 对每个根调 mapAll(visitor)
+    // （const，返回新 unique_ptr）组装新 NoiseRouter，不修改 m_router。
+    //
+    // 共享语义：NoiseBindingVisitor(enableSharing=false) 对已绑定树（无 UnboundNoiseLeaf 占位）
+    // + 已共享化树表现为——SharedTopology 原样透传（SharedTopology::mapAll 返回持同一 shared_ptr
+    // 的新包装，零深拷贝内部），含 Marker / per-chunk 可变节点的路径深拷贝（每区块独立）。
+    // 不再二次共享化，避免每区块 SharedTopology 嵌套包装。底层 NormalNoise 经
+    // getOrCreateNoiseShared 缓存共享，不每区块重建 PerlinNoise 倍频置换表。
+    //
+    // 相比旧实现（buildRouterFromTemplate 每区块整树深拷贝 15 棵），纯拓扑子树零深拷贝，
+    // 仅 Marker 路径深拷贝，析构 free 次数大幅下降。
+    density::NoiseBindingVisitor visitor(*this, m_worldSeed, /*enableSharing=*/false);
+    return m_router->mapAllCopy(visitor);
 }
 
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
