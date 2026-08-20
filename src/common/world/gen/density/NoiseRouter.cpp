@@ -102,6 +102,28 @@ void NoiseRouter::mapAll(DensityFunction::Visitor& visitor)
     DensityFunction::applyInPlace(m_veinGap, visitor);
 }
 
+NoiseRouter NoiseRouter::mapAllCopy(DensityFunction::Visitor& visitor) const
+{
+    // const 路径：对每个成员调用 mapAll(visitor)（const，返回新 unique_ptr），组装新 NoiseRouter。
+    // 不修改 this，供 RandomState::createRouterCopy 从共享化的 m_router 派生每区块副本。
+    // 成员非空由构造函数断言保证；mapAll 对 const 对象合法（virtual mapAll 是 const）。
+    return NoiseRouter(m_barrierNoise->mapAll(visitor),
+        m_fluidLevelFloodednessNoise->mapAll(visitor),
+        m_fluidLevelSpreadNoise->mapAll(visitor),
+        m_lavaNoise->mapAll(visitor),
+        m_temperature->mapAll(visitor),
+        m_vegetation->mapAll(visitor),
+        m_continents->mapAll(visitor),
+        m_erosion->mapAll(visitor),
+        m_depth->mapAll(visitor),
+        m_ridges->mapAll(visitor),
+        m_preliminarySurfaceLevel->mapAll(visitor),
+        m_finalDensity->mapAll(visitor),
+        m_veinToggle->mapAll(visitor),
+        m_veinRidged->mapAll(visitor),
+        m_veinGap->mapAll(visitor));
+}
+
 std::unique_ptr<DensityFunction> NoiseRouter::extractFinalDensity()
 {
     return std::move(m_finalDensity);

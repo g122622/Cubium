@@ -35,30 +35,75 @@ class RandomState;
 namespace mc::world::gen::density {
 
 /**
- * @brief 噪声绑定访问者 — 数据驱动 DF 树的 UnboundNoiseLeaf/UnboundEndIslands 占位替换
+ * @brief 噪声绑定访问者 — 数据驱动 DF 树的 UnboundNoiseLeaf/UnboundEndIslands 占位替换 +
+ *        纯拓扑子树跨区块共享
  *
  * 对应原版 1.21.11 RandomState.NoiseWiringHelper（mapAll visitor）。
- * RandomState::create / createRouterCopy 对数据驱动 noise_router 的 15 槽 DF 树调用
- * mapAll(*this)，本访问者遍历到每个节点：
  *
- * - UnboundNoiseLeaf（NormalNoise 系：noise/shifted_noise/shift_a/shift_b/shift/
- *   mapped_noise/weird_scaled_sampler）→ 调 rs.getOrCreateNoiseShared(name) 取
- *   shared_ptr<const NormalNoise>（name-hash via fromHashOf，与原版 getOrCreateNoise 一致），
- *   构造真实叶子 NoiseDensity/ShiftedNoise/ShiftNoise/MappedNoise/WeirdScaledSampler。
- * - UnboundNoiseLeaf（OldBlendedNoise）→ BlendedNoise，种子由
- *   positionalRandom.fromHashOf("minecraft:terrain") 派生（原版 wrapNew 走 fromHashOf("terrain")）。
- * - UnboundEndIslands → EndIslands(worldSeed)（原版 wrapNew 走 EndIslandDensityFunction(seed)）。
- * - 其余节点 → 原样返回（mapAll 的 make_unique 已深拷贝，保留新节点）。
+ * 两条使用路径（由 enableSharing 区分）：
+ *
+ * 1. create 期 buildRouterFromTemplate（enableSharing=true）：对 DimensionSettings::m_routerDfs
+ *    15 槽模板调用 mapAll(*this)，本访问者遍历到每个节点：
+ *    - UnboundNoiseLeaf（NormalNoise 系：noise/shifted_noise/shift_a/shift_b/shift/
+ *      mapped_noise/weird_scaled_sampler）→ 调 rs.getOrCreateNoiseShared(name) 取
+ *      shared_ptr<const NormalNoise>（name-hash via fromHashOf，与原版 getOrCreateNoise 一致），
+ *      构造真实叶子 NoiseDensity/ShiftedNoise/ShiftNoise/MappedNoise/WeirdScaledSampler。
+ *    - UnboundNoiseLeaf（OldBlendedNoise）→ BlendedNoise，种子由
+ *      positionalRandom.fromHashOf("minecraft:terrain") 派生（原版 wrapNew 走 fromHashOf("terrain")）。
+ *    - UnboundEndIslands → EndIslands(worldSeed)（原版 wrapNew 走 EndIslandDensityFunction(seed)）。
+ *    - 其余节点：若纯拓扑（isShareable）→ 包 SharedTopology 跨区块共享；否则原样返回。
+ *    产出 m_router 共享化树（纯拓扑子树共享，Marker 路径独立）。
+ *
+ * 2. createRouterCopy 期 mapAllCopy（enableSharing=false）：对已绑定 + 共享化的 m_router
+ *    派生每区块独立副本。纯透传——SharedTopology 原样透传（零深拷贝内部），Marker 路径
+ *    深拷贝。不再二次共享化，避免 SharedTopology 嵌套。
  *
  * 关键：mapAll 各子类 override 已 make_unique 出新节点再传入 apply，故 apply 收到的是
- * 深拷贝后的节点；对占位节点替换为真实叶子，对普通节点直接返回（已是新拷贝）。
- * 这样一次 mapAll 同时完成深拷贝 + 占位绑定，createRouterCopy 每区块得到独立绑定树。
+ * 深拷贝后的节点；对占位节点替换为真实叶子，对纯拓扑节点包装共享，对其余节点直接返回。
  */
 class NoiseBindingVisitor final : public DensityFunction::Visitor {
 public:
-    NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed);
+    /**
+     * @brief 构造噪声绑定访问者
+     *
+     * @param randomState 随机状态（提供 getOrCreateNoiseShared / positionalRandom）
+     * @param worldSeed 世界种子（EndIslands 构造用）
+     * @param enableSharing 是否在绑定后对纯拓扑子树包装 SharedTopology。
+     *        - true（create 期 buildRouterFromTemplate）：绑定 + 共享化，产出 m_router 共享化树。
+     *        - false（createRouterCopy 期 mapAllCopy）：纯透传——对已绑定 + 共享化树，
+     *          SharedTopology 原样透传（零深拷贝内部），Marker 路径深拷贝。不再二次共享化，
+     *          避免每区块 SharedTopology 嵌套包装（虽数值正确但冗余 make_unique）。
+     */
+    NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed, bool enableSharing = true);
 
     [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> function) override;
+
+    /**
+     * @brief 判定密度函数子树是否为纯拓扑（可跨区块共享只读）
+     *
+     * 纯拓扑子树：所有节点 compute() 无 this 上的可变状态（无 mutable 缓存、无 per-chunk
+     * 绑定），计算结果只依赖输入坐标与不可变配置（含 shared_ptr<const NormalNoise>）。
+     * 这类子树与区块无关，可被多个 NoiseChunk 并发只读共享。
+     *
+     * 判定策略（白名单正向判定，保守安全）：
+     * - 可共享叶子（直接 true）：Constant / YClampedGradient / MappedNoise / NoiseDensity /
+     *   ShiftNoise / EndIslands / BlendedNoise / SharedTopology / SharedHolder(递归 inner)
+     * - 可共享复合（递归所有子 DF const getter）：Clamp / Mapped / TwoArgument / Lerp /
+     *   RangeChoice / ShiftedNoise / WeirdScaledSampler / FindTopSurface / CubicSpline
+     *   （CubicSpline 额外递归 points() 中 variant 持有的子 CubicSpline）
+     * - 其他（直接 false）：Marker / BeardifierMarker / Beardifier / Cache2D / FlatCache /
+     *   CacheAllInCell / NoiseInterpolator / CellCache / CacheOnce / UnboundNoiseLeaf /
+     *   UnboundEndIslands 及任何未在白名单中的类型。保守策略：不确定时退化为不可共享，
+     *   走每区块深拷贝，不破坏正确性。
+     *
+     * SharedTopology 视为可共享叶子（直接 true）：其语义前提是内部已纯拓扑（由本 visitor
+     * 在 apply 中包装时保证），无需递归复核。自底向上提取时，子节点已被处理为 SharedTopology，
+     * 父复合节点经此判定可整棵共享。
+     *
+     * @param function 待判定的密度函数（非空）
+     * @return true 若子树全部纯拓扑可共享
+     */
+    [[nodiscard]] static bool isShareable(const DensityFunction& function);
 
 private:
     /// 替换 UnboundNoiseLeaf 为真实噪声叶子（按 Kind 分发；消费占位并移出其子 DF）
@@ -66,6 +111,7 @@ private:
 
     const RandomState& m_randomState;
     u64 m_worldSeed;
+    bool m_enableSharing;
 };
 
 } // namespace mc::world::gen::density

@@ -77,6 +77,10 @@ public:
      * NoiseChunk 构造时需要拥有自己的路由器副本，
      * 以便 mapAll() 可以将 Marker 替换为区块特定实现。
      * 每个区块生成任务调用一次。
+     *
+     * 性能优化：直接复用 create 期缓存的已绑定共享拓扑树（m_boundTopology），
+     * 纯拓扑子树以 SharedTopology 跨区块共享（零深拷贝），仅含 Marker 的路径
+     * 走原 mapAll 深拷贝（per-chunk 重建）。不再每区块重新 buildRouterFromTemplate。
      */
     [[nodiscard]] density::NoiseRouter createRouterCopy() const;
 

@@ -247,10 +247,13 @@ private:
     i32 m_cellWidth = 0;
     i32 m_cellHeight = 0;
 
-    /// slice0: 当前 X 列左侧角点数据 [z][y]
-    std::vector<std::vector<f64>> m_slice0;
-    /// slice1: 当前 X 列右侧角点数据 [z][y]
-    std::vector<std::vector<f64>> m_slice1;
+    /// slice0: 当前 X 列左侧角点数据，扁平布局 [z * m_yPoints + y]
+    /// （原 vector<vector<f64>> [z][y] 扁平化，消除每 interpolator ~10 次内层 vector 堆分配）
+    std::vector<f64> m_slice0;
+    /// slice1: 当前 X 列右侧角点数据，扁平布局 [z * m_yPoints + y]
+    std::vector<f64> m_slice1;
+    /// Y 方向角点数（= cellCountY + 1），扁平索引步长
+    i32 m_yPoints = 0;
 
     /// 当前 cell 的 8 个角点值（命名: noise_XYZ, X=slice0/1, Y=low/high, Z=front/back）
     f64 m_noise000 = 0.0, m_noise010 = 0.0, m_noise001 = 0.0, m_noise011 = 0.0;

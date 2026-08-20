@@ -82,18 +82,17 @@ private:
 
 NoiseInterpolator::NoiseInterpolator(std::unique_ptr<DensityFunction> filler, i32 cellCountZ, i32 cellCountY)
     : m_filler(std::move(filler))
+    , m_yPoints(cellCountY + 1)
     , m_cellCountZ(cellCountZ)
     , m_cellCountY(cellCountY)
 {
     const i32 zPoints = cellCountZ + 1;
     const i32 yPoints = cellCountY + 1;
 
-    m_slice0.resize(static_cast<size_t>(zPoints));
-    m_slice1.resize(static_cast<size_t>(zPoints));
-    for (i32 z = 0; z < zPoints; ++z) {
-        m_slice0[static_cast<size_t>(z)].resize(static_cast<size_t>(yPoints), 0.0);
-        m_slice1[static_cast<size_t>(z)].resize(static_cast<size_t>(yPoints), 0.0);
-    }
+    // 扁平布局：单层 vector 大小 zPoints * yPoints，索引 [z * yPoints + y]，
+    // 替代原 vector<vector<f64>>（每 interpolator 省 zPoints*2 次内层 vector 堆分配）。
+    m_slice0.assign(static_cast<size_t>(zPoints) * static_cast<size_t>(yPoints), 0.0);
+    m_slice1.assign(static_cast<size_t>(zPoints) * static_cast<size_t>(yPoints), 0.0);
 }
 
 f64 NoiseInterpolator::compute(i32 blockX, i32 blockY, i32 blockZ) const
@@ -157,13 +156,14 @@ void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cel
     const i32 zPoints = cellCountXZ + 1;
     const i32 yPoints = m_cellCountY + 1;
 
+    auto& targetSlice = isSlice0 ? m_slice0 : m_slice1;
     for (i32 z = 0; z < zPoints; ++z) {
         const i32 cellZ = firstCellZ + z;
         noiseChunk.m_cellStartBlockZ = cellZ * cellWidth;
         noiseChunk.m_inCellZ = 0;
         ++noiseChunk.m_arrayInterpolationCounter;
 
-        auto& targetSlice = isSlice0 ? m_slice0 : m_slice1;
+        const size_t zBase = static_cast<size_t>(z) * static_cast<size_t>(yPoints);
         for (i32 y = 0; y < yPoints; ++y) {
             // MC 1.21: sliceFillingContextProvider.fillAllDirectly / forIndex
             // 设置 cellStartBlockY, 递增 interpolationCounter, 设置 inCellY = 0
@@ -172,7 +172,7 @@ void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cel
             noiseChunk.m_inCellY = 0;
             noiseChunk.m_arrayIndex = y;
 
-            targetSlice[static_cast<size_t>(z)][static_cast<size_t>(y)] =
+            targetSlice[zBase + static_cast<size_t>(y)] =
                 m_filler->compute(noiseChunk.blockX(), noiseChunk.blockY(), noiseChunk.blockZ());
         }
     }
@@ -182,16 +182,22 @@ void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cel
 
 void NoiseInterpolator::selectCellYZ(i32 cellY, i32 cellZ)
 {
-    // MC 1.21 索引: slice[z][y]
-    m_noise000 = m_slice0[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY)];
-    m_noise010 = m_slice0[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY + 1)];
-    m_noise001 = m_slice0[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY)];
-    m_noise011 = m_slice0[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY + 1)];
+    // MC 1.21 索引: slice[z][y] → 扁平 [z * m_yPoints + y]
+    const size_t y = static_cast<size_t>(cellY);
+    const size_t y1 = static_cast<size_t>(cellY + 1);
+    const size_t z = static_cast<size_t>(cellZ);
+    const size_t z1 = static_cast<size_t>(cellZ + 1);
+    const size_t stride = static_cast<size_t>(m_yPoints);
 
-    m_noise100 = m_slice1[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY)];
-    m_noise110 = m_slice1[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY + 1)];
-    m_noise101 = m_slice1[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY)];
-    m_noise111 = m_slice1[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY + 1)];
+    m_noise000 = m_slice0[z * stride + y];
+    m_noise010 = m_slice0[z * stride + y1];
+    m_noise001 = m_slice0[z1 * stride + y];
+    m_noise011 = m_slice0[z1 * stride + y1];
+
+    m_noise100 = m_slice1[z * stride + y];
+    m_noise110 = m_slice1[z * stride + y1];
+    m_noise101 = m_slice1[z1 * stride + y];
+    m_noise111 = m_slice1[z1 * stride + y1];
 
     // MC 1.21: selectCellYZ 加载了新的角点值，m_value 需要通过 updateForY/X/Z 重新计算
     m_valueReady = false;

@@ -23,6 +23,7 @@
 
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -41,6 +42,8 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::world::chunk {
 
@@ -450,12 +453,29 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
 
 void ChunkPrimer::releaseGenOnlyData(const ChunkStatus& afterStatus)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+        "ChunkPrimer::releaseGenOnlyData",
+        "x",
+        m_x,
+        "z",
+        m_z,
+        "afterStatus",
+        afterStatus.name(),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // CARVERS（含）之后释放 m_noiseChunk 和 m_carvingMask
     // 审计结论（NoiseChunkGenerator.cpp）：
     //   - m_noiseChunk 最后在 applyCarvers（CARVERS）中读取（aquifer/CarvingContext）
     //   - m_carvingMask 仅在 applyCarvers 中使用（WorldCarver::carve 读写 isCarved/setCarved）
     //   FEATURES/LIGHT/SPAWN/FULL 阶段无任何读取，可安全释放
     if (afterStatus.ordinal() >= ChunkStatuses::CARVERS_ORDINAL) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+            "ChunkPrimer::releaseGenOnlyData::ReleaseNoiseAndCarvingMask",
+            "x",
+            m_x,
+            "z",
+            m_z);
         m_noiseChunk.reset();
         m_carvingMask.reset();
     }
@@ -466,6 +486,12 @@ void ChunkPrimer::releaseGenOnlyData(const ChunkStatus& afterStatus)
     //     _buildBeardifier 在 BIOMES/NOISE 阶段读取，早于 FEATURES
     //   - INITIALIZE_LIGHT/LIGHT/SPAWN/FULL 阶段无任何读取
     if (afterStatus.ordinal() >= ChunkStatuses::FEATURES_ORDINAL) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+            "ChunkPrimer::releaseGenOnlyData::ReleaseStructureReferences",
+            "x",
+            m_x,
+            "z",
+            m_z);
         m_structureReferences.clear();
         m_structureReferences.rehash(0); // 释放桶内存
     }

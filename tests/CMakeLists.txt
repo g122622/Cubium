@@ -1134,6 +1134,8 @@ add_executable(mc_tests
     common/world/gen/density/DensityFunctionsTest.cpp
     # FindTopSurface 密度函数单元测试（preliminarySurfaceLevel 核心）
     common/world/gen/density/FindTopSurfaceTest.cpp
+    # SharedTopology 纯拓扑子树跨区块共享字级回归测试（阶段1+2 共享化数值一致性）
+    common/world/gen/density/SharedTopologyParityTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/MonsterRoomFeatureTest.cpp
     common/world/gen/feature/RandomSelectorFeatureTest.cpp
