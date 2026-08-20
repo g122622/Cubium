@@ -143,6 +143,13 @@ public:
 
     // ========== 亡灵特性 ==========
 
+    // 亡灵生物归类（对齐 Java 1.21.11 ZombieNautilus.getMobType()==UNDEAD）。僵尸鹦鹉螺是亡灵生物
+    // （wiki other_僵尸鹦鹉螺.txt#亡灵分类：被亡灵杀手附魔额外伤害、瞬间伤害治疗/瞬间治疗伤害、
+    // 免疫生命恢复与中毒、不溺水不脱水）。基类 LivingEntity::getCreatureAttribute 默认返回 Undefined，
+    // 未覆写致亡灵杀手附魔无加成、瞬间治疗/伤害药水不反转、凋灵玫瑰不免疫等亡灵特性失效。
+    // 本类已覆写 canBreatheUnderwater（经 AbstractNautilusEntity 返回 true），覆写此处不影响其行为。
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+
     /**
      * @brief 阳光防护装备槽位
      *
