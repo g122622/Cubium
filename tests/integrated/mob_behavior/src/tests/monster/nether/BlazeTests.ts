@@ -3,6 +3,7 @@
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { fillBlock } from "../../../utils/block/build.js";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -181,6 +182,87 @@ function blazeImmuneToFire(test: Test): void {
   });
 }
 
+// 烈焰人接触水受到伤害（wiki tech_烈焰人.txt#行为：烈焰人怕水，接触水或雨受到伤害）。
+//
+// C++ 链路：BlazeEntity::tick（BlazeEntity.cpp:105-108）每 tick 检查 isWaterSensitive()&&isWet()
+// → hurt(DamageSources::drown(), WATER_DAMAGE_AMOUNT=1.0)。对齐 MC 1.21.11 LivingEntity.baseTick():
+//   if (isSensitiveToWater() && isInWaterOrRain()) hurtServer(damageSources().drown(), 1.0F);
+// isWaterSensitive() Blaze override 返 true（BlazeEntity.hpp:141）；isWet()=m_inWater||isInRain（Entity.hpp:1438）。
+//
+// 伤害源为 drown（非 fire），fireImmune 不免疫——烈焰人虽火焰免疫，水伤害仍生效。这是烈焰人
+// 与水火互克的核心机制：火焰免疫（不受火/熔岩伤）+ 水敏感（触水即伤）。
+//
+// 几何：creeper_pit 铺两层 water（y=0..1），烈焰人直接 spawn 在 y=1 水层内首 tick 即 isWet。
+// 与 blaze_immune_to_fire 同理用 spawn y=1（非 y=3 下落）消除缓降时序窗口——烈焰人缓降下落慢，
+// spawn y=3 下落浸入水需数十 tick，pollUntilSucceed 可能在烈焰人尚未浸入时提前通过漏判。
+// spawn y=1 水内首 tick 浸入立即掉血。
+//
+// 判定手段：烈焰人浸水后每 tick 1.0 伤害，HP=20 约 20 tick 内 HP<20。用 pollUntilSucceed
+// （正向断言 HP<20，条件满足即 succeed）startTick=20 interval=10 maxTick=150。
+// 对照实体猪（不水敏感）同环境浸水：猪 isWaterSensitive=false 不触发水伤害，短窗口（150 tick）内
+// 猪不溺水（airSupply 充足），HP 保持 10。对照排除"水伤害机制对所有实体生效"的假通过——
+// 若猪也掉血说明 hurt 误触发，测试失败。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_烈焰人.txt#行为（接触水受到伤害）
+function blazeTakesWaterDamage(test: Test): void {
+  const blazeType = "blaze";
+  const pigType = "pig";
+
+  // 铺两层 water（y=0..1 全 7×7），实体直接 spawn 在 y=1 水层内首 tick 即 isWet 触发水伤害。
+  fillBlock(test, "water", 0, 0, 0, 6, 1, 6);
+
+  // 烈焰人 (2,1,2)、对照猪 (4,1,4)，都 spawn 在 y=1 水层内。
+  // 烈焰人 HP=20，水敏感每 tick 1.0 伤害应快速 HP<20；猪 HP=10，不水敏感短窗口保持 10。
+  test.spawn(blazeType, { x: 2, y: 1, z: 2 });
+  test.spawn(pigType, { x: 4, y: 1, z: 4 });
+
+  // 轮询断言：烈焰人 HP<20（水敏感掉血）且猪 HP>=10（不水敏感，对照排除假通过）。
+  // 烈焰人浸水约 1-2 tick 即 HP<20，pollUntilSucceed startTick=20 留 spawn 稳定时间。
+  pollUntilSucceed(test, () => {
+    const blazes = test.getDimension().getEntities({
+      type: blazeType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (blazes.length === 0) return false;
+    const blazeHp = (blazes[0].getComponent("minecraft:health") as any)?.currentValue;
+    if (blazeHp === undefined || blazeHp >= 20) return false;
+    // 对照猪应不水敏感，HP 保持 10（若猪也掉血说明水伤害误触发，false 不通过）。
+    if (pigs.length === 0) return false;
+    const pigHp = (pigs[0].getComponent("minecraft:health") as any)?.currentValue;
+    if (pigHp === undefined || pigHp < 10) return false;
+    return true;
+  }, {
+    startTick: 20,
+    interval: 10,
+    maxTick: 150,
+    onTimeout: () => {
+      const blazes = test.getDimension().getEntities({
+        type: blazeType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const pigs = test.getDimension().getEntities({
+        type: pigType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const blazeHp = blazes.length > 0
+        ? (blazes[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      const pigHp = pigs.length > 0
+        ? (pigs[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      test.assert(false,
+        `blaze did not take water damage (isWaterSensitive broken), blaze hp=${blazeHp}, pig hp=${pigHp}`);
+    },
+  });
+}
+
 export function registerBlazeTests(): void {
   GameTest.register("MobBehaviorTests", "blaze_shoots_fireball_at_player", blazeShootsFireballAtPlayer)
     .structureName("gametests:creeper_pit")
@@ -195,4 +277,8 @@ export function registerBlazeTests(): void {
   GameTest.register("MobBehaviorTests", "blaze_immune_to_fire", blazeImmuneToFire)
     .structureName("gametests:creeper_pit")
     .maxTicks(300);
+
+  GameTest.register("MobBehaviorTests", "blaze_takes_water_damage", blazeTakesWaterDamage)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(250);
 }
