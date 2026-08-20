@@ -396,7 +396,24 @@ public:
     [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
 
     void tick() override;
-    bool attackLivingTarget(LivingEntity& target);
+
+    // ========== 撞飞型近战攻击 ==========
+    //
+    // Hoglin 的近战攻击与通用 MobEntity::attackEntityAsMob 语义不同：vanilla Hoglin.doHurtTarget 调
+    // HoglinBase.hurtAndThrowTarget——成年攻击伤害随机化（f1/2 + random(0..f1-1)）+ 抛飞 throwTarget
+    // （水平击退 + 垂直抬升 + 随机旋转）+ 攻击动画（attackAnimationRemainingTicks=10，entity event 4）。
+    // 基类 attackEntityAsMob 用固定伤害 + causeExtraKnockback（无垂直/无随机旋转），不匹配 Hoglin 语义，
+    // 故此处 override 自管完整攻击链（对齐 IronGolemEntity::attackEntityAsMob 范式），不调基类避免双重伤害。
+    //
+    // 由 MeleeAttackGoal::_attackTarget 委托调用（对齐 vanilla MeleeAttackGoal.checkAndPerformAttack 调
+    // mob.doHurtTarget）。历史上 MeleeAttackGoal 调 attackEntityAsMob，而 Hoglin 曾把专用攻击逻辑放在
+    // 未被调用的 attackLivingTarget（死代码），致 Hoglin 攻击退化为基类固定伤害无抛飞无动画——
+    // 改为 override attackEntityAsMob 后修复（与 Husk/WitherSkeleton/CaveSpider 同源修复模式）。
+    bool attackEntityAsMob(LivingEntity& target) override;
+
+    /// 攻击音效已在 attackEntityAsMob 中播放（无论是否命中），此处 override 为空避免基类重复播放。
+    /// 对齐 IronGolemEntity::playAttackSound 范式。
+    void playAttackSound(LivingEntity& target) override;
 
     // ========== 寻路权重 ==========
 
@@ -409,7 +426,6 @@ protected:
 private:
     bool m_immuneToFire = true;
     bool m_isBaby = false;
-    i32 m_attackCooldown = 0;
     i32 m_attackAnimationTicks = 0;
 };
 
@@ -456,7 +472,19 @@ public:
     [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
     void tick() override;
-    bool attackLivingTarget(LivingEntity& target);
+
+    // ========== 撞飞型近战攻击 ==========
+    //
+    // Zoglin（僵尸疣兽）的近战攻击与 Hoglin 同源，对齐 vanilla Zoglin.doHurtTarget 调
+    // HoglinBase.hurtAndThrowTarget：成年伤害随机化 + 抛飞 throwTarget + 攻击动画（entity event 4）。
+    // 基类 attackEntityAsMob 语义不匹配（见 HoglinEntity::attackEntityAsMob 注释），故 override 自管
+    // 完整攻击链，不调基类避免双重伤害。由 MeleeAttackGoal::_attackTarget 委托调用。
+    // 历史上 Zoglin 曾把专用攻击逻辑放在未被调用的 attackLivingTarget（死代码），致攻击退化为基类
+    // 固定伤害无抛飞无动画——改为 override attackEntityAsMob 后修复（与 Hoglin 同源）。
+    bool attackEntityAsMob(LivingEntity& target) override;
+
+    /// 攻击音效已在 attackEntityAsMob 中播放，此处 override 为空避免基类重复播放。
+    void playAttackSound(LivingEntity& target) override;
 
 protected:
     void registerGoals() override;

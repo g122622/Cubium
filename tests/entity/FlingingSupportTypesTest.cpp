@@ -71,7 +71,10 @@ TEST(FlingingSupportTypesTest, HoglinAttackUpdatesAnimationTicks)
     FlingingDummyTarget target(2);
     target.setPosition(2.0f, 64.0f, 0.0f);
 
-    ASSERT_TRUE(hoglin.attackLivingTarget(target));
+    // 通过 attackEntityAsMob 调用（MeleeAttackGoal 委托的真正攻击入口，对齐 vanilla doHurtTarget 派发）。
+    // 历史上 Hoglin 把专用攻击逻辑放在未被调用的 attackLivingTarget（死代码），已改为 override
+    // attackEntityAsMob——此测试随之改调 attackEntityAsMob 验证动画字段更新。
+    ASSERT_TRUE(hoglin.attackEntityAsMob(target));
     EXPECT_EQ(hoglin.getFlingAnimationTicks(), 10);
 
     hoglin.tick();

@@ -61,6 +61,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -820,30 +821,66 @@ void HoglinEntity::tick()
 {
     MonsterEntity::tick();
 
-    if (m_attackCooldown > 0) {
-        m_attackCooldown--;
-    }
-
     if (m_attackAnimationTicks > 0) {
         m_attackAnimationTicks--;
     }
 }
 
-bool HoglinEntity::attackLivingTarget(LivingEntity& target)
+bool HoglinEntity::attackEntityAsMob(LivingEntity& target)
 {
-    if (m_attackCooldown > 0) {
-        return false;
-    }
+    // 对齐 MC 1.21.11 Hoglin.doHurtTarget（Hoglin.java:119-130）→ HoglinBase.hurtAndThrowTarget。
+    // Hoglin 近战攻击与通用 MobEntity::attackEntityAsMob 语义不同，此处 override 自管完整攻击链
+    // （对齐 IronGolemEntity::attackEntityAsMob 范式），不调基类避免双重伤害。
+    //
+    // 由 MeleeAttackGoal::_attackTarget 委托调用（对齐 vanilla MeleeAttackGoal.checkAndPerformAttack 调
+    // mob.doHurtTarget）。MeleeAttackGoal 自身已有 attackCooldown（resetAttackCooldown=adjustedTickDelay(20)），
+    // 故此处不再维护独立冷却。
 
-    m_attackCooldown = 20;
+    // 1. 设置攻击动画 + 广播到客户端（vanilla doHurtTarget: attackAnimationRemainingTicks=10 + entity event 4）
     m_attackAnimationTicks = 10;
-
-    // 广播攻击动画到客户端（MC 原版使用 entity event 4，与铁傀儡共用状态码）
     if (m_world != nullptr) {
         m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::HoglinAttack));
     }
 
-    return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
+    // 2. 计算伤害：成年随机化，幼年固定。对齐 HoglinBase.hurtAndThrowTarget:
+    //   float f1 = ATTACK_DAMAGE;
+    //   if (!isBaby() && (int)f1 > 0) f = f1 / 2.0F + random.nextInt((int)f1);
+    //   else f = f1;
+    f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
+    if (!m_isBaby && static_cast<i32>(damage) > 0) {
+        math::Random& rng = getRandom();
+        damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
+    }
+
+    // 3. 应用伤害（mobAttack 来源）
+    EntityDamageSource damageSource = DamageSources::mobAttack(this);
+    bool success = target.hurt(damageSource, damage);
+
+    if (success) {
+        // 4. 成年施加抛飞 throwTarget（水平击退 + 垂直抬升 + 随机旋转）。对齐 HoglinBase.throwTarget。
+        //    复用 IFlinging::flingTarget（已实现 vanilla 抛飞核心语义：knockbackStrength=ATTACK_KNOCKBACK-
+        //    KNOCKBACK_RESISTANCE，水平+垂直 addVelocity）。幼年不抛飞（vanilla isBaby 门控）。
+        if (!m_isBaby) {
+            entity::IFlinging::flingTarget(*this, target);
+        }
+
+        // 5. 触发附魔后续效果（节肢杀手减速等，对齐 vanilla doPostAttackEffects）
+        onAttackEntity(target);
+
+        // 6. 设置最后攻击者（对齐基类 attackEntityAsMob 的 setLastHurtBy）
+        target.setLastHurtBy(this);
+    }
+
+    // 7. 播放攻击音效（无论是否命中，对齐 IronGolem 范式）
+    playSound(SoundEvents::ENTITY_HOGLIN_ATTACK, 1.0f, 1.0f);
+
+    return success;
+}
+
+void HoglinEntity::playAttackSound(LivingEntity& /*target*/)
+{
+    // 攻击音效已在 attackEntityAsMob 中播放（无论是否命中），此处 override 为空避免基类重复播放。
+    // 对齐 IronGolemEntity::playAttackSound 范式。
 }
 
 void HoglinEntity::registerGoals()
@@ -991,16 +1028,51 @@ void ZoglinEntity::tick()
     }
 }
 
-bool ZoglinEntity::attackLivingTarget(LivingEntity& target)
+bool ZoglinEntity::attackEntityAsMob(LivingEntity& target)
 {
-    m_attackAnimationTicks = 10;
+    // 对齐 MC 1.21.11 Zoglin.doHurtTarget → HoglinBase.hurtAndThrowTarget（Zoglin 复用 HoglinBase 攻击逻辑）。
+    // 与 HoglinEntity::attackEntityAsMob 同源：override 自管完整攻击链（动画+随机化伤害+抛飞+音效），
+    // 不调基类避免双重伤害。由 MeleeAttackGoal::_attackTarget 委托调用。
 
-    // 广播攻击动画到客户端（MC 原版使用 entity event 4，与铁傀儡共用状态码）
+    // 1. 设置攻击动画 + 广播到客户端（vanilla attackAnimationRemainingTicks=10 + entity event 4）
+    m_attackAnimationTicks = 10;
     if (m_world != nullptr) {
         m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatus::HoglinAttack));
     }
 
-    return entity::IFlinging::attackWithFling(*this, target, m_isBaby);
+    // 2. 计算伤害：成年随机化，幼年固定。对齐 HoglinBase.hurtAndThrowTarget。
+    f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
+    if (!m_isBaby && static_cast<i32>(damage) > 0) {
+        math::Random& rng = getRandom();
+        damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
+    }
+
+    // 3. 应用伤害（mobAttack 来源）
+    EntityDamageSource damageSource = DamageSources::mobAttack(this);
+    bool success = target.hurt(damageSource, damage);
+
+    if (success) {
+        // 4. 成年施加抛飞 throwTarget（对齐 HoglinBase.throwTarget，复用 IFlinging::flingTarget）
+        if (!m_isBaby) {
+            entity::IFlinging::flingTarget(*this, target);
+        }
+
+        // 5. 触发附魔后续效果（节肢杀手减速等）
+        onAttackEntity(target);
+
+        // 6. 设置最后攻击者
+        target.setLastHurtBy(this);
+    }
+
+    // 7. 播放攻击音效（无论是否命中）
+    playSound(SoundEvents::ENTITY_HOGLIN_ATTACK, 1.0f, 1.0f);
+
+    return success;
+}
+
+void ZoglinEntity::playAttackSound(LivingEntity& /*target*/)
+{
+    // 攻击音效已在 attackEntityAsMob 中播放，此处 override 为空避免基类重复播放。
 }
 
 void ZoglinEntity::registerGoals()
