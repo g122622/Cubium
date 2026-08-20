@@ -15,6 +15,7 @@ import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js"
 import { registerZoglinTests } from "./tests/monster/nether/ZoglinTests.js";
 import { registerMagmaCubeTests } from "./tests/monster/nether/MagmaCubeTests.js";
 import { registerZombifiedPiglinTests } from "./tests/monster/nether/ZombifiedPiglinTests.js";
+import { registerPiglinTests } from "./tests/monster/nether/PiglinTests.js";
 import { registerBlazeTests } from "./tests/monster/nether/BlazeTests.js";
 import { registerGhastTests } from "./tests/monster/nether/GhastTests.js";
 import { registerGuardianTests } from "./tests/monster/ocean/GuardianTests.js";
@@ -78,6 +79,7 @@ registerSnowGolemTests();
 registerZoglinTests();
 registerMagmaCubeTests();
 registerZombifiedPiglinTests();
+registerPiglinTests();
 registerBlazeTests();
 registerGhastTests();
 registerGuardianTests();
