@@ -200,18 +200,23 @@ TEST(WitchEntityTest, FireResistanceEffectCanBeAdded)
 }
 
 // ========== 魔法伤害减免测试 ==========
+//
+// 女巫魔法减免现由 WitchEntity::applyPotionDamageCalculations override 实现（对齐 Java 1.21.11
+// Witch.getDamageAfterMagicAbsorb），接入 LivingEntity::actuallyHurt 链路。此前独立的
+// applyMagicDamageReduction 是从未被调用的死代码，已移除。
 
 TEST(WitchEntityTest, MagicDamageReducedBy85Percent)
 {
     WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    // 创建魔法伤害来源
+    // 创建魔法伤害来源（DamageType::Magic 属 WITCH_RESISTANT_TO 标签）
     auto magicSource = DamageSources::magic();
     f32 originalDamage = 10.0f;
 
-    f32 reducedDamage = witch.applyMagicDamageReduction(magicSource, originalDamage);
+    // applyPotionDamageCalculations 先调基类（无抗性/附魔保护，原值返回）再叠加女巫 85% 减免。
+    f32 reducedDamage = witch.applyPotionDamageCalculations(magicSource, originalDamage);
 
-    // 女巫对魔法伤害只受 15%
+    // 女巫对 WITCH_RESISTANT_TO 标签伤害只受 15%（10 * 0.15 = 1.5）
     EXPECT_FLOAT_EQ(reducedDamage, 1.5f);
 }
 
@@ -219,12 +224,12 @@ TEST(WitchEntityTest, ImmuneToSelfDamage)
 {
     WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    // 创建来自女巫自己的伤害
+    // 创建来自女巫自己的伤害（source.getEntity()==this）
     EntityDamageSource selfSource(DamageType::Magic, &witch);
 
-    f32 reducedDamage = witch.applyMagicDamageReduction(selfSource, 10.0f);
+    f32 reducedDamage = witch.applyPotionDamageCalculations(selfSource, 10.0f);
 
-    // 女巫免疫自己造成的伤害
+    // 女巫免疫自己造成的伤害（自投药水不自伤）
     EXPECT_FLOAT_EQ(reducedDamage, 0.0f);
 }
 

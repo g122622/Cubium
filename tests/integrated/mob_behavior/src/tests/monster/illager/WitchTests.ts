@@ -9,6 +9,24 @@ import type { Test } from "@minecraft/server-gametest";
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 
+// grass_pen 结构尺寸（9×5×9），用于 witch_does_not_burn / witch_takes_reduced_magic_damage。
+const GRASS_PEN_FROM = { x: 0, y: 0, z: 0 };
+const GRASS_PEN_VOLUME = { x: 9, y: 5, z: 9 };
+
+// 读取区域内某类型实体的当前 HP（currentValue）。找不到返回 NaN。
+function readHp(test: Test, type: string, from: { x: number; y: number; z: number }, volume: { x: number; y: number; z: number }): number {
+  const ents = test.getDimension().getEntities({
+    type,
+    location: test.worldLocation(from),
+    volume,
+  });
+  if (ents.length === 0) {
+    return NaN;
+  }
+  const health = ents[0].getComponent("minecraft:health") as unknown as { currentValue?: number } | undefined;
+  return health?.currentValue ?? NaN;
+}
+
 // 女巫主动向玩家投掷喷溅药水（wiki tech_女巫.txt#行为：女巫会主动攻击半径 16 格(JE)/10 格(BE)
 // 内的玩家；#投掷药水：女巫常使用 I 级喷溅药水进行攻击，投掷间隔 3 秒，按距离/状态选
 // 缓慢/中毒/虚弱/伤害药水）。
@@ -92,6 +110,85 @@ function witchDoesNotBurnInDaylight(test: Test): void {
   });
 }
 
+// 女巫对 WITCH_RESISTANT_TO 标签伤害（魔法/间接魔法/音爆/荆棘）只受 15%（85% 减免）
+// （wiki tech_女巫.txt#行为：女巫受到的魔法伤害…伤害降低85%）。
+//
+// C++ 链路：WitchEntity::applyPotionDamageCalculations override（对齐 Java 1.21.11
+// Witch.getDamageAfterMagicAbsorb）——先调基类（抗性+附魔保护减伤），再：
+//   1) source.getEntity()==this → 返 0（免疫自伤，防自投药水自伤）；
+//   2) source.is(WITCH_RESISTANT_TO) → damage *= 0.15（85% 减免）。
+// 此前 cubium 有独立的 applyMagicDamageReduction（用 source.isMagic() 简化判定），但从未被
+// LivingEntity::actuallyHurt 调用（死代码），致女巫魔法减免完全失效；改为 override
+// applyPotionDamageCalculations 接入 hurt 链路并改用 WITCH_RESISTANT_TO 标签对齐 Java。
+//
+// 测试设计（确定性精确数值断言）：
+//   伤害源用瞬间伤害效果（EffectType::InstantDamage），EffectInstance::applyInstantly 对非亡灵
+//   调 entity.hurt(DamageSources::magic(), 4)——DamageType::Magic 属 WITCH_RESISTANT_TO 标签。
+//   脚本 (entity as any).addEffect("instant_damage", 1, {amplifier:0}) 经 EffectManager::addEffect
+//   检测 isInstantEffect 立即 applyInstantly 同步扣血（EffectManager.cpp:43-49）。
+//   女巫（CreatureAttribute=Undefined，非亡灵）受瞬间伤害受伤（非治疗）；猪同样非亡灵受伤。
+//
+//   对照组：同样 4 点 magic 伤害打猪（无减免）HP 降 4；打女巫（85% 减免）HP 降 0.6（4×0.15）。
+//   用 HP 下降量（施加前后差值）断言，不依赖满血绝对值：
+//     女巫下降 ∈ [0.5, 0.7]（0.6 ± 浮点容差），猪下降 ∈ [3.9, 4.1]（4 ± 容差）。
+//   女巫下降远小于猪证明减免生效；若减免失效（死代码未修），女巫下降≈4 与猪相同，测试失败暴露 bug。
+//
+// 时序：
+//   tick 5 读女巫/猪基准 HP（满血，女巫 _needsHealing=false 不喝治疗药水，HP 稳定）；
+//   tick 6 对两者施加瞬间伤害（同步扣血）；
+//   tick 8 读受击后 HP，断言下降量。tick 6~8 间隔短，女巫残血后虽 5%/tick 概率开始喝治疗药水，
+//   但喝药水过程 32 tick，治疗在喝完才 heal，tick 8 时治疗未生效，HP 仅反映瞬间伤害扣血。
+//
+// 环境选择：grass_pen（9×5×9 玻璃墙围住）限制女巫移动防漂移出查询区。女巫/猪各放结构一侧
+// （女巫 (4,2,4)、猪 (6,2,6)）互不干扰。day batch（默认）即可，魔法减免不依赖光照/时间。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_女巫.txt#行为（魔法伤害降低85%）
+function witchTakesReducedMagicDamage(test: Test): void {
+  const witchType = "witch";
+  const pigType = "pig";
+
+  // 女巫 (4,2,4) 满血 26；猪 (6,2,6) 满血 10。两者间距足够不互相碰撞干扰。
+  // test.spawn 返回内嵌 @minecraft/server Entity，与顶层包 Entity 因 Dimension 属性差异不兼容，
+  // 故不显式标注返回类型（见 SkeletonTests 同款注释），用 as any 调脚本扩展方法 addEffect。
+  const witch = test.spawn(witchType, { x: 4, y: 2, z: 4 });
+  const pig = test.spawn(pigType, { x: 6, y: 2, z: 6 });
+
+  let witchHp0 = NaN;
+  let pigHp0 = NaN;
+
+  // tick 5：读基准 HP（应满血，女巫不喝治疗药水）。
+  test.runAtTickTime(5, () => {
+    witchHp0 = readHp(test, witchType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
+    pigHp0 = readHp(test, pigType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
+  });
+
+  // tick 6：施加瞬间伤害 I（amplifier=0 → amount=4，magic 源）。addEffect 同步 applyInstantly 扣血。
+  test.runAtTickTime(6, () => {
+    (witch as any).addEffect("instant_damage", 1, { amplifier: 0, showParticles: false });
+    (pig as any).addEffect("instant_damage", 1, { amplifier: 0, showParticles: false });
+  });
+
+  // tick 8：读受击后 HP，断言下降量。女巫降 0.6（85% 减免），猪降 4（无减免）。
+  test.runAtTickTime(8, () => {
+    const witchHp1 = readHp(test, witchType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
+    const pigHp1 = readHp(test, pigType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
+
+    const witchDrop = witchHp0 - witchHp1;
+    const pigDrop = pigHp0 - pigHp1;
+
+    // 女巫下降 0.6（4×0.15），容差 [0.4, 0.8] 兼容浮点误差。
+    test.assert(witchDrop >= 0.4 && witchDrop <= 0.8,
+      `witch should take ~0.6 magic damage (85% reduction), hp0=${witchHp0} hp1=${witchHp1} drop=${witchDrop}`);
+    // 猪下降 4（无减免），容差 [3.9, 4.1]。
+    test.assert(pigDrop >= 3.9 && pigDrop <= 4.1,
+      `pig should take ~4 magic damage (no reduction), hp0=${pigHp0} hp1=${pigHp1} drop=${pigDrop}`);
+    // 交叉验证：女巫下降量必须显著小于猪（减免生效），而非两者相同（减免失效）。
+    test.assert(witchDrop < pigDrop,
+      `witch magic damage (${witchDrop}) should be less than pig (${pigDrop}) — 85% reduction not working`);
+
+    test.succeed();
+  });
+}
+
 export function registerWitchTests(): void {
   GameTest.register("MobBehaviorTests", "witch_throws_potion_at_player", witchThrowsPotionAtPlayer)
     .structureName("gametests:creeper_pit")
@@ -102,4 +199,8 @@ export function registerWitchTests(): void {
     .skyAccess(true)
     .setupTicks(20)
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "witch_takes_reduced_magic_damage", witchTakesReducedMagicDamage)
+    .structureName("gametests:grass_pen")
+    .maxTicks(200);
 }

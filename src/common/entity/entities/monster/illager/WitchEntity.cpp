@@ -31,6 +31,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
@@ -212,18 +213,26 @@ void WitchEntity::_applyDrankPotionEffect(entity::effect::EffectType effectType)
 
 // ========== 防御 ==========
 
-f32 WitchEntity::applyMagicDamageReduction(DamageSource& source, f32 amount)
+f32 WitchEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage)
 {
-    // 女巫对魔法伤害有 85% 减免，且免疫自己造成的伤害
-    if (source.getTrueSource() == this) {
+    // 先走基类：抗性药水 + 附魔保护减伤（对齐 Java super.getDamageAfterMagicAbsorb）。
+    damage = AbstractRaiderEntity::applyPotionDamageCalculations(source, damage);
+
+    // 女巫免疫自己造成的伤害（对齐 Java Witch.getDamageAfterMagicAbsorb: source.getEntity()==this → 0）。
+    // 防止女巫自投的喷溅药水伤到自己（伤害药水对女巫本应无效）。
+    if (source.getEntity() == this) {
         return 0.0f;
     }
 
-    if (source.isMagic()) {
-        return amount * 0.15f; // 只受 15% 伤害
+    // 女巫对 WITCH_RESISTANT_TO 标签伤害（魔法/间接魔法/音爆/荆棘）只受 15%（85% 减免）。
+    // 对齐 Java Witch.getDamageAfterMagicAbsorb: source.is(DamageTypeTags.WITCH_RESISTANT_TO) → damage *= 0.15F。
+    // 此前 cubium 有 applyMagicDamageReduction 用 source.isMagic() 简化判定，但从未被 hurt 链路调用（死代码），
+    // 致女巫魔法减免完全失效；现 override applyPotionDamageCalculations 接入 actuallyHurt 链路并改用标签对齐 Java。
+    if (source.is(DamageTypeTags::WITCH_RESISTANT_TO())) {
+        damage *= 0.15f;
     }
 
-    return amount;
+    return damage;
 }
 
 void WitchEntity::tick()

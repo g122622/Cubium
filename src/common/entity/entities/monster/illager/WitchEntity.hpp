@@ -152,15 +152,18 @@ public:
     // ========== 防御 ==========
 
     /**
-     * @brief 魔法伤害减免
+     * @brief 药水/魔法减伤计算（override 基类，对齐 Java 1.21.11 Witch.getDamageAfterMagicAbsorb）
      *
-     * 女巫对魔法伤害有85%减免，同时免疫自己造成的伤害。
+     * 女巫对 WITCH_RESISTANT_TO 标签伤害（魔法/间接魔法/音爆/荆棘）有 85% 减免（只受 15%），
+     * 且免疫自己造成的伤害（source.getEntity()==this 时返 0，防止自投药水自伤）。
+     *
+     * 先调 super 走抗性药水 + 附魔保护减伤，再叠加女巫专属减免。
      *
      * @param source 伤害来源
-     * @param amount 原始伤害量
+     * @param damage 原始伤害量（已过护甲阶段）
      * @return 减免后的伤害量
      */
-    [[nodiscard]] f32 applyMagicDamageReduction(DamageSource& source, f32 amount);
+    [[nodiscard]] f32 applyPotionDamageCalculations(DamageSource& source, f32 damage) override;
 
     // ========== 远程攻击 (IRangedAttackMob) ==========
 
