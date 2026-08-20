@@ -80,6 +80,7 @@ import { registerDespawnTests } from "./tests/spawn/despawn/DespawnTests.js";
 import { registerNaturalSpawnTests } from "./tests/spawn/natural/NaturalSpawnTests.js";
 import { registerZombieReinforcementTests } from "./tests/spawn/reinforcement/ZombieReinforcementTests.js";
 import { registerZombieVillagerTests } from "./tests/monster/undead/ZombieVillagerTests.js";
+import { registerZombieBreakDoorTests } from "./tests/monster/undead/ZombieBreakDoorTests.js";
 import { registerVillagerTests } from "./tests/passive/villager/VillagerTests.js";
 import { registerVillagerBreedTests } from "./tests/passive/villager/VillagerBreedTests.js";
 
@@ -154,6 +155,7 @@ registerDespawnTests();
 registerNaturalSpawnTests();
 registerZombieReinforcementTests();
 registerZombieVillagerTests();
+registerZombieBreakDoorTests();
 registerVillagerTests();
 registerVillagerBreedTests();
 registerWitherTests();

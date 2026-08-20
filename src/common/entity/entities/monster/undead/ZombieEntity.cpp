@@ -191,8 +191,10 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
 
     // 动态添加/移除破门目标
     if (canBreak && m_breakDoorGoal == nullptr) {
+        // 对齐 MC Java 1.21.11 Zombie.java:88,92：僵尸破门难度谓词仅 Hard（DOOR_BREAKING_PREDICATE）。
+        // 此前误用 defaultDoorBreakDifficultyPredicate()(Normal+Hard)，致 Normal 难度僵尸也会破门（偏差）。
         m_breakDoorGoal =
-            new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::defaultDoorBreakDifficultyPredicate());
+            new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::zombieDoorBreakDifficultyPredicate());
         m_goalSelector.addGoal(1, m_breakDoorGoal);
     } else if (!canBreak && m_breakDoorGoal != nullptr) {
         m_goalSelector.removeGoal(m_breakDoorGoal);

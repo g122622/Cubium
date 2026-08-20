@@ -315,7 +315,8 @@ void VindicatorEntity::registerGoals()
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 破门（所有难度，因为卫道士在袭击中破门）
+    // 优先级 1: 破门（Normal+Hard 难度，对齐 Java 1.21.11 Vindicator.java:52 DOOR_BREAKING_PREDICATE）。
+    // 卫道士在袭击中破门，Normal 与 Hard 均可；Easy/Peaceful 不破门（区别于僵尸仅 Hard）。
     m_goalSelector.addGoal(1,
         std::make_unique<entity::ai::goal::BreakDoorGoal>(
             this, entity::ai::goal::defaultDoorBreakDifficultyPredicate()));

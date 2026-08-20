@@ -42,8 +42,9 @@ namespace entity::ai::goal {
  * 破门过程中会显示方块破坏动画，并在完成后移除门方块。
  *
  * MC 1.21.11 对齐：BreakDoorGoal extends DoorInteractGoal
- * - 默认破门时间 240 ticks（12秒）
- * - 仅 Normal 和 Hard 难度允许破门
+ * - 默认破门时间 240 ticks（12秒），getDoorBreakTime 取 max(240, 自定义值)
+ * - 破门难度门控由调用方传入谓词决定：僵尸仅 Hard（Zombie.java:88
+ *   DOOR_BREAKING_PREDICATE），卫道士 Normal+Hard（Vindicator.java:52）
  * - 破门过程中播放攻击音效和挥臂动画
  * - 破坏进度通过 BlockBreakAnimPacket 同步到客户端
  * - 破坏后不移除上半部分（由 DoorBlock::updatePostPlacement 自动处理）
@@ -109,11 +110,25 @@ private:
 };
 
 /**
- * @brief 创建标准的僵尸破门难度谓词（Normal 和 Hard 难度允许破门）
+ * @brief 创建标准的灾厄村民（卫道士）破门难度谓词（Normal 和 Hard 难度允许破门）。
+ *
+ * 对齐 MC Java 1.21.11 Vindicator.java:52 DOOR_BREAKING_PREDICATE（Normal || Hard）。
+ * 卫道士在袭击中破门，Normal 与 Hard 均可。
  */
 inline BreakDoorGoal::DifficultyPredicate defaultDoorBreakDifficultyPredicate()
 {
     return [](Difficulty difficulty) { return difficulty == Difficulty::Normal || difficulty == Difficulty::Hard; };
+}
+
+/**
+ * @brief 创建标准的僵尸破门难度谓词（仅 Hard 难度允许破门）。
+ *
+ * 对齐 MC Java 1.21.11 Zombie.java:88 DOOR_BREAKING_PREDICATE（仅 Hard）。
+ * 僵尸仅在困难难度下破门（Normal 难度僵尸只开门不破门）。
+ */
+inline BreakDoorGoal::DifficultyPredicate zombieDoorBreakDifficultyPredicate()
+{
+    return [](Difficulty difficulty) { return difficulty == Difficulty::Hard; };
 }
 
 } // namespace entity::ai::goal
