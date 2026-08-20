@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
 
 // creeper_pit / grass_pen 结构尺寸（7×5×7 / 9×5×9），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -169,6 +170,93 @@ function creeperDoesNotSwellWithoutPlayerTarget(test: Test): void {
   });
 }
 
+// 打火石右键点燃苦力怕（wiki tech_苦力怕.txt#引爆：玩家可使用打火石或火焰弹点燃苦力怕，
+// 点燃后苦力怕会进入引爆倒计时并爆炸）。
+//
+// C++ 链路（对齐 Java 1.21.11 Creeper.mobInteract）：
+//   玩家主手持 flint_and_steel + interactWithEntity(creeper)（ScriptSimulatedPlayer 扩展绑定）
+//   → Player::interactOn(creeper, MainHand)（Player.cpp:2843）
+//   → creeper.processInitialInteract → MobEntity::processInitialInteract（MobEntity.cpp:639）
+//     → 命名牌/刷怪蛋/拴绳/剪刀装备分支均不命中 → interactMob(player, hand)（MobEntity.cpp:753）
+//   → CreeperEntity::interactMob override（对齐 Java Creeper.mobInteract）：
+//     heldItem.getItem()=flint_and_steel ∈ ItemTags::CREEPER_IGNITERS → 播 FLINTANDSTEEL_USE 音效 +
+//     ignite()（置 m_ignited=true）+ 可损坏物品 hurtAndBreak(1, player, MainHand) 扣耐久。
+//   → CreeperEntity::tick：hasIgnited()=true → setCreeperState(1) → m_timeSinceIgnited 每 tick +1，
+//     达 m_fuseTime(30 tick) 后 explode() → remove()。
+//
+// 此前 Cubium CreeperEntity 无 interactMob override（基类 MobEntity::interactMob 返 Pass），
+// Player::interactOn 第3步返 Pass 后第4步走 Item::itemInteractionForEntity——而 FlintAndSteelItem
+// 未 override itemInteractionForEntity（只有 onItemUse 处理方块点燃），故打火石右键苦力怕完全不点燃
+// （对齐缺陷）。本次新增 CREEPER_IGNITERS 标签 + CreeperEntity::interactMob override 补全此链路。
+//
+// 环境选择：grass_pen（9×5×9 玻璃墙围栏）。
+//   - 关键：玩家须远离苦力怕 > 7 格（CreeperSwellGoal 取消距离 distSq>49），避免苦力怕因玩家靠近
+//     而 CreeperSwellGoal 自发膨胀，干扰"打火石点燃"的归因。grass_pen 9×9 对角 ~11 格，
+//     苦力怕 (1,2,1) + 玩家 (7,2,7)，水平距 ~8.5 格 > 7，CreeperSwellGoal 不触发自发膨胀。
+//   - 玻璃墙挡 NearestAttackableTargetGoal checkSight 射线（grass_pen 外圈玻璃），苦力怕看不到玩家
+//     → 不选玩家为 attackTarget → 进一步保证不自发膨胀。只有打火石点燃（m_ignited=true）才引爆。
+//   - interactWithEntity 无距离门控（远程转发 interactOn），玩家可在 8.5 格外右键苦力怕。
+//   - 玩家用创造模式（默认）：点燃不依赖苦力怕选玩家为目标（玩家主动右键触发 interactMob），
+//     创造模式跳过打火石耐久消耗（interactMob 内 creativeMode 守卫），同一打火石可重复测试。
+//
+// 判定手段：点燃后苦力怕引信 30 tick 爆炸 remove，succeedWhen 断言苦力怕实体消失。
+//   assertEntityPresentInArea(creeper, false) 扫描结构 bounds 查实体，爆炸破坏草地/玻璃不影响该断言。
+//   爆炸半径 3，玩家距 8.5 格不受伤害。
+// 时序：tick 5 interactWithEntity（留 5 tick 让 spawn 注册稳定）→ tick 6 起 m_timeSinceIgnited 累加
+//   → tick ~36 explode() remove()。maxTicks=200 余量充足。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_苦力怕.txt#引爆（打火石/火焰弹点燃）
+function creeperIgnitedByFlintAndSteel(test: Test): void {
+  const creeperType = "creeper";
+
+  // 苦力怕 (1,2,1)（grass_pen 内角，脚踩 y=0 草地，helper-y=2→结构内 y=1 空气）。
+  // 玩家 (7,2,7)（对角，距苦力怕水平 ~8.5 格 > 7 CreeperSwellGoal 取消距离，不自发膨胀）。
+  const creeper = test.spawn(creeperType, { x: 1, y: 2, z: 1 });
+  const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "igniter");
+
+  // 创造玩家主手持打火石。setItem(slot=0 主手, true 强制覆盖)。
+  // ItemStack 类型分裂（顶层 vs server-gametest 嵌套），as unknown 强转绕过编译期（见 CowBreedTests 同款）。
+  const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
+  player.setItem(flintAndSteel as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5：持打火石右键苦力怕 → interactMob → ignite()。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(creeper);
+  });
+
+  // 断言苦力怕被点燃后爆炸消失：引信 30 tick 后 explode()→remove()。
+  // 若 interactMob 链路断裂（打火石未点燃苦力怕），苦力怕不爆炸，succeedWhen 超时失败暴露缺陷。
+  test.succeedWhen(() => {
+    test.assertEntityPresentInArea(creeperType, false);
+  });
+}
+
+// 火焰弹右键点燃苦力怕（wiki tech_苦力怕.txt#引爆：火焰弹亦可点燃苦力怕）。
+//
+// 与 creeper_ignited_by_flint_and_steel 形成对照：同 CREEPER_IGNITERS 标签的另一成员，
+// 验证火焰弹分支（不可损坏物品 shrink 消耗，而非打火石的 hurtAndBreak 耐久）也能点燃苦力怕。
+// C++ 链路同上，区别仅 interactMob 内 item->isDamageable()=false（火焰弹 maxDamage=0）→ 走 shrink(1)
+// 而非 hurtAndBreak（创造模式均跳过消耗，不影响点燃逻辑）。
+//
+// 此测试覆盖 CREEPER_IGNITERS 标签完整性：打火石 + 火焰弹两成员均能点燃苦力怕。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_苦力怕.txt#引爆（火焰弹点燃）
+function creeperIgnitedByFireCharge(test: Test): void {
+  const creeperType = "creeper";
+
+  const creeper = test.spawn(creeperType, { x: 1, y: 2, z: 1 });
+  const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "igniter2");
+
+  const fireCharge = new ItemStack("minecraft:fire_charge", 1);
+  player.setItem(fireCharge as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(creeper);
+  });
+
+  test.succeedWhen(() => {
+    test.assertEntityPresentInArea(creeperType, false);
+  });
+}
+
 export function registerCreeperTests(): void {
   GameTest.register("MobBehaviorTests", "creeper_swell_explodes", creeperSwellExplodes)
     .structureName("gametests:creeper_pit")
@@ -184,5 +272,13 @@ export function registerCreeperTests(): void {
 
   GameTest.register("MobBehaviorTests", "creeper_does_not_swell_without_player_target", creeperDoesNotSwellWithoutPlayerTarget)
     .structureName("gametests:creeper_pit")
+    .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "creeper_ignited_by_flint_and_steel", creeperIgnitedByFlintAndSteel)
+    .structureName("gametests:grass_pen")
+    .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "creeper_ignited_by_fire_charge", creeperIgnitedByFireCharge)
+    .structureName("gametests:grass_pen")
     .maxTicks(200);
 }

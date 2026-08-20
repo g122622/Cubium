@@ -217,6 +217,23 @@ public:
 
     void tick() override;
 
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 玩家右键交互（对齐 Java 1.21.11 Creeper.mobInteract）
+     *
+     * 手持 CREEPER_IGNITERS 标签物品（打火石/火焰弹）右键苦力怕时点燃它：
+     *   1. 播放对应音效（火焰弹用 FIRECHARGE_USE，其余用 FLINTANDSTEEL_USE）；
+     *   2. 调 ignite() 置 m_ignited=true，tick 中 hasIgnited→setCreeperState(1) 启动引信；
+     *   3. 消耗物品：可损坏物品（打火石）走 hurtAndBreak(1)，不可损坏物品（火焰弹）走 shrink(1)。
+     *      创造模式不消耗。
+     * 此前 Cubium 苦力怕无 interactMob override，打火石/火焰弹右键苦力怕不点燃（对齐缺陷），
+     * 仅打火石 onItemUse 处理方块点燃。此处补全实体侧点燃链路。
+     *
+     * 参考: net.minecraft.world.entity.monster.Creeper#mobInteract(Player, InteractionHand)
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
     // ========== NBT 序列化 ==========
 
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;

@@ -36,11 +36,17 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -234,6 +240,65 @@ void CreeperEntity::tick()
     }
 
     MonsterEntity::tick();
+}
+
+ActionResultType CreeperEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 Creeper.mobInteract(Player, InteractionHand)：
+    // 手持 CREEPER_IGNITERS 标签物品（打火石/火焰弹）右键苦力怕时点燃它。
+    //   if (itemstack.is(ItemTags.CREEPER_IGNITERS)) {
+    //       SoundEvent soundevent = itemstack.is(Items.FIRE_CHARGE) ? FIRECHARGE_USE : FLINTANDSTEEL_USE;
+    //       playSound(...);
+    //       if (!level().isClientSide()) {
+    //           ignite();
+    //           if (!itemstack.isDamageableItem()) itemstack.shrink(1);
+    //           else itemstack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+    //       }
+    //       return SUCCESS;
+    //   }
+    //   return super.mobInteract(...);
+    //
+    // 此前 Cubium 苦力怕无 interactMob override（基类 MobEntity::interactMob 返 Pass），
+    // 故 Player::interactOn 第3步 processInitialInteract→interactMob 返 Pass 后，
+    // 第4步走 Item::itemInteractionForEntity——而 FlintAndSteelItem/FireChargeItem 均未
+    // override itemInteractionForEntity（只有 onItemUse 处理方块点燃），致打火石/火焰弹
+    // 右键苦力怕完全不点燃（对齐缺陷）。此处补全实体侧点燃链路。
+    ItemStack& heldItem = player.getHeldItem(hand);
+    const Item* item = heldItem.getItem();
+    if (item == nullptr || !item::tag::ItemTags::CREEPER_IGNITERS().contains(item)) {
+        // 非点燃器物品交由父类处理（基类默认 Pass）。
+        return MonsterEntity::interactMob(player, hand);
+    }
+
+    // 播放对应音效：火焰弹用 FIRECHARGE_USE，其余（打火石）用 FLINTANDSTEEL_USE。
+    const ResourceLocation& soundEvent =
+        (item == Items::FIRE_CHARGE) ? SoundEvents::ITEM_FIRECHARGE_USE : SoundEvents::ITEM_FLINTANDSTEEL_USE;
+    if (!isSilent()) {
+        math::Random& rng = getRandom();
+        playSound(soundEvent, 1.0f, rng.nextFloat() * 0.4f + 0.8f);
+    }
+
+    // 服务端执行点燃 + 消耗物品（对齐 Java !level().isClientSide() 守卫）。
+    // ignite() 置 m_ignited=true，tick 中 hasIgnited→setCreeperState(1) 启动引信，
+    // 经 m_fuseTime(30) tick 后 explode()。
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        ignite();
+
+        // 创造模式不消耗物品（对齐 Java：创造玩家 hurtAndBreak/shrink 由 PlayerDestroyItem
+        // 体系跳过；Cubium 此处显式跳过消耗，与 FlintAndSteelItem::onItemUse 一致由 hurtAndBreak
+        // 内部处理耐久保护，但 shrink 对火焰弹需显式跳过创造）。
+        if (!player.abilities().creativeMode) {
+            if (item->isDamageable()) {
+                // 可损坏物品（打火石）：扣 1 耐久，损坏触发 onEquippedItemBroken 回调。
+                LivingEntity::hurtAndBreak(heldItem, 1, &player, EquipmentSlot::MainHand);
+            } else {
+                // 不可损坏物品（火焰弹）：消耗 1 个。
+                heldItem.shrink(1);
+            }
+        }
+    }
+
+    return ActionResultType::Success;
 }
 
 void CreeperEntity::registerGoals()

@@ -351,6 +351,14 @@ void PotionEntity::onImpact(const RayTraceResult& result)
                 f32 intensity = 1.0f - (distance / SPLASH_RADIUS);
 
                 // 应用每个效果
+                // TODO: InstantDamage/InstantHealth 经 addEffect→applyInstantly→hurt(DamageSources::magic())
+                // 伤害源为 EnvironmentalDamage（getEntity()==nullptr），丢失投掷者信息。Java 的
+                // ThrownSplashPotion 用 IndirectMagic 伤害源（owner=投掷者），故女巫自投伤害药水溅回自身时
+                // source.getEntity()==女巫→WitchEntity.applyPotionDamageCalculations 自伤检查返0免疫；
+                // cubium 当前 magic() 无 owner，女巫自伤检查不触发，走 85% 减免后自伤 0.6（Java 为0）。
+                // 修复需让 InstantDamage 携带投掷者（改 applyInstantly 签名传 owner，或此处对 InstantDamage
+                // 特殊处理用 DamageSources::indirectMagic(this, getShooter()) 直接 hurt）。偏差轻微（罕见溅回
+                // 自身场景 + 仅 0.6 自伤），暂不修，待 applyInstantly owner 体系完善。
                 for (const auto& effect : effects) {
                     // 计算持续时间（距离越近持续时间越长）
                     i32 duration = static_cast<i32>(effect.duration() * intensity);

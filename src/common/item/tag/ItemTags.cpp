@@ -378,6 +378,15 @@ ItemTag& ItemTags::VILLAGER_PLANTABLE_SEEDS()
     return *tag;
 }
 
+ItemTag& ItemTags::CREEPER_IGNITERS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "creeper_igniters"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_SHELVES()
 {
     static ItemTag* tag = nullptr;
@@ -1099,6 +1108,17 @@ void ItemTags::initialize()
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower_seeds")));
     villagerPlantableSeeds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pitcher_pod")));
     allTags[villagerPlantableSeeds->getId()] = std::move(villagerPlantableSeeds);
+
+    // 创建 CREEPER_IGNITERS 标签
+    // 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
+    // 对应 MC 原版标签 minecraft:creeper_igniters。
+    // 参考: net.minecraft.world.entity.monster.Creeper#mobInteract
+    // （MC 1.21.11 通过 itemstack.is(ItemTags.CREEPER_IGNITERS) 判断手持物品能否点燃苦力怕，
+    //  火焰弹用 FIRECHARGE_USE 音效、其余（打火石）用 FLINTANDSTEEL_USE 音效）
+    auto creeperIgniters = std::make_unique<ItemTag>(ResourceLocation("minecraft", "creeper_igniters"), false);
+    creeperIgniters->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "flint_and_steel")));
+    creeperIgniters->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "fire_charge")));
+    allTags[creeperIgniters->getId()] = std::move(creeperIgniters);
 
     s_initialized = true;
 }

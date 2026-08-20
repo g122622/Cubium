@@ -337,6 +337,17 @@ public:
     static ItemTag& VILLAGER_PLANTABLE_SEEDS();
 
     /**
+     * @brief 苦力怕点燃器标签
+     *
+     * 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
+     * 对应 MC 原版标签 minecraft:creeper_igniters。
+     *
+     * 参考: net.minecraft.world.entity.monster.Creeper#mobInteract
+     * （MC 1.21.11 通过 itemstack.is(ItemTags.CREEPER_IGNITERS) 判断手持物品能否点燃苦力怕）
+     */
+    static ItemTag& CREEPER_IGNITERS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。
