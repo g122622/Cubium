@@ -179,6 +179,122 @@ function endermanTakesBlock(test: Test): void {
   });
 }
 
+// 末影人被玩家注视眼睛后激怒，主动攻击玩家
+// （wiki tech_末影人.txt#行为：玩家视线对准末影人头部时，末影人会立即被激怒，主动攻击玩家；
+//   戴南瓜头可避免激怒）。
+//
+// C++ 链路（对齐 MC Java 1.21.11 EndermanFreezeWhenLookedAt + EndermanLookForPlayerGoal + Player.isLookingAt）：
+//   1) EndermanFindPlayerGoal::shouldExecute（EndermanGoals.cpp:129-175）搜索 TARGET_DISTANCE(10) 格内
+//      玩家，调 shouldAttackPlayer(player) 判定激怒条件。
+//   2) EndermanEntity::shouldAttackPlayer（EndermanEntity.cpp:288-306）三步：
+//      ① player.isWearingPumpkin() → 戴南瓜头不激怒；
+//      ② player.isLookingAt(*this) → 玩家视线对准末影人眼睛（Player.cpp:3036-3066，视线向量与到
+//        末影人眼睛向量点积 > 阈值 1.0-0.025/distance）；
+//      ③ player.canSee(*this) → 视线无方块阻挡。
+//   3) 激怒：startExecuting 设 m_aggroTime=AGGRO_DURATION(5) + setScreaming(true)；tick 中 m_aggroTime
+//      递减到 0 后调 TargetGoal::startExecuting → setAttackTarget(player)（EndermanGoals.cpp:218-259）。
+//   4) 攻击：MeleeAttackGoal（优先级2）attackTarget 非空时寻路接近近战攻击，命中造成 7 伤害。
+//
+// 注视冻结与两阶段时序（对齐 vanilla EndermanFreezeWhenLookedAt 语义）：
+//   Java 1.21.11 EndermanFreezeWhenLookedAt（优先级1）flags=EnumSet.of(JUMP,MOVE)，canUse 要求
+//   getTarget() 是 Player + 距离<16 + isBeingStaredBy(player)。**注视时该 goal 霸占 MOVE flag**，
+//   MeleeAttackGoal（优先级2，flags=MOVE）被压制不执行——末影人被注视时冻结不动不近战，靠
+//   EndermanLookForPlayerGoal tick 瞬移。玩家移开视线后 Freeze goal canUse=false 释放 MOVE flag，
+//   MeleeAttackGoal 接管近战攻击。Cubium EndermanStareGoal 对齐此语义（flags=Look|Move，注视时
+//   霸占 MOVE 压制 MeleeAttackGoal）。
+//   故测试须两阶段：① 玩家注视末影人触发激怒（aggroTime=5 倒计时→setAttackTarget）；
+//   ② 玩家移开视线释放 MOVE flag，MeleeAttackGoal 寻路近战攻击玩家。激怒后（m_aggroTime 已 expired，
+//   m_target 已设）EndermanFindPlayerGoal::shouldContinueExecuting 走 m_target 分支不再检查注视，
+//   攻击目标保留，故移开视线不会丢失目标。
+//
+// 注视控制：SimulatedPlayer::lookAtEntity(enderman)（SimulatedPlayer.cpp:132-147）用 setRotation +
+//   setYHeadRot 瞬时定向玩家朝向末影人眼睛方向。isLookingAt 的 getLookVector 读 m_rot（与 setRotation
+//   写入同一字段），故 lookAtEntity 后玩家视线精确对准末影人。移开视线用 lookAtLocation(远处坐标)。
+//
+// 判定手段：末影人近战攻击玩家致掉血（HP<20，满血 20，末影人攻击 7→13）。MeleeAttackGoal 寻路+
+//   攻击冷却(20 tick)有时序，用 pollUntilSucceed + 大 maxTick 吸收。玩家 Survival 模式（创造/观察者
+//   被 shouldAttackPlayer 滤掉）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，canSee 视线不被阻挡，寻路无障碍。
+//   末影人 (1,2,1) + Survival 玩家 (5,2,5) 对角距 √(4²+4²)≈5.66 格——刻意选此距离规避激怒后非确定性
+//   瞬移：EndermanFindPlayerGoal::tick 中距玩家 <TELEPORT_NEAR_DISTANCE_SQ(16=4²) 触发随机躲避瞬移
+//   teleport()（末影人可能瞬移出结构区域），距玩家 >TELEPORT_FAR_DISTANCE_SQ(256=16²) 触发
+//   teleportToTarget 主动接近。5.66 格处于 4~16 中间地带，既不随机躲避瞬移也不远距离接近瞬移，末影人
+//   靠 MeleeAttackGoal 寻路稳定接近玩家攻击。距离 5.66 <TARGET_DISTANCE(10) 满足搜索范围；isLookingAt
+//   距离 5.66 阈值 1-0.025/5.66≈0.9956，lookAtEntity 瞬时精确对准，点积≈1 满足注视判定。
+//   脚下 y=1 玻璃支撑防下落。
+//
+// 时序：tick 0 spawn+lookAtEntity 注视 → tick~6 aggroTime expired setAttackTarget →
+//   tick 15 lookAtLocation 移开视线释放 MOVE flag → MeleeAttackGoal 寻路接近(5.66格)+攻击(冷却20tick)。
+//   pollUntilSucceed startTick=40 maxTick=900 留足寻路+攻击时序余量。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_末影人.txt#行为（注视眼睛激怒攻击玩家）
+// Ref: EndermanEntity.cpp shouldAttackPlayer（注视判定）
+// Ref: EndermanGoals.cpp EndermanFindPlayerGoal（激怒 goal）+ EndermanStareGoal（注视冻结霸占 MOVE）
+// Ref: Player.cpp isLookingAt（视线点积阈值）
+// Ref: Java 1.21.11 EnderMan.java EndermanFreezeWhenLookedAt（注视冻结 flags=JUMP|MOVE 压制 MeleeAttack）
+function endermanBecomesAngryWhenStaredAt(test: Test): void {
+  const endermanType = "enderman";
+
+  // 脚下 y=1 玻璃支撑（末影人/玩家受重力下落）。
+  test.setBlockType("minecraft:glass", { x: 1, y: 1, z: 1 });
+  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 5 });
+
+  // 末影人 (1,2,1) + Survival 玩家 (5,2,5) 对角距 ≈5.66 格（4~16 中间地带，规避激怒后随机瞬移）。
+  const enderman = test.spawn(endermanType, { x: 1, y: 2, z: 1 });
+  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 5 }, "starer", 0 as any);
+
+  // 阶段1：玩家注视末影人眼睛，触发 isLookingAt=true → EndermanFindPlayerGoal 激怒链路。
+  // lookAtEntity 是 Cubium 扩展绑定，as any 绕过 TS 类型。
+  (player as any).lookAtEntity(enderman);
+
+  // 阶段2：tick 15 移开视线（aggroTime=5 已在 tick~6 expired，setAttackTarget 已设，攻击目标保留）。
+  // 移开视线使 EndermanStareGoal shouldAttackPlayer=false → StareGoal 释放 MOVE flag，
+  // MeleeAttackGoal 接管寻路近战攻击。lookAtLocation 朝向远处 (1,2,6) 偏离末影人方向。
+  // lookAtLocation 接结构相对 BlockPos，as any 绕过 TS 类型。
+  test.runAtTickTime(15, () => {
+    (player as any).lookAtLocation({ x: 1, y: 2, z: 6 });
+  });
+
+  // 轮询：末影人近战攻击玩家致 HP<20（满血 20，末影人近战 7 伤害→13）。
+  // startTick=40 留注视激怒(6tick)+移开视线(15tick)+寻路接近(5.66格)+攻击冷却(20tick)时序；
+  // maxTick=900 吸收寻路非确定性。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length === 0) return false;
+    const health = players[0].getComponent("minecraft:health");
+    if (health === undefined) return false;
+    return (health as any).currentValue < 20;
+  }, {
+    startTick: 40,
+    interval: 10,
+    maxTick: 900,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const endermen = test.getDimension().getEntities({
+        type: endermanType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const playerHp = players.length > 0
+        ? (players[0].getComponent("minecraft:health") as any)?.currentValue
+        : "no player";
+      // 区分失败原因：playerHp==20 说明近战攻击未命中（激怒后 MeleeAttackGoal 未执行——
+      //   可能 StareGoal 仍霸占 MOVE flag 未释放，或寻路失败）；no player 说明玩家流失。
+      test.assert(false,
+        `enderman did not attack player after being stared at: playerHp=${playerHp} endermen=${endermen.length} ` +
+        `(playerHp==20: melee not triggered - StareGoal MOVE flag not released or pathfinding failed)`);
+    },
+  });
+}
+
 export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_takes_water_damage", endermanTakesWaterDamage)
     .structureName("gametests:glass_pit")
@@ -193,4 +309,8 @@ export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_takes_block", endermanTakesBlock)
     .structureName("gametests:glass_pit")
     .maxTicks(600);
+
+  GameTest.register("MobBehaviorTests", "enderman_becomes_angry_when_stared_at", endermanBecomesAngryWhenStaredAt)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(900);
 }
