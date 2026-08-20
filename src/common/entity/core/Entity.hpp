@@ -71,6 +71,7 @@ namespace mc {
 // 前向声明
 class PhysicsEngine;
 class IWorld;
+class EntityManager;
 class BlockState;
 class DamageSource;
 
@@ -85,6 +86,13 @@ class EntityType;
 namespace scoreboard {
 class Team;
 } // namespace scoreboard
+
+namespace world::explosion {
+
+// 前向声明：Entity::ignoreExplosion 入参，仅持有裸指针，无需完整定义
+struct ExplosionImmunityContext;
+
+} // namespace world::explosion
 
 /**
  * @brief 实体推动反应类型
@@ -284,6 +292,17 @@ public:
     [[nodiscard]] IWorld* world() { return m_world; }
     [[nodiscard]] const IWorld* world() const { return m_world; }
     void setWorld(IWorld* world) { m_world = world; }
+
+    /**
+     * @brief 绑定/解绑所属 EntityManager（用于空间索引实时维护）
+     *
+     * 由 `EntityManager::addEntity` 绑定 this、`removeEntity`/`_removeDeadEntitiesInternal`
+     * 解绑 nullptr。`reapplyPosition()` 经此反向指针通知索引迁移，使 3D section 索引
+     * 实时准确（同一 tick 内移动后查询读到新位置）。裸指针非拥有，EntityManager 与
+     * Entity 同在 common 模块，不破坏 common 不依赖 server。
+     */
+    void setEntityManager(EntityManager* manager) noexcept { m_entityManager = manager; }
+    [[nodiscard]] EntityManager* entityManager() const noexcept { return m_entityManager; }
 
     // ========== 数据管理 ==========
 
@@ -1908,13 +1927,21 @@ public:
     void setInvulnerable(bool invulnerable) { m_invulnerable = invulnerable; }
 
     /**
-     * @brief 检查是否免疫爆炸伤害
+     * @brief 判断该实体是否应忽略（不受）某次爆炸影响
      *
-     * 默认返回 false，凋灵、末影龙等实体需要重写此方法。
+     * 默认返回 false（受爆炸影响）。掉落物/盔甲架/悬挂实体/载具等"方块类实体"
+     * 依据上下文重写此方法：在 mobGriefing 关闭或爆炸不破坏方块等条件下跳过爆炸。
      *
-     * @return 如果免疫爆炸返回 true
+     * 上下文字段语义见 ExplosionImmunityContext。
+     *
+     * @param ctx 爆炸免疫判定上下文
+     * @return true 表示该实体忽略此次爆炸（不受伤、不受击退）
      */
-    [[nodiscard]] virtual bool isImmuneToExplosions() const { return false; }
+    [[nodiscard]] virtual bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+    {
+        MC_UNUSED(ctx);
+        return false;
+    }
 
     /**
      * @brief 检查实体是否可以在指定位置与方块交互
@@ -2893,6 +2920,10 @@ protected:
 
     // 世界引用
     IWorld* m_world = nullptr;
+
+    // 所属 EntityManager 反向指针（非拥有）：reapplyPosition 经它通知空间索引迁移。
+    // nullptr 表示未托管于任何 EntityManager（测试裸实体或 addEntity 前）。
+    EntityManager* m_entityManager = nullptr;
 
     // 数据管理器
     entity::EntityDataManager m_dataManager;

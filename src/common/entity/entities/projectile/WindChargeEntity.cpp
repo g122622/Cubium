@@ -36,6 +36,8 @@
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 // 粒子类型
 #include "common/core/BlockRaycastResult.hpp"
@@ -223,13 +225,24 @@ void WindChargeEntity::applyWindBurst()
 
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
+    // 风弹路径等价 vanilla TRIGGER：不破坏方块，shouldAffectBlocklikeEntities 恒 false，
+    // 故掉落物/盔甲架等"方块类实体"在此路径下恒忽略爆炸（不受击退）。
+    // 直接源为风弹自身，间接源追溯其发射者（若为 LivingEntity），供载具判定。
+    Entity* shooter = getShooter();
+    const world::explosion::ExplosionImmunityContext immunityCtx{
+        .shouldAffectBlocklikeEntities = false,
+        .indirectSource = shooter != nullptr ? dynamic_cast<LivingEntity*>(shooter) : nullptr,
+        .directSource = this,
+        .mobGriefing = m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING),
+    };
+
     for (Entity* entity : entities) {
         if (!entity || entity->isRemoved()) {
             continue;
         }
 
-        // 跳过免疫爆炸的实体
-        if (entity->isImmuneToExplosions()) {
+        // 跳过忽略爆炸的实体
+        if (entity->ignoreExplosion(immunityCtx)) {
             continue;
         }
 

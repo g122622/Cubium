@@ -29,6 +29,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/ecs/components/MinecartDisplayComponent.hpp"
 #include "common/entity/ecs/components/MinecartStateComponent.hpp"
@@ -61,6 +62,7 @@
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/blockentity/transport/IHopper.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
@@ -1088,6 +1090,17 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
         }
     }
 
+    return true;
+}
+
+bool AbstractMinecartEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 间接源为 Mob 且 mobGriefing 关闭时，生物引发的爆炸会破坏载具（受影响）；
+    // 其他情况（非 Mob 源、或 mobGriefing 开启）载具忽略爆炸。
+    if (ctx.indirectSource != nullptr && dynamic_cast<const ::mc::MobEntity*>(ctx.indirectSource) != nullptr &&
+        !ctx.mobGriefing) {
+        return false;
+    }
     return true;
 }
 

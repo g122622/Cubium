@@ -41,6 +41,7 @@
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include <algorithm>
 #include <memory>
 #include <optional>
@@ -195,11 +196,7 @@ void WardenEntity::clearAnger() noexcept
 
 bool WardenEntity::isInvulnerableTo(DamageSource& source) const
 {
-    // MC 1.21.11 Warden.isInvulnerableTo():
-    //   if (this.isDiggingOrEmerging() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-    //       return true;
-    //   }
-    //   return super.isInvulnerableTo(serverLevel, source);
+    // 监守者在 Digging/Emerging 姿态下免疫除"穿透无敌"标签外的所有伤害。
     //
     // 当前实现尚未引入 Pose::DIGGING / Pose::EMERGING 姿态系统，无法判断
     // isDiggingOrEmerging()，因此暂不实现姿态相关免疫。
@@ -207,7 +204,7 @@ bool WardenEntity::isInvulnerableTo(DamageSource& source) const
     // TODO: 引入 Pose 系统后实现 isDiggingOrEmerging() 并补充姿态相关免疫逻辑。
 
     // 监守者继承自 MonsterEntity，MonsterEntity 默认不免疫火焰/岩浆伤害
-    // （MC 原版监守者也不免疫火焰/岩浆，可被点燃）。但监守者免疫以下伤害：
+    // （监守者也不免疫火焰/岩浆，可被点燃）。但监守者免疫以下伤害：
     // - Drown: 监守者不会溺水
     // - Wither: 监守者免疫凋零效果
     if (source.type() == DamageType::Drown) {
@@ -218,6 +215,14 @@ bool WardenEntity::isInvulnerableTo(DamageSource& source) const
     }
 
     return MonsterEntity::isInvulnerableTo(source);
+}
+
+bool WardenEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 监守者在 Digging/Emerging 姿态下应免疫爆炸（与 isInvulnerableTo 同源）。
+    // 当前姿态系统未实现，先回退基类行为。
+    // TODO: 引入 Pose::DIGGING / Pose::EMERGING 后，在此姿态下返回 true。
+    return MonsterEntity::ignoreExplosion(ctx);
 }
 
 bool WardenEntity::onLivingFall(f32 /*distance*/, f32 /*damageMultiplier*/)

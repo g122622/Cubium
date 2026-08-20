@@ -22,7 +22,7 @@
  */
 
 #include "Explosion.hpp"
-#include "common/core/BlockRaycastResult.hpp"
+#include "ExplosionImmunityContext.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -40,22 +40,28 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/util/math/ray/Ray.hpp"
-#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -64,12 +70,129 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 
 namespace mc {
 namespace world::explosion {
 
 // 使用游戏常量命名空间
 using namespace mc::game::explosion;
+
+// 追踪命名空间：允许直接写 TraceEvents.Server.World
+using namespace mc::trace;
+
+namespace {
+
+// ============================================================================
+// 爆炸专用视线检测（仅服务 _getBlockDensity，绕过公共 raycastBlocks）
+//
+// 公共 raycastBlocks 的单次射线 chunk 缓存是函数内局部变量，无法跨采样点复用：
+// _getBlockDensity 对单个实体发射约 45 条采样射线（采样点集中于同一实体 0.6×1.8×0.6
+// 碰撞箱内、终点都指向同一爆炸中心，射线簇高度集中在 2-3 个区块内），每条射线都从冷缓存
+// 开始重新对 m_chunksMutex 加锁 + unordered_map 哈希查找 getChunk，是 _getBlockDensity
+// 占爆炸墙钟 97%（单次射线 124μs）的根因。
+//
+// 本匿名命名空间的专用路径把 chunk/section 缓存提升为跨采样点复用（由 _getBlockDensity
+// 在采样循环外构造一次 ExplosionLosCache 传入），把约 45 次锁+哈希降到个位数；同时用
+// ChunkSection::isEmpty() 做 section 级早退、用内联 Y 边界检查替代 isWithinWorldBounds
+// 虚调用、用 hit-only bool 返回跳过 BlockRaycastResult 构造与命中点/距离的 sqrt。
+//
+// 行为等价性：DDA 骨架（adjustedStart/adjustedEnd 偏移、tMax/tDelta、三轴步进、起点预检、
+// 零向量处理、isAir/isLiquid 跳过、state==nullptr 视为空气）逐行复刻 raycastBlocks，保证
+// "是否被遮挡"判定不变，从而爆炸伤害数值不变。
+// ============================================================================
+
+/// 线段与 AABB 相交判定（slab 法），只返回是否相交，不算 t 值与命中面。
+/// 与 raycastBlocks 内 intersectSegmentAabb 在"是否相交"上逻辑等价，但省去 Direction 计算、
+/// clamp 与 std::swap（用 std::min/std::max 替代），供视线检测专用。
+[[nodiscard]] bool _segmentIntersectsAabb(const Vector3& origin, const Vector3& delta, const AxisAlignedBB& box)
+{
+    constexpr f32 EPSILON = 1.0e-7f;
+
+    f32 tMin = 0.0f;
+    f32 tMax = 1.0f;
+
+    const auto updateAxis = [&](f32 axisOrigin, f32 axisDelta, f32 axisMin, f32 axisMax) -> bool {
+        if (std::abs(axisDelta) < EPSILON) {
+            // 射线在该轴平行：起点必须在 slab 内
+            return axisOrigin >= axisMin && axisOrigin <= axisMax;
+        }
+        f32 t1 = (axisMin - axisOrigin) / axisDelta;
+        f32 t2 = (axisMax - axisOrigin) / axisDelta;
+        if (t1 > t2) {
+            std::swap(t1, t2);
+        }
+        if (t1 > tMin) {
+            tMin = t1;
+        }
+        if (t2 < tMax) {
+            tMax = t2;
+        }
+        return tMin <= tMax;
+    };
+
+    if (!updateAxis(origin.x, delta.x, box.minX, box.maxX)) {
+        return false;
+    }
+    if (!updateAxis(origin.y, delta.y, box.minY, box.maxY)) {
+        return false;
+    }
+    if (!updateAxis(origin.z, delta.z, box.minZ, box.maxZ)) {
+        return false;
+    }
+
+    // 相交且交点在 [0,1] 参数区间内（线段而非无限射线）
+    return tMax >= 0.0f && tMin <= 1.0f;
+}
+
+/// 命中判定专用：检测射线（adjustedStart→adjustedStart+ddaDelta）是否穿过方块碰撞箱。
+/// 与 raycastBlocks 内 traceBlockShape 在"是否命中"上逻辑等价，但不构造 BlockRaycastResult、
+/// 不算命中点/命中面/距离，命中任一 box 即返回 true。
+[[nodiscard]] bool _traceBlockShapeHitOnly(
+    const BlockState& state, i32 blockX, i32 blockY, i32 blockZ, const Vector3& adjustedStart, const Vector3& ddaDelta)
+{
+    const CollisionShape& shape = state.getShape();
+    if (shape.isEmpty()) {
+        return false;
+    }
+    for (const auto& localBox : shape.boxes()) {
+        const AxisAlignedBB worldBox(static_cast<f32>(blockX) + localBox.minX,
+            static_cast<f32>(blockY) + localBox.minY,
+            static_cast<f32>(blockZ) + localBox.minZ,
+            static_cast<f32>(blockX) + localBox.maxX,
+            static_cast<f32>(blockY) + localBox.maxY,
+            static_cast<f32>(blockZ) + localBox.maxZ);
+        if (_segmentIntersectsAabb(adjustedStart, ddaDelta, worldBox)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// 跨采样点复用的区块/区块段缓存定义见下方 world::explosion 命名空间（需与 Explosion.hpp
+/// 前向声明同名同命名空间，否则 out-of-line 定义不匹配）。
+
+} // anonymous namespace
+
+/// 跨采样点复用的区块/区块段缓存。由 _getBlockDensity 在采样循环外构造一次，
+/// 传入 _isLineOfSightBlocked，使同一次密度计算内的约 45 条采样射线共享 chunk/section 指针。
+///
+/// 生命周期安全：缓存为栈局部变量，严格限定在 _getBlockDensity 单次调用内（微秒级）。
+/// 爆炸在主线程同步执行，区块卸载由主线程 tick 驱动，不会在本调用执行期间发生，故裸指针
+/// 在本调用内稳定安全（与 raycastBlocks 单次射线缓存安全性等价，只是复用范围扩大到采样簇）。
+/// 跨区块/跨段边界时刷新指针，避免持有过期 chunk/section。
+struct ExplosionLosCache {
+    const ChunkData* cachedChunk = nullptr;
+    ChunkCoord cachedChunkX = 0;
+    ChunkCoord cachedChunkZ = 0;
+    // 标记当前缓存坐标是否已确认 getChunk 返回 nullptr（避免对同一未加载区块反复 getChunk），
+    // 同时作为回退判定：getChunk 返回 nullptr 时（区块未加载，或测试桩世界不实现 getChunk）
+    // 回退到 world.getBlockState，保持与 raycastBlocks 行为一致。
+    bool cachedChunkIsNull = false;
+
+    const ChunkSection* cachedSection = nullptr;
+    i32 cachedSectionIndex = -1;
+};
 
 // ============================================================================
 // 构造函数
@@ -157,12 +280,43 @@ LivingEntity* Explosion::getIndirectSourceEntity() const
     return nullptr;
 }
 
+bool Explosion::_shouldAffectBlocklikeEntities() const
+{
+    // mobGriefing 开启时，所有爆炸都影响方块类实体；否则只有破坏方块的爆炸
+    // （ExplosionMode 非 None）才影响。
+    // 简化前提：风弹/风爆附魔不走 Explosion 类，故 m_source 永非风弹源，
+    // vanilla shouldAffectBlocklikeEntities() 中的"非风弹源"判定恒真，退化为下式。
+    // TODO: 若未来风弹改走 Explosion，需引入 Trigger 模式并恢复完整判定。
+    const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    return mobGriefing || m_mode != ExplosionMode::None;
+}
+
 // ============================================================================
 // 核心方法
 // ============================================================================
 
 void Explosion::explode()
 {
+    // 以爆炸中心方块位置的 toId() 作为 Flow ID，贯穿本次爆炸的各子阶段，
+    // 便于在 Perfetto UI 中追踪同一次爆炸的事件流转
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::explode",
+        "pos",
+        fmt::format("({}, {}, {})", m_position.x, m_position.y, m_position.z),
+        "radius",
+        m_radius,
+        "mode",
+        static_cast<u8>(m_mode),
+        "causesFire",
+        m_causesFire,
+        "sourceId",
+        (m_source != nullptr) ? static_cast<i64>(m_source->id()) : -1,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
+    using clock = std::chrono::steady_clock;
+    const clock::time_point t0 = clock::now();
+
     // 第一阶段：计算
     _calculateAffectedBlocks();
     _calculateAffectedEntities();
@@ -173,10 +327,13 @@ void Explosion::explode()
     _spawnParticles();
     _playSound();
 
-    // 如果需要生成火焰
     if (m_causesFire && m_mode != ExplosionMode::None) {
         _spawnFire();
     }
+
+    // 记录本次爆炸总耗时（微秒），便于在 Perfetto/Tracy UI 观察规模与耗时分布
+    const i64 totalUs = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t0).count();
+    MC_TRACE_COUNTER(TraceEvents.Server.World, "Explosion.explode.totalUs", totalUs);
 }
 
 // ============================================================================
@@ -185,6 +342,15 @@ void Explosion::explode()
 
 void Explosion::_calculateAffectedBlocks()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_calculateAffectedBlocks",
+        "pos",
+        fmt::format("({}, {}, {})", m_position.x, m_position.y, m_position.z),
+        "radius",
+        m_radius,
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // 使用 std::unordered_set 避免重复
     std::unordered_set<i64> affectedPositions;
 
@@ -268,10 +434,20 @@ void Explosion::_calculateAffectedBlocks()
         if (bz >= 0x800000) bz -= 0x1000000;
         m_affectedBlocks.emplace_back(bx, by, bz);
     }
+
+    // 记录本次爆炸受影响方块数（计数器，便于在 Perfetto/Tracy UI 观察规模分布）
+    MC_TRACE_COUNTER(TraceEvents.Server.World, "Explosion.AffectedBlocks", static_cast<i64>(m_affectedBlocks.size()));
 }
 
 void Explosion::_calculateAffectedEntities()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_calculateAffectedEntities",
+        "pos",
+        fmt::format("({}, {}, {})", m_position.x, m_position.y, m_position.z),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // 实体影响范围 = radius * 2
     f32 range = m_radius * ENTITY_RANGE_MULTIPLIER;
 
@@ -286,19 +462,31 @@ void Explosion::_calculateAffectedEntities()
     // 获取范围内的所有实体
     std::vector<Entity*> entities = m_world.getEntitiesInAABB(searchBox, m_source);
 
+    // 预构造爆炸免疫判定上下文（循环内对所有实体复用）：
+    //   shouldAffectBlocklikeEntities 由 mobGriefing 与爆炸模式共同决定；
+    //   indirectSource 追溯爆炸链（TNT→点燃者/投射物→发射者），供载具判定间接源是否为 Mob；
+    //   directSource 即 m_source，供悬挂实体判定源是否在水中；
+    //   mobGriefing 预填，避免各实体覆写内反查 world。
+    const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    const ExplosionImmunityContext immunityCtx{
+        .shouldAffectBlocklikeEntities = _shouldAffectBlocklikeEntities(),
+        .indirectSource = getIndirectSourceEntity(),
+        .directSource = m_source,
+        .mobGriefing = mobGriefing,
+    };
+
     for (Entity* entity : entities) {
         if (!entity || entity->isRemoved()) {
             continue;
         }
 
-        // 检查实体是否免疫爆炸
-        if (entity->isImmuneToExplosions()) {
+        // 检查实体是否忽略此次爆炸（掉落物/盔甲架/悬挂实体/载具等按上下文判定）
+        if (entity->ignoreExplosion(immunityCtx)) {
             continue;
         }
 
         // 计算实体到爆炸中心的距离
         Vector3 entityPos = entity->position();
-        // 对于 TNT 实体，使用眼睛位置；其他实体使用普通位置
         f32 dx = entityPos.x - m_position.x;
         f32 dy = entityPos.y - m_position.y;
         f32 dz = entityPos.z - m_position.z;
@@ -324,108 +512,146 @@ void Explosion::_calculateAffectedEntities()
         dy /= length;
         dz /= length;
 
-        // 计算阻挡密度（视线检测）
-        f32 density = _getBlockDensity(entity->boundingBox());
+        // hurtEntities 短路：不造成伤害且无击退倍率的实体跳过视线检测（seenPercent 视为 0），
+        // 避免不必要的 raycast。默认 calculator 下 shouldDamage=true、knockbackMul=1.0，
+        // 短路永不触发，seenPercent 照常计算。
+        const bool shouldDamage = m_context->shouldDamageEntity(*this, *entity);
+        const f32 knockbackMultiplier = m_context->getKnockbackMultiplier(*this, *entity);
 
-        // 伤害系数
-        f32 impact = (1.0f - distanceRatio) * density;
+        // 计算阻挡密度（视线检测）。短路条件下跳过 raycast。
+        f32 seenPercent = 0.0f;
+        if (shouldDamage || knockbackMultiplier != 0.0f) {
+            seenPercent = _getBlockDensity(entity->boundingBox());
+        }
 
-        // 造成伤害
-        f32 damage = std::floor((impact * impact + impact) / 2.0f * DAMAGE_MULTIPLIER * m_radius + 1.0f);
+        // 击退强度 = (1 - 距离比例) * 视线密度 * 击退倍率
+        const f32 impact = (1.0f - distanceRatio) * seenPercent;
+        const f32 knockback = impact * knockbackMultiplier;
 
-        if (damage > 0.0f) {
-            // 创建伤害来源
-            std::unique_ptr<DamageSource> damageSource;
-            if (m_damageSource) {
-                damageSource = m_damageSource->clone();
-            } else {
-                // 默认使用爆炸伤害
-                damageSource = std::make_unique<EntityDamageSource>(DamageType::Explosion, m_source);
-            }
+        if (shouldDamage) {
+            // 计算伤害（含 radius*2 修正，与 Java 一致）
+            f32 damage = m_context->getEntityDamageAmount(*this, *entity, seenPercent);
 
-            // ========== 玩家分支 ==========
-            // 玩家的击退完全由客户端通过 Explosion IR 应用（client-authoritative），
-            // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 Explosion IR 双重应用。
-            // 同时清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度。
-            // 对应 MC Java: ServerExplosion.hurtEntities 中 entity.push(vec32) 对所有实体调用，
-            // 但 ServerPlayer 的 motion 是 client-authoritative，server 不会通过 SetEntityMotionPacket
-            // 把自身速度同步给自己，因此 MC 端不会出现双重应用。Cubium 的 EntityTracker 采用
-            // "AndSelf" 模式（向 ServerPlayer 自身发送速度包），所以必须在玩家分支显式跳过
-            // 服务端速度修改与同步。
-            Player* player = dynamic_cast<Player*>(entity);
-            if (player) {
-                // 观察者模式不受击退也不受伤害（与 MC 一致：旁观者免疫爆炸）
-                if (player->isSpectator()) {
+            if (damage > 0.0f) {
+                // 创建伤害来源
+                std::unique_ptr<DamageSource> damageSource;
+                if (m_damageSource) {
+                    damageSource = m_damageSource->clone();
+                } else {
+                    // 默认使用爆炸伤害
+                    damageSource = std::make_unique<EntityDamageSource>(DamageType::Explosion, m_source);
+                }
+
+                // ========== 玩家分支 ==========
+                // 玩家的击退完全由客户端通过 Explosion IR 应用（client-authoritative），
+                // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 Explosion IR 双重应用。
+                // 同时清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket 覆盖客户端速度。
+                // ServerExplosion.hurtEntities 中 entity.push(vec32) 对所有实体调用，
+                // 但 ServerPlayer 的 motion 是 client-authoritative，server 不会通过 SetEntityMotionPacket
+                // 把自身速度同步给自己，因此不会出现双重应用。Cubium 的 EntityTracker 采用
+                // "AndSelf" 模式（向 ServerPlayer 自身发送速度包），所以必须在玩家分支显式跳过
+                // 服务端速度修改与同步。
+                Player* player = dynamic_cast<Player*>(entity);
+                if (player) {
+                    // 观察者模式不受击退也不受伤害
+                    if (player->isSpectator()) {
+                        continue;
+                    }
+                    // 创造模式飞行中不受击退（仍受伤害）
+                    const PlayerAbilities& abilities = player->abilities();
+                    const bool creativeFlying = player->isCreative() && abilities.flying;
+
+                    // 应用爆炸保护附魔减伤与击退衰减
+                    // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
+                    // 击退减少: knockback * (1 - EPF * 0.15)
+                    f32 playerKnockback = knockback;
+                    i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
+                        player->getArmorSlots(), DamageFlags::EXPLOSION);
+                    if (blastProtection > 0) {
+                        damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
+                        playerKnockback = playerKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
+                    }
+
+                    // 造成伤害（LivingEntity::hurt 会设置 hurtMarked）
+                    player->hurt(*damageSource, damage);
+
+                    if (!creativeFlying) {
+                        // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
+                        // （玩家速度由客户端通过 Explosion IR 应用，服务端不应同步速度）
+                        player->clearHurtMarked();
+                        // 记录玩家击退向量，将通过 Explosion IR 发送给客户端
+                        // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
+                        m_playerKnockback[player->id()] =
+                            Vector3(dx * playerKnockback, dy * playerKnockback, dz * playerKnockback);
+                    } else {
+                        // 创造飞行玩家不受击退，但仍需清除 hurtMarked（hurt 调用已设置它）
+                        // 否则 EntityTracker 会发送 EntityVelocityPacket，可能干扰飞行状态
+                        player->clearHurtMarked();
+                    }
+
+                    // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
+                    entity->onExplosionHit(m_source);
                     continue;
                 }
-                // 创造模式飞行中不受击退（仍受伤害，与原版一致）
-                const PlayerAbilities& abilities = player->abilities();
-                const bool creativeFlying = player->isCreative() && abilities.flying;
 
-                // 应用爆炸保护附魔减伤与击退衰减
-                // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
-                // 击退减少: knockback * (1 - EPF * 0.15)
-                f32 playerKnockback = impact;
-                i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
-                    player->getArmorSlots(), DamageFlags::EXPLOSION);
-                if (blastProtection > 0) {
-                    damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
-                    playerKnockback = playerKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
-                }
+                // ========== 非玩家生物实体分支 ==========
+                LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+                if (living) {
+                    // 应用爆炸保护附魔减伤
+                    f32 livingKnockback = knockback;
+                    i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
+                        living->getArmorSlots(), DamageFlags::EXPLOSION);
+                    if (blastProtection > 0) {
+                        // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
+                        // 击退减少: knockback * (1 - EPF * 0.15)
+                        damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
+                        livingKnockback = livingKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
+                    }
 
-                // 造成伤害（LivingEntity::hurt 会设置 hurtMarked）
-                player->hurt(*damageSource, damage);
+                    living->hurt(*damageSource, damage);
 
-                if (!creativeFlying) {
-                    // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
-                    // （玩家速度由客户端通过 Explosion IR 应用，服务端不应同步速度）
-                    player->clearHurtMarked();
-                    // 记录玩家击退向量，将通过 Explosion IR 发送给客户端
-                    // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度
-                    m_playerKnockback[player->id()] =
-                        Vector3(dx * playerKnockback, dy * playerKnockback, dz * playerKnockback);
+                    // 应用击退（非玩家实体由服务端权威同步速度）
+                    entity->addVelocity(dx * livingKnockback, dy * livingKnockback, dz * livingKnockback);
+                    // LivingEntity::hurt 已设置 markHurt，EntityTracker 会通过 EntityVelocityPacket
+                    // 把更新后的速度同步给追踪此实体的客户端。这里无需额外 markHurt。
                 } else {
-                    // 创造飞行玩家不受击退，但仍需清除 hurtMarked（hurt 调用已设置它）
-                    // 否则 EntityTracker 会发送 EntityVelocityPacket，可能干扰飞行状态
-                    player->clearHurtMarked();
+                    // 普通实体伤害
+                    entity->hurt(*damageSource, damage);
+
+                    // 应用击退
+                    entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
+                    // 非 LivingEntity 的 hurt 默认实现不调用 markHurt，需显式标记以同步速度
+                    entity->markHurt();
                 }
 
                 // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
                 entity->onExplosionHit(m_source);
+            }
+        } else if (knockbackMultiplier > 0.0f) {
+            // shouldDamage=false 但有击退倍率：不造成伤害，仅施加击退
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player != nullptr) {
+                if (player->isSpectator()) {
+                    continue;
+                }
+                const PlayerAbilities& abilities = player->abilities();
+                const bool creativeFlying = player->isCreative() && abilities.flying;
+                if (!creativeFlying) {
+                    // 玩家击退由客户端通过 Explosion IR 应用，服务端仅记录向量
+                    player->clearHurtMarked();
+                    m_playerKnockback[player->id()] = Vector3(dx * knockback, dy * knockback, dz * knockback);
+                }
+                entity->onExplosionHit(m_source);
                 continue;
             }
 
-            // ========== 非玩家生物实体分支 ==========
             LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-            if (living) {
-                // 应用爆炸保护附魔减伤
-                f32 knockback = impact;
-                i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
-                    living->getArmorSlots(), DamageFlags::EXPLOSION);
-                if (blastProtection > 0) {
-                    // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
-                    // 击退减少: knockback * (1 - EPF * 0.15)
-                    damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
-                    knockback = knockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
-                }
-
-                living->hurt(*damageSource, damage);
-
-                // 应用击退（非玩家实体由服务端权威同步速度）
+            if (living != nullptr) {
                 entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
-                // LivingEntity::hurt 已设置 markHurt，EntityTracker 会通过 EntityVelocityPacket
-                // 把更新后的速度同步给追踪此实体的客户端。这里无需额外 markHurt。
             } else {
-                // 普通实体伤害
-                entity->hurt(*damageSource, damage);
-
-                // 应用击退
-                entity->addVelocity(dx * impact, dy * impact, dz * impact);
-                // 非 LivingEntity 的 hurt 默认实现不调用 markHurt，需显式标记以同步速度
+                entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
                 entity->markHurt();
             }
-
-            // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
             entity->onExplosionHit(m_source);
         }
     }
@@ -437,6 +663,15 @@ void Explosion::_calculateAffectedEntities()
 
 void Explosion::_destroyBlocks()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_destroyBlocks",
+        "affectedCount",
+        static_cast<i64>(m_affectedBlocks.size()),
+        "mode",
+        static_cast<u8>(m_mode),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     if (m_mode == ExplosionMode::None) {
         return; // 不破坏方块
     }
@@ -531,6 +766,9 @@ void Explosion::_destroyBlocks()
             ItemDropHelper::spawnItemEntities(&m_world, pos, singleDrop, m_random, throwerUuid);
         }
     }
+
+    // 记录本次爆炸合并后的掉落物数量（计数器）
+    MC_TRACE_COUNTER(TraceEvents.Server.World, "Explosion.ItemDrops", static_cast<i64>(allDrops.size()));
 }
 
 void Explosion::_applyKnockback()
@@ -541,6 +779,13 @@ void Explosion::_applyKnockback()
 
 void Explosion::_spawnParticles()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_spawnParticles",
+        "radius",
+        m_radius,
+        "bigExplosion",
+        (m_radius >= 2.0f && m_mode != ExplosionMode::None));
+
     if (m_radius >= 2.0f && m_mode != ExplosionMode::None) {
         // 大爆炸：使用发射器粒子
         m_world.addParticle(particle::ParticleTypeId::HugeExplosion, m_position, Vector3(1.0f, 0.0f, 0.0f));
@@ -555,6 +800,8 @@ void Explosion::_playSound()
     // 播放爆炸音效
     f32 pitch = EXPLOSION_PITCH_BASE + (m_random.nextFloat() * 2.0f - 1.0f) * EXPLOSION_PITCH_RANGE * 0.5f;
 
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "Explosion::_playSound", "pitch", pitch);
+
     m_world.playSound(ResourceLocation("minecraft:entity.generic.explode"),
         sound::SoundCategory::Blocks,
         m_position,
@@ -566,9 +813,158 @@ void Explosion::_playSound()
 // 辅助方法
 // ============================================================================
 
+bool Explosion::_isLineOfSightBlocked(
+    const Vector3& samplePoint, const Vector3& explosionCenter, ExplosionLosCache& cache, i32 minY, i32 maxY) const
+{
+    // 以下 DDA 骨架逐行复刻 raycastBlocks（Raycast.cpp），仅替换：
+    //   - 零向量/重合 → 返回 false（无遮挡，等价 miss）
+    //   - getCachedBlockState → 跨采样点复用 cache + section isEmpty 早退
+    //   - isWithinWorldBounds 虚调用 → 内联 Y 比较（X/Z 不检查，与现状等价）
+    //   - traceBlockShape → _traceBlockShapeHitOnly（hit-only bool，不构造结果）
+    //   - 命中 → return true（遮挡）；miss → return false
+
+    const Vector3 start = samplePoint;
+    const Vector3 dir(
+        explosionCenter.x - samplePoint.x, explosionCenter.y - samplePoint.y, explosionCenter.z - samplePoint.z);
+
+    if (dir.lengthSquared() < 0.0001f) {
+        // 方向为零向量：采样点与爆炸中心重合，视为无遮挡
+        return false;
+    }
+
+    // 精确复刻原 _getBlockDensity 的射线终点构造：direction 未归一化（=explosionCenter-samplePoint），
+    // maxDistance = |direction|，end = origin + direction * maxDistance = samplePoint + dir * |dir|。
+    // 注意 end ≠ explosionCenter（除非 |dir|==1），这是原实现的既定行为，专用路径必须保持以
+    // 不改变遮挡判定与伤害数值。
+    const f32 distance = dir.length();
+    const Vector3 end(start.x + dir.x * distance, start.y + dir.y * distance, start.z + dir.z * distance);
+
+    if (start.distanceSquared(end) < 0.0001f) {
+        // 起点和终点重合，视为无遮挡
+        return false;
+    }
+
+    // 端点偏移避免边界精度问题，与 raycastBlocks 一致
+    const f32 eps = 1.0e-7f;
+    const Vector3 adjustedEnd(
+        end.x + (start.x - end.x) * eps, end.y + (start.y - end.y) * eps, end.z + (start.z - end.z) * eps);
+    const Vector3 adjustedStart(
+        start.x + (end.x - start.x) * eps, start.y + (end.y - start.y) * eps, start.z + (end.z - start.z) * eps);
+
+    const f32 dx = adjustedEnd.x - adjustedStart.x;
+    const f32 dy = adjustedEnd.y - adjustedStart.y;
+    const f32 dz = adjustedEnd.z - adjustedStart.z;
+    const Vector3 ddaDelta(dx, dy, dz);
+
+    i32 currentX = static_cast<i32>(std::floor(adjustedStart.x));
+    i32 currentY = static_cast<i32>(std::floor(adjustedStart.y));
+    i32 currentZ = static_cast<i32>(std::floor(adjustedStart.z));
+
+    // 缓存式 getBlockState：命中 cache.cachedChunk 则直读 section，否则刷新缓存；
+    // getChunk 返回 nullptr 时回退到 world.getBlockState（测试桩世界/未加载区块）。
+    // section 级早退：当前 section 为空（m_blockCount==0）或未创建时直接返回 nullptr，
+    // 调用方据此跳过逐方块查询。section/chunk 切换时刷新 cachedSection 指针。
+    const auto getCachedBlockState = [&](i32 x, i32 y, i32 z) -> const BlockState* {
+        const ChunkCoord chunkX = world::toChunkCoord(x);
+        const ChunkCoord chunkZ = world::toChunkCoord(z);
+        if (cache.cachedChunk == nullptr || chunkX != cache.cachedChunkX || chunkZ != cache.cachedChunkZ) {
+            cache.cachedChunkX = chunkX;
+            cache.cachedChunkZ = chunkZ;
+            cache.cachedChunk = m_world.getChunk(chunkX, chunkZ);
+            cache.cachedChunkIsNull = (cache.cachedChunk == nullptr);
+            // 区块变更后段缓存失效，强制重取
+            cache.cachedSectionIndex = -1;
+            cache.cachedSection = nullptr;
+        }
+        if (cache.cachedChunkIsNull) {
+            return m_world.getBlockState(x, y, z);
+        }
+        const i32 sectionIndex = world::toSectionIndex(y);
+        if (sectionIndex != cache.cachedSectionIndex) {
+            cache.cachedSectionIndex = sectionIndex;
+            cache.cachedSection = cache.cachedChunk->getSection(sectionIndex);
+        }
+        // 空段（未创建或 m_blockCount==0）整段都是空气，返回 nullptr 触发调用方 continue
+        if (cache.cachedSection == nullptr || cache.cachedSection->isEmpty()) {
+            return nullptr;
+        }
+        const BlockCoord localX = x - chunkX * world::CHUNK_WIDTH;
+        const BlockCoord localZ = z - chunkZ * world::CHUNK_WIDTH;
+        return cache.cachedSection->getBlockState(localX, world::toSectionLocalY(y), localZ);
+    };
+
+    // 起点预检：起点在非空气非液体方块内且 shape 命中 → 遮挡
+    if (currentY >= minY && currentY < maxY) {
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
+        if (state != nullptr && !state->isAir() && !state->isLiquid()) {
+            if (_traceBlockShapeHitOnly(*state, currentX, currentY, currentZ, adjustedStart, ddaDelta)) {
+                return true;
+            }
+        }
+    }
+
+    const i32 stepX = (dx > 0.0f) ? 1 : ((dx < 0.0f) ? -1 : 0);
+    const i32 stepY = (dy > 0.0f) ? 1 : ((dy < 0.0f) ? -1 : 0);
+    const i32 stepZ = (dz > 0.0f) ? 1 : ((dz < 0.0f) ? -1 : 0);
+
+    const f32 tDeltaX = (stepX == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepX) / dx;
+    const f32 tDeltaY = (stepY == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepY) / dy;
+    const f32 tDeltaZ = (stepZ == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepZ) / dz;
+
+    const auto fractVal = [](f32 v) { return v - std::floor(v); };
+    f32 tMaxX = (stepX == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaX * (stepX > 0 ? (1.0f - fractVal(adjustedStart.x)) : fractVal(adjustedStart.x));
+    f32 tMaxY = (stepY == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaY * (stepY > 0 ? (1.0f - fractVal(adjustedStart.y)) : fractVal(adjustedStart.y));
+    f32 tMaxZ = (stepZ == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaZ * (stepZ > 0 ? (1.0f - fractVal(adjustedStart.z)) : fractVal(adjustedStart.z));
+
+    while (tMaxX <= 1.0f || tMaxY <= 1.0f || tMaxZ <= 1.0f) {
+        // 选择最小 t 值前进（与 raycastBlocks 三轴选择逻辑一致）
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                currentX += stepX;
+                tMaxX += tDeltaX;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                currentY += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+
+        // Y 边界检查（内联，替代 isWithinWorldBounds 虚调用；X/Z 不检查与现状等价）
+        if (currentY < minY || currentY >= maxY) {
+            // 超出世界 Y 边界，视为无遮挡结束
+            return false;
+        }
+
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
+
+        // 空气/液体/未加载区块不遮挡
+        if (state == nullptr || state->isAir() || state->isLiquid()) {
+            continue;
+        }
+
+        if (_traceBlockShapeHitOnly(*state, currentX, currentY, currentZ, adjustedStart, ddaDelta)) {
+            return true;
+        }
+    }
+
+    // 未击中任何方块：无遮挡
+    return false;
+}
+
 f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
 {
-    // 参考 MC 1.16.5 Explosion.getBlockDensity
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "Explosion::_getBlockDensity");
+
     // 在实体碰撞箱内采样点，检测有多少可以看到爆炸中心
 
     // 计算采样步长
@@ -589,6 +985,14 @@ f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
         return 0.0f;
     }
 
+    // 预读世界 Y 边界，传入专用视线检测供循环内内联比较（替代 isWithinWorldBounds 虚调用）
+    const i32 minY = m_world.getMinBuildHeight();
+    const i32 maxY = m_world.getMaxBuildHeight();
+
+    // 跨采样点复用的区块/区块段缓存：本实体的约 45 条采样射线共享 chunk/section 指针，
+    // 把逐射线的锁+哈希查找降到个位数（专用视线检测的核心收益点）
+    ExplosionLosCache cache;
+
     i32 visible = 0;
     i32 total = 0;
 
@@ -601,16 +1005,9 @@ f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
                     entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
 
-                // 使用射线检测是否有方块阻挡
-                Ray ray(samplePoint,
-                    Vector3(m_position.x - samplePoint.x, m_position.y - samplePoint.y, m_position.z - samplePoint.z));
-                f32 distance = (m_position - samplePoint).length();
-                RaycastContext context(ray, distance);
-
-                BlockRaycastResult result = raycastBlocks(context, m_world);
-
-                // 如果射线未击中任何方块，说明该采样点可以看到爆炸中心
-                if (result.isMiss()) {
+                // 专用视线检测：被遮挡则该采样点看不到爆炸中心
+                const bool blocked = _isLineOfSightBlocked(samplePoint, m_position, cache, minY, maxY);
+                if (!blocked) {
                     ++visible;
                 }
                 ++total;
@@ -634,16 +1031,15 @@ std::optional<f32> Explosion::_getExplosionResistance(const BlockPos& pos)
     return m_context->getExplosionResistance(*blockState, fluidState);
 }
 
-f32 Explosion::_calculateDamage(Entity& entity, f32 distance, f32 density)
-{
-    // 伤害公式
-    // damage = floor((impact^2 + impact) / 2 * 7 * radius + 1)
-    f32 impact = (1.0f - distance / (m_radius * ENTITY_RANGE_MULTIPLIER)) * density;
-    return std::floor((impact * impact + impact) / 2.0f * DAMAGE_MULTIPLIER * m_radius + 1.0f);
-}
-
 void Explosion::_spawnFire()
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_spawnFire",
+        "affectedCount",
+        static_cast<i64>(m_affectedBlocks.size()),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
+
     // 1/3 概率在空位置生成火焰，前提是下方方块是不透明固体方块
 
     for (const BlockPos& pos : m_affectedBlocks) {
@@ -669,6 +1065,12 @@ void Explosion::_spawnFire()
 
 std::vector<ItemStack> Explosion::_generateBlockDrops(const BlockPos& pos, const BlockState& state)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "Explosion::_generateBlockDrops",
+        "pos",
+        fmt::format("({}, {}, {})", pos.x, pos.y, pos.z),
+        [flow = ::perfetto::Flow::ProcessScoped(BlockPos(m_position).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     if (m_lootTableManager == nullptr) {
         return {};

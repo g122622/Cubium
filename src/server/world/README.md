@@ -21,7 +21,6 @@ src/server/world/
 │   └── README.md
 ├── entity/
 │   ├── EntityTracker.hpp/cpp        # 实体追踪器（客户端可见性管理）
-│   ├── EntityChunkTracker.hpp/cpp   # 实体区块追踪（按区块追踪实体）
 │   ├── ItemPickupManager.hpp/cpp    # 物品拾取管理器
 │   └── README.md
 ├── player/

@@ -6,8 +6,6 @@
 
 ```
 src/server/world/entity/
-├── EntityChunkTracker.hpp  # 实体所属区块跟踪器（为区块卸载和跨区块移动提供稳定映射）
-├── EntityChunkTracker.cpp  # 实体所属区块跟踪器实现
 ├── EntityTracker.hpp       # 实体追踪器（管理实体客户端可见性，同步位置/旋转/元数据）
 ├── EntityTracker.cpp       # 实体追踪器实现
 ├── ItemPickupManager.hpp   # 物品拾取管理器（检测拾取、物品合并、背包更新）
@@ -18,7 +16,8 @@ src/server/world/entity/
 
 - **EntityTracker** 管理实体的客户端可见性，基于距离和视距计算追踪范围，发送实体生成/销毁/更新包；tick 中检测 `isHurtMarked()` 并在受伤时发送速度同步包
 - **ItemPickupManager** 处理玩家拾取掉落物逻辑，包括拾取检测、背包更新。物品合并由 `ItemEntity::_updateMerge` 在每实体 tick 中统一处理（移动时每 2 tick、静止时每 40 tick 检测，对应原版 `ItemEntity.mergeWithNeighbours` 单一路径），ItemPickupManager 不再重复扫描合并
-- **EntityChunkTracker** 跟踪实体当前所属区块，为区块卸载保存和跨区块移动修正提供稳定映射
+
+注：实体空间归属（含区块卸载取实体）已由 common 层 `EntitySpatialIndex`（3D section 索引）统一承担，本模块不再维护独立的区块归属追踪器（原 `EntityChunkTracker` 已删除）。区块卸载/关机保存时 `ServerWorld` 经 `EntityManager::spatialIndex().getEntityIdsInChunkColumn(cx, cz)` 取该 chunk 列内全部实体。
 
 ## 上下游外部依赖关系
 
@@ -55,17 +54,13 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 ### 6. 物品合并单一入口
 物品合并仅由 `ItemEntity::_updateMerge` 处理（搜索 AABB 内邻居，数量较少的合并到较多的，受 `ItemEntity::MERGE_RANGE` 控制）。`ItemEntity::tick` 起始处检查空物品立即移除（`getItem().isEmpty()`），`pickupDelay` 仅当 `>0 且 != FAKE_PICKUP_DELAY(32767)` 时递减（创造假物品永不递减、不可拾取）。ItemPickupManager::tick 不再调用任何合并扫描，避免与 `_updateMerge` 重复执行导致 CPU 翻倍。
 
-### 7. EntityChunkTracker 与 EntityTracker 的区别
-- `EntityTracker`：网络同步追踪，管理客户端可见性
-- `EntityChunkTracker`：区块归属追踪，用于区块卸载时保存实体
-
-### 8. hurtMarked 速度同步机制
+### 7. hurtMarked 速度同步机制
 - EntityTracker::tick() 遍历追踪实体时检查 `entity->isHurtMarked()`
 - 当 hurtMarked 为 true 时，调用 `_sendVelocityPacket()` 向所有追踪玩家发送 `ir::play::SetEntityMotion`（旧 `EntityVelocityPacket` 已删除，统一走 IR），然后调用 `clearHurtMarked()` 清除标记
 - 该机制确保实体受伤/击退后客户端速度立即同步，避免客户端预测与服务器不一致
 - `_sendVelocityPacket()` 是新增的私有方法，封装速度包的构建和广播逻辑
 
-### 9. "AndSelf" 速度同步与 causeExtraKnockback 修复
+### 8. "AndSelf" 速度同步与 causeExtraKnockback 修复
 - MC Java 的 `sendToTrackingPlayersAndSelf` 中，当实体本身是 Player 时也需要向其自身发送速度包
 - EntityTracker::tick() 在 hurtMarked 为 true 时，除了向追踪玩家发送速度包，还会通过 `Player::sendVelocityPacket()` 虚方法向自身发送
 - ServerPlayer 不会出现在自己的追踪列表中，因此需要单独发送

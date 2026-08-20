@@ -25,6 +25,7 @@
 
 #include "ExplosionContext.hpp"
 #include "ExplosionMode.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -46,6 +47,9 @@ class Player;
 class BlockState;
 class AxisAlignedBB;
 class ItemStack;
+// 测试 fixture（tests/common/world/explosion/ExplosionLosBlockTest.cpp），经 friend 访问私有
+// _getBlockDensity 验证专用视线 DDA 与公共 raycastBlocks 的行为等价性。
+class ExplosionLosBlockTest;
 
 namespace entity {
 class TNTEntity;
@@ -57,6 +61,9 @@ class LootTableManager;
 }
 
 namespace world::explosion {
+
+// 前向声明：跨采样点视线缓存，定义在 Explosion.cpp 匿名命名空间，仅服务 _getBlockDensity。
+struct ExplosionLosCache;
 
 /**
  * @brief 爆炸类
@@ -75,6 +82,9 @@ namespace world::explosion {
  */
 class Explosion {
 public:
+    // 端到端视线遮挡回归测试需访问私有 _getBlockDensity 以逐采样点对比专用 DDA
+    // 与公共 raycastBlocks 的等价性（见 ExplosionLosBlockTest）。
+    friend class ::mc::ExplosionLosBlockTest;
     /**
      * @brief 构造爆炸对象
      *
@@ -159,6 +169,13 @@ public:
     [[nodiscard]] const Vector3& position() const noexcept { return m_position; }
 
     /**
+     * @brief 获取实体伤害/影响范围半径（= radius * 2）
+     *
+     * 既是实体搜索范围，也是伤害公式中距离比例的分母，与 vanilla 一致。
+     */
+    [[nodiscard]] f32 damageRadius() const noexcept { return m_radius * game::explosion::ENTITY_RANGE_MULTIPLIER; }
+
+    /**
      * @brief 获取爆炸模式
      */
     [[nodiscard]] ExplosionMode mode() const noexcept { return m_mode; }
@@ -182,7 +199,6 @@ public:
      * - 如果直接源是 TNTEntity，返回其点燃者（如果是 LivingEntity）
      * - 其他情况返回 nullptr
      *
-     * 对应 MC Java 的 Explosion.getIndirectSourceEntity()。
      * 用于连锁爆炸场景中正确归属伤害来源。
      *
      * @return 间接源实体，如果无法确定返回 nullptr
@@ -250,22 +266,38 @@ private:
     [[nodiscard]] f32 _getBlockDensity(const AxisAlignedBB& entityBox);
 
     /**
+     * @brief 爆炸专用视线检测：判断采样点到爆炸中心的射线是否被方块遮挡
+     *
+     * 绕过公共 raycastBlocks，在 _getBlockDensity 内跨采样点复用 chunk/section 缓存，
+     * 降低单次视线检测成本。DDA 骨架逐行复刻 raycastBlocks，"是否被遮挡"判定等价，
+     * 故不改变爆炸伤害数值。
+     *
+     * @param samplePoint 采样点（实体碰撞箱内）
+     * @param explosionCenter 爆炸中心（= m_position）
+     * @param cache 跨采样点复用的区块/区块段缓存（由 _getBlockDensity 构造一次）
+     * @param minY 世界最小建筑高度（入口预读，循环内内联比较替代 isWithinWorldBounds 虚调用）
+     * @param maxY 世界最大建筑高度（独占上界）
+     * @return true 表示射线被非空气非液体方块遮挡；false 表示无遮挡（等价 raycastBlocks 的 miss）
+     */
+    [[nodiscard]] bool _isLineOfSightBlocked(
+        const Vector3& samplePoint, const Vector3& explosionCenter, ExplosionLosCache& cache, i32 minY, i32 maxY) const;
+
+    /**
+     * @brief 判断本次爆炸是否影响"方块类实体"（掉落物/盔甲架/悬挂实体/载具）
+     *
+     * mobGriefing 开启时恒为 true；否则取决于爆炸是否破坏方块（ExplosionMode 非 None）。
+     * 简化前提：风弹/风爆附魔不走 Explosion 类，故 m_source 永非风弹源，等价 vanilla
+     * shouldAffectBlocklikeEntities() 退化为 mobGriefing ? true : (mode != None)。
+     */
+    [[nodiscard]] bool _shouldAffectBlocklikeEntities() const;
+
+    /**
      * @brief 获取指定位置的爆炸抗性
      *
      * @param pos 方块位置
      * @return 爆炸抗性值，如果为空气返回 std::nullopt
      */
     [[nodiscard]] std::optional<f32> _getExplosionResistance(const BlockPos& pos);
-
-    /**
-     * @brief 计算实体伤害
-     *
-     * @param entity 实体
-     * @param distance 距离爆炸中心的距离
-     * @param density 阻挡密度
-     * @return 伤害值
-     */
-    [[nodiscard]] f32 _calculateDamage(Entity& entity, f32 distance, f32 density);
 
     /**
      * @brief 生成火焰

@@ -41,6 +41,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -157,6 +158,16 @@ bool HangingEntity::hurt(DamageSource& source, f32 /*amount*/)
     }
 
     return true;
+}
+
+bool HangingEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
+{
+    // 直接源在水中的爆炸不破坏悬挂实体（如水下 TNT 不毁画框）。
+    if (ctx.directSource != nullptr && ctx.directSource->isInWater()) {
+        return true;
+    }
+    // 否则仅当爆炸影响方块类实体时才受影响。
+    return ctx.shouldAffectBlocklikeEntities ? Entity::ignoreExplosion(ctx) : true;
 }
 
 void HangingEntity::updateBoundingBox()

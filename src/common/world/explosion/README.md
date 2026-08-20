@@ -4,12 +4,13 @@
 
 ```text
 explosion/
-├── ExplosionMode.hpp           # 爆炸模式枚举定义（None / Break / Destroy）
-├── ExplosionContext.hpp        # 爆炸上下文基类及实体/凋灵之首上下文
-├── ExplosionContext.cpp        # ExplosionContext 实现
-├── Explosion.hpp               # 爆炸核心类，执行完整爆炸流程
-├── Explosion.cpp               # Explosion 实现
-└── README.md                   # 本文档
+├── ExplosionMode.hpp              # 爆炸模式枚举定义（None / Break / Destroy）
+├── ExplosionContext.hpp           # 爆炸上下文基类及实体/凋灵之首上下文
+├── ExplosionContext.cpp           # ExplosionContext 实现
+├── ExplosionImmunityContext.hpp   # 爆炸免疫判定上下文（值结构体，供 Entity::ignoreExplosion）
+├── Explosion.hpp                  # 爆炸核心类，执行完整爆炸流程
+├── Explosion.cpp                  # Explosion 实现
+└── README.md                      # 本文档
 ```
 
 ## 内部模块关系
@@ -18,8 +19,8 @@ explosion/
 ExplosionMode（枚举）
        │
        ▼
-ExplosionContext ◄─────────── Explosion
-       │                           │
+ExplosionContext ◄─────────── Explosion ──► ExplosionImmunityContext
+       │                           │              （值结构体，传给 Entity::ignoreExplosion）
        ├── EntityExplosionContext   │ 射线追踪、伤害计算
        │                           │ 方块破坏、掉落生成
        └── WitherSkullExplosionContext
@@ -100,7 +101,7 @@ ExplosionContext ◄─────────── Explosion
 
 **问题**：物品存活概率为 `1 - 1 / explosionRadius`，半径为 1 时物品 100% 消失。
 
-**解决**：这是 MC 1.16.5 的正确行为，恶魂火球（半径 1）爆炸不掉落物品。
+**解决**：这是 vanilla 的正确行为，恶魂火球（半径 1）爆炸不掉落物品。
 
 ### #5. 射线追踪使用随机种子
 
@@ -159,3 +160,59 @@ ExplosionContext ◄─────────── Explosion
 **非玩家实体**（生物、掉落物等）仍由服务端权威同步速度：调用 `addVelocity` 修改服务端速度，依赖 `LivingEntity::hurt` 设置的 `hurtMarked` 通过 `EntityVelocityPacket` 同步给追踪此实体的客户端。
 
 **EPF 一致性**：玩家分支与非玩家生物分支都使用 EPF 衰减后的 `knockback` 值（`impact * (1 - EPF * 0.15)`），保证 `Explosion IR` 中的击退向量与服务端（若有）应用的一致。对应 MC Java `ServerExplosion.hurtEntities` 第 197 行：`Vec3 vec32 = vec31.scale(d2)` 计算一次，`entity.push(vec32)` 与 `hitPlayers.put(player, vec32)` 共用同一向量。
+
+### #11. hurtEntities 短路与 ignoreExplosion 覆写（D 方案）
+
+**背景**：`Explosion::_getBlockDensity`（getSeenPercent raycast）曾占爆炸墙钟约 69%，其中绝大多数耗时在 DDA 步进循环本身。D 方案从源头减少 raycast 调用次数，不动 raycast 内部。
+
+**两层改造**：
+
+#### D-1：ignoreExplosion 覆写（实性能收益层）
+
+`_calculateAffectedEntities` 循环头部对每个实体调用 `entity->ignoreExplosion(ctx)`，返回 true 则 `continue`，根本不进入 raycast。覆写对齐 Java 1.21.11：
+
+| 实体类 | ignoreExplosion 语义 | Cubium 实现 |
+|--------|----------------------|-------------|
+| ItemEntity | `shouldAffectBlocklikeEntities ? super : true` | 同左 |
+| ArmorStandEntity | `shouldAffectBlocklikeEntities ? isInvisible() : true` | 同左（用 ArmorStand 自身 `isInvisible()` 近似 vanilla `Entity.isInvisible()`，TODO 待通用 invisible） |
+| HangingEntity（Painting/ItemFrame/LeashKnot） | `directSource 在水中 ? true : (shouldAffectBlocklikeEntities ? super : true)` | 同左 |
+| BoatEntity / AbstractMinecartEntity | `indirectSource instanceof Mob && !mobGriefing ? super : true` | 同左（Cubium 无 VehicleEntity 基类，分别覆写） |
+| WardenEntity | Digging/Emerging 姿态免疫 | TODO：姿态系统未实现，回退基类 |
+
+`ExplosionImmunityContext` 是值结构体，预填四个字段供覆写判定，避免每个实体覆写内反查 world：
+- `shouldAffectBlocklikeEntities`：`mobGriefing || mode != None`（Cubium 风弹不走 Explosion，简化 vanilla 公式中的"非风弹源"判定为恒真）
+- `indirectSource`：`Explosion::getIndirectSourceEntity()`（追溯 TNT→点燃者 / 投射物→发射者）
+- `directSource`：`m_source`
+- `mobGriefing`：预填的游戏规则值
+
+三处调用点各自构造等价上下文：`Explosion::_calculateAffectedEntities`（完整爆炸）、`Player::_applyWindBurstEffect`（风爆附魔，shouldAffectBlocklikeEntities=false）、`WindChargeEntity::applyWindBurst`（风弹，shouldAffectBlocklikeEntities=false）。
+
+#### D-2：hurtEntities 循环重写 + 伤害钩子（架构对齐层）
+
+`ExplosionContext` 加三个实体伤害钩子（默认对齐 Java DefaultExplosionDamageCalculator）：
+- `shouldDamageEntity(explosion, entity)` → 默认 true
+- `getKnockbackMultiplier(explosion, entity)` → 默认 1.0
+- `getEntityDamageAmount(explosion, entity, seenPercent)` → 默认复刻 Java 公式
+
+`_calculateAffectedEntities` 循环对齐 Java `ServerExplosion.hurtEntities` 短路：
+
+```text
+shouldDamage = context.shouldDamageEntity(...)
+knockbackMul = context.getKnockbackMultiplier(...)
+seenPercent = (!shouldDamage && knockbackMul == 0) ? 0 : _getBlockDensity(box)
+```
+
+默认 calculator 下 `shouldDamage=true`、`knockbackMul=1.0`，短路永不触发，seenPercent 照常计算——**默认无性能收益**，收益来自 D-1 的 ignoreExplosion 覆写。短路为未来自定义 calculator（如某实体只击退不伤害）铺路。
+
+#### 伤害公式修正
+
+Cubium 原伤害公式少乘 ×2（用 `7 * radius`），已修正为对齐 Java 1.21.11：
+
+```text
+damageRadius = radius * 2          // 实体影响范围半径
+impact = (1 - distanceRatio) * seenPercent
+damage = floor((impact^2 + impact) / 2 * 7 * damageRadius + 1)
+```
+
+修正后所有爆炸伤害翻倍（TNT 中心 29 → 57）。`Explosion::damageRadius()` public getter 供默认实现与公式对齐，常量 `game::explosion::ENTITY_RANGE_MULTIPLIER`（=2）与 `DAMAGE_MULTIPLIER`（=7）定义在 `common/core/Constants.hpp`。
+

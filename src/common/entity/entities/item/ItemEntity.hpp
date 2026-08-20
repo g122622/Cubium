@@ -43,6 +43,10 @@ namespace mc {
 class Player;
 class World;
 
+namespace world::explosion {
+struct ExplosionImmunityContext;
+} // namespace world::explosion
+
 /**
  * @brief 物品实体
  *
@@ -180,6 +184,14 @@ public:
      * 当物品是羊毛物品时阻尼振动。
      */
     [[nodiscard]] bool dampensVibrations() const override;
+
+    /**
+     * @brief 判断物品实体是否忽略此次爆炸
+     *
+     * 仅当爆炸影响方块类实体时（shouldAffectBlocklikeEntities）才受爆炸影响，
+     * 否则忽略（掉落物不被爆炸击飞/销毁）。
+     */
+    [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
     /**
      * @brief 判断是否应播放岩浆受伤音效

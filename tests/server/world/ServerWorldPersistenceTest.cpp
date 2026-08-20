@@ -168,11 +168,9 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
 
     world->tick();
 
-    auto trackedChunk = world->entityChunkTracker().getEntityChunk(entityId);
-    ASSERT_TRUE(trackedChunk.has_value());
-    EXPECT_EQ(trackedChunk->first, 2);
-    EXPECT_EQ(trackedChunk->second, 0);
-
+    // 实体空间归属现已由 EntitySpatialIndex 按实体当前坐标实时维护（reapplyPosition 钩子），
+    // 不再有 EntityChunkTracker 中间态可断言。下方 onChunkUnloading(2, 0) 会按实体当前坐标
+    // （chunk (2,0)）取该列实体并保存，验证最终持久化结果即可。
     world->onChunkUnloading(2, 0);
 
     EXPECT_EQ(world->getEntity(entityId), nullptr);

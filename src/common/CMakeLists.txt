@@ -662,6 +662,8 @@ add_library(mc_common STATIC
     # World - Entity
     world/entity/EntityManager.cpp
     world/entity/JavaEntityTypeIdMap.cpp
+    world/entity/spatial/EntitySectionBucket.cpp
+    world/entity/spatial/EntitySpatialIndex.cpp
 
     # World - IWorld implementation
     world/IWorld.cpp

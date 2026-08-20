@@ -280,7 +280,9 @@ void ServerWorld::shutdown()
     if (m_storage && m_storage->isOpen() && m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::SaveEntitiesInChunks");
         m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
-            auto entityIds = m_entityChunkTracker.getEntitiesInChunk(chunk.x(), chunk.z());
+            // 走 3D section 空间索引取该 chunk 列内全部实体 ID（遍历该 (cx,cz) 列 24 个 section 合并）。
+            // 区块卸载/关机保存是低频操作，24 次哈希查找 vs 原 tracker 单次查找，差异可忽略。
+            auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(chunk.x(), chunk.z());
             if (!entityIds.empty()) {
                 auto* entityStorage = m_storage->entityStorage();
                 if (entityStorage) {
@@ -306,7 +308,6 @@ void ServerWorld::shutdown()
             }
             return true;
         });
-        m_entityChunkTracker.clear();
     }
 
     // 先清理袭击管理器（可能引用村庄）
@@ -1265,23 +1266,8 @@ void ServerWorld::tick()
 
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
-    m_entityManager.forEachEntity([this](Entity* entity) {
-        if (entity == nullptr || entity->isRemoved()) {
-            return true;
-        }
-
-        const ChunkCoord currentCx = CoordConverter::blockToChunk(entity->x());
-        const ChunkCoord currentCz = CoordConverter::blockToChunk(entity->z());
-        const auto trackedChunk = m_entityChunkTracker.getEntityChunk(entity->id());
-        if (!trackedChunk.has_value()) {
-            m_entityChunkTracker.onEntityAdded(entity->id(), currentCx, currentCz);
-            return true;
-        }
-
-        const auto [oldCx, oldCz] = *trackedChunk;
-        m_entityChunkTracker.onEntityMoved(entity->id(), oldCx, oldCz, currentCx, currentCz);
-        return true;
-    });
+    // 注：实体空间归属现已由 EntitySpatialIndex 在 addEntity/removeEntity/reapplyPosition 时实时维护，
+    // 不再需要每 tick 全量重对齐（原 EntityChunkTracker 每帧 O(n) 重算 chunk 归属的逻辑已删除）。
 }
 
 // ============================================================================
@@ -1980,10 +1966,8 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
         if (m_server != nullptr) {
             m_entityTracker.notifyEntityTracked(*m_server, *this, addedEntity);
         }
-        // 注册到区块跟踪器
-        ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
-        ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
-        m_entityChunkTracker.onEntityAdded(id, cx, cz);
+        // 实体空间归属由 EntitySpatialIndex 在 addEntity 时按当前位置一次性登记，
+        // 后续 move 经 reapplyPosition 实时迁移，无需此处手动注册。
     } else {
         // 理论上不应该发生，addEntity 成功后应该能通过 getEntity 获取到实体。这里做个断言以便排查潜在问题。
         MC_ASSERT_RELEASE(false);
@@ -1992,9 +1976,9 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-// 注意：此方法不仅移除实体，还负责取消追踪和区块归属注销。
+// 注意：此方法不仅移除实体，还负责取消追踪。
 // 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
-// 以确保实体追踪器和区块跟踪器状态正确更新。
+// 以确保实体追踪器状态正确更新。
 std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
 {
     // 先向追踪玩家发送 destroy 包并取消追踪：必须在 EntityManager 移除实体之前完成，
@@ -2007,10 +1991,8 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
     }
 
     auto entity = m_entityManager.removeEntity(id);
-    if (entity) {
-        // 从区块跟踪器中移除
-        m_entityChunkTracker.onEntityRemoved(id);
-    } else {
+    // EntityManager::removeEntity 内部已从空间索引移除实体，无需此处手动注销。
+    if (!entity) {
         spdlog::error("Attempted to remove non-existent entity with ID {}", id);
     }
     return entity;
@@ -2094,10 +2076,7 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
                 if (m_server != nullptr) {
                     m_entityTracker.notifyEntityTracked(*m_server, *this, addedEntity);
                 }
-                // 注册到区块跟踪器
-                ChunkCoord cx = CoordConverter::blockToChunk(addedEntity->x());
-                ChunkCoord cz = CoordConverter::blockToChunk(addedEntity->z());
-                m_entityChunkTracker.onEntityAdded(entityId, cx, cz);
+                // 实体空间归属由 EntitySpatialIndex 在 addEntity 时一次性登记，无需此处手动注册。
             }
             ++spawnedCount;
         }
@@ -2110,15 +2089,8 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 // 实体区块持久化
 // ============================================================================
 
-void ServerWorld::_spawnLoadedEntity(std::unique_ptr<Entity> entity,
-    ChunkCoord x,
-    ChunkCoord z,
-    std::optional<std::pair<ChunkCoord, ChunkCoord>> entityChunk)
+void ServerWorld::_spawnLoadedEntity(std::unique_ptr<Entity> entity, ChunkCoord x, ChunkCoord z)
 {
-    // 必须在 spawnEntity 之前捕获坐标——spawnEntity 会 move 走实体所有权。
-    const ChunkCoord actualCx = entityChunk ? entityChunk->first : x;
-    const ChunkCoord actualCz = entityChunk ? entityChunk->second : z;
-
     EntityInstanceId id = spawnEntity(std::move(entity));
     if (id == 0) {
         spdlog::warn("Failed to spawn storage-loaded entity for chunk ({}, {})", x, z);
@@ -2139,12 +2111,8 @@ void ServerWorld::_spawnLoadedEntity(std::unique_ptr<Entity> entity,
                 attachResult.error().message());
         }
     }
-
-    // native 路径：实体真实所在区块可能与加载区块不符（跨区块实体），按实际坐标重注册。
-    if (entityChunk && (actualCx != x || actualCz != z)) {
-        m_entityChunkTracker.onEntityRemoved(id);
-        m_entityChunkTracker.onEntityAdded(id, actualCx, actualCz);
-    }
+    // 注：实体空间归属由 EntitySpatialIndex 在 addEntity 时按实体当前坐标登记，
+    // 跨区块实体（加载区块与真实所在区块不符）也按真实坐标入正确 section，无需重注册。
 }
 
 void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
@@ -2154,7 +2122,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
         auto loadedEntities = chunk->takeLoadedEntities();
         for (auto& entityPtr : loadedEntities) {
             if (entityPtr) {
-                _spawnLoadedEntity(std::move(entityPtr), x, z, std::nullopt);
+                _spawnLoadedEntity(std::move(entityPtr), x, z);
             }
         }
     }
@@ -2177,7 +2145,7 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
             }
             auto entity = entityResult.value();
             if (entity != nullptr) {
-                _spawnLoadedEntity(std::move(entity), x, z, std::nullopt);
+                _spawnLoadedEntity(std::move(entity), x, z);
             }
         }
     }
@@ -2204,20 +2172,20 @@ void ServerWorld::onChunkLoaded(ChunkCoord x, ChunkCoord z)
             continue;
         }
 
-        // 计算实体所在区块坐标，确保与加载的区块一致（spawn 前捕获，见 _spawnLoadedEntity）
-        std::optional<std::pair<ChunkCoord, ChunkCoord>> entityChunk{
-            std::in_place, CoordConverter::blockToChunk(entityPtr->x()), CoordConverter::blockToChunk(entityPtr->z())};
-
-        _spawnLoadedEntity(std::move(entityPtr), x, z, std::move(entityChunk));
+        // 实体真实所在区块由 EntitySpatialIndex 在 addEntity 时按其坐标登记，
+        // 跨区块实体（加载区块与真实所在区块不符）也按真实坐标入正确 section。
+        _spawnLoadedEntity(std::move(entityPtr), x, z);
     }
 }
 
 void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
 {
     // 保存区块内所有实体到 EntityStorageManager，然后从 EntityManager 移除
+    // 走 3D section 空间索引取该 chunk 列内全部实体 ID（遍历该 (cx,cz) 列 24 个 section 合并）。
+    auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(x, z);
+
     if (!m_storage || !m_storage->isOpen()) {
         // 存储不可用时，仅移除实体（不保存）
-        auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
         for (EntityInstanceId id : entityIds) {
             removeEntity(id);
         }
@@ -2226,14 +2194,12 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
 
     auto* entityStorage = m_storage->entityStorage();
     if (!entityStorage) {
-        auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
         for (EntityInstanceId id : entityIds) {
             removeEntity(id);
         }
         return;
     }
 
-    auto entityIds = m_entityChunkTracker.getEntitiesInChunk(x, z);
     if (entityIds.empty()) {
         return;
     }
@@ -2263,7 +2229,8 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
         }
     }
 
-    // 从世界移除实体（先发 destroy 包并取消追踪，再从 EntityManager 移除并注销区块归属）
+    // 从世界移除实体（先发 destroy 包并取消追踪，再从 EntityManager 移除）
+    // EntityManager::removeEntity 内部已从空间索引移除实体，无需此处手动注销。
     for (EntityInstanceId id : entityIds) {
         // 向追踪玩家发送 destroy 包并取消追踪（必须在实体被移除前完成）
         if (m_server) {
@@ -2272,7 +2239,6 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
             m_entityTracker.untrackEntity(id);
         }
 
-        m_entityChunkTracker.onEntityRemoved(id);
         m_entityManager.removeEntity(id);
     }
 }

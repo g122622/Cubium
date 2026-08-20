@@ -43,6 +43,10 @@ class BlockPos;
 class BlockState;
 class Entity;
 
+namespace world::explosion {
+struct ExplosionImmunityContext;
+} // namespace world::explosion
+
 namespace entity {
 
 /**
@@ -163,7 +167,6 @@ public:
     /**
      * @brief 监守者免疫伤害判断
      *
-     * MC 1.21.11 Warden.isInvulnerableTo():
      * - 若处于 Digging 或 Emerging 姿态，免疫除"穿透无敌"标签外的所有伤害
      * - 否则交由父类 Monster.isInvulnerableTo() 处理
      *
@@ -173,6 +176,15 @@ public:
      * TODO: 引入 Pose::DIGGING / Pose::EMERGING 后实现完整的免疫逻辑。
      */
     [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
+
+    /**
+     * @brief 判断监守者是否忽略此次爆炸
+     *
+     * 监守者在 Digging/Emerging 姿态下应免疫爆炸。当前姿态系统未实现，先回退基类行为。
+     *
+     * TODO: 引入 Pose::DIGGING / Pose::EMERGING 后，在此姿态下返回 true。
+     */
+    [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
     /**
      * @brief 是否为非 Boss 实体
