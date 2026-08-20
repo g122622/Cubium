@@ -49,6 +49,8 @@
 #include "common/entity/ai/goal/goals/villager/VillagerBreedGoal.hpp"
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityPose.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -57,6 +59,8 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
@@ -74,9 +78,11 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -93,6 +99,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace entity {
@@ -192,6 +199,14 @@ void VillagerEntity::tick()
 
 void VillagerEntity::die(DamageSource& cause)
 {
+    // 村民→僵尸村民感染转化（对齐 MC Java 1.21.11 Zombie.killedEntity +
+    // Zombie.convertVillagerToZombieVillager）。在被僵尸系生物杀死时，按难度概率转化为僵尸村民
+    // 而非真正死亡。转化成功则提前 return，跳过下方 POI 释放（转化内已调 releaseAllPois）、
+    // 流言更新与父类 die（避免掉落经验/物品与重复死亡流程）。
+    if (_tryConvertToZombieVillager(cause)) {
+        return;
+    }
+
     // 死亡时释放所有占用的POI（床位、工作站、聚集点）并通知村庄管理器离开
     releaseAllPois();
 
@@ -213,6 +228,148 @@ void VillagerEntity::die(DamageSource& cause)
 
     // 调用父类 die() 处理通用死亡逻辑
     AbstractVillagerEntity::die(cause);
+}
+
+bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
+{
+    // 对齐 MC Java 1.21.11 Zombie.killedEntity(ServerLevel, LivingEntity, DamageSource)：
+    // 仅当 (难度为 Normal 或 Hard) && 目标是 Villager 时尝试感染。
+    //   - Normal：50% 概率感染（Java random.nextBoolean()，true 则放弃感染直接死亡）
+    //   - Hard：100% 感染
+    //   - Easy/Peaceful：0%（getVillagerInfectionChance 返回 0）
+    // DifficultyHelper::getVillagerInfectionChance 已封装此难度→概率映射。
+
+    // 必须有世界引用以读取难度、创建/生成实体
+    if (m_world == nullptr) {
+        return false;
+    }
+
+    // 伤害来源实体（真正攻击者）。getEntity 返回直接来源，getTrueSource 返回真正来源（如投射物的射手）。
+    // Java Zombie.killedEntity 在 LivingEntity.die 链中以击杀者（getEntity）为参数派发，此处取 getEntity
+    // 对齐（僵尸近战杀死村民时 getEntity 即该僵尸）。
+    Entity* sourceEntity = cause.getEntity();
+    if (sourceEntity == nullptr) {
+        // 投射物/间接伤害：退回真正来源（射手）
+        sourceEntity = cause.getTrueSource();
+    }
+
+    // 仅僵尸系生物（ZombieEntity 及其子类 Husk/ZombieVillager）可感染村民。
+    // dynamic_cast<ZombieEntity*> 覆盖 Zombie/Husk/ZombieVillager，排除 ZombifiedPiglin
+    // （它继承 MonsterEntity 而非 ZombieEntity，对齐 Java：ZombifiedPiglin 不 override killedEntity，
+    //  走 Monster 基类空实现，不感染村民）。
+    auto* zombie = dynamic_cast<ZombieEntity*>(sourceEntity);
+    if (zombie == nullptr) {
+        return false;
+    }
+
+    // 难度感染概率门控
+    const Difficulty difficulty = m_world->difficulty();
+    const f32 infectionChance = combat::DifficultyHelper::getVillagerInfectionChance(difficulty);
+    if (infectionChance <= 0.0f) {
+        return false; // Easy/Peaceful 不感染
+    }
+
+    // Normal 50% 概率：用村民自身随机数判定。Hard（100%）时 infectionChance=1.0 必过。
+    // 对齐 Java Zombie.killedEntity：Normal 难度 nextBoolean() 为 true 时 return 不感染。
+    math::Random& rng = getRandom();
+    if (rng.nextFloat() >= infectionChance) {
+        return false;
+    }
+
+    // ===== 满足感染条件，执行转化（参照 ZombieVillagerEntity::finishConverting 反向范式 +
+    // ZombieEntity::convertToDrowned 装备/状态复制范式）=====
+
+    // 转化前先释放村民占用的 POI（床位/工作站/聚集点）——村民即将不复存在，其占用须清理。
+    // releaseAllPois 内部有 m_poisReleased 守卫，后续 remove() 再调幂等。
+    releaseAllPois();
+
+    // 1. 创建 ZombieVillagerEntity（优先经 EntityRegistry 工厂，失败回退直接构造 + setTypeId 补 typeId）
+    auto& registry = EntityRegistry::instance();
+    const entity::EntityType* zvType = registry.getType("minecraft:zombie_villager");
+
+    auto* ecsReg = &ecsRegistry();
+    std::unique_ptr<Entity> newEntity;
+    if (zvType && zvType->canSummon()) {
+        newEntity = zvType->create(m_world, *ecsReg);
+    } else {
+        newEntity = std::make_unique<ZombieVillagerEntity>(EntityInstanceId(0), *ecsReg);
+        newEntity->setTypeId(EntityTypeKeys::ZOMBIE_VILLAGER); // 工厂绕过补救：直接构造缺 typeId
+    }
+
+    if (newEntity == nullptr) {
+        spdlog::error("VillagerEntity::_tryConvertToZombieVillager: failed to create zombie_villager entity");
+        return false;
+    }
+
+    auto* zombieVillager = dynamic_cast<ZombieVillagerEntity*>(newEntity.get());
+    if (zombieVillager == nullptr) {
+        spdlog::error("VillagerEntity::_tryConvertToZombieVillager: created entity is not a ZombieVillagerEntity");
+        return false;
+    }
+
+    // 2. 复制位置和旋转（对齐 Java ConversionParams.single(villager, true, true) 保留位置/旋转）
+    zombieVillager->setPosition(m_builtIn.stateVector->m_pos);
+    zombieVillager->setRotation(m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
+
+    // 3. 继承村民数据（职业/类型/等级/经验）——对齐 Java setVillagerData(getVillagerData())
+    zombieVillager->setVillagerData(m_villagerData);
+
+    // 4. 复制婴儿状态（村民 isChild → 僵尸村民 setBaby，对齐 finishConverting 反向 setChild(isBaby())）
+    zombieVillager->setBaby(isChild());
+
+    // 5. 复制装备（逐槽，对齐 Java ConversionParams 保留装备语义）
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& equipment = getEquipment(slot);
+        if (!equipment.isEmpty()) {
+            zombieVillager->setEquipment(slot, equipment);
+        }
+    }
+
+    // 6. 复制自定义名称、持久化状态（对齐 convertToDrowned 范式）
+    if (hasCustomName()) {
+        zombieVillager->setCustomName(customNameText());
+        zombieVillager->setCustomNameVisible(isCustomNameVisible());
+    }
+    if (isNoDespawnRequired()) {
+        zombieVillager->enablePersistence();
+    }
+
+    // 7. finalizeSpawn（SpawnReason::Conversion，按位置感知区域难度初始化属性——对齐 Java
+    // convertVillagerToZombieVillager 内 finalizeSpawn(... EntitySpawnReason.CONVERSION ...)）
+    {
+        combat::DifficultyInstance difficultyInstance = combat::DifficultyInstance::at(*m_world,
+            BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
+        zombieVillager->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
+    }
+
+    // 8. 释放所有权并生成到世界
+    newEntity.release();
+    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(zombieVillager));
+
+    if (newId == 0) {
+        // 生成失败：清理已创建实体，回退到正常死亡流程
+        spdlog::error("VillagerEntity::_tryConvertToZombieVillager: failed to spawn zombie_villager entity");
+        delete zombieVillager;
+        return false;
+    }
+
+    // 9. 播放感染音效 + 世界事件（对齐 Java levelEvent 1026 = ZOMBIE_INFECTED）
+    playSound(SoundEvents::ENTITY_ZOMBIE_INFECT, 1.0f, 1.0f);
+    m_world->playEvent(world::WorldEvents::ZOMBIE_INFECT_SOUND,
+        BlockPos(static_cast<i32>(m_builtIn.stateVector->m_pos.x),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.y),
+            static_cast<i32>(m_builtIn.stateVector->m_pos.z)),
+        0);
+
+    // 10. 清空原村民装备（防止后续 remove/死亡流程掉落）并移除原村民
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        setEquipment(static_cast<EquipmentSlot>(i), ItemStack());
+    }
+
+    remove();
+
+    return true;
 }
 
 void VillagerEntity::remove()

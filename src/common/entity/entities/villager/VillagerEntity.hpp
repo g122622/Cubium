@@ -93,6 +93,13 @@ public:
      * 村民死亡时释放占用的POI（床位、工作站、聚集点），
      * 并通知村庄管理器该村民已离开村庄。
      * 参考 MC Java Villager.die() -> releaseAllPois()
+     *
+     * 此外实现村民→僵尸村民感染转化（对齐 MC Java 1.21.11 Zombie.killedEntity +
+     * Zombie.convertVillagerToZombieVillager）：当村民被僵尸系生物（ZombieEntity 及其子类
+     * Husk/ZombieVillager，排除 ZombifiedPiglin——它不继承 ZombieEntity，对齐 Java 只有
+     * Zombie 系感染）杀死时，按难度概率（Easy/Peaceful 0%、Normal 50%、Hard 100%）转化为
+     * 僵尸村民而非真正死亡。转化保留村民的职业/类型/等级/经验数据、位置、旋转、婴儿状态、装备。
+     * 转化成功则跳过正常死亡流程（不掉落经验/物品、不继续父类 die）。
      */
     void die(DamageSource& cause) override;
 
@@ -458,6 +465,35 @@ private:
     bool m_poisReleased = false; // 防止 die() 和 remove() 双重释放
 
     // ========== 私有辅助方法 ==========
+
+    /**
+     * @brief 尝试将村民感染转化为僵尸村民
+     *
+     * 对齐 MC Java 1.21.11 Zombie.killedEntity → Zombie.convertVillagerToZombieVillager。
+     * 在 die() 最前面调用：检查伤害来源是否为僵尸系生物（ZombieEntity 子类，含 Husk/ZombieVillager，
+     * 排除 ZombifiedPiglin），按难度感染概率（DifficultyHelper::getVillagerInfectionChance：
+     * Easy/Peaceful 0%、Normal 50%、Hard 100%）决定是否转化。
+     *
+     * 转化流程（参照 ZombieVillagerEntity::finishConverting 反向范式 + ZombieEntity::convertToDrowned）：
+     * 1. 创建 ZombieVillagerEntity（经 EntityRegistry 工厂，失败回退直接构造 + setTypeId）
+     * 2. 复制位置、旋转
+     * 3. 复制 VillagerData（职业/类型/等级/经验）——对齐 Java setVillagerData
+     * 4. 复制婴儿状态（isChild → setBaby）
+     * 5. 复制装备（逐槽，对齐 Java ConversionParams 保留装备语义）
+     * 6. 复制自定义名称、持久化状态
+     * 7. finalizeSpawn（SpawnReason::Conversion，按难度初始化属性）
+     * 8. spawnEntity 生成到世界
+     * 9. 播放感染音效 ENTITY_ZOMBIE_INFECT（对齐 Java levelEvent 1026）
+     * 10. 清空原村民装备（防死亡掉落）+ remove() 移除原村民
+     *
+     * TODO: VillagerData 之外的 Gossips（流言）与 TradeOffers（交易列表）当前未实现完整序列化
+     * （见 ZombieVillagerEntity.hpp 私有成员注释），故转化时暂不复制，待序列化就绪后补全
+     * （对齐 Java convertVillagerToZombieVillager 的 setGossips/setTradeOffers）。
+     *
+     * @param cause 死亡伤害来源（用于提取攻击者）
+     * @return true 表示已转化（调用方应跳过正常死亡流程），false 表示未转化（继续正常死亡）
+     */
+    bool _tryConvertToZombieVillager(DamageSource& cause);
 
     /**
      * @brief 处理交易声望更新和开心粒子效果
