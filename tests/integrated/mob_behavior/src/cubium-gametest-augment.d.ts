@@ -85,5 +85,29 @@ declare module "@minecraft/server-gametest" {
          * @param callback 测试结束时执行的回调（无参无返回值）
          */
         runOnFinish(callback: () => void): void;
+
+        /**
+         * 按 typeId + 属性字符串设带 block state 的方块。Cubium 专有方法（官方基岩 BDS Test 无）。
+         *
+         * 绑定：ScriptTestHelper.cpp 注册，转调 GameTestHelper::setBlockWithStates
+         * （GameTestHelper.cpp:346-392）。statesStr 解析为 unordered_map<string,string>，
+         * 格式 "prop=value" 或 "p1=v1,p2=v2"（如 "part=head,facing=north"、"age=3"）。
+         * 未知属性名静默忽略（容错）；非法值抛 GameTestError。updateFlags 默认 3
+         * （NOTIFY | NEIGHBOR，与 setBlockType flags=3 一致，触发 onBlockAdded + 邻居更新）。
+         *
+         * 用于放置带特定 state 的方块（床的 head/foot 半、指定 facing 朝向等），弥补
+         * setBlockType 只能放默认 state 的不足。
+         *
+         * @param blockType 方块 typeId（如 "minecraft:red_bed"）
+         * @param blockLocation 结构相对坐标 {x,y,z}
+         * @param statesStr 属性字符串 "p1=v1,p2=v2"
+         * @param updateFlags 更新标志位（默认 3 = NOTIFY | NEIGHBOR）
+         */
+        setBlockWithStates(
+            blockType: string,
+            blockLocation: import("@minecraft/server").Vector3,
+            statesStr: string,
+            updateFlags?: number,
+        ): void;
     }
 }

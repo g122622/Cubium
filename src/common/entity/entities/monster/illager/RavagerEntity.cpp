@@ -203,6 +203,20 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
     }
 }
 
+void RavagerEntity::blockedByItem(LivingEntity& victim)
+{
+    // 对齐 MC Java 1.21.11 Ravager.blockedByItem（Ravager.java:207-221）。
+    // 劫掠兽攻击被受害者盾牌格挡时，由 LivingEntity::actuallyHurt 格挡分支经
+    // attacker->blockedByItem(victim) 回调到本方法。转调 constructKnockBackVector 激活
+    // "50% 眩晕 → 眩晕结束咆哮 → _roar AoE 伤害+击退"链路。
+    //
+    // 注：constructKnockBackVector 内部已检查 m_roarTick>0 时跳过（对齐 Java roarTick==0 守卫），
+    //     故咆哮中再次被格挡不会重复触发眩晕。此处不调基类 blockedByItem（基类会对劫掠兽
+    //     施加 0.5 击退——劫掠兽有 75% 击退抗性，且 Java Ravager.blockedByItem 不调 super，
+    //     故完全覆盖基类行为）。
+    constructKnockBackVector(&victim);
+}
+
 void RavagerEntity::_roar()
 {
     if (!isAlive()) return;

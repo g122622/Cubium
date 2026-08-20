@@ -72,12 +72,14 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/ecs/components/PlayerScoreComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/item/items/weapon/ShieldItem.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
@@ -1550,6 +1552,65 @@ bool Player::hurt(DamageSource& source, f32 amount)
     }
     // 调用父类方法处理伤害
     return LivingEntity::hurt(source, amount);
+}
+
+bool Player::canBlockDamageSource(DamageSource& source) const
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.applyItemBlocking / getItemBlockingWith：
+    // 玩家正在使用物品（isUsingItem）且活跃物品是盾牌（ShieldItem::isShield），
+    // 且伤害来源不绕过盾牌（DamageTypeTags::BYPASSES_SHIELD）时，可以格挡该伤害。
+    // 基类 LivingEntity::canBlockDamageSource 恒返回 false，由本重写接入盾牌格挡。
+    //
+    // 注意：Java 1.21.11 进一步用 BlocksAttacks 组件校验伤害来源方向（cos 夹角），
+    // 这里简化为方向无关的格挡判定（只要举盾即格挡任意方向近战/投射物），对齐
+    // 1.21.11 之前版本的行为。方向校验留 TODO 待 BlocksAttacks 组件体系接入后补全。
+    // TODO: 接入 BlocksAttacks 组件的方向夹角校验（calculateViewVector vs sourcePosition）。
+    if (!isUsingItem()) {
+        return false;
+    }
+    const ItemStack& activeItem = getActiveItem();
+    if (!item::ShieldItem::isShield(activeItem)) {
+        return false;
+    }
+    // 绕过盾牌的伤害类型（如坠落虚空、/kill）不可格挡。
+    if (source.is(DamageTypeTags::BYPASSES_SHIELD())) {
+        return false;
+    }
+    return true;
+}
+
+void Player::damageShield(f32 amount)
+{
+    // 对齐 MC Java 1.21.11 BlocksAttacks.hurtBlockingItem：格挡成功后消耗盾牌耐久度。
+    // 活跃盾牌在装备槽中（setActiveHand 把活跃物品设为装备槽物品的副本），故对装备槽实际盾牌
+    // 调 hurtAndBreak 消耗耐久（m_activeItem 是副本，消耗需作用于装备槽原件）。
+    // amount 向上取整为耐久消耗点数（对齐 vanilla damageItem((int)amount)）。
+    if (!isUsingItem()) {
+        return;
+    }
+    const Hand activeHand = getActiveHand();
+    const EquipmentSlot slot = handToEquipmentSlot(activeHand);
+    ItemStack& shieldStack = getMutableEquipment(slot);
+    if (!item::ShieldItem::isShield(shieldStack)) {
+        return;
+    }
+
+    // 播放盾牌格挡音效（对齐 vanilla ITEM_SHIELD_BLOCK）。
+    playSound(SoundEvents::ITEM_SHIELD_BLOCK, 1.0f, 1.0f);
+
+    // 消耗耐久：向上取整伤害值为耐久点数（对齐 vanilla hurtBlockingItem → damageItem）。
+    const i32 durabilityCost = static_cast<i32>(std::ceil(amount));
+    if (durabilityCost <= 0) {
+        return;
+    }
+
+    // hurtAndBreak 返回 true 表示物品因耐久耗尽而破坏，此时停止使用该手。
+    const bool broken = hurtAndBreak(shieldStack, durabilityCost, this, slot);
+    if (broken) {
+        // 盾牌破坏后停止使用状态，并播放破坏音效（对齐 vanilla ITEM_SHIELD_BREAK）。
+        playSound(SoundEvents::ITEM_SHIELD_BREAK, 1.0f, 1.0f);
+        stopActiveHand();
+    }
 }
 
 bool Player::isInvulnerableTo(DamageSource& source) const

@@ -262,6 +262,22 @@ public:
     virtual void damageShield(f32 amount);
 
     /**
+     * @brief 攻击被受害者盾牌格挡时，回调攻击者（对齐 MC Java 1.21.11
+     *        LivingEntity.blockUsingItem → attacker.blockedByItem(victim)）
+     *
+     * 当受害者（this）的 actuallyHurt 检测到伤害被盾牌格挡成功，且伤害的直接来源是
+     * LivingEntity（近战/部分投射物）时，调用攻击者的 blockedByItem，让攻击者执行
+     * "被格挡"后的特殊行为。基类实现：对攻击者施加一次小幅击退（对齐 Java
+     * LivingEntity.blockedByItem 默认实现 p_21246_.knockback(0.5, ...)）。
+     *
+     * 子类重写示例：RavagerEntity 重写 blockedByItem，转调 constructKnockBackVector
+     * 激活 50% 眩晕 → 咆哮链（对齐 Java Ravager.blockedByItem）。
+     *
+     * @param victim 被格挡的受害者（举盾格挡本次攻击的目标）
+     */
+    virtual void blockedByItem(LivingEntity& victim);
+
+    /**
      * @brief 掉落经验
      *
      * 在死亡时调用，生成经验球。子类可以重写此方法。

@@ -299,6 +299,21 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 1. 盾牌格挡检查（子类可重写）
     if (canBlockDamageSource(source)) {
         damageShield(amount);
+
+        // 格挡成功时回调攻击者（对齐 MC Java 1.21.11 LivingEntity.applyItemBlocking →
+        // blockUsingItem → attacker.blockedByItem(victim)）。仅当伤害真实来源是 LivingEntity
+        // （近战/部分投射物）时回调，让攻击者执行"被格挡"特殊行为（如 Ravager 50% 眩晕→咆哮）。
+        // 注：Java 1.21.11 还要求 !source.is(IS_PROJECTILE) && directEntity instanceof LivingEntity，
+        // 这里用 trueSource 是 LivingEntity 判定（近战攻击直接来源即攻击者本身）。
+        // TODO: 投射物格挡回调需区分 directSource（投射物）vs trueSource（射击者），
+        //       当前对近战场景足够，投射物场景留待 directSource 体系完善后补全。
+        Entity* trueSource = source.getTrueSource();
+        if (trueSource != nullptr && trueSource != this) {
+            LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
+            if (attacker != nullptr) {
+                attacker->blockedByItem(*this);
+            }
+        }
         return; // 格挡成功，不造成伤害
     }
 
@@ -393,6 +408,22 @@ void LivingEntity::damageArmor(DamageSource& /*source*/, f32 /*amount*/)
 void LivingEntity::damageShield(f32 /*amount*/)
 {
     // 默认空实现，由 Player 子类重写
+}
+
+void LivingEntity::blockedByItem(LivingEntity& victim)
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.blockedByItem 默认实现：
+    //   protected void blockedByItem(LivingEntity p_21246_) {
+    //       p_21246_.knockback(0.5, p_21246_.getX() - this.getX(), p_21246_.getZ() - this.getZ());
+    //   }
+    // 即攻击者（this）被受害者（victim）格挡后，攻击者受到一次小幅击退（强度 0.5），
+    // 方向为从攻击者指向受害者的反方向（被推开）。子类（如 RavagerEntity）重写以实现
+    // 眩晕→咆哮等特殊行为。
+    // 注：本基类实现用于普通生物攻击被格挡时的通用击退；玩家攻击被格挡时也走此路径
+    // （玩家作为攻击者 this，victim 是举盾格挡的目标）。
+    f64 dx = static_cast<f64>(victim.x()) - static_cast<f64>(x());
+    f64 dz = static_cast<f64>(victim.z()) - static_cast<f64>(z());
+    applyKnockback(0.5f, dx, dz);
 }
 
 f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)

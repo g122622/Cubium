@@ -122,6 +122,24 @@ public:
      */
     void constructKnockBackVector(LivingEntity* target);
 
+    /**
+     * @brief 劫掠兽的攻击被盾牌格挡时的回调（对齐 MC Java 1.21.11 Ravager.blockedByItem）
+     *
+     * 当劫掠兽（this）攻击的目标（victim）举盾格挡成功时，由 LivingEntity::actuallyHurt
+     * 经 blockedByItem 回调链调到本方法（attacker->blockedByItem(victim)）。本方法转调
+     * constructKnockBackVector 激活"50% 眩晕 → 眩晕结束咆哮 → _roar AoE 伤害+击退"链路。
+     *
+     * 对齐 Java Ravager.blockedByItem（Ravager.java:207-221）：
+     *   - roarTick==0 时（未在咆哮中），50% 概率设 stunnedTick=40（眩晕），否则 strongKnockback
+     *   - 眩晕结束（stunnedTick 递减到 0）后设 roarTick=20，咆哮第 10 tick 执行 _roar
+     *
+     * 注：此前 constructKnockBackVector 是死代码（全仓零调用），咆哮链路从未被触发。
+     * 本重写将其接入受害者格挡回调链，使咆哮 AoE 伤害链路生效。
+     *
+     * @param victim 被格挡的受害者（举盾格挡本次劫掠兽攻击的目标）
+     */
+    void blockedByItem(LivingEntity& victim) override;
+
     // ========== 骑乘系统 ==========
 
     /**

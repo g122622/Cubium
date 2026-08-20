@@ -1124,6 +1124,31 @@ public:
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
+     * @brief 盾牌格挡判定（对齐 MC Java 1.21.11 Player.canBlockDamageSource /
+     *        LivingEntity.getItemBlockingWith + BlocksAttacks.bypassedBy）
+     *
+     * 基类 LivingEntity::canBlockDamageSource 恒返回 false（占位）。玩家在使用盾牌（主/副手
+     * 处于使用状态且物品是 ShieldItem）且伤害来源不绕过盾牌（DamageTypeTags::BYPASSES_SHIELD）
+     * 时，可以格挡该伤害。对齐 Java applyItemBlocking 的判定逻辑（ItemStack.getItemBlockingWith
+     * → BlocksAttacks.bypassedBy().map(source::is)）。
+     *
+     * @param source 伤害来源
+     * @return 是否可以格挡
+     */
+    [[nodiscard]] bool canBlockDamageSource(DamageSource& source) const override;
+
+    /**
+     * @brief 格挡成功后消耗盾牌耐久（对齐 MC Java 1.21.11 BlocksAttacks.hurtBlockingItem）
+     *
+     * 基类 LivingEntity::damageShield 空实现。玩家格挡成功时消耗正在使用的盾牌的耐久度
+     * （对齐 Java hurtBlockingItem：damageItem(amount, this, usedItemHand)），并播放
+     * ITEM_SHIELD_BLOCK 音效。盾牌耐久耗尽时由 damageItem 内部触发破坏。
+     *
+     * @param amount 被格挡的伤害量
+     */
+    void damageShield(f32 amount) override;
+
+    /**
      * @brief 检查玩家是否对指定伤害类型免疫
      *
      * 在基类检查的基础上，额外检查玩家专属游戏规则：
