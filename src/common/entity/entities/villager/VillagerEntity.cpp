@@ -59,6 +59,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
@@ -132,6 +133,11 @@ VillagerEntity::VillagerEntity(EntityInstanceId id, ecs::EntityRegistry& registr
     : AbstractVillagerEntity(id, registry)
     , m_brain(std::make_unique<VillagerBrain>())
 {
+    // 对齐 MC Java 1.21.11 Villager 构造函数（Villager.java:196）：setCanPickUpLoot(true)
+    // 使村民能拾取食物/种子（Mob.aiStep looting 段 → Villager.pickUpItem）。MobEntity::finalizeSpawn
+    // 基类不再随机覆盖此标志（已对齐 Java 移除基类随机 setCanPickUpLoot），故村民恒为 true。
+    setCanPickUpLoot(true);
+
     registerAttributes();
     registerGoals();
     initializeBrain();
@@ -703,6 +709,59 @@ bool VillagerEntity::canPickUpItem(const ItemStack& itemStack) const
     // 农民职业特有物品已在默认列表中，无需额外检查
 
     return false;
+}
+
+bool VillagerEntity::wantsToPickUp(const ItemStack& itemStack) const
+{
+    // 对齐 MC Java 1.21.11 Villager.wantsToPickUp：村民关心食物/种子类物品且库存可放入时才拾取。
+    // 基类 MobEntity::wantsToPickUp 默认实现为 canHoldItem（装备槽语义，!isEmpty 即 true），
+    // 不区分物品类型，故村民必须覆写为转调 canPickUpItem（食物/种子语义 + 库存 canAddItem 校验），
+    // 否则 MobEntity::tick 的 looting 扫描会对任何非空物品都判定 wantsToPickUp=true 并调 pickUpItem。
+    return canPickUpItem(itemStack);
+}
+
+void VillagerEntity::pickUpItem(ItemEntity& itemEntity)
+{
+    // 对齐 MC Java 1.21.11 Villager.pickUpItem → InventoryCarrier.pickUpItem（静态方法）。
+    // 将 ItemEntity 的物品堆放入村民库存（SimpleInventory::addItem），处理部分装入的剩余 count：
+    //   - 全部装入（addItem 返回空堆）→ itemEntity.remove() 移除物品实体（对齐 Java discard）
+    //   - 部分装入（addItem 返回剩余堆）→ 把剩余 count 写回 ItemEntity（对齐 Java setCount，物品留地）
+    // 拾取后若库存食物点数达到繁殖门槛，调 setWillingToBreed(true) 驱动 VillagerBreedGoal。
+
+    const ItemStack& itemStack = itemEntity.getItemStack();
+    if (itemStack.isEmpty()) {
+        return;
+    }
+
+    // 二次校验可放入（对齐 Java InventoryCarrier.pickUpItem 的 canAddItem 短路）。
+    // wantsToPickUp 已校验过 canAddItem，但 addItem 可能因并发变动失败，此处再守卫一次。
+    if (!m_inventory || !m_inventory->canAddItem(itemStack)) {
+        return;
+    }
+
+    const i32 originalCount = itemStack.getCount();
+
+    // addItem 返回剩余未装入的 ItemStack（对齐 Java SimpleContainer.addItem 语义）。
+    ItemStack remainder = m_inventory->addItem(itemStack);
+    const i32 pickedUpCount = originalCount - remainder.getCount();
+    if (pickedUpCount <= 0) {
+        return; // 实际未装入任何物品，保留 ItemEntity 不动
+    }
+
+    if (remainder.isEmpty()) {
+        // 全部装入，移除物品实体（对齐 Java p_219614_.discard()）
+        itemEntity.remove();
+    } else {
+        // 部分装入，把剩余 count 写回 ItemEntity（对齐 Java itemstack.setCount(itemstack1.getCount())）
+        itemEntity.setItemStack(remainder);
+    }
+
+    // 拾取后检查繁殖意愿：库存食物点数 >= 繁殖门槛（WANTS_MORE_FOOD_THRESHOLD=12）则标记愿意繁殖。
+    // 对齐 Java 1.21.11 Villager.canBreed() 的 `foodLevel + countFoodPointsInInventory() >= 12` 门槛
+    // （Cubium 暂无 foodLevel 字段，用 willingToBreed 布尔替代，参见头文件 TODO）。
+    if (countFoodPointsInInventory() >= WANTS_MORE_FOOD_THRESHOLD) {
+        setWillingToBreed(true);
+    }
 }
 
 std::unique_ptr<AgeableEntity> VillagerEntity::createChild()

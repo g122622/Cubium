@@ -239,6 +239,33 @@ public:
      */
     [[nodiscard]] bool canPickUpItem(const ItemStack& itemStack) const;
 
+    /**
+     * @brief 重写 Mob.wantsToPickUp（对齐 MC Java 1.21.11 Villager.wantsToPickUp）
+     *
+     * MobEntity::tick 的 looting 段（对齐 Mob.aiStep）扫描 AABB 内 ItemEntity 时，
+     * 对每个候选物品调 wantsToPickUp 判定是否需要拾取。基类默认实现为 canHoldItem
+     * （装备槽语义），村民覆写为转调 canPickUpItem（食物/种子语义 + 库存可放入校验），
+     * 使 MobEntity::tick 的拾取扫描能正确选中村民关心的食物物品。
+     */
+    [[nodiscard]] bool wantsToPickUp(const ItemStack& itemStack) const override;
+
+    /**
+     * @brief 重写 Mob.pickUpItem（对齐 MC Java 1.21.11 Villager.pickUpItem → InventoryCarrier.pickUpItem）
+     *
+     * 将 ItemEntity 的物品堆放入村民库存（SimpleInventory::addItem），处理部分装入的剩余 count：
+     * 全部装入则移除 ItemEntity，部分装入则把剩余 count 写回 ItemEntity（对齐 Java InventoryCarrier.pickUpItem
+     * 的 discard/setCount 分支）。
+     *
+     * 拾取后若库存食物点数（countFoodPointsInInventory）达到繁殖门槛（WANTS_MORE_FOOD_THRESHOLD=12），
+     * 调 setWillingToBreed(true) 标记繁殖意愿。这是用布尔标志模拟 Java 1.21.11 Villager.canBreed()
+     * 的 `foodLevel + countFoodPointsInInventory() >= 12` 食物门槛——Cubium 暂未实现 foodLevel
+     * 字段与 eatAndDigestFood 链路，故以 willingToBreed 布尔替代，使自动拾取食物能驱动 VillagerBreedGoal。
+     *
+     * TODO: 对齐 Java 1.21.11 完整食物点数链路（foodLevel 字段 + eatUntilFull/eatAndDigestFood/
+     *   digestFood + canBreed 基于 foodLevel 阈值判定），届时可移除 willingToBreed 布尔替代。
+     */
+    void pickUpItem(ItemEntity& itemEntity) override;
+
     // ========== 食物点数系统 ==========
 
     /**

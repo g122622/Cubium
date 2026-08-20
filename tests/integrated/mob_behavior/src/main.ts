@@ -76,6 +76,7 @@ import { registerNaturalSpawnTests } from "./tests/spawn/natural/NaturalSpawnTes
 import { registerZombieReinforcementTests } from "./tests/spawn/reinforcement/ZombieReinforcementTests.js";
 import { registerZombieVillagerTests } from "./tests/monster/undead/ZombieVillagerTests.js";
 import { registerVillagerTests } from "./tests/passive/villager/VillagerTests.js";
+import { registerVillagerBreedTests } from "./tests/passive/villager/VillagerBreedTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -145,3 +146,4 @@ registerNaturalSpawnTests();
 registerZombieReinforcementTests();
 registerZombieVillagerTests();
 registerVillagerTests();
+registerVillagerBreedTests();

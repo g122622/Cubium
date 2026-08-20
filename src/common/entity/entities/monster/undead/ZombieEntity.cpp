@@ -759,7 +759,7 @@ Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 void ZombieEntity::finalizeSpawn(
     IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
 {
-    // 调用父类 finalizeSpawn，处理拾取物品能力、默认装备和附魔
+    // 调用父类 finalizeSpawn，处理默认装备和附魔（Mob 基类不再设置 canPickUpLoot，对齐 Java）
     MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
 
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
@@ -769,6 +769,10 @@ void ZombieEntity::finalizeSpawn(
     if (rng.nextFloat() < specialMultiplier * 0.1f) {
         setBreakDoorsAbility(true);
     }
+
+    // 设置拾取物品能力：概率 = 0.55 * specialMultiplier（对齐 MC Java 1.21.11 Zombie.finalizeSpawn，
+    // Zombie.java:456）。Husk 继承本方法（Java Husk.java:88 同逻辑，不再 override）。
+    setCanPickUpLoot(rng.nextFloat() < 0.55f * specialMultiplier);
 
     // 僵尸特有的装备已在 populateDefaultEquipmentSlots 覆写中处理
 

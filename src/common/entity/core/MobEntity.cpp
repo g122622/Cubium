@@ -1384,18 +1384,23 @@ void MobEntity::finalizeSpawn(
     (void)world;
     (void)spawnReason;
 
-    // 根据区域难度设置拾取物品能力
-    f32 specialMultiplier = difficulty.getSpecialMultiplier();
-    math::Random& rng = getRandom();
-    if (rng.nextFloat() < 0.55f * specialMultiplier) {
-        setCanPickUpLoot(true);
-    }
+    // 注意：Mob 基类不设置 canPickUpLoot（对齐 MC Java 1.21.11 Mob.finalizeSpawn，其只设置
+    //   FOLLOW_RANGE 修饰符与左撇子，不调 setCanPickUpLoot）。Java 中拾取能力由各子类自行决定：
+    //   - Villager 构造函数 setCanPickUpLoot(true)（Villager.java:196）
+    //   - Fox 构造函数 setCanPickUpLoot(true)（Fox.java:148）
+    //   - Zombie/Husk/AbstractSkeleton 在各自 finalizeSpawn 按 0.55*specialMultiplier 概率设置
+    //   - Piglin/Pillager 构造函数 setCanPickUpLoot(true)
+    //   其他 mob 默认 canPickUpLoot=false（不拾取）。
+    // 此前基类在此随机 setCanPickUpLoot(true) 是偏差——会覆盖 Villager 构造函数确定的 true
+    // （导致村民拾取不确定），也会让本不该拾取的 mob 随机获得拾取能力。已移除，由子类各自对齐。
+    // TODO: Piglin/Pillager 的 setCanPickUpLoot(true) 待相关实体实现时补齐。
+    (void)difficulty;
 
     // 填充默认装备（基于难度）
-    populateDefaultEquipmentSlots(rng, difficulty);
+    populateDefaultEquipmentSlots(getRandom(), difficulty);
 
     // 附魔默认装备（基于难度）
-    populateDefaultEquipmentEnchantments(rng, difficulty);
+    populateDefaultEquipmentEnchantments(getRandom(), difficulty);
 }
 
 void MobEntity::populateDefaultEquipmentSlots(
