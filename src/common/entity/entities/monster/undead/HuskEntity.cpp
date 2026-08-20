@@ -23,9 +23,14 @@
 
 #include "HuskEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -63,6 +68,39 @@ void HuskEntity::registerAttributes()
     ZombieEntity::registerAttributes();
 
     // 尸壳的属性与僵尸相同
+}
+
+bool HuskEntity::attackEntityAsMob(LivingEntity& target)
+{
+    // 首先调用父类方法执行基础攻击（含燃烧传递等 Zombie 逻辑）。
+    // 对齐 Java Husk.doHurtTarget（Husk.java:57-65）：super.doHurtTarget 先执行。
+    if (!ZombieEntity::attackEntityAsMob(target)) {
+        return false;
+    }
+
+    // 空手近战攻击命中时对目标施加饥饿效果。
+    // 对齐 Java Husk.doHurtTarget：flag && getMainHandItem().isEmpty() && target instanceof LivingEntity。
+    // 此处 target 已是 LivingEntity&（attackEntityAsMob 签名），只需判主手为空。
+    if (getMainHandItem().isEmpty()) {
+        IWorld* worldPtr = world();
+        if (worldPtr != nullptr) {
+            // 取区域难度 effectiveDifficulty（对齐 Java
+            // getCurrentDifficultyAt(blockPosition).getEffectiveDifficulty()）。 区域难度范围：Easy 0.75~1.375,
+            // Normal 1.5~3.5, Hard 2.25~6.75。
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*worldPtr,
+                BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
+            f32 effectiveDifficulty = difficultyInstance.getEffectiveDifficulty();
+
+            // 饥饿持续时间 = 140 * (int)effectiveDifficulty ticks（对齐 Java 140 * (int)f）。
+            // Normal 难度 effectiveDifficulty≈2.0 → 280 ticks ≈ 14 秒。等级 0 = 饥饿 I。
+            i32 hungerDuration = 140 * static_cast<i32>(effectiveDifficulty);
+            if (hungerDuration > 0) {
+                target.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Hunger, hungerDuration, 0));
+            }
+        }
+    }
+
+    return true;
 }
 
 } // namespace mc

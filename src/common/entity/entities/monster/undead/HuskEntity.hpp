@@ -75,6 +75,20 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 饥饿攻击 ==========
+
+    /**
+     * @brief 尸壳空手近战攻击目标时施加饥饿效果
+     *
+     * 对齐 MC 1.21.11 Husk.doHurtTarget（Husk.java:57-65）：父类基础攻击命中 + 主手为空 +
+     * 目标是 LivingEntity 时，取区域难度 effectiveDifficulty，对目标施加饥饿效果
+     * 140 * (int)effectiveDifficulty ticks（Normal 难度≈280 ticks=14 秒，等级 I）。
+     * 持物品的尸壳不施加饥饿（对齐 vanilla getMainHandItem().isEmpty() 门控）。
+     *
+     * 由 MeleeAttackGoal::_attackTarget 委托调用（对齐 vanilla MeleeAttackGoal 调 doHurtTarget）。
+     */
+    bool attackEntityAsMob(LivingEntity& target) override;
+
 protected:
     void registerAttributes() override;
 };

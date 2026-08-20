@@ -22,14 +22,11 @@
  */
 
 #include "MeleeAttackGoal.hpp"
-#include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/block/BlockPos.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "../../../core/CreatureEntity.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
-#include "../../../damage/DamageSource.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../controller/LookController.hpp"
 #include "../../pathfinding/PathNavigator.hpp"
@@ -263,46 +260,22 @@ void MeleeAttackGoal::_attackTarget(LivingEntity* target)
 {
     if (!m_creature || !target) return;
 
-    // 挥动手臂动画
+    // 挥动手臂动画（对齐 vanilla MeleeAttackGoal.checkAndPerformAttack：先 swing(MAIN_HAND)）。
     m_creature->swingArm();
 
-    // 调用实体本身的攻击方法
-    // 使用伤害属性
-    using namespace mc::entity::attribute;
-    f32 damage = static_cast<f32>(m_creature->getAttributeValue(Attributes::ATTACK_DAMAGE, 1.0));
-
-    // 创建伤害来源
-    EntityDamageSource damageSource(DamageType::MobAttack, m_creature);
-
-    // 应用伤害
-    target->hurt(damageSource, damage);
-
-    // 触发攻击声音（由具体生物决定是否播放）
-    m_creature->playAttackSound(*target);
-
-    // 应用击退
-    f32 knockbackStrength = static_cast<f32>(m_creature->getAttributeValue(Attributes::ATTACK_KNOCKBACK, 1.0));
-
-    if (knockbackStrength > 0.0f) {
-        // 计算击退方向
-        f32 dx = static_cast<f32>(target->x() - m_creature->x());
-        f32 dz = static_cast<f32>(target->z() - m_creature->z());
-        f32 distSq = dx * dx + dz * dz;
-
-        if (distSq > 0.000001f) {
-            f32 invDist = mc::math::fastInverseSqrt(distSq);
-            dx *= invDist;
-            dz *= invDist;
-        }
-
-        // 应用击退速度
-        f32 knockbackX = dx * knockbackStrength * 0.5f;
-        f32 knockbackY = 0.1f * knockbackStrength;
-        f32 knockbackZ = dz * knockbackStrength * 0.5f;
-
-        target->addVelocity(knockbackX, knockbackY, knockbackZ);
-    }
-    // 注意：攻击冷却已在checkAndPerformAttack中设置，此处不再重复设置
+    // 委托实体本身的 attackEntityAsMob 执行攻击（对齐 vanilla checkAndPerformAttack 调
+    // mob.doHurtTarget(serverLevel, target)）。attackEntityAsMob 是 MobEntity 的虚函数，子类
+    // override 注入攻击附加效果：
+    //   - HuskEntity::attackEntityAsMob：施加饥饿效果（Husk.java:57-65 doHurtTarget）
+    //   - WitherSkeletonEntity::attackEntityAsMob：施加凋零效果
+    //   - CaveSpiderEntity::attackEntityAsMob：施加中毒效果
+    //   - ZombieEntity::attackEntityAsMob：燃烧传递
+    //   - PolarBearEntity/RavagerEntity/OcelotEntity 等 override
+    // MobEntity::attackEntityAsMob 基类实现完整攻击链（伤害属性+附魔加成+火焰附加+击退+
+    // setLastHurtBy+音效），此前 MeleeAttackGoal 自行 target->hurt 绕过虚派发，致上述 override
+    // 全部失效（husk 不施加饥饿、凋零骷髅不施加凋零等）。改为委托后攻击逻辑统一走基类，
+    // 子类 override 自动生效，且补齐附魔加成/火焰附加等之前缺失的逻辑。
+    m_creature->attackEntityAsMob(*target);
 }
 
 f32 MeleeAttackGoal::getAttackReachSqr(LivingEntity* target) const
