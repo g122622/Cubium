@@ -55,6 +55,7 @@ import { registerMooshroomTests } from "./tests/passive/basic/MooshroomTests.js"
 import { registerBatTests } from "./tests/passive/ambient/BatTests.js";
 import { registerPolarBearTests } from "./tests/passive/special/PolarBearTests.js";
 import { registerFoxTests } from "./tests/passive/special/FoxTests.js";
+import { registerSnifferTests } from "./tests/passive/special/SnifferTests.js";
 import { registerTurtleTests } from "./tests/passive/special/TurtleTests.js";
 import { registerBeeTests } from "./tests/passive/special/BeeTests.js";
 import { registerStriderTests } from "./tests/passive/special/StriderTests.js";
@@ -127,6 +128,7 @@ registerMooshroomTests();
 registerBatTests();
 registerPolarBearTests();
 registerFoxTests();
+registerSnifferTests();
 registerTurtleTests();
 registerBeeTests();
 registerStriderTests();
