@@ -29,8 +29,11 @@
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/BreedGoal.hpp"
 #include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
-#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -893,16 +896,30 @@ void WolfEntity::die(DamageSource& cause)
 
 void WolfEntity::registerGoals()
 {
-    // 调用父类方法（已包含 SwimGoal, PanicGoal, BreedGoal, FollowParentGoal, RandomWalkingGoal, LookAtGoal,
-    // LookRandomlyGoal）
+    // 注意：TameableEntity::registerGoals() 是空操作（只调 AnimalEntity::registerGoals()，后者也不注册
+    // 任何 goal，见 AnimalEntity.cpp:204-224 注释），子类必须自行注册完整 AI 目标列表。此前 WolfEntity
+    // 误以为基类注册了 SwimGoal/PanicGoal/BreedGoal/FollowParentGoal/WaterAvoidingRandomWalkingGoal/
+    // LookAtGoal/LookRandomlyGoal（旧注释错误声称），实际只注册了 SitGoal/AvoidLlama/Leap/Melee/
+    // FollowOwner/Beg，缺 BreedGoal 致驯服狼喂肉 setInLove 后无 goal 驱动繁殖（繁殖断裂，与
+    // PandaEntity 同款缺陷，见 [[panda-registergoals-missing-breedgoal-fix]]）。照搬 CatEntity 范式
+    // 补全基础动物 AI。调用基类保持与继承链守卫机制一致（空操作无副作用）。
     TameableEntity::registerGoals();
 
     // ========================================================================
     // 行为目标 (goalSelector)
     // ========================================================================
 
+    // 优先级 0: 游泳（最高优先级）
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑（受到伤害或着火时）
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
+
     // 优先级 1: 坐下目标（驯服后）- 与PanicGoal同优先级，但SitGoal会检查是否驯服
     m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
+
+    // 优先级 2: 繁殖（驯服后且成体，喂肉 setInLove 后 BreedGoal 驱动靠近配偶 spawnBaby）
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 未驯服时避开羊驼
     // 羊驼有强度属性，强度高的羊驼可以吓跑狼
@@ -934,11 +951,23 @@ void WolfEntity::registerGoals()
     // 优先级 6: 跟随主人（驯服后）
     m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
 
+    // 优先级 7: 跟随父母（幼年狼）
+    m_goalSelector.addGoal(7, new entity::ai::goal::FollowParentGoal(this, 1.1));
+
+    // 优先级 8: 避水随机漫步（未驯服狼的日常移动）
+    m_goalSelector.addGoal(8, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+
     // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
     // 狼使用 BegGoal（乞求，只看不动），而非 TemptGoal（诱惑，会跟随玩家）
     // 这是因为未驯服的狼不会主动接近玩家，驯服后的狼已跟随主人，不需要 TemptGoal
     // [COMPLETED] 2026-05-15 - 骨头乞求行为已通过 BegGoal 实现
     m_goalSelector.addGoal(9, new entity::ai::goal::BegGoal(this, 8.0f));
+
+    // 优先级 10: 看向玩家
+    m_goalSelector.addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f));
+
+    // 优先级 11: 随机看向
+    m_goalSelector.addGoal(11, new entity::ai::goal::LookRandomlyGoal(this));
 
     // ========================================================================
     // 目标选择器 (targetSelector)
@@ -959,6 +988,7 @@ void WolfEntity::registerGoals()
     // 优先级 4: 愤怒时攻击玩家
     // 需要配合 IAngerable 接口，当玩家攻击狼后，狼会记住玩家并攻击
     // 当前简化实现：不注册此目标，因为狼默认不会主动攻击玩家
+    // TODO: 对齐 vanilla Wolf 实现愤怒时攻击玩家（IAngerable + NearestAttackableTargetGoal<Player>）
     // m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
     //     this, true, 10, /* angerPredicate */));
 

@@ -2,12 +2,18 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
+import { pollUntilSucceed, waitForCondition } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
 // 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
+
+// grass_pen 结构尺寸 9×5×9（helper 相对坐标 x,z∈[0,8], y∈[0,4]）。狼繁殖测试用。
+const PEN_FROM = { x: 0, y: 0, z: 0 };
+const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
 // 狼受击后反击玩家（wiki tech_狼.txt#攻击:205：野生的狼会对攻击它的生物产生敌意）。
 //
@@ -125,6 +131,137 @@ function wolfAttacksSheep(test: Test): void {
   });
 }
 
+// 两头狼驯服后喂肉类繁殖出幼狼（wiki tech_狼.txt#繁殖:318：对两只生命值已满的**驯服**的成年狼
+// 使用任意食物可使其进入"求爱模式"，产生爱心粒子，两只狼都站立时才能繁殖出一只幼年狼）。
+//
+// 这是 WolfEntity::registerGoals 漏注册 BreedGoal 缺陷的回归测试（与 PandaEntity 同款缺陷，见
+// [[panda-registergoals-missing-breedgoal-fix]]）。修复前 WolfEntity 误调 TameableEntity::
+// registerGoals()（空操作）+ 旧注释错误声称基类注册了 BreedGoal 等基础 goal，实际只注册了
+// SitGoal/AvoidLlama/Leap/Melee/FollowOwner/Beg，缺 BreedGoal 致驯服狼喂肉 setInLove 后无 goal
+// 驱动繁殖。修复后照搬 CatEntity 范式补全 SwimGoal(0)/PanicGoal(1)/BreedGoal(2)/FollowParentGoal(7)/
+// WaterAvoidingRandomWalkingGoal(8)/LookAtGoal(10)/LookRandomlyGoal(11)。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Wolf + BreedGoal）：
+//   1) 驯服：玩家主手持骨头 + interactWithEntity(wolf) → WolfEntity::interactMob 未驯服分支
+//      （WolfEntity.cpp:376-395）：isTameItem(骨头) 命中 → _tryToTame(player)（WolfEntity.cpp:401-426）：
+//      rng.nextInt(3)==0 即 1/3 概率驯服成功 → setTamed(true) → onTamed(true) 把 MAX_HEALTH 8→20
+//      + setHealth(20)（WolfEntity.cpp:1080-1088）→ setSitting(true) 默认坐下。创造模式喂骨头不消耗
+//      （同一根骨头可反复喂直到驯服）。
+//   2) 驯服检测：getComponent("minecraft:health").effectiveMax 走 LivingEntity::maxHealth()（属性系统
+//      真相源，MinecraftModuleFactory.cpp:1054）。野生 effectiveMax=8，驯服后=20。用 effectiveMax>=20
+//      判定驯服成功（不依赖 currentValue，因狼可能受伤降当前血）。
+//   3) 繁殖：玩家主手持熟牛肉 + interactWithEntity(wolf) → WolfEntity::interactMob 已驯服分支
+//      （WolfEntity.cpp:220-360）：跳过喂食治疗（满血）/狼铠/染色 → 优先级6 isBreedingItem(熟牛肉)
+//      命中 + canBreed() → setInLove(player.playerId())（WolfEntity.cpp:322-359）。
+//   4) BreedGoal::shouldExecute（BreedGoal.cpp:62-74）：isInLove() && findNearbyMate() 非空。
+//      BreedGoal::tick：navigator.moveTo(配偶) + m_spawnBabyDelay++，达 30 tick 且 distSq<9 时 spawnBaby。
+//   5) WolfEntity::spawnBaby 生成幼狼 + setTypeId(WOLF) 兜底保证 getEntities 可查。
+//
+// 坐姿说明：wiki 行 318"两只狼都站立时才能繁殖"是 vanilla 行为。Cubium 的 SitGoal 用 GoalFlag::Target
+// 互斥标志（TameableGoals.cpp:221），BreedGoal 用 Move+Look 标志（BreedGoal.cpp:59），两者 mutex 不
+// 冲突可共存；SitGoal 无 tick 不会持续 clearNavigation 抵消 BreedGoal 的 moveTo。故 Cubium 中坐着的
+// 驯服狼喂肉后 BreedGoal 仍能驱动移动繁殖（与 vanilla 偏差，本次不修，留 TODO）。测试不刻意站起。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。两头狼放中心 (4,2,4) 与 (4,2,6) 相距 2 格
+//   （distSq=4 < BREED_DISTANCE_SQ=9 已在繁殖距离内），spawnBaby 几乎只需等 30 tick spawnBabyDelay。
+//   玩家站 (2,2,4) 持骨头/肉。
+//
+// 非确定性来源：①驯服 1/3 概率——用反复喂骨头（每 3 tick 交替喂两头，约 20 次/头）将两头都未驯服
+//   概率压到 (2/3)^20≈0.00025^2≈6e-8，可忽略；②BreedGoal 时序——pollUntilSucceed 轮询吸收。
+//
+// 时序编排（多阶段）：
+//   阶段1 驯服（tick 5..62，每 3 tick 交替喂两头狼骨头）：玩家持骨头，约 20 次/头。
+//   阶段2 检测驯服+喂肉（tick 70 起 waitForCondition 每 4 tick 检测两头 effectiveMax>=20，满足后
+//     玩家切熟牛肉，喂两头狼 setInLove）。
+//   阶段3 繁殖（pollUntilSucceed startTick=90, interval=10, maxTick=1000 轮询 wolf>=3）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狼.txt#繁殖（驯服狼喂肉→求爱→繁殖幼狼）
+function wolfBreedsWhenTamedAndFedMeat(test: Test): void {
+  const wolfType = "wolf";
+
+  // 两头成年狼放中心相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。
+  // 脚下 y=1 grass_block 支撑防下落（grass_pen y=0 grass_block 地板，y=1 air 腔，helper y=2 = 结构 y=1 air）。
+  const wolf1 = test.spawn(wolfType, { x: 4, y: 2, z: 4 });
+  const wolf2 = test.spawn(wolfType, { x: 4, y: 2, z: 6 });
+
+  // 创造玩家持骨头：创造模式喂骨头不消耗（同一根骨头可反复喂直到驯服）。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "wolfBreeder");
+  const bone = new ItemStack("minecraft:bone", 1);
+  player.setItem(bone as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 读取狼 effectiveMax（驯服后 8→20）。狼句柄 owned=false，但狼不被攻击不会死亡，句柄安全。
+  const effectiveMax = (wolf: any): number => {
+    const h = wolf.getComponent("minecraft:health");
+    return h !== undefined ? (h as any).effectiveMax : 0;
+  };
+
+  // 阶段1：驯服——tick 5..62 每 3 tick 交替喂两头狼骨头（约 20 次/头，1/3 概率驯服）。
+  // 每次喂骨头触发 _tryToTame，创造模式不消耗骨头可连续喂。驯服后再喂骨头走已驯服分支优先级7
+  // 切换坐/站（无害，不影响驯服状态）。
+  for (let t = 5; t <= 62; t += 3) {
+    test.runAtTickTime(t, () => {
+      // 交替喂两头狼：偶数 tick 喂 wolf1，奇数 tick 喂 wolf2。
+      if ((t - 5) % 6 < 3) {
+        (player as any).interactWithEntity(wolf1);
+      } else {
+        (player as any).interactWithEntity(wolf2);
+      }
+    });
+  }
+
+  // 阶段2：检测两头狼都驯服（effectiveMax>=20）后，玩家切熟牛肉喂两头狼 setInLove。
+  // waitForCondition 满足后调 onReady：切物品 + 喂食 + 注册阶段3 繁殖轮询。
+  waitForCondition(test,
+    () => effectiveMax(wolf1) >= 20 && effectiveMax(wolf2) >= 20,
+    () => {
+      // 玩家主手切换为熟牛肉（isBreedingItem 命中，满血跳过治疗走优先级6 setInLove）。
+      const meat = new ItemStack("minecraft:cooked_beef", 1);
+      player.setItem(meat as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+      // 同步喂两头狼：interactWithEntity 转发 interactOn → 已驯服分支 → setInLove。
+      // onReady 在某个 tick（>=70）的 callback 内执行，runAtTickTime(5/10) 用绝对 tick 会因已过期
+      // 永不触发，故此处直接同步喂食（interactWithEntity 是同步调用，setInLove 同步写入 m_loveTimer）。
+      // 两头狼同 tick setInLove，下一 tick BreedGoal::shouldExecute 评估时双方 isInLove 互为配偶。
+      (player as any).interactWithEntity(wolf1);
+      (player as any).interactWithEntity(wolf2);
+
+      // 阶段3：轮询繁殖完成（区域内 wolf 数 >=3，原 2 头成年 + 1 头幼体）。
+      pollUntilSucceed(test, () => {
+        const wolves = test.getDimension().getEntities({
+          type: wolfType,
+          location: test.worldLocation(PEN_FROM),
+          volume: PEN_VOLUME,
+        });
+        return wolves.length >= 3;
+      }, {
+        startTick: 20,
+        interval: 10,
+        maxTick: 250,
+        onTimeout: () => {
+          const wolves = test.getDimension().getEntities({
+            type: wolfType,
+            location: test.worldLocation(PEN_FROM),
+            volume: PEN_VOLUME,
+          });
+          test.assert(false,
+            `wolf did not breed: wolfCount=${wolves.length} ` +
+            `tamed1=${effectiveMax(wolf1) >= 20} tamed2=${effectiveMax(wolf2) >= 20} ` +
+            `(expected >=3 after tamed wolves bred)`);
+        },
+      });
+    },
+    {
+      startTick: 70,
+      interval: 4,
+      maxTick: 700,
+      onTimeout: () => {
+        // 驯服阶段超时：两头狼未都在 700 tick 内驯服（1/3 概率下极罕见，或 effectiveMax 读取链路异常）。
+        test.assert(false,
+          `wolves not both tamed in time: max1=${effectiveMax(wolf1)} max2=${effectiveMax(wolf2)} ` +
+          `(expected both >=20 after feeding bones; 1/3 tame chance, ~20 feeds each)`);
+      },
+    });
+}
+
 export function registerWolfTests(): void {
   GameTest.register("MobBehaviorTests", "wolf_retaliates_when_attacked", wolfRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
@@ -132,5 +269,9 @@ export function registerWolfTests(): void {
 
   GameTest.register("MobBehaviorTests", "wolf_attacks_sheep", wolfAttacksSheep)
     .structureName("gametests:creeper_pit")
+    .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "wolf_breeds_when_tamed_and_fed_meat", wolfBreedsWhenTamedAndFedMeat)
+    .structureName("gametests:grass_pen")
     .maxTicks(1000);
 }
