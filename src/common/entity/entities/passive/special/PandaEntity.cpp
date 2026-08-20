@@ -25,6 +25,13 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -38,6 +45,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -282,16 +290,58 @@ void PandaEntity::tick()
 
 void PandaEntity::registerGoals()
 {
-    // 调用父类方法注册基础动物 AI
-    // AnimalEntity 已经注册了基础目标
-    AnimalEntity::registerGoals();
+    // 调用父类方法注册基础目标（AgeableEntity 的 FollowParentGoal 等对幼体重要）。
+    // 注意：AnimalEntity::registerGoals 不注册任何 goal（见 AnimalEntity.cpp:204-224 注释），
+    // 每个动物子类须自己注册完整 AI 目标列表。此前 Panda 只注册了 PandaRollGoal，缺 BreedGoal
+    // 等基础 goal，导致喂竹子 setInLove 后无 BreedGoal 驱动繁殖（繁殖链路断裂）。照搬 CowEntity
+    // 范式补全基础动物 AI，并启用竹子 TemptGoal（原注释掉的）。
+    AgeableEntity::registerGoals();
 
-    // 熊猫特有目标
-    // 优先级 3: 食物诱惑（竹子）
-    // m_goalSelector.addGoal(3, new entity::ai::goal::TemptGoal(this, 1.0, isBambooPredicate));
+    // 优先级 0: 游泳（最高优先级）
+    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+
+    // 优先级 1: 恐慌逃跑
+    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.0));
+
+    // 优先级 2: 繁殖（喂竹子进入爱心后 BreedGoal 驱动靠近配偶并 spawnBaby）
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+
+    // 优先级 3: 食物诱惑（竹子）——对齐 vanilla Panda 持竹子吸引。scaredByMovement=false。
+    m_goalSelector.addGoal(3,
+        std::make_unique<::mc::entity::ai::goal::TemptGoal>(
+            this,
+            1.0,
+            [](const ItemStack& stack) -> bool {
+                const Item* item = stack.getItem();
+                if (item == nullptr) return false;
+                // Items::BAMBOO 可能在初始化期间为 nullptr
+                if (Items::BAMBOO == nullptr) return false;
+                return item == Items::BAMBOO;
+            },
+            false));
+
+    // 优先级 4: 跟随父母（幼年熊猫）
+    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
+
+    // 优先级 5: 随机漫步
+    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+
+    // 优先级 6: 看向玩家
+    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 6.0f));
+
+    // 优先级 7: 随机看向
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
     m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
+
+    // TODO: 待补全 Panda 特有 AI（对齐 vanilla PandaAi / PandaHurtByTargetGoal）：
+    //   - PandaAttackGoal（好斗性格被攻击后反击，对齐 PandaHurtByTargetGoal + MeleeAttack）
+    //   - PandaLieOnBackGoal（懒惰性格躺仰，对齐 LazyPandaGoal）
+    //   - PandaSneezeGoal（幼年熊猫随机打喷嚏掉粘液球+弱化周围实体，对齐 SneezeGoal；
+    //     _onSneezeComplete 已实现但无 goal 触发，是死代码）
+    //   - PandaLookAtPlayerGoal / PandaAvoidGoal 等性格相关 goal
+    //   当前仅补全基础动物 AI + 打滚，保证繁殖/诱惑/漫步等核心行为可测。
 }
 
 void PandaEntity::registerAttributes()
