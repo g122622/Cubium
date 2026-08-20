@@ -185,6 +185,26 @@ public:
      */
     [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
 
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 玩家右键交互（对齐 Java 1.21.11 IronGolem.mobInteract）
+     *
+     * 玩家手持铁锭右键铁傀儡时治疗它：
+     *   1. 记录治疗前的血量 f = health()；
+     *   2. heal(25.0F)（铁锭治疗量 IRON_INGOT_HEAL_AMOUNT=25）；
+     *   3. 若治疗前后血量相同（已满血）返回 Pass，不消耗铁锭；
+     *   4. 否则播放 IRON_GOLEM_REPAIR 音效（pitch=1.0±0.2）+ 消耗 1 铁锭（创造模式不消耗）+ 返回 Success。
+     *
+     * 此前 Cubium 铁傀儡无 interactMob override（基类 MobEntity::interactMob 返 Pass），
+     * Player::interactOn 第3步 processInitialInteract→interactMob 返 Pass 后第4步走
+     * Item::itemInteractionForEntity——而 IronIngotItem 未 override itemInteractionForEntity，
+     * 致铁锭右键铁傀儡完全不治疗（对齐缺陷）。此处补全实体侧治疗链路。
+     *
+     * 参考: net.minecraft.world.entity.animal.golem.IronGolem#mobInteract(Player, InteractionHand)
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -214,6 +234,8 @@ private:
     // 常量
     static constexpr i32 ATTACK_DURATION = 10;  // 攻击动画持续时间（tick）
     static constexpr f32 ATTACK_DAMAGE = 15.0f; // 攻击伤害基础值（属性注册值），MC 1.21.11 原版为 15.0
+    // 铁锭治疗量（对齐 Java IronGolem.IRON_INGOT_HEAL_AMOUNT=25）
+    static constexpr f32 IRON_INGOT_HEAL_AMOUNT = 25.0f;
 };
 
 } // namespace mc

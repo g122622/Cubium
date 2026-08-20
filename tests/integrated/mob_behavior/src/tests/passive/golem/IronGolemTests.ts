@@ -2,6 +2,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
@@ -327,6 +328,108 @@ function ironGolemNaturalAttacksPlayerWhenHurt(test: Test): void {
   });
 }
 
+// 读取区域内某类型实体的当前 HP（currentValue）。找不到返回 NaN。
+function readIronGolemHp(test: Test, from: { x: number; y: number; z: number }, volume: { x: number; y: number; z: number }): number {
+  const ents = test.getDimension().getEntities({
+    type: "iron_golem",
+    location: test.worldLocation(from),
+    volume,
+  });
+  if (ents.length === 0) {
+    return NaN;
+  }
+  const health = ents[0].getComponent("minecraft:health") as unknown as { currentValue?: number } | undefined;
+  return health?.currentValue ?? NaN;
+}
+
+// 玩家手持铁锭右键残血铁傀儡可治疗它（wiki tech_铁傀儡.txt#治疗：玩家可手持铁锭右键铁傀儡，
+// 每个铁锭回复 25 点生命值，播放修理音效；满血时不消耗铁锭）。
+//
+// C++ 链路（对齐 Java 1.21.11 IronGolem.mobInteract）：
+//   玩家主手持 iron_ingot + interactWithEntity(iron_golem)（ScriptSimulatedPlayer 扩展绑定）
+//   → Player::interactOn(iron_golem, MainHand)（Player.cpp:2843）
+//   → iron_golem.processInitialInteract → MobEntity::processInitialInteract（MobEntity.cpp:639）
+//     → 命名牌/刷怪蛋/拴绳/剪刀装备分支均不命中 → interactMob(player, hand)（MobEntity.cpp:753）
+//   → IronGolemEntity::interactMob override（对齐 Java IronGolem.mobInteract）：
+//     heldItem.getItem()==IRON_INGOT → 记录 healthBefore=health() → heal(25.0F)
+//     → health()!=healthBefore（残血，治疗生效）→ 播 ENTITY_IRON_GOLEM_REPAIR 音效（pitch=1.0±0.2）
+//     + 消耗 1 铁锭（创造模式跳过）→ 返 Success。
+//
+// 此前 Cubium 铁傀儡无 interactMob override（基类 MobEntity::interactMob 返 Pass），Player::interactOn
+// 第3步返 Pass 后第4步走 Item::itemInteractionForEntity——而 IronIngotItem 未 override
+// itemInteractionForEntity，致铁锭右键铁傀儡完全不治疗（对齐缺陷）。本次新增 IronGolemEntity::interactMob
+// override 补全此链路。
+//
+// 残血构造：铁傀儡满血 100（MAX_HEALTH=100，IronGolemEntity.cpp:138）。用 addEffect("instant_damage")
+// 造残血——Cubium InstantDamage 公式 amount=4+amplifier*2（EffectInstance.cpp:263），amplifier=13 造
+// 30 点魔法伤害（对齐基岩 Entity.addEffect，applyInstantly 同步扣血）。铁傀儡 getCreatureAttribute 非
+// Undead（Golem 分类），正常受魔法伤害（非亡灵治疗分支）。HP 降至 70，再用铁锭 heal(25) → 95（不被
+// maxHealth 夹紧，70+25=95<100），HP 上升 25 完整可断言。
+// 不用 Survival 玩家攻击造残血：自然铁傀儡（isPlayerCreated=false）受击会反击玩家干扰测试；addEffect
+// 不触发 HurtByTargetGoal（无 lastHurtBy），铁傀儡不反击，环境干净。
+//
+// 环境选择：glass_pit（7×5×7）。铁傀儡 (3,2,3)，创造玩家 (5,2,3) 距 2 格。interactWithEntity 无距离
+// 门控可远程治疗。创造模式不消耗铁锭，同一铁锭可重复用（但本测试单次治疗即可）。
+//
+// 判定手段：记录治疗前后 HP，断言 HP 上升（治疗生效）。不精确断言 +25（兼容 instant_damage 公式浮点
+// 误差），断言 hpAfter > hpBefore 且 hpAfter - hpBefore 在合理范围（≥20，治疗量 25 减去 instant_damage
+// 残血误差）。用 pollUntilSucceed 轮询（heal 同步生效，但留 tick 让 HP 同步到组件）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_铁傀儡.txt#治疗（铁锭右键治疗 +25）
+function ironGolemHealedByIronIngot(test: Test): void {
+  const ironGolemType = "iron_golem";
+
+  // 铁傀儡 (3,2,3)（glass_pit 内部空气腔，helper y=2 → 结构 y=1 air，脚踩 y=0 glass_pit 地板）。
+  // 创造玩家 (5,2,3)，距铁傀儡 2 格（interactWithEntity 远程转发 interactOn，无需贴脸）。
+  const golem = test.spawn(ironGolemType, { x: 3, y: 2, z: 3 });
+  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "healer");
+
+  // 创造玩家主手持铁锭。setItem(slot=0 主手, true 强制覆盖)。
+  // ItemStack 类型分裂（顶层 vs server-gametest 嵌套），as unknown 强转绕过编译期。
+  const ironIngot = new ItemStack("minecraft:iron_ingot", 1);
+  player.setItem(ironIngot as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 记录治疗前后 HP 的闭包变量。
+  let hpBeforeDamage = NaN;
+  let hpAfterDamage = NaN;
+
+  // tick 5：读满血 HP 基准（应 100）。
+  test.runAtTickTime(5, () => {
+    hpBeforeDamage = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
+  });
+
+  // tick 6：施加瞬间伤害（amplifier=13 → 4+13*2=30 魔法伤害）造残血。addEffect 同步 applyInstantly 扣血。
+  test.runAtTickTime(6, () => {
+    (golem as any).addEffect("instant_damage", 1, { amplifier: 13, showParticles: false });
+  });
+
+  // tick 8：读残血 HP，断言已下降（确认造残血成功），随后玩家持铁锭治疗铁傀儡。
+  test.runAtTickTime(8, () => {
+    hpAfterDamage = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
+    // 确认造残血成功：HP 必须下降且未致死（>0）。amplifier=13 造 30 伤害，100→70。
+    test.assert(hpAfterDamage < hpBeforeDamage && hpAfterDamage > 0,
+      `iron_golem not damaged by instant_damage (amplifier=13), hpBefore=${hpBeforeDamage} hpAfter=${hpAfterDamage}`);
+    // 玩家持铁锭右键铁傀儡 → interactMob → heal(25)。
+    (player as any).interactWithEntity(golem);
+  });
+
+  // 轮询断言 HP 上升（治疗生效）。heal 同步生效，留 tick 让 HP 同步到 health 组件。
+  // 治疗量 25（70+25=95<100 不被夹紧），断言 hpAfter > hpAfterDamage 且增量 ≥20（兼容浮点误差）。
+  pollUntilSucceed(test, () => {
+    const hpAfterHeal = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
+    if (Number.isNaN(hpAfterHeal)) return false;
+    return hpAfterHeal > hpAfterDamage && (hpAfterHeal - hpAfterDamage) >= 20;
+  }, {
+    startTick: 12,
+    interval: 5,
+    maxTick: 100,
+    onTimeout: () => {
+      const hpAfterHeal = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
+      test.assert(false,
+        `iron_golem not healed by iron_ingot (interactMob override broken), hpBeforeDamage=${hpBeforeDamage} hpAfterDamage=${hpAfterDamage} hpAfterHeal=${hpAfterHeal}`);
+    },
+  });
+}
+
 export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_arena", ironGolemArena)
     .batch("night")
@@ -352,4 +455,8 @@ export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_natural_attacks_player_when_hurt", ironGolemNaturalAttacksPlayerWhenHurt)
     .structureName("gametests:glass_pit")
     .maxTicks(250);
+
+  GameTest.register("MobBehaviorTests", "iron_golem_healed_by_iron_ingot", ironGolemHealedByIronIngot)
+    .structureName("gametests:glass_pit")
+    .maxTicks(200);
 }

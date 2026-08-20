@@ -34,7 +34,11 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/golem/GolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -228,6 +232,57 @@ bool IronGolemEntity::canAttackType(const entity::EntityType& type) const
 
     // 其他情况由父类处理
     return MobEntity::canAttackType(type);
+}
+
+ActionResultType IronGolemEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 IronGolem.mobInteract(Player, InteractionHand)：
+    //   ItemStack itemstack = player.getItemInHand(hand);
+    //   if (!itemstack.is(Items.IRON_INGOT)) return PASS;
+    //   float f = this.getHealth();
+    //   this.heal(25.0F);
+    //   if (this.getHealth() == f) return PASS;            // 已满血，治疗无效
+    //   float f1 = 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F;
+    //   this.playSound(IRON_GOLEM_REPAIR, 1.0F, f1);
+    //   itemstack.consume(1, player);
+    //   return SUCCESS;
+    //
+    // 此前 Cubium 铁傀儡无 interactMob override（基类 MobEntity::interactMob 返 Pass），
+    // Player::interactOn 第3步 processInitialInteract→interactMob 返 Pass 后，第4步走
+    // Item::itemInteractionForEntity——而 IronIngotItem 未 override itemInteractionForEntity，
+    // 致铁锭右键铁傀儡完全不治疗（对齐缺陷）。此处补全实体侧治疗链路。
+    ItemStack& heldItem = player.getHeldItem(hand);
+    const Item* item = heldItem.getItem();
+    if (item == nullptr || item != Items::IRON_INGOT) {
+        // 非铁锭交由父类处理（基类默认 Pass）。
+        return MobEntity::interactMob(player, hand);
+    }
+
+    // 铁锭治疗量（对齐 Java IRON_INGOT_HEAL_AMOUNT=25）。
+    // 先记录治疗前的血量，heal 后若血量未变（已满血）则返回 Pass 不消耗。
+    const f32 healthBefore = health();
+    heal(IRON_INGOT_HEAL_AMOUNT);
+    if (health() == healthBefore) {
+        // 已满血，治疗无效，不消耗铁锭（对齐 Java getHealth()==f 返回 PASS）。
+        return ActionResultType::Pass;
+    }
+
+    // 治疗生效：播放 IRON_GOLEM_REPAIR 音效，pitch=1.0±0.2（对齐 Java f1）。
+    // playSound 在客户端/服务端均可，但 heal 必须服务端生效（heal 内部已处理）。
+    if (!isSilent()) {
+        math::Random& rng = getRandom();
+        const f32 pitch = 1.0f + (rng.nextFloat() - rng.nextFloat()) * 0.2f;
+        playSound(SoundEvents::ENTITY_IRON_GOLEM_REPAIR, 1.0f, pitch);
+    }
+
+    // 消耗 1 铁锭。Java 用 itemstack.consume(1, player)（创造模式由 consume 内部跳过）。
+    // Cubium ItemStack 无 consume 接口，铁锭不可损坏（maxDamage=0），直接 shrink(1)；
+    // 创造模式显式跳过消耗（对齐 Java consume 创造保护语义）。
+    if (m_world != nullptr && !m_world->isClientSide() && !player.abilities().creativeMode) {
+        heldItem.shrink(1);
+    }
+
+    return ActionResultType::Success;
 }
 
 } // namespace mc
