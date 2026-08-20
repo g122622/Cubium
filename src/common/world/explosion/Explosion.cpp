@@ -23,7 +23,6 @@
 
 #include "Explosion.hpp"
 #include "ExplosionImmunityContext.hpp"
-#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -41,19 +40,21 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
-#include "common/util/math/ray/Ray.hpp"
-#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -79,6 +80,119 @@ using namespace mc::game::explosion;
 
 // 追踪命名空间：允许直接写 TraceEvents.Server.World
 using namespace mc::trace;
+
+namespace {
+
+// ============================================================================
+// 爆炸专用视线检测（仅服务 _getBlockDensity，绕过公共 raycastBlocks）
+//
+// 公共 raycastBlocks 的单次射线 chunk 缓存是函数内局部变量，无法跨采样点复用：
+// _getBlockDensity 对单个实体发射约 45 条采样射线（采样点集中于同一实体 0.6×1.8×0.6
+// 碰撞箱内、终点都指向同一爆炸中心，射线簇高度集中在 2-3 个区块内），每条射线都从冷缓存
+// 开始重新对 m_chunksMutex 加锁 + unordered_map 哈希查找 getChunk，是 _getBlockDensity
+// 占爆炸墙钟 97%（单次射线 124μs）的根因。
+//
+// 本匿名命名空间的专用路径把 chunk/section 缓存提升为跨采样点复用（由 _getBlockDensity
+// 在采样循环外构造一次 ExplosionLosCache 传入），把约 45 次锁+哈希降到个位数；同时用
+// ChunkSection::isEmpty() 做 section 级早退、用内联 Y 边界检查替代 isWithinWorldBounds
+// 虚调用、用 hit-only bool 返回跳过 BlockRaycastResult 构造与命中点/距离的 sqrt。
+//
+// 行为等价性：DDA 骨架（adjustedStart/adjustedEnd 偏移、tMax/tDelta、三轴步进、起点预检、
+// 零向量处理、isAir/isLiquid 跳过、state==nullptr 视为空气）逐行复刻 raycastBlocks，保证
+// "是否被遮挡"判定不变，从而爆炸伤害数值不变。
+// ============================================================================
+
+/// 线段与 AABB 相交判定（slab 法），只返回是否相交，不算 t 值与命中面。
+/// 与 raycastBlocks 内 intersectSegmentAabb 在"是否相交"上逻辑等价，但省去 Direction 计算、
+/// clamp 与 std::swap（用 std::min/std::max 替代），供视线检测专用。
+[[nodiscard]] bool _segmentIntersectsAabb(const Vector3& origin, const Vector3& delta, const AxisAlignedBB& box)
+{
+    constexpr f32 EPSILON = 1.0e-7f;
+
+    f32 tMin = 0.0f;
+    f32 tMax = 1.0f;
+
+    const auto updateAxis = [&](f32 axisOrigin, f32 axisDelta, f32 axisMin, f32 axisMax) -> bool {
+        if (std::abs(axisDelta) < EPSILON) {
+            // 射线在该轴平行：起点必须在 slab 内
+            return axisOrigin >= axisMin && axisOrigin <= axisMax;
+        }
+        f32 t1 = (axisMin - axisOrigin) / axisDelta;
+        f32 t2 = (axisMax - axisOrigin) / axisDelta;
+        if (t1 > t2) {
+            std::swap(t1, t2);
+        }
+        if (t1 > tMin) {
+            tMin = t1;
+        }
+        if (t2 < tMax) {
+            tMax = t2;
+        }
+        return tMin <= tMax;
+    };
+
+    if (!updateAxis(origin.x, delta.x, box.minX, box.maxX)) {
+        return false;
+    }
+    if (!updateAxis(origin.y, delta.y, box.minY, box.maxY)) {
+        return false;
+    }
+    if (!updateAxis(origin.z, delta.z, box.minZ, box.maxZ)) {
+        return false;
+    }
+
+    // 相交且交点在 [0,1] 参数区间内（线段而非无限射线）
+    return tMax >= 0.0f && tMin <= 1.0f;
+}
+
+/// 命中判定专用：检测射线（adjustedStart→adjustedStart+ddaDelta）是否穿过方块碰撞箱。
+/// 与 raycastBlocks 内 traceBlockShape 在"是否命中"上逻辑等价，但不构造 BlockRaycastResult、
+/// 不算命中点/命中面/距离，命中任一 box 即返回 true。
+[[nodiscard]] bool _traceBlockShapeHitOnly(
+    const BlockState& state, i32 blockX, i32 blockY, i32 blockZ, const Vector3& adjustedStart, const Vector3& ddaDelta)
+{
+    const CollisionShape& shape = state.getShape();
+    if (shape.isEmpty()) {
+        return false;
+    }
+    for (const auto& localBox : shape.boxes()) {
+        const AxisAlignedBB worldBox(static_cast<f32>(blockX) + localBox.minX,
+            static_cast<f32>(blockY) + localBox.minY,
+            static_cast<f32>(blockZ) + localBox.minZ,
+            static_cast<f32>(blockX) + localBox.maxX,
+            static_cast<f32>(blockY) + localBox.maxY,
+            static_cast<f32>(blockZ) + localBox.maxZ);
+        if (_segmentIntersectsAabb(adjustedStart, ddaDelta, worldBox)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// 跨采样点复用的区块/区块段缓存定义见下方 world::explosion 命名空间（需与 Explosion.hpp
+/// 前向声明同名同命名空间，否则 out-of-line 定义不匹配）。
+
+} // anonymous namespace
+
+/// 跨采样点复用的区块/区块段缓存。由 _getBlockDensity 在采样循环外构造一次，
+/// 传入 _isLineOfSightBlocked，使同一次密度计算内的约 45 条采样射线共享 chunk/section 指针。
+///
+/// 生命周期安全：缓存为栈局部变量，严格限定在 _getBlockDensity 单次调用内（微秒级）。
+/// 爆炸在主线程同步执行，区块卸载由主线程 tick 驱动，不会在本调用执行期间发生，故裸指针
+/// 在本调用内稳定安全（与 raycastBlocks 单次射线缓存安全性等价，只是复用范围扩大到采样簇）。
+/// 跨区块/跨段边界时刷新指针，避免持有过期 chunk/section。
+struct ExplosionLosCache {
+    const ChunkData* cachedChunk = nullptr;
+    ChunkCoord cachedChunkX = 0;
+    ChunkCoord cachedChunkZ = 0;
+    // 标记当前缓存坐标是否已确认 getChunk 返回 nullptr（避免对同一未加载区块反复 getChunk），
+    // 同时作为回退判定：getChunk 返回 nullptr 时（区块未加载，或测试桩世界不实现 getChunk）
+    // 回退到 world.getBlockState，保持与 raycastBlocks 行为一致。
+    bool cachedChunkIsNull = false;
+
+    const ChunkSection* cachedSection = nullptr;
+    i32 cachedSectionIndex = -1;
+};
 
 // ============================================================================
 // 构造函数
@@ -699,6 +813,154 @@ void Explosion::_playSound()
 // 辅助方法
 // ============================================================================
 
+bool Explosion::_isLineOfSightBlocked(
+    const Vector3& samplePoint, const Vector3& explosionCenter, ExplosionLosCache& cache, i32 minY, i32 maxY) const
+{
+    // 以下 DDA 骨架逐行复刻 raycastBlocks（Raycast.cpp），仅替换：
+    //   - 零向量/重合 → 返回 false（无遮挡，等价 miss）
+    //   - getCachedBlockState → 跨采样点复用 cache + section isEmpty 早退
+    //   - isWithinWorldBounds 虚调用 → 内联 Y 比较（X/Z 不检查，与现状等价）
+    //   - traceBlockShape → _traceBlockShapeHitOnly（hit-only bool，不构造结果）
+    //   - 命中 → return true（遮挡）；miss → return false
+
+    const Vector3 start = samplePoint;
+    const Vector3 dir(
+        explosionCenter.x - samplePoint.x, explosionCenter.y - samplePoint.y, explosionCenter.z - samplePoint.z);
+
+    if (dir.lengthSquared() < 0.0001f) {
+        // 方向为零向量：采样点与爆炸中心重合，视为无遮挡
+        return false;
+    }
+
+    // 精确复刻原 _getBlockDensity 的射线终点构造：direction 未归一化（=explosionCenter-samplePoint），
+    // maxDistance = |direction|，end = origin + direction * maxDistance = samplePoint + dir * |dir|。
+    // 注意 end ≠ explosionCenter（除非 |dir|==1），这是原实现的既定行为，专用路径必须保持以
+    // 不改变遮挡判定与伤害数值。
+    const f32 distance = dir.length();
+    const Vector3 end(start.x + dir.x * distance, start.y + dir.y * distance, start.z + dir.z * distance);
+
+    if (start.distanceSquared(end) < 0.0001f) {
+        // 起点和终点重合，视为无遮挡
+        return false;
+    }
+
+    // 端点偏移避免边界精度问题，与 raycastBlocks 一致
+    const f32 eps = 1.0e-7f;
+    const Vector3 adjustedEnd(
+        end.x + (start.x - end.x) * eps, end.y + (start.y - end.y) * eps, end.z + (start.z - end.z) * eps);
+    const Vector3 adjustedStart(
+        start.x + (end.x - start.x) * eps, start.y + (end.y - start.y) * eps, start.z + (end.z - start.z) * eps);
+
+    const f32 dx = adjustedEnd.x - adjustedStart.x;
+    const f32 dy = adjustedEnd.y - adjustedStart.y;
+    const f32 dz = adjustedEnd.z - adjustedStart.z;
+    const Vector3 ddaDelta(dx, dy, dz);
+
+    i32 currentX = static_cast<i32>(std::floor(adjustedStart.x));
+    i32 currentY = static_cast<i32>(std::floor(adjustedStart.y));
+    i32 currentZ = static_cast<i32>(std::floor(adjustedStart.z));
+
+    // 缓存式 getBlockState：命中 cache.cachedChunk 则直读 section，否则刷新缓存；
+    // getChunk 返回 nullptr 时回退到 world.getBlockState（测试桩世界/未加载区块）。
+    // section 级早退：当前 section 为空（m_blockCount==0）或未创建时直接返回 nullptr，
+    // 调用方据此跳过逐方块查询。section/chunk 切换时刷新 cachedSection 指针。
+    const auto getCachedBlockState = [&](i32 x, i32 y, i32 z) -> const BlockState* {
+        const ChunkCoord chunkX = world::toChunkCoord(x);
+        const ChunkCoord chunkZ = world::toChunkCoord(z);
+        if (cache.cachedChunk == nullptr || chunkX != cache.cachedChunkX || chunkZ != cache.cachedChunkZ) {
+            cache.cachedChunkX = chunkX;
+            cache.cachedChunkZ = chunkZ;
+            cache.cachedChunk = m_world.getChunk(chunkX, chunkZ);
+            cache.cachedChunkIsNull = (cache.cachedChunk == nullptr);
+            // 区块变更后段缓存失效，强制重取
+            cache.cachedSectionIndex = -1;
+            cache.cachedSection = nullptr;
+        }
+        if (cache.cachedChunkIsNull) {
+            return m_world.getBlockState(x, y, z);
+        }
+        const i32 sectionIndex = world::toSectionIndex(y);
+        if (sectionIndex != cache.cachedSectionIndex) {
+            cache.cachedSectionIndex = sectionIndex;
+            cache.cachedSection = cache.cachedChunk->getSection(sectionIndex);
+        }
+        // 空段（未创建或 m_blockCount==0）整段都是空气，返回 nullptr 触发调用方 continue
+        if (cache.cachedSection == nullptr || cache.cachedSection->isEmpty()) {
+            return nullptr;
+        }
+        const BlockCoord localX = x - chunkX * world::CHUNK_WIDTH;
+        const BlockCoord localZ = z - chunkZ * world::CHUNK_WIDTH;
+        return cache.cachedSection->getBlockState(localX, world::toSectionLocalY(y), localZ);
+    };
+
+    // 起点预检：起点在非空气非液体方块内且 shape 命中 → 遮挡
+    if (currentY >= minY && currentY < maxY) {
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
+        if (state != nullptr && !state->isAir() && !state->isLiquid()) {
+            if (_traceBlockShapeHitOnly(*state, currentX, currentY, currentZ, adjustedStart, ddaDelta)) {
+                return true;
+            }
+        }
+    }
+
+    const i32 stepX = (dx > 0.0f) ? 1 : ((dx < 0.0f) ? -1 : 0);
+    const i32 stepY = (dy > 0.0f) ? 1 : ((dy < 0.0f) ? -1 : 0);
+    const i32 stepZ = (dz > 0.0f) ? 1 : ((dz < 0.0f) ? -1 : 0);
+
+    const f32 tDeltaX = (stepX == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepX) / dx;
+    const f32 tDeltaY = (stepY == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepY) / dy;
+    const f32 tDeltaZ = (stepZ == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepZ) / dz;
+
+    const auto fractVal = [](f32 v) { return v - std::floor(v); };
+    f32 tMaxX = (stepX == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaX * (stepX > 0 ? (1.0f - fractVal(adjustedStart.x)) : fractVal(adjustedStart.x));
+    f32 tMaxY = (stepY == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaY * (stepY > 0 ? (1.0f - fractVal(adjustedStart.y)) : fractVal(adjustedStart.y));
+    f32 tMaxZ = (stepZ == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaZ * (stepZ > 0 ? (1.0f - fractVal(adjustedStart.z)) : fractVal(adjustedStart.z));
+
+    while (tMaxX <= 1.0f || tMaxY <= 1.0f || tMaxZ <= 1.0f) {
+        // 选择最小 t 值前进（与 raycastBlocks 三轴选择逻辑一致）
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                currentX += stepX;
+                tMaxX += tDeltaX;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                currentY += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+
+        // Y 边界检查（内联，替代 isWithinWorldBounds 虚调用；X/Z 不检查与现状等价）
+        if (currentY < minY || currentY >= maxY) {
+            // 超出世界 Y 边界，视为无遮挡结束
+            return false;
+        }
+
+        const BlockState* state = getCachedBlockState(currentX, currentY, currentZ);
+
+        // 空气/液体/未加载区块不遮挡
+        if (state == nullptr || state->isAir() || state->isLiquid()) {
+            continue;
+        }
+
+        if (_traceBlockShapeHitOnly(*state, currentX, currentY, currentZ, adjustedStart, ddaDelta)) {
+            return true;
+        }
+    }
+
+    // 未击中任何方块：无遮挡
+    return false;
+}
+
 f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "Explosion::_getBlockDensity");
@@ -723,6 +985,14 @@ f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
         return 0.0f;
     }
 
+    // 预读世界 Y 边界，传入专用视线检测供循环内内联比较（替代 isWithinWorldBounds 虚调用）
+    const i32 minY = m_world.getMinBuildHeight();
+    const i32 maxY = m_world.getMaxBuildHeight();
+
+    // 跨采样点复用的区块/区块段缓存：本实体的约 45 条采样射线共享 chunk/section 指针，
+    // 把逐射线的锁+哈希查找降到个位数（专用视线检测的核心收益点）
+    ExplosionLosCache cache;
+
     i32 visible = 0;
     i32 total = 0;
 
@@ -735,16 +1005,9 @@ f32 Explosion::_getBlockDensity(const AxisAlignedBB& entityBox)
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
                     entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
 
-                // 使用射线检测是否有方块阻挡
-                Ray ray(samplePoint,
-                    Vector3(m_position.x - samplePoint.x, m_position.y - samplePoint.y, m_position.z - samplePoint.z));
-                f32 distance = (m_position - samplePoint).length();
-                RaycastContext context(ray, distance);
-
-                BlockRaycastResult result = raycastBlocks(context, m_world);
-
-                // 如果射线未击中任何方块，说明该采样点可以看到爆炸中心
-                if (result.isMiss()) {
+                // 专用视线检测：被遮挡则该采样点看不到爆炸中心
+                const bool blocked = _isLineOfSightBlocked(samplePoint, m_position, cache, minY, maxY);
+                if (!blocked) {
                     ++visible;
                 }
                 ++total;

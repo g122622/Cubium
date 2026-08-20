@@ -47,6 +47,9 @@ class Player;
 class BlockState;
 class AxisAlignedBB;
 class ItemStack;
+// 测试 fixture（tests/common/world/explosion/ExplosionLosBlockTest.cpp），经 friend 访问私有
+// _getBlockDensity 验证专用视线 DDA 与公共 raycastBlocks 的行为等价性。
+class ExplosionLosBlockTest;
 
 namespace entity {
 class TNTEntity;
@@ -58,6 +61,9 @@ class LootTableManager;
 }
 
 namespace world::explosion {
+
+// 前向声明：跨采样点视线缓存，定义在 Explosion.cpp 匿名命名空间，仅服务 _getBlockDensity。
+struct ExplosionLosCache;
 
 /**
  * @brief 爆炸类
@@ -76,6 +82,9 @@ namespace world::explosion {
  */
 class Explosion {
 public:
+    // 端到端视线遮挡回归测试需访问私有 _getBlockDensity 以逐采样点对比专用 DDA
+    // 与公共 raycastBlocks 的等价性（见 ExplosionLosBlockTest）。
+    friend class ::mc::ExplosionLosBlockTest;
     /**
      * @brief 构造爆炸对象
      *
@@ -255,6 +264,23 @@ private:
      * @return 阻挡密度 (0.0 - 1.0)，1.0 表示完全无遮挡
      */
     [[nodiscard]] f32 _getBlockDensity(const AxisAlignedBB& entityBox);
+
+    /**
+     * @brief 爆炸专用视线检测：判断采样点到爆炸中心的射线是否被方块遮挡
+     *
+     * 绕过公共 raycastBlocks，在 _getBlockDensity 内跨采样点复用 chunk/section 缓存，
+     * 降低单次视线检测成本。DDA 骨架逐行复刻 raycastBlocks，"是否被遮挡"判定等价，
+     * 故不改变爆炸伤害数值。
+     *
+     * @param samplePoint 采样点（实体碰撞箱内）
+     * @param explosionCenter 爆炸中心（= m_position）
+     * @param cache 跨采样点复用的区块/区块段缓存（由 _getBlockDensity 构造一次）
+     * @param minY 世界最小建筑高度（入口预读，循环内内联比较替代 isWithinWorldBounds 虚调用）
+     * @param maxY 世界最大建筑高度（独占上界）
+     * @return true 表示射线被非空气非液体方块遮挡；false 表示无遮挡（等价 raycastBlocks 的 miss）
+     */
+    [[nodiscard]] bool _isLineOfSightBlocked(
+        const Vector3& samplePoint, const Vector3& explosionCenter, ExplosionLosCache& cache, i32 minY, i32 maxY) const;
 
     /**
      * @brief 判断本次爆炸是否影响"方块类实体"（掉落物/盔甲架/悬挂实体/载具）
