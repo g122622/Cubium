@@ -571,7 +571,9 @@ void FoxEntity::tick()
 
 void FoxEntity::registerGoals()
 {
-    // 调用父类方法注册基础动物 AI
+    // 注意：AnimalEntity::registerGoals() 是空操作（AnimalEntity.cpp:204-224 基类不注册任何 goal，
+    // 注释明示每个动物子类须自己注册完整 AI）。调用基类保持继承链守卫一致（空操作无副作用），
+    // 基础动物 AI 由下方自行注册（SwimGoal/PanicGoal/BreedGoal/FollowParentGoal 等）。
     AnimalEntity::registerGoals();
 
     // 狐狸特有目标注册顺序
