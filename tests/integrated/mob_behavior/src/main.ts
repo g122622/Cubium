@@ -9,6 +9,7 @@
 import "./gametest-shim.js";
 
 import { registerZombieTests } from "./tests/monster/undead/ZombieTests.js";
+import { registerWitherTests } from "./tests/boss/WitherTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
 import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
@@ -147,3 +148,4 @@ registerZombieReinforcementTests();
 registerZombieVillagerTests();
 registerVillagerTests();
 registerVillagerBreedTests();
+registerWitherTests();
