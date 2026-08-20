@@ -2,6 +2,8 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { ItemStack } from "@minecraft/server";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit / grass_pen 结构尺寸（7×5×7 / 9×5×9），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -10,6 +12,12 @@ const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 const PEN_FROM = { x: 0, y: 0, z: 0 };
 const PEN_VOLUME = { x: 9, y: 5, z: 9 };
+
+// open_grass_hall 结构尺寸（41×7×9），helper 相对坐标。四壁 glass 墙 + 内部/顶部全 air 露天草地长廊，
+// y=0 grass_block 地板。兔子繁殖用：41 格长度容纳玩家 teleport 远离兔子（>8 格避 AvoidEntityGoal），
+// 玻璃墙在边界阻止兔子跑出查询区域。
+const HALL_FROM = { x: 0, y: 0, z: 0 };
+const HALL_VOLUME = { x: 41, y: 7, z: 9 };
 
 // 兔子逃离玩家（wiki tech_兔子.txt#行为：除杀手兔外，所有兔子都会躲避 8 格内的生存或冒险模式玩家）。
 //
@@ -121,6 +129,89 @@ function killerRabbitAttacksPlayer(test: Test): void {
 // 待补全 BlockPermutation.getState / getBlock JS 绑定（暴露 BlockState property 读取）后可实现：
 //   铺 farmland + carrots(age=7)，spawn 兔子（wantsMoreFood 默认 true），断言任一胡萝卜 age<7。
 
+// 两只兔子各喂胡萝卜后进入爱心状态，BreedGoal 驱动互相靠近并繁殖出小兔子
+// （wiki tech_兔子.txt#繁殖：手持胡萝卜/金胡萝卜/蒲公英右键两只成年兔子使其进入"爱心模式"，
+//   两只兔子靠近后繁殖出小兔子，双亲进入 5 分钟繁殖冷却，玩家获得 1-7 经验球）。
+//
+// 关键设计难点——AvoidEntityGoal 干扰：RabbitEntity::registerGoals（RabbitEntity.cpp:568-619）
+//   AvoidEntityGoal(玩家，优先级2，检测距离8格) 优先级高于 BreedGoal(优先级3)。玩家在兔子 8 格内会
+//   持续触发 Avoid，BreedGoal 被 Move flag mutex 阻塞无法繁殖；且 Avoid 让两头兔子跑散，BreedGoal::
+//   findNearbyMate（8 格内）找不到配偶致繁殖失败（实测约 10-20% 概率失败）。
+//
+// 解决方案——远程喂食规避 Avoid：interactWithEntity 转发 Player::interactOn（Player.cpp:2843），
+//   interactOn 无距离门控直接调 target.processInitialInteract，故玩家可在远处喂兔子。玩家全程站在
+//   距兔子 18 格外（>8），AvoidEntityGoal shouldExecute 的 _findEntityToAvoid 找不到 8 格内玩家恒返
+//   false，BreedGoal(3) 是最高可执行 goal，isInLove 时独占驱动繁殖。两头兔子不被 Avoid 惊扰跑散，
+//   始终在 BreedGoal 检测范围内稳定繁殖。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Rabbit + BreedGoal）：
+//   1) 玩家主手持胡萝卜 + interactWithEntity(rabbit)（远程，玩家在 18 格外）→ Player::interactOn
+//      → rabbit.processInitialInteract → MobEntity::interactMob → AnimalEntity::interactMob override
+//      （AnimalEntity.cpp:90-141）：RabbitEntity::isBreedingItem(胡萝卜) 命中（RabbitEntity.cpp:234-242
+//      item==Items::CARROT||GOLDEN_CARROT）→ 成体 canBreed() → setInLove(player.playerId())。
+//      创造模式喂食不消耗胡萝卜，同一根喂两只兔子。
+//   2) BreedGoal::shouldExecute（BreedGoal.cpp:62-74）：isInLove() && findNearbyMate() 非空。
+//   3) BreedGoal::tick：navigator.moveTo(配偶) + m_spawnBabyDelay++，达 adjustedTickDelay(60)=30
+//      且 distSq<BREED_DISTANCE_SQ=9 时 spawnBaby()。
+//   4) RabbitEntity::spawnBaby（RabbitEntity.cpp:255-...）：构造 RabbitEntity 幼体 + setChild(true)；
+//      BreedGoal:153 兜底 setTypeId(RABBIT) 保证 getEntities 可查。
+//
+// 环境选择：open_grass_hall（41×7×9 露天草地长廊，四壁玻璃墙）。两头兔子放中心 (20,2,4)+(20,2,6)
+//   相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。玩家站远端 (2,2,4) 距兔子 ~18 格 >8，
+//   AvoidEntityGoal 不触发。兔子 MOVEMENT_SPEED=0.3，BreedGoal speed=1.0 倍率，moveTo 配偶快。
+//
+// 判定手段：繁殖完成后区域内 rabbit 数 >=3（原 2 + 幼体 1）。pollUntilSucceed 轮询。
+// 时序：喂食 2×（tick 5、10）+ BreedGoal 评估 + 30 tick spawnBabyDelay + 余量。startTick=30，maxTick=700
+//   （与 cow/sheep 等同范式，兔子不被 Avoid 干扰时繁殖时序与牛一致）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_兔子.txt#繁殖（喂胡萝卜→爱心→繁殖小兔子+冷却+经验球）
+function rabbitBreedsWhenFedCarrot(test: Test): void {
+  const rabbitType = "rabbit";
+
+  // 两只成年兔子放中心相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。
+  // open_grass_hall helper-y=2 是 air 层，y=0 grass_block 地板，兔子 spawn y=2 落到 y=1 草地顶。
+  const rabbit1 = test.spawn(rabbitType, { x: 20, y: 2, z: 4 });
+  const rabbit2 = test.spawn(rabbitType, { x: 20, y: 2, z: 6 });
+
+  // 创造玩家站远端 (2,2,4)，距兔子 ~18 格 >8 格避免 AvoidEntityGoal 触发。
+  // interactWithEntity 远程生效（interactOn 无距离门控），玩家无需靠近兔子喂食。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "rabbitBreeder");
+  const carrot = new ItemStack("minecraft:carrot", 1);
+  // 两份 @minecraft/server ItemStack 类型分裂（顶层 1.13-beta 与 server-gametest 嵌套 1.19），
+  // setItem 形参类型不兼容；运行时同一 Cubium ItemStack opaque，强转绕过编译期。
+  player.setItem(carrot as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 依次喂两只兔子：interactWithEntity 远程转发 interactOn → AnimalEntity::interactMob → setInLove。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(rabbit1);
+  });
+  test.runAtTickTime(10, () => {
+    (player as any).interactWithEntity(rabbit2);
+  });
+
+  // 轮询：繁殖完成后区域内 rabbit 数 >=3（原 2 + 幼体 1）。
+  pollUntilSucceed(test, () => {
+    const rabbits = test.getDimension().getEntities({
+      type: rabbitType,
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
+    });
+    return rabbits.length >= 3;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 700,
+    onTimeout: () => {
+      const rabbits = test.getDimension().getEntities({
+        type: rabbitType,
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      test.assert(false,
+        `rabbit did not breed: rabbitCount=${rabbits.length} (expected >=3 after feeding carrot)`);
+    },
+  });
+}
+
 export function registerRabbitTests(): void {
   GameTest.register("MobBehaviorTests", "rabbit_flees_player", rabbitFleesPlayer)
     .structureName("gametests:grass_pen")
@@ -129,4 +220,8 @@ export function registerRabbitTests(): void {
   GameTest.register("MobBehaviorTests", "killer_rabbit_attacks_player", killerRabbitAttacksPlayer)
     .structureName("gametests:creeper_pit")
     .maxTicks(800);
+
+  GameTest.register("MobBehaviorTests", "rabbit_breeds_when_fed_carrot", rabbitBreedsWhenFedCarrot)
+    .structureName("gametests:open_grass_hall")
+    .maxTicks(1000);
 }

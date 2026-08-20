@@ -4,12 +4,18 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { assertEntityInVolume } from "../../../utils/entity/assert.js";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
 // 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
+
+// grass_pen 结构尺寸 9×5×9（helper 相对坐标 x,z∈[0,8], y∈[0,4]）。
+// 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构全尺寸 9×5×9。
+const PEN_FROM = { x: 0, y: 0, z: 0 };
+const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
 // 蜜蜂受击后反击玩家（wiki tech_蜜蜂.txt#攻击：蜜蜂是中立生物，受击或蜂巢被破坏后才攻击）。
 //
@@ -160,6 +166,80 @@ function beeFollowsFlower(test: Test): void {
   });
 }
 
+// 两只蜜蜂各喂花朵后进入爱心状态，BreedGoal 驱动互相靠近并繁殖出小蜜蜂
+// （wiki tech_蜜蜂.txt#繁殖：手持花朵右键两只成年蜜蜂使其进入"爱心模式"，两只蜜蜂靠近后繁殖出小蜜蜂，
+//   双亲进入 5 分钟繁殖冷却，玩家获得 1-7 经验球）。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Bee + BreedGoal，与 cow_breeds_when_fed_wheat 同构）：
+//   1) 玩家主手持花朵 + interactWithEntity(bee) → Player::interactOn → bee.processInitialInteract
+//      → MobEntity::interactMob → AnimalEntity::interactMob override（AnimalEntity.cpp:90-141）：
+//      BeeEntity::isBreedingItem(花朵) 命中（BeeEntity.cpp:282-290 item->isIn(ItemTags::FLOWERS)）
+//      → 成体 canBreed() → setInLove(player.playerId())。创造模式喂食不消耗花朵，同一朵花喂两只蜜蜂。
+//   2) BreedGoal::shouldExecute（BreedGoal.cpp:62-74）：isInLove() && findNearbyMate() 非空。
+//   3) BreedGoal::tick：navigator.moveTo(配偶) + m_spawnBabyDelay++，达 adjustedTickDelay(60)=30
+//      且 distSq<BREED_DISTANCE_SQ=9 时 spawnBaby()。
+//   4) BeeEntity::spawnBaby（BeeEntity.cpp:292-...）：构造 BeeEntity 幼体 + setChild(true)；
+//      BreedGoal:153 兜底 setTypeId(BEE) 保证 getEntities 可查。
+//
+// 优先级分析（BeeEntity.cpp:374-439 registerGoals）：BreedGoal 优先级2，仅次于 BeeStingGoal(0，需
+//   isAngry()&&!hasStung() 才触发，本测试未激怒蜜蜂不触发) 与 BeeEnterHiveGoal(1，需有蜂巢 hivePos，
+//   本测试无蜂巢不触发)。故无蜂巢未愤怒时 BreedGoal(2) 是最高可执行 goal，isInLove 时独占驱动繁殖。
+//   BeeWanderGoal(8) 飞行游荡优先级远低于 BreedGoal(2)，繁殖期被 mutex 阻塞不干扰。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。蜜蜂是飞行生物（IFlyingAnimal），grass_pen 玻璃封闭内腔
+//   9×5×9 防蜜蜂飞出查询区域。两只蜜蜂放中心 (4,2,4) 与 (4,2,6) 相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，
+//   已在繁殖距离内）。蜜蜂 FLYING_SPEED=0.6，BreedGoal speed=1.0，moveTo 配偶快。
+//
+// 判定手段：繁殖完成后区域内 bee 数 >=3（原 2 + 幼体 1）。pollUntilSucceed 轮询。
+// 时序：喂食 2×（tick 5、10）+ BreedGoal 评估 + 30 tick spawnBabyDelay + 余量。startTick=30，maxTick=700。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蜜蜂.txt#繁殖（喂花→爱心→繁殖小蜜蜂+冷却+经验球）
+function beeBreedsWhenFedFlower(test: Test): void {
+  const beeType = "bee";
+
+  // 两只成年蜜蜂放中心相距 2 格（distSq=4 < BREED_DISTANCE_SQ=9，已在繁殖距离内）。
+  // 脚下 y=1 grass_block 支撑（蜜蜂飞行不需支撑，但 grass_pen 地板 grass_block 在 y=0，y=1 air 腔）。
+  const bee1 = test.spawn(beeType, { x: 4, y: 2, z: 4 });
+  const bee2 = test.spawn(beeType, { x: 4, y: 2, z: 6 });
+
+  // 创造玩家持蒲公英（属 ItemTags::FLOWERS）：创造模式喂食不消耗花朵（同一朵花喂两只蜜蜂）。
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "beeBreeder");
+  const flower = new ItemStack("minecraft:dandelion", 1);
+  // 两份 @minecraft/server ItemStack 类型分裂（顶层 1.13-beta 与 server-gametest 嵌套 1.19），
+  // setItem 形参类型不兼容；运行时同一 Cubium ItemStack opaque，强转绕过编译期。
+  player.setItem(flower as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 依次喂两只蜜蜂：interactWithEntity 转发 interactOn → AnimalEntity::interactMob → setInLove。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(bee1);
+  });
+  test.runAtTickTime(10, () => {
+    (player as any).interactWithEntity(bee2);
+  });
+
+  // 轮询：繁殖完成后区域内 bee 数 >=3（原 2 + 幼体 1）。
+  pollUntilSucceed(test, () => {
+    const bees = test.getDimension().getEntities({
+      type: beeType,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    return bees.length >= 3;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 700,
+    onTimeout: () => {
+      const bees = test.getDimension().getEntities({
+        type: beeType,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      test.assert(false,
+        `bee did not breed: beeCount=${bees.length} (expected >=3 after feeding flower)`);
+    },
+  });
+}
+
 export function registerBeeTests(): void {
   GameTest.register("MobBehaviorTests", "bee_retaliates_when_attacked", beeRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
@@ -172,4 +252,8 @@ export function registerBeeTests(): void {
   GameTest.register("MobBehaviorTests", "bee_follows_flower", beeFollowsFlower)
     .structureName("gametests:mediumglass")
     .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "bee_breeds_when_fed_flower", beeBreedsWhenFedFlower)
+    .structureName("gametests:grass_pen")
+    .maxTicks(700);
 }
