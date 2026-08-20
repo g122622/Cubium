@@ -148,6 +148,28 @@ public:
      */
     static bool is64BitSystem();
 
+    /**
+     * @brief 请求提升本进程的定时器分辨率到 1ms（仅 Windows 有效）
+     *
+     * Windows 默认时钟中断周期约 15.625ms（64Hz），std::this_thread::sleep_for 的唤醒
+     * 会被量化到该粒度，导致请求 <15.625ms 的睡眠实际睡 15.625ms（如内存采样线程的
+     * 1ms 间隔实测退化到 15~16ms、服务端 tick 节流的剩余短 sleep 被量化导致掉 tick）。
+     * 本方法调用 timeBeginPeriod(1) 把本进程时钟中断降到 1ms，使 sleep_for 精度提升到 ~1ms。
+     *
+     * - Win10 2004+ / Win11：仅影响调用进程自身；更早版本为全局影响整个 OS。
+     * - 内部用原子引用计数，可重复调用但须与 release 等次数配对。
+     * - 非 Windows 平台为空实现。
+     */
+    static void requestHighResTimer();
+
+    /**
+     * @brief 归还定时器分辨率（与 requestHighResTimer 配对，仅 Windows 有效）
+     *
+     * 引用计数归零时真正调用 timeEndPeriod(1) 归还 1ms 分辨率。下溢（release 次数 >
+     * request 次数）会触发 spdlog::warn 且不再调用 timeEndPeriod。
+     */
+    static void releaseHighResTimer();
+
 private:
 // 平台特定实现
 #ifdef _WIN32

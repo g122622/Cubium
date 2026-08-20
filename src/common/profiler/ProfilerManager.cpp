@@ -153,7 +153,7 @@ void ProfilerManager::startTracing()
     if (!m_memoryThread.joinable() && m_memorySampler) {
         m_memoryStop.store(false, std::memory_order::release);
         m_memoryThread = std::thread(&ProfilerManager::_runMemoryTrace, this);
-        spdlog::info("Memory trace thread started (100 Hz sampling)");
+        spdlog::info("Memory trace thread started (1000 Hz sampling)");
     }
 }
 
