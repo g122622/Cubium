@@ -113,14 +113,22 @@ AnimalEntity* FollowParentGoal::findParent()
 {
     if (!m_childAnimal || !m_childAnimal->world()) return nullptr;
 
-    // 在 8x4x8 范围内搜索，找最近的成年同类
+    // 在 8x4x8 范围内搜索，找最近的成年同类。
+    // 对齐 vanilla FollowParentGoal.getEntitiesOfClass(this.animal.getClass(), ...)：只搜索与自身同类
+    // （同 entityType()）的成年实体作为父母。此前 predicate 仅检查成年未检查同类，导致小牛会跟随
+    // 成年羊/猪等异种动物（与 vanilla 不符）。
+    const EntityType* childType = m_childAnimal->entityType();
     return EntityUtils::findClosestEntity<AnimalEntity>(m_childAnimal->world(),
         m_childAnimal->position(),
         FOLLOW_PARENT_SEARCH_RANGE, // 8.0f
         m_childAnimal,
-        [](AnimalEntity* animal) {
+        [childType](AnimalEntity* animal) {
             // 必须是成年动物
-            return animal->getGrowingAge() >= 0;
+            if (animal->getGrowingAge() < 0) {
+                return false;
+            }
+            // 必须是同类（对齐 vanilla getClass() 比较，与 AnimalEntity::canMateWith 同范式）
+            return childType == animal->entityType();
         });
 }
 

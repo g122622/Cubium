@@ -8,6 +8,7 @@
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 
+#include "common/entity/core/AgeableEntity.hpp" // applySpawnEvent 派发 spawn_baby 幼体事件（AgeableEntity::setChild）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
@@ -196,6 +197,18 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             horse->setTrap(true);
         }
         // 其他事件 TODO 待行为包事件系统接入。
+        return;
+    }
+    // 通用幼体事件：spawn_baby 把 AgeableEntity 子类设为幼体（setChild(true) → setGrowingAge(-24000)）。
+    // 对齐基岩行为包 minecraft:spawn_baby 事件语义，解锁幼年动物行为测试（FollowParentGoal 跟随父母、
+    // 喂食加速成长、幼体体型缩放等）。GameTest 通过 test.spawn("cow<minecraft:spawn_baby>", pos) 触发。
+    // dynamic_cast<AgeableEntity*> 覆盖所有 AgeableEntity 派生类（牛/羊/猪/鸡/兔/马/村民等），非 Ageable
+    // 实体（僵尸/骷髅等）静默跳过。
+    if (normalizedEvent == "minecraft:spawn_baby") {
+        auto* ageable = dynamic_cast<mc::AgeableEntity*>(entity);
+        if (ageable != nullptr) {
+            ageable->setChild(true);
+        }
         return;
     }
     // TODO: 其他实体的 spawn 事件按需补全。

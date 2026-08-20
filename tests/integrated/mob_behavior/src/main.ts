@@ -46,6 +46,7 @@ import { registerVindicatorTests } from "./tests/monster/illager/VindicatorTests
 import { registerPigTests } from "./tests/passive/basic/PigTests.js";
 import { registerCowTests } from "./tests/passive/basic/CowTests.js";
 import { registerCowBreedTests } from "./tests/passive/basic/CowBreedTests.js";
+import { registerBabyCowTests } from "./tests/passive/basic/BabyCowTests.js";
 import { registerSheepTests } from "./tests/passive/basic/SheepTests.js";
 import { registerChickenTests } from "./tests/passive/basic/ChickenTests.js";
 import { registerRabbitTests } from "./tests/passive/basic/RabbitTests.js";
@@ -114,6 +115,7 @@ registerVindicatorTests();
 registerPigTests();
 registerCowTests();
 registerCowBreedTests();
+registerBabyCowTests();
 registerSheepTests();
 registerChickenTests();
 registerRabbitTests();
