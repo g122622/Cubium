@@ -189,6 +189,60 @@ function witchTakesReducedMagicDamage(test: Test): void {
   });
 }
 
+// 女巫生命值未满时会喝治疗药水恢复 4 点生命（wiki tech_女巫.txt#行为：女巫受伤时会使用治疗药水）。
+//
+// C++ 链路（WitchEntity 喝药水状态机）：
+//   - WitchEntity::tick（cpp:238）：!m_drinking && m_attackCooldown<=0 时调 _decidePotionToDrink。
+//   - _decidePotionToDrink（cpp:127）：按优先级查药水需求。治疗第3优先级——5%/tick 概率 &&
+//     _needsHealing()（health()<maxHealth()，cpp:85）时返 InstantHealth。
+//     （水肺15%/抗火15% 优先级更高但 _needsWaterBreathing/_needsFireResistance 在无水/火环境返 false。）
+//   - _startDrinkingPotion（cpp:155）：m_drinking=true + m_drinkTimer=DRINK_DURATION(32) + 速度惩罚。
+//   - tick 倒计时 m_drinkTimer 到 0 调 _finishDrinkingPotion（cpp:177）→ _applyDrankPotionEffect。
+//   - _applyDrankPotionEffect（cpp:190）：InstantHealth → heal(4.0f) 直接恢复 4 点生命。
+//
+// 测试设计（不 spawn 玩家，避免女巫选目标干扰只喝治疗）：
+//   女巫无目标时 _needsSwiftness（速度药水，需 target）返 false，故残血女巫只会喝治疗药水。
+//   用 HealthComponent.setCurrentValue(20) 脚本直接设女巫 HP=20（<maxHealth=26，_needsHealing=true），
+//   无需 /data merge 命令源玩家（避免 spawn 玩家致女巫攻击）。
+//
+// 时序：tick5 设残血 → 5%/tick 决定喝治疗（期望 ~20tick 触发）→ 喝 32 tick → heal(4)（20→24）。
+//   HP<maxHealth 仍 _needsHealing，继续喝第二次 → 26（满血）。轮询 HP>=24 证明至少喝过一次治疗。
+//   5%/tick 触发，60tick 内触发概率≈95%，maxTick=400 留充足余量。
+//
+// 判定：pollUntilSucceed 轮询女巫 HP>=24（从 20 回升≥4，证明喝治疗药水生效）。
+//   若喝药水链路失效（_decidePotionToDrink/heal 断），HP 恒 20，轮询超时失败暴露 bug。
+//
+// 环境选择：grass_pen（9×5×9 玻璃墙）限制女巫移动防漂移出查询区。day batch 默认，喝药水不依赖
+// 光照/时间。女巫 shouldBurnInDaylight=false 不燃烧，HP 不受燃烧干扰。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_女巫.txt#行为（受伤时喝治疗药水恢复生命）
+function witchDrinksHealingPotionWhenHurt(test: Test): void {
+  const witchType = "witch";
+
+  // 女巫 spawn 于 (4,2,4) grass_pen 中心，满血 HP=26。不 spawn 玩家（避免女巫选目标攻击干扰）。
+  const witch = test.spawn(witchType, { x: 4, y: 2, z: 4 });
+
+  // tick 5：设女巫 HP=20（残血，_needsHealing=true 触发喝治疗）。setCurrentValue 调 setHealth clamp。
+  // 留 5 tick 让女巫完成 spawn 注册稳定。health 组件脚本绑定（as any 绕过 TS 类型，见上文 addEffect 同款）。
+  test.runAtTickTime(5, () => {
+    const health = witch.getComponent("minecraft:health") as unknown as
+      | { setCurrentValue?: (v: number) => boolean }
+      | undefined;
+    if (!health || typeof health.setCurrentValue !== "function") {
+      test.assert(false, "witch has no health.setCurrentValue");
+      return;
+    }
+    health.setCurrentValue(20);
+  });
+
+  // 轮询：女巫喝治疗药水后 HP 回升 >=24（从 20 升≥4）。maxTick=400 覆盖 5%/tick 触发 + 32 喝药水 + 余量。
+  // HP 演变：tick5 设 20 → 残血触发喝治疗 → ~tick25-85 喝完 heal(4)→24 → 继续喝 → 26（满血）。
+  test.succeedWhen(() => {
+    const hp = readHp(test, witchType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
+    test.assert(!isNaN(hp) && hp >= 24,
+      `witch should drink healing potion to recover hp, hp=${hp} (expected >=24 after healing from 20)`);
+  });
+}
+
 export function registerWitchTests(): void {
   GameTest.register("MobBehaviorTests", "witch_throws_potion_at_player", witchThrowsPotionAtPlayer)
     .structureName("gametests:creeper_pit")
@@ -203,4 +257,8 @@ export function registerWitchTests(): void {
   GameTest.register("MobBehaviorTests", "witch_takes_reduced_magic_damage", witchTakesReducedMagicDamage)
     .structureName("gametests:grass_pen")
     .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "witch_drinks_healing_potion_when_hurt", witchDrinksHealingPotionWhenHurt)
+    .structureName("gametests:grass_pen")
+    .maxTicks(500);
 }
