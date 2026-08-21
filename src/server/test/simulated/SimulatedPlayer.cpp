@@ -354,6 +354,14 @@ bool SimulatedPlayer::useItemOnBlock(
             if (item != nullptr) {
                 // 构造上下文：player=this（供桶/打火石等需玩家上下文的物品），stack 为传入拷贝（onItemUse 内
                 // 消耗如骨粉 shrink(1) 作用于该拷贝，不影响权威选中槽）。face/hand/yaw/pitch 对齐玩家点击语义。
+                // 记录 onItemUse 前权威槽 itemId：部分物品（FishBucketItem 鱼桶→空桶）在 onItemUse 内通过
+                // player->getHeldItem 直接替换权威手持物（自管理消耗+返回新物品），此后外层不应再 shrink
+                // （否则会把返回的空桶也消耗成空堆）。骨粉等"仅 shrink 原物品不替换"的物品 itemId 不变，
+                // 仍走外层 shrink 补足（其 onItemUse 对拷贝 shrink 不回写权威槽）。
+                const u32 itemIdBefore = [&] {
+                    const mc::ItemStack sel = inventory().getItem(selectedSlot);
+                    return sel.isEmpty() ? 0u : sel.getItem()->itemId();
+                }();
                 mc::ItemUseContext context(
                     world, this, stack, hitPos, worldPos, face, mc::Hand::MainHand, yaw(), pitch());
                 const mc::ActionResultType result = item->onItemUse(context);
@@ -361,9 +369,12 @@ bool SimulatedPlayer::useItemOnBlock(
                     // 权威槽位消耗：对齐 BlockInteractionManager::handleItemUseOn:447-457「成功即对选中栈
                     // shrink(1) 回写」范式。onItemUse 对拷贝 shrink 不影响权威槽，故此处独立消耗一次。
                     // 创造模式不消耗（对齐 handleItemUseOn:458-460）。
+                    // 若 onItemUse 已改变权威槽 itemId（自管理替换，如鱼桶→空桶），跳过 shrink——
+                    // 物品已自行完成消耗+返回新物品，外层再 shrink 会误消耗返回物。
                     if (!isCreative()) {
                         mc::ItemStack selected = inventory().getItem(selectedSlot);
-                        if (!selected.isEmpty() && selected.getCount() > 0) {
+                        const u32 itemIdAfter = selected.isEmpty() ? 0u : selected.getItem()->itemId();
+                        if (itemIdAfter == itemIdBefore && !selected.isEmpty() && selected.getCount() > 0) {
                             selected.shrink(1);
                             inventory().setItem(selectedSlot, selected);
                         }

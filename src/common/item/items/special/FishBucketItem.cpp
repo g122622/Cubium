@@ -59,6 +59,8 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
     IWorld& world = context.getWorld();
     BlockPos pos = context.blockPos();
     Direction face = context.face();
+    Player* player = context.getPlayer();
+    const Hand hand = context.getHand();
 
     if (world.isClientSide()) {
         return ActionResultType::Success;
@@ -77,13 +79,20 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
 
     // 在水中生成鱼
     if (_spawnFish(world, placePos)) {
-        // 返回空桶（非创造模式）
-        Player* player = context.getPlayer();
+        // 返回空桶（对齐 Java 1.21.11 MobBucketItem.use：消耗手持鱼桶并替换为空桶）。
+        // 必须直接操作玩家权威手持物（player->getHeldItem(hand) 返回引用），而非 context 拷贝——
+        // ItemUseContext 内的 stack 是调用方局部拷贝，对其修改不回写权威物品栏。
+        // 此前实现用 context.getItemStackMut()（拷贝）做 shrink+_returnEmptyBucket，拷贝上的赋值
+        // 无效，权威手持鱼桶未被替换为空桶——生产路径外层 handleItemUseOn 的通用 shrink(1) 仅把
+        // 鱼桶变空堆，玩家失去鱼桶却得不到空桶（对齐缺陷）。改为直接写权威手持修复。
         if (player != nullptr && !player->isCreative()) {
-            // 减少鱼桶数量
-            context.getItemStackMut().shrink(1);
-            // 返回空桶
-            _returnEmptyBucket(*player, context.getItemStackMut());
+            ItemStack& heldItem = player->getHeldItem(hand);
+            // 先消耗一个鱼桶（鱼桶 maxStack=1，shrink(1) 后 count=0→isEmpty），再 _returnEmptyBucket
+            // 把空堆替换为空桶（对齐 vanilla MobBucketItem.use：getItemInHand shrink 后 setItemInHand
+            // 空桶）。_returnEmptyBucket 契约：调用方先 shrink 使 stack 空，其内 stack.isEmpty() 命中
+            // 第一分支替换为空桶；未 shrink 则走第二分支加背包（非预期）。
+            heldItem.shrink(1);
+            _returnEmptyBucket(*player, heldItem);
         }
         return ActionResultType::Success;
     }
@@ -103,9 +112,11 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
 
         if (_spawnFish(world, spawnPos)) {
             if (!player.isCreative()) {
-                player.getHeldItem(hand).shrink(1);
-                // 返回空桶
-                _returnEmptyBucket(player, player.getHeldItem(hand));
+                // 同 onItemUse：直接操作权威手持物，先 shrink 再 _returnEmptyBucket 替换为空桶
+                // （对齐 vanilla MobBucketItem.use）。
+                ItemStack& heldItem = player.getHeldItem(hand);
+                heldItem.shrink(1);
+                _returnEmptyBucket(player, heldItem);
             }
             return ItemActionResult::success(player.getHeldItem(hand));
         }
