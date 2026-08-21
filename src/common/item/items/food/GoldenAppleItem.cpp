@@ -68,6 +68,11 @@ ItemActionResult GoldenAppleItem::onItemRightClick(IWorld& /*world*/, Player& pl
 
     // 金苹果总是可以吃（不要求饥饿）
     if (canEat(stack, player)) {
+        // 设置活跃手开始进食（对齐 FoodItem/BowItem/PotionItem 范式）。setActiveHand 设置
+        // m_activeItem + m_activeItemUseCount=getUseDuration，后续 LivingEntity::tick → updateActiveItem
+        // 递减到 0 调 onItemUseFinish 完成食用。此前仅返回 Consume 未调 setActiveHand，金苹果
+        // 食用完成链路断裂（onItemUseFinish 永不触发，抗性/生命恢复等效果不生效）。同 FoodItem 缺陷。
+        player.setActiveHand(hand);
         return ItemActionResult::consume(stack);
     }
 

@@ -85,6 +85,7 @@ import { registerNameTagConsumptionTests } from "./tests/passive/special/NameTag
 import { registerBowDurabilityTests } from "./tests/passive/special/BowDurabilityTests.js";
 import { registerTridentConsumptionTests } from "./tests/passive/special/TridentConsumptionTests.js";
 import { registerFoodContainerConsumptionTests } from "./tests/passive/special/FoodContainerConsumptionTests.js";
+import { registerMilkBucketConsumptionTests } from "./tests/passive/special/MilkBucketConsumptionTests.js";
 import { registerNautilusTests } from "./tests/passive/nautilus/NautilusTests.js";
 import { registerZombieNautilusTests } from "./tests/passive/nautilus/ZombieNautilusTests.js";
 import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
@@ -173,6 +174,7 @@ registerNameTagConsumptionTests();
 registerBowDurabilityTests();
 registerTridentConsumptionTests();
 registerFoodContainerConsumptionTests();
+registerMilkBucketConsumptionTests();
 registerNautilusTests();
 registerZombieNautilusTests();
 registerMobSpawnerTests();

@@ -369,6 +369,51 @@ u64 registerSimulatedPlayerClassBinding(
         },
         1);
 
+    // --- addEffect(effectType: string, duration: number, options?: EntityEffectOptions): void ---
+    // 对齐基岩 @minecraft/server Entity.addEffect。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.addEffect 不在其上，故需在此重绑。
+    // 供牛奶桶饮用清除效果类测试：先 addEffect 给玩家上毒，饮用牛奶后 getEffect 验证效果被 removeAllEffects
+    // 清除。与 MinecraftModuleFactory Entity.addEffect 语义一致（duration tick，options.amplifier/showParticles）。
+    reg.method(
+        "addEffect",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 2) {
+                return ctx.createUndefined();
+            }
+            auto typeOpt = _parseEffectType(ctx, args[0]);
+            if (!typeOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            auto durationOpt = ctx.toInt32(args[1]);
+            if (!durationOpt.has_value()) {
+                return ctx.createUndefined();
+            }
+            i32 duration = *durationOpt;
+            i32 amplifier = 0;
+            bool showParticles = true; // 对齐 EffectInstance 默认 visible=true
+            if (argc >= 3 && ctx.isObject(args[2])) {
+                void* opts = args[2];
+                auto ampOpt = ctx.getPropertyInt(opts, "amplifier");
+                if (ampOpt.has_value()) {
+                    amplifier = *ampOpt;
+                }
+                auto partOpt = ctx.getPropertyBool(opts, "showParticles");
+                if (partOpt.has_value()) {
+                    showParticles = *partOpt;
+                }
+            }
+            // EffectInstance(type, duration, amplifier, ambient=false, visible=showParticles)。
+            // 对齐 MinecraftModuleFactory Entity.addEffect 与 EffectCommand.cpp:187 用法。
+            mc::entity::effect::EffectInstance effect(*typeOpt, duration, amplifier, false, showParticles);
+            player->addEffect(std::move(effect));
+            return ctx.createUndefined();
+        },
+        3);
+
     // --- getEffect(effectType: string): Effect | undefined ---
     // 对齐基岩 @minecraft/server Entity.getEffect。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
     // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getEffect 不在其上，故需在此重绑。
