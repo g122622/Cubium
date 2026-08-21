@@ -33,6 +33,7 @@
 #include "../../core/ActionResult.hpp"
 #include "../../core/ItemStack.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/food/Food.hpp"
@@ -260,9 +261,11 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
             // 创造模式不返还容器物品（vanilla 创造食用不返还容器）。
             ItemStack container(containerItem(), 1);
             const i32 remaining = player->inventory().add(container);
-            // TODO: 背包满时容器物品掉落到地面（remaining > 0，需 ItemDropHelper，与 BucketItem
-            // 舀水背包满掉落同构待补全）。
-            (void)remaining;
+            if (remaining > 0 && !container.isEmpty()) {
+                // 背包满，容器物品掉落到地面（对齐 MilkBucketItem/PotionItem 范式）。
+                math::Random rng;
+                ItemDropHelper::spawnItemAtEntity(player, container, 0.5f, rng);
+            }
         }
         return stack;
     }

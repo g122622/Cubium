@@ -31,9 +31,11 @@
 #include "../../Items.hpp"
 #include "../../potion/PotionUtils.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <string>
 #include <utility>
 
@@ -89,22 +91,25 @@ ItemStack PotionItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& e
         stack.shrink(1);
     }
 
-    // 返回玻璃瓶
-    // 如果物品堆为空，返回玻璃瓶；否则将玻璃瓶添加到背包
+    // 返回玻璃瓶（对齐 vanilla Item#finishUsingItem 药水分支 + MilkBucketItem 范式）。
+    // shrink 后空（持1个）：返回玻璃瓶替换主手。
+    // shrink 后非空（持多个）：返回 shrink 后 stack（剩余药水留主手）+ 玻璃瓶 inventory.add 入背包；
+    //   背包满（remaining>0）则玻璃瓶掉落地面（spawnItemAtEntity），不覆盖主手剩药水。
+    //   此前背包满返回 ItemStack(GLASS_BOTTLE, remaining) 覆盖主手剩药水是偏差（vanilla 不会覆盖），
+    //   已改为掉落玻璃瓶（对齐 MilkBucketItem）。
     if (player != nullptr && !player->isCreative()) {
         if (stack.isEmpty()) {
             return ItemStack(Items::GLASS_BOTTLE, 1);
-        } else {
-            // 尝试将玻璃瓶添加到背包
-            ItemStack glassBottle(Items::GLASS_BOTTLE, 1);
-            i32 remaining = player->inventory().add(glassBottle);
-            if (remaining > 0) {
-                // 无法完全添加，返回剩余的玻璃瓶
-                return ItemStack(Items::GLASS_BOTTLE, remaining);
-            }
-            // 全部添加成功，返回原堆叠
-            return stack;
         }
+        // 持多个：玻璃瓶入背包，背包满掉落。
+        ItemStack glassBottle(Items::GLASS_BOTTLE, 1);
+        const i32 remaining = player->inventory().add(glassBottle);
+        if (remaining > 0 && !glassBottle.isEmpty()) {
+            // 背包满，玻璃瓶掉落到地面（对齐 MilkBucketItem::onItemUseFinish 范式）。
+            math::Random rng;
+            ItemDropHelper::spawnItemAtEntity(player, glassBottle, 0.5f, rng);
+        }
+        return stack;
     }
 
     return stack;
