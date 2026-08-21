@@ -60,7 +60,6 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
     BlockPos pos = context.blockPos();
     Direction face = context.getFace();
     Player* player = context.getPlayer();
-    ItemStack& stack = context.getItemStackMut();
 
     if (world.isClientSide()) {
         return ActionResultType::Success;
@@ -92,31 +91,32 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
                 world.playSound(SoundEvents::ITEM_BUCKET_FILL, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
 
-                // 非创造模式下替换物品
-                if (player == nullptr || !player->isCreative()) {
-                    BucketItem* filledBucket = getFilledBucket(*pickedFluid);
-                    if (filledBucket != nullptr) {
-                        stack.shrink(1);
-                        if (player != nullptr) {
+                // 非创造模式下替换物品：直接操作玩家权威手持物（player->getHeldItem(hand) 返回引用），
+                // 而非 context.getItemStackMut()（调用方局部拷贝，shrink/赋值不回写权威物品栏——
+                // 同 FishBucketItem/PowderSnowBucketItem 的对齐缺陷修复：拷贝赋值无效，玩家舀水后
+                // 空桶未变对应满桶）。先 shrink(1) 消耗空桶（maxStack=1→count=0→isEmpty），再把权威
+                // 手持替换为对应满桶（对齐 vanilla BucketItem.use：getItemInHand shrink 后 setItemInHand
+                // 满桶）。外层 useItemOnBlock/handleItemUseOn 的 itemId 对比会检测到权威槽 itemId 变化
+                // （空桶→满桶）跳过通用 shrink，避免误消耗返回的满桶。背包放不下时由第二分支 add 兜底
+                // （对齐 vanilla：手持替换优先，单堆叠桶替换手持即常态）。
+                BucketItem* filledBucket = getFilledBucket(*pickedFluid);
+                if (filledBucket != nullptr) {
+                    if (player != nullptr) {
+                        world.onFilledBucket(player->id(), filledBucket->getDefaultInstance());
+                    }
+                    if (player != nullptr && !player->isCreative()) {
+                        ItemStack& heldItem = player->getHeldItem(context.getHand());
+                        heldItem.shrink(1);
+                        if (heldItem.isEmpty()) {
+                            heldItem = filledBucket->getDefaultInstance();
+                        } else {
+                            // 空桶非空（理论 maxStack=1 不会发生，兜底加背包）
                             ItemStack filledStack = filledBucket->getDefaultInstance();
-                            player->inventory().add(filledStack);
+                            const i32 remaining = player->inventory().add(filledStack);
+                            if (remaining > 0 && !filledStack.isEmpty()) {
+                                // TODO: 背包满时掉落到地面（需 ItemDropHelper，与 _returnEmptyBucket 同构）
+                            }
                         }
-                    }
-                } else if (player != nullptr) {
-                    // 创造模式下仍需触发事件，但不需要给物品
-                    BucketItem* filledBucket = getFilledBucket(*pickedFluid);
-                    if (filledBucket != nullptr) {
-                        ItemStack filledStack = filledBucket->getDefaultInstance();
-                        world.onFilledBucket(player->id(), filledStack);
-                    }
-                }
-
-                // 非创造模式下触发事件
-                if (player != nullptr && !player->isCreative()) {
-                    BucketItem* filledBucket = getFilledBucket(*pickedFluid);
-                    if (filledBucket != nullptr) {
-                        ItemStack filledStack = filledBucket->getDefaultInstance();
-                        world.onFilledBucket(player->id(), filledStack);
                     }
                 }
 
@@ -136,23 +136,25 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                     world.playSound(SoundEvents::ITEM_BUCKET_FILL, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
                 }
 
-                // 非创造模式下替换物品
-                if (player == nullptr || !player->isCreative()) {
-                    stack.shrink(1);
-                    if (player != nullptr) {
-                        ItemStack pickedStack(pickedItem, 1);
-                        player->inventory().add(pickedStack);
-                    }
-                } else if (player != nullptr) {
-                    // 创造模式下仍需触发事件，但不需要给物品
-                    ItemStack pickedStack(pickedItem, 1);
-                    world.onFilledBucket(player->id(), pickedStack);
+                // 非创造模式下替换物品：同舀水分支，直接操作玩家权威手持物（player->getHeldItem(hand)
+                // 返回引用），先 shrink(1) 消耗空桶再替换为粉雪桶（pickedItem 是粉雪桶 Item*）。
+                // 对齐 vanilla BucketItem.use：空桶舀粉雪后手持变粉雪桶。
+                if (player != nullptr) {
+                    world.onFilledBucket(player->id(), ItemStack(pickedItem, 1));
                 }
-
-                // 非创造模式下触发事件
                 if (player != nullptr && !player->isCreative()) {
-                    ItemStack pickedStack(pickedItem, 1);
-                    world.onFilledBucket(player->id(), pickedStack);
+                    ItemStack& heldItem = player->getHeldItem(context.getHand());
+                    heldItem.shrink(1);
+                    if (heldItem.isEmpty()) {
+                        heldItem = ItemStack(pickedItem, 1);
+                    } else {
+                        // 空桶非空（理论 maxStack=1 不会发生，兜底加背包）
+                        ItemStack pickedStack(pickedItem, 1);
+                        const i32 remaining = player->inventory().add(pickedStack);
+                        if (remaining > 0 && !pickedStack.isEmpty()) {
+                            // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                        }
+                    }
                 }
 
                 return ActionResultType::Success;
@@ -183,14 +185,27 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                         static_cast<f32>(targetPos.z) + 0.5f);
                     world.playSound(SoundEvents::ITEM_BUCKET_EMPTY, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
 
-                    // 非创造模式下替换为空桶
-                    if (player == nullptr || !player->isCreative()) {
-                        BucketItem* emptyBucket = getEmptyBucket();
-                        if (emptyBucket != nullptr) {
-                            stack.shrink(1);
-                            if (player != nullptr) {
+                    // 非创造模式下替换为空桶：直接操作玩家权威手持物（player->getHeldItem(hand)
+                    // 返回引用），先 shrink(1) 消耗满桶再替换为空桶（对齐 vanilla BucketItem.use：
+                    // getItemInHand shrink 后 setItemInHand 空桶）。外层 itemId 对比检测到满桶→空桶
+                    // 变化跳过通用 shrink，避免误消耗返回的空桶。
+                    if (player != nullptr && !player->isCreative()) {
+                        ItemStack& heldItem = player->getHeldItem(context.getHand());
+                        heldItem.shrink(1);
+                        if (heldItem.isEmpty()) {
+                            BucketItem* emptyBucket = getEmptyBucket();
+                            if (emptyBucket != nullptr) {
+                                heldItem = emptyBucket->getDefaultInstance();
+                            }
+                        } else {
+                            // 满桶非空（理论 maxStack=1 不会发生，兜底加背包）
+                            BucketItem* emptyBucket = getEmptyBucket();
+                            if (emptyBucket != nullptr) {
                                 ItemStack emptyStack = emptyBucket->getDefaultInstance();
-                                player->inventory().add(emptyStack);
+                                const i32 remaining = player->inventory().add(emptyStack);
+                                if (remaining > 0 && !emptyStack.isEmpty()) {
+                                    // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                                }
                             }
                         }
                     }
@@ -202,14 +217,23 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
 
     // 尝试直接放置流体方块
     if (tryPlaceContainedLiquid(player, world, targetPos, BlockRaycastResult())) {
-        // 非创造模式下替换为空桶
-        if (player == nullptr || !player->isCreative()) {
-            BucketItem* emptyBucket = getEmptyBucket();
-            if (emptyBucket != nullptr) {
-                stack.shrink(1);
-                if (player != nullptr) {
+        // 非创造模式下替换为空桶：同 ILiquidContainer 倒水分支，操作权威手持（满桶→空桶）。
+        if (player != nullptr && !player->isCreative()) {
+            ItemStack& heldItem = player->getHeldItem(context.getHand());
+            heldItem.shrink(1);
+            if (heldItem.isEmpty()) {
+                BucketItem* emptyBucket = getEmptyBucket();
+                if (emptyBucket != nullptr) {
+                    heldItem = emptyBucket->getDefaultInstance();
+                }
+            } else {
+                BucketItem* emptyBucket = getEmptyBucket();
+                if (emptyBucket != nullptr) {
                     ItemStack emptyStack = emptyBucket->getDefaultInstance();
-                    player->inventory().add(emptyStack);
+                    const i32 remaining = player->inventory().add(emptyStack);
+                    if (remaining > 0 && !emptyStack.isEmpty()) {
+                        // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                    }
                 }
             }
         }
@@ -339,6 +363,10 @@ BucketItem* BucketItem::getEmptyBucket()
 
 bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
+    // stack 参数由调用方传入（Player 路径是 getHeldItem 值拷贝，MobEntity 路径是权威手持引用），
+    // 为统一两路径行为，本方法内部直接以 player.getHeldItem(hand) 为权威手持源操作，不使用 stack。
+    (void)stack;
+
     // 只有空桶可以挤奶
     if (m_containedFluid != nullptr) {
         return false;
@@ -358,23 +386,26 @@ bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     // 播放挤奶音效
     cow->playSound(SoundEvents::ENTITY_COW_MILK, 1.0f, 1.0f);
 
-    // 处理物品转换
-    // 非创造模式：减少空桶，添加牛奶桶
-    if (!player.isCreative()) {
-        stack.shrink(1);
-
-        // 创建牛奶桶
-        if (Items::MILK_BUCKET != nullptr) {
+    // 处理物品转换：非创造模式下空桶→牛奶桶（替换手持）。
+    // 直接操作玩家权威手持物（player.getHeldItem(hand) 返回引用），而非 stack 参数——
+    // 调用方 Player::interactItemOnEntity 传入的 stack 是 getHeldItem 的值拷贝（Player.cpp:2856），
+    // 对其 shrink/赋值不回写权威物品栏（同 onItemUse 的 context.getItemStackMut() 拷贝缺陷）。
+    // vanilla BucketItem.interactLivingEntity：getItemInHand shrink 后 setItemInHand 牛奶桶
+    // （手持替换）。改用权威手持引用修复：玩家空桶挤奶后手持直接变牛奶桶，而非牛奶桶进背包+
+    // 手持被 Player 回写清空。
+    // 注：MobEntity.cpp:645 路径传入的 stack 已是权威手持引用，但为统一两路径行为，仍以
+    // player.getHeldItem(hand) 为权威源（与 stack 等价，不影响 MobEntity 路径）。
+    if (!player.isCreative() && Items::MILK_BUCKET != nullptr) {
+        ItemStack& heldItem = player.getHeldItem(hand);
+        heldItem.shrink(1);
+        if (heldItem.isEmpty()) {
+            heldItem = ItemStack(Items::MILK_BUCKET, 1);
+        } else {
+            // 空桶非空（理论 maxStack=1 不会发生，兜底加背包）
             ItemStack milkBucket(Items::MILK_BUCKET, 1);
-
-            // 如果空桶用完了，直接返回牛奶桶
-            if (stack.isEmpty()) {
-                // 需要通过某种方式设置玩家手持物品
-                // 这里返回 true 表示交互成功，实际物品替换由调用方处理
-                player.inventory().add(milkBucket);
-            } else {
-                // 空桶还有剩余，尝试将牛奶桶添加到背包
-                player.inventory().add(milkBucket);
+            const i32 remaining = player.inventory().add(milkBucket);
+            if (remaining > 0 && !milkBucket.isEmpty()) {
+                // TODO: 背包满时掉落到地面（需 ItemDropHelper）
             }
         }
     }
