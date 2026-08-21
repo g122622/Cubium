@@ -65,6 +65,54 @@ function evokerCastsFangs(test: Test): void {
   });
 }
 
+// 唤魔者召唤恼鬼（wiki tech_唤魔者.txt#召唤恼鬼：唤魔者施法召唤飞行恼鬼协助攻击，恼鬼会穿过墙壁
+// 突袭玩家；#行为：Java 版唤魔者首次攻击必定召唤恼鬼）。
+//
+// C++ 链路：EvokerEntity registerGoals（EvokerEntity.cpp:303-310）：
+//   goalSelector 优先级4：EvokerSummonSpellGoal（召唤恼鬼，冷却 SUMMON_COOLDOWN）。
+//   goalSelector 优先级5：EvokerAttackSpellGoal（尖牙攻击）。
+//   两者均继承 EvokerSpellGoal（无 flag，独立评估）。SummonSpellGoal(4) 优先级高于 AttackSpellGoal(5)，
+//   shouldExecute 都满足时优先级4 先 startExecuting 设 isSpellcasting=true，AttackSpellGoal(5) 因
+//   isSpellcasting shouldExecute=false 不触发——故首次施法必是召唤恼鬼。
+//
+// EvokerSummonSpellGoal::shouldExecute（EvokerGoals.cpp:171-187）：基类 shouldExecute（有目标+冷却结束+
+//   未施法）+ _countNearbyVexes() 概率门控 `rng.nextInt(8)+1 > vexCount`。首次 vexCount=0 时
+//   rng.nextInt(8)+1∈[1,8] > 0 恒成立——**首次召唤门控恒通过，确定性触发**（区别于尖牙无门控）。
+// castSpell→EvokerEntity::summonVex（EvokerEntity.cpp:238-282）：循环3次在唤魔者周围(-2..2)随机位置
+//   生成 VexEntity（setTypeId(VEX)+setOwner(唤魔者)+setLimitedLife(30-120秒)+finalizeSpawn+spawnEntity）。
+//
+// 环境选择：mediumglass（12×9×11 玻璃盒空腔），复用 evoker_casts_fangs 同款坐标布局（已验证唤魔者
+//   不卡玻璃墙、checkSight 射线通畅）。唤魔者 helper(2,2,5)+Survival 玩家 helper(10,2,5)，水平距 8 格
+//   < 12 FOLLOW_RANGE 可选目标。距 8 格触发 AvoidEntityGoal(玩家,8格,优先级2)，但 EvokerCastingSpellGoal
+//   (优先级1,Move+Look) 施法期接管 MOVE 阻止 flee 打断施法（同 evoker_casts_fangs 注释）。
+//
+// 判定手段：succeedWhen 每 tick 检查区域内 minecraft:vex 实体数 ≥1。summonVex 一次召唤3只恼鬼，
+//   确定性生成实体（warmup 结束即生成），不受伤害命中随机性影响。首次施法必召唤恼鬼（vexCount=0
+//   门控恒通过 + 优先级4 高于尖牙5），maxTicks=800 留充裕余量确保至少一次召唤施法触发（warmup+
+//   选目标+冷却初始化的非确定性时序）。
+// 玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验，创造模式被 NearestAttackableTarget 滤掉）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_唤魔者.txt#召唤恼鬼（施法召唤恼鬼协助攻击）
+function evokerSummonsVex(test: Test): void {
+  const evokerType = "evoker";
+
+  // 唤魔者 (2,2,5)、Survival 玩家 (10,2,5)，水平距 8 格，同 evoker_casts_fangs 坐标布局。
+  test.spawn(evokerType, { x: 2, y: 2, z: 5 });
+  test.spawnSimulatedPlayer({ x: 10, y: 2, z: 5 }, "bait", 0 as any);
+
+  // 断言唤魔者施法召唤恼鬼：succeedWhen 每 tick 检查区域内 minecraft:vex 实体数 ≥1。
+  // 时序：NearestAttackableTarget 选目标 + EvokerSummonSpellGoal shouldExecute
+  //   (vexCount=0 门控恒通过) + warmup + summonVex 生成3只恼鬼。首次施法必召唤（优先级4>尖牙5）。
+  // vex 查询用区域限定排除并行测试污染；type 用 "minecraft:vex"（带前缀）。
+  test.succeedWhen(() => {
+    const vexes = test.getDimension().getEntities({
+      type: "minecraft:vex",
+      location: test.worldLocation(MED_FROM),
+      volume: MED_VOLUME,
+    });
+    test.assert(vexes.length > 0, "evoker did not summon vex at player");
+  });
+}
+
 // 唤魔者不在阳光下燃烧（wiki tech_唤魔者.txt 通篇未提阳光燃烧；唤魔者是灾厄村民非亡灵）。
 //
 // C++ 链路：MonsterEntity::tick→handleDaylightBurning→if(m_burnsInDaylight) burnUndead()。
@@ -93,6 +141,10 @@ function evokerDoesNotBurnInDaylight(test: Test): void {
 
 export function registerEvokerTests(): void {
   GameTest.register("MobBehaviorTests", "evoker_casts_fangs", evokerCastsFangs)
+    .structureName("gametests:mediumglass")
+    .maxTicks(800);
+
+  GameTest.register("MobBehaviorTests", "evoker_summons_vex", evokerSummonsVex)
     .structureName("gametests:mediumglass")
     .maxTicks(800);
 
