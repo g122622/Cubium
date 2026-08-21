@@ -274,6 +274,50 @@ u64 registerSimulatedPlayerClassBinding(
         return ctx.createString(player->username());
     });
 
+    // --- dimension: Dimension（readonly property）---
+    // 对齐基岩 @minecraft/server Entity.dimension。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.dimension 不在其上，故需在此重绑。
+    // 返回玩家所在维度的 Dimension JS 对象（opaque 持 IWorld*）。供命令测试读世界状态
+    // （TimeCommand/WeatherCommand/GameRuleCommand 经 dimension.getTimeOfDay/isRaining/getGameRule 断言）。
+    reg.readonlyProperty("dimension", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+        if (player == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto* world = player->world();
+        if (world == nullptr) {
+            return ctx.createUndefined();
+        }
+        const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
+        void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+        if (dimProto == nullptr) {
+            return ctx.createUndefined();
+        }
+        return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+            ctx, dimClassId, dimProto, world, false, "Dimension");
+    });
+    // getDimension() 方法与 dimension 属性等价（对齐基岩同时暴露属性与方法，与 Entity 类一致）。
+    reg.method(
+        "getDimension",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto* world = player->world();
+            if (world == nullptr) {
+                return ctx.createUndefined();
+            }
+            const u64 dimClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Dimension");
+            void* dimProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(dimClassId);
+            if (dimProto == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
+                ctx, dimClassId, dimProto, world, false, "Dimension");
+        },
+        0);
+
     // --- getGameMode(): GameMode ---
     // 对齐基岩 @minecraft/server Player.getGameMode（beta）。返回当前游戏模式字符串
     // （"survival"/"creative"/"adventure"/"spectator"）。供命令测试（/gamemode）判定模式切换生效。
@@ -366,6 +410,64 @@ u64 registerSimulatedPlayerClassBinding(
             }
             // TODO: 其他基岩合法 componentId（is_baby/is_tamed 等）按需补全。
             return ctx.createUndefined();
+        },
+        1);
+
+    // --- getTags()/hasTag()/addTag()/removeTag() ---
+    // 对齐基岩 @minecraft/server Entity 标签 API。SimulatedPlayer JS 类独立注册（未继承 Entity 类原型，
+    // 见 [[simulated-player-js-class-no-entity-inheritance]]），Entity.getTags 等不在其上，故需在此重绑。
+    // 标签存储在 Entity 基类 m_tags（std::set<string>），/tag 命令直接操作之。供 TagCommand 端到端
+    // 测试断言（/tag @s add foo 后 hasTag("foo")=true）。与 MinecraftModuleFactory Entity.getTags 语义一致。
+    reg.method(
+        "getTags",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.createArray();
+            }
+            const auto& tags = player->getTags();
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            for (const auto& tag : tags) {
+                void* str = ctx.createString(tag);
+                ctx.setArrayElement(arr, outIdx, str);
+                ctx.releaseValue(str);
+                ++outIdx;
+            }
+            return arr;
+        },
+        0);
+    reg.method(
+        "hasTag",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? player->hasTag(*tag) : false);
+        },
+        1);
+    reg.method(
+        "addTag",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? player->addTag(*tag) : false);
+        },
+        1);
+    reg.method(
+        "removeTag",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? player->removeTag(*tag) : false);
         },
         1);
 

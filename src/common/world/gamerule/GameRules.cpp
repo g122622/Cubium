@@ -487,6 +487,38 @@ std::optional<GameRuleValueType> GameRules::getRuleType(const std::string& ruleN
     return std::nullopt;
 }
 
+std::string GameRules::getValueAsString(const std::string& ruleName) const
+{
+    // 按名取当前值字符串：先查当前值 map，命中取 .get()；未命中回退注册表默认值。
+    const auto& registry = getRegistry();
+    {
+        auto it = m_booleanRules.find(ruleName);
+        if (it != m_booleanRules.end()) {
+            return it->second.get() ? "true" : "false";
+        }
+    }
+    {
+        auto it = m_integerRules.find(ruleName);
+        if (it != m_integerRules.end()) {
+            return std::to_string(it->second.get());
+        }
+    }
+    // 回退注册表默认值（规则已注册但本实例未显式设置时）。
+    {
+        auto it = registry.booleanTypes.find(ruleName);
+        if (it != registry.booleanTypes.end()) {
+            return it->second.getDefaultValue() ? "true" : "false";
+        }
+    }
+    {
+        auto it = registry.integerTypes.find(ruleName);
+        if (it != registry.integerTypes.end()) {
+            return std::to_string(it->second.getDefaultValue());
+        }
+    }
+    return {}; // 规则不存在
+}
+
 // ============================================================================
 // 重置
 // ============================================================================

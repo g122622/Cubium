@@ -66,6 +66,7 @@
 #include "common/world/block/BlockState.hpp"    // BlockState（Block/BlockPermutation opaque 持此指针）
 #include "common/world/blockentity/BlockEntity.hpp"          // BlockEntity（Container 经 getBlockEntity 取得）
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
+#include "common/world/gamerule/GameRules.hpp"               // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include <optional>
 #include <unordered_map>
@@ -479,6 +480,76 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return arr;
             }
             return ctx.createArray();
+        },
+        1);
+
+    // Dimension.getTimeOfDay()：对齐基岩 world.getTimeOfDay()，返回当前维度一天内时间 (0-23999)。
+    // IWorld::dayTimeOfDay() 返回 dayTime % 24000。/time set 修改 dayTime 后此处立即可读，
+    // 解锁 TimeCommand 端到端测试（此前脚本侧仅 system.currentTick 是游戏总 tick 非 dayTime，
+    // 无法断言 /time set 效果）。
+    dimensionReg.method(
+        "getTimeOfDay",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createInt32(0);
+            }
+            return ctx.createInt32(static_cast<i32>(world->dayTimeOfDay()));
+        },
+        0);
+    // Dimension.getDayTime()：返回原始 dayTime（可超 24000，累计天数）。对齐基岩 getDayTime()。
+    dimensionReg.method(
+        "getDayTime",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createInt64(0);
+            }
+            return ctx.createInt64(world->dayTime());
+        },
+        0);
+
+    // Dimension.isRaining()/isThundering()：对齐基岩 world 状态读取。IWorld::isRaining/isThundering
+    // 经 ServerWorld override 委托 WeatherManager（检查 rainStrength/thunderStrength 超阈值，非裸标志）。
+    // 注：/weather rain 设置后 rainStrength 有渐变延迟，刚设置时 isRaining 可能仍 false，
+    // 测试须等待强度渐变（runAtTickTime 延迟或 pollUntilSucceed 轮询）。
+    dimensionReg.method(
+        "isRaining",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createBoolean(false);
+            }
+            return ctx.createBoolean(world->isRaining());
+        },
+        0);
+    dimensionReg.method(
+        "isThundering",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createBoolean(false);
+            }
+            return ctx.createBoolean(world->isThundering());
+        },
+        0);
+
+    // Dimension.getGameRule(ruleName)：按名取 gamerule 当前值的字符串表示。对齐基岩无直接 API
+    // （基岩 gamerule 仅命令侧），此处补脚本读取入口解锁 GameRuleCommand 端到端测试。
+    // 布尔规则返 "true"/"false"，整数规则返十进制串，规则不存在返空串。GameRules::getValueAsString
+    // 优先取当前值 map，回退注册表默认值。
+    dimensionReg.method(
+        "getGameRule",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createString("");
+            }
+            auto name = ctx.toString(args[0]);
+            if (!name) {
+                return ctx.createString("");
+            }
+            return ctx.createString(world->getGameRules().getValueAsString(*name));
         },
         1);
 
@@ -1150,6 +1221,65 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return arr;
         },
         0);
+
+    // Entity.getTags()/hasTag()/addTag()/removeTag()：对齐基岩 @minecraft/server Entity 标签 API。
+    // 标签存储在 Entity 基类 m_tags（std::set<string>），/tag 命令、scoreboard 实体选择器、
+    // 团队归属等均依赖之。此前仅 C++ 侧有 addTag/getTags，脚本侧无绑定，致 GameTest 无法断言
+    // /tag 命令效果、无法按标签筛选实体。getTags 返回 string[]（对齐基岩 getTags(): string[]），
+    // hasTag/addTag/removeTag 返回 boolean（addTag 标签已存在返 false，removeTag 不存在返 false，
+    // 对齐基岩 Entity.addTag/removeTag 语义）。
+    entityReg.method(
+        "getTags",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr) {
+                return ctx.createArray();
+            }
+            const auto& tags = ent->getTags();
+            void* arr = ctx.createArray();
+            u32 outIdx = 0;
+            for (const auto& tag : tags) {
+                void* str = ctx.createString(tag);
+                ctx.setArrayElement(arr, outIdx, str);
+                ctx.releaseValue(str);
+                ++outIdx;
+            }
+            return arr;
+        },
+        0);
+    entityReg.method(
+        "hasTag",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? ent->hasTag(*tag) : false);
+        },
+        1);
+    entityReg.method(
+        "addTag",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? ent->addTag(*tag) : false);
+        },
+        1);
+    entityReg.method(
+        "removeTag",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            auto tag = ctx.toString(args[0]);
+            return ctx.createBoolean(tag ? ent->removeTag(*tag) : false);
+        },
+        1);
 
     // --- HealthComponent类（minecraft:health，Attribute 族）---
     // opaque 持 mc::Entity*。HealthComponent 仅 LivingEntity attach，getter 内 dynamic_cast<LivingEntity*>，
