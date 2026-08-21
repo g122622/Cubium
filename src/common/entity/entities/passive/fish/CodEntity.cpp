@@ -30,6 +30,7 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
+#include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <memory>
@@ -89,6 +90,12 @@ std::optional<ResourceLocation> CodEntity::getDeathSound() const
 std::optional<ResourceLocation> CodEntity::getHurtSound(DamageSource& /*source*/) const
 {
     return SoundEvents::ENTITY_COD_HURT;
+}
+
+ItemStack CodEntity::getBucketItemStack() const
+{
+    // 对齐 Java Cod.getBucketItemStack() = new ItemStack(Items.COD_BUCKET)。
+    return ItemStack(Items::COD_BUCKET, 1);
 }
 
 } // namespace mc

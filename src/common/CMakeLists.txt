@@ -190,6 +190,7 @@ add_library(mc_common STATIC
     # Entity - Monster
     entity/interfaces/IFlinging.cpp
     entity/interfaces/IRideable.cpp
+    entity/interfaces/BucketableUtils.cpp
     entity/entities/monster/MonsterEntity.cpp
     # Entity - Monster (undead)
     entity/entities/monster/undead/ZombieEntity.cpp

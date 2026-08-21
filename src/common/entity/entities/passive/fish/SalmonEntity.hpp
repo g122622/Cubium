@@ -72,6 +72,14 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
+     * @brief 获取装取该鲑鱼后得到的鱼桶
+     * @return salmon_bucket（对齐 Java Salmon.getBucketItemStack = SALMON_BUCKET）
+     *
+     * override AbstractFishEntity::getBucketItemStack，使 bucketMobPickup 装入对应鱼桶。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
+    /**
      * @brief vanilla 鲑鱼最大群体大小为 5
      */
     [[nodiscard]] i32 getMaxGroupSize() const override { return 5; }

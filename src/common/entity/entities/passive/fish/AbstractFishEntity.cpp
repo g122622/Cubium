@@ -37,6 +37,9 @@
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/entity/interfaces/BucketableUtils.hpp"
+#include "common/item/Items.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <memory>
 
@@ -172,6 +175,45 @@ void AbstractFishEntity::updateFlopping()
             playSound(*flopSound, getSoundVolume(), getSoundPitch());
         }
     }
+}
+
+// ========== IBucketable 接口实现（对齐 Java AbstractFish implements Bucketable） ==========
+
+ActionResultType AbstractFishEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 AbstractFish.mobInteract：
+    //   return Bucketable.bucketMobPickup(player, hand, this)
+    //       .orElse(super.mobInteract(player, hand));
+    // bucketMobPickup 返回 Pass 时（非水桶/已死亡）委托父类 WaterMobEntity::interactMob。
+    ActionResultType result = entity::bucketMobPickup(player, *this, hand);
+    if (result != ActionResultType::Pass) {
+        return result;
+    }
+    return WaterMobEntity::interactMob(player, hand);
+}
+
+ItemStack AbstractFishEntity::getBucketItemStack() const
+{
+    // 基类无对应鱼桶（vanilla AbstractFish 无 getBucketItemStack，由各子类 override 返回具体鱼桶）。
+    // 返回空堆表示"不可装取"，bucketMobPickup 装入空桶不会产生有意义的鱼桶——故各鱼子类必须 override。
+    return ItemStack();
+}
+
+std::optional<ResourceLocation> AbstractFishEntity::getPickupSound() const
+{
+    // 对齐 Java AbstractFish.getPickupSound() = SoundEvents.BUCKET_FILL_FISH。
+    // 所有鱼类共用装取音效（美西螈 AxolotlEntity override 用 BUCKET_EMPTY_AXOLOTL）。
+    return SoundEvents::ITEM_BUCKET_FILL_FISH;
+}
+
+void AbstractFishEntity::saveToBucketTag(ItemStack& bucketStack) const
+{
+    // 对齐 Java AbstractFish.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag
+    // （保存 Health/NoAI/Silent/NoGravity 等实体状态到桶 NBT，反向放鱼时 loadFromBucketTag 恢复）。
+    // TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
+    //       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全实体状态保存/恢复逻辑。
+    //       不影响装取主链路（装取→得鱼桶→discard 仍正常工作）。
+    (void)bucketStack;
 }
 
 } // namespace mc

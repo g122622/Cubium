@@ -90,6 +90,14 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
+     * @brief 获取装取该热带鱼后得到的鱼桶
+     * @return tropical_fish_bucket（对齐 Java TropicalFish.getBucketItemStack = TROPICAL_FISH_BUCKET）
+     *
+     * override AbstractFishEntity::getBucketItemStack，使 bucketMobPickup 装入对应鱼桶。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
+    /**
      * @brief 获取变种 ID
      */
     [[nodiscard]] i32 getVariant() const { return m_variant; }

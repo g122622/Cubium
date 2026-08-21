@@ -70,6 +70,14 @@ public:
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
     /**
+     * @brief 获取装取该鳕鱼后得到的鱼桶
+     * @return cod_bucket（对齐 Java Cod.getBucketItemStack = COD_BUCKET）
+     *
+     * override AbstractFishEntity::getBucketItemStack，使 bucketMobPickup 装入对应鱼桶。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.15f; }

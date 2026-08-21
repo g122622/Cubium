@@ -32,6 +32,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
+#include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -138,6 +139,12 @@ std::optional<ResourceLocation> TropicalFishEntity::getDeathSound() const
 std::optional<ResourceLocation> TropicalFishEntity::getHurtSound(DamageSource& /*source*/) const
 {
     return SoundEvents::ENTITY_TROPICAL_FISH_HURT;
+}
+
+ItemStack TropicalFishEntity::getBucketItemStack() const
+{
+    // 对齐 Java TropicalFish.getBucketItemStack() = new ItemStack(Items.TROPICAL_FISH_BUCKET)。
+    return ItemStack(Items::TROPICAL_FISH_BUCKET, 1);
 }
 
 } // namespace mc

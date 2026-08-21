@@ -32,6 +32,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
+#include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include <memory>
@@ -107,6 +108,12 @@ std::optional<ResourceLocation> SalmonEntity::getDeathSound() const
 std::optional<ResourceLocation> SalmonEntity::getHurtSound(DamageSource& /*source*/) const
 {
     return SoundEvents::ENTITY_SALMON_HURT;
+}
+
+ItemStack SalmonEntity::getBucketItemStack() const
+{
+    // 对齐 Java Salmon.getBucketItemStack() = new ItemStack(Items.SALMON_BUCKET)。
+    return ItemStack(Items::SALMON_BUCKET, 1);
 }
 
 } // namespace mc

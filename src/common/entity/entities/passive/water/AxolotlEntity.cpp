@@ -41,6 +41,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/BucketableUtils.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -304,6 +305,42 @@ void AxolotlEntity::_checkSupportingEffects()
 
     // 更新上一tick目标存活状态
     m_wasTargetAlive = (target != nullptr && target->isAlive());
+}
+
+// ========== IBucketable 接口实现（对齐 Java Axolotl implements Bucketable） ==========
+
+ActionResultType AxolotlEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 Java 1.21.11 Axolotl.mobInteract：
+    //   return Bucketable.bucketMobPickup(player, hand, this)
+    //       .orElse(super.mobInteract(player, hand));
+    ActionResultType result = entity::bucketMobPickup(player, *this, hand);
+    if (result != ActionResultType::Pass) {
+        return result;
+    }
+    return WaterMobEntity::interactMob(player, hand);
+}
+
+ItemStack AxolotlEntity::getBucketItemStack() const
+{
+    // 对齐 Java Axolotl.getBucketItemStack() = new ItemStack(Items.AXOLOTL_BUCKET)。
+    return ItemStack(Items::AXOLOTL_BUCKET, 1);
+}
+
+std::optional<ResourceLocation> AxolotlEntity::getPickupSound() const
+{
+    // 对齐 Java Axolotl.getPickupSound() = SoundEvents.BUCKET_EMPTY_AXOLOTL。
+    // 注：vanilla 美西螈装取音效用 EMPTY_AXOLOTL（非 FILL_AXOLOTL），属原版既定行为。
+    return SoundEvents::ITEM_BUCKET_EMPTY_AXOLOTL;
+}
+
+void AxolotlEntity::saveToBucketTag(ItemStack& bucketStack) const
+{
+    // 对齐 Java Axolotl.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag +
+    // Axolotl 额外保存 Variant/Age。
+    // TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
+    //       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全变体/年龄保存恢复逻辑。
+    (void)bucketStack;
 }
 
 } // namespace mc

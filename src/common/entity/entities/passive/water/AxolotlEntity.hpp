@@ -26,6 +26,7 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/entity/interfaces/IBucketable.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -84,7 +85,7 @@ enum class AxolotlVariant : i32 {
  *
  * 参考: net.minecraft.world.entity.animal.axolotl.Axolotl
  */
-class AxolotlEntity : public WaterMobEntity {
+class AxolotlEntity : public WaterMobEntity, public entity::IBucketable {
 public:
     /**
      * @brief 构造函数
@@ -153,15 +154,46 @@ public:
     /**
      * @brief 是否来自桶
      * 来自桶的美西螈不会消失
+     *
+     * override IBucketable::isFromBucket（对齐 Java Axolotl implements Bucketable）。
      */
-    [[nodiscard]] bool isFromBucket() const noexcept { return m_fromBucket; }
+    [[nodiscard]] bool isFromBucket() const noexcept override { return m_fromBucket; }
 
     /**
      * @brief 设置来自桶标记
+     *
+     * override IBucketable::setFromBucket。
      */
-    void setFromBucket(bool fromBucket) noexcept { m_fromBucket = fromBucket; }
+    void setFromBucket(bool fromBucket) noexcept override { m_fromBucket = fromBucket; }
 
-    // ========== 狩猎冷却 ==========
+    // ========== IBucketable 接口实现（对齐 Java Axolotl implements Bucketable） ==========
+
+    /**
+     * @brief 获取装取该美西螈后得到的鱼桶
+     * @return axolotl_bucket（对齐 Java Axolotl.getBucketItemStack = AXOLOTL_BUCKET）
+     *
+     * override IBucketable::getBucketItemStack，使 bucketMobPickup 装入美西螈桶。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
+    /**
+     * @brief 获取装取音效
+     * @return BUCKET_EMPTY_AXOLOTL（对齐 Java Axolotl.getPickupSound = BUCKET_EMPTY_AXOLOTL）
+     *
+     * 注：vanilla 美西螈装取音效用 EMPTY_AXOLOTL（非 FILL_AXOLOTL），属原版既定行为。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getPickupSound() const override;
+
+    /**
+     * @brief 保存实体数据到美西螈桶 NBT
+     *
+     * 对齐 Java Axolotl.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag +
+     * Axolotl 额外保存 Variant/Age（持久化变体与幼体状态）。
+     * TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
+     *       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全变体/年龄保存恢复逻辑。
+     *       不影响装取主链路（装取→得美西螈桶→discard 仍正常工作）。
+     */
+    void saveToBucketTag(ItemStack& bucketStack) const override;
 
     /**
      * @brief 是否在狩猎冷却中
@@ -279,6 +311,18 @@ protected:
 
     // ========== 受伤处理 ==========
     bool hurt(DamageSource& source, f32 amount) override;
+
+    // ========== 玩家交互（水桶装取） ==========
+    /**
+     * @brief 玩家与美西螈交互（水桶装取）
+     *
+     * 对齐 Java 1.21.11 Axolotl.mobInteract：
+     *   return Bucketable.bucketMobPickup(player, hand, this)
+     *       .orElse(super.mobInteract(player, hand));
+     * 玩家持水桶右键美西螈 → BucketableUtils::bucketMobPickup 装入美西螈桶 + discard；
+     * 否则委托父类 WaterMobEntity::interactMob。
+     */
+    ActionResultType interactMob(Player& player, Hand hand) override;
 
 private:
     // 变体

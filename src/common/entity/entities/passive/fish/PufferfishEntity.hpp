@@ -97,6 +97,14 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
+    /**
+     * @brief 获取装取该河豚后得到的鱼桶
+     * @return pufferfish_bucket（对齐 Java Pufferfish.getBucketItemStack = PUFFERFISH_BUCKET）
+     *
+     * override AbstractFishEntity::getBucketItemStack，使 bucketMobPickup 装入对应鱼桶。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
     // ========== 膨胀状态 ==========
 
     /**

@@ -27,10 +27,15 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/interfaces/IBucketable.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
 
 namespace mc {
+
+// 前向声明
+class Player;
 
 /**
  * @brief 鱼类实体基类
@@ -38,12 +43,16 @@ namespace mc {
  * 只保留所有鱼共享的游泳、离水扑腾与基础空气供应语义。
  * 群游逻辑由 AbstractGroupFishEntity 承载。
  *
+ * 实现 IBucketable 接口（对齐 Java AbstractFish implements Bucketable）：
+ * 玩家持水桶右键鱼可装入对应鱼桶（interactMob 调 BucketableUtils::bucketMobPickup）。
+ * 各鱼子类 override getBucketItemStack 返回对应鱼桶。
+ *
  * AI 目标:
  * - 优先级 0: PanicGoal(1.25) - 恐慌逃跑
  * - 优先级 2: AvoidEntityGoal(Player, 8.0F, 1.6, 1.4) - 避开玩家
  * - 优先级 4: SwimGoal(1.0, 40) - 随机游泳
  */
-class AbstractFishEntity : public WaterMobEntity {
+class AbstractFishEntity : public WaterMobEntity, public entity::IBucketable {
 public:
     /**
      * @brief 构造鱼类实体
@@ -113,7 +122,7 @@ public:
      *
      * @return 如果是从桶放出的鱼返回 true
      */
-    [[nodiscard]] bool isFromBucket() const { return m_fromBucket; }
+    [[nodiscard]] bool isFromBucket() const override { return m_fromBucket; }
 
     /**
      * @brief 设置是否来自桶
@@ -122,7 +131,7 @@ public:
      *
      * @param fromBucket 是否来自桶
      */
-    void setFromBucket(bool fromBucket)
+    void setFromBucket(bool fromBucket) override
     {
         m_fromBucket = fromBucket;
         // 同步到数据管理器（vanilla FROM_BUCKET，业务权威源仍为 m_fromBucket）
@@ -181,11 +190,52 @@ public:
      */
     [[nodiscard]] virtual std::optional<ResourceLocation> getFlopSound() const { return std::nullopt; }
 
+    // ========== IBucketable 接口实现（对齐 Java AbstractFish implements Bucketable） ==========
+
+    /**
+     * @brief 获取装取该鱼后得到的鱼桶
+     * @return 对应鱼桶 ItemStack
+     *
+     * 基类返回空堆（无对应鱼桶），各鱼子类 override 返回具体鱼桶
+     * （Cod→cod_bucket/Salmon→salmon_bucket/Pufferfish→pufferfish_bucket/TropicalFish→tropical_fish_bucket）。
+     * 对应 Java Bucketable.getBucketItemStack()。
+     */
+    [[nodiscard]] ItemStack getBucketItemStack() const override;
+
+    /**
+     * @brief 获取装取音效
+     * @return BUCKET_FILL_FISH（所有鱼类共用装取音效）
+     *
+     * 对应 Java AbstractFish.getPickupSound() = SoundEvents.BUCKET_FILL_FISH。
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getPickupSound() const override;
+
+    /**
+     * @brief 保存实体数据到鱼桶 NBT
+     *
+     * 对齐 Java AbstractFish.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag
+     * （保存 Health/NoAI/Silent 等）。Cubium FishBucketItem._spawnFish 当前不读桶 NBT
+     * （直接创建新鱼），故本方法暂为空实现，留 TODO，不影响装取主链路。
+     */
+    void saveToBucketTag(ItemStack& bucketStack) const override;
+
     void tick() override;
 
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+
+    /**
+     * @brief 玩家与鱼交互（水桶装取）
+     *
+     * 对齐 Java 1.21.11 AbstractFish.mobInteract：
+     * `Bucketable.bucketMobPickup(player, hand, this).orElse(super.mobInteract(...))`。
+     * 玩家持水桶右键鱼 → BucketableUtils::bucketMobPickup 装入对应鱼桶 + discard 实体；
+     * 否则委托父类 WaterMobEntity::interactMob（默认 Pass）。
+     * 此前 Cubium AbstractFishEntity 无 interactMob override，玩家持水桶右键鱼无反应
+     * （对齐缺陷），本次补全装取入口。
+     */
+    ActionResultType interactMob(Player& player, Hand hand) override;
 
     /**
      * @brief 注册同步数据参数

@@ -38,6 +38,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -273,6 +274,12 @@ void PufferfishEntity::setPuffState(PuffState state)
 
     // 刷新碰撞箱尺寸
     refreshDimensions();
+}
+
+ItemStack PufferfishEntity::getBucketItemStack() const
+{
+    // 对齐 Java Pufferfish.getBucketItemStack() = new ItemStack(Items.PUFFERFISH_BUCKET)。
+    return ItemStack(Items::PUFFERFISH_BUCKET, 1);
 }
 
 } // namespace mc
