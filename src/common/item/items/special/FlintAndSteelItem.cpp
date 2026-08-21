@@ -71,9 +71,13 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
             BlockState newState = blockStatePtr->with(BlockStateProperties::LIT(), true);
             world.setBlockState(blockPos, &newState, 11);
 
-            // 消耗耐久，若物品损坏则触发 onEquippedItemBroken 回调
+            // 消耗耐久：直接对玩家权威手持物（player->getHeldItem(hand)）做 hurtAndBreak，而非
+            // context.getItemStackMut()（调用方局部拷贝，耐久损耗不回写权威物品栏——同桶类对齐缺陷）。
+            // 外层 useItemOnBlock/handleItemUseOn 的 damage 对比会检测到权威槽 damage 变化跳过通用
+            // shrink，避免把耐久损耗误当数量消耗（vanilla 打火石点火损耗 1 耐久，数量不变）。
             if (player != nullptr) {
-                LivingEntity::hurtAndBreak(context.getItemStackMut(), 1, player, EquipmentSlot::MainHand);
+                ItemStack& heldItem = player->getHeldItem(context.getHand());
+                LivingEntity::hurtAndBreak(heldItem, 1, player, EquipmentSlot::MainHand);
             }
             return ActionResultType::Success;
         }
@@ -91,9 +95,10 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
             const BlockState& fireState = fireBlock->getDefaultState();
             world.setBlockState(firePos, &fireState, 11);
 
-            // 消耗耐久，若物品损坏则触发 onEquippedItemBroken 回调
+            // 消耗耐久：同上方点燃分支，操作权威手持（player->getHeldItem(hand)）做 hurtAndBreak。
             if (player != nullptr) {
-                LivingEntity::hurtAndBreak(context.getItemStackMut(), 1, player, EquipmentSlot::MainHand);
+                ItemStack& heldItem = player->getHeldItem(context.getHand());
+                LivingEntity::hurtAndBreak(heldItem, 1, player, EquipmentSlot::MainHand);
             }
 
             return ActionResultType::Success;

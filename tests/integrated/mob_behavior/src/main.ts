@@ -77,6 +77,8 @@ import { registerFishBucketPickupTests } from "./tests/passive/fish/FishBucketPi
 import { registerFishBucketReleaseTests } from "./tests/passive/fish/FishBucketReleaseTests.js";
 import { registerPowderSnowBucketReleaseTests } from "./tests/passive/special/PowderSnowBucketReleaseTests.js";
 import { registerBucketItemTests } from "./tests/passive/special/BucketItemTests.js";
+import { registerFlintAndSteelDurabilityTests } from "./tests/passive/special/FlintAndSteelDurabilityTests.js";
+import { registerHoeDurabilityTests } from "./tests/passive/special/HoeDurabilityTests.js";
 import { registerNautilusTests } from "./tests/passive/nautilus/NautilusTests.js";
 import { registerZombieNautilusTests } from "./tests/passive/nautilus/ZombieNautilusTests.js";
 import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
@@ -156,6 +158,8 @@ registerFishBucketPickupTests();
 registerFishBucketReleaseTests();
 registerPowderSnowBucketReleaseTests();
 registerBucketItemTests();
+registerFlintAndSteelDurabilityTests();
+registerHoeDurabilityTests();
 registerNautilusTests();
 registerZombieNautilusTests();
 registerMobSpawnerTests();

@@ -80,9 +80,10 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
                 context.getPlayer()->playSound(SoundEvents::BLOCK_CAMPFIRE_EXTINGUISH, 1.0f, 1.0f);
             }
 
-            // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-            ItemStack& stack = context.getItemStackMut();
-            LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
+            // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
+            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
 
             return ActionResultType::Success;
         }
@@ -100,9 +101,10 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
                 context.getPlayer()->playSound(SoundEvents::BLOCK_CAMPFIRE_EXTINGUISH, 1.0f, 1.0f);
             }
 
-            // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-            ItemStack& stack = context.getItemStackMut();
-            LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
+            // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
+            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
 
             return ActionResultType::Success;
         }
@@ -139,9 +141,10 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
     // 设置新方块状态
     world.setBlockState(pos, &newState, 11);
 
-    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-    ItemStack& stack = context.getItemStackMut();
-    LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+    // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
+    // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
+    ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+    LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
 
     return ActionResultType::Success;
 }

@@ -91,9 +91,14 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
     // 设置新方块状态
     world.setBlockState(pos, &newState, 11);
 
-    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-    ItemStack& stack = context.getItemStackMut();
-    LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+    // 消耗耐久：直接对玩家权威手持物（player->getHeldItem(hand)）做 hurtAndBreak，而非
+    // context.getItemStackMut()（调用方局部拷贝，耐久损耗不回写权威物品栏——同桶类对齐缺陷）。
+    // 外层 useItemOnBlock/handleItemUseOn 的 damage 对比会检测到权威槽 damage 变化跳过通用 shrink，
+    // 避免把耐久损耗误当数量消耗（vanilla 锄耕地损耗 1 耐久，数量不变）。
+    if (context.getPlayer() != nullptr) {
+        ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+        LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+    }
 
     return ActionResultType::Success;
 }

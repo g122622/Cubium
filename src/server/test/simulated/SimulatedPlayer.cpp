@@ -358,9 +358,18 @@ bool SimulatedPlayer::useItemOnBlock(
                 // player->getHeldItem 直接替换权威手持物（自管理消耗+返回新物品），此后外层不应再 shrink
                 // （否则会把返回的空桶也消耗成空堆）。骨粉等"仅 shrink 原物品不替换"的物品 itemId 不变，
                 // 仍走外层 shrink 补足（其 onItemUse 对拷贝 shrink 不回写权威槽）。
+                // 记录 onItemUse 前权威槽 itemId+damage：部分物品在 onItemUse 内通过 player->getHeldItem
+                // 直接改权威手持物——(1)自管理替换（鱼桶→空桶，itemId 变化）；(2)耐久损耗（打火石/锄/斧/锹
+                // hurtAndBreak，damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或
+                // 把耐久损耗误当数量消耗）。骨粉等"仅 shrink 原物品不替换不改耐久"的物品 itemId+damage 均不变，
+                // 仍走外层 shrink 补足（其 onItemUse 对拷贝 shrink 不回写权威槽）。
                 const u32 itemIdBefore = [&] {
                     const mc::ItemStack sel = inventory().getItem(selectedSlot);
                     return sel.isEmpty() ? 0u : sel.getItem()->itemId();
+                }();
+                const i32 damageBefore = [&] {
+                    const mc::ItemStack sel = inventory().getItem(selectedSlot);
+                    return sel.isEmpty() ? 0 : sel.getDamage();
                 }();
                 mc::ItemUseContext context(
                     world, this, stack, hitPos, worldPos, face, mc::Hand::MainHand, yaw(), pitch());
@@ -369,12 +378,15 @@ bool SimulatedPlayer::useItemOnBlock(
                     // 权威槽位消耗：对齐 BlockInteractionManager::handleItemUseOn:447-457「成功即对选中栈
                     // shrink(1) 回写」范式。onItemUse 对拷贝 shrink 不影响权威槽，故此处独立消耗一次。
                     // 创造模式不消耗（对齐 handleItemUseOn:458-460）。
-                    // 若 onItemUse 已改变权威槽 itemId（自管理替换，如鱼桶→空桶），跳过 shrink——
-                    // 物品已自行完成消耗+返回新物品，外层再 shrink 会误消耗返回物。
+                    // 若 onItemUse 已改变权威槽 itemId（自管理替换，如鱼桶→空桶）或 damage（耐久损耗，如打火石
+                    // hurtAndBreak），跳过 shrink——物品已自行完成消耗，外层再 shrink 会误消耗返回物/把耐久
+                    // 损耗误当数量消耗。
                     if (!isCreative()) {
                         mc::ItemStack selected = inventory().getItem(selectedSlot);
                         const u32 itemIdAfter = selected.isEmpty() ? 0u : selected.getItem()->itemId();
-                        if (itemIdAfter == itemIdBefore && !selected.isEmpty() && selected.getCount() > 0) {
+                        const i32 damageAfter = selected.isEmpty() ? 0 : selected.getDamage();
+                        const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
+                        if (!selfManaged && !selected.isEmpty() && selected.getCount() > 0) {
                             selected.shrink(1);
                             inventory().setItem(selectedSlot, selected);
                         }
