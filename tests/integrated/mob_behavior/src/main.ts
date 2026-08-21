@@ -75,6 +75,7 @@ import { registerPufferfishTests } from "./tests/passive/fish/PufferfishTests.js
 import { registerCodTests } from "./tests/passive/fish/CodTests.js";
 import { registerFishBucketPickupTests } from "./tests/passive/fish/FishBucketPickupTests.js";
 import { registerFishBucketReleaseTests } from "./tests/passive/fish/FishBucketReleaseTests.js";
+import { registerPowderSnowBucketReleaseTests } from "./tests/passive/special/PowderSnowBucketReleaseTests.js";
 import { registerNautilusTests } from "./tests/passive/nautilus/NautilusTests.js";
 import { registerZombieNautilusTests } from "./tests/passive/nautilus/ZombieNautilusTests.js";
 import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
@@ -152,6 +153,7 @@ registerPufferfishTests();
 registerCodTests();
 registerFishBucketPickupTests();
 registerFishBucketReleaseTests();
+registerPowderSnowBucketReleaseTests();
 registerNautilusTests();
 registerZombieNautilusTests();
 registerMobSpawnerTests();

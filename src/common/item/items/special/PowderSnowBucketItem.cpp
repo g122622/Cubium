@@ -68,12 +68,18 @@ ActionResultType PowderSnowBucketItem::onItemUse(ItemUseContext& context)
 
     // 尝试放置细雪方块
     if (emptyContents(player, world, targetPos)) {
-        // 放置成功，消耗细雪桶并返回空桶
-        if (player == nullptr || !player->isCreative()) {
-            context.getItemStackMut().shrink(1);
-            if (player != nullptr) {
-                _returnEmptyBucket(*player, context.getItemStackMut());
-            }
+        // 放置成功，消耗细雪桶并返回空桶。
+        // 直接操作玩家权威手持物（player->getHeldItem(hand) 返回引用），而非 context 拷贝——
+        // ItemUseContext 内的 stack 是调用方局部拷贝，对其 shrink+_returnEmptyBucket 不回写权威物品栏
+        // （同 FishBucketItem 的对齐缺陷修复：拷贝赋值无效，玩家放粉雪后得不到空桶）。
+        // 先 shrink(1) 消耗粉雪桶（maxStack=1→count=0→isEmpty），再 _returnEmptyBucket 替换为空桶
+        // （对齐 vanilla SolidBucketItem.use：getItemInHand shrink 后 setItemInHand 空桶）。
+        // 外层 useItemOnBlock/handleItemUseOn 的 itemId 对比会检测到权威槽 itemId 变化（粉雪桶→空桶）
+        // 跳过通用 shrink，避免误消耗返回的空桶。
+        if (player != nullptr && !player->isCreative()) {
+            ItemStack& heldItem = player->getHeldItem(context.getHand());
+            heldItem.shrink(1);
+            _returnEmptyBucket(*player, heldItem);
         }
         return ActionResultType::Success;
     }
