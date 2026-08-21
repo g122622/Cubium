@@ -5,6 +5,7 @@ import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { assertEntityInVolume } from "../../../utils/entity/assert.js";
 import { fillBlock } from "../../../utils/block/build.js";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -122,6 +123,80 @@ function striderDoesNotBurnInLava(test: Test): void {
   });
 }
 
+// 玩家手持鞍右键成年炽足兽装鞍（wiki tech_炽足兽.txt#骑乘：玩家可对成年炽足兽使用鞍使其可被骑乘）。
+//
+// C++ 链路（对齐 Java 1.21.11 Strider.mobInteract，已逐段核查）：
+//   1) 玩家持鞍 interactWithEntity(炽足兽) → Player::interactOn → MobEntity::processInitialInteract
+//      → StriderEntity::interactMob（StriderEntity.cpp:208）。鞍非 isBreedingItem，!isFood 命中；
+//      hasSaddle()=false（未装鞍）骑乘分支不命中 → 喂食分支 isFood=false 跳过 → 末尾
+//      canEquip(heldItem, 0) 命中（鞍可装备槽0）返回 Pass（StriderEntity.cpp:275-277）。
+//   2) Player::interactOn 见 interactMob 返 Pass → 第4步走 Item::itemInteractionForEntity
+//      → SaddleItem::itemInteractionForEntity（SaddleItem.cpp:76）：dynamic_cast<IEquipable>+<IRideable>
+//      通过 + !isChild + !hasSaddle + 鞍槽空 → rideable->setSaddle(true)（StriderEntity::setSaddle
+//      置 m_saddled=true）+ setEquipment(0, 鞍)。
+//   3) 装鞍后 hasSaddle()=true。
+//
+// 判定手段：getComponent("minecraft:is_saddled") 存在（非 undefined）即已装鞍。is_saddled 是基岩标准
+// 组件 EntityIsSaddledComponent（componentId="minecraft:is_saddled"，"When added, this component
+// signifies that this entity is currently saddled"），组件存在即装鞍（无 property，与 is_charged 同款
+// 存在性语义）。本次会话补全其脚本绑定（MinecraftModuleFactory.cpp getComponent "minecraft:is_saddled"
+// 分支：dynamic_cast<IRideable*>/AbstractHorseEntity + hasSaddle()==true 才返组件）。
+//
+// 创造模式不消耗鞍（SaddleItem creativeMode 跳过 shrink）。炽足兽不在熔岩也能装鞍（interactMob 持鞍
+// 返 Pass 走 SaddleItem，独立于熔岩环境）。用 glass_pit 陆地玻璃坑（无需熔岩），炽足兽 (3,2,3)。
+//
+// 时序：tick 5 interactWithEntity 触发装鞍（同步链路），pollUntilSucceed 轮询 is_saddled 组件存在。
+// startTick=6 留1tick 装鞍链路执行，interval=2，maxTick=40 留余量。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_炽足兽.txt#骑乘（对成年炽足兽使用鞍装鞍）
+function striderSaddledByPlayerTest(test: Test): void {
+  const striderType = "minecraft:strider";
+
+  // 炽足兽 (3,2,3)（glass_pit y=0 grass_block 地板，helper y=2→结构 y=1 空气，脚踩 y=0 grass_block）。
+  const strider = test.spawn(striderType, { x: 3, y: 2, z: 3 });
+  // 创造玩家 (1,2,3) 持鞍（创造模式不消耗鞍）。interactWithEntity 远程触发无距离门控。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "striderSaddler");
+  const saddle = new ItemStack("minecraft:saddle", 1);
+  player.setItem(saddle as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5 玩家持鞍 interactWithEntity(炽足兽) → SaddleItem::itemInteractionForEntity → setSaddle(true)。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(strider);
+  });
+
+  // 轮询断言：is_saddled 组件存在（装鞍成功）。组件存在即装鞍（无 value 属性，对齐基岩存在性语义）。
+  pollUntilSucceed(test, () => {
+    const comp = strider.getComponent("minecraft:is_saddled") as any;
+    return comp !== undefined;
+  }, {
+    startTick: 6,
+    interval: 2,
+    maxTick: 40,
+    onTimeout: () => {
+      const comp = strider.getComponent("minecraft:is_saddled") as any;
+      test.assert(false,
+        `strider not saddled after interactWithEntity (is_saddled=${comp === undefined ? "undefined" : "present"} expected present)`);
+    },
+  });
+}
+
+// 对照：未装鞍炽足兽 is_saddled 组件为 undefined（验证"组件存在即装鞍"语义，排除"组件恒存在"假通过）。
+//
+// spawn 炽足兽但不装鞍，断言 getComponent("minecraft:is_saddled")===undefined。验证 is_saddled 组件对
+// 未装鞍炽足兽返回 undefined（而非恒存在致 striderSaddledByPlayerTest 假通过）。
+// maxTick=40 短窗，不装鞍炽足兽保持无鞍状态。
+function striderUnsaddledByDefaultTest(test: Test): void {
+  const striderType = "minecraft:strider";
+  const strider = test.spawn(striderType, { x: 3, y: 2, z: 3 });
+
+  // tick 20 断言未装鞍（is_saddled 组件 undefined）+ succeed。
+  test.runAtTickTime(20, () => {
+    const comp = strider.getComponent("minecraft:is_saddled") as any;
+    test.assert(comp === undefined,
+      `strider should be unsaddled by default, is_saddled=${comp === undefined ? "undefined" : "present"} (expected undefined)`);
+    test.succeed();
+  });
+}
+
 export function registerStriderTests(): void {
   GameTest.register("MobBehaviorTests", "strider_follows_warped_fungus", striderFollowsWarpedFungus)
     .structureName("gametests:mediumglass")
@@ -130,4 +205,12 @@ export function registerStriderTests(): void {
   GameTest.register("MobBehaviorTests", "strider_does_not_burn_in_lava", striderDoesNotBurnInLava)
     .structureName("gametests:glass_pit")
     .maxTicks(300);
+
+  GameTest.register("MobBehaviorTests", "strider_saddled_by_player", striderSaddledByPlayerTest)
+    .structureName("gametests:glass_pit")
+    .maxTicks(80);
+
+  GameTest.register("MobBehaviorTests", "strider_unsaddled_by_default", striderUnsaddledByDefaultTest)
+    .structureName("gametests:glass_pit")
+    .maxTicks(60);
 }

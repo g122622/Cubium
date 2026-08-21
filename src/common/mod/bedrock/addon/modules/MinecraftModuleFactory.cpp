@@ -34,13 +34,15 @@
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // AbstractHorseEntity（is_saddled 组件判定马类鞍状态，马类不实现 IRideable 但有 hasSaddle）
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
-#include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
-#include "common/item/core/Item.hpp"                // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
-#include "common/item/core/ItemRegistry.hpp"        // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
-#include "common/item/core/ItemStack.hpp"           // ItemStack（Equippable.getEquipment 返回值）
+#include "common/entity/interfaces/IRideable.hpp" // mc::entity::IRideable（is_saddled 组件判定鞍状态，猪/炽足兽/鹦鹉螺等可骑乘实体实现此接口）
+#include "common/entity/inventory/IInventory.hpp"        // IInventory（Container JS 类 opaque 持此指针）
+#include "common/item/core/Item.hpp"                     // Item::toString/Item::getItem（ItemStack.typeId / ItemType）
+#include "common/item/core/ItemRegistry.hpp"             // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
+#include "common/item/core/ItemStack.hpp"                // ItemStack（Equippable.getEquipment 返回值）
 #include "common/item/enchantment/EnchantmentHelper.hpp" // EnchantmentHelper::getEnchantments（ItemStack.getEnchantments）
 #include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // ScriptBlockRef/wrapBlock/unwrapBlock（Block JS 类 opaque 快照）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
@@ -679,6 +681,34 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("IsTamedComponent");
             }
+            if (normalized == "minecraft:is_saddled") {
+                // 对齐基岩 EntityIsSaddledComponent（componentId="minecraft:is_saddled"）：
+                // "When added, this component signifies that this entity is currently saddled"。
+                // 组件存在即已装鞍（与 is_charged 同款存在性语义，无 property）。鞍实体经
+                // SaddleItem::itemInteractionForEntity 调 IRideable::setSaddle(true) 或
+                // AbstractHorseEntity::setSaddle(true) 置位。鞍实体分两类（hasSaddle 接口不统一）：
+                //   1) 实现 mc::entity::IRideable 的可骑乘实体：PigEntity/StriderEntity/AbstractNautilusEntity
+                //      （IRideable::hasSaddle 纯虚，统一 dynamic_cast<IRideable*> 覆盖）。
+                //   2) 马类 AbstractHorseEntity：注释明确不实现 IRideable（控制逻辑经乘客系统非 ride()），
+                //      但有 public hasSaddle()，需单独 dynamic_cast 覆盖。
+                // 两路任一命中且 hasSaddle()==true 才返组件；未装鞍或非鞍实体返 undefined
+                // （对齐基岩"组件不存在则 getComponent 返 undefined"，装鞍前不存在装鞍后存在）。
+                const auto* rideable = dynamic_cast<mc::entity::IRideable*>(ent);
+                if (rideable != nullptr) {
+                    if (!rideable->hasSaddle()) {
+                        return ctx.createUndefined();
+                    }
+                    return wrapComponent("IsSaddledComponent");
+                }
+                const auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
+                if (horse != nullptr) {
+                    if (!horse->hasSaddle()) {
+                        return ctx.createUndefined();
+                    }
+                    return wrapComponent("IsSaddledComponent");
+                }
+                return ctx.createUndefined();
+            }
             // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
@@ -819,6 +849,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         return ctx.createBoolean(tameable->isTamed());
     });
+
+    // --- IsSaddledComponent类（minecraft:is_saddled，承载鞍装备状态）---
+    // opaque 持 mc::Entity*。对齐基岩 EntityIsSaddledComponent：组件存在即代表已装鞍，
+    // 无属性（基岩原版仅以 componentId 存在性标识 saddled）。getComponent 已按 IRideable/AbstractHorse
+    // + hasSaddle()==true 过滤，此处仅作为存在性标记返回，不暴露额外属性。
+    // 供集成测试断言装鞍链路（SaddleItem::itemInteractionForEntity→setSaddle(true)）。
+    u64 isSaddledClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* isSaddledProto = builder.exportClass("IsSaddledComponent", isSaddledClassId);
+    ScriptClassRegistry::instance().registerClass(isSaddledClassId, isSaddledProto, "IsSaddledComponent");
+    // 无 property/method：组件对象存在即 saddled（与基岩 EntityIsSaddledComponent 一致）。
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），
