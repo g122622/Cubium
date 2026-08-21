@@ -87,7 +87,15 @@ function countEntities(test: Test, type: string): number {
 //
 // spawner_chamber 封顶遮光 skyLight=0、无光源 blockLight=0 → isValidLightLevel 两阶段恒通过，
 // 僵尸生成确定性发生。setEntityId 后延迟 [200,800) tick 首次生成，pollUntilSucceed 轮询区域内
-// zombie>=1。maxTick=1000 覆盖最坏 800 tick 延迟 + spawn 注册 + 余量。
+// zombie>=1。
+//
+// maxTick=5000 的依据（对齐 spawnerIgnoresDoMobSpawningGamerule 的 5200 范式，见 [[spawner-chamber-single-legit-spawn-tier-maxtick]]）：
+// spawner_chamber 仅相对 y=1（yOffset=0）是合法生成位（air 腔 + 下方 stone 地板），每周期 4 次尝试
+// 仅约 1/3 命中合法位，首周期（delay∈[200,800)）(2/3)^4≈20% 概率全失败，需多次周期累积命中。
+// 批内并行时 spawner 首次 delay 可能=600，首周期到期 gt=700 全失败，二次到期 gt≈1105 才成功。
+// maxTick=3000 仅覆盖 3 最坏周期（3×800=2400）余量 600 < 一个周期 800，全量跑高负载下偶发连续
+// 多周期全空超时（概率尾部）。5000 覆盖 6 最坏周期（6×800=4800），失败概率降至 ~0.00006%。
+// register maxTicks=5200 留 200 余量（poll maxTick 须 < maxTicks，否则 poll 未超时测试先 ExecutionTimeout）。
 //
 // 此为正向测试，验证刷怪箱核心生成链路（放置+刷怪蛋设类型+玩家激活+延迟到期生成）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_刷怪箱.txt（玩家激活生成）
@@ -95,7 +103,7 @@ function spawnerSpawnsZombieInDark(test: Test): void {
     setupSpawner(test, "minecraft:zombie_spawn_egg");
 
     pollUntilSucceed(test, () => countEntities(test, "zombie") >= 1, {
-        maxTick: 1000,
+        maxTick: 5000,
         onTimeout: () => test.assert(false,
             `spawner did not spawn zombie in dark (zombie=${countEntities(test, "zombie")})`),
     });
@@ -278,13 +286,13 @@ function spawnerSilverfishSpawnsInDark(test: Test): void {
     setupSpawner(test, "minecraft:silverfish_spawn_egg");
 
     // 蠢鱼刷怪箱在黑暗中生成蠹虫（蠹虫是 Monster 分类，黑暗中 isValidLightLevel 通过）。
-    // maxTick=3000：spawner_chamber 仅相对 y=1（yOffset=0）是合法生成位（air 腔 + 下方 stone 地板），
-    // 每周期 4 次尝试约 1/3 命中合法位，首次周期可能全失败（(2/3)^4≈20%），需多次周期累积命中。
-    // 首次 delay [200,800) tick，3000 覆盖最坏 3 周期（3×800=2400）+ 余量。原 maxTick=1000 仅覆盖
-    // 1 周期，首周期全失败即超时（约 20% 概率失败，连跑 5 次 1 次失败）。对齐 spawnerSpawnsZombieInDark
-    // 的 maxTick=3000 范式。
+    // maxTick=5000：spawner_chamber 仅相对 y=1（yOffset=0）是合法生成位（air 腔 + 下方 stone 地板），
+    // 每周期 4 次尝试约 1/3 命中合法位，首周期（delay∈[200,800)）(2/3)^4≈20% 概率全失败，需多次周期
+    // 累积命中。批内并行高负载下首周期可能全失败，3000 仅覆盖 3 最坏周期余量 600 < 一个周期 800 偶发
+    // 超时（见 [[spawner-chamber-single-legit-spawn-tier-maxtick]]）。5000 覆盖 6 最坏周期（6×800=4800），
+    // 失败概率降至 ~0.00006%。对齐 spawnerSpawnsZombieInDark 的 maxTick=5000 范式。
     pollUntilSucceed(test, () => countEntities(test, "silverfish") >= 1, {
-        maxTick: 3000,
+        maxTick: 5000,
         onTimeout: () => test.assert(false,
             `silverfish spawner did not spawn in dark (silverfish=${countEntities(test, "silverfish")})`),
     });
@@ -293,7 +301,7 @@ function spawnerSilverfishSpawnsInDark(test: Test): void {
 export function registerMobSpawnerTests(): void {
     GameTest.register("MobBehaviorTests", "spawner_spawns_zombie_in_dark", spawnerSpawnsZombieInDark)
         .structureName("gametests:spawner_chamber")
-        .maxTicks(3000);
+        .maxTicks(5200);
 
     GameTest.register("MobBehaviorTests", "spawner_requires_player", spawnerRequiresPlayer)
         .structureName("gametests:spawner_chamber")
@@ -313,5 +321,5 @@ export function registerMobSpawnerTests(): void {
 
     GameTest.register("MobBehaviorTests", "spawner_silverfish_spawns_in_dark", spawnerSilverfishSpawnsInDark)
         .structureName("gametests:spawner_chamber")
-        .maxTicks(3200);
+        .maxTicks(5200);
 }

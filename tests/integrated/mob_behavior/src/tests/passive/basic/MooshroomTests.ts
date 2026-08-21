@@ -17,6 +17,31 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 
+// 玩家主手槽（slot 0）物品数量。
+function getMainHandAmount(player: any): number {
+  const inv = player.getComponent("minecraft:inventory") as any;
+  const mainHand = inv?.container?.getItem?.(0) as any;
+  return mainHand?.amount ?? 0;
+}
+
+// 遍历玩家背包所有槽位，统计指定 typeId 物品的总数量。
+// 用于蘑菇煲（maxStackSize=1）取汤后落非主手槽的断言——不能只查 slot 0。
+function countItemInInventory(player: any, typeId: string): number {
+  const inv = player.getComponent("minecraft:inventory") as any;
+  const container = inv?.container;
+  if (!container) return 0;
+  // EntityInventoryComponent 绑定 container.size（PlayerInventory 41 槽：0..40）。
+  const size = container.size ?? 41;
+  let total = 0;
+  for (let i = 0; i < size; i++) {
+    const stack = container.getItem?.(i) as any;
+    if (stack && stack.typeId === typeId) {
+      total += stack.amount ?? 0;
+    }
+  }
+  return total;
+}
+
 // 哞菇被闪电劈中红↔棕变种翻转（wiki tech_哞菇.txt#闪电：红色哞菇被雷击变棕色，棕色被雷击变红色）。
 //
 // C++ 链路：LightningBoltEntity::_damageEntities 对命中范围(±3 XZ)内实体先 hurt(5.0) 再调
@@ -143,6 +168,156 @@ function mooshroomBreedsWhenFedWheat(test: Test): void {
   });
 }
 
+// 玩家持空碗右键成年哞菇获得蘑菇煲（wiki tech_哞菇.txt#哞菇与蘑菇煲：手持碗右键哞菇获得蘑菇煲，
+// 消耗1空碗，哞菇不变）。
+//
+// C++ 链路（对齐 Java 1.21.11 Mooshroom.getInteractionItem / MushroomStew，已逐段核查）：
+//   1) 玩家持空碗 interactWithEntity(哞菇) → Player::interactOn → MobEntity::processInitialInteract
+//      → MooshroomEntity::interactMob（MooshroomEntity.cpp:156）分支1 `item == Items::BOWL && !isChild()`
+//      （:162）命中。
+//   2) 无迷之炖菜效果 → stewStack = ItemStack(MUSHROOM_STEW, 1)（:194）。
+//   3) 非创造模式 heldItem.shrink(1) 消耗空碗（:200-202，heldItem 是 player.getHeldItem(hand) 权威手持
+//      引用，与 [[nametag-consumption]] / [[saddle-consumption]] 修复范式一致，无拷贝不回写 bug）。
+//   4) player.inventory().add(stewStack) 添加蘑菇煲到背包（:205），背包满 remaining>0 走
+//      ItemDropHelper::spawnItemEntity 掉落（:206-211）。
+//   5) 返回 Success，Player::interactOn 第3步直接 return（不走第4步 itemInteractionForEntity）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑，y=0 grass_block 地板）。Survival 玩家 (1,2,3) 主手持 2 空碗，
+// 哞菇 (3,2,3)（距玩家 2 格，interactWithEntity 远程触发无距离门控）。
+//
+// 判定手段（双重断言）：
+//   1. 主手槽（slot 0）空碗数量 2→1（消耗1个空碗）；
+//   2. 玩家背包出现 minecraft:mushroom_stew（数量≥1）。
+// 蘑菇煲 maxStackSize=1，取汤后落非主手槽（主手仍是碗），故遍历全背包（countItemInInventory）统计，
+// 不能只查 slot 0。Survival 模式（创造跳过 shrink 无消耗证据）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_哞菇.txt#哞菇与蘑菇煲（碗取蘑菇煲）
+function mooshroomBowlGivesStewTest(test: Test): void {
+  const mooshroomType = "mooshroom";
+  const stewType = "minecraft:mushroom_stew";
+
+  // 哞菇 (3,2,3)（creeper_pit y=0 grass_block 地板，helper y=2→结构 y=1 空气，脚踩 y=0 grass_block）。
+  const mooshroom = test.spawn(mooshroomType, { x: 3, y: 2, z: 3 });
+  // Survival 玩家 (1,2,3) 持 2 空碗（slot 0 主手）。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "bowlUser", 0 as any);
+  const bowls = new ItemStack("minecraft:bowl", 2);
+  player.setItem(bowls as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5 玩家持空碗 interactWithEntity(哞菇) → interactMob 分支1 → shrink(1) + inventory.add(stew)。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(mooshroom);
+  });
+
+  // 轮询双重断言：主手碗数量 2→1 + 背包出现 mushroom_stew（≥1）。
+  // 哞菇是 MobEntity::tick looting 循环候选（canPickUpLoot），但默认不拾取（无 wantsToPickUp），
+  // 蘑菇煲不会从背包被取走，断言稳定。startTick=6 interact 后 1 tick 即可查。
+  pollUntilSucceed(test, () => {
+    if (getMainHandAmount(player) !== 1) return false;
+    return countItemInInventory(player, stewType) >= 1;
+  }, {
+    startTick: 6,
+    interval: 2,
+    maxTick: 40,
+    onTimeout: () => {
+      test.assert(false,
+        `mooshroom_bowl_gives_stew: failed: mainHandBowl=${getMainHandAmount(player)} (expected 1) `
+        + `stewInInv=${countItemInInventory(player, stewType)} (expected >=1)`);
+    },
+  });
+}
+
+// 玩家持剪刀右键哞菇剪蘑菇变牛（wiki tech_哞菇.txt#哞菇与剪刀：手持剪刀右键哞菇，哞菇变牛，
+// 掉落 5 个对应颜色蘑菇）。
+//
+// C++ 链路（对齐 Java 1.21.11 Mooshroom.shear / ShearsItem，已逐段核查）：
+//   1) 玩家持剪刀 interactWithEntity(哞菇) → Player::interactOn → MobEntity::processInitialInteract
+//      → MooshroomEntity::interactMob：剪刀非碗、非棕色+花朵，fallthrough 到 CowEntity::interactMob
+//      （无 override）→ AnimalEntity::interactMob → MobEntity::interactMob 基类返 Pass。
+//   2) processInitialInteract 返 Pass → Player::interactOn 第4步 item->itemInteractionForEntity
+//      → ShearsItem::itemInteractionForEntity（ShearsItem.cpp:138）dynamic_cast<IShearable*>(&target)
+//      命中（MooshroomEntity 多重继承 entity::IShearable，MooshroomEntity.hpp:68）→ isShearable()=true
+//      → shearable->shear(&player)（ShearsItem.cpp:158）。
+//   3) MooshroomEntity::shear（MooshroomEntity.cpp:75）：取 RED/BROWN_MUSHROOM 经 BlockItemRegistry 转
+//      BlockItem，drops.emplace_back(mushroomItem, 5)（5 个蘑菇单堆叠）→ 构造 CowEntity 复制位置/朝向/
+//      血量/自定义名/持久性/无敌 → spawnEntity(cow) + setTypeId(COW) → remove() 移除哞菇。
+//   4) ShearsItem 把 drops（1 个 count=5 的 ItemStack）经 ItemDropHelper::spawnItemEntity 生成
+//      minecraft:item 掉落实体（5 个蘑菇以单堆叠掉落为 1 个 ItemEntity）+ hurtAndBreak 消耗剪刀 1 耐久
+//      （非创造）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）。创造玩家 (1,2,3) 持剪刀，哞菇 (3,2,3)。
+// 哞菇是被动生物不燃烧（区别沼骸需 night 避光），无需 night batch。
+//
+// 判定手段（三重断言）：
+//   1. 区域内出现 minecraft:cow ≥1（剪蘑菇变牛成功）；
+//   2. 区域内 minecraft:mooshroom ==0（哞菇已 remove 转化）；
+//   3. 区域内出现 minecraft:item ≥1（5 个蘑菇以单堆叠掉落为 1 个 item 实体；脚本侧 minecraft:item
+//      组件未绑定读不到 itemStack.typeId/amount，故只能断言 ≥1，见 BoggedTests 同款注释）。
+// 牛变体继承哞菇位置同 tick 同步生效，startTick=6 剪后 1 tick 即可查。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_哞菇.txt#哞菇与剪刀（剪刀剪哞菇变牛+掉5蘑菇）
+function mooshroomShearedByShearsBecomesCowTest(test: Test): void {
+  const mooshroomType = "mooshroom";
+  const cowType = "minecraft:cow";
+
+  // 哞菇 (3,2,3)（creeper_pit y=0 grass_block 地板）。创造玩家 (1,2,3) 持剪刀。
+  const mooshroom = test.spawn(mooshroomType, { x: 3, y: 2, z: 3 });
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "mooshroomShearer");
+  const shears = new ItemStack("minecraft:shears", 1);
+  player.setItem(shears as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5 玩家持剪刀 interactWithEntity(哞菇) → ShearsItem::itemInteractionForEntity → shear
+  // 变牛 + 掉 5 蘑菇。创造模式不消耗剪刀耐久（hurtAndBreak 跳过）。
+  test.runAtTickTime(5, () => {
+    (player as any).interactWithEntity(mooshroom);
+  });
+
+  // 轮询三重断言：cow≥1 + mooshroom==0 + item≥1。
+  // 牛生成在哞菇原位 (3,2,3)，区域限定 PIT_VOLUME 排除并行测试污染。
+  pollUntilSucceed(test, () => {
+    const cows = test.getDimension().getEntities({
+      type: cowType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (cows.length < 1) return false;
+    const mooshrooms = test.getDimension().getEntities({
+      type: mooshroomType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (mooshrooms.length !== 0) return false;
+    const items = test.getDimension().getEntities({
+      type: "minecraft:item",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    return items.length >= 1;
+  }, {
+    startTick: 6,
+    interval: 2,
+    maxTick: 40,
+    onTimeout: () => {
+      const cows = test.getDimension().getEntities({
+        type: cowType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const mooshrooms = test.getDimension().getEntities({
+        type: mooshroomType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const items = test.getDimension().getEntities({
+        type: "minecraft:item",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      test.assert(false,
+        `mooshroom_sheared_becomes_cow: failed: cowCount=${cows.length} (expected >=1) `
+        + `mooshroomCount=${mooshrooms.length} (expected 0) `
+        + `itemCount=${items.length} (expected >=1)`);
+    },
+  });
+}
+
 export function registerMooshroomTests(): void {
   GameTest.register("MobBehaviorTests", "mooshroom_lightning_convert", mooshroomLightningConvert)
     .structureName("gametests:creeper_pit")
@@ -151,4 +326,12 @@ export function registerMooshroomTests(): void {
   GameTest.register("MobBehaviorTests", "mooshroom_breeds_when_fed_wheat", mooshroomBreedsWhenFedWheat)
     .structureName("gametests:grass_pen")
     .maxTicks(700);
+
+  GameTest.register("MobBehaviorTests", "mooshroom_bowl_gives_stew", mooshroomBowlGivesStewTest)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(80);
+
+  GameTest.register("MobBehaviorTests", "mooshroom_sheared_by_shears_becomes_cow", mooshroomShearedByShearsBecomesCowTest)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(80);
 }
