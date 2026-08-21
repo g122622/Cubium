@@ -1047,8 +1047,34 @@ u64 registerSimulatedPlayerClassBinding(
 
     reg.method(
         "stopUsingItem",
-        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
-            -> void* { return _throwNotImplemented(ctx, "stopUsingItem"); },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            // 对齐基岩 SimulatedPlayer.stopUsingItem：停止使用当前物品（释放持续使用，如弓/三叉戟拉弓释放），
+            // 返回停止前正在使用的物品（无则 undefined）。
+            // 实现：捕获 getActiveItem（stopActiveHand 内部会清空 m_activeItem），调 stopActiveHand 触发
+            // onPlayerStoppedUsing（弓耐久损耗/三叉戟投掷消耗等，已修复回写权威装备槽），返回活动物品拷贝。
+            // 若不在使用物品（isUsingItem=false），stopActiveHand 早返回（LivingEntity.cpp:2138），返回 undefined。
+            if (!player->isUsingItem()) {
+                return ctx.createUndefined();
+            }
+            const mc::ItemStack activeBefore = player->getActiveItem();
+            player->stopActiveHand();
+            // 活动物品已空（异常情况）返回 undefined。
+            if (activeBefore.isEmpty()) {
+                return ctx.createUndefined();
+            }
+            // wrap owned 拷贝（与 Equippable.getEquipment 范式一致），JS GC 时 delete。
+            const u64 isClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("ItemStack");
+            void* isProto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(isClassId);
+            if (isProto == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto* owned = new mc::ItemStack(activeBefore);
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, owned, true, "ItemStack");
+        },
         0);
     reg.method(
         "dropSelectedItem",
