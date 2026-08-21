@@ -116,9 +116,14 @@ ItemStack GoldenAppleItem::onItemUseFinish(ItemStack& stack, IWorld& /*world*/, 
     return stack;
 }
 
-bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand /*hand*/)
+bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
     // 金苹果对僵尸村民使用
+
+    // stack 参数由调用方传入（Player::interactItemOnEntity 传 getHeldItem 值拷贝 Player.cpp:2856，
+    // MobEntity.cpp:645 传权威手持引用），为统一两路径行为，本方法内部直接以 player.getHeldItem(hand)
+    // 为权威手持源操作（同 BucketItem::itemInteractionForEntity 修复范式）。
+    (void)stack;
 
     // 检查目标是否为僵尸村民
     auto* zombieVillager = dynamic_cast<ZombieVillagerEntity*>(&target);
@@ -142,9 +147,12 @@ bool GoldenAppleItem::itemInteractionForEntity(ItemStack& stack, Player& player,
     i32 conversionTime = 3600 + rng.nextInt(2401);
     zombieVillager->startConverting(player.uuid(), conversionTime);
 
-    // 消耗一个金苹果（非创造模式）
+    // 消耗一个金苹果（非创造模式）：直接操作玩家权威手持物（player.getHeldItem(hand) 返回引用），
+    // 而非 stack 参数（Player 路径下是值拷贝，shrink 不回写权威物品栏——持多个金苹果时喂僵尸村民
+    // 不消耗的对齐缺陷）。MobEntity 路径下 stack 已是权威引用，与 getHeldItem 等价，不影响。
     if (!player.isCreative()) {
-        stack.shrink(1);
+        ItemStack& heldItem = player.getHeldItem(hand);
+        heldItem.shrink(1);
     }
 
     spdlog::info("GoldenAppleItem: Started curing zombie villager at ({}, {}, {}), "
