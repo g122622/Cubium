@@ -15,6 +15,7 @@ import { registerExperienceTests } from "./tests/player/ExperienceTests.js";
 import { registerGiveTests } from "./tests/player/GiveTests.js";
 import { registerTagTests } from "./tests/player/TagTests.js";
 import { registerDifficultyTests } from "./tests/world/DifficultyTests.js";
+import { registerAttributeTests } from "./tests/player/AttributeTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -31,3 +32,4 @@ registerExperienceTests();
 registerGiveTests();
 registerTagTests();
 registerDifficultyTests();
+registerAttributeTests();
