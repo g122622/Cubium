@@ -137,7 +137,9 @@ bool ShearsItem::onBlockDestroyed(
 
 bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
-    MC_UNUSED(hand);
+    // stack 参数由调用方传入（Player::interactOn 传 getHeldItem 值拷贝 Player.cpp:2858，
+    // MobEntity 传权威手持引用），本方法不使用 stack（耐久损耗改用权威手持，见下），显式弃用。
+    (void)stack;
 
     // 剪刀可以剪羊毛、雪傀儡的南瓜、哞菇的蘑菇
 
@@ -175,9 +177,13 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         }
     }
 
-    // 消耗剪刀耐久（非创造模式），若物品损坏则触发 onEquippedItemBroken 回调
+    // 消耗剪刀耐久（非创造模式），若物品损坏则触发 onEquippedItemBroken 回调。
+    // stack 参数由调用方传入（Player::interactOn 传 getHeldItem 值拷贝 Player.cpp:2858，
+    // MobEntity 传权威手持引用），为统一两路径行为，直接以 player.getHeldItem(hand) 为权威
+    // 手持源做 hurtAndBreak（耐久回写权威槽），同 GoldenAppleItem/BucketItem 修复范式。
     if (!player.isCreative()) {
-        LivingEntity::hurtAndBreak(stack, 1, &player, LivingEntity::handToEquipmentSlot(hand));
+        ItemStack& heldItem = player.getHeldItem(hand);
+        LivingEntity::hurtAndBreak(heldItem, 1, &player, LivingEntity::handToEquipmentSlot(hand));
     }
 
     return true;

@@ -40,6 +40,11 @@ NameTagItem::NameTagItem(ItemProperties properties)
 
 bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
+    // stack 参数由调用方传入（Player::interactOn 传 getHeldItem 值拷贝 Player.cpp:2858，
+    // MobEntity 传权威手持引用）。本方法读取 stack 的自定义名（hasCustomName/getCustomNameComponent
+    // 为只读，拷贝与权威一致，无回写问题）。仅 shrink 消耗须改用权威手持，见下。
+    // 消耗统一以 player.getHeldItem(hand) 为权威源（同 GoldenAppleItem/SaddleItem 修复范式）。
+
     // 检查物品是否有自定义名称
     if (!stack.hasCustomName()) {
         return false;
@@ -73,9 +78,12 @@ bool NameTagItem::itemInteractionForEntity(ItemStack& stack, Player& player, Liv
     // 命名牌命名后，实体变为持久化（不会消失）
     mob->enablePersistence();
 
-    // 消耗一个物品（非创造模式）
+    // 消耗一个物品（非创造模式）：直接操作玩家权威手持物（player.getHeldItem(hand) 返回引用），
+    // 而非 stack 参数（Player 路径下是值拷贝，shrink 不回写权威物品栏——持多个命名牌命名生物时
+    // 不消耗的对齐缺陷）。MobEntity 路径下 stack 已是权威引用，与 getHeldItem 等价，不影响。
     if (!player.isCreative()) {
-        stack.shrink(1);
+        ItemStack& heldItem = player.getHeldItem(hand);
+        heldItem.shrink(1);
     }
 
     return true;

@@ -1739,6 +1739,36 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             stack->setCount(*v);
         });
 
+    // --- ItemStack.nameTag（读写）---
+    // 对齐基岩 @minecraft/server ItemStack.nameTag：自定义名（命名牌命名/铁砧改名后的显示名）。
+    // getter 返回 getCustomName()（无自定义名返空串）。setter 调 setCustomName(string)，空串清除自定义名
+    // （setCustomName 内部 name.empty() 置 m_customName=nullptr）。
+    // 用途：测试需构造已命名命名牌（NameTagItem::itemInteractionForEntity 检查 hasCustomName）等场景，
+    // 脚本侧此前无法给 ItemStack 设自定义名，导致命名牌命名生物测试无法构造已命名命名牌。
+    // 仅当 owned（构造函数/Equippable.getEquipment 拷贝）时 setCustomName 安全写回对象；非拥有快照
+    // 写入会被 C++ 侧覆盖，但 setCustomName 改的是 ItemStack 自身 m_customName（非外部引用），故无论
+    // owned 与否写入均作用于 unwrap 出的 mc::ItemStack* 对象本身（与 amount setter 同语义）。
+    itemStackReg.property(
+        "nameTag",
+        [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return ctx.createString("");
+            }
+            return ctx.createString(stack->getCustomName());
+        },
+        [](IScriptBindingContext& ctx, void* thisVal, void* value) {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return;
+            }
+            auto v = ctx.toString(value);
+            if (!v) {
+                return;
+            }
+            stack->setCustomName(*v);
+        });
+
     // --- ItemStack.getEnchantments(): Enchantment[] ---
     // 对齐基岩 @minecraft/server ItemStack.getEnchantments。返回附魔对象数组，每项 { type, level }：
     //   - type：附魔 id（如 "minecraft:sharpness"，Enchantment::id()）

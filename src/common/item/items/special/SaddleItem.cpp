@@ -75,7 +75,10 @@ SaddleItem::SaddleItem(const ItemProperties& properties)
 
 bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, LivingEntity& target, Hand hand)
 {
-    MC_UNUSED(hand);
+    // stack 参数由调用方传入（Player::interactOn 传 getHeldItem 值拷贝 Player.cpp:2858，
+    // MobEntity 传权威手持引用），为统一两路径行为，本方法内部直接以 player.getHeldItem(hand)
+    // 为权威手持源操作（同 GoldenAppleItem/BucketItem/ShearsItem 修复范式）。
+    (void)stack;
 
     // 检查目标实体是否实现了 IEquipable 接口
     auto* equipable = dynamic_cast<entity::IEquipable*>(&target);
@@ -135,9 +138,12 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         world->playSound(soundEvent, sound::SoundCategory::Neutral, target.position(), 0.5f, 1.0f);
     }
 
-    // 消耗一个物品（非创造模式）
+    // 消耗一个物品（非创造模式）：直接操作玩家权威手持物（player.getHeldItem(hand) 返回引用），
+    // 而非 stack 参数（Player 路径下是值拷贝，shrink 不回写权威物品栏——持多个鞍装备时不消耗
+    // 的对齐缺陷）。MobEntity 路径下 stack 已是权威引用，与 getHeldItem 等价，不影响。
     if (!player.isCreative()) {
-        stack.shrink(1);
+        ItemStack& heldItem = player.getHeldItem(hand);
+        heldItem.shrink(1);
     }
 
     return true;
