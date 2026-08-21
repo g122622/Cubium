@@ -36,11 +36,15 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -643,6 +647,56 @@ bool BeeEntity::pathfindDirectlyTowards(const BlockPos& targetPos)
         return hasPath && nav->hasPath();
     }
     return false;
+}
+
+bool BeeEntity::attackEntityAsMob(LivingEntity& target)
+{
+    // 对齐 Java 1.21.11 Bee.doHurtTarget（Bee.java:227-252）。
+    // 1. 调父类执行基础 sting 伤害（ATTACK_DAMAGE=2.0 + 附魔加成 + 击退 + setLastHurtBy + 音效）。
+    //    AnimalEntity 无 override，解析到 MobEntity::attackEntityAsMob 基类完整攻击链。
+    if (!AnimalEntity::attackEntityAsMob(target)) {
+        return false;
+    }
+
+    // 2. 命中后 setHasStung(true)：蛰刺留在目标体内，蜜蜂随后逐渐死亡（见 tick() 概率死亡链路，
+    //    对齐 Java customServerAiStep hasStung 后 1/clamp(1200-timeSinceSting,1,1200) 概率死）。
+    setHasStung(true);
+
+    // 3. stopBeingAngry：蛰击后蜜蜂不再追击（对齐 Java stopBeingAngry = setAngry(false) + 清攻击目标）。
+    setAngry(false);
+    setAttackTarget(nullptr);
+
+    // 4. 按难度对 LivingEntity 目标施加中毒（对齐 Java：Normal 10s / Hard 18s，Easy/Peaceful 不中毒）。
+    //    Java 常量 POISON_SECONDS_NORMAL=10 / POISON_SECONDS_HARD=18（Bee.java:112-113）。
+    i32 poisonSeconds = 0;
+    if (m_world != nullptr) {
+        const Difficulty difficulty = m_world->difficulty();
+        if (difficulty == Difficulty::Normal) {
+            poisonSeconds = 10;
+        } else if (difficulty == Difficulty::Hard) {
+            poisonSeconds = 18;
+        }
+    }
+    if (poisonSeconds > 0) {
+        target.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
+            poisonSeconds * 20, // 转换为 tick
+            0,                  // 等级 0（中毒 I）
+            false,              // 非来自药水
+            true,               // 显示粒子
+            true                // 显示图标
+            ));
+    }
+
+    // TODO: Java Bee.doHurtTarget 另调 livingentity.setStingerCount(+1) 增加目标蛰刺计数
+    //       （蛰刺留在体内持续扣血直至拔出）。Cubium LivingEntity 无 stingerCount 机制，
+    //       待该机制补全后在此补 setStingerCount(getStingerCount()+1)。
+
+    // 5. playSound(BEE_STING)（对齐 Java playSound(SoundEvents.BEE_STING, 1, 1)）。
+    if (m_world != nullptr && !isSilent()) {
+        playSound(SoundEvents::ENTITY_BEE_STING, 1.0f, 1.0f);
+    }
+
+    return true;
 }
 
 } // namespace mc

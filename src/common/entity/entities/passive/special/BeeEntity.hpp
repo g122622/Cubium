@@ -140,6 +140,28 @@ public:
      */
     void setHasStung(bool stung);
 
+    // ========== 蛰击攻击（对齐 Java Bee.doHurtTarget） ==========
+
+    /**
+     * @brief 蜜蜂蛰击目标（override MobEntity::attackEntityAsMob）
+     *
+     * 对齐 Java 1.21.11 Bee.doHurtTarget（Bee.java:227-252）：
+     *   1. 调父类执行基础 sting 伤害（ATTACK_DAMAGE=2.0）；
+     *   2. 命中后 setHasStung(true)（蛰刺留在目标体内，蜜蜂随后逐渐死亡，见 tick()）；
+     *   3. stopBeingAngry（setAngry(false) + 清攻击目标，蛰击后蜜蜂不再追击）；
+     *   4. 按难度对 LivingEntity 目标施加中毒（Normal 10s / Hard 18s，Easy/Peaceful 不中毒）；
+     *   5. playSound(BEE_STING)。
+     *
+     * 此前 Cubium BeeEntity 未 override attackEntityAsMob，MeleeAttackGoal（BeeStingGoal 基类）
+     * 委托基类仅造成 2.0 纯伤害——蛰击不施加中毒、不置 hasStung（hasStung 由 BeeStingGoal
+     * 单独置位，但中毒与 stopBeingAngry 缺失，对齐缺陷）。本次补全。
+     * 注：Java 另有 setStingerCount(+1) 增加目标蛰刺计数，Cubium 无 stingerCount 机制（留 TODO）。
+     *
+     * @param target 被蛰击的 LivingEntity
+     * @return 是否命中（父类 hurt 成功）
+     */
+    bool attackEntityAsMob(LivingEntity& target) override;
+
     // ========== 蜂巢系统 ==========
 
     /**
