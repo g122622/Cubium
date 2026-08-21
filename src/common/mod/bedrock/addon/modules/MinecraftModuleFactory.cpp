@@ -553,6 +553,32 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         },
         1);
 
+    // Dimension.getDifficulty()：返回当前世界难度的字符串名（"peaceful"/"easy"/"normal"/"hard"）。
+    // 对齐基岩无直接脚本读取入口（基岩 difficulty 仅命令侧），此处补脚本读取解锁 DifficultyCommand
+    // 端到端测试。IWorld::difficulty() 经 ServerWorld override 委托真实难度表。Difficulty 枚举
+    // (Peaceful=0/Easy=1/Normal=2/Hard=3，Types.hpp:153) 本地映射到命令名串。
+    dimensionReg.method(
+        "getDifficulty",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createString("");
+            }
+            switch (world->difficulty()) {
+                case mc::Difficulty::Peaceful:
+                    return ctx.createString("peaceful");
+                case mc::Difficulty::Easy:
+                    return ctx.createString("easy");
+                case mc::Difficulty::Normal:
+                    return ctx.createString("normal");
+                case mc::Difficulty::Hard:
+                    return ctx.createString("hard");
+                default:
+                    return ctx.createString("");
+            }
+        },
+        0);
+
     // --- Entity类 ---
     // opaque 持 mc::Entity*（非拥有，EntityManager 管理生命周期）。test.spawn 经 ScriptClassRegistry
     // 取本 classId/proto wrap 真实指针。getComponent 派发 rideable/health/movement/equippable/onfire 组件。

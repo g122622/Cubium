@@ -13,6 +13,7 @@
 //   Dimension.isRaining()     -> IWorld::isRaining() (rainStrength > 0.2)
 //   Dimension.isThundering()  -> IWorld::isThundering() (thunderStrength > 0.9)
 //   Dimension.getGameRule(name) -> GameRules::getValueAsString (Cubium 专有)
+//   Dimension.getDifficulty()  -> IWorld::difficulty() (映射 "peaceful"/"easy"/"normal"/"hard")
 //   Entity.getTags()/hasTag/addTag/removeTag -> Entity 基类 m_tags（对齐基岩）
 
 export interface CubiumDimension {
@@ -21,6 +22,7 @@ export interface CubiumDimension {
     isRaining(): boolean;
     isThundering(): boolean;
     getGameRule(ruleName: string): string;
+    getDifficulty(): string;
 }
 
 export interface CubiumEntity {

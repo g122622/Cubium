@@ -14,6 +14,7 @@ import { registerEnchantTests } from "./tests/player/EnchantTests.js";
 import { registerExperienceTests } from "./tests/player/ExperienceTests.js";
 import { registerGiveTests } from "./tests/player/GiveTests.js";
 import { registerTagTests } from "./tests/player/TagTests.js";
+import { registerDifficultyTests } from "./tests/world/DifficultyTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -29,3 +30,4 @@ registerEnchantTests();
 registerExperienceTests();
 registerGiveTests();
 registerTagTests();
+registerDifficultyTests();
