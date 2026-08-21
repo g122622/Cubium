@@ -113,6 +113,56 @@ function evokerSummonsVex(test: Test): void {
   });
 }
 
+// 唤魔者唔噜噜法术将蓝色羊变成红色羊（wiki tech_唤魔者.txt#改变绵羊的颜色：唤魔者在非战斗状态中，
+// mob_griefing=true 时会把16格内的蓝色绵羊变成红色绵羊，施法时长3秒，羊毛颜色在2秒后改变）。
+//
+// C++ 链路：EvokerEntity registerGoals（EvokerEntity.cpp:308）：
+//   goalSelector 优先级6：EvokerWololoSpellGoal（唔噜噜法术，冷却 CASTING_INTERVAL=140）。
+// EvokerWololoSpellGoal::shouldExecute（EvokerGoals.cpp:275-300）：attackTarget==nullptr（非战斗状态）+
+//   !isSpellcasting + 冷却结束 + _findBlueSheep() 找到蓝色羊（SEARCH_RANGE=16 格内蓝色羊）。
+// tick（EvokerGoals.cpp:315-341）：warmup 递减（CAST_WARMUP_TIME=40），warmup==0 时
+//   m_wololoTarget->setFleeceColor(DyeColor::Red) 把蓝羊变红羊。
+//
+// 关键设计——唤魔者非战斗状态：EvokerWololoSpellGoal 要求 attackTarget==nullptr。唤魔者 targetSelector
+//   优先级2 NearestAttackableTargetGoal<Player>(checkSight=true) 会选玩家为目标进战斗，阻塞 Wololo。
+//   故测试环境**不放玩家**（也无村民/铁傀儡等唤魔者目标），唤魔者保持非战斗状态，Wololo 可触发。
+//   唤魔者自身 tick 驱动 goalSelector（不依赖玩家），无玩家时唤魔者正常评估 Wololo。
+//
+// 蓝羊构造：经 spawn 事件 color_blue 确定性构造蓝色羊（GameTestHelper::applySpawnEvent 派发
+//   setFleeceColor(Blue)，见 [[sheep-color-via-spawn-event]] 前置验证测试）。蓝羊 color.value=11（Blue）。
+//   Wololo 触发后 setFleeceColor(Red)，蓝羊变红 color.value=14（Red）。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。唤魔者 (2,2,4) + 蓝羊 (4,2,4)，水平距 2 格 < 16 SEARCH_RANGE。
+//   grass_pen 对角 12.7 格 < 16，唤魔者 RandomWalkingGoal 游荡不超 SEARCH_RANGE 仍可找到蓝羊。
+//   无玩家避免唤魔者进战斗状态。唤魔者构造 setBurnsInDaylight(false)（灾厄村民不燃），白天默认环境即可。
+//
+// 判定手段：succeedWhen 每 tick 检查蓝羊 color 组件 value===14（Red，Wololo 变色生效）。
+// 时序：EvokerWololoSpellGoal shouldExecute 找蓝羊 + warmup(40) + setFleeceColor(Red)。
+//   唤魔者 goal 评估 + warmup 40 tick，首击应在 ~60 tick 内。maxTicks=400 留充裕余量吸收非确定性
+//   （RandomWalkingGoal 游荡可能延迟 Wololo 评估）。蓝羊 color 查询经 sheep 实体句柄直接读组件，
+//   无需区域限定（单实体句柄非 getEntities 全维度查询）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_唤魔者.txt#改变绵羊的颜色（Wololo 蓝羊变红羊）
+function evokerWololoColorsSheep(test: Test): void {
+  const evokerType = "evoker";
+
+  // 唤魔者 (2,2,4)（grass_pen y=0 grass_block 地板，helper y=2→结构 y=1 空气，脚踩 y=0 grass_block）。
+  test.spawn(evokerType, { x: 2, y: 2, z: 4 });
+  // 蓝羊 (4,2,4)（color_blue 事件派发 setFleeceColor(Blue)），距唤魔者 2 格 < 16 SEARCH_RANGE。
+  const sheep = test.spawn("sheep<minecraft:color_blue>", { x: 4, y: 2, z: 4 });
+
+  // 断言蓝羊被 Wololo 变红：succeedWhen 每 tick 检查 color.value===14（Red）。
+  // 注意：不放玩家——唤魔者需非战斗状态（attackTarget==nullptr）Wololo 才触发。
+  test.succeedWhen(() => {
+    const comp = sheep.getComponent("minecraft:color") as any;
+    if (comp === undefined) {
+      throw new Error("sheep has no color component");
+    }
+    if ((comp as any).value !== 14) {
+      throw new Error(`sheep not colored red by wololo, color=${(comp as any).value} (expected 14/Red)`);
+    }
+  });
+}
+
 // 唤魔者不在阳光下燃烧（wiki tech_唤魔者.txt 通篇未提阳光燃烧；唤魔者是灾厄村民非亡灵）。
 //
 // C++ 链路：MonsterEntity::tick→handleDaylightBurning→if(m_burnsInDaylight) burnUndead()。
@@ -147,6 +197,10 @@ export function registerEvokerTests(): void {
   GameTest.register("MobBehaviorTests", "evoker_summons_vex", evokerSummonsVex)
     .structureName("gametests:mediumglass")
     .maxTicks(800);
+
+  GameTest.register("MobBehaviorTests", "evoker_wololo_colors_sheep", evokerWololoColorsSheep)
+    .structureName("gametests:grass_pen")
+    .maxTicks(400);
 
   GameTest.register("MobBehaviorTests", "evoker_does_not_burn_in_daylight", evokerDoesNotBurnInDaylight)
     .structureName("gametests:grass_pen")

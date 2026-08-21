@@ -33,6 +33,7 @@
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
+#include "common/entity/entities/passive/basic/SheepEntity.hpp" // SheepEntity（color 组件判定羊毛颜色 DyeColor 0-15）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // AbstractHorseEntity（is_saddled 组件判定马类鞍状态，马类不实现 IRideable 但有 hasSaddle）
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
@@ -709,7 +710,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return ctx.createUndefined();
             }
-            // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族）按需补全。
+            if (normalized == "minecraft:color") {
+                // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
+                // "Defines the entity's color. Only works on certain entities that have predefined color
+                // values (e.g. sheep, llama, shulker)"，value 为 PaletteColor 0-15（与 DyeColor 数值一致）。
+                // 此处先覆盖 SheepEntity（羊毛颜色经 getFleeceColor 返回 DyeColor 0-15）。羊驼 LlamaColor
+                // (0-3)/潜影贝 ShulkerColor 枚举与 PaletteColor 数值不统一，留 TODO 按需补全。
+                // 非羊返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
+                if (sheep == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("ColorComponent");
+            }
+            // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族，羊驼/潜影贝 color）按需补全。
             return ctx.createUndefined();
         },
         1);
@@ -859,6 +873,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     void* isSaddledProto = builder.exportClass("IsSaddledComponent", isSaddledClassId);
     ScriptClassRegistry::instance().registerClass(isSaddledClassId, isSaddledProto, "IsSaddledComponent");
     // 无 property/method：组件对象存在即 saddled（与基岩 EntityIsSaddledComponent 一致）。
+
+    // --- ColorComponent类（minecraft:color，承载实体颜色）---
+    // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-15（与 DyeColor 数值
+    // 一致）。getComponent 已按 SheepEntity 过滤，此处 dynamic_cast 现取羊毛颜色。readonly value：int
+    // 0-15（DyeColor 枚举底层数值，White=0..Black=15）。供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、
+    // 染料染色等链路。羊驼/潜影贝颜色枚举不统一留 TODO。
+    u64 colorClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* colorProto = builder.exportClass("ColorComponent", colorClassId);
+    ScriptClassRegistry::instance().registerClass(colorClassId, colorProto, "ColorComponent");
+
+    ClassRegistrar<void> colorReg(ctx, colorClassId, colorProto);
+    colorReg.readonlyProperty("value", [colorClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, colorClassId));
+        auto* sheep = dynamic_cast<mc::SheepEntity*>(ent);
+        if (sheep == nullptr) {
+            return ctx.createUndefined();
+        }
+        // DyeColor : u8，static_cast 取枚举底层数值（0-15，与基岩 PaletteColor 一致）。
+        return ctx.createInt32(static_cast<i32>(sheep->getFleeceColor()));
+    });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），

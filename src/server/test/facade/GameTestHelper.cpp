@@ -14,7 +14,8 @@
 #include "common/entity/core/LivingEntity.hpp" // killEntity 走 onKillCommand 伤害致死链路
 #include "common/entity/core/MobEntity.hpp"    // spawnEntity/spawnAtLocation 对 Mob 调 enablePersistence
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
-#include "common/entity/entities/passive/basic/RabbitEntity.hpp"        // applySpawnEvent 派发 rabbit killer 变种事件
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
+#include "common/entity/entities/passive/basic/SheepEntity.hpp"  // applySpawnEvent 派发 sheep color_<dye> 颜色事件
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
 #include "common/entity/inventory/IInventory.hpp"                       // getItem/getContainerSize/isEmpty（容器断言）
 #include "common/entity/utils/ItemDropHelper.hpp" // ItemDropHelper::spawnItemEntity（spawnItemAt 生成物品实体）
@@ -197,6 +198,45 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             horse->setTrap(true);
         }
         // 其他事件 TODO 待行为包事件系统接入。
+        return;
+    }
+    // 羊颜色事件：color_<dye> 把羊的羊毛颜色设为指定染料色（SheepEntity::setFleeceColor）。
+    // Cubium 测试辅助事件（非基岩标准 spawn 事件，基岩羊颜色经数据组件 minecraft:color 静态设定）。
+    // 解锁唤魔者 Wololo 变色测试（需确定性构造蓝色羊）等颜色相关测试。GameTest 通过
+    // test.spawn("sheep<minecraft:color_blue>", pos) 触发，后缀为染料色名（white/orange/magenta/
+    // light_blue/yellow/lime/pink/gray/light_gray/cyan/purple/blue/brown/green/red/black，对齐 DyeColor 枚举）。
+    // 非 SheepEntity 实体静默跳过（仅羊有羊毛颜色）。dye 名无法识别时静默跳过（不报错，便于容错）。
+    if (normalizedType == "minecraft:sheep" && normalizedEvent.rfind("minecraft:color_", 0) == 0) {
+        auto* sheep = dynamic_cast<mc::SheepEntity*>(entity);
+        if (sheep == nullptr) {
+            return;
+        }
+        // 提取 color_ 后的染料色名（如 "minecraft:color_blue" → "blue"）。
+        std::string dyeName = normalizedEvent.substr(strlen("minecraft:color_"));
+        // 染料色名→DyeColor 映射（对齐 DyeColor 枚举 0-15，名称与基岩 PaletteColor 一致）。
+        static const std::unordered_map<std::string, mc::DyeColor> dyeMap = {
+            {"white", mc::DyeColor::White},
+            {"orange", mc::DyeColor::Orange},
+            {"magenta", mc::DyeColor::Magenta},
+            {"light_blue", mc::DyeColor::LightBlue},
+            {"yellow", mc::DyeColor::Yellow},
+            {"lime", mc::DyeColor::Lime},
+            {"pink", mc::DyeColor::Pink},
+            {"gray", mc::DyeColor::Gray},
+            {"light_gray", mc::DyeColor::LightGray},
+            {"cyan", mc::DyeColor::Cyan},
+            {"purple", mc::DyeColor::Purple},
+            {"blue", mc::DyeColor::Blue},
+            {"brown", mc::DyeColor::Brown},
+            {"green", mc::DyeColor::Green},
+            {"red", mc::DyeColor::Red},
+            {"black", mc::DyeColor::Black},
+        };
+        auto it = dyeMap.find(dyeName);
+        if (it != dyeMap.end()) {
+            sheep->setFleeceColor(it->second);
+        }
+        // 未知 dye 名静默跳过（TODO: 可加日志告警，但 GameTest 无 console）。
         return;
     }
     // 通用幼体事件：spawn_baby 把 AgeableEntity 子类设为幼体（setChild(true) → setGrowingAge(-24000)）。

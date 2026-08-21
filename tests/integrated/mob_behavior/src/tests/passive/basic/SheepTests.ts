@@ -138,6 +138,35 @@ function sheepBreedsWhenFedWheat(test: Test): void {
   });
 }
 
+// 经 spawn 事件 color_blue 确定性构造蓝色羊，并验证 color 组件读取（基岩 EntityColorComponent）。
+//
+// C++ 链路：
+//   1) test.spawn("sheep<minecraft:color_blue>", pos) → GameTestHelper::applySpawnEvent 派发
+//      color_blue 事件（GameTestHelper.cpp）：dynamic_cast<SheepEntity*> + dyeMap["blue"]=DyeColor::Blue
+//      → setFleeceColor(Blue)。
+//   2) getComponent("minecraft:color") → MinecraftModuleFactory getComponent "minecraft:color" 分支：
+//      dynamic_cast<SheepEntity*> + wrapComponent("ColorComponent")。
+//   3) ColorComponent.value → SheepEntity::getFleeceColor() static_cast<int> = 11（DyeColor::Blue=11，
+//      对齐基岩 PaletteColor.Blue=11）。
+//
+// 此测试是 Wololo 变色测试的前置依赖验证：确认 color_blue 事件能构造蓝羊 + color 组件能正确读取
+// 颜色值 11。Wololo 测试依赖此能力构造蓝色羊并断言变色（蓝11→红14）。
+// 判定：tick 10 断言 color.value===11 + succeed（确定性，spawn 事件同步派发）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_唤魔者.txt#改变绵羊的颜色（Wololo 前置：蓝羊构造）
+function sheepColorViaSpawnEventTest(test: Test): void {
+  // spawn 蓝羊（color_blue 事件派发 setFleeceColor(Blue)）。grass_pen helper (4,2,4) 空气腔。
+  const sheep = test.spawn("sheep<minecraft:color_blue>", { x: 4, y: 2, z: 4 });
+
+  // tick 10 断言 color 组件 value===11（DyeColor::Blue=11）+ succeed。
+  test.runAtTickTime(10, () => {
+    const comp = sheep.getComponent("minecraft:color") as any;
+    test.assert(comp !== undefined, "sheep has no color component");
+    test.assert((comp as any).value === 11,
+      `sheep color_blue should give value=11 (Blue), got ${(comp as any).value}`);
+    test.succeed();
+  });
+}
+
 export function registerSheepTests(): void {
   GameTest.register("MobBehaviorTests", "sheep_eat_grass", sheepEatGrass)
     .structureName("gametests:grass_pen")
@@ -146,4 +175,8 @@ export function registerSheepTests(): void {
   GameTest.register("MobBehaviorTests", "sheep_breeds_when_fed_wheat", sheepBreedsWhenFedWheat)
     .structureName("gametests:grass_pen")
     .maxTicks(700);
+
+  GameTest.register("MobBehaviorTests", "sheep_color_via_spawn_event", sheepColorViaSpawnEventTest)
+    .structureName("gametests:grass_pen")
+    .maxTicks(60);
 }

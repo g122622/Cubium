@@ -299,6 +299,26 @@ bool EvokerWololoSpellGoal::shouldExecute()
     return m_wololoTarget != nullptr;
 }
 
+bool EvokerWololoSpellGoal::shouldContinueExecuting()
+{
+    if (m_evoker == nullptr) {
+        return false;
+    }
+
+    // 施法准备阶段（warmup）继续检查目标羊有效性。
+    // 重写基类 EvokerSpellGoal::shouldContinueExecuting：基类在 warmup 阶段检查 attackTarget()，
+    // 但 Wololo 的目标是羊（m_wololoTarget）而非 attackTarget（唤魔者非战斗状态才触发 Wololo），
+    // attackTarget() 恒 null 致基类 shouldContinueExecuting 返回 false，goal 在 startExecuting 后
+    // 立即被 reset，warmup 无法递减，setFleeceColor 永不执行（Wololo 变色功能失效）。
+    // 此处改为检查 m_wololoTarget 有效性，对齐 vanilla Wololo 在 warmup 期间持续施法的语义。
+    if (m_spellWarmup > 0) {
+        return m_wololoTarget != nullptr && m_wololoTarget->isAlive();
+    }
+
+    // 施法中（warmup 结束后）不能被打断，持续到 resetTask 清理 isSpellcasting。
+    return m_evoker->isSpellcasting();
+}
+
 void EvokerWololoSpellGoal::startExecuting()
 {
     m_spellWarmup = CAST_WARMUP_TIME;
