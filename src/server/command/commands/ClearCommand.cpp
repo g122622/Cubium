@@ -72,12 +72,10 @@ namespace {
 
 [[nodiscard]] PlayerInventory* resolveInventory(ServerCommandSource& source, PlayerId playerId)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        return nullptr;
-    }
-
-    return server->playerInventory(playerId);
+    // 转发 support::resolvePlayerInventory：优先 InventoryManager（真实玩家网络层权威背包），回退实体层
+    // Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。此前直接用
+    // server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /clear 失效。
+    return support::resolvePlayerInventory(source, playerId);
 }
 
 void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const PlayerInventory& inventory)

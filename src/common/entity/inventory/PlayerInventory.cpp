@@ -186,8 +186,6 @@ i32 PlayerInventory::add(ItemStack& stack)
         return 0;
     }
 
-    i32 originalCount = stack.getCount();
-
     // MC 1.16.5行为: 损坏的物品直接放入第一个空槽位
     // 普通物品: 优先尝试合并到现有堆叠
     // 顺序: 当前选中槽位 → 副手槽 → 快捷栏 → 主背包
@@ -200,7 +198,7 @@ i32 PlayerInventory::add(ItemStack& stack)
         m_items[static_cast<size_t>(m_selectedSlot)].grow(toAdd);
         stack.shrink(toAdd);
         if (stack.isEmpty()) {
-            return originalCount;
+            return 0;
         }
     }
 
@@ -213,7 +211,7 @@ i32 PlayerInventory::add(ItemStack& stack)
         m_items[static_cast<size_t>(InventorySlots::OFFHAND)].grow(toAdd);
         stack.shrink(toAdd);
         if (stack.isEmpty()) {
-            return originalCount;
+            return 0;
         }
     }
 
@@ -227,7 +225,7 @@ i32 PlayerInventory::add(ItemStack& stack)
             m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
-                return originalCount;
+                return 0;
             }
         }
     }
@@ -241,7 +239,7 @@ i32 PlayerInventory::add(ItemStack& stack)
             m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
-                return originalCount;
+                return 0;
             }
         }
     }
@@ -282,11 +280,13 @@ i32 PlayerInventory::add(ItemStack& stack)
     if (emptySlot != -1) {
         m_items[static_cast<size_t>(emptySlot)] = stack;
         stack = ItemStack::EMPTY;
-        return originalCount;
+        return 0;
     }
 
-    // 返回已添加的数量
-    return originalCount - stack.getCount();
+    // 返回剩余未添加的数量（约定见头文件 @return）。此前合并/空槽成功分支误返回 originalCount
+    // （被当作"已添加"），与"剩余"约定相反，致 GiveCommand 等把"已添加"当"剩余"误判未加进而死循环
+    // 掉落。修复：成功加完返回 0（剩余 0），末尾返回 stack.getCount()（实际剩余）。
+    return stack.getCount();
 }
 
 i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
@@ -294,8 +294,6 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
     if (stack.isEmpty() || start > end) {
         return 0;
     }
-
-    i32 originalCount = stack.getCount();
 
     // 先尝试合并
     for (i32 i = start; i <= end; ++i) {
@@ -306,7 +304,7 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
             m_items[static_cast<size_t>(i)].grow(toAdd);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
-                return originalCount;
+                return 0;
             }
         }
     }
@@ -316,11 +314,12 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
         if (m_items[static_cast<size_t>(i)].isEmpty()) {
             m_items[static_cast<size_t>(i)] = stack;
             stack = ItemStack::EMPTY;
-            return originalCount;
+            return 0;
         }
     }
 
-    return originalCount - stack.getCount();
+    // 返回剩余未添加的数量（约定见头文件 @return，与 add 同语义修复）。
+    return stack.getCount();
 }
 
 ItemStack PlayerInventory::addItemCopy(const ItemStack& stack) const

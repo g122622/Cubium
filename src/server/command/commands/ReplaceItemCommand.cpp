@@ -111,7 +111,10 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return false;
     }
 
-    PlayerInventory* inventory = server->playerInventory(playerId);
+    // 经 support::resolvePlayerInventory 取背包：优先 InventoryManager（真实玩家网络层权威背包），回退实体层
+    // Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。此前直接用
+    // server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /replaceitem 失效。
+    PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
     if (inventory == nullptr) {
         return false;
     }
@@ -447,13 +450,13 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
             continue;
         }
 
-        // 获取玩家背包
+        // 获取玩家背包（经 support::resolvePlayerInventory 回退实体层，对 SimulatedPlayer 生效）。
         auto* server = source.server();
         if (server == nullptr) {
             continue;
         }
 
-        PlayerInventory* inventory = server->playerInventory(playerId);
+        PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
         if (inventory == nullptr) {
             continue;
         }

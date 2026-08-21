@@ -141,15 +141,20 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             continue;
         }
 
-        PlayerInventory* inventory = server->playerInventory(playerId);
-        if (inventory == nullptr) {
-            continue;
-        }
-
         // 获取玩家实体用于位置和音效
         server::ServerWorld* playerWorld = server->getPlayerWorld(playerId);
         Player* player = playerWorld ? server->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
         if (player == nullptr) {
+            continue;
+        }
+
+        // 经 support::resolvePlayerInventory 取背包：优先 InventoryManager（真实玩家网络层权威背包），
+        // 回退实体层 Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。
+        // 此前直接用 server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /give 失效。
+        // 真实玩家必须操作 InventoryManager 背包（BlockInteractionManager 等以 InventoryManager 为权威，
+        // 操作前从其同步到 Player::m_inventory，若 give 写实体层会被下次操作覆盖丢失），故不可全用实体层。
+        PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
+        if (inventory == nullptr) {
             continue;
         }
 

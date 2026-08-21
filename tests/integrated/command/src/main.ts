@@ -9,6 +9,7 @@ import { registerGameModeTests } from "./tests/player/GameModeTests.js";
 import { registerEffectTests } from "./tests/player/EffectTests.js";
 import { registerEnchantTests } from "./tests/player/EnchantTests.js";
 import { registerExperienceTests } from "./tests/player/ExperienceTests.js";
+import { registerGiveTests } from "./tests/player/GiveTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -19,3 +20,4 @@ registerGameModeTests();
 registerEffectTests();
 registerEnchantTests();
 registerExperienceTests();
+registerGiveTests();

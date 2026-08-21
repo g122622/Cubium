@@ -374,7 +374,10 @@ i32 giveItemsToPlayers(
             continue;
         }
 
-        PlayerInventory* inventory = server->playerInventory(playerId);
+        // 经 support::resolvePlayerInventory 取背包：优先 InventoryManager（真实玩家网络层权威背包），回退实体层
+        // Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。此前直接用
+        // server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /loot give 失效。
+        PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
         if (inventory == nullptr) {
             continue;
         }
