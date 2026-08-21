@@ -84,6 +84,7 @@ import { registerSaddleConsumptionTests } from "./tests/passive/special/SaddleCo
 import { registerNameTagConsumptionTests } from "./tests/passive/special/NameTagConsumptionTests.js";
 import { registerBowDurabilityTests } from "./tests/passive/special/BowDurabilityTests.js";
 import { registerTridentConsumptionTests } from "./tests/passive/special/TridentConsumptionTests.js";
+import { registerFoodContainerConsumptionTests } from "./tests/passive/special/FoodContainerConsumptionTests.js";
 import { registerNautilusTests } from "./tests/passive/nautilus/NautilusTests.js";
 import { registerZombieNautilusTests } from "./tests/passive/nautilus/ZombieNautilusTests.js";
 import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
@@ -171,6 +172,7 @@ registerSaddleConsumptionTests();
 registerNameTagConsumptionTests();
 registerBowDurabilityTests();
 registerTridentConsumptionTests();
+registerFoodContainerConsumptionTests();
 registerNautilusTests();
 registerZombieNautilusTests();
 registerMobSpawnerTests();

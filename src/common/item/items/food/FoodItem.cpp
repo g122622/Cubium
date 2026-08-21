@@ -101,8 +101,12 @@ ItemActionResult FoodItem::onItemRightClick(IWorld& /*world*/, Player& player, H
     bool canEat = player.abilities().invulnerable || m_food->canAlwaysEat() || player.foodStats().needsFood();
 
     if (canEat) {
-        // 设置活跃手，开始进食
-        // NOTE: setActiveHand() 需要在 Player 动画系统完成后实现
+        // 设置活跃手，开始进食（对齐基础 Item::onItemRightClick 的 isFood 分支与
+        // BowItem/PotionItem/MilkBucketItem 范式）。setActiveHand 设置 m_activeItem +
+        // m_activeItemUseCount=getUseDuration，后续 LivingEntity::tick → updatingUsingItem
+        // 递减计时器，到 0 时调 onItemUseFinish 完成食用。此前此处仅返回 Consume 未调
+        // setActiveHand，食物无法进入使用状态，onItemUseFinish 永不触发（食用完成链路断裂）。
+        player.setActiveHand(hand);
         return ItemActionResult::consume(stack);
     }
 
@@ -241,9 +245,26 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
         itemCompReg.dispatchConsume(itemTypeId, consumeEvent);
     }
 
-    // 返回容器物品
+    // 返回容器物品（对齐 vanilla：食用容器食物后返回容器物品）。
+    // 持多个容器食物（如2个蘑菇煲）时，shrink 后 stack 非空（剩1个），应返回 shrink 后的 stack
+    // （剩余食物留主手）+ 容器物品（碗/玻璃瓶/空桶）放背包；仅持1个（stack 空时）才返回容器物品
+    // 替换主手。此前无条件返回容器物品致持多个容器食物食用时剩余食物丢失（主手被容器物品覆盖）。
+    // 参考 vanilla LivingEntity#eat / Item#finishUsingItem 容器物品处理范式。
     if (hasContainerItem()) {
-        return ItemStack(containerItem(), 1);
+        if (stack.isEmpty()) {
+            // 数量归零（持1个）：返回容器物品替换主手。
+            return ItemStack(containerItem(), 1);
+        }
+        // 数量>0（持多个）：返回 shrink 后的 stack（剩余食物留主手），容器物品放背包。
+        if (player != nullptr && !isCreativePlayer) {
+            // 创造模式不返还容器物品（vanilla 创造食用不返还容器）。
+            ItemStack container(containerItem(), 1);
+            const i32 remaining = player->inventory().add(container);
+            // TODO: 背包满时容器物品掉落到地面（remaining > 0，需 ItemDropHelper，与 BucketItem
+            // 舀水背包满掉落同构待补全）。
+            (void)remaining;
+        }
+        return stack;
     }
 
     return stack;

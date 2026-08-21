@@ -2180,13 +2180,11 @@ void LivingEntity::updateActiveItem()
         }
     }
 
-    // onUseTick 内部可能调用 stopActiveHand()（如 BrushItem 中非玩家实体分支），
-    // 此时 m_activeItemUseCount 会被重置为 0，m_activeItem 会被清空，
-    // 需要检查是否仍在使用物品，避免后续 onItemUseFinish 被错误调用。
-    // 参考 MC 原版 LivingEntity.tick() 中的类似检查。
-    if (!isUsingItem()) {
-        return;
-    }
+    // 对齐 Java LivingEntity#updateUsingItem：先 onUseTick 再递减，递减到 0 即 completeUsingItem
+    // （onItemUseFinish）。此处不再用 isUsingItem() 中间检查——递减后 useCount=0 会使 isUsingItem()
+    // 返回 false，导致提前 return 跳过下方完成分支，onItemUseFinish 永不触发（食物食用完成链路断裂）。
+    // onUseTick 内若调 stopActiveHand（如 BrushItem 非玩家/未对准方块分支）会清空 m_activeItem，
+    // 下方完成分支的 `if (!m_activeItem.isEmpty())` 守卫已挡住误触 onItemUseFinish，故无需此处再判。
 
     // 检查是否完成使用
     if (m_activeItemUseCount <= 0) {
