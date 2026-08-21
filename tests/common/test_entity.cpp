@@ -883,12 +883,12 @@ TEST(Entity, GetMaxInPortalTime)
     EXPECT_EQ(player.getMaxInPortalTime(), 80);
 }
 
-// TODO(ECS迁移): tickPortal() 逻辑已迁入 ecs::PortalTickSystem（System 全 registry 扫描），
-// 原栈实体 + 共享静态 registry 的单实体调用模式与 System 架构不兼容（UAF/污染风险）。
-// 需改写为驱动 PortalTickSystem::tick(testEcsRegistry()) 并校验组件状态后恢复测试。
+// TODO(ECS迁移): tickPortal() 逻辑已迁入 ecs::sys::portalTick（free function 全 registry 扫描），
+// 原栈实体 + 共享静态 registry 的单实体调用模式与 system 架构不兼容（UAF/污染风险）。
+// 需改写为驱动 ecs::sys::portalTick(testEcsRegistry()) 并校验组件状态后恢复测试。
 TEST(Entity, TickPortalNotInPortal)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setPortalTime(10);
@@ -903,10 +903,10 @@ TEST(Entity, TickPortalNotInPortal)
 #endif
 }
 
-// TODO(ECS迁移): tickPortal() 迁入 PortalTickSystem，本用例需按 System 架构重写。
+// TODO(ECS迁移): tickPortal() 迁入 ecs::sys::portalTick，本用例需按 system 架构重写。
 TEST(Entity, TickPortalNotInPortalZero)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
     entity.setPortalTime(2);
@@ -922,10 +922,10 @@ TEST(Entity, TickPortalNotInPortalZero)
 #endif
 }
 
-// TODO(ECS迁移): tickPortal() 迁入 PortalTickSystem，本用例需按 System 架构重写。
+// TODO(ECS迁移): tickPortal() 迁入 ecs::sys::portalTick，本用例需按 system 架构重写。
 TEST(Entity, TickPortalInPortal)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
@@ -944,10 +944,10 @@ TEST(Entity, TickPortalInPortal)
 #endif
 }
 
-// TODO(ECS迁移): tickPortal() 迁入 PortalTickSystem，本用例需按 System 架构重写。
+// TODO(ECS迁移): tickPortal() 迁入 ecs::sys::portalTick，本用例需按 system 架构重写。
 TEST(Entity, TickPortalInPortalWithCooldown)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
@@ -963,10 +963,10 @@ TEST(Entity, TickPortalInPortalWithCooldown)
 #endif
 }
 
-// TODO(ECS迁移): tickPortal() 迁入 PortalTickSystem，本用例需按 System 架构重写。
+// TODO(ECS迁移): tickPortal() 迁入 ecs::sys::portalTick，本用例需按 system 架构重写。
 TEST(Entity, TickPortalPlayer)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
@@ -995,10 +995,10 @@ TEST(Entity, TickPortalPlayer)
 #endif
 }
 
-// TODO(ECS迁移): tickPortal() 迁入 PortalTickSystem，本用例需按 System 架构重写。
+// TODO(ECS迁移): tickPortal() 迁入 ecs::sys::portalTick，本用例需按 system 架构重写。
 TEST(Entity, TickPortalPlayerInterrupted)
 {
-    GTEST_SKIP() << "TODO: tickPortal 迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: tickPortal 迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
@@ -1045,11 +1045,11 @@ TEST(Entity, PortalPos)
     EXPECT_EQ(entity.portalPos().z, 200);
 }
 
-// TODO(ECS迁移): portal 冷却递减逻辑已从 baseTick() 迁入 ecs::PortalTickSystem，
-// 本用例断言 baseTick 后冷却 300→299 不再成立，需改写为驱动 PortalTickSystem::tick 校验。
+// TODO(ECS迁移): portal 冷却递减逻辑已从 baseTick() 迁入 ecs::sys::portalTick，
+// 本用例断言 baseTick 后冷却 300→299 不再成立，需改写为驱动 ecs::sys::portalTick 校验。
 TEST(Entity, TickPortalCooldownDecrement)
 {
-    GTEST_SKIP() << "TODO: 冷却递减迁入 PortalTickSystem 后需按 System 架构重写本用例";
+    GTEST_SKIP() << "TODO: 冷却递减迁入 ecs::sys::portalTick 后需按 system 架构重写本用例";
 #if 0
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 

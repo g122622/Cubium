@@ -27,7 +27,9 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/ecs/systems/FireTickSystem.hpp"
+#include "common/entity/ecs/components/EntityOwnerComponent.hpp"
+#include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/systems/ticking/FireTick.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -42,6 +44,17 @@
 using namespace mc;
 using namespace mc::entity;
 using namespace mc::item::tag;
+
+// 测试辅助：驱动 fireTick free function（签名需 registry + view 两参，封装以便 13 处调用简洁）。
+// fireTick 从 OOP baseTick 抽出，签名收 entt 原生 view 供 organizer 推导依赖。
+namespace {
+void runFireTick()
+{
+    auto& registry = mc::test::testEcsRegistry();
+    mc::ecs::sys::fireTick(
+        registry.raw(), registry.raw().view<mc::ecs::FireComponent, mc::ecs::EntityOwnerComponent>());
+}
+} // namespace
 
 // ============================================================================
 // 测试用 Mock World（支持 playSound 捕获）
@@ -421,7 +434,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FireTimerDecrements)
     EXPECT_EQ(entity.fire(), 20);
 
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
     EXPECT_EQ(entity.fire(), 19);
 }
 
@@ -435,7 +448,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
     // 它会被 baseTick 内的 updateEnvironmentState() 重置）。
     enableWaterAtEntity();
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_FALSE(entity.isOnFire());
     EXPECT_EQ(entity.fire(), 0);
@@ -449,7 +462,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FireNotClearedInLava)
     // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
     enableLavaAtEntity();
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     // 在岩浆中火焰计时器应递减但不清除
     EXPECT_TRUE(entity.isOnFire());
@@ -464,7 +477,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceHalvedInLava)
     enableLavaAtEntity();
 
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_FLOAT_EQ(entity.fallDistance(), 5.0f);
 }
@@ -477,7 +490,7 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceNotAffectedOutsideLava)
     entity.setInLava(false);
 
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_FLOAT_EQ(entity.fallDistance(), 10.0f);
 }
@@ -492,7 +505,7 @@ TEST_F(EntityLavaFireTest, BaseTick_OnFireDamageAtMultipleOf20)
     f32 healthBefore = entity.health();
 
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     // fire 应从 40 递减到 39，且应受到 onFire 伤害
     EXPECT_EQ(entity.fire(), 39);
@@ -512,7 +525,7 @@ TEST_F(EntityLavaFireTest, BaseTick_NoOnFireDamageWhenInLava)
     f32 healthBefore = entity.health();
 
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     // 在岩浆中不造成 onFire 伤害
     EXPECT_FLOAT_EQ(entity.health(), healthBefore);
@@ -688,7 +701,7 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguish)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     // 基类 getFireImmuneTicks() 返回 0，所以 m_fire 应为 0 而非负值
     EXPECT_EQ(entity.getRemainingFireTicks(), 0);
@@ -705,7 +718,7 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguishWithPlayer)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     player.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     // Player 应获得 20 tick 免疫期
     EXPECT_EQ(player.getRemainingFireTicks(), -20);
@@ -822,7 +835,7 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     player.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_FALSE(player.isOnFire());
     EXPECT_EQ(m_world.soundPlayCount(), 1);
@@ -838,7 +851,7 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_NoSoundWhenNotBurning)
     // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
     enableWaterAtEntity();
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_EQ(m_world.soundPlayCount(), 0);
 }
@@ -856,7 +869,7 @@ TEST_F(EntityLavaFireTest, RainExtinguish_PlaysSound)
     m_world.setRaining(true);
     m_world.setCanRainAt(true);
     player.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_FALSE(player.isOnFire());
     EXPECT_EQ(m_world.soundPlayCount(), 1);
@@ -872,7 +885,7 @@ TEST_F(EntityLavaFireTest, RainExtinguish_NoSoundWhenNotBurning)
     m_world.setRaining(true);
     m_world.setCanRainAt(true);
     entity.baseTick();
-    ecs::FireTickSystem{}.tick(mc::test::testEcsRegistry());
+    runFireTick();
 
     EXPECT_EQ(m_world.soundPlayCount(), 0);
 }

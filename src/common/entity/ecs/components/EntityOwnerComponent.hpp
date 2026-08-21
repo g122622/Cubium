@@ -19,12 +19,11 @@ namespace mc::ecs {
  * 经 registry.destroy() 销毁其 entt 实体（含本组件），故指针不会悬垂。
  *
  * 这是 ECS↔OOP 双向桥接的「反向」半：Entity 内嵌 EntityContext（正向），
- * EntityOwnerComponent 持 Entity*（反向）。设计参考基岩版
- * ActorOwnerComponent（mc/entity/components/ActorOwnerComponent.h，持 `Actor&` 非拥有）。
+ * EntityOwnerComponent 持 Entity*（反向）。
  *
  * 【为何是裸指针而非 unique_ptr】原设计为 unique_ptr<Entity>（拥有），与
  * EntityManager::m_entities 的 unique_ptr 形成双重拥有致 double-free，故该组件
- * 此前从未被 attach，导致 FireTickSystem/PortalTickSystem 的
+ * 此前从未被 attach，导致 fireTick/portalTick 的
  * view<..., EntityOwnerComponent> 永远为空、两个系统在生产与测试中均失效。
  * 改为非拥有裸指针后由 Entity 构造 self-attach，所有权仍归 EntityManager。
  */

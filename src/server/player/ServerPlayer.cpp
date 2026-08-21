@@ -821,7 +821,7 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
         // unique_ptr move 不移动 Entity 对象（仅转移所有权），故 JS 侧 / 其他裸指针持有者仍有效。
         // 顺序：先 setDimension/setPosition/setWorld 再迁移，使迁移期间实体字段已是目标维度语义。
         // 迁移在 changeDimension 调用栈内同步完成（无 tick 中途让出），迁移后源世界不再 tick 该实体。
-        // PortalTickSystem 遍历 ECS EntityRegistry 组件 view（非 ServerWorld.EntityManager），
+        // ecs::sys::portalTick 遍历 ECS EntityRegistry 组件 view（非 ServerWorld.EntityManager），
         // doBlockCollisions 遍历方块坐标三层 for（非 EntityManager 迭代器），故迁移不会失效迭代器。
         if (sourceWorld != nullptr && targetWorld != nullptr && sourceWorld != targetWorld) {
             EntityInstanceId entityId = id();

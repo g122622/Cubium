@@ -89,9 +89,14 @@ add_library(mc_common STATIC
     # Entity ECS - 实体系统 OOP→ECS 迁移（基岩版式混合架构）
     # 组件均为 header-only，仅 context/EntityRegistry.cpp 需登记
     entity/ecs/context/EntityRegistry.cpp
-    entity/ecs/systems/EntitySystemScheduler.cpp
-    entity/ecs/systems/PortalTickSystem.cpp
-    entity/ecs/systems/FireTickSystem.cpp
+    # Entity ECS systems - 调度框架门面 + 调度核心 + 具体 system 实现
+    # 门面 EntitySystemsCollection 唯一对外，base/ 为纯类型声明(header-only)，ticking/ 为 free function system
+    entity/ecs/systems/EntitySystemsCollection.cpp
+    entity/ecs/systems/scheduler/OrganizerGraph.cpp
+    entity/ecs/systems/ticking/PortalTick.cpp
+    entity/ecs/systems/ticking/FireTick.cpp
+    entity/ecs/systems/ticking/LegacyTick.cpp
+    entity/ecs/systems/ticking/BrainTick.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp

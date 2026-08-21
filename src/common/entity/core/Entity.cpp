@@ -158,7 +158,7 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     // 对应 DataParameter 退为同步镜像。低频走 tryGetComponent 查询。
     registry.raw().emplace<ecs::EntityFlagsComponent>(ecsEntity);
     registry.raw().emplace<ecs::EntityStateComponent>(ecsEntity);
-    // 反向桥接组件：ECS→OOP。FireTickSystem/PortalTickSystem 等 System 经
+    // 反向桥接组件：ECS→OOP。fireTick/portalTick 等 system 经
     // view<..., EntityOwnerComponent> 遍历实体时，由此反查 OOP 句柄调虚函数
     // （isInWater/hurt/canTeleport 等）。非拥有裸指针——Entity 所有权归
     // EntityManager::m_entities 或测试局部变量，本组件仅反查。Entity 析构时
@@ -773,8 +773,8 @@ void Entity::tick()
     // 基础 tick
     baseTick();
 
-    // 传送门逻辑（tickPortal + onPortalTriggered）已迁入 PortalTickSystem，
-    // 在 SystemPhase::PostEntityTick 阶段执行（本 tick 之后）。见 PortalTickSystem.hpp。
+    // 传送门逻辑（tickPortal + onPortalTriggered）已迁入 ecs::sys::portalTick，
+    // 在 SystemPhase::PostEntityTick 阶段执行（本 tick 之后）。见 ticking/PortalTick.hpp。
 }
 
 void Entity::baseTick()
@@ -797,17 +797,17 @@ void Entity::baseTick()
         }
     }
 
-    // 更新传送冷却——已迁入 PortalTickSystem（PostEntityTick 阶段）。
+    // 更新传送冷却——已迁入 ecs::sys::portalTick（PostEntityTick 阶段）。
 
     // 更新骑乘冷却
     if (m_rideCooldown > 0) {
         m_rideCooldown--;
     }
 
-    // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
-    // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
-    // 此处将 updateEnvironmentState() 移至火焰处理之前，与 MC 原版时序一致
-    // 火焰链（fire 递减/伤害/水中熄灭/雨中扑灭）已迁入 FireTickSystem（PostEntityTick 阶段），
+    // 更新环境状态（水中/岩浆/眼睛流体等），供火焰链判定 isInWater/isInLava/isInRain。
+    // TODO(阶段B): updateEnvironmentState() 待抽成 EnvironmentSensingSystem（SystemPhase::EnvironmentSense，
+    //   在 EntityTick 之前），届时本调用删除，环境状态由 system 写组件。
+    // 火焰链（fire 递减/伤害/水中熄灭/雨中扑灭）已迁入 ecs::sys::fireTick（PostEntityTick 阶段），
     // 在本 baseTick 之后执行，可读到此处刚产出的环境状态。
     updateEnvironmentState();
 

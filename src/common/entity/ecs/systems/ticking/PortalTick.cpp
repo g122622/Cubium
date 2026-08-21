@@ -1,4 +1,4 @@
-#include "common/entity/ecs/systems/PortalTickSystem.hpp"
+#include "common/entity/ecs/systems/ticking/PortalTick.hpp"
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/ecs/components/EntityOwnerComponent.hpp"
@@ -6,14 +6,14 @@
 
 #include <algorithm>
 
-namespace mc::ecs {
+namespace mc::ecs::sys {
 
-void PortalTickSystem::tick(EntityRegistry& registry)
+void portalTick(entt::basic_registry<EntityId>& /*registry*/,
+    mc::ecs::EntityView<entt::get_t<PortalComponent, EntityOwnerComponent>> view)
 {
     // 遍历所有挂 PortalComponent 的实体。EntityOwnerComponent 持 OOP Entity&，
     // 供调用虚函数 getMaxInPortalTime/canTeleport/onPortalTriggered（这些保留多态）。
     // portal 冷却递减与 portalTime 计时直接读写组件（纯数据操作，无需多态）。
-    auto view = registry.raw().view<PortalComponent, EntityOwnerComponent>();
     for (auto [entityId, portal, owner] : view.each()) {
         Entity* entity = owner.tryGetEntity();
         if (entity == nullptr || entity->isRemoved()) {
@@ -56,4 +56,4 @@ void PortalTickSystem::tick(EntityRegistry& registry)
     }
 }
 
-} // namespace mc::ecs
+} // namespace mc::ecs::sys

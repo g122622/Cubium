@@ -160,7 +160,7 @@ public:
     Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry);
     // 析构时销毁 ECS 实体（entt entity + 其全部组件）。
     // 【为何必须 destroy】EntityOwnerComponent 经 self-attach 持本 Entity 的非拥有裸指针，
-    // 供 FireTickSystem/PortalTickSystem 等经 view<..., EntityOwnerComponent> 反查 OOP 句柄。
+    // 供 fireTick/portalTick 等经 view<..., EntityOwnerComponent> 反查 OOP 句柄。
     // 若析构不 destroy entt 实体，残留 entt 条目的 EntityOwnerComponent 将持悬垂 Entity*，
     // 系统遍历到时 isRemoved()/hurt() 等解引用即 UAF。destroy 后系统 view 不再遍历到本实体。
     // 安全性：m_entityContext 是非拥有视图，Entity 析构后无人应再经它访问（已建立契约）；
@@ -1176,8 +1176,8 @@ public:
      * 当实体在传送门中停留足够时间后触发。
      * 子类（如 ServerPlayer）可重写此方法以实现实际的维度切换逻辑。
      *
-     * 传送门 tick 逻辑（计时递进/冷却递减/inPortal 重置）已迁入 PortalTickSystem
-     * （PostEntityTick 阶段），本方法仅由 System 在达阈值时调用，执行重置 + 触发冷却。
+     * 传送门 tick 逻辑（计时递进/冷却递减/inPortal 重置）已迁入 ecs::sys::portalTick
+     * （PostEntityTick 阶段），本方法仅由 system 在达阈值时调用，执行重置 + 触发冷却。
      *
      * @return true 如果传送成功
      */

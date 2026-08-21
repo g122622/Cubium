@@ -1390,8 +1390,8 @@ public:
     void tick() override;
     void update() override;
 
-    // tickPortal() 已删除：传送门 tick 逻辑迁入 PortalTickSystem（PostEntityTick 阶段）。
-    // 玩家 80 tick/创造 1 tick 的差异由 getMaxInPortalTime() override 承载，逻辑统一在 System。
+    // tickPortal() 已删除：传送门 tick 逻辑迁入 ecs::sys::portalTick（PostEntityTick 阶段）。
+    // 玩家 80 tick/创造 1 tick 的差异由 getMaxInPortalTime() override 承载，逻辑统一在 system。
 
     // ========== 物理/移动 ==========
 

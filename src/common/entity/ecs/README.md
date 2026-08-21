@@ -1,6 +1,6 @@
 # ECS 层（实体数据组件化）
 
-本目录是实体系统 OOP→ECS 迁移的**数据层**。实体系统整体采用**基岩版式混合架构**：保留 `Entity→LivingEntity→MobEntity→Player` 继承壳作句柄与 OOP 行为层（AI/序列化/特化逻辑暂留 OOP），状态数据搬入本目录的 entt 组件，行为按需抽成 System。设计参考基岩版 `Actor` 内嵌 `EntityContext` + 继承链 vftable 并存的模式。
+本目录是实体系统 OOP→ECS 迁移的**数据层**。实体系统整体采用**混合架构**：保留 `Entity→LivingEntity→MobEntity→Player` 继承壳作句柄与 OOP 行为层（AI/序列化/特化逻辑暂留 OOP），状态数据搬入本目录的 entt 组件，行为按需抽成 System。设计采用 `Entity` 内嵌 `EntityContext` + 继承链 vftable 并存的模式。
 
 > 架构决策与七项根本约束见 `docs/iterations/ECS改造.md`。本 README 只讲本目录的内部结构与坑位。
 
@@ -66,15 +66,21 @@ src/common/entity/ecs/
 │   ├── SpawnerMinecartComponent.hpp         # SpawnerLogic 直接存值（批次7 7.2，仅 SpawnerMinecart，全可移动类型无需包裹）
 │   └── BuiltInEntityComponents.hpp  # 高频组件裸指针缓存（首批4+第二批PhysicsState=5指针，非组件，是 Entity 内缓存结构）
 │
-└── systems/                         # 系统层
-    ├── ISystem.hpp                  # 系统接口
-    ├── ITickingSystem.hpp           # 每 tick 系统接口（virtual void tick(EntityRegistry&)）
-    ├── SystemPhase.hpp              # 命名阶段枚举（EntityTick / PostEntityTick）
-    ├── EntitySystemScheduler.hpp/cpp # 阶段化编排器（EntityManager::tick 委托，阶段内预留 organizer 钩子）
-    ├── EntityLegacyTickSystem.hpp   # 包装 Entity::tick() 虚函数链为系统，注册入 EntityTick 阶段
-    ├── BrainTickSystem.hpp          # 第六批 6.3 回调委托型 System：VillagerEntity 的 brain().tick() 上移调度，注册入 PostEntityTick
-    ├── PortalTickSystem.hpp/cpp     # 第二批真实 System：portal 计时/冷却/传送触发，注册入 PostEntityTick
-    └── FireTickSystem.hpp/cpp       # 第二批真实 System：fire 递减/燃烧伤害/雨中扑灭，注册入 PostEntityTick
+└── systems/                         # 系统层（门面 EntitySystemsCollection 唯一对外）
+    ├── EntitySystemsCollection.hpp/cpp # 门面：多阶段编排 + 阶段内 organizer 依赖图执行 + 双 movement 路径占位
+    ├── base/                        # 依赖末梢·纯类型声明（header-only）
+    │   ├── SystemCategory.hpp       # system 分类位掩码（Game/Editor/Movement）
+    │   ├── SystemPhase.hpp          # 命名阶段枚举（EnvironmentSense/.../EntityTick/PostEntityTick）
+    │   ├── SystemInfo.hpp           # system 元信息（name/categories/blocking/usesEntityFactory）
+    │   └── EntityView.hpp           # EntityView 别名（绑定 EntityId 的 view，禁用 entt::view 默认 entity，见坑20）
+    ├── scheduler/                   # 调度核心（对内）
+    │   ├── OrganizerGraph.hpp/cpp   # entt::organizer 封装：自动推导 ro/rw 建依赖图 + dot 导出
+    │   └── SystemProfiler.hpp       # 前后回调 profiling 钩子（默认禁用零开销）
+    └── ticking/                     # 具体 free function system 实现
+        ├── LegacyTick.hpp/cpp       # 桥接壳：委托 EntityManager::_tickEntities()（包装 OOP Entity::tick()）
+        ├── BrainTick.hpp/cpp        # 桥接壳：委托 EntityManager::_tickBrains()（Brain::tick() 调度上移）
+        ├── PortalTick.hpp/cpp       # 真实 system：portal 计时/冷却/传送触发（view 遍历，注册 PostEntityTick）
+        └── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
 ```
 
 ## 内部模块关系
@@ -83,10 +89,12 @@ src/common/entity/ecs/
 IWorld（ServerWorld / ClientWorld）
   └─ 持有 ecs::EntityRegistry 成员            ← entityRegistry() 访问器
        │
-       ├─ EntityManager::tick() 委托 scheduler ← 第二批接入（首批为孤儿骨架）
-       │    └─ EntitySystemScheduler.tick(registry)
-       │         ├─ EntityTick 阶段:  EntityLegacyTickSystem → _tickEntities() 遍历调 entity->tick()
-       │         └─ PostEntityTick 阶段: PortalTickSystem / FireTickSystem / BrainTickSystem（真实业务 System，BrainTickSystem 回调委托 _tickBrains()）
+       ├─ EntityManager::tick() 委托集合       ← m_systems.tick(m_registry)
+       │    └─ EntitySystemsCollection.tick(registry)
+       │         遍历 SystemPhase，阶段内 OrganizerGraph::graph() 拓扑序逐顶点执行
+       │         ├─ EntityTick 阶段:       legacyTick（sync_point）→ _tickEntities() 遍历调 entity->tick()
+       │         └─ PostEntityTick 阶段:   portalTick / fireTick（free function，organizer 推导 rw）
+       │                                  + brainTick（sync_point）→ _tickBrains()
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
             │
@@ -101,7 +109,7 @@ IWorld（ServerWorld / ClientWorld）
 
 **双向桥接**：
 - OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
-- ECS→OOP：`EntityOwnerComponent` 持 `unique_ptr<Entity>`，System 遍历组件时反查 OOP 句柄调虚函数（PortalTickSystem 调 `canTeleport`/`onPortalTriggered`，FireTickSystem 调 `isInWater`/`hurt` 等）。
+- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等）。
 
 ## 上下游依赖
 
@@ -138,7 +146,7 @@ IWorld（ServerWorld / ClientWorld）
 
 ### 3. entt 实体不可跨 registry 迁移（硬限制）
 
-entt 实体与组件绑定在创建它的 registry 上，`entt::entity` 在不同 registry 间不通用。故 **Entity 构造签名必须透传 `ecs::EntityRegistry&`，构造时 registry 必须就位**（对齐基岩版 `Actor(ILevel&, EntityContext&)`）。「构造到临时 registry→addEntity 时迁到世界 registry」不可行。
+entt 实体与组件绑定在创建它的 registry 上，`entt::entity` 在不同 registry 间不通用。故 **Entity 构造签名必须透传 `ecs::EntityRegistry&`，构造时 registry 必须就位**。「构造到临时 registry→addEntity 时迁到世界 registry」不可行。
 
 ### 4. 命名遮蔽：entity::EntityRegistry vs ecs::EntityRegistry
 
@@ -166,7 +174,7 @@ entt 实体与组件绑定在创建它的 registry 上，`entt::entity` 在不�
 
 ### 9. 低频组件不进 m_builtIn，热路径须缓存局部指针
 
-Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（贴合基岩版极简缓存设计），不进 `m_builtIn` 裸指针缓存。单次 `try_get` 约 2-3ns 可接受，但**热路径方法（baseTick/move/actuallyHurt/tickFreeze 等）若同帧多次访问同一组件，须在方法开头取一次组件指针缓存局部变量复用**，避免重复哈希查找。PhysicsState 因 move/checkOnGround/updateFallDistance 及各 tick 40+ 处直接访问，破例进 `m_builtIn` 缓存。判定标准：单方法内访问 ≥3 次或被每帧调用的方法，考虑进缓存或局部指针。
+Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（极简缓存设计），不进 `m_builtIn` 裸指针缓存。单次 `try_get` 约 2-3ns 可接受，但**热路径方法（baseTick/move/actuallyHurt/tickFreeze 等）若同帧多次访问同一组件，须在方法开头取一次组件指针缓存局部变量复用**，避免重复哈希查找。PhysicsState 因 move/checkOnGround/updateFallDistance 及各 tick 40+ 处直接访问，破例进 `m_builtIn` 缓存。判定标准：单方法内访问 ≥3 次或被每帧调用的方法，考虑进缓存或局部指针。
 
 ### 10. 同步字段组件化：真相源在组件，DataParameter 退为镜像
 
@@ -178,7 +186,7 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（贴合
 
 ### 11. SystemPhase 演进路径与跨帧延迟
 
-第二批阶段枚举为 `{ EntityTick, PostEntityTick }`：EntityTick 承载 `EntityLegacyTickSystem`（OOP `Entity::tick()` 桥接），PostEntityTick 承载 `PortalTickSystem`/`FireTickSystem`（状态递减/环境交互类真实 System）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序新增阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
+SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的仍是 EntityTick/PostEntityTick 两个阶段**，其余阶段为预留空桶待后续 movement/AI 批次接入。EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
 
 ### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
 
@@ -196,7 +204,7 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 
 第四批把 Entity 层剩余 7 个 C 类同步字段（flags/air/customName/customNameVisible/silent/noGravity/pose）+ Player score + Player absorption 下发全部组件真相源化，沿用第二批 freeze / 第三批 health/arrows 的同步镜像模式规模化。**规模化的几个新坑**：
 - **枚举提取消除循环依赖**：`EntityFlags` 原内联于 `Entity.hpp`，新建 `EntityFlagsComponent.hpp` 若 include `Entity.hpp` 则与 `Entity.hpp` include 组件头形成循环。解法：把 `EntityFlags` 枚举 + 位运算符提取到独立头 `src/common/entity/core/EntityFlags.hpp`（参照 `EquipmentSlot` 提取先例），组件头只 include 这个轻量枚举头。`Entity.hpp` 删除内联定义改为 include `EntityFlags.hpp`，下游零改动。
-- **异构字段聚合进单组件**：`EntityStateComponent` 聚合 6 个类型异构的轻量同步字段（`i32`/`unique_ptr<ITextComponent>`/3×`bool`/`EntityPose`），对齐基岩版 ActorDataSynched 组件族（轻量元数据聚合，`mc/entity/components/`）。聚合避免组件爆炸——若每字段一组件，Entity 层 10+ 组件徒增内存与查询开销。HealthComponent 已证明"同层多字段进单组件"可行，本批把模式推广到异构类型字段。
+- **异构字段聚合进单组件**：`EntityStateComponent` 聚合 6 个类型异构的轻量同步字段（`i32`/`unique_ptr<ITextComponent>`/3×`bool`/`EntityPose`），属轻量元数据聚合。聚合避免组件爆炸——若每字段一组件，Entity 层 10+ 组件徒增内存与查询开销。HealthComponent 已证明"同层多字段进单组件"可行，本批把模式推广到异构类型字段。
 - **customName unique_ptr 组件存储**：组件存 `std::unique_ptr<text::ITextComponent>` 承接原 `m_customName` 类型（保留样式/颜色富文本），与 `AttributeComponent` 用 `unique_ptr<AttributeMap>` 包裹范式一致。DataParameter 仅存 `OptionalComponentValue`（present + 纯文本）作有损同步投影，组件与镜像并非全等。`setCustomNameComponent` 内须先 `c->m_customName = std::move(name)` 写组件，再从组件取 text 写 DataParameter，确保两份一致。组件头前向声明 `class ITextComponent` + include `<memory>`，不 include 全定义。
 - **inline getter MC_ASSERT_RELEASE 守卫**：pose/flags/air 等 getter 走 `tryGetComponent + MC_ASSERT_RELEASE`，与第三批 `attributes()` 同模式。`Entity.hpp` 须显式 include `common/util/assert/AssertMacros.hpp`（基类不传递，IWYU 违规在 tests/ 暴露）。
 - **pose refreshDimensions 副作用保留**：`setPose` 迁移后**必须保留 `refreshDimensions()` 调用**（潜行变矮/游泳变扁的碰撞箱更新）。`syncMetadataFromDataManager` 末尾原 `refreshDimensions`（服务端 pose 回填时触发的）随回填行删除，但 `setPose` 内的 `refreshDimensions` 保留。删回填行时勿误删 setPose 路径的副作用。
@@ -205,10 +213,10 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 
 ### 15. mixin 接口转 tag component：接口保留 + Entity public hasComponent 包装 + 热路径外部指针改造
 
-第五批把实体能力 mixin 接口（IMob/IShearable/IRideable 等）转 tag/capability component，**接口保留作 OOP 行为层**（虚函数不删），tag 作类型标记层，`dynamic_cast<接口*>` 改 `hasComponent<TagComponent>()`，二者并存对齐基岩版混合架构。子批 5.1（IMob→MobFlagComponent）落地的几个坑：
+第五批把实体能力 mixin 接口（IMob/IShearable/IRideable 等）转 tag/capability component，**接口保留作 OOP 行为层**（虚函数不删），tag 作类型标记层，`dynamic_cast<接口*>` 改 `hasComponent<TagComponent>()`，二者并存契合混合架构。子批 5.1（IMob→MobFlagComponent）落地的几个坑：
 - **Entity public hasComponent 包装是外部指针改造的前置条件**：`m_entityContext` 是 Entity 的 **protected** 成员，无 public 访问器。4 处外部指针 dynamic_cast（AI goal/sensor、BlockEntity 等继承体系外调用方）无法访问 `other->m_entityContext`。解法：Entity.hpp public 段加 `template<class T> bool hasComponent() const { return m_entityContext->hasComponent<T>(); }` 透传包装。只暴露布尔查询不暴露整个 EntityContext（方案 A，权限可控；暴露整个 context 的方案 B 权限过大）。const 安全，`const LivingEntity*` 与 `const` 方法兼容。这是后续 5.2/5.3/5.4 及更远批次 tag 查询的统一外部入口。MobEntity.cpp:744 的 `this` 场景无需包装（派生类内 protected 可达，直接 `hasComponent<T>()` 调 public 包装即可）。
 - **接口保留不删，tests/ 零改动**：IMob.hpp 不动，MonsterEntity 仍 `public IMob`。tag 只承担类型标记，行为层虚函数继续走 vftable。tests/ 9 处 `dynamic_cast<IMob*>`（4 文件）因此零改动——测试走 OOP 接口层，生产走 ECS tag 层，并存即设计意图。激进删除接口类会致 20+ 测试文件连锁崩溃，不可取。
-- **空 struct tag 零内存开销**：entt 原生支持空 tag（`emplace<EmptyTag>` / `all_of<EmptyTag>` 编译期类型 id 比较），对齐基岩版 `Is*FlagComponent` 命名约定。MobFlagComponent 是空 struct，无数据字段。
+- **空 struct tag 零内存开销**：entt 原生支持空 tag（`emplace<EmptyTag>` / `all_of<EmptyTag>` 编译期类型 id 比较）。MobFlagComponent 是空 struct，无数据字段。
 - **IMob 唯一继承点单点 attach**：IMob 唯一继承点是 MonsterEntity（`class MonsterEntity : public CreatureEntity, public entity::IMob`），20+ 怪物子类经 MonsterEntity 间接获得 tag。只需在 MonsterEntity 构造 attach 一次，不在每个子类重复 attach。中间基类（AbstractSkeletonEntity/PatrollerEntity 等）也无需 attach。
 - **热路径 RTTI 收益**：4 处外部指针 dynamic_cast 在每_tick 调用的 AI 谓词里（Sensors/AvoidHostileGoal/ConduitEntity/ShulkerGoals），`dynamic_cast` 走 RTTI 字符串比较，改 `hasComponent`（entt `all_of` 编译期类型 id 比较）收益显著。
 - **Player 子类下行 cast 保留**：Sensors.cpp:615 改 IMob 判定为 hasComponent 后，同处的 `dynamic_cast<Player*>(other)`（判创造/旁观模式）保留——那是实体子类下行，子类太多且组件查询无法替代虚函数，另案处理，不在本批。
@@ -247,7 +255,7 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 
 ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Controller 约 5 万行不 ECS 化），System 做 tick 调度"。`Brain<E>` 是 header-only 模板类，全仓仅 `Brain<VillagerEntity>` 一个实例化点。原调度决策耦合在 `VillagerEntity::tick()` 内部（`AbstractVillagerEntity::tick()` 之后硬编码调 `m_brain->tick()`）。子目标3 把这块调用从 OOP `tick()` 抽到统一 ECS System。
 
-**回调委托型而非组件驱动型**：新建 `BrainTickSystem`（持 `std::function<void(EntityRegistry&)>` 回调），逐字仿 `EntityLegacyTickSystem.hpp`，注册到 `SystemPhase::PostEntityTick`（注册在 PortalTickSystem/FireTickSystem 之后），回调委托 `EntityManager::_tickBrains()`。不把 `unique_ptr<Brain>` 包进组件——Brain 含虚函数破坏"组件纯数据"边界，且违背"AI 不 ECS 化"决策；System 内复现模拟距离门控须访问 EntityManager 形成循环依赖；Brain 模板类型擦除须引入 IBrain 抽象基类改动 5 万行 AI 代码。回调委托型把 System 仅当"何时调用 tick()"的调度壳，Brain 数据仍 OOP 成员，契合混合架构。
+**回调委托型而非组件驱动型**：`ecs::sys::brainTick` 是 `EntitySystemsCollection::registerSyncSystem` 注册的 sync_point 回调（签名 `void(const void* payload, Registry&)`，payload 指向 EntityManager），注册到 `SystemPhase::PostEntityTick`（注册在 `portalTick`/`fireTick` 之后），回调委托 `EntityManager::_tickBrains()`。不把 `unique_ptr<Brain>` 包进组件——Brain 含虚函数破坏"组件纯数据"边界，且违背"AI 不 ECS 化"决策；System 内复现模拟距离门控须访问 EntityManager 形成循环依赖；Brain 模板类型擦除须引入 IBrain 抽象基类改动 5 万行 AI 代码。回调委托型把 System 仅当"何时调用 tick()"的调度壳，Brain 数据仍 OOP 成员，契合混合架构。
 
 **门控零重复复用**：`_tickBrains()` 复用 `_tickEntities()` 的全部门控框架——playerChunks 快照 + `isRemoved()` 跳过 + ServerPlayer 短路 + 模拟距离门控。`playerChunks` 独立快照不与 `_tickEntities` 共用（共用须把快照提到 `tick()` 顶层改变三步编排结构，不值得；ServerPlayer 数量少重复快照成本可忽略）。
 
@@ -255,7 +263,7 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 
 **类型识别用 `dynamic_cast<entity::VillagerEntity*>`**（非 Entity 基类虚函数）：①调度决策留 System 符合"System 做调度"，加虚函数 `tickBrain()` 是把调度下沉到 Entity 违背方向；②不动 Entity 基类 vtable；③与本仓既有 dynamic_cast 范式一致（序列化器/MobEntity 分类）。当前仅 VillagerEntity 持 Brain，RTTI 开销可忽略。新增持 Brain 实体类型时只改 `_tickBrains` 一处 dynamic_cast。
 
-**死亡帧与客户端**：`isRemoved()` 在 `remove()` 时置 true（死亡消散结束后才 remove），死亡帧 `isRemoved()==false` Brain 仍 tick，与原时序一致不引入新风险。ClientWorld 不继承 IWorld，客户端不构造 VillagerEntity，BrainTickSystem 只注册到服务端 EntityManager，客户端无影响。
+**死亡帧与客户端**：`isRemoved()` 在 `remove()` 时置 true（死亡消散结束后才 remove），死亡帧 `isRemoved()==false` Brain 仍 tick，与原时序一致不引入新风险。ClientWorld 不继承 IWorld，客户端不构造 VillagerEntity，brainTick 只注册到服务端 EntityManager，客户端无影响。
 
 ### 19. minecart 族整块 ECS 化：基类先迁叶子类后迁两步推进 + 不可移动类型判定 + SpawnerLogic 透传直写 tag 根层
 
@@ -275,3 +283,25 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **m_type 等构造期定值标识不进组件**：AbstractMinecartEntity::Type 枚举（Chest/Furnace/TNT/...）是构造期定值类型标识，无运行时变更、无同步/持久化需求，留作构造期参数不入组件。判定标准：字段是否在构造后只读且无同步/持久化消费——是则不入组件（避免无意义组件化膨胀）。同批 m_maxSpeed 等速度配置既有 setter 零调用且 getter 读常量不读成员，属死字段，迁移保持死字段现状不扩大范围。
 
 **遮蔽 bug 同源模式**：B7.1 Step0 修 FurnaceMinecart 的 m_pushX/m_pushZ 遮蔽——基类版死字段被子类重声明遮蔽，与 projectile 族 m_noGravity 遮蔽（批次6 6.2 Step0）同源。族迁移 Step0 须先排查子类是否重声明基类字段致双真相源。
+
+### 20. system 层 free-function 化重构：门面 + base/scheduler/ticking 树形结构 + organizer 自动依赖推导
+
+批次 A 把 systems/ 子系统从多态 `ITickingSystem` + `EntitySystemScheduler` 旧架构重构为 free function + organizer 依赖图新架构。重构的几个关键决策与坑：
+
+**门面唯一对外**：`EntitySystemsCollection`（`systems/EntitySystemsCollection.hpp/.cpp`）是 systems 子系统唯一对外门面，`base/`/`scheduler/`/`ticking/` 都是内部实现层。外界（EntityManager）只 include 门面头，不直接 include 内部头。门面职责：多阶段编排（遍历 SystemPhase）+ 阶段内 `OrganizerGraph` 拓扑序执行 + 双 movement 路径占位（`tickMovementCatchup`/`tickMovementCorrectionReplay`）+ `singleTick` 占位。
+
+**free-function 化决策**：废弃 `ITickingSystem`/`ISystem` 多态虚函数接口。`entt::organizer` 的自动依赖推导（从 ro/rw 参数建依赖图）只对编译期 free function/member function 有效，且参数须是 entt 原生 `view`/`group`/`basic_registry&`；多态 `virtual tick(EntityRegistry&)`（`EntityRegistry` 是项目自定义包装类，非 `basic_registry`）无法被 organizer 推导。故真实业务 system（`portalTick`/`fireTick`）改 free function 带 view 签名，organizer 从 `PortalComponent&`/`FireComponent&`（非 const）推导 rw 依赖。桥接壳（`legacyTick`/`brainTick`）委托宿主遍历方法不走 view，用 sync_point 语义注册。
+
+**三类 system 注册入口**：`registerFreeSystem<Candidate, Req...>`（free function，自动推导依赖）、`registerMemberSystem<Candidate, Req...>(instance)`（member function，自动推导依赖）、`registerSyncSystem(callback, payload)`（sync_point 强制串行，无依赖推导）。`Candidate` 是 `auto` 非类型模板参数，须传函数指针值如 `&ecs::sys::portalTick`。
+
+**桥接壳访问 EntityManager 私有方法**：`legacyTick`/`brainTick` 是 sync_point 回调（签名 `void(const void* payload, Registry&)`），payload 指向 EntityManager，需访问其私有 `_tickEntities()`/`_tickBrains()`。解法：EntityManager 友元这两个 free function（ticking/ 是内部实现层，friend 合理）。EntityManager.hpp 前向声明这两个函数供友元，不 include ticking/ 头以避免循环依赖。
+
+**sync_point 语义**：organizer 第三种 emplace 重载（`function_type*` + payload）内部强制 `track_dependencies(..., true, ...)` 即 sync_point=true，永远串行、无依赖推导。桥接壳委托宿主遍历方法（含模拟距离门控/ServerPlayer 短路），不是纯 view 遍历，强制串行是正确语义——若误用 `registerFreeSystem` 注册桥接壳，organizer 会因无 view 参数把它当无依赖节点插入图中，可能与其他 system 并行执行，破坏宿主遍历的独占性。
+
+**BuiltIn 指针稳定性契约（与坑5联动）**：tick() 执行绝不调 BuiltIn 缓存的 5 组件 storage 的 compact/sort/swap-and-pop。organizer 执行器仅调每个 vertex 的 prepare/callback，不触及 storage 重排；但若 system 内部误调 `registry.compact()`/`sort()`，会触发坑5所述的 swap-and-pop 致其他实体裸指针悬垂。
+
+**OrganizerGraph 的 Registry 类型**：用 `entt::basic_organizer<entt::basic_registry<EntityId>>`（显式指定 EntityId，非默认 `entt::entity`）。调用方经 `EntityRegistry::raw()` 取底层 `basic_registry<EntityId>&` 传给 graph/tick。混用默认 `entt::organizer`（`entt::entity`）会编译期类型不匹配。
+
+**free function 的 view 参数必须用 `EntityView` 别名（高频编译坑）**：`entt::view<get_t<...>>` alias 内部经 `storage_for` 把裸组件转 storage，而 `storage_for` 默认 `Entity=entt::entity`，故 `entt::view` 锁死默认 entity。organizer 在 `extract<Type>` 里 `static_cast<Type>(as_view{reg})`，`as_view` 的转换操作符返回的 view 用 registry 的 entity_type（EntityId），与签名里 `entt::view`（entity=`entt::entity`）entity_type 不一致，static_cast 失败报 `no viable conversion`。解法：用 `base/EntityView.hpp` 的 `mc::ecs::EntityView<get_t<Comp...>>` 别名——它模仿 `entt::view` 但用 `EntityStorageFor`（绑定 EntityId 的 `storage_for`）转换，使 view 的 entity_type 与 registry 一致。**所有 free function system 的 view 参数一律用 `EntityView`，禁用 `entt::view`**。同理 group 参数未来也需自定义别名。`basic_view` 第三模板参是 SFINAE 的 `void`（非 entity 类型），entity 类型内嵌在 get_t 的 storage 里，勿误写 `basic_view<get_t<Comp>, exclude_t<>, EntityId>`（第三参写 EntityId 是错的）。
+
+**singleTick/双 movement 路径占位**：首批空实现（Cubium 客户端 ClientEntity 独立不跑物理，无消费方），留 TODO。movement 双路径（catchup 追帧 + correctionReplay 校正重放）是未来客户端预测/服务端校正的接入点，当前仅门面声明签名，内部直接 return。

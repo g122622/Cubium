@@ -147,7 +147,7 @@ void VillagerEntity::tick()
 {
     AbstractVillagerEntity::tick();
 
-    // Brain tick 已上移至 BrainTickSystem（PostEntityTick 阶段，见 EntityManager::_tickBrains）。
+    // Brain tick 已上移至 ecs::sys::brainTick（PostEntityTick 阶段，见 EntityManager::_tickBrains）。
     // m_brain 成员与 brain() 访问器保留不变，Goal/Task/Sensor 仍经 owner->brain() 访问。
 
     // 更新声音冷却

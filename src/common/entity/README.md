@@ -29,7 +29,7 @@ src/common/entity/
 ├── ecs/                            # ★ ECS 数据层（OOP→ECS 混合架构的数据组件）
 │   ├── context/                    #   ECS 核心包装（EntityId / EntityRegistry / EntityContext）
 │   ├── components/                 #   数据组件（StateVector / Velocity / AABBShape / Rotation / Owner / UniqueID）
-│   ├── systems/                    #   系统层（ISystem / 阶段编排器 / EntityLegacyTickSystem）
+│   ├── systems/                    #   系统层（门面 EntitySystemsCollection + base/scheduler/ticking 树形结构）
 │   └── README.md                   #   ECS 层说明（架构决策、坑位、指针稳定性契约）
 │
 ├── tag/                            # 实体类型标签

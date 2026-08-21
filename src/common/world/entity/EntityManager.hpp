@@ -27,7 +27,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
-#include "common/entity/ecs/systems/EntitySystemScheduler.hpp"
+#include "common/entity/ecs/systems/EntitySystemsCollection.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -40,6 +40,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace mc::ecs::sys {
+// 桥接 system 自由函数前向声明（定义见 ticking/LegacyTick.hpp、ticking/BrainTick.hpp）。
+// 仅声明签名供 EntityManager 友元，不 include 其头以避免循环依赖。
+void legacyTick(const void*, ::mc::ecs::OrganizerGraph::Registry&);
+void brainTick(const void*, ::mc::ecs::OrganizerGraph::Registry&);
+} // namespace mc::ecs::sys
 
 namespace mc {
 
@@ -55,6 +62,12 @@ namespace mc {
  * 线程安全：所有公共方法都是线程安全的。
  */
 class EntityManager {
+    // 桥接 system 自由函数需访问私有 _tickEntities()/_tickBrains()（委托型 system 范式，
+    // 见 ticking/LegacyTick.cpp、ticking/BrainTick.cpp）。ticking/ 是 ECS systems 子系统内部
+    // 实现层，friend 限定在这两个函数，不暴露给外部消费者。
+    friend void ecs::sys::legacyTick(const void*, ecs::OrganizerGraph::Registry&);
+    friend void ecs::sys::brainTick(const void*, ecs::OrganizerGraph::Registry&);
+
 public:
     /**
      * @brief 构造实体管理器
@@ -259,10 +272,10 @@ private:
     // 所属 ECS 实体注册表（非拥有，引用 ServerWorld 持有的 m_entityRegistry）。
     ecs::EntityRegistry& m_registry;
 
-    // ECS 系统调度器：按 SystemPhase 顺序执行注册的 ITickingSystem。
-    // EntityTick 阶段跑 EntityLegacyTickSystem（包装 OOP Entity::tick()），
-    // PostEntityTick 阶段跑状态递减/环境交互类 System（PortalTickSystem / FireTickSystem）。
-    ecs::EntitySystemScheduler m_scheduler;
+    // ECS 系统集合（多阶段编排 + 阶段内 organizer 依赖图执行）：
+    // EntityTick 阶段跑桥接壳 legacyTick（包装 OOP Entity::tick()），
+    // PostEntityTick 阶段跑 portalTick/fireTick（真实 view 遍历）+ brainTick（桥接 Brain::tick()）。
+    ecs::EntitySystemsCollection m_systems;
 
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
@@ -289,24 +302,24 @@ private:
     /**
      * @brief 逐实体 tick（EntityTick 阶段回调）
      *
-     * 由 EntityLegacyTickSystem 回调委托，承载原 tick() 步骤1 的全部逻辑：
+     * 由桥接 system 自由函数 ecs::sys::legacyTick（经友元）调用，承载原 tick() 步骤1 的全部逻辑：
      * playerChunks 快照 + 遍历 m_entities 调 entity->tick() + 模拟距离门控 +
      * ServerPlayer 永远 tick + per-entity trace + isRemoved() 跳过。
-     * 假设已持有 m_mutex（由 tick() 调用 scheduler 时传入）。
+     * 假设已持有 m_mutex（由 tick() 调用系统集合时经桥接进入）。
      */
     void _tickEntities();
 
     /**
      * @brief 逐 Brain 持有者 tick（PostEntityTick 阶段回调）
      *
-     * 由 BrainTickSystem 回调委托，承载原 VillagerEntity::tick() 中 m_brain->tick()
-     * 代码块的逻辑。复用 _tickEntities 的遍历+门控框架：playerChunks 快照 +
+     * 由桥接 system 自由函数 ecs::sys::brainTick（经友元）调用，承载原 VillagerEntity::tick()
+     * 中 m_brain->tick() 代码块的逻辑。复用 _tickEntities 的遍历+门控框架：playerChunks 快照 +
      * isRemoved() 跳过 + ServerPlayer 短路 + 模拟距离门控。对 dynamic_cast
      * <VillagerEntity*> 成功的实体调 brain().tick()（当前仅 VillagerEntity 持 Brain）。
      *
      * Brain 仍是 OOP 成员（VillagerEntity::m_brain），本方法只搬 tick 调度决策，
-     * 不 ECS 化 Brain 数据（第19行决策"AI 保留 OOP，System 做 tick 调度"）。
-     * 假设已持有 m_mutex（由 tick() 调用 scheduler 时传入）。
+     * 不 ECS 化 Brain 数据（决策"AI 保留 OOP，System 做 tick 调度"）。
+     * 假设已持有 m_mutex（由 tick() 调用系统集合时经桥接进入）。
      */
     void _tickBrains();
 

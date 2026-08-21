@@ -43,8 +43,8 @@ EndPortalBlock::EndPortalBlock(const BlockProperties& properties)
 void EndPortalBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 末地传送门是立即传送的，不需要等待时间（vanilla Java EndPortalBlock 无 80tick 等待，
-    // 与下界传送门经 PortalTickSystem 计时不同）。
+    // 末地传送门是立即传送的，不需要等待时间
+    // （与下界传送门经 ecs::sys::portalTick 计时不同）。
     // 玩家进入末地传送门后会立即传送到末地出生点 (100, 49, 0)（由 changeDimension 内
     // Teleporter::getEndSpawnPosition 处理）；末地→主世界走 transformPosition（1:1 坐标）。
 
