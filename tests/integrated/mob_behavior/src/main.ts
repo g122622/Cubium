@@ -89,6 +89,7 @@ import { registerMilkBucketConsumptionTests } from "./tests/passive/special/Milk
 import { registerHoneyBottleConsumptionTests } from "./tests/passive/special/HoneyBottleConsumptionTests.js";
 import { registerPotionConsumptionTests } from "./tests/passive/special/PotionConsumptionTests.js";
 import { registerThrowableItemTests } from "./tests/passive/special/ThrowableItemTests.js";
+import { registerFishingRodTests } from "./tests/passive/special/FishingRodTests.js";
 import { registerNautilusTests } from "./tests/passive/nautilus/NautilusTests.js";
 import { registerZombieNautilusTests } from "./tests/passive/nautilus/ZombieNautilusTests.js";
 import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.js";
@@ -182,6 +183,7 @@ registerMilkBucketConsumptionTests();
 registerHoneyBottleConsumptionTests();
 registerPotionConsumptionTests();
 registerThrowableItemTests();
+registerFishingRodTests();
 registerNautilusTests();
 registerZombieNautilusTests();
 registerMobSpawnerTests();

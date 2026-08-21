@@ -110,9 +110,14 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         // 发射浮标
         bobber->shootFrom(player, player.pitch(), player.yaw(), 0.0f, BOBBER_VELOCITY, BOBBER_INACCURACY);
 
-        // 生成实体并记录ID
-        EntityInstanceId bobberId = bobber->id();
-        world.spawnEntity(std::move(bobber));
+        // 生成实体并记录 ID。必须用 spawnEntity 的返回值（addEntity 分配的真实 id），
+        // 不能用 bobber->id()——make_unique 构造时传入 EntityInstanceId(0)，spawnEntity 前实体尚未
+        // 经 EntityManager::addEntity 分配 id，bobber->id() 返回 0。此前用 bobber->id() 致
+        // setFishingBobber(0)，而 isFishing() = (m_fishingBobber != 0) 恒为 false，FishingBobberEntity
+        // ::tick 检测 angler->fishingBobber() != id()（0 != 真实id）立即 remove 浮标——抛杆生成的
+        // 浮标首 tick 即被移除，钓鱼链路完全断裂。对齐 VillagerBreedGoal/HangingEntity/ZombieEntity
+        // 等用 spawnEntity 返回值取 id 的范式。
+        EntityInstanceId bobberId = world.spawnEntity(std::move(bobber));
         player.setFishingBobber(bobberId);
 
         // 播放抛杆音效
