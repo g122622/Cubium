@@ -34,6 +34,7 @@
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
 #include "common/entity/entities/player/Player.hpp" // Player::username/Player::inventory（Player.name / Container）
 #include "common/entity/inventory/IInventory.hpp"   // IInventory（Container JS 类 opaque 持此指针）
@@ -664,7 +665,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return wrapComponent("PufferfishPuffStateComponent");
             }
-            // TODO: 其他基岩合法 componentId（is_baby/is_tamed/lava_movement 等标记/属性族）按需补全。
+            if (normalized == "minecraft:is_tamed") {
+                // 对齐基岩 EntityIsTamedComponent（componentId="minecraft:is_tamed"）：
+                // 驯服状态标记组件，wolf/cat/parrot 等驯服类生物经 setTamed(true) 置位。TameableEntity
+                // 是所有驯服类基类（WolfEntity/CatEntity/ParrotEntity 均继承自 TameableEntity），
+                // dynamic_cast<TameableEntity*> 命中即读 isTamed()（DATA_FLAGS_PARAM 位 4）。
+                // 非驯服类实体返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                // 此前 WolfTests 驯服判定用 effectiveMax>=20（驯服后血量上限 8→20）间接断言，hacky 且
+                // 不适用于鹦鹉（驯服不改血量）；补 is_tamed 组件后所有驯服类可读 value 精确断言。
+                auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
+                if (tameable == nullptr) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("IsTamedComponent");
+            }
+            // TODO: 其他基岩合法 componentId（is_baby/lava_movement 等标记/属性族）按需补全。
             return ctx.createUndefined();
         },
         1);
@@ -784,6 +799,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             return ctx.createInt32(static_cast<i32>(pufferfish->getPuffState()));
         });
+
+    // --- IsTamedComponent类（minecraft:is_tamed，承载驯服状态）---
+    // opaque 持 mc::Entity*。getComponent 已按 TameableEntity 过滤，此处 dynamic_cast 现取驯服状态。
+    // readonly value：bool，true=已驯服/false=未驯服（TameableEntity::isTamed 读 DATA_FLAGS_PARAM 位 4）。
+    // 供集成测试断言驯服类生物（wolf/cat/parrot）喂食驯服物品后 setTamed(true) 链路。区别于
+    // is_charged/glow_squid_dark_ticks"满足条件才返组件"的语义——is_tamed 对所有 TameableEntity 都返
+    // 组件（value true/false），以便测试断言驯服前后状态变化。
+    u64 isTamedClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* isTamedProto = builder.exportClass("IsTamedComponent", isTamedClassId);
+    ScriptClassRegistry::instance().registerClass(isTamedClassId, isTamedProto, "IsTamedComponent");
+
+    ClassRegistrar<void> isTamedReg(ctx, isTamedClassId, isTamedProto);
+    isTamedReg.readonlyProperty("value", [isTamedClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, isTamedClassId));
+        auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
+        if (tameable == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(tameable->isTamed());
+    });
 
     // --- Effect 工具：构造基岩 Entity.getEffect 返回的 Effect 普通对象 ---
     // 基岩 Entity.getEffect(effectType) 返回 Effect 对象（{ typeId, amplifier, duration }），
