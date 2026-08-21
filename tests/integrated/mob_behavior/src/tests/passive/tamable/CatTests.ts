@@ -4,6 +4,7 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { assertEntityInVolume } from "../../../utils/entity/assert.js";
+import { pollUntilSucceed } from "../../../utils/test/poll.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -110,6 +111,63 @@ function catHuntsRabbit(test: Test): void {
   });
 }
 
+// 玩家持生鳕鱼反复右键未驯服猫，1/3 概率驯服成功（wiki tech_猫.txt#驯服：手持生鳕鱼/生鲑鱼右键
+// 未驯服的猫，每次 1/3 概率驯服成功，驯服后猫跟随主人、可坐下、项圈可染色）。
+//
+// C++ 链路（对齐 Java 1.21.11 Cat.mobInteract，已逐段核查）：
+//   1) 玩家持生鳕鱼 interactWithEntity(猫) → Player::interactOn → MobEntity::processInitialInteract
+//      → CatEntity::interactMob（CatEntity.cpp:493）未驯服分支 `!isTamed() && isFoodItem(itemStack)`
+//      （:538-542）命中。
+//   2) isFoodItem（:191-202）：生鳕鱼/生鲑鱼。
+//   3) 非创造 shrink(1) 消耗鱼 + _tryToTame(player)（:549）。
+//   4) _tryToTame（:569）：rng.nextInt(3)==0（1/3 概率）→ setTamed(true) + setOwnerId。
+//   5) 返回 Success。
+//
+// 判定手段：getComponent("minecraft:is_tamed").value === true（驯服成功）。is_tamed 组件经
+// TameableEntity::isTamed() 读取，由 IsTamedComponent 绑定（MinecraftModuleFactory.cpp）。
+//
+// 驯服概率 1/3，创造模式不消耗鱼可反复喂。tick 5..100 每 3 tick 喂一次（约32次，1/3 概率，
+// 32 次内成功率 1-(2/3)^32 ≈ 99.99%）。pollUntilSucceed 轮询 is_tamed=true，maxTick=400 留足周期。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）。猫不飞，开放坑够用。创造玩家 (1,2,3) 持生鳕鱼，
+// 猫 (3,2,3)（距 2 格，interactWithEntity 远程触发无距离门控）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_猫.txt#驯服（喂生鱼 1/3 概率驯服）
+function catTamedByFishTest(test: Test): void {
+  const catType = "minecraft:cat";
+
+  // 猫 (3,2,3)（creeper_pit y=0 grass_block 地板，helper y=2→结构 y=1 空气，脚踩 y=0 grass_block）。
+  const cat = test.spawn(catType, { x: 3, y: 2, z: 3 });
+  // 创造玩家 (1,2,3) 持生鳕鱼（创造模式不消耗可反复喂）。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "catTamer");
+  const fish = new ItemStack("minecraft:cod", 1);
+  player.setItem(fish as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // tick 5..100 每 3 tick 喂一次生鳕鱼（约32次，1/3 概率驯服，32 次内成功率 ~99.99%）。
+  // 创造模式不消耗鱼可反复喂。驯服后再喂走 isTamed&&isOwner 分支（治疗/坐下，无害）。
+  for (let t = 5; t <= 100; t += 3) {
+    test.runAtTickTime(t, () => {
+      (player as any).interactWithEntity(cat);
+    });
+  }
+
+  // 轮询断言：猫 is_tamed.value === true（驯服成功）。
+  // startTick=10 等 1-2 次喂食后开始查，interval=3 与喂食周期对齐，maxTick=400 留足 32 次喂食周期。
+  pollUntilSucceed(test, () => {
+    const comp = cat.getComponent("minecraft:is_tamed") as any;
+    return comp?.value === true;
+  }, {
+    startTick: 10,
+    interval: 3,
+    maxTick: 400,
+    onTimeout: () => {
+      const comp = cat.getComponent("minecraft:is_tamed") as any;
+      test.assert(false,
+        `cat not tamed after feeding fish 32 times (1/3 chance, `
+        + `is_tamed=${comp?.value} expected true)`);
+    },
+  });
+}
+
 export function registerCatTests(): void {
   GameTest.register("MobBehaviorTests", "cat_tempted_by_fish", catTemptedByFish)
     .structureName("gametests:mediumglass")
@@ -118,4 +176,8 @@ export function registerCatTests(): void {
   GameTest.register("MobBehaviorTests", "cat_hunts_rabbit", catHuntsRabbit)
     .structureName("gametests:creeper_pit")
     .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "cat_tamed_by_fish", catTamedByFishTest)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(450);
 }
