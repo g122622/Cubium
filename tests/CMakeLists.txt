@@ -2428,7 +2428,20 @@ target_include_directories(mc_tests
 target_compile_definitions(mc_tests
     PRIVATE
         MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        # MC_SOURCE_ROOT：供 test_gametest_server.cpp 的 RealPackGameTestServerFixture 拼接
+        # tests/integrated 路径，与 minecraft-server 门面（src/server/CMakeLists.txt）保持一致，
+        # 使 gtest 进程内 GameTestServer 能加载仓库内集成行为包（无论运行时 CWD 如何）。
+        MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
 )
+
+# RealPackGameTestServerFixture 会加载 tests/integrated 行为包跑 JS 测试，须保证 .js 产物已编译。
+# 复用 src/server/CMakeLists.txt 的 add_custom_command 产出的 stamp（路径约定一致），
+# target_sources 拉入 stamp 即在构建 mc_tests 前先触发 build.mjs（.ts→.js），避免跑旧产物。
+set(_mc_tests_integrated_stamp "${CMAKE_BINARY_DIR}/tests/integrated/.build.stamp")
+if(EXISTS "${_mc_tests_integrated_stamp}" OR TARGET minecraft-server)
+    set_source_files_properties("${_mc_tests_integrated_stamp}" PROPERTIES GENERATED TRUE)
+    target_sources(mc_tests PRIVATE "${_mc_tests_integrated_stamp}")
+endif()
 
 mc_disable_all_warnings_for_tests(mc_tests)
 mc_copy_runtime_dlls(mc_tests)
