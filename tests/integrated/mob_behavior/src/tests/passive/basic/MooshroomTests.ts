@@ -24,6 +24,13 @@ function getMainHandAmount(player: any): number {
   return mainHand?.amount ?? 0;
 }
 
+// 玩家主手槽（slot 0）物品 typeId（空槽返回空串）。
+function getMainHandTypeId(player: any): string {
+  const inv = player.getComponent("minecraft:inventory") as any;
+  const mainHand = inv?.container?.getItem?.(0) as any;
+  return mainHand?.typeId ?? "";
+}
+
 // 遍历玩家背包所有槽位，统计指定 typeId 物品的总数量。
 // 用于蘑菇煲（maxStackSize=1）取汤后落非主手槽的断言——不能只查 slot 0。
 function countItemInInventory(player: any, typeId: string): number {
@@ -318,6 +325,75 @@ function mooshroomShearedByShearsBecomesCowTest(test: Test): void {
   });
 }
 
+// 棕色哞菇喂花存迷之炖菜效果 + 持空碗取迷之炖菜（wiki tech_哞菇.txt#迷之炖菜：棕色哞菇被喂食花朵
+// 后存储对应效果，再持空碗右键获得带该效果的迷之炖菜，消耗空碗）。
+//
+// C++ 链路（对齐 Java 1.21.11 Mooshroom，已逐段核查）：
+//   1) 红哞菇被闪电劈 → onStruckByLightning → setMooshroomType(Brown) 转棕色（见 mooshroomLightningConvert）。
+//   2) 玩家持花朵 interactWithEntity(棕哞菇) → MooshroomEntity::interactMob 分支2 `isBrown() &&
+//      _getStewEffectFromItem(heldItem).has_value()`（MooshroomEntity.cpp:226-228）命中。
+//   3) _getStewEffectFromItem（:289）：BlockItemRegistry 取花朵方块 → dynamic_cast<FlowerBlock*> →
+//      hasStewEffect() + getSuspiciousStewEffect() + getEffectDuration() 取效果（蒲公英 dandelion →
+//      Saturation 饱食，VegetationBlocks.cpp:120-122）。
+//   4) 未存效果时 setStewEffect(type, duration) 存储效果（:249），消耗1花朵（非创造 :244-246）。
+//   5) 玩家持空碗 interactWithEntity(棕哞菇) → interactMob 分支1 `item==BOWL && !isChild()`（:162）
+//      命中，hadStewEffect=true → stewStack=SUSPICIOUS_STEW + 写 NBT Effects（:171-187）+ clearStewEffect
+//      （:190）+ shrink(1) 空碗 + inventory.add(stew)。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）。三阶段时序：
+//   - tick 0：spawn 红哞菇 (3,2,1) + 闪电 (3,2,1) 同位劈（转棕，当 tick 完成转化）；
+//   - tick 20：玩家持 dandelion interactWithEntity（棕哞菇）存 Saturation 效果（消耗1花）；
+//   - tick 30：玩家持空碗 interactWithEntity 取迷之炖菜（消耗1碗+加 suspicious_stew）。
+// 玩家 (1,2,3) Survival，主手槽需在 tick 20 前换花、tick 30 前换碗（setItem 切换主手物品）。
+//
+// 判定手段：背包出现 minecraft:suspicious_stew ≥1（迷之炖菜，区别普通 mushroom_stew）。
+// 双重断言：主手空碗数量 1→0（消耗）+ 背包 suspicious_stew ≥1。
+// 注：迷之炖菜 maxStack=1 落非主手槽，遍历全背包（countItemInInventory）统计。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_哞菇.txt#迷之炖菜（棕哞菇喂花→空碗取迷之炖菜）
+function mooshroomFlowerStewTest(test: Test): void {
+  const mooshroomType = "mooshroom";
+  const suspiciousStewType = "minecraft:suspicious_stew";
+
+  // 红哞菇 (3,2,1) + 闪电同位劈（转棕）。闪电 ±3 XZ 命中范围覆盖 (3,2,1)。
+  const mooshroom = test.spawn(mooshroomType, { x: 3, y: 2, z: 1 });
+  test.spawn("lightning_bolt", { x: 3, y: 2, z: 1 });
+
+  // Survival 玩家 (1,2,3)。
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "stewChef", 0 as any);
+
+  // tick 20：闪电已转棕（mooshroomLightningConvert 用 runAtTickTime(20) 验证转化完成）。
+  // 玩家主手换 dandelion，interactWithEntity(棕哞菇) 存 Saturation 效果，消耗1花。
+  test.runAtTickTime(20, () => {
+    const flower = new ItemStack("minecraft:dandelion", 3);
+    player.setItem(flower as unknown as Parameters<typeof player.setItem>[0], 0, true);
+    (player as any).interactWithEntity(mooshroom);
+  });
+
+  // tick 30：玩家主手换空碗，interactWithEntity(棕哞菇) 取迷之炖菜，消耗1碗+加 suspicious_stew。
+  test.runAtTickTime(30, () => {
+    const bowl = new ItemStack("minecraft:bowl", 1);
+    player.setItem(bowl as unknown as Parameters<typeof player.setItem>[0], 0, true);
+    (player as any).interactWithEntity(mooshroom);
+  });
+
+  // 轮询双重断言：主手不再是空碗（消耗证据，取汤后碗 shrink，迷之炖菜 maxStack=1 可能落主手空槽
+  // 致主手 typeId 变 suspicious_stew，故断言 typeId !== bowl 而非 amount）+ 背包 suspicious_stew ≥1。
+  // startTick=32 取汤后 2 tick 查。maxTick=60 留余量。
+  pollUntilSucceed(test, () => {
+    if (getMainHandTypeId(player) === "minecraft:bowl") return false;
+    return countItemInInventory(player, suspiciousStewType) >= 1;
+  }, {
+    startTick: 32,
+    interval: 2,
+    maxTick: 60,
+    onTimeout: () => {
+      test.assert(false,
+        `mooshroom_flower_stew: failed: mainHandType=${getMainHandTypeId(player)} (expected != bowl) `
+        + `suspiciousStewInInv=${countItemInInventory(player, suspiciousStewType)} (expected >=1)`);
+    },
+  });
+}
+
 export function registerMooshroomTests(): void {
   GameTest.register("MobBehaviorTests", "mooshroom_lightning_convert", mooshroomLightningConvert)
     .structureName("gametests:creeper_pit")
@@ -334,4 +410,8 @@ export function registerMooshroomTests(): void {
   GameTest.register("MobBehaviorTests", "mooshroom_sheared_by_shears_becomes_cow", mooshroomShearedByShearsBecomesCowTest)
     .structureName("gametests:creeper_pit")
     .maxTicks(80);
+
+  GameTest.register("MobBehaviorTests", "mooshroom_flower_gives_suspicious_stew", mooshroomFlowerStewTest)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(120);
 }
