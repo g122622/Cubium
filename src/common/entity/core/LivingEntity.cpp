@@ -2617,9 +2617,24 @@ void LivingEntity::updateSpinAttack()
 
 bool LivingEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
 {
-    // 默认实现：所有效果都可应用
-    // 子类可重写此方法来免疫某些效果（如凋灵免疫凋零效果）
-    MC_UNUSED(effect);
+    // 对齐 MC Java 1.21.11 LivingEntity.canBeAffected（LivingEntity.java:1014-1024）。
+    // vanilla 用 EntityTypeTags 标签判定免疫：
+    //   - IGNORES_POISON_AND_REGEN（亡灵 13 种 + iron_golem）免疫 REGENERATION + POISON
+    //   - IMMUNE_TO_INFESTED 免疫 INFESTED；IMMUNE_TO_OOZING 免疫 OOZING
+    // Cubium EntityTypeTags::IGNORES_POISON_AND_REGEN 标签成员与 vanilla 完全一致
+    // （EntityTypeTags.cpp:629-645，13 亡灵 + iron_golem）。此处实现 Poison/Regen 免疫；
+    // INFESTED/OOZING 效果 Cubium 暂未实现，留 TODO 待效果就绪后补 IMMUNE_TO_* 标签判定。
+    //
+    // 亡灵免疫 Poison/Regen 是 vanilla 核心语义：亡灵被中毒效果不应扣血、被再生效果不应治疗。
+    // 此前 Cubium EffectManager::addEffect 不调 isPotionApplicable，亡灵会被中毒扣血——与 vanilla 相反。
+    if (EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(getTypeId())) {
+        if (effect.type() == entity::effect::EffectType::Poison ||
+            effect.type() == entity::effect::EffectType::Regeneration) {
+            return false;
+        }
+    }
+    // TODO: 对齐 vanilla IMMUNE_TO_INFESTED（免疫 INFESTED）/ IMMUNE_TO_OOZING（免疫 OOZING）标签判定，
+    //       待 Infested/Oozing 效果实现后补全（EntityTypeTags::IMMUNE_TO_INFESTED/IMMUNE_TO_OOZING 已定义）。
     return true;
 }
 

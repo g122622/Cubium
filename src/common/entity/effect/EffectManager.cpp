@@ -39,6 +39,19 @@ namespace effect {
 
 bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 {
+    // 效果免疫检查（对齐 MC Java 1.21.11 LivingEntity.forceAddEffect → canBeAffected）。
+    // isPotionApplicable 是 LivingEntity 虚函数，等价 vanilla canBeAffected：
+    //   - 基类默认免疫 IGNORES_POISON_AND_REGEN 标签实体（亡灵+铁傀儡）的 Poison/Regen
+    //     （LivingEntity::isPotionApplicable 实现，对齐 vanilla LivingEntity.canBeAffected:1014-1024）
+    //   - EnderDragon override 免疫所有药水（对齐 vanilla EnderDragon 全免疫）
+    //   - Wither override 免疫 Wither 效果（对齐 vanilla WitherBoss 免疫凋零）
+    // 返回 false 则该效果对该实体不适用，拒绝施加（vanilla forceAddEffect:1027 直接 return 不加入 activeEffects）。
+    // 注意：瞬间治疗/伤害对亡灵的反转走 isInvertedHealAndHarm（applyEffectTick 内判定），不在免疫集，
+    //       不会被此检查拒绝——亡灵仍会被施加瞬间效果，反转逻辑在 _applyEffect 内处理。
+    if (!entity.isPotionApplicable(effect)) {
+        return false;
+    }
+
     // 瞬间效果始终立即执行，不参与合并逻辑
     if (isInstantEffect(effect.type())) {
         // MC 原版行为: InstantenousMobEffect 在添加时立即触发一次，然后效果结束
