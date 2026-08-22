@@ -55,9 +55,12 @@
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
-#include "common/resource/ResourceLocation.hpp" // ResourceLocation::toString/parse（Block/ItemType typeId）
-#include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
-#include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
+#include "common/resource/ResourceLocation.hpp"      // ResourceLocation::toString/parse（Block/ItemType typeId）
+#include "common/scoreboard/core/Score.hpp"          // Score::getScorePoints（Objective.getScore 返回值）
+#include "common/scoreboard/core/ScoreObjective.hpp" // ScoreObjective（Objective JS 类 opaque 持此指针）
+#include "common/scoreboard/core/Scoreboard.hpp"     // Scoreboard::getObjective/getScore（Scoreboard JS 类）
+#include "common/util/AxisAlignedBB.hpp"             // Dimension.getEntities 构造查询包围盒
+#include "common/util/Direction.hpp" // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"              // Dimension JS 类 opaque 持 IWorld*
 #include "common/world/block/Block.hpp"         // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
@@ -334,6 +337,24 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ctx.createUndefined();
     });
 
+    // world.scoreboard：对齐基岩 world.scoreboard 只读属性，返回服务器 Scoreboard JS 对象。
+    // 经 ScriptWorldAccessor::getScoreboard() 取 ServerScoreboard*（向上转 Scoreboard 基类），
+    // wrap 成 Scoreboard JS 对象（owned=false，记分板由服务器管理，生命周期随服务器）。
+    // 供 GameTest JS 经 world.scoreboard.getObjective(name).getScore(participant) 读分数做断言。
+    worldReg.readonlyProperty("scoreboard", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        MC_UNUSED(thisVal);
+        auto* scoreboard = ScriptWorldAccessor::instance().getScoreboard();
+        if (scoreboard == nullptr) {
+            return ctx.createUndefined(); // 回调未注册（非服务器环境）
+        }
+        const u64 sbClassId = ScriptClassRegistry::instance().classIdByName("Scoreboard");
+        void* sbProto = ScriptClassRegistry::instance().proto(sbClassId);
+        if (sbProto == nullptr) {
+            return ctx.createUndefined(); // Scoreboard 类未注册
+        }
+        return ScriptObjectRegistry::wrap(ctx, sbClassId, sbProto, scoreboard, false, "Scoreboard");
+    });
+
     // --- Dimension类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。GameTest 单维度场景下维度即世界；
     // test.getDimension() 与 world.getDimension() 均 wrap 同一 IWorld*。getEntities 按基岩语义
@@ -576,6 +597,140 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 default:
                     return ctx.createString("");
             }
+        },
+        0);
+
+    // --- Scoreboard类 ---
+    // opaque 持 mc::scoreboard::Scoreboard*（非拥有，ServerScoreboard 由服务器管理）。world.scoreboard
+    // 属性 wrap 服务器记分板。getObjective/getObjectives 读目标，供 GameTest JS 验证 /scoreboard 命令
+    // 写入的分数。Cubium 的 score holder 是字符串名（ScoreboardCommand target 是裸字符串非选择器，
+    // 见 [[scoreboard-script-binding-and-command-tests]]），故 getScore/getParticipants 用字符串名索引。
+    u64 scoreboardClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* scoreboardProto = builder.exportClass("Scoreboard", scoreboardClassId);
+    ScriptClassRegistry::instance().registerClass(scoreboardClassId, scoreboardProto, "Scoreboard");
+
+    ClassRegistrar<void> scoreboardReg(ctx, scoreboardClassId, scoreboardProto);
+    scoreboardReg.method(
+        "getObjective",
+        [scoreboardClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* scoreboard =
+                static_cast<mc::scoreboard::Scoreboard*>(ScriptObjectRegistry::unwrap(ctx, thisVal, scoreboardClassId));
+            if (scoreboard == nullptr) {
+                return ctx.createUndefined();
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("scoreboard.getObjective requires a string argument");
+            }
+            auto nameOpt = ctx.toString(args[0]);
+            if (!nameOpt) {
+                return ctx.createUndefined();
+            }
+            auto* objective = scoreboard->getObjective(*nameOpt);
+            if (objective == nullptr) {
+                return ctx.createUndefined(); // 目标不存在
+            }
+            const u64 objClassId = ScriptClassRegistry::instance().classIdByName("Objective");
+            void* objProto = ScriptClassRegistry::instance().proto(objClassId);
+            if (objProto == nullptr) {
+                return ctx.createUndefined(); // Objective 类未注册
+            }
+            return ScriptObjectRegistry::wrap(ctx, objClassId, objProto, objective, false, "Objective");
+        },
+        1);
+    scoreboardReg.method(
+        "getObjectives",
+        [scoreboardClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* scoreboard =
+                static_cast<mc::scoreboard::Scoreboard*>(ScriptObjectRegistry::unwrap(ctx, thisVal, scoreboardClassId));
+            if (scoreboard == nullptr) {
+                return ctx.createArray();
+            }
+            const u64 objClassId = ScriptClassRegistry::instance().classIdByName("Objective");
+            void* objProto = ScriptClassRegistry::instance().proto(objClassId);
+            void* arr = ctx.createArray();
+            if (objProto == nullptr) {
+                return arr; // Objective 类未注册，返回空数组
+            }
+            u32 i = 0;
+            for (auto* objective : scoreboard->getObjectives()) {
+                void* objVal = ScriptObjectRegistry::wrap(ctx, objClassId, objProto, objective, false, "Objective");
+                ctx.setArrayElement(arr, i, objVal); // setArrayElement 内部 DupValue，仍须 releaseValue
+                ctx.releaseValue(objVal);
+                ++i;
+            }
+            return arr;
+        },
+        0);
+
+    // --- Objective类 ---
+    // opaque 持 mc::scoreboard::ScoreObjective*（非拥有，记分板管理生命周期）。getScore 读分数，
+    // getParticipants 读所有有分数的 holder 名，id/displayName 读目标元数据。getScore 返回 undefined
+    // 当该 holder 无分数（对齐基岩 Objective.getScore 返回 number|undefined）。
+    u64 objectiveClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* objectiveProto = builder.exportClass("Objective", objectiveClassId);
+    ScriptClassRegistry::instance().registerClass(objectiveClassId, objectiveProto, "Objective");
+
+    ClassRegistrar<void> objectiveReg(ctx, objectiveClassId, objectiveProto);
+    objectiveReg.readonlyProperty("id", [objectiveClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* objective =
+            static_cast<mc::scoreboard::ScoreObjective*>(ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
+        if (objective == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(objective->getName());
+    });
+    objectiveReg.readonlyProperty(
+        "displayName", [objectiveClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            // 对齐基岩 Objective.displayName：返回显示名纯文本（无格式码）。Cubium 的 getDisplayName
+            // 返回 ITextComponent*，取纯文本需经 Component flatten。TODO: 未接入 ITextComponent 纯文本
+            // 提取，当前用 name 兜底（/scoreboard objectives add 未指定显示名时 display==name，对测试足够）。
+            auto* objective = static_cast<mc::scoreboard::ScoreObjective*>(
+                ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
+            if (objective == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createString(objective->getName());
+        });
+    objectiveReg.method(
+        "getScore",
+        [objectiveClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* objective = static_cast<mc::scoreboard::ScoreObjective*>(
+                ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
+            if (objective == nullptr) {
+                return ctx.createUndefined();
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("objective.getScore requires a string argument");
+            }
+            auto nameOpt = ctx.toString(args[0]);
+            if (!nameOpt) {
+                return ctx.createUndefined();
+            }
+            auto* score = objective->getScoreboard().getScore(*nameOpt, *objective);
+            if (score == nullptr) {
+                return ctx.createUndefined(); // 该 holder 无分数
+            }
+            return ctx.createInt32(score->getScorePoints());
+        },
+        1);
+    objectiveReg.method(
+        "getParticipants",
+        [objectiveClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            // 对齐基岩 Objective.getParticipants：返回该目标所有有分数的 holder 名数组。
+            // Cubium 的 Scoreboard::getSortedScores(objective) 返回该目标的 Score* 列表，
+            // 经 Score::getPlayerName() 取 holder 名。
+            auto* objective = static_cast<mc::scoreboard::ScoreObjective*>(
+                ScriptObjectRegistry::unwrap(ctx, thisVal, objectiveClassId));
+            if (objective == nullptr) {
+                return ctx.createArray();
+            }
+            void* arr = ctx.createArray();
+            u32 i = 0;
+            for (auto* score : objective->getScoreboard().getSortedScores(*objective)) {
+                ctx.setArrayElementString(arr, i, score->getPlayerName());
+                ++i;
+            }
+            return arr;
         },
         0);
 

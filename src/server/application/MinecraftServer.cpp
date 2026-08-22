@@ -51,6 +51,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp" // ScoreCriteriaRegistry::registerBuiltinCriteria（服务端记分板判据注册）
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/TimeUtils.hpp"
@@ -477,6 +478,13 @@ void MinecraftServer::initializeCoreManagers()
 
     // 创建记分板
     m_scoreboard = std::make_unique<ServerScoreboard>(*this);
+
+    // 注册记分板内置判据（dummy/trigger/deathCount 等）。/scoreboard objectives add <name> <criteria>
+    // 与脚本 addObjective 需经 ScoreCriteriaRegistry 取判据实例，未注册则 getCriteria("dummy")
+    // 返回 nullptr 致命令静默失败。判据实例由 registry 单例持有，幂等注册安全。
+    // 对齐客户端 ClientApplicationBootstrap.cpp:198 的对称注册（服务端此前缺失，GameTestServer
+    // 纯服务端无客户端初始化路径，致判据未注册）。
+    mc::scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
 
     // 创建 Boss 栏管理器
     m_bossBarManager = std::make_unique<CustomServerBossInfoManager>(*this);

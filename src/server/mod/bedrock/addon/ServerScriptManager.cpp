@@ -32,6 +32,7 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 
 #include <memory>
 #include <string>
@@ -210,6 +211,10 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         auto* dim = server->dimensionManager().getDimension(dimId);
         return dim != nullptr ? dim->world() : nullptr; // ServerWorld* -> IWorld*
     });
+
+    // 桥接 world.scoreboard 到服务器 ServerScoreboard（向上转为 Scoreboard 基类指针）。
+    // 供 GameTest JS 经 world.scoreboard.getObjective(name).getScore(participant) 读取分数做断言。
+    accessor.setGetScoreboardCallback([server]() -> mc::scoreboard::Scoreboard* { return &server->scoreboard(); });
 
     spdlog::info("[Server] ScriptWorldAccessor bridged to MinecraftServer");
 }

@@ -17,6 +17,7 @@ import { registerTagTests } from "./tests/player/TagTests.js";
 import { registerDifficultyTests } from "./tests/world/DifficultyTests.js";
 import { registerAttributeTests } from "./tests/player/AttributeTests.js";
 import { registerReplaceItemTests } from "./tests/player/ReplaceItemTests.js";
+import { registerScoreboardTests } from "./tests/player/ScoreboardTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -35,3 +36,4 @@ registerTagTests();
 registerDifficultyTests();
 registerAttributeTests();
 registerReplaceItemTests();
+registerScoreboardTests();

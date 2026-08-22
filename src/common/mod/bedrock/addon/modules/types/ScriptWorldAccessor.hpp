@@ -10,6 +10,10 @@ namespace mc {
 
 class IWorld; // 前向声明：getDimension 返回 IWorld*，仅需不完整类型
 
+namespace scoreboard {
+class Scoreboard; // 前向声明：getScoreboard 返回 Scoreboard*，仅需不完整类型
+} // namespace scoreboard
+
 namespace mod::bedrock::addon {
 
 /**
@@ -53,6 +57,15 @@ public:
     [[nodiscard]] mc::IWorld* getDimension(const std::string& dimensionId);
 
     /**
+     * @brief 获取服务器记分板（ServerScoreboard，向上转为 Scoreboard 基类指针）。
+     *
+     * 供 world.scoreboard 脚本属性读取记分板，使 GameTest JS 能查询 objective/score 做断言。
+     * GameTest 单服务器场景下记分板全局唯一。
+     * @return 记分板指针；回调未注册返回 nullptr
+     */
+    [[nodiscard]] mc::scoreboard::Scoreboard* getScoreboard();
+
+    /**
      * @brief 设置消息发送回调
      * @param callback 回调函数
      */
@@ -76,6 +89,12 @@ public:
      */
     void setGetDimensionCallback(std::function<mc::IWorld*(const std::string&)> callback);
 
+    /**
+     * @brief 设置获取记分板回调
+     * @param callback 回调函数（返回服务器 Scoreboard*，无则 nullptr）
+     */
+    void setGetScoreboardCallback(std::function<mc::scoreboard::Scoreboard*()> callback);
+
 private:
     ScriptWorldAccessor() noexcept = default;
 
@@ -83,6 +102,7 @@ private:
     std::function<std::vector<std::string>()> m_getPlayerNamesCallback;
     std::function<u64()> m_currentTickCallback;
     std::function<mc::IWorld*(const std::string&)> m_getDimensionCallback;
+    std::function<mc::scoreboard::Scoreboard*()> m_getScoreboardCallback;
 };
 
 } // namespace mod::bedrock::addon

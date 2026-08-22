@@ -71,6 +71,14 @@ mc::IWorld* ScriptWorldAccessor::getDimension(const std::string& dimensionId)
     return nullptr;
 }
 
+mc::scoreboard::Scoreboard* ScriptWorldAccessor::getScoreboard()
+{
+    if (m_getScoreboardCallback) {
+        return m_getScoreboardCallback();
+    }
+    return nullptr;
+}
+
 void ScriptWorldAccessor::setMessageCallback(std::function<void(const std::string&)> callback)
 {
     m_messageCallback = std::move(callback);
@@ -89,6 +97,11 @@ void ScriptWorldAccessor::setCurrentTickCallback(std::function<u64()> callback)
 void ScriptWorldAccessor::setGetDimensionCallback(std::function<mc::IWorld*(const std::string&)> callback)
 {
     m_getDimensionCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetScoreboardCallback(std::function<mc::scoreboard::Scoreboard*()> callback)
+{
+    m_getScoreboardCallback = std::move(callback);
 }
 
 } // namespace mc::mod::bedrock::addon
