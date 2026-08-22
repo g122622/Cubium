@@ -138,11 +138,11 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
   fillBlock(test, "minecraft:water", 3, 1, 3, 3, 3, 3);
 
   // 美西螈 spawn (3,2,3) 水中。玩家 (1,2,3) 围栏外，隔玻璃墙攻击水中美西螈。
-  // gameMode 传 0：ScriptTestHelper.cpp:545 有 `if (gm)` 陷阱——gm=0(Survival) 被当"未提供"，
-  //   实际 gameMode 保持默认 Creative。但 Player::attack 无 Creative 早返回（仅 isSpectator 早返回，
-  //   Player.cpp:2512），Creative 玩家攻击正常走 hurt 链路，ATTACK_DAMAGE 默认值 1.0（无 Creative 加成
-  //   修饰符，仅交互距离有加成），与 Survival 一致，能正常触发 hurt 装死分支。
-  //   对齐 WitherTests.js 同款 `spawnSimulatedPlayer(pos,name,0)` 范式（5/5 稳定）。
+  // gameMode 传 0：ScriptTestHelper.cpp:543-548 `auto gm = ctx.toInt32(args[idx])` 返回 std::optional<i32>，
+  //   `if (gm)` 检查 optional 是否有值（engaged），**不是检查值是否为 0**。传 0 时 optional 有值（值为 0），
+  //   `if (gm)` 为 true → `gameMode = GameMode(0) = Survival`。故传 0 正确得到 Survival 玩家（非 Creative）。
+  //   Survival 玩家空手 Player::attack 走 hurt 链路（无 Creative 早返回，仅 isSpectator 早返回 Player.cpp:2512），
+  //   ATTACK_DAMAGE 默认 1.0 无 Creative 加成（仅交互距离有加成），能正常触发 hurt 装死分支。
   const axolotl = test.spawn(axolotlType, { x: 3, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "axolotlAttacker", 0 as any);
 

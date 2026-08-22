@@ -4,6 +4,7 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
+import { fillBlock } from "../../../utils/block/build.js";
 
 // creeper_pit 结构尺寸（7×5×7），helper 相对坐标 x,z∈[0,6], y∈[0,4]。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -208,12 +209,105 @@ function dolphinFedFishSetsGotFish(test: Test): void {
   });
 }
 
+// 海豚跟随游泳玩家并给予"海豚的恩惠"效果（wiki tech_海豚.txt#行为：玩家在水中游泳时，
+// 海豚会游到玩家身边并给予海豚的恩惠效果，提升玩家游泳速度）。
+//
+// C++ 链路（对齐 Java 1.21.11 Dolphin SwimWithPlayerGoal，DolphinGoals.cpp:397-520）：
+//   1) 玩家在水中眼睛浸没 → Player::isActualSwimming（Player.cpp:2118-2123）
+//      areEyesInWater() && isInWater() && !flying 返回 true → updateSwimming（Player.cpp:2125-2141，
+//      每 tick 调）setSwimming(isActualSwimming()) 设 m_isSwimming=true + Swimming flag + Pose。
+//      **Cubium 简化**：vanilla Java isSwimming 还需 isSprinting && !isPassenger，Cubium 仅查
+//      眼睛浸水（无需冲刺键），测试利好——SimulatedPlayer 不需模拟冲刺输入。
+//   2) 海豚 SwimWithPlayerGoal::shouldExecute（DolphinGoals.cpp:405-409）调 _findSwimmingPlayer
+//      （:477-520）：getEntitiesInRange(SEARCH_RADIUS=10) 内找 Player && isSwimming() && 非攻击目标。
+//      玩家 m_isSwimming=true → 命中 → shouldExecute 返回 true。
+//   3) startExecuting（:425-437）：m_targetPlayer->addEffect(DolphinsGrace, EFFECT_DURATION=100, 0, ...)。
+//      DolphinsGrace 持续 100 tick（5 秒）。tick（:445-475）每 EFFECT_INTERVAL=6 tick 刷新一次效果。
+//
+// goal 抢占核查（DolphinEntity.cpp:315-345 registerGoals）：
+//   优先级0 SwimGoal flag={Jump}（SwimGoal.cpp:39）——不占 Move；shouldExecute 需 fluidHeight>eyeHeight
+//     （完全淹没才上浮），不持续抢占。
+//   优先级0 FindWaterGoal 无 flag（FindWaterGoal.cpp:61 注释"不 setFlags"）+ shouldContinueExecuting 恒 false
+//     （一次性）——不占 Move。
+//   优先级1 SwimToTreasureGoal shouldExecute 需 hasGotFish()——海豚未喂鱼不触发，不抢占。
+//   故 SwimWithPlayerGoal（优先级2，flag={Move,Look}）的 Move flag 空闲，可正常启动。✓
+//
+// 环境选择：creeper_pit（7×5×7）。构造水池让玩家眼睛浸没触发 isSwimming：
+//   玻璃围栏（2..4, 1..4, 2..4）四面墙围 3×3 内空，内填水 (2..4, 2..4, 2..4) 三层水源（y=2,3,4）。
+//   水柱四面玻璃封闭 + 底部 grass_block（helper-y=1）支撑，水源稳定不流动。
+//   海豚 (2,2,3) 水中、Survival 玩家 (4,2,3) 水中，水平距 2 格 < SEARCH_RADIUS=10。
+//   玩家脚踩 helper-y=1 grass_block，身体 y=2..3.8，眼睛 y≈3.62 在 helper-y=3 水层中 → areEyesInWater=true
+//   → isActualSwimming=true → m_isSwimming=true。
+//   水柱高 3 层（y=2,3,4），玩家即使受浮力上浮，眼睛仍在 y=3/4 水层中保持浸没（上浮 ~1.6 格才让眼睛
+//   到 y=4 水面，需数十 tick），首 tick（tick 1）updateSwimming 即设 isSwimming=true，goal 启动加效果。
+//
+// 玩家溺水时序：Survival 玩家眼睛浸没消耗 air（maxAir=300），air 耗尽后溺水伤害。但 startExecuting
+//   在 goal 首 tick（约 tick 1-2）即加 DolphinsGrace 100 tick，判定 getEffect 在 tick 2-10 抓到，
+//   maxTicks=100 << 300 溺水线，玩家不溺水死亡。判定用持久效果状态（duration 100 tick），不依赖
+//   玩家持续游泳——即使玩家后续上浮 isSwimming 变 false，效果仍在。
+//
+// 判定手段：succeedWhen 每 tick 检查玩家 getEffect("dolphins_grace") 非空（对齐 PufferfishTests/AxolotlTests
+//   getEffect 范式）。区域限定查玩家排除并行测试污染。DolphinsGrace duration 100 tick，succeedWhen 必抓到。
+//   非确定性：依赖玩家 isSwimming 持续到 goal 启动（tick 1-2），水柱 3 层保证眼睛浸没窗口足够。
+//   玩家用 Survival（gameMode=0，0 as any；toInt32 返回 optional，if(gm) 检查 optional 有值非值=0，
+//   传 0 正确得 Survival——区别 Creative 不影响本测试但 Survival 更贴合 vanilla 语义）。
+// Ref: DolphinGoals.cpp:397-437（SwimWithPlayerGoal shouldExecute/startExecuting addEffect）
+// Ref: Player.cpp:2118-2141（isActualSwimming + updateSwimming）
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_海豚.txt#行为（游泳玩家获海豚的恩惠）
+function dolphinGrantsDolphinsGraceToSwimmingPlayer(test: Test): void {
+  const dolphinType = "dolphin";
+
+  // 5×5 玻璃围栏（x=1..5, z=1..5）四面墙围 3×3 内空（2..4,*,2..4）：困住海豚+玩家于水池内，防游走出 SEARCH_RADIUS。
+  // 围栏高 4 格（y=1..4）防跳出。先填玻璃墙（外围 5×5），再填水（内圈 3×3）。
+  for (let y = 1; y <= 4; y++) {
+    // z=1 与 z=5 端面：x=1..5 全填玻璃。
+    for (let x = 1; x <= 5; x++) {
+      test.setBlockType("minecraft:glass", { x, y, z: 1 });
+      test.setBlockType("minecraft:glass", { x, y, z: 5 });
+    }
+    // x=1 与 x=5 侧面：z=2..4 填玻璃（角柱已由端面填）。
+    for (let z = 2; z <= 4; z++) {
+      test.setBlockType("minecraft:glass", { x: 1, y, z });
+      test.setBlockType("minecraft:glass", { x: 5, y, z });
+    }
+  }
+  // 围栏内 (2..4, 2..4, 2..4) 填水（3×3 三层水源 y=2,3,4），底部 helper-y=1 grass_block 支撑。
+  // 水池四面玻璃封闭，水源稳定不流动。玩家眼睛 y≈3.62 在 y=3 水层浸没触发 isSwimming。
+  fillBlock(test, "minecraft:water", 2, 2, 2, 4, 4, 4);
+
+  // 海豚 (2,2,3) 水中、Survival 玩家 (4,2,3) 水中，水平距 2 格 < SEARCH_RADIUS=10。
+  // 玩家眼睛浸没 y=3 水层 → isActualSwimming=true → m_isSwimming=true。
+  test.spawn(dolphinType, { x: 2, y: 2, z: 3 });
+  test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "swimmer", 0 as any);
+
+  // 断言玩家获得海豚的恩惠：succeedWhen 每 tick 检查 getEffect("dolphins_grace") 非空。
+  // 时序：玩家 spawn 水中(tick 0) → tick 1 updateSwimming 设 isSwimming=true →
+  //   SwimWithPlayerGoal::shouldExecute 找到游泳玩家 → startExecuting addEffect(DolphinsGrace,100)。
+  //   判定 getEffect 非空约 tick 2-5。DolphinsGrace duration 100 tick，succeedWhen 必抓到。
+  // 区域限定查玩家排除并行测试污染；type 用 "minecraft:player"。
+  test.succeedWhen(() => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared before gaining dolphins_grace");
+    const grace = (players[0] as any).getEffect("dolphins_grace");
+    test.assert(grace !== undefined,
+      `dolphin did not grant dolphins_grace to swimming player, grace=${grace}`);
+  });
+}
+
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
     .maxTicks(450);
 
   GameTest.register("MobBehaviorTests", "dolphin_fed_fish_sets_got_fish", dolphinFedFishSetsGotFish)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "dolphin_grants_dolphins_grace_to_swimming_player", dolphinGrantsDolphinsGraceToSwimmingPlayer)
     .structureName("gametests:creeper_pit")
     .maxTicks(200);
 }
