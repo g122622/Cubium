@@ -281,8 +281,77 @@ public:
      * @brief 掉落经验
      *
      * 在死亡时调用，生成经验球。子类可以重写此方法。
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropExperience（LivingEntity.java:1498-1506）：
+     * vanilla 基类 dropExperience 内部带守卫——仅当 !wasExperienceConsumed() 且
+     * (isAlwaysExperienceDropper() 或 (lastHurtByPlayerMemoryTime>0 && shouldDropExperience()
+     * && doMobLoot)) 时才掉经验。Cubium 基类 dropExperience 为空，守卫由 MobEntity 子类
+     * override 时自行调用 shouldDropExperienceOnDeath() 判定（见 MobEntity::dropExperience）。
      */
     virtual void dropExperience() {}
+
+    /**
+     * @brief 是否应当掉落经验（前置条件之一）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.shouldDropExperience（LivingEntity.java:563-565）：
+     * `!isBaby()`。Cubium 用 isChild() 等价 vanilla isBaby()（幼体生物不掉经验）。
+     */
+    [[nodiscard]] virtual bool shouldDropExperience() const { return !isChild(); }
+
+    /**
+     * @brief 是否为"常掉经验"实体（不受玩家击杀/doMobLoot 约束）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.isAlwaysExperienceDropper（LivingEntity.java:595-597）：
+     * 默认 false。Player override 返 true（玩家死亡无条件掉经验），末影龙等同理。
+     * Cubium Player/EnderDragon 各自 override dropExperience 直接掉落（等价 isAlwaysExperienceDropper=true），
+     * 故此处基类默认 false 供普通 Mob 守卫使用。
+     */
+    [[nodiscard]] virtual bool isAlwaysExperienceDropper() const { return false; }
+
+    /**
+     * @brief 经验是否已被消费（防重复掉落）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.wasExperienceConsumed（LivingEntity.java:1643-1645）：
+     * 返回 skipDropExperience 标志。死亡链路只触发一次，影响极小，主要用于防异常重复调用。
+     */
+    [[nodiscard]] bool wasExperienceConsumed() const { return m_skipDropExperience; }
+
+    /**
+     * @brief 标记经验已掉落，阻止后续重复掉落
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.skipDropExperience（LivingEntity.java:1639-1641）。
+     */
+    void skipDropExperience() { m_skipDropExperience = true; }
+
+    /**
+     * @brief 综合判定死亡时是否应掉落经验（MobEntity::dropExperience 守卫用）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropExperience 守卫（LivingEntity.java:1499-1503）：
+     * `!wasExperienceConsumed() && (isAlwaysExperienceDropper() ||
+     *   (lastHurtByPlayerMemoryTime() > 0 && shouldDropExperience() && doMobLoot))`。
+     * 普通生物（isAlwaysExperienceDropper=false）需被玩家伤害过且 doMobLoot=true 才掉经验；
+     * 常掉经验实体（Player/末影龙）无条件掉。
+     *
+     * @param world 世界引用（用于读取 doMobLoot gamerule）
+     */
+    [[nodiscard]] bool shouldDropExperienceOnDeath(IWorld& world) const;
+
+    /**
+     * @brief 获取"最近被玩家伤害"记忆时间（tick）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.lastHurtByPlayerMemoryTime（LivingEntity.java:231）：
+     * 受玩家伤害时设为 100，每 tick 递减，归零表示玩家伤害记忆失效。
+     * 普通生物需此值>0 才掉经验（vanilla dropExperience 守卫）。
+     */
+    [[nodiscard]] i32 lastHurtByPlayerMemoryTime() const { return m_lastHurtByPlayerMemoryTime; }
+
+    /**
+     * @brief 设置"最近被玩家伤害"记忆时间（受玩家伤害时调用，置 100）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.setLastHurtByPlayer（LivingEntity.java:616-626）：
+     * 受玩家直接伤害（或驯服狼代攻）时设为 100 tick 记忆窗口。
+     */
+    void setLastHurtByPlayerMemoryTime(i32 time) { m_lastHurtByPlayerMemoryTime = time; }
 
     /**
      * @brief 死亡时掉落全部战利品（物品 + 装备 + 经验）
@@ -293,7 +362,8 @@ public:
      *      调 dropFromLootTable（实体掉落表生成物品）+ dropCustomDeathLoot（自定义掉落）。
      *   2. dropEquipment（装备掉落，在守卫之外，不受 doMobLoot 影响）。
      *   3. dropExperience（经验掉落，在守卫之外，但 dropExperience 内部对齐 vanilla
-     *      还应查 doMobLoot——当前实现未查，为已知偏差，见 dropExperience TODO）。
+     *      自带守卫——普通生物需被玩家伤害过 + doMobLoot=true 才掉经验，由
+     *      shouldDropExperienceOnDeath 判定；Player/EnderDragon 常掉经验实体无条件掉）。
      *
      * @param cause 死亡伤害来源（含击杀者溯源信息，用于掉落表条件判定）
      */
@@ -1846,6 +1916,12 @@ protected:
     i32 m_lastHurtByTimestamp = 0;            // 被攻击时间戳
     LivingEntity* m_lastHurtTarget = nullptr; // 该实体最近攻击的目标
     i32 m_lastHurtTargetTimestamp = 0;        // 攻击目标时间戳
+
+    // 最近被玩家伤害的记忆时间（对齐 vanilla lastHurtByPlayerMemoryTime，LivingEntity.java:231）。
+    // 受玩家伤害时设为 100，每 tick 递减；普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。
+    i32 m_lastHurtByPlayerMemoryTime = 0;
+    // 经验是否已被消费（防重复掉落，对齐 vanilla skipDropExperience，LivingEntity.java:1639-1645）。
+    bool m_skipDropExperience = false;
 
     // 最近攻击
     i32 m_ticksSinceLastSwing = 0; // 上次攻击后的 tick

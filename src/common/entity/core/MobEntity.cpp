@@ -429,11 +429,22 @@ void MobEntity::playHurtSound(DamageSource& source)
 
 void MobEntity::dropExperience()
 {
-    // 如果有经验值，生成经验球
-    if (m_experienceValue > 0 && m_world) {
-        math::Random& rng = getRandom();
-        entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
+    // 对齐 MC Java 1.21.11 LivingEntity.dropExperience 守卫（LivingEntity.java:1498-1506）：
+    // 普通生物死亡需 !wasExperienceConsumed && (isAlwaysExperienceDropper ||
+    // (lastHurtByPlayerMemoryTime>0 && shouldDropExperience && doMobLoot)) 才掉经验。
+    // MobEntity isAlwaysExperienceDropper 默认 false，故需被玩家伤害过 + doMobLoot=true。
+    // 修复前 MobEntity::dropExperience 不查守卫直接掉落，致 test.kill（虚空伤害无玩家来源）
+    // 的普通生物仍掉经验球、doMobLoot=false 时仍掉经验球——与 vanilla 偏差。
+    if (m_experienceValue <= 0 || m_world == nullptr) {
+        return;
     }
+    if (!shouldDropExperienceOnDeath(*m_world)) {
+        return;
+    }
+    // 标记经验已消费，防异常重复掉落（对齐 vanilla skipDropExperience，LivingEntity.java:1639）。
+    skipDropExperience();
+    math::Random& rng = getRandom();
+    entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
 }
 
 std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment(const std::function<bool(const ItemStack&)>& predicate)

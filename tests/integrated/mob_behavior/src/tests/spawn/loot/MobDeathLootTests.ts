@@ -25,8 +25,10 @@
 //      cow 死亡不掉任何 item（beef 也不掉）。确定性负向断言（item==0）。doMobLoot 是世界级单例
 //      状态，独占 batch 串行 + runOnFinish 恢复 true（同 gametest-world-state-gamerule 隔离范式）。
 //
-// 注：经验掉落（dropExperience）不受 doMobLoot 守卫（vanilla 在守卫外），故 doMobLoot=false 时
-// 经验球仍掉落——本测试只断言 item 实体，不断言经验球，故不受影响。
+// 注：经验掉落（dropExperience）受 doMobLoot 守卫（vanilla dropExperience 内部查 MOB_DROPS，
+// LivingEntity.java:1499-1503；Cubium 已对齐，见 MobDeathXpTests），故 doMobLoot=false 时经验球也不掉。
+// 但本测试只断言 item 实体（type:"minecraft:item"），经验球是 type:"minecraft:experience_orb"
+// 不计入 item 计数，故经验掉落是否受守卫均不影响本测试的 item 断言。
 //
 // className 恒为 MobBehaviorTests（对齐 mob_behavior 包约定）。
 // Ref: LivingEntity.cpp dropAllDeathLoot/shouldDropLoot/dropFromLootTable（本次补齐）
@@ -126,8 +128,9 @@ function zombieDropsItemsOnDeath(test: Test): void {
 // doMobLoot=false 时 shouldDropLoot 返 false，dropAllDeathLoot 跳过 dropFromLootTable，
 // cow 死亡不掉任何 item（即使 beef 必掉也被守卫拦截）。确定性负向断言（item==0）。
 //
-// 经验掉落不受 doMobLoot（vanilla 在守卫外），doMobLoot=false 时经验球仍掉——但本测试只断言
-// item 实体，经验球是 xp_orb 类型不计入 type:"item"，故不受影响。
+// 经验掉落也受 doMobLoot 守卫（vanilla dropExperience 内部查 MOB_DROPS，Cubium 已对齐，
+// 见 MobDeathXpTests），doMobLoot=false 时经验球不掉。但本测试只断言 item 实体，经验球是
+// type:"minecraft:experience_orb" 不计入 type:"item"，故经验掉落是否受守卫均不影响 item 断言。
 //
 // 【并行污染隔离】doMobLoot 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动
 // 重置，设 false 会污染同批依赖 mob 掉落的测试（cow_drops/zombie_drops 的 item 断言）。故独占

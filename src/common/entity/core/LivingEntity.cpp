@@ -371,6 +371,13 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
         if (attacker != nullptr) {
             setLastHurtBy(attacker);
         }
+        // 对齐 MC Java 1.21.11 LivingEntity.resolvePlayerResponsibleForDamage
+        // （LivingEntity.java:1334-1348）：受玩家直接伤害时记录 100 tick 记忆窗口，
+        // 用于死亡时经验掉落守卫（普通生物需被玩家伤害过才掉经验，见 dropExperience）。
+        // TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
+        if (dynamic_cast<Player*>(attacker) != nullptr) {
+            setLastHurtByPlayerMemoryTime(100);
+        }
     }
 
     // 9. 触发荆棘附魔（对攻击者造成反伤）
@@ -548,9 +555,12 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     //          由 Player 子类逻辑处理，普通生物的装备掉落链路待实现。
     // dropEquipment(*m_world);
 
-    // 3. 经验掉落（在守卫之外，但 vanilla dropExperience 内部还查 doMobLoot——
-    //    仅当 lastHurtByPlayerMemoryTime > 0 时才掉经验且受 doMobLoot 约束）。
-    //    Cubium MobEntity::dropExperience 不查 doMobLoot 直接掉落，为已知偏差（见其 TODO）。
+    // 3. 经验掉落（在守卫之外，但 vanilla dropExperience 内部自带守卫——仅当
+    //    !wasExperienceConsumed() && (isAlwaysExperienceDropper() ||
+    //    (lastHurtByPlayerMemoryTime>0 && shouldDropExperience() && doMobLoot)) 时才掉经验）。
+    //    Cubium MobEntity::dropExperience 已对齐此守卫（见 shouldDropExperienceOnDeath）。
+    //    Player/EnderDragon override dropExperience 直接掉落（等价 isAlwaysExperienceDropper=true，
+    //    不受守卫约束）。基类 dropExperience 为空。
     dropExperience();
 }
 
@@ -562,6 +572,24 @@ bool LivingEntity::shouldDropLoot(IWorld& world) const
     // 子类 override 返回幼体状态）。MOB_DROPS 即 doMobLoot gamerule（默认 true）。
     // 幼体生物（isChild）死亡不掉落战利品物品，对齐 vanilla。
     return !isChild() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT);
+}
+
+bool LivingEntity::shouldDropExperienceOnDeath(IWorld& world) const
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.dropExperience 守卫（LivingEntity.java:1499-1503）：
+    // `!wasExperienceConsumed() && (isAlwaysExperienceDropper() ||
+    //   (lastHurtByPlayerMemoryTime > 0 && shouldDropExperience() && MOB_DROPS))`。
+    // 普通生物（isAlwaysExperienceDropper=false）需被玩家伤害过（lastHurtByPlayerMemoryTime>0）
+    // 且非幼体（shouldDropExperience）且 doMobLoot=true 才掉经验；常掉经验实体无条件掉。
+    // 由 MobEntity::dropExperience 调用判定。
+    if (wasExperienceConsumed()) {
+        return false;
+    }
+    if (isAlwaysExperienceDropper()) {
+        return true;
+    }
+    return m_lastHurtByPlayerMemoryTime > 0 && shouldDropExperience() &&
+        world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT);
 }
 
 void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlayer)
@@ -1064,6 +1092,12 @@ void LivingEntity::tick()
     // 更新无敌帧计时器
     if (m_hurtResistantTime > 0) {
         m_hurtResistantTime--;
+    }
+
+    // 递减"最近被玩家伤害"记忆时间（对齐 vanilla LivingEntity.aiStep:466-470）。
+    // 归零后玩家伤害记忆失效，影响死亡经验掉落守卫（普通生物需此值>0 才掉经验）。
+    if (m_lastHurtByPlayerMemoryTime > 0) {
+        m_lastHurtByPlayerMemoryTime--;
     }
 
     // 更新受伤动画计时器
