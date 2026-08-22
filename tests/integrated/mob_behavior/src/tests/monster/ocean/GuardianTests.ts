@@ -90,6 +90,69 @@ function guardianDoesNotBurnInDaylight(test: Test): void {
   });
 }
 
+// 守卫者激光攻击鱿鱼（wiki tech_守卫者.txt#攻击：守卫者会主动攻击约 16 格激光射程内的玩家、
+// 鱿鱼、发光鱿鱼和美西螈）。
+//
+// C++ 链路：GuardianEntity registerGoals（GuardianEntity.cpp:130-163）targetSelector 优先级1
+//   NearestAttackableTargetGoal<LivingEntity>(checkSight=true, chance=10)，谓词（:135-162）：
+//     类型筛选 isPlayer||isSquid（:142-146）——**鱿鱼分支 isSquid（:143）放行鱿鱼，无 Creative/
+//     Spectator 检查（鱿鱼非玩家不走 :149-154 玩家特殊分支）**；距离筛选 distSq>9.0（>3 格，:157-160）。
+//   GuardianAttackGoal::tick（GuardianAttackGoal.cpp）m_tickCounter 从 -10 递增到 80（ATTACK_DURATION），
+//   到 80 时结算：先 magic() LASER_DAMAGE(4.0) 魔法伤害，再 mobAttack() ATTACK_DAMAGE(4.0) 物理伤害。
+//   完整周期约 90 tick（10 准备 + 80 充能），激光确定性命中无散布。
+//   注：谓词只放行 SQUID，**未放行 GLOW_SQUID/AXOLOTL**（与 wiki 列举的发光鱿鱼/美西螈不符，对齐缺陷，
+//   留待后续对齐任务）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，NearestAttackableTarget checkSight 射线不被玻璃阻挡。
+//   守卫者(2,2,3) 脚下 (2,1,3) 玻璃支撑（MonsterEntity 受重力下落）；鱿鱼(6,2,3) 脚下 (6,1,3) 玻璃。
+//   水平距 4 格，distSq=16 > 9（走激光分支）且 < FOLLOW_RANGE=16（搜索范围内）。鱿鱼陆地"无法移动"
+//   位置固定，守卫者激光远射程无需寻路接近。
+//
+// 鱿鱼陆地窒息时序（关键约束，照搬 axolotlAttacksSquid 范式）：鱿鱼 : WaterMobEntity，
+//   updateAirSupply 陆地 air-1，air<=-20 时 hurt(drown,2.0)。鱿鱼 maxAir=300，首窒息在 ~320 tick
+//   （air 300→0 耗 300 tick + 0→-20 再 20 tick，见 SquidTests 同款链路）。激光周期 ~90 tick + 选目标
+//   chance=10 tick，首击应在 ~100-120 tick。**maxTicks=300 < 320**——确保测试窗口内鱿鱼窒息尚未触发，
+//   掉血只能来自守卫者激光，断言纯粹验证 isSquid 谓词分支 + 激光链路。
+//
+// 判定手段：succeedWhen 每 tick 检查鱿鱼 HP<10（满血 10，激光双段 4+4=8 命中后 10→2）或鱿鱼已死亡消失
+//   （length==0，被多击杀死）。激光确定性命中（无散布），掉血断言稳定。区域限定查鱿鱼排除并行测试污染。
+//   不需 Survival 玩家（鱿鱼非玩家，谓词不过滤游戏模式），无需 spawn 玩家。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（激光攻击鱿鱼/发光鱿鱼/美西螈）
+function guardianLaserDamagesSquid(test: Test): void {
+  const guardianType = "guardian";
+  const squidType = "squid";
+
+  // 守卫者 (2,2,3)、鱿鱼 (6,2,3)，水平距 4 格，同处结构 y=2 层。
+  // 守卫者脚下 (2,1,3) 玻璃支撑（受重力下落）；鱿鱼脚下 (6,1,3) 玻璃。
+  // 距离 4 格 >3（满足谓词 distSq=16>9）且 <16（FOLLOW_RANGE 搜索范围内）。
+  // creeper_pit 开放坑无围墙，checkSight 射线不被阻挡。
+  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 6, y: 1, z: 3 });
+  test.spawn(guardianType, { x: 2, y: 2, z: 3 });
+  test.spawn(squidType, { x: 6, y: 2, z: 3 });
+
+  // 断言鱿鱼掉血：succeedWhen 每 tick 检查鱿鱼 HP<10 或已死亡消失。
+  // 时序：NearestAttackableTarget isSquid 谓词选鱿鱼(chance=10tick) + GuardianAttackGoal 准备 10 tick
+  //   + 充能 80 tick + 结算双段伤害(4+4=8)。完整周期约 90 tick，首击应在 ~100-120 tick。
+  //   maxTicks=300 < 320 窒息线——鱿鱼窒息尚未触发，掉血必来自守卫者激光（排除窒息干扰）。
+  //   鱿鱼查询用区域限定排除并行测试的鱿鱼污染；type 用 "minecraft:squid"。
+  test.succeedWhen(() => {
+    const squids = test.getDimension().getEntities({
+      type: squidType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    // 鱿鱼已被守卫者激光打死消失——攻击行为生效。
+    if (squids.length === 0) {
+      return;
+    }
+    const health = squids[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "squid has no health component");
+    test.assert((health as any).currentValue < 10,
+      `guardian did not damage squid with laser, hp=${(health as any).currentValue}`);
+  });
+}
+
 export function registerGuardianTests(): void {
   GameTest.register("MobBehaviorTests", "guardian_laser_damages_player", guardianLaserDamagesPlayer)
     .structureName("gametests:creeper_pit")
@@ -100,4 +163,8 @@ export function registerGuardianTests(): void {
     .skyAccess(true)
     .setupTicks(20)
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "guardian_laser_damages_squid", guardianLaserDamagesSquid)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(300);
 }
