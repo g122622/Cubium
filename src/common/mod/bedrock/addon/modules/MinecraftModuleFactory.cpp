@@ -73,6 +73,7 @@
 #include "common/world/block/BlockState.hpp"    // BlockState（Block/BlockPermutation opaque 持此指针）
 #include "common/world/blockentity/BlockEntity.hpp"          // BlockEntity（Container 经 getBlockEntity 取得）
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
+#include "common/world/border/WorldBorder.hpp"               // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
 #include "common/world/gamerule/GameRules.hpp"               // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include <optional>
@@ -395,6 +396,28 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return obj;
     });
 
+    // world.getWorldBorder()：返回主世界 WorldBorder JS 对象（对齐基岩 world.getWorldBorder(): WorldBorder）。
+    // WorldBorder 是 common 层类型（IWorld::worldBorder() 返回 world::border::WorldBorder&，common 层虚函数），
+    // 故脚本绑定可直接访问，无需 ScriptWorldAccessor 值快照桥接（区别于 server 层的 BossBar/WorldSpawn）。
+    // 取主世界 IWorld*（GameTest 单世界场景，/worldborder 作用于执行者所在维度=主世界），wrap 成 WorldBorder
+    // JS 对象（owned=false，IWorld* 由服务器管理）。WorldBorder 类在下方注册，用 classIdByName 动态查
+    // （不捕获 classId，其在下方才声明，捕获会编译失败，同 world.getDimension 模式）。
+    worldReg.method("getWorldBorder", [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+        MC_UNUSED(thisVal);
+        MC_UNUSED(argc);
+        MC_UNUSED(args);
+        mc::IWorld* world = ScriptWorldAccessor::instance().getDimension("minecraft:overworld");
+        if (world == nullptr) {
+            return ctx.createUndefined(); // 维度不存在或回调未注册
+        }
+        const u64 borderClassId = ScriptClassRegistry::instance().classIdByName("WorldBorder");
+        void* borderProto = ScriptClassRegistry::instance().proto(borderClassId);
+        if (borderProto == nullptr) {
+            return ctx.createUndefined(); // WorldBorder 类未注册（模块未加载）
+        }
+        return ScriptObjectRegistry::wrap(ctx, borderClassId, borderProto, world, false, "WorldBorder");
+    });
+
     // --- Dimension类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。GameTest 单维度场景下维度即世界；
     // test.getDimension() 与 world.getDimension() 均 wrap 同一 IWorld*。getEntities 按基岩语义
@@ -639,6 +662,78 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
         },
         0);
+
+    // --- WorldBorder类 ---
+    // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。world.getWorldBorder() wrap 主世界 IWorld*。
+    // 属性每次从 IWorld::worldBorder() 取最新值（WorldBorder 是 common 层类型，IWorld::worldBorder() 是
+    // common 层虚函数返回 world::border::WorldBorder&，故脚本绑定可直接调 getter，无需 ScriptWorldAccessor
+    // 值快照桥接）。对齐基岩 world.getWorldBorder(): WorldBorder 的属性集：
+    //   size(直径)、center({x,z})、damagePerBlock、damageSafeZone(buffer)、warningBlocks、warningTime。
+    // 供 /worldborder set/center/damage/warning 命令测试读取边界状态做断言。
+    u64 worldBorderClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* worldBorderProto = builder.exportClass("WorldBorder", worldBorderClassId);
+    ScriptClassRegistry::instance().registerClass(worldBorderClassId, worldBorderProto, "WorldBorder");
+
+    ClassRegistrar<void> worldBorderReg(ctx, worldBorderClassId, worldBorderProto);
+    // size：当前边界直径（getSize，渐变中为实时插值值）。/worldborder set/add 修改。
+    worldBorderReg.readonlyProperty("size", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+        if (world == nullptr) {
+            return ctx.createFloat64(0.0);
+        }
+        return ctx.createFloat64(world->worldBorder().getSize());
+    });
+    // center：边界中心 {x, z}。/worldborder center 修改。
+    worldBorderReg.readonlyProperty("center", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+        void* obj = ctx.createObject();
+        if (world == nullptr) {
+            ctx.setPropertyFloat(obj, "x", 0.0);
+            ctx.setPropertyFloat(obj, "z", 0.0);
+            return obj;
+        }
+        const auto& border = world->worldBorder();
+        ctx.setPropertyFloat(obj, "x", border.getCenterX());
+        ctx.setPropertyFloat(obj, "z", border.getCenterZ());
+        return obj;
+    });
+    // damagePerBlock：超出边界每格伤害（getDamagePerBlock）。/worldborder damage amount 修改。
+    worldBorderReg.readonlyProperty(
+        "damagePerBlock", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+            if (world == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(world->worldBorder().getDamagePerBlock());
+        });
+    // damageSafeZone：伤害安全距离/缓冲（getDamageBuffer）。/worldborder damage buffer 修改。
+    // 基岩属性名 damageSafeZone 对应 vanilla damageBuffer。
+    worldBorderReg.readonlyProperty(
+        "damageSafeZone", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+            if (world == nullptr) {
+                return ctx.createFloat64(0.0);
+            }
+            return ctx.createFloat64(world->worldBorder().getDamageBuffer());
+        });
+    // warningBlocks：警告距离（getWarningDistance）。/worldborder warning distance 修改。
+    worldBorderReg.readonlyProperty(
+        "warningBlocks", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+            if (world == nullptr) {
+                return ctx.createInt32(0);
+            }
+            return ctx.createInt32(world->worldBorder().getWarningDistance());
+        });
+    // warningTime：警告时间秒（getWarningTime）。/worldborder warning time 修改。
+    worldBorderReg.readonlyProperty(
+        "warningTime", [worldBorderClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, worldBorderClassId));
+            if (world == nullptr) {
+                return ctx.createInt32(0);
+            }
+            return ctx.createInt32(world->worldBorder().getWarningTime());
+        });
 
     // --- Scoreboard类 ---
     // opaque 持 mc::scoreboard::Scoreboard*（非拥有，ServerScoreboard 由服务器管理）。world.scoreboard
