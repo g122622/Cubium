@@ -28,6 +28,7 @@
 #include "../trident/ImpalingEnchantment.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 
 namespace mc {
@@ -56,20 +57,12 @@ i32 DamageEnchantment::getMaxCost(i32 level) const
 
 f32 DamageEnchantment::getDamageBonus(i32 level, const LivingEntity* target) const noexcept
 {
-    // 目标生物属性：从 target 取 getCreatureAttribute()（虚函数，子类按亡灵/节肢/水生覆写）。
+    // 目标判定：对齐 MC Java 1.21.11，亡灵杀手/节肢杀手用 EntityTypeTags::SENSITIVE_TO_SMITE /
+    // SENSITIVE_TO_BANE_OF_ARTHROPODS 标签判定目标（同穿刺 ImpalingEnchantment 用 SENSITIVE_TO_IMPALING），
+    // 而非 getCreatureAttribute 枚举。标签由 EntityTypeTagsProvider 派生自 UNDEAD / ARTHROPOD，
+    // 覆盖 vanilla 全部成员（含 zombie_horse/zombie_nautilus 等枚举未覆盖的实体）。
     // target 为 nullptr 时无目标，返回 0（无伤害加成）。
-    //
-    // TODO: 对齐 MC Java 1.21.11，亡灵杀手/节肢杀手应改用 EntityTypeTags::SENSITIVE_TO_SMITE /
-    //   SENSITIVE_TO_BANE_OF_ARTHROPODS 标签判定目标（同穿刺 ImpalingEnchantment 已改用
-    //   SENSITIVE_TO_IMPALING 标签），而非 getCreatureAttribute 枚举。当前保留枚举判定因：
-    //   (1) DamageEnchantment（锋利/亡灵杀手/节肢杀手）是 Weapon 类型附魔，与 Trident 类型互斥，
-    //       三叉戟不会携带这些附魔，故 EnchantmentHelper::getTotalDamageBonus（当前唯一调用方，
-    //       仅 TridentEntity 调）遍历三叉戟物品附魔时不会命中 DamageEnchantment，本方法事实未被调用；
-    //   (2) 近战攻击链路（MobEntity::attackEntityAsMob / Player::attack）尚未接入
-    //       getTotalDamageBonus，锋利/亡灵杀手/节肢杀手在近战中本就不生效（独立偏差，待修复）。
-    //   待近战附魔伤害接入时，一并迁移到标签判定彻底对齐 vanilla。
-    const CreatureAttribute creatureType =
-        (target != nullptr) ? target->getCreatureAttribute() : CreatureAttribute::Undefined;
+    const bool hasTarget = (target != nullptr);
 
     switch (m_damageType) {
         case Type::All:
@@ -78,15 +71,15 @@ f32 DamageEnchantment::getDamageBonus(i32 level, const LivingEntity* target) con
             return static_cast<f32>(level) * 0.5f + 0.5f;
 
         case Type::Undead:
-            // 亡灵杀手：对亡灵生物额外伤害
-            if (creatureType == CreatureAttribute::Undead) {
+            // 亡灵杀手：对亡灵生物（SENSITIVE_TO_SMITE 标签成员）额外伤害，每级 +2.5
+            if (hasTarget && EntityTypeTags::SENSITIVE_TO_SMITE().contains(target->getTypeId())) {
                 return static_cast<f32>(level) * 2.5f;
             }
             return 0.0f;
 
         case Type::Arthropods:
-            // 节肢杀手：对节肢生物额外伤害
-            if (creatureType == CreatureAttribute::Arthropod) {
+            // 节肢杀手：对节肢生物（SENSITIVE_TO_BANE_OF_ARTHROPODS 标签成员）额外伤害，每级 +2.5
+            if (hasTarget && EntityTypeTags::SENSITIVE_TO_BANE_OF_ARTHROPODS().contains(target->getTypeId())) {
                 return static_cast<f32>(level) * 2.5f;
             }
             return 0.0f;

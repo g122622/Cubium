@@ -173,44 +173,20 @@ f32 PlayerAttackHelper::getSweepingDamageRatio(i32 sweepingLevel)
 
 // ========== 附魔伤害加成 ==========
 
-f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, CreatureAttribute targetCreatureType)
+f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, const LivingEntity* target)
 {
     if (weapon.isEmpty()) {
         return 0.0f;
     }
 
-    f32 bonus = 0.0f;
-
-    // 锋利附魔
-    i32 sharpnessLevel =
-        item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SHARPNESS);
-    if (sharpnessLevel > 0) {
-        // 锋利 I = 0.5 + level * 0.5
-        // 即 I=1.0, II=1.5, III=2.0, IV=2.5, V=3.0
-        bonus += 0.5f + static_cast<f32>(sharpnessLevel) * 0.5f;
-    }
-
-    // 亡灵杀手附魔（对亡灵生物）
-    if (targetCreatureType == CreatureAttribute::Undead) {
-        i32 smiteLevel =
-            item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::SMITE);
-        if (smiteLevel > 0) {
-            // 亡灵杀手每级 +2.5
-            bonus += static_cast<f32>(smiteLevel) * 2.5f;
-        }
-    }
-
-    // 节肢杀手附魔（对节肢动物）
-    if (targetCreatureType == CreatureAttribute::Arthropod) {
-        i32 baneLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
-            weapon, &item::enchant::AllEnchantments::BANE_OF_ARTHROPODS);
-        if (baneLevel > 0) {
-            // 节肢杀手每级 +2.5
-            bonus += static_cast<f32>(baneLevel) * 2.5f;
-        }
-    }
-
-    return bonus;
+    // 委托 EnchantmentHelper::getTotalDamageBonus 汇总武器上所有附魔的 getDamageBonus 虚函数。
+    // 锋利（DamageEnchantment::Type::All）对所有生物 +0.5+level*0.5，与 target 无关；
+    // 亡灵杀手（Type::Undead）/节肢杀手（Type::Arthropods）各自用 EntityTypeTags 标签
+    // （SENSITIVE_TO_SMITE / SENSITIVE_TO_BANE_OF_ARTHROPODS）判定 target，命中则 +level*2.5。
+    // 标签判定对齐 vanilla 1.21.11（同穿刺 SENSITIVE_TO_IMPALING），覆盖 vanilla 全部亡灵/节肢成员，
+    // 包括 zombie_horse/zombie_nautilus 等枚举未覆盖的实体。
+    // 穿刺（ImpalingEnchantment）属 Trident 类型附魔，与 Weapon 类型互斥，近战武器不会携带，无干扰。
+    return item::enchant::EnchantmentHelper::getTotalDamageBonus(weapon, target);
 }
 
 // ========== 附魔回调 ==========
@@ -249,8 +225,8 @@ AttackContext PlayerAttackHelper::createContext(Player& player, LivingEntity& ta
     // 检查武器附魔
     const ItemStack& mainHand = player.getHeldItem(Hand::MainHand);
     if (!mainHand.isEmpty()) {
-        // 计算附魔伤害加成（锋利、亡灵杀手、节肢杀手）
-        f32 enchantBonus = getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
+        // 计算附魔伤害加成（锋利、亡灵杀手、节肢杀手，委托 getTotalDamageBonus 标签判定）
+        f32 enchantBonus = getEnchantmentDamageBonus(mainHand, &target);
         context.setEnchantDamageBonus(enchantBonus);
 
         // 火焰附加

@@ -164,13 +164,15 @@ public:
     /**
      * @brief 计算附魔伤害加成
      *
-     * 包括：锋利、亡灵杀手、节肢杀手
+     * 包括：锋利、亡灵杀手、节肢杀手（通过 EnchantmentHelper::getTotalDamageBonus 委托各附魔
+     * 的 getDamageBonus 虚函数汇总）。亡灵杀手/节肢杀手的目标判定用 EntityTypeTags 标签
+     * （SENSITIVE_TO_SMITE / SENSITIVE_TO_BANE_OF_ARTHROPODS），对齐 vanilla 1.21.11。
      *
      * @param weapon 武器物品堆
-     * @param targetCreatureType 目标生物类型（用于亡灵杀手和节肢杀手）
+     * @param target 受击目标实体（ nullptr 时亡灵/节肢杀手无目标判定返 0，锋利不受影响）
      * @return 附加伤害值
      */
-    [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon, CreatureAttribute targetCreatureType);
+    [[nodiscard]] static f32 getEnchantmentDamageBonus(const ItemStack& weapon, const LivingEntity* target);
 
     // ========== 附魔回调 ==========
 

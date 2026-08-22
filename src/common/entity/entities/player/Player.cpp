@@ -2533,8 +2533,7 @@ void Player::attack(Entity& target)
     const item::MaceItem* maceItem = nullptr;
 
     if (!mainHand.isEmpty()) {
-        enchantDamage = entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(
-            mainHand, livingTarget->getCreatureAttribute());
+        enchantDamage = entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, livingTarget);
 
         // 检查是否为重锤下落攻击
         maceItem = dynamic_cast<const item::MaceItem*>(mainHand.getItem());

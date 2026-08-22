@@ -705,9 +705,8 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
     const ItemStack& mainHand = getMainHandItem();
 
     if (!mainHand.isEmpty()) {
-        // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
-        attackDamage +=
-            entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
+        // 附魔伤害加成（锋利、亡灵杀手、节肢杀手，委托 getTotalDamageBonus 标签判定）
+        attackDamage += entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, &target);
     }
 
     // 3. 火焰附加（在攻击前应用，用于燃烧传递判定）

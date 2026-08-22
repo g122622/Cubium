@@ -41,6 +41,8 @@
 #include "item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
 #include "item/enchantment/enchantments/trident/ImpalingEnchantment.hpp"
 #include "item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.hpp"
+#include "item/enchantment/enchantments/weapon/SharpnessEnchantment.hpp"
+#include "item/enchantment/enchantments/weapon/SmiteEnchantment.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;
@@ -108,6 +110,23 @@ public:
     [[nodiscard]] std::string getTypeId() const override { return "minecraft:squid"; }
 };
 
+// 僵尸马桩：getTypeId() 返 "minecraft:zombie_horse"（对齐 vanilla 1.21.11 已补入 UNDEAD /
+// SENSITIVE_TO_SMITE 标签，EntityTypeTags.cpp:465-492），供亡灵杀手附魔测试。
+// 故意不 override getCreatureAttribute()（基类返 Undefined，非 Undead 枚举），以验证
+// 亡灵杀手用 SENSITIVE_TO_SMITE 标签判定目标而非 getCreatureAttribute 枚举——这是任务 #203
+// 的核心回归点：枚举判定下 zombie_horse 无 override 会漏判，标签判定覆盖 vanilla 全部亡灵成员。
+class TestZombieHorseEntity : public LivingEntity {
+public:
+    explicit TestZombieHorseEntity(EntityInstanceId id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        setHealth(20.0f);
+    }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie_horse"; }
+};
+
 } // namespace
 
 // ============================================================================
@@ -120,6 +139,9 @@ protected:
     {
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
+        // 亡灵/节肢杀手目标判定改用 EntityTypeTags::SENSITIVE_TO_BANE_OF_ARTHROPODS 标签
+        // （同穿刺用 SENSITIVE_TO_IMPALING），须初始化硬编码标签成员。initialize 幂等。
+        EntityTypeTags::initialize();
     }
 
     void TearDown() override { EnchantmentRegistry::clear(); }
@@ -194,6 +216,104 @@ TEST_F(BaneOfArthropodsEnchantmentTest, IsIncompatibleWithOtherDamageEnchants)
     // 节肢杀手与亡灵杀手互斥
     EXPECT_FALSE(bane.isCompatibleWith(smite));
     EXPECT_FALSE(smite.isCompatibleWith(bane));
+}
+
+// ============================================================================
+// SmiteEnchantment 亡灵杀手测试（任务 #203：标签判定回归）
+// ============================================================================
+
+class SmiteEnchantmentTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        EnchantmentRegistry::clear();
+        EnchantmentRegistry::initialize();
+        // 亡灵杀手目标判定用 SENSITIVE_TO_SMITE 标签，须初始化硬编码标签成员。
+        EntityTypeTags::initialize();
+    }
+
+    void TearDown() override { EnchantmentRegistry::clear(); }
+};
+
+TEST_F(SmiteEnchantmentTest, Properties)
+{
+    SmiteEnchantment smite;
+
+    EXPECT_EQ(smite.id(), "minecraft:smite");
+    EXPECT_EQ(smite.minLevel(), 1);
+    EXPECT_EQ(smite.maxLevel(), 5);
+    EXPECT_EQ(smite.type(), EnchantmentType::Weapon);
+    EXPECT_EQ(smite.rarity(), EnchantmentRarity::Uncommon);
+}
+
+TEST_F(SmiteEnchantmentTest, GetDamageBonusAgainstUndead)
+{
+    SmiteEnchantment smite;
+    TestUndeadEntity undead(1); // typeId="minecraft:zombie"，在 SENSITIVE_TO_SMITE 标签内
+
+    // 对亡灵生物：每级 +2.5 伤害
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(1, &undead), 2.5f);
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(3, &undead), 7.5f);
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(5, &undead), 12.5f);
+}
+
+TEST_F(SmiteEnchantmentTest, GetDamageBonusAgainstNonUndead)
+{
+    SmiteEnchantment smite;
+    TestArthropodEntity arthropod(1); // typeId="minecraft:spider"，非亡灵
+    TestNormalEntity normal(2);       // typeId=""，非亡灵
+
+    // 对非亡灵生物（节肢/普通）：0 伤害
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(5, &arthropod), 0.0f);
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(5, &normal), 0.0f);
+
+    // target 为 nullptr：0 伤害（无目标无法判定）
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(5, nullptr), 0.0f);
+}
+
+// 核心回归测试：zombie_horse 在 SENSITIVE_TO_SMITE 标签内（vanilla 1.21.11 UNDEAD 成员），
+// 但 TestZombieHorseEntity 不 override getCreatureAttribute()（基类返 Undefined，非 Undead 枚举）。
+// 标签判定下亡灵杀手对其有加成；若回退到 getCreatureAttribute 枚举判定则返 0（漏判）。
+TEST_F(SmiteEnchantmentTest, TagBasedNotEnumCoversZombieHorse)
+{
+    SmiteEnchantment smite;
+    TestZombieHorseEntity zombieHorse(1);
+
+    // 确认桩实体非 Undead 枚举（基类 getCreatureAttribute 返 Undefined）
+    EXPECT_NE(zombieHorse.getCreatureAttribute(), CreatureAttribute::Undead);
+    // 标签判定命中：亡灵杀手对 zombie_horse 有加成
+    EXPECT_FLOAT_EQ(smite.getDamageBonus(5, &zombieHorse), 12.5f);
+}
+
+// ============================================================================
+// SharpnessEnchantment 锋利测试（对所有生物生效，与标签无关）
+// ============================================================================
+
+class SharpnessEnchantmentTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        EnchantmentRegistry::clear();
+        EnchantmentRegistry::initialize();
+    }
+
+    void TearDown() override { EnchantmentRegistry::clear(); }
+};
+
+TEST_F(SharpnessEnchantmentTest, GetDamageBonusAgainstAll)
+{
+    SharpnessEnchantment sharpness;
+    TestUndeadEntity undead(1);
+    TestArthropodEntity arthropod(2);
+    TestNormalEntity normal(3);
+
+    // 锋利对所有生物造成额外伤害：I=1.0, II=1.5, III=2.0, IV=2.5, V=3.0
+    EXPECT_FLOAT_EQ(sharpness.getDamageBonus(1, &undead), 1.0f);
+    EXPECT_FLOAT_EQ(sharpness.getDamageBonus(5, &undead), 3.0f);
+    EXPECT_FLOAT_EQ(sharpness.getDamageBonus(5, &arthropod), 3.0f);
+    EXPECT_FLOAT_EQ(sharpness.getDamageBonus(5, &normal), 3.0f);
+    // 锋利不依赖 target 标签，nullptr 也应有加成
+    EXPECT_FLOAT_EQ(sharpness.getDamageBonus(5, nullptr), 3.0f);
 }
 
 // ============================================================================
@@ -420,6 +540,8 @@ protected:
         Items::initialize();
         EnchantmentRegistry::clear();
         EnchantmentRegistry::initialize();
+        // 亡灵/节肢杀手目标判定改用 EntityTypeTags 标签，须初始化硬编码标签成员。
+        EntityTypeTags::initialize();
     }
 
     void TearDown() override

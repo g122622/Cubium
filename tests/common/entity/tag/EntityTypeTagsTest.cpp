@@ -197,11 +197,39 @@ TEST_F(EntityTypeTagsTest, UndeadContainsSkeletonAndZombie)
     EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:phantom")));
 }
 
+// 对齐 vanilla 1.21.11 EntityTypeTagsProvider：UNDEAD（= SKELETONS + ZOMBIES + wither + phantom）
+// 应包含 ZOMBIES 子标签的全部成员，含 zombie_horse 与 zombie_nautilus。
+TEST_F(EntityTypeTagsTest, UndeadContainsZombieHorseAndZombieNautilus)
+{
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:zombie_horse")));
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:zombie_nautilus")));
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:zombified_piglin")));
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:zoglin")));
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:skeleton_horse")));
+    EXPECT_TRUE(EntityTypeTags::UNDEAD().contains(ResourceLocation("minecraft:bogged")));
+    // 亡灵杀手敏感标签应同步包含新增成员（addAll UNDEAD 派生）
+    EXPECT_TRUE(EntityTypeTags::SENSITIVE_TO_SMITE().contains(ResourceLocation("minecraft:zombie_horse")));
+    EXPECT_TRUE(EntityTypeTags::SENSITIVE_TO_SMITE().contains(ResourceLocation("minecraft:zombie_nautilus")));
+}
+
 TEST_F(EntityTypeTagsTest, ArthropodContainsBeeAndSpider)
 {
     EXPECT_TRUE(EntityTypeTags::ARTHROPOD().contains(ResourceLocation("minecraft:bee")));
     EXPECT_TRUE(EntityTypeTags::ARTHROPOD().contains(ResourceLocation("minecraft:spider")));
     EXPECT_TRUE(EntityTypeTags::ARTHROPOD().contains(ResourceLocation("minecraft:cave_spider")));
+}
+
+// 对齐 vanilla 1.21.11 EntityTypeTagsProvider：AQUATIC 应包含 nautilus 与 zombie_nautilus，
+// SENSITIVE_TO_IMPALING（= AQUATIC）同步派生，使穿刺附魔对二者额外伤害。
+TEST_F(EntityTypeTagsTest, AquaticContainsNautilusAndZombieNautilus)
+{
+    EXPECT_TRUE(EntityTypeTags::AQUATIC().contains(ResourceLocation("minecraft:nautilus")));
+    EXPECT_TRUE(EntityTypeTags::AQUATIC().contains(ResourceLocation("minecraft:zombie_nautilus")));
+    EXPECT_TRUE(EntityTypeTags::SENSITIVE_TO_IMPALING().contains(ResourceLocation("minecraft:nautilus")));
+    EXPECT_TRUE(EntityTypeTags::SENSITIVE_TO_IMPALING().contains(ResourceLocation("minecraft:zombie_nautilus")));
+    // 已有水生成员不被破坏
+    EXPECT_TRUE(EntityTypeTags::AQUATIC().contains(ResourceLocation("minecraft:squid")));
+    EXPECT_TRUE(EntityTypeTags::AQUATIC().contains(ResourceLocation("minecraft:turtle")));
 }
 
 TEST_F(EntityTypeTagsTest, RaiderContainsEvokerAndPillager)

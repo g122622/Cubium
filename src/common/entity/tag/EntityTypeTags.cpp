@@ -462,16 +462,23 @@ void EntityTypeTags::initialize()
     });
 
     // 僵尸类
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.ZOMBIES（含 zombie_horse、zombie_nautilus）。
+    // camel_husk 实体尚未注册（CamelHuskEntity 未实现），暂不加入（TODO：实体实现后补此成员）。
     ZOMBIES().addAll({
+        ResourceLocation("minecraft:zombie_horse"),
         ResourceLocation("minecraft:zombie"),
         ResourceLocation("minecraft:zombie_villager"),
         ResourceLocation("minecraft:zombified_piglin"),
         ResourceLocation("minecraft:zoglin"),
         ResourceLocation("minecraft:drowned"),
         ResourceLocation("minecraft:husk"),
+        ResourceLocation("minecraft:zombie_nautilus"),
     });
 
     // 亡灵（包含 #minecraft:skeletons 和 #minecraft:zombies 子标签）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.UNDEAD（= SKELETONS + ZOMBIES + wither + phantom）。
+    // parched 实体尚未注册（ParchedEntity 未实现），vanilla SKELETONS 含 parched，暂不加入
+    // （TODO：实体实现后补入 SKELETONS 与此处）。
     UNDEAD().addAll({
         // #minecraft:skeletons 子标签成员
         ResourceLocation("minecraft:skeleton"),
@@ -480,12 +487,14 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:skeleton_horse"),
         ResourceLocation("minecraft:bogged"),
         // #minecraft:zombies 子标签成员
+        ResourceLocation("minecraft:zombie_horse"),
         ResourceLocation("minecraft:zombie"),
         ResourceLocation("minecraft:zombie_villager"),
         ResourceLocation("minecraft:zombified_piglin"),
         ResourceLocation("minecraft:zoglin"),
         ResourceLocation("minecraft:drowned"),
         ResourceLocation("minecraft:husk"),
+        ResourceLocation("minecraft:zombie_nautilus"),
         // 直接成员
         ResourceLocation("minecraft:wither"),
         ResourceLocation("minecraft:phantom"),
@@ -501,6 +510,7 @@ void EntityTypeTags::initialize()
     });
 
     // 水生生物
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.AQUATIC（含 nautilus、zombie_nautilus）。
     AQUATIC().addAll({
         ResourceLocation("minecraft:turtle"),
         ResourceLocation("minecraft:axolotl"),
@@ -514,6 +524,8 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:squid"),
         ResourceLocation("minecraft:glow_squid"),
         ResourceLocation("minecraft:tadpole"),
+        ResourceLocation("minecraft:nautilus"),
+        ResourceLocation("minecraft:zombie_nautilus"),
     });
 
     // 附魔敏感标签（引用其他标签）
