@@ -40,10 +40,12 @@
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -51,6 +53,12 @@
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "common/item/items/armor/ElytraItem.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
@@ -69,6 +77,7 @@
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -492,7 +501,7 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
     return damage;
 }
 
-void LivingEntity::die(DamageSource& /*cause*/)
+void LivingEntity::die(DamageSource& cause)
 {
     if (!isDead()) {
         return; // 已经死亡，避免重复执行
@@ -506,8 +515,150 @@ void LivingEntity::die(DamageSource& /*cause*/)
     // 避免实体死亡后属性修饰符残留
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    // 掉落经验
+    // 死亡掉落（对齐 MC Java 1.21.11 LivingEntity.die → dropAllDeathLoot，
+    // LivingEntity.java:1452/1484-1493）：统一编排物品掉落表 + 自定义掉落 + 装备 + 经验。
+    // dropAllDeathLoot 内部按 shouldDropLoot(doMobLoot 守卫) 决定物品是否掉落，
+    // 经验/装备在守卫之外（vanilla 同样在守卫外）。修复前 die() 仅掉经验，物品掉落链路
+    // （dropFromLootTable）整体缺失，致普通生物死亡无任何物品掉落。
+    dropAllDeathLoot(cause);
+}
+
+void LivingEntity::dropAllDeathLoot(DamageSource& cause)
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.dropAllDeathLoot（LivingEntity.java:1484-1493）。
+    // flag 表示最近是否被玩家伤害过——vanilla 用 lastHurtByPlayerMemoryTime > 0（玩家伤害后
+    // 维持 100 tick 的记忆窗口），影响掉落表条件（如掠夺附魔生效、luck 应用、部分条件分支）。
+    // Cubium 暂无 lastHurtByPlayerMemoryTime 字段，用 m_lastHurtBy 是否为 Player 近似判定：
+    // 实际受玩家伤害致死的实体其 m_lastHurtBy 通常即为该玩家（actuallyHurt 第 358-365 行设置）。
+    // TODO: 完整对齐需引入 lastHurtByPlayerMemoryTime（玩家伤害后 100 tick 计时，每 tick 递减），
+    //       并在玩家造成伤害时 setLastHurtByPlayer 记录。当前近似在"非玩家最后补刀"场景
+    //       （如玩家打残后环境伤害致死）会漏判 recentlyHitByPlayer，影响掠夺附魔等条件。
+    Player* lastHurtByPlayer = dynamic_cast<Player*>(m_lastHurtBy);
+    const bool recentlyHitByPlayer = (lastHurtByPlayer != nullptr);
+
+    // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫仅包住物品掉落
+    //    （dropFromLootTable + dropCustomDeathLoot）。装备/经验在守卫之外（vanilla 同样）。
+    if (shouldDropLoot(*m_world)) {
+        dropFromLootTable(cause, recentlyHitByPlayer);
+        dropCustomDeathLoot(cause, recentlyHitByPlayer);
+    }
+
+    // 2. 装备掉落（在守卫之外，不受 doMobLoot 影响）。对齐 vanilla dropEquipment。
+    //    TODO: Cubium 暂未实现通用装备死亡掉落（dropEquipment），当前为空。玩家死亡掉装备
+    //          由 Player 子类逻辑处理，普通生物的装备掉落链路待实现。
+    // dropEquipment(*m_world);
+
+    // 3. 经验掉落（在守卫之外，但 vanilla dropExperience 内部还查 doMobLoot——
+    //    仅当 lastHurtByPlayerMemoryTime > 0 时才掉经验且受 doMobLoot 约束）。
+    //    Cubium MobEntity::dropExperience 不查 doMobLoot 直接掉落，为已知偏差（见其 TODO）。
     dropExperience();
+}
+
+bool LivingEntity::shouldDropLoot(IWorld& world) const
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.shouldDropLoot（LivingEntity.java:567-569）：
+    // `!isBaby() && level.getGameRules().get(MOB_DROPS)`。
+    // Cubium 用 isChild() 等价 vanilla isBaby()（Entity::isChild 虚函数，AgeableEntity 等
+    // 子类 override 返回幼体状态）。MOB_DROPS 即 doMobLoot gamerule（默认 true）。
+    // 幼体生物（isChild）死亡不掉落战利品物品，对齐 vanilla。
+    return !isChild() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT);
+}
+
+void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlayer)
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.dropFromLootTable（LivingEntity.java:1522-1550）。
+    // 取实体死亡掉落表（getLootTableId → LootTableManager），构建 entity 参数集 LootContext，
+    // generate 生成 ItemStack 列表后经 ItemDropHelper::spawnItemAtEntity 掉落于实体位置。
+    if (m_world == nullptr) {
+        return;
+    }
+
+    const std::string lootTableId = getLootTableId();
+    if (lootTableId.empty()) {
+        return;
+    }
+
+    const auto* lootTableManager = m_world->lootTableManager();
+    if (lootTableManager == nullptr) {
+        return;
+    }
+    const loot::LootTable* table = lootTableManager->getTable(lootTableId);
+    if (table == nullptr) {
+        return;
+    }
+
+    // 构建 entity 参数集 LootContext（对齐 vanilla dropFromLootTable 参数集）：
+    //   THIS_ENTITY = this（被杀实体，必需）
+    //   DAMAGE_SOURCE = cause（伤害来源，可选，掉落表条件判定用）
+    //   KILLER_ENTITY = cause.getEntity()（攻击者/射击者，可选，对应 vanilla ATTACKING_ENTITY）
+    //   DIRECT_KILLER = cause.directSource()（直接来源，投射物本身或近战攻击者，对应 vanilla DIRECT_ATTACKING_ENTITY）
+    //   KILLER_PLAYER = 最近伤害玩家（仅 recentlyHitByPlayer 时设，对应 vanilla LAST_DAMAGE_PLAYER，并应用 luck）
+    // 注：vanilla 还传 ORIGIN（实体位置），Cubium entity 参数集未含 ORIGIN（非必需），不传。
+    auto builder = loot::LootContextBuilder(*m_world);
+
+    // 随机源：用实体自身的随机数生成器 + 掉落表种子（vanilla getLootTableSeed 默认 0）。
+    // 为避免每次死亡掉落结果相同，用实体随机数生成器（构造时已播种）。
+    math::Random& rng = getRandom();
+    builder.withRandom(rng);
+
+    builder.withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this));
+
+    // DAMAGE_SOURCE：使用最近伤害来源（m_lastDamageSource，actuallyHurt 第 356 行 clone），
+    // 退回到当前 die 的 cause。优先 m_lastDamageSource 因其更精确记录致死伤害。
+    DamageSource* damageSource = m_lastDamageSource.get();
+    if (damageSource == nullptr) {
+        damageSource = &cause;
+    }
+    builder.withParameter(loot::LootParams::DAMAGE_SOURCE, damageSource);
+
+    // 攻击者（KILLER_ENTITY）：伤害的真实来源（射击者/近战者）。
+    Entity* attackingEntity = damageSource->getTrueSource();
+    if (attackingEntity != nullptr) {
+        builder.withNullableParameter(loot::LootParams::KILLER_ENTITY, attackingEntity);
+    }
+
+    // 直接来源（DIRECT_KILLER）：投射物本身或近战攻击者（IndirectEntityDamageSource 返回
+    // m_directSource，EntityDamageSource 返回攻击者自身，环境伤害返回 nullptr）。
+    Entity* directEntity = damageSource->directSource();
+    if (directEntity != nullptr) {
+        builder.withNullableParameter(loot::LootParams::DIRECT_KILLER, directEntity);
+    }
+
+    // 击杀玩家（KILLER_PLAYER）：仅当最近被玩家伤害时设，并应用该玩家的 luck。
+    // 对应 vanilla `if (flag && player != null) withParameter(LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck())`。
+    if (recentlyHitByPlayer) {
+        Player* player = dynamic_cast<Player*>(m_lastHurtBy);
+        if (player != nullptr) {
+            builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
+            // TODO: luck 属性未接入属性系统时暂用 0。对齐 vanilla player.getLuck()。
+            builder.withLuck(0.0f);
+        }
+    }
+
+    // 掉落表/谓词解析器：供掉落表内部引用其他表（如 reference entry）时解析。
+    builder.withLootTableResolver(
+        [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });
+    builder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
+        return lootTableManager->getPredicate(id);
+    });
+
+    auto context = builder.build(loot::LootParameterSets::entity());
+    if (context == nullptr) {
+        return;
+    }
+
+    std::vector<ItemStack> drops = table->generate(*context);
+    if (drops.empty()) {
+        return;
+    }
+
+    // 掉落于实体位置（对齐 vanilla spawnAtLocation）。offsetY=0.5 使物品在实体腰部生成。
+    for (const auto& stack : drops) {
+        if (stack.isEmpty()) {
+            continue;
+        }
+        ItemDropHelper::spawnItemAtEntity(this, stack, 0.5f, rng);
+    }
 }
 
 void LivingEntity::onKillCommand()

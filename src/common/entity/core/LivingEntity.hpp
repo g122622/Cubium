@@ -285,6 +285,62 @@ public:
     virtual void dropExperience() {}
 
     /**
+     * @brief 死亡时掉落全部战利品（物品 + 装备 + 经验）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropAllDeathLoot（LivingEntity.java:1484-1493）。
+     * 由 die() 在死亡判定通过后调用，统一编排死亡掉落链路：
+     *   1. shouldDropLoot(world) 守卫（!isChild() && doMobLoot gamerule）通过时，
+     *      调 dropFromLootTable（实体掉落表生成物品）+ dropCustomDeathLoot（自定义掉落）。
+     *   2. dropEquipment（装备掉落，在守卫之外，不受 doMobLoot 影响）。
+     *   3. dropExperience（经验掉落，在守卫之外，但 dropExperience 内部对齐 vanilla
+     *      还应查 doMobLoot——当前实现未查，为已知偏差，见 dropExperience TODO）。
+     *
+     * @param cause 死亡伤害来源（含击杀者溯源信息，用于掉落表条件判定）
+     */
+    virtual void dropAllDeathLoot(DamageSource& cause);
+
+    /**
+     * @brief 是否应当掉落战利品
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.shouldDropLoot（LivingEntity.java:567-569）：
+     * `!isBaby() && level.getGameRules().get(MOB_DROPS)`。Cubium 用 isChild() 等价
+     * vanilla isBaby()（Entity::isChild 虚函数，AgeableEntity 等子类 override）。
+     * MOB_DROPS 即 doMobLoot gamerule。
+     *
+     * @param world 世界（用于读取 doMobLoot gamerule）
+     * @return 幼体（isChild）或 doMobLoot=false 时返回 false，否则 true
+     */
+    [[nodiscard]] virtual bool shouldDropLoot(IWorld& world) const;
+
+    /**
+     * @brief 从实体掉落表生成死亡掉落物品
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropFromLootTable（LivingEntity.java:1522-1550）。
+     * 取实体掉落表（getLootTableId → LootTableManager），构建 entity 参数集 LootContext
+     * （THIS_ENTITY + DAMAGE_SOURCE + 可选 KILLER_ENTITY/DIRECT_KILLER + 可选 KILLER_PLAYER），
+     * generate 生成 ItemStack 列表后经 ItemDropHelper::spawnItemAtEntity 掉落于实体位置。
+     *
+     * @param cause 死亡伤害来源
+     * @param recentlyHitByPlayer 最近是否被玩家伤害过（影响掉落表条件，如掠夺附魔、luck）
+     */
+    virtual void dropFromLootTable(DamageSource& cause, bool recentlyHitByPlayer);
+
+    /**
+     * @brief 自定义死亡掉落（子类重写以补充掉落表外的特殊掉落）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropCustomDeathLoot（LivingEntity.java:1508-1509）。
+     * 基类默认空实现，子类（如特定的首领生物）可重写以掉落特殊物品。
+     *
+     * @param cause 死亡伤害来源
+     * @param recentlyHitByPlayer 最近是否被玩家伤害过
+     */
+    virtual void dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer)
+    {
+        (void)cause;
+        (void)recentlyHitByPlayer;
+    }
+
+    /**
      * @brief 检查药水效果是否可以应用
      *
      * 子类可以重写此方法来免疫某些药水效果。

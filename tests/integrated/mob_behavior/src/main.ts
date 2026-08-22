@@ -97,6 +97,7 @@ import { registerMobSpawnerTests } from "./tests/spawn/spawner/MobSpawnerTests.j
 import { registerDespawnTests } from "./tests/spawn/despawn/DespawnTests.js";
 import { registerNaturalSpawnTests } from "./tests/spawn/natural/NaturalSpawnTests.js";
 import { registerZombieReinforcementTests } from "./tests/spawn/reinforcement/ZombieReinforcementTests.js";
+import { registerMobDeathLootTests } from "./tests/spawn/loot/MobDeathLootTests.js";
 import { registerZombieVillagerTests } from "./tests/monster/undead/ZombieVillagerTests.js";
 import { registerGoldenAppleConsumptionTests } from "./tests/monster/undead/GoldenAppleConsumptionTests.js";
 import { registerGoldenAppleSelfConsumptionTests } from "./tests/monster/undead/GoldenAppleSelfConsumptionTests.js";
@@ -192,6 +193,7 @@ registerMobSpawnerTests();
 registerDespawnTests();
 registerNaturalSpawnTests();
 registerZombieReinforcementTests();
+registerMobDeathLootTests();
 registerZombieVillagerTests();
 registerGoldenAppleConsumptionTests();
 registerGoldenAppleSelfConsumptionTests();
