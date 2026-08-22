@@ -799,10 +799,7 @@ void Entity::baseTick()
 
     // 更新传送冷却——已迁入 PortalTickSystem（PostEntityTick 阶段）。
 
-    // 更新骑乘冷却
-    if (m_rideCooldown > 0) {
-        m_rideCooldown--;
-    }
+    // 骑乘冷却（m_rideCooldown）已整体移除（对齐 vanilla，详见 addPassenger 注释），不再递减。
 
     // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
     // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
@@ -1616,8 +1613,12 @@ bool Entity::addPassenger(Entity& passenger)
         m_passengers.push_back(passenger.id());
     }
 
-    // 设置骑乘冷却
-    passenger.m_rideCooldown = 60;
+    // 对齐 vanilla：addPassenger 不设置骑乘冷却（vanilla Entity.addPassenger 无此机制）。
+    // 原实现设 passenger.m_rideCooldown = 60（项目自定义防抖），但该冷却被 canBeRidden 用于
+    // 阻止 startRiding，破坏了马驯服等需反复快速上下骑乘的核心玩法（RunAroundLikeCrazyGoal 甩人后
+    // 玩家需立即重新骑上以继续累积 temper；60 tick 冷却使每次重新骑乘延迟 3 秒，驯服链路形同失效）。
+    // m_rideCooldown 已整体移除（见 canBeRidden / baseTick / removePassenger），TODO 若未来确需
+    // 防抖应在载具侧按 vanilla 的 mount/dismount 动画时序实现，而非全局骑乘冷却。
 
     // 触发回调
     // 子类可重写 onAddedPassenger() 来处理特殊逻辑
@@ -1661,8 +1662,8 @@ void Entity::removePassenger(Entity& passenger)
             passenger.setVehicle(INVALID_ENTITY_ID);
         }
 
-        // 设置骑乘冷却（60 tick = 3秒）
-        passenger.m_rideCooldown = 60;
+        // 对齐 vanilla：removePassenger 不设置骑乘冷却（vanilla Entity.removePassenger 无此机制）。
+        // m_rideCooldown 已整体移除（详见 addPassenger 注释），此处不再设置。
 
         // 触发回调
 
@@ -1805,11 +1806,11 @@ void Entity::removePassengers()
 
 bool Entity::canBeRidden(const Entity& vehicle) const
 {
-    // 参数 vehicle 用于检查是否可以骑乘特定载具
-    // 目前只检查基本条件，未来可扩展检查载具类型等
+    // 对齐 vanilla：canBeRidden（对应 MC Java Entity.canRide）仅检查不处于潜行状态。
+    // 原实现额外检查 m_rideCooldown <= 0（项目自定义骑乘冷却），但该冷却非 vanilla 机制且
+    // 破坏了马驯服等反复骑乘玩法（详见 addPassenger 注释），已整体移除。
     MC_UNUSED(vehicle);
-    // 默认检查：不在潜行状态 + 骑乘冷却为0
-    return !isSneaking() && m_rideCooldown <= 0;
+    return !isSneaking();
 }
 
 bool Entity::dismountsUnderwater() const

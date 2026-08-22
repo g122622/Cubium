@@ -394,9 +394,33 @@ void MobEntity::tick()
 
 void MobEntity::updateMovementGoalFlags()
 {
-    // 根据骑乘状态更新目标标志
-    // 如果被骑乘，禁用 MOVE/JUMP/LOOK 标志
-    bool canMove = !isBeingRidden();
+    // 对齐 vanilla Mob.updateControlFlags()（Mob.java:333-339）：
+    //   boolean flag = !(this.getControllingPassenger() instanceof Mob);
+    //   goalSelector.setControlFlag(MOVE, flag);
+    //   goalSelector.setControlFlag(JUMP, flag && !(getVehicle() instanceof AbstractBoat));
+    //   goalSelector.setControlFlag(LOOK, flag);
+    // 即：仅当控制乘客是 Mob（非玩家，如骷髅骑马）时才禁用 MOVE/JUMP/LOOK flag。
+    // 玩家骑乘（如骑未驯服马触发 RunAroundLikeCrazyGoal 驯服、骑猪控制方向）时 flag 保持启用，
+    // 否则带 Move flag 的 goal（RunAroundLikeCrazyGoal/PanicGoal 等）被抑制致链路失效。
+    //
+    // 修复前本方法用 `bool canMove = !isBeingRidden();`——任何骑乘都禁用 flag，包括玩家骑未驯服马，
+    // 致 RunAroundLikeCrazyGoal（flag=Move，SpecialGoals.cpp:153）shouldExecute 从不被调用，马永
+    // 不驯服（项目级对齐缺陷）。vanilla 用 isMobControlled()/getControllingPassenger() instanceof Mob
+    // 精确区分"Mob 控制"（禁用）与"玩家骑乘"（启用），此处对齐。
+    //
+    // 控制乘客判定：getControllingPassenger() 返回首名乘客（Entity 基类默认），查实体类型。
+    // 控制乘客为 Player → flag=true（启用）；为 Mob（非玩家生物）→ flag=false（禁用）；无乘客 → flag=true。
+    // 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐：Cubium 船骑乘体系未完整，且仅影响
+    // JUMP flag 边缘场景，留 TODO 待船体系就绪。
+    bool controllingIsMob = false;
+    EntityInstanceId controllingId = getControllingPassenger();
+    if (controllingId != INVALID_ENTITY_ID && m_world != nullptr) {
+        Entity* controlling = m_world->getEntity(controllingId);
+        if (controlling != nullptr && controlling->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
+            controllingIsMob = true;
+        }
+    }
+    bool canMove = !controllingIsMob;
 
     m_goalSelector.setFlag(entity::ai::GoalFlag::Move, canMove);
     m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canMove);

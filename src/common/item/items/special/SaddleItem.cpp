@@ -80,7 +80,7 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     // 为权威手持源操作（同 GoldenAppleItem/BucketItem/ShearsItem 修复范式）。
     (void)stack;
 
-    // 检查目标实体是否实现了 IEquipable 接口
+    // 检查目标实体是否实现了 IEquipable 接口（猪/炽足兽/马类均实现，鞍装备到装备槽 0）。
     auto* equipable = dynamic_cast<entity::IEquipable*>(&target);
     if (equipable == nullptr) {
         return false;
@@ -96,21 +96,38 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         return false;
     }
 
-    // 检查实体是否已经装备鞍
-    auto* rideable = dynamic_cast<entity::IRideable*>(&target);
-    if (rideable == nullptr) {
+    // 鞍状态接口分两类（对齐 vanilla Saddleable 接口，hasSaddle 不统一）：
+    //   1) 实现 mc::entity::IRideable 的可骑乘实体：PigEntity/StriderEntity（IRideable::hasSaddle/setSaddle
+    //      纯虚，dynamic_cast<IRideable*> 命中）。猪/炽足兽 isSaddleable 恒 true（vanilla Saddleable.isSaddleable
+    //      对猪/炽足兽返 true），可直接装鞍。
+    //   2) 马类 AbstractHorseEntity：不实现 IRideable（控制逻辑经乘客系统非 ride()），但有独立
+    //      hasSaddle()/setSaddle()（HorseStatusComponent.m_saddled）。马类 isSaddleable=isTame()（vanilla
+    //      AbstractHorse.isSaddleable 返 isTame()，未驯服马不可装鞍）。
+    // 两路任一命中取 hasSaddle()/setSaddle()；isSaddleable 守卫：IRideable 恒 true，马类需 isTame()。
+    // 修复前本方法单路 dynamic_cast<IRideable*>，把马类（不实现 IRideable）排除，致马永远装不上鞍
+    // （对齐缺陷：vanilla Saddleable 接口不强制 IRideable，马类实现 Saddleable 但不实现 IRideable）。
+    entity::IRideable* rideable = dynamic_cast<entity::IRideable*>(&target);
+    AbstractHorseEntity* horse = dynamic_cast<AbstractHorseEntity*>(&target);
+
+    // 非鞍实体（既非 IRideable 也非马类）直接返回
+    if (rideable == nullptr && horse == nullptr) {
         return false;
     }
 
-    if (rideable->hasSaddle()) {
-        return false;
-    }
-
-    // 检查是否可以装备鞍
-    // 马类需要先驯服才能装备鞍；猪和炽足兽可以直接装备
-    auto* horse = dynamic_cast<AbstractHorseEntity*>(&target);
-    if (horse != nullptr && !horse->isTame()) {
-        return false;
+    // isSaddleable 守卫：马类需先驯服（vanilla AbstractHorse.isSaddleable=isTame()）；
+    // IRideable（猪/炽足兽）恒可装鞍。已装鞍则不重复装（vanilla Saddleable.isSaddled() 守卫）。
+    if (horse != nullptr) {
+        if (!horse->isTame()) {
+            return false;
+        }
+        if (horse->hasSaddle()) {
+            return false;
+        }
+    } else {
+        // rideable != nullptr（horse==nullptr 分支）
+        if (rideable->hasSaddle()) {
+            return false;
+        }
     }
 
     // 检查装备槽是否可用
@@ -124,10 +141,14 @@ bool SaddleItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         return false;
     }
 
-    // 设置鞍状态
-    rideable->setSaddle(true);
+    // 设置鞍状态（双路：IRideable::setSaddle 或 AbstractHorseEntity::setSaddle）
+    if (horse != nullptr) {
+        horse->setSaddle(true);
+    } else {
+        rideable->setSaddle(true);
+    }
 
-    // 装备鞍到实体
+    // 装备鞍到实体（装备槽 0）
     ItemStack saddleStack(stack.getItem(), 1);
     equipable->setEquipment(0, saddleStack);
 

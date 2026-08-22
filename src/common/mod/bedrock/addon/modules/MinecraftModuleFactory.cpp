@@ -1407,11 +1407,22 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 // 非驯服类实体返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
                 // 此前 WolfTests 驯服判定用 effectiveMax>=20（驯服后血量上限 8→20）间接断言，hacky 且
                 // 不适用于鹦鹉（驯服不改血量）；补 is_tamed 组件后所有驯服类可读 value 精确断言。
+                //
+                // 马类（AbstractHorseEntity）特例：vanilla 马可驯服（玩家骑上反复尝试直至驯服，经
+                // RunAroundLikeCrazyGoal + setTamedBy 置 HorseStatusComponent.m_tame），但不继承
+                // TameableEntity（继承 AnimalEntity+IJumpingMount+IEquipable），有独立 isTame()/setTame()。
+                // 故补 dynamic_cast<AbstractHorseEntity*> 分支读 isTame()，使马驯服状态可读（与 is_saddled
+                // 对马类的双路 dynamic_cast 范式一致）。修复前马驯服后 getComponent("is_tamed") 返 undefined，
+                // 脚本无法断言马驯服（只能用"玩家是否被甩下"间接判定，不精确）。
                 auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
-                if (tameable == nullptr) {
-                    return ctx.createUndefined();
+                if (tameable != nullptr) {
+                    return wrapComponent("IsTamedComponent");
                 }
-                return wrapComponent("IsTamedComponent");
+                auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
+                if (horse != nullptr) {
+                    return wrapComponent("IsTamedComponent");
+                }
+                return ctx.createUndefined();
             }
             if (normalized == "minecraft:is_saddled") {
                 // 对齐基岩 EntityIsSaddledComponent（componentId="minecraft:is_saddled"）：
@@ -1588,11 +1599,17 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ClassRegistrar<void> isTamedReg(ctx, isTamedClassId, isTamedProto);
     isTamedReg.readonlyProperty("value", [isTamedClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, isTamedClassId));
+        // 优先 TameableEntity（狼/猫/鹦鹉），其次 AbstractHorseEntity（马类不继承 TameableEntity
+        // 但有独立 isTame()，见 getComponent("is_tamed") 注释）。两路任一命中读 isTamed()。
         auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
-        if (tameable == nullptr) {
-            return ctx.createUndefined();
+        if (tameable != nullptr) {
+            return ctx.createBoolean(tameable->isTamed());
         }
-        return ctx.createBoolean(tameable->isTamed());
+        auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
+        if (horse != nullptr) {
+            return ctx.createBoolean(horse->isTame());
+        }
+        return ctx.createUndefined();
     });
 
     // --- IsSaddledComponent类（minecraft:is_saddled，承载鞍装备状态）---

@@ -291,31 +291,13 @@ TEST(RidingCycleDetectionTest, StopRiding_ClearsVehicleRef)
 }
 
 // ============================================================================
-// 7. 骑乘冷却机制
+// 7. 骑乘冷却机制（已移除）
+//    原项目自定义的 m_rideCooldown（60 tick 骑乘冷却）非 vanilla 机制，且破坏了马驯服等需反复
+//    快速上下骑乘的核心玩法，已整体移除（对齐 vanilla，详见 Entity.cpp addPassenger 注释）。
+//    原 RideCooldown_BlocksImmediateRemount 测试验证的冷却行为已不存在，故删除该测试。
+//    下骑后可立即重骑的 vanilla 行为由 RidingCycleIntegrationTest.FullRidingLifecycle
+//    （有 World 环境，stopRiding 正确清乘客列表）的第 4 步覆盖。
 // ============================================================================
-
-TEST(RidingCycleDetectionTest, RideCooldown_BlocksImmediateRemount)
-{
-    // 骑乘后有冷却时间，在冷却期间 cannotBeRidden
-    Entity vehicle(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
-    Entity rider(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
-
-    // 首次骑乘成功
-    EXPECT_TRUE(rider.startRiding(vehicle));
-
-    // 下骑
-    rider.stopRiding();
-
-    // 骑乘冷却时间应该被设置（60 tick）
-    EXPECT_GT(rider.rideCooldown(), 0);
-    EXPECT_FALSE(rider.canRide());
-
-    // 在冷却期间再次骑乘应该失败（canBeRidden 检查冷却时间）
-    EXPECT_FALSE(rider.startRiding(vehicle));
-
-    // 验证 rider 没有骑乘上
-    EXPECT_FALSE(rider.isRiding());
-}
 
 // ============================================================================
 // 8. 多乘客载具可以容纳多个乘客

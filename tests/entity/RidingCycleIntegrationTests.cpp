@@ -541,13 +541,11 @@ TEST_F(RidingCycleIntegrationTest, FullRidingLifecycle)
     EXPECT_FALSE(vehicle.hasPassengers());
     EXPECT_FALSE(vehicle.isPassenger(rider.id()));
 
-    // 4. 骑乘冷却（rideCooldown 被设置为 60 tick）
-    EXPECT_GT(rider.rideCooldown(), 0);
-    EXPECT_FALSE(rider.canRide());
-
-    // 5. 冷却期间不能再次骑乘
-    EXPECT_FALSE(rider.startRiding(vehicle));
-    EXPECT_FALSE(rider.isRiding());
+    // 4. 对齐 vanilla：下骑后无骑乘冷却，可立即重新骑乘
+    //    （原项目自定义的 m_rideCooldown 60 tick 冷却已移除，详见 Entity.cpp addPassenger 注释）
+    EXPECT_TRUE(rider.startRiding(vehicle));
+    EXPECT_TRUE(rider.isRiding());
+    EXPECT_EQ(rider.getVehicle(), vehicle.id());
 }
 
 // ============================================================================

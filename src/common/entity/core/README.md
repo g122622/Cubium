@@ -915,7 +915,7 @@
                     2. 检查是否已在骑乘同一载具（避免重复骑乘）
                     3. 硬门槛：`couldAcceptPassenger()`
                     4. 循环检测：沿 vehicle 链向上遍历，检查是否形成环（需要 World 环境）
-                    5. 软门槛：`canBeRidden()`（潜行状态、骑乘冷却）和 `canAddPassenger()`
+                    5. 软门槛：`canBeRidden()`（潜行状态）和 `canAddPassenger()`
                     6. 如已在骑乘其他载具，先调用 `stopRiding()`
                     7. 设置 `m_vehicle = vehicle.id()`（**先于** addPassenger）
                     8. 调用 `vehicle.addPassenger(*this)`；失败时回滚 `m_vehicle = INVALID_ENTITY_ID`
@@ -927,14 +927,14 @@
                       （MC Java 抛出 IllegalStateException，C++ 项目使用断言对齐此行为）
                     - 检查 `couldAcceptPassenger()` 和 `canAddPassenger()`
                     - 将 passenger 添加到乘客列表（服务端玩家插入头部）
-                    - 设置骑乘冷却 `rideCooldown = 60`
+                    - 对齐 vanilla：不设置骑乘冷却（原项目自定义的 m_rideCooldown 已移除）
 
                     ### removePassenger() 移除乘客
 
                     - 按 passenger id 在乘客列表中查找并移除
                     - 验证 `passenger.getVehicle() != m_id`（对齐 MC Java：stopRiding 先清空 vehicle 再调用 removePassenger）
                     - 若 `passenger.getVehicle()` 仍指向本载具，触发断言（调用顺序错误）
-                    - 设置骑乘冷却 `rideCooldown = 60`
+                    - 对齐 vanilla：不设置骑乘冷却（原项目自定义的 m_rideCooldown 已移除）
 
                     ### isRidingOrBeingRiddenBy() 双向骑乘关系检查
 

@@ -16,6 +16,7 @@
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp" // applySpawnEvent 派发 slime/magma_cube 尺寸事件（岩浆怪继承 SlimeEntity）
 #include "common/entity/entities/passive/basic/RabbitEntity.hpp" // applySpawnEvent 派发 rabbit killer 变种事件
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"  // applySpawnEvent 派发 sheep color_<dye> 颜色事件
+#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // applySpawnEvent 派发 horse set_tamed 驯服事件（AbstractHorseEntity::setTame）
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
 #include "common/entity/inventory/IInventory.hpp"                       // getItem/getContainerSize/isEmpty（容器断言）
 #include "common/entity/utils/ItemDropHelper.hpp" // ItemDropHelper::spawnItemEntity（spawnItemAt 生成物品实体）
@@ -198,6 +199,23 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             horse->setTrap(true);
         }
         // 其他事件 TODO 待行为包事件系统接入。
+        return;
+    }
+    // 马驯服事件：set_tamed 把马设为已驯服（AbstractHorseEntity::setTame(true)）。
+    // Cubium 测试辅助事件（非基岩标准 spawn 事件，基岩马驯服由骑乘累积触发，无静态驯服事件）。
+    // 解锁马装鞍测试：装鞍需先驯服，而驯服后玩家留在马上（RunAroundLikeCrazyGoal::tick setTamedBy 不甩人，
+    // SpecialGoals.cpp:236），玩家在马上时 HorseEntity::interactMob:270 !isBeingRidden()=false 短路到基类
+    // 不装鞍，故无法在同一次驯服流程中接着装鞍。set_tamed 事件生成已驯服且无人骑的马，玩家持鞍 interact
+    // 直接走 AbstractHorseEntity::interactMob:589-596 SaddleItem::itemInteractionForEntity 装鞍分支。
+    // GameTest 通过 test.spawn("horse<minecraft:set_tamed>", pos) 触发。dynamic_cast<AbstractHorseEntity*>
+    // 覆盖 horse/donkey/mule/llama 等所有马类派生实体（非马类静默跳过）。仅设 isTame，不设 owner（装鞍链路
+    // 只查 isTame 不查 owner，见 AbstractHorseEntity::interactMob）。
+    if (normalizedEvent == "minecraft:set_tamed") {
+        auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(entity);
+        if (horse == nullptr) {
+            return;
+        }
+        horse->setTame(true);
         return;
     }
     // 羊颜色事件：color_<dye> 把羊的羊毛颜色设为指定染料色（SheepEntity::setFleeceColor）。

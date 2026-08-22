@@ -2613,17 +2613,6 @@ public:
     [[nodiscard]] bool canPassengerSteer() const;
 
     /**
-     * @brief 获取骑乘冷却时间
-     * @return 剩余冷却时间（tick），0表示可以骑乘
-     */
-    [[nodiscard]] i32 rideCooldown() const { return m_rideCooldown; }
-
-    /**
-     * @brief 检查是否可以骑乘（冷却为0）
-     */
-    [[nodiscard]] bool canRide() const { return m_rideCooldown <= 0; }
-
-    /**
      * @brief 检查实体是否可以更新
      * @return 如果实体可以更新返回true
      *
@@ -3039,7 +3028,8 @@ protected:
     // 乘客/骑乘系统
     std::vector<EntityInstanceId> m_passengers;     // 乘客列表
     EntityInstanceId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
-    i32 m_rideCooldown = 0;                         // 骑乘冷却（tick），用于防止快速上下骑乘
+    // 注：原 m_rideCooldown（项目自定义骑乘冷却，非 vanilla 机制）已移除以对齐 vanilla。
+    // 详见 Entity.cpp addPassenger/removePassenger/canBeRidden 注释。
 
     // 反序列化阶段暂存的 Passengers NBT 列表。主实体被 spawnEntity 注入世界、拿到真实 id 后，
     // 由 EntityDeserializer::attachPassengers 递归 spawn 乘客并 startRiding，保证乘客的 m_vehicle
