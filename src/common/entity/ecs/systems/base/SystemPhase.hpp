@@ -25,8 +25,11 @@ enum class SystemPhase : u8 {
     /// 移动前处理：预留（如骑乘载具位置同步前置、leash 物理约束）。
     PreTravel,
 
-    /// 移动主体：travel/aiStep/moveWithCollision 强时序内聚链的调度入口。预留——
-    /// 阶段 C+F 落地 MobAiTickSystem + AiStepSystem（回调桥接壳，整块逻辑留 OOP）。
+    /// 移动主体：travel/aiStep/moveWithCollision 强时序内聚链的调度入口。当前无消费方。
+    /// 阶段 C+F 计划曾拟在此落 MobAiTickSystem + AiStepSystem，但勘察发现计划前提错误（见下文
+    /// AiStep 注释与 ecs/README 坑24）：当前 OOP 本就是跨帧 1-tick（AI 链在 aiStep 之后，对齐
+    /// vanilla），且 aiStep 是 sync_point 串行整块抽成独立 system 调度收益为零却引入 fallFlyTicks
+    /// 时序脆弱化。故 C+F 形态 A 决策：仅 AI 链抽 system 落 PostEntityTick，aiStep 留 LivingEntity::tick。
     Travel,
 
     /// 移动后处理：预留（如移动完成的实体相关收尾）。阶段 E 计划曾拟把乘客位置同步（RideTickSystem）
@@ -38,8 +41,13 @@ enum class SystemPhase : u8 {
     /// 常规 tick：玩家专用计时器等与移动无强时序耦合的递减。预留——阶段 G 落地 PlayerTimerSystem。
     NormalTick,
 
-    /// AI 步进：MobAiTickSystem（AI 控制器链）+ AiStepSystem（travel 消费）。
-    /// 预留——阶段 C+F 落地，在 Travel 之后（AI 控制器输出 moveForward，AiStep 的 travel 消费）。
+    /// AI 步进：当前无消费方。阶段 C+F 计划曾拟在此落 MobAiTickSystem（AI 控制器链）+ AiStepSystem
+    /// （travel 消费）双 system 同帧，假设"AI 控制器输出 moveForward，AiStep 的 travel 同帧消费"。
+    /// 勘察证明此假设是错的——当前 OOP 本就是跨帧 1-tick（MobEntity::tick 先 LivingEntity::tick 含
+    /// aiStep/travel 消费上一帧输入，后 AI 链写下一帧输入），与 vanilla MobEntity.tick（先 super.tick
+    /// 后 serverAiStep）同构；若改同帧消费会消除 1-tick 延迟偏离 vanilla。且本阶段在 EntityTick 之前，
+    /// 误注册会破坏 baseTick 时序。故 C+F 形态 A 决策：AI 链抽到 mobAiTick 落 PostEntityTick（保持
+    /// 跨帧语义），aiStep 留 LivingEntity::tick 不抽。详见 ecs/README 坑24、ecs-wiggly-cat.md 阶段 C+F。
     AiStep,
 
     /// 移动应用：预留（与 Travel/AiStep 重叠语义，首批无消费方）。
@@ -68,6 +76,11 @@ enum class SystemPhase : u8 {
     /// updatePassengerPosition 派发到 boat/horse 子类 override）。落本阶段是消除乘客位置 1-tick
     /// 滞后的唯一正确选择（PostMovement/PostTravel 在 EntityTick 前，载具本帧未移动，无效搬迁），
     /// 见 RideTick.hpp 注释与 ecs/README 坑23。
+    /// 阶段 C+F 落地 mobAiTick（mobAiTick free function 桥接壳，sync_point 串行，承载原
+    /// MobEntity::tick 中 AI 链 + 前置 UAF 防护，委托 _tickMobAi 调 MobEntity::tickAiChain）。
+    /// 落本阶段（EntityTick 之后）是保持 1-tick 跨帧语义的关键：aiStep→travel 在 EntityTick 内
+    /// 消费上一帧 AI 输入，mobAiTick 在其后写下一帧输入——与 vanilla 等价。aiStep 不抽 system
+    /// （见 AiStep 注释与 ecs/README 坑24）。注册在 brainTick 之后、livingTimerTick 之前。
     PostEntityTick,
 
     /// 阶段数（须放末尾，作桶数组上界）

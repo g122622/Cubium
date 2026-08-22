@@ -261,6 +261,26 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief AI 链 tick（UAF 防护 + senses/selector/navigator/controllers）
+     *
+     * 承载原 MobEntity::tick() 中 AI 链调用块（含前置 m_attackTarget/m_lastHurtBy 的 isRemoved
+     * UAF 防护 + senses/targetSelector/goalSelector/navigator/updateAITasks/
+     * updateMovementGoalFlags/moveController/lookController/jumpController）。由桥接壳 system
+     * ecs::sys::mobAiTick 在 SystemPhase::PostEntityTick 阶段经 EntityManager::_tickMobAi 调用。
+     *
+     * 时序保持 1-tick 跨帧语义：aiStep→travel 仍在 LivingEntity::tick()（EntityTick 阶段，
+     * 早于 PostEntityTick）内消费上一帧 AI 链写入的 m_moveForward/moveStrafing；本 tickAiChain
+     * 在 EntityTick 之后执行，写入的输入供下一帧 aiStep 消费——与 vanilla MobEntity.tick()
+     * （先 super.tick() 含 aiStep/travel，后 serverAiStep）时序等价。aiStep 不抽 system（见
+     * ecs/README 坑24 与 ecs-wiggly-cat.md 阶段 C+F 计划前提修正）。
+     *
+     * 门控：m_aiEnabled 仅门控 targetSelector/goalSelector/navigator/updateAITasks/
+     * updateMovementGoalFlags；senses 与三个 controller（move/look/jump）在门控外永远执行
+     * （对齐 vanilla noAI 时仍跑感知与控制器）。
+     */
+    void tickAiChain();
+
     // ========== 属性注册 ==========
 
     /**

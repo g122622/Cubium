@@ -42,10 +42,11 @@
 #include <vector>
 
 namespace mc::ecs::sys {
-// 桥接 system 自由函数前向声明（定义见 ticking/LegacyTick.hpp、ticking/BrainTick.hpp）。
-// 仅声明签名供 EntityManager 友元，不 include 其头以避免循环依赖。
+// 桥接 system 自由函数前向声明（定义见 ticking/LegacyTick.hpp、ticking/BrainTick.hpp、
+// ticking/MobAiTick.hpp）。仅声明签名供 EntityManager 友元，不 include 其头以避免循环依赖。
 void legacyTick(const void*, ::mc::ecs::OrganizerGraph::Registry&);
 void brainTick(const void*, ::mc::ecs::OrganizerGraph::Registry&);
+void mobAiTick(const void*, ::mc::ecs::OrganizerGraph::Registry&);
 } // namespace mc::ecs::sys
 
 namespace mc {
@@ -62,11 +63,12 @@ namespace mc {
  * 线程安全：所有公共方法都是线程安全的。
  */
 class EntityManager {
-    // 桥接 system 自由函数需访问私有 _tickEntities()/_tickBrains()（委托型 system 范式，
-    // 见 ticking/LegacyTick.cpp、ticking/BrainTick.cpp）。ticking/ 是 ECS systems 子系统内部
-    // 实现层，friend 限定在这两个函数，不暴露给外部消费者。
+    // 桥接 system 自由函数需访问私有 _tickEntities()/_tickBrains()/_tickMobAi()（委托型 system
+    // 范式，见 ticking/LegacyTick.cpp、ticking/BrainTick.cpp、ticking/MobAiTick.cpp）。ticking/ 是
+    // ECS systems 子系统内部实现层，friend 限定在这三个函数，不暴露给外部消费者。
     friend void ecs::sys::legacyTick(const void*, ecs::OrganizerGraph::Registry&);
     friend void ecs::sys::brainTick(const void*, ecs::OrganizerGraph::Registry&);
+    friend void ecs::sys::mobAiTick(const void*, ecs::OrganizerGraph::Registry&);
 
 public:
     /**
@@ -322,6 +324,26 @@ private:
      * 假设已持有 m_mutex（由 tick() 调用系统集合时经桥接进入）。
      */
     void _tickBrains();
+
+    /**
+     * @brief 逐 Mob AI 链 tick（PostEntityTick 阶段回调）
+     *
+     * 由桥接 system 自由函数 ecs::sys::mobAiTick（经友元）调用，承载原 MobEntity::tick() 中 AI 链
+     * 调用块（含前置 m_attackTarget/m_lastHurtBy 的 isRemoved UAF 防护）的逻辑。复用 _tickEntities
+     * 的遍历+门控框架：playerChunks 快照 + isRemoved() 跳过 + ServerPlayer 短路 + 模拟距离门控。
+     * 对 dynamic_cast<MobEntity*> 成功的实体调 MobEntity::tickAiChain()（承载 AI 链：senses/
+     * targetSelector/goalSelector/navigator/updateAITasks/updateMovementGoalFlags/controllers）。
+     *
+     * 时序保持 1-tick 跨帧语义：aiStep→travel 在 _tickEntities（EntityTick 阶段，早于
+     * PostEntityTick）内执行消费上一帧 AI 输入，本方法在其后调 tickAiChain 写下一帧输入——
+     * 与 vanilla MobEntity.tick()（先 super.tick 含 aiStep/travel，后 serverAiStep）等价。
+     * aiStep 不抽 system（见 ecs/README 坑24）。
+     *
+     * AI 数据全留 OOP（m_senses/m_goalSelector/m_navigator/m_moveController 等），本方法只搬
+     * "何时调 tickAiChain()"调度决策，不 ECS 化 AI 数据（决策"AI 保留 OOP，System 做 tick 调度"）。
+     * 假设已持有 m_mutex（由 tick() 调用系统集合时经桥接进入）。
+     */
+    void _tickMobAi();
 
     /**
      * @brief 判定实体是否处于任一玩家的模拟距离内（假设已持有锁）

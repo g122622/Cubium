@@ -35,6 +35,7 @@
 #include "common/entity/ecs/systems/ticking/FireTick.hpp"
 #include "common/entity/ecs/systems/ticking/LegacyTick.hpp"
 #include "common/entity/ecs/systems/ticking/LivingTimer.hpp"
+#include "common/entity/ecs/systems/ticking/MobAiTick.hpp"
 #include "common/entity/ecs/systems/ticking/PortalTick.hpp"
 #include "common/entity/ecs/systems/ticking/RideTick.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -96,6 +97,19 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
     m_systems.registerSyncSystem(ecs::SystemPhase::PostEntityTick,
         ecs::SystemInfo{.name = "brainTick", .blocking = true},
         &ecs::sys::brainTick,
+        this);
+
+    // PostEntityTick 阶段：Mob AI 链 tick 系统（sync_point 串行）。
+    // 注册在 brainTick 之后、livingTimerTick 之前。承载原 MobEntity::tick() 中 AI 链调用块
+    // （含前置 m_attackTarget/m_lastHurtBy 的 isRemoved UAF 防护），委托 _tickMobAi()（复用
+    // _tickEntities 门控框架）调 MobEntity::tickAiChain()。
+    // 时序保持 1-tick 跨帧语义（形态 A）：aiStep→travel 在 _tickEntities（EntityTick 阶段，
+    // 早于 PostEntityTick）内消费上一帧 AI 输入，本 system 在其后调 tickAiChain 写下一帧
+    // 输入——与 vanilla MobEntity.tick()（先 super.tick 含 aiStep/travel，后 serverAiStep）等价。
+    // aiStep 不抽 system（见 ecs/README 坑24）。AI 数据全留 OOP，本 system 只搬 tick 调度决策。
+    m_systems.registerSyncSystem(ecs::SystemPhase::PostEntityTick,
+        ecs::SystemInfo{.name = "mobAiTick", .blocking = true},
+        &ecs::sys::mobAiTick,
         this);
 
     // PostEntityTick 阶段：LivingEntity 独立计时器真实 system（free function，organizer 推导 rw）。
@@ -431,6 +445,45 @@ void EntityManager::_tickBrains()
         const i64 gameTime = static_cast<i64>(world->currentTick());
         const i32 dayTime = static_cast<i32>(world->dayTimeOfDay());
         villager->brain().tick(world, villager, gameTime, dayTime, villager->getRandom());
+    }
+}
+
+void EntityManager::_tickMobAi()
+{
+    // 复用 _tickEntities 的遍历+门控框架。playerChunks 独立快照（同 _tickBrains，ServerPlayer
+    // 数量少，重复快照成本可忽略；若共用须把快照提到 tick() 顶层改变三步编排，不值得）。
+    const bool freezeEnabled = m_simulationDistance < 32;
+    std::vector<world::chunk::ChunkPos> playerChunks;
+    if (freezeEnabled) {
+        const auto players = getPlayers();
+        playerChunks.reserve(players.size());
+        for (const auto* player : players) {
+            playerChunks.emplace_back(player->position());
+        }
+    }
+
+    for (auto& [id, entity] : m_entities) {
+        if (entity->isRemoved()) {
+            continue;
+        }
+        // 非玩家实体模拟距离门控（Player 非 Mob，dynamic_cast 会失败早退，门控对其无意义但
+        // 保持框架一致）。超出模拟距离的 Mob 冻结 AI（对齐原版 inEntityTickingRange 语义）。
+        if (freezeEnabled && entity->entityType() != entity::VanillaEntityTypeKeys::PLAYER &&
+            !_isEntityInSimulationRange(*entity, playerChunks)) {
+            continue; // 冻结：不调 tickAiChain()
+        }
+
+        // 类型识别：所有 Mob 子类（怪物/动物等）均派生自 MobEntity（位于 mc 命名空间，非 mc::entity，
+        // 故此处写 MobEntity 而非 entity::MobEntity——与 brainTick 对 entity::VillagerEntity 不同），
+        // dynamic_cast 成功即调 tickAiChain()。Player 非 Mob，cast 失败早退。
+        auto* mob = dynamic_cast<MobEntity*>(entity.get());
+        if (mob == nullptr) {
+            continue;
+        }
+
+        // 承载原 MobEntity::tick() 中 AI 链调用块（含前置 m_attackTarget/m_lastHurtBy 的
+        // isRemoved UAF 防护 + senses/selector/navigator/controllers）。AI 数据全留 OOP。
+        mob->tickAiChain();
     }
 }
 

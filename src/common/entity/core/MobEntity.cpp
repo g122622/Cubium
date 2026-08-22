@@ -286,20 +286,13 @@ void MobEntity::tick()
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
     LivingEntity::tick();
 
-    // UAF 修复：若攻击目标已被标记移除（死亡/卸载/discard），立即清空 m_attackTarget，
-    // 避免后续 targetSelector/goalSelector 中持裸指针的 goal 解引用悬垂内存。
-    // 必须在 m_targetSelector.tick()/m_goalSelector.tick() 之前执行。
-    if (m_attackTarget != nullptr && m_attackTarget->isRemoved()) {
-        setAttackTarget(nullptr);
-    }
-
-    // 同类 UAF 防护：m_lastHurtBy 也是裸指针，HurtByTargetGoal::shouldExecute 会解引用
-    // attacker->isAlive()。寻路修复后实体能主动攻击，被攻击者反击链路激活，若 lastHurtBy
-    // 实体已移除（EntityManager 同步 erase+析构无"先标记后析构"窗口）则悬垂解引用段错误。
-    // 详见 memory: goal-entity-ptr-uaf（同模式裸指针 UAF 架构问题）。
-    if (m_lastHurtBy != nullptr && m_lastHurtBy->isRemoved()) {
-        setLastHurtBy(nullptr);
-    }
+    // AI 链（senses/selector/navigator/controllers）+ 前置 m_attackTarget/m_lastHurtBy 的
+    // isRemoved UAF 防护已迁入 ecs::sys::mobAiTick 桥接壳（SystemPhase::PostEntityTick 阶段，
+    // 在 EntityTick 之后）。由 EntityManager::_tickMobAi 经本类 tickAiChain() 调用。
+    // 时序保持 1-tick 跨帧语义：aiStep→travel 在本 LivingEntity::tick（EntityTick 阶段）内
+    // 消费上一帧 AI 链写入的输入，tickAiChain 在其后写入供下一帧消费——与 vanilla
+    // MobEntity.tick()（先 super.tick 含 aiStep/travel，后 serverAiStep）等价。详见
+    // MobEntity.hpp tickAiChain 注释、ecs/README 坑24、ecs-wiggly-cat.md 阶段 C+F。
 
     // 空闲时间在 tick 开头递增
     ++m_idleTime;
@@ -311,43 +304,6 @@ void MobEntity::tick()
             m_livingSoundTime = -getTalkInterval();
             playAmbientSound();
         }
-    }
-
-    // updateEntityActionState() 顺序:
-    // 1. 感知更新
-    if (m_senses) {
-        m_senses->tick();
-    }
-
-    // 2. 目标选择器 (先于 goalSelector)
-    // 3. 行为目标选择器
-    if (m_aiEnabled) {
-        m_targetSelector.tick();
-        m_goalSelector.tick();
-
-        // 4. 导航器更新
-        if (m_navigator) {
-            m_navigator->tick();
-        }
-
-        // 5. AI 任务更新 (子类可重写)
-        updateAITasks();
-
-        // 每 5 tick 更新移动目标标志
-        if (m_ticksExisted % 5 == 0) {
-            updateMovementGoalFlags();
-        }
-    }
-
-    // 6. 控制器更新 (顺序: move -> look -> jump)
-    if (m_moveController) {
-        m_moveController->tick();
-    }
-    if (m_lookController) {
-        m_lookController->tick();
-    }
-    if (m_jumpController) {
-        m_jumpController->tick();
     }
 
     // 注意：aiStep() 已在 LivingEntity::tick() 中调用，这里不需要再次调用
@@ -390,6 +346,61 @@ void MobEntity::tick()
 
     // 拴绳物理约束
     tickLeash();
+}
+
+void MobEntity::tickAiChain()
+{
+    // UAF 修复：若攻击目标已被标记移除（死亡/卸载/discard），立即清空 m_attackTarget，
+    // 避免后续 targetSelector/goalSelector 中持裸指针的 goal 解引用悬垂内存。
+    // 必须在 m_targetSelector.tick()/m_goalSelector.tick() 之前执行。
+    if (m_attackTarget != nullptr && m_attackTarget->isRemoved()) {
+        setAttackTarget(nullptr);
+    }
+
+    // 同类 UAF 防护：m_lastHurtBy 也是裸指针，HurtByTargetGoal::shouldExecute 会解引用
+    // attacker->isAlive()。寻路修复后实体能主动攻击，被攻击者反击链路激活，若 lastHurtBy
+    // 实体已移除（EntityManager 同步 erase+析构无"先标记后析构"窗口）则悬垂解引用段错误。
+    // 详见 memory: goal-entity-ptr-uaf（同模式裸指针 UAF 架构问题）。
+    if (m_lastHurtBy != nullptr && m_lastHurtBy->isRemoved()) {
+        setLastHurtBy(nullptr);
+    }
+
+    // updateEntityActionState() 顺序:
+    // 1. 感知更新
+    if (m_senses) {
+        m_senses->tick();
+    }
+
+    // 2. 目标选择器 (先于 goalSelector)
+    // 3. 行为目标选择器
+    if (m_aiEnabled) {
+        m_targetSelector.tick();
+        m_goalSelector.tick();
+
+        // 4. 导航器更新
+        if (m_navigator) {
+            m_navigator->tick();
+        }
+
+        // 5. AI 任务更新 (子类可重写)
+        updateAITasks();
+
+        // 每 5 tick 更新移动目标标志
+        if (m_ticksExisted % 5 == 0) {
+            updateMovementGoalFlags();
+        }
+    }
+
+    // 6. 控制器更新 (顺序: move -> look -> jump)
+    if (m_moveController) {
+        m_moveController->tick();
+    }
+    if (m_lookController) {
+        m_lookController->tick();
+    }
+    if (m_jumpController) {
+        m_jumpController->tick();
+    }
 }
 
 void MobEntity::updateMovementGoalFlags()

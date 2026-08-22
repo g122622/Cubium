@@ -85,6 +85,7 @@ src/common/entity/ecs/
         ├── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
         ├── EnvironmentSensing.hpp/cpp # 真实 system：遍历碰撞箱内方块流体写 EnvironmentStateComponent（view 遍历，注册 EnvironmentSense，在 EntityTick 之前）
         ├── LivingTimer.hpp/cpp      # 真实 system：LivingEntity 4 计时器（hurtResistantTime 递减/combatTimeout 超时/fallFlyTicks 递增）写 LivingTimerComponent（view 遍历，注册 PostEntityTick）
+        ├── MobAiTick.hpp/cpp        # 桥接壳：委托 EntityManager::_tickMobAi()（MobEntity::tickAiChain AI 链调度上移，注册 PostEntityTick 保持 1-tick 跨帧语义）
         └── RideTick.hpp/cpp         # 真实 system：载具乘客位置同步（遍历有乘客的载具调 updatePassengers→虚 updatePassengerPosition，注册 PostEntityTick，载具移动后同步消除滞后）
 ```
 
@@ -100,7 +101,7 @@ IWorld（ServerWorld / ClientWorld）
        │         ├─ EnvironmentSense 阶段: environmentSensing（free function，遍历碰撞箱流体写 EnvironmentStateComponent）
        │         ├─ EntityTick 阶段:       legacyTick（sync_point）→ _tickEntities() 遍历调 entity->tick()
        │         └─ PostEntityTick 阶段:   portalTick / fireTick / livingTimerTick / rideTick（free function，organizer 推导 rw）
-       │                                  + brainTick（sync_point）→ _tickBrains()
+       │                                  + brainTick / mobAiTick（sync_point）→ _tickBrains() / _tickMobAi()
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
             │
@@ -115,7 +116,7 @@ IWorld（ServerWorld / ClientWorld）
 
 **双向桥接**：
 - OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
-- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`，livingTimerTick 调 `ticksExisted`/`isElytraFlying`/`sendEndCombat`，rideTick 调 `hasPassengers`/`updatePassengers`→虚 `updatePassengerPosition`）。
+- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`，livingTimerTick 调 `ticksExisted`/`isElytraFlying`/`sendEndCombat`，rideTick 调 `hasPassengers`/`updatePassengers`→虚 `updatePassengerPosition`）；桥接壳则经 payload 持 EntityManager 反查句柄遍历调虚函数（legacyTick 调 `Entity::tick`，brainTick 调 `VillagerEntity::brain().tick`，mobAiTick 调 `MobEntity::tickAiChain`）。
 
 ## 上下游依赖
 
@@ -192,7 +193,7 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（极简
 
 ### 11. SystemPhase 演进路径与跨帧延迟
 
-SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）+ 阶段D `ecs::sys::livingTimerTick`（free function，LivingEntity 4 计时器递减/超时检查/fallFlyTicks 递增）+ 阶段E `ecs::sys::rideTick`（free function，载具乘客位置同步，载具移动后消除滞后）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。**fallFlyTicks 是反例——其 1-tick 延迟恰是时序正确性硬约束**（见坑22），须读"上一帧末尾递增后的值+1"，故 LivingTimerSystem 落 PostEntityTick 而非 PostMovement。
+SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）+ 阶段D `ecs::sys::livingTimerTick`（free function，LivingEntity 4 计时器递减/超时检查/fallFlyTicks 递增）+ 阶段E `ecs::sys::rideTick`（free function，载具乘客位置同步，载具移动后消除滞后）+ 阶段C+F `ecs::sys::mobAiTick`（Mob AI 链桥接 sync_point，承载原 MobEntity::tick 中 senses/selector/navigator/controllers + 前置 UAF 防护，委托 _tickMobAi 调 MobEntity::tickAiChain，落 PostEntityTick 保持 1-tick 跨帧语义，见坑24）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。**fallFlyTicks 是反例——其 1-tick 延迟恰是时序正确性硬约束**（见坑22），须读"上一帧末尾递增后的值+1"，故 LivingTimerSystem 落 PostEntityTick 而非 PostMovement。
 
 ### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
 
@@ -370,5 +371,30 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **首批不建 PassengerComponent**：`m_passengers`（std::vector<EntityInstanceId>）仍 OOP 成员（Entity.hpp），乘客数少遍历成本低，rideTick 经 EntityOwnerComponent 反查 OOP 句柄调 hasPassengers() 早退 + updatePassengers()。阶段 H 并行化时若需避免 OOP 句柄竞争再组件化。
 
 **updateRidden 死代码**：`Entity::updateRidden()`（乘客侧 rideTick 等价物，清零速度→tick→调 vehicle->updatePassengerPosition）全仓无调用者，是死代码。Cubium 乘客同步靠载具侧 updatePassengers（与 Java Level.tickPassenger→passenger.rideTick→vehicle.positionRider 对齐，但 Cubium 无世界级 tickPassenger 阶段，故由载具 system 主动同步）。updateRidden 与本次清理无关，保留不动。
+
+### 24. Mob AI 链抽 System：形态 A 保持 1-tick 跨帧 + 计划前提三处误读修正 + aiStep 不抽 system
+
+阶段 C+F 把 `MobEntity::tick()` 中的 AI 链调用块（senses/targetSelector/goalSelector/navigator/updateAITasks/updateMovementGoalFlags/moveController/lookController/jumpController）+ 前置 `m_attackTarget`/`m_lastHurtBy` 的 isRemoved UAF 防护抽成 `MobEntity::tickAiChain()` public 方法，由 `ecs::sys::mobAiTick` 桥接壳（仿 brainTick）在 `SystemPhase::PostEntityTick` 调用（注册在 brainTick 之后、livingTimerTick 之前）。AI 数据全留 OOP，system 只搬 tick 调度决策。几个关键坑：
+
+**计划前提三处误读（阶段 C+F 计划文字须以本坑为准）**：
+1. **"同帧消费"假设错**：计划假设"MobAiTickSystem 在前、AiStepSystem 在后，AI 控制器输出 moveForward，AiStep 的 travel 同帧消费"。勘察证明当前 OOP 本就是**跨帧 1-tick**——`MobEntity::tick()` 先调 `LivingEntity::tick()`（含 `aiStep`→`travel` 消费上一帧 AI 链写的 `m_moveForward`/`m_moveStrafing`），**后**才跑 AI 链（写下一帧输入）。这与 vanilla `MobEntity.tick()`（先 `super.tick()` 含 aiStep/travel，后 `serverAiStep()`）同构。若改同帧消费会消除 1-tick 延迟，**偏离 vanilla 行为变化**，非纯重构。
+2. **SystemPhase::AiStep 在 EntityTick 之前**：枚举顺序 `…AiStep…→EntityTick→PostEntityTick`，AiStep 阶段在 EntityTick **之前**。计划"上移到 AiStep 阶段"对枚举位置理解是反的——若把 aiStep 注册到 AiStep，它会在 `Entity::tick/baseTick`（含 prev 位置保存、环境感知消费）之前执行，破坏 baseTick 时序，灾难性。
+3. **fallFlyTicks 跨阶段时序硬约束（D 阶段已验证）**：`updateFallFlying`（在 aiStep 内）读 `fallFlyTicks+1`，`LivingTimerSystem` 在 PostEntityTick 递增——"读用预测、写延后"自洽。若把 aiStep 也移到 PostEntityTick，updateFallFlying 与 LivingTimerSystem 同阶段，顺序依赖注册序，时序变脆弱。
+
+**形态 A 决策（用户拍板）**：经勘察证明上述三处误读后，放弃计划原案（双 system 同帧），改为**形态 A**——仅 AI 链抽 system 落 PostEntityTick，**aiStep 留 `LivingEntity::tick()` 不抽**。这天然保持 1-tick 跨帧语义：aiStep→travel 在 EntityTick 阶段（早于 PostEntityTick）消费上一帧 AI 输入，mobAiTick 在其后写下一帧输入——与 vanilla 等价。aiStep 不抽 system 的理由：aiStep 是 sync_point 串行整块（travel/moveWithCollision 留 OOP），organizer 不会并行它，**抽成独立 system 调度收益为零**，却引入上述 fallFlyTicks 时序脆弱化 + 4 类级联时序变化（LivingEntity::tick 尾部 tickHealth/updateSwimAmount 等顺序变、MobEntity::tick looting/tickLeash 相对 AI 链提前、Player::aiStep 空操作须跳过）。收益不抵代价。
+
+**抽取边界（UAF 防护随 AI 链迁，looting/tickLeash 留 tick）**：进 `tickAiChain` 的——前置 UAF 防护（m_attackTarget/m_lastHurtBy isRemoved 清空，注释明确"必须在 targetSelector/goalSelector 之前执行"）+ AI 链本体（316-351）。留 `MobEntity::tick` 的——`++m_idleTime`（纯计数器无时序耦合）+ 环境声音块（只依赖 isAlive/RNG）+ looting 拾取掉落物（对齐 vanilla Mob.aiStep looting 段，非 AI 决策链，依赖 boundingBox 当前帧位置=aiStep 已应用）+ tickLeash（拴绳物理约束）。注意 looting/tickLeash 原在 AI 链之后，现相对 AI 链提前一个阶段（仍在 aiStep 之后，因 aiStep 在 LivingEntity::tick 内 EntityTick 最早），功能无回归。
+
+**门控语义保持**：`tickAiChain` 内保留 `m_aiEnabled` 门控——仅门控 targetSelector/goalSelector/navigator/updateAITasks/updateMovementGoalFlags；senses 与 move/look/jump controller 在门控**外**永远执行（对齐 vanilla noAI 时仍跑感知与控制器）。迁移须保留此分门别类，不能整块塞进 m_aiEnabled。
+
+**m_ticksExisted 时机一致**：AI 链内 `updateMovementGoalFlags()` 每 5 tick 跑（`m_ticksExisted % 5 == 0`）。`m_ticksExisted` 在 `Entity::tick()`（EntityTick 阶段）内递增，AI 链原在 LivingEntity::tick 之后（已递增后），现移到 PostEntityTick（仍在 EntityTick 之后），同帧 `m_ticksExisted` 值相同，无回归。
+
+**桥接壳范式（仿 brainTick）**：`mobAiTick(const void* payload, Registry&)` free function，payload=EntityManager，经友元访问私有 `_tickMobAi()`。`_tickMobAi()` 仿 `_tickBrains()` 门控框架（playerChunks 快照/isRemoved 跳过/ServerPlayer 短路/模拟距离门控），`dynamic_cast<MobEntity*>` 成功即调 `tickAiChain()`（Player 非 Mob cast 失败早退，与 brainTick 对 VillagerEntity 同模式）。sync_point 串行（签名持 Registry&），无依赖推导。超出模拟距离的 Mob 冻结 AI（对齐原版 inEntityTickingRange）。
+
+**跨实体时序变化（极小且方向正确）**：AI 链确实读其他实体位置（NearestAttackableTarget 找最近敌人、HurtByTarget alertOthers、senses.canSee 射线检测）。迁移后实体 B 的 AI 链读到实体 A 本帧 aiStep 移动后的位置（而非上一帧）——参考已落地的 brainTick 先例（PostEntityTick，"跨实体传感器读到本帧最终状态，行为更正确"）。aiStep 本身不含实体间碰撞推挤（moveWithCollision 只处理方块碰撞），实体间推挤分散在各子类 tick 内（Minecart._handleEntityCollisions 在 tick 内、Player.checkEntityCollisions 在 tick 末尾），不在 aiStep 链，迁移不影响。
+
+**客户端无回归**：客户端 ClientEntity 独立类不继承 mc::Entity、不跑 system 调度，本地玩家走 Player::updatePhysics 独立物理路径（Player::aiStep 是空操作只递减 m_jumpTicks）。mobAiTick 只注册服务端 EntityManager，客户端不受影响（与 B/D/E 阶段同源）。
+
+**建议验证 GameTest**（跨实体 AI 时序变化，重点复跑）：iron_golem_arena（聚集战斗）、zombie_villager_chase（追逐寻路）、drowned_attacks_player_at_night（近战攻击）、SimpleMobTestEndToEnd（fox AI 链）、zombified_piglin_group_aggro（群体仇恨）。本阶段按 CLAUDE.md 约束构建通过即验证，未跑测试。
 
 
