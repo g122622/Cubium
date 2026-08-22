@@ -101,6 +101,98 @@ function parrotUntamedByDefaultTest(test: Test): void {
   });
 }
 
+// 读鹦鹉 is_sitting 组件 value（true=已坐下，undefined=组件不存在即绑定缺失）。
+// is_sitting 组件经 TameableEntity::isSitting()（m_sitting 字段）读取，由本次补全的
+// IsSittingComponent 绑定（MinecraftModuleFactory.cpp getComponent "minecraft:is_sitting" 分支）。
+// 返回 undefined（而非 false）以区分"组件不存在"与"值为 false"——前者说明绑定缺失需诊断。
+function isParrotSitting(parrot: any): boolean | undefined {
+  const comp = parrot.getComponent("minecraft:is_sitting") as any;
+  if (comp === undefined || comp === null) {
+    return undefined;
+  }
+  return comp.value === true;
+}
+
+// 已驯服鹦鹉右键切换坐下状态（wiki tech_鹦鹉.txt#行为：已驯服的鹦鹉可以通过右键切换坐下/站立）。
+//
+// C++ 链路（对齐 Java 1.21.11 Parrot.mobInteract，ParrotEntity.cpp:198-203）：
+//   玩家 interactWithEntity(已驯服鹦鹉) → Player::interactOn → processInitialInteract
+//   → ParrotEntity::interactMob：
+//     - 分支1 `!isTamed() && isTameItem`（:162）：已驯服时 !isTamed()=false 跳过；
+//     - 分支2 `isTamed() && isOwner(player)`（:199）命中 → toggleSitting()（TameableEntity.hpp:218
+//       setSitting(!m_sitting)）翻转 m_sitting + DATA_FLAGS_PARAM 位 0 → 返回 Success。
+//   分支2 不检查手持物品（区别分支1需 isTameItem），故驯服后无论持种子或空手右键均走分支2 toggleSitting。
+//   toggleSitting 是翻转（非设为 true），故连续两次右键恢复原状。
+//
+// 判定手段：读 is_sitting 组件 value。先喂种子驯服鹦鹉（复用 parrotTamedBySeedsTest 范式），驯服后
+// 继续右键触发分支2 toggleSitting。读 toggle 前的 sitting 基线，右键一次，断言 is_sitting 翻转
+// （=== !基线）。验证 toggleSitting 真正"切换"而非"恒设 true"。
+//
+// 时序设计（全固定 runAtTickTime，不用 pollUntilSucceed）：
+//   pollUntilSucceed 满足条件即调 test.succeed() 终止整个测试（poll.ts:80-83），无法在驯服后继续执行
+//   后续 toggle 阶段。故改用固定时序：
+//   - tick 5..200 每 3 tick 喂种子（约65次，1/10 概率驯服，65 次内成功率 ~99.88%）；
+//   - tick 215 兜底检查 is_tamed=true（驯服失败则 assert false 报清晰错误，~0.12% flaky）；
+//   - tick 225 读 sitting 基线 baseline（tick 200 后不再喂食，状态稳定）；
+//   - tick 235 interactWithEntity 触发 toggleSitting（翻转）；
+//   - tick 245 断言 is_sitting === !baseline + succeed。
+//
+// 驯服后 sitting 基线不可假设：驯服发生在 tick T（喂食循环内某次），T+3..200 间每次喂食走分支2
+// toggleSitting，翻转次数 = floor((200-T-3)/3)+1 取决于 T 奇偶性，故基线 true/false 不定。读实际基线
+// 后断言翻转——基线不确定但翻转确定，测试稳健。无需清空主手（分支2 不检查物品）。
+// 玩家创造模式（不消耗种子可反复喂），鹦鹉 grass_pen 玻璃墙围住不飞走。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_鹦鹉.txt#行为（已驯服右键切换坐下）
+// Ref: ParrotEntity.cpp:198-203（interactMob 坐下切换分支）/ TameableEntity.hpp:218（toggleSitting）
+function parrotTogglesSittingWhenTamedTest(test: Test): void {
+  const parrot = test.spawn(PARROT, { x: 5, y: 2, z: 4 });
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 4 }, "parrotSitter");
+  const seeds = new ItemStack("minecraft:wheat_seeds", 1);
+  player.setItem(seeds as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 阶段一：tick 5..200 每 3 tick 喂种子驯服（约65次，成功率 ~99.88%）。
+  // 创造模式不消耗种子可反复喂。驯服后继续喂走分支2 toggleSitting（无害，基线读实际值）。
+  for (let t = 5; t <= 200; t += 3) {
+    test.runAtTickTime(t, () => {
+      (player as any).interactWithEntity(parrot);
+    });
+  }
+
+  // 阶段二：tick 215 兜底检查驯服成功（驯服失败则 assert false 报清晰错误，~0.12% flaky）。
+  test.runAtTickTime(215, () => {
+    test.assert(isParrotTamed(parrot),
+      `parrot not tamed before sitting toggle test (1/10 chance, `
+      + `is_tamed=${isParrotTamed(parrot)} expected true)`);
+  });
+
+  // 阶段三：tick 225 读 sitting 基线 baseline（tick 200 后不再喂食，状态稳定）。
+  // 闭包变量记录基线供阶段五断言。undefined 说明 is_sitting 绑定缺失（诊断用）。
+  let baseline: boolean | undefined = undefined;
+  test.runAtTickTime(225, () => {
+    baseline = isParrotSitting(parrot);
+    test.assert(baseline !== undefined,
+      `parrot has no is_sitting component (binding missing)`);
+  });
+
+  // 阶段四：tick 235 interactWithEntity 触发 toggleSitting（翻转）。无需清空主手（分支2不检查物品）。
+  test.runAtTickTime(235, () => {
+    (player as any).interactWithEntity(parrot);
+  });
+
+  // 阶段五：tick 245 断言 is_sitting 翻转（=== !baseline）+ succeed。
+  // 留 10 tick 让 interactMob 链路执行 + toggleSitting 同步生效。
+  test.runAtTickTime(245, () => {
+    const after = isParrotSitting(parrot);
+    if (baseline === undefined) {
+      test.assert(false, `baseline not captured, is_sitting after=${after}`);
+      return;
+    }
+    test.assert(after === !baseline,
+      `parrot did not toggle sitting, is_sitting before=${baseline} after=${after} `
+      + `(expected after === !before)`);
+    test.succeed();
+  });
+}
+
 export function registerParrotTests(): void {
   GameTest.register("MobBehaviorTests", "parrot_tamed_by_seeds", parrotTamedBySeedsTest)
     .structureName("gametests:grass_pen")
@@ -109,4 +201,8 @@ export function registerParrotTests(): void {
   GameTest.register("MobBehaviorTests", "parrot_untamed_by_default", parrotUntamedByDefaultTest)
     .structureName("gametests:grass_pen")
     .maxTicks(60);
+
+  GameTest.register("MobBehaviorTests", "parrot_toggles_sitting_when_tamed", parrotTogglesSittingWhenTamedTest)
+    .structureName("gametests:grass_pen")
+    .maxTicks(400);
 }

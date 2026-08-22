@@ -1425,6 +1425,22 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return ctx.createUndefined();
             }
+            if (normalized == "minecraft:is_sitting") {
+                // 对齐基岩 EntityIsSittingComponent（componentId="minecraft:is_sitting"）：
+                // 坐下状态标记组件，wolf/cat/parrot 等驯服类生物经 setSitting(true)/toggleSitting() 置位
+                // （TameableEntity::setSitting 写 m_sitting + DATA_FLAGS_PARAM 位 0）。TameableEntity 是所有
+                // 驯服类基类，dynamic_cast<TameableEntity*> 命中即读 isSitting()。非驯服类实体返 undefined
+                // （对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                // 对所有 TameableEntity 都返组件（value true/false），以便测试断言坐下前后状态变化
+                // （区别于 is_charged"满足条件才返"的存在性语义）。
+                // 马类不继承 TameableEntity 且无坐下概念，不覆盖（与 is_tamed 对马类的双路不同）。
+                // 供集成测试断言鹦鹉已驯服后 interactMob toggleSitting 切换坐下链路。
+                auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
+                if (tameable != nullptr) {
+                    return wrapComponent("IsSittingComponent");
+                }
+                return ctx.createUndefined();
+            }
             if (normalized == "minecraft:is_saddled") {
                 // 对齐基岩 EntityIsSaddledComponent（componentId="minecraft:is_saddled"）：
                 // "When added, this component signifies that this entity is currently saddled"。
@@ -1623,6 +1639,26 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         auto* horse = dynamic_cast<mc::AbstractHorseEntity*>(ent);
         if (horse != nullptr) {
             return ctx.createBoolean(horse->isTame());
+        }
+        return ctx.createUndefined();
+    });
+
+    // --- IsSittingComponent类（minecraft:is_sitting，承载坐下状态）---
+    // opaque 持 mc::Entity*。getComponent 已按 TameableEntity 过滤，此处 dynamic_cast 现取坐下状态。
+    // readonly value：bool，true=已坐下/false=未坐下（TameableEntity::isSitting 读 m_sitting 字段，
+    // 由 setSitting/toggleSitting 写入，经 DATA_FLAGS_PARAM 位 0 同步客户端）。供集成测试断言驯服类
+    // 生物（wolf/cat/parrot）坐下切换链路（如鹦鹉 interactMob toggleSitting）。对所有 TameableEntity
+    // 都返组件（value true/false），以便测试断言坐下前后状态变化。
+    u64 isSittingClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* isSittingProto = builder.exportClass("IsSittingComponent", isSittingClassId);
+    ScriptClassRegistry::instance().registerClass(isSittingClassId, isSittingProto, "IsSittingComponent");
+
+    ClassRegistrar<void> isSittingReg(ctx, isSittingClassId, isSittingProto);
+    isSittingReg.readonlyProperty("value", [isSittingClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, isSittingClassId));
+        auto* tameable = dynamic_cast<mc::TameableEntity*>(ent);
+        if (tameable != nullptr) {
+            return ctx.createBoolean(tameable->isSitting());
         }
         return ctx.createUndefined();
     });
