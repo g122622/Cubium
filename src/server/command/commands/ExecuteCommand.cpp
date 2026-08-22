@@ -191,6 +191,9 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== if block <pos> <block> run <command> ==========
     // /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
+    // 命令树结构（对齐 Java ExecuteCommand）：if -> block(字面量) -> pos(参数) -> block(字符串) -> run -> command。
+    // 注意："block" 字面量必须在 pos 之前，否则 "execute if block <pos> ..." 的 "block" 字面词会被
+    // BlockPosArgumentType 当作坐标首分量解析，readDouble() 读到 "block" 无数字抛 "Expected float"。
     auto ifNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("if");
     auto ifBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
     auto ifBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
@@ -203,13 +206,14 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     ifBlockCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeIfBlock(ctx); });
     ifBlockRunNode->addChild(ifBlockCommandArg);
     ifBlockArg->addChild(ifBlockRunNode);
-    ifBlockNode->addChild(ifBlockArg);
-    ifBlockPosArg->addChild(ifBlockNode);
-    ifNode->addChild(ifBlockPosArg);
+    ifBlockPosArg->addChild(ifBlockArg);
+    ifBlockNode->addChild(ifBlockPosArg);
+    ifNode->addChild(ifBlockNode);
     executeNode->addChild(ifNode);
 
     // ========== unless block <pos> <block> run <command> ==========
     // /execute unless block <pos> <block> run <command> - 如果指定位置不是指定方块则执行
+    // 命令树结构同 if block（见上注释）。
     auto unlessNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("unless");
     auto unlessBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
     auto unlessBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
@@ -223,9 +227,9 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         [](CommandContext<ServerCommandSource>& ctx) { return _executeUnlessBlock(ctx); });
     unlessBlockRunNode->addChild(unlessBlockCommandArg);
     unlessBlockArg->addChild(unlessBlockRunNode);
-    unlessBlockNode->addChild(unlessBlockArg);
-    unlessBlockPosArg->addChild(unlessBlockNode);
-    unlessNode->addChild(unlessBlockPosArg);
+    unlessBlockPosArg->addChild(unlessBlockArg);
+    unlessBlockNode->addChild(unlessBlockPosArg);
+    unlessNode->addChild(unlessBlockNode);
     executeNode->addChild(unlessNode);
 
     dispatcher.registerCommand(executeNode);
