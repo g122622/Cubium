@@ -131,17 +131,24 @@ void GuardianEntity::registerGoals()
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             true, // checkSight - 需要视线检查
             10,   // chance - 每10tick检查一次
-            // 目标筛选谓词: 只攻击玩家和鱿鱼，且距离 > 3格
+            // 目标筛选谓词: 对齐 Java 1.21.11 Guardian.GuardianAttackSelector.test（Guardian.java:436-438）
+            // vanilla: (target instanceof Player || instanceof Squid || instanceof Axolotl) && distSq > 9.0
+            // 注：Java 的 instanceof Squid 涵盖 GlowSquid（GlowSquid extends Squid）。
+            //     Cubium entityType 是扁平枚举指针无继承层级，须显式列举 GLOW_SQUID。
             [this](const LivingEntity* candidate) -> bool {
                 if (!candidate || !candidate->isAlive()) {
                     return false;
                 }
 
-                // 类型筛选: 只攻击玩家或鱿鱼
+                // 类型筛选: 攻击玩家、鱿鱼、发光鱿鱼、美西螈（对齐 wiki tech_守卫者.txt#攻击
+                //   "约16格激光射程内的玩家、鱿鱼、发光鱿鱼和美西螈"）。
+                //   vanilla instanceof Squid 涵盖 GlowSquid；Cubium 须显式列举两者。
                 auto type = candidate->entityType();
                 bool isPlayer = (type == entity::VanillaEntityTypeKeys::PLAYER);
-                bool isSquid = (type == entity::VanillaEntityTypeKeys::SQUID);
-                if (!isPlayer && !isSquid) {
+                bool isSquid =
+                    (type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::GLOW_SQUID);
+                bool isAxolotl = (type == entity::VanillaEntityTypeKeys::AXOLOTL);
+                if (!isPlayer && !isSquid && !isAxolotl) {
                     return false;
                 }
 
