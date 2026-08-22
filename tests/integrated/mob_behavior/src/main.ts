@@ -110,6 +110,7 @@ import { registerGoldenAppleSelfConsumptionTests } from "./tests/monster/undead/
 import { registerZombieBreakDoorTests } from "./tests/monster/undead/ZombieBreakDoorTests.js";
 import { registerVillagerTests } from "./tests/passive/villager/VillagerTests.js";
 import { registerVillagerBreedTests } from "./tests/passive/villager/VillagerBreedTests.js";
+import { registerWanderingTraderTests } from "./tests/passive/villager/WanderingTraderTests.js";
 
 registerZombieTests();
 registerSkeletonTests();
@@ -212,4 +213,5 @@ registerGoldenAppleSelfConsumptionTests();
 registerZombieBreakDoorTests();
 registerVillagerTests();
 registerVillagerBreedTests();
+registerWanderingTraderTests();
 registerWitherTests();

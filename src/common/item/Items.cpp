@@ -97,6 +97,8 @@
 #include "common/item/items/weapon/ThrowableItems.hpp"
 #include "common/item/items/weapon/TippedArrowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
+#include "common/item/potion/PotionBrewing.hpp" // PotionBrewing::initialize（酿造配方注册，依赖 Potions + Items）
+#include "common/item/potion/Potions.hpp" // Potions::initialize（药水类型注册表，原漏接致 Potions::XXX 全 nullptr）
 #include "common/item/tier/ItemTiers.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -1555,6 +1557,14 @@ void Items::initialize()
     _registerAquaticMaterials();
     _registerBrewingIngredients();
     _registerPotions();
+    // 药水类型注册表初始化（Potions::INVISIBILITY 等 Potion* 指针）。此前 Potions::initialize()
+    // 从未被接入启动序列，致所有 Potions::XXX 指针为 nullptr——流浪商人 UseItemGoal 经
+    // PotionUtils::createPotionItem(Potions::INVISIBILITY) 创建空 ItemStack，setActiveHand 读空主手
+    // 提前 return，隐身药水永远喝不成（夜间不隐身）。PotionBrewing::initialize 依赖 Potions 已注册
+    // （配方引用 Potions::WATER 等）+ Items::POTION 已注册，故在 _registerPotions() 之后调用。
+    // 顺序：_registerPotions()(物品) → Potions::initialize()(类型) → PotionBrewing::initialize()(配方)。
+    potion::Potions::initialize();
+    potion::PotionBrewing::initialize();
     _registerWeapons();      // 武器和弹药
     _registerThrowables();   // 投掷物品
     _registerBuckets();      // 桶类物品（需要 BUCKET 在 WATER_BUCKET/LAVA_BUCKET 之前注册）
