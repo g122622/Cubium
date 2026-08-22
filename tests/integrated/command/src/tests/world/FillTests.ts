@@ -166,6 +166,56 @@ function fillDestroyDropsAndFills(test: Test): void {
     });
 }
 
+// /fill destroy 在 doTileDrops=false 时不掉落物品（但仍填充方块）。
+// 对齐 Java Block.dropResources：world.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS)
+// 为 false 时不掉落任何物品。Cubium BlockDropHandler::generateDrops 入口加 doTileDrops 守卫，
+// 一次覆盖玩家破坏/fill destroy/setblock destroy 三条路径。修复前 doTileDrops=false 时 fill destroy
+// 仍掉落物品（绕过守卫）。
+//
+// 设 doTileDrops=false → 摆 stone → /fill dirt destroy → 断言变 dirt（填充仍生效，doTileDrops 不影响
+// setBlockState）且区域无 item 实体（掉落被守卫拦截）。对照 fillDestroyDropsAndFills（默认 true 掉落）。
+//
+// 【并行污染隔离】doTileDrops 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不自动重置，
+// 设 false 会污染同批依赖掉落的测试（如 fill_destroy_drops_and_fills 的 item 断言）。故独占 batch
+// （fill_dotiledrops_solo）串行执行 + runOnFinish 恢复 true（同 [[gametest-world-state-gamerule-difficulty-batch-isolation]]）。
+// Ref: wiki commands/fill.txt（fill destroy 受 doTileDrops 掉落规则影响）
+// Ref: BlockDropHandler.cpp（doTileDrops 守卫）、Block.dropResources（vanilla 守卫）
+function fillDestroyNoDropsWhenDoTileDropsFalse(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+
+    // 关 doTileDrops（世界级，命令从 chat 发出到 C++ 处理有 tick 延迟）。runOnFinish 恢复 true 防污染。
+    player.chat("/gamerule doTileDrops false");
+    test.runOnFinish(() => {
+        player.chat("/gamerule doTileDrops true");
+    });
+
+    // 摆 stone（破坏时本应掉落 cobblestone）。
+    test.setBlockType("minecraft:stone", { x: 2, y: 2, z: 2 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 2, z: 3 });
+
+    // tick 5 时 doTileDrops 已生效，fill destroy 应填充 dirt 但不掉落物品。
+    test.runAtTickTime(5, () => {
+        player.chat(`/fill ${worldCoords(test, { x: 2, y: 2, z: 2 })} ${worldCoords(test, { x: 3, y: 2, z: 3 })} minecraft:dirt destroy`);
+    });
+
+    // tick 15 时 fill 已执行，断言填充生效 + 无掉落物。
+    test.runAtTickTime(15, () => {
+        // 填充仍生效（doTileDrops 不影响 setBlockState）。
+        test.assertBlockPresent("minecraft:dirt", { x: 2, y: 2, z: 2 }, true);
+        test.assertBlockPresent("minecraft:dirt", { x: 3, y: 2, z: 3 }, true);
+        // 区域内无 item 实体（doTileDrops=false 守卫拦截掉落）。修复前会有 cobblestone item。
+        const center = test.worldLocation({ x: 2, y: 2, z: 2 });
+        const items = test.getDimension().getEntities({
+            type: "item",
+            location: center,
+            volume: { x: 4, y: 4, z: 4 },
+        });
+        test.assert(items.length === 0,
+            `expected no dropped items when doTileDrops=false, got ${items.length}`);
+        test.succeed();
+    });
+}
+
 export function registerFillTests(): void {
     GameTest.register("CommandTests", "fill_replaces_region", fillReplacesRegion)
         .structureName("gametests:cmd_arena")
@@ -190,4 +240,11 @@ export function registerFillTests(): void {
     GameTest.register("CommandTests", "fill_destroy_drops_and_fills", fillDestroyDropsAndFills)
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
+
+    // doTileDrops 是世界级状态，独占 batch 串行避免污染同批依赖掉落的测试 + runOnFinish 恢复 true
+    //（见 fillDestroyNoDropsWhenDoTileDropsFalse 注释的并行污染隔离说明）。
+    GameTest.register("CommandTests", "fill_destroy_no_drops_when_doTileDrops_false", fillDestroyNoDropsWhenDoTileDropsFalse)
+        .structureName("gametests:cmd_arena")
+        .batch("fill_dotiledrops_solo")
+        .maxTicks(80);
 }

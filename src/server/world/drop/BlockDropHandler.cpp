@@ -48,6 +48,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <memory>
 #include <string>
@@ -69,6 +70,17 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
     const loot::LootTableManager& lootTableManager)
 {
     std::vector<ItemStack> drops;
+
+    // doTileDrops gamerule 守卫（对齐 Java Block.dropResources：world.getGameRules()
+    // .getBoolean(GameRules.RULE_DOBLOCKDROPS) 为 false 时不掉落任何物品）。
+    // 守卫置于此处（物品掉落的最底层入口）一次覆盖全部调用方：玩家破坏
+    // （BlockInteractionManager::_generateBlockDrops）、/fill destroy（FillCommand）、
+    // /setblock destroy（SetBlockCommand）。vanilla 同样在 dropResources 最底层守卫，
+    // 故三处调用方均自动遵守。注：经验掉落（handleBlockBreakExperience）不受 doTileDrops
+    // 影响（wiki 明示 doTileDrops 只控物品不控经验），故不在经验路径加守卫。
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_TILE_DROPS)) {
+        return drops;
+    }
 
     // 检查方块是否有掉落表
     const Block& block = state.owner();
