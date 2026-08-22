@@ -25,7 +25,6 @@
 
 #include "../../Enchantment.hpp"
 #include "../weapon/DamageEnchantment.hpp"
-#include "common/core/Types.hpp" // CreatureAttribute
 #include <string>
 
 namespace mc {
@@ -89,17 +88,18 @@ public:
     /**
      * @brief 获取对水生生物的伤害加成
      * @param level 附魔等级
-     * @param entityType 生物属性类型 (转换为 CreatureAttribute)
-     * @return 额外伤害
+     * @param target 受击目标实体（ nullptr 时返回 0）
+     * @return 额外伤害（命中水生生物标签时 level * 2.5，否则 0）
+     *
+     * 对齐 MC Java 1.21.11 Enchantments.java:989-996：穿刺额外伤害通过
+     * EnchantmentEffectComponents.DAMAGE + AddValue(perLevel(2.5F)) +
+     * EntityPredicate.entityType(EntityTypeTags.SENSITIVE_TO_IMPALING) 判定目标。
+     * 即用 SENSITIVE_TO_IMPALING（= AQUATIC，12 成员：turtle/axolotl/guardian/
+     * elder_guardian/cod/pufferfish/salmon/tropical_fish/dolphin/squid/glow_squid/
+     * tadpole）标签判定水生生物，而非旧的 getMobType()==WATER（仅覆盖 guardian）。
+     * 实现在 ImpalingEnchantment.cpp（需 LivingEntity 完整定义查 getTypeId）。
      */
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const noexcept override
-    {
-        const CreatureAttribute creatureType = static_cast<CreatureAttribute>(entityType);
-        if (creatureType == CreatureAttribute::Water) {
-            return static_cast<f32>(level) * 2.5f;
-        }
-        return 0.0f;
-    }
+    [[nodiscard]] f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept override;
 };
 
 } // namespace enchant

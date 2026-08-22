@@ -339,10 +339,10 @@ public:
      * @brief 计算附魔后的伤害加成
      *
      * @param stack 物品堆
-     * @param entityType 目标实体类型
+     * @param target 受击目标实体（ nullptr 时附魔按"无目标"返回 0）
      * @return 额外伤害值
      */
-    [[nodiscard]] static f32 getTotalDamageBonus(const ItemStack& stack, u32 entityType);
+    [[nodiscard]] static f32 getTotalDamageBonus(const ItemStack& stack, const LivingEntity* target);
 
     // ========== 护甲附魔保护计算 ==========
 

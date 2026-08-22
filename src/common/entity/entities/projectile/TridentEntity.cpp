@@ -255,13 +255,13 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     f32 damage = 8.0f;
 
     // 应用穿刺附魔伤害（对水生生物造成额外伤害，每级 2.5 点）
+    // 对齐 MC Java 1.21.11：穿刺目标判定用 EntityTypeTags.SENSITIVE_TO_IMPALING 标签
+    // （Enchantments.java:994），在 ImpalingEnchantment::getDamageBonus 内查标签，
+    // 故此处直接传 LivingEntity* 目标（不再转 CreatureAttribute 枚举）。
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
     if (livingTarget != nullptr && hasStack) {
-        // 获取目标的生物属性类型
-        CreatureAttribute creatureType = livingTarget->getCreatureAttribute();
-        // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害
-        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(
-            *trident->m_tridentStack, static_cast<u32>(creatureType));
+        // 使用附魔助手的 getTotalDamageBonus 方法计算额外伤害（穿刺查 SENSITIVE_TO_IMPALING 标签）
+        damage += mc::item::enchant::EnchantmentHelper::getTotalDamageBonus(*trident->m_tridentStack, livingTarget);
     }
 
     // 获取射击者

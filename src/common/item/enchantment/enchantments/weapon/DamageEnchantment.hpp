@@ -64,7 +64,7 @@ public:
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override;
 
-    [[nodiscard]] f32 getDamageBonus(i32 level, u32 entityType) const noexcept override;
+    [[nodiscard]] f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept override;
 
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 

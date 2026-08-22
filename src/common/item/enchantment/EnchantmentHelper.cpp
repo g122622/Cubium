@@ -267,7 +267,7 @@ i32 EnchantmentHelper::getTotalProtection(const ItemStack& stack, u32 damageType
     return total;
 }
 
-f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityType)
+f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, const LivingEntity* target)
 {
     if (stack.isEmpty()) {
         return 0.0f;
@@ -277,7 +277,7 @@ f32 EnchantmentHelper::getTotalDamageBonus(const ItemStack& stack, u32 entityTyp
     auto enchantments = getEnchantments(stack);
     for (const auto& [enchantment, level] : enchantments) {
         if (enchantment) {
-            total += enchantment->getDamageBonus(level, entityType);
+            total += enchantment->getDamageBonus(level, target);
         }
     }
 

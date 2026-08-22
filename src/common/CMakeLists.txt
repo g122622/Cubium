@@ -658,6 +658,7 @@ add_library(mc_common STATIC
     item/enchantment/enchantments/mace/DensityEnchantment.cpp
     item/enchantment/enchantments/mace/BreachEnchantment.cpp
     item/enchantment/enchantments/mace/WindBurstEnchantment.cpp
+    item/enchantment/enchantments/trident/ImpalingEnchantment.cpp
     item/enchantment/enchantments/tool/UnbreakingEnchantment.cpp
 
     # World - Entity

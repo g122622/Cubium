@@ -243,10 +243,16 @@ public:
     /**
      * @brief 计算伤害加成
      * @param level 附魔等级
-     * @param entityType 目标实体类型（可选）
+     * @param target 受击目标实体（可选， nullptr 时附魔按"无目标"返回 0）
      * @return 额外伤害值
+     *
+     * 对齐 MC Java 1.21.11：伤害类附魔（锋利/亡灵杀手/节肢杀手/穿刺）的目标判定改用
+     * EntityTypeTags 标签（SENSITIVE_TO_SMITE/SENSITIVE_TO_BANE_OF_ARTHROPODS/
+     * SENSITIVE_TO_IMPALING），而非旧的 getMobType 枚举。穿刺（ImpalingEnchantment）
+     * 已按此用 SENSITIVE_TO_IMPALING 标签判定水生生物。target 为 nullptr 时返回 0
+     * （无目标无法做标签判定）。
      */
-    [[nodiscard]] virtual f32 getDamageBonus(i32 level, u32 entityType = 0) const noexcept;
+    [[nodiscard]] virtual f32 getDamageBonus(i32 level, const LivingEntity* target = nullptr) const noexcept;
 
     /**
      * @brief 计算保护加成

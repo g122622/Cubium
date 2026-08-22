@@ -24,11 +24,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/effect/EffectInstance.hpp"
 #include "entity/effect/EffectType.hpp"
+#include "entity/tag/EntityTypeTags.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/enchantment/Enchantment.hpp"
@@ -37,11 +39,76 @@
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/enchantments/AllEnchantments.hpp"
 #include "item/enchantment/enchantments/protection/ThornsEnchantment.hpp"
+#include "item/enchantment/enchantments/trident/ImpalingEnchantment.hpp"
 #include "item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;
 using namespace mc::item::enchant;
+
+// ============================================================================
+// 测试辅助：不同生物属性的 LivingEntity 桩
+// ============================================================================
+// getDamageBonus 新签名接受 const LivingEntity* target，附魔内部按 target 的
+// getCreatureAttribute()（亡灵杀手/节肢杀手）或 getTypeId() + EntityTypeTags 标签
+// （穿刺 SENSITIVE_TO_IMPALING）判定目标。此处构造节肢/亡灵/普通三类桩供测试。
+
+namespace {
+
+class TestArthropodEntity : public LivingEntity {
+public:
+    explicit TestArthropodEntity(EntityInstanceId id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        setHealth(20.0f);
+    }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Arthropod; }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:spider"; }
+};
+
+class TestUndeadEntity : public LivingEntity {
+public:
+    explicit TestUndeadEntity(EntityInstanceId id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        setHealth(20.0f);
+    }
+    [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie"; }
+};
+
+class TestNormalEntity : public LivingEntity {
+public:
+    explicit TestNormalEntity(EntityInstanceId id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        setHealth(20.0f);
+    }
+    // 基类 getCreatureAttribute()=Undefined, getTypeId() 返回空串（非水生/亡灵/节肢）
+};
+
+// 水生生物桩：getTypeId() 返 "minecraft:squid"（在 EntityTypeTags::AQUATIC /
+// SENSITIVE_TO_IMPALING 标签内，EntityTypeTags.cpp:504-517），供穿刺附魔测试。
+// getCreatureAttribute() 基类返 Undefined（鱿鱼非 Water 枚举，验证穿刺用标签非枚举）。
+class TestAquaticEntity : public LivingEntity {
+public:
+    explicit TestAquaticEntity(EntityInstanceId id)
+        : LivingEntity(id, nullptr, mc::test::testEcsRegistry())
+    {
+        registerAttributes();
+        attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        setHealth(20.0f);
+    }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:squid"; }
+};
+
+} // namespace
 
 // ============================================================================
 // BaneOfArthropodsEnchantment 测试
@@ -97,18 +164,21 @@ TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessAmplifier)
 TEST_F(BaneOfArthropodsEnchantmentTest, GetDamageBonus)
 {
     BaneOfArthropodsEnchantment bane;
+    TestArthropodEntity arthropod(1);
+    TestUndeadEntity undead(2);
+    TestNormalEntity normal(3);
 
     // 对节肢生物：每级 +2.5 伤害
-    constexpr u32 EntityTypeArthropod = 2;
-    EXPECT_FLOAT_EQ(bane.getDamageBonus(1, EntityTypeArthropod), 2.5f);
-    EXPECT_FLOAT_EQ(bane.getDamageBonus(3, EntityTypeArthropod), 7.5f);
-    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, EntityTypeArthropod), 12.5f);
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(1, &arthropod), 2.5f);
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(3, &arthropod), 7.5f);
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, &arthropod), 12.5f);
 
-    // 对非节肢生物：0 伤害
-    constexpr u32 EntityTypeUndead = 1;
-    constexpr u32 EntityTypeNormal = 0;
-    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, EntityTypeUndead), 0.0f);
-    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, EntityTypeNormal), 0.0f);
+    // 对非节肢生物（亡灵/普通）：0 伤害
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, &undead), 0.0f);
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, &normal), 0.0f);
+
+    // target 为 nullptr：0 伤害（无目标无法判定）
+    EXPECT_FLOAT_EQ(bane.getDamageBonus(5, nullptr), 0.0f);
 }
 
 TEST_F(BaneOfArthropodsEnchantmentTest, IsIncompatibleWithOtherDamageEnchants)
@@ -436,9 +506,9 @@ TEST_F(EnchantmentHelperNewMethodsTest, ThornsEnchantmentProperties)
     EXPECT_EQ(thorns->rarity(), EnchantmentRarity::VeryRare);
 
     // 验证伤害加成（荆棘对玩家攻击者有反伤效果）
-    // 对普通实体无伤害加成
-    EXPECT_FLOAT_EQ(thorns->getDamageBonus(1, 0), 0.0f);
-    EXPECT_FLOAT_EQ(thorns->getDamageBonus(3, 0), 0.0f);
+    // 对普通实体无伤害加成（荆棘不 override getDamageBonus，基类返 0）
+    EXPECT_FLOAT_EQ(thorns->getDamageBonus(1, nullptr), 0.0f);
+    EXPECT_FLOAT_EQ(thorns->getDamageBonus(3, nullptr), 0.0f);
 }
 
 TEST_F(EnchantmentHelperNewMethodsTest, BaneOfArthropodsEnchantmentProperties)
@@ -451,12 +521,98 @@ TEST_F(EnchantmentHelperNewMethodsTest, BaneOfArthropodsEnchantmentProperties)
     EXPECT_EQ(baneOfArthropods->rarity(), EnchantmentRarity::Uncommon);
 
     // 验证对节肢生物的伤害加成
-    // EntityAttribute::Arthropod = 2
-    constexpr u32 CreatureAttributeArthropod = 2;
-    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(1, CreatureAttributeArthropod), 2.5f);
-    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(5, CreatureAttributeArthropod), 12.5f);
+    TestArthropodEntity arthropod(1);
+    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(1, &arthropod), 2.5f);
+    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(5, &arthropod), 12.5f);
 
     // 验证对非节肢生物无伤害加成
-    constexpr u32 CreatureAttributeUndead = 1;
-    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(5, CreatureAttributeUndead), 0.0f);
+    TestUndeadEntity undead(2);
+    EXPECT_FLOAT_EQ(baneOfArthropods->getDamageBonus(5, &undead), 0.0f);
+}
+
+// ============================================================================
+// ImpalingEnchantment 穿刺附魔测试
+// ============================================================================
+// 验证穿刺额外伤害判定改用 EntityTypeTags::SENSITIVE_TO_IMPALING（= AQUATIC）标签
+// （对齐 MC Java 1.21.11 Enchantments.java:994），而非旧 getCreatureAttribute()==Water
+// 枚举（仅覆盖 guardian）。每级 +2.5 伤害（Enchantments.java:991 perLevel(2.5F)）。
+//
+// 此前偏差：用 getCreatureAttribute()==Water，Cubium 仅 GuardianEntity 显式返 Water，
+// 导致穿刺只对守卫者/远古守卫者额外伤害，遗漏 squid/cod/dolphin/turtle/axolotl 等 10 个
+// 水生生物。改用 SENSITIVE_TO_IMPALING 标签（12 成员，与 vanilla AQUATIC 一致）后，
+// 所有水生生物均受穿刺额外伤害。
+
+class ImpalingEnchantmentTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        EnchantmentRegistry::clear();
+        EnchantmentRegistry::initialize();
+        // 穿刺判定查 EntityTypeTags::SENSITIVE_TO_IMPALING 标签，须初始化硬编码标签成员
+        // （AQUATIC 12 成员 + SENSITIVE_TO_IMPALING=AQUATIC 引用，EntityTypeTags.cpp:504-525）。
+        // initialize 幂等（EntityTypeTagsTest.cpp:256-257 双调验证）。
+        EntityTypeTags::initialize();
+    }
+
+    void TearDown() override { EnchantmentRegistry::clear(); }
+};
+
+TEST_F(ImpalingEnchantmentTest, Properties)
+{
+    ImpalingEnchantment impaling;
+
+    EXPECT_EQ(impaling.id(), "minecraft:impaling");
+    EXPECT_EQ(impaling.minLevel(), 1);
+    EXPECT_EQ(impaling.maxLevel(), 5);
+    EXPECT_EQ(impaling.type(), EnchantmentType::Trident);
+    EXPECT_EQ(impaling.rarity(), EnchantmentRarity::Rare);
+}
+
+TEST_F(ImpalingEnchantmentTest, GetDamageBonusAgainstAquatic)
+{
+    ImpalingEnchantment impaling;
+    TestAquaticEntity aquatic(1); // getTypeId()="minecraft:squid"，在 SENSITIVE_TO_IMPALING 标签内
+
+    // 对水生生物：每级 +2.5 伤害（对齐 vanilla Enchantments.java:991 perLevel(2.5F)）
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(1, &aquatic), 2.5f);
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(3, &aquatic), 7.5f);
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, &aquatic), 12.5f);
+}
+
+TEST_F(ImpalingEnchantmentTest, GetDamageBonusAgainstNonAquatic)
+{
+    ImpalingEnchantment impaling;
+    TestUndeadEntity undead(1);       // getTypeId()="minecraft:zombie"，非水生
+    TestNormalEntity normal(2);       // getTypeId()=""，非水生
+    TestArthropodEntity arthropod(3); // getTypeId()="minecraft:spider"，非水生
+
+    // 对非水生生物：0 伤害（不在 SENSITIVE_TO_IMPALING 标签内）
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, &undead), 0.0f);
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, &normal), 0.0f);
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, &arthropod), 0.0f);
+}
+
+TEST_F(ImpalingEnchantmentTest, GetDamageBonusNullptrTarget)
+{
+    ImpalingEnchantment impaling;
+
+    // target 为 nullptr：0 伤害（无目标无法做标签判定）
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, nullptr), 0.0f);
+}
+
+// 验证穿刺标签判定覆盖旧枚举遗漏的水生生物（核心回归保护）。
+// 旧实现用 getCreatureAttribute()==Water，TestAquaticEntity 基类 getCreatureAttribute()
+// 返 Undefined（非 Water），旧实现会返 0（漏判）；新实现用标签查 getTypeId()=="minecraft:squid"
+// 命中 SENSITIVE_TO_IMPALING，返 level*2.5。本测试若 FAIL 说明回归到旧枚举判定。
+TEST_F(ImpalingEnchantmentTest, TagBasedNotEnumCoversSquid)
+{
+    ImpalingEnchantment impaling;
+    TestAquaticEntity squid(1);
+
+    // squid 的 getCreatureAttribute()==Undefined（非 Water 枚举），但 getTypeId() 在
+    // SENSITIVE_TO_IMPALING 标签内。新标签判定返 12.5，旧枚举判定返 0。
+    EXPECT_NE(squid.getCreatureAttribute(), CreatureAttribute::Water) << "squid 应非 Water 枚举（验证标签判定非枚举）";
+    EXPECT_FLOAT_EQ(impaling.getDamageBonus(5, &squid), 12.5f)
+        << "穿刺应对 squid（SENSITIVE_TO_IMPALING 标签成员）返额外伤害，"
+        << "若返 0 说明回归到旧 getCreatureAttribute==Water 枚举判定";
 }

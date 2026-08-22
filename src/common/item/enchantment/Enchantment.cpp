@@ -136,10 +136,10 @@ i32 Enchantment::getMaxEnchantability(i32 level) const noexcept
     return getMinEnchantability(level) + 15;
 }
 
-f32 Enchantment::getDamageBonus(i32 level, u32 entityType) const noexcept
+f32 Enchantment::getDamageBonus(i32 level, const LivingEntity* target) const noexcept
 {
     (void)level;
-    (void)entityType;
+    (void)target;
     return 0.0f;
 }
 
