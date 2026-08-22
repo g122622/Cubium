@@ -645,6 +645,23 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
         builder.withNullableParameter(loot::LootParams::KILLER_ENTITY, attackingEntity);
     }
 
+    // 掠夺附魔等级（LOOTING_MODIFIER）：从攻击者主手武器读取掠夺附魔等级，供 LootingEnchantBonusFunction
+    // 增加掉落数量（如 rotten_flesh/beef 多掉）。对齐 vanilla 1.21.11 EnchantedCountIncreaseFunction
+    // 从 ATTACKING_ENTITY 武器查 EnchantmentHelper.getEnchantmentLevel(LOOTING, attacker) 的语义
+    // （EnchantedCountIncreaseFunction.java:67-72）。Cubium 用旧式 LOOTING_MODIFIER 参数接口适配
+    // （LootingEnchantBonusFunction::apply 读 context.getLootingModifier()）。修复前未设此参数，
+    // 致玩家持掠夺附魔武器击杀 mob 时掉落数量不增加。
+    if (attackingEntity != nullptr) {
+        LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(attackingEntity);
+        if (livingAttacker != nullptr) {
+            const i32 lootingLevel =
+                item::enchant::EnchantmentHelper::getLootingLevel(livingAttacker->getMainHandItem());
+            if (lootingLevel > 0) {
+                builder.withLootingModifier(lootingLevel);
+            }
+        }
+    }
+
     // 直接来源（DIRECT_KILLER）：投射物本身或近战攻击者（IndirectEntityDamageSource 返回
     // m_directSource，EntityDamageSource 返回攻击者自身，环境伤害返回 nullptr）。
     Entity* directEntity = damageSource->directSource();
