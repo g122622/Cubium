@@ -896,17 +896,40 @@ void WitherEntity::registerGoals()
     // 优先级 1: 被攻击后反击
     m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
 
-    // 优先级 2: 攻击非亡灵生物
-    // NOT_UNDEAD 谓词：排除亡灵生物
+    // 优先级 2: 攻击非亡灵生物（凋灵同族友军外的所有 LivingEntity）
+    // 对齐 MC Java 1.21.11 WitherBoss.registerGoals（WitherBoss.java:104-105）：
+    //   targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, LivingEntity.class,
+    //       0, false, false, LIVING_ENTITY_SELECTOR));
+    //   LIVING_ENTITY_SELECTOR（WitherBoss.java:78-79）= !getType().is(EntityTypeTags.WITHER_FRIENDS)
+    //                                                       && attackable();
+    //   WITHER_FRIENDS = #undead（EntityTypeTagsProvider.java:144），即 UNDEAD 标签。
+    //
+    // 模板参须用 LivingEntity（非 MobEntity）：vanilla 用 LivingEntity.class 涵盖 Player。
+    // Player : LivingEntity 非 MobEntity，若用 MobEntity 则 Player 被 dynamic_cast<MobEntity*> 滤掉，
+    // 凋灵主目标永远不会主动选玩家为攻击目标（玩家须靠 HurtByTargetGoal 被动成为目标）——这是与
+    // vanilla 的对齐缺陷。改 LivingEntity 后凋灵会主动锁定玩家，对齐 vanilla 行为。
+    //
+    // 谓词用 getCreatureAttribute() != Undead 代理 vanilla WITHER_FRIENDS(#undead) 标签判定。
+    // Cubium getCreatureAttribute==Undead 的覆盖集（Zombie/AbstractSkeleton 系 + Wither + Phantom
+    // + ZombifiedPiglin + Zoglin + ZombieHorse + SkeletonHorse + ZombieNautilus）与 UNDEAD 标签成员
+    // 基本对齐（UNDEAD 标签含 zoglin，getCreatureAttribute 亦返 Undead，一致）。
+    // TODO: vanilla 1.21.11 已全面用 EntityTypeTags.UNDEAD 标签替代 getMobType 枚举判定亡灵
+    //       （Smite/药水反转/毒免疫/凋灵友军全用标签）。Cubium 生产代码仍以 getCreatureAttribute 为主，
+    //       EntityTypeTags::UNDEAD 标签已定义（13 成员）但几乎未被消费。彻底对齐须将凋灵/附魔/药水等
+    //       亡灵判定统一切换到 EntityTypeTags::UNDEAD().contains(typeId)，并引入 WITHER_FRIENDS 标签
+    //       （=UNDEAD）。当前 getCreatureAttribute 代理覆盖一致，先修最直接的 Player 选取缺陷。
+    //       另：vanilla WITHER_FRIENDS(=UNDEAD) 不含 zombie_horse/zombie_nautilus，而 Cubium
+    //       getCreatureAttribute==Undead 含之——边角偏差，zombie_nautilus 是项目自定义实体无 vanilla
+    //       基线，暂保持亡灵语义。
     m_targetSelector.addGoal(2,
-        new entity::ai::goal::NearestAttackableTargetGoal<MobEntity>(this,
+        new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(this,
             false, // checkSight
             0,     // chance (每tick检查)
             [](const LivingEntity* entity) -> bool {
                 if (entity == nullptr || !entity->isAlive()) {
                     return false;
                 }
-                // 排除亡灵生物
+                // 排除亡灵生物（对齐 vanilla WITHER_FRIENDS = #undead 友军免伤）
                 return entity->getCreatureAttribute() != CreatureAttribute::Undead;
             }));
 }
