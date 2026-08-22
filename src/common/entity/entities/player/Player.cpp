@@ -1216,8 +1216,12 @@ void Player::updatePhysics()
     // 1. 重置过小的速度（MC: LivingEntity.aiStep）
     _clampMotion();
 
-    // 刷新环境状态，确保后续判断使用当前位置。
-    updateEnvironmentState();
+    // TODO(ecs-stage-B-client-env-sensing): 环境状态刷新原由 updateEnvironmentState() 完成，
+    //   该函数已迁入 ecs::sys::environmentSensing（SystemPhase::EnvironmentSense，仅服务端
+    //   EntityManager 跑 system 调度）。客户端本地玩家走 Player::updatePhysics 路径不跑 system，
+    //   故 m_player 的 EnvironmentStateComponent 暂时无人刷新，isInWater()/isInLava() 恒 false，
+    //   本帧后续水中物理判断（行 1228/1237）暂受影响。待后续让客户端接入 system 调度（或本路径
+    //   直接调环境感知 helper）后恢复。详见 plans/ecs-wiggly-cat.md 阶段 B「客户端本地玩家环境感知失效」。
     checkOnGround();
 
     const f32 tickGroundSlipperiness = _groundSlipperiness();
@@ -1308,8 +1312,10 @@ void Player::updatePhysics()
         }
     }
 
-    // 更新本地渲染与环境状态缓存
-    updateEnvironmentState();
+    // TODO(ecs-stage-B-client-env-sensing): 原此处调 updateEnvironmentState() 刷新环境状态缓存
+    //   供 updateSwimming/updateAirSupply 使用。该函数已迁入 ecs::sys::environmentSensing（仅服务端
+    //   system 调度），客户端本路径不跑 system 故暂不刷新，EnvironmentStateComponent 恒为默认值。
+    //   待后续客户端接入 system 调度后恢复。详见 plans/ecs-wiggly-cat.md 阶段 B「客户端本地玩家环境感知失效」。
     updateSwimming();
     updateAirSupply();
     updateMoveDistance();

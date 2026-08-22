@@ -82,7 +82,8 @@ public:
     }
 
     // 测试世界为纯空气环境（无方块、无流体）。显式返回 nullptr 表示无流体，
-    // 避免 updateEnvironmentState 把落体物品误判为浸入岩浆而被 lavaHurt 销毁。
+    // 避免 environmentSensing（B 阶段前为 baseTick 内联 updateEnvironmentState）把落体物品
+    // 误判为浸入岩浆而被 lavaHurt 销毁。
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
 
     [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
@@ -351,7 +352,8 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetheriteItemImmune)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
@@ -379,7 +381,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItemNotHurtByFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -389,7 +392,8 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemHurtByGenericNotFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 2.0f);
@@ -401,7 +405,8 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemVoidDamageKills)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto voidDamage = DamageSources::outOfWorld();
     bool result = entity.hurt(voidDamage, 100.0f);
@@ -574,7 +579,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantNotHurtByFire_NoGameEvent)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto fireDamage = DamageSources::inFire();
@@ -658,7 +664,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_NotHurtByFire_DoesNotSetMarkH
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -669,7 +676,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_HurtByGeneric_SetsMarkHurt)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 防火物品被普通伤害击中时，hurt() 成功，应设置 hurtMarked
     auto genericDamage = DamageSources::generic();
@@ -932,7 +940,8 @@ protected:
     {
         Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
         EXPECT_NE(stone, nullptr);
-        auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+        auto entity = std::make_unique<ItemEntity>(
+            EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
         entity->setLifetime(lifetime);
         entity->setPickupDelay(pickupDelay);
         entity->setWorld(&m_world);
@@ -947,7 +956,8 @@ TEST_F(ItemEntityLifecycleTest, EmptyItemRemovedOnTick)
     EntityManager manager{mc::test::testEcsRegistry()};
     // 默认构造的 ItemStack 为空（item==nullptr）
     ItemStack emptyStack;
-    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto entity =
+        std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
     EntityInstanceId id = manager.addEntity(std::move(entity));
     ASSERT_NE(id, 0);

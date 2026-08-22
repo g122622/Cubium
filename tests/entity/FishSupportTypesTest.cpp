@@ -337,7 +337,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
 
     // 创建并加入 4 条鱼（达到最大群体大小 5）
     for (int i = 0; i < 4; ++i) {
-        auto follower = std::make_unique<SalmonEntity>(static_cast<EntityInstanceId>(i + 2), mc::test::testEcsRegistry());
+        auto follower =
+            std::make_unique<SalmonEntity>(static_cast<EntityInstanceId>(i + 2), mc::test::testEcsRegistry());
         follower->setWorld(m_world.get());
         follower->setPosition(static_cast<f32>(i + 1), 62.0f, 0.0f);
         follower->joinGroup(*leader);
@@ -421,7 +422,7 @@ TEST(FishSwimGoalSafetyTest, RandomSwimmingGoalReturnsFalseWhenBlockStateIsUnava
     CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     cod.setWorld(world.get());
     cod.setPosition(0.0f, 62.0f, 0.0f);
-    cod.setInWater(true);
+    test::setEntityInWater(cod, true);
 
     entity::ai::goal::RandomSwimmingGoal goal(&cod, 1.0, 1);
     EXPECT_FALSE(goal.shouldExecute());
@@ -433,7 +434,7 @@ TEST(FishSwimGoalSafetyTest, FishSwimGoalReturnsFalseWhenBlockStateIsUnavailable
     CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
     cod.setWorld(world.get());
     cod.setPosition(0.0f, 62.0f, 0.0f);
-    cod.setInWater(true);
+    test::setEntityInWater(cod, true);
 
     entity::ai::goal::FishSwimGoal goal(&cod, 1.0, 1);
     EXPECT_FALSE(goal.shouldExecute());

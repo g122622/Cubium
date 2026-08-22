@@ -31,6 +31,7 @@
 #include "common/entity/ecs/systems/base/SystemInfo.hpp"
 #include "common/entity/ecs/systems/base/SystemPhase.hpp"
 #include "common/entity/ecs/systems/ticking/BrainTick.hpp"
+#include "common/entity/ecs/systems/ticking/EnvironmentSensing.hpp"
 #include "common/entity/ecs/systems/ticking/FireTick.hpp"
 #include "common/entity/ecs/systems/ticking/LegacyTick.hpp"
 #include "common/entity/ecs/systems/ticking/PortalTick.hpp"
@@ -61,6 +62,13 @@ namespace mc {
 EntityManager::EntityManager(ecs::EntityRegistry& registry)
     : m_registry(registry)
 {
+    // EnvironmentSense 阶段：环境感知真实 system（free function，organizer 推导 rw）。
+    // 遍历所有实体的 EnvironmentStateComponent，逐字搬迁原 Entity::updateEnvironmentState 逻辑，
+    // 写水/岩浆浸入状态。在 EntityTick 之前执行，同帧产出同帧消费——baseTick 的岩浆坠距减半、
+    // PostEntityTick 的 fireTick 经 isInWater/isInLava 读本组件，均无跨帧延迟。
+    m_systems.registerFreeSystem<&ecs::sys::environmentSensing>(
+        ecs::SystemPhase::EnvironmentSense, ecs::SystemInfo{.name = "environmentSensing"});
+
     // 注册 EntityTick 阶段的 OOP tick 桥接 system（sync_point 串行）。
     // 委托 _tickEntities()（含模拟距离门控/ServerPlayer 永远 tick 等成熟逻辑），
     // 避免 EntityManager ↔ Collection 循环依赖，且保持原三步 tick 编排语义不变。

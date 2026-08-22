@@ -29,6 +29,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/ecs/components/EntityOwnerComponent.hpp"
 #include "common/entity/ecs/components/FireComponent.hpp"
+#include "common/entity/ecs/systems/ticking/EnvironmentSensing.hpp"
 #include "common/entity/ecs/systems/ticking/FireTick.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -54,6 +55,21 @@ void runFireTick()
     mc::ecs::sys::fireTick(
         registry.raw(), registry.raw().view<mc::ecs::FireComponent, mc::ecs::EntityOwnerComponent>());
 }
+
+// 测试辅助：驱动 environmentSensing free function。
+// B 阶段后 Entity::baseTick 不再内联刷新环境状态，改由 ecs::sys::environmentSensing
+// （SystemPhase::EnvironmentSense，在 EntityTick 之前）每帧遍历碰撞箱内方块流体写
+// EnvironmentStateComponent。测试不跑 EntityManager 调度，故需在 baseTick 前手动调一次，
+// 模拟服务端"EnvironmentSense→EntityTick(baseTick)→PostEntityTick(fireTick)"同帧序列，
+// 使 enableWaterAtEntity()/enableLavaAtEntity() 设的世界流体桩被 system 正确消费写组件。
+// 安全性：Entity 析构经 registry.destroy 销毁 entt 实体（见 ~Entity），testEcsRegistry 中
+// 不残留已析构实体，遍历无 UAF；world()==nullptr 的实体被 system 清零跳过。
+void runEnvironmentSensing()
+{
+    auto& registry = mc::test::testEcsRegistry();
+    mc::ecs::sys::environmentSensing(
+        registry.raw(), registry.raw().view<mc::ecs::EnvironmentStateComponent, mc::ecs::EntityOwnerComponent>());
+}
 } // namespace
 
 // ============================================================================
@@ -65,10 +81,11 @@ public:
     LavaFireTestWorld() = default;
 
     // 流体覆盖：测试可让世界在某坐标返回指定流体状态，
-    // 这样 Entity::updateEnvironmentState()（baseTick 火焰处理之前调用）
-    // 会自然设置 m_inWater/m_inLava，由世界流体驱动环境状态的语义。
-    // 默认 nullptr 表示该坐标无流体。直接返回 nullptr 而非 EMPTY 状态，
-    // 使 updateEnvironmentState 视该坐标为无流体。
+    // 这样 ecs::sys::environmentSensing（EnvironmentSense 阶段，baseTick 之前由测试经
+    // runEnvironmentSensing() 手动触发）会遍历碰撞箱内方块流体写 EnvironmentStateComponent
+    // 的 inWater/inLava，由世界流体驱动环境状态的语义（与 MC Java 由世界流体驱动 isInWater()
+    // 一致）。默认 nullptr 表示该坐标无流体。直接返回 nullptr 而非 EMPTY 状态，
+    // 使 environmentSensing 视该坐标为无流体。
     void setFluidOverride(const fluid::FluidState* state) { m_fluidOverride = state; }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
@@ -203,9 +220,11 @@ protected:
     void SetUp() override { m_world.clearState(); }
 
     // 让测试世界在实体所在坐标返回水源流体状态。
-    // baseTick() 中 updateEnvironmentState() 会据此把 m_inWater 置 true，
-    // 使后续火焰处理走"水中灭火"分支——这与 MC Java 由世界流体驱动 isInWater() 的语义一致，
-    // 而直接调用 Entity::setInWater(true) 会被 updateEnvironmentState() 重置（测试世界默认无流体）。
+    // 测试在 baseTick 前调 runEnvironmentSensing()，environmentSensing 据此把
+    // EnvironmentStateComponent.inWater 置 true，使后续火焰处理走"水中灭火"分支——
+    // 这与 MC Java 由世界流体驱动 isInWater() 的语义一致。
+    // （B 阶段前用 Entity::setInWater(true)，但 baseTick 内联 updateEnvironmentState 会重置它；
+    //  B 阶段后 baseTick 不再刷新环境状态，改由 system 消费世界流体桩，setInWater setter 已删。）
     void enableWaterAtEntity()
     {
         auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
@@ -444,9 +463,10 @@ TEST_F(EntityLavaFireTest, BaseTick_FireClearedInWater)
     entity.setFire(100);
     EXPECT_TRUE(entity.isOnFire());
 
-    // 通过世界流体让 updateEnvironmentState() 把 m_inWater 置 true（不可用 setInWater，
-    // 它会被 baseTick 内的 updateEnvironmentState() 重置）。
+    // 通过世界流体让 environmentSensing 把 EnvironmentStateComponent.inWater 置 true
+    // （baseTick 已不再内联刷新环境状态，改由 environmentSensing system 每帧重写组件）。
     enableWaterAtEntity();
+    runEnvironmentSensing();
     entity.baseTick();
     runFireTick();
 
@@ -459,8 +479,9 @@ TEST_F(EntityLavaFireTest, BaseTick_FireNotClearedInLava)
     TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFire(100);
 
-    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInLava()：environmentSensing 消费流体桩写组件。
     enableLavaAtEntity();
+    runEnvironmentSensing();
     entity.baseTick();
     runFireTick();
 
@@ -473,8 +494,9 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceHalvedInLava)
 {
     TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFallDistance(10.0f);
-    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInLava()：environmentSensing 消费流体桩写组件。
     enableLavaAtEntity();
+    runEnvironmentSensing();
 
     entity.baseTick();
     runFireTick();
@@ -486,8 +508,9 @@ TEST_F(EntityLavaFireTest, BaseTick_FallDistanceNotAffectedOutsideLava)
 {
     TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.setFallDistance(10.0f);
-    // 不在岩浆中：不启用流体覆盖，updateEnvironmentState() 后 isInLava() 为 false。
-    entity.setInLava(false);
+    // 不在岩浆中：不启用流体覆盖。EnvironmentStateComponent.inLava 由
+    // ecs::sys::environmentSensing 每帧刷新，本测试直接置 false 模拟"不在岩浆中"。
+    test::setEntityInLava(entity, false);
 
     entity.baseTick();
     runFireTick();
@@ -520,8 +543,9 @@ TEST_F(EntityLavaFireTest, BaseTick_NoOnFireDamageWhenInLava)
     // 在岩浆中时 onFire 伤害不应触发
     TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     entity.forceFireTicks(20);
-    // 用世界流体驱动 isInLava()（setInLava 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInLava()：environmentSensing 消费流体桩写组件。
     enableLavaAtEntity();
+    runEnvironmentSensing();
     f32 healthBefore = entity.health();
 
     entity.baseTick();
@@ -698,8 +722,9 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguish)
     entity.igniteForSeconds(5.0f);
     EXPECT_TRUE(entity.isOnFire());
 
-    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInWater()：environmentSensing 消费流体桩写组件。
     enableWaterAtEntity();
+    runEnvironmentSensing();
     entity.baseTick();
     runFireTick();
 
@@ -715,8 +740,9 @@ TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguishWithPlayer)
     player.igniteForSeconds(5.0f);
     EXPECT_TRUE(player.isOnFire());
 
-    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInWater()：environmentSensing 消费流体桩写组件。
     enableWaterAtEntity();
+    runEnvironmentSensing();
     player.baseTick();
     runFireTick();
 
@@ -832,8 +858,9 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
     player.igniteForSeconds(5.0f);
     EXPECT_TRUE(player.isOnFire());
 
-    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInWater()：environmentSensing 消费流体桩写组件。
     enableWaterAtEntity();
+    runEnvironmentSensing();
     player.baseTick();
     runFireTick();
 
@@ -848,8 +875,9 @@ TEST_F(EntityLavaFireTest, WaterExtinguish_NoSoundWhenNotBurning)
     TestLivingEntity entity(EntityInstanceId(1), &m_world, mc::test::testEcsRegistry());
     EXPECT_FALSE(entity.isOnFire());
 
-    // 用世界流体驱动 isInWater()（setInWater 会被 updateEnvironmentState 重置）。
+    // 用世界流体驱动 isInWater()：environmentSensing 消费流体桩写组件。
     enableWaterAtEntity();
+    runEnvironmentSensing();
     entity.baseTick();
     runFireTick();
 

@@ -25,6 +25,7 @@ src/common/entity/ecs/
 │   ├── PhysicsStateComponent.hpp    # m_onGround/m_fallDistance/m_collided*（第二批，高频进 m_builtIn）
 │   ├── HurtStateComponent.hpp       # m_absorption/m_hurtTime/m_maxHurtTime/m_deathTime（第二批，仅 LivingEntity，低频 try_get）
 │   ├── FreezeComponent.hpp          # m_ticksFrozen/m_isInPowderSnow（第二批，低频 try_get，m_ticksFrozen 同步真相源）
+│   ├── EnvironmentStateComponent.hpp # inWater/inLava/eyesInWater/eyesInLava/waterHeight/lavaHeight/fluidHeight 7 字段（批次B，所有实体 attach，由 environmentSensing system 每帧重写，不进 m_builtIn 低频 try_get）
 │   ├── HealthComponent.hpp          # m_health/m_lastHealth/m_healthSynced（第三批，仅 LivingEntity，m_health 同步真相源）
 │   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment/m_lastEquipmentInitialized（第三批，仅 LivingEntity，无同步单写）
 │   ├── ArrowStateComponent.hpp      # m_arrowCount/m_stingerCount/m_arrowHitTimer（第三批，仅 LivingEntity，arrowCount/stingerCount 同步真相源）
@@ -80,7 +81,8 @@ src/common/entity/ecs/
         ├── LegacyTick.hpp/cpp       # 桥接壳：委托 EntityManager::_tickEntities()（包装 OOP Entity::tick()）
         ├── BrainTick.hpp/cpp        # 桥接壳：委托 EntityManager::_tickBrains()（Brain::tick() 调度上移）
         ├── PortalTick.hpp/cpp       # 真实 system：portal 计时/冷却/传送触发（view 遍历，注册 PostEntityTick）
-        └── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
+        ├── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
+        └── EnvironmentSensing.hpp/cpp # 真实 system：遍历碰撞箱内方块流体写 EnvironmentStateComponent（view 遍历，注册 EnvironmentSense，在 EntityTick 之前）
 ```
 
 ## 内部模块关系
@@ -92,6 +94,7 @@ IWorld（ServerWorld / ClientWorld）
        ├─ EntityManager::tick() 委托集合       ← m_systems.tick(m_registry)
        │    └─ EntitySystemsCollection.tick(registry)
        │         遍历 SystemPhase，阶段内 OrganizerGraph::graph() 拓扑序逐顶点执行
+       │         ├─ EnvironmentSense 阶段: environmentSensing（free function，遍历碰撞箱流体写 EnvironmentStateComponent）
        │         ├─ EntityTick 阶段:       legacyTick（sync_point）→ _tickEntities() 遍历调 entity->tick()
        │         └─ PostEntityTick 阶段:   portalTick / fireTick（free function，organizer 推导 rw）
        │                                  + brainTick（sync_point）→ _tickBrains()
@@ -109,7 +112,7 @@ IWorld（ServerWorld / ClientWorld）
 
 **双向桥接**：
 - OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
-- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等）。
+- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`）。
 
 ## 上下游依赖
 
@@ -124,7 +127,7 @@ IWorld（ServerWorld / ClientWorld）
 ## 组件工厂
 
 未建独立 `factory/` 目录。组件 attach 内联在构造链内：
-- **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 10 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze + 第四批 EntityFlags/EntityState），缓存 5 高频裸指针到 `m_builtIn`。
+- **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 11 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze + 第四批 EntityFlags/EntityState + 批次B EnvironmentState），缓存 5 高频裸指针到 `m_builtIn`。EnvironmentStateComponent 由 environmentSensing system 每帧重写，构造期 emplace 默认全 false。
 - **LivingEntity 构造**：续接 attach 5 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。
 - **Player 构造**：续接 attach PlayerScoreComponent（第四批），须在 `registerData()` 之前——后者经 `getScore()` 取组件填默认值。Player 另重写 `setAbsorptionAmount`（基类改 virtual）下发 DATA_PLAYER_ABSORPTION_PARAM，无新组件（复用 HurtStateComponent）。
 - **AbstractHorseEntity 构造**（批次8 8.1）：attach 7 基类组件（Status/Taming/Jump/Boost/Attribute/Inventory/Animation），7 马类子类经此自动获得。时序关键：`attach → initRandomAttributes（写组件字段）→ registerAttributes（读组件写 AttributeMap）→ registerData → initHorseChest`。**attach 必须先于 registerAttributes**——registerAttributes 读 HorseJumpComponent/HorseAttributeComponent 写 AttributeMap（HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED），时序颠倒则读默认 0。AbstractChestedHorseEntity 中间层构造续接 attach ChestedHorseComponent（决定 getInventorySize 库存规模）。
@@ -186,7 +189,7 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（极简
 
 ### 11. SystemPhase 演进路径与跨帧延迟
 
-SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的仍是 EntityTick/PostEntityTick 两个阶段**，其余阶段为预留空桶待后续 movement/AI 批次接入。EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
+SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
 
 ### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
 
@@ -305,3 +308,21 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **free function 的 view 参数必须用 `EntityView` 别名（高频编译坑）**：`entt::view<get_t<...>>` alias 内部经 `storage_for` 把裸组件转 storage，而 `storage_for` 默认 `Entity=entt::entity`，故 `entt::view` 锁死默认 entity。organizer 在 `extract<Type>` 里 `static_cast<Type>(as_view{reg})`，`as_view` 的转换操作符返回的 view 用 registry 的 entity_type（EntityId），与签名里 `entt::view`（entity=`entt::entity`）entity_type 不一致，static_cast 失败报 `no viable conversion`。解法：用 `base/EntityView.hpp` 的 `mc::ecs::EntityView<get_t<Comp...>>` 别名——它模仿 `entt::view` 但用 `EntityStorageFor`（绑定 EntityId 的 `storage_for`）转换，使 view 的 entity_type 与 registry 一致。**所有 free function system 的 view 参数一律用 `EntityView`，禁用 `entt::view`**。同理 group 参数未来也需自定义别名。`basic_view` 第三模板参是 SFINAE 的 `void`（非 entity 类型），entity 类型内嵌在 get_t 的 storage 里，勿误写 `basic_view<get_t<Comp>, exclude_t<>, EntityId>`（第三参写 EntityId 是错的）。
 
 **singleTick/双 movement 路径占位**：首批空实现（Cubium 客户端 ClientEntity 独立不跑物理，无消费方），留 TODO。movement 双路径（catchup 追帧 + correctionReplay 校正重放）是未来客户端预测/服务端校正的接入点，当前仅门面声明签名，内部直接 return。
+
+### 21. 环境感知抽 System：同帧产出同帧消费 + baseTick 删内联刷新 + 客户端失效接受 + 测试直写组件
+
+批次 B 把 `Entity::updateEnvironmentState()`（遍历碰撞箱内方块流体算水/岩浆浸入高度）从 OOP `baseTick` 抽成真实遍历组件的 ECS system `ecs::sys::environmentSensing`，7 字段（inWater/inLava/eyesInWater/eyesInLava/waterHeight/lavaHeight/fluidHeight）搬入 `EnvironmentStateComponent`。几个关键坑：
+
+**同帧产出同帧消费（优于 portal/fire 的 1 tick 延迟）**：environmentSensing 注册到 `SystemPhase::EnvironmentSense`（**在 EntityTick 之前**），本帧 system 写完组件后 EntityTick 阶段的 OOP `Entity::tick()`（含 baseTick）与 PostEntityTick 的 fireTick 立即读到本帧环境状态，无跨帧延迟。baseTick 的岩浆坠距减半（`isInLava()`）读本帧刚写的组件，fireTick 的水中灭火（`isInWater()`）亦然。这与 portal/fire 抽到 EntityTick **之后**引入的 1 tick 延迟形成对比——环境感知刻意放在 EntityTick 之前就是为了同帧消费。
+
+**baseTick 删除内联刷新，零双写**：原 `Entity::baseTick()` 行 812 调 `updateEnvironmentState()` 每帧重置 + 重算环境状态。迁移后该调用删除，环境状态改由 system 在 EnvironmentSense 阶段重写（system 内先重置七字段再遍历流体累加，与原 baseTick 每帧重置语义一致）。7 个 OOP 成员（m_inWater 等）删除，12 个 getter/setter 改走 `tryGetComponent<EnvironmentStateComponent>()`——零双写（坑1）。`setInWater`/`setInLava`/`setFluidHeight` setter 删除（外部写入会被 system 每帧覆写，无意义）。
+
+**子类 override 自动正确**：WaterMobEntity/DrownedEntity/GuardianEntity 等的 `isInWater()` override 原本调 `Entity::isInWater()`（基类读成员），改后基类读组件，override 透传基类即可正确读组件，无需改动。StriderEntity::isInLava() override 合并组件 + OOP 字段：`return Entity::isInLava() || m_onLavaSurface`（`m_onLavaSurface` 保留 OOP，因炽足兽"站在岩浆表面"是独立于浸入判定的状态）。
+
+**客户端本地玩家环境感知失效（接受 + TODO）**：客户端本地玩家直接实例化 common 层 `mc::Player`（非 ClientEntity），由 `ClientApplication::update()` 20TPS 调 `Player::updatePhysics()`，原 `updatePhysics()` 两处调 `updateEnvironmentState()` 刷新环境状态供水中物理/游泳/溺水判断。B 阶段删除该调用后客户端 `m_player` 的 EnvironmentStateComponent 恒为默认值（isInWater/isInLava 恒 false），客户端水中物理/游泳/溺水**暂时失效**。**用户决策：客户端不补，接受失效**（仅本地玩家预测路径失效，服务端权威路径不受影响——服务端走 EntityManager system 调度，environmentSensing 正常刷新）。Player.cpp 两处替换为 `TODO(ecs-stage-B-client-env-sensing)` 注释，后续让客户端 ClientEntityManager 接入 EntitySystemsCollection 跑 environmentSensing（或客户端 Player::updatePhysics 直接调 helper）。此为批次 B 之外的后续工作。
+
+**测试范式：删 setter 后直写组件 + 测试 helper**：`setInWater`/`setInLava` setter 删除后，测试无法再设实体环境状态。测试不跑 environmentSensing system（且大量测试桩 World 如 BaseTestWorld 的 getFluidState 恒返回 EMPTY 流体，无法用"世界流体驱动"方式让实体进入水中），故测试需直接写组件。`tests/common/TestWorldHelper.hpp` 加 inline helper `setEntityInWater(Entity&, bool)`/`setEntityInLava(Entity&, bool)`，经 `entity.tryGetComponent<EnvironmentStateComponent>()` 拿可写指针直写 inWater/inLava 字段（Entity 构造期已 emplace 该组件，tryGetComponent 不会返回 nullptr）。全仓 9 个测试文件 40+ 处 `entity.setInWater(...)`/`->setInLava(...)` 调用替换为该 helper。**注意区分**：`world.setInWater(...)` 是测试桩 World 自己的方法（设 World::m_inWater 成员，与 Entity 无关），**不改**；只有 `entity.setInWater(...)`（已删 setter）需改。
+
+**世界流体驱动型测试需手动跑 system**：EntityLavaFireTest 等通过测试桩 World 的 getFluidState 返回水/岩浆流体 + 期望 baseTick 内联环境感知把组件置 true 的测试，B 阶段后 baseTick 不再刷新环境状态，须在 baseTick 前手动调 `runEnvironmentSensing()`（仿 `runFireTick()` 封装的 environmentSensing free function 调用），模拟服务端"EnvironmentSense→EntityTick(baseTick)→PostEntityTick(fireTick)"同帧序列。`enableWaterAtEntity()`/`enableLavaAtEntity()` 设世界流体桩后，runEnvironmentSensing 消费流体桩写组件。**安全性**：Entity 析构经 `registry.destroy()` 销毁 entt 实体（见 `~Entity`），testEcsRegistry 不残留已析构实体，system 遍历无 UAF；`world()==nullptr` 的实体被 system 清零跳过。
+
+**ItemEntity 水物理独立路径不受影响**：ItemEntity::tick 的水/岩浆物理判断读 `m_world->isWaterAt()`/`isLavaAt()`（直接查世界方块，不读 EnvironmentStateComponent），是独立于环境感知 system 的路径，B 阶段无影响。

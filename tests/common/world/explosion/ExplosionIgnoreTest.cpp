@@ -185,7 +185,7 @@ TEST_F(ExplosionIgnoreTest, Hanging_IgnoredWhenDirectSourceInWater)
 
     // 直接源在水中：悬挂实体忽略爆炸（避免水下爆炸摧毁画作/展示框）。
     entity::ArmorStandEntity source(mc::test::testEcsRegistry());
-    source.setInWater(true);
+    test::setEntityInWater(source, true);
     const auto ctx = makeCtx(true, nullptr, &source);
     EXPECT_TRUE(entity.ignoreExplosion(ctx));
 }
@@ -196,7 +196,7 @@ TEST_F(ExplosionIgnoreTest, Hanging_AffectedWhenDirectSourceNotInWater)
 
     // 直接源不在水中且 shouldAffectBlocklikeEntities=true：受爆炸影响。
     entity::ArmorStandEntity source(mc::test::testEcsRegistry());
-    source.setInWater(false);
+    test::setEntityInWater(source, false);
     const auto ctx = makeCtx(true, nullptr, &source);
     EXPECT_FALSE(entity.ignoreExplosion(ctx));
 }

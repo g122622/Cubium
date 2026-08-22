@@ -46,6 +46,7 @@
 #include "common/entity/ecs/components/BuiltInEntityComponents.hpp"
 #include "common/entity/ecs/components/EntityFlagsComponent.hpp"
 #include "common/entity/ecs/components/EntityStateComponent.hpp"
+#include "common/entity/ecs/components/EnvironmentStateComponent.hpp"
 #include "common/entity/ecs/components/FireComponent.hpp"
 #include "common/entity/ecs/components/FreezeComponent.hpp"
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
@@ -1394,30 +1395,25 @@ public:
     /**
      * @brief 检查实体是否在水中
      *
-     * 需要世界引用才能正常工作
+     * 读 EnvironmentStateComponent.inWater（由 ecs::sys::environmentSensing 每帧重写）。
+     * 需要世界引用才能正常工作——system 遍历碰撞箱内方块流体计算浸入状态。
      */
-    [[nodiscard]] virtual bool isInWater() const { return m_inWater; }
-
-    /**
-     * @brief 设置水中状态（测试用）
-     *
-     * 正常情况下应该通过 updateEnvironmentState() 自动更新。
-     * 此方法主要用于测试目的。
-     */
-    void setInWater(bool inWater) { m_inWater = inWater; }
+    [[nodiscard]] virtual bool isInWater() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->inWater : false;
+    }
 
     /**
      * @brief 检查实体是否在岩浆中
-     */
-    [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
-
-    /**
-     * @brief 设置岩浆状态（测试用）
      *
-     * 正常情况下应该通过 updateEnvironmentState() 自动更新。
-     * 此方法主要用于测试目的。
+     * 读 EnvironmentStateComponent.inLava（由 ecs::sys::environmentSensing 每帧重写）。
      */
-    void setInLava(bool inLava) { m_inLava = inLava; }
+    [[nodiscard]] virtual bool isInLava() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->inLava : false;
+    }
 
     /**
      * @brief 检查实体是否在雨中
@@ -1435,7 +1431,7 @@ public:
      *
      * @return 如果实体在水中或雨中返回 true
      */
-    [[nodiscard]] bool isWet() const { return m_inWater || isInRain(); }
+    [[nodiscard]] bool isWet() const { return isInWater() || isInRain(); }
 
     /**
      * @brief 检查眼睛是否在水下
@@ -1444,12 +1440,20 @@ public:
      *
      * @return 如果眼睛位置在水方块中返回 true
      */
-    [[nodiscard]] bool areEyesInWater() const { return m_eyesInWater; }
+    [[nodiscard]] bool areEyesInWater() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->eyesInWater : false;
+    }
 
     /**
      * @brief 检查眼睛是否在岩浆中
      */
-    [[nodiscard]] bool areEyesInLava() const { return m_eyesInLava; }
+    [[nodiscard]] bool areEyesInLava() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->eyesInLava : false;
+    }
 
     /**
      * @brief 检查是否可以游泳
@@ -1458,7 +1462,11 @@ public:
      *
      * @return 如果可以游泳返回 true
      */
-    [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
+    [[nodiscard]] bool canSwim() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? (c->eyesInWater && c->inWater) : false;
+    }
 
     /**
      * @brief 检查实体是否可以在液体中生成
@@ -1514,27 +1522,34 @@ public:
     void clearLastClimbPos() { m_lastClimbPos = std::nullopt; }
 
     /**
-     * @brief 获取实体浸入水的高度
-     * @return 流体高度（0.0-1.0），如果不在水中返回0
+     * @brief 获取实体浸入流体的最大高度
+     * @return 流体高度（max(waterHeight, lavaHeight)），如果不在流体中返回 0
      */
-    [[nodiscard]] virtual f32 getFluidHeight() const { return m_fluidHeight; }
+    [[nodiscard]] virtual f32 getFluidHeight() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->fluidHeight : 0.0f;
+    }
 
     /**
      * @brief 获取水浸入高度
-     * @return 水浸入高度（0.0-1.0）
+     * @return 水浸入高度（0.0 起）
      */
-    [[nodiscard]] f32 waterHeight() const { return m_waterHeight; }
+    [[nodiscard]] f32 waterHeight() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->waterHeight : 0.0f;
+    }
 
     /**
      * @brief 获取岩浆浸入高度
-     * @return 岩浆浸入高度（0.0-1.0）
+     * @return 岩浆浸入高度（0.0 起）
      */
-    [[nodiscard]] f32 lavaHeight() const { return m_lavaHeight; }
-
-    /**
-     * @brief 设置流体高度
-     */
-    void setFluidHeight(f32 height) { m_fluidHeight = height; }
+    [[nodiscard]] f32 lavaHeight() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::EnvironmentStateComponent>();
+        return c != nullptr ? c->lavaHeight : 0.0f;
+    }
 
     /**
      * @brief 检查是否能看见另一个实体
@@ -2624,11 +2639,6 @@ public:
     virtual void baseTick();
 
     /**
-     * @brief 更新环境状态（水中、岩浆中）
-     */
-    virtual void updateEnvironmentState();
-
-    /**
      * @brief 将数据参数同步回实体字段
      *
      * 客户端接收元数据包后调用，用于把 DataManager 中的值写回实体成员。
@@ -2952,15 +2962,9 @@ protected:
      */
     static const entity::EntityClassInfo& classInfo();
 
-    // 环境状态
-    bool m_inWater = false;
-    bool m_inLava = false;
-    bool m_eyesInWater = false; // 眼睛是否在水下
-    bool m_eyesInLava = false;  // 眼睛是否在岩浆中
-    f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
-    f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
-    f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
-    // m_fire（剩余着火时间）已迁入 ecs::FireComponent，经 m_entityContext->tryGetComponent 读写。
+    // 环境状态（inWater/inLava/eyesInWater/eyesInLava/waterHeight/lavaHeight/fluidHeight 七字段）
+    // 已迁入 ecs::EnvironmentStateComponent，经 m_entityContext->tryGetComponent 读写，
+    // 由 ecs::sys::environmentSensing（SystemPhase::EnvironmentSense 阶段）每帧重写。
 
     // 冰冻状态
     // m_ticksFrozen / m_isInPowderSnow 已迁入 ecs::FreezeComponent（真相源），

@@ -609,7 +609,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_NormalSpeed)
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setOnGround(false);
 
     // 调用 travel
@@ -635,7 +635,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_FarFromHome_Slower)
 
     // 设置当前位置远离出生地超过 16 格
     turtle.setPosition(20.0f, 64.0f, 0.0f); // 距离出生地 20 格
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setOnGround(false);
 
     // 调用 travel
@@ -652,7 +652,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_Child_Slower)
     turtle.setWorld(&m_world);
     turtle.setChild(true); // 设置为幼体
     turtle.setPosition(0.0f, 64.0f, 0.0f);
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setOnGround(false);
 
     // 调用 travel
@@ -669,7 +669,7 @@ TEST_F(TurtleTravelTest, LandSpeed_HalfSpeed)
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setOnGround(true);
 
     // 调用 travel
@@ -686,7 +686,7 @@ TEST_F(TurtleTravelTest, LandSpeed_MinimumSpeed)
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setOnGround(true);
 
     // 设置很低的基础速度（模拟缓慢效果等情况）
@@ -705,7 +705,7 @@ TEST_F(TurtleTravelTest, AirSpeed_NoSpeedChange)
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setWorld(&m_world);
     turtle.setPosition(0.0f, 64.0f, 0.0f);
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setOnGround(false); // 在空中
 
     // 预设一个 AI 移动速度
@@ -733,7 +733,7 @@ TEST_F(TurtleTravelTest, WaterSpeed_ChildFarFromHome_Minimum)
     BlockPos homePos(0, 64, 0);
     turtle.setHomePos(homePos);
     turtle.setPosition(20.0f, 64.0f, 0.0f); // 距离出生地 20 格
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setOnGround(false);
 
     // 调用 travel
@@ -789,7 +789,7 @@ TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyInWaterDoesNotMatchFilter)
     ASSERT_NE(babyTurtle, nullptr);
 
     // 设置在水中
-    babyTurtle->setInWater(true);
+    test::setEntityInWater(*babyTurtle, true);
 
     // 在水中不符合 BABY_ON_LAND_SELECTOR
     EXPECT_TRUE(babyTurtle->isChild());

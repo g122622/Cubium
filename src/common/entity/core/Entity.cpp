@@ -153,6 +153,10 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
     registry.raw().emplace<ecs::FireComponent>(ecsEntity);
     m_builtIn.physicsState = &registry.raw().emplace<ecs::PhysicsStateComponent>(ecsEntity);
     registry.raw().emplace<ecs::FreezeComponent>(ecsEntity);
+    // 环境状态组件：inWater/inLava/eyesInWater/eyesInLava/waterHeight/lavaHeight/fluidHeight 七字段。
+    // 由 ecs::sys::environmentSensing（SystemPhase::EnvironmentSense 阶段，EntityTick 之前）每帧重写，
+    // 同帧产出同帧消费。低频写高频读，不进 m_builtIn 缓存，走 tryGetComponent 查询（与 Freeze 同范式）。
+    registry.raw().emplace<ecs::EnvironmentStateComponent>(ecsEntity);
     // 第四批：attach EntityFlags/EntityState 两组件，承载 flags/air/customName/
     // customNameVisible/silent/noGravity/pose 七个 C 类同步字段（真相源），
     // 对应 DataParameter 退为同步镜像。低频走 tryGetComponent 查询。
@@ -804,12 +808,12 @@ void Entity::baseTick()
         m_rideCooldown--;
     }
 
-    // 更新环境状态（水中/岩浆/眼睛流体等），供火焰链判定 isInWater/isInLava/isInRain。
-    // TODO(阶段B): updateEnvironmentState() 待抽成 EnvironmentSensingSystem（SystemPhase::EnvironmentSense，
-    //   在 EntityTick 之前），届时本调用删除，环境状态由 system 写组件。
+    // 环境状态（inWater/inLava/eyesInWater 等）由 ecs::sys::environmentSensing 在
+    // SystemPhase::EnvironmentSense 阶段（本 baseTick 所属 EntityTick 之前）已写入
+    // EnvironmentStateComponent，此处经 isInLava() 等 getter 直接读组件即可（同帧产出同帧消费，
+    // 无跨帧延迟）。
     // 火焰链（fire 递减/伤害/水中熄灭/雨中扑灭）已迁入 ecs::sys::fireTick（PostEntityTick 阶段），
-    // 在本 baseTick 之后执行，可读到此处刚产出的环境状态。
-    updateEnvironmentState();
+    // 在本 baseTick 之后执行，读到的环境状态与本处一致。
 
     // 在岩浆中减少坠落距离
     if (isInLava()) {
@@ -896,104 +900,6 @@ bool Entity::isOnLadder() const
     }
 
     return false;
-}
-
-void Entity::updateEnvironmentState()
-{
-    // 需要遍历碰撞箱内的所有方块，计算流体浸入高度
-
-    // 眼睛位置（用于判断眼睛是否在水下）
-    const f32 eyeY = m_builtIn.stateVector->m_pos.y + eyeHeight();
-    const i32 eyeBlockY = static_cast<i32>(std::floor(eyeY));
-
-    // 重置流体状态
-    m_inWater = false;
-    m_inLava = false;
-    m_waterHeight = 0.0f;
-    m_lavaHeight = 0.0f;
-    m_eyesInWater = false;
-    m_eyesInLava = false;
-
-    if (m_world == nullptr && m_physicsEngine == nullptr) {
-        return;
-    }
-
-    // 获取碰撞箱并收缩一点以避免边界问题
-    AxisAlignedBB box = boundingBox().shrink(0.001);
-
-    // 计算碰撞箱覆盖的方块范围
-    const i32 minX = static_cast<i32>(std::floor(box.minX));
-    const i32 maxX = static_cast<i32>(std::floor(box.maxX));
-    const i32 minY = static_cast<i32>(std::floor(box.minY));
-    const i32 maxY = static_cast<i32>(std::floor(box.maxY));
-    const i32 minZ = static_cast<i32>(std::floor(box.minZ));
-    const i32 maxZ = static_cast<i32>(std::floor(box.maxZ));
-
-    // 遍历碰撞箱内的所有方块
-    for (i32 x = minX; x <= maxX; ++x) {
-        for (i32 y = minY; y <= maxY; ++y) {
-            for (i32 z = minZ; z <= maxZ; ++z) {
-                // 获取流体状态
-                const fluid::FluidState* fluidState = nullptr;
-                if (m_world) {
-                    fluidState = m_world->getFluidState(x, y, z);
-                } else if (m_physicsEngine) {
-                    const ICollisionWorld* collisionWorld = m_physicsEngine->getWorld();
-                    if (collisionWorld) {
-                        const BlockState* blockState = collisionWorld->getBlockState(x, y, z);
-                        fluidState = blockState != nullptr ? blockState->getFluidState() : nullptr;
-                    }
-                }
-
-                if (fluidState == nullptr || fluidState->isEmpty()) {
-                    continue;
-                }
-
-                // 计算流体高度
-                // MC: (float)y + fluidState.getActualHeight()
-                f32 fluidTopY = static_cast<f32>(y) + fluidState->getHeight();
-
-                // 检查流体是否在碰撞箱内
-                if (fluidTopY > box.minY) {
-                    // 计算浸入高度
-                    f32 submergedHeight = fluidTopY - box.minY;
-
-                    // 判断流体类型
-                    const ResourceLocation& fluidId = fluidState->getFluid().fluidLocation();
-                    bool isWater = fluidId.namespace_() == "minecraft" &&
-                        (fluidId.path() == "water" || fluidId.path() == "flowing_water");
-                    bool isLava = fluidId.namespace_() == "minecraft" &&
-                        (fluidId.path() == "lava" || fluidId.path() == "flowing_lava");
-
-                    if (isWater) {
-                        m_inWater = true;
-                        m_waterHeight = std::max(m_waterHeight, submergedHeight);
-
-                        // 检查眼睛是否在水下
-                        // 眼睛位置稍微下移 0.11111111 来检测
-                        constexpr f32 EYE_OFFSET = 0.11111111f;
-                        f32 adjustedEyeY = eyeY - EYE_OFFSET;
-                        if (fluidTopY > adjustedEyeY) {
-                            m_eyesInWater = true;
-                        }
-                    } else if (isLava) {
-                        m_inLava = true;
-                        m_lavaHeight = std::max(m_lavaHeight, submergedHeight);
-
-                        // 检查眼睛是否在岩浆中
-                        constexpr f32 EYE_OFFSET = 0.11111111f;
-                        f32 adjustedEyeY = eyeY - EYE_OFFSET;
-                        if (fluidTopY > adjustedEyeY) {
-                            m_eyesInLava = true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 兼容旧代码：设置 m_fluidHeight
-    m_fluidHeight = std::max(m_waterHeight, m_lavaHeight);
 }
 
 bool Entity::isInRain() const
@@ -2211,8 +2117,9 @@ std::string Entity::toString() const
        << m_builtIn.stateVector->m_pos.z << ")"
        << ", velocity=(" << m_builtIn.velocity->m_velocity.x << ", " << m_builtIn.velocity->m_velocity.y << ", "
        << m_builtIn.velocity->m_velocity.z << ")"
-       << ", onGround=" << m_builtIn.physicsState->m_onGround << ", inWater=" << m_inWater << ", inLava=" << m_inLava
-       << ", flags=" << static_cast<u32>(flags()) << ", air=" << air() << ", customName=\"" << customNameText() << "\""
+       << ", onGround=" << m_builtIn.physicsState->m_onGround << ", inWater=" << isInWater()
+       << ", inLava=" << isInLava() << ", flags=" << static_cast<u32>(flags()) << ", air=" << air() << ", customName=\""
+       << customNameText() << "\""
        << ", customNameVisible=" << isCustomNameVisible() << ", silent=" << isSilent()
        << ", noGravity=" << hasNoGravity() << ", pose=" << static_cast<u32>(pose()) << "}";
     return ss.str();

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/entity/ecs/components/EnvironmentStateComponent.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -39,6 +40,9 @@
 #include <unordered_map>
 
 namespace mc {
+
+class Entity;
+
 namespace test {
 
 /**
@@ -51,9 +55,11 @@ namespace test {
  * 与生产代码 IntegratedServer::_getMenuPlayer / ContainerManager /
  * BlockInteractionManager 的"静态局部 registry"先例一致。
  *
- * 注意：Entity 析构为 = default，不回 registry.destroy()，故此 registry 会随测试
- * 进程累积 entt 实体；但测试为 per-case 进程隔离（见 crosstest-isolation-model），
- * 单进程内累积量受控，且测试仅消费 OOP 层方法不依赖 ECS 查询语义，可接受。
+ * 注意：Entity 析构经 registry.destroy() 销毁其 entt 实体（含 EntityOwnerComponent，
+ * 见 Entity::~Entity 与 EntityOwnerComponent 注释），故测试实体析构后不会在本 registry
+ * 残留悬垂条目——system 遍历（environmentSensing/fireTick 等）不会因旧实体 UAF。
+ * 但 entt 实体 id 仍会随测试进程累积（destroy 不回收 id 槽位），单进程内累积量受控，
+ * 且测试为 per-case 进程隔离（见 crosstest-isolation-model），可接受。
  *
  * 需要与某个 IWorld 的 registry 保持一致的场景（实体经 addEntity 进入真实世界），
  * 应改用 m_world.entityRegistry() 取该世界自身的 registry，而非本函数。
@@ -62,6 +68,45 @@ inline ecs::EntityRegistry& testEcsRegistry()
 {
     static ecs::EntityRegistry s_testRegistry{"test"};
     return s_testRegistry;
+}
+
+/**
+ * @brief 测试用：直接写实体的 EnvironmentStateComponent.inWater 字段
+ *
+ * ECS 阶段 B 后 Entity::setInWater setter 已删除，环境状态改由
+ * ecs::sys::environmentSensing（SystemPhase::EnvironmentSense）每帧遍历碰撞箱内
+ * 方块流体计算后写入 EnvironmentStateComponent。但测试不跑 system 调度，且大量
+ * 测试桩 World（BaseTestWorld）的 getFluidState 恒返回 EMPTY 流体——无法用"世界
+ * 流体驱动"方式让实体进入水中。因此测试需直接写组件模拟实体环境状态。
+ *
+ * 本 helper 经 Entity::tryGetComponent<EnvironmentStateComponent>() 拿可写指针
+ * 直接置 inWater 字段，等价于旧 setInWater 的语义（仅设 inWater 标志，不触碰
+ * eyesInWater/waterHeight 等派生字段——测试断言通常只关心 isInWater()）。
+ *
+ * 注意：Entity 构造期已 emplace EnvironmentStateComponent（Entity.cpp 构造函数），
+ * 故 tryGetComponent 不会返回 nullptr。
+ */
+inline void setEntityInWater(Entity& entity, bool inWater)
+{
+    auto* c = entity.tryGetComponent<ecs::EnvironmentStateComponent>();
+    if (c != nullptr) {
+        c->inWater = inWater;
+    }
+}
+
+/**
+ * @brief 测试用：直接写实体的 EnvironmentStateComponent.inLava 字段
+ *
+ * 与 setEntityInWater 同理，对应旧 Entity::setInLava setter。语义仅设 inLava 标志。
+ * 注意：StriderEntity::isInLava() override = Entity::isInLava() || m_onLavaSurface，
+ * 写 inLava=true 即可让 Strider 的 isInLava() 返回 true，无需走 setOnLavaSurface。
+ */
+inline void setEntityInLava(Entity& entity, bool inLava)
+{
+    auto* c = entity.tryGetComponent<ecs::EnvironmentStateComponent>();
+    if (c != nullptr) {
+        c->inLava = inLava;
+    }
 }
 
 /**

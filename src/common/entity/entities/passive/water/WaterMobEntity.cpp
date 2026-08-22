@@ -55,7 +55,7 @@ WaterMobEntity::WaterMobEntity(EntityInstanceId id, ecs::EntityRegistry& registr
 bool WaterMobEntity::isInWater() const
 {
     // 水生生物使用基类的 isInWater() 实现
-    // 基类会检查 m_inWater 标志，该标志在 updateEnvironmentState() 中更新
+    // 基类读 EnvironmentStateComponent.inWater，由 ecs::sys::environmentSensing 每帧刷新
     return Entity::isInWater();
 }
 

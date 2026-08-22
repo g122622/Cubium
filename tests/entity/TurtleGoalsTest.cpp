@@ -355,7 +355,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setGoingHome(true);
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
 
     TurtleTravelGoal goal(&turtle, 1.0);
     EXPECT_FALSE(goal.shouldExecute());
@@ -365,7 +365,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
     turtle.setHasEgg(true);
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
 
     TurtleTravelGoal goal(&turtle, 1.0);
     EXPECT_FALSE(goal.shouldExecute());
@@ -374,7 +374,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenNotInWater)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
 
     TurtleTravelGoal goal(&turtle, 1.0);
     EXPECT_FALSE(goal.shouldExecute());
@@ -383,7 +383,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsFalse_WhenNotInWater)
 TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsTrue_WhenInWaterAndNoEggAndNotGoingHome)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
 
@@ -394,7 +394,7 @@ TEST_F(TurtleTravelGoalTest, ShouldExecute_ReturnsTrue_WhenInWaterAndNoEggAndNot
 TEST_F(TurtleTravelGoalTest, StartExecuting_SetsTravellingFlag)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
 
@@ -407,7 +407,7 @@ TEST_F(TurtleTravelGoalTest, StartExecuting_SetsTravellingFlag)
 TEST_F(TurtleTravelGoalTest, ResetTask_ClearsTravellingFlag)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
 
     TurtleTravelGoal goal(&turtle, 1.0);
     goal.startExecuting();
@@ -454,7 +454,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenAlreadyInWater)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setGoingHome(false);
     turtle.setHasEgg(false);
 
@@ -465,7 +465,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenAlreadyInWater)
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setGoingHome(true);
 
     TurtleGoToWaterGoal goal(&turtle, 1.0);
@@ -475,7 +475,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setHasEgg(true);
     turtle.setGoingHome(false);
 
@@ -486,7 +486,7 @@ TEST_F(TurtleGoToWaterGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 TEST_F(TurtleGoToWaterGoalTest, ShouldContinueExecuting_ReturnsFalse_WhenInWater)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
 
     TurtleGoToWaterGoal goal(&turtle, 1.0);
     EXPECT_FALSE(goal.shouldContinueExecuting());
@@ -644,7 +644,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenTurtleIsNull)
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenInWater)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
 
     TurtleWanderGoal goal(&turtle, 1.0, 100);
     EXPECT_FALSE(goal.shouldExecute());
@@ -653,7 +653,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenInWater)
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setGoingHome(true);
 
     TurtleWanderGoal goal(&turtle, 1.0, 100);
@@ -663,7 +663,7 @@ TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenGoingHome)
 TEST_F(TurtleWanderGoalTest, ShouldExecute_ReturnsFalse_WhenHasEgg)
 {
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setGoingHome(false);
     turtle.setHasEgg(true);
 
@@ -812,7 +812,7 @@ TEST_F(TurtleGoalsEdgeCaseTest, TurtleTravelGoal_StateChanges)
 {
     // 测试旅行目标的状态变化
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(true);
+    test::setEntityInWater(turtle, true);
     turtle.setHasEgg(false);
     turtle.setGoingHome(false);
 
@@ -830,7 +830,7 @@ TEST_F(TurtleGoalsEdgeCaseTest, TurtleWanderGoal_ChanceParameter)
 {
     // 测试漫步概率参数
     TurtleEntity turtle(EntityInstanceId(1), mc::test::testEcsRegistry());
-    turtle.setInWater(false);
+    test::setEntityInWater(turtle, false);
     turtle.setGoingHome(false);
     turtle.setHasEgg(false);
 

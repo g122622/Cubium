@@ -92,11 +92,11 @@ TEST_F(PlayerSwimTest, AirSupplyDecreasesInWater)
 {
     // 在水中时，空气应该逐渐减少
     // 设置水中状态（用于测试）
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
     i32 initialAir = player->air();
 
-    // 注意：updateAirSupply 会检查 isInWater()，这里手动设置标志
-    // 实际游戏中 updateEnvironmentState() 会设置此标志
+    // 注意：updateAirSupply 会检查 isInWater()，这里直接写 EnvironmentStateComponent.inWater
+    // 实际游戏中 ecs::sys::environmentSensing 每帧由世界流体驱动写该组件
     player->updateAirSupply();
 
     // 在水中且无水下呼吸效果时，空气应该减少
@@ -110,7 +110,7 @@ TEST_F(PlayerSwimTest, AirRecoveryOutOfWater)
     player->setAir(200);
 
     // 不在水中时，空气应该恢复
-    player->setInWater(false);
+    test::setEntityInWater(*player, false);
     player->updateAirSupply();
 
     // 每tick恢复4点
@@ -123,7 +123,7 @@ TEST_F(PlayerSwimTest, AirRecoveryCapsAtMax)
     player->setAir(298);
 
     // 不在水中时，空气应该恢复但不超过最大值
-    player->setInWater(false);
+    test::setEntityInWater(*player, false);
     player->updateAirSupply();
 
     EXPECT_EQ(player->air(), DEFAULT_MAX_AIR);
@@ -140,7 +140,7 @@ TEST_F(PlayerSwimTest, DrownDamageTriggersAtMinusTwenty)
     player->setHealth(20.0f);
 
     // 模拟在水中
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
 
     // 更新空气供应，空气会降到 -20，触发 shouldTakeDrowningDamage()，重置为 0
     // 并立即造成溺水伤害（MC Java: baseTick 中 air<=-20 时 hurtServer(drown, 2.0F)）
@@ -173,7 +173,7 @@ TEST_F(PlayerSwimTest, CreativeModeNoDrowning)
 
     player->setAir(-20);
     player->setHealth(20.0f);
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
 
     // 更新多次，不应该溺水
     for (int i = 0; i < DROWN_DAMAGE_INTERVAL * 2; ++i) {
@@ -199,7 +199,7 @@ TEST_F(PlayerSwimTest, WaterBreathingPreventsAirConsumption)
     EXPECT_TRUE(player->hasEffect(EffectType::WaterBreathing));
 
     // 在水中
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
     i32 initialAir = player->air();
 
     // 更新空气供应
@@ -219,7 +219,7 @@ TEST_F(PlayerSwimTest, ConduitPowerPreventsAirConsumption)
     EXPECT_TRUE(player->hasEffect(EffectType::ConduitPower));
 
     // 在水中
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
     i32 initialAir = player->air();
 
     // 更新空气供应
@@ -233,7 +233,7 @@ TEST_F(PlayerSwimTest, EnteringWaterConsumesAir)
 {
     // 入水后空气应被消耗（依赖服务端世界：updateAirSupply 在 m_world==nullptr
     // 或 isClientSide()==true 时早退，空气保持不变）
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
 
     player->updateAirSupply();
     EXPECT_LT(player->air(), DEFAULT_MAX_AIR);
@@ -249,7 +249,7 @@ TEST_F(PlayerSwimTest, IsActualSwimmingConditions)
     EXPECT_FALSE(player->isActualSwimming());
 
     // 设置在水中（但眼睛不在水中）
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
     // 注意：isActualSwimming 需要 areEyesInWater() 返回 true
     // 这里只是基础测试，完整测试需要模拟世界环境
 }
@@ -363,7 +363,7 @@ TEST_F(PlayerSwimTest, RemoveWaterBreathingEffect)
     EXPECT_FALSE(player->hasEffect(EffectType::WaterBreathing));
 
     // 移除后应该正常消耗空气
-    player->setInWater(true);
+    test::setEntityInWater(*player, true);
     i32 initialAir = player->air();
     player->updateAirSupply();
     EXPECT_LT(player->air(), initialAir);

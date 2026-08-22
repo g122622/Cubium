@@ -340,9 +340,9 @@ if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
 
 `Player::updatePhysics()` 可以在没有物理引擎的轻量级测试世界中运行，代码会回退到直接移动。
 
-### 20. m_player->isInWater() 客户端权威性
+### 20. m_player->isInWater() 客户端权威性（B 阶段后客户端环境感知失效）
 
-不要假设 `m_player->isInWater()` 在客户端是权威的，这个值只在 `Entity::baseTick()` / `updateEnvironmentState()` 或本地物理刷新路径里更新。
+`isInWater()`/`isInLava()` 读 `EnvironmentStateComponent`，该组件由 `ecs::sys::environmentSensing`（SystemPhase::EnvironmentSense）每帧由世界流体驱动重写（见 ecs/README 坑21）。**服务端**经 EntityManager system 调度正常刷新；**客户端本地玩家**直接实例化 common 层 `mc::Player`（非 ClientEntity），由 `ClientApplication::update()` 20TPS 调 `Player::updatePhysics()`，原 `updatePhysics()` 两处调 `updateEnvironmentState()` 刷新环境状态。B 阶段删除该调用后客户端 `m_player` 的 EnvironmentStateComponent **恒为默认值（isInWater/isInLava 恒 false）**，客户端水中物理/游泳/溺水暂时失效（仅本地玩家预测路径，服务端权威路径不受影响）。用户决策：客户端不补，接受失效，Player.cpp 两处留 `TODO(ecs-stage-B-client-env-sensing)`，后续让客户端 ClientEntityManager 接入 EntitySystemsCollection 跑 environmentSensing。
 
 ### 21. ClientWorld::entityManager() 返回类型
 

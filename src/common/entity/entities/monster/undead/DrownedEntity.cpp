@@ -91,7 +91,7 @@ std::unique_ptr<Entity> DrownedEntity::create(IWorld* /*world*/, ecs::EntityRegi
 bool DrownedEntity::isInWater() const
 {
     // 调用父类的 isInWater() 方法
-    // Entity::isInWater() 已经在 updateEnvironmentState() 中正确更新
+    // Entity::isInWater() 读 EnvironmentStateComponent.inWater，由 ecs::sys::environmentSensing 每帧刷新
     return ZombieEntity::isInWater();
 }
 

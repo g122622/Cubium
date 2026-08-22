@@ -236,8 +236,9 @@ TEST_F(IsInDaylightTest, ReturnsTrueDuringDayWithHighBrightness)
 // 注意：此 fixture 原名 PhantomEntityTest，与 tests/common/entity/PhantomGoalsTest.cpp
 // 中的同名 fixture 跨翻译单元 ODR 冲突（两者都链接进 mc_tests，类名相同但成员不同：
 // 本 fixture 持有 m_world，PhantomGoalsTest 持有 phantom）。这导致 SetUp/成员布局被
-// 互相替换，PhantomEntityTest.DoesNotBurnAtNight 在 tick()->updateEnvironmentState()
-// 中读取到错误的 m_world，getFluidState 返回代码段垃圾指针，进而 isEmpty() 崩溃。
+// 互相替换，PhantomEntityTest.DoesNotBurnAtNight 在 tick()→baseTick() 内联的环境感知
+// （B 阶段前为 updateEnvironmentState，现抽成 ecs::sys::environmentSensing system）中
+// 读取到错误的 m_world，getFluidState 返回代码段垃圾指针，进而 isEmpty() 崩溃。
 // 修复：将本文件 fixture 重命名为 PhantomEntityDaylightTest 以消除 ODR 冲突。
 // 参考 commit 49936ac20 的同类问题处理方式。
 class PhantomEntityDaylightTest : public ::testing::Test {
@@ -588,7 +589,8 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
 {
     // 验证不同类型的船
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
-    auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
+    auto spruceBoat =
+        std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
 
     // 两种船都应该能被 dynamic_cast 识别
     Entity* oakPtr = oakBoat.get();

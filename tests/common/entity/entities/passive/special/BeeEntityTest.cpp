@@ -818,8 +818,9 @@ TEST_F(BeeEntityTest, Attributes_FlyingSpeedIsSet)
 // 水下溺水测试
 // ============================================================================
 // 注意：水下计时器测试需要完整的 world mock 来模拟 isInWater() 返回 true
-// BeeEntity.tick() 中检查 isInWater() 状态，而 BaseTestWorld 的 isInWater()
-// 依赖于 Entity::m_inWater 标志，该标志需要通过 updateEnvironmentState() 更新
+// BeeEntity.tick() 中检查 isInWater() 状态，而 isInWater() 读 EnvironmentStateComponent.inWater，
+// 该字段由 ecs::sys::environmentSensing 每帧由世界流体驱动写入（B 阶段前由 baseTick 内联
+// updateEnvironmentState 刷新，现已抽成 system）。本测试桩世界无流体，仅验证计时器初值。
 
 TEST_F(BeeEntityTest, UnderwaterTimer_InitialState)
 {

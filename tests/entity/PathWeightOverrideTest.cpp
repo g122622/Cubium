@@ -355,7 +355,7 @@ TEST_F(StriderPathWeightTest, ReturnsNegInfOnLandWhenInLava)
     // 对应 MC: isInLava() ? Float.NEGATIVE_INFINITY
     StriderEntity strider(EntityInstanceId(30), mc::test::testEcsRegistry());
     strider.setWorld(&world);
-    strider.setInLava(true); // 模拟炽足兽当前站在岩浆中
+    test::setEntityInLava(strider, true); // 模拟炽足兽当前站在岩浆中
 
     // 目标位置没有岩浆
     EXPECT_TRUE(std::isinf(strider.getPathWeight(10.0f, 64.0f, 10.0f)));

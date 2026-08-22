@@ -150,7 +150,7 @@ TEST(EntityIsInRainTest, EndermanInWaterReturnsTrue)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(true);
+    test::setEntityInWater(enderman, true);
 
     EXPECT_TRUE(enderman.isInWaterOrRain()) << "isInWaterOrRain() should return true when in water";
 }
@@ -167,7 +167,7 @@ TEST(EntityIsInRainTest, EndermanInRainReturnsTrue)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(false);
+    test::setEntityInWater(enderman, false);
 
     EXPECT_TRUE(enderman.isInWaterOrRain()) << "isInWaterOrRain() should return true when in rain";
 }
@@ -184,7 +184,7 @@ TEST(EntityIsInRainTest, EndermanInWaterAndRainReturnsTrue)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(true);
+    test::setEntityInWater(enderman, true);
 
     EXPECT_TRUE(enderman.isInWaterOrRain()) << "isInWaterOrRain() should return true when in both water and rain";
 }
@@ -200,7 +200,7 @@ TEST(EntityIsInRainTest, EndermanNotInWaterOrRainReturnsFalse)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(false);
+    test::setEntityInWater(enderman, false);
 
     EXPECT_FALSE(enderman.isInWaterOrRain()) << "isInWaterOrRain() should return false when not in water or rain";
 }
@@ -221,7 +221,7 @@ TEST(EntityIsInRainTest, IsWetWhenInRainReturnsTrue)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(false);
+    test::setEntityInWater(enderman, false);
 
     // 在雨中但不在水中
     EXPECT_TRUE(enderman.isInRain()) << "Should be in rain";
@@ -240,7 +240,7 @@ TEST(EntityIsInRainTest, IsWetWhenInWaterReturnsTrue)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(true);
+    test::setEntityInWater(enderman, true);
 
     // 不在雨中但在水中
     EXPECT_FALSE(enderman.isInRain()) << "Should not be in rain";
@@ -259,7 +259,7 @@ TEST(EntityIsInRainTest, IsWetWhenNotWetReturnsFalse)
     EndermanEntity enderman(EntityInstanceId(1), mc::test::testEcsRegistry());
     enderman.setWorld(&world);
     enderman.setPosition(0.0, 64.0, 0.0);
-    enderman.setInWater(false);
+    test::setEntityInWater(enderman, false);
 
     EXPECT_FALSE(enderman.isInRain()) << "Should not be in rain";
     EXPECT_FALSE(enderman.isInWater()) << "Should not be in water";

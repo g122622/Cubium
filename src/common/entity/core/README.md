@@ -196,7 +196,7 @@
                     - 火焰免疫期机制：实体离开火焰 / 岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃 -
                     doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发） -
                     雨中灭火会播放音效并设置免疫期
-                    - 水中/岩浆状态（m_inWater/m_inLava）由 `updateEnvironmentState()` 在 `baseTick()` 火焰处理**之前**根据世界流体驱动，对齐 MC Java `Entity.baseTick()` 中 `updateInWaterStateAndDoFluidPushing()` 的时序。`setInWater()`/`setInLava()` 仅是测试桩，**会被 `updateEnvironmentState()` 无条件重置**——测试中要让实体"在水中/岩浆中"，必须让测试世界的 `getFluidState()` 在实体坐标返回对应流体状态，而不是调用 `setInWater(true)`/`setInLava(true)`。
+                    - 水中/岩浆状态（inWater/inLava 等七字段）由 `ecs::sys::environmentSensing`（SystemPhase::EnvironmentSense 阶段，在 EntityTick 之前）每帧根据世界流体驱动写 `EnvironmentStateComponent`，对齐 MC Java `Entity.baseTick()` 中 `updateInWaterStateAndDoFluidPushing()` 的时序。B 阶段前由 `Entity::updateEnvironmentState()` 在 `baseTick()` 火焰处理之前内联调用，现已抽成 system（baseTick 不再内联刷新）。`setInWater()`/`setInLava()` setter **已删除**——外部写入会被 system 每帧覆写。测试中要让实体"在水中/岩浆中"：世界流体驱动型测试（如 EntityLavaFireTest）在 baseTick 前手动调 `runEnvironmentSensing()` 消费世界流体桩写组件；纯逻辑测试（如 updateAirSupply 单测）用 `mc::test::setEntityInWater(entity, true)` 直写组件（见 tests/common/TestWorldHelper.hpp）。客户端本地玩家环境感知失效（见 entity/README 坑20）。
 
                     ## #亡灵日光燃烧系统(burnUndead)
 

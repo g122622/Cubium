@@ -267,7 +267,7 @@ TEST_F(SquidMoveRandomGoalTest, Tick_SetsZeroVectorWhenIdleTimeExceedsThreshold)
 TEST_F(SquidMoveRandomGoalTest, Tick_DoesNotClearVectorWhenIdleTimeBelowThreshold)
 {
     squid->setIdleTime(50);
-    squid->setInWater(true);
+    test::setEntityInWater(*squid, true);
     squid->setMovementVector(0.5f, 0.5f, 0.5f);
 
     for (int i = 0; i < 5; ++i) {
@@ -297,13 +297,13 @@ protected:
 
 TEST_F(SquidFleeGoalTest, ShouldExecute_ReturnsFalseWhenNotInWater)
 {
-    squid->setInWater(false);
+    test::setEntityInWater(*squid, false);
     EXPECT_FALSE(goal->shouldExecute());
 }
 
 TEST_F(SquidFleeGoalTest, ShouldExecute_ReturnsFalseWhenNoRevengeTarget)
 {
-    squid->setInWater(true);
+    test::setEntityInWater(*squid, true);
     EXPECT_FALSE(goal->shouldExecute());
 }
 
@@ -396,7 +396,7 @@ protected:
         world = std::make_unique<SquidTestWorld>();
         squid = std::make_unique<SquidEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
         squid->setWorld(world.get());
-        squid->setInWater(true);
+        test::setEntityInWater(*squid, true);
         squid->setPosition(0.0f, 64.0f, 0.0f);
 
         // 创建攻击者实体并设置复仇目标

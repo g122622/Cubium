@@ -194,7 +194,7 @@ TEST_F(TradeWithPlayerGoalTest, ShouldNotExecuteInWater)
     auto goal = std::make_unique<TradeWithPlayerGoal>(m_trader.get());
 
     // 在水中时不应该执行
-    m_trader->setInWater(true);
+    test::setEntityInWater(*m_trader, true);
     EXPECT_FALSE(goal->shouldExecute());
 }
 

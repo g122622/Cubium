@@ -123,7 +123,7 @@ TEST(CombatTrackerFallSuffixTest, WaterSuffixWhenInWater)
     Entity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
 
     // 设置在水中
-    entity.setInWater(true);
+    test::setEntityInWater(entity, true);
     EXPECT_TRUE(entity.isInWater());
 
     // 没有攀爬位置但在水中

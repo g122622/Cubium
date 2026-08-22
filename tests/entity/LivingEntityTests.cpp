@@ -1069,7 +1069,7 @@ TEST(LivingEntityTest, UpdateAirSupply_DrowningDamage)
 
     TestLivingEntity entity;
     entity.setWorld(&world);
-    entity.setInWater(true);
+    test::setEntityInWater(entity, true);
     entity.setAir(-19); // 接近溺水阈值
 
     entity.updateAirSupply();
@@ -1087,7 +1087,7 @@ TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingRestoresAir)
 
     TestLivingEntity entity;
     entity.setWorld(&world);
-    entity.setInWater(true);
+    test::setEntityInWater(entity, true);
     entity.setAir(200); // 低于最大值
 
     // 添加水下呼吸效果
@@ -1109,7 +1109,7 @@ TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerRestoresAir)
 
     TestLivingEntity entity;
     entity.setWorld(&world);
-    entity.setInWater(true);
+    test::setEntityInWater(entity, true);
     entity.setAir(200);
 
     // 添加潮涌能量效果
