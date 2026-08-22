@@ -73,6 +73,7 @@
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
+#include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -197,6 +198,23 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeScoreCriteria");
         scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
         spdlog::info("Scoreboard criteria registered");
+    }
+
+    // 注册方块实体内置类型（BlockEntityRegistry::registerBuiltinTypes）。此前 registerBuiltinTypes()
+    // 唯一生产调用点在 JavaColumnReader.cpp:505（读 Java 存档列时懒注册），客户端启动序列未接入。
+    // 结果客户端经 BlockEntityRegistry::create() 创建方块实体的路径全部失效：
+    //   - ClientWorld::onBlockEntityData（接收服务端 BlockEntityData 包创建）create() 返 nullptr，
+    //     打 warn 后 return，m_blockEntities 不存实体，getBlockEntity 返 nullptr（告示牌 UI 读不到文本等）；
+    //   - VanillaChunkWire（接收 Java 协议区块数据反序列化方块实体）create() 返 nullptr 跳过；
+    //   - BlockEntityDeserializer（NBT 反序列化）create() 返 nullptr。
+    // 服务端放置方块走方块自身 createBlockEntity() 虚函数直接 new（不经 registry），故服务端/GameTest
+    // 不受影响；此缺陷纯客户端。registerBuiltinTypes 幂等（registerType 同类型覆盖），与 JavaColumnReader
+    // 的懒注册互不冲突。方块实体渲染层（SignRenderer 等）本就 TODO 未实现，但数据层正确性独立于渲染，
+    // 接入后 getBlockEntity/loadFromNBT 数据链路可用，为渲染层就绪铺路。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Client.Initialization, "InitializeBlockEntityTypes");
+        blockentity::BlockEntityRegistry::instance().registerBuiltinTypes();
+        spdlog::info("Block entity types registered");
     }
 }
 
