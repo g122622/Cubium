@@ -33,6 +33,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -42,6 +44,7 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
+#include <cmath>
 #include <memory>
 #include <sstream>
 #include <vector>
@@ -142,6 +145,21 @@ struct DestinationInfo {
 {
     auto* server = source.server();
     MC_ASSERT_RELEASE(server != nullptr);
+
+    // 边界校验（对齐 Java TeleportCommand.performTeleport 首行守卫，TeleportCommand.java:254-256：
+    // !Level.isInSpawnableBounds(BlockPos.containing(x,y,z)) → 抛 INVALID_POSITION）。
+    // 拦截越界坐标（Y 超出 ±20,000,000 或 X/Z 超出 ±30,000,000 世界边界），防止
+    // setPosition/requestTeleport 处理非法坐标时崩溃或产生越界实体。此处是所有 /tp 传送路径
+    // （_teleportToPosition / _teleportToEntity / _teleportTargetToPosition / _teleportTargetToEntity）
+    // 的唯一汇聚点，在此守卫一次覆盖全部入口。destination-player 路径的目的地坐标来自已存在玩家，
+    // 天然在边界内，守卫对其恒放行无副作用。
+    const BlockPos containing(static_cast<i32>(std::floor(position.x)),
+        static_cast<i32>(position.y),
+        static_cast<i32>(std::floor(position.z)));
+    if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
+        source.sendError("commands.teleport.invalidPosition");
+        return 0;
+    }
 
     i32 teleportedCount = 0;
     for (const PlayerId playerId : targetPlayerIds) {

@@ -196,6 +196,75 @@ function tpAllPlayersToDestinationPlayer(test: Test): void {
     });
 }
 
+// /tp <x> <y> <z> 在越界坐标（Y 超出 ±20,000,000 可生成高度边界）应被守卫拦截不传送玩家
+// （对齐 Java TeleportCommand.performTeleport 首行守卫 TeleportCommand.java:254-256：
+// !Level.isInSpawnableBounds(BlockPos.containing(pos)) → 抛 INVALID_POSITION）。
+//
+// 守卫位置：teleportPlayers 函数入口（所有 /tp 传送路径的唯一汇聚点），复用 world::isInSpawnableBounds
+// （同 SummonCommand 边界守卫范式）。修复前 teleportPlayers 无任何边界校验，越界坐标直接
+// setPosition/requestTeleport 可能崩溃或产生越界实体。
+//
+// 测试用绝对坐标 Y=21,000,000（刚越 isInSpawnableBounds 上界 20,000,000）触发守卫：
+// /tp 0 21000000 0 → 边界守卫 sendError(commands.teleport.invalidPosition) 返回 0，玩家不移动，
+// location 仍在初始 PLAYER_POS(5,1,5) 附近（未被传送）。
+// 用绝对坐标而非 worldCoords，因越界坐标本就在结构外。
+//
+// 对照见 tpAllowedWithinBounds（合法坐标玩家正常传送，证明守卫不误拦合法坐标）。
+// Ref: wiki teleport.txt（tp 对越界坐标拒绝传送）
+// Ref: TeleportCommand.cpp（边界校验守卫 isInSpawnableBounds）、TeleportCommand.java:254-256（vanilla 守卫）
+function tpRejectedForOutOfBoundsY(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    // Y=21000000 越上界触发边界守卫。X/Z=0 在世界边界内合法，Y 是唯一越界变量，确保是边界守卫拦截。
+    player.chat("/tp 0 21000000 0");
+
+    // 轮询断言玩家未被传送（仍停在初始位置附近）。修复前玩家可能被传走致 location 偏离初始位置。
+    // 初始位置 PLAYER_POS(5,1,5) 经 worldLocation 转世界坐标，玩家 location 应始终接近该坐标。
+    const initialWorld = test.worldLocation(PLAYER_POS);
+    pollUntilSucceed(test, () => {
+        const loc = getPlayerLocation(test);
+        if (loc === null) return false;
+        // 玩家未被传送：location 仍在初始位置附近（误差 < 1.5 格水平）。
+        return Math.abs(loc.x - initialWorld.x) < 1.5 && Math.abs(loc.z - initialWorld.z) < 1.5;
+    }, {
+        startTick: 5,
+        maxTick: 80,
+        onTimeout: () => {
+            const loc = getPlayerLocation(test);
+            test.assert(false,
+                `tp should be rejected for out-of-bounds Y but player moved ` +
+                `(initial=${initialWorld.x},${initialWorld.z}, loc=${JSON.stringify(loc)})`);
+        },
+    });
+}
+
+// /tp <x> <y> <z> 在合法坐标内正常传送玩家（对照 tpRejectedForOutOfBoundsY）。
+//
+// 守卫 isInSpawnableBounds 对合法坐标（结构内 Y∈[1,5]、X/Z∈[1,7]）放行。
+// /tp <targetRel> → 守卫通过 → 传送玩家到 targetRel。pollUntilSucceed 断言玩家 location 接近 targetRel。
+// 证明边界守卫只拦越界不误拦合法坐标。
+// Ref: wiki teleport.txt（tp 合法坐标正常传送）
+function tpAllowedWithinBounds(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    const targetRel = { x: 2, y: 2, z: 2 };
+    player.chat(`/tp ${worldCoords(test, targetRel)}`);
+
+    pollUntilSucceed(test, () => {
+        const loc = getPlayerLocation(test);
+        if (loc === null) return false;
+        const target = test.worldLocation(targetRel);
+        return Math.abs(loc.x - target.x) < 1.5 && Math.abs(loc.z - target.z) < 1.5;
+    }, {
+        maxTick: 60,
+        onTimeout: () => {
+            const loc = getPlayerLocation(test);
+            const target = test.worldLocation(targetRel);
+            test.assert(false,
+                `tp should succeed within bounds but player not moved ` +
+                `(target=${target.x},${target.z}, loc=${JSON.stringify(loc)})`);
+        },
+    });
+}
+
 export function registerTeleportCommandTests(): void {
     GameTest.register("CommandTests", "tp_teleports_player", tpTeleportsPlayer)
         .structureName("gametests:cmd_arena")
@@ -216,4 +285,13 @@ export function registerTeleportCommandTests(): void {
     GameTest.register("CommandTests", "tp_all_players_to_destination_player", tpAllPlayersToDestinationPlayer)
         .structureName("gametests:cmd_arena")
         .maxTicks(120);
+
+    // 边界校验测试：守卫不修改世界级状态（不改难度/gamerule），可用默认 batch 并行，无需独占。
+    GameTest.register("CommandTests", "tp_rejected_for_out_of_bounds_y", tpRejectedForOutOfBoundsY)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(100);
+
+    GameTest.register("CommandTests", "tp_allowed_within_bounds", tpAllowedWithinBounds)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(100);
 }
