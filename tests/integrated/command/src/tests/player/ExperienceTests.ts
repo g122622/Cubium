@@ -117,6 +117,37 @@ function xpAddsNegativeLevelsFlooredAtZero(test: Test): void {
     test.succeed();
 }
 
+// /xp add @a[distance=..N] <n> levels 批量给多玩家加等级（走 addLevels 多目标分支）。
+// spawn 2 个 SimulatedPlayer，/xp add @a[distance=..20] 5 levels 批量加 5 级，断言两玩家 level 都=5。
+// 验证 PlayerResolver 选择器修复后 @a[distance=..N] 能批量选中多个 SimulatedPlayer 并加经验
+// （修复前 applyFilters 对 SimulatedPlayer 误删，@a 选不到任何 SimulatedPlayer，批量加经验不执行）。
+// distance=..20 以 playerA 为中心，选中结构内两玩家（间距约 5.6 格 < 20），区域限定避免选中同批
+// 并行测试的 SimulatedPlayer（污染防护）。
+// 走 ExperienceCommand::_addLevels（resolvePlayerIds 多结果 + Player::addExperienceLevels 循环）。
+// Ref: wiki commands/experience.txt（experience add <targets> <amount> levels 批量加等级）
+function xpAddsLevelsToAllPlayersBySelector(test: Test): void {
+    // 两玩家在空气腔 y=2 站立层（下方 y=1 stone 地板支撑），不同位置。
+    const playerA = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "moverA");
+    const playerB = test.spawnSimulatedPlayer({ x: 6, y: 2, z: 6 }, "moverB");
+    test.assert(xpPlayer(playerA).level === 0, `moverA expected initial level 0, got ${xpPlayer(playerA).level}`);
+    test.assert(xpPlayer(playerB).level === 0, `moverB expected initial level 0, got ${xpPlayer(playerB).level}`);
+
+    // 等 playerB 生成稳定后执行（@a 解析需两玩家都已注册到 ServerPlayerEntityManager）。
+    test.runAtTickTime(5, () => {
+        // @a[distance=..20] 以 playerA 位置为中心，选中结构内两玩家，批量加 5 级。
+        playerA.chat("/xp add @a[distance=..20] 5 levels");
+    });
+
+    // 命令同步执行，但 @a 解析经 runAtTickTime 延迟，用 runAtTickTime 延迟断言两玩家 level 都=5。
+    test.runAtTickTime(10, () => {
+        const levelA = xpPlayer(playerA).level;
+        const levelB = xpPlayer(playerB).level;
+        test.assert(levelA === 5, `moverA expected level 5, got ${levelA}`);
+        test.assert(levelB === 5, `moverB expected level 5, got ${levelB}`);
+        test.succeed();
+    });
+}
+
 export function registerExperienceTests(): void {
     GameTest.register("CommandTests", "xp_adds_levels", xpAddsLevels).structureName("gametests:cmd_arena").maxTicks(60);
 
@@ -131,6 +162,10 @@ export function registerExperienceTests(): void {
         .maxTicks(60);
 
     GameTest.register("CommandTests", "xp_adds_negative_levels_floored_at_zero", xpAddsNegativeLevelsFlooredAtZero)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(60);
+
+    GameTest.register("CommandTests", "xp_adds_levels_to_all_players_by_selector", xpAddsLevelsToAllPlayersBySelector)
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }

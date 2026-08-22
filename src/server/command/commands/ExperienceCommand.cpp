@@ -153,6 +153,18 @@ PlayerId resolveFirstPlayer(ServerCommandSource& source, const EntitySelector& s
 }
 
 /**
+ * @brief 解析目标玩家集合，返回完整 PlayerId 列表（多目标）。
+ *
+ * add/set 子命令的 player 参数是 players()（多目标），须遍历全部选中玩家执行操作，
+ * 而非仅取第一个。原先 add/set 复用 resolveFirstPlayer 致 /xp add @a 5 levels 只给第一个
+ * 选中玩家加等级（对齐缺陷）。
+ */
+std::vector<PlayerId> resolveTargetPlayerIds(ServerCommandSource& source, const EntitySelector& selector)
+{
+    return support::resolvePlayerIds(source, selector);
+}
+
+/**
  * @brief 获取玩家名称用于命令反馈
  */
 std::string getPlayerName(ServerCommandSource& source, PlayerId playerId, Player* player)
@@ -178,26 +190,35 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
 
-    // 解析目标玩家
-    PlayerId playerId = resolveFirstPlayer(source, selector);
-    if (playerId == 0) {
+    // 解析目标玩家集合（多目标，players() 参数）。
+    const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
+    if (playerIds.empty()) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
-    // 获取 Player 实体
-    Player* player = getTargetPlayer(source, playerId);
-    if (player == nullptr) {
+    i32 successCount = 0;
+    for (const PlayerId playerId : playerIds) {
+        if (playerId == 0) {
+            continue;
+        }
+        Player* player = getTargetPlayer(source, playerId);
+        if (player == nullptr) {
+            continue;
+        }
+        // 添加经验
+        player->addExperience(amount);
+        ++successCount;
+
+        std::ostringstream ss;
+        ss << "Gave " << amount << " experience points to " << getPlayerName(source, playerId, player);
+        source.sendMessage(ss.str());
+    }
+
+    if (successCount == 0) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
-
-    // 添加经验
-    player->addExperience(amount);
-
-    std::ostringstream ss;
-    ss << "Gave " << amount << " experience points to " << getPlayerName(source, playerId, player);
-    source.sendMessage(ss.str());
 
     return amount;
 }
@@ -208,26 +229,35 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
 
-    // 解析目标玩家
-    PlayerId playerId = resolveFirstPlayer(source, selector);
-    if (playerId == 0) {
+    // 解析目标玩家集合（多目标，players() 参数）。
+    const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
+    if (playerIds.empty()) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
 
-    // 获取 Player 实体
-    Player* player = getTargetPlayer(source, playerId);
-    if (player == nullptr) {
+    i32 successCount = 0;
+    for (const PlayerId playerId : playerIds) {
+        if (playerId == 0) {
+            continue;
+        }
+        Player* player = getTargetPlayer(source, playerId);
+        if (player == nullptr) {
+            continue;
+        }
+        // 添加等级
+        player->addExperienceLevels(amount);
+        ++successCount;
+
+        std::ostringstream ss;
+        ss << "Gave " << amount << " levels to " << getPlayerName(source, playerId, player);
+        source.sendMessage(ss.str());
+    }
+
+    if (successCount == 0) {
         source.sendError("commands.experience.add.failed.noPlayer");
         return 0;
     }
-
-    // 添加等级
-    player->addExperienceLevels(amount);
-
-    std::ostringstream ss;
-    ss << "Gave " << amount << " levels to " << getPlayerName(source, playerId, player);
-    source.sendMessage(ss.str());
 
     return amount;
 }
@@ -238,27 +268,36 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
 
-    // 解析目标玩家
-    PlayerId playerId = resolveFirstPlayer(source, selector);
-    if (playerId == 0) {
+    // 解析目标玩家集合（多目标，players() 参数）。
+    const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
+    if (playerIds.empty()) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
-    // 获取 Player 实体
-    Player* player = getTargetPlayer(source, playerId);
-    if (player == nullptr) {
+    i32 successCount = 0;
+    for (const PlayerId playerId : playerIds) {
+        if (playerId == 0) {
+            continue;
+        }
+        Player* player = getTargetPlayer(source, playerId);
+        if (player == nullptr) {
+            continue;
+        }
+        // 设置经验点数（重置后添加）
+        player->setExperience(0, 0.0f, 0);
+        player->addExperience(amount);
+        ++successCount;
+
+        std::ostringstream ss;
+        ss << "Set " << getPlayerName(source, playerId, player) << "'s experience to " << amount << " points";
+        source.sendMessage(ss.str());
+    }
+
+    if (successCount == 0) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
-
-    // 设置经验点数（重置后添加）
-    player->setExperience(0, 0.0f, 0);
-    player->addExperience(amount);
-
-    std::ostringstream ss;
-    ss << "Set " << getPlayerName(source, playerId, player) << "'s experience to " << amount << " points";
-    source.sendMessage(ss.str());
 
     return amount;
 }
@@ -269,26 +308,35 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("player");
     i32 amount = context.getArgument<i32>("amount");
 
-    // 解析目标玩家
-    PlayerId playerId = resolveFirstPlayer(source, selector);
-    if (playerId == 0) {
+    // 解析目标玩家集合（多目标，players() 参数）。
+    const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
+    if (playerIds.empty()) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
 
-    // 获取 Player 实体
-    Player* player = getTargetPlayer(source, playerId);
-    if (player == nullptr) {
+    i32 successCount = 0;
+    for (const PlayerId playerId : playerIds) {
+        if (playerId == 0) {
+            continue;
+        }
+        Player* player = getTargetPlayer(source, playerId);
+        if (player == nullptr) {
+            continue;
+        }
+        // 设置等级
+        player->setExperienceLevel(amount);
+        ++successCount;
+
+        std::ostringstream ss;
+        ss << "Set " << getPlayerName(source, playerId, player) << "'s level to " << amount;
+        source.sendMessage(ss.str());
+    }
+
+    if (successCount == 0) {
         source.sendError("commands.experience.set.failed.noPlayer");
         return 0;
     }
-
-    // 设置等级
-    player->setExperienceLevel(amount);
-
-    std::ostringstream ss;
-    ss << "Set " << getPlayerName(source, playerId, player) << "'s level to " << amount;
-    source.sendMessage(ss.str());
 
     return amount;
 }
