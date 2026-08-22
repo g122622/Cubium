@@ -155,6 +155,79 @@ function summonMultipleAccumulates(test: Test): void {
     });
 }
 
+// /summon 在和平难度下召唤怪物类实体应被拒绝（对齐 Java SummonCommand.createEntity：
+// difficulty==PEACEFUL 且 !isAllowedInPeaceful → 拒绝生成）。
+//
+// SummonCommand 经 world->difficulty() == Difficulty::Peaceful && !entity::isPeaceful(classification)
+// 守卫（对齐 SummonCommand.java:86 与 SpawnEggItem::spawnEntity 同款范式）：zombie 属 Monster 分类，
+// isPeaceful(Monster)=false，故 peaceful 难度下 /summon zombie 直接 sendError 返回 0 不生成实体。
+// 修复前无此守卫，peaceful 下 zombie 照常生成（与 vanilla 偏差）。
+//
+// 设 peaceful → /summon zombie → pollUntilSucceed 断言 zombie==0（被守卫拦截未生成）。
+// 对照组见 summonAllowedOnPeacefulForPassive（cow 动物类 isPeaceful=true 守卫放行）。
+//
+// 【并行污染隔离】/difficulty peaceful 是世界级单例状态，GameTest 共享单一 ServerWorld 跨测试持久化不
+// 自动重置，且 peaceful 会触发 DespawnManager 清全维度怪物（同 [[gametest-world-state-gamerule-difficulty-batch-isolation]]）。
+// 故独占 batch（summon_peaceful_solo）串行执行 + runOnFinish 恢复 normal，防污染同批/后续依赖默认难度
+// 或依赖怪物存活的测试。cmd_arena 封顶遮光，亡灵白天不燃烧，无需 night 前缀（对齐 difficulty_clear_solo）。
+// Ref: wiki summon.txt（summon 受和平难度限制：怪物类在和平不生成）
+// Ref: SummonCommand.cpp（和平难度守卫）、SummonCommand.java:86（vanilla isAllowedInPeaceful 守卫）
+function summonBlockedOnPeacefulForMonster(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+
+    // 先设 peaceful 难度（世界级，命令从 chat 发出到 C++ 处理有 tick 延迟，用 runAtTickTime 确保难度
+    // 生效后再 summon）。
+    player.chat("/difficulty peaceful");
+    test.runOnFinish(() => {
+        player.chat("/difficulty normal");
+    });
+
+    // tick 5 时难度已生效，summon zombie 应被守卫拦截。
+    test.runAtTickTime(5, () => {
+        player.chat(`/summon minecraft:zombie ${worldCoords(test, { x: 3, y: 2, z: 3 })}`);
+    });
+
+    // 轮询断言 zombie 未生成（守卫拦截）。修复前 zombie 会生成致 count>=1。
+    // startTick=10 给命令处理 + 难度生效余量，maxTick=80 充分覆盖（守卫拦截后 zombie 恒 0，超时即 FAIL）。
+    pollUntilSucceed(test, () => countEntities(test, "zombie") === 0, {
+        startTick: 10,
+        maxTick: 80,
+        onTimeout: () => test.assert(false,
+            `summon zombie should be blocked on peaceful but zombie spawned ` +
+            `(count=${countEntities(test, "zombie")})`),
+    });
+}
+
+// /summon 在和平难度下召唤动物类实体应成功（对照 summonBlockedOnPeacefulForMonster）。
+//
+// cow 属 Creature 分类，isPeaceful(Creature)=true，守卫放行（对齐 vanilla：动物类 allowedInPeaceful=true）。
+// 设 peaceful → /summon cow → pollUntilSucceed 断言 cow==1（守卫只拦怪物不误伤动物）。
+//
+// 同 summonBlockedOnPeacefulForMonster 的并行污染隔离（独占 batch + runOnFinish 恢复 normal）。
+// Ref: wiki summon.txt（summon 动物在和平难度可生成）
+// Ref: SummonCommand.cpp（和平难度守卫仅拦 !isPeaceful 的怪物类）
+function summonAllowedOnPeacefulForPassive(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+
+    player.chat("/difficulty peaceful");
+    test.runOnFinish(() => {
+        player.chat("/difficulty normal");
+    });
+
+    test.runAtTickTime(5, () => {
+        player.chat(`/summon minecraft:cow ${worldCoords(test, { x: 3, y: 2, z: 3 })}`);
+    });
+
+    // 轮询断言 cow 生成（守卫放行动物类）。
+    pollUntilSucceed(test, () => countEntities(test, "cow") >= 1, {
+        startTick: 10,
+        maxTick: 80,
+        onTimeout: () => test.assert(false,
+            `summon cow should succeed on peaceful but cow not spawned ` +
+            `(count=${countEntities(test, "cow")})`),
+    });
+}
+
 export function registerEntityCommandTests(): void {
     GameTest.register("CommandTests", "summon_spawns_entity", summonSpawnsEntity)
         .structureName("gametests:cmd_arena")
@@ -175,4 +248,16 @@ export function registerEntityCommandTests(): void {
     GameTest.register("CommandTests", "summon_multiple_accumulates", summonMultipleAccumulates)
         .structureName("gametests:cmd_arena")
         .maxTicks(80);
+
+    // 和平难度校验是世界级状态，独占 batch 串行避免并行互相覆盖 + runOnFinish 恢复 normal（见
+    // summonBlockedOnPeacefulForMonster 注释的并行污染隔离说明）。
+    GameTest.register("CommandTests", "summon_blocked_on_peaceful_for_monster", summonBlockedOnPeacefulForMonster)
+        .structureName("gametests:cmd_arena")
+        .batch("summon_peaceful_solo")
+        .maxTicks(100);
+
+    GameTest.register("CommandTests", "summon_allowed_on_peaceful_for_passive", summonAllowedOnPeacefulForPassive)
+        .structureName("gametests:cmd_arena")
+        .batch("summon_peaceful_passive_solo")
+        .maxTicks(100);
 }

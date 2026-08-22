@@ -28,6 +28,7 @@
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -105,6 +106,14 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         std::ostringstream ss;
         ss << "commands.summon.failed.notSummonable: " << entityId.toString();
         source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 和平难度检查（对齐 Java SummonCommand.createEntity：difficulty==PEACEFUL 且 !isAllowedInPeaceful
+    // 时拒绝召唤）。复用 entity::isPeaceful(classification)（!= Monster 即和平允许），全部敌对实体均为
+    // Monster 分类。同款守卫见 SpawnEggItem::spawnEntity。
+    if (world->difficulty() == Difficulty::Peaceful && !entity::isPeaceful(entityType->classification())) {
+        source.sendError("commands.summon.failed.peaceful");
         return 0;
     }
 
@@ -189,6 +198,14 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
         std::ostringstream ss;
         ss << "commands.summon.failed.notSummonable: " << entityId.toString();
         source.sendMessage(ss.str());
+        return 0;
+    }
+
+    // 和平难度检查（对齐 Java SummonCommand.createEntity：difficulty==PEACEFUL 且 !isAllowedInPeaceful
+    // 时拒绝召唤）。复用 entity::isPeaceful(classification)（!= Monster 即和平允许），全部敌对实体均为
+    // Monster 分类。同款守卫见 SpawnEggItem::spawnEntity。
+    if (world->difficulty() == Difficulty::Peaceful && !entity::isPeaceful(entityType->classification())) {
+        source.sendError("commands.summon.failed.peaceful");
         return 0;
     }
 
