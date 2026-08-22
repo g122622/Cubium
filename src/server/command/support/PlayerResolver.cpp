@@ -60,6 +60,89 @@ namespace mc::command::support {
 namespace {
 
 /**
+ * @brief 玩家统一视图。
+ *
+ * 把 PlayerManager 的 ServerPlayerData 与 ServerPlayerEntityManager 的 Player 实体统一成同一组
+ * 过滤/排序所需字段。真实玩家两者皆有（优先用 ServerPlayerData）；SimulatedPlayer 仅注册于
+ * ServerPlayerEntityManager 实体层（不进 PlayerManager，见 ServerPlayerEntityManager 注册注释），
+ * 经实体回退取位置/朝向/游戏模式/等级。valid=false 表示两者都查不到（不应参与选择）。
+ *
+ * 这是 @a/@p/@r 选择器对 SimulatedPlayer 解析的关键修复点：原先 applyFilters/sortPlayerIds 内部
+ * 仅经 playerManager().getPlayer(id) 取数，SimulatedPlayer 返 nullptr 即被 remove_if 当作"删除"
+ * 误剔除，导致带 distance/排序等条件的选择器对 SimulatedPlayer 全部失效（/tp @a[distance=..N]
+ * 选不到 SimulatedPlayer，传送不执行）。
+ */
+struct PlayerView {
+    PlayerId playerId = 0;
+    std::string username;
+    f32 x = 0.0f;
+    f32 y = 0.0f;
+    f32 z = 0.0f;
+    f32 yaw = 0.0f;
+    f32 pitch = 0.0f;
+    GameMode gameMode = GameMode::Survival;
+    bool valid = false;
+    // 玩家实体指针（SimulatedPlayer 路径持有，matchesFilter 取经验等级/实时朝向/NBT/谓词用）。
+    // 仅供本次解析立即使用，不长期持有（对齐 ServerPlayerEntityManager::getPlayerEntity 注释）。
+    Player* entity = nullptr;
+};
+
+/**
+ * @brief 按 PlayerId 解析玩家统一视图。
+ *
+ * 优先 PlayerManager 的 ServerPlayerData（真实玩家权威数据），回退 ServerPlayerEntityManager 的
+ * Player 实体（SimulatedPlayer 路径）。两者皆无时 valid=false。
+ */
+[[nodiscard]] PlayerView resolvePlayerView(const ServerCommandSource& source, PlayerId playerId)
+{
+    PlayerView view;
+    view.playerId = playerId;
+    if (source.server() == nullptr) {
+        return view;
+    }
+
+    // 真实玩家路径：PlayerManager 持有 ServerPlayerData。
+    const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(playerId);
+    if (data != nullptr) {
+        view.username = data->username;
+        view.x = data->x;
+        view.y = data->y;
+        view.z = data->z;
+        view.yaw = data->yaw;
+        view.pitch = data->pitch;
+        view.gameMode = data->gameMode;
+        view.valid = true;
+        // 真实玩家实体也注册于 ServerPlayerEntityManager，取实体用于经验等级/实时朝向/NBT/谓词。
+        // 取不到不影响基本过滤（位置/游戏模式已由 ServerPlayerData 提供）。
+        if (source.world() != nullptr) {
+            view.entity = source.server()->playerEntityManager().getPlayerEntity(playerId, *source.world());
+        }
+        return view;
+    }
+
+    // SimulatedPlayer 回退：经 ServerPlayerEntityManager 取 Player 实体。
+    auto* world = source.world();
+    if (world == nullptr) {
+        return view;
+    }
+    Player* entity = source.server()->playerEntityManager().getPlayerEntity(playerId, *world);
+    if (entity == nullptr) {
+        return view;
+    }
+    const auto pos = entity->position();
+    view.username = entity->username();
+    view.x = static_cast<f32>(pos.x);
+    view.y = static_cast<f32>(pos.y);
+    view.z = static_cast<f32>(pos.z);
+    view.yaw = entity->yaw();
+    view.pitch = entity->pitch();
+    view.gameMode = entity->gameMode();
+    view.entity = entity;
+    view.valid = true;
+    return view;
+}
+
+/**
  * @brief 获取按 ID 排序的在线玩家列表。
  *
  * @param source 命令源。
@@ -124,39 +207,32 @@ namespace {
  * @brief 检查玩家是否符合选择器的过滤条件。
  *
  * @param playerData 玩家数据。
+ * @param view 玩家统一视图（含 ServerPlayerData 或实体回退数据 + 实体指针）。
  * @param selector 选择器。
  * @param server 服务器实例（用于获取玩家实体）。
  * @param world 世界实例（用于获取玩家实体）。
  * @return 是否符合条件。
  */
-[[nodiscard]] bool matchesFilter(const server::ServerPlayerData& playerData,
-    const EntitySelector& selector,
-    server::IServer* server,
-    server::ServerWorld* world)
+[[nodiscard]] bool matchesFilter(
+    const PlayerView& view, const EntitySelector& selector, server::IServer* server, server::ServerWorld* world)
 {
     // 检查等级范围
     if (!selector.level().isUnbounded()) {
-        // 通过 ServerPlayerEntityManager 获取玩家实体来访问经验等级
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                i32 level = player->experienceLevel();
-                if (!selector.level().test(level)) {
-                    return false;
-                }
+        // 通过 view.entity（PlayerManager 数据路径已取实体，SimulatedPlayer 回退路径亦持有）访问经验等级。
+        if (view.entity != nullptr) {
+            i32 level = view.entity->experienceLevel();
+            if (!selector.level().test(level)) {
+                return false;
             }
         }
     }
 
     // 检查俯仰角范围（x_rotation，-90 到 90 度）
     if (!selector.xRotation().isUnbounded()) {
-        // 优先使用实体实时角度，如果没有实体则使用存储的角度
-        f32 pitch = playerData.pitch;
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                pitch = player->pitch();
-            }
+        // 优先使用实体实时角度，回退视图存储角度。
+        f32 pitch = view.pitch;
+        if (view.entity != nullptr) {
+            pitch = view.entity->pitch();
         }
         if (!selector.xRotation().testAngle(pitch)) {
             return false;
@@ -165,13 +241,10 @@ namespace {
 
     // 检查偏航角范围（y_rotation，-180 到 180 度）
     if (!selector.yRotation().isUnbounded()) {
-        // 优先使用实体实时角度，如果没有实体则使用存储的角度
-        f32 yaw = playerData.yaw;
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                yaw = player->yaw();
-            }
+        // 优先使用实体实时角度，回退视图存储角度。
+        f32 yaw = view.yaw;
+        if (view.entity != nullptr) {
+            yaw = view.entity->yaw();
         }
         if (!selector.yRotation().testAngle(yaw)) {
             return false;
@@ -182,7 +255,7 @@ namespace {
     if (selector.hasGameMode()) {
         const std::string& mode = selector.gameMode();
         bool matches = false;
-        switch (playerData.gameMode) {
+        switch (view.gameMode) {
             case GameMode::Survival:
                 matches = (mode == "survival" || mode == "0");
                 break;
@@ -212,7 +285,7 @@ namespace {
             return false;
         }
         auto& scoreboard = server->scoreboard();
-        const std::string& playerName = playerData.username;
+        const std::string& playerName = view.username;
 
         for (const auto& [objectiveName, range] : selector.scoreConditions()) {
             auto* objective = scoreboard.getObjective(objectiveName);
@@ -237,16 +310,13 @@ namespace {
 
     // 检查进度条件
     if (selector.hasAdvancementConditions()) {
-        // 通过 ServerPlayerEntityManager 获取 ServerPlayer 的成就进度
+        // 通过 view.entity（ServerPlayerEntityManager 解析的实体）取 ServerPlayer 的成就进度
         // 而不是使用 ServerPlayerData::advancements（始终为 nullptr）
         server::PlayerAdvancements* playerAdvancements = nullptr;
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                auto* serverPlayer = player->asServerPlayer();
-                if (serverPlayer != nullptr) {
-                    playerAdvancements = serverPlayer->getAdvancements();
-                }
+        if (view.entity != nullptr) {
+            auto* serverPlayer = view.entity->asServerPlayer();
+            if (serverPlayer != nullptr) {
+                playerAdvancements = serverPlayer->getAdvancements();
             }
         }
 
@@ -295,23 +365,20 @@ namespace {
     if (selector.hasNbtCondition()) {
         const auto& nbtCond = selector.nbtCondition();
         bool matches = false;
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                // 将玩家实体序列化为 NBT
-                nbt::tags::compound_tag entityNbt;
-                player->writeToNBT(entityNbt);
-                // 对玩家实体，额外添加 SelectedItem 字段
-                const auto& selectedStack = player->inventory().getSelectedStackRef();
-                if (!selectedStack.isEmpty()) {
-                    nbt::tags::compound_tag selectedItemTag;
-                    selectedStack.toNbt(selectedItemTag);
-                    entityNbt.value["SelectedItem"] = selectedItemTag.copy();
-                }
-                // 子集匹配：查询 NBT 中的所有字段必须在实体 NBT 中存在且值相等
-                const auto* queryTag = nbtCond.nbt.get();
-                matches = (queryTag != nullptr) && advancement::NBTPredicate::matchNBT(*queryTag, entityNbt);
+        if (view.entity != nullptr) {
+            // 将玩家实体序列化为 NBT
+            nbt::tags::compound_tag entityNbt;
+            view.entity->writeToNBT(entityNbt);
+            // 对玩家实体，额外添加 SelectedItem 字段
+            const auto& selectedStack = view.entity->inventory().getSelectedStackRef();
+            if (!selectedStack.isEmpty()) {
+                nbt::tags::compound_tag selectedItemTag;
+                selectedStack.toNbt(selectedItemTag);
+                entityNbt.value["SelectedItem"] = selectedItemTag.copy();
             }
+            // 子集匹配：查询 NBT 中的所有字段必须在实体 NBT 中存在且值相等
+            const auto* queryTag = nbtCond.nbt.get();
+            matches = (queryTag != nullptr) && advancement::NBTPredicate::matchNBT(*queryTag, entityNbt);
         }
         if (nbtCond.negated) {
             matches = !matches;
@@ -325,38 +392,35 @@ namespace {
     if (selector.hasPredicateCondition()) {
         const auto& predCond = selector.predicateCondition();
         bool matches = false;
-        if (server != nullptr && world != nullptr) {
-            Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-            if (player != nullptr) {
-                // 从谓词管理器查找命名谓词
-                const std::string predicateId = predCond.predicate.toString();
-                const auto* condition = server->predicateManager().getPredicate(predicateId);
-                if (condition != nullptr) {
-                    // 构建 LootContext（THIS_ENTITY + ORIGIN）
-                    Entity* entity = static_cast<Entity*>(player);
-                    const auto& pos = entity->position();
-                    math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
-                    auto context =
-                        loot::LootContextBuilder(*world)
-                            .withRandom(rng)
-                            .withParameter(loot::LootParams::THIS_ENTITY, entity)
-                            .withOwnedValue(loot::LootParams::BLOCK_POS,
-                                BlockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z)))
-                            .withPredicateResolver([&predicateManager = server->predicateManager()](
-                                                       const std::string& id) -> const loot::LootCondition* {
-                                return predicateManager.getPredicate(id);
-                            })
-                            .build(loot::LootParameterSets::selector());
-                    // 循环引用检测
-                    if (!context->pushPredicate(condition)) {
-                        matches = false;
-                    } else {
-                        matches = condition->test(*context);
-                        context->popPredicate(condition);
-                    }
+        if (view.entity != nullptr && world != nullptr) {
+            // 从谓词管理器查找命名谓词
+            const std::string predicateId = predCond.predicate.toString();
+            const auto* condition = server->predicateManager().getPredicate(predicateId);
+            if (condition != nullptr) {
+                // 构建 LootContext（THIS_ENTITY + ORIGIN）
+                Entity* entity = static_cast<Entity*>(view.entity);
+                const auto& pos = entity->position();
+                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                auto context =
+                    loot::LootContextBuilder(*world)
+                        .withRandom(rng)
+                        .withParameter(loot::LootParams::THIS_ENTITY, entity)
+                        .withOwnedValue(loot::LootParams::BLOCK_POS,
+                            BlockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z)))
+                        .withPredicateResolver([&predicateManager = server->predicateManager()](
+                                                   const std::string& id) -> const loot::LootCondition* {
+                            return predicateManager.getPredicate(id);
+                        })
+                        .build(loot::LootParameterSets::selector());
+                // 循环引用检测
+                if (!context->pushPredicate(condition)) {
+                    matches = false;
+                } else {
+                    matches = condition->test(*context);
+                    context->popPredicate(condition);
                 }
-                // 谓词不存在时返回 false（不匹配）
             }
+            // 谓词不存在时返回 false（不匹配）
         }
         if (predCond.negated) {
             matches = !matches;
@@ -372,17 +436,17 @@ namespace {
 /**
  * @brief 计算玩家到参考点的距离平方。
  *
- * @param playerData 玩家数据。
+ * @param view 玩家统一视图。
  * @param refX 参考点 X。
  * @param refY 参考点 Y。
  * @param refZ 参考点 Z。
  * @return 距离平方。
  */
-[[nodiscard]] f32 distanceSquared(const server::ServerPlayerData& playerData, f32 refX, f32 refY, f32 refZ)
+[[nodiscard]] f32 distanceSquared(const PlayerView& view, f32 refX, f32 refY, f32 refZ)
 {
-    const f32 dx = playerData.x - refX;
-    const f32 dy = playerData.y - refY;
-    const f32 dz = playerData.z - refZ;
+    const f32 dx = view.x - refX;
+    const f32 dy = view.y - refY;
+    const f32 dz = view.z - refZ;
     return dx * dx + dy * dy + dz * dz;
 }
 
@@ -403,31 +467,26 @@ void sortPlayerIds(std::vector<PlayerId>& playerIds,
     f32 refY,
     f32 refZ)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        return;
-    }
-
     switch (selector.sort()) {
         case EntitySelectorSort::Nearest: {
-            // 按距离近到远排序
+            // 按距离近到远排序（无效视图排到末尾）
             std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
-                auto* dataA = server->playerManager().getPlayer(a);
-                auto* dataB = server->playerManager().getPlayer(b);
-                if (dataA == nullptr) return false;
-                if (dataB == nullptr) return true;
-                return distanceSquared(*dataA, refX, refY, refZ) < distanceSquared(*dataB, refX, refY, refZ);
+                const PlayerView viewA = resolvePlayerView(source, a);
+                const PlayerView viewB = resolvePlayerView(source, b);
+                if (!viewA.valid) return false;
+                if (!viewB.valid) return true;
+                return distanceSquared(viewA, refX, refY, refZ) < distanceSquared(viewB, refX, refY, refZ);
             });
             break;
         }
         case EntitySelectorSort::Furthest: {
-            // 按距离远到近排序
+            // 按距离远到近排序（无效视图排到末尾）
             std::sort(playerIds.begin(), playerIds.end(), [&](PlayerId a, PlayerId b) {
-                auto* dataA = server->playerManager().getPlayer(a);
-                auto* dataB = server->playerManager().getPlayer(b);
-                if (dataA == nullptr) return false;
-                if (dataB == nullptr) return true;
-                return distanceSquared(*dataA, refX, refY, refZ) > distanceSquared(*dataB, refX, refY, refZ);
+                const PlayerView viewA = resolvePlayerView(source, a);
+                const PlayerView viewB = resolvePlayerView(source, b);
+                if (!viewA.valid) return false;
+                if (!viewB.valid) return true;
+                return distanceSquared(viewA, refX, refY, refZ) > distanceSquared(viewB, refX, refY, refZ);
             });
             break;
         }
@@ -471,14 +530,14 @@ void applyFilters(std::vector<PlayerId>& playerIds,
         return;
     }
 
-    // 距离过滤
+    // 距离过滤（经 PlayerView 统一取位置，SimulatedPlayer 经实体回退有位置，不再被误删）
     if (!selector.distance().isUnbounded()) {
         playerIds.erase(std::remove_if(playerIds.begin(),
                             playerIds.end(),
                             [&](PlayerId id) {
-                                auto* data = server->playerManager().getPlayer(id);
-                                if (data == nullptr) return true;
-                                const f32 distSq = distanceSquared(*data, refX, refY, refZ);
+                                const PlayerView view = resolvePlayerView(source, id);
+                                if (!view.valid) return true;
+                                const f32 distSq = distanceSquared(view, refX, refY, refZ);
                                 return !selector.distance().testSquared(distSq);
                             }),
             playerIds.end());
@@ -489,9 +548,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
         playerIds.erase(std::remove_if(playerIds.begin(),
                             playerIds.end(),
                             [&](PlayerId id) {
-                                auto* data = server->playerManager().getPlayer(id);
-                                if (data == nullptr) return true;
-                                return data->username != selector.username();
+                                const PlayerView view = resolvePlayerView(source, id);
+                                if (!view.valid) return true;
+                                return view.username != selector.username();
                             }),
             playerIds.end());
     }
@@ -499,9 +558,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
         playerIds.erase(std::remove_if(playerIds.begin(),
                             playerIds.end(),
                             [&](PlayerId id) {
-                                auto* data = server->playerManager().getPlayer(id);
-                                if (data == nullptr) return true;
-                                return data->username == selector.usernameNegated();
+                                const PlayerView view = resolvePlayerView(source, id);
+                                if (!view.valid) return true;
+                                return view.username == selector.usernameNegated();
                             }),
             playerIds.end());
     }
@@ -510,9 +569,9 @@ void applyFilters(std::vector<PlayerId>& playerIds,
     playerIds.erase(std::remove_if(playerIds.begin(),
                         playerIds.end(),
                         [&](PlayerId id) {
-                            auto* data = server->playerManager().getPlayer(id);
-                            if (data == nullptr) return true;
-                            return !matchesFilter(*data, selector, server, world);
+                            const PlayerView view = resolvePlayerView(source, id);
+                            if (!view.valid) return true;
+                            return !matchesFilter(view, selector, server, world);
                         }),
         playerIds.end());
 }

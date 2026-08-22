@@ -64,26 +64,66 @@ namespace {
 }
 
 /**
- * @brief 读取目标玩家当前位置与朝向。
+ * @brief 目的地玩家解析结果（位置 + 朝向 + 名字）。
+ *
+ * 真实玩家从 ServerPlayerData 取，SimulatedPlayer（不在 PlayerManager）从 Player 实体回退取。
+ * valid=false 表示两者都查不到。
+ */
+struct DestinationInfo {
+    Vector3d position{};
+    Vector2f rotation{};
+    std::string username;
+    bool valid = false;
+};
+
+/**
+ * @brief 读取目标玩家（目的地）当前位置与朝向。
  *
  * @param source 命令源。
  * @param selector 目标选择器。
+ * @param info 输出目的地信息。
  * @return 是否读取成功。
  *
  * @note 该辅助函数只接受单个玩家结果，多结果由参数类型约束在解析阶段拦截。
+ *       经 resolveSinglePlayerId 解析 PlayerId（支持 SimulatedPlayer 名字/选择器），再取位置/朝向：
+ *       PlayerManager 优先（真实玩家 ServerPlayerData），回退 ServerPlayerEntityManager 的 Player 实体
+ *       （SimulatedPlayer 路径）。原先仅经 playerManager().getPlayer(id) 取数，SimulatedPlayer 返 nullptr
+ *       即判失败，导致 /tp <targets> <destPlayer> 当 dest 是 SimulatedPlayer 时整个传送不执行。
  */
-[[nodiscard]] bool tryResolveDestinationPlayer(const ServerCommandSource& source,
-    const EntitySelector& selector,
-    const server::ServerPlayerData*& destinationPlayer)
+[[nodiscard]] bool tryResolveDestinationPlayer(
+    const ServerCommandSource& source, const EntitySelector& selector, DestinationInfo& info)
 {
-    destinationPlayer = nullptr;
+    info = DestinationInfo{};
     const PlayerId destinationPlayerId = support::resolveSinglePlayerId(source, selector);
     if (destinationPlayerId == 0 || source.server() == nullptr) {
         return false;
     }
 
-    destinationPlayer = source.server()->playerManager().getPlayer(destinationPlayerId);
-    return destinationPlayer != nullptr;
+    // 真实玩家路径：PlayerManager 持有 ServerPlayerData（含位置/朝向/名字）。
+    const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(destinationPlayerId);
+    if (data != nullptr) {
+        info.position = Vector3d(static_cast<f64>(data->x), static_cast<f64>(data->y), static_cast<f64>(data->z));
+        info.rotation = Vector2f(data->yaw, data->pitch);
+        info.username = data->username;
+        info.valid = true;
+        return true;
+    }
+
+    // SimulatedPlayer 回退：经 ServerPlayerEntityManager 取 Player 实体的位置/朝向/名字。
+    auto* world = source.world();
+    if (world == nullptr) {
+        return false;
+    }
+    mc::Player* entity = source.server()->playerEntityManager().getPlayerEntity(destinationPlayerId, *world);
+    if (entity == nullptr) {
+        return false;
+    }
+    const auto pos = entity->position();
+    info.position = Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
+    info.rotation = Vector2f(entity->yaw(), entity->pitch());
+    info.username = entity->username();
+    info.valid = true;
+    return true;
 }
 
 /**
@@ -213,23 +253,21 @@ i32 TeleportCommand::_teleportToEntity(CommandContext<ServerCommandSource>& cont
     }
 
     const EntitySelector selector = context.getArgument<EntitySelector>("target");
-    const server::ServerPlayerData* destinationPlayer = nullptr;
-    if (!tryResolveDestinationPlayer(source, selector, destinationPlayer)) {
+    DestinationInfo destination;
+    if (!tryResolveDestinationPlayer(source, selector, destination)) {
         source.sendError("No matching destination player was found");
         return 0;
     }
 
-    const i32 teleportedCount = teleportPlayers(source,
-        {source.playerId()},
-        Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
-        Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
+    const i32 teleportedCount =
+        teleportPlayers(source, {source.playerId()}, destination.position, destination.rotation);
     if (teleportedCount == 0) {
         source.sendMessage("Failed to teleport player");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << source.name() << " to " << destinationPlayer->username;
+    ss << "Teleported " << source.name() << " to " << destination.username;
     source.sendMessage(ss.str());
     return 1;
 }
@@ -277,26 +315,23 @@ i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>
     MC_ASSERT_RELEASE(server != nullptr);
 
     const EntitySelector targets = context.getArgument<EntitySelector>("targets");
-    const EntitySelector destination = context.getArgument<EntitySelector>("destination");
+    const EntitySelector destinationSelector = context.getArgument<EntitySelector>("destination");
     const auto targetPlayerIds = support::resolvePlayerIds(source, targets);
 
-    const server::ServerPlayerData* destinationPlayer = nullptr;
-    if (!tryResolveDestinationPlayer(source, destination, destinationPlayer)) {
+    DestinationInfo destination;
+    if (!tryResolveDestinationPlayer(source, destinationSelector, destination)) {
         source.sendError("No matching destination player was found");
         return 0;
     }
 
-    const i32 teleportedCount = teleportPlayers(source,
-        targetPlayerIds,
-        Vector3d(destinationPlayer->x, destinationPlayer->y, destinationPlayer->z),
-        Vector2f(destinationPlayer->yaw, destinationPlayer->pitch));
+    const i32 teleportedCount = teleportPlayers(source, targetPlayerIds, destination.position, destination.rotation);
     if (teleportedCount == 0) {
         source.sendError("No matching players were found");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << teleportedCount << " player(s) to " << destinationPlayer->username;
+    ss << "Teleported " << teleportedCount << " player(s) to " << destination.username;
     source.sendMessage(ss.str());
     return teleportedCount;
 }

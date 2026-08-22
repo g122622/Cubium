@@ -38,6 +38,20 @@ function getPlayerLocation(test: Test): { x: number; y: number; z: number } | nu
     return players[0].location;
 }
 
+/** 取结构空气腔内所有玩家实体的 location 列表（区域限定避免选到同批并行测试的玩家）。 */
+function getPlayerLocations(test: Test): { x: number; y: number; z: number }[] {
+    return test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(AREA_FROM),
+        volume: AREA_VOLUME,
+    }).map(p => p.location);
+}
+
+/** 统计 location 列表中接近目标坐标（误差 <1.5 格水平）的玩家数。 */
+function countPlayersNear(locations: { x: number; y: number; z: number }[], target: { x: number; y: number; z: number }): number {
+    return locations.filter(loc => Math.abs(loc.x - target.x) < 1.5 && Math.abs(loc.z - target.z) < 1.5).length;
+}
+
 // /tp <x> <y> <z> 把命令源玩家自己传送到指定坐标（vanilla 语法：省略 target 即传自己）。
 // 注：/tp @s x y z 在 Cubium 命令树中 @s 优先匹配 selfDestinationArg（把自己传到 @s 玩家），
 // 坐标被忽略——故用省略 target 的 /tp <x> <y> <z> 语法（走 _teleportToPosition 分支）。
@@ -105,6 +119,83 @@ function tpByPlayerName(test: Test): void {
     });
 }
 
+// /tp @a[distance=..N] <x> <y> <z> 批量传送多玩家到坐标（走 _teleportTargetToPosition 多目标分支）。
+// spawn 2 个 SimulatedPlayer 在结构内不同位置，@a[distance=..20]（以命令源为中心）选中两者，
+// tp 到同一目标坐标，断言两个玩家都被传送（验证 resolvePlayerIds 多结果 + teleportPlayers 循环）。
+// distance=..20 区域限定避免选中 73 格外同批并行测试的 SimulatedPlayer（污染防护）。
+// 走 TeleportCommand::_teleportTargetToPosition（targetsArg=players() 多目标）。
+// Ref: wiki teleport.txt（tp <targets> <location> 批量传送多玩家）
+function tpAllPlayersToPosition(test: Test): void {
+    // 两玩家在空气腔 y=2 站立层（下方 y=1 stone 地板支撑），不同位置。
+    const playerA = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "moverA");
+    test.spawnSimulatedPlayer({ x: 6, y: 2, z: 6 }, "moverB");
+    const targetRel = { x: 4, y: 3, z: 4 };
+
+    // 等 moverB 生成稳定后执行（@a 解析需两玩家都已注册到 ServerPlayerEntityManager）。
+    test.runAtTickTime(5, () => {
+        // @a[distance=..20] 以 playerA 位置为中心，选中结构内两玩家（间距约 5.6 格 < 20）。
+        playerA.chat(`/tp @a[distance=..20] ${worldCoords(test, targetRel)}`);
+    });
+
+    pollUntilSucceed(test, () => {
+        const locs = getPlayerLocations(test);
+        if (locs.length < 2) return false;
+        const target = test.worldLocation(targetRel);
+        // 两个玩家都应被传到目标附近。
+        return countPlayersNear(locs, target) >= 2;
+    }, {
+        startTick: 10,
+        maxTick: 80,
+        onTimeout: () => {
+            const locs = getPlayerLocations(test);
+            const target = test.worldLocation(targetRel);
+            test.assert(false,
+                `tp @a did not move both players to target ${target.x},${target.z}; ` +
+                `players=${locs.length}, near=${countPlayersNear(locs, target)}, locs=${JSON.stringify(locs)}`);
+        },
+    });
+}
+
+// /tp @a[distance=..N] <destinationPlayer> 批量传送多玩家到目标玩家位置（走 _teleportTargetToEntity 多目标分支）。
+// spawn 2 个 mover + 1 个 dest 玩家，@a[distance=..20] 选中全部 3 玩家，传到 dest 玩家位置。
+// dest 自身被选中传到自己位置（无位移），两 mover 被传到 dest 位置，3 玩家最终聚集在 dest 位置。
+// 走 TeleportCommand::_teleportTargetToEntity（targetsArg 多目标 + destinationArg 单目标）。
+// 注：不读 dest 句柄的 location——SimulatedPlayer 句柄在传送后 .location 可能失效（句柄生命周期问题），
+// 改用 dest 的预期世界坐标（spawn 位置不变，dest 传到自己位置无位移）。
+// Ref: wiki teleport.txt（tp <targets> <destination> 批量传送到目标玩家）
+function tpAllPlayersToDestinationPlayer(test: Test): void {
+    const playerA = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "moverA");
+    test.spawnSimulatedPlayer({ x: 6, y: 2, z: 6 }, "moverB");
+    // dest 玩家在 (4,2,4)，作为传送目的地（传送后仍在该位）。
+    test.spawnSimulatedPlayer({ x: 4, y: 2, z: 4 }, "dest");
+    // dest 预期世界坐标（spawn 位置，传送后不变）。
+    const destRel = { x: 4, y: 2, z: 4 };
+
+    test.runAtTickTime(5, () => {
+        // @a[distance=..20] 选中结构内全部 3 玩家，传到 dest 名字玩家位置。
+        // dest 自身被选中传到自己位置（无位移），两 mover 被传到 dest 位置。
+        playerA.chat(`/tp @a[distance=..20] dest`);
+    });
+
+    pollUntilSucceed(test, () => {
+        const locs = getPlayerLocations(test);
+        if (locs.length < 3) return false;
+        const destWorld = test.worldLocation(destRel);
+        // 3 玩家都应聚集在 dest 位置附近（两 mover 被传到 dest + dest 自身原地）。
+        return countPlayersNear(locs, destWorld) >= 3;
+    }, {
+        startTick: 10,
+        maxTick: 80,
+        onTimeout: () => {
+            const locs = getPlayerLocations(test);
+            const destWorld = test.worldLocation(destRel);
+            test.assert(false,
+                `tp @a dest did not move both movers to dest ${destWorld.x},${destWorld.z}; ` +
+                `players=${locs.length}, near=${countPlayersNear(locs, destWorld)}, locs=${JSON.stringify(locs)}`);
+        },
+    });
+}
+
 export function registerTeleportCommandTests(): void {
     GameTest.register("CommandTests", "tp_teleports_player", tpTeleportsPlayer)
         .structureName("gametests:cmd_arena")
@@ -117,4 +208,12 @@ export function registerTeleportCommandTests(): void {
     GameTest.register("CommandTests", "tp_by_player_name", tpByPlayerName)
         .structureName("gametests:cmd_arena")
         .maxTicks(80);
+
+    GameTest.register("CommandTests", "tp_all_players_to_position", tpAllPlayersToPosition)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(120);
+
+    GameTest.register("CommandTests", "tp_all_players_to_destination_player", tpAllPlayersToDestinationPlayer)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(120);
 }
