@@ -491,14 +491,19 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
 
         // 掉落条件（对齐 vanilla Mob.java:864-865）：
         //   !itemstack.isEmpty()
-        //   && !EnchantmentHelper.has(itemstack, PREVENT_EQUIPMENT_DROP)  // 绑定诅咒
+        //   && !EnchantmentHelper.has(itemstack, PREVENT_EQUIPMENT_DROP)  // 消失诅咒
         //   && (p_21387_ || flag)  // recentlyHitByPlayer || isPreserved
         //   && random.nextFloat() < f
-        // PREVENT_EQUIPMENT_DROP 在 1.21 仅绑定诅咒贡献，Cubium 用 hasBindingCurse 等价判定。
+        // PREVENT_EQUIPMENT_DROP 是消失诅咒（vanishing_curse）的 effect component（1.21 Enchantments.java:1279
+        // VANISHING_ENCHANTABLE + withEffect PREVENT_EQUIPMENT_DROP）。消失诅咒装备死亡时由
+        // Player.destroyVanishingCursedItems 销毁（不掉落），dropCustomDeathLoot 排除它避免重复掉落。
+        // 注意：绑定诅咒（binding_curse）的 component 是 PREVENT_ARMOR_CHANGE（仅防装备时卸下），
+        // 不影响死亡掉落——绑定诅咒装备死亡时正常掉落。Cubium 用 hasVanishingCurse 等价判定
+        // PREVENT_EQUIPMENT_DROP（消失诅咒是该 component 唯一来源）。
         if (equipmentRef.isEmpty()) {
             continue;
         }
-        if (item::enchant::EnchantmentHelper::hasBindingCurse(equipmentRef)) {
+        if (item::enchant::EnchantmentHelper::hasVanishingCurse(equipmentRef)) {
             continue;
         }
         if (!(recentlyHitByPlayer || isPreserved)) {

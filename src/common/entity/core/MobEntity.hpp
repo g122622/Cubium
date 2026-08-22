@@ -1060,8 +1060,10 @@ public:
      *   - isPreserved（f > 1.0，保整掉落）：无条件尝试掉落（不要求 recentlyHitByPlayer）。
      *   - 默认（0 < f <= 1.0，如 0.085）：仅当 recentlyHitByPlayer（最近被玩家伤害过）时才尝试掉落。
      *   - random < f：通过概率判定后掉落。
-     * 排除绑定诅咒装备（vanilla EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP，
-     * Cubium 用 hasBindingCurse 等价判定——绑定诅咒是该 component 的唯一来源）。
+     * 排除消失诅咒装备（vanilla EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP 是消失诅咒的
+     * effect component，Enchantments.java:1279；消失诅咒装备死亡时由 Player.destroyVanishingCursedItems
+     * 销毁，dropCustomDeathLoot 排除它避免重复掉落）。Cubium 用 hasVanishingCurse 等价判定
+     * （消失诅咒是该 component 唯一来源）。注意：绑定诅咒（PREVENT_ARMOR_CHANGE）不影响死亡掉落。
      * 掉落前对非保整的可损伤装备随机化耐久度（对齐 vanilla setDamageValue(maxDamage - random)）。
      * 掉落后清空槽位（setItemSlot(slot, EMPTY)）。
      *

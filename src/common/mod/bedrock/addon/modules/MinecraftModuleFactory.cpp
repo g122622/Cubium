@@ -2289,6 +2289,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // --- Player类（继承Entity） ---
     u64 playerClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* playerProto = builder.exportClass("Player", playerClassId);
+    // 登记进 ScriptClassRegistry，供 test.kill 等需识别 Player 形参的绑定经 classIdByName("Player") unwrap。
+    // 注：Cubium JS 类按独立原型注册不自动反映 C++ 继承（见 [[simulated-player-js-class-no-entity-inheritance]]），
+    // Player JS 对象的 opaque class_id 是 playerClassId 而非 Entity classId，故 ScriptObjectRegistry::unwrap
+    // 传 Entity classId 严格匹配会返 nullptr。test.kill 等绑定需枚举 Entity/Player/SimulatedPlayer 多 classId
+    // 依次 unwrap，此处登记使 classIdByName("Player") 可查。
+    ScriptClassRegistry::instance().registerClass(playerClassId, playerProto, "Player");
 
     ClassRegistrar<void> playerReg(ctx, playerClassId, playerProto);
     playerReg.readonlyProperty("name", [](IScriptBindingContext& ctx, void* thisVal) -> void* {

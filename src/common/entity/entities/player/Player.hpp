@@ -685,6 +685,31 @@ public:
     void dropExperience() override;
 
     /**
+     * @brief 死亡时掉落库存物品（在 shouldDropLoot 守卫之外，不受 doMobLoot 影响）
+     *
+     * 重写 LivingEntity::dropEquipment()，对齐 MC Java 1.21.11 Player.dropEquipment
+     * （Player.java:556-565）。非 keepInventory 时：
+     *   1. destroyVanishingCursedItems()：销毁带消失诅咒（PREVENT_EQUIPMENT_DROP component）
+     *      的库存物品（从库存移除，不掉落）。
+     *   2. inventory.dropAll()：把库存所有物品以 ItemEntity 形式掉落到死亡位置。
+     * keepInventory=true 时保留库存不掉落。
+     *
+     * 注：vanilla Player.die 不直接调 dropEquipment，而是经 LivingEntity.die → dropAllDeathLoot
+     * → dropEquipment（守卫外）。Cubium 同链路：Player::die 调 LivingEntity::die → dropAllDeathLoot
+     * → dropEquipment（Player override）。
+     */
+    void dropEquipment() override;
+
+    /**
+     * @brief 销毁库存中带消失诅咒的物品（对齐 vanilla Player.destroyVanishingCursedItems）
+     *
+     * 遍历库存所有槽位，带消失诅咒（hasVanishingCurse，等价 PREVENT_EQUIPMENT_DROP component）
+     * 的物品直接从库存移除（removeItemNoUpdate，不掉落、不同步）。在 dropEquipment 中
+     * 非 keepInventory 时于 dropAll 之前调用，使消失诅咒物品死亡时销毁而非掉落。
+     */
+    void destroyVanishingCursedItems();
+
+    /**
      * @brief 丢弃物品
      *
      * 在玩家位置生成物品实体。

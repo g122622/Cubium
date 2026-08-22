@@ -1669,11 +1669,49 @@ void Player::die(DamageSource& cause)
     // MC Java: Player.die() 中清除火焰状态
     clearFire();
 
-    // 玩家特有：掉落经验
-    dropExperience();
+    // 经验掉落由 LivingEntity::die → dropAllDeathLoot → dropExperience 统一处理（仅调一次）。
+    // 对齐 vanilla：Player.die 不重复调 dropExperience，而是通过 isAlwaysExperienceDropper()=true
+    // 让基类 LivingEntity.dropExperience 守卫通过掉经验（Cubium Player::dropExperience 直接掉落，
+    // 等价 isAlwaysExperienceDropper=true 语义）。修复前 Player::die 额外调一次 dropExperience，
+    // 致玩家死亡掉两次经验球（与 vanilla 偏差）。
 
     // 记录死亡位置（维度+方块坐标），用于追溯指南针和存档持久化
     m_lastDeathLocation = GlobalPos(m_dimension, onPos());
+}
+
+void Player::dropEquipment()
+{
+    // 对齐 MC Java 1.21.11 Player.dropEquipment（Player.java:556-565）。
+    // 玩家死亡掉落库存：非 keepInventory 时先销毁消失诅咒物品，再掉落全部库存。
+    // 在 LivingEntity::dropAllDeathLoot 守卫之外调用（不受 doMobLoot 影响，对齐 vanilla）。
+    // 修复前 Cubium 缺此链路，玩家死亡库存物品静默保留在实体上不掉落（与 vanilla 偏差）。
+    if (m_world == nullptr) {
+        return;
+    }
+    // keepInventory=true 时保留库存不掉落（对齐 vanilla KEEP_INVENTORY 守卫）。
+    if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::KEEP_INVENTORY)) {
+        return;
+    }
+    // 1. 销毁带消失诅咒的物品（死亡时销毁，不掉落）。
+    destroyVanishingCursedItems();
+    // 2. 掉落全部库存到死亡位置（PlayerInventory::dropAllItems 遍历槽位调 dropItem 生成 ItemEntity）。
+    m_inventory.dropAllItems();
+}
+
+void Player::destroyVanishingCursedItems()
+{
+    // 对齐 MC Java 1.21.11 Player.destroyVanishingCursedItems（Player.java:567-574）。
+    // 遍历库存所有槽位，带消失诅咒（PREVENT_EQUIPMENT_DROP component，Cubium 用 hasVanishingCurse 等价）
+    // 的物品直接从库存移除（removeItemNoUpdate，不掉落、不同步），使消失诅咒物品死亡时销毁而非掉落。
+    // PREVENT_EQUIPMENT_DROP 是消失诅咒（vanishing_curse）的 effect component
+    // （Enchantments.java:1279 VANISHING_ENCHANTABLE + withEffect PREVENT_EQUIPMENT_DROP）。
+    const i32 size = m_inventory.getContainerSize();
+    for (i32 i = 0; i < size; ++i) {
+        const ItemStack& item = m_inventory.getItem(i);
+        if (!item.isEmpty() && item::enchant::EnchantmentHelper::hasVanishingCurse(item)) {
+            m_inventory.removeItemNoUpdate(i);
+        }
+    }
 }
 
 // ============================================================================

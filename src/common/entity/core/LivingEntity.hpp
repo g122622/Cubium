@@ -411,6 +411,17 @@ public:
     }
 
     /**
+     * @brief 死亡时掉落装备（在 shouldDropLoot 守卫之外，不受 doMobLoot 影响）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.dropEquipment（LivingEntity.java:1495-1496）。
+     * 基类空实现。Mob 的装备掉落由 MobEntity::dropCustomDeathLoot 在守卫内处理（vanilla Mob override
+     * dropCustomDeathLoot 而非 dropEquipment）。Player override dropEquipment 实现玩家死亡掉落库存
+     * （keepInventory 守卫 + 销毁消失诅咒物品 + inventory.dropAll，对齐 vanilla Player.dropEquipment）。
+     * 由 dropAllDeathLoot 在守卫之外调用（vanilla LivingEntity.dropAllDeathLoot:1491）。
+     */
+    virtual void dropEquipment() {}
+
+    /**
      * @brief 检查药水效果是否可以应用
      *
      * 子类可以重写此方法来免疫某些药水效果。

@@ -403,6 +403,12 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
     // 项目测试设施（基岩 Test 类无）：杀死指定实体，走伤害致死链路（onKillCommand）触发完整死亡流程。
     // 与 killAllEntities 的 discard（静默移除）不同，kill 让实体经死亡链路移除，触发"死亡时"行为
     // （史莱姆分裂、掉落物/经验等）。entity 经 ScriptClassRegistry 取 @minecraft/server Entity classId unwrap。
+    //
+    // 兼容 Player/SimulatedPlayer：Cubium JS 类按独立原型注册不自动反映 C++ 继承（见
+    // [[simulated-player-js-class-no-entity-inheritance]]），Player/SimulatedPlayer JS 对象的 opaque
+    // class_id 是各自 classId 而非 Entity classId，故仅传 Entity classId 严格 unwrap 会返 nullptr
+    // （致 "kill: argument must be an Entity"，无法 test.kill(simulatedPlayer) 杀死玩家测死亡掉落）。
+    // 修复：枚举 Entity/Player/SimulatedPlayer 三个 classId 依次 unwrap，首个非 nullptr 即采用。
     reg.method(
         "kill",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -413,9 +419,20 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (argc < 1) {
                 return ctx.throwTypeError("kill(entity)");
             }
-            const u64 entityClassId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-            auto* entity = static_cast<mc::Entity*>(
-                mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], entityClassId));
+            // 依次尝试 Entity/Player/SimulatedPlayer classId unwrap（运行期查表，模块注册已完成）。
+            mc::Entity* entity = nullptr;
+            const char* const kClassNames[] = {"Entity", "Player", "SimulatedPlayer"};
+            for (const char* className : kClassNames) {
+                const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+                if (classId == 0) {
+                    continue;
+                }
+                entity = static_cast<mc::Entity*>(
+                    mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, args[0], classId));
+                if (entity != nullptr) {
+                    break;
+                }
+            }
             if (entity == nullptr) {
                 return ctx.throwTypeError("kill: argument must be an Entity");
             }

@@ -551,12 +551,11 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
         dropCustomDeathLoot(cause, recentlyHitByPlayer);
     }
 
-    // 2. 装备掉落（在守卫之外，不受 doMobLoot 影响）。对齐 vanilla LivingEntity.dropEquipment。
-    //    Mob 的装备掉落由 MobEntity::dropCustomDeathLoot 在守卫【内】处理（vanilla Mob override
-    //    dropCustomDeathLoot 而非 dropEquipment，故 Mob 的装备掉落受 doMobLoot 守卫约束）。
-    //    vanilla LivingEntity.dropEquipment 基类仅用于非 Mob 的 LivingEntity（如 Player 死亡掉装备），
-    //    Cubium Player 子类自管装备掉落，基类 dropEquipment 暂未实现（TODO，非 Mob 路径待补）。
-    // dropEquipment(*m_world);
+    // 2. 装备掉落（在守卫之外，不受 doMobLoot 影响）。对齐 vanilla LivingEntity.dropEquipment（守卫外）。
+    //    基类空；MobEntity 不 override（其装备掉落由上面的 dropCustomDeathLoot 在守卫内处理）；
+    //    Player override dropEquipment 实现玩家死亡掉落库存（keepInventory 守卫 + 销毁消失诅咒 +
+    //    inventory.dropAll，对齐 vanilla Player.dropEquipment）。
+    dropEquipment();
 
     // 3. 经验掉落（在守卫之外，但 vanilla dropExperience 内部自带守卫——仅当
     //    !wasExperienceConsumed() && (isAlwaysExperienceDropper() ||

@@ -262,6 +262,12 @@ u64 registerSimulatedPlayerClassBinding(
     u64 classId = ScriptObjectRegistry::allocateClassId(ctx);
     void* proto = builder.exportClass("SimulatedPlayer", classId);
     ScriptBindingRegistry::instance().registerProto(classId, proto);
+    // 登记进 ScriptClassRegistry，供 test.kill 等需识别 SimulatedPlayer 形参的绑定经
+    // classIdByName("SimulatedPlayer") unwrap。SimulatedPlayer JS 类独立注册不继承 Entity 原型
+    // （见 [[simulated-player-js-class-no-entity-inheritance]]），opaque class_id 是本 classId 而非
+    // Entity classId，test.kill 传 Entity classId 严格匹配会返 nullptr（致 "kill: argument must be
+    // an Entity"）。此处登记使 test.kill 枚举 classId 时能解开 SimulatedPlayer。
+    mc::mod::bedrock::addon::ScriptClassRegistry::instance().registerClass(classId, proto, "SimulatedPlayer");
 
     ClassRegistrar<void> reg(ctx, classId, proto);
 
