@@ -548,6 +548,21 @@ public:
      */
     [[nodiscard]] bool changeDimension(DimensionId targetDim) override;
 
+    /**
+     * @brief 跨维度传送到指定维度的指定坐标（带朝向）。
+     *
+     * 对齐 vanilla `Entity.teleportTo(ServerLevel, x, y, z, ...)`，目标坐标由调用方指定
+     * （/tp 命令语义，区别于传送门 changeDimension 的 Teleporter 计算坐标）。
+     * ServerPlayer override 复用 changeDimension 的迁移逻辑（迁移 EntityManager + setDimension
+     * /setPosition/setWorld + transferPlayerToDimension），但用传入坐标而非 Teleporter。
+     *
+     * @param targetDim 目标维度ID
+     * @param pos 目标坐标（世界绝对坐标）
+     * @param rot 目标朝向（yaw/pitch）
+     * @return true 如果传送成功
+     */
+    [[nodiscard]] bool teleportToDimension(DimensionId targetDim, const Vector3d& pos, const Vector2f& rot) override;
+
     // ========== 反飞行阈值校验（跨 tick 状态） ==========
     // 对齐 Java ServerGamePacketListenerImpl.handleMovePlayer 的 moved-too-quickly /
     // moved-wrongly 双闸。ServerPlayHandler 为无状态门面，跨 tick 基线须落在玩家实体上。
@@ -681,6 +696,21 @@ private:
      * @param cameraEntityId 摄像机实体的 ID（玩家自身 ID 表示恢复正常视角）
      */
     void _sendSetCameraPacket(u32 cameraEntityId);
+
+    /**
+     * @brief 执行跨维度迁移核心逻辑（changeDimension 与 teleportToDimension 共用）。
+     *
+     * 已知目标维度与目标坐标后，统一完成：迁移 EntityManager（源世界 removeEntity → 目标世界
+     * spawnEntity）+ setDimension/setPosition/setWorld + transferPlayerToDimension（更新
+     * m_playerDimensions + 发维度切换包 + 区块卸载/加载）。坐标/朝向由调用方传入：
+     * - changeDimension 传 Teleporter 计算的坐标（末地固定 (100,49,0)、下界/主世界搜索传送门）；
+     * - teleportToDimension 传 /tp 命令显式坐标。
+     *
+     * @param targetDim 目标维度ID
+     * @param targetPos 目标坐标（已按 Teleporter 或命令指定）
+     * @return true 如果迁移成功
+     */
+    [[nodiscard]] bool _performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos);
 
 private:
     mc::server::net::ServerClientConnection* m_connection = nullptr;

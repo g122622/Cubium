@@ -794,6 +794,68 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
         targetPos.y,
         targetPos.z);
 
+    return _performDimensionTransfer(targetDim, targetPos);
+}
+
+bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& pos, const Vector2f& rot)
+{
+    if (m_server == nullptr) {
+        spdlog::warn("ServerPlayer: cannot teleportToDimension, no server reference");
+        return false;
+    }
+
+    // 对齐 vanilla Entity.teleportTo → teleport → teleportCrossDimension：
+    // 先 stopRiding/ejectPassengers，再迁移。与 changeDimension 的乘客处理一致。
+    if (isRiding()) {
+        stopRiding();
+    }
+    if (hasPassengers()) {
+        auto passengers = getPassengers();
+        for (EntityInstanceId passengerId : passengers) {
+            if (m_world != nullptr) {
+                if (Entity* passenger = m_world->getEntity(passengerId)) {
+                    passenger->stopRiding();
+                }
+            }
+        }
+    }
+
+    DimensionId currentDim = dimension();
+
+    // 同维度：不走跨维度迁移，直接同维度 setPosition/setRotation（对齐 vanilla teleportSameDimension）。
+    // /tp 同维度坐标已有 TeleportCommand::teleportPlayers 同维度路径处理，此处仅兜底 teleportToDimension
+    // 被同维度调用的情形（理论上 TeleportCommand 仅在跨维度时调此）。
+    if (currentDim == targetDim) {
+        setPosition(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+        setRotation(rot.x, rot.y);
+        return true;
+    }
+
+    // 跨维度：复用 changeDimension 的迁移逻辑，但用 /tp 命令显式坐标（不调 Teleporter）。
+    // 重置传送门状态（与 changeDimension 一致，避免迁移后立即触发门冷却逻辑）。
+    setInPortal(false);
+    resetPortalTime();
+    triggerPortalCooldown();
+
+    spdlog::info("ServerPlayer: {} tp cross-dimension from {} to {} at ({:.1f}, {:.1f}, {:.1f})",
+        username(),
+        currentDim,
+        targetDim,
+        pos.x,
+        pos.y,
+        pos.z);
+
+    if (!_performDimensionTransfer(targetDim, pos)) {
+        return false;
+    }
+
+    // /tp 朝向由命令指定（changeDimension 不改朝向，保持原朝向）。迁移完成后设置。
+    setRotation(rot.x, rot.y);
+    return true;
+}
+
+bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos)
+{
     // 通过 ServerDimensionManager 执行实际的维度切换
     // 缺陷C修复：用 playerId()（Player.hpp:146，返回 m_playerId；SimulatedPlayer 占位 0）
     // 而非 id()（EntityInstanceId，由 EntityManager 分配，值很大）。transferPlayerToDimension
@@ -835,7 +897,7 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
                 // removeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
                 // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
                 // 更严重的不一致。
-                spdlog::warn("ServerPlayer::changeDimension: removeEntity returned null for entity {} "
+                spdlog::warn("ServerPlayer::_performDimensionTransfer: removeEntity returned null for entity {} "
                              "during dimension migration (player={})",
                     entityId,
                     username());

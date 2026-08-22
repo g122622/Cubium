@@ -29,7 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation（实体旁路传送）
+#include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation/teleportToDimension（实体旁路传送）
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -42,6 +42,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/core/TeleportManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp" // getPlayerDimension/getDimension（跨维度判定 + 实体当前维度世界）
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <cmath>
@@ -132,11 +133,20 @@ struct DestinationInfo {
 /**
  * @brief 统一执行一组玩家的传送请求。
  *
- * @param source 命令源。
+ * @param source 命令源（其 dimensionId 为目标维度——/execute in <dim> 已切换 source 维度）。
  * @param targetPlayerIds 目标玩家集合。
  * @param position 目标坐标。
  * @param rotation 目标朝向。
  * @return 成功传送的玩家数量。
+ *
+ * @note 对齐 vanilla TeleportCommand.teleportToPos 用 `source.getLevel()` 作为目标 Level，
+ * performTeleport 调 `entity.teleportTo(targetLevel, x, y, z, ...)`：当目标维度与实体当前维度不同
+ * 时走跨维度迁移（vanilla teleportCrossDimension）。Cubium 此前 teleportPlayers 不读 source 维度，
+ * 仅同维度 setPosition/requestTeleport，致 `execute in <dim> run tp @s <x> <y> <z>` 跨维度传送失效：
+ * execute in 把 source.world() 切到目标维度，getPlayerEntity(playerId, *targetWorld) 在目标维度
+ * EntityManager 查不到仍留源维度的实体 → 返 nullptr → 传送不执行。本次补全：按 source.dimensionId()
+ * 与实体当前维度比较，跨维度走 Entity::teleportToDimension（ServerPlayer override 迁移 EntityManager
+ * + transferPlayerToDimension），同维度保持原 setPosition/requestTeleport 路径。
  */
 [[nodiscard]] i32 teleportPlayers(ServerCommandSource& source,
     const std::vector<PlayerId>& targetPlayerIds,
@@ -149,7 +159,7 @@ struct DestinationInfo {
     // 边界校验（对齐 Java TeleportCommand.performTeleport 首行守卫，TeleportCommand.java:254-256：
     // !Level.isInSpawnableBounds(BlockPos.containing(x,y,z)) → 抛 INVALID_POSITION）。
     // 拦截越界坐标（Y 超出 ±20,000,000 或 X/Z 超出 ±30,000,000 世界边界），防止
-    // setPosition/requestTeleport 处理非法坐标时崩溃或产生越界实体。此处是所有 /tp 传送路径
+    // setPosition/requestTeleport/teleportToDimension 处理非法坐标时崩溃或产生越界实体。此处是所有 /tp 传送路径
     // （_teleportToPosition / _teleportToEntity / _teleportTargetToPosition / _teleportTargetToEntity）
     // 的唯一汇聚点，在此守卫一次覆盖全部入口。destination-player 路径的目的地坐标来自已存在玩家，
     // 天然在边界内，守卫对其恒放行无副作用。
@@ -161,12 +171,43 @@ struct DestinationInfo {
         return 0;
     }
 
+    // 目标维度：source.dimensionId()（/execute in <dim> 已切换；无 execute in 时为命令源原维度）。
+    const DimensionId targetDim = source.dimensionId();
+
     i32 teleportedCount = 0;
     for (const PlayerId playerId : targetPlayerIds) {
         if (playerId == 0) {
             continue;
         }
 
+        // 实体当前所在维度（dimensionManager.m_playerDimensions 索引；-1 表示不在任何维度）。
+        // 真实玩家登录时 playerJoinDimension 注册；SimulatedPlayer spawn 时 playerJoinDimension(OVERWORLD)。
+        const DimensionId currentDim = server->dimensionManager().getPlayerDimension(playerId);
+
+        // 跨维度传送（targetDim != currentDim）：走 Entity::teleportToDimension 迁移 EntityManager。
+        // 实体须用其【当前维度】世界查找（getPlayerEntity(playerId, *currentWorld)），不能用 source.world()
+        // （目标维度世界，实体尚未迁移过去，查不到）。对齐 vanilla teleportCrossDimension 在目标 Level
+        // 创建实体 + 移除旧实体。
+        if (currentDim >= 0 && currentDim != targetDim) {
+            // 取实体当前维度的 ServerWorld 查实体。
+            auto* currentDimObj = server->dimensionManager().getDimension(currentDim);
+            server::ServerWorld* currentWorld = (currentDimObj != nullptr) ? currentDimObj->world() : nullptr;
+            if (currentWorld == nullptr) {
+                continue;
+            }
+            mc::Player* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *currentWorld);
+            if (playerEntity == nullptr) {
+                continue;
+            }
+            // teleportToDimension 是 Entity 虚函数，ServerPlayer（含 SimulatedPlayer）override 做真实迁移。
+            // 非 ServerPlayer 实体基类返回 false（非玩家跨维度 TODO 未实现）。
+            if (playerEntity->teleportToDimension(targetDim, position, rotation)) {
+                ++teleportedCount;
+            }
+            continue;
+        }
+
+        // 同维度传送（currentDim == targetDim，或 currentDim<0 未知按同维度处理）。
         // 真实玩家路径：经 TeleportManager 改 ServerPlayerData + 发传送包，客户端回移动包后实体收敛。
         if (server->teleportManager().requestTeleport(
                 playerId, position.x, position.y, position.z, rotation.x, rotation.y) != 0) {
@@ -178,6 +219,7 @@ struct DestinationInfo {
         // ServerPlayerEntityManager 映射）。经实体管理器解析 ServerPlayer 实体直接 setPosition，
         // 立即改变实体位置（Entity::setPosition 非虚、无网络副作用）。对齐 vanilla 服务端 /tp 立即
         // 移动实体的语义。SimulatedPlayer 无连接，setRotation 写实体朝向即可。
+        // 同维度时实体在 source.world()（== 当前维度世界）内，可直接用 source.world() 查。
         auto* world = source.world();
         if (world == nullptr) {
             continue;

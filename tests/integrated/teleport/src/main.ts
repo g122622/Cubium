@@ -13,8 +13,10 @@ import { registerNetherPortalTests } from "./tests/cross_dimension/NetherPortalT
 import { registerEndPortalTests } from "./tests/cross_dimension/EndPortalTests.js";
 import { registerScriptTeleportTests } from "./tests/cross_dimension/ScriptTeleportTests.js";
 import { registerDimensionIdTests } from "./tests/cross_dimension/DimensionIdTests.js";
+import { registerExecuteInTeleportTests } from "./tests/cross_dimension/ExecuteInTeleportTests.js";
 
 registerNetherPortalTests();
 registerEndPortalTests();
 registerScriptTeleportTests();
 registerDimensionIdTests();
+registerExecuteInTeleportTests();

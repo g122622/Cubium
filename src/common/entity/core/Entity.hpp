@@ -29,6 +29,7 @@
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/AxisAlignedBB.hpp"
+#include "../../util/math/Vector2.hpp"
 #include "../../util/math/Vector3.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../util/nbt/Nbt.hpp"
@@ -1198,6 +1199,36 @@ public:
     virtual bool changeDimension(DimensionId targetDim)
     {
         (void)targetDim;
+        return false;
+    }
+
+    /**
+     * @brief 跨维度传送到指定维度的指定坐标（带朝向）。
+     *
+     * 对齐 vanilla `Entity.teleportTo(ServerLevel, double, double, double, Set<Relative>, float, float, boolean)`
+     * （Entity.java:3212-3228）→ `Entity.teleport(TeleportTransition)` → 当目标维度与当前维度不同时走
+     * `teleportCrossDimension`（在目标 Level 创建实体 + restoreFrom + 移除旧实体 + 加到目标 Level）。
+     *
+     * 与 changeDimension 的区别：changeDimension 是传送门语义，目标坐标由 Teleporter 计算
+     * （末地固定 (100,49,0)、下界/主世界搜索传送门）；teleportToDimension 是 /tp 命令语义，
+     * 目标坐标由调用方显式指定（如 `/execute in <dim> run tp @s <x> <y> <z>`）。
+     *
+     * ServerPlayer override 调真实跨维度迁移实现。命令层（如 TeleportCommand）经此虚派发触发，
+     * 无需 common->server 头文件依赖。
+     *
+     * @param targetDim 目标维度 ID
+     * @param pos 目标坐标（世界绝对坐标）
+     * @param rot 目标朝向（yaw/pitch）
+     * @return true 如果传送成功；基类默认 false（非玩家实体当前不支持跨维度）
+     *
+     * @todo 非玩家实体的跨维度传送（vanilla 矿车/掉落物等 /tp 跨维度也传送）暂未实现，
+     *       基类返回 false。后续如需支持，应在 ServerWorld 层实现通用实体迁移（同 changeDimension）。
+     */
+    virtual bool teleportToDimension(DimensionId targetDim, const Vector3d& pos, const Vector2f& rot)
+    {
+        (void)targetDim;
+        (void)pos;
+        (void)rot;
         return false;
     }
 
