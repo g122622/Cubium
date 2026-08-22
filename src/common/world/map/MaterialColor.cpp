@@ -133,6 +133,11 @@ void MaterialColor::initialize()
         MaterialColor(MaterialColorId::WARPED_HYPHAE, 0x563B4E);
     s_colors[static_cast<size_t>(MaterialColorId::WARPED_WART)] = MaterialColor(MaterialColorId::WARPED_WART, 0x14B485);
 
+    // TODO: 上述 RGB 值整体参考 Minecraft 1.16.5 MaterialColor（见 line 46 注释）。Cubium 目标对齐
+    // Java 1.21.11，1.20.5+ 对部分 mapColor 做过调整（如 grass/foliage/water 系列微调），须逐色核对
+    // 1.21.11 MaterialColors.java 迁移。当前值可保证地图不渲染为纯黑（接入 initialize 修复的核心缺陷），
+    // 但与 1.21.11 vanilla 存在颜色偏差。因 MapRenderer 是客户端渲染路径，GameTest 服务端无头无法集成
+    // 测试验证，须靠像素级人工核对。
     s_initialized = true;
 }
 

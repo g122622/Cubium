@@ -88,6 +88,7 @@
 #include "common/world/gen/structure/StructureTagLoader.hpp"
 #include "common/world/gen/structure/StructureTags.hpp"
 #include "common/world/gen/structure/pools/Pools.hpp"
+#include "common/world/map/MaterialColor.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
@@ -162,6 +163,16 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         Items::initialize();
     }
     spdlog::info("Vanilla items initialized");
+
+    // 初始化地图材质颜色表（MaterialColor::s_colors）。此前 MaterialColor::initialize() 从未被接入
+    // 启动序列，s_colors 保持默认全零（m_rgb=0），MapRenderer::pixelToArgb 对所有 pixelByte 返回
+    // 0xFF000000（纯黑），地图物品渲染为黑色矩形。无依赖（纯静态数组），幂等（s_initialized 守卫），
+    // 服务端（MapData/方块地图色）与客户端（MapRenderer）共用故接入公共注册入口。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::MaterialColor");
+        world::map::MaterialColor::initialize();
+    }
+    spdlog::info("Material colors initialized");
 
     // 初始化唱片机歌曲注册表（必须在 SoundEvents 初始化后）
     {

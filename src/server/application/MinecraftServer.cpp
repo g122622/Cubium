@@ -116,6 +116,7 @@
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
+#include "server/stats/StatRegistry.hpp" // StatRegistry::registerBuiltinStats（服务端统计注册表注册）
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/WeatherSyncService.hpp"
@@ -485,6 +486,15 @@ void MinecraftServer::initializeCoreManagers()
     // 对齐客户端 ClientApplicationBootstrap.cpp:198 的对称注册（服务端此前缺失，GameTestServer
     // 纯服务端无客户端初始化路径，致判据未注册）。
     mc::scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+
+    // 注册内置统计（StatRegistry::registerBuiltinStats）。此前 registerBuiltinStats() 从未被接入
+    // 服务端启动序列（仅 tests/server/stats 中的单元测试 SetUp 调用），生产环境 StatRegistry 空表。
+    // 结果 common/stats/Stats.hpp 中所有自定义统计常量（open_barrel/play_record/sleep_in_bed 等）均未
+    // 注册，StatisticsManager::incrementCustom 与统计查询 hasStat 恒返 false——玩家开箱/播放唱片/睡觉等
+    // 统计增量被静默丢弃，/xp 之外的统计相关逻辑（成就触发条件等）空转。registerBuiltinStats 仅注册
+    // 自定义统计常量（_registerAllCustomStats），不依赖 Block/Item/Entity 注册表 forEach，可在判据注册
+    // 之后任意时机调用。幂等（重复注册同 id 被 set 合并）。
+    server::stats::StatRegistry::instance().registerBuiltinStats();
 
     // 创建 Boss 栏管理器
     m_bossBarManager = std::make_unique<CustomServerBossInfoManager>(*this);
