@@ -36,6 +36,7 @@
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp" // MooshroomEntity（mark_variant 组件判定哞菇红/棕变种）
 #include "common/entity/entities/passive/basic/SheepEntity.hpp" // SheepEntity（color 组件判定羊毛颜色 DyeColor 0-15）
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp" // PufferfishEntity（pufferfish_puff_state 组件判定膨胀等级）
+#include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp" // AbstractChestedHorseEntity（is_chested 组件判定驴/骡/行商羊驼箱子状态，hasChest）
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // AbstractHorseEntity（is_saddled 组件判定马类鞍状态，马类不实现 IRideable 但有 hasSaddle）
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp" // TameableEntity（is_tamed 组件判定驯服状态，狼/猫/鹦鹉等驯服类基类）
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp" // GlowSquidEntity（glow_squid_dark_ticks 组件判定受惊暗化剩余 tick）
@@ -1452,6 +1453,20 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 }
                 return ctx.createUndefined();
             }
+            if (normalized == "minecraft:is_chested") {
+                // 对齐基岩 EntityIsChestedComponent（componentId="minecraft:is_chested"）：
+                // "When added, this component signifies that this entity is currently carrying a chest"。
+                // 组件存在即已装箱（存在性语义，无 property）。驴/骡/行商羊驼经
+                // AbstractChestedHorseEntity::equipChest 调 setChest(true) 置位（ChestedHorseComponent.m_hasChest）。
+                // 仅 AbstractChestedHorseEntity 有 hasChest()（普通马/骷髅马/僵尸马不继承此中间层不 attach
+                // ChestedHorseComponent），故单路 dynamic_cast<AbstractChestedHorseEntity*> 覆盖。
+                // 已装箱返组件，未装箱或非箱实体返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
+                const auto* chested = dynamic_cast<mc::AbstractChestedHorseEntity*>(ent);
+                if (chested == nullptr || !chested->hasChest()) {
+                    return ctx.createUndefined();
+                }
+                return wrapComponent("IsChestedComponent");
+            }
             if (normalized == "minecraft:color") {
                 // 对齐基岩 EntityColorComponent（componentId="minecraft:color"）：
                 // "Defines the entity's color. Only works on certain entities that have predefined color
@@ -1621,6 +1636,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     void* isSaddledProto = builder.exportClass("IsSaddledComponent", isSaddledClassId);
     ScriptClassRegistry::instance().registerClass(isSaddledClassId, isSaddledProto, "IsSaddledComponent");
     // 无 property/method：组件对象存在即 saddled（与基岩 EntityIsSaddledComponent 一致）。
+
+    // --- IsChestedComponent类（minecraft:is_chested，承载箱子装备状态）---
+    // opaque 持 mc::Entity*。对齐基岩 EntityIsChestedComponent：组件存在即代表已装箱，无属性
+    // （基岩原版仅以 componentId 存在性标识 chested）。getComponent 已按 AbstractChestedHorseEntity
+    // + hasChest()==true 过滤，此处仅作为存在性标记返回，不暴露额外属性。
+    // 供集成测试断言驴/骡装箱链路（AbstractChestedHorseEntity::equipChest→setChest(true)）。
+    u64 isChestedClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* isChestedProto = builder.exportClass("IsChestedComponent", isChestedClassId);
+    ScriptClassRegistry::instance().registerClass(isChestedClassId, isChestedProto, "IsChestedComponent");
+    // 无 property/method：组件对象存在即 chested（与基岩 EntityIsChestedComponent 一致）。
 
     // --- ColorComponent类（minecraft:color，承载实体颜色）---
     // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-15（与 DyeColor 数值
