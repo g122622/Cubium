@@ -289,6 +289,11 @@ i32 GiveCommand::_giveItem(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // TODO: air 物品偏差——vanilla 中 /give @s minecraft:air 是 no-op（air 堆即空堆，背包不变），
+    // 但 Cubium 的 air 是普通物品（itemId=1），/give @s air 会塞入一个非空 air 堆。ItemInput 已
+    // 支持 isAir() 标志（见 ItemArgument.hpp），待对齐 vanilla 时在此识别 itemInput.isAir() 并
+    // 跳过给予（直接成功返回，不塞 air 堆）。当前未修以聚焦 replaceitem 命令的 air 清空修复。
+
     // 获取数量（默认为 1）
     i32 count = 1;
     if (context.hasArgument("count")) {

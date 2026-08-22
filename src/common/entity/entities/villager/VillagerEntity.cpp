@@ -1365,6 +1365,11 @@ void WanderingTraderEntity::rewardTradeXp(MerchantOffer& offer)
     }
 }
 
+// TODO: spawnLlamas 当前为死代码——全代码库无调用者。流浪商人自然生成时应由
+// WanderingTraderSpawner（对齐 Java WanderingTraderSpawner）在生成时调 setLlamaCount(2)
+// + spawnLlamas() 生成 2 只拴绳贸易羊驼，但本项目 WanderingTraderSpawner 未接入此调用，
+// 且 tick() 不触发。故 test.spawn("wandering_trader") 后永远不会出现 trader_llama，
+// 商队行为无法端到端测试。待 WanderingTraderSpawner 自然生成链路接入后补全调用。
 void WanderingTraderEntity::spawnLlamas()
 {
     if (m_hasLlamas || m_llamaCount <= 0 || m_world == nullptr) {

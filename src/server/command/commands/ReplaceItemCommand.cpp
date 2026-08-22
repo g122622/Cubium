@@ -391,8 +391,12 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
         source.sendError("Invalid item");
         return 0;
     }
+
+    // air 物品特判：vanilla /replaceitem ... air 用空堆清空槽位。Cubium 的 air 是普通物品，
+    // 若直接构造 ItemStack(air, count) 会塞入非空 air 堆而非清空。故 air 时用空堆。
+    const bool isAirClear = itemInput.isAir();
     const Item* item = itemInput.getItem();
-    if (item == nullptr) {
+    if (!isAirClear && item == nullptr) {
         source.sendError("Unknown item");
         return 0;
     }
@@ -403,10 +407,12 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
         count = context.getArgument<i32>("count");
     }
 
-    // 限制数量不超过物品最大堆叠
-    const i32 maxStack = item->maxStackSize();
-    if (count > maxStack) {
-        count = maxStack;
+    // 限制数量不超过物品最大堆叠（air 清空不适用）
+    if (!isAirClear) {
+        const i32 maxStack = item->maxStackSize();
+        if (count > maxStack) {
+            count = maxStack;
+        }
     }
 
     // 解析目标玩家
@@ -461,8 +467,8 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
             continue;
         }
 
-        // 创建物品堆
-        ItemStack stack(item, count);
+        // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /replaceitem ... air）
+        ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
 
         // 设置物品到指定槽位
         bool success = setEntitySlotItem(source, playerId, slot, stack);
@@ -482,8 +488,12 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     }
 
     std::ostringstream ss;
-    ss << "Replaced slot " << describeSlot(slot) << " with " << count << "x " << item->getName() << " for "
-       << describeTargets(source, playerIds);
+    if (isAirClear) {
+        ss << "Cleared slot " << describeSlot(slot) << " for " << describeTargets(source, playerIds);
+    } else {
+        ss << "Replaced slot " << describeSlot(slot) << " with " << count << "x " << item->getName() << " for "
+           << describeTargets(source, playerIds);
+    }
     source.sendMessage(ss.str());
 
     return successCount;
@@ -503,8 +513,11 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
         source.sendError("Invalid item");
         return 0;
     }
+
+    // air 物品特判：vanilla /replaceitem ... air 用空堆清空槽位。
+    const bool isAirClear = itemInput.isAir();
     const Item* item = itemInput.getItem();
-    if (item == nullptr) {
+    if (!isAirClear && item == nullptr) {
         source.sendError("Unknown item");
         return 0;
     }
@@ -515,10 +528,12 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
         count = context.getArgument<i32>("count");
     }
 
-    // 限制数量不超过物品最大堆叠
-    const i32 maxStack = item->maxStackSize();
-    if (count > maxStack) {
-        count = maxStack;
+    // 限制数量不超过物品最大堆叠（air 清空不适用）
+    if (!isAirClear) {
+        const i32 maxStack = item->maxStackSize();
+        if (count > maxStack) {
+            count = maxStack;
+        }
     }
 
     // 验证槽位有效性
@@ -552,8 +567,8 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
 
     BlockPos pos(blockPos.x, blockPos.y, blockPos.z);
 
-    // 创建物品堆
-    ItemStack stack(item, count);
+    // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /replaceitem ... air）
+    ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
 
     // 设置物品到方块容器
     bool success = setBlockSlotItem(world, pos, slotIndex, stack, source);
@@ -563,8 +578,12 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
 
     // 发送反馈消息
     std::ostringstream ss;
-    ss << "Replaced slot " << slotIndex << " with " << count << "x " << item->getName() << " at (" << blockPos.x << ", "
-       << blockPos.y << ", " << blockPos.z << ")";
+    if (isAirClear) {
+        ss << "Cleared slot " << slotIndex << " at (" << blockPos.x << ", " << blockPos.y << ", " << blockPos.z << ")";
+    } else {
+        ss << "Replaced slot " << slotIndex << " with " << count << "x " << item->getName() << " at (" << blockPos.x
+           << ", " << blockPos.y << ", " << blockPos.z << ")";
+    }
     source.sendMessage(ss.str());
 
     return 1;

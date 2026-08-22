@@ -52,12 +52,23 @@ namespace command {
 class ItemInput {
 public:
     ItemInput() noexcept = default;
-    explicit ItemInput(ItemId itemId) noexcept
+    explicit ItemInput(ItemId itemId, bool isAir = false) noexcept
         : m_itemId(itemId)
+        , m_isAir(isAir)
     {}
 
     [[nodiscard]] ItemId itemId() const noexcept { return m_itemId; }
     [[nodiscard]] bool isValid() const noexcept { return m_itemId != 0; }
+
+    /**
+     * @brief 是否为 air 物品输入
+     *
+     * vanilla 中 minecraft:air 是合法注册物品（AirItem，itemId=0），其物品堆即空堆，
+     * /replaceitem ... air 与 /clear 等命令用 air 清空槽位。Cubium 的 air 物品 itemId=1
+     * 是普通物品（非空堆语义），故命令层须识别 isAir 并显式构造空堆清空槽位，
+     * 而非塞入一个 air 物品堆。详见 [[replaceitem-air-clears-slot-via-iteminput-isair]]。
+     */
+    [[nodiscard]] bool isAir() const noexcept { return m_isAir; }
 
     /**
      * @brief 获取物品
@@ -78,6 +89,7 @@ public:
 
 private:
     ItemId m_itemId = 0;
+    bool m_isAir = false;
 };
 
 /**
@@ -119,7 +131,11 @@ public:
             throw CommandException(CommandErrorType::Unknown, "Unknown item: " + str, start);
         }
 
-        return ItemInput(item->itemId());
+        // air 物品特判：vanilla 中 minecraft:air 是空堆的同义物品，命令层用 air 清空槽位。
+        // Cubium 的 air 是普通物品（itemId=1），须标记 m_isAir 供下游命令（ReplaceItem 等）
+        // 识别后构造空堆清空，而非塞入 air 物品堆。
+        const bool isAir = (namespace_ == "minecraft" && path == "air");
+        return ItemInput(item->itemId(), isAir);
     }
 
     [[nodiscard]] std::string getTypeName() const noexcept override { return "item"; }
