@@ -981,9 +981,9 @@ void AbstractHorseEntity::updateRiding()
         }
     }
 
-    // 更新乘客位置
-    // MC 1.16.5: Entity.updatePassengers() 在 tick() 中调用
-    updatePassengers();
+    // 乘客位置同步已迁入 ecs::sys::rideTick（PostEntityTick 阶段，本 tick 之后），由 system
+    // 统一调 updatePassengers()（经虚 updatePassengerPosition 派发到本类 override，含扬蹄偏移）。
+    // 阶段 E 前此处在 updateRiding 末尾调 updatePassengers（与 baseTick 末尾的双重同步），现已统一。
 }
 
 void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)

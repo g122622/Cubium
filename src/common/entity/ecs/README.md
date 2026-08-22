@@ -84,7 +84,8 @@ src/common/entity/ecs/
         ├── PortalTick.hpp/cpp       # 真实 system：portal 计时/冷却/传送触发（view 遍历，注册 PostEntityTick）
         ├── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
         ├── EnvironmentSensing.hpp/cpp # 真实 system：遍历碰撞箱内方块流体写 EnvironmentStateComponent（view 遍历，注册 EnvironmentSense，在 EntityTick 之前）
-        └── LivingTimer.hpp/cpp      # 真实 system：LivingEntity 4 计时器（hurtResistantTime 递减/combatTimeout 超时/fallFlyTicks 递增）写 LivingTimerComponent（view 遍历，注册 PostEntityTick）
+        ├── LivingTimer.hpp/cpp      # 真实 system：LivingEntity 4 计时器（hurtResistantTime 递减/combatTimeout 超时/fallFlyTicks 递增）写 LivingTimerComponent（view 遍历，注册 PostEntityTick）
+        └── RideTick.hpp/cpp         # 真实 system：载具乘客位置同步（遍历有乘客的载具调 updatePassengers→虚 updatePassengerPosition，注册 PostEntityTick，载具移动后同步消除滞后）
 ```
 
 ## 内部模块关系
@@ -98,7 +99,7 @@ IWorld（ServerWorld / ClientWorld）
        │         遍历 SystemPhase，阶段内 OrganizerGraph::graph() 拓扑序逐顶点执行
        │         ├─ EnvironmentSense 阶段: environmentSensing（free function，遍历碰撞箱流体写 EnvironmentStateComponent）
        │         ├─ EntityTick 阶段:       legacyTick（sync_point）→ _tickEntities() 遍历调 entity->tick()
-       │         └─ PostEntityTick 阶段:   portalTick / fireTick / livingTimerTick（free function，organizer 推导 rw）
+       │         └─ PostEntityTick 阶段:   portalTick / fireTick / livingTimerTick / rideTick（free function，organizer 推导 rw）
        │                                  + brainTick（sync_point）→ _tickBrains()
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
@@ -114,7 +115,7 @@ IWorld（ServerWorld / ClientWorld）
 
 **双向桥接**：
 - OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
-- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`，livingTimerTick 调 `ticksExisted`/`isElytraFlying`/`sendEndCombat`）。
+- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`，livingTimerTick 调 `ticksExisted`/`isElytraFlying`/`sendEndCombat`，rideTick 调 `hasPassengers`/`updatePassengers`→虚 `updatePassengerPosition`）。
 
 ## 上下游依赖
 
@@ -191,7 +192,7 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（极简
 
 ### 11. SystemPhase 演进路径与跨帧延迟
 
-SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）+ 阶段D `ecs::sys::livingTimerTick`（free function，LivingEntity 4 计时器递减/超时检查/fallFlyTicks 递增）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。**fallFlyTicks 是反例——其 1-tick 延迟恰是时序正确性硬约束**（见坑22），须读"上一帧末尾递增后的值+1"，故 LivingTimerSystem 落 PostEntityTick 而非 PostMovement。
+SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）+ 阶段D `ecs::sys::livingTimerTick`（free function，LivingEntity 4 计时器递减/超时检查/fallFlyTicks 递增）+ 阶段E `ecs::sys::rideTick`（free function，载具乘客位置同步，载具移动后消除滞后）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。**fallFlyTicks 是反例——其 1-tick 延迟恰是时序正确性硬约束**（见坑22），须读"上一帧末尾递增后的值+1"，故 LivingTimerSystem 落 PostEntityTick 而非 PostMovement。
 
 ### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
 
@@ -348,4 +349,26 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **m_lastDamageTimestamp vs m_lastHurtByTimestamp 区分**：迁移须精确区分两个同名近义字段——`m_lastDamageTimestamp`（迁入组件，受击时间戳，参与 NBT HURT_BY_TIMESTAMP）vs `m_lastHurtByTimestamp`（不迁，Target Goals 复仇用，记录"被谁伤害"的时间）。两者语义不同，删成员时不可误删后者。
 
 **客户端无回归验证**：客户端本地玩家直接实例化 mc::Player（非 ClientEntity），`Player::updatePhysics()` 不调 LivingEntity::tick()、不跑 system 调度、不碰 fallFlyTicks/hurtResistantTime/combatTimeout，故客户端这些定时器原本就死，迁移后行为一致（与 B 阶段客户端环境感知失效同源——客户端无 system 调度）。无客户端 TODO（定时器客户端本就无消费方）。
+
+### 23. 骑乘载具乘客同步抽 System：PostEntityTick 消除滞后 + 虚方法派发修复死代码 + 计划前提误读修正
+
+阶段 E 把 `Entity::baseTick()` 末尾的 `updatePassengers()`（载具主动同步自身所有乘客位置）抽成真实遍历组件的 ECS system `ecs::sys::rideTick`，注册到 `SystemPhase::PostEntityTick`。几个关键坑：
+
+**计划前提误读修正（PostMovement vs PostEntityTick）**：阶段 E 计划原假设"抽到 PostMovement 阶段后载具移动完成再同步，消除滞后"——**这是对 SystemPhase 枚举顺序的误读**。实际枚举顺序是 `...→PostMovement→ResetMovement→EntityTick→PostEntityTick`，即 **PostMovement 在 EntityTick 之前**。而载具自身的移动（aiStep/travel/move）是在 **EntityTick 阶段内部**执行的（由 legacyTick 桥接壳调起 LivingEntity::tick/BoatEntity::tick 等）。故把 updatePassengers 从 EntityTick 内的 baseTick 挪到 PostMovement，载具本帧移动**仍未发生**，读到的位置与原 baseTick 调用点完全相同（都是上一帧移动后位置）——**无效搬迁**。要真正"载具移动完成再同步"，目标阶段必须是 **PostEntityTick**（EntityTick 之后）。实施时据勘察修正为注册 PostEntityTick。**教训**：抽 system 选阶段前须确认该阶段相对 EntityTick（载具移动发生处）的先后，PostMovement 名字易误导（它实际在 EntityTick 前）。
+
+**updatePassengers 调虚 updatePassengerPosition（修复死代码 bug，阶段 E 关键架构修复）**：原 `Entity::updatePassengers()` 内部对每个乘客调**非虚** `positionRider()`，不调虚 `updatePassengerPosition()`。而 `positionRider`（protected 非虚）只做 `getMountedYOffset` 基础定位，子类（BoatEntity/AbstractHorseEntity）override 的是虚 `updatePassengerPosition`（基类默认实现调 positionRider）。**这导致子类 override 成死代码**：boat 的 `updatePassengerPosition`（调 updateAllPassengerPositions 含朝向旋转+多乘客偏移，Y偏移=height*0.75≈0.5625）失效，horse 的 `updatePassengerPosition`（扬蹄 prevRearingAmount 偏移，对齐 MC 1.16.5 AbstractHorse.updatePassenger）失效。阶段 E 改 updatePassengers 调虚 `updatePassengerPosition`，子类 override 生效——**修复 boat 乘客位置错误 + horse 扬蹄偏移失效两个既有 bug**（horse/README:193 本就记载 updatePassengerPosition 应按 prevRearingAmount 调整，证明这是预期功能非新行为）。基类载具（PigEntity/StriderEntity/MinecartEntity）走基类 updatePassengerPosition→positionRider，行为不变。**注意**：对齐 Java 1.21.11 须用 attachment 机制（getPassengerRidingPosition/getVehicleAttachmentPoint），项目仍用旧 positionRider/getMountedYOffset（1.16.5 机制），attachment 迁移是另一项待办不在本阶段。
+
+**双重同步清理（统一到 rideTick）**：阶段 E 前 4 处乘客同步——baseTick:850（所有载具，移动前滞后）+ MinecartEntity::tick:190（移动后，双重）+ AbstractHorseEntity::updateRiding:986（移动后，双重）+ BoatEntity::tick:236 updateAllPassengerPositions（移动后，独立实现）。阶段 E 删除全部 4 处，统一由 rideTick 在 PostEntityTick 调 updatePassengers 同步。`AbstractHorseEntity::updateRiding()` 方法本身保留（它还做动画插值 prevHeadLean/prevRearingAmount/prevMouthOpenness），只删末尾 updatePassengers 调用。
+
+**各载具迁移后行为变化**：
+- 矿车族/马族（7+7 子类）：从"baseTick 滞后同步 + 末尾正确同步"（双重，末尾生效）→ "PostEntityTick 单次正确同步"。行为不变（少一次无意义滞后同步）。
+- 船族（BoatEntity/ChestBoatEntity）：从"baseTick 错误同步（positionRider 用 getMountedYOffset=-0.1，与正确 0.5625 不符，会覆盖 :236 正确位置）+ 末尾正确同步"→ "PostEntityTick 经虚 updatePassengerPosition→updateAllPassengerPositions 正确同步"。**行为变好**（删掉 baseTick 的错误双同步，船乘客不再被先用 positionRider 摆到错误位置）。
+- PigEntity/StriderEntity（无末尾同步）：从"完全靠 baseTick:850 滞后同步"→ "PostEntityTick 正确同步"。**行为变好**（消除 1-tick 滞后）。
+
+**BoatEntity updatePassengerPosition N×N 重复 TODO**：boat 的 `updatePassengerPosition(passenger)` override 调全量 `updateAllPassengerPositions()`（遍历所有乘客），而 updatePassengers 对每个乘客调一次本方法，故 N 乘客船每帧执行 N×N 次 setPosition（单船最多 2 乘客=4 次，幂等可接受）。本应只处理传入的 passenger，但 updateAllPassengerPositions 含多乘客相对偏移（PASSENGER1/2_X_OFFSET）须按 index 计算，重构为单乘客处理需传 index，留 `TODO(ecs-stage-E-boat-passenger-redundant)` 待后续，不在本阶段重构。
+
+**首批不建 PassengerComponent**：`m_passengers`（std::vector<EntityInstanceId>）仍 OOP 成员（Entity.hpp），乘客数少遍历成本低，rideTick 经 EntityOwnerComponent 反查 OOP 句柄调 hasPassengers() 早退 + updatePassengers()。阶段 H 并行化时若需避免 OOP 句柄竞争再组件化。
+
+**updateRidden 死代码**：`Entity::updateRidden()`（乘客侧 rideTick 等价物，清零速度→tick→调 vehicle->updatePassengerPosition）全仓无调用者，是死代码。Cubium 乘客同步靠载具侧 updatePassengers（与 Java Level.tickPassenger→passenger.rideTick→vehicle.positionRider 对齐，但 Cubium 无世界级 tickPassenger 阶段，故由载具 system 主动同步）。updateRidden 与本次清理无关，保留不动。
+
 

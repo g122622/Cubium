@@ -184,10 +184,10 @@ void AbstractMinecartEntity::tick()
     // 调用父类tick
     Entity::tick();
 
-    // 同步乘客位置：矿车自身已在本 tick 移动到新位置（_moveAlongTrack/_moveDerailedMinecart），
-    // 须把骑乘实体的 m_builtIn.stateVector->m_pos 更新到矿车当前位置，否则乘客位置永远停在出生点
-    // （GameTest minibiomes 矿车载猪超时根因）。对齐 AbstractHorseEntity::tick 的 updatePassengers 模式。
-    updatePassengers();
+    // 乘客位置同步已迁入 ecs::sys::rideTick（PostEntityTick 阶段，本 tick 之后），由 system
+    // 统一调 updatePassengers() 同步。矿车自身已在本 tick 移动到新位置（_moveAlongTrack/
+    // _moveDerailedMinecart），rideTick 在其后同步，乘客位置读到矿车当前位置（无滞后）。
+    // 阶段 E 前此处在 tick 末尾调 updatePassengers（与 baseTick 末尾的双重同步），现已统一。
 }
 
 bool AbstractMinecartEntity::isOnRailAt(const BlockPos& pos) const

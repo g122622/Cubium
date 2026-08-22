@@ -29,7 +29,10 @@ enum class SystemPhase : u8 {
     /// 阶段 C+F 落地 MobAiTickSystem + AiStepSystem（回调桥接壳，整块逻辑留 OOP）。
     Travel,
 
-    /// 移动后处理：移动完成的实体相关收尾（如乘客位置同步）。预留——阶段 E 落地 RideTickSystem。
+    /// 移动后处理：预留（如移动完成的实体相关收尾）。阶段 E 计划曾拟把乘客位置同步（RideTickSystem）
+    /// 落本阶段，但勘察发现 PostTravel/PostMovement 均在 EntityTick 之前（载具本帧 OOP tick 内的
+    /// aiStep/travel/move 移动尚未发生），落此处读到的仍是上一帧位置（无效搬迁）。故 RideTickSystem
+    /// 实际注册到 PostEntityTick（EntityTick 之后），见该阶段注释与 ecs/README 坑23。本阶段当前无消费方。
     PostTravel,
 
     /// 常规 tick：玩家专用计时器等与移动无强时序耦合的递减。预留——阶段 G 落地 PlayerTimerSystem。
@@ -61,6 +64,10 @@ enum class SystemPhase : u8 {
     /// combatTimeout 超时检查 / fallFlyTicks 递增），fallFlyTicks 时序硬约束详见
     /// LivingTimer.hpp 注释——递增须晚于 EntityTick 内 updateFallFlying 的读取，故落本阶段而非
     /// PostMovement，1-tick 延迟恰好复刻原 OOP 末尾递增语义。
+    /// 阶段 E 落地 RideTickSystem（rideTick free function，载具主动同步乘客位置，经虚
+    /// updatePassengerPosition 派发到 boat/horse 子类 override）。落本阶段是消除乘客位置 1-tick
+    /// 滞后的唯一正确选择（PostMovement/PostTravel 在 EntityTick 前，载具本帧未移动，无效搬迁），
+    /// 见 RideTick.hpp 注释与 ecs/README 坑23。
     PostEntityTick,
 
     /// 阶段数（须放末尾，作桶数组上界）

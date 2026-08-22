@@ -36,6 +36,7 @@
 #include "common/entity/ecs/systems/ticking/LegacyTick.hpp"
 #include "common/entity/ecs/systems/ticking/LivingTimer.hpp"
 #include "common/entity/ecs/systems/ticking/PortalTick.hpp"
+#include "common/entity/ecs/systems/ticking/RideTick.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
@@ -108,6 +109,20 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
     // hurtResistantTime/combatTimeout 的 1-tick 延迟可接受（容错窗口语义不变）。
     m_systems.registerFreeSystem<&ecs::sys::livingTimerTick>(
         ecs::SystemPhase::PostEntityTick, ecs::SystemInfo{.name = "livingTimerTick"});
+
+    // PostEntityTick 阶段：骑乘载具乘客位置同步真实 system（free function）。
+    // 承载原 Entity::baseTick 末尾的 updatePassengers() 调用，遍历有乘客的载具同步乘客位置。
+    //
+    // 注册到 PostEntityTick（EntityTick 之后）是消除滞后的硬约束：载具本帧 OOP tick（含
+    // aiStep/travel/move 移动）在 EntityTick 阶段完成，本 system 在其后同步，乘客读到载具
+    // 当前位置，同帧收敛。阶段 E 前在 baseTick 末尾同步（载具移动前），滞后 1 tick。
+    // 注意：PostMovement 在 EntityTick 之前（载具移动未发生），不可用，详见 RideTick.hpp。
+    //
+    // updatePassengers 经虚 updatePassengerPosition 派发到载具子类 override（船朝向旋转/马扬蹄
+    // 偏移）或基类 positionRider（猪/炽足兽/矿车）。阶段 E 同时清理 MinecartEntity::tick /
+    // AbstractHorseEntity::updateRiding / BoatEntity::tick 三处末尾重复同步，统一由本 system 接管。
+    m_systems.registerFreeSystem<&ecs::sys::rideTick>(
+        ecs::SystemPhase::PostEntityTick, ecs::SystemInfo{.name = "rideTick"});
 }
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)

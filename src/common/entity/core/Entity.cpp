@@ -839,16 +839,11 @@ void Entity::baseTick()
     // 每帧开始时清除，由 onEntityCollision 在需要时重新设置
     clearMotionMultiplier();
 
-    // 载具乘客位置同步（对齐 Java Entity.rideTick 中的 positionRider 调用）。
-    // Java 由 Level.tickPassenger 对每个乘客调 passenger.rideTick()，其中
-    // getVehicle().positionRider(this) 把乘客位置吸附到载具。Cubium 无世界级
-    // tickPassenger 阶段，故在 baseTick 末尾由载具主动同步自身所有乘客位置。
-    // 时序：baseTick 是实体 tick 第一步，载具本 tick 后续移动（aiStep/travel）尚未
-    // 应用，乘客位置滞后一 tick 收敛；GameTest 轮询判定可接受。
-    // 仅当本实体是载具（有乘客）时才同步，避免无谓遍历。
-    if (!m_passengers.empty()) {
-        updatePassengers();
-    }
+    // 载具乘客位置同步已迁入 ecs::sys::rideTick（SystemPhase::PostEntityTick 阶段，在
+    // EntityTick 之后），由 system 统一遍历所有有乘客的载具调 updatePassengers()。
+    // 阶段 E 前此处在 baseTick 末尾调用，但 baseTick 是实体 tick 第一步、载具本 tick 后续
+    // 移动（aiStep/travel/move）尚未应用，乘客位置读到上一帧载具位置（滞后 1 tick）。
+    // 迁到 PostEntityTick 后载具已移动，乘客位置同帧收敛，消除滞后（详见 ecs/README 坑23）。
 }
 
 bool Entity::onPortalTriggered()
@@ -1891,8 +1886,13 @@ void Entity::updatePassengers()
             continue;
         }
 
-        // 更新单个乘客位置
-        positionRider(*passenger);
+        // 经虚方法 updatePassengerPosition 派发：基类默认实现调 positionRider（getMountedYOffset
+        // 基础定位），子类（BoatEntity/AbstractHorseEntity）override 此方法实现载具特化定位
+        // （船的朝向旋转+多乘客偏移、马的扬蹄偏移）。阶段 E 前此处直接调非虚 positionRider，
+        // 绕过子类 override 致其成为死代码（船乘客位置错误、马扬蹄偏移失效）；改调虚方法后
+        // 子类 override 生效，由 ecs::sys::rideTick（SystemPhase::PostEntityTick，载具已移动）
+        // 统一调用本方法同步所有载具乘客位置。
+        updatePassengerPosition(*passenger);
     }
 }
 

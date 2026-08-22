@@ -232,8 +232,11 @@ void BoatEntity::tick()
     // 处理气泡柱
     updateRocking();
 
-    // 更新乘客位置
-    updateAllPassengerPositions();
+    // 乘客位置同步已迁入 ecs::sys::rideTick（PostEntityTick 阶段，本 tick 之后），由 system
+    // 统一调 updatePassengers()（经虚 updatePassengerPosition 派发到本类 override，调
+    // updateAllPassengerPositions 实现朝向旋转+多乘客偏移）。阶段 E 前此处在 tick 末尾直接调
+    // updateAllPassengerPositions（与 baseTick 末尾 positionRider 的双重同步，且 positionRider
+    // 用 getMountedYOffset=-0.1 与正确Y偏移 height*0.75 不符会覆盖正确位置），现已统一。
 
     // 由于 canTriggerWalking() 返回 false，需要手动调用 doBlockCollisions()
     // 用于处理气泡柱、仙人掌、甜浆果丛等方块的碰撞效果
@@ -611,7 +614,13 @@ f32 BoatEntity::getBoatGlide()
 
 void BoatEntity::updatePassengerPosition(Entity& passenger)
 {
-    // 更新单个乘客位置，委托给内部辅助方法
+    // 更新单个乘客位置，委托给内部辅助方法。
+    // TODO(ecs-stage-E-boat-passenger-redundant): 此 override 调全量 updateAllPassengerPositions()
+    // （遍历所有乘客），而 updatePassengers() 对每个乘客调一次本方法，故 N 乘客船每帧
+    // 执行 N×N 次 setPosition（单船最多 2 乘客=4 次，幂等可接受）。本应只处理传入的 passenger，
+    // 但 updateAllPassengerPositions 含多乘客相对偏移（PASSENGER1/2_X_OFFSET）须按 index 计算，
+    // 重构为单乘客处理需传 index，留待后续。阶段 E 仅改 updatePassengers 调虚方法激活本 override，
+    // 不重构此 N×N 重复。
     updateAllPassengerPositions();
 }
 
