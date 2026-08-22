@@ -18,6 +18,7 @@ import { registerDifficultyTests } from "./tests/world/DifficultyTests.js";
 import { registerAttributeTests } from "./tests/player/AttributeTests.js";
 import { registerReplaceItemTests } from "./tests/player/ReplaceItemTests.js";
 import { registerScoreboardTests } from "./tests/player/ScoreboardTests.js";
+import { registerTeamTests } from "./tests/player/TeamTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -37,3 +38,4 @@ registerDifficultyTests();
 registerAttributeTests();
 registerReplaceItemTests();
 registerScoreboardTests();
+registerTeamTests();

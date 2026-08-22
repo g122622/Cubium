@@ -55,13 +55,16 @@
 #include "common/mod/bedrock/addon/modules/ScriptCustomComponentBinding.hpp"
 #include "common/mod/bedrock/addon/modules/ScriptEventBinding.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
-#include "common/resource/ResourceLocation.hpp"      // ResourceLocation::toString/parse（Block/ItemType typeId）
-#include "common/scoreboard/core/Score.hpp"          // Score::getScorePoints（Objective.getScore 返回值）
-#include "common/scoreboard/core/ScoreObjective.hpp" // ScoreObjective（Objective JS 类 opaque 持此指针）
-#include "common/scoreboard/core/Scoreboard.hpp"     // Scoreboard::getObjective/getScore（Scoreboard JS 类）
-#include "common/util/AxisAlignedBB.hpp"             // Dimension.getEntities 构造查询包围盒
-#include "common/util/Direction.hpp" // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
+#include "common/resource/ResourceLocation.hpp"       // ResourceLocation::toString/parse（Block/ItemType typeId）
+#include "common/scoreboard/core/Score.hpp"           // Score::getScorePoints（Objective.getScore 返回值）
+#include "common/scoreboard/core/ScoreObjective.hpp"  // ScoreObjective（Objective JS 类 opaque 持此指针）
+#include "common/scoreboard/core/ScorePlayerTeam.hpp" // ScorePlayerTeam（Team JS 类 opaque 持此指针）
+#include "common/scoreboard/core/Scoreboard.hpp"      // Scoreboard::getObjective/getScore（Scoreboard JS 类）
+#include "common/scoreboard/core/TeamEnums.hpp" // teamVisibilityToString/teamCollisionRuleToString（Team 属性字符串化）
+#include "common/util/AxisAlignedBB.hpp"        // Dimension.getEntities 构造查询包围盒
+#include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/TextStyle.hpp"       // text::toName(TextFormatting)（Team.color 字符串化）
 #include "common/world/IWorld.hpp"              // Dimension JS 类 opaque 持 IWorld*
 #include "common/world/block/Block.hpp"         // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
 #include "common/world/block/BlockPos.hpp"      // BlockPos（Block.location 坐标）
@@ -661,6 +664,60 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return arr;
         },
         0);
+    scoreboardReg.method(
+        "getTeam",
+        [scoreboardClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            // 对齐基岩 Scoreboard.getTeam：按名取队伍，不存在返 undefined。供 /team 命令测试断言队伍存在性。
+            auto* scoreboard =
+                static_cast<mc::scoreboard::Scoreboard*>(ScriptObjectRegistry::unwrap(ctx, thisVal, scoreboardClassId));
+            if (scoreboard == nullptr) {
+                return ctx.createUndefined();
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("scoreboard.getTeam requires a string argument");
+            }
+            auto nameOpt = ctx.toString(args[0]);
+            if (!nameOpt) {
+                return ctx.createUndefined();
+            }
+            auto* team = scoreboard->getTeam(*nameOpt);
+            if (team == nullptr) {
+                return ctx.createUndefined(); // 队伍不存在
+            }
+            const u64 teamClassId = ScriptClassRegistry::instance().classIdByName("Team");
+            void* teamProto = ScriptClassRegistry::instance().proto(teamClassId);
+            if (teamProto == nullptr) {
+                return ctx.createUndefined(); // Team 类未注册
+            }
+            // ScorePlayerTeam* 隐式上转 Team* 后传给 wrap（opaque 存基类指针，Team JS 类 static_cast 解包）。
+            return ScriptObjectRegistry::wrap(ctx, teamClassId, teamProto, team, false, "Team");
+        },
+        1);
+    scoreboardReg.method(
+        "getTeams",
+        [scoreboardClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            // 对齐基岩 Scoreboard.getTeams：返回所有队伍数组。供 /team list 测试断言队伍集合。
+            auto* scoreboard =
+                static_cast<mc::scoreboard::Scoreboard*>(ScriptObjectRegistry::unwrap(ctx, thisVal, scoreboardClassId));
+            if (scoreboard == nullptr) {
+                return ctx.createArray();
+            }
+            const u64 teamClassId = ScriptClassRegistry::instance().classIdByName("Team");
+            void* teamProto = ScriptClassRegistry::instance().proto(teamClassId);
+            void* arr = ctx.createArray();
+            if (teamProto == nullptr) {
+                return arr; // Team 类未注册，返回空数组
+            }
+            u32 i = 0;
+            for (auto* team : scoreboard->getTeams()) {
+                void* teamVal = ScriptObjectRegistry::wrap(ctx, teamClassId, teamProto, team, false, "Team");
+                ctx.setArrayElement(arr, i, teamVal);
+                ctx.releaseValue(teamVal);
+                ++i;
+            }
+            return arr;
+        },
+        0);
 
     // --- Objective类 ---
     // opaque 持 mc::scoreboard::ScoreObjective*（非拥有，记分板管理生命周期）。getScore 读分数，
@@ -733,6 +790,124 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return arr;
         },
         0);
+
+    // --- Team类 ---
+    // opaque 持 mc::scoreboard::ScorePlayerTeam*（非拥有，记分板管理生命周期）。Scoreboard.getTeam/getTeams
+    // wrap 队伍指针。id 读队名，getMembers/hasMember 读成员名集合，color/friendlyFire/seeFriendlyInvisibles/
+    // nametagVisibility/deathMessageVisibility/collisionRule 读 modify 子命令设置的属性。供 /team 命令测试
+    // 断言队伍状态（add/remove/join/leave/empty/modify）。成员按名字索引（TeamCommand join/leave 经
+    // EntityArgumentType 选择器解析为玩家名后加入，与 ScoreboardCommand target 裸 string 不同，@s 生效）。
+    u64 teamClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* teamProto = builder.exportClass("Team", teamClassId);
+    ScriptClassRegistry::instance().registerClass(teamClassId, teamProto, "Team");
+
+    ClassRegistrar<void> teamReg(ctx, teamClassId, teamProto);
+    teamReg.readonlyProperty("id", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(team->getName());
+    });
+    teamReg.readonlyProperty("displayName", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 对齐基岩无 Team.displayName，此处提供测试用显示名纯文本。TODO: getDisplayName 返 ITextComponent*，
+        // 未接入纯文本提取，当前用 name 兜底（/team add 未指定显示名时 display==name，对测试足够）。
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(team->getName());
+    });
+    teamReg.readonlyProperty("color", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 对齐 Java Team.color：返回颜色名（"red"/"blue"/"dark_green" 等），经 text::toName 字符串化。
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(mc::text::toName(team->getColor()));
+    });
+    teamReg.readonlyProperty("friendlyFire", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(team->getAllowFriendlyFire());
+    });
+    teamReg.readonlyProperty(
+        "seeFriendlyInvisibles", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* team =
+                static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+            if (team == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createBoolean(team->canSeeFriendlyInvisibles());
+        });
+    teamReg.readonlyProperty("nametagVisibility", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(mc::scoreboard::teamVisibilityToString(team->getNameTagVisibility()));
+    });
+    teamReg.readonlyProperty(
+        "deathMessageVisibility", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* team =
+                static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+            if (team == nullptr) {
+                return ctx.createUndefined();
+            }
+            return ctx.createString(mc::scoreboard::teamVisibilityToString(team->getDeathMessageVisibility()));
+        });
+    teamReg.readonlyProperty("collisionRule", [teamClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* team =
+            static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+        if (team == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(mc::scoreboard::teamCollisionRuleToString(team->getCollisionRule()));
+    });
+    teamReg.method(
+        "getMembers",
+        [teamClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            // 对齐基岩无直接等价；返回队伍成员名数组，供 /team join/leave/empty 测试断言成员集合。
+            // Cubium 的 ScorePlayerTeam::getMembers 返 const std::set<std::string>&（按名字排序）。
+            auto* team =
+                static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+            if (team == nullptr) {
+                return ctx.createArray();
+            }
+            void* arr = ctx.createArray();
+            u32 i = 0;
+            for (const auto& member : team->getMembers()) {
+                ctx.setArrayElementString(arr, i, member);
+                ++i;
+            }
+            return arr;
+        },
+        0);
+    teamReg.method(
+        "hasMember",
+        [teamClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* team =
+                static_cast<mc::scoreboard::ScorePlayerTeam*>(ScriptObjectRegistry::unwrap(ctx, thisVal, teamClassId));
+            if (team == nullptr) {
+                return ctx.createBoolean(false);
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("team.hasMember requires a string argument");
+            }
+            auto nameOpt = ctx.toString(args[0]);
+            if (!nameOpt) {
+                return ctx.createBoolean(false);
+            }
+            return ctx.createBoolean(team->hasMember(*nameOpt));
+        },
+        1);
 
     // --- Entity类 ---
     // opaque 持 mc::Entity*（非拥有，EntityManager 管理生命周期）。test.spawn 经 ScriptClassRegistry

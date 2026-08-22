@@ -623,8 +623,11 @@ std::vector<PlayerId> resolvePlayerIds(const ServerCommandSource& source, const 
 /**
  * @brief 通过 PlayerId 获取玩家名称。
  *
- * 查找 PlayerManager 中对应 PlayerId 的 ServerPlayerData，返回其 username。
- * 如果服务器不可用或玩家不在线，返回回退名称 "player_<id>"。
+ * 查找 PlayerManager 中对应 PlayerId 的 ServerPlayerData，返回其 username。PlayerManager 查不到时
+ * （SimulatedPlayer 仅注册于 ServerPlayerEntityManager 实体层映射，不进 PlayerManager，见
+ * ServerPlayerEntityManager::registerExistingPlayerEntity 注释），回退到经
+ * ServerPlayerEntityManager::getPlayerEntity 取 Player::username。两者皆查不到方返 "player_<id>"
+ * 兜底（与 getSortedPlayerIds 合并 PlayerManager+实体管理器的对称解析）。
  */
 std::string resolvePlayerName(const ServerCommandSource& source, PlayerId playerId)
 {
@@ -633,6 +636,15 @@ std::string resolvePlayerName(const ServerCommandSource& source, PlayerId player
         auto* playerData = server->playerManager().getPlayer(playerId);
         if (playerData != nullptr) {
             return playerData->username;
+        }
+        // SimulatedPlayer 不在 PlayerManager，经实体管理器解析其 Player 实体取 username（对齐 @s/@a
+        // 选择器解析路径，否则 team 成员名回退 "player_<id>" 致 hasMember 失配）。
+        auto* world = source.world();
+        if (world != nullptr) {
+            auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
+            if (playerEntity != nullptr) {
+                return playerEntity->username();
+            }
         }
     }
     // 回退：使用 PlayerId 生成临时名称（与 MC 原版行为一致，非玩家实体使用 UUID 字符串）

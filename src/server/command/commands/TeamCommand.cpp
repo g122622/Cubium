@@ -146,9 +146,11 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("team", StringArgumentType::string());
 
     // modify <team> color <color>
+    // 值参数名须与 _modifyTeam 的 hasArgument/getArgument 名一致（"color"），否则 hasArgument("color")
+    // 查不到 ArgumentCommandNode（原统一用 "value" 致 modify 全分支静默跳过，属性永不修改）。
     auto colorNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("color");
     auto colorValueArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("color", StringArgumentType::string());
     colorValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     colorNode->addChild(colorValueArg);
     modifyTeamArg->addChild(colorNode);
@@ -156,15 +158,15 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // modify <team> friendlyFire <true|false>
     auto friendlyFireNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("friendlyFire");
     auto friendlyFireArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("friendlyFire", BoolArgumentType::boolArg());
     friendlyFireArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     friendlyFireNode->addChild(friendlyFireArg);
     modifyTeamArg->addChild(friendlyFireNode);
 
     // modify <team> seeFriendlyInvisibles <true|false>
     auto seeInvisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("seeFriendlyInvisibles");
-    auto seeInvisArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>("value", BoolArgumentType::boolArg());
+    auto seeInvisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, bool>>(
+        "seeFriendlyInvisibles", BoolArgumentType::boolArg());
     seeInvisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     seeInvisNode->addChild(seeInvisArg);
     modifyTeamArg->addChild(seeInvisNode);
@@ -172,7 +174,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // modify <team> prefix <prefix>
     auto prefixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("prefix");
     auto prefixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value", StringArgumentType::greedyString());
+        "prefix", StringArgumentType::greedyString());
     prefixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     prefixNode->addChild(prefixArg);
     modifyTeamArg->addChild(prefixNode);
@@ -180,7 +182,7 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // modify <team> suffix <suffix>
     auto suffixNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("suffix");
     auto suffixArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value", StringArgumentType::greedyString());
+        "suffix", StringArgumentType::greedyString());
     suffixArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     suffixNode->addChild(suffixArg);
     modifyTeamArg->addChild(suffixNode);
@@ -188,31 +190,31 @@ void TeamCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     // modify <team> displayName <displayName>
     auto displayNameNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("displayName");
     auto displayNameValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "value", StringArgumentType::greedyString());
+        "displayName", StringArgumentType::greedyString());
     displayNameValueArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     displayNameNode->addChild(displayNameValueArg);
     modifyTeamArg->addChild(displayNameNode);
 
     // modify <team> nametagVisibility <visibility>
     auto nametagVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("nametagVisibility");
-    auto nametagVisArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
+    auto nametagVisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "nametagVisibility", StringArgumentType::string());
     nametagVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     nametagVisNode->addChild(nametagVisArg);
     modifyTeamArg->addChild(nametagVisNode);
 
     // modify <team> deathMessageVisibility <visibility>
     auto deathMsgVisNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("deathMessageVisibility");
-    auto deathMsgVisArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
+    auto deathMsgVisArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "deathMessageVisibility", StringArgumentType::string());
     deathMsgVisArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     deathMsgVisNode->addChild(deathMsgVisArg);
     modifyTeamArg->addChild(deathMsgVisNode);
 
     // modify <team> collisionRule <rule>
     auto collisionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("collisionRule");
-    auto collisionArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("value", StringArgumentType::string());
+    auto collisionArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "collisionRule", StringArgumentType::string());
     collisionArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _modifyTeam(ctx); });
     collisionNode->addChild(collisionArg);
     modifyTeamArg->addChild(collisionNode);
