@@ -139,6 +139,35 @@ function clearAllEmptiesInventory(test: Test): void {
     test.succeed();
 }
 
+// /give @a[distance=..N] <item> <count> 批量给多玩家物品（走 _giveItems 多目标分支）。
+// spawn 2 个 SimulatedPlayer，/give @a[distance=..20] stone 8 批量给石头，断言两玩家背包都有 8 stone。
+// 验证 PlayerResolver 选择器修复后 @a[distance=..N] 能批量选中多个 SimulatedPlayer 并给予物品
+// （修复前 applyFilters 对 SimulatedPlayer 误删，@a 选不到任何 SimulatedPlayer，批量给予不执行）。
+// distance=..20 以 playerA 为中心，选中结构内两玩家（间距约 5.6 格 < 20），区域限定避免选中同批
+// 并行测试的 SimulatedPlayer（污染防护）。
+// 走 GiveCommand::_giveItems（resolvePlayerIds 多结果 + resolvePlayerInventory 循环）。
+// Ref: wiki commands/give.txt（give <targets> <item> [count] 批量给多玩家）
+function giveToAllPlayersBySelector(test: Test): void {
+    // 两玩家在空气腔 y=2 站立层（下方 y=1 stone 地板支撑），不同位置。
+    const playerA = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "moverA");
+    const playerB = test.spawnSimulatedPlayer({ x: 6, y: 2, z: 6 }, "moverB");
+
+    // 等 playerB 生成稳定后执行（@a 解析需两玩家都已注册到 ServerPlayerEntityManager）。
+    test.runAtTickTime(5, () => {
+        // @a[distance=..20] 以 playerA 位置为中心，选中结构内两玩家，批量给 8 stone。
+        playerA.chat("/give @a[distance=..20] stone 8");
+    });
+
+    // 命令同步执行，但 @a 解析经 runAtTickTime 延迟，用 runAtTickTime 延迟断言两玩家背包都有 8 stone。
+    test.runAtTickTime(10, () => {
+        const stoneA = countItemInInventory(playerContainer(playerA), "minecraft:stone");
+        const stoneB = countItemInInventory(playerContainer(playerB), "minecraft:stone");
+        test.assert(stoneA === 8, `moverA expected 8 stone, got ${stoneA}`);
+        test.assert(stoneB === 8, `moverB expected 8 stone, got ${stoneB}`);
+        test.succeed();
+    });
+}
+
 export function registerGiveTests(): void {
     GameTest.register("CommandTests", "give_places_item_in_inventory", givePlacesItemInInventory)
         .structureName("gametests:cmd_arena")
@@ -153,6 +182,10 @@ export function registerGiveTests(): void {
         .maxTicks(60);
 
     GameTest.register("CommandTests", "clear_all_empties_inventory", clearAllEmptiesInventory)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(60);
+
+    GameTest.register("CommandTests", "give_to_all_players_by_selector", giveToAllPlayersBySelector)
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }
