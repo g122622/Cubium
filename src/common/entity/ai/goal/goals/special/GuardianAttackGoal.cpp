@@ -231,11 +231,15 @@ LivingEntity* GuardianAttackGoal::_selectTarget() const
                 return false;
             }
 
-            // 2. 类型筛选: 只攻击玩家或鱿鱼
+            // 2. 类型筛选: 对齐 Java 1.21.11 Guardian.GuardianAttackSelector（Guardian.java:436-438）
+            //    攻击玩家、鱿鱼、发光鱿鱼、美西螈（vanilla instanceof Squid 涵盖 GlowSquid，
+            //    Cubium 扁平枚举须显式列举 GLOW_SQUID + AXOLOTL）。与 GuardianEntity 主谓词保持一致。
             const entity::EntityType* type = candidate->entityType();
             bool isPlayer = (type == entity::VanillaEntityTypeKeys::PLAYER);
-            bool isSquid = (type == entity::VanillaEntityTypeKeys::SQUID);
-            if (!isPlayer && !isSquid) {
+            bool isSquid =
+                (type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::GLOW_SQUID);
+            bool isAxolotl = (type == entity::VanillaEntityTypeKeys::AXOLOTL);
+            if (!isPlayer && !isSquid && !isAxolotl) {
                 return false;
             }
 

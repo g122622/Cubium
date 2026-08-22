@@ -1453,7 +1453,9 @@ void WanderingTraderEntity::registerGoals()
     m_goalSelector.addGoal(1, std::make_unique<TradeWithPlayerGoal>(this));
 
     // ========== 优先级 1: 逃避威胁 ==========
-    // AvoidEntityGoal - 躲避僵尸
+    // AvoidEntityGoal - 躲避僵尸类（对齐 Java VillagerHostilesSensor.ACCEPTABLE_DISTANCE_FROM_HOSTILES，
+    //   zombie=8/drowned=8/husk=8/zombie_villager=8；vanilla 白名单**无** ZOMBIFIED_PIGLIN，
+    //   此前误列僵尸猪灵已移除——僵尸猪灵虽 extends Zombie，但 vanilla 用精确白名单非 instanceof Zombie）。
     m_goalSelector.addGoal(1,
         std::make_unique<AvoidEntityGoal>(this,
             8.0f, // 躲避距离
@@ -1464,7 +1466,17 @@ void WanderingTraderEntity::registerGoals()
                     (entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIE ||
                         entity->entityType() == entity::VanillaEntityTypeKeys::DROWNED ||
                         entity->entityType() == entity::VanillaEntityTypeKeys::HUSK ||
-                        entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN);
+                        entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIE_VILLAGER);
+            }));
+
+    // AvoidEntityGoal - 躲避劫毁兽（vanilla ravager=12，此前缺失）
+    m_goalSelector.addGoal(1,
+        std::make_unique<AvoidEntityGoal>(this,
+            12.0f, // 躲避距离
+            0.5,   // 远距离速度
+            0.5,   // 近距离速度
+            [](const LivingEntity* entity) -> bool {
+                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::RAVAGER;
             }));
 
     // AvoidEntityGoal - 躲避掠夺者

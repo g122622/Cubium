@@ -112,6 +112,67 @@ function pufferfishPoisonsMobWhenPuffed(test: Test): void {
   });
 }
 
+// 河豚在守卫者旁不膨胀（wiki other_河豚.txt#防御：河豚对水生生物不膨胀——守卫者属于
+// EntityTypeTags.NOT_SCARY_FOR_PUFFERFISH 标签，河豚检测到守卫者不触发 PuffGoal）。
+//
+// 本测试专项验证 PuffGoal::_isEnemy 白名单含 GUARDIAN（对齐缺陷修复）。Cubium _isEnemy 此前仅列 7 个
+// 水生生物白名单，漏 GUARDIAN/ELDER_GUARDIAN/GLOW_SQUID/NAUTILUS/ZOMBIE_NAUTILUS 致河豚在这些水生
+// 生物旁错误膨胀（vanilla NOT_SCARY_FOR_PUFFERFISH 标签 14 个成员）。本次修复显式补全 12 个已实现成员
+// （SpecialGoals.cpp:340-347），sulfur_cube/tadpole 未实现留 TODO。
+//
+// 负向测试设计（防假通过）：
+//   - 负向断言"河豚不膨胀"若用 succeedWhen 每 tick 检查 value==0，第 1 tick 即满足立即 PASSED——
+//     修复前后都立即通过，测不出回归。故须用"持续窗口内恒==0"断言：预注册多个检查点，任一检查点
+//     发现 puff_state!=0 即 assert(false) 抛异常经 wrapJsCallback 转 FAIL；全程==0 则最后一个检查点
+//     test.succeed()。
+//   - 假通过风险（框架 bug 让河豚永不膨胀）：由正向对照测试 pufferfish_puffs_when_player_near 兜底
+//     （河豚在玩家旁确实膨胀=0→1），两者互补——若 PuffGoal 整体失效，正向测试会失败暴露。
+//
+// 环境选择：creeper_pit 陆地无水（同膨胀测试约束：480 tick 窒息线 >> 测试窗口 120 tick）。河豚 (3,2,3)、
+// 守卫者 (4,2,3) 紧邻 1 格 < 2.0 检测范围。守卫者陆地不窒息（守卫者离开水扑腾但不窒息，见 GuardianTests）。
+// 守卫者可能激光攻击河豚？——不会，GuardianAttackGoal 谓词只放行 Player/Squid/GlowSquid/Axolotl，
+// 河豚不在攻击列表，守卫者不攻击河豚，河豚不受干扰。
+//
+// 检查点时序：PuffGoal shouldExecute 每 tick 检测，触发后下一 tick setPuffState(SemiPuffed=1)。
+// 若白名单漏 GUARDIAN（回归），河豚应在 ~2 tick 内 puff_state 升到 1。检查点 [10,30,60,90,120] 覆盖
+// 全窗口，任一时刻 puff_state!=0 即 FAIL。maxTicks=120 留足膨胀触发余量（若会膨胀早膨胀了）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_河豚.txt#防御（对水生生物不膨胀）
+function pufferfishDoesNotPuffNearGuardian(test: Test): void {
+  const pufferfishType = "pufferfish";
+  const guardianType = "guardian";
+
+  // 河豚 (3,2,3)、守卫者 (4,2,3) 紧邻 1 格 < 2.0 检测范围。helper-y=2 → 结构内 y=1 空气，脚踩 y=0 grass_block。
+  // 守卫者受重力下落，脚下 (4,1,3) 放玻璃支撑；河豚陆地扑腾漂移极小，无需围栏（2.0 检测范围容漂移）。
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
+  const pufferfish = test.spawn(pufferfishType, { x: 3, y: 2, z: 3 });
+  test.spawn(guardianType, { x: 4, y: 2, z: 3 });
+
+  // 负向断言：窗口内多个检查点 puff_state 必须恒==0。任一检查点 !=0 即 assert(false) FAIL（捕获白名单
+  // 回归——河豚错误膨胀）。全程==0 则末检查点 succeed。
+  // 用 spawn 返回引用读 puff_state 组件（膨胀是自身状态，引用稳定，不依赖坐标查询）。
+  const checkTicks = [10, 30, 60, 90, 120];
+  for (let i = 0; i < checkTicks.length; i++) {
+    const tick = checkTicks[i];
+    const isLast = i === checkTicks.length - 1;
+    test.runAtTickTime(tick, () => {
+      const puffState = pufferfish.getComponent("minecraft:pufferfish_puff_state");
+      test.assert(puffState !== undefined,
+        "pufferfish has no puff_state component (binding missing)");
+      const value = (puffState as any).value as number;
+      if (value !== 0) {
+        // 河豚错误膨胀——白名单漏 GUARDIAN 回归，FAIL。
+        test.assert(false,
+          `pufferfish should not puff near guardian, but puff_state=${value} at tick ${tick}`);
+        return;
+      }
+      if (isLast) {
+        // 全程未膨胀，验证 NOT_SCARY_FOR_PUFFERFISH 白名单含 GUARDIAN。
+        test.succeed();
+      }
+    });
+  }
+}
+
 export function registerPufferfishTests(): void {
   GameTest.register("MobBehaviorTests", "pufferfish_puffs_when_player_near", pufferfishPuffsWhenPlayerNear)
     .structureName("gametests:creeper_pit")
@@ -121,4 +182,8 @@ export function registerPufferfishTests(): void {
     .batch("night")
     .structureName("gametests:creeper_pit")
     .maxTicks(150);
+
+  GameTest.register("MobBehaviorTests", "pufferfish_does_not_puff_near_guardian", pufferfishDoesNotPuffNearGuardian)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(120);
 }

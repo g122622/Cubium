@@ -107,12 +107,16 @@ AxolotlTargetGoal::AxolotlTargetGoal(AxolotlEntity* axolotl)
                   return true;
               }
 
-              // 狩猎目标（无冷却时）：鱼类和鱿鱼
+              // 狩猎目标（无冷却时）：对齐 Java AxolotlAttackablesSensor + EntityTypeTags.AXOLOTL_HUNT_TARGETS
+              //   标签 = {cod, glow_squid, pufferfish, salmon, squid, tadpole, tropical_fish}（7 个）。
+              //   vanilla instanceof/标签涵盖 GlowSquid；Cubium 扁平枚举须显式列举。
+              //   TODO: 蝌蚪(tadpole)实体未实现（VanillaEntityTypeKeys 未注册 TADPOLE），待蝌蚪实现后补 TADPOLE。
               if (axolotl != nullptr && !axolotl->hasHuntingCooldown()) {
                   if (typeId == entity::VanillaEntityTypeKeys::TROPICAL_FISH ||
                       typeId == entity::VanillaEntityTypeKeys::PUFFERFISH ||
                       typeId == entity::VanillaEntityTypeKeys::SALMON || typeId == entity::VanillaEntityTypeKeys::COD ||
-                      typeId == entity::VanillaEntityTypeKeys::SQUID) {
+                      typeId == entity::VanillaEntityTypeKeys::SQUID ||
+                      typeId == entity::VanillaEntityTypeKeys::GLOW_SQUID) {
                       return true;
                   }
               }

@@ -169,8 +169,54 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
   });
 }
 
+// 美西螈主动攻击发光鱿鱼（wiki tech_美西螈.txt#攻击：美西螈主动攻击鱼、鱿鱼、发光鱿鱼、蝌蚪、
+// 溺尸、守卫者和远古守卫者）。
+//
+// 本测试专项验证 AxolotlTargetGoal 狩猎谓词的 GLOW_SQUID 分支。Cubium 谓词此前用
+// entityId()==SQUID 精确匹配（对齐 Java EntityTypeTags.AXOLOTL_HUNT_TARGETS 标签涵盖 GlowSquid，
+// 但 Cubium 扁平枚举须显式列举）——漏 GLOW_SQUID 致美西螈对发光鱿鱼零反应。本次修复谓词显式
+// 放行 GLOW_SQUID（AxolotlGoals.cpp:118-119）。
+//
+// 链路、环境、约束与 axolotlAttacksSquid 完全一致（发光鱿鱼 : WaterMobEntity，maxAir=300 同鱿鱼，
+// 陆地窒息首伤 ~320 tick；美西螈 MeleeAttackGoal ATTACK_DAMAGE=2.0 命中发光鱿鱼 10→8 < 10）：
+//   creeper_pit 陆地无水，美西螈 (2,2,3)+发光鱿鱼 (4,2,3) 水平距 2 格，脚踩结构内 y=0 grass_block。
+//   **maxTicks=300 < 320** 窒息线——发光鱿鱼窒息尚未触发，掉血必来自美西螈攻击（排除窒息干扰）。
+// 判定 glow_squid HP<10 或 length==0，区域限定排除并行污染。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_美西螈.txt#攻击（主动攻击发光鱿鱼）
+function axolotlAttacksGlowSquid(test: Test): void {
+  const axolotlType = "axolotl";
+  const glowSquidType = "glow_squid";
+
+  // 美西螈 (2,2,3)、发光鱿鱼 (4,2,3)，水平距 2 格。陆地无水（creeper_pit 开放坑 grass_block 地板）。
+  // helper-y=2 → 结构内 y=1 空气，脚踩结构内 y=0 grass_block。
+  test.spawn(axolotlType, { x: 2, y: 2, z: 3 });
+  test.spawn(glowSquidType, { x: 4, y: 2, z: 3 });
+
+  // 断言发光鱿鱼被美西螈攻击掉血或死亡：HP<10 或已消失。
+  // maxTicks=300 < 320 窒息线——发光鱿鱼窒息尚未触发，掉血必来自美西螈攻击（排除窒息干扰）。
+  test.succeedWhen(() => {
+    const glowSquids = test.getDimension().getEntities({
+      type: glowSquidType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    // 发光鱿鱼已死亡消失（被美西螈打死）——攻击行为生效。
+    if (glowSquids.length === 0) {
+      return;
+    }
+    const health = glowSquids[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "glow_squid has no health component");
+    test.assert((health as any).currentValue < 10,
+      `axolotl did not attack glow_squid, hp=${(health as any).currentValue}`);
+  });
+}
+
 export function registerAxolotlTests(): void {
   GameTest.register("MobBehaviorTests", "axolotl_attacks_squid", axolotlAttacksSquid)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(300);
+
+  GameTest.register("MobBehaviorTests", "axolotl_attacks_glow_squid", axolotlAttacksGlowSquid)
     .structureName("gametests:creeper_pit")
     .maxTicks(300);
 

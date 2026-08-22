@@ -331,11 +331,18 @@ bool PuffGoal::_isEnemy(const LivingEntity* entity)
 
     // 检查实体类型是否为水生生物
     const entity::EntityType* type = entity->entityType();
-    // 水生生物 - 不是敌人
+    // 不可怕实体（不是敌人）- 对齐 Java Pufferfish.SCARY_MOB + EntityTypeTags.NOT_SCARY_FOR_PUFFERFISH
+    //   标签 = {cod, dolphin, elder_guardian, glow_squid, guardian, nautilus, pufferfish, salmon,
+    //          squid, sulfur_cube, tadpole, tropical_fish, turtle, zombie_nautilus}（14 个）。
+    //   此前仅列 7 个，漏 glow_squid/guardian/elder_guardian/nautilus/zombie_nautilus 致河豚在这些
+    //   水生生物旁错误膨胀。sulfur_cube/tadpole 实体未实现（未注册）留 TODO。
+    // TODO: sulfur_cube/tadpole 实体实现后补 NOT_SCARY_FOR_PUFFERFISH 白名单。
     if (type == entity::VanillaEntityTypeKeys::COD || type == entity::VanillaEntityTypeKeys::SALMON ||
         type == entity::VanillaEntityTypeKeys::PUFFERFISH || type == entity::VanillaEntityTypeKeys::TROPICAL_FISH ||
-        type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::DOLPHIN ||
-        type == entity::VanillaEntityTypeKeys::TURTLE) {
+        type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::GLOW_SQUID ||
+        type == entity::VanillaEntityTypeKeys::DOLPHIN || type == entity::VanillaEntityTypeKeys::TURTLE ||
+        type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN ||
+        type == entity::VanillaEntityTypeKeys::NAUTILUS || type == entity::VanillaEntityTypeKeys::ZOMBIE_NAUTILUS) {
         return false;
     }
     // 其他所有生物都是敌人（包括怪物、陆地动物等）
