@@ -31,7 +31,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
-#include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/ecs/components/ArrowStateComponent.hpp"
 #include "common/entity/ecs/components/AttributeComponent.hpp"
@@ -142,6 +141,10 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegist
     m_entityContext->enttRegistry().emplace<ecs::EquipmentComponent>(m_entityContext->entity());
     m_entityContext->enttRegistry().emplace<ecs::ArrowStateComponent>(m_entityContext->entity());
     m_entityContext->enttRegistry().emplace<ecs::AttributeComponent>(m_entityContext->entity());
+    // 第四批：attach LivingTimerComponent（仅 LivingEntity 持有）——承载 hurtResistantTime/
+    // inCombat/lastDamageTimestamp/fallFlyTicks 四个独立计时器，由 LivingTimerSystem
+    // （PostEntityTick 阶段）每帧推进（阶段 D）。
+    m_entityContext->enttRegistry().emplace<ecs::LivingTimerComponent>(m_entityContext->entity());
 
     // 构造函数中设置 stepHeight = 0.6F
     setStepHeight(physics::STEP_HEIGHT);
@@ -228,7 +231,8 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
 
     // 2. 无敌帧逻辑
     // 如果 hurtResistantTime > 10，允许累积伤害
-    if (m_hurtResistantTime > 10) {
+    // hurtResistantTime 读 LivingTimerComponent（阶段 D 迁移，递减由 LivingTimerSystem 推进）。
+    if (hurtResistantTime() > 10) {
         // 已经在无敌帧内，只承受差额伤害
         if (amount <= m_lastDamage) {
             return false; // 伤害不足
@@ -239,7 +243,7 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     } else {
         // 新的伤害，重置无敌帧
         m_lastDamage = amount;
-        m_hurtResistantTime = MAX_HURT_RESISTANT_TIME;
+        setHurtResistantTime(MAX_HURT_RESISTANT_TIME);
         // LivingEntity.hurtServer：hurtTime = hurtDuration = maxHurtTime(10)。
         if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
             c->m_hurtTime = c->m_maxHurtTime;
@@ -379,10 +383,14 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 10. 更新战斗状态
-    if (!m_inCombat) {
-        m_inCombat = true;
-        m_lastDamageTimestamp = ticksExisted();
-        sendEnterCombat();
+    // inCombat/lastDamageTimestamp 写 LivingTimerComponent（阶段 D 迁移；超时退出由
+    // LivingTimerSystem 在 PostEntityTick 阶段检查并调 sendEndCombat）。
+    if (auto* timer = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>()) {
+        if (!timer->inCombat) {
+            timer->inCombat = true;
+            timer->lastDamageTimestamp = ticksExisted();
+            sendEnterCombat();
+        }
     }
 
     // 11. 死亡检查
@@ -817,7 +825,8 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
     // 2. 检查无敌帧
     // 当 hurtResistantTime > 0 时，大部分伤害被阻挡
     // 但虚空伤害可以绕过
-    if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {
+    // hurtResistantTime 读 LivingTimerComponent（阶段 D 迁移）。
+    if (hurtResistantTime() > 0 && !source.bypassesInvulnerability()) {
         return true;
     }
 
@@ -910,10 +919,9 @@ void LivingEntity::tick()
         }
     }
 
-    // 更新无敌帧计时器
-    if (m_hurtResistantTime > 0) {
-        m_hurtResistantTime--;
-    }
+    // hurtResistantTime 递减已迁移至 LivingTimerSystem（PostEntityTick 阶段，阶段 D）。
+    // 见 LivingTimer.hpp 时序分析：递减延后到 EntityTick 之后，hurt()/isInvulnerableTo()
+    // 在 tick 间事件触发读到上次递减后的值，与原 OOP 等价（20 tick 容错窗口，1 tick 无影响）。
 
     // 更新受伤动画计时器
     if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
@@ -923,6 +931,12 @@ void LivingEntity::tick()
     }
 
     // 更新攻击动画
+    // TODO(ecs): swing 动画三件套（m_swingInProgress/m_swingProgressInt/m_swingProgress）暂留 OOP
+    // 未迁入 LivingTimerSystem。原因：本地玩家渲染路径（ClientApplicationSession/
+    // EntityRendererManager/PlayerArmPoseResolver）直接读 common 层 mc::Player 的
+    // isSwingInProgress()/swingProgress()/prevSwingProgress() getter，且 m_prevSwingProgress
+    // 保存与 m_swingProgress 计算同帧插值时序耦合。迁移需同步改客户端 getter 访问路径为
+    // 组件代理，工作量大，留待后续阶段处理（见计划 ecs-wiggly-cat.md 阶段 D 组2）。
     if (m_swingInProgress) {
         ++m_swingProgressInt;
         const i32 swingEnd = getArmSwingAnimationEnd();
@@ -959,30 +973,26 @@ void LivingEntity::tick()
         tickDeath();
     }
 
-    // 重置战斗状态
-    if (m_inCombat && ticksExisted() - m_lastDamageTimestamp > CombatTracker::COMBAT_TIMEOUT) {
-        m_inCombat = false;
-        sendEndCombat();
-    }
+    // 战斗超时检查（inCombat && ticksExisted - lastDamageTimestamp > COMBAT_TIMEOUT →
+    // inCombat=false + sendEndCombat）已迁移至 LivingTimerSystem（PostEntityTick 阶段，阶段 D）。
+    // 1-tick 延迟可接受（100 tick 超时窗口）。
 
     // 更新激流攻击状态
     updateSpinAttack();
 
-    // 鞘翅飞行计时器
-    // 对应 MC 1.21.11 LivingEntity.tick() 末尾：
-    //   if (this.isFallFlying()) { this.fallFlyTicks++; } else { this.fallFlyTicks = 0; }
-    // fallFlyTicks 用于 updateFallFlying() 中每 10 tick 周期触发 ELYTRA_GLIDE
-    // 游戏事件与装备损坏，客户端渲染器（BipedModel）也可读取此值驱动头部过渡动画。
-    if (isElytraFlying()) {
-        ++m_fallFlyTicks;
-    } else {
-        m_fallFlyTicks = 0;
-    }
+    // 鞘翅飞行计时器递增/归零已迁移至 LivingTimerSystem（PostEntityTick 阶段，阶段 D）。
+    // 时序硬约束：递增须在 EntityTick 之后（PostEntityTick），使 updateFallFlying（本 tick
+    // 内 aiStep）读到上一帧递增后的 fallFlyTicks + 1，复刻原 OOP 末尾递增语义。
+    // 误注册到 PostMovement（EntityTick 之前）会导致周期触发提前 1 tick——见 LivingTimer.hpp。
 
     // 游泳动画渐变量推进
     // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updateSwimAmount()。
     // 注意：客户端 ClientEntity 有自己的 tick 实现，会单独推进本地副本，
     // 因此本调用只在服务端 tick 路径生效；ClientEntity::tick 中会复刻同样的推进逻辑。
+    // TODO(ecs): swimAmount/swimAmountO 暂留 OOP 未迁入 LivingTimerSystem。原因：updateSwimAmount
+    // 依赖 isVisuallySwimming() 虚函数（DrownedEntity override），ECS system 无多态分发能力，
+    // 强迁需在组件存"是否视觉游泳"快照引入双写（违反零双写硬约束）。留待后续阶段处理
+    // （见计划 ecs-wiggly-cat.md 阶段 D 组5）。
     updateSwimAmount();
 }
 
@@ -1676,7 +1686,10 @@ void LivingEntity::updateFallFlying()
     }
 
     // 周期性触发：每 10 tick 一次
-    const i32 i = m_fallFlyTicks + 1;
+    // fallFlyTicks 读 LivingTimerComponent（阶段 D 迁移）。+1 预测本帧递增后的值
+    // （递增由 LivingTimerSystem 在 PostEntityTick 阶段完成，在本 tick 之后），故此处读到
+    // 上一帧递增后的值 + 1，复刻原 OOP 末尾递增语义（见 LivingTimer.hpp 时序分析）。
+    const i32 i = fallFlyTicks() + 1;
     if (i % 10 == 0) {
         const i32 j = i / 10;
         // 偶数次（每 20 tick）随机损坏一件可滑翔装备
@@ -2442,8 +2455,11 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
     // 经 Entity::writeToNBT 的 saveAll 写出（批次6 子目标1 Step4），此处不再重复写。
 
-    // HurtByTimestamp (i32) — 纯 OOP 字段（m_lastDamageTimestamp 未组件化），保留直写
-    tag.put(nbt_keys::HURT_BY_TIMESTAMP, m_lastDamageTimestamp);
+    // HurtByTimestamp (i32) — lastDamageTimestamp 已迁移至 LivingTimerComponent（阶段 D），
+    // 此处经组件读出后直写 NBT。
+    if (auto* timer = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>()) {
+        tag.put(nbt_keys::HURT_BY_TIMESTAMP, timer->lastDamageTimestamp);
+    }
 
     // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经
     // Entity::writeToNBT 的 saveAll 写出（批次6 子目标1），此处不再重复写。
@@ -2476,9 +2492,12 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
     // 经 Entity::readFromNBT 的 loadAll 读回（批次6 子目标1 Step4），此处不再重复读。
 
-    // HurtByTimestamp (i32) — 纯 OOP 字段，保留直读
+    // HurtByTimestamp (i32) — lastDamageTimestamp 已迁移至 LivingTimerComponent（阶段 D），
+    // 此处读回后写入组件。
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::HURT_BY_TIMESTAMP)) {
-        m_lastDamageTimestamp = *val;
+        if (auto* timer = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>()) {
+            timer->lastDamageTimestamp = *val;
+        }
     }
 
     // FallFlying 已上提为按 EntityFlagsComponent 注册的组件序列化器，经

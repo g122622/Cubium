@@ -26,6 +26,7 @@ src/common/entity/ecs/
 │   ├── HurtStateComponent.hpp       # m_absorption/m_hurtTime/m_maxHurtTime/m_deathTime（第二批，仅 LivingEntity，低频 try_get）
 │   ├── FreezeComponent.hpp          # m_ticksFrozen/m_isInPowderSnow（第二批，低频 try_get，m_ticksFrozen 同步真相源）
 │   ├── EnvironmentStateComponent.hpp # inWater/inLava/eyesInWater/eyesInLava/waterHeight/lavaHeight/fluidHeight 7 字段（批次B，所有实体 attach，由 environmentSensing system 每帧重写，不进 m_builtIn 低频 try_get）
+│   ├── LivingTimerComponent.hpp     # hurtResistantTime/inCombat/lastDamageTimestamp/fallFlyTicks 4 字段（阶段D，仅 LivingEntity attach，由 livingTimerTick system 在 PostEntityTick 推进，不进 m_builtIn 低频 try_get）
 │   ├── HealthComponent.hpp          # m_health/m_lastHealth/m_healthSynced（第三批，仅 LivingEntity，m_health 同步真相源）
 │   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment/m_lastEquipmentInitialized（第三批，仅 LivingEntity，无同步单写）
 │   ├── ArrowStateComponent.hpp      # m_arrowCount/m_stingerCount/m_arrowHitTimer（第三批，仅 LivingEntity，arrowCount/stingerCount 同步真相源）
@@ -82,7 +83,8 @@ src/common/entity/ecs/
         ├── BrainTick.hpp/cpp        # 桥接壳：委托 EntityManager::_tickBrains()（Brain::tick() 调度上移）
         ├── PortalTick.hpp/cpp       # 真实 system：portal 计时/冷却/传送触发（view 遍历，注册 PostEntityTick）
         ├── FireTick.hpp/cpp         # 真实 system：fire 递减/燃烧伤害/雨中扑灭（view 遍历，注册 PostEntityTick）
-        └── EnvironmentSensing.hpp/cpp # 真实 system：遍历碰撞箱内方块流体写 EnvironmentStateComponent（view 遍历，注册 EnvironmentSense，在 EntityTick 之前）
+        ├── EnvironmentSensing.hpp/cpp # 真实 system：遍历碰撞箱内方块流体写 EnvironmentStateComponent（view 遍历，注册 EnvironmentSense，在 EntityTick 之前）
+        └── LivingTimer.hpp/cpp      # 真实 system：LivingEntity 4 计时器（hurtResistantTime 递减/combatTimeout 超时/fallFlyTicks 递增）写 LivingTimerComponent（view 遍历，注册 PostEntityTick）
 ```
 
 ## 内部模块关系
@@ -96,7 +98,7 @@ IWorld（ServerWorld / ClientWorld）
        │         遍历 SystemPhase，阶段内 OrganizerGraph::graph() 拓扑序逐顶点执行
        │         ├─ EnvironmentSense 阶段: environmentSensing（free function，遍历碰撞箱流体写 EnvironmentStateComponent）
        │         ├─ EntityTick 阶段:       legacyTick（sync_point）→ _tickEntities() 遍历调 entity->tick()
-       │         └─ PostEntityTick 阶段:   portalTick / fireTick（free function，organizer 推导 rw）
+       │         └─ PostEntityTick 阶段:   portalTick / fireTick / livingTimerTick（free function，organizer 推导 rw）
        │                                  + brainTick（sync_point）→ _tickBrains()
        │
        └─ entt::basic_registry<EntityId>        ← 组件池存储
@@ -112,7 +114,7 @@ IWorld（ServerWorld / ClientWorld）
 
 **双向桥接**：
 - OOP→ECS：`Entity` 持 `unique_ptr<EntityContext>`，getter/setter 读写组件——高频走 `m_builtIn.*->m_*` 裸指针（首批4+PhysicsState），低频走 `m_entityContext->tryGetComponent<T>()`（Portal/Fire/Freeze/HurtState）。
-- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`）。
+- ECS→OOP：`EntityOwnerComponent` 持 `Entity*`（非拥有），system 遍历组件时反查 OOP 句柄调虚函数（portalTick 调 `canTeleport`/`onPortalTriggered`，fireTick 调 `isInWater`/`hurt` 等，environmentSensing 调 `eyeHeight`/`boundingBox`/`world`/`physicsEngine`，livingTimerTick 调 `ticksExisted`/`isElytraFlying`/`sendEndCombat`）。
 
 ## 上下游依赖
 
@@ -128,7 +130,7 @@ IWorld（ServerWorld / ClientWorld）
 
 未建独立 `factory/` 目录。组件 attach 内联在构造链内：
 - **Entity 构造**：透传 `ecs::EntityRegistry&`，attach 11 组件（首批 4 高频 + 第二批 Portal/Fire/PhysicsState/Freeze + 第四批 EntityFlags/EntityState + 批次B EnvironmentState），缓存 5 高频裸指针到 `m_builtIn`。EnvironmentStateComponent 由 environmentSensing system 每帧重写，构造期 emplace 默认全 false。
-- **LivingEntity 构造**：续接 attach 5 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。
+- **LivingEntity 构造**：续接 attach 6 组件（第二批 HurtState + 第三批 Health/Equipment/ArrowState/Attribute + 阶段D LivingTimer）。**AttributeComponent 须在 `registerAttributes()` 之前 attach**——后者经 `attributes()` getter 取组件填充默认属性，时序颠倒则 getter 断言失败。LivingTimerComponent 纯 POD 无时序约束，构造期 emplace 全 0/false。
 - **Player 构造**：续接 attach PlayerScoreComponent（第四批），须在 `registerData()` 之前——后者经 `getScore()` 取组件填默认值。Player 另重写 `setAbsorptionAmount`（基类改 virtual）下发 DATA_PLAYER_ABSORPTION_PARAM，无新组件（复用 HurtStateComponent）。
 - **AbstractHorseEntity 构造**（批次8 8.1）：attach 7 基类组件（Status/Taming/Jump/Boost/Attribute/Inventory/Animation），7 马类子类经此自动获得。时序关键：`attach → initRandomAttributes（写组件字段）→ registerAttributes（读组件写 AttributeMap）→ registerData → initHorseChest`。**attach 必须先于 registerAttributes**——registerAttributes 读 HorseJumpComponent/HorseAttributeComponent 写 AttributeMap（HORSE_JUMP_STRENGTH/MAX_HEALTH/MOVEMENT_SPEED），时序颠倒则读默认 0。AbstractChestedHorseEntity 中间层构造续接 attach ChestedHorseComponent（决定 getInventorySize 库存规模）。
 - **叶子类工厂** `EntityType::create(IWorld*, ecs::EntityRegistry&)`：构造 Entity 子类 → 返回 `unique_ptr<Entity>`。
@@ -189,7 +191,7 @@ Portal/Fire/Freeze/HurtState 四组件走 `tryGetComponent<T>()` 查询（极简
 
 ### 11. SystemPhase 演进路径与跨帧延迟
 
-SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。
+SystemPhase 已从早期 `{ EntityTick, PostEntityTick }` 扩展为完整多阶段枚举（EnvironmentSense/PreTravel/Travel/PostTravel/NormalTick/AiStep/Move/PostMovement/ResetMovement/EntityTick/PostEntityTick）。**首批实际注册 system 的阶段为 EnvironmentSense/EntityTick/PostEntityTick 三个**，其余阶段为预留空桶待后续 movement/AI 批次接入。EnvironmentSense 承载 `ecs::sys::environmentSensing`（free function，view 遍历碰撞箱流体写 EnvironmentStateComponent，**在 EntityTick 之前执行实现同帧产出同帧消费**），EntityTick 承载 `ecs::sys::legacyTick`（OOP `Entity::tick()` 桥接 sync_point），PostEntityTick 承载 `ecs::sys::portalTick`/`ecs::sys::fireTick`（free function，view 遍历，状态递减/环境交互类真实 system）+ `ecs::sys::brainTick`（Brain tick 桥接 sync_point）+ 阶段D `ecs::sys::livingTimerTick`（free function，LivingEntity 4 计时器递减/超时检查/fallFlyTicks 递增）。**抽 System 到 PostEntityTick 会引入跨帧延迟 1 tick**：fire/portal 递减结果（`m_fire--`/`m_portalTime++`）下帧 baseTick 才读到。但 EnvironmentSense 抽到 EntityTick **之前**无此延迟——baseTick 读的环境状态是本帧 system 刚写的，同帧产出同帧消费（比 portal/fire 的 1 tick 延迟更优）。单帧 50ms 玩家无感，但涉及 hurt 时序的 System 须经回归验证覆盖。后续批次按业务时序启用预留阶段（如 Movement/AiStep），强时序内聚的逻辑（如 tickFreeze 调 hurt + 读 m_attributes）留 OOP 不抽 System。**fallFlyTicks 是反例——其 1-tick 延迟恰是时序正确性硬约束**（见坑22），须读"上一帧末尾递增后的值+1"，故 LivingTimerSystem 落 PostEntityTick 而非 PostMovement。
 
 ### 12. 不可移动/不可拷贝类型用 unique_ptr 包裹进组件（第三批范式）
 
@@ -326,3 +328,24 @@ ECS改造.md 第 19 行决策"AI 系统保留 OOP（Goal/Brain/Navigator/Control
 **世界流体驱动型测试需手动跑 system**：EntityLavaFireTest 等通过测试桩 World 的 getFluidState 返回水/岩浆流体 + 期望 baseTick 内联环境感知把组件置 true 的测试，B 阶段后 baseTick 不再刷新环境状态，须在 baseTick 前手动调 `runEnvironmentSensing()`（仿 `runFireTick()` 封装的 environmentSensing free function 调用），模拟服务端"EnvironmentSense→EntityTick(baseTick)→PostEntityTick(fireTick)"同帧序列。`enableWaterAtEntity()`/`enableLavaAtEntity()` 设世界流体桩后，runEnvironmentSensing 消费流体桩写组件。**安全性**：Entity 析构经 `registry.destroy()` 销毁 entt 实体（见 `~Entity`），testEcsRegistry 不残留已析构实体，system 遍历无 UAF；`world()==nullptr` 的实体被 system 清零跳过。
 
 **ItemEntity 水物理独立路径不受影响**：ItemEntity::tick 的水/岩浆物理判断读 `m_world->isWaterAt()`/`isLavaAt()`（直接查世界方块，不读 EnvironmentStateComponent），是独立于环境感知 system 的路径，B 阶段无影响。
+
+### 22. LivingTimer 计时器抽 System：跨阶段时序硬约束 + 三类阻碍分类 + protected→public 虚回调
+
+阶段 D 把 `LivingEntity::tick()` 内多个独立计时器递减抽成真实遍历组件的 ECS system `ecs::sys::livingTimerTick`，4 字段（hurtResistantTime/inCombat/lastDamageTimestamp/fallFlyTicks）搬入 `LivingTimerComponent`（仅 LivingEntity attach）。几个关键坑：
+
+**三类阻碍分类（决定哪些计时器能迁）**：LivingEntity::tick 内 5 组计时器经勘察分为三类——
+- **A 类（系统间时序，entt 可解）**：hurtResistantTime/combatTimeout/fallFlyTicks，纯本地无同步、无强时序内聚的机械递减，可抽 system。fallFlyTicks 跨阶段时序用 entt 阶段枚举顺序解（见下）。
+- **B 类（跨帧插值时序耦合，OOP 内部同帧语义）**：swing 动画三件套（m_swingInProgress/m_swingProgressInt/m_swingProgress/m_prevSwingProgress），本地玩家渲染路径直读 common 层 mc::Player getter，prev/cur 同帧插值时序耦合——留 OOP + TODO。
+- **C 类（多态虚函数+客户端直读，ECS 范式冲突）**：swimAmount/swimAmountO，updateSwimAmount 依赖 isVisuallySwimming() 虚函数（DrownedEntity override），ECS system 无多态分发能力——留 OOP + TODO。
+**用户决策：迁 A 类三组，B/C 类留 OOP + TODO**。这验证了"不是所有递减都能机械搬迁"——须先按三类分类筛查。
+
+**fallFlyTicks 跨阶段时序硬约束（entt 阶段排序解法的验证用例）**：原 OOP 时序——tick 中段 aiStep→updateFallFlying 读 `m_fallFlyTicks+1`（用+1预测本帧递增后的值），tick 末尾 `if(isElytraFlying()) ++m_fallFlyTicks`（递增延后补上）。即"读用预测、写延后"，updateFallFlying 实际读到"上一帧末尾递增后的值+1"。迁移后 LivingTimerSystem 注册到 `SystemPhase::PostEntityTick`（EntityTick **之后**）：EntityTick 内 updateFallFlying 读 fallFlyTicks+1，PostEntityTick 内 system 递增 fallFlyTicks。故 updateFallFlying 仍读"上一帧 PostEntityTick 递增后的值+1"，与原 OOP **完全等价**，1-tick 延迟恰复刻原语义。**这是坑11"跨帧延迟 1 tick"的反例**——并非所有 PostEntityTick 延迟都是可忽略的容差，fallFlyTicks 的延迟是时序正确性硬约束。若误注册到 PostMovement（EntityTick **之前**），递增先于本帧 updateFallFlying，读到"本帧已递增值+1"比原 OOP 多 1，鞘翅装备损坏/ELYTRA_GLIDE 事件周期提前 1 tick。entt 的阶段枚举物理顺序（PostEntityTick 在 EntityTick 后）是解此跨阶段时序的唯一原语，无需额外同步。**D 阶段的首要价值即验证此解法**。
+
+**sendEndCombat 虚回调：protected→public 委托 OOP 句柄**：combatTimeout 超时后须调 `sendEndCombat()` 虚回调（当前无子类 override 空操作，ServerPlayer 未来可 override 发包）。但 `sendEndCombat`/`sendEnterCombat` 原是 LivingEntity **protected** virtual，free function system 无法调。**用户决策：改 public**（非加新 public 转发方法），system 经 EntityOwnerComponent 反查 `Entity*`→`dynamic_cast<LivingEntity*>` 下行调 `living->sendEndCombat()`。这是"虚回调系统化"的范式——protected 虚函数若需被 ECS system 经 OOP 句柄调用，须提 public（system 是自由函数非友元，无法访问 protected）。sendEnterCombat 同理改 public（actuallyHurt 进入战斗时调用）。
+
+**零双写（坑1）+ getter/setter 全改组件**：4 个 OOP 成员（m_hurtResistantTime/m_inCombat/m_lastDamageTimestamp/m_fallFlyTicks）删除。hurtResistantTime getter/setter（`hurtResistantTime()`/`setHurtResistantTime()`）改读写组件——hurt() 重置调 setHurtResistantTime(MAX_HURT_RESISTANT_TIME)，isInvulnerableTo()/hurt() 读 getter。fallFlyTicks getter 改读组件——updateFallFlying 读 `fallFlyTicks()+1`。NBT addAdditionalSaveData/readAdditionalSaveData 改读写组件（HURT_BY_TIMESTAMP 键读 lastDamageTimestamp）。LivingEntity::tick 删 3 处递减块（hurtResistantTime/combatTimeout/fallFlyTicks），替换指向 LivingTimerSystem 的注释。
+
+**m_lastDamageTimestamp vs m_lastHurtByTimestamp 区分**：迁移须精确区分两个同名近义字段——`m_lastDamageTimestamp`（迁入组件，受击时间戳，参与 NBT HURT_BY_TIMESTAMP）vs `m_lastHurtByTimestamp`（不迁，Target Goals 复仇用，记录"被谁伤害"的时间）。两者语义不同，删成员时不可误删后者。
+
+**客户端无回归验证**：客户端本地玩家直接实例化 mc::Player（非 ClientEntity），`Player::updatePhysics()` 不调 LivingEntity::tick()、不跑 system 调度、不碰 fallFlyTicks/hurtResistantTime/combatTimeout，故客户端这些定时器原本就死，迁移后行为一致（与 B 阶段客户端环境感知失效同源——客户端无 system 调度）。无客户端 TODO（定时器客户端本就无消费方）。
+

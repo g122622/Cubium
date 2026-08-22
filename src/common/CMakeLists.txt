@@ -98,6 +98,7 @@ add_library(mc_common STATIC
     entity/ecs/systems/ticking/LegacyTick.cpp
     entity/ecs/systems/ticking/BrainTick.cpp
     entity/ecs/systems/ticking/EnvironmentSensing.cpp
+    entity/ecs/systems/ticking/LivingTimer.cpp
     # Entity Registry - 原版实体类型批量注册
     entity/registry/VanillaEntities.cpp
     entity/registry/VanillaEntityTypeKeys.cpp

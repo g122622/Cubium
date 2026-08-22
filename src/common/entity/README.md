@@ -346,7 +346,7 @@ if (entity->entityType() == entity::VanillaEntityTypeKeys::PIG) {
 
 ### 21. ClientWorld::entityManager() 返回类型
 
-`ClientWorld::entityManager()` 返回 `ClientEntityManager`，客户端本地 `Player` 不会在这条链路里跑 `Player::tick()`。
+`ClientWorld::entityManager()` 返回 `ClientEntityManager`，客户端本地 `Player` 不会在这条链路里跑 `Player::tick()`。此结论亦印证 D 阶段 LivingTimer 系统化对客户端无回归：客户端本地玩家不跑 LivingEntity::tick()、不跑 system 调度，hurtResistantTime/fallFlyTicks/combatTimeout 等定时器在客户端本就无消费方（与 B 阶段环境感知失效同源——客户端缺 system 调度），D 阶段迁移后行为一致，无需客户端 TODO。
 
 ### 22. SlimeEntity 分裂时机和经验值
 

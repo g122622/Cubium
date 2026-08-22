@@ -34,6 +34,7 @@
 #include "common/entity/ecs/systems/ticking/EnvironmentSensing.hpp"
 #include "common/entity/ecs/systems/ticking/FireTick.hpp"
 #include "common/entity/ecs/systems/ticking/LegacyTick.hpp"
+#include "common/entity/ecs/systems/ticking/LivingTimer.hpp"
 #include "common/entity/ecs/systems/ticking/PortalTick.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -95,6 +96,18 @@ EntityManager::EntityManager(ecs::EntityRegistry& registry)
         ecs::SystemInfo{.name = "brainTick", .blocking = true},
         &ecs::sys::brainTick,
         this);
+
+    // PostEntityTick 阶段：LivingEntity 独立计时器真实 system（free function，organizer 推导 rw）。
+    // 承载原 LivingEntity::tick 内三处独立计时器推进：hurtResistantTime 递减、combatTimeout
+    // 超时检查（调 sendEndCombat 虚回调）、fallFlyTicks 递增/归零。
+    //
+    // 注册到 PostEntityTick（EntityTick 之后）是 fallFlyTicks 时序正确性的硬约束：
+    // updateFallFlying（EntityTick 阶段 aiStep 内）读 fallFlyTicks+1，本 system 在其后递增，
+    // 使其读到上一帧递增后的值 + 1，复刻原 OOP 末尾递增语义。若误注册到 PostMovement
+    // （EntityTick 之前）会导致鞘翅飞行周期触发提前 1 tick。详见 LivingTimer.hpp 时序分析。
+    // hurtResistantTime/combatTimeout 的 1-tick 延迟可接受（容错窗口语义不变）。
+    m_systems.registerFreeSystem<&ecs::sys::livingTimerTick>(
+        ecs::SystemPhase::PostEntityTick, ecs::SystemInfo{.name = "livingTimerTick"});
 }
 
 EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)

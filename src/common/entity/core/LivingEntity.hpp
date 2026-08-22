@@ -39,6 +39,7 @@
 #include "common/entity/ecs/components/EquipmentComponent.hpp"
 #include "common/entity/ecs/components/HealthComponent.hpp"
 #include "common/entity/ecs/components/HurtStateComponent.hpp"
+#include "common/entity/ecs/components/LivingTimerComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -683,8 +684,14 @@ public:
 
     /**
      * @brief 获取无敌帧计时器
+     *
+     * 读 LivingTimerComponent（阶段 D 迁移自原 m_hurtResistantTime 成员）。
      */
-    [[nodiscard]] i32 hurtResistantTime() const { return m_hurtResistantTime; }
+    [[nodiscard]] i32 hurtResistantTime() const
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>();
+        return c != nullptr ? c->hurtResistantTime : 0;
+    }
 
     /**
      * @brief 设置无敌帧计时器
@@ -692,7 +699,12 @@ public:
      * 用于陷阱触发时设置初始无敌帧。
      * @param ticks 无敌帧 tick 数
      */
-    void setHurtResistantTime(i32 ticks) { m_hurtResistantTime = ticks; }
+    void setHurtResistantTime(i32 ticks)
+    {
+        if (auto* c = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>()) {
+            c->hurtResistantTime = ticks;
+        }
+    }
 
     /**
      * @brief 是否处于受伤无敌状态
@@ -1126,9 +1138,16 @@ public:
      * 对应 MC 1.21.11 LivingEntity.getFallFlyingTicks()。
      * 客户端渲染器（BipedModel）可读取此值驱动头部角度过渡动画。
      *
+     * 读 LivingTimerComponent.fallFlyTicks（阶段 D 迁移自原 m_fallFlyTicks 成员）。
+     * 由 LivingTimerSystem（PostEntityTick 阶段）每帧递增/归零。
+     *
      * @return 已飞行 tick 数，未飞行时为 0
      */
-    [[nodiscard]] i32 fallFlyTicks() const noexcept { return m_fallFlyTicks; }
+    [[nodiscard]] i32 fallFlyTicks() const noexcept
+    {
+        const auto* c = m_entityContext->tryGetComponent<ecs::LivingTimerComponent>();
+        return c != nullptr ? c->fallFlyTicks : 0;
+    }
 
     // ========== 游泳动画 ==========
 
@@ -1693,16 +1712,24 @@ protected:
      * @brief 进入战斗状态
      *
      * 子类可重写以发送数据包通知客户端。
+     *
+     * public：LivingTimerSystem（mc::ecs::sys 命名空间）在战斗超时检查时经 OOP 句柄调用，
+     * 故须公开访问（阶段 D combatTimeout 迁移到 ECS system）。
      */
+public:
     virtual void sendEnterCombat() {}
 
     /**
      * @brief 结束战斗状态
      *
      * 子类可重写以发送数据包通知客户端。
+     *
+     * public：LivingTimerSystem 在战斗超时（ticksExisted - lastDamageTimestamp >
+     * COMBAT_TIMEOUT）时经 OOP 句柄调用，故须公开访问（阶段 D combatTimeout 迁移）。
      */
     virtual void sendEndCombat() {}
 
+protected:
     // 生命值
     // m_health / m_lastHealth / m_healthSynced 已迁移至 ecs::HealthComponent（见
     // health/setHealth/healthSynced）。m_health 为同步真相源，DATA_HEALTH_PARAM 退为镜像。
@@ -1729,10 +1756,11 @@ protected:
 
     // 受伤无敌帧
     // m_hurtTime / m_maxHurtTime 已迁移至 ecs::HurtStateComponent（见 hurtTime/maxHurtTime/hurtDuration）
+    // m_hurtResistantTime 已迁移至 ecs::LivingTimerComponent.hurtResistantTime
+    // （见 hurtResistantTime/setHurtResistantTime，阶段 D）
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
-    i32 m_hurtResistantTime = 0;                       // 无敌帧计时器
 
     // 受伤方向（LivingEntity.hurtDuration / Player.hurtDir + getHurtDir）
     // damageTilt（bobHurt）据此计算屏幕倾斜；hurtDir = atan2(dz,dx)*180/π - yaw。
@@ -1740,8 +1768,8 @@ protected:
     f32 m_hurtDir = 0.0f; // 受伤方向角（度，相对实体朝向）
 
     // 战斗状态
-    bool m_inCombat = false;       // 是否在战斗中
-    i32 m_lastDamageTimestamp = 0; // 最后受伤时间戳
+    // m_inCombat / m_lastDamageTimestamp 已迁移至 ecs::LivingTimerComponent
+    // （inCombat/lastDamageTimestamp，阶段 D combatTimeout 由 LivingTimerSystem 推进）
 
     // 死亡
     // m_deathTime 已迁移至 ecs::HurtStateComponent.m_deathTime（见 deathTime/isDying）
@@ -1809,10 +1837,11 @@ protected:
     i32 m_spinAttackDuration = 0; // 激流攻击剩余持续时间（ticks）
 
     // 鞘翅飞行计时器
-    // 对应 MC 1.21.11 LivingEntity.fallFlyTicks（protected int）
-    // 在 tick() 末尾根据 isFallFlying() 递增或归零；
-    // updateFallFlying() 中以 fallFlyTicks+1 周期性触发游戏事件与装备损坏。
-    i32 m_fallFlyTicks = 0;
+    // m_fallFlyTicks 已迁移至 ecs::LivingTimerComponent.fallFlyTicks（见 fallFlyTicks()，
+    // 阶段 D）。由 LivingTimerSystem（PostEntityTick 阶段）每帧根据 isElytraFlying() 递增或
+    // 归零；updateFallFlying() 中以 fallFlyTicks+1 周期性触发游戏事件与装备损坏。
+    // 时序：递增在 EntityTick 之后（PostEntityTick），updateFallFlying 在 EntityTick 内 aiStep
+    // 读 fallFlyTicks+1，复刻原 OOP 末尾递增语义（见 LivingTimer.hpp 注释）。
 
     // 游泳动画渐变量
     // 对应 MC 1.21.11 LivingEntity.swimAmount / swimAmountO（private float）

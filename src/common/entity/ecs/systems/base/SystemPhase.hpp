@@ -42,8 +42,9 @@ enum class SystemPhase : u8 {
     /// 移动应用：预留（与 Travel/AiStep 重叠语义，首批无消费方）。
     Move,
 
-    /// 移动后收尾计时器：LivingEntity 独立计时器递减（hurtResistantTime/swing/fallFly 等）。
-    /// 预留——阶段 D 落地 LivingTimerSystem。
+    /// 移动后收尾计时器：预留（LivingEntity 独立计时器递减曾计划落本阶段，但 fallFlyTicks
+    /// 时序约束要求递增晚于 EntityTick 内 updateFallFlying 的读取，故 LivingTimerSystem 实际
+    /// 注册到 PostEntityTick，见该阶段注释）。当前无消费方，留待未来移动链后置逻辑接入。
     PostMovement,
 
     /// 移动状态复位：预留（如清速度标志、resetMovement）。
@@ -56,6 +57,10 @@ enum class SystemPhase : u8 {
     /// 实体主 tick 之后：承载状态递减/环境交互类 system（PortalTick / FireTick / BrainTick）。
     /// 此阶段在 EntityTick 之后执行，可读到本帧 baseTick 产出的环境状态。
     /// 首批注册的 system 之一。抽 system 到本阶段引入跨帧延迟 1 tick（递减结果下帧才读到）。
+    /// 阶段 D 落地 LivingTimerSystem（livingTimerTick free function，递减 hurtResistantTime /
+    /// combatTimeout 超时检查 / fallFlyTicks 递增），fallFlyTicks 时序硬约束详见
+    /// LivingTimer.hpp 注释——递增须晚于 EntityTick 内 updateFallFlying 的读取，故落本阶段而非
+    /// PostMovement，1-tick 延迟恰好复刻原 OOP 末尾递增语义。
     PostEntityTick,
 
     /// 阶段数（须放末尾，作桶数组上界）
