@@ -17,6 +17,26 @@ class Scoreboard; // 前向声明：getScoreboard 返回 Scoreboard*，仅需不
 namespace mod::bedrock::addon {
 
 /**
+ * @brief BossBar 只读快照（值类型，供脚本侧 world.bossbar 读取）
+ *
+ * BossBar 的 C++ 类型（CustomServerBossInfo/Manager）在 server 层，common 层无法直接持有其指针。
+ * 故 ScriptWorldAccessor 以值快照方式桥接：server 层回调从 CustomServerBossInfo 填充本结构，
+ * common 层脚本绑定据此构造 JS 对象。每次属性访问重新取快照以保证实时性（对齐 set value/max/color
+ * 后 JS 立即可见）。exists=false 表示该 id 的 BossBar 已被 remove 或不存在。
+ */
+struct BossBarView {
+    bool exists = false;
+    std::string id;
+    std::string name; // BossBar 显示名纯文本（经 ITextComponent::getUnformattedText 提取）
+    i32 value = 0;
+    i32 max = 0;
+    std::string color;   // "pink"/"blue"/"red"/"green"/"yellow"/"purple"/"white"
+    std::string overlay; // "progress"/"notched_6"/"notched_10"/"notched_12"/"notched_20"
+    bool visible = true;
+    std::vector<std::string> players; // 玩家名列表
+};
+
+/**
  * @brief 脚本世界访问器接口
  *
  * 提供world全局对象访问服务器状态的抽象接口。
@@ -66,6 +86,23 @@ public:
     [[nodiscard]] mc::scoreboard::Scoreboard* getScoreboard();
 
     /**
+     * @brief 获取所有自定义 BossBar 的 id 列表（server 层回调遍历 CustomServerBossInfoManager::getIds）。
+     *
+     * 供 world.bossbar.getAll() 脚本方法。BossBar 类型在 server 层，common 层以值（id 字符串列表）桥接。
+     * @return id 列表；回调未注册返回空
+     */
+    [[nodiscard]] std::vector<std::string> getBossBarIds();
+
+    /**
+     * @brief 按 id 取 BossBar 只读快照（server 层回调从 CustomServerBossInfo 填充 BossBarView）。
+     *
+     * 供 world.bossbar.get(id) 脚本方法及 BossBar JS 对象属性访问。每次访问重新取快照保证实时性。
+     * @param id BossBar id（ResourceLocation 字符串，如 "mybar"）
+     * @return 快照；BossBar 不存在时 exists=false
+     */
+    [[nodiscard]] BossBarView getBossBar(const std::string& id);
+
+    /**
      * @brief 设置消息发送回调
      * @param callback 回调函数
      */
@@ -95,6 +132,18 @@ public:
      */
     void setGetScoreboardCallback(std::function<mc::scoreboard::Scoreboard*()> callback);
 
+    /**
+     * @brief 设置获取 BossBar id 列表回调
+     * @param callback 回调函数（返回所有自定义 BossBar 的 id 字符串列表）
+     */
+    void setGetBossBarIdsCallback(std::function<std::vector<std::string>()> callback);
+
+    /**
+     * @brief 设置按 id 取 BossBar 快照回调
+     * @param callback 回调函数（按 id 返回 BossBarView 快照，不存在时 exists=false）
+     */
+    void setGetBossBarCallback(std::function<BossBarView(const std::string&)> callback);
+
 private:
     ScriptWorldAccessor() noexcept = default;
 
@@ -103,6 +152,8 @@ private:
     std::function<u64()> m_currentTickCallback;
     std::function<mc::IWorld*(const std::string&)> m_getDimensionCallback;
     std::function<mc::scoreboard::Scoreboard*()> m_getScoreboardCallback;
+    std::function<std::vector<std::string>()> m_getBossBarIdsCallback;
+    std::function<BossBarView(const std::string&)> m_getBossBarCallback;
 };
 
 } // namespace mod::bedrock::addon

@@ -358,6 +358,23 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ScriptObjectRegistry::wrap(ctx, sbClassId, sbProto, scoreboard, false, "Scoreboard");
     });
 
+    // world.bossbar：返回 BossBarManager JS 对象（单例 facade，方法经 ScriptWorldAccessor 全局回调）。
+    // BossBar 类型在 server 层，common 层以 BossBarView 值快照桥接，故 Manager/BossBar JS 对象不持
+    // server 层指针：Manager opaque 持哨兵（无状态），BossBar opaque 持堆 id 字符串（owned，GC 释放）。
+    // 供 /bossbar 命令测试经 world.bossbar.get(id).value/color/... 读取属性做断言。
+    worldReg.readonlyProperty("bossbar", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        MC_UNUSED(thisVal);
+        const u64 mgrClassId = ScriptClassRegistry::instance().classIdByName("BossBarManager");
+        void* mgrProto = ScriptClassRegistry::instance().proto(mgrClassId);
+        if (mgrProto == nullptr) {
+            return ctx.createUndefined(); // BossBarManager 类未注册
+        }
+        // 哨兵指针：Manager 无状态，opaque 仅作占位（owned=false 不销毁）。每次访问 world.bossbar 返新
+        // JS 对象，但均无状态，等价单例。
+        static int s_sentinel = 0;
+        return ScriptObjectRegistry::wrap(ctx, mgrClassId, mgrProto, &s_sentinel, false, "BossBarManager");
+    });
+
     // --- Dimension类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。GameTest 单维度场景下维度即世界；
     // test.getDimension() 与 world.getDimension() 均 wrap 同一 IWorld*。getEntities 按基岩语义
@@ -908,6 +925,177 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createBoolean(team->hasMember(*nameOpt));
         },
         1);
+
+    // --- BossBarManager类 ---
+    // 无状态 facade：opaque 持哨兵指针（owned=false 不销毁）。get(id)/getAll() 经 ScriptWorldAccessor
+    // 全局回调读 server 层 CustomServerBossInfoManager（BossBar 类型在 server 层，common 层以 BossBarView
+    // 值桥接）。world.bossbar 属性返回本类单例对象。
+    u64 bossBarMgrClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* bossBarMgrProto = builder.exportClass("BossBarManager", bossBarMgrClassId);
+    ScriptClassRegistry::instance().registerClass(bossBarMgrClassId, bossBarMgrProto, "BossBarManager");
+
+    ClassRegistrar<void> bossBarMgrReg(ctx, bossBarMgrClassId, bossBarMgrProto);
+    bossBarMgrReg.method(
+        "get",
+        [](IScriptBindingContext& ctx, void* /*thisVal*/, i32 argc, void** args) -> void* {
+            // 按 id 取 BossBar JS 对象。id 不存在时返回 undefined（对齐 /bossbar get 对不存在 id 报错语义，
+            // 脚本侧 get(id)===undefined 判存在性）。BossBar JS 对象 opaque 持堆 id 字符串（owned，GC 释放）。
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("bossBarManager.get requires a string argument");
+            }
+            auto idOpt = ctx.toString(args[0]);
+            if (!idOpt) {
+                return ctx.createUndefined();
+            }
+            // 先取快照确认存在；不存在返 undefined。
+            auto view = ScriptWorldAccessor::instance().getBossBar(*idOpt);
+            if (!view.exists) {
+                return ctx.createUndefined();
+            }
+            const u64 barClassId = ScriptClassRegistry::instance().classIdByName("BossBar");
+            void* barProto = ScriptClassRegistry::instance().proto(barClassId);
+            if (barProto == nullptr) {
+                return ctx.createUndefined(); // BossBar 类未注册
+            }
+            // 堆分配 id 字符串，BossBar JS 对象 owned 持有，GC 时 destroy 释放。
+            auto* idPtr = new std::string(*idOpt);
+            return ScriptObjectRegistry::wrap(ctx, barClassId, barProto, idPtr, true, "BossBar", [](void* p) {
+                delete static_cast<std::string*>(p);
+            });
+        },
+        1);
+    bossBarMgrReg.method(
+        "getAll",
+        [](IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/) -> void* {
+            // 返回所有 BossBar 的 JS 对象数组（按 id 列表逐个 wrap）。
+            const u64 barClassId = ScriptClassRegistry::instance().classIdByName("BossBar");
+            void* barProto = ScriptClassRegistry::instance().proto(barClassId);
+            void* arr = ctx.createArray();
+            if (barProto == nullptr) {
+                return arr; // BossBar 类未注册，返回空数组
+            }
+            u32 i = 0;
+            for (const auto& id : ScriptWorldAccessor::instance().getBossBarIds()) {
+                auto* idPtr = new std::string(id);
+                void* barVal =
+                    ScriptObjectRegistry::wrap(ctx, barClassId, barProto, idPtr, true, "BossBar", [](void* p) {
+                        delete static_cast<std::string*>(p);
+                    });
+                ctx.setArrayElement(arr, i, barVal);
+                ctx.releaseValue(barVal);
+                ++i;
+            }
+            return arr;
+        },
+        0);
+
+    // --- BossBar类 ---
+    // opaque 持堆 std::string*（id，owned，GC 释放）。属性每次经 ScriptWorldAccessor::getBossBar(id)
+    // 取最新 BossBarView 快照读字段，保证 set value/max/color 后 JS 立即可见。BossBar 被 remove 后
+    // 快照 exists=false，属性返 undefined（对齐已删除语义）。
+    u64 bossBarClassId = ScriptObjectRegistry::allocateClassId(ctx);
+    void* bossBarProto = builder.exportClass("BossBar", bossBarClassId);
+    ScriptClassRegistry::instance().registerClass(bossBarClassId, bossBarProto, "BossBar");
+
+    ClassRegistrar<void> bossBarReg(ctx, bossBarClassId, bossBarProto);
+    bossBarReg.readonlyProperty("id", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 返回 BossBar 完整 id（namespace:path，经 bar->id().toString()）。idPtr 是创建时传入的查询 id
+        // （可能不带命名空间，如 "bar"），bar->id() 才是 manager 存储的规范 id（"minecraft:bar"）。
+        // 故从 view.id 取，保证 get("bar").id 与 getAll()[i].id 一致（均带命名空间）。
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(view.id);
+    });
+    bossBarReg.readonlyProperty("name", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(view.name);
+    });
+    bossBarReg.readonlyProperty("value", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(view.value);
+    });
+    bossBarReg.readonlyProperty("max", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createInt32(view.max);
+    });
+    bossBarReg.readonlyProperty("color", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(view.color);
+    });
+    bossBarReg.readonlyProperty("overlay", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createString(view.overlay);
+    });
+    bossBarReg.readonlyProperty("visible", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createUndefined();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(view.visible);
+    });
+    bossBarReg.readonlyProperty("players", [bossBarClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        // 返回 BossBar 关联玩家 UUID 字符串数组（CustomServerBossInfo::playerUuids）。
+        auto* idPtr = static_cast<std::string*>(ScriptObjectRegistry::unwrap(ctx, thisVal, bossBarClassId));
+        if (idPtr == nullptr) {
+            return ctx.createArray();
+        }
+        auto view = ScriptWorldAccessor::instance().getBossBar(*idPtr);
+        void* arr = ctx.createArray();
+        if (!view.exists) {
+            return arr;
+        }
+        u32 i = 0;
+        for (const auto& uuid : view.players) {
+            ctx.setArrayElementString(arr, i, uuid);
+            ++i;
+        }
+        return arr;
+    });
 
     // --- Entity类 ---
     // opaque 持 mc::Entity*（非拥有，EntityManager 管理生命周期）。test.spawn 经 ScriptClassRegistry

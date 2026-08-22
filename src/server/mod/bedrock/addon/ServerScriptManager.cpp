@@ -27,7 +27,10 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/bossbar/BossInfo.hpp" // bossInfoColorToName/bossInfoOverlayToName（BossBarView color/overlay 字符串化）
+#include "server/bossbar/CustomServerBossInfoManager.hpp" // bossBarManager().getIds/get（world.bossbar 回调）
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/event/ServerEventBus.hpp"
@@ -215,6 +218,38 @@ void ServerScriptManager::setServer(MinecraftServer* server)
     // 桥接 world.scoreboard 到服务器 ServerScoreboard（向上转为 Scoreboard 基类指针）。
     // 供 GameTest JS 经 world.scoreboard.getObjective(name).getScore(participant) 读取分数做断言。
     accessor.setGetScoreboardCallback([server]() -> mc::scoreboard::Scoreboard* { return &server->scoreboard(); });
+
+    // 桥接 world.bossbar 到服务器 CustomServerBossInfoManager。BossBar 类型在 server 层，common 层以
+    // BossBarView 值快照桥接（避免 common→server 依赖）。供 /bossbar 命令测试经 world.bossbar.get(id)
+    // 读取 BossBar 属性（value/max/color/overlay/visible/name）做断言。每次访问重新取快照保证实时性。
+    accessor.setGetBossBarIdsCallback([server]() -> std::vector<std::string> {
+        std::vector<std::string> ids;
+        for (const auto& id : server->bossBarManager().getIds()) {
+            ids.push_back(id.toString());
+        }
+        return ids;
+    });
+    accessor.setGetBossBarCallback([server](const std::string& idStr) -> mc::mod::bedrock::addon::BossBarView {
+        mc::mod::bedrock::addon::BossBarView view;
+        const ResourceLocation id(idStr);
+        const auto* bar = server->bossBarManager().get(id);
+        if (bar == nullptr) {
+            return view; // exists=false
+        }
+        view.exists = true;
+        view.id = bar->id().toString();
+        view.name = bar->name().getUnformattedText();
+        view.value = bar->value();
+        view.max = bar->max();
+        view.color = bossInfoColorToName(bar->color());
+        view.overlay = bossInfoOverlayToName(bar->overlay());
+        view.visible = bar->visible();
+        // players 用 playerUuids（UUID 字符串集合）；脚本侧断言成员数足够，名字转换留待需要时补。
+        for (const auto& uuid : bar->playerUuids()) {
+            view.players.push_back(uuid);
+        }
+        return view;
+    });
 
     spdlog::info("[Server] ScriptWorldAccessor bridged to MinecraftServer");
 }

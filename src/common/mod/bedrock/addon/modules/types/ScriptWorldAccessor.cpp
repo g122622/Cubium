@@ -79,6 +79,22 @@ mc::scoreboard::Scoreboard* ScriptWorldAccessor::getScoreboard()
     return nullptr;
 }
 
+std::vector<std::string> ScriptWorldAccessor::getBossBarIds()
+{
+    if (m_getBossBarIdsCallback) {
+        return m_getBossBarIdsCallback();
+    }
+    return {};
+}
+
+BossBarView ScriptWorldAccessor::getBossBar(const std::string& id)
+{
+    if (m_getBossBarCallback) {
+        return m_getBossBarCallback(id);
+    }
+    return BossBarView{}; // exists=false
+}
+
 void ScriptWorldAccessor::setMessageCallback(std::function<void(const std::string&)> callback)
 {
     m_messageCallback = std::move(callback);
@@ -102,6 +118,16 @@ void ScriptWorldAccessor::setGetDimensionCallback(std::function<mc::IWorld*(cons
 void ScriptWorldAccessor::setGetScoreboardCallback(std::function<mc::scoreboard::Scoreboard*()> callback)
 {
     m_getScoreboardCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetBossBarIdsCallback(std::function<std::vector<std::string>()> callback)
+{
+    m_getBossBarIdsCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetBossBarCallback(std::function<BossBarView(const std::string&)> callback)
+{
+    m_getBossBarCallback = std::move(callback);
 }
 
 } // namespace mc::mod::bedrock::addon
