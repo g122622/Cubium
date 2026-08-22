@@ -26,9 +26,10 @@
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
 #include "common/entity/attribute/Attributes.hpp"
-#include "common/entity/core/Entity.hpp"           // mc::Entity（Entity JS 类 opaque 持此指针）
-#include "common/entity/core/EquipmentSlot.hpp"    // EquipmentSlot 枚举（EquippableComponent 槽位映射）
-#include "common/entity/core/LivingEntity.hpp"     // LivingEntity（health/maxHealth/attributes/getEquipment）
+#include "common/entity/core/Entity.hpp"        // mc::Entity（Entity JS 类 opaque 持此指针）
+#include "common/entity/core/EquipmentSlot.hpp" // EquipmentSlot 枚举（EquippableComponent 槽位映射）
+#include "common/entity/core/LivingEntity.hpp"  // LivingEntity（health/maxHealth/attributes/getEquipment）
+#include "common/entity/core/MobEntity.hpp"     // MobEntity（setEquipmentDropChance，EquippableComponent 装备掉落概率）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect/getEffects 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp" // CreeperEntity（is_charged 组件判定 isPowered）
@@ -2129,7 +2130,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     // 走 PlayerInventory）。基岩 EquipmentSlot 字符串值 "Head"/"Chest"/"Legs"/"Feet"/"Mainhand"/"Offhand"/"Body"
     // 映射项目 EquipmentSlot 枚举（注意 Mainhand/Offhand 的 h/a 小写，无 Saddle）。
     // getEquipment 返回 owned 拷贝 ItemStack（规避 setEquipment 改写数组致引用悬垂）。
-    // setEquipment 仅支持清空（undefined/null），传 ItemStack 对象因 JS 类无 unwrap 路径抛 TypeError 留 TODO。
+    // setEquipment 支持清空（undefined/null → EMPTY）与写入 ItemStack（unwrap 入参后拷贝写入装备数组）。
     u64 equippableClassId = ScriptObjectRegistry::allocateClassId(ctx);
     void* equippableProto = builder.exportClass("EquippableComponent", equippableClassId);
     ScriptClassRegistry::instance().registerClass(equippableClassId, equippableProto, "EquippableComponent");
@@ -2223,13 +2224,65 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!slot.has_value()) {
                 return ctx.createBoolean(false);
             }
-            // 仅支持清空槽位（undefined/null）。ItemStack JS 类无 unwrap 路径，传对象抛 TypeError 留 TODO。
+            // 清空槽位：undefined/null → ItemStack::EMPTY。
             void* itemArg = args[1];
             if (ctx.isUndefined(itemArg) || ctx.getType(itemArg) == ScriptType::Null) {
                 living->setEquipment(*slot, mc::ItemStack::EMPTY);
                 return ctx.createBoolean(true);
             }
-            return ctx.throwTypeError("EquippableComponent.setEquipment: ItemStack argument not yet supported");
+            // ItemStack 入参：按 classId unwrap（非拥有，仅拷贝写入装备数组）。复用 Container.setItem
+            // 的 unwrap 范式（resolveItemStackClassId + ScriptObjectRegistry::unwrap）。
+            const u64 isClassId = resolveItemStackClassId();
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, itemArg, isClassId));
+            if (stack == nullptr) {
+                return ctx.throwTypeError(
+                    "EquippableComponent.setEquipment: argument must be an ItemStack, undefined, or null");
+            }
+            living->setEquipment(*slot, *stack);
+            return ctx.createBoolean(true);
+        },
+        2);
+    // setEquipmentDropChance(slot, chance)：设置装备槽掉落概率（对齐 vanilla Mob.dropChances）。
+    // 仅 MobEntity 支持（LivingEntity 基类无掉落概率概念）。chance 语义同 C++ setEquipmentDropChance：
+    // 0.0=永不掉落，0.085=默认概率，>1.0=保整（isPreserved，无条件掉落，用于测试与首领固定掉落）。
+    // 测试用 >1.0 构造确定性装备掉落（绕过 8.5% 概率与 recentlyHitByPlayer 门控）。
+    equippableReg.method(
+        "setEquipmentDropChance",
+        [equippableClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, equippableClassId));
+            auto* mob = dynamic_cast<mc::MobEntity*>(ent);
+            if (mob == nullptr || argc < 2 || !ctx.isString(args[0]) || !ctx.isNumber(args[1])) {
+                return ctx.createBoolean(false);
+            }
+            auto slotStr = ctx.toString(args[0]);
+            if (!slotStr) {
+                return ctx.createBoolean(false);
+            }
+            std::optional<mc::EquipmentSlot> slot = std::nullopt;
+            const std::string& s = *slotStr;
+            if (s == "Head")
+                slot = mc::EquipmentSlot::Head;
+            else if (s == "Chest")
+                slot = mc::EquipmentSlot::Chest;
+            else if (s == "Legs")
+                slot = mc::EquipmentSlot::Legs;
+            else if (s == "Feet")
+                slot = mc::EquipmentSlot::Feet;
+            else if (s == "Mainhand")
+                slot = mc::EquipmentSlot::MainHand;
+            else if (s == "Offhand")
+                slot = mc::EquipmentSlot::OffHand;
+            else if (s == "Body")
+                slot = mc::EquipmentSlot::Body;
+            if (!slot.has_value()) {
+                return ctx.createBoolean(false);
+            }
+            auto chance = ctx.toFloat64(args[1]);
+            if (!chance) {
+                return ctx.createBoolean(false);
+            }
+            mob->setEquipmentDropChance(*slot, static_cast<mc::f32>(*chance));
+            return ctx.createBoolean(true);
         },
         2);
 

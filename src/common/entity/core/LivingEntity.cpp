@@ -543,16 +543,19 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     Player* lastHurtByPlayer = dynamic_cast<Player*>(m_lastHurtBy);
     const bool recentlyHitByPlayer = (lastHurtByPlayer != nullptr);
 
-    // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫仅包住物品掉落
-    //    （dropFromLootTable + dropCustomDeathLoot）。装备/经验在守卫之外（vanilla 同样）。
+    // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫包住物品掉落
+    //    （dropFromLootTable + dropCustomDeathLoot）。MobEntity override dropCustomDeathLoot
+    //    在此守卫内按掉落概率掉落装备（对齐 vanilla Mob.dropCustomDeathLoot）。
     if (shouldDropLoot(*m_world)) {
         dropFromLootTable(cause, recentlyHitByPlayer);
         dropCustomDeathLoot(cause, recentlyHitByPlayer);
     }
 
-    // 2. 装备掉落（在守卫之外，不受 doMobLoot 影响）。对齐 vanilla dropEquipment。
-    //    TODO: Cubium 暂未实现通用装备死亡掉落（dropEquipment），当前为空。玩家死亡掉装备
-    //          由 Player 子类逻辑处理，普通生物的装备掉落链路待实现。
+    // 2. 装备掉落（在守卫之外，不受 doMobLoot 影响）。对齐 vanilla LivingEntity.dropEquipment。
+    //    Mob 的装备掉落由 MobEntity::dropCustomDeathLoot 在守卫【内】处理（vanilla Mob override
+    //    dropCustomDeathLoot 而非 dropEquipment，故 Mob 的装备掉落受 doMobLoot 守卫约束）。
+    //    vanilla LivingEntity.dropEquipment 基类仅用于非 Mob 的 LivingEntity（如 Player 死亡掉装备），
+    //    Cubium Player 子类自管装备掉落，基类 dropEquipment 暂未实现（TODO，非 Mob 路径待补）。
     // dropEquipment(*m_world);
 
     // 3. 经验掉落（在守卫之外，但 vanilla dropExperience 内部自带守卫——仅当

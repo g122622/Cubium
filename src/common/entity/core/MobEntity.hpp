@@ -1051,6 +1051,31 @@ public:
     void dropExperience() override;
 
     /**
+     * @brief 自定义死亡掉落：按掉落概率掉落装备
+     *
+     * 重写 LivingEntity::dropCustomDeathLoot()，对齐 MC Java 1.21.11 Mob.dropCustomDeathLoot
+     * （Mob.java:846-877）。遍历所有 EquipmentSlot，按 dropChances.byEquipment(slot) 概率
+     * 决定是否掉落该槽位装备：
+     *   - f == 0.0：永不掉落（跳过）。
+     *   - isPreserved（f > 1.0，保整掉落）：无条件尝试掉落（不要求 recentlyHitByPlayer）。
+     *   - 默认（0 < f <= 1.0，如 0.085）：仅当 recentlyHitByPlayer（最近被玩家伤害过）时才尝试掉落。
+     *   - random < f：通过概率判定后掉落。
+     * 排除绑定诅咒装备（vanilla EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP，
+     * Cubium 用 hasBindingCurse 等价判定——绑定诅咒是该 component 的唯一来源）。
+     * 掉落前对非保整的可损伤装备随机化耐久度（对齐 vanilla setDamageValue(maxDamage - random)）。
+     * 掉落后清空槽位（setItemSlot(slot, EMPTY)）。
+     *
+     * 注：vanilla 还调 EnchantmentHelper.processEquipmentDropChance 应用掠夺附魔
+     * （通过 equipment_drops effect component）对掉落概率的加成。Cubium 掠夺附魔体系是
+     * 1.20 风格的 LootingEnchantBonusFunction（loot function），未实现 1.21 的
+     * effect component 子系统，故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
+     *
+     * @param cause 死亡伤害来源（vanilla 用 cause.getEntity() 取击杀者 LivingEntity）
+     * @param recentlyHitByPlayer 最近是否被玩家伤害过（影响非保整装备是否尝试掉落）
+     */
+    void dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer) override;
+
+    /**
      * @brief 掉落保留装备并返回保留的槽位集合
      *
      * 遍历所有装备槽位，根据掉落概率和谓词条件处理装备：

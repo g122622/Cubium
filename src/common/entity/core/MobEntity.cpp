@@ -447,6 +447,91 @@ void MobEntity::dropExperience()
     entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
 }
 
+void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlayer)
+{
+    // 对齐 MC Java 1.21.11 Mob.dropCustomDeathLoot（Mob.java:846-877）。
+    // 先调基类 dropCustomDeathLoot（LivingEntity 基类为空，子类首领生物可在此补充特殊掉落）。
+    LivingEntity::dropCustomDeathLoot(cause, recentlyHitByPlayer);
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 击杀者 LivingEntity（vanilla cause.getEntity() instanceof LivingEntity）：用于掠夺附魔
+    // processEquipmentDropChance 加成（vanilla Mob.java:853-855）。Cubium 掠夺附魔体系是 1.20 风格的
+    // LootingEnchantBonusFunction（loot function），未实现 1.21 的 equipment_drops effect component 子系统，
+    // 故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
+    Entity* causingEntity = cause.getEntity();
+    (void)causingEntity; // 预留 processEquipmentDropChance 接入点，当前未使用。
+
+    math::Random& rng = getRandom();
+
+    // 遍历所有装备槽位（对齐 vanilla for (EquipmentSlot : EquipmentSlot.VALUES)）。
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        const EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+
+        // 获取槽位物品引用（vanilla this.getItemBySlot(equipmentslot)）。
+        // 注意：掉落前需取一份可修改拷贝用于耐久度随机化（vanilla 直接改 itemstack 引用，
+        // 因 ItemBySlot 返回的是装备数组内对象；Cubium getEquipment 返回 const 引用，setDamage 需可写，
+        // 故先拷贝，随机化后用拷贝掉落，再清空原槽位）。
+        const ItemStack& equipmentRef = getEquipment(slot);
+        const f32 dropChance = getEquipmentDropChance(slot); // vanilla dropChances.byEquipment(equipmentslot)
+
+        // f == 0.0：永不掉落（vanilla Mob.java:850 if (f != 0.0F) 守卫）。
+        if (dropChance == 0.0f) {
+            continue;
+        }
+
+        const bool isPreserved = isEquipmentDropPreserved(slot); // vanilla dropChances.isPreserved(equipmentslot)
+
+        // TODO: 掠夺附魔加成（vanilla f = EnchantmentHelper.processEquipmentDropChance(serverlevel, livingentity,
+        // cause, f)）。
+        //       Cubium 未实现 1.21 equipment_drops effect component 子系统，当前 f 不变。待 effect component
+        //       体系就绪后，在此用 causingEntity（LivingEntity）的武器掠夺等级修正 f。
+
+        // 掉落条件（对齐 vanilla Mob.java:864-865）：
+        //   !itemstack.isEmpty()
+        //   && !EnchantmentHelper.has(itemstack, PREVENT_EQUIPMENT_DROP)  // 绑定诅咒
+        //   && (p_21387_ || flag)  // recentlyHitByPlayer || isPreserved
+        //   && random.nextFloat() < f
+        // PREVENT_EQUIPMENT_DROP 在 1.21 仅绑定诅咒贡献，Cubium 用 hasBindingCurse 等价判定。
+        if (equipmentRef.isEmpty()) {
+            continue;
+        }
+        if (item::enchant::EnchantmentHelper::hasBindingCurse(equipmentRef)) {
+            continue;
+        }
+        if (!(recentlyHitByPlayer || isPreserved)) {
+            continue;
+        }
+        if (rng.nextFloat() >= dropChance) {
+            continue;
+        }
+
+        // 拷贝一份用于掉落（耐久度随机化需可写）。
+        ItemStack dropStack(equipmentRef);
+
+        // 耐久度随机化（对齐 vanilla Mob.java:866-872）：仅非保整（!flag）且可损伤装备随机化，
+        // 把掉落装备设为接近破损（vanilla setDamageValue(maxDamage - random)）。
+        if (!isPreserved && dropStack.isDamageable()) {
+            const i32 maxDamage = dropStack.getMaxDamage();
+            // vanilla: Math.max(itemstack.getMaxDamage() - 3, 1)
+            const i32 innerBound = std::max(maxDamage - 3, 1);
+            // vanilla: this.random.nextInt(1 + this.random.nextInt(innerBound))
+            const i32 remaining = rng.nextInt(1 + rng.nextInt(innerBound));
+            // vanilla: itemstack.setDamageValue(itemstack.getMaxDamage() - <remaining>)
+            // Cubium m_damage 语义 = 已消耗耐久（同 vanilla damageValue），故 setDamage(maxDamage - remaining)。
+            dropStack.setDamage(maxDamage - remaining);
+        }
+
+        // 在实体位置掉落（vanilla this.spawnAtLocation(serverlevel, itemstack)）。
+        ItemDropHelper::spawnItemAtEntity(this, dropStack, 0.5f, rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+
+        // 清空槽位（vanilla this.setItemSlot(equipmentslot, ItemStack.EMPTY)）。
+        setEquipment(slot, ItemStack());
+    }
+}
+
 std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment(const std::function<bool(const ItemStack&)>& predicate)
 {
     std::vector<EquipmentSlot> preservedSlots;

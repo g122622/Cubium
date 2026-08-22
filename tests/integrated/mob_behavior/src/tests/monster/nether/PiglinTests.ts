@@ -81,12 +81,12 @@ function piglinAttacksPlayerWithoutGold(test: Test): void {
 // 两测试互补：若 isWearingGold 检测失效（恒 false），穿金甲玩家也被攻击，本测试 FAIL；
 // 若 isWearingGold 恒 true，未穿金甲玩家也不被攻击，对照测试 FAIL。交叉验证门控正确。
 //
-// 金甲穿戴链路：JS equippable.setEquipment 不支持穿戴 ItemStack（MinecraftModuleFactory.cpp:1319-1325
-// TODO: ItemStack argument not yet supported）；/replaceitem 命令对 SimulatedPlayer 失效——SimulatedPlayer
-// 故意不注册到 PlayerManager（SimulatedPlayer.cpp:52-53，无网络会话避免 keepalive/广播副作用），
-// 而 /replaceitem / /gamemode 的 @s 选择器经 resolvePlayerIds → PlayerManager.getPlayer 查不到
-// （GameModeManager 报 "Player N not found"，命令静默失败）。故用 SimulatedPlayer::setItem JS API
-// 直接写 PlayerInventory 装备槽，绕过命令系统：
+// 金甲穿戴链路：JS equippable.setEquipment 已支持穿戴 ItemStack（MinecraftModuleFactory.cpp
+// setEquipment unwrap 路径，见 MobEquipmentDropTests），但对【玩家】装备仍优先用 SimulatedPlayer::setItem
+// 直接写 PlayerInventory 装备槽——因 /replaceitem 命令对 SimulatedPlayer 失效：SimulatedPlayer 故意不注册到
+// PlayerManager（SimulatedPlayer.cpp:52-53，无网络会话避免 keepalive/广播副作用），而 /replaceitem / /gamemode
+// 的 @s 选择器经 resolvePlayerIds → PlayerManager.getPlayer 查不到（GameModeManager 报 "Player N not found"，
+// 命令静默失败）。故用 SimulatedPlayer::setItem JS API 直接写 PlayerInventory 装备槽，绕过命令系统：
 //   player.setItem(new ItemStack("minecraft:golden_chestplate", 1), 37)
 // SimulatedPlayer::setItem（SimulatedPlayer.cpp:194-204）调 inventory().setItem(37, stack)，槽 37 即
 // ARMOR_CHEST（Slot.hpp）。Player::getEquipment(Chest)（Player.cpp:1350）读 m_inventory.getChestplateRef()
