@@ -186,6 +186,165 @@ function polarBearImmuneToPowderSnow(test: Test): void {
   });
 }
 
+// 成年北极熊保护幼崽：附近有幼熊时主动攻击玩家（wiki tech_北极熊.txt#行为：成年北极熊会在
+// 幼崽附近时变得具有敌意，主动攻击靠近的玩家。这是北极熊最具辨识度的 vanilla 行为）。
+//
+// C++ 链路：PolarBearEntity registerGoals targetSelector 优先级2：PolarBearAttackPlayerGoal
+//   （PolarBearEntity.cpp:484-514，继承 NearestAttackableTargetGoal<Player>(this, true, 20)）。
+//   shouldExecute 顺序：
+//     1. m_bear->isChild() 成年熊才执行（幼熊返 false）；
+//     2. NearestAttackableTargetGoal<Player>::shouldExecute() 选 20 格内玩家为目标；
+//     3. boundingBox().expand(8,4,8) 扫附近是否有幼熊（bear->isChild()）——有幼熊才返 true。
+//   选定玩家后 PolarBearMeleeAttackGoal（goalSelector 优先级1，MeleeAttackGoal(bear,1.25,true)）
+//   接近 attackEntityAsMob→hurt(玩家, 6.0)。
+//   注：targetSelector 优先级3 还有一个带相同幼熊检测谓词的 NearestAttackableTargetGoal<Player>
+//   （PolarBearEntity.cpp:366-383），与优先级2 逻辑重复，两者都要求附近有幼熊才攻击玩家。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑无围墙），MeleeAttackGoal 寻路通畅。
+// 布局：成年熊(3,2,3)中心，幼熊(2,2,3)相邻 1 格（<8 格检测范围），Survival 玩家(5,2,3)距成年熊
+//   2 格（<20 格选目标范围）。成年熊检测到 8 格内有幼熊 → 选玩家 → MeleeAttack 接近 2 格攻击。
+//   脚下 y=1 放玻璃支撑三方。
+//
+// 判定手段：断言玩家 HP 下降（<20）。近战确定性命中，伤害 6.0，玩家满血 20 → 14。
+// 时序：PolarBearAttackPlayerGoal shouldExecute（chance 检查）+ MeleeAttackGoal 寻路接近 2 格 +
+//   攻击冷却 + hurt(6.0)。北极熊 0.25 速度接近 2 格约需 30+ tick，maxTicks=1000 留充裕余量。
+//   玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验；创造模式被 TargetGoal 滤掉不可被攻击）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_北极熊.txt#行为（保护幼崽敌对玩家）
+// Ref: PolarBearEntity.cpp:484-514（PolarBearAttackPlayerGoal shouldExecute 幼熊检测分支）
+function polarBearProtectsCubAttacksPlayer(test: Test): void {
+  const polarBearType = "polar_bear";
+
+  // 成年熊(3,2,3)、幼熊(2,2,3)、Survival 玩家(5,2,3)。脚下 y=1 玻璃支撑三方。
+  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  // 成年熊（默认成年）。
+  test.spawn(polarBearType, { x: 3, y: 2, z: 3 });
+  // 幼熊：spawn_baby 事件经 applySpawnEvent → setChild(true) 生成幼年北极熊。
+  test.spawn(`${polarBearType}<minecraft:spawn_baby>`, { x: 2, y: 2, z: 3 });
+  // Survival 玩家（0 as any 绕过 TS 枚举校验）。
+  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "cubProtectorVictim", 0 as any);
+
+  // 断言玩家掉血：succeedWhen 每 tick 持续检查玩家 HP<20。
+  // 玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"。
+  test.succeedWhen(() => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared");
+    const health = players[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "player has no health component");
+    test.assert((health as any).currentValue < 20,
+      `polar bear did not protect cub by attacking player, hp=${(health as any).currentValue}`);
+  });
+
+  // 引用 player 避免未使用警告（玩家存在即触发目标选择，无需主动操作）。
+  void player;
+}
+
+// 幼熊被攻击后呼唤附近成年熊反击（wiki tech_北极熊.txt#行为：幼年北极熊被攻击时会呼唤
+// 附近的成年北极熊前来协助攻击攻击者。这是北极熊幼崽保护的另一核心交互）。
+//
+// C++ 链路：PolarBearEntity registerGoals targetSelector 优先级1：PolarBearHurtByTargetGoal
+//   （PolarBearEntity.cpp:454-480，继承 HurtByTargetGoal(this, false)）。
+//   startExecuting：
+//     - m_bear->isChild() 幼熊分支：boundingBox().expand(16,4,16) 扫附近成年熊（!isChild()），
+//       对每只成年熊 setAttackTarget(m_target=攻击者) + setAngry(true)，然后 resetTask()
+//       （幼熊自身不反击，仅呼唤）。
+//     - 成年熊分支：调 HurtByTargetGoal::startExecuting() 设自身 attackTarget=攻击者。
+//   被呼唤的成年熊经 PolarBearMeleeAttackGoal 接近 attackEntityAsMob→hurt(玩家, 6.0)。
+//
+// 环境选择：creeper_pit（7×5×7）。幼熊(2,2,3)、成年熊(5,2,3)距 3 格（<16 格呼唤范围），
+//   Survival 玩家(4,2,4)距成年熊约 1.4 格（<20 格寻路范围）。玩家攻击幼熊 → 幼熊呼唤成年熊 →
+//   成年熊设 attackTarget=玩家 → MeleeAttack 接近攻击玩家。脚下 y=1 玻璃支撑。
+//
+// 判定手段：断言玩家 HP 下降（<20）。被呼唤的成年熊攻击玩家，近战命中 hurt(6.0)。
+// 时序：玩家 attackEntity(幼熊)（tick 8）+ 幼熊 PolarBearHurtByTargetGoal 呼唤成年熊 +
+//   成年熊 MeleeAttackGoal 寻路接近 + 攻击冷却 + hurt(6.0)。maxTicks=1000 留充裕余量。
+//   玩家用 Survival（创造模式被 TargetGoal 滤掉）。玩家攻击幼熊用 attackEntity（远程命中，
+//   基岩语义 attack can be performed at any distance）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_北极熊.txt#行为（幼崽呼唤成年熊）
+// Ref: PolarBearEntity.cpp:459-480（PolarBearHurtByTargetGoal isChild 呼唤分支）
+function polarBearCubCallsAdultWhenHurt(test: Test): void {
+  const polarBearType = "polar_bear";
+
+  // 幼熊(2,2,3)、成年熊(5,2,3)、Survival 玩家(4,2,4)。脚下 y=1 玻璃支撑。
+  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 4 });
+  // 幼熊：spawn_baby 事件生成幼年北极熊。
+  const cub = test.spawn(`${polarBearType}<minecraft:spawn_baby>`, { x: 2, y: 2, z: 3 });
+  // 成年熊（默认成年），距幼熊 3 格在 16 格呼唤范围内。
+  test.spawn(polarBearType, { x: 5, y: 2, z: 3 });
+  // Survival 玩家。
+  const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 4 }, "cubAttacker", 0 as any);
+
+  // tick 8 后玩家攻击幼熊：留 8 tick 让实体完成 spawn 注册 + 首 tick 稳定。
+  // attackEntity 远程命中触发幼熊 PolarBearHurtByTargetGoal isChild 分支呼唤成年熊。
+  test.runAtTickTime(8, () => {
+    player.attackEntity(cub);
+  });
+
+  // 断言玩家掉血：被呼唤的成年熊攻击玩家。succeedWhen 每 tick 检查玩家 HP<20。
+  test.succeedWhen(() => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared");
+    const health = players[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "player has no health component");
+    test.assert((health as any).currentValue < 20,
+      `adult polar bear did not come to protect hurt cub, hp=${(health as any).currentValue}`);
+  });
+}
+
+// 对照组：无幼熊时成年北极熊不主动攻击玩家（验证 PolarBearAttackPlayerGoal 的幼熊检测守卫，
+// 排除"成年熊无条件攻击玩家"的假阳性）。
+//
+// C++ 链路：PolarBearAttackPlayerGoal::shouldExecute（PolarBearEntity.cpp:489-514）第三步扫 8×4×8
+//   范围内幼熊，无幼熊时返 false 不攻击玩家。targetSelector 优先级3 的带谓词
+//   NearestAttackableTargetGoal<Player> 同样要求附近有幼熊（谓词逻辑同）。优先级4 仅攻击狐狸。
+//   故无幼熊时成年熊对玩家无任何主动攻击 goal，玩家靠近不掉血。
+//
+// 环境选择：creeper_pit（7×5×7）。成年熊(2,2,3)、Survival 玩家(5,2,3)距 3 格，无幼熊。
+//   玩家不主动攻击熊（避免触发 HurtByTargetGoal 反击），仅靠近。成年熊无幼熊守卫不攻击玩家。
+//
+// 判定手段：等 200 tick（覆盖若干 PolarBearAttackPlayerGoal chance 检查周期）后断言玩家 HP 仍满血 20。
+//   玩家保持 20 证明成年熊未主动攻击（幼熊检测守卫生效）。若守卫失效成年熊会攻击玩家致 HP<20。
+//   maxTicks=400：200 tick 等待 + succeedWhen 检查余量。
+//   玩家用 Survival（若用创造模式，TargetGoal 滤掉创造玩家，无法验证攻击守卫——须 Survival）。
+// Ref: PolarBearEntity.cpp:489-514（shouldExecute 幼熊检测守卫）
+function polarBearNoAggroWithoutCub(test: Test): void {
+  const polarBearType = "polar_bear";
+
+  // 成年熊(2,2,3)、Survival 玩家(5,2,3)距 3 格，无幼熊。脚下 y=1 玻璃支撑。
+  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  test.spawn(polarBearType, { x: 2, y: 2, z: 3 });
+  // Survival 玩家，不主动攻击熊（仅靠近），验证成年熊无幼熊时不主动攻击。
+  test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "neutralObserver", 0 as any);
+
+  // 等 200 tick（覆盖多个 PolarBearAttackPlayerGoal 检查周期）后断言玩家满血 20。
+  // 玩家查询用区域限定排除并行测试污染。
+  test.runAtTickTime(200, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared");
+    const health = players[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "player has no health component");
+    test.assert((health as any).currentValue >= 20,
+      `polar bear should not attack player without cub nearby, hp=${(health as any).currentValue}`);
+    test.succeed();
+  });
+}
+
 export function registerPolarBearTests(): void {
   GameTest.register("MobBehaviorTests", "polar_bear_retaliates_when_attacked", polarBearRetaliatesWhenAttacked)
     .structureName("gametests:creeper_pit")
@@ -198,4 +357,16 @@ export function registerPolarBearTests(): void {
   GameTest.register("MobBehaviorTests", "polar_bear_immune_to_powder_snow", polarBearImmuneToPowderSnow)
     .structureName("gametests:creeper_pit")
     .maxTicks(600);
+
+  GameTest.register("MobBehaviorTests", "polar_bear_protects_cub_attacks_player", polarBearProtectsCubAttacksPlayer)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "polar_bear_cub_calls_adult_when_hurt", polarBearCubCallsAdultWhenHurt)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "polar_bear_no_aggro_without_cub", polarBearNoAggroWithoutCub)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(400);
 }
