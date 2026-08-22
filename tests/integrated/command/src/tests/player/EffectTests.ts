@@ -89,6 +89,35 @@ function effectClearSpecificKeepsOthers(test: Test): void {
     test.succeed();
 }
 
+// /effect give @a[distance=..N] <effect> 批量给多玩家状态效果（走 _giveEffect 多目标分支）。
+// spawn 2 个 SimulatedPlayer，/effect give @a[distance=..20] speed 批量给速度，断言两玩家都有 speed。
+// 验证 PlayerResolver 选择器修复后 @a[distance=..N] 能批量选中多个 SimulatedPlayer 并给予效果
+// （修复前 applyFilters 对 SimulatedPlayer 误删，@a 选不到任何 SimulatedPlayer，批量给予不执行）。
+// distance=..20 以 playerA 为中心，选中结构内两玩家（间距约 5.6 格 < 20），区域限定避免选中同批
+// 并行测试的 SimulatedPlayer（污染防护）。
+// 走 EffectCommand::_giveEffect（resolvePlayerIds 多结果 + LivingEntity::addEffect 循环）。
+// Ref: wiki commands/effect.txt（effect give <targets> <effect> 批量给多玩家）
+function effectGivesToAllPlayersBySelector(test: Test): void {
+    // 两玩家在空气腔 y=2 站立层（下方 y=1 stone 地板支撑），不同位置。
+    const playerA = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "moverA");
+    const playerB = test.spawnSimulatedPlayer({ x: 6, y: 2, z: 6 }, "moverB");
+
+    // 等 playerB 生成稳定后执行（@a 解析需两玩家都已注册到 ServerPlayerEntityManager）。
+    test.runAtTickTime(5, () => {
+        // @a[distance=..20] 以 playerA 位置为中心，选中结构内两玩家，批量给速度。
+        playerA.chat("/effect give @a[distance=..20] speed");
+    });
+
+    // 命令同步执行，但 @a 解析经 runAtTickTime 延迟，用 runAtTickTime 延迟断言两玩家都有 speed。
+    test.runAtTickTime(10, () => {
+        const speedA = (playerA as any).getEffect("speed");
+        const speedB = (playerB as any).getEffect("speed");
+        test.assert(speedA !== undefined, `moverA expected speed effect, got undefined`);
+        test.assert(speedB !== undefined, `moverB expected speed effect, got undefined`);
+        test.succeed();
+    });
+}
+
 export function registerEffectTests(): void {
     GameTest.register("CommandTests", "effect_gives_speed_to_self", effectGivesSpeedToSelf)
         .structureName("gametests:cmd_arena")
@@ -103,6 +132,10 @@ export function registerEffectTests(): void {
         .maxTicks(60);
 
     GameTest.register("CommandTests", "effect_clear_specific_keeps_others", effectClearSpecificKeepsOthers)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(60);
+
+    GameTest.register("CommandTests", "effect_gives_to_all_players_by_selector", effectGivesToAllPlayersBySelector)
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }
