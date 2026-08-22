@@ -468,6 +468,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 骷髅
@@ -477,6 +478,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 苦力怕
@@ -486,6 +488,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 蜘蛛
@@ -495,6 +498,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 末影人
@@ -504,6 +508,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 烈焰人
@@ -517,6 +522,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 女巫
@@ -526,6 +532,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 史莱姆
@@ -535,6 +542,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 海洋怪物 ==========
@@ -545,6 +553,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 远古守卫者
@@ -554,6 +563,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 亡灵变种 ==========
@@ -564,6 +574,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 溺尸
@@ -573,6 +584,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 流浪者
@@ -582,6 +594,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 沼骸骨
@@ -591,6 +604,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 凋灵骷髅
@@ -601,6 +615,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 节肢动物变种 ==========
@@ -611,6 +626,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 马类 ==========
@@ -701,6 +717,7 @@ void VanillaEntities::doRegisterAll()
             .updateInterval(3)
             .immuneToFire()
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 监守者
@@ -715,6 +732,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(16)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 村民 ==========
@@ -743,6 +761,7 @@ void VanillaEntities::doRegisterAll()
             .size(3.6f, 12.0f)
             .trackingRange(16)
             .updateInterval(3)
+            .notInPeaceful()
             .build() // 不可召唤
     );
 
@@ -753,6 +772,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 僵尸村民
@@ -762,6 +782,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 末影螨
@@ -771,6 +792,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 蠹虫
@@ -780,6 +802,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 潜影贝
@@ -801,6 +824,7 @@ void VanillaEntities::doRegisterAll()
             .updateInterval(3)
             .immuneToFire()
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 岩浆怪
@@ -811,6 +835,7 @@ void VanillaEntities::doRegisterAll()
             .updateInterval(3)
             .immuneToFire()
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 猪灵
@@ -829,6 +854,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 疣猪兽
@@ -848,6 +874,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 僵尸猪灵
@@ -858,6 +885,7 @@ void VanillaEntities::doRegisterAll()
             .updateInterval(3)
             .immuneToFire()
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // ========== 灾厄村民 ==========
@@ -868,6 +896,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 唤魔者
@@ -877,6 +906,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 幻术师
@@ -886,6 +916,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 掠夺者
@@ -895,6 +926,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 劫掠兽
@@ -904,6 +936,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(10)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 恼鬼
@@ -914,6 +947,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 旋风人
@@ -923,6 +957,7 @@ void VanillaEntities::doRegisterAll()
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
+            .notInPeaceful()
             .build());
 
     // 唤魔者尖牙

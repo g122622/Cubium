@@ -90,6 +90,26 @@ constexpr i32 BLOCK_UPDATE_RADIUS = 16;
 /// MC 1.16.5: 世界边界为 ±30,000,000
 constexpr i32 WORLD_BORDER = 30000000;
 
+/// 可生成实体的世界坐标边界（对齐 Java Level.isInSpawnableBounds）。
+/// Java 1.21.11 Level.java:170-186：
+///   isInSpawnableBounds = !isOutsideSpawnableHeight(y) && isInWorldBoundsHorizontal(x,z)
+///   isOutsideSpawnableHeight(y) = y < -20_000_000 || y >= 20_000_000
+///   isInWorldBoundsHorizontal = x/z ∈ [-30_000_000, 30_000_000)
+///
+/// 注意：此处 Y 边界用硬编码 ±20,000,000（远超实际建筑高度 ±64..320），是防止"超远坐标"
+/// 的安全校验，与 MIN/MAX_BUILD_HEIGHT（区块可放置方块高度）语义不同——后者由 isValidY 判定。
+/// SummonCommand.createEntity（SummonCommand.java:83-85）首行即用此守卫拦截越界坐标，
+/// 防止 setPosition/spawnEntity 处理非法坐标时崩溃或产生越界实体。
+constexpr i32 SPAWNABLE_HEIGHT_LIMIT = 20000000;
+
+/// 检查方块坐标是否在可生成实体的世界边界内（对齐 Java Level.isInSpawnableBounds）。
+inline bool isInSpawnableBounds(i32 x, i32 y, i32 z) noexcept
+{
+    const bool heightOk = y >= -SPAWNABLE_HEIGHT_LIMIT && y < SPAWNABLE_HEIGHT_LIMIT;
+    const bool horizontalOk = x >= -WORLD_BORDER && z >= -WORLD_BORDER && x < WORLD_BORDER && z < WORLD_BORDER;
+    return heightOk && horizontalOk;
+}
+
 // ============================================================================
 // 区块加载优先级
 // ============================================================================

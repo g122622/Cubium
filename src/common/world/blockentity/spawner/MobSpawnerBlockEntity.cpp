@@ -508,9 +508,10 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         return false;
     }
 
-    // 当 CustomSpawnRules 存在时，非和平生物（Monster 分类）在和平难度下不生成
+    // 当 CustomSpawnRules 存在时，和平难度下不允许的实体（NotInPeaceful 标志）不生成
+    // （对齐 vanilla isAllowedInPeaceful，少数 Monster 类实体如 Shulker 未标故和平可生成）
     if (m_customSpawnRules.has_value()) {
-        if (!entity::isPeaceful(entityType->classification()) &&
+        if (!entityType->isAllowedInPeaceful() &&
             !entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
             return false;
         }

@@ -185,9 +185,10 @@ bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, world::spawn:
         return false;
     }
 
-    // 和平难度检查（对齐 Java isAllowedInPeaceful）：怪物类实体在和平难度不生成。
-    // 复用 entity::isPeaceful(classification)（!= Monster 即和平），全部敌对实体均为 Monster 分类。
-    if (world.difficulty() == Difficulty::Peaceful && !entity::isPeaceful(realType->classification())) {
+    // 和平难度检查（对齐 Java SpawnEggItem.isAllowedInPeaceful）：和平难度下不允许的实体不生成。
+    // 用 EntityType::isAllowedInPeaceful()（NotInPeaceful 标志位，对齐 vanilla 逐实体标注），
+    // 少数 Monster 类实体（Shulker/Hoglin/Piglin 等）vanilla 未标 notInPeaceful 故和平可生成。
+    if (world.difficulty() == Difficulty::Peaceful && !realType->isAllowedInPeaceful()) {
         return false;
     }
 

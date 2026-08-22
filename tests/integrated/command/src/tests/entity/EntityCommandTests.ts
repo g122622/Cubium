@@ -228,6 +228,60 @@ function summonAllowedOnPeacefulForPassive(test: Test): void {
     });
 }
 
+// /summon 在越界坐标（Y 超出 ±20,000,000 可生成高度边界）应被守卫拦截不生成实体
+// （对齐 Java SummonCommand.createEntity 首行守卫 SummonCommand.java:83-85：
+// !Level.isInSpawnableBounds(BlockPos.containing(pos)) → 抛 INVALID_POSITION）。
+//
+// 守卫顺序（对齐 vanilla）：边界校验 → peaceful 校验 → 创建。Cubium 修复前无边界守卫，
+// 越界坐标会跳过校验直接 setPosition/spawnEntity，可能崩溃或产生越界实体。
+//
+// 测试用绝对坐标 Y=21,000,000（刚越 isInSpawnableBounds 上界 20,000,000）触发守卫：
+// normal 难度（避开 peaceful 守卫干扰，确保是边界守卫而非 peaceful 守卫拦截），
+// /summon minecraft:cow 0 21000000 0 → 边界守卫 sendError(commands.summon.invalidPosition) 返回 0，
+// cow 不生成。pollUntilSucceed 断言 cow==0。
+//
+// 对照见 summonAllowedWithinBounds（合法坐标 cow 正常生成，证明守卫不误拦合法坐标）。
+// Ref: wiki summon.txt（summon 对越界坐标拒绝生成）
+// Ref: SummonCommand.cpp（边界校验守卫 isInSpawnableBounds）、SummonCommand.java:83-85（vanilla 守卫）
+function summonRejectedForOutOfBoundsY(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+
+    // normal 难度（默认即 normal，显式声明以排除 peaceful 守卫干扰）。Y=21000000 越上界触发边界守卫。
+    // 用绝对坐标 0 21000000 0：X/Z=0 在世界边界内合法，Y=21000000 是唯一越界变量，确保是边界守卫拦截。
+    player.chat("/summon minecraft:cow 0 21000000 0");
+
+    // 轮询断言 cow 未生成（边界守卫拦截）。修复前 cow 可能生成（或崩溃）致 count>=1。
+    // maxTick=80：守卫同步拦截后 cow 恒 0，超时即 FAIL。
+    pollUntilSucceed(test, () => countEntities(test, "cow") === 0, {
+        startTick: 5,
+        maxTick: 80,
+        onTimeout: () => test.assert(false,
+            `summon cow should be rejected for out-of-bounds Y but cow spawned ` +
+            `(count=${countEntities(test, "cow")})`),
+    });
+}
+
+// /summon 在合法坐标内正常生成实体（对照 summonRejectedForOutOfBoundsY）。
+//
+// 守卫 isInSpawnableBounds 对合法坐标（结构内 Y∈[1,5]、X/Z∈[1,7]）放行。normal 难度 + 合法坐标，
+// /summon minecraft:cow → 守卫全通过 → 生成 cow。pollUntilSucceed 断言 cow>=1。
+// 证明边界守卫只拦越界不误拦合法坐标。
+// Ref: wiki summon.txt（summon 合法坐标正常生成）
+function summonAllowedWithinBounds(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+
+    // 合法坐标（结构内 (3,2,3)），守卫放行，cow 正常生成。
+    player.chat(`/summon minecraft:cow ${worldCoords(test, { x: 3, y: 2, z: 3 })}`);
+
+    pollUntilSucceed(test, () => countEntities(test, "cow") >= 1, {
+        startTick: 5,
+        maxTick: 80,
+        onTimeout: () => test.assert(false,
+            `summon cow should succeed within bounds but cow not spawned ` +
+            `(count=${countEntities(test, "cow")})`),
+    });
+}
+
 export function registerEntityCommandTests(): void {
     GameTest.register("CommandTests", "summon_spawns_entity", summonSpawnsEntity)
         .structureName("gametests:cmd_arena")
@@ -259,5 +313,14 @@ export function registerEntityCommandTests(): void {
     GameTest.register("CommandTests", "summon_allowed_on_peaceful_for_passive", summonAllowedOnPeacefulForPassive)
         .structureName("gametests:cmd_arena")
         .batch("summon_peaceful_passive_solo")
+        .maxTicks(100);
+
+    // 边界校验测试：守卫不修改世界级状态（不改难度/gamerule），可用默认 batch 并行，无需独占。
+    GameTest.register("CommandTests", "summon_rejected_for_out_of_bounds_y", summonRejectedForOutOfBoundsY)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(100);
+
+    GameTest.register("CommandTests", "summon_allowed_within_bounds", summonAllowedWithinBounds)
+        .structureName("gametests:cmd_arena")
         .maxTicks(100);
 }

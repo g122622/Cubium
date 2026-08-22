@@ -42,6 +42,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
@@ -91,6 +92,19 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // 边界校验（对齐 Java SummonCommand.createEntity 首行守卫 SummonCommand.java:83-85：
+    // !Level.isInSpawnableBounds(BlockPos.containing(pos)) → 抛 INVALID_POSITION）。
+    // 拦截越界坐标（Y 超出 ±20,000,000 或 X/Z 超出 ±30,000,000 世界边界），防止
+    // setPosition/spawnEntity 处理非法坐标时崩溃或产生越界实体。此守卫须在 peaceful
+    // 守卫之前（vanilla 顺序：边界 → peaceful → 创建）。
+    const BlockPos containing(static_cast<i32>(std::floor(position.x)),
+        static_cast<i32>(position.y),
+        static_cast<i32>(std::floor(position.z)));
+    if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
+        source.sendError("commands.summon.invalidPosition");
+        return 0;
+    }
+
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entityId.toString());
@@ -110,9 +124,10 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     }
 
     // 和平难度检查（对齐 Java SummonCommand.createEntity：difficulty==PEACEFUL 且 !isAllowedInPeaceful
-    // 时拒绝召唤）。复用 entity::isPeaceful(classification)（!= Monster 即和平允许），全部敌对实体均为
-    // Monster 分类。同款守卫见 SpawnEggItem::spawnEntity。
-    if (world->difficulty() == Difficulty::Peaceful && !entity::isPeaceful(entityType->classification())) {
+    // 时拒绝召唤）。用 EntityType::isAllowedInPeaceful()（NotInPeaceful 标志位，对齐 vanilla 逐实体
+    // notInPeaceful 标注）而非 classification 派生——少数 Monster 类实体（Shulker/Hoglin/Piglin 等）
+    // vanilla 未标 notInPeaceful 故和平可召。同款守卫见 SpawnEggItem::spawnEntity。
+    if (world->difficulty() == Difficulty::Peaceful && !entityType->isAllowedInPeaceful()) {
         source.sendError("commands.summon.failed.peaceful");
         return 0;
     }
@@ -183,6 +198,19 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
         return 0;
     }
 
+    // 边界校验（对齐 Java SummonCommand.createEntity 首行守卫 SummonCommand.java:83-85：
+    // !Level.isInSpawnableBounds(BlockPos.containing(pos)) → 抛 INVALID_POSITION）。
+    // 拦截越界坐标（Y 超出 ±20,000,000 或 X/Z 超出 ±30,000,000 世界边界），防止
+    // setPosition/spawnEntity 处理非法坐标时崩溃或产生越界实体。此守卫须在 peaceful
+    // 守卫之前（vanilla 顺序：边界 → peaceful → 创建）。同款守卫见 _summonEntity。
+    const BlockPos containing(static_cast<i32>(std::floor(position.x)),
+        static_cast<i32>(position.y),
+        static_cast<i32>(std::floor(position.z)));
+    if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
+        source.sendError("commands.summon.invalidPosition");
+        return 0;
+    }
+
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entityId.toString());
@@ -202,9 +230,10 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     }
 
     // 和平难度检查（对齐 Java SummonCommand.createEntity：difficulty==PEACEFUL 且 !isAllowedInPeaceful
-    // 时拒绝召唤）。复用 entity::isPeaceful(classification)（!= Monster 即和平允许），全部敌对实体均为
-    // Monster 分类。同款守卫见 SpawnEggItem::spawnEntity。
-    if (world->difficulty() == Difficulty::Peaceful && !entity::isPeaceful(entityType->classification())) {
+    // 时拒绝召唤）。用 EntityType::isAllowedInPeaceful()（NotInPeaceful 标志位，对齐 vanilla 逐实体
+    // notInPeaceful 标注）而非 classification 派生——少数 Monster 类实体（Shulker/Hoglin/Piglin 等）
+    // vanilla 未标 notInPeaceful 故和平可召。同款守卫见 SpawnEggItem::spawnEntity。
+    if (world->difficulty() == Difficulty::Peaceful && !entityType->isAllowedInPeaceful()) {
         source.sendError("commands.summon.failed.peaceful");
         return 0;
     }

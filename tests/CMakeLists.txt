@@ -327,6 +327,8 @@ add_executable(mc_tests
     common/entity/entities/effect/EnderCrystalHealTest.cpp
     # MonsterEntity 生成位置检查测试
     common/entity/entities/monster/MonsterSpawnTest.cpp
+    # EntityType::isAllowedInPeaceful()（NotInPeaceful 标志位）逐实体标注正确性测试
+    common/entity/EntityPeacefulFlagTest.cpp
     # LivingEntity 箭矢计数和发光效果测试
     common/entity/core/LivingEntityArrowCountTest.cpp
     # LivingEntity 吸收值 getter/setter 和边界 clamping 测试

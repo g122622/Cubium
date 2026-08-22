@@ -66,6 +66,8 @@ enum class EntityFlags : u32 {
     Serializable = 1 << 3,     // 可以序列化到NBT
     ImmuneToDrowning = 1 << 4, // 免疫溺水
     ImmuneToFall = 1 << 5,     // 免疫摔落伤害
+    NotInPeaceful = 1 << 6,    // 和平难度下不允许生成/召唤（对齐 vanilla EntityType.notInPeaceful：
+                               // 怪物类默认置位，少数 Monster 类实体如 Shulker/Hoglin/Piglin 不置位故和平可生成）
 };
 
 inline EntityFlags operator|(EntityFlags a, EntityFlags b)
@@ -217,6 +219,21 @@ public:
         }
 
         /**
+         * @brief 标记和平难度下不允许生成/召唤（对齐 vanilla EntityType.Builder.notInPeaceful）
+         *
+         * 置 NotInPeaceful 标志。未调用此方法的实体 allowedInPeaceful=true（和平允许）。
+         * vanilla 中约 37 个怪物类实体调用 notInPeaceful（blaze/creeper/zombie 等），
+         * 少数 Monster 类实体（Shulker/Hoglin/Piglin/EnderDragon/ZombieHorse/ZombieNautilus）
+         * 不调用故和平可生成。
+         * @return Builder引用
+         */
+        Builder& notInPeaceful()
+        {
+            m_flags = m_flags | EntityFlags::NotInPeaceful;
+            return *this;
+        }
+
+        /**
          * @brief 构建实体类型
          * @return 配置好的EntityType
          */
@@ -332,6 +349,15 @@ public:
      * @brief 是否可以被召唤
      */
     [[nodiscard]] bool canSummon() const { return hasFlag(EntityFlags::CanSummon); }
+
+    /**
+     * @brief 和平难度下是否允许生成/召唤（对齐 vanilla EntityType.isAllowedInPeaceful）
+     *
+     * 未置 NotInPeaceful 标志即允许（默认 true）。少数 Monster 类实体（Shulker/Hoglin 等）
+     * 未调用 notInPeaceful()，故和平可生成；绝大多数怪物类调用了故和平禁生成。
+     * 用于 /summon、刷怪蛋、刷怪笼的和平难度守卫（非自然生成的分类筛选）。
+     */
+    [[nodiscard]] bool isAllowedInPeaceful() const { return !hasFlag(EntityFlags::NotInPeaceful); }
 
     /**
      * @brief 获取实体类型整数 ID
