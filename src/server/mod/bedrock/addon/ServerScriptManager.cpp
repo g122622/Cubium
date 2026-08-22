@@ -33,9 +33,11 @@
 #include "server/bossbar/CustomServerBossInfoManager.hpp" // bossBarManager().getIds/get（world.bossbar 回调）
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/dimension/ServerDimensionManager.hpp" // getOverworld（world.getDefaultSpawn 回调取主世界）
 #include "server/event/ServerEventBus.hpp"
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerWorld.hpp" // worldSpawnPoint/spawnAngle（world.getDefaultSpawn 回调）
 
 #include <memory>
 #include <string>
@@ -248,6 +250,24 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         for (const auto& uuid : bar->playerUuids()) {
             view.players.push_back(uuid);
         }
+        return view;
+    });
+
+    // 桥接 world.getDefaultSpawn 到主世界 ServerWorld::worldSpawnPoint/spawnAngle。ServerWorld 在 server 层，
+    // common 层以 WorldSpawnView 值快照桥接。供 /setworldspawn 命令测试读取世界出生点做断言。每次访问
+    // 重新取快照保证 set 后 JS 立即可见。/setworldspawn 作用于命令执行者所在维度，测试在主世界故取 overworld。
+    accessor.setGetWorldSpawnCallback([server]() -> mc::mod::bedrock::addon::WorldSpawnView {
+        mc::mod::bedrock::addon::WorldSpawnView view;
+        auto* overworld = server->dimensionManager().getOverworld();
+        if (overworld == nullptr || overworld->world() == nullptr) {
+            return view; // exists=false
+        }
+        const auto* world = overworld->world();
+        view.exists = true;
+        view.x = world->worldSpawnPoint().x;
+        view.y = world->worldSpawnPoint().y;
+        view.z = world->worldSpawnPoint().z;
+        view.angle = world->spawnAngle();
         return view;
     });
 

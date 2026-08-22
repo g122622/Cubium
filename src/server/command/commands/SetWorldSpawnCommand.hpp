@@ -43,10 +43,20 @@ namespace command {
  * 设置世界的出生点（新玩家进入世界的初始位置）。
  * 权限等级: 2 (OP)
  *
- * 用法:
- * - /setworldspawn - 设置世界出生点到当前位置
- * - /setworldspawn <pos> - 设置世界出生点到指定位置
- * - /setworldspawn <pos> <angle> - 设置世界出生点到指定位置和朝向
+ * 用法（对齐 MC 1.21.11 SetWorldSpawnCommand）:
+ * - /setworldspawn - 设置世界出生点到当前位置（floor 成 BlockPos），朝向 ZERO_ROTATION（0,0）
+ * - /setworldspawn <pos> - 设置世界出生点到指定 BlockPos，朝向 ZERO_ROTATION
+ * - /setworldspawn <pos> <rotation> - 设置世界出生点到指定 BlockPos 和朝向（yaw pitch）
+ *
+ * 对齐要点（曾为偏差，已修）:
+ * - pos 参数用 BlockPosArgumentType（整数 floor，对齐 vanilla BlockPosArgument），
+ *   非 Vec3ArgumentType（centerCorrect 会给绝对整数加 0.5 偏移到方块中心，导致出生点偏 0.5）。
+ * - 无参分支 pos = BlockPos.containing(source.position())（floor），rotation = ZERO_ROTATION（0,0），
+ *   非"玩家当前朝向"（vanilla 无参不用玩家朝向）。
+ * - <pos> 分支 rotation = ZERO_ROTATION（0,0），非 angle=0（语义等价但显式对齐）。
+ * - <rotation> 用 RotationArgumentType（接 yaw pitch 两值，对齐 vanilla RotationArgument）；
+ *   yaw 存入 ServerWorld::m_spawnAngle，pitch 暂丢弃（Cubium 出生点 pitch 未建模，仅 yaw 持久化到
+ *   level.dat SpawnAngle，对齐 Java level.dat），TODO 标记完整 pitch 运行时建模。
  *
  * 参考 MC 1.21.11: SetWorldSpawnCommand
  */
@@ -60,25 +70,27 @@ public:
 
 private:
     /**
-     * @brief 设置世界出生点到当前位置（使用玩家的朝向作为出生朝向）
+     * @brief 设置世界出生点到当前位置（对齐 vanilla BlockPos.containing + ZERO_ROTATION）
      * @param context 命令上下文
      * @return 命令结果
      */
     static i32 _setCurrentPosition(CommandContext<ServerCommandSource>& context);
 
     /**
-     * @brief 设置世界出生点到指定位置
+     * @brief 设置世界出生点到指定 BlockPos（对齐 vanilla BlockPosArgument + ZERO_ROTATION）
      * @param context 命令上下文
      * @return 命令结果
      */
     static i32 _setPosition(CommandContext<ServerCommandSource>& context);
 
     /**
-     * @brief 设置世界出生点到指定位置和朝向
+     * @brief 设置世界出生点到指定 BlockPos 和朝向（对齐 vanilla BlockPosArgument + RotationArgument）
+     *
+     * rotation 解析为 (yaw, pitch)：yaw 存 ServerWorld::m_spawnAngle，pitch 暂丢弃（TODO 完整建模）。
      * @param context 命令上下文
      * @return 命令结果
      */
-    static i32 _setPositionWithAngle(CommandContext<ServerCommandSource>& context);
+    static i32 _setPositionWithRotation(CommandContext<ServerCommandSource>& context);
 
     /**
      * @brief 广播新的世界出生点到所有玩家

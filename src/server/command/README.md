@@ -229,7 +229,9 @@ server/command
     - 问题：命令执行后玩家看不到反馈
     - 解决：确保通过 `source.sendMessage()` 发送反馈消息
 
-11. **SetWorldSpawnCommand 朝向参数**
-    - `/setworldspawn` 支持三种语法：无参数（使用玩家朝向）、仅位置（朝向默认 0.0）、位置+角度
-    - 角度参数通过 `FloatArgumentType(-180.0f, 180.0f)` 解析，并通过 `math::wrapDegrees()` 归一化
+11. **SetWorldSpawnCommand 朝向参数（对齐 MC 1.21.11）**
+    - `/setworldspawn` 支持三种语法：无参数（pos=floor(玩家位置)，rotation=ZERO_ROTATION(0,0)）、仅位置（rotation=ZERO_ROTATION）、位置+旋转
+    - pos 用 `BlockPosArgumentType`（整数 floor，对齐 vanilla `BlockPosArgument`），非 `Vec3ArgumentType`（centerCorrect 会给绝对整数加 0.5 偏移致出生点偏 0.5）
+    - rotation 用 `RotationArgumentType`（接 yaw pitch 两值，对齐 vanilla `RotationArgument`）；yaw 存 `ServerWorld::m_spawnAngle`，pitch 暂丢弃（TODO 完整建模）
+    - yaw 通过 `math::wrapDegrees()` 归一化到 [-180, 180]
     - 修改出生点后需同时更新 `ServerWorld::setWorldSpawnPoint(pos, angle)` 和广播 `SpawnPositionPacket(angle)`

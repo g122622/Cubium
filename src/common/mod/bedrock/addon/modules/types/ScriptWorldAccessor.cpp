@@ -95,6 +95,14 @@ BossBarView ScriptWorldAccessor::getBossBar(const std::string& id)
     return BossBarView{}; // exists=false
 }
 
+WorldSpawnView ScriptWorldAccessor::getWorldSpawn()
+{
+    if (m_getWorldSpawnCallback) {
+        return m_getWorldSpawnCallback();
+    }
+    return WorldSpawnView{}; // exists=false
+}
+
 void ScriptWorldAccessor::setMessageCallback(std::function<void(const std::string&)> callback)
 {
     m_messageCallback = std::move(callback);
@@ -128,6 +136,11 @@ void ScriptWorldAccessor::setGetBossBarIdsCallback(std::function<std::vector<std
 void ScriptWorldAccessor::setGetBossBarCallback(std::function<BossBarView(const std::string&)> callback)
 {
     m_getBossBarCallback = std::move(callback);
+}
+
+void ScriptWorldAccessor::setGetWorldSpawnCallback(std::function<WorldSpawnView()> callback)
+{
+    m_getWorldSpawnCallback = std::move(callback);
 }
 
 } // namespace mc::mod::bedrock::addon

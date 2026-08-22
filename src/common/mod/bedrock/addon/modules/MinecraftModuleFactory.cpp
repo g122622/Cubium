@@ -376,6 +376,25 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         return ScriptObjectRegistry::wrap(ctx, mgrClassId, mgrProto, &s_sentinel, false, "BossBarManager");
     });
 
+    // world.getDefaultSpawn：返回世界出生点 {x,y,z,angle}（经 ScriptWorldAccessor::getWorldSpawn 取主世界
+    // ServerWorld 快照）。ServerWorld 在 server 层，common 层以 WorldSpawnView 值桥接。供 /setworldspawn
+    // 命令测试读取世界出生点做断言。每次访问重新取快照保证 set 后 JS 立即可见。回调未注册返 undefined。
+    // Cubium 扩展属性（官方基岩 API world 无 getDefaultSpawn，1.21.x 新增 getDefaultSpawnLocation 但本项目
+    // 命名沿用基岩旧风格）。
+    worldReg.readonlyProperty("getDefaultSpawn", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        MC_UNUSED(thisVal);
+        auto view = ScriptWorldAccessor::instance().getWorldSpawn();
+        if (!view.exists) {
+            return ctx.createUndefined();
+        }
+        void* obj = ctx.createObject();
+        ctx.setPropertyFloat(obj, "x", view.x);
+        ctx.setPropertyFloat(obj, "y", view.y);
+        ctx.setPropertyFloat(obj, "z", view.z);
+        ctx.setPropertyFloat(obj, "angle", static_cast<f64>(view.angle));
+        return obj;
+    });
+
     // --- Dimension类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。GameTest 单维度场景下维度即世界；
     // test.getDimension() 与 world.getDimension() 均 wrap 同一 IWorld*。getEntities 按基岩语义
