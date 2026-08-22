@@ -28,6 +28,7 @@ import { registerReplaceItemTests } from "./tests/player/ReplaceItemTests.js";
 import { registerScoreboardTests } from "./tests/player/ScoreboardTests.js";
 import { registerTeamTests } from "./tests/player/TeamTests.js";
 import { registerBossBarTests } from "./tests/player/BossBarTests.js";
+import { registerSpreadPlayersTests } from "./tests/player/SpreadPlayersTests.js";
 
 registerCommandTests();
 registerWorldCommandTests();
@@ -57,4 +58,5 @@ registerReplaceItemTests();
 registerScoreboardTests();
 registerTeamTests();
 registerBossBarTests();
+registerSpreadPlayersTests();
 

@@ -31,6 +31,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -46,6 +47,7 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -126,17 +128,38 @@ f64 _setPlayerPositions(server::IServer& server,
         f64 targetX = std::floor(targetPos->x) + 0.5;
         f64 targetZ = std::floor(targetPos->z) + 0.5;
 
-        // 保留玩家当前的旋转角度（与 MC 原版行为一致）
+        // 保留玩家当前的旋转角度（对齐 vanilla setPlayerPositions 用 entity.getYRot()/getXRot()，
+        // 即实体自身朝向）。真实玩家优先读 ServerPlayerData（网络层权威朝向），SimulatedPlayer 不进
+        // PlayerManager（getPlayer 返 nullptr），回退经 ServerPlayerEntityManager 取实体层 yaw/pitch。
+        // 原先仅读 ServerPlayerData，SimulatedPlayer 朝向归零（与 vanilla 偏差）。
         f32 playerYaw = 0.0f;
         f32 playerPitch = 0.0f;
         auto* playerData = server.playerManager().getPlayer(playerIds[i]);
         if (playerData != nullptr) {
             playerYaw = playerData->yaw;
             playerPitch = playerData->pitch;
+        } else {
+            mc::Player* playerEntity = server.playerEntityManager().getPlayerEntity(playerIds[i], world);
+            if (playerEntity != nullptr) {
+                playerYaw = playerEntity->yaw();
+                playerPitch = playerEntity->pitch();
+            }
         }
 
-        server.teleportManager().requestTeleport(
-            playerIds[i], targetX, static_cast<f64>(spawnY), targetZ, playerYaw, playerPitch);
+        // 传送：真实玩家经 TeleportManager（改 ServerPlayerData + 发传送包，客户端回移动包后实体收敛）；
+        // requestTeleport 对 SimulatedPlayer 返 0（其不进 PlayerManager，getPlayer 返 nullptr 直接 return 0），
+        // 回退经 ServerPlayerEntityManager 取实体直接 setPosition+setRotation 立即移动（对齐 vanilla
+        // entity.teleportTo 立即移动实体的语义；SimulatedPlayer 无连接，setRotation 写实体朝向即可）。
+        // 同款回退范式见 TeleportCommand::teleportPlayers。
+        if (server.teleportManager().requestTeleport(
+                playerIds[i], targetX, static_cast<f64>(spawnY), targetZ, playerYaw, playerPitch) == 0) {
+            mc::Player* playerEntity = server.playerEntityManager().getPlayerEntity(playerIds[i], world);
+            if (playerEntity != nullptr) {
+                playerEntity->setPosition(
+                    static_cast<f32>(targetX), static_cast<f32>(spawnY), static_cast<f32>(targetZ));
+                playerEntity->setRotation(playerYaw, playerPitch);
+            }
+        }
 
         // 计算此玩家到其他分散位置的最小距离
         f64 closestDist = std::numeric_limits<f64>::max();
