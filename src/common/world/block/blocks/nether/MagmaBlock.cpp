@@ -98,8 +98,10 @@ void MagmaBlock::onEntityWalk(const BlockState& state, IWorld& world, const Bloc
     }
 
     // 冰霜行者靴子免疫岩浆块烫脚伤害（与 CampfireBlock 一致，检查 Feet 槽单件物品）。
-    // TODO: 抗火效果（Fire Resistance）应统一免疫所有火焰伤害（hotFloor 属 isFire()），
-    //       当前 LivingEntity::isInvulnerableTo 未实现抗火效果检查，留待通用机制补全。
+    // 火焰伤害的统一免疫门控在 LivingEntity 侧：isInvulnerableTo 的 IS_FIRE+isImmuneToFire 分支
+    // （火焰免疫实体如岩浆怪/烈焰人）与 hurt 的 IS_FIRE+FireResistance 分支（抗火药水）拦截所有
+    // IS_FIRE 伤害源（含 hotFloor），对齐 vanilla Entity.isInvulnerableToBase:2921 +
+    // LivingEntity.hurtServer:1162。此处不前置自查 fireImmune，完全依赖统一门控（同 vanilla）。
     const ItemStack& boots = living->getEquipment(EquipmentSlot::Feet);
     if (item::enchant::EnchantmentHelper::hasFrostWalker(boots)) {
         return;

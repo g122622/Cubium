@@ -236,6 +236,16 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
+    // 1.5 抗火药水免疫火焰伤害（对齐 vanilla LivingEntity.hurtServer:1162：
+    //   p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE) → return false）。
+    // 持有 FireResistance 效果的实体对所有 IS_FIRE 伤害源免疫（in_fire/campfire/on_fire/lava/hot_floor/
+    // fireball）。此前 Cubium 此检查完全缺失，抗火药水无法免疫火焰伤害（站熔岩/营火仍受伤）。
+    // 注：火焰免疫实体（isImmuneToFire）已在 isInvulnerableTo 的 IS_FIRE 分支拦截，此处覆盖非火焰免疫
+    // 但喝了抗火药水的实体（如玩家/猪）。放 isInvulnerableTo 后、无敌帧逻辑前，对齐 vanilla 顺序。
+    if (source.is(DamageTypeTags::IS_FIRE()) && hasEffect(entity::effect::EffectType::FireResistance)) {
+        return false;
+    }
+
     // 2. 无敌帧逻辑
     // 如果 hurtResistantTime > 10，允许累积伤害
     if (m_hurtResistantTime > 10) {
@@ -1020,7 +1030,20 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
-    // 3. 检查无敌帧
+    // 3. 火焰伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2921：
+    //   p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune()）。
+    // 火焰免疫实体（isImmuneToFire()==true，如烈焰人/岩浆怪/僵尸猪灵/恶魂/末影龙/潜影贝/凋灵等）
+    // 对所有 IS_FIRE 伤害源（in_fire/campfire/on_fire/lava/hot_floor/fireball/unattributed_fireball）免疫。
+    // 这是火焰免疫的最外层 hurt 门控。FireBlock::onEntityCollision/Entity::lavaHurt 等前置守卫点已查
+    // isImmuneToFire() 提前 return，但 CampfireBlock::onEntityCollision/MagmaBlock::stepOn 无前置守卫，
+    // 直接 hurt(campfire/hotFloor) 依赖此门控过滤火焰免疫实体（vanilla CampfireBlock/MagmaBlock 同样
+    // 不自查 fireImmune，完全依赖 isInvulnerableToBase 的此分支）。
+    // source.is(IS_FIRE) 标签查询等价于 source.isFire() flag（成员集已对齐，见 DamageSource.hpp:351）。
+    if (source.is(DamageTypeTags::IS_FIRE()) && isImmuneToFire()) {
+        return true;
+    }
+
+    // 4. 检查无敌帧
     // 当 hurtResistantTime > 0 时，大部分伤害被阻挡
     // 但虚空伤害可以绕过
     if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {

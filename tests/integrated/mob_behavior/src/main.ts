@@ -15,6 +15,7 @@ import { registerMeleeEnchantDamageTests } from "./tests/combat/MeleeEnchantDama
 import { registerArmorDamageReductionTests } from "./tests/combat/ArmorDamageReductionTests.js";
 import { registerFireAspectEnchantTests } from "./tests/combat/FireAspectEnchantTests.js";
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
+import { registerFireImmunityTests } from "./tests/combat/FireImmunityTests.js";
 import { registerWardenTests } from "./tests/boss/WardenTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
@@ -229,3 +230,4 @@ registerMeleeEnchantDamageTests();
 registerArmorDamageReductionTests();
 registerFireAspectEnchantTests();
 registerProjectileDeflectTests();
+registerFireImmunityTests();
