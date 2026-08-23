@@ -386,18 +386,42 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 7. 记录伤害来源
     m_lastDamageSource = source.clone();
 
-    // 8. 更新最近攻击者
+    // 8. 更新最近攻击者（对齐 MC Java 1.21.11 LivingEntity.resolveMobResponsibleForDamage
+    //    :1326-1332 + resolvePlayerResponsibleForDamage:1334-1348，vanilla 在 hurtServer 内
+    //    actuallyHurt 之后调用这两个方法，Cubium 将等价逻辑放在 actuallyHurt 内此处）。
+    //    getTrueSource() 对应 vanilla getEntity()（causingEntity 真凶，IndirectEntityDamageSource
+    //    的 shooter），非 getDirectSource()（directEntity 投射物本身）。
     Entity* trueSource = source.getTrueSource();
     if (trueSource != nullptr && trueSource != this) {
         LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
-        if (attacker != nullptr) {
+
+        // 8a. 记录最近攻击生物（lastHurtByMob）—— 对齐 resolveMobResponsibleForDamage:1326-1331：
+        //     getEntity() instanceof LivingEntity && !source.is(NO_ANGER)
+        //     && (!source.is(WIND_CHARGE) || !this.getType().is(NO_ANGER_FROM_WIND_CHARGE))
+        //     才 setLastHurtByMob。
+        //     - NO_ANGER = {mob_attack_no_aggro}（DamageTypeTags.cpp:644）：铁傀儡等生物的
+        //       mob_attack_no_aggro 攻击设计为不激怒目标，故不记录 lastHurtByMob。
+        //     - NO_ANGER_FROM_WIND_CHARGE = {breeze,skeleton,bogged,stray,zombie,husk,spider,
+        //       cave_spider,slime}（EntityTypeTags.cpp:724）：风弹（WindBurst=minecraft:wind_charge）
+        //       击中这些生物时不激怒（vanilla 设计：风弹不应打扰这些生物的仇恨）。
+        //     此前 Cubium 无条件 setLastHurtBy，mob_attack_no_aggro 与风弹均误激怒，偏离 vanilla。
+        //     注：vanilla 用 source.is(DamageTypes.WIND_CHARGE) 判定风弹（单伤害类型非标签），
+        //     Cubium 无 is(DamageType) 单类型查询，用 source.type()==DamageType::WindBurst 等价
+        //     （DamageType::WindBurst 即 minecraft:wind_charge，DamageTypeTag.cpp:150）。
+        const bool isWindCharge = (source.type() == DamageType::WindBurst);
+        const bool shouldAnger = !source.is(DamageTypeTags::NO_ANGER()) &&
+            (!isWindCharge || !EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(getTypeId()));
+        if (attacker != nullptr && shouldAnger) {
             setLastHurtBy(attacker);
         }
-        // 对齐 MC Java 1.21.11 LivingEntity.resolvePlayerResponsibleForDamage
-        // （LivingEntity.java:1334-1348）：受玩家直接伤害时记录 100 tick 记忆窗口，
-        // 用于死亡时经验掉落守卫（普通生物需被玩家伤害过才掉经验，见 dropExperience）。
-        // TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
-        if (dynamic_cast<Player*>(attacker) != nullptr) {
+
+        // 8b. 记录最近攻击玩家（lastHurtByPlayer，100 tick 记忆窗口）—— 对齐
+        //     resolvePlayerResponsibleForDamage:1334-1348：getEntity() instanceof Player 即
+        //     setLastHurtByPlayer(player, 100)，无 NO_ANGER 门控。即 mob_attack_no_aggro 由玩家
+        //     造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，见 dropExperience），但不激怒
+        //     （8a 的 lastHurtByMob 被 NO_ANGER 门控挡住）。
+        //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
+        if (dynamic_cast<Player*>(trueSource) != nullptr) {
             setLastHurtByPlayerMemoryTime(100);
         }
     }

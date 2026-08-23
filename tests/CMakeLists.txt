@@ -472,6 +472,8 @@ add_executable(mc_tests
     common/entity/combat/BypassesEnchantmentsTest.cpp
     # DAMAGES_HELMET 标签查询测试（坠落铁砧/方块/钟乳石戴头盔 ×0.75 减伤）
     common/entity/combat/DamagesHelmetTest.cpp
+    # NO_ANGER/NO_ANGER_FROM_WIND_CHARGE 标签查询测试（mob_attack_no_aggro/风弹不激怒）
+    common/entity/combat/NoAngerTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
