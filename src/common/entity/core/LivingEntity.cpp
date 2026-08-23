@@ -268,14 +268,26 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
     }
 
     // 3. 标记受伤（用于速度同步到客户端和AI目标检测）
-    // 对应 MC Java LivingEntity.hurtServer() 中的 markHurt() 调用
-    // 当实体受到伤害时设置此标记，服务端在 EntityTracker::tick() 中检测到此标记后
-    // 会发送 EntityVelocityPacket 同步速度到客户端，并将标记重置为 false
-    markHurt();
+    // 对应 MC Java LivingEntity.hurtServer:1218-1220：
+    //   if (!source.is(DamageTypeTags.NO_IMPACT) && (!flag || amount > 0.0F)) markHurt();
+    // flag 为盾牌格挡标志，Cubium hurt 入口无 flag 概念（盾牌在 canBlockDamageSource/actuallyHurt
+    // 内处理），此处简化为 !source.is(NO_IMPACT)。NO_IMPACT = {Drown}（DamageTypeTags.cpp:649）：
+    // 溺水伤害不触发受击标记（不产生受击动画/速度同步），对齐 vanilla——溺水是渐进缺氧，无受击反馈。
+    // 此前 Cubium 无条件 markHurt，溺水也触发受击标记，偏离 vanilla。
+    if (!source.is(DamageTypeTags::NO_IMPACT())) {
+        markHurt();
+    }
 
-    // 4. 计算受伤方向并触发 damageTilt 同步（hurtServer 中 indicateDamage 调用）。
+    // 4. 计算受伤方向并触发 damageTilt 同步（hurtServer:1222-1238 的 NO_KNOCKBACK 分支）。
+    // vanilla：if (!source.is(NO_KNOCKBACK)) { 计算 d0/d1; knockback(0.4,d0,d1); if (!flag)
+    // indicateDamage(d0,d1); }。即 indicateDamage 受 NO_KNOCKBACK 门控（在 NO_KNOCKBACK 分支内）。
+    // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（DamageTypeTags.cpp:654，
+    // 近 30 类型）：这些伤害不产生击退与受击倾斜。Cubium hurt 未实现通用 knockback(0.4)（vanilla 的
+    // 通用击退），仅对齐 indicateDamage 的 NO_KNOCKBACK 门控。
+    // TODO: 对齐 vanilla knockback(0.4, d0, d1) 通用击退（NO_KNOCKBACK 门控内），Cubium hurt 当前
+    //       无通用击退调用，击退仅在 attackEntityAsMob 等特定路径，偏离 vanilla hurtServer。
     // d0/d1 为伤害来源相对受害者在世界 XZ 平面的方向向量；无来源位置时为 0。
-    if (m_world != nullptr && amount > 0.0f) {
+    if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
         const auto sourcePos = source.sourcePosition();
