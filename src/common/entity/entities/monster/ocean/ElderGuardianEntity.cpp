@@ -83,10 +83,15 @@ void ElderGuardianEntity::registerAttributes()
     // 调用父类方法
     GuardianEntity::registerAttributes();
 
-    // 远古守卫者的属性
+    // 远古守卫者属性。对齐 vanilla 1.21.11 ElderGuardian.createAttributes（ElderGuardian.java:35）：
+    //   在 Guardian.createAttributes() 基础上覆盖 MOVEMENT_SPEED=0.3、ATTACK_DAMAGE=8.0、MAX_HEALTH=80.0。
+    //   FOLLOW_RANGE=16.0 继承自 Guardian 基类（vanilla 未覆盖）。
+    // 注：ATTACK_DAMAGE=8.0 用于激光命中后 doHurtTarget 追加的近战伤害（见 GuardianAttackGoal::tick），
+    //   与激光魔法伤害（LASER_DAMAGE 1.0 + elder 加成 2.0 = 3.0 普通难度）是两个独立量。
+    //   此前 ATTACK_DAMAGE=5.0 致远古守卫者近战伤害偏低 3.0。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 80.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 5.0);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 8.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 

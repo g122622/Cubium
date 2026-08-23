@@ -22,15 +22,15 @@ const HALL_VOLUME = { x: 41, y: 7, z: 9 };
 // C++ 链路：GuardianEntity : MonsterEntity，registerGoals 注册
 // NearestAttackableTargetGoal<LivingEntity>(checkSight=true，谓词只放行 Player/Squid，距离平方>9)（优先级1）+
 // GuardianAttackGoal（激光攻击，优先级4）。GuardianAttackGoal::tick：m_tickCounter 从 -10 递增到 80，
-// 到 80 时结算伤害——先 magic() 魔法伤害 LASER_DAMAGE(4.0)，再 mobAttack() 物理伤害 ATTACK_DAMAGE(4.0)。
-// 完整周期约 90 tick（10 准备 + 80 充能）。激光是确定性命中（无散布），不像烈焰人火球。
+// 到 80 时结算伤害——先 indirectMagic() 魔法伤害 LASER_DAMAGE(1.0)，再 mobAttack() 物理伤害
+// ATTACK_DAMAGE(6.0)。完整周期约 90 tick（10 准备 + 80 充能）。激光是确定性命中（无散布），不像烈焰人火球。
 //
 // 环境选择：creeper_pit（7×5×7 开放坑）无围墙，NearestAttackableTarget checkSight 射线不被玻璃阻挡。
 // 守卫者(2,2,3)+玩家(6,2,3)，水平距 4 格，distSq=16，>9 走激光分支（C++ 无 15 格硬上限，靠 FOLLOW_RANGE=16 搜索）。
 // 守卫者陆地不窒息（wiki#行为：在空气中不会窒息，陆地可一直存活），C++ LivingEntity::updateAirSupply
 // 不在水中时恢复空气，故陆地测试守卫者不会溺水死亡。
 //
-// 判定手段：断言玩家 HP 下降（<20）。激光确定性命中（无 nextGaussian 散布），双段伤害魔法4+物理4，
+// 判定手段：断言玩家 HP 下降（<20）。激光确定性命中（无 nextGaussian 散布），双段伤害魔法1+物理6，
 // 玩家初始满血 20，被命中即掉至 <20。与烈焰人火球不同，激光无需散布概率担忧，掉血断言稳定。
 // 玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验，创造模式被 TargetGoal 谓词滤掉不可被攻击）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（激光充能后双段伤害）
@@ -104,7 +104,7 @@ function guardianDoesNotBurnInDaylight(test: Test): void {
 //     类型筛选 isPlayer||isSquid（:142-146）——**鱿鱼分支 isSquid（:143）放行鱿鱼，无 Creative/
 //     Spectator 检查（鱿鱼非玩家不走 :149-154 玩家特殊分支）**；距离筛选 distSq>9.0（>3 格，:157-160）。
 //   GuardianAttackGoal::tick（GuardianAttackGoal.cpp）m_tickCounter 从 -10 递增到 80（ATTACK_DURATION），
-//   到 80 时结算：先 magic() LASER_DAMAGE(4.0) 魔法伤害，再 mobAttack() ATTACK_DAMAGE(4.0) 物理伤害。
+//   到 80 时结算：先 indirectMagic() LASER_DAMAGE(1.0) 魔法伤害，再 mobAttack() ATTACK_DAMAGE(6.0) 物理伤害。
 //   完整周期约 90 tick（10 准备 + 80 充能），激光确定性命中无散布。
 //   注：谓词只放行 SQUID，**未放行 GLOW_SQUID/AXOLOTL**（与 wiki 列举的发光鱿鱼/美西螈不符，对齐缺陷，
 //   留待后续对齐任务）。
@@ -120,7 +120,7 @@ function guardianDoesNotBurnInDaylight(test: Test): void {
 //   chance=10 tick，首击应在 ~100-120 tick。**maxTicks=300 < 320**——确保测试窗口内鱿鱼窒息尚未触发，
 //   掉血只能来自守卫者激光，断言纯粹验证 isSquid 谓词分支 + 激光链路。
 //
-// 判定手段：succeedWhen 每 tick 检查鱿鱼 HP<10（满血 10，激光双段 4+4=8 命中后 10→2）或鱿鱼已死亡消失
+// 判定手段：succeedWhen 每 tick 检查鱿鱼 HP<10（满血 10，激光双段 1+6=7 命中后 10→3）或鱿鱼已死亡消失
 //   （length==0，被多击杀死）。激光确定性命中（无散布），掉血断言稳定。区域限定查鱿鱼排除并行测试污染。
 //   不需 Survival 玩家（鱿鱼非玩家，谓词不过滤游戏模式），无需 spawn 玩家。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（激光攻击鱿鱼/发光鱿鱼/美西螈）
@@ -167,11 +167,11 @@ function guardianLaserDamagesSquid(test: Test): void {
 // 涵盖 GlowSquid extends Squid）。本次修复谓词显式放行 GLOW_SQUID（GuardianEntity.cpp:148-149）。
 //
 // 链路同 guardian_laser_damages_squid：NearestAttackableTargetGoal 谓词 isSquid 分支（含 GLOW_SQUID）
-// 选目标 + GuardianAttackGoal 激光双段伤害 magic 4 + 物理 4 = 8。
+// 选目标 + GuardianAttackGoal 激光双段伤害 magic 1 + 物理 6 = 7。
 //
 // 环境与约束同 guardian_laser_damages_squid：creeper_pit，守卫者(2,2,3)+发光鱿鱼(6,2,3) 水平距 4 格，
 // 脚下玻璃支撑。发光鱿鱼 : WaterMobEntity，maxAir=300（同鱿鱼），陆地窒息首伤 ~320 tick，
-// maxTicks=300 < 320 规避窒息。发光鱿鱼满血 10，激光 8 伤害命中后 10→2 < 10。
+// maxTicks=300 < 320 规避窒息。发光鱿鱼满血 10，激光 7 伤害命中后 10→3 < 10。
 // 判定 glow_squid HP<10 或 length==0，区域限定排除并行污染。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（激光攻击发光鱿鱼）
 function guardianLaserDamagesGlowSquid(test: Test): void {
@@ -208,8 +208,8 @@ function guardianLaserDamagesGlowSquid(test: Test): void {
 // 本测试验证谓词的 AXOLOTL 分支。Cubium 谓词此前完全缺 AXOLOTL（对齐缺陷，vanilla instanceof Axolotl）。
 // 本次修复显式放行 AXOLOTL（GuardianEntity.cpp:150）。
 //
-// 链路同 guardian_laser_damages_squid：谓词 isAxolotl 选目标 + GuardianAttackGoal 激光双段 8 伤害。
-// 美西螈满血 14，激光 8 命中后 14→6；两击致死（6→-2 消失）。
+// 链路同 guardian_laser_damages_squid：谓词 isAxolotl 选目标 + GuardianAttackGoal 激光双段 1+6=7 伤害。
+// 美西螈满血 14，激光 7 命中后 14→7；两击致死（7→0 消失）。
 //
 // 关键设计——垂直+水平偏移布局规避两类失败（前期水平布局失败：美西螈与守卫者 RandomWalking
 //   碰近 distSq<9 触发谓词"距离太近不攻击"全程不掉血；正上方垂直布局偶发失败：美西螈脚下支撑

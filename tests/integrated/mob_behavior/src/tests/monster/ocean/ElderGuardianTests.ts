@@ -11,15 +11,16 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 
 // 远古守卫者激光攻击玩家致掉血（wiki tech_远古守卫者.txt#攻击：远古守卫者继承守卫者的激光攻击，
 // 充能数秒后激光消失，对目标造成两次伤害——魔法伤害（不被护甲降低）+ 生物伤害（被护甲降低）。
-// 远古守卫者激光生物伤害为 5（普通难度），高于普通守卫者的 4）。
+// 远古守卫者激光生物伤害为 8（ATTACK_DAMAGE，普通难度），高于普通守卫者的 6）。
 //
 // C++ 链路：ElderGuardianEntity : GuardianEntity : MonsterEntity，registerGoals 继承自 GuardianEntity：
 //   targetSelector 优先级1：NearestAttackableTargetGoal<LivingEntity>(checkSight=true，谓词只放行
 //     Player/Squid，距离平方>9)。
 //   goalSelector 优先级4：GuardianAttackGoal（激光攻击）。
-// GuardianAttackGoal::tick：m_tickCounter 从 -10 递增到 80，到 80 时结算伤害——先 magic() 魔法伤害
-//   LASER_DAMAGE，再 mobAttack() 物理伤害 ATTACK_DAMAGE。远古守卫者 registerAttributes 覆盖
-//   ATTACK_DAMAGE=5.0（Guardian 基类 4.0），MAX_HEALTH=80。完整周期约 90 tick（10 准备 + 80 充能）。
+// GuardianAttackGoal::tick：m_tickCounter 从 -10 递增到 80，到 80 时结算伤害——先 indirectMagic() 魔法
+//   伤害 LASER_DAMAGE(1.0)+elder 加成(2.0)=3.0（普通难度），再 mobAttack() 物理伤害 ATTACK_DAMAGE。
+//   远古守卫者 registerAttributes 覆盖 ATTACK_DAMAGE=8.0（Guardian 基类 6.0），MAX_HEALTH=80。
+//   完整周期约 90 tick（10 准备 + 80 充能）。
 //
 // 环境选择：creeper_pit（7×5×7 开放坑）无围墙，NearestAttackableTarget checkSight 射线不被玻璃阻挡。
 // 远古守卫者(2,2,3)+玩家(6,2,3)，水平距 4 格，distSq=16，>9 走激光分支。

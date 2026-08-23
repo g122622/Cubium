@@ -79,10 +79,13 @@ private:
     bool m_isElder = false; // 是否为远古守卫者
 
     // 攻击常量
-    static constexpr i32 ATTACK_DURATION = 80;      // 攻击周期（ticks）
-    static constexpr f32 ATTACK_RANGE = 15.0f;      // 攻击范围
-    static constexpr f32 LASER_DAMAGE = 4.0f;       // 激光伤害（普通守卫者）
-    static constexpr f32 ELDER_BONUS_DAMAGE = 2.0f; // 远古守卫者额外伤害
+    static constexpr i32 ATTACK_DURATION = 80; // 攻击周期（ticks），对齐 vanilla Guardian.getAttackDuration():109-111
+    static constexpr f32 ATTACK_RANGE = 15.0f; // 攻击范围
+    // 激光魔法伤害基础值（普通守卫者普通难度）。对齐 vanilla Guardian.GuardianAttackGoal.tick
+    //   （Guardian.java:407-414）：f = 1.0 + (HARD?2.0:0) + (elder?2.0:0)，用 indirectMagic 结算，
+    //   不读 ATTACK_DAMAGE 属性。HARD/elder 加成在 tick() 中叠加。
+    static constexpr f32 LASER_DAMAGE = 1.0f;       // 激光魔法伤害基础值（对齐 vanilla f=1.0）
+    static constexpr f32 ELDER_BONUS_DAMAGE = 2.0f; // 远古守卫者额外魔法伤害（对齐 vanilla elder +2.0）
 };
 
 } // namespace entity::ai::goal

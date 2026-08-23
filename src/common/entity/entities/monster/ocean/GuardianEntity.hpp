@@ -215,8 +215,9 @@ private:
 
     // 常量
     static constexpr i32 LASER_CHARGE_DURATION = 60; // 3秒充能
-    static constexpr f32 LASER_DAMAGE = 4.0f;
-    static constexpr f32 SPIKE_DAMAGE = 2.0f;
+    // 注：激光魔法伤害基础值（vanilla f=1.0）与远古加成（+2.0）定义在 GuardianAttackGoal.hpp
+    //   （LASER_DAMAGE/ELDER_BONUS_DAMAGE），由 GuardianAttackGoal::tick 结算。荆棘反伤 2.0
+    //   （对齐 vanilla Guardian.hurtServer:319）在 hurt() 中以字面量结算。此处不再重复定义。
 };
 
 } // namespace mc

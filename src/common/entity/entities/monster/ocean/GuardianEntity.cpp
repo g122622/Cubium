@@ -219,10 +219,15 @@ void GuardianEntity::registerAttributes()
     // 调用父类方法
     MonsterEntity::registerAttributes();
 
-    // 守卫者的属性
+    // 守卫者属性。对齐 vanilla 1.21.11 Guardian.createAttributes（Guardian.java:86）：
+    //   Monster.createMonsterAttributes() 基类含 FOLLOW_RANGE=16.0，叠加 ATTACK_DAMAGE=6.0、
+    //   MOVEMENT_SPEED=0.5、MAX_HEALTH=30.0。
+    // 注：ATTACK_DAMAGE 用于激光命中后 doHurtTarget 追加的近战伤害（见 GuardianAttackGoal::tick），
+    //   与激光魔法伤害 LASER_DAMAGE(1.0) 是两个独立量；此前误将 ATTACK_DAMAGE 设为 LASER_DAMAGE(4.0)
+    //   致近战伤害偏低 2.0。MOVEMENT_SPEED 此前 0.3 偏低，对齐 vanilla 0.5。
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 30.0);
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
-    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, LASER_DAMAGE);
+    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5);
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
     attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 

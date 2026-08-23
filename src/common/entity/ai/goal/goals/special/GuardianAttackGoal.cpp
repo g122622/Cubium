@@ -172,24 +172,31 @@ void GuardianAttackGoal::tick()
                 m_guardian->id(), static_cast<u8>(network::EntityStatus::GuardianAttack));
         }
     } else if (m_tickCounter >= ATTACK_DURATION) {
-        // 攻击完成，造成伤害
+        // 攻击完成，造成伤害。对齐 vanilla Guardian.GuardianAttackGoal.tick（Guardian.java:406-418）：
+        //   先 indirectMagic 魔法伤害 f（不读 ATTACK_DAMAGE，绕过护甲），再 doHurtTarget 读
+        //   ATTACK_DAMAGE 属性的近战伤害（走护甲/附魔管线）。
         f32 damage = LASER_DAMAGE;
 
-        // 困难模式额外伤害
+        // 困难模式额外伤害（对齐 vanilla Guardian.java:408-410 HARD +2.0）
         if (m_guardian->world() != nullptr && m_guardian->world()->difficulty() == Difficulty::Hard) {
             damage += 2.0f;
         }
 
-        // 远古守卫者额外伤害
+        // 远古守卫者额外伤害（对齐 vanilla Guardian.java:412-414 elder +2.0）
         if (m_isElder) {
             damage += ELDER_BONUS_DAMAGE;
         }
 
-        // 使用魔法伤害 + 物理伤害
-        auto magicDamage = DamageSources::magic();
+        // 魔法伤害：对齐 vanilla damageSources().indirectMagic(this.guardian, this.guardian)
+        //   （Guardian.java:417）。带守卫者作为 causingEntity/directEntity，使伤害归属守卫者
+        //   （影响死亡信息、反击 targetSelector 等）；indirectMagic 绕过护甲（setBypassesArmor）。
+        //   此前用 magic()（无来源实体），伤害无归属，与 vanilla 偏差。
+        auto magicDamage = DamageSources::indirectMagic(m_guardian, m_guardian);
         m_target->hurt(magicDamage, damage);
 
-        // 使用攻击伤害属性
+        // 近战伤害：对齐 vanilla doHurtTarget（Guardian.java:418），读 ATTACK_DAMAGE 属性。
+        //   Guardian 6.0 / ElderGuardian 8.0（对齐 vanilla createAttributes）。走 mobAttack 完整
+        //   近战管线（护甲/附魔/击退）。
         f32 attackDamage =
             static_cast<f32>(m_guardian->getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0));
         if (attackDamage > 0.0f) {

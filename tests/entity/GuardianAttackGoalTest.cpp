@@ -24,10 +24,13 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/GuardianAttackGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -56,21 +59,20 @@ protected:
 
 TEST_F(GuardianAttackGoalTest, AttackDistances_AreCorrect)
 {
-    // MC 1.16.5 GuardianEntity 常量验证
-    // 攻击范围：15 格 (激光攻击范围)
-    // 充能时间：60 tick (3 秒)
-    // 冷却时间：20 tick (1 秒)
+    // 对齐 vanilla 1.21.11 Guardian。激光攻击范围 15 格；攻击周期 80 tick
+    // （Guardian.getAttackDuration():109-111）。激光魔法伤害基础值 1.0（Guardian.java:407 f=1.0F），
+    // HARD/elder 加成在 tick() 叠加（+2.0 各）。注意：ATTACK_DAMAGE 属性（Guardian 6.0 /
+    // ElderGuardian 8.0，createAttributes）是激光命中后 doHurtTarget 追加的近战伤害，与激光
+    // 魔法伤害基础值是两个独立量。
 
     // 这些常量在 GuardianAttackGoal.hpp 中定义
-    constexpr i32 CHARGE_DURATION = 60;   // 充能时间
-    constexpr i32 COOLDOWN_DURATION = 20; // 冷却时间
-    constexpr f32 ATTACK_RANGE = 15.0f;   // 攻击范围
-    constexpr f32 LASER_DAMAGE = 4.0f;    // 激光伤害
+    constexpr i32 ATTACK_DURATION = 80; // 攻击周期（充能，对齐 vanilla getAttackDuration）
+    constexpr f32 ATTACK_RANGE = 15.0f; // 攻击范围
+    constexpr f32 LASER_DAMAGE = 1.0f;  // 激光魔法伤害基础值（对齐 vanilla f=1.0）
 
-    EXPECT_EQ(CHARGE_DURATION, 60);
-    EXPECT_EQ(COOLDOWN_DURATION, 20);
+    EXPECT_EQ(ATTACK_DURATION, 80);
     EXPECT_FLOAT_EQ(ATTACK_RANGE, 15.0f);
-    EXPECT_FLOAT_EQ(LASER_DAMAGE, 4.0f);
+    EXPECT_FLOAT_EQ(LASER_DAMAGE, 1.0f);
 }
 
 TEST_F(GuardianAttackGoalTest, TargetSelectionDistance_IsCorrect)
@@ -297,6 +299,42 @@ TEST_F(GuardianAttackGoalTest, ElderGuardian_DamageBonus)
     // 远古守卫者 + 困难
     f32 elderGuardianHard = BASE_MAGIC_DAMAGE + HARD_MODE_BONUS + ELDER_BONUS;
     EXPECT_FLOAT_EQ(elderGuardianHard, 5.0f);
+}
+
+// ============================================================================
+// 守卫者/远古守卫者属性值对齐 vanilla 测试
+// ============================================================================
+//
+// 对齐 vanilla 1.21.11 createAttributes（Guardian.java:86 / ElderGuardian.java:35），
+// 直接读构造后实体的属性基值，防止属性注册回归（此前 Guardian ATTACK_DAMAGE 误设为
+// LASER_DAMAGE(4.0)、MOVEMENT_SPEED 误设 0.3；ElderGuardian ATTACK_DAMAGE 误设 5.0）。
+// ATTACK_DAMAGE 用于激光命中后 doHurtTarget 追加的近战伤害（见 GuardianAttackGoal::tick），
+// 与激光魔法伤害基础值（1.0）是两个独立量。
+
+TEST_F(GuardianAttackGoalTest, GuardianAttributes_AlignedWithVanilla)
+{
+    // vanilla Guardian.createAttributes（Guardian.java:86）：
+    //   Monster.createMonsterAttributes() 基类含 FOLLOW_RANGE=16.0，叠加
+    //   ATTACK_DAMAGE=6.0、MOVEMENT_SPEED=0.5、MAX_HEALTH=30.0。
+    GuardianEntity guardian(EntityInstanceId(1), mc::test::testEcsRegistry());
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(guardian.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 30.0f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(guardian.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED)), 0.5f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(guardian.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE)), 6.0f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(guardian.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE)), 16.0f);
+}
+
+TEST_F(GuardianAttackGoalTest, ElderGuardianAttributes_AlignedWithVanilla)
+{
+    // vanilla ElderGuardian.createAttributes（ElderGuardian.java:35）：
+    //   在 Guardian 基础上覆盖 MOVEMENT_SPEED=0.3、ATTACK_DAMAGE=8.0、MAX_HEALTH=80.0。
+    //   FOLLOW_RANGE=16.0 继承自 Guardian 基类（vanilla 未覆盖）。
+    ElderGuardianEntity elder(EntityInstanceId(1), mc::test::testEcsRegistry());
+
+    EXPECT_FLOAT_EQ(static_cast<f32>(elder.getAttributeValue(entity::attribute::Attributes::MAX_HEALTH)), 80.0f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(elder.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED)), 0.3f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(elder.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE)), 8.0f);
+    EXPECT_FLOAT_EQ(static_cast<f32>(elder.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE)), 16.0f);
 }
 
 // ============================================================================
