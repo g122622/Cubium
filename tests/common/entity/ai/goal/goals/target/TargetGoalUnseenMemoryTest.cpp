@@ -162,10 +162,15 @@ TEST_F(TargetGoalUnseenMemoryTest, SetUnseenMemoryTicks_DefaultValueIs60)
 
 TEST_F(TargetGoalUnseenMemoryTest, SetUnseenMemoryTicks_ChangesValue)
 {
-    // setUnseenMemoryTicks 应正确修改值
+    // setUnseenMemoryTicks 应正确修改值。对齐 vanilla TargetGoal.setUnseenMemoryTicks：内部经
+    // reducedTickDelay(ticks) 减半（Goal.hpp:119，(n+1)/2，补偿 GoalSelector 每 2 tick 评估一次）。
+    // 故 setUnseenMemoryTicks(N) 存储的值为 reducedTickDelay(N) 而非 N：
+    //   reducedTickDelay(300) = (300+1)/2 = 150
+    //   reducedTickDelay(1)   = (1+1)/2   = 1
+    //   reducedTickDelay(0)   = (0+1)/2   = 0
     auto goal = std::make_unique<ControllableSightTargetGoal>(pig.get(), true);
     goal->setUnseenMemoryTicks(300);
-    EXPECT_EQ(goal->getUnseenMemoryTicks(), 300);
+    EXPECT_EQ(goal->getUnseenMemoryTicks(), 150);
 
     goal->setUnseenMemoryTicks(1);
     EXPECT_EQ(goal->getUnseenMemoryTicks(), 1);
@@ -176,36 +181,33 @@ TEST_F(TargetGoalUnseenMemoryTest, SetUnseenMemoryTicks_ChangesValue)
 
 // ==================== HurtByTargetGoal 视线记忆测试 ====================
 
+// 可读取 protected m_unseenMemoryTicks 的 HurtByTargetGoal 测试子类，用于直接验证
+// startExecuting() 设置的值（对齐 vanilla HurtByTargetGoal.start() 直接赋值 300，不经
+// reducedTickDelay，区别于 setUnseenMemoryTicks 的减半语义）。
+class TestableHurtByTargetGoal : public entity::ai::goal::HurtByTargetGoal {
+public:
+    explicit TestableHurtByTargetGoal(MobEntity* mob)
+        : entity::ai::goal::HurtByTargetGoal(mob)
+    {}
+
+    [[nodiscard]] i32 getUnseenMemoryTicks() const { return m_unseenMemoryTicks; }
+};
+
 TEST_F(TargetGoalUnseenMemoryTest, HurtByTargetGoal_SetsUnseenMemoryTicksTo300OnStart)
 {
-    // HurtByTargetGoal::startExecuting() 应设置 m_unseenMemoryTicks = 300
-    // 对应 MC Java: HurtByTargetGoal.start() 中 this.unseenMemoryTicks = 300
+    // HurtByTargetGoal::startExecuting() 应直接设置 m_unseenMemoryTicks = 300
+    // 对应 MC Java HurtByTargetGoal.start():64：this.unseenMemoryTicks = 300（直接赋值，不经
+    // reducedTickDelay，区别于 setUnseenMemoryTicks 的减半语义）。Cubium 同样直接赋值 300
+    // （TargetGoals.cpp:314），故 startExecuting 后 m_unseenMemoryTicks 应为 300 而非 150。
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<TestableHurtByTargetGoal>(pig.get());
     ASSERT_TRUE(goal->shouldExecute());
+    // startExecuting 前 m_unseenMemoryTicks 为 TargetGoal 默认值 60
+    EXPECT_EQ(goal->getUnseenMemoryTicks(), 60);
     goal->startExecuting();
-
-    // 验证方式：通过 ControllableSightTargetGoal 的行为间接验证
-    // 创建 ControllableSightTargetGoal 设置 300tick，模拟 HurtByTargetGoal 的行为
-    auto mockGoal = std::make_unique<ControllableSightTargetGoal>(pig.get(), true);
-    mockGoal->setUnseenMemoryTicks(300); // 与 HurtByTargetGoal.startExecuting() 中设置的值相同
-    mockGoal->setTarget(attacker.get());
-    mockGoal->setCanSeeTarget(false);
-
-    mockGoal->startExecuting();
-
-    // 60 tick 后应仍继续追踪（默认只有 60 tick，但 300 tick 应持续更久）
-    for (int i = 0; i < 60; ++i) {
-        EXPECT_TRUE(mockGoal->shouldContinueExecuting());
-    }
-    // 继续到 300 tick 仍应追踪
-    for (int i = 60; i < 300; ++i) {
-        EXPECT_TRUE(mockGoal->shouldContinueExecuting())
-            << "HurtByTargetGoal should track for 300 ticks, at tick " << (i + 1);
-    }
-    // 超过 300 tick 后放弃
-    EXPECT_FALSE(mockGoal->shouldContinueExecuting());
+    // startExecuting 后应为 300（对齐 vanilla HurtByTargetGoal.start 直接赋值）
+    EXPECT_EQ(goal->getUnseenMemoryTicks(), 300);
 }
 
 // ==================== NearestAttackableTargetGoal 构造测试 ====================
@@ -289,9 +291,13 @@ TEST_F(UnseenMemoryThresholdTest, CustomUnseenMemory_300Ticks)
 {
     // 设置 m_unseenMemoryTicks=300（唤魔者/幻术师的值）
     // 目标离开视线后，应在 300 tick 内继续追踪
+    // 注：setUnseenMemoryTicks 对齐 vanilla TargetGoal.setUnseenMemoryTicks，内部经
+    // reducedTickDelay(ticks) 减半（Goal.hpp:119，(n+1)/2，补偿 GoalSelector 每 2 tick 评估一次）。
+    // 故 setUnseenMemoryTicks(600) → m_unseenMemoryTicks=300，对齐 vanilla 语义。直接传 300 会
+    // 得 150（reducedTickDelay(300)=150），偏离测试意图的 300 tick。
     auto goal = std::make_unique<ControllableSightTargetGoal>(pig.get(), true);
     goal->setTarget(attacker.get());
-    goal->setUnseenMemoryTicks(300);
+    goal->setUnseenMemoryTicks(600); // reducedTickDelay(600) = 300
     goal->setCanSeeTarget(true);
 
     goal->startExecuting();
