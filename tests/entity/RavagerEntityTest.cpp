@@ -192,9 +192,9 @@ TEST_F(RavagerEntityTest, InitialState_IsCorrect)
     // 可以破坏方块
     EXPECT_TRUE(ravager->canBreakBlocks());
 
-    // 无骑乘者
-    EXPECT_FALSE(ravager->hasRider());
-    EXPECT_EQ(ravager->getRider(), nullptr);
+    // 无骑乘者（骑乘关系由 Entity 通用 passengers 体系管理，历史 m_rider 死代码已移除）
+    EXPECT_FALSE(ravager->isBeingRidden());
+    EXPECT_EQ(ravager->getControllingPassenger(), INVALID_ENTITY_ID);
 }
 
 // ============================================================================
@@ -233,7 +233,8 @@ TEST_F(RavagerAttackStateTest, MovementBlocked_WhenAttacking)
     ravager->setWorld(m_world.get());
 
     // 设置攻击状态
-    ravager->attackEntityAsMob(*std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry()));
+    ravager->attackEntityAsMob(
+        *std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry()));
 
     // 攻击时移动被阻塞
     EXPECT_TRUE(ravager->isMovementBlocked());

@@ -141,21 +141,10 @@ public:
     void blockedByItem(LivingEntity& victim) override;
 
     // ========== 骑乘系统 ==========
-
-    /**
-     * @brief 是否正在被骑乘
-     */
-    [[nodiscard]] bool hasRider() const { return m_rider != nullptr; }
-
-    /**
-     * @brief 获取骑乘者
-     */
-    [[nodiscard]] Entity* getRider() const { return m_rider; }
-
-    /**
-     * @brief 设置骑乘者
-     */
-    void setRider(Entity* rider) { m_rider = rider; }
+    // 注：Ravager 的骑乘关系由 Entity 通用 passengers 体系管理（startRiding/addPassenger/
+    // getControllingPassenger），updateMovementGoalFlags 据此判定 RAIDERS 标签门控。
+    // 历史遗留的 m_rider/hasRider/getRider/setRider 为死代码（m_rider 恒 nullptr、setRider
+    // 零调用点），已移除以避免误导——骑乘判定一律走 hasPassengers()/getControllingPassenger()。
 
     // ========== 破坏系统 ==========
 
@@ -277,9 +266,6 @@ private:
     i32 m_attackTick = 0; // 攻击动画 tick
     i32 m_stunTick = 0;   // 眩晕 tick
     i32 m_roarTick = 0;   // 咆哮 tick
-
-    // 骑乘
-    Entity* m_rider = nullptr;
 
     // 破坏
     bool m_canBreakBlocks = true;
