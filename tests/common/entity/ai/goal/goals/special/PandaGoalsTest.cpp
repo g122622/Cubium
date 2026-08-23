@@ -27,6 +27,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "entity/ai/goal/goals/special/PandaGoals.hpp"
 #include "entity/entities/passive/special/PandaEntity.hpp"
 #include "item/Items.hpp"
@@ -503,6 +504,109 @@ TEST_F(PandaSneezeGoalTest, ShouldExecute_WeakBabyCanTrigger)
         }
     }
     EXPECT_TRUE(triggered);
+}
+
+// ==================== PandaAttackGoal 测试 ====================
+// 对齐 vanilla 1.21.11 Panda.PandaAttackGoal（Panda.java:759-771）。
+// 修复前：PandaEntity::registerGoals 未注册任何攻击 goal，好斗熊猫 ATTACK_DAMAGE=6.0 为死属性，
+// 被攻击不反击。PandaAttackGoal 在 MeleeAttackGoal 基础上叠加 canPerformAction() 门控：
+//   canUse() = panda.canPerformAction() && super.canUse();
+// 即打喷嚏/吃东西/躺/打滚时不发起攻击。本组验证门控的拦截方向（忙碌时即使有 target 也 false）。
+// “空闲且有 target → true”的委托通过方向受 MeleeAttackGoal 20tick 节流与 navigator 依赖，
+// 单元测试难以稳定构造，由集成测试 panda_aggressive_counterattack 覆盖完整反击链路。
+
+class PandaAttackGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+        // 好斗性格：反击链路仅对好斗熊猫生效（ATTACK_DAMAGE=6.0）。
+        panda->setPersonality(PandaEntity::Personality::Aggressive);
+        // 用另一只熊猫作为攻击目标（canAttackType 仅排除 GHAST，同类可攻击）。
+        target = std::make_unique<PandaEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
+    }
+
+    void TearDown() override
+    {
+        panda.reset();
+        target.reset();
+    }
+
+    std::unique_ptr<PandaEntity> panda;
+    std::unique_ptr<PandaEntity> target;
+};
+
+TEST_F(PandaAttackGoalTest, Construction)
+{
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "PandaAttackGoal");
+}
+
+TEST_F(PandaAttackGoalTest, InheritsMeleeAttackGoalMutexFlags)
+{
+    // PandaAttackGoal 继承 MeleeAttackGoal 的互斥标志（Move, Look）。
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    auto flags = goal->getMutexFlags();
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Move));
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Look));
+}
+
+TEST_F(PandaAttackGoalTest, ShouldNotExecute_WhenNoAttackTarget)
+{
+    // 空闲且无 attackTarget：canPerformAction=true 后委托基类，基类因无 target 返 false。
+    // 验证委托路径不崩溃且返 false。
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    panda->setAttackTarget(nullptr);
+    EXPECT_TRUE(panda->canPerformAction());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaAttackGoalTest, ShouldNotExecute_WhenSneezing)
+{
+    // canPerformAction 门控：打喷嚏时即使有 attackTarget 也返 false（不进基类）。
+    // 这是 PandaAttackGoal 相对基类 MeleeAttackGoal 的核心新增门控。
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    panda->setAttackTarget(target.get());
+    panda->setSneezing(true);
+    EXPECT_FALSE(panda->canPerformAction());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaAttackGoalTest, ShouldNotExecute_WhenEating)
+{
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    panda->setAttackTarget(target.get());
+    panda->setEating(true);
+    EXPECT_FALSE(panda->canPerformAction());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaAttackGoalTest, ShouldNotExecute_WhenLying)
+{
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    panda->setAttackTarget(target.get());
+    panda->setLying(true);
+    EXPECT_FALSE(panda->canPerformAction());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaAttackGoalTest, ShouldNotExecute_WhenRolling)
+{
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(panda.get(), 1.2, true);
+    panda->setAttackTarget(target.get());
+    panda->setRolling(true);
+    EXPECT_FALSE(panda->canPerformAction());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaAttackGoalTest, NullPandaReturnsFalse)
+{
+    // 防御：panda 为 nullptr 时不崩溃。
+    auto goal = std::make_unique<entity::ai::goal::PandaAttackGoal>(nullptr, 1.2, true);
+    EXPECT_FALSE(goal->shouldExecute());
 }
 
 } // namespace test

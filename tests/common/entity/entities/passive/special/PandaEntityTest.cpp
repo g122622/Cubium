@@ -25,7 +25,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -406,6 +408,152 @@ TEST_F(PandaEntitySneezeTest, SneezeTickChain_DrivesToOnSneezeComplete)
     EXPECT_EQ(m_world.getLastSoundId(), SoundEvents::ENTITY_PANDA_SNEEZE);
     // _onSneezeComplete 生成 Sneeze 粒子
     EXPECT_EQ(m_world.getLastParticleType(), particle::ParticleTypeId::Sneeze);
+}
+
+// ==================== PandaEntity 好斗反击链路测试 ====================
+//
+// 对齐 vanilla 1.21.11 Panda.registerGoals:264/277 + PandaHurtByTargetGoal（Panda.java:837-861）。
+// 修复前：PandaEntity::registerGoals 无 targetSelector 注册且无 PandaAttackGoal，致好斗熊猫
+// 被攻击不反击、ATTACK_DAMAGE=6.0 死属性、不呼叫同伴。本组验证反击目标选取链路：
+//   setLastHurtBy(attacker) → targetSelector.tick → HurtByTargetGoal.shouldExecute/startExecuting
+//   → setAttackTarget(attacker)；以及 alertOthers 只警醒好斗同伴（对齐 vanilla alertOther 的
+//   isAggressive() 门控）。
+//
+// 测试不依赖 PandaAttackGoal 真正寻路攻击（受 MeleeAttackGoal 20tick 节流 + navigator 依赖，
+// 由集成测试 panda_aggressive_counterattack 覆盖），仅验证 targetSelector 把攻击者写入
+// attackTarget，以及呼叫同伴的谓词门控。
+
+class PandaEntityCounterAttackTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        // 注册所有实体类型以使 entityType() 查表非 null——HurtByTargetGoal::isSuitableTarget 内
+        // canAttackType(*targetType) 依赖目标 entityType() 非 null，未注册时 isSuitableTarget 返 false，
+        // 反击链路无法触发。registerAll 进程级幂等。
+        entity::VanillaEntities::registerAll();
+    }
+
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    PandaTestWorld m_world;
+
+    // 构造一只接入测试世界的好斗熊猫，并让其 targetSelector 每 tick 评估（绕 tickRate=2 节流）。
+    // 返回 unique_ptr 因 PandaEntity 禁止拷贝/移动。
+    // setTypeId 对齐生产路径（EntityType::create 工厂会 setTypeId）：直接构造的实体 m_typeId 默认空，
+    // entityType() 懒查询返回 nullptr，HurtByTargetGoal::isSuitableTarget 内 canAttackType 检查会拒目标，
+    // 反击链路无法触发。详见 target/README.md §13。
+    std::unique_ptr<TestablePandaEntity> makeAggressivePanda(EntityInstanceId id)
+    {
+        auto panda = std::make_unique<TestablePandaEntity>(id);
+        panda->setTypeId("minecraft:panda");
+        panda->setWorld(&m_world);
+        panda->setPosition(0.0, 64.0, 0.0);
+        panda->setPersonality(PandaEntity::Personality::Aggressive);
+        panda->targetSelector().setTickRate(1);
+        return panda;
+    }
+};
+
+TEST_F(PandaEntityCounterAttackTest, HurtByTargetGoal_SetsAttackTargetWhenHurt)
+{
+    // 攻击者：另一只熊猫（canAttackType 仅排除 GHAST，同类可攻击；isAlliedTo 默认 false）。
+    TestablePandaEntity attacker(EntityInstanceId(2));
+    attacker.setTypeId("minecraft:panda");
+    attacker.setWorld(&m_world);
+    attacker.setPosition(2.0, 64.0, 0.0);
+
+    auto panda = makeAggressivePanda(EntityInstanceId(1));
+    EXPECT_EQ(panda->attackTarget(), nullptr);
+
+    // 第一次 setLastHurtBy 时 ticksExisted=0，timestamp=0==HurtByTargetGoal.m_timestamp(0)，
+    // shouldExecute 不触发。推进一 tick 使 ticksExisted>0（此 tick 内 attackTarget=null，
+    // 各 goal 安全不触 navigator）。
+    panda->setLastHurtBy(&attacker);
+    panda->testTick();
+    panda->setPosition(0.0, 64.0, 0.0);
+    EXPECT_EQ(panda->ticksExisted(), 1u);
+    EXPECT_EQ(panda->attackTarget(), nullptr);
+
+    // 再次 setLastHurtBy：此时 ticksExisted=1，timestamp=1≠m_timestamp=0，触发反击目标选取。
+    // 手动驱动 targetSelector（不调 testTick，避免 goalSelector 的 PandaAttackGoal 触发
+    // navigator 寻路——PandaAttackGoal 受 20tick 节流本就不启动，此处仅验证 targetSelector
+    // 把攻击者写入 attackTarget）。HurtByTargetGoal::startExecuting 调 setAttackTarget。
+    panda->setLastHurtBy(&attacker);
+    panda->targetSelector().tick();
+
+    EXPECT_EQ(panda->attackTarget(), &attacker);
+}
+
+TEST_F(PandaEntityCounterAttackTest, HurtByTargetGoal_DoesNotRetriggerSameTimestamp)
+{
+    // 同一 timestamp 不重复触发（对齐 HurtByTargetGoal 的 m_timestamp 去重）。
+    TestablePandaEntity attacker(EntityInstanceId(2));
+    attacker.setTypeId("minecraft:panda");
+    attacker.setWorld(&m_world);
+    attacker.setPosition(2.0, 64.0, 0.0);
+
+    auto panda = makeAggressivePanda(EntityInstanceId(1));
+
+    // 推进 ticksExisted 后触发反击。
+    panda->setLastHurtBy(&attacker);
+    panda->testTick();
+    panda->setPosition(0.0, 64.0, 0.0);
+    panda->setLastHurtBy(&attacker);
+    panda->targetSelector().tick();
+    ASSERT_EQ(panda->attackTarget(), &attacker);
+
+    // 同一 timestamp 再次驱动 targetSelector：shouldExecute 因 timestamp==m_timestamp 返 false，
+    // 不会重新 startExecuting。手动清除 attackTarget 后，再次 tick 不应重设。
+    panda->setAttackTarget(nullptr);
+    panda->targetSelector().tick();
+    EXPECT_EQ(panda->attackTarget(), nullptr);
+}
+
+TEST_F(PandaEntityCounterAttackTest, AlertOthers_OnlyAggressivePandasAreAlerted)
+{
+    // 对齐 vanilla PandaHurtByTargetGoal.alertOther（Panda.java:856-860）：
+    //   if (p_478126_ instanceof Panda && p_478126_.isAggressive()) p_478126_.setTarget(p_480501_);
+    // 即被攻击后只警醒附近的好斗熊猫，非好斗熊猫不被警醒。
+    TestablePandaEntity attacker(EntityInstanceId(2));
+    attacker.setTypeId("minecraft:panda");
+    attacker.setWorld(&m_world);
+    attacker.setPosition(2.0, 64.0, 0.0);
+
+    // 附近两只熊猫：一只好斗、一只普通。setNearbyPandas 让 PandaTestWorld.getEntitiesInAABB 返回它们。
+    TestablePandaEntity aggressiveAlly(EntityInstanceId(3));
+    aggressiveAlly.setTypeId("minecraft:panda");
+    aggressiveAlly.setWorld(&m_world);
+    aggressiveAlly.setPosition(4.0, 64.0, 0.0);
+    aggressiveAlly.setPersonality(PandaEntity::Personality::Aggressive);
+
+    TestablePandaEntity normalAlly(EntityInstanceId(4));
+    normalAlly.setTypeId("minecraft:panda");
+    normalAlly.setWorld(&m_world);
+    normalAlly.setPosition(5.0, 64.0, 0.0);
+    normalAlly.setPersonality(PandaEntity::Personality::Normal);
+
+    auto panda = makeAggressivePanda(EntityInstanceId(1));
+    m_world.setNearbyPandas({&aggressiveAlly, &normalAlly});
+
+    EXPECT_EQ(aggressiveAlly.attackTarget(), nullptr);
+    EXPECT_EQ(normalAlly.attackTarget(), nullptr);
+
+    // 推进 ticksExisted 后触发反击 + alertOthers。
+    panda->setLastHurtBy(&attacker);
+    panda->testTick();
+    panda->setPosition(0.0, 64.0, 0.0);
+    panda->setLastHurtBy(&attacker);
+    panda->targetSelector().tick();
+
+    // 被攻击的熊猫反击攻击者。
+    EXPECT_EQ(panda->attackTarget(), &attacker);
+    // 好斗同伴被警醒，普通同伴不被警醒（对齐 vanilla alertOther 的 isAggressive() 门控）。
+    EXPECT_EQ(aggressiveAlly.attackTarget(), &attacker);
+    EXPECT_EQ(normalAlly.attackTarget(), nullptr);
 }
 
 TEST_F(PandaEntitySneezeTest, NoEffectWithoutWorld)

@@ -181,4 +181,30 @@ void PandaSneezeGoal::startExecuting()
     m_panda->sneeze(true);
 }
 
+// ============================================================================
+// PandaAttackGoal
+// ============================================================================
+
+PandaAttackGoal::PandaAttackGoal(PandaEntity* panda, f64 speed, bool useLongMemory)
+    : MeleeAttackGoal(panda, speed, useLongMemory)
+    , m_panda(panda)
+{
+    // 互斥标志继承自 MeleeAttackGoal（Move, Look）。
+}
+
+bool PandaAttackGoal::shouldExecute()
+{
+    // 对齐 vanilla 1.21.11 Panda.PandaAttackGoal.canUse（Panda.java:768-770）：
+    //   return this.panda.canPerformAction() && super.canUse();
+    // canPerformAction() 门控：打喷嚏/吃东西/躺/打滚时不发起攻击。
+    // super.canUse() 由 MeleeAttackGoal::shouldExecute 完成（取 attackTarget、节流、寻路）。
+    if (m_panda == nullptr) {
+        return false;
+    }
+    if (!m_panda->canPerformAction()) {
+        return false;
+    }
+    return MeleeAttackGoal::shouldExecute();
+}
+
 } // namespace mc::entity::ai::goal

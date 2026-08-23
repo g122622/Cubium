@@ -25,6 +25,7 @@
 
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
+#include "../MeleeAttackGoal.hpp"
 #include "common/core/Types.hpp"
 #include <string>
 
@@ -32,6 +33,7 @@ namespace mc {
 
 // Forward declarations
 class PandaEntity;
+class LivingEntity;
 
 namespace entity::ai::goal {
 
@@ -127,6 +129,47 @@ private:
     // GoalSelector 半 tick 评估）。vanilla 用 nextInt(N)==1（非 ==0），此处原样对齐。
     static constexpr i32 WEAK_SNEEZE_CHANCE = 500;    // 虚弱幼年熊猫触发概率
     static constexpr i32 NORMAL_SNEEZE_CHANCE = 6000; // 普通幼年熊猫触发概率
+};
+
+/**
+ * @brief 熊猫近战攻击目标
+ *
+ * 好斗性格熊猫被攻击后反击攻击者。对齐 vanilla 1.21.11 Panda.PandaAttackGoal
+ * （Panda.java:759-771）。
+ *
+ * 行为流程（vanilla canUse）：
+ *   return this.panda.canPerformAction() && super.canUse();
+ *
+ * 即仅在熊猫不在打喷嚏/吃东西/躺/打滚等动作状态时，才委托 MeleeAttackGoal 的目标选取
+ * （攻击目标由 PandaHurtByTargetGoal 写入 attackTarget）。MeleeAttackGoal 内部完成
+ * 寻路靠近与 checkAndPerformAttack（攻击力由 ATTACK_DAMAGE 属性决定，好斗熊猫=6.0）。
+ *
+ * 优先级: 3（对齐 vanilla Panda.registerGoals:264）
+ * 互斥标志: Move, Look（继承自 MeleeAttackGoal）
+ */
+class PandaAttackGoal : public MeleeAttackGoal {
+public:
+    /**
+     * @brief 构造函数
+     * @param panda 熊猫实体
+     * @param speed 移动速度倍率（vanilla 1.2）
+     * @param useLongMemory 是否使用长期记忆追踪（vanilla true）
+     */
+    PandaAttackGoal(PandaEntity* panda, f64 speed, bool useLongMemory);
+
+    ~PandaAttackGoal() override = default;
+
+    /**
+     * @brief 是否应该开始执行
+     *
+     * 对齐 vanilla PandaAttackGoal.canUse：canPerformAction() 门控后委托基类。
+     */
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const noexcept override { return "PandaAttackGoal"; }
+
+private:
+    PandaEntity* m_panda;
 };
 
 } // namespace entity::ai::goal

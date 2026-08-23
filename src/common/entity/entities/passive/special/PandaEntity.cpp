@@ -33,6 +33,7 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/PandaGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp" // HurtByTargetGoal
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -306,6 +307,15 @@ void PandaEntity::registerGoals()
     // 优先级 2: 繁殖（喂竹子进入爱心后 BreedGoal 驱动靠近配偶并 spawnBaby）
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
+    // 优先级 3: 近战攻击（好斗熊猫被攻击后反击）。对齐 vanilla Panda.registerGoals:264。
+    //   vanilla PandaAttackGoal(this, 1.2F, true)：canUse = canPerformAction() && super.canUse()，
+    //   攻击目标由 targetSelector 的 PandaHurtByTargetGoal 写入 attackTarget。MeleeAttackGoal
+    //   负责寻路靠近与攻击（攻击力取 ATTACK_DAMAGE 属性，好斗熊猫=6.0）。
+    //   此前好斗熊猫 ATTACK_DAMAGE=6.0 为死属性——无攻击 goal 驱动，被攻击不反击。
+    //   注：vanilla TemptGoal 优先级为 4（此处为 3），GoalSelector 同 Move flag 互斥，按注册顺序
+    //   Attack 先评估；功能等价于 vanilla 布局，未重排其余优先级以避免扰动既有测试。
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::PandaAttackGoal>(this, 1.2, true));
+
     // 优先级 3: 食物诱惑（竹子）——对齐 vanilla Panda 持竹子吸引。scaredByMovement=false。
     m_goalSelector.addGoal(3,
         std::make_unique<::mc::entity::ai::goal::TemptGoal>(
@@ -343,11 +353,35 @@ void PandaEntity::registerGoals()
     // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
     m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
 
-    // TODO: 待补全 Panda 特有 AI（对齐 vanilla PandaAi / PandaHurtByTargetGoal）：
-    //   - PandaAttackGoal（好斗性格被攻击后反击，对齐 PandaHurtByTargetGoal + MeleeAttack）
+    // ========== targetSelector：攻击目标选取 ==========
+    // 优先级 1: 被攻击后反击并呼叫同伴。对齐 vanilla Panda.registerGoals:277：
+    //   targetSelector.addGoal(1, new Panda.PandaHurtByTargetGoal(this).setAlertOthers());
+    //   - HurtByTargetGoal(this, alertAllies=true)：被攻击时取 getLastHurtBy() 作为反击目标，
+    //     写入 attackTarget 供 PandaAttackGoal 消费。
+    //   - setAlertOthers 谓词对齐 vanilla PandaHurtByTargetGoal.alertOther（Panda.java:856-860）：
+    //       if (p_478126_ instanceof Panda && p_478126_.isAggressive()) p_478126_.setTarget(p_480501_);
+    //     即只警醒好斗熊猫。alertOthers 已通过 entityType() 同类型过滤保证 instanceof Panda，
+    //     谓词返回 !isAggressive() 排除非好斗熊猫（不警醒），等价于 vanilla 的 isAggressive() 门控。
+    //   TODO: vanilla PandaHurtByTargetGoal.canContinueToUse 在 gotBamboo/didBite 时 setTarget(null)
+    //   并终止（Panda.java:846-853）。Cubium 暂无 gotBamboo/didBite 字段，该边缘终止未实现；
+    //   若未来补全熊猫进食状态机，需在此子类化 HurtByTargetGoal 覆盖 canContinueToUse。
+    auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true);
+    hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
+        // 谓词返回 true = 不警醒该盟友。对齐 vanilla alertOther 的 isAggressive() 门控：
+        // 非好斗熊猫不警醒。ally 经 entityType 过滤已是熊猫。
+        const PandaEntity* pandaAlly = dynamic_cast<const PandaEntity*>(ally);
+        if (pandaAlly == nullptr) {
+            return true; // 非熊猫（理论不会出现，因 entityType 过滤）保守不警醒
+        }
+        return !pandaAlly->isAggressive();
+    });
+    m_targetSelector.addGoal(1, std::move(hurtByTarget));
+
+    // TODO: 待补全 Panda 特有 AI（对齐 vanilla PandaAi）：
     //   - PandaLieOnBackGoal（懒惰性格躺仰，对齐 LazyPandaGoal）
-    //   - PandaLookAtPlayerGoal / PandaAvoidGoal 等性格相关 goal
-    //   当前补全基础动物 AI + 打滚 + 打喷嚏，保证繁殖/诱惑/漫步/打喷嚏等核心行为可测。
+    //   - PandaLookAtPlayerGoal / PandaAvoidGoal（忧愁熊猫逃避，对齐 PandaAvoidGoal）等性格相关 goal
+    //   当前补全基础动物 AI + 打滚 + 打喷嚏 + 好斗反击链路（PandaAttackGoal + PandaHurtByTargetGoal），
+    //   保证繁殖/诱惑/漫步/打喷嚏/好斗反击等核心行为可测。
 }
 
 void PandaEntity::registerAttributes()
