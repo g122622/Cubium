@@ -332,16 +332,22 @@ void PandaEntity::registerGoals()
     // 优先级 7: 随机看向
     m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
 
+    // 优先级 8: 打喷嚏（幼年熊猫随机打喷嚏，对齐 vanilla Panda.registerGoals:270）
+    //   vanilla PandaSneezeGoal：isBaby && canPerformAction 时，isWeak 1/500 概率，否则 1/6000 概率，
+    //   start 调 sneeze(true)。sneeze(true) 设 m_sneezeTimer=SNEEZE_DURATION，tick 递减驱动预喷嚏
+    //   音效（timer==19，对齐 vanilla sneezeCounter==1）与 _onSneezeComplete（timer 到 0，对齐
+    //   vanilla sneezeCounter>20 的 afterSneeze：掉粘液球+弱化周围实体+成年熊猫跳跃）。
+    //   此前 _onSneezeComplete 已实现但无 goal 触发（死代码），本注册激活打喷嚏链路。
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::PandaSneezeGoal>(this));
+
     // 优先级 12: 打滚目标（顽皮熊猫或幼年熊猫）
     m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::PandaRollGoal>(this));
 
     // TODO: 待补全 Panda 特有 AI（对齐 vanilla PandaAi / PandaHurtByTargetGoal）：
     //   - PandaAttackGoal（好斗性格被攻击后反击，对齐 PandaHurtByTargetGoal + MeleeAttack）
     //   - PandaLieOnBackGoal（懒惰性格躺仰，对齐 LazyPandaGoal）
-    //   - PandaSneezeGoal（幼年熊猫随机打喷嚏掉粘液球+弱化周围实体，对齐 SneezeGoal；
-    //     _onSneezeComplete 已实现但无 goal 触发，是死代码）
     //   - PandaLookAtPlayerGoal / PandaAvoidGoal 等性格相关 goal
-    //   当前仅补全基础动物 AI + 打滚，保证繁殖/诱惑/漫步等核心行为可测。
+    //   当前补全基础动物 AI + 打滚 + 打喷嚏，保证繁殖/诱惑/漫步/打喷嚏等核心行为可测。
 }
 
 void PandaEntity::registerAttributes()
@@ -391,6 +397,19 @@ std::optional<ResourceLocation> PandaEntity::getDeathSound() const
 void PandaEntity::playEatSound()
 {
     playSound(SoundEvents::ENTITY_PANDA_EAT, 1.0f, 1.0f);
+}
+
+void PandaEntity::sneeze(bool sneeze)
+{
+    // 对齐 vanilla Panda.sneeze:160：setFlag(2, sneeze)；!sneeze 时 setSneezeCounter(0)。
+    // Cubium 用 m_sneezing + m_sneezeTimer 递减模型：开始时初始化 timer=SNEEZE_DURATION，
+    // 由 tick() 递减驱动预喷嚏音效（timer==19）与 _onSneezeComplete（timer 到 0）。
+    m_sneezing = sneeze;
+    if (sneeze) {
+        m_sneezeTimer = SNEEZE_DURATION;
+    } else {
+        m_sneezeTimer = 0;
+    }
 }
 
 void PandaEntity::playSneezeSound()

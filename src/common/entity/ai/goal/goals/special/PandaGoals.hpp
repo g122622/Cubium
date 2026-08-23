@@ -84,5 +84,50 @@ private:
     static constexpr i32 NORMAL_ROLL_CHANCE = 500; // 普通触发概率 1/500
 };
 
+/**
+ * @brief 熊猫打喷嚏目标
+ *
+ * 幼年熊猫随机打喷嚏。对齐 vanilla 1.21.11 Panda.PandaSneezeGoal（Panda.java:1103-1130）。
+ *
+ * 行为流程（vanilla canUse）：
+ *   if (isBaby() && canPerformAction()) {
+ *       return isWeak() && random.nextInt(reducedTickDelay(500)) == 1
+ *            ? true
+ *            : random.nextInt(reducedTickDelay(6000)) == 1;
+ *   }
+ *   return false;
+ *
+ * 即幼年熊猫且无其他动作时：虚弱性格 1/500 概率（nextInt==1），否则 1/6000 概率。
+ * start 调 panda.sneeze(true)，由 PandaEntity::tick 递减 m_sneezeTimer 驱动预喷嚏音效
+ * 与 _onSneezeComplete（掉粘液球+弱化周围实体+成年熊猫跳跃）。
+ *
+ * 优先级: 8（对齐 vanilla Panda.registerGoals:270）
+ * 互斥标志: 无（vanilla PandaSneezeGoal 未设 mutexFlags，canContinueToUse=false 一次性）
+ */
+class PandaSneezeGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param panda 熊猫实体
+     */
+    explicit PandaSneezeGoal(PandaEntity* panda);
+
+    ~PandaSneezeGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "PandaSneezeGoal"; }
+
+private:
+    PandaEntity* m_panda;
+
+    // 常量（对齐 vanilla reducedTickDelay(500)/reducedTickDelay(6000)，Goal::reducedTickDelay 减半补偿
+    // GoalSelector 半 tick 评估）。vanilla 用 nextInt(N)==1（非 ==0），此处原样对齐。
+    static constexpr i32 WEAK_SNEEZE_CHANCE = 500;    // 虚弱幼年熊猫触发概率
+    static constexpr i32 NORMAL_SNEEZE_CHANCE = 6000; // 普通幼年熊猫触发概率
+};
+
 } // namespace entity::ai::goal
 } // namespace mc

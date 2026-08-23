@@ -147,6 +147,7 @@ public:
 
     // 暴露 protected 方法用于测试
     void testOnSneezeComplete() { _onSneezeComplete(); }
+    void testTick() { tick(); }
 };
 
 // ==================== PandaEntity 性格测试 ====================
@@ -367,6 +368,43 @@ TEST_F(PandaEntitySneezeTest, SpawnsSneezeParticle)
 
     // 验证粒子被生成
     EXPECT_EQ(m_world.getParticleSpawnCount(), 1);
+    EXPECT_EQ(m_world.getLastParticleType(), particle::ParticleTypeId::Sneeze);
+}
+
+// PandaSneezeGoal 注册激活后的完整链路：sneeze(true) → tick 递减 → _onSneezeComplete。
+// 修复前：PandaSneezeGoal 未注册，sneeze(true) 无调用点，m_sneezing 恒 false，tick 中
+// sneeze 分支永不进入，_onSneezeComplete 是死代码。本测试验证 sneeze(true) 启动后，
+// 经 SNEEZE_DURATION 次 tick 递减到 0 时触发 _onSneezeComplete（播 SNEEZE 音效+粒子）。
+TEST_F(PandaEntitySneezeTest, SneezeTickChain_DrivesToOnSneezeComplete)
+{
+    TestablePandaEntity panda(EntityInstanceId(1));
+    panda.setWorld(&m_world);
+    panda.setPosition(0.0, 64.0, 0.0);
+
+    // 启动打喷嚏（对齐 PandaSneezeGoal.start 调 sneeze(true)）
+    panda.sneeze(true);
+    EXPECT_TRUE(panda.isSneezing());
+    EXPECT_EQ(panda.getSneezeTimer(), PandaEntity::SNEEZE_DURATION);
+
+    const i32 soundBefore = m_world.getSoundPlayCount();
+
+    // 推进 SNEEZE_DURATION 次 tick：第 1 次 tick 递减到 SNEEZE_DURATION-1 播预喷嚏音效，
+    // 第 SNEEZE_DURATION 次 tick 递减到 0 触发 _onSneezeComplete（播 SNEEZE 音效 + 生成粒子）。
+    for (int i = 0; i < PandaEntity::SNEEZE_DURATION; ++i) {
+        panda.testTick();
+        // 每次 tick 后重置位置防 BaseTestWorld 无物理引擎致坠落（见记忆：tick 坠落陷阱）
+        panda.setPosition(0.0, 64.0, 0.0);
+    }
+
+    // 打喷嚏结束：m_sneezing 转 false，timer 归 0
+    EXPECT_FALSE(panda.isSneezing());
+    EXPECT_EQ(panda.getSneezeTimer(), 0);
+
+    // _onSneezeComplete 被触发：播放 SNEEZE 音效（最后一次声音应为打喷嚏音效）
+    // 预喷嚏（PRE_SNEEZE）+ 完成（SNEEZE）至少 2 次声音
+    EXPECT_GE(m_world.getSoundPlayCount() - soundBefore, 2);
+    EXPECT_EQ(m_world.getLastSoundId(), SoundEvents::ENTITY_PANDA_SNEEZE);
+    // _onSneezeComplete 生成 Sneeze 粒子
     EXPECT_EQ(m_world.getLastParticleType(), particle::ParticleTypeId::Sneeze);
 }
 

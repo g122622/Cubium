@@ -388,5 +388,122 @@ TEST_F(PandaCanPerformActionTest, CannotPerformAction_WhenMultipleStates)
     EXPECT_TRUE(panda->canPerformAction());
 }
 
+// ==================== PandaSneezeGoal 测试 ====================
+// 对齐 vanilla 1.21.11 Panda.PandaSneezeGoal（Panda.java:1103-1130）。
+// 修复前：PandaEntity::registerGoals 未注册 PandaSneezeGoal，_onSneezeComplete 是死代码
+// （m_sneezing 恒 false，tick 中 sneeze 分支永不进入）。本组测试验证 goal 逻辑与
+// sneeze(true)→tick→_onSneezeComplete 链路激活。
+
+class PandaSneezeGoalTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        panda = std::make_unique<PandaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
+
+    void TearDown() override { panda.reset(); }
+
+    std::unique_ptr<PandaEntity> panda;
+};
+
+TEST_F(PandaSneezeGoalTest, Construction)
+{
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "PandaSneezeGoal");
+}
+
+TEST_F(PandaSneezeGoalTest, ShouldNotExecute_WhenAdult)
+{
+    // 对齐 vanilla canUse：仅 isBaby() 才考虑打喷嚏。成年熊猫应返 false。
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+
+    panda->setChild(false);
+    panda->setPersonality(PandaEntity::Personality::Weak);
+    panda->setOnGround(true);
+
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaSneezeGoalTest, ShouldNotExecute_WhenChildButBusy)
+{
+    // 对齐 vanilla canUse：isBaby() && canPerformAction() 双门控。
+    // 幼年但正在吃东西/打滚/躺/打喷嚏时 canPerformAction()==false → 不触发。
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+
+    panda->setChild(true);
+    panda->setPersonality(PandaEntity::Personality::Weak);
+    panda->setOnGround(true);
+
+    // 正在吃东西 → canPerformAction==false
+    panda->setEating(true);
+    EXPECT_FALSE(goal->shouldExecute());
+
+    panda->setEating(false);
+    panda->setRolling(true);
+    EXPECT_FALSE(goal->shouldExecute());
+
+    panda->setRolling(false);
+    panda->setLying(true);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(PandaSneezeGoalTest, ShouldNotContinueExecuting)
+{
+    // 对齐 vanilla canContinueToUse：return false（一次性触发，由 tick 计时驱动后续）。
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+}
+
+TEST_F(PandaSneezeGoalTest, StartExecuting_SetsSneezingAndTimer)
+{
+    // 对齐 vanilla PandaSneezeGoal.start：panda.sneeze(true)。
+    // sneeze(true) 设 m_sneezing=true + m_sneezeTimer=SNEEZE_DURATION。
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+
+    EXPECT_FALSE(panda->isSneezing());
+    EXPECT_EQ(panda->getSneezeTimer(), 0);
+
+    goal->startExecuting();
+
+    EXPECT_TRUE(panda->isSneezing());
+    EXPECT_EQ(panda->getSneezeTimer(), PandaEntity::SNEEZE_DURATION);
+}
+
+TEST_F(PandaSneezeGoalTest, Sneeze_TrueSetsTimer_FalseResetsTimer)
+{
+    // sneeze(true) 初始化计时器；sneeze(false) 重置（对齐 vanilla sneeze(false)→setSneezeCounter(0)）。
+    panda->sneeze(true);
+    EXPECT_TRUE(panda->isSneezing());
+    EXPECT_EQ(panda->getSneezeTimer(), PandaEntity::SNEEZE_DURATION);
+
+    panda->sneeze(false);
+    EXPECT_FALSE(panda->isSneezing());
+    EXPECT_EQ(panda->getSneezeTimer(), 0);
+}
+
+TEST_F(PandaSneezeGoalTest, ShouldExecute_WeakBabyCanTrigger)
+{
+    // 虚弱幼年熊猫 1/reducedTickDelay(500)=1/250 概率触发。固定种子下反复调用 shouldExecute，
+    // 2000 次内期望命中（期望 ~8 次）。验证 goal 概率逻辑可触发（修复前 goal 未注册，
+    // 此路径不存在）。非确定性兜底：2000 次足够覆盖 1/250 概率。
+    auto goal = std::make_unique<entity::ai::goal::PandaSneezeGoal>(panda.get());
+
+    panda->setChild(true);
+    panda->setPersonality(PandaEntity::Personality::Weak);
+    panda->setOnGround(true);
+
+    bool triggered = false;
+    for (int i = 0; i < 2000; ++i) {
+        if (goal->shouldExecute()) {
+            triggered = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(triggered);
+}
+
 } // namespace test
 } // namespace mc

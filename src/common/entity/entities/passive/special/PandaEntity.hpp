@@ -299,6 +299,23 @@ public:
     void playEatSound();
 
     /**
+     * @brief 触发/停止打喷嚏（对齐 vanilla Panda.sneeze:160）
+     *
+     * sneeze(true)：设 m_sneezing=true 并初始化 m_sneezeTimer=SNEEZE_DURATION（20），
+     *   由 tick() 递减驱动预喷嚏音效（timer==19，对齐 vanilla sneezeCounter==1）与
+     *   _onSneezeComplete（timer 递减到 0，对齐 vanilla sneezeCounter>20 的 afterSneeze）。
+     * sneeze(false)：设 m_sneezing=false 并重置 m_sneezeTimer=0（对齐 vanilla setSneezeCounter(0)）。
+     *
+     * @param sneeze 是否开始打喷嚏
+     */
+    void sneeze(bool sneeze);
+
+    // 打喷嚏计时常量（public 供测试断言）。对齐 vanilla Panda：sneezeCounter 0→21，
+    // ==1 播预喷嚏，>20 触发 afterSneeze。Cubium 用递减模型：sneeze(true) 设 timer=SNEEZE_DURATION，
+    // tick 递减；timer==SNEEZE_DURATION-1 播预喷嚏（对应 counter==1），timer 到 0 触发 _onSneezeComplete。
+    static constexpr i32 SNEEZE_DURATION = 20; // 打喷嚏总持续时间（ticks，递减模型）
+
+    /**
      * @brief 播放打喷嚏音效
      */
     void playSneezeSound();

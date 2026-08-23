@@ -129,4 +129,56 @@ bool PandaRollGoal::_isCliffInFront() const
     return state != nullptr && state->isAir();
 }
 
+// ============================================================================
+// PandaSneezeGoal
+// ============================================================================
+
+PandaSneezeGoal::PandaSneezeGoal(PandaEntity* panda)
+    : m_panda(panda)
+{
+    // vanilla PandaSneezeGoal 未设 mutexFlags（canContinueToUse=false 一次性触发，由 tick 计时驱动）。
+}
+
+bool PandaSneezeGoal::shouldExecute()
+{
+    // 对齐 vanilla 1.21.11 Panda.PandaSneezeGoal.canUse（Panda.java:1111-1118）：
+    //   if (isBaby() && canPerformAction()) {
+    //       return isWeak() && random.nextInt(reducedTickDelay(500)) == 1
+    //            ? true
+    //            : random.nextInt(reducedTickDelay(6000)) == 1;
+    //   }
+    //   return false;
+    if (m_panda == nullptr) {
+        return false;
+    }
+
+    // 仅幼年熊猫且无其他动作时才考虑打喷嚏
+    if (!m_panda->isChild() || !m_panda->canPerformAction()) {
+        return false;
+    }
+
+    math::Random& rng = m_panda->getRandom();
+    // 虚弱性格：1/500 概率（nextInt(reducedTickDelay(500))==1）；否则 1/6000 概率。
+    // reducedTickDelay 减半补偿 GoalSelector 每 2 tick 评估一次（对齐 vanilla）。
+    // 注：vanilla 用 ==1（非 ==0），原样对齐——仅随机数恰为 1 时触发。
+    if (m_panda->isWeak()) {
+        return rng.nextInt(reducedTickDelay(WEAK_SNEEZE_CHANCE)) == 1;
+    }
+    return rng.nextInt(reducedTickDelay(NORMAL_SNEEZE_CHANCE)) == 1;
+}
+
+bool PandaSneezeGoal::shouldContinueExecuting()
+{
+    // 一次性触发：goal 只负责启动 sneeze，由 PandaEntity::tick 的 m_sneezeTimer 递减驱动后续。
+    return false;
+}
+
+void PandaSneezeGoal::startExecuting()
+{
+    // 对齐 vanilla PandaSneezeGoal.start：panda.sneeze(true)。
+    // sneeze(true) 设 m_sneezing=true + m_sneezeTimer=SNEEZE_DURATION，tick 递减驱动预喷嚏音效
+    // （timer==19，对齐 vanilla sneezeCounter==1）与 _onSneezeComplete（timer 到 0，对齐 afterSneeze）。
+    m_panda->sneeze(true);
+}
+
 } // namespace mc::entity::ai::goal
