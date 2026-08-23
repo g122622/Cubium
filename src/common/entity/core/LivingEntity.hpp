@@ -255,6 +255,19 @@ public:
     virtual void damageArmor(DamageSource& source, f32 amount);
 
     /**
+     * @brief DAMAGES_HELMET 伤害命中头盔时消耗头盔耐久（对齐 vanilla
+     *        LivingEntity.hurtHelmet:1793）
+     *
+     * vanilla 基类为空实现（耐久消耗由 doHurtEquipment 统一处理）。Cubium 基类同样空实现，
+     * 在 actuallyHurt 的 DAMAGES_HELMET 分支中调用（戴头盔受坠落铁砧/方块/钟乳石伤害时）。
+     * 耐久消耗逻辑留待装备耐久体系完善后补全。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量（减伤前的原值）
+     */
+    virtual void hurtHelmet(DamageSource& source, f32 amount);
+
+    /**
      * @brief 受伤时损坏盾牌
      *
      * @param amount 伤害量

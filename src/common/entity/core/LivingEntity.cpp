@@ -342,6 +342,17 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
         amount *= 5.0f;
     }
 
+    // 1.6 头盔减伤（对齐 vanilla LivingEntity.hurtServer:1182）：DAMAGES_HELMET 标签伤害
+    // （坠落铁砧/坠落方块/坠落钟乳石）命中戴头盔的实体时，伤害 ×0.75（减免 1/4），并回调
+    // hurtHelmet 消耗头盔耐久。此分支独立于护甲减伤（在护甲减伤之前，无 bypassesArmor 门控），
+    // 对齐 vanilla 位置（hurtServer 主流程，getDamageAfterArmorAbsorb 之前）。
+    // 注：vanilla LivingEntity.hurtHelmet 基类为空实现（耐久消耗由 doHurtEquipment 统一处理），
+    // Cubium hurtHelmet 基类同样空实现，耐久消耗留待装备耐久体系完善后补全（TODO）。
+    if (source.is(DamageTypeTags::DAMAGES_HELMET()) && !getEquipment(EquipmentSlot::Head).isEmpty()) {
+        hurtHelmet(source, amount);
+        amount *= 0.75f;
+    }
+
     // 2. 护甲减伤（如果伤害不绕过护甲）
     if (!source.bypassesArmor()) {
         amount = applyArmorCalculations(source, amount);
@@ -435,6 +446,13 @@ void LivingEntity::damageArmor(DamageSource& /*source*/, f32 /*amount*/)
 void LivingEntity::damageShield(f32 /*amount*/)
 {
     // 默认空实现，由 Player 子类重写
+}
+
+void LivingEntity::hurtHelmet(DamageSource& /*source*/, f32 /*amount*/)
+{
+    // 对齐 vanilla LivingEntity.hurtHelmet:1793 基类空实现。DAMAGES_HELMET 伤害（坠落铁砧/方块/
+    // 钟乳石）命中头盔时由 actuallyHurt 的 DAMAGES_HELMET 分支调用，基类不消耗耐久。
+    // TODO: 装备耐久体系完善后补全头盔耐久消耗（对齐 vanilla doHurtEquipment 统一耐久逻辑）。
 }
 
 void LivingEntity::blockedByItem(LivingEntity& victim)
