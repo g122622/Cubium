@@ -480,6 +480,10 @@ add_executable(mc_tests
     common/entity/combat/NoImpactNoKnockbackTest.cpp
     # 盔甲架四标签伤害语义测试（BURNS/IGNITES/CAN_BREAK/ALWAYS_KILLS + BYPASSES/IS_EXPLOSION）
     common/entity/combat/ArmorStandDamageTest.cpp
+    # WITHER_IMMUNE_TO/BYPASSES_INVULNERABILITY 标签查询测试（凋灵免疫溺水、GenericKill 穿透无敌阶段）
+    common/entity/combat/WitherImmuneToTest.cpp
+    # ALWAYS_TRIGGERS_SILVERFISH 标签查询测试（魔法伤害/实体攻击触发蠹虫召唤同伴）
+    common/entity/combat/SilverfishSummonTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试

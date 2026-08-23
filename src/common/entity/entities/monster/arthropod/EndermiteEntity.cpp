@@ -33,6 +33,7 @@
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/world/IWorld.hpp"
@@ -164,10 +165,12 @@ bool SilverfishEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
-    // 如果受到实体或魔法伤害，通知召唤同伴目标
+    // 对齐 vanilla Silverfish.hurtServer:87：受实体攻击（getEntity()!=null）或
+    // ALWAYS_TRIGGERS_SILVERFISH 标签伤害（成员={Magic}）时，通知召唤同伴目标。
+    // 此前用 source.isMagic() 硬编码代标签，标签查询更正确且支持数据包扩展（未来若有新魔法类
+    // 伤害类型加入标签，蠹虫也会触发召唤）。纯魔法伤害（无攻击实体）也能唤醒藏匿同伴。
     if (m_summonGoal != nullptr) {
-        // 检查是否是实体伤害或魔法伤害
-        if (source.isEntitySource() || source.isMagic()) {
+        if (source.getEntity() != nullptr || source.is(DamageTypeTags::ALWAYS_TRIGGERS_SILVERFISH())) {
             m_summonGoal->notifyHurt();
         }
     }

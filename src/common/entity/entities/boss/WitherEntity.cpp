@@ -44,6 +44,7 @@
 #include "../../ai/pathfinding/PathNavigator.hpp"
 #include "../../attribute/Attributes.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../damage/tag/DamageTypeTags.hpp"
 #include "../../effect/EffectType.hpp"
 #include "../../entities/item/ItemEntity.hpp"
 #include "../../entities/player/Player.hpp"
@@ -135,18 +136,22 @@ std::optional<ResourceLocation> WitherEntity::getDeathSound() const
 
 bool WitherEntity::isInvulnerableTo(DamageSource& source) const
 {
-    // 凋灵免疫溺水伤害
-    if (source.type() == DamageType::Drown) {
+    // 对齐 vanilla WitherBoss.hurtServer:453：凋灵免疫 WITHER_IMMUNE_TO 标签伤害（成员={Drown}）。
+    // 此前硬编码 source.type()==DamageType::Drown，标签查询更正确且支持数据包扩展标签成员。
+    if (source.is(DamageTypeTags::WITHER_IMMUNE_TO())) {
         return true;
     }
 
-    // 凋灵免疫凋零伤害
+    // 凋灵免疫凋零伤害（vanilla 通过 getEntity() instanceof WitherBoss 表达"凋灵不受凋灵伤害"，
+    // 因凋灵头颅造成的伤害 type=Wither 且 source=凋灵。Cubium 用 type==Wither 硬编码近似）。
     if (source.type() == DamageType::Wither) {
         return true;
     }
 
-    // 无敌阶段免疫所有伤害（除了虚空伤害）
-    if (getInvulTime() > 0 && source.type() != DamageType::OutOfWorld) {
+    // 对齐 vanilla WitherBoss.hurtServer:455：无敌阶段免疫所有伤害，仅 BYPASSES_INVULNERABILITY
+    // 标签伤害（成员={OutOfWorld, GenericKill}）可绕过。此前硬编码 source.type()!=OutOfWorld
+    // 漏了 GenericKill（/kill 命令也应绕过无敌阶段），标签查询修正此偏差。
+    if (getInvulTime() > 0 && !source.is(DamageTypeTags::BYPASSES_INVULNERABILITY())) {
         return true;
     }
 
