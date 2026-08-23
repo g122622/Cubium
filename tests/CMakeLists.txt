@@ -303,6 +303,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/EvokerEntityTest.cpp
     # PillagerEntity 弩远程攻击和 VindicatorEntity 近战攻击测试
     common/entity/entities/monster/illager/PillagerEntityTest.cpp
+    # VindicatorEntity "Johnny" 命名彩蛋锁存与攻击 goal 触发测试
+    common/entity/entities/monster/illager/VindicatorJohnnyTest.cpp
     # WitchEntity 药水决策和治疗效果测试
     common/entity/entities/monster/illager/WitchEntityTest.cpp
     # SpellcastingIllager 施法粒子颜色测试

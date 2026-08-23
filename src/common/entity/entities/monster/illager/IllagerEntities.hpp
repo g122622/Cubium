@@ -175,6 +175,32 @@ public:
      */
     void setAggressive(bool aggressive) { m_aggressive = aggressive; }
 
+    // ========== Johnny 彩蛋 ==========
+
+    /**
+     * @brief 是否处于 Johnny 模式
+     *
+     * 对齐 vanilla 1.21.11 Vindicator.isJohnny（Vindicator.java:54）。卫道士被命名牌
+     * 命名为 "Johnny" 时激活 VindicatorJohnnyAttackGoal，攻击所有可攻击生物（非仅
+     * 玩家/村民/铁傀儡）。一旦激活即锁存（即便后续改名也不再取消），对齐 vanilla
+     * setCustomName 中 `if (!isJohnny && name.equals("Johnny")) isJohnny = true`。
+     */
+    [[nodiscard]] bool isJohnny() const { return m_isJohnny; }
+
+    /**
+     * @brief 设置 Johnny 模式（测试/存档恢复用）
+     */
+    void setJohnny(bool johnny) { m_isJohnny = johnny; }
+
+    /**
+     * @brief 重写命名设置以触发 Johnny 锁存
+     *
+     * 对齐 vanilla Vindicator.setCustomName（Vindicator.java:145-150）：调基类后，
+     * 若当前未激活 Johnny 且新名称纯文本为 "Johnny"，则激活。经 setCustomName(string)
+     * 委托，命名牌等文本路径同样触发。
+     */
+    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name) override;
+
     // ========== 尺寸 ==========
 
     /**
@@ -195,6 +221,7 @@ protected:
 
 private:
     bool m_aggressive = false;
+    bool m_isJohnny = false; // 对齐 vanilla Vindicator.isJohnny（Vindicator.java:54）
 };
 
 } // namespace mc

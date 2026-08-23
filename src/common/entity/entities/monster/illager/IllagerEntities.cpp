@@ -65,6 +65,54 @@
 
 namespace mc {
 
+// ==================== VindicatorJohnnyAttackGoal ====================
+//
+// 对齐 vanilla 1.21.11 Vindicator.VindicatorJohnnyAttackGoal（Vindicator.java:209-224）。
+// 卫道士被命名为 "Johnny" 时（isJohnny=true），攻击所有可攻击生物，而非仅玩家/村民/铁傀儡。
+//   vanilla: extends NearestAttackableTargetGoal<LivingEntity>，构造传谓词
+//   `(target) -> target.attackable()`，canUse() = isJohnny && super.canUse()。
+//
+// Cubium 实现：继承 NearestAttackableTargetGoal<LivingEntity>（checkSight=true, chance=0，
+// 谓词 isAlive 对齐 vanilla attackable() 对普通 LivingEntity 的语义），shouldExecute 加
+// isJohnny 门控后委托基类。基类 shouldExecute 内部经 findClosestEntity + isSuitableTarget
+// （含 canAttackType 排除 GHAST、Player 创造/观察模式、isAlliedTo 同队门控）+ checkSight
+// + 自定义谓词选取最近目标。
+//
+// TODO: vanilla Johnny 谓词 attackable() 不含 team 检查，会攻击同队灾厄村民；Cubium
+// isSuitableTarget 含 isAlliedTo 门控，致 Johnny 不攻击同队灾厄村民，与 vanilla 存在
+// 边缘偏差。完整对齐需在 Johnny goal 中绕过 isAlliedTo（完全重写 shouldExecute），
+// 但 isSuitableTarget 的 Player 游戏模式门控需保留，暂委托基类以复用已测试逻辑。
+
+class VindicatorJohnnyAttackGoal : public entity::ai::goal::NearestAttackableTargetGoal<LivingEntity> {
+public:
+    explicit VindicatorJohnnyAttackGoal(VindicatorEntity* vindicator)
+        // 对齐 vanilla super(mob, LivingEntity.class, chance=0, checkSight=true, checkCustom=true, predicate)。
+        // 谓词 isAlive 对齐 vanilla attackable()（LivingEntity 默认 true，过滤死亡目标）。
+        : NearestAttackableTargetGoal<LivingEntity>(vindicator,
+              true, // checkSight
+              0,    // chance（每 tick 检查）
+              [](const LivingEntity* target) -> bool { return target != nullptr && target->isAlive(); })
+        , m_vindicator(vindicator)
+    {
+        MC_ASSERT_RELEASE(vindicator != nullptr);
+    }
+
+    ~VindicatorJohnnyAttackGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override
+    {
+        if (m_vindicator == nullptr || !m_vindicator->isJohnny()) {
+            return false;
+        }
+        return NearestAttackableTargetGoal<LivingEntity>::shouldExecute();
+    }
+
+    [[nodiscard]] std::string getTypeName() const override { return "VindicatorJohnnyAttackGoal"; }
+
+private:
+    VindicatorEntity* m_vindicator;
+};
+
 // ==================== 同步链标识（透传层，无自身同步字段） ====================
 const entity::EntityClassInfo& PillagerEntity::classInfo()
 {
@@ -302,6 +350,19 @@ VindicatorEntity::VindicatorEntity(EntityInstanceId id, ecs::EntityRegistry& reg
     }
 }
 
+void VindicatorEntity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
+{
+    // 对齐 vanilla Vindicator.setCustomName（Vindicator.java:145-150）：调基类设置名称后，
+    // 若当前未激活 Johnny 且新名称纯文本为 "Johnny"，则锁存激活 Johnny 模式。
+    // 经 Entity::setCustomName(string) 委托 setCustomNameComponent，命名牌等文本路径同样触发。
+    Entity::setCustomNameComponent(std::move(name));
+    if (!m_isJohnny) {
+        if (customNameText() == "Johnny") {
+            m_isJohnny = true;
+        }
+    }
+}
+
 void VindicatorEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
@@ -358,6 +419,12 @@ void VindicatorEntity::registerGoals()
     // 优先级 3: 攻击铁傀儡
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+
+    // 优先级 4: Johnny 彩蛋——命名为 "Johnny" 时攻击所有可攻击生物。对齐 vanilla
+    //   Vindicator.registerGoals:73 `targetSelector.addGoal(4, new VindicatorJohnnyAttackGoal(this))`。
+    //   isJohnny 由 setCustomNameComponent 在命名为 "Johnny" 时锁存。shouldExecute 门控 isJohnny，
+    //   非 Johnny 时永不触发（零开销）；Johnny 时选取最近可攻击 LivingEntity 作为目标。
+    m_targetSelector.addGoal(4, std::make_unique<VindicatorJohnnyAttackGoal>(this));
 }
 
 void VindicatorEntity::registerAttributes()

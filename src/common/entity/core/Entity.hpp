@@ -2060,12 +2060,19 @@ public:
     /**
      * @brief 设置自定义名称组件
      * @param name 名称组件（所有权转移）
+     *
+     * 声明为 virtual 以允许派生类在命名变更时附加副作用（对齐 vanilla
+     * Entity.setCustomName 的 virtual 语义）。例如卫道士被命名为 "Johnny" 时
+     * 激活 Johnny 攻击目标（vanilla Vindicator.setCustomName）。
      */
-    void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name);
+    virtual void setCustomNameComponent(std::unique_ptr<text::ITextComponent> name);
 
     /**
      * @brief 设置自定义名称（纯文本，向后兼容）
      * @param name 名称字符串
+     *
+     * 委托给 setCustomNameComponent（构造 StringTextComponent），确保所有命名路径
+     * 统一经由 virtual 入口，派生类的 override 对文本与组件两种调用均生效。
      */
     void setCustomName(const std::string& name);
 

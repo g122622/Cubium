@@ -330,14 +330,12 @@ void Entity::setAir(i32 air)
 
 void Entity::setCustomName(const std::string& name)
 {
-    auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
-    MC_ASSERT_RELEASE(c != nullptr);
+    // 委托 setCustomNameComponent（virtual），确保所有命名路径统一经由虚入口，
+    // 派生类（如 Vindicator 的 Johnny 触发）的 override 对文本与组件两种调用均生效。
     if (name.empty()) {
-        c->m_customName = nullptr;
-        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
+        setCustomNameComponent(nullptr);
     } else {
-        c->m_customName = std::make_unique<text::StringTextComponent>(name);
-        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, name});
+        setCustomNameComponent(std::make_unique<text::StringTextComponent>(name));
     }
 }
 
