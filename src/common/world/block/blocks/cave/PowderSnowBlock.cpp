@@ -45,6 +45,17 @@ PowderSnowBlock::PowderSnowBlock(const BlockProperties& properties)
 const CollisionShape& PowderSnowBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
+    // TODO(细雪可行走未实现): 对齐 vanilla PowderSnowBlock.getCollisionShape（PowderSnowBlock.java:116-132）
+    // 与 canEntityWalkOnPowderSnow（:139-145）。vanilla 依实体类型判定碰撞箱：
+    //   - fallDistance>2.5 → FALLING_COLLISION_SHAPE（下落实体穿透）
+    //   - canEntityWalkOnPowderSnow(entity)（EntityTypeTags.POWDER_SNOW_WALKABLE_MOBS 成员={Rabbit,
+    //     Endermite, Silverfish, Fox}，或 LivingEntity 穿皮革靴子）且实体在方块上方非下降 →
+    //     实体方块碰撞箱（可行走不下沉）
+    //   - 否则 → empty（下沉）
+    // 阻塞：Cubium getCollisionShape(const BlockState&) 全项目签名无实体上下文（Block.hpp:844），
+    //   物理引擎 PhysicsEngine.cpp:151/529 调用点也无实体传入。实现可行走须给 Block 基类与物理引擎
+    //   碰撞解析管线引入 CollisionContext/Entity 参数（波及 30+ getCollisionShape 调用点），属大重构。
+    //   当前所有实体都穿透下沉，待碰撞管线支持实体上下文后补 canEntityWalkOnPowderSnow 标签查询。
     return VoxelShapes::empty();
 }
 
