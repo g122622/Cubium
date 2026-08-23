@@ -41,6 +41,7 @@
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../damage/tag/DamageTypeTags.hpp"
 #include "../../../entities/monster/MonsterEntity.hpp"
 #include "../../../entities/passive/special/FoxEntity.hpp"
 #include "../../../entities/player/Player.hpp"
@@ -85,12 +86,17 @@ private:
 /**
  * @brief 北极熊恐慌目标
  *
- * 只有幼熊或着火时才会恐慌逃跑。
+ * 对齐 vanilla PolarBear（PolarBear.java:86 附近）：幼熊用 PANIC_CAUSES（任何恐慌标签伤害
+ * 触发），成年熊用 PANIC_ENVIRONMENTAL_CAUSES（仅环境伤害如岩浆/闪电触发，玩家攻击不恐慌）。
+ * 通过 override shouldPanic 按 isChild 动态选择标签，对齐 vanilla
+ * `isBaby() ? PANIC_CAUSES : PANIC_ENVIRONMENTAL_CAUSES`（Function<PathfinderMob, TagKey>）。
  */
 class PolarBearPanicGoal : public entity::ai::goal::PanicGoal {
 public:
     explicit PolarBearPanicGoal(PolarBearEntity* bear);
-    bool shouldExecute() override;
+
+protected:
+    [[nodiscard]] bool shouldPanic() const override;
 
 private:
     PolarBearEntity* m_bear;
@@ -440,13 +446,20 @@ PolarBearPanicGoal::PolarBearPanicGoal(PolarBearEntity* bear)
     , m_bear(bear)
 {}
 
-bool PolarBearPanicGoal::shouldExecute()
+bool PolarBearPanicGoal::shouldPanic() const
 {
-    // 只有幼熊或着火的北极熊才会恐慌
-    if (!m_bear->isChild() && !m_bear->isOnFire()) {
+    if (!m_bear) return false;
+
+    // 对齐 vanilla PolarBear：isBaby() ? PANIC_CAUSES : PANIC_ENVIRONMENTAL_CAUSES。
+    // 幼熊受任何 PANIC_CAUSES 伤害（含玩家攻击）即恐慌；成年熊仅受 PANIC_ENVIRONMENTAL_CAUSES
+    // 环境伤害（岩浆/闪电/仙人掌等）恐慌，玩家攻击不恐慌（成年北极熊会反击而非逃跑）。
+    // 用最近伤害源（lastDamageSource）判定，基类 shouldPanic 同款逻辑但标签动态选择。
+    auto* lastDamage = m_bear->lastDamageSource();
+    if (lastDamage == nullptr) {
         return false;
     }
-    return PanicGoal::shouldExecute();
+    auto& tag = m_bear->isChild() ? DamageTypeTags::PANIC_CAUSES() : DamageTypeTags::PANIC_ENVIRONMENTAL_CAUSES();
+    return lastDamage->is(tag);
 }
 
 // ==================== PolarBearHurtByTargetGoal ====================

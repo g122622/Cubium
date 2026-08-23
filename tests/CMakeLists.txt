@@ -731,6 +731,8 @@ add_executable(mc_tests
     common/entity/ai/goal/AvoidBlockGoalTest.cpp
     # MoveTowardsRestrictionGoal 向家范围移动目标测试
     common/entity/ai/goal/MoveTowardsRestrictionGoalTest.cpp
+    # PanicGoal shouldPanic 标签查询测试（PANIC_CAUSES/PANIC_ENVIRONMENTAL_CAUSES）
+    common/entity/ai/goal/PanicGoalTest.cpp
     entity/GhastEntityTest.cpp
     # 恶魂 AI 目标测试
     common/entity/GhastGoalsTest.cpp

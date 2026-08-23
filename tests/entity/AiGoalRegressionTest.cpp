@@ -31,6 +31,8 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -220,11 +222,24 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems)
 
 TEST(AiGoalRegressionTest, PanicGoal_FindsNearbyWaterWhenBurning)
 {
+    // 标签成员集在 DamageTypeTags::initialize() 注册。此回归测试为 TEST（无 fixture SetUp），
+    // 须显式初始化一次（进程级幂等）。未初始化时 PANIC_CAUSES 成员集为空，source.is(PANIC_CAUSES)
+    // 恒返 false，shouldPanic 恒 false。
+    DamageTypeTags::initialize();
+
     TestGoalWorld world;
     world.setAllWater(true);
     TestCreatureEntity creature;
     creature.setWorld(&world);
     creature.setPosition(10.0f, 64.0f, 10.0f);
+
+    // 对齐 vanilla PanicGoal 语义：shouldExecute 先调 shouldPanic（lastDamageSource.is(PANIC_CAUSES)），
+    // 通过后才在着火时找水。真实游戏中实体着火总因受 fire 类伤害（InFire/Lava/OnFire 均在
+    // PANIC_CAUSES），故此处先 apply 一次 OnFire 伤害设 lastDamageSource=OnFire，使 shouldPanic=true，
+    // 再 setFire 模拟着火状态进入找水分支。单纯 setFire(40) 不设 lastDamageSource（vanilla 亦然），
+    // shouldPanic=false 不会触发恐慌——这正是修复后的正确语义。
+    auto onFireSource = DamageSources::onFire();
+    creature.actuallyHurt(onFireSource, 1.0f);
     creature.setFire(40);
 
     ExposedPanicGoal goal(&creature, 1.0);

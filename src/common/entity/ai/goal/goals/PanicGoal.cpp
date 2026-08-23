@@ -34,6 +34,8 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc::entity::ai::goal {
@@ -47,20 +49,47 @@ PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed)
     setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
 }
 
+PanicGoal::PanicGoal(CreatureEntity* creature, f64 speed, DamageTypeTag& panicCauses)
+    : m_creature(creature)
+    , m_speed(speed)
+    , m_panicCauses(&panicCauses)
+{
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move});
+}
+
+bool PanicGoal::shouldPanic() const
+{
+    if (!m_creature) return false;
+
+    // 对齐 vanilla PanicGoal.shouldPanic:61-63：
+    //   mob.getLastDamageSource() != null && mob.getLastDamageSource().is(panicCausingDamageTypes)
+    // 用最近伤害源（DamageSource）判定，而非攻击者实体（getLastHurtBy）。故环境伤害（仙人掌/
+    //   岩浆/闪电等无攻击者的 PANIC_ENVIRONMENTAL_CAUSES）能触发恐慌，而 mob_attack_no_aggro
+    //   （有攻击者但非 PANIC_CAUSES）不触发。
+    // 标签：m_panicCauses 为子类/构造指定的标签（对齐 vanilla 第二构造 TagKey 参数），nullptr 时
+    //   用默认 DamageTypeTags::PANIC_CAUSES（对齐 vanilla 第一构造默认值）。
+    DamageSource* lastDamage = m_creature->lastDamageSource();
+    if (lastDamage == nullptr) {
+        return false;
+    }
+    DamageTypeTag& tag = (m_panicCauses != nullptr) ? *m_panicCauses : mc::DamageTypeTags::PANIC_CAUSES();
+    return lastDamage->is(tag);
+}
+
 bool PanicGoal::shouldExecute()
 {
     if (!m_creature) return false;
 
-    // 检查是否有复仇目标或着火
-    LivingEntity* revengeTarget = m_creature->getLastHurtBy();
-    bool isBurning = m_creature->isOnFire();
-
-    if (revengeTarget == nullptr && !isBurning) {
+    // 对齐 vanilla PanicGoal.canUse:42-59：先 shouldPanic，false 则直接返 false（不着火也不查水）。
+    // 此前 Cubium 用 getLastHurtBy()!=null || isOnFire() 判定，偏离 vanilla：
+    //   - 环境伤害无攻击者 getLastHurtBy=null 不触发恐慌（vanilla 应触发）
+    //   - mob_attack_no_aggro 有攻击者误触发恐慌（vanilla 不应触发）
+    if (!shouldPanic()) {
         return false;
     }
 
-    // 如果着火，尝试找水
-    if (isBurning) {
+    // 如果着火，尝试找水（对齐 vanilla canUse:47-55，shouldPanic 通过后才查水）
+    if (m_creature->isOnFire()) {
         BlockPos waterPos = _getRandomWaterPosition(
             static_cast<i32>(PANIC_WATER_SEARCH_RANGE), static_cast<i32>(PANIC_WATER_SEARCH_VERTICAL));
         if (waterPos.x != 0 || waterPos.y != 0 || waterPos.z != 0) {
@@ -71,7 +100,7 @@ bool PanicGoal::shouldExecute()
         }
     }
 
-    // 否则使用随机位置生成器
+    // 否则使用随机位置生成器（对齐 vanilla canUse:57 findRandomPosition）
     return _findRandomPosition();
 }
 
