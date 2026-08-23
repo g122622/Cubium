@@ -285,8 +285,12 @@ public:
      *
      * 根据骑乘状态更新 GoalSelector 的 MOVE/JUMP/LOOK 标志。
      * 每 5 tick 调用一次。
+     *
+     * 对齐 vanilla Mob.updateControlFlags()（Mob.java:333-339）。子类可重写以扩展骑乘门控
+     * 语义（如 Ravager 对齐 Ravager.updateControlFlags:88-96 额外查 RAIDERS 标签）。
+     * 声明为 virtual 以支持子类派发。
      */
-    void updateMovementGoalFlags();
+    virtual void updateMovementGoalFlags();
 
     // ========== AI 辅助方法 ==========
 

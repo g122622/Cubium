@@ -309,6 +309,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/SpellcastingIllagerTest.cpp
     # IllusionerEntity 镜像分身偏移、施法状态和远程攻击测试
     common/entity/entities/monster/illager/IllusionerEntityTest.cpp
+    # RavagerEntity RAIDERS 标签骑乘门控（灾厄村民骑乘保持自主 AI flag）测试
+    common/entity/entities/monster/illager/RavagerRidingFlagTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
     # ShulkerEntity 被潜影弹命中 hitByShulkerBullet 瞬移+繁殖测试

@@ -40,6 +40,7 @@
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -152,6 +153,52 @@ bool RavagerEntity::isMovementBlocked() const
 {
     // 攻击、眩晕或咆哮时不能移动
     return m_attackTick > 0 || m_stunTick > 0 || m_roarTick > 0;
+}
+
+void RavagerEntity::updateMovementGoalFlags()
+{
+    // 对齐 vanilla 1.21.11 Ravager.updateControlFlags（Ravager.java:88-96）：
+    //   boolean flag = !(getControllingPassenger() instanceof Mob)
+    //                  || getControllingPassenger().getType().is(EntityTypeTags.RAIDERS);
+    //   goalSelector.setControlFlag(MOVE, flag);
+    //   goalSelector.setControlFlag(JUMP, flag && !(getVehicle() instanceof AbstractBoat));
+    //   goalSelector.setControlFlag(LOOK, flag);
+    //   goalSelector.setControlFlag(TARGET, flag);
+    //
+    // 语义：控制乘客为空/玩家 → flag=true（Ravager 自主 AI 全开）；控制乘客为非玩家 Mob：
+    //   - 在 RAIDERS 标签内（灾厄村民）→ flag=true（Ravager 仍自主寻路，骑手仅随乘）
+    //   - 不在标签内（如骷髅）→ flag=false（Ravager 停摆交骑手控制）
+    //
+    // 近似：Cubium 基类 getControllingPassenger() 返回首名乘客（不区分 Mob/Player），
+    // 此处沿用基类 `entityType() != PLAYER` 近似 `instanceof Mob`（玩家视为非 Mob）。
+    // 标签未初始化时回退到基类行为（仅 !PLAYER 判定）避免回归。
+    bool controllingIsMob = false;
+    EntityInstanceId controllingId = getControllingPassenger();
+    if (controllingId != INVALID_ENTITY_ID && m_world != nullptr) {
+        Entity* controlling = m_world->getEntity(controllingId);
+        if (controlling != nullptr && controlling->entityType() != entity::VanillaEntityTypeKeys::PLAYER) {
+            controllingIsMob = true;
+        }
+    }
+    bool canMove = !controllingIsMob;
+
+    // 控制乘客为非玩家 Mob 时，查 RAIDERS 标签：灾厄村民骑乘时保持 Ravager 自主 AI（对齐 vanilla 析取项）。
+    if (controllingIsMob && EntityTypeTags::isInitialized() && controllingId != INVALID_ENTITY_ID &&
+        m_world != nullptr) {
+        Entity* controlling = m_world->getEntity(controllingId);
+        if (controlling != nullptr && EntityTypeTags::RAIDERS().contains(controlling->getTypeId())) {
+            canMove = true;
+        }
+    }
+
+    // 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐，留 TODO（基类 MobEntity 同）。
+    // TODO: 船骑乘体系就绪后对齐 JUMP flag 的 `!(getVehicle() instanceof AbstractBoat)` 特例。
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Move, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Jump, canMove);
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Look, canMove);
+    // 对齐 vanilla Ravager.updateControlFlags 设 TARGET flag（基类 MobEntity 未设，属基类级偏差，
+    // 此处 Ravager 重写补齐——灾厄村民骑乘时 Ravager 仍可自主选目标）。
+    m_goalSelector.setFlag(entity::ai::GoalFlag::Target, canMove);
 }
 
 bool RavagerEntity::canSee(const Entity& other) const

@@ -198,6 +198,36 @@ public:
     [[nodiscard]] bool isMovementBlocked() const;
 
     /**
+     * @brief 更新移动目标标志（对齐 vanilla Ravager.updateControlFlags）
+     *
+     * 对齐 vanilla 1.21.11 Ravager.updateControlFlags（Ravager.java:88-96）：
+     *   boolean flag = !(getControllingPassenger() instanceof Mob)
+     *                  || getControllingPassenger().getType().is(EntityTypeTags.RAIDERS);
+     *   goalSelector.setControlFlag(MOVE, flag);
+     *   goalSelector.setControlFlag(JUMP, flag && !(getVehicle() instanceof AbstractBoat));
+     *   goalSelector.setControlFlag(LOOK, flag);
+     *   goalSelector.setControlFlag(TARGET, flag);
+     *
+     * vanilla 基类 Mob.updateControlFlags 仅 `!instanceof Mob`（玩家骑乘时载具 AI 保持开）。
+     * Ravager 重写额外加 `|| RAIDERS` 析取：当灾厄村民（掠夺者/唤魔者/卫道士/幻术师/女巫）骑
+     * Ravager 时，Ravager 仍保持自主 MOVE/LOOK/TARGET flag（自己寻路、自己选目标，骑手仅随乘），
+     * 而非像普通 Mob 骑 Mob 那样把载具 AI 关停交骑手控制。
+     *
+     * 此前缺陷：RavagerEntity 未重写本方法，落到基类 MobEntity::updateMovementGoalFlags 的
+     * `entityType() != PLAYER` 硬编码——灾厄村民骑乘时 controllingIsMob=true → canMove=false →
+     * Ravager 的 MOVE/JUMP/LOOK flag 全关，Ravager 停摆不自主寻路，袭击骑乘队战斗力被破坏，
+     * 与 vanilla 相反（vanilla 灾厄村民骑乘时 flag=true）。改查 RAIDERS 标签对齐 vanilla。
+     *
+     * 近似说明：vanilla getControllingPassenger() 仅在乘客为 Mob 且 canControlVehicle() 时返回该 Mob，
+     * 否则 null；Cubium 基类 getControllingPassenger() 直接返回首名乘客。故此处沿用基类近似——
+     * 用 `entityType() != PLAYER` 近似 `instanceof Mob`（玩家视为非 Mob），再叠加 RAIDERS 析取。
+     * 标签未初始化时回退到基类行为（仅 !PLAYER 判定）避免回归。
+     *
+     * 船辆特例（JUMP flag 额外受 vehicle 是否船影响）暂不对齐，留 TODO（基类同）。
+     */
+    void updateMovementGoalFlags() override;
+
+    /**
      * @brief 检查是否能看见目标
      *
      * 眩晕或咆哮时不能看见目标
