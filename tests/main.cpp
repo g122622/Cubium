@@ -25,6 +25,7 @@
 // 输出调用栈，便于定位测试失败/挂起根因。参考 src/client/main.cpp 与 src/server/main.cpp。
 
 #include "common/core/GameDirectory.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/serialization/components/ComponentSerializerRegistry.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
@@ -64,6 +65,14 @@ public:
         // 正确序列化组件字段。原先各测试需自行调 VanillaEntities::registerAll() 才间接触发，
         // 漏调即静默失败；集中到全局环境根治此类 setup 陷阱。
         mc::entity::serialization::components::ComponentSerializerRegistry::instance().registerAll();
+
+        // 初始化伤害类型标签（进程单例，s_initialized 守卫幂等，纯硬编码成员集不依赖数据包/方块）。
+        // DamageTypeTags::initialize() 注册 BYPASSES_ENCHANTMENTS/WITCH_RESISTANT_TO/IS_FIRE 等全部标签的
+        // vanilla 成员集（DamageTypeTags.cpp:434）。未初始化时所有 source.is(tag) 查询命中空集合恒返 false，
+        // 致依赖标签的单元测试静默失败（如 WitchEntityTest.MagicDamageReducedBy85Percent 依赖
+        // WITCH_RESISTANT_TO 命中、BypassesEnchantmentsTest 依赖 BYPASSES_ENCHANTMENTS 命中）。集中到全局
+        // 环境根治此类 setup 陷阱，使依赖标签的测试自包含——与上方 ComponentSerializerRegistry 同模式。
+        mc::DamageTypeTags::initialize();
 
         const auto dataPackDir = mc::GameDirectory::defaultDirectory().dataPacksDir();
         if (!std::filesystem::exists(dataPackDir)) {

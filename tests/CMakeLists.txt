@@ -468,6 +468,8 @@ add_executable(mc_tests
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试
     common/entity/combat/CombatRulesEPFTest.cpp
+    # BYPASSES_ENCHANTMENTS 标签查询测试（sonic_boom 跳过附魔保护但保留抗性药水）
+    common/entity/combat/BypassesEnchantmentsTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试

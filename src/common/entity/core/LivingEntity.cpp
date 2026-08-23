@@ -483,7 +483,10 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
     // 2. 附魔保护减伤
     // 遍历所有护甲槽位，计算保护附魔的 EPF 总和
     // 只有非 isDamageAbsolute 的伤害才受附魔保护影响
-    if (!source.isDamageAbsolute()) {
+    // BYPASSES_ENCHANTMENTS 伤害源（sonic_boom，监守者音爆）跳过附魔保护减伤（对齐 vanilla
+    // LivingEntity.getDamageAfterMagicAbsorb:1843：BYPASSES_ENCHANTMENTS 直接返回，抗性药水已在前一步生效）。
+    // vanilla 中监守者音爆设计为无视护甲和附魔保护（但仍受抗性药水减免）。
+    if (!source.isDamageAbsolute() && !source.is(DamageTypeTags::BYPASSES_ENCHANTMENTS())) {
         u32 damageTypeFlags = 0;
         if (source.isFire()) damageTypeFlags |= DamageFlags::FIRE;
         if (source.isFall()) damageTypeFlags |= DamageFlags::FALL;

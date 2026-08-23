@@ -100,7 +100,7 @@ enum class DamageType : u8 {
     Thorns,               // 荆棘
     Explosion,            // 爆炸
     ExplosionPlayer,      // 玩家爆炸
-    SonicBoom,            // 守卫者音爆攻击
+    SonicBoom,            // 监守者音爆攻击
     BadRespawnPoint,      // 床重生爆炸（"-intentional_game_design"）
     WindBurst,            // 风弹风爆
     MaceSmash,            // 重锤下落攻击
@@ -1175,7 +1175,7 @@ inline IndirectEntityDamageSource thrown(Entity* projectile, Entity* thrower)
 
 /**
  * @brief 创建音爆伤害
- * 守卫者音爆攻击造成的伤害，绕过护甲和附魔
+ * 监守者音爆攻击造成的伤害，绕过护甲和附魔
  */
 inline IndirectEntityDamageSource sonicBoom(Entity* guardian, Entity* target)
 {
