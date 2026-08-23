@@ -311,6 +311,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/IllusionerEntityTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
+    # ShulkerEntity 被潜影弹命中 hitByShulkerBullet 瞬移+繁殖测试
+    common/entity/entities/monster/end/ShulkerBulletHitTest.cpp
     # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
     common/entity/entities/monster/end/EndermanStareDetectionTest.cpp
     # EndermanEntity 方块放置和拾取测试（BlockTags::ENDERMAN_HOLDABLE、EndermanPlaceBlockGoal、EndermanTakeBlockGoal）

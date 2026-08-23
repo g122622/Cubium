@@ -307,6 +307,12 @@ private:
     // 寻找可附着的方向
     [[nodiscard]] std::optional<Direction> _findValidFacing(const BlockPos& pos) const;
 
+    // 被潜影弹命中时的瞬移+繁殖回调（对齐 vanilla Shulker.hitByShulkerBullet:440-455）。
+    // 仅当贝壳打开（!isClosed）且 teleportSomewhere 成功时执行：在原位置附近 8 格范围内
+    // 统计存活潜影贝数量 i，繁殖概率阈值 f=(i-1)/5.0，当 random.nextFloat() >= f 时在原位置
+    // 生成一只同颜色（variant）的新潜影贝。潜影密度越高越不容易繁殖（i>=6 时 f>=1 必不繁殖）。
+    void _hitByShulkerBullet(const Vector3& originalPos);
+
     // 颜色
     ShulkerColor m_color = ShulkerColor::Purple;
 

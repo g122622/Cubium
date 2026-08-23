@@ -36,6 +36,7 @@
 #include "entity/attribute/Attributes.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/damage/tag/DamageTypeTags.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/OtherProjectiles.hpp"
@@ -178,8 +179,15 @@ bool ShulkerEntity::_tryTeleportToNewPosition()
         }
 
         // 瞬移成功
+        // 对齐 vanilla 1.21.11 Shulker.teleportSomewhere:388-394：unRide() → setAttachFace →
+        // playSound → setPos(blockpos1.getX()+0.5, blockpos1.getY(), blockpos1.getZ()+0.5) →
+        // gameEvent(TELEPORT) → entityData.set(PEEK,0) → setTarget(null)。Cubium 此前仅 setAttachmentPos
+        // 而未 setPosition，致瞬移后实体视觉/逻辑位置不变（仅记录附着点），与 vanilla 偏离且使
+        // 受伤逃脱（hurt 半血分支）实际无效。补 setPosition 真正移动实体。
         m_attachmentFacing = facing.value();
         playTeleportSound();
+        setPosition(Vector3(
+            static_cast<f32>(targetPos.x) + 0.5f, static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z) + 0.5f));
         setAttachmentPos(targetPos);
         updatePeekTicks(0);
         setAttackTarget(nullptr);
@@ -329,16 +337,97 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
 
     // 调用父类受伤
     if (MonsterEntity::hurt(source, amount)) {
-        // 血量低于一半时有概率瞬移
+        // 对齐 vanilla 1.21.11 Shulker.hurtServer:423-430：父类扣血成功后，二选一：
+        //   a) 血量低于最大值一半且 1/4 概率 → teleportSomewhere（受伤逃脱）
+        //   b) 否则若伤害来源是 IS_PROJECTILE 且直接来源实体为 SHULKER_BULLET → hitByShulkerBullet
+        //      （被同类潜影弹命中：瞬移到新位置并在原位繁殖一只同色潜影贝）
+        // 注：vanilla 是 if/else if，即半血逃脱优先，未触发逃脱时才检查潜影弹命中回调。
         if (health() < maxHealth() * 0.5f && m_world != nullptr) {
             math::Random& rng = m_world->getRandom();
             if (rng.nextInt(4) == 0) {
                 _tryTeleportToNewPosition();
             }
+        } else if (source.is(DamageTypeTags::IS_PROJECTILE())) {
+            // 仅潜影弹命中触发瞬移+繁殖（vanilla :426-429 getDirectEntity().getType()==SHULKER_BULLET）。
+            // directSource 对 IndirectEntityDamageSource 返回投射物本身（即潜影弹实体）。
+            // 用 dynamic_cast<ShulkerBulletEntity*> 判定直接来源是否潜影弹（ShulkerBulletEntity 无派生类，
+            // 与 vanilla getType()==SHULKER_BULLET 精确类型相等语义一致；与闭壳分支 dynamic_cast<AbstractArrowEntity*>
+            // 风格统一）。
+            Entity* directEntity = source.directSource();
+            if (dynamic_cast<const entity::ShulkerBulletEntity*>(directEntity) != nullptr) {
+                // 记录受击前位置，hitByShulkerBullet 在瞬移成功后在原位繁殖新潜影贝。
+                _hitByShulkerBullet(position());
+            }
         }
         return true;
     }
     return false;
+}
+
+void ShulkerEntity::_hitByShulkerBullet(const Vector3& originalPos)
+{
+    // 对齐 vanilla 1.21.11 Shulker.hitByShulkerBullet（Shulker.java:440-455）：
+    //   Vec3 vec3 = this.position(); AABB aabb = this.getBoundingBox();
+    //   if (!isClosed() && teleportSomewhere()) {
+    //       int i = level.getEntities(SHULKER, aabb.inflate(8.0), isAlive).size();
+    //       float f = (i - 1) / 5.0F;
+    //       if (!(random.nextFloat() < f)) {
+    //           Shulker shulker = EntityType.SHULKER.create(level, BREEDING);
+    //           shulker.setVariant(this.getVariant());
+    //           shulker.snapTo(vec3);
+    //           level.addFreshEntity(shulker);
+    //       }
+    //   }
+    // 即：仅开壳潜影贝被潜影弹命中、且成功瞬移到新位置后，在原位置周围 8 格范围内统计存活
+    // 潜影贝数量 i，繁殖概率为 1-f（f=(i-1)/5）。潜影越密集越不易繁殖（i>=6 时 f>=1 概率为 0
+    // 必不繁殖），从而抑制潜影贝无限增殖。
+    //
+    // 注意：vanilla 在 teleportSomewhere 之前取 vec3=position() 与 aabb=getBoundingBox()，统计用
+    // 旧碰撞箱外扩 8 格、新潜影贝生成在旧位置。故此处 originalPos 由调用方传入（瞬移前 position），
+    // searchBox 也在瞬移前记录，避免瞬移后实体已离开原位导致统计区域偏移。
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // a) 开壳且瞬移成功才进入繁殖判定（闭壳或瞬移失败则什么都不做）
+    if (isShellClosed()) {
+        return;
+    }
+    // 瞬移前记录原碰撞箱（vanilla :442 aabb = this.getBoundingBox() 在 teleport 之前）。
+    const AxisAlignedBB originalBox = boundingBox();
+    if (!_tryTeleportToNewPosition()) {
+        return;
+    }
+
+    // b) 统计原碰撞箱外扩 8 格范围内的存活潜影贝数量（vanilla getEntities(SHULKER, aabb.inflate(8.0))）
+    const AxisAlignedBB searchBox = originalBox.grow(8.0f);
+    i32 shulkerCount = 0;
+    const std::vector<Entity*> nearby = m_world->getEntitiesInAABB(searchBox, this);
+    for (const Entity* entity : nearby) {
+        if (entity != nullptr && entity->isAlive() && entity->entityType() == entity::VanillaEntityTypeKeys::SHULKER) {
+            ++shulkerCount;
+        }
+    }
+
+    // c) 繁殖概率判定：f=(i-1)/5，random.nextFloat() >= f 时繁殖。i<=1 时 f<=0 必繁殖，
+    //    i>=6 时 f>=1 必不繁殖。注意本实体已瞬移离开原位，故统计中不含自身（getEntitiesInAABB
+    //    已排除 this）。
+    const f32 threshold = static_cast<f32>(shulkerCount - 1) / 5.0f;
+    math::Random& rng = m_world->getRandom();
+    if (rng.nextFloat() < threshold) {
+        return; // 概率未通过，不繁殖
+    }
+
+    // d) 在原位置生成一只同色新潜影贝（vanilla create(BREEDING)+setVariant+snapTo+addFreshEntity）
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto baby = std::make_unique<ShulkerEntity>(EntityInstanceId(0), *registry);
+    baby->setTypeId(entity::EntityTypeKeys::SHULKER); // 显式置 typeId（工厂绕过补救，对齐 shootBullet）
+    baby->setColor(getColor());                       // 继承颜色（variant）
+    baby->setPosition(originalPos);                   // 在原位置生成（vanilla snapTo(vec3)）
+    m_world->spawnEntity(std::move(baby));
 }
 
 void ShulkerEntity::registerGoals()
