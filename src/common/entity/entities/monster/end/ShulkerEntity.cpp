@@ -37,6 +37,7 @@
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/OtherProjectiles.hpp"
 #include "entity/registry/VanillaEntityTypeKeys.hpp"
 #include "sound/SoundEvents.hpp"
@@ -312,24 +313,17 @@ void ShulkerEntity::tick()
 
 bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
 {
-    // 闭合时免疫箭矢
+    // 闭合时仅免疫箭矢类投射物（对齐 vanilla 1.21.11 Shulker.hurtServer:411-418：
+    //   isClosed() 时仅对 instanceof AbstractArrow return false，其他投射物正常受伤）。
+    // AbstractArrow 含普通箭/光灵箭/三叉戟（均继承 AbstractArrowEntity，对齐 vanilla 继承体系）。
+    // 此前偏差：闭壳对所有投射物（火球/雪球/鸡蛋/末影珍珠/药水/羊驼唾沫/潜影弹）都免疫，
+    //   范围过宽偏离 vanilla（vanilla 闭壳潜影贝受火球等非箭投射物伤害）。改为仅箭矢免疫。
+    // 注意：DEFLECTS_PROJECTILES 标签此前误含 shulker 致箭被无条件偏转弹开（连 hurt 都不进），
+    //   已从标签移除（EntityTypeTags 对齐 vanilla 仅 breeze），故箭现在进 hurt 由本分支判定。
     if (isShellClosed()) {
         Entity* attacker = source.directSource();
-        // 检查是否是投射物
-        if (attacker != nullptr) {
-            auto type = attacker->entityType();
-            // 投射物类型：箭、三叉戟、火球等
-            if (type == entity::VanillaEntityTypeKeys::ARROW || type == entity::VanillaEntityTypeKeys::SPECTRAL_ARROW ||
-                type == entity::VanillaEntityTypeKeys::TRIDENT || type == entity::VanillaEntityTypeKeys::FIREBALL ||
-                type == entity::VanillaEntityTypeKeys::SMALL_FIREBALL ||
-                type == entity::VanillaEntityTypeKeys::DRAGON_FIREBALL ||
-                type == entity::VanillaEntityTypeKeys::WITHER_SKULL ||
-                type == entity::VanillaEntityTypeKeys::SNOWBALL || type == entity::VanillaEntityTypeKeys::EGG ||
-                type == entity::VanillaEntityTypeKeys::ENDER_PEARL || type == entity::VanillaEntityTypeKeys::POTION ||
-                type == entity::VanillaEntityTypeKeys::LLAMA_SPIT ||
-                type == entity::VanillaEntityTypeKeys::SHULKER_BULLET) {
-                return false;
-            }
+        if (attacker != nullptr && dynamic_cast<const entity::AbstractArrowEntity*>(attacker) != nullptr) {
+            return false;
         }
     }
 

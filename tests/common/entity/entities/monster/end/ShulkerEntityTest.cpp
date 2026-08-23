@@ -27,8 +27,12 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/goals/special/ShulkerGoals.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
@@ -601,6 +605,117 @@ TEST(ShulkerEntityTest, RegisterGoalsContainsDefenseAttackGoal)
 
     entity::ai::goal::ShulkerNearestAttackGoal nearestGoal(&shulker);
     EXPECT_EQ(nearestGoal.getTypeName(), "ShulkerNearestAttackGoal");
+}
+
+// ============================================================================
+// ShulkerEntity 受伤闭壳免疫范围测试（对齐 vanilla 1.21.11 Shulker.hurtServer:411-418）
+// ============================================================================
+//
+// 本组测试验证 ShulkerEntity::hurt 的闭壳免疫语义：贝壳闭合时仅免疫箭矢类投射物
+// （AbstractArrowEntity：普通箭/光灵箭/三叉戟），其他投射物（雪球/火球等）正常受伤；
+// 贝壳打开时对所有投射物均正常受伤。
+//
+// 对齐 vanilla 1.21.11 Shulker.hurtServer（行 411-418）：
+//   if (isClosed()) {
+//       Entity entity = source.getDirectEntity();
+//       if (entity instanceof AbstractArrow) {
+//           return false;  // 闭壳免疫箭矢
+//       }
+//   }
+//   return super.hurtServer(source, amount);  // 其他情况走父类扣血
+//
+// 修复背景：此前 Cubium 闭壳对所有投射物都免疫（范围过宽），偏离 vanilla（vanilla 闭壳
+//   潜影贝受火球/雪球等非箭投射物伤害）。已改为 dynamic_cast<AbstractArrowEntity*> 精确判定。
+// 同时 DEFLECTS_PROJECTILES 标签此前误含 shulker 致箭被无条件偏转弹开（连 hurt 都不进），
+//   已从标签移除（对齐 vanilla 仅 breeze），故箭现在能进 hurt 由本分支判定。
+//
+// 测试方法学：采用单元测试而非集成测试。原因——集成测试中投射物命中生物存在非确定性
+//   （抛射物物理/AI 命中时机不稳定，见 ThrowableItemTests 注释与历史经验），且闭壳免疫箭的
+//   修复前后在"箭命中即免疫"这一点上都成立，难以用集成测试干净区分。单元测试直接构造
+//   DamageSource 调 hurt，确定性最高，精确验证 dynamic_cast 分支逻辑。
+//
+// 血量基线：ShulkerEntity 构造后 HealthComponent 默认 health=20（LivingEntity.cpp:150 emplace），
+//   maxHealth=30（ShulkerEntity::registerAttributes 显式补调设置）。首帧 tick() 才兜底同步
+//   health 至 maxHealth（LivingEntity.cpp:1061-1065 m_healthSynced 守卫）。为确立 30 基线，
+//   本组测试构造后显式 setHealth(30.0f)（同时置 m_healthSynced=true 防止后续 tick 覆盖）。
+//
+// m_world==nullptr 安全性：本组测试不设 world。amount=5.0f 非致命（30→25），hurt 链路对
+//   m_world==nullptr 全程安全（indicateDamage 被 m_world!=nullptr 守卫跳过，playSound 被
+//   Entity::playSound 首行 m_world==nullptr 守卫跳过，闭壳护甲 bonus 仅 m_world!=nullptr 时加
+//   故 armor=0 净扣 5 血）。致命分支（amount≥30）会经 die()→dropAllDeathLoot→shouldDropLoot
+//   解引用 m_world，故严格用 amount=5.0f 避开。
+//
+// 无敌帧隔离：LivingEntity::hurt 非免疫成功后置 m_hurtResistantTime=MAX_HURT_RESISTANT_TIME
+//   （LivingEntity.cpp:251），同实例再次 hurt 会被 isInvulnerableTo 无敌帧挡下。故每个测试
+//   用独立 ShulkerEntity 实例。
+//
+// Ref: D:\Minecraft\MC研究\Minecraft1.21.11源码\net\minecraft\world\entity\monster\Shulker.java:411-434
+// Ref: ShulkerEntity.cpp:314-342（hurt 闭壳免疫分支）
+// Ref: EntityTypeTags.cpp（DEFLECTS_PROJECTILES 仅 breeze，移除误加的 shulker）
+
+TEST(ShulkerEntityTest, HurtClosedImmuneToArrow)
+{
+    // 闭壳潜影贝免疫箭矢（对齐 vanilla Shulker.hurtServer 闭壳 instanceof AbstractArrow 返 false）。
+    ShulkerEntity shulker(EntityInstanceId(1), mc::test::testEcsRegistry());
+    shulker.setHealth(30.0f);             // 确立满血基线（构造后默认 20，须同步至 maxHealth 30）
+    ASSERT_TRUE(shulker.isShellClosed()); // 默认闭壳
+    ASSERT_FLOAT_EQ(shulker.health(), 30.0f);
+
+    // 构造箭矢作为直接伤害源（ArrowEntity 继承 AbstractArrowEntity，dynamic_cast 命中）。
+    entity::ArrowEntity arrow(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto src = DamageSources::arrow(&arrow, nullptr); // shooter 传 nullptr（无射手）
+    EXPECT_FALSE(shulker.hurt(src, 5.0f));            // 闭壳免疫箭 → hurt 返 false
+    EXPECT_FLOAT_EQ(shulker.health(), 30.0f);         // 未扣血
+}
+
+TEST(ShulkerEntityTest, HurtClosedNotImmuneToSnowball)
+{
+    // 闭壳潜影贝不免疫雪球（雪球非 AbstractArrow，走父类正常扣血；对齐 vanilla 闭壳受非箭投射物伤害）。
+    ShulkerEntity shulker(EntityInstanceId(1), mc::test::testEcsRegistry());
+    shulker.setHealth(30.0f);
+    ASSERT_TRUE(shulker.isShellClosed());
+    ASSERT_FLOAT_EQ(shulker.health(), 30.0f);
+
+    // 雪球作直接伤害源（SnowballEntity 继承 ProjectileItemEntity，非 AbstractArrowEntity）。
+    entity::SnowballEntity snowball(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto src = DamageSources::thrown(&snowball, nullptr);
+    EXPECT_TRUE(shulker.hurt(src, 5.0f));     // 闭壳不免疫雪球 → 走父类扣血返 true
+    EXPECT_FLOAT_EQ(shulker.health(), 25.0f); // 净扣 5 血（armor=0）
+}
+
+TEST(ShulkerEntityTest, HurtOpenNotImmuneToArrow)
+{
+    // 开壳潜影贝不免疫箭矢（开壳时 isShellClosed()=false 跳过免疫分支，走父类扣血）。
+    ShulkerEntity shulker(EntityInstanceId(1), mc::test::testEcsRegistry());
+    shulker.setHealth(30.0f);
+    // 打开贝壳并推进 tick 至 Open 状态（OPEN_DURATION=20 tick）
+    shulker.openShell();
+    for (int i = 0; i < 25; ++i) {
+        shulker.tick();
+    }
+    ASSERT_TRUE(shulker.isShellOpen());       // 已开壳
+    ASSERT_FLOAT_EQ(shulker.health(), 30.0f); // tick 不会改变满血（首帧同步已由 setHealth 完成）
+
+    entity::ArrowEntity arrow(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto src = DamageSources::arrow(&arrow, nullptr);
+    EXPECT_TRUE(shulker.hurt(src, 5.0f)); // 开壳不免疫箭 → 走父类扣血返 true
+    EXPECT_FLOAT_EQ(shulker.health(), 25.0f);
+}
+
+TEST(ShulkerEntityTest, HurtClosedNotImmuneToFireball)
+{
+    // 闭壳潜影贝不免疫火球（火球非 AbstractArrow，走父类扣血；对齐 vanilla 闭壳受火球伤害）。
+    // 佐证"仅箭免疫"范围正确性：箭免疫 + 雪球/火球均受伤，三角验证 dynamic_cast 边界。
+    ShulkerEntity shulker(EntityInstanceId(1), mc::test::testEcsRegistry());
+    shulker.setHealth(30.0f);
+    ASSERT_TRUE(shulker.isShellClosed());
+
+    // 用 SmallFireballEntity 作直接伤害源（非 AbstractArrowEntity）。
+    // SmallFireballEntity 定义在 OtherProjectiles.hpp，经 DamageSources::fireball 包装。
+    entity::SmallFireballEntity fireball(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto src = DamageSources::fireball(&fireball, nullptr);
+    EXPECT_TRUE(shulker.hurt(src, 5.0f)); // 闭壳不免疫火球 → 走父类扣血返 true
+    EXPECT_FLOAT_EQ(shulker.health(), 25.0f);
 }
 
 } // namespace mc
