@@ -1,15 +1,15 @@
 // 亡灵/铁傀儡效果免疫行为类 GameTest。
 //
-// 验证 Cubium 亡灵生物 + 铁傀儡免疫中毒/再生效果（对齐 MC Java 1.21.11
+// 验证 Cubium 亡灵生物 + 铁傀儡免疫中毒/再生效果（MC Java 1.21.11
 // LivingEntity.canBeAffected：EntityTypeTags.IGNORES_POISON_AND_REGEN 标签实体免疫
 // REGENERATION + POISON）。
 //
-// 此前缺陷：Cubium EffectManager::addEffect 不调 isPotionApplicable（vanilla canBeAffected
-// 等价物），亡灵被中毒扣血/被再生治疗——与 vanilla 直接相反。本次修复：
+// 此前缺陷：Cubium EffectManager::addEffect 不调 isPotionApplicable（canBeAffected
+// 等价物），亡灵被中毒扣血/被再生治疗——与原版直接相反。本次修复：
 //   1. EffectManager::addEffect 开头调 entity.isPotionApplicable(effect)，false 则拒绝施加
-//      （对齐 vanilla LivingEntity.forceAddEffect:1027 → canBeAffected 门控）。
+//      （LivingEntity.forceAddEffect:1027 → canBeAffected 门控）。
 //   2. LivingEntity::isPotionApplicable 基类实现加 IGNORES_POISON_AND_REGEN 标签免疫 Poison/Regen
-//      （对齐 vanilla LivingEntity.canBeAffected:1014-1024）。
+//      （LivingEntity.canBeAffected:1014-1024）。
 //   此修复同时激活既有 EnderDragon（全免疫）/ Wither（免疫凋零）override，此前形同虚设。
 //
 // C++ 链路：
@@ -22,11 +22,11 @@
 //
 // 效果字符串映射（EffectType.cpp:44-85）：poison→Poison, regeneration→Regeneration,
 //   instant_health→InstantHealth（非 instant_healing，注意正确字符串）。
-// 瞬间治疗对亡灵反转（EffectInstance.cpp:246-258）：amplifier=0 伤害量=4+2*0=4（zombie 20→16）。
+// 瞬间治疗对亡灵反转（EffectInstance.cpp:246-258）：amplifier=0 伤害量=6<<0=6（zombie 20→14）。
 //
 // 免疫判定用 EntityTypeTags::IGNORES_POISON_AND_REGEN 标签（= #undead，派生自 UNDEAD 标签，
 // 含全部亡灵含 zombie_horse/zombie_nautilus；EntityTypeTags.cpp initialize addAll(UNDEAD)），
-// 非手动列举枚举（对齐 vanilla 1.21.11 IGNORES_POISON_AND_REGEN = addTag(UNDEAD)）。
+// 非手动列举枚举（IGNORES_POISON_AND_REGEN = addTag(UNDEAD)）。
 // zombie 在标签内（亡灵），creeper 不在。iron_golem 不在标签（vanilla 铁傀儡受中毒）。
 //
 // 防假通过设计：负向断言"zombie 不中毒"若单独存在，addEffect 绑定整体失效也会假过。故配正向对照
@@ -42,7 +42,7 @@
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 
-// 亡灵生物（僵尸）免疫中毒效果（wiki other_中毒.txt#免疫：亡灵生物免疫中毒；对齐 vanilla
+// 亡灵生物（僵尸）免疫中毒效果（wiki other_中毒.txt#免疫：亡灵生物免疫中毒；
 //   LivingEntity.canBeAffected IGNORES_POISON_AND_REGEN 标签免疫 POISON）。
 //
 // 本测试专项验证 LivingEntity::isPotionApplicable 的 IGNORES_POISON_AND_REGEN + Poison 免疫分支。
@@ -133,21 +133,21 @@ function nonUndeadAffectedByPoison(test: Test): void {
   });
 }
 
-// 亡灵生物（僵尸）免疫再生效果（wiki：亡灵免疫再生；对齐 vanilla canBeAffected
+// 亡灵生物（僵尸）免疫再生效果（wiki：亡灵免疫再生；canBeAffected
 //   IGNORES_POISON_AND_REGEN 标签免疫 REGENERATION）。
 //
 // zombie 亡灵免疫 Regen：addEffect("regeneration") 被拒绝，zombie 不获 Regen、HP 不回血。
 // 为验证"免疫 Regen 不回血"，先让 zombie 残血：addEffect("instant_health") 对亡灵反转=伤害
 // （EffectInstance.cpp:246-258，instant_health 不在 IGNORES_POISON_AND_REGEN 免疫集，正常施加 +
-// applyEffectTick 内 getCreatureAttribute==Undead 反转走 hurt(magic, 4+2*amp)）。
-//   amplifier=0 伤害量=4（zombie 20→16）。再 addEffect("regeneration") → 免疫不施加 → HP 不回血。
+// _applyEffect 内 isInvertedHealAndHarm() 反转走 hurt(magic, 6<<amp)）。
+//   amplifier=0 伤害量=6<<0=6（zombie 20→14）。再 addEffect("regeneration") → 免疫不施加 → HP 不回血。
 //
-// 注意：瞬间治疗对亡灵伤害走 getCreatureAttribute==Undead 反转（EffectInstance.cpp:252），
-//   非 isInvertedHealAndHarm 标签判定（Cubium 瞬间效果反转实际用 getCreatureAttribute，与 vanilla
-//   标签判定的差异是既有实现，本测试不验证反转标签本身，只借反转造伤测 Regen 免疫）。
+// 注意：瞬间治疗对亡灵伤害走 isInvertedHealAndHarm() 标签判定（INVERTED_HEALING_AND_HARM 标签，
+//   LivingEntity.isInvertedHealAndHarm:1038）。公式 6<<amplifier（HealOrHarmMobEffect 伤害基数 6、
+//   指数 6*2^level）。
 //
 // 判定（三阶段）：
-//   1. tick 5 addEffect("instant_health") → zombie 受伤掉血（瞬间治疗对亡灵=伤害，20→16）。
+//   1. tick 5 addEffect("instant_health") → zombie 受伤掉血（瞬间治疗对亡灵=伤害，20→14）。
 //   2. tick 20 断言 zombie HP<20（残血，证明瞬间治疗造伤成功，为 Regen 测试铺垫）。
 //   3. tick 25 addEffect("regeneration", 200) → 亡灵免疫不施加。
 //   4. tick 120 断言 zombie.getEffect("regeneration")===undefined + HP 未回升（仍<=阶段2残血值）。
@@ -166,7 +166,7 @@ function undeadImmuneToRegeneration(test: Test): void {
   const zombie = test.spawn(zombieType, { x: 3, y: 2, z: 3 });
 
   // 阶段1：tick 5 施加瞬间治疗。亡灵瞬间治疗反转=伤害，zombie 掉血（instant_health 不在免疫集，正常施加+反转造伤）。
-  // 瞬间治疗 amplifier=0 对亡灵造成 4 伤害（EffectInstance.cpp:251 amount=4.0+2*0=4.0），zombie 20→16。
+  // 瞬间治疗 amplifier=0 对亡灵造成 6 伤害（EffectInstance.cpp isInvertedHealAndHarm 反转，6<<0=6），zombie 20→14。
   test.runAtTickTime(5, () => {
     (zombie as any).addEffect("instant_health", 1, { amplifier: 0 });
   });

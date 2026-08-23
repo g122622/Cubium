@@ -738,6 +738,21 @@ public:
      */
     [[nodiscard]] virtual CreatureAttribute getCreatureAttribute() const { return CreatureAttribute::Undefined; }
 
+    /**
+     * @brief 是否受治疗/伤害效果反转（亡灵）。
+     *
+     * 查询 INVERTED_HEALING_AND_HARM 标签（成员=亡灵 #undead 派生）判定瞬间治疗/伤害反转：
+     * 瞬间治疗对反转实体造成魔法伤害、瞬间伤害治疗反转实体（HealOrHarmMobEffect 的
+     * applyEffectTick/applyInstantenousEffect 用本方法判定反转分支）。
+     *
+     * 此前瞬间治疗/伤害实现用 getCreatureAttribute()==Undead 代理本判定，与标签语义不完全
+     * 等价（标签可含非 Undead 枚举的成员）。改查标签，标签未初始化时回退
+     * getCreatureAttribute==Undead 保持原行为。
+     *
+     * @return 若实体受治疗/伤害反转返回 true
+     */
+    [[nodiscard]] bool isInvertedHealAndHarm() const;
+
     // ========== 空气供应和溺水 ==========
 
     /**

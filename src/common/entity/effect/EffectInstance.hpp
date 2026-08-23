@@ -171,7 +171,7 @@ public:
      *
      * @param entity 受影响的实体
      */
-    void applyInstantly(LivingEntity& entity);
+    void applyInstantly(LivingEntity& entity) const;
 
     // ========== 静态工厂方法 ==========
 
@@ -244,7 +244,7 @@ private:
     /**
      * @brief 执行效果的具体逻辑
      */
-    void _applyEffect(LivingEntity& entity);
+    void _applyEffect(LivingEntity& entity) const;
 
 private:
     EffectType m_type;

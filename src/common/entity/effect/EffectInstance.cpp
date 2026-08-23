@@ -233,37 +233,42 @@ void EffectInstance::remove(LivingEntity& entity)
     m_applied = false;
 }
 
-void EffectInstance::applyInstantly(LivingEntity& entity)
+void EffectInstance::applyInstantly(LivingEntity& entity) const
 {
     // 直接执行效果的 tick 逻辑，不递减持续时间
     _applyEffect(entity);
 }
 
-void EffectInstance::_applyEffect(LivingEntity& entity)
+void EffectInstance::_applyEffect(LivingEntity& entity) const
 {
     // 根据效果类型执行每tick逻辑
     switch (m_type) {
         case EffectType::InstantHealth: {
-            // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
-            // MC 原版: 基础值 4.0，每级增加 2.0
-            // 注意：距离因子（multiplier）在此处默认为 1.0
-            // 药水云中使用的半强度由 applyInstantEffect 单独处理
-            f32 amount = 4.0f + static_cast<f32>(m_amplifier) * 2.0f;
-            if (entity.getCreatureAttribute() == CreatureAttribute::Undead) {
+            // 瞬间治疗：HealOrHarmMobEffect（isHarm=false）。
+            //   applyInstantenousEffect：isHarm==isInvertedHealAndHarm 时治疗 4<<level，否则伤害 6<<level。
+            //   InstantHealth(isHarm=false)：非反转实体治疗 4<<level；反转实体（亡灵）伤害 6<<level。
+            // 4<<level 即 4*2^level（指数），伤害基数 6（非 4）。
+            // multiplier 此处默认 1.0（药水云半强度由 applyInstantEffect 单独处理）。
+            if (entity.isInvertedHealAndHarm()) {
+                f32 amount = static_cast<f32>(6 << m_amplifier);
                 auto source = DamageSources::magic();
                 entity.hurt(source, amount);
             } else {
+                f32 amount = static_cast<f32>(4 << m_amplifier);
                 entity.heal(amount);
             }
             break;
         }
 
         case EffectType::InstantDamage: {
-            // 瞬间伤害：亡灵生物治疗，普通生物受到伤害
-            f32 amount = 4.0f + static_cast<f32>(m_amplifier) * 2.0f;
-            if (entity.getCreatureAttribute() == CreatureAttribute::Undead) {
+            // 瞬间伤害：HealOrHarmMobEffect（isHarm=true）。
+            //   applyInstantenousEffect：isHarm==isInvertedHealAndHarm 时治疗 4<<level，否则伤害 6<<level。
+            //   InstantDamage(isHarm=true)：反转实体（亡灵）治疗 4<<level；非反转实体伤害 6<<level。
+            if (entity.isInvertedHealAndHarm()) {
+                f32 amount = static_cast<f32>(4 << m_amplifier);
                 entity.heal(amount);
             } else {
+                f32 amount = static_cast<f32>(6 << m_amplifier);
                 auto source = DamageSources::magic();
                 entity.hurt(source, amount);
             }

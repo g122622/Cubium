@@ -166,32 +166,12 @@ void PotionItem::_applyEffects(const potion::Potion* potion, Entity& entity, IWo
     }
 
     for (const auto& effect : potion->effects()) {
-        // 瞬间治疗/伤害效果直接应用（不通过 addEffect 系统）
+        // 瞬间治疗/伤害效果直接应用（不通过 addEffect 系统）。
+        // 复用 EffectInstance::applyInstantly 统一公式与反转判定（4<<level 治疗 / 6<<level 伤害，
+        // INVERTED_HEALING_AND_HARM 标签反转），避免与 EffectInstance/EffectEntities 路径产生行为分叉。
         if (effect.type() == entity::effect::EffectType::InstantHealth ||
             effect.type() == entity::effect::EffectType::InstantDamage) {
-            // 计算效果等级对应的治疗/伤害量（基础值 4.0，每级增加 2.0）
-            f32 amount = 4.0f + (effect.amplifier() * 2.0f);
-
-            // 亡灵生物对瞬间治疗/伤害效果反转
-            bool isUndead = livingEntity->getCreatureAttribute() == CreatureAttribute::Undead;
-
-            if (effect.type() == entity::effect::EffectType::InstantHealth) {
-                if (isUndead) {
-                    // 亡灵生物受到伤害
-                    livingEntity->heal(-amount);
-                } else {
-                    // 普通生物治疗
-                    livingEntity->heal(amount);
-                }
-            } else { // InstantDamage
-                if (isUndead) {
-                    // 亡灵生物治疗
-                    livingEntity->heal(amount);
-                } else {
-                    // 普通生物受到伤害
-                    livingEntity->heal(-amount);
-                }
-            }
+            effect.applyInstantly(*livingEntity);
             continue;
         }
 

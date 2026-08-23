@@ -34,7 +34,7 @@ function readHp(test: Test, type: string, from: { x: number; y: number; z: numbe
 // C++ 链路：WitchEntity : AbstractRaiderEntity（+ IRangedAttackMob），registerGoals 注册：
 //   targetSelector 优先级1：HurtByTargetGoal（受伤反击，排斥 AbstractRaider 同类）。
 //   targetSelector 优先级2：NearestAttackableTargetGoal<Player>(checkSight=true)——主动选玩家为目标
-//     （对齐 MC 1.21.11 Witch.registerGoals；此前 Cubium 缺此 goal 致女巫只能被动反击，本次补齐）。
+//     （Witch.registerGoals；此前 Cubium 缺此 goal 致女巫只能被动反击，本次补齐）。
 //   goalSelector 优先级2：RangedAttackGoal(this, 1.0, 60, 60, ATTACK_RADIUS=10.0f)——药水攻击。
 // RangedAttackGoal::tick：读 attackTarget，canSee 累计 m_seenTime>=20(MIN_SEEN_TIME) 后停止移动，
 //   攻击计时 m_attackTime 到 0 且 canSee 时 performAttack → IRangedAttackMob::attackEntityWithRangedAttack
@@ -161,13 +161,14 @@ function witchTakesReducedMagicDamage(test: Test): void {
     pigHp0 = readHp(test, pigType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
   });
 
-  // tick 6：施加瞬间伤害 I（amplifier=0 → amount=4，magic 源）。addEffect 同步 applyInstantly 扣血。
+  // tick 6：施加瞬间伤害 I（amplifier=0 → amount=6<<0=6，magic 源）。addEffect 同步 applyInstantly 扣血。
+  // HealOrHarmMobEffect：伤害基数 6（非 4），公式 6<<level 指数（非旧 4+2*level 线性）。
   test.runAtTickTime(6, () => {
     (witch as any).addEffect("instant_damage", 1, { amplifier: 0, showParticles: false });
     (pig as any).addEffect("instant_damage", 1, { amplifier: 0, showParticles: false });
   });
 
-  // tick 8：读受击后 HP，断言下降量。女巫降 0.6（85% 减免），猪降 4（无减免）。
+  // tick 8：读受击后 HP，断言下降量。女巫降 0.9（85% 减免），猪降 6（无减免）。
   test.runAtTickTime(8, () => {
     const witchHp1 = readHp(test, witchType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
     const pigHp1 = readHp(test, pigType, GRASS_PEN_FROM, GRASS_PEN_VOLUME);
@@ -175,12 +176,12 @@ function witchTakesReducedMagicDamage(test: Test): void {
     const witchDrop = witchHp0 - witchHp1;
     const pigDrop = pigHp0 - pigHp1;
 
-    // 女巫下降 0.6（4×0.15），容差 [0.4, 0.8] 兼容浮点误差。
-    test.assert(witchDrop >= 0.4 && witchDrop <= 0.8,
-      `witch should take ~0.6 magic damage (85% reduction), hp0=${witchHp0} hp1=${witchHp1} drop=${witchDrop}`);
-    // 猪下降 4（无减免），容差 [3.9, 4.1]。
-    test.assert(pigDrop >= 3.9 && pigDrop <= 4.1,
-      `pig should take ~4 magic damage (no reduction), hp0=${pigHp0} hp1=${pigHp1} drop=${pigDrop}`);
+    // 女巫下降 0.9（6×0.15），容差 [0.6, 1.2] 兼容浮点误差。
+    test.assert(witchDrop >= 0.6 && witchDrop <= 1.2,
+      `witch should take ~0.9 magic damage (85% reduction), hp0=${witchHp0} hp1=${witchHp1} drop=${witchDrop}`);
+    // 猪下降 6（无减免），容差 [5.9, 6.1]。
+    test.assert(pigDrop >= 5.9 && pigDrop <= 6.1,
+      `pig should take ~6 magic damage (no reduction), hp0=${pigHp0} hp1=${pigHp1} drop=${pigDrop}`);
     // 交叉验证：女巫下降量必须显著小于猪（减免生效），而非两者相同（减免失效）。
     test.assert(witchDrop < pigDrop,
       `witch magic damage (${witchDrop}) should be less than pig (${pigDrop}) — 85% reduction not working`);

@@ -79,13 +79,20 @@ namespace {
 void applyInstantEffect(
     effect::EffectType type, Entity& source, LivingEntity* caster, LivingEntity& target, i32 amplifier, f32 multiplier)
 {
-    // 基础值 4.0，每级增加 2.0
-    f32 amount = (4.0f + static_cast<f32>(amplifier) * 2.0f) * multiplier;
+    // HealOrHarmMobEffect.applyInstantenousEffect（喷溅药水/药水云路径，带距离因子 multiplier）：
+    //   isHarm==isInvertedHealAndHarm 时治疗 (int)(mult*(4<<level)+0.5)，否则伤害 (int)(mult*(6<<level)+0.5)。
+    // 即治疗基数 4、伤害基数 6（不同！），公式指数 4<<level=4*2^level（非旧线性 4+2*level）。
+    // 反转判定用 isInvertedHealAndHarm()（INVERTED_HEALING_AND_HARM 标签）。
+    // base 为治疗基数（4）或伤害基数（6），按效果类型与反转分支取定后统一乘 multiplier 四舍五入。
+    auto roundedAmount = [multiplier](i32 base, i32 level) -> f32 {
+        return static_cast<f32>(static_cast<i32>(static_cast<f64>(multiplier) * static_cast<f64>(base << level) + 0.5));
+    };
 
     switch (type) {
         case effect::EffectType::InstantHealth:
-            // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
-            if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
+            // InstantHealth(isHarm=false)：非反转治疗 4<<l；反转（亡灵）伤害 6<<l。
+            if (target.isInvertedHealAndHarm()) {
+                f32 amount = roundedAmount(6, amplifier);
                 // 伤害归属于 caster（如果存在），使击杀归因正确
                 if (caster != nullptr) {
                     auto dmgSource = DamageSources::indirectMagic(&source, caster);
@@ -95,15 +102,16 @@ void applyInstantEffect(
                     target.hurt(dmgSource, amount);
                 }
             } else {
-                target.heal(amount);
+                target.heal(roundedAmount(4, amplifier));
             }
             break;
 
         case effect::EffectType::InstantDamage:
-            // 瞬间伤害：亡灵生物治疗，普通生物受到伤害
-            if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
-                target.heal(amount);
+            // InstantDamage(isHarm=true)：反转（亡灵）治疗 4<<l；非反转伤害 6<<l。
+            if (target.isInvertedHealAndHarm()) {
+                target.heal(roundedAmount(4, amplifier));
             } else {
+                f32 amount = roundedAmount(6, amplifier);
                 if (caster != nullptr) {
                     auto dmgSource = DamageSources::indirectMagic(&source, caster);
                     target.hurt(dmgSource, amount);

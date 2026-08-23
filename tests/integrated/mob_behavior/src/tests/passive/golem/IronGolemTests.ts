@@ -361,10 +361,10 @@ function readIronGolemHp(test: Test, from: { x: number; y: number; z: number }, 
 // override 补全此链路。
 //
 // 残血构造：铁傀儡满血 100（MAX_HEALTH=100，IronGolemEntity.cpp:138）。用 addEffect("instant_damage")
-// 造残血——Cubium InstantDamage 公式 amount=4+amplifier*2（EffectInstance.cpp:263），amplifier=13 造
-// 30 点魔法伤害（对齐基岩 Entity.addEffect，applyInstantly 同步扣血）。铁傀儡 getCreatureAttribute 非
-// Undead（Golem 分类），正常受魔法伤害（非亡灵治疗分支）。HP 降至 70，再用铁锭 heal(25) → 95（不被
-// maxHealth 夹紧，70+25=95<100），HP 上升 25 完整可断言。
+// 造残血——InstantDamage 公式 amount=6<<amplifier（HealOrHarmMobEffect 伤害基数 6、指数 6*2^level；
+// EffectInstance.cpp），amplifier=2 造 6<<2=24 点魔法伤害（addEffect 同步 applyInstantly 扣血）。
+// 铁傀儡 isInvertedHealAndHarm()=false（Golem 非 INVERTED_HEALING_AND_HARM 标签成员），正常受魔法伤害
+// （非亡灵治疗分支）。HP 降至 76，再用铁锭 heal(25) → 101 被 maxHealth 100 夹紧为 100（+24），HP 上升 24 完整可断言。
 // 不用 Survival 玩家攻击造残血：自然铁傀儡（isPlayerCreated=false）受击会反击玩家干扰测试；addEffect
 // 不触发 HurtByTargetGoal（无 lastHurtBy），铁傀儡不反击，环境干净。
 //
@@ -397,23 +397,23 @@ function ironGolemHealedByIronIngot(test: Test): void {
     hpBeforeDamage = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
   });
 
-  // tick 6：施加瞬间伤害（amplifier=13 → 4+13*2=30 魔法伤害）造残血。addEffect 同步 applyInstantly 扣血。
+  // tick 6：施加瞬间伤害（amplifier=2 → 6<<2=24 魔法伤害）造残血。addEffect 同步 applyInstantly 扣血。
   test.runAtTickTime(6, () => {
-    (golem as any).addEffect("instant_damage", 1, { amplifier: 13, showParticles: false });
+    (golem as any).addEffect("instant_damage", 1, { amplifier: 2, showParticles: false });
   });
 
   // tick 8：读残血 HP，断言已下降（确认造残血成功），随后玩家持铁锭治疗铁傀儡。
   test.runAtTickTime(8, () => {
     hpAfterDamage = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
-    // 确认造残血成功：HP 必须下降且未致死（>0）。amplifier=13 造 30 伤害，100→70。
+    // 确认造残血成功：HP 必须下降且未致死（>0）。amplifier=2 造 24 伤害，100→76。
     test.assert(hpAfterDamage < hpBeforeDamage && hpAfterDamage > 0,
-      `iron_golem not damaged by instant_damage (amplifier=13), hpBefore=${hpBeforeDamage} hpAfter=${hpAfterDamage}`);
+      `iron_golem not damaged by instant_damage (amplifier=2), hpBefore=${hpBeforeDamage} hpAfter=${hpAfterDamage}`);
     // 玩家持铁锭右键铁傀儡 → interactMob → heal(25)。
     (player as any).interactWithEntity(golem);
   });
 
   // 轮询断言 HP 上升（治疗生效）。heal 同步生效，留 tick 让 HP 同步到 health 组件。
-  // 治疗量 25（70+25=95<100 不被夹紧），断言 hpAfter > hpAfterDamage 且增量 ≥20（兼容浮点误差）。
+  // 治疗量 25（76+25=101>100 被 maxHealth 夹紧为 100，+24），断言 hpAfter > hpAfterDamage 且增量 ≥20。
   pollUntilSucceed(test, () => {
     const hpAfterHeal = readIronGolemHp(test, PIT_FROM, PIT_VOLUME);
     if (Number.isNaN(hpAfterHeal)) return false;

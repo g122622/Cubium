@@ -2585,6 +2585,18 @@ void LivingEntity::updateActiveItem()
 // 空气供应和溺水
 // ============================================================================
 
+bool LivingEntity::isInvertedHealAndHarm() const
+{
+    // 查询 INVERTED_HEALING_AND_HARM 标签判定瞬间治疗/伤害反转。标签成员=亡灵
+    // （#undead 派生）。瞬间治疗/伤害用本方法判定反转分支（HealOrHarmMobEffect：
+    // isHarm==isInvertedHealAndHarm 时治疗，否则伤害）。
+    // 标签未初始化（极早期/测试未初始化）回退 getCreatureAttribute==Undead 保持原行为避免回归。
+    if (!EntityTypeTags::isInitialized()) {
+        return getCreatureAttribute() == CreatureAttribute::Undead;
+    }
+    return EntityTypeTags::INVERTED_HEALING_AND_HARM().contains(getTypeId());
+}
+
 bool LivingEntity::canBreatheUnderwater() const
 {
     // 对齐 vanilla 1.21.11 LivingEntity.canBreatheUnderwater():385：
