@@ -89,11 +89,15 @@ void MagmaBlock::onEntityWalk(const BlockState& state, IWorld& world, const Bloc
     MC_UNUSED(&world);
     MC_UNUSED(&pos);
 
-    // 非潜行的活体生物踩在岩浆块上受到烫脚伤害（1点 = 半颗心）。
-    // onEntityWalk 派发点（Entity.cpp:1448）已守卫 !isSteppingCarefully()（潜行免疫），
-    // 此处对活体生物额外检查冰霜行者靴子免疫（对齐 wiki：冰霜行者靴子完全免疫岩浆块伤害）。
+    // 对齐 vanilla MagmaBlock.stepOn:30-33（MagmaBlock.java:30-33）：
+    //   if (!entity.isSteppingCarefully() && entity instanceof LivingEntity)
+    //       entity.hurt(damageSources().hotFloor(), 1.0F);
+    // 即潜行实体（isSteppingCarefully=true，默认即 isSneaking）踩岩浆块不受烫脚伤害——门控在
+    // 方块侧 stepOn 内自查（vanilla 设计），非派发点。Cubium Entity.cpp:1480 派发点另有
+    // !isSteppingCarefully() 门控（双重保险，潜行时派发点也不调 onEntityWalk），但方块侧门控须对齐
+    // vanilla（直接调 onEntityWalk 的测试与未来其他调用路径也需正确）。
     auto* living = dynamic_cast<LivingEntity*>(&entity);
-    if (living == nullptr) {
+    if (living == nullptr || living->isSteppingCarefully()) {
         return;
     }
 
