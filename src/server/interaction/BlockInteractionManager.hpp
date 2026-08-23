@@ -276,8 +276,17 @@ private:
 
     /**
      * @brief 验证玩家是否可以与方块交互（距离检查）
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl/ServerPlayerGameMode 中的
+     * player.isWithinBlockInteractionRange(pos, padding)：使用 generic.block_interaction_range
+     * 属性（生存 4.5、创造 5.0，padding 1.0 为容差）做眼位到方块 AABB 最近点距离判定，
+     * 而非硬编码 6 格。
+     *
+     * @param player 玩家实体（用于读属性）；为 nullptr 时回退到 PlayerData 中心距离保底逻辑
+     * @param playerId 玩家ID（player 为 nullptr 时用于取 PlayerData）
+     * @param pos 目标方块坐标
      */
-    [[nodiscard]] bool _canInteract(PlayerId playerId, const BlockPos& pos) const noexcept;
+    [[nodiscard]] bool _canInteract(const Player* player, PlayerId playerId, const BlockPos& pos) const noexcept;
 
     /**
      * @brief 验证玩家是否可以破坏方块

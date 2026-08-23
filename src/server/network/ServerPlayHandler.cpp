@@ -1091,16 +1091,14 @@ void ServerPlayHandler::handleInteractPacket(PlayerId playerId, const mc::networ
         return;
     }
 
-    // 严格距离校验：玩家眼位到目标 AABB 最近点距离 < (reach + 3.0)^2。
-    // 项目无 entityInteractionRange attribute，固定取 3.0（生存默认）。
-    // ATTACK 走同样阈值（vanilla ATTACK 用 isWithinAttackRange，项目无 attack range
-    // attribute，统一用交互阈值）。
-    constexpr f64 kEntityInteractionRange = 3.0;
-    constexpr f64 kRangeMargin = 3.0;
-    const f64 range = kEntityInteractionRange + kRangeMargin;
-    const Vector3 eyePos = playerEntity->getEyePosition();
-    const f64 distSq = static_cast<f64>(target->boundingBox().distanceToSqr(eyePos));
-    if (distSq >= range * range) {
+    // 距离校验：对齐 vanilla ServerGamePacketListenerImpl.handleInteract
+    // (ServerGamePacketListenerImpl.java:729)：player.isWithinEntityInteractionRange(entity, 3.0)。
+    // isWithinEntityInteractionRange 内部按 entityInteractionRange() 属性 + padding 计算
+    // （生存 3.0、创造 5.0，padding 3.0 为容差），而非此处原先硬编码的 3.0+3.0=6.0。
+    // 这样 generic.entity_interaction_range 属性（含创造模式 +2.0 修饰符）才真正生效。
+    // ATTACK 走同样阈值（vanilla ATTACK 用 isWithinAttackRange，项目暂无 attack range
+    // attribute，统一用交互阈值——TODO: 待引入 entity_attack_range 属性后分离）。
+    if (!playerEntity->isWithinEntityInteractionRange(*target, 3.0)) {
         return;
     }
 
@@ -1299,6 +1297,21 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
     // RELEASE_USE_ITEM 不带 sequence 不 ack。业务结果不影响 ack。
     _sendBlockChangedAck(playerId, evt->sequence);
     const auto action = static_cast<network::BlockInteractionAction>(evt->action);
+
+    // 距离校验：对齐 vanilla ServerPlayerGameMode.handleBlockBreakAction /
+    // ServerGamePacketListenerImpl(:695) 的 player.isWithinBlockInteractionRange(pos, 1.0)。
+    // START_DESTROY 与 STOP_DESTROY 都须在交互距离内（padding 1.0 容差），否则忽略，
+    // 防止玩家远程挖方块。此前 MiningManager 路径完全无距离门控。
+    // ABORT_DESTROY 无目标方块距离语义，跳过校验。
+    if (action != network::BlockInteractionAction::AbortDestroyBlock) {
+        auto* interactWorld = m_server.getPlayerWorld(playerId);
+        auto* interactPlayer = (interactWorld != nullptr)
+            ? m_server.playerEntityManager().getPlayerEntity(playerId, *interactWorld)
+            : nullptr;
+        if (interactPlayer == nullptr || !interactPlayer->isWithinBlockInteractionRange(pos, 1.0)) {
+            return;
+        }
+    }
 
     // 处理挖掘状态
     m_server.miningManager().handleBlockInteraction(playerId, pos, action);

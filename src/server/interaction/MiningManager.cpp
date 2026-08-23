@@ -169,6 +169,22 @@ void MiningManager::tick(ServerWorld& world)
             continue;
         }
 
+        // 距离复检：玩家走远后中止挖掘（对齐 vanilla ServerPlayerGameMode 持续校验
+        // isWithinBlockInteractionRange）。MiningManager 无 Player 实体访问，此处用
+        // PlayerData 眼位到方块中心距离做保底；宽松阈值 8 格（>创造最大交互距离 5.0
+        // + padding），入口 ServerPlayHandler 已做精确属性校验，此处仅防走远。
+        const f64 eyeX = playerData->x;
+        const f64 eyeY = playerData->y + static_cast<f64>(game::PLAYER_EYE_HEIGHT);
+        const f64 eyeZ = playerData->z;
+        const f64 dx = (state.position.x + 0.5) - eyeX;
+        const f64 dy = (state.position.y + 0.5) - eyeY;
+        const f64 dz = (state.position.z + 0.5) - eyeZ;
+        constexpr f64 MAX_MINING_DISTANCE_SQ = 64.0; // 8 * 8
+        if (dx * dx + dy * dy + dz * dz > MAX_MINING_DISTANCE_SQ) {
+            state.active = false;
+            continue;
+        }
+
         // 检查方块是否仍然存在
         const BlockState* blockState = world.getBlockState(state.position.x, state.position.y, state.position.z);
 

@@ -95,8 +95,14 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
     }
 
+    // 获取玩家实体以走属性驱动的距离判定（generic.block_interaction_range 属性）
+    Player* player = nullptr;
+    if (ServerWorld* world = _getPlayerWorld(playerId); world != nullptr) {
+        player = _getPlayerEntity(playerId, *world);
+    }
+
     // 验证距离
-    if (!_canInteract(playerId, pos)) {
+    if (!_canInteract(player, playerId, pos)) {
         return Error(ErrorCode::InvalidArgument, "Block too far away");
     }
 
@@ -809,8 +815,17 @@ void BlockInteractionManager::setOnBlockPlace(
     m_onBlockPlace = std::move(callback);
 }
 
-bool BlockInteractionManager::_canInteract(PlayerId playerId, const BlockPos& pos) const noexcept
+bool BlockInteractionManager::_canInteract(const Player* player, PlayerId playerId, const BlockPos& pos) const noexcept
 {
+    // 优先走属性驱动的精确距离判定（对齐 vanilla isWithinBlockInteractionRange）：
+    // 眼位到方块 AABB 最近点距离 < (blockInteractionRange + padding)^2。
+    // padding 取 1.0，对齐 vanilla ServerGamePacketListenerImpl.java:695 /
+    // ServerPlayerGameMode.java:152 的 isWithinBlockInteractionRange(pos, 1.0)。
+    if (player != nullptr) {
+        return player->isWithinBlockInteractionRange(pos, 1.0);
+    }
+
+    // Player 实体不可用时回退到 PlayerData 中心距离保底（避免完全无门控）。
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData) {
         return false;
@@ -829,7 +844,7 @@ bool BlockInteractionManager::_canInteract(PlayerId playerId, const BlockPos& po
     const f64 dz = targetZ - eyeZ;
     const f64 distanceSquared = dx * dx + dy * dy + dz * dz;
 
-    // 最大交互距离 6 格
+    // 最大交互距离 6 格（回退保底值，正常路径走属性不应到达此处）
     constexpr f64 MAX_INTERACT_DISTANCE_SQ = 36.0; // 6 * 6
     return distanceSquared <= MAX_INTERACT_DISTANCE_SQ;
 }
@@ -856,7 +871,7 @@ bool BlockInteractionManager::_canBreakBlock(
         return false;
     }
 
-    return _canInteract(playerId, pos);
+    return _canInteract(player, playerId, pos);
 }
 
 bool BlockInteractionManager::_wouldCollideWithPlayer(
