@@ -114,6 +114,14 @@ void IronGolemEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器
+    // 优先级 1: 保卫村庄——扫描附近村民的攻击者并锁定。对齐 vanilla 1.21.11
+    //   IronGolem.registerGoals:74 `targetSelector.addGoal(1, new DefendVillageTargetGoal(this))`。
+    //   DefendVillageTargetGoal.shouldExecute 找 16 格内最近存活村民 → 取该村民
+    //   getLastHurtBy() → isSuitableTarget 通过后写入 attackTarget。此前 goal 类已在
+    //   IronGolemGoals 完整实现但 registerGoals 未激活（死代码），村庄内村民被攻击时
+    //   铁傀儡不会自动锁敌。本注册激活保卫村庄链路。
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::DefendVillageTargetGoal>(this));
+
     // 优先级 2: 被攻击后反击
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
