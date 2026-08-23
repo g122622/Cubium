@@ -269,7 +269,9 @@ TEST(LivingEntityTest, HurtInvulnerability)
 
 TEST(LivingEntityTest, Death)
 {
+    GroundSupportWorld world;
     TestLivingEntity entity;
+    entity.setWorld(&world);
 
     entity.setHealth(5.0f);
     EnvironmentalDamage damage(DamageType::Generic);
@@ -1163,7 +1165,9 @@ TEST(LivingEntityTest, UpdateAirSupply_FullAirNoChange)
 // 测试 LivingEntity::onKillCommand - 使用虚空伤害杀死实体
 TEST(LivingEntityTest, OnKillCommand_KillsEntity)
 {
+    GroundSupportWorld world;
     TestLivingEntity entity;
+    entity.setWorld(&world);
 
     // 初始状态：满血
     EXPECT_FLOAT_EQ(entity.health(), 20.0f);
@@ -1180,7 +1184,9 @@ TEST(LivingEntityTest, OnKillCommand_KillsEntity)
 // 测试 LivingEntity::onKillCommand - 对已死亡实体的效果
 TEST(LivingEntityTest, OnKillCommand_AlreadyDead)
 {
+    GroundSupportWorld world;
     TestLivingEntity entity;
+    entity.setWorld(&world);
 
     // 先杀死实体
     entity.setHealth(0.0f);

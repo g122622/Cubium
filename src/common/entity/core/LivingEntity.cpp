@@ -546,6 +546,14 @@ void LivingEntity::die(DamageSource& cause)
 
 void LivingEntity::dropAllDeathLoot(DamageSource& cause)
 {
+    // 无世界上下文时跳过掉落（与各子函数 dropFromLootTable:616 / dropCustomDeathLoot:480 /
+    // dropExperience:462 的 m_world null 守卫风格一致）。vanilla dropAllDeathLoot 接收 ServerLevel
+    // 参数假定非空，Cubium 用成员 m_world 且测试环境允许 nullptr，入口处统一判空避免解引用崩溃。
+    // 生产环境实体死亡时 m_world 必非空，此守卫不改变生产行为。
+    if (m_world == nullptr) {
+        return;
+    }
+
     // 对齐 MC Java 1.21.11 LivingEntity.dropAllDeathLoot（LivingEntity.java:1484-1493）。
     // flag 表示最近是否被玩家伤害过——vanilla 用 lastHurtByPlayerMemoryTime > 0（玩家伤害后
     // 维持 100 tick 的记忆窗口），影响掉落表条件（如掠夺附魔生效、luck 应用、部分条件分支）。
