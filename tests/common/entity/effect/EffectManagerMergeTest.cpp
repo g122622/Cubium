@@ -54,7 +54,7 @@ protected:
         m_entity->attributes().registerAttribute(*Attributes::attackDamage());
         m_entity->attributes().registerAttribute(*Attributes::attackSpeed());
         m_entity->attributes().registerAttribute(*Attributes::luck());
-        m_entity->attributes().registerAttribute(*Attributes::jumpBoost());
+        m_entity->attributes().registerAttribute(*Attributes::jumpStrength());
         m_entity->setHealth(m_entity->maxHealth());
     }
 

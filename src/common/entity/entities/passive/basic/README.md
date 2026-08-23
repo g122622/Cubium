@@ -97,7 +97,7 @@ AgeableEntity (父类)
     - **启动**：`startJumping()` 设置 `m_rabbitJumpDuration=10`、`m_rabbitJumpTicks=0`、调用 `setJumping(true)`（播放跳跃音效）并广播 `network::EntityStatus::RabbitJump(1)` 状态码（经 IR `ir::play::EntityEvent` 传输）。`startJumping()` 幂等：动画进行中（`m_rabbitJumpDuration != 0`）时跳过重置，避免 `RabbitJumpControl::tick()` 每 tick 调用导致反复归零。
     - **推进**：`aiStep()` 重写先调用 `LivingEntity::aiStep()`，再推进 `m_rabbitJumpTicks`；达到 `m_rabbitJumpDuration` 时归零并调用 `LivingEntity::setJumping(false)`（直接调基类，避免再次播音效/广播）。
     - **完成度**：`getJumpCompletion(partialTick) = m_rabbitJumpDuration == 0 ? 0 : (m_rabbitJumpTicks + partialTick) / m_rabbitJumpDuration`，供客户端计算 `jumpRotation = sin(completion * PI)`。
-    - **广播**：项目架构下 `LivingEntity::jump()` 非虚函数无法重写（MC 在 `jumpFromGround()` 中广播），故在 `startJumping()` 中即广播，略早一个 tick，但客户端位置插值会平滑过渡。
+    - **广播**：MC 在 `jumpFromGround()` 中广播，项目在 `startJumping()` 中即广播，略早一个 tick，但客户端位置插值会平滑过渡。
 
 11. **兔子专属 AI 控制器**（参考 MC 1.21.11 `Rabbit.RabbitJumpControl` / `Rabbit.RabbitMoveControl`）：
     - **RabbitJumpControl**：继承 `JumpController`，维护 `canJump`/`wantJump` 状态机。`tick()` 仅在 `wantJump` 为 true 时调用 `rabbit.startJumping()`，然后清除标志。`canJump` 由 `RabbitEntity::updateAITasks()` 通过 `enableJumpControl()`/`disableJumpControl()` 控制，着陆延迟期间为 false。

@@ -85,7 +85,7 @@ EffectType ←── EffectInstance ←── EffectManager
 | MiningFatigue | ATTACK_SPEED | -0.1 | MultiplyTotal | MINING_FATIGUE_UUID |
 | Strength | ATTACK_DAMAGE | +3.0 | Addition | STRENGTH_UUID |
 | Weakness | ATTACK_DAMAGE | -4.0 | Addition | WEAKNESS_UUID |
-| JumpBoost | JUMP_BOOST | +0.1 | Addition | JUMP_BOOST_UUID |
+| JumpBoost | SAFE_FALL_DISTANCE | +1.0 | Addition | JUMP_BOOST_SAFE_FALL_UUID |
 | HealthBoost | MAX_HEALTH | +4.0 | Addition | HEALTH_BOOST_UUID |
 | Absorption | MAX_ABSORPTION | +4.0 | Addition | ABSORPTION_UUID |
 | Luck | LUCK | +1.0 | Addition | LUCK_UUID |

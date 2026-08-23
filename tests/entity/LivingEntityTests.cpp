@@ -372,6 +372,78 @@ TEST(LivingEntityTest, AttributeModifier)
 }
 
 // ============================================================================
+// 跳跃力属性体系测试（任务 #261）
+//
+// 验证 getJumpPower()/getJumpBoostPower()/getBlockJumpFactor() 三方法与 JUMP_STRENGTH
+// 属性的消费链路。公式：getJumpPower() = JUMP_STRENGTH * getBlockJumpFactor() + getJumpBoostPower()。
+// JumpBoost 药水的跳跃加成走 getJumpBoostPower 独立项（0.1*(amplifier+1)），非属性修饰符。
+// TestLivingEntity 无 world（getBlockJumpFactor 返 1.0），故 getJumpPower == JUMP_STRENGTH + 加成。
+// ============================================================================
+
+TEST(LivingEntityTest, JumpStrength_RegisteredWithDefault)
+{
+    TestLivingEntity entity;
+    // JUMP_STRENGTH 由 LivingEntity::registerAttributes 注册，默认 0.42
+    EXPECT_TRUE(entity.attributes().hasAttribute(Attributes::JUMP_STRENGTH));
+    EXPECT_DOUBLE_EQ(entity.getAttributeValue(Attributes::JUMP_STRENGTH), 0.42);
+}
+
+TEST(LivingEntityTest, GetJumpPower_DefaultNoEffect)
+{
+    TestLivingEntity entity;
+    // 无药水、无方块削弱（无 world）：getJumpPower = 0.42 * 1.0 + 0 = 0.42
+    EXPECT_FLOAT_EQ(entity.getJumpPower(), 0.42f);
+    EXPECT_FLOAT_EQ(entity.getJumpBoostPower(), 0.0f);
+    EXPECT_FLOAT_EQ(entity.getBlockJumpFactor(), 1.0f);
+}
+
+TEST(LivingEntityTest, GetJumpBoostPower_WithEffect)
+{
+    TestLivingEntity entity;
+    // JumpBoost II（amplifier=1）：getJumpBoostPower = 0.1*(1+1) = 0.2
+    entity.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 200, 1));
+    EXPECT_FLOAT_EQ(entity.getJumpBoostPower(), 0.2f);
+    // getJumpPower = 0.42 + 0.2 = 0.62
+    EXPECT_FLOAT_EQ(entity.getJumpPower(), 0.62f);
+}
+
+TEST(LivingEntityTest, GetJumpBoostPower_Level1)
+{
+    TestLivingEntity entity;
+    // JumpBoost I（amplifier=0）：getJumpBoostPower = 0.1*(0+1) = 0.1
+    entity.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 200, 0));
+    EXPECT_FLOAT_EQ(entity.getJumpBoostPower(), 0.1f);
+    EXPECT_FLOAT_EQ(entity.getJumpPower(), 0.52f);
+}
+
+TEST(LivingEntityTest, GetJumpPower_AttributeOverride)
+{
+    TestLivingEntity entity;
+    // 覆盖 JUMP_STRENGTH 基值为 0.6（如马族类场景），getJumpPower 随属性变化
+    entity.setAttributeBaseValue(Attributes::JUMP_STRENGTH, 0.6);
+    EXPECT_DOUBLE_EQ(entity.getAttributeValue(Attributes::JUMP_STRENGTH), 0.6);
+    EXPECT_FLOAT_EQ(entity.getJumpPower(), 0.6f);
+
+    // 叠加 JumpBoost II：0.6 + 0.2 = 0.8
+    entity.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 200, 1));
+    EXPECT_FLOAT_EQ(entity.getJumpPower(), 0.8f);
+}
+
+TEST(LivingEntityTest, Jump_UsesGetJumpPower)
+{
+    TestLivingEntity entity;
+    // jump() 应将垂直速度设为 getJumpPower()（0.42），而非硬编码常量
+    entity.jump();
+    EXPECT_FLOAT_EQ(entity.velocity().y, 0.42f);
+
+    // JumpBoost II 时 jump() 应反映药水加成（0.42+0.2=0.62）
+    TestLivingEntity entity2;
+    entity2.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::JumpBoost, 200, 1));
+    entity2.jump();
+    EXPECT_FLOAT_EQ(entity2.velocity().y, 0.62f);
+}
+
+// ============================================================================
 // 装备测试
 // ============================================================================
 

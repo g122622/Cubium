@@ -431,7 +431,7 @@ TEST(HorseTamingTest, Mule_CanBeCreated)
 // 跳跃系统测试
 // ============================================================================
 
-TEST(HorseTamingTest, JumpPower_CanBeSetAndRetrieved)
+TEST(HorseTamingTest, JumpCharge_CanBeSetAndRetrieved)
 {
     VanillaBlocks::initialize();
 
@@ -439,19 +439,19 @@ TEST(HorseTamingTest, JumpPower_CanBeSetAndRetrieved)
     HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
     horse.setWorld(&world);
 
-    // 初始跳跃力度为 0
-    EXPECT_EQ(horse.getJumpPower(), 0);
+    // 初始跳跃蓄力值为 0
+    EXPECT_EQ(horse.getJumpCharge(), 0);
 
-    // 设置跳跃力度
-    horse.setJumpPower(50);
-    EXPECT_EQ(horse.getJumpPower(), 50);
+    // 设置跳跃蓄力值
+    horse.setJumpCharge(50);
+    EXPECT_EQ(horse.getJumpCharge(), 50);
 
-    // 跳跃力度应该被 clamp 在 0-100 范围内
-    horse.setJumpPower(150);
-    EXPECT_EQ(horse.getJumpPower(), 100);
+    // 跳跃蓄力值应该被 clamp 在 0-100 范围内
+    horse.setJumpCharge(150);
+    EXPECT_EQ(horse.getJumpCharge(), 100);
 
-    horse.setJumpPower(-10);
-    EXPECT_EQ(horse.getJumpPower(), 0);
+    horse.setJumpCharge(-10);
+    EXPECT_EQ(horse.getJumpCharge(), 0);
 }
 
 TEST(HorseTamingTest, JumpStrength_CanBeSetAndRetrieved)

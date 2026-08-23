@@ -222,7 +222,7 @@ private:
         registerAttribute(*Attributes::luck());
         registerAttribute(*Attributes::maxAbsorption());
         registerAttribute(*Attributes::breathMax());
-        registerAttribute(*Attributes::jumpBoost());
+        registerAttribute(*Attributes::jumpStrength());
         registerAttribute(*Attributes::horseJumpStrength());
         registerAttribute(*Attributes::zombieSpawnReinforcements());
 

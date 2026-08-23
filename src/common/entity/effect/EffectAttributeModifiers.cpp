@@ -57,15 +57,12 @@ const std::unordered_map<EffectType, std::vector<EffectModifierInfo>> s_effectMo
     // 力量：每级增加 3.0 攻击伤害
     {EffectType::Strength,
         {{attribute::Attributes::ATTACK_DAMAGE, STRENGTH_UUID, 3.0, attribute::Operation::Addition}}},
-    // 跳跃提升：每级增加 0.1 跳跃力，且每级 +1 安全摔落距离（MobEffects.JUMP_BOOST 同时挂
-    //   JUMP_STRENGTH 与 SAFE_FALL_DISTANCE 两个修饰符）。SAFE_FALL_DISTANCE 修饰符使跳跃增强
-    //   药水等级越高可承受的摔落越高，由 causeFallDamage 的摔落公式统一消费。
+    // 跳跃提升：每级 +1 安全摔落距离（MobEffects.JUMP_BOOST 只挂 SAFE_FALL_DISTANCE 修饰符）。
+    //   跳跃力加成走 LivingEntity::getJumpBoostPower 独立项（0.1*(amplifier+1)），非属性修饰符，
+    //   故此处不挂 JUMP_STRENGTH 修饰符。SAFE_FALL_DISTANCE 修饰符使跳跃增强药水等级越高
+    //   可承受的摔落越高，由 causeFallDamage 的摔落公式统一消费。
     {EffectType::JumpBoost,
-        {{attribute::Attributes::JUMP_BOOST, JUMP_BOOST_UUID, 0.1, attribute::Operation::Addition},
-            {attribute::Attributes::SAFE_FALL_DISTANCE,
-                JUMP_BOOST_SAFE_FALL_UUID,
-                1.0,
-                attribute::Operation::Addition}}},
+        {{attribute::Attributes::SAFE_FALL_DISTANCE, JUMP_BOOST_SAFE_FALL_UUID, 1.0, attribute::Operation::Addition}}},
     // 虚弱：每级减少 4.0 攻击伤害
     {EffectType::Weakness,
         {{attribute::Attributes::ATTACK_DAMAGE, WEAKNESS_UUID, -4.0, attribute::Operation::Addition}}},

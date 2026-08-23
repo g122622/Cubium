@@ -111,8 +111,8 @@ TEST(HorseJumpBoostTest, JumpBoostEffect_IncreasesJumpForce)
     horse.setJumpStrength(0.5f);
     horse.setSaddle(true); // 需要鞍才能跳跃
 
-    // 设置跳跃力度为满 (100%)
-    horse.setJumpPower(100);
+    // 设置跳跃蓄力值为满 (100%)
+    horse.setJumpCharge(100);
 
     // 无跳跃提升效果时的基础跳跃力度
     f32 baseJumpStrength = horse.getJumpStrength();

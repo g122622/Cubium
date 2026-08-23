@@ -830,8 +830,12 @@ void LivingEntity::registerAttributes()
     // 每级给 SAFE_FALL_DISTANCE +1。马类覆盖 FALL_DAMAGE_MULTIPLIER=0.5。
     attributes().registerAttribute(*entity::attribute::Attributes::safeFallDistance());
     attributes().registerAttribute(*entity::attribute::Attributes::fallDamageMultiplier());
+    // 跳跃力属性（默认 JUMP_STRENGTH=0.42），由 getJumpPower() 消费：
+    //   getJumpPower() = JUMP_STRENGTH * getBlockJumpFactor() + getJumpBoostPower()
+    // JumpBoost 药水的跳跃加成走 getJumpBoostPower 独立项（0.1*(amplifier+1)），非属性修饰符。
+    attributes().registerAttribute(*entity::attribute::Attributes::jumpStrength());
     // 额外氧气属性（默认 OXYGEN_BONUS=0.0），由 decreaseAirSupply 的氧气消耗概率
-    // 门控消费（对齐 vanilla LivingEntity.java:340 注册 OXYGEN_BONUS、:571-582 消费）。
+    // 门控消费（LivingEntity.java:340 注册 OXYGEN_BONUS、:571-582 消费）。
     // 水下呼吸魔咒通过 enchantment.respiration 修饰符（每级 +1.0 ADD_VALUE，HEAD 槽位）注入。
     attributes().registerAttribute(*entity::attribute::Attributes::oxygenBonus());
 
@@ -1655,15 +1659,8 @@ void LivingEntity::playFallSound(f32 distance)
 
 void LivingEntity::jump()
 {
-    // 执行跳跃
-    f32 jumpPower = m_jumpUpwardsMotion;
-
-    // 跳跃增强药水效果
-    // 每级增加 0.1 跳跃力
-    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
-    if (jumpBoostLevel > 0) {
-        jumpPower += static_cast<f32>(jumpBoostLevel) * 0.1f;
-    }
+    // 起跳垂直初速度 = JUMP_STRENGTH * blockJumpFactor + JumpBoost 药水加成
+    f32 jumpPower = getJumpPower();
 
     // 设置垂直速度
     m_builtIn.velocity->m_velocity.y = jumpPower;
@@ -1680,6 +1677,42 @@ void LivingEntity::jump()
     }
 
     m_builtIn.physicsState->m_onGround = false;
+}
+
+f32 LivingEntity::getJumpPower() const
+{
+    // getJumpPower() = JUMP_STRENGTH * getBlockJumpFactor() + getJumpBoostPower()
+    // JUMP_STRENGTH 默认 0.42，蜂蜜块等方块通过 getBlockJumpFactor 削弱跳跃，
+    // JumpBoost 药水加成走 getJumpBoostPower 独立项（非属性修饰符）。
+    const f64 jumpStrength = getAttributeValue(entity::attribute::Attributes::JUMP_STRENGTH, 0.42);
+    return static_cast<f32>(jumpStrength) * getBlockJumpFactor() + getJumpBoostPower();
+}
+
+f32 LivingEntity::getJumpBoostPower() const
+{
+    // 有 JumpBoost 效果时 0.1*(amplifier+1)，否则 0.0。
+    // getEffectLevel 返回 1-based 等级（I级=1，II级=2），即 amplifier+1。
+    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
+    if (jumpBoostLevel <= 0) {
+        return 0.0f;
+    }
+    return 0.1f * static_cast<f32>(jumpBoostLevel);
+}
+
+f32 LivingEntity::getBlockJumpFactor() const
+{
+    // 脚下方块对跳跃力的缩放因子，蜂蜜块为 0.5（削弱跳跃），其余 1.0。
+    if (m_world == nullptr) {
+        return 1.0f;
+    }
+    BlockPos belowPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+        static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+        static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
+    const BlockState* state = m_world->getBlockState(belowPos);
+    if (state == nullptr) {
+        return 1.0f;
+    }
+    return state->getBlock().getJumpFactor(*state, m_world, &belowPos);
 }
 
 void LivingEntity::aiStep()

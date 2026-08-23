@@ -57,7 +57,7 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
     EXPECT_TRUE(registry.isKnown(Attributes::LUCK));
     EXPECT_TRUE(registry.isKnown(Attributes::MAX_ABSORPTION));
     EXPECT_TRUE(registry.isKnown(Attributes::BREATH_MAX));
-    EXPECT_TRUE(registry.isKnown(Attributes::JUMP_BOOST));
+    EXPECT_TRUE(registry.isKnown(Attributes::JUMP_STRENGTH));
     EXPECT_TRUE(registry.isKnown(Attributes::HORSE_JUMP_STRENGTH));
     EXPECT_TRUE(registry.isKnown(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS));
 
@@ -242,6 +242,9 @@ TEST(AttributeRegistryTest, NormalizeNameAddsGenericPrefix)
     EXPECT_EQ(registry.normalizeName("max_health"), "generic.max_health");
     EXPECT_EQ(registry.normalizeName("movement_speed"), "generic.movement_speed");
     EXPECT_EQ(registry.normalizeName("attack_damage"), "generic.attack_damage");
+    // jump_strength 短名现在匹配通用 generic.jump_strength（LivingEntity 跳跃力），
+    // 而非马族专用的 horse.jump_strength（待重构移除）。generic 命名空间优先于 horse。
+    EXPECT_EQ(registry.normalizeName("jump_strength"), "generic.jump_strength");
 }
 
 TEST(AttributeRegistryTest, NormalizeNamePreservesExistingPrefix)
@@ -258,12 +261,6 @@ TEST(AttributeRegistryTest, NormalizeNameStripsMinecraftPrefix)
     auto& registry = AttributeRegistry::instance();
     EXPECT_EQ(registry.normalizeName("minecraft:generic.max_health"), "generic.max_health");
     EXPECT_EQ(registry.normalizeName("minecraft:max_health"), "generic.max_health");
-}
-
-TEST(AttributeRegistryTest, NormalizeNameAddsHorsePrefix)
-{
-    auto& registry = AttributeRegistry::instance();
-    EXPECT_EQ(registry.normalizeName("jump_strength"), "horse.jump_strength");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameAddsZombiePrefix)

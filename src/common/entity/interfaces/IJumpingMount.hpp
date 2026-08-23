@@ -48,18 +48,19 @@ public:
     virtual void onJump() = 0;
 
     /**
-     * @brief 获取跳跃力度（0 - 100）
-     * @return 当前跳跃力度
+     * @brief 获取跳跃蓄力值（0 - 100）
+     * @return 当前跳跃蓄力值
      *
-     * 马的跳跃力度由玩家按住跳跃键的时间决定
+     * 马的跳跃蓄力由玩家按住跳跃键的时间决定。
+     * 注意：此为骑乘蓄力槽位值，与 LivingEntity::getJumpPower()（跳跃垂直初速度）语义不同。
      */
-    virtual i32 getJumpPower() const = 0;
+    virtual i32 getJumpCharge() const = 0;
 
     /**
-     * @brief 设置跳跃力度
-     * @param power 跳跃力度 (0 - 100)
+     * @brief 设置跳跃蓄力值
+     * @param power 跳跃蓄力值 (0 - 100)
      */
-    virtual void setJumpPower(i32 power) = 0;
+    virtual void setJumpCharge(i32 power) = 0;
 
     /**
      * @brief 获取最大跳跃高度

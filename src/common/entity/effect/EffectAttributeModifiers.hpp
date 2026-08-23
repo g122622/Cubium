@@ -57,9 +57,7 @@ constexpr const char* HASTE_UUID = "AF8B6E3F-3328-4C0A-AA36-5BA2BB9DBEF3";
 constexpr const char* MINING_FATIGUE_UUID = "55FCED67-E92A-486E-9800-B47F202C4386";
 // 力量效果
 constexpr const char* STRENGTH_UUID = "648D7064-6A60-4F59-8ABE-C2C23A6DD7A9";
-// 跳跃提升
-constexpr const char* JUMP_BOOST_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBE";
-// 跳跃提升——安全摔落距离修饰符（每级 +1，与 JUMP_BOOST_UUID 区分以独立管理）
+// 跳跃提升——安全摔落距离修饰符（每级 +1，MobEffects.JUMP_BOOST 仅挂此修饰符）
 constexpr const char* JUMP_BOOST_SAFE_FALL_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBF";
 // 虚弱效果
 constexpr const char* WEAKNESS_UUID = "22653B89-116E-49DC-9B6B-9971489B5BE5";

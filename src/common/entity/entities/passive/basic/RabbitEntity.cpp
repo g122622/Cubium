@@ -75,8 +75,8 @@ namespace mc {
 //
 // 仍保留为 TODO 的项目：
 // - getJumpPower() 重写：MC 中 Rabbit 重写了 getJumpPower() 根据移动速度和路径
-//   调整跳跃高度（0.2/0.3/0.5）。项目当前 LivingEntity::jump() 为非虚函数且使用
-//   m_jumpUpwardsMotion，重写跳跃力度需要更大的架构改动，暂留待未来处理。
+//   调整跳跃高度（0.2/0.3/0.5）。getJumpPower() 现已是虚函数，Rabbit 可直接重写，
+//   待实现。
 
 RabbitEntity::RabbitEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     : AnimalEntity(id, registry)
@@ -337,8 +337,7 @@ void RabbitEntity::startJumping()
     m_rabbitJumpTicks = 0;
 
     // 对应 MC 1.21.11 Rabbit.jumpFromGround() 中的 broadcastEntityEvent(this, (byte)1)
-    // 项目架构下 LivingEntity::jump() 非虚函数无法重写，故在动画启动时即广播，
-    // 让客户端同步启动 jumpDuration 计时器以计算 jumpRotation。
+    // 项目在动画启动时即广播，让客户端同步启动 jumpDuration 计时器以计算 jumpRotation。
     // 注意：MC 中广播发生在 jumpFromGround() 内（物理跳跃时刻），此处略早一个 tick，
     // 但客户端位置插值会平滑过渡，视觉上无差异。
     if (auto* worldPtr = world(); worldPtr != nullptr) {

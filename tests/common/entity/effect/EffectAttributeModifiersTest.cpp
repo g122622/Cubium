@@ -106,17 +106,14 @@ TEST_F(EffectAttributeModifiersTest, WeaknessHasCorrectModifier)
 
 TEST_F(EffectAttributeModifiersTest, JumpBoostHasModifier)
 {
-    // 跳跃提升：每级 +0.1 跳跃力（JUMP_BOOST）且每级 +1 安全摔落距离（SAFE_FALL_DISTANCE）。
-    // 对齐 vanilla MobEffects.JUMP_BOOST 同时挂 JUMP_STRENGTH 与 SAFE_FALL_DISTANCE 两个修饰符
-    // （SAFE_FALL_DISTANCE 修饰符使跳跃增强药水延长安全摔落高度，对齐 EffectAttributeModifiers.cpp:60-66）。
+    // 跳跃提升：每级 +1 安全摔落距离（SAFE_FALL_DISTANCE），MobEffects.JUMP_BOOST 仅挂此修饰符。
+    // 跳跃力加成走 LivingEntity::getJumpBoostPower 独立项（0.1*(amplifier+1)），非属性修饰符，
+    // 故 JumpBoost 不挂 JUMP_STRENGTH 修饰符（见 EffectAttributeModifiers.cpp:60-64）。
     const auto& mods = EffectAttributeModifiers::getEffectModifiers(EffectType::JumpBoost);
-    ASSERT_EQ(mods.size(), 2u);
-    EXPECT_EQ(mods[0].attributeName, std::string(Attributes::JUMP_BOOST));
-    EXPECT_DOUBLE_EQ(mods[0].baseAmount, 0.1);
+    ASSERT_EQ(mods.size(), 1u);
+    EXPECT_EQ(mods[0].attributeName, std::string(Attributes::SAFE_FALL_DISTANCE));
+    EXPECT_DOUBLE_EQ(mods[0].baseAmount, 1.0);
     EXPECT_EQ(mods[0].operation, Operation::Addition);
-    EXPECT_EQ(mods[1].attributeName, std::string(Attributes::SAFE_FALL_DISTANCE));
-    EXPECT_DOUBLE_EQ(mods[1].baseAmount, 1.0);
-    EXPECT_EQ(mods[1].operation, Operation::Addition);
 }
 
 TEST_F(EffectAttributeModifiersTest, HealthBoostHasModifier)

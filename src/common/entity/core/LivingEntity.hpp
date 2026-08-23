@@ -1134,14 +1134,33 @@ public:
     void jump();
 
     /**
+     * @brief 计算起跳垂直初速度
+     *
+     * 公式：JUMP_STRENGTH 属性值 * blockJumpFactor + getJumpBoostPower()。
+     * blockJumpFactor 由脚下方块决定（蜂蜜块为 0.5，其余 1.0）。
+     * JumpBoost 药水的跳跃加成走 getJumpBoostPower 独立项，非属性修饰符。
+     */
+    [[nodiscard]] virtual f32 getJumpPower() const;
+
+    /**
+     * @brief 跳跃增强药水提供的额外跳跃力
+     *
+     * 有 JumpBoost 效果时返回 0.1*(amplifier+1)，否则 0.0。
+     * 与 JUMP_STRENGTH 属性分离，不受其修饰符影响。
+     */
+    [[nodiscard]] virtual f32 getJumpBoostPower() const;
+
+    /**
+     * @brief 脚下方块对跳跃力的缩放因子
+     *
+     * 蜂蜜块为 0.5（削弱跳跃），其余方块为 1.0。
+     */
+    [[nodiscard]] virtual f32 getBlockJumpFactor() const;
+
+    /**
      * @brief 获取跳跃冷却
      */
     [[nodiscard]] i32 jumpTicks() const { return m_jumpTicks; }
-
-    /**
-     * @brief 获取跳跃初速度
-     */
-    [[nodiscard]] f32 jumpUpwardsMotion() const { return m_jumpUpwardsMotion; }
 
     // ========== 移动 ==========
 
@@ -1923,8 +1942,7 @@ protected:
 
     // 跳跃
     bool m_isJumping = false;
-    i32 m_jumpTicks = 0;                              // 跳跃冷却
-    f32 m_jumpUpwardsMotion = physics::JUMP_VELOCITY; // 跳跃初速度（MC默认值）
+    i32 m_jumpTicks = 0; // 跳跃冷却
 
     // 移动
     f32 m_moveStrafing = 0.0f;        // 横向移动（左右）

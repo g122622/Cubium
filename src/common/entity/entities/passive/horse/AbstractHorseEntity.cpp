@@ -283,15 +283,15 @@ void AbstractHorseEntity::onJump()
     performJump();
 }
 
-void AbstractHorseEntity::setJumpPower(i32 power)
+void AbstractHorseEntity::setJumpCharge(i32 power)
 {
-    // MC 1.16.5: jumpPower 范围 0-100
+    // 跳跃蓄力值范围 0-100
     auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
     MC_ASSERT_RELEASE(jump);
     jump->m_jumpPower = std::clamp(power, 0, 100);
 }
 
-i32 AbstractHorseEntity::getJumpPower() const
+i32 AbstractHorseEntity::getJumpCharge() const
 {
     const auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
     MC_ASSERT_RELEASE(jump);
@@ -336,8 +336,8 @@ void AbstractHorseEntity::startJumping(i32 jumpPower)
     auto* jump = tryGetComponent<ecs::HorseJumpComponent>();
     MC_ASSERT_RELEASE(jump);
     jump->m_isJumping = true;
-    // MC 1.16.5: 设置初始跳跃力度
-    setJumpPower(jumpPower);
+    // 设置初始跳跃蓄力值
+    setJumpCharge(jumpPower);
 }
 
 void AbstractHorseEntity::stopJumping()

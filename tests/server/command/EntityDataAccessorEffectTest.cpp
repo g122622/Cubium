@@ -58,7 +58,7 @@ protected:
         m_entity->attributes().registerAttribute(*Attributes::attackDamage());
         m_entity->attributes().registerAttribute(*Attributes::attackSpeed());
         m_entity->attributes().registerAttribute(*Attributes::luck());
-        m_entity->attributes().registerAttribute(*Attributes::jumpBoost());
+        m_entity->attributes().registerAttribute(*Attributes::jumpStrength());
         m_entity->setHealth(m_entity->maxHealth());
     }
 
@@ -483,7 +483,7 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_SerializeDeserialize_PreservesEff
     entity2->attributes().registerAttribute(*Attributes::attackDamage());
     entity2->attributes().registerAttribute(*Attributes::attackSpeed());
     entity2->attributes().registerAttribute(*Attributes::luck());
-    entity2->attributes().registerAttribute(*Attributes::jumpBoost());
+    entity2->attributes().registerAttribute(*Attributes::jumpStrength());
     entity2->setHealth(entity2->maxHealth());
 
     EntityDataAccessor accessor2(entity2.get());

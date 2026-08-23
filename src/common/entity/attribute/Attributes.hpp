@@ -200,15 +200,15 @@ inline std::unique_ptr<Attribute> breathMax()
 }
 
 /**
- * @brief 跳跃高度
+ * @brief 跳跃力
  *
- * 决定实体的跳跃力度。
+ * 决定实体起跳时的垂直初速度，由 getJumpPower() 消费。
  * 默认值: 0.42
- * 范围: 0.0 ~ 8.0
+ * 范围: 0.0 ~ 32.0
  */
-inline std::unique_ptr<Attribute> jumpBoost()
+inline std::unique_ptr<Attribute> jumpStrength()
 {
-    return std::make_unique<Attribute>("generic.jump_boost", 0.42, 0.0, 8.0);
+    return std::make_unique<Attribute>("generic.jump_strength", 0.42, 0.0, 32.0);
 }
 
 /**
@@ -217,6 +217,11 @@ inline std::unique_ptr<Attribute> jumpBoost()
  * 决定马类实体的跳跃能力。
  * 默认值: 0.7
  * 范围: 0.0 ~ 2.0
+ *
+ * TODO: vanilla 1.21.11 马族统一用 generic.jump_strength（JUMP_STRENGTH）承载跳跃力
+ *（createBaseHorseAttributes 基值 0.7 + 随机化 + 遗传），不使用独立的 horse.jump_strength。
+ * 项目当前马匹用 HorseJumpComponent 组件作真相源、本属性作镜像，且本属性零 getValue 消费。
+ * 待马匹体系重构统一到 JUMP_STRENGTH 后，本属性应移除。
  */
 inline std::unique_ptr<Attribute> horseJumpStrength()
 {
@@ -388,13 +393,13 @@ constexpr const char* BLOCK_INTERACTION_RANGE = "generic.block_interaction_range
 constexpr const char* ENTITY_INTERACTION_RANGE = "generic.entity_interaction_range";
 constexpr const char* SAFE_FALL_DISTANCE = "generic.safe_fall_distance";
 constexpr const char* FALL_DAMAGE_MULTIPLIER = "generic.fall_damage_multiplier";
+constexpr const char* JUMP_STRENGTH = "generic.jump_strength";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
-constexpr const char* JUMP_BOOST = "generic.jump_boost";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
 constexpr const char* SWIM_SPEED = "forge.swim_speed";         // Forge 扩展
 

@@ -1114,7 +1114,8 @@ void Player::_handleLavaMovement(f32 forward, f32 strafe, bool jumping, bool sne
 void Player::jump()
 {
     if (m_builtIn.physicsState->m_onGround && m_jumpTicks == 0) {
-        m_builtIn.velocity->m_velocity.y = physics::JUMP_VELOCITY;
+        // 起跳垂直初速度由 getJumpPower() 决定（JUMP_STRENGTH 属性 * blockJumpFactor + JumpBoost 加成）
+        m_builtIn.velocity->m_velocity.y = getJumpPower();
         m_builtIn.physicsState->m_onGround = false;
         m_jumpTicks = JUMP_COOLDOWN; // 设置跳跃冷却
 

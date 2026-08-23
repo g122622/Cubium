@@ -93,9 +93,6 @@ constexpr const char* MINING_FATIGUE_UUID = "55FCED67-E92A-486E-9800-B47F202C438
 /// 力量效果修饰器 UUID
 constexpr const char* STRENGTH_UUID = "648D7064-6A60-4F59-8ABE-C2C23A6DD7A9";
 
-/// 跳跃提升效果修饰器 UUID
-constexpr const char* JUMP_BOOST_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBE";
-
 /// 虚弱效果修饰器 UUID
 constexpr const char* WEAKNESS_UUID = "22653B89-116E-49DC-9B6B-9971489B5BE5";
 

@@ -87,8 +87,8 @@ public:
     // ========== IJumpingMount 接口实现 ==========
 
     void onJump() override;
-    [[nodiscard]] i32 getJumpPower() const override;
-    void setJumpPower(i32 power) override;
+    [[nodiscard]] i32 getJumpCharge() const override;
+    void setJumpCharge(i32 power) override;
     [[nodiscard]] f32 getMaxJumpHeight() const override;
     [[nodiscard]] bool canJump() const override;
     void startJumping(i32 jumpPower) override;

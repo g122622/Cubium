@@ -261,7 +261,7 @@ void AbstractNautilusEntity::onJump()
     }
 }
 
-void AbstractNautilusEntity::setJumpPower(i32 power)
+void AbstractNautilusEntity::setJumpCharge(i32 power)
 {
     // 对应 MC 1.21.11 PlayerRideableJumping.onPlayerJump()
     // 将玩家跳跃蓄力转换为 0.0-1.0 的比例
@@ -286,7 +286,7 @@ bool AbstractNautilusEntity::canJump() const
 void AbstractNautilusEntity::startJumping(i32 jumpPower)
 {
     // 开始蓄力跳跃
-    setJumpPower(jumpPower);
+    setJumpCharge(jumpPower);
 }
 
 void AbstractNautilusEntity::stopJumping()
