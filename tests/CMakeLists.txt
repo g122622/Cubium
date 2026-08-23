@@ -478,6 +478,8 @@ add_executable(mc_tests
     common/entity/combat/GuardianThornsTest.cpp
     # NO_IMPACT/NO_KNOCKBACK 标签查询测试（溺水不 markHurt，魔法/火焰不 indicateDamage）
     common/entity/combat/NoImpactNoKnockbackTest.cpp
+    # 盔甲架四标签伤害语义测试（BURNS/IGNITES/CAN_BREAK/ALWAYS_KILLS + BYPASSES/IS_EXPLOSION）
+    common/entity/combat/ArmorStandDamageTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试

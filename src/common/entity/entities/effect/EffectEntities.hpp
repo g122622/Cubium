@@ -563,7 +563,45 @@ public:
     [[nodiscard]] bool isSmall() const { return m_small; }
     void setSmall(bool small) { m_small = small; }
 
+    /**
+     * @brief 受伤入口（对齐 vanilla ArmorStand.hurtServer:266-318）
+     *
+     * 盔甲架伤害语义与普通生物不同：按伤害源标签分支处理——BYPASSES_INVULNERABILITY/IS_EXPLOSION
+     * 直接销毁；IGNITES_ARMOR_STANDS 点燃 5 秒（已着火则受 0.15 伤害）；BURNS_ARMOR_STANDS（on_fire）
+     * 受 4.0 伤害（health>0.5 时）；CAN_BREAK_ARMOR_STAND/ALWAYS_KILLS_ARMOR_STANDS 近战/箭破坏。
+     * 详见 ArmorStandEntity.cpp hurt 实现注释。
+     *
+     * 注：vanilla ArmorStand 继承 LivingEntity（maxHealth=2，有 causeDamage/kill/brokenByAnybody 装备
+     * 掉落体系）。Cubium ArmorStandEntity 继承 Entity 无 health/装备体系，此处自带 m_health 模拟
+     * health 语义（默认 2.0），装备掉落/mobGriefing 守卫/creativePlayer/5tick 节流留 TODO。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 当前生命值（自带 health，对齐 vanilla ArmorStand.MAX_HEALTH=2）
+     */
+    [[nodiscard]] f32 health() const { return m_health; }
+    void setHealth(f32 health) { m_health = health; }
+    [[nodiscard]] f32 maxHealth() const { return ARMOR_STAND_MAX_HEALTH; }
+
 private:
+    // 对齐 vanilla ArmorStand.MAX_HEALTH=2（ArmorStand.java）。Cubium ArmorStandEntity 继承 Entity
+    // 无 LivingEntity 的 health 体系，自带 m_health 模拟 causeDamage 扣血 + kill 销毁语义。
+    static constexpr f32 ARMOR_STAND_MAX_HEALTH = 2.0f;
+    f32 m_health = ARMOR_STAND_MAX_HEALTH;
+
+    // 对齐 vanilla ArmorStand.lastHit（5 tick 破坏节流）。Cubium 暂用 tickCount 近似。
+    // TODO: 完整对齐 vanilla 5 tick 节流（gameTime - lastHit > 5）需世界 gameTime，当前简化。
+    i64 m_lastHit = -6;
+
+    /**
+     * @brief 扣血辅助（对齐 vanilla ArmorStand.causeDamage）
+     *
+     * 从 m_health 扣除伤害值，扣至 0 及以下时销毁实体（对齐 vanilla causeDamage 在 health<=0 调 kill）。
+     * 与普通 LivingEntity 不同，盔甲架不经过护甲/附魔减伤链路（vanilla causeDamage 直接 setHealth）。
+     */
+    void causeDamage(f32 damage);
+
     bool m_hasGravity = true;
     bool m_invisible = false;
     bool m_marker = false;
