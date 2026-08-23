@@ -69,6 +69,8 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
     EXPECT_TRUE(registry.isKnown(Attributes::MOVEMENT_EFFICIENCY));
     EXPECT_TRUE(registry.isKnown(Attributes::BLOCK_INTERACTION_RANGE));
     EXPECT_TRUE(registry.isKnown(Attributes::ENTITY_INTERACTION_RANGE));
+    EXPECT_TRUE(registry.isKnown(Attributes::SAFE_FALL_DISTANCE));
+    EXPECT_TRUE(registry.isKnown(Attributes::FALL_DAMAGE_MULTIPLIER));
 }
 
 TEST(AttributeRegistryTest, UnknownAttributeIsNotKnown)
@@ -154,6 +156,30 @@ TEST(AttributeRegistryTest, EntityInteractionRangeDefinitionMatchesMC)
     EXPECT_DOUBLE_EQ(attr->defaultValue(), 3.0);
     EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
     EXPECT_DOUBLE_EQ(attr->maxValue(), 64.0);
+}
+
+TEST(AttributeRegistryTest, SafeFallDistanceDefinitionMatchesMC)
+{
+    // generic.safe_fall_distance 默认 3.0，范围 [-1024, 1024]（允许负值，供修饰符使用）
+    auto& registry = AttributeRegistry::instance();
+    const auto* attr = registry.getAttribute(Attributes::SAFE_FALL_DISTANCE);
+    ASSERT_NE(attr, nullptr);
+    EXPECT_EQ(attr->registryName(), "generic.safe_fall_distance");
+    EXPECT_DOUBLE_EQ(attr->defaultValue(), 3.0);
+    EXPECT_DOUBLE_EQ(attr->minValue(), -1024.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 1024.0);
+}
+
+TEST(AttributeRegistryTest, FallDamageMultiplierDefinitionMatchesMC)
+{
+    // generic.fall_damage_multiplier 默认 1.0，范围 [0, 100]（马类覆盖为 0.5）
+    auto& registry = AttributeRegistry::instance();
+    const auto* attr = registry.getAttribute(Attributes::FALL_DAMAGE_MULTIPLIER);
+    ASSERT_NE(attr, nullptr);
+    EXPECT_EQ(attr->registryName(), "generic.fall_damage_multiplier");
+    EXPECT_DOUBLE_EQ(attr->defaultValue(), 1.0);
+    EXPECT_DOUBLE_EQ(attr->minValue(), 0.0);
+    EXPECT_DOUBLE_EQ(attr->maxValue(), 100.0);
 }
 
 TEST(AttributeRegistryTest, UnknownAttributeReturnsFallbackRange)

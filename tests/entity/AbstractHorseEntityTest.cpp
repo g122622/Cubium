@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/horse/LlamaEntity.hpp"
@@ -195,6 +196,36 @@ TEST(AbstractHorseAnimationTest, CanEatGrass_ZombieHorseReturnsFalse)
 
     // 僵尸马不能吃草
     EXPECT_FALSE(zombieHorse.canEatGrass());
+}
+
+// ============================================================================
+// 摔落伤害倍率属性测试
+// ============================================================================
+
+// 马类摔落伤害倍率为 0.5（AbstractHorse.createAttributes），承受半数摔落伤害。
+// FALL_DAMAGE_MULTIPLIER 默认 1.0（LivingEntity 基类注册），马类覆盖为 0.5。
+// 此前 Cubium 未实现 FALL_DAMAGE_MULTIPLIER 属性，马类摔落伤害与普通生物相同（1.0 倍）。
+TEST(AbstractHorseAnimationTest, FallDamageMultiplier_IsHalfForHorse)
+{
+    VanillaBlocks::initialize();
+
+    AbstractHorseTestWorld world;
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
+    horse.setWorld(&world);
+
+    EXPECT_DOUBLE_EQ(horse.getAttributeValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0), 0.5);
+}
+
+// 马类的安全摔落距离应保持 LivingEntity 基类默认值 3.0（马类未覆盖 SAFE_FALL_DISTANCE）。
+TEST(AbstractHorseAnimationTest, SafeFallDistance_DefaultForHorse)
+{
+    VanillaBlocks::initialize();
+
+    AbstractHorseTestWorld world;
+    HorseEntity horse(EntityInstanceId(1), mc::test::testEcsRegistry());
+    horse.setWorld(&world);
+
+    EXPECT_DOUBLE_EQ(horse.getAttributeValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 0.0), 3.0);
 }
 
 // ============================================================================

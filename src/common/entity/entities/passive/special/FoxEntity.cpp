@@ -724,9 +724,16 @@ void FoxEntity::registerAttributes()
     // 调用父类方法
     AnimalEntity::registerAttributes();
 
-    // 狐狸的属性
+    // 狐狸的属性（Fox.createAttributes:306-313）
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+    // ATTACK_DAMAGE 默认不在 AnimalEntity 基类注册，此处显式注册并设 2.0（狐狸近战攻击伤害）。
+    attributes().registerAttribute(*entity::attribute::Attributes::attackDamage());
+    attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+    // SAFE_FALL_DISTANCE 默认 3.0（LivingEntity 基类注册），狐狸覆盖为 5.0（可承受更高摔落）。
+    attributes().setBaseValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 5.0);
+    // FOLLOW_RANGE 默认 16.0（MobEntity），狐狸覆盖为 32.0。
+    attributes().setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 32.0);
 }
 
 // ========== 音效 ==========

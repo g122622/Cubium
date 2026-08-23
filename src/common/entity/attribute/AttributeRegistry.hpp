@@ -234,6 +234,8 @@ private:
         registerAttribute(*Attributes::movementEfficiency());
         registerAttribute(*Attributes::blockInteractionRange());
         registerAttribute(*Attributes::entityInteractionRange());
+        registerAttribute(*Attributes::safeFallDistance());
+        registerAttribute(*Attributes::fallDamageMultiplier());
     }
 
     std::unordered_map<std::string, std::unique_ptr<Attribute>> m_attributes;

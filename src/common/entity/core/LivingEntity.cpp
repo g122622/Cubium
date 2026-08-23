@@ -825,6 +825,11 @@ void LivingEntity::registerAttributes()
     attributes().registerAttribute(*entity::attribute::Attributes::armorToughness());
     attributes().registerAttribute(*entity::attribute::Attributes::maxAbsorption());
     attributes().registerAttribute(*entity::attribute::Attributes::movementEfficiency());
+    // 摔落相关属性（默认 SAFE_FALL_DISTANCE=3.0、FALL_DAMAGE_MULTIPLIER=1.0），
+    // 由 causeFallDamage 的摔落伤害公式消费。JumpBoost 药水通过 Addition 修饰符
+    // 每级给 SAFE_FALL_DISTANCE +1。马类覆盖 FALL_DAMAGE_MULTIPLIER=0.5。
+    attributes().registerAttribute(*entity::attribute::Attributes::safeFallDistance());
+    attributes().registerAttribute(*entity::attribute::Attributes::fallDamageMultiplier());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1569,35 +1574,27 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
         return;
     }
 
-    // 跳跃增强药水减少摔落距离
-    const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
-    f32 effectiveDistance = distance - static_cast<f32>(jumpBoostLevel);
+    // 计算摔落伤害（对齐 vanilla LivingEntity.calculateFallDamage/calculateFallPower:
+    //   fallPower = distance + 1e-6 - SAFE_FALL_DISTANCE;
+    //   fallDamage = floor(fallPower * damageMultiplier * FALL_DAMAGE_MULTIPLIER);）
+    // - SAFE_FALL_DISTANCE 默认 3.0，JumpBoost 药水通过 Addition 修饰符每级 +1
+    //   （等价于原先在 distance 上减 jumpBoostLevel，现统一走属性体系）。
+    // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆盖为 0.5。
+    // - damageMultiplier 由调用方传入（普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0）。
+    // - 1e-6 偏移消除浮点边界：恰好等于安全距离时不产生伤害。
+    // - floor 整体取整：伤害按整数格结算（vanilla calculateFallDamage 返回 int）。
+    // 注意：摔落保护附魔的减伤在 actuallyHurt 管线的 applyPotionDamageCalculations
+    //   统一处理（对 isFall() 伤害），此处不再重复减伤（此前此处重复减伤为 bug）。
+    const f32 safeFallDistance =
+        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 3.0));
+    const f32 fallDamageMultiplier =
+        static_cast<f32>(attributes().getValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 1.0));
+    const f32 fallPower = distance + 1.0e-6f - safeFallDistance;
+    const i32 damage = static_cast<i32>(std::floor(fallPower * damageMultiplier * fallDamageMultiplier));
 
-    // 计算摔落伤害
-    // 摔落 > 3 格才开始受伤，每格 1 点伤害
-    if (effectiveDistance > 3.0f) {
-        f32 damage = (effectiveDistance - 3.0f) * damageMultiplier;
-
-        // 计算摔落保护附魔减伤
-        // 只有 source.isFall() 为 true 时才应用摔落保护附魔
-        if (source.isFall()) {
-            std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
-                &getEquipment(EquipmentSlot::Chest),
-                &getEquipment(EquipmentSlot::Legs),
-                &getEquipment(EquipmentSlot::Feet)};
-            i32 fallProtectionEPF =
-                item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
-            if (fallProtectionEPF > 0) {
-                damage =
-                    entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
-            }
-        }
-
-        if (damage > 0.0f) {
-            // 克隆伤害来源以获得可变引用
-            auto sourceClone = source.clone();
-            hurt(*sourceClone, damage);
-        }
+    if (damage > 0) {
+        auto sourceClone = source.clone();
+        hurt(*sourceClone, static_cast<f32>(damage));
     }
 
     // 播放摔落音效

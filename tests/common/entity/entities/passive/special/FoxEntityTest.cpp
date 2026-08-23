@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -354,11 +355,27 @@ TEST_F(FoxEntityTest, Attributes_HasCorrectBaseValues)
 {
     FoxEntity fox(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    // MC 1.16.5: 狐狸生命值为 10
+    // 狐狸生命值为 10
     EXPECT_DOUBLE_EQ(fox.maxHealth(), 10.0);
 
-    // MC 1.16.5: 狐狸移动速度为 0.3
+    // 狐狸移动速度为 0.3
     EXPECT_DOUBLE_EQ(fox.getAttributeValue("generic.movement_speed", 0.0), 0.3);
+}
+
+// 狐狸近战攻击伤害、安全摔落距离、跟随范围属性（Fox.createAttributes）。
+// 此前 Cubium FoxEntity::registerAttributes 仅设 MAX_HEALTH/MOVEMENT_SPEED，缺失
+// ATTACK_DAMAGE=2.0、SAFE_FALL_DISTANCE=5.0、FOLLOW_RANGE=32.0，导致狐狸近战无伤害、
+// 摔落免伤距离与默认生物相同（3 而非 5）、追踪范围偏小（16 而非 32）。
+TEST_F(FoxEntityTest, Attributes_AlignedWithVanilla)
+{
+    FoxEntity fox(EntityInstanceId(1), mc::test::testEcsRegistry());
+
+    // 近战攻击伤害 2.0（狐狸扑咬伤害）
+    EXPECT_DOUBLE_EQ(fox.getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 0.0), 2.0);
+    // 安全摔落距离 5.0（高于默认 3.0，狐狸可承受更高摔落）
+    EXPECT_DOUBLE_EQ(fox.getAttributeValue(entity::attribute::Attributes::SAFE_FALL_DISTANCE, 0.0), 5.0);
+    // 跟随范围 32.0（高于 MobEntity 默认 16.0）
+    EXPECT_DOUBLE_EQ(fox.getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 0.0), 32.0);
 }
 
 // ========== 尺寸测试 ==========

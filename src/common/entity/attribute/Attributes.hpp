@@ -289,6 +289,34 @@ inline std::unique_ptr<Attribute> movementEfficiency()
 }
 
 /**
+ * @brief 安全摔落距离
+ *
+ * 决定实体摔落多少格才开始受到摔落伤害。
+ * 摔落伤害 = floor((摔落距离 + 1e-6 - 安全摔落距离) * 伤害倍率 * 摔落伤害倍率)。
+ * 默认值: 3.0（多数生物），Fox=5.0。
+ * 范围: -1024.0 ~ 1024.0
+ * JumpBoost 药水通过 Addition 修饰符每级 +1（effect.minecraft.jump_boost）。
+ */
+inline std::unique_ptr<Attribute> safeFallDistance()
+{
+    return std::make_unique<Attribute>("generic.safe_fall_distance", 3.0, -1024.0, 1024.0);
+}
+
+/**
+ * @brief 摔落伤害倍率
+ *
+ * 作为摔落伤害公式的最终乘数，与方块传入的 damageMultiplier 相乘。
+ * 默认值: 1.0（多数生物），马类=0.5（AbstractHorse）。
+ * 范围: 0.0 ~ 100.0
+ * 注意：干草块/蜂蜜块的 0.2 减伤是通过 causeFallDamage 的 damageMultiplier 参数传入，
+ *   不修改此属性。
+ */
+inline std::unique_ptr<Attribute> fallDamageMultiplier()
+{
+    return std::make_unique<Attribute>("generic.fall_damage_multiplier", 1.0, 0.0, 100.0);
+}
+
+/**
  * @brief 方块交互距离
  *
  * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
@@ -337,6 +365,8 @@ constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
 constexpr const char* MOVEMENT_EFFICIENCY = "generic.movement_efficiency";
 constexpr const char* BLOCK_INTERACTION_RANGE = "generic.block_interaction_range";
 constexpr const char* ENTITY_INTERACTION_RANGE = "generic.entity_interaction_range";
+constexpr const char* SAFE_FALL_DISTANCE = "generic.safe_fall_distance";
+constexpr const char* FALL_DAMAGE_MULTIPLIER = "generic.fall_damage_multiplier";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";

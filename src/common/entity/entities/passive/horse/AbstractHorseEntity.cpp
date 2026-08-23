@@ -886,6 +886,9 @@ void AbstractHorseEntity::registerAttributes()
     // 设置生命值和速度
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, attr->m_horseHealth);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, attr->m_speed);
+    // 摔落伤害倍率 0.5（AbstractHorse.createAttributes:384），马类承受半数摔落伤害。
+    // FALL_DAMAGE_MULTIPLIER 默认 1.0（LivingEntity 基类注册），此处覆盖为 0.5。
+    attributes().setBaseValue(entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, 0.5);
 }
 
 void AbstractHorseEntity::registerGoals()
