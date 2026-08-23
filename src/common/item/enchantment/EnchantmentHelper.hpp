@@ -479,6 +479,38 @@ public:
      */
     static void stopAllLocationBasedEffects(LivingEntity& entity);
 
+    // ========== 附魔属性修饰符（常驻，装备时应用/卸下时移除） ==========
+
+    /**
+     * @brief 应用物品堆上所有附魔的属性修饰符到实体
+     *
+     * 对齐 vanilla 1.21.11 的 EnchantmentEffectComponents.ATTRIBUTES：装备附魔物品时，
+     * 将该物品上每个附魔经 getAttributeModifiers(level) 返回的属性修饰符加到实体属性
+     *（addTransientModifier）。由 LivingEntity 装备同步管线在物品固有修饰符之后调用。
+     *
+     * 仅应用槽位匹配的修饰符（Entry.equipmentSlot == slot），与物品固有修饰符过滤范式一致。
+     * 同 id 修饰符先移除后添加，保证等级变化时更新而非叠加。
+     *
+     * @param entity 装备实体的实体
+     * @param stack 装备的物品堆
+     * @param slot 装备槽位
+     */
+    static void applyEnchantmentAttributeModifiers(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 移除物品堆上所有附魔的属性修饰符
+     *
+     * 装备被卸下或物品损坏时调用，移除该物品附魔经 getAttributeModifiers 提供的属性修饰符。
+     * 由 LivingEntity::stopLocationBasedEffects 在物品固有修饰符移除之后调用。
+     *
+     * 注意：移除时按当前物品堆的附魔等级计算修饰符 id（与应用时一致），故物品堆须未被销毁前调用。
+     *
+     * @param entity 装备实体的实体
+     * @param stack 被卸下的物品堆
+     * @param slot 装备槽位
+     */
+    static void removeEnchantmentAttributeModifiers(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot);
+
     // ========== 附魔生成（附魔台用） ==========
 
     /**

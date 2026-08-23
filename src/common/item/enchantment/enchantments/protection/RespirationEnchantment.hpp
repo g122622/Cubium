@@ -25,6 +25,8 @@
 
 #include "../../Enchantment.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include <string>
 
 namespace mc {
@@ -34,21 +36,19 @@ namespace enchant {
 /**
  * @brief 水下呼吸附魔
  *
- * 延长水下呼吸时间。
+ * 通过 oxygen_bonus 属性降低水下氧气消耗概率，延长水下停留时间。
  *
- * 效果:
- * - 每级延长 15 秒呼吸时间
- * - 增加溺水伤害间隔
- * - 最大 III 级
+ * 对齐 vanilla 1.21.11：水下呼吸魔咒经 EnchantmentAttributeEffect
+ *（id="enchantment.respiration"，属性=OXYGEN_BONUS，LevelBasedValue.perLevel(1.0F)，
+ *  Operation.ADD_VALUE，槽位组=HEAD）把每级 +1.0 的修饰符加到 oxygen_bonus 属性
+ *（Enchantments.java:285-296）。LivingEntity.decreaseAirSupply 读 oxygen_bonus 值 d0，
+ * d0>0 时仅 1/(d0+1) 概率消耗氧气（I级 50%、II级 66.7%、III级 75% 不消耗）。
+ *
+ * 注意：vanilla 水下呼吸不改变 maxAir（最大氧气值仍 300），而是降低消耗概率。
+ * 此前实现的"每级延长 15 秒呼吸时间"是基于 breath_max 的误解，已废弃。
  */
 class RespirationEnchantment : public Enchantment {
 public:
-    /// 每级延长的呼吸时间（tick），15秒 = 300 tick
-    static constexpr i32 EXTRA_AIR_TICKS_PER_LEVEL = 300;
-
-    /// 基础呼吸时间（tick），15秒 = 300 tick
-    static constexpr i32 BASE_AIR_TICKS = 300;
-
     RespirationEnchantment() = default;
 
     [[nodiscard]] std::string id() const override { return "minecraft:respiration"; }
@@ -72,18 +72,24 @@ public:
     [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 30; }
 
     /**
-     * @brief 获取额外呼吸时间（tick）
-     * @param level 附魔等级
-     * @return 额外呼吸时间（tick）
+     * @brief 水下呼吸附魔的属性修饰符
+     *
+     * 对齐 vanilla Enchantments.java:285-296：每级给 oxygen_bonus +1.0（ADD_VALUE），
+     * 仅 HEAD 槽位生效。decreaseAirSupply 据此降低氧气消耗概率。
      */
-    [[nodiscard]] static i32 getExtraAirTicks(i32 level) noexcept { return level * EXTRA_AIR_TICKS_PER_LEVEL; }
-
-    /**
-     * @brief 获取总呼吸时间（tick）
-     * @param level 附魔等级
-     * @return 总呼吸时间（tick）
-     */
-    [[nodiscard]] static i32 getTotalAirTicks(i32 level) noexcept { return BASE_AIR_TICKS + getExtraAirTicks(level); }
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            modifiers.add(entity::attribute::Attributes::OXYGEN_BONUS,
+                entity::attribute::AttributeModifier("enchantment.respiration",
+                    "Respiration",
+                    static_cast<f64>(level),
+                    entity::attribute::Operation::Addition),
+                static_cast<i32>(EquipmentSlot::Head));
+        }
+        return modifiers;
+    }
 };
 
 } // namespace enchant

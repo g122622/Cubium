@@ -317,6 +317,27 @@ inline std::unique_ptr<Attribute> fallDamageMultiplier()
 }
 
 /**
+ * @brief 额外氧气
+ *
+ * 控制生物在水下氧气值的消耗概率，对齐 vanilla 1.21.11 的 oxygen_bonus 属性
+ *（Attributes.java:70-72，RangedAttribute("attribute.name.oxygen_bonus", 0.0, 0.0, 1024.0)）。
+ *
+ * 消费点：LivingEntity::decreaseAirSupply（对齐 vanilla LivingEntity.java:571-582）。
+ * 设属性计算值为 e：
+ *   - e == 0：每 tick 必定消耗 1 点氧气（默认行为）。
+ *   - e > 0：仅有 1/(e+1) 的概率消耗，即平均延长 (e+1) 倍的水下停留时间。
+ * 水下呼吸魔咒通过 enchantment.respiration 修饰符（Op0 ADD_VALUE，每级 +1.0，HEAD 槽位）
+ * 加到本属性，使每级水下呼吸降低氧气消耗概率（I级 50%、II级 66.7%、III级 75% 不消耗）。
+ *
+ * 默认值: 0.0（所有生物，无水下呼吸时不延长）
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> oxygenBonus()
+{
+    return std::make_unique<Attribute>("generic.oxygen_bonus", 0.0, 0.0, 1024.0);
+}
+
+/**
  * @brief 方块交互距离
  *
  * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
@@ -370,7 +391,9 @@ constexpr const char* FALL_DAMAGE_MULTIPLIER = "generic.fall_damage_multiplier";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
-constexpr const char* BREATH_MAX = "generic.breath_max";
+constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
+                                                         // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
+constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
 constexpr const char* JUMP_BOOST = "generic.jump_boost";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
 constexpr const char* SWIM_SPEED = "forge.swim_speed";         // Forge 扩展

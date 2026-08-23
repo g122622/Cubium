@@ -150,6 +150,13 @@ i32 Enchantment::getDamageProtection(i32 level, u32 damageType) const noexcept
     return 0;
 }
 
+item::ItemAttributeModifiers Enchantment::getAttributeModifiers(i32 level) const
+{
+    (void)level;
+    // 默认附魔不提供属性修饰符（对齐 vanilla：仅 respiration 等少数附魔有 ATTRIBUTES 组件）
+    return {};
+}
+
 i32 Enchantment::getRarityWeight(EnchantmentRarity rarity) noexcept
 {
     switch (rarity) {

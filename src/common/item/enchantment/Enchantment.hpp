@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -261,6 +262,23 @@ public:
      * @return 保护点数
      */
     [[nodiscard]] virtual i32 getDamageProtection(i32 level, u32 damageType) const noexcept;
+
+    /**
+     * @brief 获取附魔在指定等级提供的属性修饰符
+     *
+     * 对齐 vanilla 1.21.11 的 EnchantmentEffectComponents.ATTRIBUTES
+     *（EnchantmentAttributeEffect：属性 + LevelBasedValue + Operation + 槽位组）。
+     * 装备该附魔物品时，由 LivingEntity 装备同步管线经
+     * EnchantmentHelper::applyEnchantmentAttributeModifiers 将这些修饰符加到实体属性；
+     * 卸下时经 removeEnchantmentAttributeModifiers 移除。
+     *
+     * 默认返回空（多数附魔不提供属性修饰符）。提供属性修饰符的附魔（如水下呼吸→oxygen_bonus）
+     * override 本方法，按等级返回对应修饰符条目（Entry 内含 equipmentSlot，调用方按槽位过滤）。
+     *
+     * @param level 附魔等级（>=1）
+     * @return 该等级下的属性修饰符集合（默认空）
+     */
+    [[nodiscard]] virtual item::ItemAttributeModifiers getAttributeModifiers(i32 level) const;
 
     // ========== 回调方法 ==========
 

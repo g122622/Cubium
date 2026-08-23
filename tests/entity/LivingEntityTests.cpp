@@ -859,6 +859,12 @@ public:
         setHealth(maxHealth());
     }
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
+    // 显式声明为亡灵 typeId，使 canBreatheUnderwater 在两种标签状态下都稳定返回 true：
+    // 标签未初始化走 getCreatureAttribute()==Undead 回退；标签已初始化走
+    // CAN_BREATHE_UNDER_WATER 标签查询（minecraft:zombie 是标签成员）。否则测试桩 typeId
+    // 为空串，组合跑时其他套件调 EntityTypeTags::initialize() 污染全局 s_initialized 后，
+    // 走纯标签分支查询空串不在标签内，错误返回 false。
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:zombie"; }
 };
 
 TEST(LivingEntityTest, CanBreatheUnderwater_Undead)
@@ -909,6 +915,40 @@ TEST(LivingEntityTest, DecreaseAirSupply_NoRespiration)
     EXPECT_EQ(entity.decreaseAirSupply(100), 99);
     EXPECT_EQ(entity.decreaseAirSupply(1), 0);
     EXPECT_EQ(entity.decreaseAirSupply(0), -1);
+}
+
+// 测试 decreaseAirSupply - oxygen_bonus 属性驱动氧气消耗概率
+// 对齐 vanilla 1.21.11 LivingEntity.decreaseAirSupply（LivingEntity.java:571-582）：
+// oxygen_bonus 计算值 e>0 时仅 1/(e+1) 概率消耗。e=0 必消耗，e 越大不消耗概率越高。
+TEST(LivingEntityTest, DecreaseAirSupply_OxygenBonusReducesConsumption)
+{
+    MockRandomWorld world;
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+
+    // 默认 oxygen_bonus=0，必消耗（与 NoRespiration 一致，验证属性读取默认值路径）
+    ASSERT_DOUBLE_EQ(entity.attributes().getValue(Attributes::OXYGEN_BONUS, -1.0), 0.0);
+    EXPECT_EQ(entity.decreaseAirSupply(300), 299);
+
+    // 注入极大 oxygen_bonus（对齐水下呼吸 III 经 enchantment.respiration 修饰符叠加到属性）：
+    // e=1024 时消耗概率 1/1025≈0.000976，固定种子下连续 50 次均不消耗（旧硬编码实现会全部消耗）。
+    // 50 次全误判概率 ≈ 0.000976^50，可忽略，故本断言确定性验证属性门控生效。
+    entity.attributes().addModifier(
+        Attributes::OXYGEN_BONUS, AttributeModifier("test.oxygen_bonus", "Test", 1024.0, Operation::Addition));
+    ASSERT_DOUBLE_EQ(entity.attributes().getValue(Attributes::OXYGEN_BONUS, -1.0), 1024.0);
+    i32 unchanged = 0;
+    for (i32 i = 0; i < 50; ++i) {
+        if (entity.decreaseAirSupply(300) == 300) {
+            ++unchanged;
+        }
+    }
+    // 极大 oxygen_bonus 下绝大多数调用不消耗；此处要求全部不消耗以确定性地证明概率门控生效
+    EXPECT_EQ(unchanged, 50);
+
+    // 移除修饰符后恢复必消耗（验证修饰符移除路径，对齐装备卸下时的清理语义）
+    entity.attributes().removeModifier(Attributes::OXYGEN_BONUS, "test.oxygen_bonus");
+    ASSERT_DOUBLE_EQ(entity.attributes().getValue(Attributes::OXYGEN_BONUS, -1.0), 0.0);
+    EXPECT_EQ(entity.decreaseAirSupply(300), 299);
 }
 
 // 测试 updateAirSupply - 在陆地上恢复空气

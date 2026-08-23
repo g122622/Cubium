@@ -830,6 +830,10 @@ void LivingEntity::registerAttributes()
     // 每级给 SAFE_FALL_DISTANCE +1。马类覆盖 FALL_DAMAGE_MULTIPLIER=0.5。
     attributes().registerAttribute(*entity::attribute::Attributes::safeFallDistance());
     attributes().registerAttribute(*entity::attribute::Attributes::fallDamageMultiplier());
+    // 额外氧气属性（默认 OXYGEN_BONUS=0.0），由 decreaseAirSupply 的氧气消耗概率
+    // 门控消费（对齐 vanilla LivingEntity.java:340 注册 OXYGEN_BONUS、:571-582 消费）。
+    // 水下呼吸魔咒通过 enchantment.respiration 修饰符（每级 +1.0 ADD_VALUE，HEAD 槽位）注入。
+    attributes().registerAttribute(*entity::attribute::Attributes::oxygenBonus());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1019,6 +1023,11 @@ void LivingEntity::detectEquipmentUpdates()
                     if (m_world != nullptr && !m_world->isClientSide()) {
                         item::enchant::EnchantmentHelper::runLocationChangedEffects(*this, currentStack, slot);
                     }
+
+                    // 应用附魔提供的常驻属性修饰符（对齐 vanilla EnchantmentEffectComponents.ATTRIBUTES）
+                    // 在物品固有修饰符与位置依赖效果之后应用，使 decreaseAirSupply 等属性消费点能读到
+                    // 经附魔修饰符调整后的属性值（如水下呼吸→oxygen_bonus）。
+                    item::enchant::EnchantmentHelper::applyEnchantmentAttributeModifiers(*this, currentStack, slot);
                 }
 
                 // 更新快照
@@ -1048,6 +1057,10 @@ void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlo
             attributes().removeModifier(entry.attributeName, entry.modifier.id());
         }
     }
+
+    // 移除附魔提供的常驻属性修饰符（对齐 vanilla EnchantmentEffectComponents.ATTRIBUTES）
+    // 必须在物品固有修饰符移除后、位置依赖效果停用前移除，保证属性消费点不再读到附魔修饰符。
+    item::enchant::EnchantmentHelper::removeEnchantmentAttributeModifiers(*this, stack, slot);
 
     // 停用位置相关的附魔效果（如 Frost Walker 冰面替换、Soul Speed 速度加成等）
     item::enchant::EnchantmentHelper::stopLocationBasedEffects(*this, stack, slot);
@@ -2560,17 +2573,22 @@ bool LivingEntity::canBreatheUnderwater() const
 
 i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 {
-    // 水下呼吸附魔有概率不消耗空气
-    // MC Java: LivingEntity.decreaseAirSupply()
-    // 附魔概率：每级有 level/(level+1) 的概率不消耗空气
-    // I级: 50%, II级: 66.7%, III级: 75%
-    const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
-    i32 respirationLevel = item::enchant::EnchantmentHelper::getRespirationLevel(helmet);
+    // 对齐 vanilla 1.21.11 LivingEntity.decreaseAirSupply（LivingEntity.java:571-582）：
+    //   AttributeInstance ai = getAttribute(OXYGEN_BONUS);
+    //   double d0 = (ai != null) ? ai.getValue() : 0.0;
+    //   return d0 > 0.0 && random.nextDouble() >= 1.0 / (d0 + 1.0) ? currentAir : currentAir - 1;
+    // oxygen_bonus 默认 0.0（每 tick 必消耗 1 点），水下呼吸魔咒经 enchantment.respiration
+    // 修饰符（每级 +1.0 ADD_VALUE）注入，使 d0=level，仅 1/(level+1) 概率消耗：
+    //   I级 50%、II级 66.7%、III级 75% 不消耗（与原硬编码 random.nextInt(level+1)>0 等价）。
+    // 此前硬编码读 getRespirationLevel(helmet) 绕过属性体系，任何经属性修饰符（非附魔）
+    // 改变氧气消耗概率的机制均无法生效——现已统一走 oxygen_bonus 属性。
+    const f64 oxygenBonus = attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, 0.0);
 
-    if (respirationLevel > 0 && m_world != nullptr) {
+    if (oxygenBonus > 0.0 && m_world != nullptr) {
         math::Random& random = m_world->getRandom();
-        if (random.nextInt(respirationLevel + 1) > 0) {
-            return currentAir; // 附魔生效，不消耗空气
+        // 对齐 vanilla：random.nextDouble() >= 1.0/(d0+1.0) 时不消耗
+        if (random.nextDouble() >= 1.0 / (oxygenBonus + 1.0)) {
+            return currentAir; // 属性生效，不消耗空气
         }
     }
 

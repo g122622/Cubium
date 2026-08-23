@@ -504,6 +504,55 @@ void EnchantmentHelper::stopAllLocationBasedEffects(LivingEntity& entity)
     }
 }
 
+void EnchantmentHelper::applyEnchantmentAttributeModifiers(
+    LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    const i32 slotIndex = static_cast<i32>(slot);
+    auto enchantments = getEnchantments(stack);
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment == nullptr || level <= 0) {
+            continue;
+        }
+        // 对齐 vanilla EnchantmentEffectComponents.ATTRIBUTES：取附魔该等级的属性修饰符，
+        // 仅应用槽位匹配的条目。同 id 先移除后添加，保证等级变化时更新而非叠加
+        // （对齐 LivingEntity 装备同步管线的 removeModifier+addModifier 范式）。
+        item::ItemAttributeModifiers modifiers = enchantment->getAttributeModifiers(level);
+        for (const auto& entry : modifiers.getEntries()) {
+            if (entry.equipmentSlot == slotIndex) {
+                entity.attributes().removeModifier(entry.attributeName, entry.modifier.id());
+                entity.attributes().addModifier(entry.attributeName, entry.modifier);
+            }
+        }
+    }
+}
+
+void EnchantmentHelper::removeEnchantmentAttributeModifiers(
+    LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    const i32 slotIndex = static_cast<i32>(slot);
+    auto enchantments = getEnchantments(stack);
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment == nullptr || level <= 0) {
+            continue;
+        }
+        // 移除时按当前物品堆的附魔等级计算修饰符 id（与应用时一致）。
+        item::ItemAttributeModifiers modifiers = enchantment->getAttributeModifiers(level);
+        for (const auto& entry : modifiers.getEntries()) {
+            if (entry.equipmentSlot == slotIndex) {
+                entity.attributes().removeModifier(entry.attributeName, entry.modifier.id());
+            }
+        }
+    }
+}
+
 // ========== 附魔生成（附魔台用） ==========
 
 i32 EnchantmentHelper::calcItemStackEnchantability(
