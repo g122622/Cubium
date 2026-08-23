@@ -872,14 +872,12 @@ void LivingEntity::detectEquipmentUpdates()
         return;
     }
 
-    // 首次调用时初始化装备快照
-    if (!equip->m_lastEquipmentInitialized) {
-        for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
-            equip->m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
-        }
-        equip->m_lastEquipmentInitialized = true;
-        return;
-    }
+    // 对齐 MC 原版 LivingEntity.collectEquipmentChanges()：m_lastEquipment 默认初始化为全空
+    // （同 vanilla lastEquipmentItems 声明期 = ItemStack.EMPTY），首帧即用全空快照对比当前装备。
+    // 若实体在 spawn 时已装备物品（如怪物 finalizeSpawn 持武器、SimulatedPlayer spawn 后 setItem），
+    // 首帧 equipmentHasChanged(空, 当前装备) 为 true，正确应用该物品的属性修饰符与位置依赖附魔效果。
+    // 此前实现曾有"首帧初始化快照=当前装备后 return"分支，导致 spawn 时已装备物品的修饰符永不应用
+    // （如玩家手持钻石剑 ATTACK_DAMAGE +6 modifier 未生效，baseDamage 仅有基础 1.0）——已移除。
 
     // 检查每个槽位是否有变化
     bool anyChanged = false;

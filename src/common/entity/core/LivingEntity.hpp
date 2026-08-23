@@ -1850,7 +1850,7 @@ protected:
     // 因 AttributeMap 含 mutex 不可移动）。见 attributes() getter。
 
     // 装备
-    // m_equipment / m_lastEquipment / m_lastEquipmentInitialized 已迁移至
+    // m_equipment / m_lastEquipment 已迁移至
     // ecs::EquipmentComponent（见 getEquipment/setEquipment/detectEquipmentUpdates）。
 
     // 上一tick的方块位置（用于检测位置变化触发位置依赖附魔效果）

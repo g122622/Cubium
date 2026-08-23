@@ -283,8 +283,7 @@
 
                 **新增成员变量 **：
 
-            - `m_lastEquipment` — `std::array<ItemStack, 6>` 装备快照，记录上次 tick 的装备状态
-            - `m_lastEquipmentInitialized` — `bool` 标记快照是否已初始化
+            - `m_lastEquipment` — `std::array<ItemStack, 6>` 装备快照，记录上次 tick 的装备状态（默认全空，首帧即用全空对比当前装备）
 
                     **Player 子类兼容性 **：
 

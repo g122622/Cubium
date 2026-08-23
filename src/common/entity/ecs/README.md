@@ -26,7 +26,7 @@ src/common/entity/ecs/
 │   ├── HurtStateComponent.hpp       # m_absorption/m_hurtTime/m_maxHurtTime/m_deathTime（第二批，仅 LivingEntity，低频 try_get）
 │   ├── FreezeComponent.hpp          # m_ticksFrozen/m_isInPowderSnow（第二批，低频 try_get，m_ticksFrozen 同步真相源）
 │   ├── HealthComponent.hpp          # m_health/m_lastHealth/m_healthSynced（第三批，仅 LivingEntity，m_health 同步真相源）
-│   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment/m_lastEquipmentInitialized（第三批，仅 LivingEntity，无同步单写）
+│   ├── EquipmentComponent.hpp       # m_equipment/m_lastEquipment（第三批，仅 LivingEntity，无同步单写）
 │   ├── ArrowStateComponent.hpp      # m_arrowCount/m_stingerCount/m_arrowHitTimer（第三批，仅 LivingEntity，arrowCount/stingerCount 同步真相源）
 │   ├── AttributeComponent.hpp       # unique_ptr<AttributeMap> 包裹属性表（第三批，仅 LivingEntity，不可移动类型包装范式）
 │   ├── EntityFlagsComponent.hpp     # m_flags 位掩码（第四批，所有实体，DATA_FLAGS 退镜像）
