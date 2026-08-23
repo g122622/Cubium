@@ -333,17 +333,20 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
         damageShield(amount);
 
         // 格挡成功时回调攻击者（对齐 MC Java 1.21.11 LivingEntity.applyItemBlocking →
-        // blockUsingItem → attacker.blockedByItem(victim)）。仅当伤害真实来源是 LivingEntity
-        // （近战/部分投射物）时回调，让攻击者执行"被格挡"特殊行为（如 Ravager 50% 眩晕→咆哮）。
-        // 注：Java 1.21.11 还要求 !source.is(IS_PROJECTILE) && directEntity instanceof LivingEntity，
-        // 这里用 trueSource 是 LivingEntity 判定（近战攻击直接来源即攻击者本身）。
-        // TODO: 投射物格挡回调需区分 directSource（投射物）vs trueSource（射击者），
-        //       当前对近战场景足够，投射物场景留待 directSource 体系完善后补全。
-        Entity* trueSource = source.getTrueSource();
-        if (trueSource != nullptr && trueSource != this) {
-            LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
-            if (attacker != nullptr) {
-                attacker->blockedByItem(*this);
+        // blockUsingItem → attacker.blockedByItem(victim)）。vanilla 条件（LivingEntity.java:1306）：
+        //   f > 0.0F && !source.is(IS_PROJECTILE) && directEntity instanceof LivingEntity
+        // 即仅近战等直接来源（directSource 是 LivingEntity 且非 IS_PROJECTILE 投射物）才回调，
+        // 让攻击者执行"被格挡"特殊行为（如 Ravager 50% 眩晕→咆哮）。投射物格挡不回调攻击者。
+        // 此前用 getTrueSource()（射击者）且缺 !source.is(IS_PROJECTILE) 门控，致箭矢格挡错误回调
+        // 射击者。改为 directSource()（直接来源：近战=攻击者，箭=箭矢）+ IS_PROJECTILE 门控对齐 vanilla。
+        // 注：IS_PROJECTILE 成员={Arrow,Trident,MobProjectile,Fireball,WitherSkull,Thrown,WindBurst}。
+        if (!source.is(DamageTypeTags::IS_PROJECTILE())) {
+            Entity* directEntity = source.directSource();
+            if (directEntity != nullptr && directEntity != this) {
+                LivingEntity* attacker = dynamic_cast<LivingEntity*>(directEntity);
+                if (attacker != nullptr) {
+                    attacker->blockedByItem(*this);
+                }
             }
         }
         return; // 格挡成功，不造成伤害
@@ -522,6 +525,14 @@ f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
 f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage)
 {
     if (damage <= 0.0f) {
+        return damage;
+    }
+
+    // 0. BYPASSES_EFFECTS 伤害（成员={Starve}）跳过抗性药水与附魔保护减伤，直接返回原值
+    // （对齐 vanilla LivingEntity.getDamageAfterMagicAbsorb:1822-1823）。饥饿伤害不应被抗性
+    // 药水减免。此前抗性门控用 !bypassesInvulnerability()（=OutOfWorld+GenericKill）漏 Starve，
+    // 致抗性药水错误减免饥饿伤害。
+    if (source.is(DamageTypeTags::BYPASSES_EFFECTS())) {
         return damage;
     }
 

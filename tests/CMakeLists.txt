@@ -484,6 +484,10 @@ add_executable(mc_tests
     common/entity/combat/WitherImmuneToTest.cpp
     # ALWAYS_TRIGGERS_SILVERFISH 标签查询测试（魔法伤害/实体攻击触发蠹虫召唤同伴）
     common/entity/combat/SilverfishSummonTest.cpp
+    # BYPASSES_EFFECTS 标签查询测试（饥饿伤害不被抗性药水减免，对照普通伤害被减免）
+    common/entity/combat/BypassesEffectsTest.cpp
+    # IS_PROJECTILE 格挡回调门控测试（箭矢格挡不回调攻击者，近战格挡回调攻击者）
+    common/entity/combat/ProjectileBlockCallbackTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
