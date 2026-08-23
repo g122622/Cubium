@@ -51,13 +51,19 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -85,6 +91,13 @@ protected:
         // （EntityTypeTags.cpp:592，含 guardian/elder_guardian/亡灵/水生生物）。未初始化时
         // canBreatheUnderwater() 走 isInitialized() 安全回退（仅亡灵），守卫者返 false。
         EntityTypeTags::initialize();
+        // 方块与物品注册初始化（进程级幂等）。水下呼吸测试需构造钻石头盔物品堆
+        // （Items::DIAMOND_HELMET），物品注册依赖方块注册先就绪（ArmorMaterialTest 同范式）。
+        VanillaBlocks::initialize();
+        Items::initialize();
+        // 附魔注册初始化（进程级幂等）。水下呼吸附魔经装备管线注入 oxygen_bonus 属性修饰符，
+        // 需 RespirationEnchantment 已注册才能 addEnchantment("minecraft:respiration", level)。
+        item::enchant::EnchantmentRegistry::initialize();
     }
 
     TestWorld m_world;
@@ -159,4 +172,98 @@ TEST_F(BreatheUnderwaterTest, ZombieCanBreatheUnderwater)
     zombie.setTypeId("minecraft:zombie");
 
     EXPECT_TRUE(zombie.canBreatheUnderwater());
+}
+
+// ============================================================================
+// 水下呼吸附魔 oxygen_bonus 属性端到端测试（任务 #257）
+//
+// 验证完整链路：附魔头盔 → setEquipment → detectEquipmentUpdates →
+// EnchantmentHelper::applyEnchantmentAttributeModifiers → oxygen_bonus 修饰符应用 →
+// decreaseAirSupply 概率消耗。单元测试 DecreaseAirSupply_OxygenBonusReducesConsumption
+// 用 attributes().addModifier 直接注入修饰符绕过装备管线，本测试补足装备管线闭环。
+//
+// 对齐 vanilla 1.21.11：水下呼吸 III 经 enchantment.respiration 修饰符（ADD_VALUE，HEAD 槽位，
+// 每级 +1.0）给 oxygen_bonus +3.0，decreaseAirSupply 读 oxygen_bonus=3 时 75% 不消耗
+// （1/(3+1)=25% 消耗概率）。
+// ============================================================================
+
+// 戴水下呼吸 III 头盔经装备管线后 oxygen_bonus 属性值 == 3.0（修饰符注入闭环验证）。
+TEST_F(BreatheUnderwaterTest, RespirationHelmetAppliesOxygenBonus)
+{
+    CreeperEntity creeper(EntityInstanceId(1), mc::test::testEcsRegistry());
+    creeper.setWorld(&m_world);
+    creeper.setTypeId("minecraft:creeper");
+
+    // 装备前 oxygen_bonus 为默认 0.0
+    EXPECT_DOUBLE_EQ(creeper.attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, -1.0), 0.0);
+
+    // 构造水下呼吸 III 钻石头盔并装备到 HEAD 槽
+    const Item* diamondHelmet = Items::DIAMOND_HELMET;
+    ASSERT_NE(diamondHelmet, nullptr);
+    ItemStack helmetStack(diamondHelmet, 1);
+    helmetStack.addEnchantment("minecraft:respiration", 3);
+    creeper.setEquipment(EquipmentSlot::Head, helmetStack);
+
+    // detectEquipmentUpdates 应用装备附魔的常驻属性修饰符（对齐 LivingEntity.tick 调用顺序）
+    creeper.detectEquipmentUpdates();
+
+    // 装备后 oxygen_bonus 应为 3.0（水下呼吸 III 每级 +1.0，证明装备管线注入成功）
+    EXPECT_DOUBLE_EQ(creeper.attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, -1.0), 3.0);
+
+    // 卸下头盔后修饰符应移除，oxygen_bonus 回到 0.0（对齐 stopLocationBasedEffects 清理）
+    creeper.setEquipment(EquipmentSlot::Head, ItemStack());
+    creeper.detectEquipmentUpdates();
+    EXPECT_DOUBLE_EQ(creeper.attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, -1.0), 0.0);
+}
+
+// 戴水下呼吸 III 头盔入水后氧气消耗量显著低于无附魔对照（概率门控端到端）。
+//
+// 无附魔时 oxygen_bonus=0，decreaseAirSupply 每 tick 必消耗 1，N tick 消耗量 == N（确定性）。
+// 水下呼吸 III 时 oxygen_bonus=3，75% 不消耗，N=300 期望消耗 ~75。断言附魔消耗量 < N/2
+// （<150）稳健证明概率门控端到端生效，同时附魔消耗量 > 0 证明非"完全不消耗"的水下呼吸效果
+// （区别于 canBreatheUnderwater 标签实体的零消耗）。
+TEST_F(BreatheUnderwaterTest, RespirationHelmetSlowsAirConsumption)
+{
+    constexpr i32 kTicks = 300;
+
+    // 对照组：无附魔苦力怕入水，氧气确定性地每 tick 消耗 1
+    CreeperEntity baseline(EntityInstanceId(1), mc::test::testEcsRegistry());
+    baseline.setWorld(&m_world);
+    baseline.setTypeId("minecraft:creeper");
+    baseline.setHealth(baseline.maxHealth());
+    baseline.setInWater(true);
+    const i32 baselineAirBefore = baseline.air();
+    for (i32 i = 0; i < kTicks; ++i) {
+        baseline.updateAirSupply();
+    }
+    const i32 baselineConsumed = baselineAirBefore - baseline.air();
+    // 无附魔 oxygen_bonus=0 必消耗，消耗量 == kTicks（验证确定性对照成立）
+    EXPECT_EQ(baselineConsumed, kTicks);
+
+    // 实验组：戴水下呼吸 III 头盔的苦力怕入水
+    CreeperEntity enchanted(EntityInstanceId(2), mc::test::testEcsRegistry());
+    enchanted.setWorld(&m_world);
+    enchanted.setTypeId("minecraft:creeper");
+    enchanted.setHealth(enchanted.maxHealth());
+
+    const Item* diamondHelmet = Items::DIAMOND_HELMET;
+    ASSERT_NE(diamondHelmet, nullptr);
+    ItemStack helmetStack(diamondHelmet, 1);
+    helmetStack.addEnchantment("minecraft:respiration", 3);
+    enchanted.setEquipment(EquipmentSlot::Head, helmetStack);
+    enchanted.detectEquipmentUpdates();
+    // 确认修饰符已应用
+    ASSERT_DOUBLE_EQ(enchanted.attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, -1.0), 3.0);
+
+    enchanted.setInWater(true);
+    const i32 enchantedAirBefore = enchanted.air();
+    for (i32 i = 0; i < kTicks; ++i) {
+        enchanted.updateAirSupply();
+    }
+    const i32 enchantedConsumed = enchantedAirBefore - enchanted.air();
+
+    // 水下呼吸 III 显著降低消耗（期望 ~75，断言 < kTicks/2=150 稳健），且非零消耗
+    // （区别于 canBreatheUnderwater 标签实体的零消耗）
+    EXPECT_LT(enchantedConsumed, kTicks / 2);
+    EXPECT_GT(enchantedConsumed, 0);
 }
