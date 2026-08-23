@@ -474,6 +474,8 @@ add_executable(mc_tests
     common/entity/combat/DamagesHelmetTest.cpp
     # NO_ANGER/NO_ANGER_FROM_WIND_CHARGE 标签查询测试（mob_attack_no_aggro/风弹不激怒）
     common/entity/combat/NoAngerTest.cpp
+    # AVOIDS_GUARDIAN_THORNS 标签查询测试（守卫者荆棘反伤，魔法/爆炸/荆棘不反伤）
+    common/entity/combat/GuardianThornsTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试

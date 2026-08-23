@@ -175,6 +175,27 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 受伤入口（对齐 vanilla Guardian.hurtServer:314-326）
+     *
+     * 守卫者受伤时，若非移动状态且伤害源不属于 AVOIDS_GUARDIAN_THORNS / THORNS，且直接来源是
+     * LivingEntity，则对直接攻击者造成 2.0 荆棘反伤（damageSources().thorns(this)）。
+     * 荆棘伤害 type=Thorns 会被 !source.is(THORNS) 门控挡住，反伤链不递归。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 是否正在移动（对齐 vanilla Guardian.isMoving:101-103）
+     *
+     * vanilla 读 DATA_ID_MOVING 同步参数，由 GuardianMoveControl.tick 在 MoveControl 为
+     * MOVE_TO 且导航未完成时设 true（Guardian.java:451/482-485）。Cubium 未实现 GuardianMoveControl，
+     * 此处用 moveController()->isUpdating() && !navigator()->noPath() 近似（对齐 vanilla 判定
+     * operation==MOVE_TO && !navigation.isDone()）。
+     * TODO: 完整对齐需实现 GuardianMoveControl + DATA_ID_MOVING 同步参数体系（当前用 moveControl
+     *       状态近似，静态场景（无 AI 驱动移动）下返 false 与 vanilla 一致）。
+     */
+    [[nodiscard]] bool isMoving() const;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

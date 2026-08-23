@@ -28,15 +28,18 @@
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
 #include "../../../../world/fluid/FluidTags.hpp"
+#include "../../../ai/controller/MovementController.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/special/GuardianAttackGoal.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
+#include "../../../ai/pathfinding/PathNavigator.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../damage/tag/DamageTypeTags.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
@@ -81,6 +84,47 @@ void GuardianEntity::tick()
         m_spikeTimer = 0;
         m_spikesRetracted = !m_spikesRetracted;
     }
+}
+
+bool GuardianEntity::isMoving() const
+{
+    // 对齐 vanilla Guardian.isMoving:101-103（DATA_ID_MOVING 同步参数，由 GuardianMoveControl 在
+    // operation==MOVE_TO && !navigation.isDone() 时设 true）。Cubium 未实现 GuardianMoveControl，
+    // 用 moveController 状态近似。见头文件 TODO。
+    auto* ctrl = moveController();
+    if (ctrl == nullptr || !ctrl->isUpdating()) {
+        return false;
+    }
+    auto* nav = navigator();
+    return nav == nullptr || !nav->noPath();
+}
+
+bool GuardianEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 vanilla Guardian.hurtServer:314-320：非移动状态、非 AVOIDS_GUARDIAN_THORNS、非 THORNS，
+    // 且直接来源（getDirectEntity）是 LivingEntity 时，对直接攻击者造成 2.0 荆棘反伤。
+    // 荆棘伤害用 damageSources().thorns(this)（this=守卫者为 causer/owner），type=Thorns，
+    // 会被反伤判定自身的 !source.is(THORNS) 门控挡住，反伤链不递归（对齐 vanilla 防无限循环）。
+    // 注：vanilla 用 source.getDirectEntity()（直接来源），近战时即攻击者本身；Cubium 对应
+    // source.directSource()。AVOIDS_GUARDIAN_THORNS 含 Magic/Thorns/#is_explosion（守卫者对魔法/
+    // 爆炸/荆棘伤害不反伤，因为这些是远程或反伤类来源）。
+    if (!isMoving() && !source.is(DamageTypeTags::AVOIDS_GUARDIAN_THORNS()) && source.type() != DamageType::Thorns) {
+        Entity* directEntity = source.directSource();
+        if (directEntity != nullptr) {
+            LivingEntity* attacker = dynamic_cast<LivingEntity*>(directEntity);
+            if (attacker != nullptr && attacker != this) {
+                auto thornsSource = DamageSources::thorns(this);
+                attacker->hurt(thornsSource, 2.0f);
+            }
+        }
+    }
+
+    // vanilla 随后 trigger randomStrollGoal（Cubium 无 randomStrollGoal 字段，RandomWalkingGoal 无
+    // trigger 接口，此触发未实现，TODO）。
+    // TODO: 对齐 vanilla randomStrollGoal.trigger()（受击触发随机漫步），需 GuardianAttackGoal 体系
+    //       暴露 RandomWalkingGoal 引用。
+
+    return MonsterEntity::hurt(source, amount);
 }
 
 void GuardianEntity::registerGoals()
