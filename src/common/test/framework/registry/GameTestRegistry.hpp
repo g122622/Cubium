@@ -46,9 +46,16 @@ public:
     [[nodiscard]] std::vector<std::shared_ptr<BaseGameTestFunction>> allTestFunctions() const;
 
     /**
-     * @brief 按 className 前缀筛选（`--tests` 通配符的简化版，支持 `"Suite.*"` 匹配）。
+     * @brief 按 testName 通配符筛选测试，对齐 Java `--tests` 语义。
      *
-     * TODO: 完整通配符（`*`/`?`）匹配待实现，当前仅支持 `"<prefix>.*"` 与全等。
+     * 按 testName（非 className）做 `*` / `?` 通配符匹配，等价 Java
+     * `ResourceSelectorArgument` → `FilenameUtils.wildcardMatch`：
+     *   - `*` 匹配任意长度序列（含空）
+     *   - `?` 匹配单个字符
+     *   - 其余字符字面匹配，大小写敏感
+     *   - 空串或 `"*"` 返回全部
+     *
+     * 示例：`"pat*"` 命中 `pat_one`/`pat_two`；`"*llama*"` 命中含 `llama` 子串的 testName。
      */
     [[nodiscard]] std::vector<std::shared_ptr<BaseGameTestFunction>> getTestsByPattern(
         const std::string& pattern) const;

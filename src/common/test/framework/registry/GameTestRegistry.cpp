@@ -49,28 +49,66 @@ std::vector<std::shared_ptr<BaseGameTestFunction>> GameTestRegistry::allTestFunc
     return all;
 }
 
+// 通配符匹配，对齐 Java --tests 用的 FilenameUtils.wildcardMatch 语义：
+//   *  匹配任意长度序列（含空）
+//   ?  匹配单个字符
+//   其余字符字面匹配
+//   大小写敏感（Java 默认 IOCase.SENSITIVE，与 ResourceSelectorArgument.matches 一致）
+// 采用迭代回溯（双指针 + star 回溯），O(n*m) 最坏、O(n) 常态，无递归栈开销。
+// 实现 ResourceSelectorArgument.java:73 matches → FilenameUtils.wildcardMatch。
+static bool wildcardMatch(std::string_view text, std::string_view pattern)
+{
+    size_t ti = 0;                        // text 游标
+    size_t pi = 0;                        // pattern 游标
+    size_t star = std::string_view::npos; // 最近一个 '*' 的位置
+    size_t match = 0;                     // 与该 '*' 对齐的 text 位置（回溯点）
+
+    while (ti < text.size()) {
+        if (pi < pattern.size() && (pattern[pi] == '?' || pattern[pi] == text[ti])) {
+            // 单字符匹配或 '?' 通配：双游标前进
+            ++ti;
+            ++pi;
+        } else if (pi < pattern.size() && pattern[pi] == '*') {
+            // 记录 '*' 位置，先尝试让 '*' 匹配空串（match 不前进）
+            star = pi;
+            match = ti;
+            ++pi;
+        } else if (star != std::string_view::npos) {
+            // 当前不匹配但存在回溯点：让上一个 '*' 多吃一个 text 字符后重试
+            pi = star + 1;
+            ++match;
+            ti = match;
+        } else {
+            // 无通配符可回溯，匹配失败
+            return false;
+        }
+    }
+
+    // text 已耗尽，pattern 剩余必须全是 '*' 才算匹配
+    while (pi < pattern.size() && pattern[pi] == '*') {
+        ++pi;
+    }
+    return pi == pattern.size();
+}
+
 std::vector<std::shared_ptr<BaseGameTestFunction>> GameTestRegistry::getTestsByPattern(const std::string& pattern) const
 {
-    // TODO: 完整通配符匹配（* / ?）；当前支持 "<prefix>.*"（按 testName 前缀）与全等 testName。
-    // 对齐 Java GameTestMainUtil --tests：模式按测试名（testName）匹配，非 className。
+    // 对齐 Java --tests（GameTestMainUtil → GameTestServer.getTestsForSelection →
+    // ResourceSelectorArgument → FilenameUtils.wildcardMatch）：按 testName 做 * / ? 通配符匹配。
+    // Cubium 无 namespace 概念，testName 即匹配目标（Java 是 namespace:testName 全串匹配，
+    // 此处等价于对 testName 单段匹配）。
+    //   - "*" / 空串 → 全部
+    //   - "pat*" → 命中 pat_one / pat_two
+    //   - "*llama*" → 命中含 llama 子串的 testName（修复旧 prefix.* 实现下 .*llama.* 因
+    //     空前缀静默匹配全部的 bug）
+    //   - "exact_name" → 全等
     std::vector<std::shared_ptr<BaseGameTestFunction>> result;
-    if (pattern.empty()) {
+    if (pattern.empty() || pattern == "*") {
         return allTestFunctions();
     }
-    const auto dot = pattern.find(".*");
-    if (dot != std::string::npos) {
-        // 前缀匹配 testName（如 "pat.*" 命中 "pat_one"/"pat_two"）
-        const std::string prefix = pattern.substr(0, dot);
-        for (const auto& [name, fn] : m_byName) {
-            if (name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0) {
-                result.push_back(fn);
-            }
-        }
-    } else {
-        // 全等 testName
-        const auto it = m_byName.find(pattern);
-        if (it != m_byName.end()) {
-            result.push_back(it->second);
+    for (const auto& [name, fn] : m_byName) {
+        if (wildcardMatch(name, pattern)) {
+            result.push_back(fn);
         }
     }
     // 同 allTestFunctions：排序保证下游结构原点分配确定（见其注释）。

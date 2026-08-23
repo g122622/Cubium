@@ -144,8 +144,38 @@ TEST_F(GameTestRegistrationFixture, GetTestsByPatternPrefix)
     auto b3 = mc::test::GameTestRegistrar::create("SuitePat", "other_three", _passBody());
     b3.structureName("gametest:empty_3x3").registerTest();
 
-    auto matched = mc::test::GameTestRegistry::instance().getTestsByPattern("pat.*");
+    // "pat*" 通配符前缀匹配（对齐 Java FilenameUtils.wildcardMatch），命中 pat_one/pat_two。
+    auto matched = mc::test::GameTestRegistry::instance().getTestsByPattern("pat*");
     EXPECT_EQ(matched.size(), 2u);
+}
+
+TEST_F(GameTestRegistrationFixture, GetTestsByPatternSubstringAndSingleChar)
+{
+    auto b1 = mc::test::GameTestRegistrar::create("SuiteWc", "llama_spits", _passBody());
+    b1.structureName("gametest:empty_3x3").registerTest();
+    auto b2 = mc::test::GameTestRegistrar::create("SuiteWc", "llama_defends", _passBody());
+    b2.structureName("gametest:empty_3x3").registerTest();
+    auto b3 = mc::test::GameTestRegistrar::create("SuiteWc", "camel_walks", _passBody());
+    b3.structureName("gametest:empty_3x3").registerTest();
+
+    // "*llama*" 子串匹配（修复旧 prefix.* 实现下 .*llama.* 因空前缀静默匹配全部的 bug）。
+    auto sub = mc::test::GameTestRegistry::instance().getTestsByPattern("*llama*");
+    EXPECT_EQ(sub.size(), 2u);
+
+    // "?" 匹配单字符："camel_?alks" 命中 camel_walks，不命中 llama_spits/llama_defends。
+    auto single = mc::test::GameTestRegistry::instance().getTestsByPattern("camel_?alks");
+    EXPECT_EQ(single.size(), 1u);
+}
+
+TEST_F(GameTestRegistrationFixture, GetTestsByPatternLiteralDotDoesNotMatchUnderscore)
+{
+    auto b1 = mc::test::GameTestRegistrar::create("SuiteDot", "pat_one", _passBody());
+    b1.structureName("gametest:empty_3x3").registerTest();
+
+    // "." 在通配符中是字面点（非任意分隔符），"pat.*" 命中 "pat.<后缀>" 而非 "pat_one"。
+    // 这正是旧 prefix.* 实现的错误：把 ".*" 当成"前缀通配"，实际应只有 "pat*" 才命中 pat_one。
+    auto matched = mc::test::GameTestRegistry::instance().getTestsByPattern("pat.*");
+    EXPECT_EQ(matched.size(), 0u);
 }
 
 TEST_F(GameTestRegistrationFixture, ClearAllTestMethodsEmptiesRegistry)

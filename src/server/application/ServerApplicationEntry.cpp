@@ -71,9 +71,10 @@ DEFINE_string(gametest_report,
     "Empty disables JUnit XML report (only stdout log).");
 DEFINE_string(gametest_tests,
     "",
-    "Test name filter pattern for --gametest mode (e.g. simpleMobTest or simple.*). "
+    "Test name filter pattern for --gametest mode (e.g. simpleMobTest or simple*). "
     "Empty runs all registered non-manualOnly non-broken tests. "
-    "Pattern matches against testName (not className); supports prefix.* and exact match.");
+    "Pattern matches against testName (not className); supports * / ? wildcards "
+    "(aligned with Java --tests FilenameUtils.wildcardMatch) and exact match.");
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
@@ -198,7 +199,7 @@ int ServerApplicationEntry::runApplication()
         }
 
         // --gametest-tests：测试名过滤通配符（空=全部）。按 testName 匹配（非 className），
-        // 支持 prefix.* 与全等，由 GameTestRegistry::getTestsByPattern 实现。
+        // 支持 * / ? 通配符（对齐 Java --tests），由 GameTestRegistry::getTestsByPattern 实现。
         if (!m_gametestTestsFilter.empty()) {
             gtParams.testsFilter = m_gametestTestsFilter;
             spdlog::info("[GameTest] Tests filter: {}", m_gametestTestsFilter);

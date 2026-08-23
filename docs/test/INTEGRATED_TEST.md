@@ -115,7 +115,7 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 | `--gametest` | 启用无头 GameTest 模式 |
 | `--gametest_packs=<dir>` | 行为包根目录（其下每个子目录是一个包） |
 | `--gametest_report=<path>` | JUnit XML 输出路径（空=只写 stdout 日志） |
-| `--gametest_tests=<pattern>` | 测试名过滤通配符（如 `simpleMobTest` 或 `simple.*`，**按 testName 非 className 匹配**，空=全部） |
+| `--gametest_tests=<pattern>` | 测试名过滤通配符（如 `simpleMobTest` 或 `simple*`，**按 testName 非 className 匹配**，`*`/`?` 通配，空=全部） |
 
 ### 双采集
 
@@ -365,16 +365,22 @@ node scripts/test/_bedrock_single.ts "MobBehaviorTests:llama_spits_at_attacker" 
 
 > 该工具**不是临时文件**，作为基岩侧快速验证的常备工具保留。`run_diff.ts` 是全量对比工具（含 L1/L2/L3 分级报告），`_bedrock_single.ts` 是轻量单测探针，两者互补。
 
-### 6.2 单测过滤：Cubium `--gametest_tests` 是正则全匹配
+### 6.2 单测过滤：Cubium `--gametest_tests` 是 `*`/`?` 通配符匹配
 
-Cubium 无头跑单测用 `--gametest_tests=<regex>` 过滤，**过滤器对 testName 做正则匹配**。常见坑：
+Cubium 无头跑单测用 `--gametest_tests=<pattern>` 过滤，**对 testName 做 `*`/`?` 通配符匹配**，语义对齐 Java `--tests`（`ResourceSelectorArgument` → `FilenameUtils.wildcardMatch`）：`*` 匹配任意长度序列（含空），`?` 匹配单字符，`.` 是字面点（非通配），大小写敏感。常见坑：
 
 ```bash
-# ❌ "llama_" 不匹配——过滤器需要匹配 testName 子串，但实际是全匹配语义
+# ❌ "llama_" 全等匹配，无 testName 恰为 llama_ → 0 个
 --gametest_tests=llama_          # → "no tests selected for filter 'llama_'"
 
-# ✅ 用 .* 包裹做通配
---gametest_tests=.*llama.*       # 匹配 llama_spits_at_attacker / llama_defends_against_wolf
+# ❌ ".*llama.*" 不会匹配——"." 是字面点，testName 不含点
+--gametest_tests=.*llama.*       # → 0 个（旧实现因 prefix.* 把 .* 当空前缀会静默匹配全部，已修复）
+
+# ✅ 用 * 包裹做子串通配
+--gametest_tests=*llama*         # 匹配 llama_spits_at_attacker / llama_defends_against_wolf
+
+# ✅ 前缀通配
+--gametest_tests=llama_*         # 匹配 llama_ 开头的 testName
 ```
 
 完整命令（从仓库根目录）：
@@ -382,7 +388,7 @@ Cubium 无头跑单测用 `--gametest_tests=<regex>` 过滤，**过滤器对 tes
 ```bash
 ./build/bin/RelWithDebInfo/minecraft-server.exe --gametest \
   "--gametest_packs=tests/integrated" \
-  "--gametest_tests=.*llama.*" > /tmp/llama.log 2>&1
+  "--gametest_tests=*llama*" > /tmp/llama.log 2>&1
 ```
 
 退出码 1 通常是「有测试在过滤子集里跑完」的正常退出（GameTestServer 跑完即退），**不代表失败**——看日志里 `PASSED:`/`FAILED:` 计数判断。
