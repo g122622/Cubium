@@ -55,16 +55,21 @@ bool applyProjectileDeflection(ProjectileDeflection deflection, entity::Projecti
         }
 
         case ProjectileDeflection::AimDeflect: {
-            // 瞄准偏转：将弹射物速度设置为偏转者的视线方向
+            // 瞄准偏转：将弹射物速度设置为偏转者的视线方向（单位向量）。
+            // 对齐 vanilla ProjectileDeflection.AIM_DEFLECT（ProjectileDeflection.java:18-24）：
+            //   vec3 = deflector.getLookAngle(); projectile.setDeltaMovement(vec3);
+            // getLookAngle 返回单位视线向量（不乘原速），故偏转后弹射物以单位速度（1 格/tick）
+            // 沿偏转者视线方向飞行。此前 Cubium 误乘以原速度大小（speed=velocity().length()），
+            //   对静止弹射物（speed=0）偏转后仍静止，与 vanilla 不符（vanilla 静止弹射物偏转后以
+            //   单位速度沿视线飞）。此处改为单位视线向量对齐 vanilla。
             const f32 pitchRad = deflector.pitch() * math::DEG_TO_RAD;
             const f32 yawRad = deflector.yaw() * math::DEG_TO_RAD;
 
-            const f32 speed = projectile.velocity().length();
             const f32 x = -std::sin(yawRad) * std::cos(pitchRad);
             const f32 y = -std::sin(pitchRad);
             const f32 z = std::cos(yawRad) * std::cos(pitchRad);
 
-            projectile.setVelocity(Vector3(x * speed, y * speed, z * speed));
+            projectile.setVelocity(Vector3(x, y, z));
 
             // 将偏转者设为新的发射者
             projectile.setShooter(&deflector);

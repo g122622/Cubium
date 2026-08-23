@@ -76,7 +76,10 @@
 #include "common/entity/ecs/components/PlayerScoreComponent.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/PlayerModelPart.hpp"
+#include "common/entity/entities/projectile/ProjectileDeflection.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/player/SleepResult.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
@@ -2514,16 +2517,32 @@ void Player::attack(Entity& target)
         return;
     }
 
-    // 2. 只能攻击生物实体
+    // 2. 尝试偏转可偏转投射物（对齐 vanilla Player.deflectProjectile:1020-1029）。
+    //    在伤害流程之前判定：若 target 是 REDIRECTABLE_PROJECTILE 标签成员（fireball/wind_charge/
+    //    breeze_wind_charge）且为 ProjectileEntity，以玩家视线方向偏转（AIM_DEFLECT）并播
+    //    PLAYER_ATTACK_NODAMAGE 音效，return 不走伤害流程。
+    //    此前缺陷：Cubium Player::attack 对非 LivingEntity 目标直接 return，火球等可偏转投射物
+    //    无法被玩家近战弹开（vanilla 玩家挥击恶魂火球可将其弹回）。
+    //    AIM_DEFLECT 由 applyProjectileDeflection 实现：速度设为玩家视线方向（单位向量）+ setShooter(玩家)
+    //    （对齐 vanilla deflect 内 setOwner + ProjectileDeflection.AIM_DEFLECT 设速度为 getLookAngle 单位向量）。
+    if (EntityTypeTags::REDIRECTABLE_PROJECTILE().contains(target.getTypeId())) {
+        entity::ProjectileEntity* projectile = dynamic_cast<entity::ProjectileEntity*>(&target);
+        if (projectile != nullptr && projectile->deflect(ProjectileDeflection::AimDeflect, *this, true)) {
+            playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
+            return;
+        }
+    }
+
+    // 3. 只能攻击生物实体
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(&target);
     if (!livingTarget) {
         return;
     }
 
-    // 3. 获取基础攻击伤害
+    // 4. 获取基础攻击伤害
     f32 baseDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
 
-    // 4. 获取附魔伤害加成
+    // 5. 获取附魔伤害加成
     f32 enchantDamage = 0.0f;
     const ItemStack& mainHand = getMainHandItem();
 
@@ -2543,18 +2562,18 @@ void Player::attack(Entity& target)
         }
     }
 
-    // 5. 计算攻击冷却进度
+    // 6. 计算攻击冷却进度
     // 使用 adjustTicks = 0.5F 获取冷却强度
     f32 cooldownProgress = getCooledAttackStrength(0.5f);
 
-    // 6. 应用冷却伤害衰减
+    // 7. 应用冷却伤害衰减
     // 基础伤害使用二次冷却系数，附魔伤害使用线性冷却系数
     f32 quadraticCooldown = 0.2f + cooldownProgress * cooldownProgress * 0.8f;
     f32 linearCooldown = cooldownProgress;
     f32 damage = baseDamage * quadraticCooldown;
     enchantDamage *= linearCooldown;
 
-    // 7. 重置攻击冷却
+    // 8. 重置攻击冷却
     resetCooldown();
 
     // 如果伤害为 0，不执行攻击
@@ -2562,10 +2581,10 @@ void Player::attack(Entity& target)
         return;
     }
 
-    // 8. 判断是否是完全冷却攻击
+    // 9. 判断是否是完全冷却攻击
     bool isFullCooldown = cooldownProgress > 0.9f;
 
-    // 9. 计算击退
+    // 10. 计算击退
     i32 knockbackLevel = 0;
     if (!mainHand.isEmpty()) {
         knockbackLevel =
@@ -2581,11 +2600,11 @@ void Player::attack(Entity& target)
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0f, 1.0f);
     }
 
-    // 10. 暴击判定
+    // 11. 暴击判定
     // 重锤下落攻击不触发普通暴击（MC 1.21 规则）
     bool isCritical = !isMaceSmashAttack && entity::combat::PlayerAttackHelper::isCriticalHit(*this);
 
-    // 11. 火焰附加
+    // 12. 火焰附加
     i32 fireAspectLevel = 0;
     if (!mainHand.isEmpty()) {
         fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
@@ -2599,21 +2618,21 @@ void Player::attack(Entity& target)
         livingTarget->igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
-    // 12. 应用暴击倍率
+    // 13. 应用暴击倍率
     if (isCritical) {
         damage *= 1.5f; // 暴击倍率 1.5
     }
 
-    // 13. 合并伤害
+    // 14. 合并伤害
     f32 totalDamage = damage + enchantDamage;
 
-    // 13.5 重锤下落攻击伤害加成
+    // 14.5 重锤下落攻击伤害加成
     // 下落攻击加成不受冷却影响，直接加到总伤害上
     if (isMaceSmashAttack) {
         totalDamage += maceSmashBonus * cooldownProgress;
     }
 
-    // 14. 创建伤害来源并应用伤害
+    // 15. 创建伤害来源并应用伤害
     // 重锤下落攻击使用专属伤害类型 MaceSmash
     EntityDamageSource damageSource =
         isMaceSmashAttack ? DamageSources::maceSmash(this) : DamageSources::playerAttack(this);
@@ -2627,14 +2646,14 @@ void Player::attack(Entity& target)
     bool playedAttackSound = false;
 
     if (attacked) {
-        // 15. 应用额外击退（包含附魔击退和冲刺击退）
+        // 16. 应用额外击退（包含附魔击退和冲刺击退）
         // causeExtraKnockback 会：
         // - 对目标施加击退（方向基于攻击者朝向）
         // - 如果是冲刺击退，减缓攻击者水平速度并停止冲刺
         // - 对 ServerPlayer 目标立即发送速度包并清除 hurtMarked，防止速度重复应用
         causeExtraKnockback(target, static_cast<f32>(knockbackLevel), preHurtVelocity);
 
-        // 16. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
+        // 17. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
         f64 distanceWalkedDelta = static_cast<f64>(m_moveDistanceWalked - m_prevMoveDistanceWalked);
         bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() &&
@@ -2700,13 +2719,13 @@ void Player::attack(Entity& target)
             }
         }
 
-        // 17. 应用火焰附加
+        // 18. 应用火焰附加
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
             livingTarget->igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
-        // 18. 设置最后攻击目标
+        // 19. 设置最后攻击目标
         setLastHurtTarget(livingTarget);
 
         // 播放攻击音效
@@ -2747,7 +2766,7 @@ void Player::attack(Entity& target)
         std::array<const ItemStack*, 4> armorSlots = livingTarget->getArmorSlots();
         item::enchant::EnchantmentHelper::applyThornsEnchantments(*livingTarget, *this, armorSlots);
 
-        // 19. 武器损耗
+        // 20. 武器损耗
         // 攻击成功后消耗武器耐久度
         // 剑消耗 1 点耐久，其他工具消耗 2 点耐久
         if (!mainHand.isEmpty()) {
@@ -2815,7 +2834,7 @@ void Player::attack(Entity& target)
             }
         }
 
-        // 20. 饱食度消耗
+        // 21. 饱食度消耗
         // 攻击消耗 0.1 饱食度
         addExhaustion(EXHAUSTION_ATTACK);
     } else {
