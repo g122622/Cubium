@@ -458,17 +458,23 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     // （Player 镜像）手持物——(1)自管理替换（鱼桶→空桶，itemId 变化）；(2)耐久损耗（打火石/锄/斧/锹
     // hurtAndBreak，damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或把耐久
     // 损耗误当数量消耗）。骨粉等"仅 shrink 原物品不替换不改耐久"的物品 itemId+damage 均不变，仍走外层
-    // shrink 补足。从 Player 镜像读（onItemUse 前 InventoryManager 已同步到 Player，两者一致）。
-    const ItemId itemIdBefore = [&] {
-        if (player == nullptr) return ItemId{0};
-        ItemStack sel = player->inventory().getSelectedStack();
-        return sel.isEmpty() ? ItemId{0} : sel.getItem()->itemId();
-    }();
-    const i32 damageBefore = [&] {
-        if (player == nullptr) return 0;
-        ItemStack sel = player->inventory().getSelectedStack();
-        return sel.isEmpty() ? 0 : sel.getDamage();
-    }();
+    // shrink 补足。优先从 Player 镜像读（onItemUse 前 InventoryManager 已同步到 Player，两者一致）；
+    // player==nullptr（无 Player 实体，如未注入实体管理器的测试环境）时回退从 InventoryManager 权威栏
+    // 读，保证 before/after 来源一致，selfManaged 判定不被 nullptr 误触发。
+    auto readHeldBefore = [&]() -> ItemStack {
+        if (player != nullptr) {
+            return player->inventory().getSelectedStack();
+        }
+        if (m_inventoryManager != nullptr) {
+            if (PlayerInventory* inv = m_inventoryManager->getInventory(playerId); inv != nullptr) {
+                return inv->getSelectedStack();
+            }
+        }
+        return ItemStack();
+    };
+    const ItemStack heldBefore = readHeldBefore();
+    const ItemId itemIdBefore = heldBefore.isEmpty() ? ItemId{0} : heldBefore.getItem()->itemId();
+    const i32 damageBefore = heldBefore.isEmpty() ? 0 : heldBefore.getDamage();
     ItemUseContext context(*world, player, heldItem, hitPos, pos, face, hand, playerData->yaw, playerData->pitch);
 
     ActionResultType result = item->onItemUse(context);
@@ -484,8 +490,11 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
             // 若 onItemUse 已通过 player->getHeldItem 改 Player 镜像手持物（itemId 变化=自管理替换，
             // 或 damage 变化=耐久损耗），把 Player 镜像同步回 InventoryManager，跳过 shrink（物品已自管理
             // 消耗/损耗）。否则（itemId+damage 均不变，如骨粉仅 shrink 拷贝）走原 shrink(1) 补足权威槽消耗。
-            // 注意：从 Player 镜像读 after 值（onItemUse 改的是 Player 镜像，InventoryManager 权威尚未同步）。
-            const ItemStack playerHeldAfter = player != nullptr ? player->inventory().getSelectedStack() : ItemStack();
+            // 优先从 Player 镜像读 after 值（onItemUse 改的是 Player 镜像，InventoryManager 权威尚未同步）；
+            // player==nullptr 时回退从权威栏读（onItemUse 改的是 context 局部拷贝，权威栏未变，before==after，
+            // selfManaged=false，走 else if shrink）。此处 inventory 已在上文取到，直接复用。
+            const ItemStack playerHeldAfter =
+                player != nullptr ? player->inventory().getSelectedStack() : inventory->getSelectedStack();
             const ItemId itemIdAfter = playerHeldAfter.isEmpty() ? ItemId{0} : playerHeldAfter.getItem()->itemId();
             const i32 damageAfter = playerHeldAfter.isEmpty() ? 0 : playerHeldAfter.getDamage();
             const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
