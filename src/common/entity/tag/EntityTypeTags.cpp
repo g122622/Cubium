@@ -631,8 +631,10 @@ void EntityTypeTags::initialize()
     // 此前偏差：漏 copper_golem/magma_cube/ocelot/breeze。
     // allay/happy_ghast 实体虽尚未注册，但标签为 typeId 字符串集，含未注册 typeId 无运行时副作用，
     // 完整对齐 vanilla 数据，实体注册后标签自动正确。
-    // 注意：本标签当前未在运行时查询（Cubium 摔落伤害免疫由各实体类 causeFallDamage override
-    // 或 isFallBlocking 等机制实现），此处仅作数据对齐。
+    // 运行时查询点（对齐 vanilla Entity.isInvulnerableToBase:2922 + LivingEntity.calculateFallDamage:1755）：
+    //   - LivingEntity::isInvulnerableTo（IS_FALL && FALL_DAMAGE_IMMUNE 免疫，最外层 hurt 门控）
+    //   - LivingEntity::causeFallDamage（标签免疫 return，覆盖摔落伤害计算层）
+    // 两者纵深防御，覆盖普通摔落（fall）/末影珍珠（ender_pearl）/石笋（stalagmite）全部 IS_FALL 路径。
     FALL_DAMAGE_IMMUNE().addAll({
         ResourceLocation("minecraft:copper_golem"),
         ResourceLocation("minecraft:iron_golem"),

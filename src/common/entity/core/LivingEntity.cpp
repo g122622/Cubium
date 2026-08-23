@@ -33,6 +33,7 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/ecs/components/ArrowStateComponent.hpp"
 #include "common/entity/ecs/components/AttributeComponent.hpp"
 #include "common/entity/ecs/components/EquipmentComponent.hpp"
@@ -1010,7 +1011,16 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
         return !source.bypassesInvulnerability();
     }
 
-    // 2. 检查无敌帧
+    // 2. 摔落伤害免疫标签（对齐 vanilla Entity.isInvulnerableToBase:2922：
+    //   p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE)）。
+    // FALL_DAMAGE_IMMUNE 实体对任何 IS_FALL 类型伤害源（fall/ender_pearl/stalagmite）免疫。
+    // 这是摔落免疫的最外层 hurt 门控，与 causeFallDamage 层的 calculateFallDamage 免疫（LivingEntity.cpp:1448）
+    // 互为纵深防御——即便伤害不经 causeFallDamage 而直接 hurt（如末影珍珠摔落），此层也拦截。
+    if (source.is(DamageTypeTags::IS_FALL()) && EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(getTypeId())) {
+        return true;
+    }
+
+    // 3. 检查无敌帧
     // 当 hurtResistantTime > 0 时，大部分伤害被阻挡
     // 但虚空伤害可以绕过
     if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {
@@ -1441,6 +1451,19 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
     // MC 1.21.11: LivingEntity.causeFallDamage 先调用 super.causeFallDamage（传播给乘客）
     // 参考: net.minecraft.world.entity.LivingEntity.causeFallDamage → super.causeFallDamage
     Entity::causeFallDamage(distance, damageMultiplier, source);
+
+    // 摔落伤害免疫标签（对齐 vanilla LivingEntity.calculateFallDamage:1755：
+    //   if (getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE)) return 0;）。
+    // FALL_DAMAGE_IMMUNE 成员（magma_cube/breeze/iron_golem/snow_golem/shulker/allay/bat/bee/
+    //   blaze/cat/chicken/ghast/happy_ghast/phantom/ocelot/parrot/wither/copper_golem）免疫摔落伤害。
+    // 此前 Cubium 此标签无任何运行时查询（EntityTypeTags.cpp:634 旧注释误称"由各实体 causeFallDamage
+    //   override 实现"，但实际这些实体均无 override，会受摔落伤害——系统性偏差）。此处补查询对齐 vanilla。
+    // 标签免疫时不 hurt、不播音效（对齐 vanilla calculateFallDamage 返 0 → causeFallDamage 走 else 分支
+    //   不 hurt 不播音效），乘客已由上面 Entity::causeFallDamage 传播（vanilla 同样先传播再判自身免疫）。
+    // 同时覆盖普通摔落（DamageSources::fall）与石笋（DamageSources::stalagmite）路径——两者都经本方法。
+    if (EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(getTypeId())) {
+        return;
+    }
 
     // 缓降效果免疫摔落伤害
     if (hasEffect(entity::effect::EffectType::SlowFalling)) {
