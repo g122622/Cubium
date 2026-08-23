@@ -25,6 +25,10 @@
 
 #include "ProtectionEnchantment.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
@@ -40,6 +44,7 @@ namespace enchant {
  * 效果:
  * - 对火焰伤害（燃烧、岩浆、火）有双倍保护效果
  * - 对其他伤害也有基础保护
+ * - 通过 BURNING_TIME 属性缩减被点燃后的燃烧时间（每级 -15%）
  * - 最大 IV 级
  */
 class FireProtectionEnchantment : public ProtectionEnchantment {
@@ -57,6 +62,45 @@ public:
     }
 
     [[nodiscard]] EnchantmentRarity rarity() const noexcept override { return EnchantmentRarity::Uncommon; }
+
+    /**
+     * @brief 火焰保护附魔的属性修饰符
+     *
+     * 经 EnchantmentAttributeEffect（id="enchantment.fire_protection"，属性=BURNING_TIME，
+     * LevelBasedValue.perLevel(-0.15F)，Operation.ADD_MULTIPLIED_BASE，装备槽位组=ARMOR）把每级 -0.15
+     * 的基础乘法修饰符加到 BURNING_TIME 属性。
+     *
+     * 装备槽位组 ARMOR 表示 4 个盔甲槽位任一激活即生效。Cubium 的附魔属性修饰符管线按单槽位过滤
+     *（EnchantmentHelper::applyEnchantmentAttributeModifiers 按 entry.equipmentSlot==slot 匹配），
+     * 无槽位组概念，故为 4 个盔甲槽位各注册一条同 id 修饰符。
+     *
+     * BURNING_TIME 默认 1.0，火焰保护 IV 单件 → 1.0 + 1.0×(4×-0.15) = 0.4，
+     * 被点燃时燃烧时间缩减为 40%（LivingEntity::igniteForTicks override 消费）。
+     *
+     * TODO: 多件火焰保护盔甲叠加偏差。vanilla AttributeInstance 按 modifier id 覆盖
+     *   （modifierById Map.put(id)），多件同 id 修饰符互相覆盖只算一件；Cubium
+     *   AttributeInstance 用 vector+push_back 会叠加（多件会过度缩减 BURNING_TIME）。
+     *   此为 AttributeInstance 架构层面既有偏差（影响所有多槽位附魔属性修饰符），
+     *   非本附魔独有，待 AttributeInstance 改为按 id 去重时统一修复。
+     *
+     * @param level 附魔等级
+     * @return 4 个盔甲槽位的 BURNING_TIME 修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 level) const override
+    {
+        item::ItemAttributeModifiers modifiers;
+        if (level > 0) {
+            const f64 amount = static_cast<f64>(level) * -0.15;
+            const entity::attribute::AttributeModifier modifier(
+                "enchantment.fire_protection", "Fire Protection", amount, entity::attribute::Operation::MultiplyBase);
+            modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Feet));
+            modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Legs));
+            modifiers.add(
+                entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Chest));
+            modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Head));
+        }
+        return modifiers;
+    }
 };
 
 } // namespace enchant

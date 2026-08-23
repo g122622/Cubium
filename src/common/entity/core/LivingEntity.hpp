@@ -1649,6 +1649,22 @@ public:
     void clearFreeze() override;
 
     /**
+     * @brief 点燃实体指定 tick 数（重写）
+     *
+     * 重写 Entity::igniteForTicks()，在委托基类设置火焰计时器前，先将传入 tick 数
+     * 乘以 BURNING_TIME 属性值并向上取整：
+     *   super.igniteForTicks(Mth.ceil(ticks * getAttributeValue(BURNING_TIME)))。
+     *
+     * 火焰保护魔咒通过 enchantment.fire_protection 修饰符（每级 -0.15 MULTIPLY_BASE）
+     * 缩减 BURNING_TIME 属性值，从而使被点燃后的燃烧时间相应缩短（1 级 0.85、4 级 0.4）。
+     * 默认 1.0 时燃烧时间不变。此处在入口缩放而非 tick 递减时缩放——
+     * 仅缩放新设置的燃烧时间，已存的火焰计时器不追溯调整。
+     *
+     * @param ticks 燃烧时间（tick，未缩放）
+     */
+    void igniteForTicks(i32 ticks) override;
+
+    /**
      * @brief 检查实体是否可以冰冻
      *
      * 重写 Entity::canFreeze()，在基类检查的基础上

@@ -330,6 +330,27 @@ inline std::unique_ptr<Attribute> oxygenBonus()
 }
 
 /**
+ * @brief 燃烧时间倍率
+ *
+ * 作为实体被点燃时燃烧持续 tick 数的乘数。默认值 1.0（满额燃烧时间）。
+ * 属性 generic.burning_time（范围 [0.0, 1024.0]，默认 1.0）。
+ *
+ * 消费点：LivingEntity::igniteForTicks override：Mth.ceil(ticks * getAttributeValue(BURNING_TIME))。
+ * 实体被点燃时，传入 tick 数乘以本属性值后向上取整，再委托基类设置火焰计时器。
+ * 默认 1.0 时燃烧时间不变；火焰保护魔咒通过修饰符缩减此值从而缩短燃烧时间。
+ *
+ * 火焰保护魔咒通过 enchantment.fire_protection 修饰符（Op1 MULTIPLY_BASE，每级 -0.15，
+ * 4 个盔甲槽位）加到本属性：1 级 → 0.85、4 级 → 0.4（单件）。
+ *
+ * 默认值: 1.0（所有生物，满额燃烧时间）
+ * 范围: 0.0 ~ 1024.0
+ */
+inline std::unique_ptr<Attribute> burningTime()
+{
+    return std::make_unique<Attribute>("generic.burning_time", 1.0, 0.0, 1024.0);
+}
+
+/**
  * @brief 方块交互距离
  *
  * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
@@ -387,6 +408,7 @@ constexpr const char* MAX_ABSORPTION = "generic.max_absorption";
 constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
+constexpr const char* BURNING_TIME = "generic.burning_time";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
 
 } // namespace Attributes

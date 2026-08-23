@@ -1642,9 +1642,13 @@ public:
      * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
      * 同时清除冰冻状态。
      *
+     * 基类为虚函数：LivingEntity 重写以在设置前将 tick 数乘以 BURNING_TIME 属性值
+     * 并向上取整，使火焰保护魔咒能缩减燃烧时间。非 LivingEntity 实体（箭矢、火球、盔甲架等）
+     * 走基类不乘属性，保持满额燃烧时间（这些实体不注册 BURNING_TIME，行为一致）。
+     *
      * @param ticks 燃烧时间（tick）
      */
-    void igniteForTicks(i32 ticks)
+    virtual void igniteForTicks(i32 ticks)
     {
         if (auto* c = m_entityContext->tryGetComponent<ecs::FireComponent>()) {
             if (c->m_fire < ticks) {

@@ -47,6 +47,7 @@
 #include "common/item/core/ItemRegistry.hpp"             // ItemRegistry::getItem（ItemType/ItemStack 按 id 取 Item）
 #include "common/item/core/ItemStack.hpp"                // ItemStack（Equippable.getEquipment 返回值）
 #include "common/item/enchantment/EnchantmentHelper.hpp" // EnchantmentHelper::getEnchantments（ItemStack.getEnchantments）
+#include "common/item/enchantment/EnchantmentRegistry.hpp" // EnchantmentRegistry::get（ItemStack.addEnchantment 附魔 id 存在性校验）
 #include "common/mod/bedrock/addon/binding/ScriptBlockRef.hpp" // ScriptBlockRef/wrapBlock/unwrapBlock（Block JS 类 opaque 快照）
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
@@ -2855,6 +2856,70 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return arr;
         },
         0);
+
+    // --- ItemStack.addEnchantment(enchantment: { type, level }): void ---
+    // 给 ItemStack 添加一条附魔。基岩侧该方法挂在 ItemStack.getComponent("minecraft:enchantable")
+    // 返回的组件对象上；Cubium 脚本侧未实现 minecraft:enchantable 组件派发（getComponent 仅派发
+    // rideable/health/movement/equippable/onfire/inventory），故此处将 addEnchantment 直接挂在
+    // ItemStack 类上（与既有 getEnchantments 同级），提供等价写入能力，供测试构造带附魔装备
+    // （如火焰保护盔甲）绕过 /enchant 仅对玩家生效的限制。
+    //
+    // 参数 enchantment：{ type: string, level: number }。
+    //   - type：附魔 id，接受 "minecraft:fire_protection" 或 "fire_protection"（无命名空间时补 minecraft:）。
+    //   - level：附魔等级，整数 ≥1。基岩范围由各附魔 maxLevel 约束，超范围抛 EnchantmentLevelOutOfBoundsError；
+    //     此处仅校验 ≥1（Cubium EnchantmentRegistry 未提供 maxLevel 查询，超范围不抛错，与基岩略有差异，
+    //     TODO: 接入 Enchantment::getMaxLevel 后补范围校验）。
+    //
+    // id 存在性校验：EnchantmentRegistry::get(id) 查不到时 throwTypeError（对应基岩
+    // EnchantmentTypeUnknownIdError），避免写入未注册的垃圾附魔 id。校验通过后调
+    // ItemStack::addEnchantment(id, level) 写入附魔容器（EnchantmentContainer::set，同 id 覆盖等级）。
+    //
+    // 注意：基岩 addEnchantment 会做附魔兼容性校验（canAddEnchantment，与现有附魔冲突时抛
+    // EnchantmentTypeNotCompatibleError），Cubium 未接入兼容性校验（火焰保护/水下呼吸等保护类互相兼容，
+    // 测试场景不触发冲突；TODO: 需要时接入 Enchantment::checkCompatibility）。
+    itemStackReg.method(
+        "addEnchantment",
+        [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr) {
+                return ctx.createUndefined();
+            }
+            if (argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.throwTypeError("ItemStack.addEnchantment requires an enchantment object { type, level }");
+            }
+            void* enchObj = args[0];
+            // type：字符串，无命名空间时补 minecraft:。
+            void* typeVal = ctx.getProperty(enchObj, "type");
+            if (!ctx.isString(typeVal)) {
+                return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
+            }
+            auto typeOpt = ctx.toString(typeVal);
+            if (!typeOpt.has_value()) {
+                return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
+            }
+            std::string typeId = *typeOpt;
+            if (typeId.find(':') == std::string::npos) {
+                typeId = "minecraft:" + typeId;
+            }
+            // level：整数 ≥1。
+            auto levelOpt = ctx.getPropertyInt(enchObj, "level");
+            if (!levelOpt.has_value()) {
+                return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.level must be a number");
+            }
+            const i32 level = *levelOpt;
+            if (level < 1) {
+                return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.level must be >= 1");
+            }
+            // id 存在性校验（对齐基岩 EnchantmentTypeUnknownIdError）。
+            const mc::item::enchant::Enchantment* ench = mc::item::enchant::EnchantmentRegistry::get(typeId);
+            if (ench == nullptr) {
+                const std::string msg = "ItemStack.addEnchantment: unknown enchantment type '" + typeId + "'";
+                return ctx.throwTypeError(msg.c_str());
+            }
+            stack->addEnchantment(typeId, level);
+            return ctx.createUndefined();
+        },
+        1);
 
     // --- Direction 枚举对象（@minecraft/server）---
     // 官方 Direction 是字符串枚举（Down="Down"...West="West"），非数字。导出为只读对象，

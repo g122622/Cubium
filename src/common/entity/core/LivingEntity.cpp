@@ -841,6 +841,11 @@ void LivingEntity::registerAttributes()
     // 门控消费（LivingEntity.java:340 注册 OXYGEN_BONUS、:571-582 消费）。
     // 水下呼吸魔咒通过 enchantment.respiration 修饰符（每级 +1.0 ADD_VALUE，HEAD 槽位）注入。
     attributes().registerAttribute(*entity::attribute::Attributes::oxygenBonus());
+    // 燃烧时间倍率属性（默认 BURNING_TIME=1.0），由 igniteForTicks override 消费：
+    // ceil(ticks * getAttributeValue(BURNING_TIME))。
+    // 火焰保护魔咒通过 enchantment.fire_protection 修饰符（每级 -0.15 MULTIPLY_BASE，4 盔甲槽位）
+    // 缩减此值，从而缩短被点燃后的燃烧时间。
+    attributes().registerAttribute(*entity::attribute::Attributes::burningTime());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -1468,6 +1473,21 @@ void LivingEntity::clearFreeze()
     setTicksFrozen(0);
     // 移除冰冻减速修饰符
     removeFrost();
+}
+
+void LivingEntity::igniteForTicks(i32 ticks)
+{
+    // 在委托基类设置火焰计时器前，将传入 tick 数乘以 BURNING_TIME 属性值并向上取整：
+    //   scaledTicks = ceil(ticks * getAttributeValue(BURNING_TIME))。
+    // 火焰保护魔咒通过 enchantment.fire_protection 修饰符（每级 -0.15 MULTIPLY_BASE，
+    // 4 盔甲槽位）缩减 BURNING_TIME 值，从而缩短被点燃后的燃烧时间（1 级 0.85、4 级 0.4）。
+    // 默认 1.0 时 ceil(ticks*1.0)=ticks，行为不变。
+    //
+    // 入口缩放而非 tick 递减时缩放：仅缩放新设置的燃烧时间，已存的火焰计时器不追溯调整
+    // （多源点燃时后到的较小缩放值因 m_fire < ticks 守卫不会缩短已有燃烧时间）。
+    const f64 burningTimeMultiplier = attributes().getValue(entity::attribute::Attributes::BURNING_TIME, 1.0);
+    const i32 scaledTicks = static_cast<i32>(std::ceil(static_cast<f64>(ticks) * burningTimeMultiplier));
+    Entity::igniteForTicks(scaledTicks);
 }
 
 bool LivingEntity::canFreeze() const
