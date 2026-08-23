@@ -255,6 +255,127 @@ TEST_F(EntityTypeTagsTest, SensitiveToBaneOfArthropodsEqualsArthropod)
     }
 }
 
+// ============================================================================
+// 对齐 vanilla 1.21.11 EntityTypeTagsProvider 的标签成员守护测试
+// 以下测试固化本次对齐修正（DEFLECTS_PROJECTILES/IGNORES_POISON_AND_REGEN/
+// BURN_IN_DAYLIGHT/CAN_BREATHE_UNDER_WATER/FALL_DAMAGE_IMMUNE/IMMUNE_TO_INFESTED/
+// IMMUNE_TO_OOZING/POWDER_SNOW_WALKABLE_MOBS/ACCEPTS_IRON_GOLEM_GIFT），防止回归。
+// ============================================================================
+
+// DEFLECTS_PROJECTILES 对齐 vanilla（仅 breeze）。此前误加 shulker 已移除——
+// 运行时 Entity::deflection 查本标签，误加 shulker 致潜影贝偏转投射物偏离 vanilla。
+TEST_F(EntityTypeTagsTest, DeflectsProjectilesContainsOnlyBreeze)
+{
+    EXPECT_TRUE(EntityTypeTags::DEFLECTS_PROJECTILES().contains(ResourceLocation("minecraft:breeze")));
+    // shulker 在 vanilla 不偏转投射物，不应在本标签中
+    EXPECT_FALSE(EntityTypeTags::DEFLECTS_PROJECTILES().contains(ResourceLocation("minecraft:shulker")));
+}
+
+// IGNORES_POISON_AND_REGEN 对齐 vanilla（= addTag(UNDEAD)）。此前误加 iron_golem——
+// vanilla 铁傀儡受中毒，Cubium 误加致免疫偏差。改为 UNDEAD 派生并移除 iron_golem。
+TEST_F(EntityTypeTagsTest, IgnoresPoisonAndRegenEqualsUndeadAndExcludesIronGolem)
+{
+    // iron_golem 不在 vanilla IGNORES_POISON_AND_REGEN 中（铁傀儡受中毒）
+    EXPECT_FALSE(EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(ResourceLocation("minecraft:iron_golem")));
+    // 全部亡灵成员均应在标签内（= UNDEAD 派生）
+    for (const auto& id : EntityTypeTags::UNDEAD().getEntityTypeIds()) {
+        EXPECT_TRUE(EntityTypeTags::IGNORES_POISON_AND_REGEN().contains(id))
+            << "IGNORES_POISON_AND_REGEN 应包含亡灵成员 " << id.toString();
+    }
+    // INVERTED_HEALING_AND_HARM 同样 = UNDEAD 派生
+    for (const auto& id : EntityTypeTags::UNDEAD().getEntityTypeIds()) {
+        EXPECT_TRUE(EntityTypeTags::INVERTED_HEALING_AND_HARM().contains(id))
+            << "INVERTED_HEALING_AND_HARM 应包含亡灵成员 " << id.toString();
+    }
+}
+
+// BURN_IN_DAYLIGHT 对齐 vanilla：含 zombie_horse/zombie_nautilus，不含 husk（husk 不燃）。
+TEST_F(EntityTypeTagsTest, BurnInDaylightContainsZombieHorseAndNautilusExcludesHusk)
+{
+    EXPECT_TRUE(EntityTypeTags::BURN_IN_DAYLIGHT().contains(ResourceLocation("minecraft:zombie_horse")));
+    EXPECT_TRUE(EntityTypeTags::BURN_IN_DAYLIGHT().contains(ResourceLocation("minecraft:zombie_nautilus")));
+    EXPECT_TRUE(EntityTypeTags::BURN_IN_DAYLIGHT().contains(ResourceLocation("minecraft:skeleton")));
+    // husk 在 vanilla 不在 BURN_IN_DAYLIGHT 标签（尸壳日光下不燃烧）
+    EXPECT_FALSE(EntityTypeTags::BURN_IN_DAYLIGHT().contains(ResourceLocation("minecraft:husk")));
+}
+
+// CAN_BREATHE_UNDER_WATER 对齐 vanilla：含 fish/armor_stand/copper_golem/nautilus/frog/tadpole，
+// 不含 dolphin（vanilla 海豚需浮出水面呼吸）。
+TEST_F(EntityTypeTagsTest, CanBreatheUnderWaterContainsAquaticNonDolphinExcludesDolphin)
+{
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:cod")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:salmon")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:armor_stand")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:copper_golem")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:nautilus")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:frog")));
+    EXPECT_TRUE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:tadpole")));
+    // dolphin 在 vanilla 不在 CAN_BREATHE_UNDER_WATER 标签（海豚需浮出水面呼吸）
+    EXPECT_FALSE(EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(ResourceLocation("minecraft:dolphin")));
+}
+
+// FALL_DAMAGE_IMMUNE 对齐 vanilla：含 copper_golem/magma_cube/ocelot/breeze/allay/happy_ghast。
+TEST_F(EntityTypeTagsTest, FallDamageImmuneContainsCopperGolemMagmaCubeBreezeEtc)
+{
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:copper_golem")));
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:magma_cube")));
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:ocelot")));
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:breeze")));
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:allay")));
+    EXPECT_TRUE(EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(ResourceLocation("minecraft:happy_ghast")));
+}
+
+// IMMUNE_TO_INFESTED 对齐 vanilla（仅 silverfish）。此前误加 spider/cave_spider/endermite。
+TEST_F(EntityTypeTagsTest, ImmuneToInfestedContainsOnlySilverfish)
+{
+    EXPECT_TRUE(EntityTypeTags::IMMUNE_TO_INFESTED().contains(ResourceLocation("minecraft:silverfish")));
+    EXPECT_FALSE(EntityTypeTags::IMMUNE_TO_INFESTED().contains(ResourceLocation("minecraft:spider")));
+    EXPECT_FALSE(EntityTypeTags::IMMUNE_TO_INFESTED().contains(ResourceLocation("minecraft:cave_spider")));
+    EXPECT_FALSE(EntityTypeTags::IMMUNE_TO_INFESTED().contains(ResourceLocation("minecraft:endermite")));
+}
+
+// IMMUNE_TO_OOZING 对齐 vanilla（仅 slime）。此前误加 magma_cube。
+TEST_F(EntityTypeTagsTest, ImmuneToOozingContainsOnlySlime)
+{
+    EXPECT_TRUE(EntityTypeTags::IMMUNE_TO_OOZING().contains(ResourceLocation("minecraft:slime")));
+    EXPECT_FALSE(EntityTypeTags::IMMUNE_TO_OOZING().contains(ResourceLocation("minecraft:magma_cube")));
+}
+
+// POWDER_SNOW_WALKABLE_MOBS 对齐 vanilla：rabbit/endermite/silverfish/fox。
+// 此前误为 rabbit/fox/ocelot/cat（漏 endermite/silverfish，多 ocelot/cat）。
+TEST_F(EntityTypeTagsTest, PowderSnowWalkableMobsContainsRabbitEndermiteSilverfishFox)
+{
+    EXPECT_TRUE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:rabbit")));
+    EXPECT_TRUE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:endermite")));
+    EXPECT_TRUE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:silverfish")));
+    EXPECT_TRUE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:fox")));
+    EXPECT_FALSE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:ocelot")));
+    EXPECT_FALSE(EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(ResourceLocation("minecraft:cat")));
+}
+
+// NO_ANGER_FROM_WIND_CHARGE 对齐 vanilla（9 成员）。
+TEST_F(EntityTypeTagsTest, NoAngerFromWindChargeContainsNineMembers)
+{
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:breeze")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:skeleton")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:bogged")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:stray")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:zombie")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:husk")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:spider")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:cave_spider")));
+    EXPECT_TRUE(EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(ResourceLocation("minecraft:slime")));
+}
+
+// ACCEPTS/CANDIDATE_FOR_IRON_GOLEM_GIFT 对齐 vanilla：此前 initialize() 未填充（空标签）致
+// 铁傀儡赠花链路失效，单元测试 SetUpTestSuite 手动 addAll 掩盖生产缺陷。现 initialize() 填充。
+TEST_F(EntityTypeTagsTest, IronGolemGiftTagsContainCopperGolemAndVillager)
+{
+    EXPECT_TRUE(EntityTypeTags::ACCEPTS_IRON_GOLEM_GIFT().contains(ResourceLocation("minecraft:copper_golem")));
+    EXPECT_TRUE(EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT().contains(ResourceLocation("minecraft:villager")));
+    EXPECT_TRUE(EntityTypeTags::CANDIDATE_FOR_IRON_GOLEM_GIFT().contains(ResourceLocation("minecraft:copper_golem")));
+}
+
 TEST_F(EntityTypeTagsTest, GetTagReturnsExistingTag)
 {
     auto* tag = EntityTypeTags::getTag(ResourceLocation("minecraft:impact_projectiles"));

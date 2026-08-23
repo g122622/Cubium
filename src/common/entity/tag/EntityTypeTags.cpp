@@ -510,7 +510,12 @@ void EntityTypeTags::initialize()
     });
 
     // 水生生物
-    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.AQUATIC（含 nautilus、zombie_nautilus）。
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.AQUATIC（line 121-135）：
+    //   turtle, axolotl, guardian, elder_guardian, cod, pufferfish, salmon, tropical_fish, dolphin,
+    //   squid, glow_squid, tadpole, nautilus, zombie_nautilus。
+    // tadpole 实体虽尚未注册，但标签为 typeId 字符串集，含未注册 typeId 无运行时副作用，
+    // 完整对齐 vanilla 数据，实体注册后标签自动正确。
+    // 运行时 SENSITIVE_TO_IMPALING 派生本标签（穿刺附魔查）。
     AQUATIC().addAll({
         ResourceLocation("minecraft:turtle"),
         ResourceLocation("minecraft:axolotl"),
@@ -555,19 +560,35 @@ void EntityTypeTags::initialize()
     });
 
     // 白天燃烧
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.BURN_IN_DAYLIGHT：
+    //   skeleton, stray, wither_skeleton, bogged, zombie, zombie_horse, zombie_villager,
+    //   drowned, zombie_nautilus, phantom。
+    // 此前漏 zombie_horse 与 zombie_nautilus（两者已注册，属亡灵且 vanilla 在本标签中）。
+    // 注意：本标签当前未在运行时查询（Cubium 用 shouldBurnInDaylight() 虚函数 + 各实体 tick 直接
+    // 调 burnUndead 实现日光燃烧，非查标签），此处仅作数据对齐；未来若迁移到标签查询将直接正确。
     BURN_IN_DAYLIGHT().addAll({
         ResourceLocation("minecraft:skeleton"),
         ResourceLocation("minecraft:stray"),
         ResourceLocation("minecraft:wither_skeleton"),
         ResourceLocation("minecraft:bogged"),
         ResourceLocation("minecraft:zombie"),
+        ResourceLocation("minecraft:zombie_horse"),
         ResourceLocation("minecraft:zombie_villager"),
-        ResourceLocation("minecraft:husk"),
         ResourceLocation("minecraft:drowned"),
+        ResourceLocation("minecraft:zombie_nautilus"),
         ResourceLocation("minecraft:phantom"),
     });
 
     // 可水下呼吸
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.CAN_BREATHE_UNDER_WATER：
+    //   #undead（亡灵不需要呼吸）+ axolotl, frog, guardian, elder_guardian, turtle, glow_squid,
+    //   cod, pufferfish, salmon, squid, tropical_fish, tadpole, armor_stand, copper_golem, nautilus。
+    // 此前偏差：误加 dolphin（vanilla 海豚需浮出水面呼吸，不在本标签）；漏 cod/pufferfish/salmon/
+    //   tropical_fish/armor_stand/copper_golem/nautilus。
+    // frog/tadpole 实体虽尚未注册，但标签为 typeId 字符串集，含未注册 typeId 无运行时副作用，
+    // 完整对齐 vanilla 数据，实体注册后标签自动正确。
+    // 注意：本标签当前未在运行时查询（Cubium 用 canBreatheUnderwater() 虚函数实现水下呼吸），
+    // 此处仅作数据对齐。
     CAN_BREATHE_UNDER_WATER().addAll({
         // #minecraft:undead 子标签成员（亡灵不需要呼吸）
         ResourceLocation("minecraft:skeleton"),
@@ -575,27 +596,45 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:wither_skeleton"),
         ResourceLocation("minecraft:skeleton_horse"),
         ResourceLocation("minecraft:bogged"),
+        ResourceLocation("minecraft:zombie_horse"),
         ResourceLocation("minecraft:zombie"),
         ResourceLocation("minecraft:zombie_villager"),
         ResourceLocation("minecraft:zombified_piglin"),
         ResourceLocation("minecraft:zoglin"),
         ResourceLocation("minecraft:drowned"),
         ResourceLocation("minecraft:husk"),
+        ResourceLocation("minecraft:zombie_nautilus"),
         ResourceLocation("minecraft:wither"),
         ResourceLocation("minecraft:phantom"),
-        // 水生生物
+        // 水生及其他可水下呼吸生物
         ResourceLocation("minecraft:axolotl"),
         ResourceLocation("minecraft:frog"),
         ResourceLocation("minecraft:guardian"),
         ResourceLocation("minecraft:elder_guardian"),
         ResourceLocation("minecraft:turtle"),
-        ResourceLocation("minecraft:dolphin"),
         ResourceLocation("minecraft:glow_squid"),
+        ResourceLocation("minecraft:cod"),
+        ResourceLocation("minecraft:pufferfish"),
+        ResourceLocation("minecraft:salmon"),
         ResourceLocation("minecraft:squid"),
+        ResourceLocation("minecraft:tropical_fish"),
+        ResourceLocation("minecraft:tadpole"),
+        ResourceLocation("minecraft:armor_stand"),
+        ResourceLocation("minecraft:copper_golem"),
+        ResourceLocation("minecraft:nautilus"),
     });
 
     // 摔落伤害免疫
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.FALL_DAMAGE_IMMUNE：
+    //   copper_golem, iron_golem, snow_golem, shulker, allay, bat, bee, blaze, cat, chicken, ghast,
+    //   happy_ghast, phantom, magma_cube, ocelot, parrot, wither, breeze。
+    // 此前偏差：漏 copper_golem/magma_cube/ocelot/breeze。
+    // allay/happy_ghast 实体虽尚未注册，但标签为 typeId 字符串集，含未注册 typeId 无运行时副作用，
+    // 完整对齐 vanilla 数据，实体注册后标签自动正确。
+    // 注意：本标签当前未在运行时查询（Cubium 摔落伤害免疫由各实体类 causeFallDamage override
+    // 或 isFallBlocking 等机制实现），此处仅作数据对齐。
     FALL_DAMAGE_IMMUNE().addAll({
+        ResourceLocation("minecraft:copper_golem"),
         ResourceLocation("minecraft:iron_golem"),
         ResourceLocation("minecraft:snow_golem"),
         ResourceLocation("minecraft:shulker"),
@@ -606,9 +645,13 @@ void EntityTypeTags::initialize()
         ResourceLocation("minecraft:cat"),
         ResourceLocation("minecraft:chicken"),
         ResourceLocation("minecraft:ghast"),
+        ResourceLocation("minecraft:happy_ghast"),
         ResourceLocation("minecraft:phantom"),
-        ResourceLocation("minecraft:wither"),
+        ResourceLocation("minecraft:magma_cube"),
+        ResourceLocation("minecraft:ocelot"),
         ResourceLocation("minecraft:parrot"),
+        ResourceLocation("minecraft:wither"),
+        ResourceLocation("minecraft:breeze"),
     });
 
     // 冻结免疫
@@ -632,55 +675,69 @@ void EntityTypeTags::initialize()
     });
 
     // 偏转投射物
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.DEFLECTS_PROJECTILES（仅 breeze）。
+    // 此前误将 shulker 加入本标签（shulker 在 vanilla 不偏转投射物，vanilla Shulker 无 deflection
+    // override，基类 Entity.deflection 查本标签，shulker 不在标签故返 None）。运行时 Entity::deflection
+    // （Entity.cpp:1830）查本标签，误加 shulker 致箭矢等投射物命中潜影贝时被偏转弹开而非造成伤害，
+    // 偏离 vanilla（vanilla 潜影贝正常受投射物伤害）。已移除 shulker 修正。
     DEFLECTS_PROJECTILES().addAll({
-        ResourceLocation("minecraft:shulker"),
         ResourceLocation("minecraft:breeze"),
     });
 
-    // 忽略中毒和再生
-    IGNORES_POISON_AND_REGEN().addAll({
-        // 亡灵
-        ResourceLocation("minecraft:skeleton"),
-        ResourceLocation("minecraft:stray"),
-        ResourceLocation("minecraft:wither_skeleton"),
-        ResourceLocation("minecraft:bogged"),
-        ResourceLocation("minecraft:zombie"),
-        ResourceLocation("minecraft:zombie_villager"),
-        ResourceLocation("minecraft:zombified_piglin"),
-        ResourceLocation("minecraft:zoglin"),
-        ResourceLocation("minecraft:drowned"),
-        ResourceLocation("minecraft:husk"),
-        ResourceLocation("minecraft:wither"),
-        ResourceLocation("minecraft:phantom"),
-        // 其他
-        ResourceLocation("minecraft:iron_golem"),
-    });
+    // 忽略中毒和再生（= #minecraft:undead）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IGNORES_POISON_AND_REGEN（line 142 addTag(UNDEAD)）：
+    //   仅亡灵免疫 Poison/Regen，无其他成员。
+    // 此前偏差：手动列举 13 亡灵（漏 zombie_horse/zombie_nautilus）+ 误加 iron_golem。
+    //   iron_golem 在 vanilla 不在本标签（vanilla 铁傀儡受中毒效果），误加致 Cubium 铁傀儡免疫中毒
+    //   偏离 vanilla。改为 addAll(UNDEAD) 派生（自动含全部亡灵含 zombie_horse/zombie_nautilus）并移除
+    //   iron_golem，与 INVERTED_HEALING_AND_HARM 同款 addTag(UNDEAD) 写法。
+    // 运行时 LivingEntity::isPotionApplicable（LivingEntity.cpp:2618）查本标签免疫 Poison/Regen。
+    IGNORES_POISON_AND_REGEN().addAll(
+        std::vector<ResourceLocation>(UNDEAD().getEntityTypeIds().begin(), UNDEAD().getEntityTypeIds().end()));
 
     // 治疗与伤害反转（= #minecraft:undead）
     INVERTED_HEALING_AND_HARM().addAll(
         std::vector<ResourceLocation>(UNDEAD().getEntityTypeIds().begin(), UNDEAD().getEntityTypeIds().end()));
 
-    // 免疫蠹虫效果
+    // 免疫蠹虫效果（infested 附魔：被击杀生物生成蠹虫；蠹虫自身免疫防递归）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IMMUNE_TO_INFESTED（line 178，仅 silverfish）。
+    // 此前误加 spider/cave_spider/endermite（vanilla 仅 silverfish 免疫，其他节肢不免疫）。
+    // 本标签当前未在运行时查询（Infested 效果未实现，LivingEntity.cpp:2634 TODO），仅作数据对齐。
     IMMUNE_TO_INFESTED().addAll({
-        ResourceLocation("minecraft:spider"),
-        ResourceLocation("minecraft:cave_spider"),
-        ResourceLocation("minecraft:endermite"),
         ResourceLocation("minecraft:silverfish"),
     });
 
-    // 免疫渗出效果
+    // 免疫渗出效果（oozing 附魔：被击杀生物生成史莱姆；史莱姆自身免疫防递归）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IMMUNE_TO_OOZING（line 179，仅 slime）。
+    // 此前误加 magma_cube（vanilla 仅 slime 免疫，岩浆怪不免疫）。
+    // 本标签当前未在运行时查询（Oozing 效果未实现，LivingEntity.cpp:2634 TODO），仅作数据对齐。
     IMMUNE_TO_OOZING().addAll({
         ResourceLocation("minecraft:slime"),
-        ResourceLocation("minecraft:magma_cube"),
     });
 
     // 风弹不激怒
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.NO_ANGER_FROM_WIND_CHARGE（line 166-177）：
+    //   breeze, skeleton, bogged, stray, zombie, husk, spider, cave_spider, slime。
+    // 此前仅 breeze，漏其余 8 成员。本标签当前未在运行时查询（风弹激怒逻辑未实现），仅作数据对齐。
     NO_ANGER_FROM_WIND_CHARGE().addAll({
         ResourceLocation("minecraft:breeze"),
+        ResourceLocation("minecraft:skeleton"),
+        ResourceLocation("minecraft:bogged"),
+        ResourceLocation("minecraft:stray"),
+        ResourceLocation("minecraft:zombie"),
+        ResourceLocation("minecraft:husk"),
+        ResourceLocation("minecraft:spider"),
+        ResourceLocation("minecraft:cave_spider"),
+        ResourceLocation("minecraft:slime"),
     });
 
     // 水下强制下坐骑
-    // 这些实体在水中会强制乘客下坐骑（船不在其中，船有自己的水下沉没逻辑）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.DISMOUNTS_UNDERWATER（line 103-118）：
+    //   camel, chicken, donkey, happy_ghast, horse, llama, mule, pig, ravager, spider, strider,
+    //   trader_llama, zombie_horse（船不在其中，船有自己的水下沉没逻辑）。
+    // camel/happy_ghast 实体虽尚未注册，但标签为 typeId 字符串集，含未注册 typeId 无运行时副作用
+    // （查询时无该实体命中），完整对齐 vanilla 数据，实体注册后标签自动正确。
+    // 运行时 Entity::ridesCanMountDismountInWater（Entity.cpp:1822）查本标签判断载具水中强制下坐骑。
     DISMOUNTS_UNDERWATER().addAll({
         ResourceLocation("minecraft:camel"),
         ResourceLocation("minecraft:chicken"),
@@ -698,11 +755,34 @@ void EntityTypeTags::initialize()
     });
 
     // 细雪可行走
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.POWDER_SNOW_WALKABLE_MOBS（line 54）：
+    //   rabbit, endermite, silverfish, fox。
+    // 此前误为 rabbit/fox/ocelot/cat（多 ocelot/cat，漏 endermite/silverfish）。
+    // 本标签当前未在运行时查询，仅作数据对齐。
     POWDER_SNOW_WALKABLE_MOBS().addAll({
         ResourceLocation("minecraft:rabbit"),
+        ResourceLocation("minecraft:endermite"),
+        ResourceLocation("minecraft:silverfish"),
         ResourceLocation("minecraft:fox"),
-        ResourceLocation("minecraft:ocelot"),
-        ResourceLocation("minecraft:cat"),
+    });
+
+    // 铁傀儡赠花标签（运行时使用，此前漏填致赠花链路失效）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider：
+    //   ACCEPTS_IRON_GOLEM_GIFT（line 252）= copper_golem（铜傀儡可接受铁傀儡赠予的罂粟花）。
+    //   CANDIDATE_FOR_IRON_GOLEM_GIFT（line 253）= villager + #accepts_iron_golem_gift
+    //     （铁傀儡 OfferFlowerGoal 候选目标：村民与铜傀儡）。
+    // 此前 initialize() 未给两标签填充成员（空标签），运行时 IronGolemGoals::_findNearestCandidate
+    //   （IronGolemGoals.cpp:332）用空 CANDIDATE 标签过滤找不到候选、_tryGiftFlowerToCopperGolem
+    //   （IronGolemGoals.cpp:394）用空 ACCEPTS 标签检查铜傀儡不在标签→铁傀儡永不赠花给铜傀儡。
+    //   单元测试 OfferFlowerGiftTest::SetUpTestSuite 手动 addAll 填充掩盖了此生产缺陷。
+    //   现于 initialize() 填充，生产路径赠花链路恢复正确（addAll 为 set 追加，单元测试重复 addAll 幂等）。
+    ACCEPTS_IRON_GOLEM_GIFT().addAll({
+        ResourceLocation("minecraft:copper_golem"),
+    });
+    CANDIDATE_FOR_IRON_GOLEM_GIFT().addAll({
+        ResourceLocation("minecraft:villager"),
+        // #minecraft:accepts_iron_golem_gift 子标签成员（= copper_golem）
+        ResourceLocation("minecraft:copper_golem"),
     });
 
     s_initialized = true;

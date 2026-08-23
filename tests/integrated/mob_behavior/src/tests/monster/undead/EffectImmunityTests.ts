@@ -24,9 +24,10 @@
 //   instant_health→InstantHealth（非 instant_healing，注意正确字符串）。
 // 瞬间治疗对亡灵反转（EffectInstance.cpp:246-258）：amplifier=0 伤害量=4+2*0=4（zombie 20→16）。
 //
-// 免疫判定用 EntityTypeTags::IGNORES_POISON_AND_REGEN 标签（13 亡灵 + iron_golem，
-// EntityTypeTags.cpp:629-645），非 getCreatureAttribute 枚举（对齐 vanilla 标签判定）。
-// zombie 在标签内（亡灵），creeper 不在。
+// 免疫判定用 EntityTypeTags::IGNORES_POISON_AND_REGEN 标签（= #undead，派生自 UNDEAD 标签，
+// 含全部亡灵含 zombie_horse/zombie_nautilus；EntityTypeTags.cpp initialize addAll(UNDEAD)），
+// 非手动列举枚举（对齐 vanilla 1.21.11 IGNORES_POISON_AND_REGEN = addTag(UNDEAD)）。
+// zombie 在标签内（亡灵），creeper 不在。iron_golem 不在标签（vanilla 铁傀儡受中毒）。
 //
 // 防假通过设计：负向断言"zombie 不中毒"若单独存在，addEffect 绑定整体失效也会假过。故配正向对照
 //   测试 nonUndeadAffectedByPoison（creeper 确实中毒）——若 addEffect 链路失效，正向测试 FAIL 暴露。

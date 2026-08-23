@@ -63,19 +63,28 @@ protected:
 };
 
 /**
- * @brief 可偏转实体（模拟潜影贝行为）
+ * @brief 可偏转实体（测试桩，复用 DEFLECTS_PROJECTILES 标签成员 breeze 的身份）
+ *
+ * typeId 设为 "minecraft:breeze"（vanilla 1.21.11 DEFLECTS_PROJECTILES 标签唯一成员），
+ * 不 override deflection，用基类 Entity::deflection 查 DEFLECTS_PROJECTILES 标签返回 Reverse。
+ * 以此测试"标签驱动的基类偏转"路径（区别于 BreezeEntity 自身 deflection override 的路径，
+ * 后者由 BreezeDeflectsNonWindChargeProjectiles/BreezeDoesNotDeflectWindCharge 覆盖）。
+ *
+ * 注意：此前用 typeId="minecraft:shulker" 作为标签成员，但 shulker 在 vanilla 不在
+ * DEFLECTS_PROJECTILES 标签中（vanilla 潜影贝不偏转投射物），Cubium 误加 shulker 已修正移除，
+ * 故测试桩改用 vanilla 真正的标签成员 breeze。
  */
 class DeflectingEntity : public Entity {
 public:
     explicit DeflectingEntity(EntityInstanceId id)
         : Entity(id, nullptr, mc::test::testEcsRegistry())
     {
-        setTypeId("minecraft:shulker");
+        setTypeId("minecraft:breeze");
     }
 
     [[nodiscard]] f32 width() const override { return 1.0f; }
     [[nodiscard]] f32 height() const override { return 1.0f; }
-    [[nodiscard]] std::string getTypeId() const override { return "minecraft:shulker"; }
+    [[nodiscard]] std::string getTypeId() const override { return "minecraft:breeze"; }
     [[nodiscard]] bool canBeCollidedWith() const override { return true; }
 };
 
@@ -202,7 +211,7 @@ TEST_F(ProjectileDeflectionTest, DefaultDeflectionNoneForNonTaggedEntity)
 
 TEST_F(ProjectileDeflectionTest, DefaultDeflectionReverseForTaggedEntity)
 {
-    // 属于 DEFLECTS_PROJECTILES 标签的实体（如潜影贝）默认返回 Reverse
+    // 属于 DEFLECTS_PROJECTILES 标签的实体（breeze）默认返回 Reverse
     DeflectingEntity entity(EntityInstanceId(1));
     CountingProjectile projectile(EntityInstanceId(2));
 
@@ -474,7 +483,7 @@ TEST_F(ProjectileDeflectionTest, OnImpactDeflectionPreventsEntityHit)
 
     projectile.onImpact(hitResult);
 
-    // 潜影贝在 DEFLECTS_PROJECTILES 标签中，弹射物应被偏转，不调用 onEntityHit
+    // DeflectingEntity（typeId=breeze，在 DEFLECTS_PROJECTILES 标签中）弹射物应被偏转，不调用 onEntityHit
     EXPECT_EQ(projectile.entityHitCount, 0);
 }
 
