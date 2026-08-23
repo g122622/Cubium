@@ -537,8 +537,11 @@ f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage
     }
 
     // 1. 抗性药水减伤
-    // 注意：虚空伤害和特定伤害类型不受抗性药水影响
-    if (!source.bypassesInvulnerability()) {
+    // BYPASSES_RESISTANCE 伤害源（成员={OutOfWorld, GenericKill}）不受抗性药水影响
+    // （LivingEntity.getDamageAfterMagicAbsorb:1825：hasEffect(RESISTANCE) && !is(BYPASSES_RESISTANCE)）。
+    // 此前用 !bypassesInvulnerability()（=BYPASSES_INVULNERABILITY）门控，两者成员当前恰好相同
+    // 故行为暂对但语义错位——一旦数据包扩展任一标签即偏离。改查 BYPASSES_RESISTANCE 对齐标签语义。
+    if (!source.is(DamageTypeTags::BYPASSES_RESISTANCE())) {
         const i32 resistanceLevel = getEffectLevel(entity::effect::EffectType::Resistance);
         if (resistanceLevel > 0) {
             damage = entity::combat::CombatRules::getDamageAfterResistance(damage, resistanceLevel);

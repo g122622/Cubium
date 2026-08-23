@@ -102,6 +102,10 @@ f32 AttackContext::calculateFinalDamage() const
         damage *= (1.0f - armorRatio);
 
         // 抗性药水减伤（每级 -20%，最高 80%）
+        // TODO: AttackContext::calculateFinalDamage 当前未被主伤害管线调用（玩家近战走 Player::attack
+        //   → target.hurt → LivingEntity::applyPotionDamageCalculations，后者已查 BYPASSES_RESISTANCE
+        //   门控）。本路径为死代码，接入主路径时须同步补 !source.is(BYPASSES_RESISTANCE) 门控，
+        //   否则 OutOfWorld/GenericKill 伤害会被错误减免（与 applyPotionDamageCalculations 行为分叉）。
         const i32 resistanceLevel = m_target->getEffectLevel(entity::effect::EffectType::Resistance);
         if (resistanceLevel > 0) {
             damage *= std::max(0.0f, 1.0f - 0.2f * static_cast<f32>(resistanceLevel));
