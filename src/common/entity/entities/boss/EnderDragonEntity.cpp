@@ -29,6 +29,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/MoverType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
@@ -290,8 +291,13 @@ bool EnderDragonEntity::attackEntityPartFrom(EnderDragonPartEntity* part, Damage
     }
 
     // 只有玩家直接攻击或爆炸类型伤害才能对末影龙造成伤害
-    // MC 原版：source.getEntity() instanceof Player || source.is(DamageTypeTags.ALWAYS_HURTS_ENDER_DRAGONS)
-    bool canHurt = source.isPlayerSource() || source.isExplosion();
+    // MC 原版 1.21.11 EnderDragon.attackEntityPartFrom:471：
+    //   source.getEntity() instanceof Player || source.is(DamageTypeTags.ALWAYS_HURTS_ENDER_DRAGONS)
+    // ALWAYS_HURTS_ENDER_DRAGONS 成员 = #is_explosion（fireworks/explosion/player_explosion/
+    // bad_respawn_point）。此前用 source.isExplosion() flag 代标签查询，属"硬编码代标签"缺陷：
+    // 数据包扩展标签成员无效，且 isExplosion() 曾遗漏 Fireworks 致烟花不伤龙。改查标签对齐 vanilla，
+    // 同时 isExplosion() 已补 Fireworks，两者一致。
+    bool canHurt = source.isPlayerSource() || source.is(DamageTypeTags::ALWAYS_HURTS_ENDER_DRAGONS());
     if (!canHurt) {
         return false;
     }

@@ -764,6 +764,8 @@ add_executable(mc_tests
     common/entity/entities/boss/WardenEntityTest.cpp
     # EnderDragonEntity 末影龙测试
     entity/EnderDragonEntityTest.cpp
+    # EnderDragonEntity 烟花/爆炸伤害（IS_EXPLOSION 遗漏 Fireworks + ALWAYS_HURTS_ENDER_DRAGONS 标签查询）
+    common/entity/entities/boss/EnderDragonExplosionTest.cpp
     # EndermanEntity 受伤后瞬移逻辑测试
     entity/EndermanHurtTeleportTest.cpp
     # EndermanEntity AI 目标测试（ResetAngerGoal, WaterAvoidingRandomWalkingGoal）

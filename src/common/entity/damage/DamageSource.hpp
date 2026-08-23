@@ -369,8 +369,11 @@ public:
     {
         // 与 MC 1.21.11 DamageTypeTags.IS_EXPLOSION 标签保持一致：
         // fireworks, explosion, player_explosion, bad_respawn_point
-        return m_type == DamageType::Explosion || m_type == DamageType::ExplosionPlayer ||
-            m_type == DamageType::BadRespawnPoint;
+        // 注：此前实现遗漏 Fireworks，导致烟花爆炸伤害不被识别为爆炸——连带使末影龙爆炸免疫
+        // （ALWAYS_HURTS_ENDER_DRAGONS 成员=#is_explosion 含 fireworks）失效、烟花不走爆炸保护附魔、
+        // 末影水晶被烟花炸毁时误触二次爆炸等偏差。补 Fireworks 对齐 vanilla 成员集。
+        return m_type == DamageType::Fireworks || m_type == DamageType::Explosion ||
+            m_type == DamageType::ExplosionPlayer || m_type == DamageType::BadRespawnPoint;
     }
 
     [[nodiscard]] bool isFreezing() const override { return m_type == DamageType::Freeze; }
