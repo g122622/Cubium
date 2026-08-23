@@ -228,7 +228,6 @@ private:
 
         // Forge 扩展属性
         registerAttribute(*Attributes::entityGravity());
-        registerAttribute(*Attributes::swimSpeed());
 
         // MC 1.21+ 新增属性
         registerAttribute(*Attributes::movementEfficiency());

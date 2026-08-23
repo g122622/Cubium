@@ -320,15 +320,6 @@ TEST(EntityAttributes, EntityGravityAttribute)
     EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 0.08f);
 }
 
-TEST(EntityAttributes, SwimSpeedAttribute)
-{
-    // 确认游泳速度属性已定义 (Forge 扩展)
-    auto attr = entity::attribute::Attributes::swimSpeed();
-    ASSERT_NE(attr, nullptr);
-    EXPECT_EQ(attr->registryName(), "forge.swim_speed");
-    EXPECT_FLOAT_EQ(static_cast<f32>(attr->defaultValue()), 1.0f);
-}
-
 // ============================================================================
 // 新增物理常量测试
 // ============================================================================

@@ -63,7 +63,6 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
 
     // Forge 扩展属性
     EXPECT_TRUE(registry.isKnown(Attributes::ENTITY_GRAVITY));
-    EXPECT_TRUE(registry.isKnown(Attributes::SWIM_SPEED));
 
     // MC 1.21+ 新增属性
     EXPECT_TRUE(registry.isKnown(Attributes::MOVEMENT_EFFICIENCY));
@@ -273,7 +272,6 @@ TEST(AttributeRegistryTest, NormalizeNameAddsForgePrefix)
 {
     auto& registry = AttributeRegistry::instance();
     EXPECT_EQ(registry.normalizeName("entity_gravity"), "forge.entity_gravity");
-    EXPECT_EQ(registry.normalizeName("swim_speed"), "forge.swim_speed");
 }
 
 TEST(AttributeRegistryTest, NormalizeNameReturnsUnknownAsIs)

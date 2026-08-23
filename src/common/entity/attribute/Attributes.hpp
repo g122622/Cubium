@@ -260,19 +260,6 @@ inline std::unique_ptr<Attribute> entityGravity()
 }
 
 /**
- * @brief 游泳速度 (Forge 扩展)
- *
- * 决定实体在水中的游泳速度。
- * Forge 注册名: forge.swim_speed
- * 默认值: 1.0
- * 范围: 0.0 ~ 1024.0
- */
-inline std::unique_ptr<Attribute> swimSpeed()
-{
-    return std::make_unique<Attribute>("forge.swim_speed", 1.0, 0.0, 1024.0);
-}
-
-/**
  * @brief 移动效率
  *
  * 决定实体在减速方块（灵魂沙、蜂蜜块等）上的移动效率。
@@ -401,7 +388,6 @@ constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属�
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
-constexpr const char* SWIM_SPEED = "forge.swim_speed";         // Forge 扩展
 
 } // namespace Attributes
 
