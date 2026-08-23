@@ -2542,6 +2542,25 @@ void LivingEntity::updateActiveItem()
 // 空气供应和溺水
 // ============================================================================
 
+bool LivingEntity::canBreatheUnderwater() const
+{
+    // 对齐 vanilla 1.21.11 LivingEntity.canBreatheUnderwater():385：
+    //   return this.getType().is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
+    // 标签成员=亡灵（#undead）+ 水生生物（guardian/elder_guardian/axolotl/frog/turtle/
+    // glow_squid/鱼/鱿鱼/tadpole/armor_stand/copper_golem/nautilus）。
+    //
+    // 此前实现仅查 getCreatureAttribute()==Undead，遗漏 guardian/elder_guardian（Water 属性、
+    // 继承 MonsterEntity 非 WaterMobEntity，走基类 updateAirSupply）→ 守卫者在水中溺水扣血，
+    // 与 vanilla 相反（vanilla 守卫者永久水下生存）。改查标签对齐 vanilla，所有标签成员自动正确。
+    // 注：WaterMobEntity 子类（鱼/鱿鱼/海龟/美西螈等）override updateAirSupply 独立处理空气
+    // （水中回满、陆地消耗），不调用本方法，故本方法改查标签不影响其行为。
+    if (!EntityTypeTags::isInitialized()) {
+        // 标签未初始化（极早期/测试未初始化）回退到亡灵判定，保持原行为避免回归。
+        return getCreatureAttribute() == CreatureAttribute::Undead;
+    }
+    return EntityTypeTags::CAN_BREATHE_UNDER_WATER().contains(getTypeId());
+}
+
 i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 {
     // 水下呼吸附魔有概率不消耗空气

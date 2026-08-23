@@ -743,14 +743,18 @@ public:
     /**
      * @brief 是否可以在水下呼吸
      *
-     * 亡灵生物（僵尸、骷髅等）可以在水下呼吸。
+     * 对齐 vanilla 1.21.11 LivingEntity.canBreatheUnderwater():385：
+     *   return this.getType().is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
+     * 即查 CAN_BREATHE_UNDER_WATER 标签（成员=亡灵+水生生物：guardian/elder_guardian/
+     * axolotl/frog/turtle/glow_squid/鱼/鱿鱼/tadpole/armor_stand/copper_golem/nautilus）。
+     *
+     * 此前实现仅查 getCreatureAttribute()==Undead，遗漏 guardian/elder_guardian（Water 属性、
+     * 非 WaterMobEntity 派生，走基类 updateAirSupply）→ 守卫者在水中溺水扣血，与 vanilla
+     * 相反（vanilla 守卫者永久水下生存）。改查标签对齐 vanilla，所有标签成员自动正确。
      *
      * @return 如果可以在水下呼吸返回 true
      */
-    [[nodiscard]] virtual bool canBreatheUnderwater() const
-    {
-        return getCreatureAttribute() == CreatureAttribute::Undead;
-    }
+    [[nodiscard]] virtual bool canBreatheUnderwater() const;
 
     /**
      * @brief 减少空气供应

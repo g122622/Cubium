@@ -478,6 +478,8 @@ add_executable(mc_tests
     common/entity/combat/NoAngerTest.cpp
     # AVOIDS_GUARDIAN_THORNS 标签查询测试（守卫者荆棘反伤，魔法/爆炸/荆棘不反伤）
     common/entity/combat/GuardianThornsTest.cpp
+    # CAN_BREATHE_UNDER_WATER 标签查询测试（守卫者水下呼吸，修复硬编码致溺水）
+    common/entity/combat/BreatheUnderwaterTest.cpp
     # NO_IMPACT/NO_KNOCKBACK 标签查询测试（溺水不 markHurt，魔法/火焰不 indicateDamage）
     common/entity/combat/NoImpactNoKnockbackTest.cpp
     # 盔甲架四标签伤害语义测试（BURNS/IGNITES/CAN_BREAK/ALWAYS_KILLS + BYPASSES/IS_EXPLOSION）
