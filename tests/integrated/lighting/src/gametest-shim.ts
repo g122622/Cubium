@@ -23,10 +23,10 @@
 import * as GameTest from "@minecraft/server-gametest";
 import { RegistrationBuilder } from "@minecraft/server-gametest";
 
-// skyAccess 是 Cubium 在官方 RegistrationBuilder 之上扩展的专有链式方法。
+// skyAccess / loadSpawnChunks 是 Cubium 在官方 RegistrationBuilder 之上扩展的专有链式方法。
 // 基岩 BDS 的 RegistrationBuilder 无此方法，需降级为 no-op（返回 this 保持链式）。
 // setupTicks 是基岩原生方法，无需在此处理。
-const CUBIUM_ONLY_METHODS = new Set<string>(["skyAccess"]);
+const CUBIUM_ONLY_METHODS = new Set<string>(["skyAccess", "loadSpawnChunks"]);
 
 /**
  * 策略 1：向 RegistrationBuilder.prototype 注入 Cubium 专有方法的 no-op 降级实现。

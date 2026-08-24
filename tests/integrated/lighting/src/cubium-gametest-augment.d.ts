@@ -25,6 +25,23 @@ declare module "@minecraft/server-gametest" {
          * @returns RegistrationBuilder（链式）
          */
         skyAccess(skyAccess: boolean): RegistrationBuilder;
+
+        /**
+         * 强制加载结构中心周围半径 3 区块（7×7=49 区块），供跨区块光照测试使用。
+         *
+         * Cubium 行为：MinecraftStructurePlacer 在 loadSpawnChunks=true 时，以结构 footprint
+         * 中心为圆心 force 半径 LOAD_SPAWN_CHUNK_RADIUS=3 的所有区块（常量见
+         * MinecraftStructurePlacer.cpp:75）。49 区块远超 StarLight 光照传播 writeRadius=2
+         * 邻居需求，确保跨区块光照传播所需邻居区块均已加载且光照已计算。
+         * loadSpawnChunks 默认 false（仅 force 结构 footprint 区块，跨区块传播邻居可能未加载）。
+         *
+         * 对齐 Java GameTest TestData.loadSpawnChunks。基岩 BDS 无此方法，经 gametest-shim
+         * 降级为 no-op（lighting 测试本就 one-sided 仅 Cubium 跑）。
+         *
+         * @param loadSpawnChunks 是否强制加载结构中心周围刷怪区块
+         * @returns RegistrationBuilder（链式）
+         */
+        loadSpawnChunks(loadSpawnChunks: boolean): RegistrationBuilder;
     }
 
     interface Test {

@@ -54,6 +54,7 @@ import { registerCopperBulbEmissionTests } from "./tests/core/CopperBulbEmission
 import { registerRedstoneLampEmissionTests } from "./tests/core/RedstoneLampEmissionTests.js";
 import { registerNightSkyDarkeningTests } from "./tests/core/NightSkyDarkeningTests.js";
 import { registerWeatherSkyDarkeningTests } from "./tests/core/WeatherSkyDarkeningTests.js";
+import { registerCrossChunkLightingTests } from "./tests/core/CrossChunkLightingTests.js";
 
 registerBlockLightPropagationTests();
 registerSkyLightTests();
@@ -73,3 +74,4 @@ registerCopperBulbEmissionTests();
 registerRedstoneLampEmissionTests();
 registerNightSkyDarkeningTests();
 registerWeatherSkyDarkeningTests();
+registerCrossChunkLightingTests();
