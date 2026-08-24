@@ -160,6 +160,74 @@ function campfireSignalFireClearsWhenHayRemoved(test: Test): void {
   });
 }
 
+// 灵魂营火 2.0 伤害 GameTest：实体站在点燃的灵魂营火顶面受 2.0 火焰伤害（普通营火 1.0 的两倍）。
+//
+// C++ 链路：SoulCampfireBlock 继承 CampfireBlock，构造传 m_lightValue=10（CampfireBlock.cpp:431）。
+// CampfireBlock::onEntityCollision（CampfireBlock.cpp:232-267）伤害量分支
+// `const f32 damageAmount = (m_lightValue == 10) ? 2.0f : 1.0f;`（:264）——灵魂营火 m_lightValue==10
+// 走 2.0f 分支，普通营火 m_lightValue==15 走 1.0f 分支。对齐 vanilla wiki"灵魂营火伤害为营火两倍"
+// （tech_灵魂营火.txt 历史 20w22a）。
+//
+// 触发链路同 campfire_damages_entity_on_top：Entity::doBlockCollisions 每 tick 遍历实体 AABB 覆盖
+// 方块网格，灵魂营火未重写 getEntityInsideCollisionShape（基类默认 fullCube），实体站灵魂营火顶面
+// （矮方块 7/16=0.4375 高，脚 y=0.4375，shrink 后 floor→灵魂营火方块网格 y）AABB 与灵魂营火方块
+// 相交触发 onEntityCollision。onEntityCollision 内：isLit 守卫 → 服务端守卫 → LivingEntity 守卫 →
+// hurt(campfire, 2.0f)。
+//
+// 受击免疫节流同营火：m_hurtResistantTime 前 10 tick 阻挡，第 11 tick 放行造成 2.0 伤害，猪 10→8。
+// 2.0 伤害是本测试核心区分点：若 2.0 分支失效退化为 1.0，猪首击 10→9（HP=9），不满足 HP<=8 断言。
+//
+// 判定手段：runAtTickTime(15, ...) 在 15 tick 后检查猪 hp<=8（满血 10，首次 2.0 灵魂营火伤害后
+// 10→8）。用 runAtTickTime 而非 succeedWhen+HP<10：succeedWhen 查 HP<10 在 1.0 伤害时也满足
+// （10→9<10），无法区分 2.0 vs 1.0。HP<=8 严格要求 2.0 伤害（1.0 伤害首击 HP=9>8 失败）。
+// tick 15 是精确区分窗口：2.0 分支首击（tick 10）后 HP=8，1.0 分支首击（tick 10）后 HP=9，
+// 1.0 分支二击需 tick 20+（无敌帧 10 tick），tick 15 时 1.0 分支仍 HP=9。诊断实测：灵魂营火
+// tick 10 HP=8，普通营火 tick 10 HP=9，差 1 精确区分 2.0 vs 1.0 分支。maxTicks=120。
+//
+// 囚笼同 campfire_damages_entity_on_top：灵魂营火 (3,1,3)，猪 spawn (3,2,3)，四周+顶玻璃围 1×1。
+// 灵魂营火无水平固体邻居自毁（CampfireBlock 无 updatePostPlacement 自毁逻辑），下方 glass 实心支撑
+// 站立方块。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_灵魂营火.txt#伤害（灵魂营火伤害为营火两倍，2hp）
+// Ref: CampfireBlock.cpp:264（m_lightValue==10 ? 2.0f : 1.0f 伤害分支）
+// Ref: CampfireBlock.cpp:431（SoulCampfireBlock 构造传 m_lightValue=10）
+function soulCampfireDamagesEntityDouble(test: Test): void {
+  const pigType = "pig";
+
+  // (3,1,3) 放灵魂营火（y=1 空腔层，下方 y=0 glass 实心支撑）。setBlockType 直写用默认状态 LIT=true
+  // （SoulCampfireBlock 继承 CampfireBlock 默认状态 lit=true），点燃状态触发伤害。
+  test.setBlockType("minecraft:soul_campfire", { x: 3, y: 1, z: 3 });
+
+  // 囚笼：四周 y=2 层玻璃围住猪 spawn 格 (3,2,3)，顶部封顶防跳跃挤出。
+  test.setBlockType("minecraft:glass", { x: 2, y: 2, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 2 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 4 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 3, z: 3 });
+
+  // 猪 spawn 于 (3,2,3)（灵魂营火正上方），下落至灵魂营火顶面站稳。
+  test.spawn(pigType, { x: 3, y: 2, z: 3 });
+
+  // 15 tick 后检查：猪存在且 hp<=8（满血 10，首次 2.0 灵魂营火伤害后 10→8）。
+  // 区分窗口（诊断实测）：首次伤害约 tick 10 发生（落地快+无敌帧）。tick 15 时：
+  //   - 2.0 分支：首击 10→8，hp=8<=8 满足；
+  //   - 1.0 分支：首击 10→9，第二次需 tick 20+（无敌帧 10 tick），tick 15 时 hp=9>8 失败。
+  // 故 hp<=8 在 tick 15 精确区分 2.0 vs 1.0 分支（诊断实测：灵魂营火 tick10 hp=8，普通营火 tick10 hp=9）。
+  // 区域限定用 glass_pit 7×5×7 排除并行测试污染。
+  test.runAtTickTime(15, () => {
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation({ x: 0, y: 0, z: 0 }),
+      volume: { x: 7, y: 5, z: 7 },
+    });
+    test.assert(pigs.length > 0, "pig disappeared before taking soul campfire damage");
+    const health = pigs[0].getComponent("minecraft:health");
+    test.assert((health as any).currentValue <= 8,
+      `pig did not take 2.0 soul campfire damage (expected hp<=8, got hp=${(health as any).currentValue};`
+      + ` hp=9 would indicate 1.0 branch instead of 2.0)`);
+    test.succeed();
+  });
+}
+
 export function registerCampfireTests(): void {
   GameTest.register("BlockBehaviorTests", "campfire_damages_entity_on_top", campfireDamagesEntityOnTop)
     .structureName("gametests:glass_pit")
@@ -170,4 +238,7 @@ export function registerCampfireTests(): void {
   GameTest.register("BlockBehaviorTests", "campfire_signal_fire_clears_when_hay_removed", campfireSignalFireClearsWhenHayRemoved)
     .structureName("gametests:glass_pit")
     .maxTicks(80);
+  GameTest.register("BlockBehaviorTests", "soul_campfire_damages_entity_double", soulCampfireDamagesEntityDouble)
+    .structureName("gametests:glass_pit")
+    .maxTicks(120);
 }
