@@ -26,6 +26,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
 
 namespace mc {
@@ -37,20 +38,20 @@ bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random)
     if (level <= 0) {
         return false;
     }
-    // 每级 15% 概率触发
+    // 对齐 vanilla Enchantments.java:345 perLevel 0.15（每级 15% 触发概率）
     return random.nextFloat() < static_cast<f32>(level) * 0.15f;
 }
 
-i32 ThornsEnchantment::getThornsDamage(i32 level, math::Random& random)
+f32 ThornsEnchantment::getThornsDamage(math::Random& random)
 {
-    // 等级 > 10 时返回 level - 10，否则返回 1-4
-    if (level > 10) {
-        return level - 10;
-    }
-    return 1 + random.nextInt(4);
+    // 对齐 vanilla 1.21.11 Enchantments.java:342 THORNS 的 DamageEntity(constant 1.0, constant 5.0)：
+    //   Mth.randomBetween(random, 1.0F, 5.0F) = nextFloat() * (5.0 - 1.0) + 1.0 ∈ [1.0, 5.0)
+    // 与等级无关（无老版本 level>10 分支）。Cubium IRandom::nextFloat(min, max) 语义等价。
+    return random.nextFloat(1.0f, 5.0f);
 }
 
-void ThornsEnchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const
+void ThornsEnchantment::onUserHurt(
+    LivingEntity& user, Entity& attacker, ItemStack& enchantedItem, EquipmentSlot slot, i32 level) const
 {
     if (level <= 0 || &user == &attacker) {
         return;
@@ -59,22 +60,28 @@ void ThornsEnchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 lev
     // 使用用户实体的随机数生成器
     math::Random rng(static_cast<u64>(user.id()) ^ static_cast<u64>(user.ticksExisted()));
 
-    // 检查是否触发荆棘效果
+    // 检查是否触发荆棘效果（对齐 vanilla Enchantments.java:345 perLevel 0.15 概率门控）
     if (!shouldTrigger(level, rng)) {
         return;
     }
 
-    // 对攻击者造成荆棘伤害（仅对生物实体有效）
+    // 1. DamageEntity(constant 1.0, constant 5.0, THORNS)：对攻击者造成 [1.0,5.0) 随机荆棘伤害
+    //    （对齐 DamageEntity.java:28-29 p_345450_.hurtServer(...Mth.randomBetween(...))）。
+    //    荆棘伤害源 DamageSources::thorns(&user) 的 causingEntity=user（对齐 vanilla damageSource
+    //    owner = EnchantedItemInUse.owner() = 持有荆棘装备的受害者）。
     LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(&attacker);
     if (livingAttacker != nullptr) {
-        // 创建荆棘伤害来源
         auto damageSource = DamageSources::thorns(&user);
-        i32 thornsDamage = getThornsDamage(level, rng);
-        livingAttacker->hurt(damageSource, static_cast<f32>(thornsDamage));
+        f32 thornsDamage = getThornsDamage(rng);
+        livingAttacker->hurt(damageSource, thornsDamage);
     }
 
-    // 注意：荆棘会消耗装备耐久度
-    // 这部分逻辑需要在调用方处理，因为需要访问装备槽位
+    // 2. ChangeItemDamage(constant 2.0)：触发荆棘的护甲扣 2 耐久
+    //    （对齐 ChangeItemDamage.java:25-26 itemstack.hurtAndBreak((int)amount.calculate(level), ...)，
+    //    amount=constant 2.0 故 (int)2.0=2）。作用于 enchantedItem（触发荆棘的那件护甲，对齐 vanilla
+    //    EnchantedItemInUse.itemStack），由本方法处理而非调用方（见 README.md:152）。
+    //    hurtAndBreak 内部处理 Unbreaking 附魔减耗与耐久耗尽破坏回调（对齐 vanilla hurtAndBreak 语义）。
+    LivingEntity::hurtAndBreak(enchantedItem, 2, &user, slot);
 }
 
 } // namespace enchant

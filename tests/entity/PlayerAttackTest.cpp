@@ -450,28 +450,17 @@ TEST_F(ThornsEnchantmentTest, ShouldTrigger_LevelThree_About45Percent)
     EXPECT_LT(rate, 0.48f);
 }
 
-TEST_F(ThornsEnchantmentTest, GetThornsDamage_LevelOne_ReturnsOneToFour)
+TEST_F(ThornsEnchantmentTest, GetThornsDamage_RangeIsOneToFiveExclusive)
 {
+    // 对齐 vanilla 1.21.11 THORNS（Enchantments.java:342）DamageEntity(constant 1.0, constant 5.0)：
+    // Mth.randomBetween(random, 1.0F, 5.0F) ∈ [1.0, 5.0)，与等级无关（无老版本 level>10 分支）。
     math::Random rng(12345);
 
-    // 等级 1-3 应该返回 1-4 伤害
-    for (int level = 1; level <= 3; ++level) {
-        for (int i = 0; i < 100; ++i) {
-            i32 damage = item::enchant::ThornsEnchantment::getThornsDamage(level, rng);
-            EXPECT_GE(damage, 1);
-            EXPECT_LE(damage, 4);
-        }
-    }
-}
-
-TEST_F(ThornsEnchantmentTest, GetThornsDamage_HighLevel_ReturnsLevelMinusTen)
-{
-    math::Random rng(12345);
-
-    // 等级 > 10 应该返回 level - 10
-    for (int level = 11; level <= 20; ++level) {
-        i32 damage = item::enchant::ThornsEnchantment::getThornsDamage(level, rng);
-        EXPECT_EQ(damage, level - 10);
+    // 采样验证伤害始终落在 [1.0, 5.0)（与等级无关，签名已移除 level 参数）
+    for (int i = 0; i < 1000; ++i) {
+        f32 damage = item::enchant::ThornsEnchantment::getThornsDamage(rng);
+        EXPECT_GE(damage, 1.0f);
+        EXPECT_LT(damage, 5.0f);
     }
 }
 

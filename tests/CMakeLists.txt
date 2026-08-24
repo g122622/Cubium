@@ -181,6 +181,7 @@ add_executable(mc_tests
     common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
+    common/item/enchantment/ThornsDurabilityTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/item/enchantment/LocationEnchantmentTest.cpp

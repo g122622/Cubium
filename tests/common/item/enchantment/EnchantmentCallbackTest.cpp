@@ -24,6 +24,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 #include "common/TestWorldHelper.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/LivingEntity.hpp"
@@ -394,21 +396,30 @@ TEST_F(ThornsEnchantmentTest, ShouldTrigger)
 
 TEST_F(ThornsEnchantmentTest, GetThornsDamage)
 {
+    // 对齐 vanilla 1.21.11 THORNS（Enchantments.java:342）DamageEntity(constant 1.0, constant 5.0)：
+    // Mth.randomBetween(random, 1.0F, 5.0F) ∈ [1.0, 5.0)，与等级无关（无老版本 level>10 分支）。
     math::Random rng(12345);
 
-    // Level <= 10: 1-4 伤害
-    for (int level = 1; level <= 10; ++level) {
-        for (int i = 0; i < 100; ++i) {
-            i32 damage = ThornsEnchantment::getThornsDamage(level, rng);
-            EXPECT_GE(damage, 1);
-            EXPECT_LE(damage, 4);
-        }
+    // 采样 1000 次验证伤害始终落在 [1.0, 5.0) 且与等级无关
+    for (int i = 0; i < 1000; ++i) {
+        f32 damage = ThornsEnchantment::getThornsDamage(rng);
+        EXPECT_GE(damage, 1.0f);
+        EXPECT_LT(damage, 5.0f);
     }
 
-    // Level > 10: level - 10
-    EXPECT_EQ(ThornsEnchantment::getThornsDamage(11, rng), 1);
-    EXPECT_EQ(ThornsEnchantment::getThornsDamage(15, rng), 5);
-    EXPECT_EQ(ThornsEnchantment::getThornsDamage(20, rng), 10);
+    // 上界恰好可达（nextFloat 接近 1.0 时 damage 接近 5.0，但 < 5.0）
+    // 采样验证分布上下界均有覆盖（避免实现退化为常数）
+    f32 minSeen = 5.0f;
+    f32 maxSeen = 1.0f;
+    for (int i = 0; i < 10000; ++i) {
+        f32 damage = ThornsEnchantment::getThornsDamage(rng);
+        minSeen = std::min(minSeen, damage);
+        maxSeen = std::max(maxSeen, damage);
+    }
+    EXPECT_GE(minSeen, 1.0f);
+    EXPECT_LT(minSeen, 2.0f); // 应出现过接近 1.0 的样本
+    EXPECT_GT(maxSeen, 4.0f); // 应出现过接近 5.0 的样本
+    EXPECT_LT(maxSeen, 5.0f);
 }
 
 TEST_F(ThornsEnchantmentTest, GetTriggerChance)
@@ -577,16 +588,16 @@ TEST_F(EnchantmentHelperNewMethodsTest, ApplyThornsEnchantmentsWithEmptyArmor)
 
 TEST_F(EnchantmentHelperNewMethodsTest, EnchantmentHelperGetArmorSlotsSignature)
 {
-    // 验证新方法签名正确
-    // 这两个重载方法应该在 EnchantmentHelper 中可用
-    // applyArthropodEnchantments(LivingEntity&, Entity&)
-    // applyThornsEnchantments(LivingEntity&, Entity&)
+    // 验证方法签名正确：
+    //   applyArthropodEnchantments(LivingEntity&, Entity&)
+    //   applyThornsEnchantments(LivingEntity&, Entity&)
+    // （applyThornsEnchantments 旧的三参数 const 数组重载已移除，耐久消耗需写装备槽原件，
+    //  统一由 getMutableEquipment 内部遍历，见 EnchantmentHelper.cpp）
 
-    // 验证旧方法仍然可用
+    // 验证空护甲槽位数组格式正确（getArmorSlots 仍返回 const 视图供只读场景使用）
     std::array<const ItemStack*, 4> emptyArmor = {
         &ItemStack::EMPTY, &ItemStack::EMPTY, &ItemStack::EMPTY, &ItemStack::EMPTY};
 
-    // 验证空护甲槽位数组格式正确
     for (size_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(emptyArmor[i]->isEmpty());
     }

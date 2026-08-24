@@ -444,15 +444,8 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     // 9. 触发荆棘附魔（对攻击者造成反伤）
     // 注意：荆棘伤害不触发无限循环，因为荆棘伤害的 isThornsDamage() 返回 true
     if (!source.isThornsDamage() && trueSource != nullptr && trueSource != this) {
-        // 获取护甲槽位
-        std::array<const ItemStack*, 4> armorSlots = {
-            &getEquipment(EquipmentSlot::Head),  // 头盔
-            &getEquipment(EquipmentSlot::Chest), // 胸甲
-            &getEquipment(EquipmentSlot::Legs),  // 护腿
-            &getEquipment(EquipmentSlot::Feet)   // 靴子
-        };
-        // 调用荆棘附魔回调
-        item::enchant::EnchantmentHelper::applyThornsEnchantments(*this, *trueSource, armorSlots);
+        // 调用荆棘附魔回调（内部按 [Head,Chest,Legs,Feet] 遍历护甲，触发反伤 + 耐久消耗）
+        item::enchant::EnchantmentHelper::applyThornsEnchantments(*this, *trueSource);
     }
 
     // 10. 更新战斗状态

@@ -25,6 +25,7 @@
 #include "EnchantmentRegistry.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
@@ -355,36 +356,37 @@ void EnchantmentHelper::applyArthropodEnchantmentDamage(LivingEntity& user, Enti
     }
 }
 
-void EnchantmentHelper::applyThornsEnchantments(
-    LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots)
+void EnchantmentHelper::applyThornsEnchantments(LivingEntity& user, Entity& attacker)
 {
+    // 对齐 vanilla 1.21.11 THORNS（Enchantments.java:337-346）的 POST_ATTACK(VICTIM→ATTACKER) 派发：
+    // 遍历受害者护甲，每件带荆棘的护甲按概率（perLevel 0.15）触发反伤 + 耐久消耗。
+    // 顺序 [Head, Chest, Legs, Feet] 与 getArmorSlots() 一致（vanilla EnchantmentHelper 遍历
+    // ArmorSlot 枚举顺序）。耐久消耗需写装备槽原件，故用 getMutableEquipment 取可变引用。
+    static constexpr std::array<EquipmentSlot, 4> armorSlotsOrder = {
+        EquipmentSlot::Head,  // 头盔
+        EquipmentSlot::Chest, // 胸甲
+        EquipmentSlot::Legs,  // 护腿
+        EquipmentSlot::Feet   // 靴子
+    };
 
-    // 遍历所有护甲槽位
-    for (const ItemStack* slot : armorSlots) {
-        if (slot == nullptr || slot->isEmpty()) {
+    for (EquipmentSlot slot : armorSlotsOrder) {
+        ItemStack& armor = user.getMutableEquipment(slot);
+        if (armor.isEmpty()) {
             continue;
         }
 
         // 检查是否有荆棘附魔
-        i32 thornsLevel = getEnchantmentLevel(*slot, "minecraft:thorns");
+        i32 thornsLevel = getEnchantmentLevel(armor, "minecraft:thorns");
         if (thornsLevel <= 0) {
             continue;
         }
 
-        // 获取荆棘附魔实例
+        // 获取荆棘附魔实例并调用 onUserHurt 回调（反伤 + 耐久消耗均在 onUserHurt 内处理）
         const Enchantment* thornsEnchant = EnchantmentRegistry::get("minecraft:thorns");
         if (thornsEnchant) {
-            // 调用荆棘附魔的 onUserHurt 回调
-            thornsEnchant->onUserHurt(user, attacker, thornsLevel);
+            thornsEnchant->onUserHurt(user, attacker, armor, slot, thornsLevel);
         }
     }
-}
-
-void EnchantmentHelper::applyThornsEnchantments(LivingEntity& user, Entity& attacker)
-{
-    // 从 LivingEntity 获取护甲槽位
-    std::array<const ItemStack*, 4> armorSlots = user.getArmorSlots();
-    applyThornsEnchantments(user, attacker, armorSlots);
 }
 
 void EnchantmentHelper::applyArthropodEnchantments(LivingEntity& user, Entity& target)

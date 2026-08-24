@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include <memory>
 #include <string>
@@ -296,13 +297,17 @@ public:
     /**
      * @brief 当持有者受到伤害时调用
      *
-     * 用于实现荆棘的反伤效果。
+     * 用于实现荆棘的反伤效果。触发时由具体附魔（ThornsEnchantment）对攻击者造成反伤并消耗触发
+     * 装备的耐久（对齐 vanilla THORNS 的 DamageEntity + ChangeItemDamage）。
      *
      * @param user 受伤者（持有附魔物品的实体）
      * @param attacker 攻击者
+     * @param enchantedItem 触发附魔的物品（耐久消耗作用对象）
+     * @param slot 触发附魔的物品所在装备槽
      * @param level 附魔等级
      */
-    virtual void onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const;
+    virtual void onUserHurt(
+        LivingEntity& user, Entity& attacker, ItemStack& enchantedItem, EquipmentSlot slot, i32 level) const;
 
     // ========== 位置依赖附魔回调 ==========
 

@@ -23,6 +23,7 @@
 
 #include "Enchantment.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <string>
 
@@ -80,12 +81,15 @@ void Enchantment::onEntityDamaged(LivingEntity& user, Entity& target, i32 level)
     (void)level;
 }
 
-void Enchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const
+void Enchantment::onUserHurt(
+    LivingEntity& user, Entity& attacker, ItemStack& enchantedItem, EquipmentSlot slot, i32 level) const
 {
     // 默认实现：无操作
     // 子类可以覆盖此方法实现特定效果（如荆棘的反伤效果）
     (void)user;
     (void)attacker;
+    (void)enchantedItem;
+    (void)slot;
     (void)level;
 }
 

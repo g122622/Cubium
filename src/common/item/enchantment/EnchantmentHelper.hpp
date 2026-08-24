@@ -412,21 +412,11 @@ public:
     /**
      * @brief 当受伤时调用荆棘附魔的 onUserHurt 回调
      *
-     * 遍历所有护甲槽位的荆棘附魔，调用 onUserHurt 方法。
-     * 参考 MC 1.16.5 EnchantmentHelper.applyThornsEnchantments()
-     *
-     * @param user 受伤者
-     * @param attacker 攻击者
-     * @param armorSlots 护甲槽位数组（头盔、胸甲、护腿、靴子）
-     */
-    static void applyThornsEnchantments(
-        LivingEntity& user, Entity& attacker, const std::array<const ItemStack*, 4>& armorSlots);
-
-    /**
-     * @brief 当受伤时调用荆棘附魔的 onUserHurt 回调（从 LivingEntity 获取护甲）
-     *
-     * 遍历受伤者所有护甲的荆棘附魔，调用 onUserHurt 方法。
-     * 参考 MC 1.16.5 EnchantmentHelper.applyThornEnchantments()
+     * 按 [Head, Chest, Legs, Feet] 顺序遍历受伤者护甲槽位，对每件带荆棘附魔的护甲调用 onUserHurt。
+     * onUserHurt 内部按概率（perLevel 0.15）触发反伤（对攻击者造成 [1.0,5.0) 荆棘伤害）并消耗触发
+     * 护甲 2 点耐久（对齐 vanilla 1.21.11 THORNS 的 DamageEntity + ChangeItemDamage）。耐久消耗需写
+     * 装备槽原件，故本方法用 getMutableEquipment 取可变引用传入 onUserHurt，而非 getArmorSlots 的
+     * const 视图。
      *
      * @param user 受伤者
      * @param attacker 攻击者

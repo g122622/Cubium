@@ -2769,8 +2769,14 @@ void Player::attack(Entity& target)
         // 荆棘附魔反伤处理
         // 攻击成功后，被攻击者的荆棘附魔有概率反伤攻击者
         // 注意：荆棘伤害不会再次触发荆棘，防止无限循环
-        std::array<const ItemStack*, 4> armorSlots = livingTarget->getArmorSlots();
-        item::enchant::EnchantmentHelper::applyThornsEnchantments(*livingTarget, *this, armorSlots);
+        //
+        // 荆棘已在 livingTarget->hurt() → LivingEntity::actuallyHurt 步骤 9（LivingEntity.cpp:446）
+        // 内统一触发一次（applyThornsEnchantments 遍历受害者护甲，反伤 + 扣耐久）。
+        // 此处不再重复调用 applyThornsEnchantments——此前 Cubium 在 Player::attack 末尾与 actuallyHurt
+        // 两处都调用，导致玩家近战攻击时荆棘双重触发（反伤 + 护甲耐久消耗翻倍），偏离 vanilla 1.21.11
+        // 单次触发语义（vanilla 仅在攻击者侧 Player.attack→itemAttackInteraction→doPostAttack 触发一次，
+        // hurtServer/actuallyHurt 内无 doPostAttack）。Cubium 采用受害者侧 actuallyHurt 统一入口（等价简化：
+        // mob 攻击与 player 攻击都经 hurt→actuallyHurt，一处覆盖全部近战来源），故删除本处重复调用。
 
         // 20. 武器损耗
         // 攻击成功后消耗武器耐久度
