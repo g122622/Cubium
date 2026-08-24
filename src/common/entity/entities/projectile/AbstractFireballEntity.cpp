@@ -405,17 +405,17 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
     Entity* shooter = getShooter();
     LivingEntity* livingShooter = shooter != nullptr ? dynamic_cast<LivingEntity*>(shooter) : nullptr;
 
-    // 凋灵之首造成伤害
-    // 如果 shooter 是 LivingEntity，使用投射物伤害；否则使用魔法伤害
-    IndirectEntityDamageSource damageSource(livingShooter != nullptr ? DamageType::MobProjectile : DamageType::Magic,
-        shooter != nullptr ? shooter : this,
-        this,
-        false);
-    if (livingShooter != nullptr) {
-        damageSource.setProjectile();
-    } else {
-        damageSource.setMagicDamage();
-    }
+    // 凋灵之首造成伤害。对齐 vanilla WitherSkull.onHitEntity（WitherSkull.java:58-75）：
+    //   - 发射者为 LivingEntity：witherSkull(this, livingentity) 类型 8.0 伤害；
+    //   - 无 LivingEntity 发射者：magic() 类型 5.0 伤害。
+    // witherSkull 伤害类型属 IS_PROJECTILE / ALWAYS_KILLS_ARMOR_STANDS 等标签（MobProjectile 不属
+    // ALWAYS_KILLS_ARMOR_STANDS，此前用 MobProjectile 致凋灵之首命中盔甲架不直接击杀、死亡消息键错）。
+    // 两分支返回不同 DamageSource 子类（IndirectEntityDamageSource / EnvironmentalDamage），用
+    // unique_ptr<DamageSource> 多态持有。
+    std::unique_ptr<DamageSource> damageSource = livingShooter != nullptr
+        ? std::unique_ptr<DamageSource>(
+              std::make_unique<IndirectEntityDamageSource>(DamageSources::witherSkull(this, shooter)))
+        : std::unique_ptr<DamageSource>(std::make_unique<EnvironmentalDamage>(DamageSources::magic()));
 
     // 对 LivingEntity 造成伤害
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
@@ -427,7 +427,7 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
         if (livingShooter == nullptr) {
             damageAmount = 5.0f;
         }
-        causedDamage = livingTarget->hurt(damageSource, damageAmount);
+        causedDamage = livingTarget->hurt(*damageSource, damageAmount);
 
         // 如果造成伤害，施加凋零效果
         if (causedDamage) {
@@ -468,7 +468,7 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
         }
     } else {
         // 非 LivingEntity 目标（如船、矿车等）
-        result.hitEntity->hurt(damageSource, damageAmount);
+        result.hitEntity->hurt(*damageSource, damageAmount);
     }
 
     // 凋灵之首爆炸半径 1.0
