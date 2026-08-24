@@ -11,6 +11,13 @@ import { pollUntilSucceed } from "../../utils/test/poll.js";
 const PEN_FROM = { x: 0, y: 0, z: 0 };
 const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
+// fall_tower 结构尺寸 7×16×7（helper 相对坐标 x,z∈[0,6], y∈[0,15]）。
+// 中心 (3,*,3) 为 1×1 垂直玻璃管落管：y=0 中心格默认非固体，y=1..14 中心柱 air（下落通道），
+// 四周管壁 glass（y=1..15），y=15 顶部 glass 封顶。用于摔落免疫测试的垂直自由落体场景 +
+// getEntities 区域限定查询。同 WebTests.ts 的 fall_tower 常量。
+const TOWER_FROM = { x: 0, y: 0, z: 0 };
+const TOWER_VOLUME = { x: 7, y: 16, z: 7 };
+
 // 甜浆果灌木移动受伤 GameTest：成熟（AGE≥1）灌木对在其中水平移动的活体生物每 ~10 tick 造成 1 伤害。
 //
 // C++ 链路：SweetBerryBushBlock::onEntityCollision（SweetBerryBushBlock.cpp:170-214）。Entity::doBlockCollisions
@@ -196,6 +203,132 @@ function sweetBerryBushSpareAge0(test: Test): void {
   });
 }
 
+// 甜浆果灌木摔落免疫 GameTest：实体从高处垂直落入成熟甜浆果灌木，穿过灌木期间 fallDistance 被
+// FALL_DAMAGE_RESETTING 双机制反复清零，落到下方草地时不承受摔落伤害（hp 保持满血 10）。
+//
+// 与 damages_moving_entity 测试的根本区别：后者验证甜浆果灌木对在其中"水平移动"的实体造伤（age>0 且
+// prevX!=currX）；本测试验证甜浆果灌木作为 FALL_DAMAGE_RESETTING 标签成员，对"垂直下落穿过"的实体
+// 重置 fallDistance 致免疫摔伤。这两个机制相互独立：垂直下落无水平移动 → 不触发灌木伤害；同时
+// fallDistance 被重置 → 落地不摔伤。两者结合使实体安全落入甜浆果灌木。
+//
+// C++ 链路（对齐 vanilla 1.21.11，双机制缺一不可）：
+//   1. SweetBerryBushBlock::onEntityCollision（SweetBerryBushBlock.cpp:170-214）对活体调
+//      entity.setMotionMultiplier(0.025,0.05,0.025)。setMotionMultiplier 首行 resetFallDistance
+//      （对齐 vanilla makeStuckInBlock 第一行 Entity.java:2842-2845），doBlockCollisions 每帧调时
+//      清零 fallDistance——主机制。
+//   2. Entity::moveWithCollision 内 _checkFallDamageResettingBlocks（Entity.cpp）对齐 vanilla
+//      Entity.move:718-725 的 FALLDAMAGE_RESETTING ClipContext 射线：本帧位移长度平方 >=1.0 且
+//      fallDistance!=0 时沿移动方向射 min(位移,8) 长度射线，命中 BlockTags::FALL_DAMAGE_RESETTING
+//      标签方块即 resetFallDistance——补充机制，处理快速穿过未停留场景。sweet_berry_bush 在此标签内
+//      （BlockTags.cpp FALL_DAMAGE_RESETTING = #climbable + sweet_berry_bush + cobweb）。
+//
+//   关键：甜浆果灌木伤害分支由 age>0 && (prevX!=currX||prevZ!=currZ) 守卫（onEntityCollision:195-213），
+//   要求水平移动。fall_tower 1×1 玻璃管囚禁猪垂直自由落体，猪 x/z 恒定无水平位移 → 伤害分支永不触发，
+//   猪穿过灌木不掉血。同时 fallDistance 被双机制清零，落到草地不摔伤 → hp===10。
+//
+// vanilla 对照（SweetBerryBushBlock.java entityInside）：
+//   entity.makeStuckInBlock(state, vec3);  // vec3=(0.025,0.05,0.025)
+//   makeStuckInBlock 第一行 resetFallDistance（Entity.java:2842-2845）；
+//   伤害 if (state.getValue(AGE)>0 && !level.isClientSide && entity.xOld!=entity.getX() ...)，
+//   垂直下落 xOld==getX 故不伤害。与 Cubium 完全对齐。
+//
+// 几何（fall_tower 中心 1×1 玻璃管囚禁实体垂直自由落体，结构尺寸 7×16×7）：
+//   - (3,0,3) grass_block：承接猪的实方块 + 甜浆果灌木合法支撑（canSustain 检查
+//     BlockTags::VALID_SWEET_BERRY_BUSH_GROUND 含 grass_block）。fall_tower y=0 中心格默认非固体，
+//     需铺 grass_block 既作落地实方块又作灌木支撑。
+//   - (3,1,3) sweet_berry_bush age=3：成熟灌木，猪下落穿过触发 onEntityCollision → setMotionMultiplier
+//     （减速 + resetFallDistance 主机制）+ moveWithCollision 射线命中重置 fallDistance（补充机制）。
+//     甜浆果灌木 getCollisionShape=empty（继承 BushBlock 不重写，对齐 vanilla noCollision()），不阻挡
+//     猪下落。setSweetBerryBush 跨服务端放置（Cubium age=3 / 基岩 growth=3）。
+//   - 猪 spawn (3,11,3)：沿玻璃管垂直自由落体，先穿过 (3,1,3) 甜浆果灌木（fallDistance 被双机制重置），
+//     再落到 (3,0,3) grass_block 顶面（脚 y=1.0），fallDistance≈0 不摔伤。
+//
+// 判定手段：runAtTickTime(60) 在 60 tick 后检查猪 hp===10（满血，未摔伤）。落差约 10 格（y=11→y=1），
+// 若无 fallDistance 重置应承受 (10-3)*1=7 摔落伤害（hp=3）。hp===10 精确证明 fallDistance 被双机制重置
+// 致完全免疫。tick 60 留足余量（落体约 20 tick + 穿灌木减速延长 + 落地余量 ≈ 50 tick）。用 runAtTickTime
+// 而非 succeedWhen+hp：succeedWhen 查 hp===10 在猪尚未落地时也满足（满血），需确保猪已落地。
+// 区域限定 fall_tower 7×16×7 排除并行测试污染。
+//
+// 选猪：猪 MAX_HEALTH=10，落差 10 格无重置则 7 伤害（hp=3）与 hp===10 区分明显。猪体积适中落 fall_tower
+// 1×1 玻璃管居中。猪穿灌木垂直下落无水平移动不触发灌木伤害，故 hp 不受灌木影响，仅取决于摔伤免疫是否
+// 生效——hp===10 纯粹证明 FALL_DAMAGE_RESETTING 双机制对甜浆果灌木生效。
+//
+// 与 cobweb_resets_fall_distance_no_damage（WebTests.ts）互证：两者验证同一双机制对不同标签成员（cobweb
+// vs sweet_berry_bush）生效。若仅 cobweb 通过而本测试失败，说明 FALL_DAMAGE_RESETTING 标签漏配
+// sweet_berry_bush（标签成员缺陷）；若两者都失败，说明双机制本身缺陷。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_甜浆果.txt#生物（甜浆果灌木重置摔落距离）
+// Ref: SweetBerryBushBlock.cpp:170-214（onEntityCollision：setMotionMultiplier + age>0 水平移动伤害守卫）
+// Ref: Entity.cpp setMotionMultiplier（首行 resetFallDistance 主机制）+ _checkFallDamageResettingBlocks（射线补充机制）
+// Ref: BlockTags.cpp（FALL_DAMAGE_RESETTING 含 sweet_berry_bush）
+// Ref: SweetBerryBushBlock.java entityInside（vanilla makeStuckInBlock resetFallDistance + age>0 水平移动伤害）
+function sweetBerryBushResetsFallDistanceNoDamage(test: Test): void {
+  const pigType = "pig";
+
+  // (3,0,3) 放 grass_block：既作猪落地实方块（fall_tower y=0 中心格默认非固体），又作甜浆果灌木合法
+  // 支撑（canSustain 查 VALID_SWEET_BERRY_BUSH_GROUND 含 grass_block）。
+  test.setBlockType("minecraft:grass_block", { x: 3, y: 0, z: 3 });
+
+  // (3,1,3) 放甜浆果灌木 age=3（成熟灌木）。getCollisionShape=empty，猪可穿过触发 onEntityCollision →
+  // setMotionMultiplier（减速 + resetFallDistance 主机制）+ moveWithCollision 射线命中重置 fallDistance
+  // （补充机制）。setSweetBerryBush 跨服务端放置：Cubium age=3 / 基岩 growth=3。下方 grass_block 支撑
+  // 通过，setBlockType 不对新方块自身调 updatePostPlacement 故不会因支撑检查自毁。
+  setSweetBerryBush(test, { x: 3, y: 1, z: 3 }, 3);
+
+  // 猪 spawn 于 (3,11,3)，沿 fall_tower 1×1 玻璃管垂直自由落体，穿过 (3,1,3) 甜浆果灌木
+  // （fallDistance 被双机制重置，垂直下落无水平移动不触发灌木伤害）后落到 (3,0,3) grass_block 顶面。
+  test.spawn(pigType, { x: 3, y: 11, z: 3 });
+
+  // 60 tick 后检查：猪存在且 hp===10（满血，穿过甜浆果灌木双机制重置 fallDistance 致未摔伤）。
+  // 时序：落体约 20 tick + 穿灌木减速延长 + 落地余量 ≈ 50 tick，tick 60 留足余量。
+  // 若未重置 fallDistance，落差 10 格应承受 (10-3)*1=7 伤害（hp=3），hp===10 精确证明免疫。
+  test.runAtTickTime(60, () => {
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(TOWER_FROM),
+      volume: TOWER_VOLUME,
+    });
+    test.assert(pigs.length > 0, "pig disappeared before fall damage check");
+    const health = pigs[0].getComponent("minecraft:health");
+    test.assert((health as any).currentValue === 10,
+      `sweet berry bush did not reset fall distance (expected hp=10 no fall damage, got hp=${(health as any).currentValue};`
+        + ` hp<10 means pig took fall damage through sweet berry bush — fallDistance was not reset by FALL_DAMAGE_RESETTING dual mechanism;`
+        + ` note: vertical fall has no horizontal motion so bush damage branch (age>0 && prevX!=currX) must NOT trigger — any hp loss is fall damage, not bush damage)`);
+    test.succeed();
+  });
+}
+
+// 对照测试：猪从同样高度直接落到 grass_block（无甜浆果灌木）承受完整摔落伤害（血量大降）。
+// 验证落差 10 格确会造成重伤，使甜浆果灌木免疫判定有意义（非"落差不足本就不受伤"的假阳性）。
+// C++ 链路：Block::onFallenUpon 默认实现以 multiplier=1.0 调 causeFallDamage，伤害 (10-3)*1=7，猪 10→3。
+function sweetBerryBushAbsentDealsFallDamage(test: Test): void {
+  const pigType = "pig";
+
+  // (3,0,3) 放 grass_block（普通方块，走 Block::onFallenUpon 默认 multiplier=1.0 完整摔落伤害）。
+  test.setBlockType("minecraft:grass_block", { x: 3, y: 0, z: 3 });
+
+  // (3,1,3) 保持 air（无甜浆果灌木），猪直接落到 grass_block 承受完整摔落伤害。
+  test.setBlockType("minecraft:air", { x: 3, y: 1, z: 3 });
+
+  // 猪 spawn 于 (3,11,3)，自由落体到 grass_block 顶面，落差 10 格，承受 (10-3)*1=7 摔落伤害。
+  test.spawn(pigType, { x: 3, y: 11, z: 3 });
+
+  // 断言猪承受重伤：runAtTickTime(60) 检查 hp<8。grass_block 伤害 7（hp=3 < 8）。
+  // 甜浆果灌木免疫 hp=10 > 8，故 hp<8 证明落差足以重伤，甜浆果灌木免疫有意义（非落差不足假阳性）。
+  test.runAtTickTime(60, () => {
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(TOWER_FROM),
+      volume: TOWER_VOLUME,
+    });
+    test.assert(pigs.length > 0, "pig disappeared before fall damage check");
+    const health = pigs[0].getComponent("minecraft:health");
+    test.assert((health as any).currentValue < 8,
+      `pig should take heavy fall damage without sweet berry bush (expected hp<8, got hp=${(health as any).currentValue};`
+        + ` hp>=8 means fall distance was insufficient — sweet berry bush immunity test above would be a false positive)`);
+    test.succeed();
+  });
+}
+
 export function registerSweetBerryBushTests(): void {
   GameTest.register("BlockBehaviorTests", "sweet_berry_bush_damages_moving_entity", sweetBerryBushDamagesMovingEntity)
     .structureName("gametests:grass_pen")
@@ -203,4 +336,11 @@ export function registerSweetBerryBushTests(): void {
   GameTest.register("BlockBehaviorTests", "sweet_berry_bush_spare_age0", sweetBerryBushSpareAge0)
     .structureName("gametests:grass_pen")
     .maxTicks(400);
+  // 甜浆果灌木摔落免疫测试用 fall_tower（垂直自由落体场景），非 grass_pen（寻路场景）。
+  GameTest.register("BlockBehaviorTests", "sweet_berry_bush_resets_fall_distance_no_damage", sweetBerryBushResetsFallDistanceNoDamage)
+    .structureName("gametests:fall_tower")
+    .maxTicks(200);
+  GameTest.register("BlockBehaviorTests", "sweet_berry_bush_absent_deals_fall_damage", sweetBerryBushAbsentDealsFallDamage)
+    .structureName("gametests:fall_tower")
+    .maxTicks(200);
 }
