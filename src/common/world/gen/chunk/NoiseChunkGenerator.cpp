@@ -363,6 +363,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     auto beardifierDf = std::make_shared<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
 
     auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, beardifierDf]() {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "CreateNoiseChunk");
         // 将 shared_ptr 中的 Beardifier 移动到 unique_ptr 中传入 NoiseChunk
         auto beardifierUnique = std::make_unique<world::gen::density::Beardifier>(std::move(*beardifierDf));
         auto routerCopy = m_randomState->createRouterCopy();
@@ -387,8 +388,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     // 获取 BiomeSource 的参数列表用于生物群系查找
     auto* multiNoiseSource = dynamic_cast<world::biome::source::MultiNoiseBiomeSource*>(m_biomeSource.get());
     if (multiNoiseSource != nullptr) {
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.World.ChunkGen, "GenerateBiomes_MultiNoiseBiomeSource", "x", chunk.x(), "z", chunk.z());
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateBiomes_MultiNoiseBiomeSource");
 
         const auto& parameters = multiNoiseSource->parameters();
         constexpr i32 HORIZ_SIZE = 4;

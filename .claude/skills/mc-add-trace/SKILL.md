@@ -139,6 +139,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 8. 建议进入相关函数，然后在函数内部顶部加trace，这样能避免外层函数全是trace，影响可读性。除非相关逻辑没有被封装为函数，时才可以在外层函数加trace。
 9. 【命名空间】`.cpp` 文件通常在 include 区之后加一行 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；`.hpp` 文件用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
 10. 【内存追踪】分配级追踪由独立 CMake 开关 `MC_ENABLE_MEMORY` 控制（默认 OFF，须同时 `MC_ENABLE_TRACY=ON`）。**不要**直接用 `MC_TRACE_MEM_ALLOC/FREE` 宏去标 `std::vector::data()` 或 `shared_ptr::get()` 这类不稳定指针——会触发 Tracy 硬失败终止会话（详见下方「内存追踪」章节）。追踪 vector 用 `TracyTrackingAlloc`，追踪对象用 `TracyObjectTracker`，两者都在 `common/profiler/MemoryTracking.hpp`。
+11. 如下所示，如果父级trace已经包含详细的调试信息（比如区块坐标、实体ID等），则子级trace原则上需要省略这些信息，避免增加trace事件的开销和trace产物体积：
+```cpp
+void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateBiomes", "x", chunk.x(), "z", chunk.z());
+
+    // 其他逻辑省略
+
+    auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, beardifierDf]() {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "CreateNoiseChunk", "x", startX, "z", startZ); // ❌ 父级trace已经包含坐标信息，子级trace不需要重复
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "CreateNoiseChunk"); // ✅ 子级trace省略坐标信息，避免重复
+
+        // 其他逻辑省略
+    });
+}
+```
 
 ## 可用宏速查
 
