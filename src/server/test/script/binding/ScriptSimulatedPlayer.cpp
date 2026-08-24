@@ -26,6 +26,7 @@
 #include "common/entity/core/LivingEntity.hpp"     // LivingEntity::getEffect（getEffect 绑定读实体效果）
 #include "common/entity/effect/EffectInstance.hpp" // EffectInstance（getEffect 返回效果实例）
 #include "common/entity/effect/EffectType.hpp"     // EffectType + getEffectByResourceLocation/getEffectResourceLocation
+#include "common/item/core/Item.hpp"               // ItemRegistry::getItem（hasItemCooldown 按 typeId 查 Item）
 #include "common/item/core/ItemStack.hpp"          // giveItem/setItem 按值拷贝需完整类型
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
@@ -1271,6 +1272,64 @@ u64 registerSimulatedPlayerClassBinding(
         "setBodyRotation",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* /*thisVal*/, i32 /*argc*/, void** /*args*/)
             -> void* { return _throwNotImplemented(ctx, "setBodyRotation"); },
+        1);
+
+    // === 物品冷却查询（Cubium 扩展，官方基岩 API 无此直接形式）===
+    // 官方基岩通过 ItemStack.getComponent("minecraft:cooldown") 得 ItemCooldownComponent 再调
+    // getCooldownTicksRemaining(player)。Cubium 暂未绑定 ItemStack.getComponent 组件分发体系，故直接在
+    // SimulatedPlayer 上暴露两个扩展方法，转发 Player::hasItemCooldown / CooldownTracker::getCooldownTicks。
+    // 主要用于斧头破盾（BlocksAttacks.disable 设 100 tick 冷却）、风弹、紫颂果等冷却行为的集成测试断言。
+    // TODO: 绑定 ItemStack.getComponent("minecraft:cooldown") 完整组件体系后，迁移至官方 API 形态。
+    reg.method(
+        "hasItemCooldown",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("hasItemCooldown(typeId: string)");
+            }
+            auto typeIdOpt = ctx.toString(args[0]);
+            if (!typeIdOpt.has_value()) {
+                return ctx.throwTypeError("hasItemCooldown: typeId must be a string");
+            }
+            std::string typeId = *typeIdOpt;
+            if (typeId.find(':') == std::string::npos) {
+                typeId = "minecraft:" + typeId;
+            }
+            const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(typeId));
+            if (item == nullptr) {
+                return ctx.createBoolean(false);
+            }
+            return ctx.createBoolean(player->hasItemCooldown(item));
+        },
+        1);
+    reg.method(
+        "getItemCooldownTicks",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            if (argc < 1 || !ctx.isString(args[0])) {
+                return ctx.throwTypeError("getItemCooldownTicks(typeId: string)");
+            }
+            auto typeIdOpt = ctx.toString(args[0]);
+            if (!typeIdOpt.has_value()) {
+                return ctx.throwTypeError("getItemCooldownTicks: typeId must be a string");
+            }
+            std::string typeId = *typeIdOpt;
+            if (typeId.find(':') == std::string::npos) {
+                typeId = "minecraft:" + typeId;
+            }
+            const mc::Item* item = mc::ItemRegistry::instance().getItem(mc::ResourceLocation::parse(typeId));
+            if (item == nullptr) {
+                return ctx.createInt32(0);
+            }
+            // 返回剩余冷却 tick（无冷却返 0）。对齐官方 getCooldownTicksRemaining 语义。
+            return ctx.createInt32(player->cooldownTracker().getCooldownTicks(item));
+        },
         1);
 
     // 注：setSkin(options: PlayerSkinData) 属皮肤/装饰类，按任务范围排除（不绑定）。
