@@ -36,6 +36,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
 #include "common/item/Items.hpp"
@@ -236,38 +237,85 @@ const Item* EnderPearlEntity::getDefaultItem() const
 
 void EnderPearlEntity::onEntityHit(const RayTraceResult& result)
 {
-    mc::Entity* shooter = getShooter();
-
-    // 对发射者造成5点伤害（传送伤害）
-    if (shooter && shooter->isAlive()) {
-        LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
-        if (livingShooter != nullptr) {
-            auto damageSource = DamageSources::fall();
-            livingShooter->hurt(damageSource, 5.0f);
-        }
+    // 命中实体：对目标施加 0 点投掷伤害（thrown 类型），仅用于触发受击/盾牌格挡/荆棘等副作用，
+    // 不造成实际伤害。对发射者的传送与摔落伤害统一在 teleportOwnerOnImpact 处理（由 onBlockHit/
+    // 本函数末尾调用）。对齐 vanilla ThrownEnderpearl.onHitEntity（ThrownEnderpearl.java:77-80）。
+    if (result.hitEntity == nullptr) {
+        return;
     }
-    (void)result;
+    Entity* shooter = getShooter();
+    IndirectEntityDamageSource thrownSource = DamageSources::thrown(this, shooter);
+    result.hitEntity->hurt(thrownSource, 0.0f);
+
+    // 命中实体同样传送发射者（vanilla onHit 在 onHitEntity 之后无条件执行传送）。
+    teleportOwnerOnImpact();
 }
 
-void EnderPearlEntity::onImpact(const RayTraceResult& result)
+void EnderPearlEntity::onBlockHit(const RayTraceResult& result)
 {
-    mc::Entity* shooter = getShooter();
+    // 命中方块：先调基类 onBlockHit 保留方块碰撞响应（onProjectileHit + 清零速度），
+    // 再传送发射者。对齐 vanilla ThrownEnderpearl.onHitBlock（经 super.onHit 分发）+ onHit 传送。
+    ProjectileEntity::onBlockHit(result);
+    teleportOwnerOnImpact();
+}
 
-    // 传送发射者
-    if (shooter && shooter->isAlive()) {
-        // 检查发射者是否是生物
-        LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
-        if (livingShooter) {
-            // 如果命中实体，不能传送到实体内部
-            if (result.type != RayTraceResultType::Entity || !result.hitEntity) {
-                // 传送到落点
-                shooter->setPosition(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
-                // 造成摔落伤害
-                auto damageSource = DamageSources::fall();
-                livingShooter->hurt(damageSource, 5.0f);
-            }
-        }
+void EnderPearlEntity::teleportOwnerOnImpact()
+{
+    // 对齐 vanilla ThrownEnderpearl.onHit（ThrownEnderpearl.java:83-146）。
+    // 仅服务端执行；发射者存在、存活且（若是 LivingEntity）非睡觉时才传送。
+    if (m_world == nullptr || m_world->isClientSide()) {
+        remove();
+        return;
     }
+
+    Entity* shooter = getShooter();
+    if (shooter == nullptr) {
+        remove();
+        return;
+    }
+
+    // isAllowedToTeleportOwner 门控：同维度时 LivingEntity 须存活；玩家额外须非睡觉。
+    // （Cubium 中仅 Player 可睡觉，LivingEntity 无 isSleeping，故睡眠门控仅对 Player 生效。）
+    LivingEntity* livingShooter = dynamic_cast<LivingEntity*>(shooter);
+    if (livingShooter != nullptr) {
+        if (!livingShooter->isAlive()) {
+            remove();
+            return;
+        }
+        Player* sleepingPlayer = dynamic_cast<Player*>(livingShooter);
+        if (sleepingPlayer != nullptr && sleepingPlayer->isSleeping()) {
+            remove();
+            return;
+        }
+    } else if (!shooter->isAlive()) {
+        remove();
+        return;
+    }
+
+    // 传送目标：珍珠上一帧位置（prevPosition，对应 vanilla oldPosition()），避免传送进命中点
+    // 所在的方块/实体内部。
+    const Vector3 dest = prevPosition();
+    shooter->setPosition(dest.x, dest.y, dest.z);
+    // 传送后重置摔落距离，避免继承传送前的高空摔落伤害。对齐 vanilla resetFallDistance()。
+    shooter->setFallDistance(0.0f);
+
+    Player* player = dynamic_cast<Player*>(shooter);
+    if (player != nullptr) {
+        // 玩家分支：施加 5.0 末影珍珠摔落伤害（enderPearl 类型，属 IS_FALL/BYPASSES_ARMOR）。
+        // 对齐 vanilla serverplayer1.hurtServer(enderPearl(), 5.0F)。
+        EnvironmentalDamage pearlSource = DamageSources::enderPearl();
+        player->hurt(pearlSource, 5.0f);
+
+        // TODO(末影螨生成未实现): 对齐 vanilla ThrownEnderpearl.onHit 的 5% 末影螨生成
+        // （random.nextFloat()<0.05 && 难度非和平时在发射者位置生成 EndermiteEntity，
+        // EntitySpawnReason::TRIGGERED）。EntityTypeKeys 缺 endermite 枚举，待补 setTypeId
+        // 后接入完整 spawn 流程。
+    }
+    // 非玩家 mob 分支：仅传送，不施加伤害（对齐 vanilla 非 ServerPlayer 分支无 hurtServer）。
+
+    // 传送音效。对齐 vanilla playSound(SoundEvents.PLAYER_TELEPORT)。
+    // TODO(音效缺失): Cubium 未定义 PLAYER_TELEPORT，暂用末影人传送音效近似。
+    playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
 
     remove();
 }

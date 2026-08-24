@@ -152,7 +152,14 @@ public:
 
 protected:
     void onEntityHit(const RayTraceResult& result) override;
-    void onImpact(const RayTraceResult& result) override;
+    void onBlockHit(const RayTraceResult& result) override;
+
+private:
+    // 命中实体或方块后将发射者传送至珍珠落点（prevPosition），并对玩家施加 5.0 末影珍珠摔落伤害
+    // + 5% 概率生成末影螨。对齐 vanilla ThrownEnderpearl.onHit（命中实体/方块统一在此处理，
+    // 由基类 onImpact 分发 onEntityHit/onBlockHit 触发，偏转时基类不分发故不传送，对齐 vanilla
+    // hitTargetOrDeflectSelf 偏转不调 onHit 的语义）。传送完成后移除珍珠实体。
+    void teleportOwnerOnImpact();
 };
 
 /**

@@ -164,17 +164,18 @@ function enderPearlThrownSpawnsEntityTest(test: Test): void {
   });
 }
 
-// 末影珍珠落地传送投掷者对齐测试（验证 EnderPearlEntity::onImpact 传送 shooter 到落点）。
+// 末影珍珠落地传送投掷者对齐测试（验证 EnderPearlEntity 命中方块后传送 shooter 到珍珠落点）。
 //
 // wiki 参考 tech_末影珍珠.txt：末影珍珠投出后落地（撞方块）将投掷者传送到落点，并造成5坠落伤害。
-// EnderPearlEntity::onImpact（ProjectileItemEntity.cpp:252）检查 result.type != Entity（撞方块非实体）
-// 时 setPosition(hitPosition) 传送 shooter + hurt(fall, 5.0f)。
+// EnderPearlEntity::onBlockHit 调基类 onBlockHit（方块碰撞响应）后调 teleportOwnerOnImpact：
+// 将 shooter 传送到珍珠 prevPosition（上一帧位置，避免传送进落点方块内部）+ setFallDistance(0)
+// + 玩家分支 hurt(enderPearl, 5.0f)（enderPearl 属 IS_FALL/BYPASSES_ARMOR）。非玩家 mob 仅传送不伤害。
 //
 // 环境选择：creeper_pit（7×5×7 开放坑，y=0 grass_block 地板）。Survival 玩家 (1,2,3) 持1末影珍珠，
 // 默认 yaw=0 pitch=0 朝 +Z 水平投掷，末影珍珠飞 ~5 格落地，传送玩家到落点（z 增大）。
 //
 // 时序：tick 5 useItem(末影珍珠) → spawnEntity(ender_pearl) + shrink(1) + shootFrom 朝 +Z 水平
-// → 末影珍珠飞行（速度1.5/tick + 重力下沉）→ 撞地面方块 onImpact → setPosition 传送玩家到落点。
+// → 末影珍珠飞行（速度1.5/tick + 重力下沉）→ 撞地面方块 onBlockHit → teleportOwnerOnImpact 传送玩家。
 //
 // 判定手段：玩家 z 坐标从 3 变化 >1（传送到落点，z 增大）。末影珍珠落地落点 z>4，传送后玩家 z>4。
 // 用 getEntities({type:"player"}) 查玩家位置（spawnSimulatedPlayer 返回对象 .location 未绑定，
@@ -213,6 +214,60 @@ function enderPearlTeleportsThrowerTest(test: Test): void {
       test.assert(false,
         `ender_pearl_teleports: failed: player z=${z} (expected |z-3|>1, `
         + `ender pearl should teleport thrower to landing point)`);
+    },
+  });
+}
+
+// 末影珍珠传送造成 5 点摔落伤害对齐测试（验证 teleportOwnerOnImpact 玩家分支 hurt(enderPearl, 5.0f)）。
+//
+// wiki 参考 tech_末影珍珠.txt：末影珍珠落地传送投掷者时造成 5 点坠落伤害。vanilla 伤害类型为
+// ender_pearl（属 IS_FALL/BYPASSES_ARMOR，死亡消息 death.attack.fall）。任务 #280 修复前 Cubium 用
+// fall() 类型且伤害施加对象/时机错乱；修复后统一在 teleportOwnerOnImpact 玩家分支 hurt(enderPearl, 5.0f)。
+//
+// 环境选择：creeper_pit + night batch（night 避免怪物干扰 + 统一隔离）。Survival 玩家 (1,2,3) 满 HP=20
+// 持1末影珍珠，朝 +Z 投掷落地传送。
+//
+// 时序：tick 5 useItem(末影珍珠) → 末影珍珠飞行落地 onBlockHit → teleportOwnerOnImpact：
+//   传送玩家 + hurt(enderPearl, 5.0f)。enderPearl 属 IS_FALL，玩家无摔落保护时全额 5.0。
+//
+// 判定手段：玩家 HP 从 20 降到 15（受 5.0 enderPearl 伤害）。HP 数值固定非随机，确定性强。
+//   用 getEntities({type:"player"}) 查玩家实体读 health 组件 currentValue。
+//   若伤害类型修复失效（enderPearl 未走 IS_FALL 管线或数值错），HP 偏离 15 → 超时 FAIL。
+function enderPearlTeleportDealsDamageTest(test: Test): void {
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "thrower", 0 as any);
+  const pearl = new ItemStack(ENDER_PEARL, 1);
+  player.setItem(pearl as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  test.runAtTickTime(5, () => {
+    (player as any).useItem(pearl as unknown as Parameters<typeof player.useItem>[0]);
+  });
+
+  // 轮询断言：玩家 HP=15（20 - 5.0 enderPearl 伤害）。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length < 1) return false;
+    const health = (players[0] as any).getComponent("minecraft:health") as any;
+    if (health === undefined) return false;
+    return (health.currentValue as number) === 15;
+  }, {
+    startTick: 12,
+    interval: 2,
+    maxTick: 70,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const health = (players[0] as any)?.getComponent?.("minecraft:health") as any;
+      const hp = health?.currentValue;
+      test.assert(false,
+        `ender_pearl_damage: failed: player HP=${hp} (expected 15 = 20 - 5.0 enderPearl damage; `
+        + `if HP=20 pearl never teleported/damaged, if other value damage type/amount wrong)`);
     },
   });
 }
@@ -282,6 +337,9 @@ export function registerThrowableItemTests(): void {
     .structureName("gametests:creeper_pit")
     .maxTicks(80);
   GameTest.register("MobBehaviorTests", "ender_pearl_teleports_thrower", enderPearlTeleportsThrowerTest)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(100);
+  GameTest.register("MobBehaviorTests", "ender_pearl_teleport_deals_damage", enderPearlTeleportDealsDamageTest)
     .structureName("gametests:creeper_pit")
     .maxTicks(100);
   GameTest.register("MobBehaviorTests", "experience_bottle_spawns_orbs", experienceBottleSpawnsOrbsTest)
