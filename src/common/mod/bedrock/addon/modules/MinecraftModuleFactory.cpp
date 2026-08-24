@@ -2938,6 +2938,54 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         },
         1);
 
+    // --- ItemStack.getComponent(componentId): object | undefined ---
+    // 对齐基岩 @minecraft/server ItemStack.getComponent(componentId)：按组件 id 返回组件数据对象，
+    // 组件不存在（物品不具备该组件）返 undefined。基岩原版 ItemStack.getComponent 支持 durability/
+    // enchantable/food/cooldown 等多个 item 组件，Cubium 此前未实现 ItemStack.getComponent（仅 Entity 有），
+    // 致所有耐久类测试只能用"数量不变"间接验证耐久损耗（盾牌/弓/打火石/锄/剪刀），无法直接断言耐久值下降。
+    //
+    // 本方法分发 minecraft:durability 分支，返回纯数据对象 { damage, maxDurability }：
+    //   - damage：已损耗耐久（ItemStack::getDamage 即 m_damage，0 表示满耐久）。
+    //   - maxDurability：最大耐久（ItemStack::getMaxDamage 转发 Item::maxDamage，如盾牌 336、三叉戟 250）。
+    // 非可损坏物品（isDamageable()==false，maxDamage==0，如石头/木棍）返 undefined，对齐基岩"组件不存在
+    // 返 undefined"语义（README:63 多处强调此约定）。
+    //
+    // 返回纯数据对象而非 wrap 组件类（区别于 Entity.getComponent 的 wrapComponent）：durability 是值快照，
+    // 无需 ScriptClassRegistry 注册 DurabilityComponent、无需管理句柄生命周期，与 getEnchantments 返回对象
+    // 同范式（createObject + setPropertyInt）。getDamage/getMaxDamage 是 const 只读，owned 拷贝
+    // （Equippable.getEquipment）与非 owned 快照（Container.getItem）均安全。
+    //
+    // TODO: 其他 item componentId（enchantable/food/cooldown 等）按需补全——当前仅 durability 有测试需求。
+    itemStackReg.method(
+        "getComponent",
+        [](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* stack = static_cast<mc::ItemStack*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
+            if (stack == nullptr || argc < 1 || !ctx.isString(args[0])) {
+                return ctx.createUndefined();
+            }
+            auto compId = ctx.toString(args[0]);
+            if (!compId) {
+                return ctx.createUndefined();
+            }
+            // normalize 前缀（对齐 Entity.getComponent:1328-1331 规范化语义）。
+            std::string normalized = *compId;
+            if (normalized.find(':') == std::string::npos) {
+                normalized = "minecraft:" + normalized;
+            }
+            if (normalized == "minecraft:durability") {
+                // 非可损坏物品返 undefined（对齐基岩"组件不存在返 undefined"）。
+                if (!stack->isDamageable()) {
+                    return ctx.createUndefined();
+                }
+                void* obj = ctx.createObject();
+                ctx.setPropertyInt(obj, "damage", stack->getDamage());
+                ctx.setPropertyInt(obj, "maxDurability", stack->getMaxDamage());
+                return obj;
+            }
+            return ctx.createUndefined();
+        },
+        1);
+
     // --- Direction 枚举对象（@minecraft/server）---
     // 官方 Direction 是字符串枚举（Down="Down"...West="West"），非数字。导出为只读对象，
     // 各键值均为自身字符串名（对齐 system/world 全局对象导出模式）。接收 JS Direction 字符串时

@@ -28,6 +28,7 @@ import { registerFeatherFallingTests } from "./tests/combat/FeatherFallingTests.
 import { registerResistanceEffectTests } from "./tests/combat/ResistanceEffectTests.js";
 import { registerWitherEffectTests } from "./tests/combat/WitherEffectTests.js";
 import { registerShieldDisableTests } from "./tests/combat/ShieldDisableTests.js";
+import { registerShieldDurabilityTests } from "./tests/combat/ShieldDurabilityTests.js";
 import { registerCooldownScalingTests } from "./tests/combat/CooldownScalingTests.js";
 import { registerSweepAttackTests } from "./tests/combat/SweepAttackTests.js";
 import { registerKnockbackTests } from "./tests/combat/KnockbackTests.js";
@@ -260,6 +261,7 @@ registerFeatherFallingTests();
 registerResistanceEffectTests();
 registerWitherEffectTests();
 registerShieldDisableTests();
+registerShieldDurabilityTests();
 registerCooldownScalingTests();
 registerSweepAttackTests();
 registerKnockbackTests();
