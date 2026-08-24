@@ -1,7 +1,9 @@
-// 滴水石锥行为 GameTest（石笋尖端摔落伤害）。
+// 滴水石锥行为 GameTest（石笋尖端摔落伤害、钟乳石坠落砸实体伤害）。
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { BlockPermutation } from "@minecraft/server";
+import type { Vector3 } from "@minecraft/server";
 
 // fall_tower 结构尺寸 7×16×7（helper 相对坐标 x,z∈[0,6], y∈[0,15]）。
 // 中心 (3,*,3) 为 1×1 垂直玻璃管落管：y=0 中心格默认为 rail（非固体），y=1..14 中心柱 air
@@ -80,8 +82,111 @@ function stalagmiteTipKillsFallingEntity(test: Test): void {
   });
 }
 
+// 钟乳石坠落砸实体伤害 GameTest：朝下尖端的钟乳石失去上方支撑后坠落，砸中下方站立的实体造成
+// 高额伤害（远超实体血量），实体被砸死消失。
+//
+// C++ 链路（独立于石笋 onFallenUpon 的另一条伤害链路，零测试覆盖）：
+//   1. 触发：朝下 tip 钟乳石上方支撑被移除 → PointedDripstoneBlock::updatePostPlacement
+//      （PointedDripstoneBlock.cpp:190-229）facing==Up（==opposite(Down tipDirection)）→
+//      isValidPointedDripstonePlacement（:164-184，朝下钟乳石支撑方向 Up，需上方 isSolidSide(Up)
+//      或同向滴石）返回 false（上方变 air）→ tipDirection==Down → scheduleBlockTick(DELAY_BEFORE_FALLING=2)。
+//   2. tick（:290-308）：isStalactite → _spawnFallingStalactite（:951-1014）逐格向下生成
+//      FallingBlockEntity，仅尖端 isTip 设伤害参数：
+//        fallHeight = max(pos.y - currentPos.y + 1, 6) = max(10-10+1, 6) = 6
+//        damagePerDist = FALLING_STALACTITE_FALL_DAMAGE_PER_DISTANCE(1.0F) * fallHeight = 6.0
+//        maxDmg = FALLING_STALACTITE_MAX_DAMAGE = 40
+//        damageType = FallingStalactite
+//   3. FallingBlockEntity::tick（MiscEntities.cpp:152-206）：重力 -0.04/tick 下落，onGround 时
+//      _handleLanding（:208）→ m_hurtEntities 时 _hurtEntities（:399-459）：
+//        fallDistance = m_fallStartY(10) - y()(落地≈1.0) ≈ 9.0
+//        effectiveDistance = ceil(fallDistance - 1.0) = ceil(8.0) = 8
+//        damage = min(effectiveDistance * damagePerDist, maxDmg) = min(8*6, 40) = min(48, 40) = 40
+//        FallingStalactite 分支：EntityDamageSource(DamageSources::fallingStalactite(this))
+//        hurtBox = boundingBox()（FallingBlockEntity size 0.98×0.98，落地 y∈[1.0,1.98]）
+//        遍历 hurtBox 内 LivingEntity 调 hurt（仅生物）。
+//
+// vanilla 对照（PointedDripstoneBlock.java:291-303 spawnFallingStalactite）：
+//   int i = Math.max(1 + startY - currentY, 6); float f = 1.0F * i;
+//   fallingblockentity.setHurtsEntities(f, 40); break;
+// Cubium 完全对齐（fallHeight、damagePerDist=1.0F*i、maxDmg=40、damageType=FallingStalactite）。
+//
+// 几何（fall_tower 中心 1×1 玻璃管囚笼，结构自带管壁 y=1..15 围住 (3,*,3)）：
+//   - (3,0,3) cobblestone：猪落脚支撑面（fall_tower y=0 中心格默认 rail 非固体，需铺 cobblestone
+//     作猪落脚实体方块）。猪 spawn (3,2,3) 下落落 cobblestone 顶（脚 y=1.0），AABB y∈[1.0,1.9]，
+//     水平 0.9 宽中心 (3.5,*,3.5)。
+//   - (3,10,3) 朝下 tip 钟乳石：坠落源。需 vertical_direction=down + dripstone_thickness=tip
+//     （默认状态是朝上 tip 石笋，必须显式设朝下）。用 setBlockPermutation 放置。
+//   - (3,11,3) cobblestone：钟乳石上方支撑（朝下钟乳石支撑方向 Up，需上方 isSolidSide(Up)）。
+//     待 runAtTickTime(2) 移除设 air 触发钟乳石 updatePostPlacement(Up,air) → 坠落链路。
+//   - 中间 (3,2..9,3) air：FallingBlockEntity 下落通道（fall_tower 管内中心柱 air，畅通无阻）。
+//
+// 时序（确定性，零随机）：
+//   tick 2：移除 (3,11,3) 支撑 → 钟乳石 updatePostPlacement 同步 scheduleBlockTick(2)。
+//   tick 4（2+DELAY_BEFORE_FALLING）：tick 触发 _spawnFallingStalactite 生成 FallingBlockEntity
+//     于 (3,10,3)，钟乳石格变 air。
+//   tick 4 起：FallingBlockEntity 重力下落，约 30-40 tick 从 y=10 落到 y=1（重力 -0.04/tick 累积）。
+//   落地 onGround：_hurtEntities，hurtBox(y∈[1.0,1.98]) 与猪 AABB(y∈[1.0,1.9]) 相交，命中猪
+//     造成 40 伤害 >> 猪 MAX_HEALTH 10，猪死。
+//
+// 判定手段：succeedWhen 每 tick 检查猪实体已消失（length===0，被 40 伤害砸死）。区域限定
+// fall_tower 7×16×7 排除并行测试污染。下落是确定性时序（重力 + AABB，零随机），非 flaky。
+// maxTicks=300 留足下落时间（重力 -0.04/tick，10 格下落约 30-40 tick + 落地余量）。
+//
+// 与 stalagmite_tip_kills_falling_entity 互补：石笋测试覆盖 onFallenUpon（实体摔到石笋尖端），
+// 本测试覆盖 _spawnFallingStalactite + _hurtEntities（钟乳石坠落砸实体），两条独立伤害链路。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_滴水石锥.txt#钟乳石（钟乳石从天花板坠落
+//      砸中下方实体造成伤害，伤害 = 下落格数 × 系数，上限 40）
+// Ref: PointedDripstoneBlock.cpp:951-1014（_spawnFallingStalactite：尖端设伤害参数）
+// Ref: MiscEntities.cpp:399-459（_hurtEntities：fallDistance/damage 计算 + FallingStalactite 分支）
+// Ref: PointedDripstoneBlock.java:291-303（vanilla spawnFallingStalactite：setHurtsEntities(f,40)）
+function stalactiteFallKillsEntityBelow(test: Test): void {
+  const pigType = "pig";
+
+  // (3,0,3) 放 cobblestone 作猪落脚支撑面（fall_tower y=0 中心格默认 rail 非固体）。
+  test.setBlockType("minecraft:cobblestone", { x: 3, y: 0, z: 3 });
+
+  // (3,10,3) 放朝下 tip 钟乳石（坠落源）。默认状态是朝上 tip 石笋，必须显式设 vertical_direction=down。
+  // 用 BlockPermutation.resolve + setBlockPermutation（同 sweetBerryBush.ts 跨服务端范式）。
+  // any 绕过 @minecraft/server 两版本 BlockPermutation 类型冲突（见 sweetBerryBush.ts 文件头注释）。
+  const stalactitePermutation = BlockPermutation.resolve("minecraft:pointed_dripstone", {
+    vertical_direction: "down",
+    dripstone_thickness: "tip",
+  }) as any;
+  (test as unknown as {
+    setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+  }).setBlockPermutation(stalactitePermutation, { x: 3, y: 10, z: 3 });
+
+  // (3,11,3) 放 cobblestone 作钟乳石上方支撑（朝下钟乳石支撑方向 Up，需上方 isSolidSide(Up)=true）。
+  // 待移除触发坠落。
+  test.setBlockType("minecraft:cobblestone", { x: 3, y: 11, z: 3 });
+
+  // 猪 spawn 于 (3,2,3)，下落落 cobblestone(3,0,3) 顶面（脚 y=1.0），等待钟乳石坠落砸中。
+  test.spawn(pigType, { x: 3, y: 2, z: 3 });
+
+  // tick 2 移除 (3,11,3) 上方支撑（设 air）→ 钟乳石 updatePostPlacement(Up, air) →
+  // !isValidPointedDripstonePlacement → scheduleBlockTick(DELAY_BEFORE_FALLING=2) → tick →
+  // _spawnFallingStalactite 生成 FallingBlockEntity 坠落砸猪。
+  test.runAtTickTime(2, () => {
+    test.setBlockType("minecraft:air", { x: 3, y: 11, z: 3 });
+  });
+
+  // 断言猪被钟乳石坠落砸死：succeedWhen 每 tick 检查猪实体已消失（length===0，40 伤害 >> 10 血）。
+  test.succeedWhen(() => {
+    const pigs = test.getDimension().getEntities({
+      type: pigType,
+      location: test.worldLocation(TOWER_FROM),
+      volume: TOWER_VOLUME,
+    });
+    test.assert(pigs.length === 0,
+      `pig survived falling stalactite (should take 40 damage and die), remaining=${pigs.length}`);
+  });
+}
+
 export function registerPointedDripstoneTests(): void {
   GameTest.register("BlockBehaviorTests", "stalagmite_tip_kills_falling_entity", stalagmiteTipKillsFallingEntity)
     .structureName("gametests:fall_tower")
     .maxTicks(200);
+  GameTest.register("BlockBehaviorTests", "stalactite_fall_kills_entity_below", stalactiteFallKillsEntityBelow)
+    .structureName("gametests:fall_tower")
+    .maxTicks(300);
 }
