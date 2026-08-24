@@ -1921,14 +1921,21 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
     const Vector3 burstPos = position();
     const f32 range = radius * entityRangeMultiplier;
 
-    // 搜索范围内的所有实体
+    // 搜索范围内的所有实体。
+    // 关键：except 传 nullptr（不排除任何实体），对齐 vanilla
+    // ServerExplosion.hurtEntities（ServerExplosion.java:175）的 level.getEntities(this.source, ...)：
+    //   风爆 ExplodeEffect attribute_to_user=false（ExplodeEffect.java:65），故 this.source=null，
+    //   getEntities(null, box) 不过滤任何实体，玩家自身被包含在击退列表中——这正是重锤连跳的实现机制
+    //   （玩家被自身风爆向上弹起，落地后再触发下一次砸地）。
+    // 修复前缺陷：此处传 this（玩家自身）作为 except，把玩家排除出击退列表，致风爆无法弹起攻击者自身，
+    //   重锤连跳完全失效（风爆附魔定义了但运行时无法对攻击者生效）。
     AxisAlignedBB searchBox(burstPos.x - range,
         burstPos.y - range,
         burstPos.z - range,
         burstPos.x + range,
         burstPos.y + range,
         burstPos.z + range);
-    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, nullptr);
 
     // 风爆路径等价 vanilla TRIGGER：不破坏方块，shouldAffectBlocklikeEntities 恒 false，
     // 故掉落物/盔甲架等"方块类实体"在此路径下恒忽略爆炸（不受击退）。
@@ -1950,11 +1957,22 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
             continue;
         }
 
-        // 计算方向和距离
-        Vector3 entityPos = entity->position();
-        f32 dx = entityPos.x - burstPos.x;
-        f32 dy = entityPos.y - burstPos.y;
-        f32 dz = entityPos.z - burstPos.z;
+        // 计算方向和距离。
+        // 对齐 vanilla ServerExplosion.hurtEntities（ServerExplosion.java:178-179）：
+        //   Vec3 vec3 = entity instanceof PrimedTnt ? entity.position() : entity.getEyePosition();
+        //   Vec3 vec31 = vec3.subtract(this.center).normalize();
+        // 非 TNT 实体用眼睛位置计算方向。对玩家自身（攻击者）尤为关键：玩家 position 在地面
+        // 与 burstPos（=玩家 position）重合，差为零向量；改用 eyePosition（position.y + eyeHeight 1.62）
+        // 后差为 (0, 1.62, 0)，归一化得 (0,1,0)，玩家被向上弹起——这正是重锤风爆连跳向上的原理。
+        // 修复前缺陷：Cubium 用 entity->position()，玩家自身差为零向量走"随机方向"分支，连跳方向随机
+        // （多向下/水平），无法稳定向上连跳。
+        Vector3 sourcePos = entity->position();
+        if (entity->entityType() != entity::VanillaEntityTypeKeys::TNT) {
+            sourcePos = Vector3(sourcePos.x, sourcePos.y + entity->eyeHeight(), sourcePos.z);
+        }
+        f32 dx = sourcePos.x - burstPos.x;
+        f32 dy = sourcePos.y - burstPos.y;
+        f32 dz = sourcePos.z - burstPos.z;
         f32 distanceSq = dx * dx + dy * dy + dz * dz;
         f32 distance = std::sqrt(distanceSq);
         f32 distanceRatio = distance / range;
@@ -1964,9 +1982,9 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
             continue;
         }
 
-        // 归一化方向向量
+        // 归一化方向向量（对齐 vanilla Vec3.normalize：零向量返回零向量，击退力随之归零）
         if (distance < 0.001f) {
-            // 实体在爆炸中心，随机方向
+            // 实体眼睛位置恰在爆炸中心（极端情况），随机方向避免除零
             dx = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
             dy = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
             dz = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
@@ -1997,11 +2015,9 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
             continue;
         }
 
-        // 应用击退速度
-        entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
-        entity->markHurt();
-
-        // 玩家特殊处理：旁观者和创造模式飞行者不受击退
+        // 玩家门控（对齐 vanilla ServerExplosion.hurtEntities:195-198）：旁观者和创造模式
+        // 飞行者不被风爆击退。门控在施加击退之前，避免旁观/创造飞行玩家被加速度。
+        // 注意：玩家自身（攻击者）通过此门控（生存/冒险模式、非飞行），从而被自身风爆弹起实现连跳。
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr) {
             if (player->isSpectator()) {
@@ -2012,6 +2028,10 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
                 continue;
             }
         }
+
+        // 应用击退速度
+        entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+        entity->markHurt();
 
         // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
         // 注意：风爆附魔的爆炸源为 null（attributeToUser=false），与 MC Java 行为一致

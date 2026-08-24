@@ -1283,6 +1283,23 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         ctx.setPropertyFloat(obj, "z", static_cast<f64>(pos.z));
         return obj;
     });
+    // 基岩 Entity.getVelocity() 是标准 API（@minecraft/server Entity.getVelocity(): Vector3），
+    // 返回实体当前速度向量（含 Y 分量）。此前 Cubium 仅绑 location 未绑 getVelocity，测试无法读取
+    // 实体速度（如重锤风爆 Wind Burst 弹起后玩家 Y 速度、击退后实体速度），致依赖速度断言的行为
+    // 无法测试。补全对齐基岩官方 API，返回 mc::Entity::velocity()（m_builtIn.velocity->m_velocity）。
+    entityReg.method("getVelocity",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 /*argc*/, void** /*args*/) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr) {
+                return ctx.createUndefined();
+            }
+            auto vel = ent->velocity();
+            void* obj = ctx.createObject();
+            ctx.setPropertyFloat(obj, "x", static_cast<f64>(vel.x));
+            ctx.setPropertyFloat(obj, "y", static_cast<f64>(vel.y));
+            ctx.setPropertyFloat(obj, "z", static_cast<f64>(vel.z));
+            return obj;
+        });
     entityReg.method(
         "getComponent",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {

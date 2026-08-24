@@ -58,6 +58,15 @@ SimulatedPlayer* SimulatedPlayer::spawn(
         static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
     player->setServer(world.server());
     player->setWorld(&world);
+    // 接通物理引擎：SimulatedPlayer 经此工厂直接构造注入世界，不经过 MinecraftServer 的自然生成
+    // 回调（MinecraftServer.cpp:1122-1124 仅在该回调里给实体 setPhysicsEngine），故须在此显式设置。
+    // 否则 m_physicsEngine=nullptr，Player::updatePhysics（Player.cpp:1291-1307）会退化到无碰撞的
+    // Entity::move（不调 updateFallDistance、不做碰撞检测），致 SimulatedPlayer 下落不累积
+    // fallDistance（canSmashAttack 恒 false）、穿透方块、moveToLocation 无碰撞等系统性失效。
+    // 与自然生成实体（MinecraftServer.cpp:1123）持相同 physicsEngine 引用。
+    if (world.physicsEngine() != nullptr) {
+        player->setPhysicsEngine(world.physicsEngine());
+    }
     player->setConnection(nullptr); // 无头模拟，所有发包路径安全 no-op
     player->setGameMode(gameMode);
     player->setHelper(helper);

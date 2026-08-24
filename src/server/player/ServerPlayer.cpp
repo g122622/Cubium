@@ -1021,6 +1021,17 @@ void ServerPlayer::tick()
     syncMovePacketCounters();
     // 载具反飞行基线同步滚动（骑乘时由 handleMoveVehiclePacket 维护 lastGood）。
     rollVehicleFirstGoodToLastGood();
+
+    // 服务端物理驱动：无连接玩家（SimulatedPlayer）没有客户端发来 ServerboundMovePlayerPacket
+    // 驱动物理，而 Player::aiStep（Player.cpp:2211-2218）被有意掏空（重力/移动移到 updatePhysics，
+    // 真实在线玩家位置由客户端包权威写入 ServerPlayHandler.cpp:474-504，避免双重移动）。
+    // 故 SimulatedPlayer 物理完全空转：velocity/fallDistance 恒 0、位置恒为 spawn 坐标不下落，
+    // 致 canSmashAttack 恒 false（fallDistance 不累积）、moveToLocation 无法真正移动等系统性失效。
+    // 此处对无连接玩家显式调用 updatePhysics（与客户端 ClientApplication.cpp:408 同入口）接通服务端
+    // 物理驱动。hasConnection() 守卫确保真实玩家不受影响（继续走客户端包权威，无双重移动）。
+    if (!hasConnection()) {
+        updatePhysics();
+    }
 }
 
 bool ServerPlayer::setCamera(Entity* target)
