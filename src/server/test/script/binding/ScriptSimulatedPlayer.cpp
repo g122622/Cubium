@@ -71,11 +71,26 @@ bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* a
     return true;
 }
 
-// 从 JS Entity 对象 unwrap 出 mc::Entity*（@minecraft/server 注册，opaque 持 mc::Entity*）。
+// 从 JS Entity 对象 unwrap 出 mc::Entity*。
+// Cubium JS 类按独立原型注册，Player/SimulatedPlayer 不继承 Entity 原型，其句柄 opaque 持
+// Player/SimulatedPlayer classId 而非 Entity classId。仅查 Entity classId 会对玩家句柄返 nullptr，
+// 致 attackEntity/lookAtEntity/interactWithEntity 接受玩家 target 时误抛 "must be an Entity"。
+// 故枚举 Entity/Player/SimulatedPlayer 三 classId 依次 unwrap（对齐 ScriptTestHelper.cpp test.kill 范式）。
 mc::Entity* _unwrapEntity(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* val)
 {
-    const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("Entity");
-    return static_cast<mc::Entity*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+    const char* const kClassNames[] = {"Entity", "Player", "SimulatedPlayer"};
+    for (const char* className : kClassNames) {
+        const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName(className);
+        if (classId == 0) {
+            continue;
+        }
+        auto* entity =
+            static_cast<mc::Entity*>(mc::mod::bedrock::addon::ScriptObjectRegistry::unwrap(ctx, val, classId));
+        if (entity != nullptr) {
+            return entity;
+        }
+    }
+    return nullptr;
 }
 
 // 从 JS ItemStack 对象 unwrap 出 mc::ItemStack*（@minecraft/server 注册，opaque 持 mc::ItemStack*）。
