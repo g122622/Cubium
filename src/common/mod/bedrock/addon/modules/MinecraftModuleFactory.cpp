@@ -1300,6 +1300,37 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             ctx.setPropertyFloat(obj, "z", static_cast<f64>(vel.z));
             return obj;
         });
+    // Cubium 扩展 Entity.setVelocity(vector: Vector3)：直接设置实体速度向量。
+    // 基岩官方 @minecraft/server 无公开的 setVelocity（投射物设速度无标准 API，applyImpulse 对投射物
+    // 通常无效——投射物物理由 velocity 字段驱动不响应冲量）。Cubium 自研绑定直接调
+    // mc::Entity::setVelocity（Entity.cpp:718 设 m_builtIn.velocity->m_velocity），投射物下一 tick
+    // performRayTrace（ProjectileEntity.cpp:381）用此 velocity 做射线终点，故 setVelocity 可让
+    // spawn 出的静止投射物获得初速度命中目标方块/实体。
+    //
+    // 用途：集成测试需操控投射物飞行命中固定方块/实体以验证命中链路（如龙息火球命中方块生成龙息云、
+    // 雪球命中烈焰人 3 伤害）。此前脚本层只能 spawn 静止投射物（test.spawn 不接受速度参数），静止投射物
+    // performRayTrace delta≈0 必 miss（ProjectileEntity.cpp:415），永不触发 onBlockHit/onEntityHit，
+    // 致投射物命中链路端到端测试不可构造。setVelocity 补全此能力。
+    //
+    // 签名对齐 teleport 的 Vector3 解析范式（isObject + getPropertyFloat x/y/z）。
+    entityReg.method(
+        "setVelocity",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.createUndefined();
+            }
+            void* velObj = args[0];
+            auto xOpt = ctx.getPropertyFloat(velObj, "x");
+            auto yOpt = ctx.getPropertyFloat(velObj, "y");
+            auto zOpt = ctx.getPropertyFloat(velObj, "z");
+            if (!xOpt || !yOpt || !zOpt) {
+                return ctx.throwTypeError("setVelocity requires {x,y,z}");
+            }
+            ent->setVelocity(static_cast<f32>(*xOpt), static_cast<f32>(*yOpt), static_cast<f32>(*zOpt));
+            return ctx.createUndefined();
+        },
+        1);
     entityReg.method(
         "getComponent",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
