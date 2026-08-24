@@ -1294,12 +1294,32 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     m_builtIn.physicsState->m_collidedHorizontally = physics->collidedHorizontally();
     m_builtIn.physicsState->m_collidedVertically = physics->collidedVertically();
 
-    // 更新地面状态
-    // 优先使用"向下移动时发生垂直碰撞"的判定，避免纯接触检测抖动。
+    // 更新地面状态（对齐 vanilla Entity.move:741-742）。
+    // vanilla onGround = verticalCollisionBelow = verticalCollision && movement.y < 0.0，
+    // 即仅当本帧确实发生垂直碰撞（下落被方块截断）且向下移动时才判在地面。vanilla 无"接触探测"，
+    // 字段语义与 checkFallDamage 着地分支用的是同一个 onGround（Entity.java:754 传入 this.onGround()）。
+    //
+    // 此前 Cubium 额外用 groundedByContact = physics->isOnGround(entityBox)（entityBox 下移
+    // EPSILON_GROUND_PROBE 探测接触）作为 onGround 的第二来源：在实体接近地面但本帧未实际发生 Y
+    // 碰撞（如站立帧浮点抖动、水平移动跨方块边界）时提前判 onGround=true。理论上这会令
+    // updateFallDistance 的着地分支（if(onGround && fallDistance>0)）提前一帧触发，fallDistance
+    // 少算着地帧的累积量（任务 #273 原始假设）。
+    //
+    // 任务 #273 诊断结论：fall_tower 场景 fallDistance≈9 是真实几何落差（中心柱 y=0 tuff+y=1
+    // cobblestone 两层完整方块，落点顶面 y=2.0，落差 9 格），并非接触探测提前停止累积——着地帧
+    // collidedVertically 稳定为 true，groundedByContact 与 groundedByCollision 同时为 true，
+    // 移除前者后伤害值不变。但 groundedByContact 作为非 vanilla 的提前判定来源仍是潜在正确性
+    // 风险（站立抖动/跨方块边界场景可能提前触发着地分支），故移除以对齐 vanilla 语义。此为预防性
+    // 对齐修复，不改变 fall_tower 场景行为。
+    //
+    // 经分析：站立稳定时重力每帧施加 velocity.y = -GRAVITY(0.08)，moveWithCollision 的
+    // calculateYOffset 会把下落截断到接触面（resolved.y≈0），|resolved.y - movement.y|≈0.08 远大于
+    // EPSILON_COLLISION，故 collidedVertically 稳定为 true，groundedByCollision 可靠，无需接触探测。
+    // 接触探测能力仍由 PhysicsEngine::isOnGround 保留，供 stepUp（PhysicsEngine.cpp:121）独立调用
+    // （stepUp 不读 m_onGround 字段，走自己的 isOnGround 探测，本改动不影响 stepUp）。
     bool groundedByCollision = m_builtIn.physicsState->m_collidedVertically && desiredMovement.y < 0.0f;
-    bool groundedByContact = physics->isOnGround(this, entityBox);
     bool wasOnGround = m_builtIn.physicsState->m_onGround;
-    m_builtIn.physicsState->m_onGround = groundedByCollision || groundedByContact;
+    m_builtIn.physicsState->m_onGround = groundedByCollision;
 
     // 落地时清空攀爬位置
     if (m_builtIn.physicsState->m_onGround && !wasOnGround) {

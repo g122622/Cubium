@@ -18,18 +18,19 @@
 //
 // 落差设计（复用 HayBlockTests 已验证的 fall_tower 范式，零布局风险）：
 //   fall_tower 7×16×7，中心 (3,*,3) 为 1×1 玻璃管落管（y=1..14 air，y=15 封顶）。
-//   (3,0,3) 覆盖为 stone（普通方块，r=1.0），猪 spawn (3,11,3)，落差 = 11 - 1 = 10 格。
+//   中心柱方块（经 test.getBlock 实测）：y=0 tuff、y=1 cobblestone、y=2 air。故 pig 脚自
+//   (3,11,3) 自由下落，落到 cobblestone 顶面 y=2.0，几何落差 = 11 - 2 = 9 格。
+//   （任务 #273 诊断：fall_tower 结构基座中心柱有两层完整方块 tuff+cobblestone，落点在 y=2.0
+//   而非 y=1.0，故 fallDistance≈9 是真实落差，非 onGround 接触探测提前停止累积。）
 //
 // 正反对照（防假通过）：
-//   - no_effect_takes_full_fall_damage：无效果猪摔 10 格。vanilla 理论 fallDistance≈10.8，
-//     伤害 floor(10.8-3)=7（HP 10→3）。Cubium 实测 fallDistance≈9（任务 #264 已修复着地帧
-//     不累积偏差：updateFallDistance 改用 actualMovement.y 对齐 vanilla checkFallDamage，
-//     fallDistance 从≈8 提升到≈9；剩余与 vanilla 10.8 的差距源于 onGround 接触探测提前判定
-//     致 fallDistance 提前一帧停止累积，属独立问题见任务 #273），实测伤害 floor(9-3)=6（HP 10→4）。
+//   - no_effect_takes_full_fall_damage：无效果猪摔 9 格。vanilla 理论 fallDistance≈9
+//     （任务 #264 已修复着地帧不累积偏差：updateFallDistance 改用 actualMovement.y 对齐
+//     vanilla checkFallDamage，fallDistance 从≈8 提升到≈9），伤害 floor(9-3)=6（HP 10→4）。
 //     断言 HP ∈ [3,5]（掉 5-7），与 JumpBoost 测试 HP ∈ [6,8] 区间不重叠。
-//   - jump_boost_iii_reduces_fall_damage：JumpBoost III（amplifier=2，level=3）猪摔 10 格，
-//     safeFall=3+3=6。Cubium 实测 fallDistance≈9，伤害 floor(9-6)=3（HP 10→7）。
-//     断言 HP ∈ [6,8]（掉 2-4），与无效果测试 HP ∈ [3,5] 区间不重叠。
+//   - jump_boost_iii_reduces_fall_damage：JumpBoost III（amplifier=2，level=3）猪摔 9 格，
+//     safeFall=3+3=6。伤害 floor(9-6)=3（HP 10→7）。断言 HP ∈ [6,8]（掉 2-4），与无效果测试
+//     HP ∈ [3,5] 区间不重叠。
 //   两测试交叉验证：无效果掉 6 vs 带效果掉 3，差异正好 3（=JumpBoost III 3 级 ×1/级），
 //   确证 JumpBoost 经 SAFE_FALL_DISTANCE 修饰符减伤生效（任务 #250-253 属性体系端到端验证）。
 //
@@ -47,8 +48,8 @@ import type { Test } from "@minecraft/server-gametest";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // fall_tower 结构尺寸 7×16×7（helper 相对坐标 x,z∈[0,6], y∈[0,15]）。
-// 中心 (3,*,3) 为 1×1 垂直玻璃管落管：y=0 满铺 cobblestone 底（中心格覆盖为 stone），
-// y=1..14 中心柱 air（下落通道），四周管壁 glass（y=1..15），y=15 顶部封顶。
+// 中心 (3,*,3) 为 1×1 垂直玻璃管落管：中心柱 y=0 tuff、y=1 cobblestone（落点顶面 y=2.0）、
+// y=2..14 中心柱 air（下落通道），四周管壁 glass（y=1..15），y=15 顶部封顶。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
 // 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
 const TOWER_FROM = { x: 0, y: 0, z: 0 };
@@ -56,9 +57,11 @@ const TOWER_VOLUME = { x: 7, y: 16, z: 7 };
 
 const PIG_TYPE = "pig";
 
-// spawn 位置：猪脚 (3,11,3)，落到 (3,0,3) stone 顶面 y=1.0，落差 10 格。
+// spawn 位置：猪脚 (3,11,3)，落到 cobblestone 顶面 y=2.0，几何落差 9 格。
 const SPAWN_POS = { x: 3, y: 11, z: 3 };
-// 落点方块（普通方块，r=1.0 完整摔落伤害）。
+// 落点方块（中心柱 y=1 cobblestone，完整方块 r=1.0 完整摔落伤害）。
+// 测试运行时在 LANDING_POS=(3,0,3) 放置 stone 是历史遗留，不影响落点——pig 仍落到 y=1 cobblestone
+// 顶面 y=2.0（因 y=0 tuff 已在结构中，setBlockType 改的是 y=0 的 tuff→stone，落点顶面不变）。
 const LANDING_POS = { x: 3, y: 0, z: 3 };
 
 // 读取落地区域内猪的当前血量。区域限定排除并行测试污染。
@@ -75,12 +78,11 @@ function readPigHp(test: Test): number {
     return (health as any).currentValue as number;
 }
 
-// 无效果猪从 10 格高处摔落到石头，承受完整摔落伤害（负向对照，防假通过）。
+// 无效果猪从 9 格高处摔落到圆石，承受完整摔落伤害（负向对照，防假通过）。
 //
-// 几何落差 10 格（spawn y=11 → stone 顶面 y=1）。vanilla 理论 fallDistance≈10.8，
-// 伤害 floor(10.8-3)=7（HP 10→3）。Cubium 实测 fallDistance≈9（任务 #264 修复 updateFallDistance
-// 改用 actualMovement.y 对齐 vanilla checkFallDamage 后从≈8 提升；剩余 onGround 接触探测提前
-// 判定偏差见任务 #273），实测伤害 floor(9-3)=6（HP 10→4）。
+// 几何落差 9 格（spawn y=11 → cobblestone 顶面 y=2.0，中心柱 y=0 tuff+y=1 cobblestone 两层
+// 完整方块）。Cubium 实测 fallDistance≈9（任务 #264 修复 updateFallDistance 改用
+// actualMovement.y 对齐 vanilla checkFallDamage 后从≈8 提升），伤害 floor(9-3)=6（HP 10→4）。
 // 本测试断言 HP ∈ [3,5]（掉 5-7），容差覆盖 fallDistance 波动，且与 JumpBoost 测试
 // HP ∈ [6,8] 区间不重叠，确保交叉验证成立。
 //   - 上界 HP≤5（掉≥5）证明承受了显著摔落伤害，排除"摔落链路失效 HP=10"假通过。
@@ -99,13 +101,13 @@ function noEffectTakesFullFallDamage(test: Test): void {
         interval: 5,
         maxTick: 200,
         onTimeout: () => test.assert(false,
-            `no-effect pig should take full fall damage from 10 blocks (HP 10→~4), `
+            `no-effect pig should take full fall damage from 9 blocks (HP 10→~4), `
             + `but pig HP=${readPigHp(test)} (if HP=10 fall damage chain broken [causeFallDamage not triggered]; `
             + `if HP~4 correct)`),
     });
 }
 
-// JumpBoost III 猪从 10 格高处摔落到石头，经 SAFE_FALL_DISTANCE 修饰符减伤。
+// JumpBoost III 猪从 9 格高处摔落到圆石，经 SAFE_FALL_DISTANCE 修饰符减伤。
 //
 // JumpBoost III（amplifier=2，level=3）→ safeFall = 3 + 3 = 6。
 // Cubium 实测 fallDistance≈9（同无效果测试，任务 #264 修复后），伤害 floor(9-6)=3（HP 10→7）。
