@@ -100,7 +100,10 @@ protected:
     void onBlockHit(const RayTraceResult& result) override;
 
     /**
-     * @brief 冲击处理（风爆效果由 onEntityHit/onBlockHit 处理）
+     * @brief 冲击处理（命中 dispatch + 无条件消失）
+     *
+     * 调基类 ProjectileEntity::onImpact 完成偏转检查与 onEntityHit/onBlockHit dispatch，
+     * 再无条件 remove（对齐 vanilla AbstractWindCharge.onHit：super.onHit() + discard）。
      */
     void onImpact(const RayTraceResult& result) override;
 

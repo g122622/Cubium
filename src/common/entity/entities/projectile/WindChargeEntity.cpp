@@ -150,9 +150,26 @@ void WindChargeEntity::onBlockHit(const RayTraceResult& result)
     remove();
 }
 
-void WindChargeEntity::onImpact(const RayTraceResult& /*result*/)
+void WindChargeEntity::onImpact(const RayTraceResult& result)
 {
-    // onEntityHit / onBlockHit 已处理
+    // 先调用基类 onImpact 完成命中 dispatch（对齐 vanilla AbstractWindCharge.onHit 首行 super.onHit()）：
+    // 基类 ProjectileEntity::onImpact 会先做偏转检查（deflection，命中实体被偏转时 return 不调
+    // onEntityHit），否则按 result.type 调用 onEntityHit（→ 1 点风爆伤害 + applyWindBurst + remove）
+    // 或 onBlockHit（→ burstCenter 偏移 + applyWindBurst + remove）。
+    //
+    // 此前本方法为空实现（注释"onEntityHit / onBlockHit 已处理"是错误假设——基类 dispatch 才是
+    // onEntityHit/onBlockHit 的唯一入口），绕过基类 dispatch 致 onEntityHit/onBlockHit 全成死代码：
+    // 风弹命中实体不掉血、不触发风爆、连 remove 都不执行（风弹撞实体后不消失继续存在）。诊断实证
+    // villager hp=20（未掉血）+ wind_charges_remaining=1（未消失）。与 SnowballEntity::onImpact 修复前
+    // 同构（任务 #327），后果更严重（雪球至少 remove，风弹连 remove 都跳过）。
+    ProjectileEntity::onImpact(result);
+
+    // dispatch 后无条件 remove（对齐 vanilla AbstractWindCharge.onHit 的 !isClientSide → discard）。
+    // onEntityHit/onBlockHit 末尾已 remove()，此处对已 removed 实体是幂等（Entity::remove 仅置 m_removed=true）；
+    // 偏转分支基类 onImpact return 前不调 onEntityHit/onBlockHit，故此处 remove 覆盖偏转后风弹应消失的语义。
+    if (!isRemoved()) {
+        remove();
+    }
 }
 
 // ============================================================================
