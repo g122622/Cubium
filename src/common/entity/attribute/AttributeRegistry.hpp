@@ -236,6 +236,8 @@ private:
         registerAttribute(*Attributes::safeFallDistance());
         registerAttribute(*Attributes::fallDamageMultiplier());
         registerAttribute(*Attributes::oxygenBonus());
+        registerAttribute(*Attributes::burningTime());
+        registerAttribute(*Attributes::explosionKnockbackResistance());
     }
 
     std::unordered_map<std::string, std::unique_ptr<Attribute>> m_attributes;

@@ -526,7 +526,20 @@ void Explosion::_calculateAffectedEntities()
 
         // 击退强度 = (1 - 距离比例) * 视线密度 * 击退倍率
         const f32 impact = (1.0f - distanceRatio) * seenPercent;
-        const f32 knockback = impact * knockbackMultiplier;
+        f32 knockback = impact * knockbackMultiplier;
+
+        // 爆炸击退抗性：LivingEntity 查 EXPLOSION_KNOCKBACK_RESISTANCE 属性（默认 0.0），
+        // 非 LivingEntity 视为 0.0。爆炸保护魔咒经 enchantment.blast_protection 修饰符
+        // （每级 +0.15 ADD_VALUE，4 盔甲槽位）增加此属性值，从而衰减被爆炸推开时的击退力度。
+        // finalKnockback = baseKnockback * (1 - EXPLOSION_KNOCKBACK_RESISTANCE)。
+        {
+            LivingEntity* livingForKnockback = dynamic_cast<LivingEntity*>(entity);
+            if (livingForKnockback != nullptr) {
+                const f64 resistance = livingForKnockback->getAttributeValue(
+                    entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE, 0.0);
+                knockback *= static_cast<f32>(1.0 - std::min(std::max(resistance, 0.0), 1.0));
+            }
+        }
 
         if (shouldDamage) {
             // 计算伤害（含 radius*2 修正，与 Java 一致）
@@ -561,16 +574,15 @@ void Explosion::_calculateAffectedEntities()
                     const PlayerAbilities& abilities = player->abilities();
                     const bool creativeFlying = player->isCreative() && abilities.flying;
 
-                    // 应用爆炸保护附魔减伤与击退衰减
-                    // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
-                    // 击退减少: knockback * (1 - EPF * 0.15)
-                    f32 playerKnockback = knockback;
+                    // 应用爆炸保护附魔减伤（EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)）。
+                    // 击退力度已在前面统一按 EXPLOSION_KNOCKBACK_RESISTANCE 属性缩减（爆炸保护经该属性
+                    // 的修饰符提供抗性），此处不再用 EPF*0.15 重复衰减击退。
                     i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
                         player->getArmorSlots(), DamageFlags::EXPLOSION);
                     if (blastProtection > 0) {
                         damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
-                        playerKnockback = playerKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
                     }
+                    const f32 playerKnockback = knockback;
 
                     // 造成伤害（LivingEntity::hurt 会设置 hurtMarked）
                     player->hurt(*damageSource, damage);
@@ -597,16 +609,14 @@ void Explosion::_calculateAffectedEntities()
                 // ========== 非玩家生物实体分支 ==========
                 LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
                 if (living) {
-                    // 应用爆炸保护附魔减伤
-                    f32 livingKnockback = knockback;
+                    // 应用爆炸保护附魔减伤（EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)）。
+                    // 击退力度已在前面统一按 EXPLOSION_KNOCKBACK_RESISTANCE 属性缩减，此处不重复衰减。
                     i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
                         living->getArmorSlots(), DamageFlags::EXPLOSION);
                     if (blastProtection > 0) {
-                        // EPF 减伤公式: damage * (1 - min(EPF, 20) / 25)
-                        // 击退减少: knockback * (1 - EPF * 0.15)
                         damage = damage * (1.0f - std::min(static_cast<f32>(blastProtection), 20.0f) / 25.0f);
-                        livingKnockback = livingKnockback * (1.0f - static_cast<f32>(blastProtection) * 0.15f);
                     }
+                    const f32 livingKnockback = knockback;
 
                     living->hurt(*damageSource, damage);
 
@@ -832,12 +842,18 @@ bool Explosion::_isLineOfSightBlocked(
         return false;
     }
 
-    // 精确复刻原 _getBlockDensity 的射线终点构造：direction 未归一化（=explosionCenter-samplePoint），
-    // maxDistance = |direction|，end = origin + direction * maxDistance = samplePoint + dir * |dir|。
-    // 注意 end ≠ explosionCenter（除非 |dir|==1），这是原实现的既定行为，专用路径必须保持以
-    // 不改变遮挡判定与伤害数值。
+    // 射线终点精确为爆炸中心（对齐 vanilla ServerExplosion.getSeenPercent 的
+    // level.clip(samplePoint, center)）。原实现误把未归一化 dir（=explosionCenter-samplePoint）
+    // 既当方向又取 |dir| 当距离，导致 end = samplePoint + dir*|dir|，终点被延伸到爆炸中心
+    // 远侧 |dir| 倍，多经过的方块（如受害者脚下的地板）被误判遮挡，使 seenPercent 系统性偏低。
+    // RaycastContext 契约要求 direction 归一化（见 Ray.hpp），endPosition() = origin + dir*maxDistance，
+    // 故归一化 dir 并令 maxDistance = |dir| 后 end 恰为爆炸中心。
     const f32 distance = dir.length();
-    const Vector3 end(start.x + dir.x * distance, start.y + dir.y * distance, start.z + dir.z * distance);
+    const f32 invDistance = (distance > 0.0f) ? (1.0f / distance) : 0.0f;
+    const Vector3 normalizedDir(dir.x * invDistance, dir.y * invDistance, dir.z * invDistance);
+    const Vector3 end(start.x + normalizedDir.x * distance,
+        start.y + normalizedDir.y * distance,
+        start.z + normalizedDir.z * distance);
 
     if (start.distanceSquared(end) < 0.0001f) {
         // 起点和终点重合，视为无遮挡

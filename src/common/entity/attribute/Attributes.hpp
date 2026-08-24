@@ -351,6 +351,27 @@ inline std::unique_ptr<Attribute> burningTime()
 }
 
 /**
+ * @brief 爆炸击退抗性
+ *
+ * 决定实体被爆炸推开的力度衰减比例。属性 generic.explosion_knockback_resistance
+ *（范围 [0.0, 1.0]，默认 0.0）。
+ *
+ * 消费点：爆炸击退计算（Explosion.cpp / WindChargeEntity.cpp / Player.cpp 风爆）：
+ *   finalKnockback = baseKnockback * (1.0 - getAttributeValue(EXPLOSION_KNOCKBACK_RESISTANCE))。
+ * 即抗性 0.0 时满击退，1.0 时完全免疫爆炸击退。
+ *
+ * 爆炸保护魔咒通过 enchantment.blast_protection 修饰符（Op0 ADD_VALUE，每级 +0.15，
+ * 4 个盔甲槽位）注入：单件 IV 级 → 0.6，击退缩减为 40%。
+ *
+ * 默认值: 0.0（所有生物，满额爆炸击退）
+ * 范围: 0.0 ~ 1.0
+ */
+inline std::unique_ptr<Attribute> explosionKnockbackResistance()
+{
+    return std::make_unique<Attribute>("generic.explosion_knockback_resistance", 0.0, 0.0, 1.0);
+}
+
+/**
  * @brief 方块交互距离
  *
  * 决定玩家与方块交互（破坏/使用/放置）的最大距离。
@@ -409,6 +430,7 @@ constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属�
                                                          // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "generic.oxygen_bonus";
 constexpr const char* BURNING_TIME = "generic.burning_time";
+constexpr const char* EXPLOSION_KNOCKBACK_RESISTANCE = "generic.explosion_knockback_resistance";
 constexpr const char* ENTITY_GRAVITY = "forge.entity_gravity"; // Forge 扩展
 
 } // namespace Attributes

@@ -106,9 +106,14 @@ public:
                 Vector3 samplePoint(entityBox.minX + fx * (entityBox.maxX - entityBox.minX) + offsetX,
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
                     entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
-                Ray ray(
-                    samplePoint, Vector3(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z));
-                f32 distance = (center - samplePoint).length();
+                // 射线终点精确为爆炸中心（对齐 vanilla getSeenPercent 的 clip(samplePoint, center)）。
+                // RaycastContext 契约要求 direction 归一化，endPosition()=origin+dir*maxDistance，
+                // 故归一化 dir 并令 maxDistance=|rawDir| 后终点恰为爆炸中心。
+                Vector3 rawDir(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z);
+                f32 distance = rawDir.length();
+                f32 invDistance = (distance > 0.0f) ? (1.0f / distance) : 0.0f;
+                Vector3 normalizedDir(rawDir.x * invDistance, rawDir.y * invDistance, rawDir.z * invDistance);
+                Ray ray(samplePoint, normalizedDir);
                 RaycastContext context(ray, distance);
                 BlockRaycastResult result = raycastBlocks(context, world);
                 if (result.isMiss()) {

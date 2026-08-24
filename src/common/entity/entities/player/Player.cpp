@@ -1907,15 +1907,14 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
         // 击退冲击力 = (1 - 距离比) * 密度
         f32 impact = (1.0f - distanceRatio) * density;
 
-        // 爆炸保护减免击退
+        // 爆炸击退抗性：LivingEntity 查 EXPLOSION_KNOCKBACK_RESISTANCE 属性（爆炸保护附魔经
+        // enchantment.blast_protection 修饰符每级 +0.15 ADD_VALUE 注入，默认 0.0）。
         f32 knockbackResistance = 0.0f;
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
         if (living != nullptr) {
-            i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
-                living->getArmorSlots(), DamageFlags::EXPLOSION);
-            if (blastProtection > 0) {
-                knockbackResistance = static_cast<f32>(blastProtection) * 0.15f;
-            }
+            const f64 resistance =
+                living->getAttributeValue(entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE, 0.0);
+            knockbackResistance = static_cast<f32>(std::min(std::max(resistance, 0.0), 1.0));
         }
 
         f32 finalImpact = impact * knockbackMultiplier * (1.0f - knockbackResistance);
@@ -1989,10 +1988,16 @@ f32 Player::_calculateWindBurstSeenPercent(const AxisAlignedBB& entityBox, const
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
                     entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
 
-                // 射线从采样点指向爆炸中心
-                Ray ray(
-                    samplePoint, Vector3(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z));
-                f32 rayDistance = (center - samplePoint).length();
+                // 射线从采样点指向爆炸中心。对齐 vanilla ServerExplosion.getSeenPercent 的
+                // level.clip(samplePoint, center)：射线终点精确为爆炸中心。
+                // RaycastContext 契约要求 direction 归一化（见 Ray.hpp），endPosition()=origin+dir*maxDistance，
+                // 故归一化 dir 并令 maxDistance=|dir| 后终点恰为爆炸中心。原实现误用未归一化 dir，
+                // 致终点延伸到爆炸中心远侧 |dir| 倍，多经过的方块被误判遮挡（seenPercent 偏低）。
+                Vector3 rawDir(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z);
+                const f32 rayDistance = rawDir.length();
+                const f32 invDistance = (rayDistance > 0.0f) ? (1.0f / rayDistance) : 0.0f;
+                Vector3 normalizedDir(rawDir.x * invDistance, rawDir.y * invDistance, rawDir.z * invDistance);
+                Ray ray(samplePoint, normalizedDir);
                 RaycastContext context(ray, rayDistance);
 
                 BlockRaycastResult result = raycastBlocks(context, *m_world);

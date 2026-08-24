@@ -184,6 +184,8 @@ add_executable(mc_tests
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/item/enchantment/LocationEnchantmentTest.cpp
+    common/item/enchantment/BlastProtectionAttributeTest.cpp
+    common/item/enchantment/BlastProtectionAttributeTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/PlayerEnderChestInventoryTest.cpp
@@ -1408,6 +1410,7 @@ add_executable(mc_tests
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/item/enchantment/LocationEnchantmentTest.cpp
+    common/item/enchantment/BlastProtectionAttributeTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
     common/entity/movement/AutoJumpTest.cpp
     common/entity/player/SleepManagerTest.cpp

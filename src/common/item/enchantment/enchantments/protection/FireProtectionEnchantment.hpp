@@ -77,11 +77,13 @@ public:
      * BURNING_TIME 默认 1.0，火焰保护 IV 单件 → 1.0 + 1.0×(4×-0.15) = 0.4，
      * 被点燃时燃烧时间缩减为 40%（LivingEntity::igniteForTicks override 消费）。
      *
-     * TODO: 多件火焰保护盔甲叠加偏差。vanilla AttributeInstance 按 modifier id 覆盖
-     *   （modifierById Map.put(id)），多件同 id 修饰符互相覆盖只算一件；Cubium
-     *   AttributeInstance 用 vector+push_back 会叠加（多件会过度缩减 BURNING_TIME）。
-     *   此为 AttributeInstance 架构层面既有偏差（影响所有多槽位附魔属性修饰符），
-     *   非本附魔独有，待 AttributeInstance 改为按 id 去重时统一修复。
+     * 多件火焰保护盔甲的叠加语义（已实测验证，见 FireProtectionBurningTimeTests 集成测试通过
+     * BURNING_TIME=0.4 即单条 -0.6 修饰符，非 4 件叠加的 -2.4）：
+     *   vanilla fire_protection.json 中 4 盔甲槽位共享同一 modifier id，vanilla AttributeInstance
+     *   按 id 去重。Cubium 虽用 vector+push_back 不去重，但 EnchantmentHelper::
+     *   applyEnchantmentAttributeModifiers 每 slot add 前调 removeModifier(id)（删第一条同 id），
+     *   4 槽位顺序处理时后槽位 remove 删前槽位刚加的同 id 修饰符，最终只剩 1 条 -0.6——
+     *   恰好复现 vanilla 去重语义。故全套火焰保护 IV BURNING_TIME = 0.4（同单件）。
      *
      * @param level 附魔等级
      * @return 4 个盔甲槽位的 BURNING_TIME 修饰符

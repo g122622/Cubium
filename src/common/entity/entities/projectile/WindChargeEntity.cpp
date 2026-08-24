@@ -30,7 +30,6 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/ray/Raycast.hpp"
@@ -283,20 +282,19 @@ void WindChargeEntity::applyWindBurst()
         // ========== 3. 计算推力 ==========
         // 对应 MC ServerExplosion 的推力计算：
         // impact = (1.0 - distanceRatio) * density
-        // knockbackResistance = 爆炸保护附魔提供的击退抗性
-        // finalImpact = impact * knockbackMultiplier * (1.0 - knockbackResistance)
+        // explosionKnockbackResistance = LivingEntity 的 EXPLOSION_KNOCKBACK_RESISTANCE 属性
+        //   （爆炸保护附魔经修饰符提供，默认 0.0；非 LivingEntity 视为 0.0）
+        // finalImpact = impact * knockbackMultiplier * (1.0 - explosionKnockbackResistance)
         f32 impact = (1.0f - distanceRatio) * density;
 
-        // 计算爆炸击退抗性（来自爆炸保护附魔）
+        // 读取爆炸击退抗性（EXPLOSION_KNOCKBACK_RESISTANCE 属性，爆炸保护附魔经 enchantment.blast_protection
+        // 修饰符每级 +0.15 ADD_VALUE 注入）。
         f32 knockbackResistance = 0.0f;
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
         if (living != nullptr) {
-            i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
-                living->getArmorSlots(), DamageFlags::EXPLOSION);
-            if (blastProtection > 0) {
-                // 爆炸保护每级减少 15% 击退
-                knockbackResistance = static_cast<f32>(blastProtection) * 0.15f;
-            }
+            const f64 resistance =
+                living->getAttributeValue(entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE, 0.0);
+            knockbackResistance = static_cast<f32>(std::min(std::max(resistance, 0.0), 1.0));
         }
 
         // 最终推力 = impact * knockbackMultiplier * (1 - knockbackResistance)
@@ -404,10 +402,16 @@ f32 WindChargeEntity::_calculateSeenPercent(const AxisAlignedBB& entityBox, cons
                     entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
                     entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
 
-                // 使用射线检测是否有方块阻挡
-                Vector3 dir(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z);
-                f32 distance = dir.length();
-                Ray ray(samplePoint, dir);
+                // 使用射线检测是否有方块阻挡。对齐 vanilla ServerExplosion.getSeenPercent 的
+                // level.clip(samplePoint, center)：射线终点精确为爆炸中心。
+                // RaycastContext 契约要求 direction 归一化（见 Ray.hpp），endPosition()=origin+dir*maxDistance，
+                // 故归一化 dir 并令 maxDistance=|dir| 后终点恰为爆炸中心。原实现误用未归一化 dir，
+                // 致终点延伸到爆炸中心远侧 |dir| 倍，多经过的方块被误判遮挡（seenPercent 偏低）。
+                Vector3 rawDir(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z);
+                const f32 distance = rawDir.length();
+                const f32 invDistance = (distance > 0.0f) ? (1.0f / distance) : 0.0f;
+                Vector3 normalizedDir(rawDir.x * invDistance, rawDir.y * invDistance, rawDir.z * invDistance);
+                Ray ray(samplePoint, normalizedDir);
                 RaycastContext context(ray, distance);
 
                 BlockRaycastResult result = raycastBlocks(context, *m_world);

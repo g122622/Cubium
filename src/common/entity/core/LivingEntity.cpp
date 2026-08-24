@@ -846,6 +846,11 @@ void LivingEntity::registerAttributes()
     // 火焰保护魔咒通过 enchantment.fire_protection 修饰符（每级 -0.15 MULTIPLY_BASE，4 盔甲槽位）
     // 缩减此值，从而缩短被点燃后的燃烧时间。
     attributes().registerAttribute(*entity::attribute::Attributes::burningTime());
+    // 爆炸击退抗性属性（默认 0.0），由爆炸击退计算消费：
+    // finalKnockback = baseKnockback * (1 - getAttributeValue(EXPLOSION_KNOCKBACK_RESISTANCE))。
+    // 爆炸保护魔咒通过 enchantment.blast_protection 修饰符（每级 +0.15 ADD_VALUE，4 盔甲槽位）
+    // 增加此值，从而衰减被爆炸推开时的击退力度。
+    attributes().registerAttribute(*entity::attribute::Attributes::explosionKnockbackResistance());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0

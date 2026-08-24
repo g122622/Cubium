@@ -190,6 +190,11 @@ void HurtBySensor<E>::update(IWorld* world, E* entity)
 
         // 获取攻击者
         Entity* attacker = lastDamageSource->getTrueSource();
+        // TODO 已知 UAF 缺陷（任务 #272）：爆炸伤害村民后，m_lastDamageSource clone 持爆炸源
+        //   （如苦力怕）裸指针，爆炸源 remove() 经 graveyard 析构后此处 getTrueSource() 返回
+        //   悬垂指针，attacker->isAlive() 解引用已释放内存段错误。根因是 DamageSource/Brain
+        //   memory 持 LivingEntity* 裸指针 + 实体立即析构无弱引用/id 校验。彻底修复需改 memory
+        //   存 EntityInstanceId 经 EntityManager 校验（跨子系统重构）。详见任务 #272。
         if (attacker && attacker->isAlive()) {
             LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(attacker);
             if (livingAttacker) {
