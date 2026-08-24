@@ -63,24 +63,6 @@ public:
     [[nodiscard]] i32 getMinCost(i32 level) const noexcept override { return 1 + (level - 1) * 10; }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const noexcept override { return getMinCost(level) + 15; }
-
-    /**
-     * @brief 获取箭矢伤害加成
-     * @param level 附魔等级 (0 表示无附魔)
-     * @return 伤害加成值 (0.0 = 无加成)
-     *
-     * 公式: 0.25 * (level + 1)
-     * - I: 0.5 (箭矢伤害 +50%)
-     * - II: 0.75 (箭矢伤害 +75%)
-     * - III: 1.0 (箭矢伤害 +100%)
-     * - IV: 1.25 (箭矢伤害 +125%)
-     * - V: 1.5 (箭矢伤害 +150%)
-     */
-    [[nodiscard]] static f32 getArrowDamageBonus(i32 level) noexcept
-    {
-        if (level <= 0) return 0.0f;
-        return 0.25f * static_cast<f32>(level + 1);
-    }
 };
 
 } // namespace enchant
