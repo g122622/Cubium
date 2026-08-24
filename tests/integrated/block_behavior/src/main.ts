@@ -82,6 +82,7 @@ import { registerSweetBerryBushTests } from "./tests/vegetation/SweetBerryBushTe
 import { registerLeavesDistanceTests } from "./tests/vegetation/LeavesDistanceTests.js";
 import { registerPointedDripstoneTests } from "./tests/cave/PointedDripstoneTests.js";
 import { registerPowderSnowWalkableTests } from "./tests/cave/PowderSnowWalkableTests.js";
+import { registerPowderSnowFreezeTests } from "./tests/cave/PowderSnowFreezeTests.js";
 import { registerCaveVinesTests } from "./tests/cave/CaveVinesTests.js";
 import { registerSporeBlossomTests } from "./tests/cave/SporeBlossomTests.js";
 import { registerMossTests } from "./tests/cave/MossTests.js";
@@ -205,6 +206,7 @@ registerSweetBerryBushTests();
 registerLeavesDistanceTests();
 registerPointedDripstoneTests();
 registerPowderSnowWalkableTests();
+registerPowderSnowFreezeTests();
 registerCaveVinesTests();
 registerSporeBlossomTests();
 registerMossTests();
