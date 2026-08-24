@@ -122,7 +122,7 @@ protected:
      *
      * 重写基类 customizeArrow 钩子，attackEntityWithRangedAttack 发射箭矢前调用。
      * 对应原版 Bogged.getArrow()：arrow.addEffect(MobEffectInstance(POISON, 100))，
-     * 箭矢命中生物时由 ArrowEntity::onEntityHit 施加 5 秒中毒 I。
+     * 箭矢命中生物且 hurt 成功后由 ArrowEntity::doPostHurtEffects 施加 5 秒中毒 I。
      */
     void customizeArrow(entity::ArrowEntity& arrow) override;
 

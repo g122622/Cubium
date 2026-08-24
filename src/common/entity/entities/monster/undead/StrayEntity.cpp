@@ -66,7 +66,8 @@ void StrayEntity::customizeArrow(entity::ArrowEntity& arrow)
 {
     // 流浪者射出的箭矢附带 30 秒缓慢 I 效果（对应原版 Arrow of Slowness）。
     // 基类 attackEntityWithRangedAttack 创建普通箭矢后在发射前调用此钩子，
-    // 此处为箭矢附加缓慢效果，箭矢命中生物时由 ArrowEntity::onEntityHit 施加。
+    // 此处为箭矢附加缓慢效果，箭矢命中生物且 hurt 成功后由 ArrowEntity::doPostHurtEffects 施加
+    // （对齐 vanilla Arrow.doPostHurtEffects，hurt 失败如无敌帧不施加）。
     // EffectType::Slowness = 缓慢，amplifier=0 即等级 I，duration=600 ticks = 30 秒。
     arrow.addEffect(entity::effect::EffectInstance(
         entity::effect::EffectType::Slowness, SLOWNESS_DURATION_TICKS, SLOWNESS_AMPLIFIER));

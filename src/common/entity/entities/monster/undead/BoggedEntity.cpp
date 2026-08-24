@@ -74,7 +74,8 @@ void BoggedEntity::customizeArrow(entity::ArrowEntity& arrow)
 {
     // 沼骸射出的箭矢附带 5 秒中毒 I 效果（对应原版 Arrow of Poison）。
     // 基类 attackEntityWithRangedAttack 创建普通箭矢后在发射前调用此钩子，
-    // 此处为箭矢附加中毒效果，箭矢命中生物时由 ArrowEntity::onEntityHit 施加。
+    // 此处为箭矢附加中毒效果，箭矢命中生物且 hurt 成功后由 ArrowEntity::doPostHurtEffects 施加
+    // （对齐 vanilla Arrow.doPostHurtEffects，hurt 失败如无敌帧不施加）。
     // 对应原版 Bogged.getArrow()：arrow.addEffect(MobEffectInstance(MobEffects.POISON, 100))。
     // EffectType::Poison = 中毒，amplifier=0 即等级 I，duration=100 ticks = 5 秒。
     arrow.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison, POISON_DURATION_TICKS, 0));

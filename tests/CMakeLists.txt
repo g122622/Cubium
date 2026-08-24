@@ -449,6 +449,8 @@ add_executable(mc_tests
     common/entity/ArrowEntityTest.cpp
     # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
     common/entity/ArrowEntityFixTest.cpp
+    # ArrowEntity/SpectralArrowEntity doPostHurtEffects 测试（任务 #285：hurt 成功后施加药水/发光效果）
+    common/entity/ArrowPostHurtEffectsTest.cpp
     # ItemEntity 伤害处理测试（hurt、isImmuneToFire、canBeHurtBy、FIRE_RESISTANT标签）
     common/entity/ItemEntityTest.cpp
     # Entity 岩浆伤害/火焰处理测试（lavaIgnite、lavaHurt、shouldPlayLavaHurtSound、clearFire、baseTick火焰逻辑）

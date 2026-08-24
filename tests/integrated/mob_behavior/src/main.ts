@@ -21,6 +21,7 @@ import { registerBlastProtectionKnockbackTests } from "./tests/combat/BlastProte
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
+import { registerSpectralArrowTests } from "./tests/combat/SpectralArrowTests.js";
 import { registerFireImmunityTests } from "./tests/combat/FireImmunityTests.js";
 import { registerFallDamageTests } from "./tests/combat/FallDamageTests.js";
 import { registerResistanceEffectTests } from "./tests/combat/ResistanceEffectTests.js";
@@ -209,6 +210,7 @@ registerNameTagConsumptionTests();
 registerBowDurabilityTests();
 registerBowArrowDamageTests();
 registerCrossbowTests();
+registerSpectralArrowTests();
 registerTridentConsumptionTests();
 registerFoodContainerConsumptionTests();
 registerMilkBucketConsumptionTests();

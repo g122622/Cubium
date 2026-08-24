@@ -525,6 +525,13 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
         if (hurt && comp->m_pierceLevel <= 0) {
             livingTarget->setArrowCountInEntity(livingTarget->getArrowCount() + 1);
         }
+        // 对齐 vanilla AbstractArrow.onHitEntity:453-468：hurtOrSimulate 成功后才调
+        // doPostHurtEffects。hurt 失败（无敌帧 amount<=lastDamage 返回 false /
+        // isInvulnerableTo 拦截）则不施加药水箭药水效果、光灵箭发光等后置效果。
+        // 此前 Cubium 子类 onEntityHit 无条件施加，被无敌帧吞掉的箭矢仍施加效果，偏离 vanilla。
+        if (hurt) {
+            doPostHurtEffects(*livingTarget);
+        }
     }
 
     // 击退效果
@@ -586,6 +593,13 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
     // 播放命中地面音效
     math::Random rng = createRandomFromEntity(*this);
     playSound(SoundEvents::ENTITY_ARROW_HIT_GROUND, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
+}
+
+void AbstractArrowEntity::doPostHurtEffects(LivingEntity& /*target*/)
+{
+    // 基类默认空实现（对齐 vanilla AbstractArrow.doPostHurtEffects:567-568）。
+    // 子类 ArrowEntity/SpectralArrowEntity 重写以施加药水/发光效果。
+    // 由 onEntityHit 在 hurt 成功后调用，hurt 失败不调用。
 }
 
 void AbstractArrowEntity::setBaseDamageFromMob(f32 power)
@@ -846,23 +860,20 @@ void ArrowEntity::tick()
     }
 }
 
-void ArrowEntity::onEntityHit(const RayTraceResult& result)
+void ArrowEntity::doPostHurtEffects(LivingEntity& target)
 {
-    // 先调用父类处理伤害
-    AbstractArrowEntity::onEntityHit(result);
+    // 先调用父类（基类默认空实现，预留扩展点）
+    AbstractArrowEntity::doPostHurtEffects(target);
 
-    // 应用药水效果到被命中的生物
-    const auto& arrowEffects = effects();
-    if (!result.hitEntity || arrowEffects.empty()) {
+    // 应用药水效果到被命中且存活的目标（对齐 vanilla Arrow.doPostHurtEffects:113-119）。
+    // vanilla 用 potioncontents.forEachEffect(target.addEffect)，Cubium 箭矢存效果列表。
+    // 此方法仅在 hurt 成功后由父类 onEntityHit 调用，hurt 失败（无敌帧/免疫）不施加。
+    if (!target.isAlive()) {
         return;
     }
-
-    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
-    if (livingTarget != nullptr && livingTarget->isAlive()) {
-        // 对目标施加所有药水效果
-        for (const auto& effect : arrowEffects) {
-            livingTarget->addEffect(effect);
-        }
+    const auto& arrowEffects = effects();
+    for (const auto& effect : arrowEffects) {
+        target.addEffect(effect);
     }
 }
 
@@ -923,21 +934,14 @@ void SpectralArrowEntity::tick()
     }
 }
 
-void SpectralArrowEntity::onEntityHit(const RayTraceResult& result)
+void SpectralArrowEntity::doPostHurtEffects(LivingEntity& target)
 {
-    // 先调用父类处理伤害
-    AbstractArrowEntity::onEntityHit(result);
+    // 先调用父类（基类默认空实现，预留扩展点）
+    AbstractArrowEntity::doPostHurtEffects(target);
 
-    // 命中生物时施加发光效果
-    if (!result.hitEntity) {
-        return;
-    }
-
-    LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
-    if (livingTarget != nullptr) {
-        // 施加发光效果，持续时间 glowDuration() ticks（默认 200 ticks = 10 秒）
-        livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, glowDuration(), 0));
-    }
+    // 施加发光效果（对齐 vanilla SpectralArrow.doPostHurtEffects:41-45）。
+    // 此方法仅在 hurt 成功后由父类 onEntityHit 调用，hurt 失败（无敌帧/免疫）不施加。
+    target.addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Glowing, glowDuration(), 0));
 }
 
 ItemStack SpectralArrowEntity::getArrowStack() const

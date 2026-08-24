@@ -63,9 +63,9 @@ public:
     // ========== 迟缓之箭定制 ==========
     //
     // 重写 customizeArrow 钩子，在基类 attackEntityWithRangedAttack 创建普通箭矢后、
-    // 发射前为箭矢附加缓慢效果，使射出的箭命中目标时施加 30 秒缓慢 I
+    // 发射前为箭矢附加缓慢效果，使射出的箭命中目标且 hurt 成功后施加 30 秒缓慢 I
     // （对应原版流浪者发射 Arrow of Slowness）。
-    // ArrowEntity::onEntityHit 会自动将箭矢携带的效果施加给被命中的生物。
+    // ArrowEntity::doPostHurtEffects 会自动将箭矢携带的效果施加给被命中且 hurt 成功的生物。
     //
     // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_流浪者.txt#行为（发射造成缓慢效果的箭）
     void customizeArrow(entity::ArrowEntity& arrow) override;

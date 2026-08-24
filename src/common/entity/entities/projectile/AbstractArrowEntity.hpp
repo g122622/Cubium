@@ -218,6 +218,20 @@ protected:
     void onEntityHit(const RayTraceResult& result) override;
 
     /**
+     * @brief 命中造成伤害后的后置效果施加（对齐 vanilla AbstractArrow.doPostHurtEffects）
+     *
+     * 由 onEntityHit 在 hurt 成功后调用，子类重写以施加药水箭药水效果 / 光灵箭发光效果。
+     * 对齐 vanilla AbstractArrow.onHitEntity:453-468：doPostHurtEffects 仅在
+     * entity.hurtOrSimulate(...) 返回 true（伤害实际生效）时调用，hurt 失败
+     * （无敌帧内 amount<=lastDamage 返回 false、isInvulnerableTo 拦截）时不施加。
+     * 此前 Cubium ArrowEntity/SpectralArrowEntity::onEntityHit 无条件施加效果，
+     * 偏离 vanilla——被无敌帧吞掉的箭矢仍施加药水/发光。
+     *
+     * @param target 命中的存活实体（已确认 hurt 成功）
+     */
+    virtual void doPostHurtEffects(LivingEntity& target);
+
+    /**
      * @brief 箭矢命中方块时的处理
      */
     void onBlockHit(const RayTraceResult& result) override;
@@ -352,11 +366,12 @@ public:
 
 protected:
     /**
-     * @brief 箭矢命中实体时的处理
+     * @brief 命中造成伤害后施加药水效果（对齐 vanilla Arrow.doPostHurtEffects）
      *
-     * 药水箭命中时会给目标施加药水效果。
+     * 仅在 hurt 成功后由父类 onEntityHit 调用，施加箭矢携带的所有药水效果
+     * （药水箭自带效果 / 流浪者缓慢 / 沼骸中毒等经 customizeArrow 注入）。
      */
-    void onEntityHit(const RayTraceResult& result) override;
+    void doPostHurtEffects(LivingEntity& target) override;
 
 public:
     // ========== 箭矢特有方法 ==========
@@ -441,11 +456,12 @@ public:
 
 protected:
     /**
-     * @brief 箭矢命中实体时的处理
+     * @brief 命中造成伤害后施加发光效果（对齐 vanilla SpectralArrow.doPostHurtEffects）
      *
-     * 光灵箭命中时会给目标施加发光效果。
+     * 仅在 hurt 成功后由父类 onEntityHit 调用，施加 Glowing 效果
+     * 持续 glowDuration() ticks（默认 200 = 10 秒）。
      */
-    void onEntityHit(const RayTraceResult& result) override;
+    void doPostHurtEffects(LivingEntity& target) override;
 
 public:
     // ========== AbstractArrowEntity 接口实现 ==========
