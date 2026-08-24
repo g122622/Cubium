@@ -30,6 +30,8 @@
 #include "common/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -37,6 +39,8 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::density {
 
@@ -376,24 +380,16 @@ NoiseChunk::NoiseChunk(NoiseRouter router,
     , m_beardifier(std::move(beardifier))
     , m_router(std::move(router))
 {
-    // MC 1.21: 区块生成时 cellCountXZ = CHUNK_WIDTH / cellWidth (通常=4)，
-    // 单列查询时 cellCountXZ = 1 (iterateNoiseColumn 传入 1)
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunk::ctor");
+
     m_cellConfig.cellCountXZ = (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth);
 
-    // MC 1.21: 在 finalDensity 上叠加 BeardifierMarker，包装在 CacheAllInCell 中
-    // 对应 Java: DensityFunctions.cacheAllInCell(
-    //     DensityFunctions.add(noiserouter.finalDensity(), DensityFunctions.BeardifierMarker.INSTANCE))
-    // mapAll 时 BeardifierMarker 会被替换为实际的 Beardifier 实例（或 Constant(0.0)）
     auto currentFinalDensity = m_router.extractFinalDensity();
     auto composite = std::make_unique<TwoArgument>(
         std::move(currentFinalDensity), factory::beardifierMarker(), TwoArgumentType::Add);
     auto cachedComposite = std::make_unique<Marker>(MarkerType::CacheAllInCell, std::move(composite));
     m_router.replaceFinalDensity(std::move(cachedComposite));
 
-    // MC 1.21: 使用 mapAll(*this) 遍历密度函数树，将 Marker 替换为 NoiseChunk 特定实现
-    // 对所有 15 个密度函数执行 mapAll，将 Interpolated → NoiseInterpolator，
-    // CacheAllInCell → CellCache，BeardifierMarker → 实际 Beardifier，
-    // CacheOnce/FlatCache/Cache2D 保持原样
     m_router.mapAll(*this);
 }
 
@@ -407,7 +403,7 @@ void NoiseChunk::setAquifer(std::unique_ptr<aquifer::Aquifer> aq)
 
 std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFunction> function)
 {
-    // MC 1.21: 根据 Marker 类型替换为 NoiseChunk 特定实现
+    // 根据 Marker 类型替换为 NoiseChunk 特定实现
     if (auto* marker = dynamic_cast<Marker*>(function.get())) {
         switch (marker->markerType()) {
             case MarkerType::Interpolated: {
@@ -618,11 +614,6 @@ void NoiseChunk::swapSlices()
 
 void NoiseChunk::setInCellFromIndex(i32 index)
 {
-    // MC 1.21 forIndex 逻辑：
-    // i = index % cellWidth               → inCellZ
-    // j = index / cellWidth
-    // k = j % cellWidth                   → inCellX
-    // l = cellHeight - 1 - j / cellWidth  → inCellY
     m_inCellZ = math::floorMod(index, m_cellConfig.cellWidth);
     const i32 j = math::floorDiv(index, m_cellConfig.cellWidth);
     m_inCellX = math::floorMod(j, m_cellConfig.cellWidth);
@@ -660,11 +651,8 @@ i32 NoiseChunk::maxPreliminarySurfaceLevel(i32 minBlockX, i32 minBlockZ, i32 max
 
 biome::climate::Sampler NoiseChunk::cachedClimateSampler(const std::vector<biome::climate::ParameterPoint>& spawnTarget)
 {
-    // MC 1.21.11: NoiseChunk.cachedClimateSampler(router, spawnTarget)
-    // 使用经过 mapAll(this::wrap) 包装的密度函数创建 Climate::Sampler。
-    // 这些密度函数已被 NoiseInterpolator/CacheOnce/CellCache 包装，
-    // 在区块生成上下文中采样时使用插值缓存。
-    //
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunk::cachedClimateSampler");
+
     // spawnTarget 用于 Climate.Sampler.findSpawnPosition()，在气候空间中
     // 径向搜索最佳出生点。SpawnFinder 实现见 Climate.cpp。
     if (!m_cachedSampler) {

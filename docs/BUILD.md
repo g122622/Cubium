@@ -62,21 +62,18 @@ FAILED: bin/RelWithDebInfo/minecraft-client.exe
 The system cannot find the path specified.
 ```
 
-**根因**：vcpkg 在 CMake configure 时将 `pwsh.exe` 的绝对路径缓存到 `CMakeCache.txt` 中（`Z_VCPKG_POWERSHELL_PATH` 和 `Z_VCPKG_PWSH_PATH`），且写入 ninja 构建文件的 POST_BUILD 命令。当 PowerShell 通过 Microsoft Store 自动升级后（如 7.6.2 → 7.6.3），安装目录版本号变化，旧路径失效，但 CMake 缓存中仍是旧路径。
+**根因**：vcpkg 在 CMake configure 时将 `pwsh.exe` 的绝对路径缓存到 `CMakeCache.txt` 中（`Z_VCPKG_POWERSHELL_PATH` 和 `Z_VCPKG_PWSH_PATH`），且写入 ninja 构建文件的 POST_BUILD 命令。当 PowerShell 通过 Microsoft Store 自动升级后（如 7.6.4.0 → 7.6.5.0），安装目录版本号变化，旧路径失效，但 CMake 缓存中仍是旧路径。
 
-**解决**：在 `build/` 目录下批量替换旧版本号为新版本号：
+**解决**：先确认当前 PowerShell 实际安装路径（`which pwsh` 或 `where pwsh.exe`），得到新版本号，再替换 `build/CMakeCache.txt` 中的旧版本号，然后重新 configure 让 CMake 自动重生成其余 ninja/json 缓存文件（不必逐个手改、也不会漏）：
 
 ```bash
-# 示例：PowerShell 从 7.6.2 升级到 7.6.3
-sed -i 's|Microsoft.PowerShell_7.6.2.0_x64__8wekyb3d8bbwe|Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe|g' \
-  build/CMakeCache.txt \
-  build/.cmake/api/v1/reply/cache-v2-*.json \
-  build/CMakeFiles/impl-Debug.ninja \
-  build/CMakeFiles/impl-Release.ninja \
-  build/CMakeFiles/impl-RelWithDebInfo.ninja
+# 示例：PowerShell 从 7.6.4.0 升级到 7.6.5.0
+sed -i 's|Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe|Microsoft.PowerShell_7.6.5.0_x64__8wekyb3d8bbwe|g' \
+  build/CMakeCache.txt
+./scripts/configure.sh build   # 重新 configure 会重写 impl-*.ninja 与 cache json，再增量链接
 ```
 
-> **注意**：替换后直接增量构建即可，无需重新 configure。可通过 `which pwsh.exe` 确认当前 PowerShell 的实际安装路径。
+> 缓存变量名为 `Z_VCPKG_POWERSHELL_PATH`（INTERNAL）与 `Z_VCPKG_PWSH_PATH`（FILEPATH），均在 `build/CMakeCache.txt` 中。若不想重跑 configure，亦可手动同步替换 `build/CMakeFiles/impl-*.ninja` 与 `build/.cmake/api/v1/reply/cache-v2-*.json` 后直接增量构建，但任一文件漏改都会使 POST_BUILD 仍指向旧路径。本陷阱每次 PowerShell 小版本升级都会复现，属 vcpkg 缓存绝对路径的固有问题。
 
 #### vcpkg 构建失败恢复
 

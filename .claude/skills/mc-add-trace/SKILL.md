@@ -135,7 +135,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 4. 【可选】追踪宏的最后一个参数是一个lambda表达式，lambda表达式接受一个`perfetto::EventContext`参数，用户可以在lambda中使用这个参数来触发Flow事件。Flow事件可以用来关联不同函数中的事件，方便在perfetto UI中分析调用关系。如果你追踪的函数参数中有可以用来唯一标识调用实例的信息（比如实体ID、区块位置、方块Pos等），建议使用这些信息来构造Flow ID，这样可以在perfetto UI中清晰地看到同一个实体或区块的事件是如何流转的。
 5. 追踪宏采用RAII机制，尽量放在当前作用域顶部，且离开当前作用域时会自动结束事件，因此不需要手动结束事件。
 6. 尽量使用 `MC_TRACE_SCOPED_EVENT` 而不是 `MC_TRACE_INSTANT_EVENT`，因为前者可以记录一个时间区间，而后者只能记录一瞬间，导致信息量减少，除非你确实只关心一个瞬间事件（比如用户按下键盘、收到网络包），否则建议使用 `MC_TRACE_SCOPED_EVENT`。
-7. 引入trace之前，必须检查当前文件是否包含了 `#include "common/profiler/TraceEvents.hpp"` 如果没有包含，则需要增加这个包含语句。
+7. 引入trace之前，必须检查当前文件是否包含了 `#include "common/profiler/TraceEvents.hpp"` 和 `#include "common/profiler/TraceCategories.hpp"`。如果没有包含，则需要增加这个包含语句。
 8. 建议进入相关函数，然后在函数内部顶部加trace，这样能避免外层函数全是trace，影响可读性。除非相关逻辑没有被封装为函数，时才可以在外层函数加trace。
 9. 【命名空间】`.cpp` 文件通常在 include 区之后加一行 `using namespace mc::trace;`，即可直接写 `TraceEvents.Server.Tick`；`.hpp` 文件用全限定 `::mc::trace::TraceEvents.X.Y`，不要在头文件加 `using namespace`。
 10. 【内存追踪】分配级追踪由独立 CMake 开关 `MC_ENABLE_MEMORY` 控制（默认 OFF，须同时 `MC_ENABLE_TRACY=ON`）。**不要**直接用 `MC_TRACE_MEM_ALLOC/FREE` 宏去标 `std::vector::data()` 或 `shared_ptr::get()` 这类不稳定指针——会触发 Tracy 硬失败终止会话（详见下方「内存追踪」章节）。追踪 vector 用 `TracyTrackingAlloc`，追踪对象用 `TracyObjectTracker`，两者都在 `common/profiler/MemoryTracking.hpp`。

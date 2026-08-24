@@ -46,8 +46,6 @@ namespace mc::world::gen {
 /**
  * @brief 世界生成随机状态
  *
- * MC 1.21: 对应 net.minecraft.world.level.levelgen.RandomState
- *
  * 集中持有世界生成所需的全部随机源和子系统，确保所有生成组件
  * 使用一致的种子和噪声参数。NoiseChunkGenerator 应只消费 RandomState
  * 中的组件，不自行拼装子系统。
@@ -115,7 +113,6 @@ public:
     /**
      * @brief 获取或创建命名噪声实例
      *
-     * MC 1.21: RandomState.getOrCreateNoise(Holder<NormalNoise.NoiseParameters>)
      * 首次调用时从 Noises 注册表取参数，用 fromHashOf(name).forkPositional() 创建 NormalNoise。
      * 后续调用返回缓存实例。
      *
@@ -140,7 +137,6 @@ public:
     /**
      * @brief 获取或创建命名位置随机工厂
      *
-     * MC 1.21: RandomState.getOrCreateRandomFactory(Identifier)
      * 首次调用时用 fromHashOf(name).forkPositional() 创建，后续调用返回缓存。
      *
      * @param name 随机工厂名称（如 "minecraft:bedrock_floor"）
@@ -161,14 +157,14 @@ private:
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_oreRandom;
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_positionalRandom;
 
-    // MC 1.21: 噪声实例缓存（name → NormalNoise）
+    // 噪声实例缓存（name → NormalNoise）
     // shared_ptr 存储：数据驱动噪声叶子绑定（NoiseBindingVisitor）需 shared_ptr<const NormalNoise>
     // 共享所有权，叶子跨区块 mapAll 复用同一 NormalNoise。getOrCreateNoise 返回 NormalNoise&（*it->second）。
     // mutable：getOrCreateNoiseShared 是 const（createRouterCopy 经 NoiseBindingVisitor 在 const 路径
     // 调用，每区块一次，逻辑不改 RandomState 状态），噪声缓存为惰性初始化的派生状态，故允许 const 写入。
     mutable std::unordered_map<std::string, std::shared_ptr<noise::NormalNoise>> m_noiseCache;
 
-    // MC 1.21: 位置随机工厂缓存（name → PositionalRandomFactory）
+    // 位置随机工厂缓存（name → PositionalRandomFactory）
     std::unordered_map<std::string, std::unique_ptr<::mc::math::PositionalRandomFactory>> m_randomFactoryCache;
 
     // 并发保护：buildSurface 在并行 worker 池上运行，多个区块会并发调用

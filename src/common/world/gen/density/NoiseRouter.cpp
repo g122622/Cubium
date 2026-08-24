@@ -24,8 +24,12 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <memory>
 #include <utility>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::density {
 
@@ -85,6 +89,7 @@ mc::world::biome::climate::Sampler NoiseRouter::createClimateSampler() const
 
 void NoiseRouter::mapAll(DensityFunction::Visitor& visitor)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseRouter::mapAll");
     DensityFunction::applyInPlace(m_barrierNoise, visitor);
     DensityFunction::applyInPlace(m_fluidLevelFloodednessNoise, visitor);
     DensityFunction::applyInPlace(m_fluidLevelSpreadNoise, visitor);
@@ -104,6 +109,7 @@ void NoiseRouter::mapAll(DensityFunction::Visitor& visitor)
 
 NoiseRouter NoiseRouter::mapAllCopy(DensityFunction::Visitor& visitor) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseRouter::mapAllCopy");
     // const 路径：对每个成员调用 mapAll(visitor)（const，返回新 unique_ptr），组装新 NoiseRouter。
     // 不修改 this，供 RandomState::createRouterCopy 从共享化的 m_router 派生每区块副本。
     // 成员非空由构造函数断言保证；mapAll 对 const 对象合法（virtual mapAll 是 const）。
