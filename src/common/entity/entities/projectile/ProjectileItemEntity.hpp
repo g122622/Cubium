@@ -205,6 +205,22 @@ public:
 protected:
     void onImpact(const RayTraceResult& result) override;
 
+    // 水瓶命中方块时浇灭命中点对面 + 反方向 + 四水平方向邻接的火/蜡烛/营火。
+    // 对齐 vanilla AbstractThrownPotion.onHitBlock:50-67 + dowseFire:110-121。
+    void onBlockHit(const RayTraceResult& result) override;
+
+private:
+    // 浇灭指定位置的火（FIRE tag→置空气）、蜡烛（isLit→extinguish）、营火
+    // （isLitCampfire→dowse+setBlock LIT=false）。对齐 vanilla dowseFire:110-121。
+    // 注：Cubium 无 IWorld::destroyBlock，火方块用 setBlockState(air) 等价（与
+    // RavagerEntity/EnderDragonEntity 破坏方块范式一致）。
+    void _dowseFire(const BlockPos& pos);
+
+    // 水瓶破裂时对范围内水敏感/着火实体施加效果：水敏感实体受 1.0 indirectMagic 伤害，
+    // 着火实体灭火（extinguishFire）。对齐 vanilla AbstractThrownPotion.onHitAsWater:87-106。
+    // TODO: 美西螈 rehydrate（Axolotl.rehydrate）未实现，待 AxolotlEntity 补该方法后接入。
+    void _onHitAsWater();
+
     // 批次6 子目标2 Step4：m_lingering 迁入 ecs::PotionProjectileComponent。
 };
 

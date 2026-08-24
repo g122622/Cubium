@@ -1469,6 +1469,19 @@ public:
     [[nodiscard]] bool isWet() const { return m_inWater || isInRain(); }
 
     /**
+     * @brief 实体是否对水敏感
+     *
+     * 对齐 MC 1.21.11 Entity.isSensitiveToWater()（默认 false）。
+     * 烈焰人/雪傀儡等 override 返回 true：在水中/雨中每 tick 受 drown 伤害
+     *（LivingEntity.baseTick），且被水瓶命中时受 1.0 indirectMagic 伤害
+     *（AbstractThrownPotion.onHitAsWater）。基类提供虚派发点，便于
+     * ProjectileEntity::onImpact 经基类指针统一查询水敏感性。
+     *
+     * @return 是否对水敏感
+     */
+    [[nodiscard]] virtual bool isWaterSensitive() const { return false; }
+
+    /**
      * @brief 检查眼睛是否在水下
      *
      * 用于判断是否可以游泳、是否消耗氧气等

@@ -137,8 +137,10 @@ public:
      * 对齐 MC 1.21.11 Blaze.isSensitiveToWater() 返回 true。
      * tick() 中水伤害条件为 isWaterSensitive() && isWet()，
      * 对齐 MC 原版 LivingEntity.baseTick() 的逻辑模式。
+     * 同时被 PotionEntity::onHitAsWater 查询：水瓶命中范围内水敏感实体
+     * 受 1.0 indirectMagic 伤害（AbstractThrownPotion.onHitAsWater:93-95）。
      */
-    [[nodiscard]] bool isWaterSensitive() const { return true; }
+    [[nodiscard]] bool isWaterSensitive() const override { return true; }
 
     // ========== 阳光燃烧 ==========
 

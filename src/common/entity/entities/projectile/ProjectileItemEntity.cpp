@@ -43,10 +43,17 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <memory>
 #include <utility>
@@ -408,6 +415,13 @@ PotionEntity::PotionEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 批次6 子目标2 Step1：attach PotionProjectileComponent（药水类型 lingering 标志）。
     // Step4 将把 m_lingering 读写改走组件。
     m_entityContext->enttRegistry().emplace<ecs::PotionProjectileComponent>(m_entityContext->entity());
+
+    // 对齐 vanilla ThrownPotion：实体默认携带 splash_potion 物品，PotionContents 默认为空即水瓶
+    // （PotionUtils::getPotion 对 potionId 空的 splash_potion 返回 Potions::WATER）。
+    // 此前 getItemStack 返回空 ItemStack → isWaterBottle 判定为 false（空 stack getPotion 返回 EMPTY），
+    // 致 test.spawn 生成的 splash_potion 永不进入 onHitAsWater/dowseFire 水瓶分支。女巫投药水后用
+    // setItemStack 覆盖为具体药水（WitchEntity.cpp:444），不受此默认值影响。
+    setItemStack(potion::PotionUtils::createSplashPotionItem(potion::Potions::WATER));
 }
 
 std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/, ecs::EntityRegistry& registry)
@@ -417,20 +431,25 @@ std::unique_ptr<Entity> PotionEntity::create(IWorld* /*world*/, ecs::EntityRegis
 
 const Item* PotionEntity::getDefaultItem() const
 {
-    // 返回默认药水物品（喷溅型水瓶）
-    // 注意：药水系统尚未完全实现
-    return nullptr;
+    // 默认喷溅型药水物品（vanilla ThrownPotion 默认 splash_potion）。
+    return Items::SPLASH_POTION;
 }
 
 void PotionEntity::onImpact(const RayTraceResult& result)
 {
-    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
-    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。药水无 onEntityHit override（基类空），
-    //   命中实体无功能损失；但 onBlockHit（通知方块 onProjectileHit）被绕过。vanilla
-    //   ThrownPotion.onHit 首行 super.onHit() dispatch 再喷溅，应对齐。
+    // 对齐 vanilla AbstractThrownPotion.onHit:70-85：首行 super.onHit() dispatch
+    // （基类按命中类型分发 onEntityHit/onBlockHit），再按药水类型分支处理，最后 discard。
+    // 此前未调基类 dispatch，致 onBlockHit（通知方块 onProjectileHit + 水瓶浇火）成死代码，
+    // 与 SnowballEntity/WindChargeEntity/EggEntity onImpact 修复前同病（任务 #327/#328/#329）。
+    ProjectileEntity::onImpact(result);
+
     // 获取药水效果
     const ItemStack itemStack = getItemStack();
     auto effects = potion::PotionUtils::getEffects(itemStack);
+
+    // 水瓶特例：对齐 vanilla onHit:75-76（potioncontents.is(Potions.WATER)→onHitAsWater）。
+    // 水瓶无效果，走水敏感伤害 + 灭火分支，不走喷溅效果逻辑。
+    const bool isWater = potion::PotionUtils::isWaterBottle(itemStack);
 
     // 喷溅药水影响范围为 4.0 格
     constexpr f32 SPLASH_RADIUS = 4.0f;
@@ -451,8 +470,11 @@ void PotionEntity::onImpact(const RayTraceResult& result)
             Vector3(0.5f, 0.5f, 0.5f),
             20);
 
-        // 应用效果到范围内的生物
-        if (!effects.empty()) {
+        // 水瓶：对范围内水敏感/着火实体施加效果（伤害/灭火），对齐 onHitAsWater:87-106。
+        // 非水瓶且有效果：喷溅效果（onHitAsPotion 等价），原逻辑保留。
+        if (isWater) {
+            _onHitAsWater();
+        } else if (!effects.empty()) {
             // 获取范围内的所有实体
             AxisAlignedBB searchBox(m_builtIn.stateVector->m_pos.x - SPLASH_RADIUS,
                 m_builtIn.stateVector->m_pos.y - SPLASH_RADIUS,
@@ -510,7 +532,8 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         }
 
         // 如果是滞留型药水，创建区域效果云
-        if (isLingering()) {
+        // 水瓶不生成滞留云（vanilla onHitAsWater 不走 onHitAsPotion，无 AreaEffectCloud）。
+        if (!isWater && isLingering()) {
             // ECS 迁移：实体构造需要 registry 句柄（m_world 为投射物所属世界，此处必非空）
             auto* registry = &ecsRegistry();
             if (registry == nullptr) {
@@ -562,6 +585,120 @@ void PotionEntity::onImpact(const RayTraceResult& result)
     }
 
     remove();
+}
+
+void PotionEntity::onBlockHit(const RayTraceResult& result)
+{
+    // 先调基类：清零速度 + 通知命中方块 onProjectileHit（蜡烛点燃等）。
+    ProjectileEntity::onBlockHit(result);
+
+    // 水瓶命中方块时浇灭命中点对面 + 反方向 + 四水平方向邻接的火/蜡烛/营火。
+    // 对齐 vanilla AbstractThrownPotion.onHitBlock:50-67。
+    if (m_world == nullptr || result.type != RayTraceResultType::Block) {
+        return;
+    }
+
+    const ItemStack itemStack = getItemStack();
+    if (!potion::PotionUtils::isWaterBottle(itemStack)) {
+        return;
+    }
+
+    // vanilla：blockpos1 = blockpos.relative(direction)（命中面外侧方块）。
+    const Direction hitFace = result.face;
+    const BlockPos blockPos1 = result.blockPos.offset(hitFace);
+
+    _dowseFire(blockPos1);
+    // blockpos1.relative(direction.getOpposite())：命中点反向（即命中方块自身一侧）。
+    if (hitFace != Direction::None) {
+        _dowseFire(blockPos1.offset(Directions::opposite(hitFace)));
+        // 四水平方向。
+        for (const Direction horiz : Directions::horizontal()) {
+            _dowseFire(blockPos1.offset(horiz));
+        }
+    }
+}
+
+void PotionEntity::_dowseFire(const BlockPos& pos)
+{
+    // 对齐 vanilla AbstractThrownPotion.dowseFire:110-121。
+    if (m_world == nullptr) {
+        return;
+    }
+
+    const BlockState* state = m_world->getBlockState(pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    if (BlockTags::FIRE().contains(*state)) {
+        // 火：destroyBlock(pos, false, this) → 置空气。Cubium 无 IWorld::destroyBlock，
+        // 用 setBlockState(air) 等价（与 RavagerEntity/EnderDragonEntity 破坏方块范式一致）。
+        const BlockState* airState = &VanillaBlocks::AIR->defaultState();
+        m_world->setBlockState(pos, airState, 3);
+    } else if (blocks::AbstractCandleBlock::isLit(*state)) {
+        // 蜡烛：extinguish(null, state, level, pos)。extinguish 是 AbstractCandleBlock 虚函数，
+        // Block 基类无此声明，需 dynamic_cast 到 AbstractCandleBlock 后调用（CandleBlock/CandleCakeBlock
+        // 未 override，落到基类实现：setBlock LIT=false + 熄灭音效）。
+        BlockState mutableState = *state;
+        auto* candle = dynamic_cast<blocks::AbstractCandleBlock*>(&state->getBlockMutable());
+        if (candle != nullptr) {
+            candle->extinguish(*m_world, pos, mutableState, nullptr);
+        }
+    } else if (blocks::CampfireBlock::isLitCampfire(*state)) {
+        // 营火：levelEvent(1009 熄灭音效) + dowse(owner, level, pos, state) + setBlock(LIT=false)。
+        // Cubium CampfireBlock::extinguish 内部已做 setBlock(LIT=false) + 播放熄灭音效，
+        // 等价合并 vanilla dowse + setBlockAndUpdate。owner 信息丢失（vanilla dowse 仅记伤害归属，
+        // 营火无掉落影响轻微），TODO 待 CampfireBlock::dowse 接入 owner。
+        BlockState mutableState = *state;
+        blocks::CampfireBlock::extinguish(*m_world, pos, mutableState);
+    }
+}
+
+void PotionEntity::_onHitAsWater()
+{
+    // 对齐 vanilla AbstractThrownPotion.onHitAsWater:87-106。
+    // AABB inflate(4.0, 2.0, 4.0)，对水敏感或着火且距离平方<16 的 LivingEntity：
+    //   水敏感 → hurt(indirectMagic(this, owner), 1.0F)；着火 → extinguishFire()。
+    if (m_world == nullptr) {
+        return;
+    }
+
+    constexpr f32 HALF_XZ = 4.0f;
+    constexpr f32 HALF_Y = 2.0f;
+    constexpr f32 RADIUS_SQ = 16.0f;
+
+    const Vector3 pos = m_builtIn.stateVector->m_pos;
+    AxisAlignedBB aabb(
+        pos.x - HALF_XZ, pos.y - HALF_Y, pos.z - HALF_XZ, pos.x + HALF_XZ, pos.y + HALF_Y, pos.z + HALF_XZ);
+
+    std::vector<Entity*> nearby = m_world->getEntitiesInAABB(aabb, this);
+    Entity* shooter = getShooter();
+
+    for (Entity* entity : nearby) {
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (living == nullptr) {
+            continue;
+        }
+
+        const f32 distSq = living->position().distanceSquared(pos);
+        if (distSq >= RADIUS_SQ) {
+            continue;
+        }
+
+        // 水敏感：受 1.0 indirectMagic 伤害（owner=投掷者）。
+        if (living->isWaterSensitive()) {
+            auto source = DamageSources::indirectMagic(this, shooter);
+            living->hurt(source, 1.0f);
+        }
+
+        // 着火且存活：灭火。
+        if (living->isOnFire() && living->isAlive()) {
+            living->extinguishFire();
+        }
+    }
+
+    // TODO: 美西螈 rehydrate（Axolotl.rehydrate）未实现，待 AxolotlEntity 补该方法后在此接入
+    // （vanilla onHitAsWater:103-105 遍历范围内 Axolotl 调 rehydrate）。
 }
 
 // ============================================================================

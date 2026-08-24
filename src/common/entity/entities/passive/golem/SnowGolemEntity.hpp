@@ -115,8 +115,12 @@ public:
 
     /**
      * @brief 雪傀儡对水敏感
+     *
+     * 对齐 MC 1.21.11 SnowGolem.isSensitiveToWater() 返回 true。
+     * 同时被 PotionEntity::onHitAsWater 查询：水瓶命中范围内水敏感实体
+     * 受 1.0 indirectMagic 伤害（AbstractThrownPotion.onHitAsWater:93-95）。
      */
-    [[nodiscard]] bool isWaterSensitive() const { return true; }
+    [[nodiscard]] bool isWaterSensitive() const override { return true; }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
