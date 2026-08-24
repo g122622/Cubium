@@ -1174,6 +1174,30 @@ public:
     void damageShield(f32 amount) override;
 
     /**
+     * @brief 攻击者手持斧头时破盾秒数（对齐 MC Java 1.21.11
+     *        LivingEntity.getSecondsToDisableBlocking + Weapon.disableBlockingForSeconds）
+     *
+     * vanilla 攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0 时返回该值
+     * （斧头 5.0F）。Cubium 暂无 WEAPON 组件体系，改为检测主手是否为 AxeItem（斧头
+     * 攻击破盾是 wiki 明确行为：用斧攻击盾牌可使盾牌失效 5 秒）。
+     *
+     * @return 主手持斧返回 5.0F，否则 0.0F（不破盾）
+     */
+    [[nodiscard]] f32 getSecondsToDisableBlocking() const noexcept override;
+
+    /**
+     * @brief 受害者盾牌被破盾时禁用盾牌（对齐 MC Java 1.21.11 Player.blockUsingItem
+     *        破盾分支 → BlocksAttacks.disable）
+     *
+     * 玩家举盾格挡时，若攻击者 getSecondsToDisableBlocking > 0，则对自身活跃盾牌
+     * setItemCooldown(shield, round(seconds*20))（斧头 5.0 秒 = 100 tick）+ stopActiveHand
+     * （停止举盾）+ 播放 ITEM_SHIELD_BREAK 破盾音效（对齐 vanilla disableSound）。
+     *
+     * @param attacker 攻击者（提供 getSecondsToDisableBlocking 破盾秒数）
+     */
+    void onShieldDisabled(LivingEntity& attacker) override;
+
+    /**
      * @brief 检查玩家是否对指定伤害类型免疫
      *
      * 在基类检查的基础上，额外检查玩家专属游戏规则：

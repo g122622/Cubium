@@ -228,6 +228,15 @@ public:
      */
     [[nodiscard]] bool dampensVibrations() const override { return true; }
 
+    /**
+     * @brief 监守者攻击破盾秒数（对齐 MC Java 1.21.11 Warden.getSecondsToDisableBlocking:166-168）
+     *
+     * vanilla Warden 重写 getSecondsToDisableBlocking 直接返回 5.0F（监守者近战攻击破盾 100 tick，
+     * 不依赖 WEAPON 组件）。对齐 BlocksAttacks.disable：受害者举盾格挡监守者近战时盾牌被禁用
+     * round(5.0*20)=100 tick。
+     */
+    [[nodiscard]] f32 getSecondsToDisableBlocking() const noexcept override { return 5.0f; }
+
     // ========== 怒气等级（AngerLevel） ==========
 
     /**

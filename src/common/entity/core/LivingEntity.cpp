@@ -332,10 +332,24 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     if (canBlockDamageSource(source)) {
         damageShield(amount);
 
+        // 破盾判定（对齐 MC Java 1.21.11 Player.blockUsingItem:727-730 破盾分支）：
+        // 受害者举盾格挡时，取直接来源（攻击者）的 getSecondsToDisableBlocking，若 >0 则受害者
+        // 盾牌被禁用 round(seconds*20) tick（斧头 5.0 秒 = 100 tick）。破盾独立于 IS_PROJECTILE
+        // 门控——投射物攻击者（箭矢等）getSecondsToDisableBlocking 返回 0 天然不破盾，故此处
+        // 不需 IS_PROJECTILE 门控（对齐 vanilla blockUsingItem 内破盾与 blockedByItem 回调分离）。
+        // onShieldDisabled 基类空实现，Player 重写执行 setItemCooldown + stopActiveHand + 破盾音效。
+        Entity* directEntityForDisable = source.directSource();
+        if (directEntityForDisable != nullptr && directEntityForDisable != this) {
+            LivingEntity* disableAttacker = dynamic_cast<LivingEntity*>(directEntityForDisable);
+            if (disableAttacker != nullptr) {
+                onShieldDisabled(*disableAttacker);
+            }
+        }
+
         // 格挡成功时回调攻击者（对齐 MC Java 1.21.11 LivingEntity.applyItemBlocking →
         // blockUsingItem → attacker.blockedByItem(victim)）。vanilla 条件（LivingEntity.java:1306）：
         //   f > 0.0F && !source.is(IS_PROJECTILE) && directEntity instanceof LivingEntity
-        // 即仅近战等直接来源（directSource 是 LivingEntity 且非 IS_PROJECTILE 投射物）才回调，
+        // 即仅近战等直接来源（directSource 是 LivingEntity 且非 IS_PROJECTILE 投射物）才回调,
         // 让攻击者执行"被格挡"特殊行为（如 Ravager 50% 眩晕→咆哮）。投射物格挡不回调攻击者。
         // 此前用 getTrueSource()（射击者）且缺 !source.is(IS_PROJECTILE) 门控，致箭矢格挡错误回调
         // 射击者。改为 directSource()（直接来源：近战=攻击者，箭=箭矢）+ IS_PROJECTILE 门控对齐 vanilla。

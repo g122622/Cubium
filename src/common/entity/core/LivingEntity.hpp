@@ -291,6 +291,54 @@ public:
     virtual void blockedByItem(LivingEntity& victim);
 
     /**
+     * @brief 攻击者手持武器破盾的秒数（对齐 MC Java 1.21.11
+     *        LivingEntity.getSecondsToDisableBlocking）
+     *
+     * vanilla LivingEntity.getSecondsToDisableBlocking（LivingEntity.java:3826-3830）：
+     *   ItemStack weapon = getWeaponItem();
+     *   Weapon w = weapon.get(DataComponents.WEAPON);
+     *   return (w != null && weapon == getActiveItem()) ? w.disableBlockingForSeconds() : 0.0F;
+     * 即攻击者当前活跃物品（正在使用的物品）若带有 WEAPON 组件且配置了 disableBlockingForSeconds
+     * （斧头 5.0F），则返回该值；否则返回 0（不破盾）。
+     *
+     * 该值由受害者侧的 onShieldDisabled 消费：受害者举盾格挡时，若攻击者本方法返回 >0，
+     * 则受害者的盾牌被禁用 round(seconds * 20) tick（vanilla Player.blockUsingItem:727-730 →
+     * BlocksAttacks.disable → disableBlockingForTicks = round(seconds * disableCooldownScale * 20)，
+     * disableCooldownScale 默认 1.0）。斧头 5.0 秒 → 100 tick 禁用。
+     *
+     * 子类重写示例：WardenEntity 重写返回 5.0F（监守者攻击破盾 100 tick，对齐 Java
+     * Warden.getSecondsToDisableBlocking:166-168），不依赖 WEAPON 组件。
+     *
+     * Cubium 暂未实现 WEAPON 组件体系，基类默认返回 0（不破盾）；持有破盾武器的攻击者
+     * （如 AxeItem 持有者）经主手武器判定返回 5.0F（见子类重写/工具物品接口）。
+     * TODO: 接入 WEAPON 数据组件体系后，统一走组件 disableBlockingForSeconds 而非硬编码。
+     *
+     * @return 破盾秒数（0.0 = 不破盾）
+     */
+    [[nodiscard]] virtual f32 getSecondsToDisableBlocking() const noexcept { return 0.0f; }
+
+    /**
+     * @brief 受害者盾牌被破盾时回调（对齐 MC Java 1.21.11 Player.blockUsingItem 破盾分支）
+     *
+     * vanilla Player.blockUsingItem（Player.java:722-731）：
+     *   super.blockUsingItem(level, attacker);          // 回调 attacker.blockedByItem(this)
+     *   ItemStack shield = getItemBlockingWith();
+     *   BlocksAttacks ba = shield != null ? shield.get(BLOCKS_ATTACKS) : null;
+     *   float f = attacker.getSecondsToDisableBlocking();
+     *   if (f > 0.0F && ba != null) {
+     *       ba.disable(level, this, f, shield);         // 设冷却 + stopUsingItem + 破盾音效
+     *   }
+     *
+     * Cubium 在 LivingEntity::actuallyHurt 格挡分支回调 attacker.blockedByItem 后调用本方法，
+     * 由 Player 重写实现破盾（取 attacker.getSecondsToDisableBlocking()，>0 则对自身盾牌
+     * setItemCooldown(shield, round(f*20)) + stopActiveHand + 破盾音效）。
+     * 基类默认空实现（非 Player 实体不破盾）。
+     *
+     * @param attacker 攻击者（提供 getSecondsToDisableBlocking 破盾秒数）
+     */
+    virtual void onShieldDisabled(LivingEntity& attacker) { (void)attacker; }
+
+    /**
      * @brief 掉落经验
      *
      * 在死亡时调用，生成经验球。子类可以重写此方法。

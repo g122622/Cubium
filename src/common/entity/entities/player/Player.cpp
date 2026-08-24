@@ -82,6 +82,7 @@
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/enchantments/tool/EfficiencyEnchantment.hpp"
+#include "common/item/items/tool/AxeItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
@@ -766,8 +767,10 @@ void Player::tick()
                 // 计算伤害：max(1, floor(-distance * damagePerBlock))
                 i32 damage = std::max(1, static_cast<i32>(std::floor(-distance * border.getDamagePerBlock())));
 
-                // 应用 IN_WALL 伤害
-                auto damageSource = DamageSources::inWall();
+                // 应用 OUTSIDE_BORDER 伤害（对齐 MC Java 1.21.11 死亡消息 death.attack.outsideBorder）
+                // vanilla EntityOutsideBorderDamage 与 InWall 同属 BYPASSES_ARMOR/BYPASSES_SHIELD/NO_KNOCKBACK，
+                // 标签门控行为不变；此处仅修正伤害类型，使死亡消息与维基语义对齐。
+                auto damageSource = DamageSources::outsideBorder();
                 hurt(damageSource, static_cast<f32>(damage));
             }
         }
@@ -1621,6 +1624,72 @@ void Player::damageShield(f32 amount)
         playSound(SoundEvents::ITEM_SHIELD_BREAK, 1.0f, 1.0f);
         stopActiveHand();
     }
+}
+
+f32 Player::getSecondsToDisableBlocking() const noexcept
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.getSecondsToDisableBlocking（LivingEntity.java:3826-3830）+
+    // Weapon.disableBlockingForSeconds：攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0
+    // 时返回该值（斧头 5.0F）。
+    //
+    // Cubium 暂无 WEAPON 数据组件体系，改为检测主手是否为 AxeItem——斧头攻击破盾是 wiki 明确行为
+    // （"用斧攻击盾牌可使盾牌失效 5 秒"），斧头 disableBlockingForSeconds=5.0F 是 vanilla 默认值。
+    // TODO: 接入 WEAPON 数据组件体系后，统一走组件 disableBlockingForSeconds 而非 dynamic_cast<AxeItem>。
+    const ItemStack& mainHand = getHeldItem(Hand::MainHand);
+    if (mainHand.isEmpty()) {
+        return 0.0f;
+    }
+    const auto* axe = dynamic_cast<const item::tool::AxeItem*>(mainHand.getItem());
+    return axe != nullptr ? 5.0f : 0.0f;
+}
+
+void Player::onShieldDisabled(LivingEntity& attacker)
+{
+    // 对齐 MC Java 1.21.11 Player.blockUsingItem（Player.java:722-731）破盾分支：
+    //   ItemStack shield = getItemBlockingWith();
+    //   BlocksAttacks ba = shield != null ? shield.get(BLOCKS_ATTACKS) : null;
+    //   float f = attacker.getSecondsToDisableBlocking();
+    //   if (f > 0.0F && ba != null) {
+    //       ba.disable(level, this, f, shield);  // setCooldown + stopUsingItem + disableSound
+    //   }
+    //
+    // 即玩家举盾格挡时，若攻击者破盾秒数 >0，则对自身活跃盾牌设冷却 round(f*20) tick
+    // （斧头 5.0 秒 = 100 tick，对齐 BlocksAttacks.disableBlockingForTicks = round(f*scale*20)，
+    // scale=disableCooldownScale 默认 1.0）+ 停止举盾 + 播放破盾音效。
+    const f32 seconds = attacker.getSecondsToDisableBlocking();
+    if (seconds <= 0.0f) {
+        return;
+    }
+    // 仅当玩家正在举盾（活跃物品是盾牌）时才破盾（对齐 vanilla getItemBlockingWith 非空判定）。
+    if (!isUsingItem()) {
+        return;
+    }
+    const Hand activeHand = getActiveHand();
+    const EquipmentSlot slot = handToEquipmentSlot(activeHand);
+    ItemStack& shieldStack = getMutableEquipment(slot);
+    if (!item::ShieldItem::isShield(shieldStack)) {
+        return;
+    }
+
+    // 禁用 tick 数 = round(seconds * 20)（对齐 BlocksAttacks.disableBlockingForTicks，
+    // disableCooldownScale 默认 1.0）。斧头 5.0 秒 → 100 tick。
+    const i32 disableTicks = static_cast<i32>(std::round(seconds * 20.0f));
+    if (disableTicks <= 0) {
+        return;
+    }
+
+    // 对盾牌物品设冷却（对齐 vanilla getCooldowns().addCooldown(shieldItem, ticks)）。
+    // 冷却期间 isOnCooldown 返回 true，玩家无法再次举盾格挡。
+    const Item* shieldItem = shieldStack.getItem();
+    if (shieldItem != nullptr) {
+        setItemCooldown(shieldItem, disableTicks);
+    }
+
+    // 停止举盾（对齐 vanilla stopUsingItem）。
+    stopActiveHand();
+
+    // 播放破盾音效（对齐 vanilla BlocksAttacks.disableSound，基岩用 ITEM_SHIELD_BREAK 同效）。
+    playSound(SoundEvents::ITEM_SHIELD_BREAK, 1.0f, 1.0f);
 }
 
 bool Player::isInvulnerableTo(DamageSource& source) const

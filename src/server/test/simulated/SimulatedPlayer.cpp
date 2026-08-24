@@ -271,6 +271,13 @@ bool SimulatedPlayer::useItem(mc::ItemStack stack)
     if (itemC == nullptr) {
         return false;
     }
+    // 冷却门控（对齐 MC Java 1.21.11 ServerPlayerGameMode.useItem:298-299）：
+    // 物品在冷却中时直接返回不使用，不进入 onItemRightClick → setActiveHand。
+    // 否则破盾（斧头 100 tick 冷却）、风弹、紫颂果等设的冷却形同虚设——玩家冷却期内
+    // 仍可立即重新使用。真实玩家路径在 ServerPlayHandler::handleUseItemPacket 同补。
+    if (hasItemCooldown(itemC)) {
+        return false;
+    }
     // Item 是无状态策略单例，onItemRightClick 非 const；经 ItemRegistry 取非 const 句柄调用。
     mc::Item* item = mc::ItemRegistry::instance().getItem(itemC->itemId());
     if (item == nullptr) {

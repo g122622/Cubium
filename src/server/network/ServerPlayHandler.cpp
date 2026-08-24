@@ -1213,6 +1213,12 @@ void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network
     if (heldItemC == nullptr) {
         return;
     }
+    // 冷却门控（对齐 MC Java 1.21.11 ServerPlayerGameMode.useItem:298-299）：
+    // 物品在冷却中时直接返回，不进入 onItemRightClick → setActiveHand。否则破盾（斧头
+    // 100 tick 冷却）、风弹、紫颂果等设的冷却形同虚设——玩家冷却期内仍可立即重新使用。
+    if (playerEntity->hasItemCooldown(heldItemC)) {
+        return;
+    }
     // Item 是无状态策略单例，onItemRightClick 非 const；经 ItemRegistry 取非 const 句柄调用。
     Item* heldItem = ItemRegistry::instance().getItem(heldItemC->itemId());
     if (heldItem == nullptr) {
@@ -1359,6 +1365,19 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
             (void)m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
         }
         return;
+    }
+
+    // 冷却门控（对齐 MC Java 1.21.11 ServerPlayerGameMode.useItemOn:366）：
+    // 物品在冷却中时不派发 useOn/useItem，否则破盾等冷却形同虚设。需取 Player 实体
+    // 调 hasItemCooldown（ServerPlayer 是网络会话对象，无冷却接口）。
+    if (playerWorld != nullptr) {
+        Player* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *playerWorld);
+        if (playerEntity != nullptr) {
+            if (const Item* heldItemForCooldown = heldStack.getItem();
+                heldItemForCooldown != nullptr && playerEntity->hasItemCooldown(heldItemForCooldown)) {
+                return;
+            }
+        }
     }
 
     const Item* heldItem = heldStack.getItem();
