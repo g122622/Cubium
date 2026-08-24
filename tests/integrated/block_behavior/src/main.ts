@@ -68,6 +68,7 @@ import { registerScaffoldingTests } from "./tests/decorative/ScaffoldingTests.js
 import { registerGlazedTerracottaTests } from "./tests/decorative/GlazedTerracottaTests.js";
 import { registerMagmaTests } from "./tests/nether/MagmaTests.js";
 import { registerSoulFireTests } from "./tests/nether/SoulFireTests.js";
+import { registerFireTests } from "./tests/nether/FireTests.js";
 import { registerNetherRootsTests } from "./tests/nether/NetherRootsTests.js";
 import { registerCactusFlowerTests } from "./tests/garden/CactusFlowerTests.js";
 import { registerWildflowersTests } from "./tests/garden/WildflowersTests.js";
@@ -192,6 +193,7 @@ registerScaffoldingTests();
 registerGlazedTerracottaTests();
 registerMagmaTests();
 registerSoulFireTests();
+registerFireTests();
 registerNetherRootsTests();
 registerCactusFlowerTests();
 registerWildflowersTests();
