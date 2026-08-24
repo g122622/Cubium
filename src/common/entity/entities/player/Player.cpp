@@ -2665,17 +2665,23 @@ void Player::attack(Entity& target)
     // 9. 判断是否是完全冷却攻击
     bool isFullCooldown = cooldownProgress > 0.9f;
 
-    // 10. 计算击退
-    i32 knockbackLevel = 0;
-    if (!mainHand.isEmpty()) {
-        knockbackLevel =
-            item::enchant::EnchantmentHelper::getEnchantmentLevel(mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
-    }
+    // 10. 计算击退强度（对齐 vanilla Player.java:988）。
+    // vanilla：causeExtraKnockback(target, getKnockback(target, source) + (flag1 ? 0.5F : 0.0F), vec3)
+    //   getKnockback(LivingEntity.java:1515-1520) = (ATTACK_KNOCKBACK属性 + EnchantmentHelper.modifyKnockback) / 2.0
+    //   Knockback 附魔 KNOCKBACK 组件 linear(base=1.0, per_level=1.0) → 每级 +1.0，故：
+    //     Knockback I  getKnockback = (0+1.0)/2.0 = 0.5；Knockback II = (0+2.0)/2.0 = 1.0。
+    //   flag1 = isSprinting && flag(满冷却)，sprint 时额外 +0.5（非 +1.0）。
+    //   即 Knockback II + sprint strength = 1.0 + 0.5 = 1.5。
+    // 此前 Cubium 误用 knockbackLevel = getEnchantmentLevel（直接等级 1/2）传 causeExtraKnockback，
+    //   且 sprint 用 knockbackLevel++（加 1 非 0.5），致击退强度为 vanilla 的 2 倍
+    //   （Knockback II+sprint Cubium=3.0 vs vanilla=1.5）。改用 getKnockback(target) + (sprint?0.5:0) 对齐。
+    // getKnockback 走 LivingEntity 统一路径（与 MobEntity::doHurtTarget 一致），内含 /2.0 与附魔加成。
+    f32 knockbackStrength = getKnockback(target);
 
-    // 疾跑额外击退
+    // 疾跑额外击退（对齐 vanilla flag1：isSprinting && 满冷却，sprint +0.5）
     bool isSprintKnockback = false;
     if (isSprinting() && isFullCooldown) {
-        knockbackLevel++;
+        knockbackStrength += 0.5f; // sprint 加 0.5（对齐 vanilla），非此前的 ++（加 1）
         isSprintKnockback = true;
         // 播放击退攻击音效
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_KNOCKBACK, 1.0f, 1.0f);
@@ -2745,7 +2751,7 @@ void Player::attack(Entity& target)
         // - 对目标施加击退（方向基于攻击者朝向）
         // - 如果是冲刺击退，减缓攻击者水平速度并停止冲刺
         // - 对 ServerPlayer 目标立即发送速度包并清除 hurtMarked，防止速度重复应用
-        causeExtraKnockback(target, static_cast<f32>(knockbackLevel), preHurtVelocity);
+        causeExtraKnockback(target, knockbackStrength, preHurtVelocity);
 
         // 17. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // 对齐 vanilla Player.isSweepAttack:1042-1048：横扫触发条件为主手持剑（ItemTags.SWORDS）+

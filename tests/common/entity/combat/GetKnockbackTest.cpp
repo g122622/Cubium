@@ -25,8 +25,12 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/util/math/MathUtils.hpp"
 
 using namespace mc;
@@ -60,7 +64,10 @@ public:
     void setKnockbackResistance(f64 value) { attributes().setBaseValue(Attributes::KNOCKBACK_RESISTANCE, value); }
     void setAttackKnockback(f64 value) { attributes().setBaseValue(Attributes::ATTACK_KNOCKBACK, value); }
 
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<KnockbackTestEntity>(0, mc::test::testEcsRegistry()); }
+    static std::unique_ptr<Entity> create(IWorld* /*world*/)
+    {
+        return std::make_unique<KnockbackTestEntity>(0, mc::test::testEcsRegistry());
+    }
 };
 
 class KnockbackTestMob : public MobEntity {
@@ -152,6 +159,105 @@ TEST(GetKnockbackTest, KnockbackDivisionByTwo)
 
     mob.setAttackKnockback(3.0);
     EXPECT_FLOAT_EQ(mob.getKnockback(target), 1.5f);
+}
+
+// ============================================================================
+// LivingEntity::getKnockback 击退附魔接入测试（任务 #310）
+// ============================================================================
+//
+// 验证 getKnockback 正确接入 KnockbackEnchantment::getKnockbackBonus（每级 +1.0，对齐 vanilla
+// KNOCKBACK 附魔组件 linear(base=1.0, per_level_above_first=1.0)），并经 /2.0 得最终强度。
+//
+// 对齐 vanilla LivingEntity.java:1515-1520：
+//   getKnockback = (getAttributeValue(ATTACK_KNOCKBACK) + EnchantmentHelper.modifyKnockback) / 2.0F
+//   modifyKnockback 累加 KNOCKBACK 附魔组件值（每级 +1.0）。
+//   玩家/mob ATTACK_KNOCKBACK 默认 0，故：
+//     Knockback I  getKnockback = (0 + 1.0) / 2.0 = 0.5
+//     Knockback II getKnockback = (0 + 2.0) / 2.0 = 1.0
+//
+// 任务 #310 修复前偏差：KnockbackEnchantment::getKnockbackBonus = level*0.5（应为 level*1.0），
+//   致 Knockback II getKnockback = (0+1.0)/2.0 = 0.5（vanilla 1.0，2 倍偏差）。且 Player::attack
+//   绕过 getKnockback 直接用 getEnchantmentLevel 传 causeExtraKnockback。本测试固定 getKnockback
+//   数值，捕捉 getKnockbackBonus 回归。
+
+TEST(GetKnockbackTest, KnockbackEnchantmentLevelOneBonus)
+{
+    // Knockback I 武器：getKnockback = (0 + 1.0) / 2.0 = 0.5
+    item::enchant::EnchantmentRegistry::clear();
+    item::enchant::EnchantmentRegistry::initialize();
+    Items::initialize();
+
+    KnockbackTestMob mob(1);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
+
+    ItemStack sword(Items::DIAMOND_SWORD, 1);
+    sword.addEnchantment("minecraft:knockback", 1);
+    mob.setMainHandItem(sword);
+
+    // Knockback I：(ATTACK_KNOCKBACK=0 + getKnockbackBonus(1)=1.0) / 2.0 = 0.5
+    EXPECT_FLOAT_EQ(mob.getKnockback(target), 0.5f);
+
+    item::enchant::EnchantmentRegistry::clear();
+}
+
+TEST(GetKnockbackTest, KnockbackEnchantmentLevelTwoBonus)
+{
+    // Knockback II 武器：getKnockback = (0 + 2.0) / 2.0 = 1.0（对齐 vanilla，任务 #310 修复点）
+    item::enchant::EnchantmentRegistry::clear();
+    item::enchant::EnchantmentRegistry::initialize();
+    Items::initialize();
+
+    KnockbackTestMob mob(1);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
+
+    ItemStack sword(Items::DIAMOND_SWORD, 1);
+    sword.addEnchantment("minecraft:knockback", 2);
+    mob.setMainHandItem(sword);
+
+    // Knockback II：(0 + getKnockbackBonus(2)=2.0) / 2.0 = 1.0
+    // 修复前 getKnockbackBonus=level*0.5 → (0+1.0)/2.0=0.5，本断言会失败（expect 1.0 got 0.5）。
+    EXPECT_FLOAT_EQ(mob.getKnockback(target), 1.0f);
+
+    item::enchant::EnchantmentRegistry::clear();
+}
+
+TEST(GetKnockbackTest, KnockbackEnchantmentStacksWithAttackKnockbackAttribute)
+{
+    // Knockback II + ATTACK_KNOCKBACK 属性 1.0：getKnockback = (1.0 + 2.0) / 2.0 = 1.5
+    item::enchant::EnchantmentRegistry::clear();
+    item::enchant::EnchantmentRegistry::initialize();
+    Items::initialize();
+
+    KnockbackTestMob mob(1);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
+    mob.setAttackKnockback(1.0);
+
+    ItemStack sword(Items::DIAMOND_SWORD, 1);
+    sword.addEnchantment("minecraft:knockback", 2);
+    mob.setMainHandItem(sword);
+
+    // (ATTACK_KNOCKBACK=1.0 + getKnockbackBonus(2)=2.0) / 2.0 = 1.5
+    EXPECT_FLOAT_EQ(mob.getKnockback(target), 1.5f);
+
+    item::enchant::EnchantmentRegistry::clear();
+}
+
+TEST(GetKnockbackTest, NoEnchantmentNoBonus)
+{
+    // 无附魔武器：getKnockback = (0 + 0) / 2.0 = 0（仅属性贡献）
+    item::enchant::EnchantmentRegistry::clear();
+    item::enchant::EnchantmentRegistry::initialize();
+    Items::initialize();
+
+    KnockbackTestMob mob(1);
+    KnockbackTestEntity target(2, mc::test::testEcsRegistry());
+
+    ItemStack sword(Items::DIAMOND_SWORD, 1); // 无附魔
+    mob.setMainHandItem(sword);
+
+    EXPECT_FLOAT_EQ(mob.getKnockback(target), 0.0f);
+
+    item::enchant::EnchantmentRegistry::clear();
 }
 
 // ============================================================================

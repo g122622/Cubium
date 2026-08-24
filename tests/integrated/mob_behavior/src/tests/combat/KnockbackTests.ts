@@ -148,9 +148,117 @@ function meleeNoEnchantKnocksBackBothVictims(test: Test): void {
     });
 }
 
+// 击退附魔 II 强度对齐验证（任务 #310）。
+//
+// 验证 Cubium Player::attack 击退附魔强度对齐 MC Java 1.21.11 Player.java:988
+//   causeExtraKnockback(target, getKnockback(target, source) + (sprint?0.5:0), vec3)
+// 与 LivingEntity.java:1515 getKnockback = (ATTACK_KNOCKBACK + modifyKnockback) / 2.0。
+//
+// 机制（对齐 vanilla）：
+//   Knockback 附魔 KNOCKBACK 组件 = linear(base=1.0, per_level_above_first=1.0)（数据包 knockback.json），
+//   即每级 +1.0。modifyKnockback 累加此值。玩家 ATTACK_KNOCKBACK 属性默认 0，故：
+//     getKnockback = (0 + level*1.0) / 2.0
+//     Knockback I  = 0.5；Knockback II = 1.0。
+//   Player.attack 非冲刺：causeExtraKnockback strength = getKnockback = 1.0（II）。
+//   该 strength 经 causeExtraKnockback → applyKnockback(1.0, dir) 施加为速度脉冲（dir 取自 attacker yaw）。
+//   叠加 hurt 内通用击退(0.4)（任务 #309，方向取自 sourcePosition 几何），Knockback II 总击退远大于无附魔。
+//
+// 修复（任务 #310）：Cubium 此前 Player.cpp attack 路径绕过 getKnockback，误用
+//   knockbackLevel = getEnchantmentLevel（直接等级 1/2）传 causeExtraKnockback，且 KnockbackEnchantment
+//   getKnockbackBonus = level*0.5（应为 level*1.0）。致 Knockback II strength = 2.0（vanilla 1.0，2 倍偏差）。
+//   修复后用 getKnockback(target)（内含 /2.0 + 每级1.0），Knockback II strength = 1.0 对齐 vanilla。
+//
+// 击退方向（对齐 vanilla causeExtraKnockback Player.java:1117）：
+//   vanilla causeExtraKnockback 用 this.getYRot()（attacker 朝向 yaw）算击退方向 sin/cos(yaw)，
+//   非 attacker→victim 几何方向。故须 attacker 朝向 victim 时击退才朝"远离 attacker"方向。
+//   hurt 内通用击退(0.4) 用 sourcePosition(attacker)-victim 几何方向（任务 #309），两者方向需一致。
+//   测试用 /tp facing 让 attacker 朝 victim 看，使 yaw 朝向 = 几何方向，两路击退同向叠加。
+//
+// 判定设计（单 victim + attacker 朝向 + 位移阈值，区分 Knockback II 与无附魔基线）：
+//   attacker 朝 +x 看（facing victim），victim 在 attacker +x 侧距 3 格。tick 30 攻击 victim。
+//   Knockback II 强击退使 victim 朝 +x（远离 attacker）位移，位移绝对值 > 1.5。
+//
+//   阈值 1.5 的依据：
+//     - 无附魔（仅通用 0.4 单脉冲）：前几 tick 位移约 0.4+0.36+0.33... ≈ 1.0-1.5 格（摩擦衰减）。
+//     - Knockback II（通用 0.4 + causeExtraKnockback 1.0 双脉冲）：velocity.x ≈ 1.2，前几 tick 位移
+//       约 1.2+1.08+0.97... ≈ 3+ 格。1.5 阈值能区分两者（Knockback II 远超 1.5）。
+//     - 修复前偏差（Knockback II strength=2.0）：位移更大，1.5 阈值仍满足——本测试验证"Knockback II
+//       强击退已接入"，强度绝对值对齐由 getKnockback 数值审计 + 代码审查保证（集成测试难以精确断言
+//       绝对位移，因受摩擦/AI 漫游/撞墙影响）。
+//
+//   撞墙考量：victim x=7 朝 +x 位移，距 +x 墙(x=10) 3 格。Knockback II 位移约 3 格可能撞墙，但轮询窗口
+//     （tick 33-80，攻击后 3-50 tick）前几 tick 位移即达 1.5+（速度脉冲瞬时，前 5 tick 位移已 > 1.5），
+//     撞墙发生在更晚 tick，不影响早期位移判定。pollUntilSucceed 满足即 succeed。
+//
+//   AI 漫游鲁棒性：villager WanderGoal 缓慢随机漫游，攻击后短窗口内击退脉冲（velocity.x≈1.2）主导位移，
+//   漫游速度（≈0.05/tick）远小于击退脉冲。victim 朝 +x 位移 > 1.5 即证明 Knockback II 强击退（漫游不可能
+//   让 victim 持续朝 +x 位移 > 1.5）。
+//
+// 附魔施加：/enchant @s knockback 2（SimulatedPlayer permLevel=4，survival 可执行，max_level=2）。
+// 朝向设置：/tp @s ~ ~ ~ facing <victimPos> 让 attacker yaw 朝 victim（脚本层无 lookAt/teleport 绑定）。
+//
+// 独立 batch（knockback_solo）：同 melee_no_enchant_knocks_back_both_victims，避免 night batch 并行污染。
+//
+// Ref: Player.cpp:2679-2688（getKnockback(target) + sprint?0.5:0，对齐 vanilla Player.java:988）
+// Ref: LivingEntity.cpp:2541-2561（getKnockback = (ATTACK_KNOCKBACK + 附魔*1.0) / 2.0）
+// Ref: KnockbackEnchantment.hpp:85（getKnockbackBonus = level*1.0，对齐 KNOCKBACK 组件 linear base=1.0）
+// Ref: Player.cpp:2973-2994（causeExtraKnockback：strength>0 时 applyKnockback(strength, sin(yaw), -cos(yaw))）
+function knockbackIiKnocksBackBothVictimsFar(test: Test): void {
+    (test as any).killAllEntities();
+    // attacker 在 -x 侧，victim 在 +x 侧距 3 格（距 +x 墙 3 格位移空间）。
+    const atkPos = { x: 4, y: 2, z: 5 };
+    const victimPos = { x: 7, y: 2, z: 5 };
+    const victim = test.spawn("minecraft:villager", victimPos);
+    const attacker = test.spawnSimulatedPlayer(atkPos, "attacker", 0 as any); // 0=Survival
+
+    // 装备 Knockback II 钻石剑（/enchant 施加，max_level=2）。
+    attacker.setItem(makeItem("minecraft:diamond_sword"), 0, true);
+    (attacker as any).chat("/enchant @s knockback 2");
+    // attacker 朝 victim 看（+x），使 causeExtraKnockback 的 yaw 方向 = 几何方向，两路击退同向。
+    (attacker as any).chat(`/tp @s ~ ~ ~ facing ${victimPos.x} ${victimPos.y} ${victimPos.z}`);
+
+    // 记录攻击瞬间 victim 的 x 基准。
+    let initX = victim.location.x;
+
+    // tick 30 满冷却攻击 victim。Knockback II 强击退使 victim 朝 +x（远离 attacker）大幅位移。
+    test.runAtTickTime(30, () => {
+        initX = victim.location.x;
+        (attacker as any).attackEntity(victim);
+    });
+
+    pollUntilSucceed(test, () => {
+        const curX = victim.location.x;
+        const disp = curX - initX; // victim 应朝 +x（disp > 0），Knockback II 强击退 > 1.5
+        // victim 朝远离 attacker 方向位移 > 1.5，证明 Knockback II 强度正确接入
+        // （远超无附魔基线，AI 漫游不可能让 victim 持续朝 +x 位移 > 1.5）。
+        return disp > 1.5;
+    }, {
+        startTick: 33,
+        interval: 4,
+        maxTick: 90,
+        onTimeout: () => {
+            const curX = victim.location.x;
+            const disp = curX - initX;
+            test.assert(false,
+                `Knockback II should knock victim far from attacker (strength 1.0 + generic 0.4): `
+                + `victim dispX=${disp.toFixed(2)} (expect >+1.5, pushed +x away from attacker). `
+                + `If dispX <1.0, Knockback enchant not wired in Player::attack (task #310 regression) `
+                + `or getKnockbackBonus wrong (should be level*1.0). `
+                + `If dispX negative, attacker yaw not facing victim (causeExtraKnockback dir from yaw). `
+                + `initX=${initX.toFixed(2)} curX=${curX.toFixed(2)}`);
+        },
+    });
+}
+
 export function registerKnockbackTests(): void {
     GameTest.register("MobBehaviorTests", "melee_no_enchant_knocks_back_both_victims",
         meleeNoEnchantKnocksBackBothVictims)
+        .batch("knockback_solo")
+        .structureName("gametests:mediumglass")
+        .maxTicks(200);
+
+    GameTest.register("MobBehaviorTests", "knockback_ii_knocks_both_victims_far",
+        knockbackIiKnocksBackBothVictimsFar)
         .batch("knockback_solo")
         .structureName("gametests:mediumglass")
         .maxTicks(200);

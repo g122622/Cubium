@@ -2540,11 +2540,14 @@ void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vecto
 
 f32 LivingEntity::getKnockback(Entity& /*target*/)
 {
-    // 从 ATTACK_KNOCKBACK 属性获取基础击退值，加上击退附魔加成，然后除以 2.0
-    // 当前项目简化为直接获取击退附魔等级并计算加成
+    // 击退强度 = (ATTACK_KNOCKBACK 属性 + 击退附魔加成) / 2.0（对齐 vanilla LivingEntity.java:1515-1520）。
+    // vanilla：getKnockback = (getAttributeValue(ATTACK_KNOCKBACK) + EnchantmentHelper.modifyKnockback) / 2.0F
+    //   modifyKnockback 累加 KNOCKBACK 附魔组件值（linear base=1.0, per_level=1.0 → 每级 +1.0）。
+    //   玩家 ATTACK_KNOCKBACK 属性默认 0，故 Knockback I = (0+1.0)/2.0 = 0.5；II = (0+2.0)/2.0 = 1.0。
+    // Cubium：KnockbackEnchantment::getKnockbackBonus 每级 +1.0（对齐 KNOCKBACK 组件），此处再 /2.0。
     f32 baseKnockback = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
 
-    // 加上击退附魔加成（每级 +0.5）
+    // 加上击退附魔加成（每级 +1.0，对齐 vanilla KNOCKBACK 组件 linear base=1.0）
     const ItemStack& weapon = getMainHandItem();
     if (!weapon.isEmpty()) {
         i32 knockbackLevel =
@@ -2554,8 +2557,7 @@ f32 LivingEntity::getKnockback(Entity& /*target*/)
         }
     }
 
-    // hurt() 中有 0.4F 的基础击退，causeExtraKnockback 的击退值来自此方法，
-    // 除以 2.0 使得总击退保持合理
+    // /2.0 对齐 vanilla（hurt 通用击退 0.4 之外，causeExtraKnockback 的附魔/冲刺击退强度由此方法提供）。
     return baseKnockback / 2.0f;
 }
 

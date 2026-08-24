@@ -69,15 +69,20 @@ public:
     [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
 
     /**
-     * @brief 获取击退强度加成
+     * @brief 获取击退附魔的击退强度加成（对齐 vanilla KNOCKBACK 附魔效果组件）。
      *
-     * 每级增加 0.5 击退强度。
-     * 实际击退距离 = 基础击退 + (level * 0.5)
+     * vanilla 1.21.11 Knockback 附魔的 minecraft:knockback 效果组件为
+     * linear(base=1.0, per_level_above_first=1.0)（数据包 knockback.json），即每级 +1.0。
+     * EnchantmentHelper.modifyKnockback 将此值累加到 MutableFloat。
+     *
+     * 注：此返回值是 modifyKnockback 的累加值（每级 +1.0），非最终击退强度——
+     * LivingEntity::getKnockback 会将其与 ATTACK_KNOCKBACK 属性相加后 /2.0
+     * （对齐 vanilla LivingEntity.java:1515-1520），故 Knockback I 最终 strength=0.5、II=1.0。
      *
      * @param level 附魔等级
-     * @return 击退强度加成
+     * @return 击退强度加成（每级 +1.0，对齐 vanilla KNOCKBACK 组件 linear base=1.0）
      */
-    [[nodiscard]] static f32 getKnockbackBonus(i32 level) { return static_cast<f32>(level) * 0.5f; }
+    [[nodiscard]] static f32 getKnockbackBonus(i32 level) { return static_cast<f32>(level) * 1.0f; }
 };
 
 } // namespace enchant

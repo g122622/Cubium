@@ -192,6 +192,11 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, const
 
 AttackContext PlayerAttackHelper::createContext(Player& player, LivingEntity& target, f32 cooldownProgress)
 {
+    // TODO: 此 AttackContext 体系目前为死代码——全仓无业务调用方（Player::attack 与 MobEntity::doHurtTarget
+    //   均走各自内联击退计算 + LivingEntity::getKnockback，不经此 createContext）。且此处击退强度语义偏离
+    //   vanilla：默认 1.0 + sprint 0.5 + getKnockbackBonus(每级1.0) 直接累加，未走 vanilla 的
+    //   getKnockback(target,source)=(ATTACK_KNOCKBACK+附魔)/2.0 路径。若未来启用此体系，须重写击退强度
+    //   计算为 getKnockback(target) + (sprint?0.5:0) 对齐 vanilla Player.java:988（同 Player::attack 修复）。
     AttackContext context(static_cast<Entity*>(&player), &target);
 
     // 设置攻击冷却
