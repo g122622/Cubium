@@ -36,6 +36,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
@@ -185,45 +186,108 @@ const Item* EggEntity::getDefaultItem() const
 
 void EggEntity::onEntityHit(const RayTraceResult& result)
 {
-    if (!result.hitEntity) {
+    // 对齐 vanilla ThrownEgg.onHitEntity（ThrownEgg.java:55-59）：
+    //   super.onHitEntity(p); p.getEntity().hurt(damageSources().thrown(this, getOwner()), 0.0F);
+    // 鸡蛋命中实体造成 0 点投掷伤害（thrown 类型）——0 伤害本身不扣血，但 hurt 调用会触发受击副作用：
+    // 受击反馈/盾牌格挡判定/荆棘反伤/无敌帧标记/setLastHurtBy 等。此前本方法为空实现（仅 (void)result），
+    // 鸡蛋命中实体不调 hurt，上述副作用全丢失（与 SnowballEntity/WindChargeEntity 修复前同类死代码）。
+    if (result.hitEntity == nullptr) {
         return;
     }
 
-    // 鸡蛋对实体造成极小伤害（通常为0）
-    (void)result;
+    Entity* shooter = getShooter();
+    IndirectEntityDamageSource thrownSource = DamageSources::thrown(this, shooter);
+    result.hitEntity->hurt(thrownSource, 0.0f);
 }
 
-void EggEntity::onImpact(const RayTraceResult& /*result*/)
+void EggEntity::onImpact(const RayTraceResult& result)
 {
-    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
-    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。鸡蛋 onEntityHit 为空（vanilla 鸡蛋命中
-    //   实体 0 伤害），故命中实体无功能损失；但命中方块的 onBlockHit（通知方块 onProjectileHit）被
-    //   绕过。vanilla ThrownEgg.onHit 首行 super.onHit() dispatch 再破裂孵化，应对齐。当前鸡蛋无论
-    //   命中实体或方块都在此孵化，与 vanilla（命中实体不孵化、命中方块孵化）有偏差，待统一对齐。
-    // 12.5% (1/8) 概率孵化小鸡
-    if (_tryHatchChicken()) {
-        // 孵化成功
-        if (m_world) {
-            m_world->addParticle(
-                particle::ParticleTypeId::Heart, m_builtIn.stateVector->m_pos, Vector3(0.0f, 0.0f, 0.0f));
+    // 对齐 vanilla ThrownEgg.onHit（ThrownEgg.java:62-91）：
+    //   super.onHit(p);  // 基类 dispatch（→ onHitEntity/onHitBlock）
+    //   if (!level.isClientSide) {
+    //     if (random.nextInt(8) == 0) {  // 1/8 孵化
+    //       int i = 1; if (random.nextInt(32) == 0) i = 4;  // 1/32 子概率孵 4 只
+    //       for (j<i) { 生成幼年鸡 setAge(-24000) snapTo(位置) addFreshEntity }
+    //     }
+    //     broadcastEntityEvent(3);  // 破裂粒子
+    //     discard();
+    //   }
+    //
+    // 修复要点（任务 #329）：
+    // 1. 首行调基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit 0 伤害副作用 / 命中方块→
+    //    onBlockHit 通知方块 onProjectileHit）。此前本方法直接孵化+remove 绕过基类 dispatch，致
+    //    onEntityHit/onBlockHit 死代码（与 SnowballEntity #327 / WindChargeEntity #328 修复前同病）。
+    // 2. 孵化逻辑对齐 vanilla：1/8 概率孵化，其中 1/32 子概率孵 4 只（此前仅 1/8 孵 1 只，缺 4 只分支）。
+    // 3. 小鸡设为幼年（setChild(true) 等价 setAge(-24000)），此前生成的鸡为成年（vanilla setAge(-24000)）。
+    // 注：原 TODO 注释"vanilla 命中实体不孵化、命中方块孵化"判断错误——vanilla onHit 对所有命中类型
+    //   （实体/方块）都在 super.onHit 之后统一孵化，Cubium 在 onImpact（=onHit）孵化位置正确。
+    ProjectileEntity::onImpact(result);
+
+    // 命中后破裂孵化（对齐 vanilla onHit：!isClientSide 分支）。被偏转（deflection）时基类 onImpact
+    // 已 return 不调 onEntityHit，但 vanilla onHit 仍执行破裂+discard，此处统一处理（偏转后鸡蛋也破裂）。
+    if (m_world == nullptr || m_world->isClientSide()) {
+        if (!isRemoved()) {
+            remove();
         }
-    } else {
-        // 播放破裂粒子效果
-        if (m_world) {
-            m_world->addParticle(particle::ParticleTypeId::Snowflake,
-                m_builtIn.stateVector->m_pos,
-                Vector3(0.0f, 0.0f, 0.0f),
-                Vector3(0.3f, 0.3f, 0.3f),
-                4);
-        }
+        return;
     }
 
-    remove();
+    // 1/8 概率孵化小鸡，其中 1/32 子概率孵 4 只（对齐 vanilla nextInt(8)==0 + nextInt(32)==0）。
+    math::Random& rng = m_world->getRandom();
+    if (rng.nextInt(8) == 0) {
+        const i32 chickCount = (rng.nextInt(32) == 0) ? 4 : 1;
+        for (i32 i = 0; i < chickCount; ++i) {
+            _spawnHatchedChicken();
+        }
+        // 孵化成功粒子（对齐 vanilla broadcastEntityEvent(3) 破裂粒子，孵化时也播放）。
+        m_world->addParticle(particle::ParticleTypeId::Heart, m_builtIn.stateVector->m_pos, Vector3(0.0f, 0.0f, 0.0f));
+    } else {
+        // 未孵化：播放破裂粒子效果（对齐 vanilla broadcastEntityEvent(3) 的 ItemParticle 破裂粒子）。
+        m_world->addParticle(particle::ParticleTypeId::Snowflake,
+            m_builtIn.stateVector->m_pos,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.3f, 0.3f, 0.3f),
+            4);
+    }
+
+    if (!isRemoved()) {
+        remove();
+    }
+}
+
+void EggEntity::_spawnHatchedChicken()
+{
+    // 对齐 vanilla ThrownEgg.onHit 孵化小鸡（ThrownEgg.java:72-84）：
+    //   Chicken chicken = EntityType.CHICKEN.create(level, TRIGGERED);
+    //   chicken.setAge(-24000);  // 幼年
+    //   chicken.snapTo(x, y, z, yRot, 0);
+    //   level.addFreshEntity(chicken);
+    // 注：vanilla 还从物品 DataComponents 读 CHICKEN_VARIANT 设鸡变种（:76-78），Cubium 物品组件
+    //   体系暂未支持 CHICKEN_VARIANT，TODO 待物品 DataComponents 接入后补全。
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
+    auto chicken = std::make_unique<ChickenEntity>(0, *registry);
+    // 直接构造的实体需显式设置 typeId（注册表路径会自动设置，同 ExperienceBottle/DragonFireball 范式）。
+    chicken->setTypeId(EntityTypeKeys::CHICKEN);
+    chicken->setWorld(m_world);
+    // snapTo(位置, yRot, 0)：vanilla 用鸡蛋自身位置 + yRot，Cubium 用鸡蛋位置 + 当前 yRot。
+    chicken->setPosition(x(), y(), z());
+    chicken->setRotation(m_builtIn.rotation->m_rot.y, 0.0f);
+    // setAge(-24000) 设幼年（对齐 vanilla setAge(-24000)）。setChild(true) 等价设 BABY_AGE=-24000。
+    chicken->setChild(true);
+
+    // TODO(CHICKEN_VARIANT): 对齐 vanilla 从鸡蛋物品 DataComponents.CHICKEN_VARIANT 读取并设置鸡变种
+    //   （ThrownEgg.java:76-78）。Cubium 物品 DataComponents 体系暂未支持 CHICKEN_VARIANT，待接入后补全。
+
+    m_world->spawnEntity(std::move(chicken));
 }
 
 bool EggEntity::_tryHatchChicken()
 {
-    // 12.5% (1/8) 概率孵化
+    // 12.5% (1/8) 概率孵化（保留供旧调用方/测试访问器使用，新孵化逻辑已迁至 onImpact 内联 + _spawnHatchedChicken）。
     if (m_world) {
         math::Random& rng = m_world->getRandom();
         return rng.nextInt(8) == 0;

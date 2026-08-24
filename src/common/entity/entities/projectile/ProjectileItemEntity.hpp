@@ -125,10 +125,21 @@ protected:
 
 private:
     /**
-     * @brief 尝试孵化小鸡
+     * @brief 尝试孵化小鸡（1/8 概率）
      * @return 是否成功孵化
+     *
+     * 注：新孵化逻辑（含 1/32 孵 4 只 + 幼年设定）已迁至 onImpact 内联 + _spawnHatchedChicken，
+     * 此方法保留供旧调用方/测试访问器使用。
      */
     bool _tryHatchChicken();
+
+    /**
+     * @brief 生成一只孵化的小鸡（幼年，对齐 vanilla ThrownEgg setAge(-24000)）
+     *
+     * 在鸡蛋当前位置生成幼年小鸡并加入世界。由 onImpact 在 1/8 孵化判定通过后按数量调用
+     *（1/32 子概率孵 4 只）。对齐 vanilla ThrownEgg.onHit 孵化逻辑。
+     */
+    void _spawnHatchedChicken();
 };
 
 /**
