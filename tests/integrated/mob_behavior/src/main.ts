@@ -36,6 +36,7 @@ import { registerBreachEnchantmentTests } from "./tests/combat/BreachEnchantment
 import { registerWindBurstEnchantmentTests } from "./tests/combat/WindBurstEnchantmentTests.js";
 import { registerWardenTests } from "./tests/boss/WardenTests.js";
 import { registerDragonFireballTests } from "./tests/boss/DragonFireballTests.js";
+import { registerSnowballDamageTests } from "./tests/combat/SnowballDamageTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
 import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
@@ -248,6 +249,7 @@ registerWanderingTraderTests();
 registerWitherTests();
 registerWardenTests();
 registerDragonFireballTests();
+registerSnowballDamageTests();
 registerEffectImmunityTests();
 registerMeleeEnchantDamageTests();
 registerArmorDamageReductionTests();

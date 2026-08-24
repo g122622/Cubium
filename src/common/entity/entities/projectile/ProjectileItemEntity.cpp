@@ -142,9 +142,18 @@ void SnowballEntity::onEntityHit(const RayTraceResult& result)
     }
 }
 
-void SnowballEntity::onImpact(const RayTraceResult& /*result*/)
+void SnowballEntity::onImpact(const RayTraceResult& result)
 {
-    // 播放破裂粒子效果
+    // 先调用基类 onImpact 完成命中 dispatch（对齐 vanilla Snowball.onHit 首行 super.onHit()）：
+    // 基类 ProjectileEntity::onImpact 会按 result.type 调用 onEntityHit（→ hurt 烈焰人 3 伤害）
+    // 或 onBlockHit，并处理投射物偏转（deflection）逻辑。
+    // 此前本方法直接放粒子 + remove，绕过基类 dispatch，致 onEntityHit 永不触发——雪球命中烈焰人
+    // 的 3 伤害链路（dynamic_cast<BlazeEntity*> + hurt）成为死代码，烈焰人被雪球击中不掉血。
+    ProjectileEntity::onImpact(result);
+
+    // 命中即破裂（对齐 vanilla Snowball.onHit：broadcastEntityEvent(3) 广播破裂粒子 + discard）。
+    // 注：被偏转（deflection）时基类 onImpact 已 return 不调 onEntityHit，但雪球仍应破裂消失
+    // （vanilla 偏转后不 discard，但 Cubium 偏转体系简化，统一破裂；TODO: 偏转后保留待对齐）。
     if (m_world) {
         m_world->addParticle(particle::ParticleTypeId::Snowflake,
             m_builtIn.stateVector->m_pos,
@@ -186,6 +195,11 @@ void EggEntity::onEntityHit(const RayTraceResult& result)
 
 void EggEntity::onImpact(const RayTraceResult& /*result*/)
 {
+    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
+    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。鸡蛋 onEntityHit 为空（vanilla 鸡蛋命中
+    //   实体 0 伤害），故命中实体无功能损失；但命中方块的 onBlockHit（通知方块 onProjectileHit）被
+    //   绕过。vanilla ThrownEgg.onHit 首行 super.onHit() dispatch 再破裂孵化，应对齐。当前鸡蛋无论
+    //   命中实体或方块都在此孵化，与 vanilla（命中实体不孵化、命中方块孵化）有偏差，待统一对齐。
     // 12.5% (1/8) 概率孵化小鸡
     if (_tryHatchChicken()) {
         // 孵化成功
@@ -346,6 +360,10 @@ const Item* PotionEntity::getDefaultItem() const
 
 void PotionEntity::onImpact(const RayTraceResult& result)
 {
+    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
+    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。药水无 onEntityHit override（基类空），
+    //   命中实体无功能损失；但 onBlockHit（通知方块 onProjectileHit）被绕过。vanilla
+    //   ThrownPotion.onHit 首行 super.onHit() dispatch 再喷溅，应对齐。
     // 获取药水效果
     const ItemStack itemStack = getItemStack();
     auto effects = potion::PotionUtils::getEffects(itemStack);
@@ -506,6 +524,11 @@ const Item* ExperienceBottleEntity::getDefaultItem() const
 
 void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
 {
+    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
+    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。经验瓶 onEntityHit 无伤害逻辑（vanilla
+    //   经验瓶命中实体 0 伤害，破裂才给经验），故命中实体无功能损失；但 onBlockHit（通知方块
+    //   onProjectileHit）被绕过。vanilla ThrownExperienceBottle.onHit 首行 super.onHit() dispatch
+    //   再破裂散经验，应对齐。
     // 生成经验球（3-11点经验）
     if (m_world) {
         // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
