@@ -2268,8 +2268,15 @@ public:
      * @brief 更新摔落距离
      * 在移动时调用，跟踪摔落距离以便着地时计算伤害。
      * 着地时调用 Block::onFallenUpon，由方块决定摔落伤害类型和大小。
+     *
+     * 对齐 vanilla Entity#checkFallDamage（Entity.java:1420-1440）：用碰撞后实际 y 位移
+     *（actualMovement.y，即 vanilla 的 vec3.y）累积，而非 velocity.y；着地帧也先累积本帧
+     * 下落量再触发伤害；用 !isInWater() 守卫（水中不累积）。两个判断为独立 if 而非 else，
+     * 故着地帧若本帧有下落量会先累积进 fallDistance 再触发 onFallenUpon。
+     *
+     * @param actualMovementY 本帧碰撞后实际 y 位移（向下为负）
      */
-    void updateFallDistance();
+    void updateFallDistance(f32 actualMovementY);
 
 private:
     /**

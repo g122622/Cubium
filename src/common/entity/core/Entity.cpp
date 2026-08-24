@@ -1060,12 +1060,22 @@ void Entity::syncMetadataFromDataManager()
     // 所有写入统一走 setTicksFrozen()（同时写组件 + DataParameter）。
 }
 
-void Entity::updateFallDistance()
+void Entity::updateFallDistance(f32 actualMovementY)
 {
-    // 更新摔落距离
-    if (!m_builtIn.physicsState->m_onGround && m_builtIn.velocity->m_velocity.y < 0.0f) {
-        m_builtIn.physicsState->m_fallDistance -= m_builtIn.velocity->m_velocity.y;
-    } else if (m_builtIn.physicsState->m_onGround && m_builtIn.physicsState->m_fallDistance > 0.0f) {
+    // 对齐 vanilla Entity#checkFallDamage（Entity.java:1420-1440）。
+    // vanilla 在 Entity.move:754 调 checkFallDamage(vec3.y, onGround, ...)，vec3=collide() 结果即
+    // 碰撞后实际 y 位移（actualMovement.y），且在 Y 速度清零前累积。两个判断为独立 if（非 else）：
+    //   1. !isInWater() && y<0 → fallDistance -= y（累积本帧下落量，着地帧也累积）
+    //   2. onGround && fallDistance>0 → fallOn(伤害) + resetFallDistance
+    // 关键差异（修复 #264）：此前 Cubium 用 velocity.y 且 else 分支，着地帧 velocity.y 已被
+    // 碰撞清零不累积本帧下落量，少算着地帧的部分下落量致摔落伤害绝对值偏低。改用
+    // actualMovement.y（着地帧为碰撞截断后的小量，与 vanilla vec3.y 一致）+ 独立 if 着地帧先累积。
+    // 水中守卫对齐 vanilla !isInWater()（m_inWater 由 baseTick→updateEnvironmentState 先于 move 设置）。
+    if (!isInWater() && actualMovementY < 0.0f) {
+        m_builtIn.physicsState->m_fallDistance -= actualMovementY;
+    }
+
+    if (m_builtIn.physicsState->m_onGround && m_builtIn.physicsState->m_fallDistance > 0.0f) {
         // 着地时触发踩上方块的 onFallenUpon 回调
         // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
         // 子类（如 PointedDripstoneBlock）可替代默认摔落伤害
@@ -1273,8 +1283,8 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
         m_builtIn.velocity->m_velocity.y = 0.0f;
     }
 
-    // 更新摔落距离并处理摔落伤害
-    updateFallDistance();
+    // 更新摔落距离并处理摔落伤害（对齐 vanilla checkFallDamage(vec3.y, ...)，用碰撞后实际 y 位移）。
+    updateFallDistance(actualMovement.y);
 
     return actualMovement;
 }

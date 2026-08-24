@@ -21,12 +21,16 @@
 //   (3,0,3) 覆盖为 stone（普通方块，r=1.0），猪 spawn (3,11,3)，落差 = 11 - 1 = 10 格。
 //
 // 正反对照（防假通过）：
-//   - no_effect_takes_full_fall_damage：无效果猪摔 10 格，伤害 (10-3)*1=7，HP 10→3。
-//     断言 HP ≤ 4（掉 ≥6），排除"摔落链路失效 HP=10"假通过。
+//   - no_effect_takes_full_fall_damage：无效果猪摔 10 格。vanilla 理论 fallDistance≈10.8，
+//     伤害 floor(10.8-3)=7（HP 10→3）。Cubium 实测 fallDistance≈9（任务 #264 已修复着地帧
+//     不累积偏差：updateFallDistance 改用 actualMovement.y 对齐 vanilla checkFallDamage，
+//     fallDistance 从≈8 提升到≈9；剩余与 vanilla 10.8 的差距源于 onGround 接触探测提前判定
+//     致 fallDistance 提前一帧停止累积，属独立问题见任务 #273），实测伤害 floor(9-3)=6（HP 10→4）。
+//     断言 HP ∈ [3,5]（掉 5-7），与 JumpBoost 测试 HP ∈ [6,8] 区间不重叠。
 //   - jump_boost_iii_reduces_fall_damage：JumpBoost III（amplifier=2，level=3）猪摔 10 格，
-//     safeFall=3+3=6，伤害 (10-6)*1=4，HP 10→6。断言 HP ∈ [5,7]（掉 3-5）。
-//     下界 HP≥5 排除"修饰符未接通 HP=3 全伤"；上界 HP≤7 排除"完全免疫 HP=10"假通过。
-//   两测试交叉验证：无效果掉 7 vs 带效果掉 4，差异正好 3（=JumpBoost III 3 级 ×1/级），
+//     safeFall=3+3=6。Cubium 实测 fallDistance≈9，伤害 floor(9-6)=3（HP 10→7）。
+//     断言 HP ∈ [6,8]（掉 2-4），与无效果测试 HP ∈ [3,5] 区间不重叠。
+//   两测试交叉验证：无效果掉 6 vs 带效果掉 3，差异正好 3（=JumpBoost III 3 级 ×1/级），
 //   确证 JumpBoost 经 SAFE_FALL_DISTANCE 修饰符减伤生效（任务 #250-253 属性体系端到端验证）。
 //
 // 时序：addEffect 在 spawn 同步返回后立即施加（EffectManager::addEffect 第 92 行 effect.apply()
@@ -74,41 +78,42 @@ function readPigHp(test: Test): number {
 // 无效果猪从 10 格高处摔落到石头，承受完整摔落伤害（负向对照，防假通过）。
 //
 // 几何落差 10 格（spawn y=11 → stone 顶面 y=1）。vanilla 理论 fallDistance≈10.8，
-// 伤害 floor(10.8-3)=7（HP 10→3）。但 Cubium 实测 fallDistance≈8（onGround 接触探测
-// 提前判定致 fallDistance 提前停止累积，见任务 #264 调查），实测伤害 floor(8-3)=5（HP 10→5）。
-// 本测试断言 HP ∈ [3,6]（掉 4-7），容差覆盖 fallDistance 波动，且与 JumpBoost 测试
-// HP ∈ [7,9] 区间不重叠，确保交叉验证成立。
-//   - 上界 HP≤6（掉≥4）证明承受了显著摔落伤害，排除"摔落链路失效 HP=10"假通过。
+// 伤害 floor(10.8-3)=7（HP 10→3）。Cubium 实测 fallDistance≈9（任务 #264 修复 updateFallDistance
+// 改用 actualMovement.y 对齐 vanilla checkFallDamage 后从≈8 提升；剩余 onGround 接触探测提前
+// 判定偏差见任务 #273），实测伤害 floor(9-3)=6（HP 10→4）。
+// 本测试断言 HP ∈ [3,5]（掉 5-7），容差覆盖 fallDistance 波动，且与 JumpBoost 测试
+// HP ∈ [6,8] 区间不重叠，确保交叉验证成立。
+//   - 上界 HP≤5（掉≥5）证明承受了显著摔落伤害，排除"摔落链路失效 HP=10"假通过。
 //   - 下界 HP≥3（掉≤7）排除异常重伤/摔死。
-// 与 jump_boost_iii_reduces_fall_damage 交叉验证：无效果掉≥4 vs 带效果掉≤3 = JumpBoost 减伤正确。
+// 与 jump_boost_iii_reduces_fall_damage 交叉验证：无效果掉≥5 vs 带效果掉≤4 = JumpBoost 减伤正确。
 function noEffectTakesFullFallDamage(test: Test): void {
     test.setBlockType("minecraft:stone", LANDING_POS);
     test.spawn(PIG_TYPE, SPAWN_POS);
 
     pollUntilSucceed(test, () => {
         const hp = readPigHp(test);
-        // HP ∈ [3,6] 证明承受了 ~5 完整摔落伤害（猪 10→5，Cubium fallDistance≈8）。
-        return hp >= 3 && hp <= 6;
+        // HP ∈ [3,5] 证明承受了 ~6 完整摔落伤害（猪 10→4，Cubium fallDistance≈9）。
+        return hp >= 3 && hp <= 5;
     }, {
         startTick: 40,
         interval: 5,
         maxTick: 200,
         onTimeout: () => test.assert(false,
-            `no-effect pig should take full fall damage from 10 blocks (HP 10→~5), `
+            `no-effect pig should take full fall damage from 10 blocks (HP 10→~4), `
             + `but pig HP=${readPigHp(test)} (if HP=10 fall damage chain broken [causeFallDamage not triggered]; `
-            + `if HP~5 correct)`),
+            + `if HP~4 correct)`),
     });
 }
 
 // JumpBoost III 猪从 10 格高处摔落到石头，经 SAFE_FALL_DISTANCE 修饰符减伤。
 //
 // JumpBoost III（amplifier=2，level=3）→ safeFall = 3 + 3 = 6。
-// Cubium 实测 fallDistance≈8（同无效果测试），伤害 floor(8-6)=2（HP 10→8）。
-// 断言 HP ∈ [7,9]（掉 1-3），与无效果测试 HP ∈ [3,6] 区间不重叠，确保交叉验证成立。
-//   - 下界 HP≥7（掉≤3）证明 JumpBoost 减伤生效：若 SAFE_FALL_DISTANCE 修饰符未接通（safeFall=3），
-//     伤害 floor(8-3)=5（HP=5<7）→ 超时 FAIL，暴露 EffectAttributeModifiers 缺陷。
-//   - 上界 HP≤9（掉≥1）排除"完全免疫掉 0"假通过（HP=10 不满足）。
-// 与 no_effect_takes_full_fall_damage 交叉验证：带效果掉≤3 vs 无效果掉≥4，HP 区间 [7,9] vs [3,6]
+// Cubium 实测 fallDistance≈9（同无效果测试，任务 #264 修复后），伤害 floor(9-6)=3（HP 10→7）。
+// 断言 HP ∈ [6,8]（掉 2-4），与无效果测试 HP ∈ [3,5] 区间不重叠，确保交叉验证成立。
+//   - 下界 HP≥6（掉≤4）证明 JumpBoost 减伤生效：若 SAFE_FALL_DISTANCE 修饰符未接通（safeFall=3），
+//     伤害 floor(9-3)=6（HP=4<6）→ 超时 FAIL，暴露 EffectAttributeModifiers 缺陷。
+//   - 上界 HP≤8（掉≥2）排除"完全免疫掉 0/1"假通过（HP≥9 不满足）。
+// 与 no_effect_takes_full_fall_damage 交叉验证：带效果掉≤4 vs 无效果掉≥5，HP 区间 [6,8] vs [3,5]
 // 不重叠，确证 JumpBoost 经 SAFE_FALL_DISTANCE 修饰符每级减 1 伤（3 级减 3）。
 function jumpBoostIiiReducesFallDamage(test: Test): void {
     test.setBlockType("minecraft:stone", LANDING_POS);
@@ -121,16 +126,16 @@ function jumpBoostIiiReducesFallDamage(test: Test): void {
 
     pollUntilSucceed(test, () => {
         const hp = readPigHp(test);
-        // HP ∈ [7,9] 证明 JumpBoost III 减伤至 ~2（猪 10→8，Cubium fallDistance≈8，safeFall=6）。
-        return hp >= 7 && hp <= 9;
+        // HP ∈ [6,8] 证明 JumpBoost III 减伤至 ~3（猪 10→7，Cubium fallDistance≈9，safeFall=6）。
+        return hp >= 6 && hp <= 8;
     }, {
         startTick: 40,
         interval: 5,
         maxTick: 200,
         onTimeout: () => test.assert(false,
-            `JumpBoost III pig should take reduced fall damage from 10 blocks (safeFall 3→6, HP 10→~8), `
-            + `but pig HP=${readPigHp(test)} (if HP~5 SAFE_FALL_DISTANCE modifier not applied [EffectAttributeModifiers defect]; `
-            + `if HP~8 correct; if HP=10 fall damage chain broken)`),
+            `JumpBoost III pig should take reduced fall damage from 10 blocks (safeFall 3→6, HP 10→~7), `
+            + `but pig HP=${readPigHp(test)} (if HP~4 SAFE_FALL_DISTANCE modifier not applied [EffectAttributeModifiers defect]; `
+            + `if HP~7 correct; if HP=10 fall damage chain broken)`),
     });
 }
 
