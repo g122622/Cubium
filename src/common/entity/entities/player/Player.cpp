@@ -2708,9 +2708,14 @@ void Player::attack(Entity& target)
     f32 totalDamage = damage + enchantDamage;
 
     // 14.5 重锤下落攻击伤害加成
-    // 下落攻击加成不受冷却影响，直接加到总伤害上
+    // 对齐 vanilla Player.attack:972（f += itemstack.getItem().getAttackDamageBonus(...)）：
+    //   vanilla 中 baseDamage 先经 baseDamageScaleFactor 二次冷却缩放（f *= 0.2+f1²×0.8），
+    //   随后 getAttackDamageBonus 的返回值（重锤分段伤害 d2 + 致密密度加成 modifyFallBasedDamage*d1）
+    //   直接加到已缩放的 f 上，返回值本身不再乘冷却进度 f1。即重锤下落加成不受攻击冷却影响。
+    //   此前 Cubium 误写为 totalDamage += maceSmashBonus * cooldownProgress（双重缩放：加成既被
+    //   视作基础伤害外的独立项又被乘冷却），致冷却未满时重锤下落加成被错误衰减，偏离 vanilla。
     if (isMaceSmashAttack) {
-        totalDamage += maceSmashBonus * cooldownProgress;
+        totalDamage += maceSmashBonus;
     }
 
     // 15. 创建伤害来源并应用伤害
@@ -2743,68 +2748,84 @@ void Player::attack(Entity& target)
         causeExtraKnockback(target, static_cast<f32>(knockbackLevel), preHurtVelocity);
 
         // 17. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
-        // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
-        f64 distanceWalkedDelta = static_cast<f64>(m_moveDistanceWalked - m_prevMoveDistanceWalked);
+        // 对齐 vanilla Player.isSweepAttack:1042-1048：横扫触发条件为主手持剑（ItemTags.SWORDS）+
+        //   满冷却 + 非暴击 + 非疾跑击退 + 在地面 + 几乎静止，不要求横扫之刃附魔。SweepingEdge 仅
+        //   提升横扫伤害比例，不影响是否触发。此前 Cubium 误加 if (sweepRatio > 0.0f) 门控，致无附魔
+        //   剑不横扫（vanilla 无附魔剑满冷却站立攻击仍横扫周围生物，横扫伤害=1.0），偏离 vanilla。
+        // 几乎静止判定（对齐 vanilla isSweepAttack:1044-1046）：
+        //   vanilla: d0 = getKnownMovement().horizontalDistanceSqr()  // 玩家水平速度向量平方
+        //            d1 = getSpeed() * 2.5                              // 移动速度属性 × 2.5
+        //            条件: d0 < square(d1)  即 水平速度² < (移动速度×2.5)²
+        //   getKnownMovement 对无乘客玩家 = getDeltaMovement（实体速度向量，玩家输入产生），静止时≈0。
+        //   此前 Cubium 误用 distanceWalkedDelta（累计行走距离差，含物理 settling）< aiMoveSpeed（速度），
+        //   量纲不匹配且 SimulatedPlayer 静止时 distanceWalkedDelta=0、aiMoveSpeed=0.1 量纲错，致横扫
+        //   触发条件失真。改用 velocity() 水平分量平方 < (MOVEMENT_SPEED属性×2.5)² 对齐 vanilla 语义。
+        const Vector3 vel = velocity();
+        f64 horizontalSpeedSqr = static_cast<f64>(vel.x * vel.x + vel.z * vel.z);
+        f64 moveSpeed = static_cast<f64>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.1));
+        f64 sweepSpeedThreshold = moveSpeed * 2.5;
         bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() &&
-            (distanceWalkedDelta < static_cast<f64>(aiMoveSpeed()));
+            (horizontalSpeedSqr < sweepSpeedThreshold * sweepSpeedThreshold);
         if (canSweep) {
             // 检查主手是否持有剑
             const item::tool::SwordItem* sword = dynamic_cast<const item::tool::SwordItem*>(mainHand.getItem());
             if (sword != nullptr) {
+                // 对齐 vanilla Player.doSweepAttack:1143,1151：
+                //   sweepBase = 1.0 + SWEEPING_DAMAGE_RATIO属性值 * 冷却后基础伤害
+                //   sweepFinal = sweepBase * 冷却进度（getEnchantedDamage 默认返回 f，再乘 p_455105_=f1）
+                // Cubium 用 getSweepingDamageRatio(stack) 取横扫之刃附魔比例（无附魔返 0），
+                // 数值与 vanilla SWEEPING_DAMAGE_RATIO 属性（SweepingEdge 修饰符提供）一致。
+                // damage 为冷却二次缩放后的基础伤害（不含附魔伤害），对应 vanilla 传入的 f。
                 f32 sweepRatio = item::enchant::EnchantmentHelper::getSweepingDamageRatio(mainHand);
-                if (sweepRatio > 0.0f) {
-                    // sweepDamage = 1.0 + sweepRatio * baseDamage
-                    // 其中 baseDamage 是冷却调整后的伤害（不含附魔伤害）
-                    f32 sweepDamage = 1.0f + sweepRatio * damage;
+                f32 sweepDamage = (1.0f + sweepRatio * damage) * cooldownProgress;
 
-                    // 扫描目标周围 1x0.25x1 范围内的实体
-                    AxisAlignedBB sweepBox = livingTarget->boundingBox().expand(1.0f, 0.25f, 1.0f);
-                    std::vector<Entity*> nearbyEntities = world()->getEntitiesInAABB(sweepBox, this);
+                // 扫描目标周围 1x0.25x1 范围内的实体
+                AxisAlignedBB sweepBox = livingTarget->boundingBox().expand(1.0f, 0.25f, 1.0f);
+                std::vector<Entity*> nearbyEntities = world()->getEntitiesInAABB(sweepBox, this);
 
-                    for (Entity* entity : nearbyEntities) {
-                        // 排除自身、目标和队友
-                        if (entity == this || entity == livingTarget) {
-                            continue;
-                        }
-
-                        // 只对生物实体生效
-                        LivingEntity* nearbyLiving = dynamic_cast<LivingEntity*>(entity);
-                        if (!nearbyLiving) {
-                            continue;
-                        }
-
-                        // 检查距离（最大 3 格）
-                        if (distanceSqTo(*entity) > 9.0) { // 3^2 = 9
-                            continue;
-                        }
-
-                        // 排除标记模式的盔甲架
-                        // 标记模式的盔甲架碰撞箱为 0，不应被横扫攻击影响
-                        entity::ArmorStandEntity* armorStand = dynamic_cast<entity::ArmorStandEntity*>(entity);
-                        if (armorStand != nullptr && armorStand->isMarker()) {
-                            continue;
-                        }
-
-                        // 排除盟友（友军伤害保护，双向检查）
-                        if (isAlliedTo(*entity)) {
-                            continue;
-                        }
-
-                        // 应用击退并造成伤害
-                        // 击退方向基于玩家朝向
-                        f32 yawRad = math::toRadians(yaw());
-                        f64 knockbackX = static_cast<f64>(std::sin(yawRad));
-                        f64 knockbackZ = static_cast<f64>(-std::cos(yawRad));
-                        nearbyLiving->applyKnockback(0.4f, knockbackX, knockbackZ);
-
-                        // 造成横扫伤害
-                        EntityDamageSource sweepSource = DamageSources::playerAttack(this);
-                        nearbyLiving->hurt(sweepSource, sweepDamage);
+                for (Entity* entity : nearbyEntities) {
+                    // 排除自身、目标和队友
+                    if (entity == this || entity == livingTarget) {
+                        continue;
                     }
 
-                    // 播放横扫攻击音效
-                    playSound(SoundEvents::ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
+                    // 只对生物实体生效
+                    LivingEntity* nearbyLiving = dynamic_cast<LivingEntity*>(entity);
+                    if (!nearbyLiving) {
+                        continue;
+                    }
+
+                    // 检查距离（最大 3 格）
+                    if (distanceSqTo(*entity) > 9.0) { // 3^2 = 9
+                        continue;
+                    }
+
+                    // 排除标记模式的盔甲架
+                    // 标记模式的盔甲架碰撞箱为 0，不应被横扫攻击影响
+                    entity::ArmorStandEntity* armorStand = dynamic_cast<entity::ArmorStandEntity*>(entity);
+                    if (armorStand != nullptr && armorStand->isMarker()) {
+                        continue;
+                    }
+
+                    // 排除盟友（友军伤害保护，双向检查）
+                    if (isAlliedTo(*entity)) {
+                        continue;
+                    }
+
+                    // 应用击退并造成伤害
+                    // 击退方向基于玩家朝向
+                    f32 yawRad = math::toRadians(yaw());
+                    f64 knockbackX = static_cast<f64>(std::sin(yawRad));
+                    f64 knockbackZ = static_cast<f64>(-std::cos(yawRad));
+                    nearbyLiving->applyKnockback(0.4f, knockbackX, knockbackZ);
+
+                    // 造成横扫伤害
+                    EntityDamageSource sweepSource = DamageSources::playerAttack(this);
+                    nearbyLiving->hurt(sweepSource, sweepDamage);
                 }
+
+                // 播放横扫攻击音效
+                playSound(SoundEvents::ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
             }
         }
 
