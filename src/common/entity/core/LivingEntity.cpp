@@ -278,23 +278,43 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         markHurt();
     }
 
-    // 4. 计算受伤方向并触发 damageTilt 同步（hurtServer:1222-1238 的 NO_KNOCKBACK 分支）。
-    // vanilla：if (!source.is(NO_KNOCKBACK)) { 计算 d0/d1; knockback(0.4,d0,d1); if (!flag)
-    // indicateDamage(d0,d1); }。即 indicateDamage 受 NO_KNOCKBACK 门控（在 NO_KNOCKBACK 分支内）。
+    // 4. 通用击退 + 受伤倾斜（对齐 vanilla LivingEntity.hurtServer:1222-1238 的 NO_KNOCKBACK 分支）。
+    // vanilla：if (!source.is(NO_KNOCKBACK)) {
+    //   if (directEntity instanceof Projectile) { d0/d1 = -projectile.calculateHorizontalHurtKnockbackDirection(); }
+    //   else if (sourcePosition != null) { d0 = srcPos.x - x; d1 = srcPos.z - z; }
+    //   knockback(0.4F, d0, d1);     // 对受害者施加 0.4 强度击退
+    //   if (!flag) indicateDamage(d0, d1);  // flag=格挡标志，格挡时不 indicateDamage
+    // }
     // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（DamageTypeTags.cpp:654，
-    // 近 30 类型）：这些伤害不产生击退与受击倾斜。Cubium hurt 未实现通用 knockback(0.4)（vanilla 的
-    // 通用击退），仅对齐 indicateDamage 的 NO_KNOCKBACK 门控。
-    // TODO: 对齐 vanilla knockback(0.4, d0, d1) 通用击退（NO_KNOCKBACK 门控内），Cubium hurt 当前
-    //       无通用击退调用，击退仅在 attackEntityAsMob 等特定路径，偏离 vanilla hurtServer。
-    // d0/d1 为伤害来源相对受害者在世界 XZ 平面的方向向量；无来源位置时为 0。
+    // 近 30 类型）：这些伤害不产生击退与受击倾斜。
+    // 此前 Cubium 仅对齐 indicateDamage 的 NO_KNOCKBACK 门控，通用 knockback(0.4) 完全缺失（原 TODO:287），
+    // 致玩家近战无附魔攻击零击退（causeExtraKnockback 无附魔时 strength=0 跳过）、mob 攻击及其他非特化
+    // 路径伤害无击退，偏离 vanilla。现补 applyKnockback(0.4, d0, d1) 对齐 vanilla 通用击退。
+    // Projectile 方向：vanilla calculateHorizontalHurtKnockbackDirection 返回投射物 deltaMovement 的 x/z，
+    //   hurtServer 取反（d0=-vx, d1=-vz），即击退方向 = 投射物飞行方向（投射物从A飞向victim，victim被
+    //   推向A的反方向=继续远离投射物来源）。Cubium ProjectileEntity 经 directSource() 取 velocity 对齐。
+    // TODO: flag（盾牌格挡）门控——vanilla 格挡时仍 knockback 但不 indicateDamage。Cubium hurt 入口无 flag
+    //   概念（格挡在 actuallyHurt 内 canBlockDamageSource 命中后 return），此处无法区分格挡，简化为总是
+    //   indicateDamage。格挡时 indicateDamage 的视觉偏差待接入 BlocksAttacks flag 后修正。
     if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
-        const auto sourcePos = source.sourcePosition();
-        if (sourcePos.has_value()) {
-            d0 = static_cast<f64>(sourcePos->x) - static_cast<f64>(x());
-            d1 = static_cast<f64>(sourcePos->z) - static_cast<f64>(z());
+        Entity* directEntity = source.directSource();
+        if (source.isProjectile() && directEntity != nullptr) {
+            // Projectile：用投射物速度方向取反（对齐 vanilla calculateHorizontalHurtKnockbackDirection 取反）。
+            const Vector3 projVel = directEntity->velocity();
+            d0 = -static_cast<f64>(projVel.x);
+            d1 = -static_cast<f64>(projVel.z);
+        } else {
+            const auto sourcePos = source.sourcePosition();
+            if (sourcePos.has_value()) {
+                d0 = static_cast<f64>(sourcePos->x) - static_cast<f64>(x());
+                d1 = static_cast<f64>(sourcePos->z) - static_cast<f64>(z());
+            }
         }
+
+        // 通用击退（对受害者，强度 0.4，受 KNOCKBACK_RESISTANCE 减免）。
+        applyKnockback(0.4f, d0, d1);
         indicateDamage(d0, d1);
     }
 

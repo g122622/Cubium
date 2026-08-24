@@ -29,6 +29,7 @@ import { registerResistanceEffectTests } from "./tests/combat/ResistanceEffectTe
 import { registerShieldDisableTests } from "./tests/combat/ShieldDisableTests.js";
 import { registerCooldownScalingTests } from "./tests/combat/CooldownScalingTests.js";
 import { registerSweepAttackTests } from "./tests/combat/SweepAttackTests.js";
+import { registerKnockbackTests } from "./tests/combat/KnockbackTests.js";
 import { registerWardenTests } from "./tests/boss/WardenTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
@@ -257,3 +258,4 @@ registerResistanceEffectTests();
 registerShieldDisableTests();
 registerCooldownScalingTests();
 registerSweepAttackTests();
+registerKnockbackTests();
