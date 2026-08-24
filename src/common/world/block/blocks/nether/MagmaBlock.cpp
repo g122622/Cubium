@@ -24,11 +24,8 @@
 #include "MagmaBlock.hpp"
 #include "../ocean/BubbleColumnBlock.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/item/core/ItemStack.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
@@ -101,16 +98,12 @@ void MagmaBlock::onEntityWalk(const BlockState& state, IWorld& world, const Bloc
         return;
     }
 
-    // 冰霜行者靴子免疫岩浆块烫脚伤害（与 CampfireBlock 一致，检查 Feet 槽单件物品）。
-    // 火焰伤害的统一免疫门控在 LivingEntity 侧：isInvulnerableTo 的 IS_FIRE+isImmuneToFire 分支
-    // （火焰免疫实体如岩浆怪/烈焰人）与 hurt 的 IS_FIRE+FireResistance 分支（抗火药水）拦截所有
-    // IS_FIRE 伤害源（含 hotFloor），对齐 vanilla Entity.isInvulnerableToBase:2921 +
-    // LivingEntity.hurtServer:1162。此处不前置自查 fireImmune，完全依赖统一门控（同 vanilla）。
-    const ItemStack& boots = living->getEquipment(EquipmentSlot::Feet);
-    if (item::enchant::EnchantmentHelper::hasFrostWalker(boots)) {
-        return;
-    }
-
+    // 冰霜行者靴子免疫岩浆块烫脚伤害不在此前置自查——对齐 vanilla MagmaBlock.stepOn
+    // （MagmaBlock.java:30-33）直接 hurt(hotFloor, 1.0F)，冰霜行者免疫完全由
+    // LivingEntity::isInvulnerableTo 的 BURN_FROM_STEPPING+frost_walker 管线侧门控统一拦截
+    // （对齐 vanilla LivingEntity.isInvulnerableTo:3857 → EnchantmentHelper.isImmuneToDamage →
+    // Enchantment.isImmuneToDamage 查 DAMAGE_IMMUNITY 组件）。统一管线门控与 IS_FIRE+isImmuneToFire
+    // （火焰免疫实体如岩浆怪/烈焰人）/ IS_FIRE+FireResistance（抗火药水）一致，职责归一。
     auto damage = DamageSources::hotFloor();
     living->hurt(damage, 1.0f);
 }

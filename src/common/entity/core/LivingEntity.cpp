@@ -1161,6 +1161,22 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
+    // 5. 附魔 DAMAGE_IMMUNITY 效果（对齐 vanilla LivingEntity.isInvulnerableTo:3857
+    //   isInvulnerableToBase || EnchantmentHelper.isImmuneToDamage）。
+    //   vanilla 中冰霜行者附魔（FrostWalker）经 EnchantmentEffectComponents.DAMAGE_IMMUNITY 组件
+    //   （Enchantments.java:388-396，条件 tag(is(BURN_FROM_STEPPING)) && tag(isNot(BYPASSES_INVULNERABILITY))）
+    //   使穿戴者完全免疫 BURN_FROM_STEPPING 标签伤害（campfire 营火踩踏、hot_floor 岩浆块踩踏）。
+    //   Cubium 无附魔效果组件体系，此处硬编码等价实现：查靴子（冰霜行者仅注册在 FEET 槽）的
+    //   frost_walker 附魔等级 > 0 且伤害源属 BURN_FROM_STEPPING 且非 BYPASSES_INVULNERABILITY → 免疫。
+    //   任意等级均免疫（vanilla DamageImmunity 不依赖 level，条件匹配即免疫）。
+    if (!source.bypassesInvulnerability() && source.is(DamageTypeTags::BURN_FROM_STEPPING())) {
+        const ItemStack& boots = getEquipment(EquipmentSlot::Feet);
+        if (!boots.isEmpty() &&
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(boots, "minecraft:frost_walker") > 0) {
+            return true;
+        }
+    }
+
     return false;
 }
 

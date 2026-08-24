@@ -40,11 +40,9 @@
 #include "../../WaterLoggableHelpers.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/BlockActionResult.hpp"
-#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
@@ -251,13 +249,12 @@ void CampfireBlock::onEntityCollision(const BlockState& state, IWorld& world, co
         return;
     }
 
-    // 冰霜行者靴子免疫营火伤害（对齐 wiki）。
-    // 检查靴子槽（EquipmentSlot::Feet）单件物品是否带 frost_walker 附魔。
-    const ItemStack& boots = livingEntity->getEquipment(EquipmentSlot::Feet);
-    if (item::enchant::EnchantmentHelper::hasFrostWalker(boots)) {
-        return;
-    }
-
+    // 冰霜行者靴子免疫营火伤害不在此前置自查——对齐 vanilla CampfireBlock.entityInside
+    // （CampfireBlock.java:110-116）直接 hurt(campfire, fireDamage)，冰霜行者免疫完全由
+    // LivingEntity::isInvulnerableTo 的 BURN_FROM_STEPPING+frost_walker 管线侧门控统一拦截
+    // （对齐 vanilla LivingEntity.isInvulnerableTo:3857 → EnchantmentHelper.isImmuneToDamage →
+    // Enchantment.isImmuneToDamage 查 DAMAGE_IMMUNITY 组件）。统一管线门控与 IS_FIRE+isImmuneToFire
+    // （火焰免疫实体）/ IS_FIRE+FireResistance（抗火药水）一致，职责归一。
     // 伤害量：灵魂营火（m_lightValue==10）hp2，普通营火（m_lightValue==15）hp1。
     // 对齐 wiki：灵魂营火伤害为营火的两倍（tech_灵魂营火.txt 历史 20w22a）。
     // 伤害源类型 Campfire 是火焰伤害（DamageSource::isFire()==true），不绕过无敌帧
