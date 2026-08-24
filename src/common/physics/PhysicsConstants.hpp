@@ -309,6 +309,12 @@ constexpr f32 COBWEB_SLOWDOWN_XZ = 0.25f;
 /// 蜘蛛网垂直减速系数
 constexpr f32 COBWEB_SLOWDOWN_Y = 0.05f;
 
+/// 蜘蛛网对受 WEAVING（纺织）效果实体的水平减速系数（更轻，对齐 vanilla WebBlock.entityInside）
+constexpr f32 COBWEB_WEAVING_SLOWDOWN_XZ = 0.5f;
+
+/// 蜘蛛网对受 WEAVING（纺织）效果实体的垂直减速系数（对齐 vanilla WebBlock.entityInside）
+constexpr f32 COBWEB_WEAVING_SLOWDOWN_Y = 0.25f;
+
 /// 蜂蜜块滑动最大下落速度
 constexpr f32 HONEY_BLOCK_MAX_SLIDE_VELOCITY = 0.05f;
 

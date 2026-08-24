@@ -1090,6 +1090,56 @@ void Entity::handleFallDamage(f32 /* distance */, f32 /* damageMultiplier */)
     // LivingEntity 会重写此方法
 }
 
+void Entity::_checkFallDamageResettingBlocks(const Vector3& actualMovement)
+{
+    // 对齐 vanilla Entity.move（Entity.java:718-725）的 FALLDAMAGE_RESETTING 射线检测。
+    // vanilla 逻辑：
+    //   double d0 = vec3.lengthSqr();  // vec3 = collide() 碰撞后实际位移
+    //   if ((d0 > 1.0E-7 || p_19974_.lengthSqr() - d0 < 1.0E-7) && this.fallDistance != 0.0 && d0 >= 1.0) {
+    //       double d1 = Math.min(vec3.length(), 8.0);
+    //       Vec3 vec32 = this.position().add(vec3.normalize().scale(d1));
+    //       BlockHitResult blockhitresult = this.level().clip(new ClipContext(
+    //           this.position(), vec32, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));
+    //       if (blockhitresult.getType() != HitResult.Type.MISS) this.resetFallDistance();
+    //   }
+    // 注意：vanilla position() 此处是移动前位置（setPos 在 :731 才调）。Cubium moveWithCollision
+    // 在 :1233-1241 已先把位置更新到碰撞后，故此处 position() 是碰撞后位置。射线起点取当前位置、
+    // 沿 actualMovement 方向延伸，语义等价（命中路径上的摔落重置方块即重置）。
+    //
+    // Cubium 用 IWorld::isBlockInLine（DDA 逐格遍历，不做形状相交）替代 ClipContext 射线：
+    // vanilla 的 ClipContext.Block.FALLDAMAGE_RESETTING ShapeGetter 对 FALL_DAMAGE_RESETTING
+    // 标签方块返回 Shapes.block()（完整形状），对其他方块返回 empty shape，故射线只可能命中标签
+    // 方块。isBlockInLine 对路径上每个方块调 predicate，predicate 判定是否为标签方块，语义一致，
+    // 且能命中空碰撞形状方块（蜘蛛网/甜浆果丛）——这正是 vanilla 用 FALLDAMAGE_RESETTING 而非
+    // 普通碰撞射线的原因。仅 ServerWorld 实现该方法（客户端返回 false）。
+    const f32 lengthSqr = actualMovement.lengthSquared();
+    if (m_world == nullptr) {
+        return;
+    }
+    if (m_builtIn.physicsState->m_fallDistance == 0.0f) {
+        return;
+    }
+    if (lengthSqr < 1.0f) {
+        return;
+    }
+
+    const f32 moveLength = std::sqrt(lengthSqr);
+    const f32 rayLength = std::min(moveLength, 8.0f);
+    // 单位方向 × 射线长度。actualMovement 为 f32，转 f64 供 isBlockInLine（Vector3d）。
+    const Vector3 dir = actualMovement.normalized();
+    const Vector3 fromPos = position();
+    const Vector3d from(static_cast<f64>(fromPos.x), static_cast<f64>(fromPos.y), static_cast<f64>(fromPos.z));
+    const Vector3d to(static_cast<f64>(fromPos.x + dir.x * rayLength),
+        static_cast<f64>(fromPos.y + dir.y * rayLength),
+        static_cast<f64>(fromPos.z + dir.z * rayLength));
+
+    const bool hit = m_world->isBlockInLine(
+        from, to, [](const BlockState& state) { return BlockTags::FALL_DAMAGE_RESETTING().contains(state); });
+    if (hit) {
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
+    }
+}
+
 void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: Entity.causeFallDamage 首先传播摔落伤害给所有乘客，基类不处理自身伤害
@@ -1286,6 +1336,9 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     }
 
     // 更新摔落距离并处理摔落伤害（对齐 vanilla checkFallDamage(vec3.y, ...)，用碰撞后实际 y 位移）。
+    // 先做 FALLDAMAGE_RESETTING 射线检测：若本帧路径穿过蜘蛛网/甜浆果丛/可攀爬方块等摔落重置
+    // 方块，resetFallDistance（对齐 vanilla Entity.move:718-725，在 checkFallDamage 之前）。
+    _checkFallDamageResettingBlocks(actualMovement);
     updateFallDistance(actualMovement.y);
 
     return actualMovement;

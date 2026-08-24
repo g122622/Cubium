@@ -2183,14 +2183,37 @@ public:
     /**
      * @brief 设置运动速度乘数
      *
-     * 用于甜浆果丛、蜘蛛网等减速效果。
+     * 用于甜浆果丛、蜘蛛网、细雪等减速效果。
      * 每帧在实体移动前，速度会乘以这个乘数。
      * 退出减速区域时自动清除。
+     *
+     * 对齐 vanilla 1.21.11 Entity#makeStuckInBlock（Entity.java:2842-2845）：
+     *   public void makeStuckInBlock(BlockState p_20006_, Vec3 p_20007_) {
+     *       this.resetFallDistance();        // 第一行：重置摔落距离
+     *       this.stuckSpeedMultiplier = p_20007_;
+     *   }
+     * vanilla 蜘蛛网/甜浆果丛/可攀爬方块摔伤免疫由两个机制共同实现：
+     *   1. makeStuckInBlock 第一行 resetFallDistance（主机制）：doBlockCollisions 每帧调
+     *      makeStuckInBlock 时清零 fallDistance。实体在蜘蛛网内停留期间 fallDistance 持续
+     *      被清零，离开蜘蛛网落到下方实方块时 fallDistance≈0 不摔伤。
+     *   2. Entity.move（Entity.java:718-725）的 FALLDAMAGE_RESETTING 射线（补充机制）：本帧
+     *      位移>=1 且 fallDistance!=0 时沿移动方向射线检测命中标签方块即 resetFallDistance。
+     *      处理实体快速穿过摔落重置方块（未在 doBlockCollisions 停留足够帧）的情况。
+     * Cubium 两机制均已对齐：setMotionMultiplier 内 resetFallDistance（主）+ moveWithCollision
+     * 内 _checkFallDamageResettingBlocks 射线（补充，见 Entity.cpp）。
+     *
+     * 时序：Cubium 与 vanilla 一致，aiStep 内 travel（moveWithCollision，含 updateFallDistance
+     * 与 _checkFallDamageResettingBlocks 射线）在前，doBlockCollisions（设 setMotionMultiplier，
+     * 含 resetFallDistance）在后。实体在蜘蛛网内时，本帧 travel 累积的 fallDistance 被
+     * doBlockCollisions 的 resetFallDistance 清零，下一帧 travel 时 fallDistance=0 不累积伤害。
+     * 实体落到下方实方块时已离开蜘蛛网，doBlockCollisions 不再清零，但此时 fallDistance≈0
+     * （穿蜘蛛网期间被反复清零），onGround && fallDistance>0 不成立，不摔伤。
      *
      * @param multiplier 速度乘数 (x, y, z 分量)
      */
     void setMotionMultiplier(const Vector3& multiplier)
     {
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
         m_motionMultiplier = multiplier;
         m_hasMotionMultiplier = true;
     }
@@ -2286,6 +2309,26 @@ private:
      * Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害。
      */
     void _handleLandingOnBlock();
+
+    /**
+     * @brief 沿本帧移动路径检测摔落伤害重置方块
+     *
+     * 对齐 vanilla Entity.move（Entity.java:718-725）的 FALLDAMAGE_RESETTING 射线检测：
+     * 当本帧实际位移长度平方 >= 1.0 且 fallDistance != 0 时，从当前位置沿实际位移方向
+     * 射一条长度为 min(位移长度, 8.0) 的射线，命中 BlockTags::FALL_DAMAGE_RESETTING 标签
+     * 方块（蜘蛛网/甜浆果丛/可攀爬方块等）即 resetFallDistance。
+     *
+     * 这是 vanilla 蜘蛛网/甜浆果丛/可攀爬方块摔伤免疫的真正机制——不依赖 makeStuckInBlock
+     * 的 resetFallDistance，而是 move 内独立的 ClipContext.Block.FALLDAMAGE_RESETTING 射线
+     * （该 ClipContext 对标签内方块返回 Shapes.block() 即视为命中）。
+     *
+     * Cubium 用 IWorld::isBlockInLine（DDA 逐格遍历，不做形状相交）替代 ClipContext 射线：
+     * 它能命中空碰撞形状方块（蜘蛛网/甜浆果丛），与 vanilla FALLDAMAGE_RESETTING ShapeGetter
+     * 对标签方块返回完整形状的语义一致。
+     *
+     * @param actualMovement 本帧碰撞后实际位移（碰撞引擎返回值，对应 vanilla collide() 的 vec3）
+     */
+    void _checkFallDamageResettingBlocks(const Vector3& actualMovement);
 
 public:
     // ========== 闪电击中 ==========

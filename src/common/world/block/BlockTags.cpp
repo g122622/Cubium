@@ -734,6 +734,24 @@ BlockTag& BlockTags::POWDER_SNOW_WALKABLE_MOVED()
     return *tag;
 }
 
+BlockTag& BlockTags::CLIMBABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "climbable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FALL_DAMAGE_RESETTING()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fall_damage_resetting"));
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 1.19 Wild Update
 // ============================================================================
@@ -3479,6 +3497,46 @@ void BlockTags::initialize()
         collect(*tags.at(ResourceLocation("minecraft", "logs")));
         lavaPoolStoneCannotReplace->addAll(merged);
         tags[lavaPoolStoneCannotReplace->getId()] = std::move(lavaPoolStoneCannotReplace);
+    }
+
+    // 创建 CLIMBABLE 标签（可攀爬方块）
+    // vanilla 定义（climbable.json）：ladder、vine、scaffolding、weeping_vines、weeping_vines_plant、
+    // twisting_vines、twisting_vines_plant、cave_vines、cave_vines_plant。
+    // 运行时消费：FALL_DAMAGE_RESETTING 标签合并此标签成员（实体穿过可攀爬方块重置摔落距离）。
+    // 注意：Cubium 攀爬物理走 Block::isLadder 虚函数（仅 LadderBlock/VineBlock/ScaffoldingBlock/
+    // TrapDoorBlock 重写），weeping/twisting/cave vines 虽在此标签但不触发攀爬物理（TODO 补 isLadder）。
+    auto climbable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "climbable"));
+    climbable->addAll({ResourceLocation("minecraft", "ladder"),
+        ResourceLocation("minecraft", "vine"),
+        ResourceLocation("minecraft", "scaffolding"),
+        ResourceLocation("minecraft", "weeping_vines"),
+        ResourceLocation("minecraft", "weeping_vines_plant"),
+        ResourceLocation("minecraft", "twisting_vines"),
+        ResourceLocation("minecraft", "twisting_vines_plant"),
+        ResourceLocation("minecraft", "cave_vines"),
+        ResourceLocation("minecraft", "cave_vines_plant")});
+    tags[climbable->getId()] = std::move(climbable);
+
+    // 创建 FALL_DAMAGE_RESETTING 标签（摔落伤害重置方块）
+    // vanilla 定义（fall_damage_resetting.json）：#climbable + sweet_berry_bush + cobweb。
+    // BlockTag 不支持 #tag 嵌套引用，故手动合并 CLIMBABLE 成员 + sweet_berry_bush + cobweb
+    // （同 dry_vegetation_may_place_on / lava_pool_stone_cannot_replace 的合并模式）。
+    // 运行时消费：Entity::moveWithCollision → _checkFallDamageResettingBlocks 沿实体本帧移动
+    // 路径射线检测，命中此标签方块即 resetFallDistance（实体穿过蜘蛛网/甜浆果丛/可攀爬方块
+    // 下落不累积摔落距离，落到下方实方块时不摔伤）。对齐 vanilla Entity.move:718-725
+    // 的 FALLDAMAGE_RESETTING ClipContext 射线。CLIMBABLE 已在上方 addAll 完毕，合并无依赖。
+    {
+        auto fallDamageResetting = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fall_damage_resetting"));
+        std::vector<ResourceLocation> merged;
+        const auto collect = [&merged](const BlockTag& src) {
+            const auto& ids = src.getBlockIds();
+            merged.insert(merged.end(), ids.begin(), ids.end());
+        };
+        collect(*tags.at(ResourceLocation("minecraft", "climbable")));
+        merged.push_back(ResourceLocation("minecraft", "sweet_berry_bush"));
+        merged.push_back(ResourceLocation("minecraft", "cobweb"));
+        fallDamageResetting->addAll(merged);
+        tags[fallDamageResetting->getId()] = std::move(fallDamageResetting);
     }
 
     s_initialized = true;

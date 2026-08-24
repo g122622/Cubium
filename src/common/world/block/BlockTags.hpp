@@ -419,6 +419,26 @@ public:
     /// 细雪可放置标签
     static BlockTag& POWDER_SNOW_WALKABLE_MOVED();
 
+    // ========== 摔落伤害重置标签 ==========
+
+    /// 可攀爬方块标签（梯子、藤蔓、脚手架、垂泪藤、扭曲藤、洞穴藤蔓等）
+    /// 运行时消费场景：
+    /// 1. FALL_DAMAGE_RESETTING 标签的组成项（实体穿过可攀爬方块时重置摔落距离）
+    /// 2. vanilla Entity.move 的 FALLDAMAGE_RESETTING 射线检测命中可攀爬方块即 resetFallDistance
+    /// 注意：Cubium 的攀爬物理判定走 Block::isLadder 虚函数（LadderBlock/VineBlock/ScaffoldingBlock/
+    /// TrapDoorBlock 重写），与此标签独立。weeping/twisting/cave vines 未重写 isLadder，
+    /// 故虽在此标签中，实体在其上不能攀爬（与 vanilla 偏差，TODO）。
+    /// MC 1.21.11: BlockTags.CLIMBABLE
+    static BlockTag& CLIMBABLE();
+
+    /// 摔落伤害重置方块标签（= #climbable + sweet_berry_bush + cobweb）
+    /// 运行时消费场景：Entity::moveWithCollision 内 _checkFallDamageResettingBlocks 沿实体本帧
+    /// 移动路径射线检测，命中此标签方块即 resetFallDistance（实体穿过蜘蛛网/甜浆果丛/可攀爬
+    /// 方块下落不累积摔落距离，落到下方实方块时不摔伤）。对齐 vanilla Entity.move:718-725
+    /// 的 FALLDAMAGE_RESETTING ClipContext 射线。
+    /// MC 1.21.11: BlockTags.FALL_DAMAGE_RESETTING
+    static BlockTag& FALL_DAMAGE_RESETTING();
+
     // ========== 1.19 荒野更新 标签 ==========
 
     /// 幽匿可替换方块标签

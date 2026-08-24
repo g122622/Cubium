@@ -41,10 +41,13 @@ namespace blocks {
  *
  * 实体经过时会被减速的网状方块。
  *
- * 物理：
- * - 水平移动速度减为 25%（乘以 0.25，对齐 Java CobwebBlock）
- * - Y轴下落速度减为 5%（仅下落时乘以 0.05）
- * - 不影响跳跃
+ * 物理（对齐 vanilla 1.21.11 WebBlock.entityInside → Entity.makeStuckInBlock）：
+ * - 通过 setMotionMultiplier 设置本帧位移乘数 (0.25, 0.05, 0.25)，
+ *   水平位移 ×0.25、垂直位移 ×0.05（不区分上/下，全方向统一减速）。
+ * - makeStuckInBlock 内部 resetFallDistance：实体穿过蜘蛛网下落不累积摔落距离
+ *   （落到下方实方块时 fallDistance≈0，不摔伤）。该重置由 setMotionMultiplier 统一实现。
+ * - 受 WEAVING（纺织）效果的 LivingEntity 减速更轻：(0.5, 0.25, 0.5)。
+ * - 不影响跳跃。
  */
 class WebBlock : public Block {
 public:
