@@ -481,7 +481,11 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     f32 speed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
         m_builtIn.velocity->m_velocity.y * m_builtIn.velocity->m_velocity.y +
         m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
-    i32 damage = static_cast<i32>(std::clamp(static_cast<f64>(speed * comp->m_damage), 0.0, 2147483647.0));
+    // 计算伤害。对齐 vanilla AbstractArrow.onHitEntity:420 Mth.ceil(Mth.clamp(f * d0, 0, 2.147E9))：
+    // f = 速度向量长度（speed），d0 = baseDamage（已含 Power 加成）。vanilla 用 ceil（向上取整），
+    // 此前用 static_cast<i32>（截断）致 speed 非整数倍时少算 1 伤害（如 speed=2.7,base=2.0 →
+    // vanilla ceil(5.4)=6，截断 i32(5.4)=5）。改用 std::ceil 对齐。
+    i32 damage = static_cast<i32>(std::ceil(std::clamp(static_cast<f64>(speed * comp->m_damage), 0.0, 2147483647.0)));
 
     // 暴击伤害加成
     if (comp->m_critical) {

@@ -19,6 +19,7 @@ import { registerThornsEnchantTests } from "./tests/combat/ThornsEnchantTests.js
 import { registerBaneOfArthropodsSlownessTests } from "./tests/combat/BaneOfArthropodsSlownessTests.js";
 import { registerBlastProtectionKnockbackTests } from "./tests/combat/BlastProtectionKnockbackTests.js";
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
+import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerFireImmunityTests } from "./tests/combat/FireImmunityTests.js";
 import { registerFallDamageTests } from "./tests/combat/FallDamageTests.js";
 import { registerResistanceEffectTests } from "./tests/combat/ResistanceEffectTests.js";
@@ -205,6 +206,7 @@ registerShearsDurabilityTests();
 registerSaddleConsumptionTests();
 registerNameTagConsumptionTests();
 registerBowDurabilityTests();
+registerBowArrowDamageTests();
 registerTridentConsumptionTests();
 registerFoodContainerConsumptionTests();
 registerMilkBucketConsumptionTests();
