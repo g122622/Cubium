@@ -245,6 +245,93 @@ function cauldronDrainedToEmptyByBucket(test: Test): void {
     test.succeed();
 }
 
+// 岩浆炼药锅灼烧落入实体 GameTest：实体落入 lava_cauldron 内容区域触发 onEntityCollision，
+// 受岩浆引燃（lavaIgnite 15 秒）+ 岩浆伤害（lavaHurt 4.0），血量下降。
+//
+// C++ 链路（独立于 LiquidBlock 岩浆流体的另一条岩浆伤害链路）：
+//   Entity::doBlockCollisions（Entity.cpp:1338-1400）每 tick 遍历实体 AABB 覆盖方块格，对每格取
+//   block.getEntityInsideCollisionShape（:1373）。LavaCauldronBlock 重写该方法返回 m_filledShape
+//   （LavaCauldronBlock.cpp:165-172，外部外壁 ∪ 岩浆内容 lavaInside），非 fullBlock 走精确路径
+//   insideShape.intersects(aabb, pos)（:1380）。实体落入内容区域（lavaInside box(2,4,2,14,15,14)
+//   像素）AABB 与之相交 → isInsideBlock → onEntityCollision（:176-187）→ entity.lavaIgnite() +
+//   entity.lavaHurt()。
+//   - lavaIgnite（Entity.cpp:2156-2161）：!isImmuneToFire → igniteForSeconds(15.0f)（引燃 300 tick）。
+//   - lavaHurt（Entity.cpp:2163-2178）：!isImmuneToFire → hurt(DamageSources::lava(), 4.0f)，受
+//     LivingEntity 受击免疫节流（m_hurtResistantTime 前 10 tick 阻挡，第 11 tick 放行）。
+//
+// vanilla 对照（LavaCauldronBlock.java）：
+//   getEntityInsideCollisionShape 返回 FILLED_SHAPE（=Shapes.or(SHAPE, SHAPE_INSIDE)）；
+//   entityInside → CLEAR_FREEZE + LAVA_IGNITE + runAfter(LAVA_IGNITE, Entity::lavaHurt)。
+//   Cubium 完全对齐（lavaIgnite + lavaHurt），唯一偏差：Cubium 未调 CLEAR_FREEZE（清除冰冻），
+//   不影响岩浆伤害判定。
+//
+// 几何（fall_tower 7×16×7，中心 (3,*,3) 1×1 垂直玻璃管囚禁实体垂直下落）：
+//   - (3,0,3) cobblestone：固体支撑（fall_tower y=0 中心格默认 rail 非固体，需铺 cobblestone 作
+//     lava_cauldron 下方支撑，炼药锅 isValidPosition 需 belowState.isSolid）。
+//   - (3,1,3) lava_cauldron：岩浆炼药锅（默认 state 满岩浆，setBlockType 直写）。
+//     外壁 m_outerShape（base 0~3/16 + 四面墙 3/16~1.0）顶部中央 12×12 开口（x,z∈[2/16,14/16]），
+//     内部 lavaInside box(2,4,2,14,15,14)（y∈[4/16,15/16] 像素）。
+//   - 猪 spawn (3,11,3)：沿玻璃管垂直自由落体，经开口落入炼药锅内部空腔，停在 base 顶 y=1+3/16
+//     =1.1875。猪 AABB y∈[1.1875, 2.0875] 与 lavaInside（世界 y∈[1.25, 1.9375]）相交
+//     [1.25, 1.9375] → 每 tick onEntityCollision → lavaHurt(4.0)。
+//
+// 关键约束（实体能否落入开口）：
+//   猪宽 0.9，AABB 水平 [3.05, 3.95]，炼药锅开口 [3.125, 3.875]（2/16~14/16）。猪 AABB 边缘
+//   3.05 < 3.125 略超开口，但 fall_tower 1×1 玻璃管强制猪水平居中（管壁 glass 在 (2,*,3)/(4,*,3)
+//   等），猪中心对准 (3.5,3.5)，下落动量使猪穿过开口落入内部空腔（外壁在猪 AABB 边缘的微小重叠
+//   被下落动量克服，vanilla 实体落入炼药锅同理）。诊断阶段已实测猪落入并受伤。
+//
+// 受击免疫节流（关键时序）：lavaHurt 每 tick 调 hurt(lava, 4.0)，前 10 tick 被无敌帧阻挡，
+// 第 11 tick 放行造成 4.0 伤害，猪 10→6。引燃（lavaIgnite 15 秒）使猪燃烧持续掉血（每 40 tick
+// 1.0 火焰伤害），但首击 4.0 岩浆伤害远大于燃烧，tick 40 断言 hp<10 可靠区分（4.0 一击 hp=6）。
+//
+// 判定手段：runAtTickTime(40, ...) 在 40 tick 后检查猪 hp<10（满血 10，首次 4.0 岩浆伤害后
+// 10→6）。用 runAtTickTime 而非 succeedWhen：succeedWhen 查 HP<10 会在岩浆伤害生效后立即通过，
+// 但需确保猪已落入内容区域（落体约 20 tick + 无敌帧 10 tick + 伤害 1 tick ≈ 31 tick），tick 40
+// 留足落入+首击余量。区域限定 fall_tower 7×16×7 排除并行测试污染。
+//
+// 选猪而非牛/羊：猪 MAX_HEALTH=10，4.0 岩浆伤害一击 hp=6<10 满足断言且不致死（便于观察 hp 下降）；
+// 猪非火焰免疫（isImmuneToFire=false），lavaIgnite/lavaHurt 均生效。牛 MAX_HEALTH=10 同理可选，
+// 但猪体积小更易落入开口。
+//
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_炼药锅.txt#装料（岩浆炼药锅：实体落入受
+//      岩浆伤害并引燃，与岩浆流体同等伤害）
+// Ref: LavaCauldronBlock.cpp:165-187（getEntityInsideCollisionShape 返 m_filledShape + onEntityCollision
+//      lavaIgnite + lavaHurt）
+// Ref: Entity.cpp:2156-2178（lavaIgnite 15 秒引燃 + lavaHurt 4.0 伤害）
+// Ref: LavaCauldronBlock.java（vanilla entityInside：LAVA_IGNITE + lavaHurt，FILLED_SHAPE）
+function lavaCauldronBurnsEntityInside(test: Test): void {
+    const pigType = "pig";
+    // fall_tower 7×16×7 区域限定查询常量（排除批内并行 tick 跨测试污染）。
+    const TOWER_FROM = { x: 0, y: 0, z: 0 };
+    const TOWER_VOLUME = { x: 7, y: 16, z: 7 };
+
+    // (3,0,3) 放 cobblestone 作 lava_cauldron 下方固体支撑（fall_tower y=0 中心格默认 rail 非固体）。
+    test.setBlockType("minecraft:cobblestone", { x: 3, y: 0, z: 3 });
+
+    // (3,1,3) 放岩浆炼药锅（默认 state 满岩浆，setBlockType 直写，无需 setBlockWithStates）。
+    test.setBlockType("minecraft:lava_cauldron", { x: 3, y: 1, z: 3 });
+
+    // 猪 spawn 于 (3,11,3)，沿 fall_tower 1×1 玻璃管垂直自由落体，落入炼药锅内部空腔。
+    test.spawn(pigType, { x: 3, y: 11, z: 3 });
+
+    // 40 tick 后检查：猪存在且 hp<10（满血 10，首次 4.0 岩浆伤害后 10→6）。
+    // 时序：落体约 20 tick + 无敌帧 10 tick + 首击 1 tick ≈ 31 tick，tick 40 留足余量。
+    test.runAtTickTime(40, () => {
+        const pigs = test.getDimension().getEntities({
+            type: pigType,
+            location: test.worldLocation(TOWER_FROM),
+            volume: TOWER_VOLUME,
+        });
+        test.assert(pigs.length > 0, "pig disappeared before taking lava cauldron damage");
+        const health = pigs[0].getComponent("minecraft:health");
+        test.assert((health as any).currentValue < 10,
+            `pig did not take lava cauldron damage (expected hp<10, got hp=${(health as any).currentValue};`
+            + ` hp=10 means pig did not enter lava cauldron content region)`);
+        test.succeed();
+    });
+}
+
 export function registerCauldronTests(): void {
     GameTest.register("BlockBehaviorTests", "cauldron_fills_with_water_bucket", cauldronFillsWithWaterBucket)
         .structureName("gametests:glass_pit")
@@ -261,4 +348,7 @@ export function registerCauldronTests(): void {
     GameTest.register("BlockBehaviorTests", "cauldron_drained_to_empty_by_bucket", cauldronDrainedToEmptyByBucket)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
+    GameTest.register("BlockBehaviorTests", "lava_cauldron_burns_entity_inside", lavaCauldronBurnsEntityInside)
+        .structureName("gametests:fall_tower")
+        .maxTicks(200);
 }
