@@ -27,7 +27,9 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/util/math/random/Random.hpp"
+#include <cmath>
 
 namespace mc {
 namespace item {
@@ -35,7 +37,7 @@ namespace enchant {
 
 void BaneOfArthropodsEnchantment::onEntityDamaged(LivingEntity& user, Entity& target, i32 level) const
 {
-    // 只有节肢杀手会应用缓慢效果
+    // 仅节肢杀手施加缓慢副作用（锋利/亡灵杀手无副作用）。
     if (level <= 0) {
         return;
     }
@@ -46,16 +48,21 @@ void BaneOfArthropodsEnchantment::onEntityDamaged(LivingEntity& user, Entity& ta
         return;
     }
 
-    // 检查目标是否为节肢生物
-    if (livingTarget->getCreatureAttribute() != CreatureAttribute::Arthropod) {
+    // 目标判定用 EntityTypeTags::SENSITIVE_TO_BANE_OF_ARTHROPODS 标签，与
+    // DamageEnchantment::getDamageBonus 的判定保持一致。标签派生自 ARTHROPOD，覆盖全部节肢成员。
+    // 此前此处用 getCreatureAttribute()==Arthropod 枚举判定，与 getDamageBonus 的标签判定不一致
+    // （getDamageBonus 已迁移标签，本函数未跟上）。
+    if (!EntityTypeTags::SENSITIVE_TO_BANE_OF_ARTHROPODS().contains(livingTarget->getTypeId())) {
         return;
     }
 
-    // 计算缓慢效果持续时间
+    // 缓慢持续时间：round( randomBetween(1.5, 1.5 + 0.5*(level-1)) * 20 ) tick。
+    // minDur=1.5 固定，maxDur 随等级线性增长（每级 +0.5 秒）。此前用 20 + nextInt(10*level)
+    // 的整数 tick 公式，范围与浮点公式不符。
     math::Random rng(static_cast<u64>(user.id()) ^ static_cast<u64>(user.ticksExisted()));
     i32 duration = getSlownessDuration(level, rng);
 
-    // 添加缓慢 IV 效果（amplifier = 3 = Slowness IV）
+    // 添加缓慢 IV 效果（amplifier = 3 固定）
     livingTarget->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Slowness,
         duration,
         getSlownessAmplifier(), // amplifier = 3 = Slowness IV

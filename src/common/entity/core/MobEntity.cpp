@@ -741,6 +741,16 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
             target.igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
+        // 6.5 触发攻击型附魔的 onEntityDamaged 回调。onAttackEntity 内部读主手武器附魔，调
+        //   applyArthropodEnchantmentDamage 派发到各附魔的 onEntityDamaged（节肢杀手据此对节肢
+        //   生物施加缓慢 IV 副作用）。此前基类 attackEntityAsMob 只用 getEnchantmentDamageBonus
+        //   取伤害数值，从不调 onAttackEntity，致经继承链调基类的 mob
+        //  （Zombie/Skeleton/CaveSpider/Husk/Ravager/Bee 等）持节肢杀手武器近战时缓慢副作用不触发。
+        //   基类攻击成功后显式调用 onAttackEntity，统一覆盖所有调基类的子类。注：IronGolem/Hoglin/
+        //   Zoglin/PolarBear/Ocelot override 自管攻击链不调基类，须各自显式调用
+        //  （IronGolem/Hoglin/Zoglin 已有，PolarBear/Ocelot 另补）。
+        onAttackEntity(target);
+
         // 7. 武器损耗
         // 注意：MC Java 版的 Mob.doHurtTarget() 仅调用 hurtEnemy()（空操作，仅 MaceItem 等重写），
         // 不调用 postHurtEnemy()，因此 Mob 近战攻击不会造成武器耐久损耗。

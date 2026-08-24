@@ -2652,6 +2652,14 @@ void Player::attack(Entity& target)
     bool playedAttackSound = false;
 
     if (attacked) {
+        // 15.5 触发攻击型附魔的 onEntityDamaged 回调。onAttackEntity 内部读主手武器附魔，调
+        //   applyArthropodEnchantmentDamage 派发到各附魔的 onEntityDamaged（节肢杀手据此对节肢生物
+        //   施加缓慢 IV 副作用，仅近战直接伤害触发）。此前 Player::attack 只用 getEnchantmentDamageBonus
+        //   取伤害数值，从不调 onAttackEntity，致玩家持节肢杀手剑攻击节肢生物时缓慢副作用完全不触发
+        //  （PlayerAttackHelper::applyEnchantmentEffects 封装了此调用却全仓零调用，为死代码）。
+        //   攻击成功后显式调用 onAttackEntity 接通回调链。
+        onAttackEntity(target);
+
         // 16. 应用额外击退（包含附魔击退和冲刺击退）
         // causeExtraKnockback 会：
         // - 对目标施加击退（方向基于攻击者朝向）

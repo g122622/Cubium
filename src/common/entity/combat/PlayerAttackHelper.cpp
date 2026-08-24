@@ -183,19 +183,9 @@ f32 PlayerAttackHelper::getEnchantmentDamageBonus(const ItemStack& weapon, const
     // 锋利（DamageEnchantment::Type::All）对所有生物 +0.5+level*0.5，与 target 无关；
     // 亡灵杀手（Type::Undead）/节肢杀手（Type::Arthropods）各自用 EntityTypeTags 标签
     // （SENSITIVE_TO_SMITE / SENSITIVE_TO_BANE_OF_ARTHROPODS）判定 target，命中则 +level*2.5。
-    // 标签判定对齐 vanilla 1.21.11（同穿刺 SENSITIVE_TO_IMPALING），覆盖 vanilla 全部亡灵/节肢成员，
-    // 包括 zombie_horse/zombie_nautilus 等枚举未覆盖的实体。
+    // 标签判定覆盖全部亡灵/节肢成员，包括 zombie_horse/zombie_nautilus 等枚举未覆盖的实体。
     // 穿刺（ImpalingEnchantment）属 Trident 类型附魔，与 Weapon 类型互斥，近战武器不会携带，无干扰。
     return item::enchant::EnchantmentHelper::getTotalDamageBonus(weapon, target);
-}
-
-// ========== 附魔回调 ==========
-
-void PlayerAttackHelper::applyEnchantmentEffects(LivingEntity& attacker, Entity& target, const ItemStack& weapon)
-{
-    // 调用攻击者身上的附魔回调
-    // 这会触发节肢杀手等附魔的效果
-    attacker.onAttackEntity(target);
 }
 
 // ========== 创建攻击上下文 ==========

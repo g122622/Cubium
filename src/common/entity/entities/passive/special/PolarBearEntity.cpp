@@ -262,6 +262,11 @@ bool PolarBearEntity::attackEntityAsMob(LivingEntity& target)
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0));
     EntityDamageSource damageSource(DamageType::MobAttack, this);
     bool success = target.hurt(damageSource, damage);
+    if (success) {
+        // 触发攻击型附魔的 onEntityDamaged 回调（节肢杀手 Slowness 副作用等）。本 override 自管
+        // 攻击链不调基类，须显式调用 onAttackEntity。
+        onAttackEntity(target);
+    }
     return success;
 }
 

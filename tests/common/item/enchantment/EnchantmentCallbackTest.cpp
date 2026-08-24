@@ -164,18 +164,18 @@ TEST_F(BaneOfArthropodsEnchantmentTest, GetSlownessDuration)
 {
     math::Random rng(12345);
 
-    // Level I: 20 + random(0, 9) = 20-29
+    // 公式：round( randomBetween(1.5, 1.5 + 0.5*(level-1)) * 20 ) tick
+    // Level I: randomBetween(1.5, 1.5) = 1.5 固定 → round(30) = 30 tick
     for (int i = 0; i < 100; ++i) {
         i32 duration = BaneOfArthropodsEnchantment::getSlownessDuration(1, rng);
-        EXPECT_GE(duration, 20);
-        EXPECT_LE(duration, 29);
+        EXPECT_EQ(duration, 30);
     }
 
-    // Level V: 20 + random(0, 49) = 20-69
+    // Level V: randomBetween(1.5, 3.5) * 20 → 30-70 tick（闭区间）
     for (int i = 0; i < 100; ++i) {
         i32 duration = BaneOfArthropodsEnchantment::getSlownessDuration(5, rng);
-        EXPECT_GE(duration, 20);
-        EXPECT_LE(duration, 69);
+        EXPECT_GE(duration, 30);
+        EXPECT_LE(duration, 70);
     }
 }
 

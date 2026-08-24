@@ -198,7 +198,13 @@ bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const noexcept
 bool OcelotEntity::attackEntityAsMob(LivingEntity& target)
 {
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
-    return target.hurt(damageSource, ATTACK_DAMAGE);
+    bool success = target.hurt(damageSource, ATTACK_DAMAGE);
+    if (success) {
+        // 触发攻击型附魔的 onEntityDamaged 回调（节肢杀手 Slowness 副作用等）。本 override 自管
+        // 攻击链不调基类，须显式调用 onAttackEntity。
+        onAttackEntity(target);
+    }
+    return success;
 }
 
 ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)

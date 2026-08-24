@@ -16,6 +16,7 @@ import { registerArmorDamageReductionTests } from "./tests/combat/ArmorDamageRed
 import { registerFireAspectEnchantTests } from "./tests/combat/FireAspectEnchantTests.js";
 import { registerFireProtectionBurningTimeTests } from "./tests/combat/FireProtectionBurningTimeTests.js";
 import { registerThornsEnchantTests } from "./tests/combat/ThornsEnchantTests.js";
+import { registerBaneOfArthropodsSlownessTests } from "./tests/combat/BaneOfArthropodsSlownessTests.js";
 import { registerBlastProtectionKnockbackTests } from "./tests/combat/BlastProtectionKnockbackTests.js";
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
 import { registerFireImmunityTests } from "./tests/combat/FireImmunityTests.js";
@@ -236,6 +237,7 @@ registerArmorDamageReductionTests();
 registerFireAspectEnchantTests();
 registerFireProtectionBurningTimeTests();
 registerThornsEnchantTests();
+registerBaneOfArthropodsSlownessTests();
 registerBlastProtectionKnockbackTests();
 registerProjectileDeflectTests();
 registerFireImmunityTests();
