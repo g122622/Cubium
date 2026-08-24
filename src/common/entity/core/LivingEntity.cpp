@@ -1877,6 +1877,16 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 在梯子上时的特殊物理
         // 水平速度限制为 0.15，重力被抵消
 
+        // 对齐 vanilla LivingEntity#handleOnClimbable（LivingEntity.java:2570-2572）第一行
+        // this.resetFallDistance()：实体在攀爬方块（梯子/藤蔓/脚手架等 isLadder 返回 true 的方块）
+        // 上时，每帧 travel 清零 fallDistance。这是攀爬方块摔伤免疫的主机制——实体沿梯子缓慢下滑
+        // 时 fallDistance 不累积，离开攀爬方块落地不承受摔落伤害。
+        // 此前 Cubium 缺这行，攀爬时 updateFallDistance（Entity.cpp:1074 不考虑攀爬状态，y<0 即累积）
+        // 持续累积下滑量，落地触发摔伤，与 vanilla 偏差。
+        // 注： FALL_DAMAGE_RESETTING 射线（_checkFallDamageResettingBlocks）是补充机制，仅在本帧
+        // 位移>=1.0 时触发；攀爬时位移通常 <1.0 故射线不生效，摔伤免疫依赖此主机制。
+        m_builtIn.physicsState->m_fallDistance = 0.0f;
+
         // 限制水平速度
         f32 horizontalSpeed = std::sqrt(m_builtIn.velocity->m_velocity.x * m_builtIn.velocity->m_velocity.x +
             m_builtIn.velocity->m_velocity.z * m_builtIn.velocity->m_velocity.z);
