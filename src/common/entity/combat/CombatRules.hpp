@@ -55,6 +55,27 @@ public:
     [[nodiscard]] static f32 getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness);
 
     /**
+     * @brief 计算护甲减伤后的伤害（含破甲 Breach 附魔修正）
+     *
+     * 对齐 vanilla CombatRules.getDamageAfterArmor（CombatRules.java:16-30）：
+     *   f  = 2 + toughness / 4
+     *   f1 = clamp(armor - damage / f, armor * 0.2, 20)   // effectiveArmor
+     *   f2 = f1 / 25                                       // armorRatio
+     *   f3 = clamp(f2 + breachModifier, 0, 1)              // Breach 修正（每级 -0.15）
+     *   final = damage * (1 - f3)
+     *
+     * Breach 修正作用于 armorRatio（非 effectiveArmor），结果 clamp 到 [0, 1]。
+     * breachLevel <= 0 时等价于三参数重载（无修正）。
+     *
+     * @param damage 原始伤害
+     * @param totalArmor 总护甲值
+     * @param toughness 护甲韧性
+     * @param breachLevel 攻击者武器的破甲附魔等级（0 表示无破甲）
+     * @return 减伤后的伤害
+     */
+    [[nodiscard]] static f32 getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness, i32 breachLevel);
+
+    /**
      * @brief 计算附魔保护减伤后的伤害
      *
      * 公式:

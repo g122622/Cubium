@@ -23,6 +23,7 @@
 
 #include "CombatRules.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/enchantment/enchantments/mace/BreachEnchantment.hpp"
 #include <algorithm>
 #include <utility>
 
@@ -47,6 +48,35 @@ f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness)
     // 减伤比例 = effectiveArmor / 25
     // 最终伤害 = damage * (1 - 减伤比例)
     return damage * (1.0f - effectiveArmor / ARMOR_DIVISOR);
+}
+
+f32 CombatRules::getDamageAfterAbsorb(f32 damage, f32 totalArmor, f32 toughness, i32 breachLevel)
+{
+    if (damage <= 0.0f) {
+        return 0.0f;
+    }
+
+    // 对齐 vanilla CombatRules.getDamageAfterArmor（CombatRules.java:16-30）：
+    //   f  = 2 + toughness / 4
+    //   f1 = clamp(armor - damage / f, armor * 0.2, 20)   // effectiveArmor
+    //   f2 = f1 / 25                                       // armorRatio
+    //   f3 = clamp(f2 + breachModifier, 0, 1)              // Breach 修正后有效率
+    //   final = damage * (1 - f3)
+    // Breach 修正（每级 -0.15）作用于 armorRatio，结果 clamp 到 [0, 1]。
+    const f32 protectionFactor = TOUGHNESS_BASE + toughness / TOUGHNESS_FACTOR;
+    const f32 minArmor = totalArmor * ARMOR_MIN_RATIO;
+    const f32 effectiveArmor = std::clamp(totalArmor - damage / protectionFactor, minArmor, ARMOR_MAX_EFFECTIVE);
+    const f32 armorRatio = effectiveArmor / ARMOR_DIVISOR;
+
+    f32 effectiveRatio = armorRatio;
+    if (breachLevel > 0) {
+        // Breach 每级 -0.15 叠加到 armorRatio（对齐 vanilla modifyArmorEffectiveness ARMOR_EFFECTIVENESS
+        // 组件 AddValue(perLevel(-0.15))），结果 clamp 到 [0, 1]。
+        effectiveRatio = std::clamp(
+            armorRatio + item::enchant::BreachEnchantment::getArmorEffectivenessModifier(breachLevel), 0.0f, 1.0f);
+    }
+
+    return damage * (1.0f - effectiveRatio);
 }
 
 f32 CombatRules::getDamageAfterMagicAbsorb(f32 damage, f32 enchantmentProtectionFactor)

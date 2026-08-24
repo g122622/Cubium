@@ -546,7 +546,21 @@ f32 LivingEntity::applyArmorCalculations(DamageSource& source, f32 damage)
     const f32 armor = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR, 0.0));
     const f32 toughness = static_cast<f32>(attributes().getValue(entity::attribute::Attributes::ARMOR_TOUGHNESS, 0.0));
 
-    return entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
+    // 破甲（Breach）附魔修正：从攻击者武器查等级（对齐 vanilla CombatRules.getDamageAfterArmor
+    // 第 20-26 行从 DamageSource.getWeaponItem()=directEntity.getWeaponItem() 取武器）。
+    // vanilla directEntity 对玩家近战即攻击者本身；Cubium EntityDamageSource::directSource() 同。
+    // 投射物非 LivingEntity，dynamic_cast 返回 nullptr 跳过（箭矢无 Breach，正确）。
+    i32 breachLevel = 0;
+    if (Entity* directAttacker = source.directSource()) {
+        if (LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(directAttacker)) {
+            const ItemStack& weapon = livingAttacker->getMainHandItem();
+            if (!weapon.isEmpty()) {
+                breachLevel = item::enchant::EnchantmentHelper::getBreachLevel(weapon);
+            }
+        }
+    }
+
+    return entity::combat::CombatRules::getDamageAfterAbsorb(damage, armor, toughness, breachLevel);
 }
 
 f32 LivingEntity::applyPotionDamageCalculations(DamageSource& source, f32 damage)

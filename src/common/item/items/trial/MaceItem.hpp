@@ -81,6 +81,22 @@ public:
     explicit MaceItem(const ItemProperties& properties);
 
     /**
+     * @brief 重锤主手属性修饰符（ATTACK_DAMAGE +5.0、ATTACK_SPEED -3.4）
+     *
+     * 对齐 vanilla 重锤物品组件 component_item_properties（attack_damage=5、attack_speed=-3.4）。
+     * 重锤近战伤害 = 玩家基础 1.0 + ATTACK_DAMAGE modifier 5.0 = 6.0（满冷却）。
+     * 攻击速度 = 基础 4.0 + ATTACK_SPEED modifier -3.4 = 0.6（对齐 vanilla）。
+     *
+     * 修复前缺陷：MaceItem 未重写 getAttributeModifiers，重锤无 ATTACK_DAMAGE/ATTACK_SPEED
+     * modifier，致近战 baseDamage 仅玩家基础 1.0（vanilla 6.0，严重偏低），攻击速度 4.0
+     * （vanilla 0.6，过快）。破甲/致密/风爆等附魔虽定义但基数错误致伤害全错。
+     *
+     * @param equipmentSlot 装备槽（仅 MainHand 提供修饰符）
+     * @return 该槽位的属性修饰符集合
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
+
+    /**
      * @brief 检查实体是否处于砸地攻击状态
      *
      * 条件：下落距离 > 1.5 且不在滑翔（鞘翅飞行）

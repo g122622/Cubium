@@ -22,10 +22,13 @@
 
 #include "MaceItem.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/mace/DensityEnchantment.hpp"
@@ -42,6 +45,38 @@ namespace item {
 MaceItem::MaceItem(const ItemProperties& properties)
     : Item(properties)
 {}
+
+item::ItemAttributeModifiers MaceItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    // 重锤在主手时提供攻击伤害和攻击速度修饰符（对齐 vanilla 重锤组件
+    // component_item_properties：attack_damage=5、attack_speed=-3.4）。
+    // 重锤近战伤害 = 玩家基础 1.0 + ATTACK_DAMAGE modifier 5.0 = 6.0（满冷却）。
+    // 攻击速度 = 基础 4.0 + ATTACK_SPEED modifier -3.4 = 0.6（对齐 vanilla）。
+    //
+    // 修复前缺陷：MaceItem 未重写 getAttributeModifiers，重锤无 ATTACK_DAMAGE/ATTACK_SPEED
+    // modifier，致近战 baseDamage 仅玩家基础 1.0（vanilla 6.0，严重偏低），攻击速度 4.0
+    // （vanilla 0.6，过快）。破甲/致密/风爆等附魔虽定义但基数错误致伤害全错。
+    if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
+        item::ItemAttributeModifiers modifiers;
+        std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
+
+        // 添加攻击伤害修饰符（+5.0，对齐 SwordItem 范式）
+        auto attackDamageModifier = entity::attribute::AttributeModifier(
+            uuid, "Weapon modifier", static_cast<f64>(DEFAULT_ATTACK_DAMAGE), entity::attribute::Operation::Addition);
+        modifiers.add(entity::attribute::Attributes::ATTACK_DAMAGE, attackDamageModifier, equipmentSlot);
+
+        // 添加攻击速度修饰符（-3.4）
+        auto attackSpeedModifier = entity::attribute::AttributeModifier(
+            entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
+            "Weapon modifier",
+            static_cast<f64>(DEFAULT_ATTACK_SPEED),
+            entity::attribute::Operation::Addition);
+        modifiers.add(entity::attribute::Attributes::ATTACK_SPEED, attackSpeedModifier, equipmentSlot);
+
+        return modifiers;
+    }
+    return Item::getAttributeModifiers(equipmentSlot);
+}
 
 bool MaceItem::canSmashAttack(const LivingEntity& entity)
 {

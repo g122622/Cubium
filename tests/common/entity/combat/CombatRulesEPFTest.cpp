@@ -372,3 +372,100 @@ TEST_F(CombatRulesEPFTest, FullDamageCalculation)
     damage = CombatRules::getDamageAfterMagicAbsorb(100.0f, 20.0f);
     EXPECT_FLOAT_EQ(damage, 20.0f); // 100 * (1 - 20/25) = 100 * 0.2 = 20
 }
+
+// ============================================================================
+// CombatRules::getDamageAfterAbsorb 破甲 Breach 修正测试（任务 #311）
+// ============================================================================
+//
+// 验证 getDamageAfterAbsorb(damage, armor, toughness, breachLevel) 四参数重载正确接入
+// BreachEnchantment::getArmorEffectivenessModifier（每级 -0.15），对齐 vanilla
+// CombatRules.getDamageAfterArmor（CombatRules.java:16-30）：
+//   f  = 2 + toughness / 4
+//   f1 = clamp(armor - damage / f, armor * 0.2, 20)   // effectiveArmor
+//   f2 = f1 / 25                                       // armorRatio
+//   f3 = clamp(f2 + breachModifier, 0, 1)              // Breach 修正后有效率
+//   final = damage * (1 - f3)
+//
+// 任务 #311 修复前偏差：getDamageAfterAbsorb 三参数版无 Breach，主伤害管线
+// LivingEntity::applyArmorCalculations 直接调三参数版，致重锤破甲附魔定义了但运行时
+// 从未消费。本测试固定四参数版 Breach 数值，捕捉 Breach 修正回归。
+
+TEST_F(CombatRulesEPFTest, BreachLevelZeroEqualsThreeParamVersion)
+{
+    // breachLevel=0 时四参数重载应等价于三参数版（无修正）
+    f32 three = CombatRules::getDamageAfterAbsorb(100.0f, 20.0f, 0.0f);
+    f32 four0 = CombatRules::getDamageAfterAbsorb(100.0f, 20.0f, 0.0f, 0);
+    EXPECT_FLOAT_EQ(four0, three);
+}
+
+TEST_F(CombatRulesEPFTest, BreachHighDamageHighArmorCompletelyBypassesArmor)
+{
+    // 100 伤害，armor=20，toughness=0，无 Breach：
+    //   f1 = clamp(20 - 100/2, 4, 20) = clamp(-30, 4, 20) = 4
+    //   f2 = 4/25 = 0.16，final = 100 * 0.84 = 84
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(100.0f, 20.0f, 0.0f, 0), 84.0f);
+
+    // Breach IV（-0.6）：f3 = clamp(0.16 - 0.6, 0, 1) = 0，final = 100 * 1.0 = 100
+    // 破甲 IV 在高伤害低有效护甲场景完全破除护甲减伤
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(100.0f, 20.0f, 0.0f, 4), 100.0f);
+}
+
+TEST_F(CombatRulesEPFTest, BreachLowDamageHighArmorPartialBypass)
+{
+    // 10 伤害，armor=20，toughness=0，无 Breach：
+    //   f1 = clamp(20 - 10/2, 4, 20) = clamp(15, 4, 20) = 15
+    //   f2 = 15/25 = 0.6，final = 10 * 0.4 = 4.0
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 0.0f, 0), 4.0f);
+
+    // Breach I（-0.15）：f3 = clamp(0.6 - 0.15, 0, 1) = 0.45，final = 10 * 0.55 = 5.5
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 0.0f, 1), 5.5f);
+
+    // Breach II（-0.30）：f3 = clamp(0.6 - 0.30, 0, 1) = 0.30，final = 10 * 0.70 = 7.0
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 0.0f, 2), 7.0f);
+
+    // Breach III（-0.45）：f3 = clamp(0.6 - 0.45, 0, 1) = 0.15，final = 10 * 0.85 = 8.5
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 0.0f, 3), 8.5f);
+
+    // Breach IV（-0.60）：f3 = clamp(0.6 - 0.60, 0, 1) = 0.0，final = 10 * 1.0 = 10.0
+    // 护甲有效率被夹到 0，伤害完全穿透
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 20.0f, 0.0f, 4), 10.0f);
+}
+
+TEST_F(CombatRulesEPFTest, BreachModifierClampedAtMostOne)
+{
+    // armor=0 时无 Breach：f1 = clamp(0 - damage/f, 0, 20)
+    //   damage=10, f=2 → f1 = clamp(-5, 0, 20) = 0 → f2=0 → final = 10（armor=0 本就无减伤）
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 0.0f, 0.0f, 0), 10.0f);
+    // armor=0 + Breach IV：f3 = clamp(0 - 0.6, 0, 1) = 0 → final = 10（不会因负值反向增伤）
+    EXPECT_FLOAT_EQ(CombatRules::getDamageAfterAbsorb(10.0f, 0.0f, 0.0f, 4), 10.0f);
+}
+
+// ============================================================================
+// EnchantmentHelper::getBreachLevel 武器查询测试（任务 #311）
+// ============================================================================
+
+TEST_F(EnchantmentHelperEPFTest, GetBreachLevelFromEnchantedMace)
+{
+    // 重锤施加 Breach IV，getBreachLevel 应返回 4
+    const mc::Item* mace = mc::Items::MACE;
+    ASSERT_NE(mace, nullptr) << "MACE should be registered";
+
+    ItemStack maceStack(mace, 1);
+    maceStack.addEnchantment("minecraft:breach", 4);
+    EXPECT_EQ(EnchantmentHelper::getBreachLevel(maceStack), 4);
+}
+
+TEST_F(EnchantmentHelperEPFTest, GetBreachLevelNoEnchantmentReturnsZero)
+{
+    const mc::Item* mace = mc::Items::MACE;
+    ASSERT_NE(mace, nullptr);
+
+    ItemStack maceStack(mace, 1); // 无附魔
+    EXPECT_EQ(EnchantmentHelper::getBreachLevel(maceStack), 0);
+}
+
+TEST_F(EnchantmentHelperEPFTest, GetBreachLevelEmptyStackReturnsZero)
+{
+    ItemStack empty;
+    EXPECT_EQ(EnchantmentHelper::getBreachLevel(empty), 0);
+}
