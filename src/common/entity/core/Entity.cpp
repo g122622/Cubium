@@ -1228,7 +1228,9 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     AxisAlignedBB entityBox = boundingBox();
 
     // 使用物理引擎执行碰撞检测移动
-    Vector3 actualMovement = physics->moveEntity(entityBox, desiredMovement, stepHeight());
+    // 传 this 构造实体碰撞上下文，使需要按实体区分碰撞形状的方块（如细雪 PowderSnowBlock：
+    // 可行走实体得完整碰撞箱、下落实体得半穿透形状）在物理移动中正确生效。
+    Vector3 actualMovement = physics->moveEntity(this, entityBox, desiredMovement, stepHeight());
 
     // 从碰撞箱更新位置
     // 实体位置 = 碰撞箱底部中心
@@ -1245,7 +1247,7 @@ Vector3 Entity::moveWithCollision(f32 dx, f32 dy, f32 dz)
     // 更新地面状态
     // 优先使用"向下移动时发生垂直碰撞"的判定，避免纯接触检测抖动。
     bool groundedByCollision = m_builtIn.physicsState->m_collidedVertically && desiredMovement.y < 0.0f;
-    bool groundedByContact = physics->isOnGround(entityBox);
+    bool groundedByContact = physics->isOnGround(this, entityBox);
     bool wasOnGround = m_builtIn.physicsState->m_onGround;
     m_builtIn.physicsState->m_onGround = groundedByCollision || groundedByContact;
 
@@ -1326,7 +1328,7 @@ void Entity::checkOnGround()
     }
 
     if (m_physicsEngine) {
-        m_builtIn.physicsState->m_onGround = m_physicsEngine->isOnGround(box);
+        m_builtIn.physicsState->m_onGround = m_physicsEngine->isOnGround(this, box);
         return;
     }
 

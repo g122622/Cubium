@@ -136,8 +136,13 @@ AutoJumpResult AutoJump::check(const Player& player, PhysicsEngine& physicsEngin
 
     AxisAlignedBB searchBox(minX, minY, minZ, maxX, maxY, maxZ);
 
+    // 传 player 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在自动跳跃障碍检测中正确判定。
+    EntityCollisionContext ctx;
+    ctx.entity = &player;
+    ctx.entityBox = &searchBox;
+    ctx.descending = false;
     std::vector<AxisAlignedBB> collisionBoxes;
-    physicsEngine.collectCollisionBoxes(searchBox, collisionBoxes);
+    physicsEngine.collectCollisionBoxes(ctx, searchBox, collisionBoxes);
 
     if (collisionBoxes.empty()) {
         return result; // 没有障碍物
@@ -292,7 +297,12 @@ bool AutoJump::_hasHeadSpace(const Player& player, PhysicsEngine& physicsEngine,
             testPos.z + player.width() * 0.5f);
 
         std::vector<AxisAlignedBB> boxes;
-        physicsEngine.collectCollisionBoxes(checkBox, boxes);
+        // 头部空间检测传 player 上下文，使细雪等按实体区分碰撞形状的方块正确判定。
+        EntityCollisionContext ctx;
+        ctx.entity = &player;
+        ctx.entityBox = &checkBox;
+        ctx.descending = false;
+        physicsEngine.collectCollisionBoxes(ctx, checkBox, boxes);
 
         if (!boxes.empty()) {
             return false; // 有障碍物，头部空间不足
@@ -365,8 +375,13 @@ f32 AutoJump::_detectObstacleHeight(const Player& player,
                 origin.z + player.width() * 0.5f);
 
             // 检查站立位置是否有碰撞
+            // 传 player 上下文，使细雪等按实体区分碰撞形状的方块正确判定。
+            EntityCollisionContext ctx;
+            ctx.entity = &player;
+            ctx.entityBox = &standingBox;
+            ctx.descending = false;
             std::vector<AxisAlignedBB> standingBoxes;
-            physicsEngine.collectCollisionBoxes(standingBox, standingBoxes);
+            physicsEngine.collectCollisionBoxes(ctx, standingBox, standingBoxes);
 
             // 如果有碰撞，说明上方空间不足
             bool canStand = true;

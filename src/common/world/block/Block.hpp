@@ -36,6 +36,7 @@
 #include "Material.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/collision/EntityCollisionContext.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
@@ -842,6 +843,26 @@ public:
      * @return 形状引用
      */
     [[nodiscard]] virtual const CollisionShape& getCollisionShape(const BlockState& state) const;
+
+    /**
+     * @brief 获取带实体上下文的碰撞形状
+     *
+     * 对齐 vanilla BlockBehaviour#getCollisionShape(BlockState, BlockGetter, BlockPos,
+     * CollisionContext)。当碰撞形状需按实体区分时（如细雪 PowderSnowBlock：可行走实体
+     * 得完整碰撞箱、下落实体得半穿透形状、其余得空形状），方块重写此方法依据 ctx 与方块
+     * 世界坐标判定。
+     *
+     * 默认实现委托 getCollisionShape(state)，即不区分实体——绝大多数方块行为不变。
+     * 仅物理引擎在持有实体上下文时调用此方法；无实体上下文（如方块放置预检、AI 寻路、
+     * 渲染等）的调用点继续调用 getCollisionShape。
+     *
+     * @param state 方块状态
+     * @param ctx 实体碰撞上下文（entity 可能为 nullptr）
+     * @param blockY 方块世界 Y 坐标（用于 isAbove 几何判定实体是否在方块顶面）
+     * @return 形状引用
+     */
+    [[nodiscard]] virtual const CollisionShape& getCollisionShapeForEntity(
+        const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const;
 
     /**
      * @brief 获取遮挡形状

@@ -22,8 +22,12 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -38,6 +42,14 @@
 namespace mc {
 namespace blocks {
 
+// 对齐 vanilla PowderSnowBlock.NUM_BLOCKS_TO_FALL_INTO_BLOCK = 2.5F（PowderSnowBlock.java:42）。
+// 实体下落距离超过此值时，细雪提供半穿透碰撞箱（FALLING_COLLISION_SHAPE）减缓下落，而非完全阻挡或穿透。
+constexpr f32 NUM_BLOCKS_TO_FALL_INTO_BLOCK = 2.5f;
+
+// 对齐 vanilla PowderSnowBlock.FALLING_COLLISION_SHAPE = Shapes.box(0,0,0,1,0.9,1)
+// （PowderSnowBlock.java:43）。下落实体半穿透碰撞箱，高度 0.9，使实体缓慢陷入细雪而非瞬移到顶。
+CollisionShape g_powderSnowFallingShape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.9f, 1.0f);
+
 PowderSnowBlock::PowderSnowBlock(const BlockProperties& properties)
     : Block(properties)
 {}
@@ -45,18 +57,58 @@ PowderSnowBlock::PowderSnowBlock(const BlockProperties& properties)
 const CollisionShape& PowderSnowBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // TODO(细雪可行走未实现): 对齐 vanilla PowderSnowBlock.getCollisionShape（PowderSnowBlock.java:116-132）
-    // 与 canEntityWalkOnPowderSnow（:139-145）。vanilla 依实体类型判定碰撞箱：
-    //   - fallDistance>2.5 → FALLING_COLLISION_SHAPE（下落实体穿透）
-    //   - canEntityWalkOnPowderSnow(entity)（EntityTypeTags.POWDER_SNOW_WALKABLE_MOBS 成员={Rabbit,
-    //     Endermite, Silverfish, Fox}，或 LivingEntity 穿皮革靴子）且实体在方块上方非下降 →
-    //     实体方块碰撞箱（可行走不下沉）
-    //   - 否则 → empty（下沉）
-    // 阻塞：Cubium getCollisionShape(const BlockState&) 全项目签名无实体上下文（Block.hpp:844），
-    //   物理引擎 PhysicsEngine.cpp:151/529 调用点也无实体传入。实现可行走须给 Block 基类与物理引擎
-    //   碰撞解析管线引入 CollisionContext/Entity 参数（波及 30+ getCollisionShape 调用点），属大重构。
-    //   当前所有实体都穿透下沉，待碰撞管线支持实体上下文后补 canEntityWalkOnPowderSnow 标签查询。
+    // 无实体上下文时（AI 寻路、方块放置预检、渲染等），细雪默认无碰撞——实体可穿过。
+    // 带实体上下文的判定（可行走实体得完整碰撞箱、下落实体得半穿透形状）见 getCollisionShapeForEntity。
+    // 对齐 vanilla getCollisionShape 在 isPlacement()（无实体上下文）时返回 Shapes.empty()。
     return VoxelShapes::empty();
+}
+
+const CollisionShape& PowderSnowBlock::getCollisionShapeForEntity(
+    const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const
+{
+    MC_UNUSED(state);
+    // 对齐 vanilla PowderSnowBlock.getCollisionShape（PowderSnowBlock.java:116-132）。
+    // 无实体上下文（如纯方块放置预检）时返回空形状（下沉）。
+    if (ctx.entity == nullptr) {
+        return VoxelShapes::empty();
+    }
+
+    const Entity& entity = *ctx.entity;
+
+    // 分支 1：实体下落距离 > 2.5 → 半穿透碰撞箱（减缓下落，对齐 :120-122）。
+    if (entity.fallDistance() > NUM_BLOCKS_TO_FALL_INTO_BLOCK) {
+        return g_powderSnowFallingShape;
+    }
+
+    // 分支 2：可行走实体且在方块上方且非潜行下降中 → 完整方块碰撞箱（可行走不下沉，对齐 :124-127）。
+    // canEntityWalkOnPowderSnow 内查 POWDER_SNOW_WALKABLE_MOBS 标签（rabbit/endermite/silverfish/fox）
+    // 或 LivingEntity 穿皮革靴子。ctx.isAbove(blockY) 判定实体脚部在方块顶面（blockY+1）或更高，
+    // 对齐 vanilla CollisionContext.isAbove(Shapes.block(), blockPos, false)；!descending 排除
+    // 潜行下降（descending=Entity::isSneaking()，穿皮革靴玩家潜行时主动陷入细雪，见 wiki 第71行）。
+    if (canEntityWalkOnPowderSnow(entity) && ctx.isAbove(blockY) && !ctx.descending) {
+        return VoxelShapes::fullCube();
+    }
+
+    // 分支 3：否则 → 空形状（实体下沉陷入细雪，对齐 :131）。
+    return VoxelShapes::empty();
+}
+
+bool PowderSnowBlock::canEntityWalkOnPowderSnow(const Entity& entity)
+{
+    // 对齐 vanilla PowderSnowBlock.canEntityWalkOnPowderSnow（PowderSnowBlock.java:139-145）。
+    // 分支 1：实体类型属于 POWDER_SNOW_WALKABLE_MOBS 标签（rabbit/endermite/silverfish/fox）。
+    // 安全检查：标签系统未初始化时跳过标签查询（与 Entity::canFreeze 范式一致）。
+    if (EntityTypeTags::isInitialized() && EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS().contains(entity.getTypeId())) {
+        return true;
+    }
+
+    // 分支 2：LivingEntity 穿皮革靴子可行走。
+    if (const auto* living = dynamic_cast<const LivingEntity*>(&entity)) {
+        const ItemStack& boots = living->getEquipment(EquipmentSlot::Feet);
+        return !boots.isEmpty() && boots.getItem() == Items::LEATHER_BOOTS;
+    }
+
+    return false;
 }
 
 fluid::Fluid* PowderSnowBlock::pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state)

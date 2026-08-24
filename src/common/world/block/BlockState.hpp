@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/collision/EntityCollisionContext.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/map/MaterialColor.hpp"
@@ -231,6 +232,17 @@ public:
      * @brief 获取碰撞形状
      */
     [[nodiscard]] const CollisionShape& getCollisionShape() const;
+
+    /**
+     * @brief 获取带实体上下文的碰撞形状
+     *
+     * 转发到 Block::getCollisionShapeForEntity，供需要按实体区分碰撞形状的方块
+     * （如细雪 PowderSnowBlock）查询。详见 Block::getCollisionShapeForEntity。
+     *
+     * @param ctx 实体碰撞上下文
+     * @param blockY 方块世界 Y 坐标（用于 isAbove 几何判定）
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShapeForEntity(const EntityCollisionContext& ctx, i32 blockY) const;
 
     /**
      * @brief 获取渲染形状

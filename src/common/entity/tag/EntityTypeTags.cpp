@@ -760,7 +760,8 @@ void EntityTypeTags::initialize()
     // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.POWDER_SNOW_WALKABLE_MOBS（line 54）：
     //   rabbit, endermite, silverfish, fox。
     // 此前误为 rabbit/fox/ocelot/cat（多 ocelot/cat，漏 endermite/silverfish）。
-    // 本标签当前未在运行时查询，仅作数据对齐。
+    // 运行时查询点：PowderSnowBlock::canEntityWalkOnPowderSnow（PowderSnowBlock.cpp）查本标签判定
+    // 实体是否可在细雪上行走（得完整碰撞箱不下沉），对齐 vanilla PowderSnowBlock.java:139-145。
     POWDER_SNOW_WALKABLE_MOBS().addAll({
         ResourceLocation("minecraft:rabbit"),
         ResourceLocation("minecraft:endermite"),

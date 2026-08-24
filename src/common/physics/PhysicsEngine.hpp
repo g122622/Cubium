@@ -38,6 +38,9 @@ namespace mc {
 
 using world::chunk::ChunkData;
 
+// 前向声明：PhysicsEngine 仅持有 Entity 指针透传给方块碰撞形状判定，无需完整类型。
+class Entity;
+
 /**
  * @brief 碰撞世界接口
  *
@@ -120,6 +123,23 @@ public:
     Vector3 moveEntity(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight = 0.0f);
 
     /**
+     * @brief 带实体上下文的碰撞检测移动
+     *
+     * 与 moveEntity 算法相同，额外把实体碰撞上下文（entity 指针、实体 AABB、是否下降）
+     * 透传给方块碰撞形状判定，使需要按实体区分碰撞形状的方块（如细雪 PowderSnowBlock：
+     * 可行走实体得完整碰撞箱、下落实体得半穿透形状）能在物理移动中正确生效。
+     *
+     * 对齐 vanilla Entity.move 中经 EntityCollisionContext 传递实体的碰撞解析。
+     *
+     * @param entity 触发移动的实体（用于构造碰撞上下文）
+     * @param entityBox 实体碰撞箱（会被修改）
+     * @param movement 期望移动向量
+     * @param stepHeight 步进高度
+     * @return 实际移动向量（碰撞后）
+     */
+    Vector3 moveEntity(const Entity* entity, AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight = 0.0f);
+
+    /**
      * @brief 检测实体是否在地面
      * @param entityBox 实体碰撞箱
      * @return 是否在地面（下方有支撑）
@@ -127,11 +147,36 @@ public:
     [[nodiscard]] bool isOnGround(const AxisAlignedBB& entityBox) const;
 
     /**
+     * @brief 带实体上下文检测是否在地面
+     *
+     * 与 isOnGround 相同，额外把实体上下文透传给方块碰撞形状判定（如细雪可行走实体
+     * 在细雪上方视为有支撑）。用于实体自身的地面检测（Entity::move / checkOnGround）。
+     *
+     * @param entity 触发检测的实体
+     * @param entityBox 实体碰撞箱
+     * @return 是否在地面
+     */
+    [[nodiscard]] bool isOnGround(const Entity* entity, const AxisAlignedBB& entityBox) const;
+
+    /**
      * @brief 收集范围内的碰撞箱
      * @param searchBox 搜索范围
      * @param boxes 输出的碰撞箱列表
      */
     void collectCollisionBoxes(const AxisAlignedBB& searchBox, std::vector<AxisAlignedBB>& boxes) const;
+
+    /**
+     * @brief 带实体上下文收集范围内的碰撞箱
+     *
+     * 与 collectCollisionBoxes 相同，额外把实体上下文透传给方块碰撞形状判定。
+     * 供需要按实体区分碰撞形状的场景（如玩家潜行边缘检测、自动跳跃）使用。
+     *
+     * @param ctx 实体碰撞上下文
+     * @param searchBox 搜索范围
+     * @param boxes 输出的碰撞箱列表
+     */
+    void collectCollisionBoxes(
+        const EntityCollisionContext& ctx, const AxisAlignedBB& searchBox, std::vector<AxisAlignedBB>& boxes) const;
 
     /**
      * @brief 设置碰撞世界
@@ -200,14 +245,16 @@ private:
         const AxisAlignedBB& originalBox,
         const Vector3& movement,
         f32 stepHeight,
-        const Vector3& fallbackResult);
+        const Vector3& fallbackResult,
+        const EntityCollisionContext& ctx);
 
     /**
      * @brief 策略A：整体抬起 + 水平移动
      *
      * 将抬起和水平移动作为一个整体处理。
      */
-    Vector3 _tryStepStrategyA(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
+    Vector3 _tryStepStrategyA(
+        AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, const EntityCollisionContext& ctx);
 
     /**
      * @brief 策略B：先抬起后水平移动（带高度输出）
@@ -215,15 +262,19 @@ private:
      * 标准步进逻辑。
      * @param actualStepUp 输出参数，实际抬起的高度
      */
-    Vector3 _tryStepStrategyBWithHeight(
-        AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, f32& actualStepUp);
+    Vector3 _tryStepStrategyBWithHeight(AxisAlignedBB& entityBox,
+        const Vector3& movement,
+        f32 stepHeight,
+        f32& actualStepUp,
+        const EntityCollisionContext& ctx);
 
     /**
      * @brief 策略B：先抬起后水平移动
      *
      * 标准步进逻辑。
      */
-    Vector3 _tryStepStrategyB(AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight);
+    Vector3 _tryStepStrategyB(
+        AxisAlignedBB& entityBox, const Vector3& movement, f32 stepHeight, const EntityCollisionContext& ctx);
 
     /**
      * @brief 策略C：在部分抬起高度水平移动
@@ -235,12 +286,13 @@ private:
      * @param partialStepHeight 实际抬起高度（小于stepHeight）
      * @return 从原始位置的移动距离
      */
-    Vector3 _tryStepStrategyC(AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight);
+    Vector3 _tryStepStrategyC(
+        AxisAlignedBB& entityBox, const Vector3& movement, f32 partialStepHeight, const EntityCollisionContext& ctx);
 
     /**
      * @brief 应用下落直到碰到地面
      */
-    Vector3 _applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement);
+    Vector3 _applyFallDown(AxisAlignedBB& entityBox, f32 originalYMovement, const EntityCollisionContext& ctx);
 
     /**
      * @brief 应用水平移动碰撞解决
@@ -258,9 +310,11 @@ private:
     /**
      * @brief 获取方块碰撞箱
      * @param x, y, z 方块坐标
+     * @param ctx 实体碰撞上下文（entity 可能为 nullptr，表示无实体上下文）
      * @param boxes 输出的碰撞箱列表
      */
-    void _getBlockCollisionBoxes(i32 x, i32 y, i32 z, std::vector<AxisAlignedBB>& boxes) const;
+    void _getBlockCollisionBoxes(
+        i32 x, i32 y, i32 z, const EntityCollisionContext& ctx, std::vector<AxisAlignedBB>& boxes) const;
 
     ICollisionWorld* m_world;
     bool m_collidedVertically = false;

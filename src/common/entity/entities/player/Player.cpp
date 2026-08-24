@@ -1193,8 +1193,14 @@ Vector3 Player::maybeBackOffFromEdge(const Vector3& movement) const
         newZ + PLAYER_WIDTH / 2.0f);
 
     // 检查是否有碰撞
+    // 传 this 构造实体碰撞上下文，使细雪等按实体区分碰撞形状的方块在潜行边缘检测中正确判定
+    // （穿皮革靴的玩家在细雪上潜行不应把细雪当无碰撞而误阻止移动）。
+    EntityCollisionContext ctx;
+    ctx.entity = this;
+    ctx.entityBox = &testBox;
+    ctx.descending = false;
     std::vector<AxisAlignedBB> boxes;
-    m_physicsEngine->collectCollisionBoxes(testBox, boxes);
+    m_physicsEngine->collectCollisionBoxes(ctx, testBox, boxes);
 
     if (boxes.empty()) {
         // 没有支撑，阻止移动

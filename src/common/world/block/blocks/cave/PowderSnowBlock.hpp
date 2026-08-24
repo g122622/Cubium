@@ -46,6 +46,23 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     /**
+     * @brief 带实体上下文的碰撞形状
+     *
+     * 对齐 vanilla PowderSnowBlock.getCollisionShape（PowderSnowBlock.java:116-132）。依实体
+     * 类型/下落距离/是否在方块上方/是否潜行下降决定碰撞形状：
+     *   - 实体 fallDistance > 2.5 → FALLING_COLLISION_SHAPE（半穿透 0.9 高，减缓下落）
+     *   - canEntityWalkOnPowderSnow(entity)（POWDER_SNOW_WALKABLE_MOBS 标签成员，或 LivingEntity
+     *     穿皮革靴子）且实体在方块上方且非潜行下降中 → 完整方块碰撞箱（可行走不下沉）
+     *   - 否则 → empty（实体下沉陷入细雪）
+     *
+     * @param state 方块状态
+     * @param ctx 实体碰撞上下文
+     * @return 碰撞形状引用
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShapeForEntity(
+        const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const override;
+
+    /**
      * @brief 从细雪方块中取出流体
      *
      * 细雪不是流体，此方法始终返回 nullptr。
@@ -89,6 +106,18 @@ public:
      * @param entity 实体
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    /**
+     * @brief 判定实体是否可在细雪上行走
+     *
+     * 对齐 vanilla PowderSnowBlock.canEntityWalkOnPowderSnow（PowderSnowBlock.java:139-145）。
+     * 实体属于 POWDER_SNOW_WALKABLE_MOBS 标签（rabbit/endermite/silverfish/fox），或为
+     * LivingEntity 且穿皮革靴子时返回 true。
+     *
+     * @param entity 实体
+     * @return 是否可在细雪上行走
+     */
+    [[nodiscard]] static bool canEntityWalkOnPowderSnow(const Entity& entity);
 };
 
 } // namespace blocks

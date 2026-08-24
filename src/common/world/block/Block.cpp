@@ -316,6 +316,15 @@ const CollisionShape& Block::getCollisionShape(const BlockState& state) const
     return getShape(state);
 }
 
+const CollisionShape& Block::getCollisionShapeForEntity(
+    const BlockState& state, const EntityCollisionContext& ctx, i32 blockY) const
+{
+    MC_UNUSED(ctx);
+    MC_UNUSED(blockY);
+    // 默认：碰撞形状不区分实体，委托无实体上下文版本。需要按实体区分的方块（如细雪）重写此方法。
+    return getCollisionShape(state);
+}
+
 const CollisionShape& Block::getOcclusionShape(const BlockState& state) const
 {
     return getShape(state);

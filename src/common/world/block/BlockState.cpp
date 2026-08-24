@@ -85,6 +85,11 @@ const CollisionShape& BlockState::getCollisionShape() const
     return m_owner->getCollisionShape(*this);
 }
 
+const CollisionShape& BlockState::getCollisionShapeForEntity(const EntityCollisionContext& ctx, i32 blockY) const
+{
+    return m_owner->getCollisionShapeForEntity(*this, ctx, blockY);
+}
+
 const CollisionShape& BlockState::getShape() const
 {
     return m_owner->getShape(*this);
