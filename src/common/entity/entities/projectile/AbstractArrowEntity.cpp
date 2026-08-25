@@ -519,6 +519,20 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
 
     // 应用伤害并增加箭矢计数
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+
+    // 攻击者记录"我打了谁"（对齐 vanilla AbstractArrow.onHitEntity:444 在 hurt 前无条件对
+    // shooter(LivingEntity) 调 setLastHurtMob(entity)）。该记录是"攻击意图"语义——即使 hurt 被无敌帧/
+    // 免疫吞也记录，与 setLastHurtBy 的 NO_ANGER 门控不同（后者 target 侧记录"谁打了我"，有门控）。
+    // 字段由 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。
+    // 此前仅 Player 近战记录，箭矢不记录致玩家用弓射怪时驯服动物（狼）不帮忙。基类补一处即覆盖
+    // ArrowEntity/SpectralArrowEntity（两者不重写 onEntityHit）。Trident/Spear override 不调基类 onEntityHit，各自补。
+    if (shooter != nullptr) {
+        LivingEntity* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+        if (shooterLiving != nullptr && livingTarget != nullptr) {
+            shooterLiving->setLastHurtTarget(livingTarget);
+        }
+    }
+
     if (livingTarget != nullptr) {
         bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
         // 只有非穿透箭在造成伤害后才增加箭矢计数

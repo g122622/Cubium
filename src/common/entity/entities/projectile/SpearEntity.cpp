@@ -104,6 +104,18 @@ void SpearEntity::onEntityHit(const RayTraceResult& result)
 
     // 应用伤害
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+
+    // 攻击者记录"我打了谁"（对齐 vanilla AbstractArrow.onHitEntity:444 在 hurt 前对 shooter
+    // (LivingEntity) 调 setLastHurtMob(entity) 的语义；Spear 是 Cubium 特有投掷武器，按投射物
+    // 命中语义对齐 AbstractArrow）。字段由 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。
+    // 本 override 自管不调基类 onEntityHit，须显式补。
+    if (shooter != nullptr) {
+        LivingEntity* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+        if (shooterLiving != nullptr && livingTarget != nullptr) {
+            shooterLiving->setLastHurtTarget(livingTarget);
+        }
+    }
+
     if (livingTarget != nullptr) {
         livingTarget->hurt(*damageSource, damage);
     }
