@@ -434,6 +434,16 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 7. 记录伤害来源
     m_lastDamageSource = source.clone();
+    // 同步捕获真凶 id 与时间戳（任务 #272 UAF 根治）：m_lastDamageSource clone 持真凶裸 Entity*
+    // 指针，真凶析构后 getTrueSource() 悬垂。此处同步上下文（hurt 调用栈内）真凶必活，安全取 id，
+    // 供 HurtBySensor 等经 IWorld::getEntity(id) 安全校验绕开悬垂指针。m_lastDamageStamp 对齐
+    // vanilla lastDamageStamp（LivingEntity.java:257），配合 lastDamageSource() 的 40 tick 过期守卫。
+    // 注意：trueSource 在第 8 步才取，此处先取一次仅供捕获 id（不改变后续 8a/8b 的 NO_ANGER 门控语义）。
+    {
+        Entity* trueSourceForId = source.getTrueSource();
+        m_lastDamageSourceTrueId = (trueSourceForId != nullptr) ? trueSourceForId->id() : INVALID_ENTITY_ID;
+    }
+    m_lastDamageStamp = ticksExisted();
 
     // 8. 更新最近攻击者（对齐 MC Java 1.21.11 LivingEntity.resolveMobResponsibleForDamage
     //    :1326-1332 + resolvePlayerResponsibleForDamage:1334-1348，vanilla 在 hurtServer 内
@@ -2440,6 +2450,35 @@ void LivingEntity::onAttackEntity(Entity& target)
 // ============================================================================
 // 受伤追踪（Target Goals 使用）
 // ============================================================================
+
+// 40 tick 过期阈值（对齐 vanilla LivingEntity.getLastDamageSource:1391-1397 的 lastDamageStamp 守卫）。
+// vanilla: if (level.getGameTime() - lastDamageStamp > 40L) lastDamageSource = null。
+// Cubium 用实体 ticksExisted() 替代 level.getGameTime()（实体 tick 计数，等价相对时间判定）。
+static constexpr u32 LAST_DAMAGE_SOURCE_EXPIRY_TICKS = 40;
+
+DamageSource* LivingEntity::lastDamageSource() const
+{
+    // 对齐 vanilla 40 tick 过期守卫：超过 40 tick 置空 m_lastDamageSource。
+    // 此守卫缩小 m_lastDamageSource（clone 持真凶裸指针）的悬垂窗口，并对齐 vanilla 语义。
+    // 注意：40 tick 内真凶析构仍致 getTrueSource() 悬垂，取攻击者须用 lastDamageSourceTrueId()
+    // 经 world 校验，不可直接解引用 lastDamageSource()->getTrueSource()（任务 #272 UAF）。
+    if (m_lastDamageSource != nullptr && ticksExisted() - m_lastDamageStamp > LAST_DAMAGE_SOURCE_EXPIRY_TICKS) {
+        // const 方法内清除需 const_cast。对齐 vanilla getLastDamageSource 内 this.lastDamageSource = null。
+        const_cast<LivingEntity*>(this)->m_lastDamageSource.reset();
+        const_cast<LivingEntity*>(this)->m_lastDamageSourceTrueId = INVALID_ENTITY_ID;
+    }
+    return m_lastDamageSource.get();
+}
+
+EntityInstanceId LivingEntity::lastDamageSourceTrueId() const
+{
+    // 同样受 40 tick 过期守卫约束：超期则视为无最近伤害来源。
+    if (m_lastDamageSource != nullptr && ticksExisted() - m_lastDamageStamp > LAST_DAMAGE_SOURCE_EXPIRY_TICKS) {
+        const_cast<LivingEntity*>(this)->m_lastDamageSource.reset();
+        const_cast<LivingEntity*>(this)->m_lastDamageSourceTrueId = INVALID_ENTITY_ID;
+    }
+    return m_lastDamageSourceTrueId;
+}
 
 void LivingEntity::setLastHurtBy(LivingEntity* attacker)
 {

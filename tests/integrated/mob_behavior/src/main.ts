@@ -18,6 +18,7 @@ import { registerFireProtectionBurningTimeTests } from "./tests/combat/FireProte
 import { registerThornsEnchantTests } from "./tests/combat/ThornsEnchantTests.js";
 import { registerBaneOfArthropodsSlownessTests } from "./tests/combat/BaneOfArthropodsSlownessTests.js";
 import { registerBlastProtectionKnockbackTests } from "./tests/combat/BlastProtectionKnockbackTests.js";
+import { registerVillagerExplosionUafTests } from "./tests/combat/VillagerExplosionUafTests.js";
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
@@ -271,6 +272,7 @@ registerFireProtectionBurningTimeTests();
 registerThornsEnchantTests();
 registerBaneOfArthropodsSlownessTests();
 registerBlastProtectionKnockbackTests();
+registerVillagerExplosionUafTests();
 registerProjectileDeflectTests();
 registerFireImmunityTests();
 registerFallDamageTests();
