@@ -55,9 +55,6 @@ namespace blocks {
  *
  * 子类必须实现：
  * - getParticleOffsets(): 根据蜡烛数量返回粒子偏移位置
- *
- * 注意：CANDLES 和 CANDLE_CAKES 标签尚未注册到 BlockTags，
- * 暂时在 isLit 中仅检查 LIT 属性。
  */
 class AbstractCandleBlock : public Block {
 public:
@@ -74,8 +71,12 @@ public:
     /**
      * @brief 检查蜡烛是否点燃
      *
-     * 检查方块状态的 LIT 属性是否为 true。
-     * 目前尚未注册 CANDLES/CANDLE_CAKES 标签，仅检查 LIT 属性。
+     * 对齐 vanilla AbstractCandleBlock.isLit（AbstractCandleBlock.java:40-42）三重短路门控：
+     * hasProperty(LIT) && (is(CANDLES) || is(CANDLE_CAKES)) && getValue(LIT)。
+     *  - hasProperty(LIT) 前置守护，对无 LIT 属性的方块（grass_block/air 等）短路返回 false，
+     *    不调 getValue(LIT)（后者对无该属性的方块抛 std::invalid_argument 致 fatal error）。
+     *  - (is(CANDLES) || is(CANDLE_CAKES)) 标签门控，只对蜡烛/蜡烛蛋糕返回 true，防止营火等
+     *    其他含 LIT 属性的方块被误判为蜡烛（任务 #332：_dowseFire 营火误入蜡烛分支致浇灭失效）。
      *
      * @param state 方块状态
      * @return 是否点燃

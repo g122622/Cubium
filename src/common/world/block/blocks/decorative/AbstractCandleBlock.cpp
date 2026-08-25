@@ -35,6 +35,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include <utility>
 
@@ -54,6 +55,25 @@ AbstractCandleBlock::AbstractCandleBlock(BlockProperties properties)
 
 bool AbstractCandleBlock::isLit(const BlockState& state)
 {
+    // 对齐 vanilla AbstractCandleBlock.isLit（Java 1.21.11 AbstractCandleBlock.java:40-42）：
+    //   return state.hasProperty(LIT) && (state.is(CANDLES) || state.is(CANDLE_CAKES)) && state.getValue(LIT);
+    // 三重短路门控：
+    //   1. hasProperty(LIT) 前置守护——对无 LIT 属性的方块（grass_block/air 等）短路返回 false，
+    //      绝不调 getValue(LIT)，后者对无该属性的方块抛 std::invalid_argument（StateHolder::get:86），
+    //      C++ 异常穿过 JS 边界致 fatal error。
+    //   2. (is(CANDLES) || is(CANDLE_CAKES)) 中段标签门控——只对蜡烛/蜡烛蛋糕返回 true，
+    //      防止其他含 LIT 属性的方块（如营火 minecraft:campfire、红石矿石 minecraft:redstone_ore）
+    //      被误判为蜡烛。曾因缺此门控，PotionEntity::_dowseFire 的 if-else 链中营火先命中
+    //      AbstractCandleBlock::isLit（返回 true）进入蜡烛分支，dynamic_cast<AbstractCandleBlock*>
+    //      对营火返回 nullptr，extinguish 不执行，而 isLitCampfire 分支被 else if 跳过，
+    //      致水瓶无法浇灭营火（任务 #332 修复）。
+    //   3. getValue(LIT) 末段读取点燃状态。
+    if (!state.hasProperty(BlockStateProperties::LIT())) {
+        return false;
+    }
+    if (!BlockTags::CANDLES().contains(state) && !BlockTags::CANDLE_CAKES().contains(state)) {
+        return false;
+    }
     return state.get(BlockStateProperties::LIT());
 }
 
