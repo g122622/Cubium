@@ -29,6 +29,12 @@ namespace mc {
 namespace item {
 namespace enchant {
 
+// TODO 死代码：shouldConsumeDurability / shouldArmorConsumeDurability 从未被损耗链路调用。
+// 实际生效的耐久损耗忽略逻辑在 EnchantmentHelper::shouldIgnoreDurabilityLoss（EnchantmentHelper.cpp:324），
+// 由 ItemStack::attemptDamageItem 调用。此处两个方法用 random.nextFloat() >= chance 实现，
+// 偏离 vanilla 1.21.11 的 nextInt(level+1)>0（工具）/ nextFloat()<0.6 门控+nextInt（盔甲）语义，
+// 且与 EnchantmentHelper::shouldIgnoreDurabilityLoss 功能重复。保留仅因部分测试/文档可能引用，
+// 勿接入损耗链路（会偏离 vanilla 随机序列与边界精度）。未来应统一到 EnchantmentHelper 删除此处。
 bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& random)
 {
     if (level <= 0) {
@@ -40,6 +46,7 @@ bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& ran
     return random.nextFloat() >= chance;
 }
 
+// TODO 死代码：见上 shouldConsumeDurability 注释，同理从未被调用，勿接入损耗链路。
 bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::Random& random)
 {
     if (level <= 0) {

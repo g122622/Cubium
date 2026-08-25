@@ -282,21 +282,34 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
 
         if (random != nullptr) {
             // 使用世界关联的随机源
+            // 对齐 vanilla 1.21.11 RemoveBinomial.process（RemoveBinomial.java:21-23 小 amount 路径）：
+            //   for (int j = 0; j < amount; j++) { if (random.nextFloat() < chance) removed++; }
+            //   return amount - removed;
+            // 即对【原始 amount】做固定次数独立伯努利试验，累加被忽略（移除）的点数，循环上界不自减。
+            // 此前实现 `for (i < amount) { if (ignore) --amount; }` 每次忽略后减小循环上界，致 amount>1
+            // 时试验次数减少、保护效果被削弱（level=1 工具 amount=2 期望剩余 1.25 vs vanilla 1.0），
+            // 影响荆棘反弹（ThornsEnchantment hurtAndBreak amount=2）等多点损耗场景。改用 removed 累加器
+            // 对齐 vanilla。shouldIgnoreDurabilityLoss 的 chance（工具 level/(level+1)、盔甲 0.4*level/(level+1)）
+            // 已与 vanilla remove_binomial fraction chance 数值等价，仅循环结构需对齐。
+            i32 removed = 0;
             for (i32 i = 0; i < amount; ++i) {
                 if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, *random)) {
-                    --amount;
+                    ++removed;
                 }
             }
+            amount -= removed;
         } else {
             // 降级：无实体或实体不在世界中时，使用线程局部静态随机源
             static thread_local math::Random s_random(
                 static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
+            i32 removed = 0;
             for (i32 i = 0; i < amount; ++i) {
                 if (item::enchant::EnchantmentHelper::shouldIgnoreDurabilityLoss(unbreakingLevel, isArmor, s_random)) {
-                    --amount;
+                    ++removed;
                 }
             }
+            amount -= removed;
         }
 
         // 如果所有伤害都被抵消，不造成伤害
