@@ -105,8 +105,9 @@ function readHp(entity: any): number {
 
 // 构造三叉戟 ItemStack（@minecraft/server 与 server-gametest 依赖的 @minecraft/server 是两个独立包实例，
 // ItemStack 类型不兼容，用 as any 绕过，同 BowArrowDamageTests 范式）。
-function makeTrident(): any {
-    return new ItemStack(TRIDENT, 1);
+// count 为堆叠数量（默认 1，忠诚测试用 2 验证消耗+拾回）。
+function makeTrident(count: number = 1): any {
+    return new ItemStack(TRIDENT, count);
 }
 
 // 投掷三叉戟通用流程：Creative 玩家主手三叉戟，lookAtEntity 朝向靶，tick 5 拉弓 tick 20 释放（蓄力 15 tick）。
@@ -360,6 +361,204 @@ function tridentChannelingSummonsLightningTest(test: Test): void {
     });
 }
 
+// 三叉戟忠诚附魔回返集成测试（验证 TridentEntity tick→_tickReturning→onPlayerPickup 回返拾取链路）。
+//
+// 验证 Cubium 忠诚附魔回返链路对齐 MC Java 1.21.11 ThrownTrident：
+//   投掷 → 三叉戟命中实体 onEntityHit setDealtDamage(true) → tick 检测 hasDealtDamage && loyalty>0 &&
+//   _shouldReturnToThrower → setNoClip(true) + _tickReturning（穿墙指数逼近玩家）→
+//   distance<2 时 onPlayerPickup → inventory.add(tridentStack) + remove()。
+//
+// 链路实现（TridentEntity.cpp）：
+//   - tick（:108-139）：(hasDealtDamage||isInGround) && loyalty>0 && shooter 存活 → _tickReturning。
+//   - _tickReturning（:155-240）：速度=currentVel*0.95+dir*(0.05*loyalty)/tick 指数逼近玩家眼部，
+//     distance<2 且玩家射手 → onPlayerPickup。setNoClip 穿墙返回不走碰撞。
+//   - onPlayerPickup（:410-457）：noClip && shooter.uuid==player.uuid 授权拾取 → inventory.add + remove。
+//   - onEntityHit（:280）：命中实体 setDealtDamage(true)（触发返回门控，无需插地）。
+//   - setItemStack（:394-408）：投掷时从手持 stack 提取 loyalty 等级写入 TridentStateComponent。
+//
+// 触发路径选择（命中实体而非命中方块）：
+//   朝近距 villager（z=4 距玩家 1 格）投掷，三叉戟 1 tick 命中实体 onEntityHit setDealtDamage(true)，
+//   速度反弹停在 villager 附近，下一 tick tick 检测 hasDealtDamage 触发 _tickReturning 飞回玩家。
+//   命中方块路径（朝地板投掷）三叉戟向下飞易穿过 grass_block 进入地板下方虚空飞出查询区域（creeper_pit
+//   是开放坑，地板下方无阻挡），不可靠；命中实体路径三叉戟停在 villager 附近（z=4），稳定在查询区内。
+//
+// 数量选择：count=1（对齐 vanilla 真实玩法，单把三叉戟投掷→消耗→空槽→拾取回主手槽）。
+//   任务 #335 调研发现真实对齐缺陷：TridentItem.cpp:190 此前直接 setItemStack(stack) 用原始 stack，
+//   未对齐 vanilla TridentItem.java:141 `copyWithCount(1)`（投掷的三叉戟实体只代表 1 把，与手持数量解耦）。
+//   三叉戟 maxStack=1，若用 count=2 投掷，实体存 count=2，忠诚回返拾取 onPlayerPickup 把 count=2 整堆
+//   塞回背包（PlayerInventory::add 不拆分不合并 maxStack=1 物品），主手槽已有 count=1 不接收→加别处，
+//   主手停留 1 不恢复 2 → 测试假失败。修复 TridentItem 对齐 copyWithCount(1) 后，count=1 范式下：
+//   投掷消耗 1（主手 1→0 空槽），回返拾取 add(count=1) 三叉戟进空主手槽（主手 0→1 恢复）。
+//   count=1 是 vanilla 玩家持单把忠诚三叉戟的真实玩法，断言干净无 maxStack 干扰。
+//
+// 防假通过设计（正反对照）：
+//   - trident_loyalty_returns_to_thrower：Survival 玩家持忠诚 III 三叉戟×1 朝近距 villager 投掷 →
+//     命中实体 → 飞回玩家 → 拾取入主手槽。双重断言：trident 实体消失 + 主手数量 1→0（消耗）→1（拾回恢复）。
+//     - 若回返链路断裂（_tickReturning 未触发/onPlayerPickup 未拾取）：三叉戟停 villager 附近不消失，主手停留 0 → 超时 FAIL。
+//     - 若拾取但未入背包（inventory.add 失败）：主手停留 0 → 超时 FAIL。
+//     - 若三叉戟未命中 villager：不 setDealtDamage 不触发返回，实体停留 → 超时 FAIL。
+//     - 若 TridentItem 未对齐 copyWithCount(1)（实体存 count>1）：拾取 add 落别槽，主手停留 0 → 超时 FAIL。
+//   - trident_no_loyalty_does_not_return：负向对照，无忠诚三叉戟命中 villager 后不返回（实体持续存在，主手不恢复）。
+//     - 若门控 loyalty>0 失效（无忠诚也返回）：实体消失主手恢复 → 与"不返回"断言冲突 → FAIL。
+//     两测试交叉验证：忠诚返回 + 无忠诚不返回 = loyalty 门控正确。
+//
+// 模式选择：Survival（spawnSimulatedPlayer 第三参数 0）。Creative 跳过 shrink（投掷不消耗），无"消耗→恢复"
+//   干净断言；Survival 投掷消耗 1（1→0），返回拾取恢复（0→1），数量变化是回返链路的明确证据。
+//   Survival 下 pickupStatus=Allowed（TridentEntity 构造默认），onPlayerPickup 门控正常。
+//
+// 靶选择：villager（HP 20，受 8 伤害存活 HP 12，被动不反击）。villager 受伤后 AI 可能移动，但三叉戟返回
+//   目标点是玩家位置（非 villager），villager 移动不影响返回路径。三叉戟命中后停在 villager 命中点附近。
+//
+// 玩家静止：返回期间不调任何 moveTo* 方法（SimulatedPlayer 无自主 AI），玩家位置是稳定返回目标点。
+//   任务 #314 已修复服务端物理空转，玩家站立稳定。
+//
+// 返回时序：loyalty III speed=0.15/tick 指数衰减逼近，近距离 1 格返回约 10-40 tick。
+//   pollUntilSucceed startTick=25（留命中+启动返回余量）maxTick=130 留足返回+拾取时间。
+//
+// className 恒为 MobBehaviorTests。
+// Ref: TridentEntity.cpp:108-139（tick：hasDealtDamage+loyalty 门控触发 _tickReturning）
+// Ref: TridentEntity.cpp:155-240（_tickReturning：指数逼近玩家 + distance<2 onPlayerPickup）
+// Ref: TridentEntity.cpp:410-457（onPlayerPickup：noClip+uuid 授权 + inventory.add + remove）
+// Ref: TridentEntity.cpp:280（onEntityHit：setDealtDamage 触发返回门控）
+// Ref: TridentEntity.cpp:394-408（setItemStack：提取 loyalty 等级）
+// Ref: TridentItem.cpp:190（setItemStack(thrownStack) 对齐 vanilla copyWithCount(1)，任务 #335 修复）
+// Ref: TridentItem.java:141（vanilla copyWithCount(1)：投掷实体只代表 1 把三叉戟）
+// Ref: TridentConsumptionTests.ts（Survival setItem + getMainHandAmount 范式）
+// Ref: tech_三叉戟.txt（忠诚附魔：三叉戟命中后飞回投掷者）
+
+// 读取玩家主手槽（slot 0）物品数量。0 表示空槽（同 TridentConsumptionTests 范式）。
+function getMainHandAmount(player: any): number {
+    const inv = player.getComponent("minecraft:inventory") as any;
+    const mainHand = inv?.container?.getItem?.(0) as any;
+    return mainHand?.amount ?? 0;
+}
+
+// Survival 玩家朝近距 villager 投掷忠诚/无忠诚三叉戟的通用流程。tridentStack 已由调用方决定附魔（count=1）。
+//   - Survival 模式：投掷消耗 1（数量 1→0 空槽），忠诚返回拾取恢复（数量 0→1 回主手槽），数量变化是回返证据。
+//   - lookAtEntity(villager)：精确朝向 villager 眼部，shootFrom 用此朝向发射，三叉戟 1 tick 命中实体。
+//   - 命中实体 onEntityHit setDealtDamage(true) 触发返回门控（无需插地）。
+//   - tick 19 重新 lookAtEntity 校准（补偿 villager AI 移动）。
+function setupLoyaltyThrower(test: Test, tridentStack: any): { player: any; victim: any } {
+    (test as any).killAllEntities();
+    // Survival 玩家（第三参数 0），主手三叉戟数量 1（slot 0）。
+    const player = test.spawnSimulatedPlayer(THROWER_POS, "thrower", 0 as any);
+    player.setItem(tridentStack as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+    const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    (player as any).lookAtEntity(victim);
+
+    // tick 5 useItem(三叉戟) → setActiveHand 拉弓（useDuration=72000）。
+    test.runAtTickTime(5, () => {
+        (player as any).useItem(tridentStack as unknown as Parameters<typeof player.useItem>[0]);
+    });
+    // tick 19 释放前重新 lookAtEntity 校准朝向（补偿 villager AI 移动）。
+    test.runAtTickTime(19, () => {
+        (player as any).lookAtEntity(victim);
+    });
+    // tick 20 stopUsingItem 释放 → 蓄力 15 tick ≥ MIN_CHARGE_TICKS=10 → 投掷（Survival 消耗 1）。
+    test.runAtTickTime(20, () => {
+        (player as any).stopUsingItem();
+    });
+
+    return { player, victim };
+}
+
+// 忠诚 III 三叉戟命中实体后飞回玩家并被拾取（验证 _tickReturning + onPlayerPickup 回返链路）。
+//
+// Survival 玩家持忠诚 III 三叉戟×1 朝近距 villager 投掷：
+//   - 投掷消耗 1（主手 1→0 空槽），三叉戟命中 villager onEntityHit setDealtDamage(true)。
+//   - tick 检测 hasDealtDamage && loyalty=3>0 → _tickReturning 穿墙飞回玩家。
+//   - distance<2 → onPlayerPickup → inventory.add(count=1 三叉戟)（主手空槽 0→1 恢复）+ remove()。
+//
+// 判定（双重断言，pollUntilSucceed）：
+//   - trident 实体消失（getEntities 返 0）：回返拾取后 remove()。
+//   - 主手数量恢复 1（1→0 消耗 → 0→1 拾回）。
+//   - 若回返断裂：实体停 villager 附近不消失 + 主手停留 0 → 超时 FAIL。
+//   - 若未命中 villager：不 setDealtDamage 不返回，实体停留 → 超时 FAIL。
+//   - 若 TridentItem 未对齐 copyWithCount(1)（实体存 count>1）：拾取 add 落别槽，主手停留 0 → 超时 FAIL。
+function tridentLoyaltyReturnsToThrowerTest(test: Test): void {
+    const trident = makeTrident(1); // 主手持 1 个，验证消耗 1 + 拾回 1 恢复
+    trident.addEnchantment({ type: "minecraft:loyalty", level: 3 });
+    const { player } = setupLoyaltyThrower(test, trident);
+
+    // 轮询双重断言：trident 实体消失（回返拾取 remove）+ 主手数量恢复 1（消耗 1 后拾回 1）。
+    pollUntilSucceed(test, () => {
+        const tridents = test.getDimension().getEntities({
+            type: "minecraft:trident",
+            location: test.worldLocation(PIT_FROM),
+            volume: PIT_VOLUME,
+        });
+        if (tridents.length !== 0) {
+            return false;
+        }
+        return getMainHandAmount(player) === 1;
+    }, {
+        startTick: 25,
+        interval: 2,
+        maxTick: 130,
+        onTimeout: () => {
+            const tridents = test.getDimension().getEntities({
+                type: "minecraft:trident",
+                location: test.worldLocation(PIT_FROM),
+                volume: PIT_VOLUME,
+            });
+            const tEnt = tridents.length > 0 ? (tridents[0] as any) : null;
+            const tLoc = tEnt?.location;
+            const tInfo = tEnt
+                ? `trident pos=(${tLoc?.x},${tLoc?.y},${tLoc?.z})`
+                : `trident count=${tridents.length}`;
+            test.assert(false,
+                `trident_loyalty_returns_to_thrower: failed: ${tInfo} mainHandAmount=${getMainHandAmount(player)} `
+                + `(expected trident gone + mainHand=1 [1->0 consume ->0->1 pickup]; `
+                + `if trident stuck near villager loyalty return broken [_tickReturning not triggered] `
+                + `or pickup failed [onPlayerPickup not adding to inventory] `
+                + `or trident missed villager [no onEntityHit, no setDealtDamage] `
+                + `or TridentItem not copyWithCount(1) [entity stored count>1, pickup landed off-hand slot])`);
+        },
+    });
+}
+
+// 无忠诚三叉戟命中实体后不返回（负向对照，验证 loyalty>0 门控）。
+//
+// Survival 玩家持无附魔三叉戟×1 朝近距 villager 投掷：
+//   - 投掷消耗 1（主手 1→0 空槽），三叉戟命中 villager setDealtDamage(true) 但 loyalty=0。
+//   - tick 检测 loyalty=0 → 不触发 _tickReturning，三叉戟停在 villager 附近（反弹后落地/插地）。
+//
+// 判定：三叉戟实体持续存在（不返回）+ 主手停留 0（消耗后不拾回恢复）。
+//   - 若门控 loyalty>0 失效（无忠诚也返回）：实体消失 + 主手恢复 1 → 与"不返回"冲突 → FAIL。
+//   此测试与 trident_loyalty_returns_to_thrower 交叉验证：忠诚返回 + 无忠诚不返回 = 门控正确。
+function tridentNoLoyaltyDoesNotReturnTest(test: Test): void {
+    const trident = makeTrident(1);
+    const { player } = setupLoyaltyThrower(test, trident);
+
+    // 轮询断言：三叉戟实体持续存在（不返回）+ 主手停留 0（消耗后不拾回）。
+    // startTick=25 确保三叉戟已命中稳定，maxTick=80 充分覆盖（无忠诚恒不返回，超时即 FAIL）。
+    pollUntilSucceed(test, () => {
+        const tridents = test.getDimension().getEntities({
+            type: "minecraft:trident",
+            location: test.worldLocation(PIT_FROM),
+            volume: PIT_VOLUME,
+        });
+        return tridents.length === 1 && getMainHandAmount(player) === 0;
+    }, {
+        startTick: 25,
+        interval: 2,
+        maxTick: 80,
+        onTimeout: () => {
+            const tridents = test.getDimension().getEntities({
+                type: "minecraft:trident",
+                location: test.worldLocation(PIT_FROM),
+                volume: PIT_VOLUME,
+            });
+            test.assert(false,
+                `trident_no_loyalty_does_not_return: failed: tridentCount=${tridents.length} `
+                + `mainHandAmount=${getMainHandAmount(player)} `
+                + `(expected tridentCount=1 [stuck near villager, no return] + mainHand=0 [consumed, not picked up]; `
+                + `if tridentCount=0 or mainHand=1 loyalty gate broken [returning without loyalty enchant])`);
+        },
+    });
+}
+
 export function registerTridentEnchantTests(): void {
     GameTest.register("MobBehaviorTests", "trident_base_damage", tridentBaseDamageTest)
         .batch("default")
@@ -383,4 +582,16 @@ export function registerTridentEnchantTests(): void {
         .structureName("gametests:creeper_pit")
         .skyAccess(true)
         .maxTicks(200);
+
+    // 忠诚回返测试：Survival 投掷→插地→返回→拾取，maxTicks 170 留足返回+拾取时序余量。
+    GameTest.register("MobBehaviorTests", "trident_loyalty_returns_to_thrower", tridentLoyaltyReturnsToThrowerTest)
+        .batch("default")
+        .structureName("gametests:creeper_pit")
+        .maxTicks(170);
+
+    // 无忠诚不返回对照：maxTicks 100 充分覆盖（无忠诚恒不返回）。
+    GameTest.register("MobBehaviorTests", "trident_no_loyalty_does_not_return", tridentNoLoyaltyDoesNotReturnTest)
+        .batch("default")
+        .structureName("gametests:creeper_pit")
+        .maxTicks(100);
 }

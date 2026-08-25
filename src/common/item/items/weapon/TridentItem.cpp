@@ -187,7 +187,13 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
     tridentEntity->shootFrom(*player, player->pitch(), player->yaw(), 0.0f, velocity, 1.0f);
 
     // 设置三叉戟物品
-    tridentEntity->setItemStack(stack);
+    // 对齐 vanilla TridentItem.java:141 `p_338353_.copyWithCount(1)`：投掷的三叉戟实体只代表 1 把三叉戟，
+    // 与玩家手持数量解耦。若直接用原始 stack（count 可能 >1），拾取/忠诚回返时 onPlayerPickup 会把
+    // count>1 的三叉戟整堆塞回背包（三叉戟 maxStack=1，PlayerInventory::add 不拆分不合并，违反 maxStack）。
+    // 此处拷贝手持栈（保留附魔/耐久/自定义名等）并强制 count=1。
+    ItemStack thrownStack = stack.copy();
+    thrownStack.setCount(1);
+    tridentEntity->setItemStack(thrownStack);
 
     // 设置忠诚附魔等级
     i32 loyaltyLevel = enchant::EnchantmentHelper::getEnchantmentLevel(stack, &enchant::AllEnchantments::LOYALTY);
