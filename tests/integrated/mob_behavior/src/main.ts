@@ -40,6 +40,7 @@ import { registerSnowballDamageTests } from "./tests/combat/SnowballDamageTests.
 import { registerWindChargeDamageTests } from "./tests/combat/WindChargeDamageTests.js";
 import { registerEggHatchTests } from "./tests/combat/EggHatchTests.js";
 import { registerPotionWaterBottleTests } from "./tests/combat/PotionWaterBottleTests.js";
+import { registerPotionExtinguishTests } from "./tests/combat/PotionExtinguishTests.js";
 import { registerSkeletonTests } from "./tests/monster/undead/SkeletonTests.js";
 import { registerIronGolemTests } from "./tests/passive/golem/IronGolemTests.js";
 import { registerSnowGolemTests } from "./tests/passive/golem/SnowGolemTests.js";
@@ -256,6 +257,7 @@ registerSnowballDamageTests();
 registerWindChargeDamageTests();
 registerEggHatchTests();
 registerPotionWaterBottleTests();
+registerPotionExtinguishTests();
 registerEffectImmunityTests();
 registerMeleeEnchantDamageTests();
 registerArmorDamageReductionTests();

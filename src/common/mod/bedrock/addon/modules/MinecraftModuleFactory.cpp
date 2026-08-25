@@ -1331,6 +1331,54 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createUndefined();
         },
         1);
+    // 对齐基岩官方 Entity.setOnFire(seconds: number, useEffects?: boolean = true): boolean。
+    // 官方语义：点燃实体 seconds 秒，useEffects=true 时考虑水/雨/火焰保护等条件与副作用（如解冻）。
+    // 返回是否成功点燃（seconds<=0 / 实体湿 / 火焰免疫时返 false）。
+    //
+    // Cubium 绑定实现：
+    //   - useEffects=true（默认）→ mc::Entity::igniteForSeconds(seconds)（Entity.hpp:1649）：
+    //     秒→tick（×20），LivingEntity 重写乘 BURNING_TIME 属性（火焰保护缩减），清冰冻（thaw），
+    //     仅在新时间>当前剩余时更新（不覆盖免疫期）。等价 vanilla useEffects 的副作用链。
+    //   - useEffects=false → mc::Entity::setFire(seconds*20)（Entity.hpp:1684）：直接设 tick 不检查
+    //     不乘属性不清冰冻（对齐 vanilla useEffects=false 跳过条件直接设）。
+    //   返回 true（Cubium igniteForSeconds/setFire 不区分成功失败，统一返 true 对齐"已设置"语义；
+    //   vanilla 的 false 仅在湿/免疫时返回，Cubium igniteForSeconds 仍会写入 fire 字段——为避免误导
+    //   测试，此处不模拟湿/免疫失败，TODO: 后续按 isWet/fireImmune 精确返回 false）。
+    //
+    // 用途：集成测试需点燃实体验证灭火链路（如水瓶 _onHitAsWater extinguishFire、雨/水伤害门控、
+    // 火焰保护 BURNING_TIME 缩减）。此前脚本层仅 readonly onFireTicksRemaining（无法主动点火），
+    // 致灭火/燃烧相关端到端测试不可构造。setOnFire 补全此能力。
+    entityReg.method(
+        "setOnFire",
+        [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, entityClassId));
+            if (ent == nullptr || argc < 1 || !ctx.isNumber(args[0])) {
+                return ctx.createBoolean(false);
+            }
+            const auto secondsOpt = ctx.toFloat64(args[0]);
+            if (!secondsOpt) {
+                return ctx.createBoolean(false);
+            }
+            const f64 seconds = *secondsOpt;
+            // useEffects 默认 true；显式传 false 时跳过副作用。
+            bool useEffects = true;
+            if (argc >= 2) {
+                const auto bOpt = ctx.toBool(args[1]);
+                if (bOpt) {
+                    useEffects = *bOpt;
+                }
+            }
+            if (seconds <= 0.0) {
+                return ctx.createBoolean(false);
+            }
+            if (useEffects) {
+                ent->igniteForSeconds(static_cast<f32>(seconds));
+            } else {
+                ent->setFire(static_cast<i32>(seconds * 20.0));
+            }
+            return ctx.createBoolean(true);
+        },
+        2);
     entityReg.method(
         "getComponent",
         [entityClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
