@@ -517,11 +517,11 @@ public:
 
     [[nodiscard]] bool isFire() const override { return m_type == DamageType::Fireball; }
 
-    [[nodiscard]] bool isProjectile() const override
-    {
-        return m_type == DamageType::Arrow || m_type == DamageType::Trident || m_type == DamageType::MobProjectile ||
-            m_type == DamageType::Fireball;
-    }
+    // isProjectile 查 DamageTypeTags::IS_PROJECTILE 标签（对齐 vanilla source.is(IS_PROJECTILE)），
+    // 实现在 DamageSource.cpp（需 DamageTypeTags 完整定义）。此前硬编码 Arrow/Trident/MobProjectile/
+    // Fireball 四类型是"硬编码代标签"缺陷变体——IS_PROJECTILE 标签成员集还含 WitherSkull/Thrown/
+    // WindBurst/UnattributedFireball，硬编码漏掉它们致对应伤害源 isProjectile() 返 false。
+    [[nodiscard]] bool isProjectile() const override;
 
     [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
 
@@ -686,7 +686,7 @@ public:
         return m_isFire || m_type == DamageType::Fireball || m_type == DamageType::UnattributedFireball;
     }
 
-    [[nodiscard]] bool isProjectile() const override { return m_isProjectile; }
+    [[nodiscard]] bool isProjectile() const override;
 
     [[nodiscard]] bool isExplosion() const override { return m_isExplosion; }
 
@@ -1088,7 +1088,12 @@ inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
  */
 inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter, bool isPlayer = false)
 {
-    return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer);
+    // WindBurst（风弹命中）在 DamageTypeTags::IS_PROJECTILE 标签内，是投射物伤害。
+    // setProjectile 设 m_isProjectile 标志位作 isProjectile() 的保底（标签未初始化时回退），
+    // 与 arrow/trident/fireball/spit/witherSkull/thrown 等投射物工厂一致。
+    // 此前漏调 setProjectile，且 isProjectile 旧实现只查 m_isProjectile 标志（不查标签），
+    // 致风爆伤害 isProjectile() 返 false、弹射物保护附魔 EPF 不设 PROJECTILE 位失效。
+    return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer).setProjectile();
 }
 
 /**

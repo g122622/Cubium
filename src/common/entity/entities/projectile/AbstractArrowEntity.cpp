@@ -508,14 +508,19 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     // 获取发射者
     mc::Entity* shooter = getShooter();
 
-    // 创建伤害来源
-    std::unique_ptr<DamageSource> damageSource;
-    if (shooter) {
-        bool isPlayer = shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
-        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, shooter, this, isPlayer);
-    } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, this, this, false);
-    }
+    // 创建伤害来源：对齐 vanilla arrow 伤害类型 + setProjectile（对齐 DamageSources::arrow 工厂语义）。
+    // 此前手动 make_unique<IndirectEntityDamageSource>(Arrow, ...) 漏调 setProjectile，致
+    // isProjectile()（旧实现只查 m_isProjectile 标志）返 false，applyPotionDamageCalculations 不设
+    // DamageFlags::PROJECTILE 位，弹射物保护附魔 getDamageProtection(Projectile) 返 0、EPF 减伤失效。
+    // setProjectile() 设 m_isProjectile=true 保底；isProjectile() 现亦查 IS_PROJECTILE 标签
+    // （Arrow 是成员）双保险。shooter 为空时 source/directSource 均为 this（箭矢本身，与旧无 shooter
+    // 分支语义一致）。isPlayer 由 shooter 是否为玩家决定。
+    bool isPlayer = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
+    mc::Entity* sourceForArrow = (shooter != nullptr) ? shooter : this;
+    auto indirectSource =
+        std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, sourceForArrow, this, isPlayer);
+    indirectSource->setProjectile();
+    std::unique_ptr<DamageSource> damageSource = std::move(indirectSource);
 
     // 应用伤害并增加箭矢计数
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);

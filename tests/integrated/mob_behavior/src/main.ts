@@ -22,6 +22,7 @@ import { registerVillagerExplosionUafTests } from "./tests/combat/VillagerExplos
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
 import { registerProjectileRedirectTests } from "./tests/combat/ProjectileRedirectTests.js";
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
+import { registerProjectileProtectionTests } from "./tests/combat/ProjectileProtectionTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
 import { registerSpectralArrowTests } from "./tests/combat/SpectralArrowTests.js";
 import { registerTridentEnchantTests } from "./tests/combat/TridentEnchantTests.js";
@@ -277,6 +278,7 @@ registerBlastProtectionKnockbackTests();
 registerVillagerExplosionUafTests();
 registerProjectileDeflectTests();
 registerProjectileRedirectTests();
+registerProjectileProtectionTests();
 registerFireImmunityTests();
 registerFallDamageTests();
 registerFeatherFallingTests();
