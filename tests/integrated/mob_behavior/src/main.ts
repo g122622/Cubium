@@ -22,6 +22,7 @@ import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflect
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
 import { registerSpectralArrowTests } from "./tests/combat/SpectralArrowTests.js";
+import { registerTridentEnchantTests } from "./tests/combat/TridentEnchantTests.js";
 import { registerFireImmunityTests } from "./tests/combat/FireImmunityTests.js";
 import { registerFallDamageTests } from "./tests/combat/FallDamageTests.js";
 import { registerFeatherFallingTests } from "./tests/combat/FeatherFallingTests.js";
@@ -227,6 +228,7 @@ registerBowDurabilityTests();
 registerBowArrowDamageTests();
 registerCrossbowTests();
 registerSpectralArrowTests();
+registerTridentEnchantTests();
 registerTridentConsumptionTests();
 registerFoodContainerConsumptionTests();
 registerMilkBucketConsumptionTests();

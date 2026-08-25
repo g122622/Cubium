@@ -296,16 +296,18 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     }
 
     // 引雷附魔
+    // 对齐 vanilla ThrownTrident.onHitEntity：hasChanneling(stack) && level.isThundering() &&
+    // level.canSeeSky(targetPos) → 召唤 LightningBoltEntity。
+    // 注：Level.isThundering() = getThunderLevel(1.0) > 0.9（强度阈值，非裸 thundering 标志），
+    // 与 Cubium WeatherState::isThundering() 一致。/weather thunder 只设 thundering=true 不设强度，
+    // 强度靠 WeatherManager::tick 每 tick 渐变 +0.01，故设雷暴后约 91 tick 才 isThundering()=true。
+    // 此渐变延迟是 vanilla 真实行为（非缺陷），依赖引雷的测试须等待强度达标。
     if (m_world != nullptr && !m_world->isClientSide() && livingTarget != nullptr) {
-        // 检查是否有引雷附魔
-        if (hasStack && mc::item::enchant::EnchantmentHelper::hasChanneling(*trident->m_tridentStack)) {
-            // 检查是否在雷暴天气且能看到天空
-            BlockPos targetPos(
+        const bool hasChan = hasStack && mc::item::enchant::EnchantmentHelper::hasChanneling(*trident->m_tridentStack);
+        if (hasChan) {
+            const BlockPos targetPos(
                 static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
-            bool isThundering = m_world->isThundering();
-            bool canSeeSky = m_world->canSeeSky(targetPos);
-
-            if (isThundering && canSeeSky) {
+            if (m_world->isThundering() && m_world->canSeeSky(targetPos)) {
                 // 创建闪电实体
                 // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
                 auto* registry = &ecsRegistry();
