@@ -41,6 +41,7 @@
 #include "../../world/entity/JavaEntityTypeIdMap.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../entities/effect/EffectEntities.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/projectile/ProjectileDeflection.hpp"
 #include "../entities/projectile/ProjectileEntity.hpp"
@@ -2184,6 +2185,36 @@ bool Entity::canSee(const Entity& other) const
 
     // 如果射线没有击中方块（或击中点超出目标位置），则表示可见
     return result.isMiss();
+}
+
+// ============================================================================
+// 闪电击中处理
+// ============================================================================
+
+void Entity::onStruckByLightning(entity::LightningBoltEntity* lightning)
+{
+    // 复刻 vanilla Entity#thunderHit（Entity.java:2725-2732）：
+    //   setRemainingFireTicks(remainingFireTicks + 1);
+    //   if (remainingFireTicks == 0) igniteForSeconds(8.0F);
+    //   hurtServer(level, lightningBolt(), 5.0F);
+    // 基类默认：引燃判定 + 5 伤害。子类重写决定是否调本基类（对齐 vanilla 各实体 thunderHit 语义）。
+    if (lightning == nullptr) {
+        return;
+    }
+
+    // 1. 火焰计时器 +1。普通实体（0）→1 不引燃；刚灭火免疫期（-1）→0 才触发引燃。
+    //    故 JE 闪电直接伤害通常不引燃（引燃来自闪电生成的火方块），与 wiki tech_闪电束.txt 一致。
+    setRemainingFireTicks(getRemainingFireTicks() + 1);
+
+    // 2. 若 +1 后归零（刚灭火免疫期边界），引燃 8 秒。
+    if (getRemainingFireTicks() == 0) {
+        igniteForSeconds(8.0f);
+    }
+
+    // 3. 闪电伤害 5.0。基类 Entity::hurt 对非 LivingEntity 返回 false（不生效），
+    //    LivingEntity 重写实际减血。伤害源为闪电实体（DamageSources::lightningBolt(lightning)）。
+    auto damageSource = DamageSources::lightningBolt(lightning);
+    hurt(damageSource, 5.0f);
 }
 
 // ============================================================================

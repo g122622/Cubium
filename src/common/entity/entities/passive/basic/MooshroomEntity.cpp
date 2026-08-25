@@ -363,8 +363,13 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 
 // ========== 雷击 ==========
 
-void MooshroomEntity::onStruckByLightning()
+void MooshroomEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
 {
+    // 对齐 vanilla MushroomCow#thunderHit（MushroomCow.java:76-83）：不调 super.thunderHit，
+    // 故不受伤、不引燃，仅红↔棕变色 + 音效 + 粒子。wiki tech_闪电束.txt#转化生物：哞菇被闪电击中
+    // 仅变色。基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，此处不调基类避免哞菇误伤。
+    (void)lightning; // 哞菇变色不依赖闪电实体
+
     // 红色哞菇 -> 棕色哞菇
     // 棕色哞菇 -> 红色哞菇
     // 播放转换音效并生成粒子效果

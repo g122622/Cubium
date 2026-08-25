@@ -121,6 +121,30 @@ public:
      */
     void releaseAllPois();
 
+    // ========== 雷击 ==========
+
+    /**
+     * @brief 被闪电击中时的回调
+     *
+     * 对齐 vanilla Villager#thunderHit（Villager.java:773-787）：
+     *   if (level.getDifficulty() != PEACEFUL) {
+     *       Witch witch = convertTo(WITCH, ConversionParams.single(this, false, false), p -> {
+     *           p.finalizeSpawn(level, difficulty, EntitySpawnReason.CONVERSION, null);
+     *           p.setPersistenceRequired();
+     *           this.releaseAllPois();
+     *       });
+     *       if (witch == null) super.thunderHit(level, lightning);   // 转化失败回退基类受5伤害
+     *   } else {
+     *       super.thunderHit(level, lightning);                      // 和平难度也调基类受5伤害
+     *   }
+     * 转化成功时不调 super（女巫不受伤），原体经 convertTo 内部 discard。ConversionParams 第三个
+     * 参数 false 表示不保留装备（女巫不继承村民装备）。wiki tech_村民.txt#闪电：村民被闪电击中
+     * 在非和平难度转化为女巫。
+     *
+     * @param lightning 击中此村民的闪电实体
+     */
+    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
+
     /**
      * @brief 重写被攻击回调
      *

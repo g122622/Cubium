@@ -188,13 +188,13 @@ public:
     /**
      * @brief 被闪电击中时充能为闪电苦力怕
      *
-     * 对齐 vanilla Creeper#thunderHit(ServerLevel, LightningBolt)：
-     * 仅 setPowered(true)，不移除自身、不转化实体、不检查难度（区别于 PigEntity 转化需
-     * 非 Peaceful，因充能产物仍是苦力怕本身、无和平消失问题）。wiki tech_苦力怕.txt#闪电苦力怕：
-     * “普通苦力怕会在周围4格以内位置出现闪电时，被转化为闪电苦力怕”。
-     * LightningBoltEntity::_damageEntities 已在 hurt(5) 之后调用本方法。
+     * 对齐 vanilla Creeper#thunderHit(ServerLevel, LightningBolt)（Creeper.java:204-207）：
+     * 调基类 super.thunderHit（引燃判定 + hurt(lightningBolt, 5.0)）后 setPowered(true)。
+     * 苦力怕既受 5 闪电伤害（HP 20→15 存活）又充能，不移除自身、不转化实体、不检查难度
+     * （区别于 PigEntity 转化需非 Peaceful，因充能产物仍是苦力怕本身、无和平消失问题）。
+     * wiki tech_苦力怕.txt#闪电苦力怕：“普通苦力怕会在周围4格以内位置出现闪电时，被转化为闪电苦力怕”。
      */
-    void onStruckByLightning() override;
+    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
 
     // ========== 属性 ==========
 

@@ -298,9 +298,15 @@ void SkeletonHorseEntity::triggerTrap()
     world->spawnEntity(std::move(lightning));
 }
 
-void SkeletonHorseEntity::onStruckByLightning()
+void SkeletonHorseEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
 {
-    // 陷阱马被闪电击中时触发陷阱
+    // 对齐 vanilla Entity#thunderHit：骷髅马无 thunderHit 覆盖，走基类受 5 闪电伤害 + 引燃判定。
+    // vanilla 陷阱触发由 SkeletonTrapGoal（玩家接近）驱动而非闪电；Cubium 既有 onStruckByLightning
+    // →triggerTrap 是 BE 专属偏差（Java 版无），此处保留 trap 触发并补调基类受伤害。
+    // TODO: 评估移除闪电触发陷阱偏差完全对齐 Java（需配套 SkeletonTrapGoal 玩家接近触发链路验证）。
+    AbstractHorseEntity::onStruckByLightning(lightning);
+
+    // 陷阱马被闪电击中时触发陷阱（既有偏差，详见 hpp 注释）
     if (m_trap) {
         triggerTrap();
     }

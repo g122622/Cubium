@@ -196,9 +196,13 @@ public:
 
     /**
      * @brief 被雷击时触发
-     * 红色哞菇变为棕色哞菇，棕色哞菇变为红色哞菇
+     *
+     * 对齐 vanilla MushroomCow#thunderHit（MushroomCow.java:76-83）：不调 super.thunderHit
+     * （不受伤、不引燃），仅红↔棕变色 + 播放转换音效。wiki tech_闪电束.txt#转化生物：哞菇被闪电
+     * 击中仅变色不受伤害。 Cubium 基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，此处不调基类
+     * 以避免哞菇被闪电误伤（修复前 _damageEntities 外层无条件 hurt 致哞菇 HP 10→5 的偏差）。
      */
-    void onStruckByLightning() override;
+    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
 
     // ========== NBT序列化 ==========
 

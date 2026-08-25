@@ -376,21 +376,32 @@ bool PigEntity::canEquip(const ItemStack& item, i32 slot) const
 
 // ========== 雷击 ==========
 
-void PigEntity::onStruckByLightning()
+void PigEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
 {
     // 客户端不执行实体转化逻辑
     if (m_world == nullptr || m_world->isClientSide()) {
         return;
     }
 
-    // 和平难度下闪电不转化猪
+    // 对齐 vanilla Pig#thunderHit（Pig.java:176-188）：
+    //   if (level.getDifficulty() != PEACEFUL) {
+    //       ZombifiedPiglin z = convertTo(ZOMBIFIED_PIGLIN, ..., p -> {...setPersistenceRequired...});
+    //       if (z == null) super.thunderHit(level, lightning);   // 转化失败回退基类（受5+引燃）
+    //   } else {
+    //       super.thunderHit(level, lightning);                  // 和平难度也调基类受5伤害
+    //   }
+    // 注意：vanilla 转化成功时不调 super（转化体不受伤），原体经 convertTo 内部 discard。
+    // Cubium 基类 Entity::onStruckByLightning 默认 hurt(5)+引燃，此处仅在转化失败/和平分支调基类。
     if (m_world->difficulty() == Difficulty::Peaceful) {
+        AnimalEntity::onStruckByLightning(lightning);
         return;
     }
 
     // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
     auto* registry = m_world->entityRegistry();
     if (registry == nullptr) {
+        // 无 registry 无法构造转化体，回退基类受 5 伤害（vanilla convertTo 失败同语义）
+        AnimalEntity::onStruckByLightning(lightning);
         return;
     }
 
@@ -398,10 +409,14 @@ void PigEntity::onStruckByLightning()
     const entity::EntityType* type =
         entity::EntityRegistry::instance().getType(entity::EntityTypeKeys::ZOMBIFIED_PIGLIN);
     if (type == nullptr) {
+        // 转化实体未注册，回退基类受 5 伤害（vanilla convertTo 返 null 同语义）
+        AnimalEntity::onStruckByLightning(lightning);
         return;
     }
     auto piglin = type->create(m_world, *registry);
     if (piglin == nullptr) {
+        // 转化实体构造失败，回退基类受 5 伤害
+        AnimalEntity::onStruckByLightning(lightning);
         return;
     }
 
@@ -421,7 +436,7 @@ void PigEntity::onStruckByLightning()
         piglinMob->enablePersistence();
     }
 
-    // 生成僵尸猪灵并移除原猪
+    // 生成僵尸猪灵并移除原猪（对齐 vanilla convertTo 成功：不调 super、discard 原体）
     m_world->spawnEntity(std::move(piglin));
     discard();
 }
