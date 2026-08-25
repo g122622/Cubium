@@ -31,6 +31,7 @@
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -171,6 +172,29 @@ namespace {
 
 /// 跨采样点复用的区块/区块段缓存定义见下方 world::explosion 命名空间（需与 Explosion.hpp
 /// 前向声明同名同命名空间，否则 out-of-line 定义不匹配）。
+
+/// 爆炸改投射物归属（对应 vanilla ServerExplosion.hurtEntities:199-200）。
+///
+/// vanilla 在 hurt + push 之后、onExplosionHit 之前，对爆炸范围内的可偏转投射物
+/// （EntityTypeTags.REDIRECTABLE_PROJECTILE = fireball/wind_charge/breeze_wind_charge）
+/// 额外调 projectile.setOwner(damageSource.getEntity())——不跳过伤害，只是把被波及投射物
+/// 的所有者改为爆炸伤害源实体（例如恶魂火球被 TNT 爆炸波及时，其所有者改为点燃 TNT 的实体，
+/// 使后续该火球造成的伤害归属正确）。Cubium 用 setShooter 对应 vanilla setOwner。
+///
+/// 注意：爆炸伤害源实体取自 damageSource->getEntity()（对应 vanilla damageSource.getEntity()）：
+/// - 默认爆炸（无自定义 damageSource）走 EntityDamageSource(Explosion, m_source)，getEntity()=m_source；
+/// - 自定义 damageSource（如末影水晶爆炸）由构造方绑定实体，getEntity() 返回该实体。
+void _redirectProjectilesInBlast(Entity& entity, const DamageSource& damageSource)
+{
+    if (!EntityTypeTags::REDIRECTABLE_PROJECTILE().contains(entity.getTypeId())) {
+        return;
+    }
+    auto* projectile = dynamic_cast<entity::ProjectileEntity*>(&entity);
+    Entity* const newOwner = damageSource.getEntity();
+    if (projectile != nullptr && newOwner != nullptr) {
+        projectile->setShooter(newOwner);
+    }
+}
 
 } // anonymous namespace
 
@@ -634,6 +658,12 @@ void Explosion::_calculateAffectedEntities()
                     entity->markHurt();
                 }
 
+                // 爆炸改投射物归属（hurt+push 之后、onExplosionHit 之前，对应 vanilla
+                // ServerExplosion:199-200）：被波及的可偏转投射物（fireball/wind_charge/
+                // breeze_wind_charge）的所有者改为爆炸伤害源实体。不跳过伤害，只改归属。
+                // Player 分支已 continue 跳过此处（玩家非投射物）。
+                _redirectProjectilesInBlast(*entity, *damageSource);
+
                 // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
                 entity->onExplosionHit(m_source);
             }
@@ -661,6 +691,15 @@ void Explosion::_calculateAffectedEntities()
             } else {
                 entity->addVelocity(dx * knockback, dy * knockback, dz * knockback);
                 entity->markHurt();
+            }
+            // 爆炸改投射物归属（仅击退段同样执行，对应 vanilla 无条件 setOwner）。
+            // 此段无 damageSource 局部变量，按爆炸默认规则构造：自定义 m_damageSource 优先，
+            // 否则 EntityDamageSource(Explosion, m_source)。
+            if (m_damageSource) {
+                _redirectProjectilesInBlast(*entity, *m_damageSource);
+            } else {
+                const EntityDamageSource fallbackSource(DamageType::Explosion, m_source);
+                _redirectProjectilesInBlast(*entity, fallbackSource);
             }
             entity->onExplosionHit(m_source);
         }

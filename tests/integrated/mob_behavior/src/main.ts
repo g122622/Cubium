@@ -20,6 +20,7 @@ import { registerBaneOfArthropodsSlownessTests } from "./tests/combat/BaneOfArth
 import { registerBlastProtectionKnockbackTests } from "./tests/combat/BlastProtectionKnockbackTests.js";
 import { registerVillagerExplosionUafTests } from "./tests/combat/VillagerExplosionUafTests.js";
 import { registerProjectileDeflectTests } from "./tests/combat/ProjectileDeflectTests.js";
+import { registerProjectileRedirectTests } from "./tests/combat/ProjectileRedirectTests.js";
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
 import { registerSpectralArrowTests } from "./tests/combat/SpectralArrowTests.js";
@@ -275,6 +276,7 @@ registerBaneOfArthropodsSlownessTests();
 registerBlastProtectionKnockbackTests();
 registerVillagerExplosionUafTests();
 registerProjectileDeflectTests();
+registerProjectileRedirectTests();
 registerFireImmunityTests();
 registerFallDamageTests();
 registerFeatherFallingTests();
