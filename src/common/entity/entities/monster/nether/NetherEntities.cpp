@@ -546,13 +546,33 @@ LivingEntity* PiglinEntity::getAttackTarget() const
 
 void PiglinEntity::setRevengeTarget(LivingEntity* target)
 {
-    m_revengeTarget = target;
-    m_revengeTimer = 100; // 5秒复仇计时
+    // 对齐同族 IAngerable id 校验模式（TameableEntity:121-131）：存 id 而非裸指针，避免复仇目标
+    // remove()/chunk 卸载析构后悬垂 UAF（无 GC 环境，见 [[damage-source-clone-uaf-id-validation]]）。
+    if (target != nullptr) {
+        m_revengeTargetId = target->id();
+        m_revengeTimer = 100; // 5秒复仇计时
+    } else {
+        m_revengeTargetId = std::nullopt;
+        m_revengeTimer = 0;
+    }
 }
 
 LivingEntity* PiglinEntity::getRevengeTarget() const
 {
-    return m_revengeTarget;
+    // 对齐同族 IAngerable id 校验模式（TameableEntity:133-148）：经 world->getEntity(id)+isAlive
+    // 安全校验，复仇目标析构后返回 nullptr，避免解引用悬垂裸指针 UAF。
+    if (!m_revengeTargetId.has_value()) {
+        return nullptr;
+    }
+    IWorld* worldPtr = const_cast<IWorld*>(this->world());
+    if (worldPtr == nullptr) {
+        return nullptr;
+    }
+    Entity* entity = worldPtr->getEntity(m_revengeTargetId.value());
+    if (entity == nullptr || !entity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(entity);
 }
 
 i32 PiglinEntity::getRevengeTimer() const
@@ -603,7 +623,7 @@ void PiglinEntity::tick()
     if (m_revengeTimer > 0) {
         m_revengeTimer--;
         if (m_revengeTimer <= 0) {
-            m_revengeTarget = nullptr;
+            m_revengeTargetId = std::nullopt;
         }
     }
 }
