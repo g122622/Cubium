@@ -1,6 +1,7 @@
 {
   "env":{
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000"
+    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "223000",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "223000"
   },
-  "prefersReducedMotion": true
+  "prefersReducedMotion": false
 }
