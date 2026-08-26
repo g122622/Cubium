@@ -25,7 +25,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
-#include "common/world/gen/noise/PerlinSoA.hpp"
 #include <memory>
 #include <optional>
 #include <vector>
@@ -137,15 +136,6 @@ private:
      */
     void computeValueFactor();
 
-    /**
-     * @brief 从 m_first/m_second 收集非零 octave 子层为 SoA 数组
-     *
-     * 构造期一次性拍平：遍历 PerlinNoise::layers()，对每个非空层拷贝排列表 + 偏移 +
-     * 振幅 + 预算 inputFactor/valueFactor。运行期 getValue 走 SoA 单循环求值，
-     * 消除逐层 PerlinLayer 对象的虚分发与 cache miss。
-     */
-    void buildSoA();
-
     static constexpr f64 INPUT_FACTOR = 1.0181268882175227;
     static constexpr f64 VALUE_FACTOR_BASE = 1.0 / 6.0;
 
@@ -156,11 +146,6 @@ private:
     std::unique_ptr<PerlinNoise> m_second;
     f64 m_valueFactor = 0.0;
     f64 m_maxValue = 0.0;
-
-    /// first/second 采样器的非零 octave 拍平 SoA。getValue 遍历这两个数组求值，
-    /// 累加顺序与原 (m_first->getValue() + m_second->getValue()) 一致（bit-exact）。
-    std::vector<PerlinSoALayer> m_firstSoA;
-    std::vector<PerlinSoALayer> m_secondSoA;
 };
 
 } // namespace mc::world::gen::noise

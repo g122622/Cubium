@@ -49,7 +49,6 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
 
     computeValueFactor();
-    buildSoA();
 }
 
 NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes)
@@ -64,75 +63,16 @@ NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> am
     m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
 
     computeValueFactor();
-    buildSoA();
-}
-
-namespace {
-
-/// 遍历 PerlinNoise 的非空 octave 子层，收集为 SoA 数组。
-/// inputFactor 从 lowestFreqInputFactor 起每层 ×2，valueFactor 从 lowestFreqValueFactor 起每层 ÷2，
-/// 空层（nullptr）跳过采样但仍推进缩放序列（与 PerlinNoise::getValue 循环语义一致）。
-/// amplitude 取 amplitudes[i]（i 为该 octave 在 amplitudes 数组中的原始索引，与 getValue 累加项一致）。
-void collectSoALayers(const PerlinNoise& noise, const std::vector<f64>& amplitudes, std::vector<PerlinSoALayer>& out)
-{
-    out.clear();
-    const auto& layers = noise.layers();
-    f64 inputFactor = noise.lowestFreqInputFactor();
-    f64 valueFactor = noise.lowestFreqValueFactor();
-    for (size_t i = 0; i < layers.size(); ++i) {
-        if (layers[i] != nullptr) {
-            PerlinSoALayer soa;
-            std::copy_n(layers[i]->permutation().data(), 256, soa.permutation.data());
-            soa.originX = layers[i]->xOffset();
-            soa.originY = layers[i]->yOffset();
-            soa.originZ = layers[i]->zOffset();
-            soa.amplitude = amplitudes[i];
-            soa.inputFactor = inputFactor;
-            soa.valueFactor = valueFactor;
-            out.push_back(soa);
-        }
-        inputFactor *= 2.0;
-        valueFactor /= 2.0;
-    }
-}
-
-} // namespace
-
-void NormalNoise::buildSoA()
-{
-    // 收集 first/second 的非空 octave 为 SoA。m_first/m_second 共享同一 m_amplitudes，
-    // 且非空 octave 索引一致（同一 firstOctave + amplitudes），故 amplitudes[i] 直接取。
-    collectSoALayers(*m_first, m_amplitudes, m_firstSoA);
-    collectSoALayers(*m_second, m_amplitudes, m_secondSoA);
 }
 
 f64 NormalNoise::getValue(f64 x, f64 y, f64 z) const
 {
-    // SoA 求值：first 各 octave 累加得 d1，second 各 octave 累加得 d2（second 坐标乘 INPUT_FACTOR），
-    // 结果 (d1 + d2) * m_valueFactor。累加顺序与原 (m_first->getValue + m_second->getValue) 一致。
-    // yScale=0/yMax=0 即不涂抹（NormalNoise 路径无 Y 涂抹，等价 PerlinLayer::noise）。
-    auto sumSoA = [](const std::vector<PerlinSoALayer>& soa, f64 sx, f64 sy, f64 sz) -> f64 {
-        f64 sum = 0.0;
-        const size_t count = soa.size();
-        for (size_t i = 0; i < count; ++i) {
-            const PerlinSoALayer& layer = soa[i];
-            const f64 nx = perlinWrap(sx * layer.inputFactor);
-            const f64 ny = perlinWrap(sy * layer.inputFactor);
-            const f64 nz = perlinWrap(sz * layer.inputFactor);
-            const f64 sampled = perlinSample(
-                layer.permutation.data(), layer.originX, layer.originY, layer.originZ, nx, ny, nz, 0.0, 0.0);
-            sum += layer.amplitude * sampled * layer.valueFactor;
-        }
-        return sum;
-    };
-
-    const f64 d1 = sumSoA(m_firstSoA, x, y, z);
+    // 第二个噪声使用缩放坐标（乘以 INPUT_FACTOR）
     const f64 sx = x * INPUT_FACTOR;
     const f64 sy = y * INPUT_FACTOR;
     const f64 sz = z * INPUT_FACTOR;
-    const f64 d2 = sumSoA(m_secondSoA, sx, sy, sz);
 
-    return (d1 + d2) * m_valueFactor;
+    return (m_first->getValue(x, y, z) + m_second->getValue(sx, sy, sz)) * m_valueFactor;
 }
 
 f64 NormalNoise::expectedDeviation(i32 octaveRange)

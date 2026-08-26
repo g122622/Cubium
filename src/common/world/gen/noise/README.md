@@ -10,7 +10,6 @@ src/common/world/gen/noise/
 ├── PerlinNoise.cpp
 ├── NormalNoise.hpp              # MC 1.18+ 双 Perlin 噪声（地形生成核心）
 ├── NormalNoise.cpp
-├── PerlinSoA.hpp                # Perlin SoA 采样内核 + 拍平层数据（NormalNoise/BlendedNoise 共用，效仿 C2ME）
 ├── SimplexNoise.hpp             # Simplex 噪声（用于末地岛屿生成）
 ├── SimplexNoise.cpp
 ├── PerlinSimplexNoise.hpp       # 多倍频 Simplex 噪声（用于旧版生物群系气候噪声）
@@ -38,12 +37,6 @@ NormalNoise（MC 1.18+ 双 Perlin 噪声）
     └── 内含两个 PerlinNoise 实例（坐标偏移避免相关性）
     └── 被密度函数系统广泛使用（NoiseDensity、ShiftedNoise 等）
     └── INPUT_FACTOR ≈ 1.018，确保两路噪声不相关
-    └── 构造期把 first+second 非零 octave 拍平为 SoA 数组，getValue 走 SoA 单循环（效仿 C2ME）
-
-PerlinSoA（Perlin SoA 采样内核，header-only）
-    └── perlinSample：单点 Perlin 采样（含 Y 涂抹），扁平 kFlatSimplexGrad[64] 梯度表
-    └── PerlinSoALayer：拍平的单个 octave 子层（排列表+偏移+振幅+缩放因子）
-    └── NormalNoise/BlendedNoise 构造期收集 SoA，运行期单循环求值，消除逐层 cache miss
 
 SimplexNoise（2D/3D Simplex 噪声）
     └── 被 EndIslands 密度函数使用
@@ -188,10 +181,3 @@ BlendedNoise 使用 `PerlinNoise::getValueWithSmear()` 对 Y 轴方向应用涂�
 ### 8. SimplexNoise 种子初始化
 
 EndIslands 使用的 SimplexNoise 需要 `LegacyRandomSource(seed).consumeCount(17292)` 后创建，这是 MC 原版的种子推进逻辑，用于确保与 Java 版生成相同的世界。
-
-### 9. SoA 拍平的累加顺序（bit-exact 约束）
-
-NormalNoise/BlendedNoise 的 SoA 求值必须保持与原 `PerlinNoise::getValue`/`BlendedNoise::compute` 相同的累加顺序，否则浮点累加非结合性会导致 ULP 级漂移（DensityAstBaselineTest 1e-9 门禁会挂）：
-- NormalNoise：first 各 octave 顺序累加得 d1，second 各 octave 顺序累加得 d2，结果 `(d1+d2)*valueFactor`（两个独立 SoA 数组，first 在前 second 在后，不要交错合并）。
-- BlendedNoise：main 8 层、min/max 16 层各自按 `getOctaveNoise(i)` 顺序（i=0 最高频）累加，`d11=1.0/2^i` 存入 `PerlinSoALayer::inputFactor`（BlendedNoise 复用该字段存 d11，amplitude/valueFactor 不用）。
-- perlinSample 涂抹 epsilon 必须用 `static_cast<f64>(1.0e-7f)` 匹配 `PerlinLayer::noiseWithSmear`（float 字面量提升），不能用 double `1.0e-7`。
