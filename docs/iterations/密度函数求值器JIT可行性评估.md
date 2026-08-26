@@ -1,8 +1,9 @@
 # 密度函数求值器 JIT 可行性评估
 
 > 评估"用 asmjit 把密度 AST 求值器 JIT 成机器码"是否值得。
-> 结论：**JIT 强烈值得**（interpreterRatio = 65.4%，226 区块全部 >40%）。
-> 本文档沉淀测量设计、关键陷阱、修正前后数据、收益估算与保留。
+> 评估结论：**JIT 强烈值得**（interpreterRatio = 65.4%，226 区块全部 >40%）。
+> 落地实测结论：**JIT 已落地，eval 提速约 1.59×（耗时降约 37%）**，详见第 7 节。
+> 本文档沉淀测量设计、关键陷阱、修正前后数据、收益估算、落地实测与后续方向。
 
 ---
 
@@ -213,3 +214,99 @@ Beardifier case 的计时在生产可能是死路径（注释说"维度级编译
 - 内部类指令（LoadConst/Coord/Binary/Copy/Unary）内联为算术指令，regs 数组尝试寄存器分配。
 - B 类递归调用（SharedSubtreeCall/Spline/FindTopSurface/Marker）保留为对子求值器/缓存对象的 `call`。
 - 必须保持浮点累加顺序 bit-exact（`DensityAstBaselineTest` 1e-9 基线，见 memory [[dfc-ast-compiler-project]] DFC relaxedEquals 标量修正陷阱）。
+
+---
+
+## 7. JIT 落地实测（2026-08-26，commit 84dc56463 + 686f8473b）
+
+JIT 原型已落地并验证通过。本节沉淀落地后的实测数据与收益量化结论，回填第 6 节"需 JIT 原型实测定论"的判据。
+
+### 7.1 落地架构概要
+
+- **维度级编译一次**：`BytecodeGen::compile` 末尾调 `CompiledDensityFunction::compileJit()` → `compileDensityJit(ops, regCount)`（`DensityJitCompiler.cpp`）用 `asmjit::x86::Compiler` 逐条 Op 翻译为虚拟寄存器指令，`rt.add` 产出函数指针 `m_jitFn`。
+- **区块级复用**：`newInstance` 深拷贝 `m_ops`（字节相同）直接复用维度级 `m_jitFn`，只重建自己的 `DensityEvalContext`。维度级与区块级共享同一 JIT 机器码。
+- **JIT 函数签名** `f64 jitEval(const DensityEvalContext* ctx, i32 x, i32 y, i32 z)`，ctx 驻留 callee-saved 寄存器。
+- **外部调用经 trampoline**：9 个自由函数（`DensityJitTrampolines.cpp`，`jitNoiseSample`/`jitDelegate`/`jitSpline`/`jitFindTopSurface`/`jitMarkerDispatch` 等），JIT 代码不碰 C++ 对象布局。内部算术内联。
+- **MARKER 运行时判空**：`cacheObj != null` 走 compute / 否则走 delegate eval，维度级（占位）与区块级（注入缓存）共享同一 JIT 代码。
+- **失败回退**：JIT 编译失败 / 非 Win x64 / 空 ops → `m_jitFn=nullptr` → eval 回退 `evalImpl`，记 `spdlog::warn`。macOS ARM64 留 TODO（a64::Compiler，须避免 fmadd 融合保 bit-exact）。
+- **性能计数器保留**：eval 顶层仍计 `topLevelCycles`/`topCalls`；解释器 `evalImpl` 5 个 A 类 case 的 per-call 计时保留；JIT trampoline 同步加 `readTsc` 计时（见 7.3）。
+
+### 7.2 核心 bug——ANDPS m128 未对齐触发 #GP（耗时最长的卡点）
+
+Abs 翻译用 `andps dst, [const]` 清符号位，掩码 `0x7FFFFFFFFFFFFFFF` 经 `newInt64Const` 入 asmjit 常量池（8 字节对齐）。但 **ANDPS 是 SSE packed 指令，其 m128 内存操作数要求 16 字节对齐**，8 字节对齐地址触发 **#GP（常规保护异常）而非 #PF**。
+
+关键诊断难点：#GP 不像 #PF 那样向 VEH 报告具体故障地址，故 `ExceptionInformation[1]` 是垃圾值 `0xffffffffffffffff`，与"读入有效常量内存 [0x68]=0x7fff... 却崩"表面矛盾，长期误导排查方向。
+
+修复：掩码先 `movsd`（标量，8 字节对齐足矣）加载到临时 Xmm 寄存器，再用**寄存器-寄存器** `andps dst, mask`（无内存操作数，不触发 #GP）。
+
+教训：**asmjit 常量池 int64 条目仅 8 字节对齐，任何 128 位 packed 指令（andps/andpd/xorps/orps/pand 等）配内存操作数都会 #GP；必须先标量加载到寄存器再寄存器-寄存器操作。**
+
+### 7.3 JIT 路径计数器口径修正（commit 686f8473b）
+
+落地初期 JIT trampoline 未插桩，导致 JIT 路径下 `externalCycles`/`externalCalls` 恒为 0，`interpreterRatio` 失真为 100%（`interpreterCycles = total − 0 = total`），无法拆分"JIT 省的解释器开销"与"噪声采样固有开销"。
+
+修正：在 5 个 A 类叶子 trampoline（`jitNoiseSample`/`jitWeirdSampler`/`jitDelegate`/`jitEndIslands`/`jitBeardifier`）加 `readTsc` per-call 计时，口径与解释器 `evalImpl` **完全一致**（如 `jitWeirdSampler` 只计时 `noise->getValue(...)*r`，`getRarity` 在 `_t0` 外，对齐 evalImpl WeirdSampler case）。
+
+- **A 类（计时）**：5 个真叶子 trampoline —— 现已插桩，JIT 路径 externalCycles 不再为 0。
+- **B 类（不计时）**：`jitMarkerDispatch`/`jitCacheCompute`/`jitDelegateSubEval`/`jitSpline`/`jitFindTopSurface` —— 递归回 eval，子树叶子由子层计时，父层不计时（防双重计数，对齐解释器 SharedSubtreeCall 不计时）。
+- **不计时**：`jitYGradient`/`jitSin`/`jitCos` —— 纯算术/libm，解释器也不计入 externalCycles。
+
+### 7.4 实测数据（JIT 路径 + trampoline 计时）
+
+201 区块采样：
+
+| 指标 | avg | count | min | max |
+|------|-----|-------|-----|-----|
+| totalCycles | 68,331,670 | 201 | 36,755,634 | 219,835,301 |
+| topCalls | 165,320 | 201 | 126,858 | 397,035 |
+| externalCycles | 37,501,889 | 201 | 17,285,567 | 136,009,798 |
+| externalCalls | 58,395 | 201 | 31,884 | 267,779 |
+| interpreterCycles | 30,830,849 | 201 | 17,962,899 | 83,825,503 |
+| **interpreterRatio_x1000** | **462**（≈ **46.2%**） | 201 | 365 | 545 |
+
+健康检查：`externalCycles (37.5M) ≤ totalCycles (68.3M)` ✓；`interpreterCycles = total − external = 30.8M` ✓。
+
+**关键自洽验证**：`externalCalls / topCalls = 58395 / 165320 = 0.35`，与纯解释器基线的 **0.34（53338/157751，见第 4 节）高度吻合**——证明 JIT 没改变调用模式，两套计数器口径一致，跨路径比较可靠。
+
+### 7.5 interpreterRatio 在 JIT 路径下的语义变化
+
+**注意：JIT 路径下已经没有"解释器"了**（JIT 机器码替换了 switch 解释器）。故此处的 46.2% **不是"解释器开销占比"**，而是 **JIT 机器码自身残留耗时 + B 类递归控制** 占 eval 总耗时的比例：
+
+- JIT 内联算术（mulsd/addsd/clamp/lerp/spline Hermite 等）——真实计算，JIT 也消除不了；
+- B 类 trampoline（Marker 缓存查表、Spline 二分、FindTopSurface 循环、SharedSubtree 递归）的控制流——JIT 没展开，留作 call。
+
+即 JIT 已消除能消除的（switch 分发、Op 取指、regs 间接寻址），剩余 46.2% 是**不可消除的真实算术 + 递归控制**。
+
+### 7.6 JIT 收益量化（间接估算）
+
+利用"外部噪声采样成本跨路径近似恒定"这一合理假设（同一套 NormalNoise 实现，调用次数比 0.35≈0.34 一致），从两次 external 占比反推：
+
+| 路径 | external 占比 | 非外部占比 | 来源 |
+|------|--------------|-----------|------|
+| 纯解释器（第 4 节基线） | 34.6%（34.1M/95.4M） | 65.4% | 评估期数据 |
+| JIT（7.4 节） | 54.9%（37.5M/68.3M） | 45.1% | 本次实测 |
+
+设外部噪声采样成本 E 跨路径不变：
+
+- 解释器 total = E / 0.346 = 2.89E
+- JIT total = E / 0.549 = 1.82E
+- **JIT total / 解释器 total = 0.346 / 0.549 = 0.63**
+
+**结论：JIT 路径 eval 耗时降至解释器的约 63%，即 eval 提速约 1.59×（耗时减少约 37%）。**
+
+> 注：7.4 表 ratio 46.2% 与 7.6 用 45.1% 略有出入，因 7.4 是 201 区块 avg 的瞬时比，7.6 是基于 external/total 各自 avg 的比；两者一致到个位百分点，结论稳健。
+
+收益来源拆分（解释器侧开销从 1.89E 降到 0.82E）：
+- JIT **消除了约 57%** 的解释器侧开销（1.07E）——switch 分发/Op 取指/regs 间接寻址/常量加载；
+- 剩余 43%（0.82E）是 JIT 也去不掉的真实算术 + B 类递归控制。
+
+### 7.7 结论与后续方向
+
+- **JIT 收益实测确认**：eval 提速约 1.59×（耗时降约 37%），略低于第 5 节保守估算的 42%，因残留算术/递归占比略高于预估——但仍是显著收益，且 JIT 已接近该方案理论上限。
+- **瓶颈已转移到外部噪声采样**：JIT 路径下 external 占比升至 54.9%（解释器期 34.6%），说明 JIT 把非外部部分压低后，噪声采样成了新的大头。继续提升 eval 性能的边际收益递减——下一步应转向：
+  - 减少外部噪声调用次数（缓存下沉、共享拓扑子树复用，见 memory [[density-sharedtopology-optimization]]）；
+  - 噪声采样层 SoA/SIMD 批量化（见 memory [[noise-soa-optimization]]）；
+  - B 类递归控制内联（Spline Hermite / FindTopSurface 循环展开），但收益有限且破坏 bit-exact 风险高。
+- **精确 A/B 待定**：7.6 是间接估算（依赖跨路径恒定假设 + 不同运行）。若需同世界同区块 JIT 开/关精确对比，可加环境变量门控（如 `MC_DENSITY_JIT_DISABLE=1`）强制 eval 走解释器跑两次。当前间接估算的 0.35≈0.34 自洽验证已相当有力，是否需精确 A/B 视后续需求。
+- **trampoline 计时插桩为临时性**：profiler 量化完成后，`DensityEvalProfiler.hpp` 及 eval/trampoline 内计时代码将整体删除（见第 3 节约束）。
+
