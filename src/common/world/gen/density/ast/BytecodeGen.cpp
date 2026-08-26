@@ -219,9 +219,11 @@ private:
             case AstNodeKind::Div:
             case AstNodeKind::Max:
             case AstNodeKind::Min:
-            case AstNodeKind::MaxShort:
-            case AstNodeKind::MinShort:
                 return emitBinary(node);
+            case AstNodeKind::MaxShort:
+                return emitMaxShort(node);
+            case AstNodeKind::MinShort:
+                return emitMinShort(node);
             case AstNodeKind::Clamp:
                 return emitClamp(node);
             case AstNodeKind::Lerp:
@@ -409,6 +411,84 @@ private:
         op.srcB = rb;
         op.opFlags = static_cast<u8>(static_cast<u8>(binaryOpOf(node->kind())));
         m_ops.push_back(op);
+        return RegOrConst::ofReg(dst);
+    }
+
+    // MaxShort/MinShort 短路编译：先求 left，若 left 已超过 right 的编译期界限（rightMax/rightMin）
+    // 则跳过 right 子树求值直接取 left（max/min 数学性质保证数值一致）。对齐 vanilla
+    // DensityFunctions.Ap2：Max 当 d0 > arg2.maxValue() 取 d0；Min 当 d0 < arg2.minValue() 取 d0。
+    // rightMax/rightMin 是 right 子树编译期 maxValue/minValue（McToAst 生成 Short 变体时内联），
+    // 跳过 right 段省其全部指令（含 noise 采样，单次采样远贵于寄存器运算）。
+    RegOrConst emitMaxShort(const Ptr& node)
+    {
+        const auto* n = static_cast<const MaxShortNode*>(node.get());
+        const u32 dst = allocReg();
+        const u32 leftReg = asReg(emitNode(n->left()));
+        // 占位条件跳转：left > rightMax → 短路段（跳过 right）。
+        const size_t jumpIfIdx = m_ops.size();
+        Op jumpIf{};
+        jumpIf.code = OpCode::JumpIfCmp;
+        jumpIf.srcA = leftReg;
+        jumpIf.imm = n->rightMax();
+        jumpIf.opFlags = static_cast<u8>(CmpOp::Gt);
+        m_ops.push_back(jumpIf); // jumpTarget 待回填
+        // right 段：求 right，BINARY Max 写 dst。
+        const u32 rightReg = asReg(emitNode(n->right()));
+        Op bin{};
+        bin.code = OpCode::Binary;
+        bin.dst = dst;
+        bin.srcA = leftReg;
+        bin.srcB = rightReg;
+        bin.opFlags = static_cast<u8>(BinaryOp::Max);
+        m_ops.push_back(bin);
+        // 跳到 end（占位）。
+        const size_t jumpEndIdx = m_ops.size();
+        Op jumpEnd{};
+        jumpEnd.code = OpCode::Jump;
+        m_ops.push_back(jumpEnd); // jumpTarget 待回填
+        // 短路段：dst = left（left > rightMax ≥ right，故 max(left,right)=left）。
+        const size_t shortCircuitIdx = m_ops.size();
+        emitStoreToReg(RegOrConst::ofReg(leftReg), dst);
+        const size_t endIdx = m_ops.size();
+        // 回填跳转目标（目标 Op 下标；eval 用 --pc 抵消 ++pc）。
+        m_ops[jumpIfIdx].jumpTarget = static_cast<u32>(shortCircuitIdx);
+        m_ops[jumpEndIdx].jumpTarget = static_cast<u32>(endIdx);
+        return RegOrConst::ofReg(dst);
+    }
+
+    RegOrConst emitMinShort(const Ptr& node)
+    {
+        const auto* n = static_cast<const MinShortNode*>(node.get());
+        const u32 dst = allocReg();
+        const u32 leftReg = asReg(emitNode(n->left()));
+        // 占位条件跳转：left < rightMin → 短路段（跳过 right）。
+        const size_t jumpIfIdx = m_ops.size();
+        Op jumpIf{};
+        jumpIf.code = OpCode::JumpIfCmp;
+        jumpIf.srcA = leftReg;
+        jumpIf.imm = n->rightMin();
+        jumpIf.opFlags = static_cast<u8>(CmpOp::Lt);
+        m_ops.push_back(jumpIf); // jumpTarget 待回填
+        // right 段：求 right，BINARY Min 写 dst。
+        const u32 rightReg = asReg(emitNode(n->right()));
+        Op bin{};
+        bin.code = OpCode::Binary;
+        bin.dst = dst;
+        bin.srcA = leftReg;
+        bin.srcB = rightReg;
+        bin.opFlags = static_cast<u8>(BinaryOp::Min);
+        m_ops.push_back(bin);
+        // 跳到 end（占位）。
+        const size_t jumpEndIdx = m_ops.size();
+        Op jumpEnd{};
+        jumpEnd.code = OpCode::Jump;
+        m_ops.push_back(jumpEnd); // jumpTarget 待回填
+        // 短路段：dst = left（left < rightMin ≤ right，故 min(left,right)=left）。
+        const size_t shortCircuitIdx = m_ops.size();
+        emitStoreToReg(RegOrConst::ofReg(leftReg), dst);
+        const size_t endIdx = m_ops.size();
+        m_ops[jumpIfIdx].jumpTarget = static_cast<u32>(shortCircuitIdx);
+        m_ops[jumpEndIdx].jumpTarget = static_cast<u32>(endIdx);
         return RegOrConst::ofReg(dst);
     }
 

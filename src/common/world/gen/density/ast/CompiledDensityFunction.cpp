@@ -493,6 +493,17 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 pc = op.jumpTarget;
                 --pc;
                 break;
+            case OpCode::JumpIfCmp: {
+                // 条件跳转（MaxShort/MinShort 短路）：cmpOp 低 4 位，Gt=0/Lt=1。
+                // 满足条件则跳到 jumpTarget（跳过 right 子段），否则顺序执行 right 段。
+                const f64 v = regs[op.srcA];
+                const bool take = (op.opFlags & 0x0F) == static_cast<u8>(CmpOp::Gt) ? (v > op.imm) : (v < op.imm);
+                if (take) {
+                    pc = op.jumpTarget;
+                    --pc; // 抵消 for 的 ++pc
+                }
+                break;
+            }
             case OpCode::Copy:
                 regs[op.dst] = regs[op.srcA];
                 break;

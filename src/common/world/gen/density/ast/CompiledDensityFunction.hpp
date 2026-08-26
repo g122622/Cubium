@@ -92,14 +92,22 @@ enum class UnaryOp : u8 {
 };
 
 /// 二元运算类型（BINARY 指令操作数）。覆盖 Add/Mul/Div/Max/Min。
-/// MaxShort/MinShort 在求值上等价 Max/Min（rightMax/rightMin 仅用于编译期 relaxedEquals 区分
-/// 与未来短路优化，不参与求值），BytecodeGen 统一编译为 Max/Min。
+/// MaxShort/MinShort 是带右操作数界限的短路变体：BytecodeGen 把它们编译为
+/// "条件跳转 + 跳过 right 段" 形态（JUMP_IF_CMP + BINARY），rightMax/rightMin
+/// 内联到 JUMP_IF_CMP 的 imm。短路命中时跳过 right 子树求值（省 noise 采样）。
 enum class BinaryOp : u8 {
     Add,
     Mul,
     Div,
     Max,
     Min,
+};
+
+/// 条件跳转比较类型（JUMP_IF_CMP 指令操作数，opFlags 低 4 位）。
+/// MaxShort 用 Gt（left > rightMax 跳短路），MinShort 用 Lt（left < rightMin 跳短路）。
+enum class CmpOp : u8 {
+    Gt, ///< regs[srcA] > imm 时跳转
+    Lt, ///< regs[srcA] < imm 时跳转
 };
 
 /// 指令操作码。顺序按 AST 节点分类组织，switch 解释执行按此分发。
@@ -145,11 +153,11 @@ enum class OpCode : u8 {
 
     // ---- 二元 ----
     /// BINARY dst, op, srcA, srcB：二元运算（Add/Mul/Div/Max/Min）。
-    /// 数值上两子都求（密度函数无副作用）。Mul 的 v1==0.0 短路、MaxShort/MinShort 的
-    /// rightMax/rightMin 短路均为纯性能优化（短路时结果与不短路数值一致），阶段4 先不实现跳转短路，
-    /// 统一走 BINARY 求两子再运算，保证数值严格对齐基线。
-    // TODO: 阶段4.5 性能优化——为 Mul(left==0)/MaxShort/MinShort 增加跳转短路指令，
-    // 跳过 right 子段求值。
+    /// 数值上两子都求（密度函数无副作用）。MaxShort/MinShort 的短路由 BytecodeGen 编译为
+    /// JUMP_IF_CMP + BINARY 形态（条件命中跳过 right 段），普通 Add/Mul/Div/Max/Min 走本指令
+    /// 求两子再运算。短路纯性能优化（短路时结果与不短路数值一致，max/min 数学性质保证）。
+    // TODO: Mul(left==0) 短路——主世界 finalDensity 中 Mul 左操作数均为非零常量（0*x 已被
+    // FoldConstants 编译期折叠），运行期命中率几乎为零，收益极低，暂不实现。
     Binary,
     /// LERP dst, srcDelta, srcStart, srcEnd：clampedLerp 语义（LerpNode）。
     /// delta<=0→start, delta>=1→end, else start+delta*(end-start)。
@@ -165,6 +173,10 @@ enum class OpCode : u8 {
     /// JUMP jumpTarget：无条件跳转（RangeChoice 的 inRange 段尾跳过 outOfRange 段用）。
     /// jumpTarget = 目标 Op 下标，eval 同 RANGE_CHOICE 的 --pc 语义。
     Jump,
+    /// JUMP_IF_CMP srcA, imm, cmpOp(low 4 bits of opFlags), jumpTarget：条件跳转（MaxShort/MinShort 短路）。
+    /// cmpOp=Gt：regs[srcA] > imm 跳转；cmpOp=Lt：regs[srcA] < imm 跳转。
+    /// jumpTarget = 目标 Op 下标，eval 同 JUMP 的 --pc 语义。imm 内联 rightMax/rightMin。
+    JumpIfCmp,
     /// COPY dst, srcA：寄存器复制（regs[dst] = regs[srcA]）。RangeChoice 两段结果归一到 dst 用。
     Copy,
     /// MARKER dst, objIdx, subIdx, markerType：Marker 占位（MarkerNode）。
