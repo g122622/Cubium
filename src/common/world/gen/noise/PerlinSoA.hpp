@@ -186,10 +186,11 @@ alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
 
     // Y 涂抹：yScale!=0 时把 fracY 吸附到 yScale 间隔网格线（用 yMax 或 fracY 作基准）。
     // smoothstep 用原始 fracY，梯度点乘用吸附后的 (fracY - smearOffset)。
+    // epsilon 用 1.0e-7f 提升 double，精确匹配 PerlinLayer::noiseWithSmear 的涂抹量化（bit-exact）。
     f64 smearOffset = 0.0;
     if (yScale != 0.0) {
         const f64 base = (yMax >= 0.0 && yMax < fracY) ? yMax : fracY;
-        smearOffset = std::floor(base / yScale + 1.0e-7) * yScale;
+        smearOffset = std::floor(base / yScale + static_cast<f64>(1.0e-7f)) * yScale;
     }
     const f64 gradY = fracY - smearOffset;
 

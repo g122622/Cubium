@@ -25,7 +25,9 @@
 #include "common/core/Types.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
+#include "common/world/gen/noise/PerlinSoA.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc::world::gen::density {
 
@@ -104,6 +106,16 @@ private:
      */
     void initFromNoises();
 
+    /**
+     * @brief 从三个 PerlinNoise 收集非空 octave 子层为 SoA 数组
+     *
+     * 按 getOctaveNoise(i) 顺序（i=0 最高频）收集 main/min/max 三层的 PerlinLayer 数据
+     * （排列表 + 偏移）到连续 SoA 数组。compute 走 SoA 循环求值，消除逐层 getOctaveNoise
+     * 的反向索引计算 + 越界检查 + 指针解引用，数据连续利于 cache 与向量化。
+     * 累加顺序与原 compute 一致（bit-exact），仅替换 noiseWithSmear 为 perlinSample。
+     */
+    void buildSoA();
+
     std::unique_ptr<noise::PerlinNoise> m_minLimitNoise;
     std::unique_ptr<noise::PerlinNoise> m_maxLimitNoise;
     std::unique_ptr<noise::PerlinNoise> m_mainNoise;
@@ -118,6 +130,12 @@ private:
     f64 m_xzMultiplier = 0.0; ///< 684.412 * xzScale
     f64 m_yMultiplier = 0.0;  ///< 684.412 * yScale
     f64 m_maxValue = 0.0;
+
+    /// main/min/max 三层 octave 的 SoA（每层 permutation+origin，amplitude 等字段不用）。
+    /// 顺序对齐 getOctaveNoise(i)：i=0 最高频。compute 遍历求值，bit-exact 等价原 compute。
+    std::vector<noise::PerlinSoALayer> m_mainSoA;
+    std::vector<noise::PerlinSoALayer> m_minLimitSoA;
+    std::vector<noise::PerlinSoALayer> m_maxLimitSoA;
 };
 
 } // namespace mc::world::gen::density
