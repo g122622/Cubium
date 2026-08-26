@@ -1122,6 +1122,9 @@ add_library(mc_common STATIC
     world/gen/density/ast/OptoPasses.cpp
     world/gen/density/ast/CompiledDensityFunction.cpp
     world/gen/density/ast/BytecodeGen.cpp
+    world/gen/density/ast/DensityEvalHelpers.cpp
+    world/gen/density/ast/DensityJitTrampolines.cpp
+    world/gen/density/ast/DensityJitCompiler.cpp
     world/gen/RandomState.cpp
 
     # World - Generation - Chunk Generators
@@ -1705,6 +1708,7 @@ target_link_libraries(mc_common
         asio::asio
         OpenSSL::Crypto
         OpenSSL::SSL
+        asmjit::asmjit
 )
 
 # TcpTransport 用 asio 做 socket IO，Windows 须额外链接 winsock 库。

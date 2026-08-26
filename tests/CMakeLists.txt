@@ -1181,6 +1181,8 @@ add_executable(mc_tests
     common/world/gen/density/OptoPassesTest.cpp
     # 维度级 AST 编译器端到端数值等价：compiled.eval vs finalDensity.compute
     common/world/gen/density/DensityAstCompileTest.cpp
+    # 密度求值器 JIT 机器码 vs switch 解释器数值一致性（Win x64 启用，其它平台 SKIP）
+    common/world/gen/density/DensityJitBaselineTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/MonsterRoomFeatureTest.cpp
     common/world/gen/feature/RandomSelectorFeatureTest.cpp

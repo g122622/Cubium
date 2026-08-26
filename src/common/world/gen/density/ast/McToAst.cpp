@@ -320,7 +320,7 @@ Ptr McToAst::toAst(const DF& df)
     {
         std::lock_guard<std::mutex> lock(warnMutex);
         if (warned.insert(key).second) {
-            spdlog::warn("McToAst: 未识别的 DensityFunction 类型，退化为 DelegateNode: {}", key.name());
+            spdlog::warn("McToAst: Unrecognized DensityFunction type, degenerated to DelegateNode: {}", key.name());
         }
     }
     return std::make_shared<DelegateNode>(&df);

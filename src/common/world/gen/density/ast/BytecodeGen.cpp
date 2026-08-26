@@ -64,7 +64,7 @@ struct RegOrConst {
     ret.code = OpCode::Return;
     ret.dst = 0;
     ops.push_back(ret);
-    return std::make_shared<CompiledDensityFunction>(std::move(ops),
+    auto evaluator = std::make_shared<CompiledDensityFunction>(std::move(ops),
         1,
         std::vector<RuntimeObject>{},
         std::vector<std::shared_ptr<CompiledDensityFunction>>{},
@@ -73,6 +73,9 @@ struct RegOrConst {
         value,
         false,
         std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>>{});
+    // 常量求值器亦 JIT（2 指令，JIT 后 eval 直走机器码，省 switch 分发）。
+    evaluator->compileJit();
+    return evaluator;
 }
 
 /// 编译上下文。递归 emit AST 节点，累积 Op 序列 + 寄存器分配 + 运行时对象登记。
@@ -92,7 +95,7 @@ public:
         ret.dst = retReg;
         m_ops.push_back(ret);
 
-        return std::make_shared<CompiledDensityFunction>(std::move(m_ops),
+        auto evaluator = std::make_shared<CompiledDensityFunction>(std::move(m_ops),
             m_nextReg,
             std::move(m_objects),
             std::move(m_subEvaluators),
@@ -101,6 +104,11 @@ public:
             maxValue,
             m_hasMarkerOrBeardifier,
             std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>>{});
+        // 维度级 JIT 编译一次：子求值器（Marker delegate / Spline value / SharedSubtree /
+        // FindTopSurface density）经各自 BytecodeGen::compile 递归进入本函数，已各自编译。
+        // 区块级 newInstance 复用本维度级 m_jitFn（ops 字节相同），不重复编译。
+        evaluator->compileJit();
+        return evaluator;
     }
 
 private:

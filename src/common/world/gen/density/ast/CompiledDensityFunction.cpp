@@ -31,6 +31,9 @@
 #include "common/world/gen/density/NoiseChunk.hpp"       // NoiseChunk + 缓存类（newInstance 用）
 #include "common/world/gen/density/ast/AstNodes.hpp"     // WeirdType
 #include "common/world/gen/density/ast/CompiledDensityFunctionAdapter.hpp"
+#include "common/world/gen/density/ast/DensityEvalHelpers.hpp"
+#include "common/world/gen/density/ast/DensityEvalProfiler.hpp"
+#include "common/world/gen/density/ast/DensityJitCompiler.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 
 #include <algorithm>
@@ -40,6 +43,12 @@
 namespace mc::world::gen::density::ast {
 
 namespace {
+
+using eval_helpers::clampedLerp;
+using eval_helpers::clampedMap;
+using eval_helpers::evalFindTopSurface;
+using eval_helpers::evalSpline;
+using eval_helpers::getRarity;
 
 /// 从 opFlags 低 4 位取 UnaryOp。
 [[nodiscard]] UnaryOp unpackUnary(u8 flags) noexcept
@@ -57,146 +66,6 @@ namespace {
 [[nodiscard]] RegAxis unpackAxis(u8 flags) noexcept
 {
     return static_cast<RegAxis>((flags >> 4) & 0x0F);
-}
-
-/// clampedLerp（对齐 vanilla MathHelper.clampedLerp / Cubium YClampedGradient::clampedLerp）。
-[[nodiscard]] f64 clampedLerp(f64 delta, f64 from, f64 to) noexcept
-{
-    if (delta <= 0.0) {
-        return from;
-    }
-    if (delta >= 1.0) {
-        return to;
-    }
-    return from + delta * (to - from);
-}
-
-/// clampedMap（对齐 Cubium YClampedGradient::clampedMap）。
-[[nodiscard]] f64 clampedMap(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax) noexcept
-{
-    const f64 t = (fromMax == fromMin) ? 0.0 : (value - fromMin) / (fromMax - fromMin);
-    return clampedLerp(std::clamp(t, 0.0, 1.0), toMin, toMax);
-}
-
-/// WeirdScaledSampler 的 rarity 映射（Type1 maxRarity=2.0 / Type2 maxRarity=3.0）。
-/// 对齐 DensityFunctions.hpp:1186-1201。
-[[nodiscard]] f64 getRarity(WeirdType type, f64 value) noexcept
-{
-    if (type == WeirdType::Type1) {
-        if (value < -0.5) {
-            return 0.75;
-        }
-        if (value < 0.0) {
-            return 1.0;
-        }
-        if (value < 0.5) {
-            return 1.5;
-        }
-        return 2.0;
-    }
-    // Type2
-    if (value < -0.75) {
-        return 0.5;
-    }
-    if (value < -0.5) {
-        return 0.75;
-    }
-    if (value < 0.5) {
-        return 1.0;
-    }
-    if (value < 0.75) {
-        return 2.0;
-    }
-    return 3.0;
-}
-
-/// 样条二分查找：返回最大 r 使 locations[r] <= point；point < locations[0] 返回 -1（u32::max），
-/// point >= locations[last] 返回 last。对齐 DFC SplineSupport.findRangeForLocation。
-[[nodiscard]] i64 findSplineRange(const std::vector<f64>& locations, f64 point) noexcept
-{
-    const size_t n = locations.size();
-    if (n == 0) {
-        return -1;
-    }
-    if (point < locations[0]) {
-        return -1;
-    }
-    if (point >= locations[n - 1]) {
-        return static_cast<i64>(n - 1);
-    }
-    // 标准上界二分：找最大 r 使 locations[r] <= point < locations[r+1]。
-    size_t lo = 0;
-    size_t hi = n - 1;
-    while (lo < hi) {
-        const size_t mid = lo + (hi - lo + 1) / 2;
-        if (locations[mid] <= point) {
-            lo = mid;
-        } else {
-            hi = mid - 1;
-        }
-    }
-    return static_cast<i64>(lo);
-}
-
-/// 样条越界线性外推（对齐 CubicSpline::linearExtend）。
-[[nodiscard]] f64 splineLinearExtend(f64 point, f64 location, f64 value, f64 derivative) noexcept
-{
-    return derivative == 0.0 ? value : value + derivative * (point - location);
-}
-
-/// 在预编译样条上求值：二分查找 + Hermite 三次插值（对齐 CubicSpline::apply）。
-[[nodiscard]] f64 evalSpline(const CompiledSpline& spline, f64 point, i32 x, i32 y, i32 z)
-{
-    const size_t n = spline.locations.size();
-    MC_ASSERT_RELEASE_MSG(!spline.valueEvaluators.empty(), "spline must have at least one point");
-    if (n == 1) {
-        const f64 v = spline.valueEvaluators[0]->eval(x, y, z);
-        return splineLinearExtend(point, spline.locations[0], v, spline.derivatives[0]);
-    }
-
-    const i64 range = findSplineRange(spline.locations, point);
-    if (range < 0) {
-        // point < locations[0]
-        const f64 v = spline.valueEvaluators[0]->eval(x, y, z);
-        return splineLinearExtend(point, spline.locations[0], v, spline.derivatives[0]);
-    }
-    const size_t last = n - 1;
-    if (static_cast<size_t>(range) >= last) {
-        // point >= locations[last]
-        const f64 v = spline.valueEvaluators[last]->eval(x, y, z);
-        return splineLinearExtend(point, spline.locations[last], v, spline.derivatives[last]);
-    }
-
-    // 正常区间 [range, range+1]。
-    const size_t r = static_cast<size_t>(range);
-    const f64 loc0 = spline.locations[r];
-    const f64 loc1 = spline.locations[r + 1];
-    const f64 width = loc1 - loc0;
-    const f64 t = width == 0.0 ? 0.0 : (point - loc0) / width;
-    const f64 v0 = spline.valueEvaluators[r]->eval(x, y, z);
-    const f64 v1 = spline.valueEvaluators[r + 1]->eval(x, y, z);
-    const f64 onDist = v1 - v0;
-    const f64 f4 = spline.derivatives[r] * width - onDist;
-    const f64 f5 = -spline.derivatives[r + 1] * width + onDist;
-    // Hermite 三次：v0 + t*(v1-v0) + t*(1-t)*(f4*(1-t) + f5*t)
-    return v0 + t * onDist + t * (1.0 - t) * (f4 * (1.0 - t) + f5 * t);
-}
-
-/// FindTopSurface 求值（对齐 DensityFunctions.hpp:1593-1606）。
-/// 从 floor(upper/cellH)*cellH 向下逐 cellH 找首个 density>0 的 Y。
-[[nodiscard]] f64 evalFindTopSurface(
-    const CompiledDensityFunction& densitySub, f64 upperVal, i32 lowerBound, i32 cellHeight, i32 x, i32 z)
-{
-    const i32 i = static_cast<i32>(std::floor(upperVal / static_cast<f64>(cellHeight))) * cellHeight;
-    if (i <= lowerBound) {
-        return static_cast<f64>(lowerBound);
-    }
-    for (i32 j = i; j >= lowerBound; j -= cellHeight) {
-        if (densitySub.eval(x, j, z) > 0.0) {
-            return static_cast<f64>(j);
-        }
-    }
-    return static_cast<f64>(lowerBound);
 }
 
 } // namespace
@@ -219,7 +88,12 @@ CompiledDensityFunction::CompiledDensityFunction(std::vector<Op> ops,
     , m_maxValue(maxValue)
     , m_hasMarkerOrBeardifier(hasMarkerOrBeardifier)
     , m_ownedCaches(std::move(ownedCaches))
-{}
+{
+    // m_evalCtx 指向本实例成员表（JIT 机器码经首参指针访问）。JIT 编译（compileJit）不在构造
+    // 函数触发——维度级由 BytecodeGen::compile 末尾显式调用（编译一次），区块级 newInstance
+    // 复用维度级 m_jitFn（ops 字节相同）。故构造时 m_jitFn 保持 nullptr，m_evalCtx 就绪待 JIT 接入。
+    m_evalCtx = DensityEvalContext{m_objects.data(), m_subEvaluators.data(), m_splines.data()};
+}
 
 // 区块级 newInstance：把 MARKER 占位替换为 per-chunk 缓存对象。
 // 仅当 hasMarkerOrBeardifier() 为 true 时调用（否则 NoiseChunk 直接 Adapter 包装维度级实例）。
@@ -306,7 +180,7 @@ std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
     //    这不影响正确性——newInstance 不会被对区块级实例再次调用（NoiseChunk 构造只 newInstance 一次）。
     //    ownedCaches 持有 CacheOnce/FlatCache/Cache2D 的所有权，保证 newObjects 中的裸指针生命周期
     //    与区块级求值器一致（否则返回后悬垂）。
-    return std::make_shared<CompiledDensityFunction>(std::move(newOps),
+    auto inst = std::make_shared<CompiledDensityFunction>(std::move(newOps),
         m_regCount,
         std::move(newObjects),
         std::move(newSubEvaluators),
@@ -315,6 +189,14 @@ std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
         m_maxValue,
         m_hasMarkerOrBeardifier,
         std::move(ownedCaches));
+
+    // 5. JIT 复用：区块级 ops 与维度级字节相同（newInstance 只改 newObjects 缓存对象，不改 Op），
+    //    故直接复用维度级 m_jitFn（构造函数不触发 JIT 编译，m_jitFn 初始为 nullptr）。m_evalCtx
+    //    重建指向区块级自身的对象/子求值器/样条表（构造函数已建过，但 make_shared 后成员地址
+    //    确定，此处显式重建确保指针指向区块级实例自身而非临时）。
+    inst->m_jitFn = m_jitFn;
+    inst->m_evalCtx = DensityEvalContext{inst->m_objects.data(), inst->m_subEvaluators.data(), inst->m_splines.data()};
+    return inst;
 }
 
 f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
@@ -329,6 +211,50 @@ f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
     //
     // 递归安全：eval 经 SharedSubtreeCall/Marker/Spline/FindTopSurface 递归调用自身，
     // 每层 eval 独立栈缓冲，互不覆盖（故不能用 thread_local 单 buffer）。
+
+    // 性能插桩：仅顶层 eval（depth==0）计 topLevelCycles，内层 eval 不重复计
+    // （其耗时已含在顶层 topLevelCycles 内）。externalCycles 由 evalImpl 内叶子外部调用
+    // 指令 per-call 累加，跨层不重不漏。DepthGuard RAII 保证 depth 在任何返回路径前 -- 回。
+    // 临时性插桩，profiler 完成后整体删除。
+    auto& acc = profiling::g_densityEvalAcc;
+    const bool isTop = (acc.depth == 0);
+    const u64 tEnter = isTop ? profiling::readTsc() : 0;
+    profiling::DepthGuard depthGuard;
+
+    // JIT 路径：编译成功（m_jitFn != nullptr）时直接调机器码，消除 switch 分发 / Op 取指 /
+    // regs 间接寻址开销。顶层 topLevelCycles 仍计时（覆盖 JIT 调用），用以观测 JIT 收益；
+    // externalCycles/externalCalls 在 JIT 路径不累计（trampoline 未插桩），故 JIT 路径下
+    // interpreterRatio 失真——以 topLevelCycles 绝对下降为收益主指标。
+    if (m_jitFn != nullptr) [[likely]] {
+        const f64 r = m_jitFn(&m_evalCtx, x, y, z);
+        if (isTop) {
+            acc.topLevelCycles += (profiling::readTsc() - tEnter);
+            acc.topCalls += 1;
+        }
+        return r;
+    }
+
+    // 回退路径：原 switch 解释器 evalImpl（含现有 per-call 计时插桩）。
+    f64 result;
+    if (m_regCount <= kInlineRegCount) [[likely]] {
+        std::array<f64, kInlineRegCount> regs{};
+        result = evalImpl(x, y, z, regs.data());
+    } else {
+        std::vector<f64> regs(m_regCount);
+        result = evalImpl(x, y, z, regs.data());
+    }
+
+    if (isTop) {
+        acc.topLevelCycles += (profiling::readTsc() - tEnter);
+        acc.topCalls += 1;
+    }
+    return result;
+}
+
+f64 CompiledDensityFunction::evalInterpreter(i32 x, i32 y, i32 z) const
+{
+    // 测试/调试专用：绕过 JIT 强制走 switch 解释器 evalImpl（不含 eval 的顶层计时插桩，
+    // 纯解释器求值供 DensityJitBaselineTest 与 JIT 机器码求值逐点对比）。缓冲策略与 eval 一致。
     if (m_regCount <= kInlineRegCount) [[likely]] {
         std::array<f64, kInlineRegCount> regs{};
         return evalImpl(x, y, z, regs.data());
@@ -362,7 +288,10 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
             case OpCode::NoiseSample: {
                 const auto* noise = m_objects[op.objIdx].noise;
                 MC_ASSERT_RELEASE_MSG(noise != nullptr, "NoiseSample: noise object is null");
+                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = noise->getValue(regs[op.srcA], regs[op.srcB], regs[op.srcC]);
+                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::WeirdSampler: {
@@ -371,28 +300,40 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 const WeirdType type = (op.opFlags & 0x0F) == 0 ? WeirdType::Type1 : WeirdType::Type2;
                 const f64 inputValue = regs[op.srcA];
                 const f64 r = getRarity(type, inputValue);
+                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = std::abs(noise->getValue(
                                    static_cast<f64>(x) / r, static_cast<f64>(y) / r, static_cast<f64>(z) / r)) *
                     r;
+                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::Delegate: {
                 const auto* df = m_objects[op.objIdx].densityFunction;
                 MC_ASSERT_RELEASE_MSG(df != nullptr, "Delegate: density function is null");
+                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = df->compute(x, y, z);
+                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::EndIslands: {
                 const auto* df = m_objects[op.objIdx].densityFunction;
                 MC_ASSERT_RELEASE_MSG(df != nullptr, "EndIslands: density function is null");
+                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = df->compute(x, y, z);
+                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::Beardifier: {
                 // 维度级编译期 Beardifier 未注入（区块特定），占位返回 0.0。
                 // 阶段5 newInstance 注入真实 Beardifier 后此指令段被替换。
                 const auto* beardifier = m_objects[op.objIdx].beardifier;
+                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = (beardifier != nullptr) ? beardifier->compute(x, y, z) : 0.0;
+                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::SharedSubtreeCall: {
@@ -513,8 +454,17 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 // 区块级（densityFunction!=nullptr，newInstance 注入缓存对象）：走缓存对象 compute。
                 const auto* cacheObj = m_objects[op.objIdx].densityFunction;
                 if (cacheObj != nullptr) {
+                    // 区块级走缓存对象 compute。缓存对象（NoiseInterpolator/CellCache/CacheOnce/
+                    // FlatCache/Cache2D）的 compute 在缓存未命中时回调 m_filler->compute，而 filler
+                    // 是 Adapter，其 compute → CompiledDensityFunction::eval 递归。故 cacheObj->compute
+                    // 是"递归外部调用"（B 类），不可 per-call 计时——其子树耗时已含在顶层
+                    // topLevelCycles 内，子树内叶子外部调用由子层 evalImpl 计时累加。父层再计时会
+                    // 双重计数（曾致 externalCycles > totalCycles）。其缓存查表/插值开销归入解释器
+                    // 开销（算入 interpreterCycles），会高估 JIT 收益（缓存查表 JIT 救不了），给出
+                    // JIT 收益的乐观上界——若上界仍不值得，JIT 肯定不值得。
                     regs[op.dst] = cacheObj->compute(x, y, z);
                 } else {
+                    // 维度级透传 delegate 子求值器 eval（递归，B 类不计时——子树耗时已含顶层）。
                     const auto& delegate = m_subEvaluators[op.subIdx];
                     MC_ASSERT_RELEASE_MSG(delegate != nullptr, "Marker: delegate sub-evaluator is null");
                     regs[op.dst] = delegate->eval(x, y, z);
@@ -541,6 +491,15 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
     // 序列无显式 Return（不应发生，编译器保证末尾有 Return）。
     MC_ASSERT_RELEASE_MSG(false, "CompiledDensityFunction::eval: missing Return instruction");
     return 0.0;
+}
+
+void CompiledDensityFunction::compileJit() noexcept
+{
+    // 维度级编译一次：把 m_ops 翻译为 asmjit 机器码。失败（asmjit Error / 非 Win x64 平台 /
+    // 空 Op 序列）m_jitFn 留 nullptr，eval 自动回退 evalImpl（功能不受影响）。JIT 机器码内存由
+    // 进程级 JitRuntime 单例持有至进程结束（求值器不可变，无需 release）。区块级 newInstance
+    // 不调本函数——直接复用维度级 m_jitFn（ops 字节相同）。
+    m_jitFn = compileDensityJit(m_ops, m_regCount);
 }
 
 } // namespace mc::world::gen::density::ast

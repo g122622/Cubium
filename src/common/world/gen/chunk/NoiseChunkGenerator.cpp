@@ -36,6 +36,7 @@
 #include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
 #include "../density/OreVeinifier.hpp"
+#include "../density/ast/DensityEvalProfiler.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/FeatureSorter.hpp"
 #include "../jigsaw/JigsawPiece.hpp"
@@ -1120,6 +1121,32 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // MC 1.21.11: NoiseChunk.stopInterpolation()
     // 在噪声填充完成后标记插值循环结束，防止后续对插值器的意外采样
     noiseChunk.stopInterpolation();
+
+    // 性能插桩上报：单区块 NOISE 阶段结束，把 thread_local eval 累加器读出上报并清零。
+    // interpreterRatio = (totalCycles - externalCycles) / totalCycles，量化"解释器开销"
+    // 占比，判定用 asmjit 把 eval JIT 成机器码是否值得（≥0.30 值得 / ≥0.40 强烈值得 / <0.20 不值得）。
+    // totalCycles = 顶层 eval（depth==0）入口→Return 总周期（覆盖整棵树含递归层 + fillSlice 角点填充）。
+    // externalCycles = 5 个真叶子外部调用（NoiseSample/WeirdSampler/Delegate/EndIslands/Beardifier）
+    //   per-call 计时累加——这些是离开 evalImpl 进入外部 C++ 函数、不递归回 eval 的真正噪声采样。
+    //   Marker 区块级 cacheObj->compute 因缓存未命中时经 Adapter 递归回 eval，属"递归外部调用"不计时
+    //   （其子树耗时已在 totalCycles 内、叶子由子层计时），避免双重计数；其缓存查表开销归入
+    //   interpreterCycles（高估 JIT 收益，给出乐观上界——若上界仍不值得，JIT 肯定不值得）。
+    // interpreterCycles = totalCycles - externalCycles（JIT 能优化的上限，含 Marker 缓存查表故为乐观上界）。
+    // 临时性插桩，profiler 完成后整体删除。实际上报需至少一个 trace 后端开启（MC_ENABLE_TRACING 或 MC_ENABLE_TRACY）。
+    {
+        auto& acc = world::gen::density::ast::densityEvalAccumulator();
+        const u64 total = acc.topLevelCycles;
+        const u64 ext = acc.externalCycles;
+        const u64 interp = (total > ext) ? (total - ext) : 0;
+        const i64 ratioX1000 = (total > 0) ? static_cast<i64>(interp * 1000 / total) : 0;
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.totalCycles", static_cast<i64>(total));
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.externalCycles", static_cast<i64>(ext));
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.interpreterCycles", static_cast<i64>(interp));
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.topCalls", static_cast<i64>(acc.topCalls));
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.externalCalls", static_cast<i64>(acc.externalCalls));
+        MC_TRACE_COUNTER(TraceEvents.World.ChunkGen, "density.eval.interpreterRatio_x1000", ratioX1000);
+        acc.reset();
+    }
 
     // 标记阶段完成
     chunk.setChunkStatus(ChunkStatuses::NOISE);

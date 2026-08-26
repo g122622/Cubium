@@ -34,6 +34,7 @@ density/
 ├── DensityFunctionTypeRegistry.cpp  — 实现
 ├── NoiseChunk.hpp                   — 区块噪声采样单元（三线性插值 + 缓存管理）
 ├── NoiseChunk.cpp                   — 实现
+├── ast/                             — 密度函数 AST 编译器子系统（DFC 风格扁平指令序列求值器 + asmjit JIT，详见 ast/README.md）
 └── README.md                        — 本文件
 ```
 

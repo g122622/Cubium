@@ -237,6 +237,22 @@ struct RuntimeObject {
     const ::mc::world::gen::density::Beardifier* beardifier = nullptr;
 };
 
+/// JIT 求值器的运行时上下文（POD，JIT 机器码经首参指针访问）。
+///
+/// 每个 CompiledDensityFunction 实例（维度级/区块级）各持一份，指向自己的对象表/
+/// 子求值器表/样条表。JIT 机器码只依赖 Op 序列结构，与 EvalContext 内容解耦——故维度级
+/// 和区块级可共享同一 JIT 函数指针（newInstance 深拷贝 ops 相同，只换对象表内容）。
+/// 定义于此（而非 trampoline 头）以打破与 DensityJitCompiler/Trampolines 的循环 include。
+struct DensityEvalContext {
+    const RuntimeObject* objects = nullptr;                                  ///< m_objects.data()
+    const std::shared_ptr<CompiledDensityFunction>* subEvaluators = nullptr; ///< m_subEvaluators.data()
+    const std::shared_ptr<CompiledSpline>* splines = nullptr;                ///< m_splines.data()
+};
+
+/// JIT 求值函数指针类型：f64 jitEval(const DensityEvalContext* ctx, i32 x, i32 y, i32 z)。
+/// 编译失败或非 Win x64 平台为 nullptr（eval 自动回退 switch 解释器）。
+using DensityJitFn = f64 (*)(const DensityEvalContext* ctx, i32 x, i32 y, i32 z);
+
 /**
  * @brief 扁平指令序列求值器
  *
@@ -266,7 +282,15 @@ public:
     /// 单点求值。遍历 Op 序列，switch 分发，写寄存器，Return 时返回 dst 寄存器值。
     /// 寄存器缓冲：regCount <= kInlineRegCount 时用栈上定长数组（零堆分配，主路径），
     /// 否则回退堆 vector 兜底。实际求值逻辑在 evalImpl（共用，避免主循环重复两份）。
+    /// JIT 编译成功（m_jitFn != nullptr）时优先走机器码，失败回退 evalImpl。
     [[nodiscard]] f64 eval(i32 x, i32 y, i32 z) const;
+
+    /// 测试/调试专用：绕过 JIT 强制走 switch 解释器 evalImpl。用于 DensityJitBaselineTest
+    /// 对比 JIT 机器码求值与解释器求值的数值一致性（1e-9）。生产路径不调用（无 JIT 加速）。
+    [[nodiscard]] f64 evalInterpreter(i32 x, i32 y, i32 z) const;
+
+    /// 测试/调试专用：JIT 是否编译成功（m_jitFn != nullptr）。用于断言 JIT 未意外回退。
+    [[nodiscard]] bool hasJitCompiled() const noexcept { return m_jitFn != nullptr; }
 
     /// 编译期记录的最小值（从原 DensityFunction 取，供 CompiledDensityFunctionAdapter::minValue 用）。
     [[nodiscard]] f64 minValue() const { return m_minValue; }
@@ -294,6 +318,11 @@ public:
     }
     [[nodiscard]] const std::vector<std::shared_ptr<CompiledSpline>>& splines() const { return m_splines; }
 
+    /// JIT 编译本求值器的 Op 序列（维度级编译一次，区块级 newInstance 复用维度级 m_jitFn）。
+    /// 由 BytecodeGen::compile（经 GenContext::compile）在维度级构造后显式调用；失败（asmjit
+    /// Error / 非 Win x64 平台）记 warn 后 m_jitFn 留 nullptr，eval 回退 evalImpl。
+    void compileJit() noexcept;
+
 private:
     /// eval 的求值主循环实现。regs 指向调用方提供的寄存器缓冲（栈数组或堆 vector）。
     [[nodiscard]] f64 evalImpl(i32 x, i32 y, i32 z, f64* regs) const;
@@ -311,6 +340,14 @@ private:
     /// NoiseInterpolator/CellCache 所有权在 NoiseChunk 容器，不在此）。
     /// 持 unique_ptr 保证缓存对象生命周期与区块级求值器一致。
     std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>> m_ownedCaches;
+
+    /// JIT 编译产物（维度级编译一次；区块级 newInstance 复用维度级 m_jitFn，因 ops 相同）。
+    /// nullptr 时 eval 回退 switch 解释器 evalImpl。
+    DensityJitFn m_jitFn = nullptr;
+
+    /// JIT 求值器运行时上下文（指向本实例的 m_objects/m_subEvaluators/m_splines）。
+    /// newInstance 重新构建（指向区块级自身的表），与维度级解耦。
+    DensityEvalContext m_evalCtx{};
 };
 
 } // namespace mc::world::gen::density::ast
