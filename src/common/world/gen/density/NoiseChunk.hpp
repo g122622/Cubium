@@ -42,6 +42,14 @@ namespace mc::world::gen::density {
 // 前向声明（NoiseInterpolator/CellCache/CacheOnce 的方法引用 NoiseChunk）
 class NoiseChunk;
 
+} // namespace mc::world::gen::density
+
+namespace mc::world::gen {
+class RandomState; // 方案X 阶段5-7：NoiseChunk 构造从 RandomState 取维度级编译产物
+} // namespace mc::world::gen
+
+namespace mc::world::gen::density {
+
 // ============================================================================
 // BlockStateFiller — MC 1.21 NoiseChunk.BlockStateFiller
 // ============================================================================
@@ -418,15 +426,16 @@ private:
  * 主世界 cell 大小: 4×8×4 (X×Y×Z 方块)
  * 末地 cell 大小: 8×4×8
  *
- * 工作流程：
- * 1. 构造时通过 apply()（DensityFunction::Visitor）包装所有 Marker 类型的密度函数
+ * 工作流程（方案X 阶段5-7：维度级编译产物 newInstance 组装区块级 router）：
+ * 1. 构造时从 RandomState 维度级编译产物 newInstance 把 MARKER 占位替换为 per-chunk 缓存对象，
+ *    CompiledDensityFunctionAdapter 包装组装 m_router（finalDensity OOP 组装 CellCache(Add(...))）
  * 2. initializeForFirstCellX() — 填充第一个 X 列的 slice0
  * 3. advanceCellX() — 填充下一个 X 列到 slice1
  * 4. selectCellYZ() — 选择当前 cell，预填充 CellCache
  * 5. updateForY/X/Z() — 增量式三线性插值
  * 6. swapSlices() — 切换 slice 缓冲区
  */
-class NoiseChunk : public DensityFunction::Visitor {
+class NoiseChunk {
 public:
     // NoiseInterpolator 和 CellCache 需要访问 NoiseChunk 的私有字段
     // （cellStartBlockX/Y/Z, inCellX/Y/Z, arrayInterpolationCounter, interpolationCounter, arrayIndex）
@@ -444,22 +453,26 @@ public:
 
     /**
      * @brief 构造 NoiseChunk
-     * @param router 噪声路由器（将内部移动，mapAll 会修改所有密度函数）
+     * @param randomState 维度级随机状态（方案X 阶段5-7：取 compiledRouter 维度级编译产物，
+     *                    每 slot newInstance 得区块级求值器，CompiledDensityFunctionAdapter 包装组装 m_router）
      * @param cellWidth X/Z 方向 cell 宽度（方块数，通常 4 或 8）
      * @param cellHeight Y 方向 cell 高度（方块数，通常 8 或 4）
      * @param cellCountY Y 方向 cell 数量（由 noiseHeight/cellHeight 计算得出）
      * @param startBlockX 区块起始 X 方块坐标
      * @param startBlockY 区块起始 Y 方块坐标（= noiseSettings.minY）
      * @param startBlockZ 区块起始 Z 方块坐标
-     * @param beardifier Beardifier 密度函数（结构地形贡献），传入 nullptr 使用零贡献
+     * @param beardifier Beardifier 密度函数（结构地形贡献），区块生成传真实 Beardifier，
+     *                   高度查询传 BeardifierMarker（零贡献），nullptr 兜底为零贡献
      * @param cellCountXZ X/Z 方向 cell 数量（默认 CHUNK_WIDTH/cellWidth=4 用于区块生成，
      *                    传入 1 用于单列查询 getBaseColumn/getHeight）
      *
-     * MC 1.21: 构造时将 Beardifier 叠加到 finalDensity 上，
-     * 包装在 CacheAllInCell 中，mapAll 时将 BeardifierMarker 替换为实际 Beardifier。
-     * 高度查询传入 BeardifierMarker（零贡献），区块生成传入实际 Beardifier。
+     * 方案X 阶段5-7：不再每区块整树深拷贝。改为从 RandomState 维度级编译产物
+     * newInstance（含 Marker 的 slot 把占位替换为 per-chunk 缓存对象）+ Adapter 组装新 m_router。
+     * finalDensity 区块级 OOP 组装为 CellCache(Add(Adapter(finalDensity区块级), beardifier))，
+     * 对齐原 Marker(CacheAllInCell, Add(finalDensity, BeardifierMarker))→apply 替换语义。
+     * Beardifier 始终区块期 OOP 注入（不进编译产物）。
      */
-    NoiseChunk(NoiseRouter router,
+    NoiseChunk(const ::mc::world::gen::RandomState& randomState,
         i32 cellWidth,
         i32 cellHeight,
         i32 cellCountY,
@@ -469,24 +482,11 @@ public:
         std::unique_ptr<DensityFunction> beardifier = nullptr,
         i32 cellCountXZ = -1);
 
-    ~NoiseChunk() override;
+    ~NoiseChunk();
     NoiseChunk(const NoiseChunk&) = delete;
     NoiseChunk& operator=(const NoiseChunk&) = delete;
     NoiseChunk(NoiseChunk&&) noexcept;
     NoiseChunk& operator=(NoiseChunk&&) = delete;
-
-    // ========== DensityFunction::Visitor 接口 ==========
-
-    /**
-     * @brief NoiseChunk 的密度函数包装 Visitor
-     *
-     * 将 Marker 类型替换为 NoiseChunk 特定实现：
-     * - Interpolated → NoiseInterpolator
-     * - CacheAllInCell → CellCache
-     * - CacheOnce → 保持原样（后续绑定 interpolationCounter）
-     * - FlatCache/Cache2D → 保持原样
-     */
-    [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> function) override;
 
     // ========== 坐标查询（充当 FunctionContext）==========
 
@@ -704,6 +704,36 @@ public:
      */
     [[nodiscard]] const std::vector<std::unique_ptr<CellCache>>& cellCaches() const { return m_cellCaches; }
 
+    // ========== 区块级newInstance 注册接口（阶段5：CompiledDensityFunction::newInstance 用）==========
+    //
+    // CompiledDensityFunction::newInstance 把 MARKER 占位替换为 per-chunk 缓存对象，
+    // 通过这些方法把缓存对象所有权转入 NoiseChunk 容器并绑定区块上下文，封装对私有成员的访问。
+
+    /**
+     * @brief 注册 NoiseInterpolator（所有权转入 m_interpolators），返回裸指针供 RuntimeObject 登记。
+     * @param interpolator 已 bindNoiseChunk 的插值器
+     * @return 插值器裸指针（存入容器后）
+     */
+    NoiseInterpolator* registerInterpolator(std::unique_ptr<NoiseInterpolator> interpolator);
+
+    /**
+     * @brief 注册 CellCache（所有权转入 m_cellCaches），返回裸指针供 RuntimeObject 登记。
+     * @param cellCache 已 bindNoiseChunk 的 cell 缓存
+     * @return cell 缓存裸指针（存入容器后）
+     */
+    CellCache* registerCellCache(std::unique_ptr<CellCache> cellCache);
+
+    /**
+     * @brief 绑定 CacheOnce 的插值计数器与 NoiseChunk 上下文
+     *
+     * CacheOnce::bindInterpolationCounter 需 NoiseChunk 私有成员（m_interpolationCounter/
+     * m_arrayInterpolationCounter/m_arrayIndex）的地址，封装此访问供 newInstance 调用。
+     * CacheOnce 所有权由 newInstance 的 CompiledDensityFunction::m_ownedCaches 持有（拥有型缓存）。
+     *
+     * @param cacheOnce 待绑定的 CacheOnce
+     */
+    void bindCacheOnceCounters(CacheOnce& cacheOnce);
+
     // ========== 含水层 ==========
 
     /**
@@ -755,6 +785,13 @@ public:
     void setBlockStateRule(std::unique_ptr<BlockStateFiller> rule) { m_blockStateRule = std::move(rule); }
 
 private:
+    /// 方案X 阶段5-7：从 RandomState 维度级编译产物 newInstance + Adapter 组装区块级 NoiseRouter。
+    /// 在构造函数成员初始化列表调用（this 的 m_cellConfig/m_interpolators/m_cellCaches/m_beardifier
+    /// 均在 m_router 之前声明，已初始化）。finalDensity OOP 组装 CellCache(Add(Adapter, beardifier))。
+    /// beardifier 为空时兜底为 BeardifierMarker（零贡献）。
+    [[nodiscard]] NoiseRouter buildCompiledRouter(
+        const ::mc::world::gen::RandomState& randomState, std::unique_ptr<DensityFunction> beardifier);
+
     CellConfig m_cellConfig;
 
     i32 m_startBlockX;
@@ -796,14 +833,11 @@ private:
     /// 所有 CellCache 实例（由 apply() 注册）
     std::vector<std::unique_ptr<CellCache>> m_cellCaches;
 
-    /// Beardifier 密度函数（结构地形贡献）
-    /// 在 m_router 之前声明，确保析构顺序：router 中的 DensityFunctionReference 引用此对象，
-    /// 必须先销毁 router 再销毁 beardifier
-    std::unique_ptr<DensityFunction> m_beardifier;
-
-    /// 噪声路由器（放在 interpolators/cellCaches/beardifier 之后，确保析构顺序正确：
+    /// 噪声路由器（放在 interpolators/cellCaches 之后，确保析构顺序正确：
     /// router 中的 DensityFunctionReference 引用 interpolators/cellCaches 中的对象，
-    /// 必须先销毁 router 再销毁这些容器）
+    /// 必须先销毁 router 再销毁这些容器。方案X 阶段5-7：m_router 由 buildCompiledRouter
+    /// 从维度级编译产物 newInstance + Adapter 组装，finalDensity 的 CellCache(Add(Adapter,beardifier))
+    /// 中 beardifier 所有权在 m_cellCaches 的 CellCache 内）
     NoiseRouter m_router;
 
     /// preliminarySurfaceLevel 按 4 方块网格离散化后缓存

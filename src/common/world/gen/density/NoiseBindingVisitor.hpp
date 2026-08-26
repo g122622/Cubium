@@ -40,23 +40,17 @@ namespace mc::world::gen::density {
  *
  * 对应原版 1.21.11 RandomState.NoiseWiringHelper（mapAll visitor）。
  *
- * 两条使用路径（由 enableSharing 区分）：
- *
- * 1. create 期 buildRouterFromTemplate（enableSharing=true）：对 DimensionSettings::m_routerDfs
- *    15 槽模板调用 mapAll(*this)，本访问者遍历到每个节点：
- *    - UnboundNoiseLeaf（NormalNoise 系：noise/shifted_noise/shift_a/shift_b/shift/
- *      mapped_noise/weird_scaled_sampler）→ 调 rs.getOrCreateNoiseShared(name) 取
- *      shared_ptr<const NormalNoise>（name-hash via fromHashOf，与原版 getOrCreateNoise 一致），
- *      构造真实叶子 NoiseDensity/ShiftedNoise/ShiftNoise/MappedNoise/WeirdScaledSampler。
- *    - UnboundNoiseLeaf（OldBlendedNoise）→ BlendedNoise，种子由
- *      positionalRandom.fromHashOf("minecraft:terrain") 派生（原版 wrapNew 走 fromHashOf("terrain")）。
- *    - UnboundEndIslands → EndIslands(worldSeed)（原版 wrapNew 走 EndIslandDensityFunction(seed)）。
- *    - 其余节点：若纯拓扑（isShareable）→ 包 SharedTopology 跨区块共享；否则原样返回。
- *    产出 m_router 共享化树（纯拓扑子树共享，Marker 路径独立）。
- *
- * 2. createRouterCopy 期 mapAllCopy（enableSharing=false）：对已绑定 + 共享化的 m_router
- *    派生每区块独立副本。纯透传——SharedTopology 原样透传（零深拷贝内部），Marker 路径
- *    深拷贝。不再二次共享化，避免 SharedTopology 嵌套。
+ * 使用路径：create 期 buildRouterFromTemplate（唯一构造点）。对 DimensionSettings::m_routerDfs
+ * 15 槽模板调用 mapAll(*this)，本访问者遍历到每个节点：
+ * - UnboundNoiseLeaf（NormalNoise 系：noise/shifted_noise/shift_a/shift_b/shift/
+ *   mapped_noise/weird_scaled_sampler）→ 调 rs.getOrCreateNoiseShared(name) 取
+ *   shared_ptr<const NormalNoise>（name-hash via fromHashOf，与原版 getOrCreateNoise 一致），
+ *   构造真实叶子 NoiseDensity/ShiftedNoise/ShiftNoise/MappedNoise/WeirdScaledSampler。
+ * - UnboundNoiseLeaf（OldBlendedNoise）→ BlendedNoise，种子由
+ *   positionalRandom.fromHashOf("minecraft:terrain") 派生（原版 wrapNew 走 fromHashOf("terrain")）。
+ * - UnboundEndIslands → EndIslands(worldSeed)（原版 wrapNew 走 EndIslandDensityFunction(seed)）。
+ * - 其余节点：若纯拓扑（isShareable）→ 包 SharedTopology 跨区块共享；否则原样返回。
+ * 产出 m_router 共享化树（纯拓扑子树共享，Marker 路径独立）。
  *
  * 关键：mapAll 各子类 override 已 make_unique 出新节点再传入 apply，故 apply 收到的是
  * 深拷贝后的节点；对占位节点替换为真实叶子，对纯拓扑节点包装共享，对其余节点直接返回。
@@ -68,13 +62,11 @@ public:
      *
      * @param randomState 随机状态（提供 getOrCreateNoiseShared / positionalRandom）
      * @param worldSeed 世界种子（EndIslands 构造用）
-     * @param enableSharing 是否在绑定后对纯拓扑子树包装 SharedTopology。
-     *        - true（create 期 buildRouterFromTemplate）：绑定 + 共享化，产出 m_router 共享化树。
-     *        - false（createRouterCopy 期 mapAllCopy）：纯透传——对已绑定 + 共享化树，
-     *          SharedTopology 原样透传（零深拷贝内部），Marker 路径深拷贝。不再二次共享化，
-     *          避免每区块 SharedTopology 嵌套包装（虽数值正确但冗余 make_unique）。
+     *
+     * 绑定 + 共享化：对 m_routerDfs 模板遍历，替换占位为真实叶子，纯拓扑子树包 SharedTopology
+     * 跨区块共享，产出 m_router 共享化树。仅 create 期 buildRouterFromTemplate 单一调用点。
      */
-    NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed, bool enableSharing = true);
+    NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed);
 
     [[nodiscard]] std::unique_ptr<DensityFunction> apply(std::unique_ptr<DensityFunction> function) override;
 
@@ -111,7 +103,6 @@ private:
 
     const RandomState& m_randomState;
     u64 m_worldSeed;
-    bool m_enableSharing;
 };
 
 } // namespace mc::world::gen::density

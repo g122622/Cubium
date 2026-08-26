@@ -366,8 +366,8 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
         MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "CreateNoiseChunk");
         // 将 shared_ptr 中的 Beardifier 移动到 unique_ptr 中传入 NoiseChunk
         auto beardifierUnique = std::make_unique<world::gen::density::Beardifier>(std::move(*beardifierDf));
-        auto routerCopy = m_randomState->createRouterCopy();
-        auto nc = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+        // 方案X 阶段5-7：传 *m_randomState，NoiseChunk 从维度级编译产物 newInstance 组装区块级 router。
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
             m_cellWidth,
             m_cellHeight,
             cellCountY,
@@ -768,7 +768,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     // 创建单列 NoiseChunk（cellCountXZ=1）
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1，与区块生成的 cellCountXZ=4 不同
     // cellCountXZ=1 使得 NoiseInterpolator 只分配 2 个 Z 切片而非 5 个
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+    // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -851,7 +852,8 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 
     // 创建单列 NoiseChunk（使用 BeardifierMarker 零贡献，与 getHeight 一致）
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+    // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -969,8 +971,9 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
         return chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, &region, &chunk]() {
             // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
             // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
+            // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
             auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
-            auto nc = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+            auto nc = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
                 m_cellWidth,
                 m_cellHeight,
                 cellCountY,

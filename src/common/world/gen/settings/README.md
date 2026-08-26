@@ -83,7 +83,6 @@ NoiseSettings noise = NoiseSettings::nether();
 添加新 `DimensionKind` 枚举值后，必须同时更新以下 switch 语句：
 - `RandomState::create()` — NoiseRouter 选择
 - `RandomState::create()` — SurfaceRules 选择
-- `RandomState::createRouterCopy()` — 路由器副本创建
 - `NoiseChunkGenerator` 构造函数 — 流体选择器选择
 
 ### 5. oreVeinsEnabled 字段

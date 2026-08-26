@@ -34,10 +34,9 @@
 
 namespace mc::world::gen::density {
 
-NoiseBindingVisitor::NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed, bool enableSharing)
+NoiseBindingVisitor::NoiseBindingVisitor(const RandomState& randomState, u64 worldSeed)
     : m_randomState(randomState)
     , m_worldSeed(worldSeed)
-    , m_enableSharing(enableSharing)
 {}
 
 std::unique_ptr<DensityFunction> NoiseBindingVisitor::apply(std::unique_ptr<DensityFunction> function)
@@ -61,26 +60,22 @@ std::unique_ptr<DensityFunction> NoiseBindingVisitor::apply(std::unique_ptr<Dens
         return bindUnbound(std::move(*leaf));
     }
 
-    // 性能优化：纯拓扑子树跨区块共享（仅 create 期 buildRouterFromTemplate 启用）。
+    // 性能优化：纯拓扑子树跨区块共享。
     // 此时 function 是 mapAll 深拷贝后的新节点，其子树已绑定完毕（占位已替换为真叶子，
     // 子节点若纯拓扑也已被本分支递归包装为 SharedTopology）。若整棵子树纯拓扑，移入
-    // shared_ptr 包成 SharedTopology 返回——后续 createRouterCopy / NoiseChunk::apply 的
-    // 每次 mapAll 遇到 SharedTopology 都零深拷贝（SharedTopology::mapAll 返回持同一
-    // shared_ptr 的新包装）。仅含 Marker / per-chunk 可变节点的路径不共享，走原深拷贝。
+    // shared_ptr 包成 SharedTopology 返回——维度级编译时 McToAst 转 SharedSubtreeRefNode，
+    // 内部子树独立编译为可复用求值器，跨区块零深拷贝。仅含 Marker / per-chunk 可变节点的
+    // 路径不共享，走原深拷贝（维度级 newInstance 时替换为 per-chunk 缓存对象）。
     //
     // isShareable 对 SharedTopology 直接返回 true（语义不变量），故自底向上：叶子纯拓扑
     // →SharedTopology；复合节点（子已 SharedTopology）→ 整棵 SharedTopology；含 Marker
     // 的节点 → false 保留独立，但其纯拓扑子树已共享化。
-    //
-    // createRouterCopy（enableSharing=false）不跑此分支：m_router 已共享化，再次包装只会
-    // 造成 SharedTopology 嵌套（虽数值正确但每区块冗余 make_unique）。透传分支对
-    // SharedTopology 原样返回（SharedTopology::mapAll 已 make_unique 新轻量包装，内部零深拷贝）。
-    if (m_enableSharing && isShareable(*function)) {
+    if (isShareable(*function)) {
         return std::make_unique<SharedTopology>(std::shared_ptr<const DensityFunction>(std::move(function)));
     }
 
-    // 含 Marker / per-chunk 可变节点 / 已共享化的 SharedTopology（createRouterCopy 透传）：
-    // 原样返回（mapAll 的 make_unique 已深拷贝，保留新节点）
+    // 含 Marker / per-chunk 可变节点 / 已共享化的 SharedTopology：原样返回
+    // （mapAll 的 make_unique 已深拷贝，保留新节点）
     return function;
 }
 

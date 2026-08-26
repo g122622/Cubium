@@ -172,9 +172,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunk_CachedClimateSampler_SetsSpawnTarg
     auto settings = DimensionSettings::overworld();
     const auto& expectedSpawnTarget = settings.spawnTarget;
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto routerCopy = randomState->createRouterCopy();
-
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -209,9 +207,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunk_CachedClimateSampler_EmptySpawnTar
 
     auto settings = DimensionSettings::nether(); // 空 spawnTarget
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto routerCopy = randomState->createRouterCopy();
-
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -238,9 +234,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunk_CachedClimateSampler_DefaultArg_Em
 
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto routerCopy = randomState->createRouterCopy();
-
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -268,9 +262,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunk_CachedClimateSampler_CachesSampler
 
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto routerCopy = randomState->createRouterCopy();
-
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,
@@ -302,9 +294,7 @@ TEST_F(SpawnTargetIntegrationTest, NoiseChunk_CachedClimateSampler_DifferentSpaw
 
     auto settings = DimensionSettings::overworld();
     auto randomState = world::gen::RandomState::create(settings, seed);
-    auto routerCopy = randomState->createRouterCopy();
-
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,

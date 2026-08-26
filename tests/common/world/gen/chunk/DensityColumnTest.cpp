@@ -122,8 +122,7 @@ TEST_F(DensityColumnTest, DensityColumnAtX4VsX12)
         const i32 alignedX = cellX * cellWidth;
         const f64 deltaX = static_cast<f64>(testX - alignedX) / static_cast<f64>(cellWidth);
 
-        auto routerCopy = randomState->createRouterCopy();
-        auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+        auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
             cellWidth,
             cellHeight,
             cellCountY,
@@ -184,9 +183,8 @@ TEST_F(DensityColumnTest, CellBoundaryDensityTest)
 
     // 创建完整区块的 NoiseChunk（cellCountXZ=4）
     auto randomState = world::gen::RandomState::create(DimensionSettings::overworld(), seed);
-    auto routerCopy = randomState->createRouterCopy();
 
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*randomState,
         cellWidth,
         cellHeight,
         cellCountY,

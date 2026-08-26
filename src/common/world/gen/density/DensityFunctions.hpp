@@ -1265,9 +1265,6 @@ public:
     [[nodiscard]] MarkerType markerType() const { return m_type; }
     [[nodiscard]] const DensityFunction& wrapped() const { return *m_wrapped; }
 
-    /** 释放被包装的函数（用于 NoiseChunk::wrap 替换时取出子函数） */
-    [[nodiscard]] std::unique_ptr<DensityFunction> releaseWrapped() { return std::move(m_wrapped); }
-
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         auto newWrapped = m_wrapped->mapAll(visitor);
@@ -1334,7 +1331,8 @@ private:
  *
  * 不可共享的节点（Marker / Cache2D / FlatCache / CacheAllInCell /
  * NoiseInterpolator / CellCache / CacheOnce / Beardifier 及含它们的子树）
- * 仍由 NoiseBindingVisitor 走原 mapAll 深拷贝路径，每区块独立实例。
+ * 不被 SharedTopology 包装：维度级编译产物中由 MARKER 指令占位，区块级 newInstance
+ * 时替换为 per-chunk 缓存对象（独立实例）；纯 Beardifier 留 NoiseChunk OOP 层注入。
  *
  * 线程安全：内部子树 compute() 纯只读，多 worker 并发 compute 同一共享实例安全；
  * mapAll 不修改内部，并发 mapAll 安全（仅 shared_ptr 引用计数原子操作）。

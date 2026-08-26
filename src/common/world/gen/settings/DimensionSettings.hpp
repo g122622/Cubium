@@ -140,7 +140,7 @@ struct DimensionSettings {
      * 由 NoiseSettingsLoader 从 noise_settings JSON 的 noise_router 对象解析，
      * 每字段是 DF Holder（字符串 RL → 查 DensityFunctionRegistry；内联对象 → TypeRegistry；
      * 裸数字 → Constant）。噪声叶子（noise/shifted_noise/.../old_blended_noise）解析期存
-     * UnboundNoiseLeaf 占位，由 RandomState::create/createRouterCopy 经 NoiseBindingVisitor
+     * UnboundNoiseLeaf 占位，由 RandomState::create 经 NoiseBindingVisitor（buildRouterFromTemplate）
      * 替换为真实叶子（getOrCreateNoise(name) name-hash）。
      *
      * shared_ptr 使得 DimensionSettings 可拷贝且 15 槽位可被多个 RandomState 共享模板。

@@ -28,6 +28,9 @@
 #include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/NoiseBindingVisitor.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
+#include "common/world/gen/density/ast/BytecodeGen.hpp"
+#include "common/world/gen/density/ast/McToAst.hpp"
+#include "common/world/gen/density/ast/OptoPasses.hpp"
 #include "common/world/gen/noise/Noises.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -54,8 +57,8 @@ namespace {
 
 /// 从 m_routerDfs 模板（15 槽 UnboundNoiseLeaf 占位）经 NoiseBindingVisitor 绑定后构造 NoiseRouter。
 /// mapAll 对每个槽 DF 递归深拷贝 + 替换占位（一次完成深拷贝 + 绑定），同时 NoiseBindingVisitor::apply
-/// 对纯拓扑子树包装为 SharedTopology（跨区块共享）。仅 RandomState::create 调用一次产出 m_router；
-/// createRouterCopy 不再走此路径，改为 m_router->mapAllCopy 复用共享化树。
+/// 对纯拓扑子树包装为 SharedTopology（跨区块共享）。仅 RandomState::create 调用一次产出 m_router。
+/// create 末尾再对 m_router 的 15 root 做维度级编译（compileRouter），区块级不再走此路径。
 /// const RandomState&：NoiseBindingVisitor 仅调用 getOrCreateNoiseShared（const，mutable 噪声缓存）
 /// + positionalRandom() const 重载。
 density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, const RandomState& rs, u64 worldSeed)
@@ -163,29 +166,42 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
         state->m_oreRandom = std::make_unique<::mc::math::PositionalRandomFactory>(oreRng->forkPositional());
     }
 
+    // 6. 维度级编译 15 root（方案X 阶段5-6）：从绑定后的 m_router 取各 root 原树，
+    //    McToAst + OptoPasses + BytecodeGen 编译为维度级 CompiledDensityFunction（不可变）。
+    //    finalDensity 编译原树（不含 Beardifier），其他 14 root 同样编译原树。
+    //    NoiseChunk 构造时按 RouterSlot 取对应产物 newInstance 得区块级求值器。
+    state->compileRouter();
+
     return state;
 }
 
-density::NoiseRouter RandomState::createRouterCopy() const
+void RandomState::compileRouter()
 {
-    // 每区块需独立路由器副本：从 create 期已共享化的 m_router 派生。
-    //
-    // m_router 的树中纯拓扑子树已由 NoiseBindingVisitor::apply 包装为 SharedTopology
-    // （create 期 buildRouterFromTemplate 时完成）。mapAllCopy 对每个根调 mapAll(visitor)
-    // （const，返回新 unique_ptr）组装新 NoiseRouter，不修改 m_router。
-    //
-    // 共享语义：NoiseBindingVisitor(enableSharing=false) 对已绑定树（无 UnboundNoiseLeaf 占位）
-    // + 已共享化树表现为——SharedTopology 原样透传（SharedTopology::mapAll 返回持同一 shared_ptr
-    // 的新包装，零深拷贝内部），含 Marker / per-chunk 可变节点的路径深拷贝（每区块独立）。
-    // 不再二次共享化，避免每区块 SharedTopology 嵌套包装。底层 NormalNoise 经
-    // getOrCreateNoiseShared 缓存共享，不每区块重建 PerlinNoise 倍频置换表。
-    //
-    // 相比旧实现（buildRouterFromTemplate 每区块整树深拷贝 15 棵），纯拓扑子树零深拷贝，
-    // 仅 Marker 路径深拷贝，析构 free 次数大幅下降。
-    density::NoiseBindingVisitor visitor(*this, m_worldSeed, /*enableSharing=*/false);
-    return m_router->mapAllCopy(visitor);
-}
+    // 按 RouterSlot 枚举顺序遍历 15 root，各自编译为维度级 CompiledDensityFunction。
+    // RouterSlot 枚举顺序与 NoiseRouter 访问器顺序一致。
+    const auto compileSlot = [this](RouterSlot slot, const density::DensityFunction& rootDf) {
+        const auto ast = density::ast::McToAst::convert(rootDf);
+        const auto optimized = density::ast::OptoPasses::optimize(ast);
+        auto compiled = density::ast::BytecodeGen::compile(optimized, rootDf.minValue(), rootDf.maxValue());
+        m_compiledRouter[static_cast<size_t>(slot)] = std::move(compiled);
+    };
 
+    compileSlot(RouterSlot::Barrier, m_router->barrierNoise());
+    compileSlot(RouterSlot::FluidLevelFloodedness, m_router->fluidLevelFloodednessNoise());
+    compileSlot(RouterSlot::FluidLevelSpread, m_router->fluidLevelSpreadNoise());
+    compileSlot(RouterSlot::Lava, m_router->lavaNoise());
+    compileSlot(RouterSlot::Temperature, m_router->temperature());
+    compileSlot(RouterSlot::Vegetation, m_router->vegetation());
+    compileSlot(RouterSlot::Continents, m_router->continents());
+    compileSlot(RouterSlot::Erosion, m_router->erosion());
+    compileSlot(RouterSlot::Depth, m_router->depth());
+    compileSlot(RouterSlot::Ridges, m_router->ridges());
+    compileSlot(RouterSlot::PreliminarySurfaceLevel, m_router->preliminarySurfaceLevel());
+    compileSlot(RouterSlot::FinalDensity, m_router->finalDensity());
+    compileSlot(RouterSlot::VeinToggle, m_router->veinToggle());
+    compileSlot(RouterSlot::VeinRidged, m_router->veinRidged());
+    compileSlot(RouterSlot::VeinGap, m_router->veinGap());
+}
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
 {
     // 命中路径：shared_lock 并发读

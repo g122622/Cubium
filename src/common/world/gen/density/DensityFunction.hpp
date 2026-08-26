@@ -96,19 +96,6 @@ public:
      * @return 变换后的密度函数（可能是新对象）
      */
     [[nodiscard]] virtual std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const = 0;
-
-    /**
-     * @brief 辅助函数：对 unique_ptr 中的密度函数原地应用 mapAll
-     *
-     * 调用 func->mapAll(visitor) 并将结果写回 func。
-     * 如果 visitor 替换了节点，func 将指向新对象。
-     */
-    static void applyInPlace(std::unique_ptr<DensityFunction>& func, Visitor& visitor)
-    {
-        if (func) {
-            func = func->mapAll(visitor);
-        }
-    }
 };
 
 /**

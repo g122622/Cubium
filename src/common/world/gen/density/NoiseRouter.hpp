@@ -106,52 +106,6 @@ public:
      */
     [[nodiscard]] mc::world::biome::climate::Sampler createClimateSampler() const;
 
-    /**
-     * @brief 对所有 15 个密度函数递归应用 visitor
-     *
-     * MC 1.21 对应 NoiseRouter.mapAll(Visitor)。
-     * 对每个密度函数调用 mapAll(visitor)，将结果写回路由器。
-     * 用于 NoiseChunk 构造时将 Marker 类型替换为特定实现。
-     *
-     * @param visitor 访问者
-     */
-    void mapAll(DensityFunction::Visitor& visitor);
-
-    /**
-     * @brief 对所有 15 个密度函数递归应用 visitor，返回新路由器（不改 this）
-     *
-     * 性能优化路径：RandomState::createRouterCopy 用此方法从已共享化的 m_router
-     * 派生每区块独立副本。与 mapAll 的区别：mapAll 是非 const、applyInPlace 就地替换
-     * 成员（用于 NoiseChunk 在自己的副本上替换 Marker）；mapAllCopy 是 const、对每个
-     * 成员调用 mapAll(visitor)（const，返回新 unique_ptr）组装成新 NoiseRouter，this 不变。
-     *
-     * 共享语义：m_router 经 extractShareableTopology 处理后，纯拓扑子树已包装为
-     * SharedTopology。SharedTopology::mapAll 返回持同一 shared_ptr 的新包装（零深拷贝），
-     * 故 mapAllCopy 对纯拓扑子树零深拷贝，仅含 Marker / per-chunk 可变节点的路径每区块
-     * 深拷贝。这是 createRouterCopy 不再每区块整树深拷贝的核心。
-     *
-     * @param visitor 访问者（RandomState::createRouterCopy 传入 NoiseBindingVisitor，
-     *                对已绑定树表现为透传 + Marker 路径深拷贝）
-     * @return 新的独立 NoiseRouter（纯拓扑子树共享，Marker 路径独立）
-     */
-    [[nodiscard]] NoiseRouter mapAllCopy(DensityFunction::Visitor& visitor) const;
-
-    /**
-     * @brief 提取 finalDensity 密度函数（移出所有权）
-     *
-     * 用于 NoiseChunk 构造时提取 finalDensity，叠加 BeardifierMarker 后替换回去。
-     * 调用后 finalDensity() 将返回空指针，必须立即调用 replaceFinalDensity()。
-     */
-    [[nodiscard]] std::unique_ptr<DensityFunction> extractFinalDensity();
-
-    /**
-     * @brief 替换 finalDensity 密度函数
-     *
-     * 用于将叠加了 BeardifierMarker 并包装在 CacheAllInCell 中的组合密度函数
-     * 设置回路由器。
-     */
-    void replaceFinalDensity(std::unique_ptr<DensityFunction> density);
-
 private:
     // 洞穴
     std::unique_ptr<DensityFunction> m_barrierNoise;

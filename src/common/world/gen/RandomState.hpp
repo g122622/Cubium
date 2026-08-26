@@ -28,9 +28,11 @@
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/gen/density/NoiseRouter.hpp"
+#include "common/world/gen/density/ast/CompiledDensityFunction.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include "common/world/gen/surface/SurfaceSystem.hpp"
+#include <array>
 #include <memory>
 #include <shared_mutex>
 #include <string>
@@ -70,17 +72,23 @@ public:
     [[nodiscard]] const density::NoiseRouter& router() const { return *m_router; }
 
     /**
-     * @brief 创建噪声路由器的独立副本
+     * @brief 维度级编译产物（方案X 阶段5-6）
      *
-     * NoiseChunk 构造时需要拥有自己的路由器副本，
-     * 以便 mapAll() 可以将 Marker 替换为区块特定实现。
-     * 每个区块生成任务调用一次。
+     * create 末尾对全部 15 root 各自 McToAst + OptoPasses + BytecodeGen 编译为
+     * 维度级 CompiledDensityFunction（不可变）。finalDensity 编译的是原树（不含
+     * Beardifier），故维度级数值 = 原 finalDensity。NoiseChunk 构造时按 RouterSlot
+     * 取对应产物 newInstance 得区块级求值器（含 Marker 走 newInstance，无 Marker 的
+     * 4 洞穴槽 + VeinGap 直接 Adapter 包装维度级产物共享）。
      *
-     * 性能优化：直接复用 create 期缓存的已绑定共享拓扑树（m_boundTopology），
-     * 纯拓扑子树以 SharedTopology 跨区块共享（零深拷贝），仅含 Marker 的路径
-     * 走原 mapAll 深拷贝（per-chunk 重建）。不再每区块重新 buildRouterFromTemplate。
+     * shared_ptr：区块级 newInstance 可能共享无 Marker 的维度级子求值器（零深拷贝）。
+     *
+     * @return 按 RouterSlot 枚举索引的 15 个维度级编译产物
      */
-    [[nodiscard]] density::NoiseRouter createRouterCopy() const;
+    [[nodiscard]] const std::array<std::shared_ptr<density::ast::CompiledDensityFunction>, ROUTER_SLOT_COUNT>&
+    compiledRouter() const
+    {
+        return m_compiledRouter;
+    }
 
     /** 气候采样器（6 个气候密度函数的封装） */
     [[nodiscard]] biome::climate::Sampler& sampler() { return *m_sampler; }
@@ -147,10 +155,19 @@ public:
 private:
     RandomState(u64 worldSeed, const DimensionSettings& settings);
 
+    /// 维度级编译 15 root（方案X 阶段5-6）：create 末尾调用。
+    /// 从绑定后的 m_router 取各 root 原树，McToAst + OptoPasses + BytecodeGen 编译。
+    void compileRouter();
+
     u64 m_worldSeed;
     DimensionSettings m_settings;
 
     std::unique_ptr<density::NoiseRouter> m_router;
+
+    /// 维度级编译产物（方案X 阶段5-6）：按 RouterSlot 枚举索引 15 个 root 的编译产物。
+    /// create 末尾编译；NoiseChunk 构造时取用 newInstance。
+    std::array<std::shared_ptr<density::ast::CompiledDensityFunction>, ROUTER_SLOT_COUNT> m_compiledRouter{};
+
     std::unique_ptr<biome::climate::Sampler> m_sampler;
     std::unique_ptr<surface::SurfaceSystem> m_surfaceSystem;
     std::unique_ptr<::mc::math::PositionalRandomFactory> m_aquiferRandom;
@@ -160,8 +177,8 @@ private:
     // 噪声实例缓存（name → NormalNoise）
     // shared_ptr 存储：数据驱动噪声叶子绑定（NoiseBindingVisitor）需 shared_ptr<const NormalNoise>
     // 共享所有权，叶子跨区块 mapAll 复用同一 NormalNoise。getOrCreateNoise 返回 NormalNoise&（*it->second）。
-    // mutable：getOrCreateNoiseShared 是 const（createRouterCopy 经 NoiseBindingVisitor 在 const 路径
-    // 调用，每区块一次，逻辑不改 RandomState 状态），噪声缓存为惰性初始化的派生状态，故允许 const 写入。
+    // mutable：getOrCreateNoiseShared 是 const（NoiseBindingVisitor 在 const 路径调用，逻辑不改
+    // RandomState 状态），噪声缓存为惰性初始化的派生状态，故允许 const 写入。
     mutable std::unordered_map<std::string, std::shared_ptr<noise::NormalNoise>> m_noiseCache;
 
     // 位置随机工厂缓存（name → PositionalRandomFactory）

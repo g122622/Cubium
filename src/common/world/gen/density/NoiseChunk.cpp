@@ -23,15 +23,20 @@
 
 #include "common/world/gen/density/NoiseChunk.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/aquifer/Aquifer.hpp"
+#include "common/world/gen/density/Beardifier.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/profiler/TraceCategories.hpp"
-#include "common/profiler/TraceEvents.hpp"
+#include "common/world/gen/density/ast/CompiledDensityFunction.hpp"
+#include "common/world/gen/density/ast/CompiledDensityFunctionAdapter.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -362,7 +367,7 @@ f64 CacheOnce::compute(i32 blockX, i32 blockY, i32 blockZ) const
 // NoiseChunk 实现
 // ============================================================================
 
-NoiseChunk::NoiseChunk(NoiseRouter router,
+NoiseChunk::NoiseChunk(const ::mc::world::gen::RandomState& randomState,
     i32 cellWidth,
     i32 cellHeight,
     i32 cellCountY,
@@ -371,26 +376,78 @@ NoiseChunk::NoiseChunk(NoiseRouter router,
     i32 startBlockZ,
     std::unique_ptr<DensityFunction> beardifier,
     i32 cellCountXZ)
-    : m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
+    : m_cellConfig{cellWidth,
+          cellHeight,
+          (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth),
+          cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
     , m_firstCellX(math::floorDiv(startBlockX, cellWidth))
     , m_firstCellY(math::floorDiv(startBlockY, cellHeight))
     , m_firstCellZ(math::floorDiv(startBlockZ, cellWidth))
-    , m_beardifier(std::move(beardifier))
-    , m_router(std::move(router))
+    // 方案X 阶段5-7：beardifier 直接传给 buildCompiledRouter OOP 组装 CellCache(Add(...))。
+    // 阶段6 已删除 m_beardifier 成员与 apply（beardifier 所有权在 m_cellCaches 的 CellCache 内）。
+    , m_router(buildCompiledRouter(randomState, std::move(beardifier)))
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunk::ctor");
+}
 
-    m_cellConfig.cellCountXZ = (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth);
+// 方案X 阶段5-7：从 RandomState 维度级编译产物 newInstance + Adapter 组装区块级 NoiseRouter。
+// 含 Marker 的 slot 走 newInstance（把 MARKER 占位替换为 per-chunk 缓存对象），
+// 无 Marker 的 slot（4 洞穴槽 Barrier/FluidLevelFloodedness/FluidLevelSpread/Lava + VeinGap）
+// 直接共享维度级产物（零 newInstance，零深拷贝）。
+// finalDensity OOP 组装 CellCache(Add(Adapter(finalDensity 区块级), beardifier))，
+// 对齐原 Marker(CacheAllInCell, Add(finalDensity, BeardifierMarker))→apply 替换语义。
+// beardifier 为空时兜底为 BeardifierMarker（零贡献）。
+NoiseRouter NoiseChunk::buildCompiledRouter(
+    const ::mc::world::gen::RandomState& randomState, std::unique_ptr<DensityFunction> beardifier)
+{
+    const auto& compiled = randomState.compiledRouter();
 
-    auto currentFinalDensity = m_router.extractFinalDensity();
-    auto composite = std::make_unique<TwoArgument>(
-        std::move(currentFinalDensity), factory::beardifierMarker(), TwoArgumentType::Add);
-    auto cachedComposite = std::make_unique<Marker>(MarkerType::CacheAllInCell, std::move(composite));
-    m_router.replaceFinalDensity(std::move(cachedComposite));
+    // 区块级求值器：含 Marker 的 newInstance，无 Marker 的共享维度级。Adapter 包装为 DensityFunction。
+    const auto slotAdapter = [this, &compiled](RouterSlot slot) -> std::unique_ptr<DensityFunction> {
+        const auto& dimCompiled = compiled[static_cast<size_t>(slot)];
+        std::shared_ptr<ast::CompiledDensityFunction> chunkCompiled;
+        if (dimCompiled->hasMarkerOrBeardifier()) {
+            chunkCompiled = dimCompiled->newInstance(*this);
+        } else {
+            chunkCompiled = dimCompiled; // 共享维度级（不可变，零 newInstance）
+        }
+        return std::make_unique<ast::CompiledDensityFunctionAdapter>(std::move(chunkCompiled));
+    };
 
-    m_router.mapAll(*this);
+    // finalDensity 区块级求值器（已 newInstance，含 finalDensity 树内所有 Marker 缓存对象）。
+    const auto& fdDimCompiled = compiled[static_cast<size_t>(RouterSlot::FinalDensity)];
+    auto fdChunkCompiled = fdDimCompiled->hasMarkerOrBeardifier() ? fdDimCompiled->newInstance(*this) : fdDimCompiled;
+    auto fdAdapter = std::make_unique<ast::CompiledDensityFunctionAdapter>(std::move(fdChunkCompiled));
+
+    // beardifier：区块生成传真实 Beardifier，高度查询传 BeardifierMarker（零贡献），nullptr 兜底为零贡献。
+    if (!beardifier) {
+        beardifier = std::make_unique<BeardifierMarker>();
+    }
+    // 组装 Add(finalDensity 区块级, beardifier) 并包 CellCache（对齐原 CacheAllInCell 包装）。
+    auto composite = std::make_unique<TwoArgument>(std::move(fdAdapter), std::move(beardifier), TwoArgumentType::Add);
+    auto cellCache = std::make_unique<CellCache>(std::move(composite), m_cellConfig.cellWidth, m_cellConfig.cellHeight);
+    cellCache->bindNoiseChunk(this);
+    CellCache* cellCacheRaw = cellCache.get();
+    m_cellCaches.push_back(std::move(cellCache));
+    auto finalDensityDf = std::make_unique<DensityFunctionReference>(*cellCacheRaw);
+
+    return NoiseRouter(slotAdapter(RouterSlot::Barrier),
+        slotAdapter(RouterSlot::FluidLevelFloodedness),
+        slotAdapter(RouterSlot::FluidLevelSpread),
+        slotAdapter(RouterSlot::Lava),
+        slotAdapter(RouterSlot::Temperature),
+        slotAdapter(RouterSlot::Vegetation),
+        slotAdapter(RouterSlot::Continents),
+        slotAdapter(RouterSlot::Erosion),
+        slotAdapter(RouterSlot::Depth),
+        slotAdapter(RouterSlot::Ridges),
+        slotAdapter(RouterSlot::PreliminarySurfaceLevel),
+        std::move(finalDensityDf),
+        slotAdapter(RouterSlot::VeinToggle),
+        slotAdapter(RouterSlot::VeinRidged),
+        slotAdapter(RouterSlot::VeinGap));
 }
 
 NoiseChunk::~NoiseChunk() = default;
@@ -401,70 +458,24 @@ void NoiseChunk::setAquifer(std::unique_ptr<aquifer::Aquifer> aq)
     m_aquifer = std::move(aq);
 }
 
-std::unique_ptr<DensityFunction> NoiseChunk::apply(std::unique_ptr<DensityFunction> function)
+NoiseInterpolator* NoiseChunk::registerInterpolator(std::unique_ptr<NoiseInterpolator> interpolator)
 {
-    // 根据 Marker 类型替换为 NoiseChunk 特定实现
-    if (auto* marker = dynamic_cast<Marker*>(function.get())) {
-        switch (marker->markerType()) {
-            case MarkerType::Interpolated: {
-                // Interpolated → NoiseInterpolator
-                auto filler = marker->releaseWrapped();
-                auto interpolator = std::make_unique<NoiseInterpolator>(
-                    std::move(filler), m_cellConfig.cellCountXZ, m_cellConfig.cellCountY);
-                // 绑定到 NoiseChunk 以支持 fillingCell 模式下的 lerp3
-                interpolator->bindNoiseChunk(this, m_cellConfig.cellWidth, m_cellConfig.cellHeight);
-                // 注册到插值器列表，以便 fillSlice/selectCellYZ/updateForXYZ 驱动
-                auto* rawPtr = interpolator.get();
-                m_interpolators.push_back(std::move(interpolator));
-                // 返回 NoiseInterpolator 的引用（不拥有，interpolators 列表拥有）
-                return std::make_unique<DensityFunctionReference>(*rawPtr);
-            }
-            case MarkerType::CacheAllInCell: {
-                // CacheAllInCell → CellCache（在 selectCellXYZ 时预填充）
-                auto filler = marker->releaseWrapped();
-                auto cache =
-                    std::make_unique<CellCache>(std::move(filler), m_cellConfig.cellWidth, m_cellConfig.cellHeight);
-                cache->bindNoiseChunk(this);
-                m_cellCaches.push_back(std::move(cache));
-                // 返回最后一个 CellCache 的引用
-                return std::make_unique<DensityFunctionReference>(*m_cellCaches.back());
-            }
-            case MarkerType::CacheOnce: {
-                // CacheOnce → 替换为绑定 interpolationCounter 和 arrayInterpolationCounter 的 CacheOnce
-                auto filler = marker->releaseWrapped();
-                auto cacheOnce = std::make_unique<CacheOnce>(std::move(filler));
-                cacheOnce->bindInterpolationCounter(
-                    &m_interpolationCounter, &m_arrayInterpolationCounter, &m_arrayIndex);
-                cacheOnce->bindNoiseChunk(this);
-                return cacheOnce;
-            }
-            case MarkerType::FlatCache: {
-                // FlatCache → 替换为区块级扁平缓存实例，构造期预计算整张 quart XZ 表
-                // 对齐原版 NoiseChunk.FlatCache（NoiseChunk.java:619-665）：构造时传 precompute=true，
-                // 双 for 预计算 values[(noiseSizeXZ+1)²]，之后 compute() O(1) 查表。
-                // 几何参数：firstNoiseX/Z = floorDiv(startBlockX/Z, 4)，noiseSizeXZ = cellCountXZ*cellWidth/4。
-                auto filler = marker->releaseWrapped();
-                return std::make_unique<FlatCache>(
-                    std::move(filler), firstNoiseX(), firstNoiseZ(), noiseSizeXZ(), true);
-            }
-            case MarkerType::Cache2D: {
-                // Cache2D → 替换为 XZ 位置缓存实例
-                auto filler = marker->releaseWrapped();
-                return std::make_unique<Cache2D>(std::move(filler));
-            }
-            case MarkerType::BeardifierMarker: {
-                // MC 1.21: 替换为实际的 Beardifier 实例
-                // 如果提供了 beardifier，返回指向它的引用（与 NoiseInterpolator/CellCache 相同模式）
-                // 如果没有提供（如高度查询），释放包装的 Constant(0.0)
-                if (m_beardifier) {
-                    return std::make_unique<DensityFunctionReference>(*m_beardifier);
-                }
-                auto filler = marker->releaseWrapped();
-                return filler;
-            }
-        }
-    }
-    return function;
+    NoiseInterpolator* raw = interpolator.get();
+    m_interpolators.push_back(std::move(interpolator));
+    return raw;
+}
+
+CellCache* NoiseChunk::registerCellCache(std::unique_ptr<CellCache> cellCache)
+{
+    CellCache* raw = cellCache.get();
+    m_cellCaches.push_back(std::move(cellCache));
+    return raw;
+}
+
+void NoiseChunk::bindCacheOnceCounters(CacheOnce& cacheOnce)
+{
+    cacheOnce.bindInterpolationCounter(&m_interpolationCounter, &m_arrayInterpolationCounter, &m_arrayIndex);
+    cacheOnce.bindNoiseChunk(this);
 }
 
 void NoiseChunk::initializeForFirstCellX()

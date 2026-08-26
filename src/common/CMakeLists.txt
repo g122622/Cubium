@@ -1117,6 +1117,11 @@ add_library(mc_common STATIC
     world/gen/density/TerrainProvider.cpp
     world/gen/density/Beardifier.cpp
     world/gen/density/OreVeinifier.cpp
+    world/gen/density/ast/AstNodes.cpp
+    world/gen/density/ast/McToAst.cpp
+    world/gen/density/ast/OptoPasses.cpp
+    world/gen/density/ast/CompiledDensityFunction.cpp
+    world/gen/density/ast/BytecodeGen.cpp
     world/gen/RandomState.cpp
 
     # World - Generation - Chunk Generators
