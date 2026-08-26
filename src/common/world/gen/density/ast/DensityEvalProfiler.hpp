@@ -59,6 +59,15 @@
 // 计时，rdtsc ~10ns 占比 <5%，可接受；内部类指令（LoadConst/Coord/Binary/Copy/Unary，
 // JIT 收益主体）与 B 类递归调用（SharedSubtreeCall/Spline/FindTopSurface/Marker）完全零
 // 插桩，不污染其耗时。Marker 缓存查表开销归 interpreterCycles（高估 JIT 收益，乐观上界）。
+//
+// JIT 路径同步计时：解释器 evalImpl 的 5 个 A 类 case 与 JIT trampoline
+// （jitNoiseSample/jitWeirdSampler/jitDelegate/jitEndIslands/jitBeardifier）用相同 readTsc
+// 口径计时累加 externalCycles/externalCalls。故 JIT 命中时 externalCycles 不再为 0，
+// interpreterRatio 在 JIT 路径下仍有意义——反映 JIT 能优化的解释器开销占比（外部噪声采样
+// 固有开销被扣除）。B 类 trampoline（jitMarkerDispatch/jitCacheCompute/jitDelegateSubEval/
+// jitSpline/jitFindTopSurface）递归回 eval，子树叶子由子层计时，父层不计时（防双重计数，
+// 与解释器 SharedSubtreeCall 不计时一致）。jitYGradient/jitSin/jitCos 为纯算术/libm，
+// 解释器同样不计入 externalCycles。
 // ============================================================================
 
 #include "common/core/Types.hpp"

@@ -26,6 +26,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 #include "common/world/gen/density/ast/DensityEvalHelpers.hpp"
+#include "common/world/gen/density/ast/DensityEvalProfiler.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 
 #include <cmath>
@@ -41,7 +42,13 @@ f64 jitNoiseSample(const DensityEvalContext* ctx, u32 objIdx, f64 x, f64 y, f64 
 {
     const auto* noise = ctx->objects[objIdx].noise;
     MC_ASSERT_RELEASE_MSG(noise != nullptr, "jitNoiseSample: noise object is null");
-    return noise->getValue(x, y, z);
+    // A 类叶子外部调用计时（口径与解释器 evalImpl NoiseSample case 一致），累加 externalCycles。
+    // 临时性插桩，profiler 完成后整体删除。
+    const u64 _t0 = profiling::readTsc();
+    const f64 r = noise->getValue(x, y, z);
+    profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+    profiling::g_densityEvalAcc.externalCalls += 1;
+    return r;
 }
 
 f64 jitWeirdSampler(
@@ -50,28 +57,50 @@ f64 jitWeirdSampler(
     const auto* noise = ctx->objects[objIdx].noise;
     MC_ASSERT_RELEASE_MSG(noise != nullptr, "jitWeirdSampler: noise object is null");
     const f64 r = eval_helpers::getRarity(type, inputValue);
-    return std::abs(noise->getValue(static_cast<f64>(x) / r, static_cast<f64>(y) / r, static_cast<f64>(z) / r)) * r;
+    // A 类叶子外部调用计时（口径与解释器 evalImpl WeirdSampler case 一致）：getRarity 不计时，
+    // 计时包住 noise->getValue(...)*r 表达式。
+    const u64 _t0 = profiling::readTsc();
+    const f64 result =
+        std::abs(noise->getValue(static_cast<f64>(x) / r, static_cast<f64>(y) / r, static_cast<f64>(z) / r)) * r;
+    profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+    profiling::g_densityEvalAcc.externalCalls += 1;
+    return result;
 }
 
 f64 jitDelegate(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept
 {
     const auto* df = ctx->objects[objIdx].densityFunction;
     MC_ASSERT_RELEASE_MSG(df != nullptr, "jitDelegate: density function is null");
-    return df->compute(x, y, z);
+    // A 类叶子外部调用计时（口径与解释器 evalImpl Delegate case 一致）。
+    const u64 _t0 = profiling::readTsc();
+    const f64 r = df->compute(x, y, z);
+    profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+    profiling::g_densityEvalAcc.externalCalls += 1;
+    return r;
 }
 
 f64 jitEndIslands(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept
 {
     const auto* df = ctx->objects[objIdx].densityFunction;
     MC_ASSERT_RELEASE_MSG(df != nullptr, "jitEndIslands: density function is null");
-    return df->compute(x, y, z);
+    // A 类叶子外部调用计时（口径与解释器 evalImpl EndIslands case 一致）。
+    const u64 _t0 = profiling::readTsc();
+    const f64 r = df->compute(x, y, z);
+    profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+    profiling::g_densityEvalAcc.externalCalls += 1;
+    return r;
 }
 
 f64 jitBeardifier(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept
 {
     // 维度级编译期 Beardifier 未注入（区块特定），占位返回 0.0（与解释器一致）。
     const auto* beardifier = ctx->objects[objIdx].beardifier;
-    return (beardifier != nullptr) ? beardifier->compute(x, y, z) : 0.0;
+    // A 类叶子外部调用计时（口径与解释器 evalImpl Beardifier case 一致）。
+    const u64 _t0 = profiling::readTsc();
+    const f64 r = (beardifier != nullptr) ? beardifier->compute(x, y, z) : 0.0;
+    profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
+    profiling::g_densityEvalAcc.externalCalls += 1;
+    return r;
 }
 
 f64 jitCacheCompute(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept

@@ -223,8 +223,9 @@ f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
 
     // JIT 路径：编译成功（m_jitFn != nullptr）时直接调机器码，消除 switch 分发 / Op 取指 /
     // regs 间接寻址开销。顶层 topLevelCycles 仍计时（覆盖 JIT 调用），用以观测 JIT 收益；
-    // externalCycles/externalCalls 在 JIT 路径不累计（trampoline 未插桩），故 JIT 路径下
-    // interpreterRatio 失真——以 topLevelCycles 绝对下降为收益主指标。
+    // externalCycles/externalCalls 由 JIT trampoline（jitNoiseSample 等 5 个 A 类）按与解释器
+    // 一致的 readTsc 口径累加，故 JIT 路径下 interpreterRatio 仍有意义——反映 JIT 能优化的
+    // 解释器开销占比（外部噪声采样固有开销被扣除）。以 topLevelCycles 绝对下降为收益主指标。
     if (m_jitFn != nullptr) [[likely]] {
         const f64 r = m_jitFn(&m_evalCtx, x, y, z);
         if (isTop) {

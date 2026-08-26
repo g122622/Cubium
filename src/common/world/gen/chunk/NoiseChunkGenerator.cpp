@@ -1127,7 +1127,9 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // 占比，判定用 asmjit 把 eval JIT 成机器码是否值得（≥0.30 值得 / ≥0.40 强烈值得 / <0.20 不值得）。
     // totalCycles = 顶层 eval（depth==0）入口→Return 总周期（覆盖整棵树含递归层 + fillSlice 角点填充）。
     // externalCycles = 5 个真叶子外部调用（NoiseSample/WeirdSampler/Delegate/EndIslands/Beardifier）
-    //   per-call 计时累加——这些是离开 evalImpl 进入外部 C++ 函数、不递归回 eval 的真正噪声采样。
+    //   per-call 计时累加——这些是离开求值器进入外部 C++ 函数、不递归回 eval 的真正噪声采样。
+    //   解释器路径由 evalImpl 内 case 计时；JIT 路径由 trampoline（jitNoiseSample 等 5 个 A 类）
+    //   按相同 readTsc 口径计时，两条路径 externalCycles 可比。
     //   Marker 区块级 cacheObj->compute 因缓存未命中时经 Adapter 递归回 eval，属"递归外部调用"不计时
     //   （其子树耗时已在 totalCycles 内、叶子由子层计时），避免双重计数；其缓存查表开销归入
     //   interpreterCycles（高估 JIT 收益，给出乐观上界——若上界仍不值得，JIT 肯定不值得）。
