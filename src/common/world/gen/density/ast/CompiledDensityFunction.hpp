@@ -72,6 +72,12 @@ class CompiledDensityFunction;
 /// 坐标轴（COORD 指令操作数）。
 enum class RegAxis : u8 { X, Y, Z };
 
+/// eval 寄存器缓冲的栈上定长数组上限（性能优化）。
+/// 实测三维度 15 root 最大 regCount=17，子求值器更小；取 128 作保守余量覆盖未来数据包。
+/// regCount <= 此值时 eval 用栈数组（零堆分配），超出回退堆 vector 兜底（罕见）。
+/// 不宜过大：栈数组每层 eval 递归独立持有一份（SharedSubtreeCall/Marker/Spline/FindTopSurface 递归）。
+inline constexpr u32 kInlineRegCount = 128;
+
 /// 一元运算类型（UNARY 指令操作数）。覆盖 Abs/Square/Cube/Squeeze/Sqrt/Sin/Cos/Floor/Ceil。
 enum class UnaryOp : u8 {
     Abs,
@@ -246,7 +252,8 @@ public:
         std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>> ownedCaches);
 
     /// 单点求值。遍历 Op 序列，switch 分发，写寄存器，Return 时返回 dst 寄存器值。
-    /// 每次求值用栈上局部寄存器数组（线程安全）。
+    /// 寄存器缓冲：regCount <= kInlineRegCount 时用栈上定长数组（零堆分配，主路径），
+    /// 否则回退堆 vector 兜底。实际求值逻辑在 evalImpl（共用，避免主循环重复两份）。
     [[nodiscard]] f64 eval(i32 x, i32 y, i32 z) const;
 
     /// 编译期记录的最小值（从原 DensityFunction 取，供 CompiledDensityFunctionAdapter::minValue 用）。
@@ -276,6 +283,9 @@ public:
     [[nodiscard]] const std::vector<std::shared_ptr<CompiledSpline>>& splines() const { return m_splines; }
 
 private:
+    /// eval 的求值主循环实现。regs 指向调用方提供的寄存器缓冲（栈数组或堆 vector）。
+    [[nodiscard]] f64 evalImpl(i32 x, i32 y, i32 z, f64* regs) const;
+
     std::vector<Op> m_ops;
     u32 m_regCount;
     std::vector<RuntimeObject> m_objects;

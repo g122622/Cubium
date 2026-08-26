@@ -34,6 +34,7 @@
 #include "common/world/gen/noise/NormalNoise.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace mc::world::gen::density::ast {
@@ -318,10 +319,26 @@ std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
 
 f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
 {
-    // 栈上寄存器数组：每次求值独立分配，无跨调用状态（线程安全）。
-    // 维度级不可变，寄存器数量固定（编译期分配）。
+    // 寄存器缓冲：编译期已知 regCount 固定，绝大多数密度函数树规模很小
+    // （实测三维度 15 root 最大 regCount=17，子求值器更小）。优先用栈上定长数组
+    // 避免每次求值的堆分配——eval 在 FillNoiseCells 逐方块主循环被高频调用
+    // （每区块数万次），堆分配是已观测的性能瓶颈。
+    //
+    // 栈数组上限 kInlineRegCount 取保守值 128（实测最大 17 的 ~7.5 倍余量，覆盖未来
+    // 数据包更大的密度函数树）。超出时回退堆 vector 安全兜底（罕见路径，保证不越界）。
+    //
+    // 递归安全：eval 经 SharedSubtreeCall/Marker/Spline/FindTopSurface 递归调用自身，
+    // 每层 eval 独立栈缓冲，互不覆盖（故不能用 thread_local 单 buffer）。
+    if (m_regCount <= kInlineRegCount) [[likely]] {
+        std::array<f64, kInlineRegCount> regs{};
+        return evalImpl(x, y, z, regs.data());
+    }
     std::vector<f64> regs(m_regCount);
+    return evalImpl(x, y, z, regs.data());
+}
 
+f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
+{
     const size_t n = m_ops.size();
     for (size_t pc = 0; pc < n; ++pc) {
         const Op& op = m_ops[pc];
