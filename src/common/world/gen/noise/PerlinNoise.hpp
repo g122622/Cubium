@@ -192,6 +192,14 @@ public:
          */
         [[nodiscard]] f64 noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f64 yFraction) const;
 
+        // === SoA 访问器（供 NormalNoise/BlendedNoise 构造期拍平 octave 子层用）===
+        // 暴露排列表（256 项 u8，已洗牌）与构造期随机偏移。SoA 求值器在构造时一次性
+        // 拷贝这些数据到连续数组，运行期单循环遍历，消除逐层虚分发与 cache miss。
+        [[nodiscard]] const std::vector<u8>& permutation() const { return m_permutation; }
+        [[nodiscard]] f64 xOffset() const { return m_xOffset; }
+        [[nodiscard]] f64 yOffset() const { return m_yOffset; }
+        [[nodiscard]] f64 zOffset() const { return m_zOffset; }
+
     private:
         [[nodiscard]] f64 sampleAndLerp(
             i32 cellX, i32 cellY, i32 cellZ, f64 deltaX, f64 deltaY, f64 deltaZ, f64 smoothstepY = -1.0) const;
@@ -227,6 +235,20 @@ public:
         }
         return m_layers[static_cast<size_t>(index)].get();
     }
+
+    /**
+     * @brief 全部倍频层（含空层 nullptr，按 amplitudes 索引顺序）
+     *
+     * 供 NormalNoise/BlendedNoise 构造期遍历收集 SoA 数据。空层（振幅为 0）对应 nullptr，
+     * 收集时跳过但需推进 inputFactor/valueFactor 序列（与 getValue 循环语义一致）。
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<PerlinLayer>>& layers() const { return m_layers; }
+
+    /// 最低频输入缩放因子（= 2^firstOctave），SoA 构造期用于预算每层 inputFactor。
+    [[nodiscard]] f64 lowestFreqInputFactor() const { return m_lowestFreqInputFactor; }
+
+    /// 最低频值缩放因子，SoA 构造期用于预算每层 valueFactor。
+    [[nodiscard]] f64 lowestFreqValueFactor() const { return m_lowestFreqValueFactor; }
 
 private:
     /**
