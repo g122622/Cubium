@@ -486,6 +486,9 @@ Result<std::string> PackListBase::readTextResource(PackType type, std::string_vi
 Result<std::vector<std::string>> PackListBase::listResources(
     PackType type, std::string_view directory, std::string_view extension) const
 {
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.IO.Resource, "PackListBase::listResources", "directory", directory, "extension", extension);
+
     std::vector<std::string> result;
     std::set<std::string> seen;
 
