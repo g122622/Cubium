@@ -44,6 +44,37 @@ scripts\configure.bat build
 cmake --build --preset windows-clang-relwithdebinfo
 ```
 
+#### 构建非默认 preset（如 release-noprof）
+
+`scripts/configure.{sh,bat,ps1}` 的无参模式与 `build` 快捷模式均**硬编码**使用 `windows-clang-relwithdebinfo` preset，无法直接切换到其他 preset。构建非默认 preset 时须使用脚本的 pass-through 模式，将 `--preset <name>` 透传给 cmake（前文 `--preset windows-clang-debug` 示例即此用法）：
+
+```bash
+# Configure（注入 VS 开发环境 + 指定 preset，仅配置不构建）
+./scripts/configure.sh --preset <preset-name>
+
+# Build（用同名 build preset 增量构建，Windows 自动吃满核心，无需 -j）
+cmake --build --preset <preset-name>
+```
+
+CMakePresets.json 中预置的全部 preset 见该文件。其中两个 noprof preset 使用**独立的** `binaryDir`，与默认 `build/` 完全隔离、可并存互不干扰；其余 preset 共用默认 `build/` 目录，切换时需重新 configure：
+
+| preset | buildType | tests | binaryDir | 说明 |
+|--------|-----------|-------|-----------|------|
+| `windows-clang-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认） |
+| `windows-clang-relwithdebinfo-noprof` | RelWithDebInfo | ON | `build-noprof` | 关闭 Perfetto/Tracy/memory 插桩 |
+| `windows-clang-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 关 Vulkan 校验层 + 不含测试/benchmark |
+
+以 `windows-clang-release-noprof` 为例：
+
+```bash
+./scripts/configure.sh --preset windows-clang-release-noprof
+cmake --build --preset windows-clang-release-noprof
+```
+
+构建产物位于 `build-release-noprof/bin/Release/`（如 `minecraft-client.exe`、`minecraft-server.exe`）。
+
+> **注意**：`windows-clang-release-noprof` 与 `windows-clang-release` 的 `MC_BUILD_TESTS=OFF`，不会生成 `mc_tests`；回归测试须切回 `windows-clang-relwithdebinfo` preset 构建。
+
 #### 注意事项
 
 - 即使在开发过程中，也要尽量使用 relwithdebinfo 构建，因为 Debug 运行非常慢，除非必要否则不要用。
