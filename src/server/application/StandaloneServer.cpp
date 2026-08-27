@@ -43,11 +43,9 @@
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -175,26 +173,6 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     }
 
     spdlog::info("Initializing standalone server...");
-
-    // 初始化性能追踪
-    mc::profiler::TraceConfig traceConfig;
-    traceConfig.outputPath = "server_trace.perfetto-trace";
-    traceConfig.bufferSizeKb = 65536 * 8;
-    mc::profiler::ProfilerManager::instance().initialize(traceConfig);
-
-    // 注入进程内存采样回调（须在 startTracing 之前）：ProfilerManager 处于比 PlatformInfo
-    // 更底层的 mc_profiler 库，不能直接依赖 PlatformInfo，故由本层注入。返回 {工作集MB, 提交量MB}。
-    mc::profiler::ProfilerManager::instance().setMemorySampler([]() -> std::pair<i64, i64> {
-        return {static_cast<i64>(util::PlatformInfo::getProcessMemoryMB()),
-            static_cast<i64>(util::PlatformInfo::getProcessCommitMB())};
-    });
-
-    mc::profiler::ProfilerManager::instance().startTracing();
-
-    // 设置进程和主线程名称
-    mc::profiler::ProfilerManager::instance().setProcessName("MinecraftServer");
-    mc::profiler::ProfilerManager::instance().setThreadName("ServerMainThread");
-    spdlog::info("Perfetto tracing initialized");
 
     // 初始化游戏注册表（包括实体类型）
     initializeRegistries(true);
@@ -395,11 +373,6 @@ void StandaloneServer::stop()
     if (saveResult.failed()) {
         spdlog::warn("Failed to save settings: {}", saveResult.error().toString());
     }
-
-    // 关闭性能追踪
-    mc::profiler::ProfilerManager::instance().stopTracing();
-    mc::profiler::ProfilerManager::instance().shutdown();
-    spdlog::info("Perfetto tracing stopped");
 
     m_initialized = false;
     spdlog::info("Server stopped.");

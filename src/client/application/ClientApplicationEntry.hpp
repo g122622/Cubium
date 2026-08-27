@@ -51,6 +51,13 @@ public:
 protected:
     [[nodiscard]] std::string_view displayName() const override { return "Client"; }
 
+    // benchmark 模式（--benchmark-exit-after-initialize）跳过 profiler，纯净测 Shell 初始化耗时。
+    [[nodiscard]] bool shouldEnableProfiler() const override { return !m_params.benchmarkExitAfterInitialize; }
+
+    [[nodiscard]] std::string profilerOutputPath() const override { return MC_TRACE_CLIENT_OUTPUT; }
+    [[nodiscard]] std::string profilerProcessName() const override { return "MinecraftClient"; }
+    [[nodiscard]] std::string profilerThreadName() const override { return "ClientMainThread"; }
+
     void onFlagsParsed() override;
     [[nodiscard]] int runApplication() override;
 

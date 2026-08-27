@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include "common/profiler/ProfilerManager.hpp"
+
+#include <string>
 #include <string_view>
 
 namespace mc::application {
@@ -47,10 +50,23 @@ namespace mc::application {
  *   5. onFlagsParsed()（子类把 FLAGS_* 填进自己的 params 结构体）
  *   6. printBanner() / printBuildInfo()（用 displayName() 区分 Server/Client）
  *   7. prepareRun()（如 server 侧安装信号处理）
- *   8. try { runApplication() } catch { onErrorCleanup() + profiler stop/shutdown }
+ *   8. 若 shouldEnableProfiler()：profilerStart()（init + setMemorySampler + startTracing
+ *      + setProcessName + setThreadName），由子类虚函数提供 outputPath/processName/threadName
+ *   9. try { runApplication() } catch { onErrorCleanup() + profiler stop/shutdown }
  *
- * LogManager::shutdown() 须在 ProfilerManager shutdown 之前调用（见 LogManager 文档），
- * 故正常/异常路径都先 LogManager::shutdown() 再 profilerStopShutdown()。
+ * profiler 生命周期时序约束（关键）：
+ *   - ProfilerManager 的 stopTracing/shutdown 路径依赖 spdlog 全局状态
+ *     （PerfettoBackend::stopTracing/shutdown 内有 spdlog::info/warn/error 调用）。
+ *   - LogManager::shutdown() 会调 spdlog::shutdown() 销毁 spdlog 全局 logger/thread_pool/sink。
+ *   - 故 profilerStop() 必须在 LogManager::shutdown() 之前调用，否则 ProfilerManager 的
+ *     stop/shutdown 路径中的 spdlog 调用会操作已销毁资源。
+ *   - 正常路径：runApplication() 返回后先 profilerStop()（若 m_profilerStarted），再
+ *     LogManager::shutdown()。
+ *   - 异常路径：catch 块先 profilerStopShutdown()，再 LogManager::shutdown()。
+ *
+ * 重复 stop 幂等：PerfettoBackend::stopTracing 有 `if (!m_initialized || !m_tracing) return`，
+ * shutdown 有 `if (!m_initialized) return`。正常路径显式 profilerStop 后，Meyers 单例析构再
+ * stop 是 no-op。崩溃回调 profilerStopShutdown 重复调用亦安全。
  */
 class BaseApplicationEntry {
 public:
@@ -63,6 +79,40 @@ public:
     int run(int argc, char* argv[]);
 
 protected:
+    // —— profiler 生命周期 hook（子类覆盖以提供差异）——
+
+    /**
+     * @brief 是否在本进程启用 profiler。默认 true。
+     *
+     * 子类按命令行模式门控：客户端 benchmark 模式（--benchmark-exit-after-initialize）
+     * 返回 false 以纯净测 Shell 初始化耗时；服务端 gametest 模式（--gametest）返回 false
+     * 保持无头测试不写 trace。须在 onFlagsParsed() 填充相关字段后调用，故 profilerStart
+     * 在 run() 骨架中位于 onFlagsParsed 之后。
+     */
+    [[nodiscard]] virtual bool shouldEnableProfiler() const { return true; }
+
+    /**
+     * @brief profiler 输出文件路径（Perfetto trace 文件）。子类提供。
+     *
+     * 默认返回 ProfilerConfig.hpp 的 MC_TRACE_DEFAULT_OUTPUT。客户端/服务端子类应覆盖为
+     * MC_TRACE_CLIENT_OUTPUT / MC_TRACE_SERVER_OUTPUT。
+     */
+    [[nodiscard]] virtual std::string profilerOutputPath() const;
+
+    /**
+     * @brief profiler 进程名（双轨 Perfetto+Tracy）。子类提供。
+     *
+     * 默认 "Minecraft"。客户端子类覆盖为 "MinecraftClient"，服务端子类为 "MinecraftServer"。
+     */
+    [[nodiscard]] virtual std::string profilerProcessName() const;
+
+    /**
+     * @brief profiler 主线程名（双轨 Perfetto+Tracy）。子类提供。
+     *
+     * 默认 "MainThread"。客户端子类覆盖为 "ClientMainThread"，服务端子类为 "ServerMainThread"。
+     */
+    [[nodiscard]] virtual std::string profilerThreadName() const;
+
     // —— 子类可覆盖的 hook ——
     // 注：gflags 的 DEFINE_* 宏必须在全局作用域、TU 顶层定义（不能放类内/namespace 内），
     // 故本基类不提供"注册 flag"的虚函数让子类塞 DEFINE_*；onRegisterFlags 仅作解析前回调占位，
@@ -98,6 +148,14 @@ protected:
     virtual void onErrorCleanup() {}
 
 private:
+    /// 启动 profiler：init + setMemorySampler + startTracing + setProcessName + setThreadName。
+    /// 幂等：已初始化则跳过。须在 LogManager::initialize() 之后调用（profiler 内部用 spdlog）。
+    void profilerStart();
+
+    /// 停止 profiler：stopTracing + shutdown。幂等。须在 LogManager::shutdown() 之前调用。
+    /// 崩溃清理回调路径调此（经 profilerStopShutdown），重复调用安全。
+    void profilerStop();
+
     /// 崩溃清理回调：崩溃时 flush Perfetto 跟踪数据（与原 main 一致）。
     static void profilerStopShutdown();
 
@@ -105,6 +163,9 @@ private:
     void printBanner() const;
     /// 打印构建信息（版本/Git/构建/编译器）。
     void printBuildInfo() const;
+
+    /// run() 中是否已 profilerStart（用于退出路径决定是否 profilerStop）。
+    bool m_profilerStarted{false};
 };
 
 } // namespace mc::application
