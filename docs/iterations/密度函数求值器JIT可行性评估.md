@@ -456,5 +456,124 @@ C2ME 杠杆的核心：每通道独立 256 项置换表做独立 gather 链，ha
 - **BlendedNoise** 经 `DelegateNode` 退化（`McToAst.cpp:300` TODO，未补专用节点）→ `jitDelegate` trampoline → 虚调用 `BlendedNoise::compute`，SoA 收益被 Delegate 虚调用边界进一步削弱（且 BlendedNoise 是 octave 数最多、SoA 理论收益最大的部分）。
 - 单次 octave 循环本身只占 getValue 周期的一部分，向量化省下的几十到一两百周期被 trampoline 的常数项（**临时插桩的 rdtsc ~20–40 周期** + 虚调用 ~5–10 周期 + call/ret）摊薄。
 
-**readTsc 临时计时插桩已于 2026-08-27 整体移除**（见 ast/README 第 7 条）：`DensityEvalProfiler.hpp` 删除，5 个 A 类 trampoline（`jitNoiseSample`/`jitWeirdSampler`/`jitDelegate`/`jitEndIslands`/`jitBeardifier`）与解释器 `evalImpl` 对应 case 的 per-call rdtsc 计时、eval 顶层 `topLevelCycles` 计时、NoiseChunkGenerator 上报块全部清除。这释放了被盖住的 SoA 收益部分。下一步：抓 `MC_ENABLE_TRACY` trace 复测 FillNoiseCells（目标对比 SoA 落地前 25.7ms p50 基线），量化插桩移除 + SoA 向量化的综合收益；若 BlendedNoise Delegate 虚调用边界仍是瓶颈，再给 BlendedNoise 补专用 AST 节点（消除 `McToAst.cpp:300` TODO 的 Delegate 退化）。向量化本身不回退（生效且数值正确）。
+**readTsc 临时计时插桩已于 2026-08-27 整体移除**（见 ast/README 第 7 条）：`DensityEvalProfiler.hpp` 删除，5 个 A 类 trampoline（`jitNoiseSample`/`jitWeirdSampler`/`jitDelegate`/`jitEndIslands`/`jitBeardifier`）与解释器 `evalImpl` 对应 case 的 per-call rdtsc 计时、eval 顶层 `topLevelCycles` 计时、NoiseChunkGenerator 上报块全部清除。这释放了被盖住的 SoA 收益部分。下一步：抓 `MC_ENABLE_TRACY` trace 复测 FillNoiseCells（目标对比 SoA 落地前 25.7ms p50 基线），量化插桩移除 + SoA 向量化的综合收益；若 BlendedNoise Delegate 虚调用边界仍是瓶颈，再给 BlendedNoise 补专用 AST 节点（消除 `McToAst.cpp:300` TODO 的 Delegate 退化）——**此"补专用节点"下一步已于 2026-08-27 落地，去虚化反汇编实测见第 9 节**。向量化本身不回退（生效且数值正确）。
+
+---
+
+## 9. BlendedNoise 专用 AST 节点与 JIT 去虚化反汇编实测（2026-08-27）
+
+第 8.5 节指出的下一步"给 BlendedNoise 补专用 AST 节点（消除 `McToAst.cpp:300` TODO 的 Delegate 退化）"已落地。本节沉淀该改动的去虚化机制与反汇编级实测证据。
+
+### 9.1 背景：Delegate 退化路径的 vtable 间接开销
+
+BlendedNoise 是主世界每个区块必采的噪声（Java `NoiseRouterData.java:212` 无条件 `add` base_3d_noise 进 sloped_cheese，三维度 BASE_3D_NOISE 均为 BlendedNoise）。改动前它走 DelegateNode 退化路径：
+
+```
+BlendedNoise → DelegateNode(&df) → Delegate op → jitDelegate trampoline → df->compute()  [vtable 间接]
+```
+
+`jitDelegate`（`DensityJitTrampolines.cpp:56`）持 `const DensityFunction*` 基类指针调 `df->compute()`——每次都是 **vtable 间接调用**（约 5–10 周期 + 间接分支预测失败风险）。每区块约 5.8 万次噪声采样，这是海量的固定开销。第 8 节的 SoA 向量化优化的是 `compute` 内部的 octave 循环，但 `compute` 经 Delegate 边界被间接调用，SoA 收益被 vtable 间接边界削弱（BlendedNoise 恰是 octave 数最多、SoA 理论收益最大的部分）。
+
+### 9.2 改动概要：补专用节点链路 + 去虚化 trampoline
+
+按 DFC AST 编译器四层架构为 BlendedNoise 补专用链路（纯增量，9 个文件，无删除）：
+
+1. **AstNodes.hpp/.cpp** — 新增 `BlendedNoiseNode` 类（仿 EndIslandsNode），持 `const DensityFunction*` 裸指针，`relaxedEquals` 按实例地址比（非 DelegateNode 的 typeid 比——三维度参数不同，按 typeid 会错误合并不同维度实例）。`AstNodeKind::BlendedNoise` 枚举本已存在，只是无节点类，本次补齐。
+2. **CompiledDensityFunction.hpp** — `OpCode` 枚举新增 `BlendedNoise`。
+3. **McToAst.cpp** — 替换 L300 TODO 为 BlendedNoise 注册 lambda。
+4. **BytecodeGen.cpp** — case 从 warn+0.0 改为 `emitBlendedNoise`，复用 `RuntimeObject.densityFunction` 槽（无需扩联合）。
+5. **CompiledDensityFunction.cpp** — evalImpl switch 新增 `case OpCode::BlendedNoise`（解释器兜底）。
+6. **DensityJitTrampolines.hpp/.cpp** — 新增 `jitBlendedNoise`，**关键**：`static_cast<const BlendedNoise*>(df)` 后调 `bn->compute()`。BlendedNoise 是 `final` 类（`BlendedNoise.hpp:52`），编译器据此去虚化。
+7. **DensityJitCompiler.cpp** — emitOp switch 新增 `case OpCode::BlendedNoise`。
+
+`OptoPasses.cpp`/newInstance/CMakeLists 均不动（BlendedNoiseNode 落入 OptoPasses 的 `default: return node;` 原样返回；BlendedNoise 维度级不可变，newInstance 深拷贝自动带上）。
+
+**去虚化机制**：`jitDelegate` 持 `const DensityFunction*` 基类指针，编译器无法确定动态类型，`df->compute()` 必须经 vtable 间接调用。`jitBlendedNoise` 先 `static_cast<const BlendedNoise*>(df)` 转具体类型，而 BlendedNoise 是 `final` 类——编译器据此推断 `bn->compute()` 不可能被派生类覆写（final 类无派生），将虚调用去虚化为直接 `call BlendedNoise::compute`。
+
+### 9.3 反汇编方法
+
+用 `llvm-objdump` 反汇编 `build/src/common/CMakeFiles/mc_common.dir/RelWithDebInfo/world/gen/density/ast/DensityJitTrampolines.cpp.obj`（RelWithDebInfo）：
+
+- `--syms` 定位 `?jitBlendedNoise@...`（偏移 `0x2e0`）与对照 `?jitEndIslands@...`（偏移 `0x240`）。
+- `--disassemble-symbols=<mangled>` 精确切出两个 trampoline 的函数体。
+- `--reloc` 确认 `call` 指令的重定位目标符号（区分直接调用 vs vtable 间接）。
+
+### 9.4 反汇编铁证：jitBlendedNoise（去虚化直接 call）vs jitEndIslands（vtable 间接）
+
+**jitEndIslands（对照，仍是 vtable 间接调用）**——EndIslands 持 `const DensityFunction*` 基类指针，`df->compute()` 走 vtable：
+
+```asm
+240:  push   %rbp
+...
+252:  movq   (%rcx), %rax            ; rax = ctx->objects（rcx=ctx）
+255:  movl   %edx, %ecx              ; ecx = objIdx
+257:  leaq   (%rcx,%rcx,2), %rcx     ; rcx = objIdx*3
+25b:  movq   0x8(%rax,%rcx,8), %rcx  ; rcx = objects[objIdx].densityFunction（this 指针）
+260:  testq  %rcx, %rcx              ; 判空
+263:  je     0x27f                   ; 为 null → 断言路径
+265:  movl   0x30(%rbp), %eax        ; 取 z（栈参数）
+268:  movq   (%rcx), %r10            ; ★ r10 = vtable 指针（解引用 this 取 vtable）
+26b:  movl   %r8d, %edx              ; 重排参数：x→edx
+26e:  movl   %r9d, %r8d              ; y→r8d
+271:  movl   %eax, %r9d              ; z→r9d
+274:  callq  *0x8(%r10)              ; ★★★ vtable 间接调用：call [vtable+0x8]（compute 在 vtable 偏移 0x8）
+278:  nop
+279:  addq   $0x40, %rsp
+27d:  pop    %rbp
+27e:  retq
+```
+
+**jitBlendedNoise（去虚化，直接 call）**——`static_cast<const BlendedNoise*>` + final 类触发去虚化：
+
+```asm
+2e0:  push   %rbp
+...
+2f2:  movq   (%rcx), %rax            ; rax = ctx->objects
+2f5:  movl   %edx, %ecx              ; ecx = objIdx
+2f7:  leaq   (%rcx,%rcx,2), %rcx     ; rcx = objIdx*3
+2fb:  movq   0x8(%rax,%rcx,8), %rcx  ; rcx = objects[objIdx].densityFunction（this 指针）
+300:  testq  %rcx, %rcx              ; 判空
+303:  je     0x31d                   ; 为 null → 断言路径
+305:  movl   0x30(%rbp), %eax        ; 取 z（栈参数）
+308:  movl   %r8d, %edx              ; 重排参数：x→edx
+30b:  movl   %r9d, %r8d              ; y→r8d
+30e:  movl   %eax, %r9d              ; z→r9d
+311:  callq  0x316                   ; ★★★ PC 相对直接调用（目标=BlendedNoise::compute）
+316:  nop
+317:  addq   $0x40, %rsp
+31b:  pop    %rbp
+31c:  retq
+```
+
+**关键差异**：
+
+| 项 | jitEndIslands（vtable 间接） | jitBlendedNoise（去虚化直接） |
+|----|-----------------------------|------------------------------|
+| 取 vtable | `movq (%rcx), %r10`（解引用 this 取 vtable 指针） | **无**（不取 vtable） |
+| 调用 | `callq *0x8(%r10)`（内存间接，vtable 偏移 0x8） | `callq 0x316`（PC 相对直接调用） |
+| 重定位 | 无指向 compute 符号的 REL32（间接通过 r10） | `0x312 IMAGE_REL_AMD64_REL32 ?compute@BlendedNoise@...` |
+
+参数重排（`movl %r8d,%edx` 等）两者都有——这是 Win x64 调用约定的副产物（trampoline 形参 `(ctx,objIdx,x,y,z)` 在 rcx/rdx/r8/r9/栈，而成员函数 `compute(this,x,y,z)` 需 this→rcx、x→rdx、y→r8、z→r9），非去虚化独有。**去虚化的铁证是 jitBlendedNoise 没有 `movq (%rcx),%r10` 取 vtable 指令、把 `callq *0x8(%r10)` 换成 `callq 0x316` 直接调用**。
+
+**重定位表确认 call 目标符号**（`--reloc`）：
+
+```
+0000000000000312 IMAGE_REL_AMD64_REL32    ?compute@BlendedNoise@density@gen@world@mc@@UEBANHHH@Z
+```
+
+地址 `0x312` 正是 `jitBlendedNoise` 内 `callq 0x316`（`0x311` 的 `e8` 操作码 + `0x312` 起 4 字节相对偏移重定位）的目标。重定位类型 `IMAGE_REL_AMD64_REL32`（32 位 PC 相对偏移），**目标符号是 `?compute@BlendedNoise@...`（即 `BlendedNoise::compute`）**。这彻底证明去虚化生效——JIT 机器码对 BlendedNoise 的采样是直接 `call BlendedNoise::compute`，无 vtable 间接。
+
+> 注：符号 `?compute@BlendedNoise@...@@UEBANHHH@Z` 的 mangle 中 `UEBA` 表示 public virtual（虚函数）。它仍以独立符号存在于 obj（未被内联进 jitBlendedNoise），去虚化只改变了**调用方式**（间接→直接），未改变 `compute` 函数体本身（其内部 SoA 向量化见第 8.3 节）。
+
+### 9.5 结论与局限
+
+**结论**：BlendedNoise 补专用 AST 节点 + 去虚化 trampoline 已落地并反汇编确认生效。`static_cast<const BlendedNoise*>` + final 类成功让编译器把 `bn->compute()` 去虚化为直接 `call BlendedNoise::compute`，消除了每次采样的 vtable 间接调用（省掉 `mov (%rcx),%r10` 取 vtable + 间接分支预测失败风险）。`compute` 内部 SoA 向量化（第 8.3 节，254 条 vfmadd）因此以直接调用方式被 JIT 调用——既消除 vtable 间接，又保留 SoA 收益，且 bit-exact 天然保证（`compute` 一字未改，仅调用入口从 `jitDelegate` 换 `jitBlendedNoise`，调同一个 `BlendedNoise::compute`）。
+
+**局限**：
+
+- **解释器路径仍是虚调用**：`evalImpl` 的 `case OpCode::BlendedNoise` 走 `df->compute()`（基类指针，虚调用），去虚化收益只在 JIT 路径。这与 EndIslands/Delegate case 一致——解释器是回退兜底，不追求去虚化。
+- **未消除 trampoline 的 call/ret 边界**：JIT 机器码仍经 `call jitBlendedNoise` → `call BlendedNoise::compute` 两层调用。彻底消除边界需把 SoA 采样循环手写进 asmjit（全内联档），但工作量巨大 + bit-exact 极难保 + 收益边际，未采用。
+- **收益量级待 trace 确认**：本次仅反汇编验证去虚化生效 + 构建通过，未跑 trace 量化 FillNoiseCells 收益（对比基线 20.0ms p50）。BlendedNoise 在总开销中的占比待 trace 确认。
+
+
 

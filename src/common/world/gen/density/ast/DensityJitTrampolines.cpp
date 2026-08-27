@@ -25,6 +25,7 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
+#include "common/world/gen/density/BlendedNoise.hpp"
 #include "common/world/gen/density/ast/DensityEvalHelpers.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 
@@ -65,6 +66,16 @@ f64 jitEndIslands(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z
     const auto* df = ctx->objects[objIdx].densityFunction;
     MC_ASSERT_RELEASE_MSG(df != nullptr, "jitEndIslands: density function is null");
     return df->compute(x, y, z);
+}
+
+f64 jitBlendedNoise(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept
+{
+    const auto* df = ctx->objects[objIdx].densityFunction;
+    MC_ASSERT_RELEASE_MSG(df != nullptr, "jitBlendedNoise: density function is null");
+    // 转具体类型 const BlendedNoise*：BlendedNoise 是 final 类，编译器对 compute() 去虚化为直接 call，
+    // 消除 vtable 间接调用。compute 内部已 SoA 向量化（三阶段 octave 并行）。
+    const auto* bn = static_cast<const BlendedNoise*>(df);
+    return bn->compute(x, y, z);
 }
 
 f64 jitBeardifier(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept

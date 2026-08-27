@@ -297,8 +297,12 @@ void McToAst::initializeBuiltin(std::unordered_map<std::type_index, Emitter>& re
         return std::make_shared<EndIslandsNode>(&df);
     };
 
-    // TODO: BlendedNoise / MappedNoise 暂走 DelegateNode 退化（出现频率低，专用节点待主世界/
-    // 下界/末地噪声树覆盖确认后再补）。MappedNoise 无公共字段访问器，BlendedNoise 可后续补专用节点。
+    // ---- BlendedNoise（旧式三层 Perlin 噪声，三维度 BASE_3D_NOISE）----
+    // 专用节点而非 DelegateNode 退化的目的：让 JIT trampoline 持具体类型 const BlendedNoise*，
+    // 编译器对 final 类 BlendedNoise 的虚调用 compute() 去虚化为直接 call，消除 vtable 间接。
+    reg[std::type_index(typeid(BlendedNoise))] = [](const DF& df) -> Ptr {
+        return std::make_shared<BlendedNoiseNode>(&df);
+    };
 }
 
 Ptr McToAst::convert(const DF& df)

@@ -249,6 +249,7 @@ private:
             case AstNodeKind::Delegate:
                 return emitDelegate(node);
             case AstNodeKind::BlendedNoise:
+                return emitBlendedNoise(node);
             case AstNodeKind::MappedNoise:
                 // 阶段2 TODO：暂走 Delegate 退化（McToAst 已把它们包 DelegateNode，此处不应到达）。
                 spdlog::warn(
@@ -298,6 +299,21 @@ private:
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::EndIslands;
+        op.dst = dst;
+        op.objIdx = objIdx;
+        m_ops.push_back(op);
+        return RegOrConst::ofReg(dst);
+    }
+
+    RegOrConst emitBlendedNoise(const Ptr& node)
+    {
+        const auto* n = static_cast<const BlendedNoiseNode*>(node.get());
+        // BlendedNoise 是 DensityFunction 子类，复用 densityFunction 槽。
+        // newInstance 时无需特殊处理：BlendedNoise 的三层 PerlinNoise 维度级不可变，深拷贝 objects 自动带上。
+        const u32 objIdx = addObject(RuntimeObject{nullptr, n->blendedNoise(), nullptr});
+        const u32 dst = allocReg();
+        Op op{};
+        op.code = OpCode::BlendedNoise;
         op.dst = dst;
         op.objIdx = objIdx;
         m_ops.push_back(op);

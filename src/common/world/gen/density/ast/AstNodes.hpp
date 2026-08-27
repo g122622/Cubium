@@ -401,8 +401,32 @@ private:
     WeirdType m_type;
 };
 
-// TODO: BlendedNoise / MappedNoise 节点在阶段 2 McToAst 接入时按需补充（出现频率低，
-// 可先走 DelegateNode 退化，确认主世界/下界/末地噪声树覆盖后再定是否需要专用节点）。
+/// BlendedNoise（旧式三层 Perlin 噪声）。持 BlendedNoise 实例裸指针（非拥有，维度级 DF 树在
+/// RandomState 存活期覆盖 AST 生命周期，同生命周期安全）。relaxedEquals 按 instance 比值
+/// （BlendedNoise 持 main/min/max 三层 PerlinNoise，不同 seed/参数产生不同密度，须按实例区分；
+/// 主世界 0.25/0.125/80/160/8、下界 0.25/0.375/80/60/8、末地 0.25/0.25/80/160/4 各不同）。
+/// 专用节点而非 DelegateNode 退化的目的：让 JIT trampoline 持具体类型 const BlendedNoise*，
+/// 编译器对 final 类 BlendedNoise 的虚调用 compute() 去虚化为直接 call，消除 vtable 间接。
+class BlendedNoiseNode final : public AstNode {
+public:
+    explicit BlendedNoiseNode(const ::mc::world::gen::density::DensityFunction* blendedNoise)
+        : m_blendedNoise(blendedNoise)
+    {}
+
+    [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::BlendedNoise; }
+    [[nodiscard]] const ::mc::world::gen::density::DensityFunction* blendedNoise() const { return m_blendedNoise; }
+    [[nodiscard]] std::vector<Ptr> children() const override { return {}; }
+    [[nodiscard]] Ptr transform(AstTransformer& t) const override;
+    [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
+    [[nodiscard]] size_t relaxedHashCode() const override;
+    [[nodiscard]] bool equals(const AstNode& other) const override;
+
+private:
+    const ::mc::world::gen::density::DensityFunction* m_blendedNoise;
+};
+
+// TODO: MappedNoise 节点在阶段 2 McToAst 接入时按需补充（出现频率低，可先走 DelegateNode 退化，
+// 确认主世界/下界/末地噪声树覆盖后再定是否需要专用节点）。
 
 // ============================================================================
 // spline 节点

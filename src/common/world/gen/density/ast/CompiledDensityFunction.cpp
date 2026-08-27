@@ -289,6 +289,12 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 regs[op.dst] = df->compute(x, y, z);
                 break;
             }
+            case OpCode::BlendedNoise: {
+                const auto* df = m_objects[op.objIdx].densityFunction;
+                MC_ASSERT_RELEASE_MSG(df != nullptr, "BlendedNoise: density function is null");
+                regs[op.dst] = df->compute(x, y, z);
+                break;
+            }
             case OpCode::Beardifier: {
                 // 维度级编译期 Beardifier 未注入（区块特定），占位返回 0.0。
                 // 阶段5 newInstance 注入真实 Beardifier 后此指令段被替换。
