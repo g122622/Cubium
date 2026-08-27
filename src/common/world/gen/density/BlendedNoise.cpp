@@ -24,6 +24,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
+#include "common/world/gen/noise/PerlinNoiseSoA.hpp"
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -115,55 +117,112 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
     const f64 d6 = yMultiplier * m_smearScaleMultiplier; // smearFactor
     const f64 d7 = d6 / m_yFactor;                       // smearFactor / yFactor
 
-    // ---- 第一阶段：mainNoise 8 倍频，计算插值因子 ----
+    // ---- 第一阶段:mainNoise 8 倍频(向量化采样 + 标量累加)----
+    // SoA 路径:每个 SIMD 通道算一个 octave(各自独立置换表做独立 gather 链)。
+    // mainNoise = PerlinNoise(-7, 8 个全 1.0 振幅) → SoA count = 8,索引 0..7 对应最低频→最高频。
+    // 原循环 getOctaveNoise(i) = SoA index (count-1-i),i=0 先累加最高频层(d11=1.0)。
+    // SoA 正向 index k → 原循环 i = count-1-k → d11_k = 2^(k-(count-1))。
+    // 采样写扁平数组 ds[k],再按 k=count-1..0 反向标量累加(复刻原 i=0..N-1 顺序 → bit-exact)。
     f64 d10 = 0.0; // mainNoise 累积值
-    f64 d11 = 1.0; // 倍频缩放
-
-    for (i32 i = 0; i < 8; ++i) {
-        const noise::PerlinNoise::PerlinLayer* layer = m_mainNoise->getOctaveNoise(i);
-        if (layer != nullptr) {
-            const f64 nx = noise::PerlinNoise::wrap(d3 * d11);
-            const f64 ny = noise::PerlinNoise::wrap(d4 * d11);
-            const f64 nz = noise::PerlinNoise::wrap(d5 * d11);
-            const f64 yOffset = d7 * d11;
-            const f64 yFraction = d4 * d11;
-            d10 += layer->noiseWithSmear(nx, ny, nz, yOffset, yFraction) / d11;
+    const noise::PerlinNoiseSoA& mainSoa = m_mainNoise->soa();
+    const u32 mainCount = mainSoa.count();
+    if (mainCount > 0) {
+        alignas(64) f64 mainDs[noise::kMaxPerlinOctaves];
+        // 预计算 d11_k = 2^(k-(count-1)) 数组:std::ldexp 是不可向量化的 libm 调用,
+        // 放循环外预填(此预填循环不强求向量化),采样循环只读数组 → 可向量化。
+        alignas(64) f64 mainD11[noise::kMaxPerlinOctaves];
+        for (u32 k = 0; k < mainCount; ++k) {
+            mainD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(mainCount - 1));
         }
-        d11 /= 2.0;
+
+#pragma clang loop vectorize_width(4) interleave_count(2)
+        for (u32 k = 0; k < mainCount; ++k) {
+            const f64 d11 = mainD11[k];
+            const f64 nx = noise::perlinWrap(d3 * d11);
+            const f64 ny = noise::perlinWrap(d4 * d11);
+            const f64 nz = noise::perlinWrap(d5 * d11);
+            const f64 yScale = d7 * d11;
+            const f64 yMax = d4 * d11;
+            // yScale!=0 → 启用 Y 涂抹(perlinSampleSoA yScale/yMax 语义)。
+            mainDs[k] = noise::perlinSampleSoA(mainSoa, k, nx, ny, nz, yScale, yMax);
+        }
+
+        // 反向标量累加:k=count-1..0 对应原循环 i=0..count-1。每项除以 d11_k(=2 的整数幂,精确)。
+        for (u32 k = mainCount; k-- > 0;) {
+            d10 += mainDs[k] / mainD11[k];
+        }
     }
 
-    // MC 1.21: 插值因子 d16 = (mainResult/10 + 1) / 2，不做预裁剪
-    // MC 原版不预裁剪 d16，clampedLerp 内部处理越界情况
+    // MC 1.21: 插值因子 d16 = (mainResult/10 + 1) / 2,不做预裁剪
+    // MC 原版不预裁剪 d16,clampedLerp 内部处理越界情况
     const f64 d16 = (d10 / 10.0 + 1.0) / 2.0;
     const bool flag1 = d16 >= 1.0; // 只采样 minLimitNoise
     const bool flag2 = d16 <= 0.0; // 只采样 maxLimitNoise
 
-    // ---- 第二阶段：minLimitNoise 和 maxLimitNoise 16 倍频 ----
+    // ---- 第二阶段:minLimitNoise/maxLimitNoise 16 倍频(向量化采样 + 标量短路累加)----
+    // 原循环 j=0..15 内 d12/d13/d14 用 d11_j=2^-j(共享 min/max),!flag1/!flag2 标量短路。
+    // min/max 各为 PerlinNoise(-15, 16 个全 1.0 振幅) → SoA count = 16。
+    // SoA 正向 index k → 原循环 j = count-1-k → d11_k = 2^(k-(count-1))。
+    // min/max 同 count(均 16),可同一 k 循环各自独立向量化采样,再反向标量累加(复刻原 j=0..15 顺序)。
     f64 d8 = 0.0; // minLimitNoise 累积值
     f64 d9 = 0.0; // maxLimitNoise 累积值
-    d11 = 1.0;
 
-    for (i32 j = 0; j < 16; ++j) {
-        const f64 d12 = noise::PerlinNoise::wrap(d0 * d11);
-        const f64 d13 = noise::PerlinNoise::wrap(d1 * d11);
-        const f64 d14 = noise::PerlinNoise::wrap(d2 * d11);
-        const f64 d15 = d6 * d11; // smearFactor * scale
+    const noise::PerlinNoiseSoA& minSoa = m_minLimitNoise->soa();
+    const noise::PerlinNoiseSoA& maxSoa = m_maxLimitNoise->soa();
+    const u32 minCount = minSoa.count();
+    const u32 maxCount = maxSoa.count();
 
+    // 两路都短路时直接跳过采样(flag1 && flag2 理论不可能:d16>=1 与 d16<=0 互斥,但写防御性分支)。
+    if (!flag1 || !flag2) {
+        alignas(64) f64 minDs[noise::kMaxPerlinOctaves];
+        alignas(64) f64 maxDs[noise::kMaxPerlinOctaves];
+
+        // 预计算 d11_k 数组(std::ldexp 不可向量化,放循环外预填)。
+        alignas(64) f64 minD11[noise::kMaxPerlinOctaves];
+        alignas(64) f64 maxD11[noise::kMaxPerlinOctaves];
+        for (u32 k = 0; k < minCount; ++k) {
+            minD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(minCount - 1));
+        }
+        for (u32 k = 0; k < maxCount; ++k) {
+            maxD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(maxCount - 1));
+        }
+
+        const u32 minLoop = flag1 ? 0 : minCount;
+        const u32 maxLoop = flag2 ? 0 : maxCount;
+
+        // min 采样向量化(flag1 时跳过)。
+#pragma clang loop vectorize_width(4) interleave_count(2)
+        for (u32 k = 0; k < minLoop; ++k) {
+            const f64 d11 = minD11[k];
+            const f64 d12 = noise::perlinWrap(d0 * d11);
+            const f64 d13 = noise::perlinWrap(d1 * d11);
+            const f64 d14 = noise::perlinWrap(d2 * d11);
+            const f64 d15 = d6 * d11;
+            minDs[k] = noise::perlinSampleSoA(minSoa, k, d12, d13, d14, d15, d1 * d11);
+        }
+
+        // max 采样向量化(flag2 时跳过)。
+#pragma clang loop vectorize_width(4) interleave_count(2)
+        for (u32 k = 0; k < maxLoop; ++k) {
+            const f64 d11 = maxD11[k];
+            const f64 d12 = noise::perlinWrap(d0 * d11);
+            const f64 d13 = noise::perlinWrap(d1 * d11);
+            const f64 d14 = noise::perlinWrap(d2 * d11);
+            const f64 d15 = d6 * d11;
+            maxDs[k] = noise::perlinSampleSoA(maxSoa, k, d12, d13, d14, d15, d1 * d11);
+        }
+
+        // 反向标量累加(复刻原 j=0..15 顺序)。
         if (!flag1) {
-            const noise::PerlinNoise::PerlinLayer* layer = m_minLimitNoise->getOctaveNoise(j);
-            if (layer != nullptr) {
-                d8 += layer->noiseWithSmear(d12, d13, d14, d15, d1 * d11) / d11;
+            for (u32 k = minCount; k-- > 0;) {
+                d8 += minDs[k] / minD11[k];
             }
         }
-
         if (!flag2) {
-            const noise::PerlinNoise::PerlinLayer* layer = m_maxLimitNoise->getOctaveNoise(j);
-            if (layer != nullptr) {
-                d9 += layer->noiseWithSmear(d12, d13, d14, d15, d1 * d11) / d11;
+            for (u32 k = maxCount; k-- > 0;) {
+                d9 += maxDs[k] / maxD11[k];
             }
         }
-
-        d11 /= 2.0;
     }
 
     // ---- 最终结果 ----

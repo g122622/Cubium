@@ -200,7 +200,11 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
 8. **NoiseChunk slice 交换**：advanceCellX 后必须调用 swapSlices() 切换缓冲区
 9. **NoiseInterpolator 双缓冲**：slice0/slice1 分别存储当前列和下一列的角点数据，
    初始化时需要先填充 slice0
-10. **BlendedNoise 涂抹效果**：使用 `PerlinNoise::getValueWithSmear()` 对 Y 轴应用涂抹，
-    涂抹参数影响地形条纹结构
+10. **BlendedNoise 涂抹效果与 SoA 向量化**：`compute` 对 Y 轴应用涂抹效果（产生条纹结构），
+    且 octave 循环已走 SoA 向量化路径（复用各 `PerlinNoise` 自带的 `soa()` 连续置换表块，
+    `perlinSampleSoA` 内核 + `#pragma clang loop vectorize(enable)`，标量顺序累加保 bit-exact）。
+    SoA 布局、三个回退根因规避、精度双轨与 epsilon 陷阱详见 `noise/README.md` 的
+    "SoA 向量化加速"章节。涂抹 epsilon 必须用 `static_cast<f64>(1.0e-7f)`（float→double），
+    与 `PerlinLayer::noiseWithSmear` 逐位一致，否则 BlendedNoise 边界 floor 跨越致远超 1e-9 漂移
 11. **EndIslands 种子**：使用 `LegacyRandomSource(seed).consumeCount(17292)` 初始化 SimplexNoise，
     确保与 Java 版生成相同的世界

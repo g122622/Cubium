@@ -201,6 +201,7 @@ PerlinNoise::PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     math::Random rng(seed);
     const math::PositionalRandomFactory factory = rng.forkPositional();
     initLayers(factory);
+    buildSoA();
 }
 
 PerlinNoise::PerlinNoise(const math::PositionalRandomFactory& factory, i32 firstOctave, std::vector<f64> amplitudes)
@@ -208,6 +209,7 @@ PerlinNoise::PerlinNoise(const math::PositionalRandomFactory& factory, i32 first
     , m_amplitudes(std::move(amplitudes))
 {
     initLayers(factory);
+    buildSoA();
 }
 
 PerlinNoise::PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
@@ -215,6 +217,7 @@ PerlinNoise::PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vect
     , m_amplitudes(std::move(amplitudes))
 {
     initLayersLegacy(rng);
+    buildSoA();
 }
 
 void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
@@ -316,24 +319,72 @@ void PerlinNoise::initLayersLegacy(math::JavaLegacyRandom& rng)
     m_maxValue = edgeValue(2.0);
 }
 
-f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
+void PerlinNoise::buildSoA()
 {
-    f64 result = 0.0;
+    // 先数非空 octave 数 N。
+    u32 count = 0;
+    for (const auto& layer : m_layers) {
+        if (layer != nullptr) {
+            ++count;
+        }
+    }
+    if (count == 0) {
+        return; // m_soa 保持默认空载体
+    }
+
+    // 分配容纳 count 个 octave 的连续 SoA 块(64 字节对齐)。
+    m_soa = PerlinNoiseSoA(count);
+
+    // 遍历 m_layers,把非空 layer 的置换表 + 偏移 + 振幅 + 缩放因子写入 SoA。
+    // inputFactor 从 lowestFreqInputFactor 起每层 ×2,valueFactor 从 lowestFreqValueFactor 起每层 ÷2,
+    // 与 getValue 循环语义一致(空层跳过采样但仍推进缩放序列——此处空层不进 SoA,
+    // 但 inputFactor/valueFactor 仍按原循环推进,保证非空层缩放因子正确)。
+    u32 out = 0;
     f64 inputFactor = m_lowestFreqInputFactor;
     f64 valueFactor = m_lowestFreqValueFactor;
-
     for (size_t i = 0; i < m_layers.size(); ++i) {
         if (m_layers[i] != nullptr) {
-            const f64 amplitude = m_amplitudes[i];
-            const f64 nx = wrap(x * inputFactor);
-            const f64 ny = wrap(y * inputFactor);
-            const f64 nz = wrap(z * inputFactor);
-            result += amplitude * m_layers[i]->noise(nx, ny, nz) * valueFactor;
+            const auto& perm = m_layers[i]->permutation();
+            std::memcpy(m_soa.permsData() + static_cast<size_t>(out) * 256ull, perm.data(), 256ull);
+            m_soa.originXData()[out] = m_layers[i]->xOffset();
+            m_soa.originYData()[out] = m_layers[i]->yOffset();
+            m_soa.originZData()[out] = m_layers[i]->zOffset();
+            m_soa.amplitudeData()[out] = m_amplitudes[i];
+            m_soa.inputFactorData()[out] = inputFactor;
+            m_soa.valueFactorData()[out] = valueFactor;
+            ++out;
         }
         inputFactor *= 2.0;
         valueFactor /= 2.0;
     }
+    MC_ASSERT_RELEASE_MSG(out == count, "PerlinNoise::buildSoA: octave count mismatch during fill");
+}
 
+f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
+{
+    // SoA 向量化路径:每个 SIMD 通道算一个 octave(各自独立置换表做独立 gather 链),
+    // hash 链 p[p[p[h]+y]+z] 内部串行不碰。结果先写扁平数组 ds[i],再标量顺序累加(保 bit-exact)。
+    const u32 count = m_soa.count();
+    if (count == 0) {
+        return 0.0;
+    }
+
+    alignas(64) f64 ds[kMaxPerlinOctaves];
+    const PerlinNoiseSoA& soa = m_soa;
+
+#pragma clang loop vectorize_width(4) interleave_count(2)
+    for (u32 i = 0; i < count; ++i) {
+        const f64 nx = perlinWrap(x * soa.inputFactor()[i]);
+        const f64 ny = perlinWrap(y * soa.inputFactor()[i]);
+        const f64 nz = perlinWrap(z * soa.inputFactor()[i]);
+        ds[i] = perlinSampleSoA(soa, i, nx, ny, nz, /*yScale=*/0.0, /*yMax=*/0.0);
+    }
+
+    // 标量顺序累加:与原 getValue 循环顺序一致 → bit-exact。
+    f64 result = 0.0;
+    for (u32 i = 0; i < count; ++i) {
+        result += soa.amplitude()[i] * ds[i] * soa.valueFactor()[i];
+    }
     return result;
 }
 
