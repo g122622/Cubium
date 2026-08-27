@@ -22,7 +22,6 @@ ast/
 ├── CompiledDensityFunctionAdapter.hpp — 把 CompiledDensityFunction 包装为 DensityFunction 子类的桥接 Adapter（供缓存类 filler 持有）
 ├── DensityEvalHelpers.hpp             — 求值纯函数集（clampedLerp/clampedMap/getRarity/evalSpline/evalFindTopSurface 等，解释器与 JIT trampoline 共享）
 ├── DensityEvalHelpers.cpp             — 实现
-├── DensityEvalProfiler.hpp            — 临时 eval 性能插桩（readTsc + g_densityEvalAcc 累加器 + DepthGuard，量化 JIT 收益用）
 ├── DensityJitCompiler.hpp             — compileDensityJit 声明（Op 序列 → asmjit 机器码函数指针）
 ├── DensityJitCompiler.cpp             — JIT 编译器实现（Win x64 门控，逐条 Op 翻译为虚拟寄存器指令）
 ├── DensityJitTrampolines.hpp          — JIT 外部调用 trampoline 自由函数声明
@@ -71,7 +70,7 @@ Adapter 桥接：CompiledDensityFunctionAdapter 把编译产物包装为 Density
 - `common/world/gen/density/NoiseChunk` — 区块级 newInstance + Adapter 包装（include CompiledDensityFunction/CompiledDensityFunctionAdapter）
 - 测试：OptoPassesTest、DensityAstCompileTest、DensityJitBaselineTest
 
-对外暴露 7 个头：`CompiledDensityFunction.hpp`、`CompiledDensityFunctionAdapter.hpp`、`BytecodeGen.hpp`、`McToAst.hpp`、`OptoPasses.hpp`、`AstNode.hpp`、`AstNodes.hpp`。`DensityEvalHelpers/DensityEvalProfiler/DensityJitCompiler/DensityJitTrampolines` 为内部实现，不应被 ast/ 外部直接 include。
+对外暴露 7 个头：`CompiledDensityFunction.hpp`、`CompiledDensityFunctionAdapter.hpp`、`BytecodeGen.hpp`、`McToAst.hpp`、`OptoPasses.hpp`、`AstNode.hpp`、`AstNodes.hpp`。`DensityEvalHelpers/DensityJitCompiler/DensityJitTrampolines` 为内部实现，不应被 ast/ 外部直接 include。
 
 ## 容易踩的坑
 
@@ -81,5 +80,4 @@ Adapter 桥接：CompiledDensityFunctionAdapter 把编译产物包装为 Density
 4. **`DensityEvalContext` 与 `DensityJitFn` 定义在 CompiledDensityFunction.hpp**（非 DensityJitCompiler.hpp），以打破循环 include。DensityJitCompiler.hpp/DensityJitTrampolines.hpp 仅前向声明 + include CompiledDensityFunction.hpp 可见这两个类型。DensityJitCompiler.hpp 刻意不 include asmjit（封装在 .cpp）。
 5. **维度级与区块级共享同一 JIT 代码**：newInstance 深拷贝 m_ops 字节相同故复用 m_jitFn，只重建 DensityEvalContext。MARKER 翻译时生成运行时判空（`cacheObj != null` 走 compute / 否则走 delegate eval），维度级（占位）与区块级（注入缓存）两种路径都覆盖。
 6. **浮点累加顺序必须 bit-exact**：逐条 Op 顺序翻译 + asmjit 不重排保证浮点累加顺序不变 → JIT 与解释器 1e-9 一致。两操作数指令须先 `movsd(dst,a)` 再 `*sd(dst,b)`（x64 两操作数破坏 dst）。macOS ARM64 JIT 留 TODO，须注意避免 fmadd 融合破坏 bit-exact。
-7. **DensityEvalProfiler.hpp 是临时插桩**：双桶差值法（interpreterCycles=topLevelCycles−externalCycles）量化 JIT 收益用，profiler 完成后本文件及 eval 内插桩代码将整体删除。Marker 是"递归外部调用"（B 类）不可计时，误归 A 类（叶子）计时致双重计数（externalCycles>totalCycles 悖论）。
-8. **性能计数器在 JIT 路径下 externalCycles 失真**：trampoline 未插桩，JIT 路径下 externalCycles/externalCalls 不累计，interpreterRatio 失真——以 topLevelCycles 绝对下降为 JIT 收益主指标。
+7. **临时性能插桩已整体移除（2026-08-27）**：曾用 `DensityEvalProfiler.hpp`（双桶差值法 interpreterCycles=topLevelCycles−externalCycles，量化 JIT 收益）在 eval 顶层 + 5 个 A 类叶子外部调用（解释器 evalImpl case + JIT trampoline）per-call `readTsc` 计时。profiler 量化使命完成（JIT 1.59×、external 占 54.9% 已坐实，见 `docs/iterations/密度函数求值器JIT可行性评估.md` 第 7、8 节）后整体删除——每帧约 5.8 万次/区块的噪声采样各 2× rdtsc 计时开销淹没 SoA 向量化收益（详见评估文档第 8.5 节）。evalImpl 5 个 A 类 case 现仅保留核心求值逻辑，无任何计时。Marker 是"递归外部调用"（B 类）曾不可计时，误归 A 类计时致双重计数（externalCycles>totalCycles 悖论）的历史教训记录在评估文档第 6 节。
