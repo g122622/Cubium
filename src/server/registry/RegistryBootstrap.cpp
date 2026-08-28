@@ -34,13 +34,6 @@
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
-#include "common/item/crafting/special/ArmorDyeRecipe.hpp"
-#include "common/item/crafting/special/BookCloningRecipe.hpp"
-#include "common/item/crafting/special/DecoratedPotRecipe.hpp"
-#include "common/item/crafting/special/MapCloningRecipe.hpp"
-#include "common/item/crafting/special/MapExtendingRecipe.hpp"
-#include "common/item/crafting/special/RepairItemRecipe.hpp"
-#include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
@@ -94,6 +87,7 @@
 #include "server/function/FunctionManager.hpp"
 #include "server/network/EnchantmentNbtBuilder.hpp"
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <spdlog/spdlog.h>
 
@@ -110,41 +104,6 @@ RegistryBootstrap::RegistryBootstrap(mc::resource::DataPackRepository& dataPackL
     , m_predicateManager(predicateManager)
     , m_functionManager(functionManager)
 {}
-
-void RegistryBootstrap::registerSpecialRecipes()
-{
-    using namespace crafting;
-
-    // 注册物品修复配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<RepairItemRecipe>(ResourceLocation("minecraft", "repair_item")));
-
-    // 注册盔甲染色配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")));
-
-    // 注册书复制配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<BookCloningRecipe>(ResourceLocation("minecraft", "book_cloning")));
-
-    // 注册地图复制配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<MapCloningRecipe>(ResourceLocation("minecraft", "map_cloning")));
-
-    // 注册地图扩展配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<MapExtendingRecipe>(ResourceLocation("minecraft", "map_extending")));
-
-    // 注册药水箭配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
-
-    // 注册饰纹陶罐配方
-    RecipeManager::instance().registerRecipe(
-        std::make_unique<DecoratedPotRecipe>(ResourceLocation("minecraft", "decorated_pot")));
-
-    spdlog::info("Special recipes registered (7 recipes)");
-}
 
 void RegistryBootstrap::initializeAll(bool registerEntities)
 {
@@ -266,13 +225,36 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         if (dataPackLoadResult.failed()) {
             spdlog::error("Failed to load crafting recipes from data packs: {}", dataPackLoadResult.error().toString());
         } else {
-            spdlog::info("Loaded {} crafting recipes from data packs ({} failed)",
-                dataPackLoadResult.value().successCount,
-                dataPackLoadResult.value().failedCount);
-        }
+            const auto& result = dataPackLoadResult.value();
+            spdlog::info(
+                "Loaded {} crafting recipes from data packs ({} failed)", result.successCount, result.failedCount);
 
-        // 注册特殊配方（动态配方，不从数据包加载）
-        registerSpecialRecipes();
+            // 失败原因聚合统计：原版数据包配方量大，逐条打印会污染日志，按错误信息归并计数，
+            // 仅打印 Top-N 摘要 + 总数，便于定位批量失败根因（如某类型未实现、某物品未注册等）。
+            if (result.failedCount > 0 && !result.errors.empty()) {
+                std::map<std::string, int> errorCounts;
+                for (const auto& err : result.errors) {
+                    // 错误格式为 "<resource_path>: <message>"。去掉资源路径前缀（无诊断价值），
+                    // 保留完整 message（含具体物品 ID 等），使每类失败可精确定位。
+                    size_t colonPos = err.find(": ");
+                    std::string key = (colonPos == std::string::npos) ? err : err.substr(colonPos + 2);
+                    ++errorCounts[key];
+                }
+
+                spdlog::warn(
+                    "Recipe load failures by reason ({} unique, {} total):", errorCounts.size(), result.failedCount);
+                int shown = 0;
+                constexpr int TOP_N = 20;
+                for (const auto& [reason, count] : errorCounts) {
+                    if (shown >= TOP_N) {
+                        spdlog::warn("  ... and {} more unique reasons", errorCounts.size() - shown);
+                        break;
+                    }
+                    spdlog::warn("  [{}] {}", count, reason);
+                    ++shown;
+                }
+            }
+        }
     }
 
     // 加载函数（从数据包加载 .mcfunction 文件）

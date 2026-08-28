@@ -50,7 +50,9 @@ enum class RecipeType : u8 {
     Smoking,           ///< 烟熏炉
     CampfireCooking,   ///< 营火烹饪
     Stonecutting,      ///< 切石机
-    Smithing,          ///< 锻造台
+    Smithing,          ///< 锻造台（旧 smithing，1.21+ 已由 smithing_transform 取代）
+    SmithingTransform, ///< 锻造升级（MC 1.21+，smithing_transform）
+    SmithingTrim,      ///< 盔甲纹饰（MC 1.21+，smithing_trim）
     Transmute,         ///< 物品转化（MC 1.21+，如收纳袋染色）
     Special            ///< 特殊配方（如地图扩展）
 };

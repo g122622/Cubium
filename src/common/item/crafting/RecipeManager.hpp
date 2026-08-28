@@ -31,6 +31,8 @@
 #include "item/crafting/IRecipe.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
 #include "item/crafting/SmithingRecipe.hpp"
+#include "item/crafting/SmithingTransformRecipe.hpp"
+#include "item/crafting/SmithingTrimRecipe.hpp"
 #include "item/crafting/StonecuttingRecipe.hpp"
 #include "resource/ResourceLocation.hpp"
 #include <cstddef>
@@ -86,6 +88,20 @@ public:
      * @return 注册成功返回true，ID冲突返回false
      */
     bool registerSmithingRecipe(std::unique_ptr<SmithingRecipe> recipe);
+
+    /**
+     * @brief 注册锻造升级配方（MC 1.21+ smithing_transform）
+     * @param recipe 配方实例（移动语义）
+     * @return 注册成功返回true，ID冲突返回false
+     */
+    bool registerSmithingTransformRecipe(std::unique_ptr<SmithingTransformRecipe> recipe);
+
+    /**
+     * @brief 注册盔甲纹饰配方（MC 1.21+ smithing_trim）
+     * @param recipe 配方实例（移动语义）
+     * @return 注册成功返回true，ID冲突返回false
+     */
+    bool registerSmithingTrimRecipe(std::unique_ptr<SmithingTrimRecipe> recipe);
 
     /**
      * @brief 按ID获取合成配方
@@ -231,11 +247,17 @@ private:
         m_stonecuttingRecipesById;
     std::unordered_map<ResourceLocation, std::unique_ptr<SmithingRecipe>, std::hash<ResourceLocation>>
         m_smithingRecipesById;
+    std::unordered_map<ResourceLocation, std::unique_ptr<SmithingTransformRecipe>, std::hash<ResourceLocation>>
+        m_smithingTransformRecipesById;
+    std::unordered_map<ResourceLocation, std::unique_ptr<SmithingTrimRecipe>, std::hash<ResourceLocation>>
+        m_smithingTrimRecipesById;
 
     std::unordered_map<RecipeType, std::vector<const CraftingRecipe*>> m_recipesByType;
     std::unordered_map<RecipeType, std::vector<const SmeltingRecipe*>> m_smeltingRecipesByType;
     std::unordered_map<RecipeType, std::vector<const StonecuttingRecipe*>> m_stonecuttingRecipesByType;
     std::unordered_map<RecipeType, std::vector<const SmithingRecipe*>> m_smithingRecipesByType;
+    std::unordered_map<RecipeType, std::vector<const SmithingTransformRecipe*>> m_smithingTransformRecipesByType;
+    std::unordered_map<RecipeType, std::vector<const SmithingTrimRecipe*>> m_smithingTrimRecipesByType;
 
     std::unordered_map<ItemId, std::vector<const CraftingRecipe*>> m_recipesByResult;
 };

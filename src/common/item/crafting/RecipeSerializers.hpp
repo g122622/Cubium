@@ -33,6 +33,8 @@
 #include "item/crafting/ShapelessRecipe.hpp"
 #include "item/crafting/SmeltingRecipe.hpp"
 #include "item/crafting/SmithingRecipe.hpp"
+#include "item/crafting/SmithingTransformRecipe.hpp"
+#include "item/crafting/SmithingTrimRecipe.hpp"
 #include "item/crafting/StonecuttingRecipe.hpp"
 #include "item/crafting/TransmuteRecipe.hpp"
 #include <memory>
@@ -112,7 +114,12 @@ public:
         static constexpr const char* CAMPFIRE_COOKING = "minecraft:campfire_cooking";
         static constexpr const char* STONECUTTING = "minecraft:stonecutting";
         static constexpr const char* SMITHING = "minecraft:smithing";
+        static constexpr const char* SMITHING_TRANSFORM = "minecraft:smithing_transform";
+        static constexpr const char* SMITHING_TRIM = "minecraft:smithing_trim";
         static constexpr const char* CRAFTING_TRANSMUTE = "minecraft:crafting_transmute";
+        static constexpr const char* CRAFTING_DECORATED_POT = "minecraft:crafting_decorated_pot";
+        /// crafting_special_* 前缀（含 11 种特殊合成类型）
+        static constexpr const char* CRAFTING_SPECIAL_PREFIX = "minecraft:crafting_special_";
     };
 
     /**
@@ -143,6 +150,47 @@ public:
      * @return 解析的配方，或错误
      */
     static Result<std::unique_ptr<SmithingRecipe>> parseSmithingRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 从JSON解析锻造升级配方（MC 1.21+ smithing_transform）
+     *
+     * JSON 字段：template（可选）/ base（必选）/ addition（可选）/ result（TransmuteResult 格式）。
+     * template/addition 缺失时使用 Ingredient::EMPTY。
+     *
+     * @param id 配方ID
+     * @param json JSON数据
+     * @return 解析的配方，或错误
+     */
+    static Result<std::unique_ptr<SmithingTransformRecipe>> parseSmithingTransformRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 从JSON解析盔甲纹饰配方（MC 1.21+ smithing_trim）
+     *
+     * JSON 字段：template / base / addition / pattern（TrimPattern ResourceLocation）。
+     * 注意：纹饰系统（TrimPattern 注册表）未实现，pattern 暂存为 ResourceLocation。
+     *
+     * @param id 配方ID
+     * @param json JSON数据
+     * @return 解析的配方，或错误
+     */
+    static Result<std::unique_ptr<SmithingTrimRecipe>> parseSmithingTrimRecipe(
+        const ResourceLocation& id, const nlohmann::json& json);
+
+    /**
+     * @brief 从JSON解析特殊合成配方（crafting_special_* / crafting_decorated_pot）
+     *
+     * 这些配方的 JSON 仅含 type + category，无原料/结果字段。行为由对应的代码类实现，
+     * 此处按 type 查工厂表创建对应 SpecialRecipe 子类实例（用数据包 ID）。
+     * 参考 MC 1.21.11 的 SpecialRecipeSerializer：fromJson 不解析任何字段，仅按 type
+     * 创建对应的代码侧 Recipe 实例。
+     *
+     * @param id 配方ID
+     * @param json JSON数据（用于读取 type 字段）
+     * @return 解析的配方，或错误（type 不在已知 special 类型中时返回错误）
+     */
+    static Result<std::unique_ptr<CraftingRecipe>> parseSpecialRecipe(
         const ResourceLocation& id, const nlohmann::json& json);
 
     /**

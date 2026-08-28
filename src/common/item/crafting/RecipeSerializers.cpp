@@ -32,14 +32,29 @@
 #include "common/item/crafting/ShapelessRecipe.hpp"
 #include "common/item/crafting/SmeltingRecipe.hpp"
 #include "common/item/crafting/SmithingRecipe.hpp"
+#include "common/item/crafting/SmithingTransformRecipe.hpp"
+#include "common/item/crafting/SmithingTrimRecipe.hpp"
 #include "common/item/crafting/StonecuttingRecipe.hpp"
 #include "common/item/crafting/TransmuteRecipe.hpp"
+#include "common/item/crafting/special/ArmorDyeRecipe.hpp"
+#include "common/item/crafting/special/BannerDuplicateRecipe.hpp"
+#include "common/item/crafting/special/BookCloningRecipe.hpp"
+#include "common/item/crafting/special/DecoratedPotRecipe.hpp"
+#include "common/item/crafting/special/FireworkRocketRecipe.hpp"
+#include "common/item/crafting/special/FireworkStarFadeRecipe.hpp"
+#include "common/item/crafting/special/FireworkStarRecipe.hpp"
+#include "common/item/crafting/special/MapCloningRecipe.hpp"
+#include "common/item/crafting/special/MapExtendingRecipe.hpp"
+#include "common/item/crafting/special/RepairItemRecipe.hpp"
+#include "common/item/crafting/special/ShieldDecorationRecipe.hpp"
+#include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <exception>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -209,6 +224,22 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     else if (type == "minecraft:smithing") {
         return Error(ErrorCode::ResourceParseError,
             "Smithing recipes should be loaded via parseSmithingRecipe. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
+    }
+    // 锻造升级/盔甲纹饰（MC 1.21+）- 返回错误提示使用专门的方法
+    else if (type == "minecraft:smithing_transform") {
+        return Error(ErrorCode::ResourceParseError,
+            "Smithing transform recipes should be loaded via parseSmithingTransformRecipe. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
+    } else if (type == "minecraft:smithing_trim") {
+        return Error(ErrorCode::ResourceParseError,
+            "Smithing trim recipes should be loaded via parseSmithingTrimRecipe. "
+            "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
+    }
+    // 特殊合成配方（crafting_special_* / crafting_decorated_pot）- 返回错误提示使用专门的方法
+    else if (type.rfind("minecraft:crafting_special_", 0) == 0 || type == "minecraft:crafting_decorated_pot") {
+        return Error(ErrorCode::ResourceParseError,
+            "Special crafting recipes should be loaded via parseSpecialRecipe. "
             "Use RecipeLoader::loadRecipeJson which handles all recipe types.");
     }
     // 熔炼类配方 - 返回错误提示使用专门的方法
@@ -882,6 +913,165 @@ Result<std::unique_ptr<SmithingRecipe>> RecipeSerializers::parseSmithingRecipe(
     }
 
     return std::make_unique<SmithingRecipe>(id, baseResult.value(), additionResult.value(), resultStack.value());
+}
+
+// ============================================================================
+// 锻造升级配方解析（smithing_transform，MC 1.21+）
+// ============================================================================
+
+Result<std::unique_ptr<SmithingTransformRecipe>> RecipeSerializers::parseSmithingTransformRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // template（可选）：缺失时使用空 Ingredient
+    Ingredient templateIngredient = Ingredient::EMPTY;
+    if (json.contains("template")) {
+        auto templateResult = parseIngredient(json["template"]);
+        if (!templateResult.success()) {
+            return templateResult.error();
+        }
+        templateIngredient = templateResult.value();
+    }
+
+    // base（必选）
+    if (!json.contains("base")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing transform recipe missing 'base'");
+    }
+    auto baseResult = parseIngredient(json["base"]);
+    if (!baseResult.success()) {
+        return baseResult.error();
+    }
+
+    // addition（可选）：缺失时使用空 Ingredient
+    Ingredient additionIngredient = Ingredient::EMPTY;
+    if (json.contains("addition")) {
+        auto additionResult = parseIngredient(json["addition"]);
+        if (!additionResult.success()) {
+            return additionResult.error();
+        }
+        additionIngredient = additionResult.value();
+    }
+
+    // result（必选，TransmuteResult 格式，复用 parseResult 支持 1.21 id 字段）
+    if (!json.contains("result")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing transform recipe missing 'result'");
+    }
+    auto resultStack = parseResult(json["result"]);
+    if (!resultStack.success()) {
+        return resultStack.error();
+    }
+
+    return std::make_unique<SmithingTransformRecipe>(
+        id, std::move(templateIngredient), baseResult.value(), std::move(additionIngredient), resultStack.value());
+}
+
+// ============================================================================
+// 盔甲纹饰配方解析（smithing_trim，MC 1.21+）
+// ============================================================================
+
+Result<std::unique_ptr<SmithingTrimRecipe>> RecipeSerializers::parseSmithingTrimRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // template（必选）
+    if (!json.contains("template")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing trim recipe missing 'template'");
+    }
+    auto templateResult = parseIngredient(json["template"]);
+    if (!templateResult.success()) {
+        return templateResult.error();
+    }
+
+    // base（必选）
+    if (!json.contains("base")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing trim recipe missing 'base'");
+    }
+    auto baseResult = parseIngredient(json["base"]);
+    if (!baseResult.success()) {
+        return baseResult.error();
+    }
+
+    // addition（必选）
+    if (!json.contains("addition")) {
+        return Error(ErrorCode::ResourceParseError, "Smithing trim recipe missing 'addition'");
+    }
+    auto additionResult = parseIngredient(json["addition"]);
+    if (!additionResult.success()) {
+        return additionResult.error();
+    }
+
+    // pattern（必选，TrimPattern 的 ResourceLocation）
+    // TODO: 纹饰系统（TrimPattern 注册表）未实现，当前仅解析为 ResourceLocation 暂存，
+    // 待纹饰注册表接入后解析为 Holder<TrimPattern>。
+    if (!json.contains("pattern") || !json["pattern"].is_string()) {
+        return Error(ErrorCode::ResourceParseError, "Smithing trim recipe missing 'pattern' string");
+    }
+    ResourceLocation pattern(json["pattern"].get<std::string>());
+
+    return std::make_unique<SmithingTrimRecipe>(
+        id, templateResult.value(), baseResult.value(), additionResult.value(), std::move(pattern));
+}
+
+// ============================================================================
+// 特殊合成配方解析（crafting_special_* / crafting_decorated_pot）
+// ============================================================================
+
+namespace {
+/// 特殊合成配方 type -> 工厂函数映射。
+/// 这些配方的 JSON 仅含 type + category，无原料/结果字段。行为由对应代码类实现，
+/// 此处按 type 创建对应 SpecialRecipe 子类实例（用数据包 ID）。
+/// 参考 MC 1.21.11 SpecialRecipeSerializer：fromJson 不解析字段，仅按 type 建实例。
+const std::unordered_map<std::string, std::function<std::unique_ptr<CraftingRecipe>(const ResourceLocation&)>>&
+specialRecipeFactories()
+{
+    static const std::unordered_map<std::string,
+        std::function<std::unique_ptr<CraftingRecipe>(const ResourceLocation&)>>
+        factories = {
+            {"minecraft:crafting_special_repairitem",
+                [](const ResourceLocation& id) { return std::make_unique<RepairItemRecipe>(id); }},
+            {"minecraft:crafting_special_armordye",
+                [](const ResourceLocation& id) { return std::make_unique<ArmorDyeRecipe>(id); }},
+            {"minecraft:crafting_special_bookcloning",
+                [](const ResourceLocation& id) { return std::make_unique<BookCloningRecipe>(id); }},
+            {"minecraft:crafting_special_mapcloning",
+                [](const ResourceLocation& id) { return std::make_unique<MapCloningRecipe>(id); }},
+            {"minecraft:crafting_special_mapextending",
+                [](const ResourceLocation& id) { return std::make_unique<MapExtendingRecipe>(id); }},
+            {"minecraft:crafting_special_tippedarrow",
+                [](const ResourceLocation& id) { return std::make_unique<TippedArrowRecipe>(id); }},
+            {"minecraft:crafting_decorated_pot",
+                [](const ResourceLocation& id) { return std::make_unique<DecoratedPotRecipe>(id); }},
+            {"minecraft:crafting_special_bannerduplicate",
+                [](const ResourceLocation& id) { return std::make_unique<BannerDuplicateRecipe>(id); }},
+            {"minecraft:crafting_special_shielddecoration",
+                [](const ResourceLocation& id) { return std::make_unique<ShieldDecorationRecipe>(id); }},
+            {"minecraft:crafting_special_firework_rocket",
+                [](const ResourceLocation& id) { return std::make_unique<FireworkRocketRecipe>(id); }},
+            {"minecraft:crafting_special_firework_star",
+                [](const ResourceLocation& id) { return std::make_unique<FireworkStarRecipe>(id); }},
+            {"minecraft:crafting_special_firework_star_fade",
+                [](const ResourceLocation& id) { return std::make_unique<FireworkStarFadeRecipe>(id); }},
+        };
+    return factories;
+}
+} // namespace
+
+Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::parseSpecialRecipe(
+    const ResourceLocation& id, const nlohmann::json& json)
+{
+    // 读取 type 字段
+    if (!json.contains("type") || !json["type"].is_string()) {
+        return Error(ErrorCode::ResourceParseError, "Special recipe missing 'type' field");
+    }
+    std::string type = json["type"].get<std::string>();
+
+    // 按 type 查工厂表
+    const auto& factories = specialRecipeFactories();
+    auto it = factories.find(type);
+    if (it == factories.end()) {
+        return Error(ErrorCode::ResourceParseError, "Unknown special recipe type: " + type);
+    }
+
+    // 特殊配方的 JSON 无原料/结果字段，不解析其他内容，直接按 type 创建实例
+    return it->second(id);
 }
 
 // ============================================================================
