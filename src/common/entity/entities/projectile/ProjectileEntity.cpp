@@ -302,7 +302,7 @@ void ProjectileEntity::onImpact(const RayTraceResult& result)
 {
     if (result.type == RayTraceResultType::Entity && result.hitEntity != nullptr) {
         // 命中实体时，先检查该实体是否偏转弹射物
-        // 对应 MC Java 的 Projectile.hitTargetOrDeflectSelf()
+        // 对应 vanilla Projectile.hitTargetOrDeflectSelf()
         const ProjectileDeflection deflection = result.hitEntity->deflection(*this);
         if (deflection != ProjectileDeflection::None) {
             auto* owner = tryGetComponent<ecs::ProjectileOwnerComponent>();
@@ -318,6 +318,21 @@ void ProjectileEntity::onImpact(const RayTraceResult& result)
             }
             // 被偏转后不调用 onEntityHit，直接返回
             return;
+        }
+
+        // 投射物互偏转（对应 vanilla Projectile.onHit:287-291）：
+        // 来袭投射物 A（本实体）命中可偏转投射物 B（命中实体，REDIRECTABLE_PROJECTILE 标签成员
+        // = fireball/wind_charge/breeze_wind_charge）时，对 B 调 deflect(AIM_DEFLECT, A 的发射者, true)：
+        // B 速度设为 A 发射者的视线方向（单位向量），B 的新发射者改为 A 的发射者。然后仍调
+        // onEntityHit（A 正常处理命中 B，与路径 A 偏转自身后 return 不同）。
+        // 注：Cubium deflect 签名合并偏转器与所有者，互偏转场景 deflector=A 的发射者（vanilla
+        // getOwner()），AimDeflect 据此把 B 速度设为 A 发射者视线 + setShooter(A 发射者)，语义对齐。
+        if (EntityTypeTags::REDIRECTABLE_PROJECTILE().contains(result.hitEntity->getTypeId())) {
+            auto* hitProjectile = dynamic_cast<ProjectileEntity*>(result.hitEntity);
+            Entity* const shooter = getShooter();
+            if (hitProjectile != nullptr && shooter != nullptr) {
+                hitProjectile->deflect(ProjectileDeflection::AimDeflect, *shooter, true);
+            }
         }
     }
 

@@ -158,9 +158,16 @@ public:
     /**
      * @brief 当被闪电击中时调用
      *
-     * 陷阱马被闪电击中时触发陷阱
+     * 陷阱马被闪电击中时触发陷阱。
+     * 注意：vanilla SkeletonHorse 无 thunderHit 覆盖（走基类 Entity#thunderHit 受 5 伤害），
+     * 陷阱触发由 SkeletonTrapGoal（玩家接近触发）驱动而非闪电。Cubium 此处 triggerTrap 是既有
+     * 偏差（闪电触发陷阱为 BE 专属行为，Java 版无）。本实现保留 triggerTrap 行为并补调基类受 5
+     * 伤害以对齐 vanilla 伤害语义。TODO: 评估是否应移除闪电触发陷阱偏差完全对齐 Java（影响陷阱
+     * 马既有行为，需配套 SkeletonTrapGoal 玩家接近触发链路验证，不在本次闪电重构范围）。
+     *
+     * @param lightning 击中此实体的闪电实体
      */
-    void onStruckByLightning() override;
+    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
 
     // ========== 生命周期 ==========
 

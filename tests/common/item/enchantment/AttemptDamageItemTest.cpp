@@ -51,8 +51,8 @@ using namespace mc::item::enchant;
 
 class DamageTestLivingEntity : public LivingEntity {
 public:
-    explicit DamageTestLivingEntity(IWorld* world = nullptr,
-        ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+    explicit DamageTestLivingEntity(
+        IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
         : LivingEntity(EntityInstanceId(1), world, registry)
     {
         registerData();
@@ -389,6 +389,52 @@ TEST_F(AttemptDamageItemTest, ArmorUnbreakingReducedEffectiveness)
     EXPECT_GT(ignoreCountNonArmor, ignoreCountArmor)
         << "非护甲耐久 I 应比护甲耐久 I 忽略更多伤害。护甲: " << ignoreCountArmor
         << ", 非护甲: " << ignoreCountNonArmor;
+}
+
+// ============================================================================
+// 多点损耗测试：耐久附魔对 amount>1 的损耗应做独立伯努利试验（对齐 vanilla RemoveBinomial）
+// ============================================================================
+
+TEST_F(AttemptDamageItemTest, MultiPointDamageAppliesIndependentTrials)
+{
+    // 验证：amount>1 时，耐久附魔应对【原始 amount】做固定次数独立伯努利试验，累加被忽略的点数，
+    // 而非每次忽略后减小循环上界。对齐 vanilla 1.21.11 RemoveBinomial.process（RemoveBinomial.java:21-23
+    // 小 amount 路径：for (j < amount) { if (nextFloat < chance) removed++; } return amount - removed）。
+    //
+    // 此前缺陷：ItemStack::attemptDamageItem 用 `for (i < amount) { if (ignore) --amount; }`，每次忽略后
+    // 减小循环上界，致 amount>1 时试验次数减少、保护效果被削弱。以 amount=2 level=1 非盔甲（chance=0.5）为例：
+    //   - vanilla（独立试验）：P(剩0)=0.25, P(剩1)=0.5, P(剩2)=0.25，期望剩余 = 1.0
+    //   - 旧实现（上界自减）：P(剩0)=0, P(剩1)=0.75, P(剩2)=0.25，期望剩余 = 1.25（保护偏弱）
+    // 修复后用 removed 累加器对齐 vanilla，期望剩余回到 1.0。
+    //
+    // 统计断言：500 次试验总剩余损耗，vanilla 期望 = 500*1.0 = 500，旧实现期望 = 500*1.25 = 625。
+    // 区间 [400, 600] 容忍统计波动，同时排除旧实现的 625+（旧实现总剩余约 625，>600 → FAIL 暴露缺陷）。
+    Item* diamondSword = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_sword"));
+    ASSERT_NE(diamondSword, nullptr);
+
+    DamageTestLivingEntity entity(&world, mc::test::testEcsRegistry());
+
+    constexpr int TOTAL_TRIALS = 500;
+    constexpr int DAMAGE_PER_TRIAL = 2; // amount=2，触发多点损耗路径
+    i32 totalRemainingDamage = 0;
+
+    for (int trial = 0; trial < TOTAL_TRIALS; ++trial) {
+        ItemStack stack(diamondSword, 1);
+        stack.addEnchantment("minecraft:unbreaking", 1); // level=1, chance=0.5
+
+        i32 damageBefore = stack.getDamage();
+        stack.attemptDamageItem(DAMAGE_PER_TRIAL, &entity);
+        i32 damageAfter = stack.getDamage();
+        totalRemainingDamage += (damageAfter - damageBefore);
+    }
+
+    // vanilla 期望总剩余 = 500 * 1.0 = 500；旧缺陷实现期望 = 500 * 1.25 = 625。
+    // 区间 [400, 600] 排除旧实现（625 > 600），验证修复对齐 vanilla 独立试验语义。
+    EXPECT_GE(totalRemainingDamage, 400) << "多点损耗总剩余偏低（过多忽略），期望约 500（vanilla 独立试验），实际 "
+                                         << totalRemainingDamage;
+    EXPECT_LE(totalRemainingDamage, 600)
+        << "多点损耗总剩余偏高（保护偏弱，疑旧实现上界自减缺陷未修复），期望约 500（vanilla），"
+        << "旧缺陷实现约 625，实际 " << totalRemainingDamage;
 }
 
 // ============================================================================

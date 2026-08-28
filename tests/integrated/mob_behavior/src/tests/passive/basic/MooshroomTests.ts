@@ -51,11 +51,13 @@ function countItemInInventory(player: any, typeId: string): number {
 
 // 哞菇被闪电劈中红↔棕变种翻转（wiki tech_哞菇.txt#闪电：红色哞菇被雷击变棕色，棕色被雷击变红色）。
 //
-// C++ 链路：LightningBoltEntity::_damageEntities 对命中范围(±3 XZ)内实体先 hurt(5.0) 再调
-// entity->onStruckByLightning()（EffectEntities.cpp:509-511）。MooshroomEntity::onStruckByLightning
-// （MooshroomEntity.cpp:366-396）调 setMooshroomType(isRed() ? Brown : Red) 翻转变种 + 播放 convert
-// 音效 + 客户端粒子。无难度门控（转化产物仍是哞菇，无和平消失问题，区别于 PigEntity 转化需非 Peaceful）。
-// 哞菇 10 血，闪电伤害 5，存活 5 血，转化当 tick 完成，实体仍在（不 remove、不换 typeId）。
+// C++ 链路（对齐 vanilla MushroomCow#thunderHit，thunderHit 架构重构后）：
+// LightningBoltEntity::_damageEntities 对命中范围(±3 XZ)内实体仅调 entity->onStruckByLightning(this)
+// （EffectEntities.cpp:514-525）。基类 Entity::onStruckByLightning 默认 hurt(5.0)+引燃判定（对齐 vanilla
+// Entity#thunderHit）。MooshroomEntity::onStruckByLightning（MooshroomEntity.cpp:366）对齐 vanilla
+// MushroomCow **不调基类**（不受伤不引燃），仅调 setMooshroomType(isRed() ? Brown : Red) 翻转变种 +
+// 播放 convert 音效 + 客户端粒子。无难度门控（转化产物仍是哞菇，无和平消失问题，区别于 PigEntity 转化需非 Peaceful）。
+// 哞菇 10 血，重构后不调基类 hurt 不受伤，保持 10 血存活，转化当 tick 完成，实体仍在（不 remove、不换 typeId）。
 //
 // 判定手段：读 minecraft:mark_variant 组件（Cubium 绑定 MinecraftModuleFactory.cpp getComponent，
 // 对 MooshroomEntity 返回 MarkVariantComponent，readonly value 为 MooshroomType 枚举值 Red=0/Brown=1，

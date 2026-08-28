@@ -82,6 +82,10 @@ namespace entity {
 // （m_entityType 缓存）并按名查询，无需在此引入完整定义。
 class EntityType;
 
+// 前向声明：LightningBoltEntity 完整定义在 entities/effect/EffectEntities.hpp，
+// Entity::onStruckByLightning 仅持有其裸指针（用于构造闪电伤害源），无需完整定义。
+class LightningBoltEntity;
+
 } // namespace entity
 
 namespace scoreboard {
@@ -2347,18 +2351,27 @@ public:
     // ========== 闪电击中 ==========
 
     /**
-     * @brief 当实体被闪电击中时调用
+     * @brief 当实体被闪电击中时调用（对齐 vanilla Entity#thunderHit）
      *
-     * 子类可以重写此方法来处理被闪电击中的特殊效果：
-     * - 哞菇：红色 -> 棕色
-     * - 苦力怕：变成高压苦力怕
-     * - 村民：变成女巫
-     * - 猪：变成僵尸猪灵
+     * 由 LightningBoltEntity::_damageEntities 对范围内每个存活实体调用，传入闪电实体指针。
+     * 基类默认实现复刻 vanilla Entity#thunderHit（Entity.java:2725-2732）：
+     *   1. setRemainingFireTicks(getRemainingFireTicks() + 1) —— 火焰计时器 +1。
+     *      普通实体（remainingFireTicks=0）+1 后为 1，不触发引燃；
+     *      仅刚灭火处于火焰免疫期（remainingFireTicks=-1）+1 后为 0 才触发引燃。
+     *      故 JE 闪电直接伤害通常不引燃（引燃来自闪电生成的火方块），与 wiki 一致。
+     *   2. 若 +1 后 remainingFireTicks==0，igniteForSeconds(8.0)。
+     *   3. hurt(lightningBolt, 5.0) —— 对范围内实体造成 5 伤害。
+     *      基类 Entity::hurt 对非 LivingEntity 默认返回 false（不生效），LivingEntity 重写实际减血。
      *
-     * 注意：闪电伤害由 LightningBoltEntity 单独处理，
-     * 此方法用于处理特殊变形效果。
+     * 子类重写此方法决定是否调基类（即是否受 5 伤害 + 引燃），对齐 vanilla 各实体 thunderHit 语义：
+     * - 苦力怕：调基类（受 5 + 引燃）+ setPowered(true)（CreeperEntity）。
+     * - 哞菇：不调基类（不受伤不引燃），仅红↔棕变色（MooshroomEntity）。
+     * - 猪：非和平转化成功不调基类（不受伤），discard 自身生成僵尸猪灵；转化失败/和平调基类（PigEntity）。
+     * - 村民：非和平转化成功不调基类（不受伤），discard 自身生成女巫；转化失败/和平调基类（VillagerEntity）。
+     *
+     * @param lightning 击中此实体的闪电实体，用于构造闪电伤害源（DamageSources::lightningBolt）
      */
-    virtual void onStruckByLightning() {}
+    virtual void onStruckByLightning(entity::LightningBoltEntity* lightning);
 
     /**
      * @brief 被爆炸击中时调用

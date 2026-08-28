@@ -214,7 +214,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_RedToBrown)
     EXPECT_TRUE(mooshroom.isRed());
 
     // 雷击后变为棕色
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
     EXPECT_TRUE(mooshroom.isBrown());
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
 }
@@ -231,7 +231,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_BrownToRed)
     EXPECT_TRUE(mooshroom.isBrown());
 
     // 雷击后变为红色
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
     EXPECT_TRUE(mooshroom.isRed());
     EXPECT_EQ(mooshroom.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
 }
@@ -244,7 +244,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_PlaysConvertSound)
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
     // 执行雷击
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
 
     // 验证播放了转换音效
     EXPECT_EQ(m_world.soundCount(), 1u);
@@ -262,7 +262,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
     // 执行雷击
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
 
     // 验证生成了爆炸粒子
     // 生成 20 个 Explosion 粒子
@@ -282,7 +282,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_NoParticles_ServerSide)
     mooshroom.setPosition(100.0, 64.0, 100.0);
 
     // 执行雷击
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
 
     // 服务端不应该生成粒子
     EXPECT_EQ(m_world.particleCount(), 0u);
@@ -303,7 +303,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_ParticlePosition_WithinEntityBou
     mooshroom.setPosition(posX, posY, posZ);
 
     // 执行雷击
-    mooshroom.onStruckByLightning();
+    mooshroom.onStruckByLightning(nullptr);
 
     // 验证粒子位置在实体范围内
     // 哞菇继承自牛，碰撞箱宽度 0.9，高度 1.4

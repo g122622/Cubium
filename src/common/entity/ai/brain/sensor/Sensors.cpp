@@ -182,29 +182,38 @@ void HurtBySensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    // 获取最后伤害来源
+    // 获取最后伤害来源（带 40 tick 过期守卫，对齐 vanilla getLastDamageSource:1391-1397）。
+    // 注意：lastDamageSource() 返回的 DamageSource* 指向村民自有的 m_lastDamageSource，村民存活期间
+    // 有效（过期时 getter 已 reset 返回 nullptr）。HURT_BY memory 存此指针供 FindHiddenBlockTask
+    // 判 presence（不解引用，见 MovementTasks.hpp:525），故 HURT_BY 路径安全。
     DamageSource* lastDamageSource = entity->lastDamageSource();
     if (lastDamageSource) {
         // 存储伤害来源（100 tick = 5秒）
         entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY, lastDamageSource, 100);
 
-        // 获取攻击者
-        Entity* attacker = lastDamageSource->getTrueSource();
-        // TODO 已知 UAF 缺陷（任务 #272）：爆炸伤害村民后，m_lastDamageSource clone 持爆炸源
-        //   （如苦力怕）裸指针，爆炸源 remove() 经 graveyard 析构后此处 getTrueSource() 返回
-        //   悬垂指针，attacker->isAlive() 解引用已释放内存段错误。根因是 DamageSource/Brain
-        //   memory 持 LivingEntity* 裸指针 + 实体立即析构无弱引用/id 校验。彻底修复需改 memory
-        //   存 EntityInstanceId 经 EntityManager 校验（跨子系统重构）。详见任务 #272。
+        // 获取攻击者——经 lastDamageSourceTrueId() + IWorld::getEntity(id) 安全校验（任务 #272 根治）。
+        // 对齐 vanilla HurtBySensor:23-26 用 getLastDamageSource().getEntity() 取攻击者，但 vanilla
+        // 靠 Java GC 保证 getEntity() 返回的引用安全；Cubium 无 GC，m_lastDamageSource clone 持真凶
+        // 裸 Entity* 指针，真凶析构后 getTrueSource() 返回悬垂指针，直接解引用（取 id/isAlive）即 UAF
+        // 段错误。故改用 actuallyHurt 同步上下文捕获的 m_lastDamageSourceTrueId（真凶必活时取 id），
+        // 经 world->getEntity(id) 校验：真凶析构后返回 nullptr，不再解引用悬垂指针。
+        // id 永不悬垂（EntityInstanceId 单调递增不复用）。
+        EntityInstanceId attackerId = entity->lastDamageSourceTrueId();
+        Entity* attacker =
+            (attackerId != INVALID_ENTITY_ID && world != nullptr) ? world->getEntity(attackerId) : nullptr;
         if (attacker && attacker->isAlive()) {
             LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(attacker);
             if (livingAttacker) {
                 entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY_ENTITY, livingAttacker, 100);
+            } else {
+                entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
             }
         } else {
             entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
         }
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY);
+        entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
     }
 
     // 检查攻击者是否还有效（存活且在同一世界）

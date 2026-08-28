@@ -267,6 +267,56 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         actuallyHurt(source, amount);
     }
 
+    // 2.5 记录最近攻击者（对齐 MC Java 1.21.11 LivingEntity.hurtServer:1208-1209 的
+    //     resolveMobResponsibleForDamage + resolvePlayerResponsibleForDamage）。
+    //     vanilla 这两个方法在 actuallyHurt 之后**无条件**执行（不受伤害是否被护甲/药水/吸收
+    //     完全抵消影响）—— 即便 amount 归零，受害方仍记录"谁打了我"，供 HurtByTargetGoal/
+    //     OwnerHurtByTargetGoal 反击链路消费。
+    //     此前 Cubium 把等价逻辑放在 actuallyHurt 内 step 8（amount<=0 提前返回之后），致伤害被
+    //     完全抵消（如钻石套减伤到 0、狼铠吸收、抗性药水减免）时攻击者不被记录、反击不触发，
+    //     偏离 vanilla。WolfEntity::actuallyHurt 狼铠吸收分支直接 return 不调基类，此前同样丢失
+    //     攻击者记录。现迁到 hurt() 的 actuallyHurt 调用之后（两无敌帧分支的公共出口），对齐
+    //     vanilla 无条件语义。getTrueSource() 对应 vanilla getEntity()（causingEntity 真凶）。
+    //     注：SquidEntity::hurt 在 WaterMobEntity::hurt 返回后立即读 getLastHurtBy()，resolve
+    //     在 hurt 的 return true 之前执行，时序正确。
+    //     NO_ANGER / NO_ANGER_FROM_WIND_CHARGE 门控详见块内注释（对齐 resolveMobResponsibleForDamage）。
+    {
+        Entity* trueSource = source.getTrueSource();
+        if (trueSource != nullptr && trueSource != this) {
+            LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
+
+            // 2.5a 记录最近攻击生物（lastHurtByMob）—— 对齐 resolveMobResponsibleForDamage
+            //     (LivingEntity.java:1326-1331)：getEntity() instanceof LivingEntity
+            //     && !source.is(NO_ANGER) && (!source.is(WIND_CHARGE) || !this.getType().is(NO_ANGER_FROM_WIND_CHARGE))
+            //     才 setLastHurtByMob。
+            //     - NO_ANGER = {mob_attack_no_aggro}（DamageTypeTags.cpp:644）：铁傀儡等生物的
+            //       mob_attack_no_aggro 攻击设计为不激怒目标，故不记录 lastHurtByMob。
+            //     - NO_ANGER_FROM_WIND_CHARGE = {breeze,skeleton,bogged,stray,zombie,husk,spider,
+            //       cave_spider,slime}（EntityTypeTags.cpp:724）：风弹（WindBurst=minecraft:wind_charge）
+            //       击中这些生物时不激怒（vanilla 设计：风弹不应打扰这些生物的仇恨）。
+            //     注：vanilla 用 source.is(DamageTypes.WIND_CHARGE) 判定风弹（单伤害类型非标签），
+            //     Cubium 无 is(DamageType) 单类型查询，用 source.type()==DamageType::WindBurst 等价
+            //     （DamageType::WindBurst 即 minecraft:wind_charge，DamageTypeTag.cpp:150）。
+            const bool isWindCharge = (source.type() == DamageType::WindBurst);
+            const bool shouldAnger = !source.is(DamageTypeTags::NO_ANGER()) &&
+                (!isWindCharge || !EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(getTypeId()));
+            if (attacker != nullptr && shouldAnger) {
+                setLastHurtBy(attacker);
+            }
+
+            // 2.5b 记录最近攻击玩家（lastHurtByPlayer，100 tick 记忆窗口）—— 对齐
+            //     resolvePlayerResponsibleForDamage (LivingEntity.java:1334-1348)：
+            //     getEntity() instanceof Player 即 setLastHurtByPlayer(player, 100)，无 NO_ANGER 门控。
+            //     即 mob_attack_no_aggro 由玩家造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，
+            //     见 shouldDropExperienceOnDeath / dropAllDeathLoot），但不激怒（2.5a 的 lastHurtByMob
+            //     被 NO_ANGER 门控挡住）。
+            //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
+            if (dynamic_cast<Player*>(trueSource) != nullptr) {
+                setLastHurtByPlayerMemoryTime(100);
+            }
+        }
+    }
+
     // 3. 标记受伤（用于速度同步到客户端和AI目标检测）
     // 对应 MC Java LivingEntity.hurtServer:1218-1220：
     //   if (!source.is(DamageTypeTags.NO_IMPACT) && (!flag || amount > 0.0F)) markHurt();
@@ -434,46 +484,23 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 7. 记录伤害来源
     m_lastDamageSource = source.clone();
-
-    // 8. 更新最近攻击者（对齐 MC Java 1.21.11 LivingEntity.resolveMobResponsibleForDamage
-    //    :1326-1332 + resolvePlayerResponsibleForDamage:1334-1348，vanilla 在 hurtServer 内
-    //    actuallyHurt 之后调用这两个方法，Cubium 将等价逻辑放在 actuallyHurt 内此处）。
-    //    getTrueSource() 对应 vanilla getEntity()（causingEntity 真凶，IndirectEntityDamageSource
-    //    的 shooter），非 getDirectSource()（directEntity 投射物本身）。
-    Entity* trueSource = source.getTrueSource();
-    if (trueSource != nullptr && trueSource != this) {
-        LivingEntity* attacker = dynamic_cast<LivingEntity*>(trueSource);
-
-        // 8a. 记录最近攻击生物（lastHurtByMob）—— 对齐 resolveMobResponsibleForDamage:1326-1331：
-        //     getEntity() instanceof LivingEntity && !source.is(NO_ANGER)
-        //     && (!source.is(WIND_CHARGE) || !this.getType().is(NO_ANGER_FROM_WIND_CHARGE))
-        //     才 setLastHurtByMob。
-        //     - NO_ANGER = {mob_attack_no_aggro}（DamageTypeTags.cpp:644）：铁傀儡等生物的
-        //       mob_attack_no_aggro 攻击设计为不激怒目标，故不记录 lastHurtByMob。
-        //     - NO_ANGER_FROM_WIND_CHARGE = {breeze,skeleton,bogged,stray,zombie,husk,spider,
-        //       cave_spider,slime}（EntityTypeTags.cpp:724）：风弹（WindBurst=minecraft:wind_charge）
-        //       击中这些生物时不激怒（vanilla 设计：风弹不应打扰这些生物的仇恨）。
-        //     此前 Cubium 无条件 setLastHurtBy，mob_attack_no_aggro 与风弹均误激怒，偏离 vanilla。
-        //     注：vanilla 用 source.is(DamageTypes.WIND_CHARGE) 判定风弹（单伤害类型非标签），
-        //     Cubium 无 is(DamageType) 单类型查询，用 source.type()==DamageType::WindBurst 等价
-        //     （DamageType::WindBurst 即 minecraft:wind_charge，DamageTypeTag.cpp:150）。
-        const bool isWindCharge = (source.type() == DamageType::WindBurst);
-        const bool shouldAnger = !source.is(DamageTypeTags::NO_ANGER()) &&
-            (!isWindCharge || !EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE().contains(getTypeId()));
-        if (attacker != nullptr && shouldAnger) {
-            setLastHurtBy(attacker);
-        }
-
-        // 8b. 记录最近攻击玩家（lastHurtByPlayer，100 tick 记忆窗口）—— 对齐
-        //     resolvePlayerResponsibleForDamage:1334-1348：getEntity() instanceof Player 即
-        //     setLastHurtByPlayer(player, 100)，无 NO_ANGER 门控。即 mob_attack_no_aggro 由玩家
-        //     造成时仍记 lastHurtByPlayer（用于死亡经验掉落守卫，见 dropExperience），但不激怒
-        //     （8a 的 lastHurtByMob 被 NO_ANGER 门控挡住）。
-        //     TODO: 驯服狼代攻时归属其玩家主人（vanilla wolf.getOwnerReference 分支）未实现。
-        if (dynamic_cast<Player*>(trueSource) != nullptr) {
-            setLastHurtByPlayerMemoryTime(100);
-        }
+    // 同步捕获真凶 id 与时间戳（任务 #272 UAF 根治）：m_lastDamageSource clone 持真凶裸 Entity*
+    // 指针，真凶析构后 getTrueSource() 悬垂。此处同步上下文（hurt 调用栈内）真凶必活，安全取 id，
+    // 供 HurtBySensor 等经 IWorld::getEntity(id) 安全校验绕开悬垂指针。m_lastDamageStamp 对齐
+    // vanilla lastDamageStamp（LivingEntity.java:257），配合 lastDamageSource() 的 40 tick 过期守卫。
+    // 注意：resolve（记录最近攻击者 setLastHurtBy/setLastHurtByPlayerMemoryTime）已在 hurt() 的
+    // actuallyHurt 调用之后无条件执行（对齐 vanilla hurtServer:1208-1209），不在此处。此处仅
+    // 捕获真凶 id 供 UAF 安全校验，与 resolve 的 NO_ANGER 门控语义无关。
+    {
+        Entity* trueSourceForId = source.getTrueSource();
+        m_lastDamageSourceTrueId = (trueSourceForId != nullptr) ? trueSourceForId->id() : INVALID_ENTITY_ID;
     }
+    m_lastDamageStamp = ticksExisted();
+
+    // 8. 记录最近攻击者的逻辑（setLastHurtBy / setLastHurtByPlayerMemoryTime）已迁移到 hurt()
+    //    的 actuallyHurt 调用之后无条件执行（对齐 vanilla resolveMob/PlayerResponsibleForDamage
+    //    在 hurtServer 内 actuallyHurt 之后无条件调用）。此处保留 trueSource 取值供第 9/11 步使用。
+    Entity* trueSource = source.getTrueSource();
 
     // 9. 触发荆棘附魔（对攻击者造成反伤）
     // 注意：荆棘伤害不触发无限循环，因为荆棘伤害的 isThornsDamage() 返回 true
@@ -666,13 +693,20 @@ void LivingEntity::dropAllDeathLoot(DamageSource& cause)
     // 对齐 MC Java 1.21.11 LivingEntity.dropAllDeathLoot（LivingEntity.java:1484-1493）。
     // flag 表示最近是否被玩家伤害过——vanilla 用 lastHurtByPlayerMemoryTime > 0（玩家伤害后
     // 维持 100 tick 的记忆窗口），影响掉落表条件（如掠夺附魔生效、luck 应用、部分条件分支）。
-    // Cubium 暂无 lastHurtByPlayerMemoryTime 字段，用 m_lastHurtBy 是否为 Player 近似判定：
-    // 实际受玩家伤害致死的实体其 m_lastHurtBy 通常即为该玩家（actuallyHurt 第 358-365 行设置）。
-    // TODO: 完整对齐需引入 lastHurtByPlayerMemoryTime（玩家伤害后 100 tick 计时，每 tick 递减），
-    //       并在玩家造成伤害时 setLastHurtByPlayer 记录。当前近似在"非玩家最后补刀"场景
-    //       （如玩家打残后环境伤害致死）会漏判 recentlyHitByPlayer，影响掠夺附魔等条件。
-    Player* lastHurtByPlayer = dynamic_cast<Player*>(m_lastHurtBy);
-    const bool recentlyHitByPlayer = (lastHurtByPlayer != nullptr);
+    // 对齐 MC Java 1.21.11 LivingEntity.dropAllDeathLoot（LivingEntity.java:1484-1493）。
+    // flag（recentlyHitByPlayer）表示最近是否被玩家伤害过——vanilla 用
+    // lastHurtByPlayerMemoryTime > 0（玩家伤害后维持 100 tick 的记忆窗口），影响掉落表条件
+    // （如掠夺附魔生效、luck 应用、部分条件分支）。
+    // m_lastHurtByPlayerMemoryTime 由 hurt() 的 resolve（对齐 resolvePlayerResponsibleForDamage）
+    // 在玩家造成伤害时设 100、每 tick 递减。注：resolvePlayerResponsibleForDamage 对 Player 无
+    // NO_ANGER 门控，故 mob_attack_no_aggro 由玩家造成时仍记 memoryTime（用于掉落守卫），但不
+    // 激怒（lastHurtByMob 被 NO_ANGER 门控挡住）。
+    // KILLER_PLAYER loot 参数仍从 m_lastHurtBy 取具体 Player 实体（见 dropFromLootTable:835）：
+    // Cubium 暂无独立的 lastHurtByPlayer 实体引用字段（仅 memoryTime 计数器），用 m_lastHurtBy
+    // 近似。TODO: 引入 lastHurtByPlayer 实体引用（对齐 vanilla EntityReference<Player>）后，
+    //       KILLER_PLAYER 改从该引用取，覆盖"玩家打残后非玩家补刀"场景（此时 m_lastHurtBy 是
+    //       补刀的非玩家，但 memoryTime>0 仍应归属原玩家）。
+    const bool recentlyHitByPlayer = (m_lastHurtByPlayerMemoryTime > 0);
 
     // 1. shouldDropLoot 守卫（doMobLoot gamerule + 非幼体）：守卫包住物品掉落
     //    （dropFromLootTable + dropCustomDeathLoot）。MobEntity override dropCustomDeathLoot
@@ -1310,6 +1344,26 @@ void LivingEntity::tick()
     // 更新无敌帧计时器
     if (m_hurtResistantTime > 0) {
         m_hurtResistantTime--;
+    }
+
+    // 过期清理"最近攻击者"（对齐 vanilla LivingEntity.aiStep:475-484）：
+    //   LivingEntity livingentity = this.getLastHurtByMob();
+    //   if (livingentity != null) {
+    //       if (!livingentity.isAlive()) this.setLastHurtByMob(null);
+    //       else if (this.tickCount - this.lastHurtByMobTimestamp > 100) this.setLastHurtByMob(null);
+    //   }
+    // vanilla 每 tick 检查 lastHurtByMob：攻击者已死亡或距上次受伤超 100 tick 则遗忘复仇目标。
+    // 此前 Cubium 仅在 MobEntity::tick 用 isRemoved() 清理（任务 #272 UAF 防护），缺 100 tick
+    // 过期分支——m_lastHurtBy 永久保留（直到攻击者 isRemoved），致 HurtByTargetGoal 在很久之后
+    // 仍可能读到陈旧复仇目标（虽 timestamp 去重防重复触发，但 getLastHurtBy() 返回非 null 偏离
+    // vanilla 语义）。此处补全双分支：isAlive 守卫 + 100 tick 过期，与 MobEntity 的 isRemoved
+    // 清理互补（isRemoved 比 isAlive 更严格，二者共存无冲突——isRemoved 时 isAlive 亦 false）。
+    // 注：vanilla 此清理在 aiStep（Mob 每 tick 调），Cubium aiStep 被部分掏空（任务 #314），
+    // 故放在 LivingEntity::tick（所有 LivingEntity 每 tick 必经）确保覆盖。
+    if (m_lastHurtBy != nullptr) {
+        if (!m_lastHurtBy->isAlive() || ticksExisted() - m_lastHurtByTimestamp > 100) {
+            setLastHurtBy(nullptr);
+        }
     }
 
     // 递减"最近被玩家伤害"记忆时间（对齐 vanilla LivingEntity.aiStep:466-470）。
@@ -2440,6 +2494,35 @@ void LivingEntity::onAttackEntity(Entity& target)
 // ============================================================================
 // 受伤追踪（Target Goals 使用）
 // ============================================================================
+
+// 40 tick 过期阈值（对齐 vanilla LivingEntity.getLastDamageSource:1391-1397 的 lastDamageStamp 守卫）。
+// vanilla: if (level.getGameTime() - lastDamageStamp > 40L) lastDamageSource = null。
+// Cubium 用实体 ticksExisted() 替代 level.getGameTime()（实体 tick 计数，等价相对时间判定）。
+static constexpr u32 LAST_DAMAGE_SOURCE_EXPIRY_TICKS = 40;
+
+DamageSource* LivingEntity::lastDamageSource() const
+{
+    // 对齐 vanilla 40 tick 过期守卫：超过 40 tick 置空 m_lastDamageSource。
+    // 此守卫缩小 m_lastDamageSource（clone 持真凶裸指针）的悬垂窗口，并对齐 vanilla 语义。
+    // 注意：40 tick 内真凶析构仍致 getTrueSource() 悬垂，取攻击者须用 lastDamageSourceTrueId()
+    // 经 world 校验，不可直接解引用 lastDamageSource()->getTrueSource()（任务 #272 UAF）。
+    if (m_lastDamageSource != nullptr && ticksExisted() - m_lastDamageStamp > LAST_DAMAGE_SOURCE_EXPIRY_TICKS) {
+        // const 方法内清除需 const_cast。对齐 vanilla getLastDamageSource 内 this.lastDamageSource = null。
+        const_cast<LivingEntity*>(this)->m_lastDamageSource.reset();
+        const_cast<LivingEntity*>(this)->m_lastDamageSourceTrueId = INVALID_ENTITY_ID;
+    }
+    return m_lastDamageSource.get();
+}
+
+EntityInstanceId LivingEntity::lastDamageSourceTrueId() const
+{
+    // 同样受 40 tick 过期守卫约束：超期则视为无最近伤害来源。
+    if (m_lastDamageSource != nullptr && ticksExisted() - m_lastDamageStamp > LAST_DAMAGE_SOURCE_EXPIRY_TICKS) {
+        const_cast<LivingEntity*>(this)->m_lastDamageSource.reset();
+        const_cast<LivingEntity*>(this)->m_lastDamageSourceTrueId = INVALID_ENTITY_ID;
+    }
+    return m_lastDamageSourceTrueId;
+}
 
 void LivingEntity::setLastHurtBy(LivingEntity* attacker)
 {

@@ -279,6 +279,17 @@ void TridentEntity::onEntityHit(const RayTraceResult& result)
     // 标记已造成伤害
     setDealtDamage(true);
 
+    // 攻击者记录"我打了谁"（对齐 vanilla AbstractArrow.onHitEntity:444 在 hurt 前无条件对 shooter
+    // (LivingEntity) 调 setLastHurtMob(entity)；vanilla ThrownTrident 不重写 onHitEntity 故继承该调用）。
+    // 字段由 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。本 override 自管不调基类
+    // onEntityHit，须显式补。
+    if (shooter != nullptr) {
+        LivingEntity* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+        if (shooterLiving != nullptr && livingTarget != nullptr) {
+            shooterLiving->setLastHurtTarget(livingTarget);
+        }
+    }
+
     // 应用伤害
     if (livingTarget != nullptr) {
         livingTarget->hurt(*damageSource, damage);

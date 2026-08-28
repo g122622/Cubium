@@ -511,18 +511,12 @@ void LightningBoltEntity::_damageEntities()
             continue;
         }
 
-        // 对于 LivingEntity，造成闪电伤害
-        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-        if (living != nullptr) {
-            // 创建闪电伤害来源
-            auto damageSource = DamageSources::lightningBolt(this);
-            // 闪电伤害为 5.0
-            living->hurt(damageSource, 5.0f);
-        }
-
-        // 调用实体的 onStruckByLightning() 方法
-        // 用于处理特殊效果（如哞菇变色、苦力怕充能等）
-        entity->onStruckByLightning();
+        // 调用实体的 onStruckByLightning(this) 方法（对齐 vanilla LightningBolt#tick 调
+        // entity.thunderHit(level, this)）。
+        // 基类 Entity::onStruckByLightning 默认实现复刻 vanilla Entity#thunderHit：引燃判定 +
+        // hurt(lightningBolt, 5.0)。各实体重写决定是否调基类（哞菇/猪/村民转化不调基类不受伤，
+        // 苦力怕调基类受 5+充能）。伤害与特殊效果统一在此虚函数链路自决，不再外层无条件 hurt。
+        entity->onStruckByLightning(this);
 
         // 收集被击中的实体用于引雷附魔进度触发
         victims.push_back(entity);

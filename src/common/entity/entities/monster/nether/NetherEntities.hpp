@@ -294,7 +294,11 @@ private:
     bool m_isChargingCrossbow = false;
 
     // IAngerable 成员（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
-    LivingEntity* m_revengeTarget = nullptr;
+    // 复仇目标 id（对齐同族 IAngerable 实现的 id 校验模式：TameableEntity/BeeEntity/GolemEntity/
+    // PolarBearEntity/EndermanEntity 均存 id 经 world->getEntity(id)+isAlive 校验，避免裸指针悬垂 UAF）。
+    // 原裸 LivingEntity* m_revengeTarget 在复仇目标 remove()/chunk 卸载析构后悬垂，getRevengeTarget
+    // 解引用即 UAF（无 GC 环境下 vanilla 持实体引用语义须 id 校验，见 [[damage-source-clone-uaf-id-validation]]）。
+    std::optional<u64> m_revengeTargetId;
     i32 m_revengeTimer = 0;
     bool m_angry = false;
     i32 m_angerTime = 0;

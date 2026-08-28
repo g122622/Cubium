@@ -16,9 +16,9 @@
 //   无附魔：m_damage=2.0，命中 damage = 3.0*2.0 = 6，暴击 nextInt(6/2+2)=nextInt(5)=0~4 → 总 6~10
 //   Power V：m_damage=2.0+3.0=5.0，命中 damage = 3.0*5.0 = 15，暴击 nextInt(15/2+2)=nextInt(9)=0~8 → 总 15~23
 //
-// 注：Cubium 用 static_cast<i32>（截断）而非 vanilla Mth.ceil（向上取整）。满弓 speed=3.0 整数倍时
-//   两者一致；speed 飞行衰减略 <3.0 时 Cubium 截断比 vanilla ceil 少 1（如 2.99*2.0=5.98→Cubium 5 / vanilla 6）。
-//   故无附魔断言下界放宽到 5（容忍截断），Power V 下界放宽到 14。
+// 注：Cubium 已用 std::ceil 对齐 vanilla Mth.ceil（AbstractArrowEntity.cpp:488）。满弓 speed=3.0
+//   整数倍时 ceil 与截断一致；speed 飞行衰减略 <3.0 时 ceil 比 vanilla 少算情形已消除。故无附魔
+//   断言下界 5（容忍暴击 0 起步 + 飞行衰减），Power V 下界 14（基础 15 容忍衰减）。
 //
 // 受害者用 villager（HP 20，被动不反击，attackEntity 可解包 mob 目标）：
 //   - 满弓无附魔：伤害 5~10 < 20，villager 存活，HP 20→10~15，断言 HP 下降 ∈[5,10]。

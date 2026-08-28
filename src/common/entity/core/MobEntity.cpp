@@ -761,6 +761,15 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         // 8. 设置最后攻击者
         target.setLastHurtBy(this);
 
+        // 8.5 攻击者记录"我打了谁"（对齐 vanilla Mob.doHurtTarget:1356 在 flag 分支调
+        // this.setLastHurtMob(target)）。该字段由 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击
+        // 主人正在打的怪，TargetGoals.cpp:448 owner->getLastHurtTarget()）。此前仅 Player.cpp
+        // 近战记录，Mob 近战不记录致驯服动物在 Mob 主人近战时不帮忙。基类补一处即覆盖所有调基类的
+        // Mob 子类（Bee/CaveSpider/Husk/WitherSkeleton/Zombie/Ravager 及所有无 override 的 Mob）。
+        // 自管攻击链不调基类的子类（IronGolem/PolarBear/Ocelot）须各自显式补。
+        // 注：Hoglin/Zoglin vanilla HoglinBase.hurtAndThrowTarget 也不调 setLastHurtMob，对齐不补。
+        setLastHurtTarget(&target);
+
         // 9. 播放攻击声音
         playAttackSound(target);
     }

@@ -508,17 +508,36 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
     // 获取发射者
     mc::Entity* shooter = getShooter();
 
-    // 创建伤害来源
-    std::unique_ptr<DamageSource> damageSource;
-    if (shooter) {
-        bool isPlayer = shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
-        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, shooter, this, isPlayer);
-    } else {
-        damageSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, this, this, false);
-    }
+    // 创建伤害来源：对齐 vanilla arrow 伤害类型 + setProjectile（对齐 DamageSources::arrow 工厂语义）。
+    // 此前手动 make_unique<IndirectEntityDamageSource>(Arrow, ...) 漏调 setProjectile，致
+    // isProjectile()（旧实现只查 m_isProjectile 标志）返 false，applyPotionDamageCalculations 不设
+    // DamageFlags::PROJECTILE 位，弹射物保护附魔 getDamageProtection(Projectile) 返 0、EPF 减伤失效。
+    // setProjectile() 设 m_isProjectile=true 保底；isProjectile() 现亦查 IS_PROJECTILE 标签
+    // （Arrow 是成员）双保险。shooter 为空时 source/directSource 均为 this（箭矢本身，与旧无 shooter
+    // 分支语义一致）。isPlayer 由 shooter 是否为玩家决定。
+    bool isPlayer = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
+    mc::Entity* sourceForArrow = (shooter != nullptr) ? shooter : this;
+    auto indirectSource =
+        std::make_unique<IndirectEntityDamageSource>(DamageType::Arrow, sourceForArrow, this, isPlayer);
+    indirectSource->setProjectile();
+    std::unique_ptr<DamageSource> damageSource = std::move(indirectSource);
 
     // 应用伤害并增加箭矢计数
     LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(target);
+
+    // 攻击者记录"我打了谁"（对齐 vanilla AbstractArrow.onHitEntity:444 在 hurt 前无条件对
+    // shooter(LivingEntity) 调 setLastHurtMob(entity)）。该记录是"攻击意图"语义——即使 hurt 被无敌帧/
+    // 免疫吞也记录，与 setLastHurtBy 的 NO_ANGER 门控不同（后者 target 侧记录"谁打了我"，有门控）。
+    // 字段由 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。
+    // 此前仅 Player 近战记录，箭矢不记录致玩家用弓射怪时驯服动物（狼）不帮忙。基类补一处即覆盖
+    // ArrowEntity/SpectralArrowEntity（两者不重写 onEntityHit）。Trident/Spear override 不调基类 onEntityHit，各自补。
+    if (shooter != nullptr) {
+        LivingEntity* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+        if (shooterLiving != nullptr && livingTarget != nullptr) {
+            shooterLiving->setLastHurtTarget(livingTarget);
+        }
+    }
+
     if (livingTarget != nullptr) {
         bool hurt = livingTarget->hurt(*damageSource, static_cast<f32>(damage));
         // 只有非穿透箭在造成伤害后才增加箭矢计数

@@ -59,7 +59,9 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/monster/illager/WitchEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
@@ -387,6 +389,103 @@ void VillagerEntity::remove()
 
     // 调用父类 remove()
     AbstractVillagerEntity::remove();
+}
+
+// ============================================================================
+// 雷击转女巫（对齐 vanilla Villager#thunderHit）
+// ============================================================================
+
+void VillagerEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
+{
+    // 客户端不执行实体转化逻辑
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 对齐 vanilla Villager#thunderHit（Villager.java:773-787）：
+    //   if (level.getDifficulty() != PEACEFUL) {
+    //       Witch witch = convertTo(WITCH, ConversionParams.single(this, false, false), p -> {
+    //           p.finalizeSpawn(level, difficulty, CONVERSION, null);
+    //           p.setPersistenceRequired();
+    //           this.releaseAllPois();
+    //       });
+    //       if (witch == null) super.thunderHit(level, lightning);   // 转化失败回退基类受5伤害
+    //   } else {
+    //       super.thunderHit(level, lightning);                      // 和平难度也调基类受5伤害
+    //   }
+    // 转化成功时不调 super（女巫不受伤），原体经 convertTo 内部 discard。ConversionParams 第三个
+    // 参数 false 表示不保留装备（女巫不继承村民装备），仅保留位置与旋转。
+    if (m_world->difficulty() == Difficulty::Peaceful) {
+        AbstractVillagerEntity::onStruckByLightning(lightning);
+        return;
+    }
+
+    // 经 EntityType 工厂创建女巫，避免本目录反向依赖 monster/illager 目录
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* witchType = registry.getType(entity::EntityTypeKeys::WITCH);
+
+    auto* ecsReg = &ecsRegistry();
+    std::unique_ptr<Entity> newEntity;
+    if (witchType != nullptr && witchType->canSummon()) {
+        newEntity = witchType->create(m_world, *ecsReg);
+    } else {
+        // 工厂绕过补救：直接构造缺 typeId，手动补齐
+        newEntity = std::make_unique<WitchEntity>(EntityInstanceId(0), *ecsReg);
+        newEntity->setTypeId(entity::EntityTypeKeys::WITCH);
+    }
+
+    if (newEntity == nullptr) {
+        spdlog::error("VillagerEntity::onStruckByLightning: failed to create witch entity");
+        AbstractVillagerEntity::onStruckByLightning(lightning);
+        return;
+    }
+
+    auto* witch = dynamic_cast<WitchEntity*>(newEntity.get());
+    if (witch == nullptr) {
+        spdlog::error("VillagerEntity::onStruckByLightning: created entity is not a WitchEntity");
+        AbstractVillagerEntity::onStruckByLightning(lightning);
+        return;
+    }
+
+    // 复制位置和旋转（对齐 Java ConversionParams.single(villager, false, false) 保留位置/旋转）
+    witch->setPosition(m_builtIn.stateVector->m_pos);
+    witch->setRotation(m_builtIn.rotation->m_rot.x, m_builtIn.rotation->m_rot.y);
+
+    // 复制自定义名称（对齐 convertTo 保留自定义名语义）
+    if (hasCustomName()) {
+        witch->setCustomName(customNameText());
+        witch->setCustomNameVisible(isCustomNameVisible());
+    }
+
+    // 闪电转化的女巫需持久化留存（对齐 vanilla setPersistenceRequired）
+    witch->enablePersistence();
+
+    // finalizeSpawn（SpawnReason::Conversion，按位置感知区域难度初始化属性——对齐 Java
+    // finalizeSpawn(... EntitySpawnReason.CONVERSION ...)）
+    {
+        combat::DifficultyInstance difficultyInstance = combat::DifficultyInstance::at(*m_world,
+            BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
+        witch->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
+    }
+
+    // 转化前释放村民占用的 POI（对齐 vanilla releaseAllPois）。
+    // releaseAllPois 内部有 m_poisReleased 守卫，后续 remove() 再调幂等。
+    releaseAllPois();
+
+    // 释放所有权并生成女巫到世界
+    newEntity.release();
+    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(witch));
+
+    if (newId == 0) {
+        // 生成失败：清理已创建实体，回退基类受 5 伤害（vanilla convertTo 返 null 同语义）
+        spdlog::error("VillagerEntity::onStruckByLightning: failed to spawn witch entity");
+        delete witch;
+        AbstractVillagerEntity::onStruckByLightning(lightning);
+        return;
+    }
+
+    // 移除原村民（对齐 vanilla convertTo 成功：不调 super、discard 原体）
+    remove();
 }
 
 void VillagerEntity::releaseAllPois()

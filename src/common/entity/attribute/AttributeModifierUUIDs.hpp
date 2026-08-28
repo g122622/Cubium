@@ -71,6 +71,15 @@ constexpr const char* ATTACK_SPEED_MODIFIER_UUID = "FA233E1C-4180-4865-B01B-BCCE
 // ============================================================================
 // 状态效果 UUID
 // ============================================================================
+// TODO 死代码：本区段的状态效果修饰符 UUID（SPRINTING_SPEED_BOOST_UUID / SLOW_FALLING_UUID /
+// SPEED_BOOST_UUID / SLOWNESS_UUID / HASTE_UUID / MINING_FATIGUE_UUID / STRENGTH_UUID / WEAKNESS_UUID /
+// HEALTH_BOOST_UUID / ABSORPTION_UUID 等）是历史遗留，已被 src/common/entity/effect/EffectAttributeModifiers.hpp
+// 中的同名 UUID 取代（实际生效版本在那里，由 EffectAttributeModifiers.cpp 接入效果→属性修饰符链路）。
+// 本区段 UUID 零运行时引用（除自身定义），且部分与生效版本值不同（如 SLOWNESS_UUID 本处
+// ...803E-C3F4... vs EffectAttributeModifiers.hpp ...940E-514C...），属冗余/可能误导的死代码。
+// 保留仅因潜在迁移参考，勿在新代码中引用本区段 UUID（应统一用 EffectAttributeModifiers.hpp 的版本）。
+// 未来应确认无引用后整体删除本区段。疾跑/缓降效果在 Cubium 走硬编码路径（缓降 getEffectiveGravity
+// 硬钳重力 0.01 对齐 vanilla LivingEntity.java:2314；疾跑另算），不经属性修饰符，故对应 UUID 无替代需要。
 
 /// 疾跑速度加成修饰器 UUID
 constexpr const char* SPRINTING_SPEED_BOOST_UUID = "662A6B8D-DA3E-4C1C-8813-96EA6097278D";

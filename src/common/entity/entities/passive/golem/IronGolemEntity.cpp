@@ -212,6 +212,11 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
 
         // 触发附魔后续效果（节肢杀手减速等）
         onAttackEntity(target);
+
+        // 攻击者记录"我打了谁"（对齐 vanilla Mob.doHurtTarget:1356 setLastHurtMob）。
+        // 本 override 自管攻击链不调基类 attackEntityAsMob，须显式补 setLastHurtTarget，
+        // 供 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。
+        setLastHurtTarget(&target);
     }
 
     // 播放攻击声音（无论是否命中都播放）

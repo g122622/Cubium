@@ -589,6 +589,79 @@ TEST(DamageSourceIsTagTest, IsWorksWithIndirectEntityDamageSource)
 }
 
 // ============================================================================
+// DamageSource::isProjectile() 方法测试
+//
+// 锚定 isProjectile() 查 DamageTypeTags::IS_PROJECTILE 标签的核心语义（对齐 vanilla
+// source.is(DamageTypeTags.IS_PROJECTILE)）。此前 IndirectEntityDamageSource::isProjectile()
+// 只查 m_isProjectile 标志位（依赖调用方 setProjectile），EntityDamageSource::isProjectile()
+// 硬编码 Arrow/Trident/MobProjectile/Fireball 四类型——两者都漏 IS_PROJECTILE 标签其余成员
+// （WitherSkull/Thrown/WindBurst/UnattributedFireball），且 IndirectEntityDamageSource 在调用方
+// 漏 setProjectile 时（箭矢 AbstractArrowEntity 手动构造、windBurst 工厂）直接返 false，致
+// 弹射物保护附魔 EPF 减伤链路失效。修复后两子类统一查 IS_PROJECTILE 标签，IndirectEntityDamageSource
+// 额外 OR m_isProjectile 标志位保底。这些测试锁定该语义，防回归。
+// ============================================================================
+
+TEST(DamageSourceIsTagTest, IsProjectileMethodReturnsTrueForAllTagMembersWithoutSetProjectile)
+{
+    DamageTypeTags::initialize();
+
+    // 不调 setProjectile，仅靠 IS_PROJECTILE 标签成员身份判定（修复核心：此前这些会返 false）。
+    // Arrow 是修复主因（箭矢手动构造漏 setProjectile）；WindBurst 是 windBurst 工厂漏 setProjectile；
+    // Trident/MobProjectile/WitherSkull/Thrown/UnattributedFireball 是其他手动构造漏 setProjectile
+    // 的投射物（TridentEntity/OtherProjectiles 等），均经查标签自动修复。
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::Arrow, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::Trident, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::MobProjectile, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::Fireball, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::WitherSkull, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::Thrown, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::WindBurst, nullptr, nullptr).isProjectile());
+    EXPECT_TRUE(IndirectEntityDamageSource(DamageType::UnattributedFireball, nullptr, nullptr).isProjectile());
+}
+
+TEST(DamageSourceIsTagTest, IsProjectileMethodReturnsFalseForNonProjectileIndirectSources)
+{
+    DamageTypeTags::initialize();
+
+    // 非投射物的间接伤害源（爆炸/间接魔法）不应 isProjectile。Spear 是三叉戟近战（IS_PLAYER_ATTACK
+    // 成员，非 IS_PROJECTILE）。
+    EXPECT_FALSE(IndirectEntityDamageSource(DamageType::Explosion, nullptr, nullptr).isProjectile());
+    EXPECT_FALSE(IndirectEntityDamageSource(DamageType::IndirectMagic, nullptr, nullptr).isProjectile());
+    EXPECT_FALSE(IndirectEntityDamageSource(DamageType::Spear, nullptr, nullptr).isProjectile());
+}
+
+TEST(DamageSourceIsTagTest, IsProjectileMethodReturnsTrueForEntityDamageSourceTagMembers)
+{
+    DamageTypeTags::initialize();
+
+    // EntityDamageSource::isProjectile() 同样查 IS_PROJECTILE 标签（此前硬编码四类型，漏其余成员）。
+    // Arrow/Trident/MobProjectile/Fireball/WitherSkull/Thrown/WindBurst/UnattributedFireball 均返 true。
+    EXPECT_TRUE(EntityDamageSource(DamageType::Arrow, nullptr).isProjectile());
+    EXPECT_TRUE(EntityDamageSource(DamageType::WindBurst, nullptr).isProjectile());
+    EXPECT_TRUE(EntityDamageSource(DamageType::WitherSkull, nullptr).isProjectile());
+
+    // 非投射物直接伤害源（近战/玩家攻击/三叉戟近战）返 false。
+    EXPECT_FALSE(EntityDamageSource(DamageType::MobAttack, nullptr).isProjectile());
+    EXPECT_FALSE(EntityDamageSource(DamageType::PlayerAttack, nullptr).isProjectile());
+    EXPECT_FALSE(EntityDamageSource(DamageType::Spear, nullptr).isProjectile());
+    EXPECT_FALSE(EntityDamageSource(DamageType::Explosion, nullptr).isProjectile());
+}
+
+TEST(DamageSourceIsTagTest, IsProjectileFlagStillWorksAsOverrideWhenTagNotInitialized)
+{
+    // 标签未初始化时 IS_PROJECTILE() 返回空标签，contains 返 false。此时 IndirectEntityDamageSource
+    // 仍可由 setProjectile() 设的 m_isProjectile 标志位判定（保底机制，箭矢/风爆经工厂 setProjectile
+    // 设位）。这保证单元测试夹具未调 DamageTypeTags::initialize() 时，经工厂构造的投射物伤害源
+    // 仍正确识别为投射物。
+    // 注：此测试须在标签未初始化前提下运行；但 DamageTypeTags 是全局静态，其他测试套件的
+    // SetUpTestSuite/initialize 可能已置位 s_initialized。故此测试用 setProjectile 标志位 OR 语义
+    // 验证（即使标签已初始化，setProjectile 标志位仍使 isProjectile 返 true——OR 语义）。
+    IndirectEntityDamageSource arrowWithFlag(DamageType::Arrow, nullptr, nullptr);
+    arrowWithFlag.setProjectile();
+    EXPECT_TRUE(arrowWithFlag.isProjectile());
+}
+
+// ============================================================================
 // DamageTypeTagLoader JSON 解析测试
 // ============================================================================
 

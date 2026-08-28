@@ -203,6 +203,11 @@ bool OcelotEntity::attackEntityAsMob(LivingEntity& target)
         // 触发攻击型附魔的 onEntityDamaged 回调（节肢杀手 Slowness 副作用等）。本 override 自管
         // 攻击链不调基类，须显式调用 onAttackEntity。
         onAttackEntity(target);
+
+        // 攻击者记录"我打了谁"（对齐 vanilla Mob.doHurtTarget:1356 setLastHurtMob）。
+        // 本 override 自管攻击链不调基类 attackEntityAsMob，须显式补 setLastHurtTarget，
+        // 供 OwnerHurtTargetGoal 消费（驯服动物帮主人攻击主人正在打的怪）。
+        setLastHurtTarget(&target);
     }
     return success;
 }

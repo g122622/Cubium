@@ -121,6 +121,17 @@ void WindChargeEntity::onEntityHit(const RayTraceResult& result)
         Entity* shooter = getShooter();
         bool isPlayer = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         auto damageSource = DamageSources::windBurst(this, shooter, isPlayer);
+
+        // 攻击者记录"我打了谁"（对齐 vanilla AbstractWindCharge.onHitEntity:83 在 hurt 前无条件对
+        // shooter(LivingEntity) 调 setLastHurtMob(entity)）。字段由 OwnerHurtTargetGoal 消费
+        // （驯服动物帮主人攻击主人正在打的怪）。
+        if (shooter != nullptr) {
+            LivingEntity* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+            if (shooterLiving != nullptr) {
+                shooterLiving->setLastHurtTarget(living);
+            }
+        }
+
         living->hurt(damageSource, PLAYER_DAMAGE);
     }
 

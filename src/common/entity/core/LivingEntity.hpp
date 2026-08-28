@@ -918,8 +918,27 @@ public:
 
     /**
      * @brief 获取最近受伤来源
+     *
+     * 对齐 vanilla LivingEntity.getLastDamageSource（LivingEntity.java:1391-1397）：带 40 tick
+     * 过期守卫——若距上次受伤超过 40 tick（lastDamageStamp），置空 m_lastDamageSource 并返回 nullptr。
+     * vanilla 此守卫配合 Java GC 保证 lastDamageSource 安全；Cubium 无 GC，此守卫额外缩小
+     * m_lastDamageSource（clone 持真凶裸指针）的悬垂窗口。注意：即便有此守卫，40 tick 内真凶
+     * 析构仍致 getTrueSource() 悬垂，故取攻击者须改用 lastDamageSourceTrueId() 经 world 校验
+     * （见 HurtBySensor::update），不可直接解引用 lastDamageSource()->getTrueSource()。
      */
-    [[nodiscard]] DamageSource* lastDamageSource() const { return m_lastDamageSource.get(); }
+    [[nodiscard]] DamageSource* lastDamageSource() const;
+
+    /**
+     * @brief 获取最近受伤来源的真凶实体 id（安全替代 lastDamageSource()->getTrueSource()）
+     *
+     * 返回最近伤害的真凶 EntityInstanceId（actuallyHurt 同步上下文捕获，真凶必活时取 id）。
+     * 供 HurtBySensor 等需取攻击者的逻辑经 IWorld::getEntity(id) 安全校验，绕开
+     * m_lastDamageSource clone 持真凶裸指针析构后悬垂的 UAF（任务 #272）。
+     * 同样受 40 tick 过期守卫约束（超过 40 tick 返回 INVALID_ENTITY_ID）。
+     *
+     * @return 真凶实体 id，超期或无则返回 INVALID_ENTITY_ID
+     */
+    [[nodiscard]] EntityInstanceId lastDamageSourceTrueId() const;
 
     /**
      * @brief 获取受伤方向角（LivingEntity.getHurtDir / Player.hurtDir）
@@ -1984,7 +2003,16 @@ protected:
     static constexpr i32 MAX_HURT_RESISTANT_TIME = 20; // 最大无敌帧（20 tick = 1秒）
     f32 m_lastDamage = 0.0f;                           // 最近伤害量（用于累积伤害）
     std::unique_ptr<DamageSource> m_lastDamageSource;  // 最近伤害来源
-    i32 m_hurtResistantTime = 0;                       // 无敌帧计时器
+    // 最近伤害来源的真凶实体 id（对齐 vanilla LivingEntity.lastDamageSource 的安全取攻击者需求）。
+    // m_lastDamageSource 经 clone 持真凶裸 Entity* 指针，真凶析构后 getTrueSource() 返回悬垂指针，
+    // 解引用（如 HurtBySensor::update 取 attacker->isAlive()）即 UAF（任务 #272）。此处同步捕获
+    // 真凶 id（actuallyHurt 同步上下文，真凶必活），供 sensor 经 IWorld::getEntity(id) 安全校验，
+    // 绕开悬垂裸指针。id 永不悬垂（EntityInstanceId 单调递增不复用，析构后 getEntity 返 nullptr）。
+    EntityInstanceId m_lastDamageSourceTrueId = INVALID_ENTITY_ID;
+    // 最近伤害时间戳（对齐 vanilla LivingEntity.lastDamageStamp，LivingEntity.java:257）。
+    // 配合 lastDamageSource() 的 40 tick 过期守卫（对齐 vanilla getLastDamageSource:1391-1397）。
+    u32 m_lastDamageStamp = 0;
+    i32 m_hurtResistantTime = 0; // 无敌帧计时器
 
     // 受伤方向（LivingEntity.hurtDuration / Player.hurtDir + getHurtDir）
     // damageTilt（bobHurt）据此计算屏幕倾斜；hurtDir = atan2(dz,dx)*180/π - yaw。
