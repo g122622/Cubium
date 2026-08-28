@@ -23,6 +23,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "world/biome/climate/RTree.hpp"
@@ -50,6 +52,10 @@ public:
     explicit ParameterList(std::vector<Entry> entries)
         : m_entries(std::move(entries))
     {
+        // 父级 buildParameterList 已带 trace；此处作为 subpart 量化参数列表构造
+        // （内部触发 RTree::create → build 递归构建 7 维空间索引）。
+        MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Initialization, "ParameterList::ParameterList");
+
         if (!m_entries.empty()) {
             m_index = RTree<T>::create(m_entries);
         }
