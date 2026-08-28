@@ -24,6 +24,7 @@ import { registerProjectileRedirectTests } from "./tests/combat/ProjectileRedire
 import { registerBowArrowDamageTests } from "./tests/combat/BowArrowDamageTests.js";
 import { registerProjectileProtectionTests } from "./tests/combat/ProjectileProtectionTests.js";
 import { registerInstantHealHarmInversionTests } from "./tests/combat/InstantHealHarmInversionTests.js";
+import { registerPoisonCannotKillTests } from "./tests/combat/PoisonCannotKillTests.js";
 import { registerCrossbowTests } from "./tests/combat/CrossbowTests.js";
 import { registerSpectralArrowTests } from "./tests/combat/SpectralArrowTests.js";
 import { registerTridentEnchantTests } from "./tests/combat/TridentEnchantTests.js";
@@ -281,6 +282,7 @@ registerProjectileDeflectTests();
 registerProjectileRedirectTests();
 registerProjectileProtectionTests();
 registerInstantHealHarmInversionTests();
+registerPoisonCannotKillTests();
 registerFireImmunityTests();
 registerFallDamageTests();
 registerFeatherFallingTests();
