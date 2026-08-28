@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/mod/bedrock/addon/modules/types/ScriptWorldAccessor.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/bossbar/BossInfo.hpp" // bossInfoColorToName/bossInfoOverlayToName（BossBarView color/overlay 字符串化）
@@ -44,6 +46,8 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
+using namespace mc::trace;
+
 namespace mc::server {
 
 ServerScriptManager::ServerScriptManager(const std::string& globalBehaviorPackDir)
@@ -58,6 +62,10 @@ ServerScriptManager::~ServerScriptManager()
 
 Result<void> ServerScriptManager::initialize()
 {
+    // 父级 MinecraftServer::initializeWorld 已带 trace；此处作为 subpart 量化脚本系统初始化耗时
+    // （含事件信号注入与内层 ScriptManager::initialize）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerScriptManager::initialize");
+
     if (m_initialized) {
         return Result<void>::ok();
     }

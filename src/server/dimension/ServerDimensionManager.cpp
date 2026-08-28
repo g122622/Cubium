@@ -323,6 +323,13 @@ void ServerDimensionManager::tick()
 
 std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(DimensionId id, u64 seed)
 {
+    // 父级 ServerDimensionManager::initialize 已带 trace；此处作为 subpart 仅记录维度 id，
+    // 不重复 seed（dimId 即足以区分主世界/下界/末地三次调用的耗时）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
+        "ServerDimensionManager::_createServerDimension",
+        "dimId",
+        static_cast<i32>(id));
+
     // 数据驱动唯一路径：查 WorldPresetRegistry 取 WorldPreset，按 id 映射维度键装配三维度。
     // WorldPresetRegistry 未加载（数据包缺失）时回退旧 WorldType switch（仅验证期保留，5f 删旧工厂后清）。
     const auto* worldPreset = world::gen::settings::WorldPresetRegistry::instance().get(m_worldPresetId);
