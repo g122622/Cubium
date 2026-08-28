@@ -215,8 +215,9 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
 
     // 基于内存索引做前缀匹配，避免重新递归遍历磁盘目录树
     for (const auto& path : m_entries) {
-        // 检查是否在指定目录下
-        if (path.size() <= normalizedDir.size() || path.substr(0, normalizedDir.size()) != normalizedDir) {
+        // 检查是否在指定目录下：用 compare 做零分配前缀匹配（短路已保证长度足够），
+        // 避免 substr 临时 string 分配（m_entries 规模可达数千~数万，每次循环省一次分配）。
+        if (path.size() <= normalizedDir.size() || path.compare(0, normalizedDir.size(), normalizedDir) != 0) {
             continue;
         }
 
@@ -228,12 +229,12 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
             continue;
         }
 
-        // 取文件扩展名（不含点）比较
+        // 取文件扩展名（不含点）比较：用 string_view::substr 零分配切片，避免临时 string。
         size_t dotPos = relativePath.rfind('.');
         if (dotPos == std::string::npos) {
             continue;
         }
-        std::string fileExt = relativePath.substr(dotPos + 1);
+        std::string_view fileExt = std::string_view(relativePath).substr(dotPos + 1);
         if (fileExt == checkExt) {
             resources.push_back(relativePath);
         }
