@@ -22,6 +22,8 @@
 
 #include "world/biome/climate/SpawnFinder.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -30,6 +32,8 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::world::biome::climate {
 
@@ -45,6 +49,10 @@ SpawnFinder::SpawnFinder(std::vector<ParameterPoint> spawnTargets, const Sampler
 
 BlockPos SpawnFinder::findSpawnPosition(const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler)
 {
+    // 父级 ServerWorld::initializeWorldSpawn 已带 trace；此处作为 subpart 量化气候空间径向搜索耗时
+    // （SpawnFinder 构造期执行粗搜索半径2048/步512 + 精搜索半径512/步32，是新世界出生点定位的主要开销）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "SpawnFinder::findSpawnPosition");
+
     if (spawnTargets.empty()) {
         return BlockPos(0, 0, 0);
     }

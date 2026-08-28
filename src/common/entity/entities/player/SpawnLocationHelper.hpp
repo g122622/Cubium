@@ -30,6 +30,8 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/Material.hpp"
@@ -117,6 +119,11 @@ public:
     [[nodiscard]] static std::optional<BlockPos> findSpawnLocationInChunk(
         const IWorld& world, const ChunkPos& chunkPos, bool requireValidSpawnBlock)
     {
+        // 父级 ServerWorld::initializeWorldSpawn 已带 trace；此处作为 subpart 量化区块内出生点扫描耗时
+        // （双重循环逐列查找，依赖区块数据与高度图）。
+        MC_TRACE_SCOPED_EVENT(
+            ::mc::trace::TraceEvents.Server.Initialization, "SpawnLocationHelper::findSpawnLocationInChunk");
+
         for (i32 x = chunkPos.worldX(); x < chunkPos.worldX() + world::CHUNK_WIDTH; ++x) {
             for (i32 z = chunkPos.worldZ(); z < chunkPos.worldZ() + world::CHUNK_WIDTH; ++z) {
                 const auto spawnPos = findSpawnLocation(world, x, z, requireValidSpawnBlock);

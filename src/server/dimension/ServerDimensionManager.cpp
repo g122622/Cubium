@@ -359,53 +359,63 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
         type = DimensionType::theEnd();
     }
 
+    // subpart：创建区块生成器（数据驱动 Noise/Flat/Debug 或兜底 legacy）
     std::unique_ptr<IChunkGenerator> generator;
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "ServerDimensionManager::_createServerDimension::CreateGenerator");
 
-    if (worldPreset != nullptr) {
-        const auto dimIt = worldPreset->dimensions.find(dimKey);
-        MC_ASSERT_RELEASE_MSG(dimIt != worldPreset->dimensions.end(),
-            fmt::format("WorldPreset '{}' has no dimension '{}'", m_worldPresetId.toString(), dimKey.toString())
-                .c_str());
-        const auto& dim = dimIt->second;
-        const auto& gen = dim.generator;
+        if (worldPreset != nullptr) {
+            const auto dimIt = worldPreset->dimensions.find(dimKey);
+            MC_ASSERT_RELEASE_MSG(dimIt != worldPreset->dimensions.end(),
+                fmt::format("WorldPreset '{}' has no dimension '{}'", m_worldPresetId.toString(), dimKey.toString())
+                    .c_str());
+            const auto& dim = dimIt->second;
+            const auto& gen = dim.generator;
 
-        switch (gen.type) {
-            case world::gen::settings::WorldPresetGenerator::Type::Noise: {
-                // 查 NoiseSettingsRegistry 取 DimensionSettings（含 m_routerDfs 模板 + m_surfaceRule）
-                const auto* settings = world::gen::settings::NoiseSettingsRegistry::instance().get(gen.noiseSettings);
-                MC_ASSERT_RELEASE_MSG(settings != nullptr,
-                    fmt::format("noise_settings '{}' not in NoiseSettingsRegistry (world_preset '{}')",
-                        gen.noiseSettings.toString(),
-                        m_worldPresetId.toString())
-                        .c_str());
-                DimensionSettings dimSettings = *settings;
+            switch (gen.type) {
+                case world::gen::settings::WorldPresetGenerator::Type::Noise: {
+                    // 查 NoiseSettingsRegistry 取 DimensionSettings（含 m_routerDfs 模板 + m_surfaceRule）
+                    const auto* settings =
+                        world::gen::settings::NoiseSettingsRegistry::instance().get(gen.noiseSettings);
+                    MC_ASSERT_RELEASE_MSG(settings != nullptr,
+                        fmt::format("noise_settings '{}' not in NoiseSettingsRegistry (world_preset '{}')",
+                            gen.noiseSettings.toString(),
+                            m_worldPresetId.toString())
+                            .c_str());
+                    DimensionSettings dimSettings = *settings;
 
-                // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
-                auto randomState = world::gen::RandomState::create(dimSettings, seed);
-                auto biomeSource = _createBiomeSource(gen, *randomState, seed);
-                generator = std::make_unique<NoiseChunkGenerator>(
-                    std::move(dimSettings), std::move(biomeSource), std::move(randomState));
-                break;
+                    // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
+                    auto randomState = world::gen::RandomState::create(dimSettings, seed);
+                    auto biomeSource = _createBiomeSource(gen, *randomState, seed);
+                    generator = std::make_unique<NoiseChunkGenerator>(
+                        std::move(dimSettings), std::move(biomeSource), std::move(randomState));
+                    break;
+                }
+                case world::gen::settings::WorldPresetGenerator::Type::Flat:
+                    // flat 维度内联 settings 已在解析期产
+                    // FlatLevelGeneratorSettings（WorldPresetGenerator.flatSettings）
+                    generator = std::make_unique<FlatChunkGenerator>(seed, gen.flatSettings);
+                    break;
+                case world::gen::settings::WorldPresetGenerator::Type::Debug:
+                    generator = std::make_unique<DebugChunkGenerator>();
+                    break;
             }
-            case world::gen::settings::WorldPresetGenerator::Type::Flat:
-                // flat 维度内联 settings 已在解析期产 FlatLevelGeneratorSettings（WorldPresetGenerator.flatSettings）
-                generator = std::make_unique<FlatChunkGenerator>(seed, gen.flatSettings);
-                break;
-            case world::gen::settings::WorldPresetGenerator::Type::Debug:
-                generator = std::make_unique<DebugChunkGenerator>();
-                break;
+        } else {
+            // 兜底：WorldPresetRegistry 未加载（数据包缺失/测试未加载）。保留旧 WorldType 装配。
+            spdlog::warn(
+                "WorldPreset '{}' not loaded, falling back to legacy WorldType assembly", m_worldPresetId.toString());
+            generator = _createLegacyGenerator(id, seed);
         }
-    } else {
-        // 兜底：WorldPresetRegistry 未加载（数据包缺失/测试未加载）。保留旧 WorldType 装配。
-        spdlog::warn(
-            "WorldPreset '{}' not loaded, falling back to legacy WorldType assembly", m_worldPresetId.toString());
-        generator = _createLegacyGenerator(id, seed);
+
+        MC_ASSERT_RELEASE_MSG(
+            generator != nullptr, fmt::format("Failed to create chunk generator for dimension {}", id).c_str());
     }
 
-    MC_ASSERT_RELEASE_MSG(
-        generator != nullptr, fmt::format("Failed to create chunk generator for dimension {}", id).c_str());
-
+    // 创建服务端世界（trace 在 _createServerWorld 内部，作为下一级 subpart）
     auto world = _createServerWorld(id, seed, std::move(generator));
+
+    // 装配维度（ServerDimension 构造 + setWorld，开销可忽略，不单独 trace）
     auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
     dimension->setWorld(std::move(world));
     return dimension;
@@ -414,6 +424,9 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
 std::unique_ptr<world::biome::IBiomeSource> ServerDimensionManager::_createBiomeSource(
     const world::gen::settings::WorldPresetGenerator& gen, const world::gen::RandomState& rs, u64 seed)
 {
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Initialization, "ServerDimensionManager::_createBiomeSource", "biomeSourceType", static_cast<i32>(gen.biomeSourceType));
+
     using BS = world::gen::settings::WorldPresetGenerator::BiomeSourceType;
     switch (gen.biomeSourceType) {
         case BS::MultiNoise: {
@@ -502,6 +515,11 @@ std::unique_ptr<IChunkGenerator> ServerDimensionManager::_createLegacyGenerator(
 std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
     DimensionId id, u64 seed, std::unique_ptr<IChunkGenerator> generator) const
 {
+    // 父级 _createServerDimension 已带 trace；此处作为 subpart 量化服务端世界装配耗时
+    // （ServerWorld + ServerChunkManager 构造与各子系统 setter 注入）。
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Server.Initialization, "ServerDimensionManager::_createServerWorld", "dimId", static_cast<i32>(id));
+
     MC_ASSERT_RELEASE(m_server != nullptr);
     MC_ASSERT_RELEASE(generator != nullptr);
 
