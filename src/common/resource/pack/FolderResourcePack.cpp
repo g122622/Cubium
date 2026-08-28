@@ -165,12 +165,10 @@ Result<std::vector<u8>> FolderResourcePack::readResource(PackType type, std::str
     const std::string fullPath =
         _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
 
-    if (!fs::exists(fullPath)) {
-        return Error(ErrorCode::ResourceNotFound,
-            std::string("Resource not found in folder pack: ") + std::string(m_name) +
-                ", name: " + std::string(resourcePath));
-    }
-
+    // 不做 fs::exists 检查：调用方（PackListBase::readResource）已先经 hasResource 基于 m_entries
+    // 内存索引确认条目存在，此处再 stat 是冗余磁盘 syscall。m_entries 在 initialize() 时一次性
+    // 扫描构建，pack 生命周期内磁盘内容不变。极端情况（运行时外部删除文件）由 ifstream open
+    // 失败路径返回 FileOpenFailed 兜底，调用方对失败错误码不区分处理。
     std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
 
     if (!file.is_open()) {
