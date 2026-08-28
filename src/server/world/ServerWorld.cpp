@@ -541,7 +541,7 @@ void ServerWorld::initializeWorldSpawn()
                     spawnChunk.x,
                     spawnChunk.z);
             } else {
-                spdlog::debug("ServerWorld: spawnTarget empty, falling back to (0,0) chunk");
+                spdlog::warn("ServerWorld: spawnTarget empty, falling back to (0,0) chunk");
             }
         }
     }

@@ -283,6 +283,14 @@ bool ServerChunkManager::hasChunkInMem(ChunkCoord x, ChunkCoord z) const
 
 ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::requestChunkSync",
+        "x", x,
+        "z", z,
+        "targetStatus", targetStatus.name(),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(x, z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); }
+        );
+
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         return chunk;
     }
