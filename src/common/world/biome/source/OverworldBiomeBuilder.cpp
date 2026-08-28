@@ -22,6 +22,8 @@
 
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/climate/ParameterList.hpp"
@@ -29,6 +31,8 @@
 #include <limits>
 #include <utility>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::world::biome::source {
 
@@ -396,6 +400,10 @@ void OverworldBiomeBuilder::addBottomBiome(std::vector<ParameterList<BiomeId>::E
 
 void OverworldBiomeBuilder::addOffCoastBiomes(std::vector<ParameterList<BiomeId>::Entry>& entries) const
 {
+    // 父级 buildParameterList 已带 trace；此处作为 subpart 量化近海生物群系
+    // （MushroomFields + 5×2 海洋，共 11 次 addSurfaceBiome）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OverworldBiomeBuilder::addOffCoastBiomes");
+
     addSurfaceBiome(entries,
         m_fullRange,
         m_fullRange,
@@ -431,6 +439,11 @@ void OverworldBiomeBuilder::addOffCoastBiomes(std::vector<ParameterList<BiomeId>
 
 void OverworldBiomeBuilder::addInlandBiomes(std::vector<ParameterList<BiomeId>::Entry>& entries) const
 {
+    // 父级 buildParameterList 已带 trace；此处作为 subpart 量化内陆生物群系
+    // （13 个 weirdness 切片各调一次 addMidSlice/addHighSlice/addPeaks/addLowSlice/addValleys，
+    // 每个 slice 内部多组 5x5 温度×湿度循环，是主世界生物群系源构造的主要开销）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OverworldBiomeBuilder::addInlandBiomes");
+
     addMidSlice(entries, Parameter::span(-1.0f, -0.93333334f));
     addHighSlice(entries, Parameter::span(-0.93333334f, -0.7666667f));
     addPeaks(entries, Parameter::span(-0.7666667f, -0.56666666f));
@@ -1141,6 +1154,10 @@ void OverworldBiomeBuilder::addValleys(
 
 void OverworldBiomeBuilder::addUndergroundBiomesEntries(std::vector<ParameterList<BiomeId>::Entry>& entries) const
 {
+    // 父级 buildParameterList 已带 trace；此处作为 subpart 量化地下生物群系
+    // （DripstoneCaves + LushCaves + DeepDark，3 次 addUndergroundBiome/addBottomBiome）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OverworldBiomeBuilder::addUndergroundBiomesEntries");
+
     // 滴水石洞：高大陆度
     addUndergroundBiome(entries,
         m_fullRange,
@@ -1172,6 +1189,11 @@ void OverworldBiomeBuilder::addUndergroundBiomesEntries(std::vector<ParameterLis
 
 ParameterList<BiomeId> OverworldBiomeBuilder::buildParameterList() const
 {
+    // 父级 MultiNoiseBiomeSource::createOverworld 已带 trace；此处作为 subpart 量化主世界生物群系参数列表构建
+    // （addOffCoast + addInland 对 13 个 weirdness 切片各跑 5x5 循环 +
+    // addUnderground，是主世界生物群系源构造的主要开销）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OverworldBiomeBuilder::buildParameterList");
+
     std::vector<ParameterList<BiomeId>::Entry> entries;
 
     addOffCoastBiomes(entries);

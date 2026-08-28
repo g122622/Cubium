@@ -23,9 +23,13 @@
 
 #include "common/world/gen/density/ast/OptoPasses.hpp"
 
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/gen/density/ast/AstNodes.hpp"
 
 #include <cmath>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::density::ast {
 
@@ -363,6 +367,10 @@ public:
 
 Ptr OptoPasses::optimize(Ptr root)
 {
+    // 父级 RandomState::compileRouter 已带 trace；此处作为 subpart 量化 AST 优化不动点
+    // （TreeNormalization + FoldConstants + BranchElimination 三 pass 重复直到收敛，15 root 各跑一次）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "OptoPasses::optimize");
+
     TreeNormalization passNorm;
     FoldConstants passFold;
     BranchElimination passBranch;

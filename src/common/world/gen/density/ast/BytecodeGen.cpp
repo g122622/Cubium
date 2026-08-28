@@ -22,6 +22,8 @@
 
 #include "common/world/gen/density/ast/BytecodeGen.hpp"
 
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "common/world/gen/density/ast/AstNodes.hpp"
@@ -31,6 +33,8 @@
 #include <cmath>
 #include <limits>
 #include <unordered_map>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::density::ast {
 
@@ -784,6 +788,10 @@ private:
 
 std::shared_ptr<CompiledDensityFunction> BytecodeGen::compile(const Ptr& root, f64 minValue, f64 maxValue)
 {
+    // 父级 RandomState::compileRouter 已带 trace；此处作为 subpart 量化 AST → 字节码 + JIT 编译
+    // （GenContext::compile 递归 emitNode 生成 Op 序列，末尾 evaluator->compileJit() 触发 asmjit JIT）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "BytecodeGen::compile");
+
     GenContext ctx;
     return ctx.compile(root, minValue, maxValue);
 }

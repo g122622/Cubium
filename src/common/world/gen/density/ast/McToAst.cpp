@@ -23,6 +23,8 @@
 
 #include "common/world/gen/density/ast/McToAst.hpp"
 
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
@@ -37,6 +39,8 @@
 #include <unordered_set>
 #include <variant>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc::world::gen::density::ast {
 
@@ -307,6 +311,9 @@ void McToAst::initializeBuiltin(std::unordered_map<std::type_index, Emitter>& re
 
 Ptr McToAst::convert(const DF& df)
 {
+    // 父级 RandomState::compileRouter 已带 trace；此处作为 subpart 量化 DF 树 → AST 转换
+    // （toAst 按 typeid 递归遍历整棵 DensityFunction 树，15 root 各调一次）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "McToAst::convert");
     return toAst(df);
 }
 
