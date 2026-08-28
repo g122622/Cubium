@@ -143,16 +143,10 @@ Result<void> FolderResourcePack::initialize()
 
 std::string FolderResourcePack::_makeTypedPath(PackType type, std::string_view path)
 {
-    std::string result(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
-    // 统一为正斜杠，与索引中的路径格式一致
-    for (char& c : result) {
-        if (c == '\\') {
-            c = '/';
-        }
-    }
-    return result;
+    // 拼接类型目录前缀后词法归一化（折叠 . 与 .. 段），与 m_entries 存储的归一化路径一致。
+    // 例如 "assets/../pack.mcmeta" → "pack.mcmeta"，使 hasResource 能匹配到包根级别的 pack.mcmeta。
+    return normalizeResourcePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
-
 bool FolderResourcePack::hasResource(PackType type, std::string_view resourcePath) const
 {
     // 基于内存索引查询，避免每次 fs::exists 系统调用
@@ -162,8 +156,9 @@ bool FolderResourcePack::hasResource(PackType type, std::string_view resourcePat
 
 Result<std::vector<u8>> FolderResourcePack::readResource(PackType type, std::string_view resourcePath) const
 {
-    const std::string fullPath =
-        _normalize_path(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(resourcePath));
+    // _makeTypedPath 已词法归一化（折叠 .. 段），与 hasResource 查询键一致。
+    // 拼上包根得到磁盘路径，归一化后无 .. 段，ifstream 直接定位文件。
+    const std::string fullPath = m_rootPath + "/" + _makeTypedPath(type, resourcePath);
 
     // 不做 fs::exists 检查：调用方（PackListBase::readResource）已先经 hasResource 基于 m_entries
     // 内存索引确认条目存在，此处再 stat 是冗余磁盘 syscall。m_entries 在 initialize() 时一次性
@@ -263,23 +258,6 @@ Result<std::vector<std::string>> FolderResourcePack::getResourceNamespaces(PackT
     std::vector<std::string> result(namespaces.begin(), namespaces.end());
     std::sort(result.begin(), result.end());
     return result;
-}
-
-std::string FolderResourcePack::_normalize_path(std::string_view resourcePath) const
-{
-    std::string path(resourcePath);
-
-    // 确保使用正斜杠
-    for (char& c : path) {
-        if (c == '\\') c = '/';
-    }
-
-    // 移除前导斜杠
-    while (!path.empty() && path[0] == '/') {
-        path = path.substr(1);
-    }
-
-    return m_rootPath + "/" + path;
 }
 
 } // namespace mc::resource

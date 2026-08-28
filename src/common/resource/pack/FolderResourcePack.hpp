@@ -79,10 +79,7 @@ private:
     // 避免每次调用都重新递归遍历磁盘目录树（与 ZipResourcePack::m_entries 对称）。
     std::unordered_set<std::string> m_entries;
 
-    // 规范化路径（将反斜杠转为正斜杠，移除前导斜杠）
-    [[nodiscard]] std::string _normalize_path(std::string_view resourcePath) const;
-
-    // 构造类型目录前缀的完整路径（typeDir + "/" + path），用于索引前缀匹配
+    // 构造类型目录前缀的完整路径（typeDir + "/" + path）并词法归一化，用于索引前缀匹配
     [[nodiscard]] static std::string _makeTypedPath(PackType type, std::string_view path);
 };
 
