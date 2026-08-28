@@ -153,6 +153,62 @@ bool RecipeManager::registerSmithingRecipe(std::unique_ptr<SmithingRecipe> recip
     return true;
 }
 
+bool RecipeManager::registerSmithingTransformRecipe(std::unique_ptr<SmithingTransformRecipe> recipe)
+{
+    if (!recipe) {
+        return false;
+    }
+
+    ResourceLocation id = recipe->getId();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 跨所有锻造子表查重，避免不同锻造类型间 ID 冲突
+    if (m_smithingTransformRecipesById.find(id) != m_smithingTransformRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end() ||
+        m_smithingTrimRecipesById.find(id) != m_smithingTrimRecipesById.end() ||
+        m_recipesById.find(id) != m_recipesById.end() ||
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end()) {
+        return false;
+    }
+
+    const SmithingTransformRecipe* recipePtr = recipe.get();
+    m_smithingTransformRecipesById[id] = std::move(recipe);
+
+    // 按 getType() 动态分桶（对齐 registerSmeltingRecipe 模式，保留类型信息）
+    m_smithingTransformRecipesByType[recipePtr->getType()].push_back(recipePtr);
+    return true;
+}
+
+bool RecipeManager::registerSmithingTrimRecipe(std::unique_ptr<SmithingTrimRecipe> recipe)
+{
+    if (!recipe) {
+        return false;
+    }
+
+    ResourceLocation id = recipe->getId();
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 跨所有锻造子表查重，避免不同锻造类型间 ID 冲突
+    if (m_smithingTrimRecipesById.find(id) != m_smithingTrimRecipesById.end() ||
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end() ||
+        m_smithingTransformRecipesById.find(id) != m_smithingTransformRecipesById.end() ||
+        m_recipesById.find(id) != m_recipesById.end() ||
+        m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
+        m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end()) {
+        return false;
+    }
+
+    const SmithingTrimRecipe* recipePtr = recipe.get();
+    m_smithingTrimRecipesById[id] = std::move(recipe);
+
+    // 按 getType() 动态分桶（对齐 registerSmeltingRecipe 模式，保留类型信息）
+    m_smithingTrimRecipesByType[recipePtr->getType()].push_back(recipePtr);
+    return true;
+}
+
 const CraftingRecipe* RecipeManager::getRecipe(const ResourceLocation& id) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -170,7 +226,9 @@ bool RecipeManager::hasRecipe(const ResourceLocation& id) const
     return m_recipesById.find(id) != m_recipesById.end() ||
         m_smeltingRecipesById.find(id) != m_smeltingRecipesById.end() ||
         m_stonecuttingRecipesById.find(id) != m_stonecuttingRecipesById.end() ||
-        m_smithingRecipesById.find(id) != m_smithingRecipesById.end();
+        m_smithingRecipesById.find(id) != m_smithingRecipesById.end() ||
+        m_smithingTransformRecipesById.find(id) != m_smithingTransformRecipesById.end() ||
+        m_smithingTrimRecipesById.find(id) != m_smithingTrimRecipesById.end();
 }
 
 std::vector<const CraftingRecipe*> RecipeManager::getAllRecipes() const
@@ -417,7 +475,7 @@ size_t RecipeManager::getRecipeCount() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_recipesById.size() + m_smeltingRecipesById.size() + m_stonecuttingRecipesById.size() +
-        m_smithingRecipesById.size();
+        m_smithingRecipesById.size() + m_smithingTransformRecipesById.size() + m_smithingTrimRecipesById.size();
 }
 
 void RecipeManager::clear()
@@ -427,10 +485,14 @@ void RecipeManager::clear()
     m_smeltingRecipesById.clear();
     m_stonecuttingRecipesById.clear();
     m_smithingRecipesById.clear();
+    m_smithingTransformRecipesById.clear();
+    m_smithingTrimRecipesById.clear();
     m_recipesByType.clear();
     m_smeltingRecipesByType.clear();
     m_stonecuttingRecipesByType.clear();
     m_smithingRecipesByType.clear();
+    m_smithingTransformRecipesByType.clear();
+    m_smithingTrimRecipesByType.clear();
     m_recipesByResult.clear();
 }
 

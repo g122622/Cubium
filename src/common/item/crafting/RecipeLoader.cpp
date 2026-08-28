@@ -104,10 +104,13 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackRepository(
         return listResult.error();
     }
 
+    // 过滤出配方资源。DataPack 资源路径形如 "<namespace>/<type_dir>/<path>.json"，
+    // 配方必须位于命名空间下的 recipe/（MC 1.21+ 单数）或 recipes/（旧复数）类型目录。
+    // 严格校验第二段为 recipe/recipes，避免误判 advancement/recipes/ 等路径中
+    // 恰好含 "recipes/" 子串的非配方资源（如进度文件）。
     std::vector<std::string> recipeResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/recipes/") == std::string::npos && path.find("recipes/") == std::string::npos &&
-            path.find("/recipe/") == std::string::npos && path.find("recipe/") == std::string::npos) {
+        if (!_isRecipeResourcePath(path)) {
             continue;
         }
         recipeResources.push_back(path);
@@ -222,6 +225,44 @@ Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id
         // 锻造台配方使用专门的注册方法
         if (!crafting::RecipeManager::instance().registerSmithingRecipe(recipeResult.value())) {
             return Error(ErrorCode::AlreadyExists, "Smithing recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 锻造升级配方（MC 1.21+ smithing_transform，如钻石→下界合金升级）
+    if (type == "minecraft:smithing_transform") {
+        auto recipeResult = crafting::RecipeSerializers::parseSmithingTransformRecipe(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        if (!crafting::RecipeManager::instance().registerSmithingTransformRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Smithing transform recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 盔甲纹饰配方（MC 1.21+ smithing_trim）
+    if (type == "minecraft:smithing_trim") {
+        auto recipeResult = crafting::RecipeSerializers::parseSmithingTrimRecipe(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        if (!crafting::RecipeManager::instance().registerSmithingTrimRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Smithing trim recipe already registered: " + id.toString());
+        }
+        return id;
+    }
+
+    // 特殊合成配方（crafting_special_* / crafting_decorated_pot）
+    // 这些配方的 JSON 仅声明存在，行为由对应代码类实现，按 type 查工厂表创建实例。
+    if (type.rfind("minecraft:crafting_special_", 0) == 0 || type == "minecraft:crafting_decorated_pot") {
+        auto recipeResult = crafting::RecipeSerializers::parseSpecialRecipe(id, json);
+        if (recipeResult.failed()) {
+            return recipeResult.error();
+        }
+        // 特殊配方继承 CraftingRecipe，使用统一的合成配方注册接口
+        if (!crafting::RecipeManager::instance().registerRecipe(recipeResult.value())) {
+            return Error(ErrorCode::AlreadyExists, "Special recipe already registered: " + id.toString());
         }
         return id;
     }
@@ -346,6 +387,52 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
     }
 
     return ResourceLocation(namespace_, recipePath);
+}
+
+bool RecipeLoader::_isRecipeResourcePath(const std::string& resourcePath)
+{
+    // DataPack 资源路径形如 "<namespace>/<type_dir>/<path>.json"。
+    // 配方要求第二段为 recipe（1.21+ 单数）或 recipes（旧复数）。
+    // 用 '/' 分割路径，校验至少 2 段且第 2 段为 recipe/recipes。
+    // 同时兼容旧格式 data/<namespace>/recipes/...（第 3 段为 recipes）。
+    size_t firstSlash = resourcePath.find('/');
+    if (firstSlash == std::string::npos) {
+        return false;
+    }
+
+    // 第一段不能为空（必须有命名空间）
+    if (firstSlash == 0) {
+        return false;
+    }
+
+    size_t secondStart = firstSlash + 1;
+    size_t secondSlash = resourcePath.find('/', secondStart);
+    size_t secondLen =
+        (secondSlash == std::string::npos) ? (resourcePath.size() - secondStart) : (secondSlash - secondStart);
+    std::string_view secondDir(resourcePath.data() + secondStart, secondLen);
+
+    if (secondDir == "recipe" || secondDir == "recipes") {
+        return true;
+    }
+
+    // 兼容旧格式 data/<namespace>/recipes/...：第一段为 data，第 3 段为 recipe/recipes
+    if (secondDir == "data" && secondSlash != std::string::npos) {
+        size_t thirdStart = secondSlash + 1;
+        size_t thirdSlash = resourcePath.find('/', thirdStart);
+        // data/<namespace> 之间不能再有更多段，namespace 后紧跟 recipe/recipes
+        if (thirdSlash != std::string::npos) {
+            size_t fourthStart = thirdSlash + 1;
+            size_t fourthSlash = resourcePath.find('/', fourthStart);
+            size_t fourthLen =
+                (fourthSlash == std::string::npos) ? (resourcePath.size() - fourthStart) : (fourthSlash - fourthStart);
+            std::string_view fourthDir(resourcePath.data() + fourthStart, fourthLen);
+            if (fourthDir == "recipe" || fourthDir == "recipes") {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 } // namespace mc

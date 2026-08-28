@@ -27,6 +27,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/gen/noise/PerlinNoiseSoA.hpp"
 #include <cstddef>
 #include <memory>
 #include <vector>
@@ -192,6 +193,12 @@ public:
          */
         [[nodiscard]] f64 noiseWithSmear(f64 x, f64 y, f64 z, f64 yOffset, f64 yFraction) const;
 
+        // ---- SoA 构造期访问器(buildSoA 从各 layer 收集置换表与偏移到连续块)----
+        [[nodiscard]] const std::vector<u8>& permutation() const noexcept { return m_permutation; }
+        [[nodiscard]] f64 xOffset() const noexcept { return m_xOffset; }
+        [[nodiscard]] f64 yOffset() const noexcept { return m_yOffset; }
+        [[nodiscard]] f64 zOffset() const noexcept { return m_zOffset; }
+
     private:
         [[nodiscard]] f64 sampleAndLerp(
             i32 cellX, i32 cellY, i32 cellZ, f64 deltaX, f64 deltaY, f64 deltaZ, f64 smoothstepY = -1.0) const;
@@ -228,6 +235,22 @@ public:
         return m_layers[static_cast<size_t>(index)].get();
     }
 
+    // ---- SoA 访问器(buildSoA 收集后,NormalNoise/BlendedNoise 的向量化求值读取)----
+    [[nodiscard]] const std::vector<std::unique_ptr<PerlinLayer>>& layers() const noexcept { return m_layers; }
+    [[nodiscard]] const std::vector<f64>& amplitudesVec() const noexcept { return m_amplitudes; }
+    [[nodiscard]] f64 lowestFreqInputFactor() const noexcept { return m_lowestFreqInputFactor; }
+    [[nodiscard]] f64 lowestFreqValueFactor() const noexcept { return m_lowestFreqValueFactor; }
+    [[nodiscard]] const PerlinNoiseSoA& soa() const noexcept { return m_soa; }
+
+    /**
+     * @brief 把所有非空 octave 子层拍平到连续 SoA 块
+     *
+     * 构造期一次性调用。inputFactor 从 lowestFreqInputFactor 起每层 ×2,
+     * valueFactor 从 lowestFreqValueFactor 起每层 ÷2(空层跳过采样但仍推进缩放序列,
+     * 与 PerlinNoise::getValue 循环语义一致)。amplitude 取 m_amplitudes[i]。
+     */
+    void buildSoA();
+
 private:
     /**
      * @brief 根据最大单倍频输出值计算总最大值
@@ -258,6 +281,7 @@ private:
     f64 m_lowestFreqInputFactor = 0.0;
     f64 m_lowestFreqValueFactor = 0.0;
     f64 m_maxValue = 0.0;
+    PerlinNoiseSoA m_soa; ///< 非空 octave 拍平的连续 SoA 块(buildSoA 填充)
 };
 
 } // namespace mc::world::gen::noise

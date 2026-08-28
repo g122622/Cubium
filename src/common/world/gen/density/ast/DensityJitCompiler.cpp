@@ -293,6 +293,21 @@ private:
                     }));
                 return m_cc.movsd(m_regs[op.dst], ret);
             }
+            case OpCode::BlendedNoise: {
+                asmjit::x86::Xmm ret;
+                ASMJIT_PROPAGATE(invokeTrampoline(ret,
+                    reinterpret_cast<const void*>(&jitBlendedNoise),
+                    asmjit::FuncSignature::build<f64, const DensityEvalContext*, u32, i32, i32, i32>(),
+                    [&](asmjit::InvokeNode& call) -> asmjit::Error {
+                        call.setArg(0, m_ctxGp);
+                        call.setArg(1, asmjit::imm(op.objIdx));
+                        call.setArg(2, m_xGp);
+                        call.setArg(3, m_yGp);
+                        call.setArg(4, m_zGp);
+                        return asmjit::kErrorOk;
+                    }));
+                return m_cc.movsd(m_regs[op.dst], ret);
+            }
             case OpCode::Beardifier: {
                 asmjit::x86::Xmm ret;
                 ASMJIT_PROPAGATE(invokeTrampoline(ret,

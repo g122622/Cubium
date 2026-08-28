@@ -71,6 +71,15 @@ ServerDimension::~ServerDimension()
 
 Result<void> ServerDimension::initialize()
 {
+    // 父级 ServerDimensionManager::initialize 已带 trace；此处作为 subpart 记录维度 id/名称，
+    // 与 shutdown() 的 per-dimension trace 参数风格对齐，便于在 Perfetto 中区分三维度初始化耗时。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
+        "ServerDimension::initialize",
+        "dim",
+        static_cast<i32>(id()),
+        "dimName",
+        type().name());
+
     if (m_initialized) {
         return {};
     }

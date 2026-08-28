@@ -1062,6 +1062,9 @@ Result<std::optional<PlayerSaveData>> SingleLevelStorageManager::loadPlayer(cons
 
 Result<LevelRuntimeData> SingleLevelStorageManager::loadLevelData()
 {
+    // 父级 MinecraftServer::initializeWorld 已带 trace；此处作为 subpart 量化 level.dat 运行时数据读取耗时。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "SingleLevelStorageManager::loadLevelData");
+
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
     }
@@ -1121,6 +1124,9 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
 
 Result<std::unique_ptr<nbt::tags::compound_list_tag>> SingleLevelStorageManager::loadScheduledEvents()
 {
+    // 父级 MinecraftServer::initializeWorld 已带 trace；此处作为 subpart 量化调度事件反序列化耗时。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "SingleLevelStorageManager::loadScheduledEvents");
+
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
     }

@@ -31,7 +31,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <nlohmann/json_fwd.hpp>
+#include <simdjson.h>
 
 namespace mc {
 
@@ -48,6 +48,7 @@ namespace jigsaw {
  * @brief 处理器列表 JSON 加载器
  *
  * 从数据包加载 processor_list JSON 文件并注册到 ProcessorListRegistry。
+ * JSON 解析使用 simdjson On-Demand,只读场景零拷贝字段访问。
  *
  * JSON 格式 (MC 1.21):
  * {
@@ -94,21 +95,21 @@ public:
      * 此方法解析数组中每个处理器并组装为 StructureProcessorList。
      * 用于 TemplatePoolLoader::_parseProcessors 处理内联处理器列表场景。
      *
-     * @param processorsArray 处理器 JSON 数组
+     * @param processorsValue 处理器 JSON 数组(ondemand::value,内部 get_array 遍历)
      * @return 处理器列表，数组为空或解析失败时返回空列表
      */
     [[nodiscard]] static std::unique_ptr<feature::template_::StructureProcessorList> parseInlineProcessorList(
-        const nlohmann::json& processorsArray);
+        simdjson::ondemand::value& processorsValue);
 
 private:
     /**
-     * @brief 从 JSON 对象加载处理器列表
+     * @brief 从 simdjson On-Demand 对象加载处理器列表
      *
      * @param jsonObj 已解析的 JSON 对象
      * @param location 处理器列表资源位置
      * @return 是否成功
      */
-    static Result<void> _loadFromJsonObj(const nlohmann::json& jsonObj, const ResourceLocation& location);
+    static Result<void> _loadFromJsonObj(simdjson::ondemand::object& jsonObj, const ResourceLocation& location);
 
     /**
      * @brief 解析单个处理器
@@ -116,25 +117,26 @@ private:
      * @param processorObj 处理器 JSON 对象
      * @return 处理器实例，或 nullptr
      */
-    static std::unique_ptr<feature::template_::StructureProcessor> _parseProcessor(const nlohmann::json& processorObj);
+    static std::unique_ptr<feature::template_::StructureProcessor> _parseProcessor(
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 block_ignore 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseBlockIgnoreProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 block_rot (integrity) 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseBlockRotProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 gravity 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseGravityProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 jigsaw_replacement 处理器
@@ -145,13 +147,13 @@ private:
      * @brief 解析 rule 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseRuleProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 block_age (mossification) 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseBlockAgeProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 blackstone_replace 处理器
@@ -172,13 +174,13 @@ private:
      * @brief 解析 protected_blocks 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseProtectedBlocksProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 
     /**
      * @brief 解析 capped 处理器
      */
     static std::unique_ptr<feature::template_::StructureProcessor> _parseCappedProcessor(
-        const nlohmann::json& processorObj);
+        simdjson::ondemand::object& processorObj);
 };
 
 } // namespace jigsaw

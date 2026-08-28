@@ -81,14 +81,6 @@ public:
      */
     void initializeAll(bool registerEntities);
 
-    /**
-     * @brief 注册内置动态配方
-     *
-     * 注册不从数据包加载的动态配方（物品修复、盔甲染色、书复制、地图复制/扩展、
-     * 药水箭、饰纹陶罐）。在 initializeAll 的配方阶段内部调用。
-     */
-    void registerSpecialRecipes();
-
 private:
     mc::resource::DataPackRepository& m_dataPackList;
     mc::loot::LootTableManager& m_lootTableManager;

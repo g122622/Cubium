@@ -23,6 +23,8 @@
 
 #include "RandomState.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
@@ -45,6 +47,8 @@
 #include <string>
 #include <utility>
 #include <fmt/format.h>
+
+using namespace mc::trace;
 
 namespace mc::world::gen {
 
@@ -109,6 +113,10 @@ density::NoiseRouter buildRouterFromTemplate(const DimensionSettings& settings, 
 
 std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settings, u64 worldSeed)
 {
+    // 父级 _createServerDimension::CreateGenerator 已带 trace；此处作为 subpart 量化 RandomState 构造
+    // （噪声路由器绑定 + 表面系统 + 维度级 15 root 密度函数 AST/JIT 编译，是区块生成前最重的初始化开销）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RandomState::create");
+
     // 数据驱动唯一路径：从 NoiseSettingsRegistry 查完整 DimensionSettings（含 m_routerDfs 模板）。
     // 传入的 settings 可能是 C++ 预设（仅带 m_noiseSettingsId）或已加载模板；统一用 registry 解析到的版本。
     const DimensionSettings* resolved = nullptr;
@@ -177,6 +185,10 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
 
 void RandomState::compileRouter()
 {
+    // 父级 RandomState::create 已带 trace；此处作为 subpart 量化维度级 15 root 编译
+    // （McToAst::convert → OptoPasses::optimize → BytecodeGen::compile，末尾 compileJit 触发 asmjit JIT）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RandomState::compileRouter");
+
     // 按 RouterSlot 枚举顺序遍历 15 root，各自编译为维度级 CompiledDensityFunction。
     // RouterSlot 枚举顺序与 NoiseRouter 访问器顺序一致。
     const auto compileSlot = [this](RouterSlot slot, const density::DensityFunction& rootDf) {

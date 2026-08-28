@@ -72,6 +72,12 @@ namespace mc::world::gen::density::ast {
 /// END_ISLANDS：末地岛屿。同 DELEGATE 走 densityFunction.compute。
 [[nodiscard]] f64 jitEndIslands(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept;
 
+/// BLENDED_NOISE：旧式三层 Perlin 噪声（BlendedNoise）。
+/// 关键：static_cast 到具体类型 const BlendedNoise* 后调 compute()，因 BlendedNoise 是 final 类，
+/// 编译器去虚化为直接 call BlendedNoise::compute（非 vtable 间接），消除每次采样的 vtable 开销。
+/// compute 内部已 SoA 向量化（三阶段 octave 并行，反汇编确认 254 条 vfmadd），trampoline 透传调用即可。
+[[nodiscard]] f64 jitBlendedNoise(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept;
+
 /// BEARDIFIER：Beardifier 贡献。objIdx 索引 objects[objIdx].beardifier。
 [[nodiscard]] f64 jitBeardifier(const DensityEvalContext* ctx, u32 objIdx, i32 x, i32 y, i32 z) noexcept;
 

@@ -51,12 +51,58 @@
 #include <utility>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <simdjson.h>
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
 namespace gen {
 namespace jigsaw {
+
+namespace {
+
+// ============================================================================
+// simdjson On-Demand 字段访问辅助函数
+// ============================================================================
+
+/**
+ * @brief 从 On-Demand 对象读取可选字符串字段
+ *
+ * 字段缺失返回 std::nullopt;字段存在但非字符串返回 std::nullopt(容错)。
+ * 注意:On-Demand 单次遍历语义下,本函数消费一次字段访问。
+ */
+std::optional<std::string> optString(simdjson::ondemand::object& obj, std::string_view key)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return std::nullopt;
+    }
+    auto strResult = fieldResult.value().get_string();
+    if (strResult.error() != simdjson::SUCCESS) {
+        return std::nullopt;
+    }
+    return std::string(strResult.value());
+}
+
+/**
+ * @brief 从 On-Demand 对象读取必填字符串字段
+ *
+ * 字段缺失或非字符串返回空字符串。
+ */
+std::string reqString(simdjson::ondemand::object& obj, std::string_view key)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return {};
+    }
+    auto strResult = fieldResult.value().get_string();
+    if (strResult.error() != simdjson::SUCCESS) {
+        return {};
+    }
+    return std::string(strResult.value());
+}
+
+} // namespace
 
 Result<size_t> TemplatePoolLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
@@ -169,11 +215,21 @@ Result<size_t> TemplatePoolLoader::loadFromResourcePack(const IResourcePack& pac
 Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
     const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-        return loadFromJson(jsonObj, location);
+    // simdjson 需要 padded buffer(末尾 SIMDJSON_PADDING 字节)。
+    // padded_string(std::string&&) 移动构造并自动补 padding。
+    simdjson::padded_string padded(json);
+    simdjson::ondemand::parser parser;
+
+    auto docResult = parser.iterate(padded);
+    if (docResult.error() != simdjson::SUCCESS) {
+        return Error(
+            ErrorCode::InvalidData, std::string("JSON parse error: ") + simdjson::error_message(docResult.error()));
     }
-    catch (const nlohmann::json::parse_error& e) {
+
+    try {
+        return loadFromJson(docResult.value(), location);
+    }
+    catch (const simdjson::simdjson_error& e) {
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
@@ -182,142 +238,131 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
 }
 
 Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
-    const nlohmann::json& jsonObj, const ResourceLocation& location)
+    simdjson::ondemand::document& doc, const ResourceLocation& location)
 {
+    auto rootResult = doc.get_object();
+    if (rootResult.error() != simdjson::SUCCESS) {
+        return Error(ErrorCode::InvalidData, "Template pool JSON is not an object");
+    }
+    auto root = rootResult.value();
+
     // 解析名称（可选，如果没有则使用 location）
     ResourceLocation name = location;
-    if (jsonObj.contains("name") && jsonObj["name"].is_string()) {
-        name = ResourceLocation(jsonObj["name"].get<std::string>());
+    if (auto nameStr = optString(root, "name")) {
+        name = ResourceLocation(*nameStr);
     }
 
     // 解析回退池（可选）
     ResourceLocation fallback("minecraft", "empty");
-    if (jsonObj.contains("fallback") && jsonObj["fallback"].is_string()) {
-        fallback = ResourceLocation(jsonObj["fallback"].get<std::string>());
+    if (auto fallbackStr = optString(root, "fallback")) {
+        fallback = ResourceLocation(*fallbackStr);
     }
 
     // 创建模板池
     auto pool = std::make_unique<TemplatePool>(name, fallback);
 
     // 解析元素列表
-    if (!jsonObj.contains("elements") || !jsonObj["elements"].is_array()) {
+    auto elementsResult = root["elements"];
+    if (elementsResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Template pool missing 'elements' array");
     }
+    auto elementsArrResult = elementsResult.value().get_array();
+    if (elementsArrResult.error() != simdjson::SUCCESS) {
+        return Error(ErrorCode::InvalidData, "Template pool 'elements' is not an array");
+    }
+    auto elementsArr = elementsArrResult.value();
 
-    // i32 legacyCount = 0;
-    // i32 featureCount = 0;
-    // i32 singleCount = 0;
-    // i32 listCount = 0;
-    // i32 emptyCount = 0;
+    for (auto elementVal : elementsArr) {
+        auto elementObjResult = elementVal.get_object();
+        if (elementObjResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        auto elementObj = elementObjResult.value();
 
-    const auto& elements = jsonObj["elements"];
-    for (const auto& element : elements) {
         std::unique_ptr<JigsawPiece> piece;
         i32 weight = 1;
-        if (_parseElement(element, piece, weight) && piece) {
-            // 统计元素类型（必须在 addPiece/std::move 之前，因为 move 后 piece 变为 nullptr）
-            // const auto& typeName = piece->getTypeName();
-            // if (typeName == "legacy_single_pool_element") {
-            //     ++legacyCount;
-            // } else if (typeName == "single_pool_element") {
-            //     ++singleCount;
-            // } else if (typeName == "list_pool_element") {
-            //     ++listCount;
-            // } else if (typeName == "feature_pool_element") {
-            //     ++featureCount;
-            // } else if (typeName == "empty_pool_element") {
-            //     ++emptyCount;
-            // }
-
+        if (_parseElement(elementObj, piece, weight) && piece) {
             pool->addPiece(std::move(piece), weight);
         }
     }
-
-    // minecraft:empty 是原版 Jigsaw 终止符池，其 JSON 定义为 "elements": []，
-    // 是合法的空元素列表（getRandomPiece 返回 nullptr、getShuffledPieces 返回空，
-    // 组装器据此走 fallback 链）。其余池仍要求至少一个有效元素。
-    const bool isEmptyTerminator = (name.namespace_() == "minecraft" && name.path() == "empty");
-    if (pool->isEmpty() && !isEmptyTerminator) {
-        return Error(ErrorCode::InvalidData, "Template pool has no valid elements");
-    }
-
-    // spdlog::info("Template pool '{}': {} elements (legacy={}, single={}, list={}, feature={}, empty={})",
-    //     name.toString(),
-    //     pool->getTotalWeight(),
-    //     legacyCount,
-    //     singleCount,
-    //     listCount,
-    //     featureCount,
-    //     emptyCount);
 
     return pool;
 }
 
 bool TemplatePoolLoader::_parseElement(
-    const nlohmann::json& elementObj, std::unique_ptr<JigsawPiece>& outPiece, i32& outWeight)
+    simdjson::ondemand::object& elementObj, std::unique_ptr<JigsawPiece>& outPiece, i32& outWeight)
 {
     // 解析权重
     outWeight = 1;
-    if (elementObj.contains("weight") && elementObj["weight"].is_number_integer()) {
-        outWeight = elementObj["weight"].get<i32>();
-        if (outWeight <= 0) {
-            outWeight = 1;
+    auto weightResult = elementObj["weight"];
+    if (weightResult.error() == simdjson::SUCCESS) {
+        auto intResult = weightResult.value().get_int64();
+        if (intResult.error() == simdjson::SUCCESS) {
+            outWeight = static_cast<i32>(intResult.value());
+            if (outWeight <= 0) {
+                outWeight = 1;
+            }
         }
     }
 
     // 解析元素
-    if (!elementObj.contains("element") || !elementObj["element"].is_object()) {
+    auto elementResult = elementObj["element"];
+    if (elementResult.error() != simdjson::SUCCESS) {
         spdlog::warn("Element missing 'element' object");
         return false;
     }
+    auto elementInnerResult = elementResult.value().get_object();
+    if (elementInnerResult.error() != simdjson::SUCCESS) {
+        spdlog::warn("Element 'element' is not an object");
+        return false;
+    }
+    auto elementInner = elementInnerResult.value();
 
-    outPiece = _parseElementType(elementObj["element"]);
+    outPiece = _parseElementType(elementInner);
     return outPiece != nullptr;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseElementType(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseElementType(simdjson::ondemand::object& elementObj)
 {
     // 获取元素类型
-    if (!elementObj.contains("element_type") || !elementObj["element_type"].is_string()) {
+    auto typeStr = reqString(elementObj, "element_type");
+    if (typeStr.empty()) {
         spdlog::warn("Element missing 'element_type' string");
         return nullptr;
     }
-
-    std::string elementType = elementObj["element_type"].get<std::string>();
-    elementType = stripMinecraftPrefix(elementType);
+    typeStr = stripMinecraftPrefix(typeStr);
 
     // 根据类型分发解析
-    if (elementType == "single_pool_element") {
+    if (typeStr == "single_pool_element") {
         return _parseSinglePoolElement(elementObj);
-    } else if (elementType == "legacy_single_pool_element") {
+    } else if (typeStr == "legacy_single_pool_element") {
         return _parseLegacySinglePoolElement(elementObj);
-    } else if (elementType == "list_pool_element") {
+    } else if (typeStr == "list_pool_element") {
         return _parseListPoolElement(elementObj);
-    } else if (elementType == "empty_pool_element") {
-        return _parseEmptyPoolElement(elementObj);
-    } else if (elementType == "feature_pool_element") {
+    } else if (typeStr == "empty_pool_element") {
+        return _parseEmptyPoolElement();
+    } else if (typeStr == "feature_pool_element") {
         return _parseFeaturePoolElement(elementObj);
     } else {
         // 未知类型，返回空元素
-        spdlog::warn("Unknown pool element type: '{}', using empty element", elementType);
+        spdlog::warn("Unknown pool element type: '{}', using empty element", typeStr);
         return std::make_unique<EmptyJigsawPiece>();
     }
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseSinglePoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseSinglePoolElement(simdjson::ondemand::object& elementObj)
 {
     // 解析模板位置
-    if (!elementObj.contains("location") || !elementObj["location"].is_string()) {
+    auto location = reqString(elementObj, "location");
+    if (location.empty()) {
         spdlog::warn("single_pool_element missing 'location' string");
         return nullptr;
     }
 
-    std::string location = elementObj["location"].get<std::string>();
-
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
-    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    if (auto projStr = optString(elementObj, "projection")) {
+        projection = _parseProjection(*projStr);
     }
 
     // 解析处理器列表引用
@@ -328,20 +373,19 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseSinglePoolElement(const n
     return piece;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseLegacySinglePoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseLegacySinglePoolElement(simdjson::ondemand::object& elementObj)
 {
     // 解析模板位置
-    if (!elementObj.contains("location") || !elementObj["location"].is_string()) {
+    auto location = reqString(elementObj, "location");
+    if (location.empty()) {
         spdlog::warn("legacy_single_pool_element missing 'location' string");
         return nullptr;
     }
 
-    std::string location = elementObj["location"].get<std::string>();
-
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
-    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    if (auto projStr = optString(elementObj, "projection")) {
+        projection = _parseProjection(*projStr);
     }
 
     // 解析处理器列表引用
@@ -352,17 +396,29 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseLegacySinglePoolElement(c
     return piece;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(simdjson::ondemand::object& elementObj)
 {
-    if (!elementObj.contains("elements") || !elementObj["elements"].is_array()) {
+    auto elementsResult = elementObj["elements"];
+    if (elementsResult.error() != simdjson::SUCCESS) {
         spdlog::warn("list_pool_element missing 'elements' array");
         return nullptr;
     }
+    auto elementsArrResult = elementsResult.value().get_array();
+    if (elementsArrResult.error() != simdjson::SUCCESS) {
+        spdlog::warn("list_pool_element 'elements' is not an array");
+        return nullptr;
+    }
+    auto elementsArr = elementsArrResult.value();
 
     auto listPiece = std::make_unique<ListJigsawPiece>();
 
-    for (const auto& subElement : elementObj["elements"]) {
-        std::unique_ptr<JigsawPiece> subPiece = _parseElementType(subElement);
+    for (auto subElementVal : elementsArr) {
+        auto subElementObjResult = subElementVal.get_object();
+        if (subElementObjResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        auto subElementObj = subElementObjResult.value();
+        std::unique_ptr<JigsawPiece> subPiece = _parseElementType(subElementObj);
         if (subPiece) {
             listPiece->addPiece(std::move(subPiece));
         }
@@ -370,8 +426,8 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(const nlo
 
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
-    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    if (auto projStr = optString(elementObj, "projection")) {
+        projection = _parseProjection(*projStr);
     }
     listPiece->setPlacementBehaviour(projection);
 
@@ -379,9 +435,8 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(const nlo
     return result;
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseEmptyPoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseEmptyPoolElement()
 {
-    MC_UNUSED(elementObj);
     // EmptyJigsawPiece 是单例，clone() 返回 nullptr（不可克隆）。
     // 返回一个临时持有的 EmptyJigsawPiece 实例：TemplatePool::addPiece 检测到 isEmpty() 后
     // 会存入单例 &EmptyJigsawPiece::instance() 指针（非拥有），随后丢弃此临时对象。
@@ -389,21 +444,19 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseEmptyPoolElement(const nl
     return std::make_unique<EmptyJigsawPiece>();
 }
 
-std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseFeaturePoolElement(const nlohmann::json& elementObj)
+std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseFeaturePoolElement(simdjson::ondemand::object& elementObj)
 {
     // 解析 feature 引用
-    std::string featureId;
-    if (elementObj.contains("feature") && elementObj["feature"].is_string()) {
-        featureId = elementObj["feature"].get<std::string>();
-    } else {
+    auto featureId = reqString(elementObj, "feature");
+    if (featureId.empty()) {
         spdlog::warn("feature_pool_element missing 'feature' string, using empty element");
         return std::make_unique<EmptyJigsawPiece>();
     }
 
     // 解析投影类型
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
-    if (elementObj.contains("projection") && elementObj["projection"].is_string()) {
-        projection = _parseProjection(elementObj["projection"].get<std::string>());
+    if (auto projStr = optString(elementObj, "projection")) {
+        projection = _parseProjection(*projStr);
     }
 
     // 创建 feature 拼图块
@@ -419,50 +472,65 @@ JigsawPlacementBehaviour TemplatePoolLoader::_parseProjection(const std::string&
     }
 }
 
-std::optional<ResourceLocation> TemplatePoolLoader::_parseProcessors(const nlohmann::json& elementObj)
+std::optional<ResourceLocation> TemplatePoolLoader::_parseProcessors(simdjson::ondemand::object& elementObj)
 {
-    if (!elementObj.contains("processors")) {
+    // processors 字段可以是:
+    // - 字符串: "minecraft:mossify_10_percent"(处理器列表引用)
+    // - 对象: {"processors": [...]}(内联处理器列表)
+    // - 数组: [...](内联处理器列表)
+    // 用 type() 分派:不消耗 value,确定类型后传给对应处理函数。
+    auto procsResult = elementObj["processors"];
+    if (procsResult.error() != simdjson::SUCCESS) {
+        return std::nullopt;
+    }
+    auto procsValue = procsResult.value();
+
+    auto typeResult = procsValue.type();
+    if (typeResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
 
-    const auto& procs = elementObj["processors"];
-
-    // 字符串形式: "minecraft:mossify_10_percent" — 处理器列表引用
-    if (procs.is_string()) {
-        return ResourceLocation(procs.get<std::string>());
-    }
-
-    // 对象形式: {"processors": [...]} — 内联处理器列表
-    if (procs.is_object()) {
-        if (procs.contains("processors") && procs["processors"].is_array()) {
-            return _registerInlineProcessors(procs["processors"]);
+    switch (typeResult.value()) {
+        case simdjson::ondemand::json_type::string: {
+            auto strResult = procsValue.get_string();
+            if (strResult.error() != simdjson::SUCCESS) {
+                return std::nullopt;
+            }
+            return ResourceLocation(std::string(strResult.value()));
         }
-        return ResourceLocation("minecraft", "empty");
+        case simdjson::ondemand::json_type::object: {
+            auto objResult = procsValue.get_object();
+            if (objResult.error() != simdjson::SUCCESS) {
+                return ResourceLocation("minecraft", "empty");
+            }
+            auto innerObj = objResult.value();
+            auto innerProcsResult = innerObj["processors"];
+            if (innerProcsResult.error() == simdjson::SUCCESS) {
+                auto innerProcsValue = innerProcsResult.value();
+                return _registerInlineProcessors(innerProcsValue);
+            }
+            return ResourceLocation("minecraft", "empty");
+        }
+        case simdjson::ondemand::json_type::array: {
+            return _registerInlineProcessors(procsValue);
+        }
+        default:
+            return std::nullopt;
     }
-
-    // 数组形式: [...] — 内联处理器列表
-    if (procs.is_array()) {
-        return _registerInlineProcessors(procs);
-    }
-
-    return std::nullopt;
 }
 
-std::optional<ResourceLocation> TemplatePoolLoader::_registerInlineProcessors(const nlohmann::json& processorsArray)
+std::optional<ResourceLocation> TemplatePoolLoader::_registerInlineProcessors(
+    simdjson::ondemand::value& processorsValue)
 {
-    // 空数组 → empty 处理器列表引用
-    if (processorsArray.empty()) {
-        return ResourceLocation("minecraft", "empty");
-    }
-
-    // 解析内联处理器数组并注册到 ProcessorListRegistry，返回合成资源位置供 SingleJigsawPiece 查找。
-    // 对应 MC 1.21 SinglePoolElement 的内联 processors 列表（数据包中可直接内联处理器而非引用已注册列表）。
-    auto processorList = ProcessorListLoader::parseInlineProcessorList(processorsArray);
+    // 解析内联处理器数组并注册到 ProcessorListRegistry,返回合成资源位置供 SingleJigsawPiece 查找。
+    // 对应 MC 1.21 SinglePoolElement 的内联 processors 列表(数据包中可直接内联处理器而非引用已注册列表)。
+    // 空数组或解析失败返回 minecraft:empty。
+    auto processorList = ProcessorListLoader::parseInlineProcessorList(processorsValue);
     if (!processorList || processorList->empty()) {
         return ResourceLocation("minecraft", "empty");
     }
 
-    // 生成唯一合成资源位置（inline_processor_list_<序号>）
+    // 生成唯一合成资源位置(inline_processor_list_<序号>)
     static std::atomic<u64> s_inlineCounter{0};
     const ResourceLocation inlineId(
         "minecraft", "inline_processor_list_" + std::to_string(s_inlineCounter.fetch_add(1)));

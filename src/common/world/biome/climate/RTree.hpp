@@ -23,6 +23,8 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "world/biome/climate/ParameterTypes.hpp"
 #include <algorithm>
@@ -200,6 +202,10 @@ public:
      */
     static RTree<T> create(const std::vector<std::pair<ParameterPoint, T>>& entries)
     {
+        // 父级 ParameterList 构造函数已带 trace；此处作为 subpart 量化 RTree 构建
+        // （entries → leaves → build 递归分桶构建 7 维空间索引）。
+        MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Initialization, "RTree::create");
+
         MC_ASSERT_RELEASE(!entries.empty() && "RTree::create: need at least one entry");
 
         // 将条目转换为叶节点
@@ -254,6 +260,11 @@ private:
     /// 递归构建 RTree
     static std::unique_ptr<RTreeNode<T>> build(std::vector<std::unique_ptr<RTreeNode<T>>> nodes)
     {
+        // 父级 RTree::create 已带 trace；此处作为 subpart 量化单层递归构建
+        // （小列表直接 SubTree，大列表经 buildLarge 选最佳维度分桶后递归）。
+        // build 是递归函数，每次递归产生一个事件，可在 Perfetto 中看到递归分桶的耗时分布。
+        MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Server.Initialization, "RTree::build");
+
         if (nodes.size() == 1) {
             return std::move(nodes[0]);
         }

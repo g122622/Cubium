@@ -506,6 +506,36 @@ bool EndIslandsNode::equals(const AstNode& other) const
 }
 
 // ============================================================================
+// BlendedNoiseNode
+// ============================================================================
+
+Ptr BlendedNoiseNode::transform(AstTransformer& t) const
+{
+    return t.transform(shared_from_this());
+}
+
+bool BlendedNoiseNode::relaxedEquals(const AstNode& other) const
+{
+    if (kind() != other.kind()) {
+        return false;
+    }
+    return m_blendedNoise == static_cast<const BlendedNoiseNode&>(other).m_blendedNoise;
+}
+
+size_t BlendedNoiseNode::relaxedHashCode() const
+{
+    size_t h = 0;
+    hashCombine(h, static_cast<u8>(kind()));
+    hashCombine(h, reinterpret_cast<size_t>(m_blendedNoise));
+    return h;
+}
+
+bool BlendedNoiseNode::equals(const AstNode& other) const
+{
+    return relaxedEquals(other);
+}
+
+// ============================================================================
 // GenericShiftedNoiseNode（噪声采样）
 // relaxedEquals：noise 实例按地址比值（不同噪声参数产生不同结果，不可合并）+ 坐标子树 relaxedEquals。
 // ============================================================================

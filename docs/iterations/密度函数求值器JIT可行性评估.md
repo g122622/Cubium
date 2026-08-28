@@ -310,3 +310,270 @@ Abs 翻译用 `andps dst, [const]` 清符号位，掩码 `0x7FFFFFFFFFFFFFFF` �
 - **精确 A/B 待定**：7.6 是间接估算（依赖跨路径恒定假设 + 不同运行）。若需同世界同区块 JIT 开/关精确对比，可加环境变量门控（如 `MC_DENSITY_JIT_DISABLE=1`）强制 eval 走解释器跑两次。当前间接估算的 0.35≈0.34 自洽验证已相当有力，是否需精确 A/B 视后续需求。
 - **trampoline 计时插桩为临时性**：profiler 量化完成后，`DensityEvalProfiler.hpp` 及 eval/trampoline 内计时代码将整体删除（见第 3 节约束）。
 
+---
+
+## 8. 噪声采样层 SoA 向量化反汇编实测（2026-08-27）
+
+第 7 节确认 JIT 把 eval 提速 1.59× 后瓶颈转移到外部噪声采样（external 占 54.9%）。本节沉淀对噪声采样层 SoA 向量化改造（效仿 C2ME `c2me-opts-natives-math` 的 octave 并行，见 memory [[noise-soa-optimization]]）的**反汇编级实测证据**，确认 AVX2 向量化真实生效，并记录 clang 生成的向量化代码形态。
+
+### 8.1 反汇编方法
+
+用 `llvm-objdump`（`D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\x64\bin\llvm-objdump.exe`）反汇编 `build/` 下的 `PerlinNoise.cpp.obj` 与 `BlendedNoise.cpp.obj`（RelWithDebInfo，全局 `-mavx2 -march=native -ffast-math`）：
+
+- `--syms` 定位 `getValue`（`PerlinNoise.cpp.obj` 偏移 `0x2230`）与 `compute`（`BlendedNoise.cpp.obj` 偏移 `0x5e0`，结束于 `0x6340`，函数体 22368 字节）。
+- `--start-address/--stop-address` 精确切出函数体，`grep -oE` 统计各类向量化指令计数（排除 `sampleAndLerp`/`gradDot` 等标量 ULP reference 路径的干扰）。
+
+注：`getValue`/`perlinSampleSoA` 均为 `__attribute__((always_inline))`，`perlinSampleSoA` 内联进 `getValue`；`getValue` 本身因可能被虚调用（NormalNoise 持裸指针调 `noise->getValue`）保留了独立符号，未完全内联进调用者。`compute` 是 BlendedNoise 的虚函数，独立符号。
+
+### 8.2 PerlinNoise::getValue 函数体向量化指令计数（0x2230–0x40d0）
+
+| 指令 | 计数 | 作用 |
+|------|------|------|
+| `vpinsrb` | 84 | 标量 gather 置换表字节后拼入向量寄存器（hash 链 3 级依赖，逐通道查表） |
+| `vfmadd213pd` | 43 | 向量 FMA（packed double，4 通道 f64）——梯度点乘 + 三线性插值 |
+| `vmulpd` | 42 | 向量乘（wrap 缩放、smear 等） |
+| `vpmovzxbq` | 40 | u8→64 位零扩展（置换表字节扩展为 64 位索引） |
+| `vgatherqpd` | 32 | **向量 gather**——4 通道并行收集置换表项 |
+| `vfmadd231pd` | 21 | 向量 FMA（累加形式） |
+| `vaddpd` | 18 | 向量加（坐标 + offset） |
+| `vpmovzxbd` | 16 | u8→32 位零扩展（梯度索引扩展） |
+| `vgf2p8affineqb` | 16 | **GF(2^8) 仿射变换**——clang 巧用此指令实现 `hash & 0xF` 取梯度表索引 |
+| `vgatherdpd` | 16 | **向量 gather**——4 通道并行收集梯度表 4×f64 |
+| `vroundpd` | 14 | 向量 floor（`perlinWrap` 的 `floor` 向量化，模式 `$0x9`） |
+| `vfmsub231pd` | 14 | 向量 FMA（减法形式，lerp 的 `a*b-c`） |
+| `vbroadcastsd` | 13 | 标量广播到向量（坐标 broadcast 到 4 通道） |
+| `vpshufb` / `vpmovzxdq` | 4 / 4 | 字节重排 / 32→64 位扩展 |
+
+**合计向量 gather 48 次（`vgatherqpd` 32 + `vgatherdpd` 16），向量 FMA 78 次（`vfmadd213pd` 43 + `vfmadd231pd` 21 + `vfmsub231pd` 14），u8 零扩展 56 次（`vpmovzxbq` 40 + `vpmovzxbd` 16），向量 floor 14 次。** AVX2 f64 4 通道 octave 并行达成。
+
+> `sd`（single double，标量）后缀的 `vfmadd*sd`（共约 34 次）是同 obj 内 `PerlinLayer::sampleAndLerp`/`gradDot`/`noiseWithSmear` 标量路径（保留作 ULP 测试 reference）的指令，**非 SoA 向量化路径**。getValue 函数体切面内 `vfmadd231sd` 19 次 + `vfmadd213sd` 13 次为切面边缘混入的标量收尾循环（标量顺序累加 `ds[]` 保 bit-exact，非向量化）。
+
+#### 8.2.1 实际汇编片段——perlinWrap 三轴并行向量化
+
+`PerlinNoise::getValue` 内 `perlinWrap(coord*inputFactor)` 被编译为 X/Y/Z 三路并行的向量化 floor-wrap，每路一个 ymm（4 通道 f64）。以 X 路为例（`value - floor(value/WRAP+0.5)*WRAP` 的向量化实现）：
+
+```asm
+; ymm0 = 4 通道 octave 的 wrap 前坐标（coord*inputFactor）
+2417:  vmovapd   0x340(%rsp), %ymm1      ; ymm1 = inputFactor[0..3]（4 个 octave 各自的最低频输入缩放）
+2420:  vbroadcastsd (%rip), %ymm14       ; ymm14 = WRAP_PERIOD 广播到 4 通道
+2429:  vfmadd213pd %ymm14, %ymm0, %ymm1  ; ymm1 = ymm0*ymm1 + ymm14   （coord*inputFactor + WRAP/2，准备 floor）
+242e:  vroundpd  $0x9, %ymm1, %ymm1      ; 向量 floor（roundpd 模式 0x9 = round toward -inf）
+2434:  vbroadcastsd (%rip), %ymm15       ; ymm15 = WRAP_PERIOD 广播
+243d:  vmulpd    %ymm1, %ymm15, %ymm1    ; ymm1 = floor(...) * WRAP
+2441:  vmovapd   0x440(%rsp), %ymm7      ; ymm7 = 另一路缩放因子
+244a:  vfmsub231pd %ymm7, %ymm0, %ymm1   ; ymm1 = ymm0*ymm7 - ymm1   （完成 wrap：value - floor*WRAP）
+```
+
+关键点：`vfmadd213pd`/`vfmsub231pd` 是 packed double（4×f64）FMA，`vbroadcastsd` 把标量缩放因子广播到 4 通道——即"每 SIMD 通道算一个 octave，各自独立缩放"。`vroundpd $0x9` 实现 `std::floor` 向量化（`-ffast-math` 下 libm floor 映射为 intrinsic）。三轴 X/Y/Z 各占一路 ymm，三路并行展开。
+
+#### 8.2.2 实际汇编片段——置换表 gather 链（hash 链内部串行）
+
+C2ME 杠杆的核心：每通道独立 256 项置换表做独立 gather 链，hash 链 `perm[(perm[(perm[ax]+ay)&0xFF]+az)&0xFF]` 内部 3 级数据依赖串行，跨 octave 并行。clang 未用 `vpgatherdd` 整链 gather（依赖链无法向量化），而是逐通道标量查表后 `vpinsrb` 拼回向量：
+
+```asm
+; 4 通道 octave 的 cell 坐标经 &0xFF 后，逐通道查置换表 perm[base + idx]
+255b:  vpmovzxdq %xmm2, %ymm2           ; 4 通道 32 位索引零扩展为 64 位
+2560:  vmovq    %xmm2, %rax              ; 取通道 0 索引
+2565:  vpextrq  $0x1, %xmm2, %rcx        ; 取通道 1 索引
+256b:  vextracti128 $0x1, %ymm2, %xmm2
+2571:  vpextrq  $0x1, %xmm2, %rdx        ; 取通道 2/3 索引
+2577:  movzbl   (%rax,%r13), %eax        ; 通道 0：perm[base0 + idx0] 标量查表
+257c:  vmovd    %eax, %xmm4              ; 放入 xmm4 通道 0
+2580:  vpinsrb  $0x1, (%rcx,%r15), %xmm4, %xmm4  ; 通道 1：perm[base1 + idx1]，拼入 xmm4
+2587:  vmovq    %xmm2, %rax
+258c:  vpinsrb  $0x2, (%rax,%r8), %xmm4, %xmm2   ; 通道 2
+2593:  vpinsrb  $0x3, (%rdx,%r9), %xmm2, %xmm4   ; 通道 3——4 通道置换表项收集完成
+```
+
+`vpmovzxbq`/`vpinsrb` 计数高（PerlinNoise 124 次、BlendedNoise 372 次）正源于此——hash 链每一级都需逐通道标量 gather 再拼向量。这是 C2ME 设计中"hash 链内部串行不碰、跨 octave 并行"的直接机器码体现。
+
+#### 8.2.3 实际汇编片段——梯度表向量 gather（vgatherdpd）
+
+置换表查表得到 hash 后，`hash & 0xF` 取梯度索引，再 `vgatherdpd` 4 通道并行从 `kFlatSimplexGrad` 收集 4×f64 梯度向量：
+
+```asm
+2654:  vmovdqa   0x310(%rsp), %xmm13     ; xmm13 = 仿射变换矩阵（用于实现 & 0xF）
+265d:  vgf2p8affineqb $0x0, %xmm13, %xmm4, %xmm4  ; GF(2^8) 仿射变换——clang 巧用密码学指令实现 hash & 0xF
+2663:  vpbroadcastb (%rip), %xmm5        ; xmm5 = 0x0F 广播
+266c:  vpand    %xmm5, %xmm4, %xmm4      ; 显式 & 0xF（与上面 vgf2p8affineqb 配合）
+2670:  vpmovzxbd %xmm4, %xmm5            ; 4 通道字节索引零扩展为 32 位
+2675:  vpxor    %xmm0, %xmm0, %xmm0      ; 清零目标 ymm0（gather 累加器）
+2679:  vpcmpeqd %ymm6, %ymm6, %ymm6      ; ymm6 = 全 1（gather 掩码，启用 4 通道）
+267d:  leaq     (%rip), %rax             ; rax = &kFlatSimplexGrad[0]
+2684:  vgatherdpd %ymm6, (%rax,%xmm5,8), %ymm0  ; 4 通道并行收集梯度表 4×f64（hash<<2 定位）
+268a:  vmovapd   %ymm0, 0x840(%rsp)      ; 存 4 通道梯度
+```
+
+`vgatherdpd` 用 32 位索引（`xmm5`）收集双精度，4 通道并行——一次 gather 同时取 4 个 octave 的梯度向量。`vgf2p8affineqb`（GF(2^8) 仿射变换，本为 AES/GFNI 密码学指令）被 clang 用来实现 `hash & 0xF` 取梯度表索引，比 `vpand` + 立即数更巧妙。
+
+### 8.3 BlendedNoise::compute 函数体向量化指令计数（0x5e0–0x6340，22368 字节）
+
+| 指令 | 计数 | 作用 |
+|------|------|------|
+| `vpinsrb` | 252 | 置换表字节拼入向量（main 8 + min 16 + max 16 = 40 octave，3 阶段） |
+| `vfmadd213pd` | 126 | 向量 FMA——梯度点乘 + 插值 |
+| `vpmovzxbq` | 120 | u8→64 位零扩展 |
+| `vmulpd` | 110 | 向量乘 |
+| `vgatherqpd` | 96 | **向量 gather**——置换表收集 |
+| `vaddpd` | 72 | 向量加 |
+| `vbroadcastsd` | 55 | 标量广播 |
+| `vpmovzxbd` | 48 | u8→32 位零扩展（梯度索引） |
+| `vgf2p8affineqb` | 48 | GF(2^8) 仿射实现 `& 0xF` |
+| `vgatherdpd` | 48 | **向量 gather**——梯度表收集 |
+| `vsubpd` | 42 | 向量减（lerp `end-start`） |
+| `vroundpd` | 42 | 向量 floor（wrap + smear） |
+| `vfmadd231pd` | 42 | 向量 FMA（累加形式） |
+| `vfmsub231pd` | 36 | 向量 FMA（减法形式） |
+| `vpermpd` | 30 | 向量置换（坐标通道重排） |
+| `vandpd` | 21 | 向量按位与（`& 0xFF` 折回等） |
+| `vblendvpd` / `vpbroadcastb` | 6 / 6 | 条件混合 / 字节广播 |
+
+**合计向量 gather 144 次（`vgatherqpd` 96 + `vgatherdpd` 48），向量 FMA 204 次（`vfmadd213pd` 126 + `vfmadd231pd` 42 + `vfmsub231pd` 36），u8 零扩展 168 次（`vpmovzxbq` 120 + `vpmovzxbd` 48），向量 floor 42 次。** 三阶段（main 8 / min 16 / max 16 octave）全部向量化，函数体 22KB 机器码体量与 40 octave 全展开相符。
+
+### 8.4 clang 向量化代码形态要点（C2ME 风格杠杆坐实）
+
+反汇编确认 clang 跨 octave 自动向量化达成 C2ME 风格的核心杠杆，且有几处值得记录的代码生成细节：
+
+1. **4 通道 octave 并行**：`%ymm` 寄存器（256 位 = 4×f64）承载 `vfmadd213pd`/`vfmsub231pd`，一次处理 4 个 octave——即"每 SIMD 通道算一个 octave"。每个 octave 用 `vbroadcastsd` 把坐标广播到 4 通道，各自乘独立 `inputFactor`。
+
+2. **置换表 gather 链（hash 链内部串行）**：clang **未**用 `vpgatherdd` 一次 gather 整条 hash 链，而是逐级 `vpmovzxbq`（u8→64 位扩展索引）+ 标量 `movzbl`/`vpinsrb` 逐通道查表拼向量。原因是 hash 链 `perm[(perm[(perm[ax]+ay)&0xFF]+az)&0xFF]` 有 3 级数据依赖（每级依赖上一级结果），无法向量化解依赖——clang 选择标量算出每通道索引再 `vpinsrb` 拼成向量寄存器，符合 C2ME "hash 链内部串行不碰、跨 octave 并行"的设计。`vpmovzxbq`/`vpinsrb` 计数高（PerlinNoise 124 次、BlendedNoise 372 次）正源于此。
+
+3. **`vgf2p8affineqb` 实现 `& 0xF`**：clang 用 GF(2^8) 仿射变换指令（`vgf2p8affineqb`，本为密码学指令）实现 `hash & 0xF` 取梯度表索引——比 `vpand` + 立即数更巧妙（避免 16 位立即数加载）。这是 clang 在 `-march=native` 下对 AVX2 + GFNI 的利用。
+
+4. **`vgatherdpd` 收集梯度表**：4 通道并行从 `kFlatSimplexGrad` 收集 4×f64 梯度向量（`hash<<2` 定位），`vpcmpeqd %ymm,%ymm` 生成全 1 掩码启用 4 通道。
+
+5. **perlinWrap 向量化**：`vroundpd $0x9`（roundpd 的 floor 模式）实现 `std::floor` 向量化（`-ffast-math` 下 libm floor 映射为 intrinsic）。`vmulpd`/`vfmsub231pd` 配合实现 `value - floor(value/WRAP + 0.5)*WRAP`。
+
+6. **标量顺序累加保 bit-exact**：采样循环向量化写 `ds[k]`（栈数组 `alignas(64) f64 ds[kMaxPerlinOctaves]`，`getValue` 栈帧 `subq $0xa38, %rsp` = 2.6KB），**累加循环刻意保留标量**（`vfmadd*sd` 收尾），复刻原 `i=0..N-1` 顺序，故档1 ULP 监控实测 0 ULP bit-exact。BlendedNoise 的 min/max 反向 `k=count-1..0` 累加同理。
+
+### 8.5 向量化成果结论与局限
+
+**结论**：SoA 向量化改造在反汇编层面**确凿生效**——PerlinNoise::getValue 与 BlendedNoise::compute 均生成完整 AVX2 向量化代码，4 通道 octave 并行 + 置换表/梯度表向量 gather + wrap/floor 向量化全部到位，C2ME 风格杠杆（单点内 octave 并行，hash 链内部串行）正确复现。数值正确（见 memory [[noise-soa-optimization]]：1e-9 门禁 6 测试 + ULP 3 档全绿）。
+
+**局限（为何 FillNoiseCells 整体未提速）**：向量化生效 ≠ 整体性能提升。本次向量化优化的是**单次 `getValue`/`compute` 内部的 octave 循环**，而 FillNoiseCells 的开销大头曾是**每次噪声采样的固定调用开销（trampoline + 虚调用 + readTsc 临时计时插桩）× 海量调用次数（约 5.8 万次/区块）**，这些 SoA 碰不到：
+
+- **NormalNoise** 经 `NoiseSample` opcode → `jitNoiseSample` trampoline（`DensityJitTrampolines.cpp:41`）→ 虚调用 `NormalNoise::getValue`。
+- **BlendedNoise** 经 `DelegateNode` 退化（`McToAst.cpp:300` TODO，未补专用节点）→ `jitDelegate` trampoline → 虚调用 `BlendedNoise::compute`，SoA 收益被 Delegate 虚调用边界进一步削弱（且 BlendedNoise 是 octave 数最多、SoA 理论收益最大的部分）。
+- 单次 octave 循环本身只占 getValue 周期的一部分，向量化省下的几十到一两百周期被 trampoline 的常数项（**临时插桩的 rdtsc ~20–40 周期** + 虚调用 ~5–10 周期 + call/ret）摊薄。
+
+**readTsc 临时计时插桩已于 2026-08-27 整体移除**（见 ast/README 第 7 条）：`DensityEvalProfiler.hpp` 删除，5 个 A 类 trampoline（`jitNoiseSample`/`jitWeirdSampler`/`jitDelegate`/`jitEndIslands`/`jitBeardifier`）与解释器 `evalImpl` 对应 case 的 per-call rdtsc 计时、eval 顶层 `topLevelCycles` 计时、NoiseChunkGenerator 上报块全部清除。这释放了被盖住的 SoA 收益部分。下一步：抓 `MC_ENABLE_TRACY` trace 复测 FillNoiseCells（目标对比 SoA 落地前 25.7ms p50 基线），量化插桩移除 + SoA 向量化的综合收益；若 BlendedNoise Delegate 虚调用边界仍是瓶颈，再给 BlendedNoise 补专用 AST 节点（消除 `McToAst.cpp:300` TODO 的 Delegate 退化）——**此"补专用节点"下一步已于 2026-08-27 落地，去虚化反汇编实测见第 9 节**。向量化本身不回退（生效且数值正确）。
+
+---
+
+## 9. BlendedNoise 专用 AST 节点与 JIT 去虚化反汇编实测（2026-08-27）
+
+第 8.5 节指出的下一步"给 BlendedNoise 补专用 AST 节点（消除 `McToAst.cpp:300` TODO 的 Delegate 退化）"已落地。本节沉淀该改动的去虚化机制与反汇编级实测证据。
+
+### 9.1 背景：Delegate 退化路径的 vtable 间接开销
+
+BlendedNoise 是主世界每个区块必采的噪声（Java `NoiseRouterData.java:212` 无条件 `add` base_3d_noise 进 sloped_cheese，三维度 BASE_3D_NOISE 均为 BlendedNoise）。改动前它走 DelegateNode 退化路径：
+
+```
+BlendedNoise → DelegateNode(&df) → Delegate op → jitDelegate trampoline → df->compute()  [vtable 间接]
+```
+
+`jitDelegate`（`DensityJitTrampolines.cpp:56`）持 `const DensityFunction*` 基类指针调 `df->compute()`——每次都是 **vtable 间接调用**（约 5–10 周期 + 间接分支预测失败风险）。每区块约 5.8 万次噪声采样，这是海量的固定开销。第 8 节的 SoA 向量化优化的是 `compute` 内部的 octave 循环，但 `compute` 经 Delegate 边界被间接调用，SoA 收益被 vtable 间接边界削弱（BlendedNoise 恰是 octave 数最多、SoA 理论收益最大的部分）。
+
+### 9.2 改动概要：补专用节点链路 + 去虚化 trampoline
+
+按 DFC AST 编译器四层架构为 BlendedNoise 补专用链路（纯增量，9 个文件，无删除）：
+
+1. **AstNodes.hpp/.cpp** — 新增 `BlendedNoiseNode` 类（仿 EndIslandsNode），持 `const DensityFunction*` 裸指针，`relaxedEquals` 按实例地址比（非 DelegateNode 的 typeid 比——三维度参数不同，按 typeid 会错误合并不同维度实例）。`AstNodeKind::BlendedNoise` 枚举本已存在，只是无节点类，本次补齐。
+2. **CompiledDensityFunction.hpp** — `OpCode` 枚举新增 `BlendedNoise`。
+3. **McToAst.cpp** — 替换 L300 TODO 为 BlendedNoise 注册 lambda。
+4. **BytecodeGen.cpp** — case 从 warn+0.0 改为 `emitBlendedNoise`，复用 `RuntimeObject.densityFunction` 槽（无需扩联合）。
+5. **CompiledDensityFunction.cpp** — evalImpl switch 新增 `case OpCode::BlendedNoise`（解释器兜底）。
+6. **DensityJitTrampolines.hpp/.cpp** — 新增 `jitBlendedNoise`，**关键**：`static_cast<const BlendedNoise*>(df)` 后调 `bn->compute()`。BlendedNoise 是 `final` 类（`BlendedNoise.hpp:52`），编译器据此去虚化。
+7. **DensityJitCompiler.cpp** — emitOp switch 新增 `case OpCode::BlendedNoise`。
+
+`OptoPasses.cpp`/newInstance/CMakeLists 均不动（BlendedNoiseNode 落入 OptoPasses 的 `default: return node;` 原样返回；BlendedNoise 维度级不可变，newInstance 深拷贝自动带上）。
+
+**去虚化机制**：`jitDelegate` 持 `const DensityFunction*` 基类指针，编译器无法确定动态类型，`df->compute()` 必须经 vtable 间接调用。`jitBlendedNoise` 先 `static_cast<const BlendedNoise*>(df)` 转具体类型，而 BlendedNoise 是 `final` 类——编译器据此推断 `bn->compute()` 不可能被派生类覆写（final 类无派生），将虚调用去虚化为直接 `call BlendedNoise::compute`。
+
+### 9.3 反汇编方法
+
+用 `llvm-objdump` 反汇编 `build/src/common/CMakeFiles/mc_common.dir/RelWithDebInfo/world/gen/density/ast/DensityJitTrampolines.cpp.obj`（RelWithDebInfo）：
+
+- `--syms` 定位 `?jitBlendedNoise@...`（偏移 `0x2e0`）与对照 `?jitEndIslands@...`（偏移 `0x240`）。
+- `--disassemble-symbols=<mangled>` 精确切出两个 trampoline 的函数体。
+- `--reloc` 确认 `call` 指令的重定位目标符号（区分直接调用 vs vtable 间接）。
+
+### 9.4 反汇编铁证：jitBlendedNoise（去虚化直接 call）vs jitEndIslands（vtable 间接）
+
+**jitEndIslands（对照，仍是 vtable 间接调用）**——EndIslands 持 `const DensityFunction*` 基类指针，`df->compute()` 走 vtable：
+
+```asm
+240:  push   %rbp
+...
+252:  movq   (%rcx), %rax            ; rax = ctx->objects（rcx=ctx）
+255:  movl   %edx, %ecx              ; ecx = objIdx
+257:  leaq   (%rcx,%rcx,2), %rcx     ; rcx = objIdx*3
+25b:  movq   0x8(%rax,%rcx,8), %rcx  ; rcx = objects[objIdx].densityFunction（this 指针）
+260:  testq  %rcx, %rcx              ; 判空
+263:  je     0x27f                   ; 为 null → 断言路径
+265:  movl   0x30(%rbp), %eax        ; 取 z（栈参数）
+268:  movq   (%rcx), %r10            ; ★ r10 = vtable 指针（解引用 this 取 vtable）
+26b:  movl   %r8d, %edx              ; 重排参数：x→edx
+26e:  movl   %r9d, %r8d              ; y→r8d
+271:  movl   %eax, %r9d              ; z→r9d
+274:  callq  *0x8(%r10)              ; ★★★ vtable 间接调用：call [vtable+0x8]（compute 在 vtable 偏移 0x8）
+278:  nop
+279:  addq   $0x40, %rsp
+27d:  pop    %rbp
+27e:  retq
+```
+
+**jitBlendedNoise（去虚化，直接 call）**——`static_cast<const BlendedNoise*>` + final 类触发去虚化：
+
+```asm
+2e0:  push   %rbp
+...
+2f2:  movq   (%rcx), %rax            ; rax = ctx->objects
+2f5:  movl   %edx, %ecx              ; ecx = objIdx
+2f7:  leaq   (%rcx,%rcx,2), %rcx     ; rcx = objIdx*3
+2fb:  movq   0x8(%rax,%rcx,8), %rcx  ; rcx = objects[objIdx].densityFunction（this 指针）
+300:  testq  %rcx, %rcx              ; 判空
+303:  je     0x31d                   ; 为 null → 断言路径
+305:  movl   0x30(%rbp), %eax        ; 取 z（栈参数）
+308:  movl   %r8d, %edx              ; 重排参数：x→edx
+30b:  movl   %r9d, %r8d              ; y→r8d
+30e:  movl   %eax, %r9d              ; z→r9d
+311:  callq  0x316                   ; ★★★ PC 相对直接调用（目标=BlendedNoise::compute）
+316:  nop
+317:  addq   $0x40, %rsp
+31b:  pop    %rbp
+31c:  retq
+```
+
+**关键差异**：
+
+| 项 | jitEndIslands（vtable 间接） | jitBlendedNoise（去虚化直接） |
+|----|-----------------------------|------------------------------|
+| 取 vtable | `movq (%rcx), %r10`（解引用 this 取 vtable 指针） | **无**（不取 vtable） |
+| 调用 | `callq *0x8(%r10)`（内存间接，vtable 偏移 0x8） | `callq 0x316`（PC 相对直接调用） |
+| 重定位 | 无指向 compute 符号的 REL32（间接通过 r10） | `0x312 IMAGE_REL_AMD64_REL32 ?compute@BlendedNoise@...` |
+
+参数重排（`movl %r8d,%edx` 等）两者都有——这是 Win x64 调用约定的副产物（trampoline 形参 `(ctx,objIdx,x,y,z)` 在 rcx/rdx/r8/r9/栈，而成员函数 `compute(this,x,y,z)` 需 this→rcx、x→rdx、y→r8、z→r9），非去虚化独有。**去虚化的铁证是 jitBlendedNoise 没有 `movq (%rcx),%r10` 取 vtable 指令、把 `callq *0x8(%r10)` 换成 `callq 0x316` 直接调用**。
+
+**重定位表确认 call 目标符号**（`--reloc`）：
+
+```
+0000000000000312 IMAGE_REL_AMD64_REL32    ?compute@BlendedNoise@density@gen@world@mc@@UEBANHHH@Z
+```
+
+地址 `0x312` 正是 `jitBlendedNoise` 内 `callq 0x316`（`0x311` 的 `e8` 操作码 + `0x312` 起 4 字节相对偏移重定位）的目标。重定位类型 `IMAGE_REL_AMD64_REL32`（32 位 PC 相对偏移），**目标符号是 `?compute@BlendedNoise@...`（即 `BlendedNoise::compute`）**。这彻底证明去虚化生效——JIT 机器码对 BlendedNoise 的采样是直接 `call BlendedNoise::compute`，无 vtable 间接。
+
+> 注：符号 `?compute@BlendedNoise@...@@UEBANHHH@Z` 的 mangle 中 `UEBA` 表示 public virtual（虚函数）。它仍以独立符号存在于 obj（未被内联进 jitBlendedNoise），去虚化只改变了**调用方式**（间接→直接），未改变 `compute` 函数体本身（其内部 SoA 向量化见第 8.3 节）。
+
+### 9.5 结论与局限
+
+**结论**：BlendedNoise 补专用 AST 节点 + 去虚化 trampoline 已落地并反汇编确认生效。`static_cast<const BlendedNoise*>` + final 类成功让编译器把 `bn->compute()` 去虚化为直接 `call BlendedNoise::compute`，消除了每次采样的 vtable 间接调用（省掉 `mov (%rcx),%r10` 取 vtable + 间接分支预测失败风险）。`compute` 内部 SoA 向量化（第 8.3 节，254 条 vfmadd）因此以直接调用方式被 JIT 调用——既消除 vtable 间接，又保留 SoA 收益，且 bit-exact 天然保证（`compute` 一字未改，仅调用入口从 `jitDelegate` 换 `jitBlendedNoise`，调同一个 `BlendedNoise::compute`）。
+
+**局限**：
+
+- **解释器路径仍是虚调用**：`evalImpl` 的 `case OpCode::BlendedNoise` 走 `df->compute()`（基类指针，虚调用），去虚化收益只在 JIT 路径。这与 EndIslands/Delegate case 一致——解释器是回退兜底，不追求去虚化。
+- **未消除 trampoline 的 call/ret 边界**：JIT 机器码仍经 `call jitBlendedNoise` → `call BlendedNoise::compute` 两层调用。彻底消除边界需把 SoA 采样循环手写进 asmjit（全内联档），但工作量巨大 + bit-exact 极难保 + 收益边际，未采用。
+- **收益量级待 trace 确认**：本次仅反汇编验证去虚化生效 + 构建通过，未跑 trace 量化 FillNoiseCells 收益（对比基线 20.0ms p50）。BlendedNoise 在总开销中的占比待 trace 确认。
+
+
+

@@ -629,6 +629,8 @@ add_library(mc_common STATIC
     item/crafting/SmeltingRecipe.cpp
     item/crafting/StonecuttingRecipe.cpp
     item/crafting/SmithingRecipe.cpp
+    item/crafting/SmithingTransformRecipe.cpp
+    item/crafting/SmithingTrimRecipe.cpp
     item/crafting/TransmuteRecipe.cpp
     item/crafting/special/RepairItemRecipe.cpp
     item/crafting/special/ArmorDyeRecipe.cpp
@@ -639,6 +641,9 @@ add_library(mc_common STATIC
     item/crafting/special/BannerDuplicateRecipe.cpp
     item/crafting/special/ShieldDecorationRecipe.cpp
     item/crafting/special/DecoratedPotRecipe.cpp
+    item/crafting/special/FireworkRocketRecipe.cpp
+    item/crafting/special/FireworkStarRecipe.cpp
+    item/crafting/special/FireworkStarFadeRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
@@ -1698,6 +1703,7 @@ target_link_libraries(mc_common
         spdlog::spdlog
         gflags::gflags
         nlohmann_json::nlohmann_json
+        simdjson::simdjson
         mc::profiler
     PRIVATE
         LibArchive::LibArchive

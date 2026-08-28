@@ -32,7 +32,6 @@
 #include "common/world/gen/density/ast/AstNodes.hpp"     // WeirdType
 #include "common/world/gen/density/ast/CompiledDensityFunctionAdapter.hpp"
 #include "common/world/gen/density/ast/DensityEvalHelpers.hpp"
-#include "common/world/gen/density/ast/DensityEvalProfiler.hpp"
 #include "common/world/gen/density/ast/DensityJitCompiler.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 
@@ -212,50 +211,25 @@ f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
     // 递归安全：eval 经 SharedSubtreeCall/Marker/Spline/FindTopSurface 递归调用自身，
     // 每层 eval 独立栈缓冲，互不覆盖（故不能用 thread_local 单 buffer）。
 
-    // 性能插桩：仅顶层 eval（depth==0）计 topLevelCycles，内层 eval 不重复计
-    // （其耗时已含在顶层 topLevelCycles 内）。externalCycles 由 evalImpl 内叶子外部调用
-    // 指令 per-call 累加，跨层不重不漏。DepthGuard RAII 保证 depth 在任何返回路径前 -- 回。
-    // 临时性插桩，profiler 完成后整体删除。
-    auto& acc = profiling::g_densityEvalAcc;
-    const bool isTop = (acc.depth == 0);
-    const u64 tEnter = isTop ? profiling::readTsc() : 0;
-    profiling::DepthGuard depthGuard;
-
     // JIT 路径：编译成功（m_jitFn != nullptr）时直接调机器码，消除 switch 分发 / Op 取指 /
-    // regs 间接寻址开销。顶层 topLevelCycles 仍计时（覆盖 JIT 调用），用以观测 JIT 收益；
-    // externalCycles/externalCalls 由 JIT trampoline（jitNoiseSample 等 5 个 A 类）按与解释器
-    // 一致的 readTsc 口径累加，故 JIT 路径下 interpreterRatio 仍有意义——反映 JIT 能优化的
-    // 解释器开销占比（外部噪声采样固有开销被扣除）。以 topLevelCycles 绝对下降为收益主指标。
+    // regs 间接寻址开销。
     if (m_jitFn != nullptr) [[likely]] {
-        const f64 r = m_jitFn(&m_evalCtx, x, y, z);
-        if (isTop) {
-            acc.topLevelCycles += (profiling::readTsc() - tEnter);
-            acc.topCalls += 1;
-        }
-        return r;
+        return m_jitFn(&m_evalCtx, x, y, z);
     }
 
-    // 回退路径：原 switch 解释器 evalImpl（含现有 per-call 计时插桩）。
-    f64 result;
+    // 回退路径：原 switch 解释器 evalImpl。
     if (m_regCount <= kInlineRegCount) [[likely]] {
         std::array<f64, kInlineRegCount> regs{};
-        result = evalImpl(x, y, z, regs.data());
-    } else {
-        std::vector<f64> regs(m_regCount);
-        result = evalImpl(x, y, z, regs.data());
+        return evalImpl(x, y, z, regs.data());
     }
-
-    if (isTop) {
-        acc.topLevelCycles += (profiling::readTsc() - tEnter);
-        acc.topCalls += 1;
-    }
-    return result;
+    std::vector<f64> regs(m_regCount);
+    return evalImpl(x, y, z, regs.data());
 }
 
 f64 CompiledDensityFunction::evalInterpreter(i32 x, i32 y, i32 z) const
 {
-    // 测试/调试专用：绕过 JIT 强制走 switch 解释器 evalImpl（不含 eval 的顶层计时插桩，
-    // 纯解释器求值供 DensityJitBaselineTest 与 JIT 机器码求值逐点对比）。缓冲策略与 eval 一致。
+    // 测试/调试专用：绕过 JIT 强制走 switch 解释器 evalImpl（纯解释器求值供
+    // DensityJitBaselineTest 与 JIT 机器码求值逐点对比）。缓冲策略与 eval 一致。
     if (m_regCount <= kInlineRegCount) [[likely]] {
         std::array<f64, kInlineRegCount> regs{};
         return evalImpl(x, y, z, regs.data());
@@ -289,10 +263,7 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
             case OpCode::NoiseSample: {
                 const auto* noise = m_objects[op.objIdx].noise;
                 MC_ASSERT_RELEASE_MSG(noise != nullptr, "NoiseSample: noise object is null");
-                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = noise->getValue(regs[op.srcA], regs[op.srcB], regs[op.srcC]);
-                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
-                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::WeirdSampler: {
@@ -301,40 +272,34 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 const WeirdType type = (op.opFlags & 0x0F) == 0 ? WeirdType::Type1 : WeirdType::Type2;
                 const f64 inputValue = regs[op.srcA];
                 const f64 r = getRarity(type, inputValue);
-                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = std::abs(noise->getValue(
                                    static_cast<f64>(x) / r, static_cast<f64>(y) / r, static_cast<f64>(z) / r)) *
                     r;
-                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
-                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::Delegate: {
                 const auto* df = m_objects[op.objIdx].densityFunction;
                 MC_ASSERT_RELEASE_MSG(df != nullptr, "Delegate: density function is null");
-                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = df->compute(x, y, z);
-                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
-                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::EndIslands: {
                 const auto* df = m_objects[op.objIdx].densityFunction;
                 MC_ASSERT_RELEASE_MSG(df != nullptr, "EndIslands: density function is null");
-                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = df->compute(x, y, z);
-                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
-                profiling::g_densityEvalAcc.externalCalls += 1;
+                break;
+            }
+            case OpCode::BlendedNoise: {
+                const auto* df = m_objects[op.objIdx].densityFunction;
+                MC_ASSERT_RELEASE_MSG(df != nullptr, "BlendedNoise: density function is null");
+                regs[op.dst] = df->compute(x, y, z);
                 break;
             }
             case OpCode::Beardifier: {
                 // 维度级编译期 Beardifier 未注入（区块特定），占位返回 0.0。
                 // 阶段5 newInstance 注入真实 Beardifier 后此指令段被替换。
                 const auto* beardifier = m_objects[op.objIdx].beardifier;
-                const u64 _t0 = profiling::readTsc();
                 regs[op.dst] = (beardifier != nullptr) ? beardifier->compute(x, y, z) : 0.0;
-                profiling::g_densityEvalAcc.externalCycles += (profiling::readTsc() - _t0);
-                profiling::g_densityEvalAcc.externalCalls += 1;
                 break;
             }
             case OpCode::SharedSubtreeCall: {
@@ -457,15 +422,10 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
                 if (cacheObj != nullptr) {
                     // 区块级走缓存对象 compute。缓存对象（NoiseInterpolator/CellCache/CacheOnce/
                     // FlatCache/Cache2D）的 compute 在缓存未命中时回调 m_filler->compute，而 filler
-                    // 是 Adapter，其 compute → CompiledDensityFunction::eval 递归。故 cacheObj->compute
-                    // 是"递归外部调用"（B 类），不可 per-call 计时——其子树耗时已含在顶层
-                    // topLevelCycles 内，子树内叶子外部调用由子层 evalImpl 计时累加。父层再计时会
-                    // 双重计数（曾致 externalCycles > totalCycles）。其缓存查表/插值开销归入解释器
-                    // 开销（算入 interpreterCycles），会高估 JIT 收益（缓存查表 JIT 救不了），给出
-                    // JIT 收益的乐观上界——若上界仍不值得，JIT 肯定不值得。
+                    // 是 Adapter，其 compute → CompiledDensityFunction::eval 递归。
                     regs[op.dst] = cacheObj->compute(x, y, z);
                 } else {
-                    // 维度级透传 delegate 子求值器 eval（递归，B 类不计时——子树耗时已含顶层）。
+                    // 维度级透传 delegate 子求值器 eval（递归）。
                     const auto& delegate = m_subEvaluators[op.subIdx];
                     MC_ASSERT_RELEASE_MSG(delegate != nullptr, "Marker: delegate sub-evaluator is null");
                     regs[op.dst] = delegate->eval(x, y, z);

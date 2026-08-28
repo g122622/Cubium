@@ -135,6 +135,11 @@ enum class OpCode : u8 {
     Delegate,
     /// END_ISLANDS dst, objIdx：末地岛屿（EndIslandsNode）。m_objects[objIdx] 是 const DensityFunction*。
     EndIslands,
+    /// BLENDED_NOISE dst, objIdx：旧式三层 Perlin 噪声（BlendedNoiseNode）。
+    /// m_objects[objIdx].densityFunction 是 const BlendedNoise*。运行时行为同 Delegate
+    /// （调 densityFunction->compute），但专用 trampoline 持具体类型 const BlendedNoise*，
+    /// JIT 去虚化为直接 call BlendedNoise::compute（final 类），消除 vtable 间接调用。
+    BlendedNoise,
     /// BEARDIFIER dst, objIdx：Beardifier 贡献（BeardifierNode）。m_objects[objIdx] 是 const Beardifier*。
     /// 方案X：Beardifier 不进编译产物（留 OOP 层），维度级 finalDensity 树不含 BeardifierMarker，
     /// 故生产路径 BEARDIFIER 指令不触发。保留供 McToAst 映射 BeardifierNode 的完整性。

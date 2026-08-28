@@ -39,6 +39,8 @@ const std::unordered_map<RecipeType, std::string> typeToStringMap = {{RecipeType
     {RecipeType::CampfireCooking, "minecraft:campfire_cooking"},
     {RecipeType::Stonecutting, "minecraft:stonecutting"},
     {RecipeType::Smithing, "minecraft:smithing"},
+    {RecipeType::SmithingTransform, "minecraft:smithing_transform"},
+    {RecipeType::SmithingTrim, "minecraft:smithing_trim"},
     {RecipeType::Transmute, "minecraft:crafting_transmute"},
     {RecipeType::Special, "minecraft:special"}};
 
@@ -59,6 +61,10 @@ const std::unordered_map<std::string, RecipeType> stringToTypeMap = {{"minecraft
     {"stonecutting", RecipeType::Stonecutting},
     {"minecraft:smithing", RecipeType::Smithing},
     {"smithing", RecipeType::Smithing},
+    {"minecraft:smithing_transform", RecipeType::SmithingTransform},
+    {"smithing_transform", RecipeType::SmithingTransform},
+    {"minecraft:smithing_trim", RecipeType::SmithingTrim},
+    {"smithing_trim", RecipeType::SmithingTrim},
     {"minecraft:crafting_transmute", RecipeType::Transmute},
     {"crafting_transmute", RecipeType::Transmute},
     {"minecraft:special", RecipeType::Special},

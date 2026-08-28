@@ -55,6 +55,13 @@ public:
 protected:
     [[nodiscard]] std::string_view displayName() const override { return "Server"; }
 
+    // gametest 模式（--gametest）跳过 profiler，保持无头测试不写 trace 文件。
+    [[nodiscard]] bool shouldEnableProfiler() const override { return !m_gametestMode; }
+
+    [[nodiscard]] std::string profilerOutputPath() const override { return MC_TRACE_SERVER_OUTPUT; }
+    [[nodiscard]] std::string profilerProcessName() const override { return "MinecraftServer"; }
+    [[nodiscard]] std::string profilerThreadName() const override { return "ServerMainThread"; }
+
     void onFlagsParsed() override;
     void prepareRun() override;
     [[nodiscard]] int runApplication() override;

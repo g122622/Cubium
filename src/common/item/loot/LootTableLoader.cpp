@@ -122,42 +122,71 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackRepository(
     m_lastResult = LoadResult{};
     _clearIfNeeded();
 
-    auto listResult = dataPacks.listResources("", ".json");
-    if (!listResult.success()) {
-        return listResult.error();
-    }
-
+    // 阶段1：列举资源（数据包遍历）
     std::vector<std::string> lootTableResources;
-    for (const auto& path : listResult.value()) {
-        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
-            path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
-            continue;
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::ListResources");
+
+        auto listResult = dataPacks.listResources("", ".json");
+        if (!listResult.success()) {
+            return listResult.error();
         }
-        lootTableResources.push_back(path);
+        lootTableResources = std::move(listResult.value());
     }
 
+    // 阶段1.1：按 loot_tables/ 过滤出掉落表资源
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::FilterLootTables");
+
+        std::vector<std::string> filtered;
+        for (const auto& path : lootTableResources) {
+            if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
+                path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
+                continue;
+            }
+            filtered.push_back(path);
+        }
+        lootTableResources = std::move(filtered);
+    }
+
+    // 阶段2：逐文件加载循环（读取 + 解析 + 注册）
     Size current = 0;
     const Size total = lootTableResources.size();
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::LoadLoop", "total", total);
     for (const auto& resourcePath : lootTableResources) {
         const std::string id = pathToLootTableId(resourcePath);
         if (callback) {
             callback(current, total, id);
         }
 
-        auto readResult = dataPacks.readTextResource(resourcePath);
-        if (!readResult.success()) {
-            ++m_lastResult.failedCount;
-            m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
-            ++current;
-            continue;
+        // 子阶段3：读取单个文件内容（磁盘 I/O）
+        std::string fileContent;
+        {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::ReadText");
+
+            auto readResult = dataPacks.readTextResource(resourcePath);
+            if (!readResult.success()) {
+                ++m_lastResult.failedCount;
+                m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
+                ++current;
+                continue;
+            }
+            fileContent = std::move(readResult.value());
         }
 
-        auto loadResult = loadJson(id, readResult.value());
-        if (loadResult.success()) {
-            ++m_lastResult.successCount;
-        } else {
-            ++m_lastResult.failedCount;
-            m_lastResult.errors.push_back(resourcePath + ": " + loadResult.error().toString());
+        // 子阶段4：解析 JSON + 注册到管理器
+        {
+            MC_TRACE_SCOPED_EVENT(
+                TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::ParseAndRegister");
+
+            auto loadResult = loadJson(id, fileContent);
+            if (loadResult.success()) {
+                ++m_lastResult.successCount;
+            } else {
+                ++m_lastResult.failedCount;
+                m_lastResult.errors.push_back(resourcePath + ": " + loadResult.error().toString());
+            }
         }
         ++current;
     }
@@ -165,6 +194,16 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackRepository(
     if (callback) {
         callback(total, total, "");
     }
+
+    // 记录本批次加载汇总（总文件数、成功数、失败数），便于在 trace 中核查加载结果
+    MC_TRACE_INSTANT_EVENT(TraceEvents.IO.Resource,
+        "LootTableLoader::loadFromDataPackRepository::Done",
+        "total",
+        total,
+        "success",
+        m_lastResult.successCount,
+        "failed",
+        m_lastResult.failedCount);
 
     return m_lastResult;
 }

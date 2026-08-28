@@ -155,12 +155,9 @@ bool ZipResourcePack::hasResource(PackType type, std::string_view resourcePath) 
 
 Result<std::vector<u8>> ZipResourcePack::readResource(PackType type, std::string_view resourcePath) const
 {
-    std::string normalized;
-    if (resourcePath == "../pack.mcmeta") {
-        normalized = "pack.mcmeta";
-    } else {
-        normalized = _makeTypedPath(type, resourcePath);
-    }
+    // _makeTypedPath 已词法归一化（折叠 .. 段），"../pack.mcmeta" → "pack.mcmeta"，
+    // 无需再特判 pack.mcmeta。归一化后的路径既是 m_entries 查询键，也是缓存键。
+    const std::string normalized = _makeTypedPath(type, resourcePath);
 
     // 先查缓存，避免并发读取时重复解压同一个条目
     {
@@ -321,7 +318,9 @@ std::string ZipResourcePack::_normalizePath(std::string_view path)
 
 std::string ZipResourcePack::_makeTypedPath(PackType type, std::string_view path)
 {
-    return _normalizePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
+    // 拼接类型目录前缀后词法归一化（折叠 . 与 .. 段），与 m_entries 存储的归一化路径一致。
+    // 例如 "assets/../pack.mcmeta" → "pack.mcmeta"，使 hasResource/readResource 能匹配包根文件。
+    return normalizeResourcePath(std::string(resource::packTypeDirectoryName(type)) + "/" + std::string(path));
 }
 
 } // namespace mc::resource

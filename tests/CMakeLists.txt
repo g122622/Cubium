@@ -1177,6 +1177,8 @@ add_executable(mc_tests
     common/world/gen/density/SharedTopologyParityTest.cpp
     # AST 编译器优化数值回归门禁：完整 NoiseChunk finalDensity 多点采样固定基线
     common/world/gen/density/DensityAstBaselineTest.cpp
+    # 噪声采样层 SoA 向量化 vs 标量 reference 的 ULP 漂移监控(纯观测,不卡门禁)
+    common/world/gen/density/DensityAstUlpTest.cpp
     # AST 优化 pass 结构正确性单元测试（TreeNormalization/FoldConstants/BranchElimination）
     common/world/gen/density/OptoPassesTest.cpp
     # 维度级 AST 编译器端到端数值等价：compiled.eval vs finalDensity.compute

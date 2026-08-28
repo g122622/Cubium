@@ -186,6 +186,12 @@ private:
     std::function<void()> m_callback;
     mutable std::shared_mutex m_mutex;
 
+    // 已启用且已初始化 pack 的排序缓存（按 priority 降序）。
+    // 加载批次内 pack 列表恒定（无 loader 在循环内改 pack 状态），排序结果可跨文件复用，
+    // 避免每次 readResource/hasResource/listResources 都走 shared_lock+复制+stable_sort。
+    // _notifyChange 失效（全部 9 个变更方法最终都调它）。mutable 因 readResource 等 const 方法写入。
+    mutable std::optional<std::vector<PackInfo>> m_enabledPackInfosCache;
+
     [[nodiscard]] static std::string _normalizePathKey(const std::filesystem::path& path);
     [[nodiscard]] static bool _isZipFile(const std::filesystem::path& path);
     [[nodiscard]] static bool _isPackDir(const std::filesystem::path& path);

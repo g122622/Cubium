@@ -25,6 +25,7 @@
 
 #include "LogManager.hpp"
 
+#include "common/profiler/ProfilerConfig.hpp"
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -67,6 +68,54 @@ void BaseApplicationEntry::profilerStopShutdown()
     auto& profilerManager = mc::profiler::ProfilerManager::instance();
     profilerManager.stopTracing();
     profilerManager.shutdown();
+}
+
+std::string BaseApplicationEntry::profilerOutputPath() const
+{
+    return MC_TRACE_DEFAULT_OUTPUT;
+}
+
+std::string BaseApplicationEntry::profilerProcessName() const
+{
+    return "Minecraft";
+}
+
+std::string BaseApplicationEntry::profilerThreadName() const
+{
+    return "MainThread";
+}
+
+void BaseApplicationEntry::profilerStart()
+{
+    auto& profilerManager = mc::profiler::ProfilerManager::instance();
+
+    // 构造 TraceConfig：仅 outputPath 差异（客户端/服务端），bufferSizeKb 固定 65536*8（512MB）。
+    mc::profiler::TraceConfig traceConfig;
+    traceConfig.outputPath = profilerOutputPath();
+    traceConfig.bufferSizeKb = 65536 * 8;
+    profilerManager.initialize(traceConfig);
+
+    // 注入进程内存采样回调（须在 startTracing 之前）：ProfilerManager 处于比 PlatformInfo
+    // 更底层的 mc_profiler 库，不能直接依赖 PlatformInfo，故由本层注入。返回 {工作集MB, 提交量MB}。
+    profilerManager.setMemorySampler([]() -> std::pair<i64, i64> {
+        return {static_cast<i64>(util::PlatformInfo::getProcessMemoryMB()),
+            static_cast<i64>(util::PlatformInfo::getProcessCommitMB())};
+    });
+
+    profilerManager.startTracing();
+
+    // 设置进程和主线程名称（双轨 Perfetto+Tracy）
+    profilerManager.setProcessName(profilerProcessName());
+    profilerManager.setThreadName(profilerThreadName());
+    spdlog::info("Perfetto tracing initialized");
+}
+
+void BaseApplicationEntry::profilerStop()
+{
+    auto& profilerManager = mc::profiler::ProfilerManager::instance();
+    profilerManager.stopTracing();
+    profilerManager.shutdown();
+    spdlog::info("Perfetto tracing stopped");
 }
 
 void BaseApplicationEntry::printBanner() const
@@ -156,21 +205,28 @@ int BaseApplicationEntry::run(int argc, char* argv[])
     // 6. 进入核心业务前的准备（如 server 安装信号处理）。
     prepareRun();
 
-    // 7. 核心业务运行（异常路径统一清理）。
+    // 7. 启动 profiler（若子类门控允许）。须在 onFlagsParsed 之后：shouldEnableProfiler()
+    // 依赖子类已填充的 benchmark/gametest 字段。profilerStop() 须在 LogManager::shutdown()
+    // 之前（profiler 的 stop/shutdown 路径内部用 spdlog）。
+    if (shouldEnableProfiler()) {
+        profilerStart();
+        m_profilerStarted = true;
+    }
+
+    // 8. 核心业务运行（异常路径统一清理）。
     try {
         const int code = runApplication();
 
-        // LogManager 须在 ProfilerManager shutdown 之前停（避免日志消费线程访问已销毁资源）。
-        // shutdown 会 flush 队列，确保剩余日志落盘后再销毁 logger。
-        LogManager::instance().shutdown();
-
-        if (code != 0) {
-            // 非零退出（如 server initialize 失败、gametest 有失败用例）：立即 stop+shutdown
-            // profiler，避免依赖析构链（中途二次崩溃会丢 trace）。与原 HANDLE_ERROR 路径一致。
-            profilerStopShutdown();
-            std::cout << "Perfetto tracing stopped due to runtime error!" << std::endl;
+        // 先 stop profiler（若已启动），再 shutdown LogManager。
+        // 顺序原因：ProfilerManager 的 stopTracing/shutdown 路径内部调用 spdlog::info/warn/error，
+        // 需要 spdlog 全局 logger/thread_pool/sink 仍然有效；LogManager::shutdown() 会调
+        // spdlog::shutdown() 销毁这些全局状态。若颠倒顺序，profiler stop 路径的 spdlog 调用会
+        // 操作已销毁资源。
+        if (m_profilerStarted) {
+            profilerStop();
         }
-        // code == 0（正常退出）：不显式 profiler stop，依赖 Meyers 单例析构（与原 main 一致）。
+
+        LogManager::instance().shutdown();
         return code;
     }
     catch (const std::exception& e) {
@@ -179,13 +235,12 @@ int BaseApplicationEntry::run(int argc, char* argv[])
         // 子类错误清理（如 server cleanupServerGameTest：在脚本引擎销毁前释放 JS 句柄）。
         onErrorCleanup();
 
-        // LogManager 须在 ProfilerManager shutdown 之前停（避免日志消费线程访问已销毁资源）。
-        // shutdown 会 flush 队列，确保上面 critical 落盘后再销毁 logger。
-        LogManager::instance().shutdown();
+        // 先 stop profiler，再 shutdown LogManager（理由同正常路径）。
+        if (m_profilerStarted) {
+            profilerStopShutdown();
+        }
 
-        // 异常路径立即 stop+shutdown profiler，避免依赖析构链（中途二次崩溃会丢 trace）。
-        profilerStopShutdown();
-        std::cout << "Perfetto tracing stopped due to runtime exception!" << std::endl;
+        LogManager::instance().shutdown();
         return 1;
     }
 }

@@ -510,6 +510,10 @@ void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)
 
 void ServerWorld::initializeWorldSpawn()
 {
+    // 父级 MinecraftServer::initializeWorld 已带 trace；此处作为 subpart 量化出生点搜索耗时
+    // （含气候空间径向搜索，是新世界首次初始化的潜在大头）。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::initializeWorldSpawn");
+
     spdlog::info("ServerWorld: Initializing world spawn point...");
 
     // 通过 Sampler 在气候空间径向搜索最佳出生区块，
@@ -537,7 +541,7 @@ void ServerWorld::initializeWorldSpawn()
                     spawnChunk.x,
                     spawnChunk.z);
             } else {
-                spdlog::debug("ServerWorld: spawnTarget empty, falling back to (0,0) chunk");
+                spdlog::warn("ServerWorld: spawnTarget empty, falling back to (0,0) chunk");
             }
         }
     }
@@ -571,6 +575,9 @@ void ServerWorld::initializeWorldSpawn()
 
 void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& runtimeData)
 {
+    // 父级 MinecraftServer::initializeWorld 已带 trace；此处作为 subpart 量化运行时数据恢复耗时。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::applyLevelRuntimeData");
+
     if (m_timeManager != nullptr) {
         m_timeManager->setGameTime(runtimeData.gameTime);
         m_timeManager->setDayTime(runtimeData.dayTime);

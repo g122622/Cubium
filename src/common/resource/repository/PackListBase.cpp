@@ -398,19 +398,32 @@ std::vector<PackListBase::PackInfo> PackListBase::getAllPacks() const
 
 std::vector<PackListBase::PackInfo> PackListBase::getEnabledPackInfos() const
 {
-    std::vector<PackInfo> result;
+    // 缓存命中：shared_lock 直接返回拷贝，省掉遍历 m_packs 过滤 + stable_sort。
     {
         std::shared_lock lock(m_mutex);
-        for (const auto& info : m_packs) {
-            if (info.enabled && info.initialized) {
-                result.push_back(info);
-            }
+        if (m_enabledPackInfosCache) {
+            return *m_enabledPackInfosCache;
+        }
+    }
+
+    // 缓存 miss：unique_lock 构建+排序+写缓存。double-check 避免并发重复构建。
+    // 模式对齐 ZipResourcePack::readResource（shared_lock 读 / unique_lock 写）。
+    std::unique_lock lock(m_mutex);
+    if (m_enabledPackInfosCache) {
+        return *m_enabledPackInfosCache;
+    }
+
+    std::vector<PackInfo> result;
+    for (const auto& info : m_packs) {
+        if (info.enabled && info.initialized) {
+            result.push_back(info);
         }
     }
 
     std::stable_sort(
         result.begin(), result.end(), [](const PackInfo& a, const PackInfo& b) { return a.priority > b.priority; });
 
+    m_enabledPackInfosCache = result;
     return result;
 }
 
@@ -486,6 +499,9 @@ Result<std::string> PackListBase::readTextResource(PackType type, std::string_vi
 Result<std::vector<std::string>> PackListBase::listResources(
     PackType type, std::string_view directory, std::string_view extension) const
 {
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.IO.Resource, "PackListBase::listResources", "directory", directory, "extension", extension);
+
     std::vector<std::string> result;
     std::set<std::string> seen;
 
@@ -591,6 +607,14 @@ void PackListBase::onPackListChanged() {}
 
 void PackListBase::_notifyChange()
 {
+    // 失效已启用 pack 排序缓存。变更方法已先改 m_packs（unique_lock 下），故 reset 时
+    // m_packs 已是最新，下次 getEnabledPackInfos 从最新 m_packs 重建。失效早于 callback
+    // 触发的重载，保证重载内读到的缓存是新构建的。
+    {
+        std::unique_lock lock(m_mutex);
+        m_enabledPackInfosCache.reset();
+    }
+
     onPackListChanged();
 
     std::function<void()> callback;
