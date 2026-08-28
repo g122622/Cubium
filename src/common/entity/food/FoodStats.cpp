@@ -25,7 +25,6 @@
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <algorithm>
 
@@ -37,38 +36,32 @@ namespace mc {
 
 namespace {
 
-/// 饥饿值上限
+/// 饥饿值上限（对齐 FoodConstants.MAX_FOOD=20）
 constexpr i32 MAX_FOOD_LEVEL = 20;
 
-/// 消耗值上限（防止溢出）
+/// 消耗值上限（对齐 FoodData.addExhaustion 第 101 行 Math.min(..., 40.0F)）
 constexpr f32 MAX_EXHAUSTION = 40.0f;
 
-/// 消耗值阈值（每次消耗的量）
+/// 消耗值阈值（对齐 FoodConstants.EXHAUSTION_DROP=4.0；触发条件为严格大于）
 constexpr f32 EXHAUSTION_THRESHOLD = 4.0f;
 
-/// 快速生命恢复间隔（ticks）
+/// 快速生命恢复间隔（对齐 FoodConstants.HEALTH_TICK_COUNT_SATURATED=10）
 constexpr i32 FAST_REGEN_INTERVAL = 10;
 
-/// 慢速生命恢复间隔（ticks）
+/// 慢速生命恢复间隔（对齐 FoodConstants.HEALTH_TICK_COUNT=80）
 constexpr i32 SLOW_REGEN_INTERVAL = 80;
 
-/// 饥饿伤害间隔（ticks）
+/// 饥饿伤害间隔（对齐 FoodConstants.HEALTH_TICK_COUNT=80）
 constexpr i32 STARVATION_INTERVAL = 80;
 
-/// 快速恢复每次最大消耗饱和度
+/// 慢速恢复触发饥饿值下限（对齐 FoodConstants.HEAL_LEVEL=18）
+constexpr i32 HEAL_LEVEL = 18;
+
+/// 快速恢复每次最大消耗饱和度（对齐 FoodData.java:48 Math.min(saturation, 6.0F)）
 constexpr f32 FAST_REGEN_MAX_SATURATION = 6.0f;
 
-/// 慢速恢复每次消耗的饱和度
+/// 慢速恢复每次消耗的 exhaustion（对齐 FoodData.java:57 addExhaustion(6.0F)）
 constexpr f32 SLOW_REGEN_EXHAUSTION = 6.0f;
-
-/// 和平模式生命恢复间隔（ticks）
-constexpr i32 PEACEFUL_REGEN_INTERVAL = 20;
-
-/// 和平模式饥饿值恢复间隔（ticks）
-constexpr i32 PEACEFUL_FOOD_REGEN_INTERVAL = 10;
-
-/// 和平模式生命恢复量
-constexpr f32 PEACEFUL_REGEN_AMOUNT = 1.0f;
 
 } // namespace
 
@@ -80,65 +73,43 @@ FoodStats::FoodStats() = default;
 
 void FoodStats::tick(Player& player, Difficulty difficulty, bool naturalRegeneration)
 {
+    // 对齐 MC Java 1.21.11 FoodData.tick（FoodData.java:32-72）。
     // 保存上一刻的饥饿值（用于 UI 动画）
     m_prevFoodLevel = m_foodLevel;
 
-    // 和平模式特殊处理
-    if (difficulty == Difficulty::Peaceful) {
-        _handlePeacefulMode(player);
-        // 和平模式下仍然消耗饱和度，但不消耗饥饿值
-        _consumeExhaustion(difficulty);
-        return;
-    }
-
-    // 1. 处理消耗值积累
+    // 1. 处理消耗值积累（对齐 FoodData.java:35-42）。
+    //    严格大于 4.0 才触发（非 >=），一次 tick 最多扣一次（非 while 循环）。
     _consumeExhaustion(difficulty);
 
-    // 检查玩家是否应该恢复生命（不死亡、无饥饿效果）
-    bool shouldHeal = player.health() > 0.0f && player.health() < player.maxHealth();
-    bool hasHungerEffect = player.hasEffect(entity::effect::EffectType::Hunger);
+    // 2/3/4. 回血 / 饿死（对齐 FoodData.java:44-71，单一 tickTimer 共享三分支）。
+    //    回血门控只查 naturalRegeneration + isHurt()（health>0 && health<max），
+    //    不查 Hunger 效果——Hunger 效果仅加速 exhaustion 累积，不阻止回血（对齐 vanilla）。
+    const bool shouldHeal = player.health() > 0.0f && player.health() < player.maxHealth();
 
-    // 2. 生命恢复逻辑（使用独立的计时器）
-    if (naturalRegeneration && shouldHeal && !hasHungerEffect) {
-        // 快速生命恢复（饱和度恢复）
-        // 条件：foodLevel >= 20 且 saturation > 0
-        if (m_foodLevel >= MAX_FOOD_LEVEL && m_saturationLevel > 0.0f) {
-            m_foodTimer++;
-            if (m_foodTimer >= FAST_REGEN_INTERVAL) {
-                if (_performFastRegeneration(player)) {
-                    m_foodTimer = 0;
-                }
-            }
+    if (naturalRegeneration && shouldHeal && m_foodLevel >= MAX_FOOD_LEVEL && m_saturationLevel > 0.0f) {
+        // 快速生命恢复（满饱 saturation>0，每 10 tick）。对齐 FoodData.java:45-52。
+        m_foodTimer++;
+        if (m_foodTimer >= FAST_REGEN_INTERVAL) {
+            _performFastRegeneration(player);
+            m_foodTimer = 0;
         }
-        // 慢速生命恢复（饥饿值恢复）
-        // 条件：foodLevel >= 18
-        else if (m_foodLevel >= 18) {
-            m_foodTimer++;
-            if (m_foodTimer >= SLOW_REGEN_INTERVAL) {
-                if (_performSlowRegeneration(player)) {
-                    m_foodTimer = 0;
-                }
-            }
-        } else {
-            // 饥饿值低于 18 时重置恢复计时器
+    } else if (naturalRegeneration && shouldHeal && m_foodLevel >= HEAL_LEVEL) {
+        // 慢速生命恢复（foodLevel>=18，每 80 tick）。对齐 FoodData.java:53-59。
+        m_foodTimer++;
+        if (m_foodTimer >= SLOW_REGEN_INTERVAL) {
+            _performSlowRegeneration(player);
+            m_foodTimer = 0;
+        }
+    } else if (m_foodLevel <= 0) {
+        // 饥饿伤害（foodLevel<=0，每 80 tick）。对齐 FoodData.java:60-68。
+        m_foodTimer++;
+        if (m_foodTimer >= STARVATION_INTERVAL) {
+            _performStarvationDamage(player, difficulty);
             m_foodTimer = 0;
         }
     } else {
-        // 不满足恢复条件时重置恢复计时器
+        // 其余情况（如满血不回血、foodLevel 在 1..17 之间）归零计时器。对齐 FoodData.java:69-70。
         m_foodTimer = 0;
-    }
-
-    // 3. 饥饿伤害逻辑（使用独立的计时器）
-    // 条件：foodLevel <= 0
-    if (m_foodLevel <= 0) {
-        m_starveTimer++;
-        if (m_starveTimer >= STARVATION_INTERVAL) {
-            _performStarvationDamage(player, difficulty);
-            m_starveTimer = 0;
-        }
-    } else {
-        // 饥饿值恢复后重置饥饿伤害计时器
-        m_starveTimer = 0;
     }
 }
 
@@ -161,47 +132,40 @@ void FoodStats::addExhaustion(f32 exhaustion)
 
 void FoodStats::_consumeExhaustion(Difficulty difficulty)
 {
-    // 当消耗值 >= 4.0 时，消耗饱和度或饥饿值
-    while (m_exhaustionLevel >= EXHAUSTION_THRESHOLD) {
+    // 对齐 FoodData.java:35-42：exhaustionLevel 严格大于 4.0 时，扣 4.0 并消耗 1 点
+    //   饱和度（saturation>0）或 1 点饥饿值（saturation==0 且非和平）。
+    // 用单次 if 而非 while：一次 tick 最多扣一次 4.0（对齐 vanilla——消耗节奏为"每攒 4.0 扣 1 点"，
+    //   残留的 exhaustion 留待后续 tick 继续扣，不会一次 tick 扣多点）。
+    //   旧实现用 while+>= 会一次 tick 扣多点 + 边界 4.0 误扣，偏离 vanilla（消耗过快）。
+    if (m_exhaustionLevel > EXHAUSTION_THRESHOLD) {
         m_exhaustionLevel -= EXHAUSTION_THRESHOLD;
 
         if (m_saturationLevel > 0.0f) {
             // 优先消耗饱和度
             m_saturationLevel = std::max(0.0f, m_saturationLevel - 1.0f);
         } else if (difficulty != Difficulty::Peaceful) {
-            // 和平模式不消耗饥饿值
+            // 和平模式不消耗饥饿值（对齐 FoodData.java:39 difficulty != PEACEFUL 门控）
             m_foodLevel = std::max(0, m_foodLevel - 1);
         }
     }
 }
 
-bool FoodStats::_performFastRegeneration(Player& player)
+void FoodStats::_performFastRegeneration(Player& player)
 {
-    // 快速恢复：消耗饱和度来恢复生命
-    // 每次恢复 saturation/6 点生命，消耗等量饱和度
-    f32 saturationToUse = std::min(m_saturationLevel, FAST_REGEN_MAX_SATURATION);
-
-    if (saturationToUse > 0.0f) {
-        f32 healAmount = saturationToUse / 6.0f;
-        player.heal(healAmount);
-        addExhaustion(saturationToUse);
-        return true;
-    }
-
-    return false;
+    // 对齐 FoodData.java:47-51：f = min(saturation, 6.0)；heal(f/6.0)；addExhaustion(f)。
+    // 进入本函数时 m_foodLevel>=20 && m_saturationLevel>0（见 tick 门控），故 f>0 必然，
+    // 无需额外守卫（vanilla 亦无条件执行）。
+    const f32 saturationToUse = std::min(m_saturationLevel, FAST_REGEN_MAX_SATURATION);
+    player.heal(saturationToUse / 6.0f);
+    addExhaustion(saturationToUse);
 }
 
-bool FoodStats::_performSlowRegeneration(Player& player)
+void FoodStats::_performSlowRegeneration(Player& player)
 {
-    // 慢速恢复：消耗饥饿值来恢复生命
-    // 每次恢复 1 点生命，消耗 6.0 饱和度
-    if (m_foodLevel > 0) {
-        player.heal(1.0f);
-        addExhaustion(SLOW_REGEN_EXHAUSTION);
-        return true;
-    }
-
-    return false;
+    // 对齐 FoodData.java:55-58：heal(1.0)；addExhaustion(6.0)。
+    // 进入本函数时 m_foodLevel>=18（见 tick 门控），无需 foodLevel>0 守卫（vanilla 亦无条件执行）。
+    player.heal(1.0f);
+    addExhaustion(SLOW_REGEN_EXHAUSTION);
 }
 
 void FoodStats::_performStarvationDamage(Player& player, Difficulty difficulty)
@@ -220,24 +184,6 @@ void FoodStats::_performStarvationDamage(Player& player, Difficulty difficulty)
         // 使用饥饿伤害源
         auto starveSource = DamageSources::starve();
         player.hurt(starveSource, 1.0f);
-    }
-}
-
-void FoodStats::_handlePeacefulMode(Player& player)
-{
-    // 和平模式：每 20 ticks 恢复 1 点生命
-    m_foodTimer++;
-    if (m_foodTimer % PEACEFUL_REGEN_INTERVAL == 0) {
-        if (player.health() < player.maxHealth() && player.health() > 0.0f) {
-            player.heal(PEACEFUL_REGEN_AMOUNT);
-        }
-    }
-
-    // 和平模式：每 10 ticks 恢复 1 点饥饿值
-    if (m_foodTimer % PEACEFUL_FOOD_REGEN_INTERVAL == 0) {
-        if (m_foodLevel < MAX_FOOD_LEVEL) {
-            m_foodLevel++;
-        }
     }
 }
 

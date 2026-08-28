@@ -36,14 +36,15 @@ src/common/entity/food/
 ## 容易踩的坑
 
 1. **饱和度计算公式**：`saturation += food * modifier * 2.0`，不是直接使用 modifier 值。例如苹果（food=4, modifier=0.3）提供 4 * 0.3 * 2 = 2.4 饱和度。
-2. **消耗值上限**：必须限制在 40.0 以防止溢出，超过 4.0 时消耗饱和度或饥饿值。
-3. **生命恢复条件**：快速恢复需 `foodLevel >= 20 && saturation > 0`；慢速恢复需 `foodLevel >= 18`；都需要检查玩家是否有饥饿效果。
+2. **消耗值上限**：必须限制在 40.0 以防止溢出，严格大于 4.0 时消耗 1 点饱和度或饥饿值（一次 tick 最多扣一次，对齐 vanilla `if` 而非 `while`）。
+3. **生命恢复条件**：快速恢复需 `foodLevel >= 20 && saturation > 0`；慢速恢复需 `foodLevel >= 18`；两者均受 `NATURAL_REGENERATION` 游戏规则门控，但**不查 Hunger 效果**——Hunger 效果仅加速 exhaustion 累积，不阻止回血（对齐 vanilla FoodData.tick）。
 4. **难度检查**：不同难度的饥饿伤害行为不同（和平无伤害、简单最低 10 生命、普通最低 1 生命、困难可饿死）。
-5. **和平模式**：和平模式下饥饿值会自动恢复，但仍会消耗饱和度。
-6. **计时器分离**：`m_foodTimer` 用于生命恢复，`m_starveTimer` 用于饥饿伤害，两者独立运行。
+5. **和平模式**：和平难度无特例分支——foodLevel 恒 20（消耗不扣）、saturation 会被消耗，走通用满饱快回血/慢回血分支（对齐 vanilla，旧实现的"每 20 tick 回 1 HP + 每 10 tick 回 1 foodLevel"特例已移除）。
+6. **单一计时器**：`m_foodTimer` 对齐 vanilla 单 `tickTimer` 语义，共享回血/饿死/else-reset 三分支（状态切换时进度归零）。经 `foodTimer()/setFoodTimer()` 序列化为 `foodTickTimer`，与 vanilla NBT 字段一致。旧的独立 `m_starveTimer` 已移除。
 7. **prevFoodLevel**：用于 UI 动画同步，每 tick 开始时更新。
 
 ## 参考
 
-- MC 1.16.5 `net.minecraft.util.FoodStats`
-- MC 1.16.5 `net.minecraft.entity.player.PlayerEntity` (tick 方法中的饥饿处理)
+- MC Java 1.21.11 `net.minecraft.world.food.FoodData`（tick 方法，权威实现）
+- MC Java 1.21.11 `net.minecraft.world.food.FoodConstants`（常量定义）
+- MC Java 1.21.11 `net.minecraft.world.entity.player.Player`（causeFoodExhaustion / isHurt）

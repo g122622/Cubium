@@ -1142,6 +1142,8 @@ add_executable(mc_tests
     common/entity/effect/EffectInstanceEndsWithinTest.cpp
     # 饱和效果测试
     common/entity/effect/SaturationEffectTest.cpp
+    # FoodStats 饥饿系统 tick 行为测试（消耗/回血/饿死对齐 vanilla FoodData.tick）
+    common/entity/food/FoodStatsTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp

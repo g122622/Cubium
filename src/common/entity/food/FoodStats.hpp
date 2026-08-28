@@ -36,17 +36,22 @@ class Player;
  * @brief 饥饿/饱食度系统
  *
  * 管理玩家的饥饿值、饱和度和消耗值。
- * 参考 MC 1.16.5 FoodStats
+ * 对齐 MC Java 1.21.11 FoodData（net/minecraft/world/food/FoodData.java）。
  *
  * 核心机制：
  * - foodLevel: 饥饿值 (0-20)，显示为 10 个鸡腿
  * - saturationLevel: 饱和度 (0-foodLevel)，先于饥饿值消耗
- * - exhaustionLevel: 累积消耗值，每 4.0 消耗 1 饱和度或饥饿值
+ * - exhaustionLevel: 累积消耗值，每攒满 4.0（严格大于）消耗 1 饱和度或饥饿值
  *
- * 生命恢复：
- * - 快速恢复：foodLevel=20 且 saturation>0 时，每 10 ticks 恢复 saturation/6 点生命
+ * 生命恢复（对齐 FoodData.tick:44-59，受 NATURAL_HEALTH_REGENERATION 游戏规则门控，
+ *   不查 Hunger 效果——Hunger 效果仅加速 exhaustion 累积，不阻止回血）：
+ * - 快速恢复：foodLevel>=20 且 saturation>0 时，每 10 ticks 恢复 min(sat,6)/6 点生命
  * - 慢速恢复：foodLevel>=18 时，每 80 ticks 恢复 1 点生命
- * - 饥饿伤害：foodLevel=0 时，每 80 ticks 造成 1 点伤害
+ * - 饥饿伤害：foodLevel<=0 时，每 80 ticks 造成 1 点 starve 伤害（按难度门控血量下限）
+ *
+ * 计时器：单一 tickTimer（m_foodTimer）共享回血/饿死/else-reset 三分支，对齐 vanilla
+ *   FoodData 单 tickTimer 语义（状态切换时进度归零）。m_foodTimer 经 foodTimer()/setFoodTimer()
+ *   序列化为 foodTickTimer，与 vanilla NBT 字段一致。
  */
 class FoodStats {
 public:
@@ -58,12 +63,14 @@ public:
     /**
      * @brief 每刻更新
      *
-     * 处理：
-     * 1. 消耗值积累到 4.0 时的饱和度/饥饿值消耗
-     * 2. 快速生命恢复（饱和度恢复）
-     * 3. 慢速生命恢复（饥饿值恢复）
-     * 4. 饥饿伤害
-     * 5. 和平模式特殊处理
+     * 对齐 MC Java 1.21.11 FoodData.tick（FoodData.java:32-72）：
+     * 1. 消耗值严格大于 4.0 时，扣 4.0 并消耗 1 饱和度（不足则扣 1 饥饿值，和平不扣饥饿值）
+     * 2. 快速生命恢复（满饱 saturation>0，每 10 tick）
+     * 3. 慢速生命恢复（foodLevel>=18，每 80 tick）
+     * 4. 饥饿伤害（foodLevel<=0，每 80 tick，按难度血量下限门控）
+     * 5. 以上不满足时 tickTimer 归零
+     * 回血路径不查 Hunger 效果（Hunger 仅加速 exhaustion）。和平难度无特例——
+     * foodLevel 恒 20、saturation 会被消耗，走通用回血分支（对齐 vanilla）。
      *
      * @param player 玩家引用
      * @param difficulty 当前难度
@@ -150,18 +157,16 @@ private:
     void _consumeExhaustion(Difficulty difficulty);
 
     /**
-     * @brief 执行快速生命恢复（饱和度恢复）
+     * @brief 执行快速生命恢复（饱和度恢复，对齐 FoodData.java:47-51）
      * @param player 玩家引用
-     * @return 是否触发了恢复
      */
-    bool _performFastRegeneration(Player& player);
+    void _performFastRegeneration(Player& player);
 
     /**
-     * @brief 执行慢速生命恢复（饥饿值恢复）
+     * @brief 执行慢速生命恢复（饥饿值恢复，对齐 FoodData.java:55-58）
      * @param player 玩家引用
-     * @return 是否触发了恢复
      */
-    bool _performSlowRegeneration(Player& player);
+    void _performSlowRegeneration(Player& player);
 
     /**
      * @brief 执行饥饿伤害
@@ -170,18 +175,11 @@ private:
      */
     void _performStarvationDamage(Player& player, Difficulty difficulty);
 
-    /**
-     * @brief 和平模式特殊处理
-     * @param player 玩家引用
-     */
-    void _handlePeacefulMode(Player& player);
-
 private:
     i32 m_foodLevel = 20;         ///< 饥饿值 (0-20)
     f32 m_saturationLevel = 5.0f; ///< 饱和度 (0-foodLevel)
     f32 m_exhaustionLevel = 0.0f; ///< 累积消耗值 (0-40)
-    i32 m_foodTimer = 0;          ///< 食物计时器（用于生命恢复）
-    i32 m_starveTimer = 0;        ///< 饥饿伤害计时器
+    i32 m_foodTimer = 0;          ///< 食物计时器（共享回血/饿死，对齐 vanilla tickTimer）
     i32 m_prevFoodLevel = 20;     ///< 上一刻的饥饿值（用于 UI 同步）
 };
 
