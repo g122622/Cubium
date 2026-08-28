@@ -68,21 +68,30 @@ TEST(TemplatePoolLoaderTest, LoadSimplePoolFromJson)
  */
 TEST(TemplatePoolLoaderTest, LoadFromJsonObject)
 {
-    nlohmann::json jsonObj = {{"name", "minecraft:test/object_pool"},
-        {"fallback", "minecraft:empty"},
-        {"elements",
-            nlohmann::json::array({{{"weight", 2},
-                                       {"element",
-                                           {{"element_type", "minecraft:single_pool_element"},
-                                               {"location", "minecraft:test/template_a"},
-                                               {"projection", "rigid"}}}},
-                {{"weight", 3},
-                    {"element",
-                        {{"element_type", "minecraft:single_pool_element"},
-                            {"location", "minecraft:test/template_b"},
-                            {"projection", "terrain_matching"}}}}})}};
+    const std::string json = R"({
+        "name": "minecraft:test/object_pool",
+        "fallback": "minecraft:empty",
+        "elements": [
+            {
+                "weight": 2,
+                "element": {
+                    "element_type": "minecraft:single_pool_element",
+                    "location": "minecraft:test/template_a",
+                    "projection": "rigid"
+                }
+            },
+            {
+                "weight": 3,
+                "element": {
+                    "element_type": "minecraft:single_pool_element",
+                    "location": "minecraft:test/template_b",
+                    "projection": "terrain_matching"
+                }
+            }
+        ]
+    })";
 
-    auto result = TemplatePoolLoader::loadFromJson(jsonObj, ResourceLocation("minecraft", "test/object_pool"));
+    auto result = TemplatePoolLoader::loadFromJson(json, ResourceLocation("minecraft", "test/object_pool"));
 
     ASSERT_TRUE(result.success()) << "Failed to load: " << result.error().message();
     auto pattern = std::move(result.value());

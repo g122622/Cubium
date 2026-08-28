@@ -52,7 +52,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
+#include <simdjson.h>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -89,6 +89,82 @@ using feature::template_::TagMatchRuleTest;
 namespace {
 
 // ============================================================================
+// simdjson On-Demand 字段访问辅助函数
+// ============================================================================
+
+/**
+ * @brief 从 On-Demand 对象读取可选字符串字段
+ *
+ * 字段缺失或非字符串返回 std::nullopt(容错)。每次调用消费一次字段访问。
+ */
+std::optional<std::string> optString(simdjson::ondemand::object& obj, std::string_view key)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return std::nullopt;
+    }
+    auto strResult = fieldResult.value().get_string();
+    if (strResult.error() != simdjson::SUCCESS) {
+        return std::nullopt;
+    }
+    return std::string(strResult.value());
+}
+
+/**
+ * @brief 从 On-Demand 对象读取必填字符串字段
+ *
+ * 字段缺失或非字符串返回空字符串。
+ */
+std::string reqString(simdjson::ondemand::object& obj, std::string_view key)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return {};
+    }
+    auto strResult = fieldResult.value().get_string();
+    if (strResult.error() != simdjson::SUCCESS) {
+        return {};
+    }
+    return std::string(strResult.value());
+}
+
+/**
+ * @brief 从 On-Demand 对象读取可选 f32 数值字段
+ *
+ * 字段缺失或非数值返回 defaultValue。
+ */
+f32 optFloat(simdjson::ondemand::object& obj, std::string_view key, f32 defaultValue)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return defaultValue;
+    }
+    auto dblResult = fieldResult.value().get_double();
+    if (dblResult.error() != simdjson::SUCCESS) {
+        return defaultValue;
+    }
+    return static_cast<f32>(dblResult.value());
+}
+
+/**
+ * @brief 从 On-Demand 对象读取可选 i32 数值字段
+ *
+ * 字段缺失或非整数返回 defaultValue。
+ */
+i32 optInt(simdjson::ondemand::object& obj, std::string_view key, i32 defaultValue)
+{
+    auto fieldResult = obj[key];
+    if (fieldResult.error() != simdjson::SUCCESS) {
+        return defaultValue;
+    }
+    auto intResult = fieldResult.value().get_int64();
+    if (intResult.error() != simdjson::SUCCESS) {
+        return defaultValue;
+    }
+    return static_cast<i32>(intResult.value());
+}
+
+// ============================================================================
 // 辅助函数：从方块名称和属性解析 BlockState
 // ============================================================================
 
@@ -101,49 +177,59 @@ namespace {
  *
  * @return 方块状态 ID，解析失败返回 0（空气）
  */
-u32 parseOutputBlockStateId(const nlohmann::json& outputState)
+u32 parseOutputBlockStateId(simdjson::ondemand::object& outputState)
 {
-    if (!outputState.contains("Name") || !outputState["Name"].is_string()) {
+    auto name = reqString(outputState, "Name");
+    if (name.empty()) {
         return 0;
     }
 
-    std::string blockName = outputState["Name"].get<std::string>();
-    ResourceLocation blockLoc(blockName);
-
+    ResourceLocation blockLoc(name);
     Block* block = BlockRegistry::instance().getBlock(blockLoc);
     if (block == nullptr) {
-        spdlog::warn("ProcessorListLoader: unknown block '{}' in output_state, using air", blockName);
+        spdlog::warn("ProcessorListLoader: unknown block '{}' in output_state, using air", name);
         return 0;
     }
 
     const BlockState& defaultState = block->defaultState();
 
     // 没有 Properties，直接使用默认状态
-    if (!outputState.contains("Properties") || !outputState["Properties"].is_object()) {
+    auto propsResult = outputState["Properties"];
+    if (propsResult.error() != simdjson::SUCCESS) {
         return defaultState.stateId();
     }
+    auto propsObjResult = propsResult.value().get_object();
+    if (propsObjResult.error() != simdjson::SUCCESS) {
+        return defaultState.stateId();
+    }
+    auto props = propsObjResult.value();
 
     // 有 Properties，逐一设置属性
-    const auto& props = outputState["Properties"];
     const BlockState* currentState = &defaultState;
 
-    for (const auto& [propName, propValue] : props.items()) {
-        if (!propValue.is_string()) {
+    for (auto field : props) {
+        auto keyResult = field.unescaped_key();
+        if (keyResult.error() != simdjson::SUCCESS) {
             continue;
         }
+        std::string propName(keyResult.value());
+
+        auto valResult = field.value().get_string();
+        if (valResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        std::string propValue(valResult.value());
 
         const IProperty* prop = block->stateContainer().getProperty(propName);
         if (prop == nullptr) {
-            spdlog::warn("ProcessorListLoader: unknown property '{}' on block '{}'", propName, blockName);
+            spdlog::warn("ProcessorListLoader: unknown property '{}' on block '{}'", propName, name);
             continue;
         }
 
-        auto valueIndex = prop->parseValue(propValue.get<std::string>());
+        auto valueIndex = prop->parseValue(propValue);
         if (!valueIndex.has_value()) {
-            spdlog::warn("ProcessorListLoader: invalid value '{}' for property '{}' on block '{}'",
-                propValue.get<std::string>(),
-                propName,
-                blockName);
+            spdlog::warn(
+                "ProcessorListLoader: invalid value '{}' for property '{}' on block '{}'", propValue, propName, name);
             continue;
         }
 
@@ -161,7 +247,7 @@ u32 parseOutputBlockStateId(const nlohmann::json& outputState)
  *
  * @return 方块状态指针，解析失败返回 nullptr
  */
-const BlockState* parseOutputBlockState(const nlohmann::json& outputState)
+const BlockState* parseOutputBlockState(simdjson::ondemand::object& outputState)
 {
     u32 stateId = parseOutputBlockStateId(outputState);
     if (stateId == 0) {
@@ -181,14 +267,13 @@ const BlockState* parseOutputBlockState(const nlohmann::json& outputState)
  *   { "predicate_type": "minecraft:block_state_match", "block_state": { "Name": "...", "Properties": {...} } }
  *   { "predicate_type": "minecraft:random_block_state_match", "block_state": {...}, "probability": 0.5 }
  */
-std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
+std::unique_ptr<RuleTest> parseRuleTest(simdjson::ondemand::object& predicateObj)
 {
-    if (!predicateObj.contains("predicate_type") || !predicateObj["predicate_type"].is_string()) {
+    auto predicateType = reqString(predicateObj, "predicate_type");
+    if (predicateType.empty()) {
         spdlog::warn("ProcessorListLoader: predicate missing 'predicate_type'");
         return std::make_unique<AlwaysTrueRuleTest>();
     }
-
-    std::string predicateType = predicateObj["predicate_type"].get<std::string>();
     predicateType = stripMinecraftPrefix(predicateType);
 
     if (predicateType == "always_true") {
@@ -196,11 +281,12 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
     }
 
     if (predicateType == "block_match") {
-        if (predicateObj.contains("block") && predicateObj["block"].is_string()) {
-            ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
-            Block* block = BlockRegistry::instance().getBlock(blockLoc);
-            if (block != nullptr) {
-                return std::make_unique<BlockMatchRuleTest>(block);
+        auto block = optString(predicateObj, "block");
+        if (block) {
+            ResourceLocation blockLoc(*block);
+            Block* blockPtr = BlockRegistry::instance().getBlock(blockLoc);
+            if (blockPtr != nullptr) {
+                return std::make_unique<BlockMatchRuleTest>(blockPtr);
             }
             spdlog::warn("ProcessorListLoader: block_match: unknown block '{}'", blockLoc.toString());
         }
@@ -208,48 +294,64 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
     }
 
     if (predicateType == "random_block_match") {
-        if (predicateObj.contains("block") && predicateObj["block"].is_string() &&
-            predicateObj.contains("probability") && predicateObj["probability"].is_number()) {
-            ResourceLocation blockLoc(predicateObj["block"].get<std::string>());
-            f32 probability = predicateObj["probability"].get<f32>();
-            Block* block = BlockRegistry::instance().getBlock(blockLoc);
-            if (block != nullptr) {
-                return std::make_unique<RandomBlockMatchRuleTest>(block, probability);
+        auto block = optString(predicateObj, "block");
+        // probability 是数值字段
+        auto probResult = predicateObj["probability"];
+        if (block && probResult.error() == simdjson::SUCCESS) {
+            auto probValResult = probResult.value().get_double();
+            if (probValResult.error() == simdjson::SUCCESS) {
+                ResourceLocation blockLoc(*block);
+                f32 probability = static_cast<f32>(probValResult.value());
+                Block* blockPtr = BlockRegistry::instance().getBlock(blockLoc);
+                if (blockPtr != nullptr) {
+                    return std::make_unique<RandomBlockMatchRuleTest>(blockPtr, probability);
+                }
+                spdlog::warn("ProcessorListLoader: random_block_match: unknown block '{}'", blockLoc.toString());
             }
-            spdlog::warn("ProcessorListLoader: random_block_match: unknown block '{}'", blockLoc.toString());
         }
         return std::make_unique<AlwaysTrueRuleTest>();
     }
 
     if (predicateType == "tag_match") {
-        if (predicateObj.contains("tag") && predicateObj["tag"].is_string()) {
-            std::string tag = predicateObj["tag"].get<std::string>();
-            return std::make_unique<TagMatchRuleTest>(ResourceLocation(tag));
+        auto tag = optString(predicateObj, "tag");
+        if (tag) {
+            return std::make_unique<TagMatchRuleTest>(ResourceLocation(*tag));
         }
         spdlog::warn("ProcessorListLoader: tag_match: missing 'tag' field");
         return std::make_unique<AlwaysTrueRuleTest>();
     }
 
     if (predicateType == "block_state_match" || predicateType == "blockstate_match") {
-        if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object()) {
-            const BlockState* state = parseOutputBlockState(predicateObj["block_state"]);
-            if (state != nullptr) {
-                return std::make_unique<BlockStateMatchRuleTest>(state);
+        auto bsResult = predicateObj["block_state"];
+        if (bsResult.error() == simdjson::SUCCESS) {
+            auto bsObjResult = bsResult.value().get_object();
+            if (bsObjResult.error() == simdjson::SUCCESS) {
+                auto bsObj = bsObjResult.value();
+                const BlockState* state = parseOutputBlockState(bsObj);
+                if (state != nullptr) {
+                    return std::make_unique<BlockStateMatchRuleTest>(state);
+                }
+                spdlog::warn("ProcessorListLoader: block_state_match: unknown block state");
             }
-            spdlog::warn("ProcessorListLoader: block_state_match: unknown block state");
         }
         return std::make_unique<AlwaysTrueRuleTest>();
     }
 
     if (predicateType == "random_block_state_match") {
-        if (predicateObj.contains("block_state") && predicateObj["block_state"].is_object() &&
-            predicateObj.contains("probability") && predicateObj["probability"].is_number()) {
-            const BlockState* state = parseOutputBlockState(predicateObj["block_state"]);
-            f32 probability = predicateObj["probability"].get<f32>();
-            if (state != nullptr) {
-                return std::make_unique<RandomBlockStateMatchRuleTest>(state, probability);
+        auto bsResult = predicateObj["block_state"];
+        auto probResult = predicateObj["probability"];
+        if (bsResult.error() == simdjson::SUCCESS && probResult.error() == simdjson::SUCCESS) {
+            auto bsObjResult = bsResult.value().get_object();
+            auto probValResult = probResult.value().get_double();
+            if (bsObjResult.error() == simdjson::SUCCESS && probValResult.error() == simdjson::SUCCESS) {
+                auto bsObj = bsObjResult.value();
+                const BlockState* state = parseOutputBlockState(bsObj);
+                f32 probability = static_cast<f32>(probValResult.value());
+                if (state != nullptr) {
+                    return std::make_unique<RandomBlockStateMatchRuleTest>(state, probability);
+                }
+                spdlog::warn("ProcessorListLoader: random_block_state_match: unknown block state");
             }
-            spdlog::warn("ProcessorListLoader: random_block_state_match: unknown block state");
         }
         return std::make_unique<AlwaysTrueRuleTest>();
     }
@@ -267,14 +369,13 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
  *   { "predicate_type": "minecraft:axis_aligned_linear_pos", "min_chance": 0.0, "max_chance": 0.05, "min_dist": 0,
  * "max_dist": 100, "axis": "y" }
  */
-std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohmann::json& predicateObj)
+std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(simdjson::ondemand::object& predicateObj)
 {
-    if (!predicateObj.contains("predicate_type") || !predicateObj["predicate_type"].is_string()) {
+    auto predicateType = reqString(predicateObj, "predicate_type");
+    if (predicateType.empty()) {
         spdlog::warn("ProcessorListLoader: pos_predicate missing 'predicate_type', using always_true");
         return std::make_unique<AlwaysTruePosRuleTest>();
     }
-
-    std::string predicateType = predicateObj["predicate_type"].get<std::string>();
     predicateType = stripMinecraftPrefix(predicateType);
 
     if (predicateType == "always_true") {
@@ -283,23 +384,10 @@ std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohman
 
     if (predicateType == "linear_pos") {
         // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0)
-        f32 minChance = 0.0f;
-        f32 maxChance = 0.0f;
-        i32 minDist = 0;
-        i32 maxDist = 0;
-
-        if (predicateObj.contains("min_chance") && predicateObj["min_chance"].is_number()) {
-            minChance = predicateObj["min_chance"].get<f32>();
-        }
-        if (predicateObj.contains("max_chance") && predicateObj["max_chance"].is_number()) {
-            maxChance = predicateObj["max_chance"].get<f32>();
-        }
-        if (predicateObj.contains("min_dist") && predicateObj["min_dist"].is_number()) {
-            minDist = predicateObj["min_dist"].get<i32>();
-        }
-        if (predicateObj.contains("max_dist") && predicateObj["max_dist"].is_number()) {
-            maxDist = predicateObj["max_dist"].get<i32>();
-        }
+        f32 minChance = optFloat(predicateObj, "min_chance", 0.0f);
+        f32 maxChance = optFloat(predicateObj, "max_chance", 0.0f);
+        i32 minDist = optInt(predicateObj, "min_dist", 0);
+        i32 maxDist = optInt(predicateObj, "max_dist", 0);
 
         // min_dist >= maxDist 时回退到 always_true
         if (minDist >= maxDist) {
@@ -313,35 +401,23 @@ std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohman
 
     if (predicateType == "axis_aligned_linear_pos") {
         // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0), axis (默认 Y)
-        f32 minChance = 0.0f;
-        f32 maxChance = 0.0f;
-        i32 minDist = 0;
-        i32 maxDist = 0;
+        f32 minChance = optFloat(predicateObj, "min_chance", 0.0f);
+        f32 maxChance = optFloat(predicateObj, "max_chance", 0.0f);
+        i32 minDist = optInt(predicateObj, "min_dist", 0);
+        i32 maxDist = optInt(predicateObj, "max_dist", 0);
         Axis axis = Axis::Y; // 默认轴为 Y
 
-        if (predicateObj.contains("min_chance") && predicateObj["min_chance"].is_number()) {
-            minChance = predicateObj["min_chance"].get<f32>();
-        }
-        if (predicateObj.contains("max_chance") && predicateObj["max_chance"].is_number()) {
-            maxChance = predicateObj["max_chance"].get<f32>();
-        }
-        if (predicateObj.contains("min_dist") && predicateObj["min_dist"].is_number()) {
-            minDist = predicateObj["min_dist"].get<i32>();
-        }
-        if (predicateObj.contains("max_dist") && predicateObj["max_dist"].is_number()) {
-            maxDist = predicateObj["max_dist"].get<i32>();
-        }
-        if (predicateObj.contains("axis") && predicateObj["axis"].is_string()) {
-            std::string axisStr = predicateObj["axis"].get<std::string>();
-            if (axisStr == "x") {
+        auto axisStr = optString(predicateObj, "axis");
+        if (axisStr) {
+            if (*axisStr == "x") {
                 axis = Axis::X;
-            } else if (axisStr == "y") {
+            } else if (*axisStr == "y") {
                 axis = Axis::Y;
-            } else if (axisStr == "z") {
+            } else if (*axisStr == "z") {
                 axis = Axis::Z;
             } else {
                 spdlog::warn(
-                    "ProcessorListLoader: axis_aligned_linear_pos unknown axis '{}', defaulting to Y", axisStr);
+                    "ProcessorListLoader: axis_aligned_linear_pos unknown axis '{}', defaulting to Y", *axisStr);
             }
         }
 
@@ -468,11 +544,24 @@ Result<size_t> ProcessorListLoader::loadFromResourcePack(const IResourcePack& pa
 
 Result<void> ProcessorListLoader::loadFromJson(const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
-        return _loadFromJsonObj(jsonObj, location);
+    simdjson::padded_string padded(json);
+    simdjson::ondemand::parser parser;
+
+    auto docResult = parser.iterate(padded);
+    if (docResult.error() != simdjson::SUCCESS) {
+        return Error(
+            ErrorCode::InvalidData, std::string("JSON parse error: ") + simdjson::error_message(docResult.error()));
     }
-    catch (const nlohmann::json::parse_error& e) {
+
+    try {
+        auto rootResult = docResult.value().get_object();
+        if (rootResult.error() != simdjson::SUCCESS) {
+            return Error(ErrorCode::InvalidData, "Processor list JSON is not an object");
+        }
+        auto root = rootResult.value();
+        return _loadFromJsonObj(root, location);
+    }
+    catch (const simdjson::simdjson_error& e) {
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
@@ -480,41 +569,57 @@ Result<void> ProcessorListLoader::loadFromJson(const std::string& json, const Re
     }
 }
 
-Result<void> ProcessorListLoader::_loadFromJsonObj(const nlohmann::json& jsonObj, const ResourceLocation& location)
+Result<void> ProcessorListLoader::_loadFromJsonObj(
+    simdjson::ondemand::object& jsonObj, const ResourceLocation& location)
 {
     // 解析 processors 数组
-    if (!jsonObj.contains("processors") || !jsonObj["processors"].is_array()) {
+    auto procsResult = jsonObj["processors"];
+    if (procsResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Processor list missing 'processors' array");
     }
+    auto procsArrResult = procsResult.value().get_array();
+    if (procsArrResult.error() != simdjson::SUCCESS) {
+        return Error(ErrorCode::InvalidData, "Processor list 'processors' is not an array");
+    }
+    auto procsArr = procsArrResult.value();
 
     auto processorList = std::make_unique<StructureProcessorList>();
-    // i32 processorCount = 0;
 
-    for (const auto& processorObj : jsonObj["processors"]) {
+    for (auto processorVal : procsArr) {
+        auto processorObjResult = processorVal.get_object();
+        if (processorObjResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        auto processorObj = processorObjResult.value();
         auto processor = _parseProcessor(processorObj);
         if (processor) {
             processorList->addProcessor(std::move(processor));
-            // ++processorCount;
         }
     }
 
     // 注册处理器列表
     ProcessorListRegistry::instance().registerList(location, *processorList);
 
-    // spdlog::info("Processor list '{}': {} processors", location.toString(), processorCount);
     return Result<void>::ok();
 }
 
 std::unique_ptr<StructureProcessorList> ProcessorListLoader::parseInlineProcessorList(
-    const nlohmann::json& processorsArray)
+    simdjson::ondemand::value& processorsValue)
 {
     auto processorList = std::make_unique<StructureProcessorList>();
 
-    if (!processorsArray.is_array()) {
-        return processorList; // 空列表
+    auto arrResult = processorsValue.get_array();
+    if (arrResult.error() != simdjson::SUCCESS) {
+        return processorList; // 非数组返回空列表
     }
+    auto arr = arrResult.value();
 
-    for (const auto& processorObj : processorsArray) {
+    for (auto processorVal : arr) {
+        auto processorObjResult = processorVal.get_object();
+        if (processorObjResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        auto processorObj = processorObjResult.value();
         auto processor = _parseProcessor(processorObj);
         if (processor) {
             processorList->addProcessor(std::move(processor));
@@ -524,14 +629,13 @@ std::unique_ptr<StructureProcessorList> ProcessorListLoader::parseInlineProcesso
     return processorList;
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProcessor(simdjson::ondemand::object& processorObj)
 {
-    if (!processorObj.contains("processor_type") || !processorObj["processor_type"].is_string()) {
+    auto type = reqString(processorObj, "processor_type");
+    if (type.empty()) {
         spdlog::warn("Processor missing 'processor_type' string");
         return nullptr;
     }
-
-    std::string type = processorObj["processor_type"].get<std::string>();
     type = stripMinecraftPrefix(type);
 
     // 根据类型分发解析
@@ -563,28 +667,45 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProcessor(const n
     }
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProcessor(
+    simdjson::ondemand::object& processorObj)
 {
     // block_ignore 处理器：忽略指定方块列表
     // JSON: { "processor_type": "minecraft:block_ignore", "blocks": [...] }
     std::vector<u32> blocksToIgnore;
 
-    if (processorObj.contains("blocks") && processorObj["blocks"].is_array()) {
-        for (const auto& blockEntry : processorObj["blocks"]) {
-            if (blockEntry.is_string()) {
-                // 方块名称字符串，通过方块注册表解析
-                ResourceLocation blockLoc(blockEntry.get<std::string>());
-                Block* block = BlockRegistry::instance().getBlock(blockLoc);
-                if (block != nullptr) {
-                    blocksToIgnore.push_back(block->defaultState().stateId());
-                } else {
-                    spdlog::info("block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
+    auto blocksResult = processorObj["blocks"];
+    if (blocksResult.error() == simdjson::SUCCESS) {
+        auto blocksArrResult = blocksResult.value().get_array();
+        if (blocksArrResult.error() == simdjson::SUCCESS) {
+            auto blocksArr = blocksArrResult.value();
+            for (auto blockEntryVal : blocksArr) {
+                // 先判断元素类型:字符串(方块名)或对象(完整方块状态)
+                auto typeResult = blockEntryVal.type();
+                if (typeResult.error() != simdjson::SUCCESS) {
+                    continue;
                 }
-            } else if (blockEntry.is_object()) {
-                // 完整方块状态对象
-                u32 stateId = parseOutputBlockStateId(blockEntry);
-                if (stateId != 0) {
-                    blocksToIgnore.push_back(stateId);
+                if (typeResult.value() == simdjson::ondemand::json_type::string) {
+                    auto strResult = blockEntryVal.get_string();
+                    if (strResult.error() == simdjson::SUCCESS) {
+                        ResourceLocation blockLoc(std::string(strResult.value()));
+                        Block* block = BlockRegistry::instance().getBlock(blockLoc);
+                        if (block != nullptr) {
+                            blocksToIgnore.push_back(block->defaultState().stateId());
+                        } else {
+                            spdlog::info(
+                                "block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
+                        }
+                    }
+                } else if (typeResult.value() == simdjson::ondemand::json_type::object) {
+                    auto objResult = blockEntryVal.get_object();
+                    if (objResult.error() == simdjson::SUCCESS) {
+                        auto blockEntryObj = objResult.value();
+                        u32 stateId = parseOutputBlockStateId(blockEntryObj);
+                        if (stateId != 0) {
+                            blocksToIgnore.push_back(stateId);
+                        }
+                    }
                 }
             }
         }
@@ -593,40 +714,40 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
     return std::make_unique<BlockIgnoreStructureProcessor>(blocksToIgnore);
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockRotProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockRotProcessor(
+    simdjson::ondemand::object& processorObj)
 {
     // block_rot 处理器（IntegrityProcessor）：完整性衰减
     // JSON: { "processor_type": "minecraft:block_rot", "integrity": 0.5 }
-    f32 integrity = 1.0f;
-    if (processorObj.contains("integrity") && processorObj["integrity"].is_number()) {
-        integrity = processorObj["integrity"].get<f32>();
-        // 限制在 [0.0, 1.0] 范围
-        if (integrity < 0.0f) {
-            integrity = 0.0f;
-        } else if (integrity > 1.0f) {
-            integrity = 1.0f;
-        }
+    f32 integrity = optFloat(processorObj, "integrity", 1.0f);
+    // 限制在 [0.0, 1.0] 范围
+    if (integrity < 0.0f) {
+        integrity = 0.0f;
+    } else if (integrity > 1.0f) {
+        integrity = 1.0f;
     }
 
     return std::make_unique<IntegrityProcessor>(integrity);
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseGravityProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseGravityProcessor(
+    simdjson::ondemand::object& processorObj)
 {
     // gravity 处理器：重力偏移
     // JSON: { "processor_type": "minecraft:gravity", "heightmap": "WORLD_SURFACE_WG" }
     i32 heightmapType = 0; // 默认 WORLD_SURFACE_WG
-    if (processorObj.contains("heightmap") && processorObj["heightmap"].is_string()) {
-        std::string heightmap = stripMinecraftPrefix(processorObj["heightmap"].get<std::string>());
+    auto heightmap = optString(processorObj, "heightmap");
+    if (heightmap) {
+        std::string hm = stripMinecraftPrefix(*heightmap);
 
-        if (heightmap == "WORLD_SURFACE_WG" || heightmap == "world_surface_wg") {
+        if (hm == "WORLD_SURFACE_WG" || hm == "world_surface_wg") {
             heightmapType = 0;
-        } else if (heightmap == "OCEAN_FLOOR_WG" || heightmap == "ocean_floor_wg") {
+        } else if (hm == "OCEAN_FLOOR_WG" || hm == "ocean_floor_wg") {
             heightmapType = 1;
-        } else if (heightmap == "MOTION_BLOCKING" || heightmap == "motion_blocking") {
+        } else if (hm == "MOTION_BLOCKING" || hm == "motion_blocking") {
             heightmapType = 2;
         } else {
-            spdlog::info("gravity: unknown heightmap '{}', defaulting to WORLD_SURFACE_WG", heightmap);
+            spdlog::info("gravity: unknown heightmap '{}', defaulting to WORLD_SURFACE_WG", hm);
         }
     }
 
@@ -639,47 +760,83 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseJigsawReplacement
     return std::make_unique<JigsawReplacementStructureProcessor>();
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(simdjson::ondemand::object& processorObj)
 {
     // rule 处理器：规则处理器
     // JSON: { "processor_type": "minecraft:rule", "rules": [...] }
     // 每条规则：{ "input_predicate": {...}, "location_predicate": {...}, "output_state": {...} }
     std::vector<std::unique_ptr<RuleEntry>> rules;
 
-    if (!processorObj.contains("rules") || !processorObj["rules"].is_array()) {
+    auto rulesResult = processorObj["rules"];
+    if (rulesResult.error() != simdjson::SUCCESS) {
         spdlog::info("rule processor: no rules array, creating empty rule processor");
         return std::make_unique<RuleStructureProcessor>(std::move(rules));
     }
+    auto rulesArrResult = rulesResult.value().get_array();
+    if (rulesArrResult.error() != simdjson::SUCCESS) {
+        spdlog::info("rule processor: 'rules' is not an array, creating empty rule processor");
+        return std::make_unique<RuleStructureProcessor>(std::move(rules));
+    }
+    auto rulesArr = rulesArrResult.value();
 
-    for (const auto& ruleObj : processorObj["rules"]) {
+    for (auto ruleVal : rulesArr) {
+        auto ruleObjResult = ruleVal.get_object();
+        if (ruleObjResult.error() != simdjson::SUCCESS) {
+            continue;
+        }
+        auto ruleObj = ruleObjResult.value();
+
         // 解析 input_predicate
         std::unique_ptr<RuleTest> inputPredicate;
-        if (ruleObj.contains("input_predicate") && ruleObj["input_predicate"].is_object()) {
-            inputPredicate = parseRuleTest(ruleObj["input_predicate"]);
-        } else {
+        auto inputResult = ruleObj["input_predicate"];
+        if (inputResult.error() == simdjson::SUCCESS) {
+            auto inputObjResult = inputResult.value().get_object();
+            if (inputObjResult.error() == simdjson::SUCCESS) {
+                auto inputObj = inputObjResult.value();
+                inputPredicate = parseRuleTest(inputObj);
+            }
+        }
+        if (!inputPredicate) {
             inputPredicate = std::make_unique<AlwaysTrueRuleTest>();
         }
 
         // 解析 location_predicate
         std::unique_ptr<RuleTest> locationPredicate;
-        if (ruleObj.contains("location_predicate") && ruleObj["location_predicate"].is_object()) {
-            locationPredicate = parseRuleTest(ruleObj["location_predicate"]);
-        } else {
+        auto locResult = ruleObj["location_predicate"];
+        if (locResult.error() == simdjson::SUCCESS) {
+            auto locObjResult = locResult.value().get_object();
+            if (locObjResult.error() == simdjson::SUCCESS) {
+                auto locObj = locObjResult.value();
+                locationPredicate = parseRuleTest(locObj);
+            }
+        }
+        if (!locationPredicate) {
             locationPredicate = std::make_unique<AlwaysTrueRuleTest>();
         }
 
         // 解析 pos_predicate（可选）
         std::unique_ptr<feature::template_::PosRuleTest> posPredicate;
-        if (ruleObj.contains("pos_predicate") && ruleObj["pos_predicate"].is_object()) {
-            posPredicate = _parsePosRuleTest(ruleObj["pos_predicate"]);
-        } else {
+        auto posResult = ruleObj["pos_predicate"];
+        if (posResult.error() == simdjson::SUCCESS) {
+            auto posObjResult = posResult.value().get_object();
+            if (posObjResult.error() == simdjson::SUCCESS) {
+                auto posObj = posObjResult.value();
+                posPredicate = _parsePosRuleTest(posObj);
+            }
+        }
+        if (!posPredicate) {
             posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
         }
 
         // 解析 output_state
         u32 outputStateId = 0;
-        if (ruleObj.contains("output_state") && ruleObj["output_state"].is_object()) {
-            outputStateId = parseOutputBlockStateId(ruleObj["output_state"]);
+        auto outResult = ruleObj["output_state"];
+        if (outResult.error() == simdjson::SUCCESS) {
+            auto outObjResult = outResult.value().get_object();
+            if (outObjResult.error() == simdjson::SUCCESS) {
+                auto outObj = outObjResult.value();
+                outputStateId = parseOutputBlockStateId(outObj);
+            }
         }
 
         // 解析 output_nbt / block_entity_modifier（可选，暂不实现）
@@ -693,18 +850,16 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(con
     return std::make_unique<RuleStructureProcessor>(std::move(rules));
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockAgeProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockAgeProcessor(
+    simdjson::ondemand::object& processorObj)
 {
     // block_age 处理器（苔藓化）
     // JSON: { "processor_type": "minecraft:block_age", "mossiness": 0.5 }
-    f32 mossiness = 0.0f;
-    if (processorObj.contains("mossiness") && processorObj["mossiness"].is_number()) {
-        mossiness = processorObj["mossiness"].get<f32>();
-        if (mossiness < 0.0f) {
-            mossiness = 0.0f;
-        } else if (mossiness > 1.0f) {
-            mossiness = 1.0f;
-        }
+    f32 mossiness = optFloat(processorObj, "mossiness", 0.0f);
+    if (mossiness < 0.0f) {
+        mossiness = 0.0f;
+    } else if (mossiness > 1.0f) {
+        mossiness = 1.0f;
     }
 
     return std::make_unique<BlockAgeProcessor>(mossiness);
@@ -729,13 +884,10 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseNopProcessor()
 }
 
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksProcessor(
-    const nlohmann::json& processorObj)
+    simdjson::ondemand::object& processorObj)
 {
     // protected_blocks 处理器：保护指定标签的方块不被结构覆盖
     // JSON: { "processor_type": "minecraft:protected_blocks", "value": "#minecraft:features_cannot_replace" }
-    //
-    // 对应 MC Java 1.21.11 net.minecraft.world.level.levelgen.structure.templatesystem.ProtectedBlockProcessor
-    // value 字段为标签 ID 字符串，必须以 '#' 前缀标识（MC codec 使用 TagKey.hashedCodec 解析）
     //
     // 处理逻辑：
     // - 读取 world->getBlockState(pos) 当前世界方块状态
@@ -748,40 +900,45 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksPr
     // - value 不以 '#' 开头 → 仍尝试解析为 ResourceLocation（向后兼容）
     // - 标签不存在 → ProtectedBlocksProcessor 在 process() 时透传（视为空标签）
 
-    if (!processorObj.contains("value") || !processorObj["value"].is_string()) {
+    auto valueStr = optString(processorObj, "value");
+    if (!valueStr || valueStr->empty()) {
         spdlog::warn("protected_blocks processor: missing or invalid 'value' field, using nop processor");
         return std::make_unique<NopStructureProcessor>();
     }
 
-    std::string valueStr = processorObj["value"].get<std::string>();
-
     // value 字段为标签 ID，格式为 "#<namespace>:<path>" 或 "#<path>"
     // MC 原版 codec 要求 '#' 前缀，此处剥离 '#' 后解析为 ResourceLocation
-    if (!valueStr.empty() && valueStr[0] == '#') {
-        valueStr = valueStr.substr(1);
+    if ((*valueStr)[0] == '#') {
+        *valueStr = valueStr->substr(1);
     }
 
-    ResourceLocation tagId(valueStr);
+    ResourceLocation tagId(*valueStr);
     if (tagId.namespace_().empty()) {
-        spdlog::warn("protected_blocks processor: invalid tag id '{}', using nop processor",
-            processorObj["value"].get<std::string>());
+        spdlog::warn("protected_blocks processor: invalid tag id, using nop processor");
         return std::make_unique<NopStructureProcessor>();
     }
 
     return std::make_unique<ProtectedBlocksProcessor>(tagId);
 }
 
-std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(const nlohmann::json& processorObj)
+std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(simdjson::ondemand::object& processorObj)
 {
     // capped 处理器：限制内部处理器应用次数的上限
     // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": <IntProvider> }
     // delegate 是嵌套的处理器定义，limit 是 IntProvider（支持固定整数或随机范围）
-    if (!processorObj.contains("delegate") || !processorObj["delegate"].is_object()) {
+    auto delegateResult = processorObj["delegate"];
+    if (delegateResult.error() != simdjson::SUCCESS) {
         spdlog::warn("capped processor: missing or invalid 'delegate' field, using nop processor");
         return std::make_unique<NopStructureProcessor>();
     }
+    auto delegateObjResult = delegateResult.value().get_object();
+    if (delegateObjResult.error() != simdjson::SUCCESS) {
+        spdlog::warn("capped processor: 'delegate' is not an object, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+    auto delegateObj = delegateObjResult.value();
 
-    auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
+    auto delegateProcessor = _parseProcessor(delegateObj);
     if (!delegateProcessor) {
         spdlog::warn("capped processor: failed to parse delegate processor, using nop processor");
         return std::make_unique<NopStructureProcessor>();
@@ -790,14 +947,28 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(c
     // 解析 limit 参数：支持裸整数和完整 IntProvider 格式
     // MC 原版使用 IntProvider.POSITIVE_CODEC（最小值 >= 1）
     std::unique_ptr<valueprovider::IntProvider> limitProvider;
-    if (processorObj.contains("limit")) {
-        // POSITIVE_CODEC 要求 minValue >= 1
-        auto limitResult = valueprovider::IntProviderParser::parse(processorObj["limit"], 1);
-        if (limitResult.success()) {
-            limitProvider = limitResult.value();
-        } else {
-            spdlog::warn("capped processor: failed to parse limit IntProvider: {}, using default value 4",
-                limitResult.error().message());
+    auto limitResult = processorObj["limit"];
+    if (limitResult.error() == simdjson::SUCCESS) {
+        // IntProviderParser 仍基于 nlohmann::json(被 8+ 个其他 loader 复用,本次不迁移)。
+        // 在此边界用 raw_json() 取 limit 字段的原始 JSON 文本,转回 nlohmann::json 传给 IntProviderParser。
+        // capped 处理器在原版数据中稀有,边界开销可接受。
+        auto rawResult = limitResult.value().raw_json();
+        if (rawResult.error() == simdjson::SUCCESS) {
+            std::string_view rawJson = rawResult.value();
+            try {
+                nlohmann::json limitJson = nlohmann::json::parse(rawJson);
+                // POSITIVE_CODEC 要求 minValue >= 1
+                auto limitParseResult = valueprovider::IntProviderParser::parse(limitJson, 1);
+                if (limitParseResult.success()) {
+                    limitProvider = limitParseResult.value();
+                } else {
+                    spdlog::warn("capped processor: failed to parse limit IntProvider: {}, using default value 4",
+                        limitParseResult.error().message());
+                }
+            }
+            catch (const nlohmann::json::parse_error& e) {
+                spdlog::warn("capped processor: failed to reparse limit JSON: {}, using default value 4", e.what());
+            }
         }
     }
 

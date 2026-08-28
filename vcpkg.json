@@ -26,7 +26,8 @@
     "abseil",
     "leveldb",
     "gflags",
-    "asmjit"
+    "asmjit",
+    "simdjson"
   ],
   "features": {
     "vulkan": {

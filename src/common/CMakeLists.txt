@@ -1703,6 +1703,7 @@ target_link_libraries(mc_common
         spdlog::spdlog
         gflags::gflags
         nlohmann_json::nlohmann_json
+        simdjson::simdjson
         mc::profiler
     PRIVATE
         LibArchive::LibArchive
