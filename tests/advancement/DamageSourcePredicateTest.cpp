@@ -267,11 +267,12 @@ TEST_F(DamageSourcePredicateTest, MultipleConditionsMatch)
     ASSERT_TRUE(result.success());
     DamageSourcePredicate predicate = result.value();
 
-    // OnFire: isFire=true, bypassesArmor=false (OnFire 不绕过护甲)
+    // OnFire: isFire=true, bypassesArmor=true（on_fire 在 BYPASSES_ARMOR 标签内，绕过护甲，
+    // 仅由火焰保护附魔减免）。此前 bypassesArmor() 漏 OnFire 返 false，已修复对齐 vanilla。
     EnvironmentalDamage onFire(DamageType::OnFire);
     EXPECT_TRUE(onFire.isFire());
-    EXPECT_FALSE(onFire.bypassesArmor());
-    EXPECT_FALSE(predicate.test(onFire)); // 不满足 bypasses_armor=true
+    EXPECT_TRUE(onFire.bypassesArmor());
+    EXPECT_TRUE(predicate.test(onFire)); // 满足 is_fire=true 且 bypasses_armor=true
 
     // 岩浆：是火焰，但不绕过护甲
     EnvironmentalDamage lava(DamageType::Lava);

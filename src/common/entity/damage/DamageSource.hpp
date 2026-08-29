@@ -399,12 +399,19 @@ public:
         // dragon_breath, starve, fall, ender_pearl, freeze, stalagmite,
         // magic, indirect_magic, out_of_world, generic_kill, sonic_boom, outside_border
         // 注：indirect_magic 由 IndirectEntityDamageSource 通过 setBypassesArmor() 处理
-        return m_type == DamageType::OutOfWorld || m_type == DamageType::Starve || m_type == DamageType::Drown ||
-            m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall || m_type == DamageType::InWall ||
-            m_type == DamageType::Cramming || m_type == DamageType::Generic || m_type == DamageType::Magic ||
-            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::Stalagmite ||
-            m_type == DamageType::Freeze || m_type == DamageType::EnderPearl || m_type == DamageType::IndirectMagic ||
-            m_type == DamageType::GenericKill || m_type == DamageType::SonicBoom || m_type == DamageType::OutsideBorder;
+        // 注：on_fire（着火状态伤害）绕过护甲——此前实现漏 DamageType::OnFire，致实体着火时
+        //     on_fire 伤害被 applyArmorCalculations 错误减免护甲，偏离 vanilla（vanilla 中 on_fire
+        //     仅由火焰保护附魔减免，盔甲本身不减）。已补 OnFire 对齐数据包 bypasses_armor.json 成员集。
+        // TODO: 此处硬编码 DamageType 列表代标签查询，属扩展性偏差——数据包扩展 BYPASSES_ARMOR
+        //       成员时此处失效。未来应改为查 DamageTypeTags::BYPASSES_ARMOR() 标签（对齐 isFire()/
+        //       isProjectile() 的标签查询模式），标签未初始化时回退硬编码列表保底。
+        return m_type == DamageType::OnFire || m_type == DamageType::OutOfWorld || m_type == DamageType::Starve ||
+            m_type == DamageType::Drown || m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall ||
+            m_type == DamageType::InWall || m_type == DamageType::Cramming || m_type == DamageType::Generic ||
+            m_type == DamageType::Magic || m_type == DamageType::Wither || m_type == DamageType::DragonBreath ||
+            m_type == DamageType::Stalagmite || m_type == DamageType::Freeze || m_type == DamageType::EnderPearl ||
+            m_type == DamageType::IndirectMagic || m_type == DamageType::GenericKill ||
+            m_type == DamageType::SonicBoom || m_type == DamageType::OutsideBorder;
     }
 
     [[nodiscard]] bool bypassesInvulnerability() const override

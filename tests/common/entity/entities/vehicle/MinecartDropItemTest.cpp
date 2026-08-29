@@ -357,7 +357,7 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
         {DamageType::FallingAnvil, false, false, "FallingAnvil"},
         {DamageType::FallingBlock, false, false, "FallingBlock"},
         {DamageType::DragonBreath, false, false, "DragonBreath"},
-        {DamageType::Fireworks, false, false, "Fireworks"}};
+        {DamageType::Fireworks, false, true, "Fireworks"}};
 
     for (const auto& tc : testCases) {
         EnvironmentalDamage damage(tc.type);
