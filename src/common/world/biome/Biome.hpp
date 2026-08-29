@@ -299,6 +299,25 @@ public:
     void setDownfall(f32 value) { m_climate.downfall = value; }
     void setHasPrecipitation(bool value) { m_climate.hasPrecipitation = value; }
     void setTemperatureModifier(BiomeClimate::TemperatureModifier value) { m_climate.temperatureModifier = value; }
+
+    /**
+     * @brief 是否为"火焰加速熄灭"群系（vanilla EnvironmentAttributes.INCREASED_FIRE_BURNOUT）
+     *
+     * 对齐 vanilla 1.21.11 FireBlock.checkBurnOut（FireBlock.java:178-179）：在潮湿/特殊群系
+     * 中火焰蔓延时基础概率减 50、远距离点燃几率折半。由 BiomeLoader 解析群系 JSON 的
+     * attributes["minecraft:gameplay/increased_fire_burnout"] 注入（数据驱动，vanilla 共 8 个
+     * 群系置 true：swamp/mangrove_swamp/jungle/bamboo_jungle/mushroom_fields/frozen_peaks/
+     * jagged_peaks/snowy_slopes）。
+     *
+     * TODO: 完整 EnvironmentAttributes 系统（EnvironmentAttribute/Map/System/Timeline/Codec/
+     * 网络同步）实现后，本标志应迁移到 world.environmentAttributes().getValue(
+     * EnvironmentAttributes::INCREASED_FIRE_BURNOUT, pos)，支持维度级 override 与空间插值。
+     * 群系层标志届时作为该环境属性的数据源之一。
+     *
+     * @return 是否为火焰加速熄灭群系
+     */
+    [[nodiscard]] bool isIncreasedFireBurnout() const noexcept { return m_increasedFireBurnout; }
+    void setIncreasedFireBurnout(bool value) noexcept { m_increasedFireBurnout = value; }
     void setSurfaceBlock(const BlockState* block) { m_surfaceBlock = block; }
     void setSubSurfaceBlock(const BlockState* block) { m_subSurfaceBlock = block; }
     void setUnderWaterBlock(const BlockState* block) { m_underWaterBlock = block; }
@@ -386,6 +405,9 @@ private:
 
     // 气候参数
     BiomeClimate m_climate;
+
+    // 环境属性：火焰加速熄灭标志（vanilla EnvironmentAttributes.INCREASED_FIRE_BURNOUT）
+    bool m_increasedFireBurnout = false;
 
     // 方块设置 - 使用BlockState指针，运行时从VanillaBlocks获取
     const BlockState* m_surfaceBlock = nullptr;

@@ -24,7 +24,12 @@
 #include <gtest/gtest.h>
 
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeLoader.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "core/Constants.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "world/IWorld.hpp"
@@ -35,6 +40,7 @@
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include <nlohmann/json.hpp>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -90,8 +96,9 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    // 默认返回 nullptr（保持现有 41 个测试行为）；flag1 链路测试经 setChunkData 注入带 biome 的 ChunkData。
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return m_chunkData.get(); }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return m_chunkData != nullptr; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
@@ -142,6 +149,10 @@ public:
     void setCanRainAtResult(bool value) { m_canRainAtResult = value; }
     void setDifficulty(Difficulty value) { m_difficulty = value; }
 
+    // 注入带 biome 的 ChunkData 供 FireBlock::getIncreasedFireBurnout 链路测试。
+    void setChunkData(std::unique_ptr<ChunkData> chunk) { m_chunkData = std::move(chunk); }
+    [[nodiscard]] ChunkData* mutableChunkData() { return m_chunkData.get(); }
+
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         ensureTickManager();
@@ -168,6 +179,7 @@ private:
     }
 
     std::map<BlockPos, const BlockState*> m_blocks;
+    std::unique_ptr<ChunkData> m_chunkData; // 可选：flag1 链路测试注入带 biome 的区块
     mutable std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     math::Random m_random{12345};
     world::border::WorldBorder m_worldBorder;
@@ -1211,4 +1223,155 @@ TEST_F(NewBlockIntegrationTest, BeehiveBlocks_HaveHoneyLevelProperty)
     // 默认蜂蜜等级应为0
     EXPECT_EQ(beehiveState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
     EXPECT_EQ(beeNestState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
+}
+
+// ============================================================================
+// FireBlock::getIncreasedFireBurnout 群系标志链路测试（偏差 #4 修复验证）
+// ============================================================================
+//
+// 对齐 vanilla 1.21.11 FireBlock.checkBurnOut（FireBlock.java:178-179）的 flag1：
+// 火焰蔓延时读群系级 EnvironmentAttributes.INCREASED_FIRE_BURNOUT，潮湿/特殊群系
+// 恒定生效 -50/折半（与是否下雨无关）。此前 Cubium 用 isRaining()&&canDie 近似，
+// 对"非下雨的潮湿群系"漏判、"下雨的非潮湿群系"误判。现已改用 FireBlock::
+// getIncreasedFireBurnout 经 ChunkData::getBiomeAtBlock + BiomeRegistry 查群系标志。
+
+namespace {
+// 构造一个 ChunkData，将其 biome 全部设为指定 BiomeId。
+std::unique_ptr<ChunkData> makeChunkWithBiome(BiomeId biomeId)
+{
+    auto chunk = std::make_unique<ChunkData>(0, 0);
+    // 对 chunk 内所有 section（24 个）的所有 4×4×4 采样点写入同一 biome，
+    // 确保任意 pos.y 查询都能命中。
+    BiomeContainer& biomes = chunk->getBiomes();
+    for (i32 section = 0; section < mc::world::CHUNK_SECTIONS; ++section) {
+        for (i32 bx = 0; bx < 4; ++bx) {
+            for (i32 by = 0; by < 4; ++by) {
+                for (i32 bz = 0; bz < 4; ++bz) {
+                    biomes.setBiome(section, bx, by, bz, biomeId);
+                }
+            }
+        }
+    }
+    return chunk;
+}
+} // namespace
+
+class FireBlockBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        // BiomeRegistry::initialize 注册默认 biome（Plains 等），但不解析 JSON attributes。
+        // 这里手动把 Swamp（Biomes::Swamp=6）的标志设为 true，模拟 BiomeLoader 解析
+        // swamp.json 的 attributes["minecraft:gameplay/increased_fire_burnout"] 注入结果。
+        world::biome::BiomeRegistry::instance().initialize();
+        if (world::biome::BiomeRegistry::instance().hasBiome(Biomes::Swamp)) {
+            world::biome::BiomeRegistry::instance().getMutable(Biomes::Swamp).setIncreasedFireBurnout(true);
+        }
+        // Plains 保持默认 false
+    }
+
+    // 经 friend 授权访问 FireBlock::getIncreasedFireBurnout（protected）。
+    // TEST_F 测试体是独立函数非 fixture 成员，须经此静态中转才能命中 friend 授权。
+    static bool callGetIncreasedFireBurnout(FireBlock& fire, IWorld& world, const BlockPos& pos)
+    {
+        return fire.getIncreasedFireBurnout(world, pos);
+    }
+
+    FireSpreadTestWorld m_world;
+};
+
+// Swamp 群系（increased_fire_burnout=true）：getIncreasedFireBurnout 应返回 true。
+// 修复前用 isRaining()&&canDie 近似，晴天（isRaining=false）会返回 false（漏判）。
+TEST_F(FireBlockBiomeTest, GetIncreasedFireBurnout_SwampBiome_True)
+{
+    FireBlock* fire = getFireBlock();
+    ASSERT_NE(fire, nullptr);
+    ASSERT_TRUE(world::biome::BiomeRegistry::instance().hasBiome(Biomes::Swamp));
+
+    // 注入全 Swamp biome 的 chunk，晴天（isRaining=false）
+    m_world.setChunkData(makeChunkWithBiome(Biomes::Swamp));
+    m_world.setRaining(false);
+    m_world.setCanRainAtResult(false);
+
+    BlockPos pos(8, 64, 8); // chunk 内坐标
+    EXPECT_TRUE(callGetIncreasedFireBurnout(*fire, m_world, pos));
+}
+
+// Plains 群系（increased_fire_burnout=false）：getIncreasedFireBurnout 应返回 false。
+// 即使下雨，vanilla 也不触发 flag1（下雨不等于 increased_fire_burnout）。
+TEST_F(FireBlockBiomeTest, GetIncreasedFireBurnout_PlainsBiome_False)
+{
+    FireBlock* fire = getFireBlock();
+    ASSERT_NE(fire, nullptr);
+
+    m_world.setChunkData(makeChunkWithBiome(Biomes::Plains));
+    // 即便下雨，Plains 非 increased_fire_burnout 群系，flag1 应为 false（修复前会误判为 true）
+    m_world.setRaining(true);
+    m_world.setCanRainAtResult(true);
+
+    BlockPos pos(8, 64, 8);
+    EXPECT_FALSE(callGetIncreasedFireBurnout(*fire, m_world, pos));
+}
+
+// chunk 未加载（getChunk 返回 nullptr）：getIncreasedFireBurnout 应返回 false，
+// 不崩溃（火焰在未加载区块本就不会蔓延）。
+TEST_F(FireBlockBiomeTest, GetIncreasedFireBurnout_UnloadedChunk_False)
+{
+    FireBlock* fire = getFireBlock();
+    ASSERT_NE(fire, nullptr);
+
+    // 不注入 ChunkData，getChunk 返回 nullptr
+    BlockPos pos(8, 64, 8);
+    EXPECT_FALSE(callGetIncreasedFireBurnout(*fire, m_world, pos));
+}
+
+// ============================================================================
+// BiomeLoader::applyAttributes 解析测试（验证 JSON attributes 注入链路）
+// ============================================================================
+
+class BiomeLoaderAttributesTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        world::biome::BiomeRegistry::instance().initialize();
+    }
+
+    // 构造最小 biome JSON，仅含 attributes 字段中的 increased_fire_burnout。
+    static nlohmann::json makeBiomeJsonWithBurnout(bool burnout)
+    {
+        nlohmann::json j;
+        j["attributes"] = nlohmann::json::object();
+        j["attributes"]["minecraft:gameplay/increased_fire_burnout"] = burnout;
+        return j;
+    }
+};
+
+// attributes["minecraft:gameplay/increased_fire_burnout"]=true → 标志注入 true
+TEST_F(BiomeLoaderAttributesTest, ParsesIncreasedFireBurnout_True)
+{
+    // 用 Plains（id=1）作为加载目标：先确保其标志为默认 false，加载 JSON 后应变 true。
+    ASSERT_TRUE(world::biome::BiomeRegistry::instance().hasBiome(Biomes::Plains));
+    ASSERT_FALSE(world::biome::BiomeRegistry::instance().get(Biomes::Plains).isIncreasedFireBurnout());
+
+    auto result = world::biome::BiomeLoader::loadFromJson(
+        makeBiomeJsonWithBurnout(true), ResourceLocation("minecraft", "plains"));
+    ASSERT_TRUE(result.success());
+
+    EXPECT_TRUE(world::biome::BiomeRegistry::instance().get(Biomes::Plains).isIncreasedFireBurnout());
+}
+
+// 无 attributes 字段 → 标志保持默认 false（不误注入）
+TEST_F(BiomeLoaderAttributesTest, NoAttributesField_KeepsDefaultFalse)
+{
+    nlohmann::json j;
+    j["temperature"] = 0.5f; // 仅 climate 字段，无 attributes
+    auto result = world::biome::BiomeLoader::loadFromJson(j, ResourceLocation("minecraft", "desert"));
+    ASSERT_TRUE(result.success());
+
+    // Desert 标志应为默认 false
+    if (world::biome::BiomeRegistry::instance().hasBiome(Biomes::Desert)) {
+        EXPECT_FALSE(world::biome::BiomeRegistry::instance().get(Biomes::Desert).isIncreasedFireBurnout());
+    }
 }

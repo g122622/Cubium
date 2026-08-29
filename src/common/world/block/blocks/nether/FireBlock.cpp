@@ -30,6 +30,8 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../biome/BiomeRegistry.hpp"
+#include "../../../chunk/data/ChunkData.hpp"
 #include "../../../dimension/DimensionManager.hpp"
 #include "../../../dimension/teleport/PortalSize.hpp"
 #include "../../BlockRegistry.hpp"
@@ -412,18 +414,19 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
     Difficulty difficulty = world.difficulty();
     i32 difficultyBonus = entity::combat::DifficultyHelper::getFireSpreadBonus(difficulty);
 
-    // 检查是否在下雨区域（高湿度）
-    // TODO(#4 INCREASED_FIRE_BURNOUT): 对齐 vanilla FireBlock.java:178-179 的 flag1 环境属性
-    //   （EnvironmentAttributes.INCREASED_FIRE_BURNOUT，潮湿群系/维度级标志，恒定生效 -50 与折半，
-    //   与是否下雨无关）。Cubium 的 EnvironmentAttributes 系统尚未实现，此处用 isRaining()&&canDie
-    //   近似——下雨时碰巧接近 flag1=true 行为，但非下雨的潮湿群系漏了 -50/折半。待
-    //   EnvironmentAttributes 实现后改查 flag1。
-    bool isHighHumidity = world.isRaining() && canDie(world, pos);
+    // 对齐 vanilla FireBlock.java:178-179：读群系级 INCREASED_FIRE_BURNOUT 环境属性（flag1）。
+    // 潮湿/特殊群系（vanilla 8 个：swamp/mangrove_swamp/jungle/bamboo_jungle/mushroom_fields/
+    // frozen_peaks/jagged_peaks/snowy_slopes）恒定生效：直接相邻 -50、远距离蔓延折半，
+    // 与是否下雨无关。由 BiomeLoader 解析群系 JSON attributes["minecraft:gameplay/
+    // increased_fire_burnout"] 注入，运行时经 ChunkData::getBiomeAtBlock 查群系取标志。
+    // 此前 Cubium 用 isRaining()&&canDie 近似——下雨时碰巧接近 flag1=true 行为，但非下雨的
+    // 潮湿群系漏了 -50/折半（漏判），下雨的非潮湿群系误触发（误判）。现已对齐 vanilla。
+    bool flag1 = getIncreasedFireBurnout(world, pos);
 
     // ===== 1. 直接相邻方块的燃烧 =====
 
-    // 湿度惩罚：高湿度时 -50
-    i32 humidityPenalty = isHighHumidity ? -50 : 0;
+    // flag1 惩罚：潮湿群系时 -50（vanilla k = flag1 ? -50 : 0）
+    i32 humidityPenalty = flag1 ? -50 : 0;
 
     // 垂直方向（上和下）：chance = 250 + humidityPenalty
     // 水平方向（4个方向）：chance = 300 + humidityPenalty
@@ -463,8 +466,8 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
                     // 公式: (encouragement + 40 + difficultyBonus) / (age + 30)
                     i32 spreadChance = (neighborEncouragement + 40 + difficultyBonus) / (age + 30);
 
-                    // 高湿度时减半
-                    if (isHighHumidity) {
+                    // flag1（潮湿群系）时减半（vanilla FireBlock.java:201 if(flag1) i2/=2）
+                    if (flag1) {
                         spreadChance /= 2;
                     }
 
@@ -506,6 +509,21 @@ bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const
 {
     // 同 canDie，用于远距离蔓延检查
     return canDie(world, pos);
+}
+
+bool FireBlock::getIncreasedFireBurnout(IWorld& world, const BlockPos& pos) const
+{
+    // 对齐 vanilla Level.getBiome(pos) 运行时查 chunk biome palette 的语义：
+    // 经 IWorld::getChunk 取已生成区块的 ChunkData，再查其 BiomeContainer（O(1) 数组索引，
+    // 无 Voronoi 重算，等价 vanilla 运行时精度）。chunk 未加载时返回 false——火焰在未加载
+    // 区块的蔓延本就不会发生，跳过即可。
+    // 注意：ChunkData::getBiomeAtBlock 期望 chunk 局部 x/z（0-15）+ 世界绝对 y。
+    const ChunkData* chunk = world.getChunk(pos.x >> 4, pos.z >> 4);
+    if (chunk == nullptr) {
+        return false;
+    }
+    const BiomeId biomeId = chunk->getBiomeAtBlock(pos.x & 15, pos.y, pos.z & 15);
+    return world::biome::BiomeRegistry::instance().get(biomeId).isIncreasedFireBurnout();
 }
 
 i32 FireBlock::getNeighborEncouragement(IWorld& world, const BlockPos& pos) const

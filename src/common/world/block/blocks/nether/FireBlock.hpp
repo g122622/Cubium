@@ -35,6 +35,10 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 
+// 测试 fixture 前向声明（全局命名空间，tests/common/world/block/blocks/FireBlockTest.cpp），
+// 供 FireBlock 经 friend 授权访问 protected getIncreasedFireBurnout 做偏差 #4 回退验证。
+class FireBlockBiomeTest;
+
 namespace mc {
 
 class IWorld;
@@ -132,6 +136,10 @@ public:
     }
 
 protected:
+    // 测试 fixture（tests/common/world/block/blocks/FireBlockTest.cpp），经 friend 访问
+    // protected getIncreasedFireBurnout，验证偏差 #4 修复（群系标志替代 isRaining 近似）。
+    friend class ::FireBlockBiomeTest;
+
     /**
      * @brief 火焰计划刻延迟（对齐 vanilla FireBlock.getFireTickDelay）
      *
@@ -213,6 +221,26 @@ protected:
      * @return 如果位置会被雨淋灭返回 true
      */
     [[nodiscard]] bool canDieAt(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 查询当前位置的群系是否为"火焰加速熄灭"群系
+     *
+     * 对齐 vanilla 1.21.11 FireBlock.checkBurnOut（FireBlock.java:178-179）的 flag1：
+     * 读群系级 EnvironmentAttributes.INCREASED_FIRE_BURNOUT 环境属性。Cubium 经
+     * ChunkData::getBiomeAtBlock（运行时查已生成的群系，O(1) 无 Voronoi 重算，等价
+     * vanilla Level.getBiome 运行时查 chunk biome palette）+ BiomeRegistry 取群系标志。
+     *
+     * 潮湿/特殊群系（vanilla 8 个：swamp/mangrove_swamp/jungle/bamboo_jungle/mushroom_fields/
+     * frozen_peaks/jagged_peaks/snowy_slopes）置 true，恒定生效（与是否下雨无关）。
+     *
+     * TODO: 完整 EnvironmentAttributes 系统实现后，迁移到
+     * world.environmentAttributes().getValue(INCREASED_FIRE_BURNOUT, pos)。
+     *
+     * @param world 世界引用
+     * @param pos 火焰位置
+     * @return 是否为火焰加速熄灭群系
+     */
+    [[nodiscard]] bool getIncreasedFireBurnout(IWorld& world, const BlockPos& pos) const;
 
     /**
      * @brief 获取目标位置周围的火焰蔓延鼓励值

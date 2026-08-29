@@ -270,6 +270,36 @@ void applyClimate(Biome& biome, const nlohmann::json& jsonObj)
 }
 
 // ============================================================================
+// attributes 解析（vanilla 1.21.11 群系 JSON 顶层 attributes 字段）
+// ============================================================================
+//
+// 对齐 vanilla EnvironmentAttributes：群系 JSON 的 attributes 对象以 "minecraft:<路径>" 为键
+// 存储环境属性。本函数仅解析当前已接入消费方的属性（INCREASED_FIRE_BURNOUT），其余
+// （fog/water/sky/cloud 等视觉属性、audio/background_music 等）待完整 EnvironmentAttributes
+// 系统实现后再解析。
+
+void applyAttributes(Biome& biome, const nlohmann::json& jsonObj)
+{
+    if (!jsonObj.contains("attributes") || !jsonObj["attributes"].is_object()) {
+        return; // attributes 可选
+    }
+    const auto& attrs = jsonObj["attributes"];
+
+    // vanilla: "minecraft:gameplay/increased_fire_burnout": true
+    // 由 FireBlock::getIncreasedFireBurnout 运行时按位置查询消费（见 FireBlock.cpp）。
+    constexpr const char* INCREASED_FIRE_BURNOUT_KEY = "minecraft:gameplay/increased_fire_burnout";
+    if (attrs.contains(INCREASED_FIRE_BURNOUT_KEY)) {
+        const auto& value = attrs[INCREASED_FIRE_BURNOUT_KEY];
+        if (value.is_boolean()) {
+            biome.setIncreasedFireBurnout(value.get<bool>());
+        }
+    }
+
+    // TODO: 完整 EnvironmentAttributes 系统实现后，解析其余 attributes 键（visual/*、
+    // audio/* 等），由 EnvironmentAttributeSystem 按 pos 查询并空间插值。
+}
+
+// ============================================================================
 // effects 解析
 // ============================================================================
 
@@ -776,6 +806,7 @@ Result<void> BiomeLoader::loadFromJson(const nlohmann::json& jsonObj, const Reso
     // 叠加 JSON 字段到已有的 Biome 对象（保留 BiomeFactory 设置的 depth/scale/surface blocks 等）
     applyClimate(biome, jsonObj);
     applyEffects(biome, jsonObj);
+    applyAttributes(biome, jsonObj);
     applySpawners(biome, jsonObj);
     applySpawnCosts(biome, jsonObj);
 
