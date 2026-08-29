@@ -1230,10 +1230,14 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
-    // 1. 检查实体是否处于无敌状态
+    // 1. 检查实体是否处于无敌状态（对齐 vanilla isInvulnerableToBase:2920：
+    //    invulnerable && !BYPASSES_INVULNERABILITY && !isCreativePlayer()）。
+    //    创造模式玩家造成的伤害绕过 invulnerable 标志（如末影龙复活仪式 invulnerable 末影水晶，
+    //    创造玩家应能击毁）。LivingEntity override 不调基类，故此处独立补 isCreativePlayer 守卫，
+    //    与 Entity::isInvulnerableTo 基类第 1 步语义一致。
     if (Entity::isInvulnerable()) {
-        // 虚空伤害可以绕过无敌
-        return !source.bypassesInvulnerability();
+        // 虚空/创造玩家可绕过无敌；BYPASSES_INVULNERABILITY 伤害源（虚空/OutOfWorld）也绕过
+        return !source.bypassesInvulnerability() && !source.isCreativePlayer();
     }
 
     // 2. 摔落伤害免疫标签（对齐 vanilla Entity.isInvulnerableToBase:2922：

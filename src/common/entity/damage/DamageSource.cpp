@@ -134,4 +134,29 @@ bool DamageSource::scalesWithDifficulty() const
     return false; // 不可达，防御性返回
 }
 
+// DamageSource::isCreativePlayer 对齐 vanilla DamageSource.isCreativePlayer()
+// （DamageSource.java:98-100）：`this.getEntity() instanceof Player player
+// && player.getAbilities().instabuild`。
+//
+// getEntity() 对应 vanilla causingEntity（真凶/造成者）：
+//   - EntityDamageSource::getEntity → m_source（攻击者本身）
+//   - IndirectEntityDamageSource::getEntity → m_source（射击者，非投射物本身）
+// 两者均返回"造成伤害的实体"，与 vanilla getEntity() 语义一致。
+//
+// 用 getEntity() 而非 getTrueSource()：vanilla isCreativePlayer 明确用 getEntity()，
+// 基类 getTrueSource() 默认转发 getEntity()，二者在造成者语义上一致，但为精确对齐
+// vanilla 方法名选用 getEntity()。
+bool DamageSource::isCreativePlayer() const
+{
+    Entity* causingEntity = getEntity();
+    if (causingEntity == nullptr) {
+        return false; // 无造成者（纯环境伤害）→ 非创造玩家
+    }
+    Player* asPlayer = dynamic_cast<Player*>(causingEntity);
+    if (asPlayer == nullptr) {
+        return false; // 造成者非玩家 → false
+    }
+    return asPlayer->isCreative(); // 对齐 vanilla player.getAbilities().instabuild
+}
+
 } // namespace mc

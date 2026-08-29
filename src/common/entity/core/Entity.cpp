@@ -2247,10 +2247,15 @@ bool Entity::isInvulnerableTo(DamageSource& source) const
     if (m_removed) {
         return true;
     }
-    // 1. 检查实体是否处于无敌状态
+    // 1. invulnerable 标志守卫（对齐 vanilla isInvulnerableToBase:2920：
+    //    invulnerable && !BYPASSES_INVULNERABILITY && !isCreativePlayer()）。
+    //    invulnerable 实体（NBT Invulnerable，如末影龙复活仪式基座末影水晶）免疫所有非
+    //    BYPASSES_INVULNERABILITY 伤害，但创造模式玩家造成的伤害绕过此守卫（isCreativePlayer），
+    //    使创造玩家能击毁 invulnerable 实体。Cubium 此前漏 isCreativePlayer 守卫，致创造玩家
+    //    也无法伤害 invulnerable 实体，偏离 vanilla。
     if (m_invulnerable) {
-        // 虚空伤害和创造模式玩家可以绕过无敌
-        return !source.bypassesInvulnerability();
+        // 虚空/创造玩家可绕过无敌；BYPASSES_INVULNERABILITY 伤害源（虚空/OutOfWorld）也绕过
+        return !source.bypassesInvulnerability() && !source.isCreativePlayer();
     }
     // 2. 摔落伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2922：
     //    p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE)）。

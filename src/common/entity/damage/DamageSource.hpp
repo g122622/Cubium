@@ -273,6 +273,23 @@ public:
     [[nodiscard]] virtual bool scalesWithDifficulty() const;
 
     /**
+     * @brief 该伤害是否由创造模式玩家造成（对齐 vanilla DamageSource.isCreativePlayer()，
+     *        DamageSource.java:98-100）。
+     *
+     * vanilla 实现：`this.getEntity() instanceof Player player && player.getAbilities().instabuild`，
+     * 即伤害的造成者（causingEntity，对应 Cubium getEntity()/getTrueSource()）是创造模式玩家。
+     *
+     * 语义用途：Entity.isInvulnerableToBase:2920 的 invulnerable 守卫含 `!isCreativePlayer()`——
+     * 创造模式玩家造成的伤害绕过实体的 invulnerable 标志（NBT Invulnerable）。例如末影龙复活
+     * 仪式中基座末影水晶被 SpikeFeature 设为 invulnerable（普通玩家无法击毁），但创造玩家
+     * vanilla 中应能直接击毁。Cubium 此前 isInvulnerableTo 的 invulnerable 分支漏此守卫，
+     * 致创造玩家也无法伤害 invulnerable 实体，偏离 vanilla。
+     *
+     * 实现在 DamageSource.cpp（需 Player 完整定义做 dynamic_cast）。
+     */
+    [[nodiscard]] virtual bool isCreativePlayer() const;
+
+    /**
      * @brief 是否是荆棘伤害
      */
     [[nodiscard]] virtual bool isThornsDamage() const { return false; }

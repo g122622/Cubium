@@ -282,3 +282,151 @@ TEST_F(PlayerDifficultyScalingTest, FallDamage_NotScaledInHard)
     // Fall 不缩放，10 伤害直接扣除。
     EXPECT_FLOAT_EQ(player->health(), maxHp - 10.0f);
 }
+
+// ============================================================================
+// DamageSource::isCreativePlayer 单元测试
+// 对齐 vanilla DamageSource.isCreativePlayer()（DamageSource.java:98-100）：
+//   getEntity() instanceof Player && player.getAbilities().instabuild
+// 即伤害造成者是创造模式玩家时返 true。用于 isInvulnerableTo 的 invulnerable 守卫
+// （创造玩家绕过 invulnerable 标志）。
+// ============================================================================
+
+TEST_F(PlayerDifficultyScalingTest, IsCreativePlayer_CreativeAttacker_True)
+{
+    // 创造模式玩家攻击 → isCreativePlayer() 返 true
+    ScalingTestWorld world(Difficulty::Hard);
+    Player attacker(EntityInstanceId(3), "Attacker", mc::test::testEcsRegistry());
+    attacker.setWorld(&world);
+    attacker.setGameMode(GameMode::Creative);
+    ASSERT_TRUE(attacker.isCreative()) << "前置：setGameMode(Creative) 后 isCreative 应为 true";
+
+    auto source = DamageSources::playerAttack(&attacker);
+    EXPECT_TRUE(source.isCreativePlayer()) << "创造玩家造成的伤害 isCreativePlayer 应为 true";
+}
+
+TEST_F(PlayerDifficultyScalingTest, IsCreativePlayer_SurvivalAttacker_False)
+{
+    // 生存模式玩家攻击 → isCreativePlayer() 返 false
+    ScalingTestWorld world(Difficulty::Hard);
+    Player attacker(EntityInstanceId(3), "Attacker", mc::test::testEcsRegistry());
+    attacker.setWorld(&world);
+    attacker.setGameMode(GameMode::Survival);
+    ASSERT_FALSE(attacker.isCreative());
+
+    auto source = DamageSources::playerAttack(&attacker);
+    EXPECT_FALSE(source.isCreativePlayer()) << "生存玩家造成的伤害 isCreativePlayer 应为 false";
+}
+
+TEST_F(PlayerDifficultyScalingTest, IsCreativePlayer_MobAttack_False)
+{
+    // 非玩家生物攻击 → isCreativePlayer() 返 false（造成者非 Player）
+    ScalingTestWorld world(Difficulty::Hard);
+    TestMobEntity mob;
+    mob.setWorld(&world);
+
+    auto source = DamageSources::mobAttack(&mob);
+    EXPECT_FALSE(source.isCreativePlayer()) << "怪物造成的伤害 isCreativePlayer 应为 false";
+}
+
+TEST_F(PlayerDifficultyScalingTest, IsCreativePlayer_Environmental_False)
+{
+    // 纯环境伤害（Fall 无造成者）→ isCreativePlayer() 返 false
+    auto source = DamageSources::fall();
+    EXPECT_FALSE(source.isCreativePlayer()) << "无造成者的环境伤害 isCreativePlayer 应为 false";
+}
+
+// ============================================================================
+// isInvulnerableTo 的 invulnerable 守卫 + isCreativePlayer 测试
+// 对齐 vanilla Entity.isInvulnerableToBase:2920：
+//   invulnerable && !BYPASSES_INVULNERABILITY && !isCreativePlayer()
+// invulnerable 实体（如末影龙复活仪式基座末影水晶）免疫普通伤害，但创造玩家绕过，
+// 虚空（BYPASSES_INVULNERABILITY）也绕过。
+// ============================================================================
+
+TEST_F(PlayerDifficultyScalingTest, Invulnerable_CreativePlayerBypasses)
+{
+    // invulnerable 实体被创造玩家攻击 → isInvulnerableTo 返 false、hurt 成功扣血
+    ScalingTestWorld world(Difficulty::Normal);
+    TestMobEntity victim;
+    victim.setWorld(&world);
+    victim.setHealth(victim.maxHealth());
+    victim.setInvulnerable(true); // 对齐末影水晶 invulnerable 标志
+
+    Player attacker(EntityInstanceId(3), "Attacker", mc::test::testEcsRegistry());
+    attacker.setWorld(&world);
+    attacker.setGameMode(GameMode::Creative);
+
+    const f32 maxHp = victim.maxHealth();
+    auto source = DamageSources::playerAttack(&attacker);
+
+    // 创造玩家绕过 invulnerable 守卫
+    EXPECT_FALSE(victim.isInvulnerableTo(source)) << "invulnerable 实体对创造玩家伤害不应免疫";
+
+    bool result = victim.hurt(source, 10.0f);
+    EXPECT_TRUE(result) << "创造玩家应能伤害 invulnerable 实体";
+    EXPECT_LT(victim.health(), maxHp) << "创造玩家伤害应实际扣血（invulnerable 被绕过）";
+}
+
+TEST_F(PlayerDifficultyScalingTest, Invulnerable_SurvivalPlayerBlocked)
+{
+    // invulnerable 实体被生存玩家攻击 → isInvulnerableTo 返 true、hurt 失败不扣血
+    ScalingTestWorld world(Difficulty::Normal);
+    TestMobEntity victim;
+    victim.setWorld(&world);
+    victim.setHealth(victim.maxHealth());
+    victim.setInvulnerable(true);
+
+    Player attacker(EntityInstanceId(3), "Attacker", mc::test::testEcsRegistry());
+    attacker.setWorld(&world);
+    attacker.setGameMode(GameMode::Survival);
+
+    const f32 maxHp = victim.maxHealth();
+    auto source = DamageSources::playerAttack(&attacker);
+
+    // 生存玩家不绕过 invulnerable 守卫
+    EXPECT_TRUE(victim.isInvulnerableTo(source)) << "invulnerable 实体对生存玩家伤害应免疫";
+
+    bool result = victim.hurt(source, 10.0f);
+    EXPECT_FALSE(result) << "生存玩家不应能伤害 invulnerable 实体";
+    EXPECT_FLOAT_EQ(victim.health(), maxHp) << "invulnerable 实体不应扣血";
+}
+
+TEST_F(PlayerDifficultyScalingTest, Invulnerable_MobAttackBlocked)
+{
+    // invulnerable 实体被怪物攻击 → isInvulnerableTo 返 true、hurt 失败
+    ScalingTestWorld world(Difficulty::Normal);
+    TestMobEntity victim;
+    victim.setWorld(&world);
+    victim.setHealth(victim.maxHealth());
+    victim.setInvulnerable(true);
+
+    TestMobEntity mob;
+    mob.setWorld(&world);
+
+    const f32 maxHp = victim.maxHealth();
+    auto source = DamageSources::mobAttack(&mob);
+
+    EXPECT_TRUE(victim.isInvulnerableTo(source)) << "invulnerable 实体对怪物伤害应免疫";
+    bool result = victim.hurt(source, 10.0f);
+    EXPECT_FALSE(result) << "怪物不应能伤害 invulnerable 实体";
+    EXPECT_FLOAT_EQ(victim.health(), maxHp);
+}
+
+TEST_F(PlayerDifficultyScalingTest, Invulnerable_VoidBypasses)
+{
+    // invulnerable 实体受虚空伤害（BYPASSES_INVULNERABILITY）→ 不免疫、hurt 成功
+    // 对齐 vanilla：invulnerable 守卫的 !BYPASSES_INVULNERABILITY 条件
+    ScalingTestWorld world(Difficulty::Normal);
+    TestMobEntity victim;
+    victim.setWorld(&world);
+    victim.setHealth(victim.maxHealth());
+    victim.setInvulnerable(true);
+
+    const f32 maxHp = victim.maxHealth();
+    auto source = DamageSources::outOfWorld(); // 虚空伤害，BYPASSES_INVULNERABILITY
+
+    EXPECT_FALSE(victim.isInvulnerableTo(source)) << "invulnerable 实体对虚空伤害不应免疫";
+    bool result = victim.hurt(source, 10.0f);
+    EXPECT_TRUE(result) << "虚空伤害应能伤害 invulnerable 实体";
+    EXPECT_LT(victim.health(), maxHp) << "虚空伤害应实际扣血";
+}
