@@ -1724,19 +1724,25 @@ bool Player::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
-    // 玩家专属游戏规则检查：特定伤害类型可被对应游戏规则禁用
+    // 玩家专属游戏规则检查：特定伤害类型可被对应游戏规则禁用。
+    // 对齐 vanilla Player.isInvulnerableTo（Player.java:677-689）：用 source.is(IS_DROWNING/IS_FALL/
+    // IS_FIRE/IS_FREEZING) 标签查询，而非 isDrown()/isFall()/isFire()/isFreezing() 语义糖。
+    // 语义糖是硬编码 type 比较，当前与标签成员集碰巧等价，但数据包扩展标签成员时语义糖不会识别
+    // 新成员，导致游戏规则门控失效。标签查询走数据驱动范式，与 vanilla 一致。
     if (m_world != nullptr) {
         const auto& rules = m_world->getGameRules();
-        if (source.isDrown() && !rules.getBoolean(world::gamerule::GameRuleKeys::DROWNING_DAMAGE)) {
+        if (source.is(DamageTypeTags::IS_DROWNING()) &&
+            !rules.getBoolean(world::gamerule::GameRuleKeys::DROWNING_DAMAGE)) {
             return true;
         }
-        if (source.isFall() && !rules.getBoolean(world::gamerule::GameRuleKeys::FALL_DAMAGE)) {
+        if (source.is(DamageTypeTags::IS_FALL()) && !rules.getBoolean(world::gamerule::GameRuleKeys::FALL_DAMAGE)) {
             return true;
         }
-        if (source.isFire() && !rules.getBoolean(world::gamerule::GameRuleKeys::FIRE_DAMAGE)) {
+        if (source.is(DamageTypeTags::IS_FIRE()) && !rules.getBoolean(world::gamerule::GameRuleKeys::FIRE_DAMAGE)) {
             return true;
         }
-        if (source.isFreezing() && !rules.getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
+        if (source.is(DamageTypeTags::IS_FREEZING()) &&
+            !rules.getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
             return true;
         }
     }

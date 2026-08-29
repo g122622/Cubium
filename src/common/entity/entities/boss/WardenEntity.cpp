@@ -196,24 +196,21 @@ void WardenEntity::clearAnger() noexcept
 
 bool WardenEntity::isInvulnerableTo(DamageSource& source) const
 {
-    // 监守者在 Digging/Emerging 姿态下免疫除"穿透无敌"标签外的所有伤害。
+    // 对齐 MC Java 1.21.11 Warden.isInvulnerableTo（Warden.java:152-154）：
+    //   return isDiggingOrEmerging() && !source.is(BYPASSES_INVULNERABILITY) ? true : super.isInvulnerableTo(...)
+    // 监守者仅在 Digging/Emerging 姿态下免疫除"穿透无敌"标签外的所有伤害，其余情况委托基类。
     //
     // 当前实现尚未引入 Pose::DIGGING / Pose::EMERGING 姿态系统，无法判断
     // isDiggingOrEmerging()，因此暂不实现姿态相关免疫。
     //
-    // TODO: 引入 Pose 系统后实现 isDiggingOrEmerging() 并补充姿态相关免疫逻辑。
-
-    // 监守者继承自 MonsterEntity，MonsterEntity 默认不免疫火焰/岩浆伤害
-    // （监守者也不免疫火焰/岩浆，可被点燃）。但监守者免疫以下伤害：
-    // - Drown: 监守者不会溺水
-    // - Wither: 监守者免疫凋零效果
-    if (source.type() == DamageType::Drown) {
-        return true;
-    }
-    if (source.type() == DamageType::Wither) {
-        return true;
-    }
-
+    // TODO: 引入 Pose 系统后实现 isDiggingOrEmerging()，在此姿态下返回 true（门控 BYPASSES_INVULNERABILITY）。
+    //
+    // 重要：此前 Cubium 在此硬编码 `source.type() == Drown → return true` 和
+    // `source.type() == Wither → return true`，声称"监守者不会溺水/免疫凋零效果"。
+    // 但 vanilla Warden 完全没有这两条免疫——Warden 不在 CAN_BREATHE_UNDER_WATER 标签中
+    // （can_breathe_under_water.json 成员=#undead+水生生物，Warden 非亡灵非水生），
+    // 故 vanilla Warden 在水中会正常溺水。硬编码 Drown 免疫是与 vanilla 直接冲突的真实缺陷。
+    // Wither（凋零伤害类型）免疫同理：vanilla 无此规则，凋零效果免疫应通过效果体系处理，非 isInvulnerableTo。
     return MonsterEntity::isInvulnerableTo(source);
 }
 

@@ -33,7 +33,7 @@
  * - Boss 行为重写（isNonBoss=false, preventDespawn=true, isDespawnPeaceful=true）
  * - dampensVibrations=true
  * - 摔落免疫（onLivingFall=false）
- * - 伤害免疫（Drown / Wither）
+ * - 伤害判定对齐 vanilla（Warden 不免疫溺水/凋零，对齐 Warden.java:151-154）
  * - 声音 ID（getAmbientSound / getHurtSound / getDeathSound）
  * - 怒气等级（WardenAngerLevel）切换与环境音效映射
  * - 怒气增加、上限、清空、客户端同步
@@ -219,20 +219,37 @@ TEST_F(WardenEntityTest, OnLivingFall_ReturnsFalse_NoFallDamage)
     EXPECT_FALSE(warden.onLivingFall(0.0f, 1.0f));
 }
 
-// ========== 伤害免疫测试 ==========
+// ========== 伤害判定测试 ==========
 
-TEST_F(WardenEntityTest, IsInvulnerableTo_Drown_ReturnsTrue)
+// 监守者【不免疫】溺水伤害（对齐 vanilla Warden.java:151-154）。
+//
+// vanilla Warden.isInvulnerableTo 仅在 Digging/Emerging 姿态下免疫除 BYPASSES_INVULNERABILITY
+// 外的所有伤害，无任何溺水免疫。且 Warden 不在 CAN_BREATHE_UNDER_WATER 标签中
+// （can_breathe_under_water.json 成员=#undead+水生生物，Warden 非亡灵非水生），
+// 故 vanilla Warden 在水中会正常溺水。Cubium 此前硬编码 source.type()==Drown → return true，
+// 是与 vanilla 直接冲突的真实缺陷（已删除，委托基类 MonsterEntity::isInvulnerableTo）。
+//
+// 注意：WardenEntityTest::SetUp 不初始化 DamageTypeTags，但 Drown 经基类 LivingEntity::isInvulnerableTo
+// 判定时不在 IS_FALL/IS_FIRE 门控（Drown 非这两个标签成员），不依赖标签成员集，故无需初始化。
+TEST_F(WardenEntityTest, IsInvulnerableTo_Drown_ReturnsFalse_AlignedWithVanilla)
 {
     entity::WardenEntity warden(EntityInstanceId(1), mc::test::testEcsRegistry());
     EnvironmentalDamage source = DamageSources::drown();
-    EXPECT_TRUE(warden.isInvulnerableTo(source));
+    // 对齐 vanilla：Warden 不免疫溺水，isInvulnerableTo 返回 false。
+    EXPECT_FALSE(warden.isInvulnerableTo(source));
 }
 
-TEST_F(WardenEntityTest, IsInvulnerableTo_Wither_ReturnsTrue)
+// 监守者【不免疫】凋零伤害（对齐 vanilla Warden.java:151-154）。
+//
+// vanilla Warden 无凋零伤害类型免疫。凋零效果的免疫应通过效果体系（MobEffect）处理，
+// 非 isInvulnerableTo。Cubium 此前硬编码 source.type()==Wither → return true 是与 vanilla
+// 冲突的真实缺陷（已删除）。凋零伤害类型（Wither）经基类判定不触发任何门控，故返回 false。
+TEST_F(WardenEntityTest, IsInvulnerableTo_Wither_ReturnsFalse_AlignedWithVanilla)
 {
     entity::WardenEntity warden(EntityInstanceId(1), mc::test::testEcsRegistry());
     EnvironmentalDamage source = DamageSources::wither();
-    EXPECT_TRUE(warden.isInvulnerableTo(source));
+    // 对齐 vanilla：Warden 不免疫凋零伤害，isInvulnerableTo 返回 false。
+    EXPECT_FALSE(warden.isInvulnerableTo(source));
 }
 
 // ========== 声音测试 ==========
