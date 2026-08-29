@@ -1220,6 +1220,16 @@ bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* enti
 
 bool LivingEntity::isInvulnerableTo(DamageSource& source) const
 {
+    // 0. 已移除实体对所有伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2919 首项 isRemoved()）。
+    //    LivingEntity override 不调基类 Entity::isInvulnerableTo，故此处独立补 isRemoved 守卫，
+    //    与 Entity::isInvulnerableTo 基类首项语义一致。覆盖 health>0 但 m_removed=true 的场景
+    //    （雷电转化原体、despawn 等），此时 isDead()（health<=0）不拦截，须由 isRemoved 兜底。
+    //    remove()/discard() 标记 m_removed=true 后实体将在本 tick 末移除，此僵尸窗口内
+    //    （见 world/entity/README.md:143）若被 hurt 应免疫，避免对正在清理的实体施加伤害。
+    if (isRemoved()) {
+        return true;
+    }
+
     // 1. 检查实体是否处于无敌状态
     if (Entity::isInvulnerable()) {
         // 虚空伤害可以绕过无敌
@@ -1260,9 +1270,7 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
     //   更新 lastHurt），Cubium 完全免疫 0 点（被多怪围攻、连续受不同强度伤害时显著偏离 vanilla）。
     //
     //   现移除此门控，无敌帧完全交给 LivingEntity::hurt 的差额逻辑处理，对齐 vanilla 设计。
-    //   注：isRemoved() 守卫（vanilla isInvulnerableToBase:2918 首项）属独立对齐项，hurt 入口的
-    //   isDead() 门控（见上）已覆盖死亡场景，此处不混入以避免扩大回归面，留独立 TODO 跟踪。
-    //   TODO: isInvulnerableTo 应补 isRemoved() 守卫对齐 vanilla Entity.isInvulnerableToBase:2918。
+    //   isRemoved() 守卫已在上方第 0 步补齐（对齐 vanilla isInvulnerableToBase:2918 首项）。
 
     // 5. 附魔 DAMAGE_IMMUNITY 效果（对齐 vanilla LivingEntity.isInvulnerableTo:3857
     //   isInvulnerableToBase || EnchantmentHelper.isImmuneToDamage）。

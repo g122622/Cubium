@@ -2237,6 +2237,15 @@ bool Entity::hurt(DamageSource& source, f32 amount)
 
 bool Entity::isInvulnerableTo(DamageSource& source) const
 {
+    // 0. 已移除实体对所有伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2919 首项 isRemoved()）。
+    //    remove()/discard() 标记 m_removed=true 后，实体将在本 tick 末从世界移除；此窗口内
+    //    （僵尸窗口，见 world/entity/README.md:143）若被 hurt 应免疫，避免对正在清理的实体
+    //    施加伤害（重复死亡链路/UAF）。vanilla 把此守卫放在 isInvulnerableToBase final 首项
+    //    做最底层兜底；Cubium 此前仅在遍历层过滤，hurt 入口缺兜底，新增 hurt 调用点若忘查
+    //    isAlive 即穿透。此处补齐对齐 vanilla。
+    if (m_removed) {
+        return true;
+    }
     // 1. 检查实体是否处于无敌状态
     if (m_invulnerable) {
         // 虚空伤害和创造模式玩家可以绕过无敌

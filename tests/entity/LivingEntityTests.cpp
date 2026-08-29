@@ -371,6 +371,37 @@ TEST(LivingEntityTest, HurtInvulnerabilityLargerAmountDealsDifference)
     EXPECT_FLOAT_EQ(entity.health(), 10.0f) << "无敌帧内更大伤害应承受差额（10-5=5），而非完全免疫";
 }
 
+// 核心锚定：已移除实体（m_removed=true 但 health>0）对所有伤害免疫。
+// 对齐 vanilla Entity.isInvulnerableToBase:2919 首项 isRemoved()。
+// isDead()（health<=0）不拦截此场景（health=20>0），须由 isRemoved 兜底。
+TEST(LivingEntityTest, Hurt_RemovedEntityTakesNoDamage)
+{
+    TestLivingEntity entity;
+    entity.setHealth(20.0f);
+    ASSERT_FALSE(entity.isDead()) << "前置：health=20 存活";
+    ASSERT_FALSE(entity.isRemoved());
+
+    entity.remove(); // 标记移除（m_removed=true，health 仍 20）
+    ASSERT_TRUE(entity.isRemoved());
+    ASSERT_FALSE(entity.isDead()) << "remove 不改 health，isDead 仍 false";
+
+    EnvironmentalDamage damage(DamageType::Generic);
+    EXPECT_FALSE(entity.hurt(damage, 10.0f)) << "已移除实体应免疫所有伤害";
+    EXPECT_FLOAT_EQ(entity.health(), 20.0f) << "已移除实体 health 不应下降";
+}
+
+// 对照：isInvulnerableTo 直接返回 true（验证守卫位置正确，非 hurt 其他逻辑拦截）。
+TEST(LivingEntityTest, IsInvulnerableTo_RemovedEntityReturnsTrue)
+{
+    TestLivingEntity entity;
+    entity.setHealth(20.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    EXPECT_FALSE(entity.isInvulnerableTo(damage)) << "前置：存活实体不免疫";
+    entity.remove();
+    EXPECT_TRUE(entity.isInvulnerableTo(damage)) << "已移除实体 isInvulnerableTo 应返 true";
+}
+
 TEST(LivingEntityTest, Death)
 {
     GroundSupportWorld world;
