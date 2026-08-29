@@ -321,23 +321,27 @@ TEST(FoodStats, ExhaustionConsumption)
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
     EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 5.0f);
 
-    // 消耗 4.0 饱和度 -> 消耗 1 饱和度
-    // 注意：addExhaustion 只是累加，实际消耗在 tick() 中触发
+    // 对齐 MC Java 1.21.11 FoodData.tick:35（exhaustionLevel > 4.0F 严格大于才触发，
+    // 单次 if 非 while——一次 tick 最多扣一次 4.0，残留留待后续 tick）。
+    // addExhaustion(4.0) 后 exhaustion=4.0，严格大于 4.0 不成立，不消耗。
     player.foodStats().addExhaustion(4.0f);
-    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
-    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 4.0f);
-    EXPECT_EQ(player.foodStats().foodLevel(), 20); // 饥饿值不变
-
-    // 消耗剩余饱和度
-    player.foodStats().addExhaustion(16.0f);                    // 4次消耗
-    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
-    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 0.0f);
+    player.foodStats().tick(player, Difficulty::Normal, false);
+    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 5.0f); // 边界 4.0 不触发，饱和度不变
     EXPECT_EQ(player.foodStats().foodLevel(), 20);
 
-    // 饱和度为0后开始消耗饥饿值
+    // 累积到 20.0（残留 4.0 + 新 16.0），严格大于 4.0 成立，扣 4.0 → exhaustion=16.0，
+    // saturation>0 扣 1 → saturation=4.0。单次 tick 只扣一次（残留 16.0 留待后续 tick）。
+    player.foodStats().addExhaustion(16.0f);
+    player.foodStats().tick(player, Difficulty::Normal, false);
+    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 4.0f); // 单次 tick 只扣 1 点饱和度
+    EXPECT_EQ(player.foodStats().foodLevel(), 20);
+
+    // 再加 4.0 → exhaustion=20.0，扣 4.0 → exhaustion=16.0，saturation(4.0)>0 扣 1 → saturation=3.0。
+    // saturation 仍未归零，故 foodLevel 不变（1.21.11 优先消耗饱和度，saturation>0 时不扣 foodLevel）。
     player.foodStats().addExhaustion(4.0f);
-    player.foodStats().tick(player, Difficulty::Normal, false); // 触发消耗
-    EXPECT_EQ(player.foodStats().foodLevel(), 19);
+    player.foodStats().tick(player, Difficulty::Normal, false);
+    EXPECT_FLOAT_EQ(player.foodStats().saturationLevel(), 3.0f);
+    EXPECT_EQ(player.foodStats().foodLevel(), 20); // saturation 未归零，foodLevel 不变
 }
 
 TEST(FoodStats, SaturationCalculation)
@@ -520,43 +524,47 @@ TEST(FoodStats, StarvationDamageNormalMode)
 
 TEST(FoodStats, PeacefulMode)
 {
-    // 和平模式：自动恢复生命和饥饿值
+    // 对齐 MC Java 1.21.11 FoodData.tick:44-71：和平模式**无自动恢复特例**。
+    // 回血门控为 flag(naturalRegeneration) && (saturation>0 && foodLevel>=20 || foodLevel>=18) && isHurt，
+    // 不区分难度——和平模式 foodLevel=10 不满足任一回血分支（<18），走 else 归零计时器，
+    // 不回血、不回饥饿值。1.16.5 的"和平模式自动回血/回饥饿"特例在 1.21.11 已移除。
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     player.foodStats().setFoodLevel(10);
     player.foodStats().setSaturationLevel(0.0f);
     player.setHealth(15.0f);
 
-    // 和平模式 tick
-    for (int i = 0; i < 25; ++i) { // 20 ticks = 1秒，应该恢复生命
+    // 和平模式 tick（naturalRegeneration=true 模拟 NATURAL_HEALTH_REGENERATION 游戏规则开启）
+    for (int i = 0; i < 25; ++i) {
         player.foodStats().tick(player, Difficulty::Peaceful, true);
     }
 
-    // 和平模式：生命恢复
-    EXPECT_GT(player.health(), 15.0f);
-
-    // 和平模式：饥饿值恢复（每 10 ticks 恢复 1）
-    EXPECT_GT(player.foodStats().foodLevel(), 10);
+    // 和平模式 foodLevel=10 不满足回血分支（需 >=18 慢速或 >=20 快速），不回血
+    EXPECT_FLOAT_EQ(player.health(), 15.0f);
+    // 和平模式不自动恢复饥饿值（1.21.11 无此特例）
+    EXPECT_EQ(player.foodStats().foodLevel(), 10);
 }
 
 TEST(FoodStats, PeacefulModeNoStarvation)
 {
-    // 和平模式：即使饥饿值为 0 也不会造成伤害
+    // 对齐 MC Java 1.21.11 FoodData.tick:60-68：和平模式 foodLevel<=0 走饿死分支，
+    // tickTimer 攒到 80 触发，但伤害门控 getHealth()>10 || HARD || getHealth()>1 && NORMAL
+    // 和平模式不满足任一条件→不造成伤害（tickTimer 仍归零）。且和平模式不自动恢复饥饿值。
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
     player.foodStats().setFoodLevel(0);
     player.foodStats().setSaturationLevel(0.0f);
     player.setHealth(20.0f);
 
-    // 和平模式 tick 多次
+    // 和平模式 tick 多次（远超 80 tick 饿死间隔）
     for (int i = 0; i < 200; ++i) {
         player.foodStats().tick(player, Difficulty::Peaceful, true);
     }
 
     // 和平模式：不会受到饥饿伤害
     EXPECT_FLOAT_EQ(player.health(), 20.0f);
-    // 饥饿值应该恢复
-    EXPECT_GT(player.foodStats().foodLevel(), 0);
+    // 和平模式不自动恢复饥饿值（1.21.11 无此特例，foodLevel 保持 0）
+    EXPECT_EQ(player.foodStats().foodLevel(), 0);
 }
 
 TEST(FoodStats, NoRegenerationWithHungerEffect)
