@@ -32,6 +32,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -701,6 +702,53 @@ TEST_F(TNTEntityTest, ExplodeCreatesExplosionWhenRuleEnabled)
 
     // 应该创建爆炸
     EXPECT_EQ(m_world.explosionCount(), 1);
+}
+
+// ============================================================================
+// 火焰免疫测试（对齐 vanilla EntityType.TNT.fireImmune()，EntityType.java:1015）。
+// vanilla 已点燃的 TNT 实体（PrimedTnt）免疫火焰伤害。TNTEntity 直接继承 Entity
+// （非 LivingEntity），走基类 Entity::isInvulnerableTo 的 IS_FIRE+isImmuneToFire
+// 守卫免疫火焰。TNTEntity 无 hurt override（grep 确认），走基类 Entity::hurt。
+// ============================================================================
+
+/**
+ * @brief 验证 TNT 实体类型注册了 fireImmune 标志
+ */
+TEST_F(TNTEntityTest, IsImmuneToFire_FlagRegistered)
+{
+    auto& registry = EntityRegistry::instance();
+    const EntityType* tntType = registry.getType(EntityTypeKeys::TNT);
+    ASSERT_NE(tntType, nullptr);
+    EXPECT_TRUE(tntType->immuneToFire()) << "TNT 实体类型应注册 fireImmune（vanilla EntityType.TNT.fireImmune()）";
+}
+
+/**
+ * @brief 验证 TNT 实体实例 isImmuneToFire() 返 true
+ */
+TEST_F(TNTEntityTest, IsImmuneToFire_InstanceReturnsTrue)
+{
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
+    // 直接构造不经工厂，补 setTypeId 对齐生产路径，使 isImmuneToFire() 经
+    // EntityRegistry 查到 TNT 类型的 .immuneToFire() 标志。
+    tnt->setTypeId(EntityTypeKeys::TNT);
+    EXPECT_TRUE(tnt->isImmuneToFire()) << "TNT 实体应免疫火焰";
+}
+
+/**
+ * @brief 验证 TNT 实体对 IS_FIRE 伤害源免疫（isInvulnerableTo 返 true，hurt 返 false）
+ */
+TEST_F(TNTEntityTest, FireDamage_IsImmune)
+{
+    auto tnt = std::make_unique<TNTEntity>(mc::test::testEcsRegistry());
+    tnt->setTypeId(EntityTypeKeys::TNT);
+
+    // InFire 是 IS_FIRE 伤害源（DamageTypeTags IS_FIRE 成员含 InFire）
+    EnvironmentalDamage fireDamage(DamageType::InFire);
+
+    // 基类 Entity::isInvulnerableTo 的 IS_FIRE+isImmuneToFire 守卫应拦截
+    EXPECT_TRUE(tnt->isInvulnerableTo(fireDamage)) << "TNT 对 IS_FIRE 伤害源应免疫（isInvulnerableTo 返 true）";
+    // hurt 应返回 false（火焰伤害被拦截）
+    EXPECT_FALSE(tnt->hurt(fireDamage, 5.0f)) << "TNT 受火焰伤害应被拒绝（hurt 返 false）";
 }
 
 } // namespace test

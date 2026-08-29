@@ -24,12 +24,16 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -1096,4 +1100,56 @@ TEST_F(AreaEffectCloudDamageSourceTest, NbtRoundTrip_EffectsPreserved)
     EXPECT_EQ(effects[1].type(), effect::EffectType::Regeneration);
     EXPECT_EQ(effects[1].duration(), 300);
     EXPECT_EQ(effects[1].amplifier(), 2);
+}
+
+// ============================================================================
+// 火焰免疫测试（对齐 vanilla EntityType.AREA_EFFECT_CLOUD.fireImmune()，
+// EntityType.java:227）。vanilla 滞留药水云（AreaEffectCloud）免疫火焰伤害。
+// AreaEffectCloudEntity 直接继承 Entity（非 LivingEntity），走基类
+// Entity::isInvulnerableTo 的 IS_FIRE+isImmuneToFire 守卫免疫火焰。
+// AreaEffectCloudEntity 无 hurt override（grep 确认），走基类 Entity::hurt。
+// 注：此套件的 AreaEffectCloudEntityTest SetUp 不初始化注册表，故此处用一个
+// 独立夹具 AreaEffectCloudFireImmuneTest 自行初始化 VanillaBlocks/VanillaEntities。
+// ============================================================================
+
+class AreaEffectCloudFireImmuneTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 初始化方块和实体注册表，使 AREA_EFFECT_CLOUD 类型注册 .immuneToFire()
+        // 标志，且 isImmuneToFire() 经 EntityRegistry 能查到该类型。
+        VanillaBlocks::initialize();
+        VanillaEntities::registerAll();
+    }
+};
+
+TEST_F(AreaEffectCloudFireImmuneTest, FlagRegistered)
+{
+    auto& registry = EntityRegistry::instance();
+    const EntityType* cloudType = registry.getType(EntityTypeKeys::AREA_EFFECT_CLOUD);
+    ASSERT_NE(cloudType, nullptr);
+    EXPECT_TRUE(cloudType->immuneToFire())
+        << "AREA_EFFECT_CLOUD 实体类型应注册 fireImmune（vanilla EntityType.AREA_EFFECT_CLOUD.fireImmune()）";
+}
+
+TEST_F(AreaEffectCloudFireImmuneTest, IsImmuneToFire_InstanceReturnsTrue)
+{
+    auto cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    // 直接构造不经工厂，补 setTypeId 对齐生产路径。
+    cloud->setTypeId(EntityTypeKeys::AREA_EFFECT_CLOUD);
+    EXPECT_TRUE(cloud->isImmuneToFire()) << "滞留药水云应免疫火焰";
+}
+
+TEST_F(AreaEffectCloudFireImmuneTest, FireDamage_IsImmune)
+{
+    auto cloud = std::make_unique<AreaEffectCloudEntity>(mc::test::testEcsRegistry());
+    cloud->setTypeId(EntityTypeKeys::AREA_EFFECT_CLOUD);
+
+    // InFire 是 IS_FIRE 伤害源（DamageTypeTags IS_FIRE 成员含 InFire）
+    EnvironmentalDamage fireDamage(DamageType::InFire);
+
+    // 基类 Entity::isInvulnerableTo 的 IS_FIRE+isImmuneToFire 守卫应拦截
+    EXPECT_TRUE(cloud->isInvulnerableTo(fireDamage)) << "滞留药水云对 IS_FIRE 伤害源应免疫（isInvulnerableTo 返 true）";
+    // hurt 应返回 false（火焰伤害被拦截）
+    EXPECT_FALSE(cloud->hurt(fireDamage, 5.0f)) << "滞留药水云受火焰伤害应被拒绝（hurt 返 false）";
 }

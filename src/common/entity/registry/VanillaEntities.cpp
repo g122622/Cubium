@@ -1014,6 +1014,7 @@ void VanillaEntities::doRegisterAll()
             .size(0.98f, 0.98f)
             .trackingRange(10)
             .updateInterval(1) // TNT 需要频繁更新（引信倒计时）
+            .immuneToFire()    // 对齐 vanilla EntityType.TNT.fireImmune()（EntityType.java:1015）
             .canSummon(true)
             .build());
 
@@ -1023,6 +1024,7 @@ void VanillaEntities::doRegisterAll()
             .size(6.0f, 0.5f) // 初始半径3.0，宽度=半径*2
             .trackingRange(10)
             .updateInterval(5) // 每5tick更新一次
+            .immuneToFire()    // 对齐 vanilla EntityType.AREA_EFFECT_CLOUD.fireImmune()（EntityType.java:227）
             .canSummon(true)
             .build());
 
