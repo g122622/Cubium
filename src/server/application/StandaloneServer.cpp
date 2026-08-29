@@ -626,7 +626,6 @@ void StandaloneServer::_setupContainerCallbacks()
                 }
             }
 
-            // 1.21.11 ContainerClose：containerId（服务端确认关闭）。
             mc::network::ir::play::ContainerClose pkt;
             pkt.containerId = static_cast<i32>(containerId);
             sendPacketToPlayer(playerId,
@@ -637,8 +636,6 @@ void StandaloneServer::_setupContainerCallbacks()
         });
 
     containerManager().setOnContainerUpdate([this](PlayerId playerId, const AbstractContainerMenu& menu) {
-        // 1.21.11 ContainerSetContent：containerId + stateId + items + carriedItem。
-        // stateId 由菜单自增。stateId 是 mutable 同步令牌，const 菜单引用下可自增。
         mc::network::ir::play::ContainerSetContent pkt;
         pkt.containerId = static_cast<i32>(menu.getId());
         pkt.stateId = menu.incrementStateId();
