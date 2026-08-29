@@ -30,6 +30,7 @@
 #include "entity/core/EntityType.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
@@ -284,8 +285,16 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NormalEntity_TakesDamage)
     EXPECT_EQ(entity.lastDamageType(), DamageType::InFire);
 }
 
-TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
+TEST_F(FireBlockCollisionTest, OnEntityCollision_NonPlayerTimerDoesNotIncrement)
 {
+    // 对齐 vanilla BaseFireBlock.fireIgnite（BaseFireBlock.java:139-152）：
+    //   - remainingFireTicks < 0（免疫期）→ +1 趋零；
+    //   - else if ServerPlayer → +nextInt(1,3)（玩家累积）；
+    //   - else（非玩家非免疫期）→ 不增加 fireTicks；
+    //   - remainingFireTicks >= 0 → igniteForSeconds(8)。
+    // 故非玩家实体踩火：首次 timer 0→不变→igniteForSeconds(8) 覆盖为 160；
+    // 后续碰撞 timer 160→不变（非玩家不累积）→igniteForSeconds(8) 因 160>=160 不覆盖→保持 160。
+    // 此前 Cubium 对所有非免疫期实体 +1，与 vanilla 冲突（非玩家不应累积），已修复。
     FireTestWorld world;
     TestLivingEntity entity(EntityInstanceId(1), &world, mc::test::testEcsRegistry());
 
@@ -296,15 +305,13 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_IncrementsFireTimer)
     // 初始火焰计时器为 0
     EXPECT_EQ(entity.getFireTimer(), 0);
 
-    // commit 6398bbbf3 起对齐 MC Java：碰撞时先 forceFireTicks(timer+1)，
-    // 再 igniteForSeconds(8)（>=0 时）。首次碰撞 timer 0→1→被 igniteForSeconds
-    // 覆盖为 160。
+    // 首次碰撞：timer 0 不变（非玩家非免疫期不增加），>=0 触发 igniteForSeconds(8) → 160
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
     EXPECT_EQ(entity.getFireTimer(), 160);
 
-    // 第二次碰撞：timer 160→161，igniteForSeconds(8) 因 161>160 不覆盖
+    // 第二次碰撞：非玩家不累积，timer 保持 160；igniteForSeconds(8) 因 160>=160 不覆盖
     VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
-    EXPECT_EQ(entity.getFireTimer(), 161);
+    EXPECT_EQ(entity.getFireTimer(), 160);
 }
 
 TEST_F(FireBlockCollisionTest, OnEntityCollision_ImmunityEndIgnitesEntity)
@@ -420,6 +427,8 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_NonLivingEntity_TimerIncreases)
 
 TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick)
 {
+    // 对齐 vanilla BaseFireBlock.fireIgnite：非玩家实体非免疫期不累积 fireTicks。
+    // 多次碰撞：首次点燃 160，后续保持 160（非玩家不 +1）。伤害仍每次触发（hurt 在 fireIgnite 后）。
     FireTestWorld world;
     TestLivingEntity entity(EntityInstanceId(1), &world, mc::test::testEcsRegistry());
     entity.setHealth(100.0f); // 高生命值以承受多次伤害
@@ -433,14 +442,49 @@ TEST_F(FireBlockCollisionTest, OnEntityCollision_MultipleCollisions_EachTick)
         VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, entity);
     }
 
-    // 应该受到 5 次伤害
+    // 应该受到 5 次伤害（每次碰撞都 hurt）
     EXPECT_EQ(entity.hurtCount(), 5);
     EXPECT_EQ(entity.lastDamage(), 1.0f);
 
-    // commit 6398bbbf3 起对齐 MC Java：首次碰撞 igniteForSeconds(8) 覆盖为 160，
-    // 后续每次 forceFireTicks(timer+1) 递增且 igniteForSeconds(8) 不再覆盖
-    // （timer 已 >160）。5 次后 timer = 160 + 4 = 164。
-    EXPECT_EQ(entity.getFireTimer(), 164);
+    // 非玩家实体不累积 fireTicks：首次点燃 160，后续碰撞不增加，timer 保持 160。
+    // 此前 Cubium 对非玩家也 +1（5 次后 160+4=164），与 vanilla 冲突，已修复。
+    EXPECT_EQ(entity.getFireTimer(), 160);
+}
+
+TEST_F(FireBlockCollisionTest, OnEntityCollision_PlayerAccumulatesFireTimer)
+{
+    // 对齐 vanilla BaseFireBlock.fireIgnite:143-146：仅 ServerPlayer 非免疫期 +nextInt(1,3)=[1,2]。
+    // 玩家踩火时 fireTicks 累积（延长燃烧时间），非玩家不累积。此测试验证玩家专属累积分支。
+    FireTestWorld world;
+    Player player(EntityInstanceId(1), "Tester", mc::test::testEcsRegistry());
+    player.setWorld(&world);
+    player.setHealth(player.maxHealth());
+    // Player 默认生存模式（abilities.invulnerable=false），forceFireTicks 不受创造守卫限制
+
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    const BlockState& fireState = VanillaBlocks::FIRE->defaultState();
+    BlockPos pos(0, 0, 0);
+
+    EXPECT_EQ(player.getFireTimer(), 0);
+
+    // 首次碰撞：玩家 +nextInt(1,3)=[1,2]，timer 变 1 或 2；>=0 触发 igniteForSeconds(8) → 160
+    VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, player);
+    EXPECT_EQ(player.getFireTimer(), 160);
+
+    // 第二次碰撞：玩家 +nextInt(1,3)=[1,2]，timer 变 161 或 162；
+    // igniteForSeconds(8) 因 timer>=160 不覆盖（igniteForTicks 守卫 m_fire<ticks）。
+    VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, player);
+    const i32 timerAfterSecond = player.getFireTimer();
+    EXPECT_GE(timerAfterSecond, 161);
+    EXPECT_LE(timerAfterSecond, 162);
+
+    // 第三次碰撞：再 +[1,2]，timer 在 [162,164] 范围（累积体现）
+    VanillaBlocks::FIRE->onEntityCollision(fireState, world, pos, player);
+    const i32 timerAfterThird = player.getFireTimer();
+    EXPECT_GE(timerAfterThird, 162);
+    EXPECT_LE(timerAfterThird, 164);
+    // 玩家累积：第三次必然 > 第二次（每次至少 +1）
+    EXPECT_GT(timerAfterThird, timerAfterSecond);
 }
 
 } // namespace

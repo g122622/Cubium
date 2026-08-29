@@ -62,13 +62,13 @@ public:
     // ========== Tick ==========
     // vanilla 中 SoulFireBlock 继承 BaseFireBlock（非 FireBlock），完全不参与刻：不老化、不蔓延，
     // 仅靠 updatePostPlacement 在失去灵魂沙/土支撑时自毁。本项目 SoulFireBlock 为复用 FireBlock 的
-    // 放置/碰撞逻辑而继承 FireBlock，但 FireBlock 的 tick/randomTick/getAge 依赖 AGE_0_15 属性，
-    // 而 SoulFireBlock 构造时把状态容器覆盖为空（无 age，与 vanilla 一致）。若不隔离 fire 专属的
-    // tick 逻辑，FireBlock::ticksRandomly()=true 会使 soul_fire 进入随机刻池，命中后 randomTick→
-    // getAge→state.get(AGE_0_15) 抛 std::invalid_argument，冒泡为 fatal 杀掉 GameTestServer 全量
-    // 运行（且实际游戏中放灵魂火也会随机崩）。故在此重写为不响应刻，对齐 vanilla 行为。
+    // 放置/碰撞逻辑而继承 FireBlock，但 FireBlock 的 tick/getAge 依赖 AGE_0_15 属性，而 SoulFireBlock
+    // 构造时把状态容器覆盖为空（无 age，与 vanilla 一致）。若不隔离 fire 专属的 tick 逻辑，
+    // FireBlock::tick（被 onBlockAdded 调度的计划刻触发）会 getAge→state.get(AGE_0_15) 抛
+    // std::invalid_argument，冒泡为 fatal。故在此重写 tick 为空、ticksRandomly()=false，对齐 vanilla 行为。
+    // （FireBlock 已迁移到计划刻范式且 ticksRandomly()=false，SoulFireBlock 继承 onBlockAdded 会调度
+    // 一次计划刻，命中此空 tick 后不再续期，灵魂火不参与刻，符合 vanilla。）
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
     [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
 
     /**

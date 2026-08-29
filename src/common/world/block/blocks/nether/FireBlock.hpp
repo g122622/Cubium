@@ -30,6 +30,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 
@@ -89,18 +90,23 @@ public:
 
     // ========== Tick ==========
 
+    // 对齐 vanilla FireBlock.tick（FireBlock.java:143-218）：火焰由计划刻驱动
+    // （onBlockAdded 调度 + tick 首行自我续期），不响应随机刻。
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
-
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    // 火焰不响应随机刻（对齐 vanilla FireBlock 无 randomTick）。此前 Cubium 用
+    // randomTick 驱动火焰蔓延，与 vanilla 计划刻范式不一致（节奏受 randomTickSpeed
+    // 影响而非 vanilla 的 30~39 tick 周期），且导致 tick() 内的雨天熄灭等逻辑成为死代码。
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
 
     // ========== 放置回调 ==========
 
     /**
      * @brief 方块被添加到世界时调用
      *
-     * 在放置时立即检测并点燃下界传送门（而不是在tick时）。
+     * 对齐 vanilla FireBlock.onPlace（FireBlock.java:294-297）：
+     *   1. 检测并点燃下界传送门（立即，而非 tick 时）；
+     *   2. 调度计划刻 scheduleBlockTick(pos, this, 30 + nextInt(10))，驱动火焰 tick 链路。
      *
      * @param world 世界引用
      * @param pos 方块位置
@@ -125,6 +131,17 @@ public:
     }
 
 protected:
+    /**
+     * @brief 火焰计划刻延迟（对齐 vanilla FireBlock.getFireTickDelay）
+     *
+     * 返回 30 + nextInt(10)，即 30~39 tick。onBlockAdded 首次调度与 tick 自我续期
+     * 均用此延迟，形成 vanilla 的火焰 tick 周期。
+     *
+     * @param random 随机数生成器
+     * @return 计划刻延迟（tick）
+     */
+    [[nodiscard]] static i32 getFireTickDelay(math::IRandom& random) { return 30 + random.nextInt(10); }
+
     /**
      * @brief 检查位置是否可以燃烧（有可燃方块）
      *

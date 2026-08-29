@@ -237,7 +237,9 @@ TEST_F(DamageSourceExplosionTest, IndirectEntityDamageSource_ExplosionType_Retur
 /**
  * @brief 测试所有 DamageType 的 isFire 和 isExplosion 状态
  *
- * MC 1.16.5: 确保所有伤害类型都有正确的分类
+ * 对齐 MC Java 1.21.11 IS_FIRE / IS_EXPLOSION 标签成员集，确保所有伤害类型都有正确的分类。
+ * 注：isExplosion() 查 IS_EXPLOSION 标签（成员={Fireworks,Explosion,ExplosionPlayer,BadRespawnPoint}），
+ * 此前测试遗漏 Fireworks/BadRespawnPoint 于 explosionTypes，并误把 Fireworks 放入 otherTypes。
  */
 TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
 {
@@ -251,8 +253,9 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
         EXPECT_FALSE(damage.isExplosion()) << "Fire damage should not be explosion damage";
     }
 
-    // 爆炸相关类型
-    std::vector<DamageType> explosionTypes = {DamageType::Explosion, DamageType::ExplosionPlayer};
+    // 爆炸相关类型（对齐 vanilla IS_EXPLOSION 标签：Fireworks/Explosion/ExplosionPlayer/BadRespawnPoint）
+    std::vector<DamageType> explosionTypes = {
+        DamageType::Fireworks, DamageType::Explosion, DamageType::ExplosionPlayer, DamageType::BadRespawnPoint};
 
     for (auto type : explosionTypes) {
         EnvironmentalDamage damage(type);
@@ -272,8 +275,7 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
         DamageType::Wither,
         DamageType::FallingAnvil,
         DamageType::FallingBlock,
-        DamageType::DragonBreath,
-        DamageType::Fireworks};
+        DamageType::DragonBreath};
 
     for (auto type : otherTypes) {
         EnvironmentalDamage damage(type);

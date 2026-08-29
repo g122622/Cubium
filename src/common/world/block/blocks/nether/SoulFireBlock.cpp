@@ -98,16 +98,6 @@ void SoulFireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     MC_UNUSED(random);
 }
 
-void SoulFireBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
-{
-    // 同 tick：soul_fire 不响应随机刻。空实现防御性覆盖，即便 ticksRandomly()=false 下不应进入
-    // 随机刻池，此处也保证不会读 age 崩溃。
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(random);
-}
-
 bool SoulFireBlock::canBurn(IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(world);
