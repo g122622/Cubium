@@ -85,7 +85,7 @@ const Food Foods::PORKCHOP = Food(3, 0.3f).setMeat();
 const Food Foods::POTATO(1, 0.3f);
 
 const Food Foods::PUFFERFISH = Food(1, 0.1f)
-                                   .addEffect(EffectType::Poison, 1200, 3, 1.0f) // 中毒IV 60秒
+                                   .addEffect(EffectType::Poison, 1200, 1, 1.0f) // 中毒II 60秒
                                    .addEffect(EffectType::Hunger, 300, 2, 1.0f)  // 饥饿III 15秒
                                    .addEffect(EffectType::Nausea, 300, 0, 1.0f); // 反胃 15秒
 
@@ -126,7 +126,7 @@ const Food Foods::ENCHANTED_GOLDEN_APPLE = Food(4, 1.2f)
 
 const Food Foods::GOLDEN_CARROT(6, 1.2f);
 
-const Food Foods::HONEY_BOTTLE = Food(6, 0.1f); // 治愈中毒，返回玻璃瓶
+const Food Foods::HONEY_BOTTLE = Food(6, 0.1f).setAlwaysEdible(); // 治愈中毒，返回玻璃瓶，始终可食用（饱食可饮理解毒）
 
 void Foods::initialize()
 {

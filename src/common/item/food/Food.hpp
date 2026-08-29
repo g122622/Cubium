@@ -58,7 +58,7 @@ struct FoodEffect {
  * @code
  * Food apple(4, 0.3f);  // 恢复4点饥饿值，0.3饱和度修正
  * Food goldenApple(4, 1.2f).setAlwaysEdible(true);
- * Food pufferfish(1, 0.1f).addEffect(EffectType::Poison, 1200, 3, 1.0f);
+ * Food pufferfish(1, 0.1f).addEffect(EffectType::Poison, 1200, 1, 1.0f);
  * @endcode
  *
  * 饱和度计算公式：saturation = food * saturationModifier * 2.0
