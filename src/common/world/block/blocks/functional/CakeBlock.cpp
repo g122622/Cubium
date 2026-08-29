@@ -101,8 +101,10 @@ BlockActionResult CakeBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 对齐 vanilla CakeBlock.use：仅当玩家可进食（非创造/旁观且饥饿<20）时吃一片。
-    // canEat(false) 内部：创造/旁观返 false；否则 needsFood()（foodLevel<20）。
+    // 对齐 vanilla CakeBlock.eat（CakeBlock.java:86-89）：仅当玩家 canEat(false) 时吃一片。
+    // canEat(false) 对齐 vanilla Player.canEat（Player.java:1593）：abilities.invulnerable
+    // （创造模式）|| needsFood()（foodLevel<20）。创造模式可吃蛋糕并正常消耗 bites
+    // （vanilla CakeBlock.eat 不对创造特殊处理，bites+1 直至 6 片移除蛋糕）。
     // 注意吃蛋糕不消耗手持物（空手右键即可），此处不检查 hand/heldItem。
     if (!player.canEat(false)) {
         return ActionResultType::Pass;

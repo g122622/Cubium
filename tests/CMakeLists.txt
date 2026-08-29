@@ -828,6 +828,8 @@ add_executable(mc_tests
     common/entity/player/PlayerSleepTest.cpp
     # Player 旁观者摄像机跟踪测试
     common/entity/player/PlayerSpectatorTest.cpp
+    # Player canEat 进食门控测试（对齐 vanilla abilities.invulnerable 放行创造模式）
+    common/entity/player/PlayerCanEatTest.cpp
     # Player 冲量坠落伤害免疫测试
     common/entity/player/ImpulseContextTest.cpp
     # Player NBT 序列化测试

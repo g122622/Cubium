@@ -2590,15 +2590,22 @@ void Player::addExhaustion(f32 exhaustion)
 
 bool Player::canEat(bool ignoreHunger) const
 {
-    // 创造模式或观察者模式不能进食
-    if (isCreative() || isSpectator()) {
-        return false;
+    // 对齐 vanilla Player.canEat（Player.java:1593-1595）：
+    //   return this.abilities.invulnerable || ignoreHunger || this.foodData.needsFood();
+    // 创造模式 abilities.invulnerable=true（GameModeUtils MODE_CONFIGS[Creative]），
+    // 故创造模式可进食任何食物（含蛋糕、饱食时的 alwaysEdible 食物）。
+    // 此前 Cubium 用 isCreative()||isSpectator() 早返回 false 拦截创造模式，
+    // 致创造模式吃不了蛋糕（CakeBlock 用 canEat(false)），且与项目内 FoodItem/
+    // GoldenAppleItem 放行创造的路径自相矛盾。
+    // 注：vanilla 不在 canEat 判 spectator（spectator 在 useItem/mayInteract 上层被拦，
+    // canEat 不可达）。Cubium 同样在上层拦截 spectator 交互，此处不重复判 spectator——
+    // 即便 spectator 的 invulnerable=true 使本方法返回 true，上层已阻止其进食。
+    if (m_abilities.invulnerable) {
+        return true;
     }
-    // 如果忽略饥饿值检查，返回 true（如金苹果等特殊食物）
     if (ignoreHunger) {
         return true;
     }
-    // 否则检查饥饿值是否小于 20
     return m_foodStats.needsFood();
 }
 
