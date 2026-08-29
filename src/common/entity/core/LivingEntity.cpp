@@ -236,6 +236,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
+    // 1.1 死亡中实体不再接受伤害（对齐 vanilla LivingEntity.hurtServer:1160-1161：
+    //     isInvulnerableTo 通过后、IS_FIRE 检查前的 isDeadOrDying() 门控）。
+    //     vanilla isDeadOrDying() = getHealth() <= 0.0F（LivingEntity.java:1152-1154），
+    //     等价 Cubium isDead()（health() <= 0.0f）。生命值已归零的实体（死亡动画/tickDeath
+    //     移除前的 20 tick 窗口内）不再被 hurt 扣血、不再触发战斗追踪器/荆棘等后置链路。
+    //     此前 Cubium 缺此门控，致 health<=0 的实体仍能被 hurt 推到更深负值、重复触发
+    //     死亡伤害链路（die() 已调用一次后仍可能被二次伤害）。
+    if (isDead()) {
+        return false;
+    }
+
     // 1.5 抗火药水免疫火焰伤害（对齐 vanilla LivingEntity.hurtServer:1162：
     //   p_376460_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE) → return false）。
     // 持有 FireResistance 效果的实体对所有 IS_FIRE 伤害源免疫（in_fire/campfire/on_fire/lava/hot_floor/

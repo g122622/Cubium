@@ -205,6 +205,39 @@ TEST(LivingEntityTest, Hurt)
     EXPECT_FLOAT_EQ(entity.health(), 15.0f);
 }
 
+// 对齐 vanilla LivingEntity.hurtServer:1160-1161：isInvulnerableTo 通过后、
+// IS_FIRE 检查前的 isDeadOrDying()（health <= 0）门控——死亡中实体不再接受任何伤害。
+// 此前 Cubium 缺此门控，health<=0 的实体仍能被 hurt 推到更深负值、重复触发后置链路。
+TEST(LivingEntityTest, Hurt_DeadEntityTakesNoDamage)
+{
+    TestLivingEntity entity;
+
+    // 实体已死亡（health=0），对后续伤害应直接拒绝、health 不再下降
+    entity.setHealth(0.0f);
+    ASSERT_TRUE(entity.isDead()) << "前置：health=0 视为死亡";
+
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    // 死亡实体受击：hurt 返回 false，health 保持 0（不被推到负值）
+    EXPECT_FALSE(entity.hurt(damage, 10.0f)) << "死亡中实体不应接受伤害";
+    EXPECT_FLOAT_EQ(entity.health(), 0.0f) << "死亡中实体 health 不应继续下降";
+}
+
+// 对照：存活实体（health>0）正常受伤——确认门控不影响正常伤害。
+TEST(LivingEntityTest, Hurt_AliveEntityTakesDamage)
+{
+    TestLivingEntity entity;
+
+    entity.setHealth(1.0f); // 残血但存活
+    ASSERT_FALSE(entity.isDead());
+
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    // 残血存活实体受 1 点伤害致死：hurt 返回 true，health 归 0
+    EXPECT_TRUE(entity.hurt(damage, 1.0f));
+    EXPECT_FLOAT_EQ(entity.health(), 0.0f);
+}
+
 TEST(LivingEntityTest, HurtPlaysSound)
 {
     GroundSupportWorld world;
