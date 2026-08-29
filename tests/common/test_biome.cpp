@@ -153,7 +153,11 @@ TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames)
         const char* name;
     };
 
-    const std::array<ExpectedBiome, 26> expectedBiomes = {{
+    // 仅列举 BiomeRegistry 实际注册的代表性生物群系。
+    // 注意：desert_lakes(130)、swamp_hills(134) 等 1.16.5 已删除变体在 vanilla 1.21.11
+    // 已移除，BiomeRegistry::_registerDefaultBiomes 正确地不注册它们（见该函数注释），
+    // 故不在此处断言。BiomeIds.hpp 仍保留这些 id 常量供历史兼容，但不代表已注册。
+    const std::array<ExpectedBiome, 24> expectedBiomes = {{
         {Biomes::Plains, "plains"},
         {Biomes::Desert, "desert"},
         {Biomes::Forest, "forest"},
@@ -171,8 +175,6 @@ TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames)
         {Biomes::ColdOcean, "cold_ocean"},
         {Biomes::DeepFrozenOcean, "deep_frozen_ocean"},
         {Biomes::SunflowerPlains, "sunflower_plains"},
-        {Biomes::DesertLakes, "desert_lakes"},
-        {Biomes::SwampHills, "swamp_hills"},
         {Biomes::GiantSpruceTaiga, "giant_spruce_taiga"},
         {Biomes::NetherWastes, "nether_wastes"},
         {Biomes::SoulSandValley, "soul_sand_valley"},

@@ -486,17 +486,26 @@ TEST_F(HangingEntityHurtTest, ItemFrame_NormalDamage_DropsAndRemoves)
 }
 
 /**
- * @brief 已移除的实体：不调用 dropItem/remove/markHurt，但返回 true
+ * @brief 已移除的实体再次 hurt：返回 false（被 isInvulnerableToBase 拦截）
  *
- * HangingEntity::hurt() 在 isRemoved() 为 true 时跳过 dropItem/remove/markHurt，
- * 但仍返回 true（MC Java 行为：已经移除的悬挂实体仍然"接受"伤害）。
+ * 对齐 vanilla BlockAttachedEntity.hurtServer（BlockAttachedEntity.java:74-88）：
+ *   if (this.isInvulnerableToBase(source)) return false;
+ *   ...
+ * 而 Entity.isInvulnerableToBase（Entity.java:2918-2923）首项即 this.isRemoved()：
+ *   return this.isRemoved() || this.invulnerable && ... || ...
+ * 故已移除的悬挂实体再次 hurt 时，isInvulnerableToBase 返回 true，hurtServer 在首步
+ * 即 return false——根本到不了 if (!isRemoved()) 分支。这是 vanilla 的正确行为：
+ * 已移除实体不再接受伤害，避免重复 dropItem/remove/markHurt（重复掉落/重复移除）。
+ *
+ * Cubium HangingEntity::hurt 第 1 步 isInvulnerableTo(source) 同样对齐：
+ * Entity::isInvulnerableTo 第 0 步 m_removed → return true，hurt 返回 false。
  */
-TEST_F(HangingEntityHurtTest, AlreadyRemovedEntity_NoDropNoRemoveNoMarkHurt_ReturnsTrue)
+TEST_F(HangingEntityHurtTest, AlreadyRemovedEntity_SecondHurtReturnsFalse)
 {
     entity::PaintingEntity painting{mc::test::testEcsRegistry()};
     painting.setWorld(&m_world);
 
-    // 第一次 hurt 正常工作
+    // 第一次 hurt 正常工作：dropItem + remove + markHurt，返回 true
     auto source = DamageSources::generic();
     EXPECT_TRUE(painting.hurt(source, 1.0f));
     EXPECT_TRUE(painting.isRemoved());
@@ -506,9 +515,10 @@ TEST_F(HangingEntityHurtTest, AlreadyRemovedEntity_NoDropNoRemoveNoMarkHurt_Retu
     painting.clearHurtMarked();
     EXPECT_FALSE(painting.isHurtMarked());
 
-    // 第二次 hurt：已移除，不再执行 dropItem/remove/markHurt，但返回 true
+    // 第二次 hurt：实体已 isRemoved()，isInvulnerableToBase 首项命中返回 true，
+    // hurtServer 首步 return false。不执行 dropItem/remove/markHurt。
     auto source2 = DamageSources::generic();
-    EXPECT_TRUE(painting.hurt(source2, 1.0f));
+    EXPECT_FALSE(painting.hurt(source2, 1.0f));
     EXPECT_FALSE(painting.isHurtMarked()); // 不应被再次标记
 }
 

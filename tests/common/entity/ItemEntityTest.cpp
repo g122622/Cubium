@@ -351,7 +351,8 @@ TEST_F(ItemEntityWorldTest, IsImmuneToFire_NetheriteItemImmune)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     EXPECT_TRUE(entity.isImmuneToFire());
 }
 
@@ -379,7 +380,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItemNotHurtByFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -389,7 +391,8 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemHurtByGenericNotFire)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto genericDamage = DamageSources::generic();
     bool result = entity.hurt(genericDamage, 2.0f);
@@ -401,7 +404,8 @@ TEST_F(ItemEntityWorldTest, Hurt_NetheriteItemVoidDamageKills)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto voidDamage = DamageSources::outOfWorld();
     bool result = entity.hurt(voidDamage, 100.0f);
@@ -574,7 +578,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantNotHurtByFire_NoGameEvent)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 5.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
     entity.setWorld(&m_world);
 
     auto fireDamage = DamageSources::inFire();
@@ -658,7 +663,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_NotHurtByFire_DoesNotSetMarkH
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     auto fireDamage = DamageSources::inFire();
     EXPECT_FALSE(entity.hurt(fireDamage, 3.0f));
@@ -669,7 +675,8 @@ TEST_F(ItemEntityWorldTest, Hurt_FireResistantItem_HurtByGeneric_SetsMarkHurt)
 {
     Item* netheriteIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
     ASSERT_NE(netheriteIngot, nullptr);
-    ItemEntity entity(EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ItemEntity entity(
+        EntityInstanceId(1), ItemStack(*netheriteIngot, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
 
     // 防火物品被普通伤害击中时，hurt() 成功，应设置 hurtMarked
     auto genericDamage = DamageSources::generic();
@@ -925,55 +932,62 @@ protected:
     {
         ItemEntityWorldTest::SetUp();
         // EntityManager 不持有 world 引用；实体自带 m_world，tick 时各自使用。
+        // 关键：默认 simulationDistance=10，_tickEntities 的模拟距离门控在「无在线玩家」时
+        // 冻结所有非玩家实体（_isEntityInSimulationRange 无玩家返回 false），致 ItemEntity::tick()
+        // 永不被调用——pickupDelay 不递减、空物品不移除、寿命到期不清除，全套生命周期测试假死。
+        // 设为 32 触发 freezeEnabled=false 短路（EntityManager.cpp:315），全量 tick 绕过门控，
+        // 使本组测试真正驱动 ItemEntity::tick()。这是 EntityManager 的一个易踩坑点：
+        // 单测想驱动实体 tick 须显式 setSimulationDistance(32) 或注入玩家，否则实体被冻结。
+        m_manager.setSimulationDistance(32);
     }
 
     // 创建一个掉落 stone 的 ItemEntity，关联到测试世界并加入管理器
-    EntityInstanceId spawnItem(EntityManager& manager, i32 lifetime, i32 pickupDelay = 0)
+    EntityInstanceId spawnItem(i32 lifetime, i32 pickupDelay = 0)
     {
         Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
         EXPECT_NE(stone, nullptr);
-        auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+        auto entity = std::make_unique<ItemEntity>(
+            EntityInstanceId(0), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
         entity->setLifetime(lifetime);
         entity->setPickupDelay(pickupDelay);
         entity->setWorld(&m_world);
-        return manager.addEntity(std::move(entity));
+        return m_manager.addEntity(std::move(entity));
     }
+
+    EntityManager m_manager{mc::test::testEcsRegistry()};
 };
 
 // 空物品应在 tick 开头被移除：getItem().isEmpty() 为真时立即 discard。
-// 当前实现缺少该检查 → 测试红。
 TEST_F(ItemEntityLifecycleTest, EmptyItemRemovedOnTick)
 {
-    EntityManager manager{mc::test::testEcsRegistry()};
     // 默认构造的 ItemStack 为空（item==nullptr）
     ItemStack emptyStack;
-    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto entity =
+        std::make_unique<ItemEntity>(EntityInstanceId(0), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     entity->setWorld(&m_world);
-    EntityInstanceId id = manager.addEntity(std::move(entity));
+    EntityInstanceId id = m_manager.addEntity(std::move(entity));
     ASSERT_NE(id, 0);
-    EXPECT_EQ(manager.entityCount(), 1);
+    EXPECT_EQ(m_manager.entityCount(), 1);
 
-    manager.tick(); // 空物品应在 tick 中被移除
+    m_manager.tick(); // 空物品应在 tick 中被移除
 
-    EXPECT_EQ(manager.entityCount(), 0);
+    EXPECT_EQ(m_manager.entityCount(), 0);
 }
 
 // pickupDelay=32767（创造假物品/无限拾取延迟）不应被递减。
 // 仅当 pickupDelay > 0 且 pickupDelay != 32767 时才递减。
-// 当前实现无条件递减 → 测试红。
 TEST_F(ItemEntityLifecycleTest, FakePickupDelayNotDecremented)
 {
-    EntityManager manager{mc::test::testEcsRegistry()};
     constexpr i32 kFakeDelay = 32767;
-    EntityInstanceId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, kFakeDelay);
+    EntityInstanceId id = spawnItem(ItemEntity::DEFAULT_LIFETIME, kFakeDelay);
 
-    auto* entity = manager.getEntity(id);
+    auto* entity = m_manager.getEntity(id);
     ASSERT_NE(entity, nullptr);
     auto* itemEntity = dynamic_cast<ItemEntity*>(entity);
     ASSERT_NE(itemEntity, nullptr);
     ASSERT_EQ(itemEntity->getPickupDelay(), kFakeDelay);
 
-    manager.tick();
+    m_manager.tick();
 
     EXPECT_EQ(itemEntity->getPickupDelay(), kFakeDelay) << "pickupDelay=32767 不应被递减（创造假物品语义）";
 }
@@ -981,55 +995,52 @@ TEST_F(ItemEntityLifecycleTest, FakePickupDelayNotDecremented)
 // 普通 pickupDelay 应随 tick 递减至 0 后停止。
 TEST_F(ItemEntityLifecycleTest, NormalPickupDelayDecrements)
 {
-    EntityManager manager{mc::test::testEcsRegistry()};
-    EntityInstanceId id = spawnItem(manager, ItemEntity::DEFAULT_LIFETIME, 5);
+    EntityInstanceId id = spawnItem(ItemEntity::DEFAULT_LIFETIME, 5);
 
-    auto* itemEntity = dynamic_cast<ItemEntity*>(manager.getEntity(id));
+    auto* itemEntity = dynamic_cast<ItemEntity*>(m_manager.getEntity(id));
     ASSERT_NE(itemEntity, nullptr);
 
     for (i32 i = 0; i < 5; ++i) {
-        manager.tick();
+        m_manager.tick();
     }
     EXPECT_EQ(itemEntity->getPickupDelay(), 0);
 
     // 递减到 0 后不应变为负数
-    manager.tick();
+    m_manager.tick();
     EXPECT_EQ(itemEntity->getPickupDelay(), 0);
 }
 
 // 批量到期：500 个短寿命物品 tick 超过寿命后应全部被移除（不泄漏）。
 TEST_F(ItemEntityLifecycleTest, BatchExpiry)
 {
-    EntityManager manager{mc::test::testEcsRegistry()};
     constexpr i32 kCount = 500;
     constexpr i32 kLifetime = 100;
 
     for (i32 i = 0; i < kCount; ++i) {
-        spawnItem(manager, kLifetime, 0);
+        spawnItem(kLifetime, 0);
     }
-    ASSERT_EQ(manager.entityCount(), kCount);
+    ASSERT_EQ(m_manager.entityCount(), kCount);
 
     // 寿命 100，tick 101 次后应全部到期移除
     for (i32 i = 0; i <= kLifetime; ++i) {
-        manager.tick();
+        m_manager.tick();
     }
 
-    EXPECT_EQ(manager.entityCount(), 0);
+    EXPECT_EQ(m_manager.entityCount(), 0);
 }
 
 // 无限寿命物品不应因年龄到期而移除。
 TEST_F(ItemEntityLifecycleTest, InfiniteLifetimeNeverExpires)
 {
-    EntityManager manager{mc::test::testEcsRegistry()};
-    EntityInstanceId id = spawnItem(manager, ItemEntity::INFINITE_LIFETIME, 0);
+    EntityInstanceId id = spawnItem(ItemEntity::INFINITE_LIFETIME, 0);
 
     // tick 远超普通寿命
     for (i32 i = 0; i < ItemEntity::DEFAULT_LIFETIME + 1000; ++i) {
-        manager.tick();
+        m_manager.tick();
     }
 
-    EXPECT_EQ(manager.entityCount(), 1);
-    auto* itemEntity = dynamic_cast<ItemEntity*>(manager.getEntity(id));
+    EXPECT_EQ(m_manager.entityCount(), 1);
+    auto* itemEntity = dynamic_cast<ItemEntity*>(m_manager.getEntity(id));
     ASSERT_NE(itemEntity, nullptr);
     EXPECT_FALSE(itemEntity->isRemoved());
 }

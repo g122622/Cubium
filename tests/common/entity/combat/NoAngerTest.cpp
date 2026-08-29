@@ -23,12 +23,17 @@
 
 // NO_ANGER / NO_ANGER_FROM_WIND_CHARGE 标签运行时查询测试。
 //
-// 验证 LivingEntity::actuallyHurt 的"更新最近攻击者"段（LivingEntity.cpp:389 起步骤 8）对齐 vanilla
-// LivingEntity.resolveMobResponsibleForDamage:1326-1332：受伤害时记录 lastHurtByMob（Cubium
-// setLastHurtBy）须满足
+// 验证 LivingEntity::hurt 的"记录最近攻击者"段（LivingEntity.cpp:289 起步骤 2.5）对齐 vanilla
+// LivingEntity.hurtServer:1208-1209（actuallyHurt 之后无条件调 resolveMob/PlayerResponsibleForDamage）。
+// resolve 内 setLastHurtByMob（Cubium setLastHurtBy）须满足
 //   getEntity() instanceof LivingEntity && !source.is(DamageTypeTags.NO_ANGER)
 //   && (!source.is(DamageTypes.WIND_CHARGE) || !this.getType().is(EntityTypeTags.NO_ANGER_FROM_WIND_CHARGE))
 // 才 setLastHurtByMob。
+//
+// 重要：setLastHurtBy 的记录逻辑位于 hurt()（步骤 2.5），而非 actuallyHurt()。
+// 此前 actuallyHurt 步骤 8 含此逻辑，后为对齐 vanilla hurtServer:1208-1209（resolve 在 actuallyHurt
+// 之后无条件执行，不受护甲/药水/吸收抵消影响）迁移到 hurt()。故测试必须经 hurt() 入口触发，
+// 直接调 actuallyHurt 会绕过 hurt() 的步骤 2.5，getLastHurtBy() 恒为 nullptr（假失败）。
 //
 // 标签成员集（均已对齐 vanilla 1.21.11 数据包）：
 //   - DamageTypeTags::NO_ANGER = {MobAttackNoAggro}（DamageTypeTags.cpp:644）：铁傀儡等生物的
@@ -46,7 +51,7 @@
 // 不加门控（对齐 vanilla resolvePlayerResponsibleForDamage 无 NO_ANGER 门控——mob_attack_no_aggro
 // 由玩家造成时仍记 lastHurtByPlayer 用于经验掉落，但不激怒）。
 //
-// 测试设计（四例交叉验证，TestLivingEntity 桩直接调 actuallyHurt 观察 getLastHurtBy）：
+// 测试设计（四例交叉验证，TestLivingEntity 桩经 hurt() 入口观察 getLastHurtBy）：
 //   - MobAttackSetsLastHurtBy：普通 mob_attack 攻击 → getLastHurtBy=attacker（基线，证明激怒链路工作）。
 //   - MobAttackNoAggroDoesNotAnger：mob_attack_no_aggro 攻击 → getLastHurtBy=nullptr（NO_ANGER 门控）。
 //   - WindChargeDoesNotAngerSkeleton：风弹击中骷髅（NO_ANGER_FROM_WIND_CHARGE 成员）→ getLastHurtBy=nullptr。
@@ -79,7 +84,8 @@ using namespace mc;
 namespace {
 
 // 测试用 LivingEntity 子类：参照 DamagesHelmetTest.cpp / BypassesEnchantmentsTest.cpp 的 TestLivingEntity
-// 范式。actuallyHurt 在 LivingEntity.hpp:207 为 public virtual，可直接调用。setTypeId/getLastHurtBy
+// 范式。hurt() 为伤害处理正确入口（含步骤 2.5 setLastHurtBy 记录），actuallyHurt 仅为其子步骤。
+// setTypeId/getLastHurtBy
 // 均为 public。走基类 EquipmentComponent 链路，无附魔护甲使荆棘分支早退。
 class TestLivingEntity : public LivingEntity {
 public:
@@ -118,6 +124,11 @@ protected:
         // 在 initialize() 中注册（DamageTypeTags.cpp:644）。未初始化时标签成员集为空，source.is(NO_ANGER)
         // 恒返 false，修复门控形同虚设——这正是缺陷状态下 mob_attack_no_aggro 误激怒的根因。
         DamageTypeTags::initialize();
+        // 实体类型标签初始化（进程级单例，s_initialized 守卫幂等）。NO_ANGER_FROM_WIND_CHARGE 9 成员
+        // 在 initialize() 中注册（EntityTypeTags.cpp:724）。未初始化时 contains() 恒返 false，致风弹击中
+        // 骷髅/僵尸等标签生物时 shouldAnger 误判为 true（误激怒）——与 NO_ANGER 同属"标签未初始化→
+        // 门控失效"缺陷。两个标签须同时初始化，缺任一均致对应门控形同虚设。
+        EntityTypeTags::initialize();
     }
 
     void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
@@ -137,7 +148,7 @@ TEST_F(NoAngerTest, MobAttackSetsLastHurtBy)
     TestLivingEntity attacker;
 
     auto source = DamageSources::mobAttack(&attacker);
-    victim.actuallyHurt(source, 5.0f);
+    victim.hurt(source, 5.0f);
 
     EXPECT_EQ(victim.getLastHurtBy(), &attacker);
 }
@@ -154,7 +165,7 @@ TEST_F(NoAngerTest, MobAttackNoAggroDoesNotAnger)
     TestLivingEntity attacker;
 
     auto source = DamageSources::mobAttackNoAggro(&attacker);
-    victim.actuallyHurt(source, 5.0f);
+    victim.hurt(source, 5.0f);
 
     EXPECT_EQ(victim.getLastHurtBy(), nullptr);
 }
@@ -174,7 +185,7 @@ TEST_F(NoAngerTest, WindChargeDoesNotAngerSkeleton)
     // windBurst(windCharge, shooter)：shooter=attacker 是 getTrueSource()（vanilla getEntity 真凶），
     // windCharge=attacker 占位（directSource，本测试不查 directSource）。
     auto source = DamageSources::windBurst(&attacker, &attacker);
-    victim.actuallyHurt(source, 5.0f);
+    victim.hurt(source, 5.0f);
 
     EXPECT_EQ(victim.getLastHurtBy(), nullptr);
 }
@@ -193,7 +204,7 @@ TEST_F(NoAngerTest, WindChargeAngersNonListedMob)
     TestLivingEntity attacker;
 
     auto source = DamageSources::windBurst(&attacker, &attacker);
-    victim.actuallyHurt(source, 5.0f);
+    victim.hurt(source, 5.0f);
 
     EXPECT_EQ(victim.getLastHurtBy(), &attacker);
 }

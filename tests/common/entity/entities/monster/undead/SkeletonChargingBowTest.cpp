@@ -355,6 +355,11 @@ TEST_F(SkeletonChargingBowTest, NoBow_MainHandNotBow)
     auto skeleton = std::make_unique<SkeletonEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     skeleton->setWorld(m_world.get());
 
+    // SkeletonEntity 构造期主动装备弓（GameTest 的 test.spawn 不走 finalizeSpawn/
+    // populateDefaultEquipmentSlots，故构造期补弓确保 spawn 的骷髅能远程攻击）。
+    // 本测试验证"空手"场景：显式清空主手装备，确认 getItem()==nullptr 且非 BOW。
+    skeleton->setMainHandItem(ItemStack());
+
     const auto& mainHand = skeleton->getMainHandItem();
     EXPECT_EQ(mainHand.getItem(), nullptr);
     EXPECT_NE(mainHand.getItem(), Items::BOW);
