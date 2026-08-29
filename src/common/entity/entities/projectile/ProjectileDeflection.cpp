@@ -77,13 +77,13 @@ bool applyProjectileDeflection(ProjectileDeflection deflection, entity::Projecti
         }
 
         case ProjectileDeflection::MomentumDeflect: {
-            // 动量偏转：将弹射物速度设置为偏转者的移动方向（归一化）
-            Vector3 motion = deflector.velocity();
-            const f32 motionLen = motion.length();
-            if (motionLen > 1.0e-4f) {
-                const f32 speed = projectile.velocity().length();
-                motion = motion * (speed / motionLen);
-            }
+            // 动量偏转：将弹射物速度设置为偏转者移动方向的归一化向量。
+            // 对齐 vanilla ProjectileDeflection.MOMENTUM_DEFLECT（ProjectileDeflection.java:25-31）：
+            //   vec3 = deflector.getDeltaMovement().normalize(); projectile.setDeltaMovement(vec3);
+            // 归一化后直接赋值（不乘原速）。偏转者静止时 normalize() 返回零向量，弹射物速度归零。
+            //   此前 Cubium 误乘以弹射物原速度大小（speed=velocity().length()），与 vanilla 不符
+            //   （vanilla 不保留原速，偏转后弹射物以单位速度沿偏转者移动方向飞）。
+            const Vector3 motion = deflector.velocity().normalized();
             projectile.setVelocity(motion);
 
             // 将偏转者设为新的发射者

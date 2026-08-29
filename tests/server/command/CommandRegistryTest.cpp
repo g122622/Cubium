@@ -91,18 +91,14 @@ public:
     ~FakeServer() override = default;
 
     // 覆盖 dimensionManager，返回包含测试世界的维度管理器
-    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
-    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
-    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
-    // 然后做 static_cast，在我们的测试场景中是安全的。
     [[nodiscard]] ServerDimensionManager& dimensionManager() override
     {
-        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
     {
-        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     // 覆盖 playerEntityManager，返回测试用实体管理器
@@ -167,7 +163,11 @@ private:
         return world;
     }
 
-    DimensionManager m_dimensionManager;
+    // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
+    // initialize 故不解引用内部 m_server；RelWithDebInfo 下构造断言 MC_ASSERT(server!=nullptr) 不生效）。
+    // 替代旧 reinterpret_cast<ServerDimensionManager&>(基类DimensionManager) UB——派生类独有
+    // m_playerDimensions 越界读基类内存致 TeleportCommand::teleportPlayers 调 getPlayerDimension 时 SEH。
+    ServerDimensionManager m_dimensionManager{nullptr};
     ServerDimension* m_dimension = nullptr;
     ServerPlayerEntityManager m_playerEntityManager;
     ServerWorld* m_world = nullptr;

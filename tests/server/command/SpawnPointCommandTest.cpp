@@ -49,22 +49,22 @@ public:
     // 这样 source.world() 经 dimensionManager().getDimension() 返回 nullptr，
     // 命令走 "World not available" 分支返回 0，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
-    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
-    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
-    // 然后做 static_cast，在我们的测试场景中是安全的。
     [[nodiscard]] ServerDimensionManager& dimensionManager() override
     {
-        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
     {
-        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
 private:
-    DimensionManager m_dimensionManager;
+    // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
+    // initialize 故不解引用内部 m_server；RelWithDebInfo 下构造断言 MC_ASSERT(server!=nullptr) 不生效）。
+    // 替代旧 reinterpret_cast<ServerDimensionManager&>(基类DimensionManager) UB——派生类独有
+    // m_playerDimensions 越界读基类内存致 TeleportCommand::teleportPlayers 调 getPlayerDimension 时 SEH。
+    ServerDimensionManager m_dimensionManager{nullptr};
 };
 
 class SpawnPointCommandTest : public ::testing::Test {
@@ -167,9 +167,13 @@ TEST_F(SpawnPointCommandTest, SpawnPointWithPlayerName)
 {
     m_server.addTestPlayer(1, "TestPlayer");
 
+    // /spawnpoint <玩家名> 是合法命令：resolvePlayerIds 按名解析到 TestPlayer(id=1) 后执行。
+    // 此前该断言误写为 EXPECT_FALSE——它"通过"仅因 BaseTestServer::playerEntityManager() 旧桩
+    // 抛 "unused" 异常被命令框架捕获转成 success=false，巧合符合错误断言。playerEntityManager
+    // 改为返回真实空对象后（见 BaseTestServer），命令正常解析执行，success 应为 true。
     const auto result = m_server.commandRegistry().execute("spawnpoint TestPlayer", m_console);
 
-    EXPECT_FALSE(result.success());
+    EXPECT_TRUE(result.success());
 }
 
 TEST_F(SpawnPointCommandTest, SpawnPointWithInvalidSelector)

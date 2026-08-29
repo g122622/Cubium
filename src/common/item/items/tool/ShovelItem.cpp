@@ -82,8 +82,11 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
             // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
-            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+            if (context.getPlayer() != nullptr) {
+                ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+                LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            }
 
             return ActionResultType::Success;
         }
@@ -103,8 +106,11 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
             // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
-            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+            if (context.getPlayer() != nullptr) {
+                ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+                LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            }
 
             return ActionResultType::Success;
         }
@@ -143,8 +149,11 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
     // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
     // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
-    ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-    LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+    // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+    if (context.getPlayer() != nullptr) {
+        ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+        LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+    }
 
     return ActionResultType::Success;
 }

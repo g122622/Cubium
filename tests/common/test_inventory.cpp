@@ -231,7 +231,9 @@ TEST_F(PlayerInventoryTest, AddItem)
     ItemStack stack(*m_diamond, 32);
     i32 remaining = m_inventory->add(stack);
 
-    EXPECT_EQ(remaining, 32); // 全部添加成功
+    // add 返回"剩余未添加"数量（0 = 全部成功，对齐 vanilla PlayerInventory#add
+    // 及提交 b2d2dc04d 修复的语义反转：成功加完返回 0，非 originalCount）。
+    EXPECT_EQ(remaining, 0); // 全部添加成功
     EXPECT_TRUE(stack.isEmpty());
 
     // 检查物品在快捷栏
@@ -252,7 +254,8 @@ TEST_F(PlayerInventoryTest, AddItemMerging)
     // 槽位 0 从 50 变成 64（堆叠上限），剩余 6 个会放到下一个空槽位
     // MC 1.16.5 行为: 空槽位优先级是 选中槽 → 副手 → 快捷栏 → 主背包
     // 所以剩余的 6 个会放到副手槽 (slot 40)，而不是 slot 1
-    EXPECT_EQ(remaining, 20);                          // 全部添加成功
+    // add 返回"剩余未添加"数量（0 = 全部成功），20 个全部合并/放入空槽故 remaining=0。
+    EXPECT_EQ(remaining, 0);                           // 全部添加成功
     EXPECT_EQ(m_inventory->getItem(0).getCount(), 64); // 达到堆叠上限
     EXPECT_TRUE(stack.isEmpty());                      // 全部添加成功，stack 变空
 

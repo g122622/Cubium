@@ -24,6 +24,7 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/network/IServerClientConnection.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <stdexcept>
 #include <unordered_map>
@@ -99,8 +100,11 @@ public:
     [[nodiscard]] ServerDimensionManager& dimensionManager() override;
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override;
     [[nodiscard]] server::ServerWorld* getPlayerWorld(PlayerId playerId) override;
-    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override;
-    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override;
+    [[nodiscard]] server::ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
+    [[nodiscard]] const server::ServerPlayerEntityManager& playerEntityManager() const override
+    {
+        return m_playerEntityManager;
+    }
     [[nodiscard]] server::interaction::BlockInteractionManager& blockInteractionManager() override;
     [[nodiscard]] const server::interaction::BlockInteractionManager& blockInteractionManager() const override;
     [[nodiscard]] server::interaction::MiningManager& miningManager() override;
@@ -193,6 +197,11 @@ protected:
     server::ServerWorld* m_playerWorld = nullptr;
     server::core::PlayerManager m_playerManager;
     server::interaction::InventoryManager m_inventoryManager;
+    // 真实空玩家实体管理器：默认构造无依赖（mutex + 两个空 map），getPlayerIds() 返回空 vector、
+    // getPlayerEntity() 返回 nullptr。命令测试经 PlayerResolver::getSortedPlayerIds 调
+    // playerEntityManager().getPlayerIds()，须返回空对象而非抛 "unused"（原 throwUnused 桩致
+    // PlayerResolverTest/SpawnPointCommandTest/TellRawCommandTest 共 16 用例崩溃）。
+    server::ServerPlayerEntityManager m_playerEntityManager;
     server::core::ConnectionManager m_connectionManager;
     server::core::TimeManager m_timeManager;
     server::core::TeleportManager m_teleportManager;

@@ -211,7 +211,12 @@ const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& con
     // 不改 block 自身），此处 const_cast 仅用于满足签名，不破坏逻辑不变量。
     BlockState placed = const_cast<Block&>(*m_block).getStateForPlacement(const_cast<BlockItemUseContext&>(context));
     if (BlockState* canonical = Block::getBlockState(placed.stateId())) {
-        return canonical;
+        // 规范化命中的 canonical 须确实属于本方块：未注册方块的 placed.stateId() 会与注册表中
+        // 其他方块（如 air，stateId=0）冲突而误命中，此时规范化是错误的，须回退到本方块默认状态。
+        // 对已注册方块，placed.stateId() 恒属于本方块，canonical->is(m_block) 必成立，不回退。
+        if (canonical->is(m_block)) {
+            return canonical;
+        }
     }
     return &m_block->defaultState();
 }

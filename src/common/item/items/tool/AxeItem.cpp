@@ -78,8 +78,11 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         world.setBlockState(pos, &newState, 11);
         // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
         // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
-        ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-        LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+        if (context.getPlayer() != nullptr) {
+            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        }
         return ActionResultType::Success;
     }
 
@@ -96,8 +99,11 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
             // 去氧化播放 SCRAPE 粒子效果（worldEvent 3005 已包含音效和粒子）
             world.playEvent(world::WorldEvents::SCRAPE, pos, 0);
             // 消耗耐久：操作权威手持（player->getHeldItem(hand)）做 hurtAndBreak（同剥皮分支）。
-            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+            if (context.getPlayer() != nullptr) {
+                ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+                LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            }
             return ActionResultType::Success;
         }
     }
@@ -110,8 +116,11 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
         // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
         // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
-        ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
-        LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
+        if (context.getPlayer() != nullptr) {
+            ItemStack& heldItem = context.getPlayer()->getHeldItem(context.getHand());
+            LivingEntity::hurtAndBreak(heldItem, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        }
         return ActionResultType::Success;
     }
 

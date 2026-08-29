@@ -217,18 +217,21 @@ TEST_F(PiglinEntityAngerTest, IsAngry_WhenExplicitlyAngry)
 
 TEST_F(PiglinEntityAngerTest, SetRevengeTarget_SetsTimer)
 {
-    // setRevengeTarget 应该设置复仇计时器
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234);
-    piglin->setRevengeTarget(target);
-    EXPECT_EQ(piglin->getRevengeTimer(), 100); // 5秒 = 100 ticks
+    // setRevengeTarget 应该设置复仇计时器（5秒 = 100 ticks）。
+    // setRevengeTarget 内部经 target->id() 做 id 校验存储（对齐同族 IAngerable，避免裸指针 UAF），
+    // 故不能用 reinterpret_cast 伪造指针（会解引用非法地址触发 SEH），须用真实 LivingEntity。
+    piglin->setRevengeTarget(piglin.get());
+    EXPECT_EQ(piglin->getRevengeTimer(), 100);
 }
 
-TEST_F(PiglinEntityAngerTest, SetRevengeTarget_Null_StillSetsTimer)
+TEST_F(PiglinEntityAngerTest, SetRevengeTarget_Null_ClearsTimer)
 {
-    // setRevengeTarget(nullptr) 仍然会设置复仇计时器
-    // 这与MC Java行为一致：setRevengeTarget总是启动计时器
+    // setRevengeTarget(nullptr) 清除复仇目标并归零计时器（对齐同族 IAngerable 一致语义：
+    // TameableEntity/BeeEntity/GolemEntity/EndermanEntity 的 setRevengeTarget(null) 均将
+    // m_revengeTimer 清零、m_revengeTargetId 置空，表示退出复仇窗口）。
     piglin->setRevengeTarget(nullptr);
-    EXPECT_EQ(piglin->getRevengeTimer(), 100);
+    EXPECT_EQ(piglin->getRevengeTimer(), 0);
+    EXPECT_EQ(piglin->getRevengeTarget(), nullptr);
 }
 
 // ==================== IAngerable::updateAnger 逻辑验证 ====================

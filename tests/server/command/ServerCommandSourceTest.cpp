@@ -91,12 +91,12 @@ public:
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override
     {
-        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
     {
-        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
@@ -130,7 +130,11 @@ private:
         return world;
     }
 
-    DimensionManager m_dimensionManager;
+    // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
+    // initialize 故不解引用内部 m_server；RelWithDebInfo 下构造断言 MC_ASSERT(server!=nullptr) 不生效）。
+    // 替代旧 reinterpret_cast<ServerDimensionManager&>(基类DimensionManager) UB——派生类独有
+    // m_playerDimensions 越界读基类内存致 TeleportCommand::teleportPlayers 调 getPlayerDimension 时 SEH。
+    ServerDimensionManager m_dimensionManager{nullptr};
     ServerDimension* m_dimension = nullptr;
     ServerPlayerEntityManager m_playerEntityManager;
     ServerWorld* m_world = nullptr;

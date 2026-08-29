@@ -27,6 +27,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/basic/ChickenEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -99,6 +100,9 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        // 注册原版实体类型：ChickenEntity::tick 下蛋链路经 EntityRegistry::getType(ITEM) 取物品实体
+        // 工厂，未注册则 resetEggTimer 静默返回不下蛋（与 ItemDropHelperTest/BlockDropHandlerTest 同范式）。
+        entity::VanillaEntities::registerAll();
     }
 
     ChickenTestWorld m_world;

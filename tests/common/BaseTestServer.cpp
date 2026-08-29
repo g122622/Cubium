@@ -51,15 +51,8 @@ server::ServerWorld* BaseTestServer::getPlayerWorld(PlayerId)
     return m_playerWorld;
 }
 
-server::ServerPlayerEntityManager& BaseTestServer::playerEntityManager()
-{
-    throwUnused();
-}
-
-const server::ServerPlayerEntityManager& BaseTestServer::playerEntityManager() const
-{
-    throwUnused();
-}
+// playerEntityManager() 已在头文件内联返回 m_playerEntityManager 成员（真实空对象），
+// 不再 throwUnused。详见 BaseTestServer.hpp 中 m_playerEntityManager 成员注释。
 
 server::interaction::BlockInteractionManager& BaseTestServer::blockInteractionManager()
 {

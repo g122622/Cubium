@@ -155,7 +155,15 @@ TEST_F(PigEntityEquipableTest, CannotEquipToInvalidSlot)
 
 class PigEntityRideableTest : public ::testing::Test {
 protected:
-    void SetUp() override { pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    // Items::SADDLE 默认 nullptr，getEquipment(hasSaddle()) 返回的 ItemStack(nullptr,1)
+    // 退化为空，致装备同步断言误判；需 Items::initialize() 注册原版物品。
+    // Items::initialize 依赖 VanillaBlocks，故一并初始化。
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        pig = std::make_unique<PigEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<PigEntity> pig;
 };
@@ -173,18 +181,17 @@ TEST_F(PigEntityRideableTest, InitiallyNotSaddled)
 }
 
 /**
- * @brief 测试 setSaddle 在无 World 上下文时的行为
+ * @brief 测试 setSaddle 在无 World 上下文时仍生效
  *
- * 由于 BoostHelper 未初始化，setSaddle() 调用 setSaddledFromBoolean()
- * 不会改变鞍状态。这是预期的设计行为。
- *
- * 完整的鞍状态测试需要集成测试（有 World 上下文）。
+ * PigEntity 自 e46db17d9 起改用独立 bool 成员 m_saddled 存储鞍状态（对齐 Java
+ * Mob.isSaddled 装备槽语义，与 StriderEntity::m_saddled 同构），不再经 BoostHelper
+ * 同步至 EntityDataManager，故无 World 上下文 setSaddle(true) 也会正确置位。
  */
-TEST_F(PigEntityRideableTest, SetSaddleRequiresWorldContext)
+TEST_F(PigEntityRideableTest, SetSaddleWorks)
 {
-    // 无 World 上下文时，setSaddle 不生效
+    // 无 World 上下文时，setSaddle 仍正确置位（独立 bool 成员）
     pig->setSaddle(true);
-    EXPECT_FALSE(pig->hasSaddle()); // 仍然是 false，因为 BoostHelper 未初始化
+    EXPECT_TRUE(pig->hasSaddle());
 
     pig->setSaddle(false);
     EXPECT_FALSE(pig->hasSaddle());
@@ -208,23 +215,31 @@ TEST_F(PigEntityRideableTest, SteeringSpeed)
 }
 
 /**
- * @brief 测试鞍状态与 IEquipable 同步需要 World 上下文
+ * @brief 测试鞍状态与 IEquipable 接口双向同步
  *
- * 由于 BoostHelper 未初始化，鞍状态设置不生效。
- * 此测试验证在没有 World 上下文时的预期行为。
+ * PigEntity 自 e46db17d9 起用独立 bool m_saddled 存储鞍状态，setSaddle / setEquipment
+ * 互通：setSaddle(true) 后 getEquipment(0) 返回鞍物品堆；setEquipment(0, empty) 清鞍。
+ * 无需 World 上下文（独立 bool 成员，不经 BoostHelper/EntityDataManager 同步）。
  */
-TEST_F(PigEntityRideableTest, SaddleSyncRequiresWorldContext)
+TEST_F(PigEntityRideableTest, SaddleSyncsWithEquipableInterface)
 {
-    // 无 World 上下文时，通过 IRideable 设置鞍不生效
+    // setSaddle(true) 后，hasSaddle() 为 true 且 getEquipment(0) 返回鞍物品堆
     pig->setSaddle(true);
-    EXPECT_FALSE(pig->hasSaddle());
-    EXPECT_TRUE(pig->getEquipment(0).isEmpty()); // 没有鞍
+    EXPECT_TRUE(pig->hasSaddle());
+    EXPECT_FALSE(pig->getEquipment(0).isEmpty());
+    EXPECT_EQ(pig->getEquipment(0).getItem(), Items::SADDLE);
 
-    // 通过 IEquipable 清除鞍也不生效（本来就没有）
+    // 通过 IEquipable 清除鞍：setEquipment(0, empty) → setSaddle(false)
     ItemStack empty;
     pig->setEquipment(0, empty);
     EXPECT_FALSE(pig->hasSaddle());
     EXPECT_TRUE(pig->getEquipment(0).isEmpty());
+
+    // 通过 IEquipable 装鞍：setEquipment(0, saddle) → setSaddle(true)
+    ItemStack saddle(Items::SADDLE, 1);
+    pig->setEquipment(0, saddle);
+    EXPECT_TRUE(pig->hasSaddle());
+    EXPECT_EQ(pig->getEquipment(0).getItem(), Items::SADDLE);
 }
 
 // ============================================================================

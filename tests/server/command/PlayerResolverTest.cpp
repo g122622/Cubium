@@ -52,22 +52,22 @@ public:
     // resolvePlayerIds 的 applyFilters/matchesFilter 在 world==nullptr 时跳过
     // 依赖实体的过滤，仍可正常按等级/游戏模式等过滤，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    // 注意：DimensionManager 是 ServerDimensionManager 的基类，
-    // 我们将 DimensionManager reinterpret_cast 为 ServerDimensionManager，
-    // 因为 ServerDimensionManager::getDimension() 仅调用基类 DimensionManager::getDimension()
-    // 然后做 static_cast，在我们的测试场景中是安全的。
     [[nodiscard]] ServerDimensionManager& dimensionManager() override
     {
-        return reinterpret_cast<ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
     [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
     {
-        return reinterpret_cast<const ServerDimensionManager&>(m_dimensionManager);
+        return m_dimensionManager;
     }
 
 private:
-    DimensionManager m_dimensionManager;
+    // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调
+    // initialize 故不解引用内部 m_server；RelWithDebInfo 下构造断言 MC_ASSERT(server!=nullptr) 不生效）。
+    // 替代旧 reinterpret_cast<ServerDimensionManager&>(基类DimensionManager) UB——派生类独有
+    // m_playerDimensions 越界读基类内存致 TeleportCommand::teleportPlayers 调 getPlayerDimension 时 SEH。
+    ServerDimensionManager m_dimensionManager{nullptr};
 };
 
 } // namespace mc::command

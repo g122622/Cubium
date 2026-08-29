@@ -394,9 +394,11 @@ TEST(LlamaAiGoalsTest, InheritsAbstractHorseGoals)
     auto llama = std::make_unique<LlamaEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     llama->setWorld(&world);
 
-    // 羊驼应该继承 AbstractHorseEntity 的基础 AI 目标
+    // 羊驼继承 AbstractHorseEntity 的基础 AI 目标，但 LlamaEntity::registerGoals 完全 override：
+    // 移除继承的 PanicGoal(priority 1) 后在 priority 3 重新注册（对齐 vanilla Llama.registerGoals，
+    // 避免 PanicGoal(1) 抢占 RangedAttackGoal(3) 致羊驼受击只逃不吐口水）。其余基类目标优先级不变。
     EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::SwimGoal>(llama->goalSelector(), 0));
-    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::PanicGoal>(llama->goalSelector(), 1));
+    EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::PanicGoal>(llama->goalSelector(), 3));
     EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::RunAroundLikeCrazyGoal>(llama->goalSelector(), 1));
     EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::BreedGoal>(llama->goalSelector(), 2));
     EXPECT_TRUE(hasGoalWithPriority<entity::ai::goal::FollowParentGoal>(llama->goalSelector(), 4));

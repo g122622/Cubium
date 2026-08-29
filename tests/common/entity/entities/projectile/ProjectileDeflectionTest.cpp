@@ -329,10 +329,13 @@ TEST_F(ProjectileDeflectionTest, AimDeflectSetsVelocityToDeflectorLookDirection)
 
     applyProjectileDeflection(ProjectileDeflection::AimDeflect, projectile, deflector);
 
-    // AimDeflect: speed = 5.0, direction = (-sin(0)*cos(0), -sin(0), cos(0)*cos(0)) = (0, 0, 1)
+    // AimDeflect 对齐 vanilla ProjectileDeflection.AIM_DEFLECT：
+    //   vec3 = deflector.getLookAngle(); projectile.setDeltaMovement(vec3);
+    // getLookAngle 返回单位视线向量（不乘原速），yaw=0/pitch=0 → look=(0,0,1)，
+    // 偏转后弹射物以单位速度 (0,0,1) 沿偏转者视线方向飞行（原速 5.0 不保留）。
     EXPECT_NEAR(projectile.velocity().x, 0.0f, 0.001f);
     EXPECT_NEAR(projectile.velocity().y, 0.0f, 0.001f);
-    EXPECT_NEAR(projectile.velocity().z, 5.0f, 0.001f);
+    EXPECT_NEAR(projectile.velocity().z, 1.0f, 0.001f);
 }
 
 TEST_F(ProjectileDeflectionTest, AimDeflectChangesShooter)
@@ -364,10 +367,12 @@ TEST_F(ProjectileDeflectionTest, MomentumDeflectUsesDeflectorVelocity)
 
     applyProjectileDeflection(ProjectileDeflection::MomentumDeflect, projectile, deflector);
 
-    // 动量偏转：direction = (0, 0, 2.0) normalized = (0, 0, 1.0), speed = 5.0
+    // 动量偏转对齐 vanilla ProjectileDeflection.MOMENTUM_DEFLECT：
+    //   vec3 = deflector.getDeltaMovement().normalize(); projectile.setDeltaMovement(vec3);
+    // deflector 速度 (0,0,2) 归一化为 (0,0,1)（不乘原速），偏转后弹射物以单位速度 (0,0,1) 飞。
     EXPECT_NEAR(projectile.velocity().x, 0.0f, 0.001f);
     EXPECT_NEAR(projectile.velocity().y, 0.0f, 0.001f);
-    EXPECT_NEAR(projectile.velocity().z, 5.0f, 0.001f);
+    EXPECT_NEAR(projectile.velocity().z, 1.0f, 0.001f);
 }
 
 TEST_F(ProjectileDeflectionTest, MomentumDeflectWithZeroVelocityLeavesVelocityUnchanged)
@@ -380,7 +385,8 @@ TEST_F(ProjectileDeflectionTest, MomentumDeflectWithZeroVelocityLeavesVelocityUn
 
     applyProjectileDeflection(ProjectileDeflection::MomentumDeflect, projectile, deflector);
 
-    // 偏转者速度为零时，不修改弹射物速度（motionLen < 1e-4）
+    // 偏转者速度为零时，getDeltaMovement().normalize() 返回零向量，弹射物速度归零
+    // （对齐 vanilla Vec3.normalize() 零向量行为，不产生 NaN）。
     EXPECT_NEAR(projectile.velocity().x, 0.0f, 0.001f);
     EXPECT_NEAR(projectile.velocity().y, 0.0f, 0.001f);
     EXPECT_NEAR(projectile.velocity().z, 0.0f, 0.001f);
