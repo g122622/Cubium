@@ -258,6 +258,33 @@ BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::INFINIBURN_OVERWORLD()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "infiniburn_overworld"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::INFINIBURN_NETHER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "infiniburn_nether"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::INFINIBURN_END()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "infiniburn_end"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::CAMPFIRES()
 {
     static BlockTag* tag = nullptr;
@@ -1325,6 +1352,29 @@ void BlockTags::initialize()
     soulFireBaseBlocks->addAll(
         {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
     tags[soulFireBaseBlocks->getId()] = std::move(soulFireBaseBlocks);
+
+    // 创建 INFINIBURN_OVERWORLD 标签（无限火源基座，主世界维度）
+    // 对齐数据包 infiniburn_overworld.json = {netherrack, magma_block}。
+    // 消费方：FireBlock::tick 查 belowState 是否在此标签（火焰为无限火源）。
+    auto infiniburnOverworld = std::make_unique<BlockTag>(ResourceLocation("minecraft", "infiniburn_overworld"));
+    infiniburnOverworld->addAll(
+        {ResourceLocation("minecraft", "netherrack"), ResourceLocation("minecraft", "magma_block")});
+    tags[infiniburnOverworld->getId()] = std::move(infiniburnOverworld);
+
+    // 创建 INFINIBURN_NETHER 标签（下界维度）
+    // 对齐数据包 infiniburn_nether.json = {#infiniburn_overworld} = {netherrack, magma_block}。
+    auto infiniburnNether = std::make_unique<BlockTag>(ResourceLocation("minecraft", "infiniburn_nether"));
+    infiniburnNether->addAll(
+        {ResourceLocation("minecraft", "netherrack"), ResourceLocation("minecraft", "magma_block")});
+    tags[infiniburnNether->getId()] = std::move(infiniburnNether);
+
+    // 创建 INFINIBURN_END 标签（末地维度）
+    // 对齐数据包 infiniburn_end.json = {#infiniburn_overworld, bedrock} = {netherrack, magma_block, bedrock}。
+    auto infiniburnEnd = std::make_unique<BlockTag>(ResourceLocation("minecraft", "infiniburn_end"));
+    infiniburnEnd->addAll({ResourceLocation("minecraft", "netherrack"),
+        ResourceLocation("minecraft", "magma_block"),
+        ResourceLocation("minecraft", "bedrock")});
+    tags[infiniburnEnd->getId()] = std::move(infiniburnEnd);
 
     // 创建 CAMPFIRES 标签（营火、灵魂营火）
     auto campfires = std::make_unique<BlockTag>(ResourceLocation("minecraft", "campfires"));

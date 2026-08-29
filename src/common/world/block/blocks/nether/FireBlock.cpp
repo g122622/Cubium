@@ -179,6 +179,19 @@ BlockState FireBlock::updatePostPlacement(const BlockState& state,
     }
 }
 
+const BlockTag& FireBlock::getInfiniburnTag(DimensionId dimension)
+{
+    // 对齐 vanilla dimensionType().infiniburn()：按维度返回 infiniburn 标签。
+    // 主世界=0、下界=-1、末地=1（DimensionManager.hpp:64-70），其他维度默认主世界标签。
+    if (dimension == DimensionManager::NETHER) {
+        return BlockTags::INFINIBURN_NETHER();
+    }
+    if (dimension == DimensionManager::THE_END) {
+        return BlockTags::INFINIBURN_END();
+    }
+    return BlockTags::INFINIBURN_OVERWORLD();
+}
+
 void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     // 对齐 vanilla FireBlock.tick（FireBlock.java:143-218）：首行自我续期计划刻，
@@ -202,11 +215,17 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     //   vanilla 用 FIRE_SPREAD_RADIUS_AROUND_PLAYER 游戏规则把火焰蔓延限制在玩家附近，
     //   Cubium 的 IWorld::canSpreadFireAround 尚未实现，此处暂不门控（默认放行，等价 radius=-1）。
 
-    // 3. 检查是否为无限火源（如下界岩上的火，对应 vanilla infiniburn 标签）
+    // 3. 检查是否为无限火源（对齐 vanilla FireBlock.java:151：blockstate.is(dimensionType().infiniburn())）
+    //    vanilla 按当前维度的 infiniburn 标签查询下方方块：主世界→infiniburn_overworld，
+    //    下界→infiniburn_nether，末地→infiniburn_end。成员集：overworld/nether={netherrack, magma_block}，
+    //    end={netherrack, magma_block, bedrock}。在这些方块上的火为无限火源（永不熄灭、不检查有效位置、
+    //    age15 不概率熄灭）。此前 Cubium 用 belowState->isFireSource()（Block::isFireSource 默认 false，
+    //    无方块重写）恒返回 false，致下界岩/岩浆块/基岩上的火不具无限火源属性。改为按维度查 infiniburn 标签。
     bool isFireSource = false;
     const BlockState* belowState = world.getBlockState(pos.down());
     if (belowState != nullptr) {
-        isFireSource = belowState->isFireSource(world, pos.down(), Direction::Up);
+        const BlockTag& infiniburnTag = getInfiniburnTag(world.dimension());
+        isFireSource = infiniburnTag.contains(*belowState);
     }
 
     // 4. 下雨熄灭检查（vanilla FireBlock.java:153-154：!flag && isRaining && isNearRain

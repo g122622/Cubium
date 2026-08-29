@@ -702,6 +702,115 @@ TEST_F(FireBlockTest, GetFireState_ReturnsNormalFireOnDirt)
     EXPECT_EQ(&fireState.getBlock(), VanillaBlocks::FIRE);
 }
 
+// ============================================================================
+// infiniburn 标签与无限火源测试（偏离 #7 修复验证）
+// ============================================================================
+//
+// 对齐 vanilla FireBlock.tick:151 `blockstate.is(dimensionType().infiniburn())`：
+// 下方方块在该维度的 infiniburn 标签中时，火焰为无限火源（永不熄灭、不检查有效位置、
+// age15 不概率熄灭）。此前 Cubium 用 belowState->isFireSource()（恒 false）致下界岩/
+// 岩浆块/基岩上的火不具无限火源属性。修复后按维度查 INFINIBURN_OVERWORLD/NETHER/END 标签。
+
+TEST_F(FireBlockTest, InfiniburnTags_ContainCorrectMembers)
+{
+    // INFINIBURN_OVERWORLD = {netherrack, magma_block}
+    auto& overworld = BlockTags::INFINIBURN_OVERWORLD();
+    ASSERT_NE(BaseBlocks::NETHERRACK, nullptr);
+    ASSERT_NE(NetherBlocks::MAGMA, nullptr);
+    EXPECT_TRUE(overworld.contains(*BaseBlocks::NETHERRACK));
+    EXPECT_TRUE(overworld.contains(*NetherBlocks::MAGMA));
+    ASSERT_NE(BaseBlocks::BEDROCK, nullptr);
+    EXPECT_FALSE(overworld.contains(*BaseBlocks::BEDROCK)); // bedrock 不在 overworld 标签
+
+    // INFINIBURN_NETHER = {netherrack, magma_block}
+    auto& nether = BlockTags::INFINIBURN_NETHER();
+    EXPECT_TRUE(nether.contains(*BaseBlocks::NETHERRACK));
+    EXPECT_TRUE(nether.contains(*NetherBlocks::MAGMA));
+    EXPECT_FALSE(nether.contains(*BaseBlocks::BEDROCK));
+
+    // INFINIBURN_END = {netherrack, magma_block, bedrock}
+    auto& end = BlockTags::INFINIBURN_END();
+    EXPECT_TRUE(end.contains(*BaseBlocks::NETHERRACK));
+    EXPECT_TRUE(end.contains(*NetherBlocks::MAGMA));
+    EXPECT_TRUE(end.contains(*BaseBlocks::BEDROCK)); // bedrock 仅在 end 标签
+}
+
+TEST_F(FireBlockTest, FireOnNetherrack_SurvivesWithoutFlammableNeighbors)
+{
+    // 主世界维度（FireSpreadTestWorld::dimension()=0）→ INFINIBURN_OVERWORLD 含 netherrack。
+    // netherrack 上的火为无限火源：isFireSource=true，跳过"无可燃邻居 + age>3 → 熄灭"检查。
+    // vanilla FireBlock.java:162-170 的 !flag 门控确保 infiniburn 上的火不因 isValidFireLocation 失败熄灭。
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(BaseBlocks::NETHERRACK, nullptr);
+
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    FireSpreadTestWorld world; // 主世界，不下雨（isRaining=false）
+    math::Random random(12345);
+
+    BlockPos firePos(5, 64, 5);
+    BlockPos netherrackPos(5, 63, 5);
+    world.setBlockAt(netherrackPos, &BaseBlocks::NETHERRACK->defaultState());
+
+    // 放置 age=15 的火焰（age>3 触发普通方块的熄灭检查，但 netherrack 是火源应跳过）
+    BlockState fireState = fireBlock->withAge(15);
+    world.setBlockAt(firePos, &fireState);
+
+    // 多次 tick，火焰不应熄灭（netherrack 无限火源）
+    bool extinguished = false;
+    for (int i = 0; i < 50; ++i) {
+        BlockState mutableState = *world.getBlockAt(firePos);
+        if (mutableState.isAir() || world.getBlockAt(firePos) == nullptr) {
+            extinguished = true;
+            break;
+        }
+        fireBlock->tick(world, firePos, mutableState, random);
+        if (world.getBlockAt(firePos) == nullptr) {
+            extinguished = true;
+            break;
+        }
+    }
+    EXPECT_FALSE(extinguished) << "netherrack 上的火应为无限火源，不因无可燃邻居熄灭";
+}
+
+TEST_F(FireBlockTest, FireOnStone_ExtinguishesWithoutFlammableNeighbors)
+{
+    // 对照组：stone 不在 infiniburn 标签，isFireSource=false。
+    // 无可燃邻居 + age>3 时火焰应熄灭（vanilla FireBlock.java:162-170 的 isValidFireLocation 检查）。
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    FireSpreadTestWorld world;
+    math::Random random(12345);
+
+    BlockPos firePos(5, 64, 5);
+    BlockPos stonePos(5, 63, 5);
+    world.setBlockAt(stonePos, &VanillaBlocks::STONE->defaultState());
+
+    BlockState fireState = fireBlock->withAge(15);
+    world.setBlockAt(firePos, &fireState);
+
+    // 多次 tick，火焰应熄灭（stone 非火源，无可燃邻居 + age>3）
+    bool extinguished = false;
+    for (int i = 0; i < 50; ++i) {
+        BlockState mutableState = *world.getBlockAt(firePos);
+        if (world.getBlockAt(firePos) == nullptr) {
+            extinguished = true;
+            break;
+        }
+        fireBlock->tick(world, firePos, mutableState, random);
+        if (world.getBlockAt(firePos) == nullptr) {
+            extinguished = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(extinguished) << "stone 上的火（无可燃邻居 + age>3）应熄灭";
+}
+
 } // namespace
 
 // ============================================================================

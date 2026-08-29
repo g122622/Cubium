@@ -26,6 +26,7 @@
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../BlockTags.hpp"
 #include "../../Material.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
@@ -141,6 +142,17 @@ protected:
      * @return 计划刻延迟（tick）
      */
     [[nodiscard]] static i32 getFireTickDelay(math::IRandom& random) { return 30 + random.nextInt(10); }
+
+    /**
+     * @brief 按维度获取 infiniburn 标签（对齐 vanilla dimensionType().infiniburn()）
+     *
+     * 主世界→INFINIBURN_OVERWORLD，下界→INFINIBURN_NETHER，末地→INFINIBURN_END，
+     * 其他维度默认 INFINIBURN_OVERWORLD。FireBlock::tick 用此标签查 belowState 判定无限火源。
+     *
+     * @param dimension 维度 ID（0=主世界, -1=下界, 1=末地）
+     * @return 对应维度的 infiniburn 标签引用
+     */
+    [[nodiscard]] static const BlockTag& getInfiniburnTag(DimensionId dimension);
 
     /**
      * @brief 检查位置是否可以燃烧（有可燃方块）

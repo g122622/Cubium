@@ -182,6 +182,21 @@ public:
     /// 在这些方块上可以点燃灵魂火
     static BlockTag& SOUL_FIRE_BASE_BLOCKS();
 
+    /// 无限火源基座方块标签（主世界维度）
+    /// 对齐 vanilla dimensionType().infiniburn()（FireBlock.java:151）：在这些方块上的火焰为
+    /// 无限火源（永不熄灭、不检查有效位置、age15 不概率熄灭）。成员对齐数据包
+    /// infiniburn_overworld.json = {netherrack, magma_block}。
+    /// 运行时消费场景：FireBlock::tick 按维度选 infiniburn 标签查 belowState。
+    static BlockTag& INFINIBURN_OVERWORLD();
+
+    /// 无限火源基座方块标签（下界维度）
+    /// 成员对齐数据包 infiniburn_nether.json = {#infiniburn_overworld} = {netherrack, magma_block}。
+    static BlockTag& INFINIBURN_NETHER();
+
+    /// 无限火源基座方块标签（末地维度）
+    /// 成员对齐数据包 infiniburn_end.json = {#infiniburn_overworld, bedrock} = {netherrack, magma_block, bedrock}。
+    static BlockTag& INFINIBURN_END();
+
     /// 营火标签（营火、灵魂营火）
     /// 运行时消费场景：
     /// 1. CampfireBlock::isLitCampfire() — 判断是否为点燃的营火方块
