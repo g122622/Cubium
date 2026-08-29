@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <optional>
 
@@ -68,6 +69,69 @@ bool EntityDamageSource::isProjectile() const
 bool IndirectEntityDamageSource::isProjectile() const
 {
     return m_isProjectile || is(DamageTypeTags::IS_PROJECTILE());
+}
+
+// damageScaling 把 MC 1.21.11 数据包 damage_type 目录下各 JSON 的 "scaling" 值固化进代码。
+// 对齐 vanilla DamageSource.scalesWithDifficulty()（DamageSource.java:90-96）所依据的 scaling 字段。
+// 数据包统计：
+//   - ALWAYS（无条件缩放）：explosion, player_explosion, sonic_boom, bad_respawn_point
+//   - WHEN_CAUSED_BY_LIVING_NON_PLAYER（非玩家生物造成时缩放）：其余全部
+//   - NEVER：vanilla 1.21.11 数据包无此取值
+// 故此处 default 分支返回 WhenCausedByLivingNonPlayer（覆盖绝大多数伤害类型）。
+DamageScaling damageScaling(DamageType type) noexcept
+{
+    switch (type) {
+        // ALWAYS：床重生爆炸（"-intentional_game_design"）、末影龙等爆炸、监守者音爆、玩家爆炸
+        case DamageType::Explosion:
+        case DamageType::ExplosionPlayer:
+        case DamageType::SonicBoom:
+        case DamageType::BadRespawnPoint:
+            return DamageScaling::Always;
+        default:
+            return DamageScaling::WhenCausedByLivingNonPlayer;
+    }
+}
+
+// DamageSource::scalesWithDifficulty 对齐 vanilla DamageSource.scalesWithDifficulty()
+// （DamageSource.java:90-96）。vanilla 依据伤害类型的 scaling 字段动态判定：
+//   - NEVER  → false
+//   - WHEN_CAUSED_BY_LIVING_NON_PLAYER → causingEntity instanceof LivingEntity
+//                                        && !(causingEntity instanceof Player)
+//   - ALWAYS → true
+//
+// Cubium DamageType 无数据驱动 scaling 字段加载（见任务 #352），故用 damageScaling(type())
+// 把数据包值固化。getTrueSource() 对应 vanilla getEntity()（causingEntity 真凶）：
+//   - EntityDamageSource::getTrueSource → m_source（攻击者本身）
+//   - IndirectEntityDamageSource::getTrueSource → m_source（射击者，非投射物本身）
+// 两者均返回"造成伤害的实体"，与 vanilla causingEntity 语义一致。
+//
+// 关键：WHEN_CAUSED_BY_LIVING_NON_PLAYER 须在运行时按 getTrueSource() 是否为非玩家 LivingEntity
+// 判定。静态 flag 无法表达此语义——玩家射出的箭（mobProjectile 工厂 setDifficultyScaled 后 flag=true）
+// 在 vanilla 应 false（causingEntity=Player），但 Cubium 旧 flag 机制会错误缩放。此实现修复该偏差。
+bool DamageSource::scalesWithDifficulty() const
+{
+    const DamageScaling scaling = damageScaling(type());
+    switch (scaling) {
+        case DamageScaling::Never:
+            return false;
+        case DamageScaling::Always:
+            return true;
+        case DamageScaling::WhenCausedByLivingNonPlayer: {
+            // vanilla：causingEntity instanceof LivingEntity && !(causingEntity instanceof Player)
+            Entity* causingEntity = getTrueSource();
+            if (causingEntity == nullptr) {
+                return false; // 无造成者（纯环境伤害）→ 不缩放
+            }
+            // 必须先确认是 LivingEntity，再排除 Player（Player 也是 LivingEntity）
+            LivingEntity* asLiving = dynamic_cast<LivingEntity*>(causingEntity);
+            if (asLiving == nullptr) {
+                return false; // 造成者非生物（如抛射物实体本身）→ 不缩放
+            }
+            Player* asPlayer = dynamic_cast<Player*>(causingEntity);
+            return asPlayer == nullptr; // 非玩家生物造成 → 缩放
+        }
+    }
+    return false; // 不可达，防御性返回
 }
 
 } // namespace mc

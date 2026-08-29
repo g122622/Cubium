@@ -1563,6 +1563,31 @@ bool Player::hurt(DamageSource& source, f32 amount)
     if (m_abilities.invulnerable && !source.canDamageCreative()) {
         return false;
     }
+    // 难度伤害缩放（对齐 MC Java 1.21.11 Player.hurtServer:703-714）。
+    // 仅对 scalesWithDifficulty() 的伤害源生效：vanilla DamageSource.scalesWithDifficulty()
+    // （DamageSource.java:90-96）依据伤害类型数据包的 scaling 字段（NEVER/
+    // WHEN_CAUSED_BY_LIVING_NON_PLAYER/ALWAYS）动态判定。
+    //   - Peaceful：伤害归零（玩家在和平模式免疫所有受缩放伤害）
+    //   - Easy：amount = min(amount/2 + 1, amount)（减半但保底 +1，即小伤害不缩减）
+    //   - Hard：amount = amount * 1.5（伤害增强 50%）
+    //   - Normal：不调整
+    // 此前 Cubium 此段完全缺失——isDifficultyScaled() flag 在 8 个工厂设置但 hurt 链路从未读取，
+    // 难度缩放从未生效（Easy 下玩家不减伤、Hard 下怪物伤害不增强）。现用 scalesWithDifficulty()
+    // 数据驱动动态判定接入。
+    if (source.scalesWithDifficulty()) {
+        const Difficulty difficulty = m_world ? m_world->difficulty() : Difficulty::Normal;
+        if (difficulty == Difficulty::Peaceful) {
+            amount = 0.0f;
+        } else if (difficulty == Difficulty::Easy) {
+            amount = std::min(amount / 2.0f + 1.0f, amount);
+        } else if (difficulty == Difficulty::Hard) {
+            amount = amount * 3.0f / 2.0f;
+        }
+    }
+    // amount 归零（如 Peaceful 缩放）直接返回 false（对齐 vanilla Player.hurtServer:717）。
+    if (amount <= 0.0f) {
+        return false;
+    }
     // 调用父类方法处理伤害
     return LivingEntity::hurt(source, amount);
 }

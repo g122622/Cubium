@@ -507,6 +507,8 @@ add_executable(mc_tests
     common/entity/combat/CauseExtraKnockbackTest.cpp
     # 物品切换缩放（getItemSwapScale / itemSwapTicker）测试
     common/entity/combat/PlayerItemSwapScaleTest.cpp
+    # 难度伤害缩放测试（Player.hurtServer 难度缩放接入 + DamageSource.scalesWithDifficulty 动态判定）
+    common/entity/combat/PlayerDifficultyScalingTest.cpp
     # 击退计算测试
     common/entity/combat/GetKnockbackTest.cpp
     # GameRules 游戏规则测试

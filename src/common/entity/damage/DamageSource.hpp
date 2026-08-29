@@ -111,6 +111,36 @@ enum class DamageType : u8 {
 };
 
 /**
+ * @brief 伤害类型的难度缩放策略
+ *
+ * 对齐 MC Java 1.21.11 DamageType 的 scaling 字段（数据包 damage_type 目录下各 JSON 的 "scaling"）。
+ * vanilla DamageSource.scalesWithDifficulty()（DamageSource.java:90-96）据此动态判定：
+ *   - NEVER  → false（永不缩放）
+ *   - WHEN_CAUSED_BY_LIVING_NON_PLAYER → causingEntity instanceof LivingEntity
+ *                                        && !(causingEntity instanceof Player)（非玩家生物造成时才缩放）
+ *   - ALWAYS → true（无条件缩放）
+ */
+enum class DamageScaling : u8 {
+    Never,
+    WhenCausedByLivingNonPlayer,
+    Always,
+};
+
+/**
+ * @brief 查询伤害类型的难度缩放策略（对齐 vanilla 数据包 scaling 字段）
+ *
+ * 把 MC 1.21.11 数据包 damage_type 目录下各 JSON 的 "scaling" 值固化进代码，与 bypassesArmor()/
+ * isFire() 等"硬编码对齐数据包标签/字段"范式一致。数据包内 scaling 取值统计：
+ *   - ALWAYS：explosion, player_explosion, sonic_boom, bad_respawn_point（共 4 类）
+ *   - WHEN_CAUSED_BY_LIVING_NON_PLAYER：其余全部（含 fall/drown/cactus/in_fire/mob_attack 等）
+ *   - NEVER：无（vanilla 1.21.11 数据包无 NEVER scaling 的伤害类型）
+ *
+ * 注：Cubium DamageType 是硬编码枚举，未接入数据驱动的 scaling 字段加载（见任务 #352 伤害类型
+ * 数据驱动审计）。当前把数据包值固化在此，未来若接入 DamageType 数据驱动加载，可改为读取字段。
+ */
+DamageScaling damageScaling(DamageType type) noexcept;
+
+/**
  * @brief 伤害来源基类
  *
  * 定义伤害的来源和类型，用于计算伤害、死亡消息等。
@@ -220,6 +250,27 @@ public:
      * @brief 是否受难度缩放
      */
     [[nodiscard]] virtual bool isDifficultyScaled() const { return false; }
+
+    /**
+     * @brief 该伤害是否随难度缩放（对齐 vanilla DamageSource.scalesWithDifficulty()，
+     *        DamageSource.java:90-96）
+     *
+     * vanilla 依据伤害类型的 scaling 字段（NEVER/WHEN_CAUSED_BY_LIVING_NON_PLAYER/ALWAYS）
+     * 在 hurt 时动态判定是否按难度调整伤害值。语义：
+     *   - NEVER  → false
+     *   - WHEN_CAUSED_BY_LIVING_NON_PLAYER → causingEntity 是非玩家 LivingEntity 时 true
+     *   - ALWAYS → true
+     *
+     * 此前 Cubium 用静态 m_difficultyScaled flag 表达（仅在 8 个工厂设置），但 flag 是死代码——
+     * Player::hurt 与整个 hurt 链路从未读取它，难度缩放从未生效。且静态 flag 无法表达
+     * WHEN_CAUSED_BY_LIVING_NON_PLAYER 的"由玩家造成时不缩放"动态语义（如玩家射的箭被
+     * mobProjectile 工厂 setDifficultyScaled 后，flag=true，但 vanilla 此时应 false）。
+     *
+     * 现改为数据驱动动态判定：基类默认实现查 damageScaling(type())，并按 getTrueSource()
+     * （vanilla causingEntity）是否为非玩家 LivingEntity 决定 WHEN_CAUSED_BY_LIVING_NON_PLAYER
+     * 分支。实现在 DamageSource.cpp（需 LivingEntity/Player 完整定义做 dynamic_cast）。
+     */
+    [[nodiscard]] virtual bool scalesWithDifficulty() const;
 
     /**
      * @brief 是否是荆棘伤害
@@ -491,7 +542,6 @@ public:
         : m_type(type)
         , m_source(source)
         , m_isThornsDamage(false)
-        , m_difficultyScaled(false)
         , m_isMagic(false)
         , m_isExplosion(false)
     {}
@@ -500,7 +550,6 @@ public:
     {
         auto result = std::make_unique<EntityDamageSource>(m_type, m_source);
         result->m_isThornsDamage = m_isThornsDamage;
-        result->m_difficultyScaled = m_difficultyScaled;
         result->m_isMagic = m_isMagic;
         result->m_isExplosion = m_isExplosion;
         return result;
@@ -531,16 +580,6 @@ public:
 
     [[nodiscard]] bool isPlayerSource() const override { return m_type == DamageType::PlayerAttack; }
 
-    /**
-     * @brief 是否受难度缩放
-     * 非玩家生物攻击受难度缩放
-     */
-    [[nodiscard]] bool isDifficultyScaled() const override
-    {
-        // 非玩家的 LivingEntity 攻击受难度缩放
-        return m_difficultyScaled;
-    }
-
     [[nodiscard]] bool isThornsDamage() const override { return m_isThornsDamage; }
 
     /**
@@ -549,15 +588,6 @@ public:
     EntityDamageSource& setThornsDamage()
     {
         m_isThornsDamage = true;
-        return *this;
-    }
-
-    /**
-     * @brief 设置受难度缩放
-     */
-    EntityDamageSource& setDifficultyScaled()
-    {
-        m_difficultyScaled = true;
         return *this;
     }
 
@@ -628,7 +658,6 @@ protected:
     DamageType m_type;
     Entity* m_source;
     bool m_isThornsDamage;
-    bool m_difficultyScaled;
     bool m_isMagic;
     bool m_isExplosion;
 };
@@ -649,7 +678,6 @@ public:
         , m_isFire(false)
         , m_isExplosion(false)
         , m_isMagic(false)
-        , m_difficultyScaled(false)
     {}
 
     [[nodiscard]] std::unique_ptr<DamageSource> clone() const override
@@ -659,7 +687,6 @@ public:
         result->m_isFire = m_isFire;
         result->m_isExplosion = m_isExplosion;
         result->m_isMagic = m_isMagic;
-        result->m_difficultyScaled = m_difficultyScaled;
         return result;
     }
 
@@ -697,8 +724,6 @@ public:
     [[nodiscard]] bool isPlayerSource() const override { return m_isPlayer; }
 
     [[nodiscard]] bool bypassesArmor() const override { return m_bypassesArmor; }
-
-    [[nodiscard]] bool isDifficultyScaled() const override { return m_difficultyScaled; }
 
     /**
      * @brief 设置为投射物伤害
@@ -745,15 +770,6 @@ public:
         return *this;
     }
 
-    /**
-     * @brief 设置受难度缩放
-     */
-    IndirectEntityDamageSource& setDifficultyScaled()
-    {
-        m_difficultyScaled = true;
-        return *this;
-    }
-
     [[nodiscard]] std::string deathMessageKey() const override
     {
         switch (m_type) {
@@ -788,7 +804,6 @@ private:
     bool m_isFire;
     bool m_isExplosion;
     bool m_isMagic;
-    bool m_difficultyScaled;
     bool m_bypassesArmor = false;
 };
 
@@ -882,7 +897,7 @@ inline EnvironmentalDamage wither()
  */
 inline EntityDamageSource mobAttack(Entity* mob)
 {
-    return EntityDamageSource(DamageType::MobAttack, mob).setDifficultyScaled();
+    return EntityDamageSource(DamageType::MobAttack, mob);
 }
 
 /**
@@ -955,7 +970,7 @@ inline IndirectEntityDamageSource explosion(Entity* source, Entity* cause)
  */
 inline EntityDamageSource explosionPlayer(Entity* player)
 {
-    return EntityDamageSource(DamageType::ExplosionPlayer, player).setDifficultyScaled().setExplosion();
+    return EntityDamageSource(DamageType::ExplosionPlayer, player).setExplosion();
 }
 
 /** 创建窒息伤害（在方块内） */
@@ -1000,7 +1015,7 @@ inline EnvironmentalDamage freeze()
  */
 inline EntityDamageSource sting(Entity* bee)
 {
-    return EntityDamageSource(DamageType::Sting, bee).setDifficultyScaled();
+    return EntityDamageSource(DamageType::Sting, bee);
 }
 
 /** 创建坠落铁砧伤害 */
@@ -1051,9 +1066,7 @@ inline EnvironmentalDamage fireworks()
  */
 inline IndirectEntityDamageSource mobProjectile(Entity* projectile, Entity* shooter)
 {
-    return IndirectEntityDamageSource(DamageType::MobProjectile, shooter, projectile)
-        .setProjectile()
-        .setDifficultyScaled();
+    return IndirectEntityDamageSource(DamageType::MobProjectile, shooter, projectile).setProjectile();
 }
 
 /**
@@ -1140,7 +1153,7 @@ inline EntityDamageSource mobAttackNoAggro(Entity* mob)
  */
 inline EntityDamageSource spear(Entity* attacker)
 {
-    return EntityDamageSource(DamageType::Spear, attacker).setDifficultyScaled();
+    return EntityDamageSource(DamageType::Spear, attacker);
 }
 
 /**
@@ -1149,7 +1162,7 @@ inline EntityDamageSource spear(Entity* attacker)
  */
 inline IndirectEntityDamageSource spit(Entity* spitEntity, Entity* shooter)
 {
-    return IndirectEntityDamageSource(DamageType::Spit, shooter, spitEntity).setProjectile().setDifficultyScaled();
+    return IndirectEntityDamageSource(DamageType::Spit, shooter, spitEntity).setProjectile();
 }
 
 /**
