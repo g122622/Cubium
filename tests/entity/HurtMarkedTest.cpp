@@ -274,23 +274,51 @@ TEST(HurtMarkedTest, SetVelocityDoesNotSetMarkHurtFlag)
 
 TEST(HurtMarkedTest, HurtResistantTimePreventsHurtAndMarkHurt)
 {
-    // 在无敌帧期间，hurt() 返回 false（isInvulnerableTo 检查优先于累积伤害逻辑），
-    // 因此 hurtMarked 不会被设置
+    // 无敌帧差额逻辑（对齐 vanilla LivingEntity.hurtServer:1191-1206，任务 #379 重构后）：
+    //   invulnerableTime>10 && !BYPASSES_COOLDOWN 时：
+    //     - amount <= lastHurt → return false（同额/更小伤害被吞，不设 hurtMarked）
+    //     - amount >  lastHurt → 承受差额（amount-lastHurt），return true，设 hurtMarked
+    // 此前 Cubium 在 isInvulnerableTo 内做无敌帧门控（>0 即免疫），致 hurt 主流程的差额逻辑成为
+    // 死代码；#379 移除该门控后无敌帧完全交给 hurt 差额逻辑。本测试锚定新行为。
     HurtMarkedWorld world;
     TestHurtEntity entity(EntityInstanceId(1));
     entity.setWorld(&world);
     entity.setPosition(Vector3(0.5f, 1.0f, 0.5f));
     entity.setOnGround(true);
 
-    // 第一次受伤
+    // 第一次受伤（5 伤害）→ 进入无敌帧，hurt 返 true，设 hurtMarked
     EntityDamageSource damageSource(DamageType::Generic, nullptr);
-    entity.hurt(damageSource, 5.0f);
+    bool firstHurt = entity.hurt(damageSource, 5.0f);
+    EXPECT_TRUE(firstHurt);
     EXPECT_TRUE(entity.isHurtMarked());
     entity.clearHurtMarked();
 
-    // 在无敌帧期间再次受伤 — isInvulnerableTo 拦截，hurt() 返回 false
-    bool hurt = entity.hurt(damageSource, 10.0f);
-    EXPECT_FALSE(hurt);
-    // hurtMarked 不应被设置
-    EXPECT_FALSE(entity.isHurtMarked());
+    // 无敌帧内再次受更小伤害（3 < lastHurt 5）→ 被吞，hurt 返 false，不设 hurtMarked
+    bool smallerHurt = entity.hurt(damageSource, 3.0f);
+    EXPECT_FALSE(smallerHurt) << "无敌帧内更小伤害应被吞（amount<=lastHurt）";
+    EXPECT_FALSE(entity.isHurtMarked()) << "被吞的伤害不应设置 hurtMarked";
+}
+
+TEST(HurtMarkedTest, HurtResistantTimeLargerDamageDealsDifference)
+{
+    // 无敌帧差额逻辑：无敌帧内更大伤害承受差额（对齐 vanilla hurtServer:1191-1206）。
+    // 第一次 5 伤害 → lastHurt=5、invulnerableTime=20。第二次 10 伤害（>5）→ 承受差额 5、
+    // lastHurt 更新为 10、hurt 返 true、设 hurtMarked。
+    HurtMarkedWorld world;
+    TestHurtEntity entity(EntityInstanceId(1));
+    entity.setWorld(&world);
+    entity.setPosition(Vector3(0.5f, 1.0f, 0.5f));
+    entity.setOnGround(true);
+
+    EntityDamageSource damageSource(DamageType::Generic, nullptr);
+    entity.hurt(damageSource, 5.0f);
+    entity.clearHurtMarked();
+
+    const f32 hpAfterFirst = entity.health();
+    // 无敌帧内更大伤害（10 > lastHurt 5）→ 承受差额 5
+    bool largerHurt = entity.hurt(damageSource, 10.0f);
+    EXPECT_TRUE(largerHurt) << "无敌帧内更大伤害应承受差额（amount>lastHurt）";
+    EXPECT_TRUE(entity.isHurtMarked()) << "承受差额的伤害应设置 hurtMarked";
+    // 承受差额 5 伤害（10-5），血量应再降 5
+    EXPECT_FLOAT_EQ(entity.health(), hpAfterFirst - 5.0f) << "应仅承受差额 5 伤害";
 }

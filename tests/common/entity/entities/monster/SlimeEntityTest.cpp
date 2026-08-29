@@ -196,6 +196,10 @@ TEST_F(SlimeEntityTest, PerformSplit_CreatesCorrectNumberOfSmallSlimes)
 {
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
+    // 直接构造不经 EntityType::create 工厂，m_typeId 默认空。performSplit 经 entityType()
+    // 查 EntityRegistry 取 SLIME 类型创建子史莱姆，typeId 空时查不到提前 return（不分裂）。
+    // 补 setTypeId 对齐生产路径（自然生成/工厂构造的史莱姆 typeId=minecraft:slime）。
+    slime.setTypeId(entity::EntityTypeKeys::SLIME);
     slime.setSlimeSize(4, true); // 大史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
@@ -220,7 +224,8 @@ TEST_F(SlimeEntityTest, PerformSplit_SmallSlimeDoesNotSplit)
 {
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
-    slime.setSlimeSize(1, true); // 小史莱姆
+    slime.setTypeId(entity::EntityTypeKeys::SLIME); // 对齐生产路径（见上测试注释）
+    slime.setSlimeSize(1, true);                    // 小史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
     // 设置为死亡状态
@@ -238,6 +243,7 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsCustomName)
 {
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
+    slime.setTypeId(entity::EntityTypeKeys::SLIME); // 对齐生产路径（见上测试注释）
     slime.setSlimeSize(4, true);
     slime.setPosition(100.0, 64.0, 100.0);
     slime.setCustomName("TestSlime");
@@ -257,6 +263,7 @@ TEST_F(SlimeEntityTest, PerformSplit_InheritsInvulnerability)
 {
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
+    slime.setTypeId(entity::EntityTypeKeys::SLIME); // 对齐生产路径（见上测试注释）
     slime.setSlimeSize(4, true);
     slime.setPosition(100.0, 64.0, 100.0);
     slime.setInvulnerable(true);
@@ -276,7 +283,8 @@ TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes)
 {
     SlimeEntity slime(EntityInstanceId(1), mc::test::testEcsRegistry());
     slime.setWorld(&m_world);
-    slime.setSlimeSize(2, true); // 中型史莱姆
+    slime.setTypeId(entity::EntityTypeKeys::SLIME); // 对齐生产路径（见上测试注释）
+    slime.setSlimeSize(2, true);                    // 中型史莱姆
     slime.setPosition(100.0, 64.0, 100.0);
 
     // 设置为死亡状态
@@ -286,6 +294,9 @@ TEST_F(SlimeEntityTest, PerformSplit_MediumSlimeCreatesTinySlimes)
     // 执行分裂
     slime.performSplit();
 
+    // 中型史莱姆（size=2）应分裂出 2-4 个小史莱姆（防假通过：此前 typeId 缺失致 performSplit
+    // 提前 return、spawnedSlimeSizes 为空，for 循环不断言而假通过）
+    EXPECT_GE(m_world.spawnedSlimeCount(), 2u);
     // 验证小史莱姆的尺寸是 1（2 / 2）
     for (i32 size : m_world.spawnedSlimeSizes()) {
         EXPECT_EQ(size, 1);
