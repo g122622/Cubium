@@ -257,9 +257,17 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         return false;
     }
 
-    // 2. 无敌帧逻辑
-    // 如果 hurtResistantTime > 10，允许累积伤害
-    if (m_hurtResistantTime > 10) {
+    // 2. 无敌帧逻辑（对齐 vanilla LivingEntity.hurtServer:1191-1206）。
+    //   if (invulnerableTime > 10.0F && !source.is(BYPASSES_COOLDOWN)) {
+    //       if (amount <= lastHurt) return false;          // 同额/更小伤害被吞
+    //       actuallyHurt(amount - lastHurt); lastHurt = amount;  // 更大伤害承受差额
+    //   } else {
+    //       lastHurt = amount; invulnerableTime = 20; hurtTime = hurtDuration = maxHurtTime(10);
+    //       actuallyHurt(amount);                            // 首次/冷却后伤害全额承受
+    //   }
+    //   BYPASSES_COOLDOWN 标签的成员走 else 分支（无视无敌帧冷却，全额承受并重置计时器）。
+    //   1.21.11 vanilla 数据包中该标签为空，但守卫语义保留以支持数据包扩展。
+    if (m_hurtResistantTime > 10 && !source.is(DamageTypeTags::BYPASSES_COOLDOWN())) {
         // 已经在无敌帧内，只承受差额伤害
         if (amount <= m_lastDamage) {
             return false; // 伤害不足
@@ -1240,12 +1248,21 @@ bool LivingEntity::isInvulnerableTo(DamageSource& source) const
         return true;
     }
 
-    // 4. 检查无敌帧
-    // 当 hurtResistantTime > 0 时，大部分伤害被阻挡
-    // 但虚空伤害可以绕过
-    if (m_hurtResistantTime > 0 && !source.bypassesInvulnerability()) {
-        return true;
-    }
+    // 4. 无敌帧门控**不在此处**（对齐 vanilla Entity.isInvulnerableToBase:2918-2923）。
+    //   vanilla 的 isInvulnerableToBase 只含：isRemoved/invulnerable 标志、IS_FALL+FALL_DAMAGE_IMMUNE、
+    //   IS_FIRE+fireImmune——**不含** invulnerableTime（无敌帧）。无敌帧在 LivingEntity.hurtServer
+    //   :1191-1206 的主流程独立做（invulnerableTime>10 && !BYPASSES_COOLDOWN 的差额逻辑）。
+    //
+    //   此前 Cubium 在此塞入了 `m_hurtResistantTime > 0 && !source.bypassesInvulnerability() → true`
+    //   的无敌帧门控（用 >0 比伤害主流程的 >10 更宽），致各 hurt 入口首查 isInvulnerableTo 时就在此
+    //   拦截，使 LivingEntity::hurt:260 的"无敌帧差额逻辑"（无敌帧内更大伤害承受差额）成为死代码。
+    //   真实行为缺陷：实体在无敌帧内受到比上次更大的伤害时，vanilla 承受差额（actuallyHurt(amount-lastHurt)、
+    //   更新 lastHurt），Cubium 完全免疫 0 点（被多怪围攻、连续受不同强度伤害时显著偏离 vanilla）。
+    //
+    //   现移除此门控，无敌帧完全交给 LivingEntity::hurt 的差额逻辑处理，对齐 vanilla 设计。
+    //   注：isRemoved() 守卫（vanilla isInvulnerableToBase:2918 首项）属独立对齐项，hurt 入口的
+    //   isDead() 门控（见上）已覆盖死亡场景，此处不混入以避免扩大回归面，留独立 TODO 跟踪。
+    //   TODO: isInvulnerableTo 应补 isRemoved() 守卫对齐 vanilla Entity.isInvulnerableToBase:2918。
 
     // 5. 附魔 DAMAGE_IMMUNITY 效果（对齐 vanilla LivingEntity.isInvulnerableTo:3857
     //   isInvulnerableToBase || EnchantmentHelper.isImmuneToDamage）。

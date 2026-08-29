@@ -66,6 +66,14 @@ public:
     /// 包含: out_of_world, generic_kill
     static DamageTypeTag& BYPASSES_INVULNERABILITY();
 
+    /// 绕过无敌帧冷却标签
+    /// 这些伤害类型无视无敌帧（invulnerableTime / hurtResistantTime）门控，始终走"重置"分支
+    /// （即每次伤害都重置 lastHurt/invulnerableTime 并全额承受，不走差额逻辑）。
+    /// 1.21.11 vanilla 数据包中该标签为空，但 LivingEntity.hurtServer:1191-1206 的守卫语义需保留，
+    /// 以支持数据包扩展（伤害类型可通过数据包加入此标签以绕过无敌帧冷却）。
+    /// 参考: net.minecraft.tags.DamageTypeTags.BYPASSES_COOLDOWN (MC 1.21.11)
+    static DamageTypeTag& BYPASSES_COOLDOWN();
+
     /// 绕过抗性提升标签
     /// 这些伤害类型无视抗性提升药水效果
     /// 包含: out_of_world, generic_kill

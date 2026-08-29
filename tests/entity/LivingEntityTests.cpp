@@ -300,6 +300,77 @@ TEST(LivingEntityTest, HurtInvulnerability)
     EXPECT_FALSE(entity.hurt(damage, 5.0f));
 }
 
+// ============================================================================
+// 无敌帧差额逻辑（对齐 vanilla LivingEntity.hurtServer:1191-1206）
+//
+// vanilla hurtServer 在 invulnerableTime>10 && !BYPASSES_COOLDOWN 时：
+//   if (amount <= lastHurt) return false;            // 同额/更小伤害被吞
+//   actuallyHurt(amount - lastHurt); lastHurt = amount;  // 更大伤害承受差额
+// 否则（首次/冷却后）：
+//   lastHurt = amount; invulnerableTime = 20; hurtTime = 10; actuallyHurt(amount);
+//
+// 此前 Cubium 在 LivingEntity::isInvulnerableTo 第4步塞入 `hurtResistantTime>0 → return true`
+// 的无敌帧门控（比 hurt 主流程的 >10 更宽），致各 hurt 入口首查 isInvulnerableTo 时就拦截，
+// 使上述差额逻辑成为死代码——无敌帧内无论伤害多大都完全免疫（0 点），偏离 vanilla。
+// 现已移除 isInvulnerableTo 第4步，无敌帧完全交给 hurt 差额逻辑处理。下列测试锚定此修复。
+// ============================================================================
+
+// 对照：无敌帧内同额伤害被拒（修复前后行为一致，防回归）。
+// 对齐 vanilla hurtServer:1193 amount(5) <= lastHurt(5) → return false。
+TEST(LivingEntityTest, HurtInvulnerabilityEqualAmountRejected)
+{
+    TestLivingEntity entity;
+    entity.setHealth(20.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    // 首次 hurt 5 点：走 else 分支，health 20→15，lastHurt=5，hurtResistantTime 重置为 20
+    EXPECT_TRUE(entity.hurt(damage, 5.0f));
+    EXPECT_FLOAT_EQ(entity.health(), 15.0f);
+    EXPECT_EQ(entity.hurtResistantTime(), 20); // MAX_HURT_RESISTANT_TIME，对齐 vanilla invulnerableTime=20
+
+    // 无敌帧内同额 5 点：amount(5) <= lastHurt(5) → return false，health 不变
+    EXPECT_FALSE(entity.hurt(damage, 5.0f));
+    EXPECT_FLOAT_EQ(entity.health(), 15.0f);
+}
+
+// 对照：无敌帧内更小伤害被拒（修复前后行为一致，防回归）。
+// 对齐 vanilla hurtServer:1193 amount(3) <= lastHurt(5) → return false。
+TEST(LivingEntityTest, HurtInvulnerabilitySmallerAmountRejected)
+{
+    TestLivingEntity entity;
+    entity.setHealth(20.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    EXPECT_TRUE(entity.hurt(damage, 5.0f));
+    EXPECT_EQ(entity.hurtResistantTime(), 20);
+
+    // 无敌帧内更小 3 点：amount(3) <= lastHurt(5) → return false，health 不变
+    EXPECT_FALSE(entity.hurt(damage, 3.0f));
+    EXPECT_FLOAT_EQ(entity.health(), 15.0f);
+}
+
+// 核心缺陷锚定：无敌帧内更大伤害应承受差额（修复前完全免疫，修复后承受差额）。
+// 对齐 vanilla hurtServer:1195-1196：amount(10) > lastHurt(5) → actuallyHurt(10-5=5)，
+// health 15→10，lastHurt 更新为 10。修复前 Cubium 在 isInvulnerableTo 第4步用 >0 拦截 →
+// return false，health 仍 15（完全免疫）。
+TEST(LivingEntityTest, HurtInvulnerabilityLargerAmountDealsDifference)
+{
+    TestLivingEntity entity;
+    entity.setHealth(20.0f);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    // 首次 hurt 5 点：health 20→15，lastHurt=5，hurtResistantTime=20（>10 进入差额逻辑分支）
+    EXPECT_TRUE(entity.hurt(damage, 5.0f));
+    ASSERT_EQ(entity.hurtResistantTime(), 20) << "前置：首次受击应重置无敌帧为 20";
+    EXPECT_FLOAT_EQ(entity.health(), 15.0f);
+
+    // 无敌帧内 hurt 10 点（>lastHurt 5）：应承受差额 10-5=5，health 15→10。
+    // 修复前：isInvulnerableTo 第4步 hurtResistantTime>0 拦截 → return false，health 仍 15（断言失败）。
+    // 修复后：差额逻辑 → actuallyHurt(5) → health 10，hurt 返回 true。
+    EXPECT_TRUE(entity.hurt(damage, 10.0f)) << "无敌帧内更大伤害应触发差额扣血而非被吞";
+    EXPECT_FLOAT_EQ(entity.health(), 10.0f) << "无敌帧内更大伤害应承受差额（10-5=5），而非完全免疫";
+}
+
 TEST(LivingEntityTest, Death)
 {
     GroundSupportWorld world;

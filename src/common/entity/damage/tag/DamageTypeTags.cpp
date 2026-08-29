@@ -72,6 +72,17 @@ DamageTypeTag& DamageTypeTags::BYPASSES_INVULNERABILITY()
     return *tag;
 }
 
+DamageTypeTag& DamageTypeTags::BYPASSES_COOLDOWN()
+{
+    static DamageTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<DamageTypeTag>(ResourceLocation("minecraft:bypasses_cooldown"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:bypasses_cooldown")] = std::move(t);
+    }
+    return *tag;
+}
+
 DamageTypeTag& DamageTypeTags::BYPASSES_RESISTANCE()
 {
     static DamageTypeTag* tag = nullptr;
@@ -440,6 +451,7 @@ void DamageTypeTags::initialize()
     // 确保所有标签已创建（惰性初始化）
     BYPASSES_ARMOR();
     BYPASSES_INVULNERABILITY();
+    BYPASSES_COOLDOWN();
     BYPASSES_RESISTANCE();
     BYPASSES_SHIELD();
     BYPASSES_EFFECTS();
@@ -504,6 +516,11 @@ void DamageTypeTags::initialize()
         DamageType::OutOfWorld,
         DamageType::GenericKill,
     });
+
+    // bypasses_cooldown —— 1.21.11 vanilla 数据包中为空标签，不 addAll。
+    // 语义保留：LivingEntity.hurtServer:1191 的无敌帧冷却守卫需查询此标签，
+    // 数据包可扩展成员使某伤害类型绕过无敌帧冷却（始终走重置分支、全额承受）。
+    // 对齐 Cubium LivingEntity::hurt 的 hurtResistantTime>10 差额逻辑守卫。
 
     // bypasses_resistance
     BYPASSES_RESISTANCE().addAll({
