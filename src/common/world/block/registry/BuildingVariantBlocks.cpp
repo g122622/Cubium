@@ -474,10 +474,10 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:smooth_stone_slab"),
             BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
-    // 石化橡木台阶
+    // 石化橡木台阶（vanilla 不设置 ignitedByLava）
     BuildingVariantBlocks::PETRIFIED_OAK_SLAB =
         &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:petrified_oak_slab"),
-            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable().ignitedByLava());
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).flammable());
 
     // 海晶台阶
     BuildingBlocks::PRISMARINE_SLAB =

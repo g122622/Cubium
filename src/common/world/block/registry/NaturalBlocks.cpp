@@ -198,17 +198,19 @@ void registerNaturalBlocks()
 
     // 枯萎灌木 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。
     // 改用 DryVegetationBlock 走 canSurvive 闸门，修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
-    NaturalBlocks::DEAD_BUSH = &registry.registerBlock<blocks::DryVegetationBlock>(
-        ResourceLocation("minecraft:dead_bush"), BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    // 可被岩浆点燃（对齐 vanilla dead_bush）
+    NaturalBlocks::DEAD_BUSH =
+        &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:dead_bush"),
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava());
 
     // 睡莲 - 水生植物，下方须为水/冰且上方无流体。新建 WaterlilyBlock 走 canSurvive 闸门，
     // 修复世界生成时浮空（此前注册为 SimpleBlock 致终判失效）。
     NaturalBlocks::LILY_PAD = &registry.registerBlock<blocks::WaterlilyBlock>(
         ResourceLocation("minecraft:lily_pad"), BlockProperties(Material::PLANT).noCollision().notSolid());
 
-    // 藤蔓
+    // 藤蔓 - 可被岩浆点燃（对齐 vanilla vine）
     NaturalBlocks::VINE = &registry.registerBlock<blocks::VineBlock>(ResourceLocation("minecraft:vine"),
-        BlockProperties(Material::REPLACEABLE_PLANT).hardness(0.2f).noCollision().notSolid());
+        BlockProperties(Material::REPLACEABLE_PLANT).hardness(0.2f).noCollision().notSolid().ignitedByLava());
 
     // 蜘蛛网
     NaturalBlocks::COBWEB = &registry.registerBlock<blocks::WebBlock>(

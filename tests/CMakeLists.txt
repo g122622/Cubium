@@ -1238,6 +1238,7 @@ add_executable(mc_tests
     # 娴佷綋绯荤粺娴嬭瘯
     common/world/fluid/FluidTest.cpp
     common/world/fluid/WaterFluidDropTest.cpp
+    common/world/fluid/LavaFluidIgnitionTest.cpp
     # 绾㈢煶绯荤粺娴嬭瘯
     common/world/redstone/RedstoneContextTest.cpp
     common/world/redstone/RedstoneHelperTest.cpp

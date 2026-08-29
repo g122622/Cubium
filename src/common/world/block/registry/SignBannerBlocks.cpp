@@ -125,7 +125,10 @@ void registerSignBannerBlocks()
     auto& registry = BlockRegistry::instance();
 
     // ========== 告示牌注册 ==========
-    BlockProperties signProps = BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid();
+    // 木质告示牌属性：可被岩浆点燃（对齐 vanilla Blocks.register 木质告示牌链路）
+    BlockProperties signProps = BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava();
+    // 下界木（crimson/warped）告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
+    BlockProperties netherSignProps = BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid();
 
     // 注册各木材类型的告示牌
     // 橡木
@@ -166,15 +169,15 @@ void registerSignBannerBlocks()
 
     // 绯红菌（下界木材）
     SignBannerBlocks::CRIMSON_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
-        ResourceLocation("minecraft:crimson_sign"), signProps, blocks::WoodType::Crimson);
+        ResourceLocation("minecraft:crimson_sign"), netherSignProps, blocks::WoodType::Crimson);
     SignBannerBlocks::CRIMSON_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
-        ResourceLocation("minecraft:crimson_wall_sign"), signProps, blocks::WoodType::Crimson);
+        ResourceLocation("minecraft:crimson_wall_sign"), netherSignProps, blocks::WoodType::Crimson);
 
     // 诡异菌（下界木材）
     SignBannerBlocks::WARPED_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
-        ResourceLocation("minecraft:warped_sign"), signProps, blocks::WoodType::Warped);
+        ResourceLocation("minecraft:warped_sign"), netherSignProps, blocks::WoodType::Warped);
     SignBannerBlocks::WARPED_WALL_SIGN = &registry.registerBlock<blocks::WallSignBlock>(
-        ResourceLocation("minecraft:warped_wall_sign"), signProps, blocks::WoodType::Warped);
+        ResourceLocation("minecraft:warped_wall_sign"), netherSignProps, blocks::WoodType::Warped);
 
     // 红树木（1.19）
     SignBannerBlocks::MANGROVE_SIGN = &registry.registerBlock<blocks::StandingSignBlock>(
@@ -201,8 +204,12 @@ void registerSignBannerBlocks()
         ResourceLocation("minecraft:pale_oak_wall_sign"), signProps, blocks::WoodType::PaleOak);
 
     // ========== 悬挂告示牌注册（1.20 Trails & Tales）==========
-    // 悬挂告示牌使用与普通告示牌相同的材质属性
-    BlockProperties hangingSignProps = BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid();
+    // 悬挂告示牌使用与普通告示牌相同的材质属性；木质可被岩浆点燃（对齐 vanilla）
+    BlockProperties hangingSignProps =
+        BlockProperties(Material::WOOD).hardness(1.0f).noCollision().notSolid().ignitedByLava();
+    // 下界木（crimson/warped）悬挂告示牌属性：不可燃，不可被岩浆点燃（对齐 vanilla 下界木设计）
+    BlockProperties netherHangingSignProps =
+        BlockProperties(Material::NETHER_WOOD).hardness(1.0f).noCollision().notSolid();
 
     // 橡木悬挂告示牌
     SignBannerBlocks::OAK_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
@@ -242,15 +249,15 @@ void registerSignBannerBlocks()
 
     // 绯红菌悬挂告示牌（下界木材）
     SignBannerBlocks::CRIMSON_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
-        ResourceLocation("minecraft:crimson_hanging_sign"), hangingSignProps, blocks::WoodType::Crimson);
+        ResourceLocation("minecraft:crimson_hanging_sign"), netherHangingSignProps, blocks::WoodType::Crimson);
     SignBannerBlocks::CRIMSON_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
-        ResourceLocation("minecraft:crimson_wall_hanging_sign"), hangingSignProps, blocks::WoodType::Crimson);
+        ResourceLocation("minecraft:crimson_wall_hanging_sign"), netherHangingSignProps, blocks::WoodType::Crimson);
 
     // 诡异菌悬挂告示牌（下界木材）
     SignBannerBlocks::WARPED_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
-        ResourceLocation("minecraft:warped_hanging_sign"), hangingSignProps, blocks::WoodType::Warped);
+        ResourceLocation("minecraft:warped_hanging_sign"), netherHangingSignProps, blocks::WoodType::Warped);
     SignBannerBlocks::WARPED_WALL_HANGING_SIGN = &registry.registerBlock<blocks::WallHangingSignBlock>(
-        ResourceLocation("minecraft:warped_wall_hanging_sign"), hangingSignProps, blocks::WoodType::Warped);
+        ResourceLocation("minecraft:warped_wall_hanging_sign"), netherHangingSignProps, blocks::WoodType::Warped);
 
     // 红树木悬挂告示牌（1.19）
     SignBannerBlocks::MANGROVE_HANGING_SIGN = &registry.registerBlock<blocks::CeilingHangingSignBlock>(
@@ -277,8 +284,12 @@ void registerSignBannerBlocks()
         ResourceLocation("minecraft:pale_oak_wall_hanging_sign"), hangingSignProps, blocks::WoodType::PaleOak);
 
     // ========== 旗帜注册 ==========
-    BlockProperties bannerProps =
-        BlockProperties(Material::WOOD).hardness(1.0f).resistance(1.0f).notSolid().soundType(BlockSoundTypes::WOOD);
+    BlockProperties bannerProps = BlockProperties(Material::WOOD)
+                                      .hardness(1.0f)
+                                      .resistance(1.0f)
+                                      .notSolid()
+                                      .soundType(BlockSoundTypes::WOOD)
+                                      .ignitedByLava();
 
     // 白色旗帜
     SignBannerBlocks::WHITE_BANNER = &registry.registerBlock<blocks::StandingBannerBlock>(

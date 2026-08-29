@@ -105,13 +105,14 @@ void registerMangroveBlocks()
     MangroveBlocks::MANGROVE_PLANKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mangrove_planks"), mangrovePlanksProps);
 
-    // 红树树叶属性 - LEAVES材质, 锄有效, 硬度0.2, 抗性0.2, 随机刻
+    // 红树树叶属性 - LEAVES材质, 锄有效, 硬度0.2, 抗性0.2, 随机刻, 可被岩浆点燃（对齐 vanilla）
     BlockProperties mangroveLeavesProps = BlockProperties(Material::LEAVES)
                                               .hardness(0.2f)
                                               .resistance(0.2f)
                                               .harvestTool(HarvestTool::Hoe)
                                               .soundType(BlockSoundTypes::LEAVES)
-                                              .tickRandomly();
+                                              .tickRandomly()
+                                              .ignitedByLava();
 
     // 红树树叶 - 有距离属性，会腐烂
     MangroveBlocks::MANGROVE_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(

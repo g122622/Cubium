@@ -263,23 +263,25 @@ void registerCaveBlocks()
         blocks::TreeGenerators::azaleaTree(),
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
 
-    // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减
+    // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::AZALEA_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:azalea_leaves"),
             BlockProperties(Material::LEAVES)
                 .hardness(0.2f)
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
-                .tickRandomly());
+                .tickRandomly()
+                .ignitedByLava());
 
-    // 开花的杜鹃花叶
+    // 开花的杜鹃花叶。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::FLOWERING_AZALEA_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:flowering_azalea_leaves"),
             BlockProperties(Material::LEAVES)
                 .hardness(0.2f)
                 .resistance(0.2f)
                 .soundType(BlockSoundTypes::AZALEA_LEAVES)
-                .tickRandomly());
+                .tickRandomly()
+                .ignitedByLava());
 
     // ============================================================================
     // 大垂滴叶系列
@@ -314,7 +316,7 @@ void registerCaveBlocks()
     // 其他洞穴方块
     // ============================================================================
 
-    // 垂根 - 悬挂的根系装饰，WATERLOGGED
+    // 垂根 - 悬挂的根系装饰，WATERLOGGED。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::HANGING_ROOTS =
         &registry.registerBlock<blocks::HangingRootsBlock>(ResourceLocation("minecraft:hanging_roots"),
             BlockProperties(Material::REPLACEABLE_PLANT)
@@ -322,7 +324,8 @@ void registerCaveBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::HANGING_ROOTS));
+                .soundType(BlockSoundTypes::HANGING_ROOTS)
+                .ignitedByLava());
 
     // 缠根泥土 - 骨粉可催生垂根
     CaveBlocks::ROOTED_DIRT =
@@ -339,7 +342,7 @@ void registerCaveBlocks()
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::SPORE_BLOSSOM));
 
-    // 发光地衣 - 可放置在任意面，6面布尔属性+WATERLOGGED，发光等级7
+    // 发光地衣 - 可放置在任意面，6面布尔属性+WATERLOGGED，发光等级7。可被岩浆点燃（对齐 vanilla）
     CaveBlocks::GLOW_LICHEN =
         &registry.registerBlock<blocks::GlowLichenBlock>(ResourceLocation("minecraft:glow_lichen"),
             BlockProperties(Material::PLANT)
@@ -347,7 +350,8 @@ void registerCaveBlocks()
                 .notSolid()
                 .hardness(0.2f)
                 .resistance(0.2f)
-                .soundType(BlockSoundTypes::GLOW_LICHEN));
+                .soundType(BlockSoundTypes::GLOW_LICHEN)
+                .ignitedByLava());
 
     // 洞穴藤蔓 - AGE_0_25 + BERRIES，有浆果时发光等级14
     CaveBlocks::CAVE_VINES = &registry.registerBlock<blocks::CaveVinesBlock>(ResourceLocation("minecraft:cave_vines"),

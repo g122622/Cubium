@@ -252,9 +252,9 @@ void registerBuildingBlocks()
     BuildingBlocks::CHEST = &registry.registerBlock<blocks::ChestBlock>(ResourceLocation("minecraft:chest"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
 
-    // 梯子 - 含水方块
-    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
-        BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().ignitedByLava());
+    // 梯子 - 含水方块（vanilla 不设置 ignitedByLava）
+    BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(
+        ResourceLocation("minecraft:ladder"), BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable());
 
     // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
     BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
@@ -353,9 +353,9 @@ void registerBuildingBlocks()
     BuildingBlocks::JUKEBOX = &registry.registerBlock<blocks::JukeboxBlock>(ResourceLocation("minecraft:jukebox"),
         BlockProperties(Material::WOOD).hardness(2.0f).resistance(6.0f).flammable().ignitedByLava());
 
-    // TNT
+    // TNT - 可被岩浆点燃（对齐 vanilla）
     BuildingBlocks::TNT = &registry.registerBlock<blocks::TNTBlock>(
-        ResourceLocation("minecraft:tnt"), BlockProperties(Material::TNT).hardness(0.0f));
+        ResourceLocation("minecraft:tnt"), BlockProperties(Material::TNT).hardness(0.0f).ignitedByLava());
 
     // ========== 石砖系列 ==========
     BlockProperties stoneBrickProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);
@@ -499,9 +499,10 @@ void registerBuildingBlocks()
     BuildingBlocks::BONE_BLOCK = &registry.registerBlock<RotatedPillarBlock>(
         ResourceLocation("minecraft:bone_block"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
 
-    // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。
-    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(ResourceLocation("minecraft:hay_block"),
-        BlockProperties(Material::EARTH).hardness(0.5f).flammable().ignitedByLava());
+    // 干草块 - 有轴属性。重写 onFallenUpon 以 0.2 乘数减伤 80%（对齐 Java HayBlock#fallOn）。（vanilla 不设置
+    // ignitedByLava）
+    BuildingBlocks::HAY_BLOCK = &registry.registerBlock<blocks::HayBlock>(
+        ResourceLocation("minecraft:hay_block"), BlockProperties(Material::EARTH).hardness(0.5f).flammable());
 
     // ========== 铁砧系列 ==========
     // 铁砧属性: 硬度5.0, 爆炸抗性1200.0, 铁砧材质音效

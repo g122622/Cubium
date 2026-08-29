@@ -209,7 +209,17 @@ bool LavaFluid::_isBlockFlammable(IWorld& world, const BlockPos& pos) const
         return false;
     }
 
-    return blockState->owner().material().isFlammable();
+    // 对齐 vanilla LavaFluid.isFlammable（LavaFluid.java:134-136）：用 ignitedByLava() 判定
+    // 岩浆能否点燃方块，而非 material().isFlammable()。两者语义不同：
+    //   - ignitedByLava 是方块级属性（AbstractBlock.Properties.ignitedByLava），vanilla 岩浆
+    //     点燃专用；
+    //   - material().isFlammable 是材质级标志。
+    // 此前 Cubium 用 material().isFlammable() 替代，对大多数方块"碰巧等价"（可燃材质恰好
+    // 也是 ignitedByLava 方块），但对 pale_moss_block（Material::MOSS 不可燃，vanilla
+    // ignitedByLava=true）等方块产生真实缺陷（vanilla 会被岩浆点燃，Cubium 不会），且对
+    // 木按钮（Material::WOOD 可燃，vanilla ignitedByLava=false）等方块误判（vanilla 不点燃，
+    // Cubium 会点燃）。改为查 isIgnitedByLava() 后，行为完全对齐 vanilla。
+    return blockState->owner().isIgnitedByLava();
 }
 
 void LavaFluid::beforeReplacingBlock(IWorld& world, const BlockPos& pos, const BlockState* state)

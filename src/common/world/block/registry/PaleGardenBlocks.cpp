@@ -157,14 +157,15 @@ void registerPaleGardenBlocks()
                 .flammable()
                 .ignitedByLava());
 
-    // 苍白橡树树叶
+    // 苍白橡树树叶。可被岩浆点燃（对齐 vanilla）
     PaleGardenBlocks::PALE_OAK_LEAVES =
         &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:pale_oak_leaves"),
             BlockProperties(Material::LEAVES)
                 .hardness(0.2f)
                 .resistance(0.2f)
                 .harvestTool(HarvestTool::Hoe)
-                .soundType(BlockSoundTypes::LEAVES));
+                .soundType(BlockSoundTypes::LEAVES)
+                .ignitedByLava());
 
     // 苍白橡树树苗（带 stage 属性，可生长成苍白橡树）
     PaleGardenBlocks::PALE_OAK_SAPLING =
@@ -259,16 +260,17 @@ void registerPaleGardenBlocks()
     // 苍白苔藓
     // ============================================================================
 
-    // 苍白苔藓块
+    // 苍白苔藓块。可被岩浆点燃（对齐 vanilla）
     PaleGardenBlocks::PALE_MOSS_BLOCK =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pale_moss_block"),
             BlockProperties(Material::MOSS)
                 .hardness(0.1f)
                 .resistance(0.1f)
                 .harvestTool(HarvestTool::Hoe)
-                .soundType(BlockSoundTypes::PALE_MOSS));
+                .soundType(BlockSoundTypes::PALE_MOSS)
+                .ignitedByLava());
 
-    // 苍白苔藓地毯（BOTTOM + 四方向 WALL_HEIGHT 属性，可贴墙贴地）
+    // 苍白苔藓地毯（BOTTOM + 四方向 WALL_HEIGHT 属性，可贴墙贴地）。可被岩浆点燃（对齐 vanilla）
     PaleGardenBlocks::PALE_MOSS_CARPET =
         &registry.registerBlock<blocks::MossyCarpetBlock>(ResourceLocation("minecraft:pale_moss_carpet"),
             BlockProperties(Material::PLANT)
@@ -276,9 +278,10 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.1f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::PALE_MOSS));
+                .soundType(BlockSoundTypes::PALE_MOSS)
+                .ignitedByLava());
 
-    // 苍白垂苔 - TIP属性
+    // 苍白垂苔 - TIP属性。可被岩浆点燃（对齐 vanilla）
     PaleGardenBlocks::PALE_HANGING_MOSS =
         &registry.registerBlock<blocks::PaleHangingMossBlock>(ResourceLocation("minecraft:pale_hanging_moss"),
             BlockProperties(Material::PLANT)
@@ -287,13 +290,14 @@ void registerPaleGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .propagatesSkylightDown()
-                .soundType(BlockSoundTypes::PALE_HANGING_MOSS));
+                .soundType(BlockSoundTypes::PALE_HANGING_MOSS)
+                .ignitedByLava());
 
     // ============================================================================
     // 嘎枝之心
     // ============================================================================
 
-    // 嘎枝之心 - AXIS + CREAKING_HEART_STATE + NATURAL属性
+    // 嘎枝之心 - AXIS + CREAKING_HEART_STATE + NATURAL属性（vanilla 不设置 ignitedByLava）
     PaleGardenBlocks::CREAKING_HEART =
         &registry.registerBlock<blocks::CreakingHeartBlock>(ResourceLocation("minecraft:creaking_heart"),
             BlockProperties(Material::WOOD)
@@ -301,8 +305,7 @@ void registerPaleGardenBlocks()
                 .resistance(1.0f)
                 .harvestTool(HarvestTool::Axe)
                 .soundType(BlockSoundTypes::CREAKING_HEART)
-                .flammable()
-                .ignitedByLava());
+                .flammable());
 
     // ============================================================================
     // 眼眸花
@@ -338,7 +341,7 @@ void registerPaleGardenBlocks()
     // 树脂系列
     // ============================================================================
 
-    // 树脂块（多面附着在树上，DOWN/UP/NORTH/SOUTH/EAST/WEST/WATERLOGGED）
+    // 树脂块（多面附着在树上，DOWN/UP/NORTH/SOUTH/EAST/WEST/WATERLOGGED）。可被岩浆点燃（对齐 vanilla）
     PaleGardenBlocks::RESIN_CLUMP =
         &registry.registerBlock<blocks::ResinClumpBlock>(ResourceLocation("minecraft:resin_clump"),
             BlockProperties(Material::PLANT)
@@ -346,7 +349,8 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::RESIN));
+                .soundType(BlockSoundTypes::RESIN)
+                .ignitedByLava());
 
     // 树脂块（固体）
     PaleGardenBlocks::RESIN_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:resin_block"),

@@ -99,8 +99,8 @@ void registerVegetationBlocks()
 {
     auto& registry = BlockRegistry::instance();
 
-    // 草和蕨的属性
-    BlockProperties grassProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+    // 草和蕨的属性：可被岩浆点燃（对齐 vanilla）
+    BlockProperties grassProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
 
     // 矮草
     VegetationBlocks::SHORT_GRASS =
@@ -200,8 +200,9 @@ void registerVegetationBlocks()
             static_cast<u32>(entity::effect::EffectType::Wither),
             6);
 
-    // 高花属性（双高植物）
-    BlockProperties tallFlowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+    // 高花属性（双高植物）：可被岩浆点燃（对齐 vanilla）
+    BlockProperties tallFlowerProps =
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
 
     // 向日葵
     VegetationBlocks::SUNFLOWER =
@@ -234,8 +235,8 @@ void registerVegetationBlocks()
     VegetationBlocks::RED_MUSHROOM =
         &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:red_mushroom"), mushroomProps);
 
-    // 巨型蘑菇方块属性
-    BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f);
+    // 巨型蘑菇方块属性：可被岩浆点燃（对齐 vanilla）
+    BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava();
 
     // 棕色蘑菇方块
     VegetationBlocks::BROWN_MUSHROOM_BLOCK = &registry.registerBlock<blocks::HugeMushroomBlock>(
@@ -265,15 +266,16 @@ void registerVegetationBlocks()
     VegetationBlocks::DARK_OAK_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
         ResourceLocation("minecraft:dark_oak_sapling"), blocks::TreeGenerators::darkOakTree(), saplingProps);
 
-    // 竹子属性
-    BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid();
+    // 竹子属性：可被岩浆点燃（对齐 vanilla）
+    BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid().ignitedByLava();
 
     // 竹子
     VegetationBlocks::BAMBOO =
         &registry.registerBlock<blocks::BambooBlock>(ResourceLocation("minecraft:bamboo"), bambooProps);
 
-    // 竹子幼苗属性
-    BlockProperties bambooSaplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
+    // 竹子幼苗属性：可被岩浆点燃（对齐 vanilla；注意与树木树苗不同，竹子幼苗 vanilla 设置了 ignitedByLava）
+    BlockProperties bambooSaplingProps =
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().ignitedByLava();
 
     // 竹子幼苗
     VegetationBlocks::BAMBOO_SAPLING = &registry.registerBlock<blocks::BambooSaplingBlock>(

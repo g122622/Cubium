@@ -32,6 +32,11 @@
 #include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
+
+// 测试 fixture（tests/common/world/fluid/LavaFluidIgnitionTest.cpp），经 friend 访问私有
+// _isBlockFlammable，验证偏离 #8 修复（isIgnitedByLava 替代 material().isFlammable()）。
+class LavaFluidIgnitionTest;
+
 namespace fluid {
 
 /**
@@ -107,6 +112,8 @@ protected:
         const FluidState& fluidState) override;
 
 private:
+    friend class ::mc::LavaFluidIgnitionTest;
+
     /**
      * @brief 检查周围方块是否可燃
      *

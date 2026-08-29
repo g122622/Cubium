@@ -734,15 +734,15 @@ void registerNetherBlocks()
             10 // 光照等级
         );
 
-    // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）
+    // 营火 - 发光15级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::CAMPFIRE = &registry.registerBlock<blocks::CampfireBlock>(ResourceLocation("minecraft:campfire"),
-        BlockProperties(Material::WOOD).hardness(2.0f),
+        BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava(),
         15 // 点燃时光照等级
     );
 
-    // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）
+    // 灵魂营火 - 发光10级（点燃时，通过 getLightLevel 动态计算）。可被岩浆点燃（对齐 vanilla）
     NetherBlocks::SOUL_CAMPFIRE = &registry.registerBlock<blocks::SoulCampfireBlock>(
-        ResourceLocation("minecraft:soul_campfire"), BlockProperties(Material::WOOD).hardness(2.0f));
+        ResourceLocation("minecraft:soul_campfire"), BlockProperties(Material::WOOD).hardness(2.0f).ignitedByLava());
 
     // 南瓜灯 - 发光15级，支持 FACING 属性和傀儡生成
     NetherBlocks::JACK_O_LANTERN = &registry.registerBlock<blocks::JackOLanternBlock>(

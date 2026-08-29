@@ -166,10 +166,10 @@ void registerTrailsBlocks()
     // 瓶草
     // ============================================================================
 
-    // 瓶草 - 双层植物
+    // 瓶草 - 双层植物。可被岩浆点燃（对齐 vanilla）
     TrailsBlocks::PITCHER_PLANT =
         &registry.registerBlock<blocks::DoublePlantBlock>(ResourceLocation("minecraft:pitcher_plant"),
-            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP));
+            BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::CROP).ignitedByLava());
 
     // ============================================================================
     // 作物方块

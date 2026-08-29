@@ -94,7 +94,7 @@ void registerGardenBlocks()
     // 干草系列
     // ============================================================================
 
-    // 矮干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）
+    // 矮干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。可被岩浆点燃（对齐 vanilla）
     GardenBlocks::SHORT_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:short_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
@@ -102,9 +102,10 @@ void registerGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::GRASS));
+                .soundType(BlockSoundTypes::GRASS)
+                .ignitedByLava());
 
-    // 高干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）
+    // 高干草 - 干草类植物，可生长在沙/陶瓦/泥土/耕地上（沙漠/恶地生物群系）。可被岩浆点燃（对齐 vanilla）
     GardenBlocks::TALL_DRY_GRASS =
         &registry.registerBlock<blocks::DryVegetationBlock>(ResourceLocation("minecraft:tall_dry_grass"),
             BlockProperties(Material::REPLACEABLE_PLANT)
@@ -112,13 +113,14 @@ void registerGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::GRASS));
+                .soundType(BlockSoundTypes::GRASS)
+                .ignitedByLava());
 
     // ============================================================================
     // 仙人掌花
     // ============================================================================
 
-    // 仙人掌花 - 生长在仙人掌上的花，可放置在仙人掌/耕地/实心顶面上
+    // 仙人掌花 - 生长在仙人掌上的花，可放置在仙人掌/耕地/实心顶面上。可被岩浆点燃（对齐 vanilla）
     GardenBlocks::CACTUS_FLOWER =
         &registry.registerBlock<blocks::CactusFlowerBlock>(ResourceLocation("minecraft:cactus_flower"),
             BlockProperties(Material::PLANT)
@@ -126,7 +128,8 @@ void registerGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::CACTUS_FLOWER));
+                .soundType(BlockSoundTypes::CACTUS_FLOWER)
+                .ignitedByLava());
 
     // ============================================================================
     // 萤火虫灌木
@@ -134,6 +137,7 @@ void registerGardenBlocks()
 
     // 萤火虫灌木 - 发光2级，继承 BushBlock 走默认 canSurvive（下方须 #dirt/耕地），
     // 修复世界生成时浮空于水面的 bug（此前注册为 SimpleBlock 致 canSurvive 终判失效）。
+    // 可被岩浆点燃（对齐 vanilla）
     GardenBlocks::FIREFLY_BUSH =
         &registry.registerBlock<blocks::FireflyBushBlock>(ResourceLocation("minecraft:firefly_bush"),
             BlockProperties(Material::PLANT)
@@ -142,7 +146,8 @@ void registerGardenBlocks()
                 .hardness(0.0f)
                 .resistance(0.0f)
                 .soundType(BlockSoundTypes::SWEET_BERRY_BUSH)
-                .lightLevel(2));
+                .lightLevel(2)
+                .ignitedByLava());
 
     // ============================================================================
     // 灌木
@@ -150,14 +155,15 @@ void registerGardenBlocks()
 
     // 灌木 - 通用装饰灌木，继承 BushBlock 走默认 canSurvive（下方须 #dirt/耕地），
     // 修复世界生成时浮空的 bug（此前注册为 SimpleBlock 致 canSurvive 终判失效）。
-    // 类名 BushPlantBlock 用以区别植物基类 BushBlock。
+    // 类名 BushPlantBlock 用以区别植物基类 BushBlock。可被岩浆点燃（对齐 vanilla）
     GardenBlocks::BUSH = &registry.registerBlock<blocks::BushPlantBlock>(ResourceLocation("minecraft:bush"),
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()
             .hardness(0.0f)
             .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+            .soundType(BlockSoundTypes::GRASS)
+            .ignitedByLava());
 }
 
 } // namespace block_registry

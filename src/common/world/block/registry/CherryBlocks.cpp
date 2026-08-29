@@ -187,10 +187,14 @@ void registerCherryBlocks()
     // 樱花植物
     // ============================================================================
 
-    // 樱花树叶
-    CherryBlocks::CHERRY_LEAVES = &registry.registerBlock<blocks::LeavesBlock>(
-        ResourceLocation("minecraft:cherry_leaves"),
-        BlockProperties(Material::LEAVES).hardness(0.2f).resistance(0.2f).soundType(BlockSoundTypes::CHERRY_LEAVES));
+    // 樱花树叶。可被岩浆点燃（对齐 vanilla）
+    CherryBlocks::CHERRY_LEAVES =
+        &registry.registerBlock<blocks::LeavesBlock>(ResourceLocation("minecraft:cherry_leaves"),
+            BlockProperties(Material::LEAVES)
+                .hardness(0.2f)
+                .resistance(0.2f)
+                .soundType(BlockSoundTypes::CHERRY_LEAVES)
+                .ignitedByLava());
 
     // 樱花树苗
     CherryBlocks::CHERRY_SAPLING =

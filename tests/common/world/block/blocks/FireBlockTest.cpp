@@ -811,6 +811,90 @@ TEST_F(FireBlockTest, FireOnStone_ExtinguishesWithoutFlammableNeighbors)
     EXPECT_TRUE(extinguished) << "stone 上的火（无可燃邻居 + age>3）应熄灭";
 }
 
+// ============================================================================
+// ignitedByLava 属性测试（偏离 #8 修复验证）
+// ============================================================================
+//
+// 对齐 vanilla LavaFluid.isFlammable（LavaFluid.java:134-136）：岩浆能否点燃方块由
+// 方块的 ignitedByLava() 属性决定，而非 material().isFlammable()。LavaFluid::_isBlockFlammable
+// 已改为查 isIgnitedByLava()。此处验证关键方块的 ignitedByLava 设置与 vanilla 1.21.11 一致。
+
+TEST_F(FireBlockTest, IgnitedByLava_WoodenBlocks_True)
+{
+    // 木板/原木/树叶/羊毛等可燃方块，vanilla 均设置 ignitedByLava
+    ASSERT_NE(VanillaBlocks::OAK_PLANKS, nullptr);
+    EXPECT_TRUE(VanillaBlocks::OAK_PLANKS->isIgnitedByLava());
+    ASSERT_NE(BaseBlocks::NETHERRACK, nullptr); // 占位确保 BaseBlocks 可用
+    MC_UNUSED(BaseBlocks::NETHERRACK);
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_TNT_True)
+{
+    // TNT：vanilla Blocks.java:1975 设置 ignitedByLava（岩浆可点燃 TNT 引爆）
+    ASSERT_NE(BuildingBlocks::TNT, nullptr);
+    EXPECT_TRUE(BuildingBlocks::TNT->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_PaleMossBlock_True)
+{
+    // pale_moss_block：vanilla 设置 ignitedByLava，但 Cubium Material::MOSS 不可燃。
+    // 修复前用 material().isFlammable() 致漏判（不被岩浆点燃）；修复后查 isIgnitedByLava()=true。
+    ASSERT_NE(PaleGardenBlocks::PALE_MOSS_BLOCK, nullptr);
+    EXPECT_TRUE(PaleGardenBlocks::PALE_MOSS_BLOCK->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_WoodenButton_False)
+{
+    // 木按钮：vanilla buttonProperties() 不设置 ignitedByLava（不被岩浆点燃）。
+    // 修复前 Cubium 误设 .ignitedByLava() 致误判（被岩浆点燃）；修复后移除，isIgnitedByLava()=false。
+    ASSERT_NE(RedstoneBlocks::OAK_BUTTON, nullptr);
+    EXPECT_FALSE(RedstoneBlocks::OAK_BUTTON->isIgnitedByLava());
+    ASSERT_NE(RedstoneBlocks::SPRUCE_BUTTON, nullptr);
+    EXPECT_FALSE(RedstoneBlocks::SPRUCE_BUTTON->isIgnitedByLava());
+    ASSERT_NE(RedstoneBlocks::PALE_OAK_BUTTON, nullptr);
+    EXPECT_FALSE(RedstoneBlocks::PALE_OAK_BUTTON->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_NetherWoodSign_False)
+{
+    // 下界木告示牌：vanilla 下界木设计不可燃，不设置 ignitedByLava。
+    // 修复后下界木告示牌用独立属性（netherSignProps），isIgnitedByLava()=false。
+    ASSERT_NE(SignBannerBlocks::CRIMSON_SIGN, nullptr);
+    EXPECT_FALSE(SignBannerBlocks::CRIMSON_SIGN->isIgnitedByLava());
+    ASSERT_NE(SignBannerBlocks::WARPED_SIGN, nullptr);
+    EXPECT_FALSE(SignBannerBlocks::WARPED_SIGN->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_NormalWoodSign_True)
+{
+    // 普通木质告示牌：vanilla 设置 ignitedByLava（可被岩浆点燃）。
+    ASSERT_NE(SignBannerBlocks::OAK_SIGN, nullptr);
+    EXPECT_TRUE(SignBannerBlocks::OAK_SIGN->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_Banner_True)
+{
+    // 旗帜：vanilla 设置 ignitedByLava（可被岩浆点燃）。
+    ASSERT_NE(SignBannerBlocks::WHITE_BANNER, nullptr);
+    EXPECT_TRUE(SignBannerBlocks::WHITE_BANNER->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_Stone_False)
+{
+    // 石头：vanilla 不设置 ignitedByLava（不可燃）。
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    EXPECT_FALSE(VanillaBlocks::STONE->isIgnitedByLava());
+}
+
+TEST_F(FireBlockTest, IgnitedByLava_HayBlockLadder_False)
+{
+    // hay_block/ladder：vanilla 不设置 ignitedByLava。修复前 Cubium 误设，修复后移除。
+    ASSERT_NE(BuildingBlocks::HAY_BLOCK, nullptr);
+    EXPECT_FALSE(BuildingBlocks::HAY_BLOCK->isIgnitedByLava());
+    ASSERT_NE(BuildingBlocks::LADDER, nullptr);
+    EXPECT_FALSE(BuildingBlocks::LADDER->isIgnitedByLava());
+}
+
 } // namespace
 
 // ============================================================================
