@@ -644,7 +644,8 @@ TEST_F(FireworkRocketDamageApplicationTest, NoDamageOutOfRange)
 TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
 {
     // 创建第一个烟花（1 个爆炸效果）
-    auto& firework1 = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    auto& firework1 =
+        m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     firework1.setPosition(0.0, 0.0, 0.0);
     firework1.setShotFromCrossbow(true);
 
@@ -663,7 +664,8 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
     f32 damage1 = target1.lastDamage;
 
     // 创建第二个烟花（3 个爆炸效果）
-    auto& firework2 = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto& firework2 =
+        m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     firework2.setPosition(0.0, 10.0, 0.0);
     firework2.setShotFromCrossbow(true);
 
@@ -738,7 +740,8 @@ TEST_F(FireworkRocketDamageApplicationTest, NonLivingEntityNotHarmed)
     firework.setFireworkItem(stack);
 
     // 创建另一个烟花火箭作为非生物目标
-    auto& otherFirework = m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
+    auto& otherFirework =
+        m_world->addEntity<entity::FireworkRocketEntity>(EntityInstanceId(2), mc::test::testEcsRegistry());
     otherFirework.setPosition(2.0, 0.0, 0.0);
 
     // 执行爆炸伤害
@@ -931,7 +934,8 @@ TEST(FireworkRocketLifetimeTest, MultipleFireworksHaveVariedLifeTimes)
 
     std::vector<i32> lifeTimes;
     for (int i = 0; i < 10; ++i) {
-        auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(static_cast<u32>(i + 1)), mc::test::testEcsRegistry());
+        auto& firework = world.addEntity<entity::FireworkRocketEntity>(
+            EntityInstanceId(static_cast<u32>(i + 1)), mc::test::testEcsRegistry());
         ItemStack stack(Items::FIREWORK_ROCKET, 1);
         nlohmann::json& tag = stack.getOrCreateTag();
         tag["Fireworks"] = nlohmann::json::object();
@@ -1023,9 +1027,9 @@ TEST_F(FireworkRocketNbtTestFixture, LifeTimeRoundTrip)
     ASSERT_GE(expectedLifeTime, 20); // flightTime=2 → [20, 31]
     ASSERT_EQ(expectedLifetime, 5);
 
-    // 序列化
+    // 序列化（走 writeToNBT 触发 saveFireworkRocket 注册序列化器；addAdditionalSaveData 为空壳）
     nbt::tags::compound_tag savedTag;
-    firework.addAdditionalSaveData(savedTag);
+    firework.writeToNBT(savedTag);
 
     // 验证关键字段已写入
     using namespace mc::entity::serialization::nbt_keys;
@@ -1034,9 +1038,9 @@ TEST_F(FireworkRocketNbtTestFixture, LifeTimeRoundTrip)
     EXPECT_EQ(mc::entity::serialization::nbt_helper::tryGetInt(savedTag, LIFE_TIME).value_or(-1), expectedLifeTime);
     EXPECT_EQ(mc::entity::serialization::nbt_helper::tryGetByte(savedTag, SHOT_AT_ANGLE).value_or(0), 1);
 
-    // 反序列化到新实体
+    // 反序列化到新实体（走 readFromNBT 触发 loadFireworkRocket 注册序列化器）
     entity::FireworkRocketEntity loaded(EntityInstanceId(2), mc::test::testEcsRegistry());
-    auto result = loaded.readAdditionalSaveData(savedTag);
+    auto result = loaded.readFromNBT(savedTag);
     EXPECT_TRUE(result.success());
 
     EXPECT_EQ(loaded.lifetime(), expectedLifetime);
@@ -1050,8 +1054,8 @@ TEST_F(FireworkRocketNbtTestFixture, LifeTimeRoundTrip)
 /**
  * @brief NBT 反序列化后 lifeTime 不再被 setFireworkItem 重置
  *
- * readAdditionalSaveData 在 setFireworkItem 之后显式 setLifeTime（通过直接赋值 m_lifeTime），
- * 确保恢复的 lifeTime 不会被 setFireworkItem 的 -1 重置覆盖。
+ * loadFireworkRocket（经 readFromNBT 触发）在 setFireworkItem 之后显式 setLifeTime
+ *（通过直接赋值 m_lifeTime），确保恢复的 lifeTime 不会被 setFireworkItem 的 -1 重置覆盖。
  */
 TEST_F(FireworkRocketNbtTestFixture, ReadAdditionalSaveDataPreservesLifeTime)
 {
@@ -1071,10 +1075,10 @@ TEST_F(FireworkRocketNbtTestFixture, ReadAdditionalSaveDataPreservesLifeTime)
     savedTag.put(SHOT_AT_ANGLE, static_cast<i8>(1));
 
     entity::FireworkRocketEntity loaded(EntityInstanceId(1), mc::test::testEcsRegistry());
-    auto result = loaded.readAdditionalSaveData(savedTag);
+    auto result = loaded.readFromNBT(savedTag);
     EXPECT_TRUE(result.success());
 
-    // 关键：setFireworkItem 内部把 m_lifeTime 重置为 -1，但 readAdditionalSaveData
+    // 关键：setFireworkItem 内部把 m_lifeTime 重置为 -1，但 loadFireworkRocket
     // 在 setFireworkItem 之后恢复 m_lifeTime = 17
     EXPECT_EQ(loaded.lifeTime(), 17);
     EXPECT_EQ(loaded.lifetime(), 3);
@@ -1091,7 +1095,7 @@ TEST_F(FireworkRocketNbtTestFixture, UncomputedLifeTimeNotSerialized)
     // 不调用 tick，lifeTime 保持 -1
 
     nbt::tags::compound_tag savedTag;
-    firework.addAdditionalSaveData(savedTag);
+    firework.writeToNBT(savedTag);
 
     using namespace mc::entity::serialization::nbt_keys;
     // LIFE_TIME 不应存在
@@ -1111,7 +1115,7 @@ TEST_F(FireworkRocketNbtTestFixture, EmptyFireworkItemNotSerialized)
     // 不设置 fireworkItem（默认为空 AIR）
 
     nbt::tags::compound_tag savedTag;
-    firework.addAdditionalSaveData(savedTag);
+    firework.writeToNBT(savedTag);
 
     using namespace mc::entity::serialization::nbt_keys;
     EXPECT_FALSE(mc::entity::serialization::nbt_helper::tryGetCompound(savedTag, FIREWORKS_ITEM) != nullptr);

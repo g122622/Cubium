@@ -868,7 +868,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
     EXPECT_FALSE(afterState->get(BlockStateProperties::LIT()));
 }
 
-TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
+TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CanEatCake)
 {
     // 放置蜡烛蛋糕
     ASSERT_NE(CandleBlocks::CANDLE_CAKE, nullptr);
@@ -881,7 +881,12 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
     const BlockState* cakeState = m_world.storeBlockState(cakeBlock->defaultState());
     m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
 
-    // 创建创造模式玩家 → canEat(false) 返回 false
+    // 创建创造模式玩家 → canEat(false) 返回 true（创造模式 abilities.invulnerable=true）
+    // 对齐 vanilla Player.canEat（Player.java:1593-1595）：
+    //   return this.abilities.invulnerable || ignoreHunger || this.foodData.needsFood();
+    // 创造模式 abilities.invulnerable=true，故创造模式可进食蛋糕（与生存模式饱食时不同）。
+    // 此前测试误假设创造模式不能吃蛋糕（期望 Pass），与 vanilla 相悖——创造模式 canEat 返回 true，
+    // onBlockActivated 不会在 canEat 门控处返回 Pass，而是执行吃蛋糕逻辑并返回 Success。
     Player player(EntityInstanceId(4), "TestPlayer4", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -892,6 +897,6 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
     const BlockState& state = cakeBlock->defaultState();
     auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
-    // 创造模式不能吃蛋糕 → Pass
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 创造模式可吃蛋糕 → Success（执行吃蛋糕逻辑：进食 + 替换为已咬蛋糕 + 掉落蜡烛）
+    EXPECT_EQ(result, ActionResultType::Success);
 }

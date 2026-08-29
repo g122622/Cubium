@@ -173,7 +173,11 @@ TEST_F(SignBlockTest, WallSignBlock_WoodType)
 TEST_F(SignBlockTest, WallSignBlock_DefaultFacing)
 {
     const auto& state = wallSign_->defaultState();
-    EXPECT_EQ(state.get(BlockStateProperties::FACING()), Direction::North);
+    // WallSignBlock 注册的是 HORIZONTAL_FACING（4 向水平），而非 FACING（6 向含上下）。
+    // 两者虽都名为 "facing"，但是不同的 BlockStateProperty 单例对象（按指针匹配），
+    // 用 FACING() 查询 HORIZONTAL_FACING 注册的状态会取不到值（返回默认/断言失败）。
+    // vanilla AbstractSignBlock / WallSignBlock 同样使用 HORIZONTAL_FACING。
+    EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
 }
 
 TEST_F(SignBlockTest, WallSignBlock_DefaultWaterlogged)
@@ -186,14 +190,16 @@ TEST_F(SignBlockTest, WallSignBlock_Rotate90)
 {
     const auto& state = wallSign_->defaultState();
     const auto& rotated = wallSign_->rotate(state, Rotation::Clockwise90);
-    EXPECT_EQ(rotated.get(BlockStateProperties::FACING()), Direction::East);
+    // 同上：HORIZONTAL_FACING（4 向水平），非 FACING（6 向）
+    EXPECT_EQ(rotated.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
 }
 
 TEST_F(SignBlockTest, WallSignBlock_Rotate180)
 {
     const auto& state = wallSign_->defaultState();
     const auto& rotated = wallSign_->rotate(state, Rotation::Clockwise180);
-    EXPECT_EQ(rotated.get(BlockStateProperties::FACING()), Direction::South);
+    // 同上：HORIZONTAL_FACING（4 向水平），非 FACING（6 向）
+    EXPECT_EQ(rotated.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
 }
 
 TEST_F(SignBlockTest, WallSignBlock_GetShape)

@@ -721,8 +721,14 @@ TEST_F(EvokerFangsTest, NbtSerialize_OwnerUuid_WrittenAsUuidMostLeast)
     fangs.setOwnerUuid(testUuid);
     fangs.setWarmupDelay(5);
 
+    // EvokerFangs 的 Warmup + Owner UUID 已搬至按组件注册的序列化器
+    // （ProjectileComponentSerialization.cpp 的 saveEvokerFangs/loadEvokerFangs），经
+    // ComponentSerializerRegistry::saveAll/loadAll 调用。addAdditionalSaveData/readAdditionalSaveData
+    // 为有意保留的空壳（OtherProjectiles.cpp:1536），直接调用不会触发序列化。故 NBT 往返测试
+    // 须走 writeToNBT/readFromNBT（其内部调 saveAll/loadAll），与 SpearItemTest 同范式。
+    // ComponentSerializerRegistry 由 tests/main.cpp 全局环境 registerAll() 注册。
     nbt::tags::compound_tag tag;
-    fangs.addAdditionalSaveData(tag);
+    fangs.writeToNBT(tag);
 
     // 验证 OwnerUUIDMost 和 OwnerUUIDLeast 存在
     auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
@@ -742,7 +748,7 @@ TEST_F(EvokerFangsTest, NbtSerialize_NoOwnerUuid_NoKeysWritten)
     entity::EvokerFangsEntity fangs(EntityInstanceId(10), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag tag;
-    fangs.addAdditionalSaveData(tag);
+    fangs.writeToNBT(tag);
 
     auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
     auto least = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
@@ -759,13 +765,13 @@ TEST_F(EvokerFangsTest, NbtRoundTrip_PreservesOwnerUuid)
     fangs1.setOwnerUuid(testUuid);
     fangs1.setWarmupDelay(10);
 
-    // 序列化
+    // 序列化（走 writeToNBT 触发 saveEvokerFangs 注册序列化器）
     nbt::tags::compound_tag tag;
-    fangs1.addAdditionalSaveData(tag);
+    fangs1.writeToNBT(tag);
 
-    // 反序列化到新实体
+    // 反序列化到新实体（走 readFromNBT 触发 loadEvokerFangs 注册序列化器）
     entity::EvokerFangsEntity fangs2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = fangs2.readAdditionalSaveData(tag);
+    auto result = fangs2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     // 验证 UUID 一致
@@ -782,10 +788,10 @@ TEST_F(EvokerFangsTest, NbtRoundTrip_DefaultValues)
     entity::EvokerFangsEntity fangs1(EntityInstanceId(10), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag tag;
-    fangs1.addAdditionalSaveData(tag);
+    fangs1.writeToNBT(tag);
 
     entity::EvokerFangsEntity fangs2(EntityInstanceId(11), mc::test::testEcsRegistry());
-    auto result = fangs2.readAdditionalSaveData(tag);
+    auto result = fangs2.readFromNBT(tag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     // 默认值应保持
@@ -800,7 +806,7 @@ TEST_F(EvokerFangsTest, NbtDeserialize_MissingKeys_KeepDefaults)
     entity::EvokerFangsEntity fangs(EntityInstanceId(10), mc::test::testEcsRegistry());
 
     nbt::tags::compound_tag emptyTag;
-    auto result = fangs.readAdditionalSaveData(emptyTag);
+    auto result = fangs.readFromNBT(emptyTag);
     EXPECT_TRUE(static_cast<bool>(result));
 
     EXPECT_TRUE(fangs.ownerUuid().empty());

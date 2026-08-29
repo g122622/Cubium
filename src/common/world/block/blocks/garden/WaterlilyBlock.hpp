@@ -57,6 +57,17 @@ protected:
      */
     [[nodiscard]] bool canSustain(
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
+
+    /**
+     * @brief 获取植物类型 - 水生植物返回 PlantType::Water
+     *
+     * 睡莲为水生植物，须返回 PlantType::Water 而非继承自 BushBlock 的默认值 PlantType::Plains。
+     * Block::canSustainPlant 对 Water 类型返回 false（由植物自身 canSustain/mayPlaceOn 决定支撑），
+     * 若误返回 Plains 则泥土类方块会误判可支撑睡莲（与 vanilla 睡莲仅在水面/冰面存活相悖）。
+     * 对齐 vanilla WaterlilyBlock 的水生语义（vanilla 1.21.11 已移除 PlantType 体系，改用
+     * mayPlaceOn 直接判定；Cubium 保留 PlantType 体系故须在此声明为 Water）。
+     */
+    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
 };
 
 } // namespace blocks

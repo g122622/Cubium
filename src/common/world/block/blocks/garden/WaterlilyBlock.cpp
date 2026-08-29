@@ -25,7 +25,9 @@
 #include "../../../fluid/Fluid.hpp"
 #include "../../../fluid/FluidTags.hpp"
 #include "../../Block.hpp"
+#include "../../PlantType.hpp"
 #include "../../registry/VanillaBlocks.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
@@ -60,6 +62,15 @@ bool WaterlilyBlock::canSustain(const BlockState& groundState, IWorld& world, co
     }
 
     return false;
+}
+
+PlantType WaterlilyBlock::getPlantType(IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 水生植物：返回 PlantType::Water。Block::canSustainPlant 对 Water 类型返回 false，
+    // 睡莲的实际支撑由自身 canSustain（下方水/冰 + 上方无流体）决定，不依赖土壤方块标签。
+    return PlantType::Water;
 }
 
 } // namespace blocks

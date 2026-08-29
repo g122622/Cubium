@@ -44,6 +44,7 @@
 
 #include <cmath>
 #include <string>
+#include <vector>
 
 namespace mc {
 namespace entity {
@@ -214,31 +215,38 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
 
 bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 {
-    // 对应 MC Java Projectile.canHitEntity:
-    // 首先检查目标是否可被弹射物命中（综合判断存活状态、碰撞箱可交互性、旁观者模式等）
-    const bool canBeHit = target.canBeHitByProjectile();
-    if (!canBeHit) {
+    // 对齐 MC Java Projectile.canHitEntity (Projectile.java:309-315):
+    //   if (!target.canBeHitByProjectile()) return false;
+    //   Entity owner = this.getOwner();
+    //   return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(target);
+    //
+    // 三段析取语义：
+    //   1. owner==null（无发射者）→ 可命中任意可被弹射物命中的目标。
+    //   2. leftOwner（投射物已离开发射者碰撞范围）→ 可命中发射者自身。这是 vanilla 设计：
+    //      投射物离开发射者后允许命中发射者（如玩家射箭命中自己、骷髅箭命中骷髅）。
+    //   3. 否则：发射者与目标不在同一载具（根载具不同）才可命中——防止投射物刚生成时
+    //      命中骑乘同一载具的发射者。
+    //
+    // vanilla 射线追踪谓词就是 canHitEntity（ProjectileUtil.getHitResultOnMoveVector(this,
+    // this::canHitEntity)，见 AbstractArrow/LlamaSpit/FireworkRocket 等所有投射物子类），
+    // 故 leftOwner 短路逻辑同样作用于射线追踪命中判定。
+    //
+    // 此前曾为修复"羊驼贴脸吐口水命中自身"改为无条件排除发射者（!leftOwner 时也排除），
+    // 偏离 vanilla 且破坏"投射物离开后可命中发射者"语义。羊驼 bug 的真正根因是
+    // checkLeftShooter 的离开判定过松（AABB 无 inflate/无位移），已通过对齐 vanilla
+    // isOutsideOwnerCollisionRange 修复（见 checkLeftShooter），故此处恢复 vanilla 三段析取。
+    if (!target.canBeHitByProjectile()) {
         return false;
     }
-
-    // 无条件排除发射者自身及与其骑乘同一载具的实体。
-    // 对应 MC Java Projectile.getEntityHitResult 的命中谓词：
-    //   entity -> !entity.isSpectator() && entity.isPickable() && entity != this.getOwner()
-    // 射线追踪对发射者自身无条件排除（不依赖 leftOwner 状态）。
-    //
-    // 此前仅判断 isRidingSameEntity 且加了 hasLeftShooter 条件——当羊驼贴脸吐口水时，
-    // 口水生成点位于羊驼前方约 0.95 格（_spit 偏移），首 tick tryUpdateLeftShooter 即判定
-    // 碰撞箱不相交而 leftShooter=true，致排除逻辑被跳过；随后 rayTraceEntities 的 searchBox
-    // 覆盖到羊驼碰撞箱，口水命中发射者自身（24 次全命中羊驼、0 次命中狼）。
-    // 修正为无条件排除，与 vanilla 射线追踪谓词一致。
     const Entity* shooter = getShooter();
-    if (shooter != nullptr) {
-        if (&target == shooter || shooter->isRidingSameEntity(target)) {
-            return false;
-        }
+    if (shooter == nullptr) {
+        return true; // owner == null
     }
-
-    return true;
+    if (hasLeftShooter()) {
+        return true; // this.leftOwner 短路
+    }
+    // 未离开时：发射者与目标在同一载具（根载具相同）则排除
+    return !shooter->isRidingSameEntity(target);
 }
 
 bool ProjectileEntity::mayInteract(IWorld& world, const BlockPos& pos) const
@@ -356,13 +364,75 @@ void ProjectileEntity::updateRotation()
 
 bool ProjectileEntity::checkLeftShooter()
 {
+    // 对齐 MC Java Projectile.isOutsideOwnerCollisionRange (Projectile.java:115-125):
+    //   AABB aabb = this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0);
+    //   return entity.getRootVehicle().getSelfAndPassengers()
+    //            .filter(EntitySelector.CAN_BE_PICKED)
+    //            .noneMatch(p -> aabb.intersects(p.getBoundingBox()));
+    //
+    // 离开判定用"移动 AABB"（自身碰撞箱 + 本帧位移 expandTowards + inflate 1.0），
+    // 并遍历发射者根载具及其所有递归乘客中可被拾取（canBeCollidedWith）的实体，
+    // 全部不相交才算"已离开发射者"。
+    //
+    // 此前实现仅用 boundingBox().intersects(shooter->boundingBox())——无位移扩展、无
+    // inflate、且只查发射者自身不查骑乘链。后果：羊驼贴脸吐口水时，口水生成于羊驼前方
+    // 约 0.95 格，其纯碰撞箱与羊驼碰撞箱不相交，首 tick 即误判 leftShooter=true，致
+    // 口水命中发射者自身（24/24 命中羊驼、0 命中狼）。vanilla 的 inflate(1.0)+expandTowards
+    // 让判定更严格（移动扫过的区域都算"未离开"），根治此 bug。canHitEntity 已恢复 vanilla
+    // leftOwner 短路语义，此处离开判定须精确对齐 vanilla 才不重新引入羊驼 bug。
     Entity* shooter = getShooter();
     if (shooter == nullptr) {
-        return true;
+        return true; // owner==null → 视为已离开（vanilla isOutsideOwnerCollisionRange 同样返回 true）
     }
 
-    // 检查投掷物是否已离开发射者的碰撞箱
-    return !boundingBox().intersects(shooter->boundingBox());
+    // 移动 AABB = 自身碰撞箱沿本帧速度方向扩展 + 各方向 inflate 1.0
+    const AxisAlignedBB movementBox = boundingBox().expandTowards(velocity()).inflate(1.0f);
+
+    // 遍历发射者根载具（getLowestRidingEntity 对应 vanilla getRootVehicle）及其递归乘客。
+    // 用栈做深度优先遍历复刻 vanilla getSelfAndPassengers（根载具自身 + 所有递归乘客）。
+    // 仅对 canBeCollidedWith() 的实体（对应 EntitySelector.CAN_BE_PICKED）做相交检查。
+    Entity* rootVehicle = shooter->getLowestRidingEntity();
+    std::vector<Entity*> stack;
+    std::vector<EntityInstanceId> visited; // 防御自环骑乘导致死循环
+    stack.push_back(rootVehicle);
+    while (!stack.empty()) {
+        Entity* current = stack.back();
+        stack.pop_back();
+
+        // 防御：跳过已访问实体（理论上骑乘关系无环，但保守处理避免死循环）
+        bool alreadyVisited = false;
+        for (EntityInstanceId id : visited) {
+            if (id == current->id()) {
+                alreadyVisited = true;
+                break;
+            }
+        }
+        if (alreadyVisited) {
+            continue;
+        }
+        visited.push_back(current->id());
+
+        // 仅可被拾取的实体参与相交检查（对应 EntitySelector.CAN_BE_PICKED = isAlive && isPickable）
+        if (current->canBeCollidedWith() && movementBox.intersects(current->boundingBox())) {
+            return false; // 与发射者（或其骑乘链）仍相交 → 未离开
+        }
+
+        // 递归压入当前实体的乘客
+        IWorld* world = current->world();
+        if (world != nullptr) {
+            for (EntityInstanceId passengerId : current->getPassengers()) {
+                if (passengerId == INVALID_ENTITY_ID) {
+                    continue;
+                }
+                Entity* passenger = world->getEntity(passengerId);
+                if (passenger != nullptr) {
+                    stack.push_back(passenger);
+                }
+            }
+        }
+    }
+
+    return true; // 与发射者骑乘链全部不相交 → 已离开
 }
 
 void ProjectileEntity::tryUpdateLeftShooter()

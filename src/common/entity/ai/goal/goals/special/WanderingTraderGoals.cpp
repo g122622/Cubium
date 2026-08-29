@@ -86,11 +86,22 @@ void UseItemGoal::startExecuting()
 
 void UseItemGoal::resetTask()
 {
+    // 对齐 vanilla UseItemGoal.stop() (UseItemGoal.java:41-46)：仅清主手 + 播完成音效，
+    // 不调 stopUsingItem。vanilla 之所以不调 stopUsingItem，是因 LivingEntity.updatingUsingItem
+    // 每 tick 检测手持物品与 useItem 不同物时自动 stopUsingItem 清状态；Cubium 未复刻此自动
+    // 清理机制，故须显式停止使用。
+    //
+    // 顺序不可颠倒：必须先 stopActiveHand 再清主手。stopActiveHand 会把 m_activeItem 回写
+    // 主手槽（setEquipment(MainHand, m_activeItem)），若先清主手再 stopActiveHand，回写会把
+    // m_activeItem（物品）写回刚清空的槽位，致主手非空（测试 ResetTaskClearsMainHandItem 失败）。
+    // 先 stopActiveHand：此时主手仍持物品，回写覆盖为相同值无害，并清 m_activeItem/
+    // m_activeItemUseCount 使 isUsingItem()=false；随后清主手即得空手。
+    // 注：牛奶桶/药水等不重写 onPlayerStoppedUsing（基类默认 no-op），stopActiveHand 内的
+    // onPlayerStoppedUsing 回调对它们无副作用；弓/三叉戟等会重写的物品不由此 goal 使用。
+    m_mob->stopActiveHand();
+
     // 清空主手物品
     m_mob->setMainHandItem(ItemStack{});
-
-    // 停止使用物品
-    m_mob->stopActiveHand();
 
     // 播放完成音效
     m_mob->playSound(m_soundEvent, 1.0f, m_mob->getRandom().nextFloat() * 0.2f + 0.9f);

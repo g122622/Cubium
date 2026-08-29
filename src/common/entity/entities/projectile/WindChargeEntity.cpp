@@ -335,30 +335,29 @@ void WindChargeEntity::applyWindBurst()
         // ========== 4. 玩家分支：仅通过 Explosion IR 应用击退 ==========
         // 玩家速度由客户端权威管理（对应 MC Java ServerPlayer 的 client-authoritative motion）。
         // 服务端不调用 addVelocity，避免 EntityVelocityPacket 与 Explosion IR 双重应用。
-        // 同时清除 LivingEntity::hurt 设置的 hurtMarked，防止 EntityTracker 发送
-        // EntityVelocityPacket 覆盖客户端速度。
+        //
+        // 伤害语义对齐 vanilla 1.21.11：风弹爆炸 EXPLOSION_DAMAGE_CALCULATOR =
+        // SimpleExplosionDamageCalculator(true, false, ...)（WindCharge.java:24），第二参数
+        // damagesEntities=false，故 ServerExplosion.hurtEntities 经 shouldDamageEntity 判定不调
+        // hurtServer——爆炸路径不对范围内实体造成伤害，只施加击退（push）。风弹的伤害仅来自
+        // 直接命中：AbstractWindCharge.onHitEntity（AbstractWindCharge.java:87）对被命中实体调
+        // hurtServer(1.0F)。故此处爆炸路径不应对玩家调 hurt，否则玩家在爆炸范围内（即便未被
+        // 直接命中）也会受伤，偏离 vanilla。此外 hurt 会经 LivingEntity::hurt→applyKnockback 修改
+        // 玩家服务端速度，破坏"玩家服务端速度不变、击退仅由客户端经 Explosion IR 应用"的契约。
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr) {
             // 观察者模式不受击退
             if (player->isSpectator()) {
                 continue;
             }
-            // 创造模式飞行中不受击退
+            // 创造模式飞行中不受击退（对齐 vanilla getKnockbackMultiplier 对 flying Player 返回 0）
             const PlayerAbilities& abilities = player->abilities();
             if (player->isCreative() && abilities.flying) {
                 continue;
             }
 
-            // 风弹对玩家造成 1 点风爆伤害（与 onEntityHit 中的伤害一致）
-            // 对应 MC: DamageSources.windCharge(this, target)
-            Entity* shooter = getShooter();
-            bool isPlayerShooter = shooter != nullptr && shooter->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
-            auto damageSource = DamageSources::windBurst(this, shooter, isPlayerShooter);
-            player->hurt(damageSource, PLAYER_DAMAGE);
-
-            // 清除 hurtMarked，防止 EntityTracker 发送 EntityVelocityPacket
-            // （玩家速度由客户端通过 Explosion IR 应用）
-            player->clearHurtMarked();
+            // 爆炸路径不对玩家造成伤害（vanilla damagesEntities=false）。直接命中的 1 点伤害
+            // 由 onEntityHit 处理，与此处爆炸击退路径解耦。
 
             // 记录玩家击退向量，将通过 Explosion IR 发送给客户端
             // 客户端收到后调用 addDeltaMovement/addVelocity 累加到现有速度

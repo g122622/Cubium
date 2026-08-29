@@ -203,6 +203,53 @@ public:
      */
     [[nodiscard]] AxisAlignedBB deflate(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
 
+    /**
+     * @brief 沿速度向量方向非对称扩展 AABB（对应 MC 1.21 AABB.expandTowards）
+     *
+     * 与对称扩展的 expand/grow 不同：仅沿各轴速度分量的方向扩展——速度分量为正时
+     * 扩展 max 侧，为负时扩展 min 侧，零则不扩。用于把实体"本帧将扫过"的区域纳入
+     * 碰撞/命中检测（如 Projectile.isOutsideOwnerCollisionRange 用 expandTowards(
+     * deltaMovement) 构造移动 AABB）。
+     *
+     * 对应 vanilla:
+     *   AABB.expandTowards(double x, double y, double z) {
+     *     double d0 = x < 0 ? x : 0, d1 = x > 0 ? x : 0; // 同理 y/z
+     *     return new AABB(minX+d0, minY+d2, minZ+d4, maxX+d1, maxY+d3, maxZ+d5);
+     *   }
+     *
+     * @param dx, dy, dz 各轴速度分量（可正可负）
+     * @return 沿速度方向扩展后的 AABB
+     */
+    [[nodiscard]] AxisAlignedBB expandTowards(f32 dx, f32 dy, f32 dz) const noexcept
+    {
+        const f32 minXoff = dx < 0.0f ? dx : 0.0f;
+        const f32 maxXoff = dx > 0.0f ? dx : 0.0f;
+        const f32 minYoff = dy < 0.0f ? dy : 0.0f;
+        const f32 maxYoff = dy > 0.0f ? dy : 0.0f;
+        const f32 minZoff = dz < 0.0f ? dz : 0.0f;
+        const f32 maxZoff = dz > 0.0f ? dz : 0.0f;
+        return AxisAlignedBB(
+            minX + minXoff, minY + minYoff, minZ + minZoff, maxX + maxXoff, maxY + maxYoff, maxZ + maxZoff);
+    }
+
+    /**
+     * @brief 沿向量方向非对称扩展 AABB（对应 MC 1.21 AABB.expandTowards(Vec3)）
+     * @param movement 速度向量
+     */
+    [[nodiscard]] AxisAlignedBB expandTowards(const Vector3& movement) const noexcept
+    {
+        return expandTowards(movement.x, movement.y, movement.z);
+    }
+
+    /**
+     * @brief 均匀向外膨胀 AABB（对应 MC 1.21 AABB.inflate(double)）
+     *
+     * 与 grow 等价，使用 vanilla 命名以便对齐源码时直译。grow 保留为项目既有命名。
+     *
+     * @param amount 各方向膨胀量
+     */
+    [[nodiscard]] AxisAlignedBB inflate(f32 amount) const noexcept { return expand(amount, amount, amount); }
+
     // ========== MC碰撞检测核心算法 ==========
 
     /**

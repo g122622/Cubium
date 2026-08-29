@@ -86,6 +86,14 @@ public:
     void setBlockLight(u8 light) { m_blockLight = light; }
     void setCanSeeSky(bool canSee) { m_canSeeSky = canSee; }
     void setBrightness(f32 brightness) { m_brightness = brightness; }
+    // 注入 getMaxLocalRawBrightness 的原始亮度（0-15）。Entity::getBrightness() 对齐 vanilla
+    // 走 getMaxLocalRawBrightness + gamma 曲线（Entity.cpp:1023-1054），不再消费 getBrightness(pos)。
+    // 故测试须通过 setRawBrightness 控制 getMaxLocalRawBrightness 的返回值，使 gamma 公式消费
+    // 测试意图的亮度。未设置时回落到由 skyLight/blockLight/skyDarkening 计算的默认值（基类实现）。
+    void setRawBrightness(i32 raw) { m_rawBrightness = raw; }
+    // 按位置注入原始亮度：仅特定 y 层返回指定亮度，其余返回 0。用于验证 getBrightness 查询
+    // 的是眼睛高度位置而非脚位置（UsesEyeHeightForPosition）。
+    void setRawBrightnessAtY(i32 y, i32 raw) { m_rawBrightnessByY[y] = raw; }
 
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLight; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return m_blockLight; }
@@ -98,6 +106,19 @@ public:
     {
         return m_brightness.has_value() ? m_brightness.value()
                                         : static_cast<f32>(std::max(m_skyLight, m_blockLight)) / 15.0f;
+    }
+
+    [[nodiscard]] i32 getMaxLocalRawBrightness(const BlockPos& pos) const override
+    {
+        // 优先按 y 层注入（验证眼睛位置查询）；其次全局注入；最后回落基类默认（含 skyDarkening）。
+        auto it = m_rawBrightnessByY.find(pos.y);
+        if (it != m_rawBrightnessByY.end()) {
+            return it->second;
+        }
+        if (m_rawBrightness.has_value()) {
+            return m_rawBrightness.value();
+        }
+        return mc::test::BaseTestWorld::getMaxLocalRawBrightness(pos);
     }
 
     [[nodiscard]] u8 getLightSubtracted(const BlockPos& pos, u32 skyDarkening) const override
@@ -151,6 +172,8 @@ private:
     bool m_canSeeSky;
     bool m_isRaining;
     std::optional<f32> m_brightness;
+    std::optional<i32> m_rawBrightness;
+    std::map<i32, i32> m_rawBrightnessByY;
     std::map<EntityInstanceId, Entity*> m_testEntities;
 };
 
@@ -200,7 +223,13 @@ TEST_F(IsInDaylightTest, ReturnsFalseWithLowBrightness)
 {
     m_world->setDayTime(6000); // 白天
     m_world->setCanSeeSky(true);
-    m_world->setBrightness(0.3f); // 低亮度
+    // Entity::getBrightness() 对齐 vanilla 走 getMaxLocalRawBrightness + gamma 曲线
+    // （Entity.cpp:1023-1054）。注入低 rawBrightness=4：f=4/15≈0.267，f1=0.267/(4-0.8)≈0.083
+    // ≤0.5 → isInDaylight 在亮度门控处返回 false（即便白天且天空可见）。
+    // 此前用 setBrightness(0.3) 注入 getBrightness(pos)，但 Entity::getBrightness() 不再消费
+    // 该接口（改走 getMaxLocalRawBrightness），致 0.3 被忽略、正午 rawBrightness=15 → getBrightness()=1.0
+    // >0.5 → isInDaylight 误返回 true。改用 setRawBrightness 控制 getMaxLocalRawBrightness。
+    m_world->setRawBrightness(4);
 
     PhantomEntity phantom(EntityInstanceId(1), mc::test::testEcsRegistry());
     phantom.setWorld(m_world.get());
@@ -362,14 +391,18 @@ protected:
 
 TEST_F(GetBrightnessTest, ReturnsWorldBrightnessAtEyePosition)
 {
-    m_world->setBrightness(0.75f);
+    // Entity::getBrightness() 对齐 vanilla getLightLevelDependentMagicValue（Entity.cpp:1023-1054）：
+    //   f = getMaxLocalRawBrightness(eyePos)/15; f1 = f/(4-3f); return lerp(f1, 1.0, ambientLight)
+    // 主世界 ambientLight=0。注入 rawBrightness=15：f=1.0 → f1=1.0/(4-3)=1.0 → lerp(1.0,1.0,0)=1.0。
+    // 验证 getBrightness 基于世界原始亮度（经 getMaxLocalRawBrightness）而非硬编码。
+    m_world->setRawBrightness(15);
 
     PhantomEntity phantom(EntityInstanceId(1), mc::test::testEcsRegistry());
     phantom.setWorld(m_world.get());
     phantom.setPosition(0.0f, 64.0f, 0.0f);
 
     f32 brightness = phantom.getBrightness();
-    EXPECT_FLOAT_EQ(brightness, 0.75f);
+    EXPECT_FLOAT_EQ(brightness, 1.0f);
 }
 
 TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld)
@@ -384,18 +417,33 @@ TEST_F(GetBrightnessTest, ReturnsZeroWhenNoWorld)
 
 TEST_F(GetBrightnessTest, UsesEyeHeightForPosition)
 {
-    m_world->setBrightness(0.9f);
+    // 验证 getBrightness 用眼睛高度位置（eyeY = y + eyeHeight，取 floor 得眼睛所在方块 y）
+    // 查询 getMaxLocalRawBrightness，而非脚位置 y。
+    //
+    // 用 ZombieEntity（非幼体 eyeHeight=1.74f）而非 PhantomEntity：Phantom eyeHeight=height*0.35≈0.175，
+    // floor(64+0.175)=64 等于脚位置方块 y，无法区分"查眼睛"与"查脚"。Zombie eyeHeight=1.74f，
+    // floor(64+1.74)=65 ≠ 脚位置 64，能区分。
+    //
+    // setRawBrightnessAtY 仅在眼睛 y 层(65)注入 15，脚位置 y 层(64)注入 0：
+    //   - 若查眼睛位置(65) → rawBrightness=15 → f1=1.0 → lerp(1.0,1.0,0)=1.0
+    //   - 若查脚位置(64)   → rawBrightness=0  → f1=0.0 → lerp(0.0,1.0,0)=0.0
+    // 断言 1.0 即证明查询的是眼睛高度位置（对应 Entity.cpp:1038-1040 用 floor(y+eyeHeight())）。
+    ZombieEntity zombie(EntityInstanceId(1), mc::test::testEcsRegistry());
+    ASSERT_FALSE(zombie.isBaby()); // 默认成年，eyeHeight=1.74f
+    zombie.setWorld(m_world.get());
+    zombie.setPosition(10.0f, 64.0f, 20.0f);
 
-    PhantomEntity phantom(EntityInstanceId(1), mc::test::testEcsRegistry());
-    phantom.setWorld(m_world.get());
-    phantom.setPosition(10.0f, 64.0f, 20.0f);
+    const f32 eyeY = 64.0f + zombie.eyeHeight();
+    EXPECT_GT(eyeY, 65.0f); // 64+1.74=65.74 > 65，确保 floor 到 65 而非 64
+    const i32 eyeBlockY = static_cast<i32>(std::floor(eyeY));
+    ASSERT_EQ(eyeBlockY, 65); // 眼睛方块 y 必须不同于脚位置 y=64，否则测试无法区分
 
-    // 眼睛高度 = height * 0.35f
-    f32 expectedY = 64.0f + phantom.eyeHeight();
-    EXPECT_GT(expectedY, 64.0f);
+    // 脚位置 y=64 层注入 0（暗），眼睛 y=65 层注入 15（亮）
+    m_world->setRawBrightnessAtY(64, 0);
+    m_world->setRawBrightnessAtY(eyeBlockY, 15);
 
-    f32 brightness = phantom.getBrightness();
-    EXPECT_FLOAT_EQ(brightness, 0.9f);
+    f32 brightness = zombie.getBrightness();
+    EXPECT_FLOAT_EQ(brightness, 1.0f);
 }
 
 // ============================================================================
@@ -588,7 +636,8 @@ TEST_F(BoatRidingDaylightTest, BoatEntityDifferentTypes)
 {
     // 验证不同类型的船
     auto oakBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::OAK, mc::test::testEcsRegistry());
-    auto spruceBoat = std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
+    auto spruceBoat =
+        std::make_unique<entity::BoatEntity>(entity::BoatEntity::Type::SPRUCE, mc::test::testEcsRegistry());
 
     // 两种船都应该能被 dynamic_cast 识别
     Entity* oakPtr = oakBoat.get();
