@@ -237,54 +237,9 @@ TEST_F(BiomeFactoryClimateTest, ErodedBadlandsClimate)
     EXPECT_EQ(biome.effects().grassColorModifier(), GCM::Badlands);
 }
 
-TEST_F(BiomeFactoryClimateTest, BadlandsPlateauClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::BadlandsPlateau);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
 TEST_F(BiomeFactoryClimateTest, WoodedBadlandsPlateauClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::WoodedBadlandsPlateau);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, DesertHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::DesertHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, DesertLakesClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::DesertLakes);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, ModifiedBadlandsPlateauClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ModifiedBadlandsPlateau);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, ModifiedWoodedBadlandsPlateauClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ModifiedWoodedBadlandsPlateau);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
     EXPECT_FALSE(biome.hasPrecipitation());
@@ -296,15 +251,6 @@ TEST_F(BiomeFactoryClimateTest, SnowyBeachClimate)
     const auto& biome = BiomeRegistry::instance().get(Biomes::SnowyBeach);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.05f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.3f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, SnowyMountainsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::SnowyMountains);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
@@ -356,17 +302,6 @@ TEST_F(BiomeFactoryClimateTest, SavannaPlateauClimate)
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
 
-TEST_F(BiomeFactoryClimateTest, ShatteredSavannaPlateauClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ShatteredSavannaPlateau);
-    // MC 1.21.11: temperature should be 2.0, hasPrecipitation should be false
-    // Current code has temperature=1.0 and default hasPrecipitation=true
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.0f);
-    EXPECT_FALSE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
 // ============================================================================
 // MushroomFields - KNOWN WRONG: hasPrecipitation should be true
 // MC 1.21.11: has_precipitation=true
@@ -375,17 +310,6 @@ TEST_F(BiomeFactoryClimateTest, ShatteredSavannaPlateauClimate)
 TEST_F(BiomeFactoryClimateTest, MushroomFieldsClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::MushroomFields);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.9f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 1.0f);
-    // MC 1.21.11: has_precipitation=true
-    // Current code incorrectly sets hasPrecipitation=false
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, MushroomFieldShoreClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::MushroomFieldShore);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.9f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 1.0f);
     // MC 1.21.11: has_precipitation=true
@@ -517,15 +441,6 @@ TEST_F(BiomeFactoryClimateTest, MountainsClimate)
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
 
-TEST_F(BiomeFactoryClimateTest, WoodedHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::WoodedHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.7f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
 TEST_F(BiomeFactoryClimateTest, StoneShoreClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::StoneShore);
@@ -553,47 +468,11 @@ TEST_F(BiomeFactoryClimateTest, WoodedMountainsClimate)
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
 
-TEST_F(BiomeFactoryClimateTest, MountainEdgeClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::MountainEdge);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.2f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.3f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, JungleHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::JungleHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.9f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
 TEST_F(BiomeFactoryClimateTest, BambooJungleClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::BambooJungle);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.9f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, BambooJungleHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::BambooJungleHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.9f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, BirchForestHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::BirchForestHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.6f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
@@ -616,74 +495,10 @@ TEST_F(BiomeFactoryClimateTest, TallBirchForestClimate)
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
 }
 
-TEST_F(BiomeFactoryClimateTest, TallBirchHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::TallBirchHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.6f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.6f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, DarkForestHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::DarkForestHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.7f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, TaigaHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::TaigaHills);
-    // MC 1.21.11: Taiga hills uses taiga climate (temp=0.25, not -0.5)
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.25f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.4f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
 TEST_F(BiomeFactoryClimateTest, GiantSpruceTaigaClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::GiantSpruceTaiga);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.25f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, GiantSpruceTaigaHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::GiantSpruceTaigaHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.25f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, SnowyTaigaHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::SnowyTaigaHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, -0.5f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.4f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, SnowyTaigaMountainsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::SnowyTaigaMountains);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, -0.5f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.4f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, GiantTreeTaigaHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::GiantTreeTaigaHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.3f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
     EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
@@ -701,58 +516,6 @@ TEST_F(BiomeFactoryClimateTest, SunflowerPlainsClimate)
 TEST_F(BiomeFactoryClimateTest, GravellyMountainsClimate)
 {
     const auto& biome = BiomeRegistry::instance().get(Biomes::GravellyMountains);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.2f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.3f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, TaigaMountainsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::TaigaMountains);
-    // MC 1.21.11: Taiga mountains uses taiga climate (temp=0.25, not -0.5)
-    // TODO: humidity should be 0.8 matching taiga, currently 0.4
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.25f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.4f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, SwampHillsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::SwampHills);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.9f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    // Swamp hills shares swamp colors
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::SWAMP_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::SWAMP_WATER_FOG_COLOR);
-    EXPECT_EQ(biome.effects().fogColor(), BiomeEffects::SWAMP_FOG_COLOR);
-    EXPECT_EQ(biome.effects().grassColorModifier(), GCM::Swamp);
-}
-
-TEST_F(BiomeFactoryClimateTest, ModifiedJungleClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ModifiedJungle);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.9f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, ModifiedJungleEdgeClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ModifiedJungleEdge);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.95f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.8f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-}
-
-TEST_F(BiomeFactoryClimateTest, ModifiedGravellyMountainsClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::ModifiedGravellyMountains);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 0.2f);
     EXPECT_FLOAT_EQ(biome.climate().humidity, 0.3f);
     EXPECT_TRUE(biome.hasPrecipitation());
@@ -877,17 +640,6 @@ TEST_F(BiomeFactoryClimateTest, PaleGardenClimate)
 // ============================================================================
 // Deep ocean variants - verifying current values
 // ============================================================================
-
-TEST_F(BiomeFactoryClimateTest, DeepWarmOceanClimate)
-{
-    const auto& biome = BiomeRegistry::instance().get(Biomes::DeepWarmOcean);
-    EXPECT_FLOAT_EQ(biome.climate().temperature, 0.8f);
-    EXPECT_FLOAT_EQ(biome.climate().humidity, 0.5f);
-    EXPECT_TRUE(biome.hasPrecipitation());
-    EXPECT_EQ(biome.climate().temperatureModifier, TempMod::None);
-    EXPECT_EQ(biome.effects().waterColor(), BiomeEffects::WARM_OCEAN_WATER_COLOR);
-    EXPECT_EQ(biome.effects().waterFogColor(), BiomeEffects::WARM_OCEAN_WATER_FOG_COLOR);
-}
 
 TEST_F(BiomeFactoryClimateTest, DeepLukewarmOceanClimate)
 {
@@ -1035,17 +787,15 @@ TEST_F(BiomeFactoryClimateTest, EndBarrensClimate)
 TEST_F(BiomeFactoryClimateTest, HotBiomesHaveNoPrecipitation)
 {
     // All biomes with temperature >= 2.0 should have hasPrecipitation=false
-    // because MC 1.21.11 sets has_precipitation=false for these hot biomes
+    // because MC 1.21.11 sets has_precipitation=false for these hot biomes.
+    // 注：仅含 1.21.11 仍存在的 hot biome（DesertHills/DesertLakes/BadlandsPlateau/
+    // ModifiedBadlandsPlateau/ModifiedWoodedBadlandsPlateau 等为 1.16.5 已删除变体，
+    // BiomeRegistry 不注册，已从列表移除）。
     const BiomeId hotBiomes[] = {
         Biomes::Desert,
-        Biomes::DesertHills,
-        Biomes::DesertLakes,
         Biomes::Badlands,
         Biomes::ErodedBadlands,
-        Biomes::BadlandsPlateau,
         Biomes::WoodedBadlandsPlateau,
-        Biomes::ModifiedBadlandsPlateau,
-        Biomes::ModifiedWoodedBadlandsPlateau,
     };
 
     for (BiomeId id : hotBiomes) {
@@ -1109,10 +859,9 @@ TEST_F(BiomeFactoryClimateTest, AllSavannaBiomesHaveHotDryClimate)
 {
     // MC 1.21.11: All savanna biomes have temperature=2.0 and hasPrecipitation=false
     const BiomeId savannaBiomes[] = {
-        Biomes::Savanna,
-        Biomes::ShatteredSavanna,
-        Biomes::SavannaPlateau,
-        Biomes::ShatteredSavannaPlateau,
+        Biomes::Savanna, Biomes::ShatteredSavanna, Biomes::SavannaPlateau,
+        // 注：ShatteredSavannaPlateau 是 1.16.5 已删除变体，1.21.11 已移除，
+        // BiomeRegistry 有意不注册（对齐 vanilla），故不纳入本聚合断言。
     };
 
     for (BiomeId id : savannaBiomes) {
