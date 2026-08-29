@@ -1260,6 +1260,7 @@ void VanillaEntities::doRegisterAll()
             .size(2.0f, 2.0f)
             .trackingRange(16)
             .updateInterval(1)
+            .immuneToFire() // 对齐 vanilla EntityType.END_CRYSTAL.fireImmune()（EntityType.java:456）
             .build());
 
     // 闪电

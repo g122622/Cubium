@@ -25,8 +25,11 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -39,12 +42,16 @@ using namespace mc::entity;
  * - 底座显示控制
  * - 内部旋转动画
  * - 治愈末影龙接口
+ * - 火焰免疫（对齐 vanilla EntityType.END_CRYSTAL.fireImmune()）
  */
 class EnderCrystalHealTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 测试初始化
+        // 初始化方块和实体注册表，确保 EntityTypeKeys::END_CRYSTAL 有正确的 typeId，
+        // 且 END_CRYSTAL 类型注册了 .immuneToFire() 标志（VanillaEntities.cpp:1263）。
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
     }
 
     void TearDown() override
@@ -284,4 +291,41 @@ TEST_F(EnderCrystalHealTest, LightningBoltState)
     // 默认生命时间为 1-3
     EXPECT_GE(lightning.boltLivingTime(), 1);
     EXPECT_LE(lightning.boltLivingTime(), 3);
+}
+
+// ============================================================================
+// 火焰免疫测试（对齐 vanilla EntityType.END_CRYSTAL.fireImmune()，
+// EntityType.java:456）。vanilla 末影水晶 fireImmune=true，免疫所有 IS_FIRE
+// 伤害源（in_fire/campfire/on_fire/lava/hot_floor/fireball/unattributed_fireball）。
+// Cubium 此前 END_CRYSTAL 注册缺 .immuneToFire() 且 Entity 基类 isInvulnerableTo
+// 缺 IS_FIRE+isImmuneToFire 守卫，致末影水晶在火焰/岩浆中被错误伤害。
+// ============================================================================
+
+TEST_F(EnderCrystalHealTest, EnderCrystal_IsImmuneToFire)
+{
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
+
+    // 直接构造的实体不经过 EntityType::create() 工厂，typeId 默认空。
+    // 补 setTypeId 对齐生产路径，使 isImmuneToFire() 经 EntityRegistry 查到
+    // END_CRYSTAL 类型的 .immuneToFire() 标志（VanillaEntities.cpp:1263）。
+    crystal.setTypeId(entity::EntityTypeKeys::END_CRYSTAL);
+
+    // 末影水晶免疫火焰（对齐 vanilla fireImmune=true）
+    EXPECT_TRUE(crystal.isImmuneToFire()) << "末影水晶应免疫火焰（vanilla EntityType.END_CRYSTAL.fireImmune()）";
+}
+
+TEST_F(EnderCrystalHealTest, EnderCrystal_FireDamageImmune)
+{
+    EnderCrystalEntity crystal{mc::test::testEcsRegistry()};
+    crystal.setTypeId(entity::EntityTypeKeys::END_CRYSTAL);
+
+    // InFire 是 IS_FIRE 伤害源（DamageTypeTags.cpp:617 IS_FIRE 成员含 InFire）
+    EnvironmentalDamage fireDamage(DamageType::InFire);
+
+    // isInvulnerableTo 应拦截 IS_FIRE 伤害（基类 Entity::isInvulnerableTo 的
+    // IS_FIRE+isImmuneToFire 守卫，对齐 vanilla isInvulnerableToBase:2921）
+    EXPECT_TRUE(crystal.isInvulnerableTo(fireDamage)) << "末影水晶对 IS_FIRE 伤害源应免疫（isInvulnerableTo 返 true）";
+
+    // hurt 应返回 false（火焰伤害被 isInvulnerableTo 拦截，不触发爆炸/破坏流程）
+    EXPECT_FALSE(crystal.hurt(fireDamage, 5.0f)) << "末影水晶受火焰伤害应被拒绝（hurt 返 false）";
 }

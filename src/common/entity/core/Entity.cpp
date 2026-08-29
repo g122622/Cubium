@@ -41,6 +41,7 @@
 #include "../../world/entity/JavaEntityTypeIdMap.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../damage/tag/DamageTypeTags.hpp"
 #include "../entities/effect/EffectEntities.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/projectile/ProjectileDeflection.hpp"
@@ -2250,6 +2251,26 @@ bool Entity::isInvulnerableTo(DamageSource& source) const
     if (m_invulnerable) {
         // 虚空伤害和创造模式玩家可以绕过无敌
         return !source.bypassesInvulnerability();
+    }
+    // 2. 摔落伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2922：
+    //    p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE)）。
+    //    FALL_DAMAGE_IMMUNE 实体（铁傀儡/雪傀儡/潜影贝/悦灵/蝙蝠/蜜蜂/烈焰人/猫/鸡/恶魂/
+    //    快乐恶魂/幻翼/岩浆怪/豹猫/鹦鹉/凋灵/旋风人/铜傀儡）对任何 IS_FALL 类型伤害源免疫。
+    //    此守卫复刻 vanilla final 语义，覆盖非 LivingEntity 实体（基类路径）。
+    //    注：FALL_DAMAGE_IMMUNE 标签成员全为 MobEntity 派生，非 Mob 实体不在该标签内，
+    //    故此守卫对非 Mob 实体无影响（纯防御性对齐）。
+    if (source.is(DamageTypeTags::IS_FALL()) && EntityTypeTags::FALL_DAMAGE_IMMUNE().contains(getTypeId())) {
+        return true;
+    }
+    // 3. 火焰伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2921：
+    //    p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune()）。
+    //    fireImmune 实体（烈焰人/岩浆怪/恶魂/末影龙/凋灵/潜影贝/末影水晶/炽足兽等）
+    //    对所有 IS_FIRE 伤害源免疫。此守卫复刻 vanilla final 语义，覆盖非 LivingEntity 实体
+    //    （基类路径）——末影水晶（EnderCrystalEntity : public Entity）走此路径免疫火焰。
+    //    注：未注册 .immuneToFire() 的非 Mob 实体（船/矿车/画/物品展示框等）isImmuneToFire()
+    //    返 false，此守卫不触发，行为不变（vanilla 这些实体 fireImmune=false）。
+    if (source.is(DamageTypeTags::IS_FIRE()) && isImmuneToFire()) {
+        return true;
     }
     return false;
 }
