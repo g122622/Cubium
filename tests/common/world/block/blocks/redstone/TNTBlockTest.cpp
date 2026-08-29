@@ -60,6 +60,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/explosion/Explosion.hpp"
@@ -212,12 +213,14 @@ public:
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
-        throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
+        ensureTickManager();
+        return *m_tickManagerPtr;
     }
 
     [[nodiscard]] const world::tick::TickManager& tickManager() const override
     {
-        throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
+        const_cast<TNTBlockTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
     }
 
     // ========== 测试辅助方法 ==========
@@ -308,6 +311,15 @@ private:
     std::string m_lastGameEventId;
     BlockPos m_lastGameEventPos{0, 0, 0};
     const Entity* m_lastGameEventSourceEntity = nullptr;
+
+    // TickManager（供 FireBlock::tick 首行 scheduleBlockTick 使用，DummyTickManager 仅做内存调度）
+    void ensureTickManager()
+    {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<mc::test::DummyTickManager>();
+        }
+    }
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
 };
 
 // ============================================================================
@@ -1569,6 +1581,96 @@ TEST_F(TNTBlockTest, ExplosionGetIndirectSourceEntity_PlayerSource)
     // 玩家是 LivingEntity，getIndirectSourceEntity 应该返回它
     LivingEntity* indirect = explosion.getIndirectSourceEntity();
     EXPECT_EQ(indirect, player.get());
+}
+
+// ============================================================================
+// 火焰蔓延引爆 TNT 测试（偏离 #6 修复验证）
+// ============================================================================
+//
+// 对齐 vanilla FireBlock.checkBurnOut（FireBlock.java:240-256）：火焰 tick 蔓延到
+// 相邻 TNT 时，通过烧毁判定后无论点燃或烧毁，都执行 `if (block instanceof TntBlock)
+// TntBlock.prime(level, pos)`。此前 Cubium 的 FireBlock::tryCatchFire 仅调通用
+// state->catchFire() 回调，而 TNTBlock 未重写 catchFire（Block::catchFire 默认空实现），
+// 致火焰蔓延到 TNT 不会引爆。修复后在 tryCatchFire 内对齐 vanilla 直接 dynamic_cast
+// 判定 + TNTBlock::prime。此测试验证该链路：火焰 tick 蔓延引爆相邻 TNT。
+
+TEST_F(TNTBlockTest, FireTick_SpreadsToTNT_PrimesTNT)
+{
+    // 使用注册表中的真实 TNT 方块（已注册 FireInfo: encouragement=15, flammability=100）
+    ASSERT_NE(mc::block_registry::BuildingBlocks::TNT, nullptr);
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+
+    FireBlock* fireBlock = const_cast<FireBlock*>(static_cast<const FireBlock*>(VanillaBlocks::FIRE));
+    const BlockState& fireState = fireBlock->defaultState();
+    const BlockState& tntState = mc::block_registry::BuildingBlocks::TNT->defaultState();
+
+    // 多次尝试以覆盖概率（TNT flammability=100, chance=250/300，单次单方向触发概率
+    // 约 33%~40%，6 个相邻方向 + 固定种子，多次 tick 必然触发）
+    bool primed = false;
+    for (int attempt = 0; attempt < 200 && !primed; ++attempt) {
+        m_world.clearState();
+        m_world.setClientSide(false);
+
+        // 火焰位置及其下方支撑（让 isValidPosition 通过）
+        BlockPos firePos(0, 64, 0);
+        BlockPos supportPos(0, 63, 0);
+        m_world.setBlockAt(supportPos, &VanillaBlocks::STONE->defaultState());
+        m_world.setBlockAt(firePos, &fireState);
+
+        // 相邻 TNT（火焰东侧）
+        BlockPos tntPos(1, 64, 0);
+        m_world.setBlockAt(tntPos, &tntState);
+
+        // 取可变状态副本供 tick 使用
+        BlockState mutableFireState = fireState;
+        math::Random random(12345 + attempt);
+
+        fireBlock->tick(m_world, firePos, mutableFireState, random);
+
+        if (m_world.spawnedTNTCount() > 0) {
+            primed = true;
+        }
+    }
+
+    // 火焰蔓延到 TNT 应引爆 TNT（生成点燃的 TNT 实体）
+    EXPECT_TRUE(primed) << "火焰蔓延到 TNT 应引爆 TNT（对齐 vanilla checkBurnOut 的 instanceof TntBlock → prime）";
+}
+
+TEST_F(TNTBlockTest, FireTick_SpreadsToTNT_TntExplodesFalse_DoesNotPrime)
+{
+    // tntExplodes=false 时，TNTBlock::prime 返回 false 不生成实体（对齐 vanilla
+    // TntBlock.prime 的游戏规则门控）。火焰蔓延仍会烧毁/点燃 TNT 方块，但不引爆。
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    ASSERT_NE(mc::block_registry::BuildingBlocks::TNT, nullptr);
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+
+    FireBlock* fireBlock = const_cast<FireBlock*>(static_cast<const FireBlock*>(VanillaBlocks::FIRE));
+    const BlockState& fireState = fireBlock->defaultState();
+    const BlockState& tntState = mc::block_registry::BuildingBlocks::TNT->defaultState();
+
+    for (int attempt = 0; attempt < 200; ++attempt) {
+        m_world.clearState();
+        m_world.setClientSide(false);
+        m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+        BlockPos firePos(0, 64, 0);
+        BlockPos supportPos(0, 63, 0);
+        m_world.setBlockAt(supportPos, &VanillaBlocks::STONE->defaultState());
+        m_world.setBlockAt(firePos, &fireState);
+        BlockPos tntPos(1, 64, 0);
+        m_world.setBlockAt(tntPos, &tntState);
+
+        BlockState mutableFireState = fireState;
+        math::Random random(12345 + attempt);
+
+        fireBlock->tick(m_world, firePos, mutableFireState, random);
+
+        // 即便火焰烧到 TNT，tntExplodes=false 时 prime 不生成实体
+        EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    }
 }
 
 } // namespace test

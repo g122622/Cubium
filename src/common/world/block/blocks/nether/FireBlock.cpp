@@ -35,6 +35,7 @@
 #include "../../BlockRegistry.hpp"
 #include "../../BlockTags.hpp"
 #include "../../FireInfoRegistry.hpp"
+#include "../redstone/TNTBlock.hpp"
 #include "SoulFireBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -540,6 +541,24 @@ void FireBlock::tryCatchFire(
         return; // 含水方块不可燃
     }
 
+    // 对齐 vanilla FireBlock.checkBurnOut（FireBlock.java:240-256）：
+    //   int i = getBurnOdds(state);                       // 烧毁概率
+    //   if (nextInt(chance) < i) {                        // 通过烧毁判定
+    //       BlockState blockstate = getBlockState(pos);   // 改方块前缓存原 state
+    //       if (nextInt(age+10) < 5 && !isRainingAt) setBlock(fire);
+    //       else removeBlock;
+    //       Block block = blockstate.getBlock();
+    //       if (block instanceof TntBlock) TntBlock.prime(level, pos);  // 无论点燃/烧毁都 prime
+    //   }
+    // vanilla 的 TNT 引爆是 checkBurnOut 内部直接 instanceof 判定 + 静态 prime，不依赖 catchFire 回调。
+    // 此前 Cubium 仅调 state->catchFire()（通用回调），但 TNTBlock 未重写 catchFire（Block::catchFire
+    // 默认空实现），致火焰蔓延烧到 TNT 不会引爆。此处补齐 TNT prime，同时保留 catchFire 通用回调
+    // （对齐 Forge IForgeBlock.catchFire 扩展语义，供其他方块未来使用）。
+
+    // 在改方块前缓存原方块指针（vanilla 缓存 blockstate 后取 .getBlock()）。state 在函数入口已取，
+    // 改方块用 setBlockState 替换该位置 state，但原 state 对象仍有效，其 owner block 引用不变。
+    const Block* originalBlock = &state->getBlock();
+
     // ===== 点燃或烧毁 =====
     // 5% 基础概率点燃，否则直接烧毁
 
@@ -556,7 +575,15 @@ void FireBlock::tryCatchFire(
         world.setBlockState(pos, nullptr, 3);
     }
 
-    // 触发燃烧回调（如 TNT 爆炸）
+    // 对齐 vanilla checkBurnOut:251-254：若被烧毁/点燃的方块是 TNT，则 prime 引爆。
+    // igniteOdds/burnOdds 已注册 TNT（encouragement=15, flammability=100），故火焰蔓延到 TNT 时
+    // 此处必然被触发（flammability=100 > 0 且大概率通过 nextInt(chance)<100 烧毁判定）。
+    // vanilla checkBurnOut 对 prime 返回值不消费（仅点火/引爆），此处用 static_cast<void> 忽略。
+    if (dynamic_cast<const TNTBlock*>(originalBlock) != nullptr) {
+        static_cast<void>(TNTBlock::prime(world, pos, nullptr));
+    }
+
+    // 触发燃烧回调（如其他方块自定义点燃逻辑）
     state->catchFire(world, pos, face, nullptr);
 }
 
