@@ -1,15 +1,16 @@
 // 蛋糕吃蛋糕行为 GameTest。
 //
 // wiki tech_蛋糕.txt#用途：蛋糕是可食用方块，可分 7 片食用。右键吃一片（bites+1），每片恢复
-//   2 点饥饿值和 0.1 饱和度；bites 达 6 时再吃移除蛋糕方块。创造模式/满饥饿无法进食。
+//   2 点饥饿值和 0.1 饱和度；bites 达 6 时再吃移除蛋糕方块。满饥饿无法进食；创造模式因
+//   abilities.invulnerable=true 使 canEat=false 恒真，可以吃（vanilla 同）。
 //   吃蛋糕不消耗手持物（空手右键即可）。
 //
 // C++ 链路：CakeBlock（functional/CakeBlock.cpp）有 BITES_0_6 state（默认 0）。
 //   - onBlockActivated（已补全，对齐 vanilla CakeBlock.use）：
-//     · canEat(false) 创造/旁观返 false，否则 needsFood（foodLevel<20）。
+//     · canEat(false)（Player.java:1593 = invulnerable || needsFood()）。
 //     · canEat 通过 → eatSlice（bites<6 时 setBlockState bites+1；bites==6 时 setBlockState air）
 //       + player.foodStats().addStats(2, 0.1f)（恢复饥饿）→ return Success。
-//     · canEat 不通过 → return Pass（创造/满饥饿吃不了）。
+//     · canEat 不通过（生存满饥饿）→ return Pass。
 //   - eatSlice（:178-192）：bites<6 → bites+1 写回；bites==6 → 移除方块（air）。
 //   - 此前 CakeBlock 未 override onBlockActivated（基类返 Pass），蛋糕完全无法吃——生产 bug，已修复。
 //
@@ -18,16 +19,16 @@
 //   fallback（手持 stick 普通 Item，onItemUse 默认 Pass）→ useItemOnBlock 返 false。
 //   吃蛋糕不消耗手持物，用手持 stick 触发（onBlockActivated 不检查 hand/heldItem，canEat 通过即吃）。
 //
-// 饥饿管理：SimulatedPlayer 默认创造模式（canEat 创造 false 吃不了），需切生存模式（spawn 第 3 参
-//   gameMode=0）。生存模式初始 foodLevel=20 满饥饿（canEat false 吃不了），生存模式无 OP 权限无法
-//   /effect 降饥饿，故用 Cubium 测试扩展 SimulatedPlayer.setFoodLevel(level) 直接设定饥饿值，确定性
-//   验证「饥饿<20 才能吃」。setFoodLevel 是 Cubium 扩展（基岩 SimulatedPlayer 无此 API），TS 侧用
-//   (player as any).setFoodLevel(n) 调用（无类型声明）。
+// 饥饿管理：SimulatedPlayer 默认创造模式（canEat=true，invulnerable 短路）。需满饥饿/低饥饿场景时
+//   切生存模式（spawn 第 3 参 gameMode=0）。生存模式初始 foodLevel=20 满饥饿（canEat false 吃不了），
+//   生存模式无 OP 权限无法 /effect 降饥饿，故用 Cubium 测试扩展 SimulatedPlayer.setFoodLevel(level)
+//   直接设定饥饿值，确定性验证「饥饿<20 才能吃」。setFoodLevel 是 Cubium 扩展（基岩 SimulatedPlayer
+//   无此 API），TS 侧用 (player as any).setFoodLevel(n) 调用（无类型声明）。
 //
-// 测试覆盖（4 个场景，覆盖 wiki 吃蛋糕/bites递增/最后一片移除/创造满饥饿吃不了核心行为）：
+// 测试覆盖（4 个场景，覆盖 wiki 吃蛋糕/bites递增/最后一片移除/创造模式进食核心行为）：
 //   1. 生存饥饿吃蛋糕：生存 + setFoodLevel(10) + stick useItemOnBlock → bites 0→1，返 true。
 //   2. 满饥饿吃不了：生存 + setFoodLevel(20) + stick useItemOnBlock → bites 仍 0，返 false。
-//   3. 创造模式吃不了：创造（默认）+ stick useItemOnBlock → bites 仍 0，返 false。
+//   3. 创造模式可以吃：创造（默认）+ stick useItemOnBlock → bites 0→1，返 true（vanilla invulnerable 语义）。
 //   4. 吃到最后一片移除：生存 + setFoodLevel(0) + 连续 7 次 useItemOnBlock → 蛋糕位置变 air。
 //
 // 关键约束：
@@ -143,13 +144,19 @@ function cakeNotEatenWhenFullHunger(test: Test): void {
     test.succeed();
 }
 
-// 场景 3：创造模式吃不了——创造（默认）+ stick useItemOnBlock → bites 仍 0，返 false。
+// 场景 3：创造模式可以吃蛋糕——创造（默认）+ stick useItemOnBlock → bites 0→1，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 蛋糕 bites=0。
-// 创造模式（默认 spawn 不传 gameMode）→ canEat(false)（isCreative true）→ return Pass → fallback → false。
+// 创造模式（默认 spawn 不传 gameMode）→ canEat(true)（abilities.invulnerable=true）→ 吃一片。
 //
-// 判定：useItemOnBlock 返 false（创造模式吃不了），bites === 0（未吃）。
-function cakeNotEatenInCreativeMode(test: Test): void {
+// vanilla 语义锚定（此前测试锚定错误期望"创造吃不了"，已修正）：
+//   Player.canEat(false)（Player.java:1593）= abilities.invulnerable || foodData.needsFood()。
+//   GameType.updatePlayerAbilities(CREATIVE)（GameType.java:63-66）设 invulnerable=true。
+//   → 创造模式 canEat=false 调用时因 invulnerable 短路返回 true → CakeBlock.eat 成功吃一片。
+//   即 vanilla 创造模式玩家右键蛋糕会吃掉一片（bites+1），并恢复 2 点饥饿值。
+//
+// 判定：useItemOnBlock 返 true（Success），bites === 1（吃了一片）。
+function cakeEatenInCreativeMode(test: Test): void {
     placeCake(test);
     test.assert(getCakeBites(test, 3, 2, 1) === 0, `cake bites should be 0 before, got ${getCakeBites(test, 3, 2, 1)}`);
 
@@ -162,10 +169,10 @@ function cakeNotEatenInCreativeMode(test: Test): void {
         { x: 3, y: 2, z: 1 },
         Direction.Up,
     );
-    test.assert(!used, `useItemOnBlock should return false in creative mode, got ${used}`);
+    test.assert(used, "useItemOnBlock should return true in creative mode (canEat via invulnerable)");
 
-    // 判定：bites === 0（创造模式吃不了，蛋糕未动）。
-    test.assert(getCakeBites(test, 3, 2, 1) === 0, `cake bites should remain 0 in creative mode, got ${getCakeBites(test, 3, 2, 1)}`);
+    // 判定：bites === 1（创造模式吃了一片，对齐 vanilla CakeBlock.eat + Player.canEat）。
+    test.assert(getCakeBites(test, 3, 2, 1) === 1, `cake bites should be 1 after eating in creative mode, got ${getCakeBites(test, 3, 2, 1)}`);
 
     test.succeed();
 }
@@ -209,7 +216,7 @@ export function registerCakeTests(): void {
     GameTest.register("BlockBehaviorTests", "cake_not_eaten_when_full_hunger", cakeNotEatenWhenFullHunger)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
-    GameTest.register("BlockBehaviorTests", "cake_not_eaten_in_creative_mode", cakeNotEatenInCreativeMode)
+    GameTest.register("BlockBehaviorTests", "cake_eaten_in_creative_mode", cakeEatenInCreativeMode)
         .structureName("gametests:glass_pit")
         .maxTicks(60);
     GameTest.register("BlockBehaviorTests", "cake_removed_after_eating_all_slices", cakeRemovedAfterEatingAllSlices)

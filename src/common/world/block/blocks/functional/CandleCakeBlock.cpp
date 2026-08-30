@@ -32,6 +32,7 @@
 #include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -162,6 +163,18 @@ BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
     const BlockRaycastResult& hit)
 {
     const ItemStack& heldItem = player.getHeldItem(hand);
+
+    // 对齐 vanilla CandleCakeBlock.useItemOn（CandleCakeBlock.java:75-76）第一分支：
+    //   if (p_316571_.is(Items.FLINT_AND_STEEL) || p_316571_.is(Items.FIRE_CHARGE)) {
+    //       return InteractionResult.PASS;
+    //   }
+    // 手持打火石/火焰弹时返 Pass，让物品侧（FlintAndSteelItem/FireChargeItem::onItemUse）处理点燃。
+    // 缺此分支时创造模式玩家（canEat(false)=invulnerable=true 恒真）持打火石右键蜡烛蛋糕会走
+    // 吃蛋糕分支，把蜡烛蛋糕替换成 bites=1 普通蛋糕（持打火石意图是点燃而非进食）。
+    if (!heldItem.isEmpty() &&
+        (heldItem.getItem() == Items::FLINT_AND_STEEL || heldItem.getItem() == Items::FIRE_CHARGE)) {
+        return ActionResultType::Pass;
+    }
 
     // 如果手持打火石或火焰弹，返回 Pass 让物品自身处理点燃逻辑
     // FlintAndSteelItem 和 FireChargeItem 均支持含 LIT 属性方块的点燃
