@@ -100,10 +100,14 @@ function teleportAliasWorks(test: Test): void {
 // /tp <playerName> <x> <y> <z> 用显式玩家名作为 targets（走 _teleportTargetToPosition 分支）。
 // Ref: wiki teleport.txt（tp <targets> <location> 传送指定玩家到坐标）
 function tpByPlayerName(test: Test): void {
-    const player = test.spawnSimulatedPlayer(PLAYER_POS, "mover");
+    // 玩家名须全服独一：PlayerResolver::findPlayerIdByUsername 的 SimulatedPlayer 回退分支
+    // （PlayerResolver.cpp:197-202）遍历全服实体按 username 匹配返回第一个命中。若其他并行
+    // 测试也 spawn 了同名玩家（如 SpreadPlayersTests 的 "mover"），/tp <名字> 会命中错误实体，
+    // 本测试玩家不被传送 → loc=null 超时失败。用 "tpMover" 避开冲突。
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "tpMover");
     const targetRel = { x: 4, y: 4, z: 4 };
-    // 用显式名字 "mover" 作为 targets。
-    player.chat(`/tp mover ${worldCoords(test, targetRel)}`);
+    // 用显式名字 "tpMover" 作为 targets。
+    player.chat(`/tp tpMover ${worldCoords(test, targetRel)}`);
 
     pollUntilSucceed(test, () => {
         const loc = getPlayerLocation(test);

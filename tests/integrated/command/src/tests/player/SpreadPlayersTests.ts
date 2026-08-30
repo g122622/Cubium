@@ -95,7 +95,8 @@ function horizontalDistance(a: { x: number; z: number }, b: { x: number; z: numb
 // Ref: wiki spreadplayers.txt（spreadplayers <center> <spreadDistance> <maxRange> <respectTeams> <targets>）
 function spreadplayersMovesSinglePlayer(test: Test): void {
     // 玩家 spawn 在空气腔角落 (7,2,7)（分散区域 [2,6]×[2,6] 外），分散后必被移入 [2,6] 内。
-    const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "mover");
+    // 玩家名须全服独一（避免与 TeleportCommandTests 的 /tp <名字> 名字解析冲突），用 "spreadMover"。
+    const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "spreadMover");
     // 初始位置记录（用于判定位置改变）。
     const initialRel = { x: 7, y: 2, z: 7 };
     const initialWorld = test.worldLocation(initialRel);

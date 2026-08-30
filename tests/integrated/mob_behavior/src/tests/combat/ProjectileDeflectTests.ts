@@ -115,9 +115,13 @@ function fireballStaysStaticWithoutAttack(test: Test): void {
     });
     test.assert(fireballs.length > 0,
       `fireball disappeared without attack (should stay static), count=${fireballs.length}`);
+    // Entity.location 是世界绝对坐标（结构网格原点非零，见 StructureGridSpawner），断言前必须经
+    // worldLocation 把结构相对坐标 (2,2,5) 转成世界绝对坐标再比较（fireball 中心化 z+0.5）。
+    // 直接拿绝对坐标与相对值 5.5 比较，单跑（首行结构原点≈0）碰巧通过，全量跑恒失败。
+    const expectedZ = test.worldLocation({ x: 2, y: 2, z: 5 }).z + 0.5;
     const z = fireballs[0].location.z;
-    test.assert(Math.abs(z - 5.5) < 0.3,
-      `fireball moved without attack (should stay near z=5.5), z=${z}`);
+    test.assert(Math.abs(z - expectedZ) < 0.3,
+      `fireball moved without attack (should stay near z=${expectedZ}), z=${z}`);
     test.succeed();
   });
 }
