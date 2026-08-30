@@ -414,6 +414,15 @@ bool SwimWithPlayerGoal::shouldContinueExecuting()
         return false;
     }
 
+    // UAF 防护：目标玩家已被 discard（m_removed=true）时立即放手。
+    // EntityManager::tick 的 graveyard 延迟析构契约要求引用者（goal）在目标
+    // isAlive()==false 时放手，下一 tick graveyard.clear() 析构才安全。
+    // 对齐项目内 LookAtGoal/TemptGoal 的 isAlive() 检查惯例
+    // （vanilla 靠 Java GC 引用有效性保证，C++ 裸指针须显式检查）。
+    if (!m_targetPlayer->isAlive()) {
+        return false;
+    }
+
     if (!m_targetPlayer->isSwimming()) {
         return false;
     }
@@ -445,6 +454,15 @@ void SwimWithPlayerGoal::resetTask()
 void SwimWithPlayerGoal::tick()
 {
     if (m_targetPlayer == nullptr) {
+        return;
+    }
+
+    // UAF 防护：目标已移除时立即清空裸指针。
+    // EntityManager 的 graveyard 延迟析构契约（tick 步骤 2 graveyard.clear()）
+    // 要求引用者在 isAlive()==false 时放手，否则下一 tick 对已析构对象解引用
+    // 段错误（实测崩溃：EffectManager::addEffect 虚表读 0xffffffffffffffff）。
+    if (!m_targetPlayer->isAlive()) {
+        m_targetPlayer = nullptr;
         return;
     }
 
@@ -733,7 +751,8 @@ bool FollowBoatGoal::shouldExecute()
     // 检查是否有正在驾驶的玩家
     // 条件1: 已经有跟踪的玩家且玩家正在操作船移动
     // 条件2: 5格范围内有玩家驾驶的船
-    if (m_player != nullptr && _isPlayerOperatingBoat(*m_player)) {
+    // UAF 防护：先检查旧引用有效性再解引用（详见 SwimWithPlayerGoal 注释）。
+    if (m_player != nullptr && m_player->isAlive() && _isPlayerOperatingBoat(*m_player)) {
         return true;
     }
 
@@ -746,6 +765,12 @@ bool FollowBoatGoal::shouldContinueExecuting()
 {
     // 玩家必须在船上且正在操作移动
     if (m_player == nullptr) {
+        return false;
+    }
+
+    // UAF 防护：玩家已被 discard（isAlive()==false）时立即放手，
+    // 对齐 EntityManager graveyard 延迟析构契约（详见 SwimWithPlayerGoal 注释）。
+    if (!m_player->isAlive()) {
         return false;
     }
 
@@ -775,6 +800,12 @@ void FollowBoatGoal::resetTask()
 void FollowBoatGoal::tick()
 {
     if (m_player == nullptr) {
+        return;
+    }
+
+    // UAF 防护：玩家已移除时立即清空裸指针（详见 SwimWithPlayerGoal::tick 注释）。
+    if (!m_player->isAlive()) {
+        m_player = nullptr;
         return;
     }
 
