@@ -111,10 +111,10 @@ public:
                 pg.resetTask();
             }
         }
-        // 再移除所有匹配目标
+        // 再移除所有匹配目标（同步清理 flagGoals 悬垂指针）
         m_goals.remove_if([goal](const PrioritizedGoal& pg) { return pg.getGoal() == goal; });
+        _pruneFlagGoals();
     }
-
     /**
      * @brief 移除所有AI目标
      */
@@ -146,9 +146,10 @@ public:
                 pg.resetTask();
             }
         }
-        // 移除所有匹配目标
+        // 移除所有匹配目标（同步清理 flagGoals 悬垂指针）
         m_goals.remove_if(
             [](const PrioritizedGoal& pg) { return dynamic_cast<const GoalType*>(pg.getGoal()) != nullptr; });
+        _pruneFlagGoals();
     }
 
     /**
@@ -378,6 +379,37 @@ private:
             }
         }
         return false;
+    }
+
+    /**
+     * @brief 清理 flagGoals 中指向已从 m_goals 移除（销毁）目标的悬垂指针
+     *
+     * UAF 根因（全量集成测试 GoalSelector.hpp:319 间歇崩溃）：
+     * m_flagGoals 存 PrioritizedGoal* 指向 m_goals（std::list，指针稳定）的元素。
+     * removeGoal/removeGoalsOfType 经 remove_if 销毁运行中的 goal 时，
+     * 若该 goal 此前已注册进 m_flagGoals（_startGoal 中登记），映射中残留
+     * 指向已析构元素的悬垂指针；下次 GoalSelector::tick → _canStartGoal →
+     * it->second->isPreemptedBy(goal) 解引用悬垂指针 → ACCESS_VIOLATION
+     * 读 0xffffffffffffffff。
+     *
+     * 触发链（AbstractSkeletonEntity）：setEquipment（主/副手变更）→
+     * setCombatTask → removeGoalsOfType<RangedBowAttackGoal/MeleeAttackGoal>
+     * 销毁运行中战斗 goal → m_flagGoals 悬垂。
+     *
+     * 修复：移除目标后同步清理映射中不再指向 m_goals 存活元素的项。
+     * 实现为 O(goals * flagGoals)，仅 mutate 路径调用，goal 数量级 ~10，可忽略。
+     */
+    void _pruneFlagGoals()
+    {
+        for (auto it = m_flagGoals.begin(); it != m_flagGoals.end();) {
+            const bool alive = std::any_of(m_goals.begin(), m_goals.end(),
+                [ptr = it->second](const PrioritizedGoal& pg) { return &pg == ptr; });
+            if (!alive) {
+                it = m_flagGoals.erase(it);
+            } else {
+                ++it;
+            }
+        }
     }
 
     std::list<PrioritizedGoal> m_goals;                         ///< 所有目标（使用list确保指针稳定性）

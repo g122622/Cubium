@@ -155,6 +155,21 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
 
 void AbstractSkeletonEntity::tick()
 {
+    // 装备变更触发的战斗目标重评延迟到此处（goal tick 循环之外）执行。
+    // UAF 根因（全量集成测试 RangedAttackGoals.cpp:303 处崩溃）：
+    // RangedBowAttackGoal::tick（goal 正在 tick）→ m_mob->stopActiveHand() →
+    // LivingEntity 回写装备 setEquipment → setCombatTask → removeGoalsOfType
+    // 析构当前正在 tick 栈上的 goal 自身 → tick 返回后 GoalSelector::tick
+    // Phase 3 循环继续访问已析构元素 → ACCESS_VIOLATION。
+    // vanilla 的 onEquipItem→reassessWeaponGoal 同为同步调用，但 Java GC 保证
+    // 移除的 goal 对象在栈帧存活期间不被回收；C++ unique_ptr 销毁即析构，
+    // 须将重评时机移出 goal tick 栈（tick 开头，MonsterEntity::tick 内的
+    // GoalSelector::tick 之前），杜绝在 goal 自身 tick 内销毁自身。
+    if (m_combatTaskDirty) {
+        m_combatTaskDirty = false;
+        setCombatTask();
+    }
+
     MonsterEntity::tick();
 
     if (m_attackCooldown > 0) {
@@ -230,9 +245,12 @@ void AbstractSkeletonEntity::setEquipment(EquipmentSlot slot, const ItemStack& s
     // 装备变更时重新评估战斗目标
     // 对应 MC 原版 AbstractSkeleton.onEquipItem() 中的 reassessWeaponGoal() 调用
     // 仅在主手/副手装备变更时触发，且仅在服务端执行
+    // 注意：此处仅置脏标志，真正的 setCombatTask 延迟到 tick() 开头执行——
+    // setEquipment 会被 LivingEntity::stopActiveHand 在 goal tick 栈内间接触发，
+    // 同步销毁正在 tick 的 goal 会产生 UAF（详见 tick() 内注释）。
     if ((slot == EquipmentSlot::MainHand || slot == EquipmentSlot::OffHand) && world() != nullptr &&
         !world()->isClientSide()) {
-        setCombatTask();
+        m_combatTaskDirty = true;
     }
 }
 

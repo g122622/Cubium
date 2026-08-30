@@ -259,6 +259,9 @@ protected:
     i32 m_attackTimer = 0;
     i32 m_attackCooldown = 0;
 
+    /// 装备变更置位，tick() 开头消费（延迟 setCombatTask 防 goal 自毁 UAF，见 tick() 注释）
+    bool m_combatTaskDirty = false;
+
     /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();
 
