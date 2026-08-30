@@ -105,23 +105,32 @@ function gameruleUnknownReturnsEmpty(test: Test): void {
 }
 
 export function registerGameRuleTests(): void {
+    // 改世界级 gamerule 的测试用独占 batch 串行（同批 name 隔离 default 批并行 tick）：
+    // amethyst/mushroom/grass 等测试先 /gamerule randomTickSpeed 1000 再轮询蔓延，
+    // 若本组 gamerule_set_integer 与其并行，runOnFinish 恢复 "3" 会把它们的 1000 覆盖
+    // 致蔓延超时（全量跑 amethyst_bud_grows_to_next_stage / mushroom_spreads_in_dark 假失败）。
     GameTest.register("CommandTests", "gamerule_set_boolean", gameruleSetBoolean)
+        .batch("gamerule")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "gamerule_set_integer", gameruleSetInteger)
+        .batch("gamerule")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "gamerule_reads_default", gameruleReadsDefault)
+        .batch("gamerule")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "gamerule_toggle_back", gameruleToggleBack)
+        .batch("gamerule")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "gamerule_unknown_returns_empty", gameruleUnknownReturnsEmpty)
+        .batch("gamerule")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }

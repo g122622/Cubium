@@ -22,6 +22,8 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import type { Vector3 } from "@minecraft/server";
+import { BlockPermutation } from "@minecraft/server";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 import { getSkyLight, getCanSeeSky } from "../utils/lightAssert.js";
 
@@ -128,7 +130,18 @@ function stoneBlocksSkyLight(test: Test): void {
 // 与 stone 测试对比：stone opacity=15 把侧传光全吃掉（15-15=0，遮挡格=0），leaves opacity=1 仅衰减1级
 // （遮挡格=14）——验证 opacity 数值差异对遮挡格自身天空光的影响。
 function leavesAttenuateSkyLightByOne(test: Test): void {
-    test.setBlockType("minecraft:oak_leaves", OCCLUDER);
+    // persistent=true（BlockPermutation.resolve 范式，同 LeavesDistanceTests）：
+    // defaultState persistent=false 且全量并行环境下其他测试调高的 randomTickSpeed 会命中
+    // 树叶 randomTick 枯萎条件（!persistent && distance==7），树叶被移除变 air → OCCLUDER
+    // skyLight=15、canSeeSky=true → 全量跑假失败（单跑 randomTickSpeed=3 命中概率低碰巧通过）。
+    // persistent 树叶仍具 opacity=1 的光照遮挡语义。
+    const permutation = BlockPermutation.resolve("minecraft:oak_leaves", {
+        persistent: true,
+        distance: 7,
+    }) as any;
+    (test as unknown as {
+        setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+    }).setBlockPermutation(permutation, OCCLUDER);
     pollUntilSucceed(
         test,
         () => {

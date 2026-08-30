@@ -102,10 +102,24 @@ function leavesDistanceOneWhenLogAdjacent(test: Test): void {
 //
 // 判定：(2)=1 && (3)=2 && (4)=3 全部成立。maxTick=80 留三跳链式传播余量。
 function leavesDistanceIncreasesAwayFromLog(test: Test): void {
-    // 三连树叶 (2,1,1)/(3,1,1)/(4,1,1)（defaultState distance=7）。
-    test.setBlockType("minecraft:oak_leaves", { x: 2, y: 1, z: 1 });
-    test.setBlockType("minecraft:oak_leaves", { x: 3, y: 1, z: 1 });
-    test.setBlockType("minecraft:oak_leaves", { x: 4, y: 1, z: 1 });
+    // 三连树叶 (2,1,1)/(3,1,1)/(4,1,1)。用 persistent=true（同 leavesDistanceSevenWhenNoLog 的
+    // BlockPermutation.resolve 范式）：defaultState persistent=false + 全量并行下其他测试调高的
+    // randomTickSpeed 会命中 randomTick 枯萎条件（!persistent && distance==7），叶链尾叶（distance
+    // 尚为 7 时）被移除 → getState 读 air 返回 -1 → 全量跑假失败（单跑 randomTickSpeed=3 命中概率
+    // 低碰巧通过）。persistent=true 不影响 distance 计算，仍验证多跳传播。
+    const permutation = BlockPermutation.resolve("minecraft:oak_leaves", {
+        persistent: true,
+        distance: 7,
+    }) as any;
+    (test as unknown as {
+        setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+    }).setBlockPermutation(permutation, { x: 2, y: 1, z: 1 });
+    (test as unknown as {
+        setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+    }).setBlockPermutation(permutation, { x: 3, y: 1, z: 1 });
+    (test as unknown as {
+        setBlockPermutation: (blockData: unknown, blockLocation: Vector3) => void;
+    }).setBlockPermutation(permutation, { x: 4, y: 1, z: 1 });
 
     // 原木 (1,1,1)（叶链 West 端）。原木放置触发链式 distance 传播。
     test.setBlockType("minecraft:oak_log", { x: 1, y: 1, z: 1 });
