@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/golem/GolemEntity.hpp"
@@ -173,6 +174,10 @@ void SnowGolemEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*c
     // 创建雪球实体
     auto snowballEntity = entity::SnowballEntity::create(world(), *registry);
     entity::SnowballEntity* snowball = static_cast<entity::SnowballEntity*>(snowballEntity.get());
+    // 工厂绕过补救：SnowballEntity::create 直接 make_unique 绕过 EntityType::create 工厂，
+    // m_typeId 为空串，getEntities({type:"minecraft:snowball"})/canAttackType 等按 typeId 的
+    // 查询全部失效。对齐项目内同类补救惯例（BlazeFireballAttackGoal.cpp / CreeperEntity.cpp）。
+    snowball->setTypeId(entity::EntityTypeKeys::SNOWBALL);
 
     // 设置位置（从眼睛高度发射）
     f32 eyeY = static_cast<f32>(y()) + eyeHeight() - 0.1f;

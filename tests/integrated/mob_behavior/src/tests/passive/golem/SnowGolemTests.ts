@@ -99,18 +99,14 @@ function snowGolemThrowsSnowballAtHostile(test: Test): void {
   test.spawn(golemType, { x: 1, y: 2, z: 1 });
   test.spawn(zombieType, { x: 7, y: 2, z: 7 });
 
-  // 断言雪傀儡朝僵尸方向定向移动（x 坐标超过 4，即从初始 x=1 朝僵尸 x=7 方向移动过半）。
-  // 详见函数前注释。maxTicks=400：NearestAttackableTargetGoal 选目标 + RangedAttackGoal 接近，留寻路 + 余量。
+  // 断言雪球实体出现：区域内 snowball 数 >= 1 即证明雪傀儡向敌对生物投掷了雪球。
   test.succeedWhen(() => {
-    const golems = test.getDimension().getEntities({
-      type: golemType,
+    const snowballs = test.getDimension().getEntities({
+      type: "minecraft:snowball",
       location: test.worldLocation(PEN_FROM),
       volume: PEN_VOLUME,
     });
-    test.assert(golems.length > 0, "snow_golem disappeared");
-    const g = golems[0].location;
-    // 雪傀儡 x > 4 证明其从初始 x=1 朝僵尸 x=7 方向定向移动过半（锁定+接近行为）。
-    test.assert(g.x > 4, `snow_golem did not approach hostile mob, golem x=${g.x.toFixed(2)}`);
+    test.assert(snowballs.length >= 1, `snow_golem did not throw snowball, snowball count=${snowballs.length}`);
   });
 }
 
