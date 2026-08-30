@@ -29,8 +29,12 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 //   ATTACK_DAMAGE=2.0（野生值；C++ 与 wiki 野生4 不符，属已知偏差，但本测试断言"行为发生"
 //   即玩家掉血，不依赖精确伤害数值对齐）。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，MeleeAttackGoal 寻路通畅 + checkSight 射线不被阻挡。
-// 狼(2,2,3)+Survival 玩家(5,2,3)，水平距 3 格。狼脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
+// 环境选择：grass_pen（9×5×9 玻璃围墙盒）。狼被玩家近战击退（-x 方向）后若无围墙会弹出
+// 结构边界持续下落出世界，AI 虽在追击玩家但物理上永远追不到（实测 creeper_pit 下狼飞出
+// x=-1.3 后 y 一路降到 -800+），succeedWhen 永不满足 → 超时失败。grass_pen 的玻璃围墙把
+// 击退运动限制在结构内，狼留在玩家近战范围内完成反击。
+// 狼(2,2,3)+Survival 玩家(5,2,3)，水平距 3 格。grass_pen y=0 是 grass_block 地板（helper y=1），
+// y=1..3 是玻璃围墙 air 腔（helper y=2..4），狼/玩家直接站地板上无需玻璃支撑。
 // 玩家 tick 8 后 attackEntity(狼) 触发 HurtByTargetGoal 反击（attackEntity 不受距离限制，
 // 基岩语义 attack can be performed at any distance，见 ZombifiedPiglinTests/PolarBearTests 同款注释）。
 // 狼被攻击后设 attackTarget=玩家，MeleeAttackGoal 寻路接近 3 格 + 攻击冷却后 hurt(玩家, 2.0)。
@@ -43,11 +47,10 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 function wolfRetaliatesWhenAttacked(test: Test): void {
   const wolfType = "wolf";
 
-  // 狼 (2,2,3)、Survival 玩家 (5,2,3)，水平距 3 格，同处结构 y=2 层。
-  // 狼脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
-  // creeper_pit 开放坑无围墙，狼反击寻路通畅。
-  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  // 狼 (2,2,3) + Survival 玩家 (5,2,3)，水平距 3 格，同处 grass_pen air 腔 y=2 层。
+  // grass_pen 自带玻璃围墙（helper y=2..4 三层玻璃，结构 y=1..3），把狼被玩家击退（-x 方向）
+  // 后的运动限制在结构内——此前用 creeper_pit（无围墙开放坑），狼被击退弹出结构边界后
+  // 持续下落出世界，AI 虽追击玩家但物理上永远追不到，测试超时失败。
   const wolf = test.spawn(wolfType, { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
@@ -64,8 +67,8 @@ function wolfRetaliatesWhenAttacked(test: Test): void {
   test.succeedWhen(() => {
     const players = test.getDimension().getEntities({
       type: "minecraft:player",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
     });
     test.assert(players.length > 0, "player disappeared");
     const health = players[0].getComponent("minecraft:health");
@@ -263,8 +266,11 @@ function wolfBreedsWhenTamedAndFedMeat(test: Test): void {
 }
 
 export function registerWolfTests(): void {
+  // 狼被玩家击退（-x 方向）后若处无围墙结构（creeper_pit）会弹出结构边界持续下落，
+  // AI 追击玩家但物理上永远追不到 → 超时失败。换用 grass_pen（自带玻璃围墙）困住狼
+  // 在玩家近战范围内，确保 HurtByTargetGoal 反击链路可达。
   GameTest.register("MobBehaviorTests", "wolf_retaliates_when_attacked", wolfRetaliatesWhenAttacked)
-    .structureName("gametests:creeper_pit")
+    .structureName("gametests:grass_pen")
     .maxTicks(800);
 
   GameTest.register("MobBehaviorTests", "wolf_attacks_sheep", wolfAttacksSheep)
