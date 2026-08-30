@@ -118,9 +118,15 @@ function spreadplayersMovesSinglePlayer(test: Test): void {
         const locs = getPlayerLocations(test);
         if (locs.length < 1) return false;
         const loc = locs[0];
-        // 玩家初始 (7,7) 在分散区域 [2,6] 外，分散后 x,z 应都 <=6.5（被移入 [2,6] 区域）。
+        // Entity.location 是世界绝对坐标（全量跑结构网格原点非零，见 StructureGridSpawner），
+        // 断言前必须经 worldLocation 取结构原点，把绝对坐标转结构相对坐标再比较。
+        // 单跑（首行结构原点≈0）时绝对≈相对，两种跑法都稳定。
+        const origin = test.worldLocation({ x: 0, y: 0, z: 0 });
+        const relX = loc.x - origin.x;
+        const relZ = loc.z - origin.z;
+        // 玩家初始 (7,7) 在分散区域 [2,6] 外，分散后相对坐标 x,z 应都 <=6.5（被移入 [2,6] 区域）。
         // 修复前 no-op，玩家恒在 (7,7)，x>6.5 不满足→超时失败暴露 bug。
-        return loc.x < 6.5 && loc.z < 6.5;
+        return relX < 6.5 && relZ < 6.5;
     }, {
         startTick: 10,
         maxTick: 80,
