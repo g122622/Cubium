@@ -11,6 +11,9 @@ import { fillBlock } from "../../../utils/block/build.js";
 // 必须区域限定——Cubium GameTest 批内并行 tick + 不清场，全维度 getEntities({type}) 跨测试污染。
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
+// grass_pen 结构尺寸（9×5×9），helper 相对坐标。retaliates 测试专用查询范围。
+const PEN_FROM = { x: 0, y: 0, z: 0 };
+const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
 // 海豚受击后反击玩家（wiki tech_海豚.txt#攻击：海豚是中性生物，被攻击后会反击攻击者）。
 //
@@ -38,35 +41,32 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 //
 // 寻路可行性：海豚 navigator 是 MobEntity 默认 GroundPathNavigation（WalkNodeProcessor），陆地可寻路
 //   （未覆盖 _createDefaultNavigator，与美西螈陆地测试同范式，见 AxolotlTests.ts）。
-// FindWaterGoal（优先级0，mutex={Move}）shouldExecute 需 16 格内有水，creeper_pit 无水→返回 false，
+// FindWaterGoal（优先级0，mutex={Move}）shouldExecute 需 16 格内有水，grass_pen 无水→返回 false，
 //   不锁 Move flag，MeleeAttackGoal 可正常运行寻路。RandomSwimmingGoal（优先级4，mutex={Move}）陆地
 //   无水 getPathWeight=0 不主动执行，不抢占 MeleeAttackGoal。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，MeleeAttackGoal 寻路通畅 + checkSight 射线不被阻挡。
+// 环境选择：grass_pen（9×5×9 玻璃围墙草地）。
 // 海豚是水生友好生物（非亡灵/怪物），不在阳光下燃烧，白天即可反击（不 batch night）。
-// 海豚(2,2,3)+Survival 玩家(5,2,3)，水平距 3 格。海豚脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
-// 玩家 tick 8 后 attackEntity(海豚) 触发 HurtByTargetGoal 反击（attackEntity 不受距离限制，
+// 海豚(3,2,3)+Survival 玩家(5,2,3)，水平距 2 格 < 攻击半径 20。
+// 玩家 tick 8/16/24/32 后多次攻击海豚，触发 HurtByTargetGoal 反击（attackEntity 不受距离限制，
 // 基岩语义 attack can be performed at any distance，见 WolfTests/PolarBearTests 同款注释）。
-// 海豚被攻击后设 attackTarget=玩家，MeleeAttackGoal 寻路接近 3 格 + 攻击冷却后 hurt(玩家, 3.0)。
+// 海豚被攻击后设 attackTarget=玩家，MeleeAttackGoal 寻路接近 2 格 + 攻击冷却后 hurt(玩家, 3.0)。
 //
 // 判定手段：断言玩家 HP 下降（<20）。近战确定性命中（无散布），伤害 3.0，玩家满血 20 → 17。
-// 玩家在陆地不溺水，HP 掉血只能来自海豚攻击，断言干净（maxTicks=1200 < 玩家陆地无溺水问题，
+// 玩家在陆地不溺水，HP 掉血只能来自海豚攻击，断言干净（maxTicks=450 < 玩家陆地无溺水问题，
 //   玩家陆地不消耗 air）。
-// 时序：玩家攻击(8/16/24/32 多次) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(3.0)。
-//   海豚 MOVEMENT_SPEED=1.2（属性值，moveController 调制后较快），3 格接近 + 冷却约需 30-60 tick，
-//   maxTicks=1200 留充裕余量吸收并行环境 tick 抖动（单跑 800 tick 稳定，并行下寻路/冷却偶发延迟需更长窗口）。
+// 时序：玩家攻击(8/16/24/32 多次) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 2 格 + 攻击冷却 + hurt(3.0)。
+//   海豚 MOVEMENT_SPEED=1.2（属性值，moveController 调制后较快），2 格接近 + 冷却约需 20-50 tick，
+//   maxTicks=450 留充裕余量吸收并行环境 tick 抖动。
 // 玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验，创造模式被 TargetGoal 滤掉不可被攻击/反击）。
 // 玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"（玩家类型带前缀）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_海豚.txt#攻击（被攻击后反击攻击者）
 function dolphinRetaliatesWhenAttacked(test: Test): void {
   const dolphinType = "dolphin";
 
-  // 海豚 (2,2,3)、Survival 玩家 (5,2,3)，水平距 3 格，同处结构 y=2 层。
-  // 海豚脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
-  // creeper_pit 开放坑无围墙，海豚反击寻路通畅。
-  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
-  const dolphin = test.spawn(dolphinType, { x: 2, y: 2, z: 3 });
+  // 海豚 (3,2,3)、Survival 玩家 (5,2,3)，水平距 2 格，同处结构 y=2 层。
+  // grass_pen 玻璃围墙防逃逸（玻璃透明，canSee 射线通畅）。
+  const dolphin = test.spawn(dolphinType, { x: 3, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
   // tick 8/16/24/32 后玩家多次攻击海豚：留 8 tick 让实体完成 spawn 注册 + 首 tick 稳定，之后每隔 8 tick
@@ -94,8 +94,8 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
   pollUntilSucceed(test, () => {
     const players = test.getDimension().getEntities({
       type: "minecraft:player",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
     });
     if (players.length === 0) return false;
     const health = players[0].getComponent("minecraft:health") as any;
@@ -106,13 +106,13 @@ function dolphinRetaliatesWhenAttacked(test: Test): void {
     onTimeout: () => {
       const players = test.getDimension().getEntities({
         type: "minecraft:player",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
       });
       const dolphins = test.getDimension().getEntities({
         type: "minecraft:dolphin",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
       });
       const playerHp = players.length > 0
         ? (players[0].getComponent("minecraft:health") as any)?.currentValue
@@ -300,7 +300,7 @@ function dolphinGrantsDolphinsGraceToSwimmingPlayer(test: Test): void {
 
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
-    .structureName("gametests:creeper_pit")
+    .structureName("gametests:grass_pen")
     .maxTicks(450);
 
   GameTest.register("MobBehaviorTests", "dolphin_fed_fish_sets_got_fish", dolphinFedFishSetsGotFish)
