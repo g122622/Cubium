@@ -659,6 +659,53 @@ node scripts/test/run-gametests.ts --out-dir=./build/my-reports
 
 `run-gametests.ts` **不替代**现有的三种启动方式（CLI `--gametest`、gtest 端到端、`/gametest` 在线命令）和三种结果读取方式（LogTestReporter、JUnitTestReporter、退出码）。它是站在这些入口之上的编排层：内部依然通过 `--gametest` CLI 入口启动 `minecraft-server` 进程，通过 JUnit XML（`--gametest-report`）读取结果。
 
+### 已知问题：全量跑（997 注册测试）100% 异常中断（2026-08-31 实测）
+
+**现象**：`--gametest` 全量跑（当前 997 个注册测试）三次实测**全部**中途异常中断：
+
+| 轮次 | 完成结果数 | 崩溃位置 |
+|---|---|---|
+| 1 | 274（269 P + 5 F） | `GameTestServer stopped.` 之后 |
+| 2 | 168（166 P + 2 F） | 同上 |
+| 3 | 271（267 P + 4 F） | 同上 |
+
+对照实验：**小规模跑完全正常**——单测试（`alwaysSucceed`）、单组（`fence*` 10 个、`bee_*` 5 个）全部走完 `run finished` → `exited with code` → 正常退出。说明问题与测试规模强相关（全量 = 17+2 个切片批次、大量结构平铺、大量实体 tick）。
+
+**异常签名**（三次完全一致）：
+
+```
+[critical] Fatal error: Access violation - no RTTI data!
+```
+
+该消息是 `BaseApplicationEntry::run()` 外层 `catch (std::exception&)` 捕获 `__non_rtti_object` 后经 `spdlog::critical("Fatal error: {}", e.what())` 输出的（`VCRUNTIME140.dll` 中 `__non_rtti_object` 的 `what()` 文案，已 grep 确认）。`__non_rtti_object` = `dynamic_cast`/`typeid` 访问**已释放/已损坏对象**时 MSVC 运行时抛出的 C++ 异常。
+
+**崩溃时序还原**（结合日志顺序 + 栈展开规则）：
+
+```
+run() while 循环 tickOnce() 中
+  └→ 某处 dynamic_cast 访问悬垂对象 → 抛 __non_rtti_object
+    └→ 异常穿透 runApplication()（--gametest 分支无 try-catch）
+      └→ 栈展开：gtServer 析构 → stop() → 打印 "Stopping GameTestServer..." / "GameTestServer stopped."
+        └→ BaseApplicationEntry::run() 的 catch 接住 → spdlog::critical("Fatal error: ...")
+          └→ onErrorCleanup() → 进程 return 1
+```
+
+关键证据：
+1. `GameTestServer run finished: ...` 与 `GameTestServer exited with code ...` 两行日志**缺失**——若 run() 正常返回必然打印。缺失即 run() 未走完。
+2. 进程退出码 = **1**（catch 路径的固定返回值）。若 run() 正常完成，退出码应为 `failedRequiredCount`（如第 1 次应为 5）。退出码 1 ≠ 5，证明走了异常路径。
+3. 异步日志 `overrun_oldest` 丢帧——测试量大时（274 结果 ≈ 30+ 切片）info 日志洪峰，丢的是队列满时的**旧**消息。`run finished` 是最新消息，本不该丢——这反证它根本没执行到。
+
+**诊断手法**（可复用的排查套路）：
+- **对照组隔离**：同 flag 小规模跑（`--gametest_tests='bee_*'`）vs 全量跑，确认"规模相关"还是"特定测试触发"。
+- **退出码反推执行路径**：退出码 1（catch 固定值）vs 5（failedRequiredCount）——数值本身即证据。
+- **缺失日志定位中断点**：`run finished` 缺失 → run() 中断；`exited with code` 缺失 → 异常在 return 前抛出。
+- **二进制 grep 消息来源**：`grep -ao "no RTTI data" /c/WINDOWS/SYSTEM32/VCRUNTIME140.dll` → 确认是 `__non_rtti_object`（dynamic_cast 悬垂对象），而非 SEH access violation。
+
+**当前状态**：问题未修复。全量跑会被该异常中断在 ~27% 进度，且无 JUnit XML 输出（`onAllFinished` 未触发）。后续排查方向：
+- run() tick 循环中断的具体位置——需加 try-catch 在 tickOnce() 内打印异常点调用栈。
+- 崩溃与切片批次数/实体量的关系——17+2 切片 vs 小跑 1-2 切片，是否某一切片边界（如 `default_4`）必然触发。
+- 是否是长时序实体累积导致（6.9 节末尾已记录：实例析构但实体不清，mob 测试全量跑时实体持续累积）。
+
 ---
 
 ## 参考
