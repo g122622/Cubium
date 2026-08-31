@@ -75,6 +75,12 @@ DEFINE_string(gametest_tests,
     "Empty runs all registered non-manualOnly non-broken tests. "
     "Pattern matches against testName (not className); supports * / ? wildcards "
     "(aligned with Java --tests FilenameUtils.wildcardMatch) and exact match.");
+DEFINE_string(gametest_world,
+    "",
+    "World name override for --gametest mode (default 'gametest'). "
+    "Used by the outer coordinator script (scripts/test/run-gametests.ts) to give each "
+    "parallel shard/rerun process an isolated world directory (saves/<name>), avoiding "
+    "concurrent world write conflicts across processes.");
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
@@ -210,6 +216,14 @@ int ServerApplicationEntry::runApplication()
         if (!m_gametestReportPath.empty()) {
             gtParams.reportPath = m_gametestReportPath;
             spdlog::info("[GameTest] JUnit report path: {}", m_gametestReportPath);
+        }
+
+        // --gametest-world：世界名覆写（默认 "gametest"）。外层协调脚本
+        // （scripts/test/run-gametests.ts）用此 flag 给每个并行分片/重跑进程
+        // 分配独立世界目录（saves/<name>），避免多进程并发写同一世界目录。
+        if (!FLAGS_gametest_world.empty()) {
+            gtParams.worldName = FLAGS_gametest_world;
+            spdlog::info("[GameTest] World name override: {}", FLAGS_gametest_world);
         }
 
         auto gtInit = gtServer.initialize(gtParams);

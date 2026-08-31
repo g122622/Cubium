@@ -19,6 +19,7 @@ namespace mc::test {
 class GameTestRunner;
 class JUnitTestReporter;
 class LogTestReporter;
+class FailedTestCollector;
 class BehaviorPackStructureSource;
 
 /**
@@ -40,8 +41,12 @@ struct GameTestServerParams {
     i32 viewDistance = 6;
     i32 simulationDistance = 6;
     i32 tickRate = 20;
-    WorldType worldType = WorldType::Default;
-    resource::ResourceLocation worldPresetId{"minecraft", "normal"};
+    // 超平坦世界（minecraft:flat）：FlatChunkGenerator 只填 4 层（vs normal 全高度 384 密度采样），
+    // 区块生成大幅加速；plains 生物群系与 dark_cavern 系列测试一致。classic_flat 地表在 Y=3
+    // （bedrock Y=0 + dirt Y=1-2 + grass Y=3），gridStartY=4 把结构方块放在首个 air 层，
+    // 结构内容从 Y=5 开始，完全脱离 flat 地形层（Y=0..3），无方块/光照冲突。
+    WorldType worldType = WorldType::Flat;
+    resource::ResourceLocation worldPresetId{"minecraft", "flat"};
     Difficulty difficulty = Difficulty::Normal;
     bool hardcore = false;
     bool allowCommands = true;
@@ -63,7 +68,8 @@ struct GameTestServerParams {
     i32 repeatCount = 1;
     /// 测试网格起始绝对方块坐标（默认原点附近，对齐 Java ±14999992 范围内的安全点）。
     i32 gridStartX = 0;
-    i32 gridStartY = -59;
+    /// 超平坦地表 Y=3（grass），结构方块放 Y=4，结构内容从 Y=5 起。
+    i32 gridStartY = 4;
     i32 gridStartZ = 0;
     /// 每行测试数（对齐 Java `DEFAULT_TESTS_PER_ROW=8`）。
     i32 testsPerRow = 8;
@@ -165,6 +171,8 @@ private:
     // reporter 经 GlobalTestReporter 单例共享持有，故此处用 shared_ptr（addReporter 拷贝一份）。
     std::shared_ptr<JUnitTestReporter> m_junitReporter;
     std::shared_ptr<LogTestReporter> m_logReporter;
+    // 失败测试收集器：run() 结束后从 failedTestNames() 提取失败列表，供重跑过滤使用。
+    std::shared_ptr<FailedTestCollector> m_failedCollector;
     // 行为包结构资源源：把 BehaviorPackList 适配为 IStructurePackSource 注入 TemplateManager，
     // 使 GameTest 结构名（如 startertests:mediumglass）能从行为包加载 .mcstructure。地址须稳定，
     // TemplateManager 持非拥有指针，故用 unique_ptr 成员保活。

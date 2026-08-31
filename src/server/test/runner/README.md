@@ -20,7 +20,9 @@ runner/
 │   ├── LogTestReporter.hpp              # spdlog 输出（required=error，optional=warn，passed=info）
 │   ├── LogTestReporter.cpp
 │   ├── JUnitTestReporter.hpp            # JUnit XML（testcase/failure/skipped，time=tickCount/20）
-│   └── JUnitTestReporter.cpp
+│   ├── JUnitTestReporter.cpp
+│   ├── FailedTestCollector.hpp          # 失败 testName 收集器（供重跑过滤）
+│   └── FailedTestCollector.cpp
 ├── tracker/
 │   └── MultipleTestTracker.hpp          # 进度计数（total/passed/failed/done/remaining）
 └── attempts/
@@ -31,7 +33,7 @@ runner/
 
 - `attempts/ExhaustedAttempts`：纯错误类型，依赖 `base/error/`。
 - `tracker/MultipleTestTracker`：纯计数，无依赖。
-- `reporter/TestReporter`（接口）← `LogTestReporter`（依赖 `framework/instance/` + spdlog）+ `JUnitTestReporter`（依赖 `framework/instance/` + `<fstream>`）+ `GlobalTestReporter`（依赖 `TestReporter`）。
+- `reporter/TestReporter`（接口）← `LogTestReporter`（依赖 `framework/instance/` + spdlog）+ `JUnitTestReporter`（依赖 `framework/instance/` + `<fstream>`）+ `FailedTestCollector`（依赖 `framework/instance/`，收集失败 testName 供重跑过滤）+ `GlobalTestReporter`（依赖 `TestReporter`）。
 - `spawner/StructureGridSpawner`：纯几何，依赖 `BlockPos`。
 - `GameTestRunner`：依赖 `framework/batch/` + `minecraft/batch/MinecraftGameTestBatchRunner` + `tracker/` + `reporter/GlobalTestReporter`。`GameTestRunnerBuilder` 依赖 `GameTestRunner`。
 
@@ -52,3 +54,4 @@ runner/
 5. **`StructureGridSpawner` 两步协议**：`peekOrigin()` 取本测试原点（不推进），放结构后 `advance(sizeX, sizeZ, padding)` 用旋转后真实尺寸 + padding 推进游标，供下一测试。`MinecraftGameTestBatchRunner._createGameTestInstance` 已切换到此 spawner（不再是线性递增 X），按 `testsPerRow` 换行网格排列，间距 `SPACE_BETWEEN_COLUMNS/ROWS=32` 覆盖实体 FOLLOW_RANGE 避免跨测试目标搜索污染。
 6. **`GlobalTestReporter` 是单例**——`GameTestServer`/`GameTestCommand` 启动期 `addReporter`，运行结束 `clear()` 避免跨运行残留。`-j16` 下各 `GameTestServer` 实例须用各自唯一 `JUnitTestReporter` 路径（`TempDirHelper` 已保证唯一）。
 7. **`LogTestReporter` 区分 required/optional**：required 失败 `spdlog::error`，optional 失败 `spdlog::warn`（对齐 Java LogTestReporter 语义，optional 不计退出码但仍告警）。
+8. **`FailedTestCollector` 供失败重跑消费**：`onTestFailed` 收集失败 testName（供外层协调脚本 `scripts/test/run-gametests.ts` 构造 `--gametest-tests` 重跑过滤）。挂载在 `GlobalTestReporter` 单例上，随 `GameTestServer::stop()` 中的 `clear()` 一并移除。

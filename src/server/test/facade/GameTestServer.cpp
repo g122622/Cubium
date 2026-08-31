@@ -25,6 +25,7 @@
 #include "server/test/native/builtin/BuiltinNativeTests.hpp"               // registerBuiltinNativeTests
 #include "server/test/runner/GameTestRunner.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp" // GameTestRunner::builder() 返回值完整类型
+#include "server/test/runner/reporter/FailedTestCollector.hpp"
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"
 #include "server/test/runner/reporter/JUnitTestReporter.hpp"
 #include "server/test/runner/reporter/LogTestReporter.hpp"
@@ -383,13 +384,41 @@ bool GameTestServer::_selectAndBuildRunner()
         byBatch[bn].push_back(fn);
     }
 
+    // 批内切片（对齐基岩 GameTestBatchFactory 的 MAX_TESTS_PER_BATCH=50）：
+    // 超过 maxTestsPerBatch 的批次切为多个子批次（night → night_1/night_2/...），每个子批次
+    // 独立执行 before/after 回调与环境 setup/teardown。切片名保留原批次名前缀（night_2 仍以
+    // "night" 开头），getEnvForBatch 的前缀匹配（night→18000 / 其他→6000）语义自动保持。
+    // 切片动机：单批 ~810 测试全部同时平铺执行，结构网格无限扩张 + 实体全量 tick 互相干扰。
+    // TODO: beforeBatch/afterBatch 回调在每个切片上各执行一次（对齐基岩切片=独立批次的语义）。
+    constexpr std::size_t kMaxTestsPerBatch = 50;
     std::vector<GameTestBatch> batches;
     for (const auto& bn : batchOrder) {
-        batches.emplace_back(bn,
-            std::move(byBatch[bn]),
-            GameTestRegistry::instance().getBeforeBatchFunction(bn),
-            GameTestRegistry::instance().getAfterBatchFunction(bn),
-            getEnvForBatch(bn));
+        auto& fns = byBatch[bn];
+        if (fns.size() <= kMaxTestsPerBatch) {
+            batches.emplace_back(bn,
+                std::move(fns),
+                GameTestRegistry::instance().getBeforeBatchFunction(bn),
+                GameTestRegistry::instance().getAfterBatchFunction(bn),
+                getEnvForBatch(bn));
+            continue;
+        }
+        // 切片：[0, kMaxTestsPerBatch), [kMaxTestsPerBatch, 2*kMaxTestsPerBatch), ...
+        const std::size_t sliceCount = (fns.size() + kMaxTestsPerBatch - 1) / kMaxTestsPerBatch;
+        spdlog::info("[GameTest] batch '{}' has {} tests, splitting into {} slice(s)", bn, fns.size(), sliceCount);
+        for (std::size_t s = 0; s < sliceCount; ++s) {
+            const std::size_t begin = s * kMaxTestsPerBatch;
+            const std::size_t end = std::min(begin + kMaxTestsPerBatch, fns.size());
+            std::vector<std::shared_ptr<BaseGameTestFunction>> slice(
+                fns.begin() + static_cast<i64>(begin), fns.begin() + static_cast<i64>(end));
+            // 切片命名：原批次名_N（1-based）。getEnvForBatch 以切片名重新判定环境——
+            // night_1/night_2 前缀 "night" 匹配 → 夜晚环境，与切片前原批语义一致。
+            const std::string sliceName = bn + "_" + std::to_string(s + 1);
+            batches.emplace_back(sliceName,
+                std::move(slice),
+                GameTestRegistry::instance().getBeforeBatchFunction(bn),
+                GameTestRegistry::instance().getAfterBatchFunction(bn),
+                getEnvForBatch(sliceName));
+        }
     }
 
     // 构造 runner（overworld 经 dimensionManager 取，_selectAndBuildRunner 在 initialize 末尾调用时维度已就绪）
@@ -417,6 +446,9 @@ bool GameTestServer::_selectAndBuildRunner()
         m_junitReporter = std::make_shared<JUnitTestReporter>(reportFull.string());
         GlobalTestReporter::instance().addReporter(m_junitReporter);
     }
+    // 失败测试收集器：run() 末尾从 failedTestNames() 取失败列表，供重跑过滤使用。
+    m_failedCollector = std::make_shared<FailedTestCollector>();
+    GlobalTestReporter::instance().addReporter(m_failedCollector);
 
     m_runnerBuilt = true;
     return true;

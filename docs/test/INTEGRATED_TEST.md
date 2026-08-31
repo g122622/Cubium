@@ -583,6 +583,67 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 
 ---
 
+## 7. 外层协调脚本：`scripts/test/run-gametests.ts`
+
+`scripts/test/run-gametests.ts` 是 GameTest 的**外层统一协调者**：它调用 CLI 入口（`minecraft-server --gametest`）、解析 JUnit XML 收集失败测试、对每个失败测试启动独立重跑进程（隔离环境）确认其是否真的失败，最后聚合输出最终 JUnit XML + CI 退出码。
+
+**设计原则**：零外部依赖（仅 `node:` 内置模块）、node>=22 原生 type stripping、ESM 单文件。
+
+### 用法
+
+```bash
+# 默认：全量跑（单进程）+ 失败测试隔离重跑
+node scripts/test/run-gametests.ts
+
+# 按过滤模式跑
+node scripts/test/run-gametests.ts --filter='mob_*'
+
+# 指定 server 二进制（默认 build/bin/RelWithDebInfo/minecraft-server.exe）
+node scripts/test/run-gametests.ts --server=./build/bin/RelWithDebInfo/minecraft-server.exe
+
+# 自定义报告输出目录（默认 build/gametest-reports）
+node scripts/test/run-gametests.ts --out-dir=./build/my-reports
+```
+
+### 流程
+
+```
+1. Round 1（全量跑）：
+   minecraft-server --gametest \
+     --gametest-tests=<filter>（可选） \
+     --gametest-report=<outDir>/gametest-round1-<ts>.xml
+
+2. 解析 Round 1 的 JUnit XML，收集失败测试列表（<failure> 子元素）
+
+3. Round 2（失败测试隔离重跑）：
+   对每个失败的测试：
+     minecraft-server --gametest \
+       --gametest-tests=<failedTestName> \
+       --gametest-report=<outDir>/gametest-rerun-<ts>-<testName>.xml
+
+4. 聚合：
+   重跑通过的测试 → 最终判定为通过（从失败集合中移除）
+   重跑仍失败的测试 → 保留在失败集合
+   输出 <outDir>/gametest-final-<ts>.xml + CI 退出码
+     0 = 无失败（含重跑通过）
+     1 = 有失败（重跑后仍失败）
+     2 = 流水线错误（如 server 二进制不存在、Round 1 报告缺失）
+```
+
+### CI 退出码语义
+
+| 退出码 | 含义 |
+|---|---|
+| `0` | 全部通过（含重跑通过的测试） |
+| `1` | 有失败（首轮失败且重跑仍失败） |
+| `2` | 流水线错误（如 server 二进制不存在、Round 1 报告缺失） |
+
+### 与现有入口/结果读取方式的关系
+
+`run-gametests.ts` **不替代**现有的三种启动方式（CLI `--gametest`、gtest 端到端、`/gametest` 在线命令）和三种结果读取方式（LogTestReporter、JUnitTestReporter、退出码）。它是站在这些入口之上的编排层：内部依然通过 `--gametest` CLI 入口启动 `minecraft-server` 进程，通过 JUnit XML（`--gametest-report`）读取结果。
+
+---
+
 ## 参考
 
 - [`@minecraft/server-gametest` Module — Microsoft Learn](https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server-gametest/minecraft-server-gametest)
@@ -591,3 +652,4 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 - 工具源码：`scripts/test/setup.ts`、`scripts/test/run_diff.ts`、`scripts/test/_bedrock_single.ts`（基岩单测探针，见 6.1）、`scripts/test/_rebuild_creeper_pit.ts`（mcstructure 格式参考样板，见 6.4）
 - 跨服务端兼容垫片：`tests/integrated/mob_behavior/src/gametest-shim.ts`（见 6.5）、`tests/integrated/mob_behavior/src/cubium-gametest-augment.d.ts`（Cubium 专有方法类型声明）
 - Cubium GameTest 实现：`src/server/test/facade/GameTestServer.{hpp,cpp}`、`src/common/test/framework/registry/GameTestRegistry.cpp`、`src/server/test/runner/reporter/JUnitTestReporter.cpp`
+- 外层协调脚本：`scripts/test/run-gametests.ts`（全量跑 + 失败隔离重跑 + JUnit XML 聚合，见第 7 节）

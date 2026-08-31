@@ -1747,6 +1747,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/GlobalTestReporter.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/LogTestReporter.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/JUnitTestReporter.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/runner/reporter/FailedTestCollector.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/native/builtin/BuiltinNativeTests.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/simulated/SimulatedPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/GameTestModuleBinding.cpp

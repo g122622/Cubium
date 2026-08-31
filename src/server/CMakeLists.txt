@@ -249,6 +249,7 @@ target_sources(minecraft-server
         ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/GlobalTestReporter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/LogTestReporter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/JUnitTestReporter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/runner/reporter/FailedTestCollector.cpp
         # native/ - 内置样例测试（保链接期保留 TU）
         ${CMAKE_CURRENT_SOURCE_DIR}/test/native/builtin/BuiltinNativeTests.cpp
         # simulated/ - SimulatedPlayer
