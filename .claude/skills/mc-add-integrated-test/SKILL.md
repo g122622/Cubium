@@ -103,7 +103,49 @@ registerZombieTests();
 registerIronGolemTests();
 ```
 
-# 4. 构建、运行与验证
+# 4. 测试世界与运行环境
+
+写测试前必须了解 GameTest 跑在什么样的世界里、批次如何调度、失败如何重跑。这些由 `GameTestServer`（`src/server/test/facade/GameTestServer.{hpp,cpp}`）决定。
+
+## 4.1 超平坦测试世界（minecraft:flat）
+
+测试世界是**超平坦**（classic_flat 预设，`FlatChunkGenerator`），不是 normal 噪声地形。坐标语义：
+
+- flat 地形层：bedrock（Y=0）+ dirt（Y=1..2）+ grass（Y=3），即地表在 **Y=3**。
+- 测试结构方块放 **Y=4**（`gridStartY=4`），结构内容从 **Y=5** 起。
+- 生物群系全图固定为 plains（flat 预设的 `biome` 字段）。
+
+对测试作者的影响：
+- 测试内相对坐标 `y=1` 是结构内容首层（世界 Y=5），站在"地面"上的实体脚踩 grass（Y=3）。
+- `skyAccess` 的清空逻辑会清掉 padding 扩展范围内的 flat 层制造露天列，属预期行为。
+- 依赖地形起伏/洞穴/特定群系的测试**不可写**（超平坦世界没有这些），只能依赖结构文件 + 程序化放置。
+
+## 4.2 批内切片（MAX_TESTS_PER_BATCH=50）
+
+同一批次超过 50 个测试时，`_selectAndBuildRunner` 会把该批切为多个子批次依次执行：
+
+- 切片命名 `原批次名_1`/`原批次名_2`/...（1-based）。
+- 切片名保留原批次名前缀，`getEnvForBatch` 的前缀匹配（`night` 前缀 → 18000 夜晚 / 其他 → 6000 白天）自动保持环境语义——即 `night_2` 仍是夜晚环境。
+- 每个切片独立执行 beforeBatch/afterBatch 回调与环境 setup/teardown。
+
+## 4.3 失败测试隔离重跑
+
+`FailedTestCollector`（`TestReporter` 子类）在跑完后收集所有失败 testName。外层协调脚本 `scripts/test/run-gametests.ts` 用它编排两轮：
+
+1. Round 1：全量跑，解析 JUnit XML 收集失败测试列表。
+2. Round 2：对每个失败测试**独占一个进程**（隔离世界目录）重跑确认。
+
+重跑语义：**重跑通过算通过**（最终判定为通过，从失败集合中移除）。这解决了"与其他测试并行时会因跨结构干扰而失败"的确认问题。
+
+## 4.4 批次环境约定
+
+- `night` 前缀批次：TimeOfDayEnvironment(18000) 夜晚。
+- `day` 前缀及其他：TimeOfDayEnvironment(6000) 正午白天。
+- 所有 day/night 批次强制晴天（WeatherEnvironment::Clear），消除天气随机性导致的 flaky。
+
+---
+
+# 5. 构建、运行与验证
 
 写完/改完测试后必须构建并运行验证：
 
@@ -121,7 +163,7 @@ node scripts/test/run_diff.ts --step cubium
 - 若报 `Module not found: .../scripts/./XxxTests.js`，检查 `main.ts` 的 import 路径与文件实际位置是否一致（注意子目录层级对应的 `../` 数量）。
 - 若有ts类型问题，看 node_modules 里的类型定义（如`node_modules/@minecraft/server-gametest/index.d.ts`，这些文件较大，请避免全量读取）
 
-# 5. 与官方基岩 BDS 对比测试
+# 6. 与官方基岩 BDS 对比测试
 
 集成测试除了"在 Cubium 上能跑通"，还要**与官方基岩 BDS 跑同一套用例对比**，以官方基岩为 ground truth，自动发现 Cubium 的行为偏差/缺陷。这是验证"与原版 MC 对齐"的最权威手段。因此你写的测试不仅要在 Cubium 上跑通，还要在官方基岩上跑通。
 

@@ -15,7 +15,7 @@ Cubium 的集成测试基于 Minecraft 基岩版官方的 **GameTest 框架**（
 
 ### 目录结构
 
-`tests/integrated/` 下每个子目录是一个**独立行为包**，4 个包按主题划分：
+`tests/integrated/` 下每个子目录是一个**独立行为包**，7 个包按主题划分：
 
 | 包目录 | manifest name | 主题 |
 |---|---|---|
@@ -23,6 +23,9 @@ Cubium 的集成测试基于 Minecraft 基岩版官方的 **GameTest 框架**（
 | `mob_behavior` | Cubium Mob Behavior GameTests | 生物 AI（僵尸追村民、铁傀儡竞技场、Zoglin 浮空等） |
 | `command` | Cubium Command GameTests | 命令（`cloneBlocksCommand` 等） |
 | `challenge` | Cubium Challenge GameTests | 综合挑战（`collapsing`、`minibiomes` 等） |
+| `block_behavior` | Cubium Block Behavior GameTests | 方块交互（农业、红石机械、门与机关等） |
+| `lighting` | Cubium Lighting GameTests | 光照计算（天光/方光/几何遮挡） |
+| `teleport` | Cubium Teleport GameTests | 传送命令与跨区块传送 |
 
 ```
 tests/integrated/
@@ -33,7 +36,10 @@ tests/integrated/
 ├── starter/               # 每个包：manifest.json + src/ + tsconfig.json + structures/
 ├── mob_behavior/
 ├── command/
-└── challenge/
+├── challenge/
+├── block_behavior/
+├── lighting/
+└── teleport/
 ```
 
 **关键约束**：行为包之间是独立模块，**不能跨包 import**。多个包需要的共享工具（`utils/`）由 `build.mjs` 在构建期复制到每个包的 `src/utils/` 下，再由各包 tsconfig 独立编译。这样每个包产出自包含的 `scripts/`（含 utils）。
@@ -106,16 +112,25 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 
 ```bash
 ./build/bin/RelWithDebInfo/minecraft-server.exe --gametest \
-  --gametest_packs=E:/dev/minecraft-reborn-branch-1/tests/integrated \
-  --gametest_report=E:/dev/minecraft-reborn-branch-1/build/cubium-report.xml
+  --gametest_packs=tests/integrated \
+  --gametest_report=build/cubium-report.xml
 ```
 
 | flag | 说明 |
 |---|---|
 | `--gametest` | 启用无头 GameTest 模式 |
-| `--gametest_packs=<dir>` | 行为包根目录（其下每个子目录是一个包） |
+| `--gametest_packs=<dir>` | 行为包根目录（其下每个子目录是一个包）。不传时默认从 `MC_SOURCE_ROOT` 拼 `tests/integrated`，通常无需显式指定 |
 | `--gametest_report=<path>` | JUnit XML 输出路径（空=只写 stdout 日志） |
 | `--gametest_tests=<pattern>` | 测试名过滤通配符（如 `simpleMobTest` 或 `simple*`，**按 testName 非 className 匹配**，`*`/`?` 通配，空=全部） |
+| `--gametest_world=<name>` | 世界名覆写（默认 `gametest`）。外层协调脚本（`scripts/test/run-gametests.ts`）用此 flag 给每个并行分片/重跑进程分配独立世界目录（`saves/<name>`），避免多进程并发写同一世界目录 |
+
+### 批内切片（MAX_TESTS_PER_BATCH=50）
+
+同一批次超过 50 个测试时，`_selectAndBuildRunner` 会把该批切为多个子批次依次执行。**测试作者需要知道的语义**：
+
+- 切片命名 `原批次名_1`/`原批次名_2`/...（1-based）。
+- 切片名保留原批次名前缀，`getEnvForBatch` 的前缀匹配（`night` 前缀 → 18000 夜晚 / 其他 → 6000 白天）自动保持环境语义——即 `night_2` 仍是夜晚环境。
+- 每个切片独立执行 beforeBatch/afterBatch 回调与环境 setup/teardown。
 
 ### 双采集
 
@@ -137,7 +152,7 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 
 ### 为什么 Cubium（~6 秒）比基岩（~90 秒）快这么多
 
-这不是基岩"慢"，是 Cubium **刻意加速**——两者跑的根本不是同一种时间。实测数据：
+这不是基岩"慢"，是 Cubium **刻意加速**——两者跑的根本不是同一种时间。实测数据（历史快照，当时测试规模为 8 用例；当前注册量已增长至 967 处，数据仅供理解机制，不代表现状）：
 
 | | Cubium | Bedrock BDS |
 |---|---|---|
@@ -146,7 +161,7 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 | 每 tick 实际墙钟 | ~5.6 ms | 50 ms（真实 20 tps） |
 | tick 与墙钟关系 | **脱钩**（虚拟 tick） | **绑定**（真实时间） |
 
-**根因**：Cubium `--gametest` 是**无头门面**（`ServerApplicationEntry`："无头批量自动跑门面，自含行为包加载/JS 模块注册/runner 构造"），其 `GameTestServer::run()` 的 tick 循环（`src/server/test/facade/GameTestServer.cpp:374`）**没有 `sleep`/帧率同步**：
+**根因**：Cubium `--gametest` 是**无头门面**（`ServerApplicationEntry`："无头批量自动跑门面，自含行为包加载/JS 模块注册/runner 构造"），其 `GameTestServer::run()` 的 tick 循环（`src/server/test/facade/GameTestServer.cpp:470`）**没有 `sleep`/帧率同步**：
 
 ```cpp
 while (m_running.load() && !m_runner->isComplete()) {
@@ -339,7 +354,7 @@ errorMessage 归一化：去坐标/tick 数、统一大小写、trim，再做语
 | 基岩 `Beta APIs experiment is not enabled` | level.dat 注入失败。检查 `build/bedrock-stdout.log`，确认 `Experiment(s) active: gtst` 出现。`enableBetaApiExperiment` 依赖 8 字节头 + length 重算。 |
 | 基岩卡在第 1 个测试不推进 | `runBedrock` 状态机索引 bug 已修：`sendNext` 发命令后必须立即 `testIdx++`，否则 onOutput 的 `testIdx > 0` 守卫挡住首个测试的完成检测。 |
 | Cubium 退出码 3221225477 | 0xC0000005 访问冲突，关闭阶段问题。stdout/XML 已写完，不影响结果。 |
-| 基岩 `Could not find StructureBlockActor associated to this test` | **基岩 BDS 1.26 自身的时序竞态**，非测试缺陷。结构放置后 `StructureBlock` 方块实体完成服务端同步有延迟，`gametest run` 若在同步完成前查询即报此错。基岩有**自动重试**机制——同一次 `gametest run` 内会先 `onTestFailed` 再重试，重试通过即 `onTestPassed`（日志里同一测试名出现 Failed 后又 Passed）。与测试逻辑、结构格式、是否用 `spawnSimulatedPlayer` 无关：纯 mob + `glass_pit` 的 `enderman_takes_water_damage`/`magmacube_immune_to_fire` 同样偶发。**对策**：见 6.3 节，用 `_bedrock_single.ts` 多次跑取稳定模式，或加大测试间串行间隔让结构方块充分同步。 |
+| 基岩 `Could not find StructureBlockActor associated to this test` | 基岩 BDS 1.26 自身的时序竞态，非测试缺陷。基岩有自动重试。详见 6.3 节。 |
 | 基岩 `Failed to spawn test structure with path 'structures/.../xxx.mcstructure'` | mcstructure 文件格式损坏，基岩严格解析失败（Cubium 容错能读）。最常见是 `size` 的 NBT list 缺 count 字段（应为 `<tagType><int32 count><items>`，损坏时只有 `<tagType>` 没有后续 count）。见 6.4 节「mcstructure 格式陷阱」。 |
 | 报告摘要出现 `undefined` | 已修：`countByCategory` 对未出现类别返回 undefined，用 `?? 0` 兜底。 |
 
@@ -347,7 +362,7 @@ errorMessage 归一化：去坐标/tick 数、统一大小写、trim，再做语
 
 ## 6. 基岩单测工具与经验沉淀
 
-本节沉淀「在官方基岩 BDS 上单独跑指定测试」的实践经验。当 `run_diff.ts` 全量对比（约 2 分钟、78 测试）过重、只想快速验证某几个测试在基岩的行为时，用单测工具。
+本节沉淀「在官方基岩 BDS 上单独跑指定测试」的实践经验。当 `run_diff.ts` 全量对比过重、只想快速验证某几个测试在基岩的行为时，用单测工具。
 
 ### 6.1 `_bedrock_single.ts`：基岩单测工具
 
@@ -518,6 +533,8 @@ node scripts/test/_fix_structure_origin.mjs tests/integrated/mob_behavior/struct
 
 **根因**：`block_behavior` 包自带的结构只有 `fall_tower`；`glass_pit`/`mediumglass`/`grass_pen`/`creeper_pit` 都在 `mob_behavior` 包的 `structures/gametests/` 下。block_behavior 测试依赖这些结构，全量跑必须同时加载 mob_behavior（或把结构复制进 block_behavior 包）。`--gametest_packs` 指向的目录是"包目录的父目录"（`loadPlugins` 扫描其下含 `manifest.json` 的子目录），直接指向包目录本身会扫不到子包。
 
+> 现状更新：block_behavior 包现已自带 `glass_pit`/`grass_pen`/`light_box`/`mediumglass` 等结构（`structures/gametests/`），跨包结构依赖已基本消除。本节的"临时父目录 + 复制共享结构"隔离验证方法仍可复用于"只想跑单个包"的场景。
+
 **全量跑 block_behavior 的隔离验证方法**（不引入 mob_behavior 的 SimulatedPlayer/已知崩溃）：
 ```bash
 # 1. 建临时父目录，复制 block_behavior 包
@@ -652,4 +669,3 @@ node scripts/test/run-gametests.ts --out-dir=./build/my-reports
 - 工具源码：`scripts/test/setup.ts`、`scripts/test/run_diff.ts`、`scripts/test/_bedrock_single.ts`（基岩单测探针，见 6.1）、`scripts/test/_rebuild_creeper_pit.ts`（mcstructure 格式参考样板，见 6.4）
 - 跨服务端兼容垫片：`tests/integrated/mob_behavior/src/gametest-shim.ts`（见 6.5）、`tests/integrated/mob_behavior/src/cubium-gametest-augment.d.ts`（Cubium 专有方法类型声明）
 - Cubium GameTest 实现：`src/server/test/facade/GameTestServer.{hpp,cpp}`、`src/common/test/framework/registry/GameTestRegistry.cpp`、`src/server/test/runner/reporter/JUnitTestReporter.cpp`
-- 外层协调脚本：`scripts/test/run-gametests.ts`（全量跑 + 失败隔离重跑 + JUnit XML 聚合，见第 7 节）
