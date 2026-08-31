@@ -120,23 +120,27 @@ public:
     static const MemoryModuleType<std::vector<GlobalPos>>* SECONDARY_JOB_SITE;
 
     // ========== 实体列表相关 ==========
-    static const MemoryModuleType<std::vector<LivingEntity*>>* MOBS;
-    static const MemoryModuleType<std::vector<LivingEntity*>>* VISIBLE_MOBS;
-    static const MemoryModuleType<std::vector<LivingEntity*>>* VISIBLE_VILLAGER_BABIES;
-    static const MemoryModuleType<std::vector<Player*>>* NEAREST_PLAYERS;
-    static const MemoryModuleType<Player*>* NEAREST_VISIBLE_PLAYER;
-    static const MemoryModuleType<Player*>* NEAREST_VISIBLE_TARGETABLE_PLAYER;
-    static const MemoryModuleType<LivingEntity*>* ATTACK_TARGET;
-    static const MemoryModuleType<LivingEntity*>* INTERACTION_TARGET;
-    static const MemoryModuleType<LivingEntity*>* HURT_BY_ENTITY;
-    static const MemoryModuleType<LivingEntity*>* AVOID_TARGET;
-    static const MemoryModuleType<LivingEntity*>* NEAREST_HOSTILE;
-    static const MemoryModuleType<LivingEntity*>* NEAREST_VISIBLE_ZOMBIFIED;
-    static const MemoryModuleType<AgeableEntity*>* BREED_TARGET;
-    static const MemoryModuleType<AgeableEntity*>* NEAREST_VISIBLE_ADULT;
-    static const MemoryModuleType<Entity*>* RIDE_TARGET;
-    static const MemoryModuleType<MobEntity*>* NEAREST_VISIBLE_NEMESIS;
-    static const MemoryModuleType<ItemEntity*>* NEAREST_VISIBLE_WANTED_ITEM;
+    // 实体类记忆统一存 EntityInstanceId 而非裸指针：id 永不悬垂（单调递增不复用），
+    // 消费方经 world->getEntity(id) 反查 + isAlive() 校验即可安全解引用。
+    // 此前存 LivingEntity* 等裸指针，sensor 20 tick 重扫窗口内实体析构即 UAF
+    // （见 MovementTasks.hpp LookAtEntityTask 崩溃案例）。
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* MOBS;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* VISIBLE_MOBS;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* VISIBLE_VILLAGER_BABIES;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* NEAREST_PLAYERS;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_PLAYER;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_TARGETABLE_PLAYER;
+    static const MemoryModuleType<EntityInstanceId>* ATTACK_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* INTERACTION_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* HURT_BY_ENTITY;
+    static const MemoryModuleType<EntityInstanceId>* AVOID_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_HOSTILE;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_ZOMBIFIED;
+    static const MemoryModuleType<EntityInstanceId>* BREED_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_ADULT;
+    static const MemoryModuleType<EntityInstanceId>* RIDE_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_NEMESIS;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_WANTED_ITEM;
 
     // ========== 移动相关 ==========
     static const MemoryModuleType<pathfinding::Path>* PATH;
@@ -173,20 +177,20 @@ public:
     static const MemoryModuleType<bool>* DISABLE_WALK_TO_ADMIRE_ITEM;
 
     // ========== 玩家相关 ==========
-    static const MemoryModuleType<Player*>* TEMPTING_PLAYER;
-    static const MemoryModuleType<Player*>* NEAREST_PLAYER_HOLDING_WANTED_ITEM;
+    static const MemoryModuleType<EntityInstanceId>* TEMPTING_PLAYER;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_PLAYER_HOLDING_WANTED_ITEM;
 
     // ========== UUID 相关 ==========
     static const MemoryModuleType<u64>* ANGRY_AT; // 原 UUID 类型，使用 u64 存储
 
     // ========== 猪灵/疣兽相关 ==========
-    static const MemoryModuleType<HoglinEntity*>* NEAREST_VISIBLE_HUNTABLE_HOGLIN;
-    static const MemoryModuleType<HoglinEntity*>* NEAREST_VISIBLE_BABY_HOGLIN;
-    static const MemoryModuleType<Player*>* NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
-    static const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* NEAREST_ADULT_PIGLINS;
-    static const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* NEAREST_VISIBLE_ADULT_PIGLINS;
-    static const MemoryModuleType<std::vector<HoglinEntity*>>* NEAREST_VISIBLE_ADULT_HOGLINS;
-    static const MemoryModuleType<AbstractPiglinEntity*>* NEAREST_VISIBLE_ADULT_PIGLIN;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_HUNTABLE_HOGLIN;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_BABY_HOGLIN;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* NEAREST_ADULT_PIGLINS;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* NEAREST_VISIBLE_ADULT_PIGLINS;
+    static const MemoryModuleType<std::vector<EntityInstanceId>>* NEAREST_VISIBLE_ADULT_HOGLINS;
+    static const MemoryModuleType<EntityInstanceId>* NEAREST_VISIBLE_ADULT_PIGLIN;
     static const MemoryModuleType<i32>* VISIBLE_ADULT_PIGLIN_COUNT;
     static const MemoryModuleType<i32>* VISIBLE_ADULT_HOGLIN_COUNT;
 
@@ -213,8 +217,8 @@ public:
     static const MemoryModuleType<std::unordered_set<GlobalPos>>* DOORS_TO_CLOSE;
 
     // 宠物相关扩展
-    static const MemoryModuleType<LivingEntity*>* OWNER_HURT_BY;
-    static const MemoryModuleType<LivingEntity*>* OWNER_HURT_TARGET;
+    static const MemoryModuleType<EntityInstanceId>* OWNER_HURT_BY;
+    static const MemoryModuleType<EntityInstanceId>* OWNER_HURT_TARGET;
 
     // 1.17+ Allay 相关 (保留用于未来扩展)
     static const MemoryModuleType<GlobalPos>* LIKED_NOTEBLOCK;
@@ -223,8 +227,8 @@ public:
     static const MemoryModuleType<i32>* LISTENING_NOTEBLOCK_COOLDOWN_TICKS;
 
     // 1.17+ 青蛙/山羊相关 (保留用于未来扩展)
-    static const MemoryModuleType<BlockPos>* TONGUE_TARGET; // 青蛙舌头目标
-    static const MemoryModuleType<Entity*>* RAM_TARGET;     // 山羊冲撞目标
+    static const MemoryModuleType<BlockPos>* TONGUE_TARGET;      // 青蛙舌头目标
+    static const MemoryModuleType<EntityInstanceId>* RAM_TARGET; // 山羊冲撞目标
 
     // 1.19+ Sniffer 相关 (保留用于未来扩展)
     static const MemoryModuleType<BlockPos>* SNIFFER_SNIFFING_TARGET;

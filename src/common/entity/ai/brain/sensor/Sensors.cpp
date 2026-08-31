@@ -115,17 +115,22 @@ void NearestPlayersSensor<E>::update(IWorld* world, E* entity)
         return entity->distanceSqTo(*a) < entity->distanceSqTo(*b);
     });
 
-    // 存储到记忆模块
-    entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_PLAYERS, nearbyPlayers);
+    // 存储到记忆模块（存 id：id 永不悬垂，消费方经 getEntity(id) 反查 + isAlive 校验）
+    std::vector<EntityInstanceId> nearbyPlayerIds;
+    nearbyPlayerIds.reserve(nearbyPlayers.size());
+    for (Player* player : nearbyPlayers) {
+        nearbyPlayerIds.push_back(player->id());
+    }
+    entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_PLAYERS, nearbyPlayerIds);
 
     // 设置最近可见玩家
     if (!visiblePlayers.empty()) {
-        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_PLAYER, visiblePlayers[0]);
+        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_PLAYER, visiblePlayers[0]->id());
 
         // 设置可攻击的最近可见玩家（非创造/旁观模式）
         for (Player* player : visiblePlayers) {
             if (!player->isCreative() && !player->isSpectator()) {
-                entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER, player);
+                entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER, player->id());
                 break;
             }
         }
@@ -146,7 +151,10 @@ void NearestVisibleLivingEntitySensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    std::vector<LivingEntity*> visibleMobs;
+    // 存 id 而非 LivingEntity*：sensor 20 tick 重扫窗口内实体可能已析构，
+    // 消费方（如 LookAtEntityTask）拿到裸指针遍历即 UAF（mob_behavior 全量跑崩溃根因）。
+    // id 永不悬垂（单调递增不复用），消费方经 world->getEntity(id) 反查 + isAlive 校验。
+    std::vector<EntityInstanceId> visibleMobIds;
     Vector3 pos = entity->position();
 
     // 获取范围内所有实体
@@ -164,11 +172,11 @@ void NearestVisibleLivingEntitySensor<E>::update(IWorld* world, E* entity)
 
         // 检查可见性
         if (entity->canSee(*living)) {
-            visibleMobs.push_back(living);
+            visibleMobIds.push_back(living->id());
         }
     }
 
-    entity->brain().setMemory(memory::MemoryModuleTypes::VISIBLE_MOBS, visibleMobs);
+    entity->brain().setMemory(memory::MemoryModuleTypes::VISIBLE_MOBS, visibleMobIds);
 }
 
 // ============================================================================
@@ -202,27 +210,14 @@ void HurtBySensor<E>::update(IWorld* world, E* entity)
         Entity* attacker =
             (attackerId != INVALID_ENTITY_ID && world != nullptr) ? world->getEntity(attackerId) : nullptr;
         if (attacker && attacker->isAlive()) {
-            LivingEntity* livingAttacker = dynamic_cast<LivingEntity*>(attacker);
-            if (livingAttacker) {
-                entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY_ENTITY, livingAttacker, 100);
-            } else {
-                entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
-            }
+            // HURT_BY_ENTITY 存 id（同 VISIBLE_MOBS 的 UAF 根治理由）
+            entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::HURT_BY_ENTITY, attacker->id(), 100);
         } else {
             entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
         }
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY);
         entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
-    }
-
-    // 检查攻击者是否还有效（存活且在同一世界）
-    auto attackerMemory = entity->brain().template getMemory<LivingEntity*>(memory::MemoryModuleTypes::HURT_BY_ENTITY);
-    if (attackerMemory.has_value()) {
-        LivingEntity* attacker = attackerMemory.value();
-        if (!attacker || !attacker->isAlive() || attacker->world() != world) {
-            entity->brain().removeMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
-        }
     }
 }
 
@@ -237,7 +232,8 @@ void MobSensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    std::vector<LivingEntity*> nearbyMobs;
+    // 存 id（UAF 根治理由见 NearestVisibleLivingEntitySensor）
+    std::vector<EntityInstanceId> nearbyMobIds;
     Vector3 pos = entity->position();
 
     // 获取范围内所有实体
@@ -254,10 +250,10 @@ void MobSensor<E>::update(IWorld* world, E* entity)
             continue;
         }
 
-        nearbyMobs.push_back(living);
+        nearbyMobIds.push_back(living->id());
     }
 
-    entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobs);
+    entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobIds);
     // 注意：MobSensor 仅收集 MOBS 列表，不负责 NEAREST_HOSTILE。
     // NEAREST_HOSTILE 应由专门的传感器（如 VillagerHostilesSensor）来设置，
     // 因为不同实体对"敌对生物"的定义不同。
@@ -311,7 +307,8 @@ void VillagerHostilesSensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    std::vector<LivingEntity*> nearbyMobs;
+    // 存 id（UAF 根治理由见 NearestVisibleLivingEntitySensor）
+    std::vector<EntityInstanceId> nearbyMobIds;
     LivingEntity* nearestHostile = nullptr;
     f32 nearestHostileDistSq = std::numeric_limits<f32>::max();
     Vector3 pos = entity->position();
@@ -330,7 +327,7 @@ void VillagerHostilesSensor<E>::update(IWorld* world, E* entity)
             continue;
         }
 
-        nearbyMobs.push_back(living);
+        nearbyMobIds.push_back(living->id());
 
         // 使用精确的实体类型到距离映射来判断敌对生物
         f32 detectionRange = getHostileDetectionRange(living);
@@ -343,10 +340,10 @@ void VillagerHostilesSensor<E>::update(IWorld* world, E* entity)
         }
     }
 
-    entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobs);
+    entity->brain().setMemory(memory::MemoryModuleTypes::MOBS, nearbyMobIds);
 
     if (nearestHostile) {
-        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE, nearestHostile);
+        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE, nearestHostile->id());
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_HOSTILE);
     }
@@ -539,8 +536,9 @@ void BabySensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    std::vector<LivingEntity*> babies;
-    AgeableEntity* nearestAdult = nullptr;
+    // 存 id（UAF 根治理由见 NearestVisibleLivingEntitySensor）
+    std::vector<EntityInstanceId> babyIds;
+    EntityInstanceId nearestAdultId = INVALID_ENTITY_ID;
     f32 minAdultDist = 16.0f;
     Vector3 pos = entity->position();
 
@@ -555,21 +553,21 @@ void BabySensor<E>::update(IWorld* world, E* entity)
 
         if (ageable->isChild()) {
             // 幼年实体
-            babies.push_back(static_cast<LivingEntity*>(ageable));
+            babyIds.push_back(ageable->id());
         } else {
             // 成年实体
             f32 dist = entity->distanceTo(*ageable);
             if (dist < minAdultDist) {
                 minAdultDist = dist;
-                nearestAdult = ageable;
+                nearestAdultId = ageable->id();
             }
         }
     }
 
-    entity->brain().setMemory(memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES, babies);
+    entity->brain().setMemory(memory::MemoryModuleTypes::VISIBLE_VILLAGER_BABIES, babyIds);
 
-    if (nearestAdult) {
-        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT, nearestAdult);
+    if (nearestAdultId != INVALID_ENTITY_ID) {
+        entity->brain().setMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT, nearestAdultId);
     } else {
         entity->brain().removeMemory(memory::MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
     }
@@ -586,7 +584,8 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
         return;
     }
 
-    LivingEntity* avoidTarget = nullptr;
+    // 存 id（UAF 根治理由见 NearestVisibleLivingEntitySensor）
+    EntityInstanceId avoidTargetId = INVALID_ENTITY_ID;
     f32 minDist = m_range;
     Vector3 pos = entity->position();
 
@@ -604,14 +603,14 @@ void AvoidEntitySensor<E>::update(IWorld* world, E* entity)
             f32 dist = entity->distanceTo(*living);
             if (dist < minDist) {
                 minDist = dist;
-                avoidTarget = living;
+                avoidTargetId = living->id();
             }
         }
     }
 
-    if (avoidTarget) {
+    if (avoidTargetId != INVALID_ENTITY_ID) {
         entity->brain().setMemoryWithTTL(memory::MemoryModuleTypes::AVOID_TARGET,
-            avoidTarget,
+            avoidTargetId,
             100 // 5秒
         );
     } else {
@@ -702,7 +701,8 @@ void TemptingPlayerSensor<E>::update(IWorld* world, E* entity)
     }
 
     if (nearestTemptingPlayer) {
-        brain.setMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER, nearestTemptingPlayer);
+        // 存 id（UAF 根治理由见 NearestVisibleLivingEntitySensor）
+        brain.setMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER, nearestTemptingPlayer->id());
     } else {
         brain.removeMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
     }
@@ -817,22 +817,14 @@ void OwnerHurtBySensor<E>::update(IWorld* world, E* entity)
         if (ownerHurtBy != static_cast<LivingEntity*>(entity) && ownerHurtBy != owner) {
             // 参考 MC 原版 OwnerHurtByTargetGoal：
             // 使用 lastHurtByTimestamp 判断是否有新的伤害事件
-            // 这里简单地将攻击者写入记忆，由 ProtectOwnerTask 判断是否执行攻击
-            brain.setMemoryWithTTL(memory::MemoryModuleTypes::OWNER_HURT_BY, ownerHurtBy, 100);
+            // 这里简单地将攻击者 id 写入记忆（UAF 根治理由见 NearestVisibleLivingEntitySensor），
+            // 由 ProtectOwnerTask 经 getEntity(id) 反查后判断是否执行攻击
+            brain.setMemoryWithTTL(memory::MemoryModuleTypes::OWNER_HURT_BY, ownerHurtBy->id(), 100);
         } else {
             brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
         }
     } else {
         brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
-    }
-
-    // 检查当前记忆中的攻击者是否仍然有效
-    auto hurtByMemory = brain.template getMemory<LivingEntity*>(memory::MemoryModuleTypes::OWNER_HURT_BY);
-    if (hurtByMemory.has_value()) {
-        LivingEntity* attacker = hurtByMemory.value();
-        if (!attacker || !attacker->isAlive()) {
-            brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
-        }
     }
 }
 

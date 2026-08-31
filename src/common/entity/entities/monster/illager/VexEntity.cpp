@@ -36,6 +36,7 @@
 #include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {
@@ -153,6 +154,24 @@ void VexEntity::registerAttributes()
     // MOVEMENT_SPEED: 使用默认值（恼鬼飞行速度由移动控制器控制）
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 4.0f);
     // FOLLOW_RANGE: 使用默认值
+}
+
+LivingEntity* VexEntity::getOwner() const
+{
+    // id 反查：主人析构后 getEntity 返回 nullptr，不再解引用悬垂指针
+    if (m_ownerId == INVALID_ENTITY_ID || m_world == nullptr) {
+        return nullptr;
+    }
+    Entity* ownerEntity = m_world->getEntity(m_ownerId);
+    if (ownerEntity == nullptr || !ownerEntity->isAlive()) {
+        return nullptr;
+    }
+    return dynamic_cast<LivingEntity*>(ownerEntity);
+}
+
+void VexEntity::setOwner(LivingEntity* owner)
+{
+    m_ownerId = (owner != nullptr) ? owner->id() : INVALID_ENTITY_ID;
 }
 
 } // namespace mc

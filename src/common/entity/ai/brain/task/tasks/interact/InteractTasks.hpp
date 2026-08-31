@@ -82,8 +82,8 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto target = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::INTERACTION_TARGET);
-        return target.has_value() && *target != nullptr && (*target)->isAlive();
+        auto targetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::INTERACTION_TARGET);
+        return targetId.has_value() && *targetId != INVALID_ENTITY_ID;
     }
 
     bool shouldContinueExecuting(IWorld* world, E* owner, i64 gameTime) override
@@ -93,34 +93,46 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto target = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::INTERACTION_TARGET);
-        if (!target.has_value() || *target == nullptr || !(*target)->isAlive()) {
+        auto targetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::INTERACTION_TARGET);
+        if (!targetId.has_value() || *targetId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**target);
+        Entity* target = (world != nullptr) ? world->getEntity(*targetId) : nullptr;
+        if (target == nullptr || !target->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*target);
         return distSq <= m_range * m_range * 4.0f;
     }
 
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto target = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::INTERACTION_TARGET);
-        if (target.has_value() && *target != nullptr) {
-            brain.template setMemory<WalkTarget>(
-                MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos((*target)->position()), 0.5f, 2));
+        auto targetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::INTERACTION_TARGET);
+        if (targetId.has_value() && *targetId != INVALID_ENTITY_ID && world != nullptr) {
+            Entity* target = world->getEntity(*targetId);
+            if (target != nullptr) {
+                brain.template setMemory<WalkTarget>(
+                    MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(target->position()), 0.5f, 2));
+            }
         }
     }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto target = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::INTERACTION_TARGET);
-        if (!target.has_value() || *target == nullptr) {
+        auto targetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::INTERACTION_TARGET);
+        if (!targetId.has_value() || *targetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* targetEntity = *target;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* targetEntity = (world != nullptr) ? world->getEntity(*targetId) : nullptr;
+        if (targetEntity == nullptr || !targetEntity->isAlive()) {
+            return;
+        }
 
         if (auto* lookCtrl = owner->lookController()) {
             lookCtrl->setLookPositionWithEntity(
@@ -140,7 +152,7 @@ protected:
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
     {
-        owner->brain().template removeMemory<LivingEntity*>(MemoryModuleTypes::INTERACTION_TARGET);
+        owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::INTERACTION_TARGET);
     }
 
 private:
@@ -490,16 +502,28 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto hurtBy = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::OWNER_HURT_BY);
-        if (!hurtBy.has_value() || *hurtBy == nullptr || !(*hurtBy)->isAlive()) {
+        auto hurtById = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::OWNER_HURT_BY);
+        if (!hurtById.has_value() || *hurtById == INVALID_ENTITY_ID) {
             return false;
         }
 
-        if (*hurtBy == ownerPlayer) {
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        LivingEntity* hurtBy = nullptr;
+        if (world != nullptr) {
+            Entity* hurtByEntity = world->getEntity(*hurtById);
+            if (hurtByEntity != nullptr && hurtByEntity->isAlive()) {
+                hurtBy = dynamic_cast<LivingEntity*>(hurtByEntity);
+            }
+        }
+        if (hurtBy == nullptr) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**hurtBy);
+        if (hurtBy == ownerPlayer) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*hurtBy);
         return distSq <= m_protectRange * m_protectRange;
     }
 
@@ -510,35 +534,55 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**attackTarget);
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* attackTargetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (attackTargetEntity == nullptr || !attackTargetEntity->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*attackTargetEntity);
         return distSq <= m_protectRange * m_protectRange * 4.0f;
     }
 
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto hurtBy = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::OWNER_HURT_BY);
-        if (hurtBy.has_value() && *hurtBy != nullptr && (*hurtBy)->isAlive()) {
-            LivingEntity* attacker = *hurtBy;
-            brain.template setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, attacker);
-            owner->setAttackTarget(attacker);
+        auto hurtById = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::OWNER_HURT_BY);
+        if (hurtById.has_value() && *hurtById != INVALID_ENTITY_ID && world != nullptr) {
+            Entity* hurtByEntity = world->getEntity(*hurtById);
+            if (hurtByEntity != nullptr && hurtByEntity->isAlive()) {
+                LivingEntity* attacker = dynamic_cast<LivingEntity*>(hurtByEntity);
+                if (attacker != nullptr) {
+                    brain.template setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, attacker->id());
+                    owner->setAttackTarget(attacker);
+                }
+            }
         }
     }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* target = *attackTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* attackTargetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (attackTargetEntity == nullptr || !attackTargetEntity->isAlive()) {
+            return;
+        }
+
+        LivingEntity* target = dynamic_cast<LivingEntity*>(attackTargetEntity);
+        if (target == nullptr) {
+            return;
+        }
 
         if (auto* lookCtrl = owner->lookController()) {
             lookCtrl->setLookPositionWithEntity(
@@ -558,8 +602,8 @@ protected:
     {
         owner->setAttackTarget(nullptr);
         auto& brain = owner->brain();
-        brain.template removeMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        brain.template removeMemory<LivingEntity*>(MemoryModuleTypes::OWNER_HURT_BY);
+        brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::OWNER_HURT_BY);
     }
 
 private:
@@ -596,9 +640,19 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto wantedItem = brain.template getMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
-        return wantedItem.has_value() && *wantedItem != nullptr && (*wantedItem)->isAlive() &&
-            (*wantedItem)->canBePickedUp();
+        auto wantedItemId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+        if (!wantedItemId.has_value() || *wantedItemId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* wantedEntity = (world != nullptr) ? world->getEntity(*wantedItemId) : nullptr;
+        if (wantedEntity == nullptr || !wantedEntity->isAlive()) {
+            return false;
+        }
+
+        auto* item = dynamic_cast<ItemEntity*>(wantedEntity);
+        return item != nullptr && item->isAlive() && item->canBePickedUp();
     }
 
     bool shouldContinueExecuting(IWorld* world, E* owner, i64 gameTime) override
@@ -608,12 +662,18 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto wantedItem = brain.template getMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
-        if (!wantedItem.has_value() || *wantedItem == nullptr || !(*wantedItem)->isAlive()) {
+        auto wantedItemId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+        if (!wantedItemId.has_value() || *wantedItemId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**wantedItem);
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* wantedEntity = (world != nullptr) ? world->getEntity(*wantedItemId) : nullptr;
+        if (wantedEntity == nullptr || !wantedEntity->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*wantedEntity);
         return distSq <= goal::constants::TEMPT_RANGE * goal::constants::TEMPT_RANGE;
     }
 
@@ -622,11 +682,14 @@ protected:
         m_pathRecalcCounter = 0;
 
         auto& brain = owner->brain();
-        auto wantedItem = brain.template getMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
-        if (wantedItem.has_value() && *wantedItem != nullptr) {
-            auto* navigator = owner->navigator();
-            if (navigator) {
-                navigator->moveTo(**wantedItem, static_cast<f64>(m_speed));
+        auto wantedItemId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+        if (wantedItemId.has_value() && *wantedItemId != INVALID_ENTITY_ID && world != nullptr) {
+            Entity* wantedEntity = world->getEntity(*wantedItemId);
+            if (wantedEntity != nullptr && wantedEntity->isAlive()) {
+                auto* navigator = owner->navigator();
+                if (navigator) {
+                    navigator->moveTo(*wantedEntity, static_cast<f64>(m_speed));
+                }
             }
         }
     }
@@ -634,19 +697,28 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto wantedItem = brain.template getMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
-        if (!wantedItem.has_value() || *wantedItem == nullptr) {
+        auto wantedItemId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+        if (!wantedItemId.has_value() || *wantedItemId == INVALID_ENTITY_ID) {
             return;
         }
 
-        ItemEntity* item = *wantedItem;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* wantedEntity = (world != nullptr) ? world->getEntity(*wantedItemId) : nullptr;
+        if (wantedEntity == nullptr || !wantedEntity->isAlive()) {
+            return;
+        }
+
+        ItemEntity* item = dynamic_cast<ItemEntity*>(wantedEntity);
+        if (item == nullptr) {
+            return;
+        }
 
         if (auto* lookCtrl = owner->lookController()) {
             lookCtrl->setLookPositionWithEntity(*item, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
         }
 
         if (!item->isAlive() || !item->canBePickedUp()) {
-            brain.template removeMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+            brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
             return;
         }
 
@@ -654,7 +726,7 @@ protected:
 
         if (distSq <= m_pickupRange * m_pickupRange) {
             item->setPickupDelay(0);
-            brain.template removeMemory<ItemEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
+            brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM);
         } else {
             if (--m_pathRecalcCounter <= 0) {
                 m_pathRecalcCounter = 10;
@@ -716,12 +788,18 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto parent = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
-        if (!parent.has_value() || *parent == nullptr || !(*parent)->isAlive()) {
+        auto parentId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
+        if (!parentId.has_value() || *parentId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**parent);
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* parentEntity = (world != nullptr) ? world->getEntity(*parentId) : nullptr;
+        if (parentEntity == nullptr || !parentEntity->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*parentEntity);
         f32 minDistSq = goal::constants::FOLLOW_PARENT_MIN_DISTANCE * goal::constants::FOLLOW_PARENT_MIN_DISTANCE;
         return distSq > minDistSq;
     }
@@ -738,12 +816,18 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto parent = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
-        if (!parent.has_value() || *parent == nullptr || !(*parent)->isAlive()) {
+        auto parentId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
+        if (!parentId.has_value() || *parentId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**parent);
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* parentEntity = (world != nullptr) ? world->getEntity(*parentId) : nullptr;
+        if (parentEntity == nullptr || !parentEntity->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*parentEntity);
         f32 minDistSq = goal::constants::FOLLOW_PARENT_MIN_DISTANCE * goal::constants::FOLLOW_PARENT_MIN_DISTANCE;
         f32 maxDistSq = goal::constants::FOLLOW_PARENT_MAX_DISTANCE * goal::constants::FOLLOW_PARENT_MAX_DISTANCE;
         return distSq > minDistSq && distSq < maxDistSq;
@@ -754,11 +838,14 @@ protected:
         m_pathRecalcCounter = 0;
 
         auto& brain = owner->brain();
-        auto parent = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
-        if (parent.has_value() && *parent != nullptr) {
-            auto* navigator = owner->navigator();
-            if (navigator) {
-                navigator->moveTo(**parent, static_cast<f64>(m_speed));
+        auto parentId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
+        if (parentId.has_value() && *parentId != INVALID_ENTITY_ID && world != nullptr) {
+            Entity* parentEntity = world->getEntity(*parentId);
+            if (parentEntity != nullptr && parentEntity->isAlive()) {
+                auto* navigator = owner->navigator();
+                if (navigator) {
+                    navigator->moveTo(*parentEntity, static_cast<f64>(m_speed));
+                }
             }
         }
     }
@@ -766,28 +853,37 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto parent = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
-        if (!parent.has_value() || *parent == nullptr) {
+        auto parentId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
+        if (!parentId.has_value() || *parentId == INVALID_ENTITY_ID) {
             return;
         }
 
-        AgeableEntity* parentEntity = *parent;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* parentEntity = (world != nullptr) ? world->getEntity(*parentId) : nullptr;
+        if (parentEntity == nullptr || !parentEntity->isAlive()) {
+            return;
+        }
+
+        AgeableEntity* parent = dynamic_cast<AgeableEntity*>(parentEntity);
+        if (parent == nullptr) {
+            return;
+        }
 
         if (auto* lookCtrl = owner->lookController()) {
             lookCtrl->setLookPositionWithEntity(
-                *parentEntity, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+                *parent, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
         }
 
         if (--m_pathRecalcCounter <= 0) {
             m_pathRecalcCounter = goal::constants::FOLLOW_DELAY_INTERVAL;
 
-            f32 distSq = owner->distanceSqTo(*parentEntity);
+            f32 distSq = owner->distanceSqTo(*parent);
             f32 followDistSq = m_followDistance * m_followDistance;
 
             if (distSq > followDistSq) {
                 auto* navigator = owner->navigator();
                 if (navigator) {
-                    navigator->moveTo(*parentEntity, static_cast<f64>(m_speed));
+                    navigator->moveTo(*parent, static_cast<f64>(m_speed));
                 }
             } else {
                 auto* navigator = owner->navigator();
@@ -842,8 +938,14 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto temptingPlayer = brain.template getMemory<Player*>(MemoryModuleTypes::TEMPTING_PLAYER);
-        return temptingPlayer.has_value() && *temptingPlayer != nullptr && (*temptingPlayer)->isAlive();
+        auto temptingPlayerId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);
+        if (!temptingPlayerId.has_value() || *temptingPlayerId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* playerEntity = (world != nullptr) ? world->getEntity(*temptingPlayerId) : nullptr;
+        return playerEntity != nullptr && playerEntity->isAlive();
     }
 
     bool shouldContinueExecuting(IWorld* world, E* owner, i64 gameTime) override
@@ -853,12 +955,18 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto temptingPlayer = brain.template getMemory<Player*>(MemoryModuleTypes::TEMPTING_PLAYER);
-        if (!temptingPlayer.has_value() || *temptingPlayer == nullptr || !(*temptingPlayer)->isAlive()) {
+        auto temptingPlayerId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);
+        if (!temptingPlayerId.has_value() || *temptingPlayerId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        f32 distSq = owner->distanceSqTo(**temptingPlayer);
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* playerEntity = (world != nullptr) ? world->getEntity(*temptingPlayerId) : nullptr;
+        if (playerEntity == nullptr || !playerEntity->isAlive()) {
+            return false;
+        }
+
+        f32 distSq = owner->distanceSqTo(*playerEntity);
         f32 rangeSq = m_range * m_range;
         return distSq <= rangeSq;
     }
@@ -868,11 +976,14 @@ protected:
         m_pathRecalcCounter = 0;
 
         auto& brain = owner->brain();
-        auto temptingPlayer = brain.template getMemory<Player*>(MemoryModuleTypes::TEMPTING_PLAYER);
-        if (temptingPlayer.has_value() && *temptingPlayer != nullptr) {
-            auto* navigator = owner->navigator();
-            if (navigator) {
-                navigator->moveTo(**temptingPlayer, static_cast<f64>(m_speed));
+        auto temptingPlayerId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);
+        if (temptingPlayerId.has_value() && *temptingPlayerId != INVALID_ENTITY_ID && world != nullptr) {
+            Entity* playerEntity = world->getEntity(*temptingPlayerId);
+            if (playerEntity != nullptr && playerEntity->isAlive()) {
+                auto* navigator = owner->navigator();
+                if (navigator) {
+                    navigator->moveTo(*playerEntity, static_cast<f64>(m_speed));
+                }
             }
         }
     }
@@ -880,12 +991,21 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto temptingPlayer = brain.template getMemory<Player*>(MemoryModuleTypes::TEMPTING_PLAYER);
-        if (!temptingPlayer.has_value() || *temptingPlayer == nullptr) {
+        auto temptingPlayerId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);
+        if (!temptingPlayerId.has_value() || *temptingPlayerId == INVALID_ENTITY_ID) {
             return;
         }
 
-        Player* player = *temptingPlayer;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* playerEntity = (world != nullptr) ? world->getEntity(*temptingPlayerId) : nullptr;
+        if (playerEntity == nullptr || !playerEntity->isAlive()) {
+            return;
+        }
+
+        Player* player = dynamic_cast<Player*>(playerEntity);
+        if (player == nullptr) {
+            return;
+        }
 
         if (auto* lookCtrl = owner->lookController()) {
             lookCtrl->setLookPositionWithEntity(
@@ -918,7 +1038,7 @@ protected:
             navigator->clearPath();
         }
 
-        owner->brain().template removeMemory<Player*>(MemoryModuleTypes::TEMPTING_PLAYER);
+        owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::TEMPTING_PLAYER);
     }
 
 private:

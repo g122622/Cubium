@@ -94,7 +94,7 @@ TEST_F(BreedTaskMemoryTest, RequiresBreedTargetAbsent)
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::BREED_TARGET, MemoryModuleStatus::VALUE_ABSENT));
 
     // 设置 BREED_TARGET 后 → VALUE_ABSENT 不成立
-    brain.setMemory<mc::AgeableEntity*>(MemoryModuleTypes::BREED_TARGET, nullptr);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET, EntityInstanceId(7));
     EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::BREED_TARGET, MemoryModuleStatus::VALUE_ABSENT));
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::BREED_TARGET, MemoryModuleStatus::VALUE_PRESENT));
 }
@@ -150,7 +150,7 @@ TEST_F(BreedTaskTest, ShouldNotExecuteWithEmptyVisibleMobs)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 设置空的可见实体列表
-    brain.setMemory<std::vector<LivingEntity*>>(MemoryModuleTypes::VISIBLE_MOBS, {});
+    brain.setMemory<std::vector<EntityInstanceId>>(MemoryModuleTypes::VISIBLE_MOBS, {});
 
     action::BreedTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -190,7 +190,7 @@ TEST_F(BreedTaskTest, ResetTaskClearsMemories)
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
     // 手动设置 BREED_TARGET 和 WALK_TARGET
-    brain.setMemory<mc::AgeableEntity*>(MemoryModuleTypes::BREED_TARGET, nullptr);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET, EntityInstanceId(7));
     brain.setMemory<memory::WalkTarget>(
         MemoryModuleTypes::WALK_TARGET, memory::WalkTarget(BlockPos(10, 64, 20), 1.0f, 1));
 
@@ -301,7 +301,7 @@ TEST_F(PlayDeadTaskTest, SetsPacifiedAndClearsAttackTarget)
 
     // 设置 PLAY_DEAD_TICKS 和 ATTACK_TARGET
     brain.setMemory<mc::i32>(MemoryModuleTypes::PLAY_DEAD_TICKS, 200);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, nullptr);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, EntityInstanceId(9));
 
     action::PlayDeadTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -449,7 +449,8 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenCoolingDown)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     // 设置冷却记忆
     brain.setMemoryWithTTL<bool>(MemoryModuleTypes::ATTACK_COOLING_DOWN, true, 20);
@@ -476,7 +477,8 @@ TEST_F(KickTaskTest, ShouldExecuteWhenTargetInRangeAndNoCooldown)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f); // 距离1格，在默认2格范围内
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::KickTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -501,7 +503,8 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(10.0f, 64.0f, 0.0f); // 距离10格，超出默认2格范围
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::KickTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -525,7 +528,8 @@ TEST_F(KickTaskTest, SetsCoolingDownAfterKick)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::KickTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -555,7 +559,8 @@ TEST_F(KickTaskTest, IsSingleShotTask)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::KickTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -599,7 +604,8 @@ TEST_F(KickTaskTest, CustomRangeRespected)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.5f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     // 使用1.0格范围（小于1.5格距离）
     action::KickTask<VillagerEntity> shortRangeTask(1.0f, 20);

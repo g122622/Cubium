@@ -93,6 +93,46 @@ public:
      */
     static std::string captureStackTrace(i32 skipFrames = 1, i32 maxFrames = 64);
 
+#ifdef _WIN32
+    /**
+     * @brief 从 SEH 异常上下文捕获调用栈（Windows 专用）
+     *
+     * @param exceptionPointers SEH 的 EXCEPTION_POINTERS（用 void* 避免 hpp 依赖 windows.h）
+     * @param skipFrames 跳过最顶部的帧数
+     * @param maxFrames 最大捕获帧数
+     */
+    static std::string captureStackTraceFromSeh(void* exceptionPointers, i32 skipFrames = 0, i32 maxFrames = 64);
+
+    /**
+     * @brief 安装 C++ 异常抛出点栈捕获器
+     *
+     * 背景：catch 点抓栈时栈已展开，看不到真实抛出位置。本捕获器经
+     * AddVectoredExceptionHandler 在异常分发最前端（栈展开前）被调，
+     * 对 MSVC C++ 异常（0xE06D7363）收集抛出点栈帧地址。
+     *
+     * 仅捕获安装线程（调用本函数的线程）上抛出的异常：其他线程内部 throw/catch
+     * 很常见，不过滤会在致命异常捕获之后、catch 点打印之前覆盖快照导致误报。
+     *
+     * 开销控制：抛出瞬间只做 StackWalk64 帧地址收集（微秒级，无符号化），
+     * 符号化推迟到 lastCppExceptionStackTrace()（catch 点调用一次）。
+     */
+    static void installCppExceptionStackCapture();
+
+    /**
+     * @brief 卸载 C++ 异常抛出点栈捕获器
+     */
+    static void uninstallCppExceptionStackCapture();
+
+    /**
+     * @brief 获取最近一次 C++ 异常的抛出点栈（已符号化）
+     *
+     * 返回最近一次于安装线程抛出的 MSVC C++ 异常（0xE06D7363）抛出瞬间的栈。
+     * 若致命异常直接传播到 catch 点（传播途中无其他 C++ 异常抛出），此栈即该
+     * 异常的真实抛出点栈。未安装捕获器或尚无捕获时返回空串。
+     */
+    [[nodiscard]] static std::string lastCppExceptionStackTrace();
+#endif
+
     /**
      * @brief 是否已安装
      */

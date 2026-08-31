@@ -159,7 +159,8 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenCoolingDown)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(1.0f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     // 设置冷却记忆
     brain.setMemoryWithTTL<bool>(MemoryModuleTypes::ATTACK_COOLING_DOWN, true, 20);
@@ -187,7 +188,8 @@ TEST_F(AttackTaskTest, ShouldExecuteWhenAllConditionsMet)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::AttackTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -213,7 +215,8 @@ TEST_F(AttackTaskTest, SetsCoolingDownAfterAttack)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::AttackTask<VillagerEntity> task(20); // 20 tick 冷却
     mc::math::Random rng(42);
@@ -244,7 +247,8 @@ TEST_F(AttackTaskTest, IsSingleShotTask)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(0.5f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
@@ -273,7 +277,8 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(m_world.get());
     zombie.setPosition(10.0f, 64.0f, 0.0f); // 距离 10 格，超出近战范围
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    m_world->registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     action::AttackTask<VillagerEntity> task;
     mc::math::Random rng(42);
@@ -307,7 +312,8 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
         ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
         zombie.setWorld(m_world.get());
         zombie.setPosition(1.0f, 64.0f, 0.0f);
-        brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+        m_world->registerEntityForLookup(&zombie);
+        brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
         action::AttackTask<VillagerEntity> task;
         mc::math::Random rng(42);
@@ -322,7 +328,8 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
         ZombieEntity zombie3(EntityInstanceId(3), mc::test::testEcsRegistry());
         zombie3.setWorld(m_world.get());
         zombie3.setPosition(1.5f, 64.0f, 0.0f);
-        brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie3);
+        m_world->registerEntityForLookup(&zombie3);
+        brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie3.id());
 
         action::AttackTask<VillagerEntity> task;
         mc::math::Random rng(42);
@@ -397,7 +404,8 @@ TEST_F(AttackTaskIntegrationTest, AttackTaskWithVillagerBrain)
     ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
     zombie.setWorld(&world);
     zombie.setPosition(0.5f, 64.0f, 0.0f);
-    brain.setMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET, &zombie);
+    world.registerEntityForLookup(&zombie);
+    brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     // AttackTask 应可以启动（VillagerEntity 的 Brain 已注册所有需要的记忆模块）
     action::AttackTask<VillagerEntity> task;

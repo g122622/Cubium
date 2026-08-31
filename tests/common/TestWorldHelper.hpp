@@ -142,6 +142,27 @@ public:
     [[nodiscard]] math::Random& getRandom() override { return m_random; }
     [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
 
+    // id 反查：经 registerEntityForLookup 登记的栈/堆实体可被 getEntity(id) 查到。
+    // Brain 实体类记忆（ATTACK_TARGET 等）已改存 EntityInstanceId，消费点经
+    // world->getEntity(id) 反查，测试世界需提供此最小实现。
+    void registerEntityForLookup(Entity* entity)
+    {
+        if (entity != nullptr) {
+            m_lookupEntities[entity->id()] = entity;
+        }
+    }
+
+    [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
+    {
+        auto it = m_lookupEntities.find(id);
+        return it != m_lookupEntities.end() ? it->second : nullptr;
+    }
+    [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override
+    {
+        auto it = m_lookupEntities.find(id);
+        return it != m_lookupEntities.end() ? it->second : nullptr;
+    }
+
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
@@ -160,6 +181,7 @@ protected:
     world::border::WorldBorder m_worldBorder;
     world::gamerule::GameRules m_gameRules;
     mutable math::Random m_random{12345};
+    std::unordered_map<EntityInstanceId, Entity*> m_lookupEntities;
 };
 
 /**

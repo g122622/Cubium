@@ -436,6 +436,141 @@ std::string captureStackTraceFromContext(EXCEPTION_POINTERS* exceptionInfo, i32 
     return oss.str();
 }
 
+std::string CrashHandler::captureStackTraceFromSeh(void* exceptionPointers, i32 skipFrames, i32 maxFrames)
+{
+    return captureStackTraceFromContext(
+        reinterpret_cast<EXCEPTION_POINTERS*>(exceptionPointers), skipFrames, maxFrames);
+}
+
+// ============================================================================
+// C++ 异常抛出点栈捕获器
+// ============================================================================
+
+namespace {
+
+// 目标线程 ID：installCppExceptionStackCapture 调用线程。
+// 仅捕获该线程上抛出的异常，避免覆盖快照。
+DWORD g_captureThreadId = 0;
+
+// 抛出点原始栈帧地址（向量异常处理器在栈展开前被调，此时上下文真实）。
+// 尺寸上限：深栈（tick 循环嵌套）一般 <128 帧，取 200 防截断。
+constexpr std::size_t kMaxCapturedFrames = 200;
+void* g_exceptionFrames[kMaxCapturedFrames];
+WORD g_exceptionFrameCount = 0;
+bool g_captureInstalled = false;
+
+/**
+ * @brief 向量异常处理器：对 MSVC C++ 异常（0xE06D7363）收集抛出点栈帧地址
+ *
+ * StackWalk64 在 x64 下可能跳出真实栈边界，最后一两帧不可靠，
+ * 但前几十帧（定位根因所需）不受影响。
+ */
+LONG WINAPI cppExceptionThrowHandler(EXCEPTION_POINTERS* exceptionInfo)
+{
+    if (exceptionInfo != nullptr && exceptionInfo->ExceptionRecord != nullptr &&
+        exceptionInfo->ExceptionRecord->ExceptionCode == 0xE06D7363 && GetCurrentThreadId() == g_captureThreadId) {
+        // 只做最原始的栈回溯，符号化推迟到 lastCppExceptionStackTrace()
+        CONTEXT context = *exceptionInfo->ContextRecord;
+
+        STACKFRAME64 stackFrame{};
+        stackFrame.AddrPC.Mode = AddrModeFlat;
+        stackFrame.AddrStack.Mode = AddrModeFlat;
+        stackFrame.AddrFrame.Mode = AddrModeFlat;
+#ifdef _M_X64
+        stackFrame.AddrPC.Offset = context.Rip;
+        stackFrame.AddrStack.Offset = context.Rsp;
+        stackFrame.AddrFrame.Offset = context.Rbp;
+        const DWORD machineType = IMAGE_FILE_MACHINE_AMD64;
+#else
+        stackFrame.AddrPC.Offset = context.Eip;
+        stackFrame.AddrStack.Offset = context.Esp;
+        stackFrame.AddrFrame.Offset = context.Ebp;
+        const DWORD machineType = IMAGE_FILE_MACHINE_I386;
+#endif
+
+        HANDLE process = GetCurrentProcess();
+        HANDLE thread = GetCurrentThread();
+        WORD count = 0;
+        while (count < kMaxCapturedFrames &&
+            StackWalk64(machineType,
+                process,
+                thread,
+                &stackFrame,
+                &context,
+                nullptr,
+                SymFunctionTableAccess64,
+                SymGetModuleBase64,
+                nullptr)) {
+            if (stackFrame.AddrPC.Offset == 0) {
+                break;
+            }
+            g_exceptionFrames[count] = reinterpret_cast<void*>(static_cast<DWORD64>(stackFrame.AddrPC.Offset));
+            ++count;
+        }
+        g_exceptionFrameCount = count;
+    }
+
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+} // namespace
+
+void CrashHandler::installCppExceptionStackCapture()
+{
+    if (g_captureInstalled) {
+        return;
+    }
+    if (!s_symInitialized) {
+        initializeSymbols();
+    }
+    g_captureThreadId = GetCurrentThreadId();
+    g_exceptionFrameCount = 0;
+    AddVectoredExceptionHandler(1, cppExceptionThrowHandler);
+    g_captureInstalled = true;
+}
+
+void CrashHandler::uninstallCppExceptionStackCapture()
+{
+    if (!g_captureInstalled) {
+        return;
+    }
+    RemoveVectoredExceptionHandler(reinterpret_cast<void*>(cppExceptionThrowHandler));
+    g_captureInstalled = false;
+}
+
+std::string CrashHandler::lastCppExceptionStackTrace()
+{
+    if (!s_symInitialized) {
+        initializeSymbols();
+    }
+
+    // 一帧一符号化，带行号
+    std::ostringstream oss;
+    HANDLE process = GetCurrentProcess();
+    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(malloc(sizeof(SYMBOL_INFO) + 256));
+    symbol->MaxNameLen = 255;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    for (WORD i = 0; i < g_exceptionFrameCount; ++i) {
+        const DWORD64 addr = reinterpret_cast<DWORD64>(g_exceptionFrames[i]);
+        if (SymFromAddr(process, addr, nullptr, symbol)) {
+            oss << "  [" << std::setw(2) << i << "] " << symbol->Name;
+            IMAGEHLP_LINE64 line;
+            line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+            DWORD displacement;
+            if (SymGetLineFromAddr64(process, addr, &displacement, &line)) {
+                oss << " at " << line.FileName << ":" << line.LineNumber;
+            }
+            oss << "\n";
+        } else {
+            oss << "  [" << std::setw(2) << i << "] " << reinterpret_cast<void*>(addr) << " (no symbol)\n";
+        }
+    }
+
+    free(symbol);
+    return oss.str();
+}
+
 #else // Linux / macOS
 
 std::string CrashHandler::captureStackTrace(i32 skipFrames, i32 maxFrames)

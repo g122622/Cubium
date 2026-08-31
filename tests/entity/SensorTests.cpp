@@ -202,9 +202,8 @@ TEST(BrainMemoryTest, RemoveMemory)
     Brain<MockTestEntity> brain;
     brain.registerMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY);
 
-    // Set and verify
-    LivingEntity* fakeEntity = reinterpret_cast<LivingEntity*>(0x100);
-    brain.setMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY, fakeEntity);
+    // Set and verify（实体类记忆存 id，永不悬垂）
+    brain.setMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY, EntityInstanceId(0x100));
     EXPECT_TRUE(brain.hasMemory(memory::MemoryModuleTypes::HURT_BY_ENTITY));
 
     // Remove

@@ -109,12 +109,20 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        LivingEntity* target = *attackTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* targetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (targetEntity == nullptr || !targetEntity->isAlive()) {
+            return false;
+        }
+        LivingEntity* target = dynamic_cast<LivingEntity*>(targetEntity);
+        if (target == nullptr) {
+            return false;
+        }
 
         // 检查是否手持远程武器（持有可用非近战武器时不进行近战攻击）
         const ItemStack& mainHand = owner->getMainHandItem();
@@ -135,12 +143,20 @@ protected:
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* target = *attackTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* targetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (targetEntity == nullptr || !targetEntity->isAlive()) {
+            return;
+        }
+        LivingEntity* target = dynamic_cast<LivingEntity*>(targetEntity);
+        if (target == nullptr) {
+            return;
+        }
 
         // 面向攻击目标
         if (auto* lookCtrl = owner->lookController()) {
@@ -251,7 +267,7 @@ protected:
         }
 
         // 从可见实体中寻找可交配的伴侣
-        auto* partner = _findValidBreedPartner(owner);
+        auto* partner = _findValidBreedPartner(owner, world);
         if (!partner) {
             return false;
         }
@@ -268,14 +284,21 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto breedTarget = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::BREED_TARGET);
+        auto breedTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET);
 
         // 繁殖目标必须存活
-        if (!breedTarget.has_value() || *breedTarget == nullptr || !(*breedTarget)->isAlive()) {
+        if (!breedTargetId.has_value() || *breedTargetId == INVALID_ENTITY_ID) {
             return false;
         }
 
-        AgeableEntity* partner = *breedTarget;
+        Entity* partnerEntity = (world != nullptr) ? world->getEntity(*breedTargetId) : nullptr;
+        if (partnerEntity == nullptr || !partnerEntity->isAlive()) {
+            return false;
+        }
+        AgeableEntity* partner = dynamic_cast<AgeableEntity*>(partnerEntity);
+        if (partner == nullptr) {
+            return false;
+        }
 
         // 确认双方仍可交配
         auto* animalOwner = dynamic_cast<AgeableEntity*>(owner);
@@ -312,8 +335,8 @@ protected:
 
         auto& brain = owner->brain();
 
-        // 在自身大脑中设置繁殖目标
-        brain.template setMemory<AgeableEntity*>(MemoryModuleTypes::BREED_TARGET, partner);
+        // 在自身大脑中设置繁殖目标（存 id，见 LookAtEntityTask 的 UAF 根治理由）
+        brain.template setMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET, partner->id());
 
         // 面向伴侣并走向对方
         if (auto* lookCtrl = owner->lookController()) {
@@ -332,12 +355,20 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto breedTarget = brain.template getMemory<AgeableEntity*>(MemoryModuleTypes::BREED_TARGET);
-        if (!breedTarget.has_value() || *breedTarget == nullptr) {
+        auto breedTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET);
+        if (!breedTargetId.has_value() || *breedTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        AgeableEntity* partner = *breedTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* partnerEntity = (world != nullptr) ? world->getEntity(*breedTargetId) : nullptr;
+        if (partnerEntity == nullptr || !partnerEntity->isAlive()) {
+            return;
+        }
+        AgeableEntity* partner = dynamic_cast<AgeableEntity*>(partnerEntity);
+        if (partner == nullptr) {
+            return;
+        }
 
         // 面向伴侣
         if (auto* lookCtrl = owner->lookController()) {
@@ -361,7 +392,7 @@ protected:
         auto& brain = owner->brain();
 
         // 清除繁殖目标
-        brain.template removeMemory<AgeableEntity*>(MemoryModuleTypes::BREED_TARGET);
+        brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::BREED_TARGET);
 
         // 清除导航相关记忆
         brain.template removeMemory<memory::WalkTarget>(MemoryModuleTypes::WALK_TARGET);
@@ -383,7 +414,7 @@ private:
      * 在 VISIBLE_MOBS 记忆中搜索同类、发情中的动物。
      * 对应 MC AnimalMakeLove.findValidBreedPartner
      */
-    AgeableEntity* _findValidBreedPartner(E* owner)
+    AgeableEntity* _findValidBreedPartner(E* owner, IWorld* world)
     {
         auto* animal = dynamic_cast<AnimalEntity*>(owner);
         if (!animal) {
@@ -391,17 +422,19 @@ private:
         }
 
         auto& brain = owner->brain();
-        auto visibleMobs = brain.template getMemory<std::vector<LivingEntity*>>(MemoryModuleTypes::VISIBLE_MOBS);
-        if (!visibleMobs.has_value() || visibleMobs->empty()) {
+        auto visibleMobIds = brain.template getMemory<std::vector<EntityInstanceId>>(MemoryModuleTypes::VISIBLE_MOBS);
+        if (!visibleMobIds.has_value() || visibleMobIds->empty()) {
             return nullptr;
         }
 
         // 在可见实体中搜索最近的同类发情伴侣
+        // id 反查 + 存活校验：实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针
         AgeableEntity* closestPartner = nullptr;
         f32 closestDistSq = BREED_DETECTION_RANGE * BREED_DETECTION_RANGE;
 
-        for (auto* mob : *visibleMobs) {
-            if (!mob || !mob->isAlive()) {
+        for (EntityInstanceId mobId : *visibleMobIds) {
+            Entity* mob = (world != nullptr) ? world->getEntity(mobId) : nullptr;
+            if (mob == nullptr || !mob->isAlive()) {
                 continue;
             }
 
@@ -646,7 +679,7 @@ protected:
         brain.template setMemoryWithTTL<bool>(MemoryModuleTypes::PACIFIED, true, m_pacifiedDuration);
 
         // 清除攻击目标
-        brain.template removeMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
+        brain.template removeMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
 
         // 清除导航路径
         auto* navigator = owner->navigator();
@@ -780,13 +813,19 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* target = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (target == nullptr || !target->isAlive()) {
             return false;
         }
 
         // 检查目标是否在踢击范围内
-        f64 distSq = owner->distanceSqTo(**attackTarget);
+        f64 distSq = owner->distanceSqTo(*target);
         return distSq <= static_cast<f64>(m_range * m_range);
     }
 
@@ -799,12 +838,20 @@ protected:
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* target = *attackTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* targetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (targetEntity == nullptr || !targetEntity->isAlive()) {
+            return;
+        }
+        LivingEntity* target = dynamic_cast<LivingEntity*>(targetEntity);
+        if (target == nullptr) {
+            return;
+        }
 
         // 面向攻击目标
         if (auto* lookCtrl = owner->lookController()) {

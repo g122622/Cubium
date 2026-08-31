@@ -57,6 +57,13 @@ public:
      */
     void tick();
 
+    /**
+     * @brief 当前正在 tick 的实例（非 tick 期间为 nullptr）。
+     *
+     * 崩溃诊断用：崩溃/异常捕获时可查询正在执行的测试实例。
+     */
+    [[nodiscard]] const BaseGameTestInstance* currentTicking() const noexcept { return m_currentTicking; }
+
     [[nodiscard]] State state() const noexcept { return m_state; }
     [[nodiscard]] bool isEmpty() const noexcept { return m_instances.empty() && m_clearTasks.empty(); }
     [[nodiscard]] std::size_t instanceCount() const noexcept { return m_instances.size(); }
@@ -67,6 +74,7 @@ private:
     State m_state = State::Idle;
     std::vector<BaseGameTestInstance*> m_instances; // 非拥有，实例由 batch runner 拥有
     std::vector<std::unique_ptr<GameTestClearTask>> m_clearTasks;
+    BaseGameTestInstance* m_currentTicking = nullptr; // 崩溃诊断用：正在 tick 的实例
 };
 
 } // namespace mc::test

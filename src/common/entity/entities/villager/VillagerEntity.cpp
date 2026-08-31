@@ -972,14 +972,19 @@ void VillagerEntity::trySpreadGossip()
         return; // 60秒冷却
     }
 
-    // 从 Brain 获取交互目标
-    auto targetMemory = m_brain->getMemory<LivingEntity*>(ai::brain::memory::MemoryModuleTypes::INTERACTION_TARGET);
-    if (!targetMemory.has_value() || !*targetMemory) {
+    // 从 Brain 获取交互目标（存 id：id 永不悬垂，经 getEntity(id) 反查 + isAlive 校验）
+    auto targetMemory = m_brain->getMemory<EntityInstanceId>(ai::brain::memory::MemoryModuleTypes::INTERACTION_TARGET);
+    if (!targetMemory.has_value() || *targetMemory == INVALID_ENTITY_ID) {
         return;
     }
 
-    LivingEntity* target = *targetMemory;
-    if (!target->isAlive()) {
+    Entity* targetEntity = m_world->getEntity(*targetMemory);
+    if (targetEntity == nullptr || !targetEntity->isAlive()) {
+        return;
+    }
+
+    LivingEntity* target = dynamic_cast<LivingEntity*>(targetEntity);
+    if (target == nullptr) {
         return;
     }
 

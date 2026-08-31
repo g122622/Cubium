@@ -57,10 +57,12 @@ void GameTestTicker::tick()
 
     m_state = State::Running;
 
-    // 推进所有测试实例
+    // 推进所有测试实例；m_currentTicking 记录正在 tick 的实例（崩溃诊断用）
     for (auto* instance : m_instances) {
+        m_currentTicking = instance;
         instance->tick();
     }
+    m_currentTicking = nullptr;
     // 移除已完成的实例（对齐 Java removeIf(isDone)）
     m_instances.erase(
         std::remove_if(

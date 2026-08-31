@@ -392,30 +392,36 @@ protected:
             return false;
         }
 
-        // 优先看向攻击目标
-        auto attackTarget = owner->brain().template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (attackTarget.has_value() && *attackTarget != nullptr && (*attackTarget)->isAlive()) {
-            m_lookTarget = *attackTarget;
-            return true;
+        // 优先看向攻击目标（记忆存 id，反查后校验存活）
+        auto attackTargetId = owner->brain().template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (attackTargetId.has_value() && world != nullptr) {
+            Entity* target = world->getEntity(*attackTargetId);
+            if (target != nullptr && target->isAlive()) {
+                m_lookTargetId = *attackTargetId;
+                return true;
+            }
         }
 
-        // 搜索附近的可见实体
-        auto visibleMobs =
-            owner->brain().template getMemory<std::vector<LivingEntity*>>(MemoryModuleTypes::VISIBLE_MOBS);
-        if (visibleMobs.has_value() && !visibleMobs->empty()) {
+        // 搜索附近的可见实体（VISIBLE_MOBS 存 id 列表）
+        auto visibleMobIds =
+            owner->brain().template getMemory<std::vector<EntityInstanceId>>(MemoryModuleTypes::VISIBLE_MOBS);
+        if (visibleMobIds.has_value() && !visibleMobIds->empty() && world != nullptr) {
             f32 rangeSq = m_range * m_range;
             // 在范围内随机选择一个实体
-            std::vector<LivingEntity*> candidates;
-            for (auto* mob : *visibleMobs) {
-                if (mob && mob->isAlive()) {
-                    f32 distSq = owner->distanceSqTo(*mob);
-                    if (distSq <= rangeSq) {
-                        candidates.push_back(mob);
-                    }
+            std::vector<EntityInstanceId> candidates;
+            for (EntityInstanceId mobId : *visibleMobIds) {
+                // id 反查 + 存活校验：实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针
+                Entity* mob = world->getEntity(mobId);
+                if (mob == nullptr || !mob->isAlive()) {
+                    continue;
+                }
+                f32 distSq = owner->distanceSqTo(*mob);
+                if (distSq <= rangeSq) {
+                    candidates.push_back(mobId);
                 }
             }
             if (!candidates.empty()) {
-                m_lookTarget = candidates[owner->getRandom().nextInt(static_cast<i32>(candidates.size()))];
+                m_lookTargetId = candidates[owner->getRandom().nextInt(static_cast<i32>(candidates.size()))];
                 return true;
             }
         }
@@ -433,7 +439,8 @@ protected:
                     }
                 }
                 if (!livingEntities.empty()) {
-                    m_lookTarget = livingEntities[owner->getRandom().nextInt(static_cast<i32>(livingEntities.size()))];
+                    m_lookTargetId =
+                        livingEntities[owner->getRandom().nextInt(static_cast<i32>(livingEntities.size()))]->id();
                     return true;
                 }
             }
@@ -448,47 +455,58 @@ protected:
             return false;
         }
 
-        if (!m_lookTarget || !m_lookTarget->isAlive()) {
+        if (m_lookTargetId == INVALID_ENTITY_ID) {
             return false;
         }
 
         // 检查目标是否仍在范围内
-        f32 distSq = owner->distanceSqTo(*m_lookTarget);
-        return distSq <= m_range * m_range;
+        if (world != nullptr) {
+            Entity* target = world->getEntity(m_lookTargetId);
+            if (target != nullptr && target->isAlive()) {
+                f32 distSq = owner->distanceSqTo(*target);
+                return distSq <= m_range * m_range;
+            }
+        }
+
+        return false;
     }
 
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
-        if (!m_lookTarget) {
+        if (m_lookTargetId == INVALID_ENTITY_ID || world == nullptr) {
             return;
         }
 
         // 看向目标的眼睛位置
-        if (auto* lookCtrl = owner->lookController()) {
-            lookCtrl->setLookPositionWithEntity(
-                *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        if (Entity* target = world->getEntity(m_lookTargetId); target != nullptr) {
+            if (auto* lookCtrl = owner->lookController()) {
+                lookCtrl->setLookPositionWithEntity(
+                    *target, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+            }
         }
     }
 
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
-        if (!m_lookTarget || !m_lookTarget->isAlive()) {
+        if (m_lookTargetId == INVALID_ENTITY_ID || world == nullptr) {
             return;
         }
 
         // 持续看向目标
-        if (auto* lookCtrl = owner->lookController()) {
-            lookCtrl->setLookPositionWithEntity(
-                *m_lookTarget, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        if (Entity* target = world->getEntity(m_lookTargetId); target != nullptr) {
+            if (auto* lookCtrl = owner->lookController()) {
+                lookCtrl->setLookPositionWithEntity(
+                    *target, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+            }
         }
     }
 
-    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_lookTarget = nullptr; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_lookTargetId = INVALID_ENTITY_ID; }
 
 private:
     f32 m_range;
     f32 m_probability;
-    LivingEntity* m_lookTarget = nullptr;
+    EntityInstanceId m_lookTargetId = INVALID_ENTITY_ID;
 };
 
 /**
@@ -608,13 +626,19 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* target = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (target == nullptr || !target->isAlive()) {
             return false;
         }
 
         // 检查目标是否超出追逐距离
-        f32 distSq = owner->distanceSqTo(**attackTarget);
+        f32 distSq = owner->distanceSqTo(*target);
         return distSq > m_stopDistance * m_stopDistance;
     }
 
@@ -625,13 +649,18 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        Entity* target = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (target == nullptr || !target->isAlive()) {
             return false;
         }
 
         // 超出最大追逐距离时放弃
-        f32 distSq = owner->distanceSqTo(**attackTarget);
+        f32 distSq = owner->distanceSqTo(*target);
         if (distSq > goal::constants::MELEE_ATTACK_STOP_DISTANCE * goal::constants::MELEE_ATTACK_STOP_DISTANCE) {
             return false;
         }
@@ -640,9 +669,9 @@ protected:
         return distSq > m_stopDistance * m_stopDistance;
     }
 
-    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(owner); }
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(world, owner); }
 
-    void updateTask(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(owner); }
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override { _updateWalkAndLookTarget(world, owner); }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
     {
@@ -651,15 +680,23 @@ protected:
     }
 
 private:
-    void _updateWalkAndLookTarget(E* owner)
+    void _updateWalkAndLookTarget(IWorld* world, E* owner)
     {
         auto& brain = owner->brain();
-        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
-        if (!attackTarget.has_value() || *attackTarget == nullptr) {
+        auto attackTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTargetId.has_value() || *attackTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* target = *attackTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* targetEntity = (world != nullptr) ? world->getEntity(*attackTargetId) : nullptr;
+        if (targetEntity == nullptr || !targetEntity->isAlive()) {
+            return;
+        }
+        LivingEntity* target = dynamic_cast<LivingEntity*>(targetEntity);
+        if (target == nullptr) {
+            return;
+        }
 
         // 看向攻击目标
         if (auto* lookCtrl = owner->lookController()) {
@@ -710,13 +747,19 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto avoidTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::AVOID_TARGET);
-        if (!avoidTarget.has_value() || *avoidTarget == nullptr || !(*avoidTarget)->isAlive()) {
+        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
+        if (!avoidTargetId.has_value() || *avoidTargetId == INVALID_ENTITY_ID) {
+            return false;
+        }
+
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr，不再解引用悬垂指针）
+        Entity* threat = (world != nullptr) ? world->getEntity(*avoidTargetId) : nullptr;
+        if (threat == nullptr || !threat->isAlive()) {
             return false;
         }
 
         // 检查威胁是否在检测范围内
-        f32 distSq = owner->distanceSqTo(**avoidTarget);
+        f32 distSq = owner->distanceSqTo(*threat);
         return distSq <= goal::constants::AVOID_DETECTION_RANGE * goal::constants::AVOID_DETECTION_RANGE;
     }
 
@@ -735,19 +778,27 @@ protected:
             navigator->clearPath();
         }
         // 清除逃避目标记忆
-        owner->brain().template removeMemory<LivingEntity*>(MemoryModuleTypes::AVOID_TARGET);
+        owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
     }
 
 private:
     void _setFleeTarget(IWorld* world, E* owner)
     {
         auto& brain = owner->brain();
-        auto avoidTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::AVOID_TARGET);
-        if (!avoidTarget.has_value() || *avoidTarget == nullptr) {
+        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
+        if (!avoidTargetId.has_value() || *avoidTargetId == INVALID_ENTITY_ID) {
             return;
         }
 
-        LivingEntity* threat = *avoidTarget;
+        // id 反查 + 存活校验（实体析构后 getEntity 返回 nullptr）
+        Entity* threatEntity = (world != nullptr) ? world->getEntity(*avoidTargetId) : nullptr;
+        if (threatEntity == nullptr || !threatEntity->isAlive()) {
+            return;
+        }
+        LivingEntity* threat = dynamic_cast<LivingEntity*>(threatEntity);
+        if (threat == nullptr) {
+            return;
+        }
 
         // 使用 RandomPositionGenerator 生成远离威胁的位置
         // TODO: FleeTask 要求 CreatureEntity 类型以使用 RandomPositionGenerator，

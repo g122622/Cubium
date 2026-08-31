@@ -57,23 +57,24 @@ const MemoryModuleType<BlockPos>* MemoryModuleTypes::NEAREST_REPELLENT = nullptr
 const MemoryModuleType<std::vector<GlobalPos>>* MemoryModuleTypes::SECONDARY_JOB_SITE = nullptr;
 
 // ========== 实体列表相关 ==========
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::MOBS = nullptr;
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::VISIBLE_MOBS = nullptr;
-const MemoryModuleType<std::vector<LivingEntity*>>* MemoryModuleTypes::VISIBLE_VILLAGER_BABIES = nullptr;
-const MemoryModuleType<std::vector<Player*>>* MemoryModuleTypes::NEAREST_PLAYERS = nullptr;
-const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_VISIBLE_PLAYER = nullptr;
-const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::ATTACK_TARGET = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::INTERACTION_TARGET = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::HURT_BY_ENTITY = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::AVOID_TARGET = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_HOSTILE = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_ZOMBIFIED = nullptr;
-const MemoryModuleType<AgeableEntity*>* MemoryModuleTypes::BREED_TARGET = nullptr;
-const MemoryModuleType<AgeableEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT = nullptr;
-const MemoryModuleType<Entity*>* MemoryModuleTypes::RIDE_TARGET = nullptr;
-const MemoryModuleType<MobEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS = nullptr;
-const MemoryModuleType<ItemEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM = nullptr;
+// 实体类记忆统一存 EntityInstanceId（id 永不悬垂），消费方经 getEntity(id) 反查。
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::MOBS = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::VISIBLE_MOBS = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::VISIBLE_VILLAGER_BABIES = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::NEAREST_PLAYERS = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_PLAYER = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_TARGETABLE_PLAYER = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::ATTACK_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::INTERACTION_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::HURT_BY_ENTITY = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::AVOID_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_HOSTILE = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_ZOMBIFIED = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::BREED_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::RIDE_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_NEMESIS = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_WANTED_ITEM = nullptr;
 
 // ========== 移动相关 ==========
 const MemoryModuleType<pathfinding::Path>* MemoryModuleTypes::PATH = nullptr;
@@ -110,20 +111,20 @@ const MemoryModuleType<i32>* MemoryModuleTypes::TIME_TRYING_TO_REACH_ADMIRE_ITEM
 const MemoryModuleType<bool>* MemoryModuleTypes::DISABLE_WALK_TO_ADMIRE_ITEM = nullptr;
 
 // ========== 玩家相关 ==========
-const MemoryModuleType<Player*>* MemoryModuleTypes::TEMPTING_PLAYER = nullptr;
-const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTED_ITEM = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::TEMPTING_PLAYER = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_PLAYER_HOLDING_WANTED_ITEM = nullptr;
 
 // ========== UUID 相关 ==========
 const MemoryModuleType<u64>* MemoryModuleTypes::ANGRY_AT = nullptr;
 
 // ========== 猪灵/疣兽相关 ==========
-const MemoryModuleType<HoglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN = nullptr;
-const MemoryModuleType<HoglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN = nullptr;
-const MemoryModuleType<Player*>* MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = nullptr;
-const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* MemoryModuleTypes::NEAREST_ADULT_PIGLINS = nullptr;
-const MemoryModuleType<std::vector<AbstractPiglinEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS = nullptr;
-const MemoryModuleType<std::vector<HoglinEntity*>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS = nullptr;
-const MemoryModuleType<AbstractPiglinEntity*>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_HUNTABLE_HOGLIN = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_BABY_HOGLIN = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::NEAREST_ADULT_PIGLINS = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLINS = nullptr;
+const MemoryModuleType<std::vector<EntityInstanceId>>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_HOGLINS = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::NEAREST_VISIBLE_ADULT_PIGLIN = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::VISIBLE_ADULT_PIGLIN_COUNT = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::VISIBLE_ADULT_HOGLIN_COUNT = nullptr;
 
@@ -143,14 +144,14 @@ const MemoryModuleType<i32>* MemoryModuleTypes::UNHAPPY_COUNTER = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::HOME_HOLDING_TICKS = nullptr;
 const MemoryModuleType<i64>* MemoryModuleTypes::LAST_ATTACKED_BY_PLAYER = nullptr;
 const MemoryModuleType<std::unordered_set<GlobalPos>>* MemoryModuleTypes::DOORS_TO_CLOSE = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::OWNER_HURT_BY = nullptr;
-const MemoryModuleType<LivingEntity*>* MemoryModuleTypes::OWNER_HURT_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::OWNER_HURT_BY = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::OWNER_HURT_TARGET = nullptr;
 const MemoryModuleType<GlobalPos>* MemoryModuleTypes::LIKED_NOTEBLOCK = nullptr;
 const MemoryModuleType<GlobalPos>* MemoryModuleTypes::LISTENING_NOTEBLOCK = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::LIKED_NOTEBLOCK_COOLDOWN_TICKS = nullptr;
 const MemoryModuleType<i32>* MemoryModuleTypes::LISTENING_NOTEBLOCK_COOLDOWN_TICKS = nullptr;
 const MemoryModuleType<BlockPos>* MemoryModuleTypes::TONGUE_TARGET = nullptr;
-const MemoryModuleType<Entity*>* MemoryModuleTypes::RAM_TARGET = nullptr;
+const MemoryModuleType<EntityInstanceId>* MemoryModuleTypes::RAM_TARGET = nullptr;
 const MemoryModuleType<BlockPos>* MemoryModuleTypes::SNIFFER_SNIFFING_TARGET = nullptr;
 const MemoryModuleType<bool>* MemoryModuleTypes::SNIFFER_DIGGING = nullptr;
 
@@ -190,66 +191,69 @@ void MemoryModuleTypes::initialize()
         static_cast<const MemoryModuleType<std::vector<GlobalPos>>*>(s_types["secondary_job_site"].get());
 
     // ========== 实体列表相关 ==========
-    s_types["mobs"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("mobs");
-    MOBS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["mobs"].get());
+    s_types["mobs"] = std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("mobs");
+    MOBS = static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(s_types["mobs"].get());
 
-    s_types["visible_mobs"] = std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("visible_mobs");
-    VISIBLE_MOBS = static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["visible_mobs"].get());
+    s_types["visible_mobs"] = std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("visible_mobs");
+    VISIBLE_MOBS = static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(s_types["visible_mobs"].get());
 
     s_types["visible_villager_babies"] =
-        std::make_unique<MemoryModuleType<std::vector<LivingEntity*>>>("visible_villager_babies");
+        std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("visible_villager_babies");
     VISIBLE_VILLAGER_BABIES =
-        static_cast<const MemoryModuleType<std::vector<LivingEntity*>>*>(s_types["visible_villager_babies"].get());
+        static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(s_types["visible_villager_babies"].get());
 
-    s_types["nearest_players"] = std::make_unique<MemoryModuleType<std::vector<Player*>>>("nearest_players");
-    NEAREST_PLAYERS = static_cast<const MemoryModuleType<std::vector<Player*>>*>(s_types["nearest_players"].get());
+    s_types["nearest_players"] = std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("nearest_players");
+    NEAREST_PLAYERS =
+        static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(s_types["nearest_players"].get());
 
-    s_types["nearest_visible_player"] = std::make_unique<MemoryModuleType<Player*>>("nearest_visible_player");
-    NEAREST_VISIBLE_PLAYER = static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_visible_player"].get());
+    s_types["nearest_visible_player"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_player");
+    NEAREST_VISIBLE_PLAYER =
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_player"].get());
 
     s_types["nearest_visible_targetable_player"] =
-        std::make_unique<MemoryModuleType<Player*>>("nearest_visible_targetable_player");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_targetable_player");
     NEAREST_VISIBLE_TARGETABLE_PLAYER =
-        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_visible_targetable_player"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_targetable_player"].get());
 
-    s_types["attack_target"] = std::make_unique<MemoryModuleType<LivingEntity*>>("attack_target");
-    ATTACK_TARGET = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["attack_target"].get());
+    s_types["attack_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("attack_target");
+    ATTACK_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["attack_target"].get());
 
-    s_types["interaction_target"] = std::make_unique<MemoryModuleType<LivingEntity*>>("interaction_target");
-    INTERACTION_TARGET = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["interaction_target"].get());
+    s_types["interaction_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("interaction_target");
+    INTERACTION_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["interaction_target"].get());
 
-    s_types["hurt_by_entity"] = std::make_unique<MemoryModuleType<LivingEntity*>>("hurt_by_entity");
-    HURT_BY_ENTITY = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["hurt_by_entity"].get());
+    s_types["hurt_by_entity"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("hurt_by_entity");
+    HURT_BY_ENTITY = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["hurt_by_entity"].get());
 
-    s_types["avoid_target"] = std::make_unique<MemoryModuleType<LivingEntity*>>("avoid_target");
-    AVOID_TARGET = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["avoid_target"].get());
+    s_types["avoid_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("avoid_target");
+    AVOID_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["avoid_target"].get());
 
-    s_types["nearest_hostile"] = std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_hostile");
-    NEAREST_HOSTILE = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_hostile"].get());
+    s_types["nearest_hostile"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_hostile");
+    NEAREST_HOSTILE = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_hostile"].get());
 
     s_types["nearest_visible_zombified"] =
-        std::make_unique<MemoryModuleType<LivingEntity*>>("nearest_visible_zombified");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_zombified");
     NEAREST_VISIBLE_ZOMBIFIED =
-        static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["nearest_visible_zombified"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_zombified"].get());
 
-    s_types["breed_target"] = std::make_unique<MemoryModuleType<AgeableEntity*>>("breed_target");
-    BREED_TARGET = static_cast<const MemoryModuleType<AgeableEntity*>*>(s_types["breed_target"].get());
+    s_types["breed_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("breed_target");
+    BREED_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["breed_target"].get());
 
-    s_types["nearest_visible_adult"] = std::make_unique<MemoryModuleType<AgeableEntity*>>("nearest_visible_adult");
+    s_types["nearest_visible_adult"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_adult");
     NEAREST_VISIBLE_ADULT =
-        static_cast<const MemoryModuleType<AgeableEntity*>*>(s_types["nearest_visible_adult"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_adult"].get());
 
-    s_types["ride_target"] = std::make_unique<MemoryModuleType<Entity*>>("ride_target");
-    RIDE_TARGET = static_cast<const MemoryModuleType<Entity*>*>(s_types["ride_target"].get());
+    s_types["ride_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("ride_target");
+    RIDE_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["ride_target"].get());
 
-    s_types["nearest_visible_nemesis"] = std::make_unique<MemoryModuleType<MobEntity*>>("nearest_visible_nemesis");
+    s_types["nearest_visible_nemesis"] =
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_nemesis");
     NEAREST_VISIBLE_NEMESIS =
-        static_cast<const MemoryModuleType<MobEntity*>*>(s_types["nearest_visible_nemesis"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_nemesis"].get());
 
     s_types["nearest_visible_wanted_item"] =
-        std::make_unique<MemoryModuleType<ItemEntity*>>("nearest_visible_wanted_item");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_wanted_item");
     NEAREST_VISIBLE_WANTED_ITEM =
-        static_cast<const MemoryModuleType<ItemEntity*>*>(s_types["nearest_visible_wanted_item"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_wanted_item"].get());
 
     // ========== 移动相关 ==========
     s_types["path"] = std::make_unique<MemoryModuleType<pathfinding::Path>>("path");
@@ -329,13 +333,13 @@ void MemoryModuleTypes::initialize()
         static_cast<const MemoryModuleType<bool>*>(s_types["disable_walk_to_admire_item"].get());
 
     // ========== 玩家相关 ==========
-    s_types["tempting_player"] = std::make_unique<MemoryModuleType<Player*>>("tempting_player");
-    TEMPTING_PLAYER = static_cast<const MemoryModuleType<Player*>*>(s_types["tempting_player"].get());
+    s_types["tempting_player"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("tempting_player");
+    TEMPTING_PLAYER = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["tempting_player"].get());
 
     s_types["nearest_player_holding_wanted_item"] =
-        std::make_unique<MemoryModuleType<Player*>>("nearest_player_holding_wanted_item");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_player_holding_wanted_item");
     NEAREST_PLAYER_HOLDING_WANTED_ITEM =
-        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_player_holding_wanted_item"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_player_holding_wanted_item"].get());
 
     // ========== UUID 相关 ==========
     s_types["angry_at"] = std::make_unique<MemoryModuleType<u64>>("angry_at");
@@ -343,39 +347,39 @@ void MemoryModuleTypes::initialize()
 
     // ========== 猪灵/疣兽相关 ==========
     s_types["nearest_visible_huntable_hoglin"] =
-        std::make_unique<MemoryModuleType<HoglinEntity*>>("nearest_visible_huntable_hoglin");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_huntable_hoglin");
     NEAREST_VISIBLE_HUNTABLE_HOGLIN =
-        static_cast<const MemoryModuleType<HoglinEntity*>*>(s_types["nearest_visible_huntable_hoglin"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_huntable_hoglin"].get());
 
     s_types["nearest_visible_baby_hoglin"] =
-        std::make_unique<MemoryModuleType<HoglinEntity*>>("nearest_visible_baby_hoglin");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_baby_hoglin");
     NEAREST_VISIBLE_BABY_HOGLIN =
-        static_cast<const MemoryModuleType<HoglinEntity*>*>(s_types["nearest_visible_baby_hoglin"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_baby_hoglin"].get());
 
     s_types["nearest_targetable_player_not_wearing_gold"] =
-        std::make_unique<MemoryModuleType<Player*>>("nearest_targetable_player_not_wearing_gold");
-    NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD =
-        static_cast<const MemoryModuleType<Player*>*>(s_types["nearest_targetable_player_not_wearing_gold"].get());
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_targetable_player_not_wearing_gold");
+    NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD = static_cast<const MemoryModuleType<EntityInstanceId>*>(
+        s_types["nearest_targetable_player_not_wearing_gold"].get());
 
     s_types["nearby_adult_piglins"] =
-        std::make_unique<MemoryModuleType<std::vector<AbstractPiglinEntity*>>>("nearby_adult_piglins");
+        std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("nearby_adult_piglins");
     NEAREST_ADULT_PIGLINS =
-        static_cast<const MemoryModuleType<std::vector<AbstractPiglinEntity*>>*>(s_types["nearby_adult_piglins"].get());
+        static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(s_types["nearby_adult_piglins"].get());
 
     s_types["nearest_visible_adult_piglins"] =
-        std::make_unique<MemoryModuleType<std::vector<AbstractPiglinEntity*>>>("nearest_visible_adult_piglins");
-    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<AbstractPiglinEntity*>>*>(
+        std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("nearest_visible_adult_piglins");
+    NEAREST_VISIBLE_ADULT_PIGLINS = static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(
         s_types["nearest_visible_adult_piglins"].get());
 
     s_types["nearest_visible_adult_hoglins"] =
-        std::make_unique<MemoryModuleType<std::vector<HoglinEntity*>>>("nearest_visible_adult_hoglins");
-    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<HoglinEntity*>>*>(
+        std::make_unique<MemoryModuleType<std::vector<EntityInstanceId>>>("nearest_visible_adult_hoglins");
+    NEAREST_VISIBLE_ADULT_HOGLINS = static_cast<const MemoryModuleType<std::vector<EntityInstanceId>>*>(
         s_types["nearest_visible_adult_hoglins"].get());
 
     s_types["nearest_visible_adult_piglin"] =
-        std::make_unique<MemoryModuleType<AbstractPiglinEntity*>>("nearest_visible_adult_piglin");
+        std::make_unique<MemoryModuleType<EntityInstanceId>>("nearest_visible_adult_piglin");
     NEAREST_VISIBLE_ADULT_PIGLIN =
-        static_cast<const MemoryModuleType<AbstractPiglinEntity*>*>(s_types["nearest_visible_adult_piglin"].get());
+        static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["nearest_visible_adult_piglin"].get());
 
     s_types["visible_adult_piglin_count"] = std::make_unique<MemoryModuleType<i32>>("visible_adult_piglin_count");
     VISIBLE_ADULT_PIGLIN_COUNT = static_cast<const MemoryModuleType<i32>*>(s_types["visible_adult_piglin_count"].get());
@@ -431,11 +435,11 @@ void MemoryModuleTypes::initialize()
     DOORS_TO_CLOSE =
         static_cast<const MemoryModuleType<std::unordered_set<GlobalPos>>*>(s_types["doors_to_close_ext"].get());
 
-    s_types["owner_hurt_by"] = std::make_unique<MemoryModuleType<LivingEntity*>>("owner_hurt_by");
-    OWNER_HURT_BY = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["owner_hurt_by"].get());
+    s_types["owner_hurt_by"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("owner_hurt_by");
+    OWNER_HURT_BY = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["owner_hurt_by"].get());
 
-    s_types["owner_hurt_target"] = std::make_unique<MemoryModuleType<LivingEntity*>>("owner_hurt_target");
-    OWNER_HURT_TARGET = static_cast<const MemoryModuleType<LivingEntity*>*>(s_types["owner_hurt_target"].get());
+    s_types["owner_hurt_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("owner_hurt_target");
+    OWNER_HURT_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["owner_hurt_target"].get());
 
     // 1.17+ 扩展
     s_types["liked_noteblock"] = std::make_unique<MemoryModuleType<GlobalPos>>("liked_noteblock");
@@ -458,8 +462,8 @@ void MemoryModuleTypes::initialize()
     s_types["tongue_target"] = std::make_unique<MemoryModuleType<BlockPos>>("tongue_target");
     TONGUE_TARGET = static_cast<const MemoryModuleType<BlockPos>*>(s_types["tongue_target"].get());
 
-    s_types["ram_target"] = std::make_unique<MemoryModuleType<Entity*>>("ram_target");
-    RAM_TARGET = static_cast<const MemoryModuleType<Entity*>*>(s_types["ram_target"].get());
+    s_types["ram_target"] = std::make_unique<MemoryModuleType<EntityInstanceId>>("ram_target");
+    RAM_TARGET = static_cast<const MemoryModuleType<EntityInstanceId>*>(s_types["ram_target"].get());
 
     // 1.19+ Sniffer
     s_types["sniffer_sniffing_target"] = std::make_unique<MemoryModuleType<BlockPos>>("sniffer_sniffing_target");

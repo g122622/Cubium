@@ -98,13 +98,17 @@ public:
 
     /**
      * @brief 获取主人
+     *
+     * owner 存 EntityInstanceId 而非裸指针：主人（唤魔者）死亡析构后裸指针悬垂，
+     * VexCopyOwnerTargetGoal 对其 dynamic_cast 即 UAF 崩溃（no RTTI data）。
+     * id 永不悬垂，析构后 getEntity(id) 返回 nullptr。
      */
-    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
+    [[nodiscard]] LivingEntity* getOwner() const;
 
     /**
      * @brief 设置主人
      */
-    void setOwner(LivingEntity* owner) { m_owner = owner; }
+    void setOwner(LivingEntity* owner);
 
     // ========== 攻击系统 ==========
 
@@ -160,8 +164,8 @@ private:
     bool m_limitedLife = true;
     i32 m_lifeTime = 2400; // 约2分钟
 
-    // 主人
-    LivingEntity* m_owner = nullptr;
+    // 主人（存 id：永不悬垂；经 world->getEntity(id) 反查）
+    EntityInstanceId m_ownerId = INVALID_ENTITY_ID;
 
     // 攻击状态
     bool m_charging = false;
