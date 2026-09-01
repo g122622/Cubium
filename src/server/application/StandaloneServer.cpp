@@ -441,10 +441,25 @@ void StandaloneServer::_mainLoop()
 
             lastTickTime = currentTime;
 
-            // 追踪 TPS
+            // 追踪
             const f64 tps = 1.0 / (std::chrono::duration<f64>(deltaTime).count());
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TPS", static_cast<i64>(tps));
             MC_TRACE_COUNTER(TraceEvents.Server.Tick, "PlayerCount", static_cast<i64>(m_playerManager->playerCount()));
+            i64 totalChunkCount = 0;
+            i64 totalLoadedChunkCount = 0;
+            i64 totalEntityCount = 0;
+            m_dimensionManager->forEachDimension([&](Dimension& dim) {
+                auto* serverDim = static_cast<ServerDimension*>(&dim);
+                auto* world = serverDim->world();
+                if (world) {
+                    totalChunkCount += static_cast<i64>(world->chunkCount());
+                    totalLoadedChunkCount += static_cast<i64>(world->loadedChunkCount());
+                    totalEntityCount += static_cast<i64>(world->entityManager().entityCount());
+                }
+            });
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TotalChunkHolderCount", totalChunkCount);
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TotalLoadedChunkCount", totalLoadedChunkCount);
+            MC_TRACE_COUNTER(TraceEvents.Server.Tick, "TotalEntityCount", totalEntityCount);
 
             // 更新调试统计（批9：EMA 平滑 tick 耗时 + 强制区块计数下沉至基类
             // _updateTickDebugStats，EMA 状态由基类成员 m_smoothedTickTimeMs 跨 tick 保留）
