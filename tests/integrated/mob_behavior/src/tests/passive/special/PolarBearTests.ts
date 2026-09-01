@@ -33,11 +33,11 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 function polarBearRetaliatesWhenAttacked(test: Test): void {
   const polarBearType = "polar_bear";
 
-  // 北极熊 (2,2,3)、Survival 玩家 (5,2,3)，水平距 3 格，同处结构 y=2 层。
-  // 北极熊脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
-  // creeper_pit 开放坑无围墙，北极熊反击寻路通畅。
-  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  // 北极熊 (2,2,3) + Survival 玩家 (5,2,3)，水平距 3 格，同处 grass_pen air 腔 y=2 层。
+  // grass_pen 自带玻璃围墙（helper y=2..4 三层玻璃，结构 y=1..3），把北极熊被玩家近战击退
+  // （-x 方向）后的运动限制在结构内——creeper_pit（无围墙开放坑）下熊被击退弹出结构边界后
+  // 持续下落出世界，AI 虽追击玩家但物理上永远追不到 → 超时失败（同 wolf_retaliates 根因）。
+  // grass_pen y=0 是 grass_block 地板（helper y=1），熊/玩家直接站地板上无需玻璃支撑。
   const bear = test.spawn(polarBearType, { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
 
@@ -51,6 +51,7 @@ function polarBearRetaliatesWhenAttacked(test: Test): void {
   // 时序：玩家攻击(8) + HurtByTargetGoal 设目标 + MeleeAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(6.0)。
   // 北极熊 0.25 速度接近 3 格约需 50+ tick，maxTicks=800 留充裕余量。
   // 玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"（玩家类型带前缀）。
+  // grass_pen 9×5×9，PEN_FROM/PEN_VOLUME 与 PIT_* 同为 (0,0,0) 角点 + 结构尺寸，直接复用。
   test.succeedWhen(() => {
     const players = test.getDimension().getEntities({
       type: "minecraft:player",
@@ -347,7 +348,7 @@ function polarBearNoAggroWithoutCub(test: Test): void {
 
 export function registerPolarBearTests(): void {
   GameTest.register("MobBehaviorTests", "polar_bear_retaliates_when_attacked", polarBearRetaliatesWhenAttacked)
-    .structureName("gametests:creeper_pit")
+    .structureName("gametests:grass_pen")
     .maxTicks(800);
 
   GameTest.register("MobBehaviorTests", "polar_bear_attacks_fox", polarBearAttacksFox)
