@@ -193,6 +193,132 @@ function parrotTogglesSittingWhenTamedTest(test: Test): void {
   });
 }
 
+// 已驯服鹦鹉跟随主人（wiki tech_鹦鹉.txt#行为：已驯服的鹦鹉会跟随主人，主人在远处时鹦鹉会飞过去）。
+//
+// 本测试验证 FollowOwnerGoal（ParrotEntity.cpp:126 注册 FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f)）。
+// 现有测试覆盖驯服与坐下切换，但未覆盖驯服后的跟随行为——这是"goal 已注册且逻辑完整、但现有测试未覆盖"
+// 的典型缺口。
+//
+// C++ 链路（对齐 Java 1.21.11 FollowOwnerGoal，TameableGoals.cpp:65-100）：
+//   1) FollowOwnerGoal::shouldExecute：isTamed() && !isSitting() && getOwner() 非空 &&
+//      distanceTo(owner) > minDistance(5.0) → 返回 true。
+//   2) FollowOwnerGoal::tick：periodically tryMoveTo(owner.x/y/z, speed) 寻路接近主人；
+//      distance > teleportDistance(32) 时 _teleportToOwner() 传送（grass_pen 9×9 对角 ~11 格 < 32，不触发）。
+//   3) shouldContinueExecuting：distance < minDistance 时停止（鹦鹉接近到 ~5 格停）。
+//
+// **关键设计——远程喂食驯服以规避 LandOnOwnersShoulderGoal 抢占**：
+//   鹦鹉驯服后若主人近距，LandOnOwnersShoulderGoal（优先级3，Move flag）会启动，其 tick 检查碰撞箱与
+//   主人相交时调 mountShoulder()，鹦鹉坐肩（m_isSittingOnShoulder=true）。坐肩后 isPreemptible()=false，
+//   FollowOwnerGoal（优先级2，同 Move flag）虽优先级更高却无法抢占（isPreemptedBy 检查 isPreemptible
+//   先返回 false），永不启动。且 Cubium shoulder riding 仅是状态标记未接入位置同步，鹦鹉坐肩后逻辑位置
+//   卡在原地（mountShoulder 只设 m_onShoulder/m_shoulderPlayerId，无 startRiding 位置跟随）。
+//
+//   规避：interactWithEntity 远程触发 interactMob 无距离门控，故让玩家始终站在远距 (1,2,1) 远程喂食驯服
+//   鹦鹉 (7,2,7)（相距 ~8.5 > minDistance=5）。玩家与鹦鹉碰撞箱永不相交 → LandOnOwnersShoulderGoal.tick
+//   的 mountShoulder 永不触发 → m_isSittingOnShoulder 保持 false → isPreemptible=true。
+//   Phase 2 goalUpdate 遍历顺序：FollowOwnerGoal(2) 在 LandOnOwnersShoulderGoal(3) 之前评估——初始 Move
+//   flag 空闲，驯服后 dist>5 使 FollowOwnerGoal::shouldExecute=true 先启动占 Move flag；LandOnOwnersShoulderGoal
+//   后评估时 Move flag 已被同 flag 的 FollowOwnerGoal 占据，且其优先级3 > 2 无法抢占（isPreemptedBy:
+//   3<2=false）→ LandOnOwnersShoulderGoal 不启动。FollowOwnerGoal 独占 Move flag 驱动鹦鹉飞向主人。
+//
+//   注：驯服后继续远程喂食走 interactMob 分支2 toggleSitting 翻转 m_sitting。若 sitting=true 则
+//   FollowOwnerGoal::shouldExecute 的 !isSitting() 检查返回 false 不启动。故须确保鹦鹉站立：
+//   tick 220 兜底检查驯服 + 若 sitting=true 则 interact 一次翻转 false。toggleSitting 同步设 m_sitting
+//   + DATA_FLAGS，下一 GoalSelector 评估（每 2 tick）即生效。tick 230 起轮询跟随。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。鹦鹉会飞，玻璃墙围住不飞出查询区域。
+//   鹦鹉 (7,2,7)（grass_pen 一角，helper y=2→结构 y=1 air，脚踩 y=0 grass_block）。
+//   玩家 (1,2,1)（对角，距鹦鹉 ~8.5 格 > minDistance=5 触发 FollowOwnerGoal）。
+//
+// 判定手段：鹦鹉距玩家水平距离 < 5.5 格（初始 ~8.5 格，跟随后接近到 ~5 停）。FollowOwnerGoal 与
+//   WaterAvoidingRandomFlyingGoal（优先级2 同级）竞争 Move flag——但 WaterAvoidingRandomFlyingGoal
+//   shouldExecute 概率仅 0.1%（chance=0.001），且 FollowOwnerGoal 驯服后持续占 Move flag（shouldContinueExecuting
+//   在 dist>5 时 true），WaterAvoidingRandomFlyingGoal 难以抢占。pollUntilSucceed interval=10 + maxTick=800
+//   捕获"鹦鹉接近玩家"窗口。区域限定排除并行测试污染；type 用 "minecraft:parrot"。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_鹦鹉.txt#行为（已驯服跟随主人）
+// Ref: ParrotEntity.cpp:126（FollowOwnerGoal 注册）/ TameableGoals.cpp:65-100（FollowOwnerGoal 实现）
+function parrotFollowsOwnerWhenTamedTest(test: Test): void {
+  // 鹦鹉 (7,2,7)（grass_pen 一角），玩家 (1,2,1)（对角，距 ~8.5 > minDistance=5）远程喂食驯服。
+  // 远程喂食规避 LandOnOwnersShoulderGoal 坐肩抢占（详见函数头注释）。
+  const parrot = test.spawn(PARROT, { x: 7, y: 2, z: 7 });
+  const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "parrotOwner");
+  const seeds = new ItemStack("minecraft:wheat_seeds", 1);
+  player.setItem(seeds as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 玩家始终在 (1,2,1)，远程喂食触发驯服（interactWithEntity 无距离门控）。
+  const playerPos = test.worldLocation({ x: 1, y: 2, z: 1 });
+
+  // 阶段一：tick 5..210 每 3 tick 远程喂种子驯服（约69次，1/10 概率，69 次内成功率 ~99.93%）。
+  // 创造模式不消耗种子可反复喂。驯服后继续远程喂走分支2 toggleSitting（基线读实际值，阶段二修正）。
+  for (let t = 5; t <= 210; t += 3) {
+    test.runAtTickTime(t, () => {
+      (player as any).interactWithEntity(parrot);
+    });
+  }
+
+  // 阶段二：tick 220 兜底检查驯服 + 确保鹦鹉站立。
+  // 读 sitting 基线，若 sitting===true 则 interact 一次翻转 false（站立）——FollowOwnerGoal 需 !isSitting()。
+  // 若 sitting===false 已站立则不干预。toggleSitting 同步生效，下一 GoalSelector 评估即读取新值。
+  test.runAtTickTime(220, () => {
+    test.assert(isParrotTamed(parrot),
+      `parrot not tamed before follow test (1/10 chance, `
+      + `is_tamed=${isParrotTamed(parrot)} expected true)`);
+    const sitting = isParrotSitting(parrot);
+    if (sitting === true) {
+      (player as any).interactWithEntity(parrot);
+    }
+  });
+
+  // 阶段三：pollUntilSucceed 从 tick 235 轮询鹦鹉距玩家水平距离 < 5.5 格。
+  // 鹦鹉从 (7,2,7) 跟随接近 (1,2,1)，到 minDistance=5 附近停止。初始 ~8.5 格 → 跟随后 <5.5 格。
+  // tick 220→235 留 15 tick 让 toggleSitting 生效 + GoalSelector 评估 + FollowOwnerGoal 首次 tick tryMoveTo。
+  // 轨迹诊断：每 50 tick 采样鹦鹉位置到闭包数组，onTimeout 打印整条轨迹定位"鹦鹉静止/飞走/寻路失败"。
+  const trajectory: string[] = [];
+  for (let t = 250; t <= 800; t += 50) {
+    test.runAtTickTime(t, () => {
+      const parrots = test.getDimension().getEntities({
+        type: "minecraft:parrot",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      if (parrots.length > 0) {
+        const p = parrots[0].location;
+        trajectory.push(`t${t}:(${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)})`);
+      }
+    });
+  }
+  pollUntilSucceed(test, () => {
+    const parrots = test.getDimension().getEntities({
+      type: "minecraft:parrot",
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    if (parrots.length === 0) return false;
+    const dx = parrots[0].location.x - playerPos.x;
+    const dz = parrots[0].location.z - playerPos.z;
+    return dx * dx + dz * dz < 5.5 * 5.5;
+  }, {
+    startTick: 235,
+    interval: 10,
+    maxTick: 820,
+    onTimeout: () => {
+      const parrots = test.getDimension().getEntities({
+        type: "minecraft:parrot",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const pos = parrots.length > 0
+        ? `(${parrots[0].location.x.toFixed(1)},${parrots[0].location.y.toFixed(1)},${parrots[0].location.z.toFixed(1)})`
+        : "gone";
+      const tamed = parrots.length > 0 ? isParrotTamed(parrots[0]) : "gone";
+      const sitting = parrots.length > 0 ? isParrotSitting(parrots[0]) : "gone";
+      test.assert(false,
+        `parrot did not follow owner, parrotPos=${pos} playerPos=(${playerPos.x.toFixed(1)},${playerPos.y.toFixed(1)},${playerPos.z.toFixed(1)}) `
+        + `tamed=${tamed} sitting=${sitting} trajectory=[${trajectory.join(" ")}]`);
+    },
+  });
+}
+
 export function registerParrotTests(): void {
   GameTest.register("MobBehaviorTests", "parrot_tamed_by_seeds", parrotTamedBySeedsTest)
     .structureName("gametests:grass_pen")
@@ -205,4 +331,8 @@ export function registerParrotTests(): void {
   GameTest.register("MobBehaviorTests", "parrot_toggles_sitting_when_tamed", parrotTogglesSittingWhenTamedTest)
     .structureName("gametests:grass_pen")
     .maxTicks(400);
+
+  GameTest.register("MobBehaviorTests", "parrot_follows_owner_when_tamed", parrotFollowsOwnerWhenTamedTest)
+    .structureName("gametests:grass_pen")
+    .maxTicks(900);
 }
