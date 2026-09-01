@@ -270,6 +270,21 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         if (panda == nullptr) {
             return;
         }
+        // 提取事件名（如 "minecraft:aggressive" → "aggressive"）。
+        std::string eventName = normalizedEvent.substr(strlen("minecraft:"));
+
+        // 打喷嚏测试辅助事件：panda<minecraft:sneeze> 立即触发打喷嚏（调 sneeze(true)）。
+        // 对齐 vanilla Panda.sneeze(true)：设 m_sneezing=true + m_sneezeTimer=SNEEZE_DURATION(20)，
+        // 由 PandaEntity::tick 递减驱动 _onSneezeComplete（timer 到 0：播放喷嚏音效+粒子+
+        // 让周围 10 格内成年熊猫跳跃+1/700 掉粘液球）。解锁熊猫打喷嚏链路测试——
+        // 自然触发需 PandaSneezeGoal 1/6000 概率（幼年）命中，测试不可等待随机概率，故用此确定性事件。
+        // 注意：sneeze(true) 在 spawnEvent 派发期（实体已注册到世界但未首 tick）调用，m_sneezing/计时器
+        // 在下一 tick 起 tick() 递减，与自然 PandaSneezeGoal.startExecuting 调 sneeze(true) 等价。
+        if (eventName == "sneeze") {
+            panda->sneeze(true);
+            return;
+        }
+
         // 性格名→主基因值映射（对齐 PandaEntity::Personality 枚举 0-6）。
         static const std::unordered_map<std::string, u8> personalityMap = {
             {"aggressive", static_cast<u8>(mc::PandaEntity::Personality::Aggressive)},
@@ -280,9 +295,7 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
             {"weak", static_cast<u8>(mc::PandaEntity::Personality::Weak)},
             {"brown", static_cast<u8>(mc::PandaEntity::Personality::Brown)},
         };
-        // 提取性格名（如 "minecraft:aggressive" → "aggressive"）。
-        std::string personalityName = normalizedEvent.substr(strlen("minecraft:"));
-        auto it = personalityMap.find(personalityName);
+        auto it = personalityMap.find(eventName);
         if (it != personalityMap.end()) {
             panda->setMainGene(it->second);
             panda->updatePersonalityFromGenes();

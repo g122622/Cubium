@@ -165,6 +165,87 @@ function pandaAggressiveRetaliates(test: Test): void {
   });
 }
 
+// 熊猫打喷嚏使附近成年熊猫跳跃（wiki tech_熊猫.txt#打喷嚏：幼年熊猫有 1/700 概率打喷嚏，打喷嚏时
+//   会喷出粘液球，附近的成年熊猫会被惊得跳起来）。
+//
+// 本测试验证打喷嚏链路 _onSneezeComplete 的"成年熊猫跳跃"副作用——这是打喷嚏完成后唯一确定性的、
+// 可观测的物理效果（掉粘液球仅 1/700 概率，不可测；音效/粒子无 GameTest 断言手段）。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Panda.sneeze + Panda._onSneezeComplete）：
+//   1) sneeze(true) 设 m_sneezing=true + m_sneezeTimer=SNEEZE_DURATION(20)（PandaEntity.cpp:436-447）。
+//   2) PandaEntity::tick 每帧 m_sneezeTimer-- ；timer==19 播 playPreSneezeSound（PandaEntity.cpp:260-266）。
+//   3) timer 递减到 0 时 m_sneezing=false 并调 _onSneezeComplete()（PandaEntity.cpp:268-271）。
+//   4) _onSneezeComplete 遍历自身 boundingBox.expand(10) 内的实体，对其中"成年 && onGround && !inWater"
+//      的 PandaEntity 调 panda->jump()（PandaEntity.cpp:490-501）。jump() 设垂直速度 0.42（JUMP_STRENGTH），
+//      受影响熊猫下一 tick 起离地上升。
+//
+// 确定性触发：自然 PandaSneezeGoal 仅幼年熊猫 1/6000 概率触发（PandaGoals.cpp:142-168），测试不可等待
+//   随机概率。故用 GameTestHelper 新增的 panda<minecraft:sneeze> spawnEvent：spawn 时立即调 sneeze(true)，
+//   绕过 PandaSneezeGoal 的 isChild/概率门控，确定性启动打喷嚏链路。
+//
+// 布局：grass_pen（9×5×9 玻璃围栏）。
+//   - 打喷嚏主体 panda<minecraft:sneeze> 于 (4,2,4)：spawnEvent 派发时 sneeze(true) 设 m_sneezing=true。
+//     isSneezing 时 canPerformAction()=false，所有 goal（含 RandomWalkingGoal）不执行 → 主体静止在地面，
+//     y 恒定。_onSneezeComplete 的 jump 循环用 getEntitiesInAABB(box, this) 排除 this → 主体自身不会被 jump。
+//   - 观察熊猫（成年普通 panda）于 (4,2,6)：距主体 2 格 << 10 格搜索半径，在 jump 候选范围内。
+//     观察熊猫 RandomWalkingGoal 可能让其走动，但不会主动跳跃（普通熊猫无跳跃 goal）→ jump 前 y 在地面。
+//
+// 判定手段：jump() 给观察熊猫 0.42 垂直初速度，y 上升约 12 tick 后回落。pollUntilSucceed 间隔 2 tick
+//   在 sneeze 完成窗口（tick 22-60）持续捕获。断言条件：区域内两只 panda 中 maxY - minY > 0.3
+//   （一只跳起一只在地面）。maxY-minY 判定不依赖哪只是哪只，只需"一只跳起、一只在地面"——
+//   主体静止不跳（y 恒定），观察熊猫 jump 后 y 上升，差异出现。
+//
+// 时序：tick 0 spawn + sneeze(true) → tick 1..20 timer 递减 → tick 20 _onSneezeComplete 调 jump →
+//   tick 21+ 观察熊猫 y 上升。pollUntilSucceed startTick=22（sneeze 完成后），interval=2（捕获窄跳跃窗口），
+//   maxTick=60。maxTicks=100 留余量。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_熊猫.txt#打喷嚏（幼年打喷嚏+成年熊猫惊跳）
+function pandaSneezeMakesNearbyAdultsJump(test: Test): void {
+  const pandaType = "panda";
+
+  // 打喷嚏主体：panda<minecraft:sneeze> spawnEvent 立即调 sneeze(true)。
+  // 主体于 (4,2,4)，isSneezing 期间静止不跳，作"在地面"参考。
+  test.spawn(`${pandaType}<minecraft:sneeze>`, { x: 4, y: 2, z: 4 });
+
+  // 观察熊猫（成年普通 panda）：于 (4,2,6)，距主体 2 格 < 10 格 jump 搜索半径。
+  // 普通熊猫无跳跃 goal，jump 前 y 在地面；jump 后 y 上升。
+  test.spawn(pandaType, { x: 4, y: 2, z: 6 });
+
+  // 区域限定用 PEN（grass_pen 9×5×9）排除并行测试污染。
+  pollUntilSucceed(test, () => {
+    const pandas = test.getDimension().getEntities({
+      type: pandaType,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    if (pandas.length < 2) {
+      return false;
+    }
+    // maxY - minY > 0.3：观察熊猫 jump 后 y 上升，主体 y 恒定 → 差异出现。
+    let minY = pandas[0].location.y;
+    let maxY = minY;
+    for (let i = 1; i < pandas.length; i++) {
+      const y = pandas[i].location.y;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    return maxY - minY > 0.3;
+  }, {
+    startTick: 22,
+    interval: 2,
+    maxTick: 60,
+    onTimeout: () => {
+      const pandas = test.getDimension().getEntities({
+        type: pandaType,
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const ys = pandas.map(p => p.location.y.toFixed(2));
+      test.assert(false,
+        `panda sneeze did not make nearby adult jump, pandaYs=[${ys.join(",")}]`);
+    },
+  });
+}
+
 export function registerPandaTests(): void {
   GameTest.register("MobBehaviorTests", "panda_breeds_when_fed_bamboo", pandaBreedsWhenFedBamboo)
     .structureName("gametests:grass_pen")
@@ -173,4 +254,8 @@ export function registerPandaTests(): void {
   GameTest.register("MobBehaviorTests", "panda_aggressive_retaliates", pandaAggressiveRetaliates)
     .structureName("gametests:grass_pen")
     .maxTicks(800);
+
+  GameTest.register("MobBehaviorTests", "panda_sneeze_makes_nearby_adults_jump", pandaSneezeMakesNearbyAdultsJump)
+    .structureName("gametests:grass_pen")
+    .maxTicks(100);
 }
