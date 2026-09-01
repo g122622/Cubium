@@ -33,10 +33,11 @@
 // 测试覆盖（3 个场景，行为两端一致，可跨服务端对比）：
 //   1. 红石线连红石线（同类）→ east=side。
 //   2. 红石线连拉杆（电源元件 canProvidePower）→ east=side。拉杆用 face=floor 放置（支撑在下方
-//      底层固体），避免默认 face=wall 因支撑在 (4,1,2) air 被 neighborChanged 自毁。
+//      helper y=1 结构内 y'=0 glass 地板固体），避免默认 face=wall 因支撑在结构外 air 被
+//      neighborChanged 自毁。
 //   3. 红石线不连石头（非红石元件，上方无红石线）→ east=none。
 //
-// 测试范式：先放 East 邻位 (4,1,1) 邻居方块，再放 (3,1,1) 红石线 A → A onBlockAdded 同步算 east。
+// 测试范式：先放 East 邻位 (4,2,1) 邻居方块，再放 (3,2,1) 红石线 A → A onBlockAdded 同步算 east。
 // （若先放 A 再放邻居，A 需经 neighborChanged→scheduleBlockTick→tick 重算，走 tick 延迟路径；本文件
 // 用 onBlockAdded 同步路径更稳，pollUntilSucceed 留余量。）
 //
@@ -60,7 +61,14 @@ import type { Test } from "@minecraft/server-gametest";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
-// y=0 为 glass/cobblestone 底，y=1..2 为玻璃墙围出的 air 空腔。方块测试在内部 air 层操作。
+// 结构内布局（结构内坐标 y'，helper y=N 对应结构内 y=N-1，因 placeOrigin 抬高一格）：
+//   结构 y'=0（helper y=1）：满铺 glass 地板（固体）
+//   结构 y'=1,2（helper y=2,3）：外圈圆石/玻璃墙 + 内部 5×5 air 腔（x,z∈[1,5]）
+//   结构 y'=3,4（helper y=4,5）：零散圆石柱
+// 方块测试在内部 air 腔 helper y=2（结构 y'=1）操作，拉杆 face=floor 支撑落在 helper y=1（结构 y'=0
+// glass 地板，固体）——见下方 assertWireConnectsTo 坐标映射说明。
+// 注意 helper y=0 对应结构内 y'=-1（结构外，超平坦草地之上的 air），切勿把需支撑的方块（拉杆/按钮等）
+// 的支撑点落在 helper y=0，否则 neighborChanged 检测到 air 支撑会自毁。
 
 // 取红石线指定方向的连接 state（"none"/"side"/"up"）。返回 null 表示读取失败。
 function getWireConnection(test: Test, x: number, y: number, z: number, dir: string): string | null {
@@ -72,7 +80,15 @@ function getWireConnection(test: Test, x: number, y: number, z: number, dir: str
     return typeof value === "string" ? value : null;
 }
 
-// 通用红石线连接断言：先放 East 邻位 (4,1,1) 邻居方块，再放 (3,1,1) 红石线 A，断言 A east===expected。
+// 通用红石线连接断言：先放 East 邻位 (4,2,1) 邻居方块，再放 (3,2,1) 红石线 A，断言 A east===expected。
+//
+// 坐标用 helper y=2（结构内 y'=1，glass_pit 内部 air 腔），非 helper y=1（结构内 y'=0 glass 地板）。
+// 拉杆 face=floor 的支撑点 = pos.down() = helper (4,1,1) = 结构内 y'=0 = glass 地板（固体），拉杆不自毁。
+// 历史坐标 bug：原用 helper y=1，拉杆 face=floor 支撑点 = helper (4,0,1) = 结构内 y'=-1 = 结构外 air
+// （gridStartY=4，结构方块 origin 在世界 y=4，超平坦草方块 y=3，结构内容从世界 y=5 起，helper y=0
+// 落在世界 y=4 = 草方块上方 air）。LeverBlock::neighborChanged 检测到 air 支撑自毁拉杆，红石线 east
+// 邻位变 air → east=none，致 wire-lever 误判失败（wire-wire/wire-stone 因无支撑需求在 y=1 仍通过，
+// 掩盖了同一坐标映射 bug）。详见 memory gametest-structure-coord-mapping-trap。
 //
 // @param test GameTest Test 对象
 // @param neighborType 邻居方块 typeId
@@ -87,26 +103,27 @@ function assertWireConnectsTo(
     label: string,
     neighborStates?: string,
 ): void {
-    const wirePos = { x: 3, y: 1, z: 1 };
-    const neighborPos = { x: 4, y: 1, z: 1 };
+    const wirePos = { x: 3, y: 2, z: 1 };
+    const neighborPos = { x: 4, y: 2, z: 1 };
 
-    // East 邻位 (4,1,1) 先放邻居方块。先放邻居保证红石线 A 放置时 onBlockAdded 同步算 east 连接。
+    // East 邻位 (4,2,1) 先放邻居方块。先放邻居保证红石线 A 放置时 onBlockAdded 同步算 east 连接。
     // 拉杆等需附着面的方块须用 setBlockWithStates 提供有效支撑方向（如 face=floor 支撑在下方
-    // (4,0,1) 底层固体），否则红石线 A 放置时向拉杆派发 neighborChanged 会因支撑缺失自毁。
+    // (4,1,1) 结构内 y'=0 glass 地板，固体），否则红石线 A 放置时向拉杆派发 neighborChanged 会因
+    // 支撑缺失自毁。
     if (neighborStates !== undefined) {
         test.setBlockWithStates(neighborType, neighborPos, neighborStates);
     } else {
         test.setBlockType(neighborType, neighborPos);
     }
 
-    // (3,1,1) 放红石线 A。onBlockAdded → updatePower → calculateConnections 同步全量重算四方向连接
-    // （含 east）。getConnection(East) 检查 (4,1,1) 邻居类型决定 east=Side/None。
+    // (3,2,1) 放红石线 A。onBlockAdded → updatePower → calculateConnections 同步全量重算四方向连接
+    // （含 east）。getConnection(East) 检查 (4,2,1) 邻居类型决定 east=Side/None。
     test.setBlockType("minecraft:redstone_wire", wirePos);
 
     // 轮询断言 A east === expected。onBlockAdded 同步，pollUntilSucceed 留余量。
     pollUntilSucceed(
         test,
-        () => getWireConnection(test, 3, 1, 1, "east") === expected,
+        () => getWireConnection(test, 3, 2, 1, "east") === expected,
         {
             startTick: 5,
             interval: 4,
@@ -114,7 +131,7 @@ function assertWireConnectsTo(
             onTimeout: () => {
                 test.assert(
                     false,
-                    `${label}: wire east should be ${expected}, got ${getWireConnection(test, 3, 1, 1, "east")}`,
+                    `${label}: wire east should be ${expected}, got ${getWireConnection(test, 3, 2, 1, "east")}`,
                 );
             },
         },
@@ -132,10 +149,10 @@ function redstoneWireConnectsToWire(test: Test): void {
 // 恒 true（LeverBlock.hpp:76-80）→ Side。
 //
 // 拉杆放置用 face=floor（setBlockWithStates）而非默认 face=wall：LeverBlock::neighborChanged
-// （LeverBlock.cpp:97-133）检查支撑方块 isAir，缺失即自毁。默认 attachFace=Wall + facing=North →
-// supportPos = pos + opposite(North)=South = (4,1,2)，glass_pit 内 air → 红石线 A 放置时向拉杆派发
-// neighborChanged 会触发拉杆自毁，导致红石线连 air → east=none。改用 face=floor 使 supportPos =
-// pos.down() = (4,0,1)（glass_pit 底层 glass/cobblestone，非 air），拉杆不自毁，红石线正常连。
+// （LeverBlock.cpp:126-162）检查支撑方块 isAir，缺失即自毁。face=floor 时 supportPos = pos.down()。
+// 红石线 A 在 helper (3,2,1)（结构内 y'=1 air 腔），拉杆在 (4,2,1)，face=floor 支撑点 = (4,1,1) =
+// 结构内 y'=0 glass 地板（固体），拉杆不自毁，红石线正常连。若误用 helper y=1（结构内 y'=0 glass
+// 地板位）放拉杆，face=floor 支撑点 = (4,0,1) = 结构内 y'=-1 结构外 air，拉杆自毁致 east=none。
 // attachFace 不影响 canProvidePower（恒 true），故连接判定 east=side 不变。
 function redstoneWireConnectsToLever(test: Test): void {
     assertWireConnectsTo(test, "minecraft:lever", "side", "wire-lever", "face=floor");
@@ -143,7 +160,7 @@ function redstoneWireConnectsToLever(test: Test): void {
 
 // 红石线不连石头 → east=none。
 // canConnectTo：石头非红石元件，canProvidePower=false，canConnectRedstone=false → 不连。石头
-// isNormalCube=true，但 getConnection 检查其上方 (4,2,1) 无红石线（air）→ 不走 Up → None。
+// isNormalCube=true，但 getConnection 检查其上方 (4,3,1) 无红石线（air）→ 不走 Up → None。
 function redstoneWireDoesNotConnectToStone(test: Test): void {
     assertWireConnectsTo(test, "minecraft:stone", "none", "wire-stone");
 }
