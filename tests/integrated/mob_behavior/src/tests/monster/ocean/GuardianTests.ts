@@ -296,6 +296,114 @@ function guardianLaserDamagesAxolotl(test: Test): void {
   });
 }
 
+// 守卫者尖刺反伤近战攻击者（wiki tech_守卫者.txt#攻击：守卫者被近战攻击时，其身上的尖刺会对攻击者
+// 造成 2 点反弹伤害。这是守卫者区别于普通怪物的防御机制——即使攻击者未被守卫者锁定为目标，
+// 近战命中守卫者也会触发荆棘反伤）。
+//
+// C++ 链路：GuardianEntity::hurt（GuardianEntity.cpp:102-128）对齐 vanilla Guardian.hurtServer:314-320：
+//   if (!isMoving() && !source.is(AVOIDS_GUARDIAN_THORNS) && source.type() != Thorns) {
+//       LivingEntity* attacker = dynamic_cast<LivingEntity*>(source.directSource());
+//       if (attacker && attacker != this) attacker->hurt(DamageSources::thorns(this), 2.0f);
+//   }
+// 三个门控条件：
+//   ① !isMoving()——守卫者须静止。isMoving()（GuardianEntity.cpp:89-100）：moveController() 为 null 或
+//     !isUpdating() 即返 false（静止）；否则查 navigator 是否 noPath()。MovementController::tick 在 MoveTo
+//     分支开头立即把 m_action 设回 Wait，故 tick 末态 isUpdating() 多为 false → isMoving() 多为 false。
+//   ② !source.is(AVOIDS_GUARDIAN_THORNS)——该 tag（DamageTypeTags.cpp:811-819）含 Magic/Thorns/is_explosion
+//     （Fireworks/Explosion/ExplosionPlayer/BadRespawnPoint）。玩家近战是 playerAttack→MobAttack，不在该 tag。
+//   ③ source.type() != Thorns——防反伤链递归（thorns 反伤的 source.type==Thorns 被此门控挡住）。
+// 反伤 source = DamageSources::thorns(this)，directSource 是守卫者本身，amount=2.0。
+//
+// 攻击者选择——Survival 玩家（非僵尸）：
+//   守卫者 targetSelector 谓词（GuardianEntity.cpp:182-214）只放行 Player/Squid/GlowSquid/Axolotl，
+//   **不含 Zombie**，且距离筛选 distSq>9.0 才放行。玩家站守卫者 2 格外（distSq=4<9）会被谓词距离筛选
+//   拒绝（distSq<=9.0 return false，:209），守卫者不激光玩家。故玩家可安全近战守卫者触发尖刺，
+//   不会被激光干扰 HP 断言。继承链无 HurtByTargetGoal/MeleeAttackGoal（MonsterEntity::registerGoals 只
+//   注册 SwimGoal，MonsterEntity.cpp:129-144 注释明确"守卫者等不反击被攻击"），守卫者被攻击后不会
+//   主动伤害玩家（尖刺除外）。
+//
+// isMoving()=false 可靠性保障——1×1 玻璃笼困住守卫者：
+//   守卫者 (3,2,3) 四面 (2,2,3)(4,2,3)(3,2,2)(3,2,4) 玻璃 + 脚下 (3,1,3) 玻璃围成 1×1 笼。守卫者碰撞箱
+//   0.85×0.85×0.85，1×1 笼内无寻路空间，PathNavigator 找不到路径（任何方向皆玻璃阻挡）→ moveController
+//   不进入 MoveTo → isUpdating()=false → isMoving()=false。RandomWalkingGoal 即便激活，getRandomPosition
+//   在全玻璃包围下返回无效位置，shouldExecute 不通过；即便侥幸通过算出路径，_followPath 撞玻璃立即
+//   noPath。故测试窗口内 isMoving() 稳定为 false，尖刺 100% 触发。
+//   守卫者脚下玻璃同时承担重力支撑（MonsterEntity 受重力下落，见 LivingEntity::tick 重力递减）。
+//
+// 判定手段：Survival 玩家每 20 tick attackEntity(守卫者)（满冷却~12.5 tick，每 20 tick 保证满冷却伤害，
+// 范式同 zombie_summons_reinforcement_on_hurt_hard）。每次 hurt 触发尖刺反伤玩家 2.0。玩家满血 20，
+// 首次反伤即 20→18。pollUntilSucceed 每 tick 检查玩家 HP<20（首反伤即满足）。玩家查询区域限定排除
+// 并行测试污染。玩家攻击伤害 1.0（空手 ATTACK_DAMAGE），守卫者 30 HP 需 30 击=600 tick 才死，测试
+// 窗口内守卫者存活持续反伤。
+// 玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验；创造模式 m_abilities.invulnerable 早返回
+// 跳过 hurt，尖刺不触发——须 Survival）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（近战命中守卫者触发尖刺反伤 2.0）
+function guardianThornsReflectsMeleeDamage(test: Test): void {
+  const guardianType = "guardian";
+
+  // 1×1 玻璃笼：守卫者 (3,2,3)，四面玻璃 + 脚下玻璃支撑。
+  // 四面玻璃把守卫者困在 1×1 空间内，PathNavigator 无路径→isMoving()=false→尖刺 100% 触发。
+  // 脚下 (3,1,3) 玻璃承担重力支撑（守卫者受重力下落）。
+  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 2, y: 2, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 2 });
+  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 4 });
+  const guardian = test.spawn(guardianType, { x: 3, y: 2, z: 3 });
+
+  // Survival 玩家 (5,2,3) 距守卫者 2 格（distSq=4<9 被谓词距离筛选拒绝，守卫者不激光玩家）。
+  // 玩家脚下 (5,1,3) 玻璃支撑。attackEntity 不受距离限制（基岩语义 attack can be performed at any
+  // distance，见 ZombifiedPiglinTests/PolarBearTests 同款注释），2 格在交互范围内命中。
+  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
+  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "thornsVictim", 0 as any);
+
+  // 玩家每 20 tick 近战攻击守卫者（满冷却~12.5 tick，每 20 tick 保证满冷却）。
+  // 每次 hurt 触发尖刺反伤玩家 2.0。tick 30 起（留 spawn 注册稳定时间），每 20 tick 至 tick 590。
+  // 玩家攻击伤害 1.0（空手），守卫者 30 HP 需 30 击=约 600 tick 才死，测试窗口内守卫者存活。
+  for (let t = 30; t <= 590; t += 20) {
+    test.runAtTickTime(t, () => {
+      player.attackEntity(guardian);
+    });
+  }
+
+  // 断言玩家被尖刺反伤掉血：pollUntilSucceed 每 tick 检查玩家 HP<20。
+  // 首次反伤（tick 30 首攻→反伤 2.0）即 20→18 满足。startTick=40 留首攻反伤生效时间。
+  // 玩家查询区域限定排除并行测试的玩家污染；type 用 "minecraft:player"。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length === 0) return false;
+    const health = players[0].getComponent("minecraft:health");
+    if (health === undefined) return false;
+    return (health as any).currentValue < 20;
+  }, {
+    startTick: 40,
+    interval: 10,
+    maxTick: 700,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const guardians = test.getDimension().getEntities({
+        type: guardianType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const pHp = players.length > 0
+        ? (players[0].getComponent("minecraft:health") as any)?.currentValue : "gone";
+      const gHp = guardians.length > 0
+        ? (guardians[0].getComponent("minecraft:health") as any)?.currentValue : "gone";
+      test.assert(false,
+        `guardian thorns did not reflect to player (player=${players.length} hp=${pHp}; guardian=${guardians.length} hp=${gHp})`);
+    },
+  });
+}
+
 export function registerGuardianTests(): void {
   GameTest.register("MobBehaviorTests", "guardian_laser_damages_player", guardianLaserDamagesPlayer)
     .structureName("gametests:creeper_pit")
@@ -318,4 +426,8 @@ export function registerGuardianTests(): void {
   GameTest.register("MobBehaviorTests", "guardian_laser_damages_axolotl", guardianLaserDamagesAxolotl)
     .structureName("gametests:open_grass_hall")
     .maxTicks(600);
+
+  GameTest.register("MobBehaviorTests", "guardian_thorns_reflects_melee_damage", guardianThornsReflectsMeleeDamage)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(700);
 }

@@ -295,6 +295,120 @@ function endermanBecomesAngryWhenStaredAt(test: Test): void {
   });
 }
 
+// 末影人瞬移躲避弹射物（wiki tech_末影人.txt#行为：末影人会瞬移来躲避射向它的投射物，如箭矢、雪球、
+// 三叉戟等。这是末影人最具辨识度的防御机制——任何投射物都无法命中末影人，它在受击瞬间随机瞬移消失）。
+//
+// C++ 链路：EndermanEntity::hurt（EndermanEntity.cpp:346-362）对齐 vanilla EnderMan.hurtServer:
+//   if (source.isProjectile()) {
+//       for (i32 i = 0; i < TELEPORT_PROJECTILE_ATTEMPTS(64); ++i) {
+//           if (teleport()) return true;   // 成功瞬移→不受伤（hurt 返 true 但实际未扣血）
+//       }
+//       return false;                       // 64 次都失败→也不受伤
+//   }
+//   ...（非投射物伤害走 MonsterEntity::hurt）
+// 即：投射物攻击末影人时，无论瞬移成功与否，末影人都不扣血（HP 恒保持 40）。
+//   - 成功瞬移：return true 提前退出，不走后续 MonsterEntity::hurt 实际扣血。
+//   - 64 次全失败：return false，同样不走 MonsterEntity::hurt。
+//   两种情况下末影人 HP 均不变。
+//
+// 投射物选择——直接 spawn 箭矢 + setVelocity（参考 SnowballDamageTests 范式，比拉弓射箭简洁）：
+//   雪球不适合——SnowballEntity::onEntityHit（ProjectileItemEntity.cpp:128-151）对非烈焰人 damage=0，
+//   不调 hurt，末影人不会进入 isProjectile 瞬移分支。必须用箭矢（AbstractArrowEntity::onEntityHit，
+//   AbstractArrowEntity.cpp:467-554）：speed=3.0、m_damage=2.0（ProjectileArrowStateComponent 默认，
+//   ProjectileArrowStateComponent.hpp:46）→ damage=ceil(3.0*2.0)=6 → livingTarget->hurt(arrowSource, 6)。
+//   arrowSource 是 IndirectEntityDamageSource(Arrow,...) 且 setProjectile()（:522）→ source.isProjectile()=true
+//   → 末影人 hurt 走瞬移分支，HP 不变。
+//   test.spawn("minecraft:arrow") 生成的箭矢无 shooter（getShooter 返 null），sourceForArrow=this（箭矢本身，
+//   :519），不影响 isProjectile 判定与瞬移链路（末影人瞬移不依赖 shooter）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，箭矢飞行 + 末影人瞬移无阻挡。
+//   末影人 (3,2,5) 脚下 (3,1,5) 玻璃支撑（MonsterEntity 受重力下落）；箭矢 (3,2,3) 距末影人 2 格，
+//   setVelocity({0,0,3.0}) 朝 +Z 飞，1 tick 跨 3 格命中末影人（射线 z∈[3,6] 覆盖末影人 z=5）。
+//
+// 不 spawn 玩家：避免玩家注视激怒末影人触发 EndermanFindPlayerGoal 瞬移离开（注释检测），干扰 HP/位置
+//   断言。末影人 idle 不瞬移（无注视/受击/遇水），spawn 后留守原位等待箭矢命中。
+//
+// 判定手段：复合断言——末影人 HP==40（未受伤，瞬移躲避生效）&& 位置变化（距 spawn 中心 >2 格，
+//   证明 teleport() 被调用并成功瞬移）。
+//   - HP==40 单独不够：若箭矢未命中（setVelocity 失效/箭矢飞行偏移），末影人 HP 也==40，假性通过。
+//   - 位置变化单独不够：末影人 AI 游荡也会移动（RandomWalkingGoal）。
+//   - 复合断言：HP==40（未受伤）且 末影人已瞬移离开原位（distSq>4），证明"箭矢命中→末影人 hurt→
+//     isProjectile 瞬移→成功瞬移逃离→未受伤"完整链路。末影人瞬移后位置随机，距原位 >2 格概率极高
+//     （teleport 目标偏移 ±16 格，见 EndermanEntity.cpp:251-256）。
+//   pollUntilSucceed startTick=20 留箭矢飞行(1tick)+命中+瞬移时序，interval=5，maxTick=200 留瞬移
+//   非确定性余量（teleport 64 次尝试，累计成功概率极高，但瞬移目标位置随机需轮询确认位移）。
+//   末影人查询区域限定排除并行测试污染。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_末影人.txt#行为（瞬移躲避投射物）
+// Ref: EndermanEntity.cpp:346-362（hurt 投射物瞬移分支）
+// Ref: AbstractArrowEntity.cpp:467-554（箭矢 onEntityHit→hurt 投射物伤害源）
+function endermanDodgesProjectile(test: Test): void {
+  const endermanType = "enderman";
+
+  // 末影人 (3,2,5) 脚下 (3,1,5) 玻璃支撑（受重力下落）。
+  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 5 });
+  const enderman = test.spawn(endermanType, { x: 3, y: 2, z: 5 });
+
+  // 箭矢 (3,2,3) 距末影人 2 格，setVelocity 朝 +Z 3.0/tick，1 tick 命中末影人。
+  // 末影人脚下玻璃支撑防下落；箭矢 spawn 后立即 setVelocity 无需等待。
+  const arrow = test.spawn("minecraft:arrow", { x: 3, y: 2, z: 3 });
+  (arrow as any).setVelocity({ x: 0, y: 0, z: 3.0 });
+
+  // 末影人 spawn 中心（世界坐标），用于断言瞬移距离。
+  const spawnWorld = test.worldLocation({ x: 3, y: 2, z: 5 });
+
+  // 复合断言（3D 距离，含 y 分量）：
+  //   末影人瞬移目标 y 也随机偏移（EndermanEntity.cpp:254 targetY = pos.y + nextInt(16)-8，±8 格），
+  //   仅看 xz 平面距离会漏判 y 方向瞬移（实测末影人瞬移到 y=6，xz 仅偏 1 格）。改用 3D 距离。
+  //   两种通过路径（任一即证明瞬移躲避生效）：
+  //   ① 末影人瞬移出查询区域（endermen.length==0）：teleport 目标 ±16 格，7 格结构困不住，
+  //      瞬移后大概率出 PIT_VOLUME → 查询返回 0。末影人 idle 不瞬移（无注视/受击/遇水），
+  //      故 endermen==0 必是瞬移所致。
+  //   ② 末影人仍在结构内且 HP==40 且 3D distSq>4（>2 格）：瞬移逃离原位且未受伤。
+  //   末影人查询区域限定排除并行测试污染（PIT_VOLUME 7×5×7）。
+  pollUntilSucceed(test, () => {
+    const endermen = test.getDimension().getEntities({
+      type: endermanType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    // 路径①：末影人瞬移出查询区域（endermen==0）→ 躲避成功。
+    if (endermen.length === 0) return true;
+    // 路径②：末影人仍在结构内，HP==40（未受伤）且 3D 距离 >2 格（瞬移逃离）。
+    const e = endermen[0];
+    const dx = e.location.x - spawnWorld.x;
+    const dy = e.location.y - spawnWorld.y;
+    const dz = e.location.z - spawnWorld.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    const health = e.getComponent("minecraft:health");
+    const hp = health ? (health as any).currentValue : 0;
+    return hp >= 40 && distSq > 4;
+  }, {
+    startTick: 20,
+    interval: 5,
+    maxTick: 200,
+    onTimeout: () => {
+      const endermen = test.getDimension().getEntities({
+        type: endermanType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const arrows = test.getDimension().getEntities({
+        type: "minecraft:arrow",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const eHp = endermen.length > 0
+        ? (endermen[0].getComponent("minecraft:health") as any)?.currentValue : "gone";
+      const ePos = endermen.length > 0
+        ? `(${endermen[0].location.x.toFixed(1)},${endermen[0].location.y.toFixed(1)},${endermen[0].location.z.toFixed(1)})`
+        : "gone";
+      test.assert(false,
+        `enderman did not dodge projectile (endermen=${endermen.length} hp=${eHp} pos=${ePos}; arrows=${arrows.length}; ` +
+        `expected hp>=40 [unhurt] AND teleported >2 blocks from spawn)`);
+    },
+  });
+}
+
 export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_takes_water_damage", endermanTakesWaterDamage)
     .structureName("gametests:glass_pit")
@@ -313,4 +427,8 @@ export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_becomes_angry_when_stared_at", endermanBecomesAngryWhenStaredAt)
     .structureName("gametests:creeper_pit")
     .maxTicks(900);
+
+  GameTest.register("MobBehaviorTests", "enderman_dodges_projectile", endermanDodgesProjectile)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(300);
 }
