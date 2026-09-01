@@ -88,6 +88,21 @@ public:
     void tick() override;
 
     /**
+     * @brief 村民不自然消失（对齐 vanilla AgeableMob.removeWhenFarAway 默认 false）
+     *
+     * DespawnManager::shouldDespawn 用 canDespawn(distance) 判断是否消失。
+     * MobEntity 默认 return true（距玩家远时消失），但村民应保留在村庄中不自然消失
+     * （对齐 vanilla Villager 继承 AgeableMob，removeWhenFarAway 默认 false）。
+     * 否则 GameTest 中村民距 SimulatedPlayer 超过消失距离会 despawn，
+     * 无法被僵尸杀死触发感染转化转化。
+     */
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
+    {
+        (void)distanceToClosestPlayer;
+        return false;
+    }
+
+    /**
      * @brief 重写死亡回调
      *
      * 村民死亡时释放占用的POI（床位、工作站、聚集点），

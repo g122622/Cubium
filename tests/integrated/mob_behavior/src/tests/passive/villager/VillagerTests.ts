@@ -46,21 +46,26 @@ const PIT_VOLUME = { x: 9, y: 5, z: 9 };
 // 核心难点——确保僵尸能杀死村民：
 //   村民 MOVEMENT_SPEED=0.5 远快于僵尸 0.23，且村民有 AvoidHostileGoal（优先级 1，12 格内发现僵尸主动逃离）。
 //   在开放场地僵尸永远追不上村民，村民也不会被杀死 → 无法触发 die → 无法触发感染转化。
-//   故须用方块把村民困死在僵尸近战范围内，村民无法逃离。
 //
-// 解决方案——1×2 死胡同通道把村民和僵尸困在相邻 1 格：
-//   - 村民 (3,2,3) 在死胡同底，僵尸 (4,2,3) 紧邻 1 格。
-//   - (2,2,3) glass：死胡同底墙（村民 -x 方向，村民被击退撞此墙停下）。
-//   - (5,2,3) glass：通道口（僵尸 +x 方向，防僵尸被击退/随机行走后退离开攻击范围）。
-//   - (3,2,2)(3,2,4)(4,2,2)(4,2,4) glass：两侧 ±z 墙，村民无法侧向逃离。
-//   - 村民被夹在 (2,2,3) 墙与 (4,2,3) 僵尸之间，±z 两侧是墙，AvoidHostileGoal 的 tryMoveTo 朝远离僵尸
-//     方向（-x）但 (2,2,3) 是 glass navigator 走不过去，村民原地不动。僵尸 MeleeAttackGoal 距村民 1 格
-//     （distSq=1.0 ≤ getAttackReachSqr=2.04）在攻击范围内，每 20 tick 攻击一次（ATTACK_DAMAGE=3），
-//     村民 MAX_HEALTH=20，约 7 次攻击（约 140 tick）杀死，die 触发感染转化。
-//   - 封顶 (3,3,3)(4,3,3) stone 遮 canSeeSky 防 daylight cycle 跨入白天时僵尸燃烧致死（燃烧致死伤害源
-//     是 fire 非 zombie，不触发感染）。night batch 初始 dayTime=18000，跑数百 tick 后跨白天，封顶双保险。
+// 围栏方案（1×2 死胡同通道）为何失效：
+//   原用 (2,2,3) glass 挡村民 -x、(5,2,3) glass 挡僵尸 +x、(3,2,2)(3,2,4)(4,2,2)(4,2,4) glass 挡 ±z，
+//   试图把村民困在 (3,2,3) 原地。但实测村民 AvoidHostileGoal 触发后高速逃离（速度 0.5），能穿越/翻越
+//   glass 围栏（碰撞检测在高速逃逸下不阻止穿墙，村民从 (3.5,6,3.5) 一路逃到 (-10,-16,12) 坠出世界），
+//   僵尸永远追不上 → 村民不死 → 不感染。围栏仍保留（限制僵尸漂移 + 双保险），但不依赖它困住村民。
+//   TODO(C++ 碰撞检测): 修复高速实体穿墙后可移除钉点逻辑，改回纯物理围栏。
+//
+// 钉点方案（实测可靠）：每 tick 把村民 teleport 回 (3,2,3) + setVelocity({0,0,0}) 清零速度。
+//   村民无论怎么逃，每 tick 都被拉回攻击范围内，僵尸 MeleeAttackGoal 持续命中（每 20 tick 攻击 3 伤害），
+//   约 7 次（140 tick）杀死村民，die 触发感染转化。teleport(checkForBlocks=false 默认) 强制设位置不经碰撞
+//   检测。钉点 tick 范围 [1,600] 覆盖整个攻击+转化窗口；村民转化后 remove，teleport 对已 remove 实体抛
+//   异常被 try/catch 忽略。
+//
+// canDespawn 修复（C++ 侧）：VillagerEntity 未 override canDespawn(distance)，继承 MobEntity 默认 return true，
+//   DespawnManager 在村民距 SimulatedPlayer 超过消失距离时 remove 村民（不走 die，无感染）。已加 override
+//   return false（对齐 vanilla AgeableMob.removeWhenFarAway 默认 false，村民不自然消失）。
 //
 // 攻击范围公式（MeleeAttackGoal::getAttackReachSqr）：(attackerWidth*2)^2 + targetWidth。
+
 //   僵尸 width=0.6，村民 width=0.6：(1.2)^2 + 0.6 = 1.44 + 0.6 = 2.04。距离 1 格 distSq=1.0 ≤ 2.04 ✓。
 //
 // 判定手段：转化完成后原 villager 消失（remove）+ zombie_villager 出现（通道内）。pollUntilSucceed 轮询：
@@ -91,8 +96,29 @@ function villagerInfectedToZombieVillagerByZombie(test: Test): void {
     test.setBlockType("minecraft:stone", { x: 4, y: 3, z: 3 });
 
     // 村民 (3,2,3) + 僵尸 (4,2,3) 紧邻 1 格，脚下 y=1 grass_block 支撑防下落。
-    test.spawn(zombieType, { x: 4, y: 2, z: 3 });
-    test.spawn(villagerType, { x: 3, y: 2, z: 3 });
+    const zombie = test.spawn(zombieType, { x: 4, y: 2, z: 3 });
+    const villager = test.spawn(villagerType, { x: 3, y: 2, z: 3 });
+    // 村民钉点：每 tick 把村民 teleport 回 (3,2,3) 世界坐标 + 清零速度。
+    // 必要性：村民 MOVEMENT_SPEED=0.5 远快于僵尸 0.23，AvoidHostileGoal 触发后村民会逃离僵尸，
+    // 且村民能穿越/翻越 glass 围栏（碰撞检测在高速逃逸下不阻止穿墙），僵尸永远追不上村民 → 村民
+    // 不死 → 不触发 die → 不感染转化。每 tick teleport 钉住村民在攻击范围内，僵尸 MeleeAttackGoal
+    // 持续命中（每 20 tick 攻击 3 伤害），约 7 次（140 tick）杀死村民，die 触发感染转化。
+    // teleport(checkForBlocks=false 默认) 强制设位置不经碰撞检测，确保钉点可靠。
+    // TODO(C++ 碰撞检测): 村民 AvoidHostileGoal 高速逃逸时穿 glass 墙是碰撞检测缺陷，修复后可移除
+    // 钉点逻辑改回纯物理围栏。钉点 tick 范围 [1, 600] 覆盖整个攻击+转化窗口（villager 转化后 remove
+    // 失效，teleport 对已 remove 实体 no-op）。
+    const villagerPinPos = test.worldLocation({ x: 3, y: 2, z: 3 });
+    for (let t = 1; t <= 600; t += 1) {
+        test.runAtTickTime(t, () => {
+            if ((villager as any).isValid === false || (villager as any).__removed) return;
+            try {
+                (villager as any).teleport(villagerPinPos);
+                (villager as any).setVelocity({ x: 0, y: 0, z: 0 });
+            } catch {
+                // 村民已 remove（感染转化/死亡），teleport 抛异常忽略。
+            }
+        });
+    }
 
     // 创造玩家执行管理命令（permLevel=2）：切 Hard 难度（infectionChance=1.0 确定性转化）。
     const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "operator");
