@@ -290,7 +290,10 @@ protected:
     void onLeaveWater() override;
 
 private:
-    // 跳跃状态
+    // TODO: m_jumping 当前为死代码——DolphinEntity::tick 写入它，但全代码库无任何调用方读取
+    // isJumping()/m_jumping。真正驱动海豚出水的纵向速度由 DolphinJumpGoal::startExecuting 的
+    // setVelocity(0,0.7,0) 直接施加，与此标记无关。待对齐 vanilla Dolphin 跳跃状态语义后
+    // （接入消费方或确认冗余后移除）。
     bool m_jumping = false;
 
     // 宝藏寻找

@@ -303,11 +303,19 @@ void DolphinEntity::tick()
         if (m_swimTimer >= SWIM_JUMP_INTERVAL && canJumpOutOfWater()) {
             math::Random& rng = getRandom();
             if (rng.nextInt(1, JUMP_CHANCE_DENOMINATOR) == 1) {
+                // TODO: m_jumping 当前为死代码——全代码库无任何调用方读取
+                // DolphinEntity::isJumping()/m_jumping（DolphinJumpGoal 也不依赖它）。
+                // 真正驱动海豚出水的纵向速度由 DolphinJumpGoal::startExecuting 的 setVelocity(0,0.7,0)
+                // 直接施加，与此处的 m_jumping 标记无关。此处的随机跳跃计时逻辑（SWIM_JUMP_INTERVAL
+                // + JUMP_CHANCE_DENOMINATOR 概率）疑似未接入 AI 链路的简化实现：vanilla Dolphin
+                // 出水跳跃统一由 DolphinJumpGoal（优先级5）的概率/水位判定驱动，tick 内不应再有
+                // 一套独立的跳跃触发。待对齐 vanilla 后移除此冗余逻辑或接入消费方（如跳跃动画状态）。
                 m_jumping = true;
                 m_swimTimer = 0;
             }
         }
     } else {
+        // TODO: m_jumping 置 false 同为死代码（见上方 if 分支注释），暂保留以待跳跃状态消费方落地。
         m_jumping = false;
     }
 }
