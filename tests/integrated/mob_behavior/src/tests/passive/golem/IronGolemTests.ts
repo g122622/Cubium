@@ -430,6 +430,140 @@ function ironGolemHealedByIronIngot(test: Test): void {
   });
 }
 
+// 铁傀儡保卫村庄——玩家攻击村民后，铁傀儡通过 DefendVillageTargetGoal 锁定玩家反击
+// （wiki tech_铁傀儡.txt#行为：铁傀儡会保护村庄内的村民，攻击威胁村民的敌对生物）。
+//
+// 本测试覆盖 DefendVillageTargetGoal（IronGolemEntity.cpp:123 注册 targetSelector 优先级1，
+// IronGolemGoals.cpp:416-468 实现）——这是铁傀儡的核心职责 goal，但 7 个现有测试无一覆盖。
+// iron_golem_natural_attacks_player_when_hurt 走的是 HurtByTargetGoal(优先级2，受击反击)，
+// 与本测试的 DefendVillageTargetGoal(优先级1，主动保卫) 是**不同的 targetSelector goal**，
+// 两者互补：前者验证"铁傀儡被攻击后反击"，后者验证"村民被攻击后铁傀儡主动保卫"。
+//
+// C++ 链路（DefendVillageTargetGoal::shouldExecute，IronGolemGoals.cpp:423-454）：
+//   1) EntityUtils::findClosestEntity<VillagerEntity>(world, golem.pos, 16.0f) 找 16 格内最近存活村民。
+//   2) nearestVillager->getLastHurtBy() 取该村民的最近攻击者（LivingEntity*）。
+//   3) isSuitableTarget(attacker) 经 TargetGoal::isSuitableTarget→canAttackType→isPlayerCreated 守卫：
+//      自然铁傀儡 isPlayerCreated=false 不走守卫 → canAttackType(PLAYER) 返 true → isSuitableTarget 返 true。
+//   4) 设 m_villageAggressor=attacker + m_target=attacker → 返 true。
+//   5) startExecuting（:456-462）→ setAttackTarget(m_villageAggressor) → 玩家成为 attackTarget。
+//   6) MeleeAttackGoal(优先级1, IronGolemEntity.cpp:102) 驱动铁傀儡攻击玩家。
+//
+// **干扰排除**（关键设计）：
+//   - HurtByTargetGoal(优先级2)：玩家攻击的是**村民**不是铁傀儡，铁傀儡未被攻击，HurtByTargetGoal 不触发。
+//     但 DefendVillageTargetGoal(优先级1) 优先级更高，每 tick 评估 shouldExecute，先于 HurtByTargetGoal 触发。
+//   - NearestAttackableTargetGoal(优先级3)：选 MonsterEntity 子类，不选玩家。DefendVillageTargetGoal(优先级1) 先触发。
+//   - 故铁傀儡反击玩家**只能**来自 DefendVillageTargetGoal（村民 lastHurtBy=player），而非 HurtByTargetGoal。
+//
+// **布局设计**（关键：绕过寻路系统预存 bug）：
+//   Cubium 寻路系统存在预存 bug——PathNavigator::moveTo 返回 true 但实际不移动实体（findPath 返回空 path）。
+//   因此铁傀儡虽有 attackTarget=player 却无法移动接近目标。若玩家距铁傀儡较远（需移动），测试会因
+//   寻路 bug 假阴性失败。解决方案：让玩家紧邻铁傀儡（1 格），铁傀儡 MeleeAttackGoal 无需移动即可直接攻击。
+//
+//   MeleeAttackGoal::tick（MeleeAttackGoal.cpp:166-231）每 tick 调 checkAndPerformAttack(target, distSq)，
+//   只要 distSq <= getAttackReachSqr(target) 即攻击。getAttackReachSqr = (width*2)^2 + targetWidth
+//   （MeleeAttackGoal.cpp:281-288），铁傀儡 width=1.4、玩家 width=0.6 → attackReachSq = (2.8)^2 + 0.6 = 8.44。
+//   铁傀儡(3,2,3) 到玩家(4,2,3) 中心距平方 = 1 <= 8.44，在攻击范围内，无需移动即可攻击。
+//
+//   本测试铁傀儡-玩家几何与已通过的 iron_golem_natural_attacks_player_when_hurt **完全一致**
+//   （铁傀儡(3,2,3) + 玩家(4,2,3) + 玻璃支撑(4,1,3)），已验证此布局下铁傀儡能直接攻击玩家。
+//   唯一区别：本测试额外加一个村民(2,2,3)，让 DefendVillageTargetGoal（而非 HurtByTargetGoal）触发锁敌。
+//
+// 布局（glass_pit 7×5×7，helper 相对坐标）：
+//   - 铁傀儡 (3,2,3)：自然生成（test.spawn，isPlayerCreated=false）。
+//   - 村民 (2,2,3)：距铁傀儡 1 格（< 16 格搜索半径，findClosestEntity 能找到）；距玩家 2 格。
+//   - Survival 玩家 (4,2,3)：脚下 (4,1,3) 放 glass 支撑（防 Survival 玩家下落）。
+//   - 玩家与铁傀儡紧邻 1 格，MeleeAttackGoal 直接攻击不需移动，绕过寻路 bug。
+//
+// 时序：tick 10 玩家 attackEntity(村民) → 村民 hurt → 村民 lastHurtBy=player。
+//   tick 11 起 DefendVillageTargetGoal::shouldExecute 每 tick 评估 → 找到最近村民(2,2,3) →
+//   getLastHurtBy()=player → isSuitableTarget 通过 → setAttackTarget(player)。
+//   MeleeAttackGoal(优先级1) shouldExecute 通过（attackTarget=player）→ tick 中 checkAndPerformAttack
+//   命中（distSq=1 <= 8.44）→ attackEntityAsMob → 玩家受 7~21 伤害，HP<20。
+//
+// 判定手段：pollUntilSucceed 轮询玩家 HP<20（铁傀儡 DefendVillageTargetGoal 反击造伤害）。
+//   startTick=30 留村民被攻击 + DefendVillageTargetGoal 评估 + MeleeAttackGoal 攻击冷却时序。
+//   maxTick=200 留充裕余量（与 iron_golem_natural_attacks_player_when_hurt 同档）。
+//   区域限定查玩家排除并行测试污染；type 用 "minecraft:player"。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_铁傀儡.txt#行为（保护村庄村民）
+// Ref: IronGolemGoals.cpp:416-468（DefendVillageTargetGoal 实现）/ IronGolemEntity.cpp:123（注册优先级1）
+// Ref: MeleeAttackGoal.cpp:281-288（getAttackReachSqr）/ MeleeAttackGoal.cpp:244-257（checkAndPerformAttack）
+function ironGolemDefendsVillagerFromPlayer(test: Test): void {
+  const ironGolemType = "iron_golem";
+  const villagerType = "villager";
+
+  // 自然铁傀儡 (3,2,3)（test.spawn 创建，isPlayerCreated=false，canAttackType(PLAYER) 不走守卫返 true）。
+  // 与 iron_golem_natural_attacks_player_when_hurt 同款铁傀儡坐标，已验证此位置铁傀儡能直接攻击紧邻玩家。
+  test.spawn(ironGolemType, { x: 3, y: 2, z: 3 });
+  // 村民 (2,2,3)：距铁傀儡 1 格（< 16 格搜索半径，findClosestEntity 能找到），被玩家攻击使 lastHurtBy=player。
+  test.spawn(villagerType, { x: 2, y: 2, z: 3 });
+
+  // 玩家脚下 (4,1,3) 放 glass 支撑（glass_pit y=1 air，防 Survival 玩家下落）。
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
+
+  // Survival 玩家 (4,2,3)，紧邻铁傀儡 (3,2,3) 直线 1 格（distSq=1 <= attackReachSq=8.44，MeleeAttackGoal
+  // 直接攻击不需移动，绕过寻路 bug）。距村民 (2,2,3) 2 格（attackEntity 远程命中不受距离限）。gameMode=0=Survival。
+  const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "villagerAttacker", 0 as any);
+
+  // tick 10 玩家攻击村民：留 spawn 注册稳定时间。攻击触发村民 hurt→村民 lastHurtBy=player。
+  test.runAtTickTime(10, () => {
+    const villagers = test.getDimension().getEntities({
+      type: villagerType,
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (villagers.length > 0) {
+      player.attackEntity(villagers[0]);
+    }
+  });
+
+  // 轮询断言玩家 HP<20（铁傀儡 DefendVillageTargetGoal 反击造伤害）。
+  // 攻击 tick 10，DefendVillageTargetGoal 评估 + MeleeAttackGoal 攻击约 tick 30-80，maxTick=200 留余量。
+  pollUntilSucceed(test, () => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    if (players.length === 0) return false;
+    const health = players[0].getComponent("minecraft:health");
+    if (health === undefined) return false;
+    return (health as any).currentValue < 20;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 200,
+    onTimeout: () => {
+      const players = test.getDimension().getEntities({
+        type: "minecraft:player",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const villagers = test.getDimension().getEntities({
+        type: villagerType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const golems = test.getDimension().getEntities({
+        type: ironGolemType,
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const hp = players.length > 0
+        ? (players[0].getComponent("minecraft:health") as any)?.currentValue
+        : "player gone";
+      const villagerHp = villagers.length > 0
+        ? (villagers[0].getComponent("minecraft:health") as any)?.currentValue
+        : "villager gone";
+      const golemPos = golems.length > 0
+        ? `(${golems[0].location.x.toFixed(1)},${golems[0].location.y.toFixed(1)},${golems[0].location.z.toFixed(1)})`
+        : "golem gone";
+      test.assert(false,
+        `iron_golem did not defend villager from player (DefendVillageTargetGoal broken), ` +
+        `player hp=${hp}, villager hp=${villagerHp}, golem=${golems.length}@${golemPos}`);
+    },
+  });
+}
+
 export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_arena", ironGolemArena)
     .batch("night")
@@ -459,4 +593,8 @@ export function registerIronGolemTests(): void {
   GameTest.register("MobBehaviorTests", "iron_golem_healed_by_iron_ingot", ironGolemHealedByIronIngot)
     .structureName("gametests:glass_pit")
     .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "iron_golem_defends_villager_from_player", ironGolemDefendsVillagerFromPlayer)
+    .structureName("gametests:glass_pit")
+    .maxTicks(300);
 }
