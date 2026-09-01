@@ -4,6 +4,7 @@ import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
 import { ItemStack } from "@minecraft/server";
 import { pollUntilSucceed } from "../../../utils/test/poll.js";
+import { setSweetBerryBush } from "../../../utils/block/sweetBerryBush.js";
 
 // grass_pen 结构尺寸（9×5×9），helper 相对坐标。
 // 用于 getEntities 的区域限定查询：location 取 (0,0,0) 角点，volume 取结构尺寸。
@@ -646,6 +647,102 @@ function foxEatsPoisonousFood(test: Test): void {
   });
 }
 
+// 狐狸采摘甜浆果丛浆果（wiki tech_狐狸.txt#行为：狐狸会寻找并吃掉甜浆果丛上的浆果，
+//   采摘后灌木 AGE 重置为 1，狐狸获得浆果叼在嘴里）。
+//
+// 本测试覆盖 FoxEatBerriesGoal（FoxEntity.cpp:637 注册优先级10，FoxGoals.cpp:597-871）——
+// 现有 7 个狐狸测试覆盖了受击反击/喂鱼/海豚恩惠/跳跃/攻击鸡兔/逃离狼/拾取物品/繁殖/吃毒食物，
+// 但 FoxEatBerriesGoal（狐狸主动采摘甜浆果丛）这条 goal 链路从未被测试覆盖，是典型缺口。
+//
+// C++ 链路（FoxEatBerriesGoal，FoxGoals.cpp:597-871）：
+//   1) shouldExecute（:606-618）：!isSleeping() + !isHoldingItem() + _searchForTarget()。
+//      _searchForTarget（:837-862）以狐狸脚为中心螺旋搜索 searchRange=12 × verticalSearchRange=2 范围内
+//      的方块，_isValidTarget 命中即设 m_targetPos 返回 true。
+//   2) _isValidTarget（:696-717）：方块是 SWEET_BERRY_BUSH 且 getAge>=2（AGE 2 或 3 有浆果可采）。
+//   3) startExecuting（:640-648）：m_eatTimer=0 + m_reached=false + setSitting(false) + _moveToTarget()
+//      导航到目标方块（tryMoveTo targetPos, speed=1.2）。
+//   4) tick（:658-694）：distSqTo(targetPos+0.5) <= REACH_DISTANCE_SQ(2.0) 时 m_eatTimer++，
+//      达 EAT_DURATION(40) 时调 _eatBerry()；未达则 5% 概率播嗅探音 + 1/40 概率重新导航。
+//   5) _eatBerry（:719-743）：mobGriefing 检查 + 取目标方块 state → _pickSweetBerries(state)。
+//   6) _pickSweetBerries（:745-791）：计算掉落数 berryCount=1+rand(0..1)+(fullyGrown?1:0)；
+//      若主手空 → setHeldItem(SWEET_BERRIES,1) + berryCount--；剩余 berryCount>0 → ItemDropHelper.spawnItemEntity
+//      掉落甜浆果；播 BLOCK_SWEET_BERRY_BUSH_BREAK 音；withAge(state,1) + setBlockState(targetPos,&newState,2)
+//      把灌木 AGE 重置为 1（采摘后留幼苗）。
+//
+// flag 抢占核查（FoxEntity.cpp registerGoals）：
+//   FoxEatBerriesGoal(优先级10, flag={Move})。抢占 Move 的高优先级 goal：
+//     - FoxSleepGoal(优先级7, canFoxStart=isDaytime&&hasShelter)：白天睡眠占 Move flag 阻塞 EatBerriesGoal。
+//     - FoxFindShelterGoal(优先级6, canFoxStart=isDaytime&&hasShelter)：白天躲阳光占 Move flag。
+//   用 batch("night") 夜晚 isDaytime()=false 规避两者；skyAccess(true) 露天使 canSeeSky=true→hasShelter=false
+//   双保险。night batch 下 FoxSleepGoal/FoxFindShelterGoal 均不触发，FoxEatBerriesGoal(优先级10) 是最高可执行
+//   占 Move 的 goal（优先级9 RandomWalkingGoal 也占 Move 但优先级低于10故被 EatBerriesGoal 抢占）。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围墙草地）。
+//   grass_pen helper-y=1 是结构内 y=0 grass_block 草地地板；helper-y=2 是 air（放灌木层）；helper-y=3 是 air（狐狸 spawn 位）。
+//   甜浆果灌木需种在草地/泥土上（canSustain 检查 BlockTags::VALID_SWEET_BERRY_BUSH_GROUND 含 grass_block），
+//   灌木放 helper-y=2，下方 helper-y=1 是 grass_pen 草地，支撑通过。
+//   setSweetBerryBush 跨服务端放置（Cubium age=3 / 基岩 growth=3，值域一致）。
+//
+// 布局：在 helper-y=2 放 3 丛 age=3（满果）甜浆果灌木（x=3,4,5, z=4 一行），下方 helper-y=1 草地支撑。
+//   狐狸 spawn 在 (1,3,4)，落到草地顶。FoxEatBerriesGoal 螺旋搜索 searchRange=12 能覆盖灌木（距狐狸 2-4 格）。
+//   多丛灌木提高狐狸采摘概率（单丛灌木采摘后 age→1，_isValidTarget(age>=2) 失效，goal 停止；多丛让 goal
+//   可重复触发采摘多丛）。
+//
+// 判定手段：pollUntilSucceed 轮询区域内任一甜浆果灌木 age==1（采摘后重置为 1）。
+//   初始 age=3，狐狸采摘后 withAge(state,1) 把 age 重置为 1。getBlock().permutation.getState("age") 读 age。
+//   任一灌木 age==1 即证明 FoxEatBerriesGoal 采摘链路生效。
+// 时序：狐狸 spawn + FoxEatBerriesGoal shouldExecute(1/10 概率 + 螺旋搜索) + _moveToTarget 导航靠近 +
+//   tick 累积 m_eatTimer 达 EAT_DURATION(40) + _eatBerry 采摘。导航 + 等待 40 tick 约 60-100 tick，
+//   但 shouldExecute 1/10 概率 + 1/40 重新导航随机性主导，maxTick 留充裕余量。
+//   区域限定排除并行测试污染；type 用 "minecraft:fox"（采摘判定查方块不查实体，但 onTimeout 诊断查狐狸位置）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#行为（寻找并吃掉甜浆果丛浆果）
+// Ref: FoxGoals.cpp:597-871（FoxEatBerriesGoal 实现）/ FoxEntity.cpp:637（注册优先级10）
+function foxEatsSweetBerriesFromBush(test: Test): void {
+  const foxType = "fox";
+
+  // 在 helper-y=2 放 3 丛 age=3（满果）甜浆果灌木（x=3,4,5, z=4 一行）。下方 helper-y=1 草地支撑。
+  // setSweetBerryBush 跨服务端放置（Cubium age=3 / 基岩 growth=3）。
+  setSweetBerryBush(test, { x: 3, y: 2, z: 4 }, 3);
+  setSweetBerryBush(test, { x: 4, y: 2, z: 4 }, 3);
+  setSweetBerryBush(test, { x: 5, y: 2, z: 4 }, 3);
+
+  // 狐狸 spawn 在 (1,3,4)，落到草地顶。FoxEatBerriesGoal 螺旋搜索 searchRange=12 覆盖灌木（距狐狸 2-4 格）。
+  test.spawn(foxType, { x: 1, y: 3, z: 4 });
+
+  // 轮询：任一甜浆果灌木 age==1（采摘后重置为 1）。
+  pollUntilSucceed(test, () => {
+    for (const bx of [3, 4, 5]) {
+      const block = test.getBlock({ x: bx, y: 2, z: 4 });
+      if (block === undefined) continue;
+      const age = (block as any).permutation?.getState("age");
+      if (age === 1) {
+        return true;
+      }
+    }
+    return false;
+  }, {
+    startTick: 10,
+    interval: 10,
+    maxTick: 1300,
+    onTimeout: () => {
+      const foxes = test.getDimension().getEntities({
+        type: "minecraft:fox",
+        location: test.worldLocation(PEN_FROM),
+        volume: PEN_VOLUME,
+      });
+      const foxPos = foxes.length > 0
+        ? `(${foxes[0].location.x.toFixed(1)},${foxes[0].location.y.toFixed(1)},${foxes[0].location.z.toFixed(1)})`
+        : "gone";
+      const ages = [3, 4, 5].map(bx => {
+        const b = test.getBlock({ x: bx, y: 2, z: 4 });
+        return b ? (b as any).permutation?.getState("age") : "?";
+      });
+      test.assert(false,
+        `fox did not eat sweet berries from bush (fox=${foxes.length}@${foxPos}; bush ages=${JSON.stringify(ages)}, expected at least one age=1)`);
+    },
+  });
+}
+
 export function registerFoxTests(): void {
   GameTest.register("MobBehaviorTests", "fox_immune_to_sweet_berry_bush", foxImmuneToSweetBerryBush)
     .structureName("gametests:grass_pen")
@@ -707,4 +804,15 @@ export function registerFoxTests(): void {
     .structureName("gametests:open_grass_hall")
     .skyAccess(true)
     .maxTicks(2100);
+
+  GameTest.register("MobBehaviorTests", "fox_eats_sweet_berries_from_bush", foxEatsSweetBerriesFromBush)
+    // batch("night") + skyAccess(true)：夜晚规避 FoxSleepGoal(白天睡眠)/FoxFindShelterGoal(白天躲阳光)
+    // 占 Move flag 阻塞 FoxEatBerriesGoal(优先级10)。skyAccess 露天使 hasShelter=false 双保险。
+    // grass_pen（9×5×9）：3 丛 age=3 甜浆果灌木放 helper-y=2，下方草地支撑。
+    // maxTicks=1400：FoxEatBerriesGoal shouldExecute(1/10概率+螺旋搜索)+导航靠近+40tick采摘延迟，
+    // pollUntilSucceed maxTick=1300 留余量 < 测试 maxTicks，避免测试先 ExecutionTimeout。详见测试函数注释。
+    .batch("night")
+    .structureName("gametests:grass_pen")
+    .skyAccess(true)
+    .maxTicks(1400);
 }
