@@ -109,9 +109,23 @@ import type { Test } from "@minecraft/server-gametest";
 import { BlockPermutation } from "@minecraft/server";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
-const FARMLAND = { x: 3, y: 0, z: 3 };
-const CROP = { x: 3, y: 1, z: 3 };
-const GLOWSTONE = { x: 4, y: 1, z: 3 };
+// 作物放置坐标（helper 相对坐标，原点=结构方块=世界 gridStartY=4）。
+// light_box 是 7×7×7 密封石盒：结构内 y=0 满铺 stone 地板，y=1-5 外圈 stone+中心 5×5 air 腔，
+// y=6 满铺 stone 封顶。结构内 (0,0,0) 放在 placeOrigin=origin+(0,1,0)（世界 y=5），
+// 故 helper y=N 对应结构内 y=N-1：
+//   helper y0 = 世界 y=4 = flat 地表 grass_block 上方 air（盒外！露天，skyLight 受石墙遮挡=11）
+//   helper y1 = 结构 y=0 = stone 地板（opacity=15 挡光）
+//   helper y2 = 结构 y=1 = 盒内底 air（skyLight=0，被 y1 地板隔开盒外光源 + y7 封顶挡天空光）
+//   helper y3-y6 = 结构 y=2-5 = 盒内 air 腔
+//   helper y7 = 结构 y=6 = stone 封顶
+// 作物必须放在盒内 air 腔（helper y2+），且 farmland 下方须是 stone 地板（helper y1）隔开盒外光源。
+// 故 FARMLAND=helper y2（盒内底 air，下方 y1 stone 地板挡盒外光），CROP=helper y3（盒内 air）。
+// 历史 bug：原坐标 FARMLAND=y0/CROP=y1 把 farmland 放在盒外 flat 地表（skyLight=11），
+// wheat 放在 stone 地板位，盒外 11 级光经 farmland(opacity=0) 向上传入盒内形成 y1=10→y6=5 梯度，
+// 致 crop_does_not_grow_in_dark 误判（黑暗环境不成立，作物生长）。
+const FARMLAND = { x: 3, y: 2, z: 3 };
+const CROP = { x: 3, y: 3, z: 3 };
+const GLOWSTONE = { x: 4, y: 3, z: 3 };
 
 // 调高 randomTickSpeed 使作物格在数 tick 内被随机刻确定性命中。
 // 1000 使单格每 tick 命中概率≈24.4%，120 tick 内至少命中一次概率≈100%。light_box 石墙隔离 +
@@ -144,7 +158,7 @@ function getCropAge(test: Test): number | undefined {
 // 调高 randomTickSpeed 后等待足够 tick，断言 age===0（门槛拦截所有 randomTick 生长尝试）。
 // 守卫：作物处 blockLight===0 && skyLight===0 确认黑暗环境成立（仅 Cubium 侧判定）。
 function cropDoesNotGrowInDark(test: Test): void {
-    test.assert(placeCrop(test, "minecraft:wheat"), "wheat should be placed at (3,1,3)");
+    test.assert(placeCrop(test, "minecraft:wheat"), "wheat should be placed at CROP");
 
     // 调高 randomTickSpeed 使作物格被随机刻确定性命中（SimulatedPlayer 创造模式权限2 执行 /gamerule）。
     // 不 assert chat 返回值：Cubium chat 返回 int，基岩 chat 返回 void 语义不同，基岩侧 one-sided。
@@ -192,7 +206,7 @@ function cropDoesNotGrowInDark(test: Test): void {
 // 验证 CROP_GROWTH_LIGHT_THRESHOLD=9 门槛下界：光照≥9 时 randomTick 按概率增长 age。
 // 同时作为测试1 randomTickSpeed 调高生效的旁证（默认 speed=3 时短时间单株难生长）。
 function cropGrowsInLight(test: Test): void {
-    test.assert(placeCrop(test, "minecraft:wheat"), "wheat should be placed at (3,1,3)");
+    test.assert(placeCrop(test, "minecraft:wheat"), "wheat should be placed at CROP");
     test.setBlockType("minecraft:glowstone", GLOWSTONE);
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
