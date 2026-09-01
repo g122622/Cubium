@@ -295,21 +295,28 @@ function enderPearlTeleportDealsDamageTest(test: Test): void {
 // 经验瓶投掷落地生成经验球对齐测试（验证 ExperienceBottleEntity::onImpact 生成 experience_orb）。
 //
 // wiki 参考 tech_附魔之瓶.txt（经验瓶）：投掷落地破裂生成 3-11 点经验的经验球（experience_orb 实体）。
-// ExperienceBottleEntity::onImpact（ProjectileItemEntity.cpp:459）rng.nextInt(3,11) 个 ExperienceOrbEntity
+// ExperienceBottleEntity::onImpact（ProjectileItemEntity.cpp:726）rng.nextInt(3,11) 个 ExperienceOrbEntity
 // + setPosition 散开 + spawnEntity。经验瓶是 ThrowableItem 子类（onItemRightClick 投掷生成 experience_bottle
 // 实体 + 非创造 shrink 消耗），区别雪球/鸡蛋的命中效果——经验瓶落地必生成经验球（确定性，数量随机但 >=3）。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）。Survival 玩家 (1,2,3) 持1经验瓶，默认朝 +Z 投掷。
+// 环境选择：creeper_pit（7×5×7 开放坑）。Survival 玩家 (1,2,3) 持1经验瓶，
+// lookAtLocation({x:1,y:0,z:3}) 朝正下方投掷（pitch=90° → vel=(0,-1.5,0) 垂直下落）。
+// 朝正下方投掷而非水平投掷：水平投掷经验瓶飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，
+// onImpact 不触发，经验球不生成（bottleCount=1 瓶子还在但没破裂）。朝正下方投掷经验瓶 1 tick 撞脚下
+// grass 地板，onImpact 生成 3-11 个 experience_orb 散开。
 //
-// 时序：tick 5 useItem(经验瓶) → ThrowableItem::onItemRightClick spawnEntity(experience_bottle) + shrink
-// → 经验瓶飞行 → 落地 onImpact 生成 3-11 个 experience_orb 散开。
+// 时序：tick 5 useItem(经验瓶) → 经验瓶垂直下落 1 tick 撞地板 onImpact → 生成 experience_orb 散开。
 //
-// 判定手段：扩大区域内出现 >=1 个 experience_orb 实体（落地生成经验球）。经验瓶落点可能飞出 pit，
-// 用 SEARCH_VOLUME（15×8×15）覆盖。经验球存活时间长（不立即 remove），查询窗口宽。
+// 判定手段：扩大区域内出现 >=1 个 experience_orb 实体（落地生成经验球）。经验球存活时间长（不立即
+// remove），查询窗口宽。经验球可能散出 SEARCH_VOLUME，但生成 3-11 个散开，至少 1 个留在区域内的概率高。
 function experienceBottleSpawnsOrbsTest(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "thrower", 0 as any);
   const bottle = new ItemStack(EXPERIENCE_BOTTLE, 1);
   player.setItem(bottle as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 朝正下方看（target 在玩家正下方），使经验瓶垂直下落 1 tick 撞脚下地板。
+  // 不用水平投掷：经验瓶水平飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，onImpact 不触发。
+  (player as any).lookAtLocation({ x: 1, y: 0, z: 3 });
 
   // tick 5 useItem(经验瓶) → 投掷生成 experience_bottle → 落地生成 experience_orb。
   test.runAtTickTime(5, () => {
