@@ -236,6 +236,76 @@ function foxAttacksChicken(test: Test): void {
   });
 }
 
+// 狐狸主动攻击兔子（wiki tech_狐狸.txt#攻击：狐狸会主动攻击鸡、兔子、鳕鱼、鲑鱼、热带鱼和陆地上的幼年海龟）。
+//
+// 本测试与 fox_attacks_chicken 形成对照：两者共用同一 NearestAttackableTargetGoal（FoxEntity.cpp:674-682），
+// 该 goal 用单个 lambda 谓词 `type == CHICKEN || type == RABBIT` 同时匹配鸡和兔子。chicken 测试已验证
+// CHICKEN 分支，本测试验证 RABBIT 分支——若谓词误只写 `type == CHICKEN`（漏 RABBIT），chicken 测试仍通过
+// 但本测试会失败暴露缺陷。两条分支独立覆盖，确证狐狸对陆地小猎物的攻击链路对鸡和兔均生效。
+//
+// C++ 链路与 fox_attacks_chicken 完全同构（仅猎物类型不同）：
+//   targetSelector 优先级4：NearestAttackableTargetGoal<LivingEntity> 谓词匹配 CHICKEN/RABBIT（FoxEntity.cpp:681）
+//     → 选最近兔子设 attackTarget。
+//   goalSelector 优先级5/6/7：FoxFollowTargetGoal（跟踪蹲伏蓄力）→ FoxPounceGoal（扑击）→ FoxBiteGoal（近战咬）。
+//   attackEntityAsMob → hurt(兔, ATTACK_DAMAGE=2)（FoxEntity registerAttributes）。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）+ batch("night") + skyAccess(true)，与 fox_attacks_chicken 同构：
+//   1. night batch 夜晚规避 FoxSleepGoal(白天睡眠)/FoxFindShelterGoal(白天躲阳光) 占 Move flag 阻塞攻击。
+//   2. skyAccess(true) 露天双保险（canSeeSky=true → hasShelter=false）。
+//   3. 开放坑无围墙：targetSelector checkSight=false 不查视线选目标；FoxFollowTargetGoal isPathClear 检查
+//      路径方块 canBeReplaced，开放坑 air 路径通畅不挡扑击（grass_pen 玻璃墙会挡 isPathClear 致扑击失败）。
+//   4. 无 SimulatedPlayer：AvoidEntityGoal(玩家) 优先级4 会让未信任玩家 16 格内狐狸逃跑，干扰攻击。
+//
+// 判定手段：兔子 HP 下降（<3 满血）或兔子死亡消失。兔子 MAX_HEALTH=3.0（RabbitEntity.cpp:674），
+//   狐狸近战 2 伤害，2 次咬致死（3→1→死亡）。兔子有 RabbitJumpControl 跳跃移动，但 creeper_pit 7×7 开放坑
+//   限制其活动范围，距狐狸 2 格迅速被锁定。pollUntilSucceed 轮询区域内兔 HP<3 或 length==0。
+//   攻击链路时序非确定（targetSelector chance=10 半 tick 评估 + Follow 跟踪 + Crouch 蓄力 + Pounce/Bite），
+//   maxTick=1200 留充裕余量。区域限定排除并行测试污染；type 用 "minecraft:rabbit"。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#攻击（主动攻击鸡兔鱼幼海龟）
+function foxAttacksRabbit(test: Test): void {
+  const foxType = "fox";
+  const rabbitType = "rabbit";
+
+  // 狐狸 (2,2,3)、兔 (4,2,3)，水平距 2 格。creeper_pit 开放坑，实体 spawn y=2 落到 y=1 同层。
+  // 距离 2 格 < targetSelector 搜索范围，狐狸迅速选定兔为 attackTarget。
+  test.spawn(foxType, { x: 2, y: 2, z: 3 });
+  test.spawn(rabbitType, { x: 4, y: 2, z: 3 });
+
+  // 轮询：兔 HP<3（受击）或兔死亡消失（length==0）。
+  pollUntilSucceed(test, () => {
+    const rabbits = test.getDimension().getEntities({
+      type: "minecraft:rabbit",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    // 兔已被狐狸咬死消失——攻击行为生效。
+    if (rabbits.length === 0) {
+      return true;
+    }
+    const health = rabbits[0].getComponent("minecraft:health");
+    if (health === undefined) {
+      return false;
+    }
+    // 兔受击掉血（<3 满血）——狐狸近战 2 伤害生效。
+    return (health as any).currentValue < 3;
+  }, {
+    maxTick: 1200,
+    onTimeout: () => {
+      const rabbits = test.getDimension().getEntities({
+        type: "minecraft:rabbit",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const hp = rabbits.length > 0
+        ? (rabbits[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      test.assert(false,
+        `fox did not attack rabbit (rabbit=${rabbits.length}, hp=${hp})`);
+    },
+  });
+}
+
+
 // 狐狸逃离附近的狼（wiki tech_狐狸.txt#行为：狐狸会逃离附近的狼、北极熊或不信任的玩家；
 //   tech_狐狸.txt#天敌：未驯服狼主动攻击 16 格内狐狸）。
 //
@@ -589,6 +659,14 @@ export function registerFoxTests(): void {
   GameTest.register("MobBehaviorTests", "fox_attacks_chicken", foxAttacksChicken)
     // batch("night")：夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠) 与 FoxFindShelterGoal(白天躲阳光)
     // 占 Move flag 阻塞攻击链路。skyAccess 双保险露天。详见测试函数注释。
+    .batch("night")
+    .structureName("gametests:creeper_pit")
+    .skyAccess(true)
+    .maxTicks(1300);
+
+  GameTest.register("MobBehaviorTests", "fox_attacks_rabbit", foxAttacksRabbit)
+    // 与 fox_attacks_chicken 同构：night + skyAccess 规避睡眠/躲阳光，creeper_pit 开放坑不挡扑击。
+    // 验证 NearestAttackableTargetGoal 谓词 RABBIT 分支（chicken 测试验证 CHICKEN 分支，两者对照）。
     .batch("night")
     .structureName("gametests:creeper_pit")
     .skyAccess(true)
