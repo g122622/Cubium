@@ -15,6 +15,12 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 const PEN_FROM = { x: 0, y: 0, z: 0 };
 const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 
+// open_grass_hall 结构尺寸（41×7×9），helper 相对坐标。四壁 glass 墙 + 内部/顶部全 air 露天草地长廊，
+// y=0 grass_block 地板。海豚跳跃用：41 格长度容纳 DolphinJumpGoal JUMP_DISTANCES[]={0,1,4,5,6,7} 的
+// 朝向方向 7 格水域要求 + 海豚游动余量，玻璃墙在边界阻止海豚游出查询区域。
+const HALL_FROM = { x: 0, y: 0, z: 0 };
+const HALL_VOLUME = { x: 41, y: 7, z: 9 };
+
 // 海豚受击后反击玩家（wiki tech_海豚.txt#攻击：海豚是中性生物，被攻击后会反击攻击者）。
 //
 // C++ 链路：DolphinEntity : WaterMobEntity（非 AnimalEntity）。registerGoals（DolphinEntity.cpp:267-320）：
@@ -298,6 +304,98 @@ function dolphinGrantsDolphinsGraceToSwimmingPlayer(test: Test): void {
   });
 }
 
+// 海豚在水中会跳出水面（wiki tech_海豚.txt#行为：海豚通常会结群游泳，偶尔会跳出水面呼吸空气。
+//   它们有在水体间来回跳跃的能力 + 跳跃图）。
+//
+// 本测试验证 DolphinJumpGoal（DolphinEntity.cpp:338 注册 DolphinJumpGoal(this, 10)，优先级5，
+// flag={Jump,Move}）驱动的跳跃。现有 3 个海豚测试覆盖受击反击、喂鱼、海豚恩惠，但未覆盖跳跃——
+// 这是"goal 已注册且逻辑完整、但现有测试未覆盖"的典型缺口。
+//
+// C++ 链路（对齐 Java 1.21.11 DolphinJumpGoal，DolphinGoals.cpp:65-184）：
+//   1) DolphinJumpGoal::shouldExecute（:73-100）：rng.nextInt(10)==0（1/10 概率）+ 朝向方向
+//      JUMP_DISTANCES[]={0,1,4,5,6,7} 各 scale 处 _canJumpTo（水且不阻挡移动）&& _isAirAbove
+//      （上方 y+1,y+2 空气）。海豚 yaw → dx=round(sin),dz=round(-cos)（轴对齐 -1/0/1）。
+//   2) startExecuting（:122-142）：setVelocity(vx+0.6*dx, 0.7, vz+0.6*dz) + clearNavigationPath。
+//      垂直速度 0.7 → 重力 0.08/tick 作用下上升 ~0.7²/(2×0.08)≈3 格后回落。
+//   3) tick（:149-184）：根据运动方向计算俯仰角，刚入水播 ENTITY_DOLPHIN_JUMP 音效。
+//   4) shouldContinueExecuting（:102-120）：有垂直运动或俯仰角非零或不在水中或不在地面，且不在地面。
+//
+// **环境设计——长水槽满足 JUMP_DISTANCES 朝向 7 格水域要求**：
+//   open_grass_hall（41×7×9 露天草地长廊，y=0 grass_block 地板）。建长水槽：
+//     - 水槽主体 z=3..5（3 格宽），x=1..39，y=2 水（helper y=2 = 结构 y=1，底部 helper y=1 = 结构
+//       y=0 grass_block 支撑，水源被两侧玻璃墙围住稳定不扩散）。
+//     - 两侧玻璃墙 z=2 和 z=6：x=0..40, y=1..6（围住水槽两侧 + 高 6 防海豚跳出墙外）。
+//     - 水槽上方 y=3..6 空气（open_grass_hall 露天），满足 _isAirAbove（y+1,y+2 空气）。
+//   海豚 (4,2,4) 在水槽中。DolphinJumpGoal shouldExecute 检查朝向方向：
+//     - 朝 x+（dx=1,dz=0）：检查 x=4,5,8,9,10,11 处 y=2 水 + 上方空气——全在水槽内 ✓
+//       （x≤33 时 x+7≤40 均满足，水槽 x=1..39）。
+//     - 朝 x-：检查 x=4,3,0,-3... 超出 ✗。
+//     - 朝 z：检查 z=4,5,8,11... z≤5 时部分满足但 scale=4 z=8 超出 ✗。
+//   故仅海豚朝 x+ 且在水槽前段时才跳。海豚 RandomSwimmingGoal（优先级4，flag={Move}）让海豚在
+//   水槽中游动，朝向频繁变化——朝 x+ 时 1/10 概率跳。pollUntilSucceed 长时间轮询捕获 y 上升窗口。
+//
+// **flag 抢占核查**：
+//   SwimGoal(0, flag={Jump}) shouldExecute 需 fluidHeight>eyeHeight（完全淹没才上浮），水槽 y=2 单层水
+//     不淹没海豚眼（海豚高 0.6，眼约 y+0.5，y=2 水面），SwimGoal 不持续占 Jump flag。
+//   RandomSwimmingGoal(4, flag={Move}) shouldContinueExecuting 在导航完成返回 false 释放 flag，
+//     DolphinJumpGoal(5, flag={Jump,Move}) 有窗口启动。DolphinJumpGoal::isPreemptible()=false 不可被
+//     抢占，启动后独占 Jump+Move flag 直到 shouldContinueExecuting 返回 false。
+//
+// 判定手段：pollUntilSucceed 轮询海豚 y > 3.0（水面 y=2，跳跃 0.7 垂直速度上升 ~3 格 → y 突破 3.0）。
+//   startTick=30 留海豚 spawn + 首次朝向 x+ + 1/10 概率命中时间。interval=10 捕获窄跳跃窗口
+//   （上升 ~3 格约 18 tick，y>3.0 窗口约 10-20 tick）。maxTick=1500 留充裕余量（海豚朝向 x+ 概率约
+//   1/4 + 1/10 跳跃概率，期望 ~40 tick 一次跳跃尝试，但 flag 抢占 + 朝向偏移需更长轮询）。
+//   区域限定查海豚排除并行测试污染；type 用 "minecraft:dolphin"。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_海豚.txt#行为（偶尔跳出水面呼吸空气）
+// Ref: DolphinGoals.cpp:65-184（DolphinJumpGoal 实现）/ DolphinEntity.cpp:338（注册）
+function dolphinJumpsOutOfWater(test: Test): void {
+  const dolphinType = "dolphin";
+
+  // 两侧玻璃墙 z=2 和 z=6：x=0..40, y=1..6 围住水槽两侧 + 高 6 防跳出。
+  // open_grass_hall 外墙已在 x=0,z=0,x=40,z=8，水槽 z=3..5 在外墙内，补 z=2,z=6 内墙。
+  fillBlock(test, "minecraft:glass", 0, 1, 2, 40, 6, 2);
+  fillBlock(test, "minecraft:glass", 0, 1, 6, 40, 6, 6);
+  // 水槽两端封口：x=0 和 x=40 处 z=3..5 填玻璃防海豚游出水槽。
+  fillBlock(test, "minecraft:glass", 0, 1, 3, 0, 6, 5);
+  fillBlock(test, "minecraft:glass", 40, 1, 3, 40, 6, 5);
+
+  // 水槽主体：z=3..5, x=1..39, y=2 水。底部 helper y=1 = open_grass_hall y=0 grass_block 支撑。
+  fillBlock(test, "minecraft:water", 1, 2, 3, 39, 2, 5);
+
+  // 海豚 (4,2,4) 水槽中。朝 x+ 时 JUMP_DISTANCES 检查 x=4..11 全在水槽内 ✓。
+  test.spawn(dolphinType, { x: 4, y: 2, z: 4 });
+
+  // 轮询海豚 y > 3.0（跳出水面 y=2 上升 1 格）。
+  // startTick=30 留海豚 spawn + 首次朝向 x+ + 1/10 概率命中时间。
+  // interval=10 捕获窄跳跃窗口（上升 ~3 格约 18 tick，y>3.0 窗口约 10-20 tick）。
+  // maxTick=1500 留充裕余量吸收海豚朝向随机性 + flag 抢占延迟。
+  pollUntilSucceed(test, () => {
+    const dolphins = test.getDimension().getEntities({
+      type: dolphinType,
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
+    });
+    if (dolphins.length === 0) return false;
+    return dolphins[0].location.y > 3.0;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 1500,
+    onTimeout: () => {
+      const dolphins = test.getDimension().getEntities({
+        type: dolphinType,
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      const pos = dolphins.length > 0
+        ? `(${dolphins[0].location.x.toFixed(1)},${dolphins[0].location.y.toFixed(1)},${dolphins[0].location.z.toFixed(1)})`
+        : "gone";
+      test.assert(false,
+        `dolphin did not jump out of water, dolphinPos=${pos} (expected y>3.0, water surface y=2.0)`);
+    },
+  });
+}
+
 export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_retaliates_when_attacked", dolphinRetaliatesWhenAttacked)
     .structureName("gametests:grass_pen")
@@ -310,4 +408,8 @@ export function registerDolphinTests(): void {
   GameTest.register("MobBehaviorTests", "dolphin_grants_dolphins_grace_to_swimming_player", dolphinGrantsDolphinsGraceToSwimmingPlayer)
     .structureName("gametests:creeper_pit")
     .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "dolphin_jumps_out_of_water", dolphinJumpsOutOfWater)
+    .structureName("gametests:open_grass_hall")
+    .maxTicks(1600);
 }
