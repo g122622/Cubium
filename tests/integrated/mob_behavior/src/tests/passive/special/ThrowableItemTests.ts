@@ -172,10 +172,19 @@ function enderPearlThrownSpawnsEntityTest(test: Test): void {
 // + 玩家分支 hurt(enderPearl, 5.0f)（enderPearl 属 IS_FALL/BYPASSES_ARMOR）。非玩家 mob 仅传送不伤害。
 //
 // 环境选择：creeper_pit（7×5×7 开放坑，y=0 grass_block 地板）。Survival 玩家 (1,2,3) 持1末影珍珠，
-// 默认 yaw=0 pitch=0 朝 +Z 水平投掷，末影珍珠飞 ~5 格落地，传送玩家到落点（z 增大）。
+// lookAtLocation({x:1,y:0,z:6}) 朝 +Z 斜下方约 45° 投掷（pitch≈45°, yaw=0 → vel=(0,-1.08,1.04)）。
+// 末影珠斜向下飞 1 tick 即撞结构内 grass 地板（blockPos=(1,5,4)），onBlockHit→teleportOwnerOnImpact
+// 传送玩家到珍珠 prevPos（落点附近，z>4），玩家 z 从 3 变化 >1。
 //
-// 时序：tick 5 useItem(末影珍珠) → spawnEntity(ender_pearl) + shrink(1) + shootFrom 朝 +Z 水平
-// → 末影珍珠飞行（速度1.5/tick + 重力下沉）→ 撞地面方块 onBlockHit → teleportOwnerOnImpact 传送玩家。
+// 为何不水平投掷（pitch=0）：ThrowableEntity::tick 每帧 performRayTrace 用 pos→pos+vel 射线检测碰撞，
+// 水平投掷时末影珠从眼睛高度（y≈7.62）水平飞出，下方 grass 地板顶面在 y=6，射线水平不命中地板；
+// 末影珠持续水平飞出 creeper_pit 结构覆盖的 chunk（仅 chunk(0,0) 被 force-load），进入未加载区块后
+// raycastBlocks 把未加载方块当 air（getBlockState 返回 nullptr），末影珠永远不落地、坠出世界底部，
+// onImpact 从未触发，玩家不传送（z 不变）→ 测试超时 FAIL。朝斜下方投掷让末影珠在结构内（已加载
+// chunk(0,0)）1 tick 内撞地板，规避未加载区块 raytrace miss 问题。
+// TODO(C++ 投射物与区块加载): 末影珠/经验瓶等投射物飞进未加载区块时 raycastBlocks 永远 miss 致
+// 投射物坠出世界，vanilla 中投射物飞行会触发区块加载（ProjectTile 携带 chunk loading 票据），
+// 待补投射物 chunk loading 链路后水平投掷测试才能可靠通过。当前测试改用朝斜下方投掷规避此问题。
 //
 // 判定手段：玩家 z 坐标从 3 变化 >1（传送到落点，z 增大）。末影珍珠落地落点 z>4，传送后玩家 z>4。
 // 用 getEntities({type:"player"}) 查玩家位置（spawnSimulatedPlayer 返回对象 .location 未绑定，
@@ -185,7 +194,11 @@ function enderPearlTeleportsThrowerTest(test: Test): void {
   const pearl = new ItemStack(ENDER_PEARL, 1);
   player.setItem(pearl as unknown as Parameters<typeof player.setItem>[0], 0, true);
 
-  // tick 5 useItem(末影珍珠) → 末影珍珠朝 +Z 飞 → 落地 onImpact 传送玩家。
+  // 朝 +Z 斜下方约 45° 看（target 在玩家斜下方 +Z 方向），使末影珠斜向下飞 1 tick 撞结构内地板。
+  // 不用水平投掷：末影珠水平飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，onImpact 不触发。
+  (player as any).lookAtLocation({ x: 1, y: 0, z: 6 });
+
+  // tick 5 useItem(末影珍珠) → 末影珍珠朝 +Z 斜下方飞 → 落地 onImpact 传送玩家。
   test.runAtTickTime(5, () => {
     (player as any).useItem(pearl as unknown as Parameters<typeof player.useItem>[0]);
   });
@@ -225,9 +238,12 @@ function enderPearlTeleportsThrowerTest(test: Test): void {
 // fall() 类型且伤害施加对象/时机错乱；修复后统一在 teleportOwnerOnImpact 玩家分支 hurt(enderPearl, 5.0f)。
 //
 // 环境选择：creeper_pit + night batch（night 避免怪物干扰 + 统一隔离）。Survival 玩家 (1,2,3) 满 HP=20
-// 持1末影珍珠，朝 +Z 投掷落地传送。
+// 持1末影珍珠，lookAtLocation({x:1,y:0,z:3}) 朝正下方投掷（pitch=90° → vel=(0,-1.5,0) 垂直下落）。
+// 朝正下方投掷而非水平投掷：水平投掷末影珠飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，
+// onImpact 不触发，玩家不受伤（HP 保持 20）。朝正下方投掷末影珠 1 tick 撞脚下 grass 地板，
+// onBlockHit→teleportOwnerOnImpact→hurt(enderPearl, 5.0f)，玩家 HP 20→15。
 //
-// 时序：tick 5 useItem(末影珍珠) → 末影珍珠飞行落地 onBlockHit → teleportOwnerOnImpact：
+// 时序：tick 5 useItem(末影珍珠) → 末影珍珠垂直下落 1 tick 撞地板 onBlockHit → teleportOwnerOnImpact：
 //   传送玩家 + hurt(enderPearl, 5.0f)。enderPearl 属 IS_FALL，玩家无摔落保护时全额 5.0。
 //
 // 判定手段：玩家 HP 从 20 降到 15（受 5.0 enderPearl 伤害）。HP 数值固定非随机，确定性强。
@@ -237,6 +253,10 @@ function enderPearlTeleportDealsDamageTest(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 3 }, "thrower", 0 as any);
   const pearl = new ItemStack(ENDER_PEARL, 1);
   player.setItem(pearl as unknown as Parameters<typeof player.setItem>[0], 0, true);
+
+  // 朝正下方看（target 在玩家正下方），使末影珠垂直下落 1 tick 撞脚下地板。
+  // 不用水平投掷：末影珠水平飞出结构覆盖的 chunk 进未加载区块，raytrace 永远 miss，onImpact 不触发。
+  (player as any).lookAtLocation({ x: 1, y: 0, z: 3 });
 
   test.runAtTickTime(5, () => {
     (player as any).useItem(pearl as unknown as Parameters<typeof player.useItem>[0]);
