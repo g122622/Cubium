@@ -95,8 +95,82 @@ function pandaBreedsWhenFedBamboo(test: Test): void {
   });
 }
 
+// 好斗熊猫被攻击后持续反击攻击者（wiki tech_熊猫.txt#行为:92：熊猫在被生物攻击后会尝试反击该生物一次，
+// 类似羊驼。但好斗型熊猫会一直反击，直到目标死亡或消失。#变种:123-127 好斗的熊猫：自己或附近的熊猫
+// 被攻击后会对攻击者敌对；被攻击时不会惊慌逃窜；会持续攻击，而不是只攻击一次）。
+//
+// 本测试验证好斗熊猫反击链路（区别普通熊猫"反击一次"——普通熊猫 didBite 机制 Cubium 暂未实现，
+// 见下方 C++ 链路说明）。好斗熊猫被攻击后设攻击者为 attackTarget 并持续追击反击。
+//
+// C++ 链路（对齐 MC Java 1.21.11 Panda）：
+//   1) 玩家 attackEntity(熊猫) → PandaEntity::hurt → AnimalEntity::hurt 造伤害。
+//   2) targetSelector 优先级1 PandaHurtByTargetGoal（HurtByTargetGoal 子类, alertOthers=true）
+//      （PandaEntity.cpp:368-378）：被攻击时取 getLastHurtBy()=玩家 作 attackTarget。
+//      alertOthers 谓词 !isAggressive() 只警醒好斗熊猫（非好斗不警醒附近同类），但被攻击熊猫自己
+//      无论性格都设 attackTarget（HurtByTargetGoal 基类 alertSelf 语义）。
+//   3) goalSelector 优先级3 PandaAttackGoal（PandaGoals.cpp:188-208，继承 MeleeAttackGoal）：
+//      shouldExecute = canPerformAction()（!躺/!惊吓/!吃/!打滚/!坐）&& MeleeAttackGoal::shouldExecute
+//      （取 attackTarget=玩家 + 寻路）。startExecuting/tick 寻路接近玩家，attackEntityAsMob→
+//      hurt(玩家, ATTACK_DAMAGE)。好斗熊猫 ATTACK_DAMAGE=6.0（PandaEntity.cpp:404-406）。
+//
+// **关键设计——spawnEvent 确定性构造好斗熊猫**：
+//   熊猫性格构造期 randomizePersonality 随机（好斗仅 1.6%），测试需确定性好斗熊猫。GameTestHelper
+//   applySpawnEvent 支持 panda<minecraft:aggressive>（GameTestHelper.cpp 熊猫分支）：setMainGene(4=Aggressive)
+//   + updatePersonalityFromGenes + refreshAttributesForPersonality（重设 ATTACK_DAMAGE=6.0）。test.spawn
+//   ("panda<minecraft:aggressive>", pos) 派发事件生成确定性好斗熊猫。
+//
+// **C++ 偏差说明（TODO）**：vanilla Panda.doHurtTarget（Panda.java:319-325）非好斗熊猫攻击时设 didBite=true，
+//   PandaHurtByTargetGoal.canContinueToUse 检测 didBite 后 setTarget(null) 停止——故普通熊猫反击一次即停。
+//   Cubium 暂未实现 didBite/gotBamboo 字段（PandaEntity.cpp:365-367 TODO 注释），普通熊猫会持续反击
+//   （与原版偏差）。本测试用**好斗熊猫**（本就持续反击，与原版一致），避开此偏差，验证反击链路本身。
+//   普通熊猫"反击一次"的对照测试待 didBite 机制实现后补。
+//
+// 环境选择：grass_pen（9×5×9 玻璃围栏）。好斗熊猫 (2,2,3) + Survival 玩家 (5,2,3)，水平距 3 格。
+//   grass_pen 自带玻璃围墙把熊猫被玩家击退（-x 方向）后的运动限制在结构内——此前 wolf_retaliates
+//   用 creeper_pit（无围墙）狼被击退出结构边界持续下落追不到玩家，测试超时。grass_pen 围栏规避此问题。
+//   熊猫 MOVEMENT_SPEED=0.15 较慢，3 格接近 + 攻击冷却约需 60-100 tick，maxTicks=800 留充裕余量。
+//   玩家用 Survival（gameMode=0，0 as any 绕过 TS 枚举校验，创造模式被 TargetGoal 滤掉不可被反击）。
+//
+// 判定手段：succeedWhen 每 tick 持续检查玩家 HP<20。熊猫反击 hurt(玩家, 6.0)，玩家满血 20 → 14。
+//   玩家查询用区域限定排除并行测试的玩家污染；type 用 "minecraft:player"（玩家类型带前缀）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_熊猫.txt#行为（被攻击反击）+ #变种（好斗熊猫持续攻击）
+function pandaAggressiveRetaliates(test: Test): void {
+  const pandaType = "panda<minecraft:aggressive>";
+
+  // 好斗熊猫 (2,2,3) + Survival 玩家 (5,2,3)，水平距 3 格。grass_pen 玻璃围墙限制熊猫被击退后运动范围。
+  // panda<minecraft:aggressive> spawnEvent 派发 setMainGene(4)+updatePersonalityFromGenes 生成确定性好斗熊猫。
+  const panda = test.spawn(pandaType, { x: 2, y: 2, z: 3 });
+  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "attacker", 0 as any);
+
+  // tick 8 后玩家攻击熊猫：留 8 tick 让实体完成 spawn 注册 + 首 tick 稳定 + spawnEvent 派发。
+  // attackEntity 远程命中触发 PandaHurtByTargetGoal → 设 attackTarget=玩家。
+  test.runAtTickTime(8, () => {
+    player.attackEntity(panda);
+  });
+
+  // 断言玩家掉血：succeedWhen 每 tick 持续检查玩家 HP<20。
+  // 时序：玩家攻击(8) + PandaHurtByTargetGoal 设目标 + PandaAttackGoal 寻路接近 3 格 + 攻击冷却 + hurt(6.0)。
+  // 熊猫 0.15 速度较慢，3 格接近约需 60-100 tick，maxTicks=800 留充裕余量。
+  test.succeedWhen(() => {
+    const players = test.getDimension().getEntities({
+      type: "minecraft:player",
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    test.assert(players.length > 0, "player disappeared");
+    const health = players[0].getComponent("minecraft:health");
+    test.assert(health !== undefined, "player has no health component");
+    test.assert((health as any).currentValue < 20,
+      `aggressive panda did not retaliate, hp=${(health as any).currentValue}`);
+  });
+}
+
 export function registerPandaTests(): void {
   GameTest.register("MobBehaviorTests", "panda_breeds_when_fed_bamboo", pandaBreedsWhenFedBamboo)
     .structureName("gametests:grass_pen")
     .maxTicks(700);
+
+  GameTest.register("MobBehaviorTests", "panda_aggressive_retaliates", pandaAggressiveRetaliates)
+    .structureName("gametests:grass_pen")
+    .maxTicks(800);
 }

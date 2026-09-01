@@ -18,7 +18,8 @@
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"  // applySpawnEvent 派发 sheep color_<dye> 颜色事件
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp" // applySpawnEvent 派发 horse set_tamed 驯服事件（AbstractHorseEntity::setTame）
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp" // applySpawnEvent 派发 skeleton_horse 陷阱马事件
-#include "common/entity/inventory/IInventory.hpp"                       // getItem/getContainerSize/isEmpty（容器断言）
+#include "common/entity/entities/passive/special/PandaEntity.hpp" // applySpawnEvent 派发 panda 性格事件（setMainGene+updatePersonalityFromGenes）
+#include "common/entity/inventory/IInventory.hpp" // getItem/getContainerSize/isEmpty（容器断言）
 #include "common/entity/utils/ItemDropHelper.hpp" // ItemDropHelper::spawnItemEntity（spawnItemAt 生成物品实体）
 #include "common/item/core/Item.hpp"              // Item::getItem（spawnItemAt 解析 itemType 字符串）
 #include "common/item/core/ItemStack.hpp"         // isSameItem（assertContainerContains 类型匹配）
@@ -257,7 +258,42 @@ void applySpawnEvent(mc::Entity* entity, const std::string& normalizedType, cons
         // 未知 dye 名静默跳过（TODO: 可加日志告警，但 GameTest 无 console）。
         return;
     }
-    // 通用幼体事件：spawn_baby 把 AgeableEntity 子类设为幼体（setChild(true) → setGrowingAge(-24000)）。
+    // 熊猫性格事件：panda<minecraft:aggressive> 等把熊猫主基因设为对应性格基因。
+    // Cubium 测试辅助事件（非基岩标准 spawn 事件，基岩熊猫性格经 NBT 主基因/隐藏基因静态设定）。
+    // 解锁好斗熊猫反击测试（需确定性构造好斗性格熊猫）。性格基因值对齐 Personality 枚举：
+    //   aggressive=4 / normal=0 / lazy=1 / worried=2 / playful=3 / weak=5 / brown=6
+    // setMainGene 后调 updatePersonalityFromGenes（内部 calculateExpressedPersonality 据 mainGene
+    // 直接返回 Aggressive），使 isAggressive()==true 触发 PandaAttackGoal 反击链路。
+    // GameTest 通过 test.spawn("panda<minecraft:aggressive>", pos) 触发。未知性格名静默跳过。
+    if (normalizedType == "minecraft:panda") {
+        auto* panda = dynamic_cast<mc::PandaEntity*>(entity);
+        if (panda == nullptr) {
+            return;
+        }
+        // 性格名→主基因值映射（对齐 PandaEntity::Personality 枚举 0-6）。
+        static const std::unordered_map<std::string, u8> personalityMap = {
+            {"aggressive", static_cast<u8>(mc::PandaEntity::Personality::Aggressive)},
+            {"normal", static_cast<u8>(mc::PandaEntity::Personality::Normal)},
+            {"lazy", static_cast<u8>(mc::PandaEntity::Personality::Lazy)},
+            {"worried", static_cast<u8>(mc::PandaEntity::Personality::Worried)},
+            {"playful", static_cast<u8>(mc::PandaEntity::Personality::Playful)},
+            {"weak", static_cast<u8>(mc::PandaEntity::Personality::Weak)},
+            {"brown", static_cast<u8>(mc::PandaEntity::Personality::Brown)},
+        };
+        // 提取性格名（如 "minecraft:aggressive" → "aggressive"）。
+        std::string personalityName = normalizedEvent.substr(strlen("minecraft:"));
+        auto it = personalityMap.find(personalityName);
+        if (it != personalityMap.end()) {
+            panda->setMainGene(it->second);
+            panda->updatePersonalityFromGenes();
+            // 性格相关属性（好斗 ATTACK_DAMAGE=6、虚弱 MAX_HEALTH=10）须按新性格重设——
+            // registerAttributes 在构造期据随机性格设过，spawnEvent 改性格后需刷新。
+            panda->refreshAttributesForPersonality();
+        }
+        // 未知性格名静默跳过。
+        return;
+    }
+
     // 对齐基岩行为包 minecraft:spawn_baby 事件语义，解锁幼年动物行为测试（FollowParentGoal 跟随父母、
     // 喂食加速成长、幼体体型缩放等）。GameTest 通过 test.spawn("cow<minecraft:spawn_baby>", pos) 触发。
     // dynamic_cast<AgeableEntity*> 覆盖所有 AgeableEntity 派生类（牛/羊/猪/鸡/兔/马/村民等），非 Ageable

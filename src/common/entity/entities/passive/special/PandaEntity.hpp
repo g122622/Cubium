@@ -186,6 +186,15 @@ public:
      */
     void updatePersonalityFromGenes();
 
+    /**
+     * @brief 按当前性格刷新战斗属性（ATTACK_DAMAGE/MAX_HEALTH）。
+     *
+     * registerAttributes 在构造期据构造时随机性格设属性；若构造后性格被显式更改
+     * （如 GameTest spawnEvent 设好斗基因），需调本方法重设属性使好斗熊猫 ATTACK_DAMAGE=6.0、
+     * 虚弱熊猫 MAX_HEALTH=10 等性格相关属性生效。内部直接调 registerAttributes（幂等 setBaseValue）。
+     */
+    void refreshAttributesForPersonality() { registerAttributes(); }
+
     // ========== 行为状态 ==========
 
     /**
