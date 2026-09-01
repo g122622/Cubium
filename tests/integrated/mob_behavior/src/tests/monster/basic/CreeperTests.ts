@@ -139,6 +139,61 @@ function creeperFleesFromCat(test: Test): void {
   });
 }
 
+// 苦力怕逃离豹猫（wiki tech_苦力怕.txt#行为：当苦力怕与猫或豹猫距离6格或更近时，苦力怕会
+// 开始忽略附近生物并逃离到与其相距至少16格）。
+//
+// 本测试与 creeper_flees_from_cat 形成对照：两者共用同一 AvoidEntityGoal（CreeperEntity.cpp:328-338），
+// 该 goal 用单个 lambda 谓词 `type == CAT || type == OCELOT` 同时匹配猫和豹猫。cat 测试已验证 CAT 分支，
+// 本测试验证 OCELOT 分支——若谓词误只写 `type == CAT`（漏 OCELOT），cat 测试仍通过但本测试会失败
+// 暴露缺陷。两条分支独立覆盖，确证 AvoidEntityGoal 对猫科两种实体均生效。
+//
+// C++ 链路：CreeperEntity::registerGoals 注册 AvoidEntityGoal（优先级3，avoidDistance=6.0 检测距离，
+// farSpeed=1.0 nearSpeed=1.2）。谓词同时匹配 CAT 和 OCELOT 两种实体类型。苦力怕检测到 6 格内豹猫时
+// 主动逃离。豹猫对苦力怕无攻击行为（OcelotEntity registerGoals 无针对苦力怕的 goal）。
+//
+// 环境选择：grass_pen（9×5×9，玻璃墙围栏）。与 creeper_flees_from_cat 同结构同布局——
+// 豹猫于 (2,2,2)，苦力怕于 (2,2,3)，距 1 格 < 6 检测距离。grass_pen 玻璃墙把苦力怕限制在内部空气腔，
+// 防逃离出查询区。苦力怕无 RestrictSun/FleeSun goal，day/night 均可，用默认 day 批次。
+// 豹猫 spawn 默认未驯服；本测试无需玩家（苦力怕 AvoidEntityGoal 是苦力怕主动检测豹猫并逃离，
+// 不依赖玩家触发），故不 spawn 玩家，排除豹猫 AvoidPlayerGoal 干扰。
+//
+// 判定手段：苦力怕从豹猫旁(2,2,3)逃离，断言苦力怕距豹猫水平距离 > 4 格（初始 1 格→逃离后 >4 格）。
+// 用 getEntities 区域限定取苦力怕世界坐标计算与豹猫世界坐标的水平距离。逃离方向虽随机（朝远离豹猫
+// 的任意方向），但只要距豹猫 >4 格即证明 AvoidEntityGoal 的 OCELOT 分支驱动了位移。
+// grass_pen 9×9 对角 ~11 格，苦力怕逃离到 >4 格容易满足。判定距离阈值（而非固定区域）规避逃离方向
+// 随机导致的 flaky。逃离速度 1.0+，拉开 4 格约需 20-40 tick，maxTicks=1000 留充裕余量吸收非确定性。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_苦力怕.txt#行为（逃离豹猫）
+function creeperFleesFromOcelot(test: Test): void {
+  const creeperType = "creeper";
+  const ocelotType = "ocelot";
+
+  // 豹猫于 (2,2,2)（grass_pen 内部空气腔一角），苦力怕于 (2,2,3)（紧邻豹猫，距 1 格 < 6 检测距离）。
+  // 苦力怕立即检测到豹猫并朝远离方向逃离。grass_pen 玻璃墙防苦力怕逃出查询区。
+  // grass_pen y=0 满铺 grass_block，苦力怕 helper-y=2→结构内 y=1 空气，脚踩 y=0 草地，无需补支撑。
+  test.spawn(ocelotType, { x: 2, y: 2, z: 2 });
+  test.spawn(creeperType, { x: 2, y: 2, z: 3 });
+
+  // 豹猫世界坐标（helper (2,2,2) 经 worldLocation 转换）。
+  const ocelotWorld = test.worldLocation({ x: 2, y: 2, z: 2 });
+
+  // 断言苦力怕逃离：距豹猫水平距离 > 4 格（初始 1 格，逃离后应 >4 格）。
+  // 区域限定用 PEN（grass_pen 9×5×9）排除并行测试污染。
+  // 逃离速度 1.0+，拉开 4 格约需 20-40 tick，maxTicks=1000 留充裕余量吸收非确定性。
+  test.succeedWhen(() => {
+    const creepers = test.getDimension().getEntities({
+      type: creeperType,
+      location: test.worldLocation(PEN_FROM),
+      volume: PEN_VOLUME,
+    });
+    test.assert(creepers.length > 0, "creeper disappeared");
+    const c = creepers[0];
+    const dx = c.location.x - ocelotWorld.x;
+    const dz = c.location.z - ocelotWorld.z;
+    test.assert(dx * dx + dz * dz > 4 * 4,
+      `creeper did not flee from ocelot, distSq=${dx * dx + dz * dz}`);
+  });
+}
+
 // 苦力怕不攻击非玩家生物（wiki tech_苦力怕.txt#行为：苦力怕追逐玩家；受击时反击但优先玩家）。
 // 苦力怕 NearestAttackableTargetGoal 仅匹配 PLAYER（CreeperEntity.cpp:299-303 谓词），不主动选
 // 其他生物为 attackTarget，故对非玩家生物不膨胀不爆炸。
@@ -267,6 +322,10 @@ export function registerCreeperTests(): void {
     .maxTicks(200);
 
   GameTest.register("MobBehaviorTests", "creeper_flees_from_cat", creeperFleesFromCat)
+    .structureName("gametests:grass_pen")
+    .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "creeper_flees_from_ocelot", creeperFleesFromOcelot)
     .structureName("gametests:grass_pen")
     .maxTicks(1000);
 
