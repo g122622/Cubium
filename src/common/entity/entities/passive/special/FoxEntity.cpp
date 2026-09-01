@@ -502,9 +502,10 @@ void FoxEntity::tick()
         if (isHoldingItem() && canEat()) {
             if (m_ticksSinceEaten > MIN_TICKS_BEFORE_EAT) {
                 // 食用完成：调用 onItemUseFinish 处理物品消耗和效果应用
-                // FoodItem 子类（蘑菇煲等）会在 onItemUseFinish 中处理 shrink 和容器物品返回
-                // 普通食物（甜浆果等，注册为 Item 而非 FoodItem）的 onItemUseFinish 不处理消耗，
-                // 需要在此手动 shrink
+                // 食用完成：调用 onItemUseFinish 处理物品消耗和效果应用。
+                // 所有食物均注册为 FoodItem，其 onItemUseFinish 完整实现：
+                //   应用食物效果（中毒/饥饿/反胃等，对 livingEntity 生效）、shrink 物品、返回容器物品。
+                // 故此处只需信任返回值——返回非空（剩余食物/容器物品）放入嘴中，返回空（普通食物完全消耗）清空嘴中物品。
                 // 对应 MC 原版: itemstack.finishUsingItem(this.level(), this)
                 const ItemStack* held = getHeldItem();
                 if (held != nullptr && isConsumableFood(*held)) {
@@ -513,20 +514,8 @@ void FoxEntity::tick()
                     const Item* item = heldCopy.getItem();
                     ItemStack result = const_cast<Item*>(item)->onItemUseFinish(heldCopy, *worldPtr, *this);
 
-                    // 对于非 FoodItem 的食物（如甜浆果），onItemUseFinish 不会消耗物品
-                    // 需要手动处理物品消耗
-                    if (item != nullptr && !dynamic_cast<const item::items::FoodItem*>(item)) {
-                        heldCopy.shrink(1);
-                        // 如果物品有容器物品（非食物路径不太可能，但保持一致性）
-                        if (heldCopy.isEmpty() && item->hasContainerItem()) {
-                            result = ItemStack(item->containerItem(), 1);
-                        } else {
-                            result = heldCopy;
-                        }
-                    }
-
-                    // 如果消耗后返回物品不为空（如蘑菇煲返回碗），放入嘴中
-                    // 如果消耗后返回物品为空（普通食物完全消耗），清除嘴中物品
+                    // 如果消耗后返回物品不为空（如蘑菇煲返回碗/剩余食物），放入嘴中；
+                    // 如果消耗后返回物品为空（普通食物完全消耗），清除嘴中物品。
                     // 对应 MC 原版: if (!itemstack1.isEmpty()) { this.setItemSlot(MAINHAND, itemstack1); }
                     if (!result.isEmpty()) {
                         m_heldItem = std::make_unique<ItemStack>(std::move(result));

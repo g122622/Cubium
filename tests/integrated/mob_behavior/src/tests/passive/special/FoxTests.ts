@@ -485,6 +485,97 @@ function foxBreedsWhenFedSweetBerries(test: Test): void {
   });
 }
 
+// 狐狸吃掉叼着的蜘蛛眼后中毒（wiki tech_狐狸.txt#行为：狐狸捡起食物叼在嘴里，560 tick 产生吃食物粒子，
+//   再 40 tick 后吃掉，吃掉食物所产生的其他作用（如中毒或传送）会在狐狸身上正常生效）。
+//
+// C++ 链路（FoxEntity.cpp tick 进食段）：
+//   1. FoxFindItemsGoal（FoxGoals.cpp）goalSelector 优先级11：1/10 概率 + 8 格内有 ItemEntity → 导航靠近物品。
+//      此 goal 仅导航，不拾取。
+//   2. MobEntity::tick 的 looting 扫描段：canPickUpLoot()&&isAlive()&&mobGriefing → 扫描 AABB.inflate(1,0,1)
+//      内 ItemEntity → pickUpItem。FoxEntity::pickUpItem 取 1 个入主手槽（叼着），多余掉落，ItemEntity.remove()。
+//      FoxEntity 构造 setCanPickUpLoot(true)。
+//   3. FoxEntity::tick（FoxEntity.cpp:496-535）m_ticksSinceEaten 计时：叼着 isConsumableFood 食物时递增，
+//      > MIN_TICKS_BEFORE_EAT(600) 时调 const_cast<Item*>(item)->onItemUseFinish(heldCopy, *worldPtr, *this)。
+//   4. **修复后** SPIDER_EYE 注册为 FoodItem（非基础 Item），FoodItem::onItemUseFinish（FoodItem.cpp:130-274）
+//      遍历 m_food->getEffects()，按 probability 对 livingEntity->addEffect(Poison instance)。
+//      SPIDER_EYE Food 定义（Foods.cpp:103）：Food(2,0.8f).addEffect(Poison,100,0,1.0f)——100%概率中毒5秒。
+//   5. Poison 效果每 25 tick 造成 1 HP 伤害（不能致死，HP>1 才扣）。EffectManager.tick 每 tick 更新。
+//
+// **本测试同时验证 bug 修复**：修复前 SPIDER_EYE 注册为基础 Item，Item::onItemUseFinish 是空操作，
+//   狐狸吃蜘蛛眼后 getEffect("poison") 恒 undefined（进食链路在最后一步断裂）。修复后 FoodItem::onItemUseFinish
+//   应用 Poison，getEffect("poison") 非 undefined。
+//
+// 环境选择：open_grass_hall（41×7×9 露天草地长廊，四壁玻璃墙）+ batch("night") + skyAccess(true)。
+//   不用 creeper_pit(7×7) 的原因：狐狸拾取蜘蛛眼后需叼 600 tick 才吃，此等待期内狐狸 RandomWalking
+//   会跑出 7×7 开放坑的查询区域（creeper_pit 无墙），致 onTimeout 时 foxHp=gone 假失败。
+//   open_grass_hall 41 格长度 + 玻璃墙（x=0/40）阻止狐狸跑出 41×9 查询区域，狐狸叼物等待期间始终可查。
+//   1. night batch 夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠占 Move flag 阻塞 FoxFindItemsGoal)
+//      与 FoxFindShelterGoal(白天躲阳光)。
+//   2. 玻璃墙在边界 x=0/40，物品放中部 x=21，狐狸 FoxFindItemsGoal 导航向物品不会被远处玻璃墙阻挡
+//      （长廊内 air 草地寻路通畅，与 fox_flees_from_wolf 同范式）。
+//   3. skyAccess 双保险露天（canSeeSky=true → hasShelter=false，白天也不睡；虽 night 已规避）。
+//   4. 无玩家避免 AvoidEntityGoal(玩家) 干扰狐狸走向物品。
+//
+// canEat() 进食条件：叼着食物(isHoldingItem) + isConsumableFood(spider_eye->isFood()=true) + 无攻击目标
+//   + onGround + 非睡眠。夜晚不睡、无攻击目标、spawn 在地面 onGround，满足。
+//
+// 判定手段：pollUntilSucceed 每 10 tick 查区域内狐狸，断言 fox.getEffect("poison") !== undefined。
+// 时序：拾取（FoxFindItemsGoal 1/10概率 + 导航靠近 + looting 扫描，非确定，maxTick 留余量）
+//   + 600 tick 进食延迟（m_ticksSinceEaten>600）+ FoodItem::onItemUseFinish 即时应用 Poison。
+//   首次满足约 tick 700-1500（拾取随机性主导）。maxTick=2000 留充裕余量吸收拾取随机性。
+//   startTick=30 留拾取+进食生效时间。区域限定排除并行测试污染；type 用 "minecraft:fox"。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#行为（捡起食物叼着，吃掉后效果生效）
+function foxEatsPoisonousFood(test: Test): void {
+  const foxType = "fox";
+
+  // 狐狸 (20,2,4) spawn 在 open_grass_hall y=2 落到 y=1 草地顶。蜘蛛眼掉落物 (21,2,4) 距狐狸 1 格。
+  // 狐狸随机走动或 FoxFindItemsGoal 导航靠近后拾取。拾取后叼 600 tick 吃掉，FoodItem 应用 Poison。
+  // 玻璃墙 x=0/40 阻止狐狸跑出 41×9 查询区域，叼物等待期始终可查。
+  test.spawn(foxType, { x: 20, y: 2, z: 4 });
+  (test.spawnItem as any)("minecraft:spider_eye", { x: 21, y: 2, z: 4 });
+
+  // 轮询：狐狸吃蜘蛛眼后中毒（getEffect("poison") !== undefined）。
+  // 时序：拾取(FoxFindItemsGoal 1/10概率+导航+looting) + 600tick进食延迟 + Poison即时应用。
+  //   首次满足约 tick 700-1500。maxTick=2000 留充裕余量吸收拾取随机性。
+  pollUntilSucceed(test, () => {
+    const foxes = test.getDimension().getEntities({
+      type: "minecraft:fox",
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
+    });
+    if (foxes.length === 0) {
+      return false;
+    }
+    const poison = (foxes[0] as any).getEffect("poison");
+    return poison !== undefined;
+  }, {
+    startTick: 30,
+    interval: 10,
+    maxTick: 2000,
+    onTimeout: () => {
+      const foxes = test.getDimension().getEntities({
+        type: "minecraft:fox",
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      const poison = foxes.length > 0 ? (foxes[0] as any).getEffect("poison") : undefined;
+      const hp = foxes.length > 0
+        ? (foxes[0].getComponent("minecraft:health") as any)?.currentValue : "gone";
+      const items = test.getDimension().getEntities({
+        type: "minecraft:item",
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      const foxPos = foxes.length > 0
+        ? `(${foxes[0].location.x.toFixed(1)},${foxes[0].location.y.toFixed(1)},${foxes[0].location.z.toFixed(1)})`
+        : "gone";
+      test.assert(false,
+        `fox did not get poisoned after eating spider_eye (poison=${JSON.stringify(poison)}, ` +
+        `foxHp=${hp}, foxPos=${foxPos}, items=${items.length})`);
+    },
+  });
+}
+
 export function registerFoxTests(): void {
   GameTest.register("MobBehaviorTests", "fox_immune_to_sweet_berry_bush", foxImmuneToSweetBerryBush)
     .structureName("gametests:grass_pen")
@@ -528,4 +619,14 @@ export function registerFoxTests(): void {
     .structureName("gametests:open_grass_hall")
     .skyAccess(true)
     .maxTicks(1000);
+
+  GameTest.register("MobBehaviorTests", "fox_eats_poisonous_food", foxEatsPoisonousFood)
+    // batch("night") + skyAccess(true)：夜晚规避 FoxSleepGoal(白天睡眠占 Move flag 阻塞 FoxFindItemsGoal)。
+    // skyAccess 双保险露天。open_grass_hall（41×7×9）玻璃墙阻止狐狸叼物等待期跑出查询区域。
+    // maxTicks=2100：拾取(1/10概率+导航)+600tick进食延迟+Poison生效，pollUntilSucceed
+    // maxTick=2000 留余量 < 测试 maxTicks，避免测试先 ExecutionTimeout。详见测试函数注释。
+    .batch("night")
+    .structureName("gametests:open_grass_hall")
+    .skyAccess(true)
+    .maxTicks(2100);
 }

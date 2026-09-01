@@ -104,10 +104,16 @@ bool AvoidBlockGoal::shouldContinueExecuting()
         const f64 dz = m_creature->z() - static_cast<f64>(m_nearestRepellentPos.z);
         const f64 distSq = dx * dx + dy * dy + dz * dz;
 
-        // 对应 MC 1.21.11 SetWalkTargetAwayFrom 的 desiredDistance 参数
-        // 疣猪兽/猪灵的排斥物检测范围是 8 格，逃跑至超出检测范围即安全
-        // 使用 (horizontalRange * 1.5)^2 作为安全距离平方阈值
-        const f64 safeDist = static_cast<f64>(m_horizontalRange) * 1.5;
+        // 对齐 MC 1.21.11 SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, speed, desiredDistance, false)
+        // 的 desiredDistance 语义：生物距排斥方块 >= desiredDistance（即 horizontalRange，猪灵/疣猪兽为 8）
+        // 时不再需要逃离。原版 avoidRepellent() = SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, 1.0F, 8, false)，
+        // 第三个参数 8 即 desiredDistance，与排斥物检测范围 REPELLENT_DETECTION_RANGE_HORIZONTAL(=8) 一致。
+        // 此前用 horizontalRange*1.5=12 作阈值与原版 desiredDistance=8 不一致，且与 tick() 中
+        // _findNearestRepellent 的 8 格搜索范围（m_horizontalRange）冲突：猪灵逃出 8 格搜索范围后 tick()
+        // 无法重设目标，但 12 阈值未到，noPath 先触发停止，致猪灵卡在 ~9 格（刚出 8 格搜索范围）。
+        // 改用 horizontalRange 统一语义：距排斥方块 <horizontalRange 持续逃离（tick 重设目标），>=horizontalRange
+        // 停止。
+        const f64 safeDist = static_cast<f64>(m_horizontalRange);
         const f64 safeDistanceSq = safeDist * safeDist;
         if (distSq > safeDistanceSq) {
             return false;

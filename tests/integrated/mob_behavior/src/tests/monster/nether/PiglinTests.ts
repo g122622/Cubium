@@ -11,6 +11,12 @@ import { pollUntilSucceed } from "../../../utils/test/poll.js";
 const PIT_FROM = { x: 0, y: 0, z: 0 };
 const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 
+// open_grass_hall 结构尺寸（41×7×9），helper 相对坐标。四壁 glass 墙 + 内部/顶部全 air 露天草地长廊，
+// y=0 grass_block 地板。猪灵逃避灵魂营火用：41 格长度容纳 AvoidBlockGoal ESCAPE_HORIZONTAL_RANGE=16 的逃跑位移，
+// 玻璃墙在边界阻止猪灵跑出查询区域。creeper_pit(7×7) 太小，猪灵逃出 12 格安全距离即出结构边界。
+const HALL_FROM = { x: 0, y: 0, z: 0 };
+const HALL_VOLUME = { x: 41, y: 7, z: 9 };
+
 // 猪灵主动攻击未穿金甲的玩家（wiki tech_猪灵.txt#敌对性：成年猪灵主动攻击未穿戴金装备的玩家）。
 //
 // C++ 链路：PiglinEntity::registerGoals（NetherEntities.cpp:509-519）targetSelector 优先级2 注册
@@ -134,6 +140,107 @@ function piglinIgnoresPlayerWearingGold(test: Test): void {
   });
 }
 
+// 猪灵惧怕灵魂营火并主动远离（wiki tech_猪灵.txt#其他：非敌对状态的猪灵会主动远离水平半径8格、
+// 垂直半径4格范围内的灵魂火、灵魂火把、灵魂灯笼和灵魂营火）。
+//
+// C++ 链路：PiglinEntity::registerGoals（NetherEntities.cpp:487-496）goalSelector 优先级4 注册
+// AvoidBlockGoal(this, BlockTags::PIGLIN_REPELLENTS(), 1.0, horizontalRange=8, verticalRange=4, validator)。
+//   - PIGLIN_REPELLENTS 标签（BlockTags.cpp:1678-1684）含 soul_fire/soul_torch/soul_wall_torch/
+//     soul_lantern/soul_campfire。validator 对 soul_campfire 额外检查 isLitCampfire（未点燃不排斥）。
+//   - AvoidBlockGoal::shouldExecute（AvoidBlockGoal.cpp:74-92）：_findNearestRepellent 在猪灵当前
+//     位置 ±8(水平)/±4(垂直) 范围搜索最近排斥方块 → _findEscapePosition 用
+//     RandomPositionGenerator::findRandomTargetBlockAwayFrom(ESCAPE_HORIZONTAL_RANGE=16, ESCAPE_VERTICAL_RANGE=7)
+//     计算逃跑位（_isEscapePositionValid 保证逃跑位比当前位置更远离排斥方块）→ nav 可用即执行。
+//   - startExecuting/tick：navigator->moveTo(逃跑位, speed=1.0)，猪灵朝远离灵魂营火方向移动。
+//   - shouldContinueExecuting（AvoidBlockGoal.cpp:94-124）：猪灵距排斥方块 3D 距离 > horizontalRange(=8)
+//     时停止逃跑。对齐 MC 1.21.11 SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, 1.0F, 8, false) 的
+//     desiredDistance=8 语义：距排斥方块 >=8 即停止逃离（原版 avoidRepellent() 第三个参数 8）。
+//     故逃跑成功必然使猪灵距灵魂营火 >8 格（逃出检测范围）。
+//
+// 原版语义对照（PiglinAi.java:290-292 + SetWalkTargetAwayFrom.java）：
+//   avoidRepellent() = SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, 1.0F, 8, false)
+//   - 距排斥方块 <8 时每 tick 用 LandRandomPos.getPosAway(mob,16,7,repellentPos) 设新 WalkTarget（持续逃离）。
+//   - 距 >=8 时不再设新目标，旧 WalkTarget 执行完生物停止。
+//   Cubium AvoidBlockGoal 用 Goal 系统等效：shouldContinueExecuting 距 >=horizontalRange(8) 停止，
+//   tick() 在路径结束且仍在 <8 格内时重设逃跑位继续逃。语义对齐。
+//
+// 优先级分析：AvoidBlockGoal(优先级4, 占 Move flag) > WaterAvoidingRandomWalkingGoal(优先级7)。
+//   不 spawn 玩家→猪灵无 attackTarget（NearestAttackableTargetGoal<Player> 优先级2 不选目标）→
+//   AvoidBlockGoal 是最高可执行 goal，独占 Move flag 驱动逃跑，RandomWalking 被抢占不干扰。
+//   猪灵在主世界不僵尸化（僵尸化机制未实现，见 PiglinTests 同款注释），主世界测试安全。
+//
+// 环境选择：open_grass_hall（41×7×9 露天草地长廊，四壁玻璃墙）。
+//   1. 41 格长度容纳逃跑位移：AvoidBlockGoal 逃跑位 ESCAPE_HORIZONTAL_RANGE=16，猪灵从 x=20 可逃到 x=4
+//      或 x=36（距营火 x=22 最远 14-18 格 >8 检测范围），均在玻璃墙内（墙在 x=0/40）。
+//      creeper_pit(7×7) 太小——猪灵逃出 8 格检测范围即接近结构边界，断言余量不足。
+//   2. 玻璃墙阻止猪灵跑出 41×9 查询区域（开放坑无墙猪灵会跑出区域致 piglin=0 假失败）。
+//   3. 灵魂营火须放在猪灵 ≤8 格内触发 shouldExecute。营火放 x=22（猪灵 x=20 旁 2 格）。
+//   4. 灵魂营火需点燃状态（validator 检查 isLitCampfire，默认放置即为点燃）。
+//      灵魂营火需 soul_sand/soul_soil 基座？——否，soul_campfire 可直接放置在任意方块上（基座仅影响
+//      是否持续燃烧，放置时 isLitCampfire=true 即触发排斥）。
+//
+// 判定手段：pollUntilSucceed 每 4 tick 查区域内猪灵，断言猪灵与灵魂营火的 3D 距离 >8
+//   （= horizontalRange 检测范围，逃跑成功必然满足，无论逃向哪方向）。逃跑导航约需 40-100 tick
+//   （搜索+寻路+移动），maxTick=380 留余量。区域限定排除并行测试污染；type 用 "minecraft:piglin"。
+//   距离用 3D 欧氏距离（shouldContinueExecuting 用 3D distSq 判定，含 y 分量；猪灵与营火同层 y 不变，
+//   3D 距离≈水平距离）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_猪灵.txt#其他（远离灵魂火/灵魂火把/灵魂灯笼/灵魂营火）
+function piglinFleesFromSoulCampfire(test: Test): void {
+  const piglinType = "piglin";
+  // 灵魂营火放置位置（helper 相对坐标）。
+  const campfirePos = { x: 22, y: 2, z: 4 };
+  // 距灵魂营火 8 格为检测范围阈值（AvoidBlockGoal horizontalRange=8 = 原版 SetWalkTargetAwayFrom
+  // desiredDistance=8）。猪灵逃离到距营火 >8 格（出检测范围）即证明排斥行为生效。
+  const SAFE_DISTANCE = 8.0;
+
+  // 猪灵 (20,2,4) spawn 在 open_grass_hall y=2 落到 y=1 草地顶。灵魂营火放 (22,2,4) 距猪灵 2 格 <8 触发排斥。
+  // open_grass_hall helper-y=2 是 air 层，y=0 grass_block 地板。猪灵在中部 x=20，朝远离营火方向逃跑，
+  // 16 格内到 x=4 或 x=36 仍在墙内（墙在 x=0/40）。灵魂营火默认放置即点燃（isLitCampfire=true）。
+  test.spawn(piglinType, { x: 20, y: 2, z: 4 });
+  test.setBlockType("minecraft:soul_campfire", campfirePos);
+
+  const campfireWorld = test.worldLocation(campfirePos);
+
+  // 轮询：猪灵距灵魂营火 3D 距离 >8（出检测范围，逃跑成功必然满足）。间隔 4 tick 捕获逃跑瞬间。
+  pollUntilSucceed(test, () => {
+    const piglins = test.getDimension().getEntities({
+      type: "minecraft:piglin",
+      location: test.worldLocation(HALL_FROM),
+      volume: HALL_VOLUME,
+    });
+    if (piglins.length === 0) {
+      return false;
+    }
+    const p = piglins[0].location;
+    const dx = p.x - campfireWorld.x;
+    const dy = p.y - campfireWorld.y;
+    const dz = p.z - campfireWorld.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    return dist > SAFE_DISTANCE;
+  }, {
+    interval: 4,
+    maxTick: 380,
+    onTimeout: () => {
+      const piglins = test.getDimension().getEntities({
+        type: "minecraft:piglin",
+        location: test.worldLocation(HALL_FROM),
+        volume: HALL_VOLUME,
+      });
+      const pigPos = piglins.length > 0
+        ? `(${piglins[0].location.x.toFixed(1)},${piglins[0].location.y.toFixed(1)},${piglins[0].location.z.toFixed(1)})`
+        : "gone";
+      const dist = piglins.length > 0
+        ? Math.hypot(piglins[0].location.x - campfireWorld.x,
+            piglins[0].location.y - campfireWorld.y,
+            piglins[0].location.z - campfireWorld.z)
+        : -1;
+      test.assert(false,
+        `piglin did not flee from soul campfire (piglin=${piglins.length}@${pigPos}, ` +
+        `campfire=(${campfireWorld.x},${campfireWorld.y},${campfireWorld.z}), dist=${dist.toFixed(2)}, need>${SAFE_DISTANCE})`);
+    },
+  });
+}
+
 export function registerPiglinTests(): void {
   GameTest.register("MobBehaviorTests", "piglin_attacks_player_without_gold", piglinAttacksPlayerWithoutGold)
     .structureName("gametests:creeper_pit")
@@ -142,4 +249,8 @@ export function registerPiglinTests(): void {
   GameTest.register("MobBehaviorTests", "piglin_ignores_player_wearing_gold", piglinIgnoresPlayerWearingGold)
     .structureName("gametests:creeper_pit")
     .maxTicks(350);
+
+  GameTest.register("MobBehaviorTests", "piglin_flees_from_soul_campfire", piglinFleesFromSoulCampfire)
+    .structureName("gametests:open_grass_hall")
+    .maxTicks(400);
 }
