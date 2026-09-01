@@ -409,6 +409,104 @@ function endermanDodgesProjectile(test: Test): void {
   });
 }
 
+// 末影人主动攻击末影螨（wiki tech_末影人.txt#行为：末影人会主动攻击末影螨；
+//   注：此为 Java 版独有行为，基岩版末影人不攻击末影螨——Java/Bedrock 行为分歧，run_diff 会归类为 one-sided）。
+//
+// C++ 链路（对齐 MC Java 1.21.11 EnderMan.registerGoals，EndermanEntity.cpp:441-453）：
+//   targetSelector 优先级3：NearestAttackableTargetGoal<EndermiteEntity>(this, checkSight=true, chance=0)
+//     ——每 tick 评估，在 FOLLOW_RANGE(64) 格内搜索最近的 endermite，checkSight=true 要求视线无方块遮挡。
+//     选中后设为 attackTarget。
+//   goalSelector 优先级2：MeleeAttackGoal(this, 1.0, false)
+//     shouldExecute：attackTarget 非空时尝试 navigator->moveTo 贴近；若 moveTo 失败则 fallback 检查
+//       distSq <= getAttackReachSqr(target)。spawn 紧邻时直接走 fallback 命中，绕过 PathNavigator 寻路 bug。
+//     checkAndPerformAttack：distSq <= attackReachSq && m_attackCooldown <= 0 时 _attackTarget(target) 造成近战伤害。
+//
+// 关键数值（调研确认）：
+//   enderman width=0.6（EndermanEntity.hpp:282），endermite width=0.4（VanillaEntities.cpp:791）。
+//   攻击距离平方 getAttackReachSqr = (attackerWidth*2)² + targetWidth = (0.6*2)² + 0.4 = 1.44 + 0.4 = 1.84。
+//   即 sqrt(1.84) ≈ 1.356 格。enderman (3,2,3) + endermite (4,2,3)，水平距 1 格，中心距 1.0 ≤ 1.356 → 在攻击范围内。
+//   enderman ATTACK_DAMAGE=7.0（EndermanEntity.cpp:468），endermite MAX_HEALTH=8.0（EndermiteEntity.cpp:123）。
+//   一击后 endermite HP = 8 - 7 = 1（不致死）。
+//   MeleeAttackGoal 攻击冷却 ATTACK_COOLDOWN_TICKS=20，经 adjustedTickDelay 减半约 10 tick。
+//
+// 环境选择：creeper_pit（7×5×7 开放坑）无围墙，NearestAttackableTarget checkSight 射线不被玻璃/方块阻挡。
+//   末影人/末影螨 spawn y=2 落到 y=1 同层（creeper_pit y=0 grass_block 地板 + y=1..4 air）。
+//   末影人脚下 (3,1,3) 玻璃支撑（受重力下落）；endermite 脚下 (4,1,3) 玻璃支撑。
+//   不 spawn 玩家：EndermanFindPlayerGoal（targetSelector 优先级1，TARGET_DISTANCE=10 格内搜索玩家）
+//     找不到玩家 shouldExecute 返回 false 不触发；EndermanStareGoal（goalSelector 优先级1）
+//     shouldExecute 检查 attackTarget 是否是玩家，attackTarget 是 endermite（非玩家）故返回 false 不触发。
+//     两者都不抢占 MeleeAttackGoal 的 Move flag，末影人专心攻击 endermite。
+//
+// 判定手段：endermite HP < 8（受击掉血，满血 8→1）或 endermite 死亡消失（length==0）。
+//   末影人近战 7 伤害，endermite 8 血，一击后 HP=1（不致死），故主要走 HP<8 分支。
+//   若 endermite 在被攻击前已受其他伤害致 HP<7，则一击致死（8→1 后再一击 1→0 死亡），走 length==0 分支。
+//   两种判定路径都证明"末影人攻击 endermite"链路生效。
+//   pollUntilSucceed 轮询区域内 endermite，区域限定排除并行测试污染；type 用 "minecraft:endermite"。
+//   时序：NearestAttackableTargetGoal chance=0 每 tick 评估选目标 + MeleeAttackGoal 攻击冷却约 10 tick。
+//   首次命中约 tick 10-20。startTick=10，maxTick=500 留充裕余量吸收攻击冷却时序。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_末影人.txt#行为（攻击末影螨，Java 独有行为）
+// Ref: EndermanEntity.cpp:441-453（NearestAttackableTargetGoal<EndermiteEntity> 注册，对齐 1.21.11 删守卫）
+// Ref: MeleeAttackGoal.cpp:281-288（getAttackReachSqr 公式 (width*2)²+targetWidth）
+function endermanAttacksEndermite(test: Test): void {
+  const endermanType = "minecraft:enderman";
+  const endermiteType = "minecraft:endermite";
+
+  // 末影人 (3,2,3)、末影螨 (4,2,3)，水平距 1 格，中心距 1.0 ≤ 攻击距离 sqrt(1.84)≈1.356。
+  // creeper_pit 开放坑，实体 spawn y=2 落到 y=1 同层。脚下玻璃支撑防下落。
+  // 距 1 格 < NearestAttackableTargetGoal 搜索范围（FOLLOW_RANGE=64），末影人迅速选定末影螨为 attackTarget。
+  test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
+  test.setBlockType("minecraft:glass", { x: 4, y: 1, z: 3 });
+  test.spawn(endermanType, { x: 3, y: 2, z: 3 });
+  test.spawn(endermiteType, { x: 4, y: 2, z: 3 });
+
+  // 轮询：末影螨 HP<8（受击掉血）或末影螨死亡消失（length==0）。
+  pollUntilSucceed(test, () => {
+    const endermites = test.getDimension().getEntities({
+      type: "minecraft:endermite",
+      location: test.worldLocation(PIT_FROM),
+      volume: PIT_VOLUME,
+    });
+    // 末影螨已被末影人咬死消失——攻击行为生效。
+    if (endermites.length === 0) {
+      return true;
+    }
+    const health = endermites[0].getComponent("minecraft:health");
+    if (health === undefined) {
+      return false;
+    }
+    // 末影螨受击掉血（<8 满血）——末影人近战 7 伤害生效。
+    return (health as any).currentValue < 8;
+  }, {
+    startTick: 10,
+    interval: 10,
+    maxTick: 500,
+    onTimeout: () => {
+      const endermites = test.getDimension().getEntities({
+        type: "minecraft:endermite",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const endermen = test.getDimension().getEntities({
+        type: "minecraft:enderman",
+        location: test.worldLocation(PIT_FROM),
+        volume: PIT_VOLUME,
+      });
+      const miteHp = endermites.length > 0
+        ? (endermites[0].getComponent("minecraft:health") as any)?.currentValue
+        : "gone";
+      const mitePos = endermites.length > 0
+        ? `(${endermites[0].location.x.toFixed(1)},${endermites[0].location.y.toFixed(1)},${endermites[0].location.z.toFixed(1)})`
+        : "gone";
+      const enderPos = endermen.length > 0
+        ? `(${endermen[0].location.x.toFixed(1)},${endermen[0].location.y.toFixed(1)},${endermen[0].location.z.toFixed(1)})`
+        : "gone";
+      test.assert(false,
+        `enderman did not attack endermite (endermite=${endermites.length} hp=${miteHp} pos=${mitePos}; ` +
+        `enderman=${endermen.length}@${enderPos})`);
+    },
+  });
+}
+
 export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_takes_water_damage", endermanTakesWaterDamage)
     .structureName("gametests:glass_pit")
@@ -431,4 +529,8 @@ export function registerEndermanTests(): void {
   GameTest.register("MobBehaviorTests", "enderman_dodges_projectile", endermanDodgesProjectile)
     .structureName("gametests:creeper_pit")
     .maxTicks(300);
+
+  GameTest.register("MobBehaviorTests", "enderman_attacks_endermite", endermanAttacksEndermite)
+    .structureName("gametests:creeper_pit")
+    .maxTicks(600);
 }

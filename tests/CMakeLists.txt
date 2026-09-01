@@ -325,7 +325,7 @@ add_executable(mc_tests
     common/entity/entities/monster/end/EndermanStareDetectionTest.cpp
     # EndermanEntity 方块放置和拾取测试（BlockTags::ENDERMAN_HOLDABLE、EndermanPlaceBlockGoal、EndermanTakeBlockGoal）
     common/entity/entities/monster/end/EndermanBlockGoalsTest.cpp
-    # EndermanEntity 攻击末影螨目标测试（NearestAttackableTargetGoal<EndermiteEntity>、isSpawnedByPlayer）
+    # EndermanEntity 攻击末影螨目标测试（NearestAttackableTargetGoal<EndermiteEntity>，对齐1.21.11攻击所有末影螨）
     common/entity/entities/monster/end/EndermanEndermiteTargetTest.cpp
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试

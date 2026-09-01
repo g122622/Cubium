@@ -12,7 +12,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -25,14 +25,17 @@
  * @file EndermanEndermiteTargetTest.cpp
  * @brief 末影人攻击末影螨目标选择器测试
  *
- * 测试末影人对末影螨的目标选择行为：
- * - 末影人应该攻击玩家生成的末影螨
- * - 末影人不应该攻击自然生成的末影螨
+ * 测试末影人对末影螨的目标选择行为（对齐 MC Java 1.21.11）：
+ * - 末影人攻击所有末影螨（无 playerSpawned 守卫）
  * - 目标选择器正确注册在优先级3
  *
- * 参考 MC 1.16.5 EndermanEntity.registerGoals():
- * this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, EndermiteEntity.class, 10, true, false,
- * field_213627_bA)); 其中 field_213627_bA 是一个 Predicate，只过滤 isSpawnedByPlayer() 为 true 的末影螨
+ * 参考 MC Java 1.21.11 EnderMan.registerGoals()（EnderMan.java:104）：
+ *   this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));
+ * 4 参数版 (Mob, Class, checkSight=true, mustSee=false)，无 target selector 谓词——末影人攻击所有末影螨。
+ *
+ * 历史背景：MC 1.8-1.16 末影人仅攻击玩家（末影珍珠）生成的末影螨（Endermite.playerSpawned 守卫），
+ * 1.17 (20w46a) 撤销该守卫；1.21.11 Endermite 类已无 playerSpawned 字段。此前 Cubium 误对齐 1.8-1.16
+ * 旧行为，现已迁移到 1.21.11（删除 isSpawnedByPlayer 守卫 + EndermiteEntity.m_playerSpawned 字段）。
  */
 
 #include <gtest/gtest.h>
@@ -141,50 +144,6 @@ private:
     u64 m_currentTick = 0;
 };
 
-// ==================== EndermiteEntity::isSpawnedByPlayer 测试 ====================
-
-class EndermiteSpawnedByPlayerTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        world = std::make_unique<EndermanEndermiteTestWorld>();
-        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
-        endermite->setWorld(world.get());
-    }
-
-    void TearDown() override
-    {
-        endermite.reset();
-        world.reset();
-    }
-
-    std::unique_ptr<EndermanEndermiteTestWorld> world;
-    std::unique_ptr<EndermiteEntity> endermite;
-};
-
-TEST_F(EndermiteSpawnedByPlayerTest, DefaultNotSpawnedByPlayer)
-{
-    // 默认情况下，末影螨不是由玩家生成的
-    EXPECT_FALSE(endermite->isSpawnedByPlayer());
-}
-
-TEST_F(EndermiteSpawnedByPlayerTest, SetSpawnedByPlayerTrue)
-{
-    // 设置为玩家生成
-    endermite->setSpawnedByPlayer(true);
-    EXPECT_TRUE(endermite->isSpawnedByPlayer());
-}
-
-TEST_F(EndermiteSpawnedByPlayerTest, SetSpawnedByPlayerFalse)
-{
-    // 设置为玩家生成后，再设置为非玩家生成
-    endermite->setSpawnedByPlayer(true);
-    EXPECT_TRUE(endermite->isSpawnedByPlayer());
-
-    endermite->setSpawnedByPlayer(false);
-    EXPECT_FALSE(endermite->isSpawnedByPlayer());
-}
-
 // ==================== EndermanEntity 目标选择器测试 ====================
 
 class EndermanEndermiteTargetTest : public ::testing::Test {
@@ -236,28 +195,14 @@ TEST_F(EndermanEndermiteTargetTest, EndermiteIsAlive)
     EXPECT_TRUE(endermite->isAlive());
 }
 
-TEST_F(EndermanEndermiteTargetTest, EndermiteIsPlayerSpawned)
-{
-    // 设置末影螨为玩家生成
-    endermite->setSpawnedByPlayer(true);
-    EXPECT_TRUE(endermite->isSpawnedByPlayer());
-}
-
-TEST_F(EndermanEndermiteTargetTest, EndermiteIsNotPlayerSpawned)
-{
-    // 验证默认不是玩家生成
-    EXPECT_FALSE(endermite->isSpawnedByPlayer());
-}
-
-// ==================== 目标选择器谓词测试 ====================
+// ==================== 目标选择器谓词测试（对齐 1.21.11：攻击所有末影螨）====================
 
 /**
- * @brief 测试目标选择器谓词
+ * @brief 验证末影人对末影螨的目标选择无 playerSpawned 守卫
  *
- * MC 1.16.5 中末影人只攻击玩家生成的末影螨:
- * private static final Predicate<LivingEntity> field_213627_bA = (p_213626_0_) -> {
- *     return p_213626_0_ instanceof EndermiteEntity && ((EndermiteEntity)p_213626_0_).isSpawnedByPlayer();
- * };
+ * MC Java 1.21.11 EnderMan.registerGoals 注册：
+ *   targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));
+ * 末影人攻击所有末影螨，不区分生成来源。1.17 (20w46a) 撤销了 1.8-1.16 的 playerSpawned 守卫。
  */
 class EndermiteTargetPredicateTest : public ::testing::Test {
 protected:
@@ -265,64 +210,43 @@ protected:
     {
         world = std::make_unique<EndermanEndermiteTestWorld>();
 
-        // 创建末影螨（玩家生成）
-        playerSpawnedEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
-        playerSpawnedEndermite->setWorld(world.get());
-        playerSpawnedEndermite->setPosition(5.0, 64.0, 0.0);
-        playerSpawnedEndermite->setSpawnedByPlayer(true);
-
-        // 创建末影螨（自然生成）
-        naturalEndermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(2), mc::test::testEcsRegistry());
-        naturalEndermite->setWorld(world.get());
-        naturalEndermite->setPosition(5.0, 64.0, 0.0);
-        naturalEndermite->setSpawnedByPlayer(false);
+        // 创建末影螨（对齐 1.21.11：无需 playerSpawned 标志，末影人攻击所有末影螨）
+        endermite = std::make_unique<EndermiteEntity>(static_cast<EntityInstanceId>(1), mc::test::testEcsRegistry());
+        endermite->setWorld(world.get());
+        endermite->setPosition(5.0, 64.0, 0.0);
     }
 
     void TearDown() override
     {
-        playerSpawnedEndermite.reset();
-        naturalEndermite.reset();
+        endermite.reset();
         world.reset();
     }
 
     std::unique_ptr<EndermanEndermiteTestWorld> world;
-    std::unique_ptr<EndermiteEntity> playerSpawnedEndermite;
-    std::unique_ptr<EndermiteEntity> naturalEndermite;
+    std::unique_ptr<EndermiteEntity> endermite;
 };
 
-TEST_F(EndermiteTargetPredicateTest, PlayerSpawnedEndermiteShouldBeTargeted)
+TEST_F(EndermiteTargetPredicateTest, EndermiteIsAliveAndTargetable)
 {
-    // 玩家生成的末影螨应该被末影人攻击
-    EXPECT_TRUE(playerSpawnedEndermite->isSpawnedByPlayer());
-    EXPECT_TRUE(playerSpawnedEndermite->isAlive());
+    // 对齐 1.21.11：末影螨存活即可被末影人选为目标，无 playerSpawned 前置条件。
+    EXPECT_TRUE(endermite->isAlive());
 }
 
-TEST_F(EndermiteTargetPredicateTest, NaturalEndermiteShouldNotBeTargeted)
+TEST_F(EndermiteTargetPredicateTest, PredicateAcceptsAllEndermites)
 {
-    // 自然生成的末影螨不应该被末影人攻击
-    EXPECT_FALSE(naturalEndermite->isSpawnedByPlayer());
-    EXPECT_TRUE(naturalEndermite->isAlive());
-}
-
-TEST_F(EndermiteTargetPredicateTest, PredicateFiltersCorrectly)
-{
-    // 模拟 MC 1.16.5 的谓词逻辑
+    // 对齐 MC 1.21.11 的目标选择逻辑：NearestAttackableTargetGoal<Endermite> 无 selector 谓词，
+    // 仅检查 instanceof EndermiteEntity + isAlive。任何末影螨（无论生成来源）都通过。
     auto predicate = [](const LivingEntity* entity) -> bool {
         if (entity == nullptr || !entity->isAlive()) {
             return false;
         }
+        // 对齐 Java NearestAttackableTargetGoal 默认目标类型过滤：仅接受目标类型实例。
         const EndermiteEntity* endermite = dynamic_cast<const EndermiteEntity*>(entity);
-        if (endermite == nullptr) {
-            return false;
-        }
-        return endermite->isSpawnedByPlayer();
+        return endermite != nullptr;
     };
 
-    // 玩家生成的末影螨通过谓词
-    EXPECT_TRUE(predicate(playerSpawnedEndermite.get()));
-
-    // 自然生成的末影螨不通过谓词
-    EXPECT_FALSE(predicate(naturalEndermite.get()));
+    // 所有存活的末影螨都应通过谓词（无 playerSpawned 守卫）
+    EXPECT_TRUE(predicate(endermite.get()));
 }
 
 TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
@@ -333,10 +257,7 @@ TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
             return false;
         }
         const EndermiteEntity* endermite = dynamic_cast<const EndermiteEntity*>(entity);
-        if (endermite == nullptr) {
-            return false;
-        }
-        return endermite->isSpawnedByPlayer();
+        return endermite != nullptr;
     };
 
     // 创建一个末影人作为非末影螨实体
@@ -344,7 +265,7 @@ TEST_F(EndermiteTargetPredicateTest, PredicateRejectsNonEndermite)
     enderman->setWorld(world.get());
     enderman->setPosition(5.0, 64.0, 0.0);
 
-    // 末影人不应该通过谓词
+    // 末影人不应该通过谓词（NearestAttackableTargetGoal<Endermite> 仅接受 EndermiteEntity）
     EXPECT_FALSE(predicate(enderman.get()));
 }
 

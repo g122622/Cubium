@@ -166,11 +166,21 @@ protected:
     void onBlockHit(const RayTraceResult& result) override;
 
 private:
+    // 末影螨生成概率：对齐 vanilla ThrownEnderpearl.onHit 的 random.nextFloat() < 0.05F（5%）。
+    static constexpr f32 ENDERMITE_SPAWN_CHANCE = 0.05f;
+
     // 命中实体或方块后将发射者传送至珍珠落点（prevPosition），并对玩家施加 5.0 末影珍珠摔落伤害
     // + 5% 概率生成末影螨。对齐 vanilla ThrownEnderpearl.onHit（命中实体/方块统一在此处理，
     // 由基类 onImpact 分发 onEntityHit/onBlockHit 触发，偏转时基类不分发故不传送，对齐 vanilla
     // hitTargetOrDeflectSelf 偏转不调 onHit 的语义）。传送完成后移除珍珠实体。
     void teleportOwnerOnImpact();
+
+    // 在指定实体位置生成一只末影螨（对齐 vanilla ThrownEnderpearl.onHit:106-110：
+    //   Endermite endermite = EntityType.ENDERMITE.create(serverlevel, TRIGGERED);
+    //   endermite.snapTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
+    //   serverlevel.addFreshEntity(endermite);
+    // 1.21.11 Endermite 无 playerSpawned 字段，故不设该标志。调用方负责概率/难度门控。
+    void _spawnEndermiteAt(const Entity& owner);
 };
 
 /**

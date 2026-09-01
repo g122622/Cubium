@@ -60,25 +60,12 @@ public:
 
     void tick() override;
 
-    // ========== 末影螨特有 ==========
-
-    /**
-     * @brief 检查是否由玩家生成
-     */
-    [[nodiscard]] bool isSpawnedByPlayer() const { return m_playerSpawned; }
-
-    /**
-     * @brief 设置是否由玩家生成
-     */
-    void setSpawnedByPlayer(bool playerSpawned) { m_playerSpawned = playerSpawned; }
-
 protected:
     void registerGoals() override;
     void registerAttributes() override;
 
 private:
-    i32 m_lifetime = 0;           // 存活时间（ticks）
-    bool m_playerSpawned = false; // 是否由玩家生成
+    i32 m_lifetime = 0; // 存活时间（ticks）
 
     // 末影螨消失时间：2400 ticks = 120秒 = 2分钟
     static constexpr i32 DESPAWN_TIME = 2400;

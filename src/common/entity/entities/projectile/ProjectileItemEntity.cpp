@@ -34,6 +34,7 @@
 #include "common/entity/ecs/components/ProjectileItemComponent.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/passive/basic/ChickenEntity.hpp"
@@ -391,10 +392,19 @@ void EnderPearlEntity::teleportOwnerOnImpact()
         EnvironmentalDamage pearlSource = DamageSources::enderPearl();
         player->hurt(pearlSource, 5.0f);
 
-        // TODO(末影螨生成未实现): 对齐 vanilla ThrownEnderpearl.onHit 的 5% 末影螨生成
-        // （random.nextFloat()<0.05 && 难度非和平时在发射者位置生成 EndermiteEntity，
-        // EntitySpawnReason::TRIGGERED）。EntityTypeKeys 缺 endermite 枚举，待补 setTypeId
-        // 后接入完整 spawn 流程。
+        // 对齐 vanilla ThrownEnderpearl.onHit 末影螨生成（ThrownEnderpearl.java:105-111）：
+        //   if (random.nextFloat() < 0.05F && serverlevel.isSpawningMonsters()) {
+        //       Endermite endermite = EntityType.ENDERMITE.create(serverlevel, EntitySpawnReason.TRIGGERED);
+        //       endermite.snapTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
+        //       serverlevel.addFreshEntity(endermite);
+        //   }
+        // 5% 概率 + 难度非和平（isSpawningMonsters 等价：和平难度不生成怪物）时，在发射者位置生成末影螨。
+        // 注：1.21.11 Endermite 无 playerSpawned 字段（1.17 已撤销），故不设该标志。
+        //     末影人会攻击所有末影螨（EnderMan.java:104 无 selector 谓词）。
+        if (m_world->getRandom().nextFloat() < ENDERMITE_SPAWN_CHANCE &&
+            m_world->difficulty() != Difficulty::Peaceful) {
+            _spawnEndermiteAt(*player);
+        }
     }
     // 非玩家 mob 分支：仅传送，不施加伤害（对齐 vanilla 非 ServerPlayer 分支无 hurtServer）。
 
@@ -403,6 +413,26 @@ void EnderPearlEntity::teleportOwnerOnImpact()
     playSound(SoundEvents::ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
 
     remove();
+}
+
+void EnderPearlEntity::_spawnEndermiteAt(const Entity& owner)
+{
+    // 对齐 vanilla ThrownEnderpearl.onHit 末影螨生成（ThrownEnderpearl.java:106-110）。
+    // 范式同 EggEntity::_spawnHatchedChicken：直接构造 + setTypeId + setWorld + setPosition + spawnEntity。
+    auto* registry = &ecsRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
+    auto endermite = std::make_unique<EndermiteEntity>(0, *registry);
+    // 直接构造的实体需显式设置 typeId（注册表路径会自动设置，同 Chicken/ExperienceBottle 范式）。
+    endermite->setTypeId(EntityTypeKeys::ENDERMITE);
+    endermite->setWorld(m_world);
+    // snapTo(owner.x, owner.y, owner.z, owner.yRot, owner.xRot)：在发射者位置生成末影螨。
+    endermite->setPosition(owner.x(), owner.y(), owner.z());
+    endermite->setRotation(owner.yaw(), owner.pitch());
+
+    m_world->spawnEntity(std::move(endermite));
 }
 
 // ============================================================================

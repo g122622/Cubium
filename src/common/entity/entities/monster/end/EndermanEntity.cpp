@@ -439,23 +439,18 @@ void EndermanEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
 
     // 优先级 3: 攻击末影螨
-    // 只攻击玩家生成的末影螨（通过末影珍珠传送生成）
+    // 对齐 MC Java 1.21.11 EnderMan.registerGoals（EnderMan.java:104）：
+    //   targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));
+    // 4 参数版 (Mob, Class, checkSight=true, mustSee=false)，无 target selector 谓词——末影人攻击**所有**
+    //   末影螨，不区分是否由玩家/末影珍珠生成。
+    //
+    // 历史背景：MC 1.8-1.16 末影人仅攻击玩家（末影珍珠）生成的末影螨（Endermite.playerSpawned 守卫），
+    //   1.17 (20w46a) 撤销该守卫，末影人重新攻击所有末影螨；1.21.11 Endermite 类已无 playerSpawned 字段。
+    //   此前 Cubium 误对齐 1.8-1.16 旧行为（带 isSpawnedByPlayer 守卫），现迁移到 1.21.11。
     m_targetSelector.addGoal(3,
         new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(this,
-            true, // checkSight - 需要视线可见
-            0,    // chance - 每 tick 检查
-            [](const LivingEntity* entity) -> bool {
-                // 只攻击玩家生成的末影螨
-                if (entity == nullptr || !entity->isAlive()) {
-                    return false;
-                }
-                const EndermiteEntity* endermite = dynamic_cast<const EndermiteEntity*>(entity);
-                if (endermite == nullptr) {
-                    return false;
-                }
-                // 只有玩家生成的末影螨才会被末影人攻击
-                return endermite->isSpawnedByPlayer();
-            }));
+            true, // checkSight - 需要视线可见（对齐 Java mustSee=false 但 NearestAttackableTargetGoal 内部 checkSight）
+            0));  // chance - 每 tick 检查
 
     // 优先级 4: 重置愤怒
     // 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标

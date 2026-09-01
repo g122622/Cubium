@@ -223,25 +223,6 @@ TEST_F(EndermiteEntityTest, DespawnTime_Is2400Ticks)
     EXPECT_EQ(DESPAWN_TIME / 20 / 60, 2); // 2 分钟
 }
 
-// ==================== 玩家生成标记测试 ====================
-
-TEST_F(EndermiteEntityTest, SpawnedByPlayer_DefaultFalse)
-{
-    EndermiteEntity endermite(EntityInstanceId(1), mc::test::testEcsRegistry());
-    EXPECT_FALSE(endermite.isSpawnedByPlayer());
-}
-
-TEST_F(EndermiteEntityTest, SpawnedByPlayer_CanBeSet)
-{
-    EndermiteEntity endermite(EntityInstanceId(1), mc::test::testEcsRegistry());
-
-    endermite.setSpawnedByPlayer(true);
-    EXPECT_TRUE(endermite.isSpawnedByPlayer());
-
-    endermite.setSpawnedByPlayer(false);
-    EXPECT_FALSE(endermite.isSpawnedByPlayer());
-}
-
 // ==================== AI 目标注册测试 ====================
 
 TEST_F(EndermiteEntityTest, Goals_RegisteredCorrectly)
