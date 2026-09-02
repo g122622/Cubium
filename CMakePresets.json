@@ -43,6 +43,23 @@
       }
     },
     {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "MC_ENABLE_CCACHE": "ON"
+      }
+    },
+    {
       "name": "windows-clang-debug",
       "displayName": "Windows Clang Debug",
       "inherits": "windows-clang-base",
@@ -157,6 +174,52 @@
       }
     },
     {
+      "name": "linux-relwithdebinfo",
+      "displayName": "Linux Clang RelWithDebInfo (server-only)",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "OFF",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "linux-release-noprof",
+      "displayName": "Linux Clang Release (server-only, no profiler, distributable)",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build-release-noprof",
+      "installDir": "${sourceDir}/dist-release-noprof",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MC_BUILD_CLIENT": "OFF",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "OFF",
+        "MC_BUILD_BENCHMARKS": "OFF",
+        "MC_ENABLE_SANITIZERS": "OFF",
+        "MC_ENABLE_TRACING": "OFF",
+        "MC_ENABLE_TRACY": "OFF",
+        "MC_ENABLE_MEMORY": "OFF"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Clang Debug (server-only)",
+      "inherits": "linux-base",
+      "binaryDir": "${sourceDir}/build",
+      "installDir": "${sourceDir}/dist",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MC_BUILD_CLIENT": "OFF",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
       "name": "server-only",
       "displayName": "Server Only",
       "inherits": "windows-clang-base",
@@ -231,6 +294,24 @@
       "configurePreset": "macos-release",
       "configuration": "Release",
       "jobs": 10
+    },
+    {
+      "name": "linux-relwithdebinfo",
+      "configurePreset": "linux-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
+      "jobs": 0
+    },
+    {
+      "name": "linux-release-noprof",
+      "configurePreset": "linux-release-noprof",
+      "configuration": "Release",
+      "jobs": 0
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "configuration": "Debug",
+      "jobs": 0
     }
   ],
   "testPresets": [
@@ -246,6 +327,26 @@
       "configurePreset": "macos-debug",
       "output": {
         "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-relwithdebinfo",
+      "configurePreset": "linux-relwithdebinfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300
+      }
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "timeout": 300
       }
     }
   ]
