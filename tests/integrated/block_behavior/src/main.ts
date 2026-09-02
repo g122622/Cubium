@@ -139,6 +139,7 @@ import { registerRedstoneBlockTests } from "./tests/redstone/RedstoneBlockTests.
 import { registerRedstoneOreTests } from "./tests/redstone/RedstoneOreTests.js";
 import { registerRedstoneTorchTests } from "./tests/redstone/RedstoneTorchTests.js";
 import { registerTargetBlockTests } from "./tests/redstone/TargetBlockTests.js";
+import { registerWeightedPressurePlateTests } from "./tests/redstone/WeightedPressurePlateTests.js";
 import { registerBeaconTests } from "./tests/functional/BeaconTests.js";
 
 registerLiquidTests();
@@ -271,4 +272,5 @@ registerRedstoneBlockTests();
 registerRedstoneOreTests();
 registerRedstoneTorchTests();
 registerTargetBlockTests();
+registerWeightedPressurePlateTests();
 registerBeaconTests();
