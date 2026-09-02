@@ -612,6 +612,20 @@ void AbstractArrowEntity::onBlockHit(const RayTraceResult& result)
     // 播放命中地面音效
     math::Random rng = createRandomFromEntity(*this);
     playSound(SoundEvents::ENTITY_ARROW_HIT_GROUND, 1.0f, 1.2f / (rng.nextFloat() * 0.2f + 0.9f));
+
+    // 通知命中方块有投射物命中（对齐 vanilla Projectile.onHit → onProjectileHit 链路）。
+    // 标靶方块（TargetBlock）等重写 onProjectileHit 的方块依赖此回调计算红石输出。
+    // 基类 ProjectileEntity::onBlockHit 已含此通知，但本 override 完全替换了基类逻辑，
+    // 故在此显式补发。hitResult 与基类一致，用世界坐标命中点 + 命中面构造。
+    if (m_world != nullptr && result.type == RayTraceResultType::Block) {
+        const BlockState* state = m_world->getBlockState(result.blockPos.x, result.blockPos.y, result.blockPos.z);
+        if (state != nullptr) {
+            Block& block = state->getBlockMutable();
+            BlockRaycastResult hitResult =
+                BlockRaycastResult::hit(result.hitPosition, result.blockPos, result.face, 0.0f);
+            block.onProjectileHit(*m_world, *state, hitResult, *this);
+        }
+    }
 }
 
 void AbstractArrowEntity::doPostHurtEffects(LivingEntity& /*target*/)

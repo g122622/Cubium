@@ -28,6 +28,7 @@
 #include "../../../tick/base/TickPriority.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -77,25 +78,60 @@ BlockState TargetBlock::withPower(BlockState state, i32 power)
     return state.with(BlockStateProperties::POWER_0_15(), power);
 }
 
-i32 TargetBlock::calculatePower(f32 hitX, f32 hitY, f32 hitZ)
+i32 TargetBlock::getRedstoneStrength(const Vector3& hitPos, Direction hitFace)
 {
-    // 计算命中点到方块中心（0.5, 0.5, 0.5）的距离
-    f32 dx = hitX - 0.5f;
-    f32 dy = hitY - 0.5f;
-    f32 dz = hitZ - 0.5f;
+    // 对齐 vanilla TargetBlock.getRedstoneStrength（TargetBlock.java:61-77）。
+    // 取命中点在命中面平面内两个坐标轴的小数偏移最大值 d3：
+    //   - 命中顶/底面（Y 轴）：取 X、Z 偏移最大值
+    //   - 命中前/后面（Z 轴）：取 X、Y 偏移最大值
+    //   - 命中左/右面（X 轴）：取 Y、Z 偏移最大值
+    // 返回 ceil(15 * clamp((0.5 - d3) / 0.5, 0, 1))，至少为 1。
+    // 越靠近面中心信号越强（正中 d3=0 → 15，边缘 d3=0.5 → 1）。
+    f32 fracX = hitPos.x - std::floor(hitPos.x);
+    f32 fracY = hitPos.y - std::floor(hitPos.y);
+    f32 fracZ = hitPos.z - std::floor(hitPos.z);
 
-    // 计算距离
-    f32 distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    f32 d0 = std::abs(fracX - 0.5f); // X 偏移到中心
+    f32 d1 = std::abs(fracY - 0.5f); // Y 偏移到中心
+    f32 d2 = std::abs(fracZ - 0.5f); // Z 偏移到中心
 
-    // 最大距离约为 0.866（从中心到角落）
-    // 映射到 0-15 的信号强度
-    // 距离越近，信号越强
-    constexpr f32 MAX_DISTANCE = 0.866f;
+    Axis axis = Directions::getAxis(hitFace);
+    f32 d3;
+    if (axis == Axis::Y) {
+        d3 = std::max(d0, d2);
+    } else if (axis == Axis::Z) {
+        d3 = std::max(d0, d1);
+    } else {
+        d3 = std::max(d1, d2);
+    }
 
-    // 线性插值：距离为0时输出15，距离为MAX时输出0
-    i32 power = static_cast<i32>((1.0f - distance / MAX_DISTANCE) * 15.0f);
+    f32 clamped = std::clamp((0.5f - d3) / 0.5f, 0.0f, 1.0f);
+    return std::max(1, static_cast<i32>(std::ceil(15.0f * clamped)));
+}
 
-    return std::max(0, std::min(power, 15));
+void TargetBlock::onProjectileHit(
+    IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+{
+    // 对齐 vanilla TargetBlock.onProjectileHit（TargetBlock.java:42-49）+
+    // updateRedstoneOutput（TargetBlock.java:51-59）。
+    // 计算命中精度对应的红石信号强度，设置方块 state 并调度信号结束 tick。
+    // 箭矢持续 ACTIVATION_TICKS_ARROWS(20) tick，其他投射物持续 ACTIVATION_TICKS_OTHER(8) tick。
+    // 若该方块已有调度中的 tick，则不重复调度（保留首次命中的持续时间和强度）。
+    const BlockPos& pos = hitResult.blockPos();
+    i32 strength = getRedstoneStrength(hitResult.hitPosition(), hitResult.face());
+
+    // 箭矢判定：对齐 vanilla (projectile instanceof AbstractArrow) ? 20 : 8
+    bool isArrow = dynamic_cast<entity::AbstractArrowEntity*>(&projectile) != nullptr;
+    i32 duration = isArrow ? ACTIVATION_TICKS_ARROWS : ACTIVATION_TICKS_OTHER;
+
+    if (!world.tickManager().isBlockTickScheduled(pos, *this)) {
+        BlockState newState = withPower(state, strength);
+        world.setBlockState(pos, &newState, 3);
+        world.tickManager().scheduleBlockTick(pos, *this, duration, world::tick::TickPriority::High);
+    }
+
+    // 通知相邻方块红石信号变化
+    world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
 }
 
 void TargetBlock::neighborChanged(
@@ -105,7 +141,7 @@ void TargetBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 标靶不响应红石信号，只响应箭矢命中
+    // 标靶不响应红石信号，只响应投射物命中
     MC_UNUSED(world);
     MC_UNUSED(pos);
 }
@@ -113,13 +149,13 @@ void TargetBlock::neighborChanged(
 void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    // 信号持续时间结束，重置为0
+    // 信号持续时间结束，重置为0（对齐 vanilla TargetBlock.tick：power != 0 时设为 0）
     i32 currentPower = getPower(state);
     if (currentPower > 0) {
         BlockState newState = withPower(state, 0);
         world.setBlockState(pos, &newState, 3);
 
-        // 通知相邻方块
+        // 通知相邻方块红石信号变化
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
     }
 }
@@ -142,23 +178,6 @@ i32 TargetBlock::getStrongPower(
     MC_UNUSED(side);
 
     return getPower(state);
-}
-
-void TargetBlock::onHitByArrow(
-    IWorld& world, const BlockPos& pos, const BlockState& state, f32 hitX, f32 hitY, f32 hitZ)
-{
-    // 计算输出信号强度
-    i32 power = calculatePower(hitX, hitY, hitZ);
-
-    // 更新方块状态
-    BlockState newState = withPower(state, power);
-    world.setBlockState(pos, &newState, 3);
-
-    // 通知相邻方块
-    world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);
-
-    // 调度信号结束
-    world.tickManager().scheduleBlockTick(pos, *this, SIGNAL_DURATION, world::tick::TickPriority::High);
 }
 
 } // namespace blocks

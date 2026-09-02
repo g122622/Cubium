@@ -23,15 +23,20 @@
 
 #pragma once
 
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/Material.hpp"
 #include "world/block/Block.hpp"
 
 namespace mc {
+
+class Entity;
+
 namespace blocks {
 
 /**
@@ -49,6 +54,10 @@ namespace blocks {
  */
 class TargetBlock : public Block {
 public:
+    /// 箭矢命中后信号持续 tick 数（对齐 vanilla ACTIVATION_TICKS_ARROWS = 20）
+    static constexpr i32 ACTIVATION_TICKS_ARROWS = 20;
+    /// 其他投射物命中后信号持续 tick 数（对齐 vanilla ACTIVATION_TICKS_OTHER = 8）
+    static constexpr i32 ACTIVATION_TICKS_OTHER = 8;
     /// 输出信号持续时间（ticks）
     static constexpr i32 SIGNAL_DURATION = 20;
 
@@ -64,6 +73,25 @@ public:
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 投射物击中标靶时调用
+     *
+     * 对齐 vanilla TargetBlock.onProjectileHit（TargetBlock.java:42-49）：
+     * 计算命中精度对应的红石信号强度，设置方块 state 并调度信号结束 tick。
+     * 箭矢持续 ACTIVATION_TICKS_ARROWS(20) tick，其他投射物持续 ACTIVATION_TICKS_OTHER(8) tick。
+     * 若该方块已有调度中的 tick，则不重复调度（保留首次命中设置的持续时间和强度）。
+     *
+     * 链路：ProjectileEntity::onBlockHit（ProjectileEntity.cpp:293）调 block.onProjectileHit，
+     * AbstractArrowEntity::onBlockHit（AbstractArrowEntity.cpp:582）亦在末尾补发此通知。
+     *
+     * @param world 世界
+     * @param state 当前方块状态
+     * @param hitResult 击中结果（含命中点世界坐标、命中面方向、方块位置）
+     * @param projectile 投掷物实体
+     */
+    void onProjectileHit(
+        IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile) override;
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
@@ -101,29 +129,18 @@ public:
     [[nodiscard]] static BlockState withPower(BlockState state, i32 power);
 
     /**
-     * @brief 计算箭矢命中精度
+     * @brief 计算投射物命中精度对应的红石信号强度
      *
-     * 根据命中点到方块中心的距离计算输出信号强度。
-     * 距离越近，信号越强。
+     * 对齐 vanilla TargetBlock.getRedstoneStrength（TargetBlock.java:61-77）：
+     * 取命中点在命中面平面内两个坐标轴的小数偏移最大值 d3，
+     * 返回 ceil(15 * clamp((0.5 - d3) / 0.5, 0, 1))，至少为 1。
+     * 越靠近面中心信号越强（正中=15，边缘=1）。
      *
-     * @param hitX 命中点X坐标（相对方块）
-     * @param hitY 命中点Y坐标（相对方块）
-     * @param hitZ 命中点Z坐标（相对方块）
-     * @return i32 输出信号强度（0-15）
+     * @param hitPos 命中点世界坐标
+     * @param hitFace 命中的面方向
+     * @return i32 输出信号强度（1-15）
      */
-    [[nodiscard]] static i32 calculatePower(f32 hitX, f32 hitY, f32 hitZ);
-
-    /**
-     * @brief 被箭矢命中时触发
-     *
-     * @param world 世界引用
-     * @param pos 标靶位置
-     * @param state 当前方块状态
-     * @param hitX 命中点X坐标
-     * @param hitY 命中点Y坐标
-     * @param hitZ 命中点Z坐标
-     */
-    void onHitByArrow(IWorld& world, const BlockPos& pos, const BlockState& state, f32 hitX, f32 hitY, f32 hitZ);
+    [[nodiscard]] static i32 getRedstoneStrength(const Vector3& hitPos, Direction hitFace);
 };
 
 } // namespace blocks
