@@ -43,9 +43,11 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../damage/DamageSource.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
+#include "../../effect/EffectEntities.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
@@ -55,6 +57,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -388,6 +391,24 @@ bool TurtleEntity::_isOnSand(const IWorld& world, const BlockPos& pos)
     BlockPos belowPos = pos.down();
     const BlockState* belowState = world.getBlockState(belowPos);
     return belowState != nullptr && BlockTags::SAND().contains(*belowState);
+}
+
+void TurtleEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
+{
+    // 对齐 MC Java 1.21.11 Turtle.thunderHit（Turtle.java:279-281）：
+    //   public void thunderHit(ServerLevel p_480048_, LightningBolt p_481935_) {
+    //       this.hurtServer(p_480048_, this.damageSources().lightningBolt(), Float.MAX_VALUE);
+    //   }
+    // 海龟被闪电击中时直接承受 Float.MAX_VALUE 伤害（即秒杀），不调 super.thunderHit
+    // （基类默认 hurt(5)+引燃，vanilla Turtle 覆盖为秒杀不引燃）。Cubium 用 FLT_MAX
+    // 等价 Java Float.MAX_VALUE，配合 LivingEntity::hurt 的 isDead 判定（health<=0）实现秒杀。
+    if (lightning == nullptr) {
+        return;
+    }
+    // 已 include EffectEntities.hpp（LightningBoltEntity 完整定义），可直接传 lightning 给
+    // DamageSources::lightningBolt（基类 Entity::onStruckByLightning 同范式，Entity.cpp:2217）。
+    auto damageSource = DamageSources::lightningBolt(lightning);
+    hurt(damageSource, FLT_MAX);
 }
 
 void TurtleEntity::travel(const Vector3& travelVec)

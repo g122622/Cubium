@@ -222,6 +222,18 @@ public:
     void tick() override;
 
     /**
+     * @brief 海龟被闪电击中时秒杀
+     *
+     * 对齐 MC Java 1.21.11 Turtle.thunderHit（Turtle.java:279-281）：
+     *   public void thunderHit(ServerLevel p_480048_, LightningBolt p_481935_) {
+     *       this.hurtServer(p_480048_, this.damageSources().lightningBolt(), Float.MAX_VALUE);
+     *   }
+     * 海龟被闪电击中时直接承受 Float.MAX_VALUE 伤害秒杀（不引燃、不调基类 5 伤害）。
+     * Cubium 用 FLT_MAX 等价 Java Float.MAX_VALUE。
+     */
+    void onStruckByLightning(entity::LightningBoltEntity* lightning) override;
+
+    /**
      * @brief 处理移动物理
      *
      * 海龟在水中和陆地有不同的移动速度：
