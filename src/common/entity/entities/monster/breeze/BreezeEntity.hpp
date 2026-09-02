@@ -116,8 +116,8 @@ public:
     /// 基础生命值
     static constexpr f32 MAX_HEALTH = 30.0f;
 
-    /// 基础移动速度
-    static constexpr f32 MOVEMENT_SPEED = 0.6f;
+    /// 基础移动速度（对齐 MC 1.21.11 Breeze.createAttributes: Attributes.MOVEMENT_SPEED, 0.63F）
+    static constexpr f32 MOVEMENT_SPEED = 0.63f;
 
     /// 跟随距离
     static constexpr f32 FOLLOW_RANGE = 24.0f;
