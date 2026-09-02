@@ -32,8 +32,8 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -270,6 +270,20 @@ bool BreezeEntity::canAttackType(const entity::EntityType& type) const
     // 旋风人采用白名单模式，其余所有实体类型都不能被攻击
     // 指针比较：type 必来自注册表，与 VanillaEntityTypeKeys::* 同源
     return &type == entity::VanillaEntityTypeKeys::PLAYER || &type == entity::VanillaEntityTypeKeys::IRON_GOLEM;
+}
+
+bool BreezeEntity::isInvulnerableTo(DamageSource& source) const
+{
+    // 对齐 MC Java 1.21.11 Breeze.isInvulnerableTo（Breeze.java:267-269）：
+    //   return p_312691_.getEntity() instanceof Breeze || super.isInvulnerableTo(p_376278_, p_312691_);
+    // getEntity() 返回伤害的来源实体（对弹射物是 shooter/发射者，对近战是攻击者）。
+    // 当来源是旋风人时返回 true：旋风人 A 发射的风弹命中旋风人 B 时，伤害源 getEntity()=A（Breeze），
+    // B 的 isInvulnerableTo 返回 true，不受伤害。这保障旋风人之间的风弹互不伤害。
+    Entity* const causingEntity = source.getEntity();
+    if (causingEntity != nullptr && causingEntity->entityType() == entity::VanillaEntityTypeKeys::BREEZE) {
+        return true;
+    }
+    return MonsterEntity::isInvulnerableTo(source);
 }
 
 ProjectileDeflection BreezeEntity::deflection(const entity::ProjectileEntity& projectile) const
