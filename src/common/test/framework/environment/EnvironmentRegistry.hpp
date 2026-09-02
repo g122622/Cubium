@@ -2,6 +2,7 @@
 
 #include "common/test/framework/environment/TestEnvironmentDefinition.hpp"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 

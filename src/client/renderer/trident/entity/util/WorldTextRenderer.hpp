@@ -274,8 +274,8 @@ private:
     // 常量
     static constexpr f32 DEFAULT_MAX_DISTANCE = 64.0f;
     static constexpr f32 DEFAULT_SCALE = 0.025f;
-    static constexpr f32 CHAR_WIDTH = 0.5f;  // 每个字符的默认宽度
-    static constexpr f32 CHAR_HEIGHT = 1.0f; // 每个字符的默认高度
+    static constexpr f32 DEFAULT_CHAR_WIDTH = 0.5f; // 每个字符的默认宽度
+    static constexpr f32 CHAR_HEIGHT = 1.0f;        // 每个字符的默认高度
     static constexpr f32 BACKGROUND_PADDING = 0.25f;
     static constexpr f32 HEIGHT_OFFSET = 0.3f; // 名称标签在头顶上方的偏移
 };

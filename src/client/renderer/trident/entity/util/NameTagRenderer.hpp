@@ -148,7 +148,7 @@ private:
     static constexpr f64 DEFAULT_SCALE = 0.025;
     static constexpr f64 BACKGROUND_PADDING = 0.25;
     static constexpr f64 HEIGHT_OFFSET = 0.5; // MC 1.16.5: 实体高度之上的偏移
-    static constexpr f64 CHAR_WIDTH = 0.5;
+    static constexpr f64 DEFAULT_CHAR_WIDTH = 0.5;
     static constexpr f64 CHAR_HEIGHT = 1.0;
 };
 

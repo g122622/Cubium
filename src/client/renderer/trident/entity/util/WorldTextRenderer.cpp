@@ -573,7 +573,7 @@ void WorldTextRenderer::renderText(VkCommandBuffer cmd,
 
         const WorldGlyphMesh* glyph = getGlyphMesh(codepoint);
         if (glyph == nullptr) {
-            cursorX += CHAR_WIDTH * effectiveScale; // 使用默认宽度
+            cursorX += DEFAULT_CHAR_WIDTH * effectiveScale; // 使用默认宽度
             continue;
         }
 
@@ -696,7 +696,7 @@ void WorldTextRenderer::computeBillboardMatrix(const Vector3f& position, std::ar
 f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale)
 {
     if (s_font == nullptr) {
-        return static_cast<f32>(text.size()) * CHAR_WIDTH * scale;
+        return static_cast<f32>(text.size()) * DEFAULT_CHAR_WIDTH * scale;
     }
 
     f32 width = 0.0f;
@@ -709,7 +709,7 @@ f32 WorldTextRenderer::calculateTextWidth(const std::string& text, f32 scale)
         if (glyph != nullptr) {
             width += glyph->advanceX * scale;
         } else {
-            width += CHAR_WIDTH * scale;
+            width += DEFAULT_CHAR_WIDTH * scale;
         }
     }
     return width;

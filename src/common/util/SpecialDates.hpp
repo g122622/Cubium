@@ -24,7 +24,11 @@
 #pragma once
 
 #include <chrono>
+#ifdef _MSC_VER
+// MSVC STL 需要显式包含内部头文件才能使用 C++20 chrono 日历特性；
+// libstdc++ 的 <chrono> 已自足，无需此 include。
 #include <__msvc_chrono.hpp>
+#endif
 
 namespace mc::util {
 
