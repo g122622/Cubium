@@ -256,6 +256,18 @@ void SnifferEntity::tick()
     AnimalEntity::tick();
 }
 
+// ========== 死亡 ==========
+
+void SnifferEntity::die(DamageSource& source)
+{
+    // 对齐 MC Java 1.21.11 Sniffer.die（Sniffer.java:347-350）：
+    //   this.transitionTo(Sniffer.State.IDLING);
+    //   super.die(p_277689_);
+    // 死亡时将状态机重置为 Idling，再委托父类执行通用死亡逻辑。
+    transitionTo(State::Idling);
+    AnimalEntity::die(source);
+}
+
 // ========== AI 目标注册 ==========
 
 void SnifferEntity::registerGoals()
