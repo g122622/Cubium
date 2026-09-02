@@ -702,6 +702,20 @@ void Entity::setPosition(f32 x, f32 y, f32 z)
     reapplyPosition();
 }
 
+void Entity::absSnapTo(f32 x, f32 y, f32 z)
+{
+    // 对齐 Java Entity.absSnapTo(:1661-1668)：clamp 到 ±3.0E7，先设上一帧位置为目标
+    // 位置（避免插值回拉），再 setPos。本项目 setPosition 内部会令 m_posPrev = 旧 m_pos，
+    // 故此处 setPos 后再调 snapshotInterpolationState 令 m_posPrev = 新 m_pos，确保
+    // 渲染插值起点即目标位置，无回拉抖动。派生类（如 Player）的 setPosition 已内含
+    // snapshotInterpolationState，此处调用幂等。
+    constexpr f32 LIMIT = 3.0e7f;
+    const f32 clampedX = std::clamp(x, -LIMIT, LIMIT);
+    const f32 clampedZ = std::clamp(z, -LIMIT, LIMIT);
+    setPosition(clampedX, y, clampedZ);
+    snapshotInterpolationState();
+}
+
 void Entity::snapshotInterpolationState()
 {
     m_builtIn.stateVector->m_posPrev = m_builtIn.stateVector->m_pos;

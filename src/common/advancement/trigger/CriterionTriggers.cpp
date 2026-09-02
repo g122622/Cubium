@@ -24,6 +24,7 @@
 #include "CriterionTriggers.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "impl/AnyBlockUseTrigger.hpp"
 #include "impl/AvoidVibrationTrigger.hpp"
 #include "impl/BlockTriggers.hpp"
 #include "impl/ChanneledLightningTrigger.hpp"
@@ -114,6 +115,7 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<EnterBlockTrigger>());
     registerTrigger(std::make_unique<SlideDownBlockTrigger>());
     registerTrigger(std::make_unique<BeeNestDestroyedTrigger>());
+    registerTrigger(std::make_unique<AnyBlockUseTrigger>());
 
     // 注册位置相关触发器
     registerTrigger(std::make_unique<LocationTrigger>());

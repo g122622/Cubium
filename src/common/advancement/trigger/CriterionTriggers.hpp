@@ -152,6 +152,7 @@ constexpr const char* SLIDE_DOWN_BLOCK = "minecraft:slide_down_block";
 constexpr const char* BEE_NEST_DESTROYED = "minecraft:bee_nest_destroyed";
 constexpr const char* TARGET_HIT = "minecraft:target_hit";
 constexpr const char* ITEM_USED_ON_BLOCK = "minecraft:item_used_on_block";
+constexpr const char* DEFAULT_BLOCK_USE = "minecraft:default_block_use";
 
 // 效果相关
 constexpr const char* EFFECTS_CHANGED = "minecraft:effects_changed";

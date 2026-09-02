@@ -354,6 +354,7 @@ public:
     [[nodiscard]] bool isDifficultyLocked() const noexcept override { return m_difficultyLocked; }
     void setDifficultyLocked(bool locked) override;
     [[nodiscard]] bool isSingleplayerOwner(PlayerId playerId) const noexcept override { return false; }
+    [[nodiscard]] i32 spawnProtectionRadius() const override { return m_settings.spawnProtection.get(); }
     [[nodiscard]] GameMode defaultGameMode() const override
     {
         return static_cast<GameMode>(m_settings.defaultGameMode.get());

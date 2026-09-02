@@ -58,13 +58,16 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "server/application/IServer.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <cmath>
 #include <functional>
 #include <optional>
 #include <string>
@@ -111,6 +114,33 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
     if (checkYRange) {
         if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
             return Error(ErrorCode::InvalidArgument, "Block Y out of range");
+        }
+    }
+
+    // 出生点保护（对齐 vanilla ServerLevel.mayInteract / MinecraftServer.getSpawnProtectionRadius）：
+    // 仅主世界，半径内（切比雪夫 XZ）非 op(< Moderator=1) 且非单机主禁止交互。
+    // spawn-protection=0 关闭保护。单机主豁免对齐 IntegratedServer.isSingleplayerOwner。
+    if (m_server != nullptr) {
+        const i32 radius = m_server->spawnProtectionRadius();
+        if (radius > 0) {
+            ServerWorld* world = _getPlayerWorld(playerId);
+            if (world != nullptr && world->dimension() == DimensionManager::OVERWORLD) {
+                const Vector3d spawn = world->worldSpawnPoint();
+                const i32 spawnX = static_cast<i32>(std::floor(spawn.x));
+                const i32 spawnZ = static_cast<i32>(std::floor(spawn.z));
+                if (std::abs(pos.x - spawnX) <= radius && std::abs(pos.z - spawnZ) <= radius) {
+                    Player* protPlayer = nullptr;
+                    if (world != nullptr) {
+                        protPlayer = _getPlayerEntity(playerId, *world);
+                    }
+                    const bool exempt = (protPlayer != nullptr &&
+                                            protPlayer->hasPermission(static_cast<i32>(core::OpLevel::Moderator))) ||
+                        m_server->isSingleplayerOwner(playerId);
+                    if (!exempt) {
+                        return Error(ErrorCode::PermissionDenied, "Spawn protected");
+                    }
+                }
+            }
         }
     }
 

@@ -156,6 +156,7 @@ public:
     [[nodiscard]] bool isDifficultyLocked() const noexcept override { return m_difficultyLocked; }
     void setDifficultyLocked(bool locked) override { m_difficultyLocked = locked; }
     [[nodiscard]] bool isSingleplayerOwner(PlayerId /*playerId*/) const noexcept override { return false; }
+    [[nodiscard]] i32 spawnProtectionRadius() const noexcept override { return 0; }
     [[nodiscard]] GameMode defaultGameMode() const override { return m_defaultGameMode; }
     void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }

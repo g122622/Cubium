@@ -29,16 +29,18 @@
 
 namespace mc::client {
 
-void BlockStatePredictionHandler::retainKnownServerState(const BlockPos& pos, const BlockState* oldState)
+void BlockStatePredictionHandler::retainKnownServerState(
+    const BlockPos& pos, const BlockState* oldState, const Vector3& playerPos)
 {
     const i64 key = pos.asLong();
     auto it = m_serverVerifiedStates.find(key);
     if (it == m_serverVerifiedStates.end()) {
-        // 新记录：保存预测前的服务端权威状态 + 当前 sequence
-        m_serverVerifiedStates.emplace(key, ServerVerifiedState{m_currentSequenceNr, oldState});
+        // 新记录：保存预测前的服务端权威状态 + 当前 sequence + 玩家位置
+        m_serverVerifiedStates.emplace(key, ServerVerifiedState{m_currentSequenceNr, oldState, playerPos});
     } else {
-        // 已有记录：仅更新 sequence，保留最早的 oldState（对齐原版语义）
+        // 已有记录：仅更新 sequence 与玩家位置，保留最早的 oldState（对齐原版语义）
         it->second.sequence = m_currentSequenceNr;
+        it->second.playerPos = playerPos;
     }
 }
 
@@ -72,8 +74,9 @@ void BlockStatePredictionHandler::endPredictionsUpTo(i32 ackSequence, ClientWorl
             continue;
         }
         const BlockPos pos = BlockPos::fromLong(key);
-        // syncBlockState：若当前方块状态与服务端权威不符，回滚到服务端权威状态。
-        world.syncBlockState(pos, it->second.blockState);
+        // syncBlockState：若当前方块状态与服务端权威不符，回滚到服务端权威状态；
+        // 若玩家与恢复后方块碰撞，absSnapTo 回弹到预测前位置（it->second.playerPos）。
+        world.syncBlockState(pos, it->second.blockState, it->second.playerPos);
         m_serverVerifiedStates.erase(it);
     }
 }

@@ -441,6 +441,8 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), m_settings.username.get(), *playerRegistry);
     m_player->setPosition(8.0, 50.0, 8.0);
     m_player->setPhysicsEngine(m_physicsEngine.get());
+    // 将本地玩家注入 ClientWorld，供方块预测回滚时（syncBlockState）做玩家位置回弹。
+    m_world.setClientPlayer(m_player.get());
     m_player->setGameMode(config.defaultGameMode);
     if (config.defaultGameMode == GameMode::Creative) {
         m_player->setCreativeModeInventory();
@@ -502,6 +504,8 @@ void ClientApplication::destroyGameSession()
     }
 
     // 3. 清理玩家
+    // 先解除 ClientWorld 对本地玩家的引用，避免 reset 后悬垂。
+    m_world.setClientPlayer(nullptr);
     m_player.reset();
 
     // 4. 清理物理引擎

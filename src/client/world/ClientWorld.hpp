@@ -68,6 +68,7 @@
 namespace mc {
 class ItemStack;
 class BlockEntity;
+class Player;
 namespace network::ir::play {
 struct LevelChunkWithLight;
 }
@@ -163,16 +164,17 @@ public:
     /**
      * @brief 预测确认/回滚（收到 ACK 时由 BlockStatePredictionHandler 调用）
      *
-     * 对齐 Java ClientLevel.syncBlockState：若当前方块状态与预测前服务端权威状态不符
-     * （说明服务端拒绝了预测），则回滚到服务端权威状态。
-     *
-     * TODO(玩家位置回弹): 原版 syncBlockState 还会检查玩家是否与恢复后的方块碰撞，
-     * 若碰撞则 absSnapTo 回预测前位置。本项目需补齐 Player 碰撞检测接口后实现。
+     * 对齐 Java ClientLevel.syncBlockState(pos, state, playerPos)：
+     * 1. 若当前方块状态与预测前服务端权威状态不符（说明服务端拒绝了预测），
+     *    则回滚到服务端权威状态；
+     * 2. 若本地玩家与恢复后的方块碰撞箱相交，则 absSnapTo 回弹到预测前记录的
+     *    playerPos（避免玩家被回滚的方块卡住/穿透）。
      *
      * @param pos 方块位置
      * @param savedState 预测前的服务端权威方块状态
+     * @param playerPos 预测开始时刻的玩家位置（碰撞回弹目标）
      */
-    void syncBlockState(const BlockPos& pos, const BlockState* savedState);
+    void syncBlockState(const BlockPos& pos, const BlockState* savedState, const Vector3& playerPos);
 
     /**
      * @brief 处理服务端 BlockChangedAck（推进预测状态机）
@@ -191,6 +193,15 @@ public:
     {
         return m_blockStatePredictionHandler;
     }
+
+    /**
+     * @brief 注入本地玩家引用（非拥有）
+     *
+     * 由 ClientApplication 在创建玩家后注入，供 syncBlockState 做玩家位置回弹
+     * （预测回滚后若玩家与恢复方块碰撞则 absSnapTo 回预测前位置）。
+     * 对齐原版 ClientLevel.syncBlockState 中 this.minecraft.player 的访问。
+     */
+    void setClientPlayer(Player* player) { m_clientPlayer = player; }
 
     [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override
     {
@@ -744,6 +755,10 @@ private:
 private:
     /// 方块状态预测处理器（对齐 Java BlockStatePredictionHandler）
     BlockStatePredictionHandler m_blockStatePredictionHandler;
+
+    /// 本地玩家引用（非拥有，由 ClientApplication::setClientPlayer 注入）。
+    /// 供 syncBlockState 玩家位置回弹使用。对齐原版 ClientLevel.minecraft.player。
+    Player* m_clientPlayer = nullptr;
 
     std::unordered_map<ChunkId, std::unique_ptr<ClientChunk>> m_chunks;
 

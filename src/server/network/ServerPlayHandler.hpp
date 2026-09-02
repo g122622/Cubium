@@ -116,6 +116,10 @@ private:
     /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
     void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);
 
+    /// 触发 default_block_use 成就（任意方块使用，对齐 vanilla ANY_BLOCK_USE）。
+    /// 在放置/使用方块成功后调用，无条件触发所有监听实例。
+    void _triggerAnyBlockUse(Player& player);
+
     /// 执行玩家命令。commandInput 含或不含 '/' 前缀均可（CommandDispatcher::parse 自动剥离）。
     void _executePlayerCommand(PlayerId playerId, const std::string& commandInput);
 

@@ -39,6 +39,7 @@
 #include "client/ui/minecraft/widgets/ChatWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/util/Direction.hpp"
@@ -436,6 +437,48 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
     // 服务端据此 ACK 推进客户端预测状态机。
     namespace irplay = mc::network::ir::play;
     mc::client::BlockPredictionGuard predictGuard(m_world.blockStatePredictionHandler());
+
+    // 对齐 Java MultiPlayerGameMode.performUseItemOn(:332-377)：在 startPrediction 闭包内
+    // 本地预测放置方块，降低 1-tick 感知延迟（方块立即显示而非等服务端 BlockUpdate）。
+    // 服务端 ACK 到达后若预测错误（距离/反作弊/朝向），syncBlockState 会回滚。
+    //
+    // TODO(预测精确性): 本项目 ClientWorld 未继承 IWorld 接口（IWorld 含约 20 个纯虚方法
+    //   如 getFluidState/getHeight/hasBlockCollision/physicsEngine/tickManager/worldBorder 等，
+    //   ClientWorld 多数未实现），无法构造 BlockItemUseContext（其构造需 IWorld&），
+    //   故此处无法走 BlockItem::getStateForPlacement(context) 的完整放置状态计算链路。
+    //   当前简化为取方块默认状态预测写入，缺点：
+    //   - 朝向类方块（楼梯/活塞/半砖/按钮/拉杆/告示牌朝向）预测状态不正确（朝向恒为默认）；
+    //   - 需查邻居的方块（墙/栅栏/箱子连接、雪层层数、蜡烛堆叠）预测状态不正确；
+    //   - 花盆/床等双格方块预测可能不完整。
+    //   ACK 到达后服务端 BlockUpdate 仍会纠正为正确状态（最多 1-tick 闪烁）。
+    //   彻底对齐需引入 ClientWorldIWorldAdapter 或让 ClientWorld 继承 IWorld，待后续重构。
+    if (m_player) {
+        const ItemStack heldStack = m_player->getHeldItem(Hand::MainHand);
+        if (!heldStack.isEmpty()) {
+            if (const Item* heldItem = heldStack.getItem()) {
+                if (const BlockItem* blockItem = dynamic_cast<const BlockItem*>(heldItem)) {
+                    // 计算放置位置：被点击方块可替换（空气/水/花草等）则原地，否则相邻面位置。
+                    // 对齐 vanilla BlockItemUseContext._initialize 的放置位置决策。
+                    const BlockState* clickedState = m_world.getBlockState(pos.x, pos.y, pos.z);
+                    const bool replaceable = (clickedState == nullptr) || clickedState->canBeReplaced();
+                    BlockPos placePos = pos;
+                    if (!replaceable) {
+                        placePos = BlockPos(pos.x + Directions::xOffset(face),
+                            pos.y + Directions::yOffset(face),
+                            pos.z + Directions::zOffset(face));
+                    }
+                    // 仅在放置位置在世界边界内时预测写入
+                    if (m_world.isWithinWorldBounds(placePos.x, placePos.y, placePos.z)) {
+                        const BlockState& defaultState = blockItem->block().defaultState();
+                        // setBlockState 在 isPredicting 时自动走预测分流
+                        // （_setBlockStateRaw + retainKnownServerState 记录回滚点）
+                        m_world.setBlockState(placePos.x, placePos.y, placePos.z, &defaultState);
+                    }
+                }
+            }
+        }
+    }
+
     irplay::UseItemOn useItemOn;
     useItemOn.hand = 0; // MAIN_HAND
     useItemOn.blockHit.blockPosPacked = pos.asLong();

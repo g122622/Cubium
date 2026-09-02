@@ -26,6 +26,7 @@
 #include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/AnyBlockUseTrigger.hpp"
 #include "common/advancement/trigger/impl/EntityTriggers.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -84,6 +85,28 @@ namespace {
 [[nodiscard]] bool isCraftingTableState(const BlockState* state)
 {
     return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
+}
+
+/// 对齐 vanilla ServerGamePacketListenerImpl.java:1339-1340：无论放置成功失败，
+/// 定向给操作玩家发命中方块 + 放置目标位置（blockpos.relative(direction)）的
+/// BlockUpdate，作为客户端预测状态机的硬同步兜底。立即定向发送，不走批量入队。
+void sendPlacementBlockUpdates(
+    MinecraftServer& server, PlayerId playerId, ServerWorld& world, const BlockPos& pos, Direction face)
+{
+    auto sendOne = [&](const BlockPos& p) {
+        const BlockState* s = world.getBlockState(p);
+        const u32 stateId = (s != nullptr) ? s->stateId() : 0;
+        mc::network::ir::play::BlockUpdate pkt;
+        pkt.blockPosPacked = p.asLong();
+        pkt.blockStateId = static_cast<i32>(stateId);
+        server.sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
+    };
+    sendOne(pos);
+    sendOne(pos.offset(face));
 }
 
 } // namespace
@@ -1159,6 +1182,30 @@ void ServerPlayHandler::_triggerPlayerInteractedWithEntity(Player& player, const
         });
 }
 
+void ServerPlayHandler::_triggerAnyBlockUse(Player& player)
+{
+    // 触发 default_block_use 成就（对齐 vanilla CriteriaTriggers.DEFAULT_BLOCK_USE）。
+    // 任意方块使用时无条件触发，vanilla 在 consumesAction 时触发，
+    // 此处近似为放置/使用方块成功后触发。
+    auto* serverPlayer = player.asServerPlayer();
+    if (serverPlayer == nullptr) {
+        return;
+    }
+    auto* advancements = serverPlayer->getAdvancements();
+    if (advancements == nullptr) {
+        return;
+    }
+    auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::AnyBlockUseTrigger>();
+    if (trigger == nullptr) {
+        return;
+    }
+    trigger->AbstractCriterionTrigger<mc::advancement::AnyBlockUseTriggerInstance>::trigger(
+        *advancements, [](const mc::advancement::AnyBlockUseTriggerInstance& instance) {
+            (void)instance;
+            return true;
+        });
+}
+
 void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // 右键空气使用物品（对齐 Java ServerGamePacketListenerImpl.handleUseItem）。
@@ -1439,6 +1486,69 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
     const Direction face = static_cast<Direction>(hit.direction);
     const Vector3 hitPosition(hit.hitX, hit.hitY, hit.hitZ);
 
+    // 对齐 vanilla ServerGamePacketListenerImpl.java:1308-1310：命中点相对方块中心
+    // 的偏移三轴均须 < 1.0000001，否则 reject（反作弊，防止伪造偏离目标方块的
+    // hitPos 绕过放置几何约束）。ACK 已在前面无条件累积，业务结果不影响 ack。
+    {
+        const Vector3 blockCenter(
+            static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
+        const Vector3 offset = hitPosition - blockCenter;
+        constexpr f32 HIT_PRECISION = 1.0000001f;
+        if (std::abs(offset.x) >= HIT_PRECISION || std::abs(offset.y) >= HIT_PRECISION ||
+            std::abs(offset.z) >= HIT_PRECISION) {
+            spdlog::warn("Rejecting UseItemOn from player {}: hit ({}, {}, {}) too far from block ({}, {}, {})",
+                playerId,
+                hitPosition.x,
+                hitPosition.y,
+                hitPosition.z,
+                pos.x,
+                pos.y,
+                pos.z);
+            return;
+        }
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl.java:1313-1314：Y 上限校验。
+    // getMaxBuildHeight() 为独占上界（主世界 320），getMaxY()=getMaxBuildHeight()-1=319。
+    // 被点击方块 Y 超过 319 则禁止放置并发 build.tooHigh 红字提示。
+    if (playerWorld != nullptr) {
+        const i32 maxY = playerWorld->getMaxBuildHeight() - 1;
+        if (pos.y > maxY) {
+            if (placementPlayer != nullptr) {
+                if (auto* sp = placementPlayer->asServerPlayer()) {
+                    // TODO: 对齐 vanilla Component.translatable("build.tooHigh", i)。
+                    //       当前 sendSystemMessage 仅支持纯文本，待补齐翻译组件序列化后改为翻译键。
+                    sp->sendSystemMessage("§cCannot place block above build height (" + std::to_string(maxY) + ")");
+                }
+            }
+            return;
+        }
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl.java:1315 awaitingPositionFromClient == null：
+    // 玩家在等待传送确认期间拒绝交互，避免传送瞬间的位置竞态。
+    if (m_server.teleportManager().isWaitingForConfirm(playerId)) {
+        return;
+    }
+
+    // RAII 守卫：方法返回时（无论放置成功失败）定向给操作玩家发两个 BlockUpdate，
+    // 作为客户端预测状态机的硬同步兜底（对齐 vanilla :1339-1340）。
+    struct PlacementBlockUpdateGuard {
+        ServerPlayHandler& self;
+        PlayerId playerId;
+        ServerWorld* world;
+        BlockPos pos;
+        Direction face;
+        ~PlacementBlockUpdateGuard()
+        {
+            if (world != nullptr) {
+                sendPlacementBlockUpdates(self.m_server, playerId, *world, pos, face);
+            }
+        }
+    };
+    PlacementBlockUpdateGuard guard{*this, playerId, placementWorld, pos, face};
+    (void)guard;
+
     const auto tryOpenCrafting = [this, playerId, pos, clickedState]() {
         return isCraftingTableState(clickedState) && m_server.tryOpenCraftingContainer(playerId, pos);
     };
@@ -1446,7 +1556,12 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
     ItemStack heldStack = m_server.getHeldItemForPlacement(playerId);
     if (heldStack.isEmpty()) {
         if (!tryOpenCrafting()) {
-            (void)m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+            const auto useResult =
+                m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+            // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
+            if (useResult.success() && useResult.value().success && placementPlayer != nullptr) {
+                _triggerAnyBlockUse(*placementPlayer);
+            }
         }
         return;
     }
@@ -1475,11 +1590,21 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
         // ② vanilla useWithoutItem（项目 onBlockActivated）。方块交互已处理则短路，不派发 ③。
         auto useResult = m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
         if (useResult.success() && useResult.value().success) {
+            // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
+            if (placementPlayer != nullptr) {
+                _triggerAnyBlockUse(*placementPlayer);
+            }
             return;
         }
         // ③ vanilla Item.useOn（矿车/骨粉/桶/火把/锄头等非 block-item 靠此步生效）。
         // handleItemUseOn 内部经 InventoryManager.syncToClient 已同步物品栏，外层无需再同步。
-        (void)m_server.blockInteractionManager().handleItemUseOn(playerId, pos, hitPosition, face, hand, heldStack);
+        const auto itemResult =
+            m_server.blockInteractionManager().handleItemUseOn(playerId, pos, hitPosition, face, hand, heldStack);
+        // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
+        // ItemUseResult::success 表示 onItemUse 返回 Success/Consume（即 consumesAction）。
+        if (itemResult.success() && itemResult.value().success && placementPlayer != nullptr) {
+            _triggerAnyBlockUse(*placementPlayer);
+        }
         return;
     }
 
@@ -1493,6 +1618,20 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
         updatedStack.shrink(1);
         m_server.setInventoryItem(playerId, selectedSlot, updatedStack);
         m_server.syncPlayerInventory(playerId);
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl.java:1329-1332 swingSource==SERVER 时 swing。
+    // 放置成功后主动挥臂并广播给其他玩家。本项目 BlockPlacementResult 不携带 swingSource，
+    // 当前用放置成功近似。
+    // TODO: 待补齐 ActionResultType/swingSource 字段后精确判断 swing 时机。
+    if (interactionResult.success() && interactionResult.value().blockPlaced && placementPlayer != nullptr) {
+        placementPlayer->swing(hand);
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl.java:1319-1321 consumesAction 时触发
+    // DEFAULT_BLOCK_USE（任意方块使用成就）。放置成功即视为 consumesAction。
+    if (interactionResult.success() && interactionResult.value().blockPlaced && placementPlayer != nullptr) {
+        _triggerAnyBlockUse(*placementPlayer);
     }
 }
 

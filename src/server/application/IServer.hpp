@@ -363,6 +363,14 @@ public:
     [[nodiscard]] virtual bool isSingleplayerOwner(PlayerId playerId) const noexcept = 0;
 
     /**
+     * @brief 获取出生点保护半径（spawn-protection）。
+     *
+     * 对齐 Java MinecraftServer.getSpawnProtectionRadius，半径内（切比雪夫 XZ）非 op
+     * 玩家禁止破坏/放置/交互方块。返回 0 表示关闭保护（原版语义）。
+     */
+    [[nodiscard]] virtual i32 spawnProtectionRadius() const = 0;
+
+    /**
      * @brief 获取服务器默认游戏模式。
      */
     [[nodiscard]] virtual GameMode defaultGameMode() const = 0;

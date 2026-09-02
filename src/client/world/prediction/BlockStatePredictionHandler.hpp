@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <unordered_map>
 
@@ -97,8 +98,10 @@ public:
      *
      * @param pos 方块位置
      * @param oldState 预测前的服务端权威方块状态
+     * @param playerPos 预测开始时刻的玩家位置（对齐原版 ServerVerifiedState.playerPos，
+     *                  用于 ACK 回滚时若玩家与新恢复方块碰撞则 absSnapTo 回弹到此位置）
      */
-    void retainKnownServerState(const BlockPos& pos, const BlockState* oldState);
+    void retainKnownServerState(const BlockPos& pos, const BlockState* oldState, const Vector3& playerPos);
 
     /**
      * @brief 服务端权威 BlockUpdate 到达时更新已知服务端状态
@@ -134,13 +137,15 @@ private:
     /**
      * @brief 服务端权威状态记录
      *
-     * 对齐原版 ServerVerifiedState：记录某位置预测前的服务端权威方块状态。
+     * 对齐原版 ServerVerifiedState：记录某位置预测前的服务端权威方块状态 + 预测开始时刻
+     * 的玩家位置（playerPos）。ACK 回滚时若玩家与恢复后方块碰撞，则 absSnapTo(playerPos)。
      * 注意：blockState 是裸指针，指向 BlockRegistry 中的全局方块状态对象，
      * 生命周期与进程一致，无需管理所有权。
      */
     struct ServerVerifiedState {
         i32 sequence = -1;
         const BlockState* blockState = nullptr;
+        Vector3 playerPos{};
     };
 
     std::unordered_map<i64, ServerVerifiedState> m_serverVerifiedStates; // key = BlockPos.asLong

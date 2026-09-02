@@ -581,6 +581,17 @@ public:
     void setPosition(const Vector3& pos) { setPosition(pos.x, pos.y, pos.z); }
 
     /**
+     * @brief 绝对吸附到指定坐标（对齐 Java Entity.absSnapTo）
+     *
+     * 与 setPosition 的区别：absSnapTo 会把上一帧位置（prev）也设为目标位置，
+     * 避免渲染插值从旧位置回拉产生抖动。原版用于传送/预测回滚等"瞬移"场景。
+     * 坐标 clamp 到 ±3.0E7（对齐原版 Mth.clamp）。
+     *
+     * @param x,y,z 目标坐标
+     */
+    void absSnapTo(f32 x, f32 y, f32 z);
+
+    /**
      * @brief 将当前位置与旋转记录为下一次渲染插值的起点
      */
     void snapshotInterpolationState();

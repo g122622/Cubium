@@ -43,15 +43,18 @@
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/network/sync/VanillaChunkWire.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -65,6 +68,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
@@ -369,7 +373,10 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     if (m_blockStatePredictionHandler.isPredicting()) {
         const BlockState* oldState = getBlockState(x, y, z);
         _setBlockStateRaw(x, y, z, pos, state);
-        m_blockStatePredictionHandler.retainKnownServerState(pos, oldState);
+        // 记录预测前服务端权威状态 + 当前玩家位置（对齐原版 ServerVerifiedState.playerPos，
+        // 用于 ACK 回滚时若玩家与恢复方块碰撞则 absSnapTo 回弹到此位置）
+        const Vector3 playerPos = (m_clientPlayer != nullptr) ? m_clientPlayer->position() : Vector3{};
+        m_blockStatePredictionHandler.retainKnownServerState(pos, oldState, playerPos);
         return;
     }
 
@@ -420,17 +427,29 @@ void ClientWorld::setServerVerifiedBlockState(i32 x, i32 y, i32 z, const BlockSt
     setBlockState(x, y, z, state);
 }
 
-void ClientWorld::syncBlockState(const BlockPos& pos, const BlockState* savedState)
+void ClientWorld::syncBlockState(const BlockPos& pos, const BlockState* savedState, const Vector3& playerPos)
 {
-    // 对齐 Java ClientLevel.syncBlockState：若当前方块状态与预测前服务端权威状态不符
-    // （说明服务端拒绝了预测），则回滚到服务端权威状态。
+    // 对齐 Java ClientLevel.syncBlockState(pos, state, playerPos)：若当前方块状态与预测前
+    // 服务端权威状态不符（说明服务端拒绝了预测），则回滚到服务端权威状态；
+    // 若本地玩家与恢复后的方块碰撞箱相交，则 absSnapTo 回弹到预测前记录的 playerPos。
     // 注意：此处不经过预测分流（直接 _setBlockStateRaw），避免再次记录预测状态。
     const BlockState* currentState = getBlockState(pos.x, pos.y, pos.z);
     if (currentState != savedState) {
         _setBlockStateRaw(pos.x, pos.y, pos.z, pos, savedState);
+
+        // 对齐原版 player.isColliding(pos, savedState)：检查玩家 AABB 与恢复后方块
+        // （savedState）的碰撞箱是否相交。相交则 absSnapTo 回弹到预测前位置，
+        // 避免玩家被回滚的方块卡住或穿透。
+        if (m_clientPlayer != nullptr && savedState != nullptr) {
+            const CollisionShape& shape = savedState->getCollisionShape();
+            if (!shape.isEmpty()) {
+                const AxisAlignedBB playerBox = m_clientPlayer->boundingBox();
+                if (shape.intersects(playerBox, pos.x, pos.y, pos.z)) {
+                    m_clientPlayer->absSnapTo(playerPos.x, playerPos.y, playerPos.z);
+                }
+            }
+        }
     }
-    // TODO(玩家位置回弹): 原版 syncBlockState 还会检查玩家是否与恢复后的方块碰撞，
-    // 若碰撞则 absSnapTo 回预测前位置。本项目需补齐 Player 碰撞检测接口后实现。
 }
 
 void ClientWorld::handleBlockChangedAck(i32 sequence)

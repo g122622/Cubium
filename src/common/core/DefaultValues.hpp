@@ -143,6 +143,7 @@ inline constexpr bool whiteList = false;
 inline constexpr bool blackList = true;
 inline constexpr i32 maxTickTime = 60000;
 inline constexpr i32 maxPacketSize = 2097152;
+inline constexpr i32 spawnProtection = 16;
 
 // 日志
 inline constexpr const char* serverLogLevel = "info";
