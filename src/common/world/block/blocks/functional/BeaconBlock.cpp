@@ -93,6 +93,14 @@ i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return 0;
 }
 
+std::unique_ptr<BlockEntity> BeaconBlock::createBlockEntity(const BlockPos& pos)
+{
+    // 放置信标方块时创建 BeaconEntity，承载金字塔等级检测、效果应用、比较器输出等状态。
+    // ServerWorld::setBlockState 检测 hasBlockEntity() 为 true 后调用此方法创建方块实体并注册到区块，
+    // 后续 tick 经 ServerWorld::tickBlockEntities() 驱动 _updateLevels/_applyEffects。
+    return std::make_unique<blockentity::BeaconEntity>(pos);
+}
+
 BlockActionResult BeaconBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,

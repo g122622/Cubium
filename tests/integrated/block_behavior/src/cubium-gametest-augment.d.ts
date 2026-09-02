@@ -54,3 +54,21 @@ declare module "@minecraft/server-gametest" {
         ): void;
     }
 }
+
+declare module "@minecraft/server" {
+    import type { Vector3 } from "@minecraft/server";
+
+    interface Block {
+        /**
+         * 读信标方块实体的金字塔等级（Cubium 专有扩展，官方 @minecraft/server Block 无）。
+         *
+         * 绑定：MinecraftModuleFactory.cpp Block 类注册 beaconLevel 属性，经 ScriptBlockRef.world
+         * 回指的 IWorld 调 getBlockEntity(pos) 取 BlockEntity，dynamic_cast 到 BeaconEntity 后读
+         * getLevel()。非信标方块返回 -1（区分"非信标"与"等级 0"）。
+         *
+         * 信标 _updateLevels 每 80 tick 检测金字塔并 setLevel。本属性用于集成测试验证信标金字塔
+         * 等级检测（1/2/3/4 级）核心行为，对齐 wiki tech_信标.txt#激活。
+         */
+        readonly beaconLevel: number;
+    }
+}

@@ -137,6 +137,7 @@ import { registerPistonTests } from "./tests/redstone/PistonTests.js";
 import { registerStickyPistonTests } from "./tests/redstone/StickyPistonTests.js";
 import { registerRedstoneBlockTests } from "./tests/redstone/RedstoneBlockTests.js";
 import { registerRedstoneTorchTests } from "./tests/redstone/RedstoneTorchTests.js";
+import { registerBeaconTests } from "./tests/functional/BeaconTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -266,3 +267,4 @@ registerPistonTests();
 registerStickyPistonTests();
 registerRedstoneBlockTests();
 registerRedstoneTorchTests();
+registerBeaconTests();

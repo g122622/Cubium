@@ -74,10 +74,11 @@
 #include "common/world/block/BlockPos.hpp"      // BlockPos（Block.location 坐标）
 #include "common/world/block/BlockRegistry.hpp" // BlockRegistry::get/getBlock（按 id 取 BlockState/Block）
 #include "common/world/block/BlockState.hpp"    // BlockState（Block/BlockPermutation opaque 持此指针）
-#include "common/world/blockentity/BlockEntity.hpp"          // BlockEntity（Container 经 getBlockEntity 取得）
-#include "common/world/blockentity/ContainerBlockEntity.hpp" // ContainerBlockEntity::getInventory（Container 底层）
-#include "common/world/border/WorldBorder.hpp"               // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
-#include "common/world/gamerule/GameRules.hpp"               // Dimension.getGameRule 经 IWorld::getGameRules 取值
+#include "common/world/blockentity/BlockEntity.hpp"             // BlockEntity（Container 经 getBlockEntity 取得）
+#include "common/world/blockentity/ContainerBlockEntity.hpp"    // ContainerBlockEntity::getInventory（Container 底层）
+#include "common/world/blockentity/processing/BeaconEntity.hpp" // BeaconEntity::getLevel（Block.beaconLevel 读信标等级）
+#include "common/world/border/WorldBorder.hpp"                  // WorldBorder JS 类读 IWorld::worldBorder() 各 getter
+#include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include <optional>
 #include <unordered_map>
@@ -2816,6 +2817,24 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             return ctx.createUndefined();
         }
         return ctx.createBoolean(ref->world->canSeeSky(ref->pos));
+    });
+
+    // Block.beaconLevel（Cubium 专有扩展）：读信标方块实体的金字塔等级（0-4）。
+    // 信标 _updateLevels 每 80 tick 检测金字塔并 setLevel。本属性经 ScriptBlockRef.world 回指的 IWorld
+    // 调 getBlockEntity(pos) 取 BlockEntity，dynamic_cast 到 blockentity::BeaconEntity 后读 getLevel()。
+    // 非信标方块（无 BlockEntity 或类型不匹配）返回 -1，便于测试区分"非信标"与"等级 0"。
+    // 用途：集成测试验证信标金字塔等级检测（1/2/3/4 级）核心行为，对齐 wiki tech_信标.txt#激活。
+    blockReg.readonlyProperty("beaconLevel", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->world == nullptr) {
+            return ctx.createInt32(-1);
+        }
+        BlockEntity* entity = ref->world->getBlockEntity(ref->pos);
+        if (entity == nullptr || entity->getType() != BlockEntityType::Beacon) {
+            return ctx.createInt32(-1);
+        }
+        auto* beacon = static_cast<blockentity::BeaconEntity*>(entity);
+        return ctx.createInt32(beacon->getLevel());
     });
 
     // --- ItemStack类 ---
