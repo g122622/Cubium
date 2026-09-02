@@ -263,6 +263,8 @@ add_executable(mc_tests
     common/world/spawn/CanSlimeSpawnTest.cpp
     # MagmaCubeEntity 岩浆怪测试（继承自史莱姆）
     common/entity/entities/monster/MagmaCubeEntityTest.cpp
+    # GhastEntity 反弹火球秒杀机制测试（对齐 vanilla Ghast.isReflectedFireball/hurtServer）
+    common/entity/entities/monster/nether/GhastReflectedFireballTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
     # 铁傀儡 AI 目标测试
@@ -745,6 +747,10 @@ add_executable(mc_tests
     entity/BreezeEntityAnimationTest.cpp
     # BreezeEntity::shootWindCharge 目标 Y 坐标计算测试（partialY 0.3/0.8、发射点 Y、冷却与边界）
     entity/BreezeShootWindChargeTest.cpp
+    # BreezeEntity::isInvulnerableTo 对齐 1.21.11 测试（Breeze 来源免疫 vs 非 Breeze 来源受伤）
+    entity/BreezeIsInvulnerableToTest.cpp
+    # SnifferEntity::die 对齐 1.21.11 测试（死亡时状态机重置为 Idling）
+    entity/SnifferDieTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # 风弹实体风爆效果测试（玩家击退收集、旁观/创造飞行过滤、broadcastExplosion 调用）

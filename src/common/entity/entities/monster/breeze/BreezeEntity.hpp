@@ -116,8 +116,8 @@ public:
     /// 基础生命值
     static constexpr f32 MAX_HEALTH = 30.0f;
 
-    /// 基础移动速度
-    static constexpr f32 MOVEMENT_SPEED = 0.6f;
+    /// 基础移动速度（对齐 MC 1.21.11 Breeze.createAttributes: Attributes.MOVEMENT_SPEED, 0.63F）
+    static constexpr f32 MOVEMENT_SPEED = 0.63f;
 
     /// 跟随距离
     static constexpr f32 FOLLOW_RANGE = 24.0f;
@@ -187,6 +187,19 @@ public:
      * 旋风人采用白名单模式，只攻击这两种实体类型。
      */
     [[nodiscard]] bool canAttackType(const entity::EntityType& type) const override;
+
+    /**
+     * @brief 重写 Entity::isInvulnerableTo
+     *
+     * 对齐 MC Java 1.21.11 Breeze.isInvulnerableTo（Breeze.java:267-269）：
+     *   return p_312691_.getEntity() instanceof Breeze || super.isInvulnerableTo(p_376278_, p_312691_);
+     * 当伤害来源实体（getEntity()，对弹射物是射击者）是旋风人时，目标旋风人免疫该伤害。
+     * 这保障旋风人之间的风弹互不伤害——旋风人 A 发射的风弹命中旋风人 B 时，伤害源的
+     * getEntity() 是 A（Breeze），B 的 isInvulnerableTo 返回 true，不受伤害。
+     *
+     * 此前 Cubium 缺此 override，旋风人风弹会正常伤害其他旋风人，与 vanilla 直接冲突。
+     */
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
 
     /**
      * @brief 获取此旋风人对指定弹射物的偏转类型

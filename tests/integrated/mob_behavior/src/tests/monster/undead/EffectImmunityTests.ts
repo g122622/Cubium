@@ -207,6 +207,107 @@ function undeadImmuneToRegeneration(test: Test): void {
   });
 }
 
+// 蜘蛛免疫中毒效果（wiki：蜘蛛免疫中毒；Spider.canBeAffected POISON→false）。
+//
+// 本测试专项验证 SpiderEntity::isPotionApplicable 的 POISON 免疫分支
+// （对齐 vanilla Spider.canBeAffected: Spider.java:125-127）。
+// 蜘蛛非亡灵（不在 IGNORES_POISON_AND_REGEN 标签），故基类 LivingEntity::isPotionApplicable
+// 不会免疫 Poison——免疫完全依赖 Spider 自身 override。addEffect("poison") 经
+// Spider::isPotionApplicable 返 false 被拒绝，蜘蛛不获 Poison 效果、HP 不因中毒下降。
+//
+// 注意与 undead_immune_to_poison 的区别：zombie 的 Poison 免疫来自基类标签
+// （IGNORES_POISON_AND_REGEN），spider 的 Poison 免疫来自 Spider 自己的 override
+// （Spider.canBeAffected）。两者验证不同免疫路径。
+//
+// 判定（双重）：tick 100 后
+//   1. spider.getEffect("poison") === undefined（免疫未施加）。
+//   2. spider HP == 16（满血，中毒未扣血；无其他伤害源）。
+//
+// 时序：addEffect 在 tick 5 施加（被免疫拒绝），tick 100 后断言。Poison amplifier=0 每 25 tick
+//   扣 1（EffectInstance.cpp:285-296），若未免疫 100 tick 内应扣 ~3-4 血。tick 100 验证多周期未扣血。
+//
+// 环境选择：creeper_pit + night batch。night 统一隔离避免 spider 受惊逃跑（虽不依赖 spider AI，
+//   但避免位置漂移）。creeper_pit 开放坑无顶，night 无阳光，spider 不燃。spider (3,2,3) 脚下
+//   grass_block 支撑。不 spawn 玩家（避免 spider 追击/攻击致 HP 变化干扰）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_中毒.txt#免疫（蜘蛛免疫中毒）
+// Ref: Spider.cpp（isPotionApplicable Poison 免疫）/ EffectManager.cpp:40（addEffect 门控）
+function spiderImmuneToPoison(test: Test): void {
+  const spiderType = "spider";
+
+  // spider (3,2,3) 脚踩结构内 y=0 grass_block（helper-y=2→结构内 y=1 air）。night batch 不燃。
+  const spider = test.spawn(spiderType, { x: 3, y: 2, z: 3 });
+
+  // tick 5 施加 Poison 200 tick amplifier=0。spider override isPotionApplicable 返 false 拒绝施加。
+  test.runAtTickTime(5, () => {
+    (spider as any).addEffect("poison", 200, { amplifier: 0 });
+  });
+
+  // tick 100 后断言：spider 未中毒（getEffect undefined）+ HP 仍满血 16（中毒未扣血）。
+  // Poison amplifier=0 每 25 tick 扣 1，100 tick 内若未免疫应扣 ~3-4 血。用闭包持有的 spider 句柄读，
+  // 不按 type 区域查询，规避 night 自然刷怪污染。
+  test.runAtTickTime(100, () => {
+    const poison = (spider as any).getEffect("poison");
+    test.assert(poison === undefined,
+      `spider should be immune to poison (Spider.canBeAffected), `
+      + `but getEffect("poison")=${poison === undefined ? "undefined" : "present"}`);
+    const health = spider.getComponent("minecraft:health");
+    test.assert(health !== undefined, "spider has no health component");
+    test.assert((health as any).currentValue === 16,
+      `spider HP should remain 16 (poison immune), hp=${(health as any).currentValue}`);
+    test.succeed();
+  });
+}
+
+// 凋灵骷髅免疫凋零效果（wiki：凋灵骷髅免疫凋零；WitherSkeleton.canBeAffected WITHER→false）。
+//
+// 本测试专项验证 WitherSkeletonEntity::isPotionApplicable 的 WITHER 免疫分支
+// （对齐 vanilla WitherSkeleton.canBeAffected: WitherSkeleton.java:113-115）。
+// 凋灵骷髅非亡灵标签免疫 Wither（基类 LivingEntity::isPotionApplicable 不免疫 Wither），
+// 免疫完全依赖 WitherSkeleton 自身 override。addEffect("wither") 经
+// WitherSkeleton::isPotionApplicable 返 false 被拒绝，凋灵骷髅不获 Wither 效果、HP 不降。
+//
+// 注意：Wither 效果（EffectInstance.cpp:303-311）每 40>>amplifier tick 造成 1 伤害，
+// amplifier=0 → 每 40 tick 扣 1。凋灵骷髅满血 20。
+//
+// 判定（双重）：tick 100 后
+//   1. wither_skeleton.getEffect("wither") === undefined（免疫未施加）。
+//   2. wither_skeleton HP == 20（满血，凋零未扣血；无其他伤害源）。
+//
+// 时序：addEffect 在 tick 5 施加（被免疫拒绝），tick 100 后断言。Wither amplifier=0 每 40 tick
+//   扣 1，若未免疫 100 tick 内应扣 ~2 血。tick 100 验证多周期未扣血。
+//
+// 环境选择：creeper_pit + night batch。wither_skeleton 是亡灵白天燃烧扣血干扰 HP 断言，night batch
+//   避开阳光。creeper_pit 开放坑无顶，night 无阳光，wither_skeleton 不燃。wither_skeleton (3,2,3)
+//   脚下 grass_block 支撑。不 spawn 玩家（避免凋灵骷髅追击/攻击致 HP 变化干扰）。
+// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_凋零.txt#免疫（凋灵骷髅免疫凋零）
+// Ref: WitherSkeleton.cpp（isPotionApplicable Wither 免疫）/ EffectManager.cpp:40（addEffect 门控）
+function witherSkeletonImmuneToWither(test: Test): void {
+  const witherSkeletonType = "wither_skeleton";
+
+  // wither_skeleton (3,2,3) 脚踩结构内 y=0 grass_block。night batch 亡灵不燃。
+  const witherSkeleton = test.spawn(witherSkeletonType, { x: 3, y: 2, z: 3 });
+
+  // tick 5 施加 Wither 200 tick amplifier=0。wither_skeleton override isPotionApplicable 返 false 拒绝。
+  test.runAtTickTime(5, () => {
+    (witherSkeleton as any).addEffect("wither", 200, { amplifier: 0 });
+  });
+
+  // tick 100 后断言：wither_skeleton 未获凋零（getEffect undefined）+ HP 仍满血 20（凋零未扣血）。
+  // Wither amplifier=0 每 40 tick 扣 1，100 tick 内若未免疫应扣 ~2 血。用闭包持有的句柄读，
+  // 不按 type 区域查询，规避 night 自然刷怪污染。
+  test.runAtTickTime(100, () => {
+    const wither = (witherSkeleton as any).getEffect("wither");
+    test.assert(wither === undefined,
+      `wither_skeleton should be immune to wither (WitherSkeleton.canBeAffected), `
+      + `but getEffect("wither")=${wither === undefined ? "undefined" : "present"}`);
+    const health = witherSkeleton.getComponent("minecraft:health");
+    test.assert(health !== undefined, "wither_skeleton has no health component");
+    test.assert((health as any).currentValue === 20,
+      `wither_skeleton HP should remain 20 (wither immune), hp=${(health as any).currentValue}`);
+    test.succeed();
+  });
+}
+
 export function registerEffectImmunityTests(): void {
   GameTest.register("MobBehaviorTests", "undead_immune_to_poison", undeadImmuneToPoison)
     .batch("night")
@@ -222,4 +323,14 @@ export function registerEffectImmunityTests(): void {
     .batch("night")
     .structureName("gametests:creeper_pit")
     .maxTicks(250);
+
+  GameTest.register("MobBehaviorTests", "spider_immune_to_poison", spiderImmuneToPoison)
+    .batch("night")
+    .structureName("gametests:creeper_pit")
+    .maxTicks(200);
+
+  GameTest.register("MobBehaviorTests", "wither_skeleton_immune_to_wither", witherSkeletonImmuneToWither)
+    .batch("night")
+    .structureName("gametests:creeper_pit")
+    .maxTicks(200);
 }

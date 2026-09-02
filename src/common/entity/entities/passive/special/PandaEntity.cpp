@@ -446,6 +446,24 @@ void PandaEntity::sneeze(bool sneeze)
     }
 }
 
+bool PandaEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 MC Java 1.21.11 Panda.hurtServer（Panda.java:543-546）：
+    //   this.sit(false);
+    //   return super.hurtServer(p_480184_, p_479799_, p_478083_);
+    // 熊猫受击时无条件取消坐下状态（vanilla 不查 isInvulnerableTo，免疫也取消坐下），
+    // 再走基类 hurt 处理实际伤害（基类内部查 isInvulnerableTo 门控）。
+    sit(false);
+    return AnimalEntity::hurt(source, amount);
+}
+
+void PandaEntity::sit(bool sit)
+{
+    // 对齐 vanilla Panda.sit（Panda.java:132-134）：setFlag(8, sit)。
+    // Cubium 用 m_sitting 成员承载（DATA_FLAGS i8 无法存 bit8，见 hpp TODO）。
+    m_sitting = sit;
+}
+
 void PandaEntity::playSneezeSound()
 {
     playSound(SoundEvents::ENTITY_PANDA_SNEEZE, 1.0f, 1.0f);

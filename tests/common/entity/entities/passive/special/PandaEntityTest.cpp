@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
@@ -945,6 +946,62 @@ TEST(PandaEntityRollTest, CanPerformAction_WhenMultipleStates)
     // 所有状态都为 false 时可以执行动作
     panda.setLying(false);
     EXPECT_TRUE(panda.canPerformAction());
+}
+
+// ==================== PandaEntity 受击取消坐下测试 ====================
+//
+// 对齐 MC Java 1.21.11 Panda.hurtServer（Panda.java:543-546）：
+//   this.sit(false);
+//   return super.hurtServer(p_480184_, p_479799_, p_478083_);
+// 熊猫受击时无条件取消坐下状态（vanilla 不查 isInvulnerableTo），再走基类 hurt。
+// ============================================================================
+
+TEST(PandaEntityHurtTest, Hurt_CancelsSitting)
+{
+    // 坐下的熊猫受非免疫伤害 → 取消坐下
+    Items::initialize();
+
+    PandaTestWorld world;
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setHealth(panda.maxHealth());
+    panda.sit(true);
+    EXPECT_TRUE(panda.isSitting());
+
+    // 非免疫伤害源（生物攻击，非绕过无敌）
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = panda.hurt(damageSource, 3.0f);
+
+    // 受击成功
+    EXPECT_TRUE(result);
+    // 坐下状态被无条件取消（对齐 sit(false)）
+    EXPECT_FALSE(panda.isSitting());
+}
+
+TEST(PandaEntityHurtTest, Hurt_Invulnerable_StillCancelsSitting)
+{
+    // 设为无敌的熊猫受到非绕过无敌伤害 → isInvulnerableTo 返回 true，基类 hurt 短路返回 false
+    // 但 Panda.hurtServer 在调 super 前已执行 sit(false)（无条件取消坐下，不查免疫）。
+    Items::initialize();
+
+    PandaTestWorld world;
+    PandaEntity panda(EntityInstanceId(1), mc::test::testEcsRegistry());
+    panda.setWorld(&world);
+    panda.setTypeId("minecraft:panda");
+    panda.setHealth(panda.maxHealth());
+    panda.sit(true);
+    panda.setInvulnerable(true);
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = panda.hurt(damageSource, 3.0f);
+
+    // 基类 hurt 因免疫返回 false（panda 仍满血）
+    EXPECT_FALSE(result);
+    // 但 sit(false) 已在 super.hurt 之前执行 → 取消坐下
+    EXPECT_FALSE(panda.isSitting());
 }
 
 } // anonymous namespace

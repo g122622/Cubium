@@ -407,7 +407,10 @@ void BeeEntity::registerGoals()
             false));
 
     // 优先级 4: 授粉
-    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::BeePollinateGoal>(this));
+    // 保留原始指针供 hurt override 调 stopPollinating（对齐 vanilla Bee.beePollinateGoal 字段）。
+    auto pollinateGoal = std::make_unique<entity::ai::goal::BeePollinateGoal>(this);
+    m_beePollinateGoal = pollinateGoal.get();
+    m_goalSelector.addGoal(4, std::move(pollinateGoal));
 
     // 优先级 5: 跟随父母
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));
@@ -697,6 +700,25 @@ bool BeeEntity::attackEntityAsMob(LivingEntity& target)
     }
 
     return true;
+}
+
+// ============================================================================
+// 受击处理（对齐 Java 1.21.11 Bee.hurtServer，Bee.java:645-652）
+// ============================================================================
+bool BeeEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 MC Java 1.21.11 Bee.hurtServer：
+    //   if (this.isInvulnerableTo(level, source)) { return false; }
+    //   else { this.beePollinateGoal.stopPollinating(); return super.hurtServer(level, source, amount); }
+    // 免疫直接返回 false（不中断授粉，忠实复刻 vanilla 的免疫短路）；非免疫时先停止授粉
+    // 再走基类 hurt。stopPollinating 仅置授粉标志为 false，不触发 resetTask 的完整结束逻辑。
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+    if (m_beePollinateGoal != nullptr) {
+        m_beePollinateGoal->stopPollinating();
+    }
+    return AnimalEntity::hurt(source, amount);
 }
 
 } // namespace mc

@@ -3112,5 +3112,80 @@ TEST_F(WolfEntityTestFixture, DataParameter_TailAngle_UsesAngerFromDataManager)
     EXPECT_NE(wolf.getTailAngle(), 1.539f);
 }
 
+// ============================================================================
+// hurt override 测试（对齐 MC Java 1.21.11 Wolf.hurtServer）
+//
+// Wolf.hurtServer（Wolf.java:394-401）：
+//   if (this.isInvulnerableTo(level, source)) return false;
+//   else { this.setOrderedToSit(false); return super.hurtServer(level, source, amount); }
+// 狼受非免疫伤害时取消"命令坐下"状态，再走基类 hurt。
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, Hurt_NonInvulnerableDamage_CancelsSitting)
+{
+    // 已驯服且坐下的狼受到非免疫伤害 → 取消坐下
+    WolfTestWorld world;
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setSitting(true);
+    wolf.setHealth(wolf.maxHealth());
+    EXPECT_TRUE(wolf.isSitting());
+
+    // 非免疫伤害源（生物攻击，非绕过无敌）
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    bool result = wolf.hurt(damageSource, 3.0f);
+
+    // 受击成功
+    EXPECT_TRUE(result);
+    // 坐下状态被取消（对齐 setOrderedToSit(false)）
+    EXPECT_FALSE(wolf.isSitting());
+}
+
+TEST_F(WolfEntityTestFixture, Hurt_InvulnerableDamage_DoesNotCancelSitting)
+{
+    // 设为无敌的狼受到非绕过无敌伤害 → isInvulnerableTo 返回 true，hurt 返回 false 且不取消坐下
+    WolfTestWorld world;
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setSitting(true);
+    wolf.setHealth(wolf.maxHealth());
+    wolf.setInvulnerable(true);
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = wolf.hurt(damageSource, 3.0f);
+
+    // 免疫导致受击失败
+    EXPECT_FALSE(result);
+    // 无敌时 isInvulnerableTo 短路返回 false，不进入 setSitting(false)
+    EXPECT_TRUE(wolf.isSitting());
+}
+
+TEST_F(WolfEntityTestFixture, Hurt_StandingWolf_RemainsStandingAndTakesDamage)
+{
+    // 站立的狼受击 → 仍站立，扣血
+    WolfTestWorld world;
+    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+    EXPECT_FALSE(wolf.isSitting());
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = wolf.hurt(damageSource, 3.0f);
+
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(wolf.isSitting());
+    EXPECT_LT(wolf.health(), wolf.maxHealth());
+}
+
 } // namespace
 } // namespace mc

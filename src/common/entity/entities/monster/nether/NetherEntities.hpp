@@ -84,9 +84,54 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 判定恶魂是否对指定伤害源免疫
+     *
+     * 对齐 MC Java 1.21.11 Ghast.isInvulnerableTo（Ghast.java:86-89）：
+     *   return this.isInvulnerable() && !p_238289_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
+     *       || !isReflectedFireball(p_238289_) && super.isInvulnerableTo(p_376822_, p_238289_);
+     * 反弹火球伤害（玩家反弹的大型火球命中恶魂）时，第二支 !isReflectedFireball 为 false，
+     * 整个第二支短路为 false，即反弹火球绕过所有常规免疫判定（无视无敌帧/火焰免疫等）。
+     * 非反弹火球走基类 MonsterEntity::isInvulnerableTo 正常判定。
+     */
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
+
+    /**
+     * @brief 恶魂受击处理
+     *
+     * 对齐 MC Java 1.21.11 Ghast.hurtServer（Ghast.java:106-113）：
+     *   if (isReflectedFireball(p_376819_)) {
+     *       super.hurtServer(p_376618_, p_376819_, 1000.0F);  // 反弹火球 1000 伤害秒杀
+     *       return true;
+     *   } else {
+     *       return this.isInvulnerableTo(p_376618_, p_376819_) ? false
+     *           : super.hurtServer(p_376618_, p_376819_, p_376363_);
+     *   }
+     * 玩家用空手/物品反弹恶魂发射的大型火球击中恶魂时，无视任何免疫/无敌帧，
+     * 承受 1000 点伤害被秒杀（恶魂满血 10）。这是恶魂的标志性机制。
+     * 普通伤害走 MonsterEntity::hurt 标准链路（先 isInvulnerableTo 门控再扣血）。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
+
+private:
+    /**
+     * @brief 判定伤害源是否为"被玩家反弹的大型火球"
+     *
+     * 对齐 MC Java 1.21.11 Ghast.isReflectedFireball（Ghast.java:81-83）：
+     *   return p_238408_.getDirectEntity() instanceof LargeFireball
+     *       && p_238408_.getEntity() instanceof Player;
+     * directSource() = 直接造成伤害的实体（火球本身），须为 FireballEntity（对应 vanilla LargeFireball）。
+     * getEntity() = 伤害造成者（发射者/反弹者），须为 Player。
+     * 火球被玩家反弹时 setShooter 更新为玩家（ProjectileDeflection.cpp），故反弹火球的 getEntity() 为 Player。
+     *
+     * @param source 待判定的伤害源
+     * @return true 若伤害源是被玩家反弹的大型火球
+     */
+    [[nodiscard]] static bool isReflectedFireball(const DamageSource& source);
 
 private:
     // TODO: m_canFly 当前未被物理/AI 消费——恶魂飞行实际由构造函数 setNoGravity(true)

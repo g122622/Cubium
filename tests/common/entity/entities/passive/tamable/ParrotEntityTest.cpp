@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/tamable/ParrotEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -937,6 +938,60 @@ TEST_F(ParrotEntityTestFixture, InteractMob_ClientSide_NoBroadcast)
 
     // 应该有广播
     EXPECT_EQ(world.getBroadcastCount(), 1);
+}
+
+// ============================================================================
+// hurt override 测试（对齐 MC Java 1.21.11 Parrot.hurtServer）
+//
+// Parrot.hurtServer（Parrot.java:399-406）：
+//   if (this.isInvulnerableTo(level, source)) return false;
+//   else { this.setOrderedToSit(false); return super.hurtServer(level, source, amount); }
+// 鹦鹉受非免疫伤害时取消"命令坐下"状态，再走基类 hurt。
+// ============================================================================
+
+TEST_F(ParrotEntityTestFixture, Hurt_NonInvulnerableDamage_CancelsSitting)
+{
+    // 已驯服且坐下的鹦鹉受到非免疫伤害 → 取消坐下
+    ParrotTestWorld world;
+    ParrotEntity parrot(EntityInstanceId(1), mc::test::testEcsRegistry());
+    parrot.setWorld(&world);
+    parrot.setTypeId("minecraft:parrot");
+    parrot.setTamed(true);
+    parrot.setSitting(true);
+    parrot.setHealth(parrot.maxHealth());
+    EXPECT_TRUE(parrot.isSitting());
+
+    // 非免疫伤害源（生物攻击，非绕过无敌）
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = parrot.hurt(damageSource, 3.0f);
+
+    // 受击成功
+    EXPECT_TRUE(result);
+    // 坐下状态被取消（对齐 setOrderedToSit(false)）
+    EXPECT_FALSE(parrot.isSitting());
+}
+
+TEST_F(ParrotEntityTestFixture, Hurt_InvulnerableDamage_DoesNotCancelSitting)
+{
+    // 设为无敌的鹦鹉受到非绕过无敌伤害 → isInvulnerableTo 返回 true，hurt 返回 false 且不取消坐下
+    ParrotTestWorld world;
+    ParrotEntity parrot(EntityInstanceId(1), mc::test::testEcsRegistry());
+    parrot.setWorld(&world);
+    parrot.setTypeId("minecraft:parrot");
+    parrot.setTamed(true);
+    parrot.setSitting(true);
+    parrot.setHealth(parrot.maxHealth());
+    parrot.setInvulnerable(true);
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = parrot.hurt(damageSource, 3.0f);
+
+    // 免疫导致受击失败
+    EXPECT_FALSE(result);
+    // 无敌时 isInvulnerableTo 短路返回 false，不进入 setSitting(false)
+    EXPECT_TRUE(parrot.isSitting());
 }
 
 } // namespace

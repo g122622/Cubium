@@ -713,27 +713,38 @@ Vector3 BreezeSlideGoal::_randomPointInMiddleCircle() const
 
     math::Random& rng = m_breeze->world()->getRandom();
 
-    // MC 原版 BreezeAi.randomPointInMiddleCircle：
-    // 计算从旋风人到目标的方向向量
+    // 对齐 MC 1.21.11 BreezeAi.randomPointInMiddleCircle（Slide.java:60-64）：
+    //   Vec3 vec3 = target.position().subtract(breeze.position());   // target - breeze
+    //   double d0 = vec3.length() - Mth.lerp(rand, 8.0, 4.0);          // 距离减去 lerp[4,8]
+    //   Vec3 vec31 = vec3.normalize().multiply(d0);                    // 单位向量 * d0
+    //   return breeze.position().add(vec31);                           // breeze + vec31
+    // 即落点 = breeze + normalize(target - breeze) * (dist - lerp(4,8))。
+    // 落点在 breeze→target 连线上、距 breeze (dist - lerp[4,8]) 处（接近 target 侧）。
+    // 此前 Cubium 误用 lerp(4,8) 作为移动距离（落点距 breeze lerp[4,8]），
+    //   与 vanilla 落点位置系统性偏差：vanilla 落点接近 target，Cubium 落点接近 breeze。
+    // 此处用 xz 平面距离（与 Cubium 旋风人其他 AI 一致），vanilla 用 3D 距离，
+    //   平地场景（breeze/target 同 y）两者等价。
     f64 dx = m_target->x() - m_breeze->x();
     f64 dz = m_target->z() - m_breeze->z();
     f64 dist = std::sqrt(dx * dx + dz * dz);
 
     if (dist < 0.01) {
-        // 几乎重合，随机方向
+        // 几乎重合，随机方向（vanilla 不做此特判，d0 可负落点在 breeze 后方；
+        //   Cubium 保留随机方向避免 normalize 零向量）
         f64 angle = rng.nextDouble() * 2.0 * static_cast<f64>(math::PI);
         dx = std::cos(angle);
         dz = std::sin(angle);
         dist = 1.0;
     }
 
-    // 沿方向移动 lerp(random, 4, 8) 距离
-    f64 moveDistance = math::lerp(rng.nextDouble(), MIDDLE_CIRCLE_MIN, MIDDLE_CIRCLE_MAX);
+    // d0 = dist - lerp(4,8)：沿 breeze→target 方向移动 d0（对齐 vanilla）
+    // math::lerp(rand, 4, 8) 范围 [4,8]，对齐 Java Mth.lerp(rand, 8, 4) 范围 [4,8]。
+    f64 d0 = dist - math::lerp(rng.nextDouble(), MIDDLE_CIRCLE_MIN, MIDDLE_CIRCLE_MAX);
     f64 normX = dx / dist;
     f64 normZ = dz / dist;
 
-    f64 targetX = m_breeze->x() + normX * moveDistance;
-    f64 targetZ = m_breeze->z() + normZ * moveDistance;
+    f64 targetX = m_breeze->x() + normX * d0;
+    f64 targetZ = m_breeze->z() + normZ * d0;
 
     // 查找地面高度
     IWorld* world = m_breeze->world();

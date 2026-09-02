@@ -126,6 +126,66 @@ void GhastEntity::tick()
     }
 }
 
+bool GhastEntity::isReflectedFireball(const DamageSource& source)
+{
+    // 对齐 MC Java 1.21.11 Ghast.isReflectedFireball（Ghast.java:81-83）：
+    //   return p_238408_.getDirectEntity() instanceof LargeFireball
+    //       && p_238408_.getEntity() instanceof Player;
+    // directSource() = 火球本身（FireballEntity 对应 vanilla LargeFireball，不含 SmallFireball/DragonFireball）。
+    // getEntity() = 发射者/反弹者（火球被玩家反弹时 setShooter 更新为玩家，见 ProjectileDeflection.cpp）。
+    Entity* const directEntity = source.directSource();
+    if (directEntity == nullptr) {
+        return false;
+    }
+    // instanceof LargeFireball：仅大型火球（FireballEntity）算反弹判定，小火球/龙息不算。
+    if (dynamic_cast<entity::FireballEntity*>(directEntity) == nullptr) {
+        return false;
+    }
+    // instanceof Player：伤害造成者须为玩家（反弹者）。用 dynamic_cast 忠实复刻 instanceof 语义，
+    // 覆盖 Player 及其派生类（ServerPlayer）。避免用 entityType() 比较——未 setTypeId 的实体
+    // entityType() 懒查询可能返回意外值导致误判。
+    Entity* const causingEntity = source.getEntity();
+    return causingEntity != nullptr && dynamic_cast<Player*>(causingEntity) != nullptr;
+}
+
+bool GhastEntity::isInvulnerableTo(DamageSource& source) const
+{
+    // 对齐 MC Java 1.21.11 Ghast.isInvulnerableTo（Ghast.java:86-89）：
+    //   return this.isInvulnerable() && !p_238289_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
+    //       || !isReflectedFireball(p_238289_) && super.isInvulnerableTo(p_376822_, p_238289_);
+    // 第一支：实体处于 invulnerable 标志且伤害不穿透无敌（恶魂默认不设 invulnerable，此支恒 false）。
+    // 第二支：非反弹火球 → 委托基类正常判定；反弹火球 → !isReflectedFireball 为 false，整支 false（绕过所有免疫）。
+    if (isInvulnerable() && !source.bypassesInvulnerability()) {
+        return true;
+    }
+    if (isReflectedFireball(source)) {
+        // 反弹火球绕过所有常规免疫判定（无视无敌帧/火焰免疫等），返回 false 不免疫。
+        return false;
+    }
+    return MonsterEntity::isInvulnerableTo(source);
+}
+
+bool GhastEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 MC Java 1.21.11 Ghast.hurtServer（Ghast.java:106-113）：
+    //   if (isReflectedFireball(p_376819_)) {
+    //       super.hurtServer(p_376618_, p_376819_, 1000.0F);  // 反弹火球 1000 伤害秒杀
+    //       return true;
+    //   } else {
+    //       return this.isInvulnerableTo(p_376618_, p_376819_) ? false
+    //           : super.hurtServer(p_376618_, p_376819_, p_376363_);
+    //   }
+    if (isReflectedFireball(source)) {
+        // 反弹火球：直接调 LivingEntity::hurt 施加 1000 伤害秒杀，绕过 isInvulnerableTo 门控
+        // （LivingEntity::hurt 内部仍查 isInvulnerableTo，但 isInvulnerableTo override 对反弹火球返回
+        // false 不免疫，故 1000 伤害穿透生效）。恶魂满血 10，1000 必死。
+        LivingEntity::hurt(source, 1000.0f);
+        return true;
+    }
+    // 非反弹火球：走 MonsterEntity::hurt 标准链路（内部先查 isInvulnerableTo 门控，不免疫才扣血）。
+    return MonsterEntity::hurt(source, amount);
+}
+
 void GhastEntity::shootFireball()
 {
     // 在充能 20 ticks 后发射火球

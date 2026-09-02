@@ -162,6 +162,27 @@ public:
      */
     bool attackEntityAsMob(LivingEntity& target) override;
 
+    // ========== 受击处理（对齐 Java Bee.hurtServer） ==========
+
+    /**
+     * @brief 受击处理：免疫门控后立即停止授粉，再走基类 hurt
+     *
+     * 对齐 MC Java 1.21.11 Bee.hurtServer（Bee.java:645-652）：
+     *   public boolean hurtServer(ServerLevel p_482054_, DamageSource p_481056_, float p_479083_) {
+     *       if (this.isInvulnerableTo(p_482054_, p_481056_)) { return false; }
+     *       else { this.beePollinateGoal.stopPollinating(); return super.hurtServer(...); }
+     *   }
+     * 蜜蜂受击时立即中断授粉（即使免疫也……不，vanilla 免疫直接 return false 不中断），
+     * 非免疫时先 stopPollinating 再走基类 hurt。
+     * Cubium 用 m_beePollinateGoal 原始指针持有 registerGoals 期创建的 BeePollinateGoal，
+     * 忠实复刻 vanilla Bee.beePollinateGoal 字段语义。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否成功受伤
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
     // ========== 蜂巢系统 ==========
 
     /**
@@ -535,6 +556,12 @@ private:
     // ========== 花粉状态 ==========
     bool m_hasNectar = false;
     bool m_hasStung = false;
+
+    // ========== 授粉目标指针（对齐 vanilla Bee.beePollinateGoal 字段） ==========
+    // registerGoals 期创建 BeePollinateGoal 时保存的原始指针，供 hurt override 调
+    // stopPollinating() 立即中断授粉。goal 生命周期由 m_goalSelector 拥有，本指针不
+    // 参与所有权（不 delete），析构时随 GoalSelector 一起释放。
+    entity::ai::goal::BeePollinateGoal* m_beePollinateGoal = nullptr;
 
     // ========== 蜂巢系统 ==========
     BlockPos m_hivePos;

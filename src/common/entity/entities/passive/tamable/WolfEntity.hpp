@@ -163,6 +163,22 @@ public:
     [[nodiscard]] bool canShearEquipment(const Player& player) const override;
 
     /**
+     * @brief 受击处理：取消命令坐下后走基类 hurt
+     *
+     * 对齐 MC Java 1.21.11 Wolf.hurtServer（Wolf.java:394-401）：
+     *   if (this.isInvulnerableTo(p_406240_, p_406339_)) return false;
+     *   else { this.setOrderedToSit(false); return super.hurtServer(...); }
+     * 狼受击时取消"命令坐下"状态（玩家右键让狼坐下的指令），再走基类 hurt 处理实际伤害。
+     * Cubium 用 setSitting(false) 等价 vanilla setOrderedToSit(false)（TameableEntity 唯一坐下
+     * 控制 API，对齐 DATA_FLAGS bit0）。免疫伤害不取消坐下（先查 isInvulnerableTo）。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否成功受伤
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 实际受伤处理（狼铠伤害吸收）
      *
      * 当狼穿戴狼铠且伤害源不绕过护甲时，伤害由狼铠吸收（狼不扣血）。

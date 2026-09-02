@@ -226,6 +226,20 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 死亡时重置状态机
+     *
+     * 对齐 MC Java 1.21.11 Sniffer.die（Sniffer.java:347-350）：
+     *   public void die(DamageSource p_277689_) {
+     *       this.transitionTo(Sniffer.State.IDLING);
+     *       super.die(p_277689_);
+     *   }
+     * 嗅探兽死亡时将状态重置为 Idling（vanilla 通过 transitionTo 播放状态切换音效，
+     * Idling 分支 transitionTo 仅 setState 不播音，与 super.die 前置调用语义一致），
+     * 再委托 AnimalEntity::die 执行通用死亡逻辑。
+     */
+    void die(DamageSource& source) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

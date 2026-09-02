@@ -375,10 +375,10 @@ TEST_F(BreezeEntityTest, MaxHealthConstant_Is30)
     EXPECT_FLOAT_EQ(BreezeEntity::MAX_HEALTH, 30.0f);
 }
 
-TEST_F(BreezeEntityTest, MovementSpeedConstant_Is06)
+TEST_F(BreezeEntityTest, MovementSpeedConstant_Is063)
 {
-    // MC 1.21.11: Breeze.MOVEMENT_SPEED = 0.6
-    EXPECT_FLOAT_EQ(BreezeEntity::MOVEMENT_SPEED, 0.6f);
+    // MC 1.21.11: Breeze.MOVEMENT_SPEED = 0.63F
+    EXPECT_FLOAT_EQ(BreezeEntity::MOVEMENT_SPEED, 0.63f);
 }
 
 TEST_F(BreezeEntityTest, FollowRangeConstant_Is24)
