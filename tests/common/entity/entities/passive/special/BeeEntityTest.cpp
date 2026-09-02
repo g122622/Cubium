@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -1867,6 +1868,60 @@ TEST_F(BeeEntityTest, AttractsBees_SunflowerLowerHalf_ReturnsFalse)
     const BlockState& lowerState = VanillaBlocks::SUNFLOWER->defaultState().with(
         BlockStateProperties::DOUBLE_BLOCK_HALF(), blocks::DoublePlantBlock::DoubleBlockHalf::Lower);
     EXPECT_FALSE(BeeEntity::attractsBees(lowerState));
+}
+
+// ============================================================================
+// hurt override 测试（对齐 MC Java 1.21.11 Bee.hurtServer）
+//
+// Bee.hurtServer（Bee.java:645-652）：
+//   if (this.isInvulnerableTo(level, source)) return false;
+//   else { this.beePollinateGoal.stopPollinating(); return super.hurtServer(level, source, amount); }
+// 蜜蜂受非免疫伤害时立即中断授粉（stopPollinating），再走基类 hurt。
+// ============================================================================
+
+TEST_F(BeeEntityTest, Hurt_NonInvulnerableDamage_StopsPollinating)
+{
+    // 授粉中的蜜蜂受到非免疫伤害 → stopPollinating 中断授粉
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bee.setWorld(&m_world);
+    bee.setTypeId("minecraft:bee");
+    bee.setHealth(bee.maxHealth());
+
+    // 让蜜蜂进入授粉状态
+    bee.setPollinating(true);
+    EXPECT_TRUE(bee.isPollinating());
+
+    // 非免疫伤害源（生物攻击，非绕过无敌）
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = bee.hurt(damageSource, 1.0f);
+
+    // 受击成功
+    EXPECT_TRUE(result);
+    // stopPollinating 被调用 → isPollinating 变 false
+    EXPECT_FALSE(bee.isPollinating());
+}
+
+TEST_F(BeeEntityTest, Hurt_InvulnerableDamage_DoesNotStopPollinating)
+{
+    // 设为无敌的蜜蜂受到非绕过无敌伤害 → isInvulnerableTo 返回 true，hurt 返回 false
+    // 且不调用 stopPollinating（免疫短路在 stopPollinating 之前）。
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bee.setWorld(&m_world);
+    bee.setTypeId("minecraft:bee");
+    bee.setHealth(bee.maxHealth());
+    bee.setInvulnerable(true);
+    bee.setPollinating(true);
+    EXPECT_TRUE(bee.isPollinating());
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    bool result = bee.hurt(damageSource, 1.0f);
+
+    // 免疫导致受击失败
+    EXPECT_FALSE(result);
+    // 免疫短路未触发 stopPollinating → 仍在授粉
+    EXPECT_TRUE(bee.isPollinating());
 }
 
 } // namespace mc
