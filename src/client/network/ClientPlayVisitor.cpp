@@ -582,7 +582,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             else if constexpr (std::is_same_v<T, irplay::BlockUpdate>) {
                 const auto& p = pkt;
                 const BlockPos pos = BlockPos::fromLong(p.blockPosPacked);
-                m_app.m_world.setBlockState(
+                // 对齐 Java ClientLevel.setServerVerifiedBlockState：服务端权威方块更新
+                // 走预测感知路径——若该位置有预测记录则暂缓写入（待 ACK 时 syncBlockState
+                // 统一处理），否则直接写入。
+                m_app.m_world.setServerVerifiedBlockState(
                     pos.x, pos.y, pos.z, BlockRegistry::instance().getBlockState(p.blockStateId));
                 return Result<void>::ok();
             }
@@ -2480,11 +2483,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 spdlog::warn("BundleDelimiter received but client bundle state machine not implemented");
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::BlockChangedAck>) {
-                // TODO(客户端挖掘预测): 收到 sequence 应推进本地方块挖掘预测状态机。
-                // 当前无客户端挖掘预测链路，静默忽略。
+                // 对齐 Java ClientLevel.handleBlockChangedAck：推进方块预测状态机，
+                // 确认/回滚所有 sequence <= ackSequence 的预测。
                 const auto& p = pkt;
-                spdlog::warn(
-                    "BlockChangedAck sequence={} received but client digging prediction not implemented", p.sequence);
+                m_app.m_world.handleBlockChangedAck(p.sequence);
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::ChunkBatchFinished>) {
                 // TODO(客户端区块批次流速控): 收到批次结束应统计本批次实际接收速率并回发

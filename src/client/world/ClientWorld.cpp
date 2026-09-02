@@ -364,6 +364,20 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         state ? state->stateId() : 0,
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
+    // 方块状态预测分流（对齐 Java ClientLevel.setBlock :213-225）：若正在预测性操作中，
+    // 先记录预测前的服务端权威状态，再写入预测值。ACK 到达后若预测错误则回滚。
+    if (m_blockStatePredictionHandler.isPredicting()) {
+        const BlockState* oldState = getBlockState(x, y, z);
+        _setBlockStateRaw(x, y, z, pos, state);
+        m_blockStatePredictionHandler.retainKnownServerState(pos, oldState);
+        return;
+    }
+
+    _setBlockStateRaw(x, y, z, pos, state);
+}
+
+void ClientWorld::_setBlockStateRaw(i32 x, i32 y, i32 z, const BlockPos& pos, const BlockState* state)
+{
     const i32 chunkX = toChunkCoord(x);
     const i32 chunkZ = toChunkCoord(z);
     const ChunkId id(chunkX, chunkZ, 0);
@@ -394,6 +408,36 @@ void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     if (localZ == CHUNK_WIDTH - 1) {
         _scheduleChunkMeshRebuild(ChunkId(chunkX, chunkZ + 1, 0));
     }
+}
+
+void ClientWorld::setServerVerifiedBlockState(i32 x, i32 y, i32 z, const BlockState* state)
+{
+    // 对齐 Java ClientLevel.setServerVerifiedBlockState：若该位置有预测记录（预测已被
+    // 服务端覆盖），不立即写入（待 ACK 时 syncBlockState 统一处理）；否则直接写入。
+    if (m_blockStatePredictionHandler.updateKnownServerState(BlockPos(x, y, z), state)) {
+        return;
+    }
+    setBlockState(x, y, z, state);
+}
+
+void ClientWorld::syncBlockState(const BlockPos& pos, const BlockState* savedState)
+{
+    // 对齐 Java ClientLevel.syncBlockState：若当前方块状态与预测前服务端权威状态不符
+    // （说明服务端拒绝了预测），则回滚到服务端权威状态。
+    // 注意：此处不经过预测分流（直接 _setBlockStateRaw），避免再次记录预测状态。
+    const BlockState* currentState = getBlockState(pos.x, pos.y, pos.z);
+    if (currentState != savedState) {
+        _setBlockStateRaw(pos.x, pos.y, pos.z, pos, savedState);
+    }
+    // TODO(玩家位置回弹): 原版 syncBlockState 还会检查玩家是否与恢复后的方块碰撞，
+    // 若碰撞则 absSnapTo 回预测前位置。本项目需补齐 Player 碰撞检测接口后实现。
+}
+
+void ClientWorld::handleBlockChangedAck(i32 sequence)
+{
+    // 对齐 Java ClientLevel.handleBlockChangedAck：推进预测状态机，确认/回滚所有
+    // sequence <= ackSequence 的预测。
+    m_blockStatePredictionHandler.endPredictionsUpTo(sequence, *this);
 }
 
 const ChunkData* ClientWorld::getChunkAt(ChunkCoord x, ChunkCoord z) const

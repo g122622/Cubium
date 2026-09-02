@@ -52,6 +52,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -193,84 +194,6 @@ void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryMan
 // ============================================================================
 // 公共方法实现
 // ============================================================================
-
-Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
-    PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-        "BlockInteractionManager::handleBlockInteraction",
-        "pos",
-        pos.toString(),
-        "playerId",
-        playerId,
-        "action",
-        static_cast<u8>(action),
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    // 验证前置条件
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, true);
-    if (preconditionError) {
-        return std::move(*preconditionError);
-    }
-
-    ServerWorld* world = _getPlayerWorld(playerId);
-    if (world == nullptr) {
-        return Error(ErrorCode::InvalidWorld, "Player world not available");
-    }
-
-    // 获取方块状态
-    const BlockState* state = _getNonAirBlockState(*world, pos);
-    if (!state) {
-        return BlockInteractionResult{false, "No block to interact with"};
-    }
-
-    // 处理不同动作
-    switch (action) {
-        case network::BlockInteractionAction::StartDestroyBlock:
-            // 开始破坏 - 通常由 MiningManager 处理
-            break;
-
-        case network::BlockInteractionAction::AbortDestroyBlock:
-            // 中止破坏
-            break;
-
-        case network::BlockInteractionAction::StopDestroyBlock:
-            // 完成破坏
-            if (_canBreakBlock(*world, playerId, pos, state)) {
-                // 获取手持物品作为工具
-                ItemStack tool = _getHeldTool(playerId);
-
-                // 通知方块玩家即将破坏（如活塞头在创造模式下级联销毁活塞基座）
-                Player* stopPlayer = _getPlayerEntity(playerId, *world);
-                if (stopPlayer != nullptr) {
-                    state->getBlockMutable().playerWillDestroy(*world, pos, *state, *stopPlayer);
-                }
-
-                // 创造模式不产生掉落物
-                bool isCreativeStop = stopPlayer != nullptr && stopPlayer->isCreative();
-                if (!isCreativeStop) {
-                    // 生成掉落物
-                    _generateBlockDrops(*world, pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
-                }
-
-                // 设置为空气
-                _setBlockToAir(*world, pos, *state, playerId);
-
-                // 调用方块的 spawnAfterBreak 回调（如 InfestedBlock 生成蠹虫）
-                // 方块已移除后调用，与 MC Java 行为一致：先移除方块再生成额外实体
-                const Block& breakBlock = state->getBlock();
-                breakBlock.spawnAfterBreak(*world, pos, *state, tool.isEmpty() ? nullptr : &tool, true);
-
-                return BlockInteractionResult{true, "Block destroyed"};
-            }
-            break;
-
-        default:
-            break;
-    }
-
-    return BlockInteractionResult{false, "Action not handled"};
-}
 
 Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem)
@@ -800,6 +723,11 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
             }
         }
     }
+
+    // 发送方块破坏粒子效果（对齐原版 Block.destroy 中 level.levelEvent(2001, pos,
+    // Block.getId(state))）：data 为方块状态ID，客户端据此渲染对应方块的碎屑粒子。
+    // 此前挖块路径仅发破坏声音（m_onBlockBreak 回调），未发破坏粒子，方块直接消失无碎屑。
+    world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(oldState.stateId()));
 
     // 设置为空气
     u32 newBlockStateId = _setBlockToAir(*world, pos, oldState, playerId);

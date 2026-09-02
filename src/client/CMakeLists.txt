@@ -328,6 +328,8 @@ add_executable(minecraft-client
     # 世界
     world/ClientWorld.cpp
     world/ClientMapDataCache.cpp
+    # 客户端方块状态预测处理器（对齐 Java BlockStatePredictionHandler）
+    world/prediction/BlockStatePredictionHandler.cpp
     # 地图渲染
     renderer/map/MapRenderer.cpp
     world/player/LocalPlayerIdentity.cpp

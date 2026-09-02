@@ -37,6 +37,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/stats/StatisticsManager.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -469,6 +470,23 @@ public:
     void tick() override;
 
     /**
+     * @brief 累积方块变更 ACK 序列号
+     *
+     * 对齐 Java ServerGamePacketListenerImpl.ackBlockChangesUpTo(int)（:1418-1424）：
+     * 取 max 累积，而非直接赋值。use_item_on / use_item / PlayerAction(Start/Abort/
+     * StopDestroy) 收包后调用此方法记录 sequence，由 tick() 末统一发送一个
+     * ClientboundBlockChangedAckPacket(maxSequence)。
+     *
+     * @param sequence 客户端发来的方块预测序列号（<0 视为无效，忽略）
+     */
+    void recordBlockChangeAck(i32 sequence)
+    {
+        if (sequence >= 0) {
+            m_ackBlockChangesUpTo = std::max(m_ackBlockChangesUpTo, sequence);
+        }
+    }
+
+    /**
      * @brief 设置旁观目标实体
      *
      * 设置玩家的摄像机跟踪目标。当目标非空时，玩家的视角将跟随目标实体，
@@ -741,6 +759,11 @@ private:
     f64 m_vehicleLastGoodZ = 0.0;
     bool m_vehicleAntiFlightInited = false;
     EntityInstanceId m_lastVehicleId = INVALID_ENTITY_ID;
+
+    // 方块变更 ACK 累积序列号（对齐 Java ServerGamePacketListenerImpl.ackBlockChangesUpTo，
+    // 字段定义于该类 :234，取 max 累积、每 tick 末批量发送一个 ClientboundBlockChangedAckPacket）。
+    // -1 表示本 tick 无待发 ACK。
+    i32 m_ackBlockChangesUpTo = -1;
 };
 
 } // namespace mc

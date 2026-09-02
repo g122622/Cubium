@@ -234,7 +234,32 @@ void ClientApplication::completeBreakingBlock(bool instantBreak)
                 ::perfetto::EventContext ctx) { flow(ctx); });
     }
 
-    sendBlockInteraction(network::BlockInteractionAction::StopDestroyBlock, m_breakingBlockPos, m_breakingBlockFace);
+    // 对齐 Java MultiPlayerGameMode.startPrediction：在预测守卫作用域内本地预测清方块
+    // （降低感知延迟，方块立即消失而非等服务端 BlockUpdate）+ 发 STOP_DESTROY_BLOCK 包。
+    // 服务端 ACK 到达后，若服务端拒绝预测（如距离不足、反作弊），syncBlockState 会回滚。
+    {
+        mc::client::BlockPredictionGuard predictGuard(m_world.blockStatePredictionHandler());
+        const BlockState* oldState =
+            m_world.getBlockState(m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z);
+        if (oldState != nullptr && !oldState->isAir()) {
+            // 本地预测清方块（setBlockState 在 isPredicting 时会记录预测前服务端权威状态）
+            if (Block* airBlock = Block::getBlock(ResourceLocation("minecraft:air"))) {
+                m_world.setBlockState(
+                    m_breakingBlockPos.x, m_breakingBlockPos.y, m_breakingBlockPos.z, &airBlock->defaultState());
+            }
+        }
+        // 手动发包以复用同一 sequence（不调 sendBlockInteraction 避免重复 startPredicting）
+        if (m_network && m_network->isPlaying()) {
+            namespace irplay = mc::network::ir::play;
+            irplay::PlayerAction playerAction;
+            playerAction.action = static_cast<i32>(network::BlockInteractionAction::StopDestroyBlock);
+            playerAction.blockPosPacked = m_breakingBlockPos.asLong();
+            playerAction.direction = static_cast<i32>(m_breakingBlockFace);
+            playerAction.sequence = predictGuard.sequence();
+            (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{irplay::PlayerAction{std::move(playerAction)}}});
+        }
+    }
 
     m_breakingBlockActive = false;
     m_breakingBlockProgress = 0.0f;
@@ -407,7 +432,10 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
 
     // 1.21.11 UseItemOn：hand(0=MAIN_HAND) + BlockHitResult + sequence。
     // inside=true（命中点在方块内），worldBorderHit=false。
+    // sequence 由方块预测状态机递增（对齐 Java MultiPlayerGameMode.startPrediction），
+    // 服务端据此 ACK 推进客户端预测状态机。
     namespace irplay = mc::network::ir::play;
+    mc::client::BlockPredictionGuard predictGuard(m_world.blockStatePredictionHandler());
     irplay::UseItemOn useItemOn;
     useItemOn.hand = 0; // MAIN_HAND
     useItemOn.blockHit.blockPosPacked = pos.asLong();
@@ -417,7 +445,7 @@ void ClientApplication::sendBlockPlacement(const BlockPos& pos, Direction face, 
     useItemOn.blockHit.hitZ = hitPos.z;
     useItemOn.blockHit.inside = true;
     useItemOn.blockHit.worldBorderHit = false;
-    useItemOn.sequence = 0;
+    useItemOn.sequence = predictGuard.sequence();
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{irplay::UseItemOn{std::move(useItemOn)}}});
 }
@@ -435,9 +463,10 @@ void ClientApplication::sendUseItem()
     }
 
     namespace irplay = mc::network::ir::play;
+    mc::client::BlockPredictionGuard predictGuard(m_world.blockStatePredictionHandler());
     irplay::UseItem useItem;
     useItem.hand = static_cast<i32>(Hand::MainHand);
-    useItem.sequence = 0;
+    useItem.sequence = predictGuard.sequence();
     useItem.yRot = m_player->yaw();
     useItem.xRot = m_player->pitch();
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
@@ -463,12 +492,16 @@ void ClientApplication::sendBlockInteraction(
 
     // 1.21.11 PlayerAction：action 值与旧 BlockInteractionAction 完全一致
     // （0=START_DESTROY 1=ABORT_DESTROY 2=STOP_DESTROY）。
+    // sequence 由方块预测状态机递增（对齐 Java MultiPlayerGameMode.startPrediction）。
+    // 注：原版 ABORT_DESTROY_BLOCK 不走 startPrediction（不带 sequence），本项目统一带
+    // sequence 以简化实现，服务端无条件 ack，客户端无预测记录则 ACK 无副作用。
     namespace irplay = mc::network::ir::play;
+    mc::client::BlockPredictionGuard predictGuard(m_world.blockStatePredictionHandler());
     irplay::PlayerAction playerAction;
     playerAction.action = static_cast<i32>(action);
     playerAction.blockPosPacked = pos.asLong();
     playerAction.direction = static_cast<i32>(face);
-    playerAction.sequence = 0;
+    playerAction.sequence = predictGuard.sequence();
     (void)m_network->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{irplay::PlayerAction{std::move(playerAction)}}});
 }

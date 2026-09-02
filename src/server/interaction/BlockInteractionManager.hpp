@@ -135,16 +135,6 @@ public:
     void setServer(IServer* server) { m_server = server; }
 
     /**
-     * @brief 处理方块交互数据包
-     * @param playerId 玩家ID
-     * @param pos 方块位置
-     * @param action 交互动作
-     * @return 交互结果
-     */
-    [[nodiscard]] Result<BlockInteractionResult> handleBlockInteraction(
-        PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action);
-
-    /**
      * @brief 处理方块放置数据包
      * @param playerId 玩家ID
      * @param pos 点击的方块位置

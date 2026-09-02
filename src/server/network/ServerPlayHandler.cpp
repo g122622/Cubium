@@ -158,15 +158,6 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
     }
 }
 
-void ServerPlayHandler::_sendBlockChangedAck(PlayerId playerId, i32 sequence)
-{
-    mc::network::ir::play::BlockChangedAck ack;
-    ack.sequence = sequence;
-    m_server.sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ack)}});
-}
-
 void ServerPlayHandler::handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // 客户端主动 ping(ping 协议通道)，回 PongResponse(cb:60) 同 time。
@@ -1183,15 +1174,23 @@ void ServerPlayHandler::handleUseItemPacket(PlayerId playerId, const mc::network
     }
 
     // 对齐 Java ServerGamePacketListenerImpl.handleUseItem(:1358)：紧跟登录检查之后
-    // 无条件 ackBlockChangesUpTo(sequence)，业务结果不影响 ack。
-    _sendBlockChangedAck(playerId, evt->sequence);
+    // 无条件 ackBlockChangesUpTo(sequence)，业务结果不影响 ack。vanilla 取 max 累积、
+    // 每 tick 末批量发，此处改为调 ServerPlayer::recordBlockChangeAck 累积，由 tick 末发送。
+    auto* useItemWorld = m_server.getPlayerWorld(playerId);
+    auto* useItemPlayer =
+        (useItemWorld != nullptr) ? m_server.playerEntityManager().getPlayerEntity(playerId, *useItemWorld) : nullptr;
+    if (useItemPlayer != nullptr) {
+        if (auto* sp = useItemPlayer->asServerPlayer()) {
+            sp->recordBlockChangeAck(evt->sequence);
+        }
+    }
 
-    auto* world = m_server.getPlayerWorld(playerId);
+    auto* world = useItemWorld;
     if (world == nullptr) {
         return;
     }
 
-    auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    auto* playerEntity = useItemPlayer;
     if (playerEntity == nullptr) {
         return;
     }
@@ -1282,8 +1281,10 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
         return;
     }
 
-    // 1.21.11 PlayerAction：action 0/1/2 对应 Start/Abort/StopDestroy，与旧 BlockInteractionAction 序数一致。
-    //   action 3..6（DROP_ALL/DROP_ITEM/SWAP_HANDS 等）由物品逻辑路径单独处理，此处仅转发挖掘相关。
+    // 1.21.11 PlayerAction 的 action 值（对齐 ServerboundPlayerActionPacket.Action 序数）：
+    //   0=StartDestroyBlock 1=AbortDestroyBlock 2=StopDestroyBlock（带 sequence，走挖掘）
+    //   3=DROP_ALL_ITEMS 4=DROP_ITEM 5=SWAP_ITEM_WITH_OFFHAND 6=RELEASE_USE_ITEM
+    //   （不带 sequence，走物品逻辑）。此处仅转发挖掘相关，物品 action 在下方分流。
     const BlockPos pos = BlockPos::fromLong(evt->blockPosPacked);
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -1294,14 +1295,17 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
         playerId,
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    // 仅挖掘相关 action 走 MiningManager
+    // 物品相关 action 3-6（不带 sequence，不 ack）对齐 Java
+    // ServerGamePacketListenerImpl.handlePlayerAction(:1245-1268)。
+    if (evt->action == 3 || evt->action == 4 || evt->action == 5 || evt->action == 6) {
+        handlePlayerItemAction(playerId, evt->action);
+        return;
+    }
+
+    // 仅挖掘相关 action 0-2 走 MiningManager，其他非法值忽略
     if (evt->action < 0 || evt->action > 2) {
         return;
     }
-    // 对齐 Java ServerGamePacketListenerImpl.handlePlayerAction(:1277)：仅
-    // START/ABORT/STOP_DESTROY 三个 action（带 sequence）调 ack；DROP/SWAP/
-    // RELEASE_USE_ITEM 不带 sequence 不 ack。业务结果不影响 ack。
-    _sendBlockChangedAck(playerId, evt->sequence);
     const auto action = static_cast<network::BlockInteractionAction>(evt->action);
 
     // 距离校验：对齐 vanilla ServerPlayerGameMode.handleBlockBreakAction /
@@ -1309,13 +1313,23 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
     // START_DESTROY 与 STOP_DESTROY 都须在交互距离内（padding 1.0 容差），否则忽略，
     // 防止玩家远程挖方块。此前 MiningManager 路径完全无距离门控。
     // ABORT_DESTROY 无目标方块距离语义，跳过校验。
+    auto* interactWorld = m_server.getPlayerWorld(playerId);
+    auto* interactPlayer =
+        (interactWorld != nullptr) ? m_server.playerEntityManager().getPlayerEntity(playerId, *interactWorld) : nullptr;
     if (action != network::BlockInteractionAction::AbortDestroyBlock) {
-        auto* interactWorld = m_server.getPlayerWorld(playerId);
-        auto* interactPlayer = (interactWorld != nullptr)
-            ? m_server.playerEntityManager().getPlayerEntity(playerId, *interactWorld)
-            : nullptr;
         if (interactPlayer == nullptr || !interactPlayer->isWithinBlockInteractionRange(pos, 1.0)) {
             return;
+        }
+    }
+
+    // 对齐 Java ServerGamePacketListenerImpl.handlePlayerAction(:1277)：仅
+    // START/ABORT/STOP_DESTROY 三个 action（带 sequence）调 ack；DROP/SWAP/
+    // RELEASE_USE_ITEM 不带 sequence 不 ack。业务结果不影响 ack。
+    // vanilla 取 max 累积、每 tick 末批量发，此处改为调 ServerPlayer::recordBlockChangeAck
+    // 累积，由 tick 末发送。
+    if (interactPlayer != nullptr) {
+        if (auto* sp = interactPlayer->asServerPlayer()) {
+            sp->recordBlockChangeAck(evt->sequence);
         }
     }
 
@@ -1323,9 +1337,69 @@ void ServerPlayHandler::handleBlockInteractionPacket(PlayerId playerId, const mc
     m_server.miningManager().handleBlockInteraction(playerId, pos, action);
 
     if (action == network::BlockInteractionAction::StopDestroyBlock) {
-        if (!m_server.miningManager().tryCompleteMining(playerId, pos)) {
-            spdlog::warn("Ignored premature StopDestroyBlock from player {} at {}", playerId, pos.toString());
+        // tryCompleteMining 需要 world 引用以计算挖掘速度（0.7 阈值判定）。
+        // 返回 false 表示进度不足转 delayed-destroy 续挖、或状态不存在/位置不匹配，
+        // 此处仅 debug 级别记录，不再 warn（delayed-destroy 是正常语义）。
+        if (interactWorld != nullptr) {
+            m_server.miningManager().tryCompleteMining(playerId, pos, *interactWorld);
         }
+    }
+}
+
+void ServerPlayHandler::handlePlayerItemAction(PlayerId playerId, i32 action)
+{
+    // 对齐 Java ServerGamePacketListenerImpl.handlePlayerAction(:1245-1268) 的物品分支。
+    // action: 3=DROP_ALL_ITEMS 4=DROP_ITEM 5=SWAP_ITEM_WITH_OFFHAND 6=RELEASE_USE_ITEM。
+    // 这些 action 不带 sequence、不 ack，不走 MiningManager。
+
+    auto* world = m_server.getPlayerWorld(playerId);
+    auto* player = (world != nullptr) ? m_server.playerEntityManager().getPlayerEntity(playerId, *world) : nullptr;
+    if (player == nullptr) {
+        return;
+    }
+
+    switch (action) {
+        case 3: // DROP_ALL_ITEMS：丢弃整组
+            if (!player->isSpectator()) {
+                player->drop(true);
+                m_server.syncPlayerInventory(playerId);
+            }
+            break;
+
+        case 4: // DROP_ITEM：丢弃一个
+            if (!player->isSpectator()) {
+                player->drop(false);
+                m_server.syncPlayerInventory(playerId);
+            }
+            break;
+
+        case 5: // SWAP_ITEM_WITH_OFFHAND：主副手交换
+            if (!player->isSpectator()) {
+                // 对齐 Java :1259-1265：交换主手与副手物品
+                ItemStack& mainHand = player->inventory().getSelectedStackRef();
+                ItemStack& offhand = player->inventory().getOffhandItemRef();
+                std::swap(mainHand, offhand);
+                // 停止使用物品（若正在使用）——对齐 Java player.stopUsingItem()。
+                // 本项目物品使用状态机已实现（LivingEntity::stopActiveHand），交换手时
+                // 应停止当前物品使用。
+                if (player->isUsingItem()) {
+                    player->stopActiveHand();
+                }
+                m_server.syncPlayerInventory(playerId);
+            }
+            break;
+
+        case 6: // RELEASE_USE_ITEM：停止使用物品
+            // 对齐 Java :1266-1268 player.releaseUsingItem()。
+            // 本项目用 stopActiveHand 对应停止使用（释放时若仍在使用则停止，不触发完成）。
+            if (player->isUsingItem()) {
+                player->stopActiveHand();
+                m_server.syncPlayerInventory(playerId);
+            }
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -1345,11 +1419,21 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
     // 对齐 Java ServerGamePacketListenerImpl.handleUseItemOn(:1299)：紧跟登录检查
     // 之后无条件 ackBlockChangesUpTo(sequence)，业务结果不影响 ack。否则真 Java
     // 客户端方块预测状态机因收不到 ack 而卡死，后续右键静默失效。
-    _sendBlockChangedAck(playerId, evt->sequence);
+    // vanilla 取 max 累积、每 tick 末批量发，此处改为调 ServerPlayer::recordBlockChangeAck
+    // 累积，由 tick 末发送。
+    auto* placementWorld = m_server.getPlayerWorld(playerId);
+    auto* placementPlayer = (placementWorld != nullptr)
+        ? m_server.playerEntityManager().getPlayerEntity(playerId, *placementWorld)
+        : nullptr;
+    if (placementPlayer != nullptr) {
+        if (auto* sp = placementPlayer->asServerPlayer()) {
+            sp->recordBlockChangeAck(evt->sequence);
+        }
+    }
 
     const auto& hit = evt->blockHit;
     const BlockPos pos = BlockPos::fromLong(hit.blockPosPacked);
-    auto* playerWorld = m_server.getPlayerWorld(playerId);
+    auto* playerWorld = placementWorld;
     const BlockState* clickedState = playerWorld ? playerWorld->getBlockState(pos) : nullptr;
     const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
     const Direction face = static_cast<Direction>(hit.direction);

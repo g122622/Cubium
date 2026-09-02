@@ -525,6 +525,33 @@ ItemEntity* Player::dropItem(ItemStack& stack, bool unused)
     return dropItem(stack, false, true);
 }
 
+ItemEntity* Player::drop(bool dropAll)
+{
+    // 对齐 Java Player.drop(boolean)：从主手选中槽位丢弃一个/整组。
+    // 旁观模式无物品栏语义，直接返回。
+    if (isSpectator()) {
+        return nullptr;
+    }
+
+    ItemStack& selected = m_inventory.getSelectedStackRef();
+    if (selected.isEmpty()) {
+        return nullptr;
+    }
+
+    // 计算丢弃数量：dropAll=整组，否则一个
+    i32 dropCount = dropAll ? selected.getCount() : 1;
+
+    // 构造掉落物堆叠副本（dropItem 会清空传入的 stack 引用，故用副本）
+    ItemStack dropStack = selected;
+    dropStack.setCount(dropCount);
+
+    // 从选中槽位减少数量（setCount/shrink 减到 0 会自动变 EMPTY）
+    selected.shrink(dropCount);
+
+    // 生成 ItemEntity（dropItem 内部会把 dropStack 清空）
+    return dropItem(dropStack, false, true);
+}
+
 void Player::damageArmor(DamageSource& source, f32 amount)
 {
     m_inventory.damageArmor(source, amount);

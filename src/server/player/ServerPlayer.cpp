@@ -1022,6 +1022,19 @@ void ServerPlayer::tick()
     // 载具反飞行基线同步滚动（骑乘时由 handleMoveVehiclePacket 维护 lastGood）。
     rollVehicleFirstGoodToLastGood();
 
+    // 方块变更 ACK 批量发送（对齐 Java ServerGamePacketListenerImpl.tick() :282-286）：
+    // 一个 tick 内收到多个带 sequence 的包（use_item_on/use_item/Start/Abort/StopDestroy）时，
+    // ackBlockChangesUpTo 取 max 累积；tick 末若 > -1 则发一个 ClientboundBlockChangedAckPacket
+    // 并复位。此前本项目为"收包即立即发"，每包一个 ACK，流量 N 倍于原版且与原版批量语义不符。
+    // hasConnection() 守卫确保无连接玩家（SimulatedPlayer）不发。
+    if (m_ackBlockChangesUpTo > -1 && hasConnection()) {
+        mc::network::ir::play::BlockChangedAck ack;
+        ack.sequence = m_ackBlockChangesUpTo;
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ack)}}));
+        m_ackBlockChangesUpTo = -1;
+    }
+
     // 服务端物理驱动：无连接玩家（SimulatedPlayer）没有客户端发来 ServerboundMovePlayerPacket
     // 驱动物理，而 Player::aiStep（Player.cpp:2211-2218）被有意掏空（重力/移动移到 updatePhysics，
     // 真实在线玩家位置由客户端包权威写入 ServerPlayHandler.cpp:474-504，避免双重移动）。

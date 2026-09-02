@@ -733,6 +733,18 @@ public:
     ItemEntity* dropItem(ItemStack& stack, bool unused = false);
 
     /**
+     * @brief 从主手选中槽位丢弃物品
+     *
+     * 对齐 Java Player.drop(boolean dropAll)：从当前选中的主手槽位丢一个
+     * （dropAll=false）或整组（dropAll=true），在玩家位置生成 ItemEntity。
+     * 创造/旁观模式不丢弃（旁观无物品栏语义，创造由客户端处理）。
+     *
+     * @param dropAll true=丢弃整组物品，false=仅丢弃一个
+     * @return 生成的物品实体，失败返回 nullptr
+     */
+    ItemEntity* drop(bool dropAll);
+
+    /**
      * @brief 受伤时损坏护甲
      *
      * 重写 LivingEntity::damageArmor()，委托给 PlayerInventory::damageArmor()。

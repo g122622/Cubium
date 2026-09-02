@@ -54,6 +54,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "entity/ClientEntityManager.hpp"
+#include "prediction/BlockStatePredictionHandler.hpp"
 #include <array>
 #include <cstddef>
 #include <functional>
@@ -141,6 +142,55 @@ public:
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
     void setBlockState(i32 x, i32 y, i32 z, const BlockState* state);
+
+    // ========== 方块状态预测（对齐 Java ClientLevel 方块预测链路） ==========
+    //
+    // 客户端在发送带 sequence 的方块交互包时本地预测性地写方块状态，并记录预测前的
+    // 服务端权威状态；收到服务端 BlockChangedAck 后确认预测，若预测错误则回滚。
+    // 详见 BlockStatePredictionHandler。
+
+    /**
+     * @brief 服务端权威方块状态写入（BlockUpdate 包到达时调用）
+     *
+     * 对齐 Java ClientLevel.setServerVerifiedBlockState：若该位置有预测记录（预测已被
+     * 服务端覆盖），不立即写入（待 ACK 时 syncBlockState 统一处理）；否则直接写入。
+     *
+     * @param x,y,z 方块坐标
+     * @param state 服务端权威方块状态
+     */
+    void setServerVerifiedBlockState(i32 x, i32 y, i32 z, const BlockState* state);
+
+    /**
+     * @brief 预测确认/回滚（收到 ACK 时由 BlockStatePredictionHandler 调用）
+     *
+     * 对齐 Java ClientLevel.syncBlockState：若当前方块状态与预测前服务端权威状态不符
+     * （说明服务端拒绝了预测），则回滚到服务端权威状态。
+     *
+     * TODO(玩家位置回弹): 原版 syncBlockState 还会检查玩家是否与恢复后的方块碰撞，
+     * 若碰撞则 absSnapTo 回预测前位置。本项目需补齐 Player 碰撞检测接口后实现。
+     *
+     * @param pos 方块位置
+     * @param savedState 预测前的服务端权威方块状态
+     */
+    void syncBlockState(const BlockPos& pos, const BlockState* savedState);
+
+    /**
+     * @brief 处理服务端 BlockChangedAck（推进预测状态机）
+     *
+     * 对齐 Java ClientLevel.handleBlockChangedAck。
+     *
+     * @param sequence 服务端确认的序列号
+     */
+    void handleBlockChangedAck(i32 sequence);
+
+    /**
+     * @brief 获取方块状态预测处理器
+     */
+    [[nodiscard]] BlockStatePredictionHandler& blockStatePredictionHandler() { return m_blockStatePredictionHandler; }
+    [[nodiscard]] const BlockStatePredictionHandler& blockStatePredictionHandler() const
+    {
+        return m_blockStatePredictionHandler;
+    }
 
     [[nodiscard]] bool isWithinWorldBounds(i32 /*x*/, i32 y, i32 /*z*/) const override
     {
@@ -688,7 +738,13 @@ private:
     /// 主线程 drain worker 反序列化续延队列，代际过滤后调 _applyChunkData。
     void _processPendingDeserializedChunks();
 
+    /// 实际写入方块状态的底层方法（不经过预测分流），供 setBlockState / syncBlockState 复用。
+    void _setBlockStateRaw(i32 x, i32 y, i32 z, const BlockPos& pos, const BlockState* state);
+
 private:
+    /// 方块状态预测处理器（对齐 Java BlockStatePredictionHandler）
+    BlockStatePredictionHandler m_blockStatePredictionHandler;
+
     std::unordered_map<ChunkId, std::unique_ptr<ClientChunk>> m_chunks;
 
     std::function<void(const ChunkId&)> m_chunkUnloadCallback;

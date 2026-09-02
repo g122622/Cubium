@@ -2270,6 +2270,7 @@ target_sources(mc_tests
         # 设置系统
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/world/prediction/BlockStatePredictionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/client/network/ClientNetwork.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntityManager.cpp

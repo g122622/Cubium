@@ -133,10 +133,19 @@ public:
     /**
      * @brief 处理 StopDestroyBlock。
      *
-     * 服务端只在当前玩家已经将目标方块挖到完成状态时返回 true，
-     * 外层调用方据此决定是否真正执行方块破坏。
+     * 对齐原版 ServerPlayerGameMode.handleBlockBreakAction 的 STOP_DESTROY_BLOCK 分支
+     *（:209-231）：计算绝对进度 f1 = 单tick进度 × (gameTicks - startTick + 1)。
+     * - f1 >= 0.7F：清除破坏阶段动画，erase 状态并返回 true（由调用方触发 handleBlockBreak）。
+     * - f1 < 0.7F：转入 delayed-destroy 状态机（hasDelayedDestroy=true），由 tick 续挖，
+     *   返回 false。
+     * - 状态不存在/位置不匹配：返回 false（容错，消除乱序/重复 STOP 的崩溃风险）。
+     *
+     * @param world 世界引用（用于查询方块状态计算挖掘速度）
+     * @param pos 目标方块位置
+     * @return true 表示进度已达 0.7 阈值并已在内部触发 onMiningComplete 完成破坏；
+     *         false 表示转入延迟续挖、状态不存在或位置不匹配（正常语义，调用方无需额外处理）
      */
-    [[nodiscard]] bool tryCompleteMining(PlayerId playerId, const BlockPos& pos);
+    bool tryCompleteMining(PlayerId playerId, const BlockPos& pos, ServerWorld& world);
 
     /**
      * @brief 设置破坏动画广播回调
@@ -223,20 +232,34 @@ private:
 private:
     /**
      * @brief 挖掘状态
+     *
+     * 对齐原版 ServerPlayerGameMode 字段（:42-49）：
+     * - progress：当前绝对进度 f = 单tick进度 × (已过tick数+1)
+     * - lastStage：上次广播的阶段 lastSentState（255 表示未开始，对齐原版 -1）
+     * - active：是否正在挖掘 isDestroyingBlock
+     * - startTick：开始挖掘的 gameTick destroyProgressStart
+     * - hasDelayedDestroy/delayedDestroyPos/delayedTickStart：延迟破坏状态机
      */
     struct MiningState {
         BlockPos position;
-        f32 progress = 0.0f;
-        u8 lastStage = 255; // 上次广播的阶段 (0-9)
-        bool active = false;
-        u64 startTick = 0;
+        f32 progress = 0.0f;            // 绝对进度：单tick进度 × (已过tick数+1)
+        u8 lastStage = 255;             // 上次广播的阶段 (0-9)，255=未开始
+        bool active = false;            // isDestroyingBlock
+        u64 startTick = 0;              // destroyProgressStart
         EntityInstanceId breakerId = 0; // 用于广播动画
+        // delayed-destroy（对齐原版 :46-48）
+        bool hasDelayedDestroy = false;
+        BlockPos delayedDestroyPos;
+        u64 delayedTickStart = 0;
     };
 
     core::PlayerManager& m_playerManager;
     core::ConnectionManager& m_connectionManager;
     InventoryManager* m_inventoryManager = nullptr;
     std::unordered_map<PlayerId, MiningState> m_miningStates;
+
+    /// 全局 gameTick 计数器（对齐原版 ServerPlayerGameMode.gameTicks，每 tick 递增）
+    u64 m_gameTicks = 0;
 
     std::function<void(PlayerId, i32, i32, i32, i8)> m_onBreakAnimBroadcast;
     std::function<void(PlayerId, const BlockPos&)> m_onMiningComplete;
