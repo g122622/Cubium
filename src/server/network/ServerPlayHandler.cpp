@@ -1484,7 +1484,11 @@ void ServerPlayHandler::handleBlockPlacementPacket(PlayerId playerId, const mc::
     const BlockState* clickedState = playerWorld ? playerWorld->getBlockState(pos) : nullptr;
     const Hand hand = (evt->hand == static_cast<i32>(Hand::OffHand)) ? Hand::OffHand : Hand::MainHand;
     const Direction face = static_cast<Direction>(hit.direction);
-    const Vector3 hitPosition(hit.hitX, hit.hitY, hit.hitZ);
+    // 协议层 hitX/hitY/hitZ 是相对方块原点（min corner）的偏移（值域约 0~1），
+    // 对齐 vanilla FriendlyByteBuf.readBlockHitResult：重建世界绝对命中点
+    // Vec3(blockpos + f) 后再做校验。
+    const Vector3 hitPosition(
+        static_cast<f32>(pos.x) + hit.hitX, static_cast<f32>(pos.y) + hit.hitY, static_cast<f32>(pos.z) + hit.hitZ);
 
     // 对齐 vanilla ServerGamePacketListenerImpl.java:1308-1310：命中点相对方块中心
     // 的偏移三轴均须 < 1.0000001，否则 reject（反作弊，防止伪造偏离目标方块的
