@@ -592,23 +592,17 @@ void Player::setSneaking(bool sneaking)
 
 void Player::setSwimming(bool swimming)
 {
+    // 对齐 vanilla Entity.setSwimming：仅设置 Swimming 共享标志位（位 4），
+    // 不触碰姿态与潜行状态。姿态由 updatePose 统一管理，潜行由 setSneaking /
+    // _applyCachedMovementInput 管理。原实现会在 swimming=false 时清除 m_isSneaking，
+    // 导致 updatePhysics 中 updateSwimming（:1353）在 doBlockCollisions（:1363）
+    // 之前清掉潜行态，使潜行玩家错误触发岩浆块烫脚伤害。
     m_isSwimming = swimming;
     if (swimming) {
         addFlag(EntityFlags::Swimming);
-        setPose(EntityPose::Swimming);
-        return;
+    } else {
+        removeFlag(EntityFlags::Swimming);
     }
-
-    removeFlag(EntityFlags::Swimming);
-
-    if (_canFitPose(EntityPose::Standing)) {
-        m_isSneaking = false;
-        removeFlag(EntityFlags::Crouching);
-        setPose(EntityPose::Standing);
-        return;
-    }
-
-    setSneaking(true);
 }
 
 void Player::toggleFlying()

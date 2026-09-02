@@ -693,11 +693,47 @@ u64 registerSimulatedPlayerClassBinding(
                 return;
             }
             auto b = ctx.toBool(value);
-            if (!b) {
+            if (!b.has_value()) {
                 static_cast<void>(ctx.throwTypeError("isSprinting must be a boolean"));
                 return;
             }
             player->setSprinting(*b);
+        });
+
+    // --- isSneaking (read-write property, boolean) ---
+    // 对齐官方 @minecraft/server Entity.isSneaking（index.d.ts:5672，可读写布尔）。
+    // getter 读 Player::isSneaking()（Player.hpp:783，返 m_isSneaking）。
+    // setter 经 handleMovementInput 设置 m_inputSneaking + setSneaking：
+    //   关键：Player::_applyCachedMovementInput（Player.cpp:903-915，updatePhysics 每 tick 调用）读取
+    //   m_inputSneaking，当 m_inputSneaking=false 且 m_isSneaking=true 时调 setSneaking(false) 清除潜行。
+    //   故仅调 setSneaking(true) 不够——下一帧潜行即被清除。必须同步设 m_inputSneaking=true，使每 tick
+    //   _applyCachedMovementInput 持续 setSneaking(true) 保持潜行。handleMovementInput 保留其他输入
+    //   （forward/strafe/jumping）不变，仅覆写 sneaking 位。
+    reg.property(
+        "isSneaking",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                return ctx.throwTypeError("Invalid SimulatedPlayer");
+            }
+            return ctx.createBoolean(player->isSneaking());
+        },
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, void* value) -> void {
+            auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+            if (player == nullptr) {
+                static_cast<void>(ctx.throwTypeError("Invalid SimulatedPlayer"));
+                return;
+            }
+            auto b = ctx.toBool(value);
+            if (!b.has_value()) {
+                static_cast<void>(ctx.throwTypeError("isSneaking must be a boolean"));
+                return;
+            }
+            // 经 handleMovementInput 设置 m_inputSneaking（保留 forward/strafe 输入），使潜行状态每 tick
+            // 持续保持。jumping 输入无 public 访问器（m_inputJumping 私有），此处置 false——潜行测试
+            // 场景中 SimulatedPlayer 不跳跃，且 setSneaking 不依赖跳跃输入。
+            player->handleMovementInput(player->moveForward(), player->moveStrafing(), false, *b);
+            player->setSneaking(*b);
         });
 
     // --- moveToLocation(blockPos, speed?) ---
