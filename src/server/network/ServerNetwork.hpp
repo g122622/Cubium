@@ -241,8 +241,11 @@ public:
     [[nodiscard]] std::shared_ptr<ProtocolTables> tables() const noexcept { return m_tables; }
 
 private:
-    /// TCP accept 异步循环：accept 出 socket → 包成 Wire 模式 ServerClientConnection → 回调 onConnect
+    /// TCP accept 异步循环：async_accept 链 + io_context::run() 驱动
     void _beginAccept();
+
+    /// 发起一次异步 accept，成功后递归调用自身继续接受下一个连接
+    void _doAsyncAccept();
 
     /// Wire 连接 transport 断开时回调（接收线程触发）：仅把 sessionId 入延迟队列，
     /// 不跨线程碰连接/session map。tick() 在主线程 swap 后回调 m_onDisconnect。

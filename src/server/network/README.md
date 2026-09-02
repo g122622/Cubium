@@ -128,10 +128,16 @@ src/server/network/
 
 `tick()` 在主线程调用，采用快照-后-pump 模式（锁内收集连接/sid 列表，锁外回调），避免 handler 重入死锁。回调中避免阻塞操作。
 
-### 6. Winsock 初始化
+### 6. accept 线程关闭（Linux 关服卡死坑）
+
+**问题**：旧实现 `_beginAccept` 用同步阻塞 `m_acceptor->accept(socket, ec)`。关服时 `~ServerNetwork` 调 `m_acceptor->close()` 试图唤醒 accept 线程，但 **Linux 上 `close()` 一个 listen socket 的 fd 并不会中断正阻塞在 `::accept(fd)` 系统调用中的线程**，导致 `m_acceptThread->join()` 永久阻塞、关服卡死。Windows 上 `closesocket()` 会立即让阻塞的 `accept()` 返回错误，故 Windows 正常、Linux 卡死。
+
+**处理**：`_beginAccept` 改为 `async_accept` 回调链 + `m_ioContext->run()` 驱动。`~ServerNetwork` 改为 `m_ioContext->stop()` + `join()`——`stop()` 让 `io_context::run()` 在处理完当前回调后返回，可靠唤醒 accept 线程，跨平台一致。新增连接的 accept 必须用异步链而非同步循环，否则同一坑会复发。
+
+### 7. Winsock 初始化
 
 Windows 需要 Winsock。asio 在 `io_context` 运行时自动管理，无需手动 `WSAStartup`。`ws2_32` 链接库仍需在 CMake 中保留（`src/server/CMakeLists.txt`）。
 
-### 7. RegistryData NBT（刻意保留，非阻塞）
+### 8. RegistryData NBT（刻意保留，非阻塞）
 
 `RegistryDataBuilder` 当前以 `RegistryEntry{id, data=nullopt}` 发送所有条目（声明"客户端已知"），仅在我方互通双方均硬编码 vanilla registry 且 `SelectKnownPacks{minecraft:core}` 命中时合法。客户端命中 core 后依赖本地硬编码 vanilla registry，无需消费 NBT；真 Java 互通时我方服务端同样发 data=nullopt，真客户端用其本地 registry——故 NBT 消费路径在 core 命中前提下永不触发，刻意保留为占位。若卡在 Configuration 挂死先查此（确认 SelectKnownPacks 命中 core）。未来支持非 core 数据包协商再补 NBT 推送与消费。

@@ -167,16 +167,16 @@ ServerNetwork::ServerNetwork()
 
 ServerNetwork::~ServerNetwork()
 {
-    if (m_accepting.load()) {
-        m_accepting.store(false);
-        if (m_acceptor) {
-            asio::error_code ec;
-            m_acceptor->close(ec);
-        }
-    }
+    // 通知 accept 循环退出：stop() 让 io_context::run() 在处理完当前回调后返回，
+    // 从而可靠唤醒阻塞在 run() 中的 accept 线程。跨平台一致，避免 Linux 上
+    // close() listen socket fd 无法中断阻塞 ::accept(fd) 的陷阱。
     if (m_acceptThread && m_acceptThread->joinable()) {
+        if (m_ioContext) {
+            m_ioContext->stop();
+        }
         m_acceptThread->join();
     }
+
     // 显式先清空所有连接：每个 ServerClientConnection 析构会 close 其 TcpTransport 并
     // join 接收线程，而接收线程在关闭时可能触发 onDisconnect→_notifyDisconnect（锁
     // m_disconnectedSessionsMutex）。此处所有 mutex 仍存活，安全。若交由成员按声明逆序
@@ -206,15 +206,26 @@ Result<void> ServerNetwork::startAccept(u16 port, u32 maxConnections)
 
 void ServerNetwork::_beginAccept()
 {
-    while (m_accepting.load()) {
-        asio::ip::tcp::socket socket(*m_ioContext);
-        asio::error_code ec;
-        m_acceptor->accept(socket, ec);
+    // 异步 accept 链：每次 accept 成功后递归发起新的 async_accept，直到 io_context 停止。
+    // 析构时 m_ioContext->stop() 让 run() 在处理完当前回调后返回，可靠唤醒 accept 线程，
+    // 跨平台一致，避免 Linux 上 close() listen socket fd 无法中断阻塞 ::accept(fd) 的陷阱。
+    _doAsyncAccept();
+    m_ioContext->run();
+}
+
+void ServerNetwork::_doAsyncAccept()
+{
+    if (!m_accepting.load() || !m_acceptor) {
+        return;
+    }
+
+    m_acceptor->async_accept([this](asio::error_code ec, asio::ip::tcp::socket socket) {
         if (ec) {
+            // io_context 被 stop() 后会触发 operation_aborted，此时静默退出即可
             if (m_accepting.load()) {
                 spdlog::warn("ServerNetwork accept failed: {}", ec.message());
             }
-            continue;
+            return;
         }
 
         const u32 sessionId = m_nextSessionId.fetch_add(1);
@@ -233,7 +244,10 @@ void ServerNetwork::_beginAccept()
         if (m_onConnect) {
             m_onConnect(*raw);
         }
-    }
+
+        // 继续接受下一个连接
+        _doAsyncAccept();
+    });
 }
 
 void ServerNetwork::_notifyDisconnect(u32 sessionId)
