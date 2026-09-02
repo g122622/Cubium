@@ -253,6 +253,17 @@ public:
      */
     [[nodiscard]] bool isInWaterOrRain() const;
 
+    /**
+     * @brief 末影人对水敏感
+     *
+     * 对齐 MC Java 1.21.11 EnderMan.isSensitiveToWater（EnderMan.java:239-241）：
+     *   public boolean isSensitiveToWater() { return true; }
+     * 基类 Entity::isWaterSensitive() 默认 false，末影人 override 为 true，
+     * 使喷溅水瓶/药水等水伤害链路识别末影人为水敏感实体并造成 indirectMagic 伤害。
+     * 注意：这与 isInWaterOrRain() 在 tick 中触发的自身水/雨伤害是互补的两条链路。
+     */
+    [[nodiscard]] bool isWaterSensitive() const override { return true; }
+
     // ========== 注视检测 ==========
 
     /**
