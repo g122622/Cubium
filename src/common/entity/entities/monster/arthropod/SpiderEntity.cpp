@@ -33,6 +33,8 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
+#include "../../../effect/EffectInstance.hpp"
+#include "../../../effect/EffectType.hpp"
 #include "../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../registry/VanillaEntityTypeKeys.hpp"
@@ -209,6 +211,17 @@ void SpiderEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 16.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
     attributes().setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
+}
+
+bool SpiderEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
+{
+    // 对齐 MC Java 1.21.11 Spider.canBeAffected（Spider.java:125-127）：
+    //   return p_479991_.is(MobEffects.POISON) ? false : super.canBeAffected(p_479991_);
+    // 蜘蛛免疫中毒效果（洞穴蜘蛛继承此特性）。
+    if (effect.type() == entity::effect::EffectType::Poison) {
+        return false;
+    }
+    return MonsterEntity::isPotionApplicable(effect);
 }
 
 } // namespace mc

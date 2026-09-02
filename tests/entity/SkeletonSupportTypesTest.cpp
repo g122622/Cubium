@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
@@ -60,9 +61,10 @@ TEST(SkeletonSupportTypesTest, VariantDaylightBehaviorMatchesDefaults)
 
 TEST(WitherSkeletonEntityStaticTest, IsImmuneToWitherEffect)
 {
-    // 静态测试：验证 WitherSkeletonEntity 有 isImmuneWitherEffect 方法
-    EXPECT_TRUE((
-        std::is_same_v<decltype(&WitherSkeletonEntity::isImmuneWitherEffect), bool (WitherSkeletonEntity::*)() const>));
+    // 静态测试：验证 WitherSkeletonEntity override 了 isPotionApplicable
+    // （对齐 vanilla canBeAffected，EffectManager::addEffect 调用此方法判定效果免疫）。
+    EXPECT_TRUE((std::is_same_v<decltype(&WitherSkeletonEntity::isPotionApplicable),
+        bool (WitherSkeletonEntity::*)(const entity::effect::EffectInstance&) const>));
 }
 
 TEST(WitherSkeletonEntityStaticTest, HasStoneSword)

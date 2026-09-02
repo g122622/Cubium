@@ -109,13 +109,23 @@ public:
     }
 
     /**
-     * @brief 检查是否免疫凋零效果
+     * @brief 检查是否可被施加指定药水效果
      *
+     * 对齐 MC Java 1.21.11 WitherSkeleton.canBeAffected（WitherSkeleton.java:113-115）：
+     *   public boolean canBeAffected(MobEffectInstance p_478521_) {
+     *       return p_478521_.is(MobEffects.WITHER) ? false : super.canBeAffected(p_478521_);
+     *   }
      * 凋灵骷髅免疫凋零效果。
      *
-     * @return 始终返回 true
+     * @note Cubium 的等价 API 为 LivingEntity::isPotionApplicable（EffectManager::addEffect
+     *       调用），原版为 canBeAffected。此前 Cubium 用自造方法 isImmuneWitherEffect()
+     *       但从未接入效果施加链路（生产代码零调用），致凋灵骷髅仍会被施加凋零效果，
+     *       与 vanilla 直接冲突。现改为 override isPotionApplicable 真正接入链路。
+     *
+     * @param effect 待施加的效果实例
+     * @return 若为凋零效果返回 false，否则委托基类判定
      */
-    [[nodiscard]] bool isImmuneWitherEffect() const { return true; }
+    [[nodiscard]] bool isPotionApplicable(const entity::effect::EffectInstance& effect) const override;
 
     [[nodiscard]] bool hasStoneSword() const { return m_hasStoneSword; }
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }

@@ -123,6 +123,25 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 药水效果免疫 ==========
+
+    /**
+     * @brief 检查是否可被施加指定药水效果
+     *
+     * 对齐 MC Java 1.21.11 Spider.canBeAffected（Spider.java:125-127）：
+     *   public boolean canBeAffected(MobEffectInstance p_479991_) {
+     *       return p_479991_.is(MobEffects.POISON) ? false : super.canBeAffected(p_479991_);
+     *   }
+     * 蜘蛛免疫中毒效果（洞穴蜘蛛继承此特性）。
+     *
+     * @note Cubium 的等价 API 为 LivingEntity::isPotionApplicable（EffectManager::addEffect
+     *       调用），原版为 canBeAffected。
+     *
+     * @param effect 待施加的效果实例
+     * @return 若为中毒效果返回 false，否则委托基类判定
+     */
+    [[nodiscard]] bool isPotionApplicable(const entity::effect::EffectInstance& effect) const override;
+
     // ========== 属性 ==========
 
     /**

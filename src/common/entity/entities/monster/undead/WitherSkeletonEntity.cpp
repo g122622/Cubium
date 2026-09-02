@@ -122,4 +122,15 @@ bool WitherSkeletonEntity::attackEntityAsMob(LivingEntity& target)
     return true;
 }
 
+bool WitherSkeletonEntity::isPotionApplicable(const entity::effect::EffectInstance& effect) const
+{
+    // 对齐 MC Java 1.21.11 WitherSkeleton.canBeAffected（WitherSkeleton.java:113-115）：
+    //   return p_478521_.is(MobEffects.WITHER) ? false : super.canBeAffected(p_478521_);
+    // 凋灵骷髅免疫凋零效果。
+    if (effect.type() == entity::effect::EffectType::Wither) {
+        return false;
+    }
+    return AbstractSkeletonEntity::isPotionApplicable(effect);
+}
+
 } // namespace mc
