@@ -263,6 +263,8 @@ add_executable(mc_tests
     common/world/spawn/CanSlimeSpawnTest.cpp
     # MagmaCubeEntity 岩浆怪测试（继承自史莱姆）
     common/entity/entities/monster/MagmaCubeEntityTest.cpp
+    # GhastEntity 反弹火球秒杀机制测试（对齐 vanilla Ghast.isReflectedFireball/hurtServer）
+    common/entity/entities/monster/nether/GhastReflectedFireballTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
     # 铁傀儡 AI 目标测试
