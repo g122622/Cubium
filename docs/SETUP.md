@@ -2,10 +2,11 @@
 
 ## 硬件配置
 
-目前本项目能在下面两种平台上完成编译与运行：
+目前本项目能在下面三种平台上完成编译与运行：
 
 - x86_64（Raptor Lake） + Windows 11 + Visual Studio（Clang）
 - ARM64（Apple Silicon M4） + MacOS Tahoe + Clang
+- x86_64 + Linux（WSL2 或原生） + Clang 22
 
 本项目代码量达到150W行级别（本体），若加上各类依赖则可逼近千万级，因此需要较为强大的硬件配置来完成编译。
 
@@ -14,6 +15,7 @@
 - 编译器只支持Clang20+，暂时未针对gcc和msvc做适配
 - 需要Vulkan开发环境以及支持Vulkan的GPU
 - Vcpkg
+- Linux 下还需 ccache、ninja、cmake（详见 BUILD.md「Linux 构建」章节）
 
 详见BUILD.md
 

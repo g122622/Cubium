@@ -180,6 +180,52 @@ export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
 
 > **注意**：macOS 构建需要着色器编译器。安装 `glslang`（提供 `glslangValidator`）或 Vulkan SDK（提供 `glslc`）。
 
+## Linux 构建
+
+项目支持在 Linux（x86_64）上构建服务端。使用 `linux-relwithdebinfo` preset：
+
+```bash
+# 安装依赖（Ubuntu/Debian 示例）
+sudo apt-get install clang clang++ cmake ninja-build ccache pkg-config git
+
+# 配置 vcpkg
+git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+export VCPKG_ROOT=~/vcpkg
+
+# 配置（默认 linux-relwithdebinfo，MC_BUILD_CLIENT=OFF）
+cmake --preset linux-relwithdebinfo
+
+# 构建
+cmake --build --preset linux-relwithdebinfo
+
+# 运行服务端
+./build/bin/RelWithDebInfo/minecraft-server --help
+
+# 运行测试
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter="*Math*" --gtest_brief=1
+```
+
+### Linux preset 一览
+
+CMakePresets.json 中预置的 Linux preset（均设 `MC_BUILD_CLIENT=OFF`，服务端为主）：
+
+| preset | buildType | tests | binaryDir | 说明 |
+|--------|-----------|-------|-----------|------|
+| `linux-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认） |
+| `linux-debug` | Debug | ON | `build` | Debug 调试 |
+| `linux-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 不含测试/benchmark |
+
+> **注意**：`linux-debug` 与 `linux-relwithdebinfo` 共用 `build/` 目录，切换时需重新 configure；`linux-release-noprof` 使用独立的 `build-release-noprof` 目录，可并存。
+
+### Linux 已知问题及解决方案
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `'__msvc_chrono.hpp' file not found` | MSVC STL 内部头文件，libstdc++ 不需要 | `SpecialDates.hpp` 已用 `#ifdef _MSC_VER` 守卫，仅 MSVC 下 include |
+| `CHAR_WIDTH` 宏冲突 | glibc `<limits.h>` 定义 `#define CHAR_WIDTH 8`（C23 字符位宽宏） | 已将 `CHAR_WIDTH` 常量重命名为 `DEFAULT_CHAR_WIDTH` |
+| 头文件缺 `<memory>` 等 include | 依赖传递性 include，clang/Linux 下不传递 | 已逐个补齐显式 include |
+
 ## 着色器编译
 
 项目使用 Vulkan SPIR-V 着色器。CMake 构建会自动编译着色器，无需手动操作。
