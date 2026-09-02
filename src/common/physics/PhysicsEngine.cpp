@@ -589,7 +589,9 @@ void PhysicsEngine::_getBlockCollisionBoxes(
     if (!state || state->isAir()) return;
 
     const CollisionShape& shape = state->getCollisionShapeForEntity(ctx, y);
-    if (shape.isEmpty()) return;
+    if (shape.isEmpty()) {
+        return;
+    }
 
     // 获取世界坐标碰撞箱
     auto worldBoxes = shape.getWorldBoxes(x, y, z);

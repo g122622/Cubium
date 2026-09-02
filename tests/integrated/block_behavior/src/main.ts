@@ -58,6 +58,8 @@ import { registerActivatorRailTests } from "./tests/redstone/ActivatorRailTests.
 import { registerPoweredRailTests } from "./tests/redstone/PoweredRailTests.js";
 import { registerRailTests } from "./tests/redstone/RailTests.js";
 import { registerTripWireHookTests } from "./tests/redstone/TripWireHookTests.js";
+import { registerSculkSensorTests } from "./tests/sculk/SculkSensorTests.js";
+import { registerSculkShriekerTests } from "./tests/sculk/SculkShriekerTests.js";
 import { registerCampfireTests } from "./tests/decorative/CampfireTests.js";
 import { registerFrostWalkerTests } from "./tests/decorative/FrostWalkerTests.js";
 import { registerPaneConnectionTests } from "./tests/decorative/PaneConnectionTests.js";
@@ -185,6 +187,8 @@ registerActivatorRailTests();
 registerPoweredRailTests();
 registerRailTests();
 registerTripWireHookTests();
+registerSculkSensorTests();
+registerSculkShriekerTests();
 registerCampfireTests();
 registerFrostWalkerTests();
 registerPaneConnectionTests();

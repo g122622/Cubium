@@ -1354,6 +1354,14 @@ void Player::updatePhysics()
     updateAirSupply();
     updateMoveDistance();
 
+    // 触发方块碰撞回调（onEntityCollision/onInsideBlock/onEntityWalk）。
+    // Player::aiStep() 重写了 LivingEntity::aiStep() 且不调用父类实现，故
+    // LivingEntity::aiStep 末尾的 doBlockCollisions() 不会被 Player 执行。
+    // 此处在每帧物理更新末尾显式调用 doBlockCollisions()，使站在方块上的玩家
+    // 每帧触发 onEntityWalk（如 sculk_shrieker 踩踏发 SHRIEK 事件），对齐
+    // vanilla Entity.move 末尾 if(onGround) block.stepOn(...) 语义。
+    doBlockCollisions();
+
     // 10. 再次重置过小的速度
     _clampMotion();
 }

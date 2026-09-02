@@ -79,7 +79,11 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
 
     // 只有当前 Phase 为 Inactive 时才能接收振动
     // 活跃或冷却期间不能再次被激活
-    const BlockState* state = world.getBlockState(pos);
+    // 注意：这里必须读监听器自身位置（m_entity.getPos()，即感测体方块位置）的方块状态，
+    // 而非振动源位置 pos（pos 是发事件方块位置，如炼药锅，其方块状态没有 sculk_sensor_phase 属性，
+    // 调 canActivate 会触发 StateHolder::get 抛 std::invalid_argument）。
+    const BlockPos sensorPos = m_entity.getPos();
+    const BlockState* state = world.getBlockState(sensorPos);
     if (state == nullptr) {
         return false;
     }
@@ -104,6 +108,8 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     const Entity* sourceEntity,
     f32 distance)
 {
+    MC_UNUSED(pos); // pos 是振动源位置；激活读感测体自身位置（m_entity.getPos）
+
     // 更新最后振动频率
     i32 frequency = gameevent::VibrationSystem::getGameEventFrequency(event);
     m_entity.setLastVibrationFrequency(frequency);
@@ -111,8 +117,11 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     // 标记方块实体已修改（需要保存）
     m_entity.setChanged();
 
-    // 获取当前方块状态
-    const BlockState* state = world.getBlockState(pos);
+    // 获取监听器自身位置（感测体方块位置）的方块状态。
+    // 注意：不能用振动源位置 pos（pos 是发事件方块位置，如炼药锅，其方块状态没有
+    // sculk_sensor_phase/power 属性，activate 内 state.with 会抛 std::invalid_argument）。
+    const BlockPos sensorPos = m_entity.getPos();
+    const BlockState* state = world.getBlockState(sensorPos);
     if (state == nullptr) {
         return;
     }
@@ -121,7 +130,7 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     i32 redstoneStrength = gameevent::VibrationSystem::getRedstoneStrengthForDistance(distance, getListenerRadius());
 
     // 激活幽匿感测体：设置 Active 状态、红石信号、调度 tick、通知邻居、触发共振
-    blocks::SculkSensorBlock::activate(sourceEntity, world, pos, *state, redstoneStrength, frequency);
+    blocks::SculkSensorBlock::activate(sourceEntity, world, sensorPos, *state, redstoneStrength, frequency);
 }
 
 // ============================================================================
@@ -155,12 +164,14 @@ void SculkShriekerVibrationUser::onReceiveVibration(ServerWorld& world,
     const Entity* sourceEntity,
     f32 distance)
 {
+    MC_UNUSED(pos); // pos 是振动源位置；tryShriek 操作尖啸体自身位置（m_entity.getPos）
     MC_UNUSED(event);
     MC_UNUSED(distance);
 
     // 振动到达时，触发尖啸体的 tryShriek 逻辑
     // tryShriek 内部会检查 SHRIEKING 状态、解析玩家、检查条件、递增警告等级、播放效果
-    SculkShriekerHelper::tryShriek(world, pos, sourceEntity);
+    // 注意：tryShriek 的 pos 必须是尖啸体自身位置（监听器位置），而非振动源位置。
+    SculkShriekerHelper::tryShriek(world, m_entity.getPos(), sourceEntity);
 
     // 标记方块实体已修改（需要保存）
     m_entity.setChanged();

@@ -289,8 +289,15 @@ Material makeMossMaterial()
 
 Material makeSculkMaterial()
 {
+    // SCULK material 非固体（notSolid）但阻挡移动：sculk/sculk_catalyst（完整方块）、
+    // sculk_sensor/sculk_shrieker（半格高）均有碰撞箱，玩家可站立其上（shrieker 踩踏触发
+    // onEntityWalk）。solid(false) 不会设置 blocksMovement（MaterialBuilder::solid(true) 才设），
+    // 故须显式 blocksMovement(true) 使 BlockProperties 继承 m_hasCollision=true，否则
+    // getCollisionShape 返回 empty，实体穿透 sculk 方块（shrieker 踩踏永不触发 SHRIEK 事件）。
+    // sculk_vein 在注册时单独 noCollision() 覆盖，不受此处影响。
     return MaterialBuilder()
         .solid(false)
+        .blocksMovement(true)
         .replaceable()
         .opaque(false)
         .pushReaction(Material::PushReaction::Destroy)

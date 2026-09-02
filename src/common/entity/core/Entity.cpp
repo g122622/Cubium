@@ -1502,6 +1502,36 @@ void Entity::doBlockCollisions()
     if (m_world != nullptr && !m_world->isClientSide() && !isOnFire() && !fireTicksIncreased) {
         setFireImmunityCooldown();
     }
+
+    // onEntityWalk：实体站在方块上时触发踩踏回调（对齐 vanilla Entity.move 末尾
+    // if(onGround) block.stepOn(...) 语义）。须在 doBlockCollisions（每帧调用，见
+    // LivingEntity::aiStep）中处理，而非 doBlockCollisionsAfterMove（仅在 moveWithCollision
+    // 且 movement!=0 时调用）——站立不动的实体 movement==0 不进 moveWithCollision，致
+    // onEntityWalk 永不触发（如玩家站 sculk_shrieker 上不触发 SHRIEK 事件）。
+    if (m_builtIn.physicsState->m_onGround && !isSteppingCarefully()) {
+        BlockPos belowPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
+            static_cast<i32>(std::floor(m_builtIn.aabbShape->m_aabb.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
+        const BlockState* belowState = m_world->getBlockState(belowPos);
+        if (belowState != nullptr && !belowState->isAir()) {
+            const Block& belowBlock = belowState->getBlock();
+            belowBlock.onEntityWalk(*belowState, *m_world, belowPos, *this);
+
+            // 派发自定义方块组件回调 - onStepOn
+            auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+            std::string typeId = belowBlock.blockLocation().toString();
+            if (blockReg.hasStepOnCallback(typeId)) {
+                mc::mod::bedrock::addon::BlockComponentStepOnEvent event;
+                event.blockTypeId = typeId;
+                event.blockX = belowPos.x;
+                event.blockY = belowPos.y;
+                event.blockZ = belowPos.z;
+                event.dimensionId = m_world->dimension();
+                event.entityId = id();
+                blockReg.dispatchStepOn(typeId, event);
+            }
+        }
+    }
 }
 
 void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vector3& desiredMovement)
@@ -1575,24 +1605,9 @@ void Entity::doBlockCollisionsAfterMove(const Vector3& actualMovement, const Vec
         }
     }
 
-    // 2. onEntityWalk 回调 - 当在地面行走时
-    if (m_builtIn.physicsState->m_onGround && !isSteppingCarefully()) {
-        block.onEntityWalk(*blockState, *m_world, blockPos, *this);
-
-        // 派发自定义方块组件回调 - onStepOn
-        auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
-        std::string typeId = block.blockLocation().toString();
-        if (blockReg.hasStepOnCallback(typeId)) {
-            mc::mod::bedrock::addon::BlockComponentStepOnEvent event;
-            event.blockTypeId = typeId;
-            event.blockX = blockPos.x;
-            event.blockY = blockPos.y;
-            event.blockZ = blockPos.z;
-            event.dimensionId = m_world->dimension();
-            event.entityId = id();
-            blockReg.dispatchStepOn(typeId, event);
-        }
-    }
+    // 2. onEntityWalk 回调已迁移至 doBlockCollisions()，每帧触发（对齐 vanilla
+    //    Entity.move 末尾 if(onGround) block.stepOn(...) 语义）。此处保留 onLanded 与
+    //    onInsideBlock，二者仅在 moveWithCollision 后调用即可。
 
     // 3. onInsideBlock 回调 - 遍历碰撞箱内所有方块
     AxisAlignedBB box = m_builtIn.aabbShape->m_aabb.shrink(0.001);

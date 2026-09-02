@@ -146,15 +146,28 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
         const ChunkCoord maxCx = maxCorner.chunkX();
         const ChunkCoord minCz = minCorner.chunkZ();
         const ChunkCoord maxCz = maxCorner.chunkZ();
+
+        // 强制加载结构 footprint 外扩 1 区块，并使用 BlockTicking(32) 级别而非 Full(33)。
+        // 背景：振动系统的 _areAdjacentChunksTicking 要求监听器周围 3x3 区块全部 <= BlockTicking(32)。
+        // 但 forceChunk 用 Full(33) 票据——33 > 32 不满足 BlockTicking 门控，且仅覆盖结构 footprint。
+        // 解法：外扩 1 区块覆盖监听器周围 3x3，并改用 registerTicket 显式指定 BlockTicking(32) 级别。
+        // 注意：原 forceChunk 使用 Full(33)，但 Full(33) > BlockTicking(32)，故 vibration gate 失败。
+        constexpr i32 CHUNK_RADIUS = 1;
+        const ChunkCoord forcedMinCx = minCx - CHUNK_RADIUS;
+        const ChunkCoord forcedMaxCx = maxCx + CHUNK_RADIUS;
+        const ChunkCoord forcedMinCz = minCz - CHUNK_RADIUS;
+        const ChunkCoord forcedMaxCz = maxCz + CHUNK_RADIUS;
         auto& ticketManager = chunkManager->ticketManager();
-        for (ChunkCoord cx = minCx; cx <= maxCx; ++cx) {
-            for (ChunkCoord cz = minCz; cz <= maxCz; ++cz) {
-                ticketManager.forceChunk(cx, cz, true);
+        for (ChunkCoord cx = forcedMinCx; cx <= forcedMaxCx; ++cx) {
+            for (ChunkCoord cz = forcedMinCz; cz <= forcedMaxCz; ++cz) {
+                // 使用 BlockTicking(32) 级别，确保振动门控通过且方块可 tick。
+                ticketManager.registerTicket(
+                    mc::world::chunk::TicketTypes::FORCED, cx, cz, static_cast<i32>(mc::world::chunk::ChunkLoadLevel::BlockTicking), mc::ChunkPos(cx, cz));
             }
         }
         ticketManager.processUpdates();
-        for (ChunkCoord cx = minCx; cx <= maxCx; ++cx) {
-            for (ChunkCoord cz = minCz; cz <= maxCz; ++cz) {
+        for (ChunkCoord cx = forcedMinCx; cx <= forcedMaxCx; ++cx) {
+            for (ChunkCoord cz = forcedMinCz; cz <= forcedMaxCz; ++cz) {
                 // requestFullChunkSync 阻塞等待生成完成；返回值仅用于触发加载，不持有。
                 (void)chunkManager->requestFullChunkSync(cx, cz);
             }
