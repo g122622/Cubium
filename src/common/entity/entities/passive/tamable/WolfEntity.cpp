@@ -715,6 +715,21 @@ bool WolfEntity::canShearEquipment(const Player& player) const
     return isOwner(player.uuidBytes());
 }
 
+bool WolfEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 MC Java 1.21.11 Wolf.hurtServer（Wolf.java:394-401）：
+    //   if (this.isInvulnerableTo(p_406240_, p_406339_)) return false;
+    //   else { this.setOrderedToSit(false); return super.hurtServer(...); }
+    // 狼受击时取消"命令坐下"状态（玩家右键让狼坐下的指令），再走基类 hurt 处理实际伤害。
+    // 免疫伤害不取消坐下（先查 isInvulnerableTo）。Cubium setSitting(false) 等价 vanilla
+    // setOrderedToSit(false)（TameableEntity 唯一坐下控制 API，对齐 DATA_FLAGS bit0）。
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+    setSitting(false);
+    return AnimalEntity::hurt(source, amount);
+}
+
 void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)
 {
     // 狼铠伤害吸收逻辑

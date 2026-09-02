@@ -152,6 +152,22 @@ public:
     void tick() override;
 
     /**
+     * @brief 受击处理：取消命令坐下后走基类 hurt
+     *
+     * 对齐 MC Java 1.21.11 Parrot.hurtServer（Parrot.java:399-406）：
+     *   if (this.isInvulnerableTo(p_478766_, p_478034_)) return false;
+     *   else { this.setOrderedToSit(false); return super.hurtServer(...); }
+     * 鹦鹉受击时取消"命令坐下"状态，再走基类 hurt 处理实际伤害。
+     * Cubium setSitting(false) 等价 vanilla setOrderedToSit(false)（继承自 TameableEntity）。
+     * 免疫伤害不取消坐下（先查 isInvulnerableTo）。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否成功受伤
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 处理玩家交互
      *
      * 用种子驯服鹦鹉（1/10 概率），已驯服的鹦鹉可以切换坐下状态。

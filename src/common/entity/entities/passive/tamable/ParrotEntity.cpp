@@ -76,6 +76,21 @@ bool ParrotEntity::isTameItem(const ItemStack& itemStack) const
         item == Items::BEETROOT_SEEDS;
 }
 
+bool ParrotEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 对齐 MC Java 1.21.11 Parrot.hurtServer（Parrot.java:399-406）：
+    //   if (this.isInvulnerableTo(p_478766_, p_478034_)) return false;
+    //   else { this.setOrderedToSit(false); return super.hurtServer(...); }
+    // 鹦鹉受击时取消"命令坐下"状态，再走基类 hurt 处理实际伤害。
+    // 免疫伤害不取消坐下（先查 isInvulnerableTo）。setSitting(false) 等价 vanilla
+    // setOrderedToSit(false)（继承自 TameableEntity）。
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+    setSitting(false);
+    return AnimalEntity::hurt(source, amount);
+}
+
 void ParrotEntity::tick()
 {
     ShoulderRidingEntity::tick();

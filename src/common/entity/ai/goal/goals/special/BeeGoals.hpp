@@ -164,6 +164,18 @@ public:
     /// 检查是否正在授粉
     [[nodiscard]] bool isRunning() const { return m_running; }
 
+    /**
+     * @brief 立即停止授粉（不触发完整结束逻辑）
+     *
+     * 对齐 MC Java 1.21.11 BeePollinateGoal.stopPollinating（Bee.java:1150-1152）：
+     *   void stopPollinating() { this.pollinating = false; }
+     * 仅置授粉标志为 false，不调 resetTask 的完整结束逻辑（setHasNectar/清路径/花朵冷却）。
+     * Bee.hurtServer 受击时调用此方法立即中断授粉。
+     * Cubium 同步 m_bee->setPollinating(false) 保持 bee 状态与 goal 一致（Cubium bee 单独
+     * 存 m_pollinating，vanilla bee.isPollinating 读 goal.pollinating）。
+     */
+    void stopPollinating();
+
 protected:
     /// 检查位置是否是花朵
     [[nodiscard]] bool _isFlower(const BlockPos& pos) const;

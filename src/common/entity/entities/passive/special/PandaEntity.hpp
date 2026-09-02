@@ -319,6 +319,44 @@ public:
      */
     void sneeze(bool sneeze);
 
+    /**
+     * @brief 受击处理：取消坐下后走基类 hurt
+     *
+     * 对齐 MC Java 1.21.11 Panda.hurtServer（Panda.java:543-546）：
+     *   this.sit(false);
+     *   return super.hurtServer(p_480184_, p_479799_, p_478083_);
+     * 熊猫受击时无条件取消坐下状态（即使免疫也取消，vanilla 不查 isInvulnerableTo），
+     * 再走基类 hurt 处理实际伤害。
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     * @return 是否成功受伤
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 设置/取消坐下状态
+     *
+     * 对齐 MC Java 1.21.11 Panda.sit（Panda.java:132-134）：
+     *   public void sit(boolean p_478676_) { this.setFlag(8, p_478676_); }
+     * vanilla 用 DATA_FLAGS bit8（1<<8=256）标记坐下。Cubium DATA_FLAGS 为 i8（仅 8 bit，
+     * 无法存 bit8），且 Panda 坐下行为整体未实现（无 LayDownGoal 等下游消费方），
+     * 故用独立成员 m_sitting 承载状态。
+     * TODO: Panda 坐下行为（LayDownGoal/坐下动画/客户端姿态）尚未实现，m_sitting 当前
+     * 无下游消费方，sit(false) 在 hurt 中为预备性对齐（未来补坐下行为时自动生效）。
+     *
+     * @param sit 是否坐下
+     */
+    void sit(bool sit);
+
+    /**
+     * @brief 是否处于坐下状态
+     *
+     * 对齐 vanilla Panda.isSitting（getFlag(8)）。
+     * TODO: 同 sit(bool)，下游消费方未实现。
+     */
+    [[nodiscard]] bool isSitting() const { return m_sitting; }
+
     // 打喷嚏计时常量（public 供测试断言）。对齐 vanilla Panda：sneezeCounter 0→21，
     // ==1 播预喷嚏，>20 触发 afterSneeze。Cubium 用递减模型：sneeze(true) 设 timer=SNEEZE_DURATION，
     // tick 递减；timer==SNEEZE_DURATION-1 播预喷嚏（对应 counter==1），timer 到 0 触发 _onSneezeComplete。
@@ -379,6 +417,7 @@ private:
     bool m_sneezing = false;
     bool m_eating = false;
     bool m_lying = false;
+    bool m_sitting = false; // 对齐 vanilla Panda.sit (flag 8)；TODO: 下游坐下行为未实现
 
     // 计时器
     i32 m_rollTimer = 0;
