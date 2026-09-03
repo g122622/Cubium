@@ -318,7 +318,7 @@ const CollisionShape& MossyCarpetBlock::getShape(const BlockState& state) const
         state.get(BlockStateProperties::WALL_HEIGHT_EAST()),
         state.get(BlockStateProperties::WALL_HEIGHT_SOUTH()),
         state.get(BlockStateProperties::WALL_HEIGHT_WEST()));
-    MC_ASSERT_DEBUG(index < m_shapes.size());
+    MC_ASSERT_RELEASE(index < m_shapes.size());
     return m_shapes[index];
 }
 

@@ -180,7 +180,7 @@ bool CandleBlock::isReplaceable(const BlockState& state, const BlockItemUseConte
 const CollisionShape& CandleBlock::getShape(const BlockState& state) const
 {
     i32 count = state.get(BlockStateProperties::CANDLES());
-    MC_ASSERT_DEBUG(count >= 1 && count <= 4);
+    MC_ASSERT_RELEASE(count >= 1 && count <= 4);
     return m_shapesByCount[count - 1];
 }
 

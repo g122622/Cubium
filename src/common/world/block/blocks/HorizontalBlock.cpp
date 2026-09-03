@@ -123,14 +123,14 @@ Direction HorizontalBlock::getFacing(const BlockState& state) const
 {
     Direction facing = state.get(FACING());
     // 确保朝向是水平的
-    MC_ASSERT_DEBUG(Directions::isHorizontal(facing));
+    MC_ASSERT_RELEASE(Directions::isHorizontal(facing));
     return facing;
 }
 
 const BlockState& HorizontalBlock::withFacing(const BlockState& state, Direction facing) const
 {
     // 确保朝向是水平的
-    MC_ASSERT_DEBUG(Directions::isHorizontal(facing));
+    MC_ASSERT_RELEASE(Directions::isHorizontal(facing));
     return state.with(FACING(), facing);
 }
 

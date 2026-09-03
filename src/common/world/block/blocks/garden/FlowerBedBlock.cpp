@@ -248,7 +248,7 @@ const CollisionShape& FlowerBedBlock::getShape(const BlockState& state) const
     }
 
     i32 index = facingIndex * 4 + (amount - 1);
-    MC_ASSERT_DEBUG(index >= 0 && index < static_cast<i32>(m_shapes.size()));
+    MC_ASSERT_RELEASE(index >= 0 && index < static_cast<i32>(m_shapes.size()));
     return m_shapes[index];
 }
 
