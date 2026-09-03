@@ -1094,10 +1094,11 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                             }
 
                             if (blockState != nullptr && !blockState->isAir()) {
+                                // 高度图更新由 chunk.setBlockState 内部的
+                                // _updateHeightmapsForCurrentStatus 完成（NOISE 阶段 m_persistedStatus
+                                // 仍为 BIOMES，flags=PRE_FEATURES，恰好覆盖 WorldSurfaceWG/OceanFloorWG），
+                                // 此处无需再显式调用 updateHeightmap（原 MC 1.21 fillFromNoise 也无此调用）。
                                 chunk.setBlockState(localX, blockY, localZ, blockState);
-                                chunk.updateHeightmap(
-                                    HeightmapType::WorldSurfaceWG, localX, blockY, localZ, blockState);
-                                chunk.updateHeightmap(HeightmapType::OceanFloorWG, localX, blockY, localZ, blockState);
                                 // MC 1.21: 含水层边界处流体方块需标记后处理
                                 // MC 使用 !blockstate.getFluidState().isEmpty()，即包含含水方块
                                 if (noiseChunk.aquifer() != nullptr &&
