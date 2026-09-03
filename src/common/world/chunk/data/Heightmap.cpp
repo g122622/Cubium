@@ -44,7 +44,7 @@ Heightmap::Heightmap(HeightmapType type)
 
 bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) [[unlikely]] {
         return false;
     }
 

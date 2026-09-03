@@ -259,7 +259,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     // （对齐 Moonrise：WorldGenRegion 不限制 setBlockState 距离，仅由 radiusAwareScheduler 保证并发安全）。
     // 访问窗口由 neighbourReadRadius(=accumulatedRadius) 构建，getIChunk 已校验该半径内的读取合法性，
     // 故写入也以 accumulatedRadius 为边界。越界写入说明生成器写了未提供的区块，是真正的 bug，保留断言。
-    if (m_generatingStep != nullptr) {
+    if (m_generatingStep != nullptr) [[unlikely]] {
         const i32 accessRadius = m_generatingStep->accumulatedRadius();
         const i32 dx = std::abs(relX);
         const i32 dz = std::abs(relZ);
