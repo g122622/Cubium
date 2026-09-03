@@ -69,30 +69,28 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
         const Block& block = statePtr->owner();
         IGrowable* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&block));
 
-        if (growable != nullptr) {
-            // 检查是否可以生长
-            if (growable->canGrow(static_cast<IBlockReader&>(world), pos, *statePtr, false)) {
-                const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
-                math::Random random(seed);
+        if (growable != nullptr && growable->canGrow(static_cast<IBlockReader&>(world), pos, *statePtr, false)) {
+            const u64 seed = world.seed() ^ static_cast<u64>(std::hash<BlockPos>{}(pos));
+            math::Random random(seed);
 
-                if (growable->canUseBonemeal(world, random, pos, *statePtr)) {
-                    // 执行生长
-                    growable->grow(world, random, pos, *statePtr);
-
-                    // 减少物品数量（非创造模式）
-                    if (context.itemStack().getCount() > 0) {
-                        const_cast<ItemStack&>(context.itemStack()).shrink(1);
-                    }
-
-                    // 发送植物生长效果事件（粒子 + 音效）
-                    // 客户端收到后将根据 IGrowable::getBoneMealType() 区分粒子分布方式
-                    if (!world.isClientSide()) {
-                        world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
-                    }
-
-                    return ActionResultType::Success;
-                }
+            // 软门限：canUseBonemeal 通过才实际生长（对齐 Java isBonemealSuccess）。
+            // 门限失败时骨粉仍被消耗并返回 Success，只是不触发 grow。
+            if (growable->canUseBonemeal(world, random, pos, *statePtr)) {
+                growable->grow(world, random, pos, *statePtr);
             }
+
+            // 减少物品数量（非创造模式）
+            if (context.itemStack().getCount() > 0) {
+                const_cast<ItemStack&>(context.itemStack()).shrink(1);
+            }
+
+            // 发送植物生长效果事件（粒子 + 音效）
+            // 客户端收到后将根据 IGrowable::getBoneMealType() 区分粒子分布方式
+            if (!world.isClientSide()) {
+                world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+            }
+
+            return ActionResultType::Success;
         }
     }
 

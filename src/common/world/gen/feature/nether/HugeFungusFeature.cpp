@@ -49,15 +49,12 @@ bool HugeFungusFeature::place(
         return false;
     }
 
-    // MC 1.21.11: 高度 = 4 + random(8) = 4~11
+    // MC 1.21.11: 高度 = Mth.nextInt(random, 4, 13) = [4,13]
     // 1/12 概率双倍高度
-    i32 height = 4 + random.nextInt(8);
+    i32 height = 4 + random.nextInt(10);
     if (random.nextInt(12) == 0) {
         height *= 2;
     }
-
-    // MC 1.21.11: 6% 概率生成粗壮菌柄（3x3 菌柄而非 1x1）
-    const bool thickStem = random.nextFloat() < 0.06f;
 
     // 获取方块状态
     const BlockState* stemState = _getStemState(config.fungusType);
@@ -69,6 +66,9 @@ bool HugeFungusFeature::place(
     const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
 
     if (!stemState) return false;
+
+    // MC 1.21.11: 仅非种植的巨型真菌才可能生成粗壮菌柄（3x3 菌柄而非 1x1）
+    const bool thickStem = !config.planted && random.nextFloat() < 0.06f;
 
     // MC 1.21.11: 生成菌柄
     _generateStem(world, pos, height, stemState, thickStem);

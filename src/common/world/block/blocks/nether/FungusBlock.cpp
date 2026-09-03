@@ -63,12 +63,10 @@ bool FungusBlock::canUseBonemeal(
     IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
 {
     MC_UNUSED(world);
-    MC_UNUSED(random);
     MC_UNUSED(pos);
     MC_UNUSED(state);
-    // wiki :骨粉有概率使下界菌长成巨型真菌。
-    // 由 BoneMealItem 调用方决定概率，此处返回 true 表示骨粉可用。
-    return true;
+    // wiki :骨粉有 40% 概率使下界菌长成巨型真菌（对齐 Java isBonemealSuccess）。
+    return random.nextFloat() < 0.4f;
 }
 
 void FungusBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
