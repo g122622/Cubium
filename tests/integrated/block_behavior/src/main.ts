@@ -122,6 +122,7 @@ import { registerBigDripleafStemTests } from "./tests/cave/BigDripleafStemTests.
 import { registerSmallDripleafTests } from "./tests/cave/SmallDripleafTests.js";
 import { registerPaleHangingMossTests } from "./tests/pale_garden/PaleHangingMossTests.js";
 import { registerEyeblossomTests } from "./tests/pale_garden/EyeblossomTests.js";
+import { registerCreakingHeartTests } from "./tests/pale_garden/CreakingHeartTests.js";
 import { registerTurtleEggTests } from "./tests/mob/TurtleEggTests.js";
 import { registerBrewingStandTests } from "./tests/functional/BrewingStandTests.js";
 import { registerFurnaceTests } from "./tests/functional/FurnaceTests.js";
@@ -256,6 +257,7 @@ registerBigDripleafStemTests();
 registerSmallDripleafTests();
 registerPaleHangingMossTests();
 registerEyeblossomTests();
+registerCreakingHeartTests();
 registerTurtleEggTests();
 registerBrewingStandTests();
 registerFurnaceTests();

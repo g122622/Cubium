@@ -71,18 +71,26 @@ void CreakingHeartBlock::fillStateContainer(StateContainer<Block, BlockState>& c
 
 BlockState CreakingHeartBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    Axis axis = Axis::Y;
-    Direction dir = context.horizontalDirection();
-    if (dir == Direction::North || dir == Direction::South) {
-        axis = Axis::Z;
-    } else if (dir == Direction::East || dir == Direction::West) {
-        axis = Axis::X;
-    }
+    // 对齐 vanilla CreakingHeartBlock.getStateForPlacement（CreakingHeartBlock.java:144-147）：
+    //   AXIS = clickedFace.getAxis()（点击面的轴向，同原木 pillar 放置语义）。
+    //   vanilla 随后调 updateState：若 hasRequiredLogs（轴线两端均为 pale_oak_logs 且 AXIS 一致）
+    //   且 STATE==UPROOTED → 按 CREAKING_ACTIVE 环境属性设 AWAKE/DORMANT；否则保持 UPROOTED。
+    //   NATURAL 保持默认 false（玩家放置非自然生成，仅自然生成结构设 true）。
+    //
+    // TODO: 周期检查（tick → updateState）未实现：vanilla updateShape 调 scheduleTick(1)，
+    //   tick → updateState 按 hasRequiredLogs + CREAKING_ACTIVE 切换 UPROOTED↔DORMANT↔AWAKE。
+    //   待 CREAKING_ACTIVE 环境属性 + hasRequiredLogs 链路补全后实现。
+    // TODO: 方块实体（CreakingHeartBlockEntity）未实现：绑定嘎枝、距离追踪、树脂团生成、
+    //   经验掉落（tryAwardExperience 检查 NATURAL）均依赖方块实体，待补全。
+    // TODO: 比较器输出未对齐 vanilla：vanilla getAnalogOutputSignal 按绑定嘎枝的距离公式
+    //   15 - floor(min(d,32)/32*15)（UPROOTED 返 0）；Cubium 简化为 STATE 映射（Uprooted=0/
+    //   Dormant=1/Awake=2），待方块实体距离追踪补全后对齐。
+    const Axis axis = Directions::getAxis(context.getClickedFace());
 
     return defaultState()
         .with(BlockStateProperties::AXIS(), axis)
-        .with(BlockStateProperties::CREAKING_HEART_STATE(), BlockStateProperties::CreakingHeartState::Dormant)
-        .with(BlockStateProperties::NATURAL(), true);
+        .with(BlockStateProperties::CREAKING_HEART_STATE(), BlockStateProperties::CreakingHeartState::Uprooted)
+        .with(BlockStateProperties::NATURAL(), false);
 }
 
 i32 CreakingHeartBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
