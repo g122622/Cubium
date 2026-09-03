@@ -137,5 +137,13 @@ src/common/network/backend/java/generated/*.gen.hpp
 # - src/utils/ 是构建期从 tests/integrated/utils/ 复制进各包的共享源码
 tests/integrated/*/scripts/
 tests/integrated/*/src/utils/
+# - structures/gametests/<共享结构>.mcstructure 是构建期从 tests/integrated/structures/gametests/
+#   复制进各包的共享结构（与 utils 同策略）。各包独有结构（如 beacon_pit）是源文件仍追踪，
+#   故精确到 5 个共享结构名，勿整体忽略 structures/gametests/。
+tests/integrated/*/structures/gametests/glass_pit.mcstructure
+tests/integrated/*/structures/gametests/grass_pen.mcstructure
+tests/integrated/*/structures/gametests/fall_tower.mcstructure
+tests/integrated/*/structures/gametests/mediumglass.mcstructure
+tests/integrated/*/structures/gametests/light_box.mcstructure
 # 单包 package-lock 不追踪（用根 package-lock.json 统一锁定）
 tests/integrated/*/package-lock.json
