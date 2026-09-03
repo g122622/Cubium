@@ -38,6 +38,7 @@
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/block/blocks/nether/NetherrackBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneBlock.hpp"
 #include "world/block/blocks/redstone/RedstoneOreBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
@@ -280,7 +281,9 @@ void registerBaseBlocks()
         BlockProperties(Material::GLASS).hardness(0.3f).notSolid().opacity(0).propagatesSkylightDown());
 
     // 下界岩
-    BaseBlocks::NETHERRACK = &registry.registerBlock<SimpleBlock>(
+    // NetherrackBlock 实现 IGrowable：骨粉可将下界岩转化为周围存在的对应菌岩
+    // （绯红菌岩/诡异菌岩）。详见 NetherrackBlock.cpp。
+    BaseBlocks::NETHERRACK = &registry.registerBlock<blocks::NetherrackBlock>(
         ResourceLocation("minecraft:netherrack"), BlockProperties(Material::ROCK).hardness(0.4f));
 
     // 荧石

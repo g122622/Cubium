@@ -941,6 +941,7 @@ add_library(mc_common STATIC
     world/block/blocks/nether/NetherRootsBlock.cpp
     world/block/blocks/nether/NetherSproutsBlock.cpp
     world/block/blocks/nether/MagmaBlock.cpp
+    world/block/blocks/nether/NetherrackBlock.cpp
     world/block/blocks/nether/SoulSandBlock.cpp
     world/block/blocks/nether/NyliumBlock.cpp
     world/block/blocks/nether/TwistingVinesBlock.cpp
