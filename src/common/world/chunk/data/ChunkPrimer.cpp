@@ -139,7 +139,7 @@ const BlockState* ChunkPrimer::getBlockState(BlockCoord x, BlockCoord y, BlockCo
 
 void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    if (!_isValidBlockCoord(x, y, z)) {
+    if (!_isValidBlockCoord(x, y, z)) [[unlikely]] {
         return;
     }
     // 生成态 ChunkPrimer 由状态管线串行推进、尚未发布到 m_chunks，无并发读者，
@@ -340,7 +340,7 @@ void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoor
     // ProtoChunk.markPosForPostprocessing
     // 将位置打包为短整型并按区块段索引存储
     const i32 sectionIndex = mc::world::toSectionIndex(y);
-    if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) {
+    if (sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS) [[likely]] {
         const u16 packed = packToLocal(x, y, z);
         m_postProcessingSections[sectionIndex].push_back(packed);
     }

@@ -211,7 +211,7 @@ void ChunkData::_setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z,
 void ChunkData::_setBlockStateUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
     if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
-        z < 0 || z >= mc::world::CHUNK_WIDTH) {
+        z < 0 || z >= mc::world::CHUNK_WIDTH) [[unlikely]] {
         return;
     }
 
