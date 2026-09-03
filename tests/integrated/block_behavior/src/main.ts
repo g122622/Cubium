@@ -124,6 +124,7 @@ import { registerPaleHangingMossTests } from "./tests/pale_garden/PaleHangingMos
 import { registerEyeblossomTests } from "./tests/pale_garden/EyeblossomTests.js";
 import { registerCreakingHeartTests } from "./tests/pale_garden/CreakingHeartTests.js";
 import { registerResinClumpTests } from "./tests/pale_garden/ResinClumpTests.js";
+import { registerMossyCarpetTests } from "./tests/pale_garden/MossyCarpetTests.js";
 import { registerTurtleEggTests } from "./tests/mob/TurtleEggTests.js";
 import { registerBrewingStandTests } from "./tests/functional/BrewingStandTests.js";
 import { registerFurnaceTests } from "./tests/functional/FurnaceTests.js";
@@ -260,6 +261,7 @@ registerPaleHangingMossTests();
 registerEyeblossomTests();
 registerCreakingHeartTests();
 registerResinClumpTests();
+registerMossyCarpetTests();
 registerTurtleEggTests();
 registerBrewingStandTests();
 registerFurnaceTests();
