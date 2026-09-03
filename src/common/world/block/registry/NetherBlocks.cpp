@@ -54,6 +54,7 @@
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
 #include "world/block/blocks/nether/EnderChestBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
+#include "world/block/blocks/nether/FungusBlock.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
 #include "world/block/blocks/nether/NetherPortalBlock.hpp"
 #include "world/block/blocks/nether/NetherRootsBlock.hpp"
@@ -309,12 +310,16 @@ void registerNetherBlocks()
     NetherBlocks::SHROOMLIGHT = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:shroomlight"), BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
 
-    // 绯红菌
-    NetherBlocks::CRIMSON_FUNGUS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crimson_fungus"),
+    // 绯红菌（实现 IGrowable，骨粉可生成巨型真菌）
+    NetherBlocks::CRIMSON_FUNGUS = &registry.registerBlock<blocks::FungusBlock>(
+        ResourceLocation("minecraft:crimson_fungus"),
+        FungusType::Crimson,
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
-    // 诡异菌
-    NetherBlocks::WARPED_FUNGUS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_fungus"),
+    // 诡异菌（实现 IGrowable，骨粉可生成巨型真菌）
+    NetherBlocks::WARPED_FUNGUS = &registry.registerBlock<blocks::FungusBlock>(
+        ResourceLocation("minecraft:warped_fungus"),
+        FungusType::Warped,
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 垂泪藤 - 向下生长的藤蔓头部（AGE_0_25）

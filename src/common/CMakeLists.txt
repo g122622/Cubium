@@ -934,6 +934,7 @@ add_library(mc_common STATIC
     # World - Block - Nether
     world/block/blocks/nether/EnderChestBlock.cpp
     world/block/blocks/nether/FireBlock.cpp
+    world/block/blocks/nether/FungusBlock.cpp
     world/block/blocks/nether/SoulFireBlock.cpp
     world/block/blocks/nether/NetherPortalBlock.cpp
     world/block/blocks/nether/NetherWartBlock.cpp
