@@ -100,6 +100,10 @@ clang-format -i src\common\xxx\Foo.hpp
 Moonrise优化模组路径：E:\dev\MC\Mods\Moonrise
 ConcurrentUtil源码路径：D:\MiscProjects\ConcurrentUtil
 
+### WSL
+
+和windows一致，直接换成 /mnt/c /mnt/d /mnt/e 等路径即可。
+
 ### MacOS
 　
 当前资源包路径：~\minecraft_reborn\resourcepacks\Vanilla
