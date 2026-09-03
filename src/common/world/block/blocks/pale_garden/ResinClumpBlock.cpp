@@ -98,11 +98,25 @@ void ResinClumpBlock::fillStateContainer(StateContainer<Block, BlockState>& cont
 
 BlockState ResinClumpBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    const Direction clickedFace = context.getClickedFace();
+    // 对齐 vanilla MultifaceBlock.getStateForPlacement(BlockPlaceContext)（:180-189）：
+    //   vanilla 用 getNearestLookingDirections()（玩家最近视线方向数组，首个通常为
+    //   clickedFace.getOpposite()）逐个尝试 getStateForPlacement(state, level, pos, dir)。
+    //   此处简化为 opposite(clickedFace)：点击方块表面放置时，要设的面方向是被点击面的
+    //   反方向（如点击顶面 Up → 薄板朝下 Down 贴在支撑方块顶面）。
+    //
+    //   旧实现误传 clickedFace：导致 MultifaceBlock.getStateForPlacement 检查
+    //   neighbor = pos.offset(clickedFace)（点击面前方，通常为空气）→ canAttachTo 失败 → 返回
+    //   nullptr → 回落 defaultState()（无任何面，放置后立刻被 updatePostPlacement 销毁）。
+    //   修复后传 opposite(clickedFace)：neighbor = pos.offset(opposite) = 支撑方块 →
+    //   canAttachTo 检查支撑方块该面 full → true → 设对应面 = true。
+    //
+    // TODO: 未对齐 getNearestLookingDirections() 多方向优先级：玩家斜视时 vanilla 优先选
+    //   最近视线方向的面，此处仅用 opposite(clickedFace) 单方向。待 getNearestLookingDirections
+    //   链路补全后对齐。
+    const Direction placementFace = Directions::opposite(context.getClickedFace());
     const BlockState* current = context.getWorld().getBlockState(context.placementPos());
-    // 委托 MultifaceBlock.getStateForPlacement(state, reader, pos, direction)（对齐 MC）
     const BlockState* placed =
-        MultifaceBlock::getStateForPlacement(current, context.getWorld(), context.placementPos(), clickedFace);
+        MultifaceBlock::getStateForPlacement(current, context.getWorld(), context.placementPos(), placementFace);
     if (placed == nullptr) {
         return defaultState();
     }
