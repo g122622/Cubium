@@ -31,6 +31,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
+#include "world/block/blocks/vegetation/BigMushroomGenerators.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
@@ -227,17 +228,11 @@ void registerVegetationBlocks()
     // 蘑菇属性
     BlockProperties mushroomProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1);
 
-    // 棕色蘑菇
-    VegetationBlocks::BROWN_MUSHROOM =
-        &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:brown_mushroom"), mushroomProps);
-
-    // 红色蘑菇
-    VegetationBlocks::RED_MUSHROOM =
-        &registry.registerBlock<blocks::MushroomBlock>(ResourceLocation("minecraft:red_mushroom"), mushroomProps);
-
     // 巨型蘑菇方块属性：可被岩浆点燃（对齐 vanilla）
     BlockProperties hugeMushroomProps = BlockProperties(Material::WOOD).hardness(0.2f).ignitedByLava();
 
+    // 必须先注册巨型蘑菇方块，因为 BigMushroomGenerators::brownMushroom()/redMushroom()
+    // 在注册普通蘑菇时会读取 BROWN_MUSHROOM_BLOCK / RED_MUSHROOM_BLOCK / MUSHROOM_STEM 的默认状态。
     // 棕色蘑菇方块
     VegetationBlocks::BROWN_MUSHROOM_BLOCK = &registry.registerBlock<blocks::HugeMushroomBlock>(
         ResourceLocation("minecraft:brown_mushroom_block"), hugeMushroomProps);
@@ -249,6 +244,14 @@ void registerVegetationBlocks()
     // 蘑菇柄
     VegetationBlocks::MUSHROOM_STEM = &registry.registerBlock<blocks::HugeMushroomBlock>(
         ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
+
+    // 棕色蘑菇
+    VegetationBlocks::BROWN_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
+        ResourceLocation("minecraft:brown_mushroom"), blocks::BigMushroomGenerators::brownMushroom(), mushroomProps);
+
+    // 红色蘑菇
+    VegetationBlocks::RED_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
+        ResourceLocation("minecraft:red_mushroom"), blocks::BigMushroomGenerators::redMushroom(), mushroomProps);
 
     // 树苗属性
     BlockProperties saplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();

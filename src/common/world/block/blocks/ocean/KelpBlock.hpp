@@ -30,6 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/PlantType.hpp"
 
 namespace mc {
@@ -58,7 +59,7 @@ namespace blocks {
  *
  * 参考: net.minecraft.block.KelpBlock
  */
-class KelpBlock : public Block, public IPlantable {
+class KelpBlock : public Block, public IPlantable, public IGrowable {
 public:
     explicit KelpBlock(const BlockProperties& properties);
     ~KelpBlock() override = default;
@@ -98,6 +99,33 @@ public:
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+
+    // ========== IGrowable 接口 ==========
+
+    /**
+     * @brief 检查是否可以骨粉生长
+     *
+     * wiki tech_海带.txt#生长（:63）："对海带使用骨粉可使其生长一格。"
+     * 条件：age < 25（未达最大年龄）且上方为空气（可生长）。
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 检查骨粉是否成功
+     *
+     * wiki :63 骨粉使海带生长一格，必定成功。
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长一格
+     *
+     * wiki :63 骨粉使海带生长一格。
+     * 在上方放置新的海带方块（defaultState, age=0），与 randomTick 生长逻辑一致。
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 形状 ==========
 

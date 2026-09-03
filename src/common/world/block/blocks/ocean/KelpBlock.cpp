@@ -164,6 +164,55 @@ void KelpBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     }
 }
 
+// ========== IGrowable 接口实现 ==========
+
+bool KelpBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
+    MC_UNUSED(isClientSide);
+    // wiki tech_海带.txt#生长（:63）："对海带使用骨粉可使其生长一格。"
+    // 条件：age < 25（未达最大年龄）且上方为空气（可生长）。
+    const i32 age = getAge(state);
+    if (age >= 25) {
+        return false;
+    }
+
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    return aboveState != nullptr && aboveState->isAir();
+}
+
+bool KelpBlock::canUseBonemeal(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(random);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    // wiki :63 骨粉使海带生长一格，必定成功。
+    return true;
+}
+
+void KelpBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(random);
+    // wiki tech_海带.txt#生长（:63）："对海带使用骨粉可使其生长一格。"
+    // 在上方放置新的海带方块（defaultState, age=0），与 randomTick 生长逻辑一致。
+    const i32 age = getAge(state);
+    if (age >= 25) {
+        return;
+    }
+
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState == nullptr || !aboveState->isAir()) {
+        return;
+    }
+
+    const BlockState& kelpState = defaultState();
+    world.setBlockState(abovePos, &kelpState, 2);
+    const BlockState& agedState = withAge(age + 1);
+    world.setBlockState(pos, &agedState, 2);
+}
+
 const CollisionShape& KelpBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);

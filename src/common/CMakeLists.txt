@@ -844,6 +844,7 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/WitherRoseBlock.cpp
     world/block/blocks/vegetation/SaplingBlock.cpp
     world/block/blocks/vegetation/TreeGenerators.cpp
+    world/block/blocks/vegetation/BigMushroomGenerators.cpp
     world/block/blocks/vegetation/MushroomBlock.cpp
     world/block/blocks/vegetation/CactusBlock.cpp
     world/block/blocks/vegetation/SugarCaneBlock.cpp

@@ -514,7 +514,8 @@ TEST_F(VegetationBlockTest, WaterlilyRejectsNonWaterGround)
 
 TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 {
-    MushroomBlock mushroom(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
+    MushroomBlock mushroom([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
     const BlockPos pos(6, 30, 6);
@@ -533,7 +534,8 @@ TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 
 TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark)
 {
-    MushroomBlock mushroom(BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
+    MushroomBlock mushroom([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
     const BlockPos pos(0, 1, 0);

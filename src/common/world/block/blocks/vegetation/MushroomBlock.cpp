@@ -29,13 +29,16 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/PlantType.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -70,8 +73,9 @@ namespace {
 
 // ========== MushroomBlock ==========
 
-MushroomBlock::MushroomBlock(const BlockProperties& properties)
+MushroomBlock::MushroomBlock(BigMushroomGenerator bigMushroomGenerator, const BlockProperties& properties)
     : Block(properties)
+    , m_bigMushroomGenerator(std::move(bigMushroomGenerator))
 {
 
     // 蘑菇形状：小型圆形
@@ -147,6 +151,78 @@ void MushroomBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
 
     const BlockState& mushroomState = defaultState();
     world.setBlockState(spreadPos, &mushroomState, 2);
+}
+
+// ========== IGrowable 接口实现 ==========
+
+bool MushroomBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(isClientSide);
+
+    // wiki tech_蘑菇.txt#巨型蘑菇（:84-87）：骨粉生成巨型蘑菇需满足：
+    //   - 下方为有效地面（泥土/砂土/草方块/菌丝体/灰化土/菌岩）
+    //   - 生长空间充足（长宽各7格，高6-8格）
+    // 此处只做粗略的下方支撑检查，空间检查由 BigMushroomFeature::canPlaceAt 完成。
+    const BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+
+    // MUSHROOM_GROW_BLOCK 标签包含菌丝体、灰化土、绯红菌岩、诡异菌岩
+    if (BlockTags::MUSHROOM_GROW_BLOCK().contains(*belowState)) {
+        return true;
+    }
+
+    // 泥土、砂土、草方块等固体方块
+    return belowState->isSolid();
+}
+
+bool MushroomBlock::canUseBonemeal(
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(random);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    // wiki :84 骨粉有概率生成巨型蘑菇（约40%概率）。
+    // 与树苗一致，由 BoneMealItem 调用方决定概率，此处返回 true 表示骨粉可用。
+    return true;
+}
+
+void MushroomBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    if (!m_bigMushroomGenerator) {
+        return;
+    }
+
+    // 通过 IWorld::createFeatureRegion() 从已加载区块构建临时 WorldGenRegion
+    // ServerWorld 会重写此方法返回有效 WorldGenRegion；
+    // 客户端和其他实现返回 nullptr
+    auto region = world.createFeatureRegion(pos);
+    if (region == nullptr) {
+        // 非服务器环境或周围区块未加载，无法生成巨型蘑菇
+        return;
+    }
+
+    // 使用世界种子和位置派生随机数种子（与 SaplingBlock::grow 一致）
+    u64 seed = world.seed();
+    seed ^= static_cast<u64>(static_cast<i64>(pos.x)) * 3129871ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.y)) * 116129781ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.z)) * 42317861ULL;
+
+    math::Random rng(0);
+    rng.setSeedWithHash(static_cast<i64>(seed));
+
+    // 清除蘑菇方块（巨型蘑菇会从该位置向上生成）
+    const BlockState* airState = BlockRegistry::instance().airState();
+    world.setBlockState(pos, airState, 2);
+
+    // 通过 WorldGenRegion 调用巨型蘑菇生成器
+    m_bigMushroomGenerator(*region, pos, rng);
 }
 
 const CollisionShape& MushroomBlock::getShape(const BlockState& state) const
