@@ -32,7 +32,6 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/IGrowable.hpp"
 
 namespace mc {
 namespace blocks {
@@ -48,9 +47,9 @@ namespace blocks {
  * - 生长概率 10%（原实现为 11.1% / 1/9）
  * - 新生长藤蔓 11% 概率有浆果（CHANCE_OF_BERRIES_ON_GROWTH = 0.11）
  * - 骨粉效果：设置 BERRIES=true（不是设置 AGE=25）
- * - 继承 GrowingPlantHeadBlock：自动获得 isValidPosition + updatePostPlacement
+ * - 继承 GrowingPlantHeadBlock：自动获得 isValidPosition + updatePostPlacement + IGrowable
  */
-class CaveVinesBlock : public GrowingPlantHeadBlock, public IGrowable {
+class CaveVinesBlock : public GrowingPlantHeadBlock {
 public:
     explicit CaveVinesBlock(const BlockProperties& properties);
     ~CaveVinesBlock() override = default;

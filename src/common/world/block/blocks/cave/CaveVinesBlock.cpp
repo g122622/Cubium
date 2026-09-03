@@ -57,8 +57,7 @@ CaveVinesBlock::CaveVinesBlock(const BlockProperties& properties)
           Direction::Down,
           CollisionShape::fromPixelBox(1, 0, 1, 15, 16, 15),
           0.1f // MC 1.21.11: growPerTickProbability = 0.1 (10%)
-          )
-    , IGrowable()
+      )
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)

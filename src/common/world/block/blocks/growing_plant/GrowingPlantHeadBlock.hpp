@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/IGrowable.hpp"
 
 namespace mc {
 namespace blocks {
@@ -38,8 +39,11 @@ namespace blocks {
 /**
  * @brief 生长植物头部方块（生长尖端）
  *
- * 参考 MC 1.21.11: GrowingPlantHeadBlock
+ * 参考 MC 1.21.11: GrowingPlantHeadBlock (implements BonemealableBlock)
  * 向上或向下生长的植物尖端，具有年龄属性和随机生长逻辑。
+ *
+ * 本类实现 IGrowable 接口，骨粉可加速生长（在生长方向下一格放置新头部）。
+ * 子类可覆盖 canGrow/canUseBonemeal/grow 自定义骨粉行为。
  *
  * 子类需要：
  * - 设置 m_growPerTickProbability（每 tick 生长概率）
@@ -48,7 +52,7 @@ namespace blocks {
  * - 可选覆盖 canGrowInto() 自定义生长目标位置判断
  * - 可选覆盖 updateBodyAfterConvertedFromHead() 在身体转换时传递状态
  */
-class GrowingPlantHeadBlock : public GrowingPlantBlock {
+class GrowingPlantHeadBlock : public GrowingPlantBlock, public IGrowable {
 public:
     /**
      * @brief 构造生长植物头部方块
@@ -91,6 +95,34 @@ public:
      */
     [[nodiscard]] virtual bool isValidBonemealTarget(
         IBlockReader& world, const BlockPos& pos, const BlockState& state) const;
+
+    // ========== IGrowable 接口 ==========
+
+    /**
+     * @brief 检查是否可以生长（骨粉有效性检查）
+     *
+     * 参考 MC 1.21.11: GrowingPlantHeadBlock.isValidBonemealTarget
+     * 检查年龄 < MAX_AGE 且生长方向下一格可生长（air）。
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 检查骨粉是否成功
+     *
+     * 参考 MC 1.21.11: GrowingPlantHeadBlock.isBonemealSuccess
+     * 恒返回 true（骨粉必定加速生长）。
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     *
+     * 参考 MC 1.21.11: GrowingPlantHeadBlock.performBonemeal
+     * 原位放身体方块，生长方向下一格放新头部方块（age+1）。
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
     // ========== 生长逻辑 ==========
 
