@@ -215,3 +215,4 @@ node scripts/test/run_diff.ts
 - TS 迁移背景：`docs/test/INTEGRATED_TEST_MIGRATION_TO_TS.md`
 - 官方 ScriptAPI 文档：`E:\dev\MC\Mods\minecraft-creator\creator\ScriptAPI\minecraft\server-gametest`
 - wiki 检索技能：`docs\minecraft-wiki-source\.claude\skills\minecraft-wiki-retrieval\SKILL.md`
+- 可能会用到的mcstructure文档：docs/test/STRUCTURES.md 里面系统性阐述了各个结构的特征和组成，你不再需要手动解析结构文件的nbt！
