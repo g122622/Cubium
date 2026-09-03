@@ -145,6 +145,7 @@ import { registerRedstoneTorchTests } from "./tests/redstone/RedstoneTorchTests.
 import { registerTargetBlockTests } from "./tests/redstone/TargetBlockTests.js";
 import { registerWeightedPressurePlateTests } from "./tests/redstone/WeightedPressurePlateTests.js";
 import { registerBeaconTests } from "./tests/functional/BeaconTests.js";
+import { registerPodzolTests } from "./tests/dirt/PodzolTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -282,3 +283,4 @@ registerRedstoneTorchTests();
 registerTargetBlockTests();
 registerWeightedPressurePlateTests();
 registerBeaconTests();
+registerPodzolTests();

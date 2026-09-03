@@ -51,7 +51,7 @@ function glowSquidDarkensWhenHurt(test: Test): void {
   // 受击前组件 undefined（未暗化），受击后 setDarkTicks(100) 使组件存在（value=100 递减）。
   // 用 spawn 返回引用读组件（暗化是实体自身状态，引用稳定，不依赖坐标查询）。
   test.succeedWhen(() => {
-    const dark = glowSquid.getComponent("minecraft:glow_squid_dark_ticks");
+    const dark = glowSquid.getComponent("minecraft:glow_squid_dark_ticks" as any);
     test.assert(dark !== undefined,
       "glow squid did not darken when hurt (glow_squid_dark_ticks component missing)");
   });

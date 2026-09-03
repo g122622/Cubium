@@ -51,7 +51,7 @@ function pufferfishPuffsWhenPlayerNear(test: Test): void {
   // setPuffState(SemiPuffed)。用 spawn 返回引用读组件（膨胀是自身状态，引用稳定，不依赖坐标查询）。
   // (puffState as any).value 绕过 TS 类型（自定义组件无类型定义）。
   test.succeedWhen(() => {
-    const puffState = pufferfish.getComponent("minecraft:pufferfish_puff_state");
+    const puffState = pufferfish.getComponent("minecraft:pufferfish_puff_state" as any);
     test.assert(puffState !== undefined,
       "pufferfish has no puff_state component (binding missing)");
     const value = (puffState as any).value as number;
@@ -155,7 +155,7 @@ function pufferfishDoesNotPuffNearGuardian(test: Test): void {
     const tick = checkTicks[i];
     const isLast = i === checkTicks.length - 1;
     test.runAtTickTime(tick, () => {
-      const puffState = pufferfish.getComponent("minecraft:pufferfish_puff_state");
+      const puffState = pufferfish.getComponent("minecraft:pufferfish_puff_state" as any);
       test.assert(puffState !== undefined,
         "pufferfish has no puff_state component (binding missing)");
       const value = (puffState as any).value as number;
