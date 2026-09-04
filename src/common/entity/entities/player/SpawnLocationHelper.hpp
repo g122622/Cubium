@@ -53,6 +53,11 @@ public:
     /**
      * @brief 在单列上查找可用出生点
      *
+     * 对齐 MC Java 1.21.11 `PlayerSpawnFinder.getOverworldRespawnPos`：
+     * 1. 取 MotionBlocking 高度 i、WorldSurface 高度 j、OceanFloor 高度三者
+     * 2. 若 j <= i 且 j > OceanFloor（水面覆盖地表），判定为不可出生
+     * 3. 从 i+1 向下扫描：遇流体中断；遇"朝上碰撞面完整"的方块则在其上一格出生
+     *
      * @param world 世界访问接口
      * @param x 世界 X 坐标
      * @param z 世界 Z 坐标
@@ -82,6 +87,7 @@ public:
             return std::nullopt;
         }
 
+        // i = MotionBlocking 顶端（最高阻挡运动方块 Y + 1 语义，此处即方块 Y + 1）
         const i32 motionBlockingY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::MotionBlocking);
         if (motionBlockingY < 0) {
             return std::nullopt;
@@ -89,10 +95,12 @@ public:
 
         const i32 worldSurfaceY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::WorldSurface);
         const i32 oceanFloorY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::OceanFloor);
+        // 水面覆盖判定：WorldSurface 不高于 MotionBlocking，且高于 OceanFloor → 水面覆盖地表
         if (worldSurfaceY <= motionBlockingY && worldSurfaceY > oceanFloorY) {
             return std::nullopt;
         }
 
+        // 从 MotionBlocking 顶端向下扫描，寻找第一个"朝上碰撞面完整"的方块作为立足点
         for (i32 y = motionBlockingY + 1; y >= world::MIN_BUILD_HEIGHT; --y) {
             const fluid::FluidState* fluidState = world.getFluidState(x, y, z);
             if (fluidState != nullptr && !fluidState->isEmpty()) {
@@ -100,7 +108,7 @@ public:
             }
 
             const BlockState* currentState = world.getBlockState(x, y, z);
-            if (currentState != nullptr && currentState->stateId() == surfaceState->stateId()) {
+            if (currentState != nullptr && Block::isFaceFull(currentState->getCollisionShape(), Direction::Up)) {
                 return BlockPos(x, y + 1, z);
             }
         }

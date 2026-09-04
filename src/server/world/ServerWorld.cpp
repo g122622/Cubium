@@ -560,11 +560,11 @@ void ServerWorld::initializeWorldSpawn()
     auto spawnPos = SpawnLocationHelper::findSpawnLocationInChunk(*this, spawnChunk, true);
 
     if (spawnPos.has_value()) {
-        // 找到有效位置，设置到世界出生点
-        m_worldSpawnPoint = Vector3d(spawnPos->x + 0.5,
-            spawnPos->y + 1.0, // 站在方块上面
-            spawnPos->z + 0.5);
-        spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})", spawnPos->x, spawnPos->y + 1, spawnPos->z);
+        // findSpawnLocation 返回的 y 已是"脚站立格 Y"（立足方块上方一格），
+        // 与 MC Java getOverworldRespawnPos 返回 blockpos.above() 语义一致，
+        // 直接作为实体世界坐标 Y 使用，无需再 +1。
+        m_worldSpawnPoint = Vector3d(spawnPos->x + 0.5, static_cast<f64>(spawnPos->y), spawnPos->z + 0.5);
+        spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})", spawnPos->x, spawnPos->y, spawnPos->z);
     } else {
         // 使用默认位置
         m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
