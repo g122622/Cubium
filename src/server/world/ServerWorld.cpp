@@ -546,7 +546,7 @@ void ServerWorld::initializeWorldSpawn()
         }
     }
 
-    // 直接使用 m_chunkManager->getChunkSync()，确保出生点区块已加载
+    // 确保出生点区块已加载
     ChunkData* chunk = m_chunkManager->requestFullChunkSync(spawnChunk.x, spawnChunk.z);
 
     if (chunk == nullptr) {
