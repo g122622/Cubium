@@ -14,9 +14,19 @@ import { registerEndPortalTests } from "./tests/cross_dimension/EndPortalTests.j
 import { registerScriptTeleportTests } from "./tests/cross_dimension/ScriptTeleportTests.js";
 import { registerDimensionIdTests } from "./tests/cross_dimension/DimensionIdTests.js";
 import { registerExecuteInTeleportTests } from "./tests/cross_dimension/ExecuteInTeleportTests.js";
+import { registerNetherPortalFormationTests } from "./tests/cross_dimension/NetherPortalFormationTests.js";
+import { registerNetherPortalCoordinateScaleTests } from "./tests/cross_dimension/NetherPortalCoordinateScaleTests.js";
+import { registerEndPortalPlatformTests } from "./tests/cross_dimension/EndPortalPlatformTests.js";
+import { registerPortalCooldownTests } from "./tests/cross_dimension/PortalCooldownTests.js";
+import { registerEntityCrossDimensionTests } from "./tests/cross_dimension/EntityCrossDimensionTests.js";
 
 registerNetherPortalTests();
 registerEndPortalTests();
 registerScriptTeleportTests();
 registerDimensionIdTests();
 registerExecuteInTeleportTests();
+registerNetherPortalFormationTests();
+registerNetherPortalCoordinateScaleTests();
+registerEndPortalPlatformTests();
+registerPortalCooldownTests();
+registerEntityCrossDimensionTests();

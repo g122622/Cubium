@@ -154,6 +154,12 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
     return entity;
 }
 
+void EntityManager::requestDimensionTransfer(std::function<void()> transferAction)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_pendingDimensionTransfers.push_back(std::move(transferAction));
+}
+
 bool EntityManager::hasEntity(EntityInstanceId id) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -288,6 +294,12 @@ void EntityManager::tick()
     // 1. 委托调度器执行 EntityTick（逐实体 OOP tick）+ PostEntityTick（fire/portal 等 System）。
     //    EntityLegacyTickSystem 经回调调 _tickEntities()，内含模拟距离门控与 ServerPlayer 短路。
     m_scheduler.tick(m_registry);
+
+    // 1.5 处理本 tick 期间入队的延迟跨维度迁移请求。changeDimension 可能在 entity->tick()
+    //     调用栈内触发（doBlockCollisions→onEntityCollision→changeDimension），此时 _tickEntities
+    //     正遍历 m_entities，同步 removeEntity 会 erase 当前节点致 ++it 失效→SIGSEGV。故迁移
+    //     延迟到遍历结束（此时 m_scheduler.tick 已返回）后执行，erase 安全。
+    _processPendingDimensionTransfers();
 
     // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
     //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
@@ -431,6 +443,23 @@ void EntityManager::_onEntityPositionChanged(Entity& entity)
     // 假设已持有 m_mutex（Entity::reapplyPosition 在持锁上下文执行）。
     // 转调空间索引：实体跨 section 移动时迁移，使索引实时准确。
     m_spatialIndex.onEntityPositionChanged(entity);
+}
+
+void EntityManager::_processPendingDimensionTransfers()
+{
+    // _tickEntities 遍历已完成（m_scheduler.tick 已返回），此时 erase 当前节点安全。
+    // swap 出队列后逐个执行迁移回调（removeEntity + spawnEntity），避免遍历期间 erase
+    // 致 for 循环 ++it 解引用失效迭代器→SIGSEGV。
+    if (m_pendingDimensionTransfers.empty()) {
+        return;
+    }
+
+    std::vector<std::function<void()>> pending;
+    pending.swap(m_pendingDimensionTransfers);
+
+    for (auto& transferAction : pending) {
+        transferAction();
+    }
 }
 
 bool EntityManager::_isEntityInSimulationRange(

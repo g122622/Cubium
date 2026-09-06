@@ -255,6 +255,23 @@ public:
      */
     EntityInstanceId allocateId();
 
+    /**
+     * @brief 请求延迟跨维度迁移（EntityTick 遍历期间安全）
+     *
+     * 当 `changeDimension` 在 `entity->tick()` 调用栈内被触发时（如 `doBlockCollisions`
+     * → `EndPortalBlock::onEntityCollision` → `changeDimension`），源 EntityManager 的
+     * `_tickEntities` 正持有当前迭代器遍历 `m_entities`。此时同步调 `removeEntity`
+     * 会 erase 当前节点，for 循环 `++it` 解引用失效迭代器→SIGSEGV。
+     *
+     * 本方法把迁移回调入队 `m_pendingDimensionTransfers`，由 `tick()` 在
+     * `_tickEntities` 遍历完成后（`m_scheduler.tick` 返回后）统一执行。回调内封装
+     * `removeEntity` + `spawnEntity`，由调用方（`ServerPlayer::_performDimensionTransfer`）
+     * 构造，故本类无需感知 `ServerWorld`（避免 common 层依赖 server 层）。
+     *
+     * @param transferAction 迁移回调（从源 EntityManager 取出实体并 spawn 到目标）
+     */
+    void requestDimensionTransfer(std::function<void()> transferAction);
+
 private:
     // 所属 ECS 实体注册表（非拥有，引用 ServerWorld 持有的 m_entityRegistry）。
     ecs::EntityRegistry& m_registry;
@@ -273,6 +290,21 @@ private:
     // 目的：给持有裸实体指针的 goal 一帧时间通过 isAlive() 检查并 reset 指针，
     // 避免 use-after-free（LookAtGoal::shouldContinueExecuting 等解引用已被 erase 析构的目标）。
     std::vector<std::unique_ptr<Entity>> m_graveyard;
+
+    // 延迟跨维度迁移请求队列（本 EntityManager 为源）。changeDimension 在 entity->tick()
+    // 调用栈内触发时，_tickEntities 正遍历 m_entities，同步 removeEntity 会 erase 当前节点
+    // 致 for 循环 ++it 解引用失效迭代器→SIGSEGV。故 _performDimensionTransfer 改为把迁移
+    // 回调入队此队列，tick() 在 _tickEntities 遍历完成后统一执行。
+    std::vector<std::function<void()>> m_pendingDimensionTransfers;
+
+    /**
+     * @brief 处理延迟跨维度迁移队列
+     *
+     * 由 tick() 在 m_scheduler.tick 返回后调用。对每个待迁移实体：从源 EntityManager
+     * removeEntity 取出 unique_ptr<Entity>，再向目标 EntityManager spawnEntity。
+     * 遍历已结束，erase 安全。
+     */
+    void _processPendingDimensionTransfers();
 
     EntityInstanceId m_nextId = 1;
 

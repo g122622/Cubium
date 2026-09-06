@@ -883,26 +883,34 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
         //
         // unique_ptr move 不移动 Entity 对象（仅转移所有权），故 JS 侧 / 其他裸指针持有者仍有效。
         // 顺序：先 setDimension/setPosition/setWorld 再迁移，使迁移期间实体字段已是目标维度语义。
-        // 迁移在 changeDimension 调用栈内同步完成（无 tick 中途让出），迁移后源世界不再 tick 该实体。
-        // PortalTickSystem 遍历 ECS EntityRegistry 组件 view（非 ServerWorld.EntityManager），
-        // doBlockCollisions 遍历方块坐标三层 for（非 EntityManager 迭代器），故迁移不会失效迭代器。
+        //
+        // 崩溃修复：changeDimension 可能在 entity->tick() 调用栈内被触发（doBlockCollisions
+        // → EndPortalBlock::onEntityCollision → changeDimension）。此时源 EntityManager 的
+        // _tickEntities 正遍历 m_entities 并持有当前迭代器，同步调 removeEntity 会 erase 当前
+        // 节点，for 循环 ++it 解引用失效迭代器→SIGSEGV。故把 removeEntity+spawnEntity 封装为
+        // 延迟回调，通过 requestDimensionTransfer 入队源 EntityManager，由 tick() 在 _tickEntities
+        // 遍历完成后（m_scheduler.tick 返回后）统一执行。此时 erase 当前节点安全（遍历已结束）。
         if (sourceWorld != nullptr && targetWorld != nullptr && sourceWorld != targetWorld) {
             EntityInstanceId entityId = id();
-            auto entityPtr = sourceWorld->removeEntity(entityId);
-            if (entityPtr != nullptr) {
-                // spawnEntity 内部再次 setWorld(this)，幂等；返回新 EntityInstanceId
-                // （EntityManager 各自分配，可能与旧 ID 不同，但 SimulatedPlayer 的 PlayerId=0
-                // 不依赖 EntityInstanceId，JS 侧持裸 Entity* 也不依赖 ID）。
-                [[maybe_unused]] EntityInstanceId newId = targetWorld->spawnEntity(std::move(entityPtr));
-            } else {
-                // removeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
-                // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
-                // 更严重的不一致。
-                spdlog::warn("ServerPlayer::_performDimensionTransfer: removeEntity returned null for entity {} "
-                             "during dimension migration (player={})",
-                    entityId,
-                    username());
-            }
+            // 捕获源/目标 EntityManager 指针（ServerWorld 生命周期 >= ServerPlayer，安全）。
+            EntityManager& sourceEntityManager = sourceWorld->entityManager();
+            EntityManager& targetEntityManager = targetWorld->entityManager();
+            sourceEntityManager.requestDimensionTransfer([entityId, &sourceEntityManager, &targetEntityManager]() {
+                auto entityPtr = sourceEntityManager.removeEntity(entityId);
+                if (entityPtr != nullptr) {
+                    // addEntity 内部再次 setEntityManager(this)（幂等），并向目标空间索引登记。
+                    // 若实体 ID 在目标 EntityManager 已被占用，addEntity 会分配新 ID 并 setId；
+                    // 跨维度迁移保留原 ID 是常态（各 EntityManager 的 ID 空间独立，碰撞罕见）。
+                    [[maybe_unused]] EntityInstanceId newId = targetEntityManager.addEntity(std::move(entityPtr));
+                } else {
+                    // removeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
+                    // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
+                    // 更严重的不一致。
+                    spdlog::warn("ServerPlayer::_performDimensionTransfer: removeEntity returned null for "
+                                 "entity {} during dimension migration",
+                        entityId);
+                }
+            });
         }
     }
 
