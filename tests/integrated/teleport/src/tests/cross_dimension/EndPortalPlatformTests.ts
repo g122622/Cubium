@@ -67,13 +67,13 @@ function endPortalTransfersPlayerToEndSpawn(test: Test): void {
     });
 }
 
-// 验证末地黑曜石平台存在：传送后平台位置 (98~102, 48, -2~2) 应为黑曜石。
+// 验证末地黑曜石平台存在：传送后平台 5×5 范围应为黑曜石。
 function endPortalCreatesObsidianPlatform(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
     test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
 
-    // 轮询断言：玩家传送到末地后，验证黑曜石平台存在。
-    // 平台中心 (100, 48, 0)，5×5 范围。
+    // 轮询断言：玩家传送到末地后，验证黑曜石平台 5×5 全覆盖。
+    // 平台中心 (100, 48, 0)，半径 2 → x∈[98,102], z∈[-2,2]。
     test.succeedWhen(() => {
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
@@ -88,16 +88,23 @@ function endPortalCreatesObsidianPlatform(test: Test): void {
         if (endPlayers.length === 0) {
             return; // 末地无玩家，传送未完成
         }
-        // 验证平台中心方块为黑曜石。
-        const centerBlock = end.getBlock({ x: END_SPAWN_X, y: PLATFORM_Y, z: END_SPAWN_Z });
-        test.assert(
-            centerBlock !== undefined && centerBlock.typeId === "minecraft:obsidian",
-            `platform center block at (${END_SPAWN_X},${PLATFORM_Y},${END_SPAWN_Z}) is not obsidian`,
-        );
+        // 验证整个 5×5 平台均为黑曜石（利用 PLATFORM_RADIUS 遍历边缘）。
+        for (let dx = -PLATFORM_RADIUS; dx <= PLATFORM_RADIUS; dx++) {
+            for (let dz = -PLATFORM_RADIUS; dz <= PLATFORM_RADIUS; dz++) {
+                const x = END_SPAWN_X + dx;
+                const z = END_SPAWN_Z + dz;
+                const block = end.getBlock({ x: x, y: PLATFORM_Y, z: z });
+                test.assert(
+                    block !== undefined && block.typeId === "minecraft:obsidian",
+                    `platform block at (${x},${PLATFORM_Y},${z}) is not obsidian`,
+                );
+            }
+        }
     });
 }
 
-// 验证末地平台上方空间已清空：传送后 Y=49~52 范围内中心列应为空气。
+// 验证末地平台上方空间已清空：传送后 5×5 平台上方 Y=49~52（共4层）应为空气。
+// 对齐 C++ EndTeleporter::createEndSpawnPlatform：清空整个 5×5 列上方 4 层。
 function endPortalClearsSpaceAbovePlatform(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
     test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
@@ -116,13 +123,19 @@ function endPortalClearsSpaceAbovePlatform(test: Test): void {
         if (endPlayers.length === 0) {
             return; // 末地无玩家，传送未完成
         }
-        // 验证平台正上方中心列 Y=49~52 为空气（createEndSpawnPlatform 清空 4 层）。
-        for (let y = END_SPAWN_Y - 1; y <= END_SPAWN_Y + 2; y++) {
-            const block = end.getBlock({ x: END_SPAWN_X, y: y, z: END_SPAWN_Z });
-            test.assert(
-                block !== undefined && block.isAir,
-                `block at (${END_SPAWN_X},${y},${END_SPAWN_Z}) should be air after platform clear`,
-            );
+        // 验证整个 5×5 平台上方 Y=49~52 为空气（createEndSpawnPlatform 清空 4 层）。
+        for (let dx = -PLATFORM_RADIUS; dx <= PLATFORM_RADIUS; dx++) {
+            for (let dz = -PLATFORM_RADIUS; dz <= PLATFORM_RADIUS; dz++) {
+                for (let y = END_SPAWN_Y - 1; y <= END_SPAWN_Y + 2; y++) {
+                    const x = END_SPAWN_X + dx;
+                    const z = END_SPAWN_Z + dz;
+                    const block = end.getBlock({ x: x, y: y, z: z });
+                    test.assert(
+                        block !== undefined && block.isAir,
+                        `block at (${x},${y},${z}) should be air after platform clear`,
+                    );
+                }
+            }
         }
     });
 }
