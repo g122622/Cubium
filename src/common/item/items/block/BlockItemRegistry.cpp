@@ -1548,6 +1548,46 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::POTTED_AZALEA_BUSH, "flower_pot");
     registerSimpleBlock(VanillaBlocks::POTTED_FLOWERING_AZALEA_BUSH, "flower_pot");
 
+    // 床（16种颜色）：物品为 BedItem（BlockItem 子类），path = minecraft:<color>_bed。
+    // BedBlock::onBlockPlacedBy 在脚部放置后自动放置头部方块。
+    registerSimpleBlock(VanillaBlocks::WHITE_BED, "white_bed");
+    registerSimpleBlock(VanillaBlocks::ORANGE_BED, "orange_bed");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_BED, "magenta_bed");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_BED, "light_blue_bed");
+    registerSimpleBlock(VanillaBlocks::YELLOW_BED, "yellow_bed");
+    registerSimpleBlock(VanillaBlocks::LIME_BED, "lime_bed");
+    registerSimpleBlock(VanillaBlocks::PINK_BED, "pink_bed");
+    registerSimpleBlock(VanillaBlocks::GRAY_BED, "gray_bed");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_BED, "light_gray_bed");
+    registerSimpleBlock(VanillaBlocks::CYAN_BED, "cyan_bed");
+    registerSimpleBlock(VanillaBlocks::PURPLE_BED, "purple_bed");
+    registerSimpleBlock(VanillaBlocks::BLUE_BED, "blue_bed");
+    registerSimpleBlock(VanillaBlocks::BROWN_BED, "brown_bed");
+    registerSimpleBlock(VanillaBlocks::GREEN_BED, "green_bed");
+    registerSimpleBlock(VanillaBlocks::RED_BED, "red_bed");
+    registerSimpleBlock(VanillaBlocks::BLACK_BED, "black_bed");
+
+    // 1.21 试验方块（物品 path 与方块 ID 一致）
+    registerSimpleBlock(VanillaBlocks::CRAFTER, "crafter");
+    registerSimpleBlock(VanillaBlocks::TRIAL_SPAWNER, "trial_spawner");
+    registerSimpleBlock(VanillaBlocks::VAULT, "vault");
+    registerSimpleBlock(VanillaBlocks::HEAVY_CORE, "heavy_core");
+
+    // 装饰方块
+    registerSimpleBlock(VanillaBlocks::BUSH, "bush");
+    registerSimpleBlock(VanillaBlocks::FIREFLY_BUSH, "firefly_bush");
+    registerSimpleBlock(VanillaBlocks::SHORT_DRY_GRASS, "short_dry_grass");
+    registerSimpleBlock(VanillaBlocks::TALL_DRY_GRASS, "tall_dry_grass");
+    registerSimpleBlock(VanillaBlocks::CHISELED_BOOKSHELF, "chiseled_bookshelf");
+    registerSimpleBlock(VanillaBlocks::DECORATED_POT, "decorated_pot");
+    registerSimpleBlock(VanillaBlocks::SNIFFER_EGG, "sniffer_egg");
+
+    // 功能方块
+    registerSimpleBlock(VanillaBlocks::LODESTONE, "lodestone");
+    registerSimpleBlock(VanillaBlocks::KELP, "kelp");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_FUNGUS, "crimson_fungus");
+    registerSimpleBlock(VanillaBlocks::WARPED_FUNGUS, "warped_fungus");
+
     m_initialized = true;
     spdlog::info("Registered {} block items", m_itemToBlock.size());
 }
