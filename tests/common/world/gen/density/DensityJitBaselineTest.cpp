@@ -67,7 +67,7 @@ using namespace mc::world::gen::density::ast;
 namespace {
 
 /// JIT 启用平台判定（与 DensityJitCompiler.cpp 的 MC_DENSITY_JIT_ENABLED 一致）。
-#if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
+#if (defined(_WIN32) || defined(__linux__)) && (defined(__x86_64__) || defined(_M_X64))
 inline constexpr bool kJitEnabled = true;
 #else
 inline constexpr bool kJitEnabled = false;
@@ -103,7 +103,7 @@ void expectJitMatchesInterpreter(
     const DimensionSettings& settings, const std::vector<u64>& seeds, const std::string& dimensionLabel)
 {
     if (!kJitEnabled) {
-        GTEST_SKIP() << "density JIT not enabled on this platform (non Win x64); skipping JIT baseline";
+        GTEST_SKIP() << "density JIT not enabled on this platform (non x64); skipping JIT baseline";
     }
     const auto& points = samplePoints();
     for (const u64 seed : seeds) {

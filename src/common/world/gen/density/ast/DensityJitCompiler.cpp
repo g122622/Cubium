@@ -29,9 +29,10 @@
 
 #include <spdlog/spdlog.h>
 
-// 仅 Windows x64 启用 JIT。其它平台（macOS ARM64 等）compileDensityJit 直接返回 nullptr 回退解释器。
+// x64 平台启用 JIT（Windows 与 Linux 均走 asmjit::x86::Compiler，跨平台等价）。
+// 其它平台（macOS ARM64 等）compileDensityJit 直接返回 nullptr 回退解释器。
 // TODO: macOS ARM64 用 a64::Compiler 落地 JIT（注意避免 fmadd 融合以保证与 x64 bit-exact）。
-#if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
+#if (defined(_WIN32) || defined(__linux__)) && (defined(__x86_64__) || defined(_M_X64))
 #define MC_DENSITY_JIT_ENABLED 1
 #else
 #define MC_DENSITY_JIT_ENABLED 0

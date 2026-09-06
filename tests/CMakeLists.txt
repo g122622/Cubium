@@ -1198,6 +1198,8 @@ add_executable(mc_tests
     common/world/gen/density/DensityAstCompileTest.cpp
     # 密度求值器 JIT 机器码 vs switch 解释器数值一致性（Win x64 启用，其它平台 SKIP）
     common/world/gen/density/DensityJitBaselineTest.cpp
+    # PerlinNoise / BlendedNoise 采样性能微基准（interleave_count 调参用）
+    common/world/gen/PerlinNoisePerfTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/MonsterRoomFeatureTest.cpp
     common/world/gen/feature/RandomSelectorFeatureTest.cpp

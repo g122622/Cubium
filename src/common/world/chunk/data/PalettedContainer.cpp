@@ -108,40 +108,30 @@ void PalettedContainer::Data::refreshRawPalette()
 // ============================================================================
 
 PalettedContainer::PalettedContainer()
-    : m_data(std::make_unique<Data>())
 {
     // 默认 SingleValue 模式，值为 0（空气）
-    m_data->mode = Mode::SingleValue;
-    m_data->singleValue = 0;
-    m_data->palette.push_back(0);
-    m_data->paletteSize = 1;
-    m_data->refreshRawPalette();
+    m_data.mode = Mode::SingleValue;
+    m_data.singleValue = 0;
+    m_data.palette.push_back(0);
+    m_data.paletteSize = 1;
+    m_data.refreshRawPalette();
 }
 
 PalettedContainer::PalettedContainer(const PalettedContainer& other)
-    : m_data(std::make_unique<Data>(*other.m_data))
+    : m_data(other.m_data)
 {
-    m_data->refreshRawPalette();
+    m_data.refreshRawPalette();
 }
 
 PalettedContainer::PalettedContainer(PalettedContainer&& other) noexcept
     : m_data(std::move(other.m_data))
-{
-    if (!m_data) {
-        m_data = std::make_unique<Data>();
-        m_data->mode = Mode::SingleValue;
-        m_data->singleValue = 0;
-        m_data->palette.push_back(0);
-        m_data->paletteSize = 1;
-        m_data->refreshRawPalette();
-    }
-}
+{}
 
 PalettedContainer& PalettedContainer::operator=(const PalettedContainer& other)
 {
     if (this != &other) {
-        m_data = std::make_unique<Data>(*other.m_data);
-        m_data->refreshRawPalette();
+        m_data = other.m_data;
+        m_data.refreshRawPalette();
     }
     return *this;
 }
@@ -150,14 +140,6 @@ PalettedContainer& PalettedContainer::operator=(PalettedContainer&& other) noexc
 {
     if (this != &other) {
         m_data = std::move(other.m_data);
-        if (!m_data) {
-            m_data = std::make_unique<Data>();
-            m_data->mode = Mode::SingleValue;
-            m_data->singleValue = 0;
-            m_data->palette.push_back(0);
-            m_data->paletteSize = 1;
-            m_data->refreshRawPalette();
-        }
     }
     return *this;
 }
@@ -168,7 +150,7 @@ PalettedContainer& PalettedContainer::operator=(PalettedContainer&& other) noexc
 
 i32 PalettedContainer::_readBits(i32 index) const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     if (d.bits == 0) {
         return 0; // SingleValue 模式，storage 为空
     }
@@ -193,7 +175,7 @@ i32 PalettedContainer::_readBits(i32 index) const
 
 i32 PalettedContainer::_writeBits(i32 index, i32 value)
 {
-    Data& d = *m_data;
+    Data& d = m_data;
     if (d.bits == 0) {
         return 0; // SingleValue 模式，无 storage
     }
@@ -238,7 +220,7 @@ i32 PalettedContainer::_getAndSetBits(i32 index, i32 value)
 
 u32 PalettedContainer::_paletteLookup(i32 paletteIndex) const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     if (d.mode == Mode::SingleValue) {
         return d.singleValue;
     }
@@ -253,7 +235,7 @@ u32 PalettedContainer::_paletteLookup(i32 paletteIndex) const
 
 i32 PalettedContainer::_hashMapLookup(u32 value) const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     if (d.hashMapCapacity == 0) {
         return -1;
     }
@@ -276,7 +258,7 @@ i32 PalettedContainer::_hashMapLookup(u32 value) const
 
 void PalettedContainer::_hashMapInsert(u32 value, i32 paletteIndex)
 {
-    Data& d = *m_data;
+    Data& d = m_data;
     // 负载因子 > 0.75 时扩容
     if ((d.paletteSize + 1) * 4 > d.hashMapCapacity * 3) {
         _hashMapRebuild();
@@ -295,7 +277,7 @@ void PalettedContainer::_hashMapInsert(u32 value, i32 paletteIndex)
 
 void PalettedContainer::_hashMapRebuild()
 {
-    Data& d = *m_data;
+    Data& d = m_data;
     // 确保容量足够容纳所有条目（负载因子 <= 0.75）
     // 容量必须是 2 的幂
     i32 minCapacity = (d.paletteSize + 1) * 4 / 3; // 满足 0.75 负载因子
@@ -325,7 +307,7 @@ void PalettedContainer::_hashMapRebuild()
 
 i32 PalettedContainer::_idFor(u32 value)
 {
-    Data& d = *m_data;
+    Data& d = m_data;
 
     if (d.mode == Mode::SingleValue) {
         if (d.singleValue == value) {
@@ -397,62 +379,80 @@ i32 PalettedContainer::_idFor(u32 value)
 
 void PalettedContainer::_onResize(i32 newBits)
 {
-    // 通用 resize：先保存旧索引，重建 storage，再写入
-    // Flat 转换也走此路径（toFlat 读取旧 storage，重建为 Flat storage）
-    std::vector<u32> flat = toFlat();
+    Data& d = m_data;
+    const i32 oldBits = d.bits;
+    const Mode oldMode = d.mode;
 
-    Data& d = *m_data;
-    Mode newMode = _modeForBits(newBits);
+    // 保存旧 storage，后续用 oldBits 从中读取 paletteIndex。
+    std::vector<u64, PaletteStorageAlloc<u64>> oldStorage = std::move(d.storage);
 
+    // 分配新 storage（用 newBits 的 word count），更新 bits/mode。
     d.storage.assign(static_cast<size_t>(_storageWordCount(newBits)), 0);
     d.bits = newBits;
+    const Mode newMode = _modeForBits(newBits);
     d.mode = newMode;
 
+    // 读取旧 paletteIndex（oldBits）的内联位运算。
+    // 注意：oldStorage 此时已是空（被 move 走），用 oldStorage 引用。
+    auto readOldPaletteIndex = [&oldStorage, oldBits](i32 i) -> i32 {
+        i32 oldBitIndex = i * oldBits;
+        i32 oldWordIndex = oldBitIndex >> 6;
+        i32 oldBitOffset = oldBitIndex & 63;
+        u64 oldMask = (oldBits >= 64) ? ~0ULL : ((1ULL << oldBits) - 1);
+        u64 oldWord = oldStorage[static_cast<size_t>(oldWordIndex)];
+        if (oldBitOffset + oldBits <= 64) {
+            return static_cast<i32>((oldWord >> oldBitOffset) & oldMask);
+        }
+        // 跨两个字
+        u64 low = (oldWord >> oldBitOffset);
+        u64 high = static_cast<u64>(oldStorage[static_cast<size_t>(oldWordIndex + 1)]) << (64 - oldBitOffset);
+        return static_cast<i32>((low | high) & oldMask);
+    };
+
     if (newMode == Mode::Flat) {
-        // Flat：调色板清空，storage 直接存 stateId
+        // 转为 Flat：旧 storage 存的是 paletteIndex，新 storage 直接存 stateId。
+        // 此时 palette 还在（尚未 clear），用 paletteIndex 查 stateId。
+        // 旧模式可能是 Linear/HashMap（storage 存 paletteIndex）或 Flat（已存 stateId）。
+        if (oldMode == Mode::Flat) {
+            // Flat → Flat：直接复制 paletteIndex（即 stateId）
+            for (i32 i = 0; i < VOLUME; ++i) {
+                _writeBits(i, readOldPaletteIndex(i));
+            }
+        } else {
+            // Linear/HashMap → Flat：paletteIndex → stateId
+            for (i32 i = 0; i < VOLUME; ++i) {
+                i32 paletteIndex = readOldPaletteIndex(i);
+                _writeBits(i, static_cast<i32>(d.palette[static_cast<size_t>(paletteIndex)]));
+            }
+        }
+        // Flat 模式清空调色板与哈希表
         d.palette.clear();
         d.paletteSize = 0;
         d.hashMap.clear();
         d.hashMapCapacity = 0;
         d.hashMapMask = 0;
         d.rawPalettePtr = nullptr;
-        for (i32 i = 0; i < VOLUME; ++i) {
-            _writeBits(i, static_cast<i32>(flat[static_cast<size_t>(i)]));
-        }
         return;
     }
 
     // Linear / HashMap：保留调色板，重建 storage
-    // 调色板顺序不变，但 bits 变了，需要重建 storage 中的索引。
-    // 直接在调色板中查找索引，不调用 _idFor（避免递归 _onResize）。
+    // 调色板顺序不变，bits 变了，但 paletteIndex 值不变——直接搬运。
     if (newMode == Mode::HashMap && d.hashMapCapacity == 0) {
         _hashMapRebuild();
     }
     d.refreshRawPalette();
 
+    // paletteIndex 在 resize 前后语义不变（指向同一 palette 条目），
+    // 直接从旧 storage 读 paletteIndex，用新 bits 写入新 storage。
     for (i32 i = 0; i < VOLUME; ++i) {
-        u32 value = flat[static_cast<size_t>(i)];
-        i32 paletteIndex = -1;
-        if (newMode == Mode::Linear) {
-            // 线性扫描（调色板小，<16）
-            for (i32 p = 0; p < d.paletteSize; ++p) {
-                if (d.palette[static_cast<size_t>(p)] == value) {
-                    paletteIndex = p;
-                    break;
-                }
-            }
-        } else {
-            // HashMap
-            paletteIndex = _hashMapLookup(value);
-        }
-        MC_ASSERT_RELEASE(paletteIndex >= 0);
+        i32 paletteIndex = readOldPaletteIndex(i);
         _writeBits(i, paletteIndex);
     }
 }
 
 void PalettedContainer::_transitionSingleToLinear(u32 existingValue, u32 newValue, i32 index)
 {
-    Data& d = *m_data;
+    Data& d = m_data;
     MC_ASSERT_RELEASE(d.mode == Mode::SingleValue);
 
     i32 bits = MIN_BITS; // 4 位
@@ -483,7 +483,7 @@ void PalettedContainer::_transitionSingleToLinear(u32 existingValue, u32 newValu
 u32 PalettedContainer::get(i32 index) const
 {
     MC_ASSERT_RELEASE(index >= 0 && index < VOLUME);
-    const Data& d = *m_data;
+    const Data& d = m_data;
 
     if (d.mode == Mode::SingleValue) {
         return d.singleValue;
@@ -499,7 +499,7 @@ u32 PalettedContainer::get(i32 index) const
 u32 PalettedContainer::getAndSet(i32 index, u32 value)
 {
     MC_ASSERT_RELEASE(index >= 0 && index < VOLUME);
-    Data& d = *m_data;
+    Data& d = m_data;
 
     if (d.mode == Mode::SingleValue) {
         u32 old = d.singleValue;
@@ -514,10 +514,37 @@ u32 PalettedContainer::getAndSet(i32 index, u32 value)
         return static_cast<u32>(_getAndSetBits(index, static_cast<i32>(value)));
     }
 
-    // Linear / HashMap
-    i32 paletteIndex = _idFor(value);
-    i32 oldPaletteIndex = _getAndSetBits(index, paletteIndex);
-    return _paletteLookup(oldPaletteIndex);
+    // Linear / HashMap：先 _idFor 取 paletteIndex（可能触发 _onResize 扩容），
+    // 再用内联位运算写入 storage 并读回旧 paletteIndex。
+    const i32 paletteIndex = _idFor(value);
+
+    // 内联 _writeBits：消除函数调用边界，便于编译器优化 index*bits 与位提取。
+    const i32 bits = d.bits;
+    const i32 bitIndex = index * bits;
+    const i32 wordIndex = bitIndex >> 6;
+    const i32 bitOffset = bitIndex & 63;
+    const u64 mask = (bits >= 64) ? ~0ULL : ((1ULL << bits) - 1);
+    const u64 valueMasked = static_cast<u64>(paletteIndex) & mask;
+
+    u64& word = d.storage[static_cast<size_t>(wordIndex)];
+    i32 oldPaletteIndex;
+    if (bitOffset + bits <= 64) {
+        oldPaletteIndex = static_cast<i32>((word >> bitOffset) & mask);
+        word = (word & ~(mask << bitOffset)) | (valueMasked << bitOffset);
+    } else {
+        // 跨两个字
+        oldPaletteIndex = static_cast<i32>((word >> bitOffset) & mask);
+        const u64 lowBits = valueMasked << bitOffset;
+        word = (word & ~(mask << bitOffset)) | lowBits;
+
+        u64& nextWord = d.storage[static_cast<size_t>(wordIndex + 1)];
+        const i32 highBits = bits - (64 - bitOffset);
+        const u64 highValueMask = (1ULL << highBits) - 1;
+        oldPaletteIndex |= static_cast<i32>((nextWord & highValueMask) << (64 - bitOffset));
+        nextWord = (nextWord & ~highValueMask) | (valueMasked >> (64 - bitOffset));
+    }
+
+    return d.palette[static_cast<size_t>(oldPaletteIndex)];
 }
 
 void PalettedContainer::set(i32 index, u32 value)
@@ -531,7 +558,7 @@ void PalettedContainer::set(i32 index, u32 value)
 
 void PalettedContainer::fill(u32 value)
 {
-    Data& d = *m_data;
+    Data& d = m_data;
     d.mode = Mode::SingleValue;
     d.singleValue = value;
     d.storage.clear();
@@ -548,7 +575,7 @@ void PalettedContainer::fill(u32 value)
 std::vector<u32> PalettedContainer::toFlat() const
 {
     std::vector<u32> result(static_cast<size_t>(VOLUME));
-    const Data& d = *m_data;
+    const Data& d = m_data;
 
     if (d.mode == Mode::SingleValue) {
         std::fill(result.begin(), result.end(), d.singleValue);
@@ -573,14 +600,9 @@ std::vector<u32> PalettedContainer::toFlat() const
 void PalettedContainer::fromFlat(const u32* data, i32 count)
 {
     MC_ASSERT_RELEASE(count == VOLUME);
-    Data& d = *m_data;
+    Data& d = m_data;
 
-    // 统计唯一值数量
-    // 使用简单哈希集合
-    std::vector<u32> uniqueValues;
-    uniqueValues.reserve(64);
-    std::vector<bool> seen;
-    // 简单实现：排序去重
+    // 统计唯一值数量：排序去重
     std::vector<u32> sorted(data, data + count);
     std::sort(sorted.begin(), sorted.end());
     sorted.erase(std::unique(sorted.begin(), sorted.end()), sorted.end());
@@ -603,7 +625,7 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
     }
 
     if (uniqueCount >= (1 << MIN_BITS_FOR_FLAT)) {
-        // Flat
+        // Flat（VOLUME=4096 时不可达，保留兜底）
         d.mode = Mode::Flat;
         d.storage.assign(static_cast<size_t>(_storageWordCount(MIN_BITS_FOR_FLAT)), 0);
         d.bits = MIN_BITS_FOR_FLAT;
@@ -620,8 +642,8 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
     }
 
     // Linear 或 HashMap
-    i32 bits = _calculateBitsForCount(uniqueCount);
-    Mode mode = _modeForBits(bits);
+    const i32 bits = _calculateBitsForCount(uniqueCount);
+    const Mode mode = _modeForBits(bits);
     d.storage.assign(static_cast<size_t>(_storageWordCount(bits)), 0);
     d.bits = bits;
     d.mode = mode;
@@ -636,12 +658,49 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
     }
     d.refreshRawPalette();
 
-    // 构建 value → paletteIndex 映射
-    // 由于 palette 已排序，用二分查找
+    // 构建 value → paletteIndex 的开放寻址哈希表，O(1) 查找替代 std::lower_bound。
+    // 哈希槽存储 (paletteIndex + 1)，0 表示空。palette 已排序，paletteIndex 即排序后位置。
+    i32 hashCap = 16;
+    while (hashCap < uniqueCount * 2) {
+        hashCap <<= 1;
+    }
+    const i32 hashMask = hashCap - 1;
+    std::vector<u32> hashTable(static_cast<size_t>(hashCap), 0);
+
+    auto hashInsert = [&](u32 value, i32 paletteIndex) {
+        u32 hash = value * 2654435761u;
+        i32 slot = static_cast<i32>(hash) & hashMask;
+        while (hashTable[static_cast<size_t>(slot)] != 0) {
+            slot = (slot + 1) & hashMask;
+        }
+        hashTable[static_cast<size_t>(slot)] = static_cast<u32>(paletteIndex + 1);
+    };
+
+    auto hashLookup = [&](u32 value) -> i32 {
+        u32 hash = value * 2654435761u;
+        i32 slot = static_cast<i32>(hash) & hashMask;
+        for (i32 i = 0; i < hashCap; ++i) {
+            u32 entry = hashTable[static_cast<size_t>(slot)];
+            if (entry == 0) {
+                return -1;
+            }
+            i32 idx = static_cast<i32>(entry) - 1;
+            if (d.palette[static_cast<size_t>(idx)] == value) {
+                return idx;
+            }
+            slot = (slot + 1) & hashMask;
+        }
+        return -1;
+    };
+
+    for (i32 i = 0; i < uniqueCount; ++i) {
+        hashInsert(d.palette[static_cast<size_t>(i)], i);
+    }
+
     for (i32 i = 0; i < VOLUME; ++i) {
         u32 value = data[i];
-        auto it = std::lower_bound(d.palette.begin(), d.palette.end(), value);
-        i32 paletteIndex = static_cast<i32>(std::distance(d.palette.begin(), it));
+        i32 paletteIndex = hashLookup(value);
+        MC_ASSERT_RELEASE(paletteIndex >= 0);
         _writeBits(i, paletteIndex);
     }
 }
@@ -652,7 +711,7 @@ void PalettedContainer::fromFlat(const u32* data, i32 count)
 
 void PalettedContainer::forEach(const std::function<void(i32, u32)>& visitor) const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     if (d.mode == Mode::SingleValue) {
         for (i32 i = 0; i < VOLUME; ++i) {
             visitor(i, d.singleValue);
@@ -676,7 +735,7 @@ void PalettedContainer::forEach(const std::function<void(i32, u32)>& visitor) co
 
 void PalettedContainer::forEachPaletteValue(const std::function<void(i32, u32)>& visitor) const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     if (d.mode == Mode::SingleValue) {
         visitor(0, d.singleValue);
         return;
@@ -702,12 +761,12 @@ void PalettedContainer::forEachPaletteValue(const std::function<void(i32, u32)>&
 
 i32 PalettedContainer::paletteSize() const
 {
-    return m_data->paletteSize;
+    return m_data.paletteSize;
 }
 
 i32 PalettedContainer::bitsPerEntry() const
 {
-    return m_data->bits;
+    return m_data.bits;
 }
 
 u32 PalettedContainer::paletteValue(i32 paletteIndex) const
@@ -717,17 +776,17 @@ u32 PalettedContainer::paletteValue(i32 paletteIndex) const
 
 const u32* PalettedContainer::rawPalette() const
 {
-    return m_data->rawPalettePtr;
+    return m_data.rawPalettePtr;
 }
 
 const std::vector<u64, PaletteStorageAlloc<u64>>& PalettedContainer::storage() const
 {
-    return m_data->storage;
+    return m_data.storage;
 }
 
 size_t PalettedContainer::estimatedMemoryUsage() const
 {
-    const Data& d = *m_data;
+    const Data& d = m_data;
     size_t size = sizeof(Data);
     size += d.storage.capacity() * sizeof(u64);
     size += d.palette.capacity() * sizeof(u32);

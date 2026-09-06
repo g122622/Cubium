@@ -268,7 +268,9 @@ private:
         void refreshRawPalette();
     };
 
-    std::unique_ptr<Data> m_data;
+    // Data 直接内联为成员，消除 unique_ptr 间接层。
+    // get/getAndSet 热路径不再解引用 m_data，this 指针即数据起点。
+    Data m_data;
 
     // ========================================================================
     // 内部方法

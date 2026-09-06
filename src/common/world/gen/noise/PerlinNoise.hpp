@@ -118,6 +118,14 @@ public:
     [[nodiscard]] f64 getValue(f64 x, f64 y, f64 z) const;
 
     /**
+     * @brief 纯标量采样路径(调试/性能对比用)
+     *
+     * 遍历 m_layers 逐层调用 PerlinLayer::noise,不经 SoA 向量化。
+     * 数值与 getValue bit-exact(两者都复刻原循环顺序)。
+     */
+    [[nodiscard]] f64 getValueScalar(f64 x, f64 y, f64 z) const;
+
+    /**
      * @brief 采样带涂抹效果的 3D 噪声值
      *
      * 参考 MC 1.21.11: BlendedNoise 使用 ImprovedNoise.noise(x, y, z, yOffset, y)

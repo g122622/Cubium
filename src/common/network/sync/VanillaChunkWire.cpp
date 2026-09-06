@@ -351,10 +351,10 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
 
         // states:导出 4096 个 stateId → globalId → 打包
         {
+            const std::vector<u32> flat = section->blockStates().toFlat();
             std::vector<u32> globalIds(static_cast<size_t>(ChunkSection::VOLUME), 0);
             for (int i = 0; i < ChunkSection::VOLUME; ++i) {
-                const u32 stateId = section->blockStates().get(i);
-                globalIds[static_cast<size_t>(i)] = blockStateMap.toJavaGlobalId(stateId);
+                globalIds[static_cast<size_t>(i)] = blockStateMap.toJavaGlobalId(flat[static_cast<size_t>(i)]);
             }
             sw.states = packPalettedContainer(globalIds.data(), ChunkSection::VOLUME, true);
         }

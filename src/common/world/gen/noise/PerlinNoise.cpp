@@ -388,6 +388,29 @@ f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
     return result;
 }
 
+f64 PerlinNoise::getValueScalar(f64 x, f64 y, f64 z) const
+{
+    // 纯标量路径:逐层调用 PerlinLayer::noise,不经 SoA 向量化。
+    // 数值与 getValue bit-exact(两者都复刻原循环顺序)。
+    f64 result = 0.0;
+    f64 inputFactor = m_lowestFreqInputFactor;
+    f64 valueFactor = m_lowestFreqValueFactor;
+
+    for (size_t i = 0; i < m_layers.size(); ++i) {
+        if (m_layers[i] != nullptr) {
+            const f64 amplitude = m_amplitudes[i];
+            const f64 nx = wrap(x * inputFactor);
+            const f64 ny = wrap(y * inputFactor);
+            const f64 nz = wrap(z * inputFactor);
+            result += amplitude * m_layers[i]->noise(nx, ny, nz) * valueFactor;
+        }
+        inputFactor *= 2.0;
+        valueFactor /= 2.0;
+    }
+
+    return result;
+}
+
 f64 PerlinNoise::wrap(f64 value)
 {
     // 2^25 = 33554432.0，防止大坐标精度丢失
