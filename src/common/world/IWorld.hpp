@@ -1929,6 +1929,28 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界实体死亡
+     *
+     * 当实体死亡时调用，用于触发进度检测（如玩家击杀怪物/动物）。
+     * ServerWorld 重写此方法来发布 EntityDeathEvent / PlayerKillEntityEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC: CriteriaTriggers.PLAYER_KILLED_ENTITY / ENTITY_KILLED_PLAYER
+     * 触发场景：玩家击杀怪物/动物、玩家被实体击杀
+     *
+     * @param entity 死亡的实体
+     * @param killer 击杀者（可能为null）
+     * @param cause 死亡原因（DamageSource）
+     */
+    virtual void onEntityDeath(Entity* entity, Entity* killer, const DamageSource* cause)
+    {
+        (void)entity;
+        (void)killer;
+        (void)cause;
+        // 默认空实现
+    }
+
     // ========== 结构定位 ==========
 
     /**

@@ -586,6 +586,12 @@ void ClientEntity::triggerHurtAnimation()
     m_hurtTime = 10;
 }
 
+void ClientEntity::triggerDeathAnimation()
+{
+    // 死亡动画启动：deathTime 从 0 开始递增，渲染管线据此插值倒地动画。
+    m_deathTime = 0;
+}
+
 void ClientEntity::triggerLeaveBedAnimation()
 {
     m_sleeping = false;
@@ -624,6 +630,11 @@ void ClientEntity::tick()
     // 更新受伤时间
     if (m_hurtTime > 0) {
         --m_hurtTime;
+    }
+
+    // 更新死亡时间：deathTime 从 0 递增至 20 后停止（20 tick = 1 秒倒地动画）。
+    if (m_deathTime > 0 && m_deathTime < 20) {
+        ++m_deathTime;
     }
 
     // 更新追踪位置系统

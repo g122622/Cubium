@@ -1800,6 +1800,39 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     entityPos = glm::vec3(entity->x(), entity->y(), entity->z());
                 }
                 switch (status) {
+                    case static_cast<u8>(EntityStatus::Hurt): {
+                        // 受击反馈：设置客户端 hurtTime=10 触发红色闪烁
+                        if (entity != nullptr) {
+                            entity->triggerHurtAnimation();
+                        }
+                        break;
+                    }
+                    case static_cast<u8>(EntityStatus::Death): {
+                        // 死亡倒地动画：启动客户端 deathTime 本地递增（非玩家实体）
+                        if (entity != nullptr) {
+                            entity->triggerDeathAnimation();
+                        }
+                        break;
+                    }
+                    case static_cast<u8>(EntityStatus::MobPoof): {
+                        // 生物消散烟雾粒子（tickDeath 满 20 tick 时广播）
+                        if (m_app.m_world.particleManager() != nullptr) {
+                            f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
+                            f32 entityHeight = entity != nullptr ? entity->height() : 1.8f;
+                            for (i32 i = 0; i < 20; ++i) {
+                                f32 rx = (m_app.m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                                f32 ry = m_app.m_random.nextFloat() * entityHeight;
+                                f32 rz = (m_app.m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                                glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.5f, ry * 0.5f, rz * 0.5f);
+                                glm::vec3 velocity(m_app.m_random.nextGaussian(0.0f, 0.02f),
+                                    m_app.m_random.nextGaussian(0.0f, 0.02f),
+                                    m_app.m_random.nextGaussian(0.0f, 0.02f));
+                                m_app.m_world.particleManager()->addPendingParticle(
+                                    ::mc::particle::ParticleTypeId::Poof, particlePos, velocity, &m_app.m_world);
+                            }
+                        }
+                        break;
+                    }
                     case static_cast<u8>(EntityStatus::GuardianAttack): {
                         if (m_app.m_audioService) {
                             m_app.m_audioService->onGuardianAttack(entityId);

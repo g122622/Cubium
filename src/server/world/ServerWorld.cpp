@@ -2882,6 +2882,22 @@ void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
     event::ServerEventBus::instance().publish(summonEvent);
 }
 
+void ServerWorld::onEntityDeath(Entity* entity, Entity* killer, const DamageSource* cause)
+{
+    // 发布 EntityDeathEvent（通用死亡事件，用于成就/进度/日志等订阅者）
+    event::EntityDeathEvent deathEvent{currentTick(), entity, killer, cause};
+    event::ServerEventBus::instance().publish(deathEvent);
+
+    // 若击杀者为玩家，额外发布 PlayerKillEntityEvent
+    // （对齐 MC CriteriaTriggers.PLAYER_KILLED_ENTITY，用于玩家击杀进度触发）
+    if (killer != nullptr) {
+        if (auto* player = dynamic_cast<Player*>(killer)) {
+            event::PlayerKillEntityEvent killEvent{currentTick(), player->playerId(), entity, cause};
+            event::ServerEventBus::instance().publish(killEvent);
+        }
+    }
+}
+
 // ============================================================================
 // 结构定位（算法已下沉至 structure::StructureLocator，此处仅虚分发委托）
 // ============================================================================

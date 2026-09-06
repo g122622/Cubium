@@ -274,6 +274,21 @@ public:
     void indicateDamage(f64 d0, f64 d1) override;
 
     /**
+     * @brief 玩家死亡处理（重写 Player 基类）
+     *
+     * 对齐 MC Java 1.21.11 ServerPlayer.die（ServerPlayer.java:879-939）。
+     * 玩家死亡需额外处理：
+     * - SHOW_DEATH_MESSAGES 游戏规则检查，发送死亡消息
+     * - FORGIVE_DEAD_PLAYERS 游戏规则检查，通知中立生物
+     * - 死亡统计递增（DEATHS）+ 重置计时统计（TIME_SINCE_DEATH/TIME_SINCE_REST）
+     * - 清除火焰 + 重置冰冻
+     * - 记录最后死亡位置
+     *
+     * @param cause 死亡原因
+     */
+    void die(DamageSource& cause) override;
+
+    /**
      * @brief 攻击实体（重写 Player 基类）
      *
      * 旁观者模式下，攻击实体等同于设置旁观目标（调用 setCamera）。

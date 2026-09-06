@@ -680,9 +680,10 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
 void LivingEntity::die(DamageSource& cause)
 {
     if (!isDead()) {
-        return; // 已经死亡，避免重复执行
+        return; // 已经死亡，避免重复执行（等价 vanilla !this.dead 守卫）
     }
 
+    // 重置服务端死亡计时器，tickDeath 据此递增驱动 20 tick 死亡动画。
     if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
         c->m_deathTime = 0;
     }
@@ -691,12 +692,64 @@ void LivingEntity::die(DamageSource& cause)
     // 避免实体死亡后属性修饰符残留
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    // 死亡掉落（对齐 MC Java 1.21.11 LivingEntity.die → dropAllDeathLoot，
-    // LivingEntity.java:1452/1484-1493）：统一编排物品掉落表 + 自定义掉落 + 装备 + 经验。
-    // dropAllDeathLoot 内部按 shouldDropLoot(doMobLoot 守卫) 决定物品是否掉落，
-    // 经验/装备在守卫之外（vanilla 同样在守卫外）。修复前 die() 仅掉经验，物品掉落链路
-    // （dropFromLootTable）整体缺失，致普通生物死亡无任何物品掉落。
-    dropAllDeathLoot(cause);
+    // 对齐 MC Java 1.21.11 LivingEntity.die（LivingEntity.java:1430-1461）。
+    // vanilla 步骤：getKillCredit→awardKillScore、stopSleeping、stopUsingItem、
+    // 命名实体死亡日志、dead=true、getCombatTracker().recheckStatus()、
+    // killedEntity 守卫内 gameEvent(ENTITY_DIE)+dropAllDeathLoot+createWitherRose、
+    // broadcastEntityState((byte)3)、setPose(DYING)。
+    // 以下按原版顺序补全，Cubium 暂未实现的部分加 TODO 标注，不阻塞主死亡链路。
+
+    // 1. getKillCredit → awardKillScore（LivingEntity.java:1433-1435）
+    // TODO: Cubium 暂未实现 getKillCredit() 与 awardKillScore()。
+    //       击杀记分需补 CombatTracker::getBestAttacker() 取击杀者 + Scoreboard 准则递增。
+
+    // 2. stopSleeping（LivingEntity.java:1438-1439）
+    // TODO: isSleeping()/stopSleeping() 在 Cubium 中仅 Player 子类实现，
+    //       LivingEntity 基类无此方法。待 LivingEntity 引入睡眠状态后补此调用。
+
+    // 3. stopUsingItem（LivingEntity.java:1442）
+    //    Cubium 等价方法为 stopActiveHand()。
+    stopActiveHand();
+
+    // 4. 命名实体死亡日志（LivingEntity.java:1443-1445）
+    if (m_world != nullptr && !m_world->isClientSide() && hasCustomName()) {
+        // TODO: 接入 spdlog 输出 "Named entity {} died: {}"
+    }
+
+    // 5. dead = true（LivingEntity.java:1447）
+    //    Cubium 以 m_removed 语义承载，isDead() 由 health<=0 判定，此处无需额外标记。
+
+    // 6. getCombatTracker().recheckStatus()（LivingEntity.java:1448）
+    // TODO: CombatTracker 未实现 recheckStatus()，待补该方法（重新计算最佳伤害条目并标记战斗结束）。
+
+    // 7. killedEntity 守卫内：gameEvent(ENTITY_DIE) + dropAllDeathLoot + createWitherRose
+    //    （LivingEntity.java:1449-1454）
+    if (m_world != nullptr) {
+        // gameEvent(ENTITY_DIE)（LivingEntity.java:1451）
+        // TODO: Cubium 的 gameEvent 便捷方法尚未在 LivingEntity 引入，待补 gameEvent(event) 成员后替换为便捷调用。
+        m_world->gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos(), gameevent::GameEvent::Context::of(this));
+
+        // dropAllDeathLoot（LivingEntity.java:1452）
+        // dropAllDeathLoot 内部按 shouldDropLoot(doMobLoot 守卫) 决定物品是否掉落，
+        // 经验/装备在守卫之外（vanilla 同样在守卫外）。
+        dropAllDeathLoot(cause);
+
+        // createWitherRose（LivingEntity.java:1453）
+        // TODO: Cubium 未实现 createWitherRose()，待补凋零玫瑰生成逻辑。
+
+        // 8. broadcastEntityState((byte)3)（LivingEntity.java:1456）
+        //    服务端广播 EntityEvent(Death=3)，客户端收到后启动死亡倒地动画。
+        m_world->broadcastEntityStatus(m_id, static_cast<u8>(network::EntityStatus::Death));
+
+        // 9. 通知世界实体死亡（触发进度检测 / 事件发布）。
+        //    参考 MC: LivingEntity.die 末尾由子类/世界触发 CriteriaTriggers。
+        //    killer 取 CombatTracker::getBestAttacker()（最佳伤害条目的攻击者）。
+        Entity* killer = m_combatTracker.getBestAttacker();
+        m_world->onEntityDeath(this, killer, &cause);
+    }
+
+    // 9. setPose(Pose.DYING)（LivingEntity.java:1459）
+    setPose(EntityPose::Dying);
 }
 
 void LivingEntity::dropAllDeathLoot(DamageSource& cause)
@@ -1615,6 +1668,10 @@ void LivingEntity::tickDeath()
 
     // 死亡动画（20 ticks = 1 秒）
     if (c->m_deathTime >= 20) {
+        // 广播 MobPoof(60)，客户端收到后对生物生成消散烟雾粒子。
+        if (m_world != nullptr) {
+            m_world->broadcastEntityStatus(m_id, static_cast<u8>(network::EntityStatus::MobPoof));
+        }
         remove(); // 移除实体
     }
 }

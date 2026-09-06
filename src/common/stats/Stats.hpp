@@ -126,6 +126,8 @@ inline constexpr const char* TARGET_HIT = "minecraft:target_hit";
 inline constexpr const char* ENCHANT_ITEM = "minecraft:enchant_item";
 /// 离开游戏
 inline constexpr const char* LEAVE_GAME = "minecraft:leave_game";
+/// 死亡次数
+inline constexpr const char* DEATHS = "minecraft:deaths";
 
 // ========== 时间/距离统计 ==========
 

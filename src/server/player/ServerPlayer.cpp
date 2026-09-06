@@ -40,6 +40,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -985,6 +986,82 @@ void ServerPlayer::indicateDamage(f64 d0, f64 d1)
     if (m_world != nullptr) {
         m_world->broadcastHurtAnimation(m_id, m_hurtDir);
     }
+}
+
+void ServerPlayer::die(DamageSource& cause)
+{
+    // 对齐 MC Java 1.21.11 ServerPlayer.die（ServerPlayer.java:879-939）。
+    // 玩家死亡需在 LivingEntity::die 通用逻辑之上，补充玩家特有处理：
+    // 死亡消息广播、统计更新、状态清除、最后死亡位置记录。
+    // 通用死亡逻辑（gameEvent(ENTITY_DIE)、dropAllDeathLoot、broadcastEntityState(3)、
+    // setPose(DYING)、clearFire、setLastDeathLocation）由 Player::die → LivingEntity::die 承载。
+
+    // 1. gameEvent(ENTITY_DIE) + dropAllDeathLoot + broadcastEntityState(3) + setPose(DYING)
+    //    + clearFire + setLastDeathLocation（由 Player::die → LivingEntity::die 完成）
+    Player::die(cause);
+
+    // 2. SHOW_DEATH_MESSAGES 游戏规则检查（ServerPlayer.java:881-910）
+    if (m_world != nullptr) {
+        const bool showDeathMessages =
+            m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SHOW_DEATH_MESSAGES);
+
+        // 死亡消息：从 CombatTracker 取 getDeathMessage()。
+        std::string deathMessage = combatTracker().getDeathMessage();
+
+        if (showDeathMessages) {
+            // TODO: 发送 ClientboundPlayerCombatKillPacket（玩家死亡画面驱动包）。
+            //       当前 Cubium 未实现该 IR 包（player_combat_kill 协议已登记但 IR/codec/消费端全缺）。
+            //       玩家死亡画面（DeathScreen）因此无法显示，待 IR 包与客户端 DeathScreen 落地后补。
+
+            // TODO: 按队伍可见性（ALWAYS/HIDE_FOR_OTHER_TEAMS/HIDE_FOR_OWN_TEAM）广播 SystemChat 死亡消息。
+            //       Cubium 无 PlayerList::broadcastSystemMessage，需通过 getServer()->forEachPlayer(...)
+            //       遍历在线玩家，对每个 ServerPlayer 调 sendSystemMessage(deathMessage)。
+            //       队伍死亡消息可见性（Team.Visibility）逻辑待补。
+        } else {
+            // showDeathMessages=false：不广播死亡消息。
+            // TODO: 仍需发送 ClientboundPlayerCombatKillPacket(this.getId(), EMPTY) 触发客户端死亡画面。
+        }
+    }
+
+    // 3. removeEntitiesOnShoulder()（ServerPlayer.java:912）
+    // TODO: Cubium Player 有肩部鹦鹉 DataParameter，但未实现 removeEntitiesOnShoulder()。
+
+    // 4. FORGIVE_DEAD_PLAYERS → tellNeutralMobsThatIDied()（ServerPlayer.java:913-915）
+    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FORGIVE_DEAD_PLAYERS)) {
+        // TODO: 实现 tellNeutralMobsThatIDied()：遍历 32×10×32 范围内 NeutralMob，
+        //       调 playerDied(level, this) 让中立生物原谅本玩家。
+        //       Cubium NeutralMob 接口未实现，待补。
+    }
+
+    // 5. dropAllDeathLoot 已由 LivingEntity::die 处理（ServerPlayer.java:918 在基类处理）
+
+    // 6. forAllObjectives(DEATH_COUNT)（ServerPlayer.java:921）
+    // TODO: 记分板 DEATH_COUNT 准则递增。Cubium 记分板 API 与原版差异较大，待补。
+
+    // 7. getKillCredit() → awardStat(ENTITY_KILLED_BY) + awardKillScore + createWitherRose
+    //    （ServerPlayer.java:922-927）
+    // TODO: Cubium 未实现 getKillCredit()、awardKillScore()、createWitherRose()。
+
+    // 8. broadcastEntityState((byte)3) 已由 LivingEntity::die 处理（ServerPlayer.java:929 在基类处理）
+
+    // 9. awardStat(DEATHS) + resetStat(TIME_SINCE_DEATH) + resetStat(TIME_SINCE_REST)
+    //    （ServerPlayer.java:930-932）
+    m_statistics.incrementCustom(ResourceLocation(stats::DEATHS));
+    m_statistics.reset(server::stats::StatType::Custom, ResourceLocation(stats::TIME_SINCE_DEATH));
+    m_statistics.reset(server::stats::StatType::Custom, ResourceLocation(stats::TIME_SINCE_REST));
+
+    // 10. clearFire() + setTicksFrozen(0) + setSharedFlagOnFire(false)（ServerPlayer.java:933-935）
+    //     clearFire 已由 Player::die 处理；此处补充冰冻重置。
+    setTicksFrozen(0);
+    // TODO: setSharedFlagOnFire(false) — Cubium 无 setSharedFlag，等价 removeFlag(EntityFlags::OnFire)。
+
+    // 11. getCombatTracker().recheckStatus()（ServerPlayer.java:936）
+    // TODO: CombatTracker 未实现 recheckStatus()，待补该方法。
+
+    // 12. setLastDeathLocation 已由 Player::die 处理（ServerPlayer.java:937 在基类处理）
+
+    // 13. connection.markClientUnloadedAfterDeath()（ServerPlayer.java:938）
+    // TODO: Cubium ServerClientConnection 未实现 markClientUnloadedAfterDeath()。
 }
 
 void ServerPlayer::attack(Entity& target)

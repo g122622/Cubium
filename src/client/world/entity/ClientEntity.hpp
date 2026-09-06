@@ -638,6 +638,14 @@ public:
     void triggerHurtAnimation();
 
     /**
+     * @brief 触发死亡动画
+     *
+     * 设置 m_deathTime = 0 并启动本地递增（每 tick +1，直至 20）。
+     * 由 EntityEvent(Death=3) 驱动，渲染管线读取 deathTime 实现倒地动画插值。
+     */
+    void triggerDeathAnimation();
+
+    /**
      * @brief 触发起床动画
      * 清除睡眠状态
      */

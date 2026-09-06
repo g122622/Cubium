@@ -1422,6 +1422,18 @@ public:
      */
     void onSummonedEntity(PlayerId playerId, Entity* entity) override;
 
+    /**
+     * @brief 通知世界实体死亡
+     *
+     * 重写 IWorld::onEntityDeath()，发布 EntityDeathEvent（通用）；
+     * 若击杀者为玩家，额外发布 PlayerKillEntityEvent（用于玩家击杀进度触发）。
+     *
+     * @param entity 死亡的实体
+     * @param killer 击杀者（可能为null）
+     * @param cause 死亡原因（DamageSource）
+     */
+    void onEntityDeath(Entity* entity, Entity* killer, const DamageSource* cause) override;
+
     // ========== 结构定位 ==========
 
     /**
