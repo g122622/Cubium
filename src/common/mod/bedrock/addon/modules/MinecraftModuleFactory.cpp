@@ -667,6 +667,36 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         },
         0);
 
+    // Dimension.getBlock(location: Vector3): Block | undefined。
+    // 对齐基岩官方 @minecraft/server API Dimension.getBlock(location)。
+    // 按 location 经 IWorld::getBlockState(pos) 取 const BlockState*，再 wrapBlock 包装为 Block JS 对象。
+    // location 参数为世界绝对坐标 {x,y,z}（整数），非结构相对坐标。
+    // 方块不存在（air 或越界）返 undefined（对齐官方 getBlock 在 unloaded chunk 返 undefined 语义）。
+    dimensionReg.method(
+        "getBlock",
+        [dimensionClassId](IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
+            auto* world = static_cast<mc::IWorld*>(ScriptObjectRegistry::unwrap(ctx, thisVal, dimensionClassId));
+            if (world == nullptr) {
+                return ctx.createUndefined();
+            }
+            if (argc < 1 || !ctx.isObject(args[0])) {
+                return ctx.throwTypeError("Dimension.getBlock requires a {x,y,z} location argument");
+            }
+            auto xOpt = ctx.getPropertyInt(args[0], "x");
+            auto yOpt = ctx.getPropertyInt(args[0], "y");
+            auto zOpt = ctx.getPropertyInt(args[0], "z");
+            if (!xOpt || !yOpt || !zOpt) {
+                return ctx.throwTypeError("Dimension.getBlock location must have numeric x,y,z");
+            }
+            BlockPos pos(static_cast<i32>(*xOpt), static_cast<i32>(*yOpt), static_cast<i32>(*zOpt));
+            const mc::BlockState* state = world->getBlockState(pos);
+            if (state == nullptr) {
+                return ctx.createUndefined();
+            }
+            return mc::mod::bedrock::addon::wrapBlock(ctx, state, pos, world);
+        },
+        1);
+
     // --- WorldBorder类 ---
     // opaque 持 mc::IWorld*（非拥有，世界由服务器管理）。world.getWorldBorder() wrap 主世界 IWorld*。
     // 属性每次从 IWorld::worldBorder() 取最新值（WorldBorder 是 common 层类型，IWorld::worldBorder() 是

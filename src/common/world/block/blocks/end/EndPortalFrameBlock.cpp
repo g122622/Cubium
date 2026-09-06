@@ -77,8 +77,11 @@ Direction EndPortalFrameBlock::getFacing(const BlockState& state) const noexcept
 
 BlockState EndPortalFrameBlock::getStateForPlacement(BlockItemUseContext& context)
 {
+    // 对齐 vanilla EndPortalFrameBlock.getStateForPlacement：
+    //   defaultBlockState().setValue(FACING, ctx.getHorizontalDirection().getOpposite()).setValue(HAS_EYE, false)
+    // 即框架 FACING 朝向玩家面朝方向的反方向。
     Direction facing = context.horizontalDirection();
-    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    return defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing));
 }
 
 const BlockState& EndPortalFrameBlock::rotate(const BlockState& state, Rotation rotation) const noexcept

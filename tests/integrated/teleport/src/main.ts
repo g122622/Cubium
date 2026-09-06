@@ -19,6 +19,9 @@ import { registerNetherPortalCoordinateScaleTests } from "./tests/cross_dimensio
 import { registerEndPortalPlatformTests } from "./tests/cross_dimension/EndPortalPlatformTests.js";
 import { registerPortalCooldownTests } from "./tests/cross_dimension/PortalCooldownTests.js";
 import { registerEntityCrossDimensionTests } from "./tests/cross_dimension/EntityCrossDimensionTests.js";
+import { registerEndPortalFrameStateTests } from "./tests/cross_dimension/EndPortalFrameStateTests.js";
+import { registerEndPortalBlockBehaviorTests } from "./tests/cross_dimension/EndPortalBlockBehaviorTests.js";
+import { registerNetherPortalBlockBehaviorTests } from "./tests/cross_dimension/NetherPortalBlockBehaviorTests.js";
 
 registerNetherPortalTests();
 registerEndPortalTests();
@@ -30,3 +33,6 @@ registerNetherPortalCoordinateScaleTests();
 registerEndPortalPlatformTests();
 registerPortalCooldownTests();
 registerEntityCrossDimensionTests();
+registerEndPortalFrameStateTests();
+registerEndPortalBlockBehaviorTests();
+registerNetherPortalBlockBehaviorTests();
