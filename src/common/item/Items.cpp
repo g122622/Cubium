@@ -1077,7 +1077,7 @@ Item* Items::SNIFFER_EGG = nullptr;
 Item* Items::CHORUS_FLOWER = nullptr;
 
 // 红石方块
-// 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
+// 注意：红石粉物品（REDSTONE）是 BlockItem，放置时变成 REDSTONE_WIRE 方块
 Item* Items::REDSTONE_TORCH = nullptr;
 Item* Items::REDSTONE_LAMP = nullptr;
 Item* Items::REDSTONE_REPEATER = nullptr;
@@ -1649,8 +1649,10 @@ void Items::_registerMaterials()
 
     CHARCOAL = &registry.registerItem(ResourceLocation("minecraft:charcoal"), ItemProperties().maxStackSize(64));
 
-    // 红石相关
-    REDSTONE = &registry.registerItem(ResourceLocation("minecraft:redstone"), ItemProperties().maxStackSize(64));
+    // 红石相关：红石粉物品是 BlockItem，放置时变成 REDSTONE_WIRE 方块。
+    // 物品 id 为 minecraft:redstone，方块 id 为 minecraft:redstone_wire（两者不同，vanilla 即如此）。
+    REDSTONE = &registry.registerItem<mc::BlockItem>(
+        ResourceLocation("minecraft:redstone"), *VanillaBlocks::REDSTONE_WIRE, ItemProperties().maxStackSize(64));
 
     LAPIS_LAZULI =
         &registry.registerItem(ResourceLocation("minecraft:lapis_lazuli"), ItemProperties().maxStackSize(64));
@@ -4295,8 +4297,8 @@ void Items::_registerRedstone()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 注意：REDSTONE_WIRE 没有独立的物品，因为玩家持有的是 REDSTONE 物品
-    // 红石粉放在地上时变成 REDSTONE_WIRE 方块
+    // 注意：红石粉物品（REDSTONE）是 BlockItem，放置时变成 REDSTONE_WIRE 方块
+    // （REDSTONE 在 _registerMaterials() 中注册为 BlockItem，此处仅注册其他红石物品）
     REDSTONE_TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:redstone_torch"),
         *VanillaBlocks::REDSTONE_TORCH,
         *VanillaBlocks::REDSTONE_WALL_TORCH,

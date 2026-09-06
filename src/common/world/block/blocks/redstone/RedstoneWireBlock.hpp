@@ -66,6 +66,19 @@ public:
 
     // ========== Block 接口实现 ==========
 
+    /**
+     * @brief 检查放置位置是否有效（对齐 vanilla RedStoneWireBlock#canSurvive）
+     *
+     * 红石线只能放在顶面 sturdy 的方块或漏斗上。
+     *
+     * @param state 方块状态
+     * @param world 世界读取器
+     * @param pos 方块位置
+     * @return 如果可以放置返回 true
+     */
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
@@ -210,6 +223,18 @@ public:
         const BlockRaycastResult& hit) override;
 
 private:
+    /**
+     * @brief 检查指定位置下方是否足以支撑红石线（对齐 vanilla canSurviveOn）
+     *
+     * 抽取为接受 IWorld& 的私有方法，供 isValidPosition（IBlockReader&）
+     * 与 updatePostPlacement（IWorld&）共用，避免向下转型。
+     *
+     * @param world 世界引用
+     * @param pos 红石线位置
+     * @return 如果下方为 solid top surface 或漏斗返回 true
+     */
+    [[nodiscard]] bool _canSurviveAt(IWorld& world, const BlockPos& pos) const;
+
     /**
      * @brief 计算输入信号强度
      */

@@ -39,6 +39,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -171,6 +173,27 @@ bool RedstoneWireBlock::canConnectTo(const BlockState& state, Direction side)
     return block.canConnectRedstone(state, side);
 }
 
+bool RedstoneWireBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    // IBlockReader 继承自 IWorld，可隐式向上转换为 IWorld& 传入 _canSurviveAt
+    return _canSurviveAt(world, pos);
+}
+
+bool RedstoneWireBlock::_canSurviveAt(IWorld& world, const BlockPos& pos) const
+{
+    // 对齐 vanilla RedStoneWireBlock#canSurvive：检查下方方块是否为 solid top surface 或漏斗
+    const BlockPos below = pos.down();
+    const BlockState* belowState = world.getBlockState(below);
+    if (belowState == nullptr) {
+        return false;
+    }
+    // vanilla canSurviveOn: isFaceSturdy(world, below, Direction.UP, SupportType.CENTER)
+    //                      || state.is(Blocks.HOPPER)
+    return belowState->isFaceSturdy(world, below, Direction::Up, SupportType::Center) ||
+        belowState->is(VanillaBlocks::HOPPER);
+}
+
 BlockState RedstoneWireBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -180,6 +203,17 @@ BlockState RedstoneWireBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
+
+    // 对齐 vanilla RedStoneWireBlock#updateShape(Direction.DOWN)：
+    // 下方支撑方块变化时，若不再满足 canSurvive，则红石线变 AIR（由调用方移除并掉落）。
+    if (facing == Direction::Down) {
+        if (!_canSurviveAt(world, currentPos)) {
+            if (const BlockState* air = BlockRegistry::instance().airState(); air != nullptr) {
+                return *air;
+            }
+        }
+        return state;
+    }
 
     // 只有水平方向影响连接状态
     if (!Directions::isHorizontal(facing)) {

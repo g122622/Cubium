@@ -1171,7 +1171,10 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR, "waxed_oxidized_copper_trapdoor");
 
     // 红石方块
-    // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
+    // 红石粉物品（minecraft:redstone，BlockItem）放置时变成 REDSTONE_WIRE 方块。
+    // registerSimpleBlock 会检测到 minecraft:redstone 已由 Items.cpp 注册为 BlockItem，
+    // 直接复用并建立 REDSTONE_WIRE 方块 -> minecraft:redstone 物品的映射。
+    registerSimpleBlock(VanillaBlocks::REDSTONE_WIRE, "redstone");
     // REDSTONE_BLOCK 已在矿物方块中注册
     registerSimpleBlock(VanillaBlocks::TORCH, "torch");
     // 墙上变体映射到同一物品
