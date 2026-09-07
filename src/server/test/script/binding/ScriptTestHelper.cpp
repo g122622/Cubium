@@ -540,10 +540,25 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             // gameMode 位置随 name 是否省略而后移：name 提供时 gameMode 在 args[2]，省略时在 args[1]。
             // 对齐基岩：基岩按形参位置匹配，省略 name 时 gameMode 仍在第 2 个槽位（args[1]）。
             i32 gameModeIdx = (argc >= 2 && ctx.isString(args[1])) ? 2 : 1;
-            if (argc > gameModeIdx && ctx.isNumber(args[gameModeIdx])) {
-                auto gm = ctx.toInt32(args[gameModeIdx]);
-                if (gm) {
-                    gameMode = static_cast<mc::GameMode>(*gm);
+            if (argc > gameModeIdx) {
+                // 官方 GameMode 是字符串枚举（"survival"/"creative"/"adventure"/"spectator"）。
+                // 优先按字符串枚举值解析；若传数字则按数字解析（向后兼容旧测试）。
+                if (ctx.isString(args[gameModeIdx])) {
+                    auto gmStr = ctx.toString(args[gameModeIdx]);
+                    if (gmStr == "survival") {
+                        gameMode = mc::GameMode::Survival;
+                    } else if (gmStr == "creative") {
+                        gameMode = mc::GameMode::Creative;
+                    } else if (gmStr == "adventure") {
+                        gameMode = mc::GameMode::Adventure;
+                    } else if (gmStr == "spectator") {
+                        gameMode = mc::GameMode::Spectator;
+                    }
+                } else if (ctx.isNumber(args[gameModeIdx])) {
+                    auto gm = ctx.toInt32(args[gameModeIdx]);
+                    if (gm) {
+                        gameMode = static_cast<mc::GameMode>(*gm);
+                    }
                 }
             }
             SimulatedPlayer* player = nullptr;

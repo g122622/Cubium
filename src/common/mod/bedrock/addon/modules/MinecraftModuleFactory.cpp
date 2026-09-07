@@ -3300,6 +3300,21 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     builder.exportConst("GameModeAdventure", 2);
     builder.exportConst("GameModeSpectator", 3);
 
+    // --- GameMode 枚举对象（@minecraft/server）---
+    // 官方 GameMode 是字符串枚举（adventure="adventure"...survival="survival"），非数字。
+    // 导出为只读对象，各键值均为自身字符串名（对齐 Direction 枚举对象导出模式）。
+    // 接收 JS GameMode 字符串时绑定层用 gameModeFromApiString 转 mc::GameMode
+    // （见 ScriptTestHelper::spawnSimulatedPlayer 等）。
+    {
+        void* gameModeObj = ctx.createObject();
+        ctx.setPropertyString(gameModeObj, "adventure", "adventure");
+        ctx.setPropertyString(gameModeObj, "creative", "creative");
+        ctx.setPropertyString(gameModeObj, "spectator", "spectator");
+        ctx.setPropertyString(gameModeObj, "survival", "survival");
+        builder.exportValue("GameMode", gameModeObj);
+        ctx.releaseValue(gameModeObj);
+    }
+
     builder.exportConstString("MinecraftDimensionTypesOverworld", "minecraft:overworld");
     builder.exportConstString("MinecraftDimensionTypesNether", "minecraft:nether");
     builder.exportConstString("MinecraftDimensionTypesTheEnd", "minecraft:the_end");

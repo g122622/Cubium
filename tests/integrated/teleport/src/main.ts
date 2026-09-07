@@ -22,6 +22,7 @@ import { registerEntityCrossDimensionTests } from "./tests/cross_dimension/Entit
 import { registerEndPortalFrameStateTests } from "./tests/cross_dimension/EndPortalFrameStateTests.js";
 import { registerEndPortalBlockBehaviorTests } from "./tests/cross_dimension/EndPortalBlockBehaviorTests.js";
 import { registerNetherPortalBlockBehaviorTests } from "./tests/cross_dimension/NetherPortalBlockBehaviorTests.js";
+import { registerEnderEyeItemTests } from "./tests/cross_dimension/EnderEyeItemTests.js";
 
 registerNetherPortalTests();
 registerEndPortalTests();
@@ -36,3 +37,4 @@ registerEntityCrossDimensionTests();
 registerEndPortalFrameStateTests();
 registerEndPortalBlockBehaviorTests();
 registerNetherPortalBlockBehaviorTests();
+registerEnderEyeItemTests();
