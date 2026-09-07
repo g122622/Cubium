@@ -40,12 +40,13 @@ class BlockState;
  * 包含检测到的传送门的位置和尺寸信息。
  */
 struct PortalSizeResult {
-    BlockPos corner;          ///< 传送门内部左下角位置
-    i32 width = 0;            ///< 内部宽度 (2-21)
-    i32 height = 0;           ///< 内部高度 (3-21)
-    Axis axis;                ///< 传送门轴向 (X 或 Z)
-    i32 portalBlockCount = 0; ///< 已存在的传送门方块数量
-    bool valid = false;       ///< 是否有效
+    BlockPos corner;                     ///< 传送门内部左下角位置
+    i32 width = 0;                       ///< 内部宽度 (2-21)
+    i32 height = 0;                      ///< 内部高度 (3-21)
+    Axis axis;                           ///< 传送门轴向 (X 或 Z)
+    Direction rightDir{Direction::None}; ///< 传送门"向右"延伸方向（createPortalBlocks 遍历方向）
+    i32 portalBlockCount = 0;            ///< 已存在的传送门方块数量
+    bool valid = false;                  ///< 是否有效
 
     /**
      * @brief 获取传送门内部所有方块位置

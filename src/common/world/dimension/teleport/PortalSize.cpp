@@ -50,14 +50,13 @@ std::vector<BlockPos> PortalSizeResult::getPortalBlocks() const
 
     blocks.reserve(static_cast<size_t>(width) * static_cast<size_t>(height));
 
-    // 根据轴向确定遍历方向
-    Direction widthDir = (axis == Axis::X) ? Direction::East : Direction::South;
-
+    // 对齐 Java PortalShape.createPortalBlocks：从 bottomLeft（corner）沿 rightDir 方向遍历内部方块。
+    // corner 是内部从 rightDir 方向数的第一格，故遍历方向必须是 rightDir（而非其 opposite）。
     for (i32 h = 0; h < height; ++h) {
         for (i32 w = 0; w < width; ++w) {
             BlockPos pos = corner;
             pos = pos.offset(Direction::Up, h);
-            pos = pos.offset(widthDir, w);
+            pos = pos.offset(rightDir, w);
             blocks.push_back(pos);
         }
     }
@@ -172,6 +171,7 @@ std::optional<PortalSizeResult> PortalSize::_tryFindPortalOnAxis(IWorld& world, 
     result.width = width;
     result.height = height;
     result.axis = axis;
+    result.rightDir = rightDir;
     result.portalBlockCount = portalBlockCount;
     result.valid = true;
     return result;

@@ -38,7 +38,7 @@ const BEDROCK_DIR = "D:/Minecraft/bedrock-server-1.26.43.1";
 const BEDROCK_EXE = path.join(BEDROCK_DIR, "bedrock_server.exe");
 const BEDROCK_WORLD_DIR = path.join(BEDROCK_DIR, "worlds", "gametest-diff");
 
-const CUBIUM_EXE = path.join(cubiumRoot, "build", "bin", "RelWithDebInfo", "minecraft-server.exe");
+const CUBIUM_EXE = path.join(cubiumRoot, "build", "bin", "RelWithDebInfo", process.platform === "win32" ? "minecraft-server.exe" : "minecraft-server");
 const PACKS_SRC = path.join(cubiumRoot, "tests", "integrated");
 
 const REPORT_DIR = path.join(cubiumRoot, "build");
