@@ -373,6 +373,13 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
     }
 }
 
+void ServerWorld::globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
+{
+    if (m_onBroadcastGlobalLevelEvent) {
+        m_onBroadcastGlobalLevelEvent(eventId, pos.x, pos.y, pos.z, data);
+    }
+}
+
 void ServerWorld::destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress)
 {
     if (m_onDestroyBlockProgress) {

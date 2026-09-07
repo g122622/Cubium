@@ -136,6 +136,25 @@ public:
     // ========== 世界事件 ==========
     void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
     void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
+
+    /**
+     * @brief 广播全局世界事件给全服所有玩家（跨维度）
+     *
+     * 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+     * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
+     * 遍历全服所有玩家，对每个玩家计算事件位置：
+     *   - 同维度且距离<32格：使用真实事件位置
+     *   - 同维度且距离>=32格：钳制到距玩家32格方向
+     *   - 不同维度：使用玩家自身位置
+     * 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
+     *
+     * @param eventId 事件ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param data 事件数据
+     */
+    void broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
     void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range = 64.0f);
     void broadcastBlockEntityInRange(
         const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range = 64.0f);

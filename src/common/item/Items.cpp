@@ -55,6 +55,7 @@
 #include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/items/special/EnderEyeItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/HarnessItem.hpp"
@@ -2525,7 +2526,8 @@ void Items::_registerMisc()
 
     // ENDER_PEARL 已在 registerThrowableItems() 中注册为 EnderPearlItem
 
-    ENDER_EYE = &registry.registerItem(ResourceLocation("minecraft:ender_eye"), ItemProperties().maxStackSize(64));
+    ENDER_EYE = &registry.registerItem<item::items::EnderEyeItem>(
+        ResourceLocation("minecraft:ender_eye"), ItemProperties().maxStackSize(64));
 
     NETHER_STAR = &registry.registerItem(
         ResourceLocation("minecraft:nether_star"), ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon));

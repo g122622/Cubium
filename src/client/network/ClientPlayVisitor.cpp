@@ -1785,6 +1785,12 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 const auto& p = pkt;
                 const BlockPos pos = BlockPos::fromLong(p.blockPosPacked);
                 m_app._handleWorldEvent(p.type, pos.x, pos.y, pos.z, p.data);
+                // TODO: 客户端目前不区分 globalEvent 标志，统一走 _handleWorldEvent。
+                //   原版客户端收到 globalEvent=true 的 LevelEvent 后，对 1023/1028/1038 三个全局事件
+                //   计算"相机到事件方向2格处"的位置播放本地声音，使全服玩家无论距离远近都能听到。
+                //   需扩展 _handleWorldEvent 签名以传入 globalEvent 标志，并在 switch 中补齐
+                //   case 1023 (WITHER_SPAWN_SOUND)、case 1028 (DRAGON_DEATH_SOUND)、
+                //   case 1038 (END_PORTAL_SPAWN_SOUND)。
                 return Result<void>::ok();
             }
             // ---- 实体状态事件（旧 onEntityStatus，switch 主体迁入）----

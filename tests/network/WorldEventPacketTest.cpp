@@ -137,7 +137,7 @@ TEST_F(WorldEventsTest, WitherSoundEvents)
 {
     // 凋灵相关音效事件
     EXPECT_EQ(WorldEvents::WITHER_BREAK_BLOCK_SOUND, 1022);
-    EXPECT_EQ(WorldEvents::WITHER_BREAK_BLOCK, 1023);
+    EXPECT_EQ(WorldEvents::WITHER_SPAWN_SOUND, 1023);
     EXPECT_EQ(WorldEvents::WITHER_SHOOT_SOUND, 1024);
 }
 

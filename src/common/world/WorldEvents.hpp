@@ -121,8 +121,9 @@ constexpr i32 ZOMBIE_BREAK_DOOR_WOOD_SOUND = 1021;
 /// 凋灵破坏方块音效
 constexpr i32 WITHER_BREAK_BLOCK_SOUND = 1022;
 
-/// 凋灵破坏方块
-constexpr i32 WITHER_BREAK_BLOCK = 1023;
+/// 凋灵生成音效（全服广播，globalLevelEvent）
+/// 参考: net.minecraft.world.level.block.LevelEvent.SOUND_WITHER_SPAWN
+constexpr i32 WITHER_SPAWN_SOUND = 1023;
 
 /// 凋灵射击音效
 constexpr i32 WITHER_SHOOT_SOUND = 1024;

@@ -31,6 +31,10 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/state/pattern/BlockInWorld.hpp"
+#include "common/world/block/state/pattern/BlockPattern.hpp"
+#include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -99,6 +103,61 @@ const BlockState& EndPortalFrameBlock::mirror(const BlockState& state, Mirror mi
 const CollisionShape& EndPortalFrameBlock::getShape(const BlockState& state) const noexcept
 {
     return hasEye(state) ? m_frameWithEyeShape : m_frameShape;
+}
+
+std::unique_ptr<blockpattern::BlockPattern> EndPortalFrameBlock::getOrCreatePortalShape()
+{
+    // 对应 MC Java: EndPortalFrameBlock.getOrCreatePortalShape()
+    //
+    // 模式布局（aisle 从上到下，每个字符串为一行）：
+    //   "?vvv?"
+    //   ">???<"
+    //   ">???<"
+    //   ">???<"
+    //   "?^^^?"
+    //
+    // 字符含义：
+    //   '?' - 任意方块（传送门内部和外围角落）
+    //   '^' - 含眼且朝向 SOUTH 的末地传送门框架
+    //   '>' - 含眼且朝向 WEST  的末地传送门框架
+    //   'v' - 含眼且朝向 NORTH 的末地传送门框架
+    //   '<' - 含眼且朝向 EAST  的末地传送门框架
+    //
+    // 匹配后 frontTopLeft() 返回左上角框架位置，传送门内部 3×3 区域从该位置开始。
+    using namespace blockpattern;
+
+    const Block* frameBlock = VanillaBlocks::END_PORTAL_FRAME;
+    // 注意：模式字符串 ">???<" 中的 "??<" 会被 C++ 编译器识别为 trigraph，
+    // 因此用相邻字符串字面量拼接（">???" "<"）来断开 trigraph 序列。
+    // 拼接在预处理 phase 3 完成，而 trigraph 替换在 phase 1，故拼接后的
+    // ">???<" 不会触发 trigraph 警告。
+    return BlockPatternBuilder::start()
+        .aisle({"?vvv?",
+            ">???"
+            "<",
+            ">???"
+            "<",
+            ">???"
+            "<",
+            "?^^^?"})
+        .where('?', BlockInWorld::hasState([](const BlockState&) { return true; }))
+        .where('^', BlockInWorld::hasState([frameBlock](const BlockState& s) {
+            return s.is(frameBlock) && s.get(BlockStateProperties::EYE()) &&
+                s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::South;
+        }))
+        .where('>', BlockInWorld::hasState([frameBlock](const BlockState& s) {
+            return s.is(frameBlock) && s.get(BlockStateProperties::EYE()) &&
+                s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::West;
+        }))
+        .where('v', BlockInWorld::hasState([frameBlock](const BlockState& s) {
+            return s.is(frameBlock) && s.get(BlockStateProperties::EYE()) &&
+                s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::North;
+        }))
+        .where('<', BlockInWorld::hasState([frameBlock](const BlockState& s) {
+            return s.is(frameBlock) && s.get(BlockStateProperties::EYE()) &&
+                s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::East;
+        }))
+        .build();
 }
 
 } // namespace blocks

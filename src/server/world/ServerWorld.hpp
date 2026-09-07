@@ -485,6 +485,8 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
 
+    void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+
     void destroyBlockProgress(EntityInstanceId breakerId, const BlockPos& pos, i32 progress) override;
 
     // ========== 游戏事件 ==========
@@ -688,6 +690,19 @@ public:
     using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastWorldEvent(WorldEventCallback callback) { m_onBroadcastWorldEvent = std::move(callback); }
+
+    /**
+     * @brief 全局世界事件广播回调类型
+     *
+     * 当服务端需要广播全局事件给全服玩家时调用（跨维度）。
+     * 参数：事件ID、位置x/y/z、数据
+     */
+    using GlobalLevelEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+
+    void setOnBroadcastGlobalLevelEvent(GlobalLevelEventCallback callback)
+    {
+        m_onBroadcastGlobalLevelEvent = std::move(callback);
+    }
 
     // ========== 方块事件广播回调 ==========
 
@@ -1559,6 +1574,7 @@ private:
     HurtAnimationCallback m_onBroadcastHurtAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
+    GlobalLevelEventCallback m_onBroadcastGlobalLevelEvent;
     BlockEventCallback m_onBroadcastBlockEvent;            ///< 方块事件广播回调
     BlockEntityBroadcastCallback m_onBroadcastBlockEntity; ///< 方块实体数据广播回调
     BlockBreakProgressCallback m_onDestroyBlockProgress;

@@ -617,6 +617,8 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
     });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    world.setOnBroadcastGlobalLevelEvent(
+        [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastGlobalLevelEvent(eventId, x, y, z, data); });
     world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId) {
         broadcastBlockEventInRange(x, y, z, paramA, paramB, blockId);
     });
@@ -2027,6 +2029,11 @@ void MinecraftServer::broadcastSetEntityLinkInRange(
 void MinecraftServer::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
 {
     m_broadcaster->broadcastWorldEvent(eventId, x, y, z, data);
+}
+
+void MinecraftServer::broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+{
+    m_broadcaster->broadcastGlobalLevelEvent(eventId, x, y, z, data);
 }
 
 void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range)
