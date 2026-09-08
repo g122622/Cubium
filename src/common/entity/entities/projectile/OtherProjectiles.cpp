@@ -1033,12 +1033,32 @@ void ShulkerBulletEntity::_setDirection(Direction dir)
 void ShulkerBulletEntity::tick()
 {
     auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
-    const Entity* target = (bullet != nullptr) ? bullet->m_target : nullptr;
+
+    // 校验目标缓存：m_target 是裸 Entity* 指针，目标实体销毁后会成为悬垂指针。
+    // 每次 tick 通过 m_targetUuid 重新查找目标实体并刷新缓存，避免后续 dynamic_cast
+    // 对悬垂指针操作导致 SIGSEGV。参照 EvokerFangsEntity::getOwner() 的双重追踪模式。
+    Entity* target = nullptr;
+    if (bullet != nullptr) {
+        // 缓存指针仍有效（非空且存活）则直接复用，跳过 UUID 查找开销
+        if (bullet->m_target != nullptr && bullet->m_target->isAlive()) {
+            target = bullet->m_target;
+        } else {
+            // 缓存失效，清空并通过 UUID 重新查找
+            bullet->m_target = nullptr;
+            if (!bullet->m_targetUuid.empty() && m_world != nullptr) {
+                Entity* found = m_world->getEntityByUuid(bullet->m_targetUuid);
+                if (found != nullptr && found->isAlive()) {
+                    bullet->m_target = found;
+                    target = found;
+                }
+            }
+        }
+    }
 
     // 服务端逻辑
     if (m_world != nullptr) {
-        // 检查目标是否有效
-        Player* playerTarget = dynamic_cast<Player*>(const_cast<Entity*>(target));
+        // 先判空，再 dynamic_cast，避免对悬垂指针操作导致 SIGSEGV
+        Player* playerTarget = (target != nullptr) ? dynamic_cast<Player*>(target) : nullptr;
         if (target == nullptr || !target->isAlive() || (playerTarget != nullptr && playerTarget->isSpectator())) {
             // 目标无效，下落
             if (!hasNoGravity()) {
